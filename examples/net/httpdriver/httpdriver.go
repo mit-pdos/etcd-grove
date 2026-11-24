@@ -130,7 +130,8 @@ func randomRequest() request {
 }
 
 // check is what the client relies on from a response received in full (its head parsed, its
-// body read to the end).
+// body read to the end). The network may cut the client-to-server direction alone, so the server
+// may have read only a prefix of the request: its own 400 is then a possible answer to any request.
 func check(q request, resp *http.Response, body string) {
 	switch q.kind {
 	case "echo":
@@ -144,17 +145,25 @@ func check(q request, resp *http.Response, body string) {
 			reached("echo")
 		}
 	case "status":
-		// Section status: the client receives the status and body the handler wrote.
-		if resp.StatusCode != teapot || body != "short and stout" {
-			panic("status: not the handler's status and body")
+		// Section status: the client receives the status and body the handler wrote -- or the
+		// server's own 400, if the network cut the request short (the server then answers what it
+		// read, and the handler never ran).
+		if resp.StatusCode == teapot {
+			if body != "short and stout" {
+				panic("status: the handler's status with another body")
+			}
+			reached("status")
+		} else if resp.StatusCode != http.StatusBadRequest {
+			panic("status: neither the handler's status nor the server's own 400")
 		}
-		reached("status")
 	case "notfound":
-		// Section mux: a path no pattern of the ServeMux matches is answered 404.
-		if resp.StatusCode != http.StatusNotFound {
-			panic("mux: an unmatched path was not answered 404")
+		// Section mux: a path no pattern of the ServeMux matches is answered 404 (or the server's
+		// own 400, for a request the network cut short); never by a handler.
+		if resp.StatusCode == http.StatusNotFound {
+			reached("mux")
+		} else if resp.StatusCode != http.StatusBadRequest {
+			panic("mux: an unmatched path was answered by neither 404 nor the server's own 400")
 		}
-		reached("mux")
 	default:
 		// Section bad-request: a request that does not parse is answered 400 by the server
 		// itself, and the connection is closed after it.
