@@ -39,7 +39,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
             os.ownOff f (W64 m.size + off)) ∨
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
   icombine Hf Hf' gives %hin
   cases hin
   unfold os.model.inner
@@ -88,7 +88,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
       iapply HΦ
       iframe Hosfd Hm
       isplitl [Hfd]
-      · iexists inner; iframe; isplitl [] <;> iassumption
+      · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
       · iright
         isplitr
         · ipureintro; intro h; cases h
@@ -99,7 +99,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
       iapply HΦ
       iframe Hosfd Hm
       isplitl [Hfd]
-      · iexists inner; iframe; isplitl [] <;> iassumption
+      · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
       · ileft
         isplitr
         · ipureintro
@@ -115,7 +115,7 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     · iright
       isplitr
       · ipureintro; intro h; cases h

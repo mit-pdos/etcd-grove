@@ -15,6 +15,7 @@ directory; onto a file or a non-empty directory the call fails with no effect). 
 -/
 module
 
+public import Proof.os.PkgInit
 public import Spec.os.RenameS
 public import Spec.fmt.ErrorOk
 public import GooseLang.Ext.Fs.TreeSharedRenameAny
@@ -54,7 +55,7 @@ abbrev os.Rename.specDirAnySnc : Prop :=
     (q r : Qp) (lb : Nat) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       osLogLb lb ∗ osNames j N (DFrac.own q) h ∗
       osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))

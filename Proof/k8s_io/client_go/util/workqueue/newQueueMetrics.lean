@@ -34,7 +34,7 @@ theorem newQueueMetrics.wp_proof : newQueueMetrics.spec (GF := GF) (hG := hG) :=
   · simp only [List.length_nil]
     wp_auto
     iapply HΦ; itrivial
-  · by_cases hl : name.length < 2 ^ 63
+  · by_cases hl : ((name).length : Int) ≤ maxAddr
     · rw [if_pos hl]
       wp_auto
       wp_if_destruct

@@ -22,6 +22,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.strings.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Perennial.Proof.bytes.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 

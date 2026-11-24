@@ -6,6 +6,7 @@ extension v2 (`GooseLang/Ext/Fs`): the file by inode, in the directory tree.
 module
 
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.PkgInit
 public import Spec.os.Crash
 public import Proof.os.CrashWrite
 public import Spec.os.File__ReadAt
@@ -672,7 +673,8 @@ theorem wp_Boot (wp_OpenFileC : os.OpenFile.specCrash (GF := GF) (hG := hG))
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (dir : GoString) (R : Roots) (q : Qp) (γ : GName) (s : CFile) (hs : StartOk s) :
-    {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R dir) q ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog ∗
+        osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R dir) q ∗
         cfInv (GF := GF) logN (child dir logB) R γ Good ∗ cfOwn (GF := GF) (child dir logB) R γ s }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.Boot)) (Val #dir))
     {{ RET #(); True }} := by

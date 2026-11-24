@@ -150,7 +150,6 @@ theorem modelReadMIMEHeader.wp : modelReadMIMEHeader.spec (GF := GF) (hG := hG) 
     modelReadLine.wp net.textproto.CanonicalMIMEHeaderKey.wp_proof
     vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.wp_proof
     vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldValue.wp_proof fmt.wp_Sprintf
-    fmt.wp_Sprintf_bytes
 
 theorem Header.Del.wp : Header.Del.spec (GF := GF) (hG := hG) :=
   Header.Del.wp_proof

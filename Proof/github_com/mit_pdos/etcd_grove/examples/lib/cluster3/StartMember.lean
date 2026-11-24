@@ -89,7 +89,7 @@ theorem StartMember.wp_proof
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
-    Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HnL Haf Hbuq Hrf Hdbo Hms
+    Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HnL Hpf Hcf Haf Hbuq Hrf Hdbo Hms
     HlP
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -135,7 +135,7 @@ theorem StartMember.wp_proof
       (GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂ (GMap.insert cfg.Name1' sl₁ ∅)))
       (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
+      ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩ Hpf Hcf
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
         (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) HnL Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %srv %err Hres
   · iframe; iframe #

@@ -82,6 +82,27 @@ theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoS
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
 
+/-- **An address within etcd's URL bounds** (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2):
+`http://addr` a plain peer URL (`http://host:port`, `types.plainPeerURL`) of at most
+`etcdURLLenMax` bytes, so that a member's URL list `[http://addr]` is within `NewServer`'s
+`etcdURLsFit` (`etcdURLsFit_httpURL`). Decidable: the examples' literal addresses discharge it by
+`decide`. -/
+def addrFits (a : GoString) : Prop :=
+  types.plainPeerURL (go!"http://" ++ a) ∧ (go!"http://" ++ a).length ≤ etcdURLLenMax
+
+instance (a : GoString) : Decidable (addrFits a) := by unfold addrFits; infer_instance
+
+/-- **`[http://addr]` is within etcd's URL bounds**, of an address that fits (`NewServer`'s
+`etcdURLsFit` premise). -/
+theorem etcdURLsFit_httpURL (a : GoString) (h : addrFits a) : etcdURLsFit [httpURL a] := by
+  refine ⟨by simp [etcdURLCountMax], fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := h.1.2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape a hpl
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, h.2⟩
+
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
 the member's initial URLs its peer URLs. -/

@@ -45,6 +45,9 @@ theorem fileutil.TouchDirAll.wp_proofExisting
     fileutil.TouchDirAll.specExisting (GF := GF) := by
   intro lg R J d dq qc hJ hlen htouch
   wp_start as ⟨#Hlg, #Hinv, #Hsi, #Hab, Hp, Hperm, Hn⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   ihave %hlgnn := zapLoggerOk_ne_null lg $$ Hlg
   simp only [hlgnn, decide_false, Bool.not_false]
@@ -166,7 +169,7 @@ theorem fileutil.TouchDirAll.wp_proofExisting
     rw [show (os.MkdirAll : GoString) = go!"os.MkdirAll" from rfl]
     wp_apply os.MkdirAll.wp_spineS (joinPath [] rcs) j0 _ R dq qc hR hm cs J hcs $$ [Hs Hperm]
       as %err ⟨Hs, Hperm, #Hfe⟩
-    · iframe; isplitl [] <;> iassumption
+    · iframe; (repeat' isplitl []) <;> iassumption
     cases err with
     | ok e =>
       wp_auto
