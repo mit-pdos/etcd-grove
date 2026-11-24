@@ -28,7 +28,7 @@ are valid UTF-8: the premise `labelMapOk`, against the vector's label names (`ve
 initializer's fact; D19l (iii), 2026-10-18); the map is read at any fraction and kept. -/
 abbrev prometheus.GaugeVec.With.spec : Prop :=
   ∀ (gv : Loc) (labels : Loc) (ls : List GoString) (M : GMap GoString GoString) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
+  {{ isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
       ⌜prometheus.vecLabels gv ls ∧ prometheus.labelMapOk ls M⌝ ∗ labels ↦${dq} M }}
     (App (Val (gv @!! go.GoType.PointerType github_com.prometheus.client_golang.prometheus.GaugeVec.ty @!! go!"With"))
       (Val #labels))

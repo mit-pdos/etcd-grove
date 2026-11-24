@@ -377,7 +377,17 @@ PROJECTS = [
         # modernize analyzer's errorsastype rewrite across the modules, and by hand where `As` is the
         # first operand of an `&&` (fileutil's preallocExtend/preallocFixed, isSafeRetryImmutableRPC),
         # so that those proofs use Perennial's proved `AsType` spec instead of its `errors.As` axiom.
-        rev="edc800c6f26223e2da34f874c0dad3e1b3c668b7",
+        # Then (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42 item 2, per the fmt decision on
+        # mit-pdos/perennial#671) bc2b5f4d0 (branch `goose-lean-fmtattrs`, on edc800c6f): `publishV3`'s
+        # three log lines format the member's attributes field by field,
+        # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
+        # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
+        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved by Upamanyu via
+        # coordinator-E) 6b942d23f (branch `goose-lean-slicessort-on-fmtattrs`, on bc2b5f4d0; first
+        # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
+        # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
+        # Perennial does not model), an upstream-ready change.
+        rev="6b942d23f4aa521933095fd2ac8724e99ff38cdf",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -501,6 +511,9 @@ PROJECTS = [
             "golang.org/x/crypto/bcrypt",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
+            # (prove-ps2-srvgoroutines, 2026-11-24, #42) `FDUsage`/`FDLimit` trusted (pkg/v3/runtime.toml):
+            # `monitorFileDescriptor`'s leaves
+            "go.etcd.io/etcd/pkg/v3/runtime",
             "go.etcd.io/etcd/pkg/v3/notify",
             "go.etcd.io/etcd/pkg/v3/pbutil",
             "go.etcd.io/etcd/pkg/v3/traceutil",
@@ -561,6 +574,9 @@ PROJECTS = [
             # and the `buffer.NewPool` they call
             "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
             "go.uber.org/zap/buffer",
+            # (zap-z2, 2026-11-23) what `zapcore.CheckedEntry.Write` and its terminal hooks call: zap's
+            # `internal/exit` (`With`, over `os.Exit`) with its body, `multierr` names only (no core)
+            "go.uber.org/zap/internal/exit", "go.uber.org/multierr",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -570,6 +586,8 @@ PROJECTS = [
             # `gauge`'s field `labelPairs` (`[]*dto.LabelPair`), so that the struct is translated (its
             # methods are, with their bodies). (`counter` also needs `timestamppb`, whose names-only
             # initializer would add two trust-boundary axioms: not taken.)
+            # (prom-registry, route (b), 2026-11-22) and of `Desc.constLabelPairs` (the default registry
+            # is translated)
             "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
@@ -975,11 +993,13 @@ PROJECTS = [
         # vendored `httpguts`, which the model's server calls, names only here)
         lean_roots=["models.lab=Net", "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=",
                     "internal/syscall=", "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
-                    "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
+                    "golang.org/x/net/http/httpguts=Net", "go/token=Net", "mime/multipart=Net"],
+        # (`net/http/internal/ascii`: names only, what `readTransfer`'s `parseTransferEncoding` names;
+        # `net/http/internal`: the toolchain's chunked writer with its bodies, phase 7 S5)
         packages=["net/rpc", "net/http", "net/textproto", "vendor/golang.org/x/net/http/httpguts",
-                  "go/token"],
+                  "go/token", "mime/multipart", "net/http/internal/ascii", "net/http/internal"],
         owned=[os.path.join("net", "rpc"), os.path.join("net", "http"),
-               os.path.join("net", "textproto"),
+               os.path.join("net", "textproto"), os.path.join("mime", "multipart"),
                os.path.join("vendor", "golang_org", "x", "net", "http", "httpguts"),
                os.path.join("go", "token")],
         std_models=["net/rpc", "net/http"],
@@ -2172,7 +2192,7 @@ def dsv_kits():
     d = os.path.join(ROOT, "etc", "dsv")
     out = []
     for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        if not f.endswith(".py") or f.startswith("_"):
+        if not f.endswith(".py") or f.startswith("_") or f == "kitgen.py":  # (the generator)
             continue
         spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
         m = importlib.util.module_from_spec(spec)

@@ -1,0 +1,10 @@
+# (zap-z2, 2026-11-23) names only but its package variables (their initializers translated, so that
+# importing it, as zapcore does, needs no trust-boundary axiom): the byte-slice separators and the
+# `bytes.Buffer` pool. `Append`, which `zapcore.CheckedEntry.Write` calls on its cores' errors, is
+# names only: a `NewNop` logger's entries have no core, so no proof reaches it.
+translate = ["!*", "_singlelineSeparator", "_multilinePrefix", "_multilineSeparator",
+  "_multilineIndent", "_bufferPool", "_"]
+imports = ["!*", "bytes", "sync"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

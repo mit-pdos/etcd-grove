@@ -87,7 +87,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
     icases Hpk with ⟨%body, reply, Hresp, Hbody⟩
     wp_apply +noauto wp_Lock _ _ $$ [$Hsync $Hmu] as ⟨Hlk, Hinv⟩
     iunfold srvSendInv at Hinv
-    icases Hinv with ⟨%w0, %Wd, %Rs, Hwerr, Hsend, Hrec, ⟨%HRs, %HWd, %Hw0⟩⟩
+    icases Hinv with ⟨%w0, %Wd, %Rs, Hwerr, Hsend, Hrec, #Hsl, ⟨%HRs, %HWd, %Hw0⟩⟩
     wp_auto_lc 1
     cases w0 with
     | ok e =>
@@ -100,16 +100,24 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         wp_apply wp_Unlock _ (srvSendInv W a cn sc) $$ [$Hsync $Hmu $Hlk Hwerr Hsend Hrec]
         · iunfold srvSendInv
           iexists _, Wd, Rs
-          iframe Hwerr Hsend Hrec
+          iframe Hwerr Hsend Hrec Hsl
           ipureintro; exact ⟨HRs, HWd, Hw0⟩
         wp_apply wp_freeResponse s γs resp _ $$ [$Hsrv $Hresp]
         iapply HΦ; iexact Hreq
       · exact Hc.elim
     | nil =>
-      have hWd := Hw0 rfl
+      ihave ⟨Hpend, #HhsA⟩ := ansPend_hsAns W a cn k _ Φc $$ Hpend
+      ihave %Hpre := sendTok_sentLb_prefix (Gg := hG.goose_globalGS) cn true _ Wd (W.hsAns a)
+        $$ Hsend HhsA
+      have hWd : Wd = W.hsAns a ++ respsWire Rs := by
+        rcases Hw0 rfl with h | ⟨hR, hp⟩
+        · exact h
+        · have h0 : respsWire ([] : List Ans) = [] := by simp [respsWire, framesOf_nil]
+          rw [hR, h0, List.append_nil]
+          exact hp.eq_of_length (Nat.le_antisymm hp.length_le Hpre.length_le)
       have hwf : ∀ eb, Wd ++ respWire rqv.Seq' rqv.ServiceMethod' errmsg eb =
-          respsWire (Rs ++ [(k, rqv.ServiceMethod', errmsg, eb)]) := fun eb => by
-        rw [respsWire_snoc, hWd, Hseq]
+          W.hsAns a ++ respsWire (Rs ++ [(k, rqv.ServiceMethod', errmsg, eb)]) := fun eb => by
+        rw [respsWire_snoc, hWd, Hseq, List.append_assoc]
       ihave Hupd : (⌜(interface.nil : GoInterface) = interface.nil⌝ -∗ respUpd (hG := hG) cn
           (respProto (Gg := hG.goose_globalGS) W a) Wd rqv.Seq' rqv.ServiceMethod' errmsg
           (fun eb => Φc eb errmsg)
@@ -124,7 +132,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         icases resp_step W a cn γ Rs (k, rqv.ServiceMethod', errmsg, eb) (fun y hy => by
             rcases List.mem_append.1 hy with h | h
             · exact HRs y h
-            · simp at h; subst h; exact hx) $$ [$Hrpc $Hel $Hrec] with ⟨#HP, Hrec⟩
+            · simp at h; subst h; exact hx) $$ [$Hrpc $Hsl $Hel $Hrec] with ⟨#HP, Hrec⟩
         imodintro
         rw [hwf eb]
         dsimp only
@@ -147,9 +155,9 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         wp_apply wp_Unlock _ (srvSendInv W a cn sc) $$ [$Hsync $Hmu $Hlk Hwerr Hsend Hrec]
         · iunfold srvSendInv
           iexists _, _, _
-          iframe Hwerr Hsend Hrec
+          iframe Hwerr Hsend Hrec Hsl
           ipureintro
-          exact ⟨hRs', by rw [hw]; exact List.prefix_refl _, fun _ => hw.symm⟩
+          exact ⟨hRs', by rw [hw]; exact List.prefix_refl _, fun _ => Or.inl hw.symm⟩
         wp_apply wp_freeResponse s γs resp _ $$ [$Hsrv $Hresp]
         iapply HΦ; iexact Hreq
       · ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
@@ -158,7 +166,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         wp_apply wp_Unlock _ (srvSendInv W a cn sc) $$ [$Hsync $Hmu $Hlk Hwerr Hsend Hrec]
         · iunfold srvSendInv
           iexists _, _, _
-          iframe Hwerr Hsend Hrec
+          iframe Hwerr Hsend Hrec Hsl
           ipureintro
           refine ⟨hRs', by rw [hw]; exact (List.prefix_append_right_inj _).2 Hw, fun h => ?_⟩
           exact absurd h (by simp [interface.mkOk])

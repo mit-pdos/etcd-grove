@@ -220,7 +220,10 @@ func DialHTTPPath(network, address, path string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	io.WriteString(conn, "CONNECT "+path+" HTTP/1.0\n\n")
+	// MODEL: io.WriteString(conn, s) as conn.Write([]byte(s)), what io.WriteString does for a
+	// writer without a WriteString method, as the net package's *TCPConn (Perennial does not
+	// translate io.WriteString).
+	conn.Write([]byte("CONNECT " + path + " HTTP/1.0\n\n"))
 
 	// Require successful HTTP response
 	// before switching to RPC protocol.

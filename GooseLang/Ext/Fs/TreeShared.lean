@@ -1,14 +1,14 @@
 /-
-**The shared mode of the tree: its API** (`notes/wal-fsext-i2-design.md`; its "Review and decisions"
-and "Implementation log"). Concurrent metadata calls, each holding a fraction of a call permission
+**The tree: its API** (`notes/wal-fsext-i2-design.md`; its "Review and decisions" and
+"Implementation log"; `notes/fs-interp-state-determined.md`: the one view). Concurrent metadata calls, each holding a fraction of a call permission
 (`osCallPerm`); shared directory fds that hold nothing (`osDirFdS`); region ownership by name claims
 (`osNames j N dq h`: the names `N` of the directory `j`, with what is known of them, `NamesH`); the
-log's length and entries as persistent facts (`osLogLb`, `osLogEnt`); the mode switch
-(`wp_osShare`); the extension-level specs of the shared mode; what a region concludes of a crash
-(`crashRest_region`). Untrusted.
+log's length and entries as persistent facts (`osLogLb`, `osLogEnt`); what a generation starts
+with (`osShared`: from `fs_start` at the first start, `crashRest_treeS` after a crash); the
+extension-level specs; what a region concludes of a crash (`crashRest_region`). Untrusted.
 
 The resources (all of the generation's ghost state):
-* `osSharedInv R`: the shared mode's invariant, on the roots `R`: the shared history, the claims'
+* `osSharedInv R`: the tree's invariant, on the roots `R`: the shared history, the claims'
   authority (`NamesCoh`: each claim's history is the history's, the claims of a directory are
   disjoint and cover its names), the log's length and entries. Every shared spec takes it, with
   `↑osShN ⊆ E`.
@@ -33,9 +33,6 @@ Every statement is proved in a `TreeShared*.lean` module.
 -/
 module
 
-public import GooseLang.Ext.Fs.TreeCrashCommit
-public import GooseLang.Ext.Fs.TreeSpecsOpen
-public import GooseLang.Ext.Fs.TreeSpecsMeta
 public import GooseLang.Ext.Fs.TreeCutProof
 public import GooseLang.Ext.Fs.TreeSharedSwitch
 public import GooseLang.Ext.Fs.TreeSharedCrash
@@ -60,7 +57,6 @@ namespace Perennial
 namespace Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
-
 
 /-! ## The laws of the resources (fancy updates in the shared invariant) -/
 
@@ -204,21 +200,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
-
-/-- **The mode switch**, at any step of the extension: the whole legacy history `V` (no legacy call
-or directory fd) for the shared mode's resources: its invariant, the whole call permission, the
-log's length, a claim on all names of every directory of the tree; key `[]`'s whole permission goes into
-its dispenser (`osAboveInv`). Irreversible. -/
-theorem wp_osShare (R : Roots) (V : Hist) (op : String) (v : val) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
-        osLogLb (L := L) V.2.length -∗
-        ([∗list] j ∈ (GMap.toList V.now).map (·.1),
-          osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
-        WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
-      WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} :=
-  wp_osShare' R V op v hE Φ
 
 /-- **`CallBegin(p)`** in the shared mode, with a fraction `q` of the call permission: a call on `p`
 in flight holding it, begun at a log length `s0` at least any the caller knew. -/
@@ -680,13 +661,13 @@ theorem crashRest_treeWf (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       ⌜TreeWf R V'.now⌝ ∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' :=
   crashRest_treeWf' Q L L' D tt V' R E hE
 
-/-- **The tree after a crash, in the shared mode**: the new generation's history, whole (the new
-generation starts in the legacy mode), the crashed tree with the shared invariant's roots. -/
+/-- **The tree after a crash**: the new generation's shared invariants and resources (`osShared`),
+on the shared invariant's roots, for the crashed tree with nothing logged. -/
 theorem crashRest_treeS (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
     (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
-      ⌜V'.2 = []⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
+      ⌜V'.2 = []⌝ ∗ osShared (L := L') R V' ∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' :=
   crashRest_treeS' Q L L' D V' R E hE
 

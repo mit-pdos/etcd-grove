@@ -120,8 +120,11 @@ translate = ["!*",
   "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes",
   # (prove-etcdint3, 2026-11-21) hash.go's compaction hasher, over `hash/crc32`'s digest (`New`, `Write`,
   # `Sum32`: proved, with the trusted `MakeTable`/`update`)
-  "newKVHasher", "kvHasher.WriteKeyValue", "kvHasher.Hash"]
-imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "hash", "hash/crc32", "math", "sync", "time",
+  "newKVHasher", "kvHasher.WriteKeyValue", "kvHasher.Hash",
+  # (sortslice, 2026-11-24) `hashStorage.Store`, which the fork's a336e97f9 sorts with `slices.SortFunc`
+  # (`cmp.Compare` on the revisions), proved over Perennial's `slices.SortFunc` spec
+  "hashStorage.Store", "hashStorageMaxSize"]
+imports = ["!*", "bytes", "cmp", "context", "encoding/binary", "errors", "fmt", "hash", "hash/crc32", "math", "slices", "sync", "time",
   "go.etcd.io/etcd/pkg/v3/schedule", "go.etcd.io/etcd/pkg/v3/adt",
   "go.etcd.io/etcd/client/v3", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.opentelemetry.io/otel/trace",

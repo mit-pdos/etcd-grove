@@ -104,7 +104,8 @@ bucket's two key names and `auth.go`'s `authEnabled`/`authDisabled` values (`[]b
 `[]byte{0}`), after the earlier conjuncts (every destructuring's trailing `-` keeps them); and
 (leases T3, 2026-10-25) the lessor's `Lease` bucket (id 3, not safe-range); (prove-ps2-members,
 2026-11-22) the membership's `Members`, `MembersRemoved` and `Cluster` buckets (ids 10, 11, 5, not
-safe-range), the last two last. -/
+safe-range), the last two last; (prove-ps2-v3alarm, 2026-11-24) the alarm store's `Alarm` bucket (id 4, not
+safe-range), last. -/
 abbrev schemaInit : IProp GF :=
   iprop((∃ b : GoInterface, globalAddr Meta ↦□ b ∗ bucketIs b (W64 2) metaName false) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
@@ -124,11 +125,12 @@ abbrev schemaInit : IProp GF :=
     (∃ b : GoInterface, globalAddr Members ↦□ b ∗ bucketIs b (W64 10) go!"members" false) ∗
     (∃ s : GoSlice, globalAddr MetaConfStateName ↦□ s ∗ s ↦*□ (go!"confState" : GoString)) ∗
     (∃ b : GoInterface, globalAddr MembersRemoved ↦□ b ∗ bucketIs b (W64 11) go!"members_removed" false) ∗
-    (∃ b : GoInterface, globalAddr Cluster ↦□ b ∗ bucketIs b (W64 5) go!"cluster" false))
+    (∃ b : GoInterface, globalAddr Cluster ↦□ b ∗ bucketIs b (W64 5) go!"cluster" false) ∗
+    (∃ b : GoInterface, globalAddr Alarm ↦□ b ∗ bucketIs b (W64 4) go!"alarm" false))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   build_get_is_pkg_init_wf
 
@@ -139,7 +141,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.cindex
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex :=
   build_get_is_pkg_init_wf
 

@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.net.url
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 noncomputable section

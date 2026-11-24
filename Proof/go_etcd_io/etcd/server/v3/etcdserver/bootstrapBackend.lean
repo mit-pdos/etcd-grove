@@ -195,8 +195,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxRecDepth 100000 in
--- (the kernel's check exceeded 4000000 on the VM's build, 2026-11-24)
-set_option maxHeartbeats 0 in
 theorem bootstrapBackend.wp_proof
     (hBP : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (hExF : bootstrapBackend.existFree.law (GF := GF) (hG := hG))
@@ -381,7 +379,10 @@ theorem bootstrapBackend.wp_proof
   isplitl [HnV HnH HnRB HnRd HnDl HnFk HnSr HnTok HwbL HoAB]
   · iunfold bootBackendNew
     iunfold backend.newPostK
-    simp only [bootKB_P_eq, π']
+    -- `rw`, not `simp only`: `bootKB_P_eq` is `rfl`, so `simp` would rewrite without a proof and
+    -- leave the kernel a definitional check under `[∗list] _ ∈ List.replicate rdSlotsN ()`, which it
+    -- did by unfolding the `2 ^ 30`-element list (2026-11-24: a timeout, then 175 GB at no bound)
+    rw [bootKB_P_eq]
     iframe HnB HnSC HnV HnH HnRB HnRd HnDl HnFk HnSr HnTok
     iunfold bootLeft
     iframe HwbL HoAB

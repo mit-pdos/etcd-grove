@@ -1177,3 +1177,13 @@ The old `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean` s
    `theorem raft_kvnet_robust_example : raft_kvnet_robust_example.spec := raft_kvnet_robust_example_of raft_kvnet_robust`
    with `#print axioms` of each; then delete `Robust.lean` and CLAUDE.md's "(kvnet's statement, not proved
    yet: ...Robust.lean.)", and rerun `etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check --update`.
+
+## The top-level theorem takes the plain name (2026-11-23)
+
+With `Hb` gone, which the file extension's single shared view made possible
+(`notes/fs-interp-state-determined.md`), the theorem has no hypothesis. So it takes the plain
+names: `raft_kvnet_robust : raft_kvnet_robust.spec` and
+`raft_kvnet_robust_example : raft_kvnet_robust_example.spec`. Before, they were
+`raft_kvnet_robust_of_errors` and `raft_kvnet_robust_example_of_errors`. The statements are
+unchanged. The sections above that name `TopBridge`, `TopCrash` and `RobustOfNetFsBootG` describe
+what came before.

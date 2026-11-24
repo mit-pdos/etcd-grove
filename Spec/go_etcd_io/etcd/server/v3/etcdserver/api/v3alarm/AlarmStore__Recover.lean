@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumpt
 backend at `be0`), with a schema alarm backend `ab` over the real backend at `be` whose alarm bucket
 is tracked (`P.RB`), in the table (`P.has`) and empty or absent in a part of any bucket set `S`
 containing it (`backend.rbPart γB S r`), with a pooled reader's resource and the caller's thread
-token (`backend.bkRPool`, `threadTok`): under the store's mutex, `a.be := ab`, `a.types` a fresh map,
+token (`backend.bkRPool`, `threadTok`), two write-back tokens and the alarm bucket's claim token
+(`restore`'s, 2026-11-24, prove-ps2-v3alarm; the claim token handed back): under the store's mutex, `a.be := ab`, `a.types` a fresh map,
 `restore` (`AlarmStore.restore.spec`); no error, the store on the backend at `be` with no alarm
 (`alarmEmpty a be`: the fresh map is empty, 2026-11-01, J8a-5), the alarm bucket created and the
 part **idle** (`rbOwnIn`, as `restore` gives it). (2026-11-02, the backend-auth-split stage: until
@@ -42,15 +43,16 @@ abbrev v3alarm.AlarmStore.Recover.spec : Prop :=
       alarmBkBeAddr abl ↦□ (interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #be :
           GoInterface) ∗
-      alarmBkLgAddr abl ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
-      backend.isBackend γB P W Pk be ∗ backend.bOpen γB qo ∗ backend.wbTok γB ∗
+      alarmBkLgAddr abl ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ ⌜abl ≠ null⌝ ∗
+      backend.isBackend γB P W Pk be ∗ backend.bOpen γB qo ∗ backend.wbTok γB ∗ backend.wbTok γB ∗
       backend.bkRPool γB P be ∗ threadTok ∗
-      backend.rbPart γB S r ∗ ⌜(r.lookup go!"alarm").getD ∅ = ∅⌝ }}
+      backend.rbPart γB S r ∗ ⌜(r.lookup go!"alarm").getD ∅ = ∅⌝ ∗
+      backend.rbClaimToks γB P (· = go!"alarm") }}
     (App (Val (a @!! go.GoType.PointerType v3alarm.AlarmStore.ty @!! go!"Recover"))
       (Val #(alarmBkIface abl)))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ alarmEmpty a be ∗
       backend.bOpen γB qo ∗ backend.bkRPool γB P be ∗ threadTok ∗
-      backend.rbOwnIn γB S (r.insert go!"alarm" ∅) }}
+      backend.rbOwnIn γB S (r.insert go!"alarm" ∅) ∗ backend.rbClaimToks γB P (· = go!"alarm") }}
 
 end spec
 

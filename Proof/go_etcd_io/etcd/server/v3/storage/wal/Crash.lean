@@ -16,8 +16,8 @@ The `_keep` lemmas (`walDiskAt_crash_keep`, `walDiskAt_crash_any_keep`, `walDisk
 `walAbsent_crash_keep`, `dirDurable_crash_keep`, `walArea_crash_keep`) are `AbsDisk/Specs.lean`'s, with
 the same conclusions, over `walCrashWal`: what the tester's `tester_crash` uses.
 
-`walInv_alloc`: the new generation's invariant from its start, once the tree is in shared mode and
-the WAL's names are claimed (`wp_osShare`, `osNames_split`).
+`walInv_alloc`: the new generation's invariant from its start, once the WAL's names are claimed in
+the tree's shared view (`osShared`, `osNames_split`).
 -/
 module
 
