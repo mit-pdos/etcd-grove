@@ -5,7 +5,15 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State (2026-11-24, tenth agent, P14: on lean 37bfea9484):** `lean` merged (Perennial b3f2fc485, dsv-steps63 landed); `Client.Call`'s frame bound discharged (P13); the closed `craq_remote_robust` waits for the real-`fmt` pin bump (`pin-bump-52d62e83c/2026-11-24`: Perennial ed1955557's proved `strings.Cut`/`TrimLeft`), until then `craq_remote_robust_of_strings`; non-vacuity instances: none without axioms (P14). Lands right after the pin bump.
+**State (2026-11-24, eleventh agent, P15: on lean af4fd74b00, Perennial 52d62e83c):** `lean` merged
+(the real-`fmt` pin bump); the proved theorem is the plain **`craq_remote_robust :
+craq_remote_robust.spec`** (statement unchanged: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`): Net's
+`DialHTTP.wp` gets `strings.Cut`/`TrimLeft` from Perennial's proofs (`strings.wp_Cut`,
+`strings.wp_TrimLeft`) through `Proof/strings/FromPerennial.lean`; `StringsPending`,
+`stringsPending.spec` and `craq_remote_robust_of_strings` are gone. `#print axioms`: Lean's three.
+Non-vacuity open (below). Ready to land.
+
+**Older state (2026-11-24, tenth agent, P14: on lean 37bfea9484):** `lean` merged (Perennial b3f2fc485, dsv-steps63 landed); `Client.Call`'s frame bound discharged (P13); the closed `craq_remote_robust` waits for the real-`fmt` pin bump (`pin-bump-52d62e83c/2026-11-24`: Perennial ed1955557's proved `strings.Cut`/`TrimLeft`), until then `craq_remote_robust_of_strings`; non-vacuity instances: none without axioms (P14). Lands right after the pin bump.
 
 **Older state (2026-11-23, eighth agent, P12: review #24's craq findings fixed):** craq is on
 `models-rpc-http`'s shapes verbatim (merged `origin/models-rpc-http` fda1e58c0a and `origin/lean`
@@ -552,9 +560,9 @@ against the statement at afff9fd399):
 - the eleven `RpcBoot`s, one per command (`cmd.client0`..`client4`, `cmd.server1`..`server6`):
   net/rpc's and net/http's initializers, names only.
 
-Not a class of the statement, but a premise of the proved theorem: `stringsPending.spec`
-(`craq_remote_robust_of_strings`; Perennial's `strings.Cut`/`TrimLeft`), which goes with the pin
-bump that brings their specs (P14).
+Until P15 the proved theorem also took `stringsPending.spec` (`craq_remote_robust_of_strings`;
+Perennial's `strings.Cut`/`TrimLeft`); since the pin 52d62e83c those are Perennial's proofs
+(`Proof/strings/FromPerennial.lean`) and the theorem is `craq_remote_robust`.
 
 **The removed axiom-based files** are in history: `Dsverify/Proof/github_com/despreston/go_craq/
 examples/craqnet/NonVacuityLinked.lean` (added c17f4f4c68, last at 296417da29) and the scratch
@@ -695,3 +703,14 @@ porcupine replaces it).
   contain Perennial ed1955557 (52d62e83c does), so `DialHTTP.wp` still takes `h_Cut`/`h_TrimLeft`
   and the theorem is `craq_remote_robust_of_strings`; after the pin bump: `craq_remote_robust :=
   craq_remote_robust_of_strings (fun => ⟨…Cut proof, …TrimLeft proof⟩)`, delete `StringsPending`.
+
+- **P15 (2026-11-24, eleventh agent): onto the real-`fmt` pin.** Merged `lean` af4fd74b00 (Perennial
+  52d62e83c; no conflict); the twelve generated `cmd/*/PkgTable.lean` regenerated (`etc/gen-init.py`:
+  the pin's new packages `internal/abi`, `internal/gomodel`, `reflect` in the closures). New
+  `Proof/strings/FromPerennial.lean` (defs tier, shared with dsv-gryff, identical file):
+  `EtcdGrove.strings.cut_eq` (this repository's `strings.cut` is Perennial's
+  `internal.stringslite.cut`), `strings.Cut.of_perennial`, `strings.TrimLeft.of_perennial` (this
+  repository's specs from Perennial's; `TrimLeft`'s precondition is weaker in Perennial). `Link.lean`'s
+  `rpcClientSpecs` passes them, over `strings.wp_Cut`/`wp_TrimLeft`, to Net's `net.rpc.DialHTTP.wp`;
+  `StringsPending` and `stringsPending.spec` deleted; `craq_remote_robust_of_strings` became
+  `craq_remote_robust` (no hypothesis). The statement is unchanged (its step bound already `2 ^ 63`).
