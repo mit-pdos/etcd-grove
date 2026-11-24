@@ -4,7 +4,6 @@ Proof of `Spec/k8s_io/client_go/util/workqueue/newQueue.lean`. Lean-first.
 module
 
 public import Spec.k8s_io.client_go.util.workqueue.newQueue
-public import Proof.sync.MutexLitSemantics
 public import Proof.k8s_io.client_go.util.workqueue.Lemmas
 
 @[expose] public section
@@ -26,7 +25,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-theorem newQueue.wp_proof [EtcdGrove.MutexLitSemantics] : newQueue.spec (GF := GF) (hG := hG) := by
+theorem newQueue.wp_proof : newQueue.spec (GF := GF) (hG := hG) := by
   intro K T _ c l nm period
   wp_start as Hfifo
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
