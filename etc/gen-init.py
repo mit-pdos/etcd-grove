@@ -2120,8 +2120,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
 (`auth.go`; the auth plan's S1, 2026-10-23), the lessor's `Lease` bucket (leases T3,
-2026-10-25) and the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
-2026-11-22). Its initializer allocates and sets those translated variables (with the buckets'
+2026-10-25), the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
+2026-11-22) and the alarm store's `Alarm` bucket (prove-ps2-v3alarm, 2026-11-24). Its initializer allocates and sets those translated variables (with the buckets'
 names), initializes its imports and runs its other variables' initializers, all translated
 (prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
 interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its `init` function
@@ -2155,7 +2155,7 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto']
-                           + ['wp_apply wp_string_to_bytes go!"alarm" as %_ ⟨-, -⟩', 'try wp_auto',
+                           + ['wp_apply wp_string_to_bytes go!"alarm" as %salarm ⟨Hsalarm, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"cluster" as %scluster ⟨Hscluster, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"members" as %smembers ⟨Hsmembers, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"members_removed" as %smrem ⟨Hsmrem, -⟩',
@@ -2210,7 +2210,9 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
             'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease',
             # (prove-ps2-members, 2026-11-22) the membership's three buckets
             'ipersist Hscluster', 'ipersist Hsmembers', 'ipersist Hsmrem', 'ipersist HMembersRemoved',
-            'ipersist HCluster'] + FIN_PRE[:6] + ['imodintro',
+            'ipersist HCluster',
+            # (prove-ps2-v3alarm, 2026-11-24) the alarm store's bucket
+            'ipersist Hsalarm', 'ipersist HAlarm'] + FIN_PRE[:6] + ['imodintro',
             'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )

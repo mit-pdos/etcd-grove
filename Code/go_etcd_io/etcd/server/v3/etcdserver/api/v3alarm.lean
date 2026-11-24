@@ -164,6 +164,65 @@ noncomputable def AlarmStore.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "$res0")))))))
 
+/-- go: alarms.go:112:22 -/
+noncomputable def AlarmStore.restore.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty go!"GetAllAlarms"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "ms" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))) (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Var "ms"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AlarmStore.ty) go!"addToMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))))) (Pair (Var "ms") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty go!"CreateAlarmBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))) (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema]
 
@@ -260,6 +319,7 @@ class AlarmStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmStore.ty) [(go!"Activate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"Deactivate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))]))), (go!"Recover", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.addToMap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.restore", (some (go.signature.Signature [] false [go.error])))]
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Get" AlarmStore.Get.impl
   ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Recover" AlarmStore.Recover.impl
+  ptr_restore_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"restore" AlarmStore.restore.impl
 
 attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.underlying
@@ -275,6 +335,7 @@ attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.ptr_method_set
   AlarmStore.TypeAssumptions.ptr_Get_unfold
   AlarmStore.TypeAssumptions.ptr_Recover_unfold
+  AlarmStore.TypeAssumptions.ptr_restore_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackendGetter_instance : BackendGetter.TypeAssumptions

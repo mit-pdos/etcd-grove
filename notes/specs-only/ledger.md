@@ -5545,3 +5545,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-24: v3alarm.AlarmStore.restore: two write-back tokens, the alarm bucket's claim token, a non-nil schema backend (prove-ps2-v3alarm, #43)
+
+- **Spec.** `v3alarm.AlarmStore.restore.spec` and `AlarmStore.Recover.spec` (`Spec/.../etcdserver/api/v3alarm/`), which
+  were proved over `restore`'s trust-boundary axiom; and `schema.NewAlarmBackend.spec`'s post.
+- **Defect.** Three resources the body needs that the statements did not hand in, found by proving `restore` over
+  its body: (1) one write-back token (`backend.wbTok`), where `CreateAlarmBucket`'s deferred `Unlock` and
+  `ForceCommit`'s commit each spend one; (2) no claim token of the alarm bucket, without which the idle part
+  (`rbOwnIn`) says nothing of what `GetAllAlarms`' read transaction sees (a claimed bucket's readers' contents may
+  lag the writer's: the claim invariant links them only for an unclaimed one); (3) nothing saying the schema
+  backend's pointer `abl` is not nil, which `ForceCommit`, a value method called through the pointer, dereferences
+  (Go panics on a nil `*alarmBackend`). Not a bug in Go: `NewAlarmBackend` allocates.
+- **Evidence.** The proof (`Proof/.../v3alarm/AlarmStore__restore.lean`, over `schema.alarmBackend`'s
+  `CreateAlarmBucket`, `GetAllAlarms`, `unsafeGetAllAlarms`, `ForceCommit` and the new backend law
+  `backend.rtHeld_rbOwnIn_idle`, `Proof/.../backend/IdleRead.lean`).
+- **Proposed change.** `restore.spec`/`Recover.spec` take a second `wbTok γB`, `rbClaimToks γB P (· = "alarm")`
+  (handed back in the post) and `⌜abl ≠ null⌝`; `NewAlarmBackend.spec`'s post adds `⌜l ≠ null⌝` (a fresh
+  allocation). The one caller of `Recover`, `SnapApplyWalk` (`applySnapshot`), takes the extra token from the new
+  backend's stock (one fewer for `srvWTStock`), the claim token from the new backend's tokens (split from the auth
+  buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
+  No top-level statement changes (the tokens come from the backend's constructor inside the proof).
+- **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.

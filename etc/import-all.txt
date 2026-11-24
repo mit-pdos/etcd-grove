@@ -16,6 +16,9 @@ allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_i
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
+# (prove-ps2-v3alarm, 2026-11-24) the idle-read law opens the sealed claim invariant and `rbRd` (and closes them
+# unchanged): a reader of an idle unclaimed tracked bucket sees the writer's contents
+allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_io.etcd.server.v3.storage.backend.IdleRead
 
 # The WAL's API (2026-11-03, `notes/decisions.md`, "The WAL's API"): the records, a WAL directory's
 # state and the purge's right are ghost variables whose meaning is trusted (what the WAL's files

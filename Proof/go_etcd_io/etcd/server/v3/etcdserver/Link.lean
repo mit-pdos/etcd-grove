@@ -543,6 +543,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__CreateAlarmBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__ForceCommit
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__GetAllAlarms
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__unsafeGetAllAlarms
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__BatchTx
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__CreateAuthBuckets
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ForceCommit
@@ -1855,9 +1859,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+theorem schema.alarmBackend.wp_CreateAlarmBucket :
+    schema.alarmBackend.CreateAlarmBucket.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.CreateAlarmBucket.wp_proof backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.alarmBackend.wp_unsafeGetAllAlarms :
+    schema.alarmBackend.unsafeGetAllAlarms.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.unsafeGetAllAlarms.wp_proof backend.readTx.wp_UnsafeForEach schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.alarmBackend.wp_GetAllAlarms :
+    schema.alarmBackend.GetAllAlarms.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.GetAllAlarms.wp_proof backend.backend.wp_ReadTx backend.readTx.wp_RLock backend.readTx.wp_RUnlock schema.alarmBackend.wp_unsafeGetAllAlarms
+
+theorem schema.alarmBackend.wp_ForceCommit :
+    schema.alarmBackend.ForceCommit.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.ForceCommit.wp_proof backend.backend.wp_ForceCommit
+
 theorem v3alarm.AlarmStore.wp_restore :
     v3alarm.AlarmStore.restore.spec (GF := GF) (hG := hG) :=
-  v3alarm.AlarmStore.restore.wp_proof
+  v3alarm.AlarmStore.restore.wp_proof schema.alarmBackend.wp_CreateAlarmBucket schema.alarmBackend.wp_GetAllAlarms schema.alarmBackend.wp_ForceCommit
 
 theorem v3alarm.AlarmStore.wp_Recover :
     v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) :=
