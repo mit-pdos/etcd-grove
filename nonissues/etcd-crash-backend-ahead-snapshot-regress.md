@@ -68,14 +68,26 @@ correlated crash of the leader too.
    see the move. Once `ep.appliedi` passes `i`, every accepted snapshot is above the backend's
    index. Only the member's metrics (`etcd_mvcc_*revision`) may show the drop.
 
+## Fix (fork, 2026-11-24)
+
+The fork's `goose-lean-slicessort-on-fmtattrs-snapguard` (8aa40fd5c, on the pin `6b942d23f4`; the pin of
+`etc/goose.py` since etcd-dist D6 T4) makes `applySnapshot` keep the backend when the snapshot's index
+is at or below the backend's consistent index: it moves `appliedi`, `appliedt`, the disk and memory
+snapshot indices and the conf state to the snapshot's and returns, without opening the snapshot's
+database or recovering the stores. The backend already holds every entry up to its consistent index,
+and the entries between the snapshot and it are skipped by the apply loop as in any restart replay, so
+the backend never moves back. `TestApplySnapshotBelowBackend` (`server/etcdserver/
+snapshot_below_backend_test.go`) calls `applySnapshot` with snapshots at 5 and 7 below or at a backend
+at 7: the backend is kept and the applied state moves; without the guard it panics opening the
+snapshot's database. Upstream-ready as a hardening (the regression is not client-visible, above).
+
 ## Proof
 
-no: not a client-visible bug, and the graceful results are unaffected. A crash-form restart theorem
-(`etcd_safe`'s crash law, `NewServer.wp_proofC`'s `σ.commit < i` case) must admit it. After a
-crash, the backend's index may exceed the WAL's last index. The restart window must allow a
-snapshot above `appliedi` but at or below the backend's index, which moves the backend's index
-down. The window closes before the member is ready. See `notes/etcd-dist-d6.md` §9 on
-`etcd-safe-d6t4/2026-11-24`.
+no: not a client-visible bug, and the graceful results are unaffected. With the fork's guard the
+crash-form restart (`NewServer.wp_proofC`'s `σ.commit < i` case, `notes/etcd-dist-d6.md`) keeps the
+apply side's monotone ghost state: a snapshot at or below the backend's index is a skip
+(`applySnapshot`'s new branch), and `applySnapshot.specSnapM` (a snapshot above the consistent index)
+is unchanged in meaning.
 
 ## Notes
 

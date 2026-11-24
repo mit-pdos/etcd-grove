@@ -303,3 +303,52 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   `index ≤ ci`), and the monotone ghost state stays. What remains after it is the raft-side
   generalization (`rnRestartOk`, `replaySeed`, `NodeStartSpecR`, `rnStopImage`), smaller. Needs the
   lead's decision (a fork change, with a `nonissues/` cross-reference).
+
+### T4 round 3 (2026-11-24): the fork guard
+
+**Packet (changes verified etcd behavior; untrusted, a fork change under rule 14).**
+* *Today* (pin `6b942d23f`): after a crash left a follower's backend ahead of its WAL, `applySnapshot`
+  installs a leader snapshot at `k ≤ ci` like any other: it swaps in the snapshot's database and
+  recovers lease, mvcc, alarm, auth and membership from it, moving the backend from `ci` back to `k`
+  (not client-visible: `nonissues/etcd-crash-backend-ahead-snapshot-regress.md`).
+* *With this change* (fork `goose-lean-slicessort-on-fmtattrs-snapguard` @ 8aa40fd5c, on `6b942d23f`):
+  ```go
+  <-toApply.notifyc
+  if ci := s.consistIndex.ConsistentIndex(); toApply.snapshot.Metadata.GetIndex() <= ci {
+      lg.Info("backend already covers the snapshot; keeping it", ...)
+      ep.appliedt = toApply.snapshot.Metadata.GetTerm()
+      ep.appliedi = toApply.snapshot.Metadata.GetIndex()
+      ep.diskSnapshotIndex = ep.appliedi
+      ep.memorySnapshotIndex = ep.appliedi
+      ep.confState = toApply.snapshot.Metadata.ConfState
+      return
+  }
+  ```
+  Not done on this path, and why not needed: the backend swap and the stores' recovery (the backend
+  and the stores built from it already hold every entry up to `ci ≥ k`); `storage.Release` (only
+  frees older WAL files and `.snap.db`s; the next snapshot releases them); `cluster.Recover` and the
+  transport's peers (the membership is the backend's); `NewUberApplier` (nothing it reads changed);
+  `ep.replayConf` stays (the backend is still the bootstrap one, which is what it describes). Raft's
+  storage applied the snapshot in the raft loop as before.
+* *Why*: the proof's apply-side ghost state (the applied log, mvcc's history) is monotone; Go no longer
+  moves the backend back, so the crash restart needs no regressing ghost track.
+* *Risk*: a snapshot at `k ≤ ci` with a conf state different from the backend's membership at `ci`
+  (conf changes in `(k, ci]`): `ep.confState` takes the snapshot's, and the replay of those entries'
+  conf changes (applied to raft regardless of `ci`) brings it to `ci`'s, as at any restart. Tests:
+  `TestApplySnapshotBelowBackend` (new; fails without the guard), the etcdserver snapshot unit tests
+  (`TestSnapshot*`, `TestMergedSnapshot*`, `TestPurge*`, `TestConcurrentApplyAndSnapshotV3`) and the
+  integration tests `TestSnapshotAndRestartMember`, `TestRestartMember`, `TestV3StorageQuotaAfterSnapshot`,
+  `TestV3AlarmsDuringSnapshotInstall`, `TestV3AuthSerializableGetDuringSnapshotRestore` pass (go1.27.3).
+* *Recommendation*: keep (pin bumped); combine with the WAL torn-save fork fix (`goose-lean-fmtattrs-tornsave`
+  @ 768ecf158) when that lands.
+
+**Proof plan after the guard.** `applySnapshot.specSnapM` keeps its meaning with `hle` made strict
+(`ciEff < k`, which its callers have: `ci ≤ g < k` in `applyAll.specSnapM`), the new branch refuted
+there (needs `ConsistentIndex`'s spec in the walk, reading `ciEff γ st.k`). A second spec
+`applySnapshot.specKeep` for `k ≤ ci` (post: `ep` moved, everything else kept) serves the crash
+window: `applyAll.specSnapM`'s premise `g < k` gets a sibling case `ai < k ≤ ciEff` (then `g` stays,
+the snapshot is a skip). Then the raft side: `rnRestartOk` without `|a0| ≤ commit0`, `rnRestartOk_winAbove`
+weakened to "above `appliedi`, or at or below the backend's index" (both cases now handled),
+`replaySeed_*` over `min(|A₀|, σ.last)`, `NodeStartSpecR`/`rnBootPre` without `|A₀| ≤ σ.commit`,
+`rnStopImage` without `a0 ≤ σ.commit` (and `wal.stopImage` without `i ≤ σ.commit`), then
+`specRAt` over the crash image and `wp_proofC`'s `sorry` gone.
