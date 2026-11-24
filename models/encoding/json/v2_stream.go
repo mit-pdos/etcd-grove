@@ -69,7 +69,7 @@ func (dec *Decoder) DisallowUnknownFields() {
 // the conversion of JSON into a Go value.
 //
 // MODEL: the value is read by readValue (jsontext's ReadValue at the top level) and decoded by
-// the program's codec; an error reading it is sticky, an error decoding it is not (Go's).
+// v's own model method (model.go) or the program's codec; an error reading it is sticky, an error decoding it is not (Go's).
 func (dec *Decoder) Decode(v any) error {
 	if dec.err != nil {
 		return dec.err
@@ -79,6 +79,9 @@ func (dec *Decoder) Decode(v any) error {
 	if err != nil {
 		dec.err = err
 		return dec.err
+	}
+	if u, ok := v.(modelUnmarshaler); ok {
+		return u.JSONModelUnmarshal(b, v)
 	}
 	return c.Unmarshal(b, v)
 }
@@ -272,12 +275,12 @@ func NewEncoder(w io.Writer) *Encoder {
 // See the documentation for [Marshal] for details about the
 // conversion of Go values to JSON.
 //
-// MODEL: the program's codec encodes; indentation (SetIndent) is not modelled (a panic).
+// MODEL: v's own model method or the program's codec encodes (model.go, marshalAny); indentation (SetIndent) is not modelled (a panic).
 func (enc *Encoder) Encode(v any) error {
 	if enc.err != nil {
 		return enc.err
 	}
-	b, err := getCodec().Marshal(v)
+	b, err := marshalAny(v)
 	if err != nil {
 		return err
 	}

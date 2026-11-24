@@ -315,6 +315,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
     -- the cluster
+    -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, I1-I2: the approved interim claim) `Hrc`'s lock
+    -- invariant now holds the cluster's version slot (`rcVerSlot`: `c.version` nil, or read-only and
+    -- known); at boot `NewCluster` leaves it nil (`rcLockInv_boot`)
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
     -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, a zap logger (sweep
@@ -346,21 +349,19 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       WP (App (Val (bc.cl' @!! go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
         (Val #())) {{ Φ }}) ∗
-    -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
-    -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
-    -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f); (D22,
-    -- 2026-10-23: the backend over every bucket) its writes' effect on the tracked buckets and
-    -- its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write right
-    -- (`srvRestRW`)
-    "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
-    -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
-    -- `clusterVersionOk`
-    "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
-    -- (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field names, which
-    -- `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards it, the
-    -- apply thread is its only user); until then for the boot backend's batch lock only
-    "#Hisc" ∷ clusterApplyOk bc.cl' ∗
+    -- the cluster's apply contract (unit N4, 2026-10-17) at the backend's batch lock and any frozen
+    -- hook (its writes: one write-back each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the
+    -- stores', D14f); (D22, 2026-10-23: the backend over every bucket) its writes' effect on the
+    -- tracked buckets and its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write
+    -- right (`srvRestRW`); (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field
+    -- names, which `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards
+    -- it, the apply thread is its only user); until then for the boot backend's batch lock only.
+    -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, `notes/bootstrap-proof-plan.md` §7.1 I3) Only
+    -- its rows not yet proved (`clusterApplyRest`: `SetVersion`, `UpdateAttributes`,
+    -- `SetDowngradeInfo`, the cluster not nil); its `Version`/`ID` rows, the lessor's contract
+    -- (`lease.clusterOk`, until then `Hclok`) and the monotone `Version()` (`clusterVersionMono`,
+    -- until then `Hcvm`) are proved of `Hrc` (the lock's version slot) and `Hcid`: `ClusterLaws.lean`
+    "#Hisc" ∷ clusterApplyRest bc.cl' ∗
     "HclBe" ∷ clusterBeOn bc.cl' d.be ∗
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap

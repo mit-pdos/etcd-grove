@@ -47,7 +47,10 @@ translate = ["*", "!Object",
   "!ErrFIFOClosed", "!ErrZeroLengthDeltasObject", "!errorStopRequested", "!batchable",
   "!sharedProcessorRunHook", "!unsupportedTableGVK", "!internalPackages", "!defaultBackoffJitter",
   "!defaultBackoffFactor", "!defaultBackoffReset", "!defaultBackoffMax", "!defaultBackoffInit",
-  "!defaultMaxWatchTimeout", "!defaultMinWatchTimeout", "!mutationDetectionEnabled",
+  "!defaultMaxWatchTimeout", "!defaultMinWatchTimeout",
+  # (k8s-inits-2, 2026-11-24, #32) `mutationDetectionEnabled = false` translated (a literal), which the
+  # translated `init` (`mutation_detector.go:35`) then sets from the environment; until then
+  # names-only (`opaqueInitsOk`), its `init` behind `initFuncsOk`
   # names only: the handler's name for logs and metrics (`runtime.FuncForPC` of the function's
   # pointer, `event_handler_name.go`), so that the package does not import `runtime`, which has no
   # `wp_initialize'` at the pinned Perennial

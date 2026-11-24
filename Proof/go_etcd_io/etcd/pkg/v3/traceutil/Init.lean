@@ -5,15 +5,22 @@ Package initialization of `go_etcd_io.etcd.pkg.v3.traceutil`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
-variables' initializers are untranslated: the trust-boundary axiom `Tracer_init` states the one
-the fact reads (`trace.go`), `opaqueInitsOk` the others.
+initializer allocates `Tracer`, initializes its imports and runs its translated initializer,
+`Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`; otel-tracing,
+2026-11-23: until then the trust-boundary axiom `Tracer_init`), stepping into otel's no-op
+`NewTracerProvider` and `TracerProvider.Tracer` (translated with their bodies).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
+public import Proof.go_opentelemetry_io.otel.trace.Init
+public import Proof.go_opentelemetry_io.otel.trace.noop.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.math.rand.Init
 
 @[expose] public section
 
@@ -30,20 +37,5 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.pkg.v3.traceutil
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- `Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`): a `trace.Tracer`. -/
-axiom Tracer_init :
-    {{ (True : IProp GF) }} (App (Val Tracer.init) (Val #()))
-    {{ RET #(); ∃ tr : GoInterfaceOk, globalAddr Tracer ↦ GoInterface.ok tr }}
-
-end go_etcd_io.etcd.pkg.v3.traceutil
-end opaqueInits
 
 end Perennial

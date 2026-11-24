@@ -33,6 +33,7 @@ public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.internal.bytealg
 public import Perennial.Code.internal.oserror
 public import Perennial.Code.internal.stringslite
+public import Perennial.Code.internal.testlog
 public import Perennial.Code.io
 public import Perennial.Code.iter
 public import Perennial.Code.log
@@ -79,6 +80,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
+  | internal_testlog : ExternalInit pkg_id.internal.testlog _root_.Perennial.internal.testlog.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | k8s_io_utils_third_party_forked_golang_btree : ExternalInit pkg_id.k8s_io.utils.third_party.forked.golang.btree _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize'

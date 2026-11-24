@@ -71,7 +71,7 @@ noncomputable instance ClientBatchStore_access_load_clientBatches (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatchStore_access_store_clientBatches (l : Loc) (v : raxos.replica.src.ClientBatchStore) (clientBatches' : sync.Map) :
+noncomputable instance ClientBatchStore_access_store_clientBatches (l : Loc) (v : raxos.replica.src.ClientBatchStore) (clientBatches' : _root_.Perennial.sync.Map) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchStore go!"clientBatches" l) v.clientBatches' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchStore go!"clientBatches" l) clientBatches' (DFrac.own 1))
@@ -158,7 +158,7 @@ noncomputable instance ProposerMessage_access_load_state (l : Loc) (v : raxos.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposerMessage_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ProposerMessage_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"state" l) state' (DFrac.own 1))
@@ -316,7 +316,7 @@ noncomputable instance RecorderResponse_access_load_state (l : Loc) (v : raxos.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance RecorderResponse_access_store_state (l : Loc) (v : raxos.replica.src.RecorderResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RecorderResponse_access_store_state (l : Loc) (v : raxos.replica.src.RecorderResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"state" l) state' (DFrac.own 1))
@@ -455,7 +455,7 @@ noncomputable instance DecideRequest_access_load_state (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance DecideRequest_access_store_state (l : Loc) (v : raxos.replica.src.DecideRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance DecideRequest_access_store_state (l : Loc) (v : raxos.replica.src.DecideRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"state" l) state' (DFrac.own 1))
@@ -546,7 +546,7 @@ noncomputable instance DecideResponse_access_load_state (l : Loc) (v : raxos.rep
  by
   solve_pointsto_access_struct
 
-noncomputable instance DecideResponse_access_store_state (l : Loc) (v : raxos.replica.src.DecideResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance DecideResponse_access_store_state (l : Loc) (v : raxos.replica.src.DecideResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"state" l) state' (DFrac.own 1))
@@ -637,7 +637,7 @@ noncomputable instance Decisions_access_load_state (l : Loc) (v : raxos.replica.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Decisions_access_store_state (l : Loc) (v : raxos.replica.src.Decisions) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Decisions_access_store_state (l : Loc) (v : raxos.replica.src.Decisions) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Decisions go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Decisions go!"state" l) state' (DFrac.own 1))
@@ -727,7 +727,7 @@ noncomputable instance Empty_access_load_state (l : Loc) (v : raxos.replica.src.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Empty_access_store_state (l : Loc) (v : raxos.replica.src.Empty) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Empty_access_store_state (l : Loc) (v : raxos.replica.src.Empty) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Empty go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Empty go!"state" l) state' (DFrac.own 1))
@@ -804,7 +804,7 @@ noncomputable instance ProposerMessage_ClientBatch_access_load_state (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposerMessage_ClientBatch_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ProposerMessage_ClientBatch_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"state" l) state' (DFrac.own 1))
@@ -931,7 +931,7 @@ noncomputable instance ProposerMessage_Proposal_access_load_state (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposerMessage_Proposal_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_Proposal) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ProposerMessage_Proposal_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_Proposal) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"state" l) state' (DFrac.own 1))
@@ -1088,7 +1088,7 @@ noncomputable instance ProposerMessage_DecidedSlot_access_load_state (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposerMessage_DecidedSlot_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_DecidedSlot) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ProposerMessage_DecidedSlot_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_DecidedSlot) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"state" l) state' (DFrac.own 1))
@@ -1211,7 +1211,7 @@ noncomputable instance ProposerMessage_ClientBatch_SingleMessage_access_load_sta
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposerMessage_ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ProposerMessage_ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"state" l) state' (DFrac.own 1))
@@ -1305,7 +1305,7 @@ noncomputable instance RecorderResponse_Proposal_access_load_state (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RecorderResponse_Proposal_access_store_state (l : Loc) (v : raxos.replica.src.RecorderResponse_Proposal) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RecorderResponse_Proposal_access_store_state (l : Loc) (v : raxos.replica.src.RecorderResponse_Proposal) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"state" l) state' (DFrac.own 1))

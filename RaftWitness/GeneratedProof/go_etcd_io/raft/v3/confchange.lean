@@ -52,7 +52,7 @@ noncomputable instance Changer_access_load_Tracker (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : go_etcd_io.raft.v3.tracker.ProgressTracker) :
+noncomputable instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) Tracker' (DFrac.own 1))

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 const alpha = "{}[],:\" \n\t0123-.eE+tfrulnasx\\/bAF\xff\x7f\x01"
@@ -96,19 +97,70 @@ func TestEncode(t *testing.T) {
 		if g := "{\"X\":" + string(AppendQuotedUint(nil, x)) + "}"; g != string(w) {
 			t.Fatalf("AppendQuotedUint(%d) = %s, real %s", x, g, w)
 		}
-		var sb strings.Builder
-		for i := r.Intn(10); i > 0; i-- {
-			c := byte(0x20 + r.Intn(0x5f))
-			if c != '"' && c != '\\' && !htmlByte(c) {
-				sb.WriteByte(c)
-			}
+	}
+}
+
+// TestAppendString: AppendString is real encoding/json's Marshal of a string, on every string of up
+// to two bytes, every three-byte string starting at 0xe0 or above, random strings mixing ASCII,
+// control bytes, '<', '>', '&', valid and invalid UTF-8, U+2028/U+2029; and seqLen is
+// utf8.DecodeRuneInString's size at every byte of 0x80 or above (every lead byte against every
+// second and third byte, the fourth over the bytes around its range's bounds).
+func TestAppendString(t *testing.T) {
+	check := func(s string) {
+		w, err := json.Marshal(s)
+		if err != nil {
+			t.Fatalf("real Marshal(%q): %v", s, err)
 		}
-		s := sb.String()
-		w, _ = json.Marshal(s)
-		if g := AppendString(nil, s); string(g) != string(w) {
-			t.Fatalf("AppendString(%q) = %s, real %s", s, g, w)
+		if g := AppendString([]byte("x"), s); string(g) != "x"+string(w) {
+			t.Fatalf("AppendString(%q) = %s, real %s", s, g[1:], w)
 		}
 	}
+	check("")
+	for a := 0; a < 256; a++ {
+		check(string([]byte{byte(a)}))
+		for b := 0; b < 256; b++ {
+			check(string([]byte{byte(a), byte(b)}))
+		}
+	}
+	for a := 0xe0; a < 256; a++ {
+		for b := 0; b < 256; b++ {
+			for c := 0; c < 256; c++ {
+				check(string([]byte{byte(a), byte(b), byte(c)}))
+			}
+		}
+	}
+	pieces := []string{"a", "Z", "~", " ", "\"", "\\", "/", "<", ">", "&", "\x00", "\x1f", "\x7f", "\b",
+		"\f", "\n", "\r", "\t", "\u00e9", "\u20ac", "\U0001f600", "\u2028", "\u2029", "\ufffd",
+		"\xff", "\xc3", "\xe2\x80", "\xf0\x9f\x98", "\xed\xa0\x80", "\xc0\x80", "\xf4\x90\x80\x80"}
+	r := rand.New(rand.NewSource(7))
+	for it := 0; it < 200000; it++ {
+		var sb strings.Builder
+		for i := r.Intn(12); i > 0; i-- {
+			sb.WriteString(pieces[r.Intn(len(pieces))])
+		}
+		check(sb.String())
+	}
+	edge := []byte{0x00, 0x7f, 0x80, 0x81, 0x8f, 0x90, 0x9f, 0xa0, 0xbf, 0xc0, 0xff}
+	for a := 0x80; a < 256; a++ {
+		for b := 0; b < 256; b++ {
+			for c := 0; c < 256; c++ {
+				for _, d := range edge {
+					for _, s := range []string{string([]byte{byte(a), byte(b), byte(c), d}),
+						string([]byte{byte(a), byte(b), byte(c)}), string([]byte{byte(a), byte(b)}),
+						string([]byte{byte(a)})} {
+						_, want := utf8.DecodeRuneInString(s)
+						if got := seqLen(s, 0); got != uint64(want) {
+							t.Fatalf("seqLen(%q) = %d, utf8 %d", s, got, want)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestEncodeInt(t *testing.T) {
+	r := rand.New(rand.NewSource(4))
 	for it := 0; it < 100000; it++ {
 		x := int64(r.Uint64() >> uint(r.Intn(64)))
 		if r.Intn(2) == 0 {

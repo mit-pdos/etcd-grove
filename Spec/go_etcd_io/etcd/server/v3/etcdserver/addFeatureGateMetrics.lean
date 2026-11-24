@@ -1,6 +1,7 @@
 /-
-`addFeatureGateMetrics(fg, gaugeVec)` (`server.go`): names-only. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
-`notes/decisions.md`), for `NewServer`.
+`addFeatureGateMetrics(fg, gaugeVec)` (`server.go`). Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
+`notes/decisions.md`), for `NewServer`. Translated and proved (featuregate-4, 2026-11-23, over
+`isFeatureGate`'s `GetAll` and `Enabled` and `GaugeVec.With`); until then names-only, an axiom.
 -/
 module
 

@@ -2,6 +2,8 @@
 storage/schema when decoding the membership of a backend snapshot. -/
 module
 public import Proof.net.url.PkgInit
+public import Proof.encoding.json.Base
+public import Net.Proof.models_lab.jsoncodec.Base
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Proof.go_etcd_io.raft.v3.Base
@@ -55,16 +57,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.notify
 
--- `encoding/json` (names only; D43 M4, 2026-10-26: membership's `ValidateConfigurationChange`
--- unmarshals a conf change's context; moved here from the Kubernetes store's `Base.lean`)
-namespace encoding.json
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  build_get_is_pkg_init_wf
-
-end encoding.json
+-- `encoding/json`: its instance is in `Proof/encoding/json/Base.lean` (2026-11-23)
 
 -- `api/membership` (names only but `RaftCluster.ID`; 2026-10-13, the request path's unit 4c: the
 -- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
@@ -109,7 +102,7 @@ abbrev membershipInit : IProp GF :=
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   define_is_pkg_init membershipInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership

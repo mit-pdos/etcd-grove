@@ -186,7 +186,7 @@ noncomputable instance ConditionsAwareDecisionUnion_access_load_subDecisionsPoss
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionsAwareDecisionUnion_access_store_subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (subDecisionsPossibleDecisions' : (k8s_io.apimachinery.pkg.util.sets.Set' k8s_io.apiserver.pkg.authorization.authorizer.Decision)) :
+noncomputable instance ConditionsAwareDecisionUnion_access_store_subDecisionsPossibleDecisions (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion) (subDecisionsPossibleDecisions' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' k8s_io.apiserver.pkg.authorization.authorizer.Decision)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) v.subDecisionsPossibleDecisions' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion go!"subDecisionsPossibleDecisions" l) subDecisionsPossibleDecisions' (DFrac.own 1))
@@ -569,7 +569,7 @@ noncomputable instance AttributesRecord_access_load_User (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (User' : k8s_io.apiserver.pkg.authentication.user.Info) :
+noncomputable instance AttributesRecord_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (User' : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) v.User' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"User" l) User' (DFrac.own 1))
@@ -729,7 +729,7 @@ noncomputable instance AttributesRecord_access_load_FieldSelectorRequirements (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (FieldSelectorRequirements' : k8s_io.apimachinery.pkg.fields.Requirements) :
+noncomputable instance AttributesRecord_access_store_FieldSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (FieldSelectorRequirements' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Requirements) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) v.FieldSelectorRequirements' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"FieldSelectorRequirements" l) FieldSelectorRequirements' (DFrac.own 1))
@@ -761,7 +761,7 @@ noncomputable instance AttributesRecord_access_load_LabelSelectorRequirements (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance AttributesRecord_access_store_LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (LabelSelectorRequirements' : k8s_io.apimachinery.pkg.labels.Requirements) :
+noncomputable instance AttributesRecord_access_store_LabelSelectorRequirements (l : Loc) (v : k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord) (LabelSelectorRequirements' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Requirements) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) v.LabelSelectorRequirements' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.authorizer.AttributesRecord go!"LabelSelectorRequirements" l) LabelSelectorRequirements' (DFrac.own 1))

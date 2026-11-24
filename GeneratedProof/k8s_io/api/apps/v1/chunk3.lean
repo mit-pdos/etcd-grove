@@ -184,7 +184,7 @@ noncomputable instance StatefulSetCondition_access_load_Status (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetCondition) (Status' : k8s_io.api.core.v1.ConditionStatus) :
+noncomputable instance StatefulSetCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetCondition) (Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetCondition go!"Status" l) v.Status' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetCondition go!"Status" l) Status' (DFrac.own 1))
@@ -200,7 +200,7 @@ noncomputable instance StatefulSetCondition_access_load_LastTransitionTime (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance StatefulSetCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -350,7 +350,7 @@ noncomputable instance DeploymentCondition_access_load_Status (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.DeploymentCondition) (Status' : k8s_io.api.core.v1.ConditionStatus) :
+noncomputable instance DeploymentCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.DeploymentCondition) (Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentCondition go!"Status" l) v.Status' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentCondition go!"Status" l) Status' (DFrac.own 1))
@@ -366,7 +366,7 @@ noncomputable instance DeploymentCondition_access_load_LastUpdateTime (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentCondition_access_store_LastUpdateTime (l : Loc) (v : k8s_io.api.apps.v1.DeploymentCondition) (LastUpdateTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance DeploymentCondition_access_store_LastUpdateTime (l : Loc) (v : k8s_io.api.apps.v1.DeploymentCondition) (LastUpdateTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentCondition go!"LastUpdateTime" l) v.LastUpdateTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentCondition go!"LastUpdateTime" l) LastUpdateTime' (DFrac.own 1))
@@ -382,7 +382,7 @@ noncomputable instance DeploymentCondition_access_load_LastTransitionTime (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.DeploymentCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance DeploymentCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.DeploymentCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -531,7 +531,7 @@ noncomputable instance DaemonSetCondition_access_load_Status (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetCondition) (Status' : k8s_io.api.core.v1.ConditionStatus) :
+noncomputable instance DaemonSetCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetCondition) (Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetCondition go!"Status" l) v.Status' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetCondition go!"Status" l) Status' (DFrac.own 1))
@@ -547,7 +547,7 @@ noncomputable instance DaemonSetCondition_access_load_LastTransitionTime (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance DaemonSetCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -622,7 +622,7 @@ noncomputable instance ReplicaSet_access_load_TypeMeta (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSet_access_store_TypeMeta (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSet) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ReplicaSet_access_store_TypeMeta (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSet) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSet go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSet go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -638,7 +638,7 @@ noncomputable instance ReplicaSet_access_load_ObjectMeta (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSet_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSet) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance ReplicaSet_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSet) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSet go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSet go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
@@ -730,7 +730,7 @@ noncomputable instance ReplicaSetCondition_access_load_Status (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSetCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSetCondition) (Status' : k8s_io.api.core.v1.ConditionStatus) :
+noncomputable instance ReplicaSetCondition_access_store_Status (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSetCondition) (Status' : _root_.Perennial.k8s_io.api.core.v1.ConditionStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSetCondition go!"Status" l) v.Status' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSetCondition go!"Status" l) Status' (DFrac.own 1))
@@ -746,7 +746,7 @@ noncomputable instance ReplicaSetCondition_access_load_LastTransitionTime (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicaSetCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSetCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance ReplicaSetCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.apps.v1.ReplicaSetCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSetCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.ReplicaSetCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))

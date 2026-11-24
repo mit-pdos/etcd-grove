@@ -58,6 +58,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.net.url.PkgInit
 -- (bkarea, 2026-11-22) `config` imports `storage/datadir` (`ServerConfig.BackendPath`)
 public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.PkgInit
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.PkgInit
 
 @[expose] public section
 
@@ -725,7 +726,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
@@ -738,7 +739,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
   define_is_pkg_init capInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api
@@ -795,14 +796,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.client.pkg.v3.transport
 
-namespace go_etcd_io.etcd.pkg.v3.featuregate
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.featuregate
+-- `featuregate`'s instance: `Proof/go_etcd_io/etcd/pkg/v3/featuregate/PkgInit.lean` (featuregate-3,
+-- 2026-11-23: its fact, `featuregateInit`, is no longer `True`)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 
@@ -826,7 +821,7 @@ namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
@@ -837,7 +832,7 @@ namespace go_etcd_io.etcd.server.v3.storage
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.storage
@@ -902,7 +897,7 @@ abbrev applyInit : IProp GF :=
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
   define_is_pkg_init applyInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
   build_get_is_pkg_init_wf
 

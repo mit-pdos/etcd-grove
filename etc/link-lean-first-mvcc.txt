@@ -23,7 +23,7 @@ generation__walk:
 # (axioms; `Logger.Fatal` has one too, which no verified function reaches).
 zap_Int64:
 zap_String:
-zap_Logger__Panic:
+zap_Logger__Panic: pool_Pool__Get
 keyIndex__Less:
 keyIndex__isEmpty: generation__isEmpty
 keyIndex__findGeneration:
@@ -75,7 +75,7 @@ proto_Marshal:
 zap_Error:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 store__Write: newMetricsTxnWrite
 storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__Put zap_Error zap_Logger__Error
@@ -226,7 +226,8 @@ mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syn
 watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev
 # Compaction (unit 5a, 2026-10-13; Compact.lean, InvCompact.lean, notes/decisions.md "mvcc:
 # compaction"): the compaction functions specified, their proofs pending (`sorry`: units 5b/5c);
-# the trust boundary they reach: the hash storage (`hashStorage.Store`; the hasher, `newKVHasher`,
+# the trust boundary they reach: the hash storage (`hashStorage.Store`, proved 2026-11-24 over the fork's
+# `slices.SortFunc`; the hasher, `newKVHasher`,
 # `kvHasher`'s `WriteKeyValue`/`Hash`, proved since 2026-11-21), zap's fields and `Info`/`Warn`, humanize's `Bytes` (axioms); the jobs
 # (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: proved in the request path's unit 4d);
 # the btree's `Clone`,
@@ -263,16 +264,22 @@ schedule_job__Do:
 schedule_job__Name:
 schedule_NewJob: schedule_job__Do
 # (prove-etcdint3, 2026-11-21) the hasher, proved over `hash/crc32`'s digest (`New`, `Write`, `Sum32`,
-# proved; `MakeTable` and `update` trusted models with proved specs)
+# proved; `MakeTable` and `update` trusted models with proved specs; crc32-hooks2, 2026-11-22: translated,
+# `update` over `simpleUpdate`, the trusted models only the arch hooks, which `MakeTable`'s once runs
+# in crc32's initializer)
 crc32_MakeTable:
-crc32_update:
+crc32_simpleUpdate:
+crc32_update: crc32_simpleUpdate
 crc32_New:
 crc32_digest__Write: crc32_update
 crc32_digest__Sum32:
 newKVHasher: crc32_MakeTable crc32_New schema_bucket__Name crc32_digest__Write
 kvHasher__WriteKeyValue: BytesToRev Revision__GreaterThan BytesToBucketKey crc32_digest__Write
 kvHasher__Hash: crc32_digest__Sum32
-hashStorage__Store:
+# (sortslice, 2026-11-24) `Store` over the fork's `slices.SortFunc` (Perennial's, linked by name) and
+# `cmp.Compare` (etcd-grove's spec at `int64`, Spec/cmp/Compare.lean)
+cmp_Compare:
+hashStorage__Store: zap_Uint32 zap_Int64 zap_Logger__Info cmp_Compare
 keyIndex__doCompact: generation__walk generation__isRecreatedAt
 keyIndex__compact: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__doCompact generation__isEmpty
 keyIndex__keep: keyIndex__isEmpty keyIndex__doCompact generation__isEmpty
@@ -299,3 +306,7 @@ restoreChunk: proto_Unmarshal isTombstone
 restoreIntoIndex: keyIndex__put keyIndex__tombstone keyIndex__restore keyIndex__restoreTombstone treeIndex__KeyIndex treeIndex__Insert BytesToRev isTombstone verify_Verify zap_Error zap_Logger__Warn
 # (restore plan R2) setupMetricsReporter: the five reporters, each under its lock (mvccInit's reportVar).
 store__setupMetricsReporter:
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Get:
+pool_Pool__Put:

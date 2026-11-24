@@ -13,8 +13,10 @@ errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the
 registration rights of the metric names of its import closure (`namesFree initNames`, decision D16;
 the read package's, `EtcdGrove.read.readRegPerm`, until mustreg, 2026-11-20), which it passes on to
 the registering packages' initializers. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
-guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
-reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
+guarding `raftStatus` (`rnRaftStatusOk`; the `init()` of `raft.go` registers an `expvar` closure that
+reads `raftStatus` under the mutex: a trusted no-op model since etcd-grove#39, 2026-11-23, as `server.go`'s,
+since no verified code reads `expvar`'s registry; `metrics.go`'s, which registers the metrics, stays
+names-only, the trust-boundary axiom `initFuncsOk`: translating it needs Perennial's `runtime.Version`). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments. (auth-mediation M2, 2026-11-20) And `PromoteMember`'s metrics,
@@ -35,6 +37,7 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.math.Link
 public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
@@ -53,6 +56,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init
@@ -121,7 +125,7 @@ the package's `Assumptions` do not constrain for them). Go runs them at program 
 etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
 other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
-    ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
+    ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
 end go_etcd_io.etcd.server.v3.etcdserver
@@ -130,14 +134,11 @@ end opaqueInits
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
 /-- The packages of this package's import closure (itself included) whose initializers
-register metrics, with their names: their registration rights are its initializer's
-resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/
-def regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames)]
-
-/-- The metric names its initializer registers, with those of its import closure: its
-`wp_initialize'`'s precondition has the rights to register them (`namesFree`). -/
-def initNames : List GoString := regQs.flatMap (·.2)
+register metrics, with their names and other IDs: their registration rights (keyed by ID,
+`EtcdGrove.prometheus.regRes`) are its initializer's resources (`ownInitResL`,
+`Proof/runtime/PkgInitRes.lean`; its `wp_initialize'`'s precondition: `regsFree regQs`). -/
+def regQs : List (GoString × List GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regKeys)]
 
 end go_etcd_io.etcd.server.v3.etcdserver
 

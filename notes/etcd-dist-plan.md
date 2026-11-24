@@ -49,8 +49,8 @@ Cluster []Peer, Token, CompactorMode, Retention, SnapCount, CatchUp, Auth}`. It 
 (`etcdserver.NewServer`), serve its raft handler on its peer listener with `http.Server.Serve`, start
 it, serve `v3rpc.Server` on its client listener with `grpc.Server.Serve`, then sleep forever. The
 same `Main` is the boot program after a crash: `NewServer` finds the WAL (bootstrap's `haveWAL`) and
-restarts the member; the initial cluster and token are then ignored by etcd. It first clears the
-proxy variables and `ETCD_VERIFY` (`clearProxyEnv`: §4 and Q10). The binary (`cmd/server`) reads the
+restarts the member; the initial cluster and token are then ignored by etcd. (Until 2026-11-23 it first cleared the
+proxy variables and `ETCD_VERIFY`, `env.ClearProxy`; dropped, Q10's update.) The binary (`cmd/server`) reads the
 `Config` as JSON; the Lean boot program is `Main` applied to the `Config`'s Go value (the parsing is
 not translated).
 
@@ -566,7 +566,9 @@ leaseexpiryN in, `noExpiry` conditional; Q3 the `durable` workload under real cr
 up accepted; Q5 a trusted Lean SHA-1 tested against Go first, Perennial's `crypto/sha1` proof later; Q6 the
 carried premises accepted for the first version; Q7 the interim theorem without crashes is the first
 milestone; Q8 etcd's full peer handler; Q9 no further `ServerConfig` fields in the first version; Q10 the
-server clears the proxy variables itself. Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
+server clears the proxy variables itself (**superseded 2026-11-23**, the owner's option (A): `env.ClearProxy` dropped,
+since `os.Unsetenv` has no spec; `verifyEnvOff` per machine and its token `envVerifyOff` are premises of the
+statement, as in one process; a proxy premise comes with S5: `notes/putget-dist-plan.md` section 11). Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
 convention) and U1-U5 (upamanyus, etcd-grove#24).
 
 For the user:
@@ -631,7 +633,7 @@ For upamanyus:
 | D4 bundle | `[net, fs at etcdFsSem, idIssue]` adequacy and crash interpretation; the issue record keyed by incarnation; shared-mode generations | ~1k lines | wal-safe (b) |
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
-| D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
+| D7 cluster | global/local ghost split (design: "D7" below; the no-crash part first), the restart invariant | weeks | D6 (the restart invariant only) |
 | D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), watch/cache/auth instances (over `Report`, proved 2026-11-22: §2, "`Report`, proved") | ~2k lines + the port | D1; Lean: D2, D7 |
 | D9 assembly | the theorem; `WellFormed` consumed; (the single-process `etcd_safe` and leaseexpiryN's already retired at the net swap) | ~2k lines | all |
 
@@ -640,6 +642,251 @@ the same deployment with no member crashing. Then D3, D4, D6 add the crashes.
 Its first step (2026-11-23): `putget_safe`, one member machine and one client machine
 (`notes/putget-dist-plan.md`, branch `putget-dist`): stated and building; the client machine's proof waits for S2
 (the plan's section 4: what the client's `Invoke` needs across machines).
+
+
+### D7: the cluster's ghost state split into global and per-member parts (design, 2026-11-23)
+
+Branch `d7-split` (off `lean` `4b2724dfe6`). For the interim `etcd_safe` (Q7: `k` members each on a machine,
+client machines, **no crash**, over `goose_dist_adequacy` through `Net.robust_of_distBootI`). Starts from the
+audit (`/shared/tmp/coord-03/d7-audit.md`, 2026-11-22: classes G global ghost, S split, T transport, P
+per-process); disagreements with it are marked **(audit)**.
+
+**The constraint.** The bridge's start update (`robust_of_distBootI`'s `Hstart`) runs at the global ghost
+state only (`[GooseGlobalGS .hasLC GF]`): there is no `HeapGS` yet, each machine gets its own local ghost
+state `L` only in its `nodeWp`, and a `GooseLocalGS` cannot be made up at the start (its extensions' local
+ghost states are arbitrary types). So whatever the start allocates must be stated over the global ghost state,
+and whatever needs a heap (a WP, a points-to, a premise of `etcdstart.premises`) is built in a member's boot.
+A predicate defined in a `[hG : HeapGS]` section whose body reads only `hG.goose_globalGS` is global in
+content but not in Lean: the start cannot name it. Two ways to name it at the start: **re-section** its
+definition over the global classes (`[AllG GF] [ReceiptGS GF] [InvGS GF]`, as raft's `api` sections are;
+at a heap the instances resolve to `hG.goose_globalGS`'s, so every existing use reads the same term), or a
+global twin equal by `rfl` (kvnet's `kvFactsG`/`kvFacts_eq`, `KvNet/.../kvnet/TopStart.lean`). Twins cascade
+(a twin's body needs its callees' twins), so **D7 re-sections** in place, as the audit's "retype only".
+
+**Where the single-process proof already splits.** `allocN` (`etcdstart/AllocN.lean`) is the cluster's part
+then a per-member fold: (1) `newServerNames_allocL` (each member's store names `idx id`, certificate map
+`cok id`, revisions' map `rev id`, storage registry `reg id`), (2) `srvClusterBoot_alloc` (raft's cluster
+with its bootstrap log, the KV invariant, the request ids' claims, the proposal mint, the read contexts, the
+client's `etcdKV`, and per voter its slice), (3) `netNames_alloc` + `netHttp_reserveL` (rafthttp's network and
+each peer address's HTTP protocol), then (4) `memberBoots_of` = `memberBoot_of` per member, which takes the
+cluster's persistent facts and the member's slice and allocates the member's request names `ρ`
+(`srvMemberBoot_alloc`). D7 cuts exactly there: **(1)-(3) are the global start, (4) is each member's boot.**
+
+**1. Allocated once, at the deployment's start** (the start update of the etcd theorem's `Hstart`, by a lemma
+`etcdClusterStart` over the global ghost state; inputs: `BootCore ps ctxs boot`, the members' ids, the
+addresses' `addrUnset`; no heap):
+
+| What | From | Today's section | D7 |
+|---|---|---|---|
+| raft's cluster `γ.cl` with its bootstrap log: `isClusterU`, `clusterInv`, `rdPool` (with its time receipts), the budget, `isCommittedLogLb γ boot`; per voter `raftState γ.cl id init`, `nodeVacant γ.cl id` | `cluster_alloc_boot_impl_tr` | heap, **only because of `bootMarshal`** | a global `cluster_alloc_bootG` without `bootMarshal`, giving per voter `nodeBootG` (below) |
+| `srvRaftLogInv`, `kvInv`, `idClusterInv`, `(0) ↪[issued]□ none`, `srvPropMint`, `srvRdCtxInv`, and per member `(pfx,0) ↪[cnt]`, `idKeyFactAt fs (pfx,0) (idx id).slog`, `idWaitTokAt wn (pfx,0)`, the snapshot directory's `ghostMapAuth γd` | `srvClusterBoot_alloc` (`kvInv_alloc_boot`, `idCluster_alloc`, ...) | heap | re-sectioned (their bodies read only global ghost state: checked for `kvInv`, `srvRaftLogInv`, `srvFloorFacts`) |
+| each member's store names `idx id`, `cok id`, `rev id` with their fresh resources (`newServerStoreFreshA`, the two empty maps) | `newServerNames_allocL` | heap | re-sectioned; **must be global**: the claims' invariant names every member's `(idx id).slog` (`xsOf`) and every member's boot needs the claimers' facts of all members (`ΦsOf ids idx`), so they are chosen before `srvClusterBoot_alloc` |
+| the client's `etcdKV γk (kvModelSt …)` (lease mode `none`) | `srvClusterBoot_alloc` | **already global** (`InvRequest.lean:297`) | to the share of the machine running the KV check (below) |
+| rafthttp's `NetNames` (`streamRegInv`, deposits): `netNames_alloc` | `rafthttp/Net.lean:509` | heap | re-sectioned (T: persistent protocols and ghost deposits, audit GOOD) |
+| each peer address's protocol (`http.reserve` from `httpProtoFree`, `raftProto (netRh γn)`) | `netHttp_reserveL` | the closed-world net/http model | **S5's** per-address registration, set from `addrUnset peer_i` as S2's `grpc_addr_set` sets a client address; until S5 there is no cross-machine raft transport, so a `k > 1` theorem waits for it anyway |
+| per member `i`: `γE_i`, the publication invariant at `Pub_i`, its client address set to `etcdSvc γE_i mid_i` | S2 (`S2Draft`: `envPub_alloc`, `envPubInv_alloc`, `grpc_addr_set`) | — | `putget_start` for `k` members (order of work, (a)) |
+
+`(0) ↪[issued]□`, ghost map elements, `ghostMapAuth`, `etcdKV`, `raftStateU`, `nodeVacantU`, `isClusterU`
+are already over the global classes.
+
+**2. A member's share and its boot.** The start hands member `i` (id `id_i`): the **cluster's persistent
+facts** `clusterFacts γ γk issued cnt wn fs` (the six persistent conjuncts `memberBoot_of` takes) and its
+**slice** `memberSliceG id_i` (its claims entry, key fact, `nodeBootG`, `raftState`, `nodeVacant`, snapshot
+directory, wait token, store names' fresh resources, `cok`, `rev`), the pure facts `memberBoots_of` needs
+(`ΦsOf`, `xsOf` at its prefix, `kvPfxOk γk`, `¬ clusterNoSnap`), its S2 share (`memberShare`), and, as today,
+nothing of the other members. Its boot (heap, its own `HeapGS ⟨G, L⟩`):
+
+1. `bootMarshal ps ctxs boot` at its own heap from `etcdstart.premises` (the statement's `Hprem` holds at
+   every heap), and `nodeBootG γ.cl N ps ctxs id ∗ bootMarshal … ⊢ nodeBoot γ.cl N ps ctxs id` (a raft API
+   law), turning `memberSliceG` into today's slice;
+2. its storage registry `ghostMapAuth (reg) 1 ∅` allocated locally (it names heap `Loc`s of this machine's
+   `MemoryStorage`; nothing global mentions it: `srvClusterBoot_alloc` only copies it into `SrvRaft.reg`, which
+   `memberGOk` lets differ per member);
+3. `memberBoot_of` unchanged: `ρ` (request names: `srvMemberBoot_alloc`) allocated locally, giving
+   `memberBoot { γ with reg } ctxs ρ (env₀ …) (ΦsOf ids idx) id cmp lm`, then the single-process member proof
+   (`newServer` / `StartServer`, `Serve`) as `putget.Member` does.
+
+So **`memberBoot`, `MemberG`, `memberGOk`, `ReqNames` and `AEnv` stay heap-level and unsplit (audit S1-S4)**:
+each is built and used inside one member. The audit's "split memberBoot" is not needed: only its inputs are
+split, and they already arrive in two parts (`memberBoot_of`'s persistent arguments and its slice).
+
+**3. How a member's server state is tied to the cluster without one heap.** Through names only: the member's
+`ρ.rd.raft = ⟨{γ with reg}, [], 0⟩`, `ρ.rd.kv` `kvSame` the cluster's `γk` (`memberBoot_of`'s pure post),
+and the cluster's invariants (`kvInv`, `srvRaftLogInv`, `idClusterInv`, raft's `clusterInv`) as global
+persistent facts every member holds. Nothing in them names a `Loc` or a WP. Raft's node of member `i` reaches
+the others' through rafthttp (S5), whose deposits are global ghost state (T).
+
+**4. How clients reach the cluster's one KV state** (D8's kv instance). Two parts:
+- **the state**: `etcdKV γk (kvModelSt γk boot)` is allocated once, in the start, and goes to the share of the
+  one machine that checks KV linearizability (the `kv` workload's orchestrator, which allocates `linkvInv`
+  /`putGetInv` from it at its own heap, as the single-process drivers do from `alloc*`'s `etcdKV`). With
+  several workloads (Q1, a key prefix each) `etcdKV` is still one element: splitting it by prefix is D8/D9's,
+  not D7's; the interim theorem with one KV-reading workload needs no split.
+- **the members' services**: member `i` publishes its view `ν_i` at `γE_i` with `Pub_i ν_i`, where the start
+  fixes `Pub_i ν := ⌜viewAgrees γ γk ν⌝` (its read names' raft names the cluster's `γ` up to `reg`, its KV
+  names `kvSame γk`, its prefix `idPfxOf id_i`): exactly `memberGOk`'s facts, which `memberBoot_of`'s post
+  gives the member. A client's `kvRegsPub_at` then gives `client.kvRegsAt ⟨a_i, etcdEnvOf ν_i, …⟩` whose names
+  agree with `γk`, which is what `linkvInv`'s users take today from `memberGOk` (`memberAt`/`clusterAt` of
+  `cluster3`, audit S8: these become "the views published at `γE_1 … γE_k` agree with `γk`").
+
+**5. What the single-process lemmas become** (step 3: factored, not duplicated):
+- `newServerNames_allocL`, `srvClusterBoot_alloc`, `netNames_alloc`: re-sectioned global; `allocN`/`alloc3`/
+  `alloc1` (and their `On` variants) call them unchanged (a global lemma applies at a heap).
+- `allocN` = `clusterAllocN` (new: (1)-(2) at the global classes, returning `clusterFacts` and the slices) then
+  `memberBoots_of`; the distributed start uses `clusterAllocN` + the S2 start; each member's boot uses
+  `memberBoot_of`. `memberBoots_of` stays (single process only).
+- `cluster_alloc_boot_impl_tr` = `cluster_alloc_bootG` + framing `bootMarshal` into each `nodeBootG`.
+- `memberStartRes_split`, `StartMembers*` (one thread starts all), `cluster3`'s records, `Partitioner`/
+  `PeerStep` (audit S6-S9): single-process only; the distributed members start themselves, partitions are the
+  network's (§6), so they are not ported.
+- `etcd_adequate_members_below` (branch `single-process-restore`): unchanged; it keeps allocating in one process
+  through the same factored lemmas.
+
+**6. Out of scope here, and where it plugs in.** Crashes: a member's slice is handed to its first boot; with
+crashes it goes into a per-member crash invariant at the start (`srvDiskImage`, `InvRestart`), from which every
+boot (first or restarted, `haveWAL`) takes what its files justify (D6's one `NewServer` spec). `raftState`/
+`nodeVacant`, the snapshot directory's auth and `ρ`'s maps are the parts a restart must rebuild from files
+(audit "restart hard points"); the global facts of §1 survive unchanged (`kvInv_restartNames`). The issue
+record (`idIssueExt`) keyed by incarnation is D4's. The start resources that are not ghost state
+(`dataDirFresh`, `nameFree`, `envVerifyOff`, `addrClaim`) are `notes/putget-dist-plan.md` §7's, per member.
+
+**Disagreements with the audit.**
+- **`nodeBootU` is not G**: it holds `bootMarshal` (`InvApiBoot.lean:63`), a persistent WP of
+  `proto.Marshal` at the holder's heap. Its split is a raft API change: `nodeBootG` (the rest, global) and the
+  law `nodeBootG ∗ bootMarshal ⊢ nodeBoot` (heap); `cluster_alloc_bootG` gives `nodeBootG`. kvnet never met
+  this: its cluster has no bootstrap log (`cluster_alloc_nb`, already global).
+- **The server's G items are heap-sectioned in Lean** (`srvRaftLogInv`, `kvInv`, `idClusterInv`,
+  `srvPropMint`, `srvRdCtxInv`, `idKeyFactAt`, `idWaitTokAt`, `newServerStoreFreshA`, `netNames`, and their
+  allocation lemmas): "retype only" is a re-sectioning of about ten definitions and their alloc lemmas, but its
+  rebuild cone is large (`NewServerAlloc.lean` reaches 935 modules; raft's `InvNodeRule.lean` 2639).
+- **`memberBoot`, `MemberG`, `ReqNames`, `AEnv` need no split** (§2): built in the member's boot.
+- **The per-member store names `idx` are global** (§1), not node-local; the storage registry `reg` is local.
+- **`rdPool`'s receipts are global**: `⧗`/`ReceiptGS` are part of `GooseGlobalGS`, and the pool is allocated
+  in the start; the bound counts all machines' steps (§1), so one pool is right.
+- `isGrpcRpcAt` (T): agreed, S2's redefinition (`grpcAddrAt`, `kvRegsPub`); `cid` in the view (#24 05:09Z).
+
+**Order of work.** (a) the S2 start for `k` members over `S2Draft` (cheap, global, no rebuild of the tree);
+(b) `clusterAllocN`/`memberBoot_of` factoring of `allocN` (etcdstart only, 31 modules); (c) raft's `nodeBootG`,
+`cluster_alloc_bootG` and the law (raft API; interfaces, the `RaftTla`/`RaftNoAx`/`KvNet` copies regenerated;
+a 2639-module rebuild); (d) the server re-sectioning (935 modules) and `clusterAllocN` at the global classes;
+(e) `etcdClusterStart` = (d) + (a), and a `k`-member boot skeleton `EtcdBootsS2` as putget's `BootsS2`. (c)
+and (d) are mechanical but rebuild most of the tree: to schedule with the coordinator (build slots).
+(d) is checked by the heap-free gate (`etc/heapfree-check.py`, phase 7 S2's): `clusterFacts`, `memberSliceG`
+and the start's other outputs become roots, so no `HeapGS` is reachable from what the start hands out. The auth-on
+allocation (`allocNOnM`, `srvClusterBootOn_alloc`, `kvInvOn`) has the same cut (`clusterFactsOn`), after the
+auth-off one. **(c) and (d) held** (the coordinator, 2026-11-23: they touch files other sessions are editing;
+sequenced on #28).
+
+**Done (2026-11-23, branch `d7-split`; no axiom, no `sorry`, no statement of an existing result changed).**
+- (a) `Proof/.../examples/etcd/dist/ClusterStart.lean`: `cluster_svc_start` (and `cluster_svc_start_list`), proved
+  from `S2Draft`'s fields: for members `ms` (client address, member id) and a `Pub` per member id, from the
+  protocol registry and every member address's `addrUnset`, the slot map once and per member `γE`, the publication
+  invariant and its address set to `etcdSvc γE id`; returns each member's `memberSvcShare` and the clients'
+  persistent `clientSvcFacts` (every member's `kvRegsPub` and publication invariant). `putget_start` is its
+  one-member case (not yet rewritten as its corollary: it lives in the putget skeleton, `putgetGF`).
+- (b) `etcdstart/AllocN.lean`: `clusterFacts` (persistent: `memberBoot_of`'s six persistent arguments),
+  `memberSlice` (a member's exclusive part, today with `nodeBoot`), `memberBoot_of_slice` (a member's boot step),
+  `clusterAllocN` (the cluster's part: `newServerNames_allocL` + `srvClusterBoot_alloc`, returning the facts, the
+  slices over `ids` and the client's `etcdKV`), `memberBoots_of` restated over the slices; `allocN` is now
+  `clusterAllocN` then `memberBoots_of` then the network, its statement unchanged (every driver unchanged).
+  Still at a heap: `clusterAllocN` moves to the global classes with (c) and (d), its statement then the global
+  start's. The auth-on `allocNOnM` is not cut yet (same shape, `clusterFactsOn`).
+
+**(d), the re-sectioning (branch `d7-resection`, 2026-11-23).** Moved to global sections (over
+`[GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]`, as `KVStoreApi`'s `defs`), statements unchanged, roots of the heap-free
+gate (`etc/heapfree-roots.txt`): `SrvRaftLog` (`srvPropTk`, `srvQInv`, `srvReadAu`, `srvLogCore`, `srvPendRead`,
+`srvLogRegs`, `srvLogInv`, `srvSnapsReg`, `srvClusterOk` (its unused `letI := srvStor` dropped), `srvRaftLogInv`,
+`srvRdCtxInv`, `srvRdCtxInv_alloc`); `InvRequest` (`idRegdAt`, `entryClaim`, `kvWork`, `kvGrantIds`,
+`kvGrantIds_nil`, `kvInv`, `floorAt`, `srvFloorFacts`); `InvProposer` (`srvPropMint`); `KVStoreApi`
+(`newServerStoreFreshA`); `BuildAlloc` (`buildGhostVarHalves`, `entryClaims_conf`, `kvInv_alloc_boot`,
+`srvPropMint_alloc`); `NewServerAlloc` (`newServerNames_alloc`); idutil (`idUnclaimed`, `idClaim`, `idClaimAny`,
+`idNoZero`, `idKeyFactAt`, `idShare`, `idWaitTokAt`, `idWaitTok`, `idWaitIs`); `wait` (`waitRegd`); rafthttp
+(`netSlot`, `netNames_alloc`, `streamRegInv`). **Not heap-free, left at a heap:** `idClusterInv` (below; a negative
+test of the gate), hence `idCluster_alloc`, `srvClusterBoot_alloc`, `clusterFacts`, `clusterAllocN`; and `nodeBoot`
+(step (c)). rafthttp's payload `srvNet γ` (message bundles on the receiver's heap) is S5's.
+
+**(c), raft's `nodeBootG` (branch `d7-nodeboot`, 2026-11-23).** `InvApiBoot`: `ApiImpl.nodeBootUG` (`nodeBootU` but
+`bootMarshal`), `cluster_alloc_boot_implG_tr` (the allocation over `[AllG] [ReceiptGS] [InvGS]`, its post also giving
+`γ.raft.reBoot = toEntries boot 0`), `nodeBootU_of_G` (`nodeBootUG ∗ bootMarshal ⊣⊢ nodeBootU`), and
+`cluster_alloc_boot_impl_tr` now its corollary (statement unchanged). The node API (`InvNodeRule`, sealed):
+`nodeBootG γ N vs ctxs id bl` (`@[no_expose]`, persistent), `cluster_alloc_bootG` (`cluster_alloc_ns`'s boot case over
+the global classes, each voter's `nodeBootG` at `toEntries boot 0`), and the law `nodeBoot_of_G : nodeBootG … bl ∗
+bootMarshal vs ctxs bl ⊢ nodeBoot …` at a heap. Additive: no statement changed; `RaftTla`/`RaftNoAx`/`KvNet` copies
+regenerated; heap-free roots, `nodeBoot` a negative test. `srvClusterBoot_alloc` can now take the raft part from
+`cluster_alloc_bootG`; it stays at a heap until the idutil split.
+
+#### The idutil split (design, 2026-11-23; accepted on #28, implemented on `d7-idsplit`)
+
+**The defect.** `idClusterInv issued cnt wn fs Φs` (`idutil/Defs.lean`), the cluster's claims, holds for every key
+`k` with a generator `g` (`C !! k = some (L, some g)`) `idKeyGenFacts k e`: `g`'s `prefix` field
+(`structFieldRef Generator "prefix" g ↦□ k.1`, a points-to on the heap of the machine running `g`) and, for each id
+of `L`, `idIssueFragD id g` (the issue record of `idIssueExt`, the **local** ghost state of that machine,
+`GooseLocalGS`); and `idClusterOk`'s clause "distinct keys' generators distinct" compares the `Loc`s of all keys.
+In one process this is sound; across machines one global invariant cannot hold points-to and local-extension facts
+of several heaps, and two machines' `Loc`s may be equal. So the cluster's claims cannot be allocated by the
+distributed start as they are.
+
+**What the generator facts are for** (the proofs that open them): (U1) `NewGenerator`: the new generator `g` is
+fresh (it owns `g.prefix` whole), so no key's `↦□` names it: the distinctness clause is kept; (U2)
+`Generator.Next`: an id `id` just issued by `g` (the record's fresh `idIssueFrag id g`) is not in the issued map
+already: if a key `k'` had it, its generator `g'` holds `idIssueFragD id g'`, so `g' = g` (`idIssueFragD_agree`),
+so `k' = k` (distinctness), and `k`'s own count rules it out. **Both arguments are per prefix**: an id's key has the
+id's prefix (`idClusterOk`'s second clause: `idPfx id = k.1`), so (U2) only meets keys `k'` with `k'.1 = k.1`, and
+(U1) needs distinctness only among them. And a prefix is one member's (the member id's 16 low bits, distinct:
+`BootCore.lowNodup`), so all keys of a prefix (the member's incarnations) live on **one machine**.
+
+**The split.**
+- **Global** (heap-free; allocated by the distributed start; same name and parameters):
+  `idClusterInv issued cnt wn fs Φs` keeps the issued map `I`, the keys' entries `C : GMap IdKey IdKeyEntry` (the
+  `Option Loc` kept as data: compared only between keys of one prefix, so of one machine), the registries `R`, the
+  facts `Fm`, `idClusterOk` with the generator clauses restricted to keys of one prefix, and the claimers' facts;
+  **without `idKeyGenFacts`**. Each key's entry is split in two halves (`ghostMapElem` at `1/2`): one in the key's
+  generator (`idGen`'s invariant, as today the whole), one in its prefix's invariant (below).
+- **Per prefix, on the member's heap**: `idPfxInv γi.gen p` (persistent, new, heap-level): an invariant holding, for
+  every key `(p, inc)` with a generator, the other half of its entry and its `idKeyGenFacts`. Its ghost name is
+  published once per prefix in a new global map `gen` (`p ↪[gen]□ γpg`, a new field `IdNames.gen` and a new
+  parameter of `idCluster_alloc`'s output), so that every incarnation of the member finds the same one. (U1) and
+  (U2) open it instead of the cluster's invariant; nothing else does.
+- **Allocation**: the distributed start allocates `idClusterInv` and, per member, the token `p ↪[gen] none` in the
+  member's slice; the member's boot allocates `idPfxInv` at its own heap and sets the token. The single process does
+  the same per member (`memberBoot_of`).
+
+**Statements that change** (definitions' bodies aside):
+- `idutil`: `IdNames` gains `gen`; `idClusterInv`'s body (type unchanged); `idClusterOk`'s generator clauses
+  (per prefix); new `idPfxInv`, `idPfxInv_alloc`; `idCluster_alloc`'s post (the `gen` map's tokens per prefix);
+  `idGen`'s body (the entry's half, `idPfxInv`); `NewGenerator.spec` (pre: `idPfxInv γi.gen γi.pfx`).
+  `Generator.Next.spec` unchanged (over `idGen`).
+- server: `NewServer.spec` and `NewServerR.spec` (pre: `idPfxInv`, passed to `NewGenerator`);
+  `srvClusterBoot_alloc`/`On` (the per-member token in their per-member output); `memberBoot`/`memberBootOn`
+  (`idPfxInv ρ.ids.gen ρ.ids.pfx`); `memberBoot_of`/`memberSlice` (the token), `alloc1`/`alloc3`/`allocN`/`On` and
+  the restart's `Restart.lean` (its four uses) follow; `InvRequest`/`Results` (one use each).
+- **No top-level theorem's statement changes**: checked on `lean` (`FETCH_HEAD` 2026-11-23) that no
+  `TopLevelRobustness` or `TopLevelDefs` (single-process `etcd/all`, `k8s/all`, `leaseexpiryN`, `mvccfull`, the dist
+  ones) names `idClusterInv`, `idGen`, `idShare`, `memberBoot`, `NewGenerator` or `idKeyGenFacts` (`etcd/all`'s one
+  match is prose naming `idIssueExt`), and that `etcdstart.premises` and `bootstrapContract` do not; they reach the
+  changed definitions only through proofs. To recheck by `#print axioms`-free statement diff when implemented
+  (`etc/gen-interface.py` on the closed results' modules).
+
+**F3/D4 (the issue record after a crash).** The split puts the record's facts where the record lives: `idPfxInv` is
+on the machine whose extension state holds `idIssueFrag`. With crashes, `idPfxInv` must survive a crash of its
+machine (its keys' facts are about ids already issued); that is the issue record's crash semantics, D4's: keyed by
+incarnation (`idIssueFrag id (epoch, g)`), the record survives and a restarted generator at an old address cannot be
+confused with the old one, so (U2)'s `g' = g` then compares `(epoch, g)` pairs. Today's `Restart.lean` (single
+process, `HardStop`, no crash) keeps the heap, so nothing changes for it. The global part has no crash concern.
+
+Ledger: `notes/specs-only/ledger.md`, 2026-11-23, "idutil's cluster claims hold every machine's generator facts".
+
+**Implemented (`d7-idsplit`, 2026-11-23).** As designed, refined: each prefix's two names (its ids' map `γip`, its
+generators' map `γgp`) are allocated by `idCluster_alloc` and recorded persistently in the new map `IdNames.gen`
+(`p ↪[gen]□ (γip, γgp)`; `idPfxTok gen p` the fresh pair, `idPfxInv_alloc` the member's step); the global
+invariant's `idKeyGenFacts gen k e` keeps heap-free records (`g ↪[γgp]□ k`, `id ↪[γip]□ g`), `idPfxInv gen p` their
+heap halves; `idClusterInv` gains the parameter `gen`. `NewGenerator`/`Next` re-proved over both invariants;
+`srvClusterBoot_allocG` (no `bootMarshal`, `nodeBootG`, `idPfxTok`s) with `srvClusterBoot_alloc` its corollary;
+etcdstart's `clusterFacts`, `memberSlice` (`nodeBootG`, `idPfxTok`) and `clusterAllocN` heap-free;
+`memberBoot_of_slice` (the member's boot: `bootMarshal`, `idPfxInv_alloc`, `memberBoot_of`). So the distributed
+start's cluster allocation is `clusterAllocN` (plus the S2 start, `cluster_svc_start`); what is left for D7's no-crash
+part is the `k`-member boot skeleton, which waits for S5 (the peers' transport) and D2 (the server program).
+
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 

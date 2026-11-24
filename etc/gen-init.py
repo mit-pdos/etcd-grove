@@ -167,6 +167,12 @@ ASSUMED = {}
 # (etcdstorage, 2026-11-20, the user's decision) auth, lease, backend and mvcc too: the closed
 # theorems of mvccrand and mvccfull now take the premise `namesUnclaimed` (mustreg had left them out).
 PRE_RES = {}
+# (prom-registry, 2026-11-22) A `PRE_RES` package's IDs besides its names' (`regKeys`, `[]` by default):
+# rights its initializer stores for a later registration of a collector of several descriptors (`v3rpc`:
+# grpc-prometheus's server metrics, which `getServerMetrics` registers, their rights in `metricsP`). The
+# entry's resource is `idToks γ (regNames.map descId ++ regKeys)` (`regRes`); `HK` in the initializer's
+# steps.
+REG_KEYS = {'go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc': 'EtcdGrove.grpc_prometheus.grpcKeys'}
 
 def reg_scalar(x, ns, sub, name, c=None, n=None):
     """A registration of the metric `x` (a `GoInterface`: `c<x>`, its `collectorName` fact `N<x>`,
@@ -183,15 +189,27 @@ def reg_vec(x, kind, ns, sub, name):
 
 def reg_steps(p, regs):
     """The steps registering `p`'s metrics `regs` (its `PRE_RES` entry) in its translated `init()`,
-    from its rights `HR : namesFree regNames` (`$end`)."""
-    k = len(regs)
-    L = ['iunfold EtcdGrove.prometheus.namesFree at HR', f'iunfold _root_.Perennial.{p}.regNames at HR',
-         'icases HR with ⟨' + ', '.join(f'HR{i}' for i in range(1, k + 1)) + ', -⟩']
-    for i, (x, c, n, _) in enumerate(regs, 1):
-        L += [f'wp_apply wp_slice_literal (l := [{c}])', 'isplitr', '· ipureintro; rfl',
+    from its rights `HR : idToks γ (regNames.map descId ++ regKeys)` (`$end`; prom-registry, route (b),
+    2026-11-22: the rights keyed by ID, one `idToks γ [descId n]` per registration, taken from the
+    front; until then `namesFree regNames`). Each registration is `prometheus.MustRegister`'s proof
+    over `(*Registry).MustRegister`'s and `Register`'s, given the collector's `collectorName` (`#N<x>`,
+    persistent) and prometheus's fact (an import's)."""
+    L = []
+    P = 'EtcdGrove.prometheus'
+    for i, (x, c, n, (a, b, cc)) in enumerate(regs, 1):
+        fq = f'({P}.fqName go!"{a}" go!"{b}" go!"{cc}")'
+        if n.startswith('('):
+            # a `NewGaugeFunc` gauge's `collectorName` is conditional on its name's validity (`N<x> :
+            # ⌜nameOk ...⌝ → collectorName ...`): decided here
+            L += [f'ihave #G{x} := (BI.pure_imp_elim (φ := {P}.nameOk {fq}) (by decide)) $$ N{x}']
+            n = f'G{x}'
+        L += [f'icases ({P}.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR{i}, HR⟩',
+              f'wp_apply wp_slice_literal (l := [{c}])', 'isplitr', '· ipureintro; rfl',
               f'iintro %s{i} ⟨S{i}, -⟩', 'try wp_auto',
-              f'wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ {n} $$ [S{i} HR{i}] as S{i}',
-              f'· iframe S{i} HR{i}']
+              f'wp_apply ({P}.MustRegister.wp_proof ({P}.Registry.MustRegister.wp_proof'
+              f' {P}.Registry.Register.wp_proof))',
+              f'    _ _ _ {fq} (by decide +kernel) $$ [S{i} HR{i}] as S{i}',
+              f'· iframe S{i} HR{i} {n}', '  try iframe #', '  try iPkgInit']
     return L
 
 
@@ -204,8 +222,8 @@ def register(cfg, p, regs):
         if x not in b:
             continue
         for i, l in enumerate(b[x]):
-            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#R{x}, -⟩', f'⟨#R{x}, %{n}⟩'),
-                         (f'⟨#L{x}, -⟩', f'⟨#L{x}, %{n}⟩')]:
+            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, #{n}⟩'), (f'⟨#C{x}, #D{x}, -⟩', f'⟨#C{x}, #D{x}, #{n}⟩'),
+                         (f'⟨#R{x}, -⟩', f'⟨#R{x}, #{n}⟩'), (f'⟨#L{x}, -⟩', f'⟨#L{x}, #{n}⟩')]:
                 l = l.replace(a, z)
             b[x][i] = l
     b['$end'] = b.get('$end', []) + reg_steps(p, regs)
@@ -257,6 +275,16 @@ def instances(proof='Proof/'):
 
 inv = inventory()
 inst = instances()
+# (prom-registry, route (b), Option 4, 2026-11-22) Packages whose `IsPkgInit` instance is hand-written (not
+# `define_is_pkg_init X`, which `instances()` finds): its module and fact. prometheus's fact takes a
+# parameter (`IsPkgInitParam`, the run's registry ghost name `PromRegGS`).
+INST_HAND = {'github_com.prometheus.client_golang.prometheus':
+             ('github_com/prometheus/client_golang/prometheus/PkgInit', 'promInit')}
+for _p, _m in INST_HAND.items():
+    inst.setdefault(_p, [_m])
+# The section variable of the parameter, in every generated file whose closure has prometheus (its
+# `vars`/`table_vars`): the initializers' and tables' well-formedness instances take it.
+PROMREG_VAR = '[promreg_gs : EtcdGrove.prometheus.PromRegGS GF]'
 # (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation (over the
 # net extension; `etc/goose.py`'s `net=Net`), with its `IsPkgInit` instance in `Net/Proof/net/Base.lean`
 # (`isInit`); its `Init.lean` is generated here over the main tree's imports (`Net/`'s own imports the
@@ -269,6 +297,13 @@ inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
 # generated here over the main tree's imports, as `net`'s.
 inv['models_lab.pbcodec'] = inventory('Net/Code')['models_lab.pbcodec']
 inst['models_lab.pbcodec'] = [('@Net.Proof.models_lab.pbcodec.Base', 'iprop(True)')]
+# (#24 J3, 2026-11-23) the encoding/json model's same-package methods in membership
+# (`json_model_gen.go`, `etc/goose.py`'s overlay) call `models.lab/jsoncodec`, the part `Net/`'s
+# translation (`models.lab=Net`), with its `IsPkgInit` instance in
+# `Net/Proof/models_lab/jsoncodec/Base.lean` (`True`); its main-tree `Init.lean` is generated here
+# over the main tree's imports, as `net`'s (and as #37's `models_lab.pbcodec`).
+inv['models_lab.jsoncodec'] = inventory('Net/Code')['models_lab.jsoncodec']
+inst['models_lab.jsoncodec'] = [('@Net.Proof.models_lab.jsoncodec.Base', 'iprop(True)')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -464,6 +499,22 @@ trust-boundary axioms `<X>_init`).''',
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (phase 7 S5, 2026-11-24) net/url's character-class table `table` (`encoding_table.go`), translated:
+# an array literal of 86 keyed constants (what `shouldEscape`/`ishex` read, for the ServeMux's
+# `EscapedPath`/`PathUnescape`); its value is `encTableList` (`Proof/net/url/Escape.lean`: Go's
+# generator's reference functions), by evaluation
+SPECIAL['net.url'] = dict(
+    doc='''Its fact (`urlInit`, `url/PkgInit.lean`): `table` holds `encTableList`, the entries
+`gen_encoding_table.go` computes, read-only for good. Its initializer allocates `table`, initializes
+`strings` and stores the table's literal (phase 7 S5, 2026-11-24: translated, with `shouldEscape`,
+`unescape`, `escape`, `EscapedPath`).''',
+    alloc_types={'table': 'GoArray w8 256'},
+    before={'table': ['try wp_auto']},
+    finish=['ipersist Htable'] + FIN_PRE + ['unfold urlInit', 'iexists _; iframe Htable',
+            'ipureintro', 'set_option maxRecDepth 100000 in decide'],
+)
+
 
 # (2026-11-19) Kubernetes' conditional authorization (KEP-5681, project k8s-authz)
 SPECIAL['k8s_io.apiserver.pkg.authorization.authorizer'] = dict(
@@ -665,6 +716,17 @@ class _AnyType(dict):
 
 _ALLOC_ANY = _AnyType()
 
+# (#24 J2, 2026-11-23) the encoding/json model's codec registry with its bodies: `codecMu` and
+# `codec`, zero (the registry's mutex and its nil `*Codec`), left to the program: a deployment that
+# registers a codec takes `codecMu`'s mutex and `codecUnset` (half of `codec` at nil) from its boot,
+# as net/rpc's (`Proof/encoding/json/Registry.lean`).
+SPECIAL['encoding.json'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates the codec registry's variables (`codecMu`, `codec`:
+zero) and initializes its imports (`sync`, `io`); a program that registers a codec takes the
+registry's mutex and the codec's nil cell from its boot (`Registry.lean`: `codecInv`, `codecUnset`).''',
+    alloc_types=_ALLOC_ANY,
+)
+
 SPECIAL['os'] = dict(
     doc='''Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
 initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's): its
@@ -702,7 +764,8 @@ function, which calls the trusted model of
         'repeat (first',
         '  | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩',
         '  | (set_option maxRecDepth 20000 in wp_apply _root_.Perennial.sync.wp_OnceValue as %_ -)',
-        '  | (wp_func_call; wp_apply wp_runtime_args_impl as %_ ⟨%_, _, _⟩)',
+        # (featuregate-3, 2026-11-23) named: the fact keeps `Args`' slice, read-only
+        '  | (wp_func_call; wp_apply wp_runtime_args_impl as %argsl ⟨%argsxs, Hargs, -⟩)',
         '  | wp_auto)']},
     finish=['ipersist HStderr', 'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish'],
@@ -761,6 +824,12 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
+# (2026-11-23, Perennial 47ec64a9d translates `math/rand`'s global generator) `math.rand`'s fact stays
+# `True` here (`Proof/math/rand/Base.lean`, not Perennial's `isInit`): its initializer allocates
+# `globalRandGenerator` (dropped) and initializes `sync/atomic` and `sync`. Its other variables are
+# skipped by Perennial's configuration, so no `opaqueInitsOk` axiom any more.
+SPECIAL['math.rand'] = dict(alloc_types=_ALLOC_ANY)
+
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
 # `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the
 # main tree's: `SPECIAL['os']`, `SPECIAL['io.fs']` below).
@@ -795,15 +864,18 @@ LFS_IOFS['imports'] = SPECIAL['io.fs']['imports'] + ['Proof.errors.ErrorStringOk
 LFS_IOFS['finish'] = ['ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl'] + SPECIAL['io.fs']['finish']
 LFS_OS = dict(SPECIAL['os'])
 LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
-    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's), `checkWrapErr`\n`false`.")
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's), `checkWrapErr`\n`false`, `Args` some `[]string`, read-only.")
 LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
                                     .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace(_lfs_fs_ne, _lfs_fs_ne_ptr).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
                                     .replace('⟨%fe4, #F4⟩', '⟨%fe4, #F4, #F4o⟩')
                                    for l in SPECIAL['os']['before']['dirBufPool']]}
 # (2026-11-22, `io.CopyFiles.spec`'s proof: `(*File).wrapErr` of an error reads `checkWrapErr`, a translated
 # `var` that only os's tests set) `os` also records `checkWrapErr` false, for good.
+# (featuregate-3, 2026-11-23: `flag`'s `init` reads `os.Args[0]`) and `Args`' slice, read-only for good.
 LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'ipersist HErrInvalid',
-                    'ipersist HErrClosed', 'ipersist HcheckWrapErr', 'iframe Hown', 'imodintro', 'isplitr',
+                    'ipersist HErrClosed', 'ipersist HcheckWrapErr',
+                    # (featuregate-3, 2026-11-23) `Args`' slice, read-only for good (`flag`'s `init`)
+                    'ipersist HArgs', 'ipersist Hargs', 'iframe Hown', 'imodintro', 'isplitr',
                     '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish']
 
 # (WAL leaf specs, 2026-11-13) the part's bufio, internal/filepathlite and path/filepath: their
@@ -819,6 +891,55 @@ SPECIAL['bufio'] = dict(
                      for i in range(len(_BUFIO_ERRS))]},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
+# (featuregate-3, 2026-11-23) `flag` (project etcd's, `Code/flag.toml`: featuregate imports it): its
+# translated `errors.New` variables and `Usage` (a function literal), then `init.0`, which reads
+# `os.Args` (`os`'s fact: some read-only `[]string`) and makes `CommandLine` (`NewFlagSet`, translated);
+# fact `True` (`Proof/flag/PkgInit.lean`).
+SPECIAL['flag'] = dict(
+    doc='''Its fact is `True` (`Proof/flag/PkgInit.lean`). Its initializer initializes its imports, allocates
+its variables, runs their translated initializers (`ErrHelp`, `errParse`, `errRange`: `errors.New`;
+`Usage`: a function literal) and its translated `init` function, which reads `os.Args` (`os`'s fact:
+some `[]string`, read-only) and sets `CommandLine` to `NewFlagSet(os.Args[0], ExitOnError)`, or
+`NewFlagSet("", ExitOnError)` when `os.Args` is empty, then its `Usage` field (featuregate-3,
+2026-11-23).''',
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types=_ALLOC_ANY,
+    before={'ErrHelp': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} ⟨#_, #E{i}⟩'
+                                          for i in range(3)] + ['try wp_auto']},
+    after={'init.«0»': [
+        'ihave #HA := _root_.Perennial.os.args_of_pkgInit $$ {Hd:os}',
+        'icases HA with ⟨%argsl, %argsxs, #HArgs, #Hargs⟩',
+        'ihave %Hlen := ownSlice_len _ _ _ $$ Hargs',
+        'try wp_auto',
+        'wp_if_destruct',
+        # `os.Args` empty: `NewFlagSet("", ExitOnError)` (inlined), then `CommandLine.Usage = ...`
+        '· try wp_auto',
+        '  wp_func_call',
+        '  wp_call',
+        '  try unfold ExitOnError',
+        '  wp_auto',
+        '  iframe Hown',
+        '  is_pkg_init_finish',
+        # non-empty: `os.Args[0]`, read from `os`'s fact
+        '· try wp_auto',
+        '  have hpos : 0 < sint.Z argsl.len := by',
+        '    have h0 : sint.Z argsl.len ≠ 0 := fun h => Hif (by word)',
+        '    omega',
+        '  have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z argsl.len := ⟨by decide, by word⟩',
+        '  have hxl : 0 < argsxs.length := by word',
+        '  (try simp only [hb, _root_.and_self, ↓reduceIte])',
+        "  wp_apply wp_load_slice_index argsl (sint.Z (W64 0)) argsxs DFrac.discard (argsxs[0]'hxl)",
+        '    hb.1 $$ [Hargs] as -',
+        '  · iframe #; ipureintro; simp [List.getElem?_eq_getElem hxl]',
+        '  wp_func_call',
+        '  wp_call',
+        '  try unfold ExitOnError',
+        '  wp_auto',
+        '  iframe Hown',
+        '  is_pkg_init_finish']},
+    # (each branch above finishes)
+    finish=[],
+)
 # (#23, 2026-11-22: path.filepath's keyed `SkipDir` until it, `SkipAll` and `lstat`, which ran after
 # `ErrBadPattern`, were skipped, goose `[[skip]]`)
 # (#23, 2026-11-22) k8s api/meta's `errNotList`, `errNotObject` (`fmt.Errorf` without a verb, read by the
@@ -828,9 +949,22 @@ newvars_cfg(SPECIAL.setdefault('k8s_io.apimachinery.pkg.api.«meta»', {}), ['er
                         errNotObject="object does not implement the Object interfaces"))
 # (#23, 2026-11-22) the cacher's `consistency.PanicOnCacheInconsistency = false` (read by the proved
 # snapshotter, so goose cannot skip it) translated, until then `opaqueInitsOk`
+# (k8s-inits-2, 2026-11-24, #32) and its `init` (`checker.go:50`) translated and proved, until then
+# `initFuncsOk`
+_GETENV_PARSEBOOL = ['wp_apply EtcdGrove.os.Getenv.wp_proof as %_ -', 'try wp_auto',
+                     'wp_apply EtcdGrove.strconv.ParseBool.wp_proof as %_ %_ -', 'try wp_auto']
 SPECIAL['k8s_io.apiserver.pkg.storage.cacher.consistency'] = dict(
+    doc='''Its fact is `True` (its readers, the watch cache's snapshotter and `checkSnapshotResourceVersion`,
+are proved only where they do not reach the load). Its initializer allocates
+`PanicOnCacheInconsistency`, initializes its imports, runs the variable's translated initializer
+(`false`) and its translated `init` (`checker.go:50`), which stores in it whether
+`KUBE_WATCHCACHE_CONSISTENCY_CHECKER` parses as true (`os.Getenv`: the trust-boundary axiom
+`os.Getenv.wp_proof`; `strconv.ParseBool.wp_proof`, proved over Perennial's translation). (Until
+2026-11-24 the `init` was names-only, the trust-boundary axiom `initFuncsOk`.)''',
     alloc_types=_ALLOC_ANY,
+    imports=['Proof.os.Getenv', 'Proof.strconv.ParseBool'],
     before={'$inits': ['try wp_auto']},
+    after={'init.«0»': _GETENV_PARSEBOOL},
 )
 # (#23, 2026-11-22) k8s util/validation's `IsQualifiedName = content.IsLabelKey` (read by the translated
 # `v1helper.IsExtendedResourceName`, so goose cannot skip it) translated, until then `opaqueInitsOk`
@@ -955,10 +1089,11 @@ def gauge_rep(c, h):
     a = f'{_PM}.gauge.Add.wp_proof'
     return [f'ihave #C{h} : ({_PM}.metric.gaugeSpec {c} : IProp GF) $$ []',
             f'· iapply {_PM}.metric.gaugeSpec_of_isGauge ({_PM}.gauge.Inc.wp_proof {a}) ({_PM}.gauge.Dec.wp_proof {a}) {a}',
-            '  all_goals iassumption',
+            # (prom-registry) prometheus's fact at the run's registry name: `isPkgInitSome`
+            '  all_goals first | iassumption | iPkgInit',
             f'ihave #D{h} : ({_PM}.metric.gaugeSetSpec {c} : IProp GF) $$ []',
             f'· iapply {_PM}.metric.gaugeSetSpec_of_isGauge {_PM}.gauge.Set.wp_proof',
-            '  all_goals iassumption']
+            '  all_goals first | iassumption | iPkgInit']
 
 def metric_steps(x, kind):
     P = 'EtcdGrove.prometheus'
@@ -979,7 +1114,7 @@ def metric_steps(x, kind):
 def gaugefunc_steps(x):
     """`x = prometheus.NewGaugeFunc(opts, func() float64 {...})`, over `NewGaugeFunc`'s spec."""
     return ['try wp_auto',
-            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} %N{x}',
+            f'wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %c{x} #N{x}',
             'try wp_auto']
 
 _MV = 'go_etcd_io.etcd.server.v3.storage.mvcc'
@@ -1051,27 +1186,161 @@ says returns.''',
 # (prove-etcdint3, 2026-11-21) `hash/crc32`'s initializer translated (until then the trust-boundary
 # axiom `opaqueInitsOk` of its three variables): `IEEETable = simpleMakeTable(IEEE)`, over its proved
 # spec, and the two `sync.OnceFunc`s (closures not run at initialization)
+# (crc32-hooks2, 2026-11-22, etcd-grove#14) `castagnoliInitOnce`'s triple and `haveCastagnoli`'s
+# invariant (`PkgInit.lean`): the once's function sets up the Castagnoli state, the fast path or
+# the slicing-by-8 one
+_CRC32_ONCE = [
+    'ipersist HcastagnoliInitOnce',
+    'ihave Hhc : _root_.Perennial.sync.atomic.ownBool (GF := GF) (globalAddr haveCastagnoli) (DFrac.own 1) false $$ [HhaveCastagnoli]',
+    '· rw [_root_.Perennial.sync.atomic.ownBool_unseal]',
+    '  unfold _root_.Perennial.sync.atomic.ownBoolDef',
+    "  have e : (zero_val _root_.Perennial.sync.atomic.Bool') =",
+    "      ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
+    "        _root_.Perennial.sync.atomic.Bool') := rfl",
+    '  rw [← e]; iexact HhaveCastagnoli',
+    'imod inv_alloc hash.crc32.crc32N ⊤ hash.crc32.haveInv $$ [Hhc] with #Hinv',
+    '· inext; iunfold hash.crc32.haveInv; iexists false; iframe',
+    '  simp only [Bool.false_eq_true, ↓reduceIte]; itrivial',
+    'imod HcastagnoliOnce $$ %iprop(globalAddr castagnoliTable ↦ zero_val Loc ∗',
+    '    globalAddr castagnoliTable8 ↦ zero_val Loc ∗ globalAddr updateCastagnoli ↦ zero_val GoFunc)',
+    '    %hash.crc32.castagnoliReady %⊤ [] [HcastagnoliTable HcastagnoliTable8 HupdateCastagnoli] [] with #HcastOnce',
+    '· iintro !> #HQ; imodintro; iexact HQ',
+    '· iframe',
+    '· iintro !> %Φ ⟨HT, HT8, HU⟩ HΦ',
+    '  wp_auto',
+    '  rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
+    '  wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof',
+    '    _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %t Ht',
+    '  try wp_auto',
+    '  ipersist HT',
+    '  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ht with #Ht',
+    '  wp_apply _root_.Perennial.EtcdGrove.hash.crc32.archAvailableCastagnoli.wp_proof as %avail -',
+    '  cases avail',
+    '  · -- no fast path: the slicing-by-8 table and its closure',
+    '    try simp only [Bool.false_eq_true, ↓reduceIte]',
+    '    try wp_auto',
+    '    rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
+    '    wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.slicingMakeTable.wp_proof',
+    '      _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %t8 Ht8',
+    '    try wp_auto',
+    '    ipersist HT8',
+    '    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ht8 with #Ht8',
+    '    try wp_auto',
+    '    ipersist HU',
+    '    wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
+    '    · iexact Hd4',
+    '    iinv Hinv with Hi Hclose',
+    '    iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+    '    iintro Hmask',
+    '    inext',
+    '    iunfold hash.crc32.haveInv at Hi',
+    '    icases Hi with ⟨%v, Hb, -⟩',
+    '    iexists v',
+    '    iframe Hb',
+    '    iintro Hb',
+    '    imod Hmask with _',
+    '    imod Hclose $$ [Hb] with _',
+    '    · inext; iunfold hash.crc32.haveInv; iexists true; iframe Hb; simp only [↓reduceIte]',
+    '      isplitl []',
+    '      · iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+    '      iexists _; iframe HU',
+    '      iunfold hash.crc32.updSpec',
+    '      iintro %c %s %bs %dq !> %Ψ Hs HΨ',
+    '      wp_auto',
+    '      wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.slicingUpdate.wp_proof',
+    '        _root_.Perennial.EtcdGrove.hash.crc32.simpleUpdate.wp_proof',
+    '        _root_.Perennial.EtcdGrove.byteorder.LEUint32.wp_proof) $$ [Hs] as Hs',
+    '      · iframe Hs; iexact Ht8',
+    '      try wp_auto',
+    '      rw [show _root_.Perennial.hash.crc32.crcUpdate (_root_.Perennial.hash.crc32.crcTableOf',
+    '        _root_.Perennial.hash.crc32.castagnoliPoly) c bs = _root_.Perennial.hash.crc32.crc32c c bs from rfl]',
+    '      iapply HΨ $$ Hs',
+    '    imodintro',
+    '    try wp_auto',
+    '    iapply HΦ',
+    '    iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+    '  · -- the fast path: `archInitCastagnoli()`, `updateCastagnoli = archUpdateCastagnoli`',
+    '    try simp only [↓reduceIte]',
+    '    try wp_auto',
+    '    wp_apply _root_.Perennial.EtcdGrove.hash.crc32.archInitCastagnoli.wp_proof',
+    '    try wp_auto',
+    '    ipersist HU',
+    '    ihave #Hus : (hash.crc32.updSpec (GF := GF) (functions archUpdateCastagnoli [])) $$ []',
+    '    · iunfold hash.crc32.updSpec',
+    '      iintro %c %s %bs %dq !> %Ψ Hs HΨ',
+    '      wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.archUpdateCastagnoli.wp_proof',
+    '        (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof',
+    '          _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof)',
+    '        _root_.Perennial.EtcdGrove.hash.crc32.simpleUpdate.wp_proof) $$ [Hs] as Hs',
+    '      · iexact Hs',
+    '      iapply HΨ $$ Hs',
+    '    wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
+    '    · iexact Hd4',
+    '    iinv Hinv with Hi Hclose',
+    '    iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+    '    iintro Hmask',
+    '    inext',
+    '    iunfold hash.crc32.haveInv at Hi',
+    '    icases Hi with ⟨%v, Hb, -⟩',
+    '    iexists v',
+    '    iframe Hb',
+    '    iintro Hb',
+    '    imod Hmask with _',
+    '    imod Hclose $$ [Hb] with _',
+    '    · inext; iunfold hash.crc32.haveInv; iexists true; iframe Hb; simp only [↓reduceIte]',
+    '      isplitl []',
+    '      · iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+    '      iexists _; iframe #',
+    '    imodintro',
+    '    try wp_auto',
+    '    iapply HΦ',
+    '    iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+]
+_CRC32_FIN = [
+    'unfold hash.crc32.crc32Init',
+    'isplitl []',
+    '· unfold hash.crc32.ieeeTableArr',
+    '  iexists _',
+    '  iframe HIEEETable',
+    '  iexact HtI',
+    'iframe Hinv',
+    'iexists _',
+    'iframe HcastagnoliInitOnce',
+    'iexact HcastOnce',
+]
 SPECIAL['hash.crc32'] = dict(
     doc='''Its fact (`crc32Init`, `PkgInit.lean`): `IEEETable` holds, read-only, a pointer to the IEEE
-table, read-only. Its initializer allocates its variables, initializes its imports and runs their
-translated initializers: `simpleMakeTable(IEEE)` (`crc32.go:101`, over its spec) and the two
-`sync.OnceFunc(func() {...})` (`castagnoliInitOnce`, `ieeeInitOnce`: Perennial's `sync.wp_OnceFunc`;
-their functions run only when called). (prove-etcdint3, 2026-11-21: until then untranslated, the
-trust-boundary axiom `opaqueInitsOk`, and its fact `True`.)''',
-    imports=['Proof.hash.crc32.simpleMakeTable', 'Proof.hash.crc32.simplePopulateTable'],
-    alloc_types=dict(IEEETable='Loc', castagnoliInitOnce='GoFunc', ieeeInitOnce='GoFunc'),
+table, read-only; `castagnoliInitOnce` a function every call of which returns with the Castagnoli
+table set up (`castagnoliReady`); and `haveInv`, the invariant of `haveCastagnoli` (once true, the
+table is set up and `updateCastagnoli` holds a function computing CRC-32C). Its initializer allocates
+its variables, initializes its imports and runs their translated initializers: `simpleMakeTable(IEEE)`
+(`crc32.go:101`, over its spec) and the two `sync.OnceFunc(func() {...})` (`castagnoliInitOnce`,
+`ieeeInitOnce`: Perennial's `sync.wp_OnceFunc`; their functions run only when called). The proof
+allocates `haveInv` and gives `castagnoliInitOnce`'s function its triple: it sets `castagnoliTable`
+(`simpleMakeTable`), then either the fast path (`archInitCastagnoli`, `archUpdateCastagnoli`: the
+trusted hooks) or the slicing-by-8 table and its closure (`slicingMakeTable`, `slicingUpdate`), and
+stores `true` in `haveCastagnoli`. (prove-etcdint3, 2026-11-21: until then untranslated, the
+trust-boundary axiom `opaqueInitsOk`, and its fact `True`; crc32-hooks2, 2026-11-22, etcd-grove#14:
+the Castagnoli state and once.)''',
+    imports=['Proof.hash.crc32.simpleMakeTable', 'Proof.hash.crc32.simplePopulateTable',
+             'Proof.hash.crc32.simpleUpdate', 'Proof.hash.crc32.slicingMakeTable',
+             'Proof.hash.crc32.slicingUpdate', 'Proof.hash.crc32.archAvailableCastagnoli',
+             'Proof.hash.crc32.archInitCastagnoli', 'Proof.hash.crc32.archUpdateCastagnoli',
+             'Proof.internal.byteorder.LEUint32'],
+    alloc_types=dict(IEEETable='Loc', castagnoliInitOnce='GoFunc', ieeeInitOnce='GoFunc',
+                     castagnoliTable='Loc', castagnoliTable8='Loc', updateCastagnoli='GoFunc',
+                     haveCastagnoli="_root_.Perennial.sync.atomic.Bool'", ieeeTable8='Loc', updateIEEE='GoFunc'),
     before=dict(
         IEEETable=['try wp_auto',
                    'rw [show (W32 3988292384) = _root_.Perennial.hash.crc32.ieeePoly from rfl]',
                    'wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %tI HtI',
                    'try wp_auto'],
-        castagnoliInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -', 'try wp_auto'],
+        castagnoliInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %castagnoliOnce HcastagnoliOnce', 'try wp_auto'],
         ieeeInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -', 'try wp_auto'],
         **{'$end': ['try wp_auto']}),
     finish=['ipersist HIEEETable',
             'imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HtI with #HtI'] +
-           FIN_PRE[:6] +
-           ['imodintro', 'unfold hash.crc32.crc32Init hash.crc32.ieeeTableArr', 'iexists _', 'iframe HIEEETable', 'iexact HtI'],
+           _CRC32_ONCE + FIN_PRE[:6] + ['imodintro'] + _CRC32_FIN,
 )
 # (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
 # translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
@@ -1205,6 +1474,28 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
         'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
 )
 
+# (etcd-small-3, 2026-11-23, etcd-grove#39) `mvccpb`: `Event_EventType_name`, which
+# `Event_EventType.String`'s trusted model reads (until then skipped; the fact `True`)
+SPECIAL['go_etcd_io.etcd.api.v3.mvccpb'] = dict(
+    doc='''Its fact (`mvccpbInit`, `cache/v3/Base.lean`; etcd-grove#39, 2026-11-23, `True` until then):
+`Event_EventType_name` holds a map with `mvccpb.eventTypeNames` (`0` `PUT`, `1` `DELETE`), both
+read-only for good: `Event_EventType.String`'s trusted model reads it. Its initializer allocates and
+sets the translated name map (a `map[int32]string` literal, `kv.pb.go`), initializes its imports and
+runs its trusted `init` (a no-op model).''',
+    alloc_types={'Event_EventType_name': 'Loc'},
+    before={
+        'Event_EventType_name': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mn Hmn',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hmn as Hmn; try wp_auto)']},
+    finish=['ipersist HEvent_EventType_name', 'ipersist Hmn'] + [
+        'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+        'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+        'unfold go_etcd_io.etcd.cache.v3.mvccpbInit go_etcd_io.etcd.cache.v3.mvccpb.eventTypeNames',
+        'iexists _', 'iframe #'],
+)
+
 # (prove-grpc3, 2026-11-21) grpc's `resolver`, in the closure since `internal/resolver`'s `New` is
 # translated (it imports `resolver/manual`): its two package variables, translated.
 SPECIAL['google_golang_org.grpc.resolver'] = dict(
@@ -1221,7 +1512,9 @@ after initializing its imports (`serviceconfig`, `attributes`: types only).''',
 )
 
 _VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
-_SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
+_SEMVER_NEW = ('EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof '
+               '_root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String '
+               '_root_.Perennial.fmt.wp_Fprintf)')
 def semver_new_steps(x):
     """`x = *semver.New(...)`: `semver.New`'s spec (a read-only version), then the load."""
     return ['try wp_auto',
@@ -1246,6 +1539,7 @@ versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, prove
                              'try wp_auto']),
     imports=['Proof.github_com.Masterminds.semver.v3.New',
              'Proof.github_com.Masterminds.semver.v3.Version__String',
+             'Perennial.Proof.bytes.Link',
              'Proof.github_com.Masterminds.semver.v3.NewVersion',
              'Proof.github_com.Masterminds.semver.v3.Version__Major',
              'Proof.github_com.Masterminds.semver.v3.Version__Minor'],
@@ -1559,12 +1853,20 @@ of the DaemonSet plan, 2026-10-27): `ErrFIFOClosed` and `errorStopRequested` (un
 `errors.New` calls, `fifo.go`, `reflector.go`) hold some error each, for good: the trust-boundary
 axioms `ErrFIFOClosed_init` and `errorStopRequested_init`. Its initializer allocates its translated
 variables (`informer_metrics.go`: `globalInformerMetricsProvider`, a
-`noopInformerMetricsProvider{}`, and the zero `setInformerMetricsProviderOnce`), initializes its
-imports, runs the other variables' untranslated initializers, which the trust-boundary axiom
-`opaqueInitsOk` says run without panicking, and the translated one, and its untranslated `init`
-functions, which `initFuncsOk` says return.''',
+`noopInformerMetricsProvider{}`, and the zero `setInformerMetricsProviderOnce`;
+`mutation_detector.go`: `mutationDetectionEnabled`, `false`), initializes its imports, runs the
+other variables' untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run
+without panicking, and the translated ones, and its translated `init` (`mutation_detector.go:35`),
+which stores in `mutationDetectionEnabled` whether `KUBE_CACHE_MUTATION_DETECTOR` parses as true
+(`os.Getenv`: the trust-boundary axiom `os.Getenv.wp_proof`; `strconv.ParseBool.wp_proof`). (Until
+2026-11-24 the `init`, translated but in chunks, was the trust-boundary axiom `initFuncsOk`, and
+`mutationDetectionEnabled`'s initializer untranslated.)''',
     alloc_types={'setInformerMetricsProviderOnce': '_root_.Perennial.sync.Once',
-                 'globalInformerMetricsProvider': 'GoInterface'},
+                 'globalInformerMetricsProvider': 'GoInterface', 'mutationDetectionEnabled': 'Bool'},
+    imports=['Proof.os.Getenv', 'Proof.strconv.ParseBool'],
+    # (k8s-inits-2, 2026-11-24, #32) the translated `init` (`mutation_detector.go:35`), until then
+    # `initFuncsOk` (a translated `init` in chunks kept its axiom)
+    after={'init.«0»': _GETENV_PARSEBOOL},
     custom={'ErrFIFOClosed': dict(
                 doc='/-- `ErrFIFOClosed = errors.New("DeltaFIFO: manipulating with closed queue")` (`fifo.go`): an error. -/',
                 post='∃ e : GoInterface, globalAddr ErrFIFOClosed ↦ e', pat='⟨%e@, H@⟩'),
@@ -1890,8 +2192,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
 (`auth.go`; the auth plan's S1, 2026-10-23), the lessor's `Lease` bucket (leases T3,
-2026-10-25) and the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
-2026-11-22). Its initializer allocates and sets those translated variables (with the buckets'
+2026-10-25), the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
+2026-11-22) and the alarm store's `Alarm` bucket (prove-ps2-v3alarm, 2026-11-24). Its initializer allocates and sets those translated variables (with the buckets'
 names), initializes its imports and runs its other variables' initializers, all translated
 (prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
 interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its `init` function
@@ -1925,7 +2227,7 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto']
-                           + ['wp_apply wp_string_to_bytes go!"alarm" as %_ ⟨-, -⟩', 'try wp_auto',
+                           + ['wp_apply wp_string_to_bytes go!"alarm" as %salarm ⟨Hsalarm, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"cluster" as %scluster ⟨Hscluster, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"members" as %smembers ⟨Hsmembers, -⟩', 'try wp_auto',
                               'wp_apply wp_string_to_bytes go!"members_removed" as %smrem ⟨Hsmrem, -⟩',
@@ -1980,7 +2282,9 @@ etcd-grove#32; until 2026-11-23 the trust-boundary axiom `initFuncsOk` said it r
             'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease',
             # (prove-ps2-members, 2026-11-22) the membership's three buckets
             'ipersist Hscluster', 'ipersist Hsmembers', 'ipersist Hsmrem', 'ipersist HMembersRemoved',
-            'ipersist HCluster'] + FIN_PRE[:6] + ['imodintro',
+            'ipersist HCluster',
+            # (prove-ps2-v3alarm, 2026-11-24) the alarm store's bucket
+            'ipersist Hsalarm', 'ipersist HAlarm'] + FIN_PRE[:6] + ['imodintro',
             'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
@@ -2372,14 +2676,26 @@ without panicking.""",
     finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
            ['imodintro', 'unfold traceInit', 'iexists _; iexact HnoopSpanInstance'],
 )
+# (otel-tracing, 2026-11-23) otel's no-op tracer package, what `traceutil.Tracer`'s initializer calls
+SPECIAL['go_opentelemetry_io.otel.trace.noop'] = dict(
+    doc="""Its fact (`noopInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a no-op `Span` as a
+`trace.Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
+translated initializers (`noopSpanInstance = Span{}` and the interface assertions `var _ I = T{}`,
+`noop.go`).""",
+    alloc_types={'noopSpanInstance': 'GoInterface'},
+    finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold noopInit', 'iexists _; iexact HnoopSpanInstance'],
+)
 SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
     doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
-variables' initializers are untranslated: the trust-boundary axiom `Tracer_init` states the one
-the fact reads (`trace.go`), `opaqueInitsOk` the others.""",
-    custom={'Tracer': dict(
-        doc='/-- `Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`): a `trace.Tracer`. -/',
-        post='∃ tr : GoInterfaceOk, globalAddr Tracer ↦ GoInterface.ok tr', pat='⟨%tr@, H@⟩')},
-    finish=['ipersist HTracer'] + FIN_PRE[:6] + ['imodintro', 'unfold traceutilInit', 'iframe #'],
+initializer allocates `Tracer`, initializes its imports and runs its translated initializer,
+`Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`; otel-tracing,
+2026-11-23: until then the trust-boundary axiom `Tracer_init`), stepping into otel's no-op
+`NewTracerProvider` and `TracerProvider.Tracer` (translated with their bodies).""",
+    alloc_types={'Tracer': 'GoInterface'},
+    before={'Tracer': ['try wp_auto', 'wp_func_call', 'wp_auto', 'wp_method_call', 'wp_auto']},
+    finish=['ipersist HTracer'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold traceutilInit', 'iexists _; iexact HTracer'],
 )
 
 _R = SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']
@@ -2636,6 +2952,12 @@ initializers (the generated protobuf descriptors and enum maps), which the trust
 reads (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: `map[int32]string` literals,
 `rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`."""
 _P['alloc_types'].update({'RangeRequest_SortOrder_name': 'Loc', 'RangeRequest_SortTarget_name': 'Loc'})
+# (etcd-small-3, 2026-11-23, etcd-grove#39) and `AlarmType_name`, which `AlarmType.String`'s trusted
+# model reads (until then skipped)
+_P['doc'] += """ (etcd-grove#39, 2026-11-23) And `AlarmType_name` (a `map[int32]string` literal),
+which the fact holds read-only, `etcdserverpb.alarmTypeNames`: `AlarmType.String`'s trusted model reads
+it."""
+_P['alloc_types']['AlarmType_name'] = 'Loc'
 _P['heavy'] = True
 _P['pre'] = ['/-- A small 64-bit literal\'s value as a signed natural (the descriptors\' slice indices). -/',
              'theorem EtcdGrove.sint_nat_ofNat64 (n : Nat) (h : n < 2 ^ 63) : sint.nat (BitVec.ofNat 64 n) = n := by',
@@ -2645,7 +2967,8 @@ _PB_DESCS = ['KV', 'Watch', 'Lease', 'Cluster', 'Maintenance', 'Auth']
 _P['before'] = {'$inits': [f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %p{t} ⟨S{t}, -⟩; try wp_auto'
                             for t in _PB_SL] + ['try wp_auto']}
 # (const-inits, 2026-11-19) the sort enumerations' name maps: `map[int32]string` literals
-for _x, _h in [('RangeRequest_SortOrder_name', 'Hso'), ('RangeRequest_SortTarget_name', 'Hst')]:
+for _x, _h in [('RangeRequest_SortOrder_name', 'Hso'), ('RangeRequest_SortTarget_name', 'Hst'),
+               ('AlarmType_name', 'Hatn')]:
     _P['before'][_x] = ['try wp_auto',
         f'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %m{_h} {_h}',
         'try wp_auto',
@@ -2665,10 +2988,11 @@ _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'ipersist H{d}_ServiceDesc' for d in _PB_DESCS] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
                 ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name',
-                 'ipersist Hso', 'ipersist Hst'] +
+                 'ipersist Hso', 'ipersist Hst', 'ipersist HAlarmType_name', 'ipersist Hatn'] +
                 FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescIs',
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ' + _PB_DOM(2),
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ' + _PB_DOM(4),
+                 'isplitl []', '· iexists _; iframe HAlarmType_name; unfold go_etcd_io.etcd.cache.v3.etcdserverpb.alarmTypeNames; iexact Hatn',
                  'iframe #',
                  'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))'])
 
@@ -2961,8 +3285,10 @@ errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the
 registration rights of the metric names of its import closure (`namesFree initNames`, decision D16;
 the read package's, `EtcdGrove.read.readRegPerm`, until mustreg, 2026-11-20), which it passes on to
 the registering packages' initializers. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
-guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
-reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
+guarding `raftStatus` (`rnRaftStatusOk`; the `init()` of `raft.go` registers an `expvar` closure that
+reads `raftStatus` under the mutex: a trusted no-op model since etcd-grove#39, 2026-11-23, as `server.go`'s,
+since no verified code reads `expvar`'s registry; `metrics.go`'s, which registers the metrics, stays
+names-only, the trust-boundary axiom `initFuncsOk`: translating it needs Perennial's `runtime.Version`). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments. (auth-mediation M2, 2026-11-20) And `PromoteMember`'s metrics,
@@ -2975,7 +3301,8 @@ the counter `learnerPromoteSucceed` and the counter vector `learnerPromoteFailed
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto'], **_srv_steps},
     finish=([f'ipersist H{x}' for x, _, _ in _SRV_VECS] + [f'ipersist H{x}' for x, _ in _SRV_METRICS] +
-            ['ipersist HleaseExpired', 'ipersist HlearnerPromoteSucceed', 'ipersist HlearnerPromoteFailed'] +
+            ['ipersist HleaseExpired', 'ipersist HlearnerPromoteSucceed', 'ipersist HlearnerPromoteFailed',
+             'ipersist HfdUsed', 'ipersist HfdLimit'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
@@ -3019,7 +3346,10 @@ for _x, _k, _l in [('learnerPromoteFailed', 'Counter', ['Reason']), ('currentVer
 _SV['alloc_types'].update({'learnerPromoteSucceed': 'GoInterface', 'fdUsed': 'GoInterface',
                            'fdLimit': 'GoInterface', 'recommendedMaxRequestBytesString': 'GoString'})
 _SV['before'].update({'learnerPromoteSucceed': metric_steps('learnerPromoteSucceed', 'counter'),
-                      'fdUsed': metric_steps('fdUsed', 'gauge'), 'fdLimit': metric_steps('fdLimit', 'gauge'),
+                      # (prove-ps2-srvgoroutines, 2026-11-24) in the fact (`srvApplyLoopInit`'s last two):
+                      # `monitorFileDescriptor`'s gauges (`Set`)
+                      'fdUsed': metric_steps_to('fdUsed', 'gauge', 'go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec'),
+                      'fdLimit': metric_steps_to('fdLimit', 'gauge', 'go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec'),
                       'recommendedMaxRequestBytesString': ['try wp_auto',
                           'wp_apply EtcdGrove.go_humanize.Bytes.wp_proof $$ {Hd:github_com.dustin.go_humanize} as %sRMR -',
                           'try wp_auto']})
@@ -3086,16 +3416,20 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + ', -⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
-             'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
+             'icases Hpi with ⟨#HSO, #HST, -, #HDescs⟩',
              'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', "-- (incomingof Part B) the context errors are keys of the map, so neither read error's description", 'ihave #HCD : (ctxErrDescs : IProp GF) $$ []', '· ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []', '  · iapply _root_.Perennial.context.isInit_access $$ Hd1', '  iNamed Hci', '  icases HCanceledCell with ⟨%xc, #Hxc, -⟩', '  unfold ctxErrDescs', '  isplitl []', '  · iexists _; iframe Hxc', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv', '    iexists m1; iframe D1; ipureintro; exact h1', '  · iexists _; iframe HDeadlineExceededTy', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)', '      HDeadlineExceededTy', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv', '    iexists m1; iframe D1; ipureintro; exact h1',
              'ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗',
              '    ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []',
              '· iunfold EtcdGrove.errVarLeaf at HCL', '  icases HCL with ⟨%e, #He, %Hl, -⟩',
              '  iexists e', '  iframe He', '  ipureintro; exact Hl.1',
              '-- `getServerMetrics`\' lock and what it guards (`metricsServerCached`, `nil`)',
-             'imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached] with #HMV',
+             '-- (prom-registry, 2026-11-22) and, until it registers, the rights to the server metrics\' IDs',
+             '-- (`grpcKeys`, this package\'s `regKeys`) with prometheus\'s fact at their registry name',
+             'imod sync.init_Mutex EtcdGrove.v3rpc.metricsP ⊤ EtcdGrove.v3rpc.metricsMu $$ HmetricsServerLock [HmetricsServerCached HRK] with #HMV',
              '· inext', '  unfold EtcdGrove.v3rpc.metricsP', '  iexists _', '  iframe HmetricsServerCached',
-             '  ileft', '  ipureintro; rfl',
+             '  ileft', '  isplitr', '  · ipureintro; rfl', '  iexists promreg_gs',
+             '  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.regKeys at HRK',
+             '  iframe HRK', '  iexact {Hd:github_com.prometheus.client_golang.prometheus}',
              '-- the six `ServiceDesc`s, from `etcdserverpb`\'s fact',
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, HWc⟩ := HWp',
@@ -3254,9 +3588,9 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
     before={'$inits': [
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c1 ⟨#C1, %N1⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c1 ⟨#C1, #N1⟩',
         'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c2 ⟨#C2, %N2⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c2 ⟨#C2, #N2⟩',
         'try wp_auto']},
     finish=(['ipersist HslowReadIndex', 'ipersist HreadIndexFailed', 'ipersist HreadIndexRetryTime'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
@@ -3455,8 +3789,26 @@ _ZCL = f'{_ZC}.Level.ty'
 _ZCC = '_root_.Perennial.go_uber_org.zap.internal.color.Color.ty'
 def _zc_pool(h):
     return ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]',
-            f'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %{h} -',
+            f'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %{h} -',
             'try wp_auto']
+# (zap-z2, 2026-11-23) `_cePool`: the pool `New` returns becomes an `isPool` of owned entries (zapcore's fact)
+_zc_ce_pool = ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]',
+    'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pce Hpce',
+    'imod (EtcdGrove.zap.internal.pool.ownPool_init _ pce _ EtcdGrove.zapcore.pooledEntry ⊤) $$ [$Hpce] with #Hpce',
+    '· unfold EtcdGrove.zap.internal.pool.fnSpec',
+    '  imodintro',
+    '  iintro %Φ - HΦ',
+    '  wp_auto',
+    '  wp_apply wp_slice_make2 (V := GoInterface) as %sc ⟨Hsc, Hscap⟩',
+    '  · ipureintro',
+    '    word',
+    '  iapply HΦ',
+    '  unfold EtcdGrove.zapcore.pooledEntry',
+    '  iexists _',
+    '  iframe',
+    '  iexists []',
+    '  iapply ownSlice_nil',
+    'try wp_auto']
 SPECIAL[_ZC] = newvars_cfg(dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers and its translated `init` (prove-misc, 2026-11-20; until then the
@@ -3468,7 +3820,7 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
                  '_errArrayElemPool': 'Loc', '_jsonPool': 'Loc', 'nullLiteralBytes': 'GoSlice',
                  '_levelToColor': 'Loc', '_unknownLevelColor': 'w8',
                  '_levelToLowercaseColorString': 'Loc', '_levelToCapitalColorString': 'Loc'},
-    before={'_sliceEncoderPool': _zc_pool('psl'), '_cePool': _zc_pool('pce'),
+    before={'_sliceEncoderPool': _zc_pool('psl'), '_cePool': _zc_ce_pool,
             '_errArrayElemPool': _zc_pool('pea'), '_jsonPool': _zc_pool('pjs'),
             'nullLiteralBytes': ['try wp_auto', 'wp_apply wp_string_to_bytes _ as %snull ⟨Hsnull, -⟩', 'try wp_auto'],
             '_levelToColor': map_lit_steps('Hlc', 'w8', 'w8', _ZCL, _ZCC, 7),
@@ -3541,14 +3893,39 @@ translated initializers (zap-z1, 2026-11-23: zap's `Logger.check` reads `Get`): 
     alloc_types={'_pool': '_root_.Perennial.go_uber_org.zap.buffer.Pool', 'Get': 'GoFunc'},
     before={'_pool': ['try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
                       'rw [recv_eq_func_mk BAnon BAnon]',
-                      'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pbuf -',
+                      'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pbuf -',
                       'try wp_auto']},
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
 )
+# (zap-z2, 2026-11-23) zap's `internal/exit`: `_exit = os.Exit`, held by its fact (`zapcore.WriteThenFatal`'s
+# hook calls `With`, which calls it)
+SPECIAL['go_uber_org.zap.internal.exit'] = dict(
+    doc='''Its fact: `_exit` holds `os.Exit` for good (zap-z2, 2026-11-23: `zap.Logger.Fatal` reaches `With`, which
+calls it; only the test helpers `Stub`/`WithStub`/`Unstub`, not translated, write it). Its initializer allocates
+`_exit`, initializes `os` and stores the function value.''',
+    alloc_types={'_exit': 'GoFunc'},
+    before={'$end': ['try wp_auto']},
+    finish=['ipersist H_exit'] + FIN_PRE[:6],
+)
+# (zap-z2, 2026-11-23) `multierr` (zapcore's `CheckedEntry.Write` names its `Append`): its variables
+_ME_BYTES = ['try wp_auto', 'wp_apply wp_string_to_bytes _ as %_ ⟨_, -⟩', 'try wp_auto']
+SPECIAL['go_uber_org.multierr'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes `bytes` and `sync` and runs their
+translated initializers (zap-z2, 2026-11-23: zapcore imports it): the separators (`[]byte` of string
+constants) and `_bufferPool` (a `sync.Pool` literal whose `New` is a function literal, not called).''',
+    alloc_types={'_singlelineSeparator': 'GoSlice', '_multilinePrefix': 'GoSlice',
+                 '_multilineSeparator': 'GoSlice', '_multilineIndent': 'GoSlice',
+                 '_bufferPool': '_root_.Perennial.sync.Pool'},
+    before={'_singlelineSeparator': _ME_BYTES, '_multilinePrefix': _ME_BYTES,
+            '_multilineSeparator': _ME_BYTES, '_multilineIndent': _ME_BYTES,
+            '_bufferPool': ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]', 'try wp_auto'],
+            '$end': ['try wp_auto']},
+)
 # (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
-SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
-SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
-    'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
+SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`), and `_cePool` a fixed pool of\nowned entries (zap-z2, 2026-11-23: `CheckedEntry.Write` and `After` use it).")
+SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock', 'ipersist H_cePool'] + FIN_PRE[:6] + [
+    'imodintro', 'isplitl []', f'· iexists (zero_val {_ZC}.systemClock)', '  itrivial',
+    'iexists pce', 'iframe #']
 # (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
 # (Perennial's `time.Unix` is names only) and `_sinkRegistry`; (prove-srvloops2, 2026-11-21)
 # `_minTimeInt64`/`_maxTimeInt64` translated (`time.Unix`), held by zap's fact (`zap.Time` reads them)
@@ -3615,10 +3992,8 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  · iapply isPkgInit_access $$ Hpkg',
         '  iNamed IO',
         '  icases HDiscard with ⟨%wd, #HDiscard⟩',
-        '  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr',
-        '      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []',
-        '  · iapply isPkgInit_access $$ Hpkg2',
-        '  icases ZC with ⟨%dc, #HDC⟩',
+        '  ihave #ZC := _root_.Perennial.go_uber_org.zap.zapcore.isInit_access $$ Hpkg2',
+        '  icases ZC with ⟨⟨%dc, #HDC⟩, -⟩',
         '  wp_auto',
         '  wp_func_call',
         '  wp_call',
@@ -3629,7 +4004,7 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  iexists _',
         '  iframe',
         '  ipureintro',
-        '  exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
+        '  exact ⟨rfl, rfl, rfl, rfl, rfl, dc, rfl⟩',
         '',
         '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
         'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
@@ -3736,14 +4111,38 @@ for _m in ['Spec.strings.ToLower', 'Proof.strings.ToLower', 'Spec.go_uber_org.za
     if _m not in SPECIAL[_Z]['imports']:
         SPECIAL[_Z]['imports'].append(_m)
 _FG = 'go_etcd_io.etcd.pkg.v3.featuregate'
+# (featuregate-3, 2026-11-23) featuregate's `defaultFeatures` and `specialFeatures` (map literals of
+# constants and function values), translated; fact `featuregateInit` (`featuregate/PkgInit.lean`):
+# `defaultFeatures`' map read-only, `specialFeatures` some map
+SPECIAL[_FG] = dict(
+    doc='''Its fact (`featuregateInit`, `featuregate/Defs.lean`; featuregate-3, 2026-11-23, until then `True`):
+`defaultFeatures` holds a read-only map of `AllAlpha` and `AllBeta` (`defaultKnown`), `specialFeatures`
+some map, both for good. Its initializer initializes its imports, allocates the two and runs their
+translated initializers, map literals of constants and function values.''',
+    alloc_types={'defaultFeatures': 'Loc', 'specialFeatures': 'Loc'},
+    before={'defaultFeatures': map_lit_steps('Hdf', 'GoString', f'{_FG}.FeatureSpec', f'{_FG}.Feature.ty',
+                                             f'{_FG}.FeatureSpec.ty', 2),
+            'specialFeatures': map_lit_steps('Hsf', 'GoString', 'GoFunc', f'{_FG}.Feature.ty', '_', 2)},
+    finish=['ipersist HdefaultFeatures', 'ipersist HspecialFeatures', 'ipersist Hdf',
+            'iframe Hown', 'is_pkg_init_finish', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'imodintro', 'imodintro', 'unfold EtcdGrove.featuregate.featuregateInit',
+            'iexists mHdf, mHsf', 'iframe HdefaultFeatures HspecialFeatures',
+            'unfold EtcdGrove.featuregate.defaultKnown EtcdGrove.featuregate.spec', 'iexact Hdf'],
+)
 SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
-    doc='''Its fact is `True`. Its initializer initializes its imports, allocates
-`DefaultEtcdServerFeatureGates` and runs its translated initializer, a map literal of
-`featuregate.FeatureSpec` literals (prove-smallinits, 2026-11-20; until then the trust-boundary axiom
-`opaqueInitsOk`).''',
+    doc='''Its fact (`featuresInit`, `features/Defs.lean`; featuregate-3, 2026-11-23, until then `True`):
+`DefaultEtcdServerFeatureGates` holds a read-only map of the server's features (`serverFeatureSpecs`),
+for good. Its initializer initializes its imports, allocates `DefaultEtcdServerFeatureGates` and runs
+its translated initializer, a map literal of `featuregate.FeatureSpec` literals (prove-smallinits,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`).''',
     alloc_types={'DefaultEtcdServerFeatureGates': 'Loc'},
     before={'DefaultEtcdServerFeatureGates': map_lit_steps('Hfg', 'GoString', f'{_FG}.FeatureSpec',
         f'{_FG}.Feature.ty', f'{_FG}.FeatureSpec.ty', 10)},
+    finish=['ipersist HDefaultEtcdServerFeatureGates', 'ipersist Hfg',
+            'iframe Hown', 'is_pkg_init_finish', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'imodintro', 'imodintro', 'unfold EtcdGrove.featuresInit',
+            'iexists mHfg', 'iframe HDefaultEtcdServerFeatureGates',
+            'unfold EtcdGrove.serverFeatureSpecs EtcdGrove.featuregate.spec', 'iexact Hfg'],
 )
 _API = 'go_etcd_io.etcd.server.v3.etcdserver.api'
 SPECIAL[_API] = dict(
@@ -4031,6 +4430,9 @@ register(SPECIAL['go_etcd_io.etcd.server.v3.storage.backend'], 'go_etcd_io.etcd.
     reg_scalar('snapshotTransferSec', _E, 'disk', 'backend_snapshot_duration_seconds'),
     reg_scalar('isDefragActive', _E, 'disk', 'defrag_inflight')])
 _MVR = 'mvcc'
+# (prom-registry, 2026-11-23) mvcc's 23 registrations, each over its collector's (persistent `IProp`)
+# `collectorName` and an `idToks` right, past the default recursion depth at the last one
+SPECIAL[_MV]['rec_depth'] = 20000
 register(SPECIAL[_MV], _MV, [
     reg_scalar('rangeCounter', _E, _MVR, 'range_total'),
     reg_scalar('putCounter', _E, _MVR, 'put_total'),
@@ -4055,6 +4457,70 @@ register(SPECIAL[_MV], _MV, [
     reg_gfunc('currentRev', _D, _MVR, 'current_revision'),
     reg_gfunc('compactRev', _D, _MVR, 'compact_revision'),
     reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
+
+
+# (prom-registry, route (b), 2026-11-22: notes/prom-registry.md) prometheus's default registry is the real
+# client_golang code (translated with its bodies): its initializer allocates `defaultRegistry`,
+# `DefaultRegisterer` and `DefaultGatherer`, runs `defaultRegistry = NewRegistry()` (stepped into: three empty
+# map literals and the struct) and the two interface conversions, and then its `init()`, whose trusted model
+# (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`) inserts the built-in collectors' IDs and
+# names into the registry's maps (`EtcdGrove.prometheus.wp_seed_insertAll`). Until then `defaultRegistry.init`,
+# `DefaultRegisterer.init` and `DefaultGatherer.init` were in `opaqueInitsOk` and `init.«0»` the trust-boundary
+# axiom `initFuncsOk`.
+SPECIAL['github_com.prometheus.client_golang.prometheus'] = dict(
+    doc='''Its fact (`promInit γ`, `PkgInit.lean`, at the run's registry ghost name `γ`, the parameter
+`PromRegGS` of the package's fact; route (b), Option 4, 2026-11-22, notes/prom-registry.md): `defaultRegistry`
+and `DefaultRegisterer` hold the default registry, read-only, a registry over `γ` (`isRegistry`). Its
+initializer initializes its imports and runs its translated variable initializers (the others are goose
+`[[skip]]` entries, mit-pdos/etcd-grove#23): `defaultRegistry = NewRegistry()` (stepped into) and `DefaultRegisterer`/`DefaultGatherer`,
+`defaultRegistry` converted to an interface; then its `init()`, whose trusted model inserts the built-in
+collectors' descriptor IDs, names and collector IDs into the registry's maps
+(`EtcdGrove.prometheus.wp_seed_insertAll`); the registry's lock is then made the guard of its invariant
+(`EtcdGrove.prometheus.isRegistry_init`: the built-ins need no right). (Until 2026-11-22 its fact was `True`;
+until step 1 of route (b) `defaultRegistry.init`, `DefaultRegisterer.init` and `DefaultGatherer.init` were
+among `opaqueInitsOk`, and `init.«0»` was the trust-boundary axiom `initFuncsOk`.)''',
+    imports=['Proof.github_com.prometheus.client_golang.prometheus.Seed'],
+    vars=[PROMREG_VAR],
+    table_vars=[PROMREG_VAR],
+    alloc_types={'defaultRegistry': 'Loc', 'DefaultRegisterer': 'GoInterface', 'DefaultGatherer': 'GoInterface'},
+    before={'defaultRegistry': [
+        'try wp_auto',
+        'wp_func_call', 'wp_call', 'try wp_auto',
+        'wp_apply (wp_map_make1 (K := w64) (V := GoInterface) go.uint64 github_com.prometheus.client_golang.prometheus.Collector.ty) as %mC HmC',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := w64) (V := Unit) go.uint64 (go.GoType.StructType [])) as %mD HmD',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := GoString) (V := w64) go.string go.uint64) as %mN HmN',
+        'try wp_auto']},
+    after={'init.«0»': [
+        'simp only [EtcdGrove.prometheus.seed_Registry_eq, EtcdGrove.prometheus.seed_Collector_eq,'
+        ' EtcdGrove.prometheus.seed_defaultRegistry_eq]',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := Unit) go.uint64 (fun id => (id, ()))'
+        ' github_com.prometheus.client_golang.prometheus.seed.descIDs) $$ HmD as HmD',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := GoString) (V := w64) go.string (fun nd => nd)'
+        ' github_com.prometheus.client_golang.prometheus.seed.dims) $$ HmN as HmN',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.prometheus.wp_seed_insertAll (K := w64) (V := GoInterface) go.uint64'
+        ' (fun id => (id, (interface.nil : GoInterface))) github_com.prometheus.client_golang.prometheus.seed.collectorIDs) $$ HmC as HmC',
+        'try wp_auto',
+        '-- the registry: its fields, and its lock the guard of its invariant (`isRegistry`)',
+        'irename «$r0» => Hreg0',
+        'iStructNamed Hreg0',
+        'imod (EtcdGrove.prometheus.isRegistry_init (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF)) _ mC mD mN _ _ _'
+        ' EtcdGrove.prometheus.seed_C_builtin EtcdGrove.prometheus.seed_D_builtin EtcdGrove.prometheus.seed_N_builtin)'
+        ' $$ mtx collectorsByID descIDs dimHashesByName HmC HmD HmN with #Hreg',
+        'ipersist HdefaultRegistry',
+        'ipersist HDefaultRegisterer']},
+    finish=['ihave #Hfact : (github_com.prometheus.client_golang.prometheus.promInit'
+            ' (EtcdGrove.prometheus.PromRegGS.γ (GF := GF)) : IProp GF) $$ []',
+            '· iunfold github_com.prometheus.client_golang.prometheus.promInit',
+            '  iexists _',
+            '  iframe #',
+            'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'is_pkg_init_finish'],
+)
 
 
 def closure(p):
@@ -4102,8 +4568,9 @@ def res_list(p):
 
 
 def qs_lit(rs):
-    """The literal list of the packages `rs` with their metric names (`regQs`' elements)."""
-    return '[' + ', '.join(f'(pkg_id.{q}, _root_.Perennial.{q}.regNames)' for q in rs) + ']'
+    """The literal list of the packages `rs` with their metric names and other IDs (`regQs`' elements)."""
+    return '[' + ', '.join(f'(pkg_id.{q}, _root_.Perennial.{q}.regNames, _root_.Perennial.{q}.regKeys)'
+                           for q in rs) + ']'
 
 
 def sublist_term(big, small):
@@ -4173,15 +4640,13 @@ def exec_order(p):
             items.append(('store', m.group(4)))
         else:
             # a `func init()`, `init.<k>` (as gc names them): unfolded if translated or trusted
-            # (a trusted one's `FuncUnfold` is an `Assumptions` field, in the package's index file when
-            # the translation is in chunks)
-            # (2026-11-07; only a trusted one: a translated one in chunks keeps its axiom, as before)
+            # (its `FuncUnfold` is an `Assumptions` field, in the package's index file when the
+            # translation is in chunks: 2026-11-07 for a trusted one; k8s-inits-2, 2026-11-24, for a
+            # translated one too, which until then kept its axiom)
             idx = re.sub(r'/chunk\d+\.lean$', '.lean', d['file'])
             tg = ''
             if idx != d['file'] and os.path.exists(idx):
-                chunks = ''.join(open(g).read() for g in glob.glob(idx[:-len('.lean')] + '/chunk*.lean'))
-                if f'def {m.group(5)}.impl ' not in chunks:
-                    tg = open(idx).read()
+                tg = open(idx).read()
             kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t + tg else 'opaqueinitfn'
             items.append((kind, m.group(5)))
     items.reverse()
@@ -4274,8 +4739,11 @@ def gen(p, cfg=None):
         for m in ['Proof.github_com.prometheus.client_golang.prometheus.Registry', 'Proof.runtime.PkgInitRes']:
             if m not in cfg_imps:
                 cfg_imps.append(m)
-    if p in PRE_RES and 'Proof.github_com.prometheus.client_golang.prometheus.MustRegister' not in cfg_imps:
-        cfg_imps.append('Proof.github_com.prometheus.client_golang.prometheus.MustRegister')
+    for m in ['Proof.github_com.prometheus.client_golang.prometheus.MustRegister',
+              'Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister',
+              'Proof.github_com.prometheus.client_golang.prometheus.Registry__Register']:
+        if p in PRE_RES and m not in cfg_imps:
+            cfg_imps.append(m)
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg_imps
     if newvars: mods.append('Proof.errors.NewVarCell')
     mods.append('Proof.runtime.PkgInitExt')
@@ -4413,14 +4881,15 @@ def gen(p, cfg=None):
             A('  [' + ',\n   '.join(f'EtcdGrove.prometheus.fqName go!"{a}" go!"{b}" go!"{c}"'
                                    for (_, _, _, (a, b, c)) in PRE_RES[p]) + ']')
             A('')
+            A('/-- The IDs besides its names\' this package\'s initializer takes the rights to (prom-registry:')
+            A('a later registration\'s, `REG_KEYS`). -/')
+            A(f'def regKeys : List w64 := {REG_KEYS.get(p, "[]")}')
+            A('')
         A('/-- The packages of this package\'s import closure (itself included) whose initializers')
-        A('register metrics, with their names: their registration rights are its initializer\'s')
-        A('resources (`ownInitResL`, `Proof/runtime/PkgInitRes.lean`). -/')
-        A(f'def regQs : List (GoString × List GoString) :=\n  {qs_lit(rl)}')
-        A('')
-        A('/-- The metric names its initializer registers, with those of its import closure: its')
-        A('`wp_initialize\'`\'s precondition has the rights to register them (`namesFree`). -/')
-        A('def initNames : List GoString := regQs.flatMap (·.2)')
+        A('register metrics, with their names and other IDs: their registration rights (keyed by ID,')
+        A('`EtcdGrove.prometheus.regRes`) are its initializer\'s resources (`ownInitResL`,')
+        A('`Proof/runtime/PkgInitRes.lean`; its `wp_initialize\'`\'s precondition: `regsFree regQs`). -/')
+        A(f'def regQs : List (GoString × List GoString × List w64) :=\n  {qs_lit(rl)}')
         A('')
         A(f'end {p}')
         A('')
@@ -4480,10 +4949,13 @@ def gen(p, cfg=None):
             A('  iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)')
             A(f'    (L1 := EtcdGrove.regResL (GF := GF) {qs_lit(rl[:i])})')
             A(f'    (L2 := EtcdGrove.regResL (GF := GF) {qs_lit(rl[i + 1:])})')
-            A(f'    (L\' := {body_L}) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)')
+            A(f'    (L\' := {body_L})')
+            A('    (R := EtcdGrove.prometheus.idToks (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF))')
+            A('      (regNames.map EtcdGrove.prometheus.descId ++ regKeys))')
             A('    (hL := rfl) (hL\' := rfl) $$ [Hown] HΦ')
             A('  iframe Hown')
             A('  iintro ⟨Hown, HR⟩')
+            A(f'  iunfold _root_.Perennial.{p}.regNames at HR')
         else:
             A('  iapply EtcdGrove.wp_package_init_resL (heq := Hinit.1) $$ [Hown] HΦ')
             A('  iframe Hown')
@@ -4560,6 +5032,10 @@ def gen(p, cfg=None):
                 A('  ' + hdsub(l))
     for l in before.pop('$inits', []) + before.pop('$end', []):
         A('  ' + hdsub(l))
+    if form == 'self':
+        # (prom-registry) the rights left after the registrations: the other IDs' (`regKeys`)
+        A('  icases (EtcdGrove.prometheus.idToks_names_nil (GF := GF) _ _).1 $$ HR with HRK' if p in REG_KEYS
+          else '  iclear HR')
     assert not before, (p, 'steps keyed by no initializer of the package (re-key them to the next item)', before)
     for l in cfg.get('finish', ['iframe Hown', 'is_pkg_init_finish']):
         A('  ' + hdsub(l))
@@ -4574,7 +5050,7 @@ def gen(p, cfg=None):
     if form == 'lb':
         A('    {{ ownInitializing get_is_pkg_init }}')
     else:
-        A('    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}')
+        A('    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}')
     A(f'      (App (Val initialize\') (Val #()))')
     A('    {{ RET #(); ownInitializing get_is_pkg_init ∗')
     A(f'        isPkgInit (PROP := IProp GF) {st} }}}} :=')
@@ -4699,8 +5175,11 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems;
+# (2026-11-23, etcd-grove#28) restored with them, as `*_single_process` (`notes/single-process-restore.md`)
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
@@ -4717,7 +5196,13 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
+            # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
+            # tables, restored
+            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
@@ -5083,6 +5568,7 @@ def tla_outs():
 WT_ROOT = 'WalTester'
 WT_PKGS = ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
            'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
+WT_PROGRAM = 'github_com.mit_pdos.etcd_grove.examples.etcd.wal'
 
 
 def wt_inventory():
@@ -5107,6 +5593,8 @@ def wt_inits():
         CFG_OVERRIDE = WT_SPECIAL
         for p in WT_PKGS:
             raw += gen(p, WT_SPECIAL.get(p, SPECIAL.get(p)))
+        # (2026-11-24, wal-open) the tester's package table, for its crash-safety theorem's initializer
+        raw.append(gen_table(WT_PROGRAM, f'Proof/{dirof(WT_PROGRAM)}/PkgTable.lean'))
     finally:
         inv, inst, CFG_OVERRIDE = saved
     part_mods = {path[:-len('.lean')].replace('/', '.') for path, _ in raw}

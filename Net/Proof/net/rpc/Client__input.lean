@@ -228,9 +228,9 @@ theorem body_guard (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnName
       ghostMapElem γ.ans (uint.nat seq) .discard (some (([] : GoString), r)) ⊢
     □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗
       recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-        ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ frameOf pl) -∗
+        ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ frameOf pl) -∗
       ▷ (recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-          ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ frameOf pl) ∗
+          ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ frameOf pl) ∗
         ⌜pl = r⌝)) := by
   iintro ⟨#Hrpc, #Hans⟩
   imodintro
@@ -264,7 +264,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
   intro c W a γ cc t cn la ra
   wp_start as ⟨#Hc, Hrd⟩
   iunfold clientAt at Hc
-  icases Hc with ⟨#Hcodec, #Hrwc, #Hconn, #Hci, #Hrpc, #Henv, #Hsmu, #Hmu⟩
+  icases Hc with ⟨#Hcodec, #Hrwc, #Hconn, #Hci, #Hrpc, #Hsl, #Henv, #Hsmu, #Hmu⟩
   ihave #Henv' := Henv
   unfold cliEnv
   icases Henv' with ⟨%eof, %ueof, %ed, #Hio, #Hsync, #Heof, #Hueof, #Hed, #HefV, #HesV, #Hdbg⟩
@@ -291,12 +291,12 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
   iunfold readerOwn at Hrd
   icases Hrd with ⟨%C, Hrecv, Hdq, %HC⟩
   ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-      (framesOf (C.flatMap ansPls) ++ []) $$ [Hrecv]
+      (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ []) $$ [Hrecv]
   · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-  ihave #Hacc := rd_acc W a cn (framesOf (C.flatMap ansPls))
+  ihave #Hacc := rd_acc W a cn (W.hsAns a ++ framesOf (C.flatMap ansPls))
   wp_apply wp_ReadResponseHeader cc t cn false a la ra response_ptr _
       (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
-        (respProto (Gg := hG.goose_globalGS) W a) (framesOf (C.flatMap ansPls) ++ got))
+        (respProto (Gg := hG.goose_globalGS) W a) (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ got))
       eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $response $HrL $Hacc]
     as %err ⟨%got, HP, Hres⟩
   icases Hres with (⟨%seq, %sm, %e, ⟨%Hnil, %Hgot, %Hlen⟩, Hr⟩ | ⟨%Hne, Hr, #HE⟩)
@@ -328,16 +328,16 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         · ipureintro; exact HNM
         simp only [Bool.false_eq_true, ite_false]
         iexact Hrest
-      ihave #Hacc1 := rd_acc W a cn (framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e))
+      ihave #Hacc1 := rd_acc W a cn (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e))
       ihave HP1 : recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-          ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HP]
+          ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HP]
       · rw [List.append_nil]; iexact HP
       wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
           ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True)
           (fun _ => iprop(True)) (fun _ _ => iprop(True))
           (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
             (respProto (Gg := hG.goose_globalGS) W a)
-            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
+            ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
           eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HP1 $Hacc1]
         as %err1 ⟨%got1, HP, Hres⟩
       · simp only [bodyDecG]
@@ -345,7 +345,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         · itrivial
         iapply guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
             (respProto (Gg := hG.goose_globalGS) W a)
-            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
+            ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
       icases Hres with (⟨%pl, ⟨%Hgot1, %Hpl⟩, Hbr⟩ | ⟨%Hne1, -, #HE1⟩)
       · unfold bodyRes
         icases Hbr with ⟨%He1, -⟩
@@ -368,7 +368,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         · ipureintro; rfl
         iunfold readerOwn
         iexists C ++ [y]
-        rw [framesOf_snoc C y _ _ Hy]
+        rw [framesOf_snoc C y _ _ Hy, ← List.append_assoc, ← List.append_assoc]
         iframe HrT Hdq
         ipureintro
         intro x hx
@@ -435,9 +435,9 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         imod ans_trade W a cn γ.conn (uint.nat seq) [] x.reply post' col' ap' Φ'
           $$ [$Hrpc $Hlc2 $Hlc3 $Hans3 $Hcol2 $Hnm2 $Hpost2] with ⟨HΦr, #Hsent⟩
         imodintro
-        ihave #Hacc1 := rd_acc W a cn (framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm []))
+        ihave #Hacc1 := rd_acc W a cn (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm []))
         ihave HP1 : recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ []) $$ [HrT]
+            ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ []) $$ [HrT]
         · rw [List.append_nil]; iapply recvTok_L $$ HrT
         ihave #Hguard := body_guard W a cn γ.conn C seq sm x.reply HC Hlen $$ [$Hrpc $Hans3]
         cases reply' with
@@ -456,7 +456,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             (iprop(D' ∗ Φ' x.reply [])) (fun pl => iprop(⌜pl = x.reply⌝)) Θ'
             (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
               (respProto (Gg := hG.goose_globalGS) W a)
-              ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ got))
+              ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ got))
             eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec3 $HD2 $HΦr $HP1
               $Hguard $Hacc1]
           as %err1 ⟨%got1, HP, Hres⟩
@@ -530,7 +530,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             · ipureintro; rfl
             iunfold readerOwn
             iexists C ++ [y]
-            rw [framesOf_snoc C y _ _ Hy]
+            rw [framesOf_snoc C y _ _ Hy, ← List.append_assoc, ← List.append_assoc]
             iframe HrT Hdq
             ipureintro
             intro x hx
@@ -584,16 +584,16 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         imod ans_trade W a cn γ.conn (uint.nat seq) e x.reply post' col' ap' Φ'
           $$ [$Hrpc $Hlc2 $Hlc3 $Hans3 $Hcol2 $Hnm2 $Hpost2] with ⟨HΦr, #Hsent⟩
         imodintro
-        ihave #Hacc1 := rd_acc W a cn (framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e))
+        ihave #Hacc1 := rd_acc W a cn (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e))
         ihave HP1 : recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HrT]
+            ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HrT]
         · rw [List.append_nil]; iapply recvTok_L $$ HrT
         wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
             ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True)
           (fun _ => iprop(True)) (fun _ _ => iprop(True))
             (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
               (respProto (Gg := hG.goose_globalGS) W a)
-              ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
+              ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
             eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HP1 $Hacc1]
           as %err1 ⟨%got1, HP, Hres⟩
         · simp only [bodyDecG]
@@ -601,7 +601,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           · itrivial
           iapply guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
             (respProto (Gg := hG.goose_globalGS) W a)
-            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
+            ((W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
         ihave Hpost : callPost γ.conn (some (uint.nat seq)) Φ' Θ' D' (serverErr e) $$ [HΦr HD2]
         · iunfold callPost
           iright; ileft
@@ -636,7 +636,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           · ipureintro; rfl
           iunfold readerOwn
           iexists C ++ [y]
-          rw [framesOf_snoc C y _ _ Hy]
+          rw [framesOf_snoc C y _ _ Hy, ← List.append_assoc, ← List.append_assoc]
           iframe HrT Hdq
           ipureintro
           intro x hx

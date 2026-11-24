@@ -319,6 +319,87 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
   · ipureintro; intro h; exact absurd (Hd.2.2.2.2.1 h) (by decide)
   ipureintro; exact Htr
 
+end apiHeap
+
+section api
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
+
+/-- (etcd-dist D7, 2026-11-23) **A founder's `nodeBoot` but `proto.Marshal`'s contract** (persistent),
+at the bootstrap log `bl`: what a deployment's start, which has no heap, allocates for each voter
+(`cluster_alloc_bootG`); the voter's own `bootMarshal` at its heap makes it `nodeBoot` (`nodeBoot_of_G`). -/
+@[no_expose] def nodeBootG (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) (bl : List EntryM) : IProp GF :=
+  iprop(ApiImpl.nodeBootUG γ N vs ctxs id ∗ ⌜γ.raft.reBoot = bl⌝)
+
+instance nodeBootG_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (id : w64) (bl : List EntryM) : Persistent (nodeBootG (GF := GF) γ N vs ctxs id bl) := by
+  unfold nodeBootG; haveI := ApiImpl.nodeBootUG_persistent (GF := GF) γ N vs ctxs id; infer_instance
+
+/-- (etcd-dist D7, 2026-11-23) **`cluster_alloc_ns` with a bootstrap log, over the global ghost state**:
+the same cluster, without `bootMarshal` (a WP at the holder's heap), each voter's `nodeBootG` at the
+bootstrap log's entries in place of its `nodeBoot`. -/
+theorem cluster_alloc_bootG (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (md : Option Nat) (E : CoPset)
+    (ns : Bool) (Hns : ns = true → boot ≠ []) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    BootLog vs ctxs boot →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
+    ⊢ |={E}=> ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md ∧
+          (clusterNoSnap γ ↔ ns = true)⌝ ∗
+        ⌜Cluster.trace γ = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
+        confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
+        ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
+        isCommittedLogLb γ boot ∗
+        [∗list] id ∈ vs, nodeBootG γ N vs ctxs id (LogEntry.toEntries boot 0) := by
+  intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    nodeBootG Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace Cluster.maxData
+    isCommittedLogLb raftState nodeVacant clusterNoSnap
+  imod ApiImpl.cluster_alloc_boot_implG_tr (GF := GF) N vs ctxs boot dup sl none E md Hmd HmdB ns Hns
+    Hrb Hne Hnd Hnz Hlen HB with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
+  icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootUG (GF := GF) γ N vs ctxs id)
+    (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
+      ApiImpl.nodeVacantU γ id))).1 $$ Hbs with ⟨#Hbs, Hrs⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hd
+  imodintro
+  iexists γ
+  iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hrs
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h3, h5, by rw [h6]⟩
+  isplitr
+  · ipureintro; exact h4
+  iapply BigSepL.bigSepL_mono ?_ $$ Hbs
+  intro k id _
+  iintro #H
+  iframe H
+  ipureintro; exact h7
+
+end api
+
+section apiHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (etcd-dist D7, 2026-11-23) **A voter's `nodeBoot` from its `nodeBootG` and `proto.Marshal`'s contract at
+its own heap**, at the bootstrap log `bl`. -/
+theorem nodeBoot_of_G (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (id : w64)
+    (bl : List EntryM) :
+    nodeBootG (GF := GF) γ N vs ctxs id bl ∗ bootMarshal vs ctxs bl ⊢ nodeBoot γ N vs ctxs id := by
+  unfold nodeBootG nodeBoot
+  iintro ⟨⟨Hg, %Hb⟩, Hm⟩
+  subst Hb
+  iapply (ApiImpl.nodeBootU_of_G γ N vs ctxs id).1
+  isplitl [Hg]
+  · iexact Hg
+  iexact Hm
+
 /-- **A new traced cluster** (2026-11-11, trace-check S7 part 2: Q6 item 8, revision 2 of
 `notes/trace-validation-q6.md`; `notes/decisions.md`, "S7 (part 2)"): `cluster_alloc` with a
 bootstrap log `boot` (a traced cluster needs one: `StartNode` is its only constructor, `RestartNode`

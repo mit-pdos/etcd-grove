@@ -74,7 +74,7 @@ noncomputable instance authClient_access_load_remote (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance authClient_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.authClient) (remote' : go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient) :
+noncomputable instance authClient_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.authClient) (remote' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.authClient go!"remote" l) v.remote' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.authClient go!"remote" l) remote' (DFrac.own 1))
@@ -137,7 +137,7 @@ noncomputable instance blockLogger_access_load_interval (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_interval (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (interval' : time.Duration) :
+noncomputable instance blockLogger_access_store_interval (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (interval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"interval" l) v.interval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"interval" l) interval' (DFrac.own 1))
@@ -153,7 +153,7 @@ noncomputable instance blockLogger_access_load_threshold (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_threshold (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (threshold' : time.Duration) :
+noncomputable instance blockLogger_access_store_threshold (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (threshold' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"threshold" l) v.threshold' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"threshold" l) threshold' (DFrac.own 1))
@@ -201,7 +201,7 @@ noncomputable instance blockLogger_access_load_mu (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_mu (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (mu' : sync.Mutex) :
+noncomputable instance blockLogger_access_store_mu (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"mu" l) mu' (DFrac.own 1))
@@ -217,7 +217,7 @@ noncomputable instance blockLogger_access_load_lastLogTime (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_lastLogTime (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (lastLogTime' : time.Time) :
+noncomputable instance blockLogger_access_store_lastLogTime (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (lastLogTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"lastLogTime" l) v.lastLogTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"lastLogTime" l) lastLogTime' (DFrac.own 1))
@@ -249,7 +249,7 @@ noncomputable instance blockLogger_access_load_timeWaiting (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance blockLogger_access_store_timeWaiting (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (timeWaiting' : time.Duration) :
+noncomputable instance blockLogger_access_store_timeWaiting (l : Loc) (v : go_etcd_io.etcd.client.v3.blockLogger) (timeWaiting' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"timeWaiting" l) v.timeWaiting' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.blockLogger go!"timeWaiting" l) timeWaiting' (DFrac.own 1))
@@ -324,7 +324,7 @@ noncomputable instance Config_access_load_AutoSyncInterval (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_AutoSyncInterval (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (AutoSyncInterval' : time.Duration) :
+noncomputable instance Config_access_store_AutoSyncInterval (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (AutoSyncInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"AutoSyncInterval" l) v.AutoSyncInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"AutoSyncInterval" l) AutoSyncInterval' (DFrac.own 1))
@@ -340,7 +340,7 @@ noncomputable instance Config_access_load_DialTimeout (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DialTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (DialTimeout' : time.Duration) :
+noncomputable instance Config_access_store_DialTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (DialTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"DialTimeout" l) v.DialTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"DialTimeout" l) DialTimeout' (DFrac.own 1))
@@ -356,7 +356,7 @@ noncomputable instance Config_access_load_DialKeepAliveTime (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DialKeepAliveTime (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (DialKeepAliveTime' : time.Duration) :
+noncomputable instance Config_access_store_DialKeepAliveTime (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (DialKeepAliveTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"DialKeepAliveTime" l) v.DialKeepAliveTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"DialKeepAliveTime" l) DialKeepAliveTime' (DFrac.own 1))
@@ -372,7 +372,7 @@ noncomputable instance Config_access_load_DialKeepAliveTimeout (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DialKeepAliveTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (DialKeepAliveTimeout' : time.Duration) :
+noncomputable instance Config_access_store_DialKeepAliveTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (DialKeepAliveTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"DialKeepAliveTimeout" l) v.DialKeepAliveTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"DialKeepAliveTimeout" l) DialKeepAliveTimeout' (DFrac.own 1))
@@ -516,7 +516,7 @@ noncomputable instance Config_access_load_Context (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Context (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (Context' : context.Context) :
+noncomputable instance Config_access_store_Context (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (Context' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"Context" l) v.Context' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"Context" l) Context' (DFrac.own 1))
@@ -596,7 +596,7 @@ noncomputable instance Config_access_load_BackoffWaitBetween (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_BackoffWaitBetween (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (BackoffWaitBetween' : time.Duration) :
+noncomputable instance Config_access_store_BackoffWaitBetween (l : Loc) (v : go_etcd_io.etcd.client.v3.Config) (BackoffWaitBetween' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"BackoffWaitBetween" l) v.BackoffWaitBetween' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Config go!"BackoffWaitBetween" l) BackoffWaitBetween' (DFrac.own 1))
@@ -653,7 +653,7 @@ noncomputable instance cluster_access_load_remote (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance cluster_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.cluster) (remote' : go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient) :
+noncomputable instance cluster_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.cluster) (remote' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.cluster go!"remote" l) v.remote' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.cluster go!"remote" l) remote' (DFrac.own 1))
@@ -830,7 +830,7 @@ noncomputable instance ConfigSpec_access_load_RequestTimeout (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigSpec_access_store_RequestTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (RequestTimeout' : time.Duration) :
+noncomputable instance ConfigSpec_access_store_RequestTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (RequestTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"RequestTimeout" l) v.RequestTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"RequestTimeout" l) RequestTimeout' (DFrac.own 1))
@@ -846,7 +846,7 @@ noncomputable instance ConfigSpec_access_load_DialTimeout (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigSpec_access_store_DialTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (DialTimeout' : time.Duration) :
+noncomputable instance ConfigSpec_access_store_DialTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (DialTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"DialTimeout" l) v.DialTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"DialTimeout" l) DialTimeout' (DFrac.own 1))
@@ -862,7 +862,7 @@ noncomputable instance ConfigSpec_access_load_KeepAliveTime (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigSpec_access_store_KeepAliveTime (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (KeepAliveTime' : time.Duration) :
+noncomputable instance ConfigSpec_access_store_KeepAliveTime (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (KeepAliveTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"KeepAliveTime" l) v.KeepAliveTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"KeepAliveTime" l) KeepAliveTime' (DFrac.own 1))
@@ -878,7 +878,7 @@ noncomputable instance ConfigSpec_access_load_KeepAliveTimeout (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigSpec_access_store_KeepAliveTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (KeepAliveTimeout' : time.Duration) :
+noncomputable instance ConfigSpec_access_store_KeepAliveTimeout (l : Loc) (v : go_etcd_io.etcd.client.v3.ConfigSpec) (KeepAliveTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"KeepAliveTimeout" l) v.KeepAliveTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.ConfigSpec go!"KeepAliveTimeout" l) KeepAliveTimeout' (DFrac.own 1))
@@ -1330,7 +1330,7 @@ noncomputable instance kv_access_load_remote (l : Loc) (v : go_etcd_io.etcd.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance kv_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.kv) (remote' : go_etcd_io.etcd.api.v3.etcdserverpb.KVClient) :
+noncomputable instance kv_access_store_remote (l : Loc) (v : go_etcd_io.etcd.client.v3.kv) (remote' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVClient) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" l) v.remote' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" l) remote' (DFrac.own 1))

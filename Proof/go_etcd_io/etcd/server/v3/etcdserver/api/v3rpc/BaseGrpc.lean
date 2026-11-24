@@ -56,7 +56,7 @@ instance grpc_reflection_get_is_pkg_init_wf_inst :
 instance grpc_prometheus_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus :=
   define_is_pkg_init iprop(True)
-instance grpc_prometheus_get_is_pkg_init_wf_inst :
+instance grpc_prometheus_get_is_pkg_init_wf_inst [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF)
       pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus :=
   build_get_is_pkg_init_wf

@@ -238,7 +238,7 @@ noncomputable instance PodCondition_access_load_LastProbeTime (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodCondition_access_store_LastProbeTime (l : Loc) (v : k8s_io.api.core.v1.PodCondition) (LastProbeTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance PodCondition_access_store_LastProbeTime (l : Loc) (v : k8s_io.api.core.v1.PodCondition) (LastProbeTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodCondition go!"LastProbeTime" l) v.LastProbeTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodCondition go!"LastProbeTime" l) LastProbeTime' (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance PodCondition_access_load_LastTransitionTime (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.PodCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance PodCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.PodCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))

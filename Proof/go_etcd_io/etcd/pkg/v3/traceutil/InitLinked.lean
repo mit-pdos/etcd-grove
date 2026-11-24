@@ -8,8 +8,13 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
+public import Proof.go_opentelemetry_io.otel.trace.Init
+public import Proof.go_opentelemetry_io.otel.trace.noop.Init
 public import Proof.go_uber_org.zap.InitLinked
+public import Proof.math.rand.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -49,12 +54,25 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply wp_GlobalAlloc (V := GoInterface) Tracer _ as HTracer
+  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.go_opentelemetry_io.otel.trace.noop.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.math.rand.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply Tracer_init as ⟨%trTracer, HTracer⟩
+  -- translated initializer of Tracer))
+  try wp_auto
+  wp_func_call
+  wp_auto
+  wp_method_call
+  wp_auto
   ipersist HTracer
   iframe Hown
   imodintro
@@ -64,7 +82,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   imodintro
   unfold traceutilInit
-  iframe #
+  iexists _; iexact HTracer
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

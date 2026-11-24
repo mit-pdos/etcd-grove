@@ -37,7 +37,7 @@ theorem Client.Close.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
   intro c W a
   wp_start as #Hc
   unfold isClient isClientN clientAt
-  icases Hc with ⟨%γ, %cc, %t, %cn, %la, %ra, #Hcodec, #Hrwc, #Hconn, #Hci, #Hrpc, #Henv,
+  icases Hc with ⟨%γ, %cc, %t, %cn, %la, %ra, #Hcodec, #Hrwc, #Hconn, #Hci, #Hrpc, -, #Henv,
     #Hsmu, #Hmu⟩
   unfold cliEnv
   icases Henv with ⟨%eof, %ueof, %ed, #Hio, #Hsync, #Heof, #Hueof, #Hed, #HefV, #HesV, #Hdbg⟩

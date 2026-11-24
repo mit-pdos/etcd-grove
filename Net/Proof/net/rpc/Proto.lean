@@ -37,8 +37,22 @@ the requests in `reqs` (`reqsWire`, lower bound; fewer than `2 ^ 64` of them, so
 numbers are distinct); what the acceptor writes is a prefix of the wire of answers (`respsWire`:
 for each its index, `"Service.Method"`, message and reply), each with its persistent answer.
 Readers parse frames from a stream that may end mid-frame, so the protocols speak of prefixes; they
-also bound each payload's length (below `2 ^ 63`, as a Go slice's), so a frame's length prefix
-determines it.
+also bound each payload's length (a request's by `maxFrameN`, the frames a server reads; an answer's
+below `2 ^ 63`, as a Go slice's), so a frame's length prefix determines it.
+
+**The handshake** (`RpcWorld.hs`, `RpcWorld.hsAns`, per address; `rpcAddrP W a hs hsAns`): before
+its requests a dialer writes `W.hs a`, and before its answers an acceptor writes `W.hsAns a`, so
+each direction is the handshake followed by the frames. Raw net/rpc (`Dial`, `Server.Accept`) has
+none (`rpcAddr W a := rpcAddrP W a [] []`); over HTTP (`DialHTTPPath`, `Server.ServeHTTP`) the
+dialer's is its `CONNECT` request and the acceptor's the `200` answer. A dialer writes nothing after
+its handshake until it has read the answer (`reqProto`: beyond `W.hs a` only with `sentLb` of
+`W.hsAns a`), so a server that reads ahead (net/http's buffered reader) sees no request byte before
+it has answered; an acceptor writes nothing before the dialer's handshake is written (`respProto`:
+`sentLb` of `W.hs a`), so a dialer that reads an answer has written its whole handshake (its own
+write's error notwithstanding: `DialHTTPPath` ignores it). Over HTTP the acceptor may instead write
+a prefix of Go's `400 Bad Request` answer (`badReqAns`, `hsErr (W.hsAns a)`), at any time: net/http's
+server answers so a handshake it could not read (cut by a broken connection), and the dialer, who may
+have written its whole handshake, reads it (`DialHTTPPath` returns an error on it).
 -/
 module
 
@@ -69,6 +83,38 @@ def lastDotIdx (s : GoString) : Option Nat :=
 def splitSM (sm : GoString) : Option (GoString × GoString) :=
   (lastDotIdx sm).map fun i => (sm.take i, sm.drop (i + 1))
 
+/-! ## The HTTP handshake -/
+
+/-- `DefaultRPCPath`, where `HandleHTTP` registers the server and `DialHTTP` connects. -/
+def defaultRPCPath : GoString := go!"/_goRPC_"
+
+/-- The `CONNECT` request a dialer of the path `path` writes first (`DialHTTPPath`). -/
+def connectReq (path : GoString) : List w8 := go!"CONNECT " ++ path ++ go!" HTTP/1.0\n\n"
+
+/-- The server's answer to it (`ServeHTTP`'s `"HTTP/1.0 " + connected + "\n\n"`). -/
+def connectAns : List w8 := go!"HTTP/1.0 200 Connected to Go RPC\n\n"
+
+/-- net/http's server's answer to a request it cannot read (`conn.serve`'s `"400 Bad Request"`,
+written whole by one `fmt.Fprintf`). -/
+def badReqAns : List w8 :=
+  go!"HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request"
+
+/-- The answers an acceptor may write in place of the handshake's answer `hsAns`: over HTTP
+(`hsAns = connectAns`), Go's `400` answer to a handshake it could not read; none otherwise. -/
+def hsErr (hsAns : List w8) : List w8 := if hsAns = connectAns then badReqAns else []
+
+/-- A reader that read the handshake's answer `hsAns` has not read the error answer. -/
+theorem hsErr_excl {hsAns R : List w8} (h1 : hsAns <+: R) (h2 : R <+: hsErr hsAns) :
+    R = [] := by
+  unfold hsErr at h2
+  split at h2
+  · subst hsAns
+    exact absurd (h1.trans h2) (by decide)
+  · exact List.prefix_nil.1 h2
+
+/-- The status `DialHTTPPath` requires (net/rpc's `connected`). -/
+def connectedStatus : GoString := go!"200 Connected to Go RPC"
+
 /-! ## Requests and answers -/
 
 /-- A request as the ghost state records it: `"Service.Method"`, the argument bytes, the saved
@@ -83,8 +129,12 @@ abbrev post (r : RpcReq) : GName := r.2.2.1
 abbrev col (r : RpcReq) : GName := r.2.2.2
 end RpcReq
 
-/-- A request's payloads fit a frame. -/
-def reqOk (r : RpcReq) : Prop := r.sm.length + 16 < 2 ^ 63 ∧ r.body.length < 2 ^ 63
+/-- A request's payloads fit a frame the server reads (`maxFrameN`: the model's client never
+builds a longer one, `clientCodec.WriteRequest`'s stuck point). -/
+def reqOk (r : RpcReq) : Prop := r.sm.length + 16 ≤ maxFrameN ∧ r.body.length ≤ maxFrameN
+
+theorem reqOk_lt {r : RpcReq} (h : reqOk r) : r.sm.length + 16 < 2 ^ 63 ∧ r.body.length < 2 ^ 63 := by
+  unfold reqOk maxFrameN at h; omega
 
 /-- The wire of the requests `L`, the `i`-th with the sequence number `i`. -/
 def reqsWire (L : List RpcReq) : List w8 :=
@@ -134,6 +184,12 @@ address `a`, if it offers it) and the name of the registry of connections. -/
 structure RpcWorld (GF : BundledGFunctors) where
   SS : GoString → GoString → Option (MethodSpec GF)
   reg : GName
+  /-- The handshake a dialer of an address writes before its requests (`[]` for raw net/rpc,
+  `connectReq path` over HTTP). -/
+  hs : GoString → List w8 := fun _ => []
+  /-- The handshake's answer an acceptor writes before its answers (`[]` for raw net/rpc,
+  `connectAns` over HTTP). -/
+  hsAns : GoString → List w8 := fun _ => []
 
 def rpcN : Namespace := nroot.@"net.rpc"
 def regN' : Namespace := rpcN.@"reg"
@@ -303,22 +359,34 @@ def connInv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) : IP
 def isRpcConn (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) : IProp GF :=
   iprop(regElem W cn γ ∗ inv connN (connInv W a cn γ))
 
-/-- What a dialer of `a` writes: a prefix of the wire of requests of the connection (persistent
-lower bound), fewer than `2 ^ 64`, each fitting its frames. -/
+/-- What a dialer of `a` writes: a prefix of the handshake `W.hs a` followed by the wire of
+requests of the connection (persistent lower bound), fewer than `2 ^ 64`, each fitting its frames;
+and nothing beyond the handshake before the acceptor has written its answer `W.hsAns a` (the
+dialer waits for it: `DialHTTPPath`). -/
 def reqProto (W : RpcWorld GF) (a : GoString) : Proto GF := fun cn bs =>
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq), isRpcConn W a cn γ ∗ monoListLbOwn γ.reqs L ∗
-    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ 2 ^ 64 ∧ bs <+: reqsWire L⌝)
+    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ 2 ^ 64 ∧ bs <+: W.hs a ++ reqsWire L⌝ ∗
+    (⌜bs <+: W.hs a⌝ ∨ sentLb (Gg := Gg) cn true (W.hsAns a)))
 
-/-- What an acceptor at `a` writes: a prefix of the wire of answers of the connection, each with
-its persistent answer and fitting its frames. -/
+/-- What an acceptor at `a` writes: a prefix of the handshake's answer `W.hsAns a` followed by the
+wire of answers of the connection, each with its persistent answer and fitting its frames; and
+nothing before the dialer has written its handshake `W.hs a` (the acceptor answers it). Or a prefix
+of the error answer `hsErr (W.hsAns a)` (over HTTP, Go's `400` answer to a handshake it could not
+read). -/
 def respProto (W : RpcWorld GF) (a : GoString) : Proto GF := fun cn bs =>
-  iprop(∃ (γ : RpcConnNames) (Rs : List Ans), isRpcConn W a cn γ ∗
+  iprop((∃ (γ : RpcConnNames) (Rs : List Ans), isRpcConn W a cn γ ∗
     ([∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply))) ∗
-    ⌜(∀ x ∈ Rs, ansOk x) ∧ bs <+: respsWire Rs⌝)
+    ⌜(∀ x ∈ Rs, ansOk x) ∧ bs <+: W.hsAns a ++ respsWire Rs⌝ ∗
+    (⌜bs = []⌝ ∨ sentLb (Gg := Gg) cn false (W.hs a))) ∨ ⌜bs <+: hsErr (W.hsAns a)⌝)
 
-/-- Address `a` serves rpc in world `W`: its protocols, and the registry (persistent). -/
-def rpcAddr (W : RpcWorld GF) (a : GoString) : IProp GF :=
-  iprop(addrProto (Gg := Gg) a (reqProto W a) (respProto W a) ∗ inv regN' (regInv W))
+/-- Address `a` serves rpc in world `W` after the handshake `hs` (the dialer's) and `hsAns` (the
+acceptor's answer): its protocols, and the registry (persistent). -/
+def rpcAddrP (W : RpcWorld GF) (a : GoString) (hs hsAns : List w8) : IProp GF :=
+  iprop(addrProto (Gg := Gg) a (reqProto W a) (respProto W a) ∗ inv regN' (regInv W) ∗
+    ⌜W.hs a = hs ∧ W.hsAns a = hsAns⌝)
+
+/-- Address `a` serves raw net/rpc in world `W` (no handshake: `Server.Accept`, `Dial`). -/
+def rpcAddr (W : RpcWorld GF) (a : GoString) : IProp GF := rpcAddrP W a [] []
 
 instance regElem_persistent (W : RpcWorld GF) (cn : Nat) (γ : RpcConnNames) :
     Persistent (regElem (GF := GF) W cn γ) := by
@@ -328,9 +396,90 @@ instance isRpcConn_persistent (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : 
     Persistent (isRpcConn (Gg := Gg) W a cn γ) := by
   unfold isRpcConn; infer_instance
 
+/-- A reader keeps its token and learns that what it read was written (`recvTok_sentLb`). -/
+theorem recvTok_keep_sentLb (cn : Nat) (s s' : Bool) (hs : s' = !s) (P : Proto GF) (R : List w8) :
+    recvTok (Gg := Gg) cn s P R ⊢ recvTok cn s P R ∗ sentLb cn s' R := by
+  subst hs
+  unfold recvTok recvCore sentLb connH
+  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, #Hreg, #Hai, #Hm⟩, %hP, Hr, #Hlb⟩, #Hpp⟩
+  isplitl [Hr]
+  · iframe Hpp
+    iexists γ, Pd, Pa
+    iframe He Hreg Hai Hm Hr Hlb
+    ipureintro; exact hP
+  · iexists γ
+    iframe He Hlb
+
+instance rpcAddrP_persistent (W : RpcWorld GF) (a : GoString) (hs hsAns : List w8) :
+    Persistent (rpcAddrP (Gg := Gg) W a hs hsAns) := by
+  unfold rpcAddrP; infer_instance
+
 instance rpcAddr_persistent (W : RpcWorld GF) (a : GoString) :
     Persistent (rpcAddr (Gg := Gg) W a) := by
   unfold rpcAddr; infer_instance
+
+/-! ## A listener's addresses (D21) -/
+
+/-- A listener at `la` (a valid address or a wildcard, `listenOk`) serves rpc in world `W` behind the
+handshake `hs` (the dialer's) and `hsAns` (the acceptor's answer): each valid address `a` it takes
+has its own protocols (`reqProto W a`, `respProto W a`: `rpcLisP_addr` gives its `rpcAddrP`), with
+that handshake, and the right to listen at `la` (`rpcLisP_lis`). Made once, from the addresses `la`
+takes unset (`rpcLisP_set`); at a valid `la`, `la` alone (`rpcLisP_addrOk`). Persistent. An acceptor
+of a connection dialed to `a` learns `a`'s protocols (`Server.Accept`): a wildcard's connections may
+be dialed to any of its addresses, and the world may give them different services. -/
+def rpcLisP (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) : IProp GF :=
+  iprop(lisProtoD (Gg := Gg) la (reqProto W) (respProto W) ∗ inv regN' (regInv W) ∗
+    ⌜∀ a, addrOk a = true ∧ lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns⌝)
+
+instance rpcLisP_persistent (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) :
+    Persistent (rpcLisP (Gg := Gg) W la hs hsAns) := by
+  unfold rpcLisP; infer_instance
+
+/-- Each valid address a listener takes serves rpc behind its handshake. -/
+theorem rpcLisP_addr (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) (a : GoString)
+    (hok : addrOk a = true) (hacc : lisAccepts la a) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢ rpcAddrP W a hs hsAns := by
+  unfold rpcLisP rpcAddrP
+  iintro ⟨#Hl, #Hreg, %Hhs⟩
+  iframe Hreg
+  isplitl
+  · iapply lisProtoD_addr la a (reqProto W) (respProto W) hok hacc $$ Hl
+  · ipureintro; exact Hhs a ⟨hok, hacc⟩
+
+/-- At a valid address, the listener's own address. -/
+theorem rpcLisP_addrOk (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8)
+    (hok : addrOk la = true) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢ rpcAddrP W la hs hsAns :=
+  rpcLisP_addr W la hs hsAns la hok ((lisAccepts_addrOk hok).2 rfl)
+
+/-- The right to listen at `la` (`net.Listen.spec`'s update). -/
+theorem rpcLisP_lis (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢
+      |={⊤,∅}=> lisToks (NG (Gg := Gg)) la ∗ (lisToks (NG (Gg := Gg)) la ={∅,⊤}=∗ True) := by
+  unfold rpcLisP
+  iintro ⟨#Hl, -, -⟩
+  iapply listen_lisD_au la (reqProto W) (respProto W) $$ Hl
+
+theorem rpcLisP_ok (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢ ⌜listenOk la = true⌝ := by
+  unfold rpcLisP
+  iintro ⟨#Hl, -, -⟩
+  iapply lisProtoD_ok la (reqProto W) (respProto W) $$ Hl
+
+/-- Set a listener's protocols once, at the boot, from the addresses `la` takes, unset: each
+address's `reqProto W a`, `respProto W a` (`lis_set_protoD`), in a world that gives every address
+`la` takes the handshake `hs`/`hsAns`. -/
+theorem rpcLisP_set (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8)
+    (hla : listenOk la = true)
+    (hhs : ∀ a, addrOk a = true ∧ lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns) :
+    ⊢ regCtx (Gg := Gg) -∗ inv regN' (regInv W) -∗ lisUnset la ={E}=∗
+      rpcLisP W la hs hsAns := by
+  iintro #Hctx #Hreg Hu
+  imod lis_set_protoD E la (reqProto W) (respProto W) hla $$ Hctx Hu with #Hl
+  imodintro
+  unfold rpcLisP
+  iframe Hl Hreg
+  ipureintro; exact hhs
 
 end proto
 

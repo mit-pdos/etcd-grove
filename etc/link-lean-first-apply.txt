@@ -10,8 +10,7 @@
 pbutil_MustUnmarshalMessage:
 MustParse: NewVersion
 NewVersion:
-# (prove-ps2-semver, 2026-11-22) semver's `Compare` proved over the real code (`LessThan`, over it,
-# back to the trust boundary 2026-11-23: prove-ps2-version)
+# (prove-ps2-semver, 2026-11-22) semver's `LessThan` proved over the real code
 Version__Major:
 Version__Minor:
 Version__Patch:
@@ -20,17 +19,19 @@ compareSegment:
 comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
 comparePrerelease: =_root_.Perennial.strings.wp_Split comparePrePart
 Version__Compare: Version__Major Version__Minor Version__Patch Version__Prerelease compareSegment comparePrerelease
-Version__LessThan:
-Version__String:
+Version__LessThan: Version__Compare
+Version__String: =_root_.Perennial.bytes.Buffer.wp_Write =_root_.Perennial.bytes.Buffer.wp_String =_root_.Perennial.fmt.wp_Fprintf
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint
-etcdserverpb_AlarmType__String:
+# (etcd-grove#39, 2026-11-23) over its trusted model, whose fallback is strconv.Itoa (until then an axiom)
+strconv_Itoa:
+etcdserverpb_AlarmType__String: strconv_Itoa
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
-zap_Logger__Panic:
+zap_Logger__Panic: pool_Pool__Get
 zap_String:
 zap_Stringer:
 txn_WarnOfExpensiveRequest:
@@ -145,3 +146,7 @@ uberApplier__Alarm: uberApplier__restoreAlarms
 uberApplier__dispatch: errors_Is txn_ApplySecObserve txn_WarnOfExpensiveRequest txn_WarnOfFailedRequest uberApplier__Alarm
 uberApplier__Apply: uberApplier__dispatch
 Apply: pbutil_MustUnmarshalMessage zap_Stringer zap_Logger__Debug noSideEffect
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:
+pool_Pool__Get:

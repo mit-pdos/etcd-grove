@@ -149,12 +149,91 @@ theorem nodeWp_of_distBootS [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF
   rw [hf.2.1]
   iapply H ⟨G, L⟩ rfl (hL.trans hf.1) (by omega) (by omega) $$ HP Hls Hgs Htok
 
+/-- **`DistBootWpS` with a floor on the receipts** (`lo ≤ receiptBound GF`): a machine's boot program safe
+from its share and its whole start at every receipt bound from `lo` to `bound` (`robust_of_distBootIL` picks
+`max (n + 1) lo` receipts for an execution of `n` steps). A program whose specs need a few levels of a thread
+token from its first step (etcd's served member, `srvLevels`: `srvLevelK ≤ threadBound GF`) takes them from
+the floor. `DistBootWpS bound` is the floor `0` (`distBootWpSL_of_S`). -/
+def DistBootWpSL [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (lo bound : Nat) (e : Expr)
+    (σ : state) (P : IProp GF) : Prop :=
+  ∀ hG : HeapGS .hasLC GF, hG.goose_globalGS = G →
+    hG.goose_localGS.goose_go_local_context = lctx →
+    lo ≤ receiptBound GF → receiptBound GF ≤ bound → threadBound GF = receiptBound GF + 1 →
+    letI : HeapGS .hasLC GF := hG
+    P ⊢ extsLocalStart (L := hG.goose_localGS) σ.world -∗
+      ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
+      WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}
+
+omit [HasExt netExt] in
+/-- `DistBootWpS` gives `DistBootWpSL` at any floor. -/
+theorem distBootWpSL_of_S [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (lo bound : Nat)
+    (e : Expr) (σ : state) (P : IProp GF) (H : DistBootWpS bound e σ P) :
+    DistBootWpSL lo bound e σ P :=
+  fun hG hGG hL _ hb hT => H hG hGG hL hb hT
+
+omit [HasExt netExt] in
+/-- A machine's obligation in `goose_dist_adequacy` (`nodeWp`, at `T = N + 1` threads and `N` receipts,
+`lo ≤ N ≤ bound`) from `DistBootWpSL`. -/
+theorem nodeWp_of_distBootSL [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (lo bound N : Nat)
+    (hN : receiptBound GF = N) (hlo : lo ≤ N) (hb : N ≤ bound) (e : Expr) (σ : state) (P : IProp GF)
+    (hf : Fresh lctx σ) (H : DistBootWpSL lo bound e σ P) :
+    P ⊢ nodeWp (N + 1) e σ (fun v => v = #()) := by
+  unfold nodeWp
+  iintro HP %L
+  unfold nodeWpBody
+  iintro %hT %hL Hls Hgs Htok
+  rw [hf.2.1]
+  iapply H ⟨G, L⟩ rfl (hL.trans hf.1) (by omega) (by omega) (by omega) $$ HP Hls Hgs Htok
+
+/-- **The bridge with a floor on the receipts** (`robust_of_distBootI` at `DistBootWpSL lo`, `lo ≤ bound`):
+an execution of `n` steps is run at `max (n + 1) lo` receipts and one more thread (`goose_dist_adequacy`'s
+thread premise holds at any bound from `n + 2`). -/
+theorem robust_of_distBootIL [lctx : GoLocalContext] (addrs : List GoString)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound lo : Nat) (hlo : lo ≤ bound)
+    (HI : extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], lo ≤ receiptBound GF → receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ Ps : Nat → IProp GF,
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
+            DistBootWpSL lo bound m.1 m.2 (Ps i)⌝ ∗
+          [∗list] i ↦ _m ∈ nodes, Ps i) :
+    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  rintro ⟨Hnd, Hok, -, -⟩ hfresh hg hl n κs c hsteps hn i tp σ hi e he
+  simp only [List.map_nil, List.nil_append] at hfresh hl hsteps
+  have Hlive : DistThreadsBelow (max (n + 1) lo + 1) n (distInit nodes g) := by
+    intro k κs' c' hk h j tp' σ' hj
+    have := DistThreadsBelow.of_single (n := n) (c := distInit nodes g) ?_ k κs' c' hk h j tp' σ' hj
+    · omega
+    · intro j tp' σ' hj
+      simp only [distInit, List.getElem?_map] at hj
+      obtain ⟨x, hx, hx'⟩ := Option.map_eq_some_iff.mp hj
+      simp only [Prod.mk.injEq] at hx'
+      obtain ⟨-, rfl⟩ := hx'
+      exact (hfresh x (List.mem_of_getElem? hx)).2.2
+  have H := goose_dist_adequacy (GF := GF) (max (n + 1) lo) (max (n + 1) lo + 1) nodes g
+    (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm) (HI hg hl).1 (HI hg hl).2
+    ?_ n κs c (distNsteps_of_crash_nil hsteps.nsteps) (by omega)
+    (fun m hm => (hfresh m hm).2.2) Hlive i tp σ hi
+  · exact ⟨H.2.1 e he, H.2.2 e he⟩
+  · intro G HN
+    iintro Hg
+    ihave Hnet := hasExt_globalStart (X := netExt) g.globalWorld $$ Hg
+    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
+    imod Hstart (by omega) (by omega) $$ Hs with ⟨%Ps, %HP, HPs⟩
+    imodintro
+    iapply BigSepL.bigSepL_mono ?_ $$ HPs
+    intro j m hm
+    exact nodeWp_of_distBootSL lo bound (max (n + 1) lo) HN (by omega) (by omega) m.1 m.2 (Ps j)
+      (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
+
 /-- **The bridge, over any list of extensions with the net extension** (see the file header), with the
 interpretations' conditions on the initial states (`extsInitgP`, `extsInitP`) given from `Robust`'s
 (`HI`; `robust_of_distBootE` when the interpretations accept every initial state): under the
 deployment's start, an update from the extension's start resources (every address of the deployment
 unset) to a share `Ps i` for each machine `i`, each machine's boot program safe from its share and its
-whole start (`DistBootWpS`), give `Robust` with no crashing machine, for any thread bound. -/
+whole start (`DistBootWpS`), give `Robust` with no crashing machine, for any thread bound
+(`robust_of_distBootIL` at the floor `0`). -/
 theorem robust_of_distBootI [lctx : GoLocalContext] (addrs : List GoString)
     (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
     (HI : extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
@@ -164,30 +243,16 @@ theorem robust_of_distBootI [lctx : GoLocalContext] (addrs : List GoString)
         ∃ Ps : Nat → IProp GF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWpS bound m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
-    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
-  rintro ⟨Hnd, Hok, -, -⟩ hfresh hg hl n κs c hsteps hn i tp σ hi e he
-  simp only [List.map_nil, List.nil_append] at hfresh hl hsteps
-  have H := goose_dist_adequacy (GF := GF) (n + 1) (n + 2) nodes g (fun _ v => v = #())
-    (fun _ p h => intoVal_ne_PanicV () p h.symm) (HI hg hl).1 (HI hg hl).2
-    ?_ n κs c (distNsteps_of_crash_nil hsteps.nsteps) (Nat.lt_succ_self n)
-    (fun m hm => (hfresh m hm).2.2) (DistThreadsBelow.of_single ?_) i tp σ hi
-  · exact ⟨H.2.1 e he, H.2.2 e he⟩
-  · intro G HN
-    iintro Hg
-    ihave Hnet := hasExt_globalStart (X := netExt) g.globalWorld $$ Hg
-    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
-    imod Hstart (by omega) $$ Hs with ⟨%Ps, %HP, HPs⟩
-    imodintro
-    iapply BigSepL.bigSepL_mono ?_ $$ HPs
-    intro j m hm
-    exact nodeWp_of_distBootS bound (n + 1) HN (by omega) m.1 m.2 (Ps j)
-      (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
-  · intro j tp' σ' hj
-    simp only [distInit, List.getElem?_map] at hj
-    obtain ⟨x, hx, hx'⟩ := Option.map_eq_some_iff.mp hj
-    simp only [Prod.mk.injEq] at hx'
-    obtain ⟨-, rfl⟩ := hx'
-    exact (hfresh x (List.mem_of_getElem? hx)).2.2
+    DistDeploy addrs nodes g → Robust [] nodes g threads bound :=
+  robust_of_distBootIL (GF := GF) addrs nodes g threads bound 0 (Nat.zero_le _) HI
+    (fun _ hb => by
+      iintro Hs
+      imod Hstart hb $$ Hs with ⟨%Ps, %HP, HPs⟩
+      imodintro
+      iexists Ps
+      iframe HPs
+      ipureintro
+      exact fun i m hm => distBootWpSL_of_S 0 bound m.1 m.2 (Ps i) (HP i m hm))
 
 /-- `robust_of_distBootI` when every extension's interpretation accepts its semantics' initial states
 (`GooseInitCompat`). -/

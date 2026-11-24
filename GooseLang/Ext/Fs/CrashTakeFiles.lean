@@ -28,15 +28,14 @@ variable {GF : BundledGFunctors}
 def crashRestAt (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List Ino) (tt : Bool)
     (V' : Hist) (st st' : OsState) : IProp GF :=
   iprop(∃ (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta) (F : GMap Ino OsFile)
-      (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo) (V : Hist),
+      (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo),
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt ∧ OsCrash st st' ∧ Q st st' ∧
       (∀ i, i ∉ D → F !! i = st'.fs.files !! i) ∧
-      st'.fs.roots = st.fs.roots ∧ TreeCrashed V V' ∧
-      (∀ i, Named V'.now i → (st'.fs.files !! i).isSome) ∧ st'.fs.treeDur = V'.now⌝ ∗
+      st'.fs.roots = st.fs.roots ∧ V' = (st'.fs.treeDur, []) ∧
+      (∀ i, Named V'.now i → (st'.fs.files !! i).isSome)⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ ([∗map] i ↦ f ∈ F, fileStart hL' i f) ∗
-    gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗
-    gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗ treeLeft hL' st.fs.roots V' tt ∗
-    crashMode hL st V V')
+    gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗ treeLeft hL' st.fs.roots V' tt ∗
+    crashShared hL st V')
 
 /-- What the crash from `st` to `st'` did to the file `i`, the old generation knowing its `OsMeta`
 as `m` and its bytes as the runs `rs`: `FileCrashedR`; named in the new tree, it is there; it was a
@@ -56,12 +55,12 @@ theorem crashRest_at (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : Lis
     crashRest Q hL hL' D tt V' ⊣⊢ ∃ st st', crashRestAt Q hL hL' D tt V' st st' := by
   unfold crashRest crashRestAt
   constructor
-  · iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, H⟩
-    iexists st, st', Γb, Γm, F, Γf, Γt, V
+  · iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, H⟩
+    iexists st, st', Γb, Γm, F, Γf, Γt
     iframe H
     ipureintro; exact hrel
-  · iintro ⟨%st, %st', %Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, H⟩
-    iexists Γb, Γm, F, st, st', Γf, Γt, V
+  · iintro ⟨%st, %st', %Γb, %Γm, %F, %Γf, %Γt, %hrel, H⟩
+    iexists Γb, Γm, F, st, st', Γf, Γt
     iframe H
     ipureintro; exact hrel
 
@@ -70,10 +69,10 @@ theorem crashRestAt_facts (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D 
     ⊢ crashRestAt Q hL hL' D tt V' st st' -∗
       ⌜Q st st' ∧ st'.fs.treeDur = V'.now⌝ ∗ crashRestAt Q hL hL' D tt V' st st' := by
   unfold crashRestAt
-  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, H⟩
+  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %hrel, H⟩
   isplitr
-  · ipureintro; exact ⟨hrel.2.2.2.1, hrel.2.2.2.2.2.2.2.2⟩
-  iexists Γb, Γm, F, Γf, Γt, V
+  · ipureintro; exact ⟨hrel.2.2.2.1, by rw [hrel.2.2.2.2.2.2.1]; rfl⟩
+  iexists Γb, Γm, F, Γf, Γt
   iframe H
   ipureintro; exact hrel
 
@@ -82,12 +81,12 @@ theorem crashRestAt_mono (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D D
     (tt : Bool) (V' : Hist) (st st' : OsState) (hD : ∀ i, i ∈ D → i ∈ D') :
     crashRestAt Q hL hL' D tt V' st st' ⊢ crashRestAt Q hL hL' D' tt V' st st' := by
   unfold crashRestAt
-  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, H⟩
-  iexists Γb, Γm, F, Γf, Γt, V
+  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %hrel, H⟩
+  iexists Γb, Γm, F, Γf, Γt
   iframe H
   ipureintro
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
-  exact ⟨hwf, hcoh, hcr, hQ, fun i hi => hF i (fun h => hi (hD i h)), hroots, htc, hnamed, htd⟩
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩ := hrel
+  exact ⟨hwf, hcoh, hcr, hQ, fun i hi => hF i (fun h => hi (hD i h)), hroots, hV, hnamed⟩
 
 /-- **Taking a file, or only learning what the crash did to it** (`tk = false`: the file stays in
 the restart's resources, for another client), at a fixed crash, keeping its old resources. What the
@@ -103,8 +102,8 @@ theorem crashRestAt_takeIf (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D
         crashRestAt Q hL hL' (if tk then i :: D else D) tt V' st st' ∗
         gElem hL hL.γm i dq m ∗ ([∗list] r ∈ rs, bytesG hL i r.1 r.2.1 r.2.2) := by
   unfold crashRestAt
-  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Ht⟩ Hm Hbs
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
+  iintro ⟨%Γb, %Γm, %F, %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, Ht, Hsh⟩ Hm Hbs
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
   icases bytesG_lookup_runs hL i Γb rs $$ Hab Hbs with %hxs
   icases tokRes_meta_whole hL $$ Htok Hm with %hnt
@@ -129,20 +128,20 @@ theorem crashRestAt_takeIf (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D
     simp only [Bool.false_eq_true, ite_false]
     isplitr
     · iempintro
-    iexists Γb, Γm, F, Γf, Γt, V
-    iframe Hab Ham Hfs HAt Htok HAd Ht
+    iexists Γb, Γm, F, Γf, Γt
+    iframe Hab Ham Hfs HAt Htok Ht Hsh
     ipureintro
-    exact ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩
+    exact ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩
   | true =>
     simp only [ite_true]
     icases files_take hL' F i $$ Hfs with ⟨Hf, Hfs⟩
     have hFi := hF i (hi rfl)
     rw [hFi]
     iframe Hf
-    iexists Γb, Γm, GMap.delete i F, Γf, Γt, V
-    iframe Hab Ham Hfs HAt Htok HAd Ht
+    iexists Γb, Γm, GMap.delete i F, Γf, Γt
+    iframe Hab Ham Hfs HAt Htok Ht Hsh
     ipureintro
-    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, hV, hnamed⟩
 
 /-- **Taking a file** from the restart's resources at a fixed crash, keeping its old resources. -/
 theorem crashRestAt_take (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : List Ino)

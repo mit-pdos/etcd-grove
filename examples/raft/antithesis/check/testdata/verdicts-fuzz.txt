@@ -1,0 +1,257 @@
+fuzz fuzz/1.ndjson.gz EtcdBindingM.cfg 2332 ACCEPTED 2631
+fuzz fuzz/2.ndjson.gz EtcdBindingEmpty.cfg 1335 ACCEPTED 1493
+fuzz fuzz/3.ndjson.gz EtcdBindingEmpty.cfg 59 ACCEPTED 357
+fuzz fuzz/4.ndjson.gz EtcdBinding.cfg 3 ACCEPTED 302
+fuzz fuzz/5.ndjson.gz EtcdBindingEmpty.cfg 546 REJECTED 546 {"by":"boot","e":"apply","entries":[{"term":1,"type":"command","value":"763231"},{"term":1,"type":"command","value":"763232"},{"term":1,"type":"command","value":"763233"},{"term":14,"type":"noop","value":""},{"term":14,"type":"command","value":"76313535"},{"term":14,"type":"command","va
+fuzz fuzz/6.ndjson.gz EtcdBinding.cfg 470 ACCEPTED 769
+fuzz fuzz/7.ndjson.gz EtcdBinding.cfg 2601 REJECTED 2601 {"boot":"1794607649603533436","by":"recv","e":"apply","entries":[{"term":2,"type":"command","value":"52b87fd0378cbacbb20000000000000000"}],"first":116,"k":2601,"node":"raft3","seq":949}
+fuzz fuzz/8.ndjson.gz EtcdBinding.cfg 3123 ACCEPTED 3422
+fuzz fuzz/9.ndjson.gz EtcdBindingM.cfg 1729 ACCEPTED 2028
+fuzz fuzz/10.ndjson.gz EtcdBinding.cfg 4323 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/11.ndjson.gz EtcdBindingEmpty.cfg 1133 ACCEPTED 1432
+fuzz fuzz/12.ndjson.gz EtcdBindingM.cfg 89 ACCEPTED 387
+fuzz fuzz/13.ndjson.gz EtcdBinding5.cfg 1140 ACCEPTED 1326
+fuzz fuzz/14.ndjson.gz EtcdBinding.cfg 1523 ACCEPTED 1822
+fuzz fuzz/15.ndjson.gz EtcdBinding5Empty.cfg 608 ACCEPTED 907
+fuzz fuzz/16.ndjson.gz EtcdBinding.cfg 1373 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/17.ndjson.gz EtcdBindingEmpty.cfg 1035 REJECTED 1035 {"by":"campaign","e":"send","k":1036,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":48,"logTerm":21,"reject":false,"term":27,"to":"raft1","type":"vote"},"node":"raft3"}
+fuzz fuzz/18.ndjson.gz EtcdBinding.cfg 142 ACCEPTED 440
+fuzz fuzz/19.ndjson.gz EtcdBindingM.cfg 1656 ACCEPTED 1954
+fuzz fuzz/20.ndjson.gz EtcdBinding5.cfg 709 REJECTED 709 {"by":"campaign","commit":0,"e":"ready","entries":[{"term":2,"type":"command","value":"7633"},{"term":2,"type":"command","value":"7634"},{"term":2,"type":"command","value":"7635"},{"term":2,"type":"command","value":"7636"},{"term":2,"type":"command","value":"7637"},{"term":27,"type":"no
+fuzz fuzz/21.ndjson.gz EtcdBinding.cfg 3596 REJECTED 3596 {"boot":"1794607649562239104","by":"recv","e":"send","k":3599,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":158,"logTerm":0,"reject":false,"term":2,"to":"raft3","type":"appresp"},"node":"raft1","seq":1147}
+fuzz fuzz/22.ndjson.gz EtcdBinding.cfg 222 REJECTED 222 {"by":"propose","commit":7,"e":"ready","entries":[{"term":7,"type":"command","value":"763134"}],"first":9,"k":222,"node":"raft1","role":"follower","term":7,"vote":"raft2"}
+fuzz fuzz/23.ndjson.gz EtcdBinding.cfg 1003 ACCEPTED 1302
+fuzz fuzz/24.ndjson.gz EtcdBinding.cfg 3845 REJECTED 3845 {"boot":"1794607746443876971","by":"propose","e":"send","k":3845,"msg":{"commit":161,"entries":[{"term":2,"type":"command","value":"ff"}],"from":"raft3","hint":0,"index":161,"logTerm":2,"reject":false,"term":2,"to":"raft1","type":"app"},"node":"raft3","seq":1411}
+fuzz fuzz/25.ndjson.gz EtcdBindingM.cfg 2058 ACCEPTED 2357
+fuzz fuzz/26.ndjson.gz EtcdBinding.cfg 527 REJECTED 527 {"commit":5,"e":"boot","k":527,"lastIndex":7,"lastTerm":19,"node":"raft2","term":28,"vote":"raft3"}
+fuzz fuzz/27.ndjson.gz EtcdBinding5.cfg 2246 ACCEPTED 2545
+fuzz fuzz/28.ndjson.gz EtcdBinding5Empty.cfg 12 ACCEPTED 310
+fuzz fuzz/29.ndjson.gz EtcdBinding.cfg 1050 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/30.ndjson.gz EtcdBindingM.cfg 1746 REJECTED 1746 {"by":"apply","cause":[],"e":"send","k":1746,"msg":{"commit":72,"entries":[],"from":"","hint":0,"index":73,"logTerm":19,"reject":false,"term":19,"to":"raft4","type":"app"},"node":"raft2"}
+fuzz fuzz/31.ndjson.gz EtcdBindingEmpty.cfg 731 ACCEPTED 1029
+fuzz fuzz/32.ndjson.gz EtcdBinding.cfg 5 ACCEPTED 304
+fuzz fuzz/33.ndjson.gz EtcdBinding.cfg 1278 ACCEPTED 1375
+fuzz fuzz/34.ndjson.gz EtcdBinding.cfg 940 REJECTED 940 {"by":"recv","e":"apply","entries":[{"term":42,"type":"command","value":"76323439"},{"term":42,"type":"command","value":"76323531"},{"term":42,"type":"command","value":"76323532"},{"term":42,"type":"command","value":"76323533"},{"term":42,"type":"command","value":"76323534"},{"term":42,
+fuzz fuzz/35.ndjson.gz EtcdBinding.cfg 1881 ACCEPTED 2180
+fuzz fuzz/36.ndjson.gz EtcdBindingM.cfg 2257 ACCEPTED 2556
+fuzz fuzz/37.ndjson.gz EtcdBindingM.cfg 377 ACCEPTED 676
+fuzz fuzz/38.ndjson.gz EtcdBinding.cfg 523 REJECTED 525 {"commit":9,"e":"net","entries":[{"term":8,"type":"command","value":"76313630"}],"first":21,"k":525,"node":"raft2","term":8,"vote":"raft2"}
+fuzz fuzz/39.ndjson.gz EtcdBinding.cfg 682 ACCEPTED 981
+fuzz fuzz/40.ndjson.gz EtcdBinding.cfg 576 ACCEPTED 875
+fuzz fuzz/41.ndjson.gz EtcdBindingM.cfg 285 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/42.ndjson.gz EtcdBindingM.cfg 1863 REJECTED 1863 {"commit":29,"e":"net","entries":[],"first":0,"k":1864,"node":"raft3","term":16,"vote":"raft1"}
+fuzz fuzz/43.ndjson.gz EtcdBinding.cfg 1017 ACCEPTED 1315
+fuzz fuzz/44.ndjson.gz EtcdBinding.cfg 194 REJECTED 194 {"boot":"1794607649562239104","by":"campaign","commit":9,"e":"ready","entries":[],"first":0,"k":194,"node":"raft1","role":"follower","seq":62,"term":2,"vote":"raft3"}
+fuzz fuzz/45.ndjson.gz EtcdBinding.cfg 2077 ACCEPTED 2376
+fuzz fuzz/46.ndjson.gz EtcdBinding.cfg 430 ACCEPTED 729
+fuzz fuzz/47.ndjson.gz EtcdBinding.cfg 3255 REJECTED 3257 {"boot":"1794607746443876971","by":"recv","commit":136,"e":"ready","entries":[],"first":0,"k":3257,"node":"raft3","role":"leader","seq":1198,"term":2,"vote":"raft3"}
+fuzz fuzz/48.ndjson.gz EtcdBinding5Empty.cfg 1037 ACCEPTED 1336
+fuzz fuzz/49.ndjson.gz EtcdBinding.cfg 558 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/50.ndjson.gz EtcdBindingM.cfg 2146 REJECTED 2151 {"commit":75,"e":"write","entries":[],"first":0,"k":2151,"node":"raft4","term":20,"vote":"raft5"}
+fuzz fuzz/51.ndjson.gz EtcdBinding.cfg 3236 ACCEPTED 3535
+fuzz fuzz/52.ndjson.gz EtcdBinding.cfg 1316 REJECTED 1316 {"by":"recv","e":"send","k":1317,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":29,"logTerm":0,"reject":false,"term":64,"to":"raft2","type":"appresp"},"node":"raft1"}
+fuzz fuzz/53.ndjson.gz EtcdBinding5.cfg 1747 ACCEPTED 2046
+fuzz fuzz/54.ndjson.gz EtcdBinding.cfg 2510 ACCEPTED 2809
+fuzz fuzz/55.ndjson.gz EtcdBinding5Empty.cfg 325 REJECTED 325 {"commit":1,"e":"write","entries":[{"term":1,"type":"command","value":"763130"}],"first":8,"k":326,"node":"raft1","term":1,"vote":"raft4"}
+fuzz fuzz/56.ndjson.gz EtcdBinding.cfg 1034 REJECTED 1034 {"by":"campaign","e":"send","k":1034,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":17,"logTerm":17,"reject":false,"term":54,"to":"raft1","type":"vote"},"node":"raft2"}
+fuzz fuzz/57.ndjson.gz EtcdBindingEmpty.cfg 352 REJECTED 352 {"by":"propose","e":"send","k":353,"msg":{"commit":4,"entries":[{"term":14,"type":"command","value":"76313535"}],"from":"raft3","hint":0,"index":19,"logTerm":14,"reject":false,"term":14,"to":"raft2","type":"app"},"node":"raft3"}
+fuzz fuzz/58.ndjson.gz EtcdBinding.cfg 1687 ACCEPTED 1986
+fuzz fuzz/59.ndjson.gz EtcdBinding5.cfg 1775 ACCEPTED 2074
+fuzz fuzz/60.ndjson.gz EtcdBindingM.cfg 2017 REJECTED 2017 {"e":"snap","index":72,"k":2017,"node":"raft3","term":21}
+fuzz fuzz/61.ndjson.gz EtcdBindingEmpty.cfg 36 ACCEPTED 335
+fuzz fuzz/62.ndjson.gz EtcdBinding5.cfg 824 ACCEPTED 1123
+fuzz fuzz/63.ndjson.gz EtcdBinding.cfg 1154 REJECTED 1154 {"applied":0,"commit":9,"e":"boot","k":1154,"lastIndex":11,"lastTerm":5,"node":"raft1","term":24,"vote":"raft2"}
+fuzz fuzz/64.ndjson.gz EtcdBindingM.cfg 2763 ACCEPTED 3062
+fuzz fuzz/65.ndjson.gz EtcdBinding.cfg 1409 REJECTED 1409 {"by":"boot","e":"apply","entries":[{"term":7,"type":"command","value":"763134"},{"term":7,"type":"command","value":"763135"},{"term":7,"type":"command","value":"763136"},{"term":7,"type":"command","value":"763137"},{"term":7,"type":"command","value":"763138"},{"term":7,"type":"command
+fuzz fuzz/66.ndjson.gz EtcdBindingEmpty.cfg 1091 ACCEPTED 1390
+fuzz fuzz/67.ndjson.gz EtcdBindingM.cfg 684 ACCEPTED 983
+fuzz fuzz/68.ndjson.gz EtcdBindingM.cfg 1098 ACCEPTED 1397
+fuzz fuzz/69.ndjson.gz EtcdBinding.cfg 694 ACCEPTED 993
+fuzz fuzz/70.ndjson.gz EtcdBindingM.cfg 2377 ACCEPTED 2676
+fuzz fuzz/71.ndjson.gz EtcdBinding.cfg 214 ACCEPTED 513
+fuzz fuzz/72.ndjson.gz EtcdBinding.cfg 151 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/73.ndjson.gz EtcdBinding.cfg 5041 REJECTED 5041 {"boot":"1794607649562239104","by":"recv","e":"apply","entries":[{"term":2,"type":"command","value":"4100000000000000b3fffffffffffffeeb"}],"first":219,"k":5040,"node":"raft1","seq":1604}
+fuzz fuzz/74.ndjson.gz EtcdBinding.cfg 2254 ACCEPTED 2553
+fuzz fuzz/75.ndjson.gz EtcdBinding.cfg 2189 REJECTED 2189 {"by":"campaign","e":"send","k":2189,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":51,"logTerm":64,"reject":false,"term":88,"to":"raft1","type":"vote"},"node":"raft2"}
+fuzz fuzz/76.ndjson.gz EtcdBinding5.cfg 606 ACCEPTED 905
+fuzz fuzz/77.ndjson.gz EtcdBinding.cfg 328 REJECTED 328 {"boot":"1794607649562239104","e":"recv","k":328,"msg":{"commit":14,"entries":[{"term":2,"type":"command","value":"ff"}],"from":"raft3","hint":0,"index":15,"logTerm":2,"reject":false,"term":2,"to":"raft1","type":"app"},"node":"raft1","seq":105}
+fuzz fuzz/78.ndjson.gz EtcdBindingM.cfg 422 REJECTED 422 {"by":"recv","e":"send","k":423,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":26,"logTerm":0,"reject":false,"term":11,"to":"raft2","type":"appresp"},"node":"raft1"}
+fuzz fuzz/79.ndjson.gz EtcdBinding.cfg 556 REJECTED 558 {"commit":6,"e":"write","entries":[],"first":0,"k":558,"node":"raft3","term":31,"vote":"raft1"}
+fuzz fuzz/80.ndjson.gz EtcdBinding.cfg 1701 REJECTED 1701 {"boot":"1794607649574197116","e":"recv","k":1710,"msg":{"commit":75,"entries":[],"from":"raft3","hint":0,"index":75,"logTerm":2,"reject":false,"term":2,"to":"raft2","type":"app"},"node":"raft2","seq":541}
+fuzz fuzz/81.ndjson.gz EtcdBinding.cfg 82 ACCEPTED 381
+fuzz fuzz/82.ndjson.gz EtcdBinding.cfg 922 REJECTED 927 {"by":"recv","commit":39,"e":"ready","entries":[],"first":0,"k":928,"node":"raft1","role":"leader","term":42,"vote":"raft1"}
+fuzz fuzz/83.ndjson.gz EtcdBinding.cfg 817 REJECTED 817 {"by":"recv","commit":30,"e":"ready","entries":[{"term":42,"type":"command","value":"76323438"}],"first":35,"k":817,"node":"raft3","role":"follower","term":42,"vote":""}
+fuzz fuzz/84.ndjson.gz EtcdBindingEmpty.cfg 229 REJECTED 229 {"by":"recv","e":"send","k":229,"msg":{"commit":4,"entries":[{"term":1,"type":"command","value":"763130"},{"term":1,"type":"command","value":"763131"},{"term":1,"type":"command","value":"763132"},{"term":1,"type":"command","value":"763133"},{"term":1,"type":"command","value":"763134"},{
+fuzz fuzz/85.ndjson.gz EtcdBinding5.cfg 1458 REJECTED 1458 {"by":"propose","commit":19,"e":"ready","entries":[{"term":30,"type":"command","value":"76323233"}],"first":55,"k":1458,"node":"raft5","role":"leader","term":30,"vote":"raft3"}
+fuzz fuzz/86.ndjson.gz EtcdBindingM.cfg 1010 REJECTED 1010 {"by":"tick","cause":[],"e":"send","k":1010,"msg":{"commit":0,"entries":[],"from":"","hint":0,"index":0,"logTerm":0,"reject":false,"term":6,"to":"raft5","type":"hb"},"node":"raft2"}
+fuzz fuzz/87.ndjson.gz EtcdBinding.cfg 5343 REJECTED 5343 {"boot":"1794607649574197116","by":"recv","commit":231,"e":"ready","entries":[{"term":2,"type":"command","value":"4100000000000000bf0000000000000359"}],"first":233,"k":5342,"node":"raft2","role":"follower","seq":1695,"term":2,"vote":"raft3"}
+fuzz fuzz/88.ndjson.gz EtcdBinding5.cfg 1389 REJECTED 1389 {"by":"tick","e":"send","k":1389,"msg":{"commit":10,"entries":[],"from":"raft3","hint":0,"index":0,"logTerm":0,"reject":false,"term":30,"to":"raft4","type":"hb"},"node":"raft5"}
+fuzz fuzz/89.ndjson.gz EtcdBindingM.cfg 1299 ACCEPTED 1598
+fuzz fuzz/90.ndjson.gz EtcdBindingM.cfg 1007 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/91.ndjson.gz EtcdBinding.cfg 75 REJECTED 75 {"commit":-2,"e":"boot","k":75,"lastIndex":1,"lastTerm":1,"node":"raft2","term":4,"vote":"raft2"}
+fuzz fuzz/92.ndjson.gz EtcdBinding5.cfg 41 ACCEPTED 340
+fuzz fuzz/93.ndjson.gz EtcdBindingEmpty.cfg 316 REJECTED 316 {"by":"recv","e":"send","k":316,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":0,"logTerm":0,"reject":true,"term":8,"to":"raft2","type":"voteresp"},"node":"raft3"}
+fuzz fuzz/94.ndjson.gz EtcdBindingM.cfg 613 ACCEPTED 912
+fuzz fuzz/95.ndjson.gz EtcdBinding.cfg 5812 ACCEPTED 6111
+fuzz fuzz/96.ndjson.gz EtcdBinding5.cfg 1233 REJECTED 1242 {"e":"flush","k":1242,"more":0,"node":"raft3"}
+fuzz fuzz/97.ndjson.gz EtcdBinding.cfg 66 REJECTED 66 {"commit":4,"e":"write","entries":[],"first":0,"k":66,"node":"raft1","term":5,"vote":"raft3"}
+fuzz fuzz/98.ndjson.gz EtcdBinding.cfg 551 REJECTED 552 {"commit":6,"e":"write","entries":[],"first":0,"k":552,"node":"raft1","term":31,"vote":"raft1"}
+fuzz fuzz/99.ndjson.gz EtcdBinding.cfg 132 REJECTED 135 {"commit":2,"e":"net","entries":[{"term":3,"type":"command","value":"763137"},{"term":3,"type":"command","value":"763138"},{"term":3,"type":"command","value":"763139"},{"term":3,"type":"command","value":"763230"}],"first":3,"k":135,"node":"raft1","term":3,"vote":"raft2"}
+fuzz fuzz/100.ndjson.gz EtcdBindingEmpty.cfg 882 ACCEPTED 1181
+fuzz fuzz/101.ndjson.gz EtcdBindingM.cfg 2218 REJECTED 2384 {"commit":29,"e":"net","entries":[],"first":0,"k":2385,"node":"raft2","term":17,"vote":"raft2"}
+fuzz fuzz/102.ndjson.gz EtcdBinding5.cfg 1102 ACCEPTED 1325
+fuzz fuzz/103.ndjson.gz EtcdBinding.cfg 3242 ACCEPTED 3541
+fuzz fuzz/104.ndjson.gz EtcdBinding.cfg 1324 ACCEPTED 1418
+fuzz fuzz/105.ndjson.gz EtcdBinding.cfg 78 ACCEPTED 377
+fuzz fuzz/106.ndjson.gz EtcdBinding.cfg 1188 ACCEPTED 1439
+fuzz fuzz/107.ndjson.gz EtcdBinding5.cfg 568 ACCEPTED 866
+fuzz fuzz/108.ndjson.gz EtcdBinding.cfg 1643 ACCEPTED 1942
+fuzz fuzz/109.ndjson.gz EtcdBinding.cfg 1456 REJECTED 1456 {"boot":"1794607746433458537","by":"recv","commit":64,"e":"ready","entries":[{"term":2,"type":"command","value":"410000000000000036ffffffffffffffd8"}],"first":65,"k":1455,"node":"raft2","role":"follower","seq":463,"term":2,"vote":"raft3"}
+fuzz fuzz/110.ndjson.gz EtcdBinding.cfg 1026 ACCEPTED 1325
+fuzz fuzz/111.ndjson.gz EtcdBindingEmpty.cfg 1406 ACCEPTED 1494
+fuzz fuzz/112.ndjson.gz EtcdBinding5Empty.cfg 463 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/113.ndjson.gz EtcdBindingEmpty.cfg 1407 REJECTED 1407 {"by":"recv","commit":68,"e":"ready","entries":[{"term":28,"type":"command","value":"76333335"},{"term":28,"type":"command","value":"76333336"}],"first":73,"k":1408,"node":"raft1","role":"follower","term":28,"vote":"raft2"}
+fuzz fuzz/114.ndjson.gz EtcdBindingM.cfg 1689 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/115.ndjson.gz EtcdBinding5.cfg 899 REJECTED 899 {"by":"recv","commit":10,"e":"ready","entries":[],"first":0,"k":899,"node":"raft2","role":"follower","term":31,"vote":"raft5"}
+fuzz fuzz/116.ndjson.gz EtcdBindingM.cfg 2096 ACCEPTED 2395
+fuzz fuzz/117.ndjson.gz EtcdBinding5Empty.cfg 1437 ACCEPTED 1638
+fuzz fuzz/118.ndjson.gz EtcdBindingEmpty.cfg 1218 ACCEPTED 1494
+fuzz fuzz/119.ndjson.gz EtcdBindingM.cfg 1027 ACCEPTED 1325
+fuzz fuzz/120.ndjson.gz EtcdBindingM.cfg 2333 ACCEPTED 2439
+fuzz fuzz/121.ndjson.gz EtcdBinding.cfg 107 ACCEPTED 405
+fuzz fuzz/122.ndjson.gz EtcdBinding5.cfg 1613 REJECTED 1613 {"by":"recv","commit":14,"e":"ready","entries":[],"first":0,"k":1614,"node":"raft2","role":"follower","term":32,"vote":""}
+fuzz fuzz/123.ndjson.gz EtcdBinding5.cfg 1426 ACCEPTED 1724
+fuzz fuzz/124.ndjson.gz EtcdBinding.cfg 339 ACCEPTED 638
+fuzz fuzz/125.ndjson.gz EtcdBinding5Empty.cfg 85 REJECTED 85 {"commit":1,"e":"write","entries":[],"first":0,"k":84,"node":"raft2","term":1,"vote":""}
+fuzz fuzz/126.ndjson.gz EtcdBinding.cfg 2091 ACCEPTED 2390
+fuzz fuzz/127.ndjson.gz EtcdBinding.cfg 2192 REJECTED 2192 {"boot":"1794607649574197116","e":"recv","k":2199,"msg":{"commit":96,"entries":[{"term":2,"type":"command","value":"526421891a485648ea0000000000000000"}],"from":"raft3","hint":0,"index":96,"logTerm":2,"reject":false,"term":2,"to":"raft2","type":"app"},"node":"raft2","seq":698}
+fuzz fuzz/128.ndjson.gz EtcdBinding.cfg 1141 ACCEPTED 1440
+fuzz fuzz/129.ndjson.gz EtcdBinding5.cfg 168 ACCEPTED 466
+fuzz fuzz/130.ndjson.gz EtcdBinding5.cfg 494 ACCEPTED 792
+fuzz fuzz/131.ndjson.gz EtcdBinding.cfg 887 REJECTED 913 {"e":"flush","k":914,"more":1,"node":"raft2"}
+fuzz fuzz/132.ndjson.gz EtcdBindingM.cfg 1334 REJECTED 1334 {"by":"campaign","commit":66,"e":"ready","entries":[{"term":15,"type":"noop","value":""}],"first":67,"k":1335,"node":"raft1","role":"leader","term":15,"vote":"raft1"}
+fuzz fuzz/133.ndjson.gz EtcdBindingM.cfg 2550 ACCEPTED 2848
+fuzz fuzz/134.ndjson.gz EtcdBindingM.cfg 489 ACCEPTED 787
+fuzz fuzz/135.ndjson.gz EtcdBinding.cfg 2188 REJECTED 2188 {"by":"campaign","e":"send","k":2189,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":51,"logTerm":64,"reject":false,"term":88,"to":"raft1","type":"vote"},"node":"raft2"}
+fuzz fuzz/136.ndjson.gz EtcdBinding.cfg 5411 ACCEPTED 5710
+fuzz fuzz/137.ndjson.gz EtcdBindingM.cfg 2165 ACCEPTED 2438
+fuzz fuzz/138.ndjson.gz EtcdBinding.cfg 87 REJECTED 87 {"e":"snap","index":4,"k":87,"node":"raft1","term":4}
+fuzz fuzz/139.ndjson.gz EtcdBindingM.cfg 1167 ACCEPTED 1466
+fuzz fuzz/140.ndjson.gz EtcdBinding5.cfg 915 ACCEPTED 1214
+fuzz fuzz/141.ndjson.gz EtcdBinding5.cfg 250 REJECTED 252 {"e":"flush","k":252,"more":0,"node":"raft4"}
+fuzz fuzz/142.ndjson.gz EtcdBindingM.cfg 3321 REJECTED 3321 {"commit":127,"e":"net","entries":[{"term":27,"type":"noop","value":""}],"first":144,"k":3321,"node":"raft1","term":27,"vote":"raft1"}
+fuzz fuzz/143.ndjson.gz EtcdBinding5Empty.cfg 29 ACCEPTED 328
+fuzz fuzz/144.ndjson.gz EtcdBindingM.cfg 2761 ACCEPTED 3060
+fuzz fuzz/145.ndjson.gz EtcdBinding5.cfg 560 REJECTED 560 {"by":"propose","e":"send","k":560,"msg":{"commit":0,"entries":[{"term":27,"type":"command","value":"76313536"},{"term":27,"type":"command","value":"76313536"}],"from":"raft3","hint":0,"index":11,"logTerm":27,"reject":false,"term":27,"to":"raft1","type":"app"},"node":"raft3"}
+fuzz fuzz/146.ndjson.gz EtcdBinding.cfg 732 ACCEPTED 1031
+fuzz fuzz/147.ndjson.gz EtcdBinding.cfg 2 REJECTED 2 {"commit":0,"e":"boot","k":2,"lastIndex":1,"lastTerm":1,"node":"raft2","term":1,"vote":"raft3"}
+fuzz fuzz/148.ndjson.gz EtcdBindingM.cfg 2209 REJECTED 2219 {"e":"flush","k":2220,"more":1,"node":"raft2"}
+fuzz fuzz/149.ndjson.gz EtcdBinding.cfg 1401 REJECTED 1401 {"by":"boot","e":"apply","entries":[{"term":42,"type":"command","value":"76323533"},{"term":42,"type":"command","value":"76323534"},{"term":42,"type":"command","value":"76323535"},{"term":42,"type":"command","value":"76323536"},{"term":42,"type":"command","value":"76323537"},{"term":42
+fuzz fuzz/150.ndjson.gz EtcdBindingEmpty.cfg 232 REJECTED 237 {"by":"recv","e":"send","k":232,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":11,"logTerm":0,"reject":false,"term":3,"to":"raft1","type":"appresp"},"node":"raft3"}
+fuzz fuzz/151.ndjson.gz EtcdBinding.cfg 392 REJECTED 392 {"by":"recv","cause":[{"commit":6,"entries":[],"from":"raft1","hint":0,"index":0,"logTerm":0,"reject":false,"term":19,"to":"raft3","type":"hb"}],"e":"send","k":392,"msg":{"commit":0,"entries":[],"from":"","hint":0,"index":0,"logTerm":0,"reject":false,"term":19,"to":"raft1","type":"hbres
+fuzz fuzz/152.ndjson.gz EtcdBinding.cfg 2118 ACCEPTED 2416
+fuzz fuzz/153.ndjson.gz EtcdBinding5Empty.cfg 1459 ACCEPTED 1638
+fuzz fuzz/154.ndjson.gz EtcdBinding.cfg 2175 REJECTED 2175 {"by":"campaign","e":"send","k":2175,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":40,"logTerm":71,"reject":false,"term":78,"to":"raft1","type":"vote"},"node":"raft3"}
+fuzz fuzz/155.ndjson.gz EtcdBinding.cfg 415 REJECTED 415 {"commit":5,"e":"boot","k":415,"lastIndex":7,"lastTerm":19,"node":"raft2","term":19,"vote":"raft2"}
+fuzz fuzz/156.ndjson.gz EtcdBinding5.cfg 2658 ACCEPTED 2886
+fuzz fuzz/157.ndjson.gz EtcdBinding.cfg 152 ACCEPTED 451
+fuzz fuzz/158.ndjson.gz EtcdBinding.cfg 2863 REJECTED 2864 {"boot":"1794607746443876971","by":"propose","e":"send","k":2864,"msg":{"commit":121,"entries":[{"term":2,"type":"command","value":"41000000000000005fffffffffffffff45"}],"from":"raft3","hint":0,"index":121,"logTerm":2,"reject":false,"term":2,"to":"raft1","type":"app"},"node":"raft3","s
+fuzz fuzz/159.ndjson.gz EtcdBinding5Empty.cfg 843 REJECTED 846 {"commit":3,"e":"write","entries":[],"first":0,"k":846,"node":"raft4","term":16,"vote":""}
+fuzz fuzz/160.ndjson.gz EtcdBinding.cfg 622 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/161.ndjson.gz EtcdBinding5.cfg 532 REJECTED 533 {"commit":0,"e":"net","entries":[],"first":0,"k":534,"node":"raft5","term":10,"vote":"raft1"}
+fuzz fuzz/162.ndjson.gz EtcdBindingM.cfg 1915 ACCEPTED 2214
+fuzz fuzz/163.ndjson.gz EtcdBinding.cfg 2220 ACCEPTED 2519
+fuzz fuzz/164.ndjson.gz EtcdBinding.cfg 6102 ACCEPTED 6199
+fuzz fuzz/165.ndjson.gz EtcdBinding.cfg 72 REJECTED 72 {"by":"campaign","cause":[],"e":"send","k":72,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":1,"logTerm":1,"reject":false,"term":4,"to":"raft3","type":"app"},"node":"raft2"}
+fuzz fuzz/166.ndjson.gz EtcdBindingM.cfg 2078 ACCEPTED 2377
+fuzz fuzz/167.ndjson.gz EtcdBindingM.cfg 2829 ACCEPTED 2930
+fuzz fuzz/168.ndjson.gz EtcdBinding.cfg 426 REJECTED 426 {"by":"campaign","commit":9,"e":"ready","entries":[],"first":0,"k":426,"node":"raft1","role":"leader","term":15,"vote":"raft1"}
+fuzz fuzz/169.ndjson.gz EtcdBinding.cfg 614 ACCEPTED 913
+fuzz fuzz/170.ndjson.gz EtcdBinding5.cfg 1072 ACCEPTED 1326
+fuzz fuzz/171.ndjson.gz EtcdBinding.cfg 960 ACCEPTED 1259
+fuzz fuzz/172.ndjson.gz EtcdBinding.cfg 102 REJECTED 102 {"by":"recv","commit":4,"e":"ready","entries":[{"term":7,"type":"noop","value":""}],"first":5,"k":102,"node":"raft1","role":"leader","term":7,"vote":"raft2"}
+fuzz fuzz/173.ndjson.gz EtcdBinding.cfg 1249 ACCEPTED 1439
+fuzz fuzz/174.ndjson.gz EtcdBindingM.cfg 1609 REJECTED 1609 {"commit":61,"e":"write","entries":[],"first":0,"k":1608,"node":"raft2","term":17,"vote":"raft2"}
+fuzz fuzz/175.ndjson.gz EtcdBinding.cfg 177 ACCEPTED 475
+fuzz fuzz/176.ndjson.gz EtcdBinding.cfg 533 REJECTED 533 {"commit":9,"e":"net","entries":[{"term":8,"type":"command","value":"76313631"},{"term":8,"type":"command","value":"76313633"}],"first":22,"k":532,"node":"raft2","term":8,"vote":"raft2"}
+fuzz fuzz/177.ndjson.gz EtcdBinding.cfg 456 ACCEPTED 755
+fuzz fuzz/178.ndjson.gz EtcdBinding5.cfg 1275 REJECTED 1275 {"b":1,"by":"batch","e":"send","k":1276,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":0,"logTerm":0,"reject":false,"term":18,"to":"raft5","type":"voteresp"},"node":"raft1"}
+fuzz fuzz/179.ndjson.gz EtcdBinding.cfg 885 REJECTED 886 {"by":"propose","e":"send","k":886,"msg":{"commit":33,"entries":[{"term":42,"type":"command","value":"76323536"}],"from":"raft1","hint":0,"index":39,"logTerm":42,"reject":false,"term":42,"to":"raft2","type":"app"},"node":"raft1"}
+fuzz fuzz/180.ndjson.gz EtcdBinding5.cfg 680 ACCEPTED 979
+fuzz fuzz/181.ndjson.gz EtcdBindingEmpty.cfg 1191 REJECTED 1191 {"by":"propose","e":"send","k":1192,"msg":{"commit":65,"entries":[{"term":28,"type":"command","value":"76333336"}],"from":"raft2","hint":0,"index":73,"logTerm":28,"reject":false,"term":28,"to":"raft1","type":"app"},"node":"raft2"}
+fuzz fuzz/182.ndjson.gz EtcdBindingM.cfg 2484 ACCEPTED 2783
+fuzz fuzz/183.ndjson.gz EtcdBinding.cfg 283 REJECTED 283 {"e":"flush","k":285,"more":0,"node":"raft1"}
+fuzz fuzz/184.ndjson.gz EtcdBindingEmpty.cfg 740 ACCEPTED 1039
+fuzz fuzz/185.ndjson.gz EtcdBinding5Empty.cfg 423 ACCEPTED 722
+fuzz fuzz/186.ndjson.gz EtcdBinding5.cfg 1252 ACCEPTED 1551
+fuzz fuzz/187.ndjson.gz EtcdBindingEmpty.cfg 205 ACCEPTED 504
+fuzz fuzz/188.ndjson.gz EtcdBinding.cfg 1775 REJECTED 1775 {"boot":"1794607746433458537","by":"recv","commit":76,"e":"ready","entries":[],"first":0,"k":1776,"node":"raft2","role":"follower","seq":555,"term":2,"vote":"raft3"}
+fuzz fuzz/189.ndjson.gz EtcdBinding.cfg 4051 REJECTED 4051 {"boot":"1794607746433458537","by":"recv","commit":170,"e":"ready","entries":[{"term":2,"type":"command","value":"41000000000000008cfffffffffffffe1a"}],"first":171,"k":4052,"node":"raft2","role":"follower","seq":1285,"term":2,"vote":"raft3"}
+fuzz fuzz/190.ndjson.gz EtcdBinding.cfg 1256 ACCEPTED 1373
+fuzz fuzz/191.ndjson.gz EtcdBinding.cfg 1358 REJECTED 1358 {"by":"boot","e":"apply","entries":[{"term":42,"type":"command","value":"76323630"},{"term":42,"type":"command","value":"76323631"},{"term":42,"type":"command","value":"76323632"},{"term":42,"type":"command","value":"76323633"},{"term":42,"type":"command","value":"76323634"},{"term":42
+fuzz fuzz/192.ndjson.gz EtcdBindingM.cfg 1638 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/193.ndjson.gz EtcdBindingEmpty.cfg 774 ACCEPTED 1073
+fuzz fuzz/194.ndjson.gz EtcdBindingEmpty.cfg 1122 ACCEPTED 1421
+fuzz fuzz/195.ndjson.gz EtcdBinding.cfg 217 REJECTED 217 {"commit":0,"e":"write","entries":[],"first":0,"k":218,"node":"raft2","term":19,"vote":"raft1"}
+fuzz fuzz/196.ndjson.gz EtcdBindingEmpty.cfg 1216 ACCEPTED 1494
+fuzz fuzz/197.ndjson.gz EtcdBinding.cfg 43 REJECTED 43 {"boot":"1794607746470193442","by":"recv","e":"send","k":44,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":3,"logTerm":0,"reject":false,"term":2,"to":"raft3","type":"appresp"},"node":"raft1","seq":14}
+fuzz fuzz/198.ndjson.gz EtcdBinding.cfg 786 REJECTED 786 {"by":"recv","commit":27,"e":"ready","entries":[{"term":42,"type":"command","value":"76323433"},{"term":42,"type":"command","value":"76323434"},{"term":42,"type":"command","value":"76323435"}],"first":28,"k":785,"node":"raft3","role":"follower","term":42,"vote":""}
+fuzz fuzz/199.ndjson.gz EtcdBindingM.cfg 803 ACCEPTED 1101
+fuzz fuzz/200.ndjson.gz EtcdBindingM.cfg 2647 ACCEPTED 2930
+fuzz fuzz/201.ndjson.gz EtcdBinding.cfg 149 ACCEPTED 448
+fuzz fuzz/202.ndjson.gz EtcdBinding.cfg 118 REJECTED 118 {"by":"recv","e":"apply","entries":[{"term":7,"type":"noop","value":""}],"first":5,"k":117,"node":"raft1"}
+fuzz fuzz/203.ndjson.gz EtcdBinding.cfg 261 REJECTED 261 {"a":1,"by":"recv","e":"apply","entries":[{"term":1,"type":"config","value":""},{"term":19,"type":"noop","value":""}],"first":2,"k":261,"node":"raft1"}
+fuzz fuzz/204.ndjson.gz EtcdBinding.cfg 292 REJECTED 292 {"boot":"1794607746470193442","by":"recv","commit":13,"e":"ready","entries":[{"term":2,"type":"command","value":"410000000000000008ffffffffffffffe4"}],"first":14,"k":291,"node":"raft1","role":"follower","seq":92,"term":2,"vote":"raft3"}
+fuzz fuzz/205.ndjson.gz EtcdBinding.cfg 4301 REJECTED 4301 {"boot":"1794607746470193442","by":"recv","e":"send","k":4301,"msg":{"commit":0,"entries":[],"from":"","hint":0,"index":0,"logTerm":0,"reject":false,"term":2,"to":"raft3","type":"hbresp"},"node":"raft1","seq":1362}
+fuzz fuzz/206.ndjson.gz EtcdBinding.cfg 1558 ACCEPTED 1857
+fuzz fuzz/207.ndjson.gz EtcdBinding5.cfg 787 REJECTED 787 {"by":"recv","commit":11,"e":"ready","entries":[{"term":30,"type":"command","value":"76313738"}],"first":14,"k":788,"node":"raft1","role":"follower","term":30,"vote":"raft5"}
+fuzz fuzz/208.ndjson.gz EtcdBindingEmpty.cfg 799 ACCEPTED 1098
+fuzz fuzz/209.ndjson.gz EtcdBinding5.cfg 2604 REJECTED 2604 {"by":"propose","commit":38,"e":"ready","entries":[{"term":41,"type":"command","value":"76343233"}],"first":44,"k":2604,"node":"raft1","role":"leader","term":41,"vote":"raft2"}
+fuzz fuzz/210.ndjson.gz EtcdBinding.cfg 879 ACCEPTED 1178
+fuzz fuzz/211.ndjson.gz EtcdBinding5Empty.cfg 1148 ACCEPTED 1447
+fuzz fuzz/212.ndjson.gz EtcdBinding.cfg 125 REJECTED 125 {"by":"propose","commit":5,"e":"ready","entries":[{"term":7,"type":"command","value":"763131"}],"first":6,"k":125,"node":"raft1","role":"follower","term":7,"vote":"raft2"}
+fuzz fuzz/213.ndjson.gz EtcdBinding.cfg 409 REJECTED 409 {"commit":14,"e":"boot","k":424,"lastIndex":16,"lastTerm":7,"node":"raft3","term":9,"vote":"raft3"}
+fuzz fuzz/214.ndjson.gz EtcdBinding.cfg 869 REJECTED 869 {"by":"recv","commit":26,"e":"ready","entries":[{"term":42,"type":"command","value":"76323437"}],"first":31,"k":870,"node":"raft3","role":"follower","term":42,"vote":""}
+fuzz fuzz/215.ndjson.gz EtcdBinding.cfg 5846 ACCEPTED 6145
+fuzz fuzz/216.ndjson.gz EtcdBinding.cfg 297 REJECTED 297 {"by":"propose","e":"send","k":297,"msg":{"commit":10,"entries":[{"term":7,"type":"command","value":"763135"}],"from":"raft2","hint":0,"index":10,"logTerm":7,"reject":false,"term":7,"to":"raft3","type":"app"},"node":"raft2"}
+fuzz fuzz/217.ndjson.gz EtcdBinding.cfg 5220 ACCEPTED 5519
+fuzz fuzz/218.ndjson.gz EtcdBinding.cfg 204 ACCEPTED 503
+fuzz fuzz/219.ndjson.gz EtcdBinding.cfg 3632 ACCEPTED 3931
+fuzz fuzz/220.ndjson.gz EtcdBindingM.cfg 1619 ACCEPTED 1918
+fuzz fuzz/221.ndjson.gz EtcdBindingEmpty.cfg 51 ACCEPTED 350
+fuzz fuzz/222.ndjson.gz EtcdBinding.cfg 553 REJECTED 553 {"by":"campaign","commit":14,"e":"ready","entries":[],"first":0,"k":553,"node":"raft3","role":"leader","term":21,"vote":"raft3"}
+fuzz fuzz/223.ndjson.gz EtcdBinding.cfg 2473 ACCEPTED 2772
+fuzz fuzz/224.ndjson.gz EtcdBinding.cfg 240 ACCEPTED 539
+fuzz fuzz/225.ndjson.gz EtcdBindingM.cfg 386 REJECTED 404 {"commit":4,"e":"net","entries":[{"term":2,"type":"command","value":"7637"}],"first":7,"k":405,"node":"raft1","term":2,"vote":"raft3"}
+fuzz fuzz/226.ndjson.gz EtcdBinding5.cfg 504 ACCEPTED 803
+fuzz fuzz/227.ndjson.gz EtcdBinding.cfg 421 ACCEPTED 720
+fuzz fuzz/228.ndjson.gz EtcdBindingEmpty.cfg 215 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/229.ndjson.gz EtcdBinding.cfg 1145 ACCEPTED 1374
+fuzz fuzz/230.ndjson.gz EtcdBinding5.cfg 1191 ACCEPTED 1326
+fuzz fuzz/231.ndjson.gz EtcdBinding.cfg 1097 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/232.ndjson.gz EtcdBinding5Empty.cfg 322 REJECTED 323 {"by":"propose","cause":[],"e":"send","k":323,"msg":{"commit":3,"entries":[{"term":1,"type":"command","value":"763134"}],"from":"raft4","hint":0,"index":11,"logTerm":1,"reject":false,"term":1,"to":"raft1","type":"app"},"node":"raft4"}
+fuzz fuzz/233.ndjson.gz EtcdBinding.cfg 665 ACCEPTED 964
+fuzz fuzz/234.ndjson.gz EtcdBindingM.cfg 2355 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/235.ndjson.gz EtcdBinding.cfg 856 ACCEPTED 1155
+fuzz fuzz/236.ndjson.gz EtcdBinding.cfg 250 ERROR Loading StreamEvent operator override from file:/tmp/anti-scratch/efr/antithesis-fm/tracekit/stream/classes/TraceKit.class with signature: <Java Method: public static synchronized tlc2.value.impl.Value TraceKit.StreamEvent(tlc2.value.impl.IntValue) throws java.io.IOException,java.lang.Interrup
+fuzz fuzz/237.ndjson.gz EtcdBinding.cfg 672 ACCEPTED 971
+fuzz fuzz/238.ndjson.gz EtcdBinding.cfg 3702 ACCEPTED 4001
+fuzz fuzz/239.ndjson.gz EtcdBinding.cfg 230 REJECTED 230 {"by":"read","e":"send","k":230,"msg":{"commit":0,"entries":[{"term":0,"type":"command","value":"3030303030303032"}],"from":"raft3","hint":0,"index":0,"logTerm":0,"reject":false,"term":0,"to":"raft2","type":"hb"},"node":"raft3"}
+fuzz fuzz/240.ndjson.gz EtcdBinding.cfg 503 ACCEPTED 802
+fuzz fuzz/241.ndjson.gz EtcdBinding.cfg 1388 ACCEPTED 1687
+fuzz fuzz/242.ndjson.gz EtcdBindingM.cfg 1904 REJECTED 1904 {"commit":29,"e":"net","entries":[{"term":16,"type":"command","value":"76313235"}],"first":74,"k":1903,"node":"raft1","term":16,"vote":"raft1"}
+fuzz fuzz/243.ndjson.gz EtcdBinding.cfg 1091 ACCEPTED 1390
+fuzz fuzz/244.ndjson.gz EtcdBindingM.cfg 120 ACCEPTED 419
+fuzz fuzz/245.ndjson.gz EtcdBinding.cfg 1513 ACCEPTED 1811
+fuzz fuzz/246.ndjson.gz EtcdBinding5Empty.cfg 1270 ACCEPTED 1569
+fuzz fuzz/247.ndjson.gz EtcdBinding5Empty.cfg 220 ACCEPTED 519
+fuzz fuzz/248.ndjson.gz EtcdBinding5.cfg 150 ACCEPTED 449
+fuzz fuzz/249.ndjson.gz EtcdBinding.cfg 1508 ACCEPTED 1806
+fuzz fuzz/250.ndjson.gz EtcdBinding5Empty.cfg 582 ACCEPTED 881
+fuzz fuzz/251.ndjson.gz EtcdBinding5.cfg 482 REJECTED 485 {"e":"flush","k":486,"more":0,"node":"raft2"}
+fuzz fuzz/252.ndjson.gz EtcdBindingEmpty.cfg 1384 ACCEPTED 1494
+fuzz fuzz/253.ndjson.gz EtcdBinding5Empty.cfg 149 REJECTED 149 {"by":"recv","cause":[{"commit":1,"entries":[],"from":"raft4","hint":0,"index":3,"logTerm":1,"reject":false,"term":1,"to":"raft1","type":"app"}],"e":"send","k":149,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":3,"logTerm":0,"reject":false,"term":3,"to":"raft4","type":"a
+fuzz fuzz/254.ndjson.gz EtcdBindingEmpty.cfg 157 ACCEPTED 455
+fuzz fuzz/255.ndjson.gz EtcdBinding.cfg 2091 ACCEPTED 2390
+fuzz fuzz/256.ndjson.gz EtcdBinding.cfg 1744 ACCEPTED 2043
+fuzz fuzz/257.ndjson.gz EtcdBindingM.cfg 1227 ACCEPTED 1526

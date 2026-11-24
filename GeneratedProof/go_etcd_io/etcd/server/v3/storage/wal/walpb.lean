@@ -59,7 +59,7 @@ noncomputable instance Record_access_load_state (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Record_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Record_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) state' (DFrac.own 1))
@@ -184,7 +184,7 @@ noncomputable instance Snapshot_access_load_state (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Snapshot_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) state' (DFrac.own 1))

@@ -104,9 +104,13 @@ import (
 // Instead, they are replaced by the Unicode replacement
 // character U+FFFD.
 //
-// MODEL: the program's codec decodes (model.go), after the model checks that data is one valid
-// JSON value: as the real one, a syntax error leaves *v as it was.
+// MODEL: v's own model method decodes if its dynamic type has one (model.go: the method checks
+// that data is one valid JSON value first); else the program's codec decodes, after the model
+// checks that data is one valid JSON value: as the real one, a syntax error leaves *v as it was.
 func Unmarshal(data []byte, v any) error {
+	if u, ok := v.(modelUnmarshaler); ok {
+		return u.JSONModelUnmarshal(data, v)
+	}
 	c := getCodec()
 	if !valid(c, data) {
 		return &SyntaxError{msg: "json: invalid JSON input"}

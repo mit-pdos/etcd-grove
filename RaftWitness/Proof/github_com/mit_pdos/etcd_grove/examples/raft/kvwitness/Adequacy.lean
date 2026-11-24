@@ -131,6 +131,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.sync.atomic, isPkgInit pkg_id.sync.atomic),
    (pkg_id.encoding.binary, isPkgInit pkg_id.encoding.binary),
    (pkg_id.slices, isPkgInit pkg_id.slices),
+   (pkg_id.iter, isPkgInit pkg_id.iter),
    (pkg_id.math.bits, isPkgInit pkg_id.math.bits),
    (pkg_id.«unsafe», isPkgInit pkg_id.«unsafe»),
    (pkg_id.cmp, isPkgInit pkg_id.cmp),
@@ -170,6 +171,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.poll, isPkgInit pkg_id.internal.poll),
    (pkg_id.internal.syscall.unix, isPkgInit pkg_id.internal.syscall.unix),
    (pkg_id.internal.oserror, isPkgInit pkg_id.internal.oserror),
+   (pkg_id.internal.testlog, isPkgInit pkg_id.internal.testlog),
    (pkg_id.log, isPkgInit pkg_id.log)]
 
 /-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/

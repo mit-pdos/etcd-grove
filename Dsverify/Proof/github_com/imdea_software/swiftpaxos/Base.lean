@@ -38,7 +38,7 @@ public import Dsverify.Proof.github_com.emirpasic.gods.maps.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Base
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.github_com.google.uuid.Init
 public import Dsverify.Proof.os.signal.Init
@@ -196,13 +196,6 @@ class SwiftLibs (GF : BundledGFunctors) extends Net.NetProtoGS where
   /-- The real `encoding/gob`'s format (Spec/swift/Wire.lean, `sp.GobFmt`): the instance
   `swiftGobFmt` below. -/
   gobFmt : sp.GobFmt
-  /-- lab `Proof/treemap/Specs.lean` `treemap.isTreeMap`: the `*treemap.Map` at `tm` holds the
-  sorted entries `es`, keys encoded by `enc`. -/
-  isTreeMap : HeapGS HasLC.hasLC GF → Loc → (w64 → GoInterface) →
-    github_com.emirpasic.gods.maps.treemap.Entries → IProp GF
-  /-- lab `treemap.isTreeMap_sorted`. -/
-  isTreeMap_sorted : ∀ hG tm enc es, isTreeMap hG tm enc es ⊢
-    isTreeMap hG tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝
   /-- A fresh `*gob.Encoder` at `enc` writing to `w` (Spec/encoding/gob/Defs.lean; the lab's
   model's `enc ↦ Encoder{w}`). The format it writes is the parent `sp.GobFmt`'s. -/
   gobEncoder : HeapGS HasLC.hasLC GF → Loc → GoInterface → IProp GF

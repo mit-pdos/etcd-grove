@@ -1,14 +1,14 @@
 /-
 The proof of `Server.readRequest` (`Net/Spec/net/rpc/Server__readRequest.lean`): the header
 (`readRequestHeader`); after an error with the request taken, its body discarded
-(`ReadRequestBody(nil)`: the reader advances by the frame, or its read fails, `rerr` then holding
-the error); otherwise the method's `NewArg` (`methodOk`: an argument and its decoding, `argDec`,
+(`ReadRequestBody(nil)`: the reader advances by the frame, or its read fails, the end's reading then
+dead, `readDead`; a length beyond `maxFrame` is excluded by the protocol, `req_len_fit`); otherwise the method's `NewArg` (`methodOk`: an argument and its decoding, `argDec`,
 of the argument bytes of a deposit), the deposit's decoding (the deposit kept), the body decoded
 into it (`ReadRequestBody` guarded by `req_guard`: the frame read is the request's argument bytes;
 `req_body` again after the read), and on a decoding
 the deposit and the decoding turned into the call obligation, whose `NewReply` runs here
-(`callObl`); a body that does not read or decode is an error (`rdErr`, `decErr`: messages not
-empty) with the deposit spent on `errOk` (`errCont`). Two later credits: the body's protocol fact.
+(`callObl`); a body that does not read or decode is an error (`rdErr`, `decErr`: the server's own
+messages, `errSrv`) with the deposit spent on `errOk` (`errCont`). Two later credits: the body's protocol fact.
 -/
 module
 
@@ -38,19 +38,19 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- A decoding error has a message not empty (`errNE`). -/
-theorem errNE_decErr (err : GoInterface) : decErr (GF := GF) err ⊢ errNE err := by
+/-- A decoding error's message is one of the server's own error answers (`errSrv`). -/
+theorem errSrv_decErr (err : GoInterface) : decErr (GF := GF) err ⊢ errSrv err := by
   iunfold decErr
   iintro ⟨%x, %msg, ⟨%He, %Hm⟩, #H⟩
-  subst He
-  iapply errNE_errorString x msg Hm $$ H
+  subst He Hm
+  iapply errSrv_errorString x _ srvErrMsg_dec $$ H
 
 /-- The reader after a request's body frame `pl`: back at the top of its loop. -/
 theorem rdr_adv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (k : Nat)
     (ps : List (List w8)) (h pl : List w8) (hps : ps.length = 2 * k)
     (hb : ∀ q ∈ ps, q.length < 2 ^ 63) (hh : h.length < 2 ^ 63) (hpl : pl.length < 2 ^ 63) :
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (framesOf (ps ++ [h]) ++ frameOf pl) ∗
+        (W.hs a ++ framesOf (ps ++ [h]) ++ frameOf pl) ∗
       isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ ghostVar γ.ctr (1 : Qp).half (k + 1) ⊢
     ∃ (ps' : List (List w8)) (k' : Nat), readerSt W a cn ps' k' ∗ ⌜ps'.length = 2 * k'⌝ := by
   iintro ⟨Hrecv, #Hrpc, Hctr⟩
@@ -58,7 +58,7 @@ theorem rdr_adv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) 
   isplitl
   · iunfold readerSt
     rw [show ps ++ [h, pl] = (ps ++ [h]) ++ [pl] by simp, framesOf_append (ps ++ [h]) [pl],
-      framesOf_cons, framesOf_nil, List.append_nil]
+      framesOf_cons, framesOf_nil, List.append_nil, ← List.append_assoc]
     iframe Hrecv
     isplitr
     · ipureintro
@@ -94,7 +94,7 @@ theorem Server.readRequest.wp_proof
   wp_auto
   wp_apply wp_readRequestHeader s γs C W a sc t cn la ra $$ [$Hsrv $Hserves $Henv $Hsc $Hrd]
     as %svc %mt %req %keep %err Hres
-  icases Hres with (⟨%Hk, %He⟩ | ⟨%Hk, %k, %r, %Φc, Hr, Hrerr, Hmid, Hpend, Hcase⟩)
+  icases Hres with (⟨%Hk, %He⟩ | ⟨%Hk, %k, %r, %Φc, Hr, Hmid, Hpend, Hcase⟩)
   · -- the header's read failed
     subst Hk
     cases err with
@@ -106,13 +106,20 @@ theorem Server.readRequest.wp_proof
     ipureintro; exact ⟨rfl, He⟩
   subst Hk
   iunfold rdrMid at Hmid
-  icases Hmid with ⟨%γ, %L, %ps, Hrecv, #Hrpc, #Hlb, Hctr, ⟨%HLr, %Hps, %Hb, %Hrok⟩⟩
+  icases Hmid with ⟨%γ, %L, %ps, Hrecv, Hrdl, #Hrpc, #Hlb, Hctr, ⟨%HLr, %Hps, %Hb, %Hrok⟩⟩
   have hh : (reqHdr (W64 k) r.sm).length < 2 ^ 63 := by
-    rw [reqHdr_length]; unfold reqOk at Hrok; omega
-  ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-      (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ []) $$ [Hrecv]
-  · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-  ihave #Hacc := rd_acc_srv W a cn (framesOf (ps ++ [reqHdr (W64 k) r.sm]))
+    rw [reqHdr_length]; unfold reqOk maxFrameN at Hrok; omega
+  have hbh : ∀ q ∈ ps ++ [reqHdr (W64 k) r.sm], q.length < 2 ^ 63 := by
+    intro q hq
+    simp only [List.mem_append, List.mem_singleton] at hq
+    rcases hq with hq | rfl
+    · exact Hb q hq
+    · exact hh
+  ihave HrL : (recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
+      (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ []) ∗
+      rdlTok (Gg := hG.goose_globalGS) cn true false : IProp GF) $$ [Hrecv Hrdl]
+  · rw [List.append_nil]; iframe Hrdl; iapply recvTok_L $$ Hrecv
+  ihave #Hacc := rd_acc_dead W a cn (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]))
   icases Hcase with (⟨%He, %S, %m, %rcvr, HS, #HerrOk, #Hrcvr, #Hmt⟩ | ⟨%He, #HeNE, Hcont⟩)
   rotate_left
   · -- an error with the request taken: its body discarded
@@ -120,19 +127,22 @@ theorem Server.readRequest.wp_proof
     | nil => exact absurd rfl He
     | ok e =>
     wp_auto_lc 1
-    ihave #Hg0 := guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-      (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
-    wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra interface.nil interface.nil C iprop(True)
+    ihave #Hg0 := guard_true (fun got => iprop(recvTokL (Gg := hG.goose_globalGS) cn true
+      (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got) ∗
+      rdlTok (Gg := hG.goose_globalGS) cn true false))
+    wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra interface.nil C iprop(True)
         (fun _ => iprop(True)) (fun _ _ => iprop(True))
-        (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-          (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
-        eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HrL $Hg0 $Hrerr $Hacc]
-      as %err1 (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
+        (fun got => iprop(recvTokL (Gg := hG.goose_globalGS) cn true
+          (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got) ∗
+          rdlTok (Gg := hG.goose_globalGS) cn true false))
+        (readDead (Gg := hG.goose_globalGS) cn true)
+        eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HrL $Hg0 $Hacc]
+      as %err1 ⟨%got, ⟨HP, Hrdl⟩, Hres⟩
     · iunfold bodyDecG; itrivial
-    · exact absurd rfl Hc
     ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
     iapply fupd_wp
     imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
+    icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
     imodintro
     wp_auto
     iapply HΦ
@@ -142,26 +152,20 @@ theorem Server.readRequest.wp_proof
     iexists k, r, Φc
     iframe Hr Hpend
     isplitr [Hcont]
-    · icases Hres with (⟨%pl, ⟨%Hgot, %Hpl⟩, -, Hrerr⟩ | ⟨%Hne1, -, #HE1, Hrerr⟩)
+    · icases Hres with (⟨%pl, ⟨%Hgot, %Hpl⟩, -⟩ | ⟨%Hne1, -, (%Hbig | ⟨-, #Hdead⟩)⟩)
       · subst Hgot
         iunfold rdrOwn
-        iexists _
-        iframe Hrerr
         ileft
-        isplitr
-        · ipureintro; rfl
+        iframe Hrdl
         iapply rdr_adv W a cn γ k ps _ pl Hps Hb hh (by unfold maxFrameN at Hpl; omega)
           $$ [$HrT $Hrpc $Hctr]
+      · -- a length beyond `maxFrame`: the protocol excludes it
+        ihave %Hfit := req_len_fit W a cn _ got hbh Hbig.2.1 $$ Hpp
+        exact absurd Hfit (by have := Hbig.2.2; omega)
       · iunfold rdrOwn
-        iexists _
-        iframe Hrerr
         iright
-        isplitr
-        · ipureintro; exact Hne1
-        isplitr
-        · iapply rdErr_read la ra eof ueof ed _ true got err1 $$ [$HefV $Hef $Hio $Heof $Hueof $HE1]
         iexists _
-        iexact HrT
+        iframe HrT Hdead
     iright
     isplitr
     · ipureintro; exact He
@@ -199,26 +203,46 @@ theorem Server.readRequest.wp_proof
     iintro Hdc %pl %Hplr
     subst Hplr
     iexact Hdc
-  wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra (interface.ok av) interface.nil C
+  ihave #Hguard' : □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗
+      (recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
+        (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ frameOf pl) ∗
+        rdlTok (Gg := hG.goose_globalGS) cn true false) -∗
+      ▷ ((recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
+          (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ frameOf pl) ∗
+          rdlTok (Gg := hG.goose_globalGS) cn true false) ∗ ⌜pl = r.body⌝)) $$ []
+  · imodintro
+    iintro %pl %Hpl ⟨HP, Hrdl⟩
+    ihave HG := Hguard $$ %pl %Hpl HP
+    inext
+    icases HG with ⟨HP, %HG⟩
+    iframe HP Hrdl
+    ipureintro; exact HG
+  wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra (interface.ok av) C
       (C.dec r.body (interface.ok av) (Θ r.body)) (fun pl => iprop(⌜pl = r.body⌝)) Θ
-      (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-        (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
-      eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec3 $Hdc0 $HrL $Hguard
-        $Hrerr $Hacc]
-    as %err1 (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
-  · exact absurd rfl Hc
+      (fun got => iprop(recvTokL (Gg := hG.goose_globalGS) cn true
+        (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got) ∗
+        rdlTok (Gg := hG.goose_globalGS) cn true false))
+      (readDead (Gg := hG.goose_globalGS) cn true)
+      eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec3 $Hdc0 $HrL $Hguard'
+        $Hacc]
+    as %err1 ⟨%got, ⟨HP, Hrdl⟩, Hres⟩
   ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
   iapply fupd_wp
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
   imodintro
-  icases Hres with (⟨%pl, ⟨%Hgot, %Hpl⟩, Hbr, Hrerr⟩ | ⟨%Hne1, -, #HE1, Hrerr⟩)
+  icases Hres with (⟨%pl, ⟨%Hgot, %Hpl⟩, Hbr⟩ | ⟨%Hne1, -, HE1⟩)
   rotate_left
   · -- the body's read failed
+    icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
+    icases HE1 with (%Hbig | ⟨#HE1, #Hdead⟩)
+    · -- a length beyond `maxFrame`: the protocol excludes it
+      ihave %Hfit := req_len_fit W a cn _ got hbh Hbig.2.1 $$ Hpp
+      exact absurd Hfit (by have := Hbig.2.2; omega)
     cases err1 with
     | nil => exact absurd rfl Hne1
     | ok e1 =>
     wp_auto
-    ihave #Hre := rdErr_read la ra eof ueof ed _ true got (interface.ok e1)
+    ihave #Hre := rdErr_readE la ra eof ueof ed _ true got (interface.ok e1)
       $$ [$HefV $Hef $Hio $Heof $Hueof $HE1]
     iapply HΦ
     iright
@@ -228,14 +252,9 @@ theorem Server.readRequest.wp_proof
     iframe Hr Hpend
     isplitr [HS]
     · iunfold rdrOwn
-      iexists _
-      iframe Hrerr
       iright
-      isplitr
-      · ipureintro; exact Hne1
-      iframe Hre
       iexists _
-      iexact HrT
+      iframe HrT Hdead
     iright
     isplitr
     · ipureintro; exact Hne1
@@ -248,21 +267,18 @@ theorem Server.readRequest.wp_proof
     iapply HerrOk' $$ %m %r.body %Φc %msg %hmsg HS
   subst Hgot
   have hpl : pl.length < 2 ^ 63 := by unfold maxFrameN at Hpl; omega
-  have hfr : framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ frameOf pl =
-      framesOf (ps ++ [reqHdr (W64 k) r.sm] ++ [pl]) := by
+  have hfr : W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ frameOf pl =
+      W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm] ++ [pl]) := by
     rw [framesOf_append (ps ++ [reqHdr (W64 k) r.sm]) [pl], framesOf_cons, framesOf_nil,
-      List.append_nil]
+      List.append_nil, List.append_assoc]
   icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
   rw [hfr]
   ihave %Hbody := req_body W a cn γ L r ps k _ pl HLr Hps Hb hh hpl $$ [$Hrpc $Hlb $Hpp]
   rw [← hfr]
-  ihave Hown : rdrOwn W a cn sc $$ [HrT Hctr Hrerr]
+  ihave Hown : rdrOwn W a cn $$ [HrT Hctr Hrdl]
   · iunfold rdrOwn
-    iexists _
-    iframe Hrerr
     ileft
-    isplitr
-    · ipureintro; rfl
+    iframe Hrdl
     iapply rdr_adv W a cn γ k ps _ pl Hps Hb hh hpl $$ [$HrT $Hrpc $Hctr]
   subst Hbody
   iunfold bodyRes at Hbr
@@ -285,7 +301,7 @@ theorem Server.readRequest.wp_proof
     isplitr
     · ipureintro; exact Hne1
     isplitl [Hdc]
-    · iapply errNE_decErr $$ Hdc
+    · iapply errSrv_decErr $$ Hdc
     iunfold errCont
     iintro %msg %hmsg
     iapply HerrOk' $$ %m %r.body %Φc %msg %hmsg HS
