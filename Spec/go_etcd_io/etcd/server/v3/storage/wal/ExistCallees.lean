@@ -8,7 +8,8 @@ log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable). What `Exist` asks of `ReadDir`'s errors.
 * **`fileutil.ReadDir.specAbsentIs`**: `ReadDir.specAbsent` (proved, no option) with `Exist`'s option
-  slice, its error answering `errors.Is` with some boolean. The first part is `ReadDir.wp_proofAbsent`
+  slice, its error answering `errors.Is` with some boolean, `true` when the file system does not fail on
+  `d/b` (`FsNoErrAt`; since 2026-11-23, claim #34: `ReadDir.specAbsentErr`'s `ENOENT`). The first part is `ReadDir.wp_proofAbsent`
   with `applyOpts` over a slice (as `ReadDir.wp_proof`); the second needs `errors.Is` of a `*PathError`
   of an errno against a pointer error (Perennial's `errors.Is.spec`, with the error tree of the part's
   `os` errors, which no spec gives yet: `notes/perennial-changes.md`, as `errors.IsErrno.spec`).
@@ -38,6 +39,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
 public import Proof.os.NsChildS
 public import Proof.os.PkgInit
 public import Spec.errors.IsPathErrnoNotExist
+public import Proof.os.OpenAbsentNE
 
 @[expose] public section
 
@@ -67,7 +69,8 @@ abbrev fileutil.ReadDir.specAbsentIs : Prop :=
       sl ↦*{dqs} gs ∗ [∗list] i ↦ g ∈ gs, fileutil.withExtFn (GF := GF) g (es.getD i "") }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir)) (Val #(child d b))) (Val #sl))
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
-      osNames j N dqn h ∗ sl ↦*{dqs} gs ∗ ⌜err ≠ interface.nil⌝ ∗ ∃ bn : Bool, errIsNotExist err bn }}
+      osNames j N dqn h ∗ sl ↦*{dqs} gs ∗ ⌜err ≠ interface.nil⌝ ∗
+      ∃ bn : Bool, errIsNotExist err bn ∗ ⌜FsNoErrAt (child d b) → bn = true⌝ }}
 
 /-- See the file header. -/
 abbrev fileutil.ReadDir.specChildIs : Prop :=

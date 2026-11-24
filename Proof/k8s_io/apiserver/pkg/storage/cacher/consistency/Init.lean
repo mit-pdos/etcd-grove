@@ -1,16 +1,23 @@
 /-
 Package initialization of `k8s_io.apiserver.pkg.storage.cacher.consistency`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports and runs its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
-initialized variable).
+Its fact is `True` (its readers, the watch cache's snapshotter and `checkSnapshotResourceVersion`,
+are proved only where they do not reach the load). Its initializer allocates
+`PanicOnCacheInconsistency`, initializes its imports, runs the variable's translated initializer
+(`false`) and its translated `init` (`checker.go:50`), which stores in it whether
+`KUBE_WATCHCACHE_CONSISTENCY_CHECKER` parses as true (`os.Getenv`: the trust-boundary axiom
+`os.Getenv.wp_proof`; `strconv.ParseBool.wp_proof`, proved over Perennial's translation). (Until
+2026-11-24 the `init` was names-only, the trust-boundary axiom `initFuncsOk`.)
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.Base
+public import Perennial.Proof.strconv.Link
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.metrics.Init
-public import Proof.runtime.PkgInitExt
+public import Proof.os.Init
 
 @[expose] public section
 
@@ -27,67 +34,5 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace k8s_io.apiserver.pkg.storage.cacher.consistency
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apiserver.pkg.storage.cacher.consistency`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end k8s_io.apiserver.pkg.storage.cacher.consistency
-end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.consistency.Assumptions]
-
-namespace k8s_io.apiserver.pkg.storage.cacher.consistency
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply wp_GlobalAlloc (V := _) PanicOnCacheInconsistency _ as HPanicOnCacheInconsistency
-  wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  -- translated initializer of PanicOnCacheInconsistency))
-  try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  iframe Hown
-  is_pkg_init_finish
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end k8s_io.apiserver.pkg.storage.cacher.consistency
-
-end init
 
 end Perennial

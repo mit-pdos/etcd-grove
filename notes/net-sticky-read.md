@@ -1,9 +1,9 @@
 # Sticky read errors in the net extension's semantics
 
-Status (2026-11-23, branch `net-sticky-read`): **the semantics change and its laws are
-implemented** (approved by the user on etcd-grove#24, option (A)); **`rerr`'s removal is not done
-yet** (see "Implemented", at the end, for what it still needs). Below, the plan as it was signed
-off, then what was implemented and how it differs.
+Status (2026-11-24): **the semantics change and its laws are implemented** (2026-11-23, branch
+`net-sticky-read`, approved by the user on etcd-grove#24, option (A)), and **`rerr` is removed**
+(branch `net-rpc-rerr`, part 2, option (B): "Part 2 implemented", at the end). Below, the plan as it
+was signed off, then what was implemented and how it differs.
 
 Plan (2026-11-23): The decision (the user's, on etcd-grove#24,
 2026-11-23): "fix it once in the net extension's semantics, not with per-call-site wrappers,
@@ -325,3 +325,36 @@ it:
    specs and `newServerCodec`; `models/internal/rpcdifftest/run.sh`; `models/README.md`'s net/rpc
    row; `nonissues/go-netrpc-server-reads-on-after-body-read-error.md` closed.
 
+
+## Part 2 implemented (2026-11-24, branch `net-rpc-rerr`)
+
+The user's option (B) (#24): `rerr` goes; a too-long request frame is the model's stuck point, not a
+silent refusal (the model keeps every Go behavior: gob leaves the header buffered); `reqOk` bounds a
+request's frames by `maxFrameN`. Ledger 2026-11-24.
+
+* **The model** (`models/net/rpc/codec.go`): `serverCodec` has no `rerr`; `ReadRequestHeader`/`ReadRequestBody`
+  call `readFrame` as gob's codec calls its decoder. `clientCodec.WriteRequest` encodes the body, then calls `stuck()`
+  when the header or the body is longer than `maxFrame`; `stuck` (Go body `select {}`) is trusted
+  (`Net/Code/net/rpc.toml`, `Net/TrustedCode/net/rpc.lean`: Perennial's `internal.gomodel.Stuck.impl`, at the current
+  pin `580868e54` already in Perennial's `TrustedCode/internal/gomodel.lean`; its proof scaffolding, `ed1955557`, is not
+  needed). `models/internal/rpcdifftest/run.sh` passes (real and model).
+* **Where the bound comes from.** `Client.Call.spec` (and `Go`, `send`, `WriteRequest`) takes
+  `⌜sm.length + 16 ≤ maxFrameN⌝` and the arguments' encoding with `⌜bs.length ≤ maxFrameN⌝` in its continuation: the
+  caller proves it of its own encoding (no codec bound in `encOk`: a generated codec's encodings are not bounded in
+  general, and only the caller knows its arguments). The landed kits prove it of their concrete arguments (swiftpaxos:
+  `client.Client.call.specI` gains the premise, its callers' arguments are constant; `Register`'s address is one of
+  `replicaAddrs`; epaxos's `wp_Call_simple`). gryff and craq (not landed) must adapt the same way.
+* **The reads keep the failing result**: `readFull`/`readFrame` and the server codec's read specs take `F` (the
+  accessor's `⌜∀ bs, r ≠ .bytes bs⌝ -∗ F`; a `readErr` comes with `F`); the client passes `F := True`
+  (`readAcc_true`), the server `readDead cn true` (`rd_acc_dead`, from `read_dead_au` with the end's
+  `rdlTok cn true false`; `readOutcome_no_timeout` rules out the timeout). Once dead, the reader reads through
+  `rd_acc_after` (`read_after_dead_au`): nothing, and the next header fails, ending the loop.
+* **`errFrame` at the server**: `readFrame`'s `errFrame` after a long length now gives those 8 bytes, which the
+  protocol makes the next payload's length (`framesOf_next_len`, `reqPlsFrom_fit`, `req_len_fit`): at most
+  `maxFrameN`, so the body's `errFrame` is excluded; a header's error ends the loop anyway.
+* **Over HTTP** (not in the plan): the hijacked connection's read deadline token was `∃ b` (`hijackOk` did not hand it
+  to the handler). The model's `hijackLocked` clears both deadlines; `deadline_dead_au` (new, `Proto.lean`) gives the
+  token at the outcome and `readDead` when the setting fails on a closed end, so `hijackOk` hands the handler
+  `∃ b, rdlTok cn true b ∗ (⌜b = false⌝ ∨ readDead cn true)` and `rpcAccepted` holds `rdlTok cn true false ∨
+  readDead cn true`.
+* No top-level statement changed (`TopLevelRobustness`, `TopLevelDefs`, `Net/Statement` untouched).

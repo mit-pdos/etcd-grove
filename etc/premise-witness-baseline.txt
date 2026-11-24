@@ -24,3 +24,4 @@ Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean:
 Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean:crash_robust * pending needs the Fs base witness (FsInit of a state with given empty roots)
 Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean:mvccfull_robust HEnv opaque verifyEnvOff (axiom-declared: ETCD_VERIFY off for the run, an environment claim)
 Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/TopLevelRobustness.lean:mvccrand_robust HEnv opaque verifyEnvOff (axiom-declared: ETCD_VERIFY off for the run, an environment claim)
+WalTester/Spec/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness.lean:etcd_wal_safe * pending start state over two roots (area, orDir) with tWalPathsOk/PathFits/tFirst: needs a two-root Fs witness; hpaths and hfit are candidates for a Go check (rule 38); Hopen is an Iris contract
