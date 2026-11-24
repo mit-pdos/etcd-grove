@@ -235,7 +235,9 @@ to: coordinator-E, for Upamanyu. Each packet is a separate ask. All are built on
 
 to: coordinator-E (for the land queue, and one ask for Upamanyu)
 
-land-queue: bootstrap-link/2026-11-25 1a5476bb3e (after bootstrap-stage2/2026-11-25 3f21321c84, which it contains)
+land-queue: bootstrap-link/2026-11-25 059ab3520d (after bootstrap-stage2/2026-11-25 3f21321c84, which it contains)
+
+**Update at `059ab3520d`:** `bootstrapBackend` is now linked over its callees. Its `existFree` and `metaSnap` laws moved unchanged into `BootBackendLaws.lean`, each with a small spec, and stay open (`?`). `schema_CreateMetaBucket` is newly linked. That makes six open hypotheses: `bootstrapSnapshot`, `bootstrapBackendExistFree`, `bootstrapBackendMetaSnap`, and `bootFsTouchData`, `bootFsTouchMember`, `bootFsWalExist`. The server Link builds (9,732 jobs, exit 0), and tier and import-all pass. `bootFsTouchMember` isn't proved: `TouchDirAll.spec` doesn't return the new child path's `osPathS` or its call permission, so it needs a stronger `TouchDirAll` spec first. The original text of this request follows.
 
 Claim #34, step 4: `bootstrap` is linked in the server Link, so `wp_bootstrap` proves `bootstrap.spec` at the server's level.
 - **Five new open hypotheses:**
