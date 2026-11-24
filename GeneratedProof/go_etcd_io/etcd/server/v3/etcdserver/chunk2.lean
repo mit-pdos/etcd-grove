@@ -21,6 +21,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.featuregate
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.idutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.pbutil
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.runtime
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.schedule
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait

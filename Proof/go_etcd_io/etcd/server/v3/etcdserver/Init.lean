@@ -55,6 +55,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Init
