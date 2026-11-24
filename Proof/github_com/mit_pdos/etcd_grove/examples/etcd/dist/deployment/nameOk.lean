@@ -25,8 +25,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.nameOk.wp_proof :
-    etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG) := by
+theorem nameOk.wp_proof :
+    etcd_dist.nameOk.spec (GF := GF) (hG := hG) := by
   intro n
   wp_start
   wp_auto

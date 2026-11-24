@@ -54,7 +54,7 @@ private theorem addr_close (Φ : val → IProp GF) (b1 b2 : Bool) (h : b1 = b2) 
   iapply H
   itrivial
 
-theorem deployment.AddrOk.wp_proof (wp_decimal : etcd_dist.deployment.decimal.spec (GF := GF) (hG := hG)) : etcd_dist.deployment.AddrOk.spec (GF := GF) (hG := hG) := by
+theorem AddrOk.wp_proof (wp_decimal : etcd_dist.decimal.spec (GF := GF) (hG := hG)) : etcd_dist.AddrOk.spec (GF := GF) (hG := hG) := by
   intro a ha
   wp_start
   try wp_auto

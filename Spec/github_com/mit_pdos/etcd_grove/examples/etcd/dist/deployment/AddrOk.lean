@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions]
 
 /-- See the file header. -/
-abbrev deployment.AddrOk.spec : Prop :=
+abbrev AddrOk.spec : Prop :=
   ∀ (a : GoString), a.length + 1 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.AddrOk)) (Val #a))

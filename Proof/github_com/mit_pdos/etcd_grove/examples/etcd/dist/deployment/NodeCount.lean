@@ -26,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.NodeCount.wp_proof :
-    etcd_dist.deployment.NodeCount.spec (GF := GF) (hG := hG) := by
+theorem NodeCount.wp_proof :
+    etcd_dist.NodeCount.spec (GF := GF) (hG := hG) := by
   intro w
   obtain ⟨kd, cl, op⟩ := w
   simp only [Workload.val]

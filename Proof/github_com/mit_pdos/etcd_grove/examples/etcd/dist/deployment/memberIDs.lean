@@ -34,9 +34,9 @@ theorem urlHttp_plain (a : GoString) (h : Net.addrOk a = true) :
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hne, hb⟩ <;>
     first | rfl | (refine Eq.trans (rfl : _ = ([] : GoString)) ?_; simp [stringToGoString])
 
-theorem deployment.memberIDs.wp_proof [go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+theorem memberIDs.wp_proof [go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
     (hNew : EtcdGrove.membership.NewMember.spec (GF := GF) (hG := hG)) :
-    etcd_dist.deployment.memberIDs.spec (GF := GF) (hG := hG) := by
+    etcd_dist.memberIDs.spec (GF := GF) (hG := hG) := by
   intro v d hfips
   wp_start as #Hd
   wp_auto

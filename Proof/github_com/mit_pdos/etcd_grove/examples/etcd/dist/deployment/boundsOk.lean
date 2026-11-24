@@ -62,8 +62,8 @@ theorem boundsOk_kv (cl op : w64) (B : Int) (hB : B = 2 ^ 60 ∨ B = 2 ^ 62) :
         have : sint.Z (W64 (B - 1)) = B - 1 := by rcases hB with rfl | rfl <;> word
         rw [this] at h4; exact h4
 
-theorem deployment.boundsOk.wp_proof :
-    etcd_dist.deployment.boundsOk.spec (GF := GF) (hG := hG) := by
+theorem boundsOk.wp_proof :
+    etcd_dist.boundsOk.spec (GF := GF) (hG := hG) := by
   intro w
   obtain ⟨kd, cl, op⟩ := w
   simp only [Workload.val]

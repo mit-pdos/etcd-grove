@@ -199,17 +199,17 @@ theorem len_eq_of (s : GoSlice) (n : Nat) (hl : n = sint.nat s.len) (h0l : 0 ≤
   constructor <;> word
 
 set_option maxHeartbeats 4000000 in
-theorem deployment.WellFormed.wp_proof
-    (hNameOk : etcd_dist.deployment.nameOk.spec (GF := GF) (hG := hG))
-    (hNames : etcd_dist.deployment.kindNames.spec (GF := GF) (hG := hG))
-    (hBounds : etcd_dist.deployment.boundsOk.spec (GF := GF) (hG := hG))
-    (hAddr : etcd_dist.deployment.AddrOk.spec (GF := GF) (hG := hG))
-    (hNodeCount : etcd_dist.deployment.NodeCount.spec (GF := GF) (hG := hG))
-    (hIds : etcd_dist.deployment.IdsOk.spec (GF := GF) (hG := hG))
-    (hCompat : etcd_dist.deployment.compatible.spec (GF := GF) (hG := hG))
-    (hAuth : etcd_dist.deployment.NeedsAuth.spec (GF := GF) (hG := hG))
+theorem WellFormed.wp_proof
+    (hNameOk : etcd_dist.nameOk.spec (GF := GF) (hG := hG))
+    (hNames : etcd_dist.kindNames.spec (GF := GF) (hG := hG))
+    (hBounds : etcd_dist.boundsOk.spec (GF := GF) (hG := hG))
+    (hAddr : etcd_dist.AddrOk.spec (GF := GF) (hG := hG))
+    (hNodeCount : etcd_dist.NodeCount.spec (GF := GF) (hG := hG))
+    (hIds : etcd_dist.IdsOk.spec (GF := GF) (hG := hG))
+    (hCompat : etcd_dist.compatible.spec (GF := GF) (hG := hG))
+    (hAuth : etcd_dist.NeedsAuth.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.ErrorfStrs.spec (GF := GF) (hG := hG)) :
-    etcd_dist.deployment.WellFormed.spec (GF := GF) (hG := hG) := by
+    etcd_dist.WellFormed.spec (GF := GF) (hG := hG) := by
   intro v d hfips
   wp_start as #Hd
   wp_auto

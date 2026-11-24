@@ -26,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.needsSoleWriter.wp_proof :
-    etcd_dist.deployment.needsSoleWriter.spec (GF := GF) (hG := hG) := by
+theorem needsSoleWriter.wp_proof :
+    etcd_dist.needsSoleWriter.spec (GF := GF) (hG := hG) := by
   intro k
   by_cases h0 : k = W64 0
   · subst h0

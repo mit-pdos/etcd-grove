@@ -91,7 +91,7 @@ local macro "decimal_loop" : tactic => `(tactic| (
     · rw [decide_eq_false (by word : ¬ uint.Z n ≤ uint.Z mx)]; simp [hm]
   ))
 
-theorem deployment.decimal.wp_proof : etcd_dist.deployment.decimal.spec (GF := GF) (hG := hG) := by
+theorem decimal.wp_proof : etcd_dist.decimal.spec (GF := GF) (hG := hG) := by
   intro s mx
   wp_start
   try wp_auto

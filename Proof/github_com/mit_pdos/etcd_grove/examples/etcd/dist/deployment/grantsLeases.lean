@@ -26,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.grantsLeases.wp_proof :
-    etcd_dist.deployment.grantsLeases.spec (GF := GF) (hG := hG) := by
+theorem grantsLeases.wp_proof :
+    etcd_dist.grantsLeases.spec (GF := GF) (hG := hG) := by
   intro k
   by_cases h6 : k = W64 6
   · subst h6

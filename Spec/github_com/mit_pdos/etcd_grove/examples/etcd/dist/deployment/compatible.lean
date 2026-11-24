@@ -29,7 +29,7 @@ variable [package_sem : deployment.Assumptions]
 
 /-- `compatible(ws)`, of a read-only slice of the workloads `ws`, returns `true` only if
 `goCompatible ws`. -/
-abbrev deployment.compatible.spec : Prop :=
+abbrev compatible.spec : Prop :=
   ∀ (sl : GoSlice) (ws : List Workload),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment ∗ sl ↦*□ ws.map Workload.val }}
     (App (Val (@! deployment.compatible)) (Val #sl))

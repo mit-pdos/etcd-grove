@@ -29,12 +29,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.compatible.wp_proof
-    (hAlone : etcd_dist.deployment.alone.spec (GF := GF) (hG := hG))
-    (hSole : etcd_dist.deployment.needsSoleWriter.spec (GF := GF) (hG := hG))
-    (hWrites : etcd_dist.deployment.writesKeys.spec (GF := GF) (hG := hG))
-    (hNoExp : etcd_dist.deployment.needsNoExpiry.spec (GF := GF) (hG := hG)) :
-    etcd_dist.deployment.compatible.spec (GF := GF) (hG := hG) := by
+theorem compatible.wp_proof
+    (hAlone : etcd_dist.alone.spec (GF := GF) (hG := hG))
+    (hSole : etcd_dist.needsSoleWriter.spec (GF := GF) (hG := hG))
+    (hWrites : etcd_dist.writesKeys.spec (GF := GF) (hG := hG))
+    (hNoExp : etcd_dist.needsNoExpiry.spec (GF := GF) (hG := hG)) :
+    etcd_dist.compatible.spec (GF := GF) (hG := hG) := by
   intro sl ws
   wp_start as #Hsl
   wp_auto

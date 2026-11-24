@@ -29,7 +29,7 @@ variable [package_sem : deployment.Assumptions]
 
 /-- `IdsOk(v)`, of a value `v` holding the deployment `d`, returns `true` only if its ids pass
 `goIdsOk`, when every peer address is valid. The fips140 setting off: `NewMember`'s premise. -/
-abbrev deployment.IdsOk.spec : Prop :=
+abbrev IdsOk.spec : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment),
   crypto.fips140.GodebugFips140Off →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment ∗ deploymentRepr v d }}

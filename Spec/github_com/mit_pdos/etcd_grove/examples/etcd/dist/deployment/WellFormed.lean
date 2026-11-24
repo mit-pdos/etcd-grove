@@ -34,7 +34,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- See the file header. -/
-abbrev deployment.WellFormed.spec : Prop :=
+abbrev WellFormed.spec : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment),
   crypto.fips140.GodebugFips140Off →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment ∗ deploymentRepr v d }}

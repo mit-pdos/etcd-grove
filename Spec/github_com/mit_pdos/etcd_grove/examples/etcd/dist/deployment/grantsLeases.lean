@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `grantsLeases(k)` is `kindGrantsLeases k`. -/
-abbrev deployment.grantsLeases.spec : Prop :=
+abbrev grantsLeases.spec : Prop :=
   ∀ (k : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.grantsLeases)) (Val #k))

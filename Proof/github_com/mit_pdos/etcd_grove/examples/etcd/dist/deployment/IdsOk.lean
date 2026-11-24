@@ -28,10 +28,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.IdsOk.wp_proof
-    (hIDs : etcd_dist.deployment.memberIDs.spec (GF := GF) (hG := hG))
-    (hGrants : etcd_dist.deployment.grantsLeases.spec (GF := GF) (hG := hG)) :
-    etcd_dist.deployment.IdsOk.spec (GF := GF) (hG := hG) := by
+theorem IdsOk.wp_proof
+    (hIDs : etcd_dist.memberIDs.spec (GF := GF) (hG := hG))
+    (hGrants : etcd_dist.grantsLeases.spec (GF := GF) (hG := hG)) :
+    etcd_dist.IdsOk.spec (GF := GF) (hG := hG) := by
   intro v d hfips
   wp_start as #Hd
   wp_auto

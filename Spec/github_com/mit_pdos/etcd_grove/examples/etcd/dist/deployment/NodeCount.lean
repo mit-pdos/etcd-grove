@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `NodeCount(w)` is `w.goNodeCount`. -/
-abbrev deployment.NodeCount.spec : Prop :=
+abbrev NodeCount.spec : Prop :=
   ∀ (w : Workload),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.NodeCount)) (Val #w.val))

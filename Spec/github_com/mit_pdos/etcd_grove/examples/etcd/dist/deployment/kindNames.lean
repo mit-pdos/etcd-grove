@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `kindNames()` returns a fresh slice of `kindNameList`. -/
-abbrev deployment.kindNames.spec : Prop :=
+abbrev kindNames.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.kindNames)) (Val #()))
   {{ (sl : GoSlice), RET #sl; sl ↦* kindNameList }}

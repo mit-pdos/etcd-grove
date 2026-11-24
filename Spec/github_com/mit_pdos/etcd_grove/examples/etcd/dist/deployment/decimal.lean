@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions]
 
 /-- See the file header. -/
-abbrev deployment.decimal.spec : Prop :=
+abbrev decimal.spec : Prop :=
   ∀ (s : GoString) (mx : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.decimal)) (Val #s)) (Val #mx))

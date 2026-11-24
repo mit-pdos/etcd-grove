@@ -26,8 +26,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
-theorem deployment.Kind.String.wp_proof (hNames : etcd_dist.deployment.kindNames.spec (GF := GF) (hG := hG)) :
-    etcd_dist.deployment.Kind.String.spec (GF := GF) (hG := hG) := by
+theorem Kind.String.wp_proof (hNames : etcd_dist.kindNames.spec (GF := GF) (hG := hG)) :
+    etcd_dist.Kind.String.spec (GF := GF) (hG := hG) := by
   intro k
   by_cases hk : kindKnown k
   · rw [show kindName k = kindNameList.getD (sint.nat k) [] from if_pos hk]
