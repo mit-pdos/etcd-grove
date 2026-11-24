@@ -805,7 +805,7 @@ theorem wp_stepLeader_beat
   iframe Hphys HG
   ipureintro
   exact ⟨rfl, Or.inr (Or.inl ⟨Hty, ms, pvs, rfl,
-    fun m' h => ⟨(Hms m' h).1, by rw [(Hms m' h).2.1]; exact hbCtx_ok _, (Hms m' h).2.2⟩, Hmm⟩)⟩
+    Hms, Hmm⟩)⟩
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgHeartbeatResp`** (2026-11-10, Q8 stage 1 slice 9; until then the premise `s.gh.tr = none`):
