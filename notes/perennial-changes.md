@@ -112,6 +112,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Status (2026-11-24, pin `580868e54`).** `fmt.Fprint` is modelled with a spec in Perennial
   (`08164dd00`, `Perennial/Spec/fmt/Fprint.lean`); `WriteByte`, slices in the `fmt` model and
   `strconv.AppendQuote` are still missing, so the klog axioms stay.
+- **Status (2026-11-24, pin `b3f2fc485`).** `strconv.AppendQuote` (and `Quote`) translated and proved in
+  Perennial (`327b68826`, `strconv.wp_AppendQuote`). The klog axioms stay: `bytes.Buffer.WriteByte` and
+  slices in the `fmt` model are still missing, and klog itself translates only `V`, `VDepth`, `newVerbose`,
+  `Level.get`, `logging` (`Code/k8s_io/klog/v2.toml`), so retiring `Verbose.InfoS` means translating
+  `InfoS`/`printS` and klog's sink and proving them: not a mechanical step of a pin bump.
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
