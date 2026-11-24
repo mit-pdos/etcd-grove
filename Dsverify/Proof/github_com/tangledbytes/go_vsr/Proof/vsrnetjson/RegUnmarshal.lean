@@ -25,20 +25,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- Every payload type's pointer has `JSONModelUnmarshal` (jsongen's same-package methods). -/
-theorem vsrnet.payload_unmarshaler [GooseExts] [GooseSemantics] [GooseInterp]
-    [go_gctx : GoGlobalContext] [vsrnet.Assumptions] (m : Msg) :
-    go.typeSetContains (go.GoType.PointerType (pkg.events.payloadTy m))
-      encoding.json.modelUnmarshaler.ty = true := by
-  cases m <;> simp only [pkg.events.payloadTy] <;> go_type_set
-
-/-- `*vsrwire.Frame` has `JSONModelUnmarshal`. -/
-theorem vsrnet.frame_unmarshaler [GooseExts] [GooseSemantics] [GooseInterp]
-    [go_gctx : GoGlobalContext] [vsrnet.Assumptions] :
-    go.typeSetContains (go.GoType.PointerType vsrwire.Frame.ty)
-      encoding.json.modelUnmarshaler.ty = true := by
-  go_type_set
-
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
@@ -49,6 +35,18 @@ variable (wp_Member : models_lab.jsoncodec.Member.spec (GF := GF) (hG := hG))
 variable (wp_Next : models_lab.jsoncodec.Next.spec (GF := GF) (hG := hG))
 variable (wp_String : models_lab.jsoncodec.String.spec (GF := GF) (hG := hG))
 variable (wp_QuotedUint : models_lab.jsoncodec.QuotedUint.spec (GF := GF) (hG := hG))
+
+/-- Every payload type's pointer has `JSONModelUnmarshal` (jsongen's same-package methods). -/
+theorem vsrnet.payload_unmarshaler (m : Msg) :
+    go.typeSetContains (go.GoType.PointerType (pkg.events.payloadTy m))
+      encoding.json.modelUnmarshaler.ty = true := by
+  cases m <;> simp only [pkg.events.payloadTy] <;> go_type_set
+
+/-- `*vsrwire.Frame` has `JSONModelUnmarshal`. -/
+theorem vsrnet.frame_unmarshaler :
+    go.typeSetContains (go.GoType.PointerType vsrwire.Frame.ty)
+      encoding.json.modelUnmarshaler.ty = true := by
+  go_type_set
 
 set_option goose.wp.extras true
 
@@ -86,7 +84,7 @@ theorem vsrnet.registeredUnmarshalOk :
   rw [show encoding.json.kitFn go!"jsonUnmarshal" = functions vsrnet.jsonUnmarshal [] from rfl]
   imodintro
   iintro %data %dq %bs %ptr %Ψ %Φ %hv Hs Hdec HΦ
-  simp only [encoding.json.codecPart]
+  try simp only [encoding.json.codecPart]
   icases Hdec with ⟨%hby, Hdec⟩
   rw [vsrnet.dec_eq]
   unfold vsrnet.decP
