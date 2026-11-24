@@ -1,5 +1,10 @@
 /-
 The proof of `KvNet/Spec/.../kvnet/reassembler__add.lean` (kvudp, phase 2: `notes/kvudp-proof-plan.md`).
+The sender's messages in progress are read at their names (`ownPartials_names`); the one of the
+fragment's name is carved out of the list (found, or a new one appended), the chunk is stored in its
+empty slot (`slots_set`; non-nil: the fragment's chunk is nonempty), and once every slot holds its
+chunk, the chunks, which agree by `udpMsgAt` with the body recorded under the name, make that body
+(`chunks_flatten`).
 -/
 module
 
@@ -197,6 +202,41 @@ private theorem carved_disj (F : KvFacts GF) (γu : UdpNames) (src : w64) (ps : 
     iapply (ownPartial_K F γu src x).2
     iexists m; iexact H
 
+/-- A new message in progress: every slot empty. -/
+private theorem slots_empty (F : KvFacts GF) (γu : UdpNames) (key : MsgKey) (n m : Nat) :
+    ⊢ [∗list] i ↦ c ∈ List.replicate m (zero_val GoSlice),
+        chunkSlot F γu key n i c ∗ ⌜(List.replicate m false)[i]? = some true ↔ c ≠ slice.nil⌝ := by
+  apply BigSepL.bigSepL_intro
+  intro k x hk
+  have hx : x = zero_val GoSlice := List.eq_of_mem_replicate (List.mem_of_getElem? hk)
+  have hkm : k < m := by
+    have := (List.getElem?_eq_some_iff.mp hk).1; simpa using this
+  have hz : zero_val GoSlice = slice.nil := rfl
+  subst hx
+  iintro -
+  isplitl
+  · iunfold chunkSlot; ileft; ipureintro; exact hz
+  ipureintro
+  rw [List.getElem?_replicate_of_lt hkm, hz]
+  simp
+
+/-- A new message in progress appended to its sender's list, carved out. -/
+private theorem carved_snoc (F : KvFacts GF) (γu : UdpNames) (src : w64) (ps : List Loc)
+    (mids : List KMsgID) (p : Loc) (m : KMsgID) (hl : mids.length = ps.length) :
+    ([∗list] j ↦ q ∈ ps, ownPK F γu src mids j q) ⊢
+      [∗list] j ↦ q ∈ ps ++ [p], if j = ps.length then emp else ownPK F γu src (mids ++ [m]) j q := by
+  iintro H
+  iapply BigSepL.bigSepL_snoc.2
+  isplitl
+  · iapply (BigSepL.bigSepL_mono (fun {k x} hk => by
+      have hlt : k < ps.length := (List.getElem?_eq_some_iff.mp hk).1
+      have hne : k ≠ ps.length := by omega
+      simp only [hne, ↓reduceIte]
+      unfold ownPK
+      rw [List.getElem?_append_left (by omega)])) $$ H
+  simp only [↓reduceIte]
+  iempintro
+
 /-- A map of owned slices, at one key: the slice there (nil if none), and the map back with any
 slice at that key. -/
 private theorem bigSepM_slice_acc (Ψ : w64 → GoSlice → IProp GF) (M : GMap w64 GoSlice) (k : w64)
@@ -333,8 +373,8 @@ theorem reassembler.add.wp_proof
     ipureintro; exact ⟨⟨by decide, by word⟩, Or.inl rfl⟩
   wp_for IH
   wp_if_destruct
-  · have Hif' : sint.Z k < sint.Z psl.len := by
-      first | exact Hif | (have h := go.intoVal_inj (V := Bool) Hif; simpa using h)
+  · have Hif' : sint.Z k < sint.Z psl.len :=
+      Hif
     have Hlt : sint.nat k < ps.length := by rw [Hpsl.1]; word
     obtain ⟨q, Hq⟩ : ∃ q, ps[sint.nat k]? = some q := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have Hbnd' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z psl.len := ⟨Hk.1, Hif'⟩
@@ -410,8 +450,8 @@ theorem reassembler.add.wp_proof
           iclear Hpsc
           icases (BigSepL.bigSepL_take_drop (n := 1)).1 $$ Hown with ⟨-, Hown⟩
           have hs : ∀ k x, ownPK F γu d.from' mids (1 + k) x = ownPK F γu d.from' (mids.drop 1) k x := by
-            intro k x; unfold ownPK; simp [List.getElem?_drop, Nat.add_comm]
-          simp only [hs, List.nil_append, show sint.nat (W64 1) = 1 from rfl]
+            intro k x; unfold ownPK; simp [Nat.add_comm]
+          simp only [hs, List.nil_append]
           iframe
           ipureintro; simp [Hmids]
         · try wp_auto
@@ -420,10 +460,37 @@ theorem reassembler.add.wp_proof
       iintro %v ⟨%Hv, r, %psl1, %ps1, %mids1, ps, Hps, Hpsc, Hown, %Hm1⟩
       subst Hv
       try wp_auto
+      irename id => Hidv
       wp_apply (wp_slice_make2 (V := GoSlice) (W64 (uint.Z d.total'))) as %csl ⟨Hcs, -⟩
       · ipureintro; word
       try wp_auto
-      sorry
+      iStructNamed «$r0»
+      ihave Hp : ownPartialK F γu d.from' «$r0_ptr» ({ boot' := d.boot', seq' := d.seq' } : KMsgID)
+          $$ [id chunks have' top Hcs]
+      · iunfold ownPartialK
+        iexists csl, _, _, d.index', List.replicate (sint.nat (W64 (uint.Z d.total'))) false
+        iframe id chunks have' top Hcs
+        isplitr
+        · ipureintro; simp
+        rw [List.length_replicate]
+        iapply slots_empty
+      wp_apply wp_slice_literal
+      try (isplitr; (ipureintro; rfl))
+      iintro %sl1 ⟨Hsl1, -⟩
+      try wp_auto
+      wp_apply wp_slice_append $$ [$Hps $Hpsc $Hsl1] as %psl2 ⟨Hps, Hpsc, -⟩
+      try wp_auto
+      wp_apply (wp_mapInsert (K := w64) (V := GoSlice) go.uint64 pm P d.from' psl2) $$ HP as HP
+      try wp_auto
+      ihave Hown := carved_snoc F γu d.from' ps1 mids1 «$r0_ptr» ({ boot' := d.boot', seq' := d.seq' } : KMsgID)
+        Hm1 $$ Hown
+      iframe
+      isplitr
+      · ipureintro; rfl
+      ipureintro
+      constructor
+      · simp
+      · rw [← Hm1]; simp
     · -- found: carved out of the list
       obtain ⟨jp, Hjp, Hjm⟩ := Hfound.resolve_left Hif
       icases (BigSepL.bigSepL_delete_cond Hjp).1 $$ Hown with ⟨Hp, Hown⟩
@@ -507,7 +574,6 @@ theorem reassembler.add.wp_proof
              try (ipureintro; rfl)
            · try wp_auto
              iframe
-             try (ipureintro; rfl)
          iintro %v ⟨%Hv, r, d, p, %tp', Hptp⟩
          subst Hv
          try wp_auto
@@ -602,8 +668,8 @@ theorem reassembler.add.wp_proof
            ipureintro; exact ⟨by decide, by word⟩
          wp_for IH
          wp_if_destruct
-         · have Hif' : sint.Z k < sint.Z psl.len := by
-             first | exact Hif | (have h := go.intoVal_inj (V := Bool) Hif; simpa using h)
+         · have Hif' : sint.Z k < sint.Z psl.len :=
+             Hif
            have Hlt : sint.nat k < ps.length := by rw [Hpsl.1]; word
            obtain ⟨q, Hq⟩ : ∃ q, ps[sint.nat k]? = some q := ⟨_, List.getElem?_eq_getElem Hlt⟩
            have Hbnd' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z psl.len := ⟨Hk.1, Hif'⟩
@@ -691,8 +757,8 @@ theorem reassembler.add.wp_proof
            ipureintro; exact ⟨by decide, by word⟩
          wp_for IH
          wp_if_destruct
-         · have Hif' : sint.Z k < sint.Z cs.len := by
-             first | exact Hif | (have h := go.intoVal_inj (V := Bool) Hif; simpa using h)
+         · have Hif' : sint.Z k < sint.Z cs.len :=
+             Hif
            have Hlt : sint.nat k < (chs.set (uint.nat d.index') d.chunk').length := by
              rw [Hcsl.1]; word
            obtain ⟨c, Hcq⟩ : ∃ c, (chs.set (uint.nat d.index') d.chunk')[sint.nat k]? = some c :=
