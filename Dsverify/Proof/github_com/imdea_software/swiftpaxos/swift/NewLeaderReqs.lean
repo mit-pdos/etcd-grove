@@ -409,7 +409,8 @@ epoch's free permit, unspent (given back): a `released` record of `c` holds it s
 (`swift.rdCl`, given back): a read with a proposal finds its own rest record (clause 1). -/
 abbrev swift.N1R2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
     (R1 : swift.N1R1 rp γ γc γm x) : Prop :=
-  ∀ (c : Nat) (X : List swift.ExE) (XS S : List sp.RepEntry) (SR : List swift.DescRead)
+  ∀ (E : CoPset), ↑swift.nodeN ⊆ E → ↑sp.spN ⊆ E \ ↑swift.nodeN →
+    ↑swift.delivN ⊆ E \ ↑swift.nodeN → ∀ (c : Nat) (X : List swift.ExE) (XS S : List sp.RepEntry) (SR : List swift.DescRead)
     (γdc : GName) (Mc : GMap GoString GoInterface) (dl : List sp.CmdId)
     (Pd : List (sp.CmdId × List sp.CmdId)) (st : sp.RState)
     (O : GMap (Nat × sp.CmdId) swift.RowV) (s : sp.Seq) (B : List sp.CmdId)
@@ -436,7 +437,7 @@ abbrev swift.N1R2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
         ∃ M : sp.SyncMsg, ⌜M0 = some M⌝ ∗ sp.syncIs γ c M ∗
           sp.locLb γ (sp.leaderOf x.N c) c (sp.syncSeq M) ∗ ⌜B = sp.syncOrder M⌝) ∗
       sp.locLb γ x.r c s ∗ swift.nodeBody γ x st O ⊢
-      |={⊤ \ ↑swift.nodeN}=> R1.Fz c X ∗
+      |={E \ ↑swift.nodeN}=> R1.Fz c X ∗
         (▷ ∃ g : swift.DescG, swift.incInv g Mc ∗ ⌜g.ev.b = c⌝ ∗ swift.cgG x g) ∗
         swift.freeP x.γcg c ∗
         ghostMapAuth x.γout (1 : Iris.Qp).half (∅ : GMap (Nat × sp.CmdId) (Nat × Iris.Qp)) ∗

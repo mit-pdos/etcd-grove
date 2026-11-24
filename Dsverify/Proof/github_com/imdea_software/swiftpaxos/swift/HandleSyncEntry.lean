@@ -243,17 +243,17 @@ theorem swift.Replica.handleMsg.wp_proofSync (RC : Loc → w32 → IProp netDist
     pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
   · iPkgInit
   try wp_auto
-  wp_bind (App (App (Val (@! swift.ghostCommit)) (Val _)) (Val _))
-  iapply (swift.wp_ghostCommit c.γ c.k bw x iprop(swift.epochTok c.γe qe (b, b) ∗
+  wp_bind (App (App (Val (@! swift.resolveCommit)) (Val _)) (Val _))
+  iapply (swift.wp_resolveCommit c.γ c.k bw x iprop(swift.epochTok c.γe qe (b, b) ∗
     swift.rowTok c.γo b (toCmdId x) (swift.rvSync.1, swift.rvSync.2.1, swift.rvSync.2.2.1, true) ∗
     sp.committed c.γ c.r b (toCmdId x))) $$ [Het Htok]
   · iframe #
     isplitr
     · ipureintro; exact Hbw.2
-    iunfold swift.ghostUpd
+    iunfold swift.resolveUpd
     iintro %W' Hpp
     rw [Hbw.1]
-    imod (swift.commit_dstep' c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
+    imod (swift.commit_dstep' (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
         (toCmdId x) swift.rvSync hrN hk rfl W') $$ [Het Htok Hpp] with ⟨Het, Htok, Hpost, #Hc⟩
     · iframe Hinv Hcfg Hninv Het Htok Hpp
       iright; ileft; iexact Hacc

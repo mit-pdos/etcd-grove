@@ -181,7 +181,7 @@ theorem swift.preacc_row (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn :
       swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ sp.preacc γ r b y D ⊢
     |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ ⌜rv.1 = some D⌝ := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, #Hpre⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv rv (fun st => st) iprop(⌜rv.1 = some D⌝)
+  iapply (swift.desc_upd ⊤ (fun _ _ => CoPset.mem_full) swift.nodeN_diff γ γv γe γo k q b y rv rv (fun st => st) iprop(⌜rv.1 = some D⌝)
     (fun _ => rfl) (fun _ => rfl) (fun _ _ _ hacc => hacc)
     (fun st hrv b' y' => by
       split
@@ -207,7 +207,7 @@ theorem swift.accepted_row (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn
       swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ sp.accepted γ r b y ⊢
     |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ ⌜rv.2.2.1 = true⌝ := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, #Hacc⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv rv (fun st => st) iprop(⌜rv.2.2.1 = true⌝)
+  iapply (swift.desc_upd ⊤ (fun _ _ => CoPset.mem_full) swift.nodeN_diff γ γv γe γo k q b y rv rv (fun st => st) iprop(⌜rv.2.2.1 = true⌝)
     (fun _ => rfl) (fun _ => rfl) (fun _ _ _ hacc => hacc)
     (fun st hrv b' y' => by
       split

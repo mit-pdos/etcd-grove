@@ -98,7 +98,7 @@ theorem swift.preacc_notSelf_row (γ : sp.Names) (γc γm γl γv γe γo : GNam
       swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ sp.preacc γ r' b' z D ⊢
     |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ ⌜z ∉ D⌝ := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, #Hpre⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv rv (fun st => st) iprop(⌜z ∉ D⌝)
+  iapply (swift.desc_upd ⊤ (fun _ _ => CoPset.mem_full) swift.nodeN_diff γ γv γe γo k q b y rv rv (fun st => st) iprop(⌜z ∉ D⌝)
     (fun _ => rfl) (fun _ => rfl) (fun _ _ _ hacc => hacc)
     (fun st hrv b' y' => by
       split

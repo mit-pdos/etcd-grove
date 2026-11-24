@@ -353,8 +353,8 @@ theorem swift.Replica.handleProposal.wp_proofN
         pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
       · iPkgInit
       try wp_auto
-      wp_bind (App (App (App (Val (@! swift.ghostHandle)) (Val _)) (Val _)) (Val _))
-      iapply (swift.wp_ghostHandle γ k v.ballot ⟨cl, seq⟩ c vs DFrac.discard
+      wp_bind (App (App (App (Val (@! swift.resolveHandle)) (Val _)) (Val _)) (Val _))
+      iapply (swift.wp_resolveHandle γ k v.ballot ⟨cl, seq⟩ c vs DFrac.discard
         iprop(ghostVar γv (1 : Qp).half (w.handled (toCmdId ⟨cl, seq⟩)) ∗
           sp.locAt γ r w.1 (w.locAt w.1).length (toCmdId ⟨cl, seq⟩) ∗
           swift.claimTok sn.γcl (w.1, toCmdId ⟨cl, seq⟩) .fresh ∗
@@ -364,10 +364,10 @@ theorem swift.Replica.handleProposal.wp_proofN
       · iframe #
         isplitr
         · ipureintro; exact Hok.1.1
-        iunfold swift.ghostUpd
+        iunfold swift.resolveUpd
         iintro %W' Hpre
         rw [← Hok.1.2.2.1]
-        imod swift.handle_stepDN γ γc γm γl γv γe γo N r k fr l w (toCmdId ⟨cl, seq⟩) c
+        imod swift.handle_stepDN (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE γ γc γm γl γv γe γo N r k fr l w (toCmdId ⟨cl, seq⟩) c
           ((M.map sp.syncOrder).getD []) Hids.2.2.1 Hids.2.2.2.2.2 hBp hxl n0 ld hldw Hn0 hb31 hbc W'
           $$ [Hw Hhi Hpre]
           with ⟨Hw, Hpost, #Hnew, Htk, #Hnum, Hhi, %hov⟩

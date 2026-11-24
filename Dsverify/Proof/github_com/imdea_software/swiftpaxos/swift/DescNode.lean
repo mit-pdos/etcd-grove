@@ -386,6 +386,17 @@ theorem swift.nodeN_diff : ↑sp.spN ⊆ (⊤ \ ↑swift.nodeN : CoPset) := by
   exact ⟨CoPset.mem_full, fun h' => swift.nodeN_spN e ⟨h', he⟩⟩
 
 /-- The store under a change of the rows' values (not of their keys). -/
+
+/-- The node invariant inside a node prophecy's invariant (a resolution's step, at
+`⊤ ∖ ↑client.nodeProphN`). -/
+theorem swift.nodeN_pE : ↑swift.nodeN ⊆ (⊤ \ ↑client.nodeProphN : CoPset) := by
+  unfold swift.nodeN client.nodeProphN
+  solve_ndisj
+
+theorem swift.spN_pE : ↑sp.spN ⊆ ((⊤ \ ↑client.nodeProphN) \ ↑swift.nodeN : CoPset) := by
+  unfold sp.spN swift.nodeN client.nodeProphN
+  solve_ndisj
+
 theorem swift.storeOk_dom (cb : Nat) (O O' : GMap (Nat × sp.CmdId) swift.RowV) Rt Out Cl
     (hO : ∀ K, (O.lookup K).isSome ↔ (O'.lookup K).isSome) (h : swift.storeOk cb O Rt Out Cl) :
     swift.storeOk cb O' Rt Out Cl := by
@@ -797,7 +808,8 @@ theorem swift.run_updD (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (γ : sp.Names) 
 /-- Open the node invariant for a descriptor's step on `y` in its epoch `b`: the replica's
 state `st` has ballot and `cballot` `b`, and `y`'s rows are the token's. The step `f` changes
 only `y`'s rows (to `rv'`) and keeps the sequences and the acceptances' bound. -/
-theorem swift.desc_upd (γ : sp.Names) (γv γe γo : GName) {sn : swift.StN} (k : Nat) (q : Qp) (b : Nat)
+theorem swift.desc_upd (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γv γe γo : GName) {sn : swift.StN} (k : Nat) (q : Qp) (b : Nat)
     (y : sp.CmdId) (rv rv' : swift.RowV) (f : sp.RState → sp.RState) (Q : IProp netDistGF)
     (hv : ∀ st, swift.viewOf (f st) = swift.viewOf st)
     (hep : ∀ st, swift.epochOf (f st) = swift.epochOf st)
@@ -810,8 +822,8 @@ theorem swift.desc_upd (γ : sp.Names) (γv γe γo : GName) {sn : swift.StN} (k
     inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗ swift.epochTok γe q (b, b) ∗
       swift.rowTok γo b y rv ∗
       (∀ st, ⌜st.ballot = b ∧ st.cballot = b ∧ rv = swift.rowsOf st b y ∧ y ∈ st.locAt b⌝ -∗
-        sp.nodeSt γ k (1 : Qp).half st ={⊤ \ ↑swift.nodeN}=∗ sp.nodeSt γ k (1 : Qp).half (f st) ∗ Q) ⊢
-    |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv' ∗ Q := by
+        sp.nodeSt γ k (1 : Qp).half st ={E \ ↑swift.nodeN}=∗ sp.nodeSt γ k (1 : Qp).half (f st) ∗ Q) ⊢
+    |={E}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv' ∗ Q := by
   iintro ⟨#Hinv, Hep, Htok, Hstep⟩
   iinv Hinv with Hi Hclose
   iunfold swift.nodeInvD at Hi
@@ -859,7 +871,8 @@ instance swift.baseIs_persistent (γ : sp.Names) (b : Nat) (B : List sp.CmdId) :
 variable [swift.Assumptions] in
 /-- **A pre-acceptance from `y`'s descriptor** (`handlePropose`'s `MFastAck`) in its epoch `b`:
 `upd_preaccept'` through `nodeInvD`, with the row token showing it is the first. -/
-theorem swift.preaccept_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat) (fr : Bool)
+theorem swift.preaccept_dstep (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat) (fr : Bool)
     (l : List GoString) (q : Qp) (b : Nat) (y : sp.CmdId) (s : sp.Seq) (B D P : List sp.CmdId)
     (rv : swift.RowV) (hr : r < N) (hk : nodeOf l r = some k) (hAQ : r ∈ sp.AQ N b)
     (hy : y ∈ s.map Prod.fst) (hD : D = sp.depsIn s y) (hB : y ∉ B)
@@ -868,11 +881,11 @@ theorem swift.preaccept_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) 
     sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗
       swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗ sp.locLb γ r b s ∗
       swift.baseIs γ b B ∗ sp.predPre γ k (some (sp.PEv.preaccept b y D, W')) ⊢
-    |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (some D, some P, rv.2.2) ∗
+    |={E}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (some D, some P, rv.2.2) ∗
       (sp.predPost γ k (some (sp.PEv.preaccept b y D, W')) ∗
         sp.preacc γ r b y D ∗ sp.pathIs γ r b y P) := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, #Hlb, #HB, Hpre⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv (some D, some P, rv.2.2)
+  iapply (swift.desc_upd E hE hE' γ γv γe γo k q b y rv (some D, some P, rv.2.2)
     (fun st => st.preaccepted b y D P) iprop(sp.predPost γ k (some (sp.PEv.preaccept b y D, W')) ∗
       sp.preacc γ r b y D ∗ sp.pathIs γ r b y P)
     (fun _ => rfl) (fun _ => rfl) (fun st _ _ hacc => hacc)
@@ -884,7 +897,7 @@ theorem swift.preaccept_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) 
     have := congrArg Prod.fst hrv'; rw [← hrv.1]; exact this.symm
   have hpath : st.pathAt st.ballot y = none := by
     have := congrArg (fun v : swift.RowV => v.2.1) hrv'; rw [← hrv.2]; exact this.symm
-  iapply (sp.upd_preaccept' (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st y s B D P hr hk hAQ hy
+  iapply (sp.upd_preaccept' (E \ ↑swift.nodeN) hE' N fr l r k st y s B D P hr hk hAQ hy
     hD hB hlast hLP hP hpre hpath W')
   iframe Hinv Hcfg Hst Hlb Hpre
   iunfold swift.baseIs at HB
@@ -894,7 +907,8 @@ theorem swift.preaccept_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) 
 
 /-- **A commit from `y`'s descriptor**, the acceptance case by its persistent fact: as
 `commit_dstep`, through `upd_commit'`. -/
-theorem swift.commit_dstep' (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat) (fr : Bool)
+theorem swift.commit_dstep' (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat) (fr : Bool)
     (l : List GoString) (q : Qp) (b : Nat) (y : sp.CmdId) (rv : swift.RowV)
     (hr : r < N) (hk : nodeOf l r = some k) (hrv : rv.2.2.2 = false) (W' : List w64) :
     sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗
@@ -902,10 +916,10 @@ theorem swift.commit_dstep' (γ : sp.Names) (γc γm γl γv γe γo : GName) {s
       (⌜r = sp.leaderOf N b⌝ ∨ sp.accepted γ r b y ∨
         ∃ M, sp.syncIs γ b M ∗ ⌜y ∈ sp.syncOrder M⌝) ∗
       sp.predPre γ k (some (sp.PEv.commit b y, W')) ⊢
-    |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, rv.2.2.1, true) ∗
+    |={E}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, rv.2.2.1, true) ∗
       (sp.predPost γ k (some (sp.PEv.commit b y, W')) ∗ sp.committed γ r b y) := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, #Hw, Hpre⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv (rv.1, rv.2.1, rv.2.2.1, true)
+  iapply (swift.desc_upd E hE hE' γ γv γe γo k q b y rv (rv.1, rv.2.1, rv.2.2.1, true)
     (fun st => st.committed b y) iprop(sp.predPost γ k (some (sp.PEv.commit b y, W')) ∗
       sp.committed γ r b y)
     (fun _ => rfl) (fun _ => rfl) (fun st _ _ hacc => hacc)
@@ -919,7 +933,7 @@ theorem swift.commit_dstep' (γ : sp.Names) (γc γm γl γv γe γo : GName) {s
     simp only [swift.rowsOf] at this
     rw [hrv] at this
     exact absurd h (by simpa using this)
-  iapply (sp.upd_commit' (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st y hr hk hyl hnot W')
+  iapply (sp.upd_commit' (E \ ↑swift.nodeN) hE' N fr l r k st y hr hk hyl hnot W')
   iframe Hinv Hcfg Hst Hw Hpre
 
 end lemmas

@@ -127,7 +127,8 @@ variable [swift.Assumptions]
 
 /-- **An acceptance from `y`'s descriptor by the leader's pre-acceptance**
 (`fastAckFromLeader`) in its epoch `b`: `upd_accept_pre` through `nodeInvD`. -/
-theorem swift.accept_dstep_pre (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
+theorem swift.accept_dstep_pre (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
     (fr : Bool) (l : List GoString) (q : Qp) (b : Nat) (y : sp.CmdId) (D : List sp.CmdId)
     (rv : swift.RowV) (hr : r < N) (hk : nodeOf l r = some k) (hrv : rv.2.2.1 = false)
     (W' : List w64) :
@@ -136,10 +137,10 @@ theorem swift.accept_dstep_pre (γ : sp.Names) (γc γm γl γv γe γo : GName)
       sp.preacc γ (sp.leaderOf N b) b y D ∗
       (⌜r = sp.leaderOf N b⌝ ∨ [∗list] d ∈ D, iprop(sp.accepted γ r b d ∨ sp.committed γ r b d)) ∗
       sp.predPre γ k (some (sp.PEv.accept b y, W')) ⊢
-    |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, true, rv.2.2.2) ∗
+    |={E}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, true, rv.2.2.2) ∗
       (sp.predPost γ k (some (sp.PEv.accept b y, W')) ∗ sp.accepted γ r b y) := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, #Hpre, #Hdeps, Hpp⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv (rv.1, rv.2.1, true, rv.2.2.2)
+  iapply (swift.desc_upd E hE hE' γ γv γe γo k q b y rv (rv.1, rv.2.1, true, rv.2.2.2)
     (fun st => st.accepted b y) iprop(sp.predPost γ k (some (sp.PEv.accept b y, W')) ∗
       sp.accepted γ r b y)
     (fun _ => rfl) (fun _ => rfl)
@@ -157,24 +158,25 @@ theorem swift.accept_dstep_pre (γ : sp.Names) (γc γm γl γv γe γo : GName)
     simp only [swift.rowsOf] at this
     rw [hrv] at this
     exact absurd h (by simpa using this)
-  iapply (sp.upd_accept_pre (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st y D hr hk hnot hyl W')
+  iapply (sp.upd_accept_pre (E \ ↑swift.nodeN) hE' N fr l r k st y D hr hk hnot hyl W')
   iframe Hinv Hcfg Hst Hpre Hdeps Hpp
 
 
 /-- **A repeated acceptance from `y`'s descriptor** (D91, `fastAckFromLeader` with the row already
 accepted): `upd_reaccept` through `nodeInvD`; the token's value is unchanged (stated in
 `accept_dstep_pre`'s form). -/
-theorem swift.reaccept_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
+theorem swift.reaccept_dstep (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
     (fr : Bool) (l : List GoString) (q : Qp) (b : Nat) (y : sp.CmdId)
     (rv : swift.RowV) (hr : r < N) (hk : nodeOf l r = some k) (hrv : rv.2.2.1 = true)
     (W' : List w64) :
     sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗
       swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗
       sp.predPre γ k (some (sp.PEv.accept b y, W')) ⊢
-    |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, true, rv.2.2.2) ∗
+    |={E}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, true, rv.2.2.2) ∗
       sp.predPost γ k (some (sp.PEv.accept b y, W')) := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, Hpp⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv (rv.1, rv.2.1, true, rv.2.2.2)
+  iapply (swift.desc_upd E hE hE' γ γv γe γo k q b y rv (rv.1, rv.2.1, true, rv.2.2.2)
     (fun st => st.accepted b y) iprop(sp.predPost γ k (some (sp.PEv.accept b y, W')))
     (fun _ => rfl) (fun _ => rfl)
     (fun st _ hc hacc b' x hx => by
@@ -190,23 +192,24 @@ theorem swift.reaccept_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) {
     simp only [swift.rowsOf] at this
     rw [hrv] at this
     simpa using this.symm
-  iapply (sp.upd_reaccept (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st y hr hk hacc W')
+  iapply (sp.upd_reaccept (E \ ↑swift.nodeN) hE' N fr l r k st y hr hk hacc W')
   iframe Hinv Hcfg Hst Hpp
 
 /-- **A repeated commit from `y`'s descriptor** (D91, the acks handler with the row already
 committed): `upd_recommit` through `nodeInvD`; the token's value is unchanged (stated in
 `commit_dstep'`'s form). -/
-theorem swift.recommit_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
+theorem swift.recommit_dstep (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
     (fr : Bool) (l : List GoString) (q : Qp) (b : Nat) (y : sp.CmdId)
     (rv : swift.RowV) (hr : r < N) (hk : nodeOf l r = some k) (hrv : rv.2.2.2 = true)
     (W' : List w64) :
     sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗
       swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y rv ∗
       sp.predPre γ k (some (sp.PEv.commit b y, W')) ⊢
-    |={⊤}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, rv.2.2.1, true) ∗
+    |={E}=> swift.epochTok γe q (b, b) ∗ swift.rowTok γo b y (rv.1, rv.2.1, rv.2.2.1, true) ∗
       sp.predPost γ k (some (sp.PEv.commit b y, W')) := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hep, Htok, Hpp⟩
-  iapply (swift.desc_upd γ γv γe γo k q b y rv (rv.1, rv.2.1, rv.2.2.1, true)
+  iapply (swift.desc_upd E hE hE' γ γv γe γo k q b y rv (rv.1, rv.2.1, rv.2.2.1, true)
     (fun st => st.committed b y) iprop(sp.predPost γ k (some (sp.PEv.commit b y, W')))
     (fun _ => rfl) (fun _ => rfl) (fun st _ _ hacc => hacc)
     (fun st hrv' b' y' => by rw [swift.rowsOf_committed, ← hrv']))
@@ -218,7 +221,7 @@ theorem swift.recommit_dstep (γ : sp.Names) (γc γm γl γv γe γo : GName) {
     simp only [swift.rowsOf] at this
     rw [hrv] at this
     simpa using this.symm
-  iapply (sp.upd_recommit (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st y hr hk hcom W')
+  iapply (sp.upd_recommit (E \ ↑swift.nodeN) hE' N fr l r k st y hr hk hcom W')
   iframe Hinv Hcfg Hst Hpp
 end dstep
 

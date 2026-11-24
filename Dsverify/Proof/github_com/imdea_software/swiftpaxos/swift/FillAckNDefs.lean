@@ -516,7 +516,8 @@ sequence `s` of `cballot`, the base fact and the entries' witnesses: open `nodeI
 descriptor side's coverage (N1-R2, round 51: over the frozen record `Fz`, the held reads `SR` of
 the stopped view `Mc`, the entries' facts `W`/`Wd`), `sp.upd_report` (`hnone` from the token, h4
 from the view and `sp.rows_loc`, h5-h9 from `hF`), the token spent. -/
-theorem swift.fill_report (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
+theorem swift.fill_report (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN) (hD : ↑swift.delivN ⊆ E \ ↑swift.nodeN)
+    (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
     (R1 : swift.N1R1 (hG := hG) rp γ γc γm x) (R2 : swift.N1R2 (hG := hG) rp γ γc γm x R1)
     (fr : Bool) (lg : List GoString) (w : swift.LView) (b' : Nat) (R : sp.Report) (s : sp.Seq)
     (B : List sp.CmdId) (X : List swift.ExE) (XS S : List sp.RepEntry) (SR : List swift.DescRead)
@@ -558,7 +559,7 @@ theorem swift.fill_report (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
       ([∗list] p ∈ Pd, R1.Wd R.cbal p.1 p.2) ∗
       ([∗list] e ∈ R.entries, swift.repEntW γ x.N x.r R.cbal e) ∗
       sp.predPre γ x.k (some (sp.PEv.report b' R, W')) ⊢
-    |={⊤}=> ghostVar x.γv (1 : Iris.Qp).half w ∗ R1.Fz R.cbal X ∗
+    |={E}=> ghostVar x.γv (1 : Iris.Qp).half w ∗ R1.Fz R.cbal X ∗
       (▷ ∃ g : swift.DescG, swift.incInv g Mc ∗ ⌜g.ev.b = R.cbal⌝ ∗ swift.cgG x g) ∗
       swift.freeP x.γcg R.cbal ∗
       ghostMapAuth x.γout (1 : Iris.Qp).half (∅ : GMap (Nat × sp.CmdId) (Nat × Iris.Qp)) ∗
@@ -587,7 +588,7 @@ theorem swift.fill_report (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
       · iframe HX; rw [hcst]; iexact HM
       iframe HX; ipureintro; rw [hM.1, ← hcst]; exact hba
   -- the descriptor side's coverage (N1-R2)
-  imod R2 R.cbal X XS S SR γdc Mc dl Pd st O s B M0 hcst hs hB hXS hS hMc hPd hdl hrep hkey hinj
+  imod R2 E hE hE' hD R.cbal X XS S SR γdc Mc dl Pd st O s B M0 hcst hs hB hXS hS hMc hPd hdl hrep hkey hinj
     $$ [HFz HPS Hfp Hout Hview Hf Hcls HW HWX HWd Hst Hw2 He HO HS]
     with ⟨HFz, HPS, Hfp, Hout, Hview, Hf, Hcls, Hbody, %Hcov⟩
   · iframe Hctx HFz HPS Hfp Hout Hview Hf Hcls HW HWX HWd HB0 Hlb
@@ -597,7 +598,7 @@ theorem swift.fill_report (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
   iunfold swift.nodeBody at Hbody
   icases Hbody with ⟨Hst, Hw2, He, HO, HS, -⟩
   -- h4: nothing between `cballot` and `b'` (the view's rows, `sp.rows_loc`)
-  imod sp.rows_loc (⊤ \ ↑swift.nodeN) swift.nodeN_diff x.N fr lg x.r x.k st hr hk
+  imod sp.rows_loc (E \ ↑swift.nodeN) hE' x.N fr lg x.r x.k st hr hk
     $$ [Hst] with ⟨Hst, %Hrl⟩
   · iframe Hinv Hcfg Hst
   have h4 : ∀ c' y, R.cbal < c' → c' < b' → (c', y) ∉ st.accR ∧ st.preAt c' y = none ∧
@@ -613,11 +614,11 @@ theorem swift.fill_report (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
     | some D => have := Hrl.1 c' y (by rw [h]; rfl); rw [hnil] at this; cases this
   obtain ⟨h5, h6, h7, h8, h9⟩ := hF st rfl Hcov.1 Hbase
   -- the witnesses at the node state
-  imod swift.repEntWs_entryWit (⊤ \ ↑swift.nodeN) swift.nodeN_diff γ γc γm x.γl x.N fr lg x.r x.k
+  imod swift.repEntWs_entryWit (E \ ↑swift.nodeN) hE' γ γc γm x.γl x.N fr lg x.r x.k
     R.cbal st hr hk R.entries $$ [Hst Hws] with ⟨Hst, Hents⟩
   · iframe Hinv Hcfg Hst Hws
   -- the report
-  imod sp.upd_report (⊤ \ ↑swift.nodeN) swift.nodeN_diff x.N fr lg x.r x.k st b' R s B hr hk
+  imod sp.upd_report (E \ ↑swift.nodeN) hE' x.N fr lg x.r x.k st b' R s B hr hk
     (by rw [hs]; rfl) Hnone (by omega) hcb h4 h5 h6 h7 h8 h9 W' $$ [Hst Hents Hpre] with ⟨Hst, Hpost, #Hrep⟩
   · iframe Hinv Hcfg Hst Hlb Hents Hpre
     icases HB with (%h0 | ⟨%hpos, %M, %hMM0, #HM, %hM⟩)

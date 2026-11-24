@@ -2026,8 +2026,8 @@ theorem swift.Replica.fillNewLeaderAckN.wp_proofN (rp : Loc) (γ : sp.Names) (γ
               · rw [hlenC, hlenR]
               · rw [hlenD, hlenR]
             imodintro
-            wp_bind (App (Val (@! swift.ghostReport)) (Val _))
-            iapply (swift.wp_ghostReport γ x.k p bl (x.r, (⟨(sint.Z cb).toNat, xs'.filterMap (fun a => E4[(sint.Z a).toNat]?)⟩ : sp.Report))
+            wp_bind (App (Val (@! swift.resolveReport)) (Val _))
+            iapply (swift.wp_resolveReport γ x.k p bl (x.r, (⟨(sint.Z cb).toNat, xs'.filterMap (fun a => E4[(sint.Z a).toNat]?)⟩ : sp.Report))
               iprop(ghostVar x.γv (1 : Iris.Qp).half w ∗ R1.Fz (sint.Z cb).toNat X ∗
                 (▷ ∃ g : swift.DescG, swift.incInv g Mc ∗ ⌜g.ev.b = (sint.Z cb).toNat⌝ ∗ swift.cgG x g) ∗
                 swift.freeP x.γcg (sint.Z cb).toNat ∗
@@ -2039,10 +2039,10 @@ theorem swift.Replica.fillNewLeaderAckN.wp_proofN (rp : Loc) (γ : sp.Names) (γ
             · iframe Hpkg Hcpk Hng HobjB
               isplitr
               · ipureintro; exact hblG
-              iunfold swift.ghostUpd
+              iunfold swift.resolveUpd
               iintro %W' Hpre
               rw [show sp.bal bl = (sint.Z bl).toNat from rfl]
-              imod (swift.fill_report rp γ γc γm x R1 R2 fr lg w (sint.Z bl).toNat
+              imod (swift.fill_report (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE swift.delivN_pE rp γ γc γm x R1 R2 fr lg w (sint.Z bl).toNat
                     ⟨(sint.Z cb).toNat, xs'.filterMap (fun a => E4[(sint.Z a).toNat]?)⟩ (bs ++ hd)
                     ((M0.map sp.syncOrder).getD []) X XS S SR γdc Mc dl Pd M0 Hids.2.2.1
                     Hids.2.2.2.2.2 hbw hcw

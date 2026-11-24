@@ -50,15 +50,15 @@ macro "packO0" : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- L2 (item 4): `ghostAccept(msg.Ballot, msg.CmdId)` with the acceptance's update `Hacc` (a
-`swift.ghostUpd` at `b`, `x`), giving back its result's parts. -/
+`swift.resolveUpd` at `b`, `x`), giving back its result's parts. -/
 macro "ghostAcc" : tactic => `(tactic| (
   ihave #Hng := swift.DC.ctx_ng c $$ Hctx
   ihave #Hcpkg : isPkgInit (PROP := IProp netDistGF)
     pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
   · iPkgInit
   try wp_auto
-  wp_bind (App (App (Val (@! swift.ghostAccept)) (Val _)) (Val _))
-  iapply (swift.wp_ghostAccept c.γ c.k fa.Ballot' fa.CmdId' _) $$ [Hacc]
+  wp_bind (App (App (Val (@! swift.resolveAccept)) (Val _)) (Val _))
+  iapply (swift.wp_resolveAccept c.γ c.k fa.Ballot' fa.CmdId' _) $$ [Hacc]
   · iframe #
     isplitr
     · ipureintro; rw [← hbb]; exact Hbw.2
@@ -997,22 +997,22 @@ theorem swift.Replica.fastAckFromLeader.wp_proof (RC : Loc → w32 → IProp net
         icases Hra with ⟨#Hra1, %Hra2, #Hpp⟩
         -- L2 (item 4, D91): the acceptance at `ghostAccept`'s resolution, after
         -- `desc.phase = ACCEPT`; a row already accepted is accepted again (`reaccept_dstep`)
-        ihave Hacc : swift.ghostUpd c.γ c.k (sp.PEv.accept b (toCmdId x))
+        ihave Hacc : swift.resolveUpd c.γ c.k (sp.PEv.accept b (toCmdId x))
             iprop(swift.epochTok c.γe qe (b, b) ∗ ∃ rv' : swift.RowV,
             swift.rowTok c.γo b (toCmdId x) rv' ∗
             ⌜rv'.1 = rv.1 ∧ rv'.2.2.2 = rv.2.2.2 ∧ rv'.2.1 = rv.2.1 ∧ rv'.2.2.1 = true⌝ ∗
             sp.accepted c.γ c.r b (toCmdId x)) $$ [Het Htok]
-        · iunfold swift.ghostUpd
+        · iunfold swift.resolveUpd
           iintro %W' Hpp
           cases hra : rv.2.2.1
-          · imod (swift.accept_dstep_pre c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
+          · imod (swift.accept_dstep_pre (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
               (toCmdId x) fw.dep rv Hids.2.2.1 Hids.2.2.2.2.2 hra W') $$ [Het Htok Hpp]
               with ⟨Het, Htok, Hpost, #Ha⟩
             · iframe Hinv Hcfg Hninv Het Htok Hpre' Hpp; ileft; ipureintro; exact hLr hL
             imodintro; iframe Het Hpost; iexists _; iframe Htok Ha; ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
           · icases Hra1 with (%Hf | #Ha)
             · first | cases Hf | (rw [hra] at Hf; cases Hf)
-            imod (swift.reaccept_dstep c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
+            imod (swift.reaccept_dstep (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
               (toCmdId x) rv Hids.2.2.1 Hids.2.2.2.2.2 hra W') $$ [Het Htok Hpp]
               with ⟨Het, Htok, Hpost⟩
             · iframe Hinv Hcfg Hninv Het Htok Hpp
@@ -1247,22 +1247,22 @@ theorem swift.Replica.fastAckFromLeader.wp_proof (RC : Loc → w32 → IProp net
       icases Hra with ⟨#Hra1, %Hra2, #Hpp⟩
       -- L2 (item 4, D91): the acceptance at `ghostAccept`'s resolution, after
       -- `desc.phase = ACCEPT`; a row already accepted is accepted again (`reaccept_dstep`)
-      ihave Hacc : swift.ghostUpd c.γ c.k (sp.PEv.accept b (toCmdId x))
+      ihave Hacc : swift.resolveUpd c.γ c.k (sp.PEv.accept b (toCmdId x))
           iprop(swift.epochTok c.γe qe (b, b) ∗ ∃ rv' : swift.RowV,
           swift.rowTok c.γo b (toCmdId x) rv' ∗
             ⌜rv'.1 = rv.1 ∧ rv'.2.2.2 = rv.2.2.2 ∧ rv'.2.1 = rv.2.1 ∧ rv'.2.2.1 = true⌝ ∗
           sp.accepted c.γ c.r b (toCmdId x)) $$ [Het Htok]
-      · iunfold swift.ghostUpd
+      · iunfold swift.resolveUpd
         iintro %W' Hpp
         cases hra : rv.2.2.1
-        · imod (swift.accept_dstep_pre c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
+        · imod (swift.accept_dstep_pre (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
             (toCmdId x) fw.dep rv Hids.2.2.1 Hids.2.2.2.2.2 hra W') $$ [Het Htok Hpp]
             with ⟨Het, Htok, Hpost, #Ha⟩
           · iframe Hinv Hcfg Hninv Het Htok Hpre' Hpp; iright; iexact HN2
           imodintro; iframe Het Hpost; iexists _; iframe Htok Ha; ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
         · icases Hra1 with (%Hf | #Ha)
           · first | cases Hf | (rw [hra] at Hf; cases Hf)
-          imod (swift.reaccept_dstep c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
+          imod (swift.reaccept_dstep (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
             (toCmdId x) rv Hids.2.2.1 Hids.2.2.2.2.2 hra W') $$ [Het Htok Hpp]
             with ⟨Het, Htok, Hpost⟩
           · iframe Hinv Hcfg Hninv Het Htok Hpp

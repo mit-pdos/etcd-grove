@@ -104,8 +104,8 @@ theorem swift.Replica.handleNewLeaderAckNs.wp_proof (EpR : GMap swift.CommandId 
     have : 0 < sp.bal v.ballot := by rw [hbb]; exact hb0
     show 0 ≤ v.ballot.toInt
     unfold sp.bal at this; omega
-  wp_bind (App (App (Val (@! swift.ghostComputeSync)) (Val _)) (Val _))
-  iapply (swift.wp_ghostComputeSync γ k v.ballot msl DFrac.discard ms reps
+  wp_bind (App (App (Val (@! swift.resolveComputeSync)) (Val _)) (Val _))
+  iapply (swift.wp_resolveComputeSync γ k v.ballot msl DFrac.discard ms reps
     iprop(ghostVar γv (1 : Qp).half (w.computed b' (sp.syncOrder (sp.recoverSync N reps))) ∗
       sp.syncIs γ b' (sp.recoverSync N reps) ∗
       ([∗list] i ↦ x ∈ sp.syncOrder (sp.recoverSync N reps), sp.locAt γ (sp.leaderOf N b') b' i x) ∗
@@ -115,10 +115,10 @@ theorem swift.Replica.handleNewLeaderAckNs.wp_proof (EpR : GMap swift.CommandId 
   · iframe Hpkg Hcpk Hng Hmsl Hacks
     isplitr
     · ipureintro; exact hvb
-    iunfold swift.ghostUpd
+    iunfold swift.resolveUpd
     iintro %W' Hpre
     rw [hbb]
-    imod swift.computeSync_stepD γ γc γm γl γv γe γo N k fr l w b' reps (by rw [hL]; exact hrN)
+    imod swift.computeSync_stepD (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE γ γc γm γl γv γe γo N k fr l w b' reps (by rw [hL]; exact hrN)
       (by rw [hL]; exact hnode) hb0 hw1 hnorm hrow hmaj hcb W' $$ [Hw Hpre]
       with ⟨Hw, Hpost, #HM, #Hlocs, Htoks, Htix⟩
     · iframe #; iframe Hw Hpre

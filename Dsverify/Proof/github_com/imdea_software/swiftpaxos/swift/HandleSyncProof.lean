@@ -608,8 +608,8 @@ theorem swift.Replica.handleSync.wp_proofR (EpR EpH : GMap swift.CommandId Loc �
   ihave #Hcpk : isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client
     $$ []
   · iPkgInit
-  wp_bind (App (Val (@! swift.ghostTakeSync)) (Val _))
-  iapply (swift.wp_ghostTakeSync γ k bl
+  wp_bind (App (Val (@! swift.resolveTakeSync)) (Val _))
+  iapply (swift.wp_resolveTakeSync γ k bl
     iprop(ghostVar γv (1 : Qp).half (w.tookSync b' (sp.syncOrder M)) ∗
       swift.epochTok γe (1 : Qp).half (b', b') ∗
       ([∗list] i ↦ x ∈ sp.syncOrder M, sp.locAt γ r b' i x) ∗
@@ -620,10 +620,10 @@ theorem swift.Replica.handleSync.wp_proofR (EpR EpH : GMap swift.CommandId Loc �
   · iframe Hpkg Hcpk Hng
     isplitr
     · ipureintro; exact hbl0
-    iunfold swift.ghostUpd
+    iunfold swift.resolveUpd
     iintro %W' Hpre
     rw [hbl]
-    imod swift.takeSync_stepD γ γc γm γl γv γe γo N r k fr lg w bc b' M hrN hnode hcont.1 hcb W'
+    imod swift.takeSync_stepD (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE γ γc γm γl γv γe γo N r k fr lg w bc b' M hrN hnode hcont.1 hcb W'
       $$ [Hw Htok Hrow Hpre] with ⟨Hw, Hpost, Htok, #Hlocs, #Haccs, Hrows, Hcgr⟩
     · iframe Hinv Hcfg Hninv Hw Htok HM Hrow Hpre
     imodintro

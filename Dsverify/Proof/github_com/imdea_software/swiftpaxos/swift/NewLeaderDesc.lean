@@ -2067,7 +2067,7 @@ def swift.n1r1 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX) :
 last case, a read's entry, by the read's own record, `swift.readRecAll`). -/
 theorem swift.n1r2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX) :
     swift.N1R2 rp γ γc γm x (swift.n1r1 rp γ γc γm x) := by
-  intro c X XS S SR γdc Mc dl Pd st O s B M0 hc hs _hB hXS hS hMc _hPd hdl hSR hkey hinj
+  intro E hE hE' hD c X XS S SR γdc Mc dl Pd st O s B M0 hc hs _hB hXS hS hMc _hPd hdl hSR hkey hinj
   simp only [swift.n1r1]
   iintro ⟨#Hctx, HFz, >HPS, Hfp, Hout, Hview, Hflds, Hcls, #HW, #HWXl, #HWd, #Hbase, #Hlb, Hbody⟩
   ihave #Hctx2 := Hctx
@@ -2078,14 +2078,14 @@ theorem swift.n1r2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
   obtain ⟨-, -, hrN, -, -, hk⟩ := Hids
   icases Hbody with ⟨Hn, Hv, He, HO, HS, %hacc, %hrows⟩
   -- clause 4 (round 53): the `proposeDep`s against the whole sequence `s` (`swift.pd_deps`)
-  imod swift.pd_deps γ γc γm x.γl x (⊤ \ ↑swift.nodeN) swift.nodeN_diff fr lg st c s Pd hrN hk
+  imod swift.pd_deps γ γc γm x.γl x (E \ ↑swift.nodeN) hE' fr lg st c s Pd hrN hk
     hs $$ [Hinv Hcfg Hn Hlb HWd] with ⟨Hn, %hpd⟩
   · iframe Hinv Hcfg Hn Hlb HWd
   -- round 57 (clause 1): the entries' row facts at `st` (`swift.rows_facts`)
   ihave #HWr := swift.W_rowW γ x.N x.r c (XS ++ S) $$ HW
   -- round 58 (D82 (3)): the log entries are at `COMMIT` or at the leader (`WX`, from `exEntOk`)
   ihave %hXl := swift.wxW_pure γ x.N x.r c XS $$ HWXl
-  imod swift.rows_facts γ γc γm x.γl (⊤ \ ↑swift.nodeN) swift.nodeN_diff x.N fr lg x.r x.k st c
+  imod swift.rows_facts γ γc γm x.γl (E \ ↑swift.nodeN) hE' x.N fr lg x.r x.k st c
     (XS ++ S) hrN hk $$ [Hinv Hcfg Hn HWr] with ⟨Hn, %hrowf⟩
   · iframe Hinv Hcfg Hn HWr
   iunfold swift.storeD at HS
@@ -2102,7 +2102,7 @@ theorem swift.n1r2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
     (swift.rowsCoverAll γ x.γo x.sn st c O Rt Cl B hst hrows) $$ [HO Hm]
   · iframe HO Hm Hbase2
   -- round 56 (D79 (2)): R2-a, the log's entries of the base (`swift.r2a_all`)
-  ihave Hr2 : |={⊤ \ ↑swift.nodeN}=> ⌜∀ M, M0 = some M → ∀ e ∈ XS, e.id ∈ B →
+  ihave Hr2 : |={E \ ↑swift.nodeN}=> ⌜∀ M, M0 = some M → ∀ e ∈ XS, e.id ∈ B →
       e.phase.toNat = 3 ∧ ∃ p ∈ M, p.1 = e.id ∧ e.dep.Perm p.2.2⌝ $$ []
   · icases Hbase with (⟨%h1, %h2, %h3⟩ | ⟨%M, %hM0, #HM, #HlbM, %hB⟩)
     · imodintro; ipureintro; intro M hM; rw [h3] at hM; cases hM
@@ -2112,7 +2112,7 @@ theorem swift.n1r2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
         ihave #H2 := swift.wx_base γ x.N x.r c XS $$ HWXl
         iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp netDistGF)).2
         iframe H1 H2
-      imod swift.r2a_all γ γc γm x.γl (⊤ \ ↑swift.nodeN) swift.nodeN_diff x.N x.r c M XS
+      imod swift.r2a_all γ γc γm x.γl (E \ ↑swift.nodeN) hE' x.N x.r c M XS
         $$ [Hinv HM HlbM HWX] with %Hr
       · iframe Hinv HM HlbM HWX
       imodintro; ipureintro
@@ -2139,11 +2139,11 @@ theorem swift.n1r2 (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swift.RunX)
     ihave #Hsi := swift.recSync_in γ x.γo x.sn Rt (c, y0) hy0 $$ Hm
     iunfold swift.syncIn at Hsi
     icases Hsi with ⟨%M', #HM', -⟩
-    imod sp.syncIs_pos (⊤ \ ↑swift.nodeN) swift.nodeN_diff c M' $$ [Hinv HM'] with %hpos
+    imod sp.syncIs_pos (E \ ↑swift.nodeN) hE' c M' $$ [Hinv HM'] with %hpos
     · iframe Hinv HM'
     exfalso; omega
   -- the `exec` records of `c` are `X`'s (`delivInv`'s ghost map, `X` by `Fz`)
-  imod (inv_acc (E := ⊤ \ ↑swift.nodeN) (N := swift.delivN) swift.delivN_node_sub) $$ HdI
+  imod (inv_acc (E := E \ ↑swift.nodeN) (N := swift.delivN) hD) $$ HdI
     with ⟨Hi, Hclose⟩
   iunfold swift.delivInv at Hi
   icases Hi with ⟨%Md, %bX', %X', %Mx, %rm, >HV, >HXi, >HXp, >HMx, >HXx, >%HM⟩

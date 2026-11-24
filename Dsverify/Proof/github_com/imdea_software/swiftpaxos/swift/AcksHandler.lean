@@ -139,7 +139,7 @@ theorem swift.getFastAndSlowAcksHandler.wp_proofS (RC : Loc → w32 → IProp ne
   -- at `ghostCommit`'s resolution (a row already committed is committed again,
   -- `recommit_dstep`); without it (no proposal) Go does not resolve (D92's guard) and the commit
   -- is deferred to the proposal (handlePropose's guarded `ghostCommit`)
-  ihave Hc : iprop(|={⊤}=> (⌜dv.propose ≠ null⌝ ∗ swift.ghostUpd c.γ c.k (sp.PEv.commit b (toCmdId x))
+  ihave Hc : iprop(|={⊤}=> (⌜dv.propose ≠ null⌝ ∗ swift.resolveUpd c.γ c.k (sp.PEv.commit b (toCmdId x))
       iprop(swift.epochTok c.γe qe (b, b) ∗ ∃ r4' : Bool,
       swift.rowTokO c b x { dv with phase := swift.phCOMMIT } (r1, r2, r3, r4') ∗
       (⌜r4' = false⌝ ∨ sp.committed c.γ c.r b (toCmdId x)) ∗ ⌜r4' = true ∨ dv.propose = null⌝ ∗
@@ -164,10 +164,10 @@ theorem swift.getFastAndSlowAcksHandler.wp_proofS (RC : Loc → w32 → IProp ne
       ileft
       isplitr
       · ipureintro; exact Hpn
-      iunfold swift.ghostUpd
+      iunfold swift.resolveUpd
       iintro %W' Hpp
       cases r4
-      · imod (swift.commit_dstep' c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr l qe b
+      · imod (swift.commit_dstep' (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr l qe b
           (toCmdId x) (r1, r2, r3, false) hrN hk rfl W') $$ [Het Htok Hpp]
           with ⟨Het, Htok, Hpost, #Hc⟩
         · iframe Hinv Hcfg Hninv Het Htok Hpp
@@ -181,7 +181,7 @@ theorem swift.getFastAndSlowAcksHandler.wp_proofS (RC : Loc → w32 → IProp ne
         ipureintro; intro _; exact Hpn
       · icases Hcom with (%Hf | #Hc)
         · cases Hf
-        imod (swift.recommit_dstep c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr l qe b
+        imod (swift.recommit_dstep (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr l qe b
           (toCmdId x) (r1, r2, r3, true) hrN hk rfl W') $$ [Het Htok Hpp]
           with ⟨Het, Htok, Hpost⟩
         · iframe Hinv Hcfg Hninv Het Htok Hpp
@@ -229,8 +229,8 @@ theorem swift.getFastAndSlowAcksHandler.wp_proofS (RC : Loc → w32 → IProp ne
     rotate_left
     · exfalso; exact (show dv.propose ≠ null by first | exact Hif | simpa using Hif) Hpn
     try wp_auto
-    wp_bind (App (App (Val (@! swift.ghostCommit)) (Val _)) (Val _))
-    iapply (swift.wp_ghostCommit c.γ c.k fa.Ballot' fa.CmdId' _) $$ [Hc]
+    wp_bind (App (App (Val (@! swift.resolveCommit)) (Val _)) (Val _))
+    iapply (swift.wp_resolveCommit c.γ c.k fa.Ballot' fa.CmdId' _) $$ [Hc]
     · iframe #
       isplitr
       · ipureintro; exact Hfb0

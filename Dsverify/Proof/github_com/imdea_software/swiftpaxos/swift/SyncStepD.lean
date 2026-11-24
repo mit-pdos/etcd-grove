@@ -164,13 +164,14 @@ theorem swift.rowToks_lookup (γo : GName) (b : Nat) (rv : swift.RowV) (o : List
 /-- **A new ballot** through `nodeInvD` (`handleNewLeader`, its descriptors stopped: the run
 loop holds the epoch's other half): the view and the epoch move to `b'`, recovering. Round N5
 (D72 (1)): `b'` is above the ballot, and the replica gets `b'`'s report token. -/
-theorem swift.newBallot_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
+theorem swift.newBallot_stepD (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
     (fr : Bool) (l : List GoString) (w : swift.LView) (bc : Nat × Nat) (b' : Nat)
     (hr : r < N) (hk : nodeOf l r = some k) (hb : w.1 < b') (W' : List w64) :
     sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗
       ghostVar γv (1 : Qp).half w ∗ swift.epochTok γe (1 : Qp).half bc ∗
       sp.predPre γ k (some (sp.PEv.newBallot b', W')) ⊢
-    |={⊤}=> ghostVar γv (1 : Qp).half (w.newBal b') ∗
+    |={E}=> ghostVar γv (1 : Qp).half (w.newBal b') ∗
       sp.predPost γ k (some (sp.PEv.newBallot b', W')) ∗
       swift.epochTok γe (1 : Qp).half (b', w.2.1) ∗ swift.repTok sn.γrp b' := by
   iintro ⟨#Hinv, #Hcfg, #Hninv, Hw, Hep, Hpre⟩
@@ -181,10 +182,10 @@ theorem swift.newBallot_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) 
   ihave %Heq := ghostVar_agree γv w (1 : Qp).half (swift.viewOf st) (1 : Qp).half $$ Hw Hw2
   subst Heq
   iunfold swift.epochTok at Hep
-  imod sp.upd_newBallot (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st b' hr hk
+  imod sp.upd_newBallot (E \ ↑swift.nodeN) hE' N fr l r k st b' hr hk
     (Nat.le_of_lt hb) W' $$ [Hst Hpre] with ⟨Hst, Hpost⟩
   · iframe Hinv Hcfg Hst Hpre
-  imod swift.nodeX_newBal (⊤ \ ↑swift.nodeN) γ sn st b' hb $$ HX with ⟨HX, Htk⟩
+  imod swift.nodeX_newBal (E \ ↑swift.nodeN) γ sn st b' hb $$ HX with ⟨HX, Htk⟩
   imod ghostVar_update_halves ((swift.viewOf st).newBal b') γv (swift.viewOf st) (swift.viewOf st)
     $$ Hw Hw2 with ⟨Hw, Hw2⟩
   imod ghostVar_update_halves ((b', st.cballot) : Nat × Nat) γe bc (swift.epochOf st)
@@ -213,7 +214,8 @@ theorem swift.newBallot_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) 
 /-- **The new leader's `MSync`** through `nodeInvD` (`handleNewLeaderAckNs` → `recoveredSync`):
 `upd_computeSync`, and the row tokens of its order allocated in `b'` (empty rows: the replica
 had no row of `b'`). The epoch is unchanged. -/
-theorem swift.computeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N k : Nat)
+theorem swift.computeSync_stepD (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N k : Nat)
     (fr : Bool) (l : List GoString) (w : swift.LView) (b' : Nat) (reps : List (Nat × sp.Report))
     (hr : sp.leaderOf N b' < N) (hk : nodeOf l (sp.leaderOf N b') = some k) (hb : 0 < b')
     (hbal : w.1 = b') (hnorm : w.2.2.1 = false) (hrow : ∀ o, (b', o) ∉ w.2.2.2)
@@ -221,7 +223,7 @@ theorem swift.computeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName
     sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ inv swift.nodeN (swift.nodeInvD γ γv γe γo sn k) ∗
       ghostVar γv (1 : Qp).half w ∗ ([∗list] p ∈ reps, sp.reported γ p.1 b' p.2) ∗
       sp.predPre γ k (some (sp.PEv.computeSync b' (reps.map Prod.fst), W')) ⊢
-    |={⊤}=> ghostVar γv (1 : Qp).half (w.computed b' (sp.syncOrder (sp.recoverSync N reps))) ∗
+    |={E}=> ghostVar γv (1 : Qp).half (w.computed b' (sp.syncOrder (sp.recoverSync N reps))) ∗
       sp.predPost γ k (some (sp.PEv.computeSync b' (reps.map Prod.fst), W')) ∗
       sp.syncIs γ b' (sp.recoverSync N reps) ∗
       ([∗list] i ↦ x ∈ sp.syncOrder (sp.recoverSync N reps), sp.locAt γ (sp.leaderOf N b') b' i x) ∗
@@ -235,7 +237,7 @@ theorem swift.computeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName
   icases Hi with ⟨%st, %O, Hst, Hw2, He, HO, HS, HX, %Hacc, %Hok⟩
   ihave %Heq := ghostVar_agree γv w (1 : Qp).half (swift.viewOf st) (1 : Qp).half $$ Hw Hw2
   subst Heq
-  imod sp.upd_computeSync (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l k st b' reps hr hk hb
+  imod sp.upd_computeSync (E \ ↑swift.nodeN) hE' N fr l k st b' reps hr hk hb
     hbal hnorm hrow hmaj W' $$ [Hst Hpre] with ⟨Hst, Hpost, #HM, #Hl⟩
   · iframe Hinv Hcfg Hst Hpre Hreps
   have hnil : st.locAt b' = [] := sp.locAt_nil_of_rows hrow
@@ -301,7 +303,8 @@ theorem swift.computeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName
 half): `upd_takeSync`; the epoch moves to `(b', b')`; the row tokens of the order in `b'` are
 allocated (a follower, which had no row of `b'`) or updated (the new leader, from
 `computeSync_stepD`) to `rvSync` (accepted), for the order's descriptors. -/
-theorem swift.takeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
+theorem swift.takeSync_stepD (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat)
     (fr : Bool) (l : List GoString) (w : swift.LView) (bc : Nat × Nat) (b' : Nat)
     (M : sp.SyncMsg) (hr : r < N) (hk : nodeOf l r = some k) (hbal : w.1 ≤ b')
     (hc : w.2.1 < b') (W' : List w64) :
@@ -312,7 +315,7 @@ theorem swift.takeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) {
           ([∗list] y ∈ sp.syncOrder M, swift.rowTok γo b' y swift.rowEmpty) ∗
           [∗list] y ∈ sp.syncOrder M, swift.xTixK sn.γxu (b', y))) ∗
       sp.predPre γ k (some (sp.PEv.takeSync b', W')) ⊢
-    |={⊤}=> ghostVar γv (1 : Qp).half (w.tookSync b' (sp.syncOrder M)) ∗
+    |={E}=> ghostVar γv (1 : Qp).half (w.tookSync b' (sp.syncOrder M)) ∗
       sp.predPost γ k (some (sp.PEv.takeSync b', W')) ∗
       swift.epochTok γe (1 : Qp).half (b', b') ∗
       ([∗list] i ↦ x ∈ sp.syncOrder M, sp.locAt γ r b' i x) ∗
@@ -329,7 +332,7 @@ theorem swift.takeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) {
   iunfold swift.epochTok at Hep
   have hcb : st.cballot < b' := hc
   -- the row tokens of the order
-  ihave Hj : (|={⊤ \ ↑swift.nodeN}=> ⌜(∀ y, swift.rowsOf st b' y = swift.rowEmpty) ∧
+  ihave Hj : (|={E \ ↑swift.nodeN}=> ⌜(∀ y, swift.rowsOf st b' y = swift.rowEmpty) ∧
         ∀ y ∈ st.locAt b', y ∈ sp.syncOrder M⌝ ∗
       ghostMapAuth γo 1 (swift.insAll O b' (sp.syncOrder M) swift.rvSync) ∗
       ([∗list] y ∈ sp.syncOrder M, swift.rowTok γo b' y swift.rvSync) ∗
@@ -397,7 +400,7 @@ theorem swift.takeSync_stepD (γ : sp.Names) (γc γm γl γv γe γo : GName) {
   imod swift.storeD_takeSync γ γo sn st.cballot b' O M (sp.syncOrder M) (sp.syncOrder_nodup M)
     hcb (fun _ h => h) hcov $$ [HS HM Htoks Htx] with ⟨HS, Htoks⟩
   · iframe HS HM Htoks Htx
-  imod sp.upd_takeSync (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st b' M hr hk hbal
+  imod sp.upd_takeSync (E \ ↑swift.nodeN) hE' N fr l r k st b' M hr hk hbal
     (fun x hx => by have := Hacc b' x hx; omega) W' $$ [Hst Hpre Hsrc] with ⟨Hst, Hpost, #Hl, #Ha⟩
   · iframe Hinv Hcfg Hst Hpre HM Hsrc
   imod ghostVar_update_halves ((swift.viewOf st).tookSync b' (sp.syncOrder M)) γv (swift.viewOf st)

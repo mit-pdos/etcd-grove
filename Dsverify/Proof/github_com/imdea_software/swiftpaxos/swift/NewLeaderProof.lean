@@ -765,17 +765,17 @@ theorem swift.Replica.handleNewLeader.wp_proofN (rp : Loc) (γ : sp.Names) (γc 
   ihave #Hcpk : isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client
     $$ []
   · iPkgInit
-  wp_bind (App (Val (@! swift.ghostNewBallot)) (Val _))
-  iapply (swift.wp_ghostNewBallot γ x.k b
+  wp_bind (App (Val (@! swift.resolveNewBallot)) (Val _))
+  iapply (swift.wp_resolveNewBallot γ x.k b
     iprop(ghostVar x.γv (1 : Iris.Qp).half (w.newBal (sp.bal b)) ∗
       swift.epochTok x.γe (1 : Iris.Qp).half (sp.bal b, w.2.1) ∗ swift.repTok x.sn.γrp (sp.bal b)))
     $$ [Hw He]
   · iframe Hpkg Hcpk Hng
     isplitr
     · ipureintro; exact hb0
-    iunfold swift.ghostUpd
+    iunfold swift.resolveUpd
     iintro %W' Hpre
-    imod swift.newBallot_stepD γ γc γm x.γl x.γv x.γe x.γo x.N x.r x.k fr lg w bc (sp.bal b)
+    imod swift.newBallot_stepD (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE γ γc γm x.γl x.γv x.γe x.γo x.N x.r x.k fr lg w bc (sp.bal b)
       hrN hk hwb W' $$ [Hspi Hcfg HnI Hw He Hpre] with ⟨Hw, Hpost, He, Htk⟩
     · iframe #; iframe
     imodintro

@@ -26,7 +26,8 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProto
 
 /-- `swift.handle_stepD` with the numbering (change log C22, M3): the run loop's node `k`, its
 next number `n`, numbers `x` (`sp.upd_handleN`). -/
-theorem swift.handle_stepDN (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat) (fr : Bool)
+theorem swift.handle_stepDN (E : CoPset) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆ E \ ↑swift.nodeN)
+    (γ : sp.Names) (γc γm γl γv γe γo : GName) {sn : swift.StN} (N r k : Nat) (fr : Bool)
     (l : List GoString) (w : swift.LView) (x : sp.CmdId) (c : sp.Cmd) (B : List sp.CmdId)
     (hr : r < N) (hk : nodeOf l r = some k) (hB : B <+: w.locAt w.1)
     (hx : x ∉ w.locAt w.1) (n : w64) (ld : Bool) (hld : ld = true ↔ sp.leaderOf N w.1 = r)
@@ -35,7 +36,7 @@ theorem swift.handle_stepDN (γ : sp.Names) (γc γm γl γv γe γo : GName) {s
       ghostVar γv (1 : Qp).half w ∗ sp.cmdIs γ x c ∗
       iprop(⌜w.1 = 0 ∧ B = []⌝ ∨ ∃ M, sp.syncIs γ w.1 M ∗ ⌜B = sp.syncOrder M⌝) ∗ sp.numHi γ k n ∗
       sp.predPre γ k (some (sp.PEv.handle w.1 x c, W')) ⊢
-    |={⊤}=> ghostVar γv (1 : Qp).half (w.handled x) ∗
+    |={E}=> ghostVar γv (1 : Qp).half (w.handled x) ∗
       sp.predPost γ k (some (sp.PEv.handle w.1 x c, W')) ∗
       sp.locAt γ r w.1 (w.locAt w.1).length x ∗ swift.claimTok sn.γcl (w.1, x) .fresh ∗
       sp.numIs γ r w.1 x (if ld then n else W64 (-1)) ∗ sp.numHi γ k (if ld then n + 1 else n) ∗
@@ -50,7 +51,7 @@ theorem swift.handle_stepDN (γ : sp.Names) (γc γm γl γv γe γo : GName) {s
   have hv1 : (swift.viewOf st).1 = st.ballot := rfl
   rw [hv1] at hB hx ⊢
   have hl : st.locAt st.ballot = (swift.viewOf st).locAt st.ballot := rfl
-  imod sp.upd_handleN (⊤ \ ↑swift.nodeN) swift.nodeN_diff N fr l r k st x c n ld hr hk
+  imod sp.upd_handleN (E \ ↑swift.nodeN) hE' N fr l r k st x c n ld hr hk
     (by rw [hl]; exact hx) (by rw [← hv1]; exact hld) h0 hb W' $$ [Hst Hhi Hpre]
     with ⟨Hst, Hpost, Hl, #Hnum, Hhi, %Hov⟩
   · iframe Hinv Hcfg Hst Hc Hhi Hpre

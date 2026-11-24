@@ -269,17 +269,17 @@ theorem swift.Replica.handlePropose.wp_proof (RC : Loc → w32 → IProp netDist
       pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
     · iPkgInit
     try wp_auto
-    wp_bind (App (App (Val (@! swift.ghostCommit)) (Val _)) (Val _))
-    iapply (swift.wp_ghostCommit c.γ c.k _ x iprop(swift.epochTok c.γe qe (b, b) ∗
+    wp_bind (App (App (Val (@! swift.resolveCommit)) (Val _)) (Val _))
+    iapply (swift.wp_resolveCommit c.γ c.k _ x iprop(swift.epochTok c.γe qe (b, b) ∗
       swift.rowTok c.γo b (toCmdId x) (swift.rowEmpty.1, swift.rowEmpty.2.1, swift.rowEmpty.2.2.1, true) ∗
       sp.committed c.γ c.r b (toCmdId x))) $$ [Het Htok]
     · iframe #
       isplitr
       · ipureintro; exact Hbw.2
-      iunfold swift.ghostUpd
+      iunfold swift.resolveUpd
       iintro %W' Hpp
       rw [Hbw.1]
-      imod (swift.commit_dstep' c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr4 lg4 qe b
+      imod (swift.commit_dstep' (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr4 lg4 qe b
           (toCmdId x) swift.rowEmpty hrN4 hk4 rfl W') $$ [Het Htok Hpp] with ⟨Het, Htok, Hpost, #Hc⟩
       · iframe Hinv4 Hcfg4 Hninv4 Het Htok Hpp
         ileft; ipureintro; exact Hcl0 hc
@@ -468,18 +468,18 @@ theorem swift.Replica.handlePropose.wp_proof (RC : Loc → w32 → IProp netDist
   ihave #Hcpkg : isPkgInit (PROP := IProp netDistGF)
     pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
   · iPkgInit
-  wp_bind (App (App (App (Val (@! swift.ghostPreaccept)) (Val _)) (Val _)) (Val _))
-  iapply (swift.wp_ghostPreaccept c.γ c.k _ x _ (D0.map ofCmdId) DFrac.discard
+  wp_bind (App (App (App (Val (@! swift.resolvePreaccept)) (Val _)) (Val _)) (Val _))
+  iapply (swift.wp_resolvePreaccept c.γ c.k _ x _ (D0.map ofCmdId) DFrac.discard
     iprop(swift.epochTok c.γe qe (b, b) ∗
       swift.rowTok c.γo b (toCmdId x) (some D0, some P0, rv.2.2) ∗
       sp.preacc c.γ c.r b (toCmdId x) D0 ∗ sp.pathIs c.γ c.r b (toCmdId x) P0)) $$ [Het Htok]
   · iframe #
     isplitr
     · ipureintro; exact Hbw.2
-    iunfold swift.ghostUpd
+    iunfold swift.resolveUpd
     iintro %W' Hpp
     rw [Hbw.1, List.map_map, show toCmdId ∘ ofCmdId = id from rfl, List.map_id]
-    imod (swift.preaccept_dstep c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
+    imod (swift.preaccept_dstep (⊤ \ ↑client.nodeProphN) swift.nodeN_pE swift.spN_pE c.γ c.γc c.γm c.γl c.γv c.γe c.γo c.N c.r c.k fr lg qe b
         (toCmdId x) s0 B0 D0 P0 rv Hids.2.2.1 Hids.2.2.2.2.2 hAQ hy hD hB g4 hLP hP hrv W')
       $$ [Het Htok Hpp] with ⟨Het, Htok, Hpost, #Hpre, #Hpath⟩
     · iframe Hinv Hcfg Hninv Het Htok Hlb0 HB0 Hpp
