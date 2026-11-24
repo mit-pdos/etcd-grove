@@ -86,7 +86,7 @@ theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) 
     iapply HΦ'
     icases Hr with (⟨%he, HI⟩ | ⟨%he, HΨ⟩)
     · ileft; iframe; ipureintro; exact he
-    · iright; iframe; ipureintro; exact ⟨he, he⟩
+    · iright; dsimp only; iframe; ipureintro; exact ⟨he, he⟩
   by_cases h0 : e = 0
   · subst h0
     simp only [errnoErr, ↓reduceIte]
