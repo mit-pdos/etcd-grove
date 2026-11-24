@@ -27,9 +27,10 @@ package initialization (`Init.lean`, `PkgTable.lean`, generated) and `Main`'s sp
   `n + 4 ≤ 2^61` steps (`receiptBound + 3 = n + 4`) in which fewer than `2^31` goroutines are live at
   once. (Until 2026-11-19, `T = n + 2` over `goose_adequacy`, whose thread premise is about every
   execution of `n` steps, so `n + 2 ≤ 2^31`: the step count was capped by the thread bound.)
-- **The premises** (Q32, decided by the user): the bootstrap log's pure facts
-  (`tracecheck.BootLogFacts`) and, at every `HeapGS`, `proto.Marshal`'s contract at its conf changes
-  (`tracecheck.premises`, `Defs.lean`), as `etcd_putget_adequate`.
+- **The premise** (Q32, decided by the user): at every `HeapGS`, `proto.Marshal`'s contract at the
+  bootstrap log's conf changes (`tracecheck.premises`, `Defs.lean`), as `etcd_putget_adequate`. The log
+  is `tracecheck.bootLog 3` (2026-11-24: until then a premise `boot` with its pure facts
+  `tracecheck.BootLogFacts boot`, now proved, `bootLogFacts_bootLog`, since `ccDecodeV1` is a function).
 - **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
   `GoLocalContext`, `go.Semantics`, the package assumptions `tracecheck.Assumptions`, and raft's
   initialization premise, the model of `log.New` (`log.NewModel`).
@@ -87,15 +88,14 @@ abbrev tcMainSpec : Prop :=
 /-- **The trace check never fails**, from `Main`'s spec (at every `HeapGS` of `tcGF` and every
 semantics): every real execution of `tracecheckProgram` (the package's initialization, then
 `Main()`) from a fresh state -- no package initialized (`IsInit`), one live thread -- of `n` steps,
-`n + 4 ≤ 2^61`, along which fewer than `2^31` threads are live at once, given the bootstrap log's facts and premises: if the main thread has finished, its
+`n + 4 ≤ 2^61`, along which fewer than `2^31` threads are live at once, given the bootstrap log's premise: if the main thread has finished, its
 result is `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
     (wp_Main : tcMainSpec)
-    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
     (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
+      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) (tracecheck.bootLog 3))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -119,7 +119,8 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hcc : context.isClosedchanInit (GF := tcGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply (wp_Main (TraceCheck.tcRunFits.intro Hbound) boot Hbf) $$ [Hpkg Hcc Hprem']
+  wp_apply (wp_Main (TraceCheck.tcRunFits.intro Hbound) (tracecheck.bootLog 3)
+    tracecheck.bootLogFacts_bootLog) $$ [Hpkg Hcc Hprem']
   · iframe #
   ipureintro
   rfl

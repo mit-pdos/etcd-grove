@@ -270,6 +270,20 @@ theorem ccDecodeV1_enc (id : Option w64) (type : Option w32) (nodeId : Option w6
       some ⟨type.getD 0, nodeId.getD 0, ctx.getD [], id.getD 0⟩ := by
   simp only [ccDecodeV1, cc1DecodeRaw_enc id type nodeId ctx uf hu hc, Option.map_some]
 
+/-- **The bytes of a bootstrap conf change** (2026-11-24): `proto.Marshal` of the `*pb.ConfChange` raft's
+`Bootstrap` builds for a peer (`bootConfChange`): `Type = AddNode` and `NodeId = id` set, `Id` unset,
+`Context = ctx`, absent when empty (its slice `nil`, as `Peer{ID: id}` carries), no unknown fields. The
+encoder `cc1EncRaw` is checked against protobuf-go at these conf changes for ids 1..5 and extreme ones
+(`ConfChangeWireVectors.lean`). -/
+def ccBootWire (id : w64) (ctx : List w8) : List w8 :=
+  cc1EncRaw none (some (W32 0)) (some id) (if ctx = [] then none else some ctx) []
+
+theorem ccDecodeV1_bootWire (id : w64) (ctx : List w8) (hc : ctx.length < 2 ^ 64) :
+    ccDecodeV1 (ccBootWire id ctx) = some ⟨W32 0, id, ctx, W64 0⟩ := by
+  unfold ccBootWire
+  rw [ccDecodeV1_enc _ _ _ _ _ (ufWire_nil _) (by intro c h; split at h <;> simp_all)]
+  by_cases h : ctx = [] <;> simp [h]
+
 end codec
 
 /-- `ConfChangeV2.EnterJoint`'s answer `(autoLeave, ok)` (`raftpb/confchange.go:82`) for a

@@ -7,13 +7,17 @@ decision, 2026-11-11; `notes/trace-check-design.md` §1.1), modelled on `etcd_pu
   `1, 2, 3` (each `Peer{ID: i}`, `Context` nil), as Go computes it: three conf-change entries of term
   `1` whose data is the marshalled `ConfChange{Type: AddNode, NodeID: i}` (the node API's `BootLog`).
   Named apart from layer B's `TraceCheck.BootFacts C L` (`MainSim.lean`, over `newTrace`).
+  (2026-11-24) No longer a premise: `bootLog n` is the log Go computes for the voters `1 … n`
+  (`ccBootWire`), and `bootLog_bootLog` proves its facts, since `ccDecodeV1` is a function
+  (`cc1DecodeRaw`, checked against protobuf-go).
 * **The Iris premise** (`tracecheck.premises`, persistent): `proto.Marshal`'s contract at the
   bootstrap log's conf changes. Each of the three `StartNode`s marshals `AddNode i`, and the call
   returns the bytes of `boot`'s `i`-th entry (`bootMarshal`). Raft's proof needs the three voters'
   logs to be one committed log; `proto.MarshalConfChange.spec` gives only bytes that decode to the
   change.
 
-No axiom: the closed theorem takes both as premises (Q32: "follow the etcd examples").
+No axiom: the closed theorem took both as premises (Q32: "follow the etcd examples"); since
+2026-11-24 only the Iris premise, at `bootLog 3`.
 
 **Non-vacuity** (2026-11-24): until then `bootMarshal` began with `⌜∀ c ∈ ctxs, c ≠ []⌝`, false at
 this harness's contexts `[[], [], []]`, so the premise was `⌜False⌝ ∗ …` and `raft_tracecheck_safe`
@@ -26,6 +30,7 @@ adds one breaks it.
 module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.Api
+public import RaftTla.Proof.go_etcd_io.raft.v3.CCModel
 
 @[expose] public section
 
@@ -45,6 +50,34 @@ variable [GooseExts]
 /-- See the file header. -/
 abbrev BootLogFacts (boot : List LogEntry) : Prop :=
   BootLog [W64 1, W64 2, W64 3] [[], [], []] boot
+
+/-- The bootstrap voters `1, …, n` (`concurrent.go`: `Peer{ID: i}` for `i = 1 … cfg.Nodes`). -/
+def bootVoters (n : Nat) : List w64 := (List.range n).map fun j => W64 ((j : Nat) + 1)
+
+/-- **The bootstrap log of `n` voters** (2026-11-24, until then a premise `boot` with its facts
+`BootLogFacts boot`): the entries `StartNode` builds for the peers `1 … n`, each `Context` nil:
+term `1`, type `EntryConfChange`, data the bytes `proto.Marshal` writes for `ConfChange{Type: AddNode,
+NodeId: i}` (`ccBootWire`, checked against protobuf-go by `ConfChangeWireVectors.lean`). -/
+def bootLog (n : Nat) : List LogEntry :=
+  (bootVoters n).map fun i => ⟨W64 1, W32 1, ccBootWire i []⟩
+
+/-- **`bootLog n` is the bootstrap log of the voters `1 … n` without contexts**: the facts that were the
+premise `BootLogFacts`, now proved (the decoder is a function since 2026-11-24, `ccDecodeV1`). -/
+theorem bootLog_bootLog (n : Nat) (hn : n < 2 ^ 61) :
+    BootLog (bootVoters n) (List.replicate n []) (bootLog n) := by
+  refine ⟨by simp [bootLog], by simp [bootLog, bootVoters]; omega, ?_⟩
+  intro k e hk
+  simp only [bootLog, List.getElem?_map, Option.map_eq_some_iff] at hk
+  obtain ⟨i, hi, rfl⟩ := hk
+  have hk : k < n := by
+    have := (List.getElem?_eq_some_iff.1 hi).1
+    simpa [bootVoters] using this
+  refine ⟨i, [], hi, by simp [hk], rfl, rfl, ?_⟩
+  exact ccDecodeV1_bootWire i [] (by simp)
+
+/-- The harness's three voters: `BootLogFacts` holds of `bootLog 3`. -/
+theorem bootLogFacts_bootLog : BootLogFacts (bootLog 3) :=
+  bootLog_bootLog 3 (by decide)
 
 end pure
 
