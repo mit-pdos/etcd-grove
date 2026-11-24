@@ -505,10 +505,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
           · iapply walStIn_intro P Mr hp' hs false hp'n
             iframe Hhs'
             unfold walStMarsh
-            iintro !> %Φ' #Hpk HΦ'
+            iintro !> %Φ' #Hpk Hk
             wp_apply (wp_marshal hp' hs hse) $$ [] as %d ⟨Hd, %Hdn⟩
             · iframe Hhs' Hpk
-            iapply HΦ' $$ Hd %Hdn
+            iapply Hk $$ [Hd]
+            · iexact Hd
+            · ipureintro; exact Hdn
           imodintro
           isplitr
           · ipureintro; trivial

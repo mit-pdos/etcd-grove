@@ -419,3 +419,8 @@ real WAL) is the natural report if the lead wants one.
   (`WalEncFoldPend.lean`). **Hard stop**: `encodeState` of an empty `w.state` needs `proto.Marshal` to
   return a non-nil empty slice, which `proto.MarshalPb.spec` (trusted) does not say; write-up and the
   proposed change in `notes/wal-p6-handoff.md`, "The hard stop".
+- 2026-11-24 (session 2): the coordinator's answer applied (`proto.MarshalPbNonNil.law`, the
+  undischarged non-nil fact; `walStIn` for `w.state`). Compiled bottom-up through `WalEncFoldPend`
+  (**E3's fold lemma `readAllFoldP_append`**), `Abs`, `Handle`, `Inv`, `SaveHandle`, `saveState`. E2's
+  design settled (`notes/wal-p6-handoff.md`, "E2 settled"): `PendStop` in `CrashTo` and `tailStop`,
+  ghost image `d.H.take j`, W1 needed for the pending-tail crash. Next: `CrashPure`/`TailCrash*`.

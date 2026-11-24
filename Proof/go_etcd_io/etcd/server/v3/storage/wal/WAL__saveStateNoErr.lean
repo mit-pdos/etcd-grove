@@ -53,15 +53,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proofNoErr (P : W
   have hne : ¬ hsEmptyP hs := fun h => Bool.false_ne_true (hb.2 h)
   obtain ⟨hrest, hx, hidx1⟩ := hpre hne
   ihave #HstIn : walStIn P Mr hp hs $$ []
-  · unfold walStIn
-    isplitr
-    · iexact Hhs
-    iintro %_
+  · iapply walStIn_intro P Mr hp hs false Hhp
+    iframe Hhs
     unfold walStMarsh
-    iintro !> %Φ' #Hpk HΦ'
-    wp_apply (wp_marshal hp hs hne) $$ [] as %d ⟨Hd, %Hdn⟩
+    iintro !> %Φ' #Hpk Hk
+    iapply (wp_marshal hp hs hne) $$ [Hpk]
     · iframe Hhs Hpk
-    iapply HΦ' $$ Hd %Hdn
+    inext
+    iintro %d ⟨Hd, %Hdn⟩
+    iapply Hk $$ [Hd]
+    · iexact Hd
+    · ipureintro; exact Hdn
   try wp_auto
   wp_apply (wp_encodeState hS0 R jr r w dir h hp hs hrest hx hidx1 hroom) $$ [Hh] as %err ⟨%he, Hr⟩
   · iframe Harea Hh HstIn

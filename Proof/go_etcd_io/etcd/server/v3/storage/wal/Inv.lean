@@ -760,8 +760,8 @@ theorem walsBounded_app {s s' : AbsDiskState} {dir : GoString} {d d' : WalDur} (
     {o : WalOpG WalEnt} (hH : d'.H = d.H ++ [o]) (ho : ¬ walHasMaxIdx [o.toM]) : WalsBounded s' :=
   walsBounded_ins h hw (by
     obtain ⟨h1, h2, h3⟩ := h dir d hd
-    have hhm : histM d' = histM d ++ [o.toM] := by unfold histM; rw [hH, List.map_append]; rfl
-    rw [hm, hhm]; exact ⟨h1, h2, walHasMaxIdx_append h3 ho⟩)
+    have hhm : histM d' = histM d ++ [wop d.H o] := by unfold histM; rw [hH, histN_snoc']
+    rw [hm, hhm]; exact ⟨h1, h2, walHasMaxIdx_append h3 (fun h => ho ((walHasMaxIdx_wop d.H o).1 h))⟩)
 
 /-- `WalsBounded` across an update of one WAL keeping its metadata and history (`absDiskUpd`). -/
 theorem walsBounded_upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalDur} (h : WalsBounded s)

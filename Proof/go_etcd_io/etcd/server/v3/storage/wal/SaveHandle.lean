@@ -118,7 +118,8 @@ theorem walHandleIn_stateNil (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir :
   iintro %sp' %b Hsp' #Hst'
   iunfold walHandleIn
   iexists lg, df, sp', e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
-  simp only
+  have hcrc : WalHS.crc Mr { h with stNil := b } = WalHS.crc Mr h := rfl
+  simp only [hcrc]
   iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp' Hst' Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
     Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
   ipureintro

@@ -6,9 +6,13 @@
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
-- **STOPPED at a hard stop (trusted text), 2026-11-24**: "The hard stop: `proto.Marshal` of an empty
-  hard state" below. Nothing is compiled yet (the `.lake/build` seed was still building); the next
-  session seeds, compiles bottom-up and goes on once the coordinator decides.
+- **State (2026-11-24, end of session 2)**: the hard stop is answered (below: the non-nil fact is the
+  undischarged `proto.MarshalPbNonNil.law`). Compiled (lake): `WalNorm`, `WalNormDisk`, `WalEncRecs`,
+  `WalEncSuffix`, `WalEncFold`, **`WalEncFoldPend` (E3's fold lemma `readAllFoldP_append`)**, `Abs`,
+  `Handle`, `SegPre`, `Inv`, `SaveHandle`, `BootPure`, `WAL__saveState{,NoErr}`, `ReadAllDecode`.
+  **Next failing module: `CrashPure.lean`**, which is E2 proper (the design is settled: "E2 settled"
+  below). Not yet attempted: `WAL__encodeState*` proofs (3-part `walStIn`), `WAL__Save`, `LawsHs*`,
+  `TailCrash*`, `WalEncSegsImg`'s callers, the `ReadAll` files, the Links.
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
@@ -47,6 +51,33 @@ The fork's Go behavior is `notes/etcd-dist-d6.md` §10. The Lean shape:
    `ValidSnapshotEntries`/`OpenForRead` read past them; `Unsaved`/`DiscardUnsaved` new specs.
 5. **E5**: the tester (`WalTester/`) keeps working with `walImgS → walImg`; dropping the torn images
    from Go `walImgs` is a strengthening, optional. `bootstrap.lean` / `MemberGen.lean` as the plan.
+
+## E2 settled (2026-11-24): the crash image with pending entry frames
+
+Checked against the fork's Go (`notes/etcd-dist-d6.md` §10, item 2: write mode zeroes from `pendOff`,
+the offset before the first dropped record). No trusted text, no Go change; the shape:
+
+1. **Producer** (`TailCrash.lean`'s `crashTo_tailL`): `tail_decode` gives the decoded `R.take j`, `R` the
+   last segment's records `hdr ++ flatMap opDs (lastOps d)`. Split it by `flatMap_histCut`: whole ops
+   `histCut Mr (lastOps d) n` and the entry records `histCutRest` (`histCutRest_entry`). The ghost image
+   is **`I = d.H.take (segStart + (histCut …).length)`** (not `tailImg`'s `… ++ (histCut …).map toRaw`:
+   the normalized ops are not `d.H`'s); `histN_take` gives `histM {d with H := I} = (histM d).take _`,
+   and `walImgS_histCut` (compiled) the `walImgS`/`walImg` with `j ≥ d.m`.
+2. **`CrashTo`'s last clause and `WalAbsD.tailStop` become `PendStop`**: from `S.length` (`S` the
+   image's last-segment stream) the reader accepts the frames of `chainRecs (chainEnd …) ps` for some
+   entry-only `ps`, then rejects. `ps = []` is the old clause. Consumers (`CrashPure`, the `ReadAll`
+   decode, `Repair`, `ValidSnapshotEntries`) read `ps` as the trailing run that `readAllFoldP_append`
+   drops.
+3. **`TailPend` (registered tail, not yet zeroed; `TailCrashPend.lean`) and `LenZ`**: with pending frames
+   the decoder's zero length word is at the end `e` of the pending run, not at `wr = z0`: `LenZ` moves to
+   `e` and `TailPend` says `old` holds the pending frames on `[z0, e)`. A crash in that window, or in
+   `ZeroToEnd`'s zeroing (the "zeroing crash"), now needs **W1** (today's `crashTo_tailP` needs none):
+   a frame accepted at a pending position is, as of the sync, the pending frame (stamp-0 `old`), or, as
+   of the zeroing change, all zeros, whose zero length word the reader rejects. So the accepted frames
+   are a prefix of the pending run: `PendStop` again (`ps` a prefix). `W1G` is already a premise of
+   `CrashOk`.
+4. Appends happen only after a write-mode `ReadAll` zeroed from `pendOff = z0`, so `TailCands`/F-Z
+   (`TailZeros` from `z0`) are unchanged for an appending generation.
 
 ## Progress
 

@@ -91,6 +91,29 @@ theorem walLastIdx_normFrom (p : HardStateM) (H : WalHist) : walLastIdx (normFro
 theorem walLastIdx_normH (H : WalHist) : walLastIdx (normH H) = walLastIdx H := walLastIdx_normFrom _ _
 
 
+/-- The normalization keeps an operation's indices. -/
+theorem walHasMaxIdx_normOp (p : HardStateM) (o : WalOp) :
+    walHasMaxIdx [normOp p o] ↔ walHasMaxIdx [o] := by
+  cases o with
+  | save h es =>
+    obtain ⟨h', he, -⟩ := normOp_save p h es
+    rw [he]; simp [walHasMaxIdx]
+  | snap m al => rw [normOp_snap]
+
+theorem walHasMaxIdx_wop (H : List (WalOpG WalEnt)) (o : WalOpG WalEnt) :
+    walHasMaxIdx [wop H o] ↔ walHasMaxIdx [o.toM] := walHasMaxIdx_normOp _ _
+
+theorem walHasMaxIdx_cons (a : WalOp) (L : WalHist) :
+    walHasMaxIdx (a :: L) ↔ walHasMaxIdx [a] ∨ walHasMaxIdx L := by
+  simp [walHasMaxIdx]
+
+/-- The normalization keeps the indices. -/
+theorem walHasMaxIdx_normFrom (p : HardStateM) (H : WalHist) :
+    walHasMaxIdx (normFrom p H) ↔ walHasMaxIdx H := by
+  induction H generalizing p with
+  | nil => exact Iff.rfl
+  | cons o H ih => rw [normFrom, walHasMaxIdx_cons, walHasMaxIdx_cons o, walHasMaxIdx_normOp, ih]
+
 end norm
 
 end EtcdGrove

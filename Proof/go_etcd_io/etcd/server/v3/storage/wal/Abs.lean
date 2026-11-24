@@ -31,6 +31,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.W1
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncSuffix
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalNormDisk
 public import GooseLang.Ext.Fs.NamesGhost
 public import GooseLang.Ext.Fs.CrashFiles
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Hex16
@@ -559,10 +560,10 @@ theorem WalAbsD.cuts_le {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     rcases h.cuts.1 b hb with h0 | ⟨hh, es, hb', -⟩ | ⟨m, al, hb'⟩
     · omega
     · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
-      · simp only [histM, List.length_map] at h1; omega
+      · simp only [histM, histN_length] at h1; omega
       · rw [List.getElem?_eq_none h1] at hb'; cases hb'
     · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
-      · simp only [histM, List.length_map] at h1; omega
+      · simp only [histM, histN_length] at h1; omega
       · rw [List.getElem?_eq_none h1] at hb'; cases hb')
   omega
 

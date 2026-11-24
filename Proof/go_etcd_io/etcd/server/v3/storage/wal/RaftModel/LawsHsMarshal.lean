@@ -93,7 +93,8 @@ theorem walRaftP_marshSt (hnn : proto.MarshalPbNonNil.law (GF := GF) (hG := hG))
   · iframe #
   (try wp_auto)
   simp only [walRaftMr]
-  iapply HΦ $$ Hd %Hdn
+  ispecialize HΦ $$ %d Hd %Hdn
+  iexact HΦ
 
 /-- **`ZeroStLaw`** of the raftpb instance: a fresh zero hard state is canonical. -/
 theorem walRaftP_zeroSt (hnn : proto.MarshalPbNonNil.law (GF := GF) (hG := hG)) :
