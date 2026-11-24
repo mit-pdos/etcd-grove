@@ -102,7 +102,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 5) `send`'s untraced instance (`TracedUntraced.lean`)
   have wp_raft_send := raft.send.untraced wp_raft_send
-  intro c r id s to pr Hto Hprto Hns Htz Htr
+  intro c r id s to pr Hto Hprto Hns Htz Hlt0 Htr
   wp_start as H
   iNamed H
   -- (U8 v2) the no-snapshot mode is off at raft's level, and the log's storage names are the ghost
@@ -253,7 +253,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     · iframe Hm Hpb
     have Hok : SendOk id { s with prvals := <[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals }
         mm [] [] [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] :=
-      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, rfl, rfl, Hto, Hns, Htz⟩)))
+      Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, rfl, rfl, Hto, Hns, Htz, Hlt0⟩)))
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) (fun h => absurd h (by simp [mm, MsgApp])) rfl (by tr_none) $$ [$Hphys $Hm] as Hphys

@@ -44,6 +44,9 @@ Raft's own proofs see the bodies (`import all Proof.go_etcd_io.raft.v3.InvNode`)
 log marked at a node's durable term (`raftState_cmtBefore`, the sealed `cmtBefore`) is in the
 durable log of that node once it leads a later term (`raftState_cmtBefore_agree`, `durLogAgrees`),
 in a cluster of fixed membership (`confFixed`).
+(2026-11-24) The node's lifetime: `RestartNode` gives the node's start term (`nodeStartTerm n S.term`,
+the durable state's), and every `MsgSnap` a `Ready` of `n` hands out is past it
+(`readySnapSources_startTerm`), so a client tells this run's `MsgSnap`s from an earlier run's.
 
 **Sealed below the API** (internal: no client module may import them, even transitively):
 `InvNodeChan` (the older sealed node API over `NodeNames`), `InvApi`, `InvApiDyn`, `InvRawnode`,

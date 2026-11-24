@@ -32,7 +32,7 @@ theorem rnReplayState.empty (γ : RNNames GF) (n : Nat) (hn : γ.a0.length ≤ n
 theorem rnReplayState.job (γ : RNNames GF) (view : GoSlice) (rt : w64) (n : Nat) :
     rnReplayState γ view n ⊢ rnReplayJob γ view rt n := by
   unfold rnReplayState rnReplayJob
-  iintro ⟨%runs, #Hr, %hp⟩ !> %sm %ci %hc _
+  iintro ⟨%runs, #Hr, %hp⟩ !> %sm %ci %hc _ %ml _
   obtain ⟨r, hr, ht⟩ := hp.2 ci hc.2.2.1 hc.2.2.2
   obtain ⟨cov, found⟩ := replay_lookup_interval _ _ _ _ hp.1 hr ht
   iexists runs, r

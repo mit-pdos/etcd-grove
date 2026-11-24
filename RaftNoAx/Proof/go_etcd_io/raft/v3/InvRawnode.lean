@@ -2550,7 +2550,9 @@ instance (γ : RaftNames) (id : w64) (st : StorNames) (ms : List QMsg) :
     Persistent (readyMsgOrigins (GF := GF) γ id st ms) := by unfold readyMsgOrigins; infer_instance
 
 /-- The exact restore history at a Ready handout, witnessed at the node's
-current term and shared by all messages in this batch. -/
+current term and shared by all messages in this batch. (2026-11-24, the lifetime law) And every
+`MsgSnap` of the batch past the attachment's term floor (`StorNames.t0`, `LifeOk`): one sent in this
+attachment, by a leader of a term past the stored term it started from. -/
 def handoutOrigins (γ : RaftNames) (id : w64) (sn : StorNames) (term : w64)
     (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
   iprop(∃ ks : List SnapTrip, ⌜maxRestored ks ≤ bound⌝ ∗ snapHistoryMark sn (uint.nat term) (maxRestored ks) ∗
@@ -2561,7 +2563,8 @@ def handoutOrigins (γ : RaftNames) (id : w64) (sn : StorNames) (term : w64)
     (∀ i : w64, ⌜installed = some i⌝ -∗ installSeen sn.installs (uint.nat i)) ∗
     □ (∀ q : QMsg, ⌜q ∈ ms⌝ -∗ ∀ sv : SnapshotM,
       ⌜q.st.msg.Type' = MsgSnap ∧ q.st.snap = some sv⌝ -∗ installSeen sn.installs (uint.nat sv.Metadata'.Index') -∗
-      ∃ k : SnapTrip, ⌜k ∈ ks ∧ k.sid.index' = sv.Metadata'.Index'⌝))
+      ∃ k : SnapTrip, ⌜k ∈ ks ∧ k.sid.index' = sv.Metadata'.Index'⌝) ∗
+    ⌜∀ q : QMsg, q ∈ ms → q.st.msg.Type' = MsgSnap → uint.Z sn.t0 < uint.Z q.st.msg.Term'⌝)
 
 instance (γ : RaftNames) (id term : w64) (sn : StorNames) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
     Persistent (handoutOrigins (GF := GF) γ id sn term ms bound installed) := by

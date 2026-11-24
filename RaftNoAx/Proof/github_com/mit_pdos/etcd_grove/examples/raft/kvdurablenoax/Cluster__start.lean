@@ -465,7 +465,7 @@ theorem Cluster.start.wp_proof
       (by simp only [kdContents_some_commit]; exact Hsc)
       (by rw [Hbl0]; omega) Hinit Hns HcTL Htr0 x)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
-    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, -, ⟨Hwr, %HS'⟩,
+    as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, -, -, -, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩
   · rw [HcID, ← Hiface, HA]
     iframe Hvac Hrs

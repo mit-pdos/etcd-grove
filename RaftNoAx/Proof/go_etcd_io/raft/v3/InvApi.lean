@@ -1772,7 +1772,7 @@ the attach (`restartStorage`'s continuation, where raft allocates `K`). By this 
 `nodeAppliedLb γ K`/`nodeCommitLb γ K` are the floor's, the snapshot hand-out's and the certified
 terms' lower bounds of the one node attached to it. -/
 def storKeyNames (K : GName) (sn : StorNames) : IProp GF :=
-  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs)
+  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs, sn.t0)
 
 instance storKeyNames_persistent (K : GName) (sn : StorNames) :
     Persistent (storKeyNames (GF := GF) K sn) := by
@@ -1789,9 +1789,9 @@ theorem storKeyNames_agree (K : GName) (sn1 sn2 : StorNames) :
   ihave %H := dghostVar_agree _ _ _ _ _ $$ E1 E2
   ipureintro
   simp only [Prod.mk.injEq] at H
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := H
-  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11
-  subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11; rfl
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := H
+  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12
+  subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12; rfl
 
 /-- (U8 v2, 2026-10-29; 2026-11-01, durability stage I-4: keyed by the storage's key, with
 `snapGiven` merged in) **Compacting the storage of key `K` up to `k` is safe** (the API's

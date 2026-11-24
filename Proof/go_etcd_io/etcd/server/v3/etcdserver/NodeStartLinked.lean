@@ -344,7 +344,7 @@ theorem raftNode_of_RestartNode
   icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
     #Hseed, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
-  icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
+  icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg, #Hst0⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n.installs pin default $$ HpinW with HpinW
@@ -475,7 +475,10 @@ theorem raftNode_of_RestartNode
       iunfold rnRestartOk; iright
       isplitr
       · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac, by rw [Hwnode]; exact Hnsm⟩
-      rw [Hsrv, Hwa0]; iexact HA0
+      isplitr
+      · rw [Hsrv, Hwa0]; iexact HA0
+      -- (2026-11-24, the lifetime law) the node's start term, the restored term (`StorageHolds`)
+      rw [Hwnl, Hwt0, Hhold.2.2.2.1]; iexact Hst0
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi
     isplitr

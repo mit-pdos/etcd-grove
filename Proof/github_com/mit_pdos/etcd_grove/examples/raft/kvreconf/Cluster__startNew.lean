@@ -146,7 +146,7 @@ theorem Cluster.startNew.wp_proof
       (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd)
       (fun h => by have := clusterNoSnap_boot _ h; omega) HcTL Htr0 x)
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
-    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, -, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
+    as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, -, -, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
     rw [HcID, ← Hiface, hA]
     iframe Hboot Hvac Hic Hca0 Hfits

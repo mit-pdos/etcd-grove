@@ -185,7 +185,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs Hnsm
           Hcfg.traceLogger HtrC x)
         $$ [Hc Hbs Hvac Hau]
-        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, -, Hrst, HQ⟩
+        as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, #Hpin, -, #Hst0, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau
         rw [Hcfg.applied]
         iExactEq Hbs; rfl
@@ -203,7 +203,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       · ipureintro; rw [Hll, Hcfg.applied]; simp
       icases Hrst with ⟨Hrst, %HSS⟩
       subst HSS
-      iframe Hrst
+      iframe Hrst Hst0
       iExactEq Hdrv; rfl
   (try wp_auto)
   -- `raftStatus = n.Status` under `raftStatusMu`

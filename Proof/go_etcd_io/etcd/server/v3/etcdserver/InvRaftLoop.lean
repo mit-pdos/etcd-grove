@@ -227,7 +227,7 @@ theorem rnCfgAt_normal (γ : RNNames GF) (γs : ServerRaftNames) (L ce : List En
     rnRestartOk γ ∗ srvRLogLb γs (L ++ ce) ∗ rnCfgAt (GF := GF) γ L ⊢ rnCfgAt γ (L ++ ce) := by
   unfold rnCfgAt rnRestartOk
   iintro ⟨#Hr, #Hlb, Hv⟩
-  icases Hr with (%Ha | ⟨%Hp, #HA⟩)
+  icases Hr with (%Ha | ⟨%Hp, #HA, -⟩)
   · unfold rnView rnGhost
     rw [Ha.1]
     simp only [List.drop_nil, List.append_nil]

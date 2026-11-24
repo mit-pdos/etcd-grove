@@ -27,7 +27,7 @@ theorem setupNode.wp_proof
     (wp_newNode : newNode.spec (GF := GF) (hG := hG)) :
     setupNode.spec (GF := GF) (hG := hG) := by
   intro γ md c cv lok si sn σ hs csm R R' peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 Hmx Hsnz P10
-    S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0 Hun R1 R2 R3 R4 R5 R6 R7 R8 R9 Htrc
+    S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0 Hun R1 R2 R3 R4 R5 R6 R7 R8 R9 Htrc Ht0
   wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl, Hhistory,
     Hcs⟩
   ihave %Hplen := ownSlice_len $$ Hpeers
@@ -76,7 +76,7 @@ theorem setupNode.wp_proof
     P1 P2 P3 P4 P5 P6 P7 P8
     (fun h => by rw [Hsnz] at h; have h2 := Hmx (by intro hn; rw [hn] at h; cases h); word) P9
     A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10
-    (fun _ => ⟨Hhs, S1, S2, Q1, Q2, Q3, Q4, Q5⟩)
+    (fun _ => ⟨Hhs, S1, S2, Q1, Q2, Q3, Q4, Q5⟩) Ht0
     $$ [Hc HR Hcs]
     as %rn %err ⟨⟨#Hnscap, HR'⟩, #Hnc, %s, %r, Hfresh, %Herr, %Hsn2, Hcap⟩
   · iframe Hc Hlg HR Hcs

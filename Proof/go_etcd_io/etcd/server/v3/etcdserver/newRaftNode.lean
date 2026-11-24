@@ -41,7 +41,7 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames GF) (h : γ1.cum = γ2.cum)
     (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key)
     (hwal : γ1.wal = γ2.wal) (ha : γ1.a0 = γ2.a0) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnView rnGhost rnRtOk rnReplayJob rnBatchSource rnLogOf RNNames.srv
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnView rnGhost rnRtOk rnReplayJob rnMessageSource rnBatchSource rnLogOf RNNames.srv
     rnWalHanded
   rw [h, hγs, hpre, hn, hnl, hid, hkey, hwal, ha]
 

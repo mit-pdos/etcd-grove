@@ -40,13 +40,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `XfOk`'s last clause; the premise added, the lemma being private). -/
 private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Hcfg : id ∈ c.voters) (Hpr : ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p)
-    (Ht : s.term ≠ W64 0) :
+    (Ht : s.term ≠ W64 0) (Ht0 : uint.Z s.gh.sn.t0 < uint.Z s.term) :
     {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
     {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} :=
   raft.wp_store_stateC c r id s .leader (fun _ _ => Hcfg) (Hpr := fun _ => Hpr)
-    (Hrt := fun _ => Ht)
+    (Hrt := fun _ => Ht) (Hrt0 := fun _ => Ht0)
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
@@ -55,7 +55,7 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s G G1 G2 G3 k0 Hrole Hnl Hnz
+  intro c r id s G G1 G2 G3 k0 Hrole Hnl Hnz Hlt0
   wp_start as Hpre
   iNamed Hpre
   -- (2026-10-19, D21 M3) in the no-snapshot mode the log is not empty (it holds the bootstrap
@@ -90,7 +90,7 @@ theorem raft.becomeLeader.wp_proof
   wp_apply wp_store_state_leader c r id
       { resetTo { s with stepfn := functions stepLeader [] } s.term with
           prvals := pvs, ticking := true, lead := id }
-      Hcfg (fun v p hv => (Hrp v p hv).prOkN Hnw Hli1) Hnz $$ Hphys as Hphys
+      Hcfg (fun v p hv => (Hrp v p hv).prOkN Hnw Hli1) Hnz Hlt0 $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhysCV c c.voters r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys

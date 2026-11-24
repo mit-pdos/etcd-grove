@@ -274,7 +274,7 @@ theorem StartCluster.wp_proof
         (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd)
         (fun h => by have := clusterNoSnap_boot _ h; simp_all) HcTL Htr x)
       $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, -, ⟨HrS, %HS⟩, Hmeta,
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, -, -, -, ⟨HrS, %HS⟩, Hmeta,
         #HmsInv⟩
     · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
       rw [HcID, ← Hiface, hA]

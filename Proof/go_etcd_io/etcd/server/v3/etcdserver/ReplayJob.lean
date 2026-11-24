@@ -36,26 +36,66 @@ variable [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) **A `MsgSnap` of this run is
+past the restart's term**: a `MsgSnap` a `Ready` of this run handed out (`rnMessageSource`), at a
+restart (`a0 ≠ []`: `rnRestartOk`'s second disjunct, with the node's `nodeStartTerm γ.nl γ.t0`), has
+a term past `t0` (raft's `readySnapSources_startTerm`). -/
+theorem rnReplayJob_lifetime (γ : RNNames GF) (sm : MsgSt) (ml : Loc) :
+    rnRestartOk γ ∗ rnMessageSource γ ⟨ml, sm⟩ ⊢
+      ⌜sm.msg.Type' = MsgSnap → γ.a0 ≠ [] → uint.Z γ.t0 < uint.Z sm.msg.Term'⌝ := by
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨#Hrok, #Hsrc⟩
+  iunfold rnRestartOk at Hrok
+  icases Hrok with (%h0 | ⟨-, -, #Hst⟩)
+  · ipureintro; intro _ hne; exact absurd h0.1 hne
+  iunfold rnMessageSource at Hsrc
+  icases Hsrc with ⟨%term, %ms, %bound, %inst, %hq, #Hss⟩
+  ihave %Hall := readySnapSources_startTerm γ.node.cl γ.nl γ.id term ms bound inst γ.t0 $$ [Hss Hst]
+  · iframe Hss Hst
+  ipureintro
+  intro ht _
+  exact Hall ⟨ml, sm⟩ hq ht
+
 /-- The apply channel gets the concrete run for the backend index when the
-elected log agrees with the committed backend prefix. -/
+elected log agrees with the committed backend prefix. (2026-11-24, the lifetime law) The agreement is
+needed only for a `MsgSnap` of this run (`rnReplayJob`), so only at a term past the restart's
+(`rnReplayJob_lifetime`): `uint.Z γ.t0 < uint.Z rt`, which raft's `raftState_cmtBefore_agree` takes. -/
 theorem rnReplayJob_of_history (γ : RNNames GF) (view : GoSlice) (runs : List replayTermRun)
     (rt : w64) (n : Nat) (S : RaftState) (hb : uint.nat S.base.index' ≤ n)
     (hr : replayRunsDescribe runs S n) :
     letI := srvStor (GF := GF) γ.node
-    (view ↦*□ runs : IProp GF) ⊢
-      (□ ∀ sm : MsgSt, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length⌝ -∗
+    (view ↦*□ runs : IProp GF) ⊢ rnRestartOk γ -∗
+      (□ ∀ sm : MsgSt, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length ∧
+          uint.Z γ.t0 < uint.Z rt⌝ -∗
         sentMsg γ.node.cl srvClusterN γ.id sm -∗ ⌜DurAgrees S (γ.a0.map EntryModel.toLE)⌝) -∗
       rnReplayJob γ view rt n := by
-  iintro #Hr #Hagree
+  iintro #Hr #Hrok #Hagree
   iunfold rnReplayJob
-  iintro !> %sm %ci %h #Hsent
+  iintro !> %sm %ci %h #Hsent %ml #Hsrc
   obtain ⟨ht, hrt, hn, hci⟩ := h
-  ihave %ha := Hagree $$ %sm %(And.intro ht ⟨hrt, hn⟩) Hsent
+  ihave %hlt := rnReplayJob_lifetime γ sm ml $$ [Hrok Hsrc]
+  · iframe Hrok Hsrc
+  have ht0 : uint.Z γ.t0 < uint.Z rt := by
+    rw [← hrt]; exact hlt ht (fun h => by rw [h] at hn; exact Nat.not_lt_zero _ hn)
+  ihave %ha := Hagree $$ %sm %(⟨ht, hrt, hn, ht0⟩) Hsent
   have hd := replayImage_plogTerm γ.a0 S ci (by omega) hci (by omega) ha
   obtain ⟨hc, r, hfound, hterm⟩ := hr ci _ (by have := uint_nat_eq ci; omega) hd
   iexists runs, r
   iframe Hr
   ipureintro; exact ⟨hc, hfound, hterm⟩
+
+/-- (2026-11-24, the lifetime law) **The server's membership is fixed** (raft's L2 premise `confFixed`):
+after every committed log the configuration is the boot one (`srv_confAt_simple`). -/
+theorem srv_confFixed [go_etcd_io.raft.v3.Assumptions] (γ : ServerRaftNames) (E : CoPset)
+    (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) γ ⊢
+      (letI := srvStor (GF := GF) γ.raft; confFixed γ.raft.cl E (Membership.simple γ.raft.cfg)) := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro #Hinv
+  unfold confFixed
+  iintro !> %l #Hl
+  iapply srv_confAt_simple γ l l.length (Nat.le_refl _) E hC hL
+  iframe Hinv Hl
 
 end EtcdGrove
 end Perennial

@@ -30,6 +30,12 @@ theorem raft.becomeCandidate.wp_proof
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
   intro c r id s Q Hrole Hnw Hcfg
   wp_start as ⟨Hphys, Hgate⟩
+  -- (2026-11-24, the lifetime law) the term at least the attachment's floor, so `r.Term + 1` past it
+  icases ownRaftPhysC_t0 c r id s $$ Hphys with ⟨%Ht0c, Hphys⟩
+  have Ht0n : uint.Z s.gh.sn.t0 < uint.Z (s.term + W64 1) := by
+    have h1 := Ht0c.1
+    have h2 : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
+    omega
   wp_auto
   -- `becomeCandidate` panics on a leader; by assumption we are not one.
   have Hnl : stateW64 s.role ≠ W64 2 := by
@@ -52,7 +58,7 @@ theorem raft.becomeCandidate.wp_proof
   rw [show (go_etcd_io.raft.v3.StateCandidate : val) = #(stateW64 .candidate) from rfl]
   have Htnz : s.term + W64 1 ≠ W64 0 := by word
   wp_apply raft.wp_store_stateC (ro := .candidate) (Hro := fun _ _ => Hcfg)
-    (Hrt := fun _ => Htnz) $$ Hphys as Hphys
+    (Hrt := fun _ => Htnz) (Hrt0 := fun _ => Ht0n) $$ Hphys as Hphys
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC

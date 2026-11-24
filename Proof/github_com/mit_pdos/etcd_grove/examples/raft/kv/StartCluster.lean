@@ -356,7 +356,7 @@ theorem StartCluster.wp_proof
       (by rw [Hbl0]; simp [StorContents.commit]) (by rw [← Hγv]; exact kvConfState_is γr)
       (fun h => by have := clusterNoSnap_boot _ h; omega) rfl Htr0 x)
       $$ [$Hraftinit $«$a0» $Hlogger Hboot Hvac Hau]
-      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, -, ⟨HrS, %HS⟩, #HmsInv⟩
+      as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hcfg, Hrun, -, -, -, ⟨HrS, %HS⟩, #HmsInv⟩
     · have hA : uint.nat (nodeConfig id0 st).Applied' = 0 := rfl
       have hI : (nodeConfig id0 st).ID' = id0 := rfl
       rw [← Hiface, hA, hI]
