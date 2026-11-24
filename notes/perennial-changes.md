@@ -287,6 +287,33 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   Perennial, then restate the local specs as theorems over Perennial's; for `WithCancelValCtx`, a
   `propagateCancel` spec for a parent whose `Done()` is a channel that is never closed.
 - **Status.** Not started in Perennial (to be filed by the claim's coordinator).
+- **Re-surveyed at the pin `b3f2fc485` (2026-11-24, branch `stdlib-leaves-3`).** Retired since the list
+  above: `bytes.Buffer.Write`/`Bytes`, `slices.Clone`/`Concat`, `context.WithCancelTodo`
+  (`stdlib-leaves-670`), `rand.Int63n`/`Int31` (`rand-retire`); `fmt.SprintfWalName` becomes a theorem
+  over real `fmt` stage 1's `fmt.wp_Sprintf_walName` with the pin bump to `50596346c` on
+  `prove-ps2-fmtstage1/2026-11-24` (not at `b3f2fc485`, whose `Sprintf` model leaves `%0Nx` arbitrary).
+  Nothing else is coverable at `b3f2fc485` (no Perennial change since `47ec64a9d` touches these
+  packages but `encoding/binary`'s varints and `fmt.Fprint`). What each remaining one needs:
+  - `strings.Contains`/`SplitN`/`ToLower`, `slices.ContainsFunc`, `io.Pipe`/`PipeWriter.CloseWithError`,
+    `os.Getenv`/`Getpagesize`, `math.Ceil`/`Pow`, `sort.SliceIsSorted`, `context.WithValue`: still names
+    only in Perennial, as above (`slices.ContainsFunc` is plain generic Go: adding it, with `IndexFunc`, to
+    `slices.toml` and a spec is the cheapest of them);
+  - `binary.WriteUint8`: `binary.Write` is translated now, but a named type of underlying `uint8` misses
+    `intDataSize`'s fast path and takes the reflection path (`reflect.Indirect`, `encoder.value`);
+  - `io.MultiReader`: Perennial's `bytes.wp_MultiReader_buffer` (a `*Buffer` then a reader keeping
+    `io.readerOkOut`) is the proof, but the local spec's reader is `backend.readerStreams rc Φ`, an opaque
+    that only the `io.Pipe` axiom gives: the proof needs `readerStreams` defined as an `io.readerOkOut`
+    contract (errors `ptrTyped`), which makes the trusted `io.Pipe` post say more (an approval), and the
+    spec needs `isPkgInit pkg_id.io` and `io.EOF`'s global, which `createSnapBody`'s proof must pass;
+  - `errors.AsNoMatch`: Perennial's `errors.As.spec` returns some `b` and `v'`, too weak for
+    `RET #false; l ↦ v` (needs a no-match triple in Perennial);
+  - `context.WithCancelValCtx`: unchanged (`propagateCancel`'s goroutine branch);
+    `context.madeCancelCtx_of_isCancelCtx` is a trusted law of the local opaque `madeCancelCtx`, not a
+    missing Perennial spec: it goes only if Perennial exports a "made by `context`" fact of a `*cancelCtx`;
+  - `fmt.SprintfSlice`, `fmt.ErrorfSlice` (`[]Decision`, a slice of structs: `printValue`, stuck by
+    design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
+    `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
+  - `time.Time.Format.wp_proofBroken`: `time`'s formatting is names only.
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
