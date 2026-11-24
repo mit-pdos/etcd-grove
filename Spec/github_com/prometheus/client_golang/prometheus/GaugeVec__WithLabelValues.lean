@@ -32,7 +32,7 @@ valid UTF-8: the premise `labelValuesOk`, against the vector's label names (`vec
 initializer's fact; D19l (iii), 2026-10-18); the values are read at any fraction and kept. -/
 abbrev prometheus.GaugeVec.WithLabelValues.spec : Prop :=
   ∀ (gv : Loc) (lvs : GoSlice) (ls vs : List GoString) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
+  {{ isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
       ⌜prometheus.vecLabels gv ls ∧ prometheus.labelValuesOk ls vs⌝ ∗ lvs ↦*{dq} vs }}
     (App (Val (gv @!! go.GoType.PointerType github_com.prometheus.client_golang.prometheus.GaugeVec.ty @!! go!"WithLabelValues"))
       (Val #lvs))

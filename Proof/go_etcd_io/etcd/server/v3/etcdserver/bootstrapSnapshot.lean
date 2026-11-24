@@ -35,6 +35,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- **`err != nil` on any error** (`RemoveMatchFile`'s `err`): `i == nil` on an interface steps to
+`decide (i = nil)` for every `i`. Derived from Perennial's `go_eq_interface`, whose rule matches on
+both sides, so it does not step on a variable `i` (`CoreComparisonSemantics` has this rule for
+functions, not for interfaces: `notes/perennial-changes.md`). -/
+instance (priority := high) go_eq_interface_nil_r (elems : List go.InterfaceElem) (i : GoInterface) :
+    ⟦GoOp GoEquals (go.InterfaceType elems), (#i, #interface.nil)⟧ ⤳[under]
+      #(decide (i = interface.nil)) := by
+  have h := go.go_eq_interface (elems := elems) i interface.nil
+  cases i <;> simpa using h
+
 theorem bootstrapSnapshot.wp_proof
     (hSnapDir : config.ServerConfig.SnapDir.spec (GF := GF) (hG := hG))
     (hTouch : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt],
@@ -55,7 +65,7 @@ theorem bootstrapSnapshot.wp_proof
     iexfalso; iexact H
   simp only [bootFs.dirFresh, snapFreeAll, snapFree, backend.fileFree, backend.onFs_some hfs]
   wp_start as ⟨#Hzlg, Hdf⟩
-  icases Hdf with ⟨%R, %j, %h, ⟨%hclean, %hcur⟩, #Hinv, #Hsh, #Hab, Hp, Hc, Hn⟩
+  icases Hdf with ⟨%R, %j, %h, ⟨%hclean, -, %hcur⟩, #Hinv, #Hsh, #Hab, Hp, Hc, Hn⟩
   wp_auto
   ipersist cfg
   ihave #Hcf := cfg
@@ -114,8 +124,11 @@ theorem bootstrapSnapshot.wp_proof
   wp_apply (hRemove cfg.Logger' (config.snapDirOf cfg.DataDir') _ R J (DFrac.own 1) 1 (DFrac.own 1) hJ
       hJn) $$ [HpJ Hc HJ] as %rerr ⟨HpJ, Hc, HJ⟩
   · iframe HpJ Hc HJ; iframe #
-  wp_auto
-  wp_join (iprop(True) : IProp GF) with [] as -
+  (try wp_auto)
+  -- the branches: `err == nil` first (the split is on `decide (err = nil)`), then `err != nil`, which
+  -- reads `err` again (`zap.Error(err)`)
+  wp_join (iprop(True) : IProp GF) with [err] as -
+  all_goals try (ipureintro; trivial)
   · wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDe
     · iframe DataDirF
     wp_apply hStr as %f0 -
@@ -125,17 +138,21 @@ theorem bootstrapSnapshot.wp_proof
     · ipureintro; rfl
     iintro %fsl -
     wp_auto
-    wp_apply hError as -
+    wp_apply hError
     · iframe #
     wp_join_done
+    try (ipureintro; trivial)
   -- `RemoveMatchFile(cfg.Logger, cfg.SnapDir(), db.tmp)`
   wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDr
   · iframe DataDirF
   wp_apply (hRemove cfg.Logger' (config.snapDirOf cfg.DataDir') _ R J (DFrac.own 1) 1 (DFrac.own 1) hJ
       hJn) $$ [HpJ Hc HJ] as %rerr ⟨HpJ, Hc, HJ⟩
   · iframe HpJ Hc HJ; iframe #
-  wp_auto
-  wp_join (iprop(True) : IProp GF) with [] as -
+  (try wp_auto)
+  -- the branches: `err == nil` first (the split is on `decide (err = nil)`), then `err != nil`, which
+  -- reads `err` again (`zap.Error(err)`)
+  wp_join (iprop(True) : IProp GF) with [err] as -
+  all_goals try (ipureintro; trivial)
   · wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDe
     · iframe DataDirF
     wp_apply hStr as %f0 -
@@ -145,17 +162,24 @@ theorem bootstrapSnapshot.wp_proof
     · ipureintro; rfl
     iintro %fsl -
     wp_auto
-    wp_apply hError as -
+    wp_apply hError
     · iframe #
     wp_join_done
+    try (ipureintro; trivial)
   -- `RemoveMatchFile(cfg.Logger, cfg.SnapDir(), .snap)`
   wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDr
   · iframe DataDirF
   wp_apply (hRemove cfg.Logger' (config.snapDirOf cfg.DataDir') _ R J (DFrac.own 1) 1 (DFrac.own 1) hJ
       hJn) $$ [HpJ Hc HJ] as %rerr ⟨HpJ, Hc, HJ⟩
   · iframe HpJ Hc HJ; iframe #
-  wp_auto
-  wp_join (iprop(True) : IProp GF) with [] as -
+  (try wp_auto)
+  -- the branches: `err == nil` first (the split is on `decide (err = nil)`), then `err != nil`, which
+  -- reads `err` again (`zap.Error(err)`)
+  wp_join (iprop(True) : IProp GF) with [err] as -
+  · wp_apply hInfo
+    · iframe #
+    wp_join_done
+    try (ipureintro; trivial)
   · wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDe
     · iframe DataDirF
     wp_apply hStr as %f0 -
@@ -165,12 +189,10 @@ theorem bootstrapSnapshot.wp_proof
     · ipureintro; rfl
     iintro %fsl -
     wp_auto
-    wp_apply hError as -
+    wp_apply hError
     · iframe #
     wp_join_done
-  · wp_apply hInfo as -
-    · iframe #
-    wp_join_done
+    try (ipureintro; trivial)
   -- the snapshot directory's claims
   imod bootSnap.snapDir_carve R cfg.DataDir' J 1 1 hJ Hfits hJn $$ Hinv Hsh HpJ Hc HJ
     with ⟨Hdb, %F, %hF, HF⟩
@@ -180,7 +202,7 @@ theorem bootstrapSnapshot.wp_proof
   wp_apply (hNew cfg.Logger' (config.snapDirOf cfg.DataDir') ⟨cfg.DataDir', rfl⟩) as %ss #Hss
   · iframe #
     iapply zapLoggerOk_orNil; iexact Hzlg
-  wp_auto
+  (try wp_auto)
   iapply HΦ
   iframe Hss Hdb
   iexists F

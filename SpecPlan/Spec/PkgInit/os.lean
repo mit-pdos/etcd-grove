@@ -7,6 +7,7 @@ public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.io.fs
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.syscall
+public import Perennial.Proof.internal.testlog.Base
 public import SpecPlan.Spec.PkgInit.internal.poll
 public import Perennial.Proof.errors.Base
 

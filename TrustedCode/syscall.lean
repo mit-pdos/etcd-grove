@@ -287,6 +287,18 @@ user's decision, Perennial fix-semantics Case 33: "P1: (ii)", 2026-11-04.) -/
 def init.«0».impl : val :=
   λ: <>, #()
 
+/-- `Exit(code int)` (`syscall.go`: `func Exit(code int)`, no Go body; the runtime provides it,
+`runtime.syscall_Exit`, the `exit_group` system call; zap-z2, 2026-11-23, as Perennial's
+`TrustedCode/syscall.lean` since `ca6df841b`): the process ends with status `code`; no deferred
+function runs and no goroutine takes another step. The model: `AngelicExit`, which steps to itself
+for good, so the calling goroutine never returns (its deferred functions never run) and the code
+after the call is never reached. The other goroutines keep running in the model, where Go stops
+them: the model has more executions than Go, each of whose prefixes up to the exit is one of Go's
+(Perennial's `goose/model/runtime/exit_test.go`), as when `main` returns. -/
+def Exit.impl : val :=
+  λ: "code",
+    AngelicExit #()
+
 end code
 end syscall
 

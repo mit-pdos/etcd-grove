@@ -60,15 +60,10 @@ theorem nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α),
     subst this
     exact hl'.1 hb
 
-/-- Every `w64`, once. -/
-def allW64 : List w64 := (List.range (2 ^ 64)).map (fun n => BitVec.ofNat 64 n)
-
-theorem mem_allW64 (i : w64) : i ∈ allW64 := by
-  unfold allW64
-  exact List.mem_map.2 ⟨i.toNat, List.mem_range.2 i.isLt, BitVec.ofNat_toNat _ _⟩
-
-theorem allW64_nodup : allW64.Nodup := by
-  unfold allW64
+/-- A list of every `w64`, once, exists. -/
+theorem allW64_exists : ∃ l : List w64, (∀ i, i ∈ l) ∧ l.Nodup := by
+  refine ⟨(List.range (2 ^ 64)).map (fun n => BitVec.ofNat 64 n), fun i => ?_, ?_⟩
+  · exact List.mem_map.2 ⟨i.toNat, List.mem_range.2 i.isLt, BitVec.ofNat_toNat _ _⟩
   refine nodup_map_on _ _ ?_ List.nodup_range
   intro a ha b hb hab
   have ha' := List.mem_range.1 ha
@@ -77,6 +72,16 @@ theorem allW64_nodup : allW64.Nodup := by
   simp only [BitVec.toNat_ofNat] at this
   rw [Nat.mod_eq_of_lt ha', Nat.mod_eq_of_lt hb'] at this
   exact this
+
+/-- **Every `w64`, once** (only through `mem_allW64` and `allW64_nodup`). Chosen, not
+`(List.range (2 ^ 64)).map _`: a definition the kernel can unfold made its check of
+`snapDir_carve` (the proof mode's `bigSepL_cons` on `go!"db" :: allW64.map _`) unfold the
+`2 ^ 64`-element list, a deterministic timeout (2026-11-24); the kernel cannot unfold a choice. -/
+noncomputable def allW64 : List w64 := Classical.choose allW64_exists
+
+theorem mem_allW64 (i : w64) : i ∈ allW64 := (Classical.choose_spec allW64_exists).1 i
+
+theorem allW64_nodup : allW64.Nodup := (Classical.choose_spec allW64_exists).2
 
 /-- Database snapshot names of distinct indices are distinct. -/
 theorem snapDBName_inj {i i' : w64} (h : snap.snapDBName i = snap.snapDBName i') : i = i' := by

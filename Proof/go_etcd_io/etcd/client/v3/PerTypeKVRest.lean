@@ -37,15 +37,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-! ## Compaction -/
 
-/-- **The store of a compaction request**: its revision and `Physical` flag. -/
-def compactReqTree (m : CompactReqM) : VTree :=
-  .strct etcdserverpb.CompactionRequest.ty
-    [(go!"Revision", go.int64), (go!"Physical", go.bool)]
-    [.leaf #m.revision, .leaf #m.physical]
-
 /-- **`pbCompactionRequest` with its store.** -/
 def pbCompactionRequestT : ProtoMsgT GF :=
-  { pbCompactionRequest with tree := compactReqTree }
+  { pbCompactionRequest with }
 
 theorem pbCompactionRequestT_wireLen_ok :
     ∃ m, (pbCompactionRequestT (GF := GF)).wireLen m < grpcMsgMax :=
@@ -86,15 +80,9 @@ theorem pbCompactionRequestT_reqSat : (pbCompactionRequestT (GF := GF)).ReqSat :
   iframe Hl
   ipureintro; rfl
 
-/-- **The store of a compaction response**: its header. -/
-def compactRespTree (m : CompactRespM) : VTree :=
-  .strct etcdserverpb.CompactionResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty)]
-    [hdrTree m.hdr]
-
 /-- **`pbCompactionResponse` with its store.** -/
 def pbCompactionResponseT : ProtoMsgT GF :=
-  { pbCompactionResponse with tree := compactRespTree }
+  { pbCompactionResponse with }
 
 /-- **`pbCompactionResponseT`'s reply model is satisfiable.** -/
 theorem pbCompactionResponseT_repSat : (pbCompactionResponseT (GF := GF)).RepSat := by
@@ -145,11 +133,6 @@ theorem pbCompactionResponseT_repSat : (pbCompactionResponseT (GF := GF)).RepSat
 
 /-! ## Put and delete responses -/
 
-/-- **The store of a previous key-value** (`nil` if none). -/
-def prevKvTree : Option EtcdKv → VTree
-  | none => .leaf #(null : Loc)
-  | some v => kvTree v
-
 theorem treeWp_prevKv (prev : Option EtcdKv) (Φ : val → IProp GF) :
     (∀ pk : Loc, (match prev with
       | none => iprop(⌜pk = null⌝)
@@ -173,16 +156,9 @@ theorem treeWp_prevKv (prev : Option EtcdKv) (Φ : val → IProp GF) :
       ipureintro; exact Hnn
     iexact Hp
 
-/-- **The store of a put response**: its header, its previous key-value (`nil` if none). -/
-def putRespTree (m : PutRespM) : VTree :=
-  .strct etcdserverpb.PutResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
-     (go!"PrevKv", go.GoType.PointerType mvccpb.KeyValue.ty)]
-    [hdrTree m.hdr, prevKvTree m.prev]
-
 /-- **`pbPutResponse` with its store.** -/
 def pbPutResponseT : ProtoMsgT GF :=
-  { pbPutResponse with tree := putRespTree }
+  { pbPutResponse with }
 
 /-- **`pbPutResponseT`'s reply model is satisfiable.** -/
 theorem pbPutResponseT_repSat : (pbPutResponseT (GF := GF)).RepSat := by
@@ -236,19 +212,9 @@ theorem pbPutResponseT_repSat : (pbPutResponseT (GF := GF)).RepSat := by
   iexists h, pk
   iframe HH Hh HP Hpk
 
-/-- **The store of a delete response**: its header, `Deleted`, its previous key-values (`nil` if
-none). -/
-def delRespTree (m : DelRespM) : VTree :=
-  .strct etcdserverpb.DeleteRangeResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
-     (go!"Deleted", go.int64),
-     (go!"PrevKvs", go.GoType.SliceType (go.GoType.PointerType mvccpb.KeyValue.ty))]
-    [hdrTree m.hdr, .leaf #m.deleted,
-     sliceTree (go.GoType.PointerType mvccpb.KeyValue.ty) (m.prevs.map kvTree)]
-
 /-- **`pbDeleteRangeResponse` with its store.** -/
 def pbDeleteRangeResponseT : ProtoMsgT GF :=
-  { pbDeleteRangeResponse with tree := delRespTree }
+  { pbDeleteRangeResponse with }
 
 /-- **`pbDeleteRangeResponseT`'s reply model is satisfiable.** -/
 theorem pbDeleteRangeResponseT_repSat : (pbDeleteRangeResponseT (GF := GF)).RepSat := by
@@ -310,13 +276,9 @@ theorem pbDeleteRangeResponseT_repSat : (pbDeleteRangeResponseT (GF := GF)).RepS
 
 /-! ## Range and delete requests -/
 
-/-- **The store of a range request** (`PerTypeTxn`'s `getStrct`: its fields read back from the
-get's `OpFull`, `Key` and `RangeEnd` `nil` if empty). -/
-def rangeReqTree (o : OpFull) : VTree := getStrct o
-
 /-- **`pbRangeRequest` with its store.** -/
 def pbRangeRequestT : ProtoMsgT GF :=
-  { pbRangeRequest with tree := rangeReqTree }
+  { pbRangeRequest with }
 
 theorem pbRangeRequestT_wireLen_ok : ∃ m, (pbRangeRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨rangeReqOp (zero_val _) [] [], by
@@ -403,12 +365,9 @@ theorem pbRangeRequestT_reqSat : (pbRangeRequestT (GF := GF)).ReqSat := by
     · ipureintro; exact len_bound ksl o.key hk Hk'.2.2.1
   · ipureintro; trivial
 
-/-- **The store of a delete request** (`PerTypeTxn`'s `delStrct`). -/
-def delReqTree (o : OpFull) : VTree := delStrct o
-
 /-- **`pbDeleteRangeRequest` with its store.** -/
 def pbDeleteRangeRequestT : ProtoMsgT GF :=
-  { pbDeleteRangeRequest with tree := delReqTree }
+  { pbDeleteRangeRequest with }
 
 theorem pbDeleteRangeRequestT_wireLen_ok :
     ∃ m, (pbDeleteRangeRequestT (GF := GF)).wireLen m < grpcMsgMax :=
@@ -484,56 +443,9 @@ theorem pbDeleteRangeRequestT_reqSat : (pbDeleteRangeRequestT (GF := GF)).ReqSat
 
 /-! ## Transaction responses -/
 
-/-- **A nested response's header**: its revision only (`OpRespM`'s model; the other fields zero,
-which the decoder leaves unset). -/
-def revHdr (rev : w64) : HdrM :=
-  { clusterId := W64 0, memberId := W64 0, revision := rev, raftTerm := W64 0, leaderId := W64 0 }
-
-/-- **A `ResponseOp` whose oneof wraps (`wty`, its field `fname`) a fresh response.** -/
-def respWrap (wty : go.GoType) (fname : GoString) (innerTy : go.GoType) (inner : VTree) : VTree :=
-  .ptr etcdserverpb.ResponseOp.ty (.strct etcdserverpb.ResponseOp.ty
-    [(go!"Response", go.GoType.PointerType wty)]
-    [.ptr wty (.strct wty [(fname, go.GoType.PointerType innerTy)] [inner])])
-
-/-- **A transaction response's fields**: its header, `Succeeded`, its responses' store `rsT`. -/
-def txnRespStrct (hdr : HdrM) (ok : Bool) (rsT : VTree) : VTree :=
-  .strct etcdserverpb.TxnResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
-     (go!"Succeeded", go.bool),
-     (go!"Responses", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.ResponseOp.ty))]
-    [hdrTree hdr, .leaf #ok, rsT]
-
-mutual
-/-- **The store of an operation's response** (a nested transaction's recursively). -/
-def respOpTree : OpRespM → VTree
-  | .range rev kvs more count => respWrap etcdserverpb.ResponseOp_ResponseRange.ty
-      go!"ResponseRange" etcdserverpb.RangeResponse.ty
-      (.ptr etcdserverpb.RangeResponse.ty (rangeRespTree ⟨revHdr rev, kvs, more, count⟩))
-  | .put rev prev => respWrap etcdserverpb.ResponseOp_ResponsePut.ty
-      go!"ResponsePut" etcdserverpb.PutResponse.ty
-      (.ptr etcdserverpb.PutResponse.ty (putRespTree ⟨revHdr rev, prev⟩))
-  | .delete rev n prevs => respWrap etcdserverpb.ResponseOp_ResponseDeleteRange.ty
-      go!"ResponseDeleteRange" etcdserverpb.DeleteRangeResponse.ty
-      (.ptr etcdserverpb.DeleteRangeResponse.ty (delRespTree ⟨revHdr rev, n, prevs⟩))
-  | .txn rev ok resps => respWrap etcdserverpb.ResponseOp_ResponseTxn.ty
-      go!"ResponseTxn" etcdserverpb.TxnResponse.ty
-      (.ptr etcdserverpb.TxnResponse.ty (txnRespStrct (revHdr rev) ok
-        (sliceTree (go.GoType.PointerType etcdserverpb.ResponseOp.ty) (respOpsTree resps))))
-/-- The stores of responses, in order. -/
-def respOpsTree : List OpRespM → List VTree
-  | [] => []
-  | m :: ms => respOpTree m :: respOpsTree ms
-end
-
-/-- **The store of a transaction response**: its header, `Succeeded`, its responses (`nil` if
-none). -/
-def txnRespTree (m : TxnRespM) : VTree :=
-  txnRespStrct m.hdr m.succeeded
-    (sliceTree (go.GoType.PointerType etcdserverpb.ResponseOp.ty) (respOpsTree m.resps))
-
 /-- **`pbTxnResponse` with its store.** -/
 def pbTxnResponseT : ProtoMsgT GF :=
-  { pbTxnResponse with tree := txnRespTree }
+  { pbTxnResponse with }
 
 theorem respOpsTree_length : ∀ ms : List OpRespM, (respOpsTree ms).length = ms.length
   | [] => rfl
@@ -1155,7 +1067,6 @@ axiom pbCompactionResponseT_reg :
     grpcRepModelOf GF etcdserverpb.CompactionResponse.ty = some (pbCompactionResponseT (GF := GF))
 
 end defs
-
 
 end EtcdGrove
 end Perennial

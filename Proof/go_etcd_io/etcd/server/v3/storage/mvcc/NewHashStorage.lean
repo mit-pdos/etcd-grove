@@ -31,11 +31,25 @@ theorem mvcc.NewHashStorage.wp_proof : mvcc.NewHashStorage.spec (GF := GF) (hG :
   wp_alloc h as Hh
   iStructNamed Hh
   ipersist lg
+  -- `hashMu`, over the empty `hashes` (its reader slots are dropped: nothing verified reads
+  -- `hashes` under the read lock yet)
+  imod (sync.init_RWMutex (mvcc.hashesR (GF := GF) h) (E := ⊤)
+      (structFieldRef hashStorage go!"hashMu" h)) $$ [hashes] hashMu with Hslots
+  · inext
+    iunfold mvcc.hashesR
+    iexists slice.nil, []
+    iframe hashes
+    isplitr
+    · iapply ownSlice_nil
+    isplitl
+    · iapply ownSliceCap_nil
+    · ipureintro; simp
+  icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hg⟩
   (try wp_auto)
   iapply HΦ
   unfold mvcc.hashStorageOk
   iexists lg
-  iframe lg
+  iframe lg Hg
   iexact Hlg
 
 end proof

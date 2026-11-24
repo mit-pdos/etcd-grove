@@ -471,8 +471,10 @@ theorem NewServer.wp_proofRG
   · iunfold bootCfgRO at Hcfgro
     icases Hcfgro with ⟨-, #H, -⟩
     iexact H
-  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, -⟩
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, ⟨%cuss, Hcus, -⟩⟩
   · iframe ClientURLs; iframe #
+  -- (prove-ps2-srvgoroutines, 2026-11-24) the attributes' URLs, read-only for good (`srvAttrsRO`)
+  ipersist Hcus
   (try wp_auto)
   -- the request ids' generator, the notifiers
   ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -496,6 +498,10 @@ theorem NewServer.wp_proofRG
   generalize hsrv : «$r0_ptr» = s
   irename «$r0» => Hs
   iStructNamed Hs
+  -- (prove-ps2-srvgoroutines, 2026-11-24) `s.attributes`, read-only for good (`srvAttrsRO`: `publishV3`'s)
+  iStructNamedSuffix attributes "A"
+  ipersist NameA
+  ipersist ClientURLsA
   -- the metrics
   ihave Hsi : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -504,7 +510,7 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   wp_apply h16 $$ []
   · iframe Hgvf Hfg; ipureintro; exact Hfgp
-  ihave #Hppkg : isPkgInit (PROP := IProp GF)
+  ihave #Hppkg : isPkgInitSome (PROP := IProp GF)
       pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   (try wp_auto)
@@ -1899,8 +1905,8 @@ theorem NewServer.wp_proofRG
   -- (2026-10-23) `readych`, as a broadcast channel not yet closed: `publishV3`'s to close
   ipersist readych
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γrdc rdc $$ Hrdc Hrdo with Hrdb
-  ihave Hrc : srvReadyCloser s $$ [Hrdb]
-  · unfold srvReadyCloser
+  ihave HrcCh : srvReadyCh s $$ [Hrdb]
+  · unfold srvReadyCh
     iexists rdc, γrdc
     iframe readych
     iframe Hrdb
@@ -2034,9 +2040,9 @@ theorem NewServer.wp_proofRG
   -- and of the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), paired, at level 1
   icases replicate_takeN _ srvRevokePoolN _ (by
       unfold srvRevokePoolN backend.rdPoolN; rw [sync.rwmutex.actualMaxReaders_unseal]; decide)
-    $$ HltRest with ⟨HltI, -⟩
+    $$ HltRest with ⟨HltI, HltRest⟩
   icases replicate_takeN _ srvRevokePoolN _ (by unfold srvRevokePoolN backend.rdPoolN; omega)
-    $$ HRDstock with ⟨HRDI, -⟩
+    $$ HRDstock with ⟨HRDI, HRDrest⟩
   -- (rdslot, 2026-11-22) and of the transport's reader tokens, as the server's transport slots
   -- (`srvTrReader`, which `srvLeadTimeReader` now holds with `leadTimeMu`'s)
   ihave HtrRs := (BigSepL.bigSepL_impl (Ψ := fun _ _ => srvTrReader (GF := GF) s)) $$ HtokRest
@@ -2048,7 +2054,7 @@ theorem NewServer.wp_proofRG
     isplitr; · iExactEq Htrf; rfl
     iframe Htrr Htk
   icases replicate_takeN _ srvRevokePoolN _ (by unfold srvRevokePoolN backend.rdPoolN; have := hMR; have := hHP; omega)
-    $$ HtrRs with ⟨HtrI, -⟩
+    $$ HtrRs with ⟨HtrI, HtrRest⟩
   -- (2026-11-06) the lists are paired at their elements' own forms (`leadTimeMu`'s slot, not
   -- `srvLeadTimeReader`): no tactic rewrites the goal, no bare `iframe` compares the lists (a
   -- mismatched `[∗list]` unfolds the `List.replicate`; this step reached 80 GB before)
@@ -2067,6 +2073,19 @@ theorem NewServer.wp_proofRG
       (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
   -- (revoke-open, 2026-11-06) the revocation's built part: the inner pool from `leadTimeMu`'s rest
   -- and the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), `raftPool`, the store's pointer
+  -- (prove-ps2-srvgoroutines, 2026-11-24) `publishV3`'s resources: the channel, the attributes, and one
+  -- more of `leadTimeMu`'s, the transport's and the auth store's slots past the revocation's pool
+  icases replicate_take1 _ _ (by unfold srvRevokePoolN backend.rdPoolN; rw [sync.rwmutex.actualMaxReaders_unseal]; omega)
+    $$ HltRest with ⟨HltP, -⟩
+  icases replicate_take1 _ _ (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HRDrest with ⟨HRDP, -⟩
+  icases replicate_take1 _ _ (by unfold srvRevokePoolN backend.rdPoolN; have := hMR; have := hHP; omega)
+    $$ HtrRest with ⟨HtrP, -⟩
+  ihave Hrc : srvReadyCloser s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt, Wt := srvApi.winTok γwt, stq := (1 : Qp).half.half } : apply.AEnv GF) : apply.AEnv GF) $$ [HrcCh HltP HtrP HRDP]
+  · unfold srvReadyCloser srvLeadTimeReader
+    iframe HrcCh HltP HtrP HRDP
+    iunfold srvAttrsRO
+    iexists _, _, _
+    iframe NameA ClientURLsA Hcus
   ihave #Hrvkb : srvRevokeBuilt s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt, Wt := srvApi.winTok γwt, stq := (1 : Qp).half.half } : apply.AEnv GF) : apply.AEnv GF) $$ []
   · iapply srvRevokeBuilt_intro s _ astl
     isplitr

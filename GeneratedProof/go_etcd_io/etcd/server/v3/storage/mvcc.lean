@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.bytes
+public import Perennial.GeneratedProof.cmp
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.encoding.binary
 public import Perennial.GeneratedProof.errors
@@ -25,6 +26,7 @@ public import GeneratedProof.hash
 public import GeneratedProof.hash.crc32
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

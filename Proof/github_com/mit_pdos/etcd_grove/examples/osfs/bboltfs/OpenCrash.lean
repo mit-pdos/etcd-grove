@@ -12,7 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmap
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.flock
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__close
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__readPageSize
-public import Spec.os.OpenFile
+public import Spec.os.OpenFileS
 public import Spec.os.File__Name
 public import Spec.os.File__Close
 public import Spec.os.File__Stat
@@ -133,9 +133,9 @@ theorem openStart_new : openStart newMeta [] :=
       fun i _ h => by rw [contents_length] at h; have : 4096 * i + 80 ≤ 0 := h; omega⟩⟩,
       fun _ j _ hj => absurd hj (Nat.not_lt_zero _), _, _, rfl⟩
 
-theorem startSt_open {j : Ino} {b : GoString} {V : Hist} {i : Ino} {s : CState}
+theorem startSt_open {i : Ino} {s : CState}
     (hs : StartSt s) (hi : s = none ∨ sIno s = some i) :
-    ∃ m0, (csOpenSt j b V i s).1 = some (i, ⟨m0, (startImg s).map durB, 0, 0, .idle⟩) ∧
+    ∃ m0, csOpenSt i s = some (i, ⟨m0, (startImg s).map durB, 0, 0, .idle⟩) ∧
       openStart m0 (startImg s) := by
   rcases hs with rfl | ⟨i', vs, sz, rfl, hg⟩
   · exact ⟨newMeta, rfl, openStart_new⟩
@@ -396,8 +396,8 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
     (wp_init : DB.init.specCrash (GF := GF) (hG := hG))
     (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := hG)) :
     Open.specCrash (GF := GF) (hG := hG) := by
-  intro _ d b R V j γc s0 t vo n vp hb hd hs0 hfresh hvp hvpb
-  wp_start as ⟨#Hpkg, #Hos, #Hci, Hown⟩
+  intro _ d b R q γc s0 t vo n vp hb hs0 hfresh hvp hvpb
+  wp_start as ⟨#Hpkg, #Hos, #Hsi, Hperm, #Hci, Hown⟩
   ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
   (try wp_auto)
   irename «$r0» => Hdb
@@ -408,9 +408,9 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
     rcases hs0 with rfl | ⟨i, vs, sz, rfl, -⟩
     · exact .inl rfl
     · exact .inr ⟨_, _, _, _, _, rfl⟩
-  wp_apply wp_OpenFile d b (W32 438) dbCrashN R V j γc Good dbOk s0 hb hd hshape dbCrashN_disj
-      (fun _ i => start_okS (i := i) openStart_new) $$ [Hown]
-    as %f %err (⟨%fd, %i, %Hfd, Hf, Hfdo, Hown⟩ | ⟨%Herr, Hown⟩)
+  wp_apply wp_OpenFile d b (W32 438) dbCrashN R q γc Good dbOk s0 hb hshape dbCrashN_disj
+      dbCrashN_disjS (fun _ i => start_okS (i := i) openStart_new) $$ [Hperm Hown]
+    as %f %err ⟨-, (⟨%fd, %i, %Hfd, Hf, Hfdo, Hown⟩ | ⟨%Herr, Hown⟩)⟩
   · iframe; iframe #
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -424,15 +424,15 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
     · ipureintro; exact ⟨by simp, rfl⟩
     · icases Hown with (Hown | ⟨%i, Hown⟩)
       · iunfold csOwn at Hown
-        icases Hown with ⟨Hown, -, -⟩
+        icases Hown with ⟨Hown, -⟩
         iexists _; iexact Hown
       · iunfold csOwn at Hown
-        icases Hown with ⟨Hown, -, -⟩
+        icases Hown with ⟨Hown, -⟩
         iexists _; iexact Hown
   obtain ⟨rfl, Hfd, hi⟩ := Hfd
-  obtain ⟨m0, heq, hs⟩ := startSt_open (j := j) (b := b) (V := V) hs0 hi
+  obtain ⟨m0, heq, hs⟩ := startSt_open hs0 hi
   iunfold csOwn at Hown
-  icases Hown with ⟨Hown, -, -⟩
+  icases Hown with ⟨Hown, -⟩
   rw [heq]
   generalize startImg s0 = F at hs hfresh ⊢
   generalize hpath : child d b = path at *

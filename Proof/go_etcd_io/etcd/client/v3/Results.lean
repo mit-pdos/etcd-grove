@@ -93,6 +93,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLeaseLem
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
+public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
 
 @[expose] public section
 
@@ -2310,7 +2311,8 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) (ms : List (GrpcMethod GF))
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs)
-    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hρ : E.authOn = false → ρ.rd = γr)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs)
+    (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep)) (hρ : E.authOn = false → ρ.rd = γr)
     (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -2322,7 +2324,7 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
       |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecM E.authOn (srvTLSId s) E ρ cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid) ∗
@@ -2427,14 +2429,20 @@ theorem etcd_kv_servedM_with (addr : GoString) (p q s : Loc)
   ihave #Hmc' := etcd_runOk_of_slot (@! etcdserverpb._KV_Compact_Handler)
     (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty) #q) _ s E γr _ HL $$ [Hmc]
   · iframe #
-  imod (grpc.serve addr [il, im, iu] regs (etcdKVMethodsM E.authOn q s E ρ γr cid mid ++ ms) γ
+  imod (grpc.serve addr [il, im, iu] regs etcdTys (etcdKVMethodsM E.authOn q s E ρ γr cid mid ++ ms) γ
     (by
       intro x hx
       rcases List.mem_append.1 hx with hx | hx
       · apply hregs
         simp only [etcdKVMethodsM, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
         rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp [etcdKVRegs]
-      · exact hms x hx)) $$ [] with Hrpcs
+      · exact hms x hx)
+    (by
+      intro x hx
+      rcases List.mem_append.1 hx with hx | hx
+      · simp only [etcdKVMethodsM, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+        rcases hx with rfl | rfl | rfl | rfl | rfl <;> simp
+      · exact hmt x hx)) $$ [] with Hrpcs
   · iframe Hl
     imodintro
     iapply BigSepL.bigSepL_append.2
@@ -2489,7 +2497,7 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) (ms : List (GrpcMethod GF))
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q, x ∈ regs)
-    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hρ : ρ.rd = γr)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep)) (hρ : ρ.rd = γr)
     (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -2501,7 +2509,7 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
@@ -2518,7 +2526,7 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none) cid mid n rfl]
   imod (etcd_kv_servedM_with addr p q s E ρ γr cid mid n il im iu regs γ ms
-    hregs hms (fun _ => hρ) HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, Hle⟩
+    hregs hms hmt (fun _ => hρ) HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, Hle⟩
   · rw [hon, isServerReqM_false, isServerReadM_false]
     iframe; iframe #
     ipureintro; rw [hM]; simp
@@ -2568,7 +2576,7 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
@@ -2576,7 +2584,7 @@ theorem etcd_kv_served (addr : GoString) (p q s : Loc)
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrp⟩
   imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs γ [] hregs
-    (by intro m hm; simp at hm) hρ HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
+    (by intro m hm; simp at hm) (by intro m hm; simp at hm) hρ HL) $$ [] with ⟨#H1, #H2, #H3, #H4, #H5, -⟩
   · iframe #
     iintro !>
     iapply BigSepL.bigSepL_nil.2
@@ -3480,7 +3488,8 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
     (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × GoFunc × GoInterface)) (ms : List (GrpcMethod GF))
     (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs)
-    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (Hrf : grpcRepliesFit)
+    (hms : ∀ m ∈ ms, (m.name, m.handler, m.srv) ∈ regs) (hmt : ∀ m ∈ ms, etcdTys (GF := GF) m.name = some (m.Req, m.Rep))
+    (Hrf : grpcRepliesFit)
     (hnd : ((regs ++ sregs).map Prod.fst).Nodup) (hρ : ρ.rd = γr) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -3492,24 +3501,24 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
-      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) ∗
         [∗list] m ∈ ms, isGrpcRpcMd addr m.name m.spec := by
-  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp, #Hxs⟩
-  imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs Hrf hnd) $$ [Hgs Hlis]
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp, #Hxs⟩
+  imod (grpc.start' gs lis addr [il, im, iu] [ims, is] svcs regs sregs etcdTys etcdTys_reg Hrf hnd) $$ [Hgs Hlis Hleft]
     with ⟨%γ, #Hat', #Hst, Htok⟩
   · iframe
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
   imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs γ ms
-    (by rw [etcdKVRegs_eq]; exact hregs) hms hρ HL) $$ [] with H
+    (by rw [etcdKVRegs_eq]; exact hregs) hms hmt hρ HL) $$ [] with H
   · iframe #
   imodintro
   iexists γ
@@ -3540,17 +3549,17 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
+        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
-      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E ρ.rd γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (etcdCompactSpec E ρ.rd cid mid) := by
-  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp⟩
+  iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp⟩
   imod (etcd_kv_started_with addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs []
-    hregs (by intro m hm; simp at hm) Hrf hnd hρ HL) $$ [Hgs Hlis]
+    hregs (by intro m hm; simp at hm) (by intro m hm; simp at hm) Hrf hnd hρ HL) $$ [Hgs Hlis Hleft]
     with ⟨%γ, Htok, Hst, #H1, #H2, #H3, #H4, #H5, -⟩
   · iframe; iframe #
     iintro !>
@@ -4058,7 +4067,7 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
           (etcdLeaseGrantSpecAny (EM := v3rpc.etcdModelOfServer E γr false)) ∗
         isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke"
@@ -4069,12 +4078,16 @@ theorem etcd_lease_served (addr : GoString) (lp q s : Loc)
   ihave #Hks := srvRunOks_of_slot s E γr [il, im, iu] (etcdLeaseSlot s S) F h1 h2 HLv
     (etcdLeaseMethods q E γr) $$ []
   · iframe #
-  imod (grpc.serve addr [il, im, iu] regs (etcdLeaseMethods q E γr) γ
+  imod (grpc.serve addr [il, im, iu] regs etcdTys (etcdLeaseMethods q E γr) γ
     (by
       intro x hx
       apply hregs
       simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl <;> simp [etcdLeaseRegs])) $$ [] with Hrpcs
+      rcases hx with rfl | rfl <;> simp [etcdLeaseRegs])
+    (by
+      intro x hx
+      simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
+      rcases hx with rfl | rfl <;> simp)) $$ [] with Hrpcs
   · iframe #
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
   icases Hrpcs with ⟨#H1, #H2, -⟩
@@ -4107,7 +4120,7 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
@@ -4133,6 +4146,10 @@ theorem etcd_kv_lease_served (addr : GoString) (p q lp ql s : Loc)
       apply hregs
       simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
       rcases hm with rfl | rfl <;> simp [etcdLeaseRegs])
+    (by
+      intro m hm
+      simp only [etcdLeaseMethods, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
+      rcases hm with rfl | rfl <;> simp)
     hρ HLv) $$ [] with ⟨#H1, #H2, #H3, #H4, #H7, Hle⟩
   · iframe #
   simp only [etcdLeaseMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseRevokeRequestT, pbLeaseRevokeResponseT]
@@ -4165,7 +4182,7 @@ theorem client_lessor_isEtcdLease_served (l : Loc) (addr : GoString)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isEtcdLease (EM := v3rpc.etcdModelOfServer E γr false) (lessorIfaceOf l) := by
   iintro ⟨#Pc, Hl, #Hka, #Heof, #Hce, #Hct, Hsrv⟩
   imod (etcd_lease_served addr lp q s A E ρ cid mid S F il im iu regs γ hregs γr hNx h1 h2 HLv) $$ Hsrv
@@ -4197,7 +4214,7 @@ theorem client_new_isEtcdLeaseClient_served (cl : Loc) (ep : GoString)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt ep [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt ep [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isEtcdLeaseClient (EM := v3rpc.etcdModelOfServer E γr false) cl := by
   iintro ⟨#Pc, Hn, #Hka, #Heof, #Hce, #Hct, Hsrv⟩
   imod (etcd_lease_served ep lp q s A E ρ cid mid S F il im iu regs γ hregs γr hNx h1 h2 HLv) $$ Hsrv

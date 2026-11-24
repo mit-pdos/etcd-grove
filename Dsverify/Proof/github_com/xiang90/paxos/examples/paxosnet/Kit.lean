@@ -183,11 +183,7 @@ def woS : ModelSpec GF (linkv.PSet (Option GoString) BStr) where
 
 end spec
 
-/-! ## The deployment -/
-
-/-- The client machines' addresses (`ClientAddrs()`), for the orchestrator's calls. -/
-def clientAddrs : List GoString :=
-  [go!"127.0.0.1:7411", go!"127.0.0.1:7412", go!"127.0.0.1:7413", go!"127.0.0.1:7414"]
+/-! (The client machines' addresses, `clientAddrs`, are in `Addrs.lean`.) -/
 
 /-! ## The specs -/
 
