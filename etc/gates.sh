@@ -196,6 +196,14 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
+# commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
+# the kits' codecs through their generators): after gen-init, whose PkgTables the boot tables read
+if python3 etc/dsv/kitgen.py --check > "$tmp/kitgen.log" 2>&1; then
+  echo "$(tail -1 "$tmp/kitgen.log")"
+else
+  echo "kitgen: FAILED"; tail -10 "$tmp/kitgen.log"; fail=1
+fi
 # SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
 # stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
 if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
