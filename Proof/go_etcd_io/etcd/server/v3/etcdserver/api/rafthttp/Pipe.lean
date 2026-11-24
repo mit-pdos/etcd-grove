@@ -24,6 +24,7 @@ public import Proof.net.http.Boundary
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 public import Perennial.Proof.strings.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.URLBounds
 
 @[expose] public section
 
@@ -130,12 +131,25 @@ sender's configured peer URLs, which are its directory URLs). -/
 def peerURLsHdrOk (Rh : RaftHttp GF) (f : w64) (hs : List (GoString × GoString)) : Prop :=
   peerURLsOk Rh f (_root_.Perennial.strings.split (http.hdrGet hs go!"X-PeerURLs") go!",")
 
+/-- **URLs within etcd's URL length bound** (fmt stage 1, 2026-11-24; #9's decision 7126397740, 2): each
+of only the scheme `http` and a plain host (`http.urlRootPlain`, so `URL.String` renders it as
+`http://host`), that string at most `etcdURLLenMax` bytes. What `setPeerURLsHeader` needs of its URLs:
+it joins their strings (`strings.Join`, whose output must stay below its length bound). -/
+def plainURLsFit (uvs : List net.url.URL) : Prop :=
+  ∀ u ∈ uvs, http.urlRootPlain u ∧ (go!"http://" ++ u.Host').length ≤ etcdURLLenMax
+
 /-- **A transport's configured peer URLs, of its member `lid`** (D22 J-T, W8): non-empty, each a
 URL of only the scheme `http` and a plain host (`http.urlRootPlain`, so `URL.String` renders it as
-`http://host`) the network gives `lid`. -/
+`http://host`) the network gives `lid`; (fmt stage 1, 2026-11-24) `http://host` at most
+`etcdURLLenMax` bytes (`plainURLsFit`, `setPeerURLsHeader`'s premise). -/
 def trURLsOk (Rh : RaftHttp GF) (lid : w64) (uvs : List net.url.URL) : Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ types.plainPeerURL (go!"http://" ++ u.Host') ∧
-    Rh.owner u.Host' = lid
+    Rh.owner u.Host' = lid ∧ (go!"http://" ++ u.Host').length ≤ etcdURLLenMax
+
+/-- A transport's configured peer URLs are within the URL length bound. -/
+theorem trURLsOk.fit {Rh : RaftHttp GF} {lid : w64} {uvs : List net.url.URL}
+    (h : trURLsOk Rh lid uvs) : plainURLsFit uvs :=
+  fun u hu => ⟨(h.2 u hu).1, (h.2 u hu).2.2.2⟩
 
 /-- The `X-PeerURLs` value `setPeerURLsHeader` writes for URLs of only a scheme and a host. -/
 def peerURLsHdr (uvs : List net.url.URL) : GoString :=
@@ -238,7 +252,7 @@ theorem peerURLsHdrOk_of (Rh : RaftHttp GF) (lid : w64) (uvs : List net.url.URL)
     exact (hu u hu').2.1
   · obtain ⟨u, hu', he⟩ := List.mem_map.1 hh
     have : u.Host' = h := List.append_cancel_left he
-    rw [← this]; exact (hu u hu').2.2
+    rw [← this]; exact (hu u hu').2.2.1
 
 end urls
 

@@ -12,6 +12,7 @@ module
 
 public import Proof.go_uber_org.zap.PkgInit
 public import Proof.go_uber_org.zap.buffer.Init
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 

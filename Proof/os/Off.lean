@@ -39,7 +39,7 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
         (Val #(W64 0)))
     {{ RET (PairV #off #GoInterface.nil); os.ownFile f fd name dqf ∗ os.ownOff f off }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩⟩
+  wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, ⟨%inner', #Hf', Ho⟩⟩
   icombine Hf Hf' gives %hin
   cases hin
   unfold os.model.inner
@@ -70,7 +70,7 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
   try wp_auto
   iapply HΦ
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   · iexists inner; iframe; iassumption
 
 /-- `f.Seek(0, io.SeekCurrent)` on an open fd, the offset `0 ≤ o`, at most ext4's maximum: `o`,
@@ -82,7 +82,7 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
         (Val #(W64 1)))
     {{ RET (PairV #o #GoInterface.nil); os.ownFile f fd name dqf ∗ os.ownOff f o }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩⟩
+  wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, ⟨%inner', #Hf', Ho⟩⟩
   icombine Hf Hf' gives %hin
   cases hin
   unfold os.model.inner
@@ -115,7 +115,7 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   try wp_auto
   iapply HΦ
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   · iexists inner; iframe; iassumption
 
 /-- `f.Seek(0, io.SeekEnd)` on an open fd of a file of size at most ext4's maximum, with a fraction
@@ -131,7 +131,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
         ((⌜n = W64 m.size ∧ err = interface.nil⌝ ∗ os.ownOff f (W64 m.size)) ∨
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
   icombine Hf Hf' gives %hin
   cases hin
   unfold os.model.inner
@@ -171,7 +171,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     · ileft
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
@@ -183,7 +183,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     iapply HΦ
     iframe Hosfd Hm
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     · iright
       isplitr
       · ipureintro; intro h; cases h
@@ -223,7 +223,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   wp_auto
@@ -236,7 +236,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   wp_auto
@@ -303,7 +303,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
               vs' = (xs.map Prod.fst).take k ++ vs.drop k⌝ ∗ os.ownOff f (o + W64 k)) ∨
          (⌜n = W64 0 ∧ err ≠ interface.nil⌝ ∗ os.ownOff f o)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
   icombine Hf Hf' gives %hin'
   cases hin'
   unfold os.model.inner
@@ -358,7 +358,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
-    · iexists inner; iframe; isplitl [] <;> iassumption
+    · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
     iexists vs
     iframe Hsl
     isplitr
@@ -397,7 +397,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]
-  · iexists inner; iframe; isplitl [] <;> iassumption
+  · iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   iexists _
   iframe Hsl
   isplitr

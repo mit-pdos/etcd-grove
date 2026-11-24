@@ -146,7 +146,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len1 Haf Hbuq Hrf Hdbo Hms HlP) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len1 Hcfg.fp1 Hcfg.fc1 Haf Hbuq Hrf Hdbo Hms HlP) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -171,7 +171,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len2 Haf Hbuq Hrf Hdbo Hms HlP)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len2 Hcfg.fp2 Hcfg.fc2 Haf Hbuq Hrf Hdbo Hms HlP)
     $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -197,7 +197,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn cmp lm
       Hcfg Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len3 Haf Hbuq Hrf Hdbo Hms HlP)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hcfg.len3 Hcfg.fp3 Hcfg.fc3 Haf Hbuq Hrf Hdbo Hms HlP)
     $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)

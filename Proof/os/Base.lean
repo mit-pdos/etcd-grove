@@ -15,6 +15,7 @@ module
 
 public import GeneratedProof.os
 public import Proof.syscall.Base
+public import Proof.syscall.PkgInit
 public import GooseLang.Ext.Fs.Truncate
 public import GooseLang.Ext.Fs.Locks
 
@@ -126,11 +127,15 @@ noncomputable instance fileStat_into_val_typed [os.fileStat.FieldAssumptions] :
 
 include sem package_sem' in
 /-- The `*os.File` `f` is open on the fd `fd`, named `name`: `f` points to a `File` whose inner
-`file` holds the fd (a fraction `dq` of it: `Close` writes it) and the name. -/
+`file` holds the fd (a fraction `dq` of it: `Close` writes it) and the name. And `syscall`'s
+package fact (2026-11-24, fmt stage 1: `Errno.Error`, translated, reads its error table, so the
+error a method returns is `fmtErrorOk` only given it: `Proof/syscall/ErrorOk.lean`), which the
+functions that open a file have (`isPkgInit os`), so that the methods' callers need none. -/
 def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
   iprop(∃ inner : Loc, f ↦□ (os.File.mk inner) ∗
     structFieldRef os.file go!"fd" inner ↦{dq} fd ∗
-    structFieldRef os.file go!"name" inner ↦□ name)
+    structFieldRef os.file go!"name" inner ↦□ name ∗
+    syscall.errnoOk (GF := GF))
 
 include sem package_sem' in
 /-- The `fileStat` at `fs` (what `(*File).Stat` returns, as a `FileInfo`) holds the size `sz`, and

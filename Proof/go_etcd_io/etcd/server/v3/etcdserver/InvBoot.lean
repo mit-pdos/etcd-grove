@@ -94,6 +94,31 @@ def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Pere
     Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
 
+/-- **A member's URL list within etcd's URL bounds** (fmt stage 1, 2026-11-24; #9's decision
+7126397740, 2; a premise of `NewServer.spec`, of the caller's configuration, for its peer and its
+client URLs): at most `etcdURLCountMax` URLs, each of only the scheme `http` and a plain host,
+`http://host` at most `etcdURLLenMax` bytes (`plainURLsFit`). The server joins their strings
+(`strings.Join`: `publishV3`'s log lines of the client URLs, kept in the server's attributes,
+`srvAttrsRO`; the transport's `setPeerURLsHeader` of the peer URLs), which must stay below
+`Join`'s length bound. -/
+def etcdURLsFit (uvs : List _root_.Perennial.net.url.URL) : Prop :=
+  uvs.length ≤ etcdURLCountMax ∧ plainURLsFit uvs
+
+/-- The strings of URLs within etcd's URL bounds (`types.URLs.StringSlice`'s, `http://host` of each)
+are at most `etcdURLCountMax`, of at most `etcdURLLenMax` bytes each (`srvAttrsRO`'s bound). -/
+theorem etcdURLsFit.strings {us : List _root_.Perennial.net.url.URL} {ss : List GoString}
+    (hf : etcdURLsFit us) (hl : ss.length = us.length)
+    (hs : ∀ (j : Nat) (u : _root_.Perennial.net.url.URL), us[j]? = some u → http.urlRootPlain u →
+      ss[j]? = some (go!"http://" ++ u.Host')) :
+    ss.length ≤ etcdURLCountMax ∧ ∀ s ∈ ss, s.length ≤ etcdURLLenMax := by
+  refine ⟨by rw [hl]; exact hf.1, fun s hs' => ?_⟩
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hs'
+  have hju : j < us.length := hl ▸ hj
+  have hu := hs j us[j] (List.getElem?_eq_getElem hju) (hf.2 _ (List.getElem_mem hju)).1
+  rw [List.getElem?_eq_getElem hj] at hu
+  rw [Option.some.inj hu]
+  exact (hf.2 _ (List.getElem_mem hju)).2
+
 /-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
 theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
     netDirOk (dirOne id url) := by
@@ -134,10 +159,12 @@ omit [MemStorReg GF] in
 /-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
 theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
     (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)
-    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs) :
+    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs)
+    (hf : etcdURLsFit uvs) :
     trURLsOk (netRh γn) id uvs := by
   obtain ⟨-, hpl, hown, -⟩ := addPeer_dir γn dir hγ hd ps hps id hid (dir id) rfl
-  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2⟩⟩
+  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2,
+    (hf.2 u hu').2⟩⟩
 
 omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and

@@ -1,6 +1,6 @@
 /-
-`z.ConditionsAwareAuthorize(ctx, a)` (`authz.go`): a well-formed decision at most `z.depth` deep,
-for `z.depth < 2 ^ 63 - 1` (an authorizer's decision, `caaOk`). Lean-first (no Rocq
+`z.ConditionsAwareAuthorize(ctx, a)` (`authz.go`): an authorizer's decision (`caaOk`), for
+`z.depth` within its bounds (`arbDecision`). Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -29,10 +29,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 
 /-- See the file header. -/
 abbrev arbAuthorizer.ConditionsAwareAuthorize.spec : Prop :=
-  ∀ (z : arbAuthorizer) (ctx a : GoInterface), uint.nat z.depth' < 2 ^ 63 - 1 →
+  ∀ (z : arbAuthorizer) (ctx a : GoInterface), uint.nat z.depth' ≤ authzDepthMax →
+    4 ^ uint.nat z.depth' ≤ authzSizeMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz }}
     (App (App (Val (z @!! arbAuthorizer.ty @!! go!"ConditionsAwareAuthorize")) (Val #ctx)) (Val #a))
-  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionLe (uint.nat z.depth') d }}
+  {{ (d : ConditionsAwareDecision), RET #d; isWFDecisionBnd authzDepthMax authzSizeMax authzNameMax d }}
 
 end spec
 

@@ -19,10 +19,12 @@ The specs `wp_BootMinibolt` uses are linked to their proofs (`Open`, `Get`, `Clo
 the crash-aware proofs of their callees, `Proof/os/CrashStSpec.lean`'s `*.wp_proof_crashS`, and the
 crash-free ones of `Link.lean`).
 
+The package initializer is proved (2026-11-24; until then the hypothesis `Hinit_wp`, its spec with
+`pkgFacts` as its post): each generation runs the generated `wp_initialize'` (`Init.lean`, over the
+package table `PkgTable.lean`) from its fresh package state (`ownInitializing_of_empty`), and
+`pkgFacts` follows from the package's `isPkgInit` (`pkgFacts_of_isPkgInit`).
+
 **What is assumed** (hypotheses of `bootCrashSafety`, besides `BootCrashSafety`'s thread bound):
-* `Hinit_wp`: the package initializer runs from the fresh package state and gives `pkgFacts`; as
-  for crashlog, its proof needs `wp_initialize'` of `os`, `syscall` and their imports, which are
-  not generated.
 * The hand-written `os.file` and `os.fileStat` field facts, as instance hypotheses (as for every
   `OpenFile` and `Stat` spec).
 
@@ -31,6 +33,8 @@ The premises are satisfiable and not vacuous: an empty root is a start state
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.PkgTable
+public import Proof.runtime.InitEmpty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.P1Sat
@@ -181,8 +185,6 @@ threads are live. -/
 theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC GF, initialize'.spec (GF := GF) (hG := heapAt hG lctx))
     (N T : Nat) (hT : T ≤ 2 ^ 30) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -264,7 +266,11 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     isplitl [Hgs Hperm Hown Htok]
     · -- the boot program
       unfold boot
-      wp_apply (Hinit_wp hG) $$ Hgs as #Hpkg
+      ihave Hown0 := ownInitializing_of_empty (github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.getIsPkgInit (GF := GF)) $$ Hgs
+      wp_apply (github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.getIsPkgInit_wf) $$ Hown0 as ⟨-, #Hpkg0⟩
+      ihave #Hpkg := pkgFacts_of_isPkgInit $$ Hpkg0
+      ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_pures
       wp_apply wp_BootMinibolt wp_OpenC DB.wp_GetC DB.wp_CommitC DB.wp_CloseC dir R 1 γ s hst
         $$ [Hperm Hown Htok]
@@ -298,16 +304,13 @@ theorem bootCrashSafety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       ipureintro; exact ⟨hw', hg'⟩
 
 /-- **minibolt's crash safety** (`BootCrashSafety`, `BootP1.lean`: executions along which fewer
-than `2 ^ 30` threads are live), under the hypotheses of the file header: the package initializer
-(`Hinit_wp`) and the `os.file`/`os.fileStat` field instances. -/
+than `2 ^ 30` threads are live), under the hypotheses of the file header: the `os.file`/`os.fileStat` field instances. -/
 theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (dir : GoString)
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx)) :
+    (dir : GoString) :
     BootCrashSafety dir := by
   intro σ g Hlctx Hpkgs Hinit Hdir Hnone Hthreads n κs t2 σ2 b Hsteps Hlive
-  exact bootCrashSafety_bounded (GF := fsGF) Hinit_wp (n + 1) (2 ^ 30) (Nat.le_refl _)
+  exact bootCrashSafety_bounded (GF := fsGF) (n + 1) (2 ^ 30) (Nat.le_refl _)
     σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) Hthreads Hlive
 
 end adequacy

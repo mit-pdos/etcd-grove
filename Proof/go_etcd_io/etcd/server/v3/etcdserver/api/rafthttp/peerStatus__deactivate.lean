@@ -14,6 +14,8 @@ public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__Wi
 public import Spec.fmt.SprintfArgs
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -81,9 +83,33 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
     inext
     iintro %s -
     iapply HΦ
-  wp_apply hSprintf _ _ _ (DFrac.own 1) $$ [$Hal] as %msg -
+  have hE := go.method_set_is (t := go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"Error"
+  have hF := go.method_set_is (t := go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"Format"
+  have hS := go.method_set_is (t := go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"
+  have hC := go.method_set_is (t := go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"CanInterface"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hE hF hS hC
+  wp_apply hSprintf go!"failed to %s %s on %s (%s)"
+    [.lit go!"failed to ", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ",
+      .dir none _root_.Perennial.fmt.verb_s, .lit go!" on ", .dir none _root_.Perennial.fmt.verb_s,
+      .lit go!" (", .dir none _root_.Perennial.fmt.verb_s, .lit go!")"] _ _
+    [.str _, .method fun _ => True, .str _, .str _] (DFrac.own 1) (by fmt_encode) (by fmt_fits)
+    $$ [$Hal] as %msg -
   · iframe #
-    fmt_args_ok
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitr
+    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitr
+    · iapply (fmt.isArg_stringer ⟨go_etcd_io.etcd.client.pkg.v3.types.ID.ty, #id⟩ hF hE hS hC)
+      iexact HidS
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitr
+    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+    iapply BigSepL2.bigSepL2_cons.2
+    isplitr
+    · simp only [_root_.Perennial.fmt.isArg]; ipureintro; rfl
+    iapply BigSepL2.bigSepL2_nil.2
+    itrivial
   (try wp_auto)
   cases a
   · -- inactive already: log at debug level

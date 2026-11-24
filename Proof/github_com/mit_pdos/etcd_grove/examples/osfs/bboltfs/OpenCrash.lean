@@ -399,6 +399,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   intro _ d b R q γc s0 t vo n vp hb hs0 hfresh hvp hvpb
   wp_start as ⟨#Hpkg, #Hos, #Hsi, Hperm, #Hci, Hown⟩
   ihave ⟨%e2, #He2, %He2⟩ := pkgFacts_errPageSize $$ Hpkg
+  ihave #Hospkg := pkgFacts_os $$ Hpkg
   (try wp_auto)
   irename «$r0» => Hdb
   generalize «$r0_ptr» = db at *
