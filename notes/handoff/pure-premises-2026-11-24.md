@@ -155,3 +155,28 @@ Next: Upamanyu's review of P1 (trusted), P2, P6, P3, P4/P5 (statement changes; m
 pickup report); land-queue of premise-witness (untrusted). Then step 5 (Fs witnesses for osfs, kvnet,
 etcd `HWal`, `etcd_wal_safe`; P7). Open question for the raft lead: kvdurable's intermittent
 liveness stall (kvdurable k=3 twice, on two machines; kvdurablenoax k=4 once): every size ran and passed porcupine in other runs, so the NV point holds, but `TestMainNRange` as written does not finish reliably.
+
+## Step 5: Fs witnesses (2026-11-24, third pickup), branch `premise-witness-fs/2026-11-24`
+Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and additive; VM key
+`f7ad316f5f81b2a4` (fresh). The packet branches (P1-P6) are untouched.
+- `Robustness/FsStart.lean`: `lookup_root_or_none` (with every directory empty, a path names something
+  only if it is a root), `fsOneRoot_lookup_append`/`_joinPath`, `fsOneRoot_root_mem`; the multi-root
+  state `fsRoots rs` (`rootsFrom`, `emptyDirs`) with `fsInit_fsRoots` (premises: `rs.Nodup`, each a
+  `RootForm`, none `IsUnder` another), `fsRoots_entry`, `fsRoots_mem`, `fsRoots_root`,
+  `fsRoots_lookup_none`.
+- `Robustness/PremiseSat.lean`: `premise_sat%` now substitutes a `let` of the statement (kvnet's
+  `let addrs := …`); before, it stopped there ("conclusion is not `Robust`").
+- Witnesses (baseline lines removed, 20 -> 13): osfs `walfs` `dirswap_crash_robust`, `crash_robust`;
+  `crashlog` `crash_robust`; `bboltfs` `bootCrashRobust`; KvNet `raft_kvnet_robust` (lean's statement:
+  one replica, `{ exampleConfig with voters := 1 }`, root `/var/lib/kvnet`) and
+  `raft_kvnet_robust_example`; WalTester `etcd_wal_safe` (roots `/w`, `/o`; `Hopen` left out as an Iris
+  contract).
+- `HWal`: `Proof/.../lib/etcdstart/WalAreasInitSat.lean`, `etcdWalAreasInit_fsRoots`: `etcdWalAreasInit`
+  holds of `fsRoots (etcdAreaRoots Ds)` when each `d ∈ Ds` is `memberDataDir n`. Not yet: `FsInit` of that
+  state for the concrete `etcdDirs` (needs `RootsOk`: each `walAreaOf d`/`d` a `RootForm`, none under
+  another). No baseline line goes with it: the etcd statements stay `pending-b` for `BootFacts` and the
+  opaque environment props.
+- lean (`4da2e64008`, 316 commits ahead) changes none of these statements' premises (bboltfs's step
+  bound only), so the witnesses should survive the land queue's merge.
+- Pitfall: `omega` ignores atoms of type `Ino` (an abbrev of `Nat`): state arithmetic lemmas over `Nat`.
+- Not done (as asked): P7 putget (question to the coordinator), P8 kvnet.
