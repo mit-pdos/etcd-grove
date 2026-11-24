@@ -160,9 +160,9 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (clients ops n₁ nw nops n₂ cnw cnops : w64)
     -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdAddrs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)))
+      (etcdProgAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)))
+      (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
     (HEnv : verifyEnvOff (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅))
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC etcdGF,
@@ -197,7 +197,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
-      (etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)))
+      (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNstepsBelow (2 ^ 28) n
@@ -216,6 +216,10 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     have hk₃ : uint.nat k₃ ≤ 1000 := by word
     have hk₄ : uint.nat k₄ ≤ 1000 := by word
     have hk₅ : uint.nat k₅ ≤ 1000 := by word
+    have hc : etcdCountsOk k₁ k₂ k₃ k₄ k₅ := by unfold etcdCountsOk; and_intros <;> word
+    unfold etcdProgAddrs at HAs
+    unfold etcdProgDirs at HDs HWal
+    rw [if_pos hc] at HAs HDs HWal
     refine etcd_adequate_members_below (GF := etcdGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
       (hmsL := etcd_all.etcdStarts_names_len _ _ _ _ _)
       (hAsLit := etcd_all.etcdAddrs_lit _ _ _ _ _ hk₁ hk₂ hk₃ hk₄ hk₅)

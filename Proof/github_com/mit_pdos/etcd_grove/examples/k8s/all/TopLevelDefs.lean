@@ -112,6 +112,22 @@ cluster's `k8scompactorN-j.etcd`. -/
 def k8sDirs (k₁ k₂ : Nat) : List GoString :=
   k8s_etcd3N.k8setcd3NDirs k₁ ++ k8s_compactorN.k8scompactorNDirs k₂
 
+/-- **The member counts `MainChecked` starts clusters at** (the counts' part of `ParamsOk`, 2026-11-24,
+the pure-premises plan's P5): `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂ ≤ 600`. -/
+def k8sCountsOk (k₁ k₂ : w64) : Prop :=
+  1 ≤ uint.nat k₁ ∧ uint.nat k₁ ≤ 1000 ∧ 1 ≤ uint.nat k₂ ∧ uint.nat k₂ ≤ 600
+
+/-- **The addresses `k8sProgram` may listen on** (P5, as leaseexpiryN's `cluster k`, P6): `k8sAddrs`
+at the member counts when they are in range, none otherwise (`MainChecked` then returns without
+starting a member). -/
+def k8sProgAddrs (k₁ k₂ : w64) : List GoString :=
+  if k8sCountsOk k₁ k₂ then k8sAddrs (uint.nat k₁) (uint.nat k₂) else []
+
+/-- **The data directories `k8sProgram` may use**: `k8sDirs` at the member counts when they are in
+range, none otherwise (as `k8sProgAddrs`). -/
+def k8sProgDirs (k₁ k₂ : w64) : List GoString :=
+  if k8sCountsOk k₁ k₂ then k8sDirs (uint.nat k₁) (uint.nat k₂) else []
+
 end adequacy
 end EtcdGrove
 end Perennial

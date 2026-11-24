@@ -136,9 +136,9 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     -- the store's workload and the two schedules' lengths (any values: `MainChecked` checks them)
     (clients ops watchers wops n₁ n₂ : w64)
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
-      (k8sAddrs (uint.nat k₁) (uint.nat k₂)))
+      (k8sProgAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
-      (k8sDirs (uint.nat k₁) (uint.nat k₂)))
+      (k8sProgDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂))
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
@@ -148,7 +148,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
           ctxs' boot')
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs (uint.nat k₁) (uint.nat k₂)))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sProgDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNstepsBelow (2 ^ 28) n ([k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂],
@@ -162,6 +162,10 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     obtain ⟨h1, h2, h21, h22, -, -, -, -, -, -⟩ := id hok
     have hk₁ : uint.nat k₁ ≤ 1000 := by word
     have hk₂ : uint.nat k₂ ≤ 1000 := by word
+    have hc : k8sCountsOk k₁ k₂ := by unfold k8sCountsOk; and_intros <;> word
+    unfold k8sProgAddrs at HAs
+    unfold k8sProgDirs at HDs HWal
+    rw [if_pos hc] at HAs HDs HWal
     refine etcd_adequate_alloc_members_below (GF := k8sGF) (hbody := rfl) (HWal := HWal)
       (hn := by omega)
       (hmsL := fun m hm => (List.mem_append.1 hm).elim
@@ -287,9 +291,9 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- the store's workload and the two schedules' lengths (any values: `MainChecked` checks them)
     (clients ops watchers wops n₁ n₂ : w64)
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
-      (k8sAddrs (uint.nat k₁) (uint.nat k₂)))
+      (k8sProgAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
-      (k8sDirs (uint.nat k₁) (uint.nat k₂)))
+      (k8sProgDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂))
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
@@ -299,7 +303,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
           ctxs' boot')
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs (uint.nat k₁) (uint.nat k₂)))
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sProgDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂],

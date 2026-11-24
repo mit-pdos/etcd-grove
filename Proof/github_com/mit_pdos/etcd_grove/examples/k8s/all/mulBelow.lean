@@ -41,25 +41,33 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumpti
 
 theorem mulBelow.wp_proof : mulBelow.spec (GF := GF) (hG := hG) := by
   intro a b bound ha hb hbd
-  wp_start as #Hpkg
-  (try wp_auto)
-  wp_if_destruct
-  · -- `b == 0` (`wp_if_destruct` substituted `b`)
-    (try wp_auto)
+  by_cases hb0 : b = W64 0
+  · -- `b == 0`: `true`, and the product is `0`
+    subst hb0
     have h0 : decide (sint.Z a * sint.Z (W64 0) < sint.Z bound) = true := by
       rw [show sint.Z (W64 0) = 0 from rfl, Int.mul_zero]; exact decide_eq_true hbd
-    rw [← h0]
-    iapply HΦ
-    itrivial
-  · have hb0 : ¬ sint.Z b = 0 := by intro h; apply Hif; word
+    rw [h0]
+    wp_start as #Hpkg
     (try wp_auto)
-    rw [ite_eq_right_of_eq_false _ _ (eq_false hb0)]
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ
+      itrivial
+    · exfalso; simp_all
+  · -- `b > 0`: `a <= (bound-1)/b`, Go's division the floor here
+    have hbpos : 0 < sint.Z b := by
+      have : sint.Z b ≠ 0 := by intro h; apply hb0; word
+      omega
+    rw [← decide_eq_decide.2 (mulBelow_div_iff a b bound ha hbpos hbd)]
+    wp_start as #Hpkg
     (try wp_auto)
-    have hiff := mulBelow_div_iff a b bound ha (by omega) hbd
-    rw [show decide (sint.Z a ≤ sint.Z (BitVec.sdiv (bound - W64 1) b)) =
-      decide (sint.Z a * sint.Z b < sint.Z bound) from decide_eq_decide.2 hiff]
-    iapply HΦ
-    itrivial
+    wp_if_destruct
+    · exfalso; simp_all
+    · (try wp_auto)
+      (try rw [ite_eq_right_of_eq_false _ _ (eq_false (show ¬ sint.Z b = 0 by omega))])
+      (try wp_auto)
+      iapply HΦ
+      itrivial
 
 end proof
 

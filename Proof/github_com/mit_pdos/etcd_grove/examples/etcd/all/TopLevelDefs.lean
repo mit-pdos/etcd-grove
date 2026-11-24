@@ -162,6 +162,28 @@ def etcdDirs (k₁ k₂ k₃ k₄ k₅ : Nat) : List GoString :=
     etcd_authN.authNDirs k₂ ++ etcd_authlease.authleaseDirs k₃ ++ etcd_leaseN.leaseNDirs k₄ ++
     leasecatchupDataDirs ++ etcd_restartN.restartNDirs k₅ ++ [go!"/tmp/etcd-grove-data/restart1.etcd"]
 
+/-- **The member counts `MainChecked` starts clusters at** (the counts' part of `ParamsOk`, 2026-11-24,
+the pure-premises plan's P4): `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂, k₃, k₄ ≤ 300`, `3 ≤ k₅ ≤ 300`. -/
+def etcdCountsOk (k₁ k₂ k₃ k₄ k₅ : w64) : Prop :=
+  1 ≤ uint.nat k₁ ∧ uint.nat k₁ ≤ 1000 ∧ 1 ≤ uint.nat k₂ ∧ uint.nat k₂ ≤ 300 ∧
+  1 ≤ uint.nat k₃ ∧ uint.nat k₃ ≤ 300 ∧ 1 ≤ uint.nat k₄ ∧ uint.nat k₄ ≤ 300 ∧
+  3 ≤ uint.nat k₅ ∧ uint.nat k₅ ≤ 300
+
+/-- **The addresses `etcdProgram` may listen on** (P4, as leaseexpiryN's `cluster k`, P6):
+`etcdAddrs` at the member counts when they are in range, none otherwise (`MainChecked` then returns
+without starting a member). -/
+def etcdProgAddrs (k₁ k₂ k₃ k₄ k₅ : w64) : List GoString :=
+  if etcdCountsOk k₁ k₂ k₃ k₄ k₅ then
+    etcdAddrs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)
+  else []
+
+/-- **The data directories `etcdProgram` may use**: `etcdDirs` at the member counts when they are in
+range, none otherwise (as `etcdProgAddrs`). -/
+def etcdProgDirs (k₁ k₂ k₃ k₄ k₅ : w64) : List GoString :=
+  if etcdCountsOk k₁ k₂ k₃ k₄ k₅ then
+    etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)
+  else []
+
 end adequacy
 end EtcdGrove
 end Perennial

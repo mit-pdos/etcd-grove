@@ -78,9 +78,10 @@ generators of the process issue one id), checked at these bounds by `examples/et
 (with the drivers' tokens searched for it, 2026-11-21; at five clusters of 1000 no tokens make it hold).
 The proof does not use it: it states the condition under which that trusted model is faithful (each
 cluster's own `BootFacts` states it for that cluster, `BootCore.lowNodup`).
-The premises indexed by the member counts (`Hlen…`, `Hbf…`, `Hprem…`, `HAs`, `HDs`, `HWal`, `Hlow`) are
-stated at every count, as the program takes any: the proof uses the clusters' start (their addresses,
-directories and bootstrap facts) only once `ParamsOk` passed; out of range the program starts no member.
+The counts are the program's `uint64` arguments, any value: the premises indexed by them (`Hlen…`,
+`Hbf…`, `Hprem…`, `Hlow`) are stated at `uint.nat kᵢ`, and the addresses and data directories (`HAs`,
+`HDs`, `HWal`) are `etcdProgAddrs`/`etcdProgDirs` (`TopLevelDefs.lean`): the clusters' at counts in
+range, none outside, where `MainChecked` starts no member (as leaseexpiryN's `cluster k`, P6).
 -/
 module
 
@@ -187,9 +188,9 @@ def etcd_robust_single_process.spec : Prop :=
     (clients ops n₁ nw nops n₂ cnw cnops : w64)
     -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdAddrs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)))
+      (etcdProgAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅)))
+      (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
     (HEnv : verifyEnvOff (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅))
     -- each cluster's named premises
     (Hprem₁ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
@@ -224,7 +225,7 @@ def etcd_robust_single_process.spec : Prop :=
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
-      (etcdDirs (uint.nat k₁) (uint.nat k₂) (uint.nat k₃) (uint.nat k₄) (uint.nat k₅))),
+      (etcdProgDirs k₁ k₂ k₃ k₄ k₅)),
     Robustness.Robust [] [(etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅, σ)] g
       (threads := 2 ^ 28) (bound := 2 ^ 48)
 

@@ -36,9 +36,11 @@ checked for every `k₁ ≤ 1000` and `k₂ ≤ 600` by `examples/k8s/all`'s `Te
 `k₂`: with the store's 1000 ids fixed, no compactor token keeps 1000 more distinct; the plan's §3).
 The proof does not use it: it
 states the condition under which that trusted model is faithful (each cluster's own `BootFacts` states
-it for that cluster, `BootCore.lowNodup`). The premises indexed by the member counts (`Hlen`, `Hbf`,
-`Hprem₁`, `Hprem₂`, `HAs`, `HDs`, `HWal`, `Hlow`) are stated at every count, as the program takes any: the
-proof uses the clusters' start only once `ParamsOk` passed; out of range the program starts no member.
+it for that cluster, `BootCore.lowNodup`). The counts are the program's `uint64` arguments, any
+value: the premises indexed by them (`Hlen`, `Hbf`, `Hprem₁`, `Hprem₂`, `Hlow`) are stated at `uint.nat kᵢ`,
+and the addresses and data directories (`HAs`, `HDs`, `HWal`) are `k8sProgAddrs`/`k8sProgDirs`
+(`TopLevelDefs.lean`): the clusters' at counts in range, none outside, where `MainChecked` starts no
+member (as leaseexpiryN's `cluster k`, P6).
 
 (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
 `single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
@@ -108,9 +110,9 @@ def k8s_robust_single_process.spec : Prop :=
     -- the store's workload and the two schedules' lengths (any values: `MainChecked` checks them)
     (clients ops watchers wops n₁ n₂ : w64)
     (HAs : addrsUnclaimed (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
-      (k8sAddrs (uint.nat k₁) (uint.nat k₂)))
+      (k8sProgAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
-      (k8sDirs (uint.nat k₁) (uint.nat k₂)))
+      (k8sProgDirs k₁ k₂))
     (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂))
     (Hprem₁ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) (uint.nat k₁) n ids ps ctxs boot)
@@ -119,7 +121,7 @@ def k8s_robust_single_process.spec : Prop :=
           ctxs' boot')
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs (uint.nat k₁) (uint.nat k₂))),
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sProgDirs k₁ k₂)),
     Robustness.Robust [] [(k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂, σ)] g
       (threads := 2 ^ 28) (bound := 2 ^ 48)
 
