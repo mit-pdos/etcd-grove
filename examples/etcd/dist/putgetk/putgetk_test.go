@@ -18,8 +18,8 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 )
 
-// K is the member count of the test's deployments (and of putgetK_safe's first statement).
-const K = 3
+// maxK is the largest member count the tests' random configurations have.
+const maxK = 5
 
 // TestMain runs a member or the client instead of the tests when the test started this binary as
 // one (PUTGETK_PROC set; the arguments: "member" I PEERS CLIENTS, the lists comma-separated, or
@@ -55,22 +55,40 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// theoremAddrs are putgetK_safe's addresses (k = 3): member i's machine 10.77.(i+1).1, its peer
-// address on port 2380, its client address on port 2379 (the namespace mode's, below: the members'
-// machines are the network's first three).
-func theoremAddrs() (peers, clients []string) {
-	for i := 1; i <= K; i++ {
-		peers = append(peers, fmt.Sprintf("10.77.%d.1:2380", i))
-		clients = append(clients, fmt.Sprintf("10.77.%d.1:2379", i))
+// randPorts returns 2k distinct ports in 21000-32767 (valid, AddrOK, and below the ephemeral range).
+func randPorts(rng *rand.Rand, k int) []int {
+	seen := map[int]bool{}
+	var ps []int
+	for len(ps) < 2*k {
+		p := 21000 + rng.IntN(32768-21000)
+		if !seen[p] {
+			seen[p] = true
+			ps = append(ps, p)
+		}
+	}
+	return ps
+}
+
+// randConfig returns a random configuration of k members over the hosts ips (member j on
+// ips[j % len(ips)]): random distinct valid ports.
+func randConfig(rng *rand.Rand, k int, ips []string) (peers, clients []string) {
+	ps := randPorts(rng, k)
+	for j := 0; j < k; j++ {
+		ip := ips[j%len(ips)]
+		peers = append(peers, ip+":"+strconv.Itoa(ps[2*j]))
+		clients = append(clients, ip+":"+strconv.Itoa(ps[2*j+1]))
 	}
 	return
 }
 
-// TestMemberIDs checks putgetK_safe's premise on the member ids (BootCore: their 16 low bits
-// distinct and not 0) at the theorem's addresses, from the ids etcd computes for the cluster (its
-// peer URLs and Token, as bootstrap does). It starts no cluster.
-func TestMemberIDs(t *testing.T) {
-	peers, _ := theoremAddrs()
+// randIP returns a random valid IPv4 address (first octet 1-223).
+func randIP(rng *rand.Rand) string {
+	return fmt.Sprintf("%d.%d.%d.%d", 1+rng.IntN(223), rng.IntN(256), rng.IntN(256), rng.IntN(256))
+}
+
+// etcdIDs are the ids etcd computes for the configuration's members (membership's, as bootstrap
+// does: the initial cluster's map of each member's one peer URL, and Token), in the members' order.
+func etcdIDs(t *testing.T, peers []string) []uint64 {
 	urls := types.URLsMap{}
 	for j, p := range peers {
 		u, err := types.NewURLs([]string{"http://" + p})
@@ -83,16 +101,98 @@ func TestMemberIDs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seen := map[uint64]bool{}
-	for _, id := range cl.MemberIDs() {
-		low := uint64(id) & 0xffff
-		if low == 0 || seen[low] {
-			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
+	var ids []uint64
+	for j := range peers {
+		m := cl.MemberByName(Name(uint64(j)))
+		if m == nil {
+			t.Fatalf("no member %s", Name(uint64(j)))
 		}
-		seen[low] = true
+		ids = append(ids, uint64(m.ID))
 	}
-	if len(seen) != K {
-		t.Fatalf("%d ids", len(seen))
+	return ids
+}
+
+// TestMemberIDEtcd checks MemberID against the ids etcd computes, over 3000 random configurations
+// (1 to 7 members, random addresses): the ids Valid checks are bootstrap's.
+func TestMemberIDEtcd(t *testing.T) {
+	for seed := uint64(0); seed < 3000; seed++ {
+		rng := rand.New(rand.NewPCG(seed, 1))
+		k := 1 + rng.IntN(7)
+		var ips []string
+		for j := 0; j < k; j++ {
+			ips = append(ips, randIP(rng))
+		}
+		peers, _ := randConfig(rng, k, ips)
+		for j, id := range etcdIDs(t, peers) {
+			if MemberID(peers[j]) != id {
+				t.Fatalf("seed %d: member %d (%s): MemberID %x, etcd's %x", seed, j, peers[j], MemberID(peers[j]), id)
+			}
+		}
+	}
+}
+
+// TestAddrOK checks AddrOK on the net extension's cases (examples/net/semantics).
+func TestAddrOK(t *testing.T) {
+	for _, a := range []string{"10.77.1.1:2380", "127.0.0.1:2379", "1.0.0.0:1", "223.255.255.255:65535", "8.8.8.8:61000"} {
+		if !AddrOK(a) {
+			t.Errorf("AddrOK(%q) = false", a)
+		}
+	}
+	for _, a := range []string{"", "0.1.2.3:80", "224.0.0.1:80", "10.0.0.256:80", "10.0.0.1:0", "10.0.0.1:65536",
+		"10.0.0.1:32768", "10.0.0.1:60999", "010.0.0.1:80", "10.0.0.1:080", "10.0.0.1", "10.0.0:80", "10.0.0.1.1:80",
+		"localhost:80", ":80", "10.0.0.1:80:1", "10.0.0.1:", "a.b.c.d:80"} {
+		if AddrOK(a) {
+			t.Errorf("AddrOK(%q) = true", a)
+		}
+	}
+}
+
+// TestValidSeeds is Valid's non-vacuity over many seeds: of 20000 random configurations (1 to 9
+// members on random addresses), all but a few (the ids' 16 low bits colliding, by the birthday
+// bound about k^2/2^17) pass, and every one Valid refuses has such a collision. Configurations that
+// break a rule are refused.
+func TestValidSeeds(t *testing.T) {
+	pass := 0
+	const n = 20000
+	for seed := uint64(0); seed < n; seed++ {
+		rng := rand.New(rand.NewPCG(seed, 2))
+		k := 1 + rng.IntN(9)
+		var ips []string
+		for j := 0; j < k; j++ {
+			ips = append(ips, randIP(rng))
+		}
+		peers, clients := randConfig(rng, k, ips)
+		if Valid(peers, clients) {
+			pass++
+			continue
+		}
+		lows := map[uint64]bool{}
+		collide := false
+		for _, p := range peers {
+			low := MemberID(p) & 0xffff
+			collide = collide || low == 0 || lows[low]
+			lows[low] = true
+		}
+		if !collide {
+			t.Fatalf("seed %d: Valid refused %v %v with no id collision", seed, peers, clients)
+		}
+	}
+	t.Logf("Valid: %d of %d random configurations pass", pass, n)
+	if pass < n*995/1000 {
+		t.Fatalf("only %d of %d pass", pass, n)
+	}
+	ok := []string{"10.0.0.1:2380"}
+	okc := []string{"10.0.0.1:2379"}
+	for _, c := range [][2][]string{
+		{nil, nil}, {ok, nil}, {ok, ok}, {[]string{"10.0.0.1:0"}, okc},
+		{[]string{"10.0.0.1:2380", "10.0.0.2:2380"}, []string{"10.0.0.1:2379", "10.0.0.1:2380"}},
+	} {
+		if Valid(c[0], c[1]) {
+			t.Errorf("Valid(%v, %v) = true", c[0], c[1])
+		}
+	}
+	if !Valid(ok, okc) {
+		t.Errorf("Valid(%v, %v) = false", ok, okc)
 	}
 }
 
@@ -103,13 +203,15 @@ func TestName(t *testing.T) {
 	}
 }
 
-// round runs one deployment: K member machines and the client's on a network of their own
+// round runs one deployment, its configuration from seed (1 to maxK members, random ports, Valid): its member machines and the client's on a network of their own
 // (namespaces if netns, else the one loopback address), the members started, then, once every
 // member's client address accepts a connection from the client's machine, the client. With faults,
 // the network fails from the client's start on (partitions and link faults over every machine; no
 // crash: the theorem's machines never crash). It returns the client's result line; a panic, a
 // member exiting on its own or a client not done by the deadline fails t.
-func round(t *testing.T, i int, netns bool, faults bool) string {
+func round(t *testing.T, i int, netns bool, faults bool, seed uint64) string {
+	rng := rand.New(rand.NewPCG(seed, 3))
+	k := 1 + rng.IntN(maxK)
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +222,7 @@ func round(t *testing.T, i int, netns bool, faults bool) string {
 	}
 	defer n.Close()
 	var mms []*robust.Machine
-	for j := 0; j < K; j++ {
+	for j := 0; j < k; j++ {
 		m, err := n.AddMachine(fmt.Sprintf("member-%d", j))
 		if err != nil {
 			t.Fatal(err)
@@ -131,20 +233,13 @@ func round(t *testing.T, i int, netns bool, faults bool) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var peers, clients []string
-	if n.Namespaces() {
-		peers, clients = theoremAddrs()
-		for j, m := range mms {
-			if !strings.HasPrefix(peers[j], m.IP+":") {
-				t.Fatalf("member %d's machine is %s, not the theorem's %s", j, m.IP, peers[j])
-			}
-		}
-	} else {
-		base := 21000 + 2*K*rand.IntN(2000)
-		for j, m := range mms {
-			peers = append(peers, m.IP+":"+strconv.Itoa(base+2*j))
-			clients = append(clients, m.IP+":"+strconv.Itoa(base+2*j+1))
-		}
+	var ips []string
+	for _, m := range mms {
+		ips = append(ips, m.IP)
+	}
+	peers, clients := randConfig(rng, k, ips)
+	if !Valid(peers, clients) {
+		t.Fatalf("round %d (seed %d): the configuration %v %v is not Valid", i, seed, peers, clients)
 	}
 	cfg := robust.Config{Crash: robust.CrashKill, Netns: netns, Deadline: 2 * time.Minute,
 		FaultsAtStart: true, SetupWait: time.Minute}
@@ -203,7 +298,7 @@ func round(t *testing.T, i int, netns bool, faults bool) string {
 	machines := append(append([]*robust.Machine(nil), mms...), cm)
 	lines := r.RunClients(nil, []robust.Client{{Name: "client", Machine: cm, Args: []string{"client", clients[0]},
 		Ready: filepath.Join(work, "client.ready")}}, machines)
-	t.Logf("round %d (faults %v): %s; network: %s", i, faults, lines[0], r.NetStats())
+	t.Logf("round %d (seed %d, %d members, faults %v): %s; network: %s", i, seed, k, faults, lines[0], r.NetStats())
 	if err := r.Err(); err != nil {
 		t.Fatalf("round %d: %v (work directory kept: %s)", i, err, work)
 	}
@@ -211,7 +306,8 @@ func round(t *testing.T, i int, netns bool, faults bool) string {
 	return lines[0]
 }
 
-// TestPutGetK runs putgetK_safe's deployment (notes/putget-dist-plan.md §13): K member machines and
+// TestPutGetK runs putgetK_safe's deployment (notes/putget-dist-plan.md §13): member machines (a random
+// configuration per round) and
 // one client machine, no crash. The first round has no fault and must check; the others
 // (PUTGETK_ROUNDS, default 4; -short: 1) have network faults on namespaces from the client's start
 // (partitions, one-way partitions, link faults over every machine), where the check runs or a step
@@ -226,7 +322,7 @@ func TestPutGetK(t *testing.T) {
 		return
 	}
 	netns := robust.NetnsAvailable() == nil
-	if l := round(t, 0, netns, false); !strings.HasSuffix(l, "checked") {
+	if l := round(t, 0, netns, false, 0); !strings.HasSuffix(l, "checked") {
 		t.Fatalf("the fault-free round did not check: %q", l)
 	}
 	rounds := 4
@@ -244,9 +340,34 @@ func TestPutGetK(t *testing.T) {
 	}
 	checked := 0
 	for i := 1; i <= rounds; i++ {
-		if strings.HasSuffix(round(t, i, netns, true), "checked") {
+		if strings.HasSuffix(round(t, i, netns, true, uint64(i)), "checked") {
 			checked++
 		}
 	}
 	t.Logf("faulty rounds: %d of %d checked", checked, rounds)
+}
+
+// TestNonVacuity is putgetK_safe's non-vacuity over many seeds: for each seed (PUTGETK_SEEDS, default
+// 8; -short: 2), a random configuration of 1 to maxK members (seeded), which Valid accepts, run with
+// no fault: every member gets past Valid and the client's check (the Put, the Get, the comparison)
+// runs ("checked"). Local mode (one loopback address, processes; no namespaces needed). It runs only
+// with DIST_RUN set.
+func TestNonVacuity(t *testing.T) {
+	if os.Getenv("DIST_RUN") == "" {
+		t.Skip("set DIST_RUN=1 to run (processes)")
+	}
+	seeds := 8
+	if s := os.Getenv("PUTGETK_SEEDS"); s != "" {
+		if v, err := strconv.Atoi(s); err == nil && v > 0 {
+			seeds = v
+		}
+	}
+	if testing.Short() {
+		seeds = 2
+	}
+	for seed := 0; seed < seeds; seed++ {
+		if l := round(t, seed, false, false, uint64(1000+seed)); !strings.HasSuffix(l, "checked") {
+			t.Fatalf("seed %d: the client's check did not run: %q", 1000+seed, l)
+		}
+	}
 }
