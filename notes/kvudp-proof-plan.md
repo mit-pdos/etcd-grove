@@ -127,10 +127,10 @@ Entry:
 `fragsOf_nil`, `chunks_flatten`, `chunkAt_length`, `fragBytes_length`, `ackBytes_length`,
 `parseAddrM_ok`. `UdpBootDefs.lean` (proved 2026-11-24): `udp_boot_alloc`, `udp_boot_crash`,
 `udp_boot_bump` (the sync's ghost step), `udp_gen_boot`.
-To add in phase 2 (in `UdpDefs.lean` or a `UdpLemmas.lean`): `udp_seq_fresh` (nextSeq's token from
-the counter), `udp_record` (token → `udpMsgAt`), `udp_boot_bump` (the sync's ghost step),
-`udpDgOk_recv` (what `RecvOut` gives, read into a 524-byte buffer, is `udpDgOk` of the datagram whole),
-`udpDgOk_send` (`Intact` keeps `udpDgOk`), and the reassembly lemma (the chunks of one name, all
+Proved in phase 2: `udp_seq_fresh` (nextSeq's token from the counter) and `udp_record` (token →
+`udpMsgAt`) in `UdpSendLemmas.lean`, `udpDgOk_send` (`Intact` keeps `udpDgOk`) in `udpNet__write.lean`.
+To add: `udpDgOk_recv` (what `RecvOut` gives, read into a 524-byte buffer, is `udpDgOk` of the datagram
+whole) and the reassembly lemma (the chunks of one name, all
 `udpMsgAt`-agreeing, flatten to the body).
 
 ## The Link (`etc/gen-link.py --kvudp`, 2026-11-24)
@@ -142,9 +142,10 @@ the UDP section's instances. `--kvnet` leaves the UDP proofs out of its roots, s
 is unchanged (its result statements would otherwise all need `[HasExt udpExt]`, which kvnet's
 `[netExt, fsExt]` lacks). Generic proofs are linked at the store's instantiation (`INST`):
 `udpNet.receive`, `udpNet.stepper` at `kvFacts γ _`, `kvRep γ vs dir`, `kvStp γ vs dir`; `RunUDP`,
-`RunNodeUDP` as `Run`, `RunNode`; `startNodeUDP`'s proof is concrete. The three `net` UDP specs have no
-linked result in the part yet (their proofs are `Net/`'s, `udp-net`): hypotheses `h_net_ListenUDP`,
-`h_net_UDPConn_WriteToUDP`, `h_net_UDPConn_ReadFromUDP` of the results that reach them. The top-level
+`RunNodeUDP` as `Run`, `RunNode`; `startNodeUDP`'s proof is concrete. The three `net` UDP functions are
+linked from their proofs, `Net/`'s (`udp-net`): the generator reads `Net/Proof/net/` as `KvNet.Proof.net.*`,
+so the Link imports them under the part's root and `etc/copy-part.py` copies them (and `UdpModels`) into
+`KvNet/Proof/net/` (2026-11-24; until then they were hypotheses `h_net_*` and the top level a `sorry`). The top-level
 proof module imports this `Link`. Perennial callees not yet hypotheses of the proofs (phase 2 adds them
 where needed): `time.Sleep`, `time.AfterFunc` (as `listen.lean`, via `Perennial.Proof.time.Link`),
 `littleEndian.Uint32/Uint64/PutUint32`. (The Go used `binary.LittleEndian.AppendUint32`, which has no

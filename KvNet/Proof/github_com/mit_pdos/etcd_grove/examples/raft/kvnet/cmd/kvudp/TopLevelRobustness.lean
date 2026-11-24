@@ -22,9 +22,8 @@ with the UDP side added:
   `kvBoot_names_fresh`);
 * **the client**: kvnet's (`kvudpClient_stable`, as `kvClient_stable`).
 
-`raft_kvudp_robust_of` takes the specs of the three `net` UDP functions (`ListenUDP`,
-`(*UDPConn).WriteToUDP`, `(*UDPConn).ReadFromUDP`), which the part's Link takes as hypotheses
-(`kvudpNetUdp`); their proofs are `Net/`'s (`Net/Proof/net/`), which this part does not import yet.
+The three `net` UDP functions (`ListenUDP`, `(*UDPConn).WriteToUDP`, `(*UDPConn).ReadFromUDP`) are
+linked by the part's Link from their proofs (`Net/Proof/net/`, copied into the part).
 -/
 module
 
@@ -32,9 +31,6 @@ public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.cmd.
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.cmd.kvudp.Link
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopLevelRobustness
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.UdpBootDefs
-public import KvNet.Spec.net.ListenUDP
-public import KvNet.Spec.net.UDPConn__ReadFromUDP
-public import KvNet.Spec.net.UDPConn__WriteToUDP
 
 @[expose] public section
 
@@ -520,18 +516,10 @@ variable [syscall.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.log.NewModel]
 
-/-- **The specs of the three `net` UDP functions** kvudp calls (the part's Link takes them as
-hypotheses: their proofs are `Net/`'s). -/
-abbrev kvudpNetUdp : Prop :=
-  _root_.Perennial.net.ListenUDP.spec (GF := GF) (hG := hG) ∧
-    _root_.Perennial.net.UDPConn.ReadFromUDP.spec (GF := GF) (hG := hG) ∧
-    _root_.Perennial.net.UDPConn.WriteToUDP.spec (GF := GF) (hG := hG)
-
 /-- **A replica's program** (`ReplicaLinked.lean`'s `kvReplica_wp`, with `RunNodeUDP`): from the
 generation's empty package state, the replica's address protocols and, at every address map, the
 start resource and the UDP side's (`udpProcStart`). -/
-theorem kvudpReplica_wp (hnet : kvudpNetUdp (GF := GF) (hG := hG))
-    (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
+theorem kvudpReplica_wp (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
     (γu : UdpNames)
     (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
       (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
@@ -562,7 +550,7 @@ theorem kvudpReplica_wp (hnet : kvudpNetUdp (GF := GF) (hG := hG))
   unfold raft_kvcheck.connGlobals
   icases Hcg with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
   wp_pures
-  wp_apply (kvudpLink.raft_kvnet.wp_RunNodeUDP γ vs dir hnet.1 hnet.2.1 hnet.2.2 γu id addrs dir
+  wp_apply (kvudpLink.raft_kvnet.wp_RunNodeUDP γ vs dir γu id addrs dir
       cl.voters cl.preVote cl.checkQuorum cl.stepDownOnRemoval cl.maxSizePerMsg
       cl.maxCommittedSizePerReady cl.maxInflightMsgs eof ed hvc hid1 hid2) $$ [Hproto HS]
   · iframe Hproto HS Heof Hed Hcc
@@ -573,8 +561,7 @@ storage registry): kvnet's boot and the boot file's (`udp_gen_boot`), the progra
 (`kvudpReplica_wp`), and the crash obligation: kvnet's `kvGen_crash` (with the one later credit),
 then the boot file's `udp_boot_crash` on the crash's rest, which give the next generation's
 `kvudpGen` at the same directory. -/
-theorem kvudpRep_gen (hnet : kvudpNetUdp (GF := GF) (hG := hG))
-    (γ : KdNames) (γu : UdpNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString)
+theorem kvudpRep_gen (γ : KdNames) (γu : UdpNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString)
     (id : w64) (J : Fs.Ino) (R : Fs.Roots)
     (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
       (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
@@ -618,7 +605,7 @@ theorem kvudpRep_gen (hnet : kvudpNetUdp (GF := GF) (hG := hG))
     with ⟨%bn, ⟨%hbn1, %hbn2⟩, Hbs, Hbk⟩
   imodintro
   isplitl [Hgs Hst Hbs]
-  · iapply kvudpReplica_wp hnet γ vs cl addrs dir id γu hvc hid1 hid2 $$ Hgs Hpr
+  · iapply kvudpReplica_wp γ vs cl addrs dir id γu hvc hid1 hid2 $$ Hgs Hpr
     iintro #Hcg #Hcc %M %hM
     isplitl [Hst]
     · unfold kvNodeStart
@@ -758,11 +745,6 @@ def kvudpClient (γ : KdNames) (rs : List GoString) : IProp GF :=
     [∗list] i ↦ a ∈ rs, Net.addrProto a (kvP (kvFactsG γ (fun _ => True)) (W64 ((i : Int) + 1)))
       (kvQG (kvFactsG γ (fun _ => True)) (W64 ((i : Int) + 1))))
 
-/-- **kvudp's `net` UDP hypotheses, at every generation** (`kvudpNetUdp`). -/
-abbrev kvudpNetUdpAll : Prop :=
-  ∀ L : GooseLocalGS GF, letI : HeapGS .hasLC GF := ⟨G, L⟩;
-    ∀ [go.Semantics] [net.Assumptions] [net.UdpFieldAssumptions], kvudpNetUdp (GF := GF)
-
 variable [lctx : GoLocalContext] [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
 variable [field_sem : net.FieldAssumptions] [udp_field_sem : net.UdpFieldAssumptions]
@@ -770,8 +752,8 @@ variable [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.Fie
 variable [log_sem : log.NewModel] [NaInvG GF]
 
 /-- **Every generation of replica `i + 1`** (`CrashBootWpU`, as kvnet's `kvPc_crashBoot`). -/
-theorem kvudpPc_crashBoot (hnet : kvudpNetUdpAll (GF := GF))
-    (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig) (rs : List GoString) (dir : GoString) (i : Nat)
+theorem kvudpPc_crashBoot (γ : KdNames) (γu : UdpNames) (cl : ClusterConfig) (rs : List GoString)
+    (dir : GoString) (i : Nat)
     (hi : i < rs.length) (hnd : rs.Nodup) (hok : ∀ a ∈ rs, addrOk a = true)
     (hlen : rs.length < 2 ^ 32) (hcl : cl.Ok rs.length) (hdir : dir.length < 2 ^ 39)
     (hγ : γ.max = rs.length ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧
@@ -790,7 +772,7 @@ theorem kvudpPc_crashBoot (hnet : kvudpNetUdpAll (GF := GF))
   iintro ⟨#Hgl, ⟨%J, %R, ⟨%hJ, %hR⟩, Hg⟩, Hgs⟩ -
   imod kdStor_alloc (GF := GF) ⊤ with ⟨%k, #Hsi⟩
   letI : KdStor GF := k
-  have Hrep := kvudpRep_gen (GF := GF) (hnet L) γ γu (bootVoters (uint.nat cl.voters)) cl
+  have Hrep := kvudpRep_gen (GF := GF) γ γu (bootVoters (uint.nat cl.voters)) cl
     (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)) J R
     (by rw [hsplit]; exact validCluster_of rs cl hnd hok hlen hcl) hid1 (by rw [hsplit]; exact hid2)
     hid32 hR hJ hdir (by rw [hγ.1]; exact hid2)
@@ -914,14 +896,8 @@ end deploy
 section top
 variable [go_gctx : GoGlobalContext]
 
-/-- **kvudp is robust, given the `net` UDP functions' specs** (the part's Link's hypotheses;
-see the file header). -/
-theorem raft_kvudp_robust_of
-    (hnet : ∀ [lctx : GoLocalContext] [sem : go.Semantics]
-      [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
-      [udp_field_sem : net.UdpFieldAssumptions] [G : GooseGlobalGS .hasLC kvudpGF],
-      kvudpNetUdpAll (GF := kvudpGF)) :
-    raft_kvudp_robust.spec := by
+/-- **kvudp is robust** (the statement: `raft_kvudp_robust.spec`). -/
+theorem raft_kvudp_robust : raft_kvudp_robust.spec := by
   intro lctx sem package_sem field_sem udp_field_sem os_file_sem os_stat_sem log_sem cl dir replicas
     σc g hcl hn hdir hnd hrep addrs hfresh hig hil
   have hlenrs : (replicas.map (·.1)).length = replicas.length := List.length_map _
@@ -958,7 +934,7 @@ theorem raft_kvudp_robust_of
     intro i m hm
     obtain ⟨p, hp, rfl, -⟩ := replica_mem _ replicas i m hm
     have hi : i < replicas.length := (List.getElem?_eq_some_iff.1 hp).1
-    exact kvudpPc_crashBoot hnet γ γu cl _ dir i (by omega) hnd hok hn hcl hdir hγ
+    exact kvudpPc_crashBoot γ γu cl _ dir i (by omega) hnd hok hn hcl hdir hγ
   isplitr
   · ipureintro
     intro j m hm
@@ -1018,14 +994,6 @@ theorem raft_kvudp_robust_example_of (H : raft_kvudp_robust.spec) :
     · exact ⟨by decide, hfs _ (by simp)⟩
     · exact ⟨by decide, hfs _ (by simp)⟩
 
-
-/-- **kvudp is robust** (the statement: `raft_kvudp_robust.spec`), from `raft_kvudp_robust_of`. The
-`net` UDP functions' specs are proved in `Net/` (`Net/Proof/net/ListenUDP.lean`,
-`UDPConn__WriteToUDP.lean`, `UDPConn__ReadFromUDP.lean`), which this part does not import yet (its
-copies of their specs clash with `Net/`'s): until their proofs are copied into the part and the Link
-uses them, this is the one `sorry`. -/
-theorem raft_kvudp_robust : raft_kvudp_robust.spec :=
-  raft_kvudp_robust_of (fun _ => sorry)
 
 /-- **kvudp is robust, an example**: from `raft_kvudp_robust`. -/
 theorem raft_kvudp_robust_example : raft_kvudp_robust_example.spec :=

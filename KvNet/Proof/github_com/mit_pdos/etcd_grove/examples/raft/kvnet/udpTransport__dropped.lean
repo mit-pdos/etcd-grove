@@ -38,7 +38,34 @@ theorem udpTransport.dropped.wp_proof
     (wp_ReportUnreachable : node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (wp_ReportSnapshot : node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
     udpTransport.dropped.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro F γu t γ N id n m dq dqe cap st
+  wp_start as ⟨#Ht, Hm⟩
+  unfold isUdpCore
+  icases Ht with ⟨%sc, %γsc, #Hb, #Hnode, #Hn, %Htr⟩
+  unfold isUdpBase
+  icases Hb with ⟨%u, %boot, %sp, #Hu, #Hun, #Hstats, #Hs, -⟩
+  ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
+  try wp_auto
+  wp_apply wp_add sp (W64 19) (by decide) (by decide) $$ [$Hpkg $Hs]
+  try wp_auto
+  wp_apply wp_GetTo.1 m _ _ _ _ $$ [$Hpb $Hm] as Hm
+  try wp_auto
+  wp_apply wp_ReportUnreachable n γ N id st.msg.To' $$ [$Hraft $Hn]
+  try wp_auto
+  wp_apply wp_GetType.1 m _ _ _ _ $$ [$Hpb $Hm] as Hm
+  try wp_auto
+  wp_if_destruct
+  · wp_apply wp_GetTo.1 m _ _ _ _ $$ [$Hpb $Hm] as Hm
+    try wp_auto
+    wp_apply wp_ReportSnapshot n γ N id st.msg.To' _ Htr $$ [$Hraft $Hn]
+    try wp_auto
+    iapply HΦ
+    iexact Hm
+  · iapply HΦ
+    iexact Hm
 
 end proof
 

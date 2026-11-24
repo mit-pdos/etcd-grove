@@ -28,7 +28,16 @@ variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
 
 theorem udpTransport.stop.wp_proof :
     udpTransport.stop.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro t sc γsc
+  wp_start as ⟨#Hstopc, Hpend⟩
+  iunfold transportStopper at Hpend
+  ihave #Htt : □ (True : IProp GF) $$ []
+  · imodintro; itrivial
+  try wp_auto
+  wp_apply wp_broadcast_chan_close sc γsc iprop(True) $$ [$Hpend $Htt] as -
+  try wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
