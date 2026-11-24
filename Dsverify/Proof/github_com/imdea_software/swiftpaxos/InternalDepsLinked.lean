@@ -29,7 +29,6 @@ variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netD
   [SwiftNetDeps netDistGF]
 
 theorem swiftKitDeps_holds : SwiftKitDeps where
-  ghostStep := client.GhostStep.wp_proof
   majSize := replica.Majority.Size.wp_proof
   majContains := replica.Majority.Contains.wp_proof
   tqSize := replica.ThreeQuarters.Size.wp_proof

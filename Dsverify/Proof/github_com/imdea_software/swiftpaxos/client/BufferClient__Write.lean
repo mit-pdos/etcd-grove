@@ -38,6 +38,7 @@ theorem client.BufferClient.Write.wp_proofI
   ihave HAU : sp.cmdAU γl (sp.Cmd.put key v)
       (fun _ => iprop(client.ready b γ γc γm γl cid (s + 1) -∗ Φ #())) $$ [AU]
   · unfold sp.cmdAU
+    rw [sp.auE_diff]
     iapply aupd_mono ?_ ?_ $$ AU
     · rintro ⟨σ, ⟨⟩⟩ ⟨⟩; exact .rfl
     · rintro ⟨σ, ⟨⟩⟩ ⟨⟩; exact .rfl
@@ -49,7 +50,7 @@ theorem client.BufferClient.Write.wp_proofI
   try wp_auto
   ihave #Hg1 : client.nodeGhostB γ (sp.PNode.cl (sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId))) $$ []
   · rw [show sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId) = cid.toNat - 1 from rfl]
-    iunfold client.nodeGhostOk at Hng; iexact Hng
+    iexact Hng
   ihave #Hbf := Hbv
   iStructNamed Hbf
   obtain ⟨Hcl1, Hcl2, Hcid⟩ := Hcl
@@ -151,6 +152,7 @@ theorem client.BufferClient.Write.wp_proofI
   ihave HAU : sp.cmdAU γl (sp.Cmd.put key v)
       (fun _ => iprop(client.ready b γ γc γm γl cid (s + 1) -∗ Φ #())) $$ [AU]
   · unfold sp.cmdAU
+    rw [sp.auE_diff]
     iapply aupd_mono ?_ ?_ $$ AU
     · rintro ⟨σ, ⟨⟩⟩ ⟨⟩; exact .rfl
     · rintro ⟨σ, ⟨⟩⟩ ⟨⟩; exact .rfl

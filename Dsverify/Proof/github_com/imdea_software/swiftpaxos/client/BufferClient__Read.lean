@@ -41,6 +41,7 @@ theorem client.BufferClient.Read.wp_proofI
       (fun o => iprop(∀ sl : GoSlice, sl ↦*□ o ∗ client.ready b γ γc γm γl cid (s + 1) -∗
         Φ #sl)) $$ [AU]
   · unfold sp.cmdAU
+    rw [sp.auE_diff]
     iapply aupd_mono ?_ ?_ $$ AU
     · rintro ⟨σ, ⟨⟩⟩ ⟨⟩
       simp only [sp.lin.apply, sp.Cmd.get, sp.Cmd.isPut, sp.opGET, sp.opPUT]
@@ -56,7 +57,7 @@ theorem client.BufferClient.Read.wp_proofI
   try wp_auto
   ihave #Hg1 : client.nodeGhostB γ (sp.PNode.cl (sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId))) $$ []
   · rw [show sp.clOf (⟨cid, W32 (s : Int)⟩ : sp.CmdId) = cid.toNat - 1 from rfl]
-    iunfold client.nodeGhostOk at Hng; iexact Hng
+    iexact Hng
   ihave #Hbf := Hbv
   iStructNamed Hbf
   obtain ⟨Hcl1, Hcl2, Hcid⟩ := Hcl
@@ -64,21 +65,18 @@ theorem client.BufferClient.Read.wp_proofI
   iunfold client.sendSt at Hsend
   icases Hsend with ⟨%lg, %ld, %ssl, %wsl, %wrs, #Hcidf, Hrest⟩
   try wp_auto
-  wp_apply wp_NIL as %nsl Hnsl
-  imod ownSlice_persist $$ Hnsl with #Hnsl
-  try wp_auto
   have hs1 : W32 ((s : Int) - 1) + W32 1 = W32 (s : Int) := by word
   rw [hs1]
   rw [show (#(W8 2) : val) = #(sp.Cmd.get key).op from rfl,
     show (#cid : val) = #(⟨cid, W32 (s : Int)⟩ : sp.CmdId).cl from rfl,
     show (#(W32 (s : Int)) : val) = #(⟨cid, W32 (s : Int)⟩ : sp.CmdId).seq from rfl,
     show (#key : val) = #(sp.Cmd.get key).key from rfl]
-  wp_apply wp_Invoke γ γc γm γl (⟨cid, W32 (s : Int)⟩ : sp.CmdId) (sp.Cmd.get key) nsl
+  wp_apply wp_Invoke γ γc γm γl (⟨cid, W32 (s : Int)⟩ : sp.CmdId) (sp.Cmd.get key) slice.nil
     (fun o => iprop(∀ sl : GoSlice, sl ↦*□ o ∗ client.ready b γ γc γm γl cid (s + 1) -∗
       Φ #sl)) $$ [Hcs HAU] as ⟨#Hcmd, Hcs, Hrcpt⟩
   · iframe; iframe #
     isplitr
-    · simp only [sp.Cmd.get]; iexact Hnsl
+    · simp only [sp.Cmd.get]; iapply ownSlice_nil
     ipureintro
     exact ⟨Hcid, Or.inr rfl, by simp [sp.Cmd.get], by word, by rw [hs]; exact Hb⟩
   wp_method_call
@@ -158,6 +156,7 @@ theorem client.BufferClient.Read.wp_proofI
       (fun o => iprop(∀ sl : GoSlice, sl ↦*□ o ∗ client.ready b γ γc γm γl cid (s + 1) -∗
         Φ #sl)) $$ [AU]
   · unfold sp.cmdAU
+    rw [sp.auE_diff]
     iapply aupd_mono ?_ ?_ $$ AU
     · rintro ⟨σ, ⟨⟩⟩ ⟨⟩
       simp only [sp.lin.apply, sp.Cmd.get, sp.Cmd.isPut, sp.opGET, sp.opPUT]
