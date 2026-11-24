@@ -169,6 +169,9 @@ def etcdCountsOk (k₁ k₂ k₃ k₄ k₅ : w64) : Prop :=
   1 ≤ uint.nat k₃ ∧ uint.nat k₃ ≤ 300 ∧ 1 ≤ uint.nat k₄ ∧ uint.nat k₄ ≤ 300 ∧
   3 ≤ uint.nat k₅ ∧ uint.nat k₅ ≤ 300
 
+instance (k₁ k₂ k₃ k₄ k₅ : w64) : Decidable (etcdCountsOk k₁ k₂ k₃ k₄ k₅) := by
+  unfold etcdCountsOk; infer_instance
+
 /-- **The addresses `etcdProgram` may listen on** (P4, as leaseexpiryN's `cluster k`, P6):
 `etcdAddrs` at the member counts when they are in range, none otherwise (`MainChecked` then returns
 without starting a member). -/

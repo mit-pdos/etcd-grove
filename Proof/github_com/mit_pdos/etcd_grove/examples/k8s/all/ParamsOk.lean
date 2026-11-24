@@ -107,13 +107,11 @@ theorem ParamsOk.wp_proof (wp_mulBelow : mulBelow.spec (GF := GF) (hG := hG)) :
   constructor
   · intro h
     have htot : sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60 := by
-      generalize (2 : Int) ^ 60 = L at h ⊢
-      omega
+      exact Int.add_lt_of_lt_sub_left h
     refine ⟨?_, ?_, ?_, ?_, rc, rw', ?_, ro, rwo, htot⟩ <;> word
   · intro hp
     have htot := hp.2.2.2.2.2.2.2.2.2
-    generalize (2 : Int) ^ 60 = L at htot ⊢
-    omega
+    exact Int.lt_sub_left_of_add_lt htot
 
 end proof
 

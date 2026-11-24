@@ -117,6 +117,9 @@ the pure-premises plan's P5): `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂ ≤ 600`. -/
 def k8sCountsOk (k₁ k₂ : w64) : Prop :=
   1 ≤ uint.nat k₁ ∧ uint.nat k₁ ≤ 1000 ∧ 1 ≤ uint.nat k₂ ∧ uint.nat k₂ ≤ 600
 
+instance (k₁ k₂ : w64) : Decidable (k8sCountsOk k₁ k₂) := by
+  unfold k8sCountsOk; infer_instance
+
 /-- **The addresses `k8sProgram` may listen on** (P5, as leaseexpiryN's `cluster k`, P6): `k8sAddrs`
 at the member counts when they are in range, none otherwise (`MainChecked` then returns without
 starting a member). -/
