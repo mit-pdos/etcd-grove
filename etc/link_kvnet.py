@@ -63,16 +63,19 @@ EXT_LINKS = [
 ]
 # explicit binder types a result may take as parameters
 PARAMS = [r"KdNames", r"List w64", r"GoString", r"KvFacts GF", r"Loc → w64 → IProp GF",
-          r"GoInterface → List w8 → IProp GF", r"List w8 → Prop",
+          r"GoInterface → List w8 → IProp GF", r"List w8 → Prop", r"NodeStopper GF",
           r"w64 → GoString → github_com\.mit_pdos\.etcd_grove\.examples\.raft\.kvnet\.Options → "
           r"GMap w64 GoString → IProp GF"]
 # the store's instantiation of the generic proofs (see the docstring)
 _STORE_B = "(γ : KdNames) (vs : List w64) (dir : GoString)"
 _STORE_3 = "(kvFacts γ (fun _ => True)) (kvRep γ vs dir) kvConfRead"
+# (2026-11-24, G5) the node's specs take the incarnation stopper before the conf read
+_STORE_4 = "(kvFacts γ (fun _ => True)) (kvRep γ vs dir) (kvStp γ vs dir) kvConfRead"
 INST = {
-    "Perennial.EtcdGrove.raft_kvnet.Node.handle.wp_proof": (_STORE_B, _STORE_3),
-    "Perennial.EtcdGrove.raft_kvnet.Node.serveClient.wp_proof": (_STORE_B, _STORE_3),
-    "Perennial.EtcdGrove.raft_kvnet.Node.serve.wp_proof": (_STORE_B, _STORE_3),
+    "Perennial.EtcdGrove.raft_kvnet.Node.handle.wp_proof": (_STORE_B, _STORE_4),
+    "Perennial.EtcdGrove.raft_kvnet.Node.serveClient.wp_proof": (_STORE_B, _STORE_4),
+    "Perennial.EtcdGrove.raft_kvnet.Node.serve.wp_proof": (_STORE_B, _STORE_4),
+    "Perennial.EtcdGrove.raft_kvnet.Node.accept.wp_proof": (_STORE_B, _STORE_4),
     "Perennial.EtcdGrove.raft_kvnet.Run.wp_proof": (_STORE_B, _STORE_3 + " (kvNodeStart γ vs dir)"),
     "Perennial.EtcdGrove.raft_kvnet.RunNode.wp_proof": (_STORE_B, _STORE_3 + " (kvNodeStart γ vs dir)"),
 }
