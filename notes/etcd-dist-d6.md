@@ -331,3 +331,21 @@ step, for the lead/owner): `SaveDBFrom` linearized at the link (the index into `
 entry not), its post a persistent `snapDurable γd i`; the body's `E \ M` case `Rm i ∨ ¬ snapDurable`; T2 carries
 "the WAL's snapshot index is `snapDurable`". `snapDir_take` becomes a crash-token update (two callers). No Lean
 change made on this branch yet.
+
+**T6, second design round (2026-11-24, after the lead's approval of "linearize at the link"):**
+- *Durability needs no new name and no axiom statement change*: let the saved map `E` mean **saved and durable**.
+  The ghost steps of `SaveDBFrom` become: at the link, the index enters `M` only (bytes durable, entry not); at
+  the directory sync, it enters `E`. `snapSaved γd i` (the post, unchanged) then *is* `snapDurable`; raft's
+  `snapLocal` (elements of `γd`) only gets stronger. Body: `M ∩ E` files `fileAtDur`; `M \ E` files pending
+  (bytes durable, entry maybe not); `E \ M` has `Rm i` (as today); `snapFree` over the indices in neither `E`
+  nor `M`. After a crash, a pending file that survived stays in `M` (its certificate is persistent), one that
+  vanished frees its name. The `ErrExist` branch syncs and adds the kept index to `E`. T2's "the WAL's snapshot
+  index is durable" is the receiver's `snapSaved` (`netSnapRecv`), already there.
+- *The crash disjunct's token has no name to live at.* `inv snapDirN (body ∨ crashed L ∗ tok)` needs `tok`
+  exclusive and owned by the crash frame (`Keep L`), so that the crash law finds the body still there (the WAL's
+  `walCrashTok` is at a name in `WalGS`). `snapDirInv sd γd img Rm` has only `γd`, whose ghost map's key and value
+  types (`w64`, `Unit`) are shared with raft's `snapLocal`, every key a possible index. Options: (a) a fifth
+  parameter `γk` of `snapDirInv` (25 uses in 19 files, threaded through `bootOk`'s and the restart's statements);
+  (b) `snapDirIs p γd` (trusted, `snap/Defs.lean`) carries the token's name, allocated by `snapDirOwn`'s update;
+  (c) `E`'s key type `Option w64` (`none` the token), changing raft's `snapLocal` type. Recommendation (b): one
+  trusted line next to the one changed, no signature ripple.
