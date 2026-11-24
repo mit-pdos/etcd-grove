@@ -137,7 +137,7 @@ theorem EtcdServer.PromoteMember.wp_proof
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨-, -, -, -, #HsEV⟩, ⟨-, -, -, -, ⟨%cS, #HcS, #HcSs⟩, ⟨%hvF, #HhvF, %HhvFl⟩⟩⟩
+  icases Hinit with ⟨-, ⟨-, -, -, -, #HsEV⟩, ⟨-, -, -, -, ⟨%cS, #HcS, #HcSs⟩, ⟨%hvF, #HhvF, %HhvFl⟩, -⟩⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

@@ -155,17 +155,17 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
     (wp_envFailure : envFailure.spec (GF := GF) (hG := hG))
     (wp_valueOk : valueOk.spec (GF := GF) (hG := hG)) :
     testMiniboltConcurrent.spec (GF := GF) (hG := hG) := by
-  intro _ dir R V j hr hd hn
-  wp_start as ⟨#Hpkg, #Henv, #Hos, Ht, -⟩
-  ihave Hf := dbFile_absent (GF := GF) R V (child dir go!"db") hn
+  intro _ dir R j dq qc h hn
+  wp_start as ⟨#Hpkg, #Henv, #Hos, #Hsi, Hp, Hperm, Ht, -⟩
+  ihave Hf := dbFile_absent (GF := GF) h go!"db" hn
   ihave #Hpkg' := Hpkg
   iunfold pkgFacts at Hpkg'
   icases Hpkg' with ⟨#Hsync, -⟩
   wp_auto
   rw [show dir ++ go!"/db" = child dir go!"db" from rfl]
-  wp_apply wp_Open dir go!"db" R V j 1 none 4 valueOkP hr (by decide) hd (by simp [valueOkP])
-      $$ [Ht Hf]
-    as %db %err ⟨%V', -, (⟨%Herr, %γ, %Hvl, #Hdb, -, Hown, #Hlast, -⟩ | ⟨%Herr, -⟩)⟩
+  wp_apply wp_Open dir go!"db" R j dq qc h 1 none 4 valueOkP (by decide) (by simp [valueOkP])
+      $$ [Hp Hperm Ht Hf]
+    as %db %err ⟨-, -, %h', -, (⟨%Herr, %γ, %Hvl, #Hdb, -, Hown, #Hlast, -⟩ | ⟨%Herr, -⟩)⟩
   · iframe #; iframe
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -179,7 +179,7 @@ theorem testMiniboltConcurrent.wp_proof (wp_Open : Open.spec (GF := GF) (hG := h
     iapply HΦ
     itrivial
   subst Herr
-  obtain ⟨Hvp, -, -⟩ := Hvl
+  obtain ⟨Hvp, -⟩ := Hvl
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := Bool) (W64 2)) as %sl ⟨Hsl, -⟩
   · ipureintro; decide

@@ -40,6 +40,17 @@ theorem internal.gomodel.Choose.wp_local :
   iapply HΦ
   itrivial
 
+/-- `gomodel.ChooseUint64()` returns some `uint64` (LOCAL: see the file header). -/
+theorem internal.gomodel.ChooseUint64.wp_local :
+    {{ (True : IProp GF) }}
+      (App (Val (@! _root_.Perennial.internal.gomodel.ChooseUint64)) (Val #()))
+    {{ (x : w64), RET #x; True }} := by
+  wp_start as -
+  wp_apply wp_ArbitraryInt as %x -
+  try wp_auto
+  iapply HΦ
+  itrivial
+
 end proof
 end EtcdGrove
 end Perennial

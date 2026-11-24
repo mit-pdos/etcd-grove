@@ -101,12 +101,12 @@ theorem etcdNetExts_globalStart [G : GooseGlobalGS .hasLC GF] (g : ExtsGlobalSta
   sep_elim_right.trans (sep_elim_right.trans sep_elim_left)
 
 /-- **The start resources of the file extension** over `etcdNetExts` (`FsExts.lean`'s `etcdFs_start`):
-the invariant of the mapped cells, every file, and the tree's history. -/
+the invariant of the mapped cells, every file, and the shared view (`osShared`). -/
 theorem etcdNetFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
     ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       Fs.osInv (L := hG.goose_localGS) ∗
       ([∗map] i ↦ f ∈ (extLocal Fs.fsExt σ.world).fs.files, Fs.osFileStart (L := hG.goose_localGS) i f) ∗
-      Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots
+      Fs.osShared (L := hG.goose_localGS) (extLocal Fs.fsExt σ.world).fs.roots
         ((extLocal Fs.fsExt σ.world).fs.treeDur, []) := by
   have Hl := etcdNetExts_localStart (GF := GF) (L := hG.goose_localGS) σ.world
   have hdisk : ∀ i f, (extLocal Fs.fsExt σ.world).fs.files !! i = some f →
@@ -119,15 +119,15 @@ theorem etcdNetFs_start [hG : HeapGS .hasLC GF] (σ : state) (h : Fs.FsInit (ext
   ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := hG.goose_localGS)) hdisk $$ [Hb Hm]
   · iframe
   imod Fs.osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod Fs.osSwitchKit_open (L := hG.goose_localGS) _ _ ⊤ $$ Hd with Hsh
   imodintro
-  iframe Hinv
-  isplitl [Hfs]
-  · iapply BigSepM.bigSepM_mono (fun {i f} _ =>
-      (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
-  · unfold Fs.osTree; iexact Hd
+  iframe Hinv Hsh
+  iapply BigSepM.bigSepM_mono (fun {i f} _ =>
+    (Fs.fileStart_eq (L := hG.goose_localGS) i f).1) $$ Hfs
 
 /-- **The right to listen at each address of `As`** (distinct, valid: `Net.addrOk`), from the net
-extension's start resources (each address's listening token `netLisTok`, `Net.netStart`) and program
+extension's start resources (each address unset, `Net.addrs_start`: its pending set and listening
+token, `Net.netStart`) and program
 start's claims (`addrClaim`, `goose_adequacy_start`'s `startRights`). -/
 theorem netAddrFrees_start [hG : HeapGS .hasLC GF] (g : ExtsGlobalState etcdNetExts.exts)
     (As : List GoString) (hAs : As.Nodup) (hok : ∀ a ∈ As, Net.addrOk a = true) :
@@ -135,25 +135,19 @@ theorem netAddrFrees_start [hG : HeapGS .hasLC GF] (g : ExtsGlobalState etcdNetE
       [∗list] a ∈ As, netAddrFree (GF := GF) a := by
   iintro ⟨Hg, Hc⟩
   ihave Hs := etcdNetExts_globalStart (GF := GF) g $$ Hg
-  unfold Net.netStart
-  icases Hs with ⟨-, Htoks⟩
-  ihave Htoks := Net.bigSepM_take_list
-    (fun a _ => Net.netLisTok (extGlobalGS Net.netExt (G := hG.goose_globalGS)) a) (fun _ => ())
-    (Net.addrSpace ()) As hAs (fun a ha => Net.addrSpace_lookup_ok _ (hok a ha)) $$ Htoks
+  ihave Hu := Net.addrs_start (Gg := hG.goose_globalGS) (extGlobal Net.netExt g) As hAs hok $$ Hs
   ihave Hb : ([∗list] a ∈ As, iprop(addrClaim (GF := GF) a ∗
-      Net.netLisTok (extGlobalGS Net.netExt (G := hG.goose_globalGS)) a)) $$ [Hc Htoks]
+      Net.addrUnset (Gg := hG.goose_globalGS) a)) $$ [Hc Hu]
   · iapply BigSepL.bigSepL_sep_eqv.2
-    iframe Hc Htoks
+    iframe Hc Hu
   iapply BigSepL.bigSepL_mono (Φ := fun _ a => iprop(addrClaim (GF := GF) a ∗
-    Net.netLisTok (extGlobalGS Net.netExt (G := hG.goose_globalGS)) a)) ?_ $$ Hb
+    Net.addrUnset (Gg := hG.goose_globalGS) a)) ?_ $$ Hb
   intro k a hk
   unfold netAddrFree
-  iintro ⟨Hc, Ht⟩
+  iintro ⟨Hc, Hu⟩
   iframe Hc
   iexists etcdNetExts_hasNet
-  iframe Ht
-  ipureintro
-  exact hok a (List.mem_of_getElem? hk)
+  iexact Hu
 
 end start
 

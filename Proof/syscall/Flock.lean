@@ -31,9 +31,13 @@ theorem syscall.Flock.wp_proof : syscall.Flock.spec (GF := GF) (hG := hG) := by
   · by_cases hk : req = none ∨ nb = true
     · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
       haveI := hs2
+      try wp_auto
+      wp_stub syscall.fsFlock.impl
       wp_apply wp_osFlockNE hSio fd how d req nb CoPset.subseteq_top hhow hfree hk $$ Hinv Hfd Ht
         as %e %he Hfd
-      iapply wp_errno
+      try wp_auto
+      wp_apply wp_errnoErr
+      try wp_auto
       iapply HΦ
       iframe
       ipureintro
@@ -50,17 +54,25 @@ theorem syscall.Flock.wp_proof : syscall.Flock.spec (GF := GF) (hG := hG) := by
         | some ex => exact ⟨ex, rfl⟩
       have hnb : nb = false := by cases nb <;> simp_all
       subst hnb
+      try wp_auto
+      wp_stub syscall.fsFlock.impl
       wp_apply wp_osFlockW fd how d ex CoPset.subseteq_top hhow (hfree (by simp)) $$ Hinv Hfd Ht
         as %e %he Hfd
-      iapply wp_errno
+      try wp_auto
+      wp_apply wp_errnoErr
+      try wp_auto
       iapply HΦ
       iframe
       ipureintro
       by_cases h0 : e = 0
       · exact Or.inl h0
       · exact absurd hne (he h0)
-  · wp_apply wp_osFlock fd how d req nb CoPset.subseteq_top hhow hfree $$ Hinv Hfd Ht as %e Hfd
-    iapply wp_errno
+  · try wp_auto
+    wp_stub syscall.fsFlock.impl
+    wp_apply wp_osFlock fd how d req nb CoPset.subseteq_top hhow hfree $$ Hinv Hfd Ht as %e Hfd
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iframe
     ipureintro

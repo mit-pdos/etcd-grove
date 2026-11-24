@@ -486,10 +486,15 @@ fail=0
 # A run whose in-process cluster fails to start ("StartCluster failed": a port taken by another
 # gate run's cluster under the parallel load, 2026-11-12, three times) is retried, up to 3 attempts;
 # any other failure fails at once.
+# The cluster's ports are fixed, so concurrent gate runs on one machine (the land queue's four runners,
+# vm-build requests) took each other's: the test runs under a machine-wide lock outside /tmp (a gate
+# run's /tmp may be private), held for this test only (2026-11-24). GATES_K8S_LOCK overrides the file.
+k8slock=${GATES_K8S_LOCK:-/shared/tmp/gates-k8s-cluster.lock}
+mkdir -p "$(dirname "$k8slock")" 2>/dev/null || true
 cet_try=0; cet_ok=0; cet_miss=
 while [ $cet_try -lt 3 ]; do
   cet_try=$((cet_try + 1))
-  if (cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
+  if (exec 5>>"$k8slock"; flock 5; cd examples/k8s/etcd3 && GOWORK=off gotest -timeout 30m \
       -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
     cet_ok=1; break
   fi

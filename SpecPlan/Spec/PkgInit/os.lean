@@ -3,12 +3,17 @@ module
 
 public import GeneratedProof.os
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.internal.gomodel
+public import SpecPlan.Spec.PkgInit.internal.filepathlite
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.io.fs
+public import Perennial.Proof.runtime.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.syscall
 public import SpecPlan.Spec.PkgInit.internal.poll
 public import Perennial.Proof.errors.Base
+public import Perennial.Proof.sync.atomic.Base
+public import Perennial.Proof.time.Base
 
 @[expose] public section
 noncomputable section

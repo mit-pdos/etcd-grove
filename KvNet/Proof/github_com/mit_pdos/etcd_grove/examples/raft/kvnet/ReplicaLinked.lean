@@ -94,14 +94,14 @@ theorem kvReplica_wp
   · iframe Hproto HS Heof Hed Hcc
   ipureintro; rfl
 
-/-- **A replica's generation** (the body of `TopBridge.lean`'s `CrashBootWpG` for replica `id`), at the
-generation's storage registry (the section's `KdStor`, whose invariant it takes): at the file
-extension's local interpretation `σ` (kept), the boot (`kvGen_boot`), then the program's WP
+/-- **A replica's generation** (the body of `Net.CrashBootWp` for replica `id`), at the generation's
+storage registry (the section's `KdStor`, whose invariant it takes): the boot (`kvGen_boot`), then
+the program's WP
 (`kvReplica_wp`) and the crash obligation (`kvGen_crash`, with one later credit), which gives the next
 generation's `kvGen` at the same file. -/
 theorem kvRep_gen
     (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
-    (f : DurFs.DFile) (R : Fs.Roots) (σ : Fs.OsState)
+    (f : DurFs.DFile) (R : Fs.Roots)
     (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
       (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
     (hid1 : 1 ≤ uint.nat id) (hid2 : uint.nat id ≤ (splitAddrs addrs).length)
@@ -116,20 +116,17 @@ theorem kvRep_gen
       □ (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
         addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) -∗
       □ (∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗ kvPeerAddrs γ id M) -∗
-      kvGen γ id f R -∗ ownGoState ∅ -∗
-      Fs.fs_interp.localCtx (extLocalGS Fs.fsExt) σ ={⊤}=∗
-      Fs.fs_interp.localCtx (extLocalGS Fs.fsExt) σ ∗
+      kvGen γ id f R -∗ ownGoState ∅ ={⊤}=∗
       (WP (kvnetReplicaProgram cl addrs dir id) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
         ∀ (L' : GooseLocalGS GF) (V' : Fs.Hist), £ 1 -∗
           crashed (hC := hG.goose_localGS.goose_crashGS) -∗ Fs.osInv (L := L') -∗
           Fs.crashRest (fun _ _ => True) (Fs.gooseOsGS (L := hG.goose_localGS))
             (Fs.gooseOsGS (L := L')) [] false V' ={⊤}=∗
           kvGen (hG := ⟨hG.goose_globalGS, L'⟩) γ id f R) := by
-  iintro #Hsi #Hcl #Hrf #Hpr #Hpeer Hg Hgs Hl
-  imod kvGen_boot γ vs dir id f R σ hR hr hd hf hname ⟨hid1, hmax⟩ $$ Hcl Hg Hl
-    with ⟨Hl, %fl, ⟨%hfl1, %hfl2⟩, Hst, Hk⟩
+  iintro #Hsi #Hcl #Hrf #Hpr #Hpeer Hg Hgs
+  imod kvGen_boot γ vs dir id f R hR hr hd hf hname ⟨hid1, hmax⟩ $$ Hcl Hg
+    with ⟨%fl, ⟨%hfl1, %hfl2⟩, Hst, Hk⟩
   imodintro
-  iframe Hl
   isplitl [Hgs Hst]
   · iapply kvReplica_wp γ vs cl addrs dir id hvc hid1 hid2 $$ Hgs Hpr
     iintro #Hcg #Hcc %M %hM

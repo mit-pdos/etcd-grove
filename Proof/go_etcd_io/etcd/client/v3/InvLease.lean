@@ -90,6 +90,30 @@ instance leaseRevokeRespMsg_persistent (l : Loc) (m : LeaseRevokeRespM) :
     Persistent (leaseRevokeRespMsg (GF := GF) l m) := by
   unfold leaseRevokeRespMsg; infer_instance
 
+/-! ### The messages' stored forms (moved here from the `PerType*` files at phase 7 S2's
+interface, 2026-11-24: a `ProtoMsg` holds its `tree`) -/
+
+/-- **The store of a lease-grant request**: its `TTL` and `ID`. -/
+def leaseGrantReqTree (m : w64 × w64) : VTree :=
+  .strct etcdserverpb.LeaseGrantRequest.ty [(go!"TTL", go.int64), (go!"ID", go.int64)]
+    [.leaf #m.1, .leaf #m.2]
+
+/-- **The store of a lease-grant response**: its header, `ID`, `TTL`, `Error`. -/
+def leaseGrantRespTree (m : LeaseGrantRespM) : VTree :=
+  .strct etcdserverpb.LeaseGrantResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"ID", go.int64),
+     (go!"TTL", go.int64), (go!"Error", go.string)]
+    [hdrTree m.hdr, .leaf #m.id, .leaf #m.ttl, .leaf #m.err]
+
+/-- **The store of a lease-revoke request**: its `ID`. -/
+def leaseRevokeReqTree (id : w64) : VTree :=
+  .strct etcdserverpb.LeaseRevokeRequest.ty [(go!"ID", go.int64)] [.leaf #id]
+
+/-- **The store of a lease-revoke response**: its header. -/
+def leaseRevokeRespTree (m : LeaseRevokeRespM) : VTree :=
+  .strct etcdserverpb.LeaseRevokeResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty)] [hdrTree m.hdr]
+
 /-- **A `*pb.LeaseGrantRequest`** on the wire: its `(TTL, ID)`; decoded, its `TTL` read-only and
 (the lease-grant plan, 2026-11-02, `recvOwn`, as `UserAdd`'s password) its `ID` owned: the server's
 `LeaseGrant` writes a fresh id there when it is `0` (`v3_server.go:436-439`), which every client
@@ -99,6 +123,7 @@ generated handler decodes into its own `new(LeaseGrantRequest)`. -/
 def pbLeaseGrantRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseGrantRequest.ty
   M := w64 × w64
+  tree := leaseGrantReqTree
   send inp m := iprop(∃ req : etcdserverpb.LeaseGrantRequest, inp ↦ req ∗
     ⌜m = (req.TTL', req.ID') ∧ req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
@@ -113,6 +138,7 @@ def pbLeaseGrantRequest : ProtoMsg GF where
 def pbLeaseGrantResponse : ProtoMsg GF where
   ty := etcdserverpb.LeaseGrantResponse.ty
   M := LeaseGrantRespM
+  tree := leaseGrantRespTree
   send := leaseGrantRespMsg
   recv := leaseGrantRespMsg
   recv_persistent _ _ := inferInstance
@@ -126,6 +152,7 @@ decodes into its own fresh allocation). -/
 def pbLeaseRevokeRequest : ProtoMsg GF where
   ty := etcdserverpb.LeaseRevokeRequest.ty
   M := w64
+  tree := leaseRevokeReqTree
   send inp m := iprop(∃ req : etcdserverpb.LeaseRevokeRequest, inp ↦ req ∗
     ⌜m = req.ID' ∧ req.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
@@ -139,6 +166,7 @@ def pbLeaseRevokeRequest : ProtoMsg GF where
 def pbLeaseRevokeResponse : ProtoMsg GF where
   ty := etcdserverpb.LeaseRevokeResponse.ty
   M := LeaseRevokeRespM
+  tree := leaseRevokeRespTree
   send := leaseRevokeRespMsg
   recv := leaseRevokeRespMsg
   recv_persistent _ _ := inferInstance

@@ -471,6 +471,8 @@ read-only conditions holding only such statements. The rule widens (Upamanyu, #2
 - a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
 - it may add calls to them at statement level or inside `if`s on read-only conditions;
 - `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
+- `Resolve(any)` calls are admitted too (Upamanyu, #24), their argument built from read-only values: a struct literal or conversion to `any`, with no allocation, `append` or `make`.
+- The prophecy package is Perennial's `github.com/mit-pdos/perennial/proph` (`NewProph`, `ProphId`, `ResolveBool`, `ResolveU64`, `Resolve(any)`; Lean namespace `github_com.mit_pdos.perennial.proph`) or goose's `github.com/goose-lang/primitive` (the same without `Resolve`); new patches use `proph`.
 
 A read-only expression may fail, which only adds failing behaviors the proof rules out. The exact
 checks: `notes/proph-patch-rule.md` and `etc/prophcheck/main.go`'s doc comment. Never put anything

@@ -59,10 +59,14 @@ theorem syscall.Fallocate.wp_growAu (fd off len : w64) (dq : DFrac) (d : OsFd) (
     {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ ∃ n : Nat, Q n e }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hau⟩
   unfold fallocAu
+  try wp_auto
+  wp_stub syscall.fsFalloc.impl
   wp_apply wp_osFallocStart_au fd off len dq d m hwr hoff hlen hmaps _ $$ Hinv Hfd Hm Hau
     as %t %n Hfd Hau
   wp_apply wp_osFallocFinish_au t d.ino _ m n (Nat.le_max_left _ _) _ $$ Hinv Hau as %e HQ %-
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe Hfd
   iexists n
@@ -137,10 +141,14 @@ theorem syscall.Fallocate.wp_growAuW (fd off len : w64) (dq : DFrac) (d : OsFd) 
     {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ ∃ n : Nat, Q n e }} := by
   wp_start as ⟨#Hinv, Hfd, Hau⟩
   unfold fallocAuW
+  try wp_auto
+  wp_stub syscall.fsFalloc.impl
   wp_apply wp_osFallocStart_auW fd off len dq d m hwr hoff hlen hmaps _ $$ Hinv Hfd Hau
     as %t %n Hfd Hau
   wp_apply wp_osFallocFinish_au t d.ino _ m n (Nat.le_max_left _ _) _ $$ Hinv Hau as %e HQ %-
-  iapply wp_errno
+  try wp_auto
+  wp_apply wp_errnoErr
+  try wp_auto
   iapply HΦ
   iframe Hfd
   iexists n

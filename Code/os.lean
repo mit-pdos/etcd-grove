@@ -5492,7 +5492,7 @@ noncomputable def modelRemoveAllFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.gomodel.Choose []))) (Val #())) (Val #()))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.gomodel.Choose []))) (Val #())) (Val #())))
   (App (Val doBreak) (Val #()))
   (App (Val doExecute)
   (Val #())))))
@@ -6060,7 +6060,7 @@ noncomputable def modelPollCopyFileRange.impl [GooseExts] [GoGlobalContext] : va
 
 /-- modelGcErrno is the errno of a system call's error (0 for nil), for the stubs' Go bodies.
 
-    go: stubs.go:14:6 -/
+    go: stubs.go:17:6 -/
 noncomputable def modelGcErrno.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
@@ -6112,12 +6112,16 @@ goose config): no Lean name, allocation or initialization step, so no translated
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
 panic, and has no effect beyond the variable), for the reason given.
 
-- `modelDirNames` (`var modelDirNames = map[int][]string{}`): The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal, read and written
-only by that stub's Go body, which is not translated (its GooseLang model is the extension's
+- `modelDirNames` (`var modelDirNames = map[int][]string{}`): The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read
+and written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's
+DirReadNext).
+- `modelDirNamesMu` (`var modelDirNamesMu sync.Mutex`): The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read
+and written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's
 DirReadNext).
 -/
 noncomputable def skipped' : List go.SkippedVar := [
-  ⟨"os.modelDirNames", "The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal, read and written\nonly by that stub's Go body, which is not translated (its GooseLang model is the extension's\nDirReadNext).", "var modelDirNames = map[int][]string{}"⟩]
+  ⟨"os.modelDirNames", "The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read\nand written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's\nDirReadNext).", "var modelDirNames = map[int][]string{}"⟩,
+  ⟨"os.modelDirNamesMu", "The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read\nand written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's\nDirReadNext).", "var modelDirNamesMu sync.Mutex"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.os where
   pkgImportedPkgs := [pkg_id.internal.gomodel, pkg_id.internal.filepathlite, pkg_id.io, pkg_id.io.fs, pkg_id.runtime, pkg_id.sync, pkg_id.syscall, pkg_id.internal.poll, pkg_id.errors, pkg_id.sync.atomic, pkg_id.time]

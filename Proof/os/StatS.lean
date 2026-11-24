@@ -12,7 +12,7 @@ counterpart).
 -/
 module
 
-public import Proof.os.OpenFile
+public import Spec.os.OpenFileS
 public import Proof.os.SharedExt
 public import Proof.os.PathKindS
 public import Proof.os.PathParent

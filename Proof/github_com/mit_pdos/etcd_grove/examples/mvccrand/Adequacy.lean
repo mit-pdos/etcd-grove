@@ -186,7 +186,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) (fun b hb => by
       simp only [List.mem_singleton] at hb; subst hb
       exact ⟨by decide, Fs.pathFits_of_dirFits Hrfit (by decide)⟩)
-    (fun b hb => by simp only [List.mem_singleton] at hb; subst hb; exact Habs) _ rfl _ $$ [Hl]
+    (fun b hb => by simp only [List.mem_singleton] at hb; subst hb; exact Habs) _ _ $$ [Hl]
   · iapply Hst $$ Hl
   iintro Hfiles
   icases BigSepL.bigSepL_cons.1 $$ Hfiles with ⟨Hfile, -⟩

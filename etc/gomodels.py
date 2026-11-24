@@ -111,6 +111,26 @@ TESTS = [
      ["-tags", "netgo", "-run", "^TestIsExportedASCII$", "./internal/rpcdifftest"],
      "IsExported's model against Go's results on every ASCII first byte (non-ASCII is the model's "
      "choice point, gomodel.Choose, whose Go body returns false)"),
+    # (S5) os's and syscall's models over the Linux file extension's stubs (the stubs' Go bodies are
+    # the real system calls)
+    ("os", "Code", "project:bboltfs", ["os", "syscall"],
+     ["-run", "^Test(ReadAt|WriteAt|Seek|Truncate|MkdirAll|Remove|RemoveAll|Rename|Stat|Lstat|"
+      "Readdirnames|OpenFile|Close|Fd|ReadFrom|CopyFileRange)",
+      "-skip", "^(TestWriteAtInAppendMode|TestOpenFileKeepsPermissions|TestCloseWithBlockingReadByFd|TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl|TestRemoveAllLongPath|TestClosedPipeRaceWrite|TestClosedPipeRaceRead)$", "-timeout", "90s", "os"],
+     "os's tests of the modelled calls only; left out: what reaches gomodel.Stuck in the model "
+     "(O_APPEND, nonblocking and pipe files, deadlines, Readdirnames(n > 0), a closed File's methods; "
+     "gomodel.Stuck blocks forever in Go builds, so TestWriteAtInAppendMode is skipped) "
+     "and what is not modelled at all (Chmod, Chown, links, Root, processes, finalizers)"),
+    ("syscall", "Code", "project:bboltfs", ["os", "syscall"],
+     ["-run", "^TestLocks(OFDConflict|OFDRemoveThenClose|OFDSameDescription|Flock|FlockVsOFD)$",
+      "github.com/mit-pdos/etcd-grove/examples/osfs/semantics"],
+     "the file extension's lock examples over syscall's models of Flock and FcntlFlock (OFD locks); "
+     "syscall's own TestFcntlFlock (F_SETLK, F_GETLK: not modelled, gomodel.Stuck, which blocks "
+     "forever in Go builds) is left out, and the package has no other test of a modelled call "
+     "(Mkdir, Unlink and Rmdir run in the os row's MkdirAll/Remove tests)"),
+    ("durable", "Code", "project:durable", ["github.com/mit-pdos/etcd-grove/examples/lib/durable"],
+     ["github.com/mit-pdos/etcd-grove/examples/lib/durable"],
+     "none left out (durable_test.go; the stubs' Go bodies are Go's Read/Write)"),
 ]
 TAGS = "goose,netgo"
 

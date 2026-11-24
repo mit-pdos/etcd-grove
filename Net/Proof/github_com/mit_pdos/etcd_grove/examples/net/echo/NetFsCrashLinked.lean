@@ -138,7 +138,7 @@ theorem echo_netfs_mixed_robust [GoGlobalContext] [lctx : GoLocalContext] [sem :
               net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
       · -- after a crash: the protocol is global, the package state is the new generation's
-        iintro %L' %V' - - - Hgs'
+        iintro %L' %V' - - - Hgs' -
         imodintro
         iframe Hinvs Hplan Hgs'
   isplitr

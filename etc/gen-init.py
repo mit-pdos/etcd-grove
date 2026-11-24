@@ -3262,7 +3262,8 @@ the counter `learnerPromoteSucceed` and the counter vector `learnerPromoteFailed
         'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto'], **_srv_steps},
     finish=([f'ipersist H{x}' for x, _, _ in _SRV_VECS] + [f'ipersist H{x}' for x, _ in _SRV_METRICS] +
-            ['ipersist HleaseExpired', 'ipersist HlearnerPromoteSucceed', 'ipersist HlearnerPromoteFailed'] +
+            ['ipersist HleaseExpired', 'ipersist HlearnerPromoteSucceed', 'ipersist HlearnerPromoteFailed',
+             'ipersist HfdUsed', 'ipersist HfdLimit'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
@@ -3306,7 +3307,10 @@ for _x, _k, _l in [('learnerPromoteFailed', 'Counter', ['Reason']), ('currentVer
 _SV['alloc_types'].update({'learnerPromoteSucceed': 'GoInterface', 'fdUsed': 'GoInterface',
                            'fdLimit': 'GoInterface', 'recommendedMaxRequestBytesString': 'GoString'})
 _SV['before'].update({'learnerPromoteSucceed': metric_steps('learnerPromoteSucceed', 'counter'),
-                      'fdUsed': metric_steps('fdUsed', 'gauge'), 'fdLimit': metric_steps('fdLimit', 'gauge'),
+                      # (prove-ps2-srvgoroutines, 2026-11-24) in the fact (`srvApplyLoopInit`'s last two):
+                      # `monitorFileDescriptor`'s gauges (`Set`)
+                      'fdUsed': metric_steps_to('fdUsed', 'gauge', 'go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec'),
+                      'fdLimit': metric_steps_to('fdLimit', 'gauge', 'go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec'),
                       'recommendedMaxRequestBytesString': ['try wp_auto',
                           'wp_apply EtcdGrove.go_humanize.Bytes.wp_proof $$ {Hd:github_com.dustin.go_humanize} as %sRMR -',
                           'try wp_auto']})
@@ -4563,7 +4567,13 @@ def exec_order(p):
             tg = ''
             if idx != d['file'] and os.path.exists(idx):
                 chunks = ''.join(open(g).read() for g in glob.glob(idx[:-len('.lean')] + '/chunk*.lean'))
-                if f'def {m.group(5)}.impl ' not in chunks:
+                # (2026-11-24, Go-model overlays S5) or a Go model's (the toml's `[model]` `replaces`
+                # names it: a translation of the model's Go, unfolded as a trusted one's)
+                toml = idx[:-len('.lean')] + '.toml'
+                gname = m.group(5).replace('«', '').replace('»', '')
+                modelled = os.path.exists(toml) and re.search(
+                    r'(?ms)^\[model\].*?^replaces\s*=\s*\[[^\]]*"%s"' % re.escape(gname), open(toml).read())
+                if f'def {m.group(5)}.impl ' not in chunks or modelled:
                     tg = open(idx).read()
             kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t + tg else 'opaqueinitfn'
             items.append((kind, m.group(5)))
@@ -5601,7 +5611,8 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
-NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
+NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
+            'internal.filepathlite']
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
