@@ -12,6 +12,14 @@ proof can be rewritten over `NewRawNode.wp_proofRestart` and the copies dropped.
 
 `rawNodeEmptyStart`: the instance for a node of a new cluster without a bootstrap log, on an empty
 storage whose `ConfState` names the voters (Antithesis's `EtcdBindingEmpty.cfg`).
+
+(#33 S4, P-raft-4) The closing step proves `NewRawNode.restartAtSpec sc` (below): the node closed at
+its protocol state (`ownRawNodeAt`, `RawNodeAt.lean`: the restarted state `restartP`, nothing queued,
+the in-progress boundary at the stored log's end) and, at the scope flag `sc = true`, in the
+Antithesis harness's scope (`RnScope`: pre-vote and check-quorum off, the static mode, the log's
+boundary `base0`; `storCapF … 0` from the pre). `NewRawNode.restartSpec` is its corollary at
+`sc = false` (`ownRawNodeAt_ownRawNode`), and `NewRawNode.emptyStartAbsSpec` (`RawNodeAbsSpecs.lean`)
+its instance at an empty storage and `sc = true` (`NewRawNode.wp_proofEmptyStartAbs`).
 -/
 module
 
@@ -31,12 +39,14 @@ import all Proof.go_etcd_io.raft.v3.InvNodeRule
 import Proof.go_etcd_io.raft.v3.SnapValidCert
 import Proof.go_etcd_io.raft.v3.StepGhostMode
 import Proof.go_etcd_io.raft.v3.InvStorageRead
-import Proof.go_etcd_io.raft.v3.Protocol.Enter
+public import Proof.go_etcd_io.raft.v3.Protocol.Enter
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.InvAdvance
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 import Proof.go_etcd_io.raft.v3.ConfchangeApiImpl
 import Proof.go_etcd_io.raft.v3.ConfchangeApi
+public import Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
+public import Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 
 @[expose] public section
 
@@ -46,6 +56,64 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section spec_at
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **`NewRawNode.restartSpec` at the node's protocol state** (#33 S4): its text, the post's node
+`ownRawNodeAt` at the restarted protocol state `restartP S σ.base σ.hs.Commit'`, nothing queued, the
+in-progress boundary at the stored log's end (`offsetInProgress = σ.b + |σ.ents| + 1`), at the scope
+flag `sc`; at `sc = true` the scope's premises (pre-vote and check-quorum off, the static mode, the
+log's boundary `base0`) and its resource (`storCapF … 0`, under `⌜sc = true⌝`). -/
+abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership) (S : RaftState)
+    (F : GName → IProp GF),
+  ∀ (SV : SnapshotM → IProp GF) [∀ sv, Persistent (SV sv)],
+  (∀ sv, SV sv ⊢ snapshotValid γ sv) →
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
+  (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
+  max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
+  γ.bootLen ≤ σ.commit →
+  confStateIs csm m →
+  ¬ clusterNoSnap γ →
+  TraceLoggerOk cv.TraceLogger' →
+  Cluster.trace γ = none →
+  StorageHolds S σ →
+  (sc = true → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧ γ.rnMode = .static ∧
+    σ.base = base0) →
+  ∀ (x : CrashNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗ readyFits γ N ∗
+      raftState γ cv.ID' S ∗
+      confAt γ a m ∗
+      restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV ∗
+      □ (⌜sc = true⌝ -∗ storCapF (interface.ok si) 0) }}
+    (App (Val #(functions NewRawNode [])) (Val #c))
+  {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
+      ⌜err = interface.nil⌝ ∗
+      ∃ (l : List EntryM) (sn : StorNames) (g : Nat) (K : GName),
+        ownRawNodeAt γ.raftNames rn cv.ID' (rawNodeRestarted γ l (interface.ok si) sn σ.hs S m a)
+          (restartP S σ.base σ.hs.Commit') [] (σ.b + σ.ents.length) sc ∗
+        isCommitted γ.raftNames l ∗
+        ⌜l.length = max σ.b (uint.nat cv.Applied') ∧ l.drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
+        genView γ.raftNames cv.ID' x 1 g ∗ slotFree γ.raftNames cv.ID' g ∗
+        raftState γ cv.ID' S ∗ F K }}
+
+end spec_at
 
 namespace ApiImpl
 namespace RawNodeStart
@@ -341,16 +409,42 @@ private theorem preGuardF_fol {fp : List EntryM} {s : NState} (h : s.role = .fol
     PreGuardF fp s :=
   fun _ hr => absurd (h.symm.trans hr) (by decide)
 
+/-- An empty queue, its states named. -/
+private theorem pendAt_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
+    ⊢ pendAt (GF := GF) γ id W none [] [] [] := by
+  simp only [pendAt]
+  iexists []
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl⟩
+  · simp only [List.zip_nil_left]
+    iapply (BigSepL2.bigSepL2_nil (Φ := fun _ (l : Loc) (x : MsgSt × Pending) =>
+      iprop(msgIn (GF := GF) l DFrac.discard x.1 ∗ pendingRel γ id W x.1 x.2))).2
+    iempintro
+
+/-- The scope's owned part at the start: its facts, the storage's cap from the pre. -/
+private theorem rnScopeAt_start (sc : Bool) (rs : RNState) (s : NState) (st : Storage)
+    (Hst : s.logst.storage = st) (H : sc = true → RnScope rs s) :
+    □ (⌜sc = true⌝ -∗ storCapF (GF := GF) st 0) ⊢ rnScopeAt sc rs s := by
+  cases sc with
+  | false => iintro -; iapply rnScopeAt_false
+  | true =>
+    unfold rnScopeAt; simp only [ite_true]
+    iintro #Hc
+    rw [Hst]
+    isplitr
+    · ipureintro; exact H rfl
+    · iapply Hc; ipureintro; trivial
+
 /-- See the header. -/
-theorem NewRawNode_restart_impl
+theorem NewRawNode_restartAt_impl (sc : Bool)
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
-    NewRawNode.restartSpec (GF := GF) (hG := hG) := by
-  unfold NewRawNode.restartSpec
+    NewRawNode.restartAtSpec (GF := GF) (hG := hG) sc := by
+  unfold NewRawNode.restartAtSpec
   unfold Cluster.raftNames
   intro γ N c cv lok si σ csm a m S F Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2
-    Hboot Hcs Hnsm Htlk HtrC HSh x
+    Hboot Hcs Hnsm Htlk HtrC HSh Hsc x
   have HtrG : γ.raft.reTrace = none := HtrC
-  wp_start_folded as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HrS, #Hconf, Hrs⟩
+  wp_start_folded as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HrS, #Hconf, Hrs, #Hscp⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl
   iunfold isClusterU at Hcl'
@@ -676,7 +770,7 @@ theorem NewRawNode_restart_impl
     iexists K
     iframe HKn HFK
   subst Herr
-  obtain ⟨Hlsn, Hgsn, Hgtr0, -⟩ := Hsn2
+  obtain ⟨Hlsn, Hgsn, Hgtr0, Hcq⟩ := Hsn2
   -- the committed log handed out at the start: up to `max b A`
   have Ha0c : max σ.b (uint.nat cv.Applied') ≤ σ.commit := by omega
   have HDlen : ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))).length =
@@ -837,8 +931,27 @@ theorem NewRawNode_restart_impl
     · show (a : Int) ≤ uint.Z s.logst.committed
       rw [Hcm, Hca]; unfold StorContents.commit at Ha2; have := uint_nat_eq σ.hs.Commit'; omega
     · change s.logst.snap = some p at hp; rw [Hsn0] at hp; cases hp
-  ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
-  · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
+  -- (#33 S4) the protocol reading, the in-progress boundary, the scope
+  have HipR : uint.nat s1.logst.inprogress = σ.b + σ.ents.length + 1 := by
+    show uint.nat s.logst.inprogress = _
+    have h1 := Hsvr.2
+    simp only [σv] at h1
+    unfold StorContents.b
+    have := uint_nat_eq σ.base.index'; have := uint_nat_eq s.logst.inprogress
+    omega
+  have HscR : sc = true → RnScope rs0 s1 := by
+    intro hsc
+    obtain ⟨Hpv0, Hcq0, Hmd0, Hb0⟩ := Hsc hsc
+    refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_⟩
+    · show γ.mode inferInstance = .static; unfold Cluster.rnMode at Hmd0; exact Hmd0
+    · show s.prevote = false; rw [Hpvoff, Hpv0]
+    · show s.cq = false; rw [Hcq, Hcq0]
+    · show s.logst.prev = base0; rw [Hlp, ← Hb0]
+    · intro m' hm; change m' ∈ s.outbox at hm; rw [Ho] at hm; cases hm
+  ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
+      (σ.b + σ.ents.length) sc $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
+  · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
+      (σ.b + σ.ents.length) sc s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
@@ -858,16 +971,18 @@ theorem NewRawNode_restart_impl
           rw [HDlen] at hi1; rw [Hdtk1] at hi2
           obtain ⟨t, ht, -⟩ := restartCt_complete HcF (by omega) hi2
           exact ⟨hi2, t, ht⟩⟩
-      Hsvr.1.symm HphsR
+      Hsvr.1.symm HphsR HtoP1 HipR
       (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
-      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] Hdurt
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] Hdurt [] []
     · iunfold sdrOk; iexists _; iexact Hsd0
-    · iapply pendList_nil
+    · iapply pendAt_nil
     · iapply ackInv_none; intro _ _ _ _ h; cases h
     · iapply loanCom_none γ.raft rfl
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
     · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) Ho $$ Hhistory
+    · iapply rnTrace_none (GF := GF) γ.raft rnv.raft' cv.ID' _ _ s1 (by show s.gh.tr = none; rw [Hgh])
+    · iapply rnScopeAt_start sc rs0 s1 (interface.ok si) Hsg HscR $$ Hscp
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- the post: the node at `rawNodeRestarted`, its committed log, the slot's generation, the
@@ -890,6 +1005,28 @@ theorem NewRawNode_restart_impl
   iunfold EtcdGrove.raftState
   unfold raftStateU
   iframe Hdur HtS Hbinv
+
+/-- `NewRawNode.restartSpec`: `restartAtSpec` outside the scope, the protocol state forgotten. -/
+theorem NewRawNode_restart_impl
+    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
+    NewRawNode.restartSpec (GF := GF) (hG := hG) := by
+  unfold NewRawNode.restartSpec
+  intro γ N c cv lok si σ csm a m S F Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2
+    Hboot Hcs Hnsm Htlk HtrC HSh x
+  wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs⟩
+  wp_apply (NewRawNode_restartAt_impl false wp_NewRawNode γ N c cv lok si σ csm a m S F Cert hCert
+      H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh
+      (fun h => by cases h) x)
+    $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
+    as %rn %err ⟨%Herr, %l, %sn, %g, %K, Hrn, #Hcm, %Hl, Hgen, Hfree, HrS, HF⟩
+  · iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs
+    iintro !> %h; cases h
+  iapply HΦ
+  isplitr; · ipureintro; exact Herr
+  iexists l, sn, g, K
+  ihave Hrn := ownRawNodeAt_ownRawNode (GF := GF) _ _ _ _ _ _ _ _ $$ Hrn
+  iframe Hrn Hcm Hgen Hfree HrS HF
+  ipureintro; exact Hl
 
 end wrap
 
@@ -976,6 +1113,39 @@ theorem NewRawNode.wp_proofEmptyStart
   isplitr; · ipureintro; exact Herr
   iexists sn, g, K
   iframe Hrn Hgen Hfree HrS HF
+
+/-- **`NewRawNode` at an empty storage, in the harness's scope** (`NewRawNode.emptyStartAbsSpec`,
+#33 S4): `restartAtSpec` at the scope flag `true`, the empty storage and the voters' conf state; the
+restarted protocol state at the empty storage is the initial one (`pInit`), the boundary `0`. -/
+theorem NewRawNode.wp_proofEmptyStartAbs
+    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
+    NewRawNode.emptyStartAbsSpec (GF := GF) (hG := hG) := by
+  unfold NewRawNode.emptyStartAbsSpec NewRawNode.emptyStartForm
+  intro γ N c cv lok si vs F SV hpSV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx HA0 Hb0 Hnd Hnsm Htlk HtrC
+    Hpq Hmd x
+  have HAn : uint.nat cv.Applied' = 0 := by rw [HA0]; rfl
+  have Hb : emptyStorContents.b = 0 := rfl
+  wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs, #Hcap⟩
+  wp_apply (ApiImpl.RawNodeStart.NewRawNode_restartAt_impl true wp_NewRawNode γ N c cv lok si
+      emptyStorContents (votersConfState vs) 0 (Membership.simple (GMap.listToSet vs)) RaftState.init
+      F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx (.inl HAn) (by rw [Hb, HAn]; omega) (Nat.zero_le _)
+      (by rw [Hb0]; exact Nat.zero_le _) (votersConfState_is vs Hnd) Hnsm Htlk HtrC
+      emptyStorContents_holds (fun _ => ⟨Hpq.1, Hpq.2, Hmd, rfl⟩) x)
+    $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
+    as %rn %err ⟨%Herr, %l, %sn, %g, %K, Hrn, -, %Hl, Hgen, Hfree, HrS, HF⟩
+  · rw [HAn]
+    iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs
+    iintro !> -; iexact Hcap
+  have Hl0 : l = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    rw [Hl.1, Hb, HAn]; rfl
+  subst Hl0
+  iapply HΦ
+  isplitr; · ipureintro; exact Herr
+  iexists sn, g, K
+  iframe Hgen Hfree HrS HF
+  iExactEq Hrn
+  rfl
 
 end proof2
 
