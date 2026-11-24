@@ -299,8 +299,8 @@ func IdsOk(d Deployment) bool {
 // WellFormed is Lean's Deployment.WellFormed (clause by clause, numbered as there), with the
 // bounds of the workloads (Workload.BoundsOk) and of the server configuration (ServerCfg.Supported):
 // nil if d is well formed, otherwise the first clause it fails. (Its messages format a kind as
-// w.Kind.String() under %s, or int(w.Kind) under %d: fmt calls no method of a basic-typed argument,
-// which the proof's model of fmt needs.)
+// int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
+// needs.)
 func WellFormed(d Deployment) error {
 	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxLen bytes
 	if len(d.Members) == 0 || len(d.Members) > MaxMembers {
@@ -319,7 +319,7 @@ func WellFormed(d Deployment) error {
 			return fmt.Errorf("unknown workload kind %d", int(w.Kind))
 		}
 		if !boundsOk(w) {
-			return fmt.Errorf("%s: bounds", w.Kind.String())
+			return fmt.Errorf("workload kind %d: bounds", int(w.Kind))
 		}
 	}
 	// 2. every address valid (Deployment.addrs: the members' peer and client addresses, then the
@@ -345,7 +345,7 @@ func WellFormed(d Deployment) error {
 	}
 	for j, w := range d.Workloads {
 		if len(d.Nodes[j]) != NodeCount(w) {
-			return fmt.Errorf("%s: %d client machines, not %d", w.Kind.String(), len(d.Nodes[j]), NodeCount(w))
+			return fmt.Errorf("workload kind %d: %d client machines, not %d", int(w.Kind), len(d.Nodes[j]), NodeCount(w))
 		}
 		for _, a := range d.Nodes[j] {
 			if err := addr(a); err != nil {
@@ -376,7 +376,7 @@ func WellFormed(d Deployment) error {
 	}
 	for _, w := range d.Workloads {
 		if NeedsAuth(w.Kind) && !c.Auth {
-			return fmt.Errorf("%s needs the token provider", w.Kind.String())
+			return fmt.Errorf("workload kind %d needs the token provider", int(w.Kind))
 		}
 		if w.Kind == Compact && c.Retention != 0 && c.CompactorMode == CompactorPeriodic {
 			return fmt.Errorf("compact under the periodic compactor")

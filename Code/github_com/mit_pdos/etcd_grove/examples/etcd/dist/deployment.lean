@@ -1019,8 +1019,8 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
 /-- WellFormed is Lean's Deployment.WellFormed (clause by clause, numbered as there), with the
     bounds of the workloads (Workload.BoundsOk) and of the server configuration (ServerCfg.Supported):
     nil if d is well formed, otherwise the first clause it fails. (Its messages format a kind as
-    w.Kind.String() under %s, or int(w.Kind) under %d: fmt calls no method of a basic-typed argument,
-    which the proof's model of fmt needs.)
+    int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
+    needs.)
 
     go: deployment.go:304:6 -/
 noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1120,8 +1120,8 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w")))
   (App (App (Val (GoInstruction (FuncResolve NeedsAuth []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ServerCfg.ty go!"Auth"))) (Var "c")))) (Val #false))
-  (Let "$r0" (Let "$a0" (Val #(go!"%s needs the token provider"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Kind.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))) (Val #())))
+  (Let "$r0" (Let "$a0" (Val #(go!"workload kind %d needs the token provider"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1233,8 +1233,8 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef Deployment.ty go!"Nodes"))) (Var "d"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Workload.ty))) (Var "w"))
   (App (App (Val (GoInstruction (FuncResolve NodeCount []))) (Val #())) (Var "$a0")))))))
-  (Let "$r0" (Let "$a0" (Val #(go!"%s: %d client machines, not %d"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Kind.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))) (Val #())))
+  (Let "$r0" (Let "$a0" (Val #(go!"workload kind %d: %d client machines, not %d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.int go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef Deployment.ty go!"Nodes"))) (Var "d"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.int go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Workload.ty))) (Var "w"))
@@ -1325,8 +1325,8 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Workload.ty))) (Var "w"))
   (App (App (Val (GoInstruction (FuncResolve boundsOk []))) (Val #())) (Var "$a0"))))
-  (Let "$r0" (Let "$a0" (Val #(go!"%s: bounds"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Kind.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))) (Val #())))
+  (Let "$r0" (Let "$a0" (Val #(go!"workload kind %d: bounds"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
