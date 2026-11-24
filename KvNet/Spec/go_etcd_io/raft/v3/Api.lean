@@ -40,6 +40,10 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
 `ownCommittedOps_lb_prefix`, `readCtx_commit`, `readStateOk_ctx`, `stepIn_intro`,
 `isReadyChan_recvAu`, `node.wp_readyRecv`); a client can prove nothing else of a sealed predicate.
 Raft's own proofs see the bodies (`import all Proof.go_etcd_io.raft.v3.InvNode`).
+(2026-11-24) Leader completeness through the durable state (`LeaderCompleteLaw.lean`): a committed
+log marked at a node's durable term (`raftState_cmtBefore`, the sealed `cmtBefore`) is in the
+durable log of that node once it leads a later term (`raftState_cmtBefore_agree`, `durLogAgrees`),
+in a cluster of fixed membership (`confFixed`).
 
 **Sealed below the API** (internal: no client module may import them, even transitively):
 `InvNodeChan` (the older sealed node API over `NodeNames`), `InvApi`, `InvApiDyn`, `InvRawnode`,
@@ -74,3 +78,4 @@ public import KvNet.Proof.go_etcd_io.raft.v3.InvNode
 public import KvNet.Proof.go_etcd_io.raft.v3.InvNodeRule
 public import KvNet.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import KvNet.Proof.go_etcd_io.raft.v3.ApiVocab
+public import KvNet.Proof.go_etcd_io.raft.v3.LeaderCompleteLaw
