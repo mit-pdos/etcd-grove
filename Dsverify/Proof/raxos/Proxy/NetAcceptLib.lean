@@ -117,8 +117,10 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : Go
       ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
         models_lab.errAny err := by
   unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
+  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩
   subst Herr
+  ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk op nw src addr e) $$ []
+  · unfold net.opErrMsgOk; iframe Hes Hs Ha
   isplitr
   · ipureintro; intro ii hii; cases hii; exact opError_ptr_notFormatter
   unfold models_lab.errAny
@@ -129,7 +131,7 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : Go
   · ipureintro; exact opError_ptr_isError'
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe
+  iapply net.wp_OpError_Error $$ Hpe Hok
   inext
   iintro %msg -
   iapply HΦ

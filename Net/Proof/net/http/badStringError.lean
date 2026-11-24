@@ -39,13 +39,24 @@ theorem badStringError.wp_proof (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := h
     rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
     exact fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
   iunfold fmt.errorfErr at Hee
-  icases Hee with ⟨⟨%Hptr, -⟩, -⟩
+  icases Hee with ⟨⟨%Hptr, -⟩, #Hw, -⟩
   iapply HΦ
-  ipureintro
-  obtain ⟨T, l, hT, hl⟩ := Hptr
-  intro ii T' h hty
-  cases h
-  exact ⟨l, hl⟩
+  isplitr
+  · ipureintro
+    obtain ⟨T, l, hT, hl⟩ := Hptr
+    intro ii T' h hty
+    cases h
+    exact ⟨l, hl⟩
+  unfold errMsgOk
+  iexists e
+  isplitr
+  · ipureintro; rfl
+  rw [fmt.stringMethodSpec_unfold]
+  imodintro
+  iintro %Φ HΦ
+  iapply Hw
+  inext
+  iapply HΦ
 
 end proof
 

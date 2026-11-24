@@ -1,11 +1,12 @@
 /-
 `badStringError(what, val)` (`fmt.Errorf("%s %q", what, val)`): a non-nil error, a pointer
-(`io.ptrTyped`: `readRequestLimit` compares it with `io.EOF`). Proved in
+(`io.ptrTyped`: `readRequestLimit` compares it with `io.EOF`), whose `Error()` returns some string
+(`errMsgOk`: `fmt.Errorf`'s error). Proved in
 `Net/Proof/net/http/badStringError.lean`.
 -/
 module
 
-public import Net.Proof.net.http.Defs
+public import Net.Proof.net.http.RequestDefs
 
 @[expose] public section
 
@@ -28,7 +29,8 @@ abbrev badStringError.spec : Prop :=
   ∀ (what val : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt }}
     (App (App (Val (@! net.http.badStringError)) (Val #what)) (Val #val))
-  {{ (e : GoInterfaceOk), RET #(interface.ok e); ⌜_root_.Perennial.io.ptrTyped (interface.ok e)⌝ }}
+  {{ (e : GoInterfaceOk), RET #(interface.ok e);
+      ⌜_root_.Perennial.io.ptrTyped (interface.ok e)⌝ ∗ errMsgOk (interface.ok e) }}
 
 end spec
 

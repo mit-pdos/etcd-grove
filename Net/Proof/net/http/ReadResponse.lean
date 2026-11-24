@@ -106,7 +106,7 @@ theorem ReadResponse.wp_proof
     (wp_Atoi : strconv.Atoi.spec (GF := GF) (hG := hG)) :
     ReadResponse.spec (GF := GF) (hG := hG) := by
   intro b ri S E req rq
-  wp_start as ⟨#Henv, #Hstream, Hb, #Hlaw1, #Hlaw2, Hreq, %Hmeth⟩
+  wp_start as ⟨#Henv, #Hstream, Hb, #Hlaw1, #Hlaw2, #Hlaw3, Hreq, %Hmeth⟩
   ihave #Hstr := httpEnv_strings $$ Henv
   ihave #Hbound : (□ ∀ r', S r' -∗ ⌜r'.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
   · imodintro
@@ -123,7 +123,7 @@ theorem ReadResponse.wp_proof
   · iexact Hb
   -- the line read: a whole status line, a prefix of one (cut by an error), or an error
   ihave Hu : ((⌜line = [] ∧ err ≠ GoInterface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗
-        EtcdGrove.bufio.ownReader b ri S E l) ∨
+        errMsgOk err ∗ EtcdGrove.bufio.ownReader b ri S E l) ∨
       (⌜err = GoInterface.nil ∧ (line <+: statusLine ∨ line <+: badStatusLine ++ [W8 13])⌝ ∗
         ∃ rr : List w8, EtcdGrove.bufio.ownReader b ri S E rr ∗
         (⌜rr = statusLine ++ [W8 10] ∧ line = statusLine⌝ ∨
@@ -196,11 +196,14 @@ theorem ReadResponse.wp_proof
       · -- nothing read: the error
         ileft
         unfold EtcdGrove.io.errAt at *
-        icases Hea with ⟨-, %Hty⟩
+        icases Hea with ⟨(%Hen | #HE), %Hty⟩
+        · exact absurd Hen He
+        ihave #Hm := Hlaw3 $$ HE
         rw [List.nil_append] at *
-        iframe Hb
+        subst herr
+        iframe Hb Hm
         ipureintro
-        exact ⟨hline, herr ▸ He, herr ▸ Hty⟩
+        exact ⟨hline, He, Hty⟩
   ihave #Henv' := Henv
   iunfold httpEnv at Henv'
   icases Henv' with ⟨#Hbufio, #Hio, #Hfmt, #Hstrconv, #Htok, %nb, #Hnb⟩
@@ -208,8 +211,9 @@ theorem ReadResponse.wp_proof
   icases Hinit with ⟨-, -, -, -, #HEOF, #HUEOF, -⟩
   unfold errors.newVar
   icases HEOF with ⟨%xe, #Hxe, -⟩
-  icases HUEOF with ⟨%xu, #Hxu, -⟩
-  icases Hu with (⟨%Hc, Hb⟩ | ⟨⟨%Herr, %Hline⟩, %rr, Hb, Hk⟩)
+  icases HUEOF with ⟨%xu, #Hxu, -, #Hxuw⟩
+  ihave #Hxum := errMsgOk_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xu⟩ _ $$ Hxuw
+  icases Hu with (⟨%Hc, #Hm, Hb⟩ | ⟨⟨%Herr, %Hline⟩, %rr, Hb, Hk⟩)
   · -- nothing read: the error (`io.ErrUnexpectedEOF` for `io.EOF`)
     obtain ⟨-, Hne, Hty⟩ := Hc
     cases err with
@@ -226,14 +230,14 @@ theorem ReadResponse.wp_proof
       wp_if_destruct
       · try wp_auto
         iapply HΦ
-        ileft; ipureintro; simp [interface.mkOk]
+        ileft; iframe Hxum; ipureintro; simp [interface.mkOk]
       · try wp_auto
         iapply HΦ
-        ileft; ipureintro; simp
+        ileft; iframe Hm; ipureintro; simp
     · simp only [hty, ↓reduceIte]
       try wp_auto
       iapply HΦ
-      ileft; ipureintro; simp
+      ileft; iframe Hm; ipureintro; simp
   -- the header block to read: what follows the status line read
   ihave ⟨%hb, %eol, %rest, ⟨%Hhb, %Heol, %Hhbc⟩, #HL, #Hend⟩ : (∃ (hb : List HdrLine) (eol rest : List w8),
       ⌜hdrBlockOk hb ∧ (eol = [] ∨ eol = [W8 13]) ∧ (hb = [] ∨ hb = badHdr)⌝ ∗
@@ -310,10 +314,10 @@ theorem ReadResponse.wp_proof
   simp only []
   cases ok
   · try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e -
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
     try wp_auto
     iapply HΦ
-    ileft; ipureintro; simp
+    ileft; iframe Hbm; ipureintro; simp
   have hproto : proto = go!"HTTP/1.0" ∨ proto = go!"HTTP/1.1" := by
     have := proto_of_prefix2 Hline (by rw [hc])
     rw [hc] at this; exact this
@@ -334,10 +338,10 @@ theorem ReadResponse.wp_proof
   wp_if_destruct
   rotate_left
   · try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e -
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
     try wp_auto
     iapply HΦ
-    ileft; ipureintro; simp
+    ileft; iframe Hbm; ipureintro; simp
   try wp_auto
   wp_apply wp_Atoi code $$ Hstrconv as %x %aerr -
   try wp_auto
@@ -345,19 +349,19 @@ theorem ReadResponse.wp_proof
   | ok ae =>
     simp only []
     try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e -
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
     try wp_auto
     iapply HΦ
-    ileft; ipureintro; simp
+    ileft; iframe Hbm; ipureintro; simp
   | nil =>
   simp only []
   try wp_auto
   wp_if_destruct
   · try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e -
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
     try wp_auto
     iapply HΦ
-    ileft; ipureintro; simp
+    ileft; iframe Hbm; ipureintro; simp
   try wp_auto
   wp_apply wp_Version proto as %vmaj %vmin %vok %Hvok
   · iframe Henv; ipureintro
@@ -372,8 +376,10 @@ theorem ReadResponse.wp_proof
     as %m %merr Hm
   · iexact Hb
   try wp_auto
-  icases Hm with (⟨%Hme, -⟩ | ⟨%Hmn, Hm, Hb⟩)
+  icases Hm with (⟨%Hme, #Hme2⟩ | ⟨%Hmn, Hm, Hb⟩)
   · -- an error (`io.ErrUnexpectedEOF` for `io.EOF`)
+    ihave #Hm := mimeErr_msg E merr $$ [Hlaw3 Hme2]
+    · iframe Hlaw3 Hme2
     obtain ⟨Hne, Hty⟩ := Hme
     cases merr with
     | nil => exact absurd rfl Hne
@@ -389,14 +395,14 @@ theorem ReadResponse.wp_proof
       wp_if_destruct
       · try wp_auto
         iapply HΦ
-        ileft; ipureintro; simp [interface.mkOk]
+        ileft; iframe Hxum; ipureintro; simp [interface.mkOk]
       · try wp_auto
         iapply HΦ
-        ileft; ipureintro; simp
+        ileft; iframe Hm; ipureintro; simp
     · simp only [hty, ↓reduceIte]
       try wp_auto
       iapply HΦ
-      ileft; ipureintro; simp
+      ileft; iframe Hm; ipureintro; simp
   subst Hmn
   ihave ⟨%ms, Hm, Hcv, %Habs⟩ := hdrOwn_open m hb $$ Hm
   have hk : ∀ k ∈ [go!"Pragma", go!"Transfer-Encoding", go!"Content-Length", go!"Trailer"],

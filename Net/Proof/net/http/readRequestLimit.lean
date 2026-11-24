@@ -132,30 +132,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-/-- A `textproto.ProtocolError`'s `Error()` returns its message. -/
-theorem protocolError_msg (msg : GoString) :
-    ⊢ fmt.stringMethodSpec (GF := GF) ⟨net.textproto.ProtocolError.ty, #msg⟩ go!"Error" := by
-  unfold fmt.stringMethodSpec
-  iintro !>
-  iintro %Φ HΦ
-  rw [method_unfold (t := net.textproto.ProtocolError.ty) (m := go!"Error")]
-  wp_auto
-  iapply HΦ
-
-/-- The header reader's errors have an `Error()` method. -/
-theorem mimeErr_msg (E : List w8 → GoInterface → IProp GF) (err : GoInterface) :
-    (□ ∀ (r : List w8) (e : GoInterface), E r e -∗ errMsgOk e) ∗ mimeErr E err ⊢ errMsgOk err := by
-  iintro ⟨#Herrs, #Hm⟩
-  iunfold mimeErr at Hm
-  icases Hm with (⟨%r, #HE⟩ | %Hp)
-  · iapply Herrs $$ HE
-  · obtain ⟨msg, rfl⟩ := Hp
-    iunfold errMsgOk
-    iexists ⟨net.textproto.ProtocolError.ty, #msg⟩
-    isplitr
-    · ipureintro; rfl
-    iapply protocolError_msg
-
 /-- `r.isH2Upgrade()` on a request whose method is not `PRI`: `false`. -/
 theorem wp_isH2Upgrade (r : Loc) (rq : net.http.Request) (h : rq.Method' ≠ go!"PRI") :
     {{ (r ↦ rq : IProp GF) }}
@@ -284,7 +260,7 @@ theorem readRequestLimit.wp_proof
   cases pok
   · simp only [Bool.not_false]
     wp_auto
-    wp_apply wp_bad $$ Hfmt as %e %Hpe
+    wp_apply wp_bad $$ Hfmt as %e ⟨%Hpe, -⟩
     rrl_fail
   obtain ⟨hm, hu, hpr⟩ := parse_prefix hp Hline (by rw [hpl])
   rw [hpl] at hm hu hpr
@@ -301,7 +277,7 @@ theorem readRequestLimit.wp_proof
   cases vok
   · simp only [Bool.not_false]
     wp_auto
-    wp_apply wp_bad $$ Hfmt as %e %Hpe
+    wp_apply wp_bad $$ Hfmt as %e ⟨%Hpe, -⟩
     rrl_fail
   have hproto : proto = go!"HTTP/1.0" := by
     have h := Hvok1.symm
