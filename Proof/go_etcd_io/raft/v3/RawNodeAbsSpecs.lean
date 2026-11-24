@@ -21,7 +21,11 @@ the scope only for the harness's network types (`antStepTypes`; the old premises
 heartbeat response with no context;
 `ProposeEnd` at the proposal message (`InputEnd.lean`'s form); `Ready`'s post at `pAccepted ps` (the
 read states cleared too, `acceptReady`'s `r.readStates = nil`) with the queue and `ReadyOut` guarded;
-`PIdle` without the id (unused); `ReadyOut` with the voters `V` as an argument.
+`PIdle` without the id (unused); `ReadyOut` without the voters (2026-11-24: a response goes to
+the sender of a message received, which no node-local fact names a voter; the Sim side reads the
+destinations off the network relation) and with the messages' protocol readings, not their
+types (a physical message of no model type, `MsgTimeoutNow`/`MsgTransferLeader`, has none:
+`msgAbs`'s `none` arm).
 
 **The in-progress boundary** (2026-11-24, decision 3): each form's node predicate takes `ip`
 (`ownRawNodeAt`'s, `offsetInProgress - 1`). An input (`Step`, `Tick`, `Propose`) and `Advance` leave it
@@ -86,18 +90,18 @@ def PIdle (rs : RNState) (ps : PState) : Prop :=
 /-- **A `Ready`'s fields against the node's protocol state at the call** (design §2.2, "The `Ready`
 binding"): the role it reports is the node's (`roleAfter`, `softStateIs`); the hard state after it is
 the node's term, vote and commit (`phsNext`); the durable state the write makes has the node's log,
-the entries `es` the log's suffix from `es[0].Index`; the messages are the outbox's but those to the
-node itself (which go to `stepsOnAdvance`), each to another voter of `V`; the committed entries are
+the entries `es` the log's suffix from `es[0].Index`; the messages' protocol readings are the outbox's but
+those to the node itself (which go to `stepsOnAdvance`), each message to another node; the committed entries are
 the log's after those delivered, up to at most the commit index; no snapshot (`L = none`). -/
-def ReadyOut (id : w64) (V : GSet w64) (rs : RNState) (ps : PState) (h : HardStateM)
+def ReadyOut (id : w64) (rs : RNState) (ps : PState) (h : HardStateM)
     (es ce : List EntryM) (ms : List QMsg) (ss : Option (w64 × StateType)) (L : Option SnapLoan) :
     Prop :=
   roleAfter rs.role ss = roleGo ps.role ∧
   phsNext rs.phs h = HardStateM.mk ps.term ps.vote ps.commit ∧
   (readyDurable rs.dur (phsNext rs.phs h) L es).ents = ps.log ∧
   (∀ e0 ∈ es.head?, ps.log.drop (uint.nat e0.Index' - 1) = es) ∧
-  ms.map (fun q => absMsgOf q.st) ≡ₚ (ps.outbox.filter fun m => decide (m.dst ≠ id)).map some ∧
-  (∀ q ∈ ms, q.st.msg.To' ≠ id ∧ q.st.msg.To' ∈ V) ∧
+  ms.filterMap (fun q => absMsgOf q.st) ≡ₚ ps.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
+  (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
   rs.delivered ++ ce <+: ps.log ∧ (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
   L = none
 
@@ -301,7 +305,7 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
         ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
       -- (#33 S3c) the queue `Advance` steps, and the `Ready` against the protocol state
       "%Hout" ∷ ⌜S → qs' ≡ₚ ps.outbox.filter (fun m => decide (m.dst = id)) ∧
-        ReadyOut id γ.reCfg rs ps h es ce ms ss L ∧
+        ReadyOut id rs ps h es ce ms ss L ∧
         -- (decision 3) the entries from the in-progress boundary on; the boundary to the end
         (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = ps.log.length⌝ }}
 

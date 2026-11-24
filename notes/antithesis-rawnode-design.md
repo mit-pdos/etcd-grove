@@ -665,6 +665,14 @@ premise widened to any `From` for an unstamped `MsgProp` (with `RawNode.Step`'s)
   the client knows only as a permutation of those). Pinning the order needs `outboxRel` (an
   `InvRaftPhys` invariant every step proof keeps) strengthened. Not changed yet: the harness side
   decides.
+- **`ReadyOut`'s message clauses** (2026-11-24, approved): `To' ∈ V` dropped (a response goes to
+  the `From` of a message received, which no node-local fact, `NetMsgOk` or `isMessage`, names a
+  voter; the Sim side reads destinations off the network relation), and the readings as
+  `ms.filterMap absMsgOf ≡ₚ outbox.filter (dst ≠ id)`, not `ms.map absMsgOf ≡ₚ ….map some`: the
+  physical queues may hold messages of no model type (`MsgTimeoutNow`, `MsgTransferLeader`: XfOk's
+  `SentMsgShape` allows them, its `mtypeOf ≠ none` clause is traced-only), which drop out of the
+  abstract outbox. Still to add, under `S`: `∀ q ∈ ms, absMsgOf q.st ≠ none` (the harness reports
+  every Go message), from a scope fact that the queues hold only model types (open).
 
 ---
 
