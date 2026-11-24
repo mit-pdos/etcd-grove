@@ -333,3 +333,4 @@ axiom verifyEnvOff
 axiom wait.Jitter.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof
+sorry Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.rpcdriver_robust
