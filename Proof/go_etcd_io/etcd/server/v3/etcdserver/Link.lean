@@ -604,6 +604,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseWithError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__fields
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.New
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.NewMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__DBFilePath
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter__SaveDBFrom
@@ -1921,6 +1922,10 @@ theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
 theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
     schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
   schema.authReadTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
+
+theorem snap.wp_New :
+    snap.New.spec (GF := GF) (hG := hG) :=
+  snap.New.wp_proof zap.wp_NewNop
 
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=

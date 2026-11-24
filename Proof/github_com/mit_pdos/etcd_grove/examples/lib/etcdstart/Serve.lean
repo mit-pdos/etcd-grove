@@ -81,7 +81,7 @@ theorem Serve.wp_proof
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %pc, %pm, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
       Hgsn, %Hregs, #Has, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
-      Hbemu2, Hgo2⟩
+      Hbemu2, Hgo2, #Hics⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [Hwpi]; simp

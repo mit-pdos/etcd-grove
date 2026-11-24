@@ -6,9 +6,9 @@ Lean-first (no Rocq counterpart).
 (since 2026-10-22, D33): `etcdstart.alloc1`, then watchkv's invariant over the KV state's half
 (`wkInv_alloc` at the plan `trs.map pairOf`: the bootstrap log changes no KV state,
 `linkv.kvRaftOf_boot`; `Writes.lean`), `etcdstart.StartServer`, `etcdstart.Serve` with the ghost step: the gRPC run pools
-(`etcdstart.kvServeStocks_pools`), the member refusal-free (`etcd_noRefusal`, D29), and `wk_served`
-(`Served.lean`: the KV methods and the watch server's facts at the address, the members' KV facts
-`srvKVFacts` from the server's read path). Then `etcdstart.NewClient` (etcd's default configuration;
+(`etcdstart.kvServeStocks_pools`), `wk_served` (`Served.lean`: the KV methods and the watch server's
+facts at the address, the members' KV facts `srvKVFacts` from the server's read path, and the server
+there etcd's), then the member refusal-free (`etcd_noRefusal_at`, D29). Then `etcdstart.NewClient` (etcd's default configuration;
 `clientWriteOnce`, D29), and from here on the program sees etcd through the client's KV and watch
 specs only (2026-10-26; until then through the clients' model of etcd, D48): the client's `KV` a
 client of the KV (`isKv`, `client.isKv_of_newClient`), its `Watcher` (`isNewClient_watcher`) a
@@ -235,7 +235,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -, #Hics⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -253,11 +253,6 @@ theorem Main.wp_proof
       iexact Hinvs
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
-    -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
-    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23872" gs q p srv lis R.E
-        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
-      [Hgsn Hlis]
-    · iframe Hgsn Hlis; iframe #
     -- the watch path's server facts and the watch condition (the cluster never compacts)
     ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd false) R.wsl v3rpc.wsN $$ []
     · rw [hRw]
@@ -268,12 +263,16 @@ theorem Main.wp_proof
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #Hksa, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
+    -- (D29) the member never refuses: the server now at its address is etcd's, authentication off,
+    -- a voter (the members' axiom)
+    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23872" srv [il, im, iu] R.E { ρ with wait := γw } HEo $$ [Hksa]
+    · iframe #
     imodintro
     iframe Hserv HKV HWF
     ipureintro; exact ⟨rfl, Hnr⟩

@@ -294,9 +294,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- unsatisfiable: `notes/snapdir-crossworld.md`)
     "#Hss" ∷ snap.isSnapshotter bs.ss' (config.snapDirOf cfg.DataDir') ∗
     -- (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; the first start only,
-    -- not `bootOkR`) the right to that snapshot directory: it holds no `.snap.db` file, and nothing
-    -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
-    -- names the one ghost map of its files (`snapDir_init`)
+    -- not `bootOkR`) the right to that snapshot directory (`snap.snapDirOwn`; claim #34, 2026-11-23,
+    -- approved by the owner via the coordinator: the file extension's claim on every name of the
+    -- directory but `db` and the canonical `.snap.db` names, which `bootstrapSnapshot` carves and the
+    -- directory's invariant keeps, `snapDir_init`; until then an environment right over an opaque
+    -- predicate)
     "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
     -- (S5, 2026-11-18) and the claims on that directory's snapshot names, every index's, free
     -- (`snapFreeAll`: the shared mode's claims on the names `bootstrap`'s new snapshot directory has,
