@@ -24,7 +24,8 @@ The model (the note's points 1-6):
   for every address, but a spec stated for any `H` would let a client and a server of one
   address use different ones. So the protocol a client sends with and the one a server serves
   with are tied to the address: `http.register` turns the address's listener (`netListenerAt l
-  a`, one per address in a run: `net.Listen` consumes the right to listen at `a`) into `httpListenerAt l a P`,
+  a`, which carries the claim on `a`'s requests, `addrClaim a`, held once in a run: `net.Listen` consumes it; the
+  address itself may be listened on again after a `Close`, without the claim) into `httpListenerAt l a P`,
   which `Serve` takes, and `httpProtoAt a P` (persistent), which `RoundTrip` needs of a request's
   host. Two `httpProtoAt a P` of one address are of the one registration: the facts' model is a
   global ghost map from addresses to saved protocols, an entry set once. (D39a, 2026-10-23,

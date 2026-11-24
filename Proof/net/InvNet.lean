@@ -15,7 +15,9 @@ token left:
   `notes/single-process-restore.md`); nothing else produces it; `etcd_safe`'s deployment premise is to
   give it. The same for `httpProtoFree` below (whose docstring predates the restoration: program start
   gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`),
-  so an address is listened on at most once in a run (`grpcAddrIs_agree`).
+  so at most one `netListenerAt` of an address exists in a run, and what consumes it (`grpc.start`, `http.register`)
+  happens once per address (`grpcAddrIs_agree`). The address itself may be listened on again: after a listener's
+  `Close`, `listen_au` (from the address's persistent `addrProto`) gives a second raw listener, without the claim.
 * `netAddrFree addr` := `addrClaim addr ∗ addrUnset addr`: the claim, and the address unset in the net
   extension's ghost state (`addrUnset`: its pending set, empty, `addr` a valid address, `addrOk`,
   `GooseLang/Ext/Net/Impl.lean`, and the right to listen at it, `netLisTok`, all from its start
@@ -47,8 +49,9 @@ axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
 rafthttp stage 6a): `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's
 protocol before its listener exists (a raft member sends to its peers before they listen). Purely ghost:
-no Go operation consumes or needs it. Until the net swap (2026-11-22) program start gave it once per
-address, with `netAddrFree`; now nothing does (net/http's S5, or `etcd_safe`'s deployment, is to). -/
+no Go operation consumes or needs it. Program start gives it once per address of `As`, with `addrClaim`
+(`goose_adequacy_start`'s `startRights`, `Proof/runtime/Start.lean`; removed at the net swap, 2026-11-22, restored
+2026-11-23); nothing else produces it. -/
 axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 section defs

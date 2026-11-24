@@ -57,3 +57,11 @@ axioms over `netListenerAt`.
 (`Proof/net/Listen.lean`, `Proof/net/ListenHttp.lean`) keep it from Net's `isListener`. Nothing else builds the
 predicate (its consumers are axioms), so no consumer changes. Trust-shrinking: a stronger definition under the
 premises of `register`, `grpc.start`, `bridge.New`.
+
+**Re-review (the same day, at `77d29e37ea`).** An independent re-review found the tie, `reserve`/`reserveAddr`/
+`register`/`Serve_ok`/`net.Listen.specHttp`/`AddrNet`, `grpc.start`/`start'`/`grpcServeTok`/`Serve` and `bridge.New`
+all survive (listener swaps, close and reuse, copies, wrappers, the other net APIs, re-listening, grpc and the bridge
+at reserved addresses). Caveat: `grpcAddrIs_agree` is sound only because the listener `grpc.start` consumes stays open
+for the rest of the run in the model; a future `Server.Stop`/`GracefulStop` spec that gives back the listener or the
+address must revisit it (as `ListenerClose.lean`'s drafts must for HTTP). Docstrings corrected: an address may be
+listened on again after a `Close` (`listen_au`); what is once per run is the claim `addrClaim a` and the registration.
