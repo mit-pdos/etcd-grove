@@ -39,6 +39,7 @@ theorem probe_resolveAccept (cl seq : w32) (vsl : GoSlice) (v : List w8) :
     {{ RET #(); True }} := by
   wp_start as #Hv
   wp_auto
+  simp only [sp.strW1_eval]
   done
 
 end probe

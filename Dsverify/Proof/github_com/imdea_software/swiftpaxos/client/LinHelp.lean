@@ -175,6 +175,53 @@ theorem strW1_inj {a b : w64} (h : strW1 a = strW1 b) : a = b := by
   simp only [Nat.reducePow, Nat.pow_zero, Nat.div_one] at h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 ha hb
   omega
 
+/-- `string(byte(c))` of a byte below 128 is that one byte. -/
+theorem runeString_small : ∀ m : Fin 128, go.runeString ((m.val : Nat) : Int) = [W8 ((m.val : Nat) : Int)] := by
+  decide
+
+/-- One chunk of a word's string (`string(byte(w>>n&127))`, the patch's word statements). -/
+theorem chunk_eq (w : w64) (n : Int) (h0 : 0 ≤ n) (h1 : n < 64) :
+    go.runeString (uint.Z (W8 (uint.Z (w >>> W64 n &&& W64 127)))) =
+      [W8 ((w.toNat / 2 ^ n.toNat % 128 : Nat) : Int)] := by
+  have e1 : (w >>> W64 n &&& W64 127).toNat = w.toNat / 2 ^ n.toNat % 128 := by
+    have hn : (W64 n).toNat = n.toNat := by
+      simp only [W64, BitVec.toNat_ofInt]; omega
+    have h127 : (W64 127).toNat = 2 ^ 7 - 1 := by decide
+    rw [BitVec.toNat_and, BitVec.ushiftRight_eq', BitVec.toNat_ushiftRight, hn, h127,
+      Nat.and_two_pow_sub_one_eq_mod, Nat.shiftRight_eq_div_pow]
+  have hm : w.toNat / 2 ^ n.toNat % 128 < 128 := Nat.mod_lt _ (by decide)
+  have e2 : uint.Z (W8 (uint.Z (w >>> W64 n &&& W64 127))) = ((w.toNat / 2 ^ n.toNat % 128 : Nat) : Int) := by
+    simp only [uint.Z, e1]
+    rw [uint_Z_W8 _ (by omega) (by omega)] <;> rfl
+  rw [e2]
+  exact runeString_small ⟨_, hm⟩
+
+/-- Chunk 0 (`string(byte(w&127))`, no shift). -/
+theorem chunk_eq0 (w : w64) :
+    go.runeString (uint.Z (W8 (uint.Z (w &&& W64 127)))) = [W8 ((w.toNat / 2 ^ 0 % 128 : Nat) : Int)] := by
+  have := chunk_eq w 0 (by decide) (by decide)
+  rwa [show w >>> W64 0 = w from by simp] at this
+
+/-- **A word statement's string** (the shape `wp_auto` leaves for
+`s += string(byte(w&127)) + ... + string(byte(w>>63&127))`) is the word's string. -/
+theorem strW1_eval (w : w64) :
+    go.runeString (uint.Z (W8 (uint.Z (w &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 7 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 14 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 21 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 28 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 35 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 42 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 49 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 56 &&& W64 127)))) ++
+      go.runeString (uint.Z (W8 (uint.Z (w >>> W64 63 &&& W64 127)))) = strW1 w := by
+  rw [chunk_eq0, chunk_eq w 7 (by decide) (by decide), chunk_eq w 14 (by decide) (by decide),
+    chunk_eq w 21 (by decide) (by decide), chunk_eq w 28 (by decide) (by decide),
+    chunk_eq w 35 (by decide) (by decide), chunk_eq w 42 (by decide) (by decide),
+    chunk_eq w 49 (by decide) (by decide), chunk_eq w 56 (by decide) (by decide),
+    chunk_eq w 63 (by decide) (by decide)]
+  rfl
+
 /-- Words are their string's (each word's string is ten bytes). -/
 theorem strW_inj : ∀ {xs ys : List w64}, strW xs = strW ys → xs = ys
   | [], [], _ => rfl
