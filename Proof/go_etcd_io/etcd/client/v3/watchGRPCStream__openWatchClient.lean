@@ -54,7 +54,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   try wp_auto
   ihave HI : iprop(∃ (b : w64) (e wsv : GoInterface), "backoff" ∷ backoff_ptr ↦ b ∗
       "err" ∷ err_ptr ↦ e ∗ "ws" ∷ ws_ptr ↦ wsv ∗
-      "He" ∷ (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e)) $$ [backoff err ws]
+      "He" ∷ (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e) ∗ "Hlt" ∷ levelTok 0) $$ [backoff err ws Hlt]
   · iexists _, _, _
     iframe
     ileft; ipureintro; rfl
@@ -76,10 +76,10 @@ theorem watchGRPCStream.openWatchClient.wp_proof
           v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
         (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err)) -∗ Φ (PairV #ws #err)) ∗
         w_ptr ↦ wgs ∗ backoff_ptr ↦ b ∗ err_ptr ↦ e ∗ ws_ptr ↦ wsv ∗
-        (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e))
-      $$ [] [HΦ w backoff err ws He] []
+        (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ closeErrOk e) ∗ levelTok 0)
+      $$ [] [HΦ w backoff err ws He Hlt] []
   · iapply BigSepL2.bigSepL2_singleton.2
-    iintro ⟨HΦ, w, backoff, err, ws, He⟩
+    iintro ⟨HΦ, w, backoff, err, ws, He, Hlt⟩
     simp only [chan.nonblockingAltClausePre]
     iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
     isplitr
@@ -103,6 +103,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         wp_auto
         wp_for_post
         iapply HΦ
+        iframe Hlt
         iright
         iframe #
         ipureintro; exact ⟨rfl, Hne⟩
@@ -112,17 +113,19 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         wp_auto
         wp_for_post
         iapply HΦ
+        iframe Hlt
         iright
         iframe #
         ipureintro; exact ⟨rfl, He⟩
     · iframe
   · iframe
-  · iintro ⟨HΦ, w, backoff, err, ws, He⟩ -
+  · iintro ⟨HΦ, w, backoff, err, ws, He, Hlt⟩ -
     wp_auto
     wp_apply wp_Watch V.wc V.conn V.addrs V.ics (fun a => v3rpc.watchUp (V.memOf a))
-      (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) ci cd om callSl vs $$ []
-      as %cs %err' Hr
+      (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) ci cd om callSl vs $$ [Hlt]
+      as %cs %err' ⟨Hlt, Hr⟩
     · iframe #
+      iframe Hlt
     icases Hr with (⟨%He', %a, %γs, %Dn, %cd', %md, %Ha, Hcs, Hst, Hrt, Hspec⟩ | ⟨%Hcs, #Hse⟩)
     · subst He'
       iunfold v3rpc.cliWatchStreamIs at Hcs
@@ -140,6 +143,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
       wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       ileft
       isplitr
       · ipureintro; rfl
@@ -174,6 +178,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         ihave #Hse2 := closeErrOk_intro _ ⟨fun _ => Hc2 Hok.2, Hq2 Hpc.2⟩ $$ Hse20
         wp_for_post
         iapply HΦ
+        iframe Hlt
         iright
         iframe #
         ipureintro; exact ⟨rfl, Hne2⟩
