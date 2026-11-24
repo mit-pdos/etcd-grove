@@ -28,6 +28,7 @@ theorem hash.crc32.archAvailableCastagnoli.wp_proof :
     hash.crc32.archAvailableCastagnoli.spec (GF := GF) (hG := hG) := by
   -- the Go model: `return gomodel.Choose()`
   wp_start as -
+  try wp_auto
   wp_apply internal.gomodel.Choose.wp_local as %b -
   try wp_auto
   iapply HΦ

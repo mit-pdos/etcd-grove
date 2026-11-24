@@ -38,7 +38,7 @@ theorem hash.crc32.archUpdateCastagnoli.wp_proof
   try wp_auto
   wp_apply hupd $$ [Ht Hs] as ⟨-, Hs⟩
   · iframe
-  rw [show hash.crc32.crcUpdate (array.mk 256 (hash.crc32.crcTableOf hash.crc32.castagnoliPoly)).arr c bs =
+  rw [show hash.crc32.crcUpdate (array.mk 256 (hash.crc32.crcTableOf (W32 2197175160))).arr c bs =
     hash.crc32.crc32c c bs from rfl]
   iapply HΦ
   iexact Hs
