@@ -102,8 +102,10 @@ def materialize(candidates=()):
 # Every test runs with the translation's build tags (goose, netgo), unless its arguments give -tags.
 TESTS = [
     ("crc32", "Code", "models", ["hash/crc32"], ["hash/crc32"],
-     "none left out (TestArchCastagnoli compares archUpdateCastagnoli, the model's portable CRC-32C, "
-     "with simpleUpdate: trivially equal under the model)"),
+     "none left out; but TestArchCastagnoli SKIPs under the overlay (gomodel.Choose's Go body is "
+     "false, so archAvailableCastagnoli is false and the model's archUpdateCastagnoli never runs here). "
+     "Its evidence: real Go's TestArchCastagnoli (assembly = slicing) with TestSlicing/TestSimple, and the "
+     "adversarial review's differential with Choose forced true (2026-11-24: all crc32 tests pass)"),
     ("token", os.path.join("Net", "Code"), "models", ["go/token"], ["go/token"],
      "none left out (go/token's own tests do not call IsExported)"),
     # (without the tag goose: rpcdifftest's codec files of that tag need the net/rpc model)

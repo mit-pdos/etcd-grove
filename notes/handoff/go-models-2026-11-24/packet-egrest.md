@@ -46,7 +46,7 @@ The top-level results (`mvccfull_robust`, `etcd_robust_single_process`, net/rpc 
 are not built yet: they sit behind egos's os/syscall failures (below).
 
 ### Evidence
-- `etc/model-tests.sh crc32 token token-diff` passes. It runs Go's `hash/crc32` tests (all, `TestArchCastagnoli` included), `go/token`'s tests, and `rpcdifftest.TestIsExportedASCII` (every ASCII first byte), all under the overlay. Left out: non-ASCII IsExported cases (the choice point; its Go body returns false).
+- `etc/model-tests.sh crc32 token token-diff` passes. It runs Go's `hash/crc32` tests (all; `TestArchCastagnoli` SKIPs under the overlay, since `Choose`'s Go body is false: the model's update is exercised by the adversarial review's run with `Choose` forced true, where all crc32 tests pass, and by real Go's `TestArchCastagnoli`), `go/token`'s tests, and `rpcdifftest.TestIsExportedASCII` (every ASCII first byte), all under the overlay. Left out: non-ASCII IsExported cases (the choice point; its Go body returns false).
 - `goose.py --check` (goose 78d6ef937), all projects: 70 up to date, including every project that reaches crc32 or go/token. The only differences are `Code/os.lean` (egos) and `{Net,KvNet}/{Code,GeneratedProof}/net.lean` (egnet).
 - `gen-specs-pkginit --check`: crc32 fixed. `os` and `syscall` still differ (egos).
 - gen-init: my outputs are consistent (with egos's line below, the only differences are os/syscall/filepathlite files and the PkgTables over them).
