@@ -6042,5 +6042,11 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   credentials (`perRPCCredsOk pc clientRes`, #24's S2 resource parameter).
 - **Proposed change.** As above, approved by the user as decision 1b (2026-11-23). The callers of the client
   hold a thread token (a live thread has one token per level): a thread's proof splits `levelTok 0` off
-  (`threadTok_level0`), a goroutine's fork gives it (`wp_fork_level0`). No top-level statement changes.
+  (`threadTok_level0`), a goroutine's fork gives it (`wp_fork_level0`). The token is the conjunct right
+  after a spec's leading `isPkgInit` facts (so that `wp_start` and `wp_apply` still take those facts off
+  first). `newClient`, `New` and `kubernetes.New` take `[ThreadBoundLe GF (2 ^ 30)]` (was `2 ^ 31`): the
+  `epMu` pool needs `threadBound GF ≤ 2 ^ 30` (`sync.init_RWMutex_threadPoolL`); their callers have `2 ^ 28`.
+  The client's exported results (`client/v3/Results.lean`: `client_put_any` ... `client_get_after_put`)
+  state the token in their pre and post. (`kv.Txn` and `Client.dial` make no call that needs the token;
+  their specs keep it, passed through, for uniformity.)
 - **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.
