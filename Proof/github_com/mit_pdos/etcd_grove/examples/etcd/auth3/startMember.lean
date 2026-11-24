@@ -142,7 +142,7 @@ theorem startMember.wp_proof
   -- `net.Listen("tcp", peerAddr)` (`etcdstart.NewMember`'s)
   wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis, -⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis, Hpleft⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
@@ -152,7 +152,7 @@ theorem startMember.wp_proof
   subst Hlerr
   wp_auto
   -- the listener serves the peer address with the raft protocol (the program start's reservation)
-  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis
+  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpleft Hpown with Hlis
   -- `go http.Serve(l, s.RaftHandler())`: the member owns its peer address (the directory's)
   have Hown : (netRh γn).owner peerAddr = id := by
     rw [netRh_owner]

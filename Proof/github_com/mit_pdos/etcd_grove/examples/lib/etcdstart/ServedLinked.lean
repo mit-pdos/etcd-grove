@@ -32,7 +32,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
-(`grpc.start`'s). -/
+(`grpc.start'`'s). -/
 theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
@@ -45,18 +45,24 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hleft, -⟩
   obtain ⟨HCA, -, Hregs, -, -, -, -, -, Hnd⟩ := HC
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
+  ihave Hgsn := grpcSrvUp_lis gs lis addr _ _ svcs regs sregs $$ Hgsn
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      sregs [] Hregs (by intro m hm; simp at hm) (by simp) Hrf Hnd hρ HL) $$ [Hgsn Hleft]
+      with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
+    isplitl []
+    · iintro !>
+      imodintro
+      iunfold idCred
+      ipureintro; exact Hrb
     iintro !>
-    imodintro
-    iunfold idCred
-    ipureintro; exact Hrb
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
   imodintro
   isplitl [Hserv]
   · iexists _; iexact Hserv

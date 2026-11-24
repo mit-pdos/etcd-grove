@@ -499,7 +499,10 @@ being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s p
 the configuration `C` `grpcCfgOk_of_started` gives: the KV answers of the server's views at
 `E`, `ρ`, `γr`; the watch server's state `R` at `E`; per-type stage B3: no reader stock of the
 watchable store any more, the watch runs borrow from the run pools), the
-server's resources back, and the listener `lis` at `addr`. -/
+server's resources back, and the listener `lis` at `addr`; or (phase 7's switch, SW1, 2026-11-24)
+the server and the listener bound by the members' no-refusal certificate, with the certificate
+(`grpcSrvBound`, `noRefusalAt`: `etcd_noRefusal` takes the former and gives the latter,
+`grpcUp_noRefusal`). -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -509,7 +512,8 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
       R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.tag = C.tag ∧
       ((regs ++ sregs).map Prod.fst).Nodup⌝ ∗
     v3rpc.grpcCfgOk s C ∗
-    grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
+    ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+      (grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ∗
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.kvServerIs p s C.A cid mid C.n ∗
@@ -519,7 +523,19 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
+    netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
+
+/-- **`grpcUp`'s server at its listener, the certificate dropped** (phase 7's switch, SW1): what the
+single-process start takes (`client.grpcStartAtLis`). -/
+theorem grpcSrvUp_lis (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sics : List GoFunc)
+    (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
+    ((grpcSrvNew (GF := GF) gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
+        (grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝)) ⊢
+      (grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr) ∨
+        grpcSrvBound gs lis addr ics sics svcs regs sregs := by
+  iintro (H | ⟨H, -⟩)
+  · ileft; iexact H
+  · iright; iexact H
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -666,6 +682,10 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
     Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
+  ihave Hn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+      (grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝))
+    $$ [Hn Hlis]
+  · ileft; iframe Hn Hlis
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
     rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
   have hR : C.A.revR = (v3rpc.srvKVAns (GF := GF) s E ρ γr (W64 0) [] .none).revR := by

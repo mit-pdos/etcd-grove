@@ -125,10 +125,20 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
     #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo,
-    Hlis, Hleft, #Hlu⟩
-  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
-      [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
-  · iframe Hgsn Hlis; iframe #
+    Hleft, #Hlu⟩
+  -- (phase 7's switch, SW1) the axiom binds the server to its listener; a bound one has its
+  -- certificate already
+  ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗
+      ⌜noRefusalAt addr⌝) $$ [Hgsn]
+  · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
+    · iapply (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
+        [ims, is] svcs regs sregs HC.2.2.1 HEo)
+      iframe Hgsn Hlis; iframe #
+    · iexact Hb
+  ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+      (grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗ ⌜noRefusalAt addr⌝))
+    $$ [Hgsn]
+  · iright; iframe Hgsn; ipureintro; exact Hnr
   isplitl
   · iunfold grpcUp
     iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs

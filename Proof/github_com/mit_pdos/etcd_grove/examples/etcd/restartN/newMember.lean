@@ -79,7 +79,7 @@ theorem newMember.wp_proof
   -- `net.Listen("tcp", peerAddr)`
   wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis, -⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis, Hpleft⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
@@ -93,7 +93,7 @@ theorem newMember.wp_proof
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, #Hlr, Hkeep⟩
   -- the listener serves the peer address with the raft protocol
-  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis
+  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpleft Hpown with Hlis
   -- `&raftSwap{mu: new(sync.Mutex), h: s.RaftHandler()}`
   wp_apply (wp_RaftHandler s γn id τ peerAddr Hown) as %h #Hh
   · iframe #

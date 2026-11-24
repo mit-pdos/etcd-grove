@@ -50,7 +50,7 @@ abbrev client_Put_on.law : Prop :=
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
               putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-              ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+              ∃ md, clientAttemptMdI conn om md ∗
                 v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
             (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }}
 
@@ -78,7 +78,7 @@ abbrev client_Get_on.law : Prop :=
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
           ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
               rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
-              ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+              ∃ md, clientAttemptMdI conn om md ∗
                 v3rpc.rangeAuthed (srvTLSId s) E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
             (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 

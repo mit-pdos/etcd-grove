@@ -9,11 +9,11 @@ second stack.
 
 A reply carries, besides what it carries with auth off (`putReplied`, ...), the server's auth
 facts at the token of the metadata some attempt of the call delivered (`∃ md,
-⌜clientAttemptMd conn ctx md⌝ ∗ …`: the attempt's metadata is the context's outgoing metadata with
+clientAttemptMdI conn om md ∗ …`: the attempt's metadata is the context's outgoing metadata with
 the client's API version, delivered by grpc on `conn`): a write's grant (`v3rpc.writeGrantOn`), a
 read's check (`v3rpc.rangeAuthed`, `txnAuthOn`) at the lower bound `n` of the auth store's
 published index the caller gives (`auth.authPubLbM`; `0` is free). What the token is (the
-client's, after `Authenticate`) is the auth plan's item 2 (C1–C4, over `clientAttemptMd`). A
+client's, after `Authenticate`) is the auth plan's item 2 (C1–C4, over `clientAttemptMdI`, a persistent `IProp` since phase 7's switch). A
 write's update is told the same grant when it fires (`clientOpAuOn`, the auth-mode merge's 5a): at
 a lower bound of the requested log the caller gives (`srvReqLogLb`; `[]` is free,
 `clientOpAuOn_of_au1`).
@@ -75,14 +75,14 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persist
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #HF, #Hom, #Hctx', #Hce, #Hopts, Hau⟩ HΦ
   have Hpm : ¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 := ⟨hpn, ht⟩
   iapply (v3.kv.wp_PutG api conn [addr] ci om cd key val sl gs (etcdPutSpecOn T E ρ cid mid)
     (fun m => iprop(putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
-      ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+      ∃ md, clientAttemptMdI conn om md ∗
         v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))))) $$ [Hau]
   · iframe #
     isplitl []
@@ -92,11 +92,11 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persist
         attemptPre conn om (etcdPutSpecOn T E ρ cid mid)
           (putWireOf (opPutModel key val gs))
           (fun (m : PutRespM) => iprop(putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs))))) := by
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
-      iintro %md %Hmd
+      iintro %md #Hmd
       unfold etcdPutSpecOn etcdPutSpecOnW
       isplitr
       · imodintro; iintro %_; itrivial
@@ -106,13 +106,13 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persist
       isplitr
       · ipureintro; exact hl
       isplitl [Hau]
-      · iapply clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
+      · iapply clientOpAuOn_attempt T E ρ conn om md _ Q $$ Hmd Hau
       iintro %m Hm Hg
       simp only []
       iframe Hm
       iexists md
       iframe Hg
-      ipureintro; exact Hmd
+      iexact Hmd
     isplitl [Hau]; rotate_left
     · ipureintro; exact hsz
     iapply (kvReqPre_wand api [addr] (srvApi.kvLogLb E.γs F) _ _ h)
@@ -170,7 +170,7 @@ theorem client_put_on_nil (api conn : Loc) (addr : GoString) (T : IProp GF) [Per
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   obtain ⟨hpn, ht, hw⟩ := opPutModel_nil_ok key val
@@ -202,14 +202,14 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persi
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               v3rpc.rangeAuthed T E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hom, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
   iapply wp_fupd
   iapply (v3.kv.wp_GetG api conn [addr] ci om cd key sl gs R (etcdRangeSpecOn T E γr cid mid)
     (fun m => iprop(rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
-      ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+      ∃ md, clientAttemptMdI conn om md ∗
         v3rpc.rangeAuthed T E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))))
     (fun _ => iprop(True)))
     $$ [Hopts HR Hsn]
@@ -222,7 +222,7 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persi
     imodintro
     inext
     unfold attemptPre
-    iintro %md %Hmd
+    iintro %md #Hmd
     unfold etcdRangeSpecOn etcdRangeSpecOnW
     isplitr
     · imodintro; iintro %_; itrivial
@@ -233,7 +233,7 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persi
     iframe Hm
     iexists md
     iframe Ha
-    ipureintro; exact Hmd
+    iexact Hmd
   inext
   iintro %resp %err ⟨-, HR, Hout⟩
   imod rangeCallOut_persist _ _ _ $$ Hout with Hout
@@ -273,7 +273,7 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
             deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md)
                 (irrDeleteRange (txn.deleteOpOf key [] false))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
@@ -282,7 +282,7 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
     simp [op_simps, deleteWireOf, txn.deleteOpOf]
   iapply (v3.kv.wp_DeleteG api conn [addr] ci om cd key sl [] (etcdDeleteSpecOn T E ρ cid mid)
     (fun m => iprop(deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
-      ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+      ∃ md, clientAttemptMdI conn om md ∗
         v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md)
           (irrDeleteRange (txn.deleteOpOf key [] false))))) $$ [Hau]
   · iframe #
@@ -298,12 +298,12 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
           (txn.deleteOpOf key [] false)
           (fun (m : DelRespM) =>
             iprop(deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md)
                 (irrDeleteRange (txn.deleteOpOf key [] false)))) := by
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
-      iintro %md %Hmd
+      iintro %md #Hmd
       unfold etcdDeleteSpecOn etcdDeleteSpecOnW
       isplitr
       · imodintro; iintro %_; itrivial
@@ -315,13 +315,13 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
       isplitr
       · ipureintro; simp [txn.deleteOpOf]
       isplitl [Hau]
-      · iapply clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
+      · iapply clientOpAuOn_attempt T E ρ conn om md _ Q $$ Hmd Hau
       iintro %m Hm Hg
       simp only []
       iframe Hm
       iexists md
       iframe Hg
-      ipureintro; exact Hmd
+      iexact Hmd
     isplitl [Hau]; rotate_left
     · ipureintro; exact hsz
     iapply (kvReqPre_wand api [addr] (srvApi.kvLogLb E.γs F) _ _ h)
@@ -380,7 +380,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
             txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
-            ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+            ∃ md, clientAttemptMdI conn om md ∗
               txnAuthOn T E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hom, #Htk, #Hkv, #Hreg, #Hc, #HF, #Hn, Hnp⟩ HΦ
@@ -388,11 +388,11 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
         txnUpdAtOn T E ρ conn om γr (txnWireOf b.model) Q : IProp GF) ⊢
       attemptPre conn om (etcdTxnSpecOn T E ρ γr cid mid) (txnWireOf b.model)
         (fun (m : TxnRespM) => iprop(txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
-          ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+          ∃ md, clientAttemptMdI conn om md ∗
             txnAuthOn T E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model))) := by
     iintro ⟨⟨#Hc, #HF, #Hn⟩, Hu⟩
     unfold attemptPre
-    iintro %md %Hmd
+    iintro %md #Hmd
     unfold etcdTxnSpecOn etcdTxnSpecOnW
     isplitr
     · imodintro; iintro %_; itrivial
@@ -407,7 +407,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
       · iright; iright
         isplitr
         · ipureintro; exact Hw
-        iapply clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
+        iapply clientOpAuOn_attempt T E ρ conn om md _ Q $$ Hmd Hau
     iexists c, F, n
     iframe Hc HF Hn
     iintro %m Hm Ha
@@ -415,10 +415,10 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Pers
     iframe Hm
     iexists md
     iframe Ha
-    ipureintro; exact Hmd
+    iexact Hmd
   iapply (v3.txn.wp_CommitG tp api conn [addr] ci om cd b (etcdTxnSpecOn T E ρ γr cid mid)
     (fun m => iprop(txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
-      ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+      ∃ md, clientAttemptMdI conn om md ∗
         txnAuthOn T E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)))) $$ [Hobj Hnp]
   · iframe Hobj
     iframe #
@@ -491,7 +491,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (T : IProp GF) [P
         ⌜m.id ≠ W64 0⌝ ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
-        ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+        ∃ md, clientAttemptMdI conn om md ∗
           v3rpc.leaseGrantResT E.authOn T E ρ (auth.mdTokenOf md) ttl m.id Q ∗
           leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
@@ -501,7 +501,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (T : IProp GF) [P
     (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
-        ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+        ∃ md, clientAttemptMdI conn om md ∗
           v3rpc.leaseGrantResT E.authOn T E ρ (auth.mdTokenOf md) ttl m.id Q ∗
           leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))))
     ci om cd ttl) $$ [] HΦ
@@ -509,7 +509,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (T : IProp GF) [P
   iintro !>
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseGrantSpecOn etcdLeaseGrantSpecOnW
   isplitr
   · iintro !> %_; itrivial
@@ -524,7 +524,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (T : IProp GF) [P
     · simp only [leaseGrantPermitM]
       iintro %id
       ihave Hau1 := Hau $$ %id
-      ihave H := clientOpAuOn_attempt T E ρ conn om md _ (Q id) Hmd $$ Hau1
+      ihave H := clientOpAuOn_attempt T E ρ conn om md _ (Q id) $$ Hmd Hau1
       iapply kvOpAuOn_leaseGrant $$ H
   iintro %m %Hid #Hre Hlive Hres #Hck
   isplitr
@@ -534,7 +534,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (T : IProp GF) [P
   · iexact Hlive
   iexists md
   iframe Hres Hck
-  ipureintro; exact Hmd
+  iexact Hmd
 
 /-- **`l.Revoke(ctx, id)` on the client's `*lessor` over `conn` to a member with auth on** (auth-lease
 S4, Freeze §3.2; as `client_lease_grant_on`). -/
@@ -550,7 +550,7 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (T : IProp GF) [
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
-        ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+        ∃ md, clientAttemptMdI conn om md ∗
           v3rpc.leaseRevokeResT E.authOn T E ρ (auth.mdTokenOf md) id Q ∗
           leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
@@ -558,7 +558,7 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (T : IProp GF) [
   iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hom, #Hctx, #Hce, #Hau⟩ HΦ
   iapply (v3.lessor.wp_Revoke l conn [addr] (etcdLeaseRevokeSpecOn T E ρ)
     (fun m => iprop(etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
-        ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
+        ∃ md, clientAttemptMdI conn om md ∗
           v3rpc.leaseRevokeResT E.authOn T E ρ (auth.mdTokenOf md) id Q ∗
           leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))))
     ci om cd id) $$ [] HΦ
@@ -566,7 +566,7 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (T : IProp GF) [
   iintro !>
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseRevokeSpecOn etcdLeaseRevokeSpecOnW
   isplitr
   · iintro !> %_; itrivial
@@ -577,14 +577,14 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (T : IProp GF) [
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt T E ρ conn om md _ Q $$ Hmd Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #Hre Hres #Hck
   isplitr
   · iexact Hre
   iexists md
   iframe Hres Hck
-  ipureintro; exact Hmd
+  iexact Hmd
 
 end leaseOn
 

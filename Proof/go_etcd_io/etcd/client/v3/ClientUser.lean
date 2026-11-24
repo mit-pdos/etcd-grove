@@ -4,7 +4,7 @@
 
 A client built with a user name dials with its token bundle's per-RPC credentials, whose tokens
 are `""` or meet `P` (`tokenBundleInv`, `tokMdOk`); grpc sends each attempt the credentials'
-metadata before the context's (`grpcAttemptMd`), so the token the handler sees (`auth.mdTokenOf`,
+metadata before the context's (`grpcAttemptMdI`), so the token the handler sees (`auth.mdTokenOf`,
 what the server's `AuthInfoFromCtx` reads) is one meeting `P`, trimmed of `"Bearer "`, or, when
 the bundle holds none, the context's own (`attemptTokOk`, `InvClientAuth`). With `P` the server's
 issue to the user (`auth.tokIssued γa · u`) that is C1, `userClientAt`.
