@@ -9,6 +9,18 @@ module
 
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.specreq.reflect
 public import Perennial.Proof.reflect.Base
+public import Perennial.Proof.bytes.Base
+public import Perennial.Proof.context.Base
+public import Perennial.Proof.encoding.binary.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.io.Base
+public import Perennial.Proof.math.Base
+public import Perennial.Proof.sort.Base
+public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.sync.Base
+public import Proof.net.http.Base
 
 @[expose] public section
 

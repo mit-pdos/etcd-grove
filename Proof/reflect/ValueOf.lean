@@ -5,6 +5,7 @@
 module
 
 public import Spec.reflect.ValueOf
+public import Perennial.Spec.reflect.ValueOf
 public import Perennial.Spec.reflect.Value__IsNil
 public import Perennial.Spec.reflect.Value__Elem
 
@@ -27,18 +28,13 @@ variable [sem : go.Semantics]
 variable [reflect.Assumptions]
 
 theorem reflect.ValueOf.wp_proof
-    (hV : ∀ (T : go.GoType) (p : Loc),
-      {{ isPkgInit (PROP := IProp GF) pkg_id.reflect }}
-        (App (Val (@! _root_.Perennial.reflect.ValueOf))
-          (Val #(interface.mkOk (go.GoType.PointerType T) #p)))
-      {{ (w : _root_.Perennial.reflect.Value), RET #w; ⌜_root_.Perennial.reflect.reflPtr w T p⌝ }})
+    (hV : _root_.Perennial.reflect.ValueOf.spec (GF := GF) (hG := hG))
     (hN : _root_.Perennial.reflect.Value.IsNil.spec (GF := GF) (hG := hG))
     (hE : _root_.Perennial.reflect.Value.Elem.spec (GF := GF) (hG := hG)) :
     reflect.ValueOf.spec (GF := GF) (hG := hG) := by
   intro T p
   iintro %Φ #Hinit HΦ
-  wp_apply hV $$ [$Hinit] as %w %Hw
-  subst Hw
+  wp_apply (hV.1 (t := go.PointerType T) 22 #p rfl (by simp [_root_.Perennial.reflect.rtype.ty]) (by omega)) $$ [$Hinit]
   iapply HΦ
   isplit
   · imodintro
@@ -61,7 +57,7 @@ theorem reflect.ValueOf.wp_proof
     ipureintro
     refine ⟨k, hk, ?_⟩
     simp only
-    rw [(reflectM.elemFlag_bits k (reflectM.kindOf_lt hk)).2.2.2]
+    rw [show W64 ↑(22 : Nat) = W64 22 from rfl, (reflectM.elemFlag_bits k (reflectM.kindOf_lt hk)).2.2.2]
 
 end proof
 
