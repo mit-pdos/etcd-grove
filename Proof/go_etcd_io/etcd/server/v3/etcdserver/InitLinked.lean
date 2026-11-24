@@ -104,6 +104,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
@@ -345,10 +346,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %chasLeader ⟨#RhasLeader, -⟩
   ihave #ChasLeader : (EtcdGrove.prometheus.metric.gaugeSpec chasLeader : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DhasLeader : (EtcdGrove.prometheus.metric.gaugeSetSpec chasLeader : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EhasLeader : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec chasLeader : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DhasLeader
@@ -358,10 +359,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisLeader ⟨#RisLeader, -⟩
   ihave #CisLeader : (EtcdGrove.prometheus.metric.gaugeSpec cisLeader : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DisLeader : (EtcdGrove.prometheus.metric.gaugeSetSpec cisLeader : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EisLeader : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cisLeader : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DisLeader
@@ -386,19 +387,19 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %capplySnapshotInProgress ⟨#RapplySnapshotInProgress, -⟩
   ihave #CapplySnapshotInProgress : (EtcdGrove.prometheus.metric.gaugeSpec capplySnapshotInProgress : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DapplySnapshotInProgress : (EtcdGrove.prometheus.metric.gaugeSetSpec capplySnapshotInProgress : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of proposalsCommitted))
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsCommitted ⟨#RproposalsCommitted, -⟩
   ihave #CproposalsCommitted : (EtcdGrove.prometheus.metric.gaugeSpec cproposalsCommitted : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DproposalsCommitted : (EtcdGrove.prometheus.metric.gaugeSetSpec cproposalsCommitted : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EproposalsCommitted : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cproposalsCommitted : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DproposalsCommitted
@@ -408,10 +409,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsApplied ⟨#RproposalsApplied, -⟩
   ihave #CproposalsApplied : (EtcdGrove.prometheus.metric.gaugeSpec cproposalsApplied : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DproposalsApplied : (EtcdGrove.prometheus.metric.gaugeSetSpec cproposalsApplied : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EproposalsApplied : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cproposalsApplied : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DproposalsApplied
@@ -421,10 +422,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsPending ⟨#RproposalsPending, -⟩
   ihave #CproposalsPending : (EtcdGrove.prometheus.metric.gaugeSpec cproposalsPending : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DproposalsPending : (EtcdGrove.prometheus.metric.gaugeSetSpec cproposalsPending : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of proposalsFailed))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cproposalsFailed ⟨#CproposalsFailed, -⟩
@@ -468,10 +469,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cfdUsed ⟨#RfdUsed, -⟩
   ihave #CfdUsed : (EtcdGrove.prometheus.metric.gaugeSpec cfdUsed : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DfdUsed : (EtcdGrove.prometheus.metric.gaugeSetSpec cfdUsed : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EfdUsed : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cfdUsed : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DfdUsed
@@ -481,10 +482,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cfdLimit ⟨#RfdLimit, -⟩
   ihave #CfdLimit : (EtcdGrove.prometheus.metric.gaugeSpec cfdLimit : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   ihave #DfdLimit : (EtcdGrove.prometheus.metric.gaugeSetSpec cfdLimit : IProp GF) $$ []
   · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
-    all_goals iassumption
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   ihave #EfdLimit : (go_etcd_io.etcd.server.v3.etcdserver.gaugeSetSpec cfdLimit : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSetSpec at DfdLimit
@@ -616,7 +617,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver }} :=

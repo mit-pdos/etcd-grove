@@ -16,7 +16,10 @@ can return (below, per function), with the count Go returns with it. An errno is
 superset of Linux's errnos), so every `syscall.Errno` Go can produce is among the model's. Neither Go
 function panics or blocks (both make one or two system calls, `EINTR` retried by `os`), and neither
 touches state the translated code can observe (`FDUsage`'s file is local to `countFiles`, opened and
-closed there), so a model that changes nothing is Go's.
+closed there), so a model that changes nothing is Go's. The one exception is the fd `FDUsage` holds while
+it lists the directory, which counts toward the file extension's assumption that the process's fds stay
+within their limits; that assumption is stated over the real process, which holds that fd too, so the
+model's not allocating one changes no proof (adversarial review, #42, 2026-11-24).
 -/
 module
 
@@ -76,7 +79,9 @@ Go's outcomes, and the model's:
   call returned `EAGAIN`: neither happens here, the file being local to `countFiles` and closed only
   after the call, and a directory's fd not pollable (`epoll_ctl(2)` refuses it with `EPERM`, so
   `newFile`'s `pfd.Init` fails, the fd stays unregistered, `pd.pollable()` false, and blocking again;
-  `getdents64(2)` on a directory never returns `EAGAIN` anyway); with `readdirName` mode `readdir` makes no other error (its
+  `getdents64(2)` on a directory never returns `EAGAIN` anyway: argued, not measured, and the model
+  allows an `EAGAIN` errno among its errors regardless; the `EPERM` of `epoll_ctl(2)` on a `/proc/self/fd`
+  directory fd was measured by the review); with `readdirName` mode `readdir` makes no other error (its
   `lstat`/dirent errors are of the other modes), and with `n = -1` no `io.EOF`.
 `f == nil` (`Readdirnames`'s `ErrInvalid`) does not happen after a successful `Open`. -/
 noncomputable def FDUsage.impl : val :=

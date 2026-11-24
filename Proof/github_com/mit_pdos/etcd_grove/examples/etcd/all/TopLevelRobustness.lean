@@ -43,7 +43,7 @@ theorem etcd_robust_single_process : etcd_robust_single_process.spec := by
     Hap k₄ hk₄1 hk₄ ids₄ ps₄ ctxs₄ boot₄ Hlen₄ Hbf₄ lid₁ lid₂ lid₃ psL ctxsL bootL HbfL k₅ hk₅3 hk₅
     ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hlow Haf Hbuq Hrf Hdbo Hlp Hlne clients ops
     Hc0 Hc31 Hops Hmul steps₁ Hsteps₁ nw nops Hnw0 Hnw31 Hnops Hnmul steps₂ Hsteps₂ cnw cnops Hcnw0
-    Hcnw31 Hcnops Hcmul HNs HAs HDs HEnv Hprem₁ HpremP HpremCW HpremC HpremK Hprem₂ Hprem₃ Hprem₄
+    Hcnw31 Hcnops Hcmul HAs HDs HEnv Hprem₁ HpremP HpremCW HpremC HpremK Hprem₂ Hprem₃ Hprem₄
     HpremL Hprem₅ HpremR σ g Hfs HWal
   exact
     robust_of_single_below_init fun hf hg _ n κs t2 σ2 hn Hsteps =>
@@ -54,7 +54,7 @@ theorem etcd_robust_single_process : etcd_robust_single_process.spec := by
         ctxs₄ boot₄ Hlen₄ Hbf₄ lid₁ lid₂ lid₃ psL ctxsL bootL HbfL k₅ hk₅3 hk₅ ids₅ ps₅ ctxs₅ boot₅
         Hlen₅ Hbf₅ rId ctxsR bootR HbfR Hlow Haf Hbuq Hrf Hdbo Hlp Hlne clients ops Hc0 Hc31 Hops
         Hmul steps₁ Hsteps₁ nw nops Hnw0 Hnw31 Hnops Hnmul steps₂ Hsteps₂ cnw cnops Hcnw0 Hcnw31
-        Hcnops Hcmul HNs HAs HDs HEnv n (Hprem₁ n (by omega)) (HpremP n (by omega)) (HpremCW n (by
+        Hcnops Hcmul HAs HDs HEnv n (Hprem₁ n (by omega)) (HpremP n (by omega)) (HpremCW n (by
         omega)) (HpremC n (by omega)) (HpremK n (by omega)) (Hprem₂ n (by omega)) (Hprem₃ n (by
         omega)) (Hprem₄ n (by omega)) (HpremL n (by omega)) (Hprem₅ n (by omega)) (HpremR n (by
         omega)) σ g hg Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2

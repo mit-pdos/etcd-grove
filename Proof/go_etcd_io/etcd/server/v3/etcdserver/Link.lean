@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore_
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetPhysical
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetRevision
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext__JSONModelMarshal
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AddMember
@@ -142,6 +143,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__waitLeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest__GetTTL
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest__GetID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__JSONModelMarshal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__JSONModelMarshalPtr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
@@ -373,6 +376,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__SetVersionChangedNotifier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__String
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jenc_ConfigChangeContext
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jenc_Member
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jenc_S_string
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage
@@ -546,6 +552,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__CreateAlarmBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__ForceCommit
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__GetAllAlarms
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.alarmBackend__unsafeGetAllAlarms
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__BatchTx
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__CreateAuthBuckets
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ForceCommit
@@ -713,6 +723,8 @@ public import Proof.sort.SortAnyLessLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
+public import Proof.encoding.json.Results
+public import Net.Proof.models_lab.jsoncodec.Linked
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
@@ -755,6 +767,18 @@ theorem Compare.wp_GetKey :
     Compare.GetKey.spec (GF := GF) (hG := hG) :=
   Compare.GetKey.wp_proof
 
+theorem membership.wp_jenc_S_string :
+    membership.jenc_S_string.spec (GF := GF) (hG := hG) :=
+  membership.jenc_S_string.wp_proof _root_.Perennial.models_lab.jsoncodec.AppendString.wp _root_.Perennial.models_lab.jsoncodec.AppendRaw.wp
+
+theorem membership.wp_jenc_ConfigChangeContext :
+    membership.jenc_ConfigChangeContext.spec (GF := GF) (hG := hG) :=
+  membership.jenc_ConfigChangeContext.wp_proof membership.wp_jenc_S_string _root_.Perennial.models_lab.jsoncodec.AppendString.wp _root_.Perennial.models_lab.jsoncodec.AppendRaw.wp _root_.Perennial.models_lab.jsoncodec.AppendUint.wp _root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+
+theorem membership.ConfigChangeContext.wp_JSONModelMarshal :
+    membership.ConfigChangeContext.JSONModelMarshal.spec (GF := GF) (hG := hG) :=
+  membership.ConfigChangeContext.JSONModelMarshal.wp_proof membership.wp_jenc_ConfigChangeContext
+
 theorem DeleteRangeRequest.wp_GetKey :
     DeleteRangeRequest.GetKey.spec (GF := GF) (hG := hG) :=
   DeleteRangeRequest.GetKey.wp_proof
@@ -762,6 +786,14 @@ theorem DeleteRangeRequest.wp_GetKey :
 theorem DeleteRangeRequest.wp_GetRangeEnd :
     DeleteRangeRequest.GetRangeEnd.spec (GF := GF) (hG := hG) :=
   DeleteRangeRequest.GetRangeEnd.wp_proof
+
+theorem membership.wp_jenc_Member :
+    membership.jenc_Member.spec (GF := GF) (hG := hG) :=
+  membership.jenc_Member.wp_proof membership.wp_jenc_S_string _root_.Perennial.models_lab.jsoncodec.AppendString.wp _root_.Perennial.models_lab.jsoncodec.AppendRaw.wp _root_.Perennial.models_lab.jsoncodec.AppendUint.wp _root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+
+theorem membership.Member.wp_JSONModelMarshal :
+    membership.Member.JSONModelMarshal.spec (GF := GF) (hG := hG) :=
+  membership.Member.JSONModelMarshal.wp_proof membership.wp_jenc_Member
 
 theorem trace.wp_WithAttributes :
     trace.WithAttributes.spec (GF := GF) (hG := hG) :=
@@ -1539,6 +1571,10 @@ theorem auth.authStore.wp_WithRoot :
     auth.authStore.WithRoot.spec (GF := GF) (hG := hG) :=
   auth.authStore.WithRoot.wp_proof
 
+theorem membership.Member.wp_JSONModelMarshalPtr :
+    membership.Member.JSONModelMarshalPtr.spec (GF := GF) (hG := hG) :=
+  membership.Member.JSONModelMarshalPtr.wp_proof membership.wp_jenc_Member
+
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
@@ -1890,9 +1926,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+theorem schema.alarmBackend.wp_CreateAlarmBucket :
+    schema.alarmBackend.CreateAlarmBucket.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.CreateAlarmBucket.wp_proof backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.alarmBackend.wp_unsafeGetAllAlarms :
+    schema.alarmBackend.unsafeGetAllAlarms.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.unsafeGetAllAlarms.wp_proof backend.readTx.wp_UnsafeForEach schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.alarmBackend.wp_GetAllAlarms :
+    schema.alarmBackend.GetAllAlarms.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.GetAllAlarms.wp_proof backend.backend.wp_ReadTx backend.readTx.wp_RLock backend.readTx.wp_RUnlock schema.alarmBackend.wp_unsafeGetAllAlarms
+
+theorem schema.alarmBackend.wp_ForceCommit :
+    schema.alarmBackend.ForceCommit.spec (GF := GF) (hG := hG) :=
+  schema.alarmBackend.ForceCommit.wp_proof backend.backend.wp_ForceCommit
+
 theorem v3alarm.AlarmStore.wp_restore :
     v3alarm.AlarmStore.restore.spec (GF := GF) (hG := hG) :=
-  v3alarm.AlarmStore.restore.wp_proof
+  v3alarm.AlarmStore.restore.wp_proof schema.alarmBackend.wp_CreateAlarmBucket schema.alarmBackend.wp_GetAllAlarms schema.alarmBackend.wp_ForceCommit
 
 theorem v3alarm.AlarmStore.wp_Recover :
     v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) :=
@@ -1912,7 +1964,7 @@ theorem EtcdServer.wp_checkMembershipOperationPermission :
 
 theorem encoding.json.wp_MarshalMember :
     encoding.json.MarshalMember.spec (GF := GF) (hG := hG) :=
-  encoding.json.MarshalMember.wp_proof
+  encoding.json.MarshalMember.wp_proof _root_.Perennial.encoding.json.Marshal.wp membership.Member.wp_JSONModelMarshal
 
 theorem EtcdServer.wp_AddMember :
     EtcdServer.AddMember.spec (GF := GF) (hG := hG) :=
@@ -2248,7 +2300,7 @@ theorem EtcdServer.wp_Process :
 
 theorem encoding.json.wp_MarshalConfigChangeContext :
     encoding.json.MarshalConfigChangeContext.spec (GF := GF) (hG := hG) :=
-  encoding.json.MarshalConfigChangeContext.wp_proof
+  encoding.json.MarshalConfigChangeContext.wp_proof _root_.Perennial.encoding.json.Marshal.wp membership.ConfigChangeContext.wp_JSONModelMarshal
 
 theorem EtcdServer.wp_promoteMember :
     EtcdServer.promoteMember.spec (GF := GF) (hG := hG) :=
