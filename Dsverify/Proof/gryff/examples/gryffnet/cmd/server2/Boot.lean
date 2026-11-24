@@ -77,10 +77,15 @@ theorem wf_bytes : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
   · rfl
   exact ⟨wf_errors, wf_io, True.intro⟩
 
-theorem wf_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
+theorem wf_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
   exact True.intro
+
+theorem wf_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_internal_gomodel, True.intro⟩
 
 theorem wf_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -90,12 +95,12 @@ theorem wf_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF
 theorem wf_internal_stringslite : GetIsPkgInitProp pkg_id.internal.stringslite (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact True.intro
+  exact ⟨wf_internal_bytealg, True.intro⟩
 
 theorem wf_strings : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_internal_bytealg, wf_unicode_utf8, wf_internal_stringslite, wf_io, wf_sync, True.intro⟩
+  exact ⟨wf_internal_gomodel, wf_internal_bytealg, wf_unicode_utf8, wf_internal_stringslite, wf_io, wf_sync, True.intro⟩
 
 theorem wf_bufio : GetIsPkgInitProp pkg_id.bufio (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -157,6 +162,11 @@ theorem wf_context : GetIsPkgInitProp pkg_id.context (getIsPkgInit (GF := GF)) :
   · rfl
   exact ⟨wf_errors, wf_sync, wf_sync_atomic, wf_time, True.intro⟩
 
+theorem wf_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_math_bits, True.intro⟩
+
 theorem wf_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
@@ -165,7 +175,7 @@ theorem wf_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkg
 theorem wf_syscall : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_sync, wf_errors, wf_internal_oserror, True.intro⟩
+  exact ⟨wf_sync, wf_errors, wf_internal_strconv, wf_internal_oserror, True.intro⟩
 
 theorem wf_io_fs : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -207,10 +217,15 @@ theorem wf_crypto_tls : GetIsPkgInitProp pkg_id.crypto.tls (getIsPkgInit (GF := 
   · rfl
   exact True.intro
 
+theorem wf_strconv : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_errors, wf_internal_strconv, wf_internal_stringslite, wf_unicode_utf8, True.intro⟩
+
 theorem wf_fmt : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_errors, wf_io, wf_sync, True.intro⟩
+  exact ⟨wf_errors, wf_strconv, wf_unicode_utf8, wf_io, wf_reflect, wf_sync, True.intro⟩
 
 theorem wf_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal.ascii (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -236,16 +251,6 @@ theorem wf_mime_multipart : GetIsPkgInitProp pkg_id.mime.multipart (getIsPkgInit
   refine And.intro ?_ ?_
   · rfl
   exact ⟨wf_net_textproto, True.intro⟩
-
-theorem wf_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (getIsPkgInit (GF := GF)) := by
-  refine And.intro ?_ ?_
-  · rfl
-  exact ⟨wf_math_bits, True.intro⟩
-
-theorem wf_strconv : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
-  refine And.intro ?_ ?_
-  · rfl
-  exact ⟨wf_errors, wf_internal_strconv, wf_internal_stringslite, wf_unicode_utf8, True.intro⟩
 
 theorem wf_path : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -447,10 +452,15 @@ theorem wfNo_bytes : GetIsPkgInitProp pkg_id.bytes (gNo (getIsPkgInit (GF := GF)
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_errors, wfNo_io, True.intro⟩
 
-theorem wfNo_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gNo (getIsPkgInit (GF := GF))) := by
+theorem wfNo_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfNo_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_internal_gomodel, True.intro⟩
 
 theorem wfNo_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -460,12 +470,12 @@ theorem wfNo_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gNo (getIsPkgI
 theorem wfNo_internal_stringslite : GetIsPkgInitProp pkg_id.internal.stringslite (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfNo_internal_bytealg, True.intro⟩
 
 theorem wfNo_strings : GetIsPkgInitProp pkg_id.strings (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_internal_bytealg, wfNo_unicode_utf8, wfNo_internal_stringslite, wfNo_io, wfNo_sync, True.intro⟩
+  exact ⟨wfNo_internal_gomodel, wfNo_internal_bytealg, wfNo_unicode_utf8, wfNo_internal_stringslite, wfNo_io, wfNo_sync, True.intro⟩
 
 theorem wfNo_bufio : GetIsPkgInitProp pkg_id.bufio (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -527,6 +537,11 @@ theorem wfNo_context : GetIsPkgInitProp pkg_id.context (gNo (getIsPkgInit (GF :=
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_errors, wfNo_sync, wfNo_sync_atomic, wfNo_time, True.intro⟩
 
+theorem wfNo_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_math_bits, True.intro⟩
+
 theorem wfNo_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
@@ -535,7 +550,7 @@ theorem wfNo_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gNo (g
 theorem wfNo_syscall : GetIsPkgInitProp pkg_id.syscall (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_sync, wfNo_errors, wfNo_internal_oserror, True.intro⟩
+  exact ⟨wfNo_sync, wfNo_errors, wfNo_internal_strconv, wfNo_internal_oserror, True.intro⟩
 
 theorem wfNo_io_fs : GetIsPkgInitProp pkg_id.io.fs (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -577,10 +592,15 @@ theorem wfNo_crypto_tls : GetIsPkgInitProp pkg_id.crypto.tls (gNo (getIsPkgInit 
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfNo_strconv : GetIsPkgInitProp pkg_id.strconv (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_errors, wfNo_internal_strconv, wfNo_internal_stringslite, wfNo_unicode_utf8, True.intro⟩
+
 theorem wfNo_fmt : GetIsPkgInitProp pkg_id.fmt (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_errors, wfNo_io, wfNo_sync, True.intro⟩
+  exact ⟨wfNo_errors, wfNo_strconv, wfNo_unicode_utf8, wfNo_io, wfNo_reflect, wfNo_sync, True.intro⟩
 
 theorem wfNo_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal.ascii (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -606,16 +626,6 @@ theorem wfNo_mime_multipart : GetIsPkgInitProp pkg_id.mime.multipart (gNo (getIs
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_net_textproto, True.intro⟩
-
-theorem wfNo_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gNo (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_math_bits, True.intro⟩
-
-theorem wfNo_strconv : GetIsPkgInitProp pkg_id.strconv (gNo (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_errors, wfNo_internal_strconv, wfNo_internal_stringslite, wfNo_unicode_utf8, True.intro⟩
 
 theorem wfNo_path : GetIsPkgInitProp pkg_id.path (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -802,10 +812,15 @@ theorem wfS2_bytes : GetIsPkgInitProp pkg_id.bytes (gEx noPkgsS2 (getIsPkgInit (
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS2_errors, wfS2_io, True.intro⟩
 
-theorem wfS2_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+theorem wfS2_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfS2_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS2_internal_gomodel, True.intro⟩
 
 theorem wfS2_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -815,12 +830,12 @@ theorem wfS2_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gEx noPkgsS2 (
 theorem wfS2_internal_stringslite : GetIsPkgInitProp pkg_id.internal.stringslite (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS2_internal_bytealg, True.intro⟩
 
 theorem wfS2_strings : GetIsPkgInitProp pkg_id.strings (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_internal_bytealg, wfS2_unicode_utf8, wfS2_internal_stringslite, wfS2_io, wfS2_sync, True.intro⟩
+  exact ⟨wfS2_internal_gomodel, wfS2_internal_bytealg, wfS2_unicode_utf8, wfS2_internal_stringslite, wfS2_io, wfS2_sync, True.intro⟩
 
 theorem wfS2_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -882,6 +897,11 @@ theorem wfS2_context : GetIsPkgInitProp pkg_id.context (gEx noPkgsS2 (getIsPkgIn
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS2_errors, wfS2_sync, wfS2_sync_atomic, wfS2_time, True.intro⟩
 
+theorem wfS2_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS2_math_bits, True.intro⟩
+
 theorem wfS2_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -890,7 +910,7 @@ theorem wfS2_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gEx no
 theorem wfS2_syscall : GetIsPkgInitProp pkg_id.syscall (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_sync, wfS2_errors, wfS2_internal_oserror, True.intro⟩
+  exact ⟨wfS2_sync, wfS2_errors, wfS2_internal_strconv, wfS2_internal_oserror, True.intro⟩
 
 theorem wfS2_io_fs : GetIsPkgInitProp pkg_id.io.fs (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -932,10 +952,15 @@ theorem wfS2_crypto_tls : GetIsPkgInitProp pkg_id.crypto.tls (gEx noPkgsS2 (getI
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfS2_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS2_errors, wfS2_internal_strconv, wfS2_internal_stringslite, wfS2_unicode_utf8, True.intro⟩
+
 theorem wfS2_fmt : GetIsPkgInitProp pkg_id.fmt (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_errors, wfS2_io, wfS2_sync, True.intro⟩
+  exact ⟨wfS2_errors, wfS2_strconv, wfS2_unicode_utf8, wfS2_io, wfS2_reflect, wfS2_sync, True.intro⟩
 
 theorem wfS2_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal.ascii (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -961,16 +986,6 @@ theorem wfS2_mime_multipart : GetIsPkgInitProp pkg_id.mime.multipart (gEx noPkgs
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS2_net_textproto, True.intro⟩
-
-theorem wfS2_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_math_bits, True.intro⟩
-
-theorem wfS2_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_errors, wfS2_internal_strconv, wfS2_internal_stringslite, wfS2_unicode_utf8, True.intro⟩
 
 theorem wfS2_path : GetIsPkgInitProp pkg_id.path (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1152,10 +1167,15 @@ theorem wfS1_bytes : GetIsPkgInitProp pkg_id.bytes (gEx noPkgsS1 (getIsPkgInit (
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS1_errors, wfS1_io, True.intro⟩
 
-theorem wfS1_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+theorem wfS1_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfS1_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS1_internal_gomodel, True.intro⟩
 
 theorem wfS1_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1165,12 +1185,12 @@ theorem wfS1_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gEx noPkgsS1 (
 theorem wfS1_internal_stringslite : GetIsPkgInitProp pkg_id.internal.stringslite (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS1_internal_bytealg, True.intro⟩
 
 theorem wfS1_strings : GetIsPkgInitProp pkg_id.strings (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_internal_bytealg, wfS1_unicode_utf8, wfS1_internal_stringslite, wfS1_io, wfS1_sync, True.intro⟩
+  exact ⟨wfS1_internal_gomodel, wfS1_internal_bytealg, wfS1_unicode_utf8, wfS1_internal_stringslite, wfS1_io, wfS1_sync, True.intro⟩
 
 theorem wfS1_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1232,6 +1252,11 @@ theorem wfS1_context : GetIsPkgInitProp pkg_id.context (gEx noPkgsS1 (getIsPkgIn
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS1_errors, wfS1_sync, wfS1_sync_atomic, wfS1_time, True.intro⟩
 
+theorem wfS1_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS1_math_bits, True.intro⟩
+
 theorem wfS1_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -1240,7 +1265,7 @@ theorem wfS1_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gEx no
 theorem wfS1_syscall : GetIsPkgInitProp pkg_id.syscall (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_sync, wfS1_errors, wfS1_internal_oserror, True.intro⟩
+  exact ⟨wfS1_sync, wfS1_errors, wfS1_internal_strconv, wfS1_internal_oserror, True.intro⟩
 
 theorem wfS1_io_fs : GetIsPkgInitProp pkg_id.io.fs (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1282,10 +1307,15 @@ theorem wfS1_crypto_tls : GetIsPkgInitProp pkg_id.crypto.tls (gEx noPkgsS1 (getI
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfS1_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS1_errors, wfS1_internal_strconv, wfS1_internal_stringslite, wfS1_unicode_utf8, True.intro⟩
+
 theorem wfS1_fmt : GetIsPkgInitProp pkg_id.fmt (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_errors, wfS1_io, wfS1_sync, True.intro⟩
+  exact ⟨wfS1_errors, wfS1_strconv, wfS1_unicode_utf8, wfS1_io, wfS1_reflect, wfS1_sync, True.intro⟩
 
 theorem wfS1_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal.ascii (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1311,16 +1341,6 @@ theorem wfS1_mime_multipart : GetIsPkgInitProp pkg_id.mime.multipart (gEx noPkgs
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS1_net_textproto, True.intro⟩
-
-theorem wfS1_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_math_bits, True.intro⟩
-
-theorem wfS1_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_errors, wfS1_internal_strconv, wfS1_internal_stringslite, wfS1_unicode_utf8, True.intro⟩
 
 theorem wfS1_path : GetIsPkgInitProp pkg_id.path (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1492,10 +1512,15 @@ theorem wfS0_bytes : GetIsPkgInitProp pkg_id.bytes (gEx noPkgsS0 (getIsPkgInit (
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS0_errors, wfS0_io, True.intro⟩
 
-theorem wfS0_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+theorem wfS0_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfS0_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS0_internal_gomodel, True.intro⟩
 
 theorem wfS0_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1505,12 +1530,12 @@ theorem wfS0_unicode_utf8 : GetIsPkgInitProp pkg_id.unicode.utf8 (gEx noPkgsS0 (
 theorem wfS0_internal_stringslite : GetIsPkgInitProp pkg_id.internal.stringslite (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS0_internal_bytealg, True.intro⟩
 
 theorem wfS0_strings : GetIsPkgInitProp pkg_id.strings (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_internal_bytealg, wfS0_unicode_utf8, wfS0_internal_stringslite, wfS0_io, wfS0_sync, True.intro⟩
+  exact ⟨wfS0_internal_gomodel, wfS0_internal_bytealg, wfS0_unicode_utf8, wfS0_internal_stringslite, wfS0_io, wfS0_sync, True.intro⟩
 
 theorem wfS0_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1572,6 +1597,11 @@ theorem wfS0_context : GetIsPkgInitProp pkg_id.context (gEx noPkgsS0 (getIsPkgIn
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS0_errors, wfS0_sync, wfS0_sync_atomic, wfS0_time, True.intro⟩
 
+theorem wfS0_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS0_math_bits, True.intro⟩
+
 theorem wfS0_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -1580,7 +1610,7 @@ theorem wfS0_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gEx no
 theorem wfS0_syscall : GetIsPkgInitProp pkg_id.syscall (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_sync, wfS0_errors, wfS0_internal_oserror, True.intro⟩
+  exact ⟨wfS0_sync, wfS0_errors, wfS0_internal_strconv, wfS0_internal_oserror, True.intro⟩
 
 theorem wfS0_io_fs : GetIsPkgInitProp pkg_id.io.fs (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1622,10 +1652,15 @@ theorem wfS0_crypto_tls : GetIsPkgInitProp pkg_id.crypto.tls (gEx noPkgsS0 (getI
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfS0_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS0_errors, wfS0_internal_strconv, wfS0_internal_stringslite, wfS0_unicode_utf8, True.intro⟩
+
 theorem wfS0_fmt : GetIsPkgInitProp pkg_id.fmt (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_errors, wfS0_io, wfS0_sync, True.intro⟩
+  exact ⟨wfS0_errors, wfS0_strconv, wfS0_unicode_utf8, wfS0_io, wfS0_reflect, wfS0_sync, True.intro⟩
 
 theorem wfS0_net_http_internal_ascii : GetIsPkgInitProp pkg_id.net.http.internal.ascii (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1651,16 +1686,6 @@ theorem wfS0_mime_multipart : GetIsPkgInitProp pkg_id.mime.multipart (gEx noPkgs
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS0_net_textproto, True.intro⟩
-
-theorem wfS0_internal_strconv : GetIsPkgInitProp pkg_id.internal.strconv (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_math_bits, True.intro⟩
-
-theorem wfS0_strconv : GetIsPkgInitProp pkg_id.strconv (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_errors, wfS0_internal_strconv, wfS0_internal_stringslite, wfS0_unicode_utf8, True.intro⟩
 
 theorem wfS0_path : GetIsPkgInitProp pkg_id.path (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

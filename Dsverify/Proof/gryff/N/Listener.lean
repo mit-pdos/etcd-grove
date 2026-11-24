@@ -13,6 +13,8 @@ public import Dsverify.Proof.gryff.N.Recv
 public import Dsverify.Proof.gryff.N.Stats
 public import Dsverify.Proof.gryff.N.SpecsDefs
 public import Perennial.Proof.fmt.Results
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 
 @[expose] public section
@@ -215,8 +217,12 @@ theorem replicaListener_wp (γ : GryffNames GF) (ρ : Repl2Names) (k q : Fin 3)
   iintro %asl ⟨Hasl, -⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.uint8 _) .nil) $$ [Hasl] as %key ⟨-, %Hkey⟩
-  · iframe
+  wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf
+    go!"server_rpc_%d_chan_length"
+    [.lit go!"server_rpc_", .dir none _root_.Perennial.fmt.verb_d, .lit go!"_chan_length"]
+    _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$Hfmt $Hasl] as %key ⟨-, %Hkey⟩
+  case pa => exact .int _ _ _ _ (.uint8 _) .nil
+  case fits => fmt_fits
   ihave #Hch := is_bag_is_chan _ _ _ $$ Hbag
   wp_auto
   wp_func_call
@@ -225,10 +231,8 @@ theorem replicaListener_wp (γ : GryffNames GF) (ρ : Repl2Names) (k q : Fin 3)
   ihave #Hstats : isPkgInit (PROP := IProp GF) pkg_id.gryff.src.stats $$ []
   · iPkgInit
   have hkey : key ∉ netN.strIntKeys := by
-    have hf : go!"server_rpc_%d_chan_length" = W8 115 :: go!"erver_rpc_%d_chan_length" := rfl
-    rw [hf] at Hkey
-    obtain ⟨o, rfl, -⟩ := fmt.SprintfOut.byte_inv (by decide) Hkey
-    simp [netN.strIntKeys]
+    rw [Hkey]
+    simp [_root_.Perennial.fmt.render, netN.strIntKeys]
   wp_apply (netN.wp_Max st key len hkey) $$ [$Hsto] as %n -
   wp_for_post
   iframe

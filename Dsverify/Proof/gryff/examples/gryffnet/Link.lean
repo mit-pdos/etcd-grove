@@ -8,8 +8,8 @@ RemoteAddr`, `Listener.Accept`, `Listen`, `Dial`, `DialTimeout`) and dsv-bufio's
 every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_proof`); remote's
 `Check`/`ServeClient`. `encoding/binary`'s varints (`binaryVarintHyps`, Perennial's proofs). What is not proved stays
 a premise (the statement's): the `InitHyp`s, `StringsIndexHyp`, `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`,
-`RpcHttpHyp`, `RpcBootHyp`. `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's
-`strings.Cut`/`TrimLeft` (`StringsPending`, until the pin includes Perennial ed1955557).
+`RpcHttpHyp`, `RpcBootHyp`. `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of
+`strings.Cut`/`TrimLeft` (`Proof/strings/FromPerennial.lean`).
 -/
 module
 
@@ -53,8 +53,8 @@ public import Proof.bufio.Writer__Flush
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.bufio.NewWriterSizeRep
 public import Net.Proof.net.rpc.Results
-public import Spec.strings.Cut
-public import Spec.strings.TrimLeft
+public import Proof.strings.FromPerennial
+public import Perennial.Proof.strings.Link
 
 @[expose] public section
 
@@ -99,17 +99,8 @@ theorem netSpecs [net.Assumptions] [net.FieldAssumptions] : netN.NetSpecs GF :=
     net.Dial.wp_proof, net.DialTimeout.wp_proof⟩
 
 /-! Net's net/rpc client and `SetCodec` (`Net/Proof/net/rpc/Results.lean`'s links). `DialHTTP` is
-Net's `net.rpc.DialHTTP.wp`, which takes Perennial's `strings.Cut`/`TrimLeft` specs as hypotheses
-`h_Cut`/`h_TrimLeft` (`StringsPending` below, as craq's `Link.lean`). -/
-
-/-- **Pending callee specs** (not a premise of the statement): Perennial's `strings.Cut` and
-`strings.TrimLeft`, which Net's `net.rpc.DialHTTP.wp` takes. The pin b3f2fc485 translates both as
-names only (Perennial ed1955557 proves them). `TopLevelRobustness.lean`'s
-`gryff_remote_robust_of_strings` takes them until the pin includes ed1955557, when
-`gryff_remote_robust` follows from Perennial's proofs. -/
-class StringsPending (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
-  cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG)
-  trimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG)
+Net's `net.rpc.DialHTTP.wp`, whose hypotheses `h_Cut`/`h_TrimLeft` are Perennial's proofs of
+`strings.Cut`/`TrimLeft` (`Proof/strings/FromPerennial.lean`). -/
 
 section rpc
 variable [net.rpc.Assumptions] [sync.Assumptions]
@@ -149,11 +140,13 @@ variable [sA : gryff.src.serverlib.Assumptions] [bufio.Assumptions] [sync.Assump
 variable [errors.Assumptions]
 
 /-- Every server machine (`DialHTTP`: Net's, see `section rpc`). -/
-theorem wp_Server [sp : StringsPending GF] : Server.spec (GF := GF) (hG := hG) := by
+theorem wp_Server : Server.spec (GF := GF) (hG := hG) := by
   haveI := bufioSpecs (GF := GF) (hG := hG)
   haveI := netSpecs (GF := GF) (hG := hG)
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
-    (net.rpc.DialHTTP.wp sp.cut sp.trimLeft) SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt) net.rpc.Register.wp
+    (net.rpc.DialHTTP.wp
+      (EtcdGrove.strings.Cut.of_perennial _root_.Perennial.strings.wp_Cut)
+      (EtcdGrove.strings.TrimLeft.of_perennial _root_.Perennial.strings.wp_TrimLeft)) SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt) net.rpc.Register.wp
 
 end server
 

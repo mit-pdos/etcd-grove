@@ -4,8 +4,7 @@
 # (examples/gryffnet/Link.lean) and its closed theorem `gryff_remote_robust`
 # (examples/gryffnet/TopLevelRobustness.lean: eleven machines, Robust [] under DistDeploy, 2^31
 # threads, 2^63 steps, over the statement's premises: the InitHyps of net/rpc, net/http, math/rand,
-# StringsIndexHyp, SortSliceHyp, MathPowHyp, RandSeedHyp, RpcHttpHyp, RpcBootHyp; proved as
-# `gryff_remote_robust_of_strings` until the pin has Perennial's strings.Cut/TrimLeft). Its
+# StringsIndexHyp, SortSliceHyp, MathPowHyp, RandSeedHyp, RpcHttpHyp, RpcBootHyp). Its
 # `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-gryff.txt            what it rests on

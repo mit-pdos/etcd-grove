@@ -9,6 +9,8 @@ public import Dsverify.Proof.gryff.src.masterlib.Base
 public import Dsverify.Proof.gryff.examples.gryffnet.Base
 public import Dsverify.GeneratedProof.gryff.src.masterlib
 public import Perennial.Proof.fmt
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -26,30 +28,21 @@ section pure
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 
-theorem intArg_int_uniq (n : w64) (z : Int) (h : IntArgValue (interface.mk go.int #n) z) :
-    z = sint.Z n := by
-  obtain ⟨n', hv, rfl⟩ := IntArgValue.of_int h
-  rw [go.intoVal_inj hv.symm]
-
-/-- The master's `Sprintf("%s:%d", addr, port)` of replica node `k`'s arguments. -/
-theorem sprintf_addr (k : Nat) (hk : k < 3) (s : GoString)
-    (h : SprintfOut go!"%s:%d"
-      [interface.mkOk go.string #(ipOf k), interface.mkOk go.int #(portNum k)] s) :
-    s = addrOf k := by
-  have hf : go!"%s:%d" = W8 37 :: W8 115 :: go!":%d" := rfl
-  rw [hf] at h
-  obtain ⟨o1, rfl, h1⟩ := SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := SprintfOut.byte_inv (by decide) h1
-  have hp : parseIntVerb go!"d" = some (0, []) := by decide
-  obtain ⟨o3, rfl, h3⟩ := SprintfOut.int_inv hp (IntArgValue.int (portNum k))
-    (fun z' hz' => intArg_int_uniq _ _ hz') h2
-  rw [SprintfOut.done_inv h3]
+/-- The master's `Sprintf("%s:%d", addr, port)` of replica node `k`'s arguments, as Perennial's
+real `Sprintf` renders it (`EtcdGrove.fmt.wp_Sprintf_pure`). -/
+theorem render_addr (k : Nat) (hk : k < 3) :
+    _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":",
+      .dir none _root_.Perennial.fmt.verb_d] [.str (ipOf k), .int (sint.Z (portNum k))] =
+      addrOf k := by
   have hz : sint.Z (portNum k) = 7502 + k := by unfold portNum; word
   rw [hz]
   rcases k with _|_|_|k
-  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, addrOf, portAddr]; try rfl
-  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, addrOf, portAddr]; try rfl
-  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, addrOf, portAddr]; try rfl
+  · simp (config := { decide := true }) [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, decimalPad, padZeros, decimalNat_eq, digitByte, ipOf,
+      addrOf, portAddr]; try rfl
+  · simp (config := { decide := true }) [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, decimalPad, padZeros, decimalNat_eq, digitByte, ipOf,
+      addrOf, portAddr]; try rfl
+  · simp (config := { decide := true }) [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, decimalPad, padZeros, decimalNat_eq, digitByte, ipOf,
+      addrOf, portAddr]; try rfl
   · omega
 
 theorem bval_true {P : Prop} [Decidable P] (h : (#(decide P) : val) = #true) : P :=
@@ -59,10 +52,6 @@ theorem bval_false {P : Prop} [Decidable P] (h : ¬ (#(decide P) : val) = #true)
   fun hp => h (by rw [decide_eq_true hp])
 
 theorem bval_ff : decide ((#false : val) = #false) = true := decide_eq_true rfl
-
-theorem regArgs_argsWf (k : Nat) :
-    ArgsWf [interface.mkOk go.string #(ipOf k), interface.mkOk go.int #(portNum k)] :=
-  .cons_string _ _ (.cons_int _ _ _ (.int (portNum k)) .nil)
 
 theorem list_set_snoc {A : Type} (l : List A) (x y : A) (n : Nat) (h : n = l.length) :
     (l ++ [x]).set n y = l ++ [y] := by
@@ -172,9 +161,14 @@ theorem wp_Master_Register (γ : GryffNames GF) (m ap rp : Loc) (k : Nat) (hk : 
   isplitl []
   · ipureintro; rfl
   iintro %ssl ⟨Hssl, -⟩
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (regArgs_argsWf k) $$ [Hssl] as %s ⟨-, %Hs⟩
-  · iframe
-  rw [sprintf_addr k hk s Hs]
+  ihave #HfmtS : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · iPkgInit
+  wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+    _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$HfmtS $Hssl] as %s ⟨-, %Hs⟩
+  case pa => exact .str _ _ _ (.int _ _ _ _ (.int (portNum k)) .nil)
+  case fits => fmt_fits
+  rw [Hs, render_addr k hk]
   rename_i ig_ptr
   irename : (ig_ptr ↦ zero_val w64 : IProp GF) => ig
   ihave %Hnllen := ownSlice_len $$ Hnl

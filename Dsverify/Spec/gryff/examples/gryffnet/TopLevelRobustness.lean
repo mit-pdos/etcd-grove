@@ -41,8 +41,7 @@ variables their client and server read, the unclaimed `DefaultServeMux`; the tab
 after agree beyond the package, and the `InitHyp` conditions (`GetIsPkgInitProp`) it takes constrain
 every package of the initializer's closure, as swiftpaxos's `RpcFirstInit`). Net's net/rpc client
 (`Client.Call`, `DialHTTP`), the package-level `Register` on `DefaultServer` (Net) and
-`encoding/binary`'s varint functions (Perennial, over dsv-bufio's reader) are proved, not premises (`DialHTTP` over Perennial's `strings.Cut`/`TrimLeft`, names only at the pin b3f2fc485:
-the proof's `gryff_remote_robust_of_strings` takes their specs until the pin bump). Each holds of every machine heap (`heapAt`) and
+`encoding/binary`'s varint functions (Perennial, over dsv-bufio's reader) are proved, not premises (`DialHTTP` over Perennial's proofs of `strings.Cut`/`TrimLeft`). Each holds of every machine heap (`heapAt`) and
 protocol registry.
 -/
 module

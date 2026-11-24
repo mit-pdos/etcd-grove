@@ -93,8 +93,13 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
   isplitr
   · ipureintro; rfl
   iintro %ssl ⟨Hssl, -⟩
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl] as %sp ⟨-, %Hsp⟩
-  · iframe
+  ihave #HfmtS : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · first | iPkgInit | iframe
+  wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+    [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+    _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$HfmtS $Hssl] as %sp ⟨-, %Hsp⟩
+  case pa => exact .int _ _ _ _ (.int _) .nil
+  case fits => fmt_fits
   rw [sprintf_colon_port _ _ Hsp, colon_rpcPort k hk port hport]
   ihave %hlok := RA.rpcLisP_ok _ _ _ _ $$ Hrl
   wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp (replicaRpcLis k)) $$ [] as %lv %err Hl
@@ -141,9 +146,13 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     isplitr
     · ipureintro; rfl
     iintro %ssl2 ⟨Hssl2, -⟩
-    wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl2]
-      as %sp2 ⟨-, %Hsp2⟩
-    · iframe
+    ihave #HfmtS : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+    · first | iPkgInit | iframe
+    wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+      [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$HfmtS $Hssl2] as %sp2 ⟨-, %Hsp2⟩
+    case pa => exact .int _ _ _ _ (.int _) .nil
+    case fits => fmt_fits
     rw [sprintf_colon_port _ _ Hsp2, colon_rpcPort k hk port hport]
     wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp (replicaRpcLis k)) $$ [] as %lv2 %err2 Hl
     · isplitr

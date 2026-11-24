@@ -33,17 +33,12 @@ section pure
 variable [GooseExts] [GoGlobalContext]
 
 /-- `Sprintf(":%d", port)`. -/
-theorem sprintf_colon_port [GooseSemantics] [GooseInterp] [HasExt netExt] {GF : BundledGFunctors}
-    [hG : HeapGS .hasLC GF] [NetProtoGS] [sem : go.Semantics] (pv : w64) (s : GoString)
-    (h : SprintfOut go!":%d" [interface.mkOk go.int #pv] s) :
+theorem sprintf_colon_port (pv : w64) (s : GoString)
+    (h : s = _root_.Perennial.fmt.render [.lit go!":", .dir none _root_.Perennial.fmt.verb_d] [.int (sint.Z pv)]) :
     s = W8 58 :: decimalPad 0 (sint.Z pv) := by
-  have hf : go!":%d" = W8 58 :: W8 37 :: go!"d" := rfl
-  rw [hf] at h
-  obtain ⟨o1, rfl, h1⟩ := SprintfOut.byte_inv (by decide) h
-  have hp : parseIntVerb go!"d" = some (0, []) := by decide
-  obtain ⟨o2, rfl, h2⟩ := SprintfOut.int_inv hp (IntArgValue.int pv)
-    (fun z' hz' => intArg_int_uniq _ _ hz') h1
-  rw [SprintfOut.done_inv h2, List.append_nil]
+  subst h
+  simp only [_root_.Perennial.fmt.render, EtcdGrove.fmt.dirOutFn_int_d, Option.getD_none, List.append_nil]
+  rfl
 
 theorem colon_7501 : W8 58 :: decimalPad 0 (sint.Z (W64 7501)) = masterRpcLis := by
   have : sint.Z (W64 7501) = 7501 := by word
@@ -213,8 +208,13 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
   isplitr
   · ipureintro; rfl
   iintro %ssl ⟨Hssl, -⟩
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl] as %sp ⟨-, %Hsp⟩
-  · iframe
+  ihave #HfmtS : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · first | iPkgInit | iframe
+  wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+    [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+    _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$HfmtS $Hssl] as %sp ⟨-, %Hsp⟩
+  case pa => exact .int _ _ _ _ (.int _) .nil
+  case fits => fmt_fits
   rw [sprintf_colon_port _ _ Hsp, colon_7501]
   ihave %hlok := RA.rpcLisP_ok _ _ _ _ $$ Hrl
   wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp masterRpcLis) $$ [] as %lv %err Hl
@@ -262,9 +262,13 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
     isplitr
     · ipureintro; rfl
     iintro %ssl2 ⟨Hssl2, -⟩
-    wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl2]
-      as %sp2 ⟨-, %Hsp2⟩
-    · iframe
+    ihave #HfmtS : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+    · first | iPkgInit | iframe
+    wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!":%d"
+      [.lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$HfmtS $Hssl2] as %sp2 ⟨-, %Hsp2⟩
+    case pa => exact .int _ _ _ _ (.int _) .nil
+    case fits => fmt_fits
     rw [sprintf_colon_port _ _ Hsp2, colon_7501]
     wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp masterRpcLis) $$ [] as %lv2 %err2 Hl
     · isplitr

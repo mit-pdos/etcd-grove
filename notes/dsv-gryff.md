@@ -1,13 +1,11 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
-> **STATE (2026-11-24, session 12, on lean 37bfea9484): merged `origin/lean` `37bfea9484` (Perennial
-> `b3f2fc485`; models-rpc-http, net-rpc-rerr, rpc-defaultserver, dsv-steps63, kitgen, the proph-patch
-> rule all landed). Statement: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`; `RpcHttpAddr` and
-> `BinaryVarintHyps` discharged (Net's `rpcLisP`; Perennial's `encoding/binary` proofs); `DialHTTP`
-> is Net's `net.rpc.DialHTTP.wp` over Perennial's `strings.Cut`/`TrimLeft`, names only at b3f2fc485:
-> the proved theorem is `gryff_remote_robust_of_strings` until the real-`fmt` pin bump
-> (`52d62e83c`, which contains ed1955557). Non-vacuity: `examples/gryffnet/NonVacuityLinked.lean`
-> (axiom-free instances only). See "Session 11/12" below.**
+> **STATE (2026-11-24, session 13, on lean af4fd74b00, Perennial 52d62e83c): merged `origin/lean`
+> (the real-`fmt` pin bump). Statement unchanged: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`. The
+> proved theorem is the plain `gryff_remote_robust : gryff_remote_robust.spec`: Net's `DialHTTP.wp`
+> gets `strings.Cut`/`TrimLeft` from Perennial's proofs (`Proof/strings/FromPerennial.lean`);
+> `StringsPending`, `stringsPending.spec` and `gryff_remote_robust_of_strings` are gone. `#print
+> axioms`: Lean's three. Non-vacuity open ("Non-vacuity: open"). See "Session 13" below.**
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
@@ -859,6 +857,30 @@ blocked by prophcheck's grammar" above and the recorded deviation (option 3 ther
     `HandleHTTP`), `RpcBootHyp`.
   * `notes/perennial-changes.md`: the merge's duplicated models-rpc-http sections dropped (lean's).
 
+## Session 13 (2026-11-24): onto the real-`fmt` pin
+
+- Merged `origin/lean` af4fd74b00 (Perennial 52d62e83c; no conflict); the eleven generated
+  `cmd/*/PkgTable.lean` regenerated (`etc/gen-init.py`: the pin's new packages in the closures);
+  `kitgen --check`, the Links and `goose.py --check` clean.
+- New `Proof/strings/FromPerennial.lean` (defs tier; the same file as dsv-craq's): this repository's
+  `strings.Cut.spec`/`TrimLeft.spec` from Perennial's (`strings.cut_eq`: the two `cut`s agree;
+  Perennial's `TrimLeft` precondition is weaker). `Link.lean`'s `wp_Server` passes them, over
+  Perennial's `strings.wp_Cut`/`wp_TrimLeft`, to Net's `net.rpc.DialHTTP.wp`; `StringsPending`
+  and `stringsPending.spec` deleted; `gryff_remote_robust_of_strings` became `gryff_remote_robust`.
+  The statement is unchanged (only its docstring's mention of the old theorem).
+- **`fmt.Sprintf` onto the real `fmt`**: lean's pin bump removed `fmt.wp_Sprintf_argsWf` (the
+  trusted model's spec); gryff's six call sites (`Server/MasterRegister` `%s:%d`, `MasterRun`
+  `%s:%d`, `MasterNew` x2 and `ServeProof` x2 `:%d`, `N/Listener`/`N/Serve` the stats keys
+  `server_rpc_%d_chan_length`/`client_rpc_%d_chan_length`) now use `EtcdGrove.fmt.wp_Sprintf_pure`
+  over Perennial's `fmt.wp_Sprintf` (`Proof/fmt/SprintfPure.lean`, as lean's own callers), their
+  output lemmas restated over `fmt.render` (`render_addr`, `sprintf_rpcAddr`,
+  `sprintf_colon_port`); the `SprintfOut`/`ArgsWf` helpers (`sprintf_addr`, `regArgs_argsWf`,
+  `rpcAddrArgs_argsWf`, `intArg_int_uniq`) deleted. `log.Printf`'s `fmt.ArgsWf` premise
+  (`LogErr.lean`) is unchanged.
+- The four server `cmd/*/Boot.lean` regenerated (`etc/dsv/_gryff_boot.py`, after gen-init: the
+  PkgTables' new packages).
+- Not done: `StringsIndexHyp` stays a premise (Perennial 52d62e83c has no `strings.Index` proof).
+
 ## Non-vacuity: open (decision 2026-11-24)
 
 **Decision** (kaashoek, 2026-11-24): dsv-gryff lands **without** non-vacuity instances for most of
@@ -879,9 +901,9 @@ TopLevelRobustness.lean`, checked against the statement at fff2eff310):
   `replica2.SortSliceHyp` (`sort.Slice`), `lib.RandSeedHyp` (`math/rand.Seed`), `RpcHttpHyp`
   (net/http's server, `rpc.HandleHTTP`: not in Net), `RpcBootHyp` (net/rpc's and net/http's owned
   initializations).
-- Not a class of the statement, but a premise of the proved theorem: `stringsPending.spec`
-  (`gryff_remote_robust_of_strings`; Perennial's `strings.Cut`/`TrimLeft`), which goes with the
-  pin bump that brings their specs.
+- Until session 13 the proved theorem also took `stringsPending.spec`
+  (`gryff_remote_robust_of_strings`; Perennial's `strings.Cut`/`TrimLeft`); since the pin 52d62e83c
+  those are Perennial's proofs and the theorem is `gryff_remote_robust`.
 
 **The removed axiom-based files** are in history at a5f91c8e46 (deleted by 37ed77ef0f):
 `NonVacuityLinked.lean`'s local axioms and the twelve `InitInstancesLinked.lean` walks

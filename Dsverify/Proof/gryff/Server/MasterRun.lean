@@ -41,22 +41,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 /-- `Run`'s `Sprintf("%s:%d", addrList[i], portList[i]+1000)` of replica node `k`. -/
 theorem sprintf_rpcAddr (k : Nat) (hk : k < 3) (pv : w64) (hz : sint.Z pv = 8502 + k)
     (s : GoString)
-    (h : SprintfOut go!"%s:%d"
-      [interface.mkOk go.string #(ipOf k), interface.mkOk go.int #pv] s) :
+    (h : s = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d] [.str (ipOf k), .int (sint.Z pv)]) :
     s = rpcAddrOf k := by
-  have hf : go!"%s:%d" = W8 37 :: W8 115 :: go!":%d" := rfl
-  rw [hf] at h
-  obtain ⟨o1, rfl, h1⟩ := SprintfOut.str_inv h
-  obtain ⟨o2, rfl, h2⟩ := SprintfOut.byte_inv (by decide) h1
-  have hp : parseIntVerb go!"d" = some (0, []) := by decide
-  obtain ⟨o3, rfl, h3⟩ := SprintfOut.int_inv hp (IntArgValue.int pv)
-    (fun z' hz' => intArg_int_uniq _ _ hz') h2
-  rw [SprintfOut.done_inv h3]
+  subst h
   rw [hz]
   rcases k with _|_|_|k
-  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, rpcAddrOf, replicaRpcAddr]
-  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, rpcAddrOf, replicaRpcAddr]
-  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, rpcAddrOf, replicaRpcAddr]
+  · simp (config := { decide := true }) [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, rpcAddrOf, replicaRpcAddr]
+  · simp (config := { decide := true }) [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, rpcAddrOf, replicaRpcAddr]
+  · simp (config := { decide := true }) [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, decimalPad, padZeros, decimalNat_eq, digitByte, ipOf, rpcAddrOf, replicaRpcAddr]
   · omega
 
 theorem take_set_succ {A : Type} (cs : List A) (j : Nat) (c : A) (h : j < cs.length) :
@@ -85,10 +77,6 @@ theorem replicaRpcAddr_lis (k : Nat) (hk : k < 3) :
       have := lisAcceptsB_iff.2 h; revert this; decide⟩
   · omega
 
-
-theorem rpcAddrArgs_argsWf (k : Nat) (pv : w64) :
-    ArgsWf [interface.mkOk go.string #(ipOf k), interface.mkOk go.int #pv] :=
-  .cons_string _ _ (.cons_int _ _ _ (.int _) .nil)
 
 end pure
 
@@ -300,8 +288,13 @@ theorem wp_Master_Run' (γ : GryffNames GF) (m : Loc) :
       isplitl []
       · ipureintro; rfl
       iintro %ssl ⟨Hssl, -⟩
-      wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (rpcAddrArgs_argsWf k _) $$ [Hssl] as %s ⟨-, %Hs⟩
-      · iframe
+      ihave #HfmtS : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+      · first | iPkgInit | iframe
+      wp_apply EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%d"
+        [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_d]
+        _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$HfmtS $Hssl] as %s ⟨-, %Hs⟩
+      case pa => exact .str _ _ _ (.int _ _ _ _ (.int _) .nil)
+      case fits => fmt_fits
       rw [sprintf_rpcAddr k hk3 _ (by unfold portNum; word) s Hs]
       rw [if_pos ⟨Hj.1, by word⟩]
       ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ k => replicaRpcOk (GF := GF) γ k)
