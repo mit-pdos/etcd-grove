@@ -301,9 +301,9 @@ variable [sync.Assumptions] [NetProtoGS]
 /-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`
 (`Net/Proof/net/http/Results.lean`). -/
 
-/-- Pending: Perennial's `strings.Cut` (`Net/Proof/net/http/Results.lean`, `links_pending`). -/
+-- Pending: Perennial's `strings.Cut` (`Net/Proof/net/http/Results.lean`, `links_pending`).
 variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
-/-- Pending: Perennial's `strings.TrimLeft`. -/
+-- Pending: Perennial's `strings.TrimLeft`.
 variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
 
 include h_Cut h_TrimLeft in

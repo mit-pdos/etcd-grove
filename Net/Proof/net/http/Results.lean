@@ -151,9 +151,9 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
-/-- Pending: Perennial's `strings.Cut` (see the file header). -/
+-- Pending: Perennial's `strings.Cut` (see the file header).
 variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
-/-- Pending: Perennial's `strings.TrimLeft` (see the file header). -/
+-- Pending: Perennial's `strings.TrimLeft` (see the file header).
 variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
 
 include h_Cut h_TrimLeft in
