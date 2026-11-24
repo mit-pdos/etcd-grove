@@ -212,11 +212,11 @@ theorem kindErr_ne_nil (k : NetErr) (ed : Option GoInterface) (nm : GoString →
     (e : GoInterface) (hed : ∀ x, ed = some x → x ≠ interface.nil) :
     kindErr (GF := GF) k ed nm e ⊢ ⌜e ≠ interface.nil⌝ := by
   cases k
-  · unfold kindErr; iintro %h; ipureintro; subst h; unfold closedErr interface.mkOk; intro h; cases h
+  · show iprop(⌜e = closedErr⌝) ⊢ _; iintro %h; ipureintro; subst h; unfold closedErr interface.mkOk; intro h; cases h
   · cases ed with
-    | none => unfold kindErr; iintro H; iexact H
-    | some x => unfold kindErr; iintro %h; ipureintro; subst h; exact hed x rfl
-  · unfold kindErr sysErr; iintro ⟨%p, %name, %n, %h, -⟩; ipureintro
+    | none => show iprop(False) ⊢ _; iintro H; iexfalso; iexact H
+    | some x => show iprop(⌜e = x⌝) ⊢ _; iintro %h; ipureintro; rw [h]; exact hed x rfl
+  · show sysErr nm e ⊢ _; unfold sysErr; iintro ⟨%p, %name, %n, %h, -⟩; ipureintro
     rw [h.1]; unfold interface.mkOk; intro h; cases h
 
 /-- `err` is a new `*OpError` (as an `error`, read-only for good) of the operation `op` on a
@@ -318,13 +318,14 @@ theorem kindErr_netOwnErr (k : NetErr) (ed : Option GoInterface) (nm : GoString 
     (e : GoInterface) (hed : edTyped ed) :
     kindErr (GF := GF) k ed nm e ⊢ netOwnErr e := by
   cases k
-  · unfold kindErr netOwnErr; iintro %h; ileft; ipureintro; exact h
+  · show iprop(⌜e = closedErr⌝) ⊢ _; unfold netOwnErr; iintro %h; ileft; ipureintro; exact h
   · cases ed with
-    | none => unfold kindErr; iintro H; iexfalso; iexact H
+    | none => show iprop(False) ⊢ _; iintro H; iexfalso; iexact H
     | some x =>
       obtain ⟨p, hp⟩ := hed x rfl
-      unfold kindErr netOwnErr; iintro %h; iright; ileft; iexists p; ipureintro; rw [h, hp]
-  · unfold kindErr netOwnErr sysErr
+      show iprop(⌜e = x⌝) ⊢ _
+      unfold netOwnErr; iintro %h; iright; ileft; iexists p; ipureintro; rw [h, hp]
+  · show sysErr nm e ⊢ _; unfold netOwnErr sysErr
     iintro ⟨%p, %name, %n, %h, #Hp⟩
     iright; iright; iright
     iexists p, name, n

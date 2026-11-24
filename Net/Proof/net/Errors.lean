@@ -62,7 +62,7 @@ theorem wp_extAnyErrno (Φ : val → IProp GF) :
 /-! ### Errors (D14) -/
 
 theorem wp_closedErr (Φ : val → IProp GF) :
-    Φ #closedErr -∗ WP (App (Val (@! net.closedErr)) (Val #())) {{ Φ }} := by
+    Φ #closedErr -∗ WP (App (Val (@! net.netClosingErr)) (Val #())) {{ Φ }} := by
   iintro HΦ
   wp_func_call; wp_call
   wp_auto
@@ -74,7 +74,7 @@ theorem wp_kindErr (k : NetErr) (ed : Option GoInterface) (name : GoString)
     (nm : GoString → Prop) (hnm : nm name) {c : w64} (hc : c = errCode (some k))
     (Φ : val → IProp GF) :
     edAt (GF := GF) k ed -∗ (∀ e, kindErr (GF := GF) k ed nm e -∗ Φ #e) -∗
-    WP (App (App (Val (@! net.kindErr)) (Val #c)) (Val #name)) {{ Φ }} := by
+    WP (App (App (Val (@! net.codeKindErr)) (Val #c)) (Val #name)) {{ Φ }} := by
   subst hc
   iintro Hed HΦ
   wp_func_call; wp_call

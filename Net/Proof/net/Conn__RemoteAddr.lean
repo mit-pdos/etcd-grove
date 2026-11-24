@@ -27,16 +27,16 @@ variable [go.BasicIntoValInj]
 
 theorem Conn.RemoteAddr.wp_proof : Conn.RemoteAddr.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra
-  unfold connAt
-  wp_start as ⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩
-  (try wp_method_call)
-  (try unfold conn.RemoteAddr.impl)
-  (try rw [conn_ty_eq'])
+  unfold connAt connFd fdAt
+  wp_start as ⟨%nw, %Hnw, ⟨%fd, #Ht, %v, %hv, #Hv⟩, #Hla, #Hra, #Hat⟩
+  obtain ⟨-, -, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
-  (try iStructNamed conn)
+  wp_method_call
   wp_auto
-  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
+  wp_apply wp_conn_ok _ fd Hfdn $$ conn
+  wp_auto
   iapply HΦ
   itrivial
 

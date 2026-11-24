@@ -11,7 +11,7 @@
 // its connection end or listener in Go's own `pfd.Sysfd` (in gc builds, the kernel fd): it is
 // read by nothing outside net that the model translates (`SyscallConn`, `File` are not modelled).
 //
-// The `ext*` functions, `closedErr` and `stuck` are primitive stubs (`trusted` in net.toml):
+// The `ext*` functions, `netClosingErr` and `stuck` are primitive stubs (`trusted` in net.toml):
 // their models are Net/TrustedCode/net.lean's, each one extension operation (or the shared stuck
 // point); their Go bodies serve gc builds only (examples/net and Go's own tests under the
 // overlay), over plain blocking sockets: the common case, not the model.
@@ -35,7 +35,7 @@ import (
 // MODEL: netFD.Read (fd_posix.go: `fd.pfd.Read(p)`, poll.FD's loop over read(2) through the
 // poller, wrapped by wrapSyscallError("read")): the extension's Read of len(p) bytes (D1, the
 // outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
-// non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (kindErr).
+// non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (codeKindErr).
 func (fd *netFD) Read(p []byte) (n int, err error) {
 	s, code := extRead(fd.pfd.Sysfd, len(p))
 	if code == 0 {
@@ -44,7 +44,7 @@ func (fd *netFD) Read(p []byte) (n int, err error) {
 	if code == 4 {
 		return 0, io.EOF
 	}
-	return 0, kindErr(code, "read")
+	return 0, codeKindErr(code, "read")
 }
 
 // MODEL: netFD.Write (fd_posix.go, poll.FD.Write's loop): a write(2) of p[nn:] with its wait is
@@ -56,7 +56,7 @@ func (fd *netFD) Write(p []byte) (nn int, err error) {
 		n, code := extWrite(fd.pfd.Sysfd, string(p[nn:]), nn == 0)
 		nn += n
 		if code != 0 {
-			return nn, kindErr(code, "write")
+			return nn, codeKindErr(code, "write")
 		}
 		if nn == len(p) {
 			return nn, nil
@@ -98,7 +98,7 @@ func (fd *netFD) SetWriteDeadline(t time.Time) error {
 func (fd *netFD) accept() (netfd *netFD, err error) {
 	id, code := extAccept(fd.pfd.Sysfd)
 	if code != 0 {
-		return nil, kindErr(code, "accept4")
+		return nil, codeKindErr(code, "accept4")
 	}
 	return modelFD(id, fd.net, anyTCPAddr(), anyTCPAddr()), nil
 }
@@ -168,7 +168,7 @@ func Listen(network, address string) (Listener, error) {
 		return &TCPListener{fd: modelFD(id, network, anyTCPAddr(), nil)}, nil
 	}
 	return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: anyTCPAddr(),
-		Err: kindErr(code, extAnyString())}
+		Err: codeKindErr(code, extAnyString())}
 }
 
 // MODEL: Dial (dial.go: Dialer.Dial with the zero Dialer: the address resolved, socket(2),
@@ -184,7 +184,7 @@ func Dial(network, address string) (Conn, error) {
 		return newConn(id, network), nil
 	}
 	return nil, &OpError{Op: "dial", Net: network, Source: nil, Addr: anyTCPAddr(),
-		Err: kindErr(code, extAnyString())}
+		Err: codeKindErr(code, extAnyString())}
 }
 
 // MODEL: DialTimeout (dial.go: Dialer{Timeout: timeout}.Dial), as Dial (D19); a failure's Err is
@@ -201,7 +201,7 @@ func DialTimeout(network, address string, timeout time.Duration) (Conn, error) {
 	}
 	var err error
 	if extAnyBool() {
-		err = kindErr(code, extAnyString())
+		err = codeKindErr(code, extAnyString())
 	} else if extAnyBool() {
 		err = errTimeout
 	} else {
@@ -246,12 +246,12 @@ func anyTCPAddr() Addr {
 	return &TCPAddr{IP: IP([]byte(extAnyString())), Port: int(extAnyW64()), Zone: extAnyString()}
 }
 
-// kindErr: the error of a failure of code `code` (D14): poll.ErrNetClosing for `closed` (Go's
+// codeKindErr: the error of a failure of code `code` (D14): poll.ErrNetClosing for `closed` (Go's
 // errClosing), poll.ErrDeadlineExceeded for `timeout`, and for `sys` the system call's error as
 // wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}` with n arbitrary and nonzero.
-func kindErr(code uint64, name string) error {
+func codeKindErr(code uint64, name string) error {
 	if code == 1 {
-		return closedErr()
+		return netClosingErr()
 	}
 	if code == 2 {
 		return poll.ErrDeadlineExceeded
@@ -259,12 +259,12 @@ func kindErr(code uint64, name string) error {
 	return &os.SyscallError{Syscall: name, Err: extAnyErrno()}
 }
 
-// codeErr: nil for success, else kindErr.
+// codeErr: nil for success, else codeKindErr.
 func codeErr(code uint64, name string) error {
 	if code == 0 {
 		return nil
 	}
-	return kindErr(code, name)
+	return codeKindErr(code, name)
 }
 
 // ---- primitive stubs (trusted; Go bodies for gc builds only) ----
@@ -392,9 +392,9 @@ func extAnyBool() bool { return true }
 // extAnyErrno: the extension's AnyErrno, an arbitrary nonzero errno.
 func extAnyErrno() syscall.Errno { return syscall.EIO }
 
-// closedErr: poll.ErrNetClosing as an error (errNetClosing{}, the only value of its type, which
+// netClosingErr: poll.ErrNetClosing as an error (errNetClosing{}, the only value of its type, which
 // net cannot name).
-func closedErr() error { return poll.ErrNetClosing }
+func netClosingErr() error { return poll.ErrNetClosing }
 
 // stuck: no behaviour (the shared stuck point, internal/gomodel.Stuck's model).
 func stuck() { select {} }

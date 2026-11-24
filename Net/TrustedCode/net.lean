@@ -106,9 +106,9 @@ noncomputable def extAnyBool.impl : val :=
 noncomputable def extAnyErrno.impl : val :=
   λ: <>, ExternalOp Net.netExt.name "AnyErrno" #()
 
-/-- `closedErr()`: `poll.ErrNetClosing` as an `error`. Its value is `errNetClosing{}`, the only
+/-- `netClosingErr()`: `poll.ErrNetClosing` as an `error`. Its value is `errNetClosing{}`, the only
 value of an empty struct (Go reads `poll.ErrNetClosing`; net cannot name `errNetClosing`). -/
-noncomputable def closedErr.impl : val :=
+noncomputable def netClosingErr.impl : val :=
   λ: <>, Convert internal.poll.errNetClosing.ty go.error
     (GoZeroVal internal.poll.errNetClosing.ty #())
 

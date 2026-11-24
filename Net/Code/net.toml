@@ -40,7 +40,7 @@ imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/p
 # initializer (it holds `poll.ErrNetClosing`'s value, the only value of its type).
 trusted = ["extListen", "extDial", "extAccept", "extRead", "extWrite", "extClose", "extLisClose",
   "extCloseWrite", "extSetDeadline", "extSetSockopt",
-  "extAnyString", "extAnyW64", "extAnyBool", "extAnyErrno", "closedErr", "stuck",
+  "extAnyString", "extAnyW64", "extAnyBool", "extAnyErrno", "netClosingErr", "stuck",
   "errClosed"]
 
 [model]

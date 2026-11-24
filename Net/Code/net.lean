@@ -1474,8 +1474,8 @@ noncomputable def newConn [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def anyTCPAddr [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.anyTCPAddr"
 
-noncomputable def kindErr [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.kindErr"
+noncomputable def codeKindErr [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.codeKindErr"
 
 noncomputable def codeErr [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.codeErr"
@@ -1522,8 +1522,8 @@ noncomputable def extAnyBool [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def extAnyErrno [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.extAnyErrno"
 
-noncomputable def closedErr [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.closedErr"
+noncomputable def netClosingErr [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.netClosingErr"
 
 noncomputable def stuck [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.stuck"
@@ -1567,7 +1567,7 @@ noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve anyTCPAddr []))) (Val #())) (Val #()))
   (Let "$v4" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve extAnyString []))) (Val #())) (Val #()))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral OpError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Net")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Source")) (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement (some (KeyField go!"Addr")) (ElementExpression Addr.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression go.error (Var "$v4")))])))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1652,7 +1652,7 @@ noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (App (Val (GoInstruction (FuncResolve extAnyBool []))) (Val #())) (Val #()))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve extAnyString []))) (Val #())) (Val #()))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
   (If (App (App (Val (GoInstruction (FuncResolve extAnyBool []))) (Val #())) (Val #()))
@@ -1723,7 +1723,7 @@ noncomputable def Listen.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve anyTCPAddr []))) (Val #())) (Val #()))
   (Let "$v4" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve extAnyString []))) (Val #())) (Val #()))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral OpError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Net")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Source")) (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement (some (KeyField go!"Addr")) (ElementExpression Addr.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression go.error (Var "$v4")))])))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1845,7 +1845,7 @@ noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: netFD.Read (fd_posix.go: `fd.pfd.Read(p)`, poll.FD's loop over read(2) through the
     poller, wrapped by wrapSyscallError("read")): the extension's Read of len(p) bytes (D1, the
     outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
-    non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (kindErr).
+    non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (codeKindErr).
 
     go: model.go:39:18 -/
 noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1875,7 +1875,7 @@ noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(W64 0))
   (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (Val #(go!"read"))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1969,7 +1969,7 @@ noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "nn"))
   (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (Val #(go!"write"))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2103,7 +2103,7 @@ noncomputable def netFD.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType netFD.ty)))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (Val #(go!"accept4"))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -3736,12 +3736,12 @@ noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Addr.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Addr.ty))) (Var "$res0")))))
 
-/-- kindErr: the error of a failure of code `code` (D14): poll.ErrNetClosing for `closed` (Go's
+/-- codeKindErr: the error of a failure of code `code` (D14): poll.ErrNetClosing for `closed` (Go's
     errClosing), poll.ErrDeadlineExceeded for `timeout`, and for `sys` the system call's error as
     wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}` with n arbitrary and nonzero.
 
     go: model.go:252:6 -/
-noncomputable def kindErr.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def codeKindErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -3768,7 +3768,7 @@ noncomputable def kindErr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code")) (Val #(W64 1)))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve closedErr []))) (Val #())) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve netClosingErr []))) (Val #())) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -3778,7 +3778,7 @@ noncomputable def kindErr.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- codeErr: nil for success, else kindErr.
+/-- codeErr: nil for success, else codeKindErr.
 
     go: model.go:263:6 -/
 noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
@@ -3791,7 +3791,7 @@ noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
-  (App (App (App (Val (GoInstruction (FuncResolve kindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve codeKindErr []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -6096,7 +6096,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   modelFD_unfold : FuncUnfold modelFD [] modelFD.impl
   newConn_unfold : FuncUnfold newConn [] newConn.impl
   anyTCPAddr_unfold : FuncUnfold anyTCPAddr [] anyTCPAddr.impl
-  kindErr_unfold : FuncUnfold kindErr [] kindErr.impl
+  codeKindErr_unfold : FuncUnfold codeKindErr [] codeKindErr.impl
   codeErr_unfold : FuncUnfold codeErr [] codeErr.impl
   extListen_unfold : FuncUnfold extListen [] extListen.impl
   extDial_unfold : FuncUnfold extDial [] extDial.impl
@@ -6112,7 +6112,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   extAnyW64_unfold : FuncUnfold extAnyW64 [] extAnyW64.impl
   extAnyBool_unfold : FuncUnfold extAnyBool [] extAnyBool.impl
   extAnyErrno_unfold : FuncUnfold extAnyErrno [] extAnyErrno.impl
-  closedErr_unfold : FuncUnfold closedErr [] closedErr.impl
+  netClosingErr_unfold : FuncUnfold netClosingErr [] netClosingErr.impl
   stuck_unfold : FuncUnfold stuck [] stuck.impl
   detach_unfold : FuncUnfold detach [] detach.impl
   errnoCode_unfold : FuncUnfold errnoCode [] errnoCode.impl
@@ -6222,7 +6222,7 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.modelFD_unfold
   Assumptions.newConn_unfold
   Assumptions.anyTCPAddr_unfold
-  Assumptions.kindErr_unfold
+  Assumptions.codeKindErr_unfold
   Assumptions.codeErr_unfold
   Assumptions.extListen_unfold
   Assumptions.extDial_unfold
@@ -6238,7 +6238,7 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.extAnyW64_unfold
   Assumptions.extAnyBool_unfold
   Assumptions.extAnyErrno_unfold
-  Assumptions.closedErr_unfold
+  Assumptions.netClosingErr_unfold
   Assumptions.stuck_unfold
   Assumptions.detach_unfold
   Assumptions.errnoCode_unfold

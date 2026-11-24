@@ -27,16 +27,11 @@ variable [go.BasicIntoValInj]
 
 theorem TCPListener.Addr.wp_proof : TCPListener.Addr.spec (GF := GF) (hG := hG) := by
   intro t l x
-  unfold lisAt
-  wp_start as ⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩
-  (try wp_method_call)
-  (try unfold TCPListener.Addr.impl)
-  (try rw [TCPListener_ty_eq])
-  ihave #Ht2 := Ht
-  iStructNamed Ht2
-  (try iStructNamed conn)
+  unfold lisAt lisFd fdAt
+  wp_start as ⟨%nw, %Hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv⟩, #Hx, %hl⟩
+  obtain ⟨-, -, rfl, -⟩ := hv
+  wp_method_call
   wp_auto
-  (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
   iapply HΦ
   itrivial
 

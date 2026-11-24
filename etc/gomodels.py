@@ -131,6 +131,19 @@ TESTS = [
     ("durable", "Code", "project:durable", ["github.com/mit-pdos/etcd-grove/examples/lib/durable"],
      ["github.com/mit-pdos/etcd-grove/examples/lib/durable"],
      "none left out (durable_test.go; the stubs' Go bodies are Go's Read/Write)"),
+    # (S6) net's model over the net extension's stubs (their Go bodies: plain blocking sockets)
+    ("net", os.path.join("Net", "Code"), "project:net", ["net"],
+     ["-timeout", "300s"] + ["github.com/mit-pdos/etcd-grove/examples/" + p for p in
+      ["net/framed", "net/shutdown", "net/preface", "net/halfclose", "net/acceptloop",
+       "lib/remote"]],
+     "the net examples' and remote's process tests (real TCP over loopback through the model's "
+     "Listen/Dial/Read/Write/Close/deadlines; their verified programs). Go's own net tests are left "
+     "out: each loops over the networks (tcp6, unix, udp, ...), which the model makes stuck "
+     "(gomodel-style stuck point, D23: blocks forever in Go builds), and over Dialer/ListenConfig "
+     "paths the model does not replace (their netFDs are nonblocking kernel sockets, which the stubs' "
+     "blocking Go bodies do not serve); lib/remote/counter is left out: it reads a listener's port "
+     "back through Addr().String(), and the model's addresses are arbitrary (D18: anyTCPAddr, "
+     "TCPAddr.String), the stubs' Go bodies answering the empty string and port 0"),
 ]
 TAGS = "goose,netgo"
 
