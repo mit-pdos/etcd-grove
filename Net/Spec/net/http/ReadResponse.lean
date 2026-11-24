@@ -23,7 +23,8 @@ nothing yet, or a prefix of the wire of a response `ρ` the model reads as writt
 `ProtoDefs.lean`: no chunked body) or, for one delimited by its `Content-Length`, that wire followed by
 more, with the caller's persistent knowledge `Q ρ` of it (the law over `S`); and that delivers nothing
 after an error (the law over `E` and `S`, as the `CONNECT` spec's). It returns an error (with the
-reader), or a response with `ρ`'s status, its header lines (`hdrOwn`, the client's) and a body reader
+reader), or a response with `ρ`'s status, its header lines (`hdrOwn`, the client's, without a
+`Connection: close` line, `dropConn`) and a body reader
 (`io.readerOk`, by the contract `SB`, `EB` it gives, from `SB []`, shorter than `2 ^ 60` bytes): an
 `io.EOF` of it comes with `Q ρ` of a response `ρ` with that head whose body is the bytes read (one
 delimited by its `Content-Length`) or extends them (a close-delimited one, read to the stream's end),
@@ -87,7 +88,7 @@ abbrev ReadResponse.spec_resp : Prop :=
           (hc : List HdrLine) (cl : Bool) (hm : Loc) (bi : GoInterfaceOk)
           (SB : List w8 → IProp GF) (EB : List w8 → GoInterface → IProp GF),
         resp ↦ rv ∗ ⌜rv.StatusCode' = st ∧ rv.Header' = hm ∧ rv.Body' = interface.ok bi⌝ ∗
-        hdrOwn hm hc ∗ io.readerOk bi (fun _ _ => True) SB EB ∗ SB [] ∗
+        hdrOwn hm (dropConn hc) ∗ io.readerOk bi (fun _ _ => True) SB EB ∗ SB [] ∗
         ⌜∀ x, SB x ⊢ iprop(⌜x.length < 2 ^ 60⌝)⌝ ∗
         (□ ∀ (x : List w8) (e : GoInterface), EB x e -∗ ⌜e = eof⌝ -∗
           ∃ ρ : Resp, ⌜ρ.st = st ∧ ρ.reason = reason ∧ ρ.hc = hc ∧ ρ.close = cl ∧

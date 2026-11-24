@@ -16,12 +16,13 @@ them; S5 refines these definitions (where they differ from its draft: "Departure
   `PRI` (`methOk`), a path the model's URI parser leaves alone (`reqPath`), header lines the model
   reads as they are (`hdrBlockOk`), none of the keys that change how the server reads or answers
   (`reqKeysOut`: `Transfer-Encoding` (a chunked body is not modelled), `Expect`, `Connection`,
-  `Trailer`, `Upgrade`, `Te`), a `Content-Length` line with `B`'s length (decimal) or none and no
+  `Trailer`, `Upgrade`, `Te`), a `Host` the server accepts (`hostByte`, `ValidHostHeader`), a `Content-Length` line with `B`'s length (decimal) or none and no
   body, a head within the server's read limit (`2 ^ 20` bytes, as `Serve.spec_rpc`'s path) and a body
   shorter than `2 ^ 60` bytes.
 * `ReqSlot`: what a dialer writes for one request: a request `(R, τ, B)` (`τ` the client's ghost name
-  for it) or junk `j` (`junkOk`: a line, ended by `"\n"`, whose third field (`parseReqLine`) does not
-  start with `"HTTP/"`, so that the server rejects it at its request line; only as the last slot).
+  for it) or junk `j` (`junkOk`: a non-empty line, ended by `"\n"`, not starting with `"\r"` (after a
+  `POST` the server discards leading CR and LF bytes), whose third field (`parseReqLine`) does not start
+  with `"HTTP/"`, so that the server rejects it at its request line; only as the last slot).
   `slotsWire L`: the slots' wires in order.
 
 ## Responses (pure)
@@ -33,13 +34,14 @@ them; S5 refines these definitions (where they differ from its draft: "Departure
   `respWire ρ`: the head and the body.
 * `respOk ρ`: a response the model's `ReadResponse` reads as written: a status `200`-`999`, a reason of
   printable bytes, header lines it reads as they are, no `Transfer-Encoding` (a chunked body is not
-  modelled), and a `Content-Length` line with the body's length for a status with a body (none and no
+  modelled), `Trailer` or `Pragma` (`fixPragmaCacheControl` would add a line), a `Connection` line only
+  `close` (which `ReadResponse` deletes from its map: `dropConn`), and a `Content-Length` line with the body's length for a status with a body (none and no
   body for `204`/`304`), or, if `close`, no `Content-Length`.
 * `badResp`: net/http's `400` answer (`net.rpc.badReqAns`), close-delimited.
 * `srvKeys`: the keys whose values the server sets itself (`SpecPlan`'s); `hdrView hs hc`: the
   written header lines `hc` agree with the handler's `hs` at every other key; `hdrsOk hs`: header
   lines a handler may commit (lines the model writes as they are, none of the keys that change the
-  framing: `Content-Length`, `Transfer-Encoding`, `Connection`, `Trailer`).
+  framing, and `Pragma`: `Content-Length`, `Transfer-Encoding`, `Connection`, `Trailer`, `Pragma`).
 * `pathUnder pfx p` (`SpecPlan`'s), `pathClean p` (`cleanPath(p) = p`: no empty, `.` or `..` segment
   but a trailing empty one), `notFoundBody` (`NotFound`'s body).
 
@@ -153,6 +155,12 @@ def reqKeysOut : List GoString :=
   [go!"Host", go!"Transfer-Encoding", go!"Expect", go!"Connection", go!"Trailer", go!"Upgrade",
     go!"Te"]
 
+/-- A byte of a `Host` value the server accepts (a subset of httpguts' `validHostByte`: letters,
+digits, `-`, `.`, `:`). -/
+def hostByte (c : w8) : Bool :=
+  decide ((97 ≤ c.toNat ∧ c.toNat ≤ 122) ∨ (65 ≤ c.toNat ∧ c.toNat ≤ 90) ∨
+    (48 ≤ c.toNat ∧ c.toNat ≤ 57) ∨ c ∈ [W8 45, W8 46, W8 58])
+
 /-- See the file header. -/
 def reqWire (R : HReq) (B : List w8) : List w8 :=
   R.meth ++ [W8 32] ++ R.path ++ go!" HTTP/1.1" ++ [W8 13, W8 10] ++
@@ -160,7 +168,8 @@ def reqWire (R : HReq) (B : List w8) : List w8 :=
 
 /-- See the file header. -/
 def reqOk (R : HReq) (B : List w8) : Prop :=
-  methOk R.meth ∧ reqPath R.path ∧ hdrBlockOk ((go!"Host", R.host) :: R.hdr) ∧
+  methOk R.meth ∧ reqPath R.path ∧ R.host.all hostByte = true ∧
+  hdrBlockOk ((go!"Host", R.host) :: R.hdr) ∧
   (∀ kv ∈ R.hdr, kv.1 ∉ reqKeysOut) ∧
   (hdrGetL R.hdr go!"Content-Length" = fmt.decimalNat B.length ∨
     (go!"Content-Length" ∉ R.hdr.map Prod.fst ∧ B = [])) ∧
@@ -172,6 +181,7 @@ abbrev ReqSlot := (HReq × GName × List w8) ⊕ List w8
 /-- See the file header. -/
 def junkOk (j : List w8) : Prop :=
   ∃ l rest : List w8, j = l ++ [W8 10] ++ rest ∧ W8 10 ∉ l ∧ l.length ≤ 2 ^ 20 ∧
+    l.head? ≠ none ∧ l.head? ≠ some (W8 13) ∧
     ¬ (go!"HTTP/" <+: (parseReqLine (dropCR l)).2.2.1)
 
 /-- A slot's wire. -/
@@ -202,7 +212,7 @@ structure Resp where
   close : Bool
 
 /-- A status whose response has a body (net/http's `bodyAllowedForStatus`, for statuses from `200`). -/
-def bodyAllowed (st : w64) : Bool := !(st == W64 204 || st == W64 304)
+def bodyAllowed (st : w64) : Bool := decide (st ≠ W64 204 ∧ st ≠ W64 304)
 
 /-- See the file header. -/
 def respHeadWire (st : w64) (reason : List w8) (hc : List HdrLine) : List w8 :=
@@ -215,10 +225,15 @@ def respWire (ρ : Resp) : List w8 := respHeadWire ρ.st ρ.reason ρ.hc ++ ρ.b
 /-- See the file header. -/
 def respOk (ρ : Resp) : Prop :=
   200 ≤ uint.nat ρ.st ∧ uint.nat ρ.st ≤ 999 ∧ ρ.reason.all valByte = true ∧ hdrBlockOk ρ.hc ∧
-  go!"Transfer-Encoding" ∉ ρ.hc.map Prod.fst ∧ ρ.body.length < 2 ^ 60 ∧
+  (∀ k ∈ [go!"Transfer-Encoding", go!"Trailer", go!"Pragma"], k ∉ ρ.hc.map Prod.fst) ∧
+  (∀ kv ∈ ρ.hc, kv.1 = go!"Connection" → kv.2 = go!"close") ∧ ρ.body.length < 2 ^ 60 ∧
   (if ρ.close then go!"Content-Length" ∉ ρ.hc.map Prod.fst ∧ bodyAllowed ρ.st = true
    else if bodyAllowed ρ.st then hdrGetL ρ.hc go!"Content-Length" = fmt.decimalNat ρ.body.length
    else go!"Content-Length" ∉ ρ.hc.map Prod.fst ∧ ρ.body = [])
+
+/-- The header lines of a response as `ReadResponse` leaves them in its map: without a
+`Connection: close` line (`shouldClose` deletes it). -/
+def dropConn (hc : List HdrLine) : List HdrLine := hc.filter (fun kv => decide (kv.1 ≠ go!"Connection"))
 
 /-- net/http's `400` answer to a request it could not read (`net.rpc.badReqAns`). -/
 def badResp : Resp :=
@@ -234,7 +249,7 @@ def hdrView (hs hc : List HdrLine) : Prop :=
 
 /-- The keys a handler may not commit (they change the response's framing). -/
 def respKeysOut : List GoString :=
-  [go!"Content-Length", go!"Transfer-Encoding", go!"Connection", go!"Trailer"]
+  [go!"Content-Length", go!"Transfer-Encoding", go!"Connection", go!"Trailer", go!"Pragma"]
 
 /-- See the file header. -/
 def hdrsOk (hs : List HdrLine) : Prop :=
@@ -316,7 +331,7 @@ def httpRegInv : IProp GF :=
 /-- Connection `cn`'s slots are the mono-list `γ` (persistent). -/
 def httpConn (cn : Nat) (γ : GName) : IProp GF := ghostMapElem hπ.reg cn .discard γ
 
-instance httpConn_persistent (cn : Nat) (γ : GName) : Persistent (httpConn (Gg := Gg) cn γ) := by
+instance httpConn_persistent (cn : Nat) (γ : GName) : Persistent (httpConn cn γ) := by
   unfold httpConn; infer_instance
 
 /-- A slot's facts (see the file header). -/
@@ -325,13 +340,13 @@ def slotFacts (P : HProto GF) : ReqSlot → IProp GF
   | .inr _ => iprop(True)
 
 instance slotFacts_persistent (P : HProto GF) (s : ReqSlot) :
-    Persistent (slotFacts (Gg := Gg) P s) := by
+    Persistent (slotFacts P s) := by
   rcases s with ⟨R, τ, B⟩ | j <;> unfold slotFacts <;> infer_instance
 
 /-- See the file header. -/
 def httpReqP (P : HProto GF) : Net.Proto GF := fun cn bs =>
-  iprop(∃ (γ : GName) (L : List ReqSlot), httpConn (Gg := Gg) cn γ ∗ monoListLbOwn γ L ∗
-    ⌜slotsOk L ∧ bs <+: slotsWire L⌝ ∗ [∗list] s ∈ L, slotFacts (Gg := Gg) P s)
+  iprop(∃ (γ : GName) (L : List ReqSlot), httpConn cn γ ∗ monoListLbOwn γ L ∗
+    ⌜slotsOk L ∧ bs <+: slotsWire L⌝ ∗ [∗list] s ∈ L, slotFacts P s)
 
 /-- The facts of the `i`-th answer `x`, of the slots `L` (see the file header). -/
 def respFacts (P : HProto GF) (L : List ReqSlot) (i : Nat) : RespSlot → IProp GF
@@ -344,23 +359,23 @@ def respFacts (P : HProto GF) (L : List ReqSlot) (i : Nat) : RespSlot → IProp 
   | .bad => iprop(True)
 
 instance respFacts_persistent (P : HProto GF) (L : List ReqSlot) (i : Nat) (x : RespSlot) :
-    Persistent (respFacts (Gg := Gg) P L i x) := by
+    Persistent (respFacts P L i x) := by
   cases x <;> unfold respFacts <;> infer_instance
 
 /-- See the file header. -/
 def httpRespP (P : HProto GF) : Net.Proto GF := fun cn bs =>
   iprop(∃ Rs : List RespSlot, ⌜respsCover Rs bs⌝ ∗
     (⌜∀ x ∈ Rs, x = .bad⌝ ∨
-      ∃ (γ : GName) (L : List ReqSlot), httpConn (Gg := Gg) cn γ ∗ monoListLbOwn γ L ∗
-        ⌜Rs.length ≤ L.length⌝ ∗ [∗list] i ↦ x ∈ Rs, respFacts (Gg := Gg) P L i x))
+      ∃ (γ : GName) (L : List ReqSlot), httpConn cn γ ∗ monoListLbOwn γ L ∗
+        ⌜Rs.length ≤ L.length⌝ ∗ [∗list] i ↦ x ∈ Rs, respFacts P L i x))
 
 /-- See the file header. -/
 def protoLis (la : GoString) (P : HProto GF) : IProp GF :=
-  iprop(lisProto (Gg := Gg) la (httpReqP (Gg := Gg) P) (httpRespP (Gg := Gg) P) ∗
-    inv httpRegN (httpRegInv (Gg := Gg)))
+  iprop(lisProto (Gg := Gg) la (httpReqP P) (httpRespP P) ∗
+    inv httpRegN (httpRegInv))
 
 instance protoLis_persistent (la : GoString) (P : HProto GF) :
-    Persistent (protoLis (Gg := Gg) la P) := by
+    Persistent (protoLis la P) := by
   unfold protoLis; infer_instance
 
 end proto
