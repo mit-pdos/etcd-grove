@@ -199,7 +199,7 @@ theorem take_succ_of (s : List w8) (i : Nat) (d : w8) (hd : s[i]? = some d) :
     s.take (i + 1) = s.take i ++ [d] := by
   rw [List.take_add_one, hd]; rfl
 
-theorem digitsVal_digits : ∀ (s : GoString) (acc n : Nat), digitsVal s acc = some n →
+theorem digitsVal_digits_all : ∀ (s : GoString) (acc n : Nat), digitsVal s acc = some n →
     ∀ c ∈ s, isDigit c = true
   | [], _, _, _ => by simp
   | c :: s, acc, n, h => by
@@ -209,18 +209,18 @@ theorem digitsVal_digits : ∀ (s : GoString) (acc n : Nat), digitsVal s acc = s
       intro d hd
       rcases List.mem_cons.mp hd with rfl | hd
       · exact hc
-      · exact digitsVal_digits s _ n h d hd
+      · exact digitsVal_digits_all s _ n h d hd
     · cases h
 
-theorem decNat_digits {s : GoString} {n : Nat} (h : decNat s = some n) : ∀ c ∈ s, isDigit c = true := by
+theorem decNat_digits_all {s : GoString} {n : Nat} (h : decNat s = some n) : ∀ c ∈ s, isDigit c = true := by
   match s, h with
   | [], h => simp [decNat] at h
-  | [c], h => exact digitsVal_digits [c] 0 n h
+  | [c], h => exact digitsVal_digits_all [c] 0 n h
   | c :: d :: t, h =>
     simp only [decNat] at h
     split at h
     · cases h
-    · exact digitsVal_digits _ 0 n h
+    · exact digitsVal_digits_all _ 0 n h
 
 theorem isDigit_ne {c : w8} (h : isDigit c = true) (d : w8) (hd : isDigit d = false) : d ∉ [c] := by
   intro m; rw [List.mem_singleton.mp m] at hd; rw [h] at hd; cases hd
@@ -434,7 +434,7 @@ theorem isDigit_46 : isDigit (46 : w8) = false := by decide
 theorem isDigit_58 : isDigit (58 : w8) = false := by decide
 
 theorem clean_of_decNat {x : GoString} {n : Nat} (h : decNat x = some n) : clean x :=
-  ⟨digits_free (decNat_digits h) _ isDigit_46, digits_free (decNat_digits h) _ isDigit_58⟩
+  ⟨digits_free (decNat_digits_all h) _ isDigit_46, digits_free (decNat_digits_all h) _ isDigit_58⟩
 
 theorem decimalM_some {x : GoString} {v : Nat} (h : decimalM x 65535 = some v) :
     decNat x = some v ∧ v ≤ 65535 := (decimalM_iff x 65535 v (by decide)).mp h
