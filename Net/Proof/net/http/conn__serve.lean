@@ -7,6 +7,8 @@ module
 public import Net.Spec.net.http.conn__serve
 public import Net.Spec.net.http.conn__readRequest
 public import Net.Spec.net.http.conn__hijacked
+public import Net.Spec.net.http.Header__get
+public import Net.Spec.net.http.hasToken
 public import Net.Spec.net.http.connReader__startBackgroundRead
 public import Net.Spec.net.http.connReader__releaseConn
 public import Net.Spec.net.http.response__Hijack
@@ -39,6 +41,7 @@ variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 variable [package_sem : context.Assumptions] [bufio.Assumptions]
 variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
 
+set_option maxHeartbeats 2000000 in
 theorem conn.serve.wp_proof
     (wp_readRequest : conn.readRequest.spec (GF := GF) (hG := hG))
     (wp_hijacked : conn.hijacked.spec (GF := GF) (hG := hG))
@@ -52,6 +55,8 @@ theorem conn.serve.wp_proof
     (wp_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
     (wp_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG))
     (wp_Timeout : net.OpError.Timeout.spec (GF := GF) (hG := hG))
+    (wp_get : Header.get.spec (GF := GF) (hG := hG))
+    (wp_hasToken : hasToken.spec (GF := GF) (hG := hG))
     (wp_RReset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG))
     (wp_NewReader : EtcdGrove.bufio.NewReader.specFresh (GF := GF) (hG := hG))
     (wp_WReset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
@@ -265,7 +270,111 @@ theorem conn.serve.wp_proof
       try wp_auto
       iapply HΦ
       iexact Htok)
-  · sorry
+  · -- the request: the handler, which hijacks the connection
+    subst Herr
+    ihave #Hsd' := Hsd
+    iunfold srvDflt at Hsd'
+    icases Hsd' with ⟨-, -, #HMHB, -⟩
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Server.ty) (m := go!"initialReadLimitSize")]
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Server.ty) (m := go!"maxHeaderBytes")]
+    try wp_auto
+    iclear «$res0»
+    try wp_if_destruct
+    all_goals try (wp_apply wp_setState c s _ (W64 1) (by decide) $$ [$Hsrv $Hsc $Hst] as Hst)
+    all_goals try wp_auto
+    wp_apply wp_shuttingDown s $$ [$Hss $Hatomic]
+    try wp_auto
+    iunfold respNew at Hresp
+    icases Hresp with ⟨#Hwc, #Hwreq, #Hwrb, ⟨%fw, %γw, #Hwcf, #Hwcancel⟩, Hhd, Hec, Hwh, ⟨%ww, Hww, Hwraw⟩,
+      ⟨%hh, Hhh, Hhhm⟩, #Hnotify⟩
+    iStructNamedPrefix Hreq "R"
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Request.ty) (m := go!"expectsContinue")]
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Header.ty) (m := go!"get")]
+    try wp_auto
+    wp_apply wp_get m _ ∅ go!"Expect" $$ [$Hm] as %v1 ⟨Hm, -, %Hv1⟩
+    · unfold hdrVals; simp only [GMap.lookup_empty]; itrivial
+    rw [Hv1 (GMap.lookup_empty _)]
+    try wp_auto
+    wp_apply wp_hasToken $$ []
+    · ipureintro; decide
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.Header.ty) (m := go!"get")]
+    try wp_auto
+    wp_apply wp_get m _ ∅ go!"Expect" $$ [$Hm] as %v2 ⟨Hm, -, %Hv2⟩
+    · unfold hdrVals; simp only [GMap.lookup_empty]; itrivial
+    rw [Hv2 (GMap.lookup_empty _)]
+    try wp_auto
+    -- `c.curReq.Store(w)`
+    wp_bind (App (Val #(methods _ _ _)) (Val #w))
+    iapply (sync.atomic.Pointer.wp_Store (T' := net.http.response) net.http.response.ty
+      (structFieldRef net.http.conn go!"curReq" c) w)
+    · iPkgInit
+    unfold curReqInv
+    iinv Hcurinv with ⟨%v0, >Hv, -⟩ Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    iexists v0
+    iframe Hv
+    iintro Hv
+    imod Hmask
+    imod Hclose $$ [Hv] with -
+    · inext; iexists w; iframe Hv
+      by_cases hw : w = null
+      · ileft; ipureintro; exact hw
+      · iright; iframe Hnotify; ipureintro; exact hw
+    imodintro
+    try wp_auto
+    rw [method_unfold (t := go.GoType.PointerType net.http.body.ty) (m := go!"bodyRemains")]
+    try wp_auto
+    wp_apply wp_with_defer as %defer2 Hdefer2
+    try wp_auto
+    iclear «$res0»
+    -- the background read
+    icases Hfields with ⟨%ab, Hcconn, Hhb, Hir, Hab⟩
+    icases Hbb with ⟨%arr, Hbb⟩
+    wp_apply wp_sbr «$r0_ptr» γ t cn a _ _ P (net.rpc.connectReq path) Z c ab b arr
+      $$ [$Hcris $Hhl $Hrenv $rwc $Hca $Hrdl $Hph $Hγr $Hcconn $Hhb $Hir $Hab $Hcok $Hbb $Hrecv]
+      as ⟨Hph, Hγr, %b', Hrdl⟩
+    try wp_auto
+    -- the handler, with the right to hijack
+    ipersist Hbufr
+    ipersist Hbufw
+    let N : HjNames := ⟨γ, γh, w, c, «$r0_ptr», s, t, cn, a,
+      interface.mkOk (go.GoType.PointerType net.TCPAddr.ty) #lp,
+      interface.mkOk (go.GoType.PointerType net.TCPAddr.ty) #rp, tm, br, bw, ww⟩
+    ihave Hhj : hijackOk (GF := GF) w cn a P Q (net.rpc.connectReq path) (hjDone N (net.rpc.connectReq path)) $$
+        [Hhd Hec Hwh Hww Hwraw Hγh2 Hbw Hst Hph Hγr Hsend Hfresh Hrdl]
+    · iapply (wp_Hijack N P Q (net.rpc.connectReq path) Z)
+      iunfold hjPre
+      iframe Hhd Hec Hwh Hwc Hww Hwraw Hcmu Hγh2 Hr Hrwc Hbufr Hbufw Hbw Hsrv Hsc Hst Hcris Htm rwc Hph Hγr
+        Hca Hsend Hfresh Hzl Hpools
+      iexists b'; iexact Hrdl
+    ipersist RMethod
+    ipersist RRemoteAddr
+    iunfold srvHandler at Hh
+    wp_bind (App (App (Val #(methods _ _ _)) _) _)
+    iapply Hh $$ %w %req %_ %u %m %cl %nb %ctx' %rmt %(hjDone N (net.rpc.connectReq path)) %_
+      [RURL RProto RProtoMajor RProtoMinor RHeader RBody RGetBody RContentLength RTransferEncoding RClose
+        RHost RForm RPostForm RMultipartForm RTrailer RRequestURI RTLS RCancel RResponse RPattern Rctx Rpat
+        «Rmatches'» RotherValues Hu Hm Hhj Htok]
+    · iframe Hu Hm Hhj Htok
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · have hM : (rrReqVal path u m cl nb ctx' rmt).Method' = go!"CONNECT" := rfl
+        simp only [hM]
+        iunfold reqHead; iframe RMethod; iexists _; iexact RRemoteAddr
+      iunfold reqRest
+      iframe
+    inext
+    iintro ⟨Htok, Hdone⟩
+    try wp_auto
+    sorry
 /-PLAN
   -- 1. `with_defer_recover`; RemoteAddr (+ `TCPAddr.String`: `wp_net_AnyString`), store remoteAddr;
   --    `WithValue(ctx, LocalAddrContextKey, LocalAddr())` (wp_WithValue; ctxBg grows by one).
