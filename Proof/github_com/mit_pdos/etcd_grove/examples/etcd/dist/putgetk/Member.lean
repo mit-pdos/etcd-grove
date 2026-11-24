@@ -220,7 +220,7 @@ theorem Member.wp_proof
       etcd_dist.StartMember_dist.spec (GF := GF) (hG := hG) S5)
     (hne : mvcc.api.names_nonempty.law) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S5 c peers clients ps ctxs boot i γE Pub peersSl clientsSl Hfips Hblf Hi64 HLv Haf
+  intro CS π TB RB S5 peers clients ps ctxs boot i Pub peersSl clientsSl Hfips Hblf Hi64 HLv Haf
     Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
@@ -262,6 +262,7 @@ theorem Member.wp_proof
   have Hcfg := Hb rfl
   -- the share of the start
   ihave Hshare := Hshare $$ %(And.intro Hcfg Hilt)
+  icases Hshare with ⟨%c, %γE, Hshare⟩
   obtain ⟨Hne, Hlen, Hids⟩ := Hcfg
   obtain ⟨Hids1, Hids2⟩ := Hids
   obtain ⟨pi, hpi⟩ : ∃ p, peers[i]? = some p := ⟨_, List.getElem?_eq_getElem Hilt⟩

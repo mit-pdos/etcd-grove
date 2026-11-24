@@ -11,8 +11,9 @@ member `i` (its raft handler served on its peer address, the server started), `e
 the configuration's named premises (`premises`: the in-process `putgetN`'s, audited, at the configuration's
 members and the ids etcd computes), `bootstrap`'s log facts, its machine's start (`ETCD_VERIFY` off, member
 `i`'s WAL area and data directory fresh) and, **if the configuration is `cfgOk` and `i` a member**, its share
-of the cluster's start (`memberShareK`: `etcdClusterStart`'s `memberStartShare` at S5's names `S5` and the
-cluster's names `c`, with the publication obligation), `Member` returns (only on an error, or at once on an
+of the cluster's start (`memberShareK`: `etcdClusterStart`'s `memberStartShare` at S5's names `S5` and some
+cluster names `c` and publication name `γE`, with the publication obligation; `c` and `γE` exist only when the
+start ran the cluster's allocation, so they are inside the wand), `Member` returns (only on an error, or at once on an
 invalid configuration: else it holds forever). The member's peer half (`StartMember` on a member machine)
 is S5's: its proof takes `etcd_dist.StartMember_dist.spec S5` as a named hypothesis.
 -/
@@ -48,9 +49,9 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 abbrev Member.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : Net.NetProtoGS]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)]
-    (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) GF) (c : etcd_dist.ClusterNames)
+    (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) GF)
     (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (i : Nat) (γE : GName) (Pub : etcd_dist.EnvView → IProp GF) (peersSl clientsSl : GoSlice),
+    (i : Nat) (Pub : etcd_dist.EnvView → IProp GF) (peersSl clientsSl : GoSlice),
   crypto.fips140.GodebugFips140Off →
   BootLogFacts (idsOf peers) ps ctxs boot →
   i < 2 ^ 64 →
@@ -64,7 +65,7 @@ abbrev Member.spec : Prop :=
       -- the machine's start
       envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir (nameOf i)) ∗
       -- its share of the cluster's start, if the configuration is one the program runs
-      (⌜cfgOk peers clients ∧ i < peers.length⌝ -∗
+      (⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ (c : etcd_dist.ClusterNames) (γE : GName),
         memberShareK (G := hG.goose_globalGS) S5 c peers clients ps ctxs boot i γE Pub) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Member)) (Val #(W64 i))) (Val #peersSl)) (Val #clientsSl))
   {{ RET #(); True }}

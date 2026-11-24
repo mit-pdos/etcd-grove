@@ -6,7 +6,7 @@ Not closed: `putgetK_safe_of_boot` proves `putgetK_safe.spec` from one named hyp
 the all-stable bridge over `etcdNetExts` (`Net.robust_of_distBootIL`, as `putget_safe_of_boot`), with each
 machine's `FsInit` from the statement (`etcdNetExts_initP`). No axiom and no `sorry`.
 
-`PutgetKBoot`: at the statement's premises (and the addresses valid, from `DistDeploy`), the start update
+`PutgetKBoot`: at the statement's premises (and the addresses distinct and valid, from `DistDeploy`), the start update
 from the configuration's addresses unset to a share per machine, each machine's boot program safe from its
 share and its whole start (`DistBootWpSL srvLevelK`, as `PutgetBoot`). What discharges it, in later steps:
 the start `etcd_dist.etcdClusterStart` (`dist/ClusterStart.lean`, proved over `clusterAllocN`, the interim
@@ -59,7 +59,7 @@ def PutgetKBoot : Prop :=
     (σs : Nat → state) (σc : state)
     (_Hm : ∀ i < peers.length, MemberFiles i (σs i)) (_Hc : ClientFiles σc)
     (_Hfips : crypto.fips140.GodebugFips140Off)
-    (_Hok : ∀ a ∈ addrs peers clients, Net.addrOk a = true)
+    (_Hnd : (addrs peers clients).Nodup) (_Hok : ∀ a ∈ addrs peers clients, Net.addrOk a = true)
     (_HEnv : ∀ m ∈ system peers clients σs σc, verifyEnvOff m.1)
     (_HEnvTok : ⊢ envVerifyOff (GF := putgetGF)),
     ∀ [GooseGlobalGS .hasLC putgetGF], srvLevelK ≤ receiptBound putgetGF →
@@ -92,7 +92,7 @@ theorem putgetK_safe_of_boot (HS : PutgetKBoot) : putgetK_safe.spec := by
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peers clients) (system peers clients σs σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
     (fun hlo hb => HS Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc Hfips
-      Hd.2.1 HEnv HEnvTok hlo hb) Hd
+      Hd.1 Hd.2.1 HEnv HEnvTok hlo hb) Hd
   exact etcdNetExts_initP g _ (system_fsInit Hm Hc)
 
 end etcd_putgetk_dist
