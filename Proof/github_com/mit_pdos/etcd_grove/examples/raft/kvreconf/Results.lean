@@ -16,13 +16,15 @@ checker in porcupine's.
 * **The randomized test** (`kvreconf_Run`, `check.go`) and **the top-level driver**
   (`kvreconf_Main`): `{{ isPkgInit kvreconf ∗ context.isClosedchanInit }} Main() {{ RET #(); True
   }}` for executions of fewer than `2^61` steps; on `k` voters (`kvreconf_MainN`, 2026-11-16,
-  kvraftN): the same of `MainN(k)`, `1 ≤ k < 2^59`, with up to `k + 4` replicas.
+  kvraftN): the same of `MainN(k)`, any `k` (nothing runs unless `1 ≤ k ≤ 1000`, 2026-11-24), with up
+  to `k + 4` replicas.
 * **Adequacy** (`raft_kvreconf_porcupine_safe`, from `AdequacyLinked.lean`'s `raft_kvreconf_adequate`): the
   same in the operational semantics, with package initialization proved (`Init.lean`): every
   execution of `initialize'(); Main()` from a fresh state, of fewer than `2^61` steps, has no stuck
   thread and no panic, so porcupine never rejects the store's trace; and on `k` voters
   (`raft_kvreconfN_porcupine_safe`, from `raft_kvreconfN_adequate`; 2026-11-16, kvraftN): the same of
-  `initialize'(); MainN(k)` for every `1 ≤ k ≤ 1000`.
+  `initialize'(); MainN(k)` for every `k` (2026-11-24: until then `1 ≤ k ≤ 1000`, now `MainN`'s range
+  check).
 
 Every result here assumes `[NaInvG GF]` (the linked results of `Link.lean` take it), except the
 closed `raft_kvreconf_porcupine_safe` and `raft_kvreconfN_porcupine_safe`, whose bundle `kvrGF` provides it.
@@ -127,19 +129,21 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **The reconfiguring store's randomized linearizability test never fails, on any number of
 voters** (`raft_kvreconfN_adequate`, `AdequacyLinked.lean`; kvraftN; statement approved by the user,
-2026-11-16, via etcd-grove-02): for every member count `1 ≤ k ≤ 1000`, every real execution of
-`kvreconfProgramN k` -- the store package's initialization, then `MainN(k)`: a cluster of random
+2026-11-16, via etcd-grove-02): for every member count `k`, every real execution of
+`kvreconfProgramN k` -- the store package's initialization, then `MainN(k)`, which returns at once
+unless `1 ≤ k ≤ 1000` (2026-11-24, the range check: until then the premises `1 ≤ k`, `k ≤ 1000`), and
+otherwise runs a cluster of random
 options on the bootstrap voters `1 … k`, which may start up to `k + 4` replicas, 4 clients of 100
 random `Put`s, `Get`s and `Read`s, one to three proposers of configuration changes and leadership
 disruptions, porcupine's check of the trace, and a panic unless it answers `Ok` -- from a fresh state
 with one thread, of `n < 2^61` steps, has no stuck thread and no thread that ended in a panic:
 porcupine always answers `Ok`. `raft_kvreconf_porcupine_safe` is `Main()` (one to five voters drawn
-at random, up to 9 replicas); nothing below `2^59` bounds `k` in the proof (`MainN.spec`), `1000` is
-the bound of the paper's figure. -/
+at random, up to 9 replicas); `1000` is the bound of the paper's figure (the proof covers fewer than
+`2^59` voters). -/
 theorem raft_kvreconfN_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
     [hLog : log.NewModel]
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -147,7 +151,7 @@ theorem raft_kvreconfN_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantic
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  raft_kvreconfN_adequate k hk1 hk σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+  raft_kvreconfN_adequate k σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end closedN
 

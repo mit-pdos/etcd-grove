@@ -193,6 +193,9 @@ func Main() {
 // MainN is Main on k voters, with up to k + 4 replicas (RandomConfigN): the program of
 // raft_kvreconfN_porcupine_safe.
 func MainN(k uint64) {
+	if k < 1 || k > 1000 { // the cluster sizes the proof covers; any other k runs nothing
+		return
+	}
 	res, c := Run(RandomConfigN(k), lintest.CounterClock())
 	if res != porcupine.Ok {
 		panic("kvreconf: porcupine rejected the store's trace")

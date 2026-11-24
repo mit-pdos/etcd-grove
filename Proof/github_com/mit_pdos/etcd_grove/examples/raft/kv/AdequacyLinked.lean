@@ -56,14 +56,14 @@ theorem kv_wp_MainN_kvGF : kvMainNSpec := by
   exact raft_kv.wp_MainN
 
 /-- **Porcupine never rejects the store's trace on `k` replicas** (`kvN_adequate_of`, with
-`MainN`'s linked result; 2026-11-15, kvraftN): every real execution of `kvProgramN k`, `1 ≤ k ≤
-1000` (the store package's initialization, then `MainN(k)`, which starts the raft cluster of the
-voters `1 … k`, runs the randomized linearizability test and panics unless porcupine answers `Ok`)
+`MainN`'s linked result; 2026-11-15, kvraftN): every real execution of `kvProgramN k`, any `k`
+(the store package's initialization, then `MainN(k)`, which returns at once unless `1 ≤ k ≤ 1000`,
+and otherwise starts the raft cluster of the voters `1 … k`, runs the randomized linearizability test and panics unless porcupine answers `Ok`)
 from a fresh state with one thread, of `n < 2^61` steps: the main thread's result, if any, is
 `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem raft_kvN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions]
-    [hLog : log.NewModel] (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    [hLog : log.NewModel] (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -71,7 +71,7 @@ theorem raft_kvN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  kvN_adequate_of kv_wp_MainN_kvGF k hk1 hk σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+  kvN_adequate_of kv_wp_MainN_kvGF k σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end adequacy
 

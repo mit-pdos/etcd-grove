@@ -34,7 +34,8 @@ porcupine's.
   (`kv_Check`, `check.go`): `Check` over replicas of one store, from the empty store, returns
   `Ok`: porcupine accepts the trace of `Gen`'s random traffic against the store's model.
 * **The top-level drivers** (`kv_MainN`, `kv_Main`): `{{ isPkgInit kv ∗ context.isClosedchanInit }}
-  MainN(k) {{ RET #(); True }}` for `1 ≤ k < 2^62` (2026-11-15, kvraftN: the voters `1 … k`), and
+  MainN(k) {{ RET #(); True }}` for every `k` (2026-11-15, kvraftN: the voters `1 … k`; 2026-11-24:
+  `k` outside `[1, 1000]` returns at once), and
   `Main()` = `MainN(3)`, for executions of fewer than `2^61` steps: the cluster is started, the
   test runs, and the panic unless porcupine answers `Ok` is unreachable.
 * **Adequacy** (`raft_kv_adequate`, `AdequacyLinked.lean`, from `Adequacy.lean`'s `kv_adequate_of`):
@@ -42,7 +43,7 @@ porcupine's.
   every execution of `initialize'(); Main()` from a fresh state, of fewer than `2^61` steps,
   has no stuck thread and no panic, so porcupine never rejects the store's trace; and on `k` replicas
   (`raft_kvN_adequate`, 2026-11-15, kvraftN): the same of `initialize'(); MainN(k)` for every
-  `1 ≤ k ≤ 1000`.
+  `k` (2026-11-24: until then `1 ≤ k ≤ 1000`, now `MainN`'s range check).
 
 Every result here assumes `[NaInvG GF]` (iris-lean's non-atomic invariants, which porcupine's
 checker uses; the linked results of `Link.lean` take it), except the closed `raft_kv_adequate`, whose
@@ -187,7 +188,8 @@ theorem kv_Main : raft_kv.Main.spec (GF := GF) (hG := hG) :=
 
 /-- **The top-level driver on `k` replicas** `MainN(k)`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/kv/MainN.lean`; 2026-11-15, kvraftN): the
-voters `1 … k`, for `1 ≤ k < 2^62`; otherwise as `kv_Main`. -/
+voters `1 … k` for `1 ≤ k ≤ 1000`, nothing otherwise (2026-11-24, the range check); otherwise as
+`kv_Main`. -/
 theorem kv_MainN : raft_kv.MainN.spec (GF := GF) (hG := hG) :=
   raft_kv.wp_MainN
 
@@ -243,17 +245,19 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **The store's randomized linearizability test never fails, on any number of replicas**
 (`raft_kvN_adequate`, `AdequacyLinked.lean`; 2026-11-15, kvraftN; statement approved by the user,
-2026-11-16, via etcd-grove-81): for every member count `1 ≤ k ≤ 1000`, every real execution of
-`kvProgramN k` -- the store package's initialization, then `MainN(k)`: a cluster of the raft voters
+2026-11-16, via etcd-grove-81): for every member count `k`, every real execution of
+`kvProgramN k` -- the store package's initialization, then `MainN(k)`, which returns at once unless
+`1 ≤ k ≤ 1000` (2026-11-24, the range check: until then the premises `1 ≤ k`, `k ≤ 1000`), and
+otherwise runs a cluster of the raft voters
 `1 … k` connected in process, 4 clients of 25 random `Put`s, `Get`s and `Append`s on random replicas,
 porcupine's check of the trace, and a panic unless it answers `Ok` -- from a fresh state with one
 thread, of `n < 2^61` steps, has no stuck thread and no thread that ended in a panic: porcupine
-always answers `Ok`. `raft_kv_porcupine_safe` is the program `MainN(3)` (`Main()`); nothing below
-`2^62` voters bounds `k` in the proof (`MainN.spec`), `1000` is the bound of the paper's figure. -/
+always answers `Ok`. `raft_kv_porcupine_safe` is the program `MainN(3)` (`Main()`); `1000` is the
+bound of the paper's figure (the proof covers fewer than `2^62` voters). -/
 theorem raft_kvN_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions]
     [hLog : log.NewModel]
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -261,7 +265,7 @@ theorem raft_kvN_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  raft_kvN_adequate k hk1 hk σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+  raft_kvN_adequate k σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end closedN
 

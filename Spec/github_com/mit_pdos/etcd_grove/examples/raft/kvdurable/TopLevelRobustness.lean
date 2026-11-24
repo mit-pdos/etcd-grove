@@ -55,8 +55,7 @@ execution of fewer than `2 ^ 61` steps no thread is stuck and none has an unreco
 def raft_kvdurableN_porcupine_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-    [hLog : log.NewModel] (dir : GoString) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (σ : state)
-    (g : GlobalState)
+    [hLog : log.NewModel] (dir : GoString) (k : Nat) (σ : state) (g : GlobalState)
     (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
       extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none),
     Robustness.Robust [] [(kvdurableProgramN dir k, σ)] g (threads := 2 ^ 61 + 1)

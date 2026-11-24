@@ -133,12 +133,12 @@ abbrev kdMainNSpec : Prop :=
     raft_kvdurable.MainN.spec (GF := durableGF) (hG := hG)
 
 /-- **Porcupine never rejects the durable store's trace on `k` voters** (2026-11-16, kvraftN), from
-`MainN`'s spec: `kvdurable_adequate_of` for `kvdurableProgramN dir k`, `1 ≤ k ≤ 1000`, none of the files
-of the replicas `1 … k + 4` in `dir` among the initial files. -/
+`MainN`'s spec: `kvdurable_adequate_of` for `kvdurableProgramN dir k`, any `k` (2026-11-24: until
+then `1 ≤ k ≤ 1000`), none of the files of the replicas `1 … k + 4` in `dir` among the initial files. -/
 theorem kvdurableN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
     [hLog : log.NewModel]
-    (wp_MainN : kdMainNSpec) (dir : GoString) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (wp_MainN : kdMainNSpec) (dir : GoString) (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
@@ -162,8 +162,16 @@ theorem kvdurableN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hcc : context.isClosedchanInit (GF := durableGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  have hk4 : uint.nat (W64 (k : Int)) + 4 = k + 4 := by word
-  wp_apply (wp_MainN dir _ (W64 (k : Int)) (by word) (by word) Hbound (by rw [hk4]; exact Hfiles))
+  -- `MainN`'s files are those of `1 … uint.nat k + 4`, among those of `1 … k + 4`
+  have Hfiles' : ∀ i ∈ raft_kvreconf.bootVoters (uint.nat (W64 (k : Int)) + 4),
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none := by
+    have hk4 : uint.nat (W64 (k : Int)) + 4 ≤ k + 4 := by word
+    intro i hi
+    refine Hfiles i ?_
+    simp only [raft_kvreconf.bootVoters, List.mem_map, List.mem_range] at hi ⊢
+    obtain ⟨j, hj, rfl⟩ := hi
+    exact ⟨j, by omega, rfl⟩
+  wp_apply (wp_MainN dir _ (W64 (k : Int)) Hbound Hfiles')
     $$ [Hpkg Hcc Hown]
   · iframe #
     iexact Hown

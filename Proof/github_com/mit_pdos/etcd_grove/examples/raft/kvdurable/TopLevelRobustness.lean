@@ -43,11 +43,11 @@ theorem raft_kvdurable_porcupine_robust : raft_kvdurable_porcupine_robust.spec :
 /-- `raft_kvdurableN_porcupine_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/TopLevelRobustness.lean`). -/
 theorem raft_kvdurableN_porcupine_robust : raft_kvdurableN_porcupine_robust.spec := by
-  intro lctx sem package_sem hLog dir k hk1 hk σ g Hfiles
+  intro lctx sem package_sem hLog dir k σ g Hfiles
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
       (raft_kvdurableN_porcupine_safe
-        dir k hk1 hk σ g hf.1 hf.2.1 hf.2.2 Hfiles n (by omega) κs t2 σ2 Hsteps).2
+        dir k σ g hf.1 hf.2.1 hf.2.2 Hfiles n (by omega) κs t2 σ2 Hsteps).2
 
 end closed
 end EtcdGrove

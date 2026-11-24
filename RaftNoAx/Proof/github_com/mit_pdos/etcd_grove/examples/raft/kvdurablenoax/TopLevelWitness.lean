@@ -33,7 +33,7 @@ theorem raft_kvdurable_porcupine_robust.premisesSat :
 theorem raft_kvdurableN_porcupine_robust.premisesSat :
     premise_sat% raft_kvdurableN_porcupine_robust.spec := by
   intros
-  exact ⟨go!"d", 1, by decide, by decide, freshState ((∅ : DurableState), ()), ⟨((), ()), ∅⟩,
+  exact ⟨go!"d", 1, freshState ((∅ : DurableState), ()), ⟨((), ()), ∅⟩,
     fun _ _ => rfl,
     (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 

@@ -87,8 +87,20 @@ theorem MainN.wp_proof
     (wp_Check : ∀ [KVStor GF], raft_kv.Check.spec (GF := GF) (hG := hG))
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG)) :
     MainN.spec (GF := GF) (hG := hG) := by
-  intro k Hk1 Hk Hrb
+  intro k Hrb
   wp_start as #Hcc
+  try wp_auto
+  -- the range check: `k` outside `[1, 1000]` returns at once
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  have Hk1 : 1 ≤ uint.Z k := by word
+  have Hk : uint.Z k < 2 ^ 62 := by word
   -- the storage registry
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := KVStorRecT) with ⟨%γreg, Hreg⟩
   letI : KVStor GF := ⟨γreg⟩

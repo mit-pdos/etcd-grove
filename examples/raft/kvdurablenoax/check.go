@@ -207,6 +207,9 @@ func Main(dir string) {
 // directory dir (which must exist and hold none of them): the program of
 // raft_kvdurableN_porcupine_safe.
 func MainN(dir string, k uint64) {
+	if k < 1 || k > 1000 { // the cluster sizes the proof covers; any other k runs nothing
+		return
+	}
 	res, c := Run(RandomConfigN(k), lintest.CounterClock(), dir)
 	if res != porcupine.Ok {
 		panic("kvdurable: porcupine rejected the store's trace")

@@ -66,8 +66,20 @@ theorem MainN.wp_proof
     (wp_Run : ∀ [KvrStor GF], Run.spec (GF := GF) (hG := hG))
     (wp_Stop : ∀ [KvrStor GF], Cluster.Stop.spec (GF := GF) (hG := hG)) :
     MainN.spec (GF := GF) (hG := hG) := by
-  intro k Hk1 Hk Hrb
+  intro k Hrb
   wp_start as #Hcc
+  try wp_auto
+  -- the range check: `k` outside `[1, 1000]` returns at once
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  wp_if_destruct
+  · try wp_auto
+    iapply HΦ
+    itrivial
+  have Hk1 : 1 ≤ uint.Z k := by word
+  have Hk : uint.Z k < 2 ^ 59 := by word
   -- the storage registry
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := KvrStorRecT) with ⟨%γreg, Hreg⟩
   letI : KvrStor GF := ⟨γreg⟩

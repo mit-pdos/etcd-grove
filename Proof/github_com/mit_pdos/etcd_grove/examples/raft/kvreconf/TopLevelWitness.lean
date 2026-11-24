@@ -30,7 +30,7 @@ theorem raft_kvreconf_porcupine_robust.premisesSat : premise_sat% raft_kvreconf_
 
 theorem raft_kvreconfN_porcupine_robust.premisesSat : premise_sat% raft_kvreconfN_porcupine_robust.spec := by
   intros
-  exact ⟨1, by decide, by decide, freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩,
+  exact ⟨1, freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩,
     (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 end EtcdGrove

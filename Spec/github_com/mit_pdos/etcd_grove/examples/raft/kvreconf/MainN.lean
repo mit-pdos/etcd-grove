@@ -2,8 +2,9 @@
 
 `MainN(k)` (check.go; 2026-11-16, kvraftN): `Main()` on `k` voters, with up to `k + 4` replicas
 (`RandomConfigN(k)`): `Run` of the random configuration with a counter clock, a panic unless
-porcupine answers `Ok`, then `Stop`. It returns, for `1 ≤ k < 2^59` and executions of fewer than
-`2^61` steps (`receiptBound GF ≤ 2^61`), from package initialization and `context`'s
+porcupine answers `Ok`, then `Stop`; for `k` outside `[1, 1000]` it returns at once (2026-11-24, the
+range check: until then the spec took `1 ≤ k < 2^59` and the top-level statement `1 ≤ k ≤ 1000`).
+It returns, for every `k` and executions of fewer than `2^61` steps (`receiptBound GF ≤ 2^61`), from package initialization and `context`'s
 `isClosedchanInit` (as `Main`, `Main.lean`).
 -/
 module
@@ -29,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.As
 
 /-- See the file header. -/
 abbrev MainN.spec : Prop :=
-  ∀ (k : w64), 1 ≤ uint.Z k → uint.Z k < 2 ^ 59 →
+  ∀ (k : w64),
   -- (2026-11-02, durability stage II (l), at the landing: raft's `RestartNode` takes `readyFits`;
   -- until then `2^63`)
   receiptBound GF ≤ 2 ^ 61 →

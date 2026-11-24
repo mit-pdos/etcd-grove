@@ -64,8 +64,8 @@ theorem kvdurable_wp_MainN_durableGF : kdMainNSpec := by
 
 /-- **Porcupine never rejects the durable store's trace on `k` voters** (`kvdurableN_adequate_of`,
 `Adequacy.lean`, with `MainN`'s linked result; 2026-11-16, kvraftN): every real execution of
-`kvdurableProgramN dir k`, `1 ≤ k ≤ 1000` (the store package's initialization, then `MainN(dir, k)`,
-which starts a cluster of random options on the voters `1 … k`, with up to `k + 4` replicas and their
+`kvdurableProgramN dir k`, any `k` (the store package's initialization, then `MainN(dir, k)`, which
+returns at once unless `1 ≤ k ≤ 1000`, and otherwise starts a cluster of random options on the voters `1 … k`, with up to `k + 4` replicas and their
 files in `dir`, runs the randomized linearizability test under configuration changes, leadership
 disruptions and crashes with restarts from the files, panics unless porcupine answers `Ok`, and stops
 the cluster) from a fresh state with one thread whose files hold none of the files of the replicas
@@ -73,7 +73,7 @@ the cluster) from a fresh state with one thread whose files hold none of the fil
 stuck; no thread has ended in a panic. -/
 theorem raft_kvdurableN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
-    [hLog : log.NewModel] (dir : GoString) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    [hLog : log.NewModel] (dir : GoString) (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (Hfiles : ∀ i ∈ raft_kvreconf.bootVoters (k + 4),
@@ -83,7 +83,7 @@ theorem raft_kvdurableN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  kvdurableN_adequate_of kvdurable_wp_MainN_durableGF dir k hk1 hk σ g Hlctx Hinit Hthreads Hfiles n Hn
+  kvdurableN_adequate_of kvdurable_wp_MainN_durableGF dir k σ g Hlctx Hinit Hthreads Hfiles n Hn
     κs t2 σ2 Hsteps
 
 end adequacy

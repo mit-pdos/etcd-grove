@@ -53,7 +53,7 @@ execution of fewer than `2 ^ 61` steps no thread is stuck and none has an unreco
 def raft_kvreconfN_porcupine_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
-    [hLog : log.NewModel] (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (σ : state) (g : GlobalState),
+    [hLog : log.NewModel] (k : Nat) (σ : state) (g : GlobalState),
     Robustness.Robust [] [(kvreconfProgramN k, σ)] g (threads := 2 ^ 61 + 1)
       (bound := 2 ^ 61)
 

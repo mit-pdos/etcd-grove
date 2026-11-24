@@ -32,7 +32,7 @@ theorem Main.wp_proof (wp_MainN : raft_kv.MainN.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro Hrb
   wp_start as #Hcc
-  wp_apply (wp_MainN (W64 3) (by decide) (by decide) Hrb) $$ [$Hcc]
+  wp_apply (wp_MainN (W64 3) Hrb) $$ [$Hcc]
   iapply HΦ
   itrivial
 

@@ -161,11 +161,12 @@ abbrev kvrMainNSpec : Prop :=
     raft_kvreconf.MainN.spec (GF := kvrGF) (hG := hG)
 
 /-- **Porcupine never rejects the reconfiguring store's trace on `k` voters** (2026-11-16, kvraftN),
-from `MainN`'s spec: `kvreconf_adequate_of` for `kvreconfProgramN k`, `1 ≤ k ≤ 1000`. -/
+from `MainN`'s spec: `kvreconf_adequate_of` for `kvreconfProgramN k`, any `k` (2026-11-24: until
+then `1 ≤ k ≤ 1000`). -/
 theorem kvreconfN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions]
     [hLog : log.NewModel]
-    (wp_MainN : kvrMainNSpec) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (wp_MainN : kvrMainNSpec) (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -186,7 +187,7 @@ theorem kvreconfN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hcc : context.isClosedchanInit (GF := kvrGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply (wp_MainN (W64 (k : Int)) (by word) (by word) Hbound) $$ [Hpkg Hcc]
+  wp_apply (wp_MainN (W64 (k : Int)) Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
   rfl

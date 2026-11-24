@@ -158,11 +158,11 @@ abbrev kvMainNSpec : Prop :=
     raft_kv.MainN.spec (GF := kvGF) (hG := hG)
 
 /-- **Porcupine never rejects the store's trace on `k` replicas** (2026-11-15, kvraftN), from
-`MainN`'s spec: `kv_adequate_of` for `kvProgramN k`, `1 ≤ k ≤ 1000`. -/
+`MainN`'s spec: `kv_adequate_of` for `kvProgramN k`, any `k` (2026-11-24: until then `1 ≤ k ≤ 1000`). -/
 theorem kvN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions]
     [hLog : log.NewModel]
-    (wp_MainN : kvMainNSpec) (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (wp_MainN : kvMainNSpec) (k : Nat)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -183,7 +183,7 @@ theorem kvN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply (wp_MainN (W64 (k : Int)) (by word) (by word) Hbound) $$ [Hpkg Hcc]
+  wp_apply (wp_MainN (W64 (k : Int)) Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
   rfl

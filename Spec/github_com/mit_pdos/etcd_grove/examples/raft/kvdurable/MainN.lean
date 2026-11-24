@@ -2,8 +2,9 @@
 
 `MainN(dir, k)` (check.go; 2026-11-16, kvraftN): `Main(dir)` on `k` voters, with up to `k + 4` replicas
 (`RandomConfigN(k)`): `Run` of the random configuration with a counter clock and the replicas' files in
-`dir`, a panic unless porcupine answers `Ok`, then `Stop`. It returns, for `1 ≤ k < 2^59`, from the
-program's files, none of which is a replica's file in `dir` (`kdFileName dir i` for the ids `i` in
+`dir`, a panic unless porcupine answers `Ok`, then `Stop`; for `k` outside `[1, 1000]` it returns at
+once (2026-11-24, the range check: until then the spec took `1 ≤ k < 2^59` and the top-level statement
+`1 ≤ k ≤ 1000`). It returns, for every `k`, from the program's files, none of which is a replica's file in `dir` (`kdFileName dir i` for the ids `i` in
 `1 … k + 4`), and executions of fewer than `2^61` steps (`receiptBound GF ≤ 2^61`), from package
 initialization and `context`'s `isClosedchanInit` (as `Main`, `Main.lean`).
 -/
@@ -31,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.A
 
 /-- See the file header. -/
 abbrev MainN.spec : Prop :=
-  ∀ (dir : GoString) (fs : DurableState) (k : w64), 1 ≤ uint.Z k → uint.Z k < 2 ^ 59 →
+  ∀ (dir : GoString) (fs : DurableState) (k : w64),
   receiptBound GF ≤ 2 ^ 61 →
   (∀ i ∈ raft_kvreconf.bootVoters (uint.nat k + 4), fs !! kdFileName dir i = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable ∗

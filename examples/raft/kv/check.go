@@ -135,6 +135,9 @@ func Check(kvs []*KV, clock lintest.Clock, clients int, ops int) porcupine.Check
 // random replicas, traced with a counter clock and checked by porcupine; it panics unless
 // porcupine answers Ok.
 func MainN(k uint64) {
+	if k < 1 || k > 1000 { // the cluster sizes the proof covers; any other k runs nothing
+		return
+	}
 	var voters []uint64
 	for id := uint64(1); id <= k; id++ {
 		voters = append(voters, id)
