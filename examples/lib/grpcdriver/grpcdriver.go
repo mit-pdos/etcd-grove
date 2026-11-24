@@ -275,7 +275,9 @@ func canceled(c svc.DriverClient, ids *counter) {
 func serverStream(c svc.DriverClient) {
 	// Section server-stream: the client receives the handler's messages in order, without loss
 	// or duplication, and io.EOF only after the handler returned without error and every message
-	// was received.
+	// was received, or before any message (a transparently retried attempt whose replayed request
+	// failed to send ends with a bare io.EOF, the handler possibly never run: grpc/grpc-go#9443,
+	// nonissues/grpc-transparent-retry-spurious-eof.md).
 	v := randomWord()
 	st, err := c.ServerStream(context.Background(), wrapperspb.String(v))
 	if err != nil {
@@ -286,7 +288,7 @@ func serverStream(c svc.DriverClient) {
 	for {
 		m, err := st.Recv()
 		if err == io.EOF {
-			if got != v {
+			if got != v && got != "" {
 				panic("server-stream: io.EOF before every message was received")
 			}
 			reached("server-stream")
@@ -335,7 +337,8 @@ func clientStream(c svc.DriverClient) {
 func bidi(c svc.DriverClient) {
 	// Section bidi-stream: each direction is a queue: the messages the client receives are those
 	// the handler sent (here, back the client's own, in order), and io.EOF comes only after the
-	// handler returned without error, every message received.
+	// handler returned without error, every message received, or before any message (as in
+	// server-stream).
 	st, err := c.Bidi(context.Background())
 	if err != nil {
 		checkErr(err)
@@ -354,7 +357,7 @@ func bidi(c svc.DriverClient) {
 	for {
 		m, err := st.Recv()
 		if err == io.EOF {
-			if closed && sent == v && got != v {
+			if closed && sent == v && got != v && got != "" {
 				panic("bidi-stream: io.EOF before every message was received")
 			}
 			reached("bidi-stream")
