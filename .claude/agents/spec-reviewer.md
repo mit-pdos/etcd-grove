@@ -11,7 +11,7 @@ does. Write only your report, at the path the brief gives (or return it as your 
 Read `CLAUDE.md`, `.claude/skills/spec/PRINCIPLES.md` and `.claude/skills/spec/examples/README.md`;
 open the examples (and the reviews the principles point to) that bear on your targets, not all of
 them. Judge the targets you are given by them, as their callers and a
-reader of `interface/` see them; read the Go code and the callers' proofs to check each claim (give
+reader of the spec files see them; read the Go code and the callers' proofs to check each claim (give
 `file:line`), and mark what you could not verify as uncertain. If the brief names the commit under
 review and the previous round's changes, look hardest at what changed, and mark a finding already
 addressed at `HEAD` as stale. If you find a bug in the Go code, say so and check `issues/`.

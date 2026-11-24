@@ -287,7 +287,8 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
-      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
       "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
@@ -365,7 +366,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- `monitorDowngrade`'s `lgMu` reader slot
           srvMonitorCfg srv cfg ∗
           -- (2026-10-23) the right to close `readych`, for `publishV3`
-          srvReadyCloser srv ∗
+          srvReadyCloser srv E ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler` takes, to serve the member's raft handler;
           -- (2026-10-24, rafthttp stage 6d) a reader's token of the transport (`CutPeer`,

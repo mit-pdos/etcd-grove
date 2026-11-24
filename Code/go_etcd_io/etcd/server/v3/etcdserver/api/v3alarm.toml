@@ -1,7 +1,8 @@
 # `AlarmStore.Get` with its body (the apply thread calls it) and `AlarmStore.Recover` (D22
-# receiver epochs, S7c: `applySnapshot` calls it; `restore` stays names only); the rest names only. The
+# receiver epochs, S7c: `applySnapshot` calls it), and (prove-ps2-v3alarm, 2026-11-24) `AlarmStore.restore`
+# (until then names only, a trust-boundary axiom); the rest names only. The
 # types are translated, so the packages of their fields are imported.
-translate = ["!*", "AlarmStore.Get", "AlarmStore.Recover"]
+translate = ["!*", "AlarmStore.Get", "AlarmStore.Recover", "AlarmStore.restore"]
 imports = ["!*", "sync", "go.uber.org/zap", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types"]
 
 # translate the definitions of all type declarations goose supports

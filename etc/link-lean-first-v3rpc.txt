@@ -144,7 +144,7 @@ attribute_Bool:
 zap_Error:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
@@ -217,7 +217,7 @@ prometheus_WithServerHandlingTimeHistogram:
 prometheus_ServerMetrics__UnaryServerInterceptor:
 prometheus_ServerMetrics__StreamServerInterceptor:
 prometheus_ServerMetrics__InitializeMetrics:
-prometheus_Register:
+prometheus_Register: =EtcdGrove.prometheus.Registry.Register.wp_proof
 zap_String:
 zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 RegisterKVServer: grpc_Server__RegisterService
@@ -300,3 +300,6 @@ healthNotifier__startServe: zap_String zap_Logger__Info health_Server__SetServin
 newHealthNotifier: healthNotifier__startServe EtcdServer__Logger EtcdServer__FeatureEnabled
 getServerMetrics: prometheus_NewServerMetrics prometheus_WithServerHandlingTimeHistogram prometheus_Register zap_Logger__Warn zap_Error
 Server: grpc_CustomCodec grpc_StatsHandler otelgrpc_NewServerHandler grpc_ChainUnaryInterceptor grpc_ChainStreamInterceptor grpc_MaxRecvMsgSize grpc_MaxSendMsgSize grpc_MaxConcurrentStreams grpc_NewServer getServerMetrics newLogUnaryInterceptor prometheus_ServerMetrics__UnaryServerInterceptor newUnaryInterceptor prometheus_ServerMetrics__StreamServerInterceptor newStreamInterceptor config_ServerConfig__MaxRequestBytesWithOverhead NewQuotaKVServer RegisterKVServer NewWatchServer RegisterWatchServer NewQuotaLeaseServer RegisterLeaseServer NewClusterServer RegisterClusterServer NewAuthServer RegisterAuthServer health_NewServer newHealthNotifier grpc_health_v1_RegisterHealthServer NewMaintenanceServer RegisterMaintenanceServer prometheus_ServerMetrics__InitializeMetrics
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

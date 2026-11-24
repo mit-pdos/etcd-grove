@@ -40,11 +40,6 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-! ## Requests -/
 
-/-- **The store of a user addition's `Options`**: a fresh empty `UserAddOptions` (`NoPassword`
-false, as etcd's client sends it; see the file header). -/
-def userOptsTree : VTree :=
-  .ptr authpb.UserAddOptions.ty (.strct authpb.UserAddOptions.ty [] [])
-
 theorem treeWp_userOpts (Φ : val → IProp GF) :
     (∀ o : Loc, userOptsFalse o -∗ Φ #o) ⊢ treeWp userOptsTree Φ := by
   iintro H
@@ -66,17 +61,9 @@ theorem treeWp_userOpts (Φ : val → IProp GF) :
   iframe Hoi
   ipureintro; exact auth.userOptsUfOk_empty
 
-/-- **The store of a user addition**: its name and password (`HashedPassword` empty, as the
-client sends it), its `Options`. -/
-def userAddReqTree (m : UserAddW) : VTree :=
-  .strct etcdserverpb.AuthUserAddRequest.ty
-    [(go!"Name", go.string), (go!"Password", go.string),
-     (go!"Options", go.GoType.PointerType authpb.UserAddOptions.ty)]
-    [.leaf #m.name, .leaf #m.pw, userOptsTree]
-
 /-- **`pbAuthUserAddRequest` with its store.** -/
 def pbAuthUserAddRequestT : ProtoMsgT GF :=
-  { pbAuthUserAddRequest with tree := userAddReqTree }
+  { pbAuthUserAddRequest with }
 
 theorem pbAuthUserAddRequestT_reqSat : (pbAuthUserAddRequestT (GF := GF)).ReqSat := by
   refine ⟨⟨etcdserverpb.AuthUserAddRequest, inferInstance, inferInstance,
@@ -132,14 +119,9 @@ theorem pbAuthUserAddRequestT_wireLen_ok :
     ∃ m, (pbAuthUserAddRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨⟨[], []⟩, by simp [pbAuthUserAddRequestT, pbAuthUserAddRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a role grant to a user**: the user and the role. -/
-def userGrantRoleReqTree (m : GoString × GoString) : VTree :=
-  .strct etcdserverpb.AuthUserGrantRoleRequest.ty
-    [(go!"User", go.string), (go!"Role", go.string)] [.leaf #m.1, .leaf #m.2]
-
 /-- **`pbAuthUserGrantRoleRequest` with its store.** -/
 def pbAuthUserGrantRoleRequestT : ProtoMsgT GF :=
-  { pbAuthUserGrantRoleRequest with tree := userGrantRoleReqTree }
+  { pbAuthUserGrantRoleRequest with }
 
 theorem pbAuthUserGrantRoleRequestT_reqSat : (pbAuthUserGrantRoleRequestT (GF := GF)).ReqSat := by
   refine ⟨⟨etcdserverpb.AuthUserGrantRoleRequest, inferInstance, inferInstance,
@@ -189,13 +171,9 @@ theorem pbAuthUserGrantRoleRequestT_wireLen_ok :
     ∃ m, (pbAuthUserGrantRoleRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨([], []), by simp [pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a role addition**: the role's name. -/
-def roleAddReqTree (m : GoString) : VTree :=
-  .strct etcdserverpb.AuthRoleAddRequest.ty [(go!"Name", go.string)] [.leaf #m]
-
 /-- **`pbAuthRoleAddRequest` with its store.** -/
 def pbAuthRoleAddRequestT : ProtoMsgT GF :=
-  { pbAuthRoleAddRequest with tree := roleAddReqTree }
+  { pbAuthRoleAddRequest with }
 
 theorem pbAuthRoleAddRequestT_reqSat : (pbAuthRoleAddRequestT (GF := GF)).ReqSat := by
   refine ⟨⟨etcdserverpb.AuthRoleAddRequest, inferInstance, inferInstance,
@@ -245,14 +223,6 @@ theorem pbAuthRoleAddRequestT_wireLen_ok :
     ∃ m, (pbAuthRoleAddRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨[], by simp [pbAuthRoleAddRequestT, pbAuthRoleAddRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a wire permission**: a fresh `Permission` holding its type, its key and range
-end (`nil` if empty). -/
-def permWTree (w : auth.PermW) : VTree :=
-  .ptr authpb.Permission.ty (.strct authpb.Permission.ty
-    [(go!"PermType", authpb.Permission_Type.ty), (go!"Key", go.GoType.SliceType go.byte),
-     (go!"RangeEnd", go.GoType.SliceType go.byte)]
-    [.leaf #w.ty, bytesTree go.byte w.key, bytesTree go.byte w.rangeEnd])
-
 theorem treeWp_permW (w : auth.PermW) (Hk : w.key.length < 2 ^ 63 - 1) (Φ : val → IProp GF) :
     (∀ p : Loc, auth.ownPermW p w -∗ Φ #p) ⊢ treeWp (permWTree w) Φ := by
   iintro H
@@ -285,16 +255,9 @@ theorem treeWp_permW (w : auth.PermW) (Hk : w.key.length < 2 ^ 63 - 1) (Φ : val
   iapply H
   iexact Hpw
 
-/-- **The store of a permission grant to a role**: the role's name and the permission (always
-present: the sender's is not nil). -/
-def roleGrantPermissionReqTree (m : GoString × auth.PermW) : VTree :=
-  .strct etcdserverpb.AuthRoleGrantPermissionRequest.ty
-    [(go!"Name", go.string), (go!"Perm", go.GoType.PointerType authpb.Permission.ty)]
-    [.leaf #m.1, permWTree m.2]
-
 /-- **`pbAuthRoleGrantPermissionRequest` with its store.** -/
 def pbAuthRoleGrantPermissionRequestT : ProtoMsgT GF :=
-  { pbAuthRoleGrantPermissionRequest with tree := roleGrantPermissionReqTree }
+  { pbAuthRoleGrantPermissionRequest with }
 
 theorem pbAuthRoleGrantPermissionRequestT_reqSat :
     (pbAuthRoleGrantPermissionRequestT (GF := GF)).ReqSat := by
@@ -355,13 +318,9 @@ theorem pbAuthRoleGrantPermissionRequestT_wireLen_ok :
   ⟨([], ⟨W32 0, [], []⟩), by
     simp [pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of an auth enable request**: nothing. -/
-def authEnableReqTree (_ : Unit) : VTree :=
-  .strct etcdserverpb.AuthEnableRequest.ty [] []
-
 /-- **`pbAuthEnableRequest` with its store.** -/
 def pbAuthEnableRequestT : ProtoMsgT GF :=
-  { pbAuthEnableRequest with tree := authEnableReqTree }
+  { pbAuthEnableRequest with }
 
 theorem pbAuthEnableRequestT_reqSat : (pbAuthEnableRequestT (GF := GF)).ReqSat := by
   refine ⟨⟨etcdserverpb.AuthEnableRequest, inferInstance, inferInstance,
@@ -397,14 +356,9 @@ theorem pbAuthEnableRequestT_wireLen_ok :
     ∃ m, (pbAuthEnableRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨(), by simp [pbAuthEnableRequestT, pbAuthEnableRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of an authentication request**: the user's name and password. -/
-def authenticateReqTree (m : GoString × GoString) : VTree :=
-  .strct etcdserverpb.AuthenticateRequest.ty
-    [(go!"Name", go.string), (go!"Password", go.string)] [.leaf #m.1, .leaf #m.2]
-
 /-- **`pbAuthenticateRequest` with its store.** -/
 def pbAuthenticateRequestT : ProtoMsgT GF :=
-  { pbAuthenticateRequest with tree := authenticateReqTree }
+  { pbAuthenticateRequest with }
 
 theorem pbAuthenticateRequestT_reqSat : (pbAuthenticateRequestT (GF := GF)).ReqSat := by
   refine ⟨⟨etcdserverpb.AuthenticateRequest, inferInstance, inferInstance,
@@ -452,15 +406,10 @@ theorem pbAuthenticateRequestT_wireLen_ok :
 
 /-! ## Replies -/
 
-/-- **The store of a reply the client does not read**: nothing (its `Header` left `nil`: the model
-does not hold it; see the file header). -/
-def emptyRepTree (ty : go.GoType) (_ : Unit) : VTree := .strct ty [] []
-
 /-- **`pbAuthUserAddResponse` with its store** (its `send` is the sender's `⌜l ≠ null⌝`, which
 `RepSat`'s `send null m ⊢ False` needs). -/
 def pbAuthUserAddResponseT : ProtoMsgT GF :=
-  { pbAuthUserAddResponse with
-    tree := emptyRepTree etcdserverpb.AuthUserAddResponse.ty }
+  { pbAuthUserAddResponse with }
 
 theorem pbAuthUserAddResponseT_repSat : (pbAuthUserAddResponseT (GF := GF)).RepSat := by
   apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
@@ -492,8 +441,7 @@ theorem pbAuthUserAddResponseT_repSat : (pbAuthUserAddResponseT (GF := GF)).RepS
 
 /-- **`pbAuthUserGrantRoleResponse` with its store** (as `pbAuthUserAddResponseT`). -/
 def pbAuthUserGrantRoleResponseT : ProtoMsgT GF :=
-  { pbAuthUserGrantRoleResponse with
-    tree := emptyRepTree etcdserverpb.AuthUserGrantRoleResponse.ty }
+  { pbAuthUserGrantRoleResponse with }
 
 theorem pbAuthUserGrantRoleResponseT_repSat : (pbAuthUserGrantRoleResponseT (GF := GF)).RepSat := by
   apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
@@ -525,8 +473,7 @@ theorem pbAuthUserGrantRoleResponseT_repSat : (pbAuthUserGrantRoleResponseT (GF 
 
 /-- **`pbAuthRoleAddResponse` with its store** (as `pbAuthUserAddResponseT`). -/
 def pbAuthRoleAddResponseT : ProtoMsgT GF :=
-  { pbAuthRoleAddResponse with
-    tree := emptyRepTree etcdserverpb.AuthRoleAddResponse.ty }
+  { pbAuthRoleAddResponse with }
 
 theorem pbAuthRoleAddResponseT_repSat : (pbAuthRoleAddResponseT (GF := GF)).RepSat := by
   apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
@@ -558,8 +505,7 @@ theorem pbAuthRoleAddResponseT_repSat : (pbAuthRoleAddResponseT (GF := GF)).RepS
 
 /-- **`pbAuthRoleGrantPermissionResponse` with its store** (as `pbAuthUserAddResponseT`). -/
 def pbAuthRoleGrantPermissionResponseT : ProtoMsgT GF :=
-  { pbAuthRoleGrantPermissionResponse with
-    tree := emptyRepTree etcdserverpb.AuthRoleGrantPermissionResponse.ty }
+  { pbAuthRoleGrantPermissionResponse with }
 
 theorem pbAuthRoleGrantPermissionResponseT_repSat :
     (pbAuthRoleGrantPermissionResponseT (GF := GF)).RepSat := by
@@ -592,8 +538,7 @@ theorem pbAuthRoleGrantPermissionResponseT_repSat :
 
 /-- **`pbAuthEnableResponse` with its store** (as `pbAuthUserAddResponseT`). -/
 def pbAuthEnableResponseT : ProtoMsgT GF :=
-  { pbAuthEnableResponse with
-    tree := emptyRepTree etcdserverpb.AuthEnableResponse.ty }
+  { pbAuthEnableResponse with }
 
 theorem pbAuthEnableResponseT_repSat : (pbAuthEnableResponseT (GF := GF)).RepSat := by
   apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)
@@ -623,14 +568,9 @@ theorem pbAuthEnableResponseT_repSat : (pbAuthEnableResponseT (GF := GF)).RepSat
   iintro -
   iframe Hs
 
-/-- **The store of an authentication reply**: its token (its `Header` left `nil`: the model does
-not hold it). -/
-def authenticateRepTree (t : GoString) : VTree :=
-  .strct etcdserverpb.AuthenticateResponse.ty [(go!"Token", go.string)] [.leaf #t]
-
 /-- **`pbAuthenticateResponse` with its store.** -/
 def pbAuthenticateResponseT : ProtoMsgT GF :=
-  { pbAuthenticateResponse with tree := authenticateRepTree }
+  { pbAuthenticateResponse with }
 
 theorem pbAuthenticateResponseT_repSat : (pbAuthenticateResponseT (GF := GF)).RepSat := by
   apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)

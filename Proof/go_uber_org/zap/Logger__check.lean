@@ -33,7 +33,7 @@ theorem zap.Logger.check.wp_proof : zap.Logger.check.spec (GF := GF) (hG := hG) 
   wp_start as ⟨#Hok, %Hlvl⟩
   obtain ⟨w, rfl, hw⟩ := Hlvl
   unfold zapLoggerOk zap.nopLogger
-  icases Hok with ⟨%Hnn, #⟨#Hcore, -, -, -, -⟩⟩
+  icases Hok with ⟨%Hnn, #⟨#Hcore, -, -, -, -, -, -⟩⟩
   wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer

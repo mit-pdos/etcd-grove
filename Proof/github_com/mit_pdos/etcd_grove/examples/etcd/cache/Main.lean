@@ -314,7 +314,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, Hlis, -⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, Hlis, Hleft, -⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -350,7 +350,7 @@ theorem Main.wp_proof
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro

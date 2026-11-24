@@ -14,7 +14,6 @@ axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
@@ -84,4 +83,3 @@ axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom wait.Jitter.wp_proof
 axiom withVersion.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

@@ -245,7 +245,9 @@ def memberBoot (γ : SrvRaft) (ctxs : List (List w8))
     -- invariant (until then raft's ghost state, its committed bootstrap log and the term budget)
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    -- (etcd-dist D7) the prefix's generators' facts, on the member's machine
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
@@ -379,7 +381,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
     srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
@@ -517,7 +519,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -544,7 +546,9 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       (m = .revocable → lease.leasesNoExpiry)⌝ ∗
     (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id) ∗ srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    -- (etcd-dist D7) the prefix's generators' facts, on the member's machine
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
@@ -621,7 +625,7 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 
 /-- **What `v3rpc.Server` and `Listen` return, in the auth mode `on`** (the auth component's stage 5;
@@ -648,7 +652,7 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 open Iris.ProofMode in
 /-- **`grpcUpM` with auth off is `grpcUp`** (a bridge): the configuration, the `*kvServer` and the
@@ -660,7 +664,7 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
+    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
     rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
@@ -692,7 +696,7 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
   obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢
       v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by

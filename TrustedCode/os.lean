@@ -1300,6 +1300,16 @@ argument list. -/
 noncomputable def runtime_args.impl : val :=
   syscall.arbitraryStrings
 
+/-- `runtime_beforeExit(exitCode int)` (`proc.go`: `func runtime_beforeExit(exitCode int) // implemented
+in runtime`; zap-z2, 2026-11-23, as Perennial's `TrustedCode/os.lean` since `ca6df841b`), which `Exit`
+(translated) calls before `syscall.Exit`: a `go:linkname` with no Go body, the runtime's
+`os_beforeExit`, which runs the exit hooks (registered only by coverage instrumentation, a `-cover`
+build) and the race and address sanitizers' finalizers (only in `-race`/`-asan` builds), none of
+which the semantics models: in a plain build it does nothing. The model: nothing (it returns). -/
+def runtime_beforeExit.impl : val :=
+  λ: "exitCode",
+    #()
+
 /-! ## The standard streams
 
 ```go

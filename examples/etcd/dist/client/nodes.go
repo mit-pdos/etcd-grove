@@ -7,7 +7,6 @@ import (
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
@@ -221,11 +220,10 @@ func ConnectRetry(eps []string) *clientv3.Client {
 }
 
 // NodeMain is client machine c of workload w (NodeCount(w) > c), listening at addr, the members'
-// client endpoints eps: it clears the proxy variables as the server does, then serves the
+// client endpoints eps: it serves the
 // orchestrator's calls (see above). It never returns (for a workload without client machines, it
 // returns at once).
 func NodeMain(w Workload, c int, addr string, eps []string) {
-	env.ClearProxy()
 	if c < 0 || c >= NodeCount(w) || len(eps) == 0 {
 		return
 	}

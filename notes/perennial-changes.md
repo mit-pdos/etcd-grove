@@ -17,47 +17,84 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
+### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
+
+- **Limitation.** Perennial `ca6df841b`'s trusted `runtime.callers` (`TrustedCode/runtime.lean`) writes an
+  arbitrary prefix of `pcbuf` and returns its length `n`, any `0 ≤ n ≤ len(pcbuf)`, on every call. zap's
+  `stacktrace.Capture(skip, Full)` (`internal/stacktrace/stack.go:48-53`) doubles its buffer while
+  `numFrames == len(pcs)`: `for numFrames == len(pcs) { pcs = make([]uintptr, len(pcs)*2); numFrames =
+  runtime.Callers(skip+2, pcs) }`. In the model every iteration may fill the buffer, so the buffer grows
+  until `make` cannot allocate it (an allocation past the address space; at the latest after 57 doublings
+  of 64, where `len(pcs)*2` overflows and `make` panics with a negative length): a model execution that
+  fails, where Go cannot (a goroutine's stack is finite, at most 1 GB on 64-bit: fewer than 2^27 frames, so
+  `Callers` returns `n < len` once `len` exceeds the depth). Partial correctness does not help: the loop
+  terminates, by a panic. `zap.Stack(key)` = `StackSkip(key, 1)` = `String(key, stacktrace.Take(2))`, and
+  `Take` calls `Capture(skip+1, Full)`.
+- **Needed by.** `zap.Stack.wp_proof` (the backend's `batchTx.UnsafeRange`/`UnsafeDelete`/`unsafePut` log a
+  stack on their `Fatal` path), which stays a trust-boundary axiom.
+- **Proposed change.** The trusted model bounds the stack depth: `callers` returns `n < len(pcbuf)` once
+  `len(pcbuf)` exceeds a fixed bound on a goroutine's frames (e.g. `2^27`: the 1 GB maximum stack,
+  `runtime/debug.SetMaxStack`'s default on 64-bit, over the 8-byte minimum frame), still any `n` below it;
+  Go evidence beside `goose/model/runtime/callers_test.go` (a deep recursion's `Callers` with a buffer
+  larger than its depth). A trusted-model change: for upamanyus's review.
+### `io.WriteString` names only (2026-11-24, phase 7 S5)
+
+- **Limitation.** Perennial's `io` translates `WriteString` as a name only (`Perennial/Code/io.toml`), so a
+  proof of code that calls it is stuck there.
+- **Who needs it.** `net/http/internal`'s chunked writer (`chunkedWriter.Write`, `Close`;
+  `Net/Proof/net/http/internal/`), which the Transport writes chunked request bodies through (S5's client
+  half); next, the server's `chunkWriter` and the Transport's head writer (`bufio.Writer.WriteString`).
+- **Workaround.** `Spec/io/WriteString.lean` states Go's behavior (the `StringWriter` assertion, else
+  `Write` of the string's bytes) and the Links take it as a hypothesis (`Net/Proof/net/http/Results.lean`,
+  `section chunked`). No axiom, no `sorry`.
+- **Proposed change.** Translate `io.WriteString` with its body in Perennial, with this spec and its proof
+  (seven lines of Go; the `[]byte(s)` conversion's slice).
+- **Status.** Not proposed yet.
+
+### `net/url.ParseRequestURI` unreachable over bodies: `strings.Cut`/`ToLower`/`Index`/`Count` names only (2026-11-23, models-rpc-http)
+
+- **Limitation.** Go's `url.parse(rawURL, true)` calls `strings.ToLower` (always, on the scheme), `strings.Cut(rest,
+  "?")` (whenever the URI does not end in a lone `"?"`), and on other inputs `strings.Count`, `Index`, `Contains`;
+  Perennial translates them as names only (and `Cut`/`Index` reach `bytealg.IndexByteString`, untranslated, assembly).
+  Besides, `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]` variable of the main tree's `Code/net/url.toml`),
+  and the main tree's `net/url` is names-only (project etcd), so translating it with bodies rebuilds every importer
+  (`zap`, `rafthttp`, `types`).
+- **Who needs it.** net/http's `readRequest` (the request URI of net/rpc's `CONNECT /_goRPC_`), `Net/Proof/net/http/`.
+- **Workaround.** In the model (`models/net/http/textproto_model.go`, MODEL, pending the user's review):
+  `modelParseRequestURI`, Go's result on a `/`-initial path of bytes `net/url` leaves alone (`modelPathByte`), Go's
+  function on every other URI; translated with its body and proved; evidence `internal/httpdifftest`'s
+  `TestReadRequestURI` (every byte after `/`, inside a path and after `//`, 2000 random paths; `URL`'s every field).
+- **Proposed change.** `strings.ToLower` (ASCII fast path), `Cut`, `Index`, `Count` translated in Perennial with
+  `bytealg.IndexByteString`/`CountString` as trusted models (as `LastIndexByteString` is translated), with specs; then
+  `net/url`'s `parse` with its bodies.
+- **Status.** Not proposed yet.
+
+### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
+
+- **Limitation.** (1) `NewCond.spec`'s post is `isCond c m`, without `⌜c ≠ null⌝` (the struct field
+  points-to it holds does not give it: no lemma relates `structFieldRef` and `null`). A lazily made
+  condition variable (`if cr.cond == nil { cr.cond = sync.NewCond(&cr.mu) }`, net/http's `connReader.lock`)
+  needs it: with `cv = nil` stored, the next `lock` would store again into a field already read-only.
+  (2) `context.WithValue` has no body in Perennial's translation (and `Background()` is not an `isContext`),
+  so net/http's `Serve` (`WithValue(baseCtx, ServerContextKey, s)`) and `conn.serve`
+  (`WithValue(ctx, LocalAddrContextKey, ...)`) are stuck at that call.
+- **Who needs it.** net/http's server (`Net/Proof/net/http/`, `notes/dsverify-net-port-plan.md`, phase 5.2).
+- **Workaround.** (1) `wp_NewCond_nn` (`Net/Proof/net/http/ConnReaderLemmas.lean`): Perennial's proof of
+  `NewCond` over the translated body, the allocation's non-null kept. (2) None yet (`conn.serve` not proved).
+- **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
+  translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
+  `isContext` of a value context over `isContext` or `Background()`.
 ### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
 
-- **Limitation.** Perennial's `sort` translates `sort.Sort` and `pdqsort` over a `sort.Interface`
-  (`zsortinterface.go`), but not `sort.Slice` (`slice.go`) nor `pdqsort_func` and its helpers
-  (`zsortfunc.go`): `Slice` swaps through `internal/reflectlite.Swapper(x)`, which has no model.
-  `Spec/sort/Slice.lean` is stated for `[]int64` only and is a hypothesis (`?`) of mvccrand's results.
-- **Needed by.** `mvcc.hashStorage.Store` (`hash.go`): it logs (`zap.Logger.Info` over `zap.Uint32`/
-  `zap.Int64`, specified here), appends under `hashMu`, then `sort.Slice(s.hashes, func(i, j int) bool
-  { return s.hashes[i].Revision < s.hashes[j].Revision })` and keeps the last `hashStorageMaxSize`.
-  Its axiom was thought to wait only on `hash/crc32` (`hash.go`'s hasher): crc32 is now translated and
-  proved (etcd-grove#14), but `Store` never calls crc32; `sort.Slice` is the one callee with no spec
-  that can be proved (with `hashStorageOk` carrying `hashMu`'s lock invariant over `hashes`, which
-  `NewHashStorage` would establish, every other step is provable over existing specs).
-- **Workaround.** None here: the axiom `mvcc.hashStorage.Store.wp_proof` stays (an axiom for
-  `sort.Slice` at `[]KeyValueHash` would trade one axiom for another, and a `?` hypothesis would add a
-  premise to every result reaching `store.compact`).
-- **Proposed change.** In Perennial: translate `slice.go` (`Slice`, `SliceStable`, `SliceIsSorted`) and
-  `zsortfunc.go` (`pdqsort_func` and the `_func` helpers, the same code as the interface ones over
-  `lessSwap`), with a trusted model of `reflectlite.Swapper` for slices (swap two elements of the slice
-  the interface holds; panics on a non-slice), and prove `sort.Slice` generically in the element type
-  (the order of `less` not required, as `sort.Sort.wp_anyLess`). A trusted-model change: a PR for
-  upamanyus's review.
-
-### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40)
-
-- **Limitation.** Where Go converts a value of a type parameter `T` to an interface implicitly (an
-  argument, a result, an assignment), Goose emits no `Convert T <iface>`: zap's
-  `internal/pool` (`pool.go`), `func (p *Pool[T]) Put(x T) { p.pool.Put(x) }`, is translated as
-  `MethodResolve (*sync.Pool) "Put" ... (![T] "x")`, passing the raw `T` value where `sync.Pool.Put`
-  takes an `any`; `New`'s closure `func() any { return fn() }` stores the raw result at type `any`.
-  Instantiated at `T = *zapcore.CheckedEntry`, Perennial's `Pool.Put.impl` compares `x =⟨go.any⟩ nil`
-  on a `Loc`, which has no step: the model is stuck where Go runs (incomplete, not unsound).
-- **Who needs it.** `zapcore.CheckedEntry.Write.wp_proof` (its last step, `putCheckedEntry`, is
-  `_cePool.Put(ce)`); any proof through a generic wrapper over an interface (zap's buffer and stack pools).
-- **Workaround.** `CheckedEntry.Write` stays a trust-boundary axiom (its entry `zapcore.zapEntry` is now
-  defined: not dirty, no hooks, no cores). zap-z1 had the rest of the proof (the entry's fields, the two
-  empty range loops, `putCheckedEntry`, zapcore's package fact giving `_cePool` an `isPool` with `R :=
-  False` through `pool.New`'s post, Perennial's `sync.Pool.wp_Put`) working up to that call.
-- **Proposed change.** Goose: at an assignability conversion whose source type is a type parameter and
-  whose target is an interface, emit `Convert T <iface>` (as for a non-generic `T`); `Convert` of a type
-  parameter instantiated with a non-interface type is then `interface.mkOk T v`.
+- **Limitation.** Perennial proves `sort.Sort` (and `slices.Sort`/`SortFunc`) only for a `Less` that agrees with
+  a strict weak order. `lease.leasesByExpiry`'s `Less` reads the clock, so the lease package and bbolt's
+  `Tx.write` use etcd-grove's trust-boundary axiom `sort.Sort.wp_anyLess` (`Spec/sort/SortAnyLess.lean`:
+  a permutation, no order).
+- **Proposed change.** In Perennial: order-free copies of the `pdqsort` helper proofs (each index bounded by
+  the slice, never by `Less`'s answers, as Go's code is), proving `sort.Sort`'s permutation-only spec. Found
+  while porting the helpers for `sort.Slice` (sortslice, the `*_func` copies, since dropped).
+- **Status.** Not started.
 
 ### klog's printf path: `bytes.Buffer.WriteByte`, `fmt` over `[]string`, `fmt.Fprint` (2026-11-23, klog-leaves, #25)
 
@@ -87,7 +124,15 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `fmt.printArgOk_bytesBuffer`; `bytes.Buffer.wp_Reset`) and `4074d4ac7` (strconv-quote: `Quote`,
   `AppendQuote` translated with `IsPrint` and its tables, specs with `s.length ≤ maxAddr`;
   `unicode/utf8`'s `DecodeRuneInString`, `AppendRune`, `ValidRune`). klog-infos (2026-11-23) proves
-  `Verbose.InfoS` over them; it builds only once the pin includes `4074d4ac7`.
+  `Verbose.InfoS` over them (in the pin since `b3f2fc485`).
+- **Status (2026-11-24, pin `580868e54`).** `fmt.Fprint` is modelled with a spec in Perennial
+  (`08164dd00`, `Perennial/Spec/fmt/Fprint.lean`); `WriteByte`, slices in the `fmt` model and
+  `strconv.AppendQuote` are still missing, so the klog axioms stay.
+- **Status (2026-11-24, pin `b3f2fc485`).** `strconv.AppendQuote` (and `Quote`) translated and proved in
+  Perennial (`327b68826`, `strconv.wp_AppendQuote`). The klog axioms stay: `bytes.Buffer.WriteByte` and
+  slices in the `fmt` model are still missing, and klog itself translates only `V`, `VDepth`, `newVerbose`,
+  `Level.get`, `logging` (`Code/k8s_io/klog/v2.toml`), so retiring `Verbose.InfoS` means translating
+  `InfoS`/`printS` and klog's sink and proving them: not a mechanical step of a pin bump.
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
@@ -243,6 +288,33 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   Perennial, then restate the local specs as theorems over Perennial's; for `WithCancelValCtx`, a
   `propagateCancel` spec for a parent whose `Done()` is a channel that is never closed.
 - **Status.** Not started in Perennial (to be filed by the claim's coordinator).
+- **Re-surveyed at the pin `b3f2fc485` (2026-11-24, branch `stdlib-leaves-3`).** Retired since the list
+  above: `bytes.Buffer.Write`/`Bytes`, `slices.Clone`/`Concat`, `context.WithCancelTodo`
+  (`stdlib-leaves-670`), `rand.Int63n`/`Int31` (`rand-retire`); `fmt.SprintfWalName` becomes a theorem
+  over real `fmt` stage 1's `fmt.wp_Sprintf_walName` with the pin bump to `50596346c` on
+  `prove-ps2-fmtstage1/2026-11-24` (not at `b3f2fc485`, whose `Sprintf` model leaves `%0Nx` arbitrary).
+  Nothing else is coverable at `b3f2fc485` (no Perennial change since `47ec64a9d` touches these
+  packages but `encoding/binary`'s varints and `fmt.Fprint`). What each remaining one needs:
+  - `strings.Contains`/`SplitN`/`ToLower`, `slices.ContainsFunc`, `io.Pipe`/`PipeWriter.CloseWithError`,
+    `os.Getenv`/`Getpagesize`, `math.Ceil`/`Pow`, `sort.SliceIsSorted`, `context.WithValue`: still names
+    only in Perennial, as above (`slices.ContainsFunc` is plain generic Go: adding it, with `IndexFunc`, to
+    `slices.toml` and a spec is the cheapest of them);
+  - `binary.WriteUint8`: `binary.Write` is translated now, but a named type of underlying `uint8` misses
+    `intDataSize`'s fast path and takes the reflection path (`reflect.Indirect`, `encoder.value`);
+  - `io.MultiReader`: Perennial's `bytes.wp_MultiReader_buffer` (a `*Buffer` then a reader keeping
+    `io.readerOkOut`) is the proof, but the local spec's reader is `backend.readerStreams rc Φ`, an opaque
+    that only the `io.Pipe` axiom gives: the proof needs `readerStreams` defined as an `io.readerOkOut`
+    contract (errors `ptrTyped`), which makes the trusted `io.Pipe` post say more (an approval), and the
+    spec needs `isPkgInit pkg_id.io` and `io.EOF`'s global, which `createSnapBody`'s proof must pass;
+  - `errors.AsNoMatch`: Perennial's `errors.As.spec` returns some `b` and `v'`, too weak for
+    `RET #false; l ↦ v` (needs a no-match triple in Perennial);
+  - `context.WithCancelValCtx`: unchanged (`propagateCancel`'s goroutine branch);
+    `context.madeCancelCtx_of_isCancelCtx` is a trusted law of the local opaque `madeCancelCtx`, not a
+    missing Perennial spec: it goes only if Perennial exports a "made by `context`" fact of a `*cancelCtx`;
+  - `fmt.SprintfSlice`, `fmt.ErrorfSlice` (`[]Decision`, a slice of structs: `printValue`, stuck by
+    design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
+    `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
+  - `time.Time.Format.wp_proofBroken`: `time`'s formatting is names only.
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
@@ -2156,6 +2228,53 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### Unary `+` (`GoUnOp GoPos`) has no semantics: `cmp.Compare` is stuck at `x > y` (2026-11-24, sortslice, claim #18)
+
+- **Limitation.** goose translates Go's unary `+x` as `GoUnOp GoPos t` (`goose/glang/lean.go`), but no
+  semantics rule steps it at any type: `Golang/Defn/Predeclared.lean` has `neg_untyped_int`, `neg_int`,
+  `neg_int64`, ... and no `pos_*` (still so at Perennial `lean` `4074d4ac7`). A program that evaluates `+x`
+  is stuck in the model. `cmp.Compare` (Go's `cmp/cmp.go`) returns `+1` for `x > y`, translated
+  `Convert untypedInt int (GoUnOp GoPos untypedInt #1)`.
+- **Needed by.** `mvcc.hashStorage.Store`, which (fork `a336e97f9`, `goose-lean-slicessort`) sorts with
+  `slices.SortFunc(s.hashes, func(a, b KeyValueHash) int { return cmp.Compare(a.Revision, b.Revision) })`
+  instead of `sort.Slice`. Its proof is complete over `cmp.Compare.spec` (at `int64`, `Spec/cmp/Compare.lean`,
+  proved here). (It replaces the 2026-11-23 entry "`sort.Slice` is
+  names-only": Upamanyu chose rewriting the call in the fork over a model of `reflectlite.Swapper`, #18;
+  `slices.SortFunc` is translated and proved in Perennial, `slices.wp_SortFunc`. mvccrand's `genLease`
+  keeps `sort.Slice` and its `Spec/sort/Slice.lean` hypothesis: `slices.Sort` needs `len ≤ 2^62`, which its
+  spec does not bound.)
+- **Workaround.** None: `Store` waited for the rule (the fork keeps the idiomatic `cmp.Compare`).
+- **Proposed change.** Complete the `neg_*` scheme in `Predeclared.lean` with an identity `pos_*` beside each
+  (`pos_untyped_int (v : Int) : ⟦GoUnOp GoPos go.untypedInt, #v⟧ ⤳ #v`, `pos_int`, ...: Go's `+x` is `0 + x`,
+  which for integers and floats is `x`), with a semantics test (`func testUnaryPlus() bool`) and Go evidence;
+  trusted, so `fix-semantics` with Upamanyu's sign-off (#18 issuecomment-7119669938). Then also `cmp.Compare`'s
+  spec belongs in Perennial (`Spec/cmp/Compare.lean`, as `cmp.Less`'s), and the local one goes.
+- **Status.** Landed: Perennial `b3f2fc485` (branch `unary-plus`, fix-semantics Case 50; approved by
+  Upamanyu, #18). `cmp.Compare`'s spec stays here (coordinator-E: keep it with the fork's use).
+### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40; landed: Perennial `6215ce3f2`/`13b0c562b`, in `c251bf25a`; workaround dropped 2026-11-23, branch `zap-z2`)
+
+- **Limitation.** Where Go converts a value of a type parameter `T` to an interface implicitly (an
+  argument, a result, an assignment), Goose emits no `Convert T <iface>`: zap's
+  `internal/pool` (`pool.go`), `func (p *Pool[T]) Put(x T) { p.pool.Put(x) }`, is translated as
+  `MethodResolve (*sync.Pool) "Put" ... (![T] "x")`, passing the raw `T` value where `sync.Pool.Put`
+  takes an `any`; `New`'s closure `func() any { return fn() }` stores the raw result at type `any`.
+  Instantiated at `T = *zapcore.CheckedEntry`, Perennial's `Pool.Put.impl` compares `x =⟨go.any⟩ nil`
+  on a `Loc`, which has no step: the model is stuck where Go runs (incomplete, not unsound).
+- **Who needs it.** `zapcore.CheckedEntry.Write.wp_proof` (its last step, `putCheckedEntry`, is
+  `_cePool.Put(ce)`); any proof through a generic wrapper over an interface (zap's buffer and stack pools).
+- **Workaround.** `CheckedEntry.Write` stays a trust-boundary axiom (its entry `zapcore.zapEntry` is now
+  defined: not dirty, no hooks, no cores). zap-z1 had the rest of the proof (the entry's fields, the two
+  empty range loops, `putCheckedEntry`, zapcore's package fact giving `_cePool` an `isPool` with `R :=
+  False` through `pool.New`'s post, Perennial's `sync.Pool.wp_Put`) working up to that call.
+- **Proposed change.** Goose: at an assignability conversion whose source type is a type parameter and
+  whose target is an interface, emit `Convert T <iface>` (as for a non-generic `T`); `Convert` of a type
+  parameter instantiated with a non-interface type is then `interface.mkOk T v`.
+- **Landed.** Perennial `6215ce3f2` (`handleImplicitConversion` emits `Convert T <target>` for a type-parameter
+  source) and `13b0c562b`, in `c251bf25a`. zap-z2 (2026-11-23) proves `zapcore.CheckedEntry.Write` over the
+  translation (`pool.Pool[T].Put`'s `Convert T go.any`), with `pool.Pool[T].Get`/`Put` specified over a pool of
+  pointers (`Spec/go_uber_org/zap/internal/pool/`; the conversion of a generic `T` steps only once `T`'s
+  underlying type is known, so the specs take `T = *E`).
 
 ### `reflect.Value` held in a variable: its typed points-to is `sorry` (2026-10-22, k8s etcd3; landed: Perennial `3eae9cd1f`, PR #672, in the pin `078ceec6f`; workaround dropped 2026-11-23, branch `reflect-r0`)
 
@@ -4096,6 +4215,19 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
 
+## SPSC receive that keeps the consumer after the close; `go.IntoValInj Unit` (prom-registry, 2026-11-22)
+
+- **Limitation.** `wp_spsc_receive` (`Chan/Idioms/Spsc.lean`) hands the consumer token to the invariant on
+  the receive that sees the channel closed and drained (taking `R`), so no later receive can be proved.
+  client_golang's `(*Registry).Register` receives again after its loop saw the close (its deferred
+  `for range descChan {}`).
+- **Workaround here.** `Proof/github_com/prometheus/client_golang/prometheus/SpscPeek.lean`:
+  `EtcdGrove.spsc_rcv_au_peek`/`wp_spsc_receive_peek`, a copy for a persistent `R` whose closed case
+  returns `R received ∗ spscConsumer γ received` (R duplicated, put back).
+- **Proposed general fix.** The same lemma in Perennial's `Spsc.lean` (for `[∀ l, Persistent (R l)]`).
+- **Also:** Perennial has no `go.IntoValInj Unit` instance (maps of `struct{}` values need it for
+  `ownMap_agree`); a local instance is in `RegInv.lean` (`unit_intoValInj`). Proposed for Perennial's
+  `IntoValInj` instances. Status: proposed only.
 ## 2026-11-22: two facts of Perennial's channel idioms proved locally (net/rpc client, branch `models-rpc-client`)
 
 - **Limitation.** The future idiom (`Golang/Theory/Chan/Idioms/Future.lean`) fulfils a promise only
@@ -4190,7 +4322,15 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   BI lemmas.
 - **Status.** Not filed yet.
 
-## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1)
+## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1) -- DONE (Perennial `af905abba`, in the pin `580868e54`, 2026-11-24, branch `pin-bump-580868e54`)
+
+- **Done (2026-11-24).** The pin `580868e54` has `readatleast-prefix`. The three local copies are now
+  Perennial's specs and proofs under their old names: `Dsverify/Proof/raxos/IoReadFull{,Spec}.lean`
+  (`raxos.ioLt.*`), epaxos's `Interface/IoReadFullPre.lean` and `replica/IoReadFull.lean`
+  (`ioReadAtLeastPre`, `ioReadFullPre`), rabia's `ConnRead.lean`/`ConnReadFull.lean`
+  (`io.ReadFull.specLt`, `wp_proofLt`; its `ReadAtLeast.specLt` copy deleted). Callers of Perennial's
+  specs over a `*bufio.Reader` (`raxos/Proxy/NetUnmarshal.lean`) re-prove the weaker premise
+  (`Nat.le_of_lt`).
 
 - **Limitation.** `io.ReadAtLeast.spec`'s premise is `∀ ys, ys.length ≤ len(buf) → Pre (r0 ++ ys)
   (len(buf) - ys.length)` (`io.ReadFull.spec`'s the same), so at `ys.length = len(buf)` it asks `Pre` of an
@@ -4216,7 +4356,7 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   `ioReadFullPre` (over the same translated `io` code, proved, no axiom); drop it for Perennial's on the
   pin bump that has the change.
 
-## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
+## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia) -- DONE (pin `580868e54`, 2026-11-24: the copy is Perennial's proof; entry above)
 
 - **Problem.** The rabia kit's `sendConf`/`awaitConf` call `io.ReadFull(conn, buf)` on a `net.Conn`
   (no `bufio`). Perennial's `io.ReadFull.spec` asks the reader's condition `Pre` at every
@@ -4278,6 +4418,29 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
   (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
   beside `Printf`'s. Not filed yet.
+
+## 2026-11-23: `io.WriteString` is not translated (net/rpc model, HTTP path)
+
+Perennial's `io` translates `WriteString` as a name only, so a translated body that calls it is stuck. net/rpc's
+`DialHTTPPath` and `ServeHTTP` write their handshake with `io.WriteString(conn, s)`. Worked around in the model
+(`models/net/rpc/{client,server}.go`, MODEL): `conn.Write([]byte(s))`, what `io.WriteString` does for a writer without a
+`WriteString` method (net's `*TCPConn`). The general fix: translate `io.WriteString` (its body: a type assertion to
+`io.StringWriter`, else `Write` of the string's bytes) with a spec over the writer's `Write` and `WriteString`
+contracts.
+
+## 2026-11-23: `strings.Cut` and `strings.TrimLeft` are names only (net/http model, `ReadResponse`)
+
+Perennial's `strings` translates `Cut` and `TrimLeft` as names only (see "`strings.Cut` has no model", 2026-11-08), so
+net/http's `ReadResponse` and `parseRequestLine`, which call them with a one-byte separator, were stuck. Worked around in
+the model (`models/net/http/textproto_model.go`, MODEL): `modelCutByte(s, c)` and `modelTrimLeftByte(s, c)`, Go's `Cut`
+(through `Index` of a one-byte separator, its first index) and `trimLeftByte` (what `TrimLeft` runs for a one-byte ASCII
+cutset), translated with their bodies and proved (`Net/Proof/net/http/`). The general fix: `Cut` trusted (as
+`HasPrefix`: `Index` runs `bytealg`) and `TrimLeft` translated in Perennial, with specs. Not filed yet.
+**Superseded (2026-11-23, the user's decision):** the stand-ins are removed; the model calls `strings.Cut`/`TrimLeft`
+as Go does, and their callers' proofs take `Spec/strings/Cut.lean`/`TrimLeft.lean` (Go's pure result) as callee
+hypotheses (`links_pending` in `Net/Proof/net/{http,rpc}/Results.lean`). Perennial's branch `strings-cut-lastindex`
+(`8ff6a1c79a`) translates their bodies (`bytealg`'s assembly as Go models); once it lands with proofs of these specs,
+the pending hypotheses are discharged.
 
 ## 2026-11-23: `runtime.Version` has no name (etcdserver's `init.0`, claim #39, branch `etcd-small-3`)
 

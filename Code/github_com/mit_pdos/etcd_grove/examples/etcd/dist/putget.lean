@@ -4,7 +4,6 @@ module
 public import Perennial.Code.context
 public import Perennial.Code.time
 public import Code.go_uber_org.zap
-public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Perennial.Golang.Defn
 
@@ -45,7 +44,7 @@ noncomputable def Client [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- holdForever keeps the process alive: the member serves until the machine is stopped.
 
-    go: putget.go:44:6 -/
+    go: putget.go:43:6 -/
 noncomputable def holdForever.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -62,14 +61,13 @@ noncomputable def holdForever.impl [GooseExts] [GoGlobalContext] : val :=
     served) and the client address client, serving etcd's gRPC API there; it returns only if a step
     fails (then the client's calls fail: no listener at client, or one whose member never answers).
 
-    go: putget.go:53:6 -/
+    go: putget.go:52:6 -/
 noncomputable def Member.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "peer"
   (Lam "client"
   (Seq (App (Val exceptionDo)
   (Let "client" (App (Val (GoInstruction (GoAlloc go.string))) (Var "client"))
   (Let "peer" (App (Val (GoInstruction (GoAlloc go.string))) (Var "peer"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val Name))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "peer"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
@@ -107,9 +105,7 @@ noncomputable def Member.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env.ClearProxy []))) (Val #())) (Val #())))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))))
   (Val #()))))
 
 /-- Client puts Key with Value through a client of the endpoint ep (the member's client address,
@@ -117,13 +113,12 @@ noncomputable def Member.impl [GooseExts] [GoGlobalContext] : val :=
     ran: false if a step failed first (each call in a context with the examples' request timeout,
     cancelled after the call).
 
-    go: putget.go:69:6 -/
+    go: putget.go:67:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ep"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "ep" (App (Val (GoInstruction (GoAlloc go.string))) (Var "ep"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "ep"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -249,18 +244,15 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env.ClearProxy []))) (Val #())) (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -271,8 +263,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -282,7 +272,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_env_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
 attribute [instance] Assumptions.holdForever_unfold
@@ -291,7 +280,6 @@ attribute [instance] Assumptions.holdForever_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
-  Assumptions.import_env_Assumption
   Assumptions.import_etcdstart_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget

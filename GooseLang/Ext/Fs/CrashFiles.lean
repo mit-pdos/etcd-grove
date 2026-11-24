@@ -3,10 +3,10 @@ What the ghost state of the files and of the tree (`Ghost.lean`) says across a c
 `Impl.lean`): a machine crash (a process's restart is one, by the environment's assumption on
 restarts). Untrusted.
 
-* **The tree** after a crash is a prefix of the old history replayed, nothing logged
-  (`TreeCrashed`, by `Crash.crash_seq`: the log is sequential), and the state after a crash is one
-  a program may start in (`machineCrash_init`: `FsInit`), so the new generation's ghost state is
-  allocated as the first generation's (`os_local_init`).
+* **The tree** after a crash keeps a closed set of the log's entries, with the committed ones
+  (`closed_cut`, from the disciplines of the tree's coherence, `TreeCohS`), and the state after a
+  crash is one a program may start in (`machineCrash_initS`: `FsInit`), so the new generation's
+  ghost state is allocated as the first generation's (`os_local_init`).
 * **A file** (`FileCrashedR`, `crashSeen_crashed`): the ghost bytes mirror each byte's crash
   candidates exactly, so a crash keeps of a file the old generation knew, as `m` with the bytes
   of the runs `rs`, a size within `m`'s crash bounds, on disk, and each byte of a run below that
@@ -31,86 +31,15 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-! ## The state after a crash, and what it keeps -/
 
-/-- What a crash did to the tree's history `V`: kept a prefix of it, nothing logged since (a machine
-crash: the durable tree with a prefix of the log replayed). -/
-def TreeCrashed (V V' : Hist) : Prop :=
-  ∃ n, n ≤ V.2.length ∧ V' = (replay ((V.2.take n).map (·.op)) V.1, [])
-
-/-- After a crash, nothing is logged. -/
-theorem treeCrashed_log {V V' : Hist} (h : TreeCrashed V V') : V'.2 = [] := by
-  obtain ⟨n, -, rfl⟩ := h; rfl
-
-/-- A history with nothing logged is its tree now. -/
-theorem now_nil (m : Tree) : Hist.now (m, []) = m := rfl
-
-/-- A crash may keep everything: the tree now, nothing logged. -/
-theorem treeCrashed_self (V : Hist) : TreeCrashed V (V.now, []) :=
-  ⟨V.2.length, Nat.le_refl _, by
-    show (V.now, ([] : List LogEntry)) = (replay ((V.2.take V.2.length).map (·.op)) V.1, [])
-    rw [List.take_length]; rfl⟩
-
-/-- A crash of a crash is a crash. -/
-theorem treeCrashed_trans {V V' V'' : Hist} (h1 : TreeCrashed V V') (h2 : TreeCrashed V' V'') :
-    TreeCrashed V V'' := by
-  obtain ⟨n, hn, rfl⟩ := h1
-  obtain ⟨n', hn', rfl⟩ := h2
-  have : n' = 0 := by simpa using hn'
-  subst this
-  exact ⟨n, hn, rfl⟩
-
 section after
 variable {st st' : OsState} {Γb : GMap (Ino × Nat) ByteG} {Γm : GMap Ino OsMeta}
-  {Γf : GMap w64 OsFd} {Γt : GMap Nat TokInfo} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
-  {Γc : GMap Nat CallV}
+  {Γf : GMap w64 OsFd} {Γt : GMap Nat TokInfo} {Γc : GMap Nat CallV}
 
-/-- After a machine crash, the state is one a program may start in. -/
-theorem machineCrash_init (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
-    (hc : MachineCrash st st') :
-    FsInit st' ∧ ∃ n, n ≤ st.fs.metaLog.length ∧
-      st'.fs.treeDur = replay ((st.fs.metaLog.take n).map (·.op)) st.fs.treeDur := by
-  obtain ⟨hp, hr, hlog, hcom, hino, -, ⟨S, hSlt, -, hcl, htr⟩, hfiles⟩ := hc
-  obtain ⟨n, hn, hk⟩ := crash_seq htc.seq hSlt hcl
-  rw [hk] at htr
-  obtain ⟨hwf, hnamed, hlt⟩ := htw.hist n hn
-  refine ⟨⟨hp, hlog, hcom, by rw [hr]; exact htw.roots, by rw [hr, htr]; exact hwf, ?_, ?_, ?_, ?_⟩,
-    n, hn, htr⟩
-  · intro i hi
-    obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi
-    rw [hf']; simp
-  · intro i f hf
-    by_cases hi : Named st'.fs.treeDur i
-    · refine ⟨hi, ?_⟩
-      obtain ⟨f0, f', -, ⟨sz, vs, -, hmx, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
-      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, hmx, rfl⟩
-    · rw [(hfiles i).2 hi] at hf; cases hf
-  · intro i hi
-    rw [hino]
-    have hn' : Named st'.fs.treeDur i := by
-      apply Classical.byContradiction; intro hn'
-      rw [GMap.mem_iff, (hfiles i).2 hn'] at hi; cases hi
-    rw [htr] at hn'
-    obtain ⟨f, hf⟩ := hnamed i hn'
-    exact htw.files_lt i (by rw [GMap.mem_iff, hf]; rfl)
-  · intro j hj; rw [hino]; rw [htr] at hj; exact hlt j hj
-
-/-- **What a crash keeps of the tree**: the new state is one a program may start in, on the same
-roots, its history (nothing logged) a crash of the old one, and every file it names is there. -/
-theorem osCrash_rel (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc) (hc : OsCrash st st') :
-    FsInit st' ∧ st'.fs.roots = st.fs.roots ∧ TreeCrashed V (st'.fs.treeDur, []) ∧
-      ∀ i, Named st'.fs.treeDur i → (st'.fs.files !! i).isSome := by
-  obtain ⟨hinit, n, hn, htr⟩ := machineCrash_init htw htc hc
-  have hfiles := hc.2.2.2.2.2.2.2
-  refine ⟨hinit, hc.2.1, ⟨n, ?_, ?_⟩, fun i hi => ?_⟩
-  · rw [htc.hist]; exact hn
-  · rw [htc.hist, htr]
-  · obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi
-    rw [hf']; rfl
-
-/-- **After a machine crash in the shared mode, the state is one a program may start in**
+/-- **After a machine crash, the state is one a program may start in**
 (`closed_cut`, from the shared mode's disciplines on the log), and each slot of the new tree holds
 what it held right after the last kept entry writing it. -/
-theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
-    {Γg : GMap Nat CallV} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : MachineCrash st st') :
+theorem machineCrash_initS {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
+    {Γg : GMap Nat CallV} (htc : TreeCohS st Γdf Γc Γg) (hc : MachineCrash st st') :
     FsInit st' ∧ ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧
       (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
@@ -142,11 +71,11 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
     obtain ⟨t, ht, hjt⟩ := hkeys j hj
     exact (htw.hist t ht).2.2 j hjt
 
-/-- **What a crash keeps of the tree, in the shared mode**: the new state is one a program may
+/-- **What a crash keeps of the tree**: the new state is one a program may
 start in, on the same roots, every file it names is there, and the crash kept a closed set of the
 log's entries, with the committed ones, each slot as right after its last kept writer. -/
-theorem osCrash_relS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
-    {Γg : GMap Nat CallV} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : OsCrash st st') :
+theorem osCrash_relS {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
+    {Γg : GMap Nat CallV} (htc : TreeCohS st Γdf Γc Γg) (hc : OsCrash st st') :
     FsInit st' ∧ st'.fs.roots = st.fs.roots ∧
       (∀ i, Named st'.fs.treeDur i → (st'.fs.files !! i).isSome) ∧
       ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧
