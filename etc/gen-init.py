@@ -263,6 +263,13 @@ inst = instances()
 # part's copies of `os`'s initializers). `@` marks a full module name.
 inv['net'] = inventory('Net/Code')['net']
 inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
+# (#24 J3, 2026-11-23) the encoding/json model's same-package methods in membership
+# (`json_model_gen.go`, `etc/goose.py`'s overlay) call `models.lab/jsoncodec`, the part `Net/`'s
+# translation (`models.lab=Net`), with its `IsPkgInit` instance in
+# `Net/Proof/models_lab/jsoncodec/Base.lean` (`True`); its main-tree `Init.lean` is generated here
+# over the main tree's imports, as `net`'s (and as #37's `models_lab.pbcodec`).
+inv['models_lab.jsoncodec'] = inventory('Net/Code')['models_lab.jsoncodec']
+inst['models_lab.jsoncodec'] = [('@Net.Proof.models_lab.jsoncodec.Base', 'iprop(True)')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -659,6 +666,17 @@ class _AnyType(dict):
 
 _ALLOC_ANY = _AnyType()
 
+# (#24 J2, 2026-11-23) the encoding/json model's codec registry with its bodies: `codecMu` and
+# `codec`, zero (the registry's mutex and its nil `*Codec`), left to the program: a deployment that
+# registers a codec takes `codecMu`'s mutex and `codecUnset` (half of `codec` at nil) from its boot,
+# as net/rpc's (`Proof/encoding/json/Registry.lean`).
+SPECIAL['encoding.json'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates the codec registry's variables (`codecMu`, `codec`:
+zero) and initializes its imports (`sync`, `io`); a program that registers a codec takes the
+registry's mutex and the codec's nil cell from its boot (`Registry.lean`: `codecInv`, `codecUnset`).''',
+    alloc_types=_ALLOC_ANY,
+)
+
 SPECIAL['os'] = dict(
     doc='''Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
 initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's): its
@@ -755,6 +773,12 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 )
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
+
+# (2026-11-23, Perennial 47ec64a9d translates `math/rand`'s global generator) `math.rand`'s fact stays
+# `True` here (`Proof/math/rand/Base.lean`, not Perennial's `isInit`): its initializer allocates
+# `globalRandGenerator` (dropped) and initializes `sync/atomic` and `sync`. Its other variables are
+# skipped by Perennial's configuration, so no `opaqueInitsOk` axiom any more.
+SPECIAL['math.rand'] = dict(alloc_types=_ALLOC_ANY)
 
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
 # `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the

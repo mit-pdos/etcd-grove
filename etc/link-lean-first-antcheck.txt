@@ -1,0 +1,239 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean`
+# (the checker of Antithesis's model of raft, #33 S3b, notes/antithesis-check-design.md §10; all
+# Lean-first, no Rocq counterpart), read by `etc/gen-link.py --antcheck`: `<fn>: <callees in the
+# order of <fn>.wp_proof's hypotheses>`. Every function of the checker with a proof
+# (`check/<fn>.lean`); none takes the spec of another package's function as a hypothesis.
+At:
+EntriesEqual: Entry__Equal
+Entry__Equal: Value__Equal
+IsPrefix: SubSeq EntriesEqual
+SubSeq:
+TermAt:
+Value__Equal: stringsEqual
+stringsEqual:
+State__clone:
+State__Made: State__clone setPre
+State__idx:
+setConf:
+setConfirmed:
+setInt:
+setLog:
+setMsgs:
+setPre:
+setQueue:
+setReads:
+setStr:
+Msg__need:
+Msg__typ: Msg__need
+Msg__from: Msg__need
+Msg__to: Msg__need
+Msg__term: Msg__need
+Msg__index: Msg__need
+Msg__logTerm: Msg__need
+Msg__entries: Msg__need
+Msg__commit: Msg__need
+Msg__reject: Msg__need
+Event__has:
+Event__need:
+Event__by: Event__need
+Event__role: Event__need
+Event__term: Event__need
+Event__vote: Event__need
+Event__commit: Event__need
+Event__first: Event__need
+Event__entries: Event__need
+Event__lastIndex: Event__need
+Event__lastTerm: Event__need
+Event__applied: Event__need
+Event__voters: Event__need
+Event__outgoing: Event__need
+Event__snap: Event__need
+Event__msg: Event__need
+Event__cause: Event__need
+Event__w: Event__need
+Event__more: Event__need
+Event__index: Event__need
+Event__ctx: Event__need
+msgSeqHead:
+strLess:
+SetAdd: strLess
+SetOf: SetAdd
+Set__Has:
+Set__Union: SetAdd
+Set__Minus: Set__Has
+Set__Equal:
+interCount: Set__Has
+violAdd: SetAdd
+Value__rec:
+Concat:
+Min:
+Max:
+Conf__Equal: Set__Equal
+intsHas:
+Init0:
+factsHas:
+factsAdd: factsHas
+factsUnion: factsAdd
+factsMinus: factsHas
+votesHas:
+votesAdd: votesHas
+votesUnion: votesAdd
+votesMinus: votesHas
+leadersHas:
+leadersAdd: leadersHas
+TermLogs__Has:
+TermLogs__Get:
+TermLogs__With:
+TermLogs__Without: intsHas
+TermConfs__Get:
+TermConfs__With:
+TermConfs__Without: intsHas
+TermInts__Has:
+TermInts__Get:
+TermInts__With:
+TermInts__Without: intsHas
+IsConf:
+State__LastTerm: TermAt
+State__InitConf:
+Majority: interCount
+IsQuorum: Majority
+State__UpToDate: State__LastTerm
+State__VoteRequest: State__LastTerm
+State__ElectionSafety:
+State__OneVotePerTerm:
+confsAfterCount: IsConf
+State__AllSwitched: confsAfterCount
+State__OneWaiting: confsAfterCount
+State__PrevOk: At
+State__HasFirst: At
+Target: Value__rec SetOf Set__Union Set__Minus
+NextConf: Value__rec Target
+Legal: Value__rec Target Set__Minus Set__Union
+LastConf: At IsConf
+ConfOf: At IsConf NextConf
+State__Granted: factsHas SetAdd votesHas
+State__Acked: SetAdd
+
+# --- The parallel phase (notes/antithesis-check-design.md §10.2): each group adds its lines under its
+# --- own header only (the headers keep the groups' hunks apart for git).
+
+# W1 (the binding's operators)
+VoteFact: Msg__from Msg__term Msg__index Msg__logTerm
+ToAppendFact: Msg__from Msg__to Msg__term Msg__index Msg__logTerm Msg__entries Msg__commit
+AckFact:
+IsReq: Msg__typ
+SnapOk: Msg__typ Msg__term Msg__index Msg__logTerm TermLogs__Has TermLogs__Get TermAt
+ReqFactIn: Msg__typ Msg__term Msg__index Msg__from Msg__to TermLogs__Has TermLogs__Get SubSeq ToAppendFact
+State__BootTerm:
+State__VoteOf: State__BootTerm
+State__Vote: State__VoteOf
+RecordedIn: SubSeq EntriesEqual
+SendableIn: leadersHas TermLogs__Has TermLogs__Get TermAt SubSeq EntriesEqual RecordedIn
+State__Sendable: SendableIn
+Comparable: IsPrefix
+Matching: Min Entry__Equal
+State__MemCommit: Event__commit
+SameConf: Event__has Event__voters Event__outgoing SetOf Set__Equal
+State__EffTerm: Min
+State__Over: State__EffTerm
+Recovered: Event__term Event__vote Event__commit Event__lastIndex Event__lastTerm TermAt
+Lowest: Min
+validBy:
+isForwarded:
+isUnmodelled:
+State__queued: Event__by
+
+# W2 (the small actions)
+State__Wrote: State__clone setPre
+State__SnapEv: State__clone Event__index Event__term TermAt
+State__ReadAsked: State__clone Event__ctx setReads
+State__ReadGiven: State__clone Event__ctx Event__index setReads violAdd
+State__Recv: State__clone Event__msg Msg__to Msg__term IsReq SnapOk ReqFactIn State__Sendable setMsgs
+State__ApplyEv: State__clone Event__first Event__entries Event__has SubSeq EntriesEqual setInt setPre State__MemCommit violAdd
+State__RestoreEv: State__clone Event__index Event__has SubSeq EntriesEqual setInt setPre State__InitConf ConfOf SameConf
+State__ConfEv: State__clone Event__index SubSeq EntriesEqual At IsConf Legal RecordedIn NextConf SameConf setConf setInt TermConfs__With TermInts__With
+State__Net: State__clone setPre Event__term Event__vote Event__commit Event__entries Event__first State__Vote SubSeq EntriesEqual
+
+# W3 (InMemory)
+inMem__T: Event__term
+inMem__c: Event__commit
+inMem__snapsM: Event__has
+inMem__leads: Event__role
+inMem__role1: Event__role
+inMem__es: Event__has Event__entries
+inMem__known: inMem__T TermInts__Has TermInts__Get
+inMem__wins: inMem__leads
+inMem__app: inMem__leads inMem__es
+inMem__ld1: inMem__wins inMem__T leadersAdd
+inMem__ll1: inMem__wins inMem__T TermLogs__With
+inMem__lc1: inMem__wins inMem__T TermConfs__With
+inMem__ll2: inMem__app inMem__ll1 inMem__T inMem__es TermLogs__Has TermLogs__Get TermLogs__With Concat
+inMem__L: inMem__ll2 inMem__T TermLogs__Has TermLogs__Get
+inMem__newC: inMem__L inMem__c SubSeq
+inMem__cmt: inMem__leads inMem__c inMem__known inMem__L inMem__T TermAt
+inMem__ok: inMem__T inMem__leads inMem__wins inMem__snapsM inMem__ll1 inMem__lc1 inMem__L inMem__c inMem__es inMem__app inMem__cmt Event__by Event__role Event__snap Event__has Event__first validBy TermLogs__Has TermLogs__Get TermConfs__Get State__Granted State__Acked State__OneWaiting State__AllSwitched IsQuorum RecordedIn IsConf Legal
+
+State__InMemory: inMem__ok inMem__role1 inMem__ld1 inMem__ll2 inMem__lc1 inMem__snapsM inMem__wins inMem__T inMem__cmt inMem__c inMem__newC setStr setConf setInt ConfOf LastConf State__InitConf Event__snap Event__role TermInts__With Comparable violAdd IsPrefix SubSeq Set__Has
+
+# W4a (onDisk's methods)
+onDisk__w:
+onDisk__K: onDisk__fm onDisk__L0 At
+onDisk__L0:
+onDisk__L1: onDisk__stores onDisk__L0 onDisk__first onDisk__es SubSeq Concat
+onDisk__T0:
+onDisk__T1: onDisk__w Event__term
+onDisk__V1: onDisk__T0 onDisk__T1 State__Vote
+onDisk__ackAt: onDisk__below onDisk__last
+onDisk__acks: onDisk__stores onDisk__leads onDisk__moved onDisk__hasM onDisk__m Msg__typ onDisk__takes onDisk__below
+onDisk__adopt: onDisk__T0 onDisk__T1 onDisk__elect
+onDisk__adv: onDisk__w Event__commit
+onDisk__bat: onDisk__w Event__has
+onDisk__below: onDisk__isApp onDisk__fm
+onDisk__ch1: onDisk__adv onDisk__newC
+onDisk__conf1: onDisk__stores onDisk__T1 onDisk__last onDisk__acks onDisk__below Max
+onDisk__elect: onDisk__w onDisk__T0 onDisk__T1 Event__role
+onDisk__es: onDisk__w onDisk__snaps onDisk__takes onDisk__fm onDisk__K onDisk__bat SubSeq Event__entries
+onDisk__f: onDisk__leads onDisk__T1 onDisk__es onDisk__stores onDisk__first onDisk__moved onDisk__fm onDisk__w Event__commit TermLogs__Has TermLogs__Get TermAt
+onDisk__first: onDisk__w onDisk__snaps onDisk__takes onDisk__fm onDisk__K onDisk__L0 Event__has Event__first
+onDisk__fm: onDisk__m ReqFactIn
+onDisk__hasM:
+onDisk__isApp: onDisk__bat onDisk__hasM onDisk__m onDisk__T1 Msg__typ Msg__term
+onDisk__k_i: onDisk__first onDisk__f
+onDisk__last: onDisk__f
+onDisk__leads: onDisk__w Event__role
+onDisk__m: msgSeqHead
+onDisk__moved: onDisk__w Event__commit
+onDisk__newC: onDisk__L1 onDisk__w Event__commit SubSeq
+onDisk__old: onDisk__T1 TermInts__Has TermInts__Get
+onDisk__snaps: onDisk__w Event__has
+onDisk__stores: onDisk__es
+onDisk__takes: onDisk__isApp onDisk__below onDisk__fm State__PrevOk
+onDisk__voted: onDisk__w onDisk__V1 Event__vote
+
+# W4b (OnDisk)
+
+# W5 (Send, Boot)
+
+# W6 (Ready .. Flush, Bind, GC, Step)
+State__OldVotes: State__idx State__EffTerm
+State__StaleLed: State__Over
+State__Garbage: State__idx State__EffTerm State__Over factsHas
+State__GCDue: State__Garbage State__OldVotes State__StaleLed
+State__GC: State__Garbage State__OldVotes State__StaleLed State__Over State__clone factsMinus votesMinus TermLogs__Without TermConfs__Without TermInts__Without
+State__Flush: =AntCheck.State.onDisk_keeps State__OnDisk Event__more setQueue
+State__Write: =AntCheck.State.onDisk_keeps State__OnDisk Event__term Event__vote Event__commit Event__first Event__entries EntriesEqual setQueue
+State__Mem: =AntCheck.State.inMemory_lengths State__InMemory State__clone State__queued Event__w setQueue
+State__Ready: =AntCheck.State.onDisk_keeps =AntCheck.State.inMemory_lengths =AntCheck.State.inMemory_within State__InMemory State__OnDisk State__queued
+State__Bind: State__Boot State__Recv State__Ready State__Mem State__Write State__Wrote State__Flush State__Net State__Made State__Send State__ApplyEv State__RestoreEv State__ConfEv State__SnapEv State__ReadAsked State__ReadGiven
+State__Step: State__idx State__Bind
+
+# W7 (check.go, Run)
+violated: State__ElectionSafety State__OneVotePerTerm
+NewChecker: Init0
+Checker__End:
+Checker__Next: violated State__GCDue State__GC State__Step =AntCheck.State.gc_within
+
+State__Boot: State__clone setPre setMsgs setQueue setReads setStr Recovered State__Vote SubSeq Concat State__VoteOf setInt setLog setConfirmed factsMinus votesMinus Event__has Event__applied EntriesEqual ConfOf State__InitConf setConf LastConf SameConf
+State__Send: State__clone Event__msg Event__has Event__cause Msg__from Msg__typ Msg__to Msg__term Msg__reject Msg__index isForwarded Set__Has setPre factsHas VoteFact votesHas factsAdd IsReq SnapOk ReqFactIn State__Sendable AckFact msgSeqHead State__PrevOk State__HasFirst Max setConfirmed State__EffTerm isUnmodelled
+State__OnDisk: onDisk__w onDisk__isApp onDisk__fm onDisk__T1 onDisk__T0 onDisk__elect onDisk__adopt onDisk__hasM onDisk__m onDisk__voted onDisk__V1 onDisk__snaps onDisk__leads onDisk__stores onDisk__first onDisk__L0 onDisk__f onDisk__k_i onDisk__es onDisk__moved onDisk__L1 onDisk__conf1 onDisk__acks onDisk__ackAt onDisk__ch1 onDisk__adv onDisk__old onDisk__newC SendableIn Event__vote Event__snap Event__commit Msg__term Msg__typ Msg__from Msg__index Msg__logTerm factsHas VoteFact State__UpToDate SnapOk State__PrevOk State__HasFirst EntriesEqual SubSeq At IsReq State__clone setInt setStr setLog setConfirmed factsAdd State__VoteRequest AckFact votesAdd factsMinus votesMinus setPre Min Concat factsUnion votesUnion Lowest TermInts__With Max violAdd Comparable IsPrefix Matching
+Run: NewChecker Checker__Next Checker__End =AntCheck.State.step_within =AntCheck.State.gc_within =AntCheck.State.step_cfg

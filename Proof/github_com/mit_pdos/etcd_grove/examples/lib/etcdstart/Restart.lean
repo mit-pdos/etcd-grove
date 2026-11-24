@@ -92,7 +92,8 @@ def memberRestartFacts (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
     -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode (`RestartNode`'s)
     ⌜¬ clusterNoSnap γ.cl⌝ ∗
     srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗ idNoZero ρ.ids ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
     ∃ x : GName, idKeyFactAt ρ.ids.fs ρ.ids.key x)
 
@@ -119,8 +120,8 @@ theorem memberBoot_restartFacts (γ : SrvRaft) (ctxs : List (List w8)) (ρ : Req
       memberRestartFacts γ ρ id ∗ memberBoot γ ctxs ρ E₀ Φs id false .none := by
   iintro H
   iunfold memberBoot at H
-  icases H with ⟨%Hρ, %Hnsn, Hnb, #Hsrl, #Hidc, #Hkf, #Hnz, #Hpm, #Hrc, Hsh, Hwt, Hfr, Hcok, Hrev, Hrdf,
-    #Hkv, Hreg, Hsd⟩
+  icases H with ⟨%Hρ, %Hnsn, Hnb, #Hsrl, #Hidc, #Hpfxi, #Hkf, #Hnz, #Hpm, #Hrc, Hsh, Hwt, Hfr, Hcok, Hrev,
+    Hrdf, #Hkv, Hreg, Hsd⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hρ
   isplitr
   · iunfold memberRestartFacts
@@ -162,7 +163,8 @@ def memberRestartBoot (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     -- (auth-lease S4, 2026-11-16) the cluster outside raft's no-snapshot mode (`RestartNode`'s)
     ⌜¬ clusterNoSnap γ.cl⌝ ∗
     srvRaftLogInv ρ.rd.raft ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+    idPfxInv ρ.ids.gen ρ.ids.pfx ∗
     idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
     idShare ρ.ids ∗ idWaitTok ρ.ids ∗
@@ -174,10 +176,10 @@ def memberRestartBoot (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
 open Iris.ProofMode in
 /-- **A registered key's prefix is good** (the claims' invariant: every key of the keys' map has a
 good prefix, and the facts' map has the keys' domain). -/
-theorem idKeyFact_pfxOk {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+theorem idKeyFact_pfxOk {X : Type} [Pos.Countable X] (issued cnt wn fs gen : GName)
     (Φs : X → w64 → List w8 → GName → IProp GF) (k : IdKey) (x : X) (E : CoPset)
     (HE : ↑idClusterN ⊆ E) :
-    ⊢ idClusterInv (GF := GF) issued cnt wn fs Φs -∗ idKeyFactAt fs k x ={E}=∗ ⌜idPfxOk k.1⌝ := by
+    ⊢ idClusterInv (GF := GF) issued cnt wn fs gen Φs -∗ idKeyFactAt fs k x ={E}=∗ ⌜idPfxOk k.1⌝ := by
   iintro #Hcl #Hk
   iunfold idClusterInv at Hcl
   iinv Hcl with Hi Hclose
@@ -203,7 +205,7 @@ new certificate map `cok` and applied height `hi`, and the ids at a new incarnat
 with new slot and pending maps (`slot`, `ipend`). -/
 def restartReqNames (ρ : ReqNames) (cursor applied committed notifier logs pend cok hi slot ipend : GName)
     (inc : Nat) : ReqNames :=
-  let ids : IdNames := ⟨ρ.ids.issued, ρ.ids.cnt, slot, ρ.ids.pfx, ρ.ids.wn, inc, ρ.ids.fs, ipend⟩
+  let ids : IdNames := ⟨ρ.ids.issued, ρ.ids.cnt, slot, ρ.ids.pfx, ρ.ids.wn, inc, ρ.ids.fs, ipend, ρ.ids.gen⟩
   let kv : KVNames := ⟨ρ.rd.kv.st, ρ.rd.kv.c0, ρ.rd.kv.ch0, ρ.rd.kv.log0, cok, hi, ids, ρ.rd.kv.hist,
     ρ.rd.kv.cmp, ρ.rd.kv.rlog, ρ.rd.kv.cret, ρ.rd.kv.lm, ρ.rd.kv.gps⟩
   ⟨ρ.wait, ⟨cursor, applied, committed, notifier, logs, pend, ρ.rd.raft, kv⟩⟩
@@ -229,12 +231,12 @@ theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRa
         ⌜restartNames ρ ρ'⌝ ∗ memberRestartBoot γ ρ' E₀ Φs id := by
   iintro #Hf
   iunfold memberRestartFacts at Hf
-  icases Hf with ⟨%Hρ, %Hnsn, #Hsrl, #Hidc, #Hnz, #Hpm, #Hrc, #Hkv, %x, #Hkf⟩
+  icases Hf with ⟨%Hρ, %Hnsn, #Hsrl, #Hidc, #Hpfxi, #Hnz, #Hpm, #Hrc, #Hkv, %x, #Hkf⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hρ
-  imod (idKeyFact_pfxOk _ _ _ _ _ _ _ ⊤ (by simp)) $$ Hidc Hkf with %Hpok
+  imod (idKeyFact_pfxOk _ _ _ _ _ _ _ _ ⊤ (by simp)) $$ Hidc Hkf with %Hpok
   imod newServerNames_alloc (GF := GF) with ⟨%γs, %cok, %rev, Hidx, Hcok, Hrev⟩
   have γm : mvcc.api.MvccName := Classical.choice hne.1
-  imod (idIncarnation_alloc (GF := GF) _ _ _ _ srvFloorFacts ρ.ids.pfx γs.slog ⊤ (by simp) Hpok)
+  imod (idIncarnation_alloc (GF := GF) _ _ _ _ _ srvFloorFacts ρ.ids.pfx γs.slog ⊤ (by simp) Hpok)
     $$ Hidc with ⟨%inc, Hk, Hwt, #Hkf'⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γpd, Hpend⟩
@@ -261,7 +263,7 @@ theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRa
     refine ⟨h1, h2, h3, h4, h5, ?_, ?_, h6, ?_, h7⟩ <;> first | trivial | rfl
   isplitr
   · ipureintro; exact Hnsn
-  iframe Hsrl Hidc Hkf' Hpm Hrc Hkv Hidx Hcok Hrev
+  iframe Hsrl Hidc Hpfxi Hkf' Hpm Hrc Hkv Hidx Hcok Hrev
   isplitr
   · iunfold idNoZero; iunfold idNoZero at Hnz; iexact Hnz
   isplitl [Hk Hsl Hpend]
