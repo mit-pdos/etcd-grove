@@ -80,8 +80,7 @@ axiom etcdStreamInterceptor
 axiom etcd_dist.Client_Get_dist.wp_proof
 axiom etcd_dist.Client_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
-axiom etcd_dist.etcdAddrRaw
-axiom etcd_dist.etcdAddr_set
+axiom etcd_dist.etcdSvc
 axiom etcd_noRefusal
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
