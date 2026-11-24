@@ -221,7 +221,7 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   messages leave after `Save` returns); the WAL's `walImg`/`walRead` then read a torn `Save` as none, and
   T1 is not needed; (b) prove T1 and add a test-backed `issues/` entry for the bootstrap variant, with a
   premise excluding it; (c) restrict the theorem. (a) is a Go change with its own `issues/` report.
-* **Q2**: `W1` becomes a premise of every member machine's crash (finding 4); it is pending review.
+* **Q2**: `W1` becomes a premise of every member machine's crash (finding 4); it is pending review. Decided by the lead: into the semantics (`etcdCQ`), not a top-level premise; owner packet below (§Q2 packet).
 * **Q3**: the received-snapshot crash window (`σ.b > i` with a `.snap.db`): extend `wal.crashImage` or
   show etcd's order (`SaveDBFrom` synced before `SaveSnap`) excludes it.
 * **Q4**: the storage registry across a crash. `ρ.rd.raft` names the registry (`SrvRaft.reg`), and
@@ -229,3 +229,36 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   dead locations is harmless). `memberRestart` leaves the registry name free (`γ' = {C.γ with reg := r}`);
   T4 decides.
 * **Q5**: D4b's crash interpretation (§5).
+
+## §Q2 packet: `W1` as `etcdFsSem`'s crash premise (for the owner, 2026-11-24)
+
+**Today.** `etcdFsSem := Fs.fsSemWithS etcdSQ (fun _ _ => True)` (`examples/lib/etcdstart/FsExts.lean`): a member's
+crash is any `OsCrash` (any byte-wise mix of each unsynced byte's candidates). The WAL's crash proof
+(`walInv_crash`) needs `W1`, which the single-machine WAL tester assumes as its crash premise (`tQ`,
+`WalTester/.../wal/Adequacy.lean`); `etcd_safe` cannot use the WAL proof without it.
+
+**With this change** (branch `etcd-safe-crashskel/2026-11-24`, trusted lines in `FsExts.lean`):
+```lean
+abbrev etcdCQ : Fs.OsState → Fs.OsState → Prop := fun st st' => WalFs.W1 walCodec st st'
+@[reducible] def etcdFsSem : ExtSemantics Fs.fsExt := Fs.fsSemWithS etcdSQ etcdCQ
+```
+`W1` (`Proof/go_etcd_io/etcd/server/v3/storage/wal/W1.lean`, unchanged): every WAL frame a fresh reader accepts
+after a crash has its core as of one change. The crash corollary and the skeleton use it
+(`etcdNetExtsCrashInterp` with `fs_crash_interpS etcdSQ etcdCQ`; `EtcdBootC`'s `CrashBootWpG etcdCQ`). New semantics
+example `examples/osfs/semantics/premise_w1.go` (indexed in `doc.go`).
+
+**Why.** The WAL's recovery is correct only if a torn frame is rejected, which etcd delegates to the CRC
+(`decoder.go:133-150`); the semantics allows any mix. In the semantics, not a top-level premise (the lead's decision):
+the same place as the existing step premise `etcdSQ` (no I/O error), and no theorem whose machines never crash sees
+it (the single-process theorems, `etcd_safe_nocrash`, `putget_safe`: `Robust []` has no crash step; they rebuilt
+unchanged).
+
+**Risk.** Review `notes/axiom-review/w1-etcdfssem.md` (suspect, by design): `W1` excludes real crashes beyond CRC
+collisions: an intended frame whose zero tail is still in the encoder's buffer (real on C; for etcd byte-identical
+to an allowed later crash image), and a torn `Type` field over stale nonzero bytes (not produced by etcd's file
+handling). It covers every `.wal` file on a member's machine, so it is a claim about the deployment's programs
+(only etcd's member runs there), not about Linux. Satisfiable (`W1Sat`), so no execution is cut short by it.
+
+**Recommendation.** Accept for `etcd_safe` as the WAL tester's premise reused (rule: reuse audited premises), and keep
+the planned restatement to the CRC-only target (*no CRC-32C collision on the `Data` of a frame over zeros*,
+`notes/wal-fsext-plan.md`, "W1's target") as the follow-up that removes the two excluded real-crash classes.
