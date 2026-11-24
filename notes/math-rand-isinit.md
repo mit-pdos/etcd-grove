@@ -164,7 +164,18 @@ except `(*Rand).Intn` (proved) and `raxos.hyp.sync.MapHyp.ivt`, a premise about 
 (`sync.Map`'s memory respects its typed points-to), whose instance here restates Perennial's own
 `sorry` instances of `internal/sync.HashTrieMap` as a local axiom: it is as satisfiable as those.
 
-## Checks (final head, scratch dropped)
+## State (2026-11-24 evening, head after the restructure)
+
+Source checks at this head: `etc/gen-init.py --check` (PERENNIAL_DIR=/shared/perennial-fce59af75)
+up to date; `etc/dsv/kitgen.py --check` ok; `etc/dsv/_gryff_boot.py --check` ok. The full build
+(`build-slot.sh lake --packages=/shared/tmp/manifest-fce59af7.json build`) was **stopped at
+24100/28231 jobs with no error**, /shared down to 62 GB free (the 60 GB floor); built by then:
+`Dsverify.Proof.math.rand.IntnPos`, client/v3's `InitLinked`, `k8s.authz.TopLevelRobustness`; not
+yet: the four kits' `TopLevelRobustness` and `NonVacuityLinked`, `RandsInstancesLinked`, `mvccrand`,
+v3rpc's `InitLinked`. Left: finish the build, `#print axioms`, `etc/tcb-report.py --check --update`,
+`etc/gates.sh`, STATUS.
+
+## Checks (the previous head 1cd81c4b8a, on rand-retire, scratch dropped)
 
 * `etc/tier-check.py --check`: ok (227 known violations, none new).
 * `etc/gen-init.py --check` (`PERENNIAL_DIR`): 272 files up to date; `etc/dsv/kitgen.py --check`: ok
@@ -176,7 +187,7 @@ except `(*Rand).Intn` (proved) and `raxos.hyp.sync.MapHyp.ivt`, a premise about 
 * Not run: `etc/kitlibs-check.py --selftest` (needs the `KitLibsCheckTest` build; its rabia fixtures
   were edited to follow the classes), `etc/tcb-report.py --check` (needs every root built).
 
-## Build
+## Build (the previous head, on rand-retire)
 
 fk-lean1 (`/shared/tmp/fklean1-check.sh`), targets the two scratch modules
 `Dsverify/Scratch/MathRandAxioms{Kits,Main}.lean` (committed, dropped at the final head), which
