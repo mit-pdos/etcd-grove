@@ -1961,9 +1961,10 @@ noncomputable def AppendString.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "out") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- AppendUint appends x in decimal.
+/-- AppendUint appends x in decimal (strconv.AppendUint(b, x, 10)): the digits of x/10 (none if x
+    is below 10), then x's last digit.
 
-    go: jsoncodec.go:540:6 -/
+    go: jsoncodec.go:541:6 -/
 noncomputable def AppendUint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -1971,51 +1972,29 @@ noncomputable def AppendUint.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "x"))
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
-  (Let "digits" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 20 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 20 go.byte)))) (Val #())))
-  (Let "$r0" (Val #(W64 0))
-  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x"))
-  (Let "y" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
-  (Let "$a1" (Let "$s" (Var "digits")
-  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 20 go.byte)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Val #(W64 20)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))))) (Val #(W64 20)))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 48)) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (Val #(W64 10)))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (App (App (Val doFor) (Lam BAnon
-  (Val #true))) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 48)) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "y")) (Val #(W64 10)))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "y")) (Val #(W64 10))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "y")) (Val #(W64 0)))))
-  (App (Val doBreak) (Val #()))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (Val #(W64 10)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (Val #(W64 10))))
+  (App (App (App (Val (GoInstruction (FuncResolve AppendUint []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (Val #())))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "y") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 1))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 20 go.byte)))) (Pair (Var "digits") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Val #(W64 19)) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (Var "$r0"))))))))
-  (Lam BAnon
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "y") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
 /-- AppendQuotedUint appends x in decimal in quotes (a field with the ",string" option).
 
-    go: jsoncodec.go:556:6 -/
+    go: jsoncodec.go:549:6 -/
 noncomputable def AppendQuotedUint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -2051,7 +2030,7 @@ noncomputable def AppendQuotedUint.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendInt appends x in decimal, with a '-' if it is negative (strconv.AppendInt(b, x, 10)).
 
-    go: jsoncodec.go:563:6 -/
+    go: jsoncodec.go:556:6 -/
 noncomputable def AppendInt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -2091,7 +2070,7 @@ noncomputable def AppendInt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendQuotedInt appends x in decimal in quotes (a field with the ",string" option).
 
-    go: jsoncodec.go:573:6 -/
+    go: jsoncodec.go:566:6 -/
 noncomputable def AppendQuotedInt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -2127,7 +2106,7 @@ noncomputable def AppendQuotedInt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendBool appends true or false.
 
-    go: jsoncodec.go:580:6 -/
+    go: jsoncodec.go:573:6 -/
 noncomputable def AppendBool.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -2162,7 +2141,7 @@ noncomputable def AppendBool.impl [GooseExts] [GoGlobalContext] : val :=
     It panics if a string in raw has '<', '>', '&' (real encoding/json would escape them), an escape
     sequence or a non-ASCII byte (outside the model).
 
-    go: jsoncodec.go:591:6 -/
+    go: jsoncodec.go:584:6 -/
 noncomputable def AppendCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "raw"
@@ -2268,7 +2247,7 @@ noncomputable def AppendCompact.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- At returns the index of the value at or after i (after whitespace) and its first byte.
 
-    go: jsoncodec.go:625:6 -/
+    go: jsoncodec.go:618:6 -/
 noncomputable def At.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2299,7 +2278,7 @@ noncomputable def At.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Str returns the contents of the string whose opening quote is at b[i], and the index after
     its closing quote.
 
-    go: jsoncodec.go:632:6 -/
+    go: jsoncodec.go:625:6 -/
 noncomputable def Str.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2343,7 +2322,7 @@ noncomputable def Str.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Member reads an object member's key at or after i (after whitespace; b[i..] is `"key" :`):
     the key and the index after the ':'.
 
-    go: jsoncodec.go:645:6 -/
+    go: jsoncodec.go:638:6 -/
 noncomputable def Member.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2397,7 +2376,7 @@ noncomputable def Member.impl [GooseExts] [GoGlobalContext] : val :=
     or the closing bracket: (true, the index after ',') if another follows, (false, the index
     after the bracket) otherwise.
 
-    go: jsoncodec.go:655:6 -/
+    go: jsoncodec.go:648:6 -/
 noncomputable def Next.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2428,7 +2407,7 @@ noncomputable def Next.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Empty reports whether the array or object whose opening bracket is at b[i] is empty, and the
     index after its closing bracket if so (else after the opening one).
 
-    go: jsoncodec.go:662:6 -/
+    go: jsoncodec.go:655:6 -/
 noncomputable def Empty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2472,7 +2451,7 @@ noncomputable def Empty.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- lower is c in lower case (ASCII).
 
-    go: jsoncodec.go:671:6 -/
+    go: jsoncodec.go:664:6 -/
 noncomputable def lower.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
@@ -2500,7 +2479,7 @@ noncomputable def lower.impl [GooseExts] [GoGlobalContext] : val :=
     matches an object key with a struct field's name when no field's name is exactly the key (k
     and name are plain, so no other case folding applies).
 
-    go: jsoncodec.go:681:6 -/
+    go: jsoncodec.go:674:6 -/
 noncomputable def FoldEq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "name"
@@ -2557,7 +2536,7 @@ noncomputable def FoldEq.impl [GooseExts] [GoGlobalContext] : val :=
     is empty, has a byte other than a digit, or is above max (real encoding/json's
     strconv.ParseUint(s, 10, bits) and range check for an unsigned field).
 
-    go: jsoncodec.go:698:6 -/
+    go: jsoncodec.go:691:6 -/
 noncomputable def Digits.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2660,7 +2639,7 @@ noncomputable def Digits.impl [GooseExts] [GoGlobalContext] : val :=
     number with no sign, fraction or exponent, in range. It returns the number, the status and the
     index after the value.
 
-    go: jsoncodec.go:731:6 -/
+    go: jsoncodec.go:724:6 -/
 noncomputable def Uint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2786,7 +2765,7 @@ noncomputable def Uint.impl [GooseExts] [GoGlobalContext] : val :=
     string of decimal digits (leading zeros allowed) in range; null and the string "null" leave
     the field unchanged.
 
-    go: jsoncodec.go:750:6 -/
+    go: jsoncodec.go:743:6 -/
 noncomputable def QuotedUint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2935,7 +2914,7 @@ noncomputable def QuotedUint.impl [GooseExts] [GoGlobalContext] : val :=
     unescapes a ",string" field's string before parsing it (an escaped digit is a digit), which the
     model does not.
 
-    go: jsoncodec.go:773:6 -/
+    go: jsoncodec.go:766:6 -/
 noncomputable def noEscape.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -2968,7 +2947,7 @@ noncomputable def noEscape.impl [GooseExts] [GoGlobalContext] : val :=
     power of two): a number with no fraction or exponent, '-' allowed. It returns the number, the
     status and the index after the value.
 
-    go: jsoncodec.go:786:6 -/
+    go: jsoncodec.go:779:6 -/
 noncomputable def Int.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3050,7 +3029,7 @@ noncomputable def Int.impl [GooseExts] [GoGlobalContext] : val :=
     string holding an optional sign ('+' or '-') and decimal digits (leading zeros allowed), in
     range (strconv.ParseInt(s, 10, bits)); null and the string "null" leave the field unchanged.
 
-    go: jsoncodec.go:798:6 -/
+    go: jsoncodec.go:791:6 -/
 noncomputable def QuotedInt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3173,7 +3152,7 @@ noncomputable def QuotedInt.impl [GooseExts] [GoGlobalContext] : val :=
 /-- signedParts splits b[i:j] into its sign and digits: (negative, the index of the first digit,
     ok). A '-' is allowed; a '+' only if plus (strconv.ParseInt's syntax; a JSON number has none).
 
-    go: jsoncodec.go:816:6 -/
+    go: jsoncodec.go:809:6 -/
 noncomputable def signedParts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3279,7 +3258,7 @@ noncomputable def signedParts.impl [GooseExts] [GoGlobalContext] : val :=
 /-- statusOf is Set if b[i:j] is a signed integer in [-max-1, max] (signedParts' syntax, then
     Digits), else TypeErr.
 
-    go: jsoncodec.go:834:6 -/
+    go: jsoncodec.go:827:6 -/
 noncomputable def statusOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3374,7 +3353,7 @@ noncomputable def statusOf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- signed is the value of b[i:j] when statusOf says Set (else 0).
 
-    go: jsoncodec.go:851:6 -/
+    go: jsoncodec.go:844:6 -/
 noncomputable def signed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3480,7 +3459,7 @@ noncomputable def signed.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- String decodes the value at or after i into a string.
 
-    go: jsoncodec.go:872:6 -/
+    go: jsoncodec.go:865:6 -/
 noncomputable def String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3581,7 +3560,7 @@ noncomputable def String.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Bool decodes the value at or after i into a bool.
 
-    go: jsoncodec.go:886:6 -/
+    go: jsoncodec.go:879:6 -/
 noncomputable def Bool.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"

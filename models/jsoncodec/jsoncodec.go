@@ -536,20 +536,13 @@ func AppendString(b []byte, s string) []byte {
 	return append(out, '"')
 }
 
-// AppendUint appends x in decimal.
+// AppendUint appends x in decimal (strconv.AppendUint(b, x, 10)): the digits of x/10 (none if x
+// is below 10), then x's last digit.
 func AppendUint(b []byte, x uint64) []byte {
-	var digits [20]byte
-	n := 0
-	y := x
-	for {
-		digits[19-n] = byte('0' + y%10)
-		n++
-		y = y / 10
-		if y == 0 {
-			break
-		}
+	if x >= 10 {
+		b = AppendUint(b, x/10)
 	}
-	return append(b, digits[20-n:]...)
+	return append(b, byte('0'+x%10))
 }
 
 // AppendQuotedUint appends x in decimal in quotes (a field with the ",string" option).

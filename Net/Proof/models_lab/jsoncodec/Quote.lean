@@ -259,6 +259,29 @@ theorem digitsN_decNat (m n : Nat) (hn : 1 ≤ n) (hlt : m < 10 ^ n)
 /-- `AppendUint`'s digits for `x`. -/
 def decU64 (x : w64) : List w8 := decNat x.toNat
 
+theorem digit_w64 (x : w64) :
+    uint.Z (W64 48 + x % W64 10) = ((48 + x.toNat % 10 : Nat) : Int) := by
+  have h : uint.Z (x % W64 10) = ((x.toNat % 10 : Nat) : Int) := by
+    simp only [uint.Z, BitVec.toNat_umod]; rfl
+  have h2 : uint.Z (x % W64 10) < 10 := by rw [h]; omega
+  have : uint.Z (W64 48 + x % W64 10) = 48 + uint.Z (x % W64 10) := by word
+  rw [this, h]; push_cast; rfl
+
+/-- `AppendUint`'s recursion: the digits of `x / 10`, then `x`'s last digit. -/
+theorem decU64_step (x : w64) (h : 10 ≤ x.toNat) :
+    decU64 x = decU64 (x / W64 10) ++ [W8 (uint.Z (W64 48 + x % W64 10))] := by
+  unfold decU64
+  rw [decNat, digit_w64, BitVec.toNat_udiv]
+  have : (W64 10 : w64).toNat = 10 := rfl
+  rw [this]
+  simp only [show ¬ x.toNat < 10 by omega, ↓reduceIte]
+
+theorem decU64_small (x : w64) (h : x.toNat < 10) :
+    decU64 x = [W8 (uint.Z (W64 48 + x % W64 10))] := by
+  unfold decU64
+  rw [decNat, digit_w64, Nat.mod_eq_of_lt h]
+  simp only [h, ↓reduceIte]
+
 section leaves
 open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
