@@ -47,6 +47,8 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -71,6 +73,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
@@ -85,11 +88,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_start as Hown
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
-    (L2 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)])
-    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)]) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (L2 := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
+    (L' := EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
+    (R := EtcdGrove.prometheus.idToks (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF))
+      (regNames.map EtcdGrove.prometheus.descId ++ regKeys))
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
+  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames at HR
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) errMemberNotFound _ as HerrMemberNotFound
@@ -162,7 +168,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd18⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames)])
+  wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.slnil)))
       _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
@@ -240,55 +246,55 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"Local", go!"Remote"])); isplitr; (· ipureintro; rfl); iintro %sactivePeers ⟨SactivePeers, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SactivePeers] as %vactivePeers ⟨#LactivePeers, %NactivePeers⟩
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SactivePeers] as %vactivePeers ⟨#LactivePeers, #NactivePeers⟩
   try wp_auto
   -- translated initializer of disconnectedPeers))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"Local", go!"Remote"])); isplitr; (· ipureintro; rfl); iintro %sdisconnectedPeers ⟨SdisconnectedPeers, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SdisconnectedPeers] as %vdisconnectedPeers ⟨#LdisconnectedPeers, %NdisconnectedPeers⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SdisconnectedPeers] as %vdisconnectedPeers ⟨#LdisconnectedPeers, #NdisconnectedPeers⟩
   try wp_auto
   -- translated initializer of sentBytes))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssentBytes ⟨SsentBytes, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsentBytes] as %vsentBytes ⟨#LsentBytes, %NsentBytes⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsentBytes] as %vsentBytes ⟨#LsentBytes, #NsentBytes⟩
   try wp_auto
   -- translated initializer of receivedBytes))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %sreceivedBytes ⟨SreceivedBytes, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SreceivedBytes] as %vreceivedBytes ⟨#LreceivedBytes, %NreceivedBytes⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SreceivedBytes] as %vreceivedBytes ⟨#LreceivedBytes, #NreceivedBytes⟩
   try wp_auto
   -- translated initializer of sentFailures))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssentFailures ⟨SsentFailures, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsentFailures] as %vsentFailures ⟨#LsentFailures, %NsentFailures⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsentFailures] as %vsentFailures ⟨#LsentFailures, #NsentFailures⟩
   try wp_auto
   -- translated initializer of recvFailures))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %srecvFailures ⟨SrecvFailures, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SrecvFailures] as %vrecvFailures ⟨#LrecvFailures, %NrecvFailures⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SrecvFailures] as %vrecvFailures ⟨#LrecvFailures, #NrecvFailures⟩
   try wp_auto
   -- translated initializer of snapshotSend))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSend ⟨SsnapshotSend, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSend] as %vsnapshotSend ⟨#LsnapshotSend, %NsnapshotSend⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSend] as %vsnapshotSend ⟨#LsnapshotSend, #NsnapshotSend⟩
   try wp_auto
   -- translated initializer of snapshotSendInflights))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSendInflights ⟨SsnapshotSendInflights, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSendInflights] as %vsnapshotSendInflights ⟨#LsnapshotSendInflights, %NsnapshotSendInflights⟩
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSendInflights] as %vsnapshotSendInflights ⟨#LsnapshotSendInflights, #NsnapshotSendInflights⟩
   try wp_auto
   -- translated initializer of snapshotSendFailures))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSendFailures ⟨SsnapshotSendFailures, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSendFailures] as %vsnapshotSendFailures ⟨#LsnapshotSendFailures, %NsnapshotSendFailures⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"To"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotSendFailures] as %vsnapshotSendFailures ⟨#LsnapshotSendFailures, #NsnapshotSendFailures⟩
   try wp_auto
   -- translated initializer of snapshotSendSeconds))
   try wp_auto
@@ -296,25 +302,25 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotSendSeconds ⟨SsnapshotSendSeconds, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SsnapshotSendSeconds $BsnapshotSendSeconds] as %vsnapshotSendSeconds ⟨#LsnapshotSendSeconds, %NsnapshotSendSeconds⟩
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SsnapshotSendSeconds $BsnapshotSendSeconds] as %vsnapshotSendSeconds ⟨#LsnapshotSendSeconds, #NsnapshotSendSeconds⟩
   try wp_auto
   -- translated initializer of snapshotReceive))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceive ⟨SsnapshotReceive, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceive] as %vsnapshotReceive ⟨#LsnapshotReceive, %NsnapshotReceive⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceive] as %vsnapshotReceive ⟨#LsnapshotReceive, #NsnapshotReceive⟩
   try wp_auto
   -- translated initializer of snapshotReceiveInflights))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceiveInflights ⟨SsnapshotReceiveInflights, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceiveInflights] as %vsnapshotReceiveInflights ⟨#LsnapshotReceiveInflights, %NsnapshotReceiveInflights⟩
+  wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceiveInflights] as %vsnapshotReceiveInflights ⟨#LsnapshotReceiveInflights, #NsnapshotReceiveInflights⟩
   try wp_auto
   -- translated initializer of snapshotReceiveFailures))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceiveFailures ⟨SsnapshotReceiveFailures, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceiveFailures] as %vsnapshotReceiveFailures ⟨#LsnapshotReceiveFailures, %NsnapshotReceiveFailures⟩
+  wp_apply EtcdGrove.prometheus.NewCounterVec.wp_proof _ _ _ _ _ [go!"From"] _ _ rfl (by decide) (by decide) $$ [$SsnapshotReceiveFailures] as %vsnapshotReceiveFailures ⟨#LsnapshotReceiveFailures, #NsnapshotReceiveFailures⟩
   try wp_auto
   -- translated initializer of snapshotReceiveSeconds))
   try wp_auto
@@ -322,7 +328,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"From"])); isplitr; (· ipureintro; rfl); iintro %ssnapshotReceiveSeconds ⟨SsnapshotReceiveSeconds, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"From"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SsnapshotReceiveSeconds $BsnapshotReceiveSeconds] as %vsnapshotReceiveSeconds ⟨#LsnapshotReceiveSeconds, %NsnapshotReceiveSeconds⟩
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"From"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SsnapshotReceiveSeconds $BsnapshotReceiveSeconds] as %vsnapshotReceiveSeconds ⟨#LsnapshotReceiveSeconds, #NsnapshotReceiveSeconds⟩
   try wp_auto
   -- translated initializer of rttSec))
   try wp_auto
@@ -330,7 +336,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"To"])); isplitr; (· ipureintro; rfl); iintro %srttSec ⟨SrttSec, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrttSec $BrttSec] as %vrttSec ⟨#LrttSec, %NrttSec⟩
+  wp_apply EtcdGrove.prometheus.NewHistogramVec.wp_proof _ _ _ _ _ _ _ [go!"To"] _ _ _ (by rfl) (by decide) (by decide) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ [$SrttSec $BrttSec] as %vrttSec ⟨#LrttSec, #NrttSec⟩
   try wp_auto
   -- translated initializer of readBytesLimit))
   -- translated initializer of ErrExceedSizeLimit))
@@ -447,114 +453,172 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
-  iunfold EtcdGrove.prometheus.namesFree at HR
-  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames at HR
-  icases HR with ⟨HR1, HR2, HR3, HR4, HR5, HR6, HR7, HR8, HR9, HR10, HR11, HR12, HR13, HR14, HR15, -⟩
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR1, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) #vactivePeers)])
   isplitr
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NactivePeers $$ [S1 HR1] as S1
-  · iframe S1 HR1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"active_peers") (by decide +kernel) $$ [S1 HR1] as S1
+  · iframe S1 HR1 NactivePeers
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR2, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vdisconnectedPeers)])
   isplitr
   · ipureintro; rfl
   iintro %s2 ⟨S2, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NdisconnectedPeers $$ [S2 HR2] as S2
-  · iframe S2 HR2
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"disconnected_peers_total") (by decide +kernel) $$ [S2 HR2] as S2
+  · iframe S2 HR2 NdisconnectedPeers
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR3, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsentBytes)])
   isplitr
   · ipureintro; rfl
   iintro %s3 ⟨S3, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsentBytes $$ [S3 HR3] as S3
-  · iframe S3 HR3
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_sent_bytes_total") (by decide +kernel) $$ [S3 HR3] as S3
+  · iframe S3 HR3 NsentBytes
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR4, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vreceivedBytes)])
   isplitr
   · ipureintro; rfl
   iintro %s4 ⟨S4, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NreceivedBytes $$ [S4 HR4] as S4
-  · iframe S4 HR4
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_received_bytes_total") (by decide +kernel) $$ [S4 HR4] as S4
+  · iframe S4 HR4 NreceivedBytes
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR5, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsentFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s5 ⟨S5, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsentFailures $$ [S5 HR5] as S5
-  · iframe S5 HR5
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_sent_failures_total") (by decide +kernel) $$ [S5 HR5] as S5
+  · iframe S5 HR5 NsentFailures
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR6, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vrecvFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s6 ⟨S6, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrecvFailures $$ [S6 HR6] as S6
-  · iframe S6 HR6
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_received_failures_total") (by decide +kernel) $$ [S6 HR6] as S6
+  · iframe S6 HR6 NrecvFailures
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR7, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotSend)])
   isplitr
   · ipureintro; rfl
   iintro %s7 ⟨S7, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSend $$ [S7 HR7] as S7
-  · iframe S7 HR7
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_success") (by decide +kernel) $$ [S7 HR7] as S7
+  · iframe S7 HR7 NsnapshotSend
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR8, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) #vsnapshotSendInflights)])
   isplitr
   · ipureintro; rfl
   iintro %s8 ⟨S8, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSendInflights $$ [S8 HR8] as S8
-  · iframe S8 HR8
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_inflights_total") (by decide +kernel) $$ [S8 HR8] as S8
+  · iframe S8 HR8 NsnapshotSendInflights
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR9, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotSendFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s9 ⟨S9, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSendFailures $$ [S9 HR9] as S9
-  · iframe S9 HR9
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_failures") (by decide +kernel) $$ [S9 HR9] as S9
+  · iframe S9 HR9 NsnapshotSendFailures
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR10, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #vsnapshotSendSeconds)])
   isplitr
   · ipureintro; rfl
   iintro %s10 ⟨S10, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotSendSeconds $$ [S10 HR10] as S10
-  · iframe S10 HR10
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_send_total_duration_seconds") (by decide +kernel) $$ [S10 HR10] as S10
+  · iframe S10 HR10 NsnapshotSendSeconds
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR11, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotReceive)])
   isplitr
   · ipureintro; rfl
   iintro %s11 ⟨S11, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceive $$ [S11 HR11] as S11
-  · iframe S11 HR11
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_success") (by decide +kernel) $$ [S11 HR11] as S11
+  · iframe S11 HR11 NsnapshotReceive
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR12, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) #vsnapshotReceiveInflights)])
   isplitr
   · ipureintro; rfl
   iintro %s12 ⟨S12, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceiveInflights $$ [S12 HR12] as S12
-  · iframe S12 HR12
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_inflights_total") (by decide +kernel) $$ [S12 HR12] as S12
+  · iframe S12 HR12 NsnapshotReceiveInflights
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR13, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) #vsnapshotReceiveFailures)])
   isplitr
   · ipureintro; rfl
   iintro %s13 ⟨S13, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceiveFailures $$ [S13 HR13] as S13
-  · iframe S13 HR13
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_failures") (by decide +kernel) $$ [S13 HR13] as S13
+  · iframe S13 HR13 NsnapshotReceiveFailures
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR14, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #vsnapshotReceiveSeconds)])
   isplitr
   · ipureintro; rfl
   iintro %s14 ⟨S14, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NsnapshotReceiveSeconds $$ [S14 HR14] as S14
-  · iframe S14 HR14
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"snapshot_receive_total_duration_seconds") (by decide +kernel) $$ [S14 HR14] as S14
+  · iframe S14 HR14 NsnapshotReceiveSeconds
+    try iframe #
+    try iPkgInit
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR15, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramVec.ty) #vrttSec)])
   isplitr
   · ipureintro; rfl
   iintro %s15 ⟨S15, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ NrttSec $$ [S15 HR15] as S15
-  · iframe S15 HR15
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd" go!"network" go!"peer_round_trip_time_seconds") (by decide +kernel) $$ [S15 HR15] as S15
+  · iframe S15 HR15 NrttSec
+    try iframe #
+    try iPkgInit
+  iclear HR
   ipersist HsnapshotSend
   ipersist HsnapshotSendInflights
   ipersist HsnapshotSendFailures
@@ -634,7 +698,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }} :=

@@ -3,8 +3,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Member.l
 `notes/putget-dist-plan.md` section 10). Lean-first (no Rocq counterpart).
 
 The in-process putget's `Main` up to `Serve` (`Proof/.../examples/etcd/putget/Main.lean`), on a machine of its
-own: `env.ClearProxy()` (its spec gives `ETCD_VERIFY` off, which the start bundle holds); `zap.NewNop()`; the
-member's start bundle from `ETCD_VERIFY` off and the fresh data directory and WAL area
+own: `zap.NewNop()`; the
+member's start bundle from `ETCD_VERIFY` off (the precondition's `envVerifyOff`) and the fresh data directory and WAL area
 (`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises (`etcdstart.wp_StartServer1`,
 shared with the in-process `Main`: `alloc1` inside); the client's putget invariant allocated from the
 bootstrap log's KV state (`client.putGetInv_alloc_log`, as the in-process `Main`); `etcdstart.Serve` in S2's
@@ -15,7 +15,6 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.holdForever
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env.ClearProxy
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartOne
 public import Proof.go_etcd_io.etcd.client.v3.PutGetInvAlloc
@@ -43,7 +42,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 set_option maxHeartbeats 800000 in
 theorem Member.wp_proof
-    (wp_ClearProxy : dist_env.ClearProxy.spec (GF := GF) (hG := hG))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_StartServer : etcdstart.StartServer.spec (GF := GF) (hG := hG))
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
@@ -54,13 +52,10 @@ theorem Member.wp_proof
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
   have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
   have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
-  wp_start as ⟨Htok, #Hprem, Hdd, Hwa, Hshare, #Hpub⟩
+  wp_start as ⟨Htok, #Hprem, #Hvoff, Hdd, Hwa, Hshare, #Hpub⟩
   iunfold memberShare at Hshare
   icases Hshare with ⟨#Haddr, Hhalf, #Hinv⟩
   -- the imports' package facts
-  ihave #Penv : isPkgInit (PROP := IProp GF)
-      pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env $$ []
-  · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Pes : isPkgInit (PROP := IProp GF)
@@ -69,9 +64,6 @@ theorem Member.wp_proof
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  (try wp_auto)
-  -- `env.ClearProxy()`
-  wp_apply wp_ClearProxy as #Hvoff
   (try wp_auto)
   -- `zap.NewNop()`
   wp_apply wp_NewNop as %lg #Hlgz

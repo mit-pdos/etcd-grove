@@ -554,7 +554,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iPkgInit
   ihave #Pstrconv : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
-  ihave #Pprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  ihave #Pprom : isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   iunfold srvIndexInvsM at Hidx
   icases Hidx with ⟨%γr, #Hai, #Hci⟩

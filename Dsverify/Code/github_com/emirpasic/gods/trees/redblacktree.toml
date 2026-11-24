@@ -1,9 +1,7 @@
-# (project dsv-epaxos; notes/dsv-epaxos.md) gods v1.18.1's red-black tree, translated but for the
-# iterator's Next and Prev, names only: their bodies jump between labels with `goto`, which goose
-# does not take. The EPaxos kit's state package iterates a treemap (Select, Iterator, Next): those
-# calls reach an untranslated function, so their specs are hypotheses of the proof until a model of
-# gods' treemap (the lab's cut-down copy, harness/rpcmodel/gods) is in models/ (not added here).
-translate = ["*", "!Iterator.Next", "!Iterator.Prev"]
+# (projects dsv-epaxos and dsv-swiftpaxos) gods v1.18.1's red-black tree, from its model
+# models/gods (module_models): gods' code but the iterator's Next and Prev, rewritten there without
+# `goto` (which goose does not take); notes/gods-verified.md.
+translate = ["*"]
 imports = ["*"]
 
 translate_types = true

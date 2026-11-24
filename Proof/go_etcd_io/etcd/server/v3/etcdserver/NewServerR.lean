@@ -484,7 +484,7 @@ theorem NewServer.wp_proofRG
   -- (R2c) at the member's key: the claims' facts the server's family at its store's index
   wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γs.slog (by rw [Hpfx]; congr 1; rw [← Hid]))
     $$ [Hids] as %gen #Hgen0
-  · iframe Hidc Hidk; iframe Hids
+  · iframe Hidc Hidk Hpfxi; iframe Hids
   ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
   · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γs.slog from rfl]
     iexact Hgen0
@@ -504,7 +504,7 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   wp_apply h16 $$ []
   · iframe Hgvf Hfg; ipureintro; exact Hfgp
-  ihave #Hppkg : isPkgInit (PROP := IProp GF)
+  ihave #Hppkg : isPkgInitSome (PROP := IProp GF)
       pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   (try wp_auto)

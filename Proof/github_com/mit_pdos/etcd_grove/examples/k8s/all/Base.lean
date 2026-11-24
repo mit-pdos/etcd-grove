@@ -31,7 +31,7 @@ variable [sem : go.Semantics]
 instance isPkgInit_inst [EtcdGrove.k8s.CompactorRegistry] :
     IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.all :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst [EtcdGrove.k8s.CompactorRegistry] :
+instance get_isPkgInit_wf_inst [EtcdGrove.k8s.CompactorRegistry] [EtcdGrove.prometheus.PromRegGS GF] :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.all :=
   build_get_is_pkg_init_wf
 

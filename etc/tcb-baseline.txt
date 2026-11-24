@@ -9,7 +9,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -30,7 +29,6 @@ axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
-axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
@@ -244,7 +242,6 @@ axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
-axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewCounterVec.wp_proof
 axiom prometheus.NewGauge.wp_proof
@@ -252,10 +249,6 @@ axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewGaugeVec.wp_proof
 axiom prometheus.NewHistogram.wp_proof
 axiom prometheus.NewHistogramVec.wp_proof
-axiom prometheus.Register.wp_proof
-axiom prometheus.collectorName
-axiom prometheus.nameFree
-axiom prometheus.nameUnclaimed
 axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
@@ -283,6 +276,7 @@ axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
+axiom rand.Int31.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
@@ -332,7 +326,6 @@ axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Time.Format.wp_proofBroken
 axiom trace.Trace.LogIfLong.wp_proof
-axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
