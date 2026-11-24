@@ -146,6 +146,7 @@ def vsrnet.codecOk : Prop := ⊢ encoding.json.kitCodecOk (GF := GF) vsrnet.scan
 theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
     (ht : vsrnet.TypeCodecs (GF := GF)) : vsrnet.codecOk (GF := GF) := by
   unfold vsrnet.codecOk encoding.json.kitCodecOk
+  unfold vsrnet.registeredCodecOk at hc
   ihave #Hc := hc
   isplitr
   · iexact Hc
