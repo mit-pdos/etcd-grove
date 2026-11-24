@@ -2,7 +2,7 @@
 Port of `election_proof/proof_RawNode__Advance.v` (857d09190).
 
 (#33 S4, P-raft-3) **From the strengthened triple**: `RawNode.Advance.wp_absProof`
-(`RawNode__AdvanceAbs.lean`), whose triple outside the harness's scope is the old one (`spec_of_absQ`).
+(`RawNode__AdvanceAbs.lean`), whose triple outside the harness's scope is the old one (`spec_of_abs`, `RawNodeSpecOfAbs.lean`).
 Its proof outside the scope is `RawNode.Advance.tracedSpec_proof` (`TracedRawNodeAdvance.lean`, the
 proof for both modes since 2026-11-12, trace-check step 4), unchanged.
 -/
@@ -11,6 +11,7 @@ module
 public import Spec.go_etcd_io.raft.v3.RawNode__Advance
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__AdvanceAbs
+public import Proof.go_etcd_io.raft.v3.RawNodeSpecOfAbs
 
 @[expose] public section
 
@@ -31,7 +32,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
-  RawNode.Advance.spec_of_absQ (RawNode.Advance.wp_absProof wp_raft_Step)
+  RawNode.Advance.spec_of_abs (RawNode.Advance.wp_absProof wp_raft_Step)
 
 end proof
 

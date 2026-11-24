@@ -337,6 +337,9 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PStat
   (rs.slent = none → rs.unpersisted = []) →
   rs.unst = false →
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none) →
+  -- (#33 S4, 2026-11-24) in the scope, no queued pre-vote response: a self `MsgPreVoteResp` of the
+  -- next term has no `RecvEnd` (ledger); the harness's queue is `QsOk`'s
+  (S → ∀ q ∈ qs, q.ty ≠ .preVoteResp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ R γ rn id rs ps qs ip ∗
       "Hret" ∷ loanRet rs ∗

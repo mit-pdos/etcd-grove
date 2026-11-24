@@ -16,12 +16,11 @@ the start, the storage holds the whole log (`ownRaftPhysC_ipFacts`); no step mov
 boundary back; and the log up to the boundary is a prefix of what it holds (`ownRaftPhysC_ipStored`), so
 the boundary stays and the log is only appended to.
 
-**The statement proved** (`RawNode.Advance.absSpecQ`): `RawNode.Advance.absSpec` with one more premise
-in the scope, that no queued protocol message is a pre-vote response (`S → ∀ q ∈ qs, q.ty ≠
-.preVoteResp`). A self-addressed `MsgPreVoteResp` of the next term (a pre-candidate's own vote) has no
-`RecvEnd` (Go's `Step` keeps the term for a granted pre-vote response, `PreEnd` raises it), and nothing in
-`ownRawNodeAt` says the queue has none at a node with pre-vote off. The harness's caller has it
-(`QsOk`: a self-acknowledgement or a self-vote).
+**The pre-vote premise** (2026-11-24, ledger): `RawNode.Advance.form` takes, in the scope, no queued
+pre-vote response (`∀ q ∈ qs, q.ty ≠ .preVoteResp`). A self-addressed `MsgPreVoteResp` of the next term
+has no `RecvEnd` (Go's `Step` keeps the term for a granted pre-vote response, `PreEnd` raises it), and
+nothing in `ownRawNodeAt` says the queue has none at a node with pre-vote off; the harness's queue is
+`QsOk`'s (a self-acknowledgement or a self-vote).
 -/
 module
 
@@ -42,47 +41,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- `RawNode.Advance.form` with a premise in the scope: no queued pre-vote response (see the header). -/
-abbrev RawNode.Advance.formQ (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF)
-    (S : Prop) : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
-    (rd : Ready),
-  (rs.slent = none → rs.unpersisted = []) →
-  rs.unst = false →
-  (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none) →
-  -- (in the scope) no queued pre-vote response: the harness's `QsOk`
-  (S → ∀ q ∈ qs, q.ty ≠ .preVoteResp) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ R γ rn id rs ps qs ip ∗
-      "Hret" ∷ loanRet rs ∗
-      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
-      "#Hbw" ∷ durFrags γ id rs.bw }}
-    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
-  {{ (t : w64) (ca : Nat) (ps' : PState) (ip' : Nat), RET #();
-      R γ rn id (advRS rs t ca) ps' [] ip' ∗
-      ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
-      ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
-      ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
-        (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
-        (rs.mode = .static → ca = rs.capplied)⌝ ∗
-      ⌜rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length⌝ ∗
-      ⌜S → γ.reTrace = none → AdvanceEnd (rnCfg γ) id ps qs ps' ∧
-        (ip = ps.log.length → ip' = min ip (lcpLen ps.log ps'.log))⌝ }}
-
-/-- **`RawNode.Advance`, strengthened**, under no queued pre-vote response. -/
-abbrev RawNode.Advance.absSpecQ : Prop :=
-  ∀ sc : Bool, RawNode.Advance.formQ
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc) (sc = true)
-
-end spec
 
 section pure
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -320,7 +278,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Outside the harness's scope: the old proof. -/
 theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
-    RawNode.Advance.formQ (GF := GF) (hG := hG)
+    RawNode.Advance.form (GF := GF) (hG := hG)
       (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip false) (false = true) := by
   intro γ rn id rs ps qs ip rd H1 H2 H3 _
   wp_start_folded as H
@@ -340,7 +298,7 @@ theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (h
 set_option maxHeartbeats 2000000 in
 /-- In the harness's scope (see the file header). -/
 theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
-    RawNode.Advance.formQ (GF := GF) (hG := hG)
+    RawNode.Advance.form (GF := GF) (hG := hG)
       (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip true) (true = true) := by
   intro γ rn id rs ps qs ip rd Hunp0 Hunst0 _ Hnq0
   have Hnq := Hnq0 rfl
@@ -773,27 +731,13 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       rw [h1, ← Hps]
       exact h2
 
-/-- **`RawNode.Advance`, strengthened** (`RawNode.Advance.absSpecQ`). -/
+/-- **`RawNode.Advance`, strengthened** (`RawNode.Advance.absSpec`). -/
 theorem RawNode.Advance.wp_absProof (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
-    RawNode.Advance.absSpecQ (GF := GF) (hG := hG) := by
+    RawNode.Advance.absSpec (GF := GF) (hG := hG) := by
   intro sc
   cases sc
   · exact RawNode.Advance.absProofOut wp_raft_Step
   · exact RawNode.Advance.absProofIn wp_raft_Step
-
-/-- The old spec from the strengthened one (`RawNodeSpecOfAbs.lean`'s, at `absSpecQ`). -/
-theorem RawNode.Advance.spec_of_absQ (Habs : RawNode.Advance.absSpecQ (GF := GF) (hG := hG)) :
-    RawNode.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd H1 H2 H3
-  wp_start_folded as H
-  iNamed H
-  icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-  wp_apply Habs false γ rn id rs ps qs ip rd H1 H2 H3 (fun h => by cases h) $$ [$Hrn $Hret $HA1 $Hbw]
-    as %t %ca %ps' %ip' ⟨Hrn, %Ht1, %Ht2, %Hca, %Hca2, -⟩
-  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
-  iapply HΦ $$ %t %ca
-  iframe Hrn
-  ipureintro; exact ⟨Ht1, Ht2, Hca, Hca2⟩
 
 end proof
 

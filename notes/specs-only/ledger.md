@@ -5637,3 +5637,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the adequacy gives the main thread its token); `RunCluster` returns it (`runOver c ∗ threadTok`);
   `Cluster.run`'s post `{{ RET #(); threadTok }}` (its proof holds the token throughout).
 - **Decision.** Applied (the lead's decision; RunCluster helper F, round 3).
+
+## 2026-11-24: `RawNode.Advance.form`'s exact effect needs no queued pre-vote response (#33 S4)
+
+- **Spec.** `RawNode.Advance.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the conjunct
+  `AdvanceEnd (rnCfg γ) id ps qs ps'` in the scope.
+- **Defect.** Unprovable from `ownRawNodeAt`: a queued self-addressed `MsgPreVoteResp` of term
+  `s.term + 1` (a pre-candidate's own vote, `campaign(campaignPreElection)`) has no `RecvEnd`. Go's
+  `Step` keeps the term for a granted pre-vote response of a higher term (`m.Type == MsgPreVoteResp &&
+  !m.Reject`), while `RecvEnd`'s preamble (`PreEnd`) raises it to the message's term. Nothing in
+  `ownRawNodeAt` (`RnScope`: pre-vote off now) excludes such a message from the queue.
+- **Evidence.** `RawNode__AdvanceAbs.lean`'s loop (`advStep_pure`): the self response's `RecvEnd` is
+  `recvEnd_of_stepEnd_net`, for the harness's types only.
+- **Proposed change.** A premise in the scope: `(S → ∀ q ∈ qs, q.ty ≠ .preVoteResp)`. The harness meets it:
+  after a `Ready` the queue is the outbox's self-addressed messages, a self-acknowledgement or a
+  self-vote (`SelfOut`, `qs_noPreVote`); `DrainIter.Ok` carries it.
+- **Decision.** Applied (the lead's decision; Advance helper F).

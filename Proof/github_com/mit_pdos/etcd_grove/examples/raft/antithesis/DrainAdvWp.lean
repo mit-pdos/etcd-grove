@@ -16,6 +16,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.entri
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRunLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainMsgs
+-- (#33 S4) `selfOut_reach`, for `qs_noPreVote`
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReadyKind
 public import Proof.ReceiptTactics
 
 @[expose] public section
@@ -118,6 +120,28 @@ theorem nodeRaft_congr (γ : AntNames) (j : Fin 3) {rs rs' : RNState} (h1 : rs'.
     (h2 : rs'.tc = rs.tc) : nodeRaft (GF := GF) γ j rs ⊢ nodeRaft γ j rs' := by
   unfold nodeRaft; rw [h1, h2]
 
+/-- (#33 S4, 2026-11-24) **No queued pre-vote response after a `Ready`**: the queue is the outbox's
+self-addressed messages (`hqs`), which are a leader's self-acknowledgement or a candidate's self-vote
+(`selfOut_reach`, from the view's `NodeOk`). `RawNode.Advance.form`'s premise. -/
+theorem qs_noPreVote {S : AntCheck.State} {net net' : List Msg} {j : Fin 3} {v : AntSim.NodeView}
+    {ps : PState} {qs : List Msg}
+    (hR : AntSim.Reach (AntSim.nodeId j) net v ps) (hnet : AntSim.NetOk S net')
+    (hv : AntSim.NodeOk S net' j v) (hpre : net <+: net')
+    (hqs : qs ≡ₚ ps.outbox.filter (fun m => decide (m.dst = AntSim.nodeId j))) :
+    ∀ q ∈ qs, q.ty ≠ .preVoteResp := by
+  obtain ⟨hd, -, -, -, hQ, -, -, hlo, -⟩ := hv
+  have hX : v.ps.outbox = [] := hd.2.2.2.2.2.2.1
+  have hin : ∀ m ∈ net', AntSim.InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2.1 m hm⟩
+  have hqsS : ∀ q ∈ v.qs, AntSim.SelfMsg (AntSim.nodeId j) v.ps.term q := fun q hq => by
+    obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
+    exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
+  have hso := AntSim.selfOut_reach (hR.mono hpre) hX hlo hin hqsS
+  intro q hq
+  obtain ⟨hmem, hd'⟩ := List.mem_filter.1 (hqs.mem_iff.1 hq)
+  rcases hso q hmem (of_decide_eq_true hd') with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · simp [pselfAck]
+  · simp [Msg.plain]
+
 /-- **`Advance` and the next loop head** (both arms of the `apply` report end here): from the view
 `v₃` with nothing pending or unreported (its committed entries the iteration's, delivered),
 `RawNode.Advance` steps the queue (`AdvanceEnd`), and the loop head closes at `v₃`. -/
@@ -141,7 +165,7 @@ theorem drainAdvance_close
       (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty) go!"Advance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty)))) (App (Val (GoInstruction (StructFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty go!"rn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty)))) (Val #np))))) (Var "$a0"))))
       {{ Φ }} := by
   iintro ⟨#Hpkg, Hcp, Hnp, Hbp, Hrdp, #Hrn, Hraw, Hrest, #Hdur, HΦ⟩
-  obtain ⟨hrv, hvce, hout, hqsp, hip, hbyI, hnums⟩ := hOk
+  obtain ⟨hrv, hvce, hout, hqsp, hip, hbyI, hnums, hnpv⟩ := hOk
   ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold loopRest at Hrest
@@ -165,7 +189,7 @@ theorem drainAdvance_close
   · rw [show I.rs₂.bw = I.W from rfl]; iexact Hdur
   wp_auto
   wp_apply wp_Advance γ.raft.raftNames I.rn (AntSim.nodeId j) I.rs₂ (pAccepted I.ps₁) I.qs I.ip I.rd
-      (fun _ => rfl) rfl (fun h => absurd Hst.1 h) $$ [$Hrpkg $Hraw $Hret $HA1 $Hdur']
+      (fun _ => rfl) rfl (fun h => absurd Hst.1 h) (fun _ => hnpv) $$ [$Hrpkg $Hraw $Hret $HA1 $Hdur']
       as %t %ca %ps' %ip' ⟨Hraw, -, -, -, -, %Hend⟩
   obtain ⟨hadv, hipo⟩ := Hend trivial Hst.1
   have hR := reach_next (net := net₃) hps hpend hce (hby ▸ hbyI)
@@ -249,7 +273,7 @@ theorem drainAdvance
     (try wp_auto)
     obtain ⟨hps, hqs, hce2, hdl, hby2, hOk⟩ := Hv
     have hOk' := hOk
-    obtain ⟨hrv, hvce, hout, hqsp, hip, hbyI, hnums⟩ := hOk
+    obtain ⟨hrv, hvce, hout, hqsp, hip, hbyI, hnums, hnpv⟩ := hOk
     have hceN : ∀ e ∈ I.ce, uint.Z e.Term' < 2 ^ 61 ∧ uint.Z e.Index' < 2 ^ 61 := fun e he =>
       hnums.2.2.2.2 e (hout.2.2.2.2.2.2.1.subset (List.mem_append_right _ he))
     have hfirst : sint.Z e0.Index' = AntSim.firstOf I.ce := by

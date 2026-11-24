@@ -129,11 +129,12 @@ def DrainIter.rs₂ (I : DrainIter) : RNState :=
 /-- **An iteration's pure facts**: at the loop head the record against the view (`RsView`), nothing
 committed unreported, the `Ready`'s fields (`ReadyOut`, no snapshot), its queue the outbox's
 self-addressed messages, the boundary at the log's end; the drain's `by` one of the harness's; the
-state's numbers within the checker's bound (`StateNums`: the `apply` report's). -/
+state's numbers within the checker's bound (`StateNums`: the `apply` report's); (2026-11-24) no queued
+pre-vote response (`RawNode.Advance.form`'s premise, from `SelfOut`). -/
 def DrainIter.Ok (id : w64) (I : DrainIter) : Prop :=
   RsView I.rs I.v ∧ I.v.ce = [] ∧ ReadyOut id I.rs I.ps₁ I.h I.es I.ce I.ms I.ss none ∧
   I.qs ≡ₚ I.ps₁.outbox.filter (fun m => decide (m.dst = id)) ∧ I.ip = I.ps₁.log.length ∧
-  ByOk I.v.byE ∧ AntSim.StateNums (2 ^ 61) I.ps₁
+  ByOk I.v.byE ∧ AntSim.StateNums (2 ^ 61) I.ps₁ ∧ (∀ q ∈ I.qs, q.ty ≠ .preVoteResp)
 
 end pure
 

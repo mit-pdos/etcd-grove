@@ -866,7 +866,8 @@ theorem Cluster.drain.wp_proof
       ipureintro
       refine ⟨rfl, by rw [hrdD]; rfl, by rw [hrdD]; rfl, rfl, rfl, ?_⟩
       unfold DrainIter.Ok
-      exact ⟨hrv, reach_ce hR, hro, hqs', hip', hbyok, Hsn⟩
+      exact ⟨hrv, reach_ce hR, hro, hqs', hip', hbyok, Hsn,
+        qs_noPreVote hR hnet hnok hpre hqs'⟩
     isplitl [Hmsgs Hmsgs_cap Hmsgs_own]
     · unfold drainMsgs
       iframe Hmsgs Hmsgs_cap Hmsgs_own Hmok
