@@ -38,6 +38,7 @@ theorem kv.Txn.wp_proof : kv.Txn.spec (GF := GF) (hG := hG) := by
   ipersist kv; ipersist ctx; ipersist callOpts
   imodintro
   iapply HΦ
+  iframe Hlt
   iexists tp
   isplitl []
   · ipureintro; rfl

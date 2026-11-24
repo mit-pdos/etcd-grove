@@ -39,9 +39,10 @@ theorem kv.Get.wp_generic
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api conn addr ci om cd opv (opGetModel key gs) (fun _ _ _ _ => iprop(False))
-      (fun _ => iprop(True)) Sr Qr (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Ψr $$ []
-    as %r %err ⟨Heo, Hout⟩
+      (fun _ => iprop(True)) Sr Qr (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Ψr $$ [Hlt]
+    as %r %err ⟨Hlt, Heo, Hout⟩
   · iframe #
+    iframe Hlt
     isplitl []; rotate_left
     · ipureintro; exact Hsz
     unfold doRunGen
@@ -64,6 +65,7 @@ theorem kv.Get.wp_generic
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     isplitr
     · iintro %h; exact absurd rfl h.1
     iframe HR
@@ -84,6 +86,7 @@ theorem kv.Get.wp_generic
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl
       iapply HΦ
+      iframe Hlt
       isplitr
       · iintro %h
         icases Hback with (%hn | #hctx | #hm)
@@ -114,6 +117,7 @@ theorem kv.Get.wp_generic
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
         iapply HΦ
+        iframe Hlt
         isplitr
         · iintro %h; exact absurd h.2 (by simp [hsv])
         iframe HR
@@ -129,6 +133,7 @@ theorem kv.Get.wp_generic
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl
       iapply HΦ
+      iframe Hlt
       isplitl [Heo1]
       · iintro %h
         icases Hd' with (Hd' | #hctx)
@@ -163,9 +168,9 @@ theorem kv.Get.wp_members
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
   iapply (wp_Get api conn (ms.map SrvAt.addr) ci om cd key sl gs R (kvRangeSpecE ms)
     (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q)
-    (rangeErrΨ ms c F (rangeWireOf (opGetModel key gs)) Q)) $$ [HR]
+    (rangeErrΨ ms c F (rangeWireOf (opGetModel key gs)) Q)) $$ [Hlt HR]
   · iframe #
-    iframe HR
+    iframe Hlt HR
     isplitl []
     · ipureintro; exact Hnp
     isplitl []
@@ -179,8 +184,9 @@ theorem kv.Get.wp_members
     iapply (rangeSpecE_of ms c F (rangeWireOf (opGetModel key gs)) Q md)
     iframe Hk Hrun
   inext
-  iintro %resp %err ⟨Heo, HR, Hout⟩
+  iintro %resp %err ⟨Hlt, Heo, HR, Hout⟩
   iapply HΦ
+  iframe Hlt
   iframe HR Hout
   iintro %hs
   unfold rangeErrOut
@@ -203,9 +209,10 @@ theorem kv.Get.wp_proof
   wp_auto
   wp_apply (opGet_res wp_NewOp key sl gs R) $$ [$HR] as %opv ⟨#Hat, HR⟩
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api γ dup ci cd opv (opGetModel key gs) Q $$ []
-    as %r %err Hout
+  wp_apply wp_Do api γ dup ci cd opv (opGetModel key gs) Q $$ [Hlt]
+    as %r %err ⟨Hlt, Hout⟩
   · iframe #
+    iframe Hlt
     isplitl []; rotate_left
     · ipureintro; exact Hsz
     unfold doRunOk
@@ -231,6 +238,7 @@ theorem kv.Get.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     iframe HR
     iapply rangeCallOut_st
     unfold rangeCallOutP
@@ -243,6 +251,7 @@ theorem kv.Get.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     iframe HR
     iapply rangeCallOut_st
     unfold rangeCallOutP
