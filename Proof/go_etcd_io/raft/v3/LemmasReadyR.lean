@@ -368,7 +368,9 @@ queues (2026-10-16, stage R5): each owned (`selfOwn`) becomes a `msgIn` (a respo
 `MsgApp`, `msgOwn_to_msgIn`), `SelfMsgOk` (`AAMsgOk.selfMsgOk`), and its abstraction, at no
 entries and no context, was legitimately sent (its contribution is in the outbox,
 `outboxRelP_isRaftMsg`). (2026-11-11, trace-check Q8 stage 1 slice 26n) With each one's token
-(`selfTok`, `pendingRel`'s since Q26 (a); `selfToks_none` untraced). -/
+(`selfTok`, `pendingRel`'s since Q26 (a); `selfToks_none` untraced). (#33 S4, 2026-11-24) With the
+queued messages' states named (`pendList`'s `∃ st` at each message's own state), for `pendAt`
+(`RawNode.acceptReady.spec`'s queue `qs'`); `pendList_of_named` forgets them. -/
 theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
     (ms1 ms2 : List QMsg)
     (Hp : outboxRelP o ms1 ms2) (l : List QMsg) (Hsub : ∀ q ∈ l, q ∈ ms1 ++ ms2)
@@ -382,30 +384,32 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
       xfW γ s -∗
       ([∗list] q ∈ l, selfOwn (GF := GF) sz id q) -∗
       ([∗list] q ∈ selfmsgs id l, selfTok (GF := GF) γ q.st) -∗
-      pendList γ id W ((selfmsgs id l).map QMsg.loc)
-        ((selfmsgs id l).map (fun q => selfPending q.st.msg)) := by
+      [∗list] l;x ∈ (selfmsgs id l).map QMsg.loc;
+        ((selfmsgs id l).map QMsg.st).zip ((selfmsgs id l).map (fun q => selfPending q.st.msg)),
+        msgIn l DFrac.discard x.1 ∗ pendingRel γ id W x.1 x.2 := by
   induction l with
   | nil =>
     iintro _ _ _ _ _
-    simp only [selfmsgs, List.filter_nil, List.map_nil]
-    iapply pendList_nil
+    simp only [selfmsgs, List.filter_nil, List.map_nil, List.zip_nil_left]
+    iapply (BigSepL2.bigSepL2_nil (Φ := fun _ (l : Loc) (x : MsgSt × Pending) =>
+      iprop(msgIn (GF := GF) l DFrac.discard x.1 ∗ pendingRel γ id W x.1 x.2))).2
+    iempintro
   | cons q l ih =>
     have Hsub' : ∀ q' ∈ l, q' ∈ ms1 ++ ms2 := fun q' h => Hsub q' (List.mem_cons_of_mem _ h)
     have Hok' : ∀ q' ∈ l, AAMsgOk id t q'.st := fun q' h => Hok q' (List.mem_cons_of_mem _ h)
     iintro #Ho #Hqc #Hxw H Htk
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hq, H⟩
     by_cases h : isSelfQ id q = true
-    · simp only [selfmsgs, List.filter_cons, h, ↓reduceIte, List.map_cons]
+    · simp only [selfmsgs, List.filter_cons, h, ↓reduceIte, List.map_cons, List.zip_cons_cons]
       simp only [selfmsgs, List.filter_cons, h, ↓reduceIte] at ih ⊢
       icases BigSepL.bigSepL_cons.1 $$ Htk with ⟨Htq, Htk⟩
       have hto : q.st.msg.To' = id := of_decide_eq_true h
       have Hsm := (Hok q List.mem_cons_self).selfMsgOk hto
       have Hresp : RespType q.st.msg.Type' := Hsm.1
-      iapply (BigSepL2.bigSepL2_cons (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
-        pendingRel γ id W st p))).2
+      iapply (BigSepL2.bigSepL2_cons (Φ := fun _ (l : Loc) (x : MsgSt × Pending) =>
+        iprop(msgIn (GF := GF) l DFrac.discard x.1 ∗ pendingRel γ id W x.1 x.2))).2
       isplitl [Hq Htq]
-      · iexists q.st
-        isplitl [Hq]
+      · isplitl [Hq]
         · iapply msgOwn_to_msgIn q.loc q.st (resp_ne_MsgApp _ Hresp)
           unfold selfOwn; simp only [h, ↓reduceIte]; iapply msgOwnZ_msgOwn $$ Hq
         · ihave #Hqq := qCerts_mem γ _ q (Hsub q List.mem_cons_self) $$ Hqc

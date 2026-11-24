@@ -14,6 +14,7 @@ module
 public import Spec.go_etcd_io.raft.v3.RawNode__Ready
 public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
+public import Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 import Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
@@ -98,22 +99,27 @@ theorem RawNode.Ready.traced
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
+  -- (#33 S4) the node at its protocol state, outside the scope (`ownRawNode_at`)
+  icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
+  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs ps qs ip false Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
+  icases Hrn with ⟨%s, Hrn, -, -, -⟩
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
   iapply (wp_ncfupd _ _ rfl)
   unfold ncfupd
   iintro Hnc
-  imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L x q g h CoPset.subseteq_top CoPset.subseteq_top
-    $$ HhardO Hnc Hlive Hfree Hrn
+  imod ownRawNodeReady_handout_at ⊤ γ rn id rs rd ce es ms L x q g h s CoPset.subseteq_top
+    CoPset.subseteq_top $$ HhardO Hnc Hlive Hfree Hrn
     with ⟨Hnc, %W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
   imodintro
   iframe Hnc
-  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L
-    (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $HhardO]
-    as %steps %ss H
+  ihave Hsc0 := rnScopeAt_false (GF := GF) { rs with bw := W } s
+  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L s false
+    (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $Hsc0 $HhardO]
+    as %steps %ss %qs' %ip' H
   iNamed H
+  ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
   ihave %Hsseq := softStateIs_agree rd.SoftState' ss0 ss Hssn0 Hssn $$ [Hss0 Hss]
   · iframe Hss0 Hss
   subst Hsseq
