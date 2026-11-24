@@ -128,7 +128,7 @@ PkgTable merge conflicts (P3, P4/P5) resolved by rerunning `gen-init`.
 
 | Branch | Head | Built (VM) | Axioms | NV (rerun here) |
 |---|---|---|---|---|
-| P2 `premise-kvN-range` | `10319e40b3` | 13 leaves (kv, kvreconf, kvdurable, noax, KvNet kvnet): exit 0 | (unchanged statements' theorems) | kvdurable: MainN(0),(1001) return; MainN(1),(2),(3),(2) pass porcupine; the 5th run (k=3) **stalled** 78 min in `lintest.RunLin2`'s WaitGroup (clients never finish; no panic) until the 90 m timeout. noax: MainN(1),(2),(3),(3) pass (see the report for the last run). kv/kvreconf: passed on the old machine |
+| P2 `premise-kvN-range` | `10319e40b3` | 13 leaves (kv, kvreconf, kvdurable, noax, KvNet kvnet): exit 0 | (unchanged statements' theorems) | kvdurable: MainN(0),(1001) return; MainN(1),(2),(3),(2) pass porcupine; the 5th run (k=3) **stalled** 78 min in `lintest.RunLin2`'s WaitGroup (clients never finish; no panic) until the 90 m timeout. noax (run inside its own module): MainN(1),(2),(3),(3) pass; the 5th run (k=4) stalled the same way (55 min in `RunLin2`) until the 60 m timeout. kv/kvreconf: passed on the old machine |
 | P6 `premise-leaseexpiryN-range` | `ae3f0ce26d` | TopLevelRobustness + Results: exit 0 (10766 jobs) | = `etc/tcb-collections/leaseexpiryN-single-process.txt` (210 + 3 std) | `TestMainRange`, `TestMainRun`: pass |
 | P1 `premise-tracecheck-nodes` (**trusted**) | `285c4859a2` | full `lake build`: exit 0 (28068 jobs; only `sorry`: MemstorageApi:92, as on lean) | `tcb-report --check`: matches `etc/tcb-baseline.txt` (331, 0 sorries) | `TestMainRandomNodes` (`-tags with_tla`, in its own module): sizes 1..5 ×3 pass TLC; `TestConfChangeWireVectors` pass |
 | P4/P5 `premise-etcd-params` | `d9e4df44d2` | both TopLevelRobustness/Results, cluster3.Link, 5 Results leaves: exit 0 (12721 jobs) | = `etc/tcb-collections/{etcd,k8s}-all-single-process.txt` | etcd `TestParamsOk`, `TestMainCheckedRun` (`ETCDALL_CHECKED=1`, 32 s); k8s `TestParamsOk` (run in `examples/k8s/all`, its own module) |
@@ -154,4 +154,4 @@ copy a module to an untracked `scratch/X.lean` (drop `module`/`public`/`@[expose
 Next: Upamanyu's review of P1 (trusted), P2, P6, P3, P4/P5 (statement changes; messages in the
 pickup report); land-queue of premise-witness (untrusted). Then step 5 (Fs witnesses for osfs, kvnet,
 etcd `HWal`, `etcd_wal_safe`; P7). Open question for the raft lead: kvdurable's intermittent
-liveness stall at k=3 (twice now, on two machines).
+liveness stall (kvdurable k=3 twice, on two machines; kvdurablenoax k=4 once): every size ran and passed porcupine in other runs, so the NV point holds, but `TestMainNRange` as written does not finish reliably.
