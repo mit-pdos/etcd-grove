@@ -154,7 +154,7 @@ theorem kv.Get.wp_members
     (wp_Get : kv.Get.specG (GF := GF) (hG := hG)) :
     kv.Get.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs R c F Q
-  iintro %Φ ⟨Hlt, #Pc, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun, %Hsz⟩ HΦ
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hctx, #Hce, #Hopts, HR, #Hsn, %Hnp, #Hk, #Hrun, %Hsz⟩ HΦ
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
