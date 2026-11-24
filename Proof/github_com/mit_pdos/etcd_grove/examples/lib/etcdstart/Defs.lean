@@ -140,14 +140,16 @@ theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice
 whole-`bootOk` review, C) from the fields a configuration literal sets: the default quota,
 batch limit and bootstrap defragmentation (zero), raft's `10` ticks (2026-11-03, the boot premises:
 the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it; sweep repairs 1, R1-2: the logger
-no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract). -/
+no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract; claim #34's final stage, 2026-11-25:
+the WAL's fsync on, `UnsafeNoFsync` false, the literal's zero value). -/
 theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (hq : cfg.QuotaBackendBytes' = W64 0)
     (hbl : cfg.BackendBatchLimit' = W64 0)
     (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
-    (het : cfg.ElectionTicks' = W64 10) : bootCfgOk cfg := by
+    (het : cfg.ElectionTicks' = W64 10)
+    (hnf : cfg.UnsafeNoFsync' = false) : bootCfgOk cfg := by
   have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
-  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_⟩
+  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, hnf⟩
   · rw [hl]; decide
   · rw [hl]; decide
   · rw [het]; decide
