@@ -229,6 +229,7 @@ axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
+axiom rand.Int31.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
@@ -270,7 +271,6 @@ axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
-axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
