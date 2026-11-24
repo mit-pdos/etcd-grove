@@ -77,25 +77,9 @@ theorem OpError.Temporary.wp_proof : OpError.Temporary.spec (GF := GF) (hG := hG
       ipureintro
       unfold ErrFlag interface.mkOk; dsimp only
       refine ⟨?_, ?_, ?_⟩ <;> intro h <;> first | rfl | (simp only [goose_wp_simp_extra] at h)
-  · unfold sysErr
-    icases He with ⟨%p, %name, %n, %h, #Hp⟩
-    obtain ⟨he, -, hn⟩ := h
-    rw [he]
-    iStructNamed Hp
-    repeat' (first | wp_if_destruct |
-      (rw [show go.typeSetContains (syscall.Errno.ty) temporary.ty = true by go_type_set]) |
-      (rw [show go.typeSetContains (go.GoType.PointerType os.SyscallError.ty) syscall.Errno.ty = false by
-        go_type_set]) |
-      (simp only [syscall.EWOULDBLOCK, syscall.ETIMEDOUT, syscall.EINTR, syscall.EMFILE, syscall.ENFILE,
-        syscall.ECONNRESET, syscall.ECONNABORTED]) |
-      wp_method_call | (wp_func_call; wp_call) | wp_auto |
-      (wp_apply wp_Errno_Timeout as %b) | (simp only [method_unfold]) |
-      (wp_bind (MethodResolve _ _ _); wp_pure))
-    all_goals
-      iapply HΦ
-      ipureintro
-      unfold ErrFlag interface.mkOk; dsimp only
-      refine ⟨?_, ?_, ?_⟩ <;> intro h <;> first | rfl | (simp only [goose_wp_simp_extra] at h)
+  · -- TODO(egnet): Errno.Temporary's direct call `e.Timeout()` (`MethodResolve syscall.Errno.ty
+    -- "Timeout" #n`) is not stepped by wp_auto nor matched by wp_apply of `wp_Errno_Timeout`.
+    sorry
 
 end proof
 
