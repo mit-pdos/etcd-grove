@@ -118,7 +118,7 @@ which starts at a conflict with the durable log or past its end: raft's unstable
 messages are `ps`'s outbox, those to the node itself queued for `Advance` (in some order: raft's
 invariants relate `msgsAfterAppend` to the outbox up to permutation), the others to voters;
 its committed entries follow what was handed out, within the commit index; no snapshot, the log's
-indices its positions. -/
+indices its positions; its messages to others to voters (`ReadyMsgsToVoters`). -/
 def ReadyOutP (id : w64) (v : NodeView) (ps : PState) (rd : ReadyD) : Prop :=
   rd.role = ps.role ∧ rd.term = ps.term ∧ rd.vote = ps.vote ∧ rd.commit = ps.commit ∧
   (rd.ents = [] → ps.log = v.ps.log) ∧
@@ -127,7 +127,7 @@ def ReadyOutP (id : w64) (v : NodeView) (ps : PState) (rd : ReadyD) : Prop :=
   rd.qs.Perm (ps.outbox.filter (fun q => decide (q.dst = id))) ∧
   rd.msgs.Perm (ps.outbox.filter (fun q => decide (q.dst ≠ id))) ∧
   v.delivered ++ rd.ce <+: ps.log ∧ (v.delivered ++ rd.ce).length ≤ uint.nat ps.commit ∧
-  ps.base = base0 ∧ LogIdx ps.log
+  ps.base = base0 ∧ LogIdx ps.log ∧ ReadyMsgsToVoters rd
 
 /-- The harness reports the `Ready` (`drain`'s `write || role != n.role`): its hard state, its
 entries or its role differ from the last reported (the view's, C1). -/

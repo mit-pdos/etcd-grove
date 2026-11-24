@@ -532,10 +532,10 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
     (ho : S.oldVotes = .ok o) : AntSim (gcRes S g o) V net ∧ GlobalOk (gcRes S g o) net G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
   have hc : S.cfg = cfg3 := hsh.1
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16⟩ := hb
   refine ⟨⟨hsh, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha
@@ -552,9 +552,22 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
       exact hb12 v (gcRes_votes_sub hv)
     · intro n hv
       exact gcRes_votes_keep hc ho (hb13 n hv) n rfl (Int.le_refl _)
+    · intro n a ha
+      exact hb14 n a (gcRes_msgs_sub ha)
+    · intro j
+      obtain ⟨h1, h2⟩ := hb16 j
+      refine ⟨?_, h2⟩
+      rcases h1 with h | h | h
+      · exact .inl h
+      · cases hov : S.over (S.confirmed[j.val]!).term
+        · exact .inr (.inl ((gcRes_has (g := g) (o := o) hov).trans h))
+        · refine .inr (.inr fun i => ?_)
+          refine Int.lt_of_not_ge fun hle => ?_
+          rw [over_false (S := S) (t := (S.confirmed[j.val]!).term) hc i hle] at hov; cases hov
+      · exact .inr (.inr h)
   · -- NetOk
-    intro m hm
-    obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn m hm
+    refine ⟨fun m hm => ?_, hn.2.1, hn.2.2⟩
+    obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
     refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩
     obtain ⟨h1, h2, h3, h4⟩ := hj hle
     have hov : S.over (uint.Z m.term) = false := over_false hc j hle
@@ -577,8 +590,8 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
     have hov : S.over (uint.Z (V n).ps.term) = false := over_false hc n (by rw [hct]; exact Int.le_refl _)
     refine ⟨hd, ?_, ?_, hP, ?_, hT⟩
     · intro hlead
-      obtain ⟨hl1, hl2, hl3, hl4⟩ := hL hlead
-      refine ⟨?_, ?_, ?_, ?_⟩
+      obtain ⟨hl1, hl2, hl3, hl4, hl5⟩ := hL hlead
+      refine ⟨?_, ?_, ?_, ?_, hl5⟩
       · exact List.contains_iff_mem.mpr (gcRes_leaders_keep (List.contains_iff_mem.mp hl1) hov)
       · rw [gcRes_get hov]; exact hl2
       · intro j k hk hkt

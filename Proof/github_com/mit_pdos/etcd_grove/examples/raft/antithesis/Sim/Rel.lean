@@ -136,7 +136,8 @@ def LeaderConfOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
 `Match` it holds is backed by acknowledgements in `msgs`: at any index of its term within a voter's
 `Match` (what `cmt`'s `Acked` quorum needs, B 252; the node's own `Match` at its win, `reset`'s
 `lastIndex`, is below every entry of its term), and for another voter at the `Match` itself (what a
-heartbeat's commit `min(Match, committed)` needs, through C3's `confirmed`, B 435). -/
+heartbeat's commit `min(Match, committed)` needs, through C3's `confirmed`, B 435); its
+`confirmed` at its term covering its log (`LeaderConfOk`). -/
 def LeaderPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
   v.ps.role = .leader →
     S.leaders.contains { server := nameOf (nodeId n), term := uint.Z v.ps.term } ∧
@@ -146,7 +147,8 @@ def LeaderPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
       AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z k)) ∧
     (∀ j : Fin 3, j ≠ n → matchOf v.ps (nodeId j) = W64 0 ∨
       AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term)
-        (uint.Z (matchOf v.ps (nodeId j))))
+        (uint.Z (matchOf v.ps (nodeId j)))) ∧
+    LeaderConfOk S n v
 
 /-- **C2, a candidate's part**: its tally's grants are in the binding's `Granted(n)` (R 277: the
 grant facts of its term sent to it, its own vote), and its campaign's vote request is in `msgs`
@@ -161,7 +163,9 @@ def CandPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
 state (the `Ready`'s; `InputEnd` queues only at the state after the preamble, and the outbox was
 empty at the input, C1). Each is what the binding's `Send` (B 510-593) checks: a vote request is the
 campaign's (its fact recorded by the campaign's `ready`), a vote response is at the node's term (a grant for its vote), an
-append or heartbeat is the leader's (`AppSendOk`, `HeartbeatOk`), an acknowledgement answers the
+append or heartbeat is the leader's (`AppOk`: its commit at most the leader's, which `Sendable`
+reads, not `AppSendOk`'s equal one, since an `Advance` stepping two self-messages may leave a first
+batch with a stale commit; `HeartbeatOk`), an acknowledgement answers the
 handled `MsgApp` (accepting: its last index, the log after the write matching it, B 571-575; stale:
 the commit index, B 577-580), a heartbeat response is at the node's term; a forwarded proposal is
 unchecked (B 524, 586), from the node at term `0` (`ProposeEnd`'s forward). A heartbeat
@@ -173,7 +177,7 @@ def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
   | .vote => q.src = id ∧ v.ps.role = .candidate ∧ q.term = v.ps.term ∧ v.ps.vote = id ∧
       q.index = (plogLast base0 v.ps.log).index' ∧ q.logterm = (plogLast base0 v.ps.log).term'
   | .voteResp => q.src = id ∧ q.term = v.ps.term ∧ (q.reject = false → v.ps.vote = q.dst)
-  | .app => v.ps.role = .leader ∧ AppSendOk id v.ps q
+  | .app => v.ps.role = .leader ∧ AppOk id v.ps q
   | .heartbeat => v.ps.role = .leader ∧ HeartbeatOk id v.ps q ∧
       q.index = W64 0 ∧ q.logterm = W64 0 ∧ q.entries = []
   | .appResp => q.src = id ∧ v.byE = go!"recv" ∧ ∃ m, v.cause = some m ∧ m.ty = .app ∧ q.dst = m.src ∧
@@ -206,12 +210,13 @@ def LeadOk (n : Fin 3) (v : NodeView) : Prop := v.ps.role ≠ .leader → v.ps.l
 
 /-- C1, C2 and the drain's facts for node `n`: its pending messages (`PendOk`), its queued
 self-messages (`QsOk`), once its drain's `recv` is reported, `pending[n]` (B 201), and the message
-its drain handles was sent to it (an acknowledgement's `send` reads its `Sendable`, kept by C4). -/
+its drain handles was sent to it (an acknowledgement's `send` reads its `Sendable`, kept by C4);
+the leader hint (`LeadOk`). -/
 def NodeOk (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) : Prop :=
   DurableIs S n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
   (∀ q ∈ v.pend, PendOk (nodeId n) v q) ∧ (∀ q ∈ v.qs, QsOk S n v q) ∧
   (v.told = true → ∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∧
-  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n)
+  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ LeadOk n v
 
 /-! ## C3: the binding's own invariants -/
 
@@ -253,7 +258,9 @@ log while that is kept; every ack of a node at its term within its `confirmed` o
 `CommitBeyondConfirmed`, B 435, needs); `ledLog`'s terms led; a node in `leaders` at its current term
 only while it leads it; the grants' and acks' senders and receivers and the votes' voters servers
 (`GC` looks them up, B 699-708: an evaluation error otherwise); a node's vote at its term in
-`votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540). -/
+`votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540);
+the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
+(`ConfirmedOk`) within the nodes' terms. -/
 def BindingOk (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
   (∀ n : Fin 3, S.queue[n.val]! = [] ∧ S.reads[n.val]! = []) ∧
@@ -278,7 +285,8 @@ def BindingOk (S : AntCheck.State) : Prop :=
     (∃ i : Fin 3, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin 3, f.dst = nameOf (nodeId j)) ∧
   (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i)) ∧
   (∀ n : Fin 3, S.vote n.val ≠ [] →
-    { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes)
+    { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes) ∧
+  AckTermsOk S ∧ VoteTermOk S ∧ ConfirmedOk S
 
 /-! ## C4: the network -/
 
@@ -311,9 +319,10 @@ between two of the nodes, of a type in scope, of a term its sender has reached, 
 binding checks at its receipt or of its answer was recorded by its sender's reports (B 546: the
 `send` of a request checked `Sendable`; B 418, 540, 573: the facts of a vote request, a grant, an
 ack) and is kept while its receiver has not passed its term (GC drops only what a term has
-passed, B 696-709). -/
+passed, B 696-709); a heartbeat's commit within its receiver's confirmation or commit
+(`HbCommitOk`); every message's shape (`NetShape`). -/
 def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
-  ∀ m ∈ net,
+  (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose) ∧
     (∃ i : Fin 3, m.src = nodeId i ∧ uint.Z m.term ≤ S.currentTerm[i.val]!) ∧
@@ -326,7 +335,8 @@ def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
           ({ type := go!"grant", src := nameOf m.src, dst := nameOf m.dst, term := uint.Z m.term } :
             AntCheck.Fact) ∈ S.msgs) ∧
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
-          AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))
+          AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
+  HbCommitOk S net ∧ NetShape net
 
 set_option linter.iris.dupNamespace false in
 /-- **The refinement relation** (§3.2: C1-C4). -/

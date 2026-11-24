@@ -212,7 +212,7 @@ theorem quiet_handle {S : State} {net : List Msg} {n : Fin 3} {s s' : PState} {m
     (hsd : m.src ≠ m.dst) (hct : S.currentTerm[n.val]! = uint.Z s.term) (hmt : m.term = s.term)
     (h : HandleEnd cfgM3 (nodeId n) s m s') (hr : s'.role = s.role) (hl : s'.log = s.log) :
     QKeep S n s s' := by
-  obtain ⟨hsc, ⟨i, hsi, -⟩, j, hdj, hj⟩ := hnet m hm
+  obtain ⟨hsc, ⟨i, hsi, -⟩, j, hdj, hj⟩ := hnet.1 m hm
   have hjn : j = n := nodeId_inj (hdj.symm.trans hmd)
   subst hjn
   have hf := hj (by rw [hct, hmt]; exact Int.le_refl _)
@@ -280,7 +280,7 @@ theorem quiet_recv {S : State} {net : List Msg} {n : Fin 3} {s s' : PState} {m :
   rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact absurd h0 hm0
   · exact QKeep.refl
-  · have ht' := handle_term (hnet m hm).1 hh
+  · have ht' := handle_term (hnet.1 m hm).1 hh
     rcases hpre with ⟨hlt, rfl⟩ | ⟨hmt, rfl⟩
     · have : s'.term = m.term := ht'
       rw [this] at ht; rw [ht] at hlt; exact absurd hlt (Int.lt_irrefl _)
@@ -391,10 +391,10 @@ theorem quiet_adv_run {S : State} {n : Fin 3} {T : w64} {s s' : PState} {qs : Li
         exact (hk1 e1).trans (hk2 e2) e2.symm
 
 /-- **A quiet step's state** (`Reach` to a state with the view's role, term and log): `QKeep` from
-the view's state (received messages from another node: `hsd`). -/
+the view's state (received messages from another node: C4's `NetShape`). -/
 theorem quiet_reach {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps₁ : PState}
     (hc : S.cfg = cfg3) (hnet : NetOk S net) (hv : NodeOk S net n v)
-    (hsd : ∀ m ∈ net, m.src ≠ m.dst) (hr : Reach (nodeId n) net v ps₁)
+    (hr : Reach (nodeId n) net v ps₁)
     (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
     QKeep S n v.ps ps₁ := by
   obtain ⟨hd, -, -, -, hqs, -, -⟩ := hv
@@ -405,7 +405,7 @@ theorem quiet_reach {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps�
     cases inp with
     | recv m =>
       obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      exact quiet_recv hc hnet hmn hmd (hsd m hmn) hm0 hct hs hro ht hl
+      exact quiet_recv hc hnet hmn hmd (hnet.2.2 m hmn).2.1 hm0 hct hs hro ht hl
     | tick => exact quiet_tick hs ht
     | propose d => exact quiet_propose hs hl
   | advance _ _ _ _ ha =>

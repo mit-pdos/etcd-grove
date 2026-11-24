@@ -50,6 +50,8 @@ theorem rep3_get {α : Type} [Inhabited α] (x : α) (n : Fin 3) :
 
 theorem nameOf_zero : nameOf (W64 0) = [] := by unfold nameOf; simp
 
+theorem nodeId_ne_zero : ∀ n : Fin 3, nodeId n ≠ W64 0 := by decide +kernel
+
 theorem prefix_init : Prefix cfg3 [] initS :=
   ⟨{ state := initS }, by rw [init0_cfg3]; rfl, rfl, rfl⟩
 
@@ -63,7 +65,7 @@ theorem antSim_init : antSim_init.stmt := by
   · exact ⟨rfl, rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _,
       rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _,
       rep3_length _, rep3_length _, rep3_length _⟩
-  · refine ⟨rfl, fun n => ⟨rep3_get _ n, rep3_get _ n⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · refine ⟨rfl, fun n => ⟨rep3_get _ n, rep3_get _ n⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro n p hp
       change (List.replicate cfg3.server.length (none : Option Pre))[n.val]! = some p at hp
       rw [rep3_get] at hp; cases hp
@@ -89,9 +91,19 @@ theorem antSim_init : antSim_init.stmt := by
       exfalso; apply hv
       unfold State.vote State.voteOf
       rw [h0, hv0, hbt]; rfl
-  · intro m hm; cases hm
+    · intro n a ha; cases ha
+    · intro n
+      have h0 : initS.currentTerm[n.val]! = 0 := rep3_get _ n
+      have hv0 : initS.voteTerm[n.val]! = 0 := rep3_get _ n
+      rw [h0, hv0]; exact Int.le_refl _
+    · intro j
+      have h0 : initS.currentTerm[j.val]! = 0 := rep3_get _ j
+      have hc0 : initS.confirmed[j.val]! = {} := rep3_get _ j
+      rw [h0, hc0]; exact ⟨.inl rfl, Int.le_refl _⟩
+  · unfold NetOk HbCommitOk NetShape
+    refine ⟨?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
   · intro n
-    obtain ⟨⟨hterm, hvote, _, hrole, _, hout, hbase, hlog, hcommit, _⟩, hdel, ⟨hqs, hpend, hce⟩, htold, hcause⟩ :=
+    obtain ⟨⟨hterm, hvote, hlead, hrole, _, hout, hbase, hlog, hcommit, _⟩, hdel, ⟨hqs, hpend, hce⟩, htold, hcause⟩ :=
       hV n
     refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, hout, hbase, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
     · change (List.replicate cfg3.server.length (0 : Int))[n.val]! = _
@@ -119,9 +131,10 @@ theorem antSim_init : antSim_init.stmt := by
     · intro h; rw [hrole] at h; cases h
     · rw [hpend]; intro q hq; cases hq
     · rw [hqs]; intro q hq; cases hq
-    · refine ⟨?_, ?_⟩
+    · refine ⟨?_, ?_, ?_⟩
       · rw [htold]; intro h; cases h
       · rw [hcause]; intro m h; cases h
+      · intro _; rw [hlead]; exact (nodeId_ne_zero n).symm
   · intro G hG
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro l hl; cases hl

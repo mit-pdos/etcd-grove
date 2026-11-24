@@ -956,6 +956,36 @@ that commits nothing) needs `LeaderPart`'s acks from C4, which needs the respons
 leader's: a term-0 message in `net` other than a proposal must be excluded (no `NetOk` fact says so
 yet; raft's candidates and leaders have terms ≥ 1).
 
+**Session 4 (relation strengthened for `antSim_ready` and `antSim_quiet`).** Each new fact is a
+named definition in `Rel.lean`, appended as a conjunct; `GC`, `init`, `boot`, `recv`, `apply`,
+`send` and `pendOk_of_reach` are re-proved against them:
+
+- **C3 (`BindingOk`) gains `AckTermsOk`, `VoteTermOk`, `ConfirmedOk`**: every ack fact from `i` is at
+  most `currentTerm[i]` (acks are recorded at the recorder's term); `voteTerm[i] ≤ currentTerm[i]`
+  (so a term change writing no vote leaves `Vote(n)` empty); each `confirmed[j]` is at a term `j`
+  has reached, and empty, at a term `ledLog` has, or at a term every node has passed (a win adds
+  its term to `ledLog` only when missing, and this excludes a `j` already confirmed there). `GC`
+  removes only `Over` terms (`EffTerm ≤ currentTerm`); a `send` confirms only at a `Sendable` term.
+  `confirmed[j].term ≤ currentTerm[j]` was not in the lead's first list: `HbCommitOk` is not kept
+  without it (a confirmation moved to the node's term would drop the first disjunct of a
+  heartbeat at a later term).
+- **C2 (`LeaderPart`) gains `LeaderConfOk`**: a leader's `confirmed` is at its term and covers its
+  log (`CommitBeyondConfirmed`, B 435, for a leader commit made without a write).
+- **C4 (`NetOk`) becomes `(∀ m ∈ net, …) ∧ HbCommitOk S net ∧ NetShape net`**. `HbCommitOk`: a
+  heartbeat to `j` at a term `j` has not passed carries a commit within `confirmed[j]` at that term
+  or within `commitIndex[j]` (`GC` can drop the leader's ack after `j` moves on, so it is recorded
+  with the message; `send` derives it from `HeartbeatOk`, `LeaderPart`'s ack at `Match[j]`,
+  `AckTermsOk` and C3's ack conjunct). `NetShape` (`MsgShape`): an append's `AppPayloadOk`, `src ≠
+  dst`, a proposal at term `0` (`send` keeps them from `PendOk`, `pendOk_shape`).
+- **`NodeOk` gains `LeadOk`** (a node that does not lead does not name itself leader).
+- **`PendOk`'s append is `AppOk`**, not `AppSendOk`: an `Advance` stepping two self-messages can
+  leave a first batch with a stale commit, and `send` reads only `commit ≤`. `outOk_advance` and
+  `pendOk_of_reach` lose their `hq1` premise; `pendOk_of_reach`'s `hpay`/`hdst` and `quiet_reach`'s
+  `hsd` now come from `NetShape` and `ReadyOutP`.
+- **Statements:** `antSim_ready.stmt` takes `uint.Z (V n).ps.term + 1 < 2 ^ 64` (a campaign's
+  `term + 1` does not wrap; the harness has raft's term budget); `ReadyOutP` gains
+  `ReadyMsgsToVoters` (raft's side must provide it).
+
 ---
 
 ## 4. Where the refinement could be false, and the evidence

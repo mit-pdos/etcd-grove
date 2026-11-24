@@ -86,7 +86,7 @@ theorem antSim_recv : antSim_recv.stmt := by
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc S V net G hs hl hgo
   obtain ⟨hsh, hb, hn, hno⟩ := hs1
   have hc : S1.cfg = cfg3 := hsh.1
-  obtain ⟨hty, _, j, hj, hjk⟩ := hn m hm
+  obtain ⟨hty, _, j, hj, hjk⟩ := hn.1 m hm
   have hjn : j = n := nodeId_inj (hj.symm.trans hdst)
   subst hjn
   have hsnap : m.ty ≠ .snap := by
