@@ -3,7 +3,7 @@
 
 The pure models of `udptransport.go`'s datagram format and of its address parsing, which the specs of
 `putHeader`, `putFragment`, `putAck`, `getDatagram`, `fragments`, `parseAddr` and `udpAddr` are stated
-in, and the laws the transport's proofs use (stated here, proved in phase 2: `sorry` until then).
+in, and the laws the transport's proofs use.
 
 * `headerBytes`, `fragBytes`, `ackBytes`: what `putHeader`, `putFragment`, `putAck` write.
 * `DgM`, `parseDg b`: what `getDatagram(b)` reads back (`none`: `ok` false). `DgM.key`: the message a
