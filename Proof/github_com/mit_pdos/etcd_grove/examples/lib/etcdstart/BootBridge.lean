@@ -40,7 +40,9 @@ theorem bootstrapContract_of_spec [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF
     [MemStorReg GF]
     (hb : _root_.Perennial.EtcdGrove.bootstrap.spec (GF := GF) (hG := hG))
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat)
-    (hplain : bootGo.bootURLsPlain U)
+    (hnf : cfg.UnsafeNoFsync' = false) (hidr : bootGo.idRaftOk cfg U) (hune : bootGo.urlsNe U)
+    (hplain : bootGo.bootURLsPlain U) (hfips : crypto.fips140.GodebugFips140Off)
+    (hiok : bootGo.initMapOk U cfg.InitialClusterToken')
     (hvs : γ.vs = bootGo.ps U cfg.InitialClusterToken')
     (hbl : ∃ bl : List LogEntry, BootLog (bootGo.ps U cfg.InitialClusterToken')
       (bootGo.ctxs U cfg.InitialClusterToken') bl ∧ γ.boot = LogEntry.toEntries bl 0)
@@ -52,7 +54,7 @@ theorem bootstrapContract_of_spec [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF
   iunfold bootstrapContract
   imodintro
   iintro %Φ !> Hpre HΦ
-  iapply (hb cfg U γ N hplain hvs hbl hmem) $$ [Hpre] HΦ
+  iapply (hb cfg U γ N hnf hidr hune hplain hfips hiok hvs hbl hmem) $$ [Hpre] HΦ
   isplitr
   · iexact Hpkg
   · iexact Hpre
@@ -61,16 +63,24 @@ theorem bootstrapContract_of_spec [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF
 with token `token`, at the peers `ps`, bootstrap log `bootLog`, contexts `ctxs`, directory `dir` and
 id `id`, when, for every URLs `U` the example admits (`Uok`), these are Go's (`bootGo.*` at `token`
 and `name`), the initial cluster's URLs are plain, the bootstrap log is the node API's log of `ps`
-and `ctxs` (`BootLog`), and its members are the cluster's (`memBoot`, the spec's `Hmem`). -/
+and `ctxs` (`BootLog`), and its members are the cluster's (`memBoot`, the spec's `Hmem`); and (claim #34
+stages 2 and 4, 2026-11-25, `bootstrap.spec`'s newer premises) the URLs' facts `urlsNe`/`initMapOk`, the id
+not one of raft's local targets, the `fips140` GODEBUG setting off, and `UnsafeNoFsync` off at every
+configuration the example admits (`hnf`: the examples' `cfgOk` does not say it yet; it is the trusted
+contract's open fix, plan's final stage, `notes/STATUS.md` stage 4). -/
 theorem bootPremise_of_spec [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (hb : ∀ [MemStorReg GF], _root_.Perennial.EtcdGrove.bootstrap.spec (GF := GF) (hG := hG))
     (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64)
+    (hfips : crypto.fips140.GodebugFips140Off)
+    (hnf : ∀ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig, cfgOk token name cfg →
+      cfg.UnsafeNoFsync' = false)
+    (hidr : id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614)
     (hfacts : ∀ U, Uok U →
       bootGo.bootURLsPlain U ∧ bootGo.ps U token = ps ∧ bootGo.ctxs U token = ctxs ∧
         bootGo.dir U token = dir ∧ (bootGo.memberOf U token name).id = id ∧
         (∃ bl : List LogEntry, BootLog ps ctxs bl ∧ bootLog = LogEntry.toEntries bl 0) ∧
-        memBoot bootLog = bootGo.memMap U token) :
+        memBoot bootLog = bootGo.memMap U token ∧ bootGo.urlsNe U ∧ bootGo.initMapOk U token) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ⊢
       bootPremise (GF := GF) N ps bootLog ctxs dir token name Uok id := by
   iintro #Hpkg
@@ -78,12 +88,14 @@ theorem bootPremise_of_spec [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 
   imodintro
   iintro %cfg %U %γ %Hp
   obtain ⟨hc, hu, hvs, -, hboot⟩ := Hp
-  obtain ⟨hplain, hps, hctxs, hdir, hid, ⟨bl, hbl, hbl0⟩, hmem⟩ := hfacts U hu
+  have hnf' := hnf cfg hc
+  obtain ⟨hplain, hps, hctxs, hdir, hid, ⟨bl, hbl, hbl0⟩, hmem, hune, hiok⟩ := hfacts U hu
   obtain ⟨hname, -, htok, -⟩ := hc
   have hid' : bootGo.id cfg U = id := by unfold bootGo.id; rw [htok, hname]; exact hid
   subst hps hctxs hdir hid' hboot htok
   iapply (letI : MemStorReg GF := ⟨γ.reg⟩
-    bootstrapContract_of_spec hb cfg U γ N hplain hvs ⟨bl, hbl, hbl0⟩ hmem)
+    bootstrapContract_of_spec hb cfg U γ N hnf' (by unfold bootGo.idRaftOk; exact hidr) hune hplain hfips hiok
+      hvs ⟨bl, hbl, hbl0⟩ hmem)
   iexact Hpkg
 
 end bridge

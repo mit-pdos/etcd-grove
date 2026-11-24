@@ -38,10 +38,17 @@ Why it is true of Go: `wal == nil` (`:204`), so `bootstrapNewWAL(cfg, cl)`: `Mus
 is `DedicatedWALDir`, non-empty, `config.go:302-307`) of the fresh area, which succeeds there (its
 failure is `lg.Panic`, excluded by the area's facts, `walAreaFresh`), then `SetUnsafeNoFsync` if
 configured; `&bootstrappedWAL{lg: cfg.Logger, w: w}` (`:731-734`) and `&bootstrappedStorage{backend:
-be, wal: wal}` (`:208-211`). -/
+be, wal: wal}` (`:208-211`).
+
+(Claim #34 stage 4, 2026-11-25; ledger, "`bootstrapStorage.spec` without `UnsafeNoFsync = false`") **Only
+with `cfg.UnsafeNoFsync` false**: otherwise `bootstrapNewWAL` calls `w.SetUnsafeNoFsync()`
+(`:728-730`), which sets the WAL's `unsafeNoSync`, and the open WAL `wal.bootOk` describes (its
+handle, `walOpenWS`, holds `unsafeNoSync ↦ false`: its `Sync`s fsync) is not the WAL Go has. Until then
+the spec covered both. Through `bootstrapNewWAL` (`bootstrapNewWAL.spec`). -/
 abbrev bootstrapStorage.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (bkl c : Loc) (bc : bootstrappedCluster)
     (dq dqc : DFrac) (cid : w64),
+  cfg.UnsafeNoFsync' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       zapLoggerOk cfg.Logger' ∗ bootFs.walPart cfg ∗ c ↦{dq} bc ∗
       membership.rcCidAddr bc.cl' ↦{dqc} cid }}
