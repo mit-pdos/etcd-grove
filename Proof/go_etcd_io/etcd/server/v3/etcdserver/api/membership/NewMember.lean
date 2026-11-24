@@ -18,6 +18,8 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
+open Iris Iris.BI
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

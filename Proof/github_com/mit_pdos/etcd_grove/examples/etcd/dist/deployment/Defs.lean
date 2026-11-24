@@ -36,20 +36,20 @@ def kindName (k : w64) : GoString :=
   if kindKnown k then kindNameList.getD (sint.nat k) [] else go!"unknown"
 
 /-- `writesKeys(k)`. -/
-def kindWritesKeys (k : w64) : Bool := k ≠ W64 7 && k ≠ W64 8 && k ≠ W64 9
+def kindWritesKeys (k : w64) : Bool := decide (k ≠ W64 7 ∧ k ≠ W64 8 ∧ k ≠ W64 9)
 
 /-- `needsSoleWriter(k)`. -/
 def kindNeedsSoleWriter (k : w64) : Bool :=
-  k = W64 0 || k = W64 1 || k = W64 2 || k = W64 5 || k = W64 6
+  decide (k = W64 0 ∨ k = W64 1 ∨ k = W64 2 ∨ k = W64 5 ∨ k = W64 6)
 
 /-- `alone(k)`, `NeedsAuth(k)`. -/
-def kindAlone (k : w64) : Bool := k = W64 5 || k = W64 6
+def kindAlone (k : w64) : Bool := decide (k = W64 5 ∨ k = W64 6)
 
 /-- `grantsLeases(k)`. -/
-def kindGrantsLeases (k : w64) : Bool := k = W64 6 || k = W64 8 || k = W64 9
+def kindGrantsLeases (k : w64) : Bool := decide (k = W64 6 ∨ k = W64 8 ∨ k = W64 9)
 
 /-- `needsNoExpiry(k)`. -/
-def kindNeedsNoExpiry (k : w64) : Bool := k = W64 6 || k = W64 8
+def kindNeedsNoExpiry (k : w64) : Bool := decide (k = W64 6 ∨ k = W64 8)
 
 /-- `NodeCount(w)`. -/
 def Workload.goNodeCount (w : Workload) : w64 :=
