@@ -74,6 +74,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
+axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof

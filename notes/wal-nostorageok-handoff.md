@@ -1,5 +1,16 @@
 # wal-nostorageok handoff
 
+## START HERE (2026-11-24, revived) — merged lean, built, gates; pushed, not queued
+
+- HOLD lifted: the real-`fmt` pin bump (lean `af4fd74b00`, Perennial `52d62e83c`) retired `fmt.SprintfWalName.wp_proof`.
+- Merged lean `af4fd74b00`: conflicts were binder lines (lean's `[_root_.Perennial.net.FieldAssumptions]` from the
+  net swap vs this branch's os pair: both kept), the `_single_process` renames (intro lists +2 `_`), gen-link's
+  `SEM_PREMISES` (lean's list plus the os pair), the tcb collections (renamed `*-single-process`, updated),
+  `interface/` (removed on lean). New on lean and fixed here: `etcdstart/StartOne.lean` (`#Hns` gone),
+  `k8s/all/Adequacy.lean`'s `k8s_adequate` (os binders), etcd-dist's `member_boot` (os binders) and
+  `putget_safe_of_s2` (hypothesis `HOs`; `putget_safe.spec` unchanged, for etcd-dist to settle).
+- Full build green at `52d62e83c` (`--packages=/shared/tmp/manifest-52d62e83.json`); tcb 331/0 unchanged.
+
 ## START HERE (2026-11-21, land stop) — built, gates; waiting for the coordinator's landing
 
 - Branch `wal-nostorageok` (lean `88c3789867` merged; do NOT merge newer lean: the coordinator lands it through
