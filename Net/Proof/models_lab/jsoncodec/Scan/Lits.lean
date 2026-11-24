@@ -200,6 +200,12 @@ theorem valD_le_append (a b : List w8) : valD a ≤ valD (a ++ b) := by
   have := Nat.mul_le_mul_left (valD a) this
   omega
 
+/-- A byte encoding/json writes as it is in a string (`jsoncodec.AppendString`'s plain subset:
+`0x20..0x7e` but `"`, `\`, `<`, `>`, `&`). -/
+abbrev plainEnc (c : w8) : Prop :=
+  32 ≤ c.toNat ∧ c.toNat ≤ 126 ∧ c.toNat ≠ 34 ∧ c.toNat ≠ 92 ∧ c.toNat ≠ 60 ∧
+    c.toNat ≠ 62 ∧ c.toNat ≠ 38
+
 /-- The digits of a number are plain string bytes. -/
 theorem decN_okB (n : Nat) : ∀ c ∈ decN n, okB c := by
   intro c hc
