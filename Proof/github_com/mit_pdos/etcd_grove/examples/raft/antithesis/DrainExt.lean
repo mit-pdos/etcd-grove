@@ -175,6 +175,30 @@ theorem raftLaws_addCommit {G : AntSim.RaftFacts} {x : w64 × Nat} (hL : AntSim.
   · exact ⟨hle, hcmt⟩
   · exact hcmts y hy
 
+/-- An append's entries, a prefix of the leader's suffix from `index + 1`, are the full log's slice
+from `index`. -/
+theorem app_slice {bL : entryID} {fp l es : List EntryM} {i t : w64} (hfull : FullOk bL fp)
+    (hterm : plogTermAt bL l i = some t) (hi : uint.Z i + 1 < 2 ^ 64)
+    (hes : es <+: plogFrom bL l (i + W64 1)) :
+    ((fp ++ l).drop (uint.nat i)).take es.length = es := by
+  have hge : uint.Z bL.index' ≤ uint.Z i := by
+    unfold plogTermAt at hterm
+    split at hterm
+    · cases hterm
+    · omega
+  have hlen := hfull.1
+  have hi1 : uint.Z (i + W64 1) = uint.Z i + 1 := by word
+  unfold plogFrom at hes
+  rw [hi1] at hes
+  have hz : ((uint.nat i : Nat) : Int) = uint.Z i := by word
+  have hk : (uint.Z i + 1 - uint.Z bL.index' - 1).toNat = uint.nat i - fp.length := by omega
+  rw [hk] at hes
+  have hd : (fp ++ l).drop (uint.nat i) = l.drop (uint.nat i - fp.length) := by
+    have hle : fp.length ≤ uint.nat i := by omega
+    rw [List.drop_append, List.drop_eq_nil_of_le hle, List.nil_append]
+  rw [hd]
+  exact (List.prefix_iff_eq_take.1 hes).symm
+
 end pure
 
 /-! ## The facts' ghost side -/
@@ -576,6 +600,57 @@ theorem readyExt (γ : AntNames) (id : w64) (ps : PState)
   · exact H7.2.1.2.2.2.2.2 _ (H5.2.1.2.2.2.2.2 _ List.mem_cons_self)
   · intro hr; exact H7.2.2 hr
   · intro hv; exact H7.2.1.2.1 _ (H5.2.2 hv)
+
+/-! ### A `send` report's facts -/
+
+/-- An append's full log, certified, with the append's entries its slice. -/
+theorem isMessage_app_log (γ : RaftNames) (q : Msg) (hty : q.ty = .app)
+    (hi : uint.Z q.index + 1 < 2 ^ 64) :
+    isMessage (GF := GF) γ q ⊢ ∃ L : List EntryM, logRecs γ base0 L ∗
+      ⌜AntSim.LogIdx L ∧ (L.drop (uint.nat q.index)).take q.entries.length = q.entries⌝ := by
+  unfold isMessage
+  rw [hty]
+  iintro ⟨%Hpay, #Hl, ⟨%bL, %l, %fp, #Hlp, %Hpl, #Hfull, -⟩, -⟩
+  iunfold leadPrefix at Hlp
+  icases Hlp with ⟨-, %γt, %l0, -, -, #Hrl, -⟩
+  ihave ⟨#Hrfp, %Hf⟩ := lpfull_fp γ q.src q.term bL l fp $$ Hfull
+  obtain ⟨hfo, hwl, -⟩ := Hf
+  ihave #HrL := logRecs_full γ bL fp l hfo $$ Hrfp Hrl
+  iexists fp ++ l
+  iframe HrL
+  ipureintro
+  exact ⟨logIdx_of_wf (full_wf bL fp l hfo hwl), app_slice hfo Hpl.1 hi Hpl.2⟩
+
+/-- **A `send` report's facts** (`factsExt` at `MsgFacts`): an append's full log, a grant's vote. -/
+theorem sendExt (γ : AntNames) (q : Msg) (hi : uint.Z q.index + 1 < 2 ^ 64) :
+    □ isMessage (GF := GF) γ.raft.raftNames q ⊢ factsExt γ (fun G => AntSim.MsgFacts G q) := by
+  iintro #Hm
+  iunfold factsExt
+  iintro %G %hL #HF
+  imodintro
+  by_cases hty : q.ty = .app
+  · ihave ⟨%L, #HrL, %HL⟩ := isMessage_app_log γ.raft.raftNames q hty hi $$ Hm
+    ihave ⟨#HF', %H⟩ := raftFacts_addLog γ.raft.raftNames G L hL HL.1 $$ [HF HrL]
+    · iframe HF HrL
+    iexists RaftFacts.addLog G L
+    iframe HF'
+    ipureintro
+    refine ⟨H.1, H.2, fun _ => ⟨L, List.mem_cons_self, HL.2⟩, ?_⟩
+    rintro ⟨h, -⟩; rw [hty] at h; cases h
+  · by_cases hvr : q.ty = .voteResp ∧ q.reject = false
+    · have hv : isMessage (GF := GF) γ.raft.raftNames q ⊢ isVote γ.raft.raftNames q.src q.term q.dst := by
+        unfold isMessage; rw [hvr.1]; simp only [hvr.2, Bool.false_eq_true, ↓reduceIte]; exact .rfl
+      ihave #Hv := hv $$ Hm
+      ihave ⟨#HF', %H⟩ := raftFacts_addVote γ.raft.raftNames G (q.src, q.term, q.dst) hL $$ [HF Hv]
+      · iframe HF Hv
+      iexists RaftFacts.addVote G (q.src, q.term, q.dst)
+      iframe HF'
+      ipureintro
+      exact ⟨H.1, H.2, fun h => absurd h hty, fun _ => List.mem_cons_self⟩
+    · iexists G
+      iframe HF
+      ipureintro
+      exact ⟨hL, RaftFacts.Le.refl G, fun h => absurd h hty, fun h => absurd h hvr⟩
 
 end proof
 
