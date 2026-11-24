@@ -90,8 +90,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
-         # (2026-10-29, track C) the store that reconfigures and snapshots
-         'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
+         # gokv's trusted_proph (kvnet's checker's prophecy; KvNet copies its `Init.lean`), reached
+         # from kvreconf's root until kvreconf's proofs retired (2026-11-24)
+         'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
@@ -5126,7 +5127,12 @@ by the proof; it stays so that the statement is unchanged.
 def gen_ext():
     exts = {x for p in packages() for x in inv[p]['imports'] if external(x)}
     wt = wt_inventory()
-    exts = sorted(exts | {x for p in WT_PKGS for x in wt[p]['imports'] if x in inv and external(x)})
+    exts |= {x for p in WT_PKGS for x in wt[p]['imports'] if x in inv and external(x)}
+    # (2026-11-24) kvnet's and kvcheck's (`KVNET_PKG`): raft's `confchange` and `tracker`, which no
+    # main-tree package imports since kvreconf's proofs retired (KvNet's `PkgInitExt` is this one's)
+    kn = inventory(f'{KVNET_ROOT}/Code')
+    exts = sorted(exts | {x for p in (KVNET_PKG, f'{KVNET_PKG}.kvcheck') for x in kn[p]['imports']
+                          if x in inv and external(x)})
     mods = sorted({code_module(q) for q in exts})
     L = [EXT_DOC, 'module', '', 'public import Proof.runtime.PkgInit']
     L += [f'public import {m}' for m in mods]
@@ -5181,8 +5187,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
             # tables, restored
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':

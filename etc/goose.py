@@ -735,18 +735,19 @@ PROJECTS = [
         name="kvreconf",
         # The key-value store on raft that reconfigures and snapshots (`examples/raft/kvreconf`: every
         # choice the application may make is random; notes/raft-unified-plan.md, U11), with its
-        # randomized linearizability test (check.go). A package of the examples' Go module, as kv.
+        # randomized linearizability test (check.go). A package of the examples' Go module. Its
+        # top-level theorems retired on 2026-11-24 (raft_kvnet_robust and kvudp subsume them): the
+        # store is translated only into the part KvNet (below), whose store proofs stand on its
+        # shared proofs; into the main tree only gokv's trusted_proph (examples/go.mod's gokv), whose
+        # ResolveBytes kvnet's checker resolves its prophecy with (trusted:
+        # Code/github_com/mit_pdos/gokv/trusted_proph.toml).
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "kvreconf"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
                     "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-        # the store; not its command (cmd/kvreconfcheck), which only runs it; and gokv's
-        # trusted_proph (examples/go.mod's gokv), whose ResolveBytes `Cluster.Read` resolves its
-        # prophecy with (trusted: Code/github_com/mit_pdos/gokv/trusted_proph.toml)
-        packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf"),
-               os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
+        packages=["github.com/mit-pdos/gokv/trusted_proph"],
+        owned=[os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
         # the store alone into the part KvNet (notes/kvnet-part.md): kvnet's store proofs (once
         # kvdurablenoax's) stand on kvreconf's shared proofs, which name its translation
         parts=[Part(
