@@ -46,23 +46,20 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 /-- One step of the loop: `id<<8 | uint64(b)` is the fold's next value. -/
 theorem idStep_w64 (acc : Nat) (b : w8) :
     W64 (acc : Int) <<< W64 8 ||| W64 (uint.Z b) = W64 ((idStep acc b : Nat) : Int) := by
-  have e1 : W64 (uint.Z b) = b.setWidth 64 := by
-    apply BitVec.eq_of_toNat_eq
-    have := b.isLt
-    simp only [W64, uint.Z, BitVec.toNat_ofInt, BitVec.toNat_setWidth]
-    omega
-  have e2 : ∀ x : w64, x <<< W64 8 ||| b.setWidth 64 = x * W64 256 + b.setWidth 64 := by
-    intro x
-    rw [show W64 8 = 8#64 from rfl, show W64 256 = 256#64 from rfl]
-    bv_decide
-  rw [e1, e2, ← e1]
-  unfold idStep
-  have := b.isLt
-  first
-    | word
-    | (apply BitVec.eq_of_toNat_eq
-       simp only [W64, uint.Z, BitVec.toNat_add, BitVec.toNat_mul, BitVec.toNat_ofInt]
-       omega)
+  have hb : b.toNat < 256 := b.isLt
+  have h8 : (W64 8).toNat = 8 := rfl
+  rw [BitVec.shiftLeft_eq', h8]
+  simp only [W64, uint.Z, idStep, BitVec.ofInt_natCast]
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_or, BitVec.toNat_shiftLeft, BitVec.toNat_ofNat, BitVec.toNat_ofNat, BitVec.toNat_ofNat,
+    Nat.shiftLeft_eq]
+  simp only [Nat.reducePow]
+  have key : ∀ m : Nat, m % 256 = 0 → m ||| b.toNat = m + b.toNat := by
+    intro m hm
+    have e : m = (m / 256) <<< 8 := by rw [Nat.shiftLeft_eq]; omega
+    rw [e, ← Nat.shiftLeft_add_eq_or_of_lt (show b.toNat < 2 ^ 8 by omega)]
+  rw [Nat.mod_eq_of_lt (show b.toNat < 18446744073709551616 by omega), key _ (by omega)]
+  omega
 
 /-- A 20-byte array's `n`-th byte, and the array back. -/
 theorem arr20_acc (p : Loc) (a : List w8) (n : Nat) (hl : a.length = 20) (hn : n < 20) :
