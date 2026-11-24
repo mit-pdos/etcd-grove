@@ -12,10 +12,13 @@ these (VsrProof/Wire/Basic.lean, Spec/events.lean, Spec/log.lean).
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Model.Basic
+public import Net.Proof.models_lab.jsoncodec.Scan.Lits
 
 @[expose] public section
 
 namespace VsrJson
+
+open JsonScan
 
 open Perennial VsrModel
 
@@ -27,12 +30,6 @@ abbrev cLB : w8 := 123#8    -- {
 abbrev cRB : w8 := 125#8    -- }
 abbrev cLS : w8 := 91#8     -- [
 abbrev cRS : w8 := 93#8     -- ]
-
-/-- The decimal digits of `n` (`jsoncodec.AppendUint`). -/
-def decN (n : Nat) : List w8 :=
-  if n < 10 then [BitVec.ofNat 8 (48 + n)] else decN (n / 10) ++ [BitVec.ofNat 8 (48 + n % 10)]
-termination_by n
-decreasing_by omega
 
 mutual
 /-- A JSON value as the kit's codec writes it. -/
@@ -75,12 +72,6 @@ def serVsT : JVs → List w8
   | .nil => []
   | .cons v vs => cComma :: (ser v ++ serVsT vs)
 end
-
-/-- A byte of a plain string's contents as the scanner and the decoders need it (PlainStr's
-bytes are). -/
-def okB (c : w8) : Prop := 32 ≤ c.toNat ∧ c.toNat ≤ 126 ∧ c ≠ cQ ∧ c ≠ 92#8
-
-instance okB_dec (c : w8) : Decidable (okB c) := by unfold okB; infer_instance
 
 mutual
 /-- Every string (and key) of the value is plain. -/
