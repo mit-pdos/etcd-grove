@@ -65,6 +65,22 @@ theorem QuotedUint.wp_proof (wp_At : At.spec (GF := GF) (hG := hG)) (wp_ValueEnd
     rw [show uint.nat (i + W64 1) = uint.nat i + 1 by word]; simpa [hdn] using this
   have hd110 : d ≠ W8 110 := by
     intro h; subst h; exact absurd hdd (by decide)
+  have hne : ∀ (k : Nat) (x : w8), uint.nat (i + W64 1) ≤ k →
+      k < uint.nat (W64 ((uint.nat i + ((JsonScan.decN n).length + 2) : Nat) : Int) - W64 1) →
+      bs[k]? = some x → x ≠ W8 92 := by
+    intro k x hk1 hk2 hx
+    rw [show uint.nat (i + W64 1) = uint.nat i + 1 by word] at hk1
+    rw [show uint.nat (W64 ((uint.nat i + ((JsonScan.decN n).length + 2) : Nat) : Int) - W64 1) =
+      uint.nat i + (JsonScan.decN n).length + 1 by word] at hk2
+    have h := congrArg (fun l => l[k - uint.nat i]?) hb
+    simp only [List.getElem?_drop] at h
+    rw [show uint.nat i + (k - uint.nat i) = k by omega, hx,
+      show k - uint.nat i = (k - uint.nat i - 1) + 1 by omega, List.getElem?_cons_succ,
+      List.getElem?_append_left (by omega)] at h
+    have hdg := JsonScan.decN_digits n x (List.mem_of_getElem? h.symm)
+    intro hx92; subst hx92; exact absurd hdg (by decide)
+  wp_apply (wp_noEscape b dq bs (i + W64 1)
+    (W64 ((uint.nat i + ((JsonScan.decN n).length + 2) : Nat) : Int) - W64 1) (by word) hne) $$ Hs as Hs
   wp_if_destruct
   · ldagain (i + W64 1), h1
     simp only [hd110, decide_false]
