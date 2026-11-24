@@ -135,11 +135,35 @@ net extension allows. Proved in `Dsverify/Proof/.../paxosnet/TopLevelRobustness.
         addrs='paxosKitAddrs', steps='2 ^ 63',
         premises=[],  # none: the statement rests on Lean's three axioms
     ),
+    # the deployment's address lists, in a module importing no kit spec (the statement's definitions
+    # then say only what runs where; the definitions' names, namespaces and bodies as they were in
+    # Deploy.lean and Kit.lean)
+    addrs_module=dict(
+        doc='''The paxos kit's addresses: the paxos nodes' (`PaxosAddrs()`) and the client machines'
+(`ClientAddrs()`), the lists the statement's `paxosKitAddrs` joins (`TopLevelDefs.lean`); the protocol's
+definitions (`Deploy.lean`) and the kit's specs (`Kit.lean`) import them.''',
+        defs=[(PAXOS, '''/-- The deployment's node addresses (`paxosnet.PaxosAddrs()`): acceptors 1..3, learners 2001,
+2002, then client `c`'s, `c = 0..3`. -/
+def addrs : List GoString :=
+  [go!"127.0.0.1:7401", go!"127.0.0.1:7402", go!"127.0.0.1:7403", go!"127.0.0.1:7404",
+   go!"127.0.0.1:7405", go!"127.0.0.1:7406", go!"127.0.0.1:7407", go!"127.0.0.1:7408",
+   go!"127.0.0.1:7409"]'''),
+              (f'{PAXOS}.examples.paxosnet', '''/-- The client machines' addresses (`ClientAddrs()`), for the driver's calls. -/
+def clientAddrs : List GoString :=
+  [go!"127.0.0.1:7411", go!"127.0.0.1:7412", go!"127.0.0.1:7413", go!"127.0.0.1:7414"]''')],
+    ),
+    # what a challenge (kitgen --export-challenge) gives of the kit's Lean: the statement, its
+    # definitions, the addresses, the package facts and gen-init's generated files; never the kit's
+    # specs (`Kit.lean`: the client spec), the protocol's specs, invariants or proofs
+    challenge_allow=['Dsverify.Spec.{pkg}.TopLevelRobustness', 'Dsverify.Proof.{pkg}.TopLevelDefs',
+                     'Dsverify.Proof.{pkg}.Addrs', f'Dsverify.Proof.{PAXOS}.Base', f'Dsverify.Proof.{PAXOS}.Init',
+                     'Dsverify.Proof.{pkg}.Base', 'Dsverify.Proof.{pkg}.Init',
+                     'Dsverify.Proof.{pkg}.cmd.*.Base', 'Dsverify.Proof.{pkg}.cmd.*.Init',
+                     'Dsverify.Proof.{pkg}.cmd.*.PkgTable'],
     defs=dict(
         doc='''The paxos kit's deployment (notes/dsv-paxos.md): its ten machines' boot programs and addresses, the
 definitions its top-level statement (`Spec/.../paxosnet/TopLevelRobustness.lean`) names.''',
-        imports=[f'public import Dsverify.Proof.{PAXOS}.Deploy',
-                 f'public import Dsverify.Proof.{PAXOS}.examples.paxosnet.Kit',
+        imports=[f'public import Dsverify.Proof.{PAXOS}.examples.paxosnet.Addrs',
                  'public import Net.Statement.DistDeploy', 'public import Robustness.Statement'],
         system_doc='''The system: the ten machines, from the local states `σ i`: the orchestrator, client machines
 0..3, servers 1..5 (each a command of `examples/paxosnet/cmd`).''',

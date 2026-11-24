@@ -63,7 +63,7 @@ def load_kits():
 
 
 class Machine:
-    """One machine of the deployment: its command `n`, Go id `id` (None for the orchestrator),
+    """One machine of the deployment: its command `n`, Go id `id` (None for the driver, command `orch`),
     index `i` in `system`, index `k` within its role, and its role's configuration."""
 
     def __init__(self, role, ident, i, k, pkg):
@@ -291,6 +291,21 @@ def defs_file(kit, kg):
         o.append('  [' + ',\n   '.join(ents) + ']\n')
     o.append('\n' + lines(d['addrs_def']) + '\n')
     o.append(f'end {pkg}\nend Perennial\n')
+    return ''.join(o)
+
+
+# ---------------------------------------------------------------------------------------------
+# Lean: the addresses (`addrs_module`): the deployment's address lists, in a module of their own that
+# imports no kit spec, so that the statement's definitions say only what runs where
+
+def addrs_file(kit, kg):
+    am = kg['addrs_module']
+    o = [lean_header(kit), doc(am['doc']), 'module\n\n']
+    o.append(lines(am.get('imports', ['public import Perennial.Std.ByteString'])))
+    o.append('\n@[expose] public section\n\nnoncomputable section\n\nnamespace Perennial\n\n')
+    for ns, text in am['defs']:
+        o.append(f'namespace {ns}\n\n{lines(text)}\nend {ns}\n\n')
+    o.append('end Perennial\n')
     return ''.join(o)
 
 
@@ -728,6 +743,8 @@ def generated(kit, kg):
     out.update(go_consts(kit, kg))
     if 'statement' in kg and kg['statement'].get('generate', True):
         out[os.path.join('Dsverify', 'Spec', pp, 'TopLevelRobustness.lean')] = spec_file(kit, kg)
+    if 'addrs_module' in kg:
+        out[os.path.join('Dsverify', 'Proof', pp, 'Addrs.lean')] = addrs_file(kit, kg)
     if 'defs' in kg:
         out[os.path.join('Dsverify', 'Proof', pp, 'TopLevelDefs.lean')] = defs_file(kit, kg)
     if 'proof' in kg:
@@ -881,19 +898,30 @@ def challenge_plan(kit, kg):
     roots = kit_roots(kits[kit])
     stmt = f'Dsverify.Spec.{kg["lean_pkg"]}.TopLevelRobustness'
     cs = closure([stmt], imports)
-    allow = {m: 'statement' for m in cs if in_roots(m, roots)}
+    # the kit's modules the challenge gives: KITGEN's explicit `challenge_allow` (patterns, `*` any
+    # name part; `{pkg}` the kit package), never inferred (the user's split, 2026-11-24: the driver,
+    # the statement and the deployment plumbing are given; the kit's specs and proofs are answers)
+    if 'challenge_allow' not in kg:
+        sys.exit(f'kitgen: etc/dsv/{kit}.py has no KITGEN challenge_allow (the kit modules a challenge gives)')
+    pats = [re.compile('^' + re.escape(sub(p_, kg=kg)).replace(r'\*', r'[^.]+') + '$') for p_ in kg['challenge_allow']]
+    allow = {}
+    for m in imports:
+        if in_roots(m, roots) and any(pt.match(m) for pt in pats):
+            allow[m] = ('statement' if m in cs else 'generated' if m in gen_outputs(kits[kit])
+                        else 'non-vacuity (fixed)' if m.endswith('.NonVacuityLinked') else 'given')
+    bad = sorted(m for m in cs if in_roots(m, roots) and m not in allow)
+    if bad:
+        sys.exit('kitgen: the statement imports modules of the kit the challenge must not give (not on '
+                 'challenge_allow):\n  ' + '\n  '.join(bad))
     bad = sorted(m for m in allow if tiers[m] not in ('spec', 'defs'))
     if bad:
-        sys.exit('kitgen: the statement imports proof modules of the kit (they would leak):\n  ' + '\n  '.join(bad))
+        sys.exit('kitgen: challenge_allow names proof modules:\n  ' + '\n  '.join(bad))
     gen_all = set()
     for k, m in kits.items():
         gen_all |= {g for g in gen_outputs(m) if g in imports}
-    for g in gen_outputs(kits[kit]):
-        if g in imports:
-            allow.setdefault(g, 'generated')
-    nv = f'Dsverify.Proof.{kg["lean_pkg"]}.NonVacuityLinked'
-    if nv in imports:
-        allow[nv] = 'non-vacuity (fixed)'
+    missing = sorted(g for g in gen_outputs(kits[kit]) if g in imports and g not in allow)
+    if missing:
+        sys.exit('kitgen: gen-init\'s generated files of the kit are not on challenge_allow:\n  ' + '\n  '.join(missing))
     # other kits' trees: what this kit's landed proof uses of them, and every kit's generated
     # files (gen-init --check reads them) with what they import
     other_roots = [r for k, m in kits.items() if k != kit for r in kit_roots(m)]
@@ -1095,6 +1123,22 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
         f'/-\nThe comparator\'s challenge: `{thm}.spec`, its proof a `sorry` (the exported tree\'s\n'
         f'`Dsverify/Proof/{pp}/TopLevelRobustness.lean`). Written by {ME} --export-challenge {kit}.\n-/\n'
         + PROOF_STUB.format(spec=stmt, pkg=pkg, thm=thm, spec_file=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean'))
+    # what the challenge needs offline (no network in a run): the lab's image provides it
+    gt = re.search(r'(?m)^GO_TOOLCHAIN = "(\S+)"', open(os.path.join(ROOT, 'etc', 'goose.py')).read())
+    gomods = sorted(os.path.relpath(dp, dest) for dp, _, fs in os.walk(dest)
+                    if 'go.mod' in fs and '/.lake' not in dp and '/old/' not in dp + '/')
+    lt = open(os.path.join(ROOT, 'lean-toolchain')).read().strip()
+    with open(os.path.join(lab, 'OFFLINE.txt'), 'w') as fh:
+        fh.write(f'# what {os.path.basename(dest)} needs with no network (notes/dsv-skill.md, 5): the lab\'s image\n'
+                 f'# provides each; checked against etcd-grove {head}\n'
+                 f'lean-toolchain: {lt}\n'
+                 f'perennial: {pin} (built: .lake/packages/perennial with its packages, as lake-manifest.json pins)\n'
+                 f'go-toolchain: {gt.group(1) if gt else "?"} (etc/goose.py GO_TOOLCHAIN; GOTOOLCHAIN=local with it on PATH)\n'
+                 f'go-toolchain: go1.27.1 (etc/gates.sh\'s; the examples\' tests)\n'
+                 f'# the Go modules whose dependencies must be in GOMODCACHE (`go mod download` in each, with\n'
+                 f'# GOFLAGS=-modcacherw): the kit\'s, the models\', etc/prophcheck (prophcheck\'s module) and the rest\n')
+        for d in gomods:
+            fh.write(f'go-module: {d}\n')
     with open(os.path.join(lab, 'MANIFEST.txt'), 'w') as fh:
         fh.write(f'# kitgen --export-challenge {kit} {dest}: etcd-grove {head}, Perennial {pin}\n')
         for m, why in sorted(allow.items()):

@@ -7,7 +7,7 @@ targets etcd-grove's kits on `examples/lib/remote` (paxos, rabia, epaxos, quepax
 
 ## What a kit is made of, and what repeats
 
-A landed kit has, per machine (the orchestrator, `nC` client machines, the servers):
+A landed kit has, per machine (the driver, which runs `remote.Check` against the driver's model; `nC` client machines, the servers):
 - a Go command `examples/<kitpkg>/cmd/<n>/main.go` calling the kit package's `Orch()`,
   `Client(c)` or `Server(id)`;
 - a Lean `wp_main` in `Mains.lean` (the command's `main` from the kit function's spec);
@@ -100,36 +100,81 @@ reports any difference instead of making it):
 4. dsv-vr (not landed): its `_vr_boot.py` becomes a `boot` section when it lands.
 New kits start from `KITGEN` with a `kit_start` lemma and `kit_gen.go`.
 
-## The challenge export (`--export-challenge DIR KIT`; user decision, 2026-11-24)
+## The challenge export (`--export-challenge DIR KIT`; user decisions, 2026-11-24)
 
-For the dsverify-lab harness's automatic-proving runs, whose containers cannot see etcd-grove: a
-self-contained tree with the kit's Go and statement, the shared infrastructure it needs, and none of
-the kit's own proofs (etc/dsv/README.md, "Exporting a proving challenge", has the contents).
+For the dsverify-lab harness's automatic-proving runs, whose containers cannot see etcd-grove. First
+version: an import-closure tree with a `Goal.lean` (commit 31c211dca1). Revised to the interface
+notes/dsv-skill.md (branch dsv-skill 1437eb7705, merged here) defines, copied below: the agent runs
+goose, gen-init, kitgen and tier-check in the challenge, so the challenge is the tracked tree with
+exclusions, not a closure. etc/dsv/README.md, "Exporting a proving challenge", lists what it holds.
 
-- **What is "the kit's own"**: the modules under `Dsverify/{Proof,Spec}/<r>/` for `r` in
-  `proof_roots`. Of them only the statement's import closure (checked spec/defs tier: the export
-  stops if the statement imports a proof module) and gen-init's generated `Init`/`PkgTable` (the
-  kit file's `PKGS`, `PROGRAMS`) are exported: the allow-list, written to `challenge/MANIFEST.txt`.
-- **The shared part**: the import closure of the kit's landed proof (`Proof/<pkg>/TopLevelRobustness`)
-  and of the generated files, outside the kit's trees; then everything is kept closed under imports
-  (a module importing an unexported one is dropped and listed; none for paxos).
-- **The leak check**, run after the export and alone with `--leak-check DIR KIT`: reads the exported
-  tree, not the generator's sets: (1) no module of the kit's trees outside the allow-list; (2) every
-  import of a module of this repository is exported; (3) no `sorry` in the statement's closure, but
-  Goose's instances of axiomatized types (`  sorry -- axiomatized type` in `GeneratedProof`, part of the
-  landed trust base: counted and reported). Negative tests (paxos): a planted `KitProof.lean` fails
-  (1) and (2); a `sorry` added to `Net/Statement/DistDeploy.lean` fails (3).
-- **The goal**: `Goal.lean`, the library `Goal`, `theorem Perennial.<pkg>.goal : <thm>.spec := sorry`;
-  `challenge/comparator/challenge.conf` and `Challenge.lean` in the conventions of the lab's
-  `statement/comparator-check.sh` (`theorem=`, `solution=Goal`, `layout=`, `gomodule=`, `test=`,
-  `perennial=`; `Challenge.lean`'s text below its header is `Goal.lean`'s). Two keys are new:
-  `tree=etcd-grove <commit>` and `statement=<module>`: the challenge is the exported tree itself.
-  **Gap (lab side, not changed here):** comparator-check.sh builds its challenge by regenerating
-  Goose's output of the fork into `DsvLab` with a KitStd and the lab's `DsvStatement.lean`; an
-  etcd-grove statement depends on the whole exported tree (Net, the main tree's translations and
-  proofs), which that workspace does not have. The lab needs a `tree=` mode: the challenge workspace
-  is the exported tree (a fresh copy, never the agent's), `DsvLab.Challenge` is `Challenge.lean` over
-  it, and the permitted axioms are those of the challenge's environment as now.
+### The interface (notes/dsv-skill.md, "Interface with kitgen's export", copied)
+
+1. **Skill**: `--export-challenge KIT DIR` copies `.claude/skills/dsverify/` whole to
+   `DIR/.claude/skills/dsverify/`; `--no-skill` leaves it out (the control arm). Nothing else of
+   `.claude/` is copied.
+2. **CLAUDE.md**: the export fills `etc/dsv/challenge-CLAUDE.md`'s `{{...}}` fields and writes
+   `DIR/CLAUDE.md`, with the header comment removed, identical with and without the skill. It does not
+   copy etcd-grove's own `CLAUDE.md` or `notes/`.
+3. **Provenance**: `DIR/CHALLENGE.txt` with `source: <etcd-grove commit>` (refusing a dirty tree or
+   noting it), `kit: <kit>`, `skill: <tree hash of .claude/skills/dsverify at that commit, or none>`,
+   `claude-md: <hash of the filled CLAUDE.md>`; hashes only. Optionally `--skill-from REV`.
+4. **What not to export**: the kit's proofs, other kits' `Dsverify/` proofs and notes,
+   `old/dsverify/`, `issues/` and `nonissues/` entries of dsverify kits, `notes/dsv-*.md`, and the
+   `etc/tcb-collections/dsv-*.txt` baselines of other kits.
+5. **Offline**: the Go toolchain `etc/goose.py` pins, the kit's Go module cache (`examples/dsverify/<kit>`
+   and `models/`), the Lake packages built, and `prophcheck`'s module.
+6. **Checks**: `{{CHECKS}}` defaults: goose `--check --project dsv-<kit>`, `proph_patch`, gen-init
+   `--check`, kitgen `--check <kit>`, tier-check `--check`; the export keeps the ones its tree supports.
+7. **Non-vacuity**: the challenge ships the kit's `NonVacuityLinked.lean` as a fixed file; the
+   template names it.
+8. Left to the coordinator: `{{CODE_CHANGES}}`, and whether the statement ships with the generated
+   proof skeleton and `Start.lean` scaffold.
+
+### How kitgen implements it
+
+1. Done; `--skill-from REV` extracts `REV:.claude/skills/dsverify` (`git archive`), and CHALLENGE.txt
+   names that tree.
+2. Done. Fields: `TITLE` (KITGEN `title`, else the kit's name), `FIXED_FILES` = the statement,
+   `TopLevelDefs.lean`, each premise class's file (`--audit`'s lookup) and the non-vacuity module;
+   `CODE_CHANGES` from `--code-changes` (default `allowed`, the skill's default); `SOURCE` the commit.
+3. Done: dirty refused unless `--allow-dirty` (then `source: <commit> (dirty)`); `claude-md: sha256 ...`;
+   plus `omitted:` lines (kitgen's generated files the challenge leaves out; `kitgen --check` reads them).
+4. Done, plus: other kits' Lean is kept only where this kit's landed proof uses it or gen-init's
+   generated files import it (gen-init `--check` compares every kit's generated files); a module
+   importing a left-out one is left out (iterated; for paxos 29 modules, swiftpaxos's gob and
+   concurrent-map specs among them); `Dsverify/Scratch/`. "Other kits" are every kit file's
+   `KITGEN.proof_roots`, else its goose project's first owned directory.
+5. Written, not provided: `DIR.lab/OFFLINE.txt` lists the Lean toolchain, the Perennial pin (built),
+   goose's Go toolchain (`GO_TOOLCHAIN`, go1.27.3) and the gates' (go1.27.1), and every Go module of the
+   tree whose dependencies GOMODCACHE needs (prophcheck's among them). The lab's image provides them
+   (copying gigabytes of toolchains and builds into each export would not serve a reused image).
+6. Done: the checks are those five, `proph_patch` only when `etc/proph-patches/dsv-<kit>/` exists;
+   kitgen's with `--no-codecs` (codec generation runs `go` against module caches). All pass in paxos's
+   export (below).
+7. Done when the module exists (`allow` reason `non-vacuity (fixed)`); paxos has none (no premises),
+   so its CLAUDE.md says "none (the statement has no premises)".
+8. The goal's file ships as a stub (`theorem <thm> : <thm>.spec := by sorry`); the generated proof
+   skeleton and the `Start.lean` scaffold are not shipped (the skeleton imports the kit's `Linked`,
+   so it cannot build without the kit's proofs).
+
+The comparator's files and the manifests go to `DIR.lab/`, outside the agent's tree:
+`comparator/challenge.conf` (`theorem=Perennial.<pkg>.<thm>`, `solution=` the proof module,
+`layout=Dsverify`, `gomodule=`, `test=`, `perennial=`, and new `tree=etcd-grove <commit>`,
+`statement=<module>`) and `Challenge.lean` (the stub's text). **Gap (lab side, not changed here):**
+comparator-check.sh builds its challenge by regenerating Goose's output into `DsvLab` with a KitStd;
+an etcd-grove statement depends on the exported tree (Net, the main tree, the translations), so the
+lab needs a `tree=` mode in which the challenge workspace is a fresh copy of the exported tree.
+
+### The leak check (`--leak-check DIR KIT`; run after every export)
+
+On the tree as written: (1) of the kit's Lean only the allow-list and the goal's stub; (2) of other
+kits' only the plan's; (3) no `notes/`, `old/dsverify/`, `.claude` but the skill, other kits'
+baselines; (4) every import of a module of this repository present (a failure for the kit's and
+other kits' modules, a warning elsewhere); (5) no `sorry` in the statement's closure but Goose's
+`sorry -- axiomatized type` instances (in the landed trust base; counted). Negative tests (first
+version, same checks): a planted `KitProof.lean` fails (1) and (4); a `sorry` added to
+`Net/Statement/DistDeploy.lean` fails (5).
 
 ## Findings
 

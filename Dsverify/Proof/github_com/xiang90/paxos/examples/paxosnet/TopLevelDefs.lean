@@ -17,8 +17,7 @@ public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.cmd.serv
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.cmd.server3.Base
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.cmd.server4.Base
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.cmd.server5.Base
-public import Dsverify.Proof.github_com.xiang90.paxos.Deploy
-public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Kit
+public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Addrs
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 

@@ -84,23 +84,28 @@ The generator is untrusted: a reader reads the committed statement, not the scri
 
 ### Exporting a proving challenge
 
-`etc/dsv/kitgen.py --export-challenge DIR <kit>` writes a self-contained tree for an automatic-proving
-run on the kit (the dsverify-lab harness runs agents in containers that cannot see etcd-grove):
-- the kit's Go module and the local modules its `go.mod` replaces with (`examples/lib/remote`,
-  lintest, porcupine; `models/` if the kit translates the models);
-- the statement and every module it imports, and gen-init's generated `Init`/`PkgTable` of the kit;
-- the shared infrastructure the kit's landed proof uses outside the kit's own tree (Net, the main
-  tree, other kits' shared libraries), closed under imports;
-- **none of the kit's own proofs**: of `Dsverify/{Proof,Spec}/<proof_roots>/`, only the statement's
-  closure (spec and defs modules only: the export stops if the statement imports a proof) and
-  gen-init's generated files (`challenge/MANIFEST.txt` lists each with why);
-- `lakefile.toml` (the libraries present, plus `Goal`), `lake-manifest.json` and `lean-toolchain` (the
-  Perennial pin);
-- `Goal.lean` (`theorem goal : <thm>.spec := sorry`) and `challenge/comparator/{challenge.conf,
-  Challenge.lean}` in the lab's comparator conventions (`statement/comparator-check.sh`:
-  `theorem=`, `solution=Goal`, `perennial=`, `gomodule=`, `test=`; plus `tree=` and `statement=`).
+`etc/dsv/kitgen.py --export-challenge DIR <kit>` writes the kit as a challenge for an automatic-proving
+run (the dsverify-lab harness runs agents in containers that cannot see etcd-grove; the interface is
+notes/dsv-skill.md's, copied in notes/dsv-kitgen.md). From a clean work tree (`--allow-dirty` notes
+a dirty one), `DIR` gets this repository's tracked files but:
+- the kit's own Lean (`Dsverify/{Proof,Spec}/<proof_roots>/`) except the statement's closure (spec and
+  defs only: the export stops if the statement imports a proof), gen-init's generated `Init`/`PkgTable`
+  and the non-vacuity module; the goal's file `Proof/.../TopLevelRobustness.lean` is a `sorry` stub,
+  and kitgen's other generated proofs (`Mains.lean`) are left out (`CHALLENGE.txt`'s `omitted:` lines,
+  which `kitgen.py --check` in the challenge skips);
+- other kits' Lean but what this kit's landed proof uses and what gen-init's generated files import;
+- `notes/`, `CLAUDE.md`, `.claude/` but the dsverify skill, `old/dsverify/`, dsverify kits' issues,
+  other kits' `etc/tcb-collections/dsv-*.txt`, and every module importing a left-out one;
+- with the skill `.claude/skills/dsverify/` (or as of `--skill-from REV`; `--no-skill`: the control
+  arm), `CLAUDE.md` filled from `challenge-CLAUDE.md` (identical in both arms; `--code-changes`), and
+  `CHALLENGE.txt` (the source commit, the kit, the skill's tree hash or `none`, the CLAUDE.md's hash).
 
-It then runs the leak check (also `--leak-check DIR <kit>`): no module of the kit's tree outside
-the allow-list, every exported module's imports of this repository exported, and no `sorry` in the
-statement's closure but Goose's instances of axiomatized types (`sorry -- axiomatized type`, the
-translation's, counted). Build the export up to the statement with `lake build Goal`.
+Beside it, `DIR.lab/` (outside the agent's tree): `comparator/{challenge.conf,Challenge.lean}` in the
+lab's comparator conventions (`statement/comparator-check.sh`; plus `tree=` and `statement=`),
+`MANIFEST.txt` (every module kept or left out, and why) and `OFFLINE.txt` (the toolchains, the built
+Perennial and the Go modules a run needs without network).
+
+The export then runs the leak check (also `--leak-check DIR <kit>`, on any exported tree): nothing of
+the kit's or other kits' Lean beyond the plan, no notes, `old/dsverify`, other `.claude` or other
+kits' baselines, every import present, and no `sorry` in the statement's closure but Goose's
+instances of axiomatized types (`sorry -- axiomatized type`, counted).
