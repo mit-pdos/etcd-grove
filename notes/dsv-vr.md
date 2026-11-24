@@ -90,6 +90,54 @@ first-run). `wp_package_init_first` is swiftpaxos's (`InitFirst.lean`, imported)
 `SetCodec.spec`. `codecFresh` threads boot → `wp_bootR` (TopLevel) → `Mains` → `Client.spec`/
 `Server.spec` → `mkClient.spec`/`runReplica.spec` → `RegisterJSON()`.
 
+**(3) started: discharging the premises.** `TypeCodecs` now states only the substantive parts
+(13 fields: `event` = `marshalAt jsonCodec ((*Event).JSONModelMarshalPtr)`, and
+`unmarshalAt jsonCodec scanF ((*T).JSONModelUnmarshal)` for the 11 payloads and `frame`); the rest
+of `typeCodecOk` for all 14 kit types, `log.Logs` whole, is proved in
+`Proof/vsrnetjson/Vacuous.lean` (`marshal_val_none`, `marshal_ptr_none`, `unmarshal_ptr_none`:
+`encP`/`decP` give no deposit there; `typeCodecOk_logs`, `typeCodecOk_of_unmarshal`,
+`typeCodecOk_event`, `codecOk_of`). Statement change: premises weakened only (a field removed,
+the others narrowed).
+
+**What remains of (3)** (the substantive premises), in a suggested order:
+1. A runtime-spec library for `models.lab/jsoncodec` (the Go in `models/jsoncodec/jsoncodec.go`,
+   translated under `Net/Code/models_lab/jsoncodec`): `SkipSpace`, `ValueEnd`, `At`, `Next`,
+   `Empty`, `Member`/`Str`, `Uint`/`QuotedUint` (signature changed against the lab: returns
+   `(y, st, k)`; `Set`/`TypeErr` statuses), `FoldEq`, `AppendUint`, `AppendString`, `AppendRaw`
+   (proved in `Net/`), `Valid`. The lab's `VsrProof/Proof/jsoncodec/Go{Base,Dec,Enc,Number,Scan}.lean`
+   (~2.3k lines, lab master 915f964) are the guide; adapt them, against the pure scanner already
+   ported (`Proof/jsoncodec/Scan*.lean`, `VsrJson.scanF`). Put them generic (Net or the main
+   tree's `Proof/models_lab/jsoncodec/`) so other kits reuse them.
+2. `scanOk scanF scanFn` (the lab's `ScanOk.lean`, from `GoScan`): part of `registeredCodecOk`.
+3. `registeredCodecOk`'s `marshalOk`/`unmarshalOk` at `codecPart jsonCodec`: only `[]log.Log`
+   (`jenc_S_log_Log`) and `*[]log.Log` (`jdec`… of `json_gen.go`); every other `codecPart`
+   deposit is excluded by `marshalsByCodec`/`unmarshalsByCodec` (`go_type_set` on `*Event`,
+   `*Frame`, `*payload`). Lab guide: `vsrnetjson/{EncLogs,DecLogs,LogsDec,SLogDec}.lean`.
+4. `TypeCodecs.frame` (`vsrwire`'s generated `JSONModelUnmarshal`, `jdec_Frame`,
+   `jdecMember_Frame`, `jdecRaw`; lab: `vsrnetjson/Frame.lean`).
+5. The 11 payloads' `JSONModelUnmarshal` (lab: `DecFlat`, `DecMore`, `Request`,
+   `UnmarshalAll`); `DoViewChange`/`StartView`/`NewState` reach `Logs.UnmarshalJSON` (prove
+   `log.Logs.UnmarshalJSON.spec` of `Spec/log.lean` over the main tree's `Unmarshal.spec` at
+   `codecPart jsonCodec`, the codec route; its `hdec`/`hval` premises are `vsrnet.dec_logs`'s).
+6. `TypeCodecs.event` (`jenc_Event`, events' `jencAny`, `jenc_<payload>`; `Logs.MarshalJSON`
+   over the main tree's `Marshal.spec` at `codecPart jsonCodec`; lab: `EncFlat`, `EncLogs`,
+   `Marshal`, `MarshalTop`).
+Each step removes one premise field (or `registeredCodecOk`) from `JsonHyps` (`JsonHyps.codecOk`
+then calls the theorem). No Löb is needed (design above).
+
+**Checks (round 7, head after the scratch drop).** fk-lean1 (`/shared/tmp/fklean1-check.sh`;
+helper `scratchpad/vrb.sh`): vr's `TopLevelRobustness` and `Proof/vsrnetjson/Vacuous` build
+(2912 jobs); scratch `Dsverify/Scratch/Axioms.lean` (committed, built, dropped):
+`vr_remote_robust`, `swiftpaxos_remote_robust`, `rabia_remote_robust`, `epaxos_remote_robust`,
+`quepaxa_remote_robust`, `paxos_remote_robust`, `counter_remote_robust`, `typeCodecOk_logs`: each
+`[propext, Classical.choice, Quot.sound]`. Here: `tier-check --check` ok, 227 known (no new;
+`RegisterJSON`'s proof is named `wp_RegisterJSON` so `KitLib` stays defs); `gen-init --check` 274
+up to date; `goose --check --project dsv-vr` up to date; `_vr_boot.py --check` and
+`_swiftpaxos_boot.py --check` ok; `copy-part --check` 0 differ; `proof_roots.namespace()`
+`Perennial.EtcdGrove.`; dups.py 4 hits (the known parse artifacts); `jsongen --check` 0;
+`etc/goose.py`, `etc/gen-init.py` equal lean's; no landed `TopLevelRobustness` differs from lean.
+No `InitHyp` premise (vr has none).
+
 ### Round 6: JSON on the main tree (2026-11-23 late; history)
 
 Brief: move vr onto the main tree's JSON (J1/J2/J3 landed on `lean` 69adf61913,
