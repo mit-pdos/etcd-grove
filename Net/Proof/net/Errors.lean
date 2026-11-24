@@ -60,6 +60,23 @@ theorem wp_extAnyErrno (Φ : val → IProp GF) :
   iapply wp_net_AnyErrno
   iexact HΦ
 
+/-- `fdAt`'s content, for a proof that keeps `fdAt` itself too. -/
+theorem fdAt_elim (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) :
+    fdAt (GF := GF) fd id nw la ra ⊢
+      ∃ v : netFD, ⌜v.pfd'.Sysfd' = id ∧ v.net' = nw ∧ v.laddr' = la ∧ v.raddr' = ra⌝ ∗ fd ↦□ v := by
+  unfold fdAt; exact .rfl
+
+/-- `lisAt`'s content, for a proof that keeps `lisAt` itself too. -/
+theorem lisAt_elim (t : Loc) (l : w64) (x : GoInterface) :
+    lisAt (GF := GF) t l x ⊢
+      ∃ (nw : GoString) (fd : Loc) (lc : ListenConfig) (ra : GoInterface), ⌜tcpNet nw ∧ l ≠ 0⌝ ∗
+        t ↦□ (TCPListener.mk fd lc) ∗ fdAt fd l nw x ra ∗ netAddr x := by
+  unfold lisAt lisFd
+  iintro ⟨%nw, %hnw, ⟨%fd, %lc, %ra, #Ht, #Hfd⟩, #Hx, %hl⟩
+  iexists nw, fd, lc, ra
+  iframe Ht Hfd Hx
+  ipureintro; exact ⟨hnw, hl⟩
+
 /-! ### The primitive stubs of the extension's operations
 
 Each takes the caller's atomic update in the form the specs give it (a result `Q res`) and returns
@@ -425,6 +442,33 @@ theorem wp_conn_ok (c fd : Loc) (hfd : fd ≠ null) (Φ : val → IProp GF) :
   wp_auto
   (try rw [show (!decide (fd = null)) = true by simp [hfd]])
   (try simp only [hfd, decide_false, Bool.not_false])
+  (try wp_auto)
+  iexact HΦ
+
+/-- `(*TCPConn).ok()` (`conn`'s, promoted) on a `TCPConn` holding a non-nil `fd`: `true`. -/
+theorem wp_TCPConn_ok (t fd : Loc) (hfd : fd ≠ null) (Φ : val → IProp GF) :
+    (t ↦□ (TCPConn.mk (conn.mk fd)) : IProp GF) -∗ Φ #true -∗
+    WP (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"ok" #t)) (Val #())) {{ Φ }} := by
+  iintro #Ht HΦ
+  iStructNamed Ht
+  wp_method_call
+  (try wp_auto)
+  wp_apply wp_conn_ok _ fd hfd $$ conn
+  (try wp_auto)
+  iexact HΦ
+
+/-- `(*TCPListener).ok()` on a listener holding a non-nil `fd`: `true`. -/
+theorem wp_TCPListener_ok (t fd : Loc) (lc : ListenConfig) (hfd : fd ≠ null) (Φ : val → IProp GF) :
+    (t ↦□ (TCPListener.mk fd lc) : IProp GF) -∗ Φ #true -∗
+    WP (App (Val #(methods (go.GoType.PointerType TCPListener.ty) go!"ok" #t)) (Val #())) {{ Φ }} := by
+  iintro #Ht HΦ
+  ihave %ht := typedPointsto_not_null _ _ _ $$ Ht
+  iStructNamed Ht
+  wp_method_call; wp_call
+  wp_auto
+  (try rw [show (!decide (t = null)) = true by simp [ht]])
+  (try wp_auto)
+  (try rw [show (!decide (fd = null)) = true by simp [hfd]])
   (try wp_auto)
   iexact HΦ
 
@@ -1002,6 +1046,67 @@ theorem wp_fd_Write (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : 
 
     iapply HΦ $$ HP Hsl %hpure
     unfold resKind; iexact He
+
+/-- D7. `ln.accept()` (`TCPListener`'s model): `fd.accept()`, then a new `*TCPConn` for the end
+`(c, true)` on the listener's network, or the failure's error. -/
+theorem wp_TCPListener_accept (t : Loc) (l : w64) (x : GoInterface) (la : GoString)
+    (Φ : val → IProp GF) :
+    lisAt (GF := GF) t l x -∗ netLisOn NL l la -∗
+    ((|={⊤,∅}=> ∃ o, netLis NL l la o ∗
+        (netLis NL l la o ={∅,⊤}=∗ ∀ e, kindErr (GF := GF) (if o then .sys else .closed) none
+          (· = go!"accept4") e -∗ Φ (PairV #null #e))) ∧
+      ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+        |={⊤,∅}=> ∃ o S, netLis NL l la o ∗ netPend NG a S ∗
+          (⌜o = true⌝ -∗ ∀ c, ⌜c ∈ S⌝ -∗ netLis NL l la o -∗
+            netPend NG a (S \ {[c]}) -∗ netConnAt NG c a ={∅,⊤}=∗
+            ∀ (tc : Loc) (la' ra' : GoInterface), connAt (GF := GF) tc c true a la' ra' -∗
+              Φ (PairV #tc #interface.nil))) -∗
+    WP (App (Val #(methods (go.GoType.PointerType TCPListener.ty) go!"accept" #t)) (Val #()))
+      {{ Φ }} := by
+  iintro #Hl Hon HΦ
+  ihave ⟨%nw, %fd, %lc, %ra, %hnl, #Ht, #Hfd, #Hx⟩ := lisAt_elim _ _ _ $$ Hl
+  iStructNamed Ht
+  iapply wp_fupd
+  wp_method_call; wp_call
+  wp_auto
+  wp_apply wp_fd_accept fd l nw x ra la $$ Hfd Hon
+  isplit
+  · icases HΦ with ⟨HΦ, -⟩
+    imod HΦ with ⟨%o, Hlo, Hk⟩
+    imodintro
+    iexists o
+    iframe Hlo
+    iintro Hlo
+    imod Hk $$ Hlo with HΦ
+    imodintro
+    iintro %e #He
+    ihave %hne := kindErr_ne_nil _ none _ e (fun _ h => by cases h) $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
+    wp_auto
+    imodintro
+    iapply HΦ $$ He
+  · icases HΦ with ⟨-, HΦ⟩
+    iintro %a %ha
+    imod HΦ $$ %a %ha with ⟨%o, %S, Hlo, Hp, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hlo Hp
+    iintro %ho %c %hc Hlo Hp #Hat
+    imod Hk $$ %ho %c %hc Hlo Hp Hat with HΦ
+    imodintro
+    iintro %nfd %la' %ra' #Hnfd #Hla' #Hra'
+    wp_auto
+    ipersist «$r0»
+    imodintro
+    iapply HΦ $$ %«$r0_ptr» %la' %ra'
+    unfold connAt connFd
+    iexists nw
+    iframe Hat Hla' Hra'
+    isplitr
+    · ipureintro; exact hnl.1
+    iexists nfd
+    iframe «$r0» Hnfd
 
 end proof
 

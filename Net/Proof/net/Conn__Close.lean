@@ -31,16 +31,42 @@ theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra Q
   unfold connAt connFd
   wp_start as ⟨⟨%nw, %Hnw, ⟨%fd, #Ht, #Hfd⟩, #Hla, #Hra, #Hat⟩, HAU⟩
+  ihave ⟨%v, %hv, #Hv⟩ := fdAt_elim _ _ _ _ _ $$ Hfd
+  obtain ⟨-, rfl, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
-  ihave #Hfd2 := Hfd
-  unfold fdAt
-  icases Hfd2 with ⟨%v, %hv, #Hv⟩
-  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
-  wp_method_call
+  iStructNamed Hv
+  (try wp_method_call)
   wp_auto
-  trace_state
-  sorry
+  wp_apply wp_conn_ok _ fd Hfdn $$ conn
+  iStructNamed conn
+  wp_auto
+  wp_apply wp_fd_Close fd cn s a _ _ _ Q $$ Hfd Hat HAU as %res %e HQ #He
+  rcases res with _ | k
+  · unfold resKind; icases He with %he; subst he
+    wp_auto
+    iapply HΦ
+    iexists none; iframe HQ
+    unfold resErr; ipureintro; rfl
+  · rw [show resKind (GF := GF) (some k) none (· = go!"close") e =
+      kindErr k none (· = go!"close") e from rfl]
+    ihave %hne := kindErr_ne_nil k none _ e (fun _ h => by cases h) $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
+    wp_auto
+    wp_alloc pe as Hpe
+    ipersist Hpe
+    wp_auto
+    iapply HΦ
+    iexists some k
+    iframe HQ
+    unfold resErr opErr
+    iexists GoInterface.ok ie
+    iframe He
+    iexists pe, v.net'
+    iframe Hpe
+    ipureintro; exact ⟨rfl, Hnw⟩
 
 end proof
 

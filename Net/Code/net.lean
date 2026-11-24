@@ -5807,6 +5807,8 @@ class TCPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_ok_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"ok" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"ok"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
 
 attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.underlying
@@ -5829,6 +5831,7 @@ attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
   TCPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
   TCPConn.TypeAssumptions.ptr_Write_unfold
+  TCPConn.TypeAssumptions.ptr_ok_unfold
 
 structure TCPListener [GooseExts] where
   mk ::

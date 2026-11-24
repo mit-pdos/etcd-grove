@@ -29,71 +29,44 @@ variable [go.BasicIntoValInj]
 
 theorem TCPConn.SetWriteBuffer.wp_proof : TCPConn.SetWriteBuffer.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra n Q
-  unfold connAt
-  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, HAU⟩
-  (try wp_method_call)
-  (try unfold conn.SetWriteBuffer.impl)
-  (try unfold model.sockOpt)
-  (try unfold model.connId)
-  (try rw [TCPConn_ty_eq])
-  (try rw [conn_ty_eq'])
+  unfold connAt connFd
+  wp_start as ⟨⟨%nw, %Hnw, ⟨%fd, #Ht, #Hfd⟩, #Hla, #Hra, #Hat⟩, HAU⟩
+  ihave ⟨%v, %hv, #Hv⟩ := fdAt_elim _ _ _ _ _ $$ Hfd
+  obtain ⟨-, rfl, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
+  iStructNamed Hv
+  (try wp_method_call)
+  wp_auto
+  wp_apply wp_conn_ok _ fd Hfdn $$ conn
   iStructNamed conn
-  ihave %Hne := netConnAt_endId_ne _ cn a s $$ Hat
-  (try wp_auto)
-  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_SetSockopt cn s a (W64 0) (W64 0) $$ Hat
-  imod HAU with ⟨%st, Hend, Hk⟩
-  imodintro
-  iexists st
-  iframe Hend
-  iintro %res %Hso Hend
-  imod Hk $$ %res %(by simpa [sockOptValid] using Hso) Hend with HQ
-  imodintro
+  wp_auto
+  wp_apply wp_setWriteBuffer fd cn s a _ _ _ n Q $$ Hfd Hat HAU as %res %e HQ #He
   rcases res with _ | k
-  · wp_auto
-    iapply HΦ
-    iexists none
-    iframe HQ
-    unfold resErr
-    ipureintro; rfl
-  · have hk : k ≠ .timeout := by
-      rintro rfl
-      unfold SockOptOutcome at Hso
-      split at Hso
-      · cases Hso
-      · split at Hso
-        · cases Hso
-        · split at Hso <;> cases Hso
+  · unfold resKind; icases He with %he; subst he
     wp_auto
-    (try unfold model.sockOptErrConn)
-    (try unfold model.connErr)
-    (try unfold model.connNet)
-    (try wp_auto)
-    cases k
-    · -- closed
-      wp_apply wp_kindErr .closed none go!"setsockopt" (· = go!"setsockopt") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists some .closed
-      iframe HQ
-      unfold resErr
-      iexists e
-      iframe Herr He
-    · exact absurd rfl hk
-    · -- sys
-      wp_apply wp_kindErr .sys none go!"setsockopt" (· = go!"setsockopt") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists some .sys
-      iframe HQ
-      unfold resErr
-      iexists e
-      iframe Herr He
+    iapply HΦ
+    iexists none; iframe HQ
+    unfold resErr; ipureintro; rfl
+  · rw [show resKind (GF := GF) (some k) none (· = go!"setsockopt") e =
+      kindErr k none (· = go!"setsockopt") e from rfl]
+    ihave %hne := kindErr_ne_nil k none _ e (fun _ h => by cases h) $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
+    wp_auto
+    wp_alloc pe as Hpe
+    ipersist Hpe
+    wp_auto
+    iapply HΦ
+    iexists some k
+    iframe HQ
+    unfold resErr opErr
+    iexists GoInterface.ok ie
+    iframe He
+    iexists pe, v.net'
+    iframe Hpe
+    ipureintro; exact ⟨rfl, Hnw⟩
 
 end proof
 

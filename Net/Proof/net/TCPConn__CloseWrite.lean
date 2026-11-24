@@ -29,65 +29,44 @@ variable [go.BasicIntoValInj]
 
 theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra Q
-  unfold connAt
-  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, HAU⟩
-  (try wp_method_call)
-  (try unfold TCPConn.CloseWrite.impl)
-  (try unfold model.connId)
-  (try unfold model.connErr)
-  (try rw [TCPConn_ty_eq])
-  (try rw [conn_ty_eq'])
+  unfold connAt connFd
+  wp_start as ⟨⟨%nw, %Hnw, ⟨%fd, #Ht, #Hfd⟩, #Hla, #Hra, #Hat⟩, HAU⟩
+  ihave ⟨%v, %hv, #Hv⟩ := fdAt_elim _ _ _ _ _ $$ Hfd
+  obtain ⟨-, rfl, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
+  iStructNamed Hv
+  (try wp_method_call)
+  wp_auto
+  wp_apply wp_TCPConn_ok _ fd Hfdn $$ Ht
   iStructNamed conn
-  ihave %Hne := netConnAt_endId_ne _ cn a s $$ Hat
-  (try wp_auto)
-  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_CloseWrite cn s a $$ Hat
-  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
-  imodintro
-  iexists st, d
-  iframe Hend Hdir
-  iintro %res %d' %Hcr Hend Hdir
-  imod Hk $$ %res %d' %Hcr Hend Hdir with HQ
-  imodintro
+  wp_auto
+  wp_apply wp_fd_closeWrite fd cn s a _ _ _ Q $$ Hfd Hat HAU as %res %e HQ #He
   rcases res with _ | k
-  · wp_auto
-    iapply HΦ
-    iexists none
-    iframe HQ
-    unfold resErr
-    ipureintro; rfl
-  · have hk : k ≠ .timeout := by
-      unfold CloseWriteOutcome at Hcr; split at Hcr
-      · rintro rfl; cases Hcr.1
-      · rintro rfl; rcases Hcr with ⟨h, -⟩ | ⟨h, -⟩ <;> cases h
+  · unfold resKind; icases He with %he; subst he
     wp_auto
-    cases k
-    · wp_apply wp_kindErr .closed none go!"shutdown" (· = go!"shutdown") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      (try unfold model.connNet)
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists some .closed
-      iframe HQ
-      unfold resErr
-      iexists e
-      iframe Herr He
-    · exact absurd rfl hk
-    · wp_apply wp_kindErr .sys none go!"shutdown" (· = go!"shutdown") rfl rfl $$ [] as %e #He
-      (try wp_auto)
-      (try unfold model.connNet)
-      (try wp_auto)
-      wp_apply wp_opError $$ %Hnw as %err #Herr
-      iapply HΦ
-      iexists some .sys
-      iframe HQ
-      unfold resErr
-      iexists e
-      iframe Herr He
+    iapply HΦ
+    iexists none; iframe HQ
+    unfold resErr; ipureintro; rfl
+  · rw [show resKind (GF := GF) (some k) none (· = go!"shutdown") e =
+      kindErr k none (· = go!"shutdown") e from rfl]
+    ihave %hne := kindErr_ne_nil k none _ e (fun _ h => by cases h) $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
+    wp_auto
+    wp_alloc pe as Hpe
+    ipersist Hpe
+    wp_auto
+    iapply HΦ
+    iexists some k
+    iframe HQ
+    unfold resErr opErr
+    iexists GoInterface.ok ie
+    iframe He
+    iexists pe, v.net'
+    iframe Hpe
+    ipureintro; exact ⟨rfl, Hnw⟩
 
 end proof
 
