@@ -55,11 +55,22 @@ harness really has: `examples/raft/tracecheck` bootstraps with `raft.Peer{ID: ui
 
 **Two claims, kept apart.**
 
-* *The statement was vacuous* (a fact, checked in Lean): on `origin/lean` at `94767c2a2f`,
-  `tracecheck.premises_vacuous_old` (below, built against those definitions; not kept in the tree,
-  since it no longer holds after the fix) derives `False` from `⊢ tracecheck.premises boot`, at every
-  `HeapGS` and every `boot`.
-* *The proof did not rely on `False`* (the finding, with evidence): on `origin/lean` the only proof that
+* *The statement was vacuous* (a fact, checked in Lean): on `lean` at `94767c2a2f` (this branch's
+  base), the lemma below, in a scratch module importing `RaftTla`'s `tracecheck.Defs` with `Defs`'s
+  section variables (any `HeapGS .hasLC GF`, any `boot`), compiles; `#print axioms` gives
+  `[propext, Classical.choice, Quot.sound]` (VM build, 2026-11-24). It is not kept in the tree: after
+  the fix it no longer holds, and `premises_of_marshal` is the guard in its place.
+
+  ```lean
+  theorem premises_vacuous_old (boot : List LogEntry)
+      (Hprem : ⊢ premises (GF := GF) boot) : False := by
+    apply pure_soundness (PROP := IProp GF) (φ := False)
+    refine Hprem.trans ?_
+    unfold premises bootMarshal
+    iintro ⟨%Hc, -⟩
+    exact absurd (Hc [] (by simp)) (by simp)
+  ```
+* *The proof did not rely on `False`* (the finding, with evidence): at `94767c2a2f` the only proof that
   opens `bootMarshal` is raft's `RawNode.Bootstrap` (`Proof/go_etcd_io/raft/v3/RawNode__Bootstrap.lean:298-299`,
   and its copies in `RaftTla/`, `RaftNoAx/`, `KvNet/`, `RaftWitness/`): `iunfold bootMarshal at Hmarshal;
   icases Hmarshal with ⟨-, #Hmarshal'⟩`, which discards `⌜∀ c ∈ ctxs, c ≠ []⌝` and uses only the `□`
