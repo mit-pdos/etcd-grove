@@ -295,7 +295,7 @@ theorem Cluster.app.wp_proof
         ipureintro; exact ⟨Hs0, Hs2⟩
       · wp_for_post
         iframe
-        iexists _, v1, hs1
+        iexists _, ⟨max v1.applied (st.delivered ++ ce).length, v1.membership⟩, hs1
         iframe Hdrv
         isplitl [Hrs]
         · iExactEq Hrs; rfl
@@ -304,7 +304,7 @@ theorem Cluster.app.wp_proof
         refine ⟨rfl, Hst.2.1, ?_⟩
         simp only [NodeDriverState.afterReady]
         rw [Nat.max_eq_right Hva]
-        exact ⟨Hv1.1, Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by omega)⟩
+        exact ⟨Hv1.1, Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by simp only at h1; omega)⟩
     · iexfalso
       iapply nodeRunning_stopped n W.cl tcRaftN 1
       iframe Hrun Hstop

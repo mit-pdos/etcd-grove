@@ -151,7 +151,7 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
         cases hd : γ.mode.isDyn with
         | false =>
           isplitr
-          · simp only [capPay, hd]; itrivial
+          · simp only [capPay, hd, Bool.false_eq_true, ↓reduceIte]; itrivial
           iintro -
           rw [loanCfg_static hd]
           iframe Hcfg
@@ -433,7 +433,7 @@ private theorem node.wp_Advance_impl
       ileft
       iunfold storFloor at Hx
       iapply monoNatLbOwn_le _ (by rw [← Hds, strip_length]; word) $$ Hx
-    ihave #Hcat' := HskN $$ %rfl
+    ihave #Hcat' := HskN $$ %trivial
     iframe Hcat'
     unfold nodeConfig
     iexists γn, id

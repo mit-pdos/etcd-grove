@@ -345,6 +345,7 @@ private theorem node.wp_ApplyConfChange_impl
     EtcdGrove.nodeConfig EtcdGrove.nodeStopped
   intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Htrk
   haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
+  haveI := EtcdGrove.confAt_persistent (GF := GF) γ k v.membership
   iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, ⟨Hcfg, #Hca⟩, #Hdl, #Hsk⟩ HΦ
   -- (2026-10-30, stage R3) the configuration after the entry
   ihave Hdec1 : EtcdGrove.confDecided (GF := GF) γ k (.apply o') $$ []

@@ -953,7 +953,7 @@ theorem Replica.run.wp_proof
           icases nodeConfig_confAt n γ.r.cluster kdRaftN ⟨ap'.length, m'⟩ $$ Hc with ⟨Hc, #Hca⟩
           iexists ⟨ap'.length, m'⟩
           simp only
-          rw [Nat.max_eq_left (by omega)]
+          rw [Nat.max_eq_left (show (D ++ ce).length ≤ ap'.length by omega)]
           iframe Hc Hca
           iintro Hc
           iright

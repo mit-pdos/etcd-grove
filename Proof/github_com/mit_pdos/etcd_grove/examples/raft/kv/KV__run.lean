@@ -411,11 +411,11 @@ theorem KV.run.wp_proof
       ihave #Hsk := skippedIn_noConf γr.cluster (D ++ ce) v.applied (D ++ ce).length
         (fun j e _ h2 h3 => Hnc j e (Nat.zero_le _) h2 h3)
       icases nodeConfig_confAt n γr.cluster kvRaftN v $$ Hcfg with ⟨Hcfg, #Hca⟩
-      ihave #Hcl := deliveredLogLb_committed n γr.cluster kvRaftN (D ++ ce) $$ Hdl
+      ihave #Hcom := deliveredLogLb_committed n γr.cluster kvRaftN (D ++ ce) $$ Hdl
       ihave #Hsk' : confAt γr.cluster (max v.applied (D ++ ce).length) v.membership $$ []
       · rw [Nat.max_eq_right Hva]
         iapply confAt_skipped γr.cluster (D ++ ce) v.applied _ v.membership Hva (Nat.le_refl _)
-        iframe Hcl Hca Hsk
+        iframe Hcom Hca Hsk
       wp_apply wp_node_Advance n γr.cluster kvRaftN id _ es none v rfl (fun _ h => by cases h)
         $$ [$Hraftinit $Hiscl $HisNode $Hdrv $Hrcpt $Hcfg $Hsk'] as Hadv
       icases Hadv with (⟨Hdrv, #Hal', Hcfg⟩ | ⟨#Hstop, -⟩)

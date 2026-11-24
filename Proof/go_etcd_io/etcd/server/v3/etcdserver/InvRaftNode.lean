@@ -489,8 +489,9 @@ def rnGhost (γ : RNNames GF) (L : List EntryModel) : List EntryModel :=
 
 /-- (R2d'a A6, 2026-11-06; DRAFT) **The driver's view of the configuration after the committed log
 `L`, over the ghost log** (the deleted ViewR.lean's `rnCfgAtR`): the view after `rnGhost γ L`, every conf entry of it
-applied (`srvCfgView`, `InvCfgView.lean`). At a restart, raft's view is at the backend's consistent
-index (`RestartNode`, `bootstrap.go:597`; `notes/restart-plan.md`, R2d' finding 1), past Go's log
+applied (`srvCfgView`, `InvCfgView.lean`). At a restart, raft's view starts at its configuration
+point `min |A₀| σ.commit` (2026-11-24, d6 step 3: until then the backend's consistent index,
+`RestartNode`, `bootstrap.go:597`; `notes/restart-plan.md`, R2d' finding 1), possibly past Go's log
 while the replay window is open; at a first start it is the view after `pre ++ L`. -/
 def rnView (γ : RNNames GF) (L : List EntryModel) : IProp GF :=
   srvCfgView γ.srv γ.nl [] (rnGhost γ L)

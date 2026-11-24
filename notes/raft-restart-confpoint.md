@@ -298,3 +298,14 @@ premise `confAt γ (max v.applied st.delivered.length) v.membership`, post
 kvnet (KvNet's own copies of kvdurable's three files), tracecheck (`Cluster__app`, `Cluster__handleReady`,
 `ProbeALinked`), the server's `NodeBridge` (minimal: `confAt` from its `NoConfChangeIn` facts, the view
 moved after `Advance`). RaftTla/RaftNoAx/KvNet copies regenerated.
+
+**Checkpoint 2 (built).** VM build green for raft `Results`/`Linked`/`TracedLinked`, kv, kvreconf,
+kvdurable (`Results`, `TopLevelRobustness`), tracecheck (RaftTla), kvdurablenoax (RaftNoAx), kvnet
+(`TopLevelRobustness`, KvNet); the server's `Link` and its restart leaves green (subagent build).
+Server (d6 step 3, as built): `srvCfgOk`/`srvCCPre` without `NoConfChangeIn`; `NodeBridge` gets `confAt`
+from `srv_confAt_simple` (`raftApplyCC_of_isNode` takes `srvRaftLogInv`); `raftNode_of_RestartNode`
+restarts raft at `a' = min |A₀| σ.commit` with the view at `⟨a', simple cfg⟩`. **Not dropped:**
+`NodeStartSpecR`'s `|A₀| ≤ σ.commit`, still used by `replaySeed_facts` (d6 round 4 item 3) and
+`rnRestartOk`'s restart disjunct (item 2, behind the blocked step 1); it no longer feeds `RestartNode`.
+**Next:** interface regeneration (`etc/gen-interface.py etc/api/raft.txt`), `etc/tcb-report.py --check`,
+then the remaining `NodeStartSpecR` bound once items 2-3 land.
