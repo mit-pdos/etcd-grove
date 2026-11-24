@@ -18,12 +18,14 @@ deposits' arguments are of that type; the reader holds the request's deposit whe
 body, `req_guard`); and, from the deposit `Sm args Φ` and a decoding of `args` into `argv`
 (`Θ args true`), the call obligation `callObl`: `NewReply()` returns a `replyv`, and `Call(rcvr, argv, replyv)` returns
 `nil` with the encoding of `replyv` into the answer `Φ eb ""`, or an error with its message `msg`
-(`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`).
+(`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`),
+or an error whose message is any string (`models_lab.errAny`) with that answer for every message.
 
-**Error answers** (`errOk S`, persistent): the server answers with an error message (not empty)
-a request it does not run: its body did not read or decode, or its method is not registered; the
-deposit gives the continuation's `Φ [] msg` then. Go's net/rpc does send these errors, so a
-client's continuation must accept them.
+**Error answers** (`errOk S`, persistent): the server answers with one of its own error messages
+(`srvErrMsg`, `Errs.lean`) a request it does not run: its body did not read or decode, or its
+method is not registered; the deposit gives the continuation's `Φ [] msg` then. Go's net/rpc does
+send these errors, so a client's continuation must accept them; but only them: a service's own
+error messages (a method's `Call`'s, `callRet`) mean what its spec says.
 
 **Receivers** (`rcvrIs C rcvr S nm np rp`, persistent): what reflection tells `register` (the
 `*Receiver` `rp` the codec's `Receiver(rcvr)` returns, `C.rcv rcvr`, `Codec.lean`): the type's name
@@ -96,11 +98,17 @@ abbrev MSpec (GF : BundledGFunctors) := List w8 → (List w8 → GoString → IP
 
 /-- What a method's `Call` returns (`e`), for its reply `replyv` and continuation `Φ`: `nil` and
 the encoding of the reply into `Φ eb ""`; or an error with message `msg`, `Φ [] msg` (the
-encoding of the reply if `msg` is `""`, which Go sends as a success). -/
+encoding of the reply if `msg` is `""`, which Go sends as a success); or an error whose `Error()`
+is any string (`models_lab.errAny`, e.g. a net/rpc client's error the method forwards), with the
+same answer for every message it may return: the server calls `Error()` once
+(`service.call`), so the method promises only "some message" (non-empty: `Φ [] msg`; empty: Go
+sends the reply as a success). -/
 def callRet (C : CodecSpec GF) (replyv : GoInterface) (Φ : List w8 → GoString → IProp GF)
     (e : GoInterface) : IProp GF :=
   iprop((⌜e = interface.nil⌝ ∗ C.enc replyv (fun eb => Φ eb [])) ∨
     (∃ msg : GoString, errMsg e msg ∗
+      (if msg = [] then C.enc replyv (fun eb => Φ eb []) else Φ [] msg)) ∨
+    (models_lab.errAny e ∗ ∀ msg : GoString,
       (if msg = [] then C.enc replyv (fun eb => Φ eb []) else Φ [] msg)))
 
 /-- The call obligation of the method `v` of `rcvr` on the argument `argv`, for the continuation
@@ -138,10 +146,11 @@ instance methodOk_persistent (C : CodecSpec GF) (rcvr : GoInterface) (Sm : MSpec
     Persistent (methodOk (GF := GF) C rcvr Sm mm) := by
   unfold methodOk; infer_instance
 
-/-- The service spec `S` accepts error answers (persistent; see the file header). -/
+/-- The service spec `S` accepts the server's own error answers (persistent; see the file
+header). -/
 def errOk (S : MethodSpec GF) : IProp GF :=
   iprop(□ ∀ (m : GoString) (args : List w8) (Φ : List w8 → GoString → IProp GF) (msg : GoString),
-    ⌜msg ≠ []⌝ -∗ S m args Φ ={⊤}=∗ Φ [] msg)
+    ⌜srvErrMsg msg⌝ -∗ S m args Φ ={⊤}=∗ Φ [] msg)
 
 instance errOk_persistent (S : MethodSpec GF) : Persistent (errOk S) := by
   unfold errOk; infer_instance
@@ -251,40 +260,50 @@ def ansRec (W : RpcWorld GF) (a : GoString) (cn : Nat) (Rs : List Ans) : IProp G
     [∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)))
 
 /-- The invariant of `sending` over the server codec `sc` on the acceptor's end of `cn`, to the
-address `a` of world `W`: what was written is a prefix of the wire of the answers `Rs` recorded,
-all of it while no write failed. -/
+address `a` of world `W`: what was written is a prefix of the handshake's answer and the wire of
+the answers `Rs` recorded, all of it while no write failed, or, before the first answer, a prefix of
+the handshake's answer (its write may have failed: `ServeHTTP` ignores the error; the first answer
+is written only after a request was read, which the dialer wrote only after the whole answer had
+been written, `ansPend`'s `sentLb`). -/
 def srvSendInv (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
   iprop(∃ (w0 : GoInterface) (Wd : List w8) (Rs : List Ans),
     structFieldRef net.rpc.serverCodec go!"werr" sc ↦ w0 ∗
     sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) Wd ∗ ansRec W a cn Rs ∗
-    ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: respsWire Rs ∧ (w0 = interface.nil → Wd = respsWire Rs)⌝)
+    sentLb (Gg := hG.goose_globalGS) cn false (W.hs a) ∗
+    ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: W.hsAns a ++ respsWire Rs ∧
+      (w0 = interface.nil → Wd = W.hsAns a ++ respsWire Rs ∨ (Rs = [] ∧ Wd <+: W.hsAns a))⌝)
 
 /-- The right to answer request `k` of connection `cn` (`"Service.Method"` `sm`), once, with its
-saved continuation `Φ`: its `ans` element, still `none`. -/
+saved continuation `Φ`: its `ans` element, still `none`; and the handshake's answer was written
+whole (the dialer wrote the request after it: `reqProto`). -/
 def ansPend (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString)
     (Φ : List w8 → GoString → IProp GF) : IProp GF :=
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (r : RpcReq),
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
     ⌜L[k]? = some r ∧ r.sm = sm ∧ k < 2 ^ 64⌝ ∗
     ghostMapElem γ.ans k (DFrac.own 1) (none : Option (GoString × List w8)) ∗
-    savedPredOwn r.post .discard (fun p : List w8 × GoString => Φ p.1 p.2))
+    savedPredOwn r.post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗
+    sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a))
 
-/-- The reader of `cn` has read the frames of the payloads `ps` (each fitting a frame) and taken
-`k` requests of the connection: none at first, with the acceptor's fresh token; then the reader's
-half of `ctr`, at `k`. -/
+/-- The reader of `cn` has read the handshake and the frames of the payloads `ps` (each fitting
+a frame) and taken `k` requests of the connection: none at first, with the acceptor's fresh token;
+then the reader's half of `ctr`, at `k`. -/
 def readerSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) (k : Nat) :
     IProp GF :=
-  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (framesOf ps) ∗
+  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a ++ framesOf ps) ∗
     ⌜∀ q ∈ ps, q.length < 2 ^ 63⌝ ∗
     ((⌜k = 0⌝ ∗ connFresh (Gg := hG.goose_globalGS) cn true) ∨
       ∃ γ : RpcConnNames, isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
         ghostVar γ.ctr (1 : Qp).half k))
 
-/-- A connection just accepted at `a` (`Accept`'s): the acceptor's end of `cn`, its tokens
-(nothing written or read yet) and its fresh token, and the world's registry. -/
+/-- A connection accepted at `a`, its handshake done (`Accept`'s, with none; `ServeHTTP`'s): the
+acceptor's end of `cn`, its tokens (the handshake read, nothing else, and a prefix of its answer
+written: all of it, unless the write failed, which `ServeHTTP` does not look at) and its fresh
+token. -/
 def rpcAccepted (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
-  iprop(sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) [] ∗
-    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) [] ∗
+  iprop(∃ w : List w8, ⌜w <+: W.hsAns a⌝ ∗
+    sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) w ∗
+    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a) ∗
     connFresh (Gg := hG.goose_globalGS) cn true)
 
 /-! ## The request loop's pieces -/
@@ -305,15 +324,15 @@ def ansRes (C : CodecSpec GF) (errmsg : GoString) (reply : GoInterface)
     (Φ : List w8 → GoString → IProp GF) : IProp GF :=
   if errmsg = [] then C.enc reply (fun eb => Φ eb []) else Φ [] errmsg
 
-/-- The continuation's error answers: `Φ [] msg` for a message not empty (the deposit spent by
-the service's `errOk`). -/
+/-- The continuation's error answers: `Φ [] msg` for one of the server's own error messages (the
+deposit spent by the service's `errOk`). -/
 def errCont (Φ : List w8 → GoString → IProp GF) : IProp GF :=
-  iprop(∀ msg : GoString, ⌜msg ≠ []⌝ ={⊤}=∗ Φ [] msg)
+  iprop(∀ msg : GoString, ⌜srvErrMsg msg⌝ ={⊤}=∗ Φ [] msg)
 
-/-- A sticky read error of the server codec (persistent): an error with a message not empty
-(`errNE`), and a pointer (which `==` compares). -/
+/-- A sticky read error of the server codec (persistent): an error with a read error's message
+(`errSrv`, `rdErrMsg`), and a pointer (which `==` compares). -/
 def rdErr (e : GoInterface) : IProp GF :=
-  iprop(errNE e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
+  iprop(errSrv e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
 
 instance rdErr_persistent (e : GoInterface) : Persistent (rdErr (GF := GF) e) := by
   unfold rdErr; infer_instance
@@ -333,7 +352,7 @@ request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it.
 def rdrMid (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (r : RpcReq) : IProp GF :=
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (ps : List (List w8)),
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a)
-      (framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
+      (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
     ghostVar γ.ctr (1 : Qp).half (k + 1) ∗
     ⌜L[k]? = some r ∧ ps.length = 2 * k ∧ (∀ q ∈ ps, q.length < 2 ^ 63) ∧ reqOk r⌝)

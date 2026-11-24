@@ -3,7 +3,8 @@
 The trusted models' error and address helpers (`Net/TrustedCode/net.lean`: `model.opError`,
 `model.kindErr`, `model.sysErr`, `model.anyTCPAddr`), as WP lemmas the proofs of `net`'s specs use:
 each gives the error's or the address's predicate of `Base.lean` (`opErr`, `kindErr`, `sysErr`,
-`netAddr`).
+`netAddr`). And `(*OpError).Error()` (`OpError.Error.impl`): a message of Go's form, its
+operation, then `": "` (`opErrMsg`, `wp_OpError_Error`).
 -/
 module
 
@@ -169,6 +170,52 @@ theorem wp_newConn (cn : Nat) (s : Bool) (a nw : GoString) (Φ : val → IProp G
   ipureintro; exact hnw
 
 end proof
+
+/-- Go's form of an `*OpError`'s message (`OpError.Error.impl`, `net.go`): the operation `op`,
+some string (the network and the addresses), `": "`, some string (the error's message). -/
+def opErrMsg (op msg : GoString) : Prop :=
+  ∃ s1 s2 : GoString, msg = op ++ s1 ++ go!": " ++ s2
+
+theorem opErrMsg_ne (op msg : GoString) (h : opErrMsg op msg) : msg ≠ [] := by
+  obtain ⟨s1, s2, rfl⟩ := h
+  simp
+
+section errorMsg
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions]
+
+/-- `e.Error()` on an `*OpError` `pe`: a message of Go's form (`opErrMsg`) for its `Op`. -/
+theorem wp_OpError_Error (pe : Loc) (v : net.OpError) (Φ : val → IProp GF) :
+    (pe ↦□ v : IProp GF) -∗ ▷ (∀ msg : GoString, ⌜opErrMsg v.Op' msg⌝ -∗ Φ #msg) -∗
+    WP (App (Val #(methods (go.GoType.PointerType OpError.ty) go!"Error" #pe)) (Val #()))
+      {{ Φ }} := by
+  iintro #Hpe HΦ
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hpe
+  ihave #H2 := Hpe
+  iStructNamed H2
+  wp_method_call
+  wp_call
+  unfold OpError.Error.impl
+  rw [OpError_ty_eq]
+  wp_auto
+  (try rw [decide_eq_false hnn])
+  (try simp only [hnn, ↓reduceIte, decide_false, Bool.false_eq_true])
+  wp_auto
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_net_AnyString
+  iintro %s1
+  wp_auto
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_net_AnyString
+  iintro %s2
+  wp_auto
+  iapply HΦ
+  ipureintro
+  exact ⟨s1, s2, by simp [List.append_assoc]⟩
+
+end errorMsg
 
 end net
 end Perennial

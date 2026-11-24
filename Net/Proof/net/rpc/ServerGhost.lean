@@ -159,10 +159,10 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-! ### Read errors -/
 
-theorem rdErr_newVar (X msg : GoString) (e : GoInterface) (hm : msg ≠ []) :
+theorem rdErr_newVar (X msg : GoString) (e : GoInterface) (hm : srvErrMsg msg) :
     errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗ rdErr e := by
   iintro #Hv #He
-  ihave #Hn := errNE_newVar X msg e hm $$ Hv He
+  ihave #Hn := errSrv_newVar X msg e hm $$ Hv He
   iunfold errors.newVar at Hv
   icases Hv with ⟨%x, #Hx, -⟩
   icombine He Hx gives %Heq
@@ -180,17 +180,19 @@ theorem rdErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
       (⌜err = ef⌝ ∨ readErr la ra eof ueof ed first got err) ⊢ rdErr err := by
   iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, #HE⟩
   icases HE with (%He | #HE)
-  · subst He; iapply rdErr_newVar _ _ _ (by simp) $$ HefV Hef
+  · subst He
+    iapply rdErr_newVar _ go!"rpc: malformed frame" _ (srvErrMsg_rd _ (Or.inl rfl)) $$ HefV Hef
   iunfold readErr at HE
   icases HE with (⟨%He, -⟩ | %He | ⟨%k, #HE⟩)
   · subst He
     ihave #HEOF := io.eof_of_init $$ Hio
-    iapply rdErr_newVar _ _ _ (by simp) $$ HEOF Heof
+    iapply rdErr_newVar _ go!"EOF" _ (srvErrMsg_rd _ (Or.inr (Or.inl rfl))) $$ HEOF Heof
   · subst He
     ihave #Hi := io.isInit_access $$ Hio
     icases Hi with ⟨-, -, -, -, -, #HU, -⟩
-    iapply rdErr_newVar _ _ _ (by simp) $$ HU Hueof
-  · ihave #Hn := errNE_resErr $$ HE
+    iapply rdErr_newVar _ go!"unexpected EOF" _ (srvErrMsg_rd _ (Or.inr (Or.inr (Or.inl rfl))))
+      $$ HU Hueof
+  · ihave #Hn := errSrv_resErr_read $$ HE
     ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
     obtain ⟨-, Hne⟩ := Hnet
     obtain ⟨pe, rfl⟩ := Hne (by simp)
@@ -198,14 +200,15 @@ theorem rdErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     iframe Hn
     ipureintro; exact ⟨_, pe, rfl⟩
 
-/-- `err.Error()` of a sticky read error: some message. -/
+/-- `err.Error()` of a sticky read error: one of the server's own messages. -/
 theorem wp_rdErr_Error (T : go.GoType) (l : Loc) (Φ : val → IProp GF) :
-    rdErr (interface.mkOk (go.GoType.PointerType T) #l) ⊢ ▷ (∀ msg : GoString, ⌜msg ≠ []⌝ -∗ Φ #msg) -∗
+    rdErr (interface.mkOk (go.GoType.PointerType T) #l) ⊢
+      ▷ (∀ msg : GoString, ⌜srvErrMsg msg⌝ -∗ Φ #msg) -∗
       WP (App (Val #(methods (go.GoType.PointerType T) go!"Error" #l)) (Val #())) {{ Φ }} := by
   iintro Hr HΦ
   iunfold rdErr at Hr
   icases Hr with ⟨#Hn, -⟩
-  iunfold errNE at Hn
+  iunfold errSrv at Hn
   icases Hn with ⟨%e, %He, -, #HW⟩
   cases He
   iapply HW $$ HΦ
@@ -250,16 +253,32 @@ theorem isRpcConn_agree (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ γ' : Rp
 theorem req_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (R : List w8) (hR : R ≠ []) :
     protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn R ⊢
     ∃ (γ : RpcConnNames) (L : List RpcReq), isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
-      monoListLbOwn γ.reqs L ∗ ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ 2 ^ 64 ∧ R <+: reqsWire L⌝ := by
+      monoListLbOwn γ.reqs L ∗
+      ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ 2 ^ 64 ∧ R <+: W.hs a ++ reqsWire L⌝ := by
   iintro #Hpp
   iunfold protoPrefix at Hpp
   icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
   · exact absurd Hnil hR
   iunfold reqProto at HP
-  icases HP with ⟨%γ, %L, #Hrpc, #Hlb, ⟨%HL, %Hlen, %Hpre⟩⟩
+  icases HP with ⟨%γ, %L, #Hrpc, #Hlb, ⟨%HL, %Hlen, %Hpre⟩, -⟩
   iexists γ, L
   iframe Hrpc Hlb
   ipureintro; exact ⟨HL, Hlen, Hext.trans Hpre⟩
+
+/-- A reader that has read past the dialer's handshake learns that the acceptor's answer was
+written whole (`reqProto`: the dialer writes nothing more before it has it). -/
+theorem hsAns_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (R : List w8)
+    (hR : ¬ R <+: W.hs a) :
+    protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn R ⊢
+      sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) := by
+  iintro #Hpp
+  iunfold protoPrefix at Hpp
+  icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
+  · subst Hnil; exact absurd List.nil_prefix hR
+  iunfold reqProto at HP
+  icases HP with ⟨%γ, %L, -, -, -, (%Hhs | #Hs)⟩
+  · exact absurd (Hext.trans Hhs) hR
+  · iexact Hs
 
 /-- With the acceptor's fresh token, the reader claims its half of `ctr` (at `0`). -/
 theorem claim_role (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) :
@@ -349,7 +368,8 @@ theorem take_req (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
 theorem req_hdr (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) (k : Nat)
     (h : List w8) (hps : ps.length = 2 * k) (hb : ∀ q ∈ ps, q.length < 2 ^ 63)
     (hh : h.length < 2 ^ 63) :
-    £ 1 ∗ £ 1 ∗ protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn (framesOf (ps ++ [h])) ∗
+    £ 1 ∗ £ 1 ∗
+      protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn (W.hs a ++ framesOf (ps ++ [h])) ∗
       ((⌜k = 0⌝ ∗ connFresh (Gg := hG.goose_globalGS) cn true) ∨
         ∃ γ : RpcConnNames, isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
           ghostVar γ.ctr (1 : Qp).half k) ⊢
@@ -359,9 +379,10 @@ theorem req_hdr (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)
       ghostVar γ.ctr (1 : Qp).half (k + 1) ∗ reqDeposit (Gg := hG.goose_globalGS) W a r ∗
       ghostMapElem γ.ans k (DFrac.own 1) (none : Option (GoString × List w8)) := by
   iintro ⟨Hlc1, Hlc2, #Hpp, Hrole⟩
-  icases req_of_read W a cn _ (framesOf_snoc_ne ps h) $$ Hpp
+  icases req_of_read W a cn _ (List.append_ne_nil_of_right_ne_nil _ (framesOf_snoc_ne ps h)) $$ Hpp
     with ⟨%γ, %L, #Hrpc, #Hlb, ⟨%HL, %Hlen, %Hpre⟩⟩
-  obtain ⟨r, hr, hr0⟩ := req_next L ps h k 0 (by omega) (by omega) HL hb hh Hpre
+  obtain ⟨r, hr, hr0⟩ := req_next L ps h k 0 (by omega) (by omega) HL hb hh
+    ((List.prefix_append_right_inj _).1 Hpre)
   have hrh : h = reqHdr (W64 k) r.sm := by simp at hr0; exact hr0.symm
   have hkL : k < L.length := (List.getElem?_eq_some_iff.1 hr).1
   ihave Hctr : (|={⊤}=> ghostVar γ.ctr (1 : Qp).half k : IProp GF) $$ [Hlc1 Hrole]
@@ -386,16 +407,19 @@ theorem req_body (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
     (hr : L[k]? = some r) (hps : ps.length = 2 * k) (hb : ∀ q ∈ ps, q.length < 2 ^ 63)
     (hh : h.length < 2 ^ 63) (hbl : b.length < 2 ^ 63) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
-      protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn (framesOf (ps ++ [h] ++ [b])) ⊢
+      protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn
+        (W.hs a ++ framesOf (ps ++ [h] ++ [b])) ⊢
     ⌜b = r.body⌝ := by
   iintro ⟨#Hrpc, #Hlb, #Hpp⟩
-  icases req_of_read W a cn _ (framesOf_snoc_ne (ps ++ [h]) b) $$ Hpp
+  icases req_of_read W a cn _
+    (List.append_ne_nil_of_right_ne_nil _ (framesOf_snoc_ne (ps ++ [h]) b)) $$ Hpp
     with ⟨%γ', %L', #Hrpc', #Hlb', ⟨%HL, %Hlen, %Hpre⟩⟩
   ihave %Hg := isRpcConn_agree W a cn γ γ' $$ [$Hrpc $Hrpc']
   subst Hg
   ihave %Hc := mono_list_lb_valid $$ Hlb Hlb'
   obtain ⟨r', hr', hr1⟩ := req_next L' (ps ++ [h]) b k 1 (by omega) (by simp; omega) HL
-    (by intro q hq; simp at hq; rcases hq with hq | rfl; exact hb q hq; exact hh) hbl Hpre
+    (by intro q hq; simp at hq; rcases hq with hq | rfl; exact hb q hq; exact hh) hbl
+    ((List.prefix_append_right_inj _).1 Hpre)
   have hrr : r' = r := by
     rcases Hc with ⟨t, rfl⟩ | ⟨t, rfl⟩
     · rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 hr).1, hr] at hr'
@@ -416,9 +440,9 @@ theorem req_guard (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ⊢
     □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗
       recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (framesOf (ps ++ [h]) ++ frameOf pl) -∗
+        (W.hs a ++ framesOf (ps ++ [h]) ++ frameOf pl) -∗
       ▷ (recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-          (framesOf (ps ++ [h]) ++ frameOf pl) ∗ ⌜pl = r.body⌝)) := by
+          (W.hs a ++ framesOf (ps ++ [h]) ++ frameOf pl) ∗ ⌜pl = r.body⌝)) := by
   iintro ⟨#Hrpc, #Hlb⟩
   imodintro
   iintro %pl %Hpl HP
@@ -426,14 +450,31 @@ theorem req_guard (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
   inext
   icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrL with ⟨HrT, #Hpp⟩
   have hpl : pl.length < 2 ^ 63 := by unfold maxFrameN at Hpl; omega
-  have hfr : framesOf (ps ++ [h]) ++ frameOf pl = framesOf (ps ++ [h] ++ [pl]) := by
-    rw [framesOf_append (ps ++ [h]) [pl], framesOf_cons, framesOf_nil, List.append_nil]
+  have hfr : W.hs a ++ framesOf (ps ++ [h]) ++ frameOf pl =
+      W.hs a ++ framesOf (ps ++ [h] ++ [pl]) := by
+    rw [framesOf_append (ps ++ [h]) [pl], framesOf_cons, framesOf_nil, List.append_nil,
+      List.append_assoc]
   rw [hfr]
   ihave %Hbody := req_body W a cn γ L r ps k h pl hr hps hb hh hpl $$ [$Hrpc $Hlb $Hpp]
   rw [← hfr]
   isplitl [HrT]
   · iapply recvTok_L $$ HrT
   ipureintro; exact Hbody
+
+/-- The right to answer a request says the handshake's answer was written whole. -/
+theorem ansPend_hsAns (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString)
+    (Φ : List w8 → GoString → IProp GF) :
+    ansPend W a cn k sm Φ ⊢
+      ansPend W a cn k sm Φ ∗ sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) := by
+  iintro Hp
+  iunfold ansPend at Hp
+  icases Hp with ⟨%γ, %L, %r, #Hrpc, #Hlb, %Hp, Hel, #Hpost, #Hs⟩
+  isplitl
+  · iunfold ansPend
+    iexists γ, L, r
+    iframe Hrpc Hlb Hel Hpost Hs
+    ipureintro; exact Hp
+  · iexact Hs
 
 /-- The answer to request `k`, from the right to answer it and the continuation's `Φ reply msg`:
 its persistent `ans` element; the continuation goes to the connection for the client. -/
@@ -444,7 +485,7 @@ theorem answer (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoStr
       ghostMapElem γ.ans k .discard (some (msg, reply)) ∗ ⌜k < 2 ^ 64⌝ := by
   iintro ⟨Hlc, Hp, HΦ⟩
   iunfold ansPend at Hp
-  icases Hp with ⟨%γ, %L, %r, #Hrpc, #Hlb, ⟨%hr, %hsm, %hk⟩, Hel, #Hpost⟩
+  icases Hp with ⟨%γ, %L, %r, #Hrpc, #Hlb, ⟨%hr, %hsm, %hk⟩, Hel, #Hpost, -⟩
   ihave #Hrpc' := Hrpc
   iunfold isRpcConn at Hrpc'
   icases Hrpc' with ⟨-, #Hinv⟩
@@ -491,10 +532,11 @@ theorem answer (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoStr
 connection `γ`, recorded) meet the acceptor's protocol, and the record grows by `x`. -/
 theorem resp_step (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (Rs : List Ans)
     (x : Ans) (hok : ∀ y ∈ Rs ++ [x], ansOk y) :
-    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ sentLb (Gg := hG.goose_globalGS) cn false (W.hs a) ∗
       ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)) ∗ ansRec W a cn Rs ⊢
-    (□ respProto (Gg := hG.goose_globalGS) W a cn (respsWire (Rs ++ [x]))) ∗ ansRec W a cn (Rs ++ [x]) := by
-  iintro ⟨#Hrpc, #Hel, Hrec⟩
+    (□ respProto (Gg := hG.goose_globalGS) W a cn (W.hsAns a ++ respsWire (Rs ++ [x]))) ∗
+      ansRec W a cn (Rs ++ [x]) := by
+  iintro ⟨#Hrpc, #Hsl, #Hel, Hrec⟩
   ihave #Hels : ([∗list] y ∈ Rs ++ [x], ghostMapElem γ.ans y.idx .discard (some (y.msg, y.reply)) :
       IProp GF) $$ [Hrec]
   · iunfold ansRec at Hrec
@@ -509,10 +551,13 @@ theorem resp_step (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
   isplitr
   · imodintro
     iunfold respProto
+    ileft
     iexists γ, Rs ++ [x]
     iframe Hrpc Hels
-    ipureintro
-    exact ⟨hok, List.prefix_refl _⟩
+    isplitr
+    · ipureintro
+      exact ⟨hok, List.prefix_refl _⟩
+    iright; iexact Hsl
   · iunfold ansRec
     iright
     iexists γ

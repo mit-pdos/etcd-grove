@@ -1,31 +1,20 @@
 /-
 `maps.Keys(m)` on a `map[string]runtime.Object`, as the checker uses it:
 `slices.Sorted(maps.Keys(s.Items))` (`Model.list`, `Model.listItems`). `Keys` returns an iterator
-`f`, and `slices.Sorted(f)` (names-only too) returns a fresh slice of the map's keys at the time of
-the `Sorted` call, each once, strictly increasing in Go's string order (`go.GoStringLt`, bytewise).
-One spec for the pair, at this one map type (`spec_objMap`): the iterator is used only by
-`Sorted`, and what it yields depends on the map when it runs, not when `Keys` returns. Its axiom
-is `maps.Keys.wp_proof_objMap` (k8s 7g, `notes/k8s-7g-trust.md`), until Perennial has iterator
-specs: it translates `maps.Keys` (since `70706ce5e`) but `slices.Sorted` names only
-(`notes/perennial-changes.md`, "Generic maps and slices iterators").
+`f`, and `slices.Sorted(f)` returns a fresh slice of the map's keys at the time of the `Sorted`
+call, each once, strictly increasing in Go's string order (`go.GoStringLt`, bytewise), for a map of
+at most `2^62` keys (`slices.Sort`'s heapsort index arithmetic overflows past that). One spec for
+the pair, at this one map type (`spec_objMap`): the iterator is used only by `Sorted`, and what it
+yields depends on the map when it runs, not when `Keys` returns. Proved
+(`maps.Keys.wp_proof_objMap`) from Perennial's `maps.wp_Sorted_Keys_string`
+(`Perennial/Proof/maps/Results.lean`); until 2026-11-23 an axiom (k8s 7g, `notes/k8s-7g-trust.md`),
+without the size premise (ledger, 2026-11-23, "`maps.Keys.spec_objMap`").
 
-Faithful (go1.27.3, `maps/iter.go`, `slices/iter.go`, `slices/sort.go`): `Keys(m)` is
-`func(yield func(K) bool) { for k := range m { if !yield(k) { return } } }`: it reads nothing when
-called and allocates only the closure, so it never panics and returns a non-nil func value (the
-post's `f : GoFunc`, a typed value and so never a panic value; changed in place from `(f : val)`,
-which no caller could use, k8s 7g step 3 STOP 2a, decided by etcd-grove-03); every run of the closure ranges over `m` as it is then.
-`Sorted(seq)` is `s := Collect(seq); Sort(s); return s`; `Collect` is `AppendSeq([]E(nil), seq)`,
-whose yield always returns true, so a range over the unmodified map appends each key once (the
-order is unspecified and does not matter after the sort); `Sort` on `[]string` sorts by `cmp.Less`,
-`<` on strings, which is bytewise lexicographic (`go.GoStringLt` compares bytes by `uint.Z`). The
-keys are distinct, so the result is strictly increasing and is the only such list. For an empty
-map the result is the nil slice, which `s ↦* []` holds of. The map is only read (fraction `dq`
-back). The heapsort fallback's index overflow needs `2^62` elements, which no map in memory has.
-Go evidence: `examples/k8s/etcd3/trustspecs_test.go` `TestMapsKeysSorted` (5000 random maps with
-non-ASCII and invalid UTF-8 keys: each key once, strictly increasing by Go's `<`; an empty map gives
-nil; a key added after `Keys` and before `Sorted` is listed; a second `Sorted` of the same iterator
-re-reads the map), `TestMapsKeysNoPanic` (`Keys` of a nil, an empty and a non-empty map returns
-without panicking, and the func is non-nil). Lean-first.
+`Keys(m)` reads nothing when called and allocates only the closure, so it never panics and returns
+a non-nil func value (the post's `f : GoFunc`); every run of the closure ranges over `m` as it is
+then. `Sorted(seq)` is `s := Collect(seq); Sort(s); return s`. For an empty map the result is the
+nil slice, which `s ↦* []` holds of. The map is only read (fraction `dq` back). Go evidence of
+the shape: `examples/k8s/etcd3/trustspecs_test.go` `TestMapsKeysSorted`, `TestMapsKeysNoPanic`.
 -/
 module
 
@@ -56,7 +45,7 @@ abbrev maps.Keys.spec_objMap : Prop :=
         k8s_io.apimachinery.pkg.runtime.Object.ty])) (Val #m))
   {{ (f : GoFunc), RET #f;
       □ ∀ (M : GMap GoString GoInterface) (dq : DFrac) (Φ : val → IProp GF),
-        isPkgInit pkg_id.slices -∗ m ↦${dq} M -∗
+        isPkgInit pkg_id.slices -∗ m ↦${dq} M -∗ ⌜GMap.size M ≤ 2 ^ 62⌝ -∗
         ▷ (∀ (s : GoSlice) (ks : List GoString),
             m ↦${dq} M -∗ s ↦* ks -∗
             ⌜(∀ k, k ∈ ks ↔ (M !! k).isSome) ∧ ks.Pairwise go.GoStringLt⌝ -∗ Φ #s) -∗

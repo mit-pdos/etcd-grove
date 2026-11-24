@@ -36,6 +36,12 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, "usage: member PEER CLIENT | client CLIENT")
 		os.Exit(2)
 	}
+	// The machines inherit this process's environment: give them the one the theorems' premises
+	// describe (verifyEnvOff: ETCD_VERIFY off; no proxy variable set, so that no non-loopback
+	// dial or request goes through a proxy: examples/premisefix/proxyenv).
+	for _, k := range []string{"ETCD_VERIFY", "HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "NO_PROXY", "no_proxy"} {
+		os.Unsetenv(k)
+	}
 	os.Exit(m.Run())
 }
 

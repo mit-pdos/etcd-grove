@@ -45,13 +45,14 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
   iunfold rpcDialed at Hdial
   icases Hdial with ⟨#Hrpc, Hreqs, Hnm, Hsend, Hrecv⟩
   ihave #Hci := sendTok_connIs $$ Hsend
+  icases recvTok_keep_sentLb (Gg := hG.goose_globalGS) cn false true rfl _ _ $$ Hrecv with ⟨Hrecv, #Hsl⟩
   let γc : ClientNames := ⟨γ, γsq, γd⟩
   imod sync.init_Mutex (sendInv γc «$r0_ptr» cc cn W a) ⊤
       (structFieldRef net.rpc.Client go!"reqMutex" «$r0_ptr») $$ reqMutex
       [request Hwerr Hsend Hreqs Hsq1 Hd3] with #Hsmu
   · inext
     iunfold sendInv
-    iexists zero_val net.rpc.Request, interface.nil, [], [], 0
+    iexists zero_val net.rpc.Request, interface.nil, [], W.hs a, 0
     iframe request Hwerr Hsend Hreqs Hsq1
     isplitl [Hd3]
     · iexists false; iexact Hd3
@@ -75,7 +76,7 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
     iempintro
   ihave #Hat : clientAt «$r0_ptr» W a γc cc t cn la ra $$ []
   · iunfold clientAt
-    iframe codec Hrwc Hconn Hci Hrpc Henv Hsmu Hmu
+    iframe codec Hrwc Hconn Hci Hrpc Hsl Henv Hsmu Hmu
   wp_apply wp_fork $$ [Hrecv Hd2]
   · wp_apply wp_input «$r0_ptr» W a γc cc t cn la ra $$ [Hrecv Hd2]
     · iframe Hat
@@ -83,7 +84,7 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
       iexists []
       iframe Hd2
       isplitl [Hrecv]
-      · simp [framesOf_nil]; iexact Hrecv
+      · simp only [List.flatMap_nil, framesOf_nil, List.append_nil]; iexact Hrecv
       ipureintro; simp
     itrivial
   iapply HΦ

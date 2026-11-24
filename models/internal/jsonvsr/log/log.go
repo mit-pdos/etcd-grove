@@ -1,9 +1,12 @@
 // Copied from go-vsr (github.com/tangledbytes/go-vsr, Apache License 2.0), the dsverify
-// verification fork at 215992d, pkg/log/log.go: as it is.
+// verification fork as the dsv-vr kit has it (examples/dsverify/vr/pkg/log/log.go, 9cbb866 of the
+// fork): as it is, with Logs' own MarshalJSON and UnmarshalJSON.
 // A test input of the encoding/json model: what the vsr-net kit sends over TCP as JSON
 // (../json.toml; the stream tests in ../../jsonstreamtest).
 
 package log
+
+import "encoding/json"
 
 type Log struct {
 	Data      string `json:"data"`
@@ -37,8 +40,9 @@ func (l Logs) RequestIDAt(i int) uint64 {
 	return (l)[i-1].RequestID
 }
 
+// TruncateAfter keeps ops 1..i (OpAt(i) is the i-th entry) and drops the ops after i.
 func (l *Logs) TruncateAfter(i int) {
-	*l = (*l)[:(i - 1)]
+	*l = (*l)[:i]
 }
 
 func (l *Logs) After(i int) Logs {
@@ -51,4 +55,18 @@ func (l *Logs) Merge(logs Logs) {
 
 func (l Logs) Last() Log {
 	return l[len(l)-1]
+}
+
+func (l *Logs) UnmarshalJSON(data []byte) error {
+	var logs []Log
+	if err := json.Unmarshal(data, &logs); err != nil {
+		return err
+	}
+
+	*l = logs
+	return nil
+}
+
+func (l Logs) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]Log(l))
 }

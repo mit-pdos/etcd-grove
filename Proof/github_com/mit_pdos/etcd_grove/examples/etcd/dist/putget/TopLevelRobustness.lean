@@ -19,8 +19,8 @@ bridge `robust_of_distBootIL` picks them). Against phase 7 S2's draft names (`S2
   invariant, the member's and the client's shares (`Defs.lean`);
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first half
   (`etcdstart.wp_StartServer1`, shared with it), `Serve` in S2's form publishing the view with `putgetPub`,
-  from S2's names and the named hypotheses `MemberBootHyps` (`ClearProxy`'s spec, the metric names' rights,
-  `dataDirFresh`, `addrOk`'s peer URL plain);
+  from S2's names, the statement's `envVerifyOff` (`HEnvTok`) and the named hypotheses `MemberBootHyps`
+  (`dataDirFresh`);
 * the client's boot (`PutgetClientS2`, a hypothesis): the in-process second half over S2's `Invoke`.
 -/
 module
@@ -67,12 +67,10 @@ def PutgetBoot : Prop :=
     (_Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
-    (_HNs : prometheus.namesUnclaimed (bootMember peer client)
-        github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames ∧
-      prometheus.namesUnclaimed (bootClient client)
-        github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames)
     (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc)
-    (_Hok : ∀ a ∈ addrs peer client, Net.addrOk a = true),
+    (_Hok : ∀ a ∈ addrs peer client, Net.addrOk a = true)
+    (_HEnv : ∀ m ∈ system peer client σm σc, verifyEnvOff m.1)
+    (_HEnvTok : ⊢ envVerifyOff (GF := putgetGF)),
     ∀ [GooseGlobalGS .hasLC putgetGF], srvLevelK ≤ receiptBound putgetGF →
       receiptBound putgetGF ≤ 2 ^ 28 - 1 →
       ⊢ ([∗list] a ∈ addrs peer client, Net.addrUnset a) ={⊤}=∗
@@ -84,12 +82,12 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootI`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem HNs σm σc g
-    Hm Hc Hd
+  intro _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
+    Hm Hc Hd HEnv HEnvTok
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
-    (fun hlo hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem HNs σm σc Hm Hc
-      Hd.2.1 hlo hb) Hd
+    (fun hlo hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
+      Hd.2.1 HEnv HEnvTok hlo hb) Hd
   refine etcdNetExts_initP g _ ?_
   intro m hm
   simp only [system, List.mem_cons, List.not_mem_nil, or_false] at hm
@@ -155,10 +153,6 @@ def PutgetClientS2 : Prop :=
     (_Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
-    (_HNs : prometheus.namesUnclaimed (bootMember peer client)
-        github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames ∧
-      prometheus.namesUnclaimed (bootClient client)
-        github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames)
     (σc : state) (_Hc : ClientFiles σc),
     ClientBootS2 client id σc
 
@@ -172,10 +166,10 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     (HC : PutgetClientS2) :
     putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem HNs σm σc
-    Hm Hc Hok G hlo hb
+  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
+    Hm Hc Hok HEnv HEnvTok G hlo hb
   have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
-    Hprem HNs σc Hc
+    Hprem σc Hc
   have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
@@ -192,7 +186,7 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HM peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
+      exact member_boot Hctx HM HEnvTok peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact HCb S γE
     | k + 2, hm => simp [system] at hm

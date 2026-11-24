@@ -178,7 +178,7 @@ theorem sw_start [RA : RpcHttpAddr netDistGF] :
   icases (ghostVar_split_half γk 1 _).1 $$ Hkv with ⟨Hk1, Hk2⟩
   imod ghost_map_alloc_empty (GF := netDistGF) (K := Nat) (V := net.rpc.RpcConnNames)
     with ⟨%γw, Hw⟩
-  let W₀ : net.rpc.RpcWorld netDistGF := ⟨services γc γm, γw⟩
+  let W₀ : net.rpc.RpcWorld netDistGF := { SS := services γc γm, reg := γw }
   let W : net.rpc.RpcWorld netDistGF := RA.httpW W₀
   let γ : SwiftNames netDistGF := ⟨γc, γm, W, γsp, γl⟩
   have HW : W.SS = services γc γm := RA.httpW_SS W₀

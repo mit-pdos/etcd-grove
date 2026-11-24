@@ -10,8 +10,9 @@ component's operations sorted by tau (address components before connections at e
 a node's crash between its processes. This order respects real time and each component's order.
 
 Concrete choices, made here as the lazy model leaves them: a Read cuts only when its result needs
-it (EOF of a direction with bytes left or open: keeping nothing; a sys error of one not cut:
-keeping every byte), except a Read marked to cut (keeping every byte): when a Write's result needs
+it (EOF of a direction with bytes left or open: keeping nothing; a sys error of one not cut and
+empty: keeping nothing, v3.5), except a Read marked to cut (keeping every byte, nothing for a sys
+error): when a Write's result needs
 its direction cut and it is shut (FIN), the direction's reader's last Read before it is marked and
 the replay starts over (lazy.py's `a`: that is the cut gamma has). A connection no Dial returned
 (an Accept's) is the first one pending at the address the search chose for it (lazy.py's
@@ -111,6 +112,8 @@ def _read_after(st, d, n, r, cut):
         dc = M.NetDir(d.bytes, M.CUT)
         if r[0] == "bytes":
             return M.NetDir(d.bytes[len(r[1]):], M.CUT), len(d.bytes)
+        if r == M.R_ERR(M.SYS):
+            return M.NetDir(b"", M.CUT), 0
         return dc, len(d.bytes)
     if r[0] == "bytes":
         return d._replace(bytes=d.bytes[len(r[1]):]), None
@@ -119,9 +122,9 @@ def _read_after(st, d, n, r, cut):
             return d, None
         return M.NetDir(b"", M.CUT), 0
     if r == M.R_ERR(M.SYS):
-        if d.status == M.CUT:
+        if d.status == M.CUT and d.bytes == b"":
             return d, None
-        return M.NetDir(d.bytes, M.CUT), len(d.bytes)
+        return M.NetDir(b"", M.CUT), 0
     return d, None  # timeout
 
 

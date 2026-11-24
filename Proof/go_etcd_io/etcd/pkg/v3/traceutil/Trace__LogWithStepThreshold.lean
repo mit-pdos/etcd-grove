@@ -1,14 +1,14 @@
 /-
-The trust boundary: `(*traceutil.Trace).LogWithStepThreshold` (unit P1b, 2026-10-14): etcd code
-left names-only. `logInfo` formats the trace's fields and steps with `fmt.Sprintf`'s `%v` (of
-`any` values, `time.Duration`s: beyond Perennial's model of `fmt`, which formats predeclared
-basic types only), draws `math/rand.Int31`, builds `zap` fields, and merges a subtrace's fields
-into its steps' with `append`; then `t.lg.Info` if the logger is not nil. Total: no index is out
-of range (every loop is bounded by `len(t.steps)`), every slice it appends to is the trace's.
+Proof of `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Trace__LogWithStepThreshold.lean`: `logInfo`, then
+`t.lg.Info` if the logger is not nil (a zap logger: `zapLoggerOrNil`). Lean-first (no Rocq
+counterpart); traceutil-log (2026-11-23; until then a trust-boundary axiom, unit P1b, when `logInfo`
+was names-only).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogWithStepThreshold
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__logInfo
+public import Spec.go_uber_org.zap.Logger__Info
 
 @[expose] public section
 
@@ -28,8 +28,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-axiom traceutil.Trace.LogWithStepThreshold.wp_proof :
-    traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG)
+theorem traceutil.Trace.LogWithStepThreshold.wp_proof
+    (hLog : traceutil.Trace.logInfo.spec (GF := GF) (hG := hG))
+    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) := by
+  intro t e d
+  wp_start as Ht
+  ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply hLog t e d $$ [Ht] as %msg %fs ⟨%v, Ht, #Hlz⟩
+  · iframe #
+    iframe
+  (try wp_auto)
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ
+    itrivial
+  · ihave #Hl := zapLoggerOrNil_ok _ (by simpa using Hif) $$ Hlz
+    wp_apply hInfo v.lg' msg fs $$ []
+    · iframe #
+    (try wp_auto)
+    iapply HΦ
+    itrivial
 
 end proof
 

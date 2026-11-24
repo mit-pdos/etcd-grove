@@ -33,8 +33,10 @@ without them merges the two files as git always does.
 
 Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
 landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
-landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
-session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). A session that
+posts on GitHub has a row in `etc/sessions.txt` and posts by `notes/coordination.md` (`to:`/`from:`
+lines, asks and their open/acked/closed state; `etc/gh-inbox.py watch`/`open`); record a worktree's
+stage in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
 
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
@@ -224,7 +226,7 @@ the same pattern; Perennial's are modules too.
 ## Package APIs
 
 Lean's visibility is per module (a declaration is `private`, or public to every importer) and
-`import all` is unrestricted, so a package cannot hide the definitions its own files share. Three
+`import all` is unrestricted, so a package cannot hide the definitions its own files share. Two
 pieces make a package's boundary checkable instead (`notes/decisions.md`, "Package APIs: an
 importable list and a generated interface"):
 
@@ -233,18 +235,6 @@ importable list and a generated interface"):
   modules (never with `import all`), and a listed module publicly imports only listed modules of
   the package (linking files, `Link`/`Results`/`Adequacy*`, are exempt; a non-linking module that
   imports one is a warning). Adding a module to the list is an API change.
-- **The generated interface**, `interface/<module path>.txt` (`etc/gen-interface.py
-  etc/api/<pkg>.txt`; `--check` in place of regenerating): what a client sees of each listed
-  module, as Lean's module system exports it -- every declaration's kind and signature, the body
-  only of a definition whose body is exported -- and of every function's proof file (its
-  `<F>.wp_proof`, or the axiom in its place, with `<F>.spec` unfolded: the Hoare triple, and the
-  callees' specs it takes). Committed: a change to a package's API or to a function's spec is a diff
-  to review (no bogus definitions, no lemma exposing internals). `--layout` checks the layout on
-  every module of the package (a spec file exposes only its `<F>.spec`, its proof file only
-  `<F>.wp_proof`), against the known violations in `etc/api/<pkg>-layout.txt`. CI regenerates the
-  interfaces after the build and fails if they differ from the committed ones (as for the Goose
-  translations): when a change moves a package's API, regenerate (`etc/gen-interface.py
-  etc/api/<pkg>.txt`, after `lake build`) and commit the result with it.
 - **Sealing**: an API module imports the package's internals non-publicly and marks what clients
   must not see inside `@[no_expose]`; the package's own proofs `import all` it. When a proof
   outside the package needs a fact of a sealed predicate, add a law to the API module; do not

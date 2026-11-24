@@ -30,6 +30,8 @@ public import Proof.golang_org.x.crypto.bcrypt.InitLinked
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
+public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -54,6 +56,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 
 namespace go_etcd_io.etcd.server.v3.auth
 
@@ -68,10 +71,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply EtcdGrove.wp_package_init_resL_self (heq := Hinit.1) (L := EtcdGrove.regResL (GF := GF) regQs)
     (L1 := EtcdGrove.regResL (GF := GF) [])
     (L2 := EtcdGrove.regResL (GF := GF) [])
-    (L' := EtcdGrove.regResL (GF := GF) []) (R := EtcdGrove.prometheus.namesFree (GF := GF) regNames)
+    (L' := EtcdGrove.regResL (GF := GF) [])
+    (R := EtcdGrove.prometheus.idToks (GF := GF) (EtcdGrove.prometheus.PromRegGS.γ (GF := GF))
+      (regNames.map EtcdGrove.prometheus.descId ++ regKeys))
     (hL := rfl) (hL' := rfl) $$ [Hown] HΦ
   iframe Hown
   iintro ⟨Hown, HR⟩
+  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames at HR
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrVerifyOnly _ as HErrVerifyOnly
@@ -162,7 +168,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of reportCurrentAuthRev))
   -- translated initializer of currentAuthRevision))
   try wp_auto
-  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %ccurrentAuthRevision %NcurrentAuthRevision
+  wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %ccurrentAuthRevision #NcurrentAuthRevision
   try wp_auto
   -- translated initializer of knownOptions))
   try wp_auto
@@ -242,16 +248,19 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of reportCurrentAuthRevMu))
   -- translated initializer of reportCurrentAuthRevMu))
   -- translated initializer of reportCurrentAuthRev))
-  iunfold EtcdGrove.prometheus.namesFree at HR
-  iunfold _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames at HR
-  icases HR with ⟨HR1, -⟩
+  ihave #GcurrentAuthRevision := (BI.pure_imp_elim (φ := EtcdGrove.prometheus.nameOk (EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"auth" go!"revision")) (by decide)) $$ NcurrentAuthRevision
+  icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR1, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok ccurrentAuthRevision])
   isplitr
   · ipureintro; rfl
   iintro %s1 ⟨S1, -⟩
   try wp_auto
-  wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ (NcurrentAuthRevision (by decide)) $$ [S1 HR1] as S1
-  · iframe S1 HR1
+  wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof (EtcdGrove.prometheus.Registry.MustRegister.wp_proof EtcdGrove.prometheus.Registry.Register.wp_proof))
+      _ _ _ (EtcdGrove.prometheus.fqName go!"etcd_debugging" go!"auth" go!"revision") (by decide +kernel) $$ [S1 HR1] as S1
+  · iframe S1 HR1 GcurrentAuthRevision
+    try iframe #
+    try iPkgInit
+  iclear HR
   ipersist HErrRootUserNotExist
   ipersist HErrRootRoleNotExist
   ipersist HErrUserAlreadyExist
@@ -323,7 +332,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.auth get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth }} :=

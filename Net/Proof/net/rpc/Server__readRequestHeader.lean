@@ -7,7 +7,8 @@ otherwise). A header: the request it is, taken (`req_hdr`: three later credits, 
 fact's and `req_hdr`'s two), its deposit and `srvServes`'s registration of its service; the loop
 finds its last dot (`lastDotIdx_of`, `lastDotIdx_some`: the deposit's `splitSM`), the service is
 found under `mapLock` (the registry's ghost map agrees), then the method in the service's map:
-found, `methodTypeIs`; not, an `errors.New` error (`errNE`) and the deposit spent on `errOk`.
+found, `methodTypeIs`; not, an `errors.New` error of a server message (`errSrv`) and the deposit
+spent on `errOk`.
 -/
 module
 
@@ -129,12 +130,12 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     iunfold readerSt at Hrs
     icases Hrs with ⟨Hrecv, %Hb, Hrole⟩
     ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (framesOf ps ++ []) $$ [Hrecv]
+        (W.hs a ++ framesOf ps ++ []) $$ [Hrecv]
     · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-    ihave #Hacc := rd_acc_srv W a cn (framesOf ps)
+    ihave #Hacc := rd_acc_srv W a cn (W.hs a ++ framesOf ps)
     wp_apply wp_ReadRequestHeader sc t cn true a la ra req _ interface.nil
         (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-          (reqProto (Gg := hG.goose_globalGS) W a) (framesOf ps ++ got))
+          (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf ps ++ got))
         _ _ ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hreq $HrL $Hrerr $Hacc]
       as %err (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
     · exact absurd rfl Hc
@@ -156,8 +157,9 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
     iapply fupd_wp
     imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
-    have hfr : framesOf ps ++ frameOf (reqHdr seq sm) = framesOf (ps ++ [reqHdr seq sm]) := by
-      rw [framesOf_append, framesOf_cons, framesOf_nil, List.append_nil]
+    have hfr : W.hs a ++ framesOf ps ++ frameOf (reqHdr seq sm) =
+        W.hs a ++ framesOf (ps ++ [reqHdr seq sm]) := by
+      rw [framesOf_append, framesOf_cons, framesOf_nil, List.append_nil, List.append_assoc]
     rw [hfr]
     icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
     imod req_hdr W a cn ps k (reqHdr seq sm) Hps Hb (by omega) $$ [$Hlc2 $Hlc3 $Hpp $Hrole]
@@ -173,10 +175,13 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     icases Hsv with ⟨#Hreg, #HerrOk⟩
     iunfold svcReg at Hreg
     icases Hreg with ⟨%sv, #Hel, #Hsvc⟩
+    ihave #HhsA := hsAns_of_read W a cn (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]))
+      (fun h => framesOf_snoc_ne ps (reqHdr (W64 k) r.sm) (List.eq_nil_of_length_eq_zero (by
+        have := h.length_le; simp only [List.length_append] at this; omega))) $$ Hpp
     ihave Hpend : ansPend W a cn k r.sm Φc $$ [Hans]
     · iunfold ansPend
       iexists γ, L, r
-      iframe Hrpc Hlb Hans Hpost
+      iframe Hrpc Hlb Hans Hpost HhsA
       ipureintro; exact ⟨Hr, rfl, Hk⟩
     ihave Hmid : rdrMid W a cn k r $$ [HrT Hctr]
     · iunfold rdrMid
@@ -311,7 +316,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
       isplitr
       · ipureintro; simp [interface.mkOk]
       isplitr
-      · iapply errNE_errorString x _ (by simp) $$ HN
+      · iapply errSrv_errorString x _ (srvErrMsg_method _) $$ HN
       iunfold errCont
       iintro %msg %hmsg
       iapply HerrOk' $$ %m %r.body %Φc %msg %hmsg HS

@@ -79,7 +79,22 @@ theorem Model.Clone.wp_proof
     iright; ileft
     isplitr
     · ipureintro; rfl
-    ihave #HD' := itemsRO_insert Mc D key c o $$ [HD Hc]
+    ihave %Hsz := itemsRO_size M m.items $$ Hit
+    have hsub : (<[key := o]> D) ⊆ m.items := by
+      intro k v hk
+      show m.items !! k = some v
+      by_cases hk' : key = k
+      · subst hk'
+        rw [show (<[key := o]> D).lookup key = (<[key := o]> D) !! key from rfl,
+          GMap.lookup_insert] at hk
+        rw [ho]; exact hk
+      · rw [show (<[key := o]> D).lookup k = (<[key := o]> D) !! k from rfl,
+          GMap.lookup_insert_ne _ _ hk', Hi.2 k] at hk
+        split at hk
+        · exact hk
+        · cases hk
+    ihave #HD' := itemsRO_insert Mc D key c o
+      (Nat.le_trans (GMap.map_subseteq_size hsub) Hsz) $$ [HD Hc]
     · isplitl
       · iexact HD
       · iexact Hc

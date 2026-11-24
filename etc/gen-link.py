@@ -71,6 +71,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
        etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
+       etc/gen-link.py --antcheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
@@ -199,6 +200,9 @@ name; `sort.Sort`'s is the main tree's).
 `notes/trace-validation-plan.md`), from etc/link-lean-first-tracecheck.txt: every callee is in the
 package (no `@`, `?` or `=`); the trace check's `Results.lean` takes `NewTrace`'s, `CheckTrace`'s
 and `Result.TLCOK`'s results from it.
+`--antcheck` links the proofs of Antithesis's model's checker (`examples/raft/antithesis/check`,
+#33 S3b, `notes/antithesis-check-design.md` §10), from etc/link-lean-first-antcheck.txt: every
+callee is in the package.
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
@@ -605,6 +609,13 @@ LEAN_FIRST = {
                      "github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions",
                      "The trace checker's proofs (`examples/raft/tracecheck/etcdraft`, the Go "
                      "transcription of raft's TLA+ trace specification)", [""]),
+    # the checker of Antithesis's model (examples/raft/antithesis/check, #33 S3b): every proof over
+    # its callees', all in the package
+    "--antcheck": ("link-lean-first-antcheck.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check",
+                   "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions",
+                   "The proofs of the checker of Antithesis's model of raft (`examples/raft/antithesis/"
+                   "check`, the Go transcription of `EtcdRaft.tla` and `EtcdBinding.tla`)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
@@ -707,7 +718,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
                               # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
                               # passed to `newRaftNode`: imported so the trust-base report sees it)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked",
+                              # (#24 J2, 2026-11-23) the encoding/json model's `Marshal` and
+                              # jsoncodec's encoders, which membership's JSON proofs take (`=` callees)
+                              "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
@@ -734,6 +748,9 @@ EXTRA_IMPORTS.setdefault("--common", []).extend(["Proof.go_etcd_io.etcd.client.v
                              "Proof.go_etcd_io.etcd.client.v3.ClientPutGet"])
 EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
     "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked")
+# the checker of Antithesis's model: the budget laws (pure, defs modules) its proofs take (`=AntCheck.State.*`)
+EXTRA_IMPORTS["--antcheck"] = ["Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within." + m
+                               for m in ["Combined", "GC", "ActionCfg", "Init0"]]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
@@ -856,6 +873,10 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
+# (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
+# `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)
+EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
+    "Proof.github_com.prometheus.client_golang.prometheus.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
 # whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
 # compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)
