@@ -46,7 +46,7 @@ theorem lessor.TimeToLive.wp_proof
   wp_auto
   wp_apply wp_toReq id osl gs $$ [] as %r Hr
   · iframe #
-  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [Hr] as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [Hlt Hr] as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     simp only
@@ -75,6 +75,7 @@ theorem lessor.TimeToLive.wp_proof
     ipersist Keys
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -90,6 +91,7 @@ theorem lessor.TimeToLive.wp_proof
       wp_apply wp_ContextError ctx cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', -, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro

@@ -42,7 +42,7 @@ theorem lessor.Leases.wp_proof
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, -⟩
   wp_auto
-  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [«$a1»] as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [Hlt «$a1»] as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     isplitl []
@@ -136,6 +136,7 @@ theorem lessor.Leases.wp_proof
       ipersist Leases
       imodintro
       iapply HΦ
+      iframe Hlt
       ileft
       isplitr
       · ipureintro; rfl
@@ -151,6 +152,7 @@ theorem lessor.Leases.wp_proof
       wp_apply wp_ContextError ctx cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', -, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro

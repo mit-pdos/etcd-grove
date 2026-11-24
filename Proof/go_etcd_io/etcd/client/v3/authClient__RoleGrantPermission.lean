@@ -57,7 +57,7 @@ theorem authClient.RoleGrantPermission.wp_proof
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
   wp_apply wp_retry rac conn addr Spec Q ci om cd «$a1_ptr» (name, ⟨permType, key, rangeEnd⟩) sl vs
-    $$ [Hsend] as %resp %err ⟨-, Hres⟩
+    $$ [Hlt Hsend] as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     try (ipureintro; exact strsSizeOk.lt_3 Hsz)
@@ -71,6 +71,7 @@ theorem authClient.RoleGrantPermission.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     unfold authCallOut
     ileft
     iframe
@@ -81,6 +82,7 @@ theorem authClient.RoleGrantPermission.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     unfold authCallOut
     iright
     iframe #

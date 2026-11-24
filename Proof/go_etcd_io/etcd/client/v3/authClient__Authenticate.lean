@@ -39,8 +39,8 @@ theorem authClient.Authenticate.wp_proof
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
-  wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» ⟨name, pw⟩ sl vs $$ [Hsend]
-    as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» ⟨name, pw⟩ sl vs $$ [Hlt Hsend]
+    as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     try (ipureintro; exact strsSizeOk.lt_2 Hsz)
@@ -54,6 +54,7 @@ theorem authClient.Authenticate.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     unfold authnCallOut
     ileft
     iframe
@@ -64,6 +65,7 @@ theorem authClient.Authenticate.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     unfold authnCallOut
     iright
     iframe #
