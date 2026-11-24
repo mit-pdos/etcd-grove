@@ -93,7 +93,7 @@ theorem EtcdServer.Start.wp_proof
   icases Hrd' with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAtM at Hvd
   icases Hvd with ⟨-, -, -, -, -, -, -, -, -, #Hlgf, #Hlgn, -, -, -, -, -, -, -, -, -, -,
-    #Hstpf, -⟩
+    #Hstpf, #Hstpc, -⟩
   -- (premise-fixes-6) the server's logger a zap logger (the monitors' and `adjustTicks`'s)
   ihave #HlgOk : srvLoggerOk s $$ []
   · iunfold srvLoggerOk; iexists vd.lg; iframe Hlgf Hlgn
@@ -149,7 +149,8 @@ theorem EtcdServer.Start.wp_proof
     · iframe #; iframe Htf
     iapply HΦ'
     iframe
-  -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }`
+  -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }` (prove-ps2-srvgoroutines, 2026-11-24: with
+  -- `s.stopping`'s stop channel, the read view's)
   wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgm] as Hgr
   · iframe Hgr Hlgm
     iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
