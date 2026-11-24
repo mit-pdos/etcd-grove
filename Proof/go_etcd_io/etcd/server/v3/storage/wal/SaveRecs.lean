@@ -52,7 +52,7 @@ theorem histMap_snoc (H : List (WalOpG WalEnt)) (o : WalOpG WalEnt) :
 theorem chainEnd_allRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) :
     chainEnd walCodec 0#32 (allRecs Mr H md cuts) =
-      crcAfter walCodec 0#32 (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts)).flatten := by
+      crcAfter walCodec 0#32 (segsDs Mr md true [] (segsOf (histN H) cuts)).flatten := by
   unfold allRecs recsOfSegs; exact chainEnd_chainRecs _ _ _
 
 /-- **The tail's records after an appended operation**: the old ones, then the operation's,
@@ -60,11 +60,11 @@ chained from the CRC after every record of the WAL. -/
 theorem tailRecs_snoc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (o : WalOpG WalEnt) (hc : ∀ b ∈ cuts, b ≤ H.length) :
     tailRecs Mr (H ++ [o]) md cuts = tailRecs Mr H md cuts ++
-      chainRecs walCodec (chainEnd walCodec 0#32 (allRecs Mr H md cuts)) (opDs Mr o.toM) := by
-  have hc' : ∀ b ∈ cuts, b ≤ (H.map WalOpG.toM).length := by simpa using hc
-  have hlen : (segsInit (H.map WalOpG.toM) cuts).length = cuts.length := length_segsInit _ _
+      chainRecs walCodec (chainEnd walCodec 0#32 (allRecs Mr H md cuts)) (opDs Mr (wop H o)) := by
+  have hc' : ∀ b ∈ cuts, b ≤ (histN H).length := by simpa [histN_length] using hc
+  have hlen : (segsInit (histN H) cuts).length = cuts.length := length_segsInit _ _
   unfold tailRecs
-  rw [chainEnd_allRecs, histMap_snoc, segsOf_snoc_op _ _ _ hc', segsOf_split, segsDs_snoc,
+  rw [chainEnd_allRecs, histN_snoc', segsOf_snoc_op _ _ _ hc', segsOf_split, segsDs_snoc,
     segsDs_snoc, List.flatten_append, chainSegs_snoc, chainSegs_snoc]
   simp only [List.flatMap_append, List.flatMap_cons, List.flatMap_nil, List.append_nil,
     ← List.append_assoc]
@@ -80,11 +80,11 @@ theorem tailRecs_snoc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8
 theorem allRecs_snoc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (o : WalOpG WalEnt) (hc : ∀ b ∈ cuts, b ≤ H.length) :
     allRecs Mr (H ++ [o]) md cuts = allRecs Mr H md cuts ++
-      chainRecs walCodec (chainEnd walCodec 0#32 (allRecs Mr H md cuts)) (opDs Mr o.toM) := by
-  have hc' : ∀ b ∈ cuts, b ≤ (H.map WalOpG.toM).length := by simpa using hc
+      chainRecs walCodec (chainEnd walCodec 0#32 (allRecs Mr H md cuts)) (opDs Mr (wop H o)) := by
+  have hc' : ∀ b ∈ cuts, b ≤ (histN H).length := by simpa [histN_length] using hc
   rw [chainEnd_allRecs]
   unfold allRecs recsOfSegs
-  rw [histMap_snoc, segsOf_snoc_op _ _ _ hc', segsOf_split, segsDs_snoc, segsDs_snoc,
+  rw [histN_snoc', segsOf_snoc_op _ _ _ hc', segsOf_split, segsDs_snoc, segsDs_snoc,
     List.flatten_append, List.flatten_append]
   simp only [List.flatMap_append, List.flatMap_cons, List.flatMap_nil, List.append_nil,
     List.flatten_cons, List.flatten_nil, ← List.append_assoc]
@@ -95,7 +95,7 @@ theorem tailStream_snoc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List 
     (cuts : List Nat) (o : WalOpG WalEnt) (hc : ∀ b ∈ cuts, b ≤ H.length) :
     tailStream Mr (H ++ [o]) md cuts = tailStream Mr H md cuts ++
       recFrames walCodec (chainRecs walCodec (chainEnd walCodec 0#32 (allRecs Mr H md cuts))
-        (opDs Mr o.toM)) := by
+        (opDs Mr (wop H o))) := by
   rw [tailStream_recs, tailStream_recs, tailRecs_snoc Mr H md cuts o hc]
   simp [recFrames, frames]
 

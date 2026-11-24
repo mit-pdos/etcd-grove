@@ -66,21 +66,21 @@ variable [GooseExts]
 def tailStream (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List w8 :=
   recFrames walCodec ((chainSegs walCodec 0#32
-    (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts))).getD cuts.length [])
+    (segsDs Mr md true [] (segsOf (histN H) cuts))).getD cuts.length [])
 
 /-- The records of the last segment (CRCs chained). -/
 def tailRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List WalRec :=
-  (chainSegs walCodec 0#32 (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts))).getD cuts.length []
+  (chainSegs walCodec 0#32 (segsDs Mr md true [] (segsOf (histN H) cuts))).getD cuts.length []
 
 /-- Every record of the WAL (CRCs chained). -/
 def allRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List WalRec :=
-  recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) cuts)
+  recsOfSegs walCodec Mr md (segsOf (histN H) cuts)
 
 /-- **The encoder's CRC after every record of the WAL.** -/
 def tailCrc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) : w32 :=
-  chainEnd walCodec 0#32 (recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) cuts))
+  chainEnd walCodec 0#32 (recsOfSegs walCodec Mr md (segsOf (histN H) cuts))
 
 theorem tailStream_recs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) : tailStream Mr H md cuts = recFrames walCodec (tailRecs Mr H md cuts) := rfl

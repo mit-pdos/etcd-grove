@@ -74,12 +74,12 @@ theorem opHS_normOp (p : HardStateM) (o : WalOp) : opHS p (normOp p o) = opHS p 
     · rfl
   | snap m al => rfl
 
-theorem normFrom_length (p : HardStateM) (H : WalHist) : (normFrom p H).length = H.length := by
+@[simp] theorem normFrom_length (p : HardStateM) (H : WalHist) : (normFrom p H).length = H.length := by
   induction H generalizing p with
   | nil => rfl
   | cons o H ih => simp [normFrom, ih]
 
-theorem normH_length (H : WalHist) : (normH H).length = H.length := normFrom_length _ _
+@[simp] theorem normH_length (H : WalHist) : (normH H).length = H.length := normFrom_length _ _
 
 theorem foldl_opHS_normFrom (p : HardStateM) (H : WalHist) :
     (normFrom p H).foldl opHS p = H.foldl opHS p := by
@@ -99,6 +99,39 @@ theorem normFrom_append (p : HardStateM) (A B : WalHist) :
 theorem normH_append (A B : WalHist) :
     normH (A ++ B) = normH A ++ normFrom (walLastHS A) B := by
   rw [normH, normFrom_append, walLastHS_eq_foldl]; rfl
+
+/-- A normalized concatenation: each part normalized from its running state. -/
+theorem normFrom_append_fix {p : HardStateM} {A B : WalHist} (h : normFrom p (A ++ B) = A ++ B) :
+    normFrom p A = A ∧ normFrom (A.foldl opHS p) B = B := by
+  rw [normFrom_append] at h
+  exact List.append_inj h (normFrom_length _ _)
+
+/-- The suffix of a normalized concatenation, from the prefix's last state. -/
+theorem normFrom_suffix_fix {A B : WalHist} (h : normFrom hsZero (A ++ B) = A ++ B) :
+    normFrom (walLastHS A) B = B := by
+  rw [walLastHS_eq_foldl]; exact (normFrom_append_fix h).2
+
+theorem normOp_idem (p : HardStateM) (o : WalOp) : normOp p (normOp p o) = normOp p o := by
+  cases o with
+  | save h es =>
+    unfold normOp
+    by_cases hc : es ≠ [] ∧ hsEmptyP h
+    · rw [if_pos hc]
+      by_cases hp : hsEmptyP p
+      · simp [hc.1, hp]
+      · simp [hp]
+    · rw [if_neg hc, if_neg hc]
+  | snap m al => rfl
+
+/-- **The normalization is idempotent**: a written history is its own normalization. -/
+theorem normFrom_idem (p : HardStateM) (H : WalHist) : normFrom p (normFrom p H) = normFrom p H := by
+  induction H generalizing p with
+  | nil => rfl
+  | cons o H ih => simp only [normFrom, normOp_idem, opHS_normOp, ih]
+
+theorem normH_drop_fix (H : WalHist) (k : Nat) :
+    normFrom (walLastHS ((normH H).take k)) ((normH H).drop k) = (normH H).drop k := by
+  rw [normH_take, walLastHS_normH, normH_drop, normFrom_idem]
 
 theorem normH_snoc (H : WalHist) (o : WalOp) :
     normH (H ++ [o]) = normH H ++ [normOp (walLastHS H) o] := by
@@ -309,6 +342,59 @@ theorem walLastIdx_normFrom (p : HardStateM) (H : WalHist) : walLastIdx (normFro
       | snap m al => simp only [normFrom, normOp_snap, List.foldl_cons]; exact ih _ _
 
 theorem walLastIdx_normH (H : WalHist) : walLastIdx (normH H) = walLastIdx H := walLastIdx_normFrom _ _
+
+/-- **The written history of a WAL's raw history** (the encoding layer's: `WalFs.histM`). -/
+def histN (H : List (WalOpG WalEnt)) : WalHist := normH (H.map WalOpG.toM)
+
+@[simp] theorem histN_length (H : List (WalOpG WalEnt)) : (histN H).length = H.length := by
+  simp [histN, normH_length]
+
+theorem histN_take (H : List (WalOpG WalEnt)) (j : Nat) : (histN H).take j = histN (H.take j) := by
+  simp [histN, normH_take, List.map_take]
+
+theorem histN_snoc (H : List (WalOpG WalEnt)) (o : WalOpG WalEnt) :
+    histN (H ++ [o]) = histN H ++ [normOp (walLastHS (H.map WalOpG.toM)) o.toM] := by
+  simp [histN, normH_snoc]
+
+/-- **The operation as written after the raw history `H`** (`histN_snoc'`). -/
+def wop (H : List (WalOpG WalEnt)) (o : WalOpG WalEnt) : WalOp := normOp (walLastHS (H.map WalOpG.toM)) o.toM
+
+theorem histN_snoc' (H : List (WalOpG WalEnt)) (o : WalOpG WalEnt) :
+    histN (H ++ [o]) = histN H ++ [wop H o] := histN_snoc H o
+
+/-- **The state `Save(hs, es)` writes after the state `p`** (`encodeState`'s argument: `w.state` when
+`hs` is empty and there are entries). -/
+def saveHS (p hs : HardStateM) (es : List EntryM) : HardStateM :=
+  if es ≠ [] ∧ hsEmptyP hs then p else hs
+
+theorem normOp_save_eq (p hs : HardStateM) (es : List EntryM) :
+    normOp p (.save hs es) = .save (saveHS p hs es) es := by
+  unfold normOp saveHS; split <;> rfl
+
+/-- After a `Save` that writes a state record, the running state is the one it wrote. -/
+theorem phsNext_saveHS {p hs : HardStateM} {es : List EntryM} (h : ¬ (es = [] ∧ hsEmptyP hs)) :
+    phsNext p hs = saveHS p hs es := by
+  unfold saveHS
+  by_cases hE : hsEmptyP hs
+  · have hne : es ≠ [] := fun h0 => h ⟨h0, hE⟩
+    rw [if_pos ⟨hne, hE⟩]; exact phsNext_empty _ _ hE
+  · rw [if_neg (fun hc => hE hc.2)]; unfold phsNext; exact if_neg hE
+
+theorem walLastHS_histN (H : List (WalOpG WalEnt)) : walLastHS (histN H) = walLastHS (H.map WalOpG.toM) :=
+  walLastHS_normH _
+
+/-- **What a crash can leave of a WAL whose history is `H` with its first `n` operations synced,
+since the torn-`Save` fix**: the first `j` operations (`n ≤ j ≤ |H|`). A `Save` a crash interrupts
+reads back as none (its entry records, no record after them, are dropped by `ReadAll`); the trusted
+`walImg` (`GooseLang/Ext/AbsDisk/Impl.lean`) also allows a torn `Save`, which no longer arises:
+`walImgS_walImg`. -/
+def walImgS {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Prop :=
+  ∃ j, n ≤ j ∧ j ≤ H.length ∧ I = H.take j
+
+theorem walImgS_walImg {E : Type} {H I : List (WalOpG E)} {n : Nat} (h : walImgS H n I) :
+    walImg H n I := by
+  obtain ⟨j, h1, h2, h3⟩ := h
+  exact ⟨j, h1, h2, .inl h3⟩
 
 end norm
 

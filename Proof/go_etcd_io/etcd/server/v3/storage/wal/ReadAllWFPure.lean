@@ -184,7 +184,7 @@ theorem walHS_split_read (Mr : WalMarshal) (h : WalHS) (hr : h.rest = 0) (ho : h
 /-- **The encoder's CRC of a quiescent handle is the chain's after every record.** -/
 theorem walHS_crc_read (Mr : WalMarshal) (h : WalHS) (hr : h.rest = 0) :
     WalHS.crc Mr h = chainEnd walCodec 0#32
-      (recsOfSegs walCodec Mr h.md (segsOf (h.H.map WalOpG.toM) h.cuts)) := by
+      (recsOfSegs walCodec Mr h.md (segsOf (histN h.H) h.cuts)) := by
   unfold WalHS.crc allRecs
   rw [hr, Nat.sub_zero, List.take_length]
 

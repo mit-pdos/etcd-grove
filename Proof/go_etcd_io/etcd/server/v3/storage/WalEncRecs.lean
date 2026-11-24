@@ -17,6 +17,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncDecode
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalHist
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalNorm
 
 @[expose] public section
 
@@ -41,14 +42,15 @@ structure WalMarshal where
   encSnap : SnapshotMetadataM → Bool → List w8
   snap0 : List w8
 
-instance : DecidablePred hsEmptyP := fun h => by unfold hsEmptyP; infer_instance
-
 /-- **An operation's records**, as (type, data): `Save(h, es)` an entry record per entry, then the
-state record unless `h` is empty (`saveState`, wal.go:1084; `Save`'s shortcut, :1098, writes
-nothing when both are empty, which this gives too); `SaveSnapshot(m)` one snapshot record. -/
+state record of `h` unless there are no entries and `h` is empty (the torn-`Save` fix, fork
+`2bd3048d7`: a `Save` with entries ends with `encodeState`, of `h` or, when `h` is empty, of `w.state`,
+which the normalized history `normH`, `WalNorm.lean`, puts in the op; without entries `saveState`
+skips an empty `h`; `Save`'s shortcut writes nothing when both are empty, which this gives too);
+`SaveSnapshot(m)` one snapshot record. -/
 def opDs (M : WalMarshal) : WalOp → List (w64 × List w8)
   | .save h es => es.map (fun e => (entryType, M.encEntry e)) ++
-      (if hsEmptyP h then [] else [(stateType, M.encState h)])
+      (if es = [] ∧ hsEmptyP h then [] else [(stateType, M.encState h)])
   | .snap m al => [(snapshotType, M.encSnap m al)]
 
 /-- **The first file's header records** (`Create`, wal.go:174-183): the CRC record (data nil), the
@@ -72,16 +74,20 @@ holds the preallocated zeros (`streamOf … ++ List.replicate z 0`). -/
 def streamOf (C : WalCodec) (M : WalMarshal) (md : List w8) (H : WalHist) : List w8 :=
   recFrames C (recsOf C M md H)
 
-/-- **The history a record count cuts `H` to** (§2.2): the operations whose records all fit in `n`
-op records, then, if `n` ends inside a `Save`, the `Save` of its first entries with the empty hard
-state (its state record, written last, is not in). -/
+/-- **The whole operations a record count keeps of `H`** (§2.2): the operations whose records all
+fit in `n` op records, in order, up to the first that does not. -/
 def histCut (M : WalMarshal) : WalHist → Nat → WalHist
   | [], _ => []
   | o :: H, n =>
-    if (opDs M o).length ≤ n then o :: histCut M H (n - (opDs M o).length)
-    else match o with
-      | .save _ es => if n = 0 then [] else [.save (HardStateM.mk 0 0 0) (es.take n)]
-      | .snap _ _ => []
+    if (opDs M o).length ≤ n then o :: histCut M H (n - (opDs M o).length) else []
+
+/-- **The records a record count keeps past `histCut`**: the first records of the first operation
+that does not fit (entry records only, `histCutRest_entry`: a `Save` with entries ends with its state
+record, the torn-`Save` fix; the fold of `ReadAll` drops them). -/
+def histCutRest (M : WalMarshal) : WalHist → Nat → List (w64 × List w8)
+  | [], _ => []
+  | o :: H, n =>
+    if (opDs M o).length ≤ n then histCutRest M H (n - (opDs M o).length) else (opDs M o).take n
 
 /-! ## The lemmas -/
 
@@ -168,63 +174,63 @@ theorem walDecode_streamOf {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : Lis
 
 theorem hsEmptyP_zero : hsEmptyP (HardStateM.mk 0 0 0) := ⟨rfl, rfl, rfl⟩
 
-/-- The op records of a cut history are the first `n` op records. -/
+/-- The op records of a cut history, then the records left, are the first `n` op records. -/
 theorem flatMap_histCut (M : WalMarshal) (H : WalHist) (n : Nat) :
-    (histCut M H n).flatMap (opDs M) = (H.flatMap (opDs M)).take n := by
+    (histCut M H n).flatMap (opDs M) ++ histCutRest M H n = (H.flatMap (opDs M)).take n := by
   induction H generalizing n with
-  | nil => simp [histCut]
+  | nil => simp [histCut, histCutRest]
   | cons o H ih =>
-    simp only [histCut, List.flatMap_cons]
+    simp only [histCut, histCutRest, List.flatMap_cons]
     split
     · rename_i hk
-      rw [List.flatMap_cons, ih, List.take_append, List.take_of_length_le hk]
+      rw [List.flatMap_cons, List.append_assoc, ih, List.take_append, List.take_of_length_le hk]
     · rename_i hk
       rw [List.take_append_of_le_length (by omega)]
+      simp
+
+/-- **The records left past the whole operations are entry records.** -/
+theorem histCutRest_entry (M : WalMarshal) (H : WalHist) (n : Nat) :
+    ∀ p ∈ histCutRest M H n, p.1 = entryType := by
+  induction H generalizing n with
+  | nil => simp [histCutRest]
+  | cons o H ih =>
+    simp only [histCutRest]
+    split
+    · exact ih _
+    · rename_i hk
+      intro p hp
       cases o with
       | save h es =>
-        simp only
-        split
-        · subst_vars; simp
-        · rename_i hn
-          simp only [List.flatMap_cons, List.flatMap_nil, List.append_nil, opDs,
-            ite_eq_left hsEmptyP_zero, List.append_nil]
-          simp only [opDs, List.length_append, List.length_map] at hk
-          have hst : (if hsEmptyP h then ([] : List (w64 × List w8))
-              else [(stateType, M.encState h)]).length ≤ 1 := by split <;> simp
-          rw [List.take_append_of_le_length (by simp; omega), List.map_take]
+        simp only [opDs, List.length_append, List.length_map] at hk hp
+        have hn : n ≤ es.length := by
+          by_cases he : es = [] ∧ hsEmptyP h
+          · rw [if_pos he] at hk; simp at hk
+          · rw [if_neg he] at hk; simp at hk; omega
+        rw [List.take_append_of_le_length (by simpa using hn)] at hp
+        obtain ⟨e, -, rfl⟩ := List.mem_map.1 (List.mem_of_mem_take hp)
+        rfl
       | snap m al =>
         simp only [opDs, List.length_cons, List.length_nil] at hk
         have : n = 0 := by omega
-        subst this; simp
+        subst this; simp at hp
 
-/-- The records of a cut history are a prefix of the records. -/
-theorem recsOf_histCut (C : WalCodec) (M : WalMarshal) (md : List w8) (H : WalHist) (n : Nat) :
-    recsOf C M md (histCut M H n) = (recsOf C M md H).take (3 + n) := by
-  unfold recsOf
-  rw [← chainRecs_take, flatMap_histCut, List.take_append,
-    List.take_of_length_le (l := hdrDs M md) (by simp [hdrDs])]
-  simp [hdrDs]
-
-/-- **(c) A cut history is an image** (`walImg`) when it keeps the first `m` operations' records. -/
-theorem walImg_histCut (M : WalMarshal) (H : WalHist) (m n : Nat) (hm : m ≤ H.length)
-    (hn : ((H.take m).flatMap (opDs M)).length ≤ n) : walImg H m (histCut M H n) := by
+/-- **(c) A cut history is an image** (`walImgS`) when it keeps the first `m` operations' records. -/
+theorem walImgS_histCut (M : WalMarshal) (H : WalHist) (m n : Nat) (hm : m ≤ H.length)
+    (hn : ((H.take m).flatMap (opDs M)).length ≤ n) : walImgS H m (histCut M H n) := by
   induction H generalizing m n with
   | nil =>
     simp only [List.length_nil, Nat.le_zero] at hm; subst hm
-    exact ⟨0, Nat.le_refl _, Nat.le_refl _, Or.inl rfl⟩
+    exact ⟨0, Nat.le_refl _, Nat.le_refl _, rfl⟩
   | cons o H ih =>
     unfold histCut
     split
     · rename_i hk
       have hcons : ∀ m', m' ≤ H.length →
           ((H.take m').flatMap (opDs M)).length ≤ n - (opDs M o).length →
-          walImg (o :: H) (m' + 1) (o :: histCut M H (n - (opDs M o).length)) := by
+          walImgS (o :: H) (m' + 1) (o :: histCut M H (n - (opDs M o).length)) := by
         intro m' hm' hn'
         obtain ⟨j, hj1, hj2, hI⟩ := ih m' (n - (opDs M o).length) hm' hn'
-        refine ⟨j + 1, by omega, by simp; omega, ?_⟩
-        rcases hI with hI | ⟨h, es, k, hj, hk', hI⟩
-        · left; rw [hI]; rfl
-        · right; exact ⟨h, es, k, by simpa using hj, hk', by rw [hI]; rfl⟩
+        exact ⟨j + 1, by omega, by simp; omega, by rw [hI]; rfl⟩
       cases m with
       | zero =>
         obtain ⟨j, -, hj2, hI⟩ := hcons 0 (Nat.zero_le _) (by simp)
@@ -241,44 +247,7 @@ theorem walImg_histCut (M : WalMarshal) (H : WalHist) (m n : Nat) (hm : m ≤ H.
           simp only [List.take_succ_cons, List.flatMap_cons, List.length_append] at hn
           omega
       subst hm0
-      refine ⟨0, Nat.le_refl _, Nat.zero_le _, ?_⟩
-      cases o with
-      | save h es =>
-        simp only
-        split
-        · left; rfl
-        · right
-          simp only [opDs, List.length_append, List.length_map] at hk
-          have hst : (if hsEmptyP h then ([] : List (w64 × List w8))
-              else [(stateType, M.encState h)]).length ≤ 1 := by split <;> simp
-          exact ⟨h, es, n, rfl, by omega, rfl⟩
-      | snap m al => left; rfl
-
-/-- **(b) + (c) What a crash image decodes to**: an image that starts with the bytes of the first
-`m` operations (synced) and has no collision with the intended stream decodes to the records of an
-image `I` of the history, `walImg H m I`. -/
-theorem walDecode_walImg {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8) (H : WalHist)
-    (m : Nat) (img : List w8) (hfit : RecsFit C (recsOf C M md H)) (hm : m ≤ H.length)
-    (hdur : streamOf C M md (H.take m) <+: img) (hnc : NoCollision C (recsOf C M md H) img) :
-    ∃ I, walImg H m I ∧ (walDecode C img).recs = recsOf C M md I := by
-  have hpreH : recsOf C M md (H.take m) <+: recsOf C M md H := by
-    unfold recsOf
-    apply chainRecs_prefix
-    have : (H.take m).flatMap (opDs M) <+: H.flatMap (opDs M) := by
-      have h := List.prefix_append ((H.take m).flatMap (opDs M)) ((H.drop m).flatMap (opDs M))
-      rwa [← List.flatMap_append, List.take_append_drop] at h
-    exact (List.prefix_append_right_inj (hdrDs M md)).mpr this
-  have hfit' : RecsFit C (recsOf C M md (H.take m)) := fun r hr => hfit r (hpreH.subset hr)
-  have hlo := walDecode_of_prefix hC hfit' (chainOk_recsOf hC M md (H.take m)) hdur
-  have hhi := walDecode_prefix hC hfit (chainOk_recsOf hC M md H) hnc
-  have hlen := hlo.length_le
-  have hlenm : (recsOf C M md (H.take m)).length = 3 + ((H.take m).flatMap (opDs M)).length := by
-    simp [recsOf, length_chainRecs, hdrDs]; omega
-  refine ⟨histCut M H ((walDecode C img).recs.length - 3),
-    walImg_histCut M H m _ hm (by omega), ?_⟩
-  rw [recsOf_histCut, show 3 + ((walDecode C img).recs.length - 3) =
-    (walDecode C img).recs.length by omega]
-  exact List.prefix_iff_eq_take.mp hhi
+      exact ⟨0, Nat.le_refl _, Nat.zero_le _, rfl⟩
 
 end recs
 

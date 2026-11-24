@@ -56,7 +56,7 @@ theorem segsDs_cut (Mr : WalMarshal) (md : List w8) (H : WalHist) (cuts : List N
 /-- The chain's end over the old records is the tail's CRC. -/
 theorem crcAfter_tailCrc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) :
-    crcAfter walCodec 0#32 (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts)).flatten =
+    crcAfter walCodec 0#32 (segsDs Mr md true [] (segsOf (histN H) cuts)).flatten =
       tailCrc Mr H md cuts := by
   unfold tailCrc recsOfSegs
   rw [chainEnd_chainRecs]

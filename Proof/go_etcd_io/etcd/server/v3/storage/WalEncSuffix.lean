@@ -101,7 +101,8 @@ theorem decStep_cutFile {C : WalCodec} (hC : C.Ok) (last : Bool) (M : WalMarshal
 of `Spre` purged, those of `Smid` intact, then an image `last` of `S`'s file as in
 `walDecodeFiles_walImg`, nothing after it. A fresh reader of the files from `Smid`'s first
 (`Smid ++ [S]` nonempty, `Spre` nonempty) reads the records of the WAL with segments
-`Spre ++ Smid ++ [J]` after those of `Spre`, for a `J` keeping the synced operations of `S`. -/
+`Spre ++ Smid ++ [J]` after those of `Spre`, for a `J` keeping the synced operations of `S`, then the
+entry records of a torn operation (`histCutRest`). -/
 theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8)
     (Spre Smid : List WalHist) (S : WalHist) (Spost : List WalHist) (zs : List Nat)
     (last : List w8) (m' : Nat) (hpre : Spre ≠ []) (hzl : zs.length = Smid.length)
@@ -117,8 +118,8 @@ theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
     ∃ n, ((S.take m').flatMap (opDs M)).length ≤ n ∧
       (walDecodeFiles C (intactFiles C M md false Spre.flatten
           (crcAfter C 0#32 (segsDs M md true [] Spre).flatten) Smid zs ++ [last]) 0#32).recs =
-        (recsOfSegs C M md (Spre ++ Smid ++ [histCut M S n])).drop
-          (recsOfSegs C M md Spre).length := by
+        chainRecs C (crcAfter C 0#32 (segsDs M md true [] Spre).flatten)
+          ((segsDs M md false Spre.flatten (Smid ++ [histCut M S n])).flatten ++ histCutRest M S n) := by
   obtain ⟨c0, hc0⟩ : ∃ c0, c0 = crcAfter C 0#32 (segsDs M md true [] Spre).flatten := ⟨_, rfl⟩
   rw [← hc0]
   simp only at hlast
@@ -136,7 +137,7 @@ theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
   obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' last Smid zs false Spre.flatten c0 hzl hz
     hfitc (by simpa using hlast)
   refine ⟨n, hn, ?_⟩
-  rw [List.append_assoc, recsOfSegs_append C M md hpre, ← hc0, List.drop_left, ← hdec]
+  rw [← hc0, ← hdec]
   have hhdr : 1 ≤ (segHdrDs M md false (Spre.flatten ++ Smid.flatten)).length := by
     simp [segHdrDs, cutHdrDs]
   cases Smid with

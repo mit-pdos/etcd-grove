@@ -57,7 +57,7 @@ theorem walDecodeFiles_core {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : Li
      NoCollisionFrom C c' (chainRecs C c' D) last) →
     ∃ n, ((S.take m').flatMap (opDs M)).length ≤ n ∧
       (walDecodeFiles C (intactFiles C M md first P c Spre zs ++ [last]) c).recs =
-        chainRecs C c (segsDs M md first P (Spre ++ [histCut M S n])).flatten := by
+        chainRecs C c ((segsDs M md first P (Spre ++ [histCut M S n])).flatten ++ histCutRest M S n) := by
   intro Spre
   induction Spre with
   | nil =>
@@ -86,7 +86,7 @@ theorem walDecodeFiles_core {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : Li
       exact h.length_le
     refine ⟨N - (segHdrDs M md first P).length, by omega, ?_⟩
     show (walDecodeFrom C true last 0 c).recs = _
-    simp only [List.flatten_cons, List.flatten_nil, List.append_nil]
+    simp only [List.flatten_cons, List.flatten_nil, List.append_nil, List.append_assoc]
     rw [flatMap_histCut]
     have e : segHdrDs M md first P ++ (S.flatMap (opDs M)).take (N - (segHdrDs M md first P).length)
         = (segHdrDs M md first P ++ S.flatMap (opDs M)).take N := by
@@ -119,7 +119,7 @@ theorem walDecodeFiles_core {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : Li
     have hf : intactFiles C M md first P c (S0 :: Spre) (z :: zs') =
         segFile C (chainRecs C c D0) z :: intactFiles C M md false (P ++ S0) (crcAfter C c D0) Spre zs' := by
       simp [intactFiles, segsDs, chainSegs, hD0]
-    rw [hf, List.cons_append, List.cons_append, hsd, chainRecs_append C c D0, ← ih']
+    rw [hf, List.cons_append, List.cons_append, hsd, List.append_assoc, chainRecs_append C c D0, ← ih']
     obtain ⟨g, gs, hg⟩ : ∃ g gs, intactFiles C M md false (P ++ S0) (crcAfter C c D0) Spre zs' ++ [last]
         = g :: gs := by
       cases intactFiles C M md false (P ++ S0) (crcAfter C c D0) Spre zs' with
@@ -130,24 +130,13 @@ theorem walDecodeFiles_core {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : Li
       chainEnd_chainRecs, ite_true]
 
 /-- A history image inside a segment is one of the whole history, the segments before it kept. -/
-theorem walImg_lift {P S R : WalHist} {m m' : Nat} {J : WalHist} (h : walImg S m' J)
-    (hm : m ≤ P.length + m') : walImg (P ++ S ++ R) m (P ++ J) := by
-  obtain ⟨j, h1, h2, hI⟩ := h
+theorem walImgS_lift {P S R : WalHist} {m m' : Nat} {J : WalHist} (h : walImgS S m' J)
+    (hm : m ≤ P.length + m') : walImgS (P ++ S ++ R) m (P ++ J) := by
+  obtain ⟨j, h1, h2, rfl⟩ := h
   have htk : (P ++ S ++ R).take (P.length + j) = P ++ S.take j := by
     rw [List.append_assoc, List.take_append, List.take_of_length_le (l := P) (by omega),
       Nat.add_sub_cancel_left, List.take_append_of_le_length h2]
-  refine ⟨P.length + j, by omega, by simp; omega, ?_⟩
-  rcases hI with rfl | ⟨hs, es, k, hj, hk, rfl⟩
-  · left; rw [htk]
-  · right
-    have hjl : j < S.length := by
-      rcases Nat.lt_or_ge j S.length with h | h
-      · exact h
-      · rw [List.getElem?_eq_none h] at hj; cases hj
-    refine ⟨hs, es, k, ?_, hk, by rw [htk, List.append_assoc]⟩
-    rw [List.append_assoc, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left,
-      List.getElem?_append_left hjl]
-    exact hj
+  exact ⟨P.length + j, by omega, by simp; omega, htk.symm⟩
 
 /-- **(b) + (c) over files: what a crash image of a WAL's files decodes to.** The WAL's segments
 are `Spre ++ S :: Spost` (its history `H` their concatenation), its first `m` operations synced;
@@ -167,9 +156,10 @@ theorem walDecodeFiles_walImg {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
       recFrames C ((chainRecs C c' D).take ((segHdrDs M md first' Spre.flatten).length +
           ((S.take (m - Spre.flatten.length)).flatMap (opDs M)).length)) <+: last ∧
       NoCollisionFrom C c' (chainRecs C c' D) last) :
-    ∃ I Ss', walImg (Spre ++ S :: Spost).flatten m I ∧ Ss'.flatten = I ∧
+    ∃ I Ss' ps, walImgS (Spre ++ S :: Spost).flatten m I ∧ Ss'.flatten = I ∧
+      (∀ p ∈ ps, p.1 = entryType) ∧
       (walDecodeFiles C (intactFiles C M md true [] 0#32 Spre zs ++ [last]) 0#32).recs =
-        recsOfSegs C M md Ss' := by
+        chainRecs C 0#32 ((segsDs M md true [] Ss').flatten ++ ps) := by
   have hfit' : RecsFit C (chainRecs C 0#32 (segsDs M md true [] (Spre ++ [S])).flatten) := by
     intro r hr; apply hfit
     unfold recsOfSegs
@@ -178,9 +168,10 @@ theorem walDecodeFiles_walImg {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
     exact List.mem_append_left _ hr
   obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S (m - Spre.flatten.length) last Spre zs
     true [] 0#32 hzl hz hfit' (by simpa using hlast)
-  refine ⟨Spre.flatten ++ histCut M S n, Spre ++ [histCut M S n], ?_, by simp, hdec⟩
-  have hJ := walImg_histCut M S (m - Spre.flatten.length) n (by omega) hn
-  have := walImg_lift (P := Spre.flatten) (R := Spost.flatten) (m := m) hJ (by omega)
+  refine ⟨Spre.flatten ++ histCut M S n, Spre ++ [histCut M S n], histCutRest M S n, ?_, by simp,
+    histCutRest_entry M S n, hdec⟩
+  have hJ := walImgS_histCut M S (m - Spre.flatten.length) n (by omega) hn
+  have := walImgS_lift (P := Spre.flatten) (R := Spost.flatten) (m := m) hJ (by omega)
   simpa using this
 
 end img

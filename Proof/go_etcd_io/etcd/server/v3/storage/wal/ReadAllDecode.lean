@@ -48,6 +48,14 @@ theorem histCut_of_le (M : WalMarshal) : ∀ (H : WalHist) (n : Nat),
     simp only [histCut]
     rw [if_pos (by omega), histCut_of_le M H _ (by omega)]
 
+theorem histCutRest_of_le (M : WalMarshal) : ∀ (H : WalHist) (n : Nat),
+    (H.flatMap (opDs M)).length ≤ n → histCutRest M H n = []
+  | [], _, _ => rfl
+  | o :: H, n, h => by
+    simp only [List.flatMap_cons, List.length_append] at h
+    simp only [histCutRest]
+    rw [if_pos (by omega), histCutRest_of_le M H _ (by omega)]
+
 /-- The records of the last segment of the WAL with segments `A ++ [Sl]`. -/
 def lastRecs (C : WalCodec) (M : WalMarshal) (md : List w8) (A : List WalHist) (Sl : WalHist) :
     List WalRec :=
@@ -143,7 +151,8 @@ theorem walDecodeFiles_running {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md :
       unfold intactFiles
       have := hzip (chainSegs C 0#32 (segsDs M md true [] A))
       rwa [length_chainSegs, length_segsDs] at this
-    rw [List.drop_zero, ← hint, hdec, histCut_of_le M Sl n (by simpa using hn)]
+    rw [List.drop_zero, ← hint, hdec, histCut_of_le M Sl n (by simpa using hn),
+      histCutRest_of_le M Sl n (by simpa using hn), List.append_nil]
     simp [recsOfSegs, segsDs, chainRecs]
   · -- From a cut file.
     have hpre' : A.take p ≠ [] := by
@@ -187,7 +196,9 @@ theorem walDecodeFiles_running {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md :
       have := hzip (chainSegs C (crcAfter C 0#32 (segsDs M md true [] (A.take p)).flatten)
         (segsDs M md false (A.take p).flatten (A.drop p)))
       rwa [length_chainSegs, length_segsDs] at this
-    rw [← hint, hdec, histCut_of_le M Sl n (by simpa using hn), hss]
+    rw [← hint, hdec, histCut_of_le M Sl n (by simpa using hn),
+      histCutRest_of_le M Sl n (by simpa using hn), List.append_nil, ← hss, List.append_assoc,
+      recsOfSegs_append C M md hpre', List.drop_left]
 
 end decode
 

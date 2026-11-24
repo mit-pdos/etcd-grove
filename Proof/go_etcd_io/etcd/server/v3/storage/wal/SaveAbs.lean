@@ -72,7 +72,7 @@ theorem crashOk_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
 /-! ## The segments' records -/
 
 theorem histM_snoc (d : WalDur) (o : WalOpG WalEnt) :
-    histM { d with H := d.H ++ [o] } = histM d ++ [o.toM] := by simp [histM]
+    histM { d with H := d.H ++ [o] } = histM d ++ [wop d.H o] := by simp [histM, histN_snoc']
 
 /-- **The segments' records after an appended operation**: the same but the last, which gains the
 operation's records `X` (as many as its (type, data) pairs), which the WAL's records gain too. -/
@@ -82,15 +82,15 @@ theorem segRecs_snoc_op (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : Li
       segRecs C Mr d cuts = A ++ [L] ∧ segRecs C Mr { d with H := d.H ++ [o] } cuts = A ++ [L ++ X] ∧
       recsOfSegs C Mr d.metadata (segsOf (histM { d with H := d.H ++ [o] }) cuts) =
         recsOfSegs C Mr d.metadata (segsOf (histM d) cuts) ++ X ∧
-      X.length = (opDs Mr o.toM).length := by
-  have hc' : ∀ b ∈ cuts, b ≤ (histM d).length := by simpa [histM] using hc
+      X.length = (opDs Mr (wop d.H o)).length := by
+  have hc' : ∀ b ∈ cuts, b ≤ (histM d).length := by simpa [histM, histN_length] using hc
   let S0 := segsInit (histM d) cuts
   let Ds := segsDs Mr d.metadata true [] S0
   let hd := segHdrDs Mr d.metadata (if S0 = [] then true else false) S0.flatten
   let B := List.flatMap (opDs Mr) ((histM d).drop (segStart cuts cuts.length))
   let c0 := crcAfter C 0#32 Ds.flatten
   refine ⟨chainSegs C 0#32 Ds, chainRecs C c0 (hd ++ B),
-    chainRecs C (crcAfter C c0 (hd ++ B)) (opDs Mr o.toM), ?_, ?_, ?_, ?_, ?_⟩
+    chainRecs C (crcAfter C c0 (hd ++ B)) (opDs Mr (wop d.H o)), ?_, ?_, ?_, ?_, ?_⟩
   · simp only [Ds, length_chainSegs, length_segsDs, S0, length_segsInit]
   · unfold segRecs
     rw [segsOf_split, segsDs_snoc, chainSegs_snoc]
@@ -147,13 +147,13 @@ operation adds a record, the bytes under the tail's stream from the start's fram
 (`hZ`), and that the new records fit a frame (`hfit`). -/
 theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (o : WalOpG WalEnt) (h : WalAbsD C Mr d lay ents)
-    (hZ : opDs Mr o.toM ≠ [] → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+    (hZ : opDs Mr (wop d.H o) ≠ [] → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
     (hfit : RecsFit C (recsOfSegs C Mr d.metadata
       (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts))) :
     WalAbsD C Mr { d with H := d.H ++ [o] } lay ents := by
   have hc : ∀ b ∈ lay.cuts, b ≤ d.H.length := fun b hb => by
     have := walCutPos_le (h.cuts.1 b hb); simpa [histM] using this
-  have hc' : ∀ b ∈ lay.cuts, b ≤ (histM d).length := by simpa [histM] using hc
+  have hc' : ∀ b ∈ lay.cuts, b ≤ (histM d).length := by simpa [histM, histN_length] using hc
   obtain ⟨A, L, X, hA, hd, hd', hall, hX⟩ := segRecs_snoc_op C Mr d lay.cuts o hc
   have hsegLt : ∀ k, k < lay.cuts.length →
       segStream C Mr { d with H := d.H ++ [o] } lay.cuts k = segStream C Mr d lay.cuts k := by
@@ -169,7 +169,7 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     simp [hA, recFrames_append]
   have htake : ∀ c, c ≤ d.H.length → (histM { d with H := d.H ++ [o] }).take c = (histM d).take c := by
     intro c hcl
-    rw [histM_snoc, List.take_append_of_le_length (by simpa [histM] using hcl)]
+    rw [histM_snoc, List.take_append_of_le_length (by simpa [histM, histN_length] using hcl)]
   obtain ⟨gl, hgl⟩ : ∃ g, lay.segs.getLast? = some g :=
     ⟨_, List.getLast?_eq_some_getLast h.nonempty⟩
   have hW := h.lastWin gl hgl

@@ -90,8 +90,9 @@ structure WalLay where
   (`segsAll` lists them). -/
   pg : List SegG := []
 
-/-- The history as the encoding layer has it. -/
-def histM (d : WalDur) : WalHist := d.H.map WalOpG.toM
+/-- The history as the encoding layer has it: as written (`histN`, `WalNorm.lean`: a `Save` of
+entries with an empty state carries the state it writes, the torn-`Save` fix). -/
+def histM (d : WalDur) : WalHist := histN d.H
 
 /-- The records of each segment, the CRC chained across them. -/
 def segRecs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) : List (List WalRec) :=
