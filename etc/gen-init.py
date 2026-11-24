@@ -5480,6 +5480,7 @@ def tla_outs():
 WT_ROOT = 'WalTester'
 WT_PKGS = ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
            'github_com.mit_pdos.etcd_grove.examples.etcd.wal']
+WT_PROGRAM = 'github_com.mit_pdos.etcd_grove.examples.etcd.wal'
 
 
 def wt_inventory():
@@ -5504,6 +5505,8 @@ def wt_inits():
         CFG_OVERRIDE = WT_SPECIAL
         for p in WT_PKGS:
             raw += gen(p, WT_SPECIAL.get(p, SPECIAL.get(p)))
+        # (2026-11-24, wal-open) the tester's package table, for its crash-safety theorem's initializer
+        raw.append(gen_table(WT_PROGRAM, f'Proof/{dirof(WT_PROGRAM)}/PkgTable.lean'))
     finally:
         inv, inst, CFG_OVERRIDE = saved
     part_mods = {path[:-len('.lean')].replace('/', '.') for path, _ in raw}

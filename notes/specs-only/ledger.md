@@ -25,6 +25,25 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: `etcd_wal_crash_safety_bounded` -- its program `bootWal` ran raft's initializer, not the tester's; `Hinit_wp` unprovable
+
+- **Spec.** `WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Adequacy.lean`: `bootWal` (the
+  program the theorem is about) and the hypothesis `Hinit_wp` of `etcd_wal_crash_safety_bounded`.
+- **Defect.** `bootWal` was `initialize' #() ;; Main(area, orDir)` with a bare `initialize'`, which, under the
+  file's `open go_etcd_io.raft.v3`, is raft's package initializer: the program never initialized the tester's
+  package. `Hinit_wp` asked raft's initializer for the tester's `isPkgInit`, which nothing can prove (it is the
+  ghost fact of another package), so the theorem was a statement about the wrong program under a hypothesis no
+  proof could discharge.
+- **Evidence.** Discharging `Hinit_wp` (branch `wal-open`): `wp_apply` of the tester's generated
+  `wp_initialize'` failed on the goal `Seq (initialize' #()) ...`, whose `initialize'` is
+  `go_etcd_io.raft.v3.initialize'`.
+- **Proposed change.** `bootWal` calls `github_com.mit_pdos.etcd_grove.examples.etcd.wal.initialize'` (the
+  tester's, which initializes raft among its imports); `Hinit_wp` removed (proved: per-generation registration
+  rights, `tRegQsOk`, and the generated `wp_initialize'`); the theorem gains the instance premise
+  `[log.NewModel]` (raft's `log.New`, a semantics assumption the etcd examples' closed theorems take too).
+- **Decision.** Applied on branch `wal-open` (not landed), for the coordinator's (#15) and the user's review:
+  it changes the program of the statement (a fix) and adds the `log.NewModel` premise.
+
 ## 2026-11-23: the model's `strings` stand-ins and read-error wrappers removed (`modelCutByte`/`modelTrimLeftByte`, `connectReader`, `connReader.failed`); `parseRequestLine.spec`, `connReader.Read.spec`, the server reader's deadline specs, `Conn.Read.specLc` (net/http and net/rpc models)
 
 - **Spec.** Removed: `Net/Spec/net/http/modelCutByte.lean`, `modelTrimLeftByte.lean`,
