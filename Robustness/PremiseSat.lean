@@ -45,13 +45,13 @@ namespace Perennial
 namespace Robustness
 
 section start
-variable [GooseExts] [GooseSemantics] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics]
 
 /-- **`Robust`'s antecedents** (`Robust`, `Statement.lean`): every machine of `crashing ++ stable`
 is a fresh Go process with the context `lctx`, in its extensions' initial state, on the shared state
 `g`, itself in its extensions' initial state. A statement whose premises cannot hold together with
 these is vacuous. -/
-def RobustStart [lctx : GoLocalContext] (crashing stable : List (Expr × state)) (g : GlobalState) :
+def RobustStart [GoGlobalContext] [lctx : GoLocalContext] (crashing stable : List (Expr × state)) (g : GlobalState) :
     Prop :=
   (∀ m, m ∈ crashing ++ stable → Fresh lctx m.2) ∧ extsInitGlobal g ∧
     (∀ m, m ∈ crashing ++ stable → extsInitLocal m.2 g)
@@ -65,19 +65,43 @@ theorem fresh_freshState [lctx : GoLocalContext] (w : ExtsLocalState exts) :
   ⟨rfl, rfl, rfl⟩
 
 /-- `RobustStart` of one machine. -/
-theorem robustStart_one [lctx : GoLocalContext] {e : Expr} {σ : state} {g : GlobalState}
+theorem robustStart_one [GoGlobalContext] [lctx : GoLocalContext] {e : Expr} {σ : state} {g : GlobalState}
     (hf : Fresh lctx σ) (hg : extsInitGlobal g) (hl : extsInitLocal σ g) :
     RobustStart [] [(e, σ)] g ∧ RobustStart [(e, σ)] [] g := by
   refine ⟨⟨?_, hg, ?_⟩, ⟨?_, hg, ?_⟩⟩ <;> intro m hm <;> simp at hm <;> subst hm <;> assumption
 
+/-- `RobustStart` of machines that all start in the state `σ`. -/
+theorem robustStart_same [GoGlobalContext] [lctx : GoLocalContext] {crashing stable : List (Expr × state)} {σ : state}
+    {g : GlobalState} (hs : ∀ m, m ∈ crashing ++ stable → m.2 = σ) (hf : Fresh lctx σ)
+    (hg : extsInitGlobal g) (hl : extsInitLocal σ g) : RobustStart crashing stable g :=
+  ⟨fun m hm => by rw [hs m hm]; exact hf, hg, fun m hm => by rw [hs m hm]; exact hl⟩
+
 end start
+
+/-- Proves `extsInitGlobal g` or `extsInitLocal σ g` for a closed list of extensions and concrete
+states: unfolds the componentwise definitions, then each extension's initial state. -/
+macro "exts_init" : tactic =>
+  `(tactic| first
+    | exact ⟨trivial, trivial⟩
+    | exact ⟨rfl, trivial⟩
+    | (simp only [extsInitGlobal, extsInitLocal, ExtsInitGlobal, ExtsInitLocal, freshState]
+       <;> (first
+         | trivial
+         | exact ⟨trivial, trivial⟩
+         | (constructor <;> (first | trivial | rfl))
+         | (simp <;> trivial))))
+
+end Robustness
+end Perennial
+
+namespace PremiseSatMeta
 
 open Lean Meta Elab Term
 
 /-- Whether `t` mentions `HeapGS` or a constant of the namespace `Iris` (an Iris premise). -/
 meta def isIrisPremise (t : Expr) : Bool :=
   (t.find? fun e => match e with
-    | .const n _ => n == ``Perennial.HeapGS || (`Iris).isPrefixOf n
+    | .const n _ => Bool.or (n == ``Perennial.HeapGS) ((`Iris).isPrefixOf n)
     | _ => false).isSome
 
 /-- The proposition `premise_sat%` builds from the body `e` of a statement (see the file header):
@@ -92,7 +116,7 @@ meta partial def premiseSatOf (drop : List Name) (dropped : Array FVarId) (e : E
       let b' := b.instantiate1 x
       let tIsProp ← isProp t
       let dep := t.hasAnyFVar (dropped.contains ·)
-      if dep || drop.contains n || (tIsProp && isIrisPremise t) then
+      if Bool.or dep (Bool.or (drop.contains n) (Bool.and tIsProp (isIrisPremise t))) then
         let (rest, names) ← premiseSatOf drop (dropped.push x.fvarId!) b'
         if rest.containsFVar x.fvarId! then
           throwError "premise_sat%: the binder {n} is left out, but what follows depends on it"
@@ -106,11 +130,11 @@ meta partial def premiseSatOf (drop : List Name) (dropped : Array FVarId) (e : E
         return (mkAnd t rest, names)
       return (← mkAppM ``Exists #[← mkLambdaFVars #[x] rest], names)
   | _ =>
-    unless e.isAppOf ``Robustness.Robust do
+    unless e.isAppOf ``Perennial.Robustness.Robust do
       throwError "premise_sat%: the statement's conclusion is not `Robust …`:{indentExpr e}"
     let args := e.getAppArgs
     let lvls := e.getAppFn.constLevels!
-    return (mkAppN (mkConst ``RobustStart lvls) (args.extract 0 (args.size - 2)), #[])
+    return (mkAppN (mkConst ``Perennial.Robustness.RobustStart lvls) (args.extract 0 (args.size - 2)), #[])
 
 /-- `premise_sat% X.spec` (optionally `without [h, …]`): the premises of the statement `X.spec`
 are satisfiable together with `Robust`'s antecedents (see the file header). -/
@@ -131,7 +155,6 @@ syntax (name := premiseSatStx) "premise_sat% " ident (" without " "[" ident,* "]
         throwError "premise_sat%: {declName} has no binder {n} to leave out"
     mkForallFVars params p
 
-end Robustness
-end Perennial
+end PremiseSatMeta
 
 end

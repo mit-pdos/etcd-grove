@@ -19,12 +19,16 @@ namespace Perennial
 namespace EtcdGrove
 namespace goose_prophkv
 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open github_com.mit_pdos.etcd_grove.examples.goose.prophkv
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
+
 open Robustness
 
 theorem goose_prophkv_robust.premisesSat : premise_sat% goose_prophkv_robust.spec := by
   intros
   exact ⟨freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩, 0,
-    (robustStart_one (fresh_freshState _) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩).1⟩
+    (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 end goose_prophkv
 end EtcdGrove

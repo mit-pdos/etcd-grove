@@ -18,21 +18,24 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+attribute [local instance] durableExts durableExtsSemantics durableExtsInterp durableExts_hasExt
+
 open Robustness
 
 theorem raft_kvdurable_porcupine_robust.premisesSat :
     premise_sat% raft_kvdurable_porcupine_robust.spec := by
   intros
   exact ⟨go!"d", freshState ((∅ : DurableState), ()), ⟨((), ()), ∅⟩,
-    fun _ _ => by simp [freshState],
-    (robustStart_one (fresh_freshState _) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩).1⟩
+    fun _ _ => rfl,
+    (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 theorem raft_kvdurableN_porcupine_robust.premisesSat :
     premise_sat% raft_kvdurableN_porcupine_robust.spec := by
   intros
   exact ⟨go!"d", 1, by decide, by decide, freshState ((∅ : DurableState), ()), ⟨((), ()), ∅⟩,
-    fun _ _ => by simp [freshState],
-    (robustStart_one (fresh_freshState _) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩).1⟩
+    fun _ _ => rfl,
+    (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 end EtcdGrove
 end Perennial

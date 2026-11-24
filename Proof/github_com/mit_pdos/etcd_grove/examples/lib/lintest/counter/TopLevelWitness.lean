@@ -20,12 +20,15 @@ namespace EtcdGrove
 namespace lintest
 namespace counter
 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+
 open Robustness
 
 theorem counter_robust.premisesSat : premise_sat% counter_robust.spec := by
   intros
   exact ⟨freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩,
-    (robustStart_one (fresh_freshState _) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩).1⟩
+    (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 end counter
 end lintest

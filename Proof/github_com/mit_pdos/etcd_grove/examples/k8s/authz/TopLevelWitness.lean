@@ -19,12 +19,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8s_authz
 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+attribute [local instance] idIssueExts idIssueExtsSemantics idIssueExtsInterp idIssueExts_hasExt
+
 open Robustness
 
 theorem k8s_authz_robust.premisesSat : premise_sat% k8s_authz_robust.spec := by
   intros
   exact ⟨freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩, 0,
-    (robustStart_one (fresh_freshState _) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩).1⟩
+    (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 end k8s_authz
 end EtcdGrove

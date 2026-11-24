@@ -20,12 +20,15 @@ namespace EtcdGrove
 namespace lintest
 namespace logkvappend
 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+
 open Robustness
 
 theorem logkvappend_robust.premisesSat : premise_sat% logkvappend_robust.spec := by
   intros
   exact ⟨freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩,
-    (robustStart_one (fresh_freshState _) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩).1⟩
+    (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩
 
 end logkvappend
 end lintest
