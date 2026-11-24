@@ -323,7 +323,19 @@ mirror)
     url=${1:?usage: sandbox.sh mirror URL [BRANCH]}; branch=${2:-}
     rel=${url#https://}; rel=${rel%.git}
     dst="$LAB/mirrors/$rel.git"
-    [ -e "$dst" ] && { git -C "$dst" fetch -q --prune origin; echo "updated $dst"; exit 0; }
+    # (a bare clone has no fetch refspec: a plain `git fetch` updates FETCH_HEAD alone, and the
+    # branches, which a clone from the mirror gets, stay where they were. Each branch the mirror
+    # holds is updated, a single-branch mirror's one included; a configured refspec is used as is)
+    if [ -e "$dst" ]; then
+        if git -C "$dst" config --get remote.origin.fetch >/dev/null; then git -C "$dst" fetch -q --prune origin
+        else
+            mapfile -t specs < <(git -C "$dst" for-each-ref --format='+%(refname):%(refname)' refs/heads)
+            [ ${#specs[@]} -gt 0 ] || die "$dst has no branches to update"
+            git -C "$dst" fetch -q origin "${specs[@]}"
+        fi
+        echo "updated $dst: $(git -C "$dst" for-each-ref --format='%(refname:short) %(objectname:short)' refs/heads | tr '\n' ' ')"
+        exit 0
+    fi
     mkdir -p "$(dirname "$dst")"
     if [ -n "$branch" ]; then
         git clone -q --bare --single-branch --branch "$branch" "$url" "$dst"
