@@ -657,6 +657,40 @@ def Scen.closeAtom (k : String) (s : Scen) : Scen :=
   let prod := s.prod.filter (!fam ·)
   { s with prod := fails.foldl (fun m f => m.addK f Cnt.one) prod, cons := s.cons.filter (!fam ·) }
 
+/-- A typed points-to instance bound by the user together with its laws: the binder's type is
+`TypedPointsto V`, and the `∀`s right after it (Iris's or Lean's) bind an `IntoValTyped V t` over it
+(`reflNew`: `∀ V (_ : ZeroVal V) (_ : TypedPointsto V) (_ : IntoValTyped V t), p ↦ zero_val V`).
+Such an instance is not a resource the user picks (rule 3): `IntoValTyped.wp_alloc` makes its
+`l ↦ v` what an allocation produces from `True`, so it holds no token and nothing the user chooses.
+The binder is `plain`; the walk of `typedPointstoDef` over it then counts nothing. -/
+partial def lawBoundTP (n : Name) (ty : Expr) (body : Expr → Expr) : MetaM Bool := do
+  unless (← instantiateMVars ty).consumeMData.getAppFn.isConstOf `Perennial.TypedPointsto do
+    return false
+  withLocalDeclD n ty fun x => do
+    let fv := x.fvarId!
+    let rec peel (e : Expr) (fuel : Nat) : Bool :=
+      match fuel with
+      | 0 => false
+      | fuel + 1 =>
+        let e := e.consumeMData
+        let dom? : Option (Expr × Expr) := match e with
+          | .forallE _ d b _ => some (d, b)
+          | _ =>
+            match e.getAppFn with
+            | .const c _ =>
+              if c.components.getLast? == some (Name.mkSimple "forall") then
+                match e.getAppArgs.back?.map Expr.consumeMData with
+                | some (.lam _ d b _) => some (d, b)
+                | _ => none
+              else none
+            | _ => none
+        match dom? with
+        | none => false
+        | some (d, b) =>
+          (d.consumeMData.getAppFn.isConstOf `Perennial.IntoValTyped && d.containsFVar fv)
+            || peel b fuel
+    return peel (body x) 4
+
 def bindVar (n : Name) (ty : Expr) (kind : Pol → Bool → W VKind) (pol : Pol)
     (k : Expr → W Res) : W Res := do
   withLocalDeclD n ty fun x => do
@@ -745,7 +779,9 @@ partial def walkI (cfg : Cfg) (e : Expr) (pol : Pol) (d : Nat) : W Res := do
           if pol == .pos && (← (try carriesIProp ty catch _ => pure false)) then recordConsType ty
           let isPost := pol == .neg && ty.consumeMData.isForall &&
             (ty.consumeMData.getForallBody.getAppFn.isConstOf `Iris.IProp)
-          let k := bindVar n ty (fun p c => forallKind n p c) pol fun x => walkI cfg (body x) pol d
+          let lawTP ← (try lawBoundTP n ty body catch _ => pure false)
+          let k := bindVar n ty (fun p c => if lawTP && p == .pos then pure .plain else forallKind n p c)
+            pol fun x => walkI cfg (body x) pol d
           if isPost then inCallback k else k
       | "exists" =>
         return ← openBody last fun n ty body =>

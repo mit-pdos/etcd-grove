@@ -130,6 +130,13 @@ axiom st_pass_level : ∀ (f : val),
 axiom st_pass_frame : ∀ (R : IProp GF) (f : val),
   {{ R }} (App (Val f) (Val #())) {{ RET #(); R }}
 
+/-- A typed points-to quantified together with its laws (`reflNew`'s shape): the user-picked
+`TypedPointsto` instance is no atom (`lawBoundTP`), so the walk neither refuses nor truncates. -/
+axiom st_pass_typedpt : ∀ (f : val) (p : Loc),
+  {{ True }} (App (Val f) (Val #())) {{ RET #();
+    ∀ (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
+      (_ : IntoValTyped (GF := GF) V go.int), p ↦ zero_val V }}
+
 /-- A token split into its levels. -/
 axiom st_pass_split : threadTok (GF := GF) ⊢ |==> levelTok 0 ∗ threadTokFrom 1
 
