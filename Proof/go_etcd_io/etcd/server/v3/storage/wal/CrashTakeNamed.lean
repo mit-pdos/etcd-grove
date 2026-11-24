@@ -47,8 +47,8 @@ theorem crashRestAt_take_named (Q : OsState → OsState → Prop) (tt : Bool) (V
       · exact hD y (List.mem_cons_of_mem _ hy) h
     iintro Hr
     iunfold crashRestAt at Hr
-    icases Hr with ⟨%Γb, %Γm, %F, %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Ht⟩
-    obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
+    icases Hr with ⟨%Γb, %Γm, %F, %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Ht⟩
+    obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, hV, hnamed⟩ := hrel
     icases files_take hL' F i $$ Hfs with ⟨Hf, Hfs⟩
     have hFi := hF i hi
     obtain ⟨f, hf⟩ : ∃ f, st'.fs.files !! i = some f := by
@@ -60,10 +60,10 @@ theorem crashRestAt_take_named (Q : OsState → OsState → Prop) (tt : Bool) (V
     simp only [fileStartO]
     ihave Hr : crashRestAt Q hL hL' (i :: D) tt V' st st' $$ [Hab Ham Hfs HAt Htok HAd Ht]
     · unfold crashRestAt
-      iexists Γb, Γm, GMap.delete i F, Γf, Γt, V
+      iexists Γb, Γm, GMap.delete i F, Γf, Γt
       iframe Hab Ham Hfs HAt Htok HAd Ht
       ipureintro
-      exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
+      exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, hV, hnamed⟩
     icases crashRestAt_take_named Q tt V' st st' xs (i :: D) hD' hnd'.2
       (fun y hy => hn y (List.mem_cons_of_mem _ hy)) $$ Hr with ⟨Hxs, Hr⟩
     isplitl [Hf Hxs]

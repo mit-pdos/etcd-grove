@@ -3,8 +3,8 @@ Run: `lake env lean notes/axiom-review/fs-final/Axioms.lean`. -/
 import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Results
 import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.Results
 import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Results
-import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults
-import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults
+import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogLinked
+import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapLinked
 import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Link
 
 #print axioms Perennial.EtcdGrove.osfs_bboltfs.bootCrashSafety

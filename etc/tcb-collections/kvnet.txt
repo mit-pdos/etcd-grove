@@ -1,10 +1,10 @@
 # kvnet (examples/raft/kvnet, notes/kvnet-part.md; the part KvNet/): the top-level robustness theorem
 # `raft_kvnet_robust_of_errors`, its example `raft_kvnet_robust_example_of_errors` and the example's
 # premises' non-vacuity `raft_kvnet_example_premises`
-# (KvNet/Proof/.../raft/kvnet/TopLevelRobustness.lean). The first two take, as a named hypothesis (not
-# an axiom), the statement of a Perennial pull request not yet landed: `RobustOfNetFsBootG` (the
-# bridge over mit-pdos/perennial#683); `errors.IsPathErrnoNotExist.spec`, a hypothesis until
-# 2026-11-23, is proved (`Proof/errors/IsPathErrnoNotExist.lean`). `#print axioms`:
+# (KvNet/Proof/.../raft/kvnet/TopLevelRobustness.lean), with no hypothesis: `RobustOfNetFsBootG` (the
+# bridge over mit-pdos/perennial#683) was one until the file extension's single shared view
+# (2026-11-23, notes/fs-interp-state-determined.md); `errors.IsPathErrnoNotExist.spec`, a hypothesis
+# until 2026-11-23, is proved (`Proof/errors/IsPathErrnoNotExist.lean`). `#print axioms`:
 # Lean's three only (2026-11-22, after `path.filepath.opaqueInitsOk`, which the bodied `durable`'s
 # initializer reached, was retired on `lean`).
 #
