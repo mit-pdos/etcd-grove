@@ -158,3 +158,30 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
 - Next: the loop (invariant `s = [] ++ strW1 ... ++ strW ((v.take k).map sp.w8w)`), then the resolve under
   the invariant, `client.resolveAccept`/`resolveInvoke` proofs in `client/Ghost.lean`; then items (3)-(5)
   above.
+
+### 2026-11-24 ~01:30Z (second agent)
+- **Patch bug fixed**: `resolveTakeSync` resolved only `[11]`; `encP (takeSync b) = [11, b]`, so it now also
+  resolves `uint64(b)` (patch hunk count and the generator `gen/swp_gen.py` fixed; translation regenerated).
+- **The invariant at the WP's `invGS`**: `iinv` on a WP fails for an invariant elaborated with the local
+  instance `GooseGlobalGS.gooseInvGS` (ElimInv synthesis: the WP's accessor wants `IrisGS_gen.invGS
+  goose_irisGS`, defeq but not syntactically). `client/NodeProph.lean` proves `client.wp_resolveNode'` in a
+  section without that instance and restates it (`client.wp_resolveNode`) with it, by `exact`.
+- **The clients' atomic updates' mask** (a second mask finding): `sp.l2_accept` commits the clients' AUs, whose
+  outer mask was `⊤ ∖ ↑spN`; inside the node prophecy's invariant that is not available. Now (Inv.lean)
+  `client.nodeProphN` lives there, `sp.auM := (⊤ ∖ ↑client.nodeProphN) ∖ ↑spN` (abbrev) is `cmdAU`'s mask,
+  `sp.auE := ⊤ ∖ auM` is Write's/Read's logically atomic specs' mask (`@ sp.auE`, Spec and ISpecs),
+  `sp.auE_diff`, `sp.spN_prophN`; LinHelp's commits at `auM`; `l2_accept` at `⊤ ∖ ↑client.nodeProphN`;
+  ClientLin's `swEop := ⊤ ∖ (sp.auM ∖ ↑linkN)`, `linkN_spN : linkN ⊆ ⊤ ∖ sp.auE`; OrchProof's lemmas.
+  None of this is in the landed statement (TopLevelRobustness mentions no mask).
+- **Proved**: `client.resolveAccept.wp_proof`, `client.resolveInvoke.wp_proof` (client/Ghost.lean; checked with
+  `lake env lean` on fk-lean1). Write/Read use them (`theGhost` gone, Read passes `slice.nil`);
+  `SwiftKitDeps.ghostStep` gone.
+- **Swift masks (committed, not yet built)**: the step lemmas take `(E) (hE : ↑swift.nodeN ⊆ E) (hE' : ↑sp.spN ⊆
+  E ∖ ↑swift.nodeN)` first (`fill_report` also `hD : ↑swift.delivN ⊆ E ∖ ↑swift.nodeN`); `swift.desc_upd`
+  too (its ⊤ callers pass `⊤ (fun _ _ => CoPset.mem_full) swift.nodeN_diff`); `swift.N1R2` quantifies `E`
+  with those three facts and `swift.n1r2` proves it at `E`. Sites pass `(⊤ ∖ ↑client.nodeProphN)
+  swift.nodeN_pE swift.spN_pE` (DescNode.lean; `swift.delivN_pE` in Deliver.lean). Sites renamed:
+  `@! swift.resolveX`, `swift.wp_resolveX`, `swift.resolveUpd` (was ghostUpd).
+- Next: GhostSteps/GhostSteps2 rewrite (`swift.resolveUpd`, `swift.wp_resolveStep` taking the string `s` and
+  `hs : s = strW (encP e)`, then `wp_resolveX` per helper); then boot (client and swift init orders changed:
+  `GlobalAlloc nodeProph` first, primitive's init moved, `init.0` = NewProph + store).
