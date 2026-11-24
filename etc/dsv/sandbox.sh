@@ -479,8 +479,10 @@ new)
     H="$R/home"
     cp "$LAB/cache/tools/elan" "$H/.elan/bin/elan"
     for t in lean lake leanc leanmake lean-language-server; do ln -s elan "$H/.elan/bin/$t"; done
+    # the default toolchain by its name (leanprover/lean4:vX), not its directory's: elan resolves a
+    # directory name as a version of leanprover/lean4 not installed, and goes to the network for it
     printf 'telemetry = false\nversion = "12"\ndefault_toolchain = "%s"\n\n[overrides]\n' \
-        "$LEAN_TOOLCHAIN" >"$H/.elan/settings.toml"
+        "$(echo "$LEAN_TOOLCHAIN" | sed 's#^leanprover--lean4---#leanprover/lean4:#')" >"$H/.elan/settings.toml"
     cat >"$H/.gitconfig" <<'EOF'
 [user]
 	name = dsverify agent
