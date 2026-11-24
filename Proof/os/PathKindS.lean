@@ -4,8 +4,8 @@ it first). Untrusted.
 
 * `wp_osPathKindS`: `PathKind(p)` of a path of the roots `R` (a root followed by valid components,
   `PathIn`): `#1` if it is strictly below a root (`RootsTreeName`), `#0` otherwise (a root); nothing
-  changes. The roots are `R` in the shared mode (the shared invariant's `γs` element against
-  `treeShared`'s authority); the legacy mode is excluded (its `γs` authority is empty).
+  changes. The roots are `R` (the shared invariant's `γs` element against the interpretation's
+  authority).
 * `wp_osPathKindAboveS`: `PathKind(p)` of a strict ancestor of a root of `R` (`RootsAbove`): `#2`.
 * `osPathS_pathIn`: a spine's path is such a path.
 -/
@@ -91,19 +91,11 @@ theorem wp_osPathKindS (R : Roots) (p : GoString) (hp : PathIn R p) (hE : ↑osN
   iapply wp_fs_stepM "PathKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
   unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, HAdf, HAc, Hcr, HAg, Hgr, Hcm⟩
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
   icases Hi with >Hi
   icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso
-    unfold treeLegacy legacyHolds
-    icases Hm with ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, Has, -⟩
-    icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hl
-    simp at hl
-  unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
@@ -139,12 +131,9 @@ theorem wp_osPathKindS (R : Roots) (p : GoString) (hp : PathIn R p) (hE : ↑osN
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
+  isplitl [HAdf HAc Has Hcr HAg Hgr Hcm]
   · try unfold treeCtx
-    iframe Hcm
-    iright
-    try unfold treeShared
-    iexists V0, s0, Γdf, Γc, Γg
+    iexists Γdf, Γc, Γg
     iframe
     ipureintro; exact ⟨hw, hc⟩
   have hTN : st.TreeName p ↔ RootsTreeName R p := by subst hR; rfl
@@ -166,19 +155,11 @@ theorem wp_osPathKindAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (hE
   iapply wp_fs_stepM "PathKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
   unfold treeCtx
-  icases Ht with ⟨Hm, Hcm⟩
+  icases Ht with ⟨%Γdf, %Γc, %Γg, %hns, Has, HAdf, HAc, Hcr, HAg, Hgr, Hcm⟩
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
   icases Hi with >Hi
   icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
-  icases Hm with (Hm | Hm)
-  · iexfalso
-    unfold treeLegacy legacyHolds
-    icases Hm with ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, Has, -⟩
-    icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hl
-    simp at hl
-  unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
@@ -211,12 +192,9 @@ theorem wp_osPathKindAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (hE
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
+  isplitl [HAdf HAc Has Hcr HAg Hgr Hcm]
   · try unfold treeCtx
-    iframe Hcm
-    iright
-    try unfold treeShared
-    iexists V0, s0, Γdf, Γc, Γg
+    iexists Γdf, Γc, Γg
     iframe
     ipureintro; exact ⟨hw, hc⟩
   rcases hres with ⟨ht, -⟩ | ⟨-, hr0, -⟩ | ⟨-, -, rfl⟩

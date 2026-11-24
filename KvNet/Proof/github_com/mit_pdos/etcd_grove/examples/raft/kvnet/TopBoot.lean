@@ -2,25 +2,24 @@
 # kvnet's top level: a replica's generation, its boot and its crash (2026-11-22)
 
 `notes/kvnet-part.md`, the last sections. A generation of a replica's machine boots **before its
-program runs**, in the frame of the generation's obligation, from the Linux file extension's local
-interpretation (Perennial's proposed change, branch `crash-genstart`: each generation's obligation
-gets the node's extensions' local interpretation before its WP, and the crash obligation one later
-credit). Stated against those shapes, so that the adequacy's obligations are these lemmas applied:
+program runs**, in the frame of the generation's obligation (`Net.CrashBootWp`: the crash obligation
+gets one later credit). Stated against those shapes, so that the adequacy's obligations are these
+lemmas applied:
 
 * `kvGen γ id f R`: what a generation starts from, before its boot (the first: the file extension's
   start resources, nothing in `dir`; a later one: what `kvGen_crash` gives): the cells' invariant, the
-  whole legacy tree `R`/`V` with nothing logged, raft's durable state `S` and vacancy for `id`, the
-  file's contents `v` holding `S` (`fileHolds`), and what the generation found at the file's names
-  (`durFound`, `durFoundTmp`);
-* `kvGen_boot`: the boot, at the file extension's local interpretation (kept): the switch to the
-  shared mode (`Fs.osShare_ctx`), `durable`'s boot on the file's directory (`DurFs.durBoot`), raft's
-  vacancy armed (`nodeVacant_arm`), the generation's file invariant (`kd_file_alloc`): `StartNode`'s
+  tree's shared view `osShared R V` with nothing logged, raft's durable state `S` and vacancy for
+  `id`, the file's contents `v` holding `S` (`fileHolds`), and what the generation found at the
+  file's names (`durFound`, `durFoundTmp`);
+* `kvGen_boot`: the boot: `durable`'s boot on the file's directory (`DurFs.durBoot`, with the whole
+  claim on it from `osShared`), raft's vacancy armed (`nodeVacant_arm`), the generation's file
+  invariant (`kd_file_alloc`): `StartNode`'s
   start resource `kvStart` with the call permission of `dir`'s root, and what the crash keeps
   (`kvCrashKeep`: the invariants, the crash tokens);
 * `kvGen_crash`: the crash, with one later credit: the file invariant opened with its token (the
   later on its contents stripped by the credit: `raftState` and `kdFileState` come out without one),
   `durable`'s crash lemma (`durInv_crash0`) inside it, then closed on its crashed side; the crashed
-  tree's well-formedness (`crashRest_treeWf`) and the next generation's legacy tree
+  tree's well-formedness (`crashRest_treeWf`) and the next generation's shared view
   (`crashRest_treeS`); the boot's choice (`kd_boot_choose`: raft's `readyCrashEnter` or `nodeCrash`).
   The next generation's `kvGen`.
 -/
@@ -29,7 +28,7 @@ module
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.BootLemmas
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Boot
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Crash
-public import GooseLang.Ext.Fs.TreeSharedSwitchE
+public import GooseLang.Ext.Fs.TreeShared
 
 @[expose] public section
 
@@ -75,7 +74,7 @@ attribute [local instance] kdStorageModel
 under the roots `R`. -/
 def kvGen (γ : KdNames) (id : w64) (f : DFile) (R : Roots) : IProp GF :=
   iprop(∃ (V : Hist) (S : RaftState) (v : Option GoString),
-    ⌜V.2 = [] ∧ TreeWf R V.now⌝ ∗ osInv ∗ osTree (DFrac.own 1) R V ∗
+    ⌜V.2 = [] ∧ TreeWf R V.now⌝ ∗ osInv ∗ osShared R V ∗
     raftState γ.r.cluster id S ∗ nodeVacant γ.r.cluster id ∗ fileHolds γ S v ∗
     durFound f V.now v ∗ durFoundTmp f V.now)
 
@@ -86,22 +85,21 @@ def kvCrashKeep (γ : KdNames) (id : w64) (fl : KdFileNames) : IProp GF :=
   iprop(kdFileInvK γ id fl ∗ token fl.tk ∗ nodeCrashTok γ.r.cluster id fl.x ∗
     durInv fl.γd fl.df ∗ durCrashTok fl.γd ∗ osSharedInv fl.fR)
 
-/-- **The boot** (see the file header): at the file extension's local interpretation `σ` (kept),
-the generation's `kvGen` gives `StartNode`'s `kvStart` (with the whole call permission of `dir`'s
+/-- **The boot** (see the file header): the generation's `kvGen` gives `StartNode`'s `kvStart` (with the whole call permission of `dir`'s
 root) and what the crash keeps. -/
 theorem kvGen_boot (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (f : DFile)
-    (R : Roots) (σ : OsState) (hR : RootsOk R) (hr : (f.d, f.J) ∈ R) (hd : f.d = dir)
+    (R : Roots) (hR : RootsOk R) (hr : (f.d, f.J) ∈ R) (hd : f.d = dir)
     (hf : f.Ok) (hname : f.name = kdFileName dir id)
     (hid : 1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max) :
-    ⊢ kdCluster (GF := GF) γ vs -∗ kvGen γ id f R -∗ fs_interp.localCtx (extLocalGS fsExt) σ ={⊤}=∗
-      fs_interp.localCtx (extLocalGS fsExt) σ ∗
+    ⊢ kdCluster (GF := GF) γ vs -∗ kvGen γ id f R ={⊤}=∗
       ∃ fl : KdFileNames, ⌜fl.df = f ∧ fl.fR = R⌝ ∗ kvStart γ vs dir id fl 1 ∗
         kvCrashKeep γ id fl := by
-  iintro #Hcl Hg Hl
+  iintro #Hcl Hg
   unfold kvGen
   icases Hg with ⟨%V, %S, %v, ⟨%hV, %hwf⟩, #Hos, Ht, HrS, Hvac, #Hfh, Hdf, Hdt⟩
-  -- the switch to the shared mode
-  imod osShare_ctx (E := ⊤) R V σ $$ Ht Hl with ⟨Hl, #Hsh, -, Hperm, -, Hall⟩
+  -- the tree's shared view
+  unfold osShared
+  icases Ht with ⟨#Hsh, -, Hperm, -, Hall⟩
   -- the claim on the file's directory, a root, so a directory of the tree
   have hJ : f.J ∈ (GMap.toList V.now).map (·.1) := by
     have hm := hwf.1 f.J (Reach.root _ _ hr)
@@ -118,7 +116,6 @@ theorem kvGen_boot (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (f
   -- the root's call permission
   icases osCallPerms_root R f.d f.J hR hr $$ Hperm with ⟨Hcp, -⟩
   imodintro
-  iframe Hl
   iexists ⟨γd, f, R, wr, tk, x⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
@@ -167,7 +164,7 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
     iframe Hds Hwr
     iright
     iframe Hcr Htk
-  -- the crashed tree, well formed; the next generation's legacy tree
+  -- the crashed tree, well formed; the next generation's shared view
   imod crashRest_treeWf (fun _ _ => True) hG.goose_localGS L' D' false V' fl.fR ⊤ (fun _ _ => CoPset.mem_full)
     $$ Hsh Hrest with ⟨%hwf, Hrest⟩
   imod crashRest_treeS (fun _ _ => True) hG.goose_localGS L' D' V' fl.fR ⊤ (fun _ _ => CoPset.mem_full)
@@ -214,7 +211,7 @@ with neither the file nor its temporary in its directory, and the id's durable s
 theorem kvGen_first (γ : KdNames) (id : w64) (f : DFile) (st : OsState) (E : CoPset)
     (hst : FsInit st) (hb : st.fs.treeDur.entry f.J f.b = none)
     (ht : st.fs.treeDur.entry f.J f.tb = none) :
-    ⊢ osInv (GF := GF) -∗ osTree (DFrac.own 1) st.fs.roots (st.fs.treeDur, []) -∗
+    ⊢ osInv (GF := GF) -∗ osShared st.fs.roots (st.fs.treeDur, []) -∗
       raftState γ.r.cluster id RaftState.init -∗ nodeVacant γ.r.cluster id ={E}=∗
       kvGen γ id f st.fs.roots := by
   iintro #Hos Ht HrS Hvac

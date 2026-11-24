@@ -1,16 +1,15 @@
 /-
-The shared mode of the tree: its resources (`TreeShared.lean` has the API,
-`notes/wal-fsext-i2-design.md`): the claims as a function of the history (`namesOf`), their
-coherence (`NamesCoh`), the log as a map (`logMap`), and the resources (`osNames`, `osCallPerm`,
+The tree's resources (`TreeShared.lean` has the API, `notes/wal-fsext-i2-design.md`,
+`notes/fs-interp-state-determined.md`; the claims as a function of the history, `namesOf`, their
+coherence, `NamesCoh`, and the log as a map, `logMap`, are in `NamesGhost.lean`): the resources (`osNames`, `osCallPerm`,
 `osCallS`, `osLogLb`, `osLogEnt`, `osDirFdS`, `osSpine`, `osPathS`, `osSharedInv`, `osLogged`,
-`osNamesAfter`). Untrusted.
+`osNamesAfter`), and what a generation starts with (`osShared`, from `osSwitchKitG`:
+`osSwitchKit_open`). Untrusted.
 -/
 module
 
-public import GooseLang.Ext.Fs.TreeCrashCommit
-public import GooseLang.Ext.Fs.TreeSpecsOpen
-public import GooseLang.Ext.Fs.TreeSpecsMeta
-public import GooseLang.Ext.Fs.TreeCutProof
+public import GooseLang.Ext.Fs.TreeCommit
+public import GooseLang.Ext.Fs.TreeStepLemmas
 
 @[expose] public section
 
@@ -23,39 +22,6 @@ namespace Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 /-! ## What the claims know, as a function of the history -/
-
-/-- What a claim on no name knows. -/
-def NamesH.empty : NamesH := ⟨∅, [], ∅⟩
-
-open Classical in
-/-- The claim on the names `N` of the directory `j`, as the history `V` has them: their entries at
-boot, each entry writing one of them (with their entries right after), their entries now. -/
-def namesOf (V : Hist) (j : Ino) (N : NameSet) : NamesH where
-  boot := restrictN N (entsOf V.1 j)
-  ents := (List.range V.2.length).filterMap (fun x => match V.2[x]? with
-    | some e => if ∃ b, N.Mem b ∧ e.op.Writes j b then
-        some (x, e, restrictN N (entsOf (prefTree V.1 V.2 (x + 1)) j)) else none
-    | none => none)
-  cur := restrictN N (entsOf V.now j)
-
-/-- The claims' coherence with the shared history `V`: each claim's history is the history's; the
-claims of a directory are disjoint; every name of every directory of the tree is claimed; every
-claimed directory is one of the tree (so a fresh directory's key is free); and of the log alone, every
-entry's call began no later than it took effect (`Starts`, the state's `TreeCohS.starts`: a client
-reasons about crashes of the claims it holds with it, `osClaims_log`). -/
-structure NamesCoh (V : Hist) (Γn : GMap (Ino × NameSet) NamesH) : Prop where
-  hist : ∀ j N h, Γn !! (j, N) = some h → h = namesOf V j N
-  disj : ∀ j N N' h h' b, Γn !! (j, N) = some h → Γn !! (j, N') = some h' → N ≠ N' →
-    N.Mem b → ¬ N'.Mem b
-  cover : ∀ j b, j ∈ V.now → ∃ N h, Γn !! (j, N) = some h ∧ N.Mem b
-  dirs : ∀ j N h, Γn !! (j, N) = some h → j ∈ V.now
-  starts : Starts V.2
-
-/-- The log's entries, as a map. -/
-def logMap (log : List LogEntry) : GMap Nat LogEntry :=
-  (List.range log.length).foldl (fun m x => match log[x]? with
-    | some e => <[x := e]> m
-    | none => m) ∅
 
 theorem isUnder_prefix {a x : GoString} (h : IsUnder a x) :
     (a ++ [slashB]).IsPrefix (x ++ [slashB]) := by
@@ -108,32 +74,6 @@ theorem callKey_joinPath {R : Roots} (hR : RootsOk R) {r : GoString} {j0 : Ino} 
     (cs : List GoString) : callKey R (joinPath r cs) = callKey R r := by
   rw [callKey_eq hR hm (isUnder_joinPath _ _), callKey_eq hR hm (.inl rfl)]
 
-/-- The keys of the call permission on the roots `R`: each root, and `[]` (the paths under no
-root). -/
-def permMap (R : Roots) : GMap GoString Unit :=
-  GMap.ofList (([], ()) :: R.map (fun rj => (rj.1, ())))
-
-theorem permMap_lookup (R : Roots) (r : GoString) (h : r = [] ∨ ∃ j, (r, j) ∈ R) :
-    permMap R !! r = some () := by
-  unfold permMap
-  rcases h with rfl | ⟨j, hj⟩
-  · show GMap.lookup (GMap.insert _ _ _) _ = _; rw [GMap.lookup_insert]
-  · show GMap.lookup (GMap.insert _ _ _) _ = _
-    by_cases h0 : ([] : GoString) = r
-    · subst h0; rw [GMap.lookup_insert]
-    · rw [GMap.lookup_insert_ne _ _ h0]
-      clear h0
-      induction R with
-      | nil => simp at hj
-      | cons rj R ih =>
-        show GMap.lookup (GMap.insert _ _ _) _ = _
-        by_cases h1 : rj.1 = r
-        · rw [h1, GMap.lookup_insert]
-        · rw [GMap.lookup_insert_ne _ _ h1]
-          rcases List.mem_cons.1 hj with h2 | h2
-          · subst h2; exact absurd rfl h1
-          · exact ih h2
-
 section resources
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext]
@@ -163,7 +103,7 @@ takes its key's, `callKey R p`). -/
 def osCallPerm (r : GoString) (q : Qp) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm r (DFrac.own q) ()
 
-/-- The whole call permission of every root's key: what the mode switch gives (`wp_osShare`). The
+/-- The whole call permission of every root's key: what a generation starts with (`osShared`). The
 key `[]` (the paths under no root) goes to `osAboveInv`. -/
 def osCallPerms (R : Roots) : IProp GF :=
   iprop([∗map] r ↦ _u ∈ GMap.delete [] (permMap R), osCallPerm r 1)
@@ -176,7 +116,7 @@ ancestors of the roots, which the environment keeps existing directories): it ho
 key `[]` and hands out half of what it holds on each take (`osAboveInv_take`), so a call above the
 roots needs no share of its own (`CallBegin` above a root, then `Stat`, `OpenDir`, `Fsync` of the
 directory: `os.Stat.specAboveRoot`, `fileutil.OpenDir.specAboveRoot`, `fileutil.syncDir.specAboveRoot`).
-Allocated by the mode switch (`wp_osShare`) from key `[]`'s whole permission, which no one gets back:
+Allocated at a generation's start (`osSwitchKit_open`) from key `[]`'s whole permission, which no one gets back:
 **no proof needs the whole of key `[]`**. The whole permission of a key is what a directory operation
 (mkdir, rmdir, rename, unlink of a directory) on a path of that key needs (its `WholeG`/sole
 clauses); no client mutates a directory above a root (the os specs exist only for read-only calls
@@ -345,6 +285,46 @@ theorem osNames_auth (L : GooseLocalGS GF) {V : Hist} {Γn : GMap (Ino × NameSe
     ipureintro; exact hcoh.hist _ _ _ h1
 
 end claims
+
+/-! ## A generation's start -/
+
+section start
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+
+/-- **The tree's resources of a generation's start** (`fs_start`, `crashRest_treeS'`): the shared
+invariant, the dispenser of key `[]`, every other root's whole call permission, the log's lower
+bound, a whole claim on all names of every directory of the tree. -/
+def osShared (R : Roots) (V : Hist) : IProp GF :=
+  iprop(osSharedInv (L := L) R ∗ osAboveInv (L := L) ∗ osCallPerms (L := L) R ∗
+    osLogLb (L := L) V.2.length ∗
+    [∗list] j ∈ dirsOf V, osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except [])))
+
+/-- **The tree's invariants**: `osSwitchKitG`'s resources for `osShared`. -/
+theorem osSwitchKit_open (R : Roots) (V : Hist) (E : CoPset) :
+    ⊢ osSwitchKitG (gooseOsGS (L := L)) R V ={E}=∗ osShared (L := L) R V := by
+  unfold osSwitchKitG
+  iintro ⟨Hs, Han, %hok, Halen, Halog, Hp0, Hperm, #Hlb, Hcl⟩
+  imod inv_alloc osAbN E iprop(∃ q, osCallPerm (L := L) [] q) $$ [Hp0] with #Hab
+  · inext; iexists 1; unfold osCallPerm; iexact Hp0
+  imod inv_alloc osShN E iprop(∃ (Vs : Hist) (Γn : GMap (Ino × NameSet) NamesH),
+    gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γs () (DFrac.own 1) (R, Vs) ∗
+    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn ∗ ⌜RootsOk R ∧ NamesCoh Vs Γn⌝ ∗
+    (letI := (gooseOsGS (L := L)).osAllG; monoNatAuthOwn (gooseOsGS (L := L)).γlen 1 Vs.2.length) ∗
+    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γlog (logMap Vs.2)) $$ [Hs Han Halen Halog]
+    with #Hsi
+  · inext
+    iexists V, (claimsInit V (dirsOf V))
+    iframe Hs Han Halen Halog
+    ipureintro; exact hok
+  imodintro
+  unfold osShared
+  simp only [osNames_except]
+  unfold osSharedInv osAboveInv osCallPerms osCallPerm osLogLb
+  iframe Hsi Hab Hperm Hlb Hcl
+
+end start
 
 end Fs
 end Perennial
