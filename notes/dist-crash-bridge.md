@@ -139,3 +139,12 @@ Not unified: the no-crash case (`robust_of_distBootIL`/`robust_of_distBootRB`): 
 needs a `GooseCrashInterp` of the whole bundle even with no crashing machine, and a bundle without one
 (the issue record on `lean`) can only use `goose_dist_adequacy`. Unifying needs Perennial's mixed theorem
 to take crash interpretations only when `crashing ≠ []` (a Perennial change, not made).
+
+## The crash skeleton (2026-11-24, branch `etcd-safe-crashskel/2026-11-24`)
+
+`etcd_safe_of_boot : EtcdBootC → EtcdBootCBad → etcd_robust.spec` (`Proof/.../etcd/dist/TopLevelRobustness.lean`),
+by `robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp` (D4b merged). `EtcdBootC` chooses the members'
+generation preconditions `Pc i` inside the start update (D6's `memberPc C cfg id` names the cluster names `C`
+the update allocates, so it cannot be a parameter outside it). Open for D6: `etcdFsSem`'s crash premise is
+`True`, while `memberGen_crash.law` expects `Q → W1` for `walInv_crash`; either D6's law works at `Q := True`
+or the statement's file semantics gets a crash premise (a statement change).
