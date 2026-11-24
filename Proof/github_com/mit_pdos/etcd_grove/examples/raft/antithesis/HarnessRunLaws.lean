@@ -111,9 +111,28 @@ theorem netFacts_hbCtx {st : MsgSt} {m : Msg} (h : NetFacts st m) : m.ty = .hear
 
 /-- The view after an input keeps its entries normal (the handled message's, for `recv`). -/
 theorem viewNormal_noteInput {v : AntSim.NodeView} {inp : AntSim.Input} (hN : ViewNormal v)
-    (h : ∀ m, inp.cause = some m → AllNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = [])) :
+    (h : ∀ m, inp.cause = some m → AllNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = []) ∧
+      AntSim.InNums (2 ^ 61) m ∧ m.ty ≠ .propose) :
     ViewNormal (v.noteInput inp) :=
   ⟨hN.1, h⟩
+
+/-- An in-flight message is not a proposal (the network's types). -/
+theorem netFacts_notProp {st : MsgSt} {m : Msg} (h : NetFacts st m) : m.ty ≠ .propose := by
+  obtain ⟨ty, hty, -, hm, -⟩ := netFacts_absMsg h
+  subst hm
+  show ty ≠ .propose
+  have ht := h.2.1
+  simp only [antStepTypes, List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with ht | ht | ht | ht | ht | ht <;> rw [ht] at hty <;>
+    simp only [mtypeOf_MsgApp, mtypeOf_MsgAppResp, mtypeOf_MsgVote, mtypeOf_MsgVoteResp,
+      mtypeOf_MsgHeartbeat, mtypeOf_MsgHeartbeatResp, Option.some.injEq] at hty <;>
+    subst hty <;> decide
+
+/-- A handled message's index and log term below `2 ^ 61` (`NetFacts`). -/
+theorem netFacts_inNums {st : MsgSt} {m : Msg} (h : NetFacts st m) : AntSim.InNums (2 ^ 61) m := by
+  obtain ⟨ty, -, -, hm, -⟩ := netFacts_absMsg h
+  subst hm
+  exact ⟨h.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.1⟩
 
 /-- An in-flight message's term is nonzero (stamped). -/
 theorem netFacts_term {st : MsgSt} {m : Msg} (h : NetFacts st m) : m.term ≠ W64 0 := by

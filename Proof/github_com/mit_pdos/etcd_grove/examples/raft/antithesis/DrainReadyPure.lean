@@ -9,8 +9,8 @@ numbers (`StateNums`) and the view's normality:
   shape, `msgShape.stmt`; its numbers within `2 ^ 61`, `readyMsgNums`; to a voter; its term within
   the ceiling).
 Its premises not yet facts of the drain (`habs`: every message read by `absMsgOf`; `hvot`: each to
-a voter; `hcause`: the handled message's index and log term within `2 ^ 61`, not a proposal) are the
-caller's.
+a voter) are the caller's; the handled message's numbers and type (`readyMsgNums`' premise) are
+`ViewNormal`'s.
 -/
 module
 
@@ -60,7 +60,6 @@ theorem drainReady_pure (hshape : AntSim.msgShape.stmt) {S : AntCheck.State} {ne
     (hvot : ∀ q ∈ rms.filterMap (fun q => absMsgOf q.st), ∃ j : Fin 3, q.dst = AntSim.nodeId j)
     (hnet : AntSim.NetOk S net') (hv : AntSim.NodeOk S net' j v) (hpre : net <+: net')
     (hN : ViewNormal v) (hsn : AntSim.StateNums (2 ^ 61) ps)
-    (hcause : ∀ m, v.cause = some m → AntSim.InNums (2 ^ 61) m ∧ m.ty ≠ .propose)
     (hterm : ∀ q ∈ rms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) :
     AntSim.ReadyOutP (AntSim.nodeId j) v ps
         (readyDOf ps es (rms.filterMap (fun q => absMsgOf q.st)) qs ce) ∧
@@ -70,8 +69,8 @@ theorem drainReady_pure (hshape : AntSim.msgShape.stmt) {S : AntCheck.State} {ne
   have hro := readyOutP_of hrv (reach_ce hR) hip hout hfirst hqs hbase hidx hmatch hvot
   have hR' := hR.mono hpre
   obtain ⟨hlogN, hsh⟩ := hshape S net' j v ps _ hnet hv hR' hro hN.1
-    (fun m hm => ⟨(hN.2 m hm).1, (hN.2 m hm).2⟩)
-  have hnums := AntSim.readyMsgNums hnet hv hR' hro hsn hcause
+    (fun m hm => ⟨(hN.2 m hm).1, (hN.2 m hm).2.1⟩)
+  have hnums := AntSim.readyMsgNums hnet hv hR' hro hsn (fun m hm => (hN.2 m hm).2.2)
   refine ⟨hro, hlogN, forall₂_filterMap _ _ rms ?_ habs⟩
   intro q hq m hm
   have hmem : m ∈ rms.filterMap (fun q => absMsgOf q.st) := List.mem_filterMap.2 ⟨q, hq, hm⟩

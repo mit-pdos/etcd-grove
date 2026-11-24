@@ -245,7 +245,7 @@ theorem Cluster.run.wp_proof
           rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
         ihave Hown := Hclose $$ %_ %ps' %ip' %(v.noteInput (.recv m)) %net₀ %cause_ptr Hraw
           %(⟨rfl, rfl, rsView_input hrv rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl, rfl, hR, hip', .inr (.inl rfl),
-            viewNormal_noteInput hN (fun _ h => by cases h; exact ⟨netFacts_normal Hnf, netFacts_hbCtx Hnf⟩)⟩)
+            viewNormal_noteInput hN (fun _ h => by cases h; exact ⟨netFacts_normal Hnf, netFacts_hbCtx Hnf, netFacts_inNums Hnf, netFacts_notProp Hnf⟩)⟩)
           Htb Hcause Hv Hl Hlb Hco
         have hdr := wp_drain c γ n j (v.noteInput (.recv m)) net₀ ps' q
         rw [show (v.noteInput (.recv m)).byE = go!"recv" from rfl] at hdr

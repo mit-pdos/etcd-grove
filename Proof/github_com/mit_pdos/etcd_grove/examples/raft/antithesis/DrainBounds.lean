@@ -8,7 +8,6 @@ report's `NumsOk`, and `MemoryStorage.Append`'s `k + es.length ≤ 2 ^ 61`.
   receipts' bound (`preceipt_lt`), which `antRunFits` puts below `2 ^ 61 - 3`; in a cluster with no
   bootstrap log (`γ.reBoot = []`). Its entries' terms are a premise (raft has no law for them yet:
   see the report).
-- `netFacts_inNums`: a handled message's index and log term (`NetFacts`).
 - with `AntSim.readyMsgNums` (`Sim/MsgBounds.lean`): each message of the `Ready` within the bound;
   `msgNums_st` reads it back on the message's Go state (`absMsgOf`), as `NetFacts` states it.
 -/
@@ -33,12 +32,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section pure
 variable [GooseExts]
-
-/-- A handled message's index and log term below `2 ^ 61` (`NetFacts`). -/
-theorem netFacts_inNums {st : MsgSt} {m : Msg} (h : NetFacts st m) : AntSim.InNums (2 ^ 61) m := by
-  obtain ⟨ty, -, -, hm, -⟩ := netFacts_absMsg h
-  subst hm
-  exact ⟨h.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.1⟩
 
 /-- A message's numbers on its Go state: the protocol reading (`absMsgOf`, not a snapshot) carries
 the state's index, log term, commit and entries. -/

@@ -41,6 +41,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.AntStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Stmts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgBounds
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.join.NetJoin
 public import Proof.go_etcd_io.raft.v3.RawNodeApi
 public import Proof.go_etcd_io.raft.v3.InvRtk
@@ -188,10 +189,12 @@ def NetFacts (st : MsgSt) (m : Msg) : Prop :=
 
 /-- **The view's entries are normal** (`entryOf`'s premise, not in the binding's relation): its log
 and the entries of the message its drain handles (`NetFacts`'s `AllNormal`), with no context if it is a
-heartbeat (what `msgShape.stmt` takes). A drain keeps it
+heartbeat (what `msgShape.stmt` takes), its index and log term below `2 ^ 61` and not a proposal
+(what `AntSim.readyMsgNums` takes: `NetFacts`' numbers and types). A drain keeps it
 (`Sim/MsgShapeStmt.lean`: a `Ready`'s log normal). -/
 def ViewNormal (v : AntSim.NodeView) : Prop :=
-  AllNormal v.ps.log ∧ ∀ m, v.cause = some m → AllNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = [])
+  AllNormal v.ps.log ∧ ∀ m, v.cause = some m → AllNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = []) ∧
+    AntSim.InNums (2 ^ 61) m ∧ m.ty ≠ .propose
 
 /-- A drain's `by`, one of the harness's (`Reach.advance`'s premise). -/
 def ByOk (b : AntCheck.Str) : Prop :=
