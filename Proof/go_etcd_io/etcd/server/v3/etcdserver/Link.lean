@@ -287,6 +287,7 @@ public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapCluster
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapNewClusterNoWAL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
@@ -574,6 +575,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
 public import Proof.go_etcd_io.etcd.pkg.v3.runtime.FDLimit
 public import Proof.go_etcd_io.etcd.pkg.v3.runtime.FDUsage
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.BackendMemberKey
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.CreateMetaBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeGetAllLeases
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
@@ -773,7 +775,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootClusterRows
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsTouchData
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsTouchMember
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsWalExist
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrapBackend
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrapBackendExistFree
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrapBackendMetaSnap
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrapSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.isMemberBootstrapped
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__MemberMem
@@ -1856,6 +1859,10 @@ theorem lease.lessor.wp_clearLeaseExpiredNotifier :
     lease.lessor.clearLeaseExpiredNotifier.spec (GF := GF) (hG := hG) :=
   lease.lessor.clearLeaseExpiredNotifier.wp_proof lease.wp_newLeaseExpiredNotifier
 
+theorem storage.wp_NewBackendHooks :
+    storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
+  storage.NewBackendHooks.wp_proof
+
 theorem membership.wp_WithMaxLearners :
     membership.WithMaxLearners.spec (GF := GF) (hG := hG) :=
   membership.WithMaxLearners.wp_proof
@@ -2063,10 +2070,6 @@ theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
 theorem snap.wp_New :
     snap.New.spec (GF := GF) (hG := hG) :=
   snap.New.wp_proof zap.wp_NewNop
-
-theorem storage.wp_NewBackendHooks :
-    storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
-  storage.NewBackendHooks.wp_proof
 
 end links
 
@@ -3711,6 +3714,10 @@ theorem wp_NewServerR [go_etcd_io.etcd.cache.v3.Assumptions] :
     NewServer.specR (GF := GF) (hG := hG) :=
   NewServer.wp_proofR zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance srvApi_wp_Stop srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor auth.wp_NewTokenProvider mvcc.api.mvccApi_New_wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccImage_fresh_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccStorageFor_rest_law_holds wp_newCorruptionChecker mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend auth.wp_NewAuthStore v3compactor.wp_New EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID membership.RaftCluster.wp_Version rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lease.lessor.wp_Promote lease.lessor.wp_Demote lease.lessor.wp_ExpiredLeasesC backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket srvApi_wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_MemInitialState srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm srvApi_wp_MemEntries srvApi_wp_Step srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot backend.batchTxBuffered.wp_UnsafeDelete lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get bootstrappedServer.wp_Close
 
+theorem schema.wp_CreateMetaBucket :
+    schema.CreateMetaBucket.spec (GF := GF) (hG := hG) :=
+  schema.CreateMetaBucket.wp_proof backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
 theorem types.URLs.wp_StringSliceP :
     types.URLs.StringSlice.specP (GF := GF) (hG := hG) :=
   types.URLs.StringSlice.wp_proofP http.URLStringAny_ok
@@ -3767,7 +3774,8 @@ variable (h_etcdserver_bootClusterRows : bootClusterRows.spec (GF := GF) (hG := 
 variable (h_etcdserver_bootFsTouchData : bootFsTouchData.spec (GF := GF) (hG := hG))
 variable (h_etcdserver_bootFsTouchMember : bootFsTouchMember.spec (GF := GF) (hG := hG))
 variable (h_etcdserver_bootFsWalExist : bootFsWalExist.spec (GF := GF) (hG := hG))
-variable (h_etcdserver_bootstrapBackend : bootstrapBackend.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootstrapBackendExistFree : bootstrapBackendExistFree.spec (GF := GF) (hG := hG))
+variable (h_etcdserver_bootstrapBackendMetaSnap : bootstrapBackendMetaSnap.spec (GF := GF) (hG := hG))
 variable (h_etcdserver_bootstrapSnapshot : bootstrapSnapshot.spec (GF := GF) (hG := hG))
 variable (h_etcdserver_isMemberBootstrapped : isMemberBootstrapped.spec (GF := GF) (hG := hG))
 variable (h_membership_RaftCluster__Member_Mem : membership.RaftCluster.Member.specMem (GF := GF) (hG := hG))
@@ -3776,7 +3784,7 @@ variable (h_membership_RaftCluster__MemberIDs_Mem : membership.RaftCluster.Membe
 variable (h_pbutil_MustMarshalMessage_Meta : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specMeta (GF := GF) (hG := hG))
 variable (h_wal_Create_Srv : wal.Create.specSrv (GF := GF) (hG := hG))
 variable (h_zap_Logger__Named : zap.Logger.Named.spec (GF := GF) (hG := hG))
-include h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named
+include h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named
 
 theorem wp_bootstrapNewWAL :
     bootstrapNewWAL.spec (GF := GF) (hG := hG) :=
@@ -3788,15 +3796,15 @@ theorem wp_raftConfig :
 
 theorem wp_bootstrapRaftFromCluster [MemStorReg GF] :
     bootstrapRaftFromCluster.spec (GF := GF) (hG := hG) :=
-  bootstrapRaftFromCluster.wp_proof h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__Member_Mem encoding.json.wp_MarshalMemberPtr types.ID.wp_String_ptr types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.Logger.wp_Info zap.Logger.wp_Panic zap.wp_Error bootstrappedWAL.wp_MemoryStorageFresh (wp_raftConfig h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapRaftFromCluster.wp_proof h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__Member_Mem encoding.json.wp_MarshalMemberPtr types.ID.wp_String_ptr types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.Logger.wp_Info zap.Logger.wp_Panic zap.wp_Error bootstrappedWAL.wp_MemoryStorageFresh (wp_raftConfig h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
 theorem wp_bootstrapRaft [MemStorReg GF] :
     bootstrapRaft.spec (GF := GF) (hG := hG) :=
-  bootstrapRaft.wp_proof h_membership_RaftCluster__MemberIDs_Mem (wp_bootstrapRaftFromCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapRaft.wp_proof h_membership_RaftCluster__MemberIDs_Mem (wp_bootstrapRaftFromCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
 theorem wp_bootstrapStorage :
     bootstrapStorage.spec (GF := GF) (hG := hG) :=
-  bootstrapStorage.wp_proof (wp_bootstrapNewWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapStorage.wp_proof (wp_bootstrapNewWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
 theorem bootstrappedCluster.wp_Finalize :
     bootstrappedCluster.Finalize.spec (GF := GF) (hG := hG) :=
@@ -3806,17 +3814,21 @@ theorem config.ServerConfig.wp_VerifyBootstrap :
     config.ServerConfig.VerifyBootstrap.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.VerifyBootstrap.wp_proof config.ServerConfig.wp_hasLocalMember h_config_ServerConfig__advertiseMatchesCluster config.wp_CheckDuplicateURL types.URLsMap.wp_String config.ServerConfig.wp_ShouldDiscover fmt.wp_Errorf
 
+theorem wp_bootstrapBackend [go_etcd_io.etcd.cache.v3.Assumptions] :
+    bootstrapBackend.spec (GF := GF) (hG := hG) :=
+  bootstrapBackend.wp_proof config.ServerConfig.wp_BackendPath h_etcdserver_bootstrapBackendExistFree wp_NewConsistentIndex storage.wp_NewBackendHooks storage.wp_OpenBackend consistentIndex.wp_SetBackend backend.backend.wp_BatchTx schema.wp_CreateMetaBucket consistentIndex.wp_ConsistentIndex zap.Logger.wp_Info zap.wp_Uint64 storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket mvcc.api.mvccApi_mvccW_alloc_law_holds h_etcdserver_bootstrapBackendMetaSnap
+
 theorem wp_bootstrapNewClusterNoWAL :
     bootstrapNewClusterNoWAL.spec (GF := GF) (hG := hG) :=
-  bootstrapNewClusterNoWAL.wp_proof (config.ServerConfig.wp_VerifyBootstrap h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) membership.wp_WithMaxLearners membership.wp_NewClusterFromURLsMap membership.RaftCluster.wp_MemberByName config.ServerConfig.wp_BootstrapTimeoutEffective h_etcdserver_isMemberBootstrapped config.ServerConfig.wp_ShouldDiscover types.ID.wp_String fmt.wp_Errorf
+  bootstrapNewClusterNoWAL.wp_proof (config.ServerConfig.wp_VerifyBootstrap h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) membership.wp_WithMaxLearners membership.wp_NewClusterFromURLsMap membership.RaftCluster.wp_MemberByName config.ServerConfig.wp_BootstrapTimeoutEffective h_etcdserver_isMemberBootstrapped config.ServerConfig.wp_ShouldDiscover types.ID.wp_String fmt.wp_Errorf
 
 theorem wp_bootstrapCluster :
     bootstrapCluster.spec (GF := GF) (hG := hG) :=
-  bootstrapCluster.wp_proof (wp_bootstrapNewClusterNoWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
+  bootstrapCluster.wp_proof (wp_bootstrapNewClusterNoWAL h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named)
 
-theorem wp_bootstrap [MemStorReg GF] :
+theorem wp_bootstrap [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF] :
     bootstrap.spec (GF := GF) (hG := hG) :=
-  bootstrap.wp_proof h_etcdserver_bootstrapSnapshot h_etcdserver_bootstrapBackend (wp_bootstrapCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapStorage h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (bootstrappedCluster.wp_Finalize h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapRaft h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackend h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) bootstrappedBackend.wp_Close h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist config.ServerConfig.wp_MemberDir config.ServerConfig.wp_WALDir config.ServerConfig.wp_PeerDialTimeout rafthttp.wp_NewRoundTripper go_humanize.wp_Bytes zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_Uint zap.wp_String zap.wp_Int' fmt.wp_ErrorfWrap
+  bootstrap.wp_proof h_etcdserver_bootstrapSnapshot (wp_bootstrapBackend h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapCluster h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapStorage h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (bootstrappedCluster.wp_Finalize h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) (wp_bootstrapRaft h_NewRaftLoggerZap h_config_ServerConfig__advertiseMatchesCluster h_etcdserver_bootClusterRows h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist h_etcdserver_bootstrapBackendExistFree h_etcdserver_bootstrapBackendMetaSnap h_etcdserver_bootstrapSnapshot h_etcdserver_isMemberBootstrapped h_membership_RaftCluster__Member_Mem h_membership_RaftCluster__MemberByName_Mem h_membership_RaftCluster__MemberIDs_Mem h_pbutil_MustMarshalMessage_Meta h_wal_Create_Srv h_zap_Logger__Named) bootstrappedBackend.wp_Close h_etcdserver_bootFsTouchData h_etcdserver_bootFsTouchMember h_etcdserver_bootFsWalExist config.ServerConfig.wp_MemberDir config.ServerConfig.wp_WALDir config.ServerConfig.wp_PeerDialTimeout rafthttp.wp_NewRoundTripper go_humanize.wp_Bytes zap.Logger.wp_Warn zap.Logger.wp_Info zap.wp_Uint zap.wp_String zap.wp_Int' fmt.wp_ErrorfWrap
 
 end links_pending
 

@@ -958,13 +958,16 @@ bootstrapRaft: membership_RaftCluster__MemberIDs+Mem bootstrapRaftFromCluster
 # (claim #34 step 4, 2026-11-25) `bootstrap` itself at a first start (bootstrap.go), over stages 2-4's
 # callees. Pending (`?`), each a hypothesis of `wp_bootstrap`: `bootstrapSnapshot` (proved, but its
 # `TouchDirAll`/`RemoveMatchFile` callees are linked only in the WAL Link, whose results also take
-# `WalFs.WalGS` and `os.fileStat`/`os.file` `FieldAssumptions`, which this Link has not); `bootstrapBackend`
-# (proved, but its laws `existFree`/`metaSnap` are defined in its proof module, which no spec may import,
-# and `metaSnap` is plan §7.6's set-aside); the file-system laws as specs (`bootFsTouchData` and
+# `WalFs.WalGS` and `os.fileStat`/`os.file` `FieldAssumptions`, which this Link has not); `bootstrapBackend`'s laws
+# `existFree` (a gap: `fileutil.Exist` at the program's fs claim) and `metaSnap` (plan §7.6's set-aside),
+# as specs over `BootBackendLaws.lean`; the file-system laws as specs (`bootFsTouchData` and
 # `bootFsWalExist` proved in `BootFsLaws.lean` over the WAL's results, as above; `bootFsTouchMember` not
 # proved).
 etcdserver_bootstrapSnapshot: ?
-etcdserver_bootstrapBackend: ?
+etcdserver_bootstrapBackendExistFree: ?
+etcdserver_bootstrapBackendMetaSnap: ?
+schema_CreateMetaBucket: batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+etcdserver_bootstrapBackend: config_ServerConfig__BackendPath etcdserver_bootstrapBackendExistFree NewConsistentIndex storage_NewBackendHooks storage_OpenBackend consistentIndex__SetBackend backend__BatchTx schema_CreateMetaBucket consistentIndex__ConsistentIndex zap_Logger__Info zap_Uint64 storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket =mvcc.api.mvccApi_mvccW_alloc_law_holds etcdserver_bootstrapBackendMetaSnap
 etcdserver_bootFsTouchData: ?
 etcdserver_bootFsTouchMember: ?
 etcdserver_bootFsWalExist: ?
