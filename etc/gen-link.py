@@ -718,7 +718,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               # (wal-item3, 2026-11-21) `NewStorage`'s contract proved over the WAL
                               # (`rnNewStorageOk_law_holds`, under `os`'s field assumptions; not yet
                               # passed to `newRaftNode`: imported so the trust-base report sees it)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked",
+                              # (#24 J2, 2026-11-23) the encoding/json model's `Marshal` and
+                              # jsoncodec's encoders, which membership's JSON proofs take (`=` callees)
+                              "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:

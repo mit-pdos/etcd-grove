@@ -43,8 +43,6 @@ axiom bytes.Buffer.Write.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
-axiom encoding.json.MarshalConfigChangeContext.wp_proof
-axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
@@ -153,7 +151,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
 axiom zap.Logger.Fatal.wp_proof

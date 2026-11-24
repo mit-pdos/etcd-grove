@@ -80,7 +80,7 @@ theorem EtcdServer.promoteMember.wp_proof
       · iPkgInit
       ihave Hn1 := ownSlice_nil (V := GoString) (GF := GF) (DFrac.own 1)
       ihave Hn2 := ownSlice_nil (V := GoString) (GF := GF) (DFrac.own 1)
-      wp_apply (hMarshal _ (DFrac.own 1) (DFrac.own 1) [] []) $$ [Hn1 Hn2] as %bsl %b ⟨-, -, Hb⟩
+      wp_apply (hMarshal _ (DFrac.own 1) (DFrac.own 1) [] []) $$ [Hn1 Hn2] as %bsl ⟨-, -, Hb⟩
       · iframe #
       (try wp_auto)
       ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
