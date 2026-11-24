@@ -1,0 +1,47 @@
+/-
+Lean-first (no Rocq counterpart). #33 S3b W2 (2026-11-23): the budget law of `RestoreEv` (`State.restoreEv_within`).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Laws
+
+@[expose] public section
+
+namespace Perennial
+namespace EtcdGrove
+namespace AntCheck
+
+set_option linter.unusedSimpArgs false
+
+theorem State.restoreEv_within : ActionWithin State.restoreEv := by
+  intro s n ev b E s' hn hW hNO hCh hb ho hv
+  have hW' := State.Within.mono' (b' := b + ev.weight) (E' := E) (by omega) (Nat.le_refl _) hW
+  have hw2 : 2 ≤ ev.weight := by unfold Event.weight; omega
+  unfold numBound at hb
+  unfold State.restoreEv at ho
+  obtain ⟨k, hk, ho⟩ := bind_ok ho
+  have hkn : numOk k := by have := hNO.2.2.2.2.2.2.2.2.1; rw [need_ok hk] at this; exact this
+  have hla := forall_mem_set (n := n) (x := k) hW'.lastApplied (bigOk_of_numOk hkn)
+  split at ho
+  · cases ho
+  obtain ⟨_, -, ho⟩ := bind_ok ho
+  obtain ⟨_, -, ho⟩ := bind_ok ho
+  obtain ⟨_, -, ho⟩ := bind_ok ho
+  split at ho
+  · cases ho
+  try dsimp only at ho
+  obtain ⟨_, -, ho⟩ := bind_ok ho
+  obtain ⟨_, -, ho⟩ := bind_ok ho
+  split at ho
+  · cases ho
+  cases ha : ev.a <;> simp only [ha, Bool.not_false, Bool.not_true, ite_true, ite_false, Bool.false_eq_true,
+    pure_ok, Except.ok.injEq, Option.some.injEq] at ho <;> subst ho
+  · refine ⟨hW'.cfg, hW'.i_pos, hW'.i_le, hW'.currentTerm, hW'.voteTerm, hW'.commitIndex, ?_, hW'.confAt, hW'.confirmed, hW'.log, hW'.chain, hW'.ledLog_len, hW'.ledLog, hW'.config, hW'.ledConf_len, hW'.ledConf, hW'.ledAt, hW'.elAt, hW'.termLen, hW'.msgs_len, hW'.msgs, hW'.votes_len, hW'.votes, hW'.leaders_len, hW'.leaders, ?_, hW'.pending, hW'.queue, hW'.reads, hW'.viol⟩
+    · exact hla
+    · exact forall_mem_set hW'.undo (fun u' h => by cases h)
+  · refine ⟨hW'.cfg, hW'.i_pos, hW'.i_le, hW'.currentTerm, hW'.voteTerm, hW'.commitIndex, ?_, hW'.confAt, hW'.confirmed, hW'.log, hW'.chain, hW'.ledLog_len, hW'.ledLog, hW'.config, hW'.ledConf_len, hW'.ledConf, hW'.ledAt, hW'.elAt, hW'.termLen, hW'.msgs_len, hW'.msgs, hW'.votes_len, hW'.votes, hW'.leaders_len, hW'.leaders, hW'.undo, hW'.pending, hW'.queue, hW'.reads, hW'.viol⟩
+    exact hla
+
+end AntCheck
+end EtcdGrove
+end Perennial

@@ -25,6 +25,27 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `maps.Keys.spec_objMap` -- `slices.Sorted` needs the map below `2^62` keys (maps-keys, #36)
+
+- **Spec.** `Spec/maps/Keys.lean` (`maps.Keys.spec_objMap`, the axiom `maps.Keys.wp_proof_objMap`), and the
+  checker's model vocabulary that must supply its new premise: `itemsRO` (`Proof/.../k8s/etcd3/correctness/Defs.lean`),
+  the specs `Model.create`, `Model.update`, `Model.execute`, `Model.Step`, `initialModel`, `toPorcupineModel`,
+  `realCheck` (all under `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/`), `stepPre` and `realMS`'s `rep`.
+  No SpecPlan counterpart.
+- **Defect.** Too strong to prove: Perennial's `maps.wp_Sorted_Keys_string` (`ccfeb3895`) proves the pair only for
+  a map of at most `2^62` keys (`slices.Sort`'s heapsort premise: its index arithmetic overflows past that, real
+  in Go). The axiom claimed it for every map.
+- **Evidence.** `Perennial/Proof/maps/Results.lean`, `wp_Sorted_Keys_string`'s `⌜GMap.size M ≤ 2 ^ 62⌝`.
+- **Proposed change.** `spec_objMap`'s closure takes `⌜GMap.size M ≤ 2 ^ 62⌝` (and the axiom becomes a theorem from
+  Perennial's). The checker supplies it from a new invariant of the model's items, carried in `itemsRO`: at most
+  `2^62` items. A model that grows (`create`, `update`, so `execute`, `Step`) takes `GMap.size m.items < 2 ^ 62`;
+  `initialModel` takes its store's items at most `2^62`; `realMS`'s value at index `k` has at most `2^61 + k` items
+  (porcupine steps below index `2^60`), so `toPorcupineModel` takes an initial model of at most `2^61` items;
+  `stepPre` (so `ReplayPre`) carries the strict bound along the replay; `realCheck` takes the seeded store's items
+  below `2^60`, which `Check` has from `Model`'s premise (`g0.st.items.length + g0.hist.length < 2 ^ 60`). No
+  top-level statement moves (`Check.spec` is unchanged).
+- **Decision.** Accepted by the coordinator (option 1, #36), 2026-11-23; applied on branch `maps-keys`.
+
 ## 2026-11-23: `idClusterInv` / `NewGenerator.spec` -- the cluster's claims hold every machine's generator facts (etcd-dist D7)
 
 - **Spec.** `Spec/go_etcd_io/etcd/pkg/v3/idutil/NewGenerator.lean` (`idutil.NewGenerator.spec`), its vocabulary
@@ -41,7 +62,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   a per-prefix heap-level `idPfxInv` holding them (both arguments that use them are per prefix, and a prefix is one
   machine's); `IdNames.gen`; `NewGenerator.spec`'s pre gains `idPfxInv γi.gen γi.pfx`; `NewServer.spec`/`NewServerR.spec`
   gain it; `idGen`'s body. No top-level theorem's statement changes (checked; the plan lists the files).
-- **Decision.** Pending (the coordinator posts it on #28 before implementation; idutil's specs are shared).
+- **Decision.** Accepted (no objection on #28 within the hour; the coordinator, 2026-11-23); implemented on branch
+  `d7-idsplit`. Refined in the implementation: each prefix's two names (its ids' map `γip`, its generators' map
+  `γgp`) are allocated by `idCluster_alloc` and recorded in the new global map `IdNames.gen` (`p ↪[gen]□ (γip, γgp)`,
+  persistent, so no authority stays in an invariant); `idClusterInv` therefore gains the parameter `gen` (its type
+  changes by one `GName`); a key's generator facts in the global invariant are heap-free (`idKeyGenFactsG`: the
+  prefix's names, `g ↪[γgp]□ k`, `id ↪[γip]□ g` per issued id), their heap halves (`idIssueFragD`, the `prefix`
+  points-to) in `idPfxInv gen p`; `idClusterOk`'s generator-distinctness clause is restricted to keys of one prefix.
+  **Top-level vocabulary (the #8 rule, 2026-11-23):** `IdNames` gains `gen`, and `IdNames` is a field of `KVNames`,
+  which `etcd_safe_single_process`'s statement names through its restart premise (`etcdstart.premises` →
+  `bootPremiseR` → `bootstrapRestartContract`: `∃ γk : KVNames, …` reading `c0`/`ch0`/`log0`/`lm`/`gps`, never
+  `ids`): the statement's term changes, its meaning does not (an existential over a type with one more unread
+  field). No other top-level statement names `IdNames` (`etc/theorem-loc.py --list-tcb`: `k8s_safe_single_process`,
+  `etcd_leaseexpiryN_safe_single_process` only as axiom vocabulary; `mvccfull`, `mvccrand`, `k8s_authz` not at
+  all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. **(a)
+  accepted** (Upamanyu's coordinator on #28, 2026-11-23: a vocabulary change with unchanged meaning is not covered
+  by #8).
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
@@ -5245,6 +5281,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
 - **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).
 
+## 2026-11-23: `violated.spec` says an empty result is `nil` (antithesis check, #33 S3b W7)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/violated.lean`.
+- **Defect.** Its post held only `strsRO u (violated s)`; `Checker.Next` tests `v != nil` on the
+  result, which a list `[]` held by a non-nil slice would not decide, so `Next`'s proof re-proved the
+  call with the extra fact (`Checker.Next.violated_wp`).
+- **Evidence.** `check.go`'s `violated` returns `nil` when no invariant is broken and the state's
+  `Viol` is empty (`len(s.Viol) == 0`), else a non-empty slice.
+- **Proposed change.** The post adds `⌜violated s = [] → u = slice.nil⌝`; `violated.wp_proof` is the
+  re-proof's body, `Checker.Next.wp_proof` takes `violated.spec`, `violated_wp` goes.
+- **Decision.** Applied (a callee strengthening its own proof discharges; no trust or top-level change).
 ## 2026-11-23: grpc's contracts take a resource parameter (#24's S2 signatures, item (c))
 
 - **Spec.** `Proof/google_golang_org/grpc/InvGrpc.lean`, `InvGrpcStream.lean`, `InvGrpcRun.lean` and the axioms

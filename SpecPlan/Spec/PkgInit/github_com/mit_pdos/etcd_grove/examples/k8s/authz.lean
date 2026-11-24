@@ -5,7 +5,7 @@ public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8s.authz
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.errors.Base
-public import SpecPlan.Spec.PkgInit.math.rand
+public import Perennial.Proof.math.rand.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime.schema
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.authentication.user

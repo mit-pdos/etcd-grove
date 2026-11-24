@@ -2,10 +2,12 @@
 # wire's decoding frame in wire/wire.go). Generate from the repository root:
 #     models/json/jsongen.py models/internal/jsonvsr/json.toml models/internal/jsonvsr/codec --pkg codec
 # The roots: what wire.Encode encodes (*events.Event, whose Data holds one of the messages below
-# by value), what wire.Decode decodes (the frame, an unnamed struct, then each message by type).
+# by value), what wire.Decode decodes (the frame, an unnamed struct, then each message by type);
+# log.Logs and []log.Log: Logs' own MarshalJSON and UnmarshalJSON (value and pointer receivers),
+# which marshal and unmarshal a []log.Log (as the dsv-vr kit's json.toml).
 [json]
 imports = { events = "models.lab/internal/jsonvsr/events", log = "models.lab/internal/jsonvsr/log" }
 roots = ["events.Event", "events.Request", "events.Reply", "events.Prepare", "events.PrepareOK",
          "events.Commit", "events.StartViewChange", "events.DoViewChange", "events.StartView",
-         "events.GetState", "events.NewState", "events.Heartbeat",
+         "events.GetState", "events.NewState", "events.Heartbeat", "log.Logs", "[]log.Log",
          'struct { Type events.EventType "json:\"@type\""; Data json.RawMessage "json:\"data\"" }']

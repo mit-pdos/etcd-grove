@@ -48,7 +48,7 @@ def fpath(pkg):
     return pkg.replace("«", "").replace("»", "").replace(".", "/")
 
 # (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation
-NET_PART = {"net"}
+NET_PART = {"net", "models_lab.jsoncodec"}  # and the JSON model methods' jsoncodec (#24 J3)
 
 def genproof_module(pkg, ours):
     if pkg in NET_PART:
