@@ -32,15 +32,19 @@ const (
 	Durable                  // restartN's check over gRPC: acknowledged Puts present, at version 1
 )
 
-var kindNames = []string{"kv", "watch", "cache", "compact", "putget", "auth", "authLease",
-	"leaseRead", "leaseCatchup", "leaseExpiry", "durable"}
+// kindNames are the kinds' names, in the kinds' order (a function, not a package variable: the
+// package has no state to initialize).
+func kindNames() []string {
+	return []string{"kv", "watch", "cache", "compact", "putget", "auth", "authLease",
+		"leaseRead", "leaseCatchup", "leaseExpiry", "durable"}
+}
 
 // String is the kind's name (the Lean constructor's).
 func (k Kind) String() string {
-	if k < 0 || int(k) >= len(kindNames) {
+	if k < 0 || int(k) >= len(kindNames()) {
 		return "unknown"
 	}
-	return kindNames[k]
+	return kindNames()[k]
 }
 
 // Workload is one workload and its parameters (Lean: Workload; a kind without parameters in Lean
@@ -299,7 +303,7 @@ func WellFormed(d Deployment) error {
 	}
 	// 5 (first): every workload of a kind Lean has (Workload's constructors), within its bounds
 	for _, w := range d.Workloads {
-		if w.Kind < 0 || int(w.Kind) >= len(kindNames) {
+		if w.Kind < 0 || int(w.Kind) >= len(kindNames()) {
 			return fmt.Errorf("unknown workload kind %d", w.Kind)
 		}
 		if !boundsOk(w) {
