@@ -1017,6 +1017,24 @@ named definition in `Rel.lean`, appended as a conjunct; `GC`, `init`, `boot`, `r
     `voteSelf_ready` take the view's empty outbox (C1). Alternative rejected: a `LeaderPart`
     conjunct "a self-ack fact covers the leader's log" (true, but every producer of `LeaderPart`
     would have to maintain it).
+  - **C3 `TlSorted`** (2026-11-24, `BindingOk`'s last conjunct): `termLen` sorted by term
+    (`List.Pairwise (·.1 < ·.1)`); `TermFn.with` keeps it (`with_sorted`), `GC` leaves `termLen`
+    alone, so a term's entry is the one `tlOld` finds (`tlOld_mem`). Why: a win's `cmt` guard
+    (B 252) needs the candidate's commit `c` at no entry of its term `T`, or within `tlOld T`. C3's
+    commit conjunct gives `p ∈ termLen` with `p.1 ≤ T`, `c ≤ p.2`; for `p.1 < T` the committed prefix
+    is in the campaign log (`commitIn_camp`), whose terms are below `T` (`CampTermsOk`); for
+    `p.1 = T` the win needs `tlOld T ≥ p.2 > 0`, which `TermLenOk` then refutes (no leader at `T`:
+    election safety against C3's leaders conjunct, the node still a candidate) -- without
+    uniqueness of `termLen`'s terms, `tlOld` could read a different entry at `T`. `ReadyOk` gains
+    `tlSort`; `readyOk_fol` takes it (`htlS`). Alternatives rejected: restating C3's commit conjunct
+    or `TermLenOk` over `tlOld` (more of `rr_binding` rewritten), a candidate-log conjunct of
+    `CandPart` "no entry of its term" (needs "log terms within the term" at a campaign, not in the
+    relation), a `ReadyFacts` premise naming the candidate's campaign log (the lead's statement).
+  - **`antSim_ready` proved** (2026-11-24, `Sim/ReadyAll.lean`): `ready_nonleader` with `ready_win`
+    (`Sim/ReadyWin.lean`: `inMemory_win`; the win commits nothing since the other voters' `Match`
+    are `0`; a leader's term is positive, from its vote `VoteOf`'s `t > BootTerm`), `ready_prop`
+    (`Sim/ReadyProp.lean`: `ProposeEnd` keeps `Match`, `prop_matched`) and `ready_cmt`.
+    Axioms: `propext`, `Classical.choice`, `Quot.sound`.
 
 ---
 
