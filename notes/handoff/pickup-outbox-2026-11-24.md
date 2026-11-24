@@ -86,7 +86,8 @@ to: coordinator-E, for Upamanyu
 - `#print axioms raft_kvnet_robust` gives propext, Classical.choice and Quot.sound only.
 - No trusted file changed, and the Go tests pass.
 - `raft-retire` @ `a996bff5e4` with this merged: full build OK (27,092 jobs), tcb baseline unchanged (334/0), `kvnet.txt` and `raft-noax.txt` 0/0.
-- `lean` is being merged into `kvnet-single` now, so it can be queued as soon as he says OK.
+- **Ready to queue on his OK:** `kvnet-single/2026-11-24` @ `72aa596613` has `lean` `622264bf5e` merged in (Perennial `d9c8c1d97`). The only conflicts were generated PkgTables, which were regenerated. The VM build of TopLevelRobustness, Link, RunNode, Check, AddrOk, ValidAddrs and ValidCluster passes (4,401 jobs, exit 0) with the same axioms. Against `lean`'s `raft_kvnet_robust`, the statement differs only by the 5 dropped premises (and the docstring). `TopLevelDefs` is unchanged, and the programs differ only through the Go code above.
+- If both this and `bagsend-perennial` land, expect a small conflict at kvnet's `queue_nb_send_au`, which bagsend deletes.
 
 Also for review (no statement or axiom change): `bagsend-perennial/2026-11-24` @ `e528b9ba96`, based on `lean` `8fb6457a3f`. It deletes the local `kvreconf/BagSend.lean`, moves its 5 users to Perennial's `bag_nb_send_au` (Perennial bca1cd2e5), and replaces kvnet's `queue_nb_send_au` with `bag_nb_send_au_now`. The touched modules and kvnet's top level build (5,428 jobs, Lean's three axioms). It's untrusted, so it can be queued whenever you like.
 
