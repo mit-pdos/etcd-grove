@@ -859,6 +859,43 @@ blocked by prophcheck's grammar" above and the recorded deviation (option 3 ther
     `HandleHTTP`), `RpcBootHyp`.
   * `notes/perennial-changes.md`: the merge's duplicated models-rpc-http sections dropped (lean's).
 
+## Non-vacuity: open (decision 2026-11-24)
+
+**Decision** (kaashoek, 2026-11-24): dsv-gryff lands **without** non-vacuity instances for most of
+its premise classes; the gap is recorded here and real instances are a follow-up. Why: the
+instances session 11 wrote were built from local axioms that restate the premise they instantiate
+(an axiom `RpcBootHyp`-shaped, or names-only initializers assumed to run), so they showed nothing
+about the premises' consistency and only grew the trust base.
+
+**Premise classes of `gryff_remote_robust.spec`** (`Dsverify/Spec/gryff/examples/gryffnet/
+TopLevelRobustness.lean`, checked against the statement at fff2eff310):
+
+- **With an instance** (`Dsverify/Proof/gryff/examples/gryffnet/NonVacuityLinked.lean`,
+  `nonvacuous_premises`, imported by nothing): `math.rand.InitHyp` (the main tree's walk over
+  Perennial's `sync`/`sync/atomic` initializers, no axiom) and `lib.MathPowHyp` (the main tree's
+  existing axiom `EtcdGrove.math.Pow.wp_proof`, not a new one).
+- **No axiom-free instance** (at Perennial b3f2fc485): `net.rpc.InitHyp`, `net.http.InitHyp`
+  (their closure reaches names-only initializers), `netN.StringsIndexHyp` (`strings.Index`),
+  `replica2.SortSliceHyp` (`sort.Slice`), `lib.RandSeedHyp` (`math/rand.Seed`), `RpcHttpHyp`
+  (net/http's server, `rpc.HandleHTTP`: not in Net), `RpcBootHyp` (net/rpc's and net/http's owned
+  initializations).
+- Not a class of the statement, but a premise of the proved theorem: `stringsPending.spec`
+  (`gryff_remote_robust_of_strings`; Perennial's `strings.Cut`/`TrimLeft`), which goes with the
+  pin bump that brings their specs.
+
+**The removed axiom-based files** are in history at a5f91c8e46 (deleted by 37ed77ef0f):
+`NonVacuityLinked.lean`'s local axioms and the twelve `InitInstancesLinked.lean` walks
+(`Dsverify/Proof/{net/rpc,net/http,net/http/internal/ascii,net/url,net/textproto,mime/multipart,
+crypto/tls,go/token,runtime,internal/runtime/atomic,internal/runtime/sys,
+vendor/golang_org/x/net/http/httpguts}/InitInstancesLinked.lean`).
+
+**Follow-up order:** first the cheap ones, gryff's leaf library classes: `StringsIndexHyp`,
+`SortSliceHyp`, `RandSeedHyp` (a spec of `strings.Index`, `sort.Slice`, `math/rand.Seed` in
+Perennial or the main tree, or `math/rand` becoming Perennial's with math-rand-isinit, which also
+retires `math.rand.InitHyp`); then `net.rpc.InitHyp`, `net.http.InitHyp`, `RpcHttpHyp` and
+`RpcBootHyp`, which depend on Upamanyu's model initialization of net/rpc and net/http (their
+initializers translated with bodies, net/http's server in Net).
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
