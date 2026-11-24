@@ -95,9 +95,9 @@ func (r *Replica) ticker() {
 // returned, so that the loop never meets a stopped node: every call it makes (the Ready,
 // ApplyConfChange, Advance) is on a running one. (Other goroutines -- proposers, readers, the
 // transport -- may still call a stopped node; they handle its answers.) Once run and the snapshot
-// goroutine have returned, nothing writes the file: the last critical section of dmu does nothing
-// at run time, and lets the proof take the file's writer out of dmu's invariant for the next
-// incarnation.
+// goroutine have returned, nothing uses dmu any more: stop takes it and never releases it, which
+// does nothing at run time and lets the proof take the file's writer out of dmu's invariant for
+// the next incarnation.
 func (r *Replica) stop() {
 	close(r.stopc)
 	<-r.runDone
@@ -105,7 +105,6 @@ func (r *Replica) stop() {
 	<-r.snapDone
 	r.node.Stop()
 	r.dmu.Lock()
-	r.dmu.Unlock()
 }
 
 // persist writes the storage's image to the file.

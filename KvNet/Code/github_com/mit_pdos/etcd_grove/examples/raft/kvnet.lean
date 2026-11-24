@@ -410,6 +410,9 @@ noncomputable def StartNode [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def startNode [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.startNode"
 
+noncomputable def stopIncarnation [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.stopIncarnation"
+
 noncomputable def start [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/kvnet.start"
 
@@ -3632,7 +3635,6 @@ noncomputable def Node.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$l0" (App (Val (GoInstruction (StructFieldRef Node.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n")))
   (Let "$l1" (App (Val (GoInstruction (StructFieldRef Node.ty go!"t"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n")))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad NodeConfig.ty))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n"))))
@@ -3655,9 +3657,9 @@ noncomputable def Node.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val StRestartsInProcess))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Stats.ty) go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Stats.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n"))))) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve peerTransport.ty go!"stop"))) (App (Val (GoInstruction (GoLoad peerTransport.ty))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"t"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n"))))) (Val #()))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n"))))) (Val #()))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad peerTransport.ty))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"t"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n"))))
+  (App (App (App (Val (GoInstruction (FuncResolve stopIncarnation []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "n")))) (Val #()))))))
   (Val #()))))
@@ -3665,7 +3667,7 @@ noncomputable def Node.restart.impl [GooseExts] [GoGlobalContext] : val :=
 /-- listen listens on addr, retrying until it can (the previous incarnation's socket may not be
     gone yet): a failed Listen is never a panic (the net extension lets any Listen fail).
 
-    go: node.go:135:6 -/
+    go: node.go:134:6 -/
 noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
@@ -3711,7 +3713,7 @@ noncomputable def listen.impl [GooseExts] [GoGlobalContext] : val :=
     options. It panics if the cluster is not one the theorem's premises allow (ValidCluster) or id
     is not one of its replicas; otherwise it never returns (Run).
 
-    go: node.go:150:6 -/
+    go: node.go:149:6 -/
 noncomputable def RunNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -3793,7 +3795,7 @@ noncomputable def RunNode.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Run runs the replica cfg.ID until its process ends: it starts it from its durable file
     (StartNode), then serves its peers and clients on its address. It never returns.
 
-    go: node.go:169:6 -/
+    go: node.go:168:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Seq (App (Val exceptionDo)
@@ -3813,7 +3815,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- accept serves the connections l accepts, peers' and clients', each in a goroutine of its own
     (serve). It never returns.
 
-    go: node.go:176:16 -/
+    go: node.go:175:16 -/
 noncomputable def Node.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "l"
@@ -3861,7 +3863,7 @@ noncomputable def Node.accept.impl [GooseExts] [GoGlobalContext] : val :=
     random index from the log's start to the snapshot's, the entries up to the snapshot's index
     then being skipped (Replica.applyEntry).
 
-    go: node.go:195:6 -/
+    go: node.go:194:6 -/
 noncomputable def StartNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
@@ -3879,7 +3881,7 @@ noncomputable def StartNode.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- startNode is StartNode with the transport newT makes (its incarnations' each).
 
-    go: node.go:200:6 -/
+    go: node.go:199:6 -/
 noncomputable def startNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "newT"
@@ -3921,10 +3923,27 @@ noncomputable def startNode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Stats.ty)))) (Pair (Var "stats") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "$res0"))))))
 
+/-- stopIncarnation stops the incarnation of replica r and transport t (start's) for good: the
+    replica (Replica.stop), then the transport's senders.
+
+    go: node.go:207:6 -/
+noncomputable def stopIncarnation.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "t"
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc peerTransport.ty))) (Var "t"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve peerTransport.ty go!"stop"))) (App (Val (GoInstruction (GoLoad peerTransport.ty))) (Var "t"))) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Val #())))))))
+  (Val #()))))
+
 /-- start starts an incarnation of replica cfg.ID from its file (StartNode), with the transport newT
     makes, counting in stats.
 
-    go: node.go:208:6 -/
+    go: node.go:214:6 -/
 noncomputable def start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "stats"
@@ -4201,7 +4220,7 @@ noncomputable def start.impl [GooseExts] [GoGlobalContext] : val :=
 /-- serve serves one accepted connection: a peer's (Transport.servePeer) or a client's
     (serveClient), by its first byte.
 
-    go: node.go:269:16 -/
+    go: node.go:275:16 -/
 noncomputable def Node.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "c"
@@ -4250,7 +4269,7 @@ noncomputable def Node.serve.impl [GooseExts] [GoGlobalContext] : val :=
     node, until the connection fails or ends. A frame that does not decode, or a message not
     addressed to this replica, ends the connection.
 
-    go: node.go:290:16 -/
+    go: node.go:296:16 -/
 noncomputable def Node.servePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "c"
@@ -4321,7 +4340,7 @@ noncomputable def Node.servePeer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- serveClient answers one request frame with one response frame: 1 (ok) and the answer, or 0
     (no answer: the client tries again, here or elsewhere).
 
-    go: node.go:321:16 -/
+    go: node.go:327:16 -/
 noncomputable def Node.serveClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "c"
@@ -4446,7 +4465,7 @@ noncomputable def Node.serveClient.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- handle runs one request; false if it has no answer.
 
-    go: node.go:344:16 -/
+    go: node.go:350:16 -/
 noncomputable def Node.handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "kind"
@@ -4823,7 +4842,7 @@ noncomputable def Node.handle.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- status is the replica's Status now.
 
-    go: node.go:412:16 -/
+    go: node.go:418:16 -/
 noncomputable def Node.status.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -5007,9 +5026,9 @@ noncomputable def Replica.ticker.impl [GooseExts] [GoGlobalContext] : val :=
     returned, so that the loop never meets a stopped node: every call it makes (the Ready,
     ApplyConfChange, Advance) is on a running one. (Other goroutines -- proposers, readers, the
     transport -- may still call a stopped node; they handle its answers.) Once run and the snapshot
-    goroutine have returned, nothing writes the file: the last critical section of dmu does nothing
-    at run time, and lets the proof take the file's writer out of dmu's invariant for the next
-    incarnation.
+    goroutine have returned, nothing uses dmu any more: stop takes it and never releases it, which
+    does nothing at run time and lets the proof take the file's writer out of dmu's invariant for
+    the next incarnation.
 
     go: replica.go:101:19 -/
 noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
@@ -5022,11 +5041,8 @@ noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"dmu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #())))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"dmu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"dmu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Val #()))))))
   (App (Val doExecute)
@@ -5042,7 +5058,7 @@ noncomputable def Replica.stop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- persist writes the storage's image to the file.
 
-    go: replica.go:112:19 -/
+    go: replica.go:111:19 -/
 noncomputable def Replica.persist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -5083,7 +5099,7 @@ noncomputable def Replica.persist.impl [GooseExts] [GoGlobalContext] : val :=
     Snapshots and compaction are asked of the snapshot goroutine (request), as in kvdurable. It
     returns when the incarnation stops (stop), between two Readys.
 
-    go: replica.go:137:19 -/
+    go: replica.go:136:19 -/
 noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "send"
@@ -5369,7 +5385,7 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
     least of the applied index and bound, unless bound is 0; a request is dropped if the goroutine
     has one pending. It returns the index of the latest snapshot asked for.
 
-    go: replica.go:234:19 -/
+    go: replica.go:233:19 -/
 noncomputable def Replica.request.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "snapIndex"
@@ -5461,7 +5477,7 @@ noncomputable def Replica.request.impl [GooseExts] [GoGlobalContext] : val :=
     stops; known is the least index the stored snapshot is known to have reached (the storage's at
     start).
 
-    go: replica.go:264:19 -/
+    go: replica.go:263:19 -/
 noncomputable def Replica.snapshotter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "known"
@@ -5501,7 +5517,7 @@ noncomputable def Replica.snapshotter.impl [GooseExts] [GoGlobalContext] : val :
     known, if there is one. Neither needs to be durable: it writes the image to the file afterwards
     one time in two. It returns what is known of the stored snapshot's index after it.
 
-    go: replica.go:281:19 -/
+    go: replica.go:280:19 -/
 noncomputable def Replica.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "req"
@@ -5636,7 +5652,7 @@ noncomputable def Replica.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
     and answers each operation waiting here that the snapshot covers with the answer the snapshot
     records.
 
-    go: replica.go:325:19 -/
+    go: replica.go:324:19 -/
 noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "md"
@@ -5739,7 +5755,7 @@ noncomputable def Replica.install.impl [GooseExts] [GoGlobalContext] : val :=
     the applied index -- one a restarted incarnation's snapshot covers, which raft hands back when
     Config.Applied is below the snapshot's index -- is skipped.
 
-    go: replica.go:351:19 -/
+    go: replica.go:350:19 -/
 noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "e"
@@ -5828,7 +5844,7 @@ noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
     configuration (validConf), and rejects it otherwise by not applying it, as raft allows; every
     replica applies the same entries from the same configuration, so they all decide the same.
 
-    go: replica.go:383:19 -/
+    go: replica.go:382:19 -/
 noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cc"
@@ -5908,7 +5924,7 @@ noncomputable def Replica.applyConf.impl [GooseExts] [GoGlobalContext] : val :=
     operations applied records. An operation already applied (retried, so committed more than
     once) does not take effect again: it is answered with its recorded answer.
 
-    go: replica.go:406:19 -/
+    go: replica.go:405:19 -/
 noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "data"
@@ -6028,7 +6044,7 @@ noncomputable def Replica.applyOp.impl [GooseExts] [GoGlobalContext] : val :=
     they read, and returns the others. A read nobody waits for any more (timed out, or issued by
     an earlier incarnation) is dropped.
 
-    go: replica.go:434:19 -/
+    go: replica.go:433:19 -/
 noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "pending"
@@ -6137,7 +6153,7 @@ noncomputable def Replica.answer.impl [GooseExts] [GoGlobalContext] : val :=
     clients never propose the same operation at once (the client that issued it waits for its
     answer before it retries), so at most one waits for it here.
 
-    go: replica.go:460:19 -/
+    go: replica.go:459:19 -/
 noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "op"
@@ -6292,7 +6308,7 @@ noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
 /-- read reads key by a read index here, as the read of sequence number seq (the client's: never
     reused), waiting up to timeout; ok is false if no answer came.
 
-    go: replica.go:496:19 -/
+    go: replica.go:495:19 -/
 noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "seq"
@@ -6441,7 +6457,7 @@ noncomputable def Replica.read.impl [GooseExts] [GoGlobalContext] : val :=
 /-- contents is a copy of the store's contents and its applied index and configuration, read at
     once.
 
-    go: replica.go:530:19 -/
+    go: replica.go:529:19 -/
 noncomputable def Replica.contents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11080,6 +11096,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Run_unfold : FuncUnfold Run [] Run.impl
   StartNode_unfold : FuncUnfold StartNode [] StartNode.impl
   startNode_unfold : FuncUnfold startNode [] startNode.impl
+  stopIncarnation_unfold : FuncUnfold stopIncarnation [] stopIncarnation.impl
   start_unfold : FuncUnfold start [] start.impl
   newReplica_unfold : FuncUnfold newReplica [] newReplica.impl
   FormatStats_unfold : FuncUnfold FormatStats [] FormatStats.impl
@@ -11184,6 +11201,7 @@ attribute [instance] Assumptions.Dialer_instance
   Assumptions.Run_unfold
   Assumptions.StartNode_unfold
   Assumptions.startNode_unfold
+  Assumptions.stopIncarnation_unfold
   Assumptions.start_unfold
   Assumptions.newReplica_unfold
   Assumptions.FormatStats_unfold

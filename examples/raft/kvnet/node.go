@@ -123,8 +123,7 @@ func (n *Node) stepPeer(m *pb.Message) {
 // waiting on it time out.
 func (n *Node) restart() {
 	n.mu.Lock()
-	n.r.stop()
-	n.t.stop()
+	stopIncarnation(n.r, n.t)
 	n.stats.add(StRestartsInProcess)
 	n.r, n.t = start(n.cfg, n.stats, n.newT)
 	n.mu.Unlock()
@@ -201,6 +200,13 @@ func startNode(cfg NodeConfig, newT newPeerTransport) *Node {
 	stats := &Stats{}
 	r, t := start(cfg, stats, newT)
 	return &Node{cfg: cfg, stats: stats, newT: newT, r: r, t: t}
+}
+
+// stopIncarnation stops the incarnation of replica r and transport t (start's) for good: the
+// replica (Replica.stop), then the transport's senders.
+func stopIncarnation(r *Replica, t peerTransport) {
+	r.stop()
+	t.stop()
 }
 
 // start starts an incarnation of replica cfg.ID from its file (StartNode), with the transport newT
