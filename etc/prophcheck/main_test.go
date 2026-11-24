@@ -33,8 +33,7 @@ func run(t *testing.T, orig, patched map[string]string) []string {
 		}
 		src := "package primitive\n\ntype prophId struct{ x int }\n\ntype ProphId = *prophId\n\n" +
 			"func NewProph() ProphId { return &prophId{} }\n\n" +
-			"func (p *prophId) ResolveBool(b bool) {}\n\nfunc (p *prophId) ResolveU64(x uint64) {}\n\n" +
-			"func (p *prophId) Resolve(v any) {}\n"
+			"func (p *prophId) ResolveBool(b bool) {}\n\nfunc (p *prophId) ResolveU64(x uint64) {}\n"
 		if err := os.WriteFile(filepath.Join(prim, "proph.go"), []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -59,6 +58,9 @@ func run(t *testing.T, orig, patched map[string]string) []string {
 // prophcheck recognizes the import by path, so the tests that need the import erased use
 // primImport (the real path) and do not type-check.
 const primImport = `import "github.com/goose-lang/primitive"`
+
+// prophImport: Perennial's prophecy package (the same API plus Resolve(any)), by its real path.
+const prophImport = `import "github.com/mit-pdos/perennial/proph"`
 
 func wantOK(t *testing.T, errs []string) {
 	t.Helper()
@@ -395,14 +397,14 @@ func TestProphOnlyInitializerRefusals(t *testing.T) {
 func TestResolveAny(t *testing.T) {
 	patched := `package p
 
-` + primImport + `
+` + prophImport + `
 
 type KV struct {
 	m map[string]string
 	n int
 }
 
-var trace = primitive.NewProph()
+var trace = proph.NewProph()
 
 func (kv *KV) resolveGet(k string, v string) {
 	s := ""
@@ -422,7 +424,7 @@ func (kv *KV) resolveGet(k string, v string) {
 }
 
 func (kv *KV) Get(k string) string {
-	pr := primitive.NewProph()
+	pr := proph.NewProph()
 	v := kv.m[k]
 	pr.Resolve(struct{ k, v string }{k: k, v: v})
 	kv.resolveGet(k, v)
@@ -454,14 +456,40 @@ func TestResolveAnyRefusals(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			patched := strings.Replace(orig, "\tv := kv.m[k]\n",
-				"\tpr := primitive.NewProph()\n\tpr.Resolve("+tc.arg+")\n\tv := kv.m[k]\n", 1)
-			patched = strings.Replace(patched, "package p\n", "package p\n\n"+primImport+"\n", 1)
+				"\tpr := proph.NewProph()\n\tpr.Resolve("+tc.arg+")\n\tv := kv.m[k]\n", 1)
+			patched = strings.Replace(patched, "package p\n", "package p\n\n"+prophImport+"\n", 1)
 			wantErr(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}), want)
 		})
 	}
 	// in a helper too
 	patched := strings.Replace(orig, "\tv := kv.m[k]\n", "\tkv.g()\n\tv := kv.m[k]\n", 1) +
 		"\nfunc (kv *KV) g() {\n\ttrace.Resolve(&KV{n: kv.n})\n}\n"
-	patched = strings.Replace(patched, "package p\n", "package p\n\n"+primImport+"\n\nvar trace = primitive.NewProph()\n", 1)
+	patched = strings.Replace(patched, "package p\n", "package p\n\n"+prophImport+"\n\nvar trace = proph.NewProph()\n", 1)
 	wantErr(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}), want)
+}
+
+// Perennial's proph package: its import is erased like primitive's, it may be added beside an
+// import of primitive the file already has, and not to a file that uses the name proph.
+func TestProphPackage(t *testing.T) {
+	patched := strings.Replace(origKV, "package p\n", "package p\n\n"+prophImport+"\n", 1)
+	patched = strings.Replace(patched, "\tv := kv.m[k]\n",
+		"\tpr := proph.NewProph()\n\tpr.ResolveBool(kv.m == nil)\n\tpr.Resolve(struct{ k string }{k})\n\tv := kv.m[k]\n", 1)
+	wantOK(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": patched}))
+
+	orig := strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1) +
+		"\nfunc r() uint64 { return primitive.RandomUint64() }\n"
+	patched = strings.Replace(orig, primImport, "import (\n\t\"github.com/goose-lang/primitive\"\n\t\"github.com/mit-pdos/perennial/proph\"\n)", 1)
+	patched = strings.Replace(patched, "\tv := kv.m[k]\n",
+		"\tpr := proph.NewProph()\n\tpr.Resolve(any(k))\n\tv := kv.m[k]\n", 1)
+	wantOK(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}))
+
+	orig = origKV + "\nfunc proph() int { return 0 }\n"
+	patched = strings.Replace(orig, "package p\n", "package p\n\n"+prophImport+"\n", 1)
+	wantErr(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}),
+		"adds the import of proph to a file that uses the name `proph`")
+
+	// a prophecy without an import of a prophecy package
+	patched = strings.Replace(origKV, "\tv := kv.m[k]\n", "\tpr := proph.NewProph()\n\tpr.ResolveU64(1)\n\tv := kv.m[k]\n", 1)
+	wantErr(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": patched}),
+		"imports no prophecy package")
 }
