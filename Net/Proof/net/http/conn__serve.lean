@@ -245,7 +245,26 @@ theorem conn.serve.wp_proof
         iapply HΨ $$ Hsl
         itrivial
       try wp_auto)
-    all_goals sorry
+    all_goals wp_for_post
+    all_goals (
+      iunfold context.cancelSpec at Hcancel
+      wp_bind (App (Val #cancel) (Val #()))
+      iapply Hcancel
+      · imodintro; itrivial
+      inext
+      iintro -
+      try wp_auto
+      wp_apply wp_recoverPanic $$ [$pnc] as pnc
+      try wp_auto
+      wp_apply wp_hijacked c γh false $$ [$Hsync $Hcmu $Hγh2] as Hγh2
+      try wp_auto
+      wp_apply wp_conn_close wp_Close wp_RReset wp_WReset c br bw t cn a _ _
+        $$ [$Hsync $Hrpool $Hpools $Hbufr $Hbr $Hbufw $Hbw $Hrwc $Hca $Hci] as ⟨Hbufr, Hbufw⟩
+      try wp_auto
+      wp_apply wp_setState c s _ (W64 4) (by decide) $$ [$Hsrv $Hsc $Hst] as Hst
+      try wp_auto
+      iapply HΦ
+      iexact Htok)
   · sorry
 /-PLAN
   -- 1. `with_defer_recover`; RemoteAddr (+ `TCPAddr.String`: `wp_net_AnyString`), store remoteAddr;
