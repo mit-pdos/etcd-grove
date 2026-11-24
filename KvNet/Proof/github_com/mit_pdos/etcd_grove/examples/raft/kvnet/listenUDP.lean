@@ -5,6 +5,7 @@ module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.listenUDP
 public import KvNet.Spec.net.ListenUDP
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -30,7 +31,28 @@ variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
 theorem listenUDP.wp_proof
     (wp_ListenUDP : net.ListenUDP.spec (GF := GF) (hG := hG)) :
     listenUDP.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro p ip port a
+  wp_start as ⟨#Hp, %Hv⟩
+  try wp_auto
+  wp_for
+  wp_apply wp_ListenUDP p ip port a $$ [] as %c %err (⟨%Herr, %s, #Hc⟩ | ⟨%Hcn, #Herr⟩)
+  · iframe Hp
+    ipureintro; exact Hv
+  · subst Herr
+    try wp_auto
+    wp_for_post
+    try wp_auto
+    iapply HΦ
+    iexists s
+    iexact Hc
+  · iunfold net.udpListenErr at Herr
+    icases Herr with ⟨%pe, %e, %Herr, -, -⟩
+    subst Herr
+    try wp_auto
+    wp_apply time.wp_Sleep
+    try wp_auto
+    wp_for_post
+    iframe
 
 end proof
 

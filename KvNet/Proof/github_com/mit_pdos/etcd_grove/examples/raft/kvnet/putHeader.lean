@@ -30,7 +30,30 @@ theorem putHeader.wp_proof
     (wp_putUint32 : putUint32.spec (GF := GF) (hG := hG))
     (wp_putUint64 : putUint64.spec (GF := GF) (hG := hG)) :
     putHeader.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro buf B kind src dst boot seq
+  wp_start as ⟨HB, Hcap⟩
+  try wp_auto
+  wp_apply wp_putUint32 buf B _ $$ [$HB $Hcap] as %b1 ⟨Hb, Hbcap⟩
+  try wp_auto
+  wp_apply wp_slice_literal (V := w8) (t := go.byte) [kind]
+  isplitr
+  · ipureintro; rfl
+  iintro %ksl ⟨Hk, -⟩
+  try wp_auto
+  wp_apply wp_slice_append b1 _ _ [kind] (DFrac.own 1) $$ [$Hb $Hbcap $Hk] as %b2 ⟨Hb, Hbcap, -⟩
+  try wp_auto
+  wp_apply wp_putUint64 b2 _ src $$ [$Hb $Hbcap] as %b3 ⟨Hb, Hbcap⟩
+  try wp_auto
+  wp_apply wp_putUint64 b3 _ dst $$ [$Hb $Hbcap] as %b4 ⟨Hb, Hbcap⟩
+  try wp_auto
+  wp_apply wp_putUint64 b4 _ boot $$ [$Hb $Hbcap] as %b5 ⟨Hb, Hbcap⟩
+  try wp_auto
+  wp_apply wp_putUint64 b5 _ seq $$ [$Hb $Hbcap] as %b6 ⟨Hb, Hbcap⟩
+  try wp_auto
+  iapply HΦ
+  iframe Hbcap
+  simp only [headerBytes, udpMagicW, List.append_assoc] at *
+  iexact Hb
 
 end proof
 

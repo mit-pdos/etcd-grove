@@ -4,6 +4,7 @@ The proof of `KvNet/Spec/.../kvnet/timer.lean` (kvudp, phase 2: `notes/kvudp-pro
 module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.timer
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -28,7 +29,23 @@ variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
 
 theorem timer.wp_proof :
     timer.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d
+  wp_start
+  try wp_auto
+  wp_apply chan.wp_make2 (V := Unit) (W64 1) as %ch %γ ⟨#Hch, %_, Hoc⟩
+  · ipureintro; decide
+  ihave Hoc : ownChan γ Unit (.Buffered []) $$ Hoc
+  imod start_bag (fun _ : Unit => iprop(True)) (.Buffered []) ch γ trivial $$ Hch Hoc with #Hbag
+  try wp_auto
+  wp_apply time.wp_AfterFunc $$ [] as %tm -
+  · try wp_auto
+    wp_apply wp_bag_send γ ch () (fun _ : Unit => iprop(True)) $$ [$Hbag]
+    try wp_auto
+    itrivial
+  try wp_auto
+  iapply HΦ
+  iexists γ
+  iexact Hbag
 
 end proof
 
