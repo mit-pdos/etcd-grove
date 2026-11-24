@@ -3,8 +3,8 @@ The vr kit's links (notes/dsv-vr.md; the kit's top-level `Link`, namespace `Etcd
 (`OrchProof`, `ClientProof`, `ServerProof`) applied to their callees' results (the kit's own
 proofs `Conf`, `ModelProof`, `CodecProof`, `KitProof`, `MkClientProof`, `OpProof`, the packages'
 `Results.lean`, remote's `Link.lean`, `Net/`'s net proofs), over the library hypotheses that remain
-(`LibHyps`: `connReaderOk`, finding 5; `JsonHyps`
-(`JsonHyps.lean`): every `encoding/json` premise); remote's `Check` and `ServeClient` are remote's proofs,
+(`JsonHyps` (`JsonHyps.lean`): every `encoding/json` premise; a connection's `io.Reader` is Net's
+`net.conn_readerOk` over `net.Conn.Read`'s proof, finding 5); remote's `Check` and `ServeClient` are remote's proofs,
 the main tree's `Unmarshal` and `SetCodec` its proofs (`Proof/encoding/json/Results.lean`).
 -/
 module
@@ -27,9 +27,9 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 public import Dsverify.Proof.log.slog.Logger
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.encoding.json.Results
@@ -128,17 +128,17 @@ theorem vsrTypeMethods : examples.vsrnet.TypeMethods (GF := GF) (hG := hG) :=
 theorem vsrCodecOk (j : JsonHyps (GF := GF) (hG := hG)) : examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
   j.codecOk vsrRegisteredCodecOk vsrScanOk vsrTypeMethods
 
-theorem wp_Orch (h : LibHyps (GF := GF) (hG := hG)) : Orch.spec (GF := GF) (hG := hG) :=
+theorem wp_Orch : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof EtcdGrove.remote.wp_Check CfgAddrs.wp_proof
     (Configure.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
-      h.conn_readerOk)
+      net.Conn.Read.wp_proof)
     Model.wp_proof Codec.wp_proof Gen.wp_proof
 
-theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (hG := hG)) :
+theorem wp_Server (j : JsonHyps (GF := GF) (hG := hG)) :
     Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof CfgAddrs.wp_proof
     (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof
-      net.Conn.Close.wp_proof h.conn_readerOk)
+      net.Conn.Close.wp_proof net.Conn.Read.wp_proof)
     (runReplica.wp_proof log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (vsrCodecOk j)
       (wp_RegisterJSON encoding.json.SetCodec.wp)
       (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp (vsrCodecOk j)))
@@ -152,7 +152,7 @@ theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
         (pkg.events.Event.ToWriter.wp j.NewEncoder j.Encode_conn (vsrCodecOk j)))
       pkg.replica.Replica.Submit.wp)
 
-theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (hG := hG)) :
+theorem wp_Client (j : JsonHyps (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof (vsrCodecOk j)
     (Op.wp_proof
@@ -166,7 +166,7 @@ theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
     EtcdGrove.remote.wp_ServeClient
     CfgAddrs.wp_proof
     (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof
-      net.Conn.Close.wp_proof h.conn_readerOk)
+      net.Conn.Close.wp_proof net.Conn.Read.wp_proof)
     (mkClient.wp_proof
       (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp
         (vsrCodecOk j)))

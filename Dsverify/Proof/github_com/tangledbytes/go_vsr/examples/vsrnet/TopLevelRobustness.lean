@@ -5,7 +5,7 @@ proved as paxos's: from the deployment's start (the registry, the addresses unse
 remote's slot map with the client addresses' call budgets, its pending library over the abstract
 state, every machine's share), and each machine's boot from its share: its generated initializer's
 spec and its `main`'s (`Mains.lean`) over the links (`Link.lean`)
-at the premises `LibHyps` and `JsonHyps` of its heap; a client's or server's boot is its first
+at the premise `JsonHyps` of its heap; a client's or server's boot is its first
 run (`BootCmdsLinked.lean`), which returns encoding/json's fresh registry (`codecFresh`) for its
 `main` (`RegisterJSON()`).
 -/
@@ -122,7 +122,7 @@ theorem range5 : List.range 5 = [0, 1, 2, 3, 4] := rfl
 
 /-- **The vr kit** (see the statement's file). -/
 theorem vr_remote_robust : vr_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi dr er hl hj σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi hj σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) vrKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   iintro #Hreg Hs
@@ -161,8 +161,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    have hL := hl G' hG.goose_localGS π
-    have hJ := hj G' hG.goose_localGS π
+    obtain ⟨_, _, hJ⟩ := hj G' hG.goose_localGS π
     match i, hm with
     | 0, hm =>
       cases hm
@@ -175,7 +174,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, HP⟩ HΦ
             iunfold orchShare at HP
             icases HP with ⟨#Hs, Hz, #Hc, #Ha, #Hm, #Hp, Hl, Hb⟩
-            iapply (cmd.orch.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Orch hL) γ γp hrb) $$ [Hz Hl Hb] HΦ
+            iapply (cmd.orch.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Orch) γ γp hrb) $$ [Hz Hl Hb] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 1, hm =>
@@ -192,7 +191,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client0.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
+            iapply (cmd.client0.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 2, hm =>
@@ -209,7 +208,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client1.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
+            iapply (cmd.client1.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 3, hm =>
@@ -226,7 +225,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client2.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
+            iapply (cmd.client2.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 4, hm =>
@@ -243,7 +242,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client3.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
+            iapply (cmd.client3.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 5, hm =>
@@ -260,7 +259,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client4.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
+            iapply (cmd.client4.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 6, hm =>
@@ -277,7 +276,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client5.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
+            iapply (cmd.client5.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 7, hm =>
@@ -289,7 +288,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
           (encoding.json.codecFresh (GF := remoteGF)) cmd.server1.wp_boot (srvShare (G := G') γ 1)
           (by
             iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
-            iapply (cmd.server1.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
+            iapply (cmd.server1.wp_main (EtcdGrove.dsvvr.wp_Server hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 8, hm =>
@@ -301,7 +300,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
           (encoding.json.codecFresh (GF := remoteGF)) cmd.server2.wp_boot (srvShare (G := G') γ 2)
           (by
             iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
-            iapply (cmd.server2.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
+            iapply (cmd.server2.wp_main (EtcdGrove.dsvvr.wp_Server hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 9, hm =>
@@ -313,7 +312,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
           (encoding.json.codecFresh (GF := remoteGF)) cmd.server3.wp_boot (srvShare (G := G') γ 3)
           (by
             iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
-            iapply (cmd.server3.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
+            iapply (cmd.server3.wp_main (EtcdGrove.dsvvr.wp_Server hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 10, hm =>
@@ -325,7 +324,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
           (encoding.json.codecFresh (GF := remoteGF)) cmd.server4.wp_boot (srvShare (G := G') γ 4)
           (by
             iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
-            iapply (cmd.server4.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
+            iapply (cmd.server4.wp_main (EtcdGrove.dsvvr.wp_Server hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 11, hm =>
@@ -337,7 +336,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
           (encoding.json.codecFresh (GF := remoteGF)) cmd.server5.wp_boot (srvShare (G := G') γ 5)
           (by
             iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
-            iapply (cmd.server5.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
+            iapply (cmd.server5.wp_main (EtcdGrove.dsvvr.wp_Server hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
   · simp only [system]

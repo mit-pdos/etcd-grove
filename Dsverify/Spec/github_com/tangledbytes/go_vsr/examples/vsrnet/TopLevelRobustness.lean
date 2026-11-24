@@ -14,25 +14,26 @@ this says porcupine accepts every history, under every fault the net extension a
 **Premises** (visible, each at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the
 start's `NetProtoGS`; every package initializer is proved: `encoding/json`'s the main tree's, J1 of
 mit-pdos/etcd-grove#24, and its first run on a machine (the registry fresh, `BootLinked.lean`),
-`log/slog`'s from the model's code), each true of the code (the argument is at each statement):
-* the model's `*Decoder` and `*Encoder` representations, any (`encoding.json.DecoderRep`,
-  `EncoderRep`: data classes, no instance anywhere);
-* `LibHyps` (`examples/vsrnet/LibHyps.lean`): `connReaderOk` (a connection is an `io.Reader` for
-  any buffer: notes/dsv-vr.md finding 5; it waits on Perennial's readatleast-prefix,
-  mit-pdos/perennial#688); `log/slog`'s specs are proved from the model;
+`log/slog`'s from the model's code), each true of the code (the argument is at each statement;
+instances of all of them: `examples/vsrnet/NonVacuityLinked.lean`):
+* at each machine's heap, **some** representations of the model's `*Decoder` and `*Encoder`
+  (`encoding.json.DecoderRep`, `EncoderRep`: data classes, no instance in any proof; the specs
+  below are stated over them; per heap, since a representation owns the heap's memory, as the
+  model's fields' points-to do), with
 * **`JsonHyps`** (`examples/vsrnet/JsonHyps.lean`), the `encoding/json` interface (#24 J3):
-  `NewEncoder`, `Encoder.Encode_conn` (the main tree's statements), `NewDecoder`/`Decode` of a
-  frame (over the dispatch `unmarshalVia`; the main tree has no `Decoder` spec yet), the kit's
-  registered codec's correctness for the values the dispatch sends it (`registeredCodecOk`) and
-  the named types' own generated methods' where the kit's contract has a deposit (`TypeCodecs`,
-  13 parts of the main tree's `typeCodecOk`; the rest is proved).
-  `Unmarshal`, `SetCodec` are the main tree's proofs and `RegisterJSON()` is proved from the boot.
+  `NewEncoder`, `Encoder.Encode_conn` (the main tree's statements, not proved there yet),
+  `NewDecoder`/`Decode` of a frame (over the dispatch `unmarshalVia`; the main tree has no
+  `Decoder` spec yet).
+Proved, not premises: `Unmarshal`, `SetCodec` (the main tree's proofs), `RegisterJSON()` (from the
+boot), the kit's registered codec and the named types' own generated methods (`vsrnet.TypeMethods`),
+a connection as an `io.Reader` (Net's `net.conn_readerOk` with Perennial's `io.ReadFull`, which
+asks the reader's precondition only of the reads it makes, mit-pdos/perennial#688), `log/slog`'s
+specs (from the model).
 Proved in `Dsverify/Proof/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLevelRobustness.lean`.
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.TopLevelDefs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
 
 @[expose] public section
@@ -67,9 +68,9 @@ def vr_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    ∀ [encoding.json.DecoderRep remoteGF] [encoding.json.EncoderRep remoteGF],
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; LibHyps (GF := remoteGF)) →
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; JsonHyps (GF := remoteGF)) →
+    (∀ G L (π : NetProtoGS), letI := heapAt G L;
+      ∃ (_ : encoding.json.DecoderRep remoteGF) (_ : encoding.json.EncoderRep remoteGF),
+        JsonHyps (GF := remoteGF)) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy vrKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g threads (2 ^ 63)

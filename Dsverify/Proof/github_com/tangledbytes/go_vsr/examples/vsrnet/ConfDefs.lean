@@ -17,7 +17,7 @@ public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
 public import GooseLang.Ext.Net.Stream
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
+public import Net.Proof.net.ConnIo
 
 @[expose] public section
 
@@ -350,7 +350,7 @@ theorem wp_closeConn (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
 theorem wp_sendConf (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
+    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (γ : Names) (a : GoString) (b : GoSlice) (n h r : Nat) (hc : ConfOk n h r) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗
         addrProto (Gg := hG.goose_globalGS) a (confProto γ) ackProto ∗ fact γ (.size n) ∗
@@ -411,16 +411,16 @@ theorem wp_sendConf (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   wp_auto
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
-  ihave #Hrd := conn_readerOk t cn false a la ra eof ed ackProto Hev.1 $$ [$Hca $Heof $Hed]
+  ihave #Hrd := net.conn_readerOk wp_Read t cn false a la ra eof ed ackProto $$ [$Hio $Hca $Heof $Hed]
   ihave Hrv := recvTok_L $$ Hrv
   ihave Hs2 := slice_array a_ptr 1 _ (by decide) $$ a
   simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
     show (W64 1 - W64 0) = W64 1 from rfl,
     show (zero_val (GoArray w8 1)).arr = [W8 0] from rfl]
-  wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (fun _ _ => True)
+  wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (fun _ m => 0 < m)
       (recvTokL (Gg := hG.goose_globalGS) cn false ackProto) (net.connReadE eof la ra ed) [] (slice.mk a_ptr (W64 1) (W64 1)) [W8 0] eof ueof
       $$ [Hrv Hs2] as %n2 %err2 ⟨%ys, %Hys, Hs2, Hrv, #Hres⟩
-  · iframe Hrd Heof Hue Hrv Hs2; ipureintro; intro _ _; trivial
+  · iframe Hrd Heof Hue Hrv Hs2; ipureintro; intro _ hl; simp only [List.length_cons, List.length_nil] at hl ⊢; omega
   iunfold io.readFullRes at Hres
   icases Hres with (%Hl | ⟨%e, %He, -⟩)
   rotate_left
@@ -490,7 +490,7 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
+    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (γ : Names) (γf : FutureNames) (ch : Loc) (addr : GoString) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗
         addrProto (Gg := hG.goose_globalGS) addr (confProto γ) ackProto ∗
@@ -578,17 +578,17 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   icases Hend with ⟨Hs, Hrv⟩
   ihave #Hconn := sendTok_connIs cn true _ _ $$ Hs
   wp_auto
-  ihave #Hrd := conn_readerOk tc cn true addr la ra eof ed (confProto γ) Hev.1 $$ [$Hca $Heof $Hed]
+  ihave #Hrd := net.conn_readerOk wp_Read tc cn true addr la ra eof ed (confProto γ) $$ [$Hio $Hca $Heof $Hed]
   ihave Hrv := recvTok_L $$ Hrv
   ihave Hb := slice_array b_ptr 3 _ (by decide) $$ b
   simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
     show (W64 3 - W64 0) = W64 3 from rfl,
     show (zero_val (GoArray w8 3)).arr = [W8 0, W8 0, W8 0] from rfl]
-  wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #tc⟩ (fun _ _ => True)
+  wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #tc⟩ (fun _ m => 0 < m)
       (recvTokL (Gg := hG.goose_globalGS) cn true (confProto γ)) (net.connReadE eof la ra ed) []
       (slice.mk b_ptr (W64 3) (W64 3)) [W8 0, W8 0, W8 0] eof ueof
       $$ [Hrv Hb] as %n2 %err2 ⟨%ys, %Hys, Hb, Hrv, #Hres⟩
-  · iframe Hrd Heof Hue Hrv Hb; ipureintro; intro _ _; trivial
+  · iframe Hrd Heof Hue Hrv Hb; ipureintro; intro _ hl; simp only [List.length_cons, List.length_nil] at hl ⊢; omega
   iunfold io.readFullRes at Hres
   icases Hres with (%Hl | ⟨%e, %He, -⟩)
   rotate_left

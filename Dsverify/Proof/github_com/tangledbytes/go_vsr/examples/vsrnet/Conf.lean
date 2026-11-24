@@ -4,7 +4,7 @@ The vr kit's configuration protocol (`kit.go`: `CfgAddrs`, `Conf`, `heartbeatMs`
 dsverify-lab `examples/vr/proof/VsrProof/{Top/Orch,Top/AwaitConf,Wire/Basic}.lean` (notes/dsv-vr.md)
 onto the net extension (`net.Dial`/`Listen`/`Listener.Accept`/`Conn.Write`/`Conn.Close` specs as
 hypotheses, `GooseLang/Ext/Net/Proto.lean`'s laws) and Perennial's `io.ReadFull` (`io.wp_ReadFull`,
-over an `io.readerOk` of the connection: the hypothesis `conn_readerOk`).
+over an `io.readerOk` of the connection: Net's `net.conn_readerOk`, from `net.Conn.Read`'s spec).
 
 * `cfgAddrs` (`Wire/Addrs.lean`): the kit's `CfgAddrs()`, machine `n`'s configuration address at
   `n` (the orchestrator's, `n = 0`, unused).
@@ -33,7 +33,6 @@ public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
 public import GooseLang.Ext.Net.Stream
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ConfDefs
 
 @[expose] public section
@@ -99,7 +98,7 @@ theorem CfgAddrs.wp_proof : CfgAddrs.spec (GF := GF) (hG := hG) := by
 theorem Configure.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG)) :
+    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     Configure.spec (GF := GF) (hG := hG) := by
   intro γ cfgs dq n h r hc
   wp_start as ⟨Hcfgs, #Hps, #Hf⟩
@@ -132,7 +131,7 @@ theorem Configure.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     wp_method_call
     wp_auto
     wp_apply wp_Conf_encode n h r ⟨hn, hh, hr⟩ as %bsl Hbsl
-    wp_apply wp_sendConf wp_Dial wp_Write wp_Close conn_readerOk γ a bsl n h r ⟨hn, hh, hr⟩
+    wp_apply wp_sendConf wp_Dial wp_Write wp_Close wp_Read γ a bsl n h r ⟨hn, hh, hr⟩
       $$ [$Hpa $Hf $Hbsl] as %ok -
     cases ok
     · simp only [Bool.not_false]
@@ -159,7 +158,7 @@ theorem waitConf.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG)) :
+    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     waitConf.spec (GF := GF) (hG := hG) := by
   intro γ cfgs dq m hm
   wp_start as ⟨Hcfgs, #Hps⟩
@@ -186,7 +185,7 @@ theorem waitConf.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   wp_apply wp_load_slice_index cfgs (sint.Z m) _ dq ca hb.1 $$ [$Hcfgs] as Hcfgs
   · ipureintro; rw [show (sint.Z m).toNat = uint.nat m by word]; exact hca
   wp_apply wp_fork $$ [Hful]
-  · wp_apply (wp_awaitConf wp_Listen wp_Accept wp_Write wp_Close conn_readerOk γ γf ch ca)
+  · wp_apply (wp_awaitConf wp_Listen wp_Accept wp_Write wp_Close wp_Read γ γf ch ca)
       $$ [Hful]
     · iframe; iframe #
     itrivial
