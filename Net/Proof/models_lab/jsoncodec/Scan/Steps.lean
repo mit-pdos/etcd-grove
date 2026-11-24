@@ -1,17 +1,17 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/jsoncodec/ScanSteps.lean (lab master 915f964;
-notes/dsv-vr.md).
+namespace `VsrJson` there).
 -/
 /-
 One-step equations of `goL` (the scanner's loop), by its state and next byte.
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.ScanDef
+public import Net.Proof.models_lab.jsoncodec.Scan.Def
 
 @[expose] public section
 
-namespace VsrJson
+namespace JsonScan
 
 open Perennial
 
@@ -77,4 +77,4 @@ theorem goL_colon (r : List w8) :
     goL (58#8 :: r) i stk 3 eOK eof = goL r (i + 1) stk 0 eOK eof := by
   rw [goL.eq_def]; simp [spB]; try rfl
 
-end VsrJson
+end JsonScan

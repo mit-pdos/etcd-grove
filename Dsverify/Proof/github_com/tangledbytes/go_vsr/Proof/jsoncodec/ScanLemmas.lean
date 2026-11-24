@@ -8,7 +8,7 @@ followed by anything, and on a prefix of `ser v`).
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.ScanSteps
+public import Net.Proof.models_lab.jsoncodec.Scan.Steps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Enc
 
 @[expose] public section
@@ -17,6 +17,8 @@ set_option linter.unusedSimpArgs false
 set_option linter.deprecated false
 
 namespace VsrJson
+
+open JsonScan
 
 open Perennial
 
@@ -146,6 +148,8 @@ theorem numL_part (p : List w8) (hp : p ≠ []) (hd : ∀ c ∈ p, isDig c = tru
 end VsrJson
 
 namespace VsrJson
+
+open JsonScan
 open Perennial
 
 /-- What may follow a value inside a container: after a number, a byte that ends it. -/

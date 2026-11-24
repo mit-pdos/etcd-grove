@@ -17,6 +17,8 @@ set_option linter.deprecated false
 
 namespace VsrJson
 
+open JsonScan
+
 open Perennial VsrModel
 
 theorem decN_iff (a b : Nat) : decN a = decN b ↔ a = b :=

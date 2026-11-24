@@ -40,12 +40,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- JSON whitespace, both ways. -/
-theorem vsrnet.isSpaceB_spB (c : w8) : encoding.json.isSpaceB c = VsrJson.spB c := by
-  simp [encoding.json.isSpaceB, VsrJson.spB]
+theorem vsrnet.isSpaceB_spB (c : w8) : encoding.json.isSpaceB c = JsonScan.spB c := by
+  simp [encoding.json.isSpaceB, JsonScan.spB]
 
 /-- The kit's scanner (`jsoncodec.Scan`'s function: `(op, end)` of a prefix of the input).
 -- sealed: the JSON prover's choice -/
-def vsrnet.scanF : List w8 → Bool → w64 × w64 := VsrJson.scanF
+def vsrnet.scanF : List w8 → Bool → w64 × w64 := JsonScan.scanF
 
 section codec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -84,7 +84,7 @@ as encoding/json does, which is `log.encLogs es` (jsongen's generated test `json
 compares the codec with real encoding/json; `encLogs` is the lab's proved encoding of the same
 values), and `jsonUnmarshal` decodes `encLogs es` (ids below `2^64`, plain operations) into a
 nil `*[]log.Log` as a fresh slice of `es`. `scanOk scanF scanFn`: `models.lab/jsoncodec.Scan` is
-the lab's scanner, whose Lean function `VsrJson.scanF` the lab proved it computes
+the lab's scanner, whose Lean function `JsonScan.scanF` the lab proved it computes
 (`Proof/jsoncodec/Scan*.lean`, ported). -/
 def vsrnet.registeredCodecOk : Prop :=
   ⊢ encoding.json.codecOkWith (jc := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF)))
@@ -189,9 +189,9 @@ theorem vsrnet.scanF_line (ws : List w8) (m : Msg) (rest : List w8) (eof : Bool)
     (hws : ∀ c ∈ ws, encoding.json.isSpaceB c = true) (hm : PlainMsg m) :
     vsrnet.scanF (ws ++ VsrWire.encEvent m ++ rest) eof =
       (W64 0, W64 (ws.length + (VsrWire.encEvent m).length)) := by
-  have hsp : ∀ c ∈ ws, VsrJson.spB c = true := fun c hc => by
+  have hsp : ∀ c ∈ ws, JsonScan.spB c = true := fun c hc => by
     rw [← vsrnet.isSpaceB_spB]; exact hws c hc
-  simp only [vsrnet.scanF, VsrJson.scanF, VsrWire.encEvent, VsrJson.scanL_line ws m rest eof hsp hm]
+  simp only [vsrnet.scanF, JsonScan.scanF, VsrWire.encEvent, VsrJson.scanL_line ws m rest eof hsp hm]
   push_cast; rfl
 
 /-- The scanner asks for more on whitespace followed by a strict prefix of an encoding (not at
@@ -200,9 +200,9 @@ theorem vsrnet.scanF_partial (ws pre : List w8) (m : Msg)
     (hws : ∀ c ∈ ws, encoding.json.isSpaceB c = true) (hm : PlainMsg m)
     (hpre : pre <+: VsrWire.encEvent m) (hne : pre ≠ VsrWire.encEvent m) :
     (vsrnet.scanF (ws ++ pre) false).1 = W64 1 := by
-  have hsp : ∀ c ∈ ws, VsrJson.spB c = true := fun c hc => by
+  have hsp : ∀ c ∈ ws, JsonScan.spB c = true := fun c hc => by
     rw [← vsrnet.isSpaceB_spB]; exact hws c hc
-  simp only [vsrnet.scanF, VsrJson.scanF, VsrJson.scanL_partial false ws pre m hsp hm hpre hne]
+  simp only [vsrnet.scanF, JsonScan.scanF, VsrJson.scanL_partial false ws pre m hsp hm hpre hne]
   rfl
 
 /-- An encoding after whitespace is valid JSON (below 2^64 bytes: `jsonValid` reads the end as a

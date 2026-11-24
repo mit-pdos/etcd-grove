@@ -1,12 +1,11 @@
 /-
-Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/jsoncodec/ScanDef.lean (lab master 915f964;
-notes/dsv-vr.md).
--/
-/-
-`jsoncodec.Scan` as a Lean function (`scanL`, `vsrnet.scanF`): a transcription of
-harness/jsoncodec/jsoncodec.go's `Scan` and its helpers, on the suffix of the input at the
-current index (each helper takes the bytes from its index `i` on and returns absolute
-indices). Statuses: 0 Done, 1 More, 2 Bad.
+`jsoncodec.Scan` (`models/jsoncodec/jsoncodec.go`) as a Lean function (`scanL`, and `scanF`, its
+results as words): a transcription of `Scan` and its helpers, on the suffix of the input at the
+current index (each helper takes the bytes from its index `i` on and returns absolute indices).
+Statuses: 0 Done, 1 More, 2 Bad. The Go function computes it: `Scan.lean` (`Scan.wp_proof`) and
+`ScanOk.lean` (`scanOk scanF scanFn`). Generic (any program's codec registers this `Scan`);
+ported from dsverify-lab's `examples/vr/proof/VsrProof/Proof/jsoncodec/ScanDef.lean` (lab master
+915f964), namespace `VsrJson` there.
 -/
 module
 
@@ -14,7 +13,7 @@ public import Perennial.Std.ByteString
 
 @[expose] public section
 
-namespace VsrJson
+namespace JsonScan
 
 open Perennial
 
@@ -189,4 +188,8 @@ decreasing_by all_goals (simp; try omega)
 /-- `Scan(b, eof)`: status and end. -/
 def scanL (b : List w8) (eof : Bool) : Nat × Nat := goL b 0 [] 0 false eof
 
-end VsrJson
+/-- `Scan(b, eof)`'s results as words: what `jsoncodec.Scan` returns. -/
+def scanF (b : List w8) (eof : Bool) : w64 × w64 :=
+  (W64 (scanL b eof).1, W64 (scanL b eof).2)
+
+end JsonScan

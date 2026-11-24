@@ -18,11 +18,9 @@ set_option linter.deprecated false
 
 namespace VsrJson
 
-open Perennial VsrModel
+open JsonScan
 
-/-- `Scan`'s results as words (`vsrnet.scanF`). -/
-def scanF (b : List w8) (eof : Bool) : w64 × w64 :=
-  (W64 (scanL b eof).1, W64 (scanL b eof).2)
+open Perennial VsrModel
 
 /-! ## Well-formedness -/
 

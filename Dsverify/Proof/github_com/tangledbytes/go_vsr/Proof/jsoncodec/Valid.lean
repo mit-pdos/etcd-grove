@@ -15,6 +15,8 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Fram
 
 namespace VsrJson
 
+open JsonScan
+
 open Perennial VsrModel
 
 theorem isSpaceB_spB (c : w8) : encoding.json.isSpaceB c = spB c := by

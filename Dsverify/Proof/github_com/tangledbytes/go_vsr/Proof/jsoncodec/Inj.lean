@@ -17,6 +17,8 @@ set_option linter.deprecated false
 
 namespace VsrJson
 
+open JsonScan
+
 open Perennial VsrModel
 
 theorem decN_length (n : Nat) : (n < 10 → (decN n).length = 1) ∧ (10 ≤ n → 2 ≤ (decN n).length) := by

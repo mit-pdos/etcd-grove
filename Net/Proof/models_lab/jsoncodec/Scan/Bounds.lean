@@ -1,6 +1,6 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/jsoncodec/ScanBounds.lean (lab master 915f964;
-notes/dsv-vr.md).
+namespace `VsrJson` there).
 -/
 /-
 Bounds on the scanner's indices: every helper's end is within the input from its start, and a
@@ -8,15 +8,15 @@ scalar that is done ends after its first byte.
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.NumSteps
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.ScanSteps
+public import Net.Proof.models_lab.jsoncodec.Scan.NumSteps
+public import Net.Proof.models_lab.jsoncodec.Scan.Steps
 
 @[expose] public section
 
 set_option linter.unusedSimpArgs false
 set_option linter.deprecated false
 
-namespace VsrJson
+namespace JsonScan
 
 open Perennial
 
@@ -207,4 +207,4 @@ theorem scanL_le (bs : List w8) (eof : Bool) : (scanL bs eof).2 ≤ bs.length :=
   have := goL_bd eof bs.length bs rfl 0 [] 0 false
   simpa [scanL] using this
 
-end VsrJson
+end JsonScan

@@ -3,7 +3,9 @@ The results of `models.lab`'s codec helpers (`models/`, project models; phase 5 
 notes/dsverify-net-port-plan.md), restated, with `#print axioms` of each (none beyond Lean's):
 
 * `jsoncodec`: `IsSpace`, `AppendRaw`, `AppendBool`, `(*Error).Error`, and its package
-  initialization; `Error_errAny` (a kept `*jsoncodec.Error` is some error);
+  initialization; `Error_errAny` (a kept `*jsoncodec.Error` is some error); the scanner
+  `SkipSpace`, `Scan` (`JsonScan.scanF`, `jsoncodec/Scan/Def.lean`) and the codec obligation
+  `scanOk JsonScan.scanF scanFn` (`scanOk_scanF`);
 * `pbcodec`: `(*Error).Error`, its package initialization, and `Error_errAny`.
 
 The codec obligations (`pbcodec.PbCodec`, `marshalOk`, `unmarshalOk`; `jsoncodec.JsonCodec`,
@@ -20,6 +22,9 @@ public import Net.Proof.models_lab.jsoncodec.IsSpace
 public import Net.Proof.models_lab.jsoncodec.AppendRaw
 public import Net.Proof.models_lab.jsoncodec.AppendBool
 public import Net.Proof.models_lab.jsoncodec.Error__Error
+public import Net.Proof.models_lab.jsoncodec.SkipSpace
+public import Net.Proof.models_lab.jsoncodec.Scan
+public import Net.Proof.models_lab.jsoncodec.ScanOk
 public import Net.Proof.models_lab.pbcodec.Error__Error
 
 @[expose] public section
@@ -56,6 +61,19 @@ theorem jsoncodec.Error.Error.wp [jsoncodec.Assumptions] :
     jsoncodec.Error.Error.spec (GF := GF) (hG := hG) :=
   jsoncodec.Error.Error.wp_proof
 
+theorem jsoncodec.SkipSpace.wp [jsoncodec.Assumptions] :
+    jsoncodec.SkipSpace.spec (GF := GF) (hG := hG) :=
+  jsoncodec.SkipSpace.wp_proof jsoncodec.IsSpace.wp_proof
+
+theorem jsoncodec.Scan.wp [jsoncodec.Assumptions] :
+    jsoncodec.Scan.spec (GF := GF) (hG := hG) :=
+  jsoncodec.Scan.wp_proof jsoncodec.SkipSpace.wp
+
+/-- `jsoncodec.Scan` computes `JsonScan.scanF` (`jsoncodec.scanOk_of`, linked). -/
+theorem jsoncodec.scanOk_scanF [jsoncodec.Assumptions] :
+    ⊢ jsoncodec.scanOk (GF := GF) JsonScan.scanF jsoncodec.scanFn :=
+  jsoncodec.scanOk_of jsoncodec.Scan.wp
+
 theorem pbcodec.Error.Error.wp [pbcodec.Assumptions] :
     pbcodec.Error.Error.spec (GF := GF) (hG := hG) :=
   pbcodec.Error.Error.wp_proof
@@ -82,6 +100,9 @@ end Perennial
 #print axioms Perennial.models_lab.jsoncodec.AppendBool.wp
 #print axioms Perennial.models_lab.jsoncodec.Error.Error.wp
 #print axioms Perennial.models_lab.jsoncodec.Error_errAny'
+#print axioms Perennial.models_lab.jsoncodec.SkipSpace.wp
+#print axioms Perennial.models_lab.jsoncodec.Scan.wp
+#print axioms Perennial.models_lab.jsoncodec.scanOk_scanF
 #print axioms Perennial.models_lab.jsoncodec.wp_initialize'
 #print axioms Perennial.models_lab.pbcodec.Error.Error.wp
 #print axioms Perennial.models_lab.pbcodec.Error_errAny'

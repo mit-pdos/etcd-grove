@@ -1,20 +1,20 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/jsoncodec/NumSteps.lean (lab master 915f964;
-notes/dsv-vr.md).
+namespace `VsrJson` there).
 -/
 /-
 `numL` (scanNumber) by program point, on the suffix at an index (for the Go proof).
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.StrSteps
+public import Net.Proof.models_lab.jsoncodec.Scan.StrSteps
 
 @[expose] public section
 
 set_option linter.unusedSimpArgs false
 set_option linter.deprecated false
 
-namespace VsrJson
+namespace JsonScan
 
 open Perennial
 
@@ -182,4 +182,4 @@ theorem expL_e (j : Nat) (c : w8) (h : bs[j]? = some c) (hc : c = 101#8 ∨ c = 
     · simp only [hs, if_false, ite_false]
       exact key (j + 1) _ (by rw [drop_cons_of bs (j + 1) _ h1])
 
-end VsrJson
+end JsonScan

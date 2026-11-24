@@ -17,7 +17,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Fram
 
 namespace VsrLineBound
 
-open Perennial VsrModel VsrJson
+open Perennial VsrModel VsrJson JsonScan
 
 /-! ## The encoding's length -/
 

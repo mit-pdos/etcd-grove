@@ -1,20 +1,20 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/jsoncodec/StrSteps.lean (lab master 915f964;
-notes/dsv-vr.md).
+namespace `VsrJson` there).
 -/
 /-
 `strL` (scanString's loop) one step at a time, on the suffix at an index (for the Go proof).
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.ScanDef
+public import Net.Proof.models_lab.jsoncodec.Scan.Def
 
 @[expose] public section
 
 set_option linter.unusedSimpArgs false
 set_option linter.deprecated false
 
-namespace VsrJson
+namespace JsonScan
 
 open Perennial
 
@@ -111,4 +111,4 @@ theorem litL_ok (lit : List w8) (k : Nat) (hk : k < lit.length) (h : bs[j]? = so
     litL (bs.drop j) j (lit.drop k) = litL (bs.drop (j + 1)) (j + 1) (lit.drop (k + 1)) := by
   rw [drop_cons_of bs j _ h, List.drop_eq_getElem_cons hk]; simp [litL]
 
-end VsrJson
+end JsonScan

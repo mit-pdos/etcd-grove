@@ -23,18 +23,18 @@ theorem vsrnet.scanF_partial_eof (ws pre : List w8) (m : Msg) (eof : Bool)
     (hws : ∀ c ∈ ws, encoding.json.isSpaceB c = true) (hm : PlainMsg m)
     (hpre : pre <+: VsrWire.encEvent m) (hne : pre ≠ VsrWire.encEvent m) :
     (vsrnet.scanF (ws ++ pre) eof).1 = W64 1 := by
-  have hsp : ∀ c ∈ ws, VsrJson.spB c = true := fun c hc => by
+  have hsp : ∀ c ∈ ws, JsonScan.spB c = true := fun c hc => by
     rw [← vsrnet.isSpaceB_spB]; exact hws c hc
-  simp only [vsrnet.scanF, VsrJson.scanF, VsrJson.scanL_partial eof ws pre m hsp hm hpre hne]
+  simp only [vsrnet.scanF, JsonScan.scanF, VsrJson.scanL_partial eof ws pre m hsp hm hpre hne]
   rfl
 
 /-- The scanner on whitespace only: more, its end the whitespace's. -/
 theorem vsrnet.scanF_space (ws : List w8) (eof : Bool)
     (hws : ∀ c ∈ ws, encoding.json.isSpaceB c = true) :
     vsrnet.scanF ws eof = (W64 1, W64 ws.length) := by
-  have hsp : ∀ c ∈ ws, VsrJson.spB c = true := fun c hc => by
+  have hsp : ∀ c ∈ ws, JsonScan.spB c = true := fun c hc => by
     rw [← vsrnet.isSpaceB_spB]; exact hws c hc
-  simp only [vsrnet.scanF, VsrJson.scanF, VsrJson.scanL_space ws eof hsp]
+  simp only [vsrnet.scanF, JsonScan.scanF, VsrJson.scanL_space ws eof hsp]
   rfl
 
 end Perennial.github_com.tangledbytes.go_vsr.examples

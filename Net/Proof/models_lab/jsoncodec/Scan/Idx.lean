@@ -1,20 +1,20 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/jsoncodec/ScanIdx.lean (lab master 915f964;
-notes/dsv-vr.md).
+namespace `VsrJson` there).
 -/
 /-
 The scanner's loop on the suffix at an index (for the Go proof of `Scan`).
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.ScanBounds
+public import Net.Proof.models_lab.jsoncodec.Scan.Bounds
 
 @[expose] public section
 
 set_option linter.unusedSimpArgs false
 set_option linter.deprecated false
 
-namespace VsrJson
+namespace JsonScan
 
 open Perennial
 
@@ -184,4 +184,4 @@ theorem litL_st (cs : List w8) (j : Nat) (lit : List w8) : (litL cs j lit).1 ≤
 theorem scalarL_st (cs : List w8) (i : Nat) (eof : Bool) : (scalarL cs i eof).1 ≤ 2 := by
   unfold scalarL; (repeat' split) <;> simp [strL_st, numL_st, litL_st]
 
-end VsrJson
+end JsonScan

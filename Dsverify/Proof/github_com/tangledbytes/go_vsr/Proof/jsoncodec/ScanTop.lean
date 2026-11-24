@@ -16,6 +16,8 @@ set_option linter.deprecated false
 
 namespace VsrJson
 
+open JsonScan
+
 open Perennial
 
 theorem prefix_app {p a b : List w8} (h : p <+: a ++ b) :

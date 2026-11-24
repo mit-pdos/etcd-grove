@@ -15,6 +15,8 @@ set_option linter.unusedSimpArgs false
 
 namespace VsrJson
 
+open JsonScan
+
 open Perennial
 
 /-- The value of decimal digits. -/
