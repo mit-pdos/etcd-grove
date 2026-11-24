@@ -28,10 +28,10 @@ private theorem wand_bool_congr (P : IProp GF) (Φ : val → IProp GF) (b1 b2 : 
   rw [h]
 
 theorem ValidCluster.wp_proof (wp_ValidAddrs : ValidAddrs.spec (GF := GF) (hG := hG)) : ValidCluster.spec (GF := GF) (hG := hG) := by
-  intro addrs dq l voters msz mcs mif hlen
+  intro addrs dq l voters msz mcs mif
   wp_start as Hsl
   try wp_auto
-  wp_apply wp_ValidAddrs _ _ _ _ hlen $$ [$Hsl] as Hsl
+  wp_apply wp_ValidAddrs _ _ _ _ $$ [$Hsl] as Hsl
   try wp_auto
   cases hv : validAddrs l (uint.nat voters)
   all_goals repeat (first | wp_if_destruct | wp_auto)

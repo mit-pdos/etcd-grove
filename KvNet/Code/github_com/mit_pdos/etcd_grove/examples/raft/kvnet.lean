@@ -668,7 +668,7 @@ noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
 /-- AddrOk says whether a is a well-formed address: the canonical spelling a.b.c.d:p of an IPv4
     address that is not in 0.0.0.0/8 and is below 224.0.0.0, with a port in 1-32767 or 61000-65535
     (outside Linux's default ephemeral range). It is the net extension's addrOk
-    (GooseLang/Ext/Net/Deploy.lean), the top-level theorem's premise on every replica address.
+    (GooseLang/Ext/Net/Deploy.lean), which ValidAddrs checks of every replica address.
 
     go: addrs.go:50:6 -/
 noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
@@ -676,6 +676,7 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc go.string))) (Var "a"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "parts" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 5 go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 5 go.string)))) (Val #())))
   (Let "$r0" (Val #(W64 0))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -775,13 +776,23 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "start") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 21)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- ValidAddrs says whether the replicas' addresses and bootstrap voters are ones the top-level
     theorem's premises allow: every address well formed and none twice, fewer than 2^32 replicas,
     and the bootstrap voters 1..voters among them.
 
-    go: addrs.go:81:6 -/
+    go: addrs.go:86:6 -/
 noncomputable def ValidAddrs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
@@ -846,7 +857,7 @@ noncomputable def ValidAddrs.impl [GooseExts] [GoGlobalContext] : val :=
     addresses and voters (ValidAddrs), raft's size limits not both 0, and MaxInflightMsgs a
     positive Go int below 2^62 (raft's RestartNode needs it).
 
-    go: addrs.go:102:6 -/
+    go: addrs.go:107:6 -/
 noncomputable def ValidCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "voters"
