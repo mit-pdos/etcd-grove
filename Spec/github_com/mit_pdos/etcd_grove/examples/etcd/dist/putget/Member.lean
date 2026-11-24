@@ -6,13 +6,14 @@ error from a step returns. Lean-first (no Rocq counterpart); `notes/putget-dist-
 
 **The triple:** from the package's `isPkgInit`, the main thread's token, the member's named Iris premises
 (`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`envVerifyOff`, the statement's
-`HEnvTok`), its data directory fresh (`dataDirFresh`) and its WAL area
-fresh (`memberAreasFresh`), its share of the distributed start against phase 7 S2's draft names
-(`memberShare`: its client address set to serve etcd's table at the publication name `γE` and its member id
-`id`, its half of the publication token, the publication invariant at `Pub`) and the obligation on `Pub`
-(`memberPubOk`: a putget invariant at a view's read names gives `Pub` of the view), `Member` does not panic.
-It publishes its view at `γE` once `Serve` succeeds (S2's `Serve_s2`), with the client's putget invariant
-allocated from the bootstrap log's KV state.
+`HEnvTok`), its WAL area and data directory fresh (`memberAreasFresh`; since 2026-11-24 no `dataDirFresh`,
+which `bootstrap`'s slot no longer takes), its share of the distributed start over the interim cross-machine
+vocabulary (`memberShare`, `notes/putget-dist-plan.md` §12: its client address set to serve etcd's KV
+calls for the publication name `γE` and its member id `id`, its half of the publication token, the
+publication invariant at `Pub`) and the obligation on `Pub` (`memberPubOk`: a putget invariant gives
+`Pub` of the view of its KV state variable), `Member` does not panic. It publishes its view at `γE`
+(`env_publish`) before `Serve`, with the client's putget invariant allocated from the bootstrap log's
+KV state.
 
 **The pure premises:** the in-process putget's (`Spec/.../examples/etcd/putget/Main.lean`): `bootstrap`'s
 results (`BootFacts`), the logic's bounds (as the logic's bound classes, `ThreadBoundLe`/`ReceiptBoundLe` at
@@ -48,9 +49,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 /-- See the file header. -/
 abbrev Member.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
-    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)] (S : S2Draft (G := hG.goose_globalGS) GF)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)]
     (peer client : GoString) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (γE : GName) (Pub : S.EnvView → IProp GF),
+    (γE : GName) (Pub : etcd_dist.EnvView → IProp GF),
   etcdstart.BootFacts id ctxs boot →
   types.plainPeerURL (go!"http://" ++ peer) →
   srvLevels (GF := GF) →
@@ -58,8 +59,8 @@ abbrev Member.spec : Prop :=
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
       threadTok ∗ etcdstart.premises (GF := GF) name peer client (2 ^ 28) id ctxs boot ∗
-      envVerifyOff (GF := GF) ∗ dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
-      memberShare (G := hG.goose_globalGS) S client γE id Pub ∗ memberPubOk S Pub }}
+      envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
+      memberShare (G := hG.goose_globalGS) client γE id Pub ∗ memberPubOk Pub }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))
       (Val #client))
   {{ RET #(); True }}

@@ -5,8 +5,8 @@ examples' client configuration, etcdctl's timeouts and keepalive, the default re
 `clientv3.New(Config{Endpoints: {addr}, Logger: lg})` inline). Lean-first (no Rocq counterpart).
 
 **The triple:** `NewClients.spec` at the one-element slice (`plainEndpoints` of it from the plain
-endpoint): a new client of `[addr]` at the watch environment `V`, the caller's choice, or an error
-and `nil`.
+endpoint): a new client of `[addr]` at the watch environment `V`, the caller's choice, that dials
+with no proxy (`clientNoProxy`, since 2026-11-24), or an error and `nil`.
 -/
 module
 
@@ -40,7 +40,7 @@ abbrev NewClient.spec : Prop :=
       (Val #addr)) (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
       (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
-        clientTokAt cl [addr] (fun _ => iprop(False))) ∨
+        clientTokAt cl [addr] (fun _ => iprop(False)) ∗ clientNoProxy cl) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec

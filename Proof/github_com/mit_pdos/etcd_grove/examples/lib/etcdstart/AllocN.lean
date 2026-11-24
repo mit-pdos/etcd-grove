@@ -394,7 +394,7 @@ theorem memberStartRes_split (n p : GoString) (c : Option GoString) :
       httpProtoFree p ∗ (∀ γn : NetNames GF,
         http.httpProtoOwn p (raftProto (netRh γn)) -∗ memberFreshRes n ⟨some p, c⟩ γn) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro ⟨#Hv, Hw, WaHw, ⟨Ha, Hf⟩, Hc⟩
+  iintro ⟨#Hv, WaHw, ⟨Ha, Hf⟩, Hc⟩
   iframe Hf
   iintro %γn Ho
   iframe; iframe #

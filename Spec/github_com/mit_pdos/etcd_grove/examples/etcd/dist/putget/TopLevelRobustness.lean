@@ -23,14 +23,17 @@ in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged
 the gRPC service values and `errors.As`'s target, the member's named Iris premises (`Hprem`: the
 trust-boundary contracts `bootstrapContract`, `bootMarshal`, the raft wrapper's, at every ghost-state
 instance, as the retired single-process `etcd_safe`'s `Hprem`), `context`'s two classes (`Hctx`,
-`Hcec`) (no premise on the programs' metric names, `HNs`, since prom-registry, 2026-11-23: each
-machine's boot proof allocates its registration rights itself). `ETCD_VERIFY` (etcd's runtime checks, which panic outside
+`Hcec`). (prom-registry, 2026-11-23: no premise on the programs' metric names, `HNs`: each machine's
+boot proof allocates its registration rights itself.)
+`ETCD_VERIFY` (etcd's runtime checks, which panic outside
 the apply loop) is off on every machine's run, as in the single-process theorems (`HEnv`: `verifyEnvOff`
 of each machine's program, `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`), and `HEnvTok` is that
 fact's token in the logic (`envVerifyOff`): in one process the start axiom `goose_adequacy_start` hands it
 out under `verifyEnvOff`; a distributed start has no such axiom, so it is a premise here (the owner's
-decision, 2026-11-23; no new axiom). No proxy premise yet: no verified step reads the proxy variables
-before phase 7 S5's HTTP client (`notes/putget-dist-plan.md`, section 11).
+decision, 2026-11-23; no new axiom). No proxy premise: the client dials with `grpc.WithNoProxy()`
+(`etcdstart.NewClients`, since 2026-11-24), so it ignores `HTTPS_PROXY`, and no other verified step
+reads the proxy variables before phase 7 S5's HTTP client (`notes/putget-dist-plan.md`, sections 11
+and 12).
 
 **The step bound** is `2 ^ 28 - 1`, not the single-process theorems' `2 ^ 40 - 11`: Perennial's distributed
 adequacy (`goose_dist_adequacy`) bounds the threads over every execution of `n` steps, which the bridge meets
@@ -43,7 +46,8 @@ fails, on the member's machine); the request ids' issue record keyed by heap add
 machine crashes).
 
 **Trusted gap**: the binaries (`cmd/{member,client}`) pass their arguments to `Member`/`Client`; the
-parsing is not translated, so the boot programs are the functions applied to the addresses' Go strings.
+parsing is not translated, so the boot programs are the functions applied to the addresses' Go strings
+(the client's result, which `cmd/client` only prints, discarded: `bootClient`).
 -/
 module
 

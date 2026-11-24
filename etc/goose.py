@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -1104,6 +1104,21 @@ PROJECTS = [
         # machine's server, the orchestrators' and client machines' client, kvremote, enc
         packages=["./putget", "./deployment", "./enc", "./kvremote", "./server", "./client"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+    ),
+    Project(
+        name="putgetk-dist",
+        # putgetK_safe's programs (notes/putget-dist-plan.md §13): member i of a k-member cluster on a
+        # machine of its own (`putgetk.Member`: the cluster's map, etcdstart's StartMember and Serve)
+        # and the client machine's (`putgetk.Client`: putget-dist's `putget.Client`). A package of the
+        # examples' Go module (examples/go.mod), as putget-dist, whose `dist` directory it is inside
+        # (its own `dist/putgetk`, which putget-dist's output skips: others_owned).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "dist"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+        packages=["./putgetk"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist", "putgetk")],
     ),
     Project(
         name="axiomcx-bboltnan",

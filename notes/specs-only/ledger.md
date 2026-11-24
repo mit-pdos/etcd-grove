@@ -25,6 +25,51 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
+  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
+- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
+  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
+- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
+  naming an entry, coherent with the tree through the shared mode's invariant.
+- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
+- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+
+## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+
+- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
+  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
+  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
+- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
+  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
+- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
+  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
+- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
+  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
+- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
+  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+
+## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
+
+- **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`
+  (`etcd_dist.Serve_dist.spec`), `ClientPutDist.lean` (`etcd_dist.Client_Put_dist.spec`), `ClientGetDist.lean`
+  (`etcd_dist.Client_Get_dist.spec`), over the axiomatized address fact `etcd_dist.etcdAddrRaw`/`etcdAddr_set`
+  (`Proof/.../etcd/dist/S2Interim.lean`); and the changed client-construction specs `clientv3.New.spec`,
+  `newClient.spec`, `Client.dialWithBalancer.spec`, `Client.dial.spec` (the configuration's dial options may be
+  `grpc.WithNoProxy()`'s, `noProxyOptsAt`; `New`/`newClient` give the client's `cfg` field), new
+  `grpc.WithNoProxy.spec` (proved), `etcdstart.NewClients.spec`/`NewClient.spec` (post: `clientNoProxy cl`).
+- **Defect.** `putget_safe` needs cross-machine gRPC (phase 7 S2, #24, unfinished): the in-process specs' `Invoke`
+  registration (`kvRegsAt`) is one heap's. And the review of the first design (`s2-interim/review.md`, F1) found
+  that without `WithNoProxy` a client's calls follow `HTTPS_PROXY`, so the cross-machine client axioms were false.
+- **Evidence.** `notes/putget-dist-plan.md` §12; `TestProxyRogue` / `TestWithNoProxyFix` (`review-go/proxyrogue/`).
+- **Proposed change.** The five interim axioms A1-A5 (`notes/putget-dist-plan.md` §12), A4/A5 restricted to clients
+  with no proxy dial path (`clientNoProxy`, from `etcdstart.NewClient`'s post), `etcdstart.NewClients` passing
+  `grpc.WithNoProxy()`. Retired by #24's switch (`etcdAddrAt` defined from `grpcAddrAt`) and S2's proofs (`Serve`,
+  the pub-form put `client_Put_pub`): the statements then become theorems unchanged.
+- **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
+  `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
+  `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
 ## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,

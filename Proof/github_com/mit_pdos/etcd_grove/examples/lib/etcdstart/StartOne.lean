@@ -40,30 +40,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **The start bundle of a member that listens on no address** (`memberStartRes_intro` at one member and
-no address): `ETCD_VERIFY` off, its data directory and its WAL area fresh. -/
+no address): `ETCD_VERIFY` off and its WAL area and data directory fresh (since 2026-11-24 no
+`dataDirFresh`: `bootstrap`'s slot no longer takes it). -/
 theorem memberStartRes_one (n : GoString) :
-    envVerifyOff (GF := GF) ∗ dataDirFresh (GF := GF) (memberDataDir n) ∗
-        memberAreasFresh (GF := GF) (memberDataDir n) ⊢
-      memberStartRes (GF := GF) n {} := by
-  iintro ⟨#Hv, Hd, Hw⟩
-  ihave H := memberStartRes_intro (GF := GF) [(n, {})] [] [] [memberDataDir n]
-    (by simp [MemberAddrs.addrs]) (List.Perm.refl _) $$ [Hd Hw]
-  · isplitl [Hd]
-    · isplitr
-      · iapply BigSepL.bigSepL_nil.2; iempintro
-      isplitr
-      · iapply BigSepL.bigSepL_nil.2; iempintro
-      isplitl [Hd]
-      · iapply BigSepL.bigSepL_cons.2
-        iframe Hd
-        iapply BigSepL.bigSepL_nil.2; iempintro
-      iexact Hv
-    iapply BigSepL.bigSepL_cons.2
-    iframe Hw
-    iapply BigSepL.bigSepL_nil.2; iempintro
-  icases H with ⟨H, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H, -⟩
-  iexact H
+    envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir n) ⊢
+      memberStartRes (GF := GF) n {} := memberStartRes_areas n
 
 end bundle
 

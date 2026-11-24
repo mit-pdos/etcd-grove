@@ -70,7 +70,7 @@ theorem newClient.wp_proof
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
-  icases Hcfg with ⟨#Heps, #Hdo, %Hc, #Hzlg⟩
+  icases Hcfg with ⟨#Heps, ⟨%nd, #Hdo⟩, %Hc, #Hzlg⟩
   obtain ⟨Hplain, Htls, Htok, Hctx, Hms, Hmr, Hrej, Has⟩ := Hc
   ihave %Hlg := zapLoggerOk_ne_null _ $$ Hzlg
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
@@ -222,7 +222,7 @@ theorem newClient.wp_proof
     ipureintro; intro h; exact absurd rfl h
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
-  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb P
+  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps atb P nd
     $$ [$Hrc $cfg $Hdo $authTokenBundle $Htb $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
   · ipureintro; exact Hplain
@@ -356,6 +356,8 @@ theorem newClient.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
+    -- (2026-11-24) its configuration, read-only (`clientNoProxy`)
+    iframe cfg
     isplitl []
     · iunfold isNewClient
       iframe Hkv Hrc

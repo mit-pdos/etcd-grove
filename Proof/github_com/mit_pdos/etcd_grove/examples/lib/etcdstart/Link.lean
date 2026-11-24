@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.New
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
+public import Proof.google_golang_org.grpc.WithNoProxy
 public import Proof.maps.Copy
 public import Proof.net.Listen
 public import Proof.strconv.FormatUint
@@ -169,9 +170,13 @@ theorem wp_Members :
     EtcdGrove.etcdstart.Members.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Members.wp_proof strconv.wp_FormatUint
 
+theorem grpc.wp_WithNoProxy :
+    EtcdGrove.grpc.WithNoProxy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.WithNoProxy.wp_proof
+
 theorem wp_NewClients [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcdstart.NewClients.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.NewClients.wp_proof client.v3.clientv3.wp_New
+  EtcdGrove.etcdstart.NewClients.wp_proof client.v3.clientv3.wp_New grpc.wp_WithNoProxy
 
 theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcdstart.NewClient.spec (GF := GF) (hG := hG) :=

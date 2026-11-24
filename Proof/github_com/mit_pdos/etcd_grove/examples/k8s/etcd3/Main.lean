@@ -201,7 +201,7 @@ theorem Main.wp_proof
     iframe #
     isplitr
     · isplitr
-      · iapply ownSlice_nil
+      · iexists 0; iapply noProxyOptsAt_nil
       ipureintro
       refine ⟨?_, ?_⟩
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)

@@ -7,11 +7,14 @@ etcd's peer URLs are `http://` and the address, and rafthttp's specs take them p
 (`types.plainPeerURL`: `http://host:port`, host bytes then one `:` then digits). Pure: the address's
 parse (`Net.parseAddr`, through `Net.splitBy` and `Net.decNat`) gives exactly that shape. Used by
 `putget_safe`'s member boot (`etcd_putget_dist.member_boot`) and, for every member, by `etcd_safe`.
+A valid address is also a plain endpoint of `clientv3.New` (`plainEndpoint`: no `://`, no `unix:`
+prefix; `addrOk_plainEndpoint`, for `putget_safe`'s client boot): its bytes are digits, `.` and `:`.
 -/
 module
 
 public import GooseLang.Ext.Net.Impl
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
 
@@ -213,6 +216,49 @@ theorem addrOk_plainPeerURL {a : GoString} (h : Net.addrOk a = true) :
   have hdrop : (go!"http://" ++ a : List w8).drop 7 = a := by simp
   rw [hdrop]
   exact addrOk_plainHostPort h
+
+/-- **Every byte of a valid address is a digit, `.` or `:`.** -/
+theorem addrOk_bytes {a : GoString} (h : Net.addrOk a = true) :
+    ∀ c ∈ a, c.toNat = 58 ∨ c.toNat = 46 ∨ Net.isDigit c = true := by
+  have hp : ∃ r, Net.parseAddr a = some r := by
+    unfold Net.addrOk at h
+    split at h
+    · exact ⟨_, by assumption⟩
+    · simp at h
+  obtain ⟨r, hr⟩ := hp
+  obtain ⟨ip, p, hsp, ⟨x1, x2, x3, x4, hsp2, ⟨n1, h1⟩, ⟨n2, h2⟩, ⟨n3, h3⟩, ⟨n4, h4⟩⟩, ⟨np, hpn⟩⟩ :=
+    parseAddr_some hr
+  intro c hc
+  rcases splitBy_cover 58 a [] c (Or.inr hc) with h58 | ⟨q, hq, hcq⟩
+  · exact Or.inl (by simpa using h58)
+  rw [hsp] at hq
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
+  rcases hq with hq | hq
+  · subst hq
+    rcases splitBy_cover 46 _ [] c (Or.inr hcq) with h46 | ⟨q', hq', hcq'⟩
+    · exact Or.inr (Or.inl (by simpa using h46))
+    · rw [hsp2] at hq'
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hq'
+      right; right
+      rcases hq' with rfl | rfl | rfl | rfl
+      · exact (decNat_digits _ _ h1).2 c hcq'
+      · exact (decNat_digits _ _ h2).2 c hcq'
+      · exact (decNat_digits _ _ h3).2 c hcq'
+      · exact (decNat_digits _ _ h4).2 c hcq'
+  · subst hq
+    exact Or.inr (Or.inr ((decNat_digits _ _ hpn).2 c hcq))
+
+/-- **A valid address is a plain endpoint** (`clientv3.New`'s premise `plainEndpoint`): it has no
+`/` (so no `://`) and no `u` (so no `unix:`/`unixs:` prefix). -/
+theorem addrOk_plainEndpoint {a : GoString} (h : Net.addrOk a = true) : plainEndpoint a := by
+  have hb := addrOk_bytes h
+  refine ⟨fun hi => ?_, fun hi => ?_, fun hi => ?_⟩
+  · have hm : (47 : w8) ∈ a := hi.subset (by decide)
+    rcases hb _ hm with h1 | h1 | h1 <;> revert h1 <;> decide
+  · have hm : (117 : w8) ∈ a := hi.subset (by decide)
+    rcases hb _ hm with h1 | h1 | h1 <;> revert h1 <;> decide
+  · have hm : (117 : w8) ∈ a := hi.subset (by decide)
+    rcases hb _ hm with h1 | h1 | h1 <;> revert h1 <;> decide
 
 end etcd_dist
 end EtcdGrove
