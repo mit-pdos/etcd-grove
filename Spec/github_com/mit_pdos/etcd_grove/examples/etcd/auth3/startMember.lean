@@ -65,7 +65,7 @@ abbrev startMember.spec : Prop :=
       zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir name peerAddr client id ∗ etcdstart.commonPremises ∗
+      bootPremise N ps bootLog ctxs dir name peerAddr client id ∗
       context.isClosedchanInit ∗
       etcdstart.memberBootOn γ ctxs ρ E₀ Φs id ∗
       netHttpOk γn id ∗

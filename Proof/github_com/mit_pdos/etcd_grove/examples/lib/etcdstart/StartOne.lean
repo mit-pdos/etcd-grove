@@ -58,6 +58,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 set_option maxHeartbeats 800000 in
 /-- See the file header. -/
 theorem wp_StartServer1 (wp_StartServer : StartServer.spec (GF := GF) (hG := hG))
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) [go_etcd_io.etcd.cache.v3.Assumptions]
     (N : Nat) (name peer client : GoString) (lg : Loc) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) (Hbf : BootFacts id ctxs boot)
@@ -79,12 +81,15 @@ theorem wp_StartServer1 (wp_StartServer : StartServer.spec (GF := GF) (hG := hG)
           etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))))) }} := by
   iintro %Φ ⟨#Hpkg, #Hlgz, Htok, #Hprem, #Hcci, Hstart⟩ HΦ
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
+  icases Hprem with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   ihave #Hb := bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (dir1 peer id) name name
       (urls1 name peer client) id (cfgOk name name) (urls1 name peer client)
       (fun _ h => h) (fun _ h => h) $$ Hboot
-  ihave #Hcom : commonPremises (GF := GF) $$ []
-  · iunfold commonPremises; iframe #
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (alloc1_false hne id ctxs boot Hbf (dir1 peer id) (dirOne_member id _)

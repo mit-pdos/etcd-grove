@@ -85,7 +85,7 @@ abbrev BuildServer.spec : Prop :=
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      bootPremise N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       netHttpOk γn id ∗
@@ -125,7 +125,7 @@ abbrev BuildServer.specRestart : Prop :=
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       -- (hub step 8, S7) the member's restart bundle without addresses: its stop's disk image
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗

@@ -52,7 +52,9 @@ theorem Member.wp_proof
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
     (wp_Serve_dist : etcd_dist.Serve_dist.spec (GF := GF) (hG := hG))
     (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
   intro CS π TB RB peer client id ctxs boot γE Pub Hbf hlp hlc HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
@@ -105,7 +107,7 @@ theorem Member.wp_proof
   -- `StartServer(Name, peer, client, lg)`
   ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hwa]
   · iframe; iframe #
-  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 48 - 1) name peer client lg id ctxs boot Hbf hpl
+  wp_apply (etcdstart.wp_StartServer1 wp_StartServer wp_MarshalBoot hne (2 ^ 48 - 1) name peer client lg id ctxs boot Hbf hpl
       (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)

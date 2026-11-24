@@ -61,18 +61,23 @@ theorem Run.wp_proof
     (wp_put : put.spec (GF := GF) (hG := hG))
     (wp_stop : stop.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
+    (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS lg N id ctxs boot ThB RcB RcN Hbf hlv HwbN Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Hstart, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#HpremF, #HbR⟩
   iunfold etcdstart.premises at HpremF
-  icases HpremF with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
+  icases HpremF with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (dir id)
       name name urlsOk id (etcdstart.cfgOk name name) urlsOk (fun _ h => h) (fun _ h => h) $$ Hboot
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit

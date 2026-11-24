@@ -1511,12 +1511,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
 noncomputable instance UDPAddr_typed_pointsto :
-    TypedPointsto (GF := GF) net.UDPAddr :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.UDPAddr where
+  typedPointstoDef l v dq := iprop(
+    "IP" ∷ typedPointsto (structFieldRef net.UDPAddr go!"IP" l) v.IP' dq ∗
+    "Port" ∷ typedPointsto (structFieldRef net.UDPAddr go!"Port" l) v.Port' dq ∗
+    "Zone" ∷ typedPointsto (structFieldRef net.UDPAddr go!"Zone" l) v.Zone' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance UDPAddr_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.UDPAddr net.UDPAddr.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.UDPAddr net.UDPAddr.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance UDPAddr_access_load_IP (l : Loc) (v : net.UDPAddr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPAddr go!"IP" l) v.IP' dq)
+      (typedPointsto (structFieldRef net.UDPAddr go!"IP" l) v.IP' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UDPAddr_access_store_IP (l : Loc) (v : net.UDPAddr) (IP' : net.IP) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPAddr go!"IP" l) v.IP' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.UDPAddr go!"IP" l) IP' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IP' := IP' } : net.UDPAddr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UDPAddr_access_load_Port (l : Loc) (v : net.UDPAddr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPAddr go!"Port" l) v.Port' dq)
+      (typedPointsto (structFieldRef net.UDPAddr go!"Port" l) v.Port' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UDPAddr_access_store_Port (l : Loc) (v : net.UDPAddr) (Port' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPAddr go!"Port" l) v.Port' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.UDPAddr go!"Port" l) Port' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Port' := Port' } : net.UDPAddr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UDPAddr_access_load_Zone (l : Loc) (v : net.UDPAddr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPAddr go!"Zone" l) v.Zone' dq)
+      (typedPointsto (structFieldRef net.UDPAddr go!"Zone" l) v.Zone' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UDPAddr_access_store_Zone (l : Loc) (v : net.UDPAddr) (Zone' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPAddr go!"Zone" l) v.Zone' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.UDPAddr go!"Zone" l) Zone' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Zone' := Zone' } : net.UDPAddr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end UDPAddr
@@ -1539,25 +1594,6 @@ noncomputable instance addrPortUDPAddr_into_val_typed :
 
 end def_
 end addrPortUDPAddr
-
-namespace UDPConn
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance UDPConn_typed_pointsto :
-    TypedPointsto (GF := GF) net.UDPConn :=
-  sorry -- axiomatized type
-
-noncomputable instance UDPConn_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.UDPConn net.UDPConn.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UDPConn
 
 namespace UnixAddr
 section def_

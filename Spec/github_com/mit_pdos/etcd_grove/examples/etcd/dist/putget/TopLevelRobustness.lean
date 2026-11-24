@@ -24,8 +24,10 @@ the member machine's data directory and WAL area empty (`MemberFiles`). Carried 
 in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged: `bootstrap`'s results
 (`BootFacts`), the server's workload and environment premises (`authRecordsFit`, ...), Go's method sets of
 the gRPC service values and `errors.As`'s target, the member's named Iris premises (`Hprem`: the
-trust-boundary contracts `bootstrapContract`, `bootMarshal`, the raft wrapper's, at every ghost-state
-instance, as the retired single-process `etcd_safe`'s `Hprem`), `context`'s two classes (`Hctx`,
+trust-boundary contract `bootstrapContract`, at every ghost-state instance, as the retired
+single-process `etcd_safe`'s `Hprem`; `bootMarshal` and the raft wrapper's contracts are axioms since
+2026-11-24, `proto.MarshalBootConfChange.wp_proof`, `NewRaftLoggerZap.wp_proof`,
+`contention.NewTimeoutDetector.wp_proof`), `context`'s two classes (`Hctx`,
 `Hcec`). (prom-registry, 2026-11-23: no premise on the programs' metric names, `HNs`: each machine's
 boot proof allocates its registration rights itself.)
 `ETCD_VERIFY` (etcd's runtime checks, which panic outside

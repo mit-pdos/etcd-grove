@@ -37,7 +37,7 @@ namespace EtcdGrove
 namespace etcd_partition
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcd_putget3 (httpURL commonPremises)
+open etcd_putget3 (httpURL)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

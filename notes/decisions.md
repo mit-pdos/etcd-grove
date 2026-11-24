@@ -42549,3 +42549,59 @@ the programs check their addresses in Go (`AddrOk`, distinctness) so their valid
 only their lengths as Go strings'; `ETCD_VERIFY` stays a premise (`HEnv`, `HEnvTok`): a Go check at start does not
 constrain later `os.Getenv` reads without a model of the process environment, a trusted change for the owner
 (`notes/putget-dist-plan.md` §12, "The robustness review's items").
+
+
+## Three function-contract premises become trust-boundary axioms (2026-11-24 · the coordinator, the owner's rule "axioms over premises" · branch `hprem-axioms/2026-11-24`)
+
+The closed theorems that start etcd members took three Iris premises that are Hoare triples of Go
+functions (`~/coordinator-notes/plans/premises-to-axioms.md` §2.1, items B, C and D). Each is now an
+`axiom <fn>.wp_proof : <fn>.spec` at its function, taken as a callee by the proof that calls it, and
+the statements lose the premise:
+
+- `bootMarshal ps ctxs bootLog` (raft's `ApiVocab.lean`: `proto.Marshal` of the `k`-th boot conf
+  change returns the `k`-th boot entry's bytes) → `proto.MarshalBootConfChange.wp_proof`
+  (`Spec/google_golang_org/protobuf/proto/MarshalBootConfChange.lean`): `proto.Marshal` of the
+  `*pb.ConfChange` `Bootstrap` builds (`bootConfChange`, `Type` `AddNode`) returns exactly
+  `ccBootWire m.nodeId m.context` (`Proof/google_golang_org/protobuf/proto/BootWire.lean`), with
+  `isPkgInit proto`. `bootMarshal` stays raft's vocabulary (its `Bootstrap` spec takes it), and is
+  now a theorem, `bootMarshal_of_spec` (`Proof/go_etcd_io/raft/v3/BootMarshal.lean`), from the axiom
+  and a pure fact of the bootstrap log, `bootWire` (each entry's data is `ccBootWire` of its peer and
+  context). Since `ccDecodeV1` is opaque, nothing gives `bootWire` from `BootLog`: it is a new field
+  `wire` of `BootCore` (so of every example's `BootFacts`), and for the trace check a new pure
+  hypothesis `tracecheck.BootWireFacts boot`. That is the one statement change beyond dropping a
+  premise: a pure, Go-checkable fact replaces an Iris one (the coordinator's brief allowed adapting
+  `BootFacts`). The bytes: `examples/premisefix/confchange`, `TestBootWireVectors`, against
+  protobuf-go v1.36.12 (the examples module's pin).
+- `rnLoggerZapOk` → `NewRaftLoggerZap.wp_proof` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewRaftLoggerZap.lean`),
+  the premise's triple unchanged (`lg ≠ nil`; interim until zap's `WithOptions`/`Sugar` specs).
+- `rnTimeoutDetectorOk` → `contention.NewTimeoutDetector.wp_proof`
+  (`Spec/go_etcd_io/etcd/pkg/v3/contention/NewTimeoutDetector.lean`), the premise's triple unchanged
+  (the detector meets `isRNTimeoutDetector`; interim until the package is translated with bodies).
+
+`newRaftNode.wp_proof` takes the two latter as callees (the server's `Link`, entries `NewRaftLoggerZap`,
+`contention_NewTimeoutDetector`), so `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`,
+`NewServer.spec`/`specR`, `NodeStartSpec` and the etcdstart/cluster3/example start specs no longer
+take them; `etcdstart.commonPremises` and `etcd_putget3.commonPremises`, empty, are gone. The example
+`Main`/`Run`/`startCluster` proofs that held `bootMarshal` in their premises take
+`proto.MarshalBootConfChange.spec` as their last callee (passed by the generated `Link`s, `=` terms,
+and by hand in the `MainLinked`s) and derive `bootMarshal` from `Hbf.wire`.
+
+Not done here: `bootstrapContract` (plan item A). Claim #34 already states `bootstrap.spec` and proves
+`bootstrap.wp_proof` over its callees (`Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean`), and
+`etcdstart/BootBridge.lean` derives `bootPremise` from it, but only under pure facts the examples do not
+have (`bootGo.ps U token = ps`, `bootGo.ctxs … = ctxs`, `bootGo.dir … = dir`, the member's id, `memBoot
+bootLog = bootGo.memMap …`, the last through the opaque `membership.ccMemberOf`). Using it would add
+those premises (or needs #34's computation of them), so a competing axiom was not written.
+
+Also not done here (the coordinator's scope extension of the same day): `Hctx`/`Hcec` (`ContextReadErrs`,
+`ContextErrsClient`) stay premises: they are entailments from `isPkgInit context`, which is not sealed,
+so as axioms they could be used to prove `False` (`read/Init.lean`'s docstring); plan item F proves them
+(claim #26). `log.NewModel` and `DialWithBalancerBody` stay instance binders: they are facts about the
+semantics instance the statements quantify over (`FuncUnfold`/`MethodUnfold`), so a Lean axiom stating
+them for every instance would be false; their home is the TrustedCode layout (goose `trusted`, the
+generated `Assumptions`), a translator-configuration change on branches of their own (the client project's goose toml for
+`dialWithBalancer`; Perennial's `log` configuration for `log.New`).
+`bootstrapContract` (item A): #34's `bootstrap.wp_proof` is not linked yet (`bootstrapCluster`,
+`bootstrapStorage`, `bootstrapRaft`, `bootstrappedCluster.Finalize` unproved, `bootFs.touchMember.law`
+open), so it stays a premise until #34 links it; then `etcdstart/BootBridge.lean` discharges it with
+pure facts of `bootstrap`'s computed results (`bootGo.*`), folded into `BootFacts`.

@@ -36,6 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Net.Statement.DistBridgeExts
@@ -159,6 +160,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
+      _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
       peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf hlp hlc
       (by unfold srvLevels srvLevelK srvRevokeK; rw [hT]; decide) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hwa Hshare]

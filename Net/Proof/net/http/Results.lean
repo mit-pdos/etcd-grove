@@ -119,6 +119,13 @@ public import Net.Proof.net.http.conn__readRequest
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.context.Link
 public import Proof.bufio.NewWriterSizeRep
+public import Net.Proof.net.http.conn__serve
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.Conn__RemoteAddr
+public import Net.Proof.net.Conn__LocalAddr
+public import Proof.bufio.NewReaderFresh
+public import Proof.bufio.Reader__Reset
 public import Net.Proof.net.http.Request__ProtoAtLeast
 public import Net.Proof.net.http.http1ServerSupportsRequest
 
@@ -266,6 +273,21 @@ theorem conn.readRequest.wp : conn.readRequest.spec (GF := GF) (hG := hG) :=
     Server.maxHeaderValueCount.wp context.wp_WithCancel net.Conn.SetReadDeadline.wp_proof
     EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
 
+/-- `conn.serve`, over the two interim context hypotheses (`context.WithValue.specPtr`,
+`context.WithCancel.specValBg`: pending Perennial's `internal/reflectlite` model and a wider
+`isParentCtx`, `notes/perennial-changes.md`), taken as premises. -/
+theorem conn.serve.wp
+    (h_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
+    (h_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG)) :
+    conn.serve.spec (GF := GF) (hG := hG) :=
+  conn.serve.wp_proof conn.readRequest.wp conn.hijacked.wp connReader.startBackgroundRead.wp
+    connReader.releaseConn.wp response.Hijack.wp net.Conn.RemoteAddr.wp_proof
+    net.Conn.LocalAddr.wp_proof net.Conn.Close.wp_proof net.Conn.Write.wp_proof h_WithValue
+    h_WithCancelBg net.OpError.Timeout.wp_proof Header.get.wp hasToken.wp
+    EtcdGrove.bufio.Reader.Reset.wp_proof
+    (EtcdGrove.bufio.NewReader.wp_proofFresh EtcdGrove.bufio.NewReaderSize.wp_proofFresh)
+    EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
+
 end server
 
 end net.http
@@ -357,6 +379,7 @@ end Perennial
 #print axioms Perennial.net.http.connReader.hitReadLimit.wp
 #print axioms Perennial.net.http.conn.hijacked.wp
 #print axioms Perennial.net.http.conn.readRequest.wp
+#print axioms Perennial.net.http.conn.serve.wp
 #print axioms Perennial.net.url.shouldEscape.wp
 #print axioms Perennial.net.url.ishex.wp
 #print axioms Perennial.net.url.unhex.wp

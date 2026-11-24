@@ -39,7 +39,7 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs id γ ρ E₀ Φs γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -106,7 +106,7 @@ theorem startMember.wp_proofRestart
     startMember.specRestart (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, #Hnet, Hrr, #Hrfs, #Hvoff⟩
+  wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, #Hnet, Hrr, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit

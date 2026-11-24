@@ -32,6 +32,7 @@ module
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Spec.go_etcd_io.raft.v3.Api
+public import Proof.go_etcd_io.raft.v3.BootMarshal
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Perennial.Ghost.MonoList
@@ -531,7 +532,8 @@ def bootDataOk (bl : List LogEntry) : Prop := ∀ e ∈ bl, e.data.length + 64 �
 and the bootstrap log `bl` (raft-entsize, [r3a], 2026-11-09): the log is the node API's `BootLog`,
 each entry a conf change of id `0` that the server's `applyConfChange` takes (`ccBootOk`), the boot
 members' peer URLs valid UTF-8 and pairwise disjoint (`bootURLsOk`), the peers' 16 low bits
-distinct and not `0` (D21e (A)), and the entries small (`bootDataOk`). What every example's
+distinct and not `0` (D21e (A)), the entries small (`bootDataOk`), and their bytes the boot conf
+changes' (`bootWire`, 2026-11-24). What every example's
 `BootFacts` and the server's cluster allocation take. -/
 structure BootCore (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
   boot : BootLog ps ctxs bl
@@ -542,6 +544,10 @@ structure BootCore (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) 
   lowNz : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0
   /-- the one bound on the boot log (`bootDataOk`) -/
   data : bootDataOk bl
+  /-- (premises to axioms, 2026-11-24) the boot entries' bytes are `proto.Marshal`'s of the boot conf
+  changes (`bootWire`, `ccBootWire`), what `bootMarshal_of_spec` turns `proto.Marshal`'s trust-boundary
+  spec into `bootMarshal` with (until then `bootMarshal` itself was a premise of every closed theorem) -/
+  wire : bootWire ps ctxs bl
 
 /-- **The members' ids are apart for their lease ids** (lease-mono3 step 2, 2026-11-14,
 `notes/lease-mono3-plan.md`, "Step 2 Scope"): the peers' 15 low bits are distinct. `LeaseGrant`

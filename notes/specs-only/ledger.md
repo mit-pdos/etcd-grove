@@ -6457,3 +6457,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   caller of `modelReadMIMEHeader`) drops the reader in its error case as before. dsverify-net told on #24
   (7138521711).
 - **Decision.** Applied (zeldovich proving session 2, s5).
+
+## 2026-11-24: `conn.serve`'s premises `ctxKeys` and `c ≠ null`; `readEnv` names `io.ErrUnexpectedEOF`, phase 7 S5 batch 12 (prove-ps2-s5srv-b12)
+
+- **Spec.** `Net/Spec/net/http/conn__serve.lean` (no callers yet: `Server.Serve`, next, discharges both) takes
+  `c ≠ null` and `ctxKeys` (`ServerContextKey`, `LocalAddrContextKey` hold pointers: their initializers are not
+  translated, so a premise like `httpEnv`, discharged where the package initializer is).
+  `net.http.readEnv` (`Net/Proof/net/http/ConnReader.lean`) gains `errors.newVar io.ErrUnexpectedEOF
+  "unexpected EOF"`; `readEnv` is only a premise so far (of `connReader.Read`, `backgroundRead`,
+  `startBackgroundRead`, `readRequest`, `serve`), to be established with `io`'s initializer.
+- **Defect.** None in Go. `conn.serve` builds the reader's ghost state at `c` (`crConnOk c` needs `c ≠ null`,
+  which no points-to of a field of `c` gives); `err == errTooLarge` must be false for every error `readRequest`
+  returns, and one of them is `io.ErrUnexpectedEOF`, whose message (`"unexpected EOF"`, Go's `io.go`) tells it
+  from `errTooLarge`'s.
+- **Evidence.** `models/net/http/server.go` `conn.serve` (the error switch), Go's `io.ErrUnexpectedEOF =
+  errors.New("unexpected EOF")`.
+- **Proposed change.** As above; the two premises have no caller to weaken.
+- **Decision.** Applied (zeldovich proving session 2, s5; `ctxKeys` agreed with the coordinator, session 10).

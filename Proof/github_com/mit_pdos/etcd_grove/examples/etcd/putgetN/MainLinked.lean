@@ -7,6 +7,7 @@
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -45,7 +46,7 @@ theorem etcd_putgetN.wp_Main [_root_.Perennial.net.FieldAssumptions]
   etcd_putgetN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_Background
     context.WithTimeoutBackground.wp_proof context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 
