@@ -1,8 +1,8 @@
 /-
 `(*Server).HandleHTTP(rpcPath, debugPath)`: registers the server on `DefaultServeMux` as the handler
 of `rpcPath` (`http.Handle(rpcPath, server)`) and its debug page at `debugPath`. On the right to
-register (`muxOwn dmux Ps`) and two literal paths not registered yet, distinct, it registers both:
-the right covers them, and the mux routes `rpcPath` to an rpc handler (`muxRpc dmux W A rpcPath`) at
+register (`muxOwn (globalAddr net.http.defaultServeMux) Ps`) and two literal paths not registered yet, distinct, it registers both:
+the right covers them, and the mux routes `rpcPath` to an rpc handler (`muxRpc (globalAddr net.http.defaultServeMux) W A rpcPath`) at
 every address `a` with `A a`: there the server serves its registrations (`srvServes`) behind
 net/http's `CONNECT` handshake (`W.hsAns a = connectAns`), which its `ServeHTTP` answers
 (`Server.ServeHTTP.spec`, whose premises this one carries). The debug page (`debugHTTP`, whose
@@ -39,13 +39,13 @@ abbrev Server.HandleHTTP.spec : Prop :=
     (Ps : List GoString) (rp dp : GoString),
     net.http.litPattern rp → net.http.litPattern dp → rp ≠ dp → rp ∉ Ps → dp ∉ Ps →
   {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-      net.http.muxOwn (GF := GF) net.http.dmux Ps ∗ isServerAny s γs ∗
+      net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) Ps ∗ isServerAny s γs ∗
       (□ ∀ a, ⌜A a⌝ → srvServes γs C W a ∗ ⌜W.hs a ≠ [] ∧ W.hsAns a = connectAns⌝) ∗
       srvEnv ∗ codecSet C ∗ globalAddr net.rpc.connected ↦□ connectedStatus }}
     (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"HandleHTTP"))
       (Val #rp)) (Val #dp))
-  {{ RET #(); net.http.muxOwn (GF := GF) net.http.dmux (dp :: rp :: Ps) ∗
-      net.http.muxRpc (GF := GF) net.http.dmux W A rp }}
+  {{ RET #(); net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) (dp :: rp :: Ps) ∗
+      net.http.muxRpc (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) W A rp }}
 
 end spec
 end net.rpc

@@ -3,7 +3,7 @@
 # `net/rpcdriver`: a machine's first initialization
 
 Both commands import `rpcdriver` only, whose initializer runs, innermost first, `primitive`, `sync`,
-`strings`, net/http's (its first run on the machine: `muxOwn dmux []`, `net.http.wp_init_first`, an
+`strings`, net/http's (its first run on the machine: `muxOwn (globalAddr net.http.defaultServeMux) []`, `net.http.wp_init_first`, an
 interim axiom), `net`, net/rpc's (its first run: `codecUnset` and `DefaultServer`'s owned registry,
 `net.rpc.wp_init_first`, an interim axiom), `service`, `errors`; then allocates and stores its
 variables (`drvFacts`). Here from a table in which the owned packages are not initialized yet
@@ -42,7 +42,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- A machine's boot resources: net/http's and net/rpc's first-run state, and the driver's
 variables. -/
 def bootRes : IProp GF :=
-  iprop(net.http.muxOwn (GF := GF) net.http.dmux [] ∗ net.rpc.rpcFirstRes (GF := GF) ∗ drvFacts)
+  iprop(net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗ net.rpc.rpcFirstRes (GF := GF) ∗ drvFacts)
 
 /-- A machine's empty package state is `ownInitializing` of any table. -/
 theorem ownInitializing_of_empty (g : GoString → IProp GF) :

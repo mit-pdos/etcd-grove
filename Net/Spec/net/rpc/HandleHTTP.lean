@@ -32,12 +32,12 @@ abbrev HandleHTTP.spec : Prop :=
     (Ps : List GoString),
     defaultRPCPath ∉ Ps → defaultDebugPath ∉ Ps →
   {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-      net.http.muxOwn (GF := GF) net.http.dmux Ps ∗ defaultServerAny γs ∗
+      net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) Ps ∗ defaultServerAny γs ∗
       (□ ∀ a, ⌜A a⌝ → srvServes γs C W a ∗ ⌜W.hs a ≠ [] ∧ W.hsAns a = connectAns⌝) ∗
       srvEnv ∗ codecSet C ∗ globalAddr net.rpc.connected ↦□ connectedStatus }}
     (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
-  {{ RET #(); net.http.muxOwn (GF := GF) net.http.dmux (defaultDebugPath :: defaultRPCPath :: Ps) ∗
-      net.http.muxRpc (GF := GF) net.http.dmux W A defaultRPCPath }}
+  {{ RET #(); net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) (defaultDebugPath :: defaultRPCPath :: Ps) ∗
+      net.http.muxRpc (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) W A defaultRPCPath }}
 
 end spec
 end net.rpc

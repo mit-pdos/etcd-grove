@@ -19,7 +19,7 @@ under `/shared/tmp/ps2/s5/muxtest/`), against Go 1.27.3. Two statements found fa
    method, host, wildcard, escape or query. `litPattern_rpc` and `litPattern_debug` still hold
    (`decide`).
 2. **`Handle.spec` admitted a nil `HandlerFunc`.** `http.Handle("/x", http.HandlerFunc(nil))` panics
-   "http: nil handler" (`register` checks `handler == nil` through the interface's dynamic value too).
+   "http: nil handler" (the review's test program).
    **Fix:** the premise `h ≠ interface.mkOk net.http.HandlerFunc.ty #func.nil`. `Server.HandleHTTP`'s two
    calls discharge it: their handlers are a `*Server` and a `debugHTTP`.
 3. **`wp_init_first` needs the thread bound of the mux's `RWMutex` reader-slot pools**

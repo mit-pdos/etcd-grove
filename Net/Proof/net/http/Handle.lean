@@ -13,6 +13,8 @@ noncomputable section
 
 namespace Perennial
 
+open Iris Iris.BI Net
+
 namespace net.http
 
 section proof

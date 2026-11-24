@@ -3,7 +3,7 @@
 `Server()`: the driver's server machine (see `rpcdriver.go`): it never panics. In the run's world
 (`drvWorld γid reg`): the registered codec; `DefaultServer`'s registry, owned and empty
 (`defaultServerO γs γf ∗ svcOwn γf ∅`, net/rpc's first initialization); the right to register on
-`DefaultServeMux` (`muxOwn dmux []`, net/http's); its listeners' protocols (`rpcLisP`, raw at
+`DefaultServeMux` (`muxOwn (globalAddr net.http.defaultServeMux) []`, net/http's); its listeners' protocols (`rpcLisP`, raw at
 `TCPAddr`, behind the `CONNECT` handshake at `HTTPAddr`); the machine's thread bound (net/rpc's
 server); and the package facts its callees read.
 -/
@@ -41,7 +41,7 @@ abbrev Server.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ isPkgInit (PROP := IProp GF) pkg_id.log ∗
       isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service ∗
       net.rpc.srvEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ net.http.httpSrvEnv (GF := GF) ∗
-      net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅ ∗ net.http.muxOwn (GF := GF) net.http.dmux [] ∗
+      net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅ ∗ net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
       net.rpc.rpcLisP (Gg := hG.goose_globalGS) (drvWorld γid reg) tcpAddr [] [] ∗
       net.rpc.rpcLisP (Gg := hG.goose_globalGS) (drvWorld γid reg) httpAddr
         (net.rpc.connectReq net.rpc.defaultRPCPath) net.rpc.connectAns }}

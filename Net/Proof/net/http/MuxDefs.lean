@@ -11,7 +11,7 @@ ghost state.
 
 * `muxOwn m Ps` (exclusive): the right to register on the mux `m`, whose registered patterns are
   `Ps` (the patterns' owner: one goroutine at a time; net/rpc's `HandleHTTP` and the program's own
-  `Handle`s, at the boot). From net/http's first initialization at `DefaultServeMux` (`muxOwn dmux []`,
+  `Handle`s, at the boot). From net/http's first initialization at `DefaultServeMux` (`muxOwn (globalAddr defaultServeMux) []`,
   `Net/Proof/net/http/InitFirst.lean`).
 * `muxRoute m p h` (persistent): `m` sends a request for the literal path `p` to the handler `h`.
 * `litPattern p`: a literal path pattern: `/`-initial, every byte one the model's request parser
@@ -86,9 +86,6 @@ def muxRoute (m : Loc) (p : GoString) (h : GoInterface) : IProp GF :=
 instance muxRoute_persistent (m : Loc) (p : GoString) (h : GoInterface) :
     Persistent (muxRoute (GF := GF) m p h) := by
   unfold muxRoute; infer_instance
-
-/-- `DefaultServeMux`'s mux (`DefaultServeMux = &defaultServeMux`). -/
-abbrev dmux : Loc := globalAddr net.http.defaultServeMux
 
 /-- What net/http's server reads of its package's variables (S5 names it; `httpEnv` today). -/
 abbrev httpSrvEnv : IProp GF := httpEnv

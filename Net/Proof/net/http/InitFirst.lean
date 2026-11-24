@@ -1,7 +1,7 @@
 /-
 net/http's **first** initialization on a machine: its initializer, run when net/http is not yet
 initialized, also returns the exclusive state it makes: the right to register on `DefaultServeMux`,
-no pattern registered (`muxOwn dmux []`, `MuxDefs.lean`). Its shape is the swiftpaxos kit's
+no pattern registered (`muxOwn (globalAddr net.http.defaultServeMux) []`, `MuxDefs.lean`). Its shape is the swiftpaxos kit's
 `RpcFirstInit` (`ownInitializing g`; and the machine's thread bound below `2 ^ 30`, the mux's
 `RWMutex` reader-slot pools, `threadBound_le_actualMaxReaders` with `g pkg_id.net.http ⊢ False`: net/http not initialized, so
 this runs once per machine), for net/http alone.
@@ -41,7 +41,7 @@ axiom wp_init_first (g g' : GoString → IProp GF)
     (hsame : ∀ p, p ≠ pkg_id.net.http → g' p = g p) :
     {{ ownInitializing g ∗ ⌜threadBound GF ≤ 2 ^ 30⌝ }} (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing g' ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-        muxOwn (GF := GF) dmux [] }}
+        muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] }}
 
 end init
 
