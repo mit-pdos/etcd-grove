@@ -4,9 +4,9 @@ go 1.27
 
 // etcd: the fork at etc/goose.py's etcd pin, as examples/go.mod replaces it.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124035548-c81d630374d5
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124035548-c81d630374d5
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124035548-c81d630374d5
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124052546-6b1ff3860e6a
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124052546-6b1ff3860e6a
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124052546-6b1ff3860e6a
 )
 
 require (

@@ -93,6 +93,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) defaultWaitForReady _ as HdefaultWaitForReady
   wp_apply wp_GlobalAlloc (V := GoSlice) noPrefixEnd _ as HnoPrefixEnd
   wp_apply wp_GlobalAlloc (V := w64) LeaseResponseChSize _ as HLeaseResponseChSize
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Uint64) clientTargetSeq _ as HclientTargetSeq
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrMutuallyExclusiveCfg _ as HErrMutuallyExclusiveCfg
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrOldCluster _ as HErrOldCluster
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoAvailableEndpoints _ as HErrNoAvailableEndpoints
@@ -196,6 +197,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HmaxBackoff
   ipersist HLeaseResponseChSize
   ipersist Sco
+  ihave Hcts : _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq) (DFrac.own 1) (W64 0) $$ [HclientTargetSeq]
+  · rw [_root_.Perennial.sync.atomic.ownUint64_unseal]
+    unfold _root_.Perennial.sync.atomic.ownUint64Def
+    iexact HclientTargetSeq
+  imod inv_alloc go_etcd_io.etcd.cache.v3.clientTargetSeqN ⊤ (∃ n : w64, _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq) (DFrac.own 1) n) $$ [Hcts] with #Hcts
+  · inext; iexists _; iexact Hcts
   iframe Hown
   imodintro
   isplitr

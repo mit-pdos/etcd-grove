@@ -225,7 +225,10 @@ PROJECTS = [
         # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
         repo="https://github.com/upamanyus/bbolt",
         # Split oversized leaves and admit all individually readable key/value pairs.
-        rev="ca88bb6a8339da5d5c29eccf120e1b621021b4f9",
+        # Then (real fmt stage 1, 2026-11-24, #9) 7d335aa3e (branch `goose-lean-fmt1`, on ca88bb6a8):
+        # `Options.String` formats its bools with `%v` (as `%t`), the free-list type as a string, and
+        # whether `OpenFile`/`Logger` are set in place of their addresses (`%p`).
+        rev="7d335aa3eb233822487e9dd7eb2c8f95d99ea2ad",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[
@@ -381,8 +384,11 @@ PROJECTS = [
         # `goose-lean-fmt1`, on edc800c6f): `Election.Campaign`, `Mutex.tryAcquire` and
         # `store.restore` convert a method-less named lease ID to `int64` before `fmt.Sprintf`
         # formats it (`%x`, `%016x`): byte-identical output, through `fmtInteger` (Perennial's verified
-        # subset) instead of `printValue`.
-        rev="c81d630374d563d4aa099e9632e7113642c29825",
+        # subset) instead of `printValue`. Then 6b1ff3860 (same branch): `Client.dial` numbers its
+        # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
+        # `%p` of the client, which real `fmt` does not cover (the decision on #9,
+        # issuecomment-7122889900: fork rewrites, no `%p` axiom).
+        rev="6b1ff3860e6a999e4db53cfba727bcaa9925d058",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
