@@ -14,6 +14,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.net.http
+public import Perennial.Proof.strings.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.dustin.go_humanize
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
