@@ -2148,8 +2148,7 @@ theorem deadline_dead_au (cn : Nat) (s : Bool) (k : w64) (set : Bool) (b : Bool)
     refine ⟨Hok.1, Hok.2.1, fun hc => ?_⟩
     by_cases hcl : st'.closed = true
     · exact hcl
-    · simp only [hcl, ↓reduceIte, Nat.max_zero] at hc
-      exact (deadlineOutcome_closed Hc).trans (Hok.2.2 hc)
+    · exact (deadlineOutcome_closed Hc).trans (Hok.2.2 (by simpa [hcl] using hc))
   imod Hcl $$ Hend Hdir HwQ Hr Hrd Hx Hcc %hp with -
   imodintro
   isplitr

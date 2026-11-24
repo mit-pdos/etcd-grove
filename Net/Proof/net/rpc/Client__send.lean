@@ -300,7 +300,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
           □ reqProto (Gg := hG.goose_globalGS) W a cn
             (W.hs a ++ reqsWire L ++ reqWire (W64 n1) sm eb) : IProp GF) $$ [Hreqs Hlc1 Hap HS]
       · iapply req_append W a cn γ.conn L n1 hLn sm svc M S eb Φm post col ap HLok (by omega)
-          (by unfold maxFrameN at hfit; omega) (by unfold maxFrameN at hfit; omega) ⟨Hsv.1, Hsv.2.1⟩ $$ [$Hrpc $Hsl $Hlc1 $Hreqs $Hnmn $Hap $Hpost $HS]
+          hfit.1 hfit.2 ⟨Hsv.1, Hsv.2.1⟩ $$ [$Hrpc $Hsl $Hlc1 $Hreqs $Hnmn $Hap $Hpost $HS]
       imod Hr with ⟨Hh, #Hp⟩
       imodintro
       simp only []

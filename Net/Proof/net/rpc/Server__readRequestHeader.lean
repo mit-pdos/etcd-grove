@@ -142,7 +142,8 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
       as %err ⟨%got, ⟨HP, Hrdl⟩, Hres⟩
     icases Hres with (⟨%seq, %sm, ⟨%Hnil, %Hgot, %Hlen⟩, Hr⟩ | ⟨%Hne, Hr, HE⟩)
     rotate_left
-    · ihave #Hre := rdErr_readF la ra _ _ ed _ true got err _ $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
+    · ihave #Hre := rdErr_readF la ra _ _ ed _ true got err (readDead (Gg := hG.goose_globalGS) cn true)
+        $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
       ihave #Hre' := Hre
       iunfold rdErr at Hre'
       icases Hre' with ⟨-, %Hp⟩
@@ -215,8 +216,8 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     · -- no dot at all: the deposit's last dot excludes it
       exfalso
       exact Hiv3 j (by omega) hjl hjd
-    rw [decide_eq_true (by simpa using hi0)]
-    simp only [↓reduceIte]
+    rw [decide_eq_true (show sint.Z (W64 0) ≤ sint.Z iv by simpa using hi0)]
+    simp only [eq_self, _root_.decide_true, ↓reduceIte]
     wp_auto
     have hiv : sint.nat iv < r.sm.length := by
       have : sint.nat iv = (sint.Z iv).toNat := rfl
@@ -358,7 +359,9 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
       rw [Hg] at Hgot
       have := congrArg List.length Hgot
       simp [frameOf_length] at this
-    ihave #Hre := rdErr_readF la ra _ _ ed _ true got err _ $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
+      omega
+    ihave #Hre := rdErr_readF la ra _ _ ed _ true got err (readDead (Gg := hG.goose_globalGS) cn true)
+      $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
     ihave #Hre' := Hre
     iunfold rdErr at Hre'
     icases Hre' with ⟨-, %Hp⟩
