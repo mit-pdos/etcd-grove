@@ -4,7 +4,7 @@
 
 Each function's proof (`<F>.wp_proof`) with its callees' linked results: net/rpc's
 (`Net/Proof/net/rpc/Results.lean`), net/http's interim axioms (`Handle.wp_proof`,
-`Serve.wp_proof_rpc`), the strings interim axioms (`DialHTTP`'s `strings.Cut`/`TrimLeft`), Perennial's.
+`Serve.wp_proof_rpc`), Perennial's.
 Written by hand (`etc/gen-link.py` does not cover this part yet).
 -/
 module
@@ -33,8 +33,6 @@ public import Net.Proof.net.rpc.Accept
 public import Net.Proof.net.http.Handle
 public import Net.Proof.net.http.Serve
 public import Net.Proof.net.Listen
-public import Proof.strings.Cut
-public import Proof.strings.TrimLeft
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.strings.Link
 
@@ -72,7 +70,7 @@ theorem wp_check : check.spec (GF := GF) (hG := hG) := check.wp_proof wp_isFailM
 
 theorem wp_dial : dial.spec (GF := GF) (hG := hG) :=
   dial.wp_proof wp_below net.rpc.Dial.wp
-    (net.rpc.DialHTTP.wp EtcdGrove.strings.Cut.wp_proof EtcdGrove.strings.TrimLeft.wp_proof)
+    net.rpc.DialHTTP.wp
 
 theorem wp_callOn : callOn.spec (GF := GF) (hG := hG) :=
   callOn.wp_proof drvCodecLaws wp_below wp_randomArgs wp_check net.rpc.Client.Call.wp

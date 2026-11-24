@@ -17,6 +17,7 @@ Proved in `Proof/os/Mkdir.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.os.PkgInit
 public import Proof.os.SharedAu
 public import Spec.fmt.ErrorOk
 
@@ -57,7 +58,7 @@ abbrev os.Mkdir.specS : Prop :=
   ∀ (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac) (h : NamesH) (q r : Qp)
     (Q : Option (Nat × Nat × Ino) → IProp GF),
   NameOk b → h.cur !! b = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q }}
     (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
@@ -71,7 +72,7 @@ abbrev os.Mkdir.specSnc : Prop :=
   ∀ (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac) (h : NamesH) (q r : Qp)
     (Q : Option (Nat × Nat × Ino) → IProp GF),
   NameOk b → h.cur !! b = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAUnc (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q }}
     (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))

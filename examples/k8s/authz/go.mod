@@ -18,21 +18,23 @@ require (
 	sigs.k8s.io/structured-merge-diff/v7 v7.0.1 // indirect
 )
 
-// k8s.io/apiserver with conditional authorization (KEP-5681): the fork github.com/luxas/kubernetes
+// k8s.io/apiserver with conditional authorization (KEP-5681): the fork github.com/upamanyus/kubernetes
 // at project k8s-authz's pinned revision (etc/goose.py; GO_MOD_PINS checks the two agree), branch
-// impl-conditional-authz-review. Its staging modules require each other at v0.0.0 (the Kubernetes
+// goose-lean-authz-fmt2 (github.com/luxas/kubernetes c67a81026c8b, branch
+// impl-conditional-authz-review, plus one commit: three %v of a slice spelled out, byte-identical
+// output, mit-pdos/etcd-grove#9). Its staging modules require each other at v0.0.0 (the Kubernetes
 // repository resolves them with its go.work), so every staging module in the build is replaced by
 // the fork's at the same commit, fetched through the module proxy as a subdirectory module.
-replace k8s.io/api => github.com/luxas/kubernetes/staging/src/k8s.io/api v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/api => github.com/upamanyus/kubernetes/staging/src/k8s.io/api v0.0.0-20261124153932-5b30dab1b141
 
-replace k8s.io/apimachinery => github.com/luxas/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/apimachinery => github.com/upamanyus/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20261124153932-5b30dab1b141
 
-replace k8s.io/apiserver => github.com/luxas/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/apiserver => github.com/upamanyus/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20261124153932-5b30dab1b141
 
-replace k8s.io/client-go => github.com/luxas/kubernetes/staging/src/k8s.io/client-go v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/client-go => github.com/upamanyus/kubernetes/staging/src/k8s.io/client-go v0.0.0-20261124153932-5b30dab1b141
 
-replace k8s.io/component-base => github.com/luxas/kubernetes/staging/src/k8s.io/component-base v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/component-base => github.com/upamanyus/kubernetes/staging/src/k8s.io/component-base v0.0.0-20261124153932-5b30dab1b141
 
-replace k8s.io/kms => github.com/luxas/kubernetes/staging/src/k8s.io/kms v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/kms => github.com/upamanyus/kubernetes/staging/src/k8s.io/kms v0.0.0-20261124153932-5b30dab1b141
 
-replace k8s.io/streaming => github.com/luxas/kubernetes/staging/src/k8s.io/streaming v0.0.0-20261103170018-c67a81026c8b
+replace k8s.io/streaming => github.com/upamanyus/kubernetes/staging/src/k8s.io/streaming v0.0.0-20261124153932-5b30dab1b141

@@ -33,8 +33,11 @@ public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.github_com.tchajed.marshal
+public import Perennial.Code.hash
 public import Perennial.Code.internal.bytealg
+public import Perennial.Code.internal.byteorder
 public import Perennial.Code.internal.oserror
+public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.stringslite
 public import Perennial.Code.internal.testlog
 public import Perennial.Code.io
@@ -89,10 +92,16 @@ theorem ExternalInit.github_com_goose_lang_primitive [GooseExts] [GoGlobalContex
     ExternalInit pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize' := ⟨⟩
 theorem ExternalInit.github_com_tchajed_marshal [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.github_com.tchajed.marshal _root_.Perennial.github_com.tchajed.marshal.initialize' := ⟨⟩
+theorem ExternalInit.hash [GooseExts] [GoGlobalContext] :
+    ExternalInit pkg_id.hash _root_.Perennial.hash.initialize' := ⟨⟩
 theorem ExternalInit.internal_bytealg [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize' := ⟨⟩
+theorem ExternalInit.internal_byteorder [GooseExts] [GoGlobalContext] :
+    ExternalInit pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize' := ⟨⟩
 theorem ExternalInit.internal_oserror [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize' := ⟨⟩
+theorem ExternalInit.internal_strconv [GooseExts] [GoGlobalContext] :
+    ExternalInit pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize' := ⟨⟩
 theorem ExternalInit.internal_stringslite [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize' := ⟨⟩
 theorem ExternalInit.internal_testlog [GooseExts] [GoGlobalContext] :

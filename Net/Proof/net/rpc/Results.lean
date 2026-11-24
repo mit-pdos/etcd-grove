@@ -35,9 +35,7 @@ show `stuck` is never reached).
   `Net/Proof/net/http/ServerDefs.lean`).
 
 The HTTP client (`section http`): `DialHTTPPath`, `DialHTTP`, over net/http's `ReadResponse`
-(`Net/Proof/net/http/Results.lean`) and the net extension's `Conn.Read` (`specLc`); pending, as
-`ReadResponse`, on Perennial's `strings.Cut` and `strings.TrimLeft` (hypotheses `h_Cut`,
-`h_TrimLeft`).
+(`Net/Proof/net/http/Results.lean`) and the net extension's `Conn.Read` (`specLc`).
 Not yet proved (the plan note, phase 5.2, lists what remains): `HandleHTTP` and net/http's server
 up to the hijack (which gives `ServeHTTP` its `hijackOk`).
 -/
@@ -370,23 +368,16 @@ variable [sync.Assumptions] [NetProtoGS]
 /-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`
 (`Net/Proof/net/http/Results.lean`). -/
 
--- Pending: Perennial's `strings.Cut` (`Net/Proof/net/http/Results.lean`, `links_pending`).
-variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
--- Pending: Perennial's `strings.TrimLeft`.
-variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
-
-include h_Cut h_TrimLeft in
 theorem DialHTTPPath.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTPPath.spec (GF := GF) (hG := hG) :=
   DialHTTPPath.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proof
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
-    net.Conn.Read.wp_proofLc (net.http.ReadResponse.wp h_Cut h_TrimLeft) NewClient.wp
+    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp NewClient.wp
 
-include h_Cut h_TrimLeft in
 theorem DialHTTP.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTP.spec (GF := GF) (hG := hG) :=
-  DialHTTP.wp_proof (DialHTTPPath.wp h_Cut h_TrimLeft)
+  DialHTTP.wp_proof DialHTTPPath.wp
 
 end http
 

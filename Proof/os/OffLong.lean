@@ -54,7 +54,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   iStructNamed Hf2
   icases ownSlice_len sl _ ([] : List w8) $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   wp_auto
@@ -67,7 +67,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   wp_auto
   wp_apply wp_ArbitraryInt as %e _
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   by_cases he : e = W64 0
   · subst he
     rw [decide_eq_true (rfl : W64 0 = W64 0)]
@@ -81,7 +81,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     iapply fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn0 as %pe #Hpe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn0 Hsys0 as %pe #Hpe
     iapply HΦ
     iframe Hf Hsl
     isplitr
@@ -128,7 +128,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   wp_auto
@@ -141,7 +141,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
   wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
-  · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
+  · unfold os.ownFile; iexists inner; iframe; (repeat' isplitl []) <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
   wp_auto

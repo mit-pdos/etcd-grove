@@ -1386,3 +1386,32 @@ the initializer): `prometheus.NewGauge.wp_proof`, `prometheus.NewHistogram.wp_pr
 **Merged with lean `b0a063163c`** (Perennial `b3f2fc485`; 2026-11-24): `Adequacy.lean` taken from lean (fs-single-view:
 `fsSQ_crash_adequacy`, `tGen` with `osShared`) and the changes above reapplied; generated files regenerated. With
 fs-single-view on lean, the closed `etcd_wal_safe` wrapper is unblocked (not started).
+
+# Session (branch `wal-safe-top`, 2026-11-24, etcd-grove-03's delegate): the top-level result `etcd_wal_safe`
+
+**The statement** (`WalTester/Spec/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness.lean`,
+`etcd_wal_safe.spec`): `Robust [(bootWal e.area e.orDir, σ)] [] g (threads := 2 ^ 62 + 1) (bound := 2 ^ 62)`, the
+tester alone on one machine that crashes and restarts, under the tester's semantics `tExtsSem` (no I/O, lock or
+mapping error; no CRC collision kept by a crash), for every Go semantics and the packages' `Assumptions` (and
+`log.NewModel`), given:
+- `Hopen : ∀ hG : HeapGS .hasLC fsGF, TOpen (hG := tHeapAt hG lctx)`, the open specs as a named premise (today
+  `proto.UnmarshalWalRecordE.spec`, #37 S3); when it is proved the premise goes, a strengthening;
+- the bounded theorem's world premises: `FsInit` (`tExtsSem`'s `initLocal` is the default `True`, so `Robust`'s own
+  initial-state premise does not give it, unlike kvnet's), the roots `e.R`, the area and oracle directory distinct
+  roots, `e.orFile.Ok`, `tWalPathsOk`, the two `PathFits`, `tFirst`.
+`Robust`'s `Fresh` gives the bounded theorem's `Hlctx`, `Hpkgs` and `σ.threads = 1`.
+
+**The proof** (`WalTester/Proof/.../TopLevelRobustness.lean`): `Robust.of_single_crashing` over
+`etcd_wal_crash_safety_bounded` at `GF := fsGF` (`tAbsPre : AbsDiskGpreS fsGF`, its universal camera), `N := 2 ^ 62`,
+`T := n + 2` (`RealCrashThreadsBelow.of_single`: the thread bound follows from the step bound). The osfs pattern
+(bboltfs's); kvnet's bridge `robust_of_netFsBoot` is for kvnet's net and fs extensions at the default fs semantics
+and re-runs the adequacy, where the tester has its own closed execution theorem.
+
+**Layout and tiers**: `TopLevelDefs.lean` (defs) holds what the statement names, moved unchanged out of
+`Adequacy.lean` (linking): `tIo`, `tSQ`, `tQ`, `tFsSem`, `tExtsSem`, `tFsSemOk`, `tHasFs`, `tSat`, `tSatL`, `bootWal`,
+`tFirst`, `TOpen`, `tHeapAt`; new `tAbsPre`. `Adequacy.lean` imports it.
+
+**Trust base**: new collection `etc/tcb-collections/wal-safe.txt` (roots: the top-level file);
+`wal-tester.txt` narrowed to the tester's Link (its pattern matched the whole directory, which now holds a second
+root). `#print axioms etcd_wal_safe`: Lean's 3 and 20 of this repository's, all already in the trust base (those of
+`etcd_wal_crash_safety_bounded`); no `sorry`, no axiom added.

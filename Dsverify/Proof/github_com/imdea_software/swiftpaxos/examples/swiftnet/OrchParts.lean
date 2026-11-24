@@ -11,6 +11,8 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftn
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchPartsDefs
+public import Proof.fmt.SprintfPure
+public import Perennial.Proof.fmt.Link
 
 -- PORT: lab imports dropped: Harness.Proof.math.rand
 
@@ -349,12 +351,14 @@ theorem Conf.String.wp_proof : Conf.String.spec := fun p v dq => by
   · ipureintro; rfl
   iintro %lit ⟨Hlit, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _
-    (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _)
-      (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _)
-        (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _)
-          (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _) fmt.ArgsWf.nil))))
-    $$ [Hlit] as %str ⟨-, -⟩
+  wp_apply _root_.Perennial.EtcdGrove.fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"replicas %d, fast reads %d, pool level %d, max descriptor routines %d"
+      [.lit go!"replicas ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", fast reads ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", pool level ", .dir none _root_.Perennial.fmt.verb_d, .lit go!", max descriptor routines ", .dir none _root_.Perennial.fmt.verb_d]
+      _ _ _ _ (by fmt_encode) (by fmt_fits)
+      (.int _ _ _ _ (.uint64 _)
+      (.int _ _ _ _ (.uint64 _)
+        (.int _ _ _ _ (.uint64 _)
+          (.int _ _ _ _ (.uint64 _) .nil))))
+      $$ [Hlit] as %str ⟨-, -⟩
   · iexact Hlit
   iapply HΦ
   iframe

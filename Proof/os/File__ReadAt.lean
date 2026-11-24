@@ -79,7 +79,7 @@ local macro "readat_tail" : tactic => `(tactic| (
         have he0' : ¬ e = W64 0 := he0
         simp only [decide_eq_false he0', Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         ihave Hsl := hcomb cur $$ [Hpre Hcur]
         · iframe
@@ -89,7 +89,7 @@ local macro "readat_tail" : tactic => `(tactic| (
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         ipureintro
         exact ⟨by simp [hpl, hcl]; omega, .inr (by intro h; cases h)⟩
     · have hrl : (((xs.drop n.toNat).map Prod.fst).take k).length = k := by simp; omega
@@ -173,7 +173,7 @@ local macro "readat_tail" : tactic => `(tactic| (
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
           ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
           · iframe
@@ -183,7 +183,7 @@ local macro "readat_tail" : tactic => `(tactic| (
           iframe Hokn
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           ipureintro
           refine ⟨?_, .inr (by intro h; cases h)⟩
           rw [List.length_append, hpl, hc2l, hcl]; omega
@@ -194,7 +194,7 @@ set_option maxHeartbeats 600000 in
 theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG := hG) := by
   intro f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff hend hin hxl
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hm, Hbs⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -288,7 +288,7 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
     iframe Hokn
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ipureintro
     have hnl : n.toNat = vs.length := by omega
     have hc' : cur = [] := List.length_eq_zero_iff.1 hc0
@@ -446,7 +446,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     iapply HΦ $$ %r %e %(held_read_of rs rs' o n r hsub h1)
       %(fun he hr => held_empty_of rs rs' o n hsub (h2 he hr)) %(hP _ _ rfl) Hfd HP
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hbs, #Hacc, #Heof⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hbs, #Hacc, #Heof⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -529,7 +529,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
     isplitr
     · ipureintro; exact ⟨hl, by omega, hx⟩
@@ -566,7 +566,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           iapply HΦ
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩
@@ -578,13 +578,13 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
           ihave Hsl := hcomb cur $$ [Hpre Hcur]
           · iframe
           iapply HΦ
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩
@@ -663,13 +663,13 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
           · iframe
           iapply HΦ
           iframe
           isplitl []
-          · isplitl [] <;> iassumption
+          · (repeat' isplitl []) <;> iassumption
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin _ hc2l
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩

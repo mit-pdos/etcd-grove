@@ -47,13 +47,15 @@ a failed removal (a non-empty directory, I/O) is logged and skipped, not returne
   later `SaveDBFrom` of `j` keeps the file, `j` saved already). A file linked by a concurrent
   `SaveDBFrom` after the listing is not removed and joins `M`.
 * A non-canonical name (`5.snap.db`, 19 digits, uppercase hex) and an empty directory of such a
-  name: no spec gives `fileHolds` or `pathOwn` of such a path (`snapDBPath` is canonical, the
-  backend's file `config.backendPathOf` is `<dd>/member/snap/db`, temporary files are `tmp*`), and the
-  environment clause of `snapDirOwn` says nothing outside the server's snapshotters writes
-  `.snap.db` files there (`SaveDBFrom` writes only canonical names). Removing one changes nothing
-  the logic states.
-* Nothing else is touched: `tmp*` files (a concurrent `SaveDBFrom`'s), `*.snap`, the backend's `db`
-  (`OpenSnapshotBackend`'s rename target) do not end in `.snap.db`.
+  name: the claim on every such name of the directory is the invariant's (`snap.snapDirOwn`, the
+  claim on all the names but `db` and the canonical ones, which `snapDirInv` holds for good; claim
+  #34, 2026-11-23: until then an environment clause of the opaque `snapDirOwn`), and the claims of a
+  directory are disjoint, so no one else holds a claim on such a name, and no proof's resource
+  records a file there or a path through it. A removal is a step on the invariant's claim, which
+  the body updates (its history is existential). The file system has no fd-relative operation
+  (`openat`, `os.Root`) by which a handle on a removed directory could be written.
+* Nothing else is touched: `tmp*` files (a concurrent `SaveDBFrom`'s, under the invariant's claim),
+  `*.snap`, the backend's `db` (`OpenSnapshotBackend`'s rename target) do not end in `.snap.db`.
 The post does not say that the files below `i` are gone (a removal may fail silently): the caller
 gets nothing but the invariant kept. -/
 abbrev snap.Snapshotter.ReleaseSnapDBs.spec : Prop :=

@@ -44,14 +44,17 @@ theorem types.URLs.StringSlice.wp_proof
   irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
   ihave HF : (∃ (k iv : w64) (xs : List GoString),
       "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "Hout" ∷ out ↦* xs ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sl.len ∧ xs.length = us.length⌝ : IProp GF)
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sl.len ∧ xs.length = us.length ∧
+        ∀ (j : Nat) (u : _root_.Perennial.net.url.URL), j < sint.nat k → us[j]? = some u →
+          http.urlRootPlain u → xs[j]? = some (go!"http://" ++ u.Host')⌝ : IProp GF)
     $$ [i Hiu Hout]
   · iexists W64 0, _, _
     iframe
     ipureintro
-    exact ⟨by decide, Hul.2, by rw [List.length_replicate, Hul.1]⟩
+    refine ⟨by decide, Hul.2, by rw [List.length_replicate, Hul.1], fun j u hj _ _ => ?_⟩
+    exact absurd hj (by simp)
   wp_for HF
-  obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+  obtain ⟨Hk1, Hk2, Hk3, Hk4⟩ := Hk
   (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
   wp_if_destruct
   · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len := ⟨Hk1, Hif⟩
@@ -63,7 +66,7 @@ theorem types.URLs.StringSlice.wp_proof
     (try wp_auto)
     (try simp only [Hb, _root_.and_self, ↓reduceIte])
     ihave ⟨Hu, -⟩ := (ownSlice_elem_acc (sint.Z k) u sl DFrac.discard us Hk1 Hu_lookup) $$ Hus
-    wp_apply (hURLString _ DFrac.discard u) $$ [Hu] as %s -
+    wp_apply (hURLString _ DFrac.discard u) $$ [Hu] as %s ⟨-, %Hs⟩
     · iexact Hu
     (try wp_auto)
     ihave %Houtl := ownSlice_len $$ Hout
@@ -80,11 +83,27 @@ theorem types.URLs.StringSlice.wp_proof
     iexists k + W64 1, k, _
     iframe
     ipureintro
-    exact ⟨by word, by word, by simp [Hk3]⟩
+    refine ⟨by word, by word, by simp [Hk3], fun j v hj hv hvr => ?_⟩
+    have hkn : sint.nat (k + W64 1) = sint.nat k + 1 := by unfold sint.nat; word
+    rw [hkn] at hj
+    rw [List.getElem?_set]
+    by_cases hjk : sint.nat k = j
+    · subst hjk
+      rw [ite_eq_left_of_eq_true _ _ (eq_true rfl),
+        ite_eq_left_of_eq_true _ _ (eq_true (by rw [Hk3]; exact (List.getElem?_eq_some_iff.1 hv).1))]
+      have : v = u := by rw [hv] at Hu_lookup; exact Option.some.inj Hu_lookup
+      subst this
+      rw [Hs hvr]
+    · rw [ite_eq_right_of_eq_false _ _ (eq_false hjk)]
+      exact Hk4 j v (by omega) hv hvr
   · (try wp_auto)
     iapply HΦ
     iframe
-    ipureintro; exact Hk3
+    ipureintro
+    refine ⟨Hk3, fun j u hu hur => Hk4 j u ?_ hu hur⟩
+    have hjl : j < us.length := (List.getElem?_eq_some_iff.1 hu).1
+    have := Hul.1
+    unfold sint.nat at *; word
 
 end proof
 

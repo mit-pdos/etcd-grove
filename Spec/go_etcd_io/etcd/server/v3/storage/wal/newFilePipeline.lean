@@ -4,7 +4,7 @@ channels (`filec` unbuffered, `errc` of capacity 1, `donec` unbuffered), and its
 started. The caller gives the pipeline half of the call permission, a fraction of the directory's
 path and the program's half of the claim on `0.tmp` (`pipeTmp 0`); it keeps the claim on `1.tmp` (`pipeTmp 1`, the
 first `Open`'s `pipeQ j 0`) and gets the token `pipeMain γ 0`. `lg` non-nil (`zapLoggerOk`; the
-`zap.NewNop()` branch not taken); `dir` shorter than `2^61` (`filepath.Join`'s premise). The WAL invariant and the directory's key (`walDirKey`), which the pipeline keeps to
+`zap.NewNop()` branch not taken); `dir` shorter than `2^60` (`filepath.Join`'s premise, `joinMax` with the name). The WAL invariant and the directory's key (`walDirKey`), which the pipeline keeps to
 open the invariant for its half of a name's claim. Lean-first (plan W2).
 -/
 module
@@ -32,7 +32,7 @@ variable [os_sem : os.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec : Prop :=
   ∀ (lg : Loc) (dir : GoString) (sz : w64) (R : Roots) (dq : DFrac) (j : Ino),
-  0 ≤ sz.toInt → sz.toInt ≤ 0xffffffff000 → dir.length < 2 ^ 61 → sz.toInt % 8 = 0 →
+  0 ≤ sz.toInt → sz.toInt ≤ 0xffffffff000 → dir.length < 2 ^ 60 → sz.toInt % 8 = 0 →
   {{ zapLoggerOk (GF := GF) lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       (∃ (C : WalEnc.WalCodec) (Mr : WalEnc.WalMarshal) (jr : Ino) (r : GoString) (X : List GoString),

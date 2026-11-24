@@ -94,6 +94,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) defaultWaitForReady _ as HdefaultWaitForReady
   wp_apply wp_GlobalAlloc (V := GoSlice) noPrefixEnd _ as HnoPrefixEnd
   wp_apply wp_GlobalAlloc (V := w64) LeaseResponseChSize _ as HLeaseResponseChSize
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Uint64) clientTargetSeq _ as HclientTargetSeq
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrMutuallyExclusiveCfg _ as HErrMutuallyExclusiveCfg
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrOldCluster _ as HErrOldCluster
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoAvailableEndpoints _ as HErrNoAvailableEndpoints
@@ -197,6 +198,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HmaxBackoff
   ipersist HLeaseResponseChSize
   ipersist Sco
+  ihave Hcts : _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq) (DFrac.own 1) (W64 0) $$ [HclientTargetSeq]
+  · rw [_root_.Perennial.sync.atomic.ownUint64_unseal]
+    unfold _root_.Perennial.sync.atomic.ownUint64Def
+    have e : (zero_val _root_.Perennial.sync.atomic.Uint64) =
+        ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : _root_.Perennial.sync.atomic.Uint64) := rfl
+    rw [← e]; iexact HclientTargetSeq
+  imod inv_alloc go_etcd_io.etcd.cache.v3.clientTargetSeqN ⊤ (∃ n : w64, _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq) (DFrac.own 1) n) $$ [Hcts] with #Hcts
+  · inext; iexists _; iexact Hcts
   iframe Hown
   imodintro
   isplitr
@@ -211,7 +220,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl
   have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl
   rw [h1, h2] at hv
-  simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil, or_false] at hv
+  simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
   rcases hv with rfl | rfl | rfl <;> exact ⟨_, _, rfl, by simp⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

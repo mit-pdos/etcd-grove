@@ -8,8 +8,6 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom Perennial.EtcdGrove.strings.Cut.wp_proof
-axiom Perennial.EtcdGrove.strings.TrimLeft.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -79,15 +77,11 @@ axiom encoding.json.Marshal.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
-axiom fmt.SprintfSlice.wp_proof
-axiom fmt.SprintfWalName.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -296,7 +290,6 @@ axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
 axiom semver.semverValid_simple
-axiom slices.ContainsFunc.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof

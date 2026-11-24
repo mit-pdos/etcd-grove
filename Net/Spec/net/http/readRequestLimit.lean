@@ -5,9 +5,12 @@ read by the model's `modelReadLine` and `modelReadMIMEHeader`) on net/rpc's `CON
 (`io.readerStreamNE ri S E`), whose bytes are, as long as it is read, a prefix of `connectReq path`
 (`"CONNECT " ++ path ++ " HTTP/1.0\n\n"`, `path` a `reqPath`: the dialer writes nothing more before it
 has read the answer), that delivers nothing after an error (the law over `E` and `S`), and whose errors
-have an `Error()` method (`errMsgOk`: `readRequestLimit` calls it on the header reader's error);
-`maxHeaders` not negative. It returns an error (some error, non-nil: the stream's, `io.ErrUnexpectedEOF`
-for its `io.EOF` once the request line is read, a malformed line's, `errTooLarge`), or the request
+have an `Error()` method returning a message other than `"message too large"` (`errMsgOk`:
+`readRequestLimit` calls it on the header reader's error and answers `errTooLarge` for that one);
+`maxHeaders` not negative. It returns a non-nil error (`reqErr E err`: the header reader's, that is the
+stream's or a `textproto.ProtocolError`; `io.ErrUnexpectedEOF` for the stream's `io.EOF` once the request
+line is read; a `badStringError`, `"malformed HTTP …"`, for a request line or version cut by the stream's
+error; never `errTooLarge`), or the request
 (`connectReqv`: `CONNECT`, the request URI `path`, `HTTP/1.0`, the URL of path `path`, an empty header,
 no body) and `nil`, the reader past the request's bytes. A line cut by an error does not parse as a
 whole request: the version `"HTTP/1.0"` is the line's end, and a whole line is followed by the header
@@ -48,7 +51,7 @@ abbrev readRequestLimit.spec : Prop :=
     {{ EtcdGrove.bufio.ownReader b ri S E [] }}
       (App (App (Val (@! net.http.readRequestLimit)) (Val #b)) (Val #maxH))
     {{ (req : Loc) (err : GoInterface), RET (PairV #req #err);
-        ⌜err ≠ interface.nil⌝ ∨
+        (⌜err ≠ interface.nil⌝ ∗ reqErr E err) ∨
         (⌜err = interface.nil⌝ ∗ connectReqv req path ∗
           EtcdGrove.bufio.ownReader b ri S E (net.rpc.connectReq path)) }}
 

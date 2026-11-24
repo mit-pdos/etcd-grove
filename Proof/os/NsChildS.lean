@@ -36,7 +36,7 @@ errno other than `ENOENT`. -/
 theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J : Ino)
     (Np : NameSet) (dq dqn : DFrac) (hp : NamesH) (qc : Qp) (hb : NameOk b) (hNp : Np.Mem b)
     (hJ : hp.cur !! b = some (.dir J)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq jp ∗ osNames jp Np dqn hp ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq jp ∗ osNames jp Np dqn hp ∗
         osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq jp ∗
@@ -44,7 +44,11 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             osDirFdS fd J .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
@@ -77,7 +81,7 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
     unfold os.ownFile
     iexists inner_ptr
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · iclear Hfd
     have hne : e ≠ ENOENT := by
       rcases hres with ⟨h0, -⟩ | ⟨-, h1, -⟩
@@ -105,7 +109,7 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
 theorem os.Open.wp_dirChildS (d b : GoString) (R : Roots) (jp J : Ino) (Np : NameSet)
     (dq dqn : DFrac) (hp : NamesH) (qc : Qp) (hb : NameOk b) (hNp : Np.Mem b)
     (hJ : hp.cur !! b = some (.dir J)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq jp ∗ osNames jp Np dqn hp ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq jp ∗ osNames jp Np dqn hp ∗
         osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Open)) (Val #(child d b)))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq jp ∗
@@ -113,11 +117,15 @@ theorem os.Open.wp_dirChildS (d b : GoString) (R : Roots) (jp J : Ino) (Np : Nam
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             osDirFdS fd J .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
+
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   wp_apply os.OpenFile.wp_dirChildS d b (W32 0) R jp J Np dq dqn hp qc hb hNp hJ
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 
@@ -178,7 +186,7 @@ theorem os.Open.wp_absentErrS (d b : GoString) (R : Roots) (j : Ino) (N : NameSe
   wp_apply os.OpenFile.wp_absentErrS d b (W64 0) (W32 0) R j N dq dqn h qc
     (by rw [e]; exact flRO_ok) (by rw [e]; decide) (by rw [e]; decide) hb hN hi
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 
@@ -203,7 +211,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
          ((∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT⌝ ∗ os.errnoPathErr err e) ∗
             ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hcl, Hpp, Hnp⟩
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hcl, Hpp, Hnp⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -278,7 +286,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     iexists rs.reverse
     iframe
@@ -308,7 +316,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
       iapply HΦ
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · (repeat' isplitl []) <;> iassumption
       iright
       isplitr
       · iexists e; iframe Herr; ipureintro; exact ⟨he, hne⟩

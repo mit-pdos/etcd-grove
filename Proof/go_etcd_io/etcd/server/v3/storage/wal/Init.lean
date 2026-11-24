@@ -25,6 +25,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.hash.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -38,7 +39,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.hash.Init
 public import Proof.hash.crc32.Init
 public import Proof.os.Init
 public import Proof.path.filepath.Init

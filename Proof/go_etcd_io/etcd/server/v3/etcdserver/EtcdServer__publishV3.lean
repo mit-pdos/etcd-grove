@@ -23,12 +23,15 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Spec.strings.Join
+public import Perennial.Proof.strings.JoinBounded
 public import Proof.fmt.OutLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Proof.context.LibKeys
 public import Proof.context.LibKeysChain
 public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -98,6 +101,16 @@ theorem spanCtxOk_bgFrom' {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [
 
 end defs
 
+/-- At most `etcdURLCountMax` strings of at most `etcdURLLenMax` bytes, joined by a separator of
+at most one byte, stay below `strings.Join`'s length bound. -/
+theorem urlsJoin_fits {n : Nat} {sep : GoString} (h : n ≤ etcdURLCountMax) (hs : sep.length ≤ 1) :
+    n * (etcdURLLenMax + sep.length) < _root_.Perennial.strings.joinMax := by
+  unfold etcdURLCountMax at h
+  unfold etcdURLLenMax _root_.Perennial.strings.joinMax
+  have : n * (1024 + sep.length) ≤ 64 * (1024 + 1) :=
+    Nat.mul_le_mul h (by omega)
+  omega
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -129,7 +142,7 @@ theorem EtcdServer.publishV3.wp_proof
   iunfold srvReadyCloser at Hrc
   icases Hrc with ⟨Hch, #Hattr, Hlt, HRD⟩
   iunfold srvAttrsRO at Hattr
-  icases Hattr with ⟨%name, %sl, %urls, #Hname, #Hcu, #Hsl⟩
+  icases Hattr with ⟨%name, %sl, %urls, #Hname, #Hcu, #Hsl, %Hufit⟩
   iunfold isServerReadM at Hrd
   icases Hrd with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAtM at Hvd
@@ -192,7 +205,6 @@ theorem EtcdServer.publishV3.wp_proof
   · iPkgInit
   ihave #Hmemp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
-  have hSp := fmt.Sprintf.argsWf wp_Sprintf
   wp_for
   (try wp_auto)
   -- `select { case <-s.stopping: ...; return; default: }`
@@ -218,7 +230,8 @@ theorem EtcdServer.publishV3.wp_proof
         (try wp_auto)
         wp_apply hZS as %f1 -
         (try wp_auto)
-        wp_apply wp_Join sl urls DFrac.discard _ $$ [] as -
+        wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join sl urls DFrac.discard go!" " etcdURLLenMax
+          Hufit.2 (urlsJoin_fits Hufit.1 (by decide))) $$ [] as -
         · iframe #
         (try wp_auto)
         wp_apply (wp_slice_literal (V := GoInterface) (l := [_, _]))
@@ -226,8 +239,12 @@ theorem EtcdServer.publishV3.wp_proof
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
         (try wp_auto)
-        wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-          (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hasl] as %astr ⟨-, -⟩
+        wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"{Name:%s ClientURLs:[%s]}" [.lit go!"{Name:", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ClientURLs:[", .dir none _root_.Perennial.fmt.verb_s, .lit go!"]}"] _ _ _ _ (by fmt_encode) ?fits ?pa)
+          $$ [$Hasl] as %astr ⟨-, -⟩
+        case pa =>
+          (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+          exact .str _ _ _ (.str _ _ _ .nil)
+        case fits => fmt_fits
         (try wp_auto)
         wp_apply hZS as %f2 -
         (try wp_auto)
@@ -335,7 +352,8 @@ theorem EtcdServer.publishV3.wp_proof
     (try wp_auto)
     wp_apply hZS as %f1 -
     (try wp_auto)
-    wp_apply wp_Join sl urls DFrac.discard _ $$ [] as -
+    wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join sl urls DFrac.discard go!" " etcdURLLenMax
+          Hufit.2 (urlsJoin_fits Hufit.1 (by decide))) $$ [] as -
     · iframe #
     (try wp_auto)
     wp_apply (wp_slice_literal (V := GoInterface) (l := [_, _]))
@@ -343,8 +361,12 @@ theorem EtcdServer.publishV3.wp_proof
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
     (try wp_auto)
-    wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-      (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hasl] as %astr ⟨-, -⟩
+    wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"{Name:%s ClientURLs:[%s]}" [.lit go!"{Name:", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ClientURLs:[", .dir none _root_.Perennial.fmt.verb_s, .lit go!"]}"] _ _ _ _ (by fmt_encode) ?fits ?pa)
+      $$ [$Hasl] as %astr ⟨-, -⟩
+    case pa =>
+      (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+      exact .str _ _ _ (.str _ _ _ .nil)
+    case fits => fmt_fits
     (try wp_auto)
     wp_apply hZS as %f2 -
     (try wp_auto)
@@ -382,7 +404,8 @@ theorem EtcdServer.publishV3.wp_proof
     (try wp_auto)
     wp_apply hZS as %f1 -
     (try wp_auto)
-    wp_apply wp_Join sl urls DFrac.discard _ $$ [] as -
+    wp_apply (_root_.Perennial.strings.Join_bounded_of wp_Join sl urls DFrac.discard go!" " etcdURLLenMax
+          Hufit.2 (urlsJoin_fits Hufit.1 (by decide))) $$ [] as -
     · iframe #
     (try wp_auto)
     wp_apply (wp_slice_literal (V := GoInterface) (l := [_, _]))
@@ -390,8 +413,12 @@ theorem EtcdServer.publishV3.wp_proof
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
     (try wp_auto)
-    wp_apply (hSp _ _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
-      (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hasl] as %astr ⟨-, -⟩
+    wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"{Name:%s ClientURLs:[%s]}" [.lit go!"{Name:", .dir none _root_.Perennial.fmt.verb_s, .lit go!" ClientURLs:[", .dir none _root_.Perennial.fmt.verb_s, .lit go!"]}"] _ _ _ _ (by fmt_encode) ?fits ?pa)
+      $$ [$Hasl] as %astr ⟨-, -⟩
+    case pa =>
+      (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero])
+      exact .str _ _ _ (.str _ _ _ .nil)
+    case fits => fmt_fits
     (try wp_auto)
     wp_apply hZS as %f2 -
     (try wp_auto)

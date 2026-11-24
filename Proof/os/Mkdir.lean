@@ -8,6 +8,7 @@ the caller's fraction and a retry fails (`wp_osMkdirS_some`).
 module
 
 public import Spec.os.Mkdir
+public import Proof.os.PkgInit
 public import Proof.os.ErrorOk
 public import Proof.os.ErrnoPathErr
 public import Proof.os.SharedExt
@@ -33,6 +34,9 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osLogLb_0 with #Hlb
   ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
@@ -76,7 +80,7 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         ihave %hne := os.errnoPathErr_ne err _ $$ Herr
         iapply HΦ
         isplitr
-        · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
+        · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
         iframe
         dsimp only [mkOut, mkNew]
         iframe
@@ -115,7 +119,7 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
       ihave %hne := os.errnoPathErr_ne err _ $$ Herr
       iapply HΦ
       isplitr
-      · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
+      · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
       iframe
       ipureintro; intro _; rfl
   · obtain ⟨x, sx, J⟩ := xs
@@ -141,16 +145,16 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
     ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
     isplitr
-    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
     iframe
     ipureintro; intro _; rfl
 
 /-- `specS` from `specSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
   iapply os.Mkdir.wp_proofSnc d b perm R j dq h q r Q hb hn hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  iframe Hpk Hos Hsi Hp Hperm Hn
   iapply osAU_osAUnc $$ Hau
 
 end proof

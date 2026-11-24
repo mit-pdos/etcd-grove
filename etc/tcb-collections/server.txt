@@ -43,9 +43,7 @@ axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
 axiom envVerifyOffTok
-axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom hsEncC_ok

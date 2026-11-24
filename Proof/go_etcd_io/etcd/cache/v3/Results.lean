@@ -286,7 +286,7 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     #Hws, #HWok, #Hims, #His, #Hkf, #Heof, #Honce⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
     hregs Hrf hnd hrd HL) $$ [Hgs Hlis Hleft]
-    with ⟨%γ, Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+    with ⟨%γ, Htok', #Hss, -, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   subst hs hE
   imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγ Htb HL hset hwreg)

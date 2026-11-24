@@ -13,6 +13,8 @@ public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Add
 public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Enabled
 public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__GetAll
 public import Perennial.Proof.fmt.Results
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -92,9 +94,9 @@ theorem features.NewDefaultServerFeatureGate.wp_proof
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
   wp_auto
-  wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _
-    (_root_.Perennial.fmt.ArgsWf.cons_string name _ _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hsl]
-    as %gname -
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%sServerFeatureGate"
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!"ServerFeatureGate"] _ _ _ _ (by fmt_encode)
+    (by fmt_fits) (.str name _ _ .nil) $$ [$Hsl] as %gname -
   wp_apply wp_New as %p ⟨%Hpnn, Hg⟩
   wp_apply +noauto (wp_Add p m featuregate.defaultKnown serverFeatureSpecs ∅ DFrac.discard
     serverFeatureSpecs_addCompat) $$ [Hg] as ⟨Hg, -⟩

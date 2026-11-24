@@ -52,8 +52,6 @@ than `n + 2`. -/
 def bootCrashRobust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (dir : GoString)
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx))
     (σ : state) (g : GlobalState)
     (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)

@@ -6,6 +6,7 @@ counterpart); the vocabulary is `Proof/google_golang_org/grpc/InvGrpc.lean` and
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 
 @[expose] public section
 
@@ -36,7 +37,9 @@ calling the handler if the v3 RPC capability is off, if the member is a learner 
 not one a learner serves, if the client's API version is not UTF-8, or if the client requires a
 leader and there is none; otherwise it calls the handler. Premises: the server's member id, its
 `lead` (`s.Leader()`), its cluster (`IsMemberExist`, `IsLearner`) with the local member in it
-(`membership.localKept`); under the thread bound `IsCapabilityEnabled`'s pool needs. -/
+(`membership.localKept`); under the thread bound `IsCapabilityEnabled`'s pool needs. (2026-11-24) It is the closure of
+the function's code over a variable holding `s` (`v3rpc.isUnaryIc`, `UnaryChain.lean`), which the
+members' axiom reads to name etcd's chain. -/
 abbrev v3rpc.newUnaryInterceptor.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 30)] (s c : Loc) (mid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -44,7 +47,8 @@ abbrev v3rpc.newUnaryInterceptor.spec : Prop :=
       srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗ srvClusterAddr s ↦□ c ∗
       membership.isRaftCluster c ∗ membership.localKept c }}
     (App (Val (@! v3rpc.newUnaryInterceptor)) (Val #s))
-  {{ (ic : GoFunc), RET #ic; srvInterceptorOk ic (levelTok 0) v3rpc.learnerReqOk }}
+  {{ (ic : GoFunc), RET #ic; srvInterceptorOk ic (levelTok 0) v3rpc.learnerReqOk ∗
+      v3rpc.isUnaryIc ic s }}
 
 end spec
 
