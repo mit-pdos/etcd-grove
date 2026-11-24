@@ -777,7 +777,9 @@ theorem tickEnd_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List
 /-- **A tick's `MsgBeat`** (`tickHeartbeat`): a leader's heartbeats; nothing elsewhere. -/
 theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope id s) (hty : m.Type' = MsgBeat)
-    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') :
+    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s')
+    (hhb : ∀ (ms : List Msg) (pvs : GMap w64 Progress), s' = { sendMsgs s ms with prvals := pvs } →
+      ∀ x ∈ ms, x.index = W64 0 ∧ x.logterm = W64 0 ∧ x.entries = []) :
     TickEnd c id (toPState s) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
       (by rw [hty]; ie_tyclose MsgVote) h0 h
@@ -800,7 +802,8 @@ theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     ie_tysimp hty at hres
     obtain ⟨-, ms, pvs, rfl, hok, hpm⟩ := hres
-    exact Or.inr (Or.inr ⟨by rw [toPState_role, hr]; rfl, ms, fun y hy => (hok y hy).1,
+    exact Or.inr (Or.inr ⟨by rw [toPState_role, hr]; rfl, ms,
+      fun y hy => ⟨(hok y hy).1, hhb ms pvs rfl y hy⟩,
       ie_toPState_send_prvals s ms pvs (fun _ => hpm)⟩)
 
 end lift
