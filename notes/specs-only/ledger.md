@@ -49,6 +49,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `T = *E` (each of zap's pools holds pointers; the conversion of a generic `T` to `any` steps only once its
   underlying type is known).
 - **Decision.** Applied (branch `zap-z2`), within #40's Z2 (the coordinator's go-ahead, 2026-11-23).
+## 2026-11-24: `bootMarshal`/`peersCtx` (raft's `Bootstrap` vocabulary) -- empty contexts excluded, which made the trace check's premise false
+
+- **Spec.** `Proof/go_etcd_io/raft/v3/ApiVocab.lean` (`bootMarshal`, `bootConfChange`, `peersCtx`), the
+  vocabulary of `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` (`Spec/go_etcd_io/raft/v3/`)
+  and of the closed theorems' premise `bootMarshal`; no counterpart in `SpecPlan/`.
+- **Defect.** Vacuous at a real caller: `bootMarshal` required `⌜∀ c ∈ ctxs, c ≠ []⌝`, and the trace
+  check's peers have no context (`Peer{ID: i}`), so its premise `bootMarshal _ [[], [], []] _` was false and
+  `raft_tracecheck_safe`/`_robust` held vacuously (since `bcfa65fe6d`, 2026-11-12).
+- **Evidence.** `examples/raft/tracecheck/sim.go:163`, `concurrent.go:155`; `tracecheck.premises`
+  (`RaftTla/Proof/.../tracecheck/Defs.lean:52`). The conjunct's reason (`00e0cbcf74`): `Context` is a proto2
+  `bytes` field, so an empty context's bytes depend on whether the slice is `nil`.
+- **Proposed change.** State presence instead of excluding it: `peersCtx` says an empty context's slice is
+  `nil`, `bootConfChange` likewise, `bootMarshal` loses the conjunct. Callers: `Bootstrap`'s proof (the `nil`
+  fact from `peersCtx`), the trace check (`tcPeers_ctx`); the etcd side's `peersCtx` (in `bootOk`) only
+  passes through. Weaker premises for every etcd example (non-empty contexts), a true one for the trace check.
+- **Decision.** Applied (branch `tracecheck-nonvacuous/2026-11-24`, `notes/trace-check-design.md`,
+  "Non-vacuity").
+
 ## 2026-11-24: `roundTripperOk` (`SpecPlan/Spec/net/http/Api.lean`) -- a length-framed body's completion fact comes too late
 
 - **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (the body premise
