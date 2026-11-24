@@ -37,9 +37,10 @@ system package's global variable's address `globalAddr X` may occur at **negativ
 precondition, a hypothesis), never in a postcondition (gogo `proto.RegisterEnum` consuming
 `message.MsgType_value`'s points-to, rabia's landed premise).
 
-The file `KitLibs.lean` (`kitlibs_file=`) is checked as text too: only `namespace`/`section`/`end`,
-`open`, `variable`, `universe`, `set_option` (`linter.*`, `maxHeartbeats`, `maxRecDepth`,
-`autoImplicit`, `relaxedAutoImplicit`), doc comments, and `def`/`abbrev`/`structure`/`class`
+The file `KitLibs.lean` (`kitlibs_file=`) is checked as text too: only `namespace`/`section`/`end`
+(no `meta section`), `open`, `variable`, `universe`, `set_option` (`linter.*`, `maxHeartbeats`,
+`maxRecDepth`, `autoImplicit`, `relaxedAutoImplicit`), `attribute [local instance] ...`, doc
+comments, and `def`/`abbrev`/`structure`/`class`
 declarations (modifiers: doc comment, visibility, `noncomputable`; attributes `reducible`,
 `irreducible`, `expose`; no `deriving`). No `instance`, `axiom`, `opaque`, `theorem`, `inductive`,
 `attribute`, `macro`, `syntax`, `notation`, `elab`, `initialize`, `#` command: the challenge's
@@ -53,7 +54,15 @@ statement's `KitLibs` premise (`premise=`, a definition of the statement's file,
 hypothesis must equal). Its axioms are listed: Lean's three; those of the instance module, each of
 which must itself pass rule 1 or 2 (an axiom about a library function: the lab judges whether it is
 true of Go); those of the challenge's fixed tree (the trust base: Goose's untranslated
-declarations, Perennial's); any other is refused.
+declarations, Perennial's); any other is refused, and so are `sorryAx`, `Lean.ofReduceBool`,
+`Lean.ofReduceNat` and `Lean.trustCompiler`.
+
+**Approximations** (what the walk does not see): a fixed constant is judged by its name and module
+only, never unfolded in a scan (a library definition of the tree that mentioned the system would
+pass; none does: library modules do not import the system's); in a spec position, fixed
+definitions and structures are unfolded to find the triples. Polarity is tracked through Lean's
+`→`/`¬`/`↔` and Iris's `-∗`/`→`/`⊢`; an atomic predicate's arguments inherit its polarity (the
+`globalAddr` exception relies on it).
 
 Exit 0: accepted; 1: refused (the reasons printed); 2: usage or a missing constant.
 -/
@@ -85,6 +94,8 @@ def Pol.flip : Pol → Pol | .pos => .neg | .neg => .pos | .both => .both
 
 structure St where
   errs : Array String := #[]
+  /-- The library functions and `InitHyp` classes the current field is about. -/
+  about : Array Name := #[]
   notes : Array String := #[]
   path : List String := []
 
@@ -312,7 +323,9 @@ partial def checkSubject (e : Expr) (pol : Pol) (top : Bool) : M Unit := do
         else if let some mm := conf.model.find? (·.isPrefixOf p) then
           err s!"the triple's subject `{c}` is a function of the model package `{mm}` (its specs are proved, not assumed)"
           bad := bad + 1
-        else lib := lib + 1
+        else
+          lib := lib + 1
+          modify fun s => if s.about.contains c then s else { s with about := s.about.push c }
     if lib == 0 && bad == 0 && top then
       err s!"the triple's subject is not a library function or method: {← ppS e}"
   | none =>
@@ -346,6 +359,7 @@ partial def spec (e : Expr) (d : Nat) : M Unit := do
   if !agent then
     if let some why ← denied c then err why; return
     if lastStr c == "InitHyp" && isClass (← getEnv) c then
+      modify fun s => if s.about.contains c then s else { s with about := s.about.push c }
       return ← scanArgs args .pos d
   if let some (s, sargs) ← isStructApp? e then
     if ← isPropTy e then return ← expandStruct s sargs .pos d (specs := true)
@@ -410,8 +424,14 @@ def checkClass : M Unit := do
     forallTelescope body fun fs _ => do
       for f in fs do
         let decl ← f.fvarId!.getDecl
+        modify fun s => { s with about := #[] }
+        let isP ← isPropTy decl.type
         inPath decl.userName.toString do
-          if ← isPropTy decl.type then spec decl.type 0 else scan decl.type .both 0
+          if isP then spec decl.type 0 else scan decl.type .both 0
+        let about := (← get).about.map toString |>.toList
+        let kind := if isP then "premise" else "data"
+        let line := s!"field {decl.userName}: {kind}; about {about}"
+        modify fun s => { s with notes := s.notes.push line }
 
 /-- The module's own declarations: no axiom, no opaque constant, no instance; and no instance of the
 class anywhere. -/
@@ -480,6 +500,8 @@ def checkInstance : M Unit := do
   let mut lean := 0
   for a in axs.qsort (·.toString < ·.toString) do
     if leanAxioms.contains a then lean := lean + 1; continue
+    if [``sorryAx, ``Lean.ofReduceBool, ``Lean.ofReduceNat, ``Lean.trustCompiler].contains a then
+      err s!"the instance rests on `{a}`"; continue
     let m ← modOf a
     if m.isSome && m == conf.instMod then
       let ty ← ppS (← findConst a).get!.type
