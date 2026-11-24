@@ -1006,10 +1006,24 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
     lab = dest.rstrip('/') + '.lab'
     os.makedirs(lab, exist_ok=True)
     left = {}
-    for f in tracked():
+    files = tracked()
+    for f in files:
         why = excluded(f, kit, allow, others, roots, other_roots)
         if why:
             left[f] = why
+    # keep the Lean trees closed under imports: a module importing a left-out one is left out too
+    kept = {f[:-5].replace('/', '.') for f in files if f.endswith('.lean') and f not in left}
+    changed = True
+    while changed:
+        changed = False
+        for m in sorted(kept):
+            miss = [i for i in imports.get(m, []) if i not in kept]
+            if miss and m not in allow:
+                kept.discard(m)
+                left[mod_path(m)] = f'imports the left-out {miss[0]}'
+                changed = True
+    for f in files:
+        if f in left:
             continue
         if f.startswith(SKILL + '/') and (not skill or skill_from):
             continue
