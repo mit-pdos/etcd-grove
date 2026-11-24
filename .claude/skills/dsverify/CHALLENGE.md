@@ -2,7 +2,7 @@
 
 ## What you are given
 
-A challenge is a tree in etcd-grove's layout (`SETUP.md`) holding one **kit**: a Go distributed
+A challenge is a tree (its layout: `SETUP.md`) holding one **kit**: a Go distributed
 system deployed over the network, and the goal to prove about it. Its `CLAUDE.md` names the kit
 `<kit>`, the goal theorem, and the files below.
 

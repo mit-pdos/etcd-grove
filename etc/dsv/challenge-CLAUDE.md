@@ -22,7 +22,7 @@ so it names no skill. Fields:
                          python3 etc/tier-check.py --check
                          python3 etc/kitlibs-check.py etc/dsv/<kit>-kitlibs-check.conf
   {{CODE_CHANGES}}     "allowed" or "not allowed"
-  {{SOURCE}}           the etcd-grove commit the challenge was exported from
+  {{SOURCE}}           the commit the challenge was exported from
 This comment is removed by the export. -->
 
 This directory is a self-contained verification challenge. Its goal is one Lean theorem about a Go
@@ -80,4 +80,4 @@ There is no network. Every dependency is present and built.
 
 Commit your work in this repository's git history as you go; do not push.
 
-Exported from etcd-grove {{SOURCE}}.
+Exported from commit {{SOURCE}}.

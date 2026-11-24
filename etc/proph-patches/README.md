@@ -7,7 +7,7 @@ it (and `etc/verified-code.py` reads the same copy); the proofs are of the patch
 
 A patch is a unified diff relative to the project's source root (the checkout's root, or the
 example's directory for a project in this repository), such as `git diff` output. In Go files it
-may only add prophecy-only code (the rule as widened by Upamanyu, #24; the exact checks:
+may only add prophecy-only code (the rule as widened on #24; the exact checks:
 `notes/proph-patch-rule.md`). The prophecy package is Perennial's `github.com/mit-pdos/perennial/proph`
 (`proph.NewProph`, `proph.ProphId`, `ResolveBool`, `ResolveU64` and `Resolve(any)`; new patches use it)
 or goose's `github.com/goose-lang/primitive` (the same without `Resolve`); `primitive.` below stands
