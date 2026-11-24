@@ -573,3 +573,8 @@ obligation). Then the axioms are theorems with the same statements.
   does not change when `EnvView` grows.
 - `Serve_dist`'s docstring names `a`'s protocols as `lean`'s opaque `grpcCliPI`/`grpcSrvPI`, the defined
   `grpcCliP`/`grpcSrvP` their intended reading.
+- Built on the VM (full build, 2026-11-24): `#print axioms putget_safe_of_hyps` lists Lean's three, the five interim
+  axioms and the single-process trust base, no `sorryAx`; `etc/tcb-report.py --check` passes and the collection
+  `putget-dist.txt` has its baseline (159 axioms). Build fixes: heap-level `env_publish_h`/`envAt_pub_h` (a WP's fancy
+  update is the heap's `IrisGS`, which the proof mode does not unify with `GooseGlobalGS.gooseInvGS`); `wenv_nonempty`
+  over an all-`False` etcd model and the mvcc API's names law (`MvccName` is sealed).
