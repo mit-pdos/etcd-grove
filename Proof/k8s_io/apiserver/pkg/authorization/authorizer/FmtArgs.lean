@@ -1,8 +1,9 @@
 /-
 The authorizer package's values as `fmt` arguments (2026-11-20): a `Decision` under `%v`/`%s`
-(its `String()`, proved: `Decision.String.spec`), and a read-only `[]Decision` under the same
-(`fmt.sliceArgOk`). What `UnconditionalPartsOrFailClosed`'s `fmt.Sprintf` and the union authorizer's
-`fmt.Errorf("evaluated to decision %s, but only %v were possible", ...)` pass. Lean-first.
+(its `String()`, proved: `Decision.String.spec`): what the union authorizer's
+`fmt.Errorf("evaluated to decision %s, but only [%s] were possible", ...)` passes. (Until 2026-11-24
+also a read-only `[]Decision` under the same, for the axioms `fmt.SprintfSlice`/`fmt.ErrorfSlice`,
+retired: the fork now spells the slice out.) Lean-first.
 -/
 module
 
@@ -60,30 +61,6 @@ theorem Decision.argOkAtBase (wp_String : Decision.String.spec (GF := GF) (hG :=
   · ipureintro; exact ⟨hd.1, hd.2.1, fun hw => absurd hw hd.2.2⟩
   · iapply Decision.argOk wp_String k
     iexact Hpkg
-
-/-- A read-only `[]Decision` is `fmt.argOkAtSl` a `%v`/`%s` directive (`fmt.sliceArgOk`). -/
-theorem Decision.sliceArgOkAt (wp_String : Decision.String.spec (GF := GF) (hG := hG))
-    (sl : GoSlice) (ks : List w64) {mv : List w8} {d : fmt.Directive}
-    (hd : d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false) :
-    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer ∗ sl ↦*□ ks ⊢
-      fmt.argOkAtSl mv d (interface.mkOk (go.GoType.SliceType Decision.ty) #sl) := by
-  iintro ⟨#Hpkg, #Hsl⟩
-  iapply (fmt.argOkAt_slice (T := Decision.ty) (V := w64) sl ks hd (by
-    rw [go.is_underlying]; rfl))
-  isplitr; · iexact Hsl
-  have hd' : d.verb ∈ mv ∧ d.sharpV = false ∧ d.verb ≠ W8 119 := by
-    refine ⟨hd.1, hd.2.2, ?_⟩
-    rcases hd.2.1 with h | h <;> rw [h] <;> decide
-  have key : ∀ (i : Nat) (k : w64), ks[i]? = some k →
-      iprop(□ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.authorizer) ⊢
-        fmt.argOkAtBase mv d (interface.mkOk Decision.ty #k) := by
-    intro i k _
-    iintro #H
-    iapply Decision.argOkAtBase wp_String k hd'
-    iexact H
-  iapply (BigSepL.bigSepL_intro (P := iprop(□ isPkgInit (PROP := IProp GF)
-      pkg_id.k8s_io.apiserver.pkg.authorization.authorizer)) key)
-  imodintro; iexact Hpkg
 
 end lemmas
 
