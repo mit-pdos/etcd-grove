@@ -97,8 +97,8 @@ replaces = ["file", "OpenFile", "File.Close", "File.ReadAt", "File.WriteAt", "Fi
   "File.Readdirnames", "Stat", "Lstat", "RemoveAll", "File.copyFileRange"]
 
 [[skip]]
-names = ["modelDirNames"]
+names = ["modelDirNames", "modelDirNamesMu"]
 reason = """
-The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal, read and written
-only by that stub's Go body, which is not translated (its GooseLang model is the extension's
+The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read
+and written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's
 DirReadNext)."""

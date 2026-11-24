@@ -40,22 +40,30 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.wp_proof :
     github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec (GF := GF) (hG := hG) :=
   fun o name data h => by
   iintro %Φ HAU
+  -- the model: `durableWrite(name, data)`, its stub the extension's `Write`
   wp_func_call
-  unfold github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.impl
-  wp_pures
+  wp_call
+  try wp_auto
+  wp_func_call
+  unfold github_com.mit_pdos.etcd_grove.examples.lib.durable.durableWrite.impl
+  wp_call
+  wp_bind (ExternalOp durableExt.name "Write" (Val (PairV (#name) (#data))))
   -- (2026-11-21) the token at the write's step (`wp_atomic_nc`), lent to the update's opening
   iapply (wp_atomic_nc (E1 := ⊤) (E2 := ∅) _ _ rfl)
   iintro Hnc
   imod HAU $$ Hnc with ⟨Hnc, %fs, Hown, Hcl⟩
   imodintro
   iframe Hnc
-  iapply wp_DurableWrite_atomic (E := ∅) o name data h (fun v => iprop(|={∅,⊤}=> Φ v))
+  iapply wp_DurableWrite_atomic (E := ∅) o name data h _
   imodintro
   iexists fs
   iframe Hown
   iintro Hown
   imodintro
-  iapply Hcl $$ Hown
+  imod Hcl $$ Hown with HΦ
+  imodintro
+  try wp_auto
+  iexact HΦ
 
 end proof
 

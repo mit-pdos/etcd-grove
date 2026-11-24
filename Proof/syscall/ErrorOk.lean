@@ -9,6 +9,7 @@ wrapping one, `Proof/os/ErrorOk.lean`).
 module
 
 public import Proof.syscall.Base
+public import Proof.internal.gomodel.LocalChoose
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -26,25 +27,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : syscall.Assumptions]
 
-/-- `fmt.arbitraryString` returns some string (Perennial's `fmt.wp_arbitraryString`, proved
-here without `fmt`'s package assumptions, which it does not need). -/
-theorem wp_arbitraryString' :
+/-- The model's `modelString()` returns some string. -/
+theorem wp_modelString :
     {{ (True : IProp GF) }}
-      (App (Val _root_.Perennial.fmt.arbitraryString) (Val #()))
+      (App (Val (@! syscall.modelString)) (Val #()))
     {{ (s : GoString), RET #s; True }} := by
-  iintro %Φ - HΦ
-  unfold _root_.Perennial.fmt.arbitraryString
-  wp_auto
+  wp_start as -
+  try wp_auto
   ihave IH : iprop(∃ str : GoString, "s" ∷ s_ptr ↦ str) $$ [s]
   · iexists _; iframe
   wp_for IH
-  wp_apply wp_ArbitraryInt as %c -
+  wp_apply EtcdGrove.internal.gomodel.ChooseUint64.wp_local as %c -
   wp_if_destruct
-  · wp_apply wp_ArbitraryInt as %b -
+  · wp_apply EtcdGrove.internal.gomodel.ChooseUint64.wp_local as %b -
+    try wp_auto
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := w8) (t := go.byte) [W8 (uint.Z b)]
-    wp_auto
+    try wp_auto
     rw [show go.arrayLiteralSize
       [KeyedElement none (ElementExpression go.byte #(W8 (uint.Z b)))] = 1 from rfl]
     isplitl []
@@ -59,7 +59,7 @@ theorem wp_arbitraryString' :
       revert Hif; cases (!decide (c = W64 0)) <;> simp
     rw [Hf]
     simp only [_root_.decide_true, ↓reduceIte]
-    wp_auto
+    try wp_auto
     iapply HΦ; itrivial
 
 /-- `Errno(e).Error()` returns some string. -/
@@ -70,8 +70,8 @@ theorem errno_stringMethodSpec (e : w64) :
   iintro %Φ HΦ
   simp only [method_unfold]
   unfold syscall.Errno.Error.impl
-  wp_auto
-  wp_apply wp_arbitraryString' as %s -
+  try wp_auto
+  wp_apply wp_modelString as %s -
   iapply HΦ
 
 /-- **A nonzero errno's error is `fmtErrorOk`.** -/

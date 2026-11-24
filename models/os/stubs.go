@@ -8,7 +8,10 @@
 
 package os
 
-import "syscall"
+import (
+	"sync"
+	"syscall"
+)
 
 // modelGcErrno is the errno of a system call's error (0 for nil), for the stubs' Go bodies.
 func modelGcErrno(err error) uintptr {
@@ -62,7 +65,12 @@ func fsFdKind(fd int) uintptr {
 func fsClose(fd int) uintptr { return modelGcErrno(syscall.Close(fd)) }
 
 // fsDirClose is close(fd) of a directory's fd. GooseLang: the extension's DirClose.
-func fsDirClose(fd int) uintptr { return modelGcErrno(syscall.Close(fd)) }
+func fsDirClose(fd int) uintptr {
+	modelDirNamesMu.Lock()
+	delete(modelDirNames, fd)
+	modelDirNamesMu.Unlock()
+	return modelGcErrno(syscall.Close(fd))
+}
 
 // fsOutClose is close(fd) of a directory's fd outside the roots' trees. GooseLang: OutClose.
 func fsOutClose(fd int) uintptr { return modelGcErrno(syscall.Close(fd)) }
@@ -110,6 +118,8 @@ func fsRmdir(name string) uintptr { return modelGcErrno(syscall.Rmdir(name)) }
 // fsDirReadNext is the next name of the directory fd: (name, done, errno), done 1 at the end.
 // GooseLang: the extension's DirReadNext. Go: the names of one getdents pass, kept per fd.
 func fsDirReadNext(fd int) (string, uintptr, uintptr) {
+	modelDirNamesMu.Lock()
+	defer modelDirNamesMu.Unlock()
 	names, ok := modelDirNames[fd]
 	if !ok {
 		buf := make([]byte, 8192)
@@ -134,8 +144,11 @@ func fsDirReadNext(fd int) (string, uintptr, uintptr) {
 	return nm, 0, 0
 }
 
-// modelDirNames is fsDirReadNext's state in gc builds (a [[skip]] variable of Code/os.toml).
+// modelDirNames is fsDirReadNext's state in gc builds, per fd, guarded by modelDirNamesMu
+// (RemoveAll runs concurrently) and dropped at the fd's close (fsDirClose: the fd may be reused);
+// both are [[skip]] variables of Code/os.toml.
 var modelDirNames = map[int][]string{}
+var modelDirNamesMu sync.Mutex
 
 // fsPathKind is what name is: 1 a path strictly below a root, 0 a root, 2 a strict ancestor of a
 // root. GooseLang: the extension's PathKind, a query of its environment. Go: 1.

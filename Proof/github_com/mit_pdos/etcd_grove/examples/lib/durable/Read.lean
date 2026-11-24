@@ -26,10 +26,28 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.wp_proof :
     github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.spec (GF := GF) (hG := hG) :=
   fun o o' name _ => by
   iintro %Φ HAU
+  -- the model (`models/.../durable/model.go`): `return durableRead(name)`, its stub the extension's
+  -- `Read`
   wp_func_call
-  unfold github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.impl
-  wp_pures
-  iapply wp_DurableRead_atomic o o' name $$ HAU
+  wp_call
+  try wp_auto
+  wp_func_call
+  unfold github_com.mit_pdos.etcd_grove.examples.lib.durable.durableRead.impl
+  wp_call
+  wp_bind (ExternalOp durableExt.name "Read" (Val #name))
+  iapply wp_DurableRead_atomic o o' name
+  imod HAU with ⟨%fs, Hown, %hm, Hcl⟩
+  imodintro
+  iexists fs
+  iframe Hown
+  isplitr
+  · ipureintro; exact hm
+  iintro Hown
+  imod Hcl $$ Hown with HΦ
+  imodintro
+  unfold durableReadResult
+  try wp_auto
+  iexact HΦ
 
 end proof
 
