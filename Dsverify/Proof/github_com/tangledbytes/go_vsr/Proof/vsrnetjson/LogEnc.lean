@@ -152,7 +152,7 @@ theorem vsrnet.wp_jenc_S_log_Log (b : GoSlice) (bs : List w8) (sl : GoSlice) (dq
   wp_for IH
   wp_if_destruct
   · have Hlt : uint.nat k < ls.length := by
-      have h := go.intoVal_inj Hif; simp at h; word
+      first | word | (have h := go.intoVal_inj Hif; simp at h; word)
     obtain ⟨xl, Hx⟩ : ∃ xl, ls[uint.nat k]? = some xl := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len := by word
     have hnz : (sint.Z k).toNat = uint.nat k := by word
@@ -212,7 +212,8 @@ theorem vsrnet.wp_jenc_S_log_Log (b : GoSlice) (bs : List w8) (sl : GoSlice) (dq
       simp only [List.append_assoc, List.cons_append, List.nil_append]
       iframe
       ipureintro; word
-  · have Hnlt : ¬ sint.Z k < sint.Z sl.len := by intro h; apply Hif; simp [h]
+  · have Hnlt : ¬ sint.Z k < sint.Z sl.len := by
+      first | exact Hif | (intro h; apply Hif; simp [h])
     have hk : uint.nat k = ls.length := by word
     have hes2 : es.take (uint.nat k) = es := by
       rw [hk, ← hls]; exact List.take_of_length_le (by simp)
