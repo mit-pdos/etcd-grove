@@ -128,14 +128,14 @@ theorem Server.wp_proof (wp_NewServeMux : net.http.NewServeMux.spec (GF := GF) (
     with Hown
   imodintro
   try wp_auto
-  wp_apply (wp_HandleFunc m [] go!"/echo" (functions echo []) (by decide) (by simp) hE) $$ [Hown]
+  wp_apply (wp_HandleFunc m [] go!"/echo" (functions echo []) (by unfold net.http.litPattern; decide) (by simp) hE) $$ [Hown]
     as ⟨Hown, #HrE⟩
   · iunfold net.http.muxOwn
     iframe Hown
     iexact Hse
   try wp_auto
-  wp_apply (wp_HandleFunc m [go!"/echo"] go!"/status" (functions teapotHandler []) (by decide)
-      (by decide) hT) $$ [$Hown] as ⟨Hown, #HrS⟩
+  wp_apply (wp_HandleFunc m [go!"/echo"] go!"/status" (functions teapotHandler [])
+      (by unfold net.http.litPattern; decide) (by decide) hT) $$ [$Hown] as ⟨Hown, #HrS⟩
   try wp_auto
   -- the mux frozen with its two patterns
   iapply fupd_wp
@@ -150,6 +150,7 @@ theorem Server.wp_proof (wp_NewServeMux : net.http.NewServeMux.spec (GF := GF) (
   ihave #Hlp2 := Hlp
   iunfold lisProto at Hlp2
   icases Hlp2 with ⟨-, -, %Hok⟩
+  rw [show (Addr : val) = #addrS from rfl]
   wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addrS as %lv %lerr Hl
   · isplitr
     · ipureintro; exact Hok
@@ -169,7 +170,7 @@ theorem Server.wp_proof (wp_NewServeMux : net.http.NewServeMux.spec (GF := GF) (
   imodintro
   wp_apply (wp_Serve drvP addrS lv (interface.mkOk (go.GoType.PointerType net.http.ServeMux.ty) #m) l)
     $$ [] as %e3 -
-  · iframe Hhttp Henv Hlis Hli Hon Hinv
+  · iframe Henv Hlis Hli Hon Hinv
     iunfold net.http.handlerOk
     iexists ⟨go.GoType.PointerType net.http.ServeMux.ty, #m⟩
     isplitr

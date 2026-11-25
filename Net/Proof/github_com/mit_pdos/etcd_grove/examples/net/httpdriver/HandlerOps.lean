@@ -80,7 +80,12 @@ theorem echoHdrs_get (m v : GoString) :
   have h1 : (go!"X-Method" : GoString) ≠ go!"X-Path" := by decide
   have h2 : (go!"X-Method" : GoString) ≠ go!"X-Echo" := by decide
   have h3 : (go!"X-Path" : GoString) ≠ go!"X-Echo" := by decide
-  refine ⟨?_, ?_, ?_⟩ <;> simp [net.http.hdrGetL, echoHdrs, h1, h2, h3, Ne.symm h1, Ne.symm h2, Ne.symm h3]
+  refine ⟨?_, ?_, ?_⟩ <;> simp [net.http.hdrGetL, echoHdrs, h1, h2, h3]
+
+/-- The `X-Driver` value of an `/echo` request's lines. -/
+theorem echoReq_xdriver (v n : GoString) :
+    net.http.hdrGetL [(go!"X-Driver", v), (go!"Content-Length", n)] go!"X-Driver" = v := by
+  simp [net.http.hdrGetL]
 
 theorem hdrsOk_nil : net.http.hdrsOk [] := by
   unfold net.http.hdrsOk; decide

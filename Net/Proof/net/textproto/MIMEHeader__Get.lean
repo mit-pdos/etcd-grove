@@ -46,7 +46,6 @@ theorem MIMEHeader.Get.wp_proof
     simp only [List.head?_nil, Option.getD_none]
     iapply HΦ
     iframe Hm
-    ipureintro; rfl
   · wp_start as ⟨%Hk, Hm, Hs⟩
     ihave %Hnn := ownMap_not_nil _ _ _ $$ Hm
     wp_auto

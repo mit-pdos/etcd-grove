@@ -45,7 +45,11 @@ theorem hdrEls_set (ms : GMap GoString GoSlice) (key : GoString) (s' : GoSlice) 
     [∗list] kv ∈ l.filter (fun kv => decide (kv.1 ≠ key)),
       ∃ s : GoSlice, ⌜(<[key := s']> ms) !! kv.1 = some s⌝ ∗ s ↦* ([kv.2] : List GoString) := by
   induction l with
-  | nil => iintro H; iexact H
+  | nil =>
+    rw [List.filter_nil]
+    iintro -
+    iapply (BigSepL.bigSepL_nil_intro (P := iprop(True)))
+    itrivial
   | cons a l ih =>
     iintro H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨Ha, H⟩

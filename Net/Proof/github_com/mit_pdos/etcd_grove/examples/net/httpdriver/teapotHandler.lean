@@ -21,7 +21,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open net.http (HReq HProto HdrLine RespSt)
+open net.http (HReq HProto HdrLine RespSt HttpProtoGS)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.httpdriver
 
@@ -53,22 +53,29 @@ theorem teapotHandler.wp_proof : teapotHandler.spec (GF := GF) (hG := hG) := by
   subst Hw
   wp_func_call
   wp_auto
-  wp_apply (wp_resp_WriteHeader wi R τ drvP I [] [] true (W64 418)
-      ⟨by decide, by decide, by decide, hdrsOk_nil⟩) $$ [HI] as HI
+  have hst : 200 ≤ uint.nat (W64 418) ∧ uint.nat (W64 418) ≤ 999 ∧
+      net.http.bodyAllowed (W64 418) = true ∧ net.http.hdrsOk [] :=
+    ⟨by word, by word, by unfold net.http.bodyAllowed; decide, hdrsOk_nil⟩
+  wp_bind (App (Val #(methods wi.ty go!"WriteHeader" wi.v)) (Val #(W64 418)))
+  iapply (wp_resp_WriteHeader wi R τ drvP I [] [] true (W64 418) hst) $$ [HI]
   · iframe HI
     isplitr
     · iexact Hops
+    imodintro
     simp only [drvP]
-    imodintro; ipureintro; simp
+    ipureintro; simp
+  inext
+  iintro HI
+  try wp_auto
   wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
   wp_apply (wp_resp_Write wi R τ drvP I (some (W64 418)) [] [] true sl go!"short and stout"
-      (DFrac.own 1) (by simp)) $$ [HI Hsl] as %n %err ⟨Hsl, Hres⟩
+      (DFrac.own 1) (fun h => by cases h)) $$ [HI Hsl] as %n %err ⟨Hsl, Hres⟩
   · iframe HI Hsl
     isplitr
     · iexact Hops
     simp only [drvP]
     imodintro; ipureintro; simp
-  wp_auto
+  try wp_auto
   isplitr
   · ipureintro; left; rfl
   iunfold net.http.serveDone

@@ -28,7 +28,7 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open net.http (HReq HProto HdrLine RespSt)
+open net.http (HReq HProto HdrLine RespSt HttpProtoGS)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.httpdriver
 
@@ -77,9 +77,16 @@ theorem echo.wp_proof (wp_ReadAll : io.ReadAll.spec (GF := GF) (hG := hG))
       omega
     | junk => exact absurd rfl hj
   obtain ⟨hm, hv, hb⟩ := hd
-  subst hR hB
+  subst hR
+  subst B
   have hRx : net.http.hdrGetL (DReq.echo m v b).hreq.hdr go!"X-Driver" = v := by
     simp [DReq.hreq, net.http.hdrGetL]
+  have hst200 : 200 ≤ uint.nat (W64 200) ∧ uint.nat (W64 200) ≤ 999 ∧
+      net.http.bodyAllowed (W64 200) = true ∧ net.http.hdrsOk (echoHdrs m v) :=
+    ⟨by word, by word, by unfold net.http.bodyAllowed; decide, echoHdrs_ok m v hm hv⟩
+  have hst500 : 200 ≤ uint.nat (W64 500) ∧ uint.nat (W64 500) ≤ 999 ∧
+      net.http.bodyAllowed (W64 500) = true ∧ net.http.hdrsOk [] :=
+    ⟨by word, by word, by unfold net.http.bodyAllowed; decide, hdrsOk_nil⟩
   iunfold net.http.srvReq at Hsr
   icases Hsr with ⟨#Hmeth, ⟨%u, #Hurl, #Hu⟩, -, -, -, -, -, ⟨%hm0, #Hhm, #Hro⟩, #Hbd, -⟩
   ihave Hu2 := Hu
@@ -101,44 +108,48 @@ theorem echo.wp_proof (wp_ReadAll : io.ReadAll.spec (GF := GF) (hG := hG))
     ihave #HgY := Hk $$ Heof
     isimp only [drvP] at HgY
     ihave %Hag := dghostVar_agree τ _ DFrac.discard ([] ++ ys) DFrac.discard $$ HgB HgY
-    wp_auto
+    try wp_auto
     wp_apply (wp_resp_Header wi (DReq.echo m v b).hreq τ drvP I [] [] true) $$ [HI] as %h1 ⟨Hh1, Hb1⟩
     · iframe HI; iexact Hops
-    wp_apply (wp_Set h1 [] go!"X-Method" m (by decide)) $$ [Hh1] as Hh1
+    wp_apply (wp_Set h1 [] go!"X-Method" m (by decide)) $$ [$Hh1] as Hh1
     ihave HI := Hb1 $$ Hh1
-    wp_auto
+    try wp_auto
     wp_apply (wp_resp_Header wi (DReq.echo m v b).hreq τ drvP I _ [] true) $$ [HI] as %h2 ⟨Hh2, Hb2⟩
     · iframe HI; iexact Hops
-    wp_apply (wp_Set h2 _ go!"X-Path" go!"/echo" (by decide)) $$ [Hh2] as Hh2
+    wp_apply (wp_Set h2 _ go!"X-Path" go!"/echo" (by decide)) $$ [$Hh2] as Hh2
     ihave HI := Hb2 $$ Hh2
-    wp_auto
+    try wp_auto
     wp_method_call
-    wp_auto
+    try wp_auto
     wp_apply (wp_GetRO hm0 (DReq.echo m v b).hreq.hdr go!"X-Driver" (by decide)) $$ [$Hro]
-    rw [hRx]
+    rw [echoReq_xdriver]
     wp_apply (wp_resp_Header wi (DReq.echo m v b).hreq τ drvP I _ [] true) $$ [HI] as %h3 ⟨Hh3, Hb3⟩
     · iframe HI; iexact Hops
-    wp_apply (wp_Set h3 _ go!"X-Echo" v (by decide)) $$ [Hh3] as Hh3
+    wp_apply (wp_Set h3 _ go!"X-Echo" v (by decide)) $$ [$Hh3] as Hh3
     ihave HI := Hb3 $$ Hh3
     rw [echoHdrs_eq m v]
-    wp_auto
-    wp_apply (wp_resp_WriteHeader wi (DReq.echo m v b).hreq τ drvP I (echoHdrs m v) [] true (W64 200)
-        ⟨by decide, by decide, by decide, echoHdrs_ok m v hm hv⟩) $$ [HI] as HI
+    try wp_auto
+    wp_bind (App (Val #(methods wi.ty go!"WriteHeader" wi.v)) (Val #(W64 200)))
+    iapply (wp_resp_WriteHeader wi (DReq.echo m v b).hreq τ drvP I (echoHdrs m v) [] true (W64 200)
+        hst200) $$ [HI]
     · iframe HI
       isplitr
       · iexact Hops
+      imodintro
       simp only [drvP]
-      imodintro; ipureintro; simp
-    wp_auto
+      ipureintro; simp
+    inext
+    iintro HI
+    try wp_auto
     wp_apply (wp_resp_Write wi (DReq.echo m v b).hreq τ drvP I (some (W64 200)) (echoHdrs m v) [] true sl ys
-        (DFrac.own 1) (by simp)) $$ [HI Hsl] as %n %err ⟨Hsl, Hres⟩
+        (DFrac.own 1) (fun h => by cases h)) $$ [HI Hsl] as %n %err ⟨Hsl, Hres⟩
     · iframe HI Hsl
       isplitr
       · iexact Hops
       simp only [drvP]
       imodintro; ipureintro
       rw [← Hag]; exact hb.1
-    wp_auto
+    try wp_auto
     isplitr
     · ipureintro; left; rfl
     iunfold net.http.serveDone
@@ -164,17 +175,22 @@ theorem echo.wp_proof (wp_ReadAll : io.ReadAll.spec (GF := GF) (hG := hG))
       iexists _, _, _
       iexact HI
   · -- an error: `500`
-    wp_auto
-    try rw [decide_eq_false He1]
-    wp_auto
-    wp_apply (wp_resp_WriteHeader wi (DReq.echo m v b).hreq τ drvP I [] [] true (W64 500)
-        ⟨by decide, by decide, by decide, hdrsOk_nil⟩) $$ [HI] as HI
+    cases err with
+    | nil => exact absurd rfl He1
+    | ok ei =>
+    try wp_auto
+    wp_bind (App (Val #(methods wi.ty go!"WriteHeader" wi.v)) (Val #(W64 500)))
+    iapply (wp_resp_WriteHeader wi (DReq.echo m v b).hreq τ drvP I [] [] true (W64 500)
+        hst500) $$ [HI]
     · iframe HI
       isplitr
       · iexact Hops
+      imodintro
       simp only [drvP]
-      imodintro; ipureintro; simp
-    wp_auto
+      ipureintro; simp
+    inext
+    iintro HI
+    try wp_auto
     isplitr
     · ipureintro; left; rfl
     iunfold net.http.serveDone
