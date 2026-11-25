@@ -353,53 +353,90 @@ theorem rnTakenK_stop (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH 
 
 end stop
 
-/-! ## Raft's durable state and the WAL's files across the crash (T2 + T5) -/
+/-! ## Raft's durable state and the WAL's files across the crash (T2 + T5)
+
+The resources of each generation are named by definitions over one `HeapGS` (`memberDurKeep`,
+`memberWalCrash`, `memberDurOut`): a statement over two generations `L`, `L'` has both, and the
+global ghost state `G`, as local instances, and the instances Lean finds for a predicate written in it
+directly (`nodeCrashTok`'s `InvGS`, through `L'`) are not those of the law it is passed to. -/
+
+section durDefs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- **What the member keeps of its raft durability across a crash** (D-T7-3): T2's crash-aware
+invariant, its crash tokens (the invariant's and the node's arm's), and the graceful stop's token,
+which the member never spends (it never stops its server), so T2's stop case is refuted. -/
+def memberDurKeep (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) : IProp GF :=
+  letI := srvStor (GF := GF) γn
+  iprop(rnDurInvK γn id νk h ∗ token νk.tk ∗ nodeCrashTok γn.cl id νk.x ∗ token νk.ν.stop)
+
+/-- **The WAL's crash at the new generation** (`walInv_crash`'s outputs T5's `walRecsH_crash` takes):
+the crash view from the WAL names `h.W` to `W'`, `W'`'s lock token, the WAL directory's call
+permission's half. -/
+def memberWalCrash (h : WalH GF) (W' : WalFs.WalGS GF) : IProp GF :=
+  letI := h.ext; letI := h.semOk; letI := h.has
+  iprop(WalFs.walCrashWal h.W W' ∗ WalFs.walUnlockedTok (W := W') ∗
+    Fs.osCallPerm (Fs.callKey h.R h.dir) (1 : Qp).half)
+
+/-- **Raft's durable state after the crash** (T2's outputs): the id's state `S` and vacancy, records
+`σ` that hold it and meet I1-I4, their snapshot's certificates, a committed log `l` they agree with. -/
+def memberDurOut (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (S : RaftState) (σ : StorContents)
+    (l : List LogEntry) : IProp GF :=
+  iprop(raftState γn.cl id S ∗ nodeVacant γn.cl id ∗
+    ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ⌝ ∗
+    walSnapCert γn.cl σ ∗ walSnapDur νk.sd σ ∗ isCommittedLogLb γn.cl l)
+
+end durDefs
 
 section dur
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
-variable {GF : BundledGFunctors}
--- (not an instance: the ghost instances the statements' predicates take must come from the one
--- `HeapGS` of each generation, as in the laws they are passed to)
-variable {G : GooseGlobalGS HasLC.hasLC GF}
+variable {GF : BundledGFunctors} {G : GooseGlobalGS HasLC.hasLC GF}
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-set_option pp.explicit true in
-open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver in
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- **Raft's durable state is the same at any generation** (it names only global ghost state). -/
+theorem memberDurOut_gen (L L' : GooseLocalGS GF) (γn : SrvRaft) (id : w64) (νk : WalNamesK GF)
+    (S : RaftState) (σ : StorContents) (l : List LogEntry) :
+    memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk S σ l ⊣⊢
+      memberDurOut (hG := ⟨G, etcd_dist.atCtx L'⟩) γn id νk S σ l := .rfl
+
 /-- **The member's durable raft state and its WAL's files after a crash** (the T2 and T5 part of the
-assembly): from the old generation `L`'s crash-aware durability invariant with its crash tokens and the
-stop's token (D-T7-3), two later credits, `crashed`, and the WAL's crash view (`walCrashWal`, from
-`walInv_crash`) with the new generation's lock token and the WAL directory's call permission's half at
-`L'` (both at the statement's Go context, `atCtx`): the id's durable state `S` and vacancy, records `σ` that hold it and meet I1-I4, their snapshot's
-certificates, a committed log they agree with, and the new generation's WAL files holding `σ`
-(`walFilesC`, at `L'`). T2's callback runs T5's `walRecsH_crash` at the new generation
+assembly): from the old generation `L`'s `memberDurKeep`, the cluster, two later credits, `crashed`, and
+the WAL's crash at the new generation `L'` (`memberWalCrash`, from `walInv_crash`; both at the
+statement's Go context, `atCtx`): raft's durable state `memberDurOut` and the new generation's WAL files
+holding its records (`walFilesC`). T2's callback runs T5's `walRecsH_crash` at the new generation
 (`walRecsH_gen`); T2's stop case is refuted by the stop's token (`rnTakenK_stop`). -/
 theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) (νk : WalNamesK GF)
     (h : WalH GF) (W' : WalFs.WalGS GF) (hmd : h.md = walMetaEnc id cid) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) (hE' : ↑srvClusterN ⊆ E \ ↑rnDurKN) :
-    letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩;
-    letI := srvStor (GF := GF) γn;
-    ⊢ rnDurInvK γn id νk h -∗ isCluster γn.cl srvClusterN -∗ £ 1 -∗ £ 1 -∗
-      crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗ token νk.tk -∗ nodeCrashTok γn.cl id νk.x -∗
-      token νk.ν.stop -∗
-      (letI := h.ext; letI := h.semOk; letI := h.has;
-       iprop(WalFs.walCrashWal h.W W' ∗ WalFs.walUnlockedTok (W := W') ∗
-        Fs.osCallPerm (L := etcd_dist.atCtx L') (Fs.callKey h.R h.dir) (1 : Qp).half)) ={E}=∗
+    ⊢ memberDurKeep (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h -∗
+      isCluster (hG := ⟨G, etcd_dist.atCtx L⟩) γn.cl srvClusterN -∗ £ 1 -∗ £ 1 -∗
+      crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
+      memberWalCrash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ={E}=∗
       ∃ (S : RaftState) (σ : StorContents) (l : List LogEntry),
         walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true ∗
-        raftState γn.cl id S ∗ nodeVacant γn.cl id ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ⌝ ∗
-        walSnapCert γn.cl σ ∗ walSnapDur νk.sd σ ∗ isCommittedLogLb γn.cl l := by
-  iintro #Hinv #Hcl Hlc1 Hlc2 Hcr Htk Hx Hst Hw
+        memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk S σ l := by
+  iintro Hk #Hcl Hlc1 Hlc2 Hcr Hw
+  iunfold memberDurKeep at Hk
+  icases Hk with ⟨#Hinv, Htk, Hx, Hst⟩
   imod rnDurK_crash_law_holds (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E
     (fun σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
     Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl⟩ | Htaken)
   · iintro %σr %Hs %n Hr Hsy
     ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).1 $$ Hr
+    iunfold memberWalCrash at Hw
     icases Hw with ⟨Hcw, Hu, Hc⟩
-    icases walRecsH_crash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' σr Hs n id cid hmd $$ [Hcw Hr Hsy Hu Hc] with
-      ⟨Hr, %j, %hj, Hf⟩
+    icases walRecsH_crash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' σr Hs n id cid hmd $$
+      [Hcw Hr Hsy Hu Hc] with ⟨Hr, %j, %hj, Hf⟩
     · iframe Hcw Hr Hsy Hu Hc
     ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).2 $$ Hr
     imodintro
@@ -412,7 +449,9 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     ipureintro; exact hr
   · imodintro
     iexists S, σ, l
-    iframe Hf HrS Hvac Hsc Hsd Hl
+    iframe Hf
+    iunfold memberDurOut
+    iframe HrS Hvac Hsc Hsd Hl
     ipureintro; exact hp
   · imod rnTakenK_stop (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E hE $$ Hinv Htaken Hst Hlc2 with %hF
     exact hF.elim
