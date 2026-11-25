@@ -427,3 +427,9 @@ Trusted text these change: `snapDirInv`'s body (round 3's shape plus 1-3), `snap
 docstrings of `SaveDBFrom`/`ReleaseSnapDBs`/`storage.Release` (3), and the statement of the unproved law
 `bootFs.touchMember.law` (1, through `bootFs.dirFresh`). Proved-spec changes: `TouchDirAll.spec` (2),
 `snapFree`/`snapFreeAll` (2). Size estimate now 1500-2000 lines.
+
+**T6, round 4 checkpoint (P7, 2026-11-25).** The coordinator took (b) for gap 1: no spine durability in
+`snapDirOwn`; the law takes `lookupH R V' sd = some (.dir J)` (and the persistent `snapDirKept`) as T7's
+obligation (Go: `TouchDirAll`'s parent syncs). Gaps 2 and 3 and simplifications 4-6 as above (3 recorded as
+`nonissues/etcd-snapdb-removed-before-dirsync.md`). `snapDir_crash_law_holds` proved
+(`etcdserver/SnapDirCrash.lean`); `bootFs.touchMember.law` untouched.
