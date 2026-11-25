@@ -40,7 +40,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-! ## The deployment's members as the start's (pure) -/
 
 section pure
-variable [GooseExts]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 
 theorem map_zip_map_self {α β γ : Type _} (l : List α) (f : α → β) (g : α × β → γ) :
     (l.zip (l.map f)).map g = l.map (fun a => g (a, f a)) := by
@@ -60,7 +60,7 @@ theorem cmsD_ids (d : Deployment) : (cmsD d).map (·.id) = d.ids := by
   rfl
 
 /-- Member `k`'s id and client address, as `memberShareD` reads them. -/
-theorem members_getD (d : Deployment) (k : Nat) (m : Member) (hk : d.members[k]? = some m) :
+theorem members_getD_ids (d : Deployment) (k : Nat) (m : Member) (hk : d.members[k]? = some m) :
     d.ids.getD k (W64 0) = memberId (go!"http://" ++ m.peer) d.token ∧
       (d.members.getD k ⟨go!"", go!"", go!""⟩).client = m.client := by
   constructor
@@ -81,7 +81,7 @@ theorem compactorCfg_of_wf {d : Deployment} (Hd : d.WellFormed) :
     intro hc _
     refine ⟨false, 0, v3compactor.bootCfg_off _ _ _ _ ?_⟩
     first
-      | (apply BitVec.eq_of_toInt_eq; simp only [sint.Z] at hc; rw [hc]; first | rfl | decide)
+      | (apply BitVec.eq_of_toInt_eq; simp only [sint.Z] at hc; rw [hc]; try (first | rfl | decide); done)
       | word
   | revision r =>
     intro hc hs
@@ -144,7 +144,8 @@ theorem clients_cms (d : Deployment) :
 
 /-- **Every member's peer address set to the cluster's peer protocols** (`http_addr_set` at `γ`, per member). -/
 theorem peersAt_start (γ : SrvRaft) (ns : List ClusterMember) :
-    ⊢ regCtx -∗ ([∗list] m ∈ ns, addrUnset m.peer) ={⊤}=∗ peerAddrFactsAt γ ns := by
+    ⊢ regCtx (Gg := G) -∗ ([∗list] m ∈ ns, addrUnset (Gg := G) m.peer) ={⊤}=∗
+      peerAddrFactsAt (GF := GF) γ ns := by
   induction ns with
   | nil =>
     iintro #_ _
@@ -166,7 +167,8 @@ theorem peersAt_start (γ : SrvRaft) (ns : List ClusterMember) :
 /-- **Every member's client address set to serve etcd's table for its id at the view `Γ`** (`etcdAddr_set`, per
 member). -/
 theorem clientsAt_start (Γ : DistView) (ns : List ClusterMember) :
-    ⊢ regCtx -∗ ([∗list] m ∈ ns, addrUnset m.client) ={⊤}=∗ clientSvcFacts ns Γ := by
+    ⊢ regCtx (Gg := G) -∗ ([∗list] m ∈ ns, addrUnset (Gg := G) m.client) ={⊤}=∗
+      clientSvcFacts (GF := GF) ns Γ := by
   induction ns with
   | nil =>
     iintro #_ _
@@ -224,7 +226,7 @@ theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterName
   imodintro
   iintro %k %m %hk Hx
   icases Hx with ⟨Hs, #Ha⟩
-  obtain ⟨hid, hcl⟩ := members_getD d k m hk
+  obtain ⟨hid, hcl⟩ := members_getD_ids d k m hk
   iunfold memberShareD
   rw [hid, hcl]
   iexists cmp, cret

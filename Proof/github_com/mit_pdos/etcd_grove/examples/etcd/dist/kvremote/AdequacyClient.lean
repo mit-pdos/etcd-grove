@@ -47,7 +47,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 /-- **Workload `j`'s orchestrator machine of a well-formed `kv`-only deployment** (see the file header), from the
 orchestrator's share at workload `j`'s client machines `ns` and operation count. -/
 theorem kvOrchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [cl_sem : client.Assumptions] [net.FieldAssumptions]
+    [cl_sem : client.Assumptions] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (Hkv : KvOnly d) (Hfips : crypto.fips140.GodebugFips140Off)
     (j : Nat) (w : Workload) (ns : List GoString) (hj : j < 2 ^ 31)
     (hw : d.workloads[j]? = some w) (hns : d.nodes[j]? = some ns) (σ : state)
@@ -90,7 +90,7 @@ theorem kvOrchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics
 its index `c` in its workload, its address `a` and the members' client addresses rotated by `c`. -/
 theorem kvNodeBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (Hkv : KvOnly d) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat) (w : Workload) (c : Nat) (a : GoString) (hn : n < 2 ^ 31)
     (hl : d.nodeList[n]? = some (w, c, a)) (σ : state)
