@@ -28,8 +28,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-/-- **`t.Start()`** on the fields it reads (`TLSInfo`, `DialTimeout`) and writes, for the network
-`H`: an error (the round trippers' fields written), or the two round trippers of `H`, the two maps
+/-- **`t.Start()`** on the fields it reads (`TLSInfo`, with no certificate: `transport.tlsEmpty`;
+`DialTimeout`) and writes, for the network `H`: an error (the round trippers' fields written), or the two round trippers of `H`, the two maps
 empty, the two probers and a dial-retry rate. -/
 theorem rafthttp.Transport.Start_core
     (hNSRT : rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG))
@@ -37,7 +37,8 @@ theorem rafthttp.Transport.Start_core
     (hNewProber : probing.NewProber.spec (GF := GF) (hG := hG))
     (hEvery : rate.Every.spec (GF := GF) (hG := hG))
     (H : http.HttpNet GF) (t : Loc) (tls : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo)
-    (dt : w64) (dq1 dq2 : DFrac) (srt0 prt0 pp0 sp0 : GoInterface) (pm0 rm0 : Loc) (drf0 : w64) :
+    (dt : w64) (dq1 dq2 : DFrac) (srt0 prt0 pp0 sp0 : GoInterface) (pm0 rm0 : Loc) (drf0 : w64)
+    (Htls : transport.tlsEmpty tls) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         t.[rafthttp.Transport, go!"TLSInfo"] ↦{dq1} tls ∗
         t.[rafthttp.Transport, go!"DialTimeout"] ↦{dq2} dt ∗
@@ -71,7 +72,7 @@ theorem rafthttp.Transport.Start_core
   wp_start as ⟨Htls, Hdt, Hsrt, Hprt, Hpm, Hrm, Hpp, Hsp, Hdrf⟩
   wp_alloc_auto
   wp_auto
-  wp_apply hNSRT H tls dt as %srt %err1 Hsrtok
+  wp_apply hNSRT H tls dt Htls as %srt %err1 Hsrtok
   (try wp_auto)
   icases Hsrtok with (%Hne1 | ⟨%Heq1, #Hsrtok⟩)
   · cases err1 with
@@ -85,7 +86,7 @@ theorem rafthttp.Transport.Start_core
       ipureintro; simp
   subst Heq1
   wp_auto
-  wp_apply hNRT H tls dt as %prt %err2 Hprtok
+  wp_apply hNRT H tls dt Htls as %prt %err2 Hprtok
   (try wp_auto)
   icases Hprtok with (%Hne2 | ⟨%Heq2, #Hprtok, %_⟩)
   · cases err2 with
