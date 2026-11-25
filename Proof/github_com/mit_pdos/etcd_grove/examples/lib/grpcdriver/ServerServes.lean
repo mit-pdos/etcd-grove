@@ -80,7 +80,9 @@ theorem echo_handlerOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG)) (γid 
   isplitl [Hsend HΦ]
   · iintro %_
     iexists _
-    iframe
+    isplitl [Hsend]
+    · iexact Hsend
+    · iexact HΦ
   isplitr
   · iapply handlerErrOut_nil
   · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
@@ -146,6 +148,7 @@ theorem echo_runOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
   inext
   iintro %resp %err ⟨-, -, Hres, Herr, #Hse⟩
   iapply HΨ
+  iframe Hse
   iframe
 
 /-- **The generated `Fail` handler on the server `s` meets `failSpec` as a run** (no
@@ -189,6 +192,7 @@ theorem fail_runOk (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
   inext
   iintro %resp %err ⟨-, -, Hres, Herr, #Hse⟩
   iapply HΨ
+  iframe Hse
   iframe
 
 /-- **The server's registrations serve the table's `Echo` entry** (`grpcServesEnt`): for

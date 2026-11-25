@@ -35,7 +35,7 @@ theorem server.Fail.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF := GF) (
     (wp_status_Error : EtcdGrove.status.Error.spec (GF := GF) (hG := hG)) :
     server.Fail.spec (GF := GF) (hG := hG) := by
   intro s ctx r v md Φ Ψe
-  wp_start as ⟨#Hpkg, Hrecv, HΨ⟩
+  wp_start as ⟨Hrecv, HΨ⟩
   ihave #Hstr : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
   ihave #Hgs : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
