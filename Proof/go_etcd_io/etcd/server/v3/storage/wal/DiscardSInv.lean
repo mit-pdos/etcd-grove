@@ -515,6 +515,88 @@ theorem walTmpHalves_delete (Ls : GMap GoString WalLay) (dir : GoString) (lay : 
   · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hk ⊢
     exact hp k la hk
 
+/-- A layout removed: a claim no WAL directory's of the remaining layouts was one before. -/
+theorem walDirClaimOf_delete {Ls : GMap GoString WalLay} {dir : GoString} {c : Claim}
+    (h : WalDirClaimOf (GMap.delete dir Ls) c) : WalDirClaimOf Ls c := by
+  obtain ⟨d, l, hl, rest⟩ := h
+  by_cases e : d = dir
+  · subst e; rw [GMap.lookup_delete_eq] at hl; cases hl
+  · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hl; exact ⟨d, l, hl, rest⟩
+
+/-- A parked claim's half, a layout removed (parked then, or dropped). -/
+theorem claimP_deleteL {Ls : GMap GoString WalLay} {D : List (Ino × NameSet)} (dir : GoString) (c : Claim) :
+    (if ParkedClaim Ls D c then osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp :
+        IProp GF) ⊢
+      if ParkedClaim (GMap.delete dir Ls) D c then
+        osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp := by
+  by_cases h' : ParkedClaim (GMap.delete dir Ls) D c
+  · have h0 : ParkedClaim Ls D c := ⟨walDirClaimOf_delete h'.1, h'.2⟩
+    simp only [h', h0, ↓reduceIte]; exact .rfl
+  · simp only [h', ↓reduceIte]; iintro -; iempintro
+
+/-- A claim's others, a layout removed (kept, or dropped). -/
+theorem othersP_deleteL {Ls : GMap GoString WalLay} {D : List (Ino × NameSet)} (dir : GoString) (c : Claim) :
+    (if WalDirClaimOf Ls c then walOthers (L := L) D c.1 c.2.2.cur else emp : IProp GF) ⊢
+      if WalDirClaimOf (GMap.delete dir Ls) c then walOthers (L := L) D c.1 c.2.2.cur else emp := by
+  by_cases h' : WalDirClaimOf (GMap.delete dir Ls) c
+  · simp only [h', walDirClaimOf_delete h', ↓reduceIte]; exact .rfl
+  · simp only [h', ↓reduceIte]; iintro -; iempintro
+
+/-- **The discarded WAL out of the parked state** (S, the lock free: the record of what is out empty):
+its directory claim's parked half, its pipeline names' claims (`walTmpsRes`) and invariant halves
+(`walTmpsHalf`), and its directory's others; its segments' program halves dropped. -/
+theorem walParked_discard (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
+    (dir : GoString) (lay : WalLay) (c : Claim) (hl : Ls !! dir = some lay)
+    (hW : WalDirClaimOf Ls c) (honce : ClaimOnce c cl) :
+    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) WalOut.empty -∗
+      walParked (L := L) (W := W) (GMap.delete dir Ls) (dropC cl c) F ∗ walOutFrag (W := W) WalOut.empty ∗
+        osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 ∗
+        walTmpsRes (hG := ⟨G, L⟩) lay.j ∗ walTmpsHalf (hG := ⟨G, L⟩) lay.j ∗
+        walOthers (L := L) [] c.1 c.2.2.cur := by
+  classical
+  obtain ⟨l1, l2, hcl, -, -, hf⟩ := filter_ne_once honce
+  have hd : dropC cl c = l1 ++ l2 := hf
+  rw [hd]
+  subst hcl
+  unfold walParked
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
+  icases walOut_agree (W := W) o _ $$ Hoa Ho with %ho
+  subst ho
+  have hT : WalOut.empty.T = [] := rfl
+  have hD : WalOut.empty.D = [] := rfl
+  simp only [hT, hD]
+  ihave Hs := segsAll_sep_delete
+    (fun g => iprop(if g.ino ∈ WalOut.empty.O then emp else segResP (L := L) g)) Ls dir lay hl $$ Hs
+  icases Hs with ⟨-, Hs⟩
+  unfold walTmpParked
+  icases Ht with ⟨Ht0, Hth⟩
+  ihave Ht0 := walTmpParked0_delete Ls dir lay hl $$ Ht0
+  icases Ht0 with ⟨Htr, Ht0⟩
+  ihave Hth := walTmpHalves_delete Ls dir lay hl $$ Hth
+  icases Hth with ⟨Hhf, Hth⟩
+  icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hc with ⟨Hc1, Hc2⟩
+  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ Hc2 with ⟨Hcc, Hc2⟩
+  unfold walOthersL
+  icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hw with ⟨Hw1, Hw2⟩
+  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ Hw2 with ⟨Hwc, Hw2⟩
+  have hP : ParkedClaim Ls [] c := ⟨hW, by simp⟩
+  simp only [hP, hW, ↓reduceIte]
+  iframe Ho Hcc Htr Hhf Hwc
+  iexists b, WalOut.empty
+  simp only [hT, hD]
+  iframe Hpa Hoa Hs Ht0 Hth
+  isplitr
+  · ipureintro; exact hp
+  isplitl [Hc1 Hc2]
+  · iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+    isplitl [Hc1]
+    · iapply BigSepL.bigSepL_mono (fun {k x} _ => claimP_deleteL (L := L) dir x) $$ Hc1
+    · iapply BigSepL.bigSepL_mono (fun {k x} _ => claimP_deleteL (L := L) dir x) $$ Hc2
+  iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+  isplitl [Hw1]
+  · iapply BigSepL.bigSepL_mono (fun {k x} _ => othersP_deleteL (L := L) dir x) $$ Hw1
+  · iapply BigSepL.bigSepL_mono (fun {k x} _ => othersP_deleteL (L := L) dir x) $$ Hw2
+
 end iris
 
 end WalFs
