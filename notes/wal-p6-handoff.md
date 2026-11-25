@@ -496,7 +496,7 @@
   (The `walTmpsHalf` route also works: `qTmp + qTmpI + qTmpI > 1`; the parked route is simpler.) Noted in
   `notes/wal-p6b-design.md`.
   **Done**, new `Proof/.../wal/DiscardSInv.lean` (imports `DiscardSPure`, `DiscardR`, `CreateDropInv`, `BootPure`;
-  `lake build` of the module on fk-lean1 at `2457004ed8`: exit 0, no `sorry`, `/shared/tmp/p6b-s19-b6.log`; nothing
+  `lake build` of the module on fk-lean1 at `ee2c8892d4`: exit 0, no warning, no `sorry`, `/shared/tmp/p6b-s19-b7.log`; nothing
   imports it yet):
   * `dropC cl c` (`cl.filter (· ≠ c)`, classical: `Claim` has no `BEq`; the form of `osClaims_filter_once`,
     CreateMergeStep.lean, which takes the claim out of `osClaims` under `ClaimOnce`), `mem_dropC`;
