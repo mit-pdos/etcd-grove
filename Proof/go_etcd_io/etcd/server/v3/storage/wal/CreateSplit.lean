@@ -270,13 +270,14 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     (hn : NamesH) {Em : CoPset}
     (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none)
     (hI : incOf I' dir = incOf I0 dir) (hE : ↑osShN ⊆ Em)
-    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
+    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) (Lo : List (GoString × Qp))
+    (hLo : q.val + loanSum Lo nm = ((1 : Qp).half).val) (hLn : ∀ x ∈ Lo, x.1 = nm) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
       walPastI (W := W) (s0, I0) -∗ walIncQ (W := W) I' -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
       osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walIncQ (W := W) I' ∗
-        walNamesFrag (W := W) none ∗ walSplitFrag (W := W) (nm :: Wn) := by
+        walNamesFragS (W := W) ⟨none, none, Lo⟩ ∗ walSplitFrag (W := W) (nm :: Wn) := by
   have hnmM : (NameSet.only [nm]).Mem nm := by simp [NameSet.Mem]
   have hNe : NameSet.only [nm] ≠ .only [] := nameSet_ne_empty hnmM
   unfold walInvBody
@@ -299,12 +300,12 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     simp only at e1 e2
     rw [e1, e2] at hm; exact hm
   unfold walNamesRes
-  icases Hnms with ⟨%o, %Wn', Ha, Hs, %hf, -, Hsp, Hl⟩
-  icases walNames_agree (W := W) o (some dir) $$ Ha Hf with %ho
+  icases Hnms with ⟨%o, %Wn', Ha, Hs, %hf, -, -, Hsp, Hl⟩
+  icases walNamesS_agree (W := W) o _ $$ Ha Hf with %ho
   subst ho
   icases walSplit_agree (W := W) Wn' Wn $$ Hs Hsf with %hW
   subst hW
-  imod walNames_set (W := W) (some dir) (some dir) none $$ Ha Hf with ⟨Ha, Hf⟩
+  imod walNamesS_set (W := W) _ _ ⟨none, none, Lo⟩ $$ Ha Hf with ⟨Ha, Hf⟩
   imod walSplit_set (W := W) Wn' Wn' (nm' :: Wn') $$ Hs Hsf with ⟨Hs, Hsf⟩
   imodintro
   iframe Hf Hsf
@@ -326,7 +327,7 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   isplitl
   rotate_left
   · ipureintro; exact Hbd
-  iexists none, nm' :: Wn'
+  iexists ⟨none, none, Lo⟩, nm' :: Wn'
   iframe Ha Hs Hsp
   isplitr
   · ipureintro
@@ -339,13 +340,20 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
       · exact List.mem_cons_of_mem _ (hf.2 dir' lay' hl' (by simpa using Ne.symm e))
   isplitr
   · ipureintro; intro dir' d ho; cases ho
-  iapply (BigSepL.bigSepL_cons (Φ := fun _ x => nameShare (L := L) jr Ls x)).2
-  iframe Hl
+  isplitr
+  · ipureintro
+    refine ⟨rfl, fun x hx => ?_⟩
+    rw [hLn x hx]; exact List.mem_cons_self ..
+  iapply BigSepL.bigSepL_cons.2
+  isplitr [Hl]
+  rotate_left
+  · iapply BigSepL.bigSepL_mono_of_forall (fun {k y} => ?_) $$ Hl
+    rw [shareLs_reg_tail Wn' Lo nm' y k hLn]
   unfold nameShare
   iexists q, hn
   iframe H
   ipureintro
-  refine ⟨hnok, hin.1, fun dir2 lay2 hl2 he2 => ?_⟩
+  refine ⟨by rw [shareLs_reg_head]; exact hLo, hnok, hin.1, fun dir2 lay2 hl2 he2 => ?_⟩
   obtain ⟨J, hJ⟩ := hJ
   subst he2
   exact hAt.at_dir hl2 hm hnmM hJ
@@ -405,23 +413,24 @@ theorem walInv_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (hn : NamesH)
     (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none)
     (hI : incOf I' dir = incOf I0 dir)
-    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
+    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) (Lo : List (GoString × Qp))
+    (hLo : q.val + loanSum Lo nm = ((1 : Qp).half).val) (hLn : ∀ x ∈ Lo, x.1 = nm) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗ walIncQ (W := W) I' -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
       osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ walIncQ (W := W) I' ∗ walNamesFrag (W := W) none ∗
+      notCrashed (hC := L.goose_crashGS) ∗ walIncQ (W := W) I' ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ ∗
         walSplitFrag (W := W) (nm :: Wn) := by
   iintro #Hinv #Hsi Hnc #Hp Hl Hf Hsf H
   iapply walInv_step C Mr R jr r
     iprop(osSharedInv (L := L) R ∗ walPastI (W := W) (s0, I0) ∗ walIncQ (W := W) I' ∗
       walNamesFrag (W := W) (some dir) ∗
       walSplitFrag (W := W) Wn ∗ osNames (L := L) jr (.only [nm]) (DFrac.own q) hn)
-    iprop(walIncQ (W := W) I' ∗ walNamesFrag (W := W) none ∗ walSplitFrag (W := W) (nm :: Wn))
+    iprop(walIncQ (W := W) I' ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ ∗ walSplitFrag (W := W) (nm :: Wn))
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨#Hsi, #Hp, Hl, Hf, Hsf, H⟩
       iapply walInvBody_register C Mr R jr r s s0 I0 I' dir nm Wn q hn hin hnok hs0 hI walN_osShN_top hJ
-        $$ Hb Hsi Hp Hl Hf Hsf H)
+        Lo hLo hLn $$ Hb Hsi Hp Hl Hf Hsf H)
     $$ Hinv Hnc [Hl Hf Hsf H]
   iframe Hl Hf Hsf H
   isplitl []
@@ -434,16 +443,17 @@ theorem walInv_registerL (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hn : NamesH)
     (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none)
     (hI : incOf I' dir = incOf I0 dir)
-    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
+    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) (Lo : List (GoString × Qp))
+    (hLo : q.val + loanSum Lo nm = ((1 : Qp).half).val) (hLn : ∀ x ∈ Lo, x.1 = nm) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗ walLockedTokI (W := W) I' -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
       osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ walLockedTokI (W := W) I' ∗ walNamesFrag (W := W) none ∗
-        walSplitFrag (W := W) (nm :: Wn) := by
+      notCrashed (hC := L.goose_crashGS) ∗ walLockedTokI (W := W) I' ∗
+        walNamesFragS (W := W) ⟨none, none, Lo⟩ ∗ walSplitFrag (W := W) (nm :: Wn) := by
   iintro #Hinv #Hsi Hnc #Hp Hl Hf Hsf H
   icases walLockedTokI_incQ I' $$ Hl with ⟨Hq, Hback⟩
-  imod walInv_register C Mr R jr r s0 I0 I' dir nm Wn q hn hin hnok hs0 hI hJ
+  imod walInv_register C Mr R jr r s0 I0 I' dir nm Wn q hn hin hnok hs0 hI hJ Lo hLo hLn
     $$ Hinv Hsi Hnc Hp Hq Hf Hsf H with ⟨Hnc, Hq, Hf, Hsf⟩
   imodintro
   iframe Hnc Hf Hsf

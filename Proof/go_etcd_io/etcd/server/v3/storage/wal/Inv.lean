@@ -2245,6 +2245,24 @@ theorem shareLs_cons_eq (Wn : List GoString) (Lo : List (GoString × Qp)) (nm : 
     shareLs Wn ((nm, q) :: Lo) (Wn.idxOf nm) nm = q.val + shareLs Wn Lo (Wn.idxOf nm) nm := by
   unfold shareLs; simp only [if_pos rfl]; exact loanSum_cons_eq Lo nm q
 
+/-- Loans all of one name `nm` count nothing at a later index of `nm :: Wn`. -/
+theorem shareLs_reg_tail (Wn : List GoString) (Lo : List (GoString × Qp)) (nm y : GoString) (k : Nat)
+    (hLn : ∀ x ∈ Lo, x.1 = nm) : shareLs (nm :: Wn) Lo (k + 1) y = shareLs Wn [] k y := by
+  rw [shareLs_nil]
+  unfold shareLs
+  by_cases hy : y = nm
+  · subst hy; simp
+  · split
+    · unfold loanSum
+      rw [List.filter_eq_nil_iff.2 (fun x hx => by
+        simp only [decide_eq_true_eq]; rw [hLn x hx]; exact Ne.symm hy)]
+      rfl
+    · rfl
+
+theorem shareLs_reg_head (Wn : List GoString) (Lo : List (GoString × Qp)) (nm : GoString) :
+    shareLs (nm :: Wn) Lo 0 nm = loanSum Lo nm := by
+  unfold shareLs; simp
+
 /-- **A registered WAL name's claim, as the invariant keeps it** (G-spine; W1 log, thirteenth session):
 a fraction `q` of the program's half of the claim `(jr, .only [nm], hn)` on the WAL's name alone (the
 invariant holds its other half among its claims, `osClaims`), the name valid for the system calls

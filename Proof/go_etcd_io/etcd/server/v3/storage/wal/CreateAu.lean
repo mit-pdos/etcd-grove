@@ -172,8 +172,8 @@ theorem walCreating_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   · unfold walUnlockedTok
     icases Hu with ⟨H1, H2, H3, H4, H5, H6, H7⟩
     unfold walNamesRes
-    icases Hn with ⟨%o, %Wn', Hna, Hsa, %hf, %hun, Hsp, Hl⟩
-    icases walNames_agree (W := W) o none $$ Hna H6 with %ho
+    icases Hn with ⟨%o, %Wn', Hna, Hsa, %hf, %hun, %hst, Hsp, Hl⟩
+    icases walNamesS_agree (W := W) o _ $$ Hna H6 with %ho
     icases walSplit_agree (W := W) Wn' Wn $$ Hsa Hf with %hw
     subst ho hw
     have hsd : s.wal !! dir = none := by
@@ -187,11 +187,13 @@ theorem walCreating_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
       · ipureintro; exact he
       iframe
     isplitl
-    · iexists none, Wn'
+    · iexists ⟨none, none, []⟩, Wn'
       iframe
       isplitr
       · ipureintro; exact hf
-      ipureintro; exact hun
+      isplitr
+      · ipureintro; exact hun
+      ipureintro; exact hst
     ipureintro; exact hsd
   · obtain ⟨x', rfl⟩ := he
     by_cases e : dir = cleanKey
