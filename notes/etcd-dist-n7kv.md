@@ -57,7 +57,7 @@ Proof notes:
 ## Spec review (spec-reviewer, 2026-11-25, given only the Go code and the specs)
 
 Verdict: every spec is sound and proved. Approve as is: `RunKV`, `Deployment.Endpoints`, `Node.specWith`. Approve
-with nits: everything else. No reachable panic under the premises. Not applied (left for the lead):
+with nits: everything else. No reachable panic under the premises. Applied (below, "The review applied"):
 - **F1** (recommended): gate `orchShare`/`nodeShare` and `KvOnly` by `WellFormed`, i.e. `⌜d.WellFormed⌝ -∗ …` and
   premise `(d.WellFormed → KvOnly d) ∧ Fips off`. The Go code reads them only after `WellFormed` returns nil, so
   this precondition is strictly weaker, and `BootBad.lean`'s `clientBadWp`/`nodeBadWp` could then use these specs
@@ -72,6 +72,25 @@ with nits: everything else. No reachable panic under the premises. Not applied (
 - `MainReady`: for N7 (all kinds), `OP ns w.ops` should become the kv entry of a per-kind share.
 - Go nits (candidates for `nonissues/`, not written): `Rotate`'s doc omits `0 ≤ i`/no overflow; for kv,
   `ready()` runs twice (`MainReady` and `RunKV`), against the doc's "called once".
+
+## The review applied (2026-11-25, third session; the coordinator's decision)
+
+- **F1**: `Orchestrator`/`MainDeployment`/`NodeDeployment` take `⌜(d.WellFormed → KvOnly d) ∧ Fips off⌝ ∗
+  deploymentRepr v d ∗ (⌜d.WellFormed⌝ -∗ share)`; the proofs `ispecialize` the share in the `nil` arm.
+  **`BootBad` not reused**: `clientBadWp`/`nodeBadWp` could apply `wp_OrchestratorKv`/`wp_NodeDeploymentKv` at
+  `OP`/`NP := fun .. => False` (whose `Orch.specWith`/`Node.specWith` hold vacuously, a few lines each), the
+  share discharged by `Hd : ¬ d.WellFormed`. Not done: it saves about ten lines of stepping per program, makes
+  the malformed-deployment theorem depend on the kv dispatch (and on its `KvOnly`-shaped specs, which N7's
+  all-kinds dispatch will replace), and needs a rebuild of `BootBad` (a heavy module) for no change of any
+  statement. Revisit when M1's boot (§11.3 step 6) imports `KvLinked` anyway.
+- **F2**: laws `deploymentRepr_workloads`, `deploymentRepr_nodes` (`deployment/Repr.lean`), `orchShare_eq`,
+  `nodeShare_eq` (`client/KvDefs.lean`); the client proofs no longer unfold `deploymentRepr`/`orchShare`/`nodeShare`.
+- `NodeMain`: `0 ≤ c → c < clients → c + |eps| ≤ 2^63`. `Rotate`: `xs ≠ [] → 0 ≤ i ∧ i + len ≤ 2^63`.
+- `Orch.specWith` at `RunKV`'s timeout (`W64 120000000000`, `kvCheckTimeout`): weaker, and a timeout-agnostic
+  P9 `Orch.spec` gives the instance by specializing.
+- Not done (future work, N7): `Deployment.Node`'s converse; `MainReady`'s per-kind share.
+- Go nits: `nonissues/grove-dist-rotate-doc.md`, `nonissues/grove-dist-ready-twice-kv.md` (`blocks-proof: no`).
+- `etc/lean-check.py`'s misbehaviour: `notes/STATUS.md`, "`etc/lean-check.py`: a spurious kernel error".
 
 ## How to continue
 
