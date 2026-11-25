@@ -1,4 +1,5 @@
-/- Lean-first (no Rocq counterpart). Ported from the SwiftPaxos kit's `examples/swiftnet/InitFirst.lean` (generic; Net could offer it). -/
+/- Lean-first (no Rocq counterpart). From the SwiftPaxos kit's `examples/swiftnet/InitFirst.lean` (generic: the rpc driver's boot and
+net/rpc's first initialization, `Net/Proof/net/rpc/InitFirst.lean`, use it; a candidate for Perennial's `Pkg.lean`). -/
 /-
 A package's initialization the first time it runs (change log C14, decision D9 (a')): a local
 variant of Perennial's `wp_package_init` (Perennial/Golang/Theory/Pkg.lean) whose initializer
@@ -16,7 +17,7 @@ public import Perennial.Golang.Theory.Pkg
 
 @[expose] public section
 
-namespace Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
+namespace Perennial.EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
@@ -116,4 +117,4 @@ theorem wp_package_init_first (pkg_name : GoString) [PkgInfo pkg_name] (f x : Bi
 
 end
 
-end Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
+end Perennial.EtcdGrove

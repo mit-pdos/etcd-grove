@@ -13,9 +13,10 @@ module: it composes the initializers' proofs.
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootTable
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.PkgInitFirst
+public import Proof.runtime.PkgInitFirst
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootDefs
 public import Net.Proof.net.rpc.InitFirst
+public import Net.Proof.net.rpc.Results
 public import Net.Proof.net.http.InitFirst
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.strings.Link
@@ -30,12 +31,12 @@ noncomputable section
 
 namespace Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net EtcdGrove
 
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions]
+variable [package_sem : Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -87,7 +88,7 @@ theorem boot_rpcdriver :
     as ⟨Hown, #H4, Hmux⟩
   · ipureintro; exact hT
   wp_apply net.wp_initialize' _ (wfO_net hk _ rpcLe) $$ Hown as ⟨Hown, #H5⟩
-  wp_apply (net.rpc.wp_init_first (gOff [pkg_id.net.rpc] G) G (gOff_off _ _ _ (by decide))
+  wp_apply (net.rpc.wp_init_first net.rpc.NewServer.wp_owned (gOff [pkg_id.net.rpc] G) G (gOff_off _ _ _ (by decide))
       (wf_net_rpc hk) (fun p hp => (gOff_ne _ _ _ (by simp [hp])).symm)) $$ Hown
     as ⟨Hown, #H6, Hrf⟩
   wp_apply service.wp_initialize' _ (wf_github_com_mit_pdos_etcd_grove_examples_net_rpcdriver_service hk)

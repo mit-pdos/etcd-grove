@@ -61,9 +61,9 @@ Restated 2026-11-24 on review: the thread bound is `Robust`'s own, separate from
 `goose_dist_adequacy_below`, as dsv-steps63's kits, 70406b8fd3); before, the bridge tied the threads
 to the steps (`threadBound = receiptBound + 1`) and the statement was `∀ threads, Robust [] … threads
 rpcStepBound` with `rpcStepBound = 2 ^ 30 - 1` (first `2 ^ 31 - 1`, lowered after S5's review). No premise
-but the deployment's start and the programs' typing facts. Proved 2026-11-24 over four interim
-axioms (`etc/tcb-collections/rpcdriver.txt`): `net.rpc.wp_init_first`, `net.http.wp_init_first`
-(first-run initializers, L2 step 6), `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`
+but the deployment's start and the programs' typing facts. Proved 2026-11-24 over interim
+axioms (`etc/tcb-collections/rpcdriver.txt`): `net.http.wp_init_first`
+(first-run initializer, L2 step 6; net/rpc's `wp_init_first` proved since dsv-fix2b, 2026-11-25), `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`
 (S5); `strings.Cut`/`TrimLeft` are Perennial's proofs (pin `d9c8c1d97`). The paragraph below is the plan as of the skeleton. The trust-base collection
 `etc/tcb-collections/rpcdriver.txt` lists the `sorry` and the interim axioms of net/rpc's and
 net/http's initializers (`Net/Proof/net/{rpc,http}/Init.lean`; their facts, `True`, in `PkgInit.lean`,

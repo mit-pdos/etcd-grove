@@ -258,16 +258,16 @@ theorem wp_http_own (hT : threadBound GF ≤ 2 ^ 30) (S0 S : List GoString)
   iframe Hpk Hmux
 
 open Perennial.gryff in
-/-- net/rpc's first initialization (`net.rpc.wp_init_first`, Net's interim axiom) in a table
-`gEx S0 g` with `S0 = net/rpc :: S`. -/
-theorem wp_rpc_own (S0 S : List GoString) (hS : S0 = pkg_id.net.rpc :: S) (g : GoString → IProp GF)
+/-- net/rpc's first initialization (`net.rpc.wp_init_first`, given `NewServer`'s spec with an owned
+registry) in a table `gEx S0 g` with `S0 = net/rpc :: S`. -/
+theorem wp_rpc_own (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG)) (S0 S : List GoString) (hS : S0 = pkg_id.net.rpc :: S) (g : GoString → IProp GF)
     (hwf : GetIsPkgInitProp pkg_id.net.rpc (gEx S g)) :
     {{ ownInitializing (gEx S0 g) }} (App (Val net.rpc.initialize') (Val #()))
     {{ RET #(); ownInitializing (gEx S g) ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
         rpcInitRes (GF := GF) }} := by
   subst hS
   iintro %Φ Hown HΦ
-  iapply (net.rpc.wp_init_first (gEx (pkg_id.net.rpc :: S) g) (gEx S g)
+  iapply (net.rpc.wp_init_first wp_NewServer (gEx (pkg_id.net.rpc :: S) g) (gEx S g)
     (gEx_no _ _ _ List.mem_cons_self) hwf (fun p hp => gEx_cons_ne _ _ _ _ hp)) $$ [Hown]
   · iexact Hown
   iintro !> ⟨Hown, #Hpk, Hf⟩

@@ -42,5 +42,9 @@ def netRpcHttpAddr [GoGlobalContext] (GF : BundledGFunctors) [Gg : GooseGlobalGS
   rpcLisP_lis := fun W la hs hsAns => net.rpc.rpcLisP_lis W la hs hsAns
   rpcLisP_ok := fun W la hs hsAns => net.rpc.rpcLisP_ok W la hs hsAns
   rpcLisP_set := fun E W la hs hsAns hla hhs => net.rpc.rpcLisP_set E W la hs hsAns hla hhs
+  rpcAddrP_net := fun _ _ _ _ => .rfl
+  rpcLisP_net := fun _ _ _ _ => .rfl
+  worldHs_net := fun _ _ => rfl
+  worldHsAns_net := fun _ _ => rfl
 
 end Perennial.github_com.imdea_software.swiftpaxos
