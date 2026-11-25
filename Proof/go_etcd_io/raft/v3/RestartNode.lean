@@ -534,7 +534,8 @@ private theorem wp_RestartNode_impl
   · iframe Hclock Hinst
   let sn : StorNames :=
     { ga := ga, gg := gg, gsv := gsv, gd := gdd, gk := gk, history := history, installs := installs, a0 := max σ.b (uint.nat cv.Applied'),
-      c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit, sz := γ.raft.maxData.isSome }
+      c0 := σ.commit, ct := restartCt (fp ++ σ.ents) σ.commit, sz := γ.raft.maxData.isSome,
+      t0 := σ.hs.Term' }
   let σv : StorState :=
     { prev := σ.base, ents := σ.ents, pend := [], fl := σ.base.index', fr := f,
       sg := σ.b, dt := ∅ }
@@ -608,7 +609,7 @@ private theorem wp_RestartNode_impl
       have h2 := Hmx (by intro hn; change γ.raft.maxData = none at hn; rw [hn] at h; cases h)
       word) H9
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
-    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk (fun h => absurd HtrG h)
+    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk (fun h => absurd HtrG h) (Int.le_refl _)
     $$ [Hc HRb HA]
     as %rn %err ⟨⟨%K, #HKn, HFK⟩, -, %s, %r, Hrn, %Herr, %Hsn2, -⟩
   · -- (2026-11-12, trace-check step 5) untraced: the capability's start is the nil logger
@@ -643,8 +644,8 @@ private theorem wp_RestartNode_impl
     rw [HtrG]; iframe Hnc
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
-      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs) :
-        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat × Nat) with ⟨%K, HK⟩
+      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs, sn.t0) :
+        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat × Nat × w64) with ⟨%K, HK⟩
     imod dghostVar_persist K 1 _ $$ HK with #HK
     ihave #HKn : storKeyNames (GF := GF) K sn $$ []
     · unfold storKeyNames; iexact HK
@@ -1107,11 +1108,17 @@ private theorem wp_RestartNode_impl
         iapply cfgKeepIn_le _ _ _ _ (Nat.le_refl _)
       iexists _; iexact Hbw
     itrivial
+  -- (2026-11-24, the lifetime law) the node's start term: the stored term, its durable state's
+  ihave #Hstart : EtcdGrove.nodeStartTerm (GF := GF)
+      (show EtcdGrove.NodeH from (⟨n_ptr, γn⟩ : ApiImpl.NodeH)) S.term $$ []
+  · iunfold EtcdGrove.nodeStartTerm
+    ipureintro
+    exact HS.2.2.2.1
   iapply HΦ
   iexists (show EtcdGrove.NodeH from (⟨n_ptr, γn⟩ : ApiImpl.NodeH)), S, strip ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))), K
   isplitr
   · ipureintro; rfl
-  iframe HQ HFK Htag Harm
+  iframe HQ HFK Htag Harm Hstart
   isplitr
   · iunfold EtcdGrove.isNode
     unfold isNode

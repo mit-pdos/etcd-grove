@@ -1002,6 +1002,57 @@ theorem isCampK_k_le (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) :
   iintro ⟨%_, %H, -⟩
   ipureintro; exact H.2.2.1
 
+/-- (2026-11-24, the campaign map's closure: `notes/etcd-dist-d6.md`, option (a)) **The closing
+value** of a campaign map's key: no campaign record, and none can be added. No campaign record has
+it: its commit index is past its empty log's last index (`isCampK`'s bound). -/
+def campNone : List EntryM × w64 := ([], W64 (2 ^ 64 - 1))
+
+/-- (2026-11-24) **Node `c` never campaigns in term `T`** (persistent): its campaign map's key `T`
+is closed (`campNone`). The cut closes the key of the node's term when it has no record there
+(`ownRaftGhost_cut`), so every durable term has its key set (`durPers`'s `campSet`). -/
+def isCampNone (γ : RaftNames) (c T : w64) : IProp GF :=
+  iprop(∃ γc, ⌜γ.reCamp !! c = some γc⌝ ∗ T ↪[γc]□ campNone)
+
+instance isCampNone_persistent (γ : RaftNames) (c T : w64) :
+    Persistent (isCampNone (GF := GF) γ c T) := by
+  unfold isCampNone; infer_instance
+
+instance isCampNone_timeless (γ : RaftNames) (c T : w64) :
+    Timeless (isCampNone (GF := GF) γ c T) := by
+  unfold isCampNone; infer_instance
+
+/-- A record within its log's bound is not the closing value. -/
+theorem campNone_ne (F : List EntryM) (k : w64) :
+    uint.Z k ≤ plogLastIndexZ base0 F → (F, k) ≠ campNone := by
+  intro Hk H
+  unfold campNone at H
+  simp only [Prod.mk.injEq] at H
+  obtain ⟨rfl, rfl⟩ := H
+  unfold plogLastIndexZ at Hk
+  have h0 : uint.Z (base0 : entryID).index' = 0 := rfl
+  have h1 : uint.Z (W64 (2 ^ 64 - 1)) = 18446744073709551615 := rfl
+  rw [h0, h1] at Hk
+  simp at Hk
+
+/-- A closed key has no campaign record. -/
+theorem isCampNone_campK (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) :
+    ⊢ isCampNone (GF := GF) γ c T -∗ isCampK γ c T F k -∗ False := by
+  unfold isCampNone isCampK
+  iintro ⟨%γ1, %H1, #Hf1⟩ ⟨%γ2, %H2, #Hf2, -⟩
+  rw [H1] at H2
+  obtain ⟨H2, -, Hk, -⟩ := H2
+  cases H2
+  icases ghostMapElem_agree $$ Hf1 Hf2 with %H
+  unfold campNone at H
+  simp only [Prod.mk.injEq] at H
+  obtain ⟨rfl, rfl⟩ := H
+  exfalso
+  unfold plogLastIndexZ at Hk
+  have h0 : uint.Z (base0 : entryID).index' = 0 := rfl
+  have h1 : uint.Z (W64 (2 ^ 64 - 1)) = 18446744073709551615 := rfl
+  rw [h0, h1] at Hk
+  simp at Hk
+
 /-- A campaign log starts with the bootstrap log, and a non-empty one puts the campaign at a
 term `≥ 2` (2026-10-16, stage R8b, D12). -/
 theorem isCampK_boot (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) :
@@ -1666,7 +1717,9 @@ def isEntry (γ : RaftNames) (e : EntryM) : IProp GF :=
 (2026-10-05). -/
 def ackEv (γ : RaftNames) (v t i : w64) : IProp GF :=
   iprop(∃ γe L, ⌜γ.reEvs !! v = some γe ∧ Aev.ack t i ∈ L ∧ EvSorted L⌝ ∗
-          monoListLbOwn γe L)
+          monoListLbOwn γe L ∗
+          -- (2026-11-24, the leader-completeness law) every vote before it, with its candidate
+          ∀ (T : w64) (d : Bool) (F : List EntryM), ∀ (_ : Aev.vote T d F ∈ L), ∃ c, isVote γ v T c)
 
 def isAcked (γ : RaftNames) (v t i : w64) : IProp GF :=
   iprop(⌜uint.Z i = 0⌝ ∨

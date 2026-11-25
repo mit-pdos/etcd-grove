@@ -187,10 +187,12 @@ theorem stepCandidate.wp_proof
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
       ispecialize Hgbl $$ %(⟨trivial, Hwin.2⟩)
+      -- (2026-11-24, the lifetime law) a candidate's term is past the attachment's floor
+      icases ownRaftPhysC_t0 c r id _ $$ Hphys with ⟨%Ht0s, Hphys⟩
       -- (2026-11-11, slice 25b) `becomeLeader`'s receipt: the caller's, raised to `"Hgrep"`
       wp_apply wp_raft_becomeLeader c r id _ (G s.outbox) G1 G2
           (G' (s.outbox ++ [selfAck id (becomeLeaderLog id { s with votes := recordVote s.votes m.From' (!m.Reject') })])) k0 (by simp only [Hrole]; decide)
-          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) $$ [$Hphys $Hrc $HG $Hgbl Hgrep $Hgack]
+          (by simp only [Hrole]; decide) (by exact Hterm' ▸ Hmnz) (Ht0s.2 (.inr Hrole)) $$ [$Hphys $Hrc $HG $Hgbl Hgrep $Hgack]
         as %pvs1 ⟨Hphys, %Hmb, HG⟩
       · iintro #Hr HG; iapply Hgrep $$ %(⟨trivial, Hwin.2⟩) Hr HG
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
