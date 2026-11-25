@@ -9,7 +9,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.net.rpc.Init
 public import Perennial.Proof.strings.Link

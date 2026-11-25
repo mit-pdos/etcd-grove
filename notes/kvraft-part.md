@@ -16,6 +16,12 @@ initializers, `PkgInitExt`). `KvRaft/` is a fifth tree holding all of them, made
 
 ## How the part is made
 
+(2026-11-24, branch `raft-retire/2026-11-24`) The part's 114 copies of kvdurablenoax's specs and
+proofs and its 24 copies of kvreconf's are now the part's own files (their first line dropped), and
+etc/copy-part.py's `RENAME_KVRAFT`, `TEXT_FIXES_KVRAFT` and `KVRAFT_REUSED` are gone: kvdurable,
+kvdurablenoax and kvreconf's proofs retire (kvraft_robust and kvraft-udp subsume their theorems), so
+nothing is left to copy them from. What this file says below about those three is history.
+
 1. **Translations** (`etc/goose.py`): project `kvraft` (root `KvRaft`, packages `.` and `./kvcheck` of
    `examples/raft/kvraft`, no Goose configuration), and a `Part` into `KvRaft` of each project whose
    package it needs: raft-noax (raft's five packages, configured by `KvRaft/Code/go_etcd_io/raft/**.toml`),

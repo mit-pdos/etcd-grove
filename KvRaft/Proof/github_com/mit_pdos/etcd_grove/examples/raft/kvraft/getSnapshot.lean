@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/getSnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/getSnapshot.lean`. Lean-first (no
 Rocq counterpart): the readers in turn (`getUint64`, `getIDs`, the auto-leave byte, `getBytes`),

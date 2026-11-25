@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/putEntry.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/putEntry.lean`. Lean-first (no
 Rocq counterpart): the entry's getters, then `putUint64` three times and `putBytes`.

@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__Append.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart).
 
 `s.Append(entries)` (storage.go): the image's append (`image.append`: `imgAppend`), then

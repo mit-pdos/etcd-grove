@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/getSnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart).
 
 `getSnapshot(b)` (storage.go): what `putSnapshot` wrote at the start of `b` (`encSnap s`, of Go

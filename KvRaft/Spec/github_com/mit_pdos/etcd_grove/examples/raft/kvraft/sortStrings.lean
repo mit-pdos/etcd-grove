@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/sortStrings.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's spec (the same Go text), ported.
 
 `sortStrings(ks)` (kv.go, D22 S-r): `ks`, sorted in place by `less` (an insertion sort); stated

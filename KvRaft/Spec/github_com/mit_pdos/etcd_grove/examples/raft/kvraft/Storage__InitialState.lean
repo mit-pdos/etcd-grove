@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__InitialState.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart).
 
 `s.InitialState()` (storage.go): the `MemoryStorage`'s hard state, and the snapshot's conf state, or

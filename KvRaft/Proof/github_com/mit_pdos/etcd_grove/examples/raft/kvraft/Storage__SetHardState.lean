@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__SetHardState.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Storage__SetHardState.lean`.
 Lean-first (no Rocq counterpart): the image's hard state field set, then the `MemoryStorage`'s.

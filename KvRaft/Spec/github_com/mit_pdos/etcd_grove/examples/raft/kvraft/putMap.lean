@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/putMap.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's spec (the same Go text), ported.
 
 `putMap(buf, m)` (kv.go, 2026-10-22, the snapshot-liveness fix): `buf` with the map `K` appended

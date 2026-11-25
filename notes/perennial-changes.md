@@ -18,6 +18,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 ## Open
 
 ### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvraft-udp)
+### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
+
+- **Status.** bag_nb_send_au(_now): Perennial branch chan-bag-nb-send (3b51f8790), replaces kvreconf's
+  BagSend and kvraft's queue_nb_send_au. **Done**: pinned (bca1cd2e5); the local copies deleted
+  (`bagsend-perennial/2026-11-24`, landed).
+### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvraft-udp)
 
 - **Limitation.** Go accepts a size of any integer type in `make` (`make([][]byte, d.total)`, where `d.total`
   is a `uint32`). goose translates it as `FuncResolve go.make2 [st] #() (load uint32 ...)` and passes the w32
@@ -96,17 +102,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `bytealg.IndexByteString`/`CountString` as trusted models (as `LastIndexByteString` is translated), with specs; then
   `net/url`'s `parse` with its bodies.
 - **Status.** Not proposed yet.
-
-### A field's address is not known to be non-nil: not a limitation (2026-11-24, S5 batch 15; withdrawn)
-
-- **What was thought.** net/http's `mapping.find` begins `if h == nil { return v, false }` with
-  `h = &n.children` (`routingNode.findChild`), and `structFieldRef` is abstract, so the nil branch
-  seemed possible in the model. mit-pdos/perennial#703 proposed `structFieldRef_not_null` as a trusted law.
-- **Why not needed.** Every typed points-to carries `l ≠ null` (`typedPointsto_not_null`,
-  `PostLifting.lean`). `mapRep` owned only `h`'s nested fields (`structFieldRef mapping "s" h`), which
-  loses the fact at `h`; it now owns the whole `h ↦{dq} mapping` (`MuxMapping.lean`), and the tree's
-  owner has that points-to as the `children` field of `n ↦ node`. `wp_mapping_find` has no premise.
-  #703 withdrawn (approved, then not needed: comment 7146518547).
 
 ### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
 

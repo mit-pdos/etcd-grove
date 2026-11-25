@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/getUint64.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart).
 
 `getUint64(b)` (storage.go): what `putUint64` wrote at the start of `b` (`u64Le x`), the rest

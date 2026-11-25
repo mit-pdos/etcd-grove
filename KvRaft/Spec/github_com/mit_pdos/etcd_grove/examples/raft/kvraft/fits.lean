@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/fits.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
 
 `fits(es)` (kv.go): whether appending `es` keeps a storage's log within `2^61`

@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/encodeState.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's spec (the same Go text), ported.
 
 `encodeState(kv, applied)` (kv.go, D22 S-r): the store's map and applied table as a snapshot's

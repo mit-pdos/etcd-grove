@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/getUint64.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/getUint64.lean`. Lean-first (no
 Rocq counterpart): `getBytes`'s first half (the length check, Perennial's `LittleEndian.Uint64`,

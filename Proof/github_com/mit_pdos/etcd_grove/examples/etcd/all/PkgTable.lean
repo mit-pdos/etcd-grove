@@ -1031,7 +1031,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h196 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h48, h6, h43, h53, h44, h105, h75, h179, h184, h186, h195, True.intro⟩
+    exact ⟨h48, h6, h43, h53, h44, h105, h75, h179, h184, h186, h195, h185, True.intro⟩
   have h197 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

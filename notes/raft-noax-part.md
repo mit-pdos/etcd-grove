@@ -9,6 +9,14 @@ no `DescribeConfChange` in stepLeader: a fork branch) and a modified kvdurable
 modified one lives in a part (module root) of its own, `RaftNoAx/`, as the witness experiment lives
 in `RaftWitness/` (`notes/raft-witness.md`).
 
+**2026-11-24 (branch `raft-retire/2026-11-24`): kvdurablenoax retired.** kvraft_robust (KvRaft/, on
+this part's raft) and kvraft-udp subsume `raft_kvdurable_porcupine_safe`/`robust` here; the part keeps only
+raft (project raft-noax, and walpb's part of project etcd), rooted at raft's `Link` and the modules
+etc/api/raft.txt lists as importable (etc/copy-part.py's `raftnoax_roots`), for KvRaft, which takes its
+raft from it. Project kvdurable-noax, `examples/raft/kvdurablenoax`, the part's kvreconf translation and
+the `--kvdurable-noax` Link are gone, and so is copy-part's `RENAME` (empty). What follows about
+kvdurable is history.
+
 This file records how the part is made. Stage 1 (this one): the part as a faithful renamed copy of
 the main tree, from the unmodified raft, giving the same theorem with the same axioms. Then the
 modified code is swapped in.

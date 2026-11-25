@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/less.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's spec (the same Go text), ported.
 
 `less(a, b)` (kv.go, D22 S-r): the byte-wise order of strings. Its result is not stated: the

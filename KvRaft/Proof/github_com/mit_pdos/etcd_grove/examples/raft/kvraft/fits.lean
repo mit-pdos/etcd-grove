@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/fits.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/fits.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the batch is a `[]*pb.Entry` (`entsPts`);

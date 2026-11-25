@@ -1,4 +1,4 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/gokv/trusted_proph/Init.lean` (etc/copy-part.py; rerun it, do not edit).
+-- The copy for the part `KvRaft/` of `Proof/github_com/mit_pdos/gokv/trusted_proph/Init.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Package initialization of `github_com.mit_pdos.gokv.trusted_proph`
 (item 8, 2026-10-17): its `wp_initialize'`.
@@ -6,8 +6,6 @@ Package initialization of `github_com.mit_pdos.gokv.trusted_proph`
 Its fact is `True`. Its initializer initializes its imports (it has no initialized
 variable).
 -/
--- The copy for the parallel tree `RaftNoAx/` of `Proof/github_com/mit_pdos/gokv/trusted_proph/Init.lean` (`PART_INITS` in
--- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part's.
 module
 
 public import Proof.github_com.mit_pdos.gokv.trusted_proph.Base

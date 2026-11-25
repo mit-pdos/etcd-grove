@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__CreateSnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart).
 
 `s.CreateSnapshot(i, cs, data)` (storage.go): the image's snapshot (`image.createSnapshot`, which

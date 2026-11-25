@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__Snapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Storage__Snapshot.lean`. Lean-first
 (no Rocq counterpart). kvreconf's proof (`kvreconf/Storage__Snapshot.lean`), at kvdurable's wrapper.

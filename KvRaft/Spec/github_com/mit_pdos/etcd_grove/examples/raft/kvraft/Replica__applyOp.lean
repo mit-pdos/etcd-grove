@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__applyOp.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
 
 `r.applyOp(data)` (kv.go): one committed normal entry `e` (its data `data`) applied after the

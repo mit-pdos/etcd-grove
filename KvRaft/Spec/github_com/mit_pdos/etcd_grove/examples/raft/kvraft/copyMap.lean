@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/copyMap.lean` (etc/copy-part.py; rerun it, do not edit).
 /- kvreconf's (the same Go text), ported. Lean-first (no Rocq counterpart).
 
 `copyMap(m)` (check.go): a fresh map with `m`'s contents.

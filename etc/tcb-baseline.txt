@@ -70,7 +70,6 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
-axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof

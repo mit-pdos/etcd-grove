@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/newStorage.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/newStorage.lean`. Lean-first (no
 Rocq counterpart): `NewMemoryStorage`, then the empty image (a fresh empty snapshot, frozen

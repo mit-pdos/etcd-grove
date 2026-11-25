@@ -12,6 +12,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.strconv.Link
@@ -50,7 +51,6 @@ public import Proof.k8s_io.utils.buffer.Init
 public import Proof.k8s_io.utils.clock.Init
 public import Proof.k8s_io.utils.ptr.Init
 public import Proof.k8s_io.utils.trace.Init
-public import Proof.math.rand.Init
 public import Proof.os.Init
 public import Proof.os.Getenv
 public import Proof.strconv.ParseBool
@@ -108,7 +108,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.naming.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd38⟩
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1beta1.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd37⟩
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd36⟩
-  wp_apply (_root_.Perennial.math.rand.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd35⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
+      EtcdGrove.ExternalInit.math_rand _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd35⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
       EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd34⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'

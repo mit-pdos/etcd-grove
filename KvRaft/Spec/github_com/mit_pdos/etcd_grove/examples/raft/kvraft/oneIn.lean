@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/oneIn.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
 
 `oneIn(n)` (kv.go): a random boolean (true with probability `1/n`); `n ≠ 0`, as `%` needs.

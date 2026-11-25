@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/ClusterLemmas.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Lean-first (no Rocq counterpart).
 

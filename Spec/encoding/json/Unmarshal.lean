@@ -1,7 +1,8 @@
 /-
-`json.Unmarshal(data, v)` (`encoding/json`, names only): the trust boundary (D43 M4, 2026-10-26,
-the user's decision), for the one target the verified code passes, a `*ConfigChangeContext`
-(`membership.ValidateConfigurationChange`'s `AddNode` case). Lean-first (no Rocq counterpart).
+`json.Unmarshal(data, v)` for the one target the verified code passes, a `*ConfigChangeContext`
+(`membership.ValidateConfigurationChange`'s `AddNode` case, `applyConfChange`): a trust boundary
+from D43 M4 (2026-10-26, the user's decision) until 2026-11-24, now proved over the encoding/json
+model (`Proof/encoding/json/Unmarshal.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -31,26 +32,27 @@ embedded `Member`'s fields and `IsPromote`): it returns `nil` and leaves `*p` wi
 `id`, `IsPromote` `prom`, and the member's peer URLs, `IsLearner`, name and client URLs as
 `membership.ccMemberOf` models them, its URL slices fresh (D43 M5e, 2026-10-26, the user's
 decision: restated with the name and the client URLs, which `applyConfChange`'s `AddMember` needs
-of the member it adds). Faithful: `encoding/json` decodes an object into the
-struct's exported fields by name (`ConfigChangeContext`'s `Member` is embedded, so its fields are
-the object's; `ID` an integer, `PeerURLs` and `ClientURLs` arrays of strings, `IsLearner` a
-boolean, `Name` a string), allocating the slices, and leaves the other fields as the JSON says; it reads `data`, writes nothing else, and
-returns `nil` on input it decodes. `ccContextOf`/`ccMemberOf` are opaque functions of the bytes:
-the spec claims only that the decoding is a function of them. The URL slices are fresh only if
-`*p`'s were `nil` (2026-11-20, prove-reflectfmt: until then any `v`): `encoding/json` decodes an
-array into the existing slice, reusing its backing array while its capacity lasts (go1.27.3
-`encoding/json/decode.go:553-556`, `array`: `v.Grow`/`v.SetLen` on the field's own slice), so a non-nil
-`PeerURLs` would come back aliased to memory the caller still owns
-(`notes/axiom-review/json-unmarshal-alias.md`, `examples/axiomcx/jsonunmarshalalias`). Both
-callers decode into `new(ConfigChangeContext)`. -/
+of the member it adds). A theorem since 2026-11-24 (#24 J2 batch 2b; a trust-boundary axiom until
+then): the encoding/json model's `Unmarshal` dispatches a `*ConfigChangeContext` to its generated
+`JSONModelUnmarshal`, proved over `models.lab/jsoncodec`'s decoders; `ccContextOf`/`ccMemberOf`
+are definitions (`api/membership/JsonDec.lean`, `membership.ccDecode`), `some` on the decoded
+subset only. Into a zero `ConfigChangeContext` (2026-11-24: until then only its URL slices nil):
+a field the JSON omits keeps its value (`isPromote` is absent from a `Member`'s JSON, which
+bootstrap writes into a context), so the post's values are the bytes' only from zero (both
+callers decode into `new(ConfigChangeContext)`). The URL slices must be nil in any case
+(2026-11-20, prove-reflectfmt): `encoding/json` decodes an array into the existing slice, reusing
+its backing array while its capacity lasts (go1.27.3 `encoding/json/decode.go:553-556`), so a
+non-nil `PeerURLs` would come back aliased to memory the caller still owns
+(`notes/axiom-review/json-unmarshal-alias.md`, `examples/axiomcx/jsonunmarshalalias`). -/
 abbrev encoding.json.Unmarshal.spec : Prop :=
   ∀ (sl : GoSlice) (bs : List w8) (dq : DFrac) (p : Loc)
     (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (id : w64)
     (prom : Bool),
   membership.ccContextOf bs = some (id, prom) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ sl ↦*{dq} bs ∗ p ↦ v ∗
-      ⌜v.Member'.RaftAttributes'.PeerURLs' = slice.nil ∧
-        v.Member'.Attributes'.ClientURLs' = slice.nil⌝ }}
+      ⌜v.Member'.ID' = W64 0 ∧ v.Member'.RaftAttributes'.PeerURLs' = slice.nil ∧
+        v.Member'.RaftAttributes'.IsLearner' = false ∧ v.Member'.Attributes'.Name' = [] ∧
+        v.Member'.Attributes'.ClientURLs' = slice.nil ∧ v.IsPromote' = false⌝ }}
     (App (App (Val (@! _root_.Perennial.encoding.json.Unmarshal)) (Val #sl))
       (Val #(interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.ty) #p)))

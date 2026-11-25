@@ -1,4 +1,3 @@
--- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/decode.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
 
 `decode(b)` (kv.go): what `encode` wrote (`decodeOp`), or `ok = false` for fewer than 17 bytes
