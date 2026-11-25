@@ -10,6 +10,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.server__ServerStream
 public import Spec.google_golang_org.protobuf.types.known.wrapperspb.String
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
 
@@ -58,6 +59,8 @@ theorem server.ServerStream.wp_proof
   wp_for IH
   have hlen' : sv.Value'.length < 2 ^ 30 := hlen
   try wp_auto
+  wp_apply (_root_.Perennial.github_com.mit_pdos.perennial.goose.model.strings.wp_string_len
+    sv.Value') as %Hslen
   wp_if_destruct
   · split
     · rename_i hb

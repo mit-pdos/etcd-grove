@@ -63,7 +63,7 @@ theorem Server.wp_proof
   ihave #Hd := svc.drvDescs_of_init $$ Hsvc
   icases Hd with ⟨%mds, %sds, #Hdesc, %Hms⟩
   obtain ⟨hm, hs⟩ := Hms
-  wp_auto
+  try wp_auto
   wp_apply (wp_NewServer slice.nil [] []) $$ [] as %gs Hgs
   · isplitr
     · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)

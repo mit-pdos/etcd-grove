@@ -93,6 +93,7 @@ theorem drv_regs_names {mds : List google_golang_org.grpc.MethodDesc} (ss : GoIn
         (fun p => grpcFullName drvSvcName p.1) := by
     simp [descRegs, List.map_map, Function.comp_def]
   rw [h1, hm]
+  simp only [drvMethods, List.map_cons, List.map_nil]
   decide
 
 /-- The registered streams' names. -/
@@ -105,6 +106,7 @@ theorem drv_sregs_names {sds : List google_golang_org.grpc.StreamDesc} (ss : GoI
         sd.ClientStreams'))).map (fun p => grpcFullName drvSvcName p.1) := by
     simp [descSRegs, List.map_map, Function.comp_def]
   rw [h1, hs]
+  simp only [drvStreams, List.map_cons, List.map_nil]
   decide
 
 /-- **The registrations' full names are jointly distinct.** -/
