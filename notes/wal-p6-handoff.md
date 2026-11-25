@@ -2,6 +2,12 @@
 
 ## START HERE
 
+- **2026-11-25 (after the re-pin): the WAL builds at `2c17304ea8`** on fk-lean2 (`fklean1-check.sh`,
+  targets `wal.Link`, WalTester's `Link`, `Adequacy`, `TopLevelRobustness`: 4260 jobs, exit 0).
+  `tcb-report --collection wal-fsext.txt --check` not run (it needs every root up to date: the packet's
+  full build). P6b not started in Lean: its facts' signatures change `Crash.lean` (P8's file), so the
+  coordinator decides the order first.
+
 - **2026-11-25, session 6 (later): re-pinned to etcd_safe's one pin; P6 stays off `lean`** (coordinator-E, #50:
   P6 goes in the one `etcd_safe` packet; the remote full build and gates not run).
   * **Pin** `upamanyus/etcd` `goose-lean-fmt1c-crashfixes` @ `e94f33b50` (`etc/goose.py`, the examples' `go.mod`
