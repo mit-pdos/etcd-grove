@@ -24,7 +24,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 theorem wp_pingReplicas (cfg : Cfg GF) (c : Loc) :
@@ -46,7 +46,7 @@ theorem wp_pingReplicas (cfg : Cfg GF) (c : Loc) :
   isplitl []
   · ipureintro; rfl
   iintro %args_sl ⟨Hargs, -⟩
-  wp_apply LogHyp.wp_Println _ _ _ $$ [Hargs]
+  wp_apply LogSpecs.wp_Println _ _ _ $$ [Hargs]
   · iframe
     iapply argOks_of_wf _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
   iintro -

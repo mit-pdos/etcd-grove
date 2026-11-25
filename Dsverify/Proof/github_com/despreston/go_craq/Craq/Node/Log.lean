@@ -22,7 +22,7 @@ namespace NodeP
 section log
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 theorem argOk_wf (ii : GoInterfaceOk) (h : fmt.ArgWf ii) : ⊢ argOk (GF := GF) (interface.ok ii) := by
@@ -97,7 +97,7 @@ theorem wp_Logger_Printf (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List G
       (App (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Printf")) (Val #msg))
         (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }} := by
-  exact LogHyp.wp_Logger_Printf l msg arg xs dq hl
+  exact LogSpecs.wp_Logger_Printf l msg arg xs dq hl
 
 /-- `l.Println(args...)` on arguments `argOk` allows. -/
 theorem wp_Logger_Println (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac)
@@ -105,7 +105,7 @@ theorem wp_Logger_Println (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq 
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk (GF := GF) x }}
       (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Println")) (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }} := by
-  exact LogHyp.wp_Logger_Println l arg xs dq hl
+  exact LogSpecs.wp_Logger_Println l arg xs dq hl
 
 /-- `wp_Logger_Printf` with the argument slice first (for `wp_log`). -/
 theorem wp_Logger_Printf' (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface) :

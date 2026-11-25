@@ -23,7 +23,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- A log argument: well-formed for `fmt` (no method runs), or an error. -/
@@ -50,7 +50,7 @@ theorem wp_Printf_args (msg : GoString) (arg : GoSlice) (xs : List GoInterface) 
     {{ RET #(); arg ↦*{dq} xs }} := by
   iintro %Φ ⟨#Hpkg, Hs, #Hargs⟩ HΦ
   ihave #Hok := logArgs_argOk xs $$ Hargs
-  wp_apply LogHyp.wp_Printf msg arg xs dq $$ [$Hs $Hok] as Hs
+  wp_apply LogSpecs.wp_Printf msg arg xs dq $$ [$Hs $Hok] as Hs
   iapply HΦ; iframe
 
 theorem logArg_str (x : GoString) : ⊢ logArg (hG := hG) (interface.mkOk go.string #x) := by

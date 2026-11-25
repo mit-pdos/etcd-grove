@@ -337,7 +337,7 @@ theorem node_idx (N n : w64) (h2 : 2 ≤ uint.Z n) (h : uint.Z n ≤ uint.Z N + 
   rw [hidx]; omega
 
 /-- `s.remove(rs)`: each removal asked of the coordinator (`RemoveNode`, any address). -/
-theorem wp_Sys_remove [LogHyp GF]
+theorem wp_Sys_remove [LogSpecs GF]
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (s : Loc) (conf : Conf) (rs : GoSlice)
     (rl : List removal) :
@@ -392,7 +392,7 @@ theorem wp_Sys_remove [LogHyp GF]
       isplitl []
       · ipureintro; rfl
       iintro %args_sl ⟨Hargs, -⟩
-      wp_apply LogHyp.wp_Println _ _ _ $$ [Hargs]
+      wp_apply LogSpecs.wp_Println _ _ _ $$ [Hargs]
       · iframe
         iapply argOks_of_wf _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
       iintro -
@@ -478,7 +478,7 @@ theorem wp_Sys_remove [LogHyp GF]
 
 /-- `newSys(c)`: client machine `c`'s `Sys`, once its configuration arrived; the codec is
 registered (`rpcReady`); its removals run in a goroutine. -/
-theorem wp_newSys [LogHyp GF]
+theorem wp_newSys [LogSpecs GF]
     (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF))
@@ -542,7 +542,7 @@ theorem wp_newSys [LogHyp GF]
   iexists m.conf'
   iframe #
 
-theorem Client.wp_proof [LogHyp GF]
+theorem Client.wp_proof [LogSpecs GF]
     (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_NewNC : netrpc.wp_NewNodeClient.spec (GF := GF))
