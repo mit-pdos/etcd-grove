@@ -11,7 +11,14 @@ gives `fileHoldsM`), `fileAtDur`/`fileAtPend`/`fileFreeDur` (each gives today's 
 crash lemmas `nameCrash_crash` (via `crashRest_region'`) and `fileHoldsMDur_crash` (via
 `osCrash_take_runs_keep`: a file the new tree names comes back whole at the new generation). One bbolt API law
 added, `bbolt.boltImageRcpt_gen` (proved, `Spec/go_etcd_io/bbolt/Api.lean`: the receipt is global ghost state).
-Not yet: the handle `snapDirInvH`, the new body, `snapDir_crash.law`. Design as below. `notes/etcd-dist-d6.md` §T6 "round 4" lists what reading the crash machinery
+Not yet: the handle `snapDirInvH`, the new body, `snapDir_crash.law`. Design as below.
+
+**Stopped at a decision point (2026-11-25, head after `41daa43aed`).** The next step rewrites `snapDirInv`'s
+body (which the axioms `SaveDBFrom`/`ReleaseSnapDBs`/`storage.Release` are stated over) beyond round 3: (1) spine
+durability (`member`, `snap` committed) in `snap.snapDirOwn`, or the alternative, the law takes the directory's
+identity across the crash (`lookupH R V' sd = some (.dir J)`) as a premise and T7 owes it; (3) a pending file
+removed by `ReleaseSnapDBs` between `SaveDBFrom`'s `Link` and its `fsyncDir` joins `E` with its `Rm`. Waiting for
+the coordinator's choice. `notes/etcd-dist-d6.md` §T6 "round 4" lists what reading the crash machinery
 found beyond round 3: the snapshot directory's inode across a crash (spine durability), free names durable at
 the first start, a pending file removed before its sync, and the simplifications (no new bbolt law;
 one `nameCrash` predicate; `Rm → Rm'` a plain wand). These touch trusted text (`snapDirInv`'s body,
