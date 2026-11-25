@@ -248,25 +248,18 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLpg, hLZ, hLB, hLW, hLK⟩ :=
     syncLay_any hC HW hd hl hs htail hZ hzf Hdko habs
   -- the ghost state at the synced state
-  unfold walGhost
-  icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, ⟨Hh0, Hlk⟩, %Hk0, #Hst⟩
-  ihave Hh : iprop(walHandleAuth (W := W) ∗ walLksAuth (W := W) (walSyncS s dir d)) $$ [Hh0 Hlk]
-  · iframe Hh0
-    iapply walLksAuth_mono s (walSyncS s dir d)
-      (unlMono_insert s dir _ (fun d' h => by rw [hd] at h; cases h; exact Nat.le_refl _)) $$ Hlk
-  ihave HP := absPast_grow _ s (walSyncS s dir d) (absLe_sync hd hmH) $$ HP
-  imod absPast_snap _ (walSyncS s dir d) $$ HP with ⟨HP, Hpast⟩
+  iunfold walGhost at Hg
+  icases Hg with ⟨%Ig, Hg⟩
+  imod walGhostI_upd_lag s (walSyncS s dir d) Ig (fun G hG => walMapLe_sync hd hmH hG)
+    (absLe_sync hd hmH) (fun hk => walKeysInArea_sync hd hk)
+    (fun n hn => WalsStepped.insert (d' := { d with m := d.H.length }) hn rfl (hn dir d hd))
+    (unlMono_insert s dir _ (fun d' h => by rw [hd] at h; cases h; exact Nat.le_refl _)) $$ Hg
+    with ⟨Hg, #Hpast⟩
+  ihave Hg := walGhostI_ghost _ Ig $$ Hg
   imodintro
-  isplitr [Hpast]
+  isplitl
   · iexists (<[dir := Lw]> Ls), cl, n, F
-    iframe Hcl Hn HCR
-    isplitl [HGs HP Hh]
-    · iframe HP Hh
-      isplitl [HGs]
-      · iexists G0; iframe HGs; ipureintro; exact walMapLe_sync hd hmH HG0
-      · isplitr
-        · ipureintro; exact walKeysInArea_sync hd Hk0
-        · iapply walStepsLb_mono _ _ (fun n hn => WalsStepped.insert (d' := { d with m := d.H.length }) hn rfl (hn dir d hd)) $$ Hst
+    iframe Hcl Hn HCR Hg
     isplitr
     · ipureintro; exact Har
     isplitl [Hpre Hseg Hrest]
@@ -328,7 +321,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         (namedSub_ins s dir d _ hd rfl) $$ Hnms
       iapply walNamesRes_insert _ _ _ _ _ _ Lw hl hLnm hLj $$ Hnms
     ipureintro; exact ⟨walsBounded_insSame Hbd.1 rfl hd rfl rfl, Hbd.2⟩
-  · unfold walPast; iexact Hpast
+  · unfold walPast; iexists Ig; iexact Hpast
 
 end iris
 

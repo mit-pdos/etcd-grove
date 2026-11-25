@@ -76,13 +76,15 @@ theorem walInv_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
       · -- the incarnation of `s0` is retired: nothing to name
         imod walGhostI_past s I $$ Hg with ⟨Hg, #HpI⟩
         ihave #Hnm := walNamed_retired s I dir (incOf I0 dir) hlt $$ HpI
+        ihave Hg := walGhostI_ghost s I $$ Hg
         imodintro
         isplitl [Hg Hrest]
-        · iexists s; unfold walInvBody; iexists Ls, cl, n0, F; iframe Hrest; iexists I; iexact Hg
+        · iexists s; unfold walInvBody; iexists Ls, cl, n0, F; iframe Hrest Hg
         iframe H Hnm Hnf
       obtain ⟨d, hd, -⟩ := Hle.2.2.2 dir d0 hd0 heq.symm
+      ihave Hg := walGhostI_ghost s I $$ Hg
       ihave Hb : walInvBody (L := L) (W := W) C Mr R jr r s $$ [Hg Hrest]
-      · unfold walInvBody; iexists Ls, cl, n0, F; iframe Hrest; iexists I; iexact Hg
+      · unfold walInvBody; iexists Ls, cl, n0, F; iframe Hrest Hg
       imod walInvBody_named C Mr R jr r s dir nm d N dq h x e Es J n s0 I0 hd hin hN hl hx hJ
         walN_osShN_top $$ Hb Hsi H Hc Hnf Hp with ⟨Hb, H, #Hnm, Hnf⟩
       imodintro

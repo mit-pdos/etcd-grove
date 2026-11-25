@@ -108,15 +108,15 @@ theorem walInv_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       dsimp only [Std.Tele.app]
       iintro Hab0
       unfold walAbsent walDirIs
-      icases Hab0 with ⟨%M, HM, %HMd⟩
+      icases Hab0 with ⟨%M, %I, HM, HI, %HMd⟩
       iunfold walInvBody at Hb
       icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
       icases walOwn_agree s M $$ Hg HM with %HMs
       have hsd : s.wal !! dir = none := by
         have := HMs dir; rw [(walOptLe_none_iff _).1 HMd] at this; exact (walOptLe_none_iff _).1 this
       icases Hcla with ⟨Hab, -⟩
-      imod Hab $$ [HM] with Hau
-      · iexists M; iframe HM; ipureintro; exact HMd
+      imod Hab $$ [HM HI] with Hau
+      · iexists M, I; iframe HM HI; ipureintro; exact HMd
       imod Hmc with -
       ihave Hb : walInvBody (L := L) (W := W) C Mr R jr r s $$ [Hg Hrest]
       · unfold walInvBody; iexists Ls, cl, n, F; iframe

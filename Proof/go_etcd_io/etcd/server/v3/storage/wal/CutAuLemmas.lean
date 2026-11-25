@@ -10,6 +10,7 @@ parked halves gain the old tail's, the new segment and the new claim out (`walPa
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutCommit
+import all Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 
 @[expose] public section
 
@@ -53,37 +54,50 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
-/-- **The synced mark is at least a lower bound's** (the past states' authority). -/
-theorem walGhost_synced (s : AbsDiskState) (dir : GoString) (n : Nat) :
-    ⊢ walGhost (W := W) s -∗ walSyncedLb (W := W) dir n -∗
-      ⌜∀ d, s.wal !! dir = some d → n ≤ d.m⌝ ∗ walGhost (W := W) s := by
-  unfold walGhost walSyncedLb walPast
-  iintro ⟨HG, HA, Hh, %Hk, #Hst⟩ ⟨%s', %d', #Hp, %Hd'⟩
-  icases absPast_le W.hA s s' $$ HA Hp with %Hle
-  iframe HG HA Hh Hst
-  isplit
-  · ipureintro
-    intro d hd
-    obtain ⟨d'', hd'', hm, -⟩ := Hle.2.2 dir d' Hd'.1
-    rw [hd] at hd''; cases hd''
-    exact Nat.le_trans Hd'.2 hm
-  · ipureintro; exact Hk
+/-- **A cutting handle's incarnation is the ghost's** (the cut holds the lock's quarter in
+`walOpenWCI`). -/
+theorem walGhost_openWCI (s : AbsDiskState) (w : Loc) (dir : GoString) (i : Nat) :
+    ⊢ walGhost (W := W) s -∗ walOpenWCI (W := W) w dir i -∗
+      ∃ I, ⌜incOf I dir = i⌝ ∗ walGhostI (W := W) s I ∗ walOpenWCI (W := W) w dir i := by
+  unfold walOpenWCI
+  iintro Hg ⟨%I, Hs, Ht, Hq, %hi⟩
+  icases walGhost_inc s I $$ Hg Hq with ⟨Hg, Hq⟩
+  iexists I
+  iframe Hg
+  isplitr
+  · ipureintro; exact hi
+  iexists I; iframe Hs Ht Hq; ipureintro; exact hi
 
-/-- **A named WAL stays named** (the past states' authority). -/
-theorem walGhost_named (s : AbsDiskState) (dir : GoString) :
-    ⊢ walGhost (W := W) s -∗ walNamed (W := W) dir -∗
-      ⌜∀ d, s.wal !! dir = some d → d.named = true⌝ ∗ walGhost (W := W) s := by
-  unfold walGhost walNamed walPast
-  iintro ⟨HG, HA, Hh, %Hk, #Hst⟩ ⟨%s', %d', #Hp, %Hd'⟩
-  icases absPast_le W.hA s s' $$ HA Hp with %Hle
-  iframe HG HA Hh Hst
-  isplit
-  · ipureintro
-    intro d hd
-    obtain ⟨d'', hd'', -, -, hn⟩ := Hle.2.2 dir d' Hd'.1
-    rw [hd] at hd''; cases hd''
-    exact hn Hd'.2
-  · ipureintro; exact Hk
+/-- **The synced mark is at least a lower bound's** of the cutting handle's incarnation (current:
+`walGhost_openWCI`). -/
+theorem walGhost_synced (s : AbsDiskState) (w : Loc) (dir : GoString) (i n : Nat) :
+    ⊢ walGhost (W := W) s -∗ walOpenWCI (W := W) w dir i -∗ walSyncedLb (W := W) dir i n -∗
+      ⌜∀ d, s.wal !! dir = some d → n ≤ d.m⌝ ∗ walGhost (W := W) s ∗ walOpenWCI (W := W) w dir i := by
+  iintro Hg Hw #Hn
+  icases walGhost_openWCI s w dir i $$ Hg Hw with ⟨%I, %hi, Hg, Hw⟩
+  subst hi
+  icases walSyncedLb_ghost s I dir n $$ Hg Hn with %h
+  ihave Hg := walGhostI_ghost s I $$ Hg
+  iframe Hg Hw
+  ipureintro
+  intro d hd
+  obtain ⟨d', hd', hn⟩ := h
+  rw [hd] at hd'; cases hd'; exact hn
+
+/-- **A named WAL stays named** (the cutting handle's incarnation, current). -/
+theorem walGhost_named (s : AbsDiskState) (w : Loc) (dir : GoString) (i : Nat) :
+    ⊢ walGhost (W := W) s -∗ walOpenWCI (W := W) w dir i -∗ walNamed (W := W) dir i -∗
+      ⌜∀ d, s.wal !! dir = some d → d.named = true⌝ ∗ walGhost (W := W) s ∗ walOpenWCI (W := W) w dir i := by
+  iintro Hg Hw #Hn
+  icases walGhost_openWCI s w dir i $$ Hg Hw with ⟨%I, %hi, Hg, Hw⟩
+  subst hi
+  icases walNamed_ghost s I dir $$ Hg Hn with %h
+  ihave Hg := walGhostI_ghost s I $$ Hg
+  iframe Hg Hw
+  ipureintro
+  intro d hd
+  obtain ⟨d', hd', hn⟩ := h
+  rw [hd] at hd'; cases hd'; exact hn
 
 /-- **The tail record of `dir`, its other half**: the WAL, layout and last segment it records; given
 back with the layout of `dir` replaced (`lay'`, its last segment `g`, F-Z and the record boundary),

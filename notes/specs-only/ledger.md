@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,
+  `WAL__renameWAL.lean` (`renameWALPost`), and every WAL spec over `walNamed`/`walSyncedLb`/`walLenLb` and the
+  shared handle `walOpenWS` (`WalShN`); no `SpecPlan/` counterpart states these facts.
+- **Defect.** The persistent facts `walNamed dir`, `walSyncedLb dir n`, `walLenLb w dir n` say nothing of which
+  WAL at `dir` they are about, so after `DiscardUnsaved` (the fork `e94f33b50`, `unsaved.go`) and `bootstrap`'s
+  re-`Create` at the same `dir` they would read as facts of the new WAL (`notes/wal-p6-handoff.md`, "The relaxation
+  ... is not enough"). Separately, `renameWALPost`'s second arm (a WAL reopened by `renameWALUnlock`) is unreachable
+  (the proof never produces it: ledger 2026-11-21) but obliges `Create` to name its handle's incarnation.
+- **Evidence.** P6b design (`notes/wal-p6b-design.md`, v2/v2.1); `Proof/.../wal/HandleUnnamed.lean`
+  (`walOpenWFU_seal` needs the handle's incarnation to give `walNamed dir i`).
+- **Proposed change.** The facts take the incarnation `i` (`walNamed dir i`, `walSyncedLb dir i n`,
+  `walLenLb w dir i n`; a retired incarnation's fact constrains nothing). `Create.spec` takes `∀ i`, its atomic
+  update over `walDirIsI dir i`, its success post `walOpenWFI P Mr w dir i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗
+  walSyncedLb dir i 0`. `WalShN` gains `inc`, `Save`'s update is over `walDiskAtI dir γ.inc`, its post's facts at
+  `γ.inc`. `renameWALPost` loses its unreachable second arm (a stronger post; its proof unchanged but the arm
+  indices).
+- **Decision.** The facts, `∀ i` and `WalShN.inc`: accepted (coordinator, 2026-11-25, P6b v2.1); applied on branch
+  `etcd-safe-p6b-wip`. The dropped `renameWALPost` arm (a stronger post of an internal callee, no client sees it):
+  taken in P6b session 3, for the coordinator to confirm.
+
 ## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
 
 - **Spec.** `Spec/errors/IsStatusErr.lean`, `errors.IsStatusErr.spec` (the axiom `errors.IsStatusErr.wp_proof`).

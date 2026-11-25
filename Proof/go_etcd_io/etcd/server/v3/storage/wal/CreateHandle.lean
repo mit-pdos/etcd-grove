@@ -38,26 +38,26 @@ variable [GooseExts]
 
 /-- **The fresh WAL's handle state**: tail inode `i`, record `γ`, size `sz`, the encoder at the stream's
 end `L` with nothing out or pending. -/
-def createHS (md : List w8) (i : Ino) (L : Nat) (γ : GName) (sz : Nat) : WalHS :=
-  ⟨[], md, [], i, L, [], [], 0, hsZero, γ, sz, W64 0, W64 0, 0, true⟩
+def createHS (md : List w8) (i : Ino) (L : Nat) (γ : GName) (sz : Nat) (ic : Nat) : WalHS :=
+  ⟨[], md, [], i, L, [], [], 0, hsZero, γ, sz, W64 0, W64 0, 0, true, ic⟩
 
-theorem createHS_done (md : List w8) (i : Ino) (L : Nat) (γ : GName) (sz : Nat) :
-    (createHS md i L γ sz).Done := ⟨rfl, rfl⟩
+theorem createHS_done (md : List w8) (i : Ino) (L : Nat) (γ : GName) (sz : Nat) (ic : Nat) :
+    (createHS md i L γ sz ic).Done := ⟨rfl, rfl⟩
 
 /-- The handle's tail stream is the fresh WAL's. -/
 theorem tailStream_fresh (Mr : WalMarshal) (md : List w8) :
     recFrames walCodec (tailRecs Mr [] md []) = createStream Mr md := rfl
 
-theorem createHS_split (Mr : WalMarshal) (md : List w8) (i : Ino) (γ : GName) (sz : Nat) :
-    (createHS md i (createStream Mr md).length γ sz).Split Mr := by
+theorem createHS_split (Mr : WalMarshal) (md : List w8) (i : Ino) (γ : GName) (sz : Nat) (ic : Nat) :
+    (createHS md i (createStream Mr md).length γ sz ic).Split Mr := by
   unfold WalHS.Split WalHS.encRecs createHS
   simp only [Nat.sub_zero, List.take_length, List.append_nil, tailStream_fresh]
   exact ⟨trivial, Nat.le_refl _, Nat.zero_le _⟩
 
 /-- The encoder's CRC after the header records. -/
 theorem createHS_crc (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk Mr) (i : Ino) (L : Nat)
-    (γ : GName) (sz : Nat) :
-    (createHS md i L γ sz).crc Mr = hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
+    (γ : GName) (sz : Nat) (ic : Nat) :
+    (createHS md i L γ sz ic).crc Mr = hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
       (Mr.encSnap snapC0.model true) := by
   unfold WalHS.crc createHS allRecs
   simp only [Nat.sub_zero, List.take_length]
@@ -190,7 +190,7 @@ segment, the directory share (key, `J`'s half claim holding only the segment's n
 permission, the record of what is out, the tails' and names' halves). -/
 theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCreateOk Mr)
     (w lg : Loc) (r nm : GoString) (mds : GoSlice) (md : List w8) (e lt f : Loc) (fd : w64)
-    (fname pd : GoString) (d : OsFd) (off : w64) (g : SegG)
+    (fname pd : GoString) (d : OsFd) (off : w64) (g : SegG) (ic : Nat)
     (jr J : Ino) (hj : NamesH) (R : Roots) (q : Qp) (dfd : w64) (df : Loc) (dnm : GoString)
     (sp : Loc) (rc : GoFunc) (fp : Loc) (γp : PipeNames) (Rp : Roots) (dqp : DFrac) (szp : w64)
     (hdi : d.ino = g.ino) (hdw : d.writable = true)
@@ -221,9 +221,9 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
       isFilePipe fp γp Rp (child r nm) dqp J szp ∗ pipeMain γp 0 ∗ tmpClaim J (pipeTmp 1) ∗
       encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-      walOpenW (W := W) w (child r nm) ⊢
+      walOpenWI (W := W) w (child r nm) ic ⊢
     ∃ γ, walHandleIn (W := W) P Mr w (child r nm)
-      (createHS md g.ino (createStream Mr md).length γ g.om.size) TailMetaW
+      (createHS md g.ino (createStream Mr md).length γ g.om.size ic) TailMetaW
       (fun f' R' q' => iprop(⌜f' = f ∧ R' = R ∧ q' = q⌝)) (some (child r nm))
       (fun R' dq' => R' = R ∧ dq' = DFrac.own q) := by
   iintro ⟨#Hbefore, Hpre, Henc, Hf, Hfd, Hlks, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
@@ -237,7 +237,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
   iexists γ
   unfold walHandleIn
   iexists lg, df, sp, e, fp, lt, f, mds, locks, [lt], fd, dfd, fname, dnm, J, rc
-  rw [createHS_crc Mr md hMr g.ino (createStream Mr md).length γ g.om.size]
+  rw [createHS_crc Mr md hMr g.ino (createStream Mr md).length γ g.om.size ic]
   dsimp only [createHS]
   iframe Hbefore Hlg Hzap Hdir Hdff Hdf Hmd Hst Hsp Hdec Hrc Hns Hmu Henti Hsnapi He Henc Hlocks Hls Hcap Hlt Hfpf
     Henv Hcrc Hpkg Hopen
@@ -296,7 +296,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     iframe Hpipe Hmain Htc
     ipureintro; exact ⟨⟨Nat.le_refl _, hRp, hdqp⟩, hfp, hRp.trans hWR.symm⟩
   ipureintro
-  refine ⟨createHS_split Mr md g.ino γ g.om.size, hfd0, by simpa using hL, hsz, ⟨fun _ => ?_, ?_⟩, ?_⟩
+  refine ⟨createHS_split Mr md g.ino γ g.om.size ic, hfd0, by simpa using hL, hsz, ⟨fun _ => ?_, ?_⟩, ?_⟩
   · simp [walLastIdx]
   · simp [walMaxSnapIdx]
   · simp

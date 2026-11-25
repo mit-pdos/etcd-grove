@@ -687,6 +687,29 @@ buffer. -/
   iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
     ⧗ h.pc)
 
+/-- **`walOpenWF` at the incarnation `i`** (P6b, `notes/wal-p6b-design.md`): the handle's state's
+`inc` is `i` (`Create.spec`'s post: the view's incarnation). Sealed; `walOpenWFI_WF` forgets `i`. -/
+@[no_expose] def walOpenWFI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+    ⌜h.inc = i⌝ ∗ ⧗ h.pc)
+
+theorem walOpenWFI_WF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWFI (W := W) P Mr w dir i ⊢ walOpenWF (W := W) P Mr w dir := by
+  unfold walOpenWFI walOpenWF
+  iintro ⟨%h, Hh, %hD, %hmd, -, Hr⟩
+  iexists h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd⟩
+
+theorem walOpenWF_WFI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    walOpenWF (W := W) P Mr w dir ⊢ ∃ i, walOpenWFI (W := W) P Mr w dir i := by
+  unfold walOpenWFI walOpenWF
+  iintro ⟨%h, Hh, %hD, %hmd, Hr⟩
+  iexists h.inc, h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd, rfl⟩
+
 /-- **The handle before naming** (`Create` after its commit, W4 log, twenty-second session; ledger
 2026-11-14, `renameWALPost`'s arm 2): `walOpenWF` but for the naming fact, and **the WAL's name not yet
 registered** (`walDirH`'s `nf := some dir`: `Create`'s pending registration, `walNamesRes`'s `o`; design P
@@ -703,6 +726,24 @@ in `HandleUnnamed.lean`. -/
       (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
       (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⌜h.Done⌝ ∗
     ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
+
+/-- **`walOpenWFU` at the incarnation `i`** (the handle's state's `inc`): `Create`'s, sealed by
+`walOpenWFUI_seal` into `walOpenWFI … i`; `walOpenWFUI_WFU` forgets `i` (the cleanup's `Close`). -/
+@[no_expose] def walOpenWFUI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
+    (qp : Qp) (tf : Loc) (i : Nat) : IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW
+      (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
+      (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⌜h.Done⌝ ∗
+    ⌜h.md.length < 2 ^ 41⌝ ∗ ⌜h.inc = i⌝ ∗ ⧗ h.pc)
+
+theorem walOpenWFUI_WFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
+    (qp : Qp) (tf : Loc) (i : Nat) :
+    walOpenWFUI (W := W) P Mr w dir Rp qp tf i ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf := by
+  unfold walOpenWFUI walOpenWFU
+  iintro ⟨%h, Hh, %hD, %hmd, -, Hr⟩
+  iexists h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd⟩
 
 /-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
 its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt

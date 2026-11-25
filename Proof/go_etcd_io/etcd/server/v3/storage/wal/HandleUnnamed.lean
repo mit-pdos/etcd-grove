@@ -49,12 +49,12 @@ theorem walOpenWFU_intro (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
     (qp : Qp) (tf : Loc) (h : WalHS) (hD : h.Done) (hmd : h.md.length < 2 ^ 41) :
     walHandleIn (W := W) P Mr w dir h TailMetaW (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
         (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⧗ h.pc ⊢
-      walOpenWFU (W := W) P Mr w dir Rp qp tf := by
+      walOpenWFUI (W := W) P Mr w dir Rp qp tf h.inc := by
   iintro ⟨Hh, Hr⟩
-  unfold walOpenWFU
+  unfold walOpenWFUI
   iexists h
   iframe Hh Hr
-  ipureintro; exact ⟨hD, hmd⟩
+  ipureintro; exact ⟨hD, hmd, rfl⟩
 
 /-- **The directory share's names fragment out**, and back (another one) with the naming fact changed
 along a wand. -/
@@ -109,37 +109,38 @@ theorem walHandleIn_split (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
   iapply walPipeH_mono fp dir j h.pc pp pp' hpp $$ Hpipe
 
 /-- **The handle sealed at `Create`'s success exit**: the pending names fragment `some dir` out (for the
-registration, `walInv_register`, which returns `none`), and with `none` and the naming `walNamed dir`
-(`walInv_named`), the client handle; the pins forgotten. -/
+registration, `walInv_register`, which returns `none`), and with `none` and the naming `walNamed dir i`
+(`walInv_named`, at the handle's incarnation), the client handle at `i`; the pins forgotten. -/
 theorem walOpenWFU_seal (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) (tf : Loc) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ walNamesFrag (W := W) (some dir) ∗
-      (walNamesFrag (W := W) none -∗ walNamed (W := W) dir -∗ walOpenWF (W := W) P Mr w dir) := by
+    (qp : Qp) (tf : Loc) (i : Nat) :
+    ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗ walNamesFrag (W := W) (some dir) ∗
+      (walNamesFrag (W := W) none -∗ walNamed (W := W) dir i -∗ walOpenWFI (W := W) P Mr w dir i) := by
   iintro H
-  unfold walOpenWFU
-  icases H with ⟨%h, Hh, %hD, %hmd, Hr⟩
-  icases walHandleIn_split P Mr w dir h TailMetaW _ (fun _ _ _ => walNamed (W := W) dir) (some dir) _
+  unfold walOpenWFUI
+  icases H with ⟨%h, Hh, %hD, %hmd, %hi, Hr⟩
+  subst hi
+  icases walHandleIn_split P Mr w dir h TailMetaW _ (fun _ _ _ => walNamed (W := W) dir h.inc) (some dir) _
     (fun _ _ => True) (fun _ _ _ => trivial) $$ Hh with ⟨Hnf, Hh⟩
   iframe Hnf
   iintro Hnf #Hn
-  unfold walOpenWF
+  unfold walOpenWFI
   iexists h
   iframe Hr
   isplitl [Hh Hnf]
   · iapply Hh $$ Hnf
     iintro %f %R %q -
     iexact Hn
-  ipureintro; exact ⟨hD, hmd⟩
+  ipureintro; exact ⟨hD, hmd, rfl⟩
 
 /-- **The `dir` field of the handle before naming, lent** (`Create` reads `w.dir` after `renameWAL`). -/
 theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) (tf : Loc) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗
+    (qp : Qp) (tf : Loc) (i : Nat) :
+    ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
       (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir -∗
-        walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
+        walOpenWFUI (W := W) P Mr w dir Rp qp tf i) := by
   iintro H
-  unfold walOpenWFU
+  unfold walOpenWFUI
   icases H with ⟨%h, Hh, Hr⟩
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
@@ -153,11 +154,11 @@ theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
 
 /-- **The handle's quarter of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
 theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) (tf : Loc) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
-      (osCallPerm (callKey W.roots dir) (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
+    (qp : Qp) (tf : Loc) (i : Nat) :
+    ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
+      (osCallPerm (callKey W.roots dir) (1 : Qp).half.half -∗ walOpenWFUI (W := W) P Mr w dir Rp qp tf i) := by
   iintro H
-  unfold walOpenWFU
+  unfold walOpenWFUI
   icases H with ⟨%h, Hh, Hr⟩
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,

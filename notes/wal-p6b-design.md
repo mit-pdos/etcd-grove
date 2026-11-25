@@ -1,5 +1,28 @@
 # P6b item 1: per-incarnation WAL facts (design, 2026-11-25)
 
+## v2.1 (2026-11-25, P6b session 2; approved by the coordinator): supersedes v2 below where they differ
+
+1. **Facts can be retired.** `walIncFact I dir i P := (incOf I dir = i ∧ P) ∨ i < incOf I dir`: a fact of
+   incarnation `i` holds of the WAL at `dir` while `i` is current and says nothing once it is retired. Needed
+   because handle records are keyed by `GName`: a stale record of the same `Loc` cannot be excluded, so `Sync`
+   with a stale `walLenLb` must still yield a (retired) `walSyncedLb`. All three facts take the incarnation:
+   `walSyncedLb dir i n`, `walNamed dir i`, `walLenLb w dir i n`.
+2. **Step lemmas hand out facts from an earlier past state.** A step lemma that hands out a fact takes a past
+   `walPastI (s0, I0)` and returns the fact at `incOf I0 dir` (`walNamed_of_le`, `walSyncedLb_of_le`: current
+   or retired), so no such lemma needs the caller's quarter (pattern: `walInvBody_named`/`walInv_named`).
+3. **The lock's quarter lives inside `walLockedTokI I`** (`walLockedTok := ∃ I, walLockedTokI I`);
+   `walOpenWI w dir i` is the handle's record with `⌜incOf I dir = i⌝` of that quarter. `walHandleInc` is
+   dropped: the handle's state carries `WalHS.inc`. The program view's share is the quarter `walIncQ`.
+4. **Lemmas that conclude "still present"** from a past state with the WAL (`walInv_register`, `CreateSteps`,
+   `ReadAllNamed`, `TailLenLb`) take the lock token's quarter and agree it with the ghost
+   (`walGhostI_lockedI_agree`); `walLeI`'s fourth conjunct at equal incarnations then gives the WAL.
+5. **`walDirKey` keyed by `(dir, i)` is deferred** until a re-`Create` needs it (`DiscardUnsaved` followed by
+   `bootstrap`'s re-`Create` will: do it then).
+6. **Specs** (approved): `Create` takes a `∀ i` parameter, its atomic update over `walDirIsI dir i`, its success
+   post `walOpenWFI … i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗ walSyncedLb dir i 0`; `WalShN` gains
+   `inc : Nat`, so `Save`'s update is over `walDiskAtI dir γ.inc`. Ledger entry
+   (`notes/specs-only/ledger.md`) before the spec edits.
+
 ## v2 (2026-11-25, P6b session 1): supersedes "Proposed shape" below where they differ
 
 Implementing v1 found three gaps; v2 closes them. Nothing trusted changes (the crash clause already lets
