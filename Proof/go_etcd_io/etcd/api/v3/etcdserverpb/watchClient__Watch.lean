@@ -36,7 +36,9 @@ theorem watchClient.Watch.wp_proof
   intro wc conn addrs ics Up Spec ctx cd om opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
   iunfold etcdWatchConn at Hconn
-  icases Hconn with ⟨#Hconn, %d, #Hcod, %hd⟩
+  icases Hconn with ⟨#Hconn, #Hcst⟩
+  iunfold etcdConnStream at Hcst
+  icases Hcst with ⟨%d, #Hcod, %hd⟩
   obtain ⟨si, hsi⟩ : ∃ si, d.streamIc = some si := Option.ne_none_iff_exists'.mp hd.1
   have hE : streamErrShape (GF := GF) d = fun _ => iprop(True) := by
     funext err; unfold streamErrShape; rw [hsi]
