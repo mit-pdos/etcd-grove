@@ -5,7 +5,9 @@ unless `NoSync`. The commit point is the caller's: right after the `WriteAt`, st
 `metalock`, its view shift `Hcp` gets `metalock`'s resource, hands over the slot's page-cache
 bytes and the client halves of its mapped cells, and gets them back as the write left them, which
 for one aligned OS page is all of `metaBuf mv` or nothing (`j = 4096` or `j = 0`), whatever
-`WriteAt` returned: `WriteAt.spec`'s page cut (`PwCut`, `notes/bbolt-port-plan.md` §2.4).
+`WriteAt` returned: `WriteAt.spec`'s page cut (`PwCut`, `notes/bbolt-port-plan.md` §2.4); all of it
+when the file system does not fail (`FsNoErr`: the write ends below `maxBytes`), which lets
+`Commit` fire its update in the step's first half, before the `pwrite` (`Commit/Step.lean`).
 
 The spec is over local resources (the writer side's fields and file, which `Commit` takes from
 `wdbLive`): `db.ops.writeAt` holds `db.file.WriteAt`'s method value, which `wdbCoreG` does not
@@ -54,7 +56,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- The commit step `writeMeta` runs under `metalock` right after the meta page's `WriteAt`
 (slot `s`, the mapping's base `b`): from `metalock`'s resource, the slot's page-cache bytes
 (whole) and its cells' client halves (as bytes at ½), and, given them back as the write left
-them (`j` bytes written, all or nothing) and a time receipt (of a step under `metalock`, for
+them (`j` bytes written, all or nothing; all when the file system does not fail, `FsNoErr`, so a
+caller can fire its update in the first half, before the `pwrite` starts) and a time receipt (of a step under `metalock`, for
 the writer side's receipts) with the persistent receipt `⧖ m` the first half gave raised to
 `⧖ (m + 1)` by that step (session bbolt-inv: `metaR`'s receipt of the committed txid),
 `metalock`'s resource and `Ψ j`. -/
@@ -63,7 +66,8 @@ def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (Ψ : Nat → IProp 
     osBytes K.p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
     bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) old ∗
     ∀ (j : Nat) (ys : List ByteG),
-      ⌜(j = 0 ∨ j = 4096) ∧ ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
+      ⌜(j = 0 ∨ j = 4096) ∧ (FsNoErr → j = 4096) ∧
+        ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
       osBytes K.p.ino (4096 * s) (DFrac.own 1) ys -∗
       bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (ys.map Prod.fst) -∗
       receipt 1 -∗ ⧖ (m + 1) ={⊤}=∗ metaR K.B K.db K.p ∗ Ψ j)
@@ -270,8 +274,18 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iintro Hm Hys Hc
   icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
   · simp only [List.length_map]; iexact Hc
+  -- under `FsNoErr` the write lands whole (it ends below `maxBytes`)
+  have hne : FsNoErr → j = 4096 := by
+    intro hfs
+    rcases hres with ⟨h1, -, -⟩ | ⟨-, -, h3⟩
+    · rw [metaBuf_length] at h1; exact h1
+    · rw [hoff, metaBuf_length] at h3
+      have hmb : maxBytes = 0xffffffff000 := rfl
+      rcases h3 with h3 | h3
+      · exact absurd hfs h3
+      · rw [hmb] at h3; omega
   imod Hk $$ %j %ys [] Hys Hc Hrc Hm' with ⟨HR, HΨ⟩
-  · ipureintro; exact ⟨hj01, hys⟩
+  · ipureintro; exact ⟨hj01, hne, hys⟩
   cases lg with
   | nil => unfold boltLogger; iexfalso; iexact Hlgok
   | ok li =>

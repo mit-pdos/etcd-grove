@@ -4,9 +4,20 @@
 shares, the new tree's slots and the client's update: the meta slot's bytes and cells go to the
 write; given back with `j` bytes written,
 - `j = 4096` (the page whole, whatever `WriteAt` returned): the store publishes `C'`
-  (`store_publish`), the update fires (`au_commit_fire`), the meta cells and bytes are `C'`'s
+  (`store_publish`), the update has fired (`au_commit_fire`), the meta cells and bytes are `C'`'s
   (`meta_put`), and `metalock`'s resource holds `C'` (`metaOk_parity_write`);
 - `j = 0`: everything as it was, the update unfired.
+
+**Where the update fires** (`cpFired`). When the file system does not fail (`FsNoErr`, which the
+backend's `FsNoErrAll` gives), in the step's first half: right after `metalock.Lock()`, before the
+meta page's `pwrite` starts (`tx.go:612`), which is what C-I1's laws ask of the crash proof
+(`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`, "Condition"); the write
+then lands whole (`commitStep`'s `FsNoErr → j = 4096`), so `j = 0` does not arise. Otherwise on
+landing (`j = 4096`), as before. Between the fire and the landing the data's ghost state is at
+`(Dn, ν + 1)` while the page cache's meta is still `C`'s: no invariant sees the gap, since
+`metalock`'s resource `metaR` (the data's other quarter with the cache's meta bytes) is the
+committer's while it holds `metalock`, and every reader takes `metalock` to read the meta
+(`beginTx`).
 -/
 module
 
@@ -68,6 +79,59 @@ def cpPost (K : BC) (C C' : CommitSt) (fl : FLPg) (b : Loc) (l : Nat)
     (⌜j = 0⌝ ∗ cpRes K C fl b l v (C.txid + 1) false wl (treeData C) ∗
       slotsOwn (some (b, l)) K.p S bs ∗
       fbTok K.B C fl ((some v, some (C.txid + 1), false, wl) : WSt) Fb ∗ A))
+
+/-- **The commit point, from `writeMeta`'s first half to the write's landing** (see the file
+header): under `FsNoErr` the update has fired (the data's two quarters at `(Dn, ν + 1)`, the
+client's `Q`); otherwise not yet (at `(D, ν)`, with the update's carrier `A`). -/
+def cpFired (K : BC) (D Dn : Data) (ν : Nat) (Q A : IProp GF) : IProp GF :=
+  iprop((⌜FsNoErr⌝ ∗ ghostVar K.B.st (1 : Qp).half.half (Dn, ν + 1) ∗
+      ghostVar K.B.st (1 : Qp).half.half (Dn, ν + 1) ∗ Q) ∨
+    (⌜¬ FsNoErr⌝ ∗ ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗
+      ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗ A))
+
+omit package_sem in
+/-- **The early commit point** (`writeMeta`'s first half, under `metalock`, before the meta
+page's `pwrite`): under `FsNoErr` the update fires now. -/
+theorem cpFired_intro (K : BC) (N' : Namespace) (D Dn : Data) (ν : Nat) (Q A : IProp GF)
+    (hA : A ⊢ commitAU K N' D Dn Q) :
+    ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗ ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗ A ⊢
+      |={⊤}=> cpFired K D Dn ν Q A := by
+  iintro ⟨H1, H2, Hau⟩
+  unfold cpFired
+  by_cases hne : FsNoErr
+  · ihave Hau := hA $$ Hau
+    iunfold commitAU at Hau
+    imod au_commit_fire K.B N' D Dn ν Q $$ [H1 H2 Hau] with ⟨H1, H2, HQ⟩
+    · iframe
+    imodintro
+    ileft
+    isplitr
+    · ipureintro; exact hne
+    iframe
+  · imodintro
+    iright
+    isplitr
+    · ipureintro; exact hne
+    iframe
+
+omit package_sem in
+/-- **The commit point at the landing** (the meta page written whole): the update has fired, in
+the first half (`FsNoErr`) or now. -/
+theorem cpFired_land (K : BC) (N' : Namespace) (D Dn : Data) (ν : Nat) (Q A : IProp GF)
+    (hA : A ⊢ commitAU K N' D Dn Q) :
+    cpFired K D Dn ν Q A ⊢
+      |={⊤}=> ghostVar K.B.st (1 : Qp).half.half (Dn, ν + 1) ∗
+        ghostVar K.B.st (1 : Qp).half.half (Dn, ν + 1) ∗ Q := by
+  unfold cpFired
+  iintro Hf
+  icases Hf with (⟨-, H1, H2, HQ⟩ | ⟨-, H1, H2, Hau⟩)
+  · imodintro; iframe
+  · ihave Hau := hA $$ Hau
+    iunfold commitAU at Hau
+    imod au_commit_fire K.B N' D Dn ν Q $$ [H1 H2 Hau] with ⟨H1, H2, HQ⟩
+    · iframe
+    imodintro
+    iframe
 
 omit package_sem in
 /-- **`writeMeta`'s commit step for a commit** (see the file header). The premises are
@@ -142,6 +206,9 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     intro i; unfold CommitSt.slot; split
     · exact hmok.1
     · exact hmok.2.1
+  -- the early commit point: under `FsNoErr` the update fires here, before the `pwrite`
+  imod cpFired_intro K N' (treeData C) Dn C.txid Q A hA $$ [Hst Hstw Hau] with Hpt
+  · iframe
   imodintro
   iexists C.txid, xa, C.slot (mv.txid'.toNat % 2)
   iframe Hrcm Hxa Hold
@@ -151,9 +218,12 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     simp only [List.length_map] at this
     exact ⟨this.trans (hslotlen _), hslotlen _⟩
   iintro %j %ys %hj Hys Hnew Hrc #Hrc1
-  obtain ⟨hj01, hys⟩ := hj
+  obtain ⟨hj01, hne, hys⟩ := hj
   rcases hj01 with rfl | rfl
-  · -- nothing written: everything back, the update unfired
+  · -- nothing written (so the file system can fail): everything back, the update unfired
+    iunfold cpFired at Hpt
+    icases Hpt with (⟨%hfs, -, -, -⟩ | ⟨-, Hst, Hstw, Hau⟩)
+    · exact absurd (hne hfs) (by decide)
     simp only [↓reduceIte] at hys
     icases metaOsBytes_put K.p C _ hs2 hmok.1 hmok.2.1 ys xb (hys.trans hxab.1) hxab.2
       $$ [Hys Hxb] with ⟨Hob, Hobw⟩
@@ -192,9 +262,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       $$ [Hpi Hcur Hcurq Hfl Hmap Hwv HS Hout Hfb] with ⟨Hcur, Hcurq, Hfl, Hmap, Hwv, Hout⟩
     · iframe; iframe #
       iapply (ghostVar_split_half K.B.cur (1 : Qp).half C).1 $$ Hcur
-    ihave Hau := hA $$ Hau
-    iunfold commitAU at Hau
-    imod au_commit_fire K.B N' (treeData C) Dn C.txid Q $$ [Hst Hstw Hau] with ⟨Hst, Hstw, HQ⟩
+    imod cpFired_land K N' (treeData C) Dn C.txid Q A hA $$ [Hpt] with ⟨Hst, Hstw, HQ⟩
     · iframe
     have hlen' : ∀ i, ((C.publish (metaBuf mv) (metaSummed mv) pages).slot i).length = 4096 := by
       intro i; rw [hsl]; split
