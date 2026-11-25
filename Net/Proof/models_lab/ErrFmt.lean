@@ -12,8 +12,12 @@ is one of the shapes the net world's errors take, with the memory `%#v` reads pe
 * `*errors.errorString` `x` with `x.s ↦□ s` (one unexported string field);
 * `*pbcodec.Error`/`*jsoncodec.Error` `x` with `x ↦□ v` (one exported string field);
 * `*net.OpError` `pe` with `pe ↦□ v` (`Op`, `Net` strings; `Source`, `Addr`, `Err` interfaces whose
-  values are `errLeaf`: `nil`, or a value with neither method of a pointer type or of `poll`'s
-  `errNetClosing`, an empty struct).
+  values are `errLeaf`: `nil`, or a value with neither method of a pointer type, of `poll`'s
+  `errNetClosing` (an empty struct) or of `textproto.ProtocolError` (a string type); or, for `Err`, the value of `poll.ErrDeadlineExceeded`, a
+  timeout's `Err`: Go's `&DeadlineExceededError{}`, a pointer without either method, but `poll`'s
+  package fact (Perennial's `Proof/internal/poll/Base.lean`) says only that the variable holds some
+  error, so the variable's points-to stands for it: `notes/perennial-changes.md`, "net's errors and
+  `errors.Is`").
 `errPlain err` is `errAny err` with this fact: what Net's own specs (not the premises or axioms that
 say `errAny` of a real library's error) return, so that a log call's argument condition holds of it.
 -/
@@ -25,6 +29,7 @@ public import Perennial.Code.fmt
 public import Code.internal.poll
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.rpc
+public import Net.GeneratedProof.net.textproto
 public import Net.GeneratedProof.models_lab.pbcodec
 public import Net.GeneratedProof.models_lab.jsoncodec
 
@@ -47,11 +52,13 @@ def NoFmtMeth (t : go.GoType) : Prop :=
   go.typeSetContains t fmt.Formatter.ty = false ∧ go.typeSetContains t fmt.GoStringer.ty = false
 
 /-- An interface value `fmt` reaches at depth ≥ 2 under `%#v` (see the file header): `nil`, or of a
-type without `Format`/`GoString` that is a pointer type (printed as an address) or `poll`'s
-`errNetClosing` (an empty struct). -/
+type without `Format`/`GoString` that is a pointer type (printed as an address), `poll`'s
+`errNetClosing` (an empty struct) or `textproto.ProtocolError` (a string type, printed as a quoted
+string: `http.ReadResponse`'s malformed header error). -/
 def errLeaf (i : GoInterface) : Prop :=
   i = interface.nil ∨ ∃ ii : GoInterfaceOk, i = interface.ok ii ∧ NoFmtMeth ii.ty ∧
-    ((∃ t, ii.ty = go.GoType.PointerType t) ∨ ii.ty = internal.poll.errNetClosing.ty)
+    ((∃ t, ii.ty = go.GoType.PointerType t) ∨ ii.ty = internal.poll.errNetClosing.ty ∨
+      ii.ty = net.textproto.ProtocolError.ty)
 
 end pure
 
@@ -71,6 +78,25 @@ theorem noFmt_opError [net.Assumptions] [fmt.Assumptions] : NoFmtMeth (go.GoType
 
 theorem noFmt_pbcodecError [pbcodec.Assumptions] [fmt.Assumptions] : NoFmtMeth (go.GoType.PointerType pbcodec.Error.ty) :=
   ⟨by go_type_set, by go_type_set⟩
+
+theorem noFmt_TCPAddr [net.Assumptions] [fmt.Assumptions] : NoFmtMeth (go.GoType.PointerType net.TCPAddr.ty) :=
+  ⟨by go_type_set, by go_type_set⟩
+
+theorem noFmt_syscallError [os.Assumptions] [fmt.Assumptions] : NoFmtMeth (go.GoType.PointerType os.SyscallError.ty) :=
+  ⟨by go_type_set, by go_type_set⟩
+
+theorem noFmt_errNetClosing [internal.poll.Assumptions] [fmt.Assumptions] : NoFmtMeth internal.poll.errNetClosing.ty :=
+  ⟨by go_type_set, by go_type_set⟩
+
+theorem noFmt_protocolError [net.textproto.Assumptions] [fmt.Assumptions] : NoFmtMeth net.textproto.ProtocolError.ty :=
+  ⟨by go_type_set, by go_type_set⟩
+
+theorem errLeaf_nil : errLeaf interface.nil := Or.inl rfl
+
+/-- A pointer of a type without `Format`/`GoString` is `errLeaf`. -/
+theorem errLeaf_ptr (t : go.GoType) (v : val) (h : NoFmtMeth (go.GoType.PointerType t)) :
+    errLeaf (interface.mkOk (go.GoType.PointerType t) v) :=
+  Or.inr ⟨⟨go.GoType.PointerType t, v⟩, rfl, h, Or.inl ⟨t, rfl⟩⟩
 
 theorem noFmt_jsoncodecError [jsoncodec.Assumptions] [fmt.Assumptions] : NoFmtMeth (go.GoType.PointerType jsoncodec.Error.ty) :=
   ⟨by go_type_set, by go_type_set⟩
@@ -93,7 +119,8 @@ def errFmt (e : GoInterfaceOk) : IProp GF :=
      (∃ (x : Loc) (v : jsoncodec.Error), ⌜e = ⟨go.GoType.PointerType jsoncodec.Error.ty, #x⟩⌝ ∗
         x ↦□ v) ∨
      (∃ (pe : Loc) (v : net.OpError), ⌜e = ⟨go.GoType.PointerType net.OpError.ty, #pe⟩⌝ ∗
-        ⌜errLeaf v.Source' ∧ errLeaf v.Addr' ∧ errLeaf v.Err'⌝ ∗ pe ↦□ v)))
+        ⌜errLeaf v.Source' ∧ errLeaf v.Addr'⌝ ∗
+        (⌜errLeaf v.Err'⌝ ∨ globalAddr internal.poll.ErrDeadlineExceeded ↦□ v.Err') ∗ pe ↦□ v)))
 
 instance errFmt_persistent (e : GoInterfaceOk) : Persistent (errFmt (GF := GF) e) := by
   unfold errFmt; infer_instance

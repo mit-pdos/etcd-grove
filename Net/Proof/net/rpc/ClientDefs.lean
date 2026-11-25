@@ -42,6 +42,7 @@ public import Net.Spec.net.rpc.clientCodec__WriteRequest
 public import Perennial.Golang.Theory.Chan.Idioms.Future
 public import Perennial.GooseLang.Receipts
 public import Perennial.Proof.sync.Base
+public import Net.Proof.models_lab.ErrFmt
 
 @[expose] public section
 
@@ -87,6 +88,36 @@ def errMsg (err : GoInterface) (msg : GoString) : IProp GF :=
 instance errMsg_persistent (err : GoInterface) (msg : GoString) :
     Persistent (errMsg (GF := GF) err msg) := by
   unfold errMsg; infer_instance
+
+/-- A `ServerError` with its `Error()` is `errPlain`: `fmt` prints a string type as a string. -/
+theorem errPlain_serverErr [fmt.Assumptions] (err : GoInterface) (msg : GoString) :
+    errMsg (GF := GF) err msg ∗ ⌜err = serverErr msg⌝ ⊢ models_lab.errPlain err := by
+  iintro ⟨#H, %He⟩
+  unfold errMsg
+  icases H with ⟨%e, %He', %Ht, #HW⟩
+  unfold models_lab.errPlain
+  isplitl []
+  · unfold models_lab.errAny
+    iexists e
+    iframe %He' %Ht
+    imodintro
+    iintro %Φ HΦ
+    iapply HW
+    inext
+    iapply HΦ
+  iexists e
+  isplitr
+  · ipureintro; exact He'
+  unfold models_lab.errFmt
+  have hty : e.ty = net.rpc.ServerError.ty := by
+    subst He
+    unfold serverErr at He'
+    cases He'
+    rfl
+  isplitr
+  · ipureintro; rw [hty]; exact models_lab.noFmt_serverError
+  ileft
+  ipureintro; exact hty
 
 /-- The package's variables the client reads, as the package initialization leaves them: `io`'s
 errors, `poll.ErrDeadlineExceeded`, `errFrame` and `ErrShutdown` (`errors.New`'s), and `debugLog`
@@ -144,7 +175,7 @@ def callPost (γ : RpcConnNames) (o : Option Nat) (Φ : List w8 → GoString →
     (Θ : List w8 → Bool → IProp GF) (D : IProp GF) (err : GoInterface) : IProp GF :=
   iprop((⌜err = interface.nil⌝ ∗ reqSent γ o ∗ ∃ rep, Θ rep true) ∨
     (∃ msg : GoString, ⌜msg ≠ [] ∧ err = serverErr msg⌝ ∗ reqSent γ o ∗ (∃ rep, Φ rep msg) ∗ D) ∨
-    (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errAny err ∗
+    (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errPlain err ∗
       (D ∨ reqSent γ o ∗ ∃ rep, Θ rep false)))
 
 /-- What `send` returns (see the file header): the encoding's `Rargs`, or the encoding premise
@@ -215,7 +246,7 @@ def sendInv (γ : ClientNames) (c cc : Loc) (cn : Nat) (W : RpcWorld GF) (a : Go
     sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) Wd ∗
     monoListAuthOwn γ.conn.reqs (1 : Qp).half L ∗ ghostVar γ.sq (1 : Qp).half n ∗
     (∃ sd : Bool, ghostVar γ.down (1 : Qp).half.half sd) ∗
-    (⌜w0 = interface.nil⌝ ∨ ⌜notServerErr w0⌝ ∗ models_lab.errAny w0) ∗
+    (⌜w0 = interface.nil⌝ ∨ ⌜notServerErr w0⌝ ∗ models_lab.errPlain w0) ∗
     ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: W.hs a ++ reqsWire L ∧
       (w0 = interface.nil → Wd = W.hs a ++ reqsWire L ∧ L.length = n)⌝)
 

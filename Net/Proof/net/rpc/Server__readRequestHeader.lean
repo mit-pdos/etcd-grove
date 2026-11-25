@@ -48,7 +48,7 @@ local macro "rrh_new" : tactic =>
     inext
     iintro %msg %-
     (try wp_auto)
-    wp_apply wp_errors_New' as %x #HN
+    wp_apply wp_errors_New' as %x ⟨-, #HN⟩
     rrh_fin))
 
 set_option hygiene false in
@@ -308,7 +308,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     · -- not registered: an error, and the deposit spent on the error answers
       subst hnull
       wp_auto
-      wp_apply wp_errors_New' as %x #HN
+      wp_apply wp_errors_New' as %x ⟨-, #HN⟩
       iapply HΦ
       iright
       isplitr

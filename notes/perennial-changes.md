@@ -1033,7 +1033,13 @@ Two related gaps of this repository's own translations, not Perennial's: the mai
 (`Code/os.toml`, names only) has no body for `(*SyscallError).Unwrap` (nor `Error`, `Timeout`), so
 `errors.Is` on a `sys` error is stuck at its `Err`; and `internal/poll`'s package fact
 (`Proof/internal/poll/PkgInit.lean`) says only that `ErrDeadlineExceeded` holds some error, not
-`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise.
+`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise. (Now Perennial's
+`Proof/internal/poll/Base.lean`, `isInit`'s `∃ e`; its initializer proof could keep the
+`*DeadlineExceededError`.) dsv-fix6 (2026-11-25) meets it again: `models_lab.errFmt`
+(`Net/Proof/models_lab/ErrFmt.lean`) needs a timeout's `*OpError` `Err` to have no `Format`/`GoString`
+and to be printed as an address, which its type would give; without it, `errFmt`'s `*OpError` case
+admits for `Err` the variable's own points-to (`globalAddr poll.ErrDeadlineExceeded ↦□ Err`) beside
+`errLeaf`. With the stronger package fact that disjunct goes.
 
 ### `copy`'s count is only `sint.nat n = min …` (2026-11-14, branch `net-tcp`)
 

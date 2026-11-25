@@ -41,7 +41,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- A decoding error's message is one of the server's own error answers (`errSrv`). -/
 theorem errSrv_decErr (err : GoInterface) : decErr (GF := GF) err ⊢ errSrv err := by
   iunfold decErr
-  iintro ⟨%x, %msg, ⟨%He, %Hm⟩, #H⟩
+  iintro ⟨%x, %msg, ⟨%He, %Hm⟩, -, #H⟩
   subst He Hm
   iapply errSrv_errorString x _ srvErrMsg_dec $$ H
 
