@@ -103,6 +103,29 @@ instance noProxyEnv_persistent : Persistent (noProxyEnv (hG := hG)) := by
 
 end env
 
+/-! ## `bootstrap`'s round tripper -/
+
+section bootrt
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [π : NetProtoGS]
+
+/-- **What `bootstrap`'s round tripper needs of the other members' peer URLs** (persistent; the round-tripper
+contract of the interim `bootstrap.wp_proof_dist`): every other peer `pid` of the cluster `γ` (not `id`) whose
+directory entry is `http://a` has its address `a` set to etcd's peer protocols of `γ` and `pid` (`httpAddrAt`), and
+this process uses no HTTP proxy (`noProxyEnv`). `bootstrap` (`bootstrap.go:72`, `rafthttp.NewRoundTripper`)
+makes the round tripper with which `isMemberBootstrapped` (`cluster_util.go:41`) sends `GET <url>/members` to each
+other member's peer URL. Exactly `NewServer.specG_dist`'s `#Hpeers ∗ #Hnoproxy`, so the S5 interim axioms'
+callers discharge it; S5's proof of net/http across machines is to replace it by the client contract it proves. -/
+def bootRTOk (γ : SrvRaft) (id : w64) (dir : w64 → List GoString) : IProp GF :=
+  iprop((□ ∀ (pid : w64) (a : GoString), ⌜pid ∈ γ.vs ∧ pid ≠ id ∧ go!"http://" ++ a ∈ dir pid⌝ -∗
+      httpAddrAt (Gg := hG.goose_globalGS) γ pid a) ∗ noProxyEnv (hG := hG))
+
+instance bootRTOk_persistent (γ : SrvRaft) (id : w64) (dir : w64 → List GoString) :
+    Persistent (bootRTOk (hG := hG) γ id dir) := by
+  unfold bootRTOk; infer_instance
+
+end bootrt
+
 /-! ## The peer handler -/
 
 section handler

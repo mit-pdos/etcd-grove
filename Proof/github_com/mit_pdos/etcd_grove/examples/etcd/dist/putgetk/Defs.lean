@@ -4,7 +4,8 @@
 
 What `Member.spec` (`Spec/.../examples/etcd/dist/putgetk/Member.lean`) is written in, beside the cluster's
 start (`etcd_dist.etcdClusterStart`, `dist/ClusterStart.lean`) and the in-process `putgetN`'s audited
-per-member premises (`etcdstart.bootPremise` at `etcd_putgetN.dirN` and `etcdstart.urlsN`):
+per-member premises (`etcdstart.bootPremise` at `etcd_putgetN.dirN` and `etcdstart.urlsN`; since 2026-11-25
+`BootGoK`, the pure facts `bootstrap`'s interim axiom asks of them):
 * `nameOf j`: member `j`'s name as `putgetk.Name(j)` computes it;
 * `cmsOf ms ids`: the start's members (`etcd_dist.ClusterMember`: peer address, client address, member id)
   from the deployment's members and their ids, in the members' order;
@@ -20,6 +21,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Base
 public import Perennial.Proof.crypto.sha1.Fips180
 public import Proof.go_etcd_io.raft.v3.BootMarshal
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootDist
 
 @[expose] public section
 
@@ -114,25 +116,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The members' named premises** (persistent): the in-process `putgetN`'s (`etcd_putgetN.premises`) at
-the configuration's members `membersOf peers clients`, their ids `idsOf peers` and `token`, at the bound
-`N` of each member's apply thread's write tokens, the peers `ps`, their contexts and the bootstrap log: per
-member, `bootstrap`'s contract (`etcdstart.bootPremise`) for its configuration (`cfgOk token name`) and URLs
-(`urlsN`) at the peer-URL directory `dirN`. (Until 2026-11-25 also `proto.Marshal`'s contract at the
-bootstrap log, `bootMarshal`, now from its trust-boundary axiom and `BootLogFacts.wire`, and the raft
-wrapper's contracts, `etcdstart.commonPremises`, now axioms: hprem-axioms' swap, on etcd-safe-main.) -/
-def premises (N : Nat) (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) : IProp GF :=
-  iprop(
-    ([∗list] m; id ∈ membersOf peers clients; idsOf peers,
-      etcdstart.bootPremise N ps (LogEntry.toEntries boot 0) ctxs
-        (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token m.Name'
-        (urlsN (membersOf peers clients) m) id))
-
-instance premises_persistent (N : Nat) (peers clients : List GoString) (ps : List w64)
-    (ctxs : List (List w8)) (boot : List LogEntry) :
-    Persistent (premises (GF := GF) N peers clients ps ctxs boot) := by
-  unfold premises; infer_instance
+/-- **What `bootstrap` computes at each member's URLs** (pure; 2026-11-25, in place of the members' named
+premises `premises`, every member's `bootstrap` contract `etcdstart.bootPremise`, now derived from the interim
+axiom `bootstrap.wp_proof_dist`): for every member `m` of the configuration with its id `id`, the id is not one
+of raft's local targets, and at every URLs the member's configuration names (`urlsN`) the peers `ps`, contexts
+`ctxs`, the directory `dirN` and `id` are Go's (`bootGo.*` at the token), the URLs and names plain, and the
+initial cluster is `etcd_safe`'s shape: one peer URL per member, **at most 64 members** (`etcd_dist.bootGoAt`).
+Facts of the configuration (SHA-1 ids, the boot log's contexts) not yet evaluated in Lean. -/
+def BootGoK (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) : Prop :=
+  ∀ (m : GMember) (id : w64), (m, id) ∈ (membersOf peers clients).zip (idsOf peers) →
+    (id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614) ∧
+    ∀ U, urlsN (membersOf peers clients) m U →
+      etcd_dist.bootGoAt ps ctxs (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token m.Name'
+        id U
 
 end defs
 
