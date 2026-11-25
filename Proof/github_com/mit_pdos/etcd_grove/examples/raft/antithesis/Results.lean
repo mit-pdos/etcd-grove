@@ -4,7 +4,7 @@ The Antithesis harness's results (`examples/raft/antithesis`, #33 S4; `notes/ant
 `#print axioms` of each: every harness function, over the checker's results (`check/Link.lean`),
 raft's and Perennial's.
 
-The top-level result is `TopLevelRobustness.lean`'s `raft_antithesis_robust` (from `Adequacy.lean`'s
+The top-level result is `TopLevelRobustness.lean`'s `raft_antithesis_robust_basic` (from `Adequacy.lean`'s
 `antithesis_adequate_of` and `wp_Main`).
 -/
 module

@@ -2,7 +2,7 @@
 
 # `raft/antithesis`: the definitions its top-level statement is written in
 
-The program the example's top-level theorem (`raft_antithesis_safe`, `notes/antithesis-s4-design.md`
+The program the example's top-level theorem (`raft_antithesis_robust_basic`, `notes/antithesis-s4-design.md`
 §1) is about, and the functors it is stated at, so that the statement
 (`Spec/.../antithesis/TopLevelRobustness.lean`) imports no proof (CLAUDE.md, "Import tiers").
 `antGF` has the same eight slots as the trace check's `tcGF`.

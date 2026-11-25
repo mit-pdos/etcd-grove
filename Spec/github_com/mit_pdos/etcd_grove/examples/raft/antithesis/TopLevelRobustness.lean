@@ -2,7 +2,9 @@
 
 # `raft/antithesis`: the top-level robustness result, stated
 
-`raft_antithesis_robust`: the Antithesis harness's top-level result, an instance of the generic robustness statement
+`raft_antithesis_robust_basic`: the Antithesis harness's top-level result for its first scope (the
+**Scope** paragraph below; the plain name is kept for the theorem over Antithesis's whole model,
+mit-pdos/etcd-grove#33), an instance of the generic robustness statement
 (`Robustness/Statement.lean`, `Robust crashing stable g threads bound`: in every execution of the
 machines that may crash and restart and of those that never crash, each a fresh Go process, of
 fewer than `bound` steps along which every machine keeps fewer than `threads` threads, no thread is
@@ -74,7 +76,7 @@ raft hands its storage (raft's `readyFits`) and the stream's numbers (`check`'s 
 package assumptions above; the axioms the proof reaches (`etc/tcb-collections/antithesis.txt`):
 protobuf-go's `proto` boundary under raft (`proto.ClonePb` and the others' `.wp_proof`) and the
 raftpb codec registrations `pbEntryC_reg`, `pbMessageC_reg`. -/
-def raft_antithesis_robust.spec : Prop :=
+def raft_antithesis_robust_basic.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
     [hLog : log.NewModel] (σ : state) (g : GlobalState),

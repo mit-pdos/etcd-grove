@@ -1,5 +1,5 @@
 # The Antithesis harness (examples/raft/antithesis, #33; notes/antithesis-s4-design.md): the top-level
-# robustness theorem `raft_antithesis_robust`
+# robustness theorem `raft_antithesis_robust_basic`
 # (Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/TopLevelRobustness.lean), the harness's linked results (Link.lean, Results.lean) and the checker's (check/Link.lean,
 # `etc/gen-link.py --antithesis`). The axioms are raft's protobuf boundary (also the harness's
 # `proto.Clone`, `proto.ClonePb`) and the raftpb codec registrations, all in etc/tcb-baseline.txt:

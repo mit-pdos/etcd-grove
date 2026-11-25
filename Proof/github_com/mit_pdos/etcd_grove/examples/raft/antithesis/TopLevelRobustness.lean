@@ -2,7 +2,7 @@
 
 # `raft/antithesis`: the top-level robustness result, proved
 
-`raft_antithesis_robust.spec`, stated in
+`raft_antithesis_robust_basic.spec`, stated in
 `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/TopLevelRobustness.lean`, from
 `antithesis_adequate_of` (`Adequacy.lean`) and the linked `Main` (`Link.lean`'s `AntHarness.wp_Main`,
 at a storage model `Main.spec` does not mention: `memStorageModel`).
@@ -34,9 +34,9 @@ attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp tr
 
 variable [go_gctx : GoGlobalContext]
 
-/-- `raft_antithesis_robust.spec`
+/-- `raft_antithesis_robust_basic.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/TopLevelRobustness.lean`). -/
-theorem raft_antithesis_robust : raft_antithesis_robust.spec := by
+theorem raft_antithesis_robust_basic : raft_antithesis_robust_basic.spec := by
   intro lctx sem package_sem hLog σ g
   have wp_Main : antMainSpec := by
     intro hG _ _
