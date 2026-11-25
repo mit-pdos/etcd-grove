@@ -42,7 +42,7 @@ translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessa
              "protoHTTP1", "protoHTTP2", "protoUnencryptedHTTP2", "protoHTTP3", "maxInt64",
              "bufferBeforeChunkingSize", "debugServerConnections", "DefaultMaxHeaderBytes", "runHooks",
              "StateNew", "StateActive", "StateIdle", "StateHijacked", "StateClosed", "use121",
-             "parsePattern", "pattern.*", "pathUnescape", "compareSegments", "combineRelationships",
+             "parsePattern", "pattern.*", "pathUnescape", "compareSegments", "combineRelationships", "inverseRelationship",
              "equivalent", "moreGeneral", "moreSpecific", "disjoint", "overlaps", "routingNode.*",
              "firstSegment", "routingIndex.*", "mapping.*", "maxSlice", "exactMatch",
              "urlFromEscaped", "serveMux121.*", "appendSorted"]
