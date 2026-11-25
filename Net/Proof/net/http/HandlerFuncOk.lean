@@ -32,7 +32,17 @@ theorem handlerOk_func (wp_SH : HandlerFunc.ServeHTTP.spec (GF := GF) (hG := hG)
       WP (App (App (Val #f) (Val #w)) (Val #r))
         {{ v, ⌜v = #() ∨ v.isPanic = true⌝ ∗ serveDone P R τ I S v }}) ⊢
     handlerOk (interface.mkOk net.http.HandlerFunc.ty #f) P pfx := by
-  sorry
+  iintro #H
+  iunfold handlerOk
+  iexists ⟨net.http.HandlerFunc.ty, #f⟩
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %w %r %R %τ %rd %I %S %E %HS Hpre
+  iapply (wp_SH f w r (fun v => serveDone P R τ I S v))
+  iapply H
+  · ipureintro; exact HS
+  · iexact Hpre
 
 end lemma
 
