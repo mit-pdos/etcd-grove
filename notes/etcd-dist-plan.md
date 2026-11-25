@@ -2636,13 +2636,17 @@ applied (`c9ad333c08`), re-reviewed closed:
   `errors.AsTarget`, `Assumptions` instances, the members' `watchMemberFacts`), from the entries or the top level.
 - **F4, open, deferred**: `Serve_dist`'s docstring (on M1's line, so not touched here) must name the watch
   streams; **the first commit that makes a result rest on these axioms carries the review's F4 text**, or F4
-  reopens.
+  reopens. **Obligation for N10** (whoever wires the watch, compact and cache workloads onto these axioms): that
+  commit adds F4's text to `Serve_dist`'s docstring (the coordinator, 2026-11-25).
 
 **Builds and checks.** The three modules build on the VM (4655 jobs, green; only the `π` unused-variable
 linter warning the KV specs also have). `etc/tier-check.py --check` ok (`WatchClientDist` defs, `WatchDist`
-spec and proof tiers; no new violation); `etc/bounds-check.py --check` ok (390, baseline 390). The axioms are
-reached by no result (nothing imports `Proof/.../dist/WatchDist.lean`), so `etc/tcb-baseline.txt` and the
-`etcd-dist` collection do not move; no collection line is added until a workload's proof reaches them.
+spec and proof tiers; no new violation); `etc/bounds-check.py --check` ok (390, baseline 390). Full VM build at `641765e3dd`
+green (28962 jobs); the docstring commit's three modules rebuilt green (4653 jobs). Through `vmlake env`:
+`etc/tcb-report.py --check` matches `etc/tcb-baseline.txt` (364 axioms, 0 sorries) and `--collection
+etc/tcb-collections/etcd-dist.txt --check` matches (0 axioms, 0 sorries). As expected: the axioms are reached by
+no result (nothing imports `Proof/.../dist/WatchDist.lean`), so neither baseline moves; no collection line is
+added until a workload's proof reaches them.
 
 **Approval.** Declared on the branch per the coordinator's route decision (§22.6); as the ledger entry says
 (trust-boundary specs), the user's approval in the etcd_safe packet is still needed before they land.
