@@ -1,6 +1,6 @@
 /-
 `db.init()` (U11f of `notes/bbolt-proof-plan.md`; the fork's crash-safe `init`,
-`nonissues/bbolt-init-not-crash-safe.md`): on an empty file, the four pages `Open/InitImage.initImg`
+`issues/bbolt-init-not-crash-safe.md`): on an empty file, the four pages `Open/InitImage.initImg`
 written in two `pwrite`s (the freelist and root pages after zeroed meta slots, synced; then the
 two meta pages, synced). Its spec is internal (`init` is called only by `Open`): an empty file,
 unmapped; on success the file holds `initImg`, on an error (`fmt` formats it) its contents are

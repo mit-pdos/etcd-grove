@@ -187,25 +187,38 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The free names of an empty directory, one claim each** (see the file header). -/
-theorem carveFree (R : Roots) (d : GoString) (j : Ino) (E : CoPset) (hE : ↑osShN ⊆ E) :
+/-- An entry of a restriction is an entry of the claim: same index, same operation. -/
+theorem ents_of_restrict {h : NamesH} {j : Ino} {N : NameSet} {xe : Nat × LogEntry × Ents}
+    (hx : xe ∈ (h.restrict j N).ents) :
+    ∃ xe' ∈ h.ents, xe'.1 = xe.1 ∧ xe'.2.1 = xe.2.1 ∧ ∃ b, N.Mem b ∧ xe'.2.1.op.Writes j b := by
+  classical
+  unfold NamesH.restrict at hx
+  obtain ⟨xe', hxe, he⟩ := List.mem_map.1 hx
+  obtain ⟨hxe, hd⟩ := List.mem_filter.1 hxe
+  refine ⟨xe', hxe, by rw [← he], by rw [← he], of_decide_eq_true hd⟩
+
+/-- **The free names of an empty directory, one claim each, free in every crash** (see the file
+header; D6-T6, 2026-11-25: durable, given a committed bound `n` above every entry of the claim on the
+names of `l`). -/
+theorem carveFree (R : Roots) (d : GoString) (j : Ino) (E : CoPset) (hE : ↑osShN ⊆ E) (n : Nat) :
     ∀ (l X : List GoString) (q qc : Qp) (h : NamesH), l.Nodup → (∀ b ∈ l, b ∉ X) →
     (∀ b ∈ l, NameOk b ∧ PathFits (child d b)) → (∀ b, h.cur !! b = none) →
-    ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R d (DFrac.own q) j -∗
+    (∀ xe ∈ h.ents, ∀ b ∈ l, xe.2.1.op.Writes j b → xe.1 < n) →
+    ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osCommitLb n -∗ osPathS R d (DFrac.own q) j -∗
       osCallPerm (callKey R d) qc -∗ osNames j (.except X) (DFrac.own 1) h ={E}=∗
-      ([∗list] b ∈ l, backend.fileFreeF (child d b)) ∗
+      ([∗list] b ∈ l, backend.fileFreeDurF (child d b)) ∗
       ∃ (q' qc' : Qp) (h' : NamesH), osPathS R d (DFrac.own q') j ∗ osCallPerm (callKey R d) qc' ∗
         osNames j (.except (X ++ l)) (DFrac.own 1) h'
-  | [], X, q, qc, h, _, _, _, _ => by
-    iintro #Hinv #Hsh Hp Hc Hn
+  | [], X, q, qc, h, _, _, _, _, _ => by
+    iintro #Hinv #Hsh #Hlb Hp Hc Hn
     imodintro
     isplitl []
     · iapply BigSepL.bigSepL_nil.2; iempintro
     iexists q, qc, h
     rw [List.append_nil]
     iframe Hp Hc Hn
-  | b :: l, X, q, qc, h, hl, hX, hok, hcur => by
-    iintro #Hinv #Hsh Hp Hc Hn
+  | b :: l, X, q, qc, h, hl, hX, hok, hcur, hn => by
+    iintro #Hinv #Hsh #Hlb Hp Hc Hn
     have hbX : b ∉ X := hX b (List.mem_cons_self ..)
     imod osNames_split R j (.except X) [b] h hE $$ Hsh Hn with ⟨Hb, Hr⟩
     have hb : (NameSet.except X).inter [b] = .only [b] := by
@@ -213,44 +226,76 @@ theorem carveFree (R : Roots) (d : GoString) (j : Ino) (E : CoPset) (hE : ↑osS
       simp [hbX]
     have hd : (NameSet.except X).diff [b] = .except (X ++ [b]) := rfl
     rw [hb, hd]
+    imod osNames_histCoh R j (.only [b]) (DFrac.own 1) _ hE $$ Hsh Hb with ⟨Hb, %hcoh⟩
     rw [← Qp.half_add_half q, ← Qp.half_add_half qc]
     icases (osPathS_frac R d q.half q.half j).1 $$ Hp with ⟨Hp1, Hp2⟩
     icases (osCallPerm_split (callKey R d) qc.half qc.half).1 $$ Hc with ⟨Hc1, Hc2⟩
     have hl' := List.nodup_cons.1 hl
-    imod carveFree R d j E hE l (X ++ [b]) q.half qc.half (h.restrict j (.except (X ++ [b]))) hl'.2
+    imod carveFree R d j E hE n l (X ++ [b]) q.half qc.half (h.restrict j (.except (X ++ [b]))) hl'.2
       (fun c hc hm => by
         rcases List.mem_append.1 hm with h' | h'
         · exact hX c (List.mem_cons_of_mem _ hc) h'
         · rw [List.mem_singleton] at h'; subst h'; exact hl'.1 hc)
       (fun c hc => hok c (List.mem_cons_of_mem _ hc))
-      (fun c => restrictN_none _ _ hcur c) $$ Hinv Hsh Hp2 Hc2 Hr with ⟨Hl, Hrest⟩
+      (fun c => restrictN_none _ _ hcur c)
+      (fun xe hxe c hc hw => by
+        obtain ⟨xe', hxe', h1, h2, -⟩ := ents_of_restrict hxe
+        rw [← h1]; exact hn xe' hxe' c (List.mem_cons_of_mem _ hc) (h2 ▸ hw))
+      $$ Hinv Hsh Hlb Hp2 Hc2 Hr with ⟨Hl, Hrest⟩
     imodintro
     rw [show X ++ b :: l = X ++ [b] ++ l by simp]
     iframe Hrest
     iapply BigSepL.bigSepL_cons.2
     iframe Hl
-    unfold backend.fileFreeF
+    unfold backend.fileFreeDurF backend.nameCrash
     iexists R, d, b, DFrac.own q.half, j, qc.half, h.restrict j (.only [b])
     iframe Hinv Hsh Hp1 Hc1 Hb
+    isplitr
+    · ipureintro
+      exact ⟨rfl, (hok b (List.mem_cons_self ..)).1, restrictN_none _ _ hcur b,
+        (hok b (List.mem_cons_self ..)).2⟩
+    iexists n
+    iframe Hlb
     ipureintro
-    exact ⟨rfl, (hok b (List.mem_cons_self ..)).1, restrictN_none _ _ hcur b,
-      (hok b (List.mem_cons_self ..)).2⟩
+    have hc := backend.crashLeaves_of_coh hcoh (b := b) (by simp [NameSet.Mem]) (n := n)
+      (fun xe hxe => by
+        obtain ⟨xe', hxe', h1, h2, c, hc, hw⟩ := ents_of_restrict hxe
+        simp only [NameSet.Mem, List.mem_singleton] at hc
+        subst hc
+        rw [← h1]; exact hn xe' hxe' c (List.mem_cons_self ..) hw)
+    exact backend.crashLeaves_mono hc (fun v hv => by rw [hv]; exact restrictN_none _ _ hcur b)
+
+/-- `.touch`, `TouchDirAll`'s probe, is no name of the snapshot directory's. -/
+theorem touch_not_snapName : ∀ b ∈ snap.snapDirNames, b ≠ go!".touch" := by
+  intro b hb
+  unfold snap.snapDirNames at hb
+  rcases List.mem_cons.1 hb with rfl | hb
+  · decide
+  · obtain ⟨i, -, rfl⟩ := List.mem_map.1 hb
+    intro h
+    have := congrArg List.length h
+    rw [snapDBName_length] at this
+    simp at this
 
 /-- **The new snapshot directory's claims** (see the file header): the backend file's free name and
-every index's snapshot file's, from the whole of the empty directory `config.snapDirOf dd`. -/
-theorem snapDir_carve (R : Roots) (dd : GoString) (J : Ino) (q qc : Qp) (h : NamesH)
-    (hd : DirFits dd) (hcur : ∀ b, h.cur !! b = none) :
-    ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R (config.snapDirOf dd) (DFrac.own q) J -∗
+every index's snapshot file's, free in every crash (D6-T6: `TouchDirAll` committed every entry of the new
+directory's claim but `.touch`'s, below `n`), from the whole of the empty directory `config.snapDirOf dd`. -/
+theorem snapDir_carve (R : Roots) (dd : GoString) (J : Ino) (q qc : Qp) (h : NamesH) (n : Nat)
+    (hd : DirFits dd) (hcur : ∀ b, h.cur !! b = none)
+    (hn : ∀ xe ∈ h.ents, ∀ b, b ≠ go!".touch" → xe.2.1.op.Writes J b → xe.1 < n) :
+    ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osCommitLb n -∗
+      osPathS R (config.snapDirOf dd) (DFrac.own q) J -∗
       osCallPerm (callKey R (config.snapDirOf dd)) qc -∗ osNames J (.except []) (DFrac.own 1) h ={⊤}=∗
       backend.fileFreeF (config.backendPathOf dd) ∗
       (∃ F : GMap w64 Unit, ⌜∀ i, F !! i ≠ none⌝ ∗
-        [∗map] i ↦ _x ∈ F, backend.fileFreeF (snap.snapDBPath (config.snapDirOf dd) i)) ∗
+        [∗map] i ↦ _x ∈ F, backend.fileFreeDurF (snap.snapDBPath (config.snapDirOf dd) i)) ∗
       ∃ (q' qc' : Qp) (h' : NamesH), osPathS R (config.snapDirOf dd) (DFrac.own q') J ∗
         osCallPerm (callKey R (config.snapDirOf dd)) qc' ∗
         osNames J (.except snap.snapDirNames) (DFrac.own 1) h' := by
-  iintro #Hinv #Hsh Hp Hc Hn
-  imod carveFree R (config.snapDirOf dd) J ⊤ CoPset.subseteq_top snap.snapDirNames [] q qc h
-    snapNames_nodup (fun _ _ h => by simp at h) (snapNames_ok hd) hcur $$ Hinv Hsh Hp Hc Hn
+  iintro #Hinv #Hsh #Hlb Hp Hc Hn
+  imod carveFree R (config.snapDirOf dd) J ⊤ CoPset.subseteq_top n snap.snapDirNames [] q qc h
+    snapNames_nodup (fun _ _ h => by simp at h) (snapNames_ok hd) hcur
+    (fun xe hxe b hb hw => hn xe hxe b (touch_not_snapName b hb) hw) $$ Hinv Hsh Hlb Hp Hc Hn
     with ⟨Hl, Hrest⟩
   rw [List.nil_append]
   iframe Hrest
@@ -258,10 +303,11 @@ theorem snapDir_carve (R : Roots) (dd : GoString) (J : Ino) (q qc : Qp) (h : Nam
   icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hdb, Hl⟩
   rw [BigSepL.bigSepL_map]
   simp only [snapDBPath_child, backendPathOf_child]
-  icases sepL_toMap (fun i => backend.fileFreeF (GF := GF) (child (config.snapDirOf dd) (snap.snapDBName i)))
+  icases sepL_toMap (fun i => backend.fileFreeDurF (GF := GF) (child (config.snapDirOf dd) (snap.snapDBName i)))
     snap.allW64 allW64_nodup $$ Hl with ⟨%F, %hF, HF⟩
   imodintro
-  iframe Hdb
+  isplitl [Hdb]
+  · iapply backend.fileFreeDurF_fileFreeF $$ Hdb
   iexists F
   iframe HF
   ipureintro

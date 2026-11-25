@@ -23,14 +23,14 @@ variable [sem : go.Semantics]
 
 /-- **A snapshot handler of the address `a`** at `h` (persistent): read-only for good, its logger
 set, its `Raft` the receiver's (`netRaftOk`, borrowing `Rs` per call), the member owning `a` its
-local id, its snapshotter's directory `sd` and its ghost map `γd` (`snapDirInv`), and `addRemoteFromRequest` of its
+local id, its snapshotter's directory `sd` and its ghost map `γd` (`snapDirInvH`), and `addRemoteFromRequest` of its
 transport returning on a request from another member (as `pipeHandlerOk`). -/
 def snapHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
     IProp GF :=
   iprop(∃ (hv : rafthttp.snapshotHandler) (sd : GoString) (Rm : w64 → IProp GF), h ↦□ hv ∗
     zapLoggerOk hv.lg' ∗ ⌜Rh.owner a = hv.localID'⌝ ∗
     □ netRaftOk Rh.γn hv.localID' γd Rs hv.r' ∗
-    snap.isSnapshotter hv.snapshotter' sd ∗ inv snapDirN (snapDirInv sd γd Rh.γn.N.img Rm) ∗
+    snap.isSnapshotter hv.snapshotter' sd ∗ snapDirInvH sd γd Rh.γn.N.img Rm ∗
     □ (∀ (r : Loc) (R : http.HReq) (rd : GoInterface),
       {{ http.reqAt r R rd ∗ ⌜fromOkAt Rh hv.localID' R.hdr⌝ }}
         (App (App (Val (@! rafthttp.addRemoteFromRequest)) (Val #hv.tr')) (Val #r))

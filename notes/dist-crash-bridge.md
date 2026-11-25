@@ -14,10 +14,10 @@ never crash, over the network and Linux file extensions together.
   them into Perennial's `nodeWp`/`nodeStart`.
 - `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/NetFsCrashLinked.lean`: the minimal
   instance, `echo_netfs_mixed_robust` (echo's server on a crashing machine, its client on a stable one,
-  both over `kvnetExts`); `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
+  both over `kvraftExts`); `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
 
-Nothing in `GooseLang/Ext/NetFs/` (#22's) changed: the bridge uses its `kvnetExts`, `kvnetGF` and
-the start/crash projections (`kvnet_net_globalStart`, `kvnet_fs_localStart`, `kvnet_fs_crashStart`)
+Nothing in `GooseLang/Ext/NetFs/` (#22's) changed: the bridge uses its `kvraftExts`, `kvraftGF` and
+the start/crash projections (`kvraft_net_globalStart`, `kvraft_fs_localStart`, `kvraft_fs_crashStart`)
 as they are.
 
 ## The statement
@@ -37,7 +37,7 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     NetFsDeploy addrs crashing stable g → Robust crashing stable g threads bound
 ```
 
-(at the extensions `kvnetExts`, any `GF` with `GooseGpreS GF`). `CrashBootWp e P`: for every local
+(at the extensions `kvraftExts`, any `GF` with `GooseGpreS GF`). `CrashBootWp e P`: for every local
 ghost state `L` of the statement's Go context, `P L ∗ threadTok ={⊤}=∗ WP e {v = #()} ∗ (∀ L' V',
 crashed L -∗ osInv L' -∗ crashRest True L L' [] false V' -∗ ownGoState L' ∅ ={⊤}=∗ P L')`.
 `StableBootWp e σ P`: `P ∗ fsStartRes L σ ∗ ownGoState ∅ ∗ threadTok ={⊤}=∗ WP e {v = #()}`.
@@ -55,15 +55,15 @@ crashed L -∗ osInv L' -∗ crashRest True L L' [] false V' -∗ ownGoState L' 
   positionally (Perennial branch `local-names` adds a field to it). Its users must `letI` the
   `HeapGS` again after `dsimp` (the example does).
 - **The file system in its legacy mode** (`fs_crash_adequacy`'s resources: `osTree` at the start,
-  `crashRest` after a crash) at the plain semantics `fs_semantics` (no `Q`/`SQ` premises): kvnet's
-  `kvnetExts`. The shared mode needs a Perennial change (below). A premise on crashes or steps
-  (`fsSemWith Q`, `fsSemWithS SQ Q`) would need a `kvnetExts` variant with that semantics; none has
+  `crashRest` after a crash) at the plain semantics `fs_semantics` (no `Q`/`SQ` premises): kvraft's
+  `kvraftExts`. The shared mode needs a Perennial change (below). A premise on crashes or steps
+  (`fsSemWith Q`, `fsSemWithS SQ Q`) would need a `kvraftExts` variant with that semantics; none has
   been needed yet.
 - **Step and thread bounds as `robust_of_distBootRB`**: the adequacy theorem at `n + 1` and `n + 2`
   for an execution of `n < bound` steps; `Hstart` gets `receiptBound GF ≤ bound`.
 - **Placement**: in the `Net` part (`Net/Statement/`), beside `DistBridge.lean`, because it uses
-  `DistDeploy` and `addrUnset` and the main tree cannot import the part. KvNet can copy it with
-  `etc/copy-part.py` if kvnet's statement uses it.
+  `DistDeploy` and `addrUnset` and the main tree cannot import the part. KvRaft can copy it with
+  `etc/copy-part.py` if kvraft's statement uses it.
 
 ## The Perennial gap (shared mode)
 
@@ -94,7 +94,7 @@ Verdict: sound, not vacuous, the right strength; documentation fixes (report:
   extensions' `initLocal`/`initGlobal` are `True` at this pin. **Open:** `Robustness/Statement.lean`'s
   header (lines 26-30) claims `Robust`'s premises already give "no listener, no connection, files as on
   disk", which is false at this pin; to be corrected with the owner of `Robustness/` (#22). The proper fix is
-  kvnet-robust-goal.md items 3-4 (the extensions' `initLocal`), after which `NetFsDeploy` is the address
+  kvraft-robust-goal.md items 3-4 (the extensions' `initLocal`), after which `NetFsDeploy` is the address
   facts only.
 - F2 (fixed in the docstring): each machine's roots are its own.
 - F3 (reworded): the echo example proves the implication only. Satisfiability: `NetLocal.init ⟨∅⟩`,
@@ -102,3 +102,49 @@ Verdict: sound, not vacuous, the right strength; documentation fixes (report:
   witness is not written.
 - F4 (note): `DistDeploy`'s "no listener" conjunct is unused by every bridge; drop it with F1's plan.
 - F5 (note): `FsInit` asks a stable machine's files to be durable, which no step reads.
+
+## D4c: distributed crash adequacy as `Robust`, over any bundle (2026-11-24, branch `etcd-safe-d4c/2026-11-24`)
+
+`robust_of_netFsBoot{,_addrs}` is hard-wired to `kvnetExts`. Its generalization, an untrusted corollary of `goose_dist_mixed_crash_adequacy` (renamed from "bridge" on the owner's direction, 2026-11-24) (no new
+trusted definition: it uses `Robust`, `DistBootWpSL`, Perennial's `goose_dist_mixed_crash_adequacy`):
+
+- `Net/Statement/DistCrashAdequacy.lean`, two layers.
+  1. `robust_of_dist_crash_adequacy`: any `[GooseExts] [GooseSemantics] [GooseInterp] [GooseCrashInterp]` with
+     `HasExt netExt`. Crashing machines: `CrashBootWpE lo bound e P` (the raw `extsCrashStart L L'` after a
+     crash), first generation from the raw `extsLocalStart`; stable machines: `DistBootWpSL`. The
+     initial-state conditions come from `Robust`'s premises through a hypothesis `HI`; bounds as
+     `robust_of_distBootIL` (`max (n + 1) lo` receipts, a receipt floor `lo`, the thread bound one more,
+     given to every obligation). `hasExt_localStart` (the local analog of `hasExt_globalStart`).
+  2. `robust_of_dist_crash_adequacy_fs Q X HC`: the bundle also has `fsExt` at any semantics with `FsSemOk`; `HC`
+     splits the crash resources into `Fs.osCrashStart Q` and the other extensions' `X L L'`.
+     `CrashBootWpG Q X` gets `osInv L'`, `crashRest Q … [] false V'` and `X L L'`; the first generation
+     `fsStartResG` (from `FsInit`, which `HI` gives for each crashing machine: `fsSemWithS` has no
+     `initLocal` until D4a). `StableBootWpG` → `DistBootWpSL` given `FsInit`.
+- `Net/Statement/DistCrashAdequacyKvnet.lean`: `robust_of_netFsBoot_addrs_of_adequacy`, `robust_of_netFsBoot_addrs`'s
+  exact statement re-derived from layer 2 (`Q := True`, `X := True`, `kvnetInitCompat`).
+- `Proof/.../etcdstart/NetExtsCrash.lean`: `etcdNetExtsCrashInterp C` (`C` any `ExtCrashInterp` of the
+  issue record at `idIssue_semantics`/`idIssue_interp`; the file extension's `fs_crash_interpS etcdSQ True`;
+  the net extension's), `etcdNet_crashStart_split` (`X := etcdIdCrashRest C`, `C.crashStart` of the
+  issue record's local ghost states), `etcdNetExts_crashInitP` (from `FsInit`) and the corollary
+  `robust_of_dist_crash_adequacy_etcdNet C`. `idIssue_crash_interp_keep` (`crashStart L L' := ⌜L' = L⌝`) shows today's
+  semantics already has one; D4b's incarnation-keyed record supplies the one the proofs use, of the same
+  shape (any `@ExtCrashInterp idIssueExt S idIssue_interp'`; if D4b changes the semantics or interp
+  instance, `etcdNetExtsCrashInterp`'s type follows them).
+
+Not done: the shared-mode generation start (the Perennial gap above) is still missing; a crashing
+member's proof (D6) is the first user.
+
+Unified: the crash case for every bundle (kvnet's `[net, fs]` re-derived, etcd's bundle an instance).
+Not unified: the no-crash case (`robust_of_distBootIL`/`robust_of_distBootRB`): Perennial's mixed theorem
+needs a `GooseCrashInterp` of the whole bundle even with no crashing machine, and a bundle without one
+(the issue record on `lean`) can only use `goose_dist_adequacy`. Unifying needs Perennial's mixed theorem
+to take crash interpretations only when `crashing ≠ []` (a Perennial change, not made).
+
+## The crash skeleton (2026-11-24, branch `etcd-safe-crashskel/2026-11-24`)
+
+`etcd_safe_of_boot : EtcdBootC → EtcdBootCBad → etcd_robust.spec` (`Proof/.../etcd/dist/TopLevelRobustness.lean`),
+by `robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp` (D4b merged). `EtcdBootC` chooses the members'
+generation preconditions `Pc i` inside the start update (D6's `memberPc C cfg id` names the cluster names `C`
+the update allocates, so it cannot be a parameter outside it). Open for D6: `etcdFsSem`'s crash premise is
+`True`, while `memberGen_crash.law` expects `Q → W1` for `walInv_crash`; either D6's law works at `Q := True`
+or the statement's file semantics gets a crash premise (a statement change).

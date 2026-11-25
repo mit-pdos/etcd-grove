@@ -41129,7 +41129,7 @@ echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
   plan).
 - **The kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, a neutral
   module for the export) is data about `g` and the machines' initial local states, in the style of
-  kvnet's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
+  kvraft's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
   connection, machine `i` on `hosts[i]` (its net-extension local state), no listener. Generic over
   the extensions (`[HasExt netExt]`), so a kit with files states the same premise. `Robust`'s own
   premise (`Fresh`: the Go context, no package initialized, one thread) is not repeated. No
@@ -41351,7 +41351,7 @@ and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is 
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 
-**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+**Context.** kvraft's top-level theorem (`notes/kvraft-robust-goal.md`, branch
 `worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
 and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
 (`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
@@ -41501,11 +41501,11 @@ for `Listen`, and the recovery wand made at boot needs it too; Perennial-Lean ha
 Pending connections are keyed by address, not by listener or incarnation (`wire.addrInv`,
 `Proto.addrInvP`), so a restarted node's `Accept` takes the deposits made for a crashed one (D7).
 
-**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvnetExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
+**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvraftExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
 semantics, interpretation and crash interpretation are Perennial's `ExtTuple` of each extension's
-own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projections of the start and
-crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
-(`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
+own. It also has: both `HasExt` instances, `kvraftGF`/`kvraftGpreS`, the projections of the start and
+crash resources onto each extension's, and `kvraft_dist_crash_adequacy`
+(`goose_dist_crash_adequacy` at `kvraftGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
 ## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
 
@@ -41724,7 +41724,7 @@ uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progres
 
 ## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
 
-`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvraft-proof-plan.md`
 decision A. A replica killed at any instruction must leave its id restartable.
 
 **Ghost state.**
@@ -41775,7 +41775,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
 
-**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+**Decision.** kvraft's decision B, option 3 of `notes/raft-cluster-global.md`:
 - The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
   `StartNode`/`RestartNode` return.
 - The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
@@ -41797,7 +41797,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 **Why.**
 - `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
-  kvnet's checking client on another machine.
+  kvraft's checking client on another machine.
 - A global node table cannot keep the heap facts its freshness needs: they are each generation's.
   Keyed by address, it also breaks when a restarted heap reuses one.
 
@@ -41846,7 +41846,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
 
-**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+**Need.** kvraft's write has two durability points, so after a crash in its window the restarted node may find
 the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
 
 **Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
@@ -41910,10 +41910,10 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 - The obligations quantify over the local ghost state `L` (the WP at `⟨G, L⟩`), not over a `HeapGS` with an
   equation on its global part as `KitBootWp` does; a proof substitutes `lctx` by `L`'s context and never
   destructures `GooseLocalGS` positionally (Perennial's `local-names` adds a field).
-- The file system in its legacy mode at the plain semantics (`kvnetExts`): the shared mode needs each
+- The file system in its legacy mode at the plain semantics (`kvraftExts`): the shared mode needs each
   generation's start to reach the extension's local interpretation, which Perennial's distributed theorem
   does not give (`notes/perennial-changes.md`, 2026-11-22). Recorded, not worked around: D4's call.
-- The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
+- The minimal instance is echo (server crashing, client stable, over `kvraftExts`), since echo's proofs are
   over any extensions with the net extension: only the boot programs (a program's syntax is over its
   extension list) and `wp_boot` are restated.
 
@@ -42551,6 +42551,86 @@ full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange
 Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
 members' axioms are unchanged in statement and now speak of fewer calls.
 
+
+## `putget_safe` at `Robust`'s thread bound: `putgetThreads` and `2 ^ 48` steps (2026-11-24 · the owner's rule for top-level statements · branch `dist-putget-interim/2026-11-24`)
+
+**Rule** (the owner): a top-level statement uses `Robust`'s separate thread bound, the thread count a named constant,
+the step bound as high as the proof allows (dsverify's `Robust [] (system σ) g threads (2 ^ 63)`).
+
+**Decision.** `putget_safe.spec` is `Robust [] (system …) g (threads := putgetThreads) (bound := 2 ^ 48)`,
+`putgetThreads := 2 ^ 28` (`TopLevelDefs.lean`), through a new proved bridge `Net.robust_of_distBootIT`
+(`DistBridgeExts.lean`, over `goose_dist_adequacy_below`: `n + 1` receipts, `threads` threads, obligation
+`DistBootWpST bound T`). Why `2 ^ 48` and not `2 ^ 63`: the receipts grow with the steps, and the member's start
+(`etcdstart.wp_StartServer1`) takes at most `2 ^ 48` receipts (the server's request ids), as the single-process
+`etcd_all`. Raised with it, each only to what the single-process proofs support: `Member.spec`'s receipt class and
+budget (`N = 2 ^ 48 - 1`), `Hprem` to `n + 1 ≤ 2 ^ 48` (`etcd_all`'s), the interim axiom `Serve_dist`'s
+`ReceiptBoundLe` to `2 ^ 48` (`etcdstart.Serve.spec` has none). Details: `notes/putget-dist-plan.md` §12, "The bounds".
+
+**Alternatives.** Keeping the receipt floor (`DistBootWpSL`'s `lo`): unneeded once `threadBound = threads ≥ srvLevelK`.
+Raising the member's receipt ceiling past `2 ^ 48`: a change to the server's request-id proofs, not this statement's.
+
+**Then (same day, the robustness review):** the step bound named `putgetSteps`; `DistDeploy` out of the statement
+(its `init` conjuncts are `Robust`'s, the bridge takes the addresses' `Nodup`/`addrOk` of the list it starts);
+the programs check their addresses in Go (`AddrOk`, distinctness) so their validity left the statement, leaving
+only their lengths as Go strings'; `ETCD_VERIFY` stays a premise (`HEnv`, `HEnvTok`): a Go check at start does not
+constrain later `os.Getenv` reads without a model of the process environment, a trusted change for the owner
+(`notes/putget-dist-plan.md` §12, "The robustness review's items").
+
+
+## Three function-contract premises become trust-boundary axioms (2026-11-24 · the coordinator, the owner's rule "axioms over premises" · branch `hprem-axioms/2026-11-24`)
+
+The closed theorems that start etcd members took three Iris premises that are Hoare triples of Go
+functions (`~/coordinator-notes/plans/premises-to-axioms.md` §2.1, items B, C and D). Each is now an
+`axiom <fn>.wp_proof : <fn>.spec` at its function, taken as a callee by the proof that calls it, and
+the statements lose the premise:
+
+- `bootMarshal ps ctxs bootLog` (raft's `ApiVocab.lean`: `proto.Marshal` of the `k`-th boot conf
+  change returns the `k`-th boot entry's bytes) → `proto.MarshalBootConfChange.wp_proof`
+  (`Spec/google_golang_org/protobuf/proto/MarshalBootConfChange.lean`): `proto.Marshal` of the
+  `*pb.ConfChange` `Bootstrap` builds (`bootConfChange`, `Type` `AddNode`) returns exactly
+  `ccBootWire m.nodeId m.context` (`Proof/google_golang_org/protobuf/proto/BootWire.lean`; since integration round 3, 2026-11-25, `lean`'s same-named definition in `Proof/go_etcd_io/raft/v3/CCModel.lean`, over the checked encoder `cc1EncRaw`), with
+  `isPkgInit proto`. `bootMarshal` stays raft's vocabulary (its `Bootstrap` spec takes it), and is
+  now a theorem, `bootMarshal_of_spec` (`Proof/go_etcd_io/raft/v3/BootMarshal.lean`), from the axiom
+  and a pure fact of the bootstrap log, `bootWire` (each entry's data is `ccBootWire` of its peer and
+  context). Since `ccDecodeV1` is opaque, nothing gives `bootWire` from `BootLog`: it is a new field
+  `wire` of `BootCore` (so of every example's `BootFacts`), and for the trace check a new pure
+  hypothesis `tracecheck.BootWireFacts boot`. That is the one statement change beyond dropping a
+  premise: a pure, Go-checkable fact replaces an Iris one (the coordinator's brief allowed adapting
+  `BootFacts`). The bytes: `examples/premisefix/confchange`, `TestBootWireVectors`, against
+  protobuf-go v1.36.12 (the examples module's pin).
+- `rnLoggerZapOk` → `NewRaftLoggerZap.wp_proof` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewRaftLoggerZap.lean`),
+  the premise's triple unchanged (`lg ≠ nil`; interim until zap's `WithOptions`/`Sugar` specs).
+- `rnTimeoutDetectorOk` → `contention.NewTimeoutDetector.wp_proof`
+  (`Spec/go_etcd_io/etcd/pkg/v3/contention/NewTimeoutDetector.lean`), the premise's triple unchanged
+  (the detector meets `isRNTimeoutDetector`; interim until the package is translated with bodies).
+
+`newRaftNode.wp_proof` takes the two latter as callees (the server's `Link`, entries `NewRaftLoggerZap`,
+`contention_NewTimeoutDetector`), so `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`,
+`NewServer.spec`/`specR`, `NodeStartSpec` and the etcdstart/cluster3/example start specs no longer
+take them; `etcdstart.commonPremises` and `etcd_putget3.commonPremises`, empty, are gone. The example
+`Main`/`Run`/`startCluster` proofs that held `bootMarshal` in their premises take
+`proto.MarshalBootConfChange.spec` as their last callee (passed by the generated `Link`s, `=` terms,
+and by hand in the `MainLinked`s) and derive `bootMarshal` from `Hbf.wire`.
+
+Not done here: `bootstrapContract` (plan item A). Claim #34 already states `bootstrap.spec` and proves
+`bootstrap.wp_proof` over its callees (`Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean`), and
+`etcdstart/BootBridge.lean` derives `bootPremise` from it, but only under pure facts the examples do not
+have (`bootGo.ps U token = ps`, `bootGo.ctxs … = ctxs`, `bootGo.dir … = dir`, the member's id, `memBoot
+bootLog = bootGo.memMap …`, the last through the opaque `membership.ccMemberOf`). Using it would add
+those premises (or needs #34's computation of them), so a competing axiom was not written.
+
+Also not done here (the coordinator's scope extension of the same day): `Hctx`/`Hcec` (`ContextReadErrs`,
+`ContextErrsClient`) stay premises: they are entailments from `isPkgInit context`, which is not sealed,
+so as axioms they could be used to prove `False` (`read/Init.lean`'s docstring); plan item F proves them
+(claim #26). `log.NewModel` and `DialWithBalancerBody` stay instance binders: they are facts about the
+semantics instance the statements quantify over (`FuncUnfold`/`MethodUnfold`), so a Lean axiom stating
+them for every instance would be false; their home is the TrustedCode layout (goose `trusted`, the
+generated `Assumptions`), a translator-configuration change on branches of their own (the client project's goose toml for
+`dialWithBalancer`; Perennial's `log` configuration for `log.New`).
+`bootstrapContract` (item A): #34's `bootstrap.wp_proof` is not linked yet (`bootstrapCluster`,
+`bootstrapStorage`, `bootstrapRaft`, `bootstrappedCluster.Finalize` unproved, `bootFs.touchMember.law`
+open), so it stays a premise until #34 links it; then `etcdstart/BootBridge.lean` discharges it with
+pure facts of `bootstrap`'s computed results (`bootGo.*`), folded into `BootFacts`.
 ## `ETCD_VERIFY` as an environment premise over its value (2026-11-25 · the owner's decision · branch `etcd-verify-env/2026-11-25`)
 
 Supersedes in part the B4 half of "Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off" (2026-11-08)
@@ -42605,7 +42685,6 @@ environment can make it true.
 `bootstrap`'s: it would thread through `batchTx.Lock` and every caller of the backend; the pure
 assertion inside `isBackend` carries it with no signature change.
 
-
 ## `ContextReadErrs` was unsatisfiable: a local `MapKeys` for `togRPCError`, the classes theorems, a gate on Iris premises (2026-11-25 · soundness fix · branch `hctx-vacuity/2026-11-25`)
 
 **What.** The top-level premise `Hctx : ∀ hG, ContextReadErrs` stated of `context.DeadlineExceeded`'s
@@ -42633,3 +42712,7 @@ with the list). The Go fact is true; the Lean statement was wrong.
   its introduction; the list only shrinks). It flags `Hctx`/`Hcec` on the tree before the fix. Not
   done: a Lean-level check that a named witness really proves the premise at an initialized world (the
   name is a pointer for review, not a proof obligation the script verifies).
+
+## kvraft's UDP version is a program of package kvraft, not a package (2026-11-25 · the coordinator and Upamanyu · branch `kvraft-rename/2026-11-25`)
+
+The UDP version (`cmd/kvraft-udp`, `kvraft_udp_robust`) is a program variant of package kvraft (`examples/raft/kvraft`, renamed from kvnet with its part `KvRaft/`), not a package of its own, because its UDP transport shares package kvraft's replica, storage and client code and their proofs (a separate package would need kvraft's internals exported).

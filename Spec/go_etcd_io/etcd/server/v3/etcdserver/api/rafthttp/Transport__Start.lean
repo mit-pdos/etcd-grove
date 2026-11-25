@@ -55,7 +55,7 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
         trURLsOk (netRh γn) tv.ID' uvs ∧ transport.tlsEmpty tv.TLSInfo'⌝ ∗
       tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
       snap.isSnapshotter tv.Snapshotter' sd ∗
-      inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
+      snapDirInvH sd γd γn.N.img Rm ∗ netHttpOk γn tv.ID' ∗
       v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
       v2stats.isServerStats tv.ServerStats' ∗
       raftPool R }}

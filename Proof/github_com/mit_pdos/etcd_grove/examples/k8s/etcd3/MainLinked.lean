@@ -10,6 +10,7 @@ stage E); `MainPartition`'s the same, with the cluster's `Partitioner`. `Results
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition
@@ -55,7 +56,7 @@ theorem wp_startCluster [_root_.Perennial.net.FieldAssumptions]
     (EtcdGrove.k8s_etcd3.bridgeAddr.wp_proof etcdstart.strconv.wp_FormatUint)
     EtcdGrove.k8s_etcd3.holdToken.wp_proof mvcc.api.mvccApi_names_nonempty_law_holds
     mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 /-- **The driver's `MainCluster` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic

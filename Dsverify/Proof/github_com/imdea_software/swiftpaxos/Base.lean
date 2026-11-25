@@ -42,8 +42,8 @@ public import Proof.encoding.json.Base
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.github_com.google.uuid.Init
 public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
+public import Net.Proof.net.rpc.PkgInit
+public import Net.Proof.net.http.PkgInit
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Base

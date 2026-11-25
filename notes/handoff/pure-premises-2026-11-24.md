@@ -202,3 +202,37 @@ Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and
 - Pitfall: vmlake's gc deleted this sync dir while idle; the next sync retried and the build restarted
   from scratch (~1 h with the cache).
 - Not done (as asked): P7 putget (question to the coordinator), P8 kvnet.
+
+## Landing prep of the approved packets (2026-11-25, handoff pickup; stopped at the usage limit)
+Upamanyu approved P2, P3, P4/P5 and P6 (#8 comment 7144979282). P2 is superseded by `raft-retire`
+(landed on lean, ade596ff07): not merged, not built, not to land. The other three merged origin/lean up to
+`c28e266cb4` (raft-retire + math-rand-isinit). Generated files were rechecked at Perennial `fce59af75`
+(goose of each packet's projects, gen-init, gen-specs-pkginit, gen-link, gen-raft-tla, copy-part).
+Changes made while merging:
+- lean's new `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` binders added to the packets'
+  intro lines and to P4/P5's `wp_MainChecked`/`*_MainChecked`. The approved statement deltas are unchanged.
+- premise-witness baseline lines (`pending`) for `craq_remote_robust` and `gryff_remote_robust`, which are
+  new on lean.
+- the witnesses of the retired kv/kvreconf/kvdurable/kvdurablenoax statements deleted: they imported
+  deleted statements.
+Locally, `etc/gen-link.py` `--bbolt`/`--kvnet`/`--wal-tester`/`--walfs` differ from the checked-in Links.
+On the VM they match, so this is a local environment artifact.
+
+| Packet | Branch @ head | Built on lean c28e266cb4 | Axioms |
+|---|---|---|---|
+| P6 | `premise-leaseexpiryN-range/2026-11-24` @ `898dde871d` | yes: TopLevelRobustness, Results, PremiseSat, FsStart, 20 witnesses; 12208 jobs, exit 0, no sorry | 218 + 3 std = `leaseexpiryN-single-process` collection |
+| P4/P5 | `premise-etcd-params/2026-11-24` @ `fe32d1af34` | yes: cluster3.Link, etcd/all and k8s/all TopLevelRobustness/Results, 5 leaf Results; 12932 jobs, exit 0, no sorry | etcd 252 + 3 = `etcd-all-single-process`; k8s 270 + 3 = `k8s-all-single-process` |
+| P3 | `premise-mvcc-mainat/2026-11-24` @ this commit | NOT confirmed: the build was still running at the stop. The previous head `f137d73e8f` (lean 73d38b3f05) built: 6931 jobs, exit 0, no sorry | (on 73d38b3f05) mvccrand_robust, mvccfull_robust, mvccfull_safe: 46 each, all in the `mvccfull` collection; helpers: Lean's 3 standard axioms only |
+
+Land-queue lines:
+- `land-queue: premise-leaseexpiryN-range/2026-11-24 898dde871d`
+- `land-queue: premise-etcd-params/2026-11-24 fe32d1af34`
+- P3: queue this branch's head only after a VM build exits 0 on it. The modules: Proof.os.LstatAnyS,
+  Proof.runtime.RootClaim, Proof.runtime.StartFiles, mvccrand/mvccfull MainAt, TopLevelRobustness,
+  TopLevelWitness and Results, and SpecPlan PkgInit of mvccrand/mvccfull. P3 still touches `mvccrand`:
+  #49's deletion is not on lean.
+Each packet carries the premise-witness gate (`premise-witness/2026-11-24`, untrusted, not on lean). The
+first packet to land brings it in.
+
+Update (2026-11-25, after the limit reset): P6 and P4/P5 landed (lean 17b17466f8). P3 merged lean e1ab967ea2; its MainAt specs take ETCD_VERIFY's offness as the pure `EtcdVerifyOff`, as lean's Main.spec now does (8b424fdae9). VM build of the P3 modules: 6978 jobs, exit 0, no sorry. #print axioms: mvccrand_robust, mvccfull_robust, mvccfull_safe 44 each (lean's ETCD_VERIFY change removed 2), all in etc/tcb-collections/mvccfull.txt; helper lemmas std only. Statement delta vs lean: only Hrfit and Habs dropped. mvccrand's deletion (#49) is still not on lean.
+Then merged lean 2fa4c36fd7 (premise-witness-fs; handoff note conflict resolved by keeping both sections); P3 modules rebuilt: 6978 jobs, exit 0, no sorry; axioms unchanged (44 each, within the mvccfull collection; witnesses and helpers std only).

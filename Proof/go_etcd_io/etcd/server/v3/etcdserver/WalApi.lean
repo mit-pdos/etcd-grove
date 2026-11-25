@@ -12,7 +12,8 @@ NOT YET IN USE: R2b-1's next stage puts `isWalStorage` in place of today's `isRN
 (`InvRaftNode.lean`) in `NewStorage`'s contract (`rnNewStorageOk`), and `walOpened` in `bootstrap`'s
 (`bootOk`), with the durability invariant the raft loop and the apply thread keep
 (`InvWal.lean`), as the user approved (2026-11-03): (1) `NewStorage`'s contract gives this one;
-(2) `bootstrap`'s first start takes `dataDirFresh` (`wal.bootRes`) and gives `walOpened … walFresh` and
+(2) `bootstrap`'s first start takes the member's fresh areas (`wal.bootRes`; `dataDirFresh` until
+2026-11-24) and gives `walOpened … walFresh` and
 `walPurgeRight`, the restart takes `walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope:
 `ForceNewCluster` off); (3) `srvFiles` is `∃ cid, walFiles` of the WAL directory (since wal-link P2 the dedicated `srvWalDirOf dd`) `∗` the
 backend file; (4) `storage.Release` takes `walBaseLb`; (5) `purgeFile` takes and returns
@@ -123,7 +124,7 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
       ⌜m.Index' = md.Index'⌝ -∗
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
@@ -183,7 +184,7 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
       ⌜m.Index' = md.Index'⌝ -∗
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
@@ -446,7 +447,7 @@ theorem walRelease_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInte
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
@@ -525,35 +526,38 @@ the hub's text. No `wal.bootCfg` (the WAL places no condition on the configurati
 and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
 
 /-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL and the backend**: the
-configuration's data directory fresh, a first start's (no backend file; from program start,
-`startRights`), its dedicated WAL directory the member's (`srvWalDirOf`, under the member's `fsExt`
-root `walAreaOf`), and that WAL area fresh (`walAreaFresh`: what `wal.Create` takes of it, no WAL in
-the directory; allocated at adequacy, `lib/etcdstart/WalAreas.lean`). (Sweep repairs 1, W3/W4,
-2026-11-07: until then the WAL directory's `walDirFresh`, which said nothing of the backend file a
-first start opens; wal-link P2, 2026-11-19: until then no dedicated WAL directory, the WAL in the data
-directory, `dataDirFresh` alone for it.) (2026-11-19, approved by the user via etcd-grove-03,
-`notes/datadir-relative-unsat.md`) And the data directory a root of its own, empty, wholly the caller's
-(`dataAreaFresh`, in `memberAreasFresh` with the WAL area): what the backend's and the snapshots' file claims
-`bootOk` gives are made of. -/
+configuration's dedicated WAL directory the member's (`srvWalDirOf`, under the member's `fsExt` root
+`walAreaOf`), and that WAL area fresh (`walAreaFresh`: what `wal.Create` takes of it, no WAL in the
+directory; allocated at adequacy, `lib/etcdstart/WalAreas.lean`), with the data directory a root of its
+own, empty, wholly the caller's (`dataAreaFresh`, in `memberAreasFresh` with the WAL area; 2026-11-19,
+approved by the user via etcd-grove-03, `notes/datadir-relative-unsat.md`): what the backend's and the
+snapshots' file claims `bootOk` gives are made of. (Sweep repairs 1, W3/W4, 2026-11-07: until then the
+WAL directory's `walDirFresh`, which said nothing of the backend file a first start opens; wal-link P2,
+2026-11-19: until then no dedicated WAL directory, the WAL in the data directory.) (2026-11-24, approved
+for `putget_safe`, `notes/putget-dist-plan.md` §12: a deletion of trust) It no longer takes
+the axiomatized token `dataDirFresh cfg.DataDir'` (the data directory absent or empty, so no backend
+file at `config.backendPathOf`): `dataAreaFresh cfg.DataDir'` already says it, as a claim on every name
+of the directory, none of which names an entry (`dataAreaFresh`'s definition, `storage/WalAreaFresh.lean`:
+the caller's whole names claim on `d`'s root with `∀ b, h.cur !! b = none`, which the shared mode's
+invariant keeps coherent with the tree), held whole by the caller, so no other thread can create one;
+the token added nothing a faithful `bootstrap` needs. -/
 @[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
-    memberAreasFresh cfg.DataDir')
+  iprop(⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗ memberAreasFresh cfg.DataDir')
 
 /-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and whose dedicated WAL
-directory is `d`'s takes `d`'s token and the fresh WAL area. -/
+directory is `d`'s takes the fresh areas of `d`. -/
 theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d : GoString)
     (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = srvWalDirOf d) :
-    dataDirFresh (GF := GF) d ∗ memberAreasFresh d ⊢ wal.bootRes cfg := by
-  unfold wal.bootRes; subst hd; iintro ⟨H, Ha⟩; iframe H Ha; ipureintro; exact hw
+    memberAreasFresh (GF := GF) d ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; iintro Ha; iframe Ha; ipureintro; exact hw
 
-/-- **`wal.bootRes` is the data directory's token, the dedicated WAL directory's equation and the
-member's fresh areas** (claim #34, 2026-11-23): the slot's body as a law, so that `bootstrap`'s
+/-- **`wal.bootRes` is the dedicated WAL directory's equation and the member's fresh areas** (since
+2026-11-24 no data directory's token, `dataDirFresh`) (claim #34, 2026-11-23): the slot's body as a law, so that `bootstrap`'s
 file-system laws (`BootFsLaws.lean`), which split the data area, need no `import all` of this sealed
 module. It says what the slot is made of; the WAL's sealed records (`WalRecs`) are not involved. -/
 theorem wal.bootRes_iff (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) :
     wal.bootRes (GF := GF) cfg ⊣⊢
-      dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
-        memberAreasFresh cfg.DataDir' := by
+      ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗ memberAreasFresh cfg.DataDir' := by
   unfold wal.bootRes; exact .rfl
 
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the

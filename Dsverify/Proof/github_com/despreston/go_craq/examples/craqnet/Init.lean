@@ -12,8 +12,8 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
@@ -22,7 +22,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.node.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.store.kv.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.netrpc.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.net.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
@@ -48,8 +48,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.despreston.go_craq.examples.craqnet.Assumptions]
 
 namespace github_com.despreston.go_craq.examples.craqnet

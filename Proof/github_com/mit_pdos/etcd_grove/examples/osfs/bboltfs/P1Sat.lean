@@ -21,42 +21,8 @@ namespace osfs_bboltfs
 namespace P1Sat
 
 open Perennial.Fs Perennial.Fs.Tests
-/-- Each file as of its last sync. -/
-noncomputable def durFile (f : OsFile) : OsFile :=
-  OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo
-
-open Classical in
-/-- The files of `durCrash`. -/
-noncomputable def durFiles (st st' : OsState) : GMap Ino OsFile :=
-  GMap.fmap durFile (GMap.filter (fun i _ => decide (Named st'.fs.treeDur i)) st.fs.files)
-
-/-- `st'` with every named file replaced by its pre-crash file as of its last sync. -/
-noncomputable def durCrash (st st' : OsState) : OsState :=
-  ⟨⟨st'.fs.roots, st'.fs.treeDur, st'.fs.metaLog, st'.fs.committed, durFiles st st',
-    st'.fs.nextIno, st'.fs.stamp⟩, st'.proc⟩
-
-open Classical in
-theorem durCrash_files (st st' : OsState) (i : Ino) :
-    (durCrash st st').fs.files !! i =
-      if Named st'.fs.treeDur i then (st.fs.files !! i).map durFile else none := by
-  show ((st.fs.files.lookup i).filter _).map durFile = _
-  by_cases h : Named st'.fs.treeDur i
-  · rw [if_pos h]; cases st.fs.files.lookup i <;> simp [h] <;> rfl
-  · rw [if_neg h]; cases st.fs.files.lookup i <;> simp [h]
-
-theorem durCrash_machine {st st' : OsState} (hok : CacheOk st) (hc : MachineCrash st st') :
-    MachineCrash st (durCrash st st') := by
-  obtain ⟨hp, hr, hl, hcm, hn, hs, hS, hfiles⟩ := hc
-  refine ⟨hp, hr, hl, hcm, hn, hs, hS, fun i => ⟨fun hN => ?_, fun hN => ?_⟩⟩
-  · obtain ⟨f, f', hf, -, -⟩ := (hfiles i).1 hN
-    have hcc := hok.1 i f hf
-    refine ⟨f, durFile f, hf, (sectorWhole_durable st i f
-      (Nat.le_trans hcc.2.1 hcc.2.2.1) (Nat.le_trans hcc.2.1 (Nat.le_trans hcc.2.2.1 hcc.2.2.2))
-      hcc.1.2).1, ?_⟩
-    simp only [durCrash] at hN
-    rw [durCrash_files, if_pos hN, hf]; rfl
-  · simp only [durCrash] at hN
-    rw [durCrash_files, if_neg hN]
+-- `durFile`, `durCrash`, `durCrash_machine`: `GooseLang/Ext/Fs/Tests.lean` (shared with
+-- `backend.boltCrashWhole_exists`).
 
 theorem durCrash_P1 [GooseExts] (st st' : OsState) : P1 st (durCrash st st') := by
   intro i f f' hf hf' j _ hsz _

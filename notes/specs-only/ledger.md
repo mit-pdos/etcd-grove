@@ -81,6 +81,71 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   commit hands back the same `walIncQ`, so the incarnation is kept); the tester's `purgeRound.spec` passes its
   handle's `i`. No trusted text.
 
+## 2026-11-24: node.ApplyConfChange, node.Advance -- `skippedIn` is false after a restart at `min |A₀| σ.commit` and after a kept snapshot in the replay window; D (`confAt`) instead of the plan's RestartNode (A)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`, `node.ApplyConfChange.spec` (premise
+  `skippedIn γ l v.applied k`), and `Spec/go_etcd_io/raft/v3/node__Advance.lean`, `node.Advance.spec`
+  (no-snapshot arm, `skippedIn γ st.delivered v.applied st.delivered.length`); the plan's
+  `SpecPlan/Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`/`node__Advance.lean` (`confSkipped`, the
+  same premise) and `SpecPlan/Spec/go_etcd_io/raft/v3/RestartNode.lean` (round 1: the configuration point
+  `a` unbounded by the stored commit). `RestartNode.spec` (`Spec/`) is unchanged.
+- **Defect.** Too strong (a premise etcd cannot meet). After a power loss the server restarts raft with
+  the backend's configuration at `|A₀|`, which may be past the WAL's commit; `RestartNode.spec` needs
+  `a ≤ σ.commit`, and lowering the point to `a' = min |A₀| σ.commit` makes the next conf entry
+  `k > |A₀|` need `skippedIn γ l a' k`, false: the replayed conf entries of `(a', |A₀|]` were decided
+  `.apply` before the crash, and etcd skips them on replay (no `ApplyConfChange`). The same for a kept
+  snapshot at `k ≤ ci` installed in the window (`node.Advance`'s snapshot arm puts the view at `k`).
+- **Evidence.** `notes/raft-restart-confpoint.md` (section "The problem, restated"); etcd
+  `server.go:2063-2065` (`ApplyConfChange` only when `shouldApplyV3`), `cluster.go:307-309`;
+  `notes/etcd-dist-d6.md`, T4 round 4, step 3.
+- **Proposed change.** (Option D of the note.) `node.ApplyConfChange.spec`: `skippedIn γ l v.applied k`
+  becomes `confAt γ k v.membership`. `node.Advance.spec`, no-snapshot arm: the premise becomes
+  `confAt γ (max v.applied st.delivered.length) v.membership`, and the post's view moves to
+  `⟨max v.applied st.delivered.length, v.membership⟩` (a view left below the delivered log would let a
+  later `ApplyConfChange` take raft's configuration below its applied index,
+  `issues/raft-advance-before-applyconfchange.md`). Both premises are weaker than the old ones
+  (`confAt_skipped` derives them), so every client changes by one lemma application per call (plus the
+  view index after `Advance`). Raft internally: `RInv_cidxJump`, `undecFree` replaced by the fold fact,
+  `runCfg` simplified. The server restarts at `a'` with `confAt γ a' m` from `srv_confAt_simple`; its
+  `srvCfgOk`/`srvCCPre` drop their `NoConfChangeIn` conjuncts.
+
+  **Divergence from the plan's `RestartNode` (option A), kept on purpose.** The plan lets `RestartNode`
+  take any committed point `a ≤ |l|` (its `confAt γ a m` alone). D keeps the real `RestartNode.spec` at
+  `a ≤ σ.commit` instead, because (1) the etcd proof's membership is static (`srv_confAt_simple`, the
+  server's D3), so the configuration at `a'` and at `|A₀|` is the same and D covers both instances;
+  (2) A's argument (a node restarted with a configuration past its log cannot win before holding the
+  committed log through the configuration's last conf entry: the term case `T ≤ t_w` of the note's
+  section 1, `lc_far_newer` with the candidate's log short of `n`) is unchecked, and the proof needs new
+  leader-completeness reasoning (a per-voter durable term lower bound from acknowledgements) over
+  `RInv`, `dynEnv`, the winners table, `Refinement.lean`: several thousand lines of affected proof.
+  (3) D's premises stay valid under A (they are weaker than the skips), so A can come later, when the
+  server's membership changes are verified, without undoing D. The plan's `node.ApplyConfChange`/
+  `node.Advance` should take the same `confAt` premises (and `Advance`'s moved view) whether or not A
+  lands; the plan's `RestartNode` keeps A as raft's open obligation (`req/go_etcd_io_raft_v3.md`, item 8).
+- **Decision.** Accepted for `Spec/` (option D, coordinator, 2026-11-24; branch
+  `raft-restart-confpoint/2026-11-24`). The plan's `node.*` premises: pending (to apply with the plan's
+  next raft round); the plan's `RestartNode` (A): unchanged, open.
+## 2026-11-25: bootCfgOk -- `bootstrap`'s contracts covered `UnsafeNoFsync = true`, false of Go
+
+- **Spec.** `bootCfgOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), the configuration
+  condition of the trusted `bootstrapContract` (inside the examples' `bootPremise`) and
+  `bootstrapRestartContract` (`InvRestart.lean`), and a premise of `NewServer.spec`, `NewServerR.spec`,
+  `bootstrap.spec`, `bootstrapBackend.spec`, `bootstrapRaft.spec`, `bootstrapRaftFromCluster.spec`. No
+  SpecPlan counterpart changes (the SpecPlan's `bootstrap.lean` names `bootCfgOk` only).
+- **Defect.** The trusted contract promised `bootOk` (an open WAL whose `Sync`s fsync, `wal.bootOk`) at every
+  configuration, including `UnsafeNoFsync = true`, where `bootstrapNewWAL` calls `SetUnsafeNoFsync` (the entry
+  "bootstrapStorage -- without `cfg.UnsafeNoFsync = false`" below; `notes/STATUS.md`, stage 4's section). No
+  theorem was known wrong: every example sets it `false`.
+- **Proposed change.** A sixth conjunct `cfg.UnsafeNoFsync' = false` of `bootCfgOk` (narrows both trusted
+  contracts to where they are true); `etcdstart.bootCfgOk_of` takes `hnf : cfg.UnsafeNoFsync' = false`, and its
+  five call sites (`newServerMode` twice, `StartMemberAuth`, `auth/startServer`, `auth3/startMember`) pass `rfl`
+  (the configuration literal's zero value). `etcdstart.bootstrapContract_of_spec` reads `bootstrap.spec`'s
+  premise `cfg.UnsafeNoFsync' = false` off the contract's precondition, so `bootPremise_of_spec` loses its
+  hypothesis `hnf`. No top-level statement's text changes; its premise `bootPremise` asks less.
+- **Decision.** Accepted (coordinator-E on #34, 7144914007, 2026-11-25); applied on
+  `bootstrap-final/2026-11-25` (claim #34's final stage).
+
+## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvraft-udp, `udpNet.receive`)
 ## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
 
 - **Spec.** `Spec/errors/IsStatusErr.lean`, `errors.IsStatusErr.spec` (the axiom `errors.IsStatusErr.wp_proof`).
@@ -119,20 +184,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 ## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvudp, `udpNet.receive`)
 
 - **Spec.** `Net/Spec/net/UDPConn__ReadFromUDP.lean`, `UDPConn.ReadFromUDP.spec` (its part copy
-  `KvNet/Spec/net/UDPConn__ReadFromUDP.lean`, `etc/copy-part.py`). A trust-boundary spec, with no SpecPlan
+  `KvRaft/Spec/net/UDPConn__ReadFromUDP.lean`, `etc/copy-part.py`). A trust-boundary spec, with no SpecPlan
   counterpart.
 - **Defect.** Unprovable, and it leaves every caller stuck: the post said `RET (PairV #n (PairV #addr #err))`,
   but goose's 3-tuples are left-nested (`Perennial/GooseLang/Notation.lean`, `leftNest`). The model
   `UDPConn.ReadFromUDP.impl` (`Net/TrustedCode/net.lean`) returns `((n, addr), err)`, and the caller's
   translation reads `Fst (Fst __p)`, `Snd (Fst __p)`, `Snd __p`.
-- **Evidence.** `udpNet.receive`'s proof (`KvNet/Proof/.../kvnet/udpNet__receive.lean`): after `wp_apply` of
+- **Evidence.** `udpNet.receive`'s proof (`KvRaft/Proof/.../kvraft/udpNet__receive.lean`): after `wp_apply` of
   the spec, the code was stuck at `(#k).Fst`. Branch `udp-net/2026-11-24` (`7399eb8204`) had found and fixed it
   already, and it proves the corrected spec (`Net/Proof/net/UDPConn__ReadFromUDP.lean`). No proof of the
   mis-nested statement existed.
 - **Proposed change.** `RET (PairV (PairV #n #addr) #err)`. The failure case also gets `addr = null`, as in
   `7399eb8204`'s statement (the model returns `#(null : Loc)`), which is a stronger post. The file is taken whole
   from `7399eb8204`, so the two branches' versions are the same.
-- **Decision.** Accepted (the kvudp coordinator, 2026-11-24); applied on `kvudp/2026-11-24`.
+- **Decision.** Accepted (the kvraft-udp coordinator, 2026-11-24); applied on `kvudp/2026-11-24`.
 ## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`
@@ -249,6 +314,51 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   at an arbitrary `id` (it is false there anyway, plan §0).
 - **Decision.** Applied (branch `bootstrap-stage4/2026-11-25`).
 
+## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
+  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
+- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
+  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
+- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
+  naming an entry, coherent with the tree through the shared mode's invariant.
+- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
+- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+
+## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+
+- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
+  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
+  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
+- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
+  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
+- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
+  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
+- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
+  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
+- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
+  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+
+## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
+
+- **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`
+  (`etcd_dist.Serve_dist.spec`), `ClientPutDist.lean` (`etcd_dist.Client_Put_dist.spec`), `ClientGetDist.lean`
+  (`etcd_dist.Client_Get_dist.spec`), over the axiomatized address fact `etcd_dist.etcdAddrRaw`/`etcdAddr_set`
+  (`Proof/.../etcd/dist/S2Interim.lean`); and the changed client-construction specs `clientv3.New.spec`,
+  `newClient.spec`, `Client.dialWithBalancer.spec`, `Client.dial.spec` (the configuration's dial options may be
+  `grpc.WithNoProxy()`'s, `noProxyOptsAt`; `New`/`newClient` give the client's `cfg` field), new
+  `grpc.WithNoProxy.spec` (proved), `etcdstart.NewClients.spec`/`NewClient.spec` (post: `clientNoProxy cl`).
+- **Defect.** `putget_safe` needs cross-machine gRPC (phase 7 S2, #24, unfinished): the in-process specs' `Invoke`
+  registration (`kvRegsAt`) is one heap's. And the review of the first design (`s2-interim/review.md`, F1) found
+  that without `WithNoProxy` a client's calls follow `HTTPS_PROXY`, so the cross-machine client axioms were false.
+- **Evidence.** `notes/putget-dist-plan.md` §12; `TestProxyRogue` / `TestWithNoProxyFix` (`review-go/proxyrogue/`).
+- **Proposed change.** The five interim axioms A1-A5 (`notes/putget-dist-plan.md` §12), A4/A5 restricted to clients
+  with no proxy dial path (`clientNoProxy`, from `etcdstart.NewClient`'s post), `etcdstart.NewClients` passing
+  `grpc.WithNoProxy()`. Retired by #24's switch (`etcdAddrAt` defined from `grpcAddrAt`) and S2's proofs (`Serve`,
+  the pub-form put `client_Put_pub`): the statements then become theorems unchanged.
+- **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
+  `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
+  `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
 ## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,
@@ -911,10 +1021,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Applied (prove-ps2-succ, 2026-11-22): `Succ` translated and proved over Perennial's `math.Sqrt`
   (mit-pdos/perennial#675, in review: `sqrt`, compiled to the square-root instruction, trusted as an arbitrary
   float), the axiom retired once the pin includes #675.
-## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
+## 2026-11-22: kvraft's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
 
-- **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
-  `RunNode.lean` (the same `S`); kvnet's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
+- **Spec.** `KvRaft/Spec/.../kvraft/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
+  `RunNode.lean` (the same `S`); kvraft's `Defs.lean` (`kdFileInvK γ id n γd`, `kdWriter` over `γ.wr id`).
 - **Defect.** (1) Not provable: `StartNode`'s start resource is one proposition for every `cfg`, but
   what the start needs names the configuration: the file of `cfg.Dir`/`cfg.ID`, raft's vacancy of
   `cfg.ID`, the bootstrap voters `1..cfg.Opts.Voters` (`kdCluster γ vs`), every other address's protocol
@@ -924,7 +1034,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   generation's start, carrying a crashed side the crash obligation can take (`inv (… ∨ crashed ∗ tok)`),
   so it cannot name the node; the writer's ghost variable `γ.wr id` is the store's, so the dead
   generation's `dmu` and the next generation's writer would share it.
-- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
+- **Evidence.** `notes/kvraft-part.md`, "`StartNode` and the crash frame"; Perennial's crash adequacy
   (`DistAdequacy.lean:555`: the obligation `crashed -∗ extsCrashStart L L' ={⊤}=∗ P i L'` is fixed at the
   generation's start).
 - **Proposed change.** (1) `S : w64 → GoString → Options → GMap w64 GoString → IProp GF` (id, dir, options,
@@ -935,16 +1045,16 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   ((raftState S ∗ kdFileState γ id ph.x S s pb) ∨ crashed ∗ token ph.tk)`, the pending batch's record
   holding its node existentially (`∃ n, nodeArm n γ x ∗ readyEnter n … ∗ nodeRunning n q ∗ …`), the share
   `q` coming back to the writer through a saved proposition (`pb` gains its name); `kdWriter ph …`.
-  Internal to kvnet's part (no client outside it); the top level allocates the file invariant at each
+  Internal to kvraft's part (no client outside it); the top level allocates the file invariant at each
   generation's boot.
-- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvnet's own seam, decision C's plan).
+- **Decision.** Accepted (the kvnet-proof session, 2026-11-22; kvraft's own seam, decision C's plan).
 
 ## 2026-11-22: raft's `RestartNode` -- its client update cannot open a crash invariant (no crash token), so a client cannot keep `raftState` where a crash obligation can take it
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/RestartNode.lean`, `RestartNode.spec`: the update
   `AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ ∖ ↑N, ∅ <{ raftState γ cv.ID' S, COMM Q S }>`
-  (and the RaftNoAx/KvNet copies).
-- **Defect.** Too weak for a client whose process really crashes (kvnet, decision C). Perennial's crash
+  (and the RaftNoAx/KvRaft copies).
+- **Defect.** Too weak for a client whose process really crashes (kvraft, decision C). Perennial's crash
   adequacy takes each generation's crash obligation at the generation's start
   (`∀ L', crashed -∗ extsCrashStart … ={⊤}=∗ P i L'`), so the next generation's exclusive start resources
   must sit, from that start on, in invariants the obligation can empty: `inv (body ∨ crashed ∗ tok)`. Raft's
@@ -954,14 +1064,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   update fired inside `RestartNode`: the client has no token there, and on the crashed side it would have to
   produce `raftState` (taken) and `StorageHolds S σ` of its own `σ`. Borrowing `raftState` out of the
   invariant before the call loses it to a crash during `RestartNode`.
-- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame (2026-11-22)". The same problem was
-  met and solved for durable's sync update (`durWriteSync`, `notes/kvnet-part.md`, "`persist`", item 1).
+- **Evidence.** `notes/kvraft-part.md`, "`StartNode` and the crash frame (2026-11-22)". The same problem was
+  met and solved for durable's sync update (`durWriteSync`, `notes/kvraft-part.md`, "`persist`", item 1).
 - **Proposed change.** `RestartNode`'s update given and returning the token, as `durWriteSync`:
   `notCrashed -∗ AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ ∖ ↑N, ∅
   <{ raftState γ cv.ID' S, COMM notCrashed ∗ Q S }>` (under `[CrashGS GF]`, as `nodeCrash`). Raft's proof fires
   it before any step of `RestartNode`, where `wp_ncfupd` gives the token. Existing clients (kvdurable,
   kvreconf, the server's start paths) pass a plain update through a lemma like `durWriteSync_of_au` (the token
-  unused). Raft's change, not kvnet's.
+  unused). Raft's change, not kvraft's.
 - **Decision.** Accepted as proposed (the kvnet-proof session, 2026-11-22, on the coordinator's brief), after
   checking the shape:
   - *Sound, nothing trusted moves.* The token is the state interpretation's (`HeapGS`'s
@@ -975,9 +1085,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
     client nothing more and needs an atomic-update rule Perennial lacks.
   - *Clients.* `restartAu_nc` (`InvNodeRule.lean`) makes a plain update one; kv, kvreconf (two), kvdurable
     (and its RaftNoAx copy) and the server's `newRaftNode` wrap theirs before the call. RaftWitness keeps its
-    own (older) spec, untouched; RaftTla/RaftNoAx/KvNet copies regenerated.
+    own (older) spec, untouched; RaftTla/RaftNoAx/KvRaft copies regenerated.
   - SpecPlan's `RestartNode` (and its `newRaft`/`NewRawNode` updates) not changed: its crash story is the
-    vacancy's `raftState_crash` law, to be reconciled when kvnet's form is ported back (open).
+    vacancy's `raftState_crash` law, to be reconciled when kvraft's form is ported back (open).
 
 ## 2026-11-21: raft's node API -- `isCluster` holds one machine's heap (the node table), and the node predicates agree on a node's names only through it
 
@@ -989,7 +1099,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `n ↦□` for every node, so it can be neither allocated in a distributed adequacy theorem's `Hstart`
   (only `[GooseGlobalGS]`) nor held by another machine. Keyed by `Loc`, the table also breaks across
   generations: a new heap can reuse a dead node's address.
-- **Evidence.** `notes/kvnet-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
+- **Evidence.** `notes/kvraft-proof-plan.md` gap 2 and decision B; `notes/raft-cluster-global.md` (a),
   (b).
 - **Proposed change.** An opaque node handle `nh : NodeH` (location and names; `nh.loc` for code
   values):
@@ -1018,18 +1128,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 ## 2026-11-21: `kvdurable.getEntry` -- reads only persistent bytes, so a caller holding owned bytes cannot use it
 
 - **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/getEntry.lean`, `getEntry.spec`
-  (and its copies, RaftNoAx's kvdurablenoax and KvNet's kvnet, `etc/copy-part.py`). No SpecPlan counterpart.
+  (and its copies, RaftNoAx's kvdurablenoax and KvRaft's kvraft, `etc/copy-part.py`). No SpecPlan counterpart.
 - **Defect.** Too strong a premise: the bytes must be persistent (`b ↦*□ (encEntry e ++ r)`, the rest given
-  back persistent). kvnet's `getMsg` (KvNet, issue #22) decodes the entries of a message and then its snapshot
+  back persistent). kvraft's `getMsg` (KvRaft, issue #22) decodes the entries of a message and then its snapshot
   from the same owned bytes, and `getSnapshot` needs the snapshot's bytes owned; with `getEntry` persisting them,
   a message with both entries and a snapshot could not be decoded (`getMsg` took the premise
   `st.ents = [] ∨ st.snap = none`).
-- **Evidence.** `KvNet/Proof/.../kvnet/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
+- **Evidence.** `KvRaft/Proof/.../kvraft/getMsg.lean` (fork C's report, 2026-11-21). The Go only reads `b`
   (`getUint64`, `getBytes`: subslices), so any fraction suffices; the entry's data, a subslice of `b`, must be
   read-only for `entOwn`, which the proof gets by persisting that subslice alone.
 - **Proposed change.** `∀ b (dq : DFrac) e r, EntWf e → {{ … b ↦*{dq} (encEntry e ++ r) }} getEntry b
   {{ l rest; entOwn l e ∗ rest ↦*{dq} r }}` (the data slice persisted inside the proof). The one main-tree caller,
-  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvnet's `getMsg` passes its own fraction
+  `openStorage`, passes `dq := DFrac.discard` (its statement unchanged); kvraft's `getMsg` passes its own fraction
   and drops its premise.
 - **Decision.** Accepted (the coordinator, issue #22, 2026-11-21).
 ## 2026-11-21: raft's node API -- no node of an id is restartable after a real crash (`nodeVacant` returns only from `node.Stop`)
@@ -1038,9 +1148,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `RawNode__Ready.lean` (the enter wand); `InvNode.lean`'s `readyEnter` and the new laws
   `nodeVacant_arm`, `nodeCrash`. SpecPlan's raft node specs, likewise.
 - **Defect.** Too weak for a crashing client: a process killed at any instruction loses its threads'
-  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvnet's crash obligation
+  resources, so `nodeVacant` (needed by `RestartNode`) never comes back. kvraft's crash obligation
   (`goose_dist_crash_adequacy`'s wand, given the dead generation's `crashed`) cannot be met.
-- **Evidence.** `notes/kvnet-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
+- **Evidence.** `notes/kvraft-proof-plan.md` gap 1; `notes/raft-crash-law-design.md` (a).
 - **Proposed change.**
   - `nodeVacant_arm : nodeVacant ={E}=∗ ∃ x, nodeVacantA ∗ nodeCrashTok` and
     `nodeCrash : crashed -∗ nodeCrashTok ={E}=∗ nodeVacant`.
@@ -1048,7 +1158,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   - `readyEnter` and `Ready`'s enter wand become crash-token updates (`ncfupd E`: the client applies them
     at a step, by `wp_ncfupd`).
   - Clients: kvdurable keeps its `node.Stop` path and drops its `nodeCrashTok`; the etcd server likewise;
-    kvnet's boot obligation arms.
+    kvraft's boot obligation arms.
 - **Decision.** Accepted (the coordinating session, 2026-11-21, design route 1, sections (b1), (f),
   (i)); applied on branch `worktree-agent-aa878c2e224f33d0c`.
 - **As applied** (2026-11-21, the implementing session):
@@ -5382,30 +5492,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
 - **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
   removed.
-## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
+## 2026-11-22: kvraft's answers' length bound weakened to what the reply frame needs (KvRaft)
 
-- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
+- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvRaft, Lean-first; no SpecPlan
   counterpart): post `len(v) < 2^61` to `(len(v) : Int) + 9 < 2^63`. `Replica.install.spec`: new premises
   `MapFits K'`, `MapFits A'`.
 - **Defect.** The `2^61` bound was not derivable (the store's `waitP`/`readAns` say nothing of lengths): the
   proofs took it as two seams (`ansLen.law`, `waitLen.law`). The only consumer (`serveClient`, its `writeFrame`)
   needs `len(v) + 9 < 2^63`.
-- **Evidence.** `notes/kvnet-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
+- **Evidence.** `notes/kvraft-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
 - **Proposed change.** Weaken the posts; carry the bound in the replica's maps (`MapFits`, `Defs.lean`) and
   waiters; drop the seams.
 - **Decision.** Applied (the coordinator's item 1: weaken locally before strengthening the store).
 
-## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvNet)
+## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvRaft)
 
 - **Spec.** `github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec` (WalTester, Lean-first; no SpecPlan
   counterpart): the second update `durWriteSync γ Ψ` is now `notCrashed -∗ AU <{∃∃ s, durSt γ s}> <{ durSt γ
   ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>`. This is weaker as the client's obligation: a plain update is one
   (`durWriteSync_of_au`).
 - **Defect.** A client could not fire raft's *enter* (`readyEnter`, which takes `notCrashed`) at the sync, where
-  decision C (`notes/kvnet-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
-- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
+  decision C (`notes/kvraft-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
+- **Evidence.** `notes/kvraft-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
 - **Proposed change.** As above. `durInv_commit` passes the token; the tester's `storeOracle` gives a plain update.
-- **Decision.** Applied (needed for kvnet's `persist`, item 2 of the coordinator's 2026-11-22 decisions).
+- **Decision.** Applied (needed for kvraft's `persist`, item 2 of the coordinator's 2026-11-22 decisions).
 
 ## 2026-11-22: raft's node API -- a crash could only discard a batch cut and not entered; `statusOwn` gave no read access
 
@@ -5416,33 +5526,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   then directory sync). After a crash between them the new file may survive. Then the restarted node's storage
   holds the batch's state, while raft's durable state (`raftState`) is the old one, because `nodeCrash` discards
   the batch. `RestartNode` cannot get `StorageHolds S σ`. (2) `statusOwn` gave heap ownership but no law to read
-  it, so kvnet's `Node.status` could not call `GetTerm`/`GetCommit` on `st.HardState`.
-- **Evidence.** kvnet's `persist`, `notes/kvnet-part.md` (branch `worktree-agent-a9b8a3f3fbe5852a9`),
+  it, so kvraft's `Node.status` could not call `GetTerm`/`GetCommit` on `st.HardState`.
+- **Evidence.** kvraft's `persist`, `notes/kvraft-part.md` (branch `worktree-agent-a9b8a3f3fbe5852a9`),
   "persist" item 3 and "`Node.status` (open)".
 - **Proposed change.** (1) `readyEnter := readyEnterLive ∧ readyEnterCrash`. The live half is the old wand.
   The crash half gives the law `readyCrashEnter`: `crashed -∗ nodeCrashTok γ id x -∗ nodeArm n γ x -∗
   nodeRunning n γ N q -∗ readyEnter … -∗ raftState γ id st.durable ={E}=∗ raftState γ id st'.durable ∗
-  nodeVacant γ id`. This is kvnet's requested statement with `nodeRunning` and `nodeArm` added and `isCluster`
+  nodeVacant γ id`. This is kvraft's requested statement with `nodeRunning` and `nodeArm` added and `isCluster`
   dropped. Without the two additions the law is false: after a `node.Stop` the batch is of a dead generation
   (`notes/raft-crash-law-design.md` (k)). Live clients take the conjunction's left half. (2)
   `statusOwn_hardState : statusOwn st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs`, read access
   only.
 - **Decision.** Applied (branch `raft-crash-enter`; the coordinator's 2026-11-22 decision for (1), "raft adds a
-  variant of `nodeCrash`"). kvnet must adapt its `readyCrashEnter.law` hypothesis to the two added premises.
+  variant of `nodeCrash`"). kvraft must adapt its `readyCrashEnter.law` hypothesis to the two added premises.
 ## 2026-11-22: `durable.Write`/`tryWrite` and `os.File.ReadAt`: no 1 GiB bound (WalTester, main tree's `os`)
 
 - **Spec.** New `os.File.ReadAt.specLong` (`Spec/os/File__ReadAt.lean`): `spec` without `len(b) <= 2^30`, proved
   (`wp_proof_long`; `wp_proof` is its instance, statement unchanged). WalTester's `durable.Write.spec` and
   `tryWrite.spec`: `len(data) <= 2^30` to `len(data) < 2^63`; `DCand.Ok` and `durFound` likewise.
 - **Defect.** The bound came from using one `WriteAt`/`ReadAt` of at most `maxRW`. The model (and Go) loop in
-  chunks, and kvnet's image has no size bound.
-- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 2. `tryWrite` now uses `WriteAt.specLong` (new lemmas
+  chunks, and kvraft's image has no size bound.
+- **Evidence.** `notes/kvraft-part.md`, "`persist`" item 2. `tryWrite` now uses `WriteAt.specLong` (new lemmas
   `TrOk.pwA` and `pw_wholeA`), and `tryRead` uses `ReadAt.specLong`.
 - **Proposed change.** As above. The tester's `storeOracle` keeps its own 1 GiB invariant (`tOrSmall`), which
   implies the new premise.
 - **Decision.** Applied (the coordinator's item 2, 2026-11-22).
 
-## 2026-11-22: kvnet's `writeFrame` refuses an oversized body; the answers' length bounds dropped (KvNet)
+## 2026-11-22: kvraft's `writeFrame` refuses an oversized body; the answers' length bounds dropped (KvRaft)
 
 - **Spec.** `writeFrame.spec`: no premise on the body's length; new post conjunct `2^26 < len(xs) → w = []`.
   `Replica.read.spec`, `Replica.propose.spec`: the post's `len(v) + 9 < 2^63` dropped. `Node.handle.spec`: post
@@ -5452,7 +5562,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Defect.** `serveClient` needed `len(v) + 9 < 2^63` for `writeFrame`'s `make([]byte, 0, 8+len(body))`, and no
   invariant bounds a status encoding: `PutStatus` could not promise a bound.
 - **Evidence.** Go change `ab79c782b8` (option (a)): `writeFrame` returns `false` and writes nothing past
-  `maxFrame`, which `readFrame` refuses anyway; `notes/kvnet-part.md`, "`Replica.contents`, `PutStatus`,
+  `maxFrame`, which `readFrame` refuses anyway; `notes/kvraft-part.md`, "`Replica.contents`, `PutStatus`,
   `Node.status`".
 - **Proposed change.** As above. `serveClient` takes `len(v) < 2^63` (for `kvQ`) from the answer's slice.
   `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
@@ -5528,9 +5638,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
   Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
   invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).
-## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
+## 2026-11-22: kvraft's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvRaft)
 
-- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
+- **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvRaft): the start resource `S : IProp` becomes
   `S : w64 → GoString → Options → GMap w64 GoString → IProp` (id, directory, options, address map); `StartNode`
   takes `cfg.Addrs ↦$□ M ∗ S cfg.ID cfg.Dir cfg.Opts M`; `RunNode` gives `S id dir opts M` at every `M` with
   `addrMapOk (splitAddrs addrs) M`. `newReplica.spec`: the file's names are one record `fl : KdFileNames`
@@ -5542,25 +5652,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   invariant, allocated after `RestartNode` in the old design, cannot be emptied by the generation's crash
   obligation, which Perennial's crash adequacy takes at the generation's start (ledger 2026-11-22, raft's
   `RestartNode`).
-- **Evidence.** `notes/kvnet-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
+- **Evidence.** `notes/kvraft-part.md`, "`StartNode` and the crash frame" and "The file invariant from the
   generation's boot". The pending batch's record names its node existentially (a `NodeH` is in `Type 1`, so it
   cannot be in the writer's ghost variable), recognized by the writer through a saved proposition; `persist`'s
   write lemma takes two later credits.
 - **Proposed change.** As above.
-- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvNet`).
+- **Decision.** Applied (checked: `etc/lean-check.py` of every changed module, then `lake build KvRaft`).
 
-## 2026-11-22: kvnet's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvNet, Go and Lean)
+## 2026-11-22: kvraft's `ValidCluster` checks `MaxInflightMsgs < 2^62` (KvRaft, Go and Lean)
 
-- **Spec.** `ValidCluster.spec` (KvNet) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
-  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvnet/addrs.go`) the same.
-- **Defect.** Raft's `RestartNode` (and kvnet's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
+- **Spec.** `ValidCluster.spec` (KvRaft) through `validCluster` (`Addrs.lean`), and so `RunNode.spec`'s premise:
+  `mif < 2^63` becomes `mif < 2^62`. The Go `ValidCluster` (`examples/raft/kvraft/addrs.go`) the same.
+- **Defect.** Raft's `RestartNode` (and kvraft's `kvOptsOk`, `StartDefs.lean`) needs `MaxInflightMsgs < 2^62`;
   `ValidCluster` allowed up to `2^63`, so `RunNode`'s premise did not give what `StartNode` needs.
-- **Evidence.** `notes/kvnet-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
+- **Evidence.** `notes/kvraft-part.md`, "The WIP checked and built", the gap noted with `kvOptsOk`.
 - **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
   an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
 - **Decision.** Applied (the coordinator's decision, 2026-11-22).
 
-## 2026-11-22: kvnet's transport takes no frame-length bound with a message; `newReplica` names its node (KvNet)
+## 2026-11-22: kvraft's transport takes no frame-length bound with a message; `newReplica` names its node (KvRaft)
 
 - **Spec.** `Transport.Send.spec`'s `sendElem F m` and the queue's `qElem F pid m` (`TransportDefs.lean`, so
   `Transport.enqueue.spec`, `isPeer`) lose the conjunct `(encMsg st).length + 8 < 2^63`. `newReplica.spec`'s
@@ -5575,7 +5685,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above.
 - **Decision.** Applied (weaker premises; a stronger post).
 
-## 2026-11-22: kvnet's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvNet, Go and Lean)
+## 2026-11-22: kvraft's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvRaft, Go and Lean)
 
 - **Spec.** `MsgWf` (`Wire.lean`, so `getMsg.spec`'s premise and `kvFacts`' `msgOkK`): a message's entries need
   only `MsgEntWf` (data of a Go slice's length), no longer `EntWf` (also a type `≤ 2`). New `getMsgEntry.spec`
@@ -5586,7 +5696,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   entries), so the type bound was not derivable. The Go decoder refused other types (`getEntry`'s `typ > 2`,
   right for the storage file, not needed on the wire: an `EntryType` is an `int32`, written sign-extended,
   truncated back).
-- **Evidence.** `examples/raft/kvnet/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
+- **Evidence.** `examples/raft/kvraft/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
   of `getMsgEntry` and `getMsg`.
 - **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
   (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
@@ -5655,7 +5765,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
 - **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
   here and in the report to #18).
-## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvRaft)
 
 - **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
   `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
@@ -5700,7 +5810,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (a premise every caller discharges). `SpecPlan`'s
   `Options.String.spec` should take it too (not edited here).
 - **Decision.** Applied.
-## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
+## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvRaft, Go and Lean)
 
 - **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
   `issued` go; the lock's invariant `checkerInv c γ` holds, with the two counters `a`, `b`, a counter
@@ -5720,11 +5830,11 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   replica's read answer names the context's committed log existentially (`ansReadK`), so the client needs
   the log it minted the context after to be that one: agreement on raft's `ctxs` map (`readCtxAfter`,
   sealed).
-- **Evidence.** `notes/kvnet-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
+- **Evidence.** `notes/kvraft-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
   kvdurable's `Cluster__do.lean`/`Cluster__Read.lean`.
 - **Proposed change.** As above. Go: `checker.read` creates `primitive.NewProph()` and resolves it with the
   answer (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go),
-  `examples/raft/kvnet/go.mod` requires gokv, project kvnet maps gokv to the main tree. Minting under the
+  `examples/raft/kvraft/go.mod` requires gokv, project kvraft maps gokv to the main tree. Minting under the
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
@@ -5754,28 +5864,28 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   spec take `[ReceiptBoundLe GF (2 ^ 60)]`; `srvSnapRO`'s receipt conjunct and `applySnapshot`'s
   `hrbw` become `receiptBound GF ≤ 2 ^ 60` (implying the `wbInit - 6` they stated), which the walk
   passes as the instance.
-## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
+## 2026-11-22: kvraft's top-level statement takes `os`'s two field-assumption instances (KvRaft)
 
-- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
-  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
+- **Spec.** `kvraft_robust.spec` and `kvraft_robust_example.spec`
+  (`KvRaft/Spec/.../kvraft/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
   `[os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]`; the header's list
   of trusted instances names them.
 - **Defect.** `durable`'s proofs (`tryRead`, `tryWrite`, `WriteOpen`, through `StartNode` and `persist`) read
   files through `os`'s models, which take these trusted struct-field facts (`TrustedCode/os.lean`, of the kind
   of `net.FieldAssumptions`); `kvcheck.Assumptions` does not include them, so the agreed statement could not be
-  proved without them (found linking kvnet, 2026-11-22: `kvnet/Link.lean`'s section variables).
-- **Evidence.** `KvNet/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvnet/Link.lean:196-197`;
+  proved without them (found linking kvraft, 2026-11-22: `kvraft/Link.lean`'s section variables).
+- **Evidence.** `KvRaft/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvraft/Link.lean:196-197`;
   reported on mit-pdos/etcd-grove#22 (gap 3).
 - **Proposed change.** As above.
 - **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
   #22), 2026-11-22.
-## 2026-11-22: kvnet's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvNet)
+## 2026-11-22: kvraft's top-level statement takes `[log.NewModel]` and `dir.length < 2 ^ 39` (KvRaft)
 
-- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
-  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
+- **Spec.** `kvraft_robust.spec` and `kvraft_robust_example.spec`
+  (`KvRaft/Spec/.../kvraft/TopLevelRobustness.lean`): an instance binder `[log_sem : log.NewModel]` next to the
   `os` ones (both statements); a premise `dir.length < 2 ^ 39` after `replicas.length < 2 ^ 32` (the main
-  statement; the example's `/var/lib/kvnet` meets it by computation). The header lists both.
-- **Defect.** (1) `kvnet.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
+  statement; the example's `/var/lib/kvraft` meets it by computation). The header lists both.
+- **Defect.** (1) `kvraft.initialize'` initializes raft, whose initializer calls `log.New` (`defaultLogger`,
   `discardLogger`), which Perennial translates names-only: raft's `wp_initialize'` takes the trusted class
   `log.NewModel` (`Proof/log/NewModel.lean`), as kvdurable(-noax)'s closed theorem does. (2) Each replica's file
   is `durable`'s `DFile ⟨dir, J, "replica-<id>"⟩`, and `StartNode`'s start resource needs `DFile.Ok`, which has
@@ -6804,3 +6914,62 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   should take the same premise (or, for `ClientConfig`, a certificate path stated with `EmptyCN` off and a zap
   logger); not edited here.
 - **Decision.** `Spec/` restated (2026-11-25, branch `transport-emptycn/2026-11-25`); `SpecPlan/` open.
+
+## 2026-11-25: `net.http.Handle.spec` admitted a `HandlerFunc` holding a non-function (s5)
+
+- **Spec.** `net.http.Handle.spec` (`Net/Spec/net/http/Handle.lean`), the interim trust-boundary axiom
+  `net.http.Handle.wp_proof` (`Net/Proof/net/http/Handle.lean`).
+- **Defect.** False over the model. The premise `h ≠ interface.mkOk HandlerFunc.ty #func.nil` excludes only the nil
+  function. For `h = mkOk HandlerFunc.ty v` with `v` not a function value, `registerErr`'s `if f, ok :=
+  handler.(HandlerFunc); ok && f == nil` evaluates `f == nil` (`GoOp GoEquals` at a function type), which is stuck
+  on a non-function value. So the axiom asserted a WP of a stuck program: instantiated there, adequacy gives
+  `False`, which makes every theorem over the axiom (`rpcdriver_robust`, the dsverify kits) vacuous. (Go's types
+  make such an interface impossible; the model does not.)
+- **Evidence.** Found proving `wp_register_lit` (`Net/Proof/net/http/Mux22.lean`, which needs exactly the premise
+  below); coordinator-E's assessment, #24 7152572897.
+- **Proposed change.** The premise `∀ v, h = mkOk HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil`.
+  Stronger than the old one (it implies it), so the axiom only narrows. The one caller, `Server.HandleHTTP`,
+  passes pointer-typed handlers (`*Server`, `debugHTTP`), for which it is vacuous.
+- **Decision.** Pre-approved by coordinator-E (#24 7152572897); restated 2026-11-25, branch
+  `fix-http-handle-premise/2026-11-25`.
+
+## 2026-11-25: `net.http.httpSrvEnv` widened (s5)
+
+- **Spec.** `net.http.Serve.spec_rpc` (`Net/Spec/net/http/Serve.lean`), through its premise `httpSrvEnv`
+  (`Net/Proof/net/http/MuxDefs.lean`); rpcdriver's `Server.spec` takes it too.
+- **Defect.** `httpSrvEnv` was `httpEnv`, which does not hold what net/http's server reads of its package
+  variables (`Serve.specHandler`'s `readEnv`, `serveEnv`, `ctxKeys`, `aLongTimeAgo`, `wPools`, `rPool`), so
+  `Serve.spec_rpc` could not be proved over the real code.
+- **Evidence.** The proof attempt (S5 item 3): nothing produced those facts.
+- **Proposed change.** `httpSrvEnv := httpEnv ∗ readEnv ∗ serveEnv ∗ ctxKeys ∗ (∃ tm, aLongTimeAgo ↦□ tm) ∗
+  wPools ∗ rPool`, produced at the boot by `wp_init_first_mux` from the restated `wp_init_first`
+  (`notes/axiom-review/net-http-interim.md`); rpcdriver's boot passes it in `bootRes`.
+- **Decision.** Approved by coordinator-E (#24 7153375148, "widening `httpSrvEnv` to match is fine").
+
+## 2026-11-25: gryff's net/http premises widened to `httpSrvEnv` (s5)
+
+- **Spec.** dsv-gryff's internal specs over net/http's server: `httpInitRes` (`Dsverify/Proof/gryff/Rpc/RpcHttp.lean`,
+  part of `serverBoot`), `masterOkDef` (`Server/MasterDefs.lean`), `wp_NewMaster'` (`Server/MasterNew.lean`),
+  `NewMaster.wp_req`, `Serve.wp_req` (`Server/SpecsReq.lean`), `wp_Serve'` (`Server/ServeProof.lean`).
+- **Defect.** They carried `net.http.httpEnv` to `http.Serve`'s `Serve.spec_rpc`, whose premise is `httpSrvEnv`
+  (widened the same day, entry above), so they no longer prove once `Serve.spec_rpc` is proved over the real code.
+- **Evidence.** The build of the batch that proves `Serve.spec_rpc` (`Net/Proof/net/http/Serve.lean`).
+- **Proposed change.** `httpEnv` → `httpSrvEnv` in each (it holds `httpEnv`); `serverBoot`'s comes from the boot's
+  `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
+  `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
+- **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).
+## 2026-11-25: `fileutil.TouchDirAll.spec`'s post did not say the new directory's names are committed (P7, D6-T6)
+
+- **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
+- **Defect.** Too weak for its consumer: `bootstrapSnapshot` carves the fresh `member/snap`'s names into the snapshot
+  directory's free names, which must be durable (`backend.fileFreeDur`, so that the crash law `snapDir_crash.law`
+  can keep them across a crash), and that needs every history entry writing a name of the new directory (other than
+  the `.touch` probe, which `IsDirWriteable` writes and removes) to be below a commit index the caller holds.
+  The post said only `h'.next ≤ n`.
+- **Evidence.** The proof of `bootSnap.snapDir_carve` (`BootSnapCarve.lean`); Go: `TouchDirAll` ends with
+  `IsDirWriteable`'s fsync of the directory (fileutil.go), committing the journal (ext4, configuration C).
+- **Proposed change.** The post's pure part gains `∀ xe ∈ hJ.ents, ∀ b, b ≠ ".touch" → xe.2.1.op.Writes J b →
+  xe.1 < n`, proved from `osNames_histCoh` (a strengthening: no caller loses anything). `SpecPlan/` has no such
+  vocabulary; nothing to change there.
+- **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
+  branch `etcd-safe-p7`.

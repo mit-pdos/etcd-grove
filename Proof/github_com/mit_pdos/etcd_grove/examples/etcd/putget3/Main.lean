@@ -124,12 +124,19 @@ theorem Main.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
+  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃⟩
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `Main`'s premises in the shared start's form
   iunfold bootPremise at Hb₁
   iunfold bootPremise at Hb₂
@@ -146,11 +153,6 @@ theorem Main.wp_proof
       go!"putget3" name₃
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) id₃ (cfgOk name₃)
       (urlsOk peerAddr₃ clientAddr₃) (fun _ h => h) (fun _ h => h) $$ Hb₃
-  ihave #Hcm' : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iunfold etcd_putget3.commonPremises at Hcom; iexact Hcom
-  ihave #Hcom' := Hcom
-  iunfold etcd_putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init

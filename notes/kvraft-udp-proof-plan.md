@@ -1,0 +1,206 @@
+# kvraft-udp: the UDP transport's proof plan (phase 1: specs and invariants, 2026-11-24)
+
+kvraft-udp is kvraft with the replicas' raft messages over UDP datagrams (`examples/raft/kvraft/
+udptransport.go`, `nodeudp.go`; `cmd/kvraft-udp`), the clients' requests still over TCP. This note is the
+design of its proof as built in phase 1 (every statement and definition compiles; every proof is
+`sorry`), and the partition of phase 2 into tasks. The TCP twin and the transport contract
+(`PeerTransport.lean`: `ptCtor`, `ptFresh`, `ptSend`, `ptStop`) are the kvraft lead's and unchanged.
+
+Files (all under `KvRaft/`, module prefix `KvRaft.`; `K` = `.../examples/raft/kvraft`):
+
+* defs: `Proof/K/UdpWire.lean` (pure: the datagram format, chunking, the boot file's contents,
+  addresses), `Proof/K/UdpDefs.lean` (ghost state, datagram protocol, representation predicates),
+  `Proof/K/UdpBootDefs.lean` (the boot counter's crash-aware invariant);
+* a spec `Spec/K/<fn>.lean` and a proof skeleton `Proof/K/<fn>.lean` per Go function (list below);
+* the top level: `GooseLang/Ext/NetFsUdp/Adequacy.lean` (the extensions `[netExt, fsExt, udpExt]`),
+  `Proof/K/cmd/kvraft_udp/TopLevelDefs.lean`, `Spec/K/cmd/kvraft_udp/TopLevelRobustness.lean` (the statement),
+  `Proof/K/cmd/kvraft_udp/TopLevelRobustness.lean` (skeleton).
+
+## The design
+
+**Messages and names.** A message is `putMsg`'s encoding cut into chunks of 479 bytes, each sent as a
+fragment datagram (at most 524 bytes: `maxDatagramN = Udp.intactMax`, so it arrives intact or not at
+all) naming the message `(from, boot, seq)`. The receiver reassembles by name. Soundness rests on a
+name never being reused across the cluster's life: the ghost state records, per name, the one body sent
+under it.
+
+**Ghost state** (`UdpNames`, four ghost maps, allocated once at the top level; `UdpDefs.lean`):
+
+| map | elements | meaning |
+|---|---|---|
+| `msgs : MsgKey ↦ List w8` | `udpMsgAt k body`, persistent | the message named `k` is `body` |
+| `toks : MsgKey ↦ Bool` | `udpSeqTok k`, exclusive | the right to record `k` once |
+| `ctrs : (f, b) ↦ w64` | `udpCtr f b c`, exclusive | process `(f, b)` used its seq numbers up to `c` |
+| `his : f ↦ w64` | `udpHi f hi`, exclusive | replica `f`'s boot numbers handed out are `≤ hi` |
+
+`udpMsgInv γu` (one invariant, `udpMsgN`) holds the four authorities and `UdpMsgOk`: every recorded or
+reserved name `(f, b, s)` has `s ≤ ctrs(f, b)`; a reserved name is not recorded; every counter `(f, b)`
+has `b ≤ his f`. Recording consumes a token (`ghost_map_delete` on `toks`, `ghost_map_insert_persist`
+on `msgs`): only existing Perennial ghost-map lemmas are needed (no own-to-discard update).
+
+**The datagram protocol.** `udpDgOk F γu d` (persistent): `parseDg d = some dg`, and `dg` is an ack
+(no claim) or a fragment with `udpFragOk`: the body recorded under `dg.key` is a message's encoding
+with its fact (`udpBodyOk`: `body = encMsg st`, `F.msgOk src st`: as a TCP frame carries) and `dg` is
+its `dg.index`-th chunk (`FragOf`). `udpAddrInv F γu a` (one per cluster address, namespace
+`udpSentN`): `udpSent a ms ∗ [∗list] d ∈ ms, udpDgOk F γu d`. A sender proves `udpDgOk` of what it
+sends; `parseDg_length` makes it at most 524 bytes, so `SendOut`'s `Intact` gives `d = bs`; the
+receiver's `RecvOut` gives a member of `ms`, so `udpDgOk` of it, and its buffer (524) holds it whole.
+
+**The boot counter** (`UdpBootDefs.lean`). The generation's boot file invariant `udpBootInv γu id bn`
+(namespace `udpBootN.@id`) holds `durable`'s client state `s` of the file `BootFileOf(dir, id)`, the
+writer's half `ghostVar bn.wr ½ s`, and either `udpHi γu id hi ∗ ⌜BootOk hi s⌝` (every contents a crash
+may leave, `cur` and `alt`, hold a number `≥ hi`: `bootVal`) or, once the crash obligation has taken
+them with the token `bn.tk`, `crashed ∗ token bn.tk` (as kvraft's `kdFileInvK`). `nextBoot` reads `n`
+(the writer's half pins `cur`, so `hi ≤ n`), writes `n + 1`: at the rename `BootOk` holds (`cur = n+1`,
+`alt = n`); at the sync (`alt := none`) it opens `udpMsgInv` too, bumps `his id` to `n + 1` and inserts
+the counter `(id, n + 1) ↦ 0` (fresh: every counter of `id` is `≤ hi ≤ n`), returning `udpCtr γu id
+(n+1) 0`. A crash before the sync leaves `cur` or `alt`, both `≥ hi`; after it `cur = n+1 = hi`. The
+crash obligation (`udp_boot_crash`) takes `udpHi` and `s`; `durable`'s crash lemma gives the next
+contents `v = cur ∨ alt = some v`, which `bootOk_crash` bounds; the next generation's boot reallocates
+the invariant (`udp_boot_alloc`).
+
+**The transport contract.** `udpNet.newTransport`'s spec gives `ptFresh` for the untraced cluster, and
+the method value `u.newTransport` meets `ptCtor F γ N id AP` at **any** `AP`: the Go ignores its
+`addrs` argument and uses the endpoint's, whose per-address facts `openUDP` put in `isUdpNet`. So there
+is no `udpAP` (the design's `udpAP F pid a`, the peer's address with its invariant, is unnecessary):
+`startNodeUDP`'s proof uses `ptCtor` at TCP's `tcpAP`, hence the kvraft lead's `start.wp_proof`,
+`stopIncarnation.wp_proof`, `kvNodeStart`, `kvStp`, `kv_stepLaw`, `kv_confLaw` unchanged (`kvNodeStart`'s
+TCP peer protocols are present in the UDP deployment anyway: the clients still use TCP, so the top level
+allocates every address's TCP protocol, as kvraft's).
+
+**Snapshots and acks.** Acks carry no claim; `acked` only closes the waiter's broadcast channel (the
+closer is in the endpoint's mutex invariant, `ackWaitOwn`). `ReportSnapshot`/`ReportUnreachable` need
+only `isNode` and the untraced cluster (`node.ReportSnapshot.spec`), which `isUdpCore` carries.
+
+## The specs, one line each
+
+Pure (`UdpWire.lean` models):
+* `putUint32(buf, x)`: `buf ++ u32Le x`, cap kept (as `putUint64`).
+* `putHeader(buf, ...)`: `buf ++ headerBytes ...`, cap kept.
+* `putFragment(...)`: a new slice `fragBytes ...`; `putAck(...)`: `ackBytes ...`.
+* `getDatagram(b)`: `parseDg bs`: `some dg` → `true` and `dgOwn d dg`; `none` → `false`.
+* `fragments(...)`: slices of `fragsOf ...`, nil iff `fragsOf = []`.
+* `parseAddr(a)`: `ok = addrOk a`, and `parseAddrM a = some (ip, port)` when ok.
+* `udpAddr(a)`: `ok = addrOk a`; when ok a `*UDPAddr` with `udpAddrAt` and `ValidDest ip port a`.
+* `timer(d)`: a bag channel of `Unit`, no fact.
+
+Endpoint (`isUdpNet F γu u id boot`, persistent):
+* `nextSeq()`: `false`, or `true` with `udpSeqTok γu (id, boot, seq)`.
+* `expectAck(to, seq)`: a broadcast channel (`Unknown`), its closer into the map.
+* `forgetAck(seq)`, `acked(from, seq)`: no post.
+* `write(to, b)`: `b ↦*□ bs ∗ udpDgOk F γu bs` → sent or not.
+* `newTransport(id, addrs, stats)`: `ptFresh F γ N id tv` (any untraced `γ`).
+
+Transport (`isUdpBase` before `start`, `isUdpCore F γu t γ N id n` after):
+* `start(n)`: `isUdpBase` and the node → `isUdpCore`; `stop()`: the stop channel's closer.
+* `Send(ms)`: TCP's `sendElem F` per message, slice read-only (as `Transport.Send`).
+* `dropped(m)`: `msgPtsC` kept (as `Transport.dropped`).
+* `writeAll(to, ds)`: `udpDgsOk F γu ds` → bool.
+* `runPeer(p)`: `isUdpPeer F p pid` (queue of TCP's `qElem F pid`) → never stuck.
+* `sendSnapshot(to, seq, ds)`: `dsl ↦*□ ds ∗ udpDgsOk` → no post.
+
+Receiver:
+* `newReassembler(stats)`: `ownReassembler F γu r`.
+* `reassembler.add(d)`: `dgOwn d dg ∗ udpFragOk F γu dg` → complete with `body ↦* bs ∗ udpMsgAt γu
+  dg.key bs ∗ udpBodyOk F bs`, or not; eviction, `reack`, bounds unspecified.
+* `reassembler.remember(...)`: `ownReassembler` kept.
+* `udpNet.receive(n)`: `isUdpNet ∗ isNodeS F rep stp nd γ N id` → never returns.
+* `udpNet.stepper(n, q)`: `q` a bag of `recvElem F id` (what `Node.stepPeer` takes).
+* `udpNet.ack(n, ...)`: the node's stats only.
+* `udpNet.handle(n, r, steps, b)`: `b ↦*{q} bs ∗ udpDgOk F γu bs`, `ownReassembler` kept.
+
+Entry:
+* `BootFileOf(dir, id)`: `bootFileName dir id`.
+* `nextBoot(dir, id)`: `udpMsgInv ∗ udpBootStart γu id dir bn qc` → `udpCtr γu id boot 0`,
+  `udpBootStart` back.
+* `listenUDP(p)`: `udpAddrAt p ip port ∗ ValidDest ip port a` → `udpConnAt c s a`.
+* `openUDP(cfg)`: own address in `M`, every address valid (`ValidCluster`), `udpProcStart` →
+  `isUdpNet F γu u cfg.ID boot`. The own-address panic is excluded by `M !! cfg.ID = some a` with
+  `addrOk a` (a fact `RunNodeUDP` has from `ValidCluster`): no new premise.
+* `startNodeUDP(cfg)`: `StartNode.spec`'s shape plus `udpProcStart` → `isNodeS ∗ confLaw ∗ isUdpNet`.
+* `RunUDP(cfg)`: `Run.spec`'s plus `udpProcStart`; `RunNodeUDP(...)`: `RunNode.spec`'s, with
+  `S ... M ∗ udpProcStart F γu id dir M` for every `addrMapOk` map.
+
+## Key lemmas (stated, `sorry`)
+
+`UdpWire.lean`: `parseDg_fragBytes`, `parseDg_ackBytes`, `parseDg_length`, `parseDg_kind`, `fragsOf_ok`,
+`fragsOf_nil`, `chunks_flatten`, `chunkAt_length`, `fragBytes_length`, `ackBytes_length`,
+`parseAddrM_ok`. `UdpBootDefs.lean` (proved 2026-11-24): `udp_boot_alloc`, `udp_boot_crash`,
+`udp_boot_bump` (the sync's ghost step), `udp_gen_boot`.
+Proved in phase 2: `udp_seq_fresh` (nextSeq's token from the counter) and `udp_record` (token →
+`udpMsgAt`) in `UdpSendLemmas.lean`, `udpDgOk_send` (`Intact` keeps `udpDgOk`) in `udpNet__write.lean`.
+To add: `udpDgOk_recv` (what `RecvOut` gives, read into a 524-byte buffer, is `udpDgOk` of the datagram
+whole) and the reassembly lemma (the chunks of one name, all
+`udpMsgAt`-agreeing, flatten to the body).
+
+## The Link (`etc/gen-link.py --kvraft-udp`, 2026-11-24)
+
+`KvRaft/Proof/K/cmd/kvraft_udp/Link.lean` is generated (`etc/link_kvraft.py`, `udp=True`): its roots are the
+part's own proofs whose section has `[HasExt udpExt]`, and the pure helpers `UDP_PURE`; the kvraft
+proofs they reach (`startNode`, `start`, `Node.stepPeer`, `Node.accept`, ...) are linked again under
+the UDP section's instances. `--kvraft` leaves the UDP proofs out of its roots, so kvraft's `Link.lean`
+is unchanged (its result statements would otherwise all need `[HasExt udpExt]`, which kvraft's
+`[netExt, fsExt]` lacks). Generic proofs are linked at the store's instantiation (`INST`):
+`udpNet.receive`, `udpNet.stepper` at `kvFacts γ _`, `kvRep γ vs dir`, `kvStp γ vs dir`; `RunUDP`,
+`RunNodeUDP` as `Run`, `RunNode`; `startNodeUDP`'s proof is concrete. The three `net` UDP functions are
+linked from their proofs, `Net/`'s (`udp-net`): the generator reads `Net/Proof/net/` as `KvRaft.Proof.net.*`,
+so the Link imports them under the part's root and `etc/copy-part.py` copies them (and `UdpModels`) into
+`KvRaft/Proof/net/` (2026-11-24; until then they were hypotheses `h_net_*` and the top level a `sorry`). The top-level
+proof module imports this `Link`. Perennial callees not yet hypotheses of the proofs (phase 2 adds them
+where needed): `time.Sleep`, `time.AfterFunc` (as `listen.lean`, via `Perennial.Proof.time.Link`),
+`littleEndian.Uint32/Uint64/PutUint32`. (The Go used `binary.LittleEndian.AppendUint32`, which has no
+Perennial spec; it now calls a helper `putUint32`, `PutUint32` into a `[4]byte` then `append`, as
+`putUint64`: commit `4d73d2d950`.)
+
+## Design risks
+
+1. **The boot file's crash.** (The boot's half is resolved, 2026-11-24: `kvGen` claims only the storage
+   file's names and hands the rest back, `kvDirRest`; `durable`'s `durBootOnly` boots on two names;
+   `udp_gen_boot` is the boot file's boot.) At a crash, `durable`'s crash lemma for the boot file needs
+   the crash's `crashRest` too, which kvraft's `kvGen_crash` consumes whole: either `kvGen_crash` also
+   gives what the next generation finds at the other names (`durFound`/`durFoundTmp` of a second file),
+   or it takes the boot file's crash keep and runs both crash lemmas. A change to the kvraft lead's
+   `TopBoot.lean`, for the top-level task.
+2. **The reassembler's `chunks[i] != nil`.** `ownPartial` tracks which chunks arrived by a ghost list
+   (`got`), tied to `c ≠ slice.nil`; the proof must show a chunk `getDatagram` copies is non-nil
+   (`append([]byte(nil), nonempty...)`).
+3. **`received`'s channel.** `isChanBag` needs `Pos.Countable received` (defined in `UdpDefs.lean`) and
+   `IntoValTyped received`; the generated `IntoValTypedUnderlying` should give it.
+4. **Datagrams from outside.** The address invariants hold only the deployment's datagrams: the
+   statement's closed-world assumption (prose, as kvraft's TCP one).
+
+## For kvnet-single: the TopBoot change (risk 1, 2026-11-24)
+
+`KvRaft/Proof/.../kvraft/TopBoot.lean`'s `kvGen_crash` now returns the next generation's `kvGenAt` **at the
+crash's tree `V'`** (no longer `∃ V`), its `kvDirRest` at `V'`, and the crash's rest of the file system
+after the storage file's: `∃ D, ⌜∀ i ∈ D, V'.now.entry f.J f.b = some (.file i) ∨ V'.now.entry f.J f.tb =
+some (.file i)⌝ ∗ crashRest … D true V'` (what `durInv_crash0` took and `crashRest_treeS` handed back,
+previously dropped). Generic: another durable file's crash lemma (`DurFs.durInv_crash`, any `D`, any
+`tt`) runs on it, its premise on `D` holding by unique naming (`TreeWf`'s last conjunct) when its names
+are not the storage file's (kvraft-udp: `kvBoot_names_fresh`). kvraft's own use (`ReplicaLinked.lean`'s
+`kvRep_gen`) drops the two extras and gives `kvGen` at `V'`. kvraft's statement files are untouched
+(`git diff 3cfd69ae26 -- KvRaft/Spec/.../kvraft/TopLevelRobustness.lean KvRaft/Proof/.../kvraft/TopLevelDefs.lean`
+is empty). To merge into kvnet-single: take `TopBoot.lean`'s `kvGen_crash` and `ReplicaLinked.lean`'s
+three-line call site.
+
+The boot file's crash (`UdpBootDefs.lean`'s `udp_boot_crash`) runs after it, without a later credit (the
+boot invariant's contents are timeless), and runs `durInv_crash` inside the boot invariant (`durSt` is
+in it), so its statement takes `udpBootKeep`, `crashed` and the `crashRest` and gives what the next
+generation finds at the boot file's names, with `udpHi` bounded by it.
+
+## The partition (riskiest first; disjoint files)
+
+1. **Boot counter** (`nextBoot`, `BootFileOf`; `UdpBootDefs.lean`'s `udp_boot_alloc`, `udp_boot_crash`,
+   the sync's ghost step): the crash-aware invariant over `durable`'s two atomic updates.
+2. **Top-level generation and crash** (`cmd/kvraft_udp/TopLevelRobustness.lean`, `NetFsUdp/Adequacy.lean`'s
+   adequacy and projections): the global
+   allocation of `UdpNames` and the address invariants from `udpStart`; `udp_gen_boot`; risk 1.
+3. **Reassembler** (`reassembler.add`, `reassembler.remember`, `newReassembler`; the reassembly lemma).
+4. **Receiver** (`udpNet.receive`, `udpNet.handle`, `udpNet.stepper`, `udpNet.ack`; `udpDgOk_recv`).
+5. **Sender** (`udpTransport.runPeer`, `sendSnapshot`, `writeAll`, `udpNet.write`, `udpNet.nextSeq`; the
+   record step; `udpDgOk_send`).
+6. **Endpoint and transport plumbing** (`udpNet.{expectAck, forgetAck, acked, newTransport}`,
+   `udpTransport.{start, stop, Send, dropped}`): mirrors TCP's.
+7. **Pure helpers** (`UdpWire.lean`'s laws; `putHeader`, `putFragment`, `putAck`, `getDatagram`,
+   `fragments`, `parseAddr`, `udpAddr`, `timer`, `putUint32`).
+8. **Entry** (`listenUDP`, `openUDP`, `startNodeUDP`, `RunUDP`, `RunNodeUDP`).

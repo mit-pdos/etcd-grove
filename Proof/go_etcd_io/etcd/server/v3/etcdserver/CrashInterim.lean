@@ -66,7 +66,7 @@ configuration's dedicated WAL directory the member's, the WAL area fresh or hold
 (`walAreaUnsaved`), and the data directory fresh (`dataDirFresh` and `dataAreaFresh`, as `wal.bootRes`).
 The data area's leftovers (the backend file, `member/snap`) are not in it yet: their definition (T3) must
 allow committed bucket creation (`CreateMetaBucket`, the stores' buckets) and exclude torn meta pages
-(`nonissues/bbolt-init-not-crash-safe.md`) and a backend holding applied entries (review 2026-11-24,
+(`issues/bbolt-init-not-crash-safe.md`) and a backend holding applied entries (review 2026-11-24,
 `notes/axiom-review/c-i3-bootstrap-left.md`). `wal.bootRes cfg` is its first case. -/
 def wal.bootResLeft (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
@@ -119,7 +119,11 @@ record them (`bootOkR`'s `memberDirIs`), as `bootPremiseR` guards the graceful c
 every `γ` the law gave `bootOkR`'s `γ.vs = ps` at `γ.vs := []`, i.e. `False` on success. And the contract
 now asks `γ.cl.bootLen ≤ σ.commit` (an unsaved WAL beside an applied backend goes to the first-start
 branch). Retired by #34's
-`bootstrap` proof extended to the restart branch over the fixed `ReadAll` (T9). (P8, 2026-11-25) The
+`bootstrap` proof extended to the restart branch over the fixed `ReadAll` (T9). The premise
+`walReadFacts σ` of a crash image, and the claim that `ReadAll` reads back exactly `σ`, rest on the WAL's
+`W1` (`etcdFsSem`'s crash premise `etcdCQ`; target: no CRC-32C collision on the `Data` of a frame whose bytes
+under it were zero, `nonissues/etcd-wal-record-type-outside-crc.md`), through `walInv_crash` (T5); the fixed
+`Save` writes no frame over stale bytes (`notes/etcd-dist-d6.md`, "The WAL crash facts rest on `W1`"). (P8, 2026-11-25) The
 contract's files are `srvFilesC` (the WAL's files without their synced mark, what a crash leaves:
 `SrvCrash.lean`); `bootstrap`'s `Open` and `ReadAll` take no synced mark, and write-mode `ReadAll` syncs. -/
 abbrev bootstrapCrashContract.law : Prop :=

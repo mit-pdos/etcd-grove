@@ -338,7 +338,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       -- (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved: `rnNewStorageOk.law`)
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))

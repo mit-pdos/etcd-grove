@@ -7,11 +7,13 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
 * **The contracts** on the names-only callees and on what Perennial does not model, persistent
   triples the specs take in their preconditions (as `isServerBuilt` takes the names-only parts'
   contracts, `clusterVersionOk`): `NewRaftLoggerZap` (`zap_raft.go`, names-only: some logger
-  interface, `rnLoggerZapOk`); (until premise-fixes-4, 2026-11-10, raft's `SetLogger` too,
+  interface; until 2026-11-24 the contract `rnLoggerZapOk`, since then the axiom
+  `NewRaftLoggerZap.wp_proofNN`, a callee of `newRaftNode`'s proof); (until premise-fixes-4, 2026-11-10, raft's `SetLogger` too,
   `rnSetLoggerOk`, false in the model: raft's initializer dropped its globals; since, raft keeps
   `raftLoggerMu` owning `raftLogger` in `isInitialized` and proves `SetLogger.spec`, a callee of
   `newRaftNode`'s proof); `contention.NewTimeoutDetector`
-  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`;
+  (names-only: `isRNTimeoutDetector`; until 2026-11-24 the contract `rnTimeoutDetectorOk`, since
+  then the axiom `contention.NewTimeoutDetector.wp_proof`); `time.NewTicker` (`isRNTicker`;
   since 2026-11-03 no contract: Perennial's proved specs of `NewTicker` and `Ticker.Stop` are
   callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
@@ -181,24 +183,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-! ## The contracts (see the file header) -/
-
-/-- **`NewRaftLoggerZap(lg)`** (names-only): some logger interface value, for a non-nil zap
-logger. -/
-def rnLoggerZapOk : IProp GF :=
-  iprop(□ ∀ lg : Loc, {{ ⌜lg ≠ null⌝ }} (App (Val (@! NewRaftLoggerZap)) (Val #lg))
-    {{ (l : GoInterface), RET #l; True }})
-
-instance rnLoggerZapOk_persistent : Persistent (rnLoggerZapOk (GF := GF)) := by
-  unfold rnLoggerZapOk; infer_instance
-
-/-- **`contention.NewTimeoutDetector(d)`** (names-only): a detector meeting `isRNTimeoutDetector`. -/
-def rnTimeoutDetectorOk : IProp GF :=
-  iprop(□ ∀ d : time.Duration, {{ True }}
-    (App (Val (@! go_etcd_io.etcd.pkg.v3.contention.NewTimeoutDetector)) (Val #d))
-    {{ (td : Loc), RET #td; isRNTimeoutDetector td }})
-
-instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF := GF)) := by
-  unfold rnTimeoutDetectorOk; infer_instance
 
 /-- **A ticker of `time.NewTicker` is the wrapper's ticker** (2026-11-03; until then `rnTickerOk`,
 a contract `newRaftNode`'s spec took, and from the final whole-`bootOk` review's S2 to here a theorem

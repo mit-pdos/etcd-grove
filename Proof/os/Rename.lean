@@ -49,7 +49,8 @@ private theorem rename_fileNE :
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
   {{ RET #interface.nil; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm (callKey R d) qc ∗
       ∃ h1 h2 : NamesH, ⌜h1.cur = GMap.delete bs h.cur ∧ h2.cur = <[bt := .file i]> h'.cur⌝ ∗
-        osNames j N (DFrac.own 1) h1 ∗ osNames j' N' (DFrac.own 1) h2 }}
+        osNames j N (DFrac.own 1) h1 ∗ osNames j' N' (DFrac.own 1) h2 ∗
+        ∃ x s, osLogged x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s⟩ : LogEntry) }}
  := by
   intro Sio _ hS d bs d' bt j j' i N N' R dq dq' h h' qc hbs hbt hN hN' hkey hsrc htgt hsr hfit
   wp_start as ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2⟩
@@ -83,13 +84,16 @@ private theorem rename_fileNE :
     hkey hsrc htgt (Nat.le_trans (Nat.le_max_left _ _) hs1)
     (Nat.le_trans (Nat.le_max_right _ _) hs1) hsr (.inl (hS _)) hfit CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
-  iintro Hperm Hp Hp' ⟨%x, -, Hn1, Hn2⟩
+  iintro Hperm Hp Hp' ⟨%x, Hlg, Hn1, Hn2⟩
   wp_auto
   iapply HΦ
   iframe Hp Hp' Hperm
   iexists _, _
   iframe Hn1 Hn2
-  ipureintro; exact ⟨rfl, rfl⟩
+  isplitr [Hlg]
+  · ipureintro; exact ⟨rfl, rfl⟩
+  iexists x, s1
+  iexact Hlg
 
 end noerr
 
@@ -123,8 +127,8 @@ theorem os.Rename.wp_proof [os.Assumptions] :
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H
   · have h' := @rename_fileNE _ _ _ _ _ GF hG _ Sx okx hasx _ _
-    simp only [backend.fileAt, backend.bPath, backend.fileFree, onFs_some hfs, fileAtF, nameAtF,
-      fileFreeF]
+    simp only [backend.fileAt, backend.bPath, backend.fileFree, backend.renamed, onFs_some hfs, fileAtF,
+      nameAtF, fileFreeF, backend.renameEntF]
     obtain ⟨Sio, -, hpath, hs1, -⟩ := nex.ok
     haveI := hs1
     iintro %Φ ⟨Hs, ⟨%i', #Hino, Hd⟩⟩ HΦ
@@ -147,7 +151,9 @@ theorem os.Rename.wp_proof [os.Assumptions] :
     wp_apply (h' Sio hpath d bs d bt j j' i (.only [bs]) (.only [bt]) R dq dq' h hh qc hbs hbt
       (by simp [Fs.NameSet.Mem]) (by simp [Fs.NameSet.Mem]) hkey hi
       (fun J hJ => by rw [hi'] at hJ; cases hJ) hsr ⟨hfs, hft⟩)
-      $$ [$Hinv $Hsh $Hp $Hp' $Hcp $Hn $Hn'] as ⟨Hp, Hp', Hcp, %h1, %h2, %hc, Hn1, Hn2⟩
+      $$ [$Hinv $Hsh $Hp $Hp' $Hcp $Hn $Hn'] as ⟨Hp, Hp', Hcp, %h1, %h2, %hc, Hn1, Hn2, %x, %s, Hlg⟩
+    iunfold Fs.osLogged at Hlg
+    icases Hlg with ⟨-, #Hent, #Hlb⟩
     iapply HΦ
     isplitr
     · ipureintro; rfl
@@ -159,11 +165,17 @@ theorem os.Rename.wp_proof [os.Assumptions] :
       ipureintro
       refine ⟨rfl, hbt, ?_, hft⟩
       rw [hc.2]; exact GMap.lookup_insert _ _ _
+    isplitl [Hp Hcp Hn1]
     · iexists R, d, bs, dq, j, qc, h1
       iframe Hinv Hsh Hp Hcp Hn1
       ipureintro
       refine ⟨rfl, hbs, ?_, hfs⟩
       rw [hc.1]; exact GMap.lookup_delete _ _
+    · iexists x
+      iframe Hlb
+      iexists d, bs, bt, j, j', i, hh.cur !! bt, s
+      iframe Hent
+      ipureintro; exact ⟨rfl, rfl⟩
 
 end proof
 

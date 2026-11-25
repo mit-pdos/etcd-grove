@@ -207,7 +207,7 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   and `D_next` the one in flight. Sound because bbolt's meta-page switch is atomic under its checksum
   (its `P1`, `BootP1.lean`, measured for minibolt) and etcd commits every batch with a sync; the known
   restart hazard (`nonissues/bbolt-restart-reuses-pages-of-unsynced-commit.md`) needs a kill without
-  `sync`, outside the model. `nonissues/bbolt-init-not-crash-safe.md` (a crash inside the first
+  `sync`, outside the model. `issues/bbolt-init-not-crash-safe.md` (a crash inside the first
   `init`) must be refuted or the axiom restricted to files past `init`; review with the `axiom` skill.
 * **A2 (only if Q1 is answered "assume")**: no torn first batch, i.e. `readyCrashTorn.law` for the
   bootstrap batch. Not recommended: it is false of Go (finding 1); the fork fix of Q1 is.
@@ -215,22 +215,559 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
 
 ## 8. Open questions (for the lead / owner)
 
-* **Q1 (the torn bootstrap batch; decided (a), the Go side done: §10)**: (a) fix the fork so that `Save` is atomic across a
+* **Q1 (the torn bootstrap batch; recommendation (a))**: (a) fix the fork so that `Save` is atomic across a
   crash: always end a `Save` with a state record, and have `ReadAll` drop entry records after the last
   state record (they belong to an unfinished `Save`; nothing was acknowledged from them, since
   messages leave after `Save` returns); the WAL's `walImg`/`walRead` then read a torn `Save` as none, and
   T1 is not needed; (b) prove T1 and add a test-backed `issues/` entry for the bootstrap variant, with a
   premise excluding it; (c) restrict the theorem. (a) is a Go change with its own `issues/` report.
-* **Q2**: `W1` becomes a premise of every member machine's crash (finding 4); it is pending review.
+* **Q2**: `W1` becomes a premise of every member machine's crash (finding 4); it is pending review. Decided by the lead: into the semantics (`etcdCQ`), not a top-level premise; owner packet below (§Q2 packet).
 * **Q3**: the received-snapshot crash window (`σ.b > i` with a `.snap.db`): extend `wal.crashImage` or
   show etcd's order (`SaveDBFrom` synced before `SaveSnap`) excludes it.
 * **Q4**: the storage registry across a crash. `ρ.rd.raft` names the registry (`SrvRaft.reg`), and
   `restartNames` keeps it; a crash's new heap needs a fresh registry (or a proof that a registry naming
   dead locations is harmless). `memberRestart` leaves the registry name free (`γ' = {C.γ with reg := r}`);
   T4 decides.
+  **Decided (T4, 2026-11-24): a fresh registry name per generation, at `M = ∅`.** The crash law
+  (`memberGen_crash.law`, T7) allocates `memStorRegAuth ∅` at a fresh `r` and the generation runs at
+  `γ' = {C.γ with reg := r}`; the old generation's authority is not carried across the crash (it names
+  dead locations, and keeping it would need it inside the run's crash invariant). `NewServer.specC` is
+  unchanged: it quantifies over `γ` and `M`, and its post is at `γ`, whatever its `reg`. What this
+  asks of T7: the global facts it hands `specC` (`srvRaftLogInv`, `kvInvM`, `srvPropMint`,
+  `srvRdCtxInv`, the image's `srvRLogLb`/`confAt`/`walSnapCert`, `restartNames ρo ρ`) at `γ'`, i.e. their
+  bodies must not read `reg` (the cluster's facts are already per-member-registry: `memberGOk`).
 * **Q5**: D4b's crash interpretation (§5).
 
-## 9. T1's result (2026-11-24, branch `etcd-safe-d6t1/2026-11-24`)
+## §Q2 packet: `W1` as `etcdFsSem`'s crash premise (for the owner, 2026-11-24)
+
+**Today.** `etcdFsSem := Fs.fsSemWithS etcdSQ (fun _ _ => True)` (`examples/lib/etcdstart/FsExts.lean`): a member's
+crash is any `OsCrash` (any byte-wise mix of each unsynced byte's candidates). The WAL's crash proof
+(`walInv_crash`) needs `W1`, which the single-machine WAL tester assumes as its crash premise (`tQ`,
+`WalTester/.../wal/Adequacy.lean`); `etcd_safe` cannot use the WAL proof without it.
+
+**With this change** (branch `etcd-safe-crashskel/2026-11-24`, trusted lines in `FsExts.lean`):
+```lean
+abbrev etcdCQ : Fs.OsState → Fs.OsState → Prop := fun st st' => WalFs.W1 walCodec st st'
+@[reducible] def etcdFsSem : ExtSemantics Fs.fsExt := Fs.fsSemWithS etcdSQ etcdCQ
+```
+`W1` (`Proof/go_etcd_io/etcd/server/v3/storage/wal/W1.lean`, unchanged): every WAL frame a fresh reader accepts
+after a crash has its core as of one change. The crash corollary and the skeleton use it
+(`etcdNetExtsCrashInterp` with `fs_crash_interpS etcdSQ etcdCQ`; `EtcdBootC`'s `CrashBootWpG etcdCQ`). New semantics
+example `examples/osfs/semantics/premise_w1.go` (indexed in `doc.go`).
+
+**Why.** The WAL's recovery is correct only if a torn frame is rejected, which etcd delegates to the CRC
+(`decoder.go:133-150`); the semantics allows any mix. In the semantics, not a top-level premise (the lead's decision):
+the same place as the existing step premise `etcdSQ` (no I/O error), and no theorem whose machines never crash sees
+it (the single-process theorems, `etcd_safe_nocrash`, `putget_safe`: `Robust []` has no crash step; they rebuilt
+unchanged).
+
+**Risk.** Review `notes/axiom-review/w1-etcdfssem.md` (suspect, by design): `W1` excludes real crashes beyond CRC
+collisions: an intended frame whose zero tail is still in the encoder's buffer (real on C; for etcd byte-identical
+to an allowed later crash image), and a torn `Type` field over stale nonzero bytes (not produced by etcd's file
+handling). It covers every `.wal` file on a member's machine, so it is a claim about the deployment's programs
+(only etcd's member runs there), not about Linux. Satisfiable (`W1Sat`), so no execution is cut short by it.
+
+**Recommendation.** Accept for `etcd_safe` as the WAL tester's premise reused (rule: reuse audited premises), and keep
+the planned restatement to the CRC-only target (*no CRC-32C collision on the `Data` of a frame over zeros*,
+`notes/wal-fsext-plan.md`, "W1's target") as the follow-up that removes the two excluded real-crash classes.
+
+## 9. T4 status (2026-11-24, branch `etcd-safe-d6t4/2026-11-24`)
+
+`NewServer.wp_proofC` (`Proof/.../etcdserver/NewServerCrash.lean`), WIP, not linked (built on the VM 2026-11-24 with `NewServerR`, the only `sorry` the case below): over
+`NewServer.specRAt` (`NewServerRAt.lean`: `specR` with `bootstrap`'s contract at the image,
+`bootstrapAtR`; `NewServer.wp_proofRG` now proves it, and `specR` follows, `NewServer.specR_of_RAt`).
+
+* `i ≤ σ.commit`: proved (`srvCrashImageAt_disk`, `bootstrapAtR_of_crash`).
+* `σ.commit < i`: `sorry`. Where the graceful proof needs `|A| ≤ σ.commit` (`|A| = i`):
+  `restart_idx` → `NodeStartSpecR`'s `A₀.length ≤ σ.commit` and `bootLen ≤ σ.commit` →
+  `rnBootPre .restart` (`bootstrappedRaft.newRaftNode.spec`), `replaySeed_facts` (needs `|A₀| ≤ σ.last`),
+  and `isRaftNode`'s `rnRestartOk` (`|a0| ≤ commit0`), used by `raftNode.start` (`rnRestartOk_a0_le` →
+  `rnStopImage`'s `a0 ≤ σ.commit`, `onStop`) and by the apply side (`rnRestartOk_winAbove` →
+  `EtcdServer.run`/`applyAll`'s "a `Ready`'s snapshot is above the backend's log").
+* The last is **false after a crash** (inference from the code, not tested): a follower applies
+  committed entries before its `Save` (raft v3.7 hands unstable committed entries; `raft.go`'s `applyc`
+  before `Save`), so its backend can be past even the WAL's last index `σ.last`; restarted, a leader's
+  snapshot at `k ∈ (σ.last, i]` is restorable (raft's `restore` rejects only a snapshot whose entry it
+  holds), `applySnapshot` checks only `k > appliedi` (and `appliedi` restarts at `σ.b`), so the backend
+  goes back from `i` to `k` (`OpenSnapshotBackend`, `kv.Restore`). Probably not a linearizability bug
+  (a linearizable read waits for `appliedi ≥` the leader's commit `≥ i`), but the apply-side window
+  must admit it. Plan: drop `|a0| ≤ commit0` from `rnRestartOk` (keep `snap0 ≤ |a0|`), restate the
+  window as "snapshot above `appliedi`, possibly at or below the backend's index" through
+  `applyAll`/`ApplyAllSnap` (the backend's index may move down at a snapshot inside the replay window),
+  `replaySeed_*` over `min(|A₀|, σ.last)`, `rnStopImage` without `a0 ≤ σ.commit` (so the graceful stop
+  image drops `i ≤ σ.commit` too: one image), then `specRAt` over the crash image.
+* `specR` from `specC`: **not as stated**. `specC` needs `walReadFacts σ` in the image (the graceful
+  image lacks it: the restart contract promises it after `bootstrap`) and the crash contract, which is
+  stronger than the restart one (all `i`, not only `i ≤ σ.commit`); and the graceful image's vacancy
+  is armed (`nodeVacantA`), which cannot be unarmed into the crash image's `nodeVacant`. `specR`
+  derives from `specC` once `wal.stopImage` carries `walReadFacts`, #34 proves `bootstrapCrashContract`
+  (giving the restart one), and the crash image holds the vacancy armed (next bullet). Today both are
+  instances of `specRAt` instead.
+* Vacancy: `specC` arms the image's `nodeVacant` with `nodeVacant_armD`, dropping raft's crash token,
+  as the graceful boot does; a generation that must survive its own crash needs that token kept (T2/T7:
+  arm in the crash law and keep the token in the generation's invariant, i.e. the image carries
+  `nodeVacantA`, or `specC`'s post returns `nodeCrashTok`).
+
+### T4 round 2 (2026-11-24)
+
+* `specC`'s post returns raft's crash token (`∃ x, nodeCrashTok γ.cl id x`, beside the old post;
+  lead's decision): the proved case arms with `nodeVacant_arm`. `MemberGen` names `specC` only in
+  prose; T7 takes the token into the generation's invariant.
+* `NewServer.wp_proofRAt` (`NewServerR.lean`) is linked (`etcdserver_NewServer+RAt`, server `Link.lean`
+  regenerated); `wp_proofC` gets its `NewServer+C` entry once its `sorry` is gone.
+* **The backend-ahead case, scoped (not started).** The snapshot regression is a non-issue for clients
+  (`nonissues/etcd-crash-backend-ahead-snapshot-regress.md`, branch `etcd-safe-snapreg`), but the proof
+  must model it, and the apply side's ghost state is monotone where Go's backend is not:
+  `applyAll.specSnapM` takes the snapshot strictly above the ghost applied index `g` (`= |a0|` in the
+  window) and installs the snapshot's image as the KV state at `g`; the mvcc API's history
+  (`mvccImage`, `kv.Restore`'s spec) and the ghost applied log `A` (`srvAppliedOwn`, lower bounds given
+  to readers) only grow. Admitting a snapshot at `k ∈ (ai, g]` means a second ghost track for the
+  backend (its index `ci ≤ g` and data `model(A.take ci)`, regressing at such a snapshot, re-applied
+  up to `g` before the ghost moves) through `applyAll`, `ApplyAllSnap`, `applyEntries`/`applyEntryNormal`
+  (the skip `index ≤ ci` now against the backend's track), `kv.Restore`/`lessor.Recover` at a lower
+  revision, and `rnRestartOk`/`raftNode.start` (`|a0| ≤ commit0` dropped), `replaySeed_*` (`|A₀|` may
+  pass `σ.last`), `NodeStartSpecR`/`rnBootPre`, `rnStopImage` (then the graceful stop image drops
+  `i ≤ σ.commit` too). Estimate: several thousand lines over the server's largest proofs.
+* **Recommended instead (a fork change, proof-driven, rule 14):** in `applySnapshot`, when the
+  snapshot's index is at or below the backend's consistent index (only inside a restart window, after a
+  crash), do not swap the backend: advance `appliedi`/`appliedt`/`confState` to the snapshot's and
+  keep the backend, which already holds every entry up to `ci ≥ k` (the replay skips them). Go then
+  never regresses the backend, `specSnapM`'s branch at `k ≤ g` is a skip (as `applyEntryNormal`'s
+  `index ≤ ci`), and the monotone ghost state stays. What remains after it is the raft-side
+  generalization (`rnRestartOk`, `replaySeed`, `NodeStartSpecR`, `rnStopImage`), smaller. Needs the
+  lead's decision (a fork change, with a `nonissues/` cross-reference).
+
+### T4 round 3 (2026-11-24): the fork guard
+
+**Packet (changes verified etcd behavior; untrusted, a fork change under rule 14).**
+* *Today* (pin `6b942d23f`): after a crash left a follower's backend ahead of its WAL, `applySnapshot`
+  installs a leader snapshot at `k ≤ ci` like any other: it swaps in the snapshot's database and
+  recovers lease, mvcc, alarm, auth and membership from it, moving the backend from `ci` back to `k`
+  (not client-visible: `nonissues/etcd-crash-backend-ahead-snapshot-regress.md`).
+* *With this change* (fork `goose-lean-slicessort-on-fmtattrs-snapguard` @ 8aa40fd5c, on `6b942d23f`):
+  ```go
+  <-toApply.notifyc
+  if ci := s.consistIndex.ConsistentIndex(); toApply.snapshot.Metadata.GetIndex() <= ci {
+      lg.Info("backend already covers the snapshot; keeping it", ...)
+      ep.appliedt = toApply.snapshot.Metadata.GetTerm()
+      ep.appliedi = toApply.snapshot.Metadata.GetIndex()
+      ep.diskSnapshotIndex = ep.appliedi
+      ep.memorySnapshotIndex = ep.appliedi
+      ep.confState = toApply.snapshot.Metadata.ConfState
+      return
+  }
+  ```
+  Not done on this path, and why not needed: the backend swap and the stores' recovery (the backend
+  and the stores built from it already hold every entry up to `ci ≥ k`); `storage.Release` (only
+  frees older WAL files and `.snap.db`s; the next snapshot releases them); `cluster.Recover` and the
+  transport's peers (the membership is the backend's); `NewUberApplier` (nothing it reads changed);
+  `ep.replayConf` stays (the backend is still the bootstrap one, which is what it describes). Raft's
+  storage applied the snapshot in the raft loop as before.
+* *Why*: the proof's apply-side ghost state (the applied log, mvcc's history) is monotone; Go no longer
+  moves the backend back, so the crash restart needs no regressing ghost track.
+* *Risk*: a snapshot at `k ≤ ci` with a conf state different from the backend's membership at `ci`
+  (conf changes in `(k, ci]`): `ep.confState` takes the snapshot's, and the replay of those entries'
+  conf changes (applied to raft regardless of `ci`) brings it to `ci`'s, as at any restart. Tests:
+  `TestApplySnapshotBelowBackend` (new; fails without the guard), the etcdserver snapshot unit tests
+  (`TestSnapshot*`, `TestMergedSnapshot*`, `TestPurge*`, `TestConcurrentApplyAndSnapshotV3`) and the
+  integration tests `TestSnapshotAndRestartMember`, `TestRestartMember`, `TestV3StorageQuotaAfterSnapshot`,
+  `TestV3AlarmsDuringSnapshotInstall`, `TestV3AuthSerializableGetDuringSnapshotRestore` pass (go1.27.3).
+* *Recommendation*: keep (pin bumped); combine with the WAL torn-save fork fix (`goose-lean-fmtattrs-tornsave`
+  @ 768ecf158) when that lands.
+
+**Proof plan after the guard.** `applySnapshot.specSnapM` keeps its meaning with `hle` made strict
+(`ciEff < k`, which its callers have: `ci ≤ g < k` in `applyAll.specSnapM`), the new branch refuted
+there (needs `ConsistentIndex`'s spec in the walk, reading `ciEff γ st.k`). A second spec
+`applySnapshot.specKeep` for `k ≤ ci` (post: `ep` moved, everything else kept) serves the crash
+window: `applyAll.specSnapM`'s premise `g < k` gets a sibling case `ai < k ≤ ciEff` (then `g` stays,
+the snapshot is a skip). Then the raft side: `rnRestartOk` without `|a0| ≤ commit0`, `rnRestartOk_winAbove`
+weakened to "above `appliedi`, or at or below the backend's index" (both cases now handled),
+`replaySeed_*` over `min(|A₀|, σ.last)`, `NodeStartSpecR`/`rnBootPre` without `|A₀| ≤ σ.commit`,
+`rnStopImage` without `a0 ≤ σ.commit` (and `wal.stopImage` without `i ≤ σ.commit`), then
+`specRAt` over the crash image and `wp_proofC`'s `sorry` gone.
+
+**Build after the pin bump (VM, 2026-11-24):** every server module up to `SnapApplyWalk` builds; the
+only break is `SnapApplyWalk.lean:308` (`applySnapshot_walk`), at the guard's new code after
+`<-toApply.notifyc`: it must read `s.consistIndex.ConsistentIndex()` (as `applyEntryNormal`'s
+`tail_skip` does, `wp_ci_get hC γ ci b st Hp`, with the apply state's `Pci`/`Hci`/`Hinv`/`Hst`/`Hbe`)
+and refute `k ≤ ciEff γ st.k` from a strict `hle`. So `applySnapshot_walk` and `wp_proof_snapM` take
+`consistentIndex.ConsistentIndex.spec` (Link: `consistentIndex__ConsistentIndex` in
+`EtcdServer__applySnapshot`'s line) and `specSnapM`'s `hle` becomes `<` (its callers' `ci ≤ g < k`).
+
+### T4 round 4 (2026-11-24): `applySnapshot.wp_proofKeep` builds; the remaining steps scoped
+
+**Built (VM, `fec7d8cf82`):** the server's `Link` and `Results` with the fork guard: `applySnapshot`'s
+`specSnapM` (strict `ciEff < k`) and `specKeep`, both proved. `NewServer.wp_proofC` keeps its one
+`sorry` (`NewServerCrash.lean`, the case `σ.commit < i`).
+
+**What the five steps of "Proof plan after the guard" turn out to need** (read off the code, nothing
+written yet). Each item is more than its line in the plan says:
+
+1. **`applyAll`'s keep case is not only `applySnapshot.specKeep`.** After the guard, `applyAll` runs its
+   whole tail at `k`: `applyEntries` (nil), `Trigger(k)`, both `notifyc` receives, `raftAdvancedC`,
+   `snapshotIfNeededAndCompactRaftLog` (`specNoop`: disk = memory = applied = `k`, which `specKeep`
+   gives), and the `msgSnapC` merge. The merge is reachable: the snapshot's `Ready` can also carry this
+   node's election in a later term (`node.run` keeps stepping while a `Ready` is pending), so
+   `m.GetTerm() == apply.raftTerm` can hold. With `ci > k`, `createMergedSnapshotMessage` takes its
+   window branch (`replayConf != nil`, the bootstrap backend: `specKeep` leaves `replayConf`), which
+   needs the payload's `replayTerms` facts (`replayImageMetadata`, `rnReplayJob γ terms rt n`), as the
+   batch's merge does (`mergedCreate_window_replay`). **`rnApSnap` carries only `taReplayField`**, so
+   `raftNode.start`'s snapshot hand-off must also give `rnReplayJob` for the snapshot payload
+   (`terms = nil.appendEntries(rd.Entries)`, `raft.go:232-236`). The keep tail is then the batch's tail
+   (`wp_proofBatch`, ~600 lines, its merge branch included) at `ms = []`, `ai = k`, with the payload's
+   two-receive `notifyc` and its `srvFrozenAt`/`srvFrozenBelow` in place of `srvFrozenTerms`. Two ways
+   to write it: a copy of that tail in a new `applyAll.specKeep`; or one proof, `specBatch` taking
+   either no snapshot or a kept one with no entries. The second needs the run's keep arm to rebuild
+   `specBatch`'s precondition at `A'` (as `run_job_body` does) and a receive lemma over either notify.
+   The run's side is simple: in the window (`|A| < k ≤ |A₀|`) the ghost log stays `A₀`
+   (`ghostOf_in`, `A' <+: A₀`), so `applyResR … A'` differs from `applyResR … A` only in Go's rows
+   (`ai`, the term, `ep.confState`, `srvSnapState`, the cursor, `epReplayCfg`, whose second disjunct
+   holds in the window).
+2. **`rnRestartOk`'s `|a0| ≤ commit0`** feeds `rnRestartOk_winAbove` (the run's `hwin`) and
+   `raftNode.start`'s `rnStopImage` (`rnRestartOk_a0_le`, two uses). With item 1 the run needs no
+   `hwin` (`k ≤ |ghost|` is the keep case), and `rnStopImage`/`wal.stopImage` drop their commit bound
+   (item 4), so the conjunct can go.
+3. `replaySeed_*`: not yet read beyond its header (`replaySeed_facts` reads the replayed terms off
+   the WAL's entries up to `|A₀|`, which may pass `σ.last`).
+4. **`NodeStartSpecR`/`rnBootPre`'s `|A₀| ≤ σ.commit` is raft's.** It is the configuration point of
+   raft's own `RestartNode.spec` (`a ≤ σ.commit`, `Spec/go_etcd_io/raft/v3/RestartNode.lean`), which a
+   backend ahead of the WAL breaks (etcd hands raft the backend's conf state at `i`). Changing raft's
+   spec is not needed: the server's membership is fixed (`srv_confAt_simple`: the configuration
+   after any committed prefix is `Membership.simple cfg`), so the composition can give `RestartNode`
+   the point `a' = min |A₀| σ.commit` (the conf state reports the same `m`; `confAt γ a' m` from
+   `srv_confAt_simple` over the committed `A₀`). What then moves is the driver's view index:
+   `nodeConfig ⟨a', m⟩`, not `⟨|A₀|, m⟩`. The conf entries in `(a', |A₀|]` come back from raft and
+   are re-applied to raft (`ApplyConfChange` at or past the view's index) instead of skipped: the
+   view's bridge (`NodeBridge`, `rnView`, `applyConfChange`) must accept that, over the same `m`.
+   Then `rnStopImage` drops `a0 ≤ σ.commit` and `wal.stopImage` drops `i ≤ σ.commit` (whose
+   consumers are the restart proofs: item 5).
+5. `specRAt` over the crash image: `srvCrashImageAt_disk` without `hc`, then `wp_proofC` is
+   `specRAt`'s instance in both cases (the proved case's pattern), and the `NewServer+C` Link entry.
+
+**Size.** Item 1 is a new proof of about the batch tail's size plus a change to `raftNode.start` (its
+snapshot hand-off); item 4 reaches the node bridge's view proofs. This is several sessions of work,
+not one: the plan's "smaller" was against the regressing-ghost alternative (several thousand lines).
+
+**2026-11-24, step 1 (`rnApSnap`'s replay terms): blocked on a raft law.** What the snapshot payload
+must carry is `rnReplayJob γ terms rt k`: for a `MsgSnap` this node sent at the payload's term `rt`,
+with `k < |a0|`, the payload's `terms` cover `|a0|` with `a0`'s last term. At a snapshot `Ready`
+`raftNode.start` resets `terms` to `nil.appendEntries(rd.Entries)` (`raft.go:232-236`). Until now it got
+the fact from `rnReplayState.empty` (`|a0| ≤ k`, i.e. `rnRestartOk_winAbove`), which a kept snapshot
+(`k < |a0|`) breaks. The tool for the other case exists, `ReplayJob.lean`'s `rnReplayJob_of_history`
+(the runs describe the durable state `S`'s entries above `k`, which after the reset they do: `S` is the
+snapshot at `k` and `rd.Entries`), but its premise is raft's leader completeness through the node API:
+`sentMsg … sm` (a `MsgSnap` at term `rt`, from this node) `⊢ ⌜DurAgrees S (a0.map toLE)⌝`, for `S` the
+node's durable state at the `Ready` whose `HardState` term is `rt`, `a0` committed. No API law says
+this: the raft proof has leader completeness at the protocol level (`TraceSimFacts.allFacts_leaderCompleteness`,
+`TracedRaftStepRecvUT.leaderComplete_of`), and the API only `snapshotLeader` (`sentMsg_localSnapshotLeader`,
+`snapshotLeader_terms_ne`). It is true of Go: a leader at `rt` holds every committed entry, and its log
+at a `Ready` of term `rt` is its log at its election (a candidate's log does not change during its
+term; a node elected in a later `Ready` of the same term was a candidate at this one). Without it the
+fact is false of a follower: after a power loss its log can hold, at an index the backend applied, an
+entry that a later leader overwrote (the overwrite applied before its WAL `Save`, `raft.go:240` before
+`:264`).
+
+The same law is what step 3 needs: after a crash the initial replay terms come from the WAL's entries
+up to `σ.last`, which may hold such a stale entry at an index `≤ |a0|`, so `replaySeed_facts`'s
+"`terms` give `a0`'s last term" is false without the same-term-leader premise.
+
+**Next:** a raft API law, proved in the raft proof, roughly
+`raftState γ id S ∗ isCommittedLogLb γ l ∗ snapshotLeader γ id S.hs.term ⊢ ⌜DurAgrees S l⌝` (or
+in the form `rnReplayJob_of_history` takes, over the `Ready` whose hard-state term the leader's), with
+its interface regenerated (`etc/api/raft.txt`). Then steps 1 and 3 discharge `rnReplayJob` by
+`rnReplayJob_of_history`. Needs a decision: who proves it (raft-proof work), and its exact form.
+
+**2026-11-24, step 3 (the configuration point `a' = min |A₀| σ.commit`): does not work; blocked on raft's
+`RestartNode`.** Round 4's item 4 assumed that giving raft an earlier configuration point only makes the
+conf entries in `(a', |A₀|]` re-applied to raft. Go does not re-apply them: `applyConfChange` calls
+`s.r.ApplyConfChange(cc)` only when `shouldApplyV3` (`server.go:2078`), false at or below the
+consistent index, so in the replay window raft's view stays at `a'`. The next conf entry `k > |A₀|`
+then needs `node.ApplyConfChange.spec`'s `skippedIn γ l a' k` (`InvNodeRule.lean:594`): every conf
+entry in `(a', k)` decided `.skip`. The ones in `(a', |A₀|]` were decided `.apply` (the server's rule
+applies every v1 conf entry, `srvRule`; conf entries are not confined to the boot log, `ccBootOk`
+only makes them no-op adds), so the premise is false. The view has to be at `|A₀|`, as etcd's
+`bootstrap` makes it (the backend's conf state at `i`), so raft's `RestartNode.spec` must take
+`a ≤ |l|` for a committed log `l` (the backend's, `confAt γ a m` already names it) in place of
+`a ≤ σ.commit`. Inside the raft proof that premise is `RInv`'s `a ≤ commit` and its
+`cfgFold … ((fp ++ log).take a) = some (stOf m)` (`RestartNode.lean:795-810`): the configuration is a fold of the node's
+own log up to `a`, which a node whose log ends below `a` (`σ.last < |A₀|` after a power loss) does not
+hold. Changing it means changing raft's dynamic-configuration invariant (the configuration point
+ahead of the node's own log), not a local edit: a raft-proof design task of its own.
+
+**State of the five steps:** step 1 needs the leader-completeness law (above); step 3 needs raft's
+restart with a configuration point past its stored log (this entry); steps 2, 4 and 5 depend on them.
+Nothing else landed this round; the last green build is `fec7d8cf82`.
+
+## P11, P10: `etcd_safe`'s crash skeleton on `Robust`'s thread bound (2026-11-24, branch `etcd-safe-crash/2026-11-24`)
+
+* **P11, the bridge.** Perennial (pin `b3f2fc48`) has `goose_dist_mixed_crash_adequacy_below` (the thread
+  bound on the execution, `DistCrashNstepsBelow`), so no Perennial change was needed. `Net/Statement/
+  DistCrashAdequacy.lean` gains the thread-bound forms beside the old ones (`CrashBootWpET`, `crashPreET`,
+  `nodeStart_of_crashBootET`, `robust_of_dist_crash_adequacyT`; with the file extension `CrashBootWpGT`,
+  `crashBootWpET_of_GT`, `robust_of_dist_crash_adequacy_fsT`), as `robust_of_distBootILT` for the all-stable
+  bridge: an execution of `n` steps below `threads` threads runs at `threadBound = threads` and `max (n+1) lo`
+  receipts. `robust_of_dist_crash_adequacy_etcdNet` (`etcdstart/NetExtsCrash.lean`) is restated over it:
+  crashing machines `Net.CrashBootWpGT etcdCQ (etcdIdCrashRest C) threads lo bound`, their first generation at
+  `threadBound = threads`, stable machines `Net.DistBootWpSLT threads lo bound`.
+* `EtcdBootC`/`EtcdBootCBad`/`etcd_safe_of_boot` (`dist/TopLevelRobustness.lean`) at `threads := etcdThreads`,
+  `bound := etcdSteps`, no receipt floor (`srvLevelK` and `2^28 - 1` gone), matching `etcd_robust.spec`.
+* **P10.** `EtcdBootCBad`'s member obligation is from the generation's empty package state (`emptyPkgs`,
+  which the crash gives back), not `True`. `etcdBootCBad_holds` (`dist/BootBad.lean`), proved from
+  `serverBadWp`/`clientBadWp`/`nodeBadWp` (the three boot proofs' WPs factored out of `serverBootBad` &c.,
+  which now apply them) and `crashBootBad_of_wp`; `etcd_safe_of_bootWF (Hctx) (HS : EtcdBootC)`. Same `Hctx`
+  hypothesis as the no-crash side.
+
+## Crash interim axioms (2026-11-24, branch `etcd-safe-crash/2026-11-24`)
+
+Each reviewed by a fresh `axiom`-skill agent given the statement and the Go code; reports in
+`notes/axiom-review/c-i{1,2,3}-*.md`. None is used by a proof yet.
+
+* **C-I1** (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`, four axioms over the opaque
+  `dbCrashKeep γ path Dl Dn` and `dbSyncs γ path`): `dbCrashKeep_new` (from `dbSyncs`, `bPath`, `dbHalf` and a
+  fresh write transaction at the committed `D`: the record `(D, D)`), `dbCrashKeep_half` (the half lent to
+  one atomic update; a change moves the fallback), `dbCrashKeep_close`, `dbCrash` (under the crash premise
+  `BoltCrashWhole`, from the record, `crashed`, `crashRest … Dx` and the new generation's name claim at
+  `path`: `fileAtF path D'` with `D' = Dl ∨ D' = Dn`, `crashRest … (i :: Dx)`). The lead's
+  `dbDurLb γ D` is not needed: the record carries the fallback. Review: `_half` and `dbCrash` refuted as
+  first stated, fixed (one-step lending; the name's commit in `dbSyncs`; `BoltCrashWhole` for torn
+  `Truncate` sizes and FNV mixtures). **Open**: `dbSyncs`' producer (bbolt's persistent `NoSync`/
+  `NoGrowSync` fields and the directory sync; until then the laws are vacuous) and `BoltCrashWhole`'s
+  statement (a world premise for the owner, as `W1`); a closed database (defrag, the snapshot install)
+  has no law.
+* **`issues/bbolt-init-not-crash-safe.md`: not refuted.** The fork's `needsInit` covers a crash before
+  `init`'s first sync; between its two syncs the model can tear both metas, `Open` fails, etcd's
+  `newBackend` panics. Now `blocks-proof: yes`; C-I1 is restricted to opened databases. Proposed fork fix:
+  `needsInit` also reinitializes a four-page file whose pages 2-3 are the first write's and whose metas
+  are each zero or invalid.
+* **C-I2** `bootstrapCrashContract.law` and **C-I3** `bootstrapLeftContract.law`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/CrashInterim.lean`): **laws (`abbrev … : Prop`), not
+  axioms**, because both are false of the pinned etcd (`bc2b5f4d0`: torn `Save`s read back, unsaved WALs
+  restarted) and true only of the torn-`Save` fork `768ecf158`; each becomes an axiom when the pin moves
+  (the fix's P0, with layer 1 re-proved over the fork's `Save`). C-I2 review: refuted as first stated
+  (unguarded `γ`/`dir`/`id`; an unsaved WAL beside an applied backend), fixed (the deployment's names as
+  hypotheses, as `bootPremiseR`; `γ.cl.bootLen ≤ σ.commit` added to `bootstrapCrashContract`). C-I3
+  review: survives, suspect (`walAreaUnsaved` wider than `wal.Unsaved`: restate over the history; the
+  opaque data-area disjunct removed, so only WAL leftovers are covered).
+* **Findings for T3/T4/T7.** (1) An unsaved WAL beside a backend that applied the bootstrap batch is
+  likely reachable with the fork's fix (raft hands out the committed bootstrap batch before its `Save`,
+  etcd applies before `Save`, the backend commits on its timer; code reading, no Go test yet): the fix's
+  fresh branch is then wrong; neither law covers it. A Go test and an `issues/` file are next; a fork fix:
+  `DiscardUnsaved` only at consistent index 0. (2) `srvCrashImageAt` requires `γ.cl.bootLen ≤ i`, false of a
+  crash after the first `Save` and before the backend's first commit (`i = 0`): `memberGen_crash.law` needs
+  that case.
+
+### The combined fork head and the decisions after the first reviews (2026-11-24)
+
+* **Fork head for `etcd_safe`: `upamanyus/etcd` `goose-lean-crashfixes` @ `71295dd6d`** = the applySnapshot
+  guard (`goose-lean-slicessort-on-fmtattrs-snapguard` @ `8aa40fd5c`) merged with the WAL torn-`Save` fix
+  (`goose-lean-fmtattrs-tornsave` @ `768ecf158`), both on `bc2b5f4d0`, plus the directory sync after the
+  database renames of defrag and the snapshot install (`nonissues/etcd-backend-rename-without-dir-sync.md`;
+  decision (b) of the coordinator). Not bumped in `etc/goose.py` here: done at integration.
+* **Which change makes each law true.** C-I2 (`bootstrapCrashContract.law`): the torn-`Save` fix (`ReadAll`
+  drops an unfinished `Save`, `DiscardUnsaved` removes unsaved WALs, so a WAL with `bootLen ≤ σ.commit` reads
+  as complete `Save`s); the applySnapshot guard is not needed by `bootstrap` (it is the raft loop's). C-I3
+  (`bootstrapLeftContract.law`): the torn-`Save` fix's `DiscardUnsaved`. C-I1's name durability: the dir-sync
+  change for the two renames; a fresh `bolt.Open`'s name is durable once `bootstrapNewWAL` syncs a directory
+  (the model's `DirSync` commits every logged operation).
+* **`dbSyncs`' producer (for T7, a law to prove once `dbSyncs` is a definition):** for etcd's three paths,
+  from bbolt's persistent fields `NoSync = false`/`NoGrowSync = false` (`Inv/Bolt.lean`) and a commit lower
+  bound covering the operation that made `path` name the database's inode: a fresh `Open` (covered by the
+  WAL's first directory sync), defrag's and the snapshot install's renames (covered by the fork's new
+  syncs). Not stated in Lean yet: `dbSyncs` stays opaque, so C-I1 is vacuous until T7 writes its definition
+  and this law (the definition changes what the C-I1 axioms say: they are re-reviewed then).
+* `BoltCrashWhole` (the opaque crash premise on `Q`): accepted by the coordinator as a trusted item of the
+  final packet, like `W1`.
+
+### Re-review of the restated set (2026-11-24, a fresh `axiom`-skill agent)
+
+C-I1: `dbCrash` false of the model before the commit point (the new meta's bytes are crash candidates from
+its `pwrite`) and `dbSyncs` unsound once produced (renames undo a persistent durable name): both fixed (the
+record announces the commit in flight, `dbCrashKeep_announce`; `dbSyncs` split into persistent `dbOpts` and
+exclusive `dbNameDur`, not returned by `_close`); `BoltCrashWhole` now takes the inodes it covers, still opaque
+(to be defined for the owner packet); `_new`, `_half`, `_close` survive. C-I2 survives. C-I3 survives but is
+too narrow (its new case is unreachable on one file system; the backend leftovers are what T3 must cover) and
+depends on the WAL's whole-sector premise. Reports: `notes/axiom-review/c-i{1,2,3}-*.md`. The last C-I1 fixes
+were not re-reviewed again.
+
+### Third review of C-I1 (2026-11-25)
+
+No panicking program; `dbNameDur` (path-indexed) would make `dbCrash` false once produced: removed. The
+record now names γ's inode `i0` (`dbCrashKeep γ path i0 Dl Dn pd`, from `boltIno` at `_new`), `dbCrash` gives
+`fileHoldsM i0 D'` under `Named V'.now i0` (the caller derives which inode `path` names from the file
+extension's crash facts). `BoltCrashWhole` stays opaque, with the weak forms in its docstring (to be
+defined for the owner packet). Open: the in-flight txid's receipt. Final C-I1: `dbCrashKeep_new`,
+`dbCrashKeep_announce`, `dbCrashKeep_half`, `dbCrashKeep_close`, `dbCrash`; opaque `dbOpts`, `dbCrashKeep`,
+`BoltCrashWhole`. `notes/axiom-review/c-i1-bbolt-crash.md`.
+
+### Fourth review of C-I1 (2026-11-25)
+
+No refutation. A stale-announcement gap fixed (`_close` only with nothing announced; `dbCrashKeep_clear` with a
+fresh write transaction); `BoltCrashWhole` restricted in its docstring (open database, no extending write since
+the last sync; the size part to move into the file extension); `dbOpts`' producer: `Open`'s postcondition. The
+last fix is not re-reviewed. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`, `dbCrash`.
+
+### Checkpoint (2026-11-25, end of the crash-axioms session; branch `etcd-safe-crash/2026-11-24`)
+
+**Done.** P11 (crash bridge on `Robust`'s thread bound) and P10 (`etcdBootCBad_holds`, `etcd_safe_of_bootWF`),
+no axiom or sorry. C-I1 in Lean (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`), final
+set: `dbCrashKeep_new`, `dbCrashKeep_announce`, `dbCrashKeep_half`, `dbCrashKeep_clear`, `dbCrashKeep_close`,
+`dbCrash`, over the opaque `dbOpts` (persistent), `dbCrashKeep γ path i0 Dl Dn pd` (exclusive) and the crash
+premise `BoltCrashWhole I`. C-I2/C-I3 as laws (`bootstrapCrashContract.law`, `bootstrapLeftContract.law`,
+`Proof/.../etcdserver/CrashInterim.lean`), not axioms: false at the pinned etcd, true of the fork head
+`goose-lean-crashfixes` @ `71295dd6d`. Four reviews of C-I1, two of C-I2/C-I3 (`notes/axiom-review/c-i*`).
+
+**Open, for the next agent.**
+1. Re-review `dbCrashKeep_close` (now only with `pd = none`) and the new `dbCrashKeep_clear` (the fix of the
+   fourth review's stale-announcement gap): not reviewed yet.
+2. Write `BoltCrashWhole` out as a definition: only while the file is an open bbolt database with no extending
+   write since its last sync; a validating meta page equals the page's page-cache contents at some moment since
+   the last sync (FNV-64 collision as an explicit probabilistic premise); check some `Q` refining `OsCrash`
+   satisfies it; a configuration-C example in `examples/osfs/semantics/`. Move the size part (an extending
+   `ftruncate` crashes to the old or the target size) into the file extension's `CrashFile` (a trusted change).
+3. `dbOpts`' producer: in bbolt `Open`'s postcondition behind γ's ghost names (not an entailment from persistent
+   field cells), with `UnsafeNoFsync = false` from the Go configuration. Until then all C-I1 laws are vacuous.
+4. The in-flight txid's receipt: the fourth review found it backed (receipts are global); optionally carry it
+   in the record (`announce` taking it).
+5. C-I2/C-I3: become axioms only after the pin moves to `71295dd6d` and the WAL's layer 1 is re-proved over the
+   fork's `Save`; C-I3 to be widened to the backend leftovers (T3) and restated over the WAL history
+   (`walAreaUnsaved`); its dependence on the WAL's whole-sector premise to be stated.
+6. Handed to another agent (not this session): the torn-`Save` fix's fresh-start hole (an unsaved WAL beside a
+   backend that applied the boot entries) and the bbolt `init` fork fix. Done: "Torn-Save fix: fresh-start
+   hole" below (fork head `goose-lean-crashfixes2` @ `d49d01a07`).
+7. T4/T7 finding: `srvCrashImageAt`'s `γ.cl.bootLen ≤ i` excludes a crash between the first `Save` and the
+   backend's first commit.
+8. Not run: `etc/tcb-report.py --check` (needs a local full build; no result uses the new axioms, so the
+   baseline should not move).
+
+### Torn-Save fix: fresh-start hole (2026-11-25)
+
+**The hole (tested).** The raft loop sends a Ready's committed entries to the apply thread before
+it saves the Ready (`raftNode.start`, `server/etcdserver/raft.go:250-276` at `71295dd6d`), and raft
+(synchronous storage writes) hands out the bootstrap conf changes as committed in the first Ready.
+So the backend can commit members and consistent index `n` before the first `Save` is durable. A
+crash then leaves an unsaved WAL beside an applied backend; `goose-lean-crashfixes` (`71295dd6d`)
+discarded the WAL and bootstrapped fresh over that backend. No panic, members and raft's
+configuration right, but the bootstrap entries are replayed at or below the consistent index, where
+`applyConfChange` does not call `ApplyConfChange` (`server.go:2078`): `ep.confState` stays the
+fresh snapshot's empty one, is written to the backend (`beHooks.SetConfState`), and every raft
+snapshot the member makes and sends (`server.go:2158`, the merged snapshot `server.go:1013`) has
+`ConfState{}`; raft v3.7's `restore` rejects a snapshot not naming the receiver, so a follower that
+needs one from this member never catches up (liveness; no safety violation found: a follower sends
+nothing before its first `Save` returns). Test: `TestBootstrapUnsavedWALAppliedBackend`
+(`server/etcdserver/bootstrap_unsaved_applied_test.go`: a real `NewServer`, the first `Save` held,
+the bootstrap entry applied and committed, the data dir copied as the crash image) at `730b7bf62`:
+
+```
+control:   {members:1 raftVoters:[6e17..] backendCS:[6e17..] snapshotIndex:33 snapshotCS:[6e17..]}
+restarted: {members:1 raftVoters:[6e17..] backendCS:[]     snapshotIndex:33 snapshotCS:[]}
+```
+
+Fork-only (upstream has no `DiscardUnsaved`), so no `issues/` file.
+
+**The fix (decision: discard the backend with the WAL).** `bootstrap` (`8ceb22f8d`): when
+`wal.Unsaved`, remove `member/snap/db` (absent is fine) and fsync `member/snap`, then
+`DiscardUnsaved`. Until its first `Save` completed the member sent nothing, so whatever the backend
+applied (the bootstrap entries, or more if a leader's append was stepped before the first Ready) is
+fetched again from raft. Order: backend first, so a crash in between leaves the WAL unsaved and no
+backend, and the next start discards again (tested: the restart from that image matches the
+control). For the laws: C-I2/C-I3's fresh case now holds a fresh backend too (no `beExist` leftover
+from an applied boot); T3's "first start with leftovers" keeps only the pre-WAL leftovers
+(`bootstrapBackend` before `bootstrapNewWAL`, consistent index 0).
+
+**bbolt's init (`issues/bbolt-init-not-crash-safe.md`).** `upamanyus/bbolt`
+`v1.5.0-init-crashsafe` @ `19e0771` (on v1.5.0 `e7a8b2d`, the version etcd's `go.mod` names): `init`
+syncs the freelist and root pages before writing the metas; a writable `Open` re-initializes a file
+of at most four pages whose every byte is zero or `init`'s and which is not `init`'s whole image
+(covers before the first sync, between the two syncs, and the old single write's leftovers).
+`TestOpen_InterruptedInit` fails at v1.5.0 (one case panics), passes with the fix. The etcd fork uses
+it through `replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261125003757-19e0771281fa`
+in `go.mod`, `server/go.mod`, `etcdutl/go.mod`, `tests/go.mod`; `TestBackendOpensInterruptedInit`
+(`server/storage/backend`) panics without it.
+
+**Port to the verified bbolt: yes, needed, not done.** The proof verifies `upamanyus/bbolt` @
+`ca88bb6a` (`etc/goose.py`), 17 commits past v1.5.0 (`git log v1.5.0..ca88bb6a`: the goose forms,
+the bbolt#1311 fix, the two-sync `init` 3207bac and `needsInit` 42c80a7, the `Open` sync c5a6065,
+the entry limit, the leaf split, ...). Its `init` already syncs in two steps; its `needsInit` accepts
+only zero metas over a subset of the data pages, so the window between the two syncs stays open
+there. The port is the widened check (every byte zero or `init`'s image, not the whole image; about
+25 lines replacing `metasZero`), then `DB__init`/`Open`'s proofs and `SpecPlan/Spec/go_etcd_io/bbolt/Open.lean`.
+Until it lands, the binary etcd runs (v1.5.0 + this fix) and the verified bbolt differ by those
+17 commits, as they did with v1.5.0.
+
+**Combined fork head:** `upamanyus/etcd` `goose-lean-crashfixes2` @ `d49d01a07` = `71295dd6d`
+(snapshot guard, torn-`Save` fix, directory syncs) + `730b7bf62` (the test) + `8ceb22f8d` (backend
+discard) + `d49d01a07` (bbolt `replace` and its backend test). Tests (go1.27.3): every package of
+`server/etcdserver/...` and `server/storage/...` passes but `storage/wal`, whose whole suite runs past
+`go test`'s 10-minute default (the byte-mix tests; the package neither imports bbolt nor changed since
+`71295dd6d`), where the torn-`Save` tests pass (`TestTornSaveReadsAsNoSave`,
+`TestSaveEntriesEmptyHardStateWritesState`, `TestUnsaved`, `TestRestartWithEntriesButNotCommit`);
+`etcdutl/...` passes; bbolt `go test -short .` passes (`tests/failpoint` fails the same at v1.5.0: it
+needs a gofail build).
+Not bumped in `etc/goose.py`.
+
+### C-I1 finished (2026-11-25, branch `etcd-safe-crash/2026-11-24`)
+
+* **`BoltCrashWhole` written out** (a definition, still a premise on `Q`, `dbCrash`'s `hQ`): for a file of `I` whose
+  size has not changed since its last sync and with nothing in flight past its end, a meta page of the crash image that
+  validates (`boltMetaValidates`: magic, version, FNV-64a checksum, on the raw little-endian bytes, not importing
+  bbolt's internal `Model/Meta`) is, on its 56 checksummed bytes, the slot as of one change (`valAt`): only the FNV-64a collision, as
+  minibolt's P1. Satisfiable from every reachable state with a crash (`boltCrashWhole_exists`, over `Tests.durCrash`,
+  moved from `P1Sat.lean` into `GooseLang/Ext/Fs/Tests.lean`).
+* **The size part moved into the file extension** (trusted change, **pending the user's review**): `OsFile.szCrash`
+  (the sizes a crash may leave: the synced size, an `ftruncate`'s/`O_TRUNC`'s target exactly, every size a `pwrite` or
+  `fallocate` passed through) and `CrashFile`'s third size clause (with a change in flight, an `ftruncate`'s target).
+  ext4 sets a truncate's `i_disksize` in one journal handle. Example `examples/osfs/semantics/data_truncate_size_exact.go`
+  (indexed in `doc.go`; `data_resize_chunks.go` narrowed to `fallocate`), measured on C by
+  `notes/axiom-review/fs-config/trunc-size.sh` (40 power losses, every size a target) and by the reviewer (a mix with
+  appends, 40 more). Test `Tests.crash_trunc_size_exact`. It removes behaviours only: no proof constructing a crash
+  broke but the tests' witnesses (`crashFile_of` takes the new clause, by default from `sz = f.size`/`f.sizeLo`).
+* **`dbOpts`' producer**: `storage.OpenBackend.spec`'s post (an axiom) gains `⌜cfg.UnsafeNoFsync' = false⌝ -∗
+  backend.dbOpts γ.db`; `dbOpts` moved to `backend/DbOpts.lean` (importable). Not yet in `OpenSnapshotBackend`'s spec
+  (the snapshot install's reopen): for T7.
+* **`dbCrashKeep_close`** now also takes (and gives back) a live write transaction begun at `Dn`, any pending changes
+  (`wView Dn S G`; fifth review: suspect without it; sixth: survives, and proposed `wView` over `wr Dn` for defrag).
+* Reviews: fifth (whole final set: no refutation, `_close` suspect, fixed) and sixth (`_close`: survives), in
+  `notes/axiom-review/c-i1-bbolt-crash.md`. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`,
+  `dbCrash`, over `dbOpts` (opaque, produced), `dbCrashKeep` (opaque), `BoltCrashWhole` (defined).
+* **Build**: a full VM `lake build` at `37a88a324f` (28052 jobs): every module built but one,
+  `SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership` (`failed to synthesize IsPkgInit …
+  pkg_id.encoding.binary`), a generated SpecPlan package initializer that imports nothing this change touched (by
+  inspection; not rebuilt at the base). Not done: interfaces (`etc/gen-interface.py etc/api/backend.txt`, new
+  `DbOpts`) not regenerated (needs a local build); `etc/tcb-report.py --check` not run (axiom names unchanged).
+
+## The WAL crash facts rest on `W1` (integration round 2, 2026-11-25, branch `etcd-safe-main/2026-11-24`)
+
+**What rests on `W1`.** Every WAL crash fact `etcd_safe` uses comes from `walInv_crash` (the WAL tester's crash
+lemma), which takes `W1 walCodec` as the crash premise (`etcdFsSem`'s `etcdCQ`, §Q2): C-I2's `walReadFacts σ` of a
+crash image (`InvCrashImage.lean`, `bootstrapCrashContract.law`) and T5's `srvFiles`/`walReadFacts` at a new
+generation (table above). None holds without it. `W1` today is the stronger statement of `W1.lean` (every frame a
+fresh reader accepts after the crash came back as of one change); its target, the planned restatement
+(`notes/wal-fsext-plan.md`, "W1's target"), is **no CRC-32C collision on the `Data` of a frame whose bytes under it
+were zero**: the CRC does not cover a record's `Type`, so a frame written over another frame's stale bytes can come
+back as a record of the stale type with a valid CRC (`nonissues/etcd-wal-record-type-outside-crc.md`), and only a
+frame written over zeros is protected by the CRC alone. So under the target the proof also needs that **the WAL
+writes every frame over bytes that are durably zero**.
+
+**The torn-`Save` fix creates no frame over stale bytes** (checked by reading the fork at `e94f33b50`, `goose-lean-fmt1c-crashfixes`, the pin of branch `etcd-safe-main-pin/2026-11-24`; no
+test written for this property). `WAL.Save` (`wal.go`, `Save`/`saveEntry`/`encodeState`) writes only by appending
+through the encoder at its current offset: the entry records, then the state record (`encodeState`, the hard state
+given, or `w.state` when it is empty and there are entries), then `sync` when `MustSync`, then `cut` past
+`SegmentSizeBytes`; it never seeks back. The encoder's offset starts where `readAll` in write mode left it, and that
+is where the fix moved the cut: the dropped entry records of an interrupted `Save` (`pending`) are cut with the tail
+(`endOff = pendOff`, the CRC chain `pendCRC`), and the region from `endOff` on is zeroed (`fileutil.ZeroToEnd`:
+`Truncate` then `Preallocate` to the old length) **and made durable** (`fileutil.Fdatasync`, `wal.go:723-729`)
+before the encoder is created, and the directory synced (`wal.go:730-735`). So the next `Save`'s frames, written
+where the torn `Save`'s entry frames were, lie over durable zeros, as the frames after an ordinary torn tail did
+before the fix (the same zeroing, at `LastOffset`). The other places a frame is written: a new segment (`cut`: the
+pipeline's `N.tmp`, created with `O_TRUNC` and preallocated, `file_pipeline.go:75-91`; its headers synced before
+the rename to `.wal`, and appends after that sync over its preallocated zeros), and `Create` (a fresh temporary
+directory, removed first if left; `DiscardUnsaved`, new in the fix, renames an unsaved WAL to that directory, which
+`Create` removes). The one torn frame the WAL can still produce is `cut`'s `Truncate` at the file offset inside a
+frame the page writer has not flushed: pre-existing, and excluded by `W1` as stated (`AsOfW.not_rz_window`, resize
+zeros write no frame); under the target it is a frame over zeros too. Not checked here: `Repair` (not on the
+member's path) and `ReleaseLockTo`'s renames (no frame written).
+
+## 9b. T1's result (from branch `etcd-safe-walfix-p6`, numbered there §9) (2026-11-24, branch `etcd-safe-d6t1/2026-11-24`)
 
 **Go.** `issues/raft-bootstrap-entries-kept-small-appends/bootstrap_torn_test.go` (copied into the raft
 module root): 1, 3 and 5 members bootstrapped as etcd does (`NewRawNode` + `Bootstrap(peers)` on an
@@ -496,3 +1033,173 @@ real WAL) is the natural report if the lead wants one.
   `64aa0b94eb`: T2's crash law over `walRecsH_crash`, with `HistReadOk` (per-prefix `walCommitLe`) in
   `rnDurBodyK` and `walReadFacts σ` in the post (copies of `etcd-safe-d6t2`'s files). All of it builds, with
   no axiom and no `sorry`. Left for T2: maintain `HistReadOk` in its steps and at allocation.
+## T6: the snapshot directory across a crash (design, 2026-11-24, branch `etcd-safe-d6t6/2026-11-24`)
+
+**What the directory holds at this pin** (fork `8c28a4296`, `server/etcdserver/api/snap/`): only database
+snapshots `<index>.snap.db` and `tmp*` temporaries. There is no `SaveSnap`/`Load`/`LoadNewestAvailable`:
+`snapshotter.go` has `New` and `ReleaseSnapDBs` only; the raft snapshot lives in the WAL's snapshot record
+and the backend. `bootstrapSnapshot` (`bootstrap.go:211-252`) removes `tmp*`, `db.tmp*` and `*.snap` files at
+every start.
+
+**etcd's crash handling, read at the pin: safe.** `SaveDBFrom` (`db.go:39-99`): `CreateTemp(dir,"tmp")`,
+copy, `Fsync(f)`, `os.Link(tmp, <i>.snap.db)` (never replaces: `ErrExist` keeps the old one and syncs the
+directory again), `Remove(tmp)`, `fsyncSnapDir(dir)`, then returns; the receiver processes the `MsgSnap` (and
+the WAL's snapshot record is written) only after. So a `.snap.db` the WAL can name is durable, whole, under
+its name. A crash before the directory sync leaves (a) nothing, (b) the `tmp*` (removed at the next start), or
+(c) the linked name, whole (the file was synced before the link). `ReleaseSnapDBs` (`snapshotter.go:45-78`)
+removes `.snap.db` files below the snapshot index with no directory sync: after a crash a removed file may
+**reappear**, harmless (it is below the applied snapshot; the next `ReleaseSnapDBs` removes it again;
+`DBFilePath` looks up by exact index). Nothing for `issues/`.
+
+**Why the lemma cannot be stated over today's `snapDirInv` alone** (two gaps, both in a trusted vocabulary):
+1. *Durability is not recorded.* `snapDirInv`'s files are `backend.fileAt (snapDBPath sd i) D` (the name's
+   claim naming an inode whose bytes hold `D`), with no claim that the bytes and the name's entry are
+   synced. The new generation can keep a file only if it was durable, so the invariant has to say so:
+   `SaveDBFrom`'s axiom (`Spec/.../snap/Snapshotter__SaveDBFrom.lean`, trusted) puts a file into `M` only
+   after its two syncs, which is what Go does, but its post (the invariant) does not carry it.
+2. *No crash disjunct.* The invariant is `inv snapDirN (snapDirInv …)` over the old generation's file
+   ghost state; after a crash its contents must be taken out and the invariant closed, which needs the
+   WAL's shape (`walInv`: `body ∨ crashed L ∗ walCrashTok`). `snapDirInv` is sealed (`@[no_expose]`) and
+   is the vocabulary of three axioms (`SaveDBFrom`, `ReleaseSnapDBs`, `storage.Release`): changing its
+   body is a trusted change.
+
+**Proposed trusted change (packet to write after the lead's go-ahead):** `snapDirInv`'s body becomes
+`snapDirIs p γd ∗ ((∃ M E, … as today, each file `fileAtDur` …) ∨ (crashed L ∗ snapCrashTok γd))`, with
+`fileAtDur path D` = `fileAt path D` plus "every byte durable and the name's entry durable" (the file
+extension's durable view, as `fileStart`/`osShared`'s logged entries); the axioms' statements unchanged
+(they hold the invariant, and inside one generation the crash disjunct is excluded by `notCrashed`).
+Removed files are not tracked (their reappearance after a crash leaves `M` unchanged).
+
+**The law (statement, `Proof/.../rafthttp/SnapDirCrash.lean`, to write once the shape above is decided):**
+```lean
+abbrev snapDir_crash.law (Q : Fs.OsState → Fs.OsState → Prop) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (V' : Fs.Hist) (R : Fs.Roots) (D : List Ino) (sd : GoString) (γd : GName)
+    (img : w64 → backend.Data → IProp GF) (Rm Rm' : w64 → IProp GF),
+    L.goose_go_local_context = lctx → L'.goose_go_local_context = lctx →
+    ⊢ (letI : HeapGS .hasLC GF := ⟨G, L⟩; inv snapDirN (snapDirInv sd γd img Rm)) -∗
+      snapCrashTok γd -∗ crashed (hC := L.goose_crashGS) -∗ □ (∀ j, Rm j ={⊤}=∗ Rm' j) -∗
+      Fs.osSharedInv (L := L) R -∗
+      Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) D true V' -∗
+      snapDirNames (L := L') sd V' ={⊤}=∗
+      ∃ D' : List Ino,
+        (letI : HeapGS .hasLC GF := ⟨G, L'⟩; inv snapDirN (snapDirInv sd γd img Rm')) ∗ snapCrashTok γd ∗
+        Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) (D' ++ D) true V'
+```
+`snapDirNames L' sd V'`: the new generation's claims on the directory's `.snap.db` names (carved by the
+member's restart from `osShared L' R V'`, as the WAL's `BootCrash` carves its area's); `Rm → Rm'` is the
+caller's (T7: a removed index `j` is below the backend's consistent index, which the crash image's counter
+`γm` covers: `c ≤ i + 1`). `γd` is kept (persistent ghost names survive a crash), so the restarted member's
+`snapSaved γd j` facts still hold. Size: the law's proof ~300-500 lines over `crashRest_take_runs_keep`
+(bytes), the names' log (entries durable), `osInv_alloc` at `L'`; the trusted change adds ~50 lines and the
+three axioms' docstrings.
+
+**T6 review outcome (2026-11-24): the go-ahead's "axioms' statements unchanged" does not suffice**
+(`notes/axiom-review/snapdir-crash.md`). A crash between `SaveDBFrom`'s `os.Link` and its directory sync leaves a
+linked, whole file whose index the atomic axiom never recorded (its name still claimed free), so the new
+generation cannot re-establish `snapFree` and `snapDir_crash.law` is unprovable. Needed (a further trusted
+step, for the lead/owner): `SaveDBFrom` linearized at the link (the index into `M`/`E` there, bytes durable,
+entry not), its post a persistent `snapDurable γd i`; the body's `E \ M` case `Rm i ∨ ¬ snapDurable`; T2 carries
+"the WAL's snapshot index is `snapDurable`". `snapDir_take` becomes a crash-token update (two callers). No Lean
+change made on this branch yet.
+
+**T6, second design round (2026-11-24, after the lead's approval of "linearize at the link"):**
+- *Durability needs no new name and no axiom statement change*: let the saved map `E` mean **saved and durable**.
+  The ghost steps of `SaveDBFrom` become: at the link, the index enters `M` only (bytes durable, entry not); at
+  the directory sync, it enters `E`. `snapSaved γd i` (the post, unchanged) then *is* `snapDurable`; raft's
+  `snapLocal` (elements of `γd`) only gets stronger. Body: `M ∩ E` files `fileAtDur`; `M \ E` files pending
+  (bytes durable, entry maybe not); `E \ M` has `Rm i` (as today); `snapFree` over the indices in neither `E`
+  nor `M`. After a crash, a pending file that survived stays in `M` (its certificate is persistent), one that
+  vanished frees its name. The `ErrExist` branch syncs and adds the kept index to `E`. T2's "the WAL's snapshot
+  index is durable" is the receiver's `snapSaved` (`netSnapRecv`), already there.
+- *The crash disjunct's token has no name to live at.* `inv snapDirN (body ∨ crashed L ∗ tok)` needs `tok`
+  exclusive and owned by the crash frame (`Keep L`), so that the crash law finds the body still there (the WAL's
+  `walCrashTok` is at a name in `WalGS`). `snapDirInv sd γd img Rm` has only `γd`, whose ghost map's key and value
+  types (`w64`, `Unit`) are shared with raft's `snapLocal`, every key a possible index. Options: (a) a fifth
+  parameter `γk` of `snapDirInv` (25 uses in 19 files, threaded through `bootOk`'s and the restart's statements);
+  (b) `snapDirIs p γd` (trusted, `snap/Defs.lean`) carries the token's name, allocated by `snapDirOwn`'s update;
+  (c) `E`'s key type `Option w64` (`none` the token), changing raft's `snapLocal` type. Recommendation (b): one
+  trusted line next to the one changed, no signature ripple.
+
+**T6 decisions, round 3 (2026-11-24, the lead's delegation; each with its one-line why):**
+1. *The crash token's name: an existential handle, not `snapDirIs`.* (b) as approved turned out impossible
+   without an axiom: a persistent `snapDirIs p γd` duplicates its `∃ γk`, so two copies need not agree on `γk`,
+   and agreement needs a cell at a name known from `γd` (none: `γd`'s map type is raft's). Decision: the
+   user-facing handle becomes `snapDirInvH sd γd img Rm := ∃ γk, inv snapDirN (snapDirInvK sd γd γk img Rm)`,
+   `snapDirInvK`'s body `snapDirIs ∗ (body ∨ crashed L ∗ token γk)`; `snapDir_init` returns the handle and
+   `token γk` (the crash frame's `Keep`), which owns its own copy of the same `inv`. Why: the crash law opens the
+   `inv` named in `Keep` (same `γk`, so its token refutes the crashed side), and a handle of another generation
+   is a different proposition (the body is at the ambient generation), so no stale handle can be used. Cost: the
+   text `inv snapDirN (snapDirInv …)` becomes `snapDirInvH …` at 25 sites (19 files, 7 of them `Spec/`, four
+   axioms' statements among them: a renaming of the same claim).
+2. *Durability: `E` = saved and durable* (approved). Representation: `M ∩ E` files `fileAtDur`, `M \ E` pending.
+   `fileAtDur path D` = `fileAtF` with (i) the name's claim history committed (`osCommitLb h.next`, the shared
+   mode's committed prefix, `TreeCommit.lean`) and (ii) the bytes durable (every `ByteG` a `durB`, size bounds
+   collapsed). (ii) needs a durable variant of bbolt's sealed `fileHoldsM` (`Spec/go_etcd_io/bbolt/Api.lean`,
+   `fileHoldsMDef` in `Inv/FileImg.lean`): `fileHoldsMDur i D ⊢ fileHoldsM i D`, a new law in bbolt's API
+   (`etc/api/bbolt.txt`), outside T6's package. Why not avoid it: without durable bytes a surviving file's bytes
+   may be any mix of candidates, which is no bbolt image, so the law cannot give `fileAt` at `L'`.
+3. *`snapDir_take` becomes `|NC={⊤}=>`* (`inv_nc_acc` on `snapDirInvK`), its two callers use `wp_ncfupd`.
+
+**Status: implementation not started on this branch.** (2) adds a law to bbolt's API and (1) touches 19 files;
+both are best done together with the law's proof, by the helper that writes it, since the exact shape of
+`fileAtDur` is decided by what `crashRest_take_runs_keep`/`RegionCrashed` let that proof conclude. The law's
+statement (with (1)'s names): from `Keep := inv snapDirN (snapDirInvK sd γd γk img Rm) ∗ token γk` at `L`,
+`crashed L`, `□ (∀ j, Rm j ={⊤}=∗ Rm' j)`, `osSharedInv L R`, `crashRest Q L L' D true V'` and the new
+generation's claims on the directory's names, `={⊤}=∗ ∃ γk' D', Keep at L' (with `img`, `Rm'`) ∗ crashRest …
+(D' ++ D) …`. Proof plan: open the old `inv` (token refutes the crashed side), take the body, close with
+`crashed L ∗ token γk`; per file of `M` take its runs from `crashRest` (`osCrash_take_runs_keep`): a `M ∩ E` file
+is durable so it survives whole (`FileCrashedR` + durable bytes), its name kept (`RegionCrashed` with the
+committed bound); a `M \ E` file survives whole or not at all (bytes durable, entry maybe), its name then free;
+rebuild `fileAt`/`fileFree` at `L'` from the claims (`crashRest_treeS'`'s `osShared L'`), `E` kept (`γd`
+persists), `Rm'` from `Rm`, allocate the new `inv` and token.
+
+**T6, round 4: what the implementation found (P7, 2026-11-25, branch `etcd-safe-p7`; no Lean written yet).**
+Reading the file extension's crash machinery (`crashRest_region'`, `RegionCrashed`, `crashRest_take_runs_keep`,
+`osFileStart`) against round 3's plan, three gaps the plan did not see, each needing a fact the body or the boot
+must carry, and two simplifications:
+
+1. *The directory's inode across a crash (gap, the largest).* The new generation's claims (the law's premise) are
+   on the directory `J'` that `sd` resolves to in the crashed tree `V'.now`; the old files are named at the old
+   directory `J`. `sd = dd/member/snap` is two components below the data directory's root `dd`
+   (`osPathS`: a root, then a spine of fractional claims on `member` and `snap`); nothing in today's body says
+   those two entries are committed, so `J' = J` is unprovable (a crash could, in the ghost state, undo `member`
+   or `snap`). Go is safe: `TouchDirAll(MemberDir())` and `TouchDirAll(SnapDir())` sync the parent
+   (`fileutil.go:49-85`, F-N2), and ext4 commits the whole journal. Fix: the spine durable, `∃ n, osCommitLb n`
+   with every entry of both spine claims below `n`, carried in `snap.snapDirOwn` (it holds the spine already);
+   source: `bootFs.touchMember.law`'s post (`bootFs.dirFresh`, an unproved law whose `TouchDirAll.spec` gives
+   `osCommitLb n`, `h'.next ≤ n` for `member`) and `TouchDirAll(SnapDir())`'s post in `bootstrapSnapshot` (`snap`).
+   The law then proves `lookupH R V' sd = some (.dir J)` (`lookup_joinPath`) and takes `J'` with
+   `⌜lookupH R V' sd = some (.dir J')⌝` from its caller.
+2. *Free names durable at the first start (gap).* `snapFree`'s claims must be free after every crash, else a
+   stray at an unsaved index has no certificate and no `Rm`. For later generations this is free (claims
+   `namesOf V'`, nothing logged). For the first, `bootstrapSnapshot` carves them from `TouchDirAll(SnapDir())`'s
+   new directory claim, whose history is unconstrained in `TouchDirAll.spec`. Fix: `TouchDirAll.spec`'s
+   success post adds that every entry of the new directory's claim writing a name other than `.touch` is below
+   `n` (true: `mkdir` is entry `x`, `hJ.next = x + 1`, and `n = x + 1`; `IsDirWriteable` writes `.touch` only);
+   `carveFree` turns it, with `osNames_histCoh`, into "every crash leaves the name free" (`DurAt` below).
+3. *A pending file removed before its directory sync (gap in the ghost steps).* `ReleaseSnapDBs` may remove a
+   file between `SaveDBFrom`'s link and its sync; the removal is not durable, so the file may reappear at an index
+   in neither `E` nor `M`. Fix (ghost step of `ReleaseSnapDBs`/`Release`, a docstring change): the removed
+   index joins `E` with its `Rm j` (given). So `E` is "durable in `M`, or removed with `Rm`", which is all the
+   crash law and T2 need (`snapSaved` + a refutation of `Rm` still finds the file in `M`).
+4. *Simplification: no new bbolt law.* `fileHoldsMDur i D` is definable outside bbolt from its public API:
+   `osMeta i 1 m ∗ osBytes i 0 1 (bs.map durB) ∗ ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = m.hi = m.size ∧
+   boltImage bs D ∧ bs.length ≤ boltMaxMapSize⌝ ∗ boltImageRcpt bs`, and `fileHoldsM_of_image` (exists) gives
+   `fileHoldsM`. One small API law is needed instead: `boltImageRcpt` at generation `L` gives it at `L'` (its
+   body is `fileRcpt`, a time receipt, global).
+5. *Simplification: one durability predicate.* `nameCrash h j b P := ∃ n, osCommitLb n ∗ ⌜∀ K, (∀ xe ∈ h.ents,
+   xe.1 < n → K xe.1) → P (h.valAfter j K b)⌝`, the form `RegionCrashed` concludes: durable file `P = (· = some
+   (.file i))`, pending file `P v = (v = none ∨ v = some (.file i))`, free name `P = (· = none)`.
+6. *The law's `Rm → Rm'`* must be a plain persistent wand `□ (∀ j, Rm j -∗ Rm' j)`, not `={⊤}=∗`: the body
+   keeps `□ ∀ i, … → Rm i` for every index, which no update over infinitely many indices can rebuild.
+
+Trusted text these change: `snapDirInv`'s body (round 3's shape plus 1-3), `snap.snapDirOwn` (1), the
+docstrings of `SaveDBFrom`/`ReleaseSnapDBs`/`storage.Release` (3), and the statement of the unproved law
+`bootFs.touchMember.law` (1, through `bootFs.dirFresh`). Proved-spec changes: `TouchDirAll.spec` (2),
+`snapFree`/`snapFreeAll` (2). Size estimate now 1500-2000 lines.
+
+**T6, round 4 checkpoint (P7, 2026-11-25).** The coordinator took (b) for gap 1: no spine durability in
+`snapDirOwn`; the law takes `lookupH R V' sd = some (.dir J)` (and the persistent `snapDirKept`) as T7's
+obligation (Go: `TouchDirAll`'s parent syncs). Gaps 2 and 3 and simplifications 4-6 as above (3 recorded as
+`nonissues/etcd-snapdb-removed-before-dirsync.md`). `snapDir_crash_law_holds` proved
+(`etcdserver/SnapDirCrash.lean`); `bootFs.touchMember.law` untouched.

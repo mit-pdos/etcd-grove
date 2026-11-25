@@ -265,7 +265,9 @@ theorem Run.wp_proof
     (wp_check : check.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
-      ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
+      ps.length ≤ 1000 → rafthttp.bootCfg dir ps)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) := by
   intro CS k lg N ids ps ctxs boot ThB RcB RcN hk Hlen Hbf HLv HwbN Haf Hbuq Hdbo
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -284,7 +286,12 @@ theorem Run.wp_proof
     rw [this]
   wp_start as ⟨#Hzlg, Hss, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #HbRs, #Hmarsh, #Hcom⟩
+  icases Hprem with ⟨#Hbps, #HbRs⟩
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit

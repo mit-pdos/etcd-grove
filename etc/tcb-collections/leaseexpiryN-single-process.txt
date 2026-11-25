@@ -18,6 +18,7 @@ axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
+axiom NewRaftLoggerZap.wp_proofNN
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -45,6 +46,7 @@ axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
+axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
@@ -175,6 +177,7 @@ axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
+axiom proto.MarshalBootConfChange.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof

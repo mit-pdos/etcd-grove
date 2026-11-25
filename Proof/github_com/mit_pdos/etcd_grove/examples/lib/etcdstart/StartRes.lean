@@ -7,10 +7,10 @@ What a member's starters take of the program's start resources, as three sealed 
 (`@[no_expose]`; callers use the laws below, never the bodies; only `etcdstart`'s own proofs
 `import all` this module, `etc/import-all.txt`):
 
-* `memberStartRes name a`: what a `Main` takes per member, from program start (`startRights`): the
-  member's data directory fresh (`dataDirFresh (memberDataDir name)`), (wal-link P2) its WAL area
-  fresh (`memberAreasFresh (memberDataDir name)`, allocated at adequacy from the member's
-  `fsExt` root, `WalAreas.lean`), and, for each address the
+* `memberStartRes name a`: what a `Main` takes per member, from program start (`startRights`): (wal-link
+  P2) its WAL area and data directory fresh (`memberAreasFresh (memberDataDir name)`, allocated at
+  adequacy from the member's `fsExt` roots, `WalAreas.lean`; since 2026-11-24 no `dataDirFresh`, which
+  `bootstrap`'s slot no longer takes: program start's tokens are dropped, `memberStartRes_intro`), and, for each address the
   program listens on for the member (`a : MemberAddrs`), the right to listen on it (`netAddrFree`);
   the peer address also with its HTTP protocol unregistered (`httpProtoFree`).
 * `memberFreshRes name a γn`: what a first-start starter takes, after the cluster's network
@@ -74,7 +74,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **What a `Main` takes per member** (program start's resources; see the file header). -/
 @[no_expose] def memberStartRes (name : GoString) (a : MemberAddrs) : IProp GF :=
-  iprop(⌜EtcdVerifyOff⌝ ∗ dataDirFresh (memberDataDir name) ∗ memberAreasFresh (memberDataDir name) ∗
+  iprop(⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with | some p => netAddrFree p ∗ httpProtoFree p | none => emp) ∗
     (match a.client with | some c => netAddrFree c | none => emp))
 
@@ -90,7 +90,7 @@ variable [sem : go.Semantics]
 the cluster's network `γn`. -/
 @[no_expose] def memberFreshRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF) :
     IProp GF :=
-  iprop(⌜EtcdVerifyOff⌝ ∗ dataDirFresh (memberDataDir name) ∗ memberAreasFresh (memberDataDir name) ∗
+  iprop(⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with
       | some p => http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
@@ -130,7 +130,7 @@ theorem memberFreshRes_client (n : GoString) (a : MemberAddrs) (γn : NetNames G
     memberFreshRes (GF := GF) n a γn ⊢ netAddrFree c ∗ memberFreshRes n { a with client := none } γn := by
   unfold memberFreshRes
   rw [h]
-  iintro ⟨#Hv, Hw, Ha, Hp, Hc⟩
+  iintro ⟨#Hv, Ha, Hp, Hc⟩
   iframe; try iframe #
 
 /-- **The peer address's listen right and raft protocol, out of a fresh bundle** (to the member's
@@ -142,7 +142,7 @@ theorem memberFreshRes_peer (n : GoString) (a : MemberAddrs) (γn : NetNames GF)
         memberFreshRes n { a with peer := none } γn := by
   unfold memberFreshRes
   rw [h]
-  iintro ⟨#Hv, Hw, Ha, Hp, Hc⟩
+  iintro ⟨#Hv, Ha, Hp, Hc⟩
   iframe; try iframe #
 
 /-- **The peer address's listen right and raft protocol, out of a restart bundle**. -/
@@ -212,10 +212,9 @@ theorem memberFreshRes_boot [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (
     (hd : cfg.DataDir' = memberDataDir n) (hw : cfg.DedicatedWALDir' = srvWalDirOf (memberDataDir n)) :
     memberFreshRes (GF := GF) n {} γn ⊢ wal.bootRes cfg := by
   unfold memberFreshRes
-  iintro ⟨-, Hw, Ha, -, -⟩
+  iintro ⟨-, Ha, -, -⟩
   iapply wal.bootRes_intro _ _ hd hw
-  unfold memberAreasFresh
-  iframe Hw Ha
+  iexact Ha
 
 /-- (Sweep repairs 1, B4) **`ETCD_VERIFY` off, out of a fresh bundle** (to `NewServer`). -/
 theorem memberFreshRes_verify (n : GoString) (a : MemberAddrs) (γn : NetNames GF) :
@@ -237,8 +236,20 @@ theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
     memberStartRes (GF := GF) n a ⊢ netAddrFree c ∗ memberStartRes n { a with client := none } := by
   unfold memberStartRes
   rw [h]
-  iintro ⟨#Hv, Hw, Ha, Hp, Hc⟩
+  iintro ⟨#Hv, Ha, Hp, Hc⟩
   iframe; try iframe #
+
+/-- **The start bundle of a member that listens on no address, from its areas** (2026-11-24):
+`ETCD_VERIFY` off and the member's fresh areas (`StartOne.lean`'s `memberStartRes_one`). -/
+theorem memberStartRes_areas (n : GoString) :
+    ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir n) ⊢
+      memberStartRes (GF := GF) n {} := by
+  unfold memberStartRes
+  simp only
+  iintro ⟨#Hv, Ha⟩
+  iframe Ha; iframe #
+  try isplitl
+  all_goals iempintro
 
 /-! ## L3: the introduction from program start -/
 
@@ -251,14 +262,14 @@ private theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
   obtain ⟨p, c⟩ := a
   cases p <;> cases c <;>
     simp only [Option.toList, List.nil_append, List.cons_append]
-  · iintro ⟨-, -, Hw, Ha, #Hv⟩
+  · iintro ⟨-, -, -, Ha, #Hv⟩
     iframe; try iframe #
     iframe #; isplitl <;> iempintro
-  · iintro ⟨⟨Hc, -⟩, -, Hw, Ha, #Hv⟩
+  · iintro ⟨⟨Hc, -⟩, -, -, Ha, #Hv⟩
     iframe; try iframe #
-  · iintro ⟨⟨Hp, -⟩, ⟨Hf, -⟩, Hw, Ha, #Hv⟩
+  · iintro ⟨⟨Hp, -⟩, ⟨Hf, -⟩, -, Ha, #Hv⟩
     iframe; try iframe #
-  · iintro ⟨⟨Hp, Hc, -⟩, ⟨Hf, -⟩, Hw, Ha, #Hv⟩
+  · iintro ⟨⟨Hp, Hc, -⟩, ⟨Hf, -⟩, -, Ha, #Hv⟩
     iframe; try iframe #
 
 /-- The members' start bundles from their shares of program start's lists, member by member. -/

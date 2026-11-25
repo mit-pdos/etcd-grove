@@ -775,7 +775,7 @@ abbrev NodeStartSpec : Prop :=
         "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
           nodeVacant γr.cl cv.ID') ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
         "#Hrs" ∷ rnRaftStatusOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
@@ -837,7 +837,8 @@ abbrev NodeStartSpec : Prop :=
 
 /-- (restart S3 item 8, D5, 2026-11-11) **The composition's statement at a restart** (beside
 `NodeStartSpec`, which stays the first start's: D5, so that `NewServer.lean` is untouched until S6):
-`bootstrappedRaft.newRaftNode` over the node API's `RestartNode` (the boot `.restart σ cs S |A₀| m A₀`),
+`bootstrappedRaft.newRaftNode` over the node API's `RestartNode` (the boot `.restart σ cs S a' m A₀`, at
+the configuration point `a' = min |A₀| σ.commit`: 2026-11-24, d6 step 3, until then `|A₀|`),
 for the WAL's records `σ`, the backend's conf state `cs` and committed log `A₀` (its consistent index
 `|A₀|` between the records' base and commit), the node's durable state `S` held by the records: the
 storage `bootstrappedWAL.MemoryStorage` rebuilt (`memStorRestarted`; `srvMem_restartStorage`, its
@@ -845,7 +846,9 @@ snapshot valid by `walSnapCS_valid`), the WAL's durability at the view `⟨S, σ
 `P = A₀.take σ.b` (`rnDur_alloc_view`, W4's records); yields the wrapper with the tokens at `P`
 (Q34 (a); `rnToks_of_restart`), the names' restart data (`a0 = A₀`, `t0` the restored term, `commit0`,
 `snap0` the restored commit and base), and the installer. (restart3 A1, 2026-11-15: until then the
-installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNode`'s `rnRestartOk`.) -/
+installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNode`'s `rnRestartOk`.)
+(2026-11-24, d6 step 3) `|A₀| ≤ σ.commit` is no longer `RestartNode`'s (its point is `a'`); it stays
+for `rnRestartOk`'s restart disjunct and `replaySeed_facts` (d6 T4 round 4, items 2 and 3). -/
 abbrev NodeStartSpecR : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
@@ -886,7 +889,7 @@ abbrev NodeStartSpecR : Prop :=
         "#Hlinv" ∷ srvRaftLogInv ⟨γr, [], W64 0⟩ ∗ "#HA0" ∷ srvRLogLb ⟨γr, [], W64 0⟩ A₀ ∗
         "#Hcert" ∷ walSnapCert γr.cl σ ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+        -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
         "#Hrs" ∷ rnRaftStatusOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)

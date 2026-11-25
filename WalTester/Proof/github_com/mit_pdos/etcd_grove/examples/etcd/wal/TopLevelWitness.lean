@@ -48,7 +48,7 @@ theorem etcd_wal_safe.premisesSat : premise_sat% etcd_wal_safe.spec := by
     ⟨rfl, (fsRoots_mem _ 0).2 (by decide), fun _ _ => fsRoots_entry _ _ _,
       (fsRoots_mem _ 1).2 (by decide), fsRoots_entry _ _ _, fsRoots_entry _ _ _⟩,
     (robustStart_one (σ := freshState (fsRoots tRoots, ())) (g := ⟨((), ()), ∅⟩)
-      (fresh_freshState _) (by exts_init) (by exts_init)).2⟩
+      (fresh_freshState _) (by exts_init) (by exact ⟨tRoots_init, trivial⟩)).2⟩
 
 end etcd_wal
 end EtcdGrove

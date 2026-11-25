@@ -60,7 +60,7 @@ abbrev StartMemberAuth.spec : Prop :=
       zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremiseOn N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      bootPremiseOn N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       memberBootOn γ ctxs ρ E₀ Φs id false m ∗
       netHttpOk γn id ∗

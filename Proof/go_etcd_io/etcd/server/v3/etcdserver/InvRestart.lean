@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Spec.go_etcd_io.raft.v3.Api
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseRestartStor
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsCrash
 
 @[expose] public section
 
@@ -105,6 +106,46 @@ WAL area's directory `srvWalDirOf dd` fits (`WalA.fits`), and it holds all of `d
 theorem srvFiles_dataDir_len (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
     srvFiles (GF := GF) dd id σ D ⊢ ⌜dd.length < 2 ^ 60⌝ ∗ srvFiles dd id σ D := by
   unfold srvFiles
+  iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
+  have hf := a.fits
+  rw [ha] at hf
+  have hl : (srvWalDirOf dd).length < 3800 := hf.1
+  simp only [srvWalDirOf, walAreaOf, List.length_append, List.length_drop] at hl
+  have hdb : dataBase.length = 20 := by decide
+  isplitr
+  · ipureintro; omega
+  iframe Hb
+  iexists a, cid
+  iframe Hw
+  ipureintro; exact ha
+
+/-- **The files of a member's data directory hold `σ` and `D`, as a crash or a stop leaves them**
+(`srvFiles` with the WAL's files `walFilesC`: without the WAL's synced mark at its whole history,
+which a crash keeps at the old mark (`walCrash`'s `m`); nothing on the restart path reads the mark).
+(P8, 2026-11-25: the graceful image `srvDiskImageAt` and `bootstrap`'s restart contract take these,
+so that a crash image is a graceful one; a stopped member's `srvFiles` are an instance,
+`srvFiles_srvFilesC`.) -/
+def srvFilesC (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
+  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗ walFilesC a id cid σ true) ∗
+    backend.fileHolds (config.backendPathOf dd) D)
+
+/-- **A stopped member's files are files a crash may leave.** -/
+theorem srvFiles_srvFilesC (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
+    srvFiles (GF := GF) dd id σ D ⊢ srvFilesC dd id σ D := by
+  unfold srvFiles srvFilesC
+  iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
+  iframe Hb
+  iexists a, cid
+  isplitr
+  · ipureintro; exact ha
+  iapply walFiles_walFilesC
+  iexact Hw
+
+/-- **The data directory of a crashed member's files is shorter than `2^60` bytes**
+(`srvFiles_dataDir_len`'s). -/
+theorem srvFilesC_dataDir_len (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
+    srvFilesC (GF := GF) dd id σ D ⊢ ⌜dd.length < 2 ^ 60⌝ ∗ srvFilesC dd id σ D := by
+  unfold srvFilesC
   iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
   have hf := a.fits
   rw [ha] at hf
@@ -195,7 +236,7 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
     -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
     wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
-    srvFiles dd id σ D ∗
+    srvFilesC dd id σ D ∗
     -- (restart S6a, (b′)) the member's snapshot directory: the invariant its first start allocated
     -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
     -- member's removal counter, at most one past the image's index; (S6a-2) the invariant's
@@ -203,8 +244,8 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
     -- (wal-link, 2026-11-19: the invariant of the directory `config.snapDirOf dd` itself)
     (∃ (γd γm : GName) (c : Nat),
       ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
-      inv snapDirN (snapDirInv (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
-        (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
+      snapDirInvH (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
+        (fun j => monoNatLbOwn γm (uint.nat j + 1)) ∗
       monoNatAuthOwn γm 1 c))
 
 /-- **Member `id`'s data directory as its last stop left it** (`srvDiskImageAt`'s body, above, at
@@ -723,7 +764,7 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
         -- (S5, 2026-11-18: no longer also the opaque `pathOwn` of the backend path, the claim on
         -- its name being `srvFiles`' file's)
-        srvFiles cfg.DataDir' id σ D }}
+        srvFilesC cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }})

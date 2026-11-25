@@ -151,24 +151,24 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
   `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
 - `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), the raft of
-  `KvNet/`'s closed theorem, whose trust base has no axiom of this repository: raft of project
+  `KvRaft/`'s closed theorem, whose trust base has no axiom of this repository: raft of project
   `raft-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`; with walpb translated into it as a part of its project),
   and copies of every main-tree module of raft's closure (its `Link` and the modules `etc/api/raft.txt`
   lists as importable) that reaches them, written by `etc/copy-part.py` (a first line naming it;
   `--check` in CI; a file without that line is the part's own); its initializers from
   `etc/gen-init.py`'s `PARTS`, its Link from `etc/gen-link.py --raft-noax`. Nothing outside it imports
   it; trust base: `etc/tcb-collections/raft-noax.txt`. (Until 2026-11-24 it also held kvdurable's closed
-  theorem, project `kvdurable-noax`: retired with kv, kvreconf and kvdurable's, which `raft_kvnet_robust`
-  and kvudp subsume.)
+  theorem, project `kvdurable-noax`: retired with kv, kvreconf and kvdurable's, which `kvraft_robust`
+  and kvraft-udp subsume.)
 - `Net/` is another: the net extension's `net` and the programs over it (`examples/net`, `examples/lib/remote`,
   the models' codecs and `net/{http,rpc}`). Since the net swap (etcd-dist D2, 2026-11-22) its `net` is also the
   main tree's (`net=Net` in every project; `Proof/net/InvNet.lean` defines the address predicates over it):
   the main tree imports `Net/`'s `net` modules, never the part's other modules.
-- `KvNet/` is another: kvnet's proof (`notes/kvnet-part.md`), over raft-noax's raft, `Net/`'s `net` and
-  `WalTester/`'s bodied `durable` in one closure: project `kvnet` and parts of projects raft-noax, net,
+- `KvRaft/` is another: kvraft's proof (`notes/kvraft-part.md`), over raft-noax's raft, `Net/`'s `net` and
+  `WalTester/`'s bodied `durable` in one closure: project `kvraft` and parts of projects raft-noax, net,
   durable and etcd translated into it, copies of those parts' (and the main tree's) modules its own
-  modules reach written by `etc/copy-part.py --part KvNet` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
-  main), its initializers by `etc/gen-init.py` (`KVNET_INITS`). Nothing outside it imports it.
+  modules reach written by `etc/copy-part.py --part KvRaft` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
+  main), its initializers by `etc/gen-init.py` (`KVRAFT_INITS`). Nothing outside it imports it.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
@@ -202,8 +202,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   file to audit) and `Proof/<example>/TopLevelRobustness.lean` proves it (`theorem <name> :
   <name>.spec`, from the example's closed theorem); the program and the other definitions the
   statement names are in `Proof/<example>/TopLevelDefs.lean` (a defs module, so the Spec file
-  imports no proof); a new example gets all three. (kvnet's statement,
-  not proved yet: `Proof/.../examples/raft/kvnet/Robust.lean`.)
+  imports no proof); a new example gets all three. (kvraft's statement,
+  not proved yet: `Proof/.../examples/raft/kvraft/Robust.lean`.)
 - `models/`: our trusted models of real libraries (executable stand-ins: verified where they are code,
   trusted only in their claim to behave like the library), the Go module `models.lab` (a path naming no
   project, as the part `Net/` is exported to dsverify-lab), each with its evidence (`models/README.md`):
@@ -454,8 +454,9 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
   (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
   (`-lean-root go.etcd.io/raft/v3=`).
-- From the same fork (branch `goose-lean-walfs2`, the WAL's fixes 0001-0006 rebased onto `lean`'s etcd pin
-  `6e8f0c004`, head `8c28a4296`: `notes/wal-fsext-fork/README.md`),
+- From the same fork, at the etcd project's pin (`etc/goose.py`, which lists its fixes: the WAL's fixes
+  0001-0006 of `goose-lean-walfs2`, `notes/wal-fsext-fork/README.md`, the later ones, and the torn-`Save`
+  fix, a `Save` a crash interrupts reading back as no `Save`),
   etcd's real WAL with bodies over the per-byte file extension's `os`: `server/v3/storage/wal` (but
   `version.go`, `metrics.go`), `wal/walpb`, `client/pkg/v3/fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`, and
   the standard-library packages they call that Perennial does not translate (`bufio`'s `Reader`,

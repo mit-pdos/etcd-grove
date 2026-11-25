@@ -1226,7 +1226,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γt, Hγt, -⟩
   -- (restart S6a, M1) its ghost map named by the directory's right (`bootOk`'s `Hsdo`)
   imod (snapDir_init (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsfree Hsdir
-    with #Hsdir
+    with Hsdk
+  -- (D6-T6) the handle; the crash token's invariant (`snapDirKeep`) is the crash frame's, which this
+  -- generation-0 proof does not thread yet (T7)
+  icases snapDirKeep_handle _ _ _ _ $$ Hsdk with ⟨#Hsdir, -⟩
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
   -- (rafthttp stage 6d) the member's URLs, read-only; it is a member of the directory (raft's peer)
@@ -1250,7 +1253,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     simp only
     rw [Hid]
     iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg HssI
-    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls, Hbco.2.2.2.2.2⟩ <;> first | rfl | trivial
+    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls, Hbco.2.2.2.2.2.1⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with

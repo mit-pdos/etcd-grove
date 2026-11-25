@@ -16,8 +16,9 @@ configuration with those fields and URLs `U` meeting `Uok` (one member's `urls1`
 cluster's `urls3`: the member's peer and client URLs, the initial cluster's map of the shape the
 caller builds, the initial URLs by name), at the bound `N` and the directory `dir`.
 
-**The premises the members share** (`commonPremises`): the raft wrapper's trust-boundary contracts,
-`Stop` of a started node (until 2026-11-13 also the deployment's `runsNoRequireLeader`).
+(Until 2026-11-24 **the premises the members share**, `commonPremises`: the raft wrapper's trust-boundary
+contracts `rnLoggerZapOk`, `rnTimeoutDetectorOk`; now axioms `newRaftNode`'s proof takes, and the
+definition is gone.)
 
 **A member built and started** (`memberBuilt`: `newServer`'s success, what `Start` takes;
 `memberUp`: `Start`'s, what serving it needs) and **what `NewServer` takes of the ghost state**
@@ -141,15 +142,17 @@ whole-`bootOk` review, C) from the fields a configuration literal sets: the defa
 batch limit and bootstrap defragmentation (zero), raft's `10` ticks, peer TLS with no certificate
 (the literal leaves `PeerTLSInfo` zero; 2026-11-25) (2026-11-03, the boot premises:
 the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it; sweep repairs 1, R1-2: the logger
-no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract). -/
+no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract; claim #34's final stage, 2026-11-25:
+the WAL's fsync on, `UnsafeNoFsync` false, the literal's zero value). -/
 theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (hq : cfg.QuotaBackendBytes' = W64 0)
     (hbl : cfg.BackendBatchLimit' = W64 0)
     (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
     (het : cfg.ElectionTicks' = W64 10)
-    (htls : transport.tlsEmpty cfg.PeerTLSInfo') : bootCfgOk cfg := by
+    (htls : transport.tlsEmpty cfg.PeerTLSInfo')
+    (hnf : cfg.UnsafeNoFsync' = false) : bootCfgOk cfg := by
   have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
-  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, htls⟩
+  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, htls, hnf⟩
   · rw [hl]; decide
   · rw [hl]; decide
   · rw [het]; decide
@@ -218,13 +221,6 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
   iapply H
   ipureintro
   exact ⟨Hc cfg hc, Hu U hu, h1, h2, h3⟩
-
-/-- **The premises shared by the members** (see the file header). -/
-def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk)
-
-instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
-  unfold commonPremises; infer_instance
 
 /-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`): the server's names of the store's
 state `γs`, the revisions' map `rev`, the store's witness `Nx` and (M2, the storage side, review

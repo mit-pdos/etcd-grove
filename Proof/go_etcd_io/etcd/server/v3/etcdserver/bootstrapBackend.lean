@@ -239,7 +239,7 @@ theorem bootstrapBackend.wp_proof
       (fun _ => mvcc.api.mvccW gx)
       (fun γB => batchLockInv (γ0.withPh (futPhys π0 γB)) (metaTM γB (bootP (storage.openLimit cfg))))
       (snapOpenK γ0 π0 (bootP (storage.openLimit cfg)))) $$ [Hfile Hcreate Hfg]
-    as %b %γB ⟨Hnew, #HhkAt, #Hbfile, Hpath⟩
+    as %b %γB ⟨Hnew, #HhkAt, #Hbfile, Hpath, -⟩
   · iframe Hfile
     iunfold storage.openPre
     iframe Hfg Hhooks Hvoff Hzlg

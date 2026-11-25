@@ -265,7 +265,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
   have hvs : _ ∧ _ := ⟨Hvs0.2.1, Hvs0.2.2.1⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -, -, %Hbcc0⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
   · iframe Hb HA
   ihave #HA' := HA
@@ -291,17 +291,12 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
       rw [this]; exact List.prefix_refl _
   -- a committed entry's conf change is `ccApplyOk`'s
   have hcfg : γ.raft.cfg = GMap.listToSet γ.raft.vs := rfl
-  have hmem : ∀ m ∈ A, m.typ = W32 1 → ccBootOk γ.raft.cfg m.data := fun m hm ht =>
+  have hmem : ∀ m ∈ A, m.typ = W32 1 → ccWideOk γ.raft.cfg m.data := fun m hm ht =>
     Hcc m.toLE (by simp only [srvLE, hpre, List.nil_append]; exact List.mem_map_of_mem hm) ht
   have hbcc : ∀ e ∈ γ.raft.boot, ∀ cc, ccDecodeV1 e.Data' = some cc →
-      ccApplyOk (GMap.listToSet γ.raft.vs) cc := by
-    intro e he cc hd
-    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem he
-    obtain ⟨-, -, hkk⟩ := hvs.2
-    obtain ⟨-, -, hty, -⟩ := hkk k _ (List.getElem?_eq_getElem hk)
-    have hin : EntryModel.ofM γ.raft.boot[k] ∈ A := by
-      rw [← hR]; exact List.mem_append_left _ (List.mem_map_of_mem (List.getElem_mem hk))
-    exact hmem _ hin (by simpa [EntryModel.ofM] using hty) cc (by simpa [EntryModel.ofM] using hd)
+      ccAddOk (GMap.listToSet γ.raft.vs) cc :=
+    -- (route B) the boot policy's, `srvClusterOk`'s boot fact
+    fun e he cc hd => Hbcc0 e he cc hd
   have hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
       ccApplyOk (GMap.listToSet γ.raft.vs) cc := by
     intro e he hne cc hd
@@ -682,12 +677,15 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icombine Hst' Hst2 gives %hsteq
   subst hsteq
   -- (wal-link L3) the WAL's files at its directory, (P2) the data directory's dedicated one (`srvFiles`' form)
+  -- (P8, 2026-11-25) as the image takes them (`srvFilesC`: the WAL's files without the synced mark)
   ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗
-      walFiles a C.rn.id cid σ true) $$ [Hw]
+      walFilesC a C.rn.id cid σ true) $$ [Hw]
   · icases Hw with ⟨%cidw, Hw⟩
     iexists C.rn.wal.h.toWalA, cidw
-    iframe Hw
-    ipureintro; exact hwd
+    isplitr
+    · ipureintro; exact hwd
+    iapply walFiles_walFilesC
+    iexact Hw
   -- the backend's file
   iunfold srvDataDir at Hdd
   icases Hdd with ⟨#Hdd1, -⟩
@@ -706,7 +704,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iexists S, σ, ai, G, D, Membership.simple C.γr.raft.raft.cfg, M
   iunfold srvDiskImageAt
   rw [hρ] at *
-  iunfold srvFiles
+  iunfold srvFilesC
   rw [← hγ]
   have h1 := hp.2.2.2.2.2.1
   have h2 := hσ.2.1

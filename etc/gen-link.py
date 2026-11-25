@@ -71,8 +71,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --wal-tester > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Link.lean
-       etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
-       etc/gen-link.py --kvudp > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/cmd/kvudp/Link.lean
+       etc/gen-link.py --kvraft > KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Link.lean
+       etc/gen-link.py --kvraft-udp > KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
@@ -587,11 +587,24 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions",
                    "The proofs of the checker of Antithesis's model of raft (`examples/raft/antithesis/"
                    "check`, the Go transcription of `EtcdRaft.tla` and `EtcdBinding.tla`)", [""]),
+    # (etcd-dist D2, 2026-11-24) etcd_safe's deployment check (`examples/etcd/dist/deployment`) and the
+    # member ids it computes (`membership.NewMember`'s chain, also in the server's list)
+    "--deployment": ("link-lean-first-deployment.txt",
+                     "github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment "
+                     "go_etcd_io.etcd.server.v3.etcdserver.api.membership go_etcd_io.etcd.client.pkg.v3.types",
+                     "github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions",
+                     "etcd_safe's deployment check (`examples/etcd/dist/deployment`)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
 # (`GooseLang/Ext/Fs/SemOk.lean`), so that they hold over a restricted one (`NoTear.lean`).
 EXTS = {"--bboltfs": "[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]"}
+# The package assumptions a mode's sections take beside its own package's (after `package_sem`): those
+# of packages its proofs call into that its package's `Assumptions` does not import (`types`'s and
+# `strings`'s come from the deployment's)
+PKG_ASMS = {"--deployment": "[go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions] "
+                            "[_root_.Perennial.sort.Assumptions] [_root_.Perennial.crypto.sha1.Assumptions] "
+                            "[encoding.binary.Assumptions]"}
 # The namespaces a mode's links open before those binders (the file extension's names are in `Fs`).
 EXT_OPENS = {"--bboltfs": "\nopen Fs\n"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
@@ -605,13 +618,18 @@ NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "co
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
-              "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
+              "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs", "--deployment": "etcd_dist"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # (etcd-dist D2) Perennial's results the member ids' proofs take (`=` callees), net/http's
+                 # `URL.String` boundary, `fmt.Errorf` of basic arguments
+                 "--deployment": ["Perennial.Proof.strings.Link", "Perennial.Proof.sort.Link",
+                                  "Perennial.Proof.crypto.sha1.Link", "Proof.net.http.Axioms",
+                                  "Proof.fmt.ErrorfStrs"],
                  # (the import tiers, 2026-11-18) the client's laws its proofs take (`=client.*_law_holds`,
                  # `=etcd_txnlin.*_law_holds` callees)
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
@@ -696,6 +714,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
     EXTRA_IMPORTS.setdefault(_m, []).append("Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults")
+# (premises to axioms, 2026-11-24) the examples' bootstrap logs' `bootMarshal` from `proto.Marshal`'s
+# trust-boundary axiom at a boot conf change (`=_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof`)
+for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "--authkv"]:
+    EXTRA_IMPORTS[_m].append("Proof.google_golang_org.protobuf.proto.MarshalBootConfChange")
 # (the import tiers, 2026-11-18) the laws of the client's linked calls the call proofs take
 # (`=client.*_law_holds`, `=*_law_holds` of `CallsLinked.lean`)
 EXTRA_IMPORTS["--linkvtxn"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
@@ -707,6 +729,9 @@ EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
 # (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
 EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
 EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
+# (pin e94f33b50, 2026-11-25) `storage.syncDir`'s callees, proofs passed as terms (`=`)
+EXTRA_IMPORTS["--server"] += ["Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir",
+                              "Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS", "Proof.os.File__SyncS"]
 # (#26, 2026-11-24) `WithCancel(TODO())` over Perennial's context proofs (`=_root_.Perennial.context.*`)
 EXTRA_IMPORTS["--client"] += ["Perennial.Proof.context.Link", "Perennial.Proof.sync.atomic.Link"]
 # (net-swap, etcd-dist D2, 2026-11-22) `net.Listen`'s proof takes the part `Net/`'s `Listen` spec, its
@@ -742,16 +767,16 @@ if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
     sys.exit(0)
-if sys.argv[1:2] in (["--kvnet"], ["--kvudp"]):
-    # kvnet's Link (the part KvNet/): the callees read off the proofs' binders, the generic proofs
-    # linked at the store's model parameters (`etc/link_kvnet.py`); `--check` compares
+if sys.argv[1:2] in (["--kvraft"], ["--kvraft-udp"]):
+    # kvraft's Link (the part KvRaft/): the callees read off the proofs' binders, the generic proofs
+    # linked at the store's model parameters (`etc/link_kvraft.py`); `--check` compares
     sys.dont_write_bytecode = True  # no etc/__pycache__
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import link_kvnet  # noqa: E402
+    import link_kvraft  # noqa: E402
     import proof_roots  # noqa: E402
-    link_kvnet.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+    link_kvraft.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
-                    udp=sys.argv[1] == "--kvudp")
+                    udp=sys.argv[1] == "--kvraft-udp")
     sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
@@ -834,7 +859,9 @@ EXTRA_VARS = {# (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor reg
 # (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
 NAMESPACED["--mvccrand"] = "mvccrand"
 EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
-                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link"]
+                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
+                               # (P3, 2026-11-24) `absent`'s `errors.Is` (an `=` callee)
+                               "Proof.errors.IsPathErrnoNotExist"]
 EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
                             "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): as mvccrand's, and the lessor's
@@ -844,7 +871,9 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
                                "Proof.sort.SortAnyLessLinked",
                                # (F1 Prove, 2026-11-10) `Compact`'s channel made (`compactChan.law`)
-                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults"]
+                               "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults",
+                               # (P3, 2026-11-24) `absent`'s `errors.Is` (an `=` callee)
+                               "Proof.errors.IsPathErrnoNotExist"]
 EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
 # (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
 # `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)
@@ -1212,7 +1241,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}""")
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}""")
     def hyp(fn):
         return "h_" + fn.replace("+", "_")
 
@@ -1422,7 +1451,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
     later = [fn for fn in order if fn in blocked and fn not in pending and fn not in external]
@@ -1452,7 +1481,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
 {include_line}
 """)
         out.extend((("include " + " ".join(hyp(p) for p in sorted(reach[fn])) + " in\n")

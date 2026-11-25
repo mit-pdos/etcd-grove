@@ -7,7 +7,9 @@ ghost state and invariants, the listeners' protocols, the machines' shares, the 
 remote's map of operations, the client addresses' remote protocols, remote's pending library over
 the store `casR γ.proto`, and each machine's boot from its share: the orchestrator's and the
 client machines' by their generated initializer specs, the server machines' by their owned boots
-(`cmd/server*/Boot.lean`: `gryffGlobals`, `bootProph`, `serverBoot` from `RpcBootHyp`).
+(`cmd/server*/Boot.lean`: `gryffGlobals`, `bootProph`, `serverBoot` from net/http's and net/rpc's
+first initializations, on machines of at most `2 ^ 30` threads), their `main`s with the main
+thread's token (`robust_of_distProtoLisRBTT`), on which net/http's `Serve` runs.
 -/
 module
 
@@ -90,6 +92,28 @@ theorem wp_bootR [hG : HeapGS .hasLC GF] [sem : go.Semantics]
   · iframe
   ipureintro; rfl
 
+/-- `wp_bootR` whose `main` also gets the machine's main thread's token. -/
+theorem wp_bootRT [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+    (init : val) (main pkg : GoString) [IsPkgInit (IProp GF) pkg] (getIs : GoString → IProp GF)
+    (R : IProp GF)
+    (Hinit : {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
+        (App (Val init) (Val #()))
+      {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg ∗ R }})
+    (P : IProp GF)
+    (Hf : {{ isPkgInit (PROP := IProp GF) pkg ∗ P ∗ R ∗ threadTok }}
+        (App (Val (@! main)) (Val #()))
+      {{ RET #(); True }}) :
+    ⊢ P -∗ ownGoState ∅ -∗ threadTok -∗
+      WP (boot init main) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
+  iintro HP Hgs Htok
+  unfold boot
+  wp_apply Hinit $$ [Hgs] as ⟨-, #Hpkg, HR⟩
+  · iexact Hgs
+  wp_pures
+  wp_apply Hf $$ [HP HR Htok]
+  · iframe
+  ipureintro; rfl
+
 /-- The generated initializer spec, from the empty package state (craq's). -/
 theorem init_of_gen [hG : HeapGS .hasLC GF] (init : val) (pkg : GoString)
     [IsPkgInit (IProp GF) pkg] (getIs : GoString → IProp GF)
@@ -120,8 +144,8 @@ end boot
 /-- **The gryff kit, closed** (see the statement's file); net/rpc's client over HTTP over Perennial's
 proofs of `strings.Cut`/`TrimLeft` (Net's `DialHTTP.wp`, in `Link.lean`'s `wp_Server`). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hss hmp hrs H hboot σ g
-  refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 31)
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hss hmp hrs σ g
+  refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBTT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 30)
     (2 ^ 63) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
   letI := netRpcHttpAddr remoteGF (Gg := G)
@@ -172,16 +196,13 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
-    letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : wire.BinaryVarintHyps remoteGF := EtcdGrove.dsvgryff.binaryVarintHyps
     letI : netN.StringsIndexHyp remoteGF := instances.stringsIndexHyp_holds
     letI : replica2.SortSliceHyp remoteGF := hss G' hG.goose_localGS
     letI : lib.MathPowHyp remoteGF := hmp G' hG.goose_localGS
     letI : lib.RandSeedHyp remoteGF := hrs G' hG.goose_localGS
-    letI : RpcHttpHyp remoteGF := H G' hG.goose_localGS π
-    letI : RpcBootHyp remoteGF := hboot G' hG.goose_localGS π
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
+    have hT' : threadBound remoteGF ≤ 2 ^ 30 := hT
     have hb' : threadBound remoteGF ≤ 2 ^ 31 ∧ receiptBound remoteGF ≤ 2 ^ 64 := by
       constructor <;> omega
     match i, hm with
@@ -189,7 +210,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (casR γ.proto) a) ∗ mapCtx (Gg := G') (I := In) ∗ pendCtx (Gg := G') (casR γ.proto) (casS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (casS0 (GF := remoteGF)) γp (casS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') a 12))
           (by
@@ -201,7 +222,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.client0.wp_initialize' _ cmd.client0.getIsPkgInit_wf)) (P := iprop(clientNodeShare (G := G') γ 0 ∗ remoteAddr (Gg := G') (casR γ.proto) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G') (I := In)))
           (by
@@ -217,7 +238,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.client1.wp_initialize' _ cmd.client1.getIsPkgInit_wf)) (P := iprop(clientNodeShare (G := G') γ 1 ∗ remoteAddr (Gg := G') (casR γ.proto) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G') (I := In)))
           (by
@@ -233,7 +254,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.client2.wp_initialize' _ cmd.client2.getIsPkgInit_wf)) (P := iprop(clientNodeShare (G := G') γ 2 ∗ remoteAddr (Gg := G') (casR γ.proto) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G') (I := In)))
           (by
@@ -249,7 +270,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.client3.wp_initialize' _ cmd.client3.getIsPkgInit_wf)) (P := iprop(clientNodeShare (G := G') γ 3 ∗ remoteAddr (Gg := G') (casR γ.proto) (clientAddrs.getD 3 []) ∗ mapCtx (Gg := G') (I := In)))
           (by
@@ -265,7 +286,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.client4.wp_initialize' _ cmd.client4.getIsPkgInit_wf)) (P := iprop(clientNodeShare (G := G') γ 4 ∗ remoteAddr (Gg := G') (casR γ.proto) (clientAddrs.getD 4 []) ∗ mapCtx (Gg := G') (I := In)))
           (by
@@ -281,7 +302,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client5.initialize' cmd.client5.main _ cmd.client5.getIsPkgInit iprop(True)
           (init_of_gen _ _ _ (cmd.client5.wp_initialize' _ cmd.client5.getIsPkgInit_wf)) (P := iprop(clientNodeShare (G := G') γ 5 ∗ remoteAddr (Gg := G') (casR γ.proto) (clientAddrs.getD 5 []) ∗ mapCtx (Gg := G') (I := In)))
           (by
@@ -297,62 +318,62 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          cmd.server1.wp_initialize'_own (P := iprop(serverShare (G := G') γ 0))
+          (cmd.server1.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 0))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server1.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
-            iframe Hpkg Hboot Hsh
+            iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
+            iapply (cmd.server1.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
+            iframe Hpkg Hboot Hsh Htok
             isplitr
             · ipureintro; exact hb'
-            rw [if_pos rfl]; itrivial) $$ HP Hgs
+            rw [if_pos rfl]; itrivial) $$ HP Hgs Htok
     | 8, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          cmd.server2.wp_initialize'_own (P := iprop(serverShare (G := G') γ 1))
+          (cmd.server2.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 1))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server2.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
-            iframe Hpkg Hboot Hsh
+            iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
+            iapply (cmd.server2.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
+            iframe Hpkg Hboot Hsh Htok
             isplitr
             · ipureintro; exact hb'
-            rw [if_neg (by decide)]; iframe Hglob Hbp) $$ HP Hgs
+            rw [if_neg (by decide)]; iframe Hglob Hbp) $$ HP Hgs Htok
     | 9, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          cmd.server3.wp_initialize'_own (P := iprop(serverShare (G := G') γ 2))
+          (cmd.server3.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 2))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server3.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
-            iframe Hpkg Hboot Hsh
+            iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
+            iapply (cmd.server3.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
+            iframe Hpkg Hboot Hsh Htok
             isplitr
             · ipureintro; exact hb'
-            rw [if_neg (by decide)]; iframe Hglob Hbp) $$ HP Hgs
+            rw [if_neg (by decide)]; iframe Hglob Hbp) $$ HP Hgs Htok
     | 10, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          cmd.server4.wp_initialize'_own (P := iprop(serverShare (G := G') γ 3))
+          (cmd.server4.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 3))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server4.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
-            iframe Hpkg Hboot Hsh
+            iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
+            iapply (cmd.server4.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
+            iframe Hpkg Hboot Hsh Htok
             isplitr
             · ipureintro; exact hb'
-            rw [if_neg (by decide)]; iframe Hglob Hbp) $$ HP Hgs
+            rw [if_neg (by decide)]; iframe Hglob Hbp) $$ HP Hgs Htok
   -- the shares, node by node
   unfold system
   iapply BigSepL.bigSepL_cons.2

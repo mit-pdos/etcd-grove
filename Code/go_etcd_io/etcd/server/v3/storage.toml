@@ -6,7 +6,8 @@
 # `backend` for the struct `BackendQuota` (a field of the apply package's capped applier);
 # `raftpb` and `semver` for the interface `Storage` (the raft wrapper's WAL), whose methods'
 # signatures name them (otherwise an axiomatized type); `sync`, `zap`, `cindex`, `schema` and
-# `proto` for the hooks; `fmt`, `os`, `config` and `snap` for `OpenSnapshotBackend`.
+# `proto` for the hooks; `fmt`, `os`, `config` and `snap` for `OpenSnapshotBackend`, `path/filepath`
+# and `fileutil` for it and its `syncDir` (pin e94f33b50: the directory sync after the rename).
 # (wal-link L2, 2026-11-17, `notes/wal-link-scope.md` §2) The server's WAL storage (storage.go) with
 # bodies: `NewStorage` and the `*storage` methods `SaveSnap`, `Release`, `Save`, `Close`, `Sync`,
 # over the WAL (`wal`, `walpb`, translated with bodies in this project); `MinimalEtcdVersion` stays
@@ -20,7 +21,10 @@ translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "Backend
   # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "init.0",
   # (etcdstorage, 2026-11-20) the quota's cost of a request (quota.go), over the `RequestOp` getters
-  "BackendQuota.Cost", "costPut", "costTxnReq", "costTxn", "kvOverhead", "leaseOverhead"]
+  "BackendQuota.Cost", "costPut", "costTxnReq", "costTxn", "kvOverhead", "leaseOverhead",
+  # (pin e94f33b50, 2026-11-25) backend.go's `syncDir` (`OpenSnapshotBackend`'s directory sync after
+  # the rename, over `fileutil.OpenDir`/`Fsync`), with its body
+  "syncDir"]
 imports = ["!*", "sync", "github.com/dustin/go-humanize",
   "github.com/prometheus/client_golang/prometheus", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
   "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
@@ -29,7 +33,9 @@ imports = ["!*", "sync", "github.com/dustin/go-humanize",
   "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/server/v3/storage/wal",
   "go.etcd.io/etcd/server/v3/storage/wal/walpb",
   # (etcdstorage, 2026-11-20) for the quota's `Cost` (the request types and `RequestOp`'s getters)
-  "go.etcd.io/etcd/api/v3/etcdserverpb"]
+  "go.etcd.io/etcd/api/v3/etcdserverpb",
+  # (pin e94f33b50, 2026-11-25) `OpenSnapshotBackend`'s `filepath.Dir` and `syncDir`'s `fileutil`
+  "path/filepath", "go.etcd.io/etcd/client/pkg/v3/fileutil"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -38,6 +38,9 @@ translate = ["!*",
   "setIsLearnerMetric", "RaftCluster.updateMembershipMetric",
   # (prove-ps2-members, 2026-11-22) the backend's setter (`applySnapshot`'s), proved
   "RaftCluster.SetBackend",
+  # (route B, 2026-11-25) the promotion's writer, which `applyConfChange` calls on a replayed promotion
+  # (without `shouldApplyV3`: the learner metric, a log line), proved
+  "RaftCluster.PromoteMember",
   # (prove-ps2-bootstage1, 2026-11-23, #34 stage 1) the cluster's version, read under the lock
   # (`rcLockInv`'s version slot), proved
   "RaftCluster.Version",
@@ -55,7 +58,7 @@ translate = ["!*",
 imports = ["!*", "models.lab/jsoncodec", "errors", "path", "sort", "sync", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "encoding/json", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version",
   # (metric-vecs, 2026-11-19) `ClusterVersionMetrics`' translated initializer
   "github.com/prometheus/client_golang/prometheus",
-  # (claim #34 stage 2) the ids' hashes and the error messages
+  # (etcd-dist D2; claim #34 stage 2) the ids' hashes and the error messages
   "crypto/sha1", "encoding/binary", "fmt", "strings", "time", "go.etcd.io/raft/v3"]
 
 # translate the definitions of all type declarations goose supports

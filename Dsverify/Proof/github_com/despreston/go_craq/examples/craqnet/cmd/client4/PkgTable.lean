@@ -9,8 +9,6 @@ do not edit.
 module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.cmd.client4.Init
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 
@@ -29,8 +27,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.despreston.go_craq.examples.craqnet.cmd.client4.Assumptions]
 
 /-- Every package of the program's import closure, with its `isPkgInit`. -/

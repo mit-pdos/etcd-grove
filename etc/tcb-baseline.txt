@@ -7,6 +7,9 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
+axiom NewRaftLoggerZap.wp_proofNN
+axiom Perennial.context.WithCancel.wp_proofValBg
+axiom Perennial.context.WithValue.wp_proofPtr
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -27,11 +30,11 @@ axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
-axiom Perennial.net.http.Handle.wp_proof
-axiom Perennial.net.http.Serve.wp_proof_rpc
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.wp_init_first
+axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_init_first
+axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -61,6 +64,7 @@ axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
+axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -76,6 +80,10 @@ axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_dist.Client_Get_dist.wp_proof
+axiom etcd_dist.Client_Put_dist.wp_proof
+axiom etcd_dist.Serve_dist.wp_proof
+axiom etcd_dist.etcdSvc
 axiom etcd_noRefusal
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.Sscanf.wp_proof
@@ -239,6 +247,7 @@ axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
+axiom proto.MarshalBootConfChange.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof

@@ -60,7 +60,7 @@ abbrev StartMembers.spec : Prop :=
     γn.N = srvNet x.2.γ ∧ go!"http://" ++ x.1.Peer' ∈ dir x.2.id) →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗ commonPremises ∗
+      zapLoggerOk lg ∗ threadTok ∗ msl ↦*□ xs.map (·.1) ∗
       context.isClosedchanInit ∗
       [∗list] x ∈ xs, memberPre N token (xs.map (·.1)) ps bootLog ctxs dir Φs γn lm x cmp }}
     (App (App (App (App (App

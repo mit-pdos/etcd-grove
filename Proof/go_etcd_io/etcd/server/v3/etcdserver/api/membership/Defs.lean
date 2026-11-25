@@ -114,14 +114,18 @@ def membership.memberAt (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
     membership.mClientURLsAddr m ↦{DFrac.own q} cu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
     cu ↦*□ mm.clientURLs)
 
-/-- A member record `l` the backend's read made, with its peer URLs `pus`. -/
-def membership.memberURLsAt (l : Loc) (pus : List GoString) : IProp GF :=
-  iprop(∃ pu : GoSlice, ⌜l ≠ null⌝ ∗ membership.mPeerURLsAddr l ↦ pu ∗ pu ↦* pus)
+/-- A member record `l` the backend's read made, with its peer URLs `pus` and (route B, 2026-11-25)
+its learner flag `il`. -/
+def membership.memberReadAt (l : Loc) (pus : List GoString) (il : Bool) : IProp GF :=
+  iprop(∃ pu : GoSlice, ⌜l ≠ null⌝ ∗ membership.mPeerURLsAddr l ↦ pu ∗ pu ↦* pus ∗
+    membership.mIsLearnerAddr l ↦ il)
 
-/-- The members map `mp` the backend's read returns, of the members' peer URLs `mems`. -/
-def membership.membersRead (mp : Loc) (mems : GMap w64 (List GoString)) : IProp GF :=
+/-- The members map `mp` the backend's read returns, of the members' peer URLs and learner flags
+`mems`. -/
+def membership.membersRead (mp : Loc) (mems : GMap w64 (List GoString × Bool)) : IProp GF :=
   iprop(∃ ml : GMap w64 Loc, mp ↦$ ml ∗ ⌜∀ k, (ml !! k).isSome = (mems !! k).isSome⌝ ∗
-    [∗map] k ↦ l ∈ ml, ∃ pus : List GoString, ⌜mems !! k = some pus⌝ ∗ membership.memberURLsAt l pus)
+    [∗map] k ↦ l ∈ ml, ∃ (pus : List GoString) (il : Bool), ⌜mems !! k = some (pus, il)⌝ ∗
+      membership.memberReadAt l pus il)
 
 /-- The members map and their values have the same keys (and so the same size). -/
 def membership.memDom (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM) : Prop :=

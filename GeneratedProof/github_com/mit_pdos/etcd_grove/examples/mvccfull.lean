@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.Masterminds.semver.v3
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
@@ -11,6 +12,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic

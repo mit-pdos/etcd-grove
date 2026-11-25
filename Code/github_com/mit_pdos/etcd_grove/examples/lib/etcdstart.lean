@@ -1100,8 +1100,12 @@ noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
     keepalive) and etcd's default retries -- a read that fails with Unavailable is retried, on the
     next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
     which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
+    No proxy (grpc.WithNoProxy): every connection goes to an endpoint itself, never through an HTTP
+    CONNECT proxy that the process environment names (HTTPS_PROXY or https_proxy, which grpc-go's
+    delegating resolver reads otherwise), so that a call reaches only the member serving the endpoint (notes/putget-dist-plan.md
+    section 12, finding F1).
 
-    go: common.go:235:6 -/
+    go: common.go:239:6 -/
 noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"
@@ -1115,7 +1119,9 @@ noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (Val KeepAliveTime)
   (Let "$v3" (Val KeepAliveTimeout)
   (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"DialTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v4")))])))))))
+  (Let "$v5" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.WithNoProxy []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.DialOption.ty (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"DialTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"DialOptions")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty) (Var "$v5")))]))))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.New []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))

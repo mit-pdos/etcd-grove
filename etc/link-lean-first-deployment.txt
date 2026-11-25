@@ -1,0 +1,32 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/deployment/Link.lean`
+# (etcd_safe's deployment check, etcd-dist D2; all Lean-first), read by `etc/gen-link.py --deployment`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `etcd_dist`.
+#
+# the member ids (membership.NewMember's chain, its one-URL variant `+One`; the server's list links the
+# general one)
+binary_bigEndian__Uint64:
+types_URLs__StringSlice: =http.URLStringAny_ok
+types_URLs__StringSlicePlain: =http.URLStringAny_ok
+membership_computeMemberID+One: types_URLs__StringSlicePlain =_root_.Perennial.sort.wp_Strings =_root_.Perennial.strings.wp_Join =_root_.Perennial.crypto.sha1.wp_Sum binary_bigEndian__Uint64
+membership_newMember+One: types_URLs__StringSlice
+membership_NewMember+One: membership_computeMemberID+One membership_newMember+One
+# the check's helpers
+deployment_kindNames:
+deployment_Kind__String: deployment_kindNames
+deployment_NodeCount:
+deployment_writesKeys:
+deployment_needsSoleWriter:
+deployment_alone:
+deployment_NeedsAuth: deployment_alone
+deployment_grantsLeases:
+deployment_needsNoExpiry:
+deployment_nameOk:
+deployment_boundsOk:
+deployment_decimal:
+deployment_AddrOk: deployment_decimal
+deployment_compatible: deployment_alone deployment_needsSoleWriter deployment_writesKeys deployment_needsNoExpiry
+deployment_memberIDs: membership_NewMember+One
+deployment_IdsOk: deployment_memberIDs deployment_grantsLeases
+# the check
+deployment_WellFormed: deployment_nameOk deployment_kindNames deployment_boundsOk deployment_AddrOk deployment_NodeCount deployment_IdsOk deployment_compatible deployment_NeedsAuth =_root_.Perennial.EtcdGrove.fmt.ErrorfStrs.wp_proof

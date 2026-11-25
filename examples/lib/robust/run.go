@@ -339,6 +339,14 @@ type Client struct {
 // marked its set-up done or ended, or SetupWait has passed. An orchestrator that ends with an
 // error fails the run. The run's failure, if any, is Err.
 func (r *Run) RunClients(nodes, orchs []Client, machines []*Machine) []string {
+	return r.RunClientsAwait(nodes, orchs, machines, nil)
+}
+
+// RunClientsAwait is RunClients, calling await (unless nil) after starting the processes nodes
+// and before starting the orchestrators: the harness's liveness wait (until the services the
+// orchestrators use are up), so that the programs need not retry. An error from await fails the
+// run.
+func (r *Run) RunClientsAwait(nodes, orchs []Client, machines []*Machine, await func() error) []string {
 	lines := make([]string, len(orchs))
 	exited := make([]atomic.Bool, len(orchs))
 	done := make(chan int, len(orchs))
@@ -365,6 +373,12 @@ func (r *Run) RunClients(nodes, orchs []Client, machines []*Machine) []string {
 			return lines
 		}
 		nodeProcs = append(nodeProcs, p)
+	}
+	if await != nil {
+		if err := await(); err != nil {
+			r.Fail(err)
+			return lines
+		}
 	}
 	t0 := time.Now()
 	for i, c := range orchs {

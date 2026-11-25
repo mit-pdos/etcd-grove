@@ -1397,3 +1397,14 @@ Details, and what gryff and craq need: notes/dsv-epaxos.md, "Step bound 2^63".
   38c516a9ba); `PERENNIAL_DIR=/shared/perennial-71de6f043` for goose.py/gen-init.py.
 - To build all the copied modules (one `lake build`, about 15 minutes when warm): list every `.lean` under `Dsverify/{Proof,Spec}/github_com/{imdea_software,orcaman,emirpasic}` and `Dsverify/{Proof,Spec}/encoding` as module names and pass them to `lake build`. A module failing with `bad import` waits on another.
 - `etc/dsv-swiftpaxos/port.py` (the lab-to-part copy, the module mapping above; reads the lab read-only) and `etc/dsv-swiftpaxos/genpkg.py` (`Base`'s package-state section) are the porting scripts.
+
+## dsv-fix2 (2026-11-25): net/rpc's and net/http's package facts from `Net/`
+
+The kit's net/rpc and net/http are `Net/`'s packages for their initializations too: their facts
+(`Net/Proof/net/{rpc,http}/PkgInit.lean`) and `wp_initialize'` (`Net/`'s interim axioms, by
+`etc/gen-init.py`'s `NET_AXIOM_INITS`), so the statement's `net.rpc.InitHyp`/`net.http.InitHyp`
+premises are gone (`Dsverify/Proof/net/{rpc,http}/Init.lean` deleted). The other net/rpc premises
+stay: the command's initializer runs net/rpc's before anything runs net/http's, so net/http's first
+run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
+"dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
+kit's net/rpc premises discharged from `Net/`'s specs.

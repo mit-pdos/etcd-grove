@@ -314,7 +314,7 @@ theorem srvClusterBoot_allocG (ps : List w64) (ctxs : List (List w8)) (boot : Li
     iframe Hst Hpol Hca0 Hfits Hsinv
     ipureintro
     exact ⟨Hdup, srvRule_keeps _ _ _ hval, by rw [Hcsl, hsl], by rw [Hbl, hbt]; simp [LogEntry.toEntries],
-      by rw [hbt]; exact Hurl, HtrC, Hmd⟩
+      by rw [hbt]; exact Hurl, HtrC, Hmd, fun e he => (hcc e (by rw [← hbt]; exact he)).2⟩
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0

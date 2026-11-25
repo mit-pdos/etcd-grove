@@ -617,7 +617,7 @@ private theorem wp_StartNode_impl
   have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
-  -- (2026-11-22, kvnet decision B) no node table: the node's handle carries its names
+  -- (2026-11-22, kvraft decision B) no node table: the node's handle carries its names
   ipersist Hnp
   ihave #Hnp := Hnp
   haveI := nodeTabOk_persistent (GF := GF) γ (⟨np, γn⟩ : ApiImpl.NodeH) γn
@@ -698,7 +698,7 @@ private theorem wp_StartNode_impl
         iframe Hcap1 Hcam
         isplitr
         · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
-        iapply undecFree_empty
+        iapply cfgKeepIn_le _ _ _ _ (Nat.le_refl _)
       iexists _; iexact Hbw
     itrivial
   iapply HΦ

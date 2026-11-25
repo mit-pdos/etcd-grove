@@ -10,6 +10,7 @@ the transport's directory bound for up to `1000` members by `rafthttp.bootCfg_of
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run
@@ -94,7 +95,7 @@ theorem etcd_authN.wp_Main [_root_.Perennial.net.FieldAssumptions]
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     etcd_authN.wp_StartMembersAuth etcd_authN.wp_run
     mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

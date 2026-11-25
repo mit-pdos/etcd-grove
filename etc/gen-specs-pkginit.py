@@ -48,7 +48,10 @@ def fpath(pkg):
     return pkg.replace("«", "").replace("»", "").replace(".", "/")
 
 # (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation
-NET_PART = {"net", "models_lab.jsoncodec"}  # and the JSON model methods' jsoncodec (#24 J3)
+NET_PART = {"net", "models_lab.jsoncodec",  # and the JSON model methods' jsoncodec (#24 J3)
+            # (etcd_safe integration round 2, 2026-11-25) the dist programs' `lib/remote`, the part's
+            # translation (Net/Code), which the dist examples' generated proofs import
+            "github_com.mit_pdos.etcd_grove.examples.lib.remote"}
 
 def genproof_module(pkg, ours):
     if pkg in NET_PART:

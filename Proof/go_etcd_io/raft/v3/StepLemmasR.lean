@@ -555,9 +555,10 @@ def PreGuardF (fp : List EntryM) (s : NState) : Prop :=
 def DynHyp (dec : CCDec) (m : MessageM) (s s' : NState) (g : RGh) : Prop :=
   m.Type' ≠ MsgSnap ∧ PreGuard g.fp s ∧ FullOk (toPState s).base g.fp ∧
   -- (2026-10-28, the decision switch) A1: no conf entry the decoder `dec` has not rejected (until
-  -- then none at all, `NoConfIn`)
+  -- then none at all, `NoConfIn`); (2026-11-24, option D) the configuration kept over the entries
+  -- passed (`CfgKeep`)
   (m.Type' = MsgStorageApplyResp →
-    NoUndecConfIn dec (rOf s g).full g.cidx (uint.nat s'.logst.applied)) ∧
+    CfgKeep dec (rOf s g).full g.cidx (uint.nat s'.logst.applied) (rOf s g).cfg) ∧
   -- a proposal the leader drops still moves `pendingConfIndex` (`StepR.propDrop`), whose
   -- indices the model computes without wrapping: the log is short enough for any batch
   -- `raft.Step` takes (below `2^61` entries)

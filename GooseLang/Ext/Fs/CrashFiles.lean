@@ -132,7 +132,7 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
   have hn : Named st'.fs.treeDur i := by
     apply Classical.byContradiction; intro hn
     rw [(hc.2.2.2.2.2.2.2 i).2 hn] at hf'; cases hf'
-  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi⟩, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
+  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi, -⟩, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
   rw [hf] at hf0; cases hf0
   rw [hf'] at hf1; cases hf1
   have hb : ∀ b, b < sz → (OsFile.ofDisk img sz).cache b = img b := fun b hb => by

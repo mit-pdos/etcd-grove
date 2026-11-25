@@ -22,7 +22,6 @@ plus 2, and the step bound was `2 ^ 31 - 1`.)
 
 **Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L` and the start's `NetProtoGS`; never an instance):
-* H1: net/rpc's and net/http's initializers (`InitHyp`; Net has no initialization proof);
 * H6: `LogHyp` (`log.Default` and `*Logger`'s methods, which Perennial's trusted `log` model
   leaves without a body);
 * H2/H3, net/rpc's server over HTTP (`RpcHttpServe`: `rpc.HandleHTTP`, `http.ListenAndServe`
@@ -47,8 +46,8 @@ public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitS
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
 
 @[expose] public section
 
@@ -89,8 +88,6 @@ def craq_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; LogHyp remoteGF) →
     ∀ (rs : ∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF),
     (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
