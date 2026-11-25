@@ -205,7 +205,9 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
   · simp only [cutLay, List.length_append, List.length_singleton]
     rw [segStart_snoc_last]; omega
   · exact hfit
-  · intro hz0 r len c'
+  · intro hz0
+    apply pendStop_nil
+    intro r len c'
     simp only [cutLay, List.length_append, List.length_singleton] at hz0 ⊢
     rw [decStep_zeros C true (z := g.bs.length) (by rw [← Nat.sub_zero g.bs.length]; rw [hwr, ← hz0] at hz; simpa using hz) (by simp)]
     simp

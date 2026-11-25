@@ -53,7 +53,7 @@ theorem crashTo_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     CrashTo C Mr { d with H := d.H ++ [o] } lay m' fo := by
   rcases h with h | ⟨q, I, h1, h2, h3, hI, h5⟩
   · exact Or.inl h
-  · exact Or.inr ⟨q, I, h1, h2, h3, walImg_snoc o hI, h5⟩
+  · exact Or.inr ⟨q, I, h1, h2, h3, walImgS_snoc o hI, h5⟩
 
 /-- **`Save`'s commit keeps the crash condition** (with any alternative layout). -/
 theorem crashOkA_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
@@ -227,7 +227,7 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     have h2 := hsyn.2
     simp only [List.take_append_of_le_length hsyn.1]
     exact h2
-  · intro hz r len c'
+  · intro hz
     have hz' : recFrames C X = [] := by
       have hwr := hW.2.1
       have hz0 := hW.2.2.2.2.2.1
@@ -239,7 +239,7 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
       rw [hS] at hz; simpa [recFrames, frames] using hz
     simp only at hall ⊢
     rw [hall, List.append_nil]
-    exact hstop hz2 r len c'
+    exact hstop hz2
 
 /-! ## The sync's commit -/
 

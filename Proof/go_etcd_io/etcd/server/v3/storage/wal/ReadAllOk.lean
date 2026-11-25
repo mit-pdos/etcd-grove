@@ -147,7 +147,7 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
     (hpos : (0 < p → ∃ m al, WalOpG.snap m al ∈ I.drop ((segsOf I cuts).take p).flatten.length ∧
         m.Index' = s.1) →
       ((segsOf I cuts).take p).flatten.length ≤ walOpenPos I s.1)
-    (hs : some s = walNewestPair (walValidSnaps I cut))
+    (hs : some s = walNewestPair (walValidSnaps I cut)) (hNo : normH I = I)
     (hok : readAllFold U s true ((recsOfSegs C M md (segsOf I cuts)).drop
       (recsOfSegs C M md ((segsOf I cuts).take p)).length) stop = .ok r) :
     ∃ σ, walReadAllOk I cut s σ ∧ r = (md, σ.hs, σ.ents) := by
@@ -166,7 +166,8 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
     simp only [List.take_zero, recsOfSegs, segsDs, List.flatten_nil, chainRecs, List.length_nil,
       List.drop_zero] at hok
     rw [← hflat] at hs
-    obtain ⟨σ, hσ, hr⟩ := readAllFold_zero hU md Ss s true stop r hs hok
+    obtain ⟨σ, hσ, hr⟩ := readAllFold_zero hU md Ss s true stop r hs
+      (by rw [hflat]; exact hNo) hok
     rw [hflat] at hσ hs
     exact ⟨σ, ⟨0, Nat.le_refl _, Nat.zero_le _, hs, hσ⟩, hr⟩
   · have hSne : Ss.take p ≠ [] := by
@@ -199,7 +200,8 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
       rw [e]; exact List.mem_append_right _ hm
     obtain ⟨σ1, -, -, -, hmatch⟩ := raStep_segs_ok U M hU s md _ hc (Ss.drop p) (Ss.take p).flatten
       raInit st ⟨walLastHS (Ss.take p).flatten, none, entryID.mk s.2 s.1, []⟩
-      rfl rfl rfl (Or.inr rfl) (Or.inl rfl) hle' hfold
+      rfl rfl rfl (Or.inr rfl) (Or.inl rfl) hle'
+      (normFrom_suffix_fix (by rw [← List.flatten_append, ← hsplit, hflat]; exact hNo)) hfold
     rw [hm] at hmatch
     simp only [raInit, Bool.false_or] at hmatch
     obtain ⟨o, ho, hos⟩ := List.any_eq_true.1 hmatch.symm
@@ -223,7 +225,7 @@ theorem readAll_ok_pure {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU :
           (Ss.take p).flatten.length) := by
         rw [← hsplit, hflat, hk]; exact hsk
       obtain ⟨σ, hσ, hr⟩ := readAllFold_from hU md (Ss.take p) (Ss.drop p) (hk0 hp0) s true stop r
-        hsk' hok'
+        hsk' (by rw [← hsplit, hflat]; exact hNo) hok'
       rw [← hsplit, hflat, hk] at hσ
       obtain ⟨σ', hσ', e1, e2⟩ := walReadAt_of_from hkne hsk hσ
       refine ⟨σ', ⟨k, hcut, hpos (fun _ => ⟨m, al, ho, hos⟩), hsk, hσ'⟩, ?_⟩

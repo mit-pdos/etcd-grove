@@ -308,6 +308,11 @@ theorem walImgS_histN {H I : List (WalOpG WalEnt)} {n : Nat} (h : walImgS H n I)
 theorem walImgS_refl {E : Type} {H : List (WalOpG E)} {n : Nat} (h : n ≤ H.length) :
     walImgS H n H := ⟨H.length, h, Nat.le_refl _, List.take_length.symm⟩
 
+theorem walImgS_snoc {E : Type} {H I : List (WalOpG E)} {n : Nat} (o : WalOpG E) (hI : walImgS H n I) :
+    walImgS (H ++ [o]) n I := by
+  obtain ⟨j, h1, h2, rfl⟩ := hI
+  exact ⟨j, h1, by simp; omega, by rw [List.take_append_of_le_length h2]⟩
+
 theorem walImgS_length_ge {E : Type} {H I : List (WalOpG E)} {n : Nat} (h : walImgS H n I) :
     n ≤ I.length := by
   obtain ⟨j, h1, h2, rfl⟩ := h; simp; omega

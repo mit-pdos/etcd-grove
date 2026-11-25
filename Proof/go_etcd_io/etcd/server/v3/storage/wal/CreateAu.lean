@@ -518,7 +518,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         ipureintro
         exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
           hlay, walsBounded_ins Hbd.1 rfl
-            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, walDurFresh]⟩, Hbd.2⟩
+            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, histN, normH, normFrom, walDurFresh]⟩, Hbd.2⟩
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]

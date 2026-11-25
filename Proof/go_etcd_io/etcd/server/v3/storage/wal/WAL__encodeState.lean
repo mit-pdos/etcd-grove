@@ -45,7 +45,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.wp_proof (P : WalP
   try wp_auto
   ihave #HstIn := Hhs
   iunfold walStIn at Hhs
-  icases Hhs with ⟨#Hhs, #Hm⟩
+  icases Hhs with ⟨#Hhs, #Hm, -⟩
   ihave #Hm := Hm $$ %Hhp
   iunfold walStMarsh at Hm
   wp_bind (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage)) _)
@@ -93,11 +93,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.wp_proof (P : WalP
     obtain ⟨hsplit', hcrc'⟩ := WalHS.split_next Mr h
       { h with rest := h.rest - 1, out := out', pend := pend', st := hs, sz := sz' } hsplit hrest
       stateType (Mr.encState hs) hx rfl rfl rfl rfl rfl hsp
+    ihave #HstIn2 := walStIn_set P Mr hp hs false h.stNil Hhp $$ HstIn
     iunfold walHandleIn
     iexists lg, df, hp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
     rw [hcrc']
     simp only
-    iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds HstIn Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+    iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds HstIn2 Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     isplitl [Hsp]
     · iexact Hsp
