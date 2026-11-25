@@ -68,7 +68,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try imodintro
   unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.drvDescs go_etcd_io.etcd.cache.v3.pbDescIs
   iframe #
-  repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}))) | (ipureintro; simp (config := {decide := true})))
+  first | (ipureintro; exact ⟨rfl, rfl⟩) | exact ⟨rfl, rfl⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

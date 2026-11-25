@@ -29,8 +29,6 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode EtcdGrove
 
-attribute [local reducible] EtcdGrove.pbStringValueST
-
 namespace github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver
 
 section serves
@@ -41,12 +39,12 @@ variable [package_sem : Assumptions]
 
 /-- **A stream's handler specification**: the content `Dn` the transport picks holds of the entry's
 `dn`. -/
-def drvStrmSpec (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+def drvStrmSpec (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
     GrpcMd → StreamSpec (strmMsg (GF := GF)) :=
-  fun md γ Dn => iprop(□ ∀ (j : Nat) (m : GoString), dn md γ j m -∗ Dn j m)
+  fun md γ Dn => iprop(□ ∀ (j : Nat) (m : (strmMsg (GF := GF)).M), dn md γ j m -∗ Dn j m)
 
 /-- `drvStrmSpec dn` holds at `dn`. -/
-theorem drvStrmSpec_self (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+theorem drvStrmSpec_self (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
     ⊢ □ ∀ md γ, drvStrmSpec dn md γ (dn md γ) := by
   iintro !> %md %γ
   unfold drvStrmSpec
@@ -322,9 +320,9 @@ theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF))
         some Rep⌝ -∗ □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
   iintro %Rep %hR
   obtain rfl : Rep = pbStringValueRT (GF := GF) :=
-    Option.some.inj ((pbStringValueRT_repReg (GF := GF)).symm.trans hR)
+    (Option.some.inj ((pbStringValueRT_repReg (GF := GF)).symm.trans hR)).symm
   iintro !> %l %m Hs
-  isimp only [pbStringValueRT, pbStringValueR, stringValueSendB] at Hs
+  isimp only [pbStringValueRT, pbStringValueR, stringValueSend, stringValueSendB] at Hs
   icases Hs with ⟨%v, -, %Hv⟩
   ipureintro
   have hb : stringValueMax + 11 < grpcMsgMax := by decide
@@ -332,17 +330,17 @@ theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF))
   omega
 
 /-- A stream entry of the table's: its registered reply model bounds every reply. -/
-theorem drv_streamBound (up : Nat → GoString → IProp GF)
-    (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+theorem drv_streamBound (up : Nat → (strmMsg (GF := GF)).M → IProp GF)
+    (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
     ⊢ ∀ Rep : StreamMsgT GF,
       ⌜streamRepModelOf GF (⟨strmWire (GF := GF), strmWire (GF := GF), up, dn, strmSpec⟩ :
         GrpcStreamEntry GF).Wp.ty = some Rep⌝ -∗
       □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
   iintro %Rep %hR
   obtain rfl : Rep = pbStringValueST (GF := GF) :=
-    Option.some.inj ((pbStringValueST_repReg (GF := GF)).symm.trans hR)
+    (Option.some.inj ((pbStringValueST_repReg (GF := GF)).symm.trans hR)).symm
   iintro !> %l %m Hs
-  isimp only [pbStringValueST, pbStringValueS, stringValueSendB] at Hs
+  isimp only [pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hs
   icases Hs with ⟨%v, -, %Hv⟩
   ipureintro
   have hb : stringValueMax + 11 < grpcMsgMax := by decide

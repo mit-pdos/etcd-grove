@@ -27,7 +27,7 @@ variable [package_sem : Assumptions]
 
 /-- See the file header. -/
 abbrev server.ServerStream.spec : Prop :=
-  ∀ (s r : Loc) (v : GoString) (st : GoInterface) (γ : StreamNames) (Dn : Nat → GoString → IProp GF)
+  ∀ (s r : Loc) (v : GoString) (st : GoInterface) (γ : StreamNames) (Dn : Nat → (strmMsg (GF := GF)).M → IProp GF)
     (ci : GoInterfaceOk) (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (md : GrpcMd),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
       stringValueSend r v ∗ srvStreamIs st γ strmMsg strmMsg ssUp Dn ci cd ∗

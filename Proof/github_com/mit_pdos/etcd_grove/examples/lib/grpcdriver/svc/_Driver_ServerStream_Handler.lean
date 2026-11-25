@@ -44,6 +44,9 @@ theorem _Driver_ServerStream_Handler.wp_proof
   · simp only [strmT, pbStringValueST, pbStringValueS]
     iexists _
     iexact «$r0»
+  have hty : msgAny (strmT (GF := GF)).ty «$r0_ptr» =
+      interface.mkOk (go.GoType.PointerType Msg.ty) #«$r0_ptr» := rfl
+  rw [← hty]
   wp_bind (App (Val #(methods si.ty go!"RecvMsg" si.v)) _)
   iapply HRecv $$ %([] : List GoString) %«$r0_ptr» [HRt Hm]
   · iframe
