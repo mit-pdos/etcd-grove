@@ -5,7 +5,7 @@
 `premise_sat%` (`Robustness/PremiseSat.lean`): the statement of
 `Dsverify/Spec/rabia/examples/rabianet/TopLevelRobustness.lean` has premises
 that hold together with `Robust`'s antecedents: twelve fresh machines with no listener, no
-connection, and `DistDeploy`'s addresses (`rabiaKitAddrs`, distinct and valid, by evaluation); its premises `InitHyp` and `zerolog.Hyps` are Iris contracts, left out by `premise_sat%` itself.
+connection, and `DistDeploy`'s addresses (`rabiaKitAddrs`, distinct and valid, by evaluation); its premise `InitHyp` is an Iris contract, left out by `premise_sat%` itself.
 Checked by `etc/premise-witness.py`.
 -/
 module

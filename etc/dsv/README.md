@@ -71,9 +71,12 @@ leaves the statement. Each axiom:
 - has an `axiom`-skill review by a reviewer given only the axiom, its Go function and its callers
   (`notes/axiom-review/dsv-fix4/`, indexed in `notes/axiom-review/README.md`); **a refuted axiom
   stays a premise**: craq's `LogHyp` (`fmt` calls an operand's `Format`/`GoString`, which `argOk`
-  admits) rabia's `zerolog.Hyps` (`Msg` calls any writer's `Write`, which `New`'s spec admits) and
-  quepaxa's `PbHyp` (the messages' representation admits any value of protobuf's runtime fields
-  `state`/`sizeCache`);
+  admits) and quepaxa's `PbHyp` (the messages' representation admits any value of protobuf's
+  runtime fields `state`/`sizeCache`), until restated narrowly and reviewed again (dsv-fix6,
+  `notes/dsv-fix6.md`): rabia's `zerolog.Hyps` (`Msg` called any writer's `Write`, which `New`'s
+  spec admitted) is restated with `New` at the `nil` writer only and the level methods over a
+  points-to of a logger `New(nil)` made (`loggerOk`), reviewed in
+  `notes/axiom-review/dsv-fix6/zerolog.md` (survives), and is axioms again;
 - is counted in its kits' tcb collections (`etc/tcb-collections/dsv-<kit>.txt`).
 Where a pure fact the program could check is what the axiom needs, it goes into the Go code instead
 (#49's bar): gryff's `sort.Slice.wp_proofInt32Lt` (retired 2026-11-25) had no length bound, and
