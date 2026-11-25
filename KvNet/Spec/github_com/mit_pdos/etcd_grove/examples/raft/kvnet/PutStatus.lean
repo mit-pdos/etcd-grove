@@ -31,7 +31,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev PutStatus.spec : Prop :=
   ∀ (s : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Status) (M : GMap GoString GoString)
     (dq : DFrac) (c : ConfStateM),
-  s.Stats'.arr.length = 24 →
+  s.Stats'.arr.length = numStats.toNat →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       s.Contents' ↦${dq} M ∗ csOpt s.Conf' DFrac.discard c }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.PutStatus)) (Val #slice.nil)) (Val #s))
