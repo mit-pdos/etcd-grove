@@ -429,19 +429,52 @@ this stage: statements only lose `bootPremise` and the quantified boot data, and
   low bits are nonzero), and its URL-length conjunct needs a lemma over the k-cluster's URL builder. Not a
   blocker alone, but a lemma family of its own, or a pure premise.
 
+**B2 update, 2026-11-25 (after lean `e1ab967ea2`, with #24 J2's round trip `bootGo.ccMemberOf_memberJSON`/
+`ccContextOf_memberJSON` from zeldovich's proving session 2).** Proved in `etcdstart.BootBridge` (section `pure`):
+`memberPlain_memberOf` (a member of the initial cluster is `membership.memberPlain` from `bootURLsPlain` and its name
+plain), `members_plain`, `bootLog_decode` (`BootLog` at Go's `ps`/`ctxs` decodes, entry by entry, to
+`⟨0, m.id, memberJSON m, 0⟩` over `bootGo.members`), **`memBoot_bootLog`** (`Hmem`: `memBoot (toEntries bl 0) =
+bootGo.memMap U token`) and **`bootCC_ok`** (`BootCore.cc`: each entry's `ccIdOf = 0` and `ccBootOk (listToSet ps)`).
+`bootPremise_of_spec` now takes `bootNamesPlain U` (the initial cluster's names `JsonScan.plainEnc`, decidable per
+example) instead of `Hmem`. **What B2 still needs:** (a) the boot log `bl` itself: `BootLog`'s
+`MarshalsConfChange` is `ccDecodeV1 bs = some m` with `ccDecodeV1` (protobuf `ConfChange` unmarshal) opaque, so
+no `bl` is constructed: `boot` stays quantified and `BootFacts.boot` a premise (a `ConfChange` marshal model with
+its decode round trip would give it); (b) `BootCore.urls` (`bootURLsOk`): `utf8Valid` of plain bytes (a lemma) and
+the members' peer URLs pairwise disjoint (a decidable fact of each example's URLs); (c) `lowNodup`/`lowNz`/`data`:
+facts of the SHA-1 ids and the entries' sizes (sizes need (a)).
+
+**B4 (found on `dist-putget-interim/2026-11-24`'s ledger, 2026-11-24): `bootstrap.spec` is false of Go at wider
+clusters**: with two or more peer URLs in this member's entry, `advertiseMatchesCluster` sorts the map's own slice
+in place (against `bootCfgRO`'s persistent claim); with another member, `isMemberBootstrapped` sends `GET
+<peer>/members`. So the pending `advertiseMatchesCluster.spec`/`isMemberBootstrapped.spec` (B1) are false there, and
+the multi-member families can't use `bootstrap.spec` as stated. The interim axiom `bootstrap.wp_proofOne`
+(`bootstrap.specOne`: one member, one URL) is the restriction where it holds.
+
+**The interim axiom vs. this bridge (checked 2026-11-25 against `dist-putget-interim/2026-11-24` `412f21a1c1`):**
+`bootstrap.specOne` is `bootstrap.spec`'s text under two more premises (one map entry `cfg.Name`, one URL), and
+`bootstrap.specOne_of_spec` is a two-line weakening, so when B1 closes `wp_proofOne` retires into
+`specOne_of_spec wp_bootstrap`. Same shape, same `bootGo.id`/`bootGo.ctxs`/`bootGo.dir`, same `Hmem`/`BootLog`
+premises, same precondition (`bootCfgOk` by name: with this branch it carries `UnsafeNoFsync = false`, so
+`specOne`'s explicit `cfg.UnsafeNoFsync' = false →` premise becomes redundant, harmless). Differences to settle at
+retirement: `wp_bootstrap` (server Link) takes `[go_etcd_io.etcd.cache.v3.Assumptions]` and the Link section's
+`[HasExt idIssueExt]`, which the axiom does not; the examples' contexts have both (`Served*.lean`'s `cache_sem`,
+`etcdNetExts_hasIdIssue`), but the retiring proof must supply them.
+
 **Packet: the conversion per top-level statement, if the owner accepts carrying B1/B2** (nothing applied):
 
 | statement (Spec file) | boot data before | after (proposal) |
 |---|---|---|
-| `etcd_robust_single_process` (`etcd/all`) | per cluster: `∀ id(s) ps ctxs boot`, `BootFacts …`, `Hprem…` ∋ `bootPremise` (11 clusters) | ids/`ps`/`ctxs` = `bootGo.*` of each cluster's URLs and token; `boot`, `BootFacts`, `Hlow` kept; `+Hmem` per cluster; `bootPremise` out of each `premises`; `+Hfips` |
+| `etcd_robust_single_process` (`etcd/all`) | per cluster: `∀ id(s) ps ctxs boot`, `BootFacts …`, `Hprem…` ∋ `bootPremise` (11 clusters) | ids/`ps`/`ctxs` = `bootGo.*` of each cluster's URLs and token; `boot`, `BootFacts`, `Hlow` kept; (`Hmem` derived since the B2 update; `bootNamesPlain` by evaluation); `bootPremise` out of each `premises`; `+Hfips` |
 | `etcd_robust` (`etcd/dist`) | `ps ctxs boot`, `BootFacts d ps ctxs boot` | the same substitution, one cluster |
-| `putget_safe` (`etcd/dist/putget`) | `id ctxs boot`, `etcdstart.BootFacts id ctxs boot` | `id`, `ctxs` substituted; `boot`, `BootFacts` kept; `+Hmem`, `+Hfips` |
+| `putget_safe` (`etcd/dist/putget`) | `id ctxs boot`, `etcdstart.BootFacts id ctxs boot` | `id`, `ctxs` substituted; `boot`, `BootFacts` kept; `+Hfips` (`Hmem` derived) |
 | `etcd_leaseexpiryN_robust_single_process` | `ids ps ctxs boot`, `Hlen`, `BootFacts` | the substitution at the k-cluster (B3) |
 | `k8s_robust_single_process` (`k8s/all`) | two k-clusters' `ids ps ctxs boot`, `BootFacts` | the substitution at both (B3) |
 
 Trust delta per statement: −1 trusted contract (`bootstrapContract` inside `bootPremise`, a whole-function
-triple), +16 leaf specs as premises (B1; or as many as remain unproved/unlinked when it is done), +1 pure premise
-per cluster (`Hmem`, B2), +`Hfips` (approved). Axiom counts (`etc/tcb-report.py`) do not move either way:
+triple), +16 leaf specs as premises (B1; or as many as remain unproved/unlinked when it is done), no pure premise
+for `Hmem` any more (derived, B2 update), +`Hfips` (approved). (The coordinator's direction of 2026-11-25, #34
+7147715251: the 16 are not carried; `bootPremise` stays, and the putget lead turns the contract into the interim
+axiom `bootstrap.wp_proofOne` at one member.) Axiom counts (`etc/tcb-report.py`) do not move either way:
 `bootPremise` is a premise, not an axiom.
 
 **Recommendation:** keep `bootPremise` until B1 is closed (#692; #15's L5; J8a-4; the pb registration; netutil;
