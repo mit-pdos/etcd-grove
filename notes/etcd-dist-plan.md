@@ -2036,6 +2036,188 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.
 
+## 18. O1 and N2: the client-facing view and the clientv3 interim contracts (design, 2026-11-25; branch `etcd-safe-n2/2026-11-25`)
+
+The etcd_safe lead's spec phase for #50's O1/N2 (coordinator-E's answers 7166749927, item 6: per-function interim axioms
+at clientv3's interface, not an `etcdSvc` law). **Design only: no axiom added, nothing built** (the VM was down; no local
+Lean). Base `etcd-safe-main-r3/2026-11-25` @ `5a1c41d945`. Drafts: `Proof/.../etcd/dist/ClientViewDist.lean` (defs and
+`.spec` abbreviations only, namespace `etcd_dist.view`, unbuilt, imported by nothing). The coordinator picks the O1 option
+before any axiom review or proof.
+
+### 18.1 The workloads' clientv3 calls
+
+U = unary, S = stream (N3). "Machine": O = the workload's orchestrator, N = its client machines (`NodeMain`). Every client
+is `etcdstart.NewClients` (`clientv3.New` with `grpc.WithNoProxy()`, no RPC) except `auth.go`'s `newUserClient`
+(`clientv3.New` with `Username`: `New` itself calls `Auth.Authenticate`).
+
+| Workload | Machine, endpoints | Calls | Member state the specs read / change |
+|---|---|---|---|
+| kv | N (`kvremote.Node` → `txnlin.Call`), all eps rotated | `Get(k)` U, `Get(from, WithRange(to))` U, `Put` U, `Delete` U, `Txn().If(cmps).Then(ops).Else(ops).Commit()` U (cmps on Value/Version/ModRevision; ops Get/Put/Delete) | KV state (`etcdKV γk`: reads by a persistent read update, writes by a one-shot update); reply revisions, versions, mod revisions |
+| putget | O, all eps | `Put` U, `Get` U | KV state |
+| durable | O, all eps | `Put` ×n U, `Get(prefix, WithPrefix())` U | KV state (values, version 1) |
+| compact | O, all eps | `Put` U, `Compact(rev)` U, `Get(k)` U, `Get(k, WithRev(r))` U; `Watch(k, WithRev(2))` S ×2 (`checkCompactRev`) | KV state; revision reached (`kvRevLb`, the cluster's `rlog`); compaction mode `cmp`, retention `cret`; the compaction revision (watch: N3) |
+| watch | O (all eps); N writers (all eps rotated) | O: `Watch(prefix, WithPrefix, WithRev(1), WithProgressNotify, WithCreatedNotify)` S; N: `Put` U (`etcdstart.Writer`) | KV state, watch history (N3) |
+| cache | O (all eps); N writers | O: `cache.New` (its watch S, and the cache's own `KV.Get` U in `get`/`serverRevision`), `c.Watch` S, `c.RequestProgress` S, `c.Get(prefix, WithRev)` (served by the cache, which may call `KV.Get` U); N: `Put` U | KV state, watch history (N3) |
+| auth | O (eps[0], then every member); N principals (one member each) | O: `auth.SetUp` (`Put` ×8, `UserAdd`, `UserGrantRole`, `RoleAdd`, `RoleGrantPermission`, `UserAdd`, `UserGrantRole`, `UserAdd`, `AuthEnable`, all U); barriers: `New(Username)` (`Authenticate` U) and `Get` U per member; root's `Put` U; root's and u's `Watch` S. N: `New(Username)` (`Authenticate` U), `Put` ×2, `Get` ×3 (ranges), `Txn…Commit` ×4 (one nested), `Delete` ×2, all U; a refused `Watch` S | auth store (users, roles, enabled), the auth history (`KVNames.hist`), tokens (`γa`), KV state |
+| authLease | O only (eps[0], eps[1], eps[2] mod k) | `auth.SetUp`, barriers, `New(Username)` ×3; `Lease.Grant` U, `Put(WithLease)` U, `Txn().Then(OpPut WithLease).Commit()` U; refused `Grant`/`Revoke`/`TimeToLive`/`TimeToLive(WithAttachedKeys)`/`Leases` U; refused leased `Put`/`Txn` U; `Get` U, `Revoke` U | lessor (leases, attachments), auth store, KV state |
+| leaseRead | O, one member at a time | `Lease.Leases` U, `Lease.TimeToLive(id)` U | nothing of the member (the listing has no duplicate, the TTL reply's id is the one asked) |
+| leaseCatchup | O: one client of member k-1, one of member 0 | `Lease.Grant(maxTTL)` U at k-1, `Grant` ×20 U at 0, `Leases` U polled at k-1 | member k-1's lessor history (monotone mode) |
+| leaseExpiry | O: one client per member | `Lease.Grant(1)` U per member, `Leases` U polled and once more | each member's lessor history (revocable mode: absent stays absent) |
+
+(`AwaitCluster`'s `Get` is k8s/dist's, not on etcd_safe's path.)
+
+What the proved client-side specs read (the specs these drafts mirror, `Spec/go_etcd_io/etcd/client/v3/`): `kv.Put/Get/
+Delete/Compact.spec` and `txn.Commit.spec` are stated over `isKv api γ dup` and read the member only through `γ : KVNames`
+(`etcdKV γ` = its `st`; `kvRevLb`/`kvRevLbZ` = its `rlog` and `kvModel`'s `c0`/`ch0`/`log0`; `cmp`, `cret`); `isKv_intro`
+asks of each member only `kvSame x.γr.kv γ` and, for one-shot writes, `noRefusalAt`. Nothing of `E`, of `ReadNames`'
+incarnation fields (`committed`, `applied`, `cursor`, ...) or of `cid` reaches those posts: the floors (`committedAtLeast γr
+0`, `kvLogLb E.γs []`) are internal to the client proofs. The lease specs at a lessor read only `γl` (`leaseGrantedAt`,
+`lessorLb`, `leaseIdsAt`, `leaseLiveFrom`, `leaseReqIs`). The auth specs read `γa` (`etcdAuthenticateSpecW`), `T`, `E` and
+`ρ` (`authHistAuT`, the auth history `hist`).
+
+### 18.2 What is restart-stable
+
+- KV: `kvCongr` (what `restartNames` keeps) has every `kvSame` field, so every incarnation of every member is `kvSame`
+  to the cluster's `γk` (`ClusterNames.γk`, `clusterAllocN`'s). **The KV specs are already cluster-level and restart-stable.**
+- Lessor: `γl = mvcc.api.mvccLeases E.γ` is `NewServer`'s choice (existential `E` in `NewServer.specG`'s post; a restart's
+  `NewLessor` recovers into a fresh history, `lease.srvInvAt … σ₀`). **Not known at the start, not restart-stable.**
+- Auth: `γa` (`E.authMode = .on γa`) is `NewServer`'s; `KVNames.hist` is a member's own (outside `kvCongr`). **Not
+  restart-stable.**
+- `SrvRaft` is not countable (`rule`, `snapLoc` are functions): no `dghostVar` holds it. No draft needs it.
+
+### 18.3 O1: three options
+
+| | A. Publish a larger `EnvView` | **B. The view is the start's cluster names (recommended)** | C. B for the KV, A's publication for `γl` |
+|---|---|---|---|
+| What | `EnvView` gains the `kvSame` fields (countable) and `γl`; the member publishes after `NewServer` (`env_publish`) | `DistView := ⟨kv, ls, auth⟩`, a Lean value: `ClusterNames.γk`, a new per-member lessor name `ls mid` allocated by the start, the auth mode. `etcdSvc` and `etcdAddrAt` indexed by `Γ` in place of `γE`; no publication | KV and auth mode as B; `γl` published per member (one-shot `dghostVar` of a `GName`) |
+| Where it lives | the publication invariant (`envPubInv`), read under a later (`envAt_pub`) | the start's share as a value: `etcdClusterStart` already runs `clusterAllocN` before it sets the client addresses (`members_svc_start`), so `etcdAddr_set` at `Γ` needs nothing new; `memberBoot γ ctxs ρ E₀` gets `ρ.rd.kv = c.γk` from its slice; `envAgree` is not needed (no draft reads an `E` field) | both |
+| Server side | `Serve_dist`'s `ν = memberView ρ` | `Serve_dist` takes `⌜memberViewOk Γ ρ⌝` (`kvCongr ρ.rd.kv Γ.kv`; with P-L1 also the lessor's tie) in place of `envAt γE ν ∗ ⌜ν = memberView ρ⌝`; a restart gets it from `restartNames` (`kvCongr` is an equivalence) | as B, plus the publication |
+| Restart (D6) | **breaks**: the view is one-shot per address, a restarted member's `γl'` differs, so it cannot serve | **holds** (by construction: only restart-stable names) | KV holds; lease drafts usable in `etcd_safe_nocrash` only |
+| Multi-endpoint clients (kv, putget, durable, compact, watch, cache, writers) | a view per member: the reply is "at some member's view" | one `Γ` for every member: the drafts are exactly `kv.X.spec` | as B |
+| Lease drafts | axiomatizable now (the name is the server's own) | **after P-L1** (below) | now, nocrash only; restated for the crash theorem later (two reviews) |
+| Cost | publication of non-restart-stable names; a second form for crashes | re-index A1/A2/A3/A4/A5 (all interim, in the packet: re-review); P-L1 | both forms |
+
+**Recommendation: B.** It is the only option where every name an axiom mentions is a name a server proof owns, the same
+statements serve `etcd_safe_nocrash` and `etcd_safe`, and the multi-endpoint workloads use the proved `kv.X.spec` shape
+unchanged. It also removes machinery: `envPub_start`/`env_publish`/`envAt_pub` and the review-F2 later leave the dist
+starts, and `Client_Put_dist`/`Client_Get_dist` (A4/A5, putget-specific) become corollaries of `KV_Put_dist`/`KV_Get_dist`
+(`putGetInv` is a client invariant over `etcdKV Γ.kv`): two axioms fewer, theorems in their place.
+
+**Why the server side needs nothing more now.** `etcdSvc` stays an opaque axiom with no law (§17.2), so no proof learns an
+entry; the client-side axioms carry each call's contract, and `Serve_dist` (post `True`) only ties the address to a member
+whose names agree with `Γ`. At retirement (#24's S2: `etcdSvc` defined, `Invoke` over the net model), each entry is the
+member's `etcdXSpec E ρ.rd cid mid`, and the dist statement is `kv.X.spec`'s proof over an `isKv` built from the
+registration (`isKv_intro`: `kvSame` from `memberViewOk`).
+
+**Prove items B needs (no trust):**
+- **P-L1 (before any lessor-reading axiom):** `NewServer.specG` (and `specC`/`specR`) take the lessor's history name from
+  the caller (`lease.lessorAt γL 0 σ₀` allocated by the start, `mvcc.api.mvccLeases E.γ = γL` in the post), as `ρ` is
+  taken today; `ClusterNames` gains `ls : w64 → GName`. Without it the lease drafts' facts would be about a name whose
+  authority sits unused in the member's share, which an axiom review would refute (a client fact contradicting the empty
+  authority).
+- **D6 (crash theorem only):** a restarted member's lessor history continues at `ls mid`. Go's reason is the ready gate
+  (`examples/etcd/dist/server/server.go:202`, `<-s.ReadyNotify()` before serving clients: the replay re-applies what a power
+  loss took from bbolt before the member's own publish entry applies), whose meaning is that file's `TODO(proof)`. Without
+  it a restarted member could list a lease revoked before the crash (`Recover` reads bbolt at a lower consistent index):
+  leaseExpiry's check would be false.
+- Auth (N11): the same treatment (per-member auth names in `Γ`), not designed here.
+
+### 18.4 N2: the drafts (`ClientViewDist.lean`)
+
+Each is `abbrev X.spec (svc : DistView → w64 → GrpcSvc GF) : Prop`; `svc` stands for A1 re-indexed at `Γ` (the axiom would
+be `X.wp_proof : X.spec etcdSvcV`). Shape as `Client_Get_dist` (`isNewClient`, `clientNoProxy`, the address fact, a client
+context), with `levelTok 0` threaded as in the proved specs (the retiring proof needs it; a stronger precondition is a
+weaker axiom), the error arm `⌜err ≠ nil ∧ resp = null⌝` only (no `kvErr`/`statusErrOk`: nothing claimed of a remote
+error).
+
+| Draft | Function | Mirrors (client spec / server spec) | Reads of `Γ` | Axiomatizable |
+|---|---|---|---|---|
+| `KV_Put_dist` | `(*kv).Put` | `kv.Put.spec` at `dup = false` / `etcdPutSpecW` | `kv`, `auth = false` | after O1-B |
+| `KV_Get_dist` | `(*kv).Get` | `kv.Get.spec` / `etcdRangeSpecEW` | `kv` | after O1-B |
+| `KV_Delete_dist` | `(*kv).Delete` | `kv.Delete.spec` at `dup = false` / `etcdDeleteSpecW` | `kv`, `auth = false` | after O1-B |
+| `KV_Compact_dist` | `(*kv).Compact` | `kv.Compact.spec` / `etcdCompactSpecW` | `kv` (`cmp`, `cret`) | after O1-B |
+| `Txn_Commit_dist` | `(*txn).Commit` | `txn.Commit.spec` at `dup = false` / `etcdTxnSpecW` | `kv`, `auth = false` | after O1-B |
+| `Lease_Grant_dist` | `(*lessor).Grant` | `lessor.Grant.spec` at `etcdLeaseGrantSpec γl` / `etcdLeaseGrantSpecW` (mono) | `ls mid`, `kv.lm = .mono` | after P-L1 |
+| `Lease_GrantLive_dist` | `(*lessor).Grant` | `lessor.Grant.spec` at `etcdLeaseGrantSpecLive γl` / `etcdLeaseGrantSpecLiveW` | `ls mid`, `kv.lm = .revocable` | after P-L1 |
+| `Lease_LeasesGranted_dist` | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpec γl` / `etcdLeaseLeasesSpecW` | `ls mid`, mono | after P-L1 |
+| `Lease_LeasesLive_dist` | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpecLive γl` / `etcdLeaseLeasesSpecLiveW` | `ls mid`, revocable | after P-L1 |
+| `Client_LeaseLeases_dist` (etcd-grove-03's) | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpecAny` / `etcdLeaseLeasesSpecAnyW` | nothing | after O1-B (or now, over `γE`) |
+| `Client_LeaseTimeToLive_dist` (etcd-grove-03's) | `(*lessor).TimeToLive` (no options) | `lessor.TimeToLive.spec` at `etcdLeaseTTLSpec` / `etcdLeaseTTLSpecW` | nothing | after O1-B (or now) |
+
+The workloads call `cli.Put`/`cli.Get`/... (`*Client`'s promoted methods through its `KV` field): a proved promotion lemma
+per method gives them from the `(*kv)` drafts, so the axioms sit at the functions the proved specs are about. The cache
+library's own `c.kv.Get` is `KV_Get_dist` directly.
+
+**Per workload:** kv, putget, durable, writers: `KV_Put/Get/Delete_dist`, `Txn_Commit_dist`; compact: `KV_Put/Get/
+Compact_dist` (its `kvRevLbZ Γ.kv (rev + 1)` is the Put's `kvRevLb` at `rev + 1`); leaseRead: the two view-free ones;
+leaseCatchup: `Lease_Grant_dist` at k-1 and 0, `Lease_LeasesGranted_dist` at k-1 with `G = [g1]` (leasecatchup's argument
+verbatim: g1 is listed whatever the fillers do); leaseExpiry: `Lease_GrantLive_dist`, `Lease_LeasesLive_dist`
+(leaseexpiryN's `gone`/`listed` over `leaseAbsentFrom`, `lessorLb` from the previous listing).
+
+**Why none can be proved now, in the standing rule's order** (same for all eleven):
+1. *The real Go is translated* (clientv3 with bodies, grpc-go's model `models/grpc`), and its functions are proved in one
+   process (`kv.X.spec`, `lessor.X.spec`) over `Invoke`'s registration (`isGrpcRpcsMd`, `kvRegsAt`). Across machines the
+   call goes through grpc's `Invoke` over the net extension: the S2 interface exists (`grpcAddrAt`, opaque
+   `grpcCliPI`/`grpcSrvPI`), but no proof establishes the protocols of any bytes and `etcdSvc` has no law, so nothing can
+   be proved over the existing S2/S5 statements. Needs #24's S2 client side (`notes/phase7-plan.md` §1.3, §2.4).
+2. *A Go model with the same behaviour* is the grpc model itself, which is what S2 proves over: the same gap.
+3. *Trusted code*: a stand-in for clientv3 + grpc would still need the wire proof, and would trust more than a contract per
+   function.
+So each is an interim axiom with that reason; the lessor four also wait for P-L1. Each needs a fresh `axiom`-skill review
+(given the code, not this reasoning) and enters the single etcd_safe packet.
+
+**Soundness for a remote call (Go):**
+- *Who answers.* `clientNoProxy`: the client dials the endpoints themselves (F1). `etcdAddrAtV ep Γ mid` is set once by the
+  start (`addrUnset` spent) and served only by `Serve_dist` at a member with `memberViewOk Γ ρ`; `bridge.New` consumes
+  `netAddrLeft` (review 4). So every reply is a real member's handler at names `kvCongr` to `Γ.kv`.
+- *Errors, timeouts, retries are the error arm.* A deadline is `ctx`'s error (`DeadlineExceeded`); a partition or a crashed
+  member is `Unavailable`; both return `err ≠ nil` with no claim. Reads: clientv3's retry interceptor retries an immutable
+  RPC on `Unavailable` at the next endpoint (`isSafeRetryImmutableRPC`); the read update is persistent (`□`), as in
+  `kv.Get.spec`. Writes (`Put`, `Delete`, writing `Txn`): retried only after a refusal (`isSafeRetryMutableRPC`), which an
+  auth-off member never sends to a KV call (`etcd_noRefusal`'s argument, `noRefusalAt`), so a write is sent at most once:
+  the one-shot update. A write whose call errs may still be applied later (the member already proposed it): the update was
+  handed over and the error arm returns nothing of it, the unknown outcome the workloads' checks already allow.
+- *What a success claims* is `kv.X.spec`'s post, which the in-process proof derives from the member's `etcdXSpecW` at its
+  names through `kvSame`: header revision, the state the update fired at, `kvRevLb` of the cluster's `rlog`. Lease ones:
+  the member-local facts at its lessor (`LeaseLeases` is `EtcdServer.LeaseLeases`, the member's own lessor, no read index:
+  hence one endpoint and `ls mid`); `LeaseGrant` replies after the member's apply of the grant (the reply waits on the
+  apply wait), so the grant is in that member's history.
+- `Compact` with `cmp = true` implies auth off (`NewServer`'s `cmp = true → on = false`); its call is idempotent past the
+  compacted revision (an error then), so a retry is harmless either way.
+
+### 18.5 Streams (N3, out of scope): what they would need
+
+`watcher.Watch` and `RequestProgress` (watch, compact ×2, cache's own watch, auth's root/u/refused watches): a stream
+contract (SW1's `.stream` entries, or an interim `Watch_dist` axiom) over `Γ.kv`: the events are the KV history at the
+cluster's `st` (a cluster-level history name: the proved `WatchCheck`/`WatchRun` specs are over the watch environment `V`,
+whose server names would have to be `Γ`'s); the compaction revision's facts (`E.Cp` is a member's: needs a cluster-level
+permit, e.g. from `rlog`/`cret`); progress notifications' revision; resumption at another endpoint after a fault
+(`WatchResume`, multi-endpoint); restart-stability of all of it (D6).
+
+### 18.6 Changes to etcd-grove-03's two drafts
+
+Bodies unchanged. Under B: `etcdAddrAt ep γE mid` → `etcdAddrAtV svc ep Γ mid` (inside `leaseClientV`), and `levelTok 0`
+threaded through pre and post (as `lessor.Leases.spec`/`lessor.TimeToLive.spec`). Their proofs (`leaseList`,
+`leaseReadCheck`, `RunLeaseRead`) need only that rename and the token (their `RunLeaseRead.spec` already keeps
+`levelTok 0`). Under A they stay as they are.
+
+### 18.7 Open questions
+
+1. **O1: A, B or C** (recommended B). With B: the re-indexing of A1-A5 is a trusted change (re-reviews), and A4/A5 become
+   theorems.
+2. **P-L1 ownership**: `NewServer`/`NewLessor` taking the lessor name (server proof work, no trust); who takes it.
+3. **The ready gate's meaning (D6)**: needed by every lessor draft in `etcd_safe`, and by any read that a restarted member
+   must not answer from a stale bbolt image.
+4. **Auth (N11)**, two Go findings for its design: `dist/client/auth.go`'s `newUserClient` has no `grpc.WithNoProxy()` (the
+   F1 hole for every user client of auth and authLease: `clientNoProxy` fails, a program change); with auth on a write is
+   retried after an auth refusal (`ErrInvalidAuthToken` → token refresh → resend), so the auth-on write drafts need the
+   persistent update (`dup = true`), not the one-shot one. Also `γa` and `KVNames.hist` need B's per-member treatment.
+5. **authLease's refusals** (`TimeToLive(WithAttachedKeys)`, `Revoke`, leased `Put`/`Txn`): only "an error" is checked; the
+   drafts would be auth-on forms (N11b), with `T := False` (the configuration's `ClientCertAuthEnabled` false,
+   `srvTLSId_false`) fixed heap-free in the table.
+6. **Naming at adoption**: the general `KV_Put_dist`/`KV_Get_dist` are stronger than A4/A5, so by the naming rule they take
+   the plain names and the putget forms become `Client_Put_dist_putGet`/`Client_Get_dist_putGet` (theorems).
+
 ## 20. No-crash landing line (2026-11-25, branch `etcd-safe-nc/2026-11-25`)
 
 The line that lands the multi-machine theorems without crashes (`etcd_kv_safe_nocrash`, then
