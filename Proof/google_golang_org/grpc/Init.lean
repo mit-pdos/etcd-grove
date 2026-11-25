@@ -6,8 +6,11 @@ Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for g
 initializer initializes its imports, allocates `EnableTracing` (`var EnableTracing bool`,
 `trace.go:33` at v1.84.0: translated, no initializer, so its cell holds `false`), runs the
 untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated `init`
-functions, which the trust-boundary axiom `initFuncsOk` says return. (Until 2026-11-19 the cell
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its three translated `init`
+functions (`dialoptions.go`, `rpc_util.go`, `server.go`; phase7-inits, 2026-11-25, until then the
+trust-boundary axiom `initFuncsOk`), which store function values and closures in `internal`'s hook
+variables, through `internal`'s invariants (`grpc/internal/Hooks.lean`); it allocates the slices the
+closures append to (`globalDialOptions`, `globalPerTargetDialOptions`, `globalServerOptions`). (Until 2026-11-19 the cell
 came from the trust-boundary axiom `DefaultBackoffConfig_init`.) No translated code writes
 `EnableTracing`; a program that writes it (etcd's `embed` at log level debug, grpc-proxy `--debug`)
 gets no proof: it would need the cell, which `finish` makes persistent.
@@ -19,12 +22,14 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.time.Link
 public import Proof.google_golang_org.grpc.credentials.Init
+public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.resolver.Init
 public import Proof.google_golang_org.grpc.stats.Init
 public import Proof.net.Init
+public import Proof.google_golang_org.grpc.internal.Hooks
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -58,16 +63,6 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([logger.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
-/-- **The trust boundary: `google_golang_org.grpc`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0», init.«1», init.«2»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
 end google_golang_org.grpc
 end opaqueInits
 
@@ -93,13 +88,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Bool) EnableTracing _ as HEnableTracing
-  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.resolver.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.keepalive.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply wp_GlobalAlloc (V := GoSlice) globalServerOptions _ as HglobalServerOptions
+  wp_apply wp_GlobalAlloc (V := GoSlice) globalPerTargetDialOptions _ as HglobalPerTargetDialOptions
+  wp_apply wp_GlobalAlloc (V := GoSlice) globalDialOptions _ as HglobalDialOptions
+  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.resolver.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.keepalive.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.internal.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
@@ -107,9 +106,83 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk logger.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  wp_apply (initFuncsOk init.«1» (by mem_tac))
-  wp_apply (initFuncsOk init.«2» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  ihave #Hfi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.internalInit (hG := hG) : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd4
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.AddGlobalDialOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookFunc (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalDialOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksFunc; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.AddGlobalPerTargetDialOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookFunc (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalPerTargetDialOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksFunc; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.JoinDialOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.DisableGlobalDialOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  -- the translated init.«1»
+  wp_func_call
+  wp_call
+  try wp_auto
+  ihave #Hfi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.internalInit (hG := hG) : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd4
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.AcceptCompressors
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  -- the translated init.«2»
+  wp_func_call
+  wp_call
+  try wp_auto
+  ihave #Hfi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.internalInit (hG := hG) : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd4
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.GetServerCredentials
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.IsRegisteredMethod
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.ServerFromContext
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.AddGlobalServerOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookFunc (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalServerOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksFunc; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.JoinServerOptions
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
+  wp_apply (EtcdGrove.grpcInternal.wp_store_hookAny (hG := hG) _root_.Perennial.google_golang_org.grpc.internal.XDSFilterWrapperOption
+      (by unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.hooksAny; mem_tac) _ _ _) $$ [Hfi Hown] as Hown
+  · iframe Hown Hfi
+  try wp_auto
   ipersist HEnableTracing
   iframe Hown
   imodintro
