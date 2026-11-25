@@ -2372,3 +2372,72 @@ baseline change is exactly N2's: `etc/tcb-baseline.txt` and `putget-dist.txt` ga
 and `etcd_dist.KV_Get_dist.wp_proof` and lose `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`. `KV_Delete_dist`, `KV_Compact_dist` and `Txn_Commit_dist` are declared, but no
 root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, no `sorry`, no new top-level premise.
+
+## 23. N9a: the putget and durable workloads across machines (2026-11-25, branch `etcd-safe-n9a/2026-11-25`)
+
+#50's N9a (coordinator-E's brief): `RunPutGet` and `RunDurable` of `examples/etcd/dist/client`, for the full
+`etcd_safe_nocrash` (after M1, kv only; M1's files untouched). Base `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca`.
+No new axiom, `sorry`, top-level premise or Go change.
+
+### 23.1 The cluster's KV shared by prefix (`dist/KVPfxDist.lean`, defs)
+
+putget, durable and compact may run in one deployment (`Compatible`: a key prefix each), each with its own
+orchestrator writing the cluster's one KV. M1's kv instance takes the client half `etcdKV Γ.kv σ₀` whole (one
+`pendCtx`), which a second writer cannot share. So the start puts it into one invariant `kvPfxInv γk ps` with,
+for each owned prefix `(p, γ) ∈ ps` (`PfxsApart`: none a prefix of another), half of a ghost variable holding
+`pfxView p σ` (the state's key-values under `p`); the owner holds the other half. A write by the owner of `p`
+of keys under `p` (`PfxLocal`, `pfxLocal_putKey`) leaves every other prefix's view unchanged
+(`filter_putKv_other`), so the owner's workload invariant can state facts of its prefix that the other
+workloads' writes keep. Laws: `kvPfx_au1` (an owner's one-shot update, `KV_Put_dist`'s AU, from its invariant
+over its half and a step of its own predicate `W`), `kvPfx_readAu` (`kvReadAu`, `KV_Get_dist`'s), and
+`kvPfx_alloc` (the start's allocation). Only the masks are new: owners' invariants at `kvClientN.@s`, the shared
+one at `kvClientN.@"share"` (`kvShareN_mask`).
+
+### 23.2 The workloads' invariants (`dist/client/KVWorkDefs.lean`, defs)
+
+- **putget** (compacted's check in rounds; `client.putGetInv`'s argument per key): `pgInv γ γP` keeps `pg/`'s
+  key-values with: each key-value's value is its key's (`pgVal k`: `v` and what follows `pg/k`), and each key
+  of the monotone list `P` at `γP` (the puts that fired) has one. Round `s`'s put (`pg/k<s> ↦ v<s>`) appends its
+  key (`pgPutAu_round`, result `pgFired`); the get after it reads `pgReadOk` (`pgGetAu`): the key has a
+  key-value, each of value `v<s>`. A failed round's put may fire later: it writes its own key with its key's
+  value, so no later round's check breaks (keys need not be distinct: the value is a function of the key).
+- **durable** (restart1/restartN's `r1Ok` argument, with unknown outcomes): `durInv γ γF γs n` keeps `du/`'s
+  key-values with: each is `durKey j ↦ durVal j` at version 1 for a fired `j < n` (monotone list `F` at `γF`),
+  and each fired `j` has its key-value. Put `j`'s update holds the token `γs[j]` and gives it to the invariant
+  when it fires (`durPutAu`): a second firing would need it twice, so the key is absent before (version 1:
+  `putKvNew_version`). The range's read update (`durGetAu`) gives `durReadOk`: every key-value under `du/` is a
+  put's, and every fired put the caller knows of (`durFiredAll`) has its key-value.
+- `durRange_eq`: `Get("du/", WithPrefix())`'s selection is exactly `pfxView du/` (`inRange_prefix`).
+
+### 23.3 The specs (`Spec/.../dist/client/`), in the shape N7's dispatch consumes
+
+`RunPutGet.spec` and `RunDurable.spec` (Go names): `{isPkgInit client ∗ levelTok 0 ∗ eps ↦*□ addrs ∗ S addrs}
+Run…(eps[, n]) {r. levelTok 0}` (no panic: every check holds), `S` the orchestrator's share, global (at
+`GooseGlobalGS`, as `DistBootWpSLT`'s shares): `putgetShare addrs` / `durableShare addrs` =
+`kvPfxShare pfx addrs` := `∃ Γ γ, ⌜Γ.auth = false⌝ ∗ membersAt addrs Γ ∗ kvPfx Γ.kv pfx γ ∗ ghostVar γ ½ []`.
+Pure premises (facts of the deployment and the logic, as `kvNodePre`'s): `Nonempty (WEnv GF)`, `threadBound GF ≤
+2^30`, `plainEndpoints addrs`, `errors.AsTarget rpctypes.EtcdError`; durable also `0 ≤ n` (`make` panics on a
+negative length; `WellFormed` bounds a durable workload's `Clients` to `[0, MaxDurable]`). `levelTok 0` is the
+machine's (from `threadTok` at boot), not the share's. Helpers: `newClient`, `checked`, `ended` (N9b's
+statements verbatim), `durableKey`, `durableValue`; `KVCallsDist.lean` (`wp_cliPut`/`wp_cliGet`: the promoted
+`cli.Put`/`cli.Get` from the interim contracts, as `Client_Put_dist`/`Client_Get_dist`).
+
+### 23.4 What the start (N6) must supply
+
+At a deployment whose workloads include putget and/or durable (with compact or lease workloads beside them),
+from the cluster's client half `etcdKV Γ.kv σ₀` at the boot state (no key-value: `σ₀.kvs = []`):
+`kvPfx_alloc Γ.kv σ₀ h0 pfxs hap ⊤` with `pfxs` the deployment's writing workloads' prefixes (`pg/`, `du/`,
+`cw/`; apart: no one a prefix of another) gives `kvPfx Γ.kv p γ_p ∗ ghostVar γ_p ½ []` per prefix; each
+orchestrator's share is `kvPfxShare p (members' client addresses)` with the members' `membersAt` (from
+`clientSvcFacts`, as `kv_start_deployment`). Nothing else: each orchestrator allocates its own invariant
+(`pgInv_alloc`, `durInv_alloc` with `n` tokens) and fired-list ghost state at run time; no budget (the
+workloads issue a bounded number of calls, each one-shot or a persistent read). The compact workload (another
+N9 piece) would own `cw/` the same way; its `Compact` must keep the other prefixes' views (it changes no
+current key-value). A deployment with a sole writer (kv, watch, cache, auth) gives that workload the half whole
+(M1's `kvR` sysState).
+
+### 23.5 State
+
+See the commits on the branch for the build state of each module (the VM was held for M1's build; proofs
+written, building in this order: `KVPfxDist`, `KVWorkDefs`, `KVCallsDist`, the helper proofs, `RunPutGet`,
+`RunDurable`, `KVWorkLinked`).

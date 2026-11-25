@@ -8,6 +8,11 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunDurable
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.durableKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.durableValue
+public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
@@ -56,6 +61,13 @@ theorem wp_RunPutGet : RunPutGet.spec (GF := GF) (hG := hG) :=
   RunPutGet.wp_proof wp_newClient checked.wp_proof ended.wp_proof EtcdGrove.strconv.Itoa.wp_proof
     context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
     EtcdGrove.Client.Close.wp_proof KV_Put_dist.wp_proof KV_Get_dist.wp_proof
+
+/-- **durable's orchestrator, linked.** -/
+theorem wp_RunDurable : RunDurable.spec (GF := GF) (hG := hG) :=
+  RunDurable.wp_proof wp_newClient checked.wp_proof ended.wp_proof durableKey.wp_proof
+    durableValue.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
+    (EtcdGrove.WithPrefix.wp_proof EtcdGrove.getPrefix.wp_proof) EtcdGrove.Client.Close.wp_proof
+    KV_Put_dist.wp_proof KV_Get_dist.wp_proof
 
 end linked
 
