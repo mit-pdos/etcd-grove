@@ -284,3 +284,37 @@ keys/values are int kinds/empty structs (reads it: the spec then needs the map's
 HandleSyncProof has from quorumIs), plus `printArgOk`/`ArgWf` case; (b) lead decision otherwise.
 Do not weaken: no sorry. Next: decide (a), then prove wp_PrintlnT over `log.wp_Println`
 (callers with ArgsWf already: NewLeaderProof 670-682, HandleSyncProof 1279-1342).
+
+## Session 9 (2026-11-25, successor; worktree `<handoff-pickup>/.lake/gm/egnet`, local branch
+`gm-egnet-pickup` pushed to `go-models-rest-egnet/2026-11-24`, VM key c61dd42e08d7d686)
+Why a nested worktree: this session's harness refuses git outside its own worktree, so `wt/ho-gmr` (which
+holds the local `go-models-rest-egnet/2026-11-24`, now behind origin) was not used. Scratch also inside:
+`<handoff-pickup>/.lake/gm/scratch` (gendev9.sh, count.sh, packet-head/tail.md); logs `tmp/gomodels/s9/`.
+- egnet-full (head 55c465fab3, from scratch after the sync dir's eviction): EXIT 1, only SyncTail (as session 8).
+- Adversarial reviews round 2 (fresh agents, code only; demos `tmp/gomodels/adv2-egos/`, `adv2-egnet/`):
+  * egos: UNSOUND directory Seek(SEEK_CUR) after Readdirnames (Go ext4 2^63-1, model 0) -> FIXED d2fa9c8519:
+    model Readdirnames stuck unless off == 0, sets off = -1; Seek SEEK_END stuck on a directory fd (Go: htree
+    end 2^63-1, not the size; measured, `examples/osfs/semantics/model_os_dir_offset.go`, TestDirOffset).
+    Spec changes (internal): os dir Open specs give `os.ownOff f 0`, Readdirnames dir specs take it,
+    `fileutil.ReadDir.wp_core`'s `Fd : Loc → w64 → IProp`; Off/OffEnd SEEK_END call wp_osFdKind. NsSOk fix
+    0639d7d158. Conditional UNSOUND durable-vs-os state (no proved program mixes them): recorded in the packet,
+    Impl.lean sentence still to add (a docstring change rebuilds durable's importers). DOC zero-File comment fixed.
+  * egnet: UNSOUND Listen's error Addr never had a nil IP (Go's ":p": &TCPAddr{IP: nil}) -> FIXED 62c7668c97
+    (`anyListenAddr`, `wp_anyListenAddr`). Latent: StructFieldRef of nil (Perennial FIXME). DOC Impl.lean stale
+    (not changed). Rest no divergence, criterion 14 ok.
+- Criterion-14 audit: packet section; the one deviation is fmt's trusted Printf error type (*errors.errorString
+  vs Go's *fs.PathError), as on lean.
+- egnet-os1 (d2fa9c8519): every edited os/fileutil/WAL/walfs/WalTester/KvNet module built; failures only NsSOk
+  (fixed 0639d7d158) and SyncTail. egnet-os2: wp_anyListenAddr (fixed 4527ef62a8). egnet-os3 (4527ef62a8): EXIT 1,
+  only SyncTail.
+- tcb-report before/after (same 8369 roots): 329/329 axioms, same names; 0 sorry; results 1129/1129; BUT
+  runtime.opaqueInitsOk, runtime.initFuncsOk, internal.runtime.sys.opaqueInitsOk now reach 81 roots (11 before):
+  30 top-level results gain them, incl. RaftNoAx raft_kvdurable_porcupine_robust 0 -> 3 (os imports runtime:
+  KeepAlive, Cleanup). For Upamanyu/lead (packet head + Evidence); not fixed.
+- `etc/model-tests.sh --perennial p-gm-rest` with both fixes: tests ok.
+- tcb-report: base = lean merge-base 622264bf5e built in its own sync dir (key 114ec12addaddd71, worktree
+  `<handoff-pickup>/.lake/gm/base`, detached); both runs with the 3 SyncTail-dependent root modules excluded by
+  a VM-side temporary patch of `etc/proof_roots.py` (`TCB_EXCLUDE` regex in `root_modules`, reverted after
+  the run; not committed). Outputs `tmp/gomodels/s9/tcb-{base,egnet}.txt`.
+- Packet: `notes/handoff/go-models-2026-11-24/packet-rest.md` assembled (head + dev diffs + tail).
+Next: Upamanyu's log.Println decision (then SyncTail; drop the exclusion), his review of the packet.
