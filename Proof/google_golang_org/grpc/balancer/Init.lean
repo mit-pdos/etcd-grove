@@ -13,7 +13,7 @@ imports (`grpclog`, grpc's `internal`), allocates `logger`, runs its translated 
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.Hooks

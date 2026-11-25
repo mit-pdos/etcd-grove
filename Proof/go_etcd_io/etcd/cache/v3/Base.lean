@@ -288,16 +288,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.internal
 
--- (phase7-inits batch 2) grpc's `balancer` (types and names only but its `logger` and `init`): `SubConn`,
--- the type `health`'s `registerClientSideHealthCheckListener` names; after `internal`, whose hook its
--- `init` sets
-instance grpc_balancer_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
-  define_is_pkg_init iprop(True)
-instance grpc_balancer_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
-  build_get_is_pkg_init_wf
-
 -- `google.golang.org/grpc/metadata` (types and names only), before `grpc`, which imports it
 -- (unit W-W: grpc's `ClientStream`/`ServerStream` name `metadata.MD`; moved here from
 -- `server/v3/auth/Base.lean`)
