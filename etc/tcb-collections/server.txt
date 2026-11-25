@@ -29,7 +29,7 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom NewRaftLoggerZap.wp_proof
+axiom NewRaftLoggerZap.wp_proofNN
 axiom RangeRequest.String.wp_proof
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof

@@ -1451,3 +1451,53 @@ written against `lean` `1bdd4e02f1`; this table checks each item at `5f464b7bf9`
   persistent agreement), so that a check at the program's start gives every later read's value; with it the
   axioms `verifyEnvOff` and `envVerifyOffTok` go, and so do `HEnv` and `HEnvTok`. A trusted change for the
   owner (an axiom restated), not done here.
+
+## 16. Integration line (2026-11-25, branch `etcd-safe-main/2026-11-24`; issue #50, pieces P1 and N0)
+
+The line that collects the settled `etcd_safe` branches and builds them together (full VM build green,
+`etc/tcb-report.py --check` and every collection matching). Merged heads, in order, onto
+`etcd-safe-lit/2026-11-24` (`c022542b8b`, which carries `-d2` and `-wf`):
+
+| # | branch | head |
+|---|---|---|
+| 1 | `etcd-safe-crashskel/2026-11-24` (crash skeleton `etcd_safe_of_boot`, D4a-D4c, W1 in `etcdFsSem`) | `87c770d1cc` |
+| 2 | `raft-restart-confpoint/2026-11-24` (option D) | `66ce406ae2` |
+| 3 | `lean` | `e785a7776e` |
+| 4 | `dist-putget-interim/2026-11-24` (A1 `etcdSvc`, A3 `Serve_dist`, A2, `envPub`; with `hprem-axioms`) | `cc2bfed144` |
+| 5 | `dist-putgetk/2026-11-24` (ClusterStart, `StartMember_dist`, `holdForever`) | `650a7c4887` |
+| 6 | `hprem-axioms/2026-11-24` (already in 4) | `14bd8f185c` |
+| 7 | `lean` (with `4bb5562851`, `http.register` consumes `netAddrLeft`) | `2f8ee1548e` |
+
+What the merges needed (all on this line only; the source branches untouched):
+- **etcd pin**: `lean`'s `df6af0c36` (fmt stage 1) and D6 T4's `8aa40fd5c` (the snapshot guard), both on
+  `6b942d23f`, combined as `47d6cdeeb` (fork branch `goose-lean-fmt1c-snapguard`: the guard cherry-picked,
+  clean; its test passes). The translation is unchanged by the combination.
+- **`etcd_robust.spec`'s bounds** stay `2 ^ 28` threads and `2 ^ 28 - 1` steps:
+  `robust_of_dist_crash_adequacy_etcdNet` gives a generation `receiptBound + 1` threads. They move to
+  `etcdThreads`/`etcdSteps` once the crash bridge separates threads from receipts (#50, P11).
+- **membership**: `lean`'s claim #34 specs of `NewMember`/`computeMemberID`/`newMember` (general, over
+  `etcdserver.Assumptions`) keep the plain names; D2's one-URL specs, over `membership.Assumptions` (which
+  the dist client has), are the variants `.specOne` (`<fn>One.lean`), with the URL plain and shorter than
+  `2 ^ 61` bytes (`strings.Join`'s new bound); `deployment.memberIDs`/`IdsOk` take the peers valid and
+  within `typed.maxLen`, which `WellFormed` has. To go once membership's defs are over
+  `membership.Assumptions`.
+- **`NewRaftLoggerZap`**: `lean`'s stage-4 spec (`zapLoggerOk` to `isLogger`, a hypothesis of
+  `raftConfig`) keeps the plain name; `hprem-axioms`' axiom keeps its reviewed statement as
+  `NewRaftLoggerZap.specNN`/`wp_proofNN` (a rename in the baselines), which `newRaftNode` takes.
+- **The bridges**: both thread-bound bridges kept side by side (`robust_of_distBootILT` here,
+  `robust_of_distBootIT` putget's); one should go.
+- **D6 T4's `specRAt`/`specC`** follow `specR`: `lean`'s `etcdURLsFit` premises, without
+  `rnNewStorageOk` (wal-nostorageok) and the two raft-wrapper contracts (hprem-axioms).
+- **putgetK_safe's unlanded statement, adapted here only** (the coordinator's decision, 2026-11-25):
+  `hprem-axioms`' swap as for `putgetN` (`BootLogFacts.wire` in place of the premise `bootMarshal`,
+  `commonPremises` gone from `premises` and `StartMember_dist.spec`); the client's share carries
+  `Net.addrOk ep` in place of `plainEndpoint ep` (putget's new `Client.spec`). `putgetk.Start` is listed
+  in `etc/tier-linking.txt`.
+- **The trust-base report**: `etc/proof_roots.py` runs a root that reaches the part `Net` only outside its
+  `net/http`/`net/textproto`/`net/rpc` apart from those that do (the dist roots import the main tree's
+  `net/http`, which one environment cannot hold with the part's).
+- The trust base against `etcd-safe-lit`'s: `+` the four interim axioms of putget (dist-putget-interim),
+  `proto.MarshalBootConfChange.wp_proof`, `contention.NewTimeoutDetector.wp_proof`,
+  `NewRaftLoggerZap.wp_proofNN` (hprem-axioms), `proto.UnmarshalWalRecordE.wp_proof` (`lean`); `-`
+  `errors.AsNoMatch`, `fmt.ErrorfSlice`, `fmt.SprintfSlice`, `fmt.SprintfWalName`, `slices.ContainsFunc`
+  (`lean`). 337 axioms, no `sorry` reached (`NewServer.wp_proofC`'s is unlinked).
