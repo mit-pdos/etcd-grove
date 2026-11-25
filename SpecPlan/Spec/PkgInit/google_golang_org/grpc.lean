@@ -14,6 +14,7 @@ public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.stats
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.grpclog
 
 @[expose] public section
 noncomputable section

@@ -176,6 +176,7 @@ theorem unmarshal_bounded : unmarshalB.spec (GF := GF) (hG := hG) := by
     iframe Ht
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iunfold decInto
     isplit
     · iintro %v Hv %Hv0

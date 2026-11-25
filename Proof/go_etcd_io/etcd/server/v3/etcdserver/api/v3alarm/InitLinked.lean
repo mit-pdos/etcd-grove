@@ -8,7 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Init
 public import Perennial.Proof.sync.Link
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.InitLinked

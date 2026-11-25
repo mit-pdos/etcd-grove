@@ -1,0 +1,29 @@
+# (phase7-inits batch 2, 2026-11-25) Types and names only, but `logger` (`grpclog.Component("balancer")`,
+# `balancer.go:46`) with its initializer and its `init` (`balancer.go:77`: `internal.BalancerUnregister =
+# unregisterForTesting`) with its body: `SubConn` and `SubConnState`, the types `health`'s
+# `registerClientSideHealthCheckListener` names (its value, which `health`'s `init` stores in
+# `internal.RegisterClientHealthCheckListener`); hence the imports of `grpclog` and grpc's `internal`.
+translate = ["!*", "logger", "init.0"]
+imports = ["!*", "google.golang.org/grpc/grpclog", "google.golang.org/grpc/internal"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them; each reason says why not
+# running the initializer is unobservable.
+[[skip]]
+names = ["m"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["ErrNoSubConnAvailable", "ErrTransientFailure", "ErrBadResolverState"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""

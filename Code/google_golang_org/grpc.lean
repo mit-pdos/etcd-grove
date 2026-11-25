@@ -12,6 +12,7 @@ public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
 public import Code.google_golang_org.grpc.metadata
 public import Code.google_golang_org.grpc.peer
+public import Code.google_golang_org.grpc.grpclog
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -821,8 +822,6 @@ noncomputable def globalPerTargetDialOptions [GooseExts] [GoGlobalContext] : GoS
 
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.logger"
-
-opaque logger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
@@ -2408,7 +2407,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2431,6 +2430,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"core"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.grpclog.Component []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #())))))
@@ -2439,7 +2442,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
-  (App (Val logger.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2463,9 +2466,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.grpclog.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalDialOptions (go.GoType.SliceType DialOption.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalPerTargetDialOptions (go.GoType.SliceType perTargetDialOption.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc logger _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalServerOptions (go.GoType.SliceType ServerOption.ty))) (Val #()))))))
   (App (Val doExecute)
@@ -6427,6 +6434,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
+  import_grpclog_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
@@ -6584,6 +6592,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_stats_Assumption
   Assumptions.import_metadata_Assumption
   Assumptions.import_peer_Assumption
+  Assumptions.import_grpclog_Assumption
 
 end google_golang_org.grpc
 

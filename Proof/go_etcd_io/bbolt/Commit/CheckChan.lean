@@ -315,7 +315,7 @@ theorem cc_wp_NewChannel (R : IProp GF) :
   imod ghostVar_alloc () with ⟨%gc, Hc⟩
   imod ghostVar_alloc () with ⟨%gr, Hr⟩
   ipersist mu
-  imod init_lock (ccInv (V := V) ch ⟨gp, gc, gr⟩ R) ⊤ «$v1_ptr» $$ «$v1» [Hsl Hslcap state buffer v Hp1]
+  imod init_spinLock (ccInv (V := V) ch ⟨gp, gc, gr⟩ R) ⊤ «$v1_ptr» $$ «$v1» [Hsl Hslcap state buffer v Hp1]
     with #Hlock
   · inext
     unfold ccInv

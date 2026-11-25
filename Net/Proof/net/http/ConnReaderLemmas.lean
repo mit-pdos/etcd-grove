@@ -41,7 +41,9 @@ theorem wp_NewCond_nn (m : GoInterfaceOk) :
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hc
   iStructNamed Hc
   ipersist L
-  ipersist notify
+  iStructNamed notify
+  imod inv_alloc sync.notifyListN ⊤ (sync.notifyListInv _) $$ [wait «notify»] with #Hnotify
+  · inext; iexists _, _; iframe
   imod inv_alloc sync.copyCheckerN ⊤ (sync.copyCheckerInv _) $$ [checker] with #Hchecker
   · inext; ileft; iexact checker
   imodintro
@@ -50,6 +52,7 @@ theorem wp_NewCond_nn (m : GoInterfaceOk) :
   · ipureintro; exact Hnn
   rw [sync.isCond_unseal]; unfold sync.isCondDef
   rw [sync.isCopyChecker_unseal]; unfold sync.isCopyCheckerDef
+  rw [sync.isNotifyList_unseal]; unfold sync.isNotifyListDef
   iframe #
   done
 

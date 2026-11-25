@@ -2,6 +2,7 @@ module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
+public import Net.Proof.net.rpc.Errs
 
 @[expose] public section
 
@@ -54,6 +55,14 @@ theorem errNotFound_errMsg (err : GoInterface) :
   · ipureintro; go_type_set
   iexact H
 
+/-- The store's `ErrNotFound` (an `errors.New` error) is `errPlain`: a log call may print it. -/
+theorem errNotFound_errPlain (err : GoInterface) :
+    errNotFound (hG := hG) err ⊢ models_lab.errPlain err := by
+  unfold errNotFound
+  iintro ⟨%x, %Hx, -, #Hs, #H⟩
+  subst Hx
+  iapply net.rpc.errPlain_errorString x _ $$ [$Hs $H]
+
 theorem errMsg_ok (err : GoInterface) (msg : GoString) :
     net.rpc.errMsg (GF := GF) err msg ⊢ ⌜∃ ei, err = GoInterface.ok ei⌝ := by
   unfold net.rpc.errMsg
@@ -65,6 +74,12 @@ theorem errAny_ok (err : GoInterface) :
   unfold models_lab.errAny
   iintro ⟨%ei, %h, -⟩
   ipureintro; exact ⟨ei, h⟩
+
+theorem errPlain_ok (err : GoInterface) :
+    models_lab.errPlain (GF := GF) err ⊢ ⌜∃ ei, err = GoInterface.ok ei⌝ := by
+  iintro #H
+  iapply errAny_ok
+  iapply models_lab.errPlain_errAny $$ H
 
 instance errNotFound_persistent (err : GoInterface) :
     Persistent (errNotFound (hG := hG) err) := by

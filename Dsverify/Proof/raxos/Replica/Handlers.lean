@@ -84,6 +84,7 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     iexists lin
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hin
     unfold decInto
     isplit
@@ -130,6 +131,7 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iexists resp, DFrac.discard, rr
   isplitr
   · ipureintro; rfl
+  iPkgInit
   iframe #
   iintro -
   unfold espReply

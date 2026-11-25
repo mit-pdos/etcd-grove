@@ -110,6 +110,7 @@ theorem marshal_buf (t : Loc) (dq : DFrac) (b : Batch) (mb : Loc) (bs : List w8)
     iframe Hrep
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iintro Hrep
     isplit
     · iintro %Hb; iframe Hrep; ipureintro; exact ⟨Hb, rfl⟩

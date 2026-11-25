@@ -14,7 +14,7 @@ implementing package proves its values meet it; the calling package uses only th
   from keys to their items `(version, value, committed)` in arrival order (`StoreS`).
 * The clients (`isNodeClient`, `isCoordClient`, `freshNodeClient`, `freshCoordClient`): their
   methods are the address-level method specs (`Methods.lean`) over Go values; errors come with
-  their `Error()` (`errAny`).
+  their `Error()`, and `fmt` formats them calling only it (`errPlain`: a log call may print them).
 * The services (`isNodeSvc`, `isCoordSvc`): what the rpc bindings call; errors have a non-empty
   message (`errMsg`), which the binding sends.
 -/
@@ -106,26 +106,26 @@ def respPtr (ptr : Loc) (resp : GMap GoString (List (GoString × w64))) : IProp 
 def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, ⌜c = interface.ok e ∧ a ∈ cfg.chain⌝ ∗ □ (
     -- Ping()
-    (∀ Φ : val → IProp GF, ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗
+    (∀ Φ : val → IProp GF, ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗
         Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Ping" e.v)) (Val #())) {{ Φ }}) ∧
     -- Write(k, val, v)
     (∀ (k : GoString) (sl : GoSlice) (x : GoString) (v : w64) (Φ : val → IProp GF),
       sl ↦*□ x -∗ valsElem cfg.γ v k x -∗
-      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∗ cvLb cfg.γ k v ∨ models_lab.errAny err) -∗
+      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∗ cvLb cfg.γ k v ∨ models_lab.errPlain err) -∗
         Φ #err) -∗
       WP (App (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #sl)) (Val #v))
         {{ Φ }}) ∧
     -- Commit(k, v)
     (∀ (k : GoString) (v : w64) (Φ : val → IProp GF), ⌜keyOk k⌝ -∗ cvLb cfg.γ k v -∗
-      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (App (Val #(methods e.ty go!"Commit" e.v)) (Val #k)) (Val #v)) {{ Φ }}) ∧
     -- LatestVersion(k)
     (∀ (k : GoString) (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
       ⌜keyOk k⌝ -∗ opAU cfg.γ (.get k) Q -∗
       ▷ (∀ (k' : GoString) (v : w64) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ (∃ σ : KvM.State, Q (.got (σ k)) ∗ readFacts cfg.γ k v (σ k)) ∨
-            models_lab.errAny err) -∗
+            models_lab.errPlain err) -∗
           Φ (PairV (PairV #k' #v) #err)) -∗
       WP (App (Val #(methods e.ty go!"LatestVersion" e.v)) (Val #k)) {{ Φ }}) ∧
     -- Read(k)
@@ -144,7 +144,7 @@ def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
     (∀ (ptr : Loc) (dq : DFrac) (m : MetaV) (r : Role) (Φ : val → IProp GF),
       ⌜metaAddrsOk cfg.chain m⌝ -∗ metaPtr ptr dq m -∗ roleHalf cfg.γ a r -∗ updDep cfg.γ r m -∗
       ▷ (∀ err : GoInterface,
-          (⌜err = interface.nil⌝ ∗ metaPtr ptr dq m ∗ updPost cfg.γ a r m ∨ models_lab.errAny err) -∗
+          (⌜err = interface.nil⌝ ∗ metaPtr ptr dq m ∗ updPost cfg.γ a r m ∨ models_lab.errPlain err) -∗
           Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Update" e.v)) (Val #ptr)) {{ Φ }}) ∧
     -- FwdPropagate(req)
@@ -152,7 +152,7 @@ def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
       ⌜reqKeysOk req⌝ -∗ reqPtr ptr dq req -∗
       ▷ (∀ (rp : Loc) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ reqPtr ptr dq req ∗ (∃ resp, respPtr rp resp ∗ respItems cfg.γ resp) ∨
-            models_lab.errAny err) -∗ Φ (PairV #rp #err)) -∗
+            models_lab.errPlain err) -∗ Φ (PairV #rp #err)) -∗
       WP (App (Val #(methods e.ty go!"FwdPropagate" e.v)) (Val #ptr)) {{ Φ }}) ∧
     -- BackPropagate(req)
     (∀ (ptr : Loc) (dq : DFrac) (req : GMap GoString w64) (L : CLog) (Φ : val → IProp GF),
@@ -160,7 +160,7 @@ def isNodeClient (cfg : Cfg GF) (c : GoInterface) (a : GoString) : IProp GF :=
       ▷ (∀ (rp : Loc) (err : GoInterface),
           (⌜err = interface.nil⌝ ∗ reqPtr ptr dq req ∗ (∃ resp, respPtr rp resp ∗ respItems cfg.γ resp ∗
               respCommitted cfg.γ resp ∗ ⌜respCovers req resp L⌝) ∨
-            models_lab.errAny err) -∗ Φ (PairV #rp #err)) -∗
+            models_lab.errPlain err) -∗ Φ (PairV #rp #err)) -∗
       WP (App (Val #(methods e.ty go!"BackPropagate" e.v)) (Val #ptr)) {{ Φ }}) ∧
     -- Close()
     (∀ Φ : val → IProp GF, ▷ (∀ err : GoInterface, Φ #err) -∗
@@ -171,7 +171,7 @@ def isCoordClient (cfg : Cfg GF) (c : GoInterface) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, ⌜c = interface.ok e⌝ ∗ □ (
     -- AddNode(a)
     (∀ (a : GoString) (Φ : val → IProp GF), ⌜a ∈ cfg.chain⌝ -∗ joinTicket cfg.γ a -∗
-      ▷ (∀ (p : Loc) (err : GoInterface), (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗
+      ▷ (∀ (p : Loc) (err : GoInterface), (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗
           Φ (PairV #p #err)) -∗
       WP (App (Val #(methods e.ty go!"AddNode" e.v)) (Val #a)) {{ Φ }}) ∧
     -- Write(k, val)
@@ -179,14 +179,14 @@ def isCoordClient (cfg : Cfg GF) (c : GoInterface) : IProp GF :=
         (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
       ⌜kvOk k x⌝ -∗ sl ↦*{dq} x -∗ opAU cfg.γ (.put k x) Q -∗
       ▷ (∀ err : GoInterface,
-          (⌜err = interface.nil⌝ ∗ sl ↦*{dq} x ∗ putReceipt k x Q ∨ models_lab.errAny err) -∗ Φ #err) -∗
+          (⌜err = interface.nil⌝ ∗ sl ↦*{dq} x ∗ putReceipt k x Q ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #sl)) {{ Φ }}) ∧
     -- Close()
     (∀ Φ : val → IProp GF, ▷ (∀ err : GoInterface, Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Close" e.v)) (Val #())) {{ Φ }}) ∧
     -- RemoveNode(a), of any address (stage 2: the client nodes' removals)
     (∀ (a : GoString) (Φ : val → IProp GF), ⌜a.length < 256⌝ -∗
-      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods e.ty go!"RemoveNode" e.v)) (Val #a)) {{ Φ }})))
 
 /-- `c` is a new, unconnected node client: `Connect(a)` makes it a client of the node at `a`
@@ -195,7 +195,7 @@ def freshNodeClient (cfg : Cfg GF) (c : GoInterface) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, ⌜c = interface.ok e⌝ ∗
     ∀ (a : GoString) (Φ : val → IProp GF), ⌜a ∈ cfg.chain⌝ -∗
       ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ isNodeClient cfg c a) ∨
-          models_lab.errAny err) -∗ Φ #err) -∗
+          models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Connect" e.v)) (Val #a)) {{ Φ }})
 
 /-- `c` is a new, unconnected coordinator client. -/
@@ -203,7 +203,7 @@ def freshCoordClient (cfg : Cfg GF) (c : GoInterface) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, ⌜c = interface.ok e⌝ ∗
     ∀ (Φ : val → IProp GF),
       ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ isCoordClient cfg c) ∨
-          models_lab.errAny err) -∗ Φ #err) -∗
+          models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Connect" e.v)) (Val #cfg.cAddr)) {{ Φ }})
 
 /-- `f` (a `transport.NodeClientFactory`) makes new node clients (persistent). -/
@@ -234,7 +234,7 @@ def isNodeSvc (cfg : Cfg GF) (svc : GoInterface) (a : GoString) : IProp GF :=
       WP (App (Val #(methods e.ty go!"Ping" e.v)) (Val #())) {{ Φ }}) ∧
     (∀ (ptr : Loc) (dq : DFrac) (m : MetaV) (r : Role) (Φ : val → IProp GF),
       ⌜metaAddrsOk cfg.chain m⌝ -∗ metaPtr ptr dq m -∗ roleHalf cfg.γ a r -∗ updDep cfg.γ r m -∗
-      ▷ (∀ err : GoInterface, metaPtr ptr dq m -∗
+      ▷ (∀ err : GoInterface, (∃ dq', metaPtr ptr dq' m) -∗
           (⌜err = interface.nil⌝ ∗ updPost cfg.γ a r m ∨ errNE err) -∗ Φ #err) -∗
       WP (App (Val #(methods e.ty go!"Update" e.v)) (Val #ptr)) {{ Φ }}) ∧
     (∀ (k : GoString) (sl : GoSlice) (x : GoString) (v : w64) (Φ : val → IProp GF),
@@ -292,7 +292,7 @@ def isCoordSvc (cfg : Cfg GF) (svc : GoInterface) : IProp GF :=
       WP (App (App (Val #(methods e.ty go!"Write" e.v)) (Val #k)) (Val #sl)) {{ Φ }}) ∧
     -- RemoveNode(a), of any address (stage 2: the client nodes' removals over net/rpc)
     (∀ (a : GoString) (Φ : val → IProp GF),
-      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods e.ty go!"RemoveNode" e.v)) (Val #a)) {{ Φ }})))
 
 instance isNodeSvc_persistent (cfg : Cfg GF) (svc : GoInterface) (a : GoString) :

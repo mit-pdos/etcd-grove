@@ -31,14 +31,19 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # `initFuncsOk`): `dialoptions.go`'s, `rpc_util.go`'s and `server.go`'s, which store function values
   # in `internal`'s hook variables; and the variables their closures append to (no initializers)
   "init.0", "init.1", "init.2", "globalDialOptions", "globalPerTargetDialOptions",
-  "globalServerOptions"]
+  "globalServerOptions",
+  # (phase7-inits, batch 2) `logger` (`grpclog.Component("core")`, `server.go:101`) with its
+  # initializer (until then `opaqueInitsOk`)
+  "logger"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
   "time", "io", "net", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
   "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver",
   # (phase7-inits) the hook variables its `init`s set
-  "google.golang.org/grpc/internal"]
+  "google.golang.org/grpc/internal",
+  # (phase7-inits, batch 2) `logger`'s `grpclog.Component`
+  "google.golang.org/grpc/grpclog"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

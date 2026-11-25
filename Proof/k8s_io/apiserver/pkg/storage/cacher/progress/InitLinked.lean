@@ -10,7 +10,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.Init
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.google_golang_org.grpc.metadata.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.util.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.util.wait.Init
 public import Proof.k8s_io.apiserver.pkg.storage.InitLinked
