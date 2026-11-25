@@ -174,23 +174,53 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   `kvremote.Link` at `e2aa743ad7`: built (4970 jobs, exit 0), no `sorry` or axiom added. `etc/tier-check.py
   --check`: ok (Store defs, Codec proof, Link linking).
 
+## State (2026-11-25, fifth session): `remote.lin` made abortable; the Node's update conversion proved
+
+- **`remote.lin` could not be handed to etcd** (ledger 2026-11-25, "`remote.lin` cannot abort"): `Call.spec`'s
+  write update is etcd's `kvOpAu1`, an Iris atomic update whose accessor must be abortable, and `lin` (a
+  one-shot fancy update) gives `etcdKV γk σ` only by stepping. **Changed** (pending the coordinator's review,
+  `remote`'s owner, before landing): `lin R i Φ := AU <{ ∃∃ st, sysState st }> @ ⊤ \ Eop, ∅ <{ sysState (step
+  st).1, COMM Φ (step st).2 }>`; the old form is `linF` (`lin_linF : lin ⊢ linF`, for far sides that fire it;
+  `linF_read_lin : □ linF ⊢ lin` for reads). Producers (`Pend.lean`): `pend_fire` and `pend_choice`'s write
+  abort by closing `pendCtx` unchanged, lintest's update (`pend_commit_core`) now runs in the commit branch;
+  `readNoop` and the read case build `□ linF` and convert. Consumers: counter `Server` (`lin_linF`), `Shared`'s
+  `lin_mono` (by `aupd_intro`/`atomic_acc_wand`), the seven kits' `lin_opAU`/`lin_opU` (`(lin_linF ..).trans`),
+  swift's `ClientLin` (twice), quepaxa's `lin_opAU` (was `⊣⊢ .rfl`, only `.1` used: now `⊢`). No
+  `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changed.
+- **`kvremote/NodeUpd.lean`** (defs, lean-check clean): `slotUpd_callUpd : slotUpd (kvR γk) x Φ ⊢ callUpd γk
+  (kvMi x) (if write then nodeQ x Φ else nodeRQ γt x Φ)` via `lin_kvOpAu1` (write: `lin`'s AU to `kvOpAu1`, the
+  next state good by `kvSys_step`: `goodKV_step`, `absSt_step`, `kvOut_good`'s bound, the revision from
+  `kvRoom` and `kvOpStep_cases`) and `lin_kvReadAu` (read: each firing fires a copy of `□ lin` and puts `Φ o`
+  in an invariant `inv nodeN (Φ o ∨ token γt)`, since `kvReadAu`'s result must be persistent); the results
+  back: `nodeQ_out` (write: `Q σ ⊢ ∃ o : VOut, ⌜y = o.1⌝ ∗ Φ o`, from `Call.spec`'s `GoodKV σ → y = outAt i σ`)
+  and `nodeRQ_out` (read: with the token, `={E}=∗ ▷ ∃ o, …`; the `▷` needs a credit: take `£ 1` from the
+  op closure's pure steps before the call, `wp_auto_lc 1`, and `lc_fupd_elim_later`).
+- **Finding: `txnlin.Call.spec` is not usable on a client machine.** Its premises `[∗list] sv ∈ ms, kvRegsAt
+  sv` and `clientWriteOnce` are the in-process servers' registrations; a client machine holds only the network
+  address facts. The Node needs **`Call` across machines**: `Call.spec` with `isNewClient ∗ clientWriteOnce ∗
+  kvRegsAt`s replaced by the lead's `view.kvClientV svc cl api eps V Γ` (branch `etcd-safe-n2/2026-11-25`,
+  `dist/ClientViewDist.lean`, unbuilt) and `callUpd Γ.kv i Q` (one update, not one per member: the drafts
+  take one AU at `Γ.kv`). Its proof is txnlin's `call`/`callPut`/`callGet`/`callDel`/`callList`/`callTxn`
+  re-linked over the drafts `KV_Put_dist`, `KV_Get_dist`, `KV_Delete_dist`, `Txn_Commit_dist` (and `kv.Txn`/
+  `If`/`Then`/`Else`, proved). Differences from what the Node needs: (1) the drafts take `Γ.auth = false`
+  (the kv workload's deployment has auth off: fine); (2) `kvClientV` needs `clientF cl "KV" ↦□ api`, which
+  `NewClients`' post must give (it gives `isNewClient`, `clientTokAt`, `clientNoProxy` today); (3) `membersAtV`
+  over `eps`: the Node's `eps` must be the members' addresses with `etcdAddrAtV` each (the start's share);
+  (4) `Call.spec`'s post `(GoodKV σ → y = outAt i σ)` and `kvRevFits σ.rev` must survive: the drafts' posts
+  give the response messages at `σ`, as `kv.Put.spec` etc. do, so txnlin's `call*` proofs carry over.
+
 ## Handoff
 
-Done: §11.3 step 1 (the store, `kvPendDec`, `kvR_hinj`) and step 2 (`codecOk (kvR γk) (Codec())`, linked).
-Next, in order (§11.3), each spec first:
-1. **Step 3, the client machine** (`dist/kvremote/Node.lean`): `opMaybe (kvR γk) a tok op` for `Node`'s
-   `op` (`func(sys, in) any { return txnlin.Call(sys.(*clientv3.Client), in) }`), from `txnlin.Call.spec`
-   (`EtcdGrove.etcd_txnlin.wp_Call`, linked) at `x := i.1`, `i := kvMi x` (`kvMi_dec`), `GenIn` from `x.2`,
-   `Q` the continuation: a write's `slotUpd = lin` (`slotUpd_write`) must give `[∧list] sv ∈ ms, callUpd
-   sv.γr.kv (kvMi x) Q` with every `sv.γr.kv = γk` (D7: `tok cli` should carry that): `lin` -> `kvOpAu1 γk
-   (opIn i) Q` by opening `lin`'s fupd (mask `⊤ \ kvEop`, `kvEop_mask`), giving `etcdKV γk σ` from `kvSys`,
-   and at the commit rebuilding `kvSys` of `kvOpStep (opIn i) σ` (`GoodKV`: `goodKV_step` with
-   `inKeys_keysIn`; `absSt`: `absSt_step`; `kvGood`: `kvOut_good`'s `StoreLe` and `kvRoom σ` for the
-   revision) and `Q σ := Φ (outOf ..)`-ish matching `lin`'s `Φ (TSo.step ..).2` (`kvOut_good`: `.1 =
-   outOf`, and `Call.spec`'s `y = outAt i σ` under `GoodKV σ`). A read's `□ lin` -> `kvReadAu γk Q` likewise
-   (`reads_stay`). Model: txnlin's `Inv.lean` (`linkvInv_kvOpAu1`-style lemmas at lines ~536, ~779).
-   Then `Node`'s WP (`ServeClient.spec`, never returns). `tok` per §11.3 step 3.
-2. Step 4 (`Orch`: `Run.spec` at `kvR γk`, `linkvtxnS`, `kvPendDec`, `kvR_hinj`, `kvR_timeless`, txnlin's
-   `Model`/`Gen` (`genSpec` post `linkvInOk` -> `∃ i : VIn, x = boxIn i.1`), masks `pendN ⊆ ⊤ \ kvEop`,
-   `lintestN ⊆ ⊤ \ (kvEop ∪ pendN)`), then steps 5-6.
-Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS` (pushes HEAD to fk-lean2).
+Done: §11.3 steps 1-2; `remote.lin` abortable (above, needs the coordinator's review); the Node's update
+conversion (`NodeUpd.lean`). Next, in order, each spec first:
+1. **`Call` across machines** (`Spec/.../dist/kvremote/CallDist.lean`, `txnlin_Call_dist.spec svc`, `svc` the
+   lead's table parameter as in the drafts): once the lead's `ClientViewDist.lean` is on a branch we can import
+   (it is unbuilt and not ours: do not edit it), state it as above; its proof re-links txnlin's `call*`
+   proofs over the drafts (taken as callee hypotheses). Until then the Node's WP can take it as a hypothesis.
+2. **`Node`'s WP** (`Spec/.../dist/kvremote/Node.lean`, never returns): `NewClients` (error: return), then
+   `ServeClient.spec` at `(kvR γk).svc` with `codecOk_wireOk`/`opMaybe_svcOp`, `tok sys := ∃ cl, ⌜sys =
+   interface.mk (ptr Client) #cl⌝ ∗ levelTok 0` plus the persistent client facts in the context; the op: `wp_auto_lc
+   1`, allocate `token γt`, `slotUpd_callUpd`, `CallDist`, then `nodeQ_out` / `nodeRQ_out` (+ the credit).
+3. Step 4 (`Orch`: `Run.spec` at `kvR γk`, unchanged by the `lin` change), then steps 5-6.
+Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS` (pushes HEAD to fk-lean2);
+the `remote` leaves: `/shared/tmp/p9-targets-lin.txt`.
