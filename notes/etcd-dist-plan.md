@@ -1284,6 +1284,16 @@ module (linking where it uses `wp_*`):
    `ops * readTries` per client address, `remoteAddr (kvR γk) a_c` for each client machine (remote's
    `remote_start`); hand `pendLib` and the units to the orchestrator's share, `remoteAddr` and the
    members' views to each client machine's.
+   **The deployment's extensions** (P9, 2026-11-25): every machine, the client machines included, runs over
+   `etcdNetExts := ⟨[idIssueExt, Fs.fsExt, Net.netExt]⟩` (`etcdstart/NetExts.lean`; `etcdNetExts_hasIdIssue`).
+   The client machines need the request-ID extension: `Call_dist.spec` (the lead's statement of `Call` across
+   machines, which `kvremote.Node`'s proof applies) is stated under `[HasExt idIssueExt]`, as are N2's
+   `KV_*_dist`/`Txn_Commit_dist`. The bundle provides it; a bundle for client machines without
+   `idIssueExt` would not.
+   Done so far (`dist/kvremote/Start.lean`, defs): `kv_start` (the kv part: `mapCtx_alloc`, `pend_alloc`,
+   `addrs_set_proto`) and `kv_start_deployment` (one kv workload; the members' part a hypothesis
+   `MemberBootN5`, N5's statement as the start needs it). Not done: step 6's use (the boot WPs, the shares
+   through N7-kv's `orchShare`/`nodeShare`).
 6. **The theorem** (`dist/kvremote/TopLevelRobustness.lean`, linking): `etcd_safe_nocrash_of_boot`'s
    shape with `EtcdBootNC` discharged by putgetK's k-member boot (`member_bootK`; `dist-putgetk`) for the
    members, step 5 for the start, steps 3-4 for the client and orchestrator machines; `EtcdBootNCBad`
