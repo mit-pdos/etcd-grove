@@ -25,6 +25,53 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: `statusErrOk` -- an error's value is of its dynamic type (`stTypedErr`) (#45)
+
+- **Spec.** `statusErrOk` (`Proof/go_etcd_io/etcd/cache/v3/Base.lean`), the predicate of the errors
+  grpc's `status` accepts. It is posted by the axiom `status.Error.wp_proof` and by grpc's client
+  contracts (`InvGrpc`, `InvGrpcStream`, `InvKVConn`), and proved by the other producers. No
+  spec-plan counterpart.
+- **Defect.** Too weak for `errors.IsStatusErr`'s proof. Perennial's `errors.Is` compares the target
+  with the tree's errors of its type (`errors.ComparableErr`), and that needs those errors to hold
+  values of the target's Lean type. The model does not type interface values, so an error of
+  dynamic type `EtcdError`, `deadlineExceededError` or a pointer type may hold any value.
+- **Evidence.** `statusErr_comparableTarget` (`Proof/errors/IsStatusErr.lean`), for its three
+  target kinds: `etcdError_comparable`, `comparableErr_pointer` (`TreeTyped`) and
+  `deadlineExceededError_comparable`.
+- **Proposed change.** The non-nil conjunct gains `⌜stTypedErr e⌝`: of type `EtcdError` the error
+  holds an `EtcdError`, of type `deadlineExceededError` it holds `deadlineExceededError{}`, and of a
+  pointer type it holds a `Loc`. Go guarantees this by typing, since an interface value holds a
+  value of its dynamic type. The proved producers discharge it: `stTypedErr_ptr`,
+  `stTypedErr_etcdError`, `stTypedErr_deadline`, and `stTypedErr_of_valKey` for `togRPCError`'s
+  non-pointer keys. The leaf lemmas `clientErr_statusErrOk_of_leaf` and `statusErrOk_of_leafMsg`
+  take it as a hypothesis, which their callers give. Where `statusErrOk` is in an axiom's or a
+  contract's post, the trusted statement asserts more:
+  - `status.Error`'s, a `*status.Error`, a pointer;
+  - the grpc client contracts', the errors grpc returns.
+- **Decision.** Pending: the coordinator, asked on #45 (2026-11-25) whether the user's 2026-11-23
+  approval of the same typing class (`deTyped`, `ctxErrsErr`) covers it. #24 owns the grpc
+  contracts and is notified.
+
+## 2026-11-25: `errors.IsStatusErr.spec` takes the target's description (#45)
+
+- **Spec.** `errors.IsStatusErr.spec` (`Spec/errors/IsStatusErr.lean`); no spec-plan counterpart.
+- **Defect.** Unprovable once it stops being an axiom. When `err` has an `Is(error) bool` method
+  (grpc's `*status.Error`), Go's `errors.Is` calls `err.Is(target)`. The only spec of that call is
+  `grpcErrMethodsOk`'s `Is` clause, which takes `descIs target m'`. With `dm = none` the precondition
+  gives no description of a pointer target, so the walk cannot make the call.
+- **Evidence.** The proof over Perennial's `errors.wp_Is` builds the leaf's `errorWalkNode`, whose
+  `Is` branch needs that clause's `descIs (GoInterface.ok e) m -∗ descIs target m' -∗ ...`.
+- **Proposed change.** The precondition gains `∃ m', descIs target m'`. Every caller meets it with
+  existing lemmas: `descIs_etcdError` for an `EtcdError` target; `errorMsgIs_errorString` or
+  `errorMsgIs_deadline` with `descIs_of_msg`, or `ctxErr_descIs`, for the context errors. The
+  `dm = some` callers already hold it. The callers whose proofs change: `EtcdServer.LeaseRenew`,
+  `EtcdServer.PromoteMember`, `watchServer.Watch`, `canceledByCaller`, `watcher.Close`,
+  `lessor.recvKeepAliveLoop`, `watchGRPCStream.run`, `Client.getToken`. No statement other than
+  this spec's changes. The rejected alternative was to weaken `grpcErrMethodsOk`'s `Is` clause to
+  any target, which changes a trust-boundary contract and `status.Error`'s axiom.
+- **Decision.** Accepted by coordinator-E, 2026-11-25 (#45): the spec becomes a theorem, so the
+  narrower precondition adds no trust.
+
 ## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
 
 - **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,

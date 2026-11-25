@@ -137,7 +137,7 @@ theorem deadlineExceededError_comparable (S : GoError → Prop)
     (htyped : ∀ ii : GoInterfaceOk, S (interface.ok ii) →
       ii.ty = _root_.Perennial.context.deadlineExceededError.ty →
       ii.v = #(zero_val _root_.Perennial.context.deadlineExceededError)) :
-    _root_.Perennial.errors.ComparableErr S
+    _root_.Perennial.errors.ComparableErr (GF := GF) S
       ⟨_root_.Perennial.context.deadlineExceededError.ty,
         #(zero_val _root_.Perennial.context.deadlineExceededError)⟩ := by
   refine ⟨_root_.Perennial.context.deadlineExceededError, inferInstance,
@@ -152,8 +152,7 @@ theorem deadlineExceededError_comparable (S : GoError → Prop)
     infer_instance
   · have hd : decide (v1 = v2) = true := decide_eq_true (by cases v1; cases v2; rfl)
     rw [hd]
-    show ⟦GoOp GoEquals _root_.Perennial.context.deadlineExceededError.ty, (#v1, #v2)⟧ ⤳ #true
-    infer_instance
+    exact _root_.Perennial.errors.pureWp_goEquals_of_step _ _ _ _
 
 end lemmas
 

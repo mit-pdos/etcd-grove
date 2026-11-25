@@ -10,7 +10,7 @@
 status_Error:
 status_Errorf:
 errors_Is:
-errors_IsStatusErr:
+errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 errors_IsDeadlineExceeded: =_root_.Perennial.errors.wp_Is
 # The functions of other packages the checks call (`@`: linked in their Link.lean): the txn
 # package's stream-check predicates, the interval tree's intervals.

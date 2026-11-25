@@ -885,7 +885,7 @@ theorem errors.wp_IsCtxErr :
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsStatusErr.wp_proof
+  EtcdGrove.errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem wp_filterNoDelete :
     EtcdGrove.v3rpc.filterNoDelete.spec (GF := GF) (hG := hG) :=

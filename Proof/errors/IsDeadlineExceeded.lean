@@ -38,7 +38,7 @@ theorem errors.IsDeadlineExceeded.wp_proof
   iintro %Φ ⟨#Hinit, #Hctx, #Ht, #Htree, %HS, %Hdt⟩ HΦ
   ihave %Htv := deadlineExceeded_value target $$ Hctx Ht
   subst Htv
-  have hcmp : _root_.Perennial.errors.ComparableTarget S
+  have hcmp : _root_.Perennial.errors.ComparableTarget (GF := GF) S
       (interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
         #(zero_val _root_.Perennial.context.deadlineExceededError)) := by
     intro tii ht

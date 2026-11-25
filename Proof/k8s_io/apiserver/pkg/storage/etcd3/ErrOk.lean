@@ -209,7 +209,7 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
   | ok e =>
   obtain ⟨-, hty, hT⟩ := hc.2 e rfl
   iunfold go_etcd_io.etcd.cache.v3.statusErrOk at Hs
-  ihave ⟨⟨%m, #Hm⟩, %Hleaf, #Hg, %HF⟩ := Hs $$ %e %rfl
+  ihave ⟨⟨%m, #Hm⟩, %Hleaf, #Hg, %HF, -⟩ := Hs $$ %e %rfl
   ihave #Hstr : fmt.stringMethodSpec (GF := GF) e go!"Error" $$ []
   · unfold fmt.stringMethodSpec
     iintro !> %Φ HΦ

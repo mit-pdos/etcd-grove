@@ -26,6 +26,8 @@ law, two `descIs` of one value say nothing of each other) or `m = m'` (`err.Is(t
 `*status.Error.Is` compares the two statuses, messages included, `internal/status/status.go:222-228`;
 `grpcErrMethodsOk`'s `Is` clause). For an `EtcdError` target the value pin (`descIs_etcdError_eq`) turns
 the first into the second.
+(#45, 2026-11-25) Proved over Perennial's `errors.Is` (an axiom until then). The precondition takes
+the target's description (`∃ m', descIs target m'`), which calling `err.Is(target)` needs.
 -/
 module
 
@@ -63,7 +65,10 @@ abbrev errors.IsStatusErr.spec : Prop :=
     (∃ tii, target = GoInterface.ok tii ∧ _root_.Perennial.errors.IsPointerError tii) ∨
     target = interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
       #(zero_val _root_.Perennial.context.deadlineExceededError)) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err ∗ isDescs err target dm }}
+  -- (#45, 2026-11-25) the target has a description, which `err.Is(target)` takes
+  -- (`grpcErrMethodsOk`'s `Is` clause)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err ∗ isDescs err target dm ∗
+      (∃ m' : GoString, descIs target m') }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
   {{ (b : Bool), RET #b; ⌜b = true → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧
       ((∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,

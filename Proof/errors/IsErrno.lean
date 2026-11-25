@@ -37,7 +37,7 @@ theorem errors.IsErrno.wp_proof : errors.IsErrno.spec (GF := GF) (hG := hG) := b
   ihave #Htree := errno_walkTree e he _ ht xPe xEx xNE xUn $$ Hv
   have hen : errnoErr e = interface.mkOk syscall.Errno.ty #e := by
     unfold errnoErr; simp only [he, ↓reduceIte]
-  have hc : _root_.Perennial.errors.ComparableTarget (· = errnoErr e) (interface.mkOk syscall.Errno.ty #t) := by
+  have hc : _root_.Perennial.errors.ComparableTarget (GF := GF) (· = errnoErr e) (interface.mkOk syscall.Errno.ty #t) := by
     intro tii h
     cases h
     refine _root_.Perennial.errors.comparableErr_uintptr _ _ t rfl ?_

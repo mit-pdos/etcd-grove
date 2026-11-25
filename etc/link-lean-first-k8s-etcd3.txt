@@ -165,7 +165,7 @@ RecordListLatency:
 # restated in 7e-2's first third, linked as axioms already elsewhere (k8setcd3, txn, client)
 reflect_Value__Set:
 reflect_ValueOf:
-errors_IsStatusErr:
+errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 # k8s.io/apiserver/pkg/storage and apimachinery (7e-2)
 ValidateListOptions:
 EncodeContinue: json_Marshal

@@ -13,7 +13,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots \bclient\.(client_lessor_isEtcdLease|client_new_isEtcdLeaseClient)$
 axiom context.WithValue.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcConn

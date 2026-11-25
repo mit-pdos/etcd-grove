@@ -2668,11 +2668,15 @@ theorem watchGRPCStream.run.wp_proof
         ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
         · iPkgInit
         ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
+        -- (#45) the target's description, which `errors.Is` takes
+        ihave #Htdxnl : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF)
+            (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #xnl) m') $$ []
+        · iexists _; iapply go_etcd_io.etcd.cache.v3.descIs_etcdError
         ihave #Herrp : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
         · iPkgInit
         (try wp_auto)
         wp_apply (wp_isStatus err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
-        · iframe Hse'; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
+        · iframe Hse' Htdxnl; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
         cases bnl
         rotate_left
         · -- no leader: `run` stops

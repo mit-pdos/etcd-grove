@@ -314,7 +314,8 @@ theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hG : methodSet e.ty !! go!"GRPCStatus" = none)
     (hF : methodSet e.ty !! go!"Format" = none ∧
-      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
+    (hst : go_etcd_io.etcd.cache.v3.stTypedErr e) :
     errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
@@ -326,7 +327,7 @@ theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact hF
+  · ipureintro; exact ⟨hF, hst⟩
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -396,7 +397,8 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
       · ipureintro; exact errKeyOk_ptr e h.1
       iexists e; iframe Hm; ipureintro; rfl
     · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2 $$ Hm
+      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2
+        (go_etcd_io.etcd.cache.v3.stTypedErr_ptr e h.1) $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -404,6 +406,28 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   ipureintro
   exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf,
     deTyped_single e (deTypedErr_ptr e h.1)⟩
+
+/-- A key of `togRPCError`'s map that is not a pointer (`deadlineExceededError{}` or an
+`InvalidCostError`) is `stTypedErr` (#45): it is no `EtcdError`, and of type `deadlineExceededError`
+it holds `deadlineExceededError{}` (`deTypedErr`). -/
+theorem stTypedErr_of_valKey (e : GoInterfaceOk) (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
+    (hkey : errKeyOk (GoInterface.ok e)) (hde : deTypedErr e) :
+    go_etcd_io.etcd.cache.v3.stTypedErr e := by
+  refine ⟨fun h => ?_, hde, fun T h => absurd h (hty T)⟩
+  exfalso
+  rcases hkey with hn | ⟨t, l, hk⟩ | hk | ⟨c, hk⟩
+  · cases hn
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk; exact hty t rfl
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk
+    simp only at h
+    unfold _root_.Perennial.context.deadlineExceededError.ty
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h
+    simp at h
+  · simp only [interface.mkOk] at hk; injection hk with hk; subst hk
+    simp only at h
+    unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h
+    simp at h
 
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
@@ -432,7 +456,7 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
       · ipureintro; exact hkey
       iexists e; iframe Hm; ipureintro; rfl
     · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-      iapply statusErrOk_of_leafMsg e hleaf hIs hG hF $$ Hm
+      iapply statusErrOk_of_leafMsg e hleaf hIs hG hF (stTypedErr_of_valKey e hty hkey hde) $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl

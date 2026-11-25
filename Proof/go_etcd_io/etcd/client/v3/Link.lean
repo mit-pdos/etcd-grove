@@ -542,7 +542,7 @@ theorem v3.wp_isContextError :
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsStatusErr.wp_proof
+  EtcdGrove.errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem v3.Client.wp_shouldRefreshToken :
     EtcdGrove.Client.shouldRefreshToken.spec (GF := GF) (hG := hG) :=

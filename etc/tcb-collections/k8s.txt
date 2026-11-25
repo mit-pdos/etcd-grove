@@ -17,7 +17,6 @@ axiom context.WithCancelValCtx.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
