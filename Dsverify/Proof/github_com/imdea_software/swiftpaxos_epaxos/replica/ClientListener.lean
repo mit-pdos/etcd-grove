@@ -8,6 +8,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Net.Proof.net.ConnIo
+public import Net.Proof.net.Errors
 public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.PrefixReader
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.DelayChan
@@ -46,8 +47,6 @@ arbitrary string): dsv-swiftpaxos's `net.wp_TCPAddr_String` (`lib/NetConn.lean`)
 theorem tcpAddrString : TCPAddrStringHyp (GF := GF) := by
   intro pa v
   wp_start
-  wp_method_call
-  unfold net.TCPAddr.String.impl
   wp_auto
   wp_apply net.wp_extAnyString as %s
   iapply HΦ

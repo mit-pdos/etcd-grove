@@ -11,6 +11,7 @@ nothing in the swift proof uses it (every caller drops it), so the post here is 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
+public import Net.Proof.net.Errors
 
 @[expose] public section
 
@@ -87,8 +88,6 @@ theorem net.wp_TCPAddr_String (x : Loc) :
       (App (Val (x @!! go.GoType.PointerType net.TCPAddr.ty @!! go!"String")) (Val #()))
     {{ (s : GoString), RET #s; True }} := by
   wp_start
-  wp_method_call
-  unfold net.TCPAddr.String.impl
   wp_auto
   wp_apply net.wp_extAnyString as %s
   iapply HΦ

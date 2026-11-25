@@ -166,7 +166,7 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     (HC : PutgetClientS2) :
     putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
+  intro _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
     Hm Hc Hok HEnv HEnvTok G hlo hb
   have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
     Hprem σc Hc
