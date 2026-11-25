@@ -42,6 +42,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWF
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWFPure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllIdx
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllGive
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleUnnamed
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Steps
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllLocks
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.LockRange
@@ -339,9 +341,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   unfold walReadH walOpenIn walReadTie
   simp only [↓reduceIte]
   icases Hrh with ⟨⟨%lg, %sp, Hlg, #Hzap, Hdir, Hstart, #Hsp⟩, %dec, %IoE, %eof, %ueof, %fs, %locks,
-    %lfs, %fp, %rc, %j, Hdecf, Hdec, ⟨#Hdenv, %hIoN⟩, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
+    %lfs, %fp, %rc, %j, %qs, Hdecf, Hdec, ⟨#Hdenv, %hIoN⟩, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
     %Hfs, Hfallback, #Hlks⟩, Hlocks, Hls, Hcap, Hrc, Hfp, ⟨%hrc, Hpipe⟩, He, Hst, Hmd, Henti, Hsnapi, Hns,
     #Hmu, #Henv, #Hcrc, Hbefore⟩
+  -- the handle's one loan, the pipeline's (P6b fix A): of the WAL's name `nm`
+  icases walPipeH_pinLoan fp dir j 0 qs $$ Hpipe with ⟨%qpp, %hqs, Hpipe⟩
+  subst hqs
+  unfold walHLoans
+  icases Hnf with ⟨%Lh, Hnf, %hLh⟩
+  have hLh' := walHLoans_loans hin hLh.1
+  simp only [List.map_cons, List.map_nil] at hLh'
+  subst hLh'
   iapply fupd_wp
   ipersist Hbefore
   imodintro
@@ -378,7 +388,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   -- the look at the invariant: the update committed and the tail registered at one opening, at the
   -- state the tail record holds (`walInv_readCommitReg`)
   obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
-  imod walInv_dirPath walCodec Mr R jr rt dir j X $$ Hinv Hnc Hnf Hk with ⟨Hnc, Hnf, %qProbe, HprobePath⟩
+  imod walInv_dirPath walCodec Mr R jr rt dir j X _ $$ Hinv Hnc Hnf Hk
+    with ⟨Hnc, %nmp, %qProbe, %hdp, Hnf, HprobePath⟩
+  have hnmp : nmp = nm := Fs.child_inj (hdp.symm.trans (inArea_child hin))
+  subst nmp
   imod walInv_readCommitReg walCodec Mr R jr rt w dir s j X hj gs glr
       (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr _ Q ic
       (fun dc' d' lay' kk' hp' hle' hab' hdrop' => by
@@ -388,8 +401,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
         rw [← hle'.2.1]
         exact Nat.le_trans h1 hp'.2)
       $$ Hinv Hsi Hnc Hk Hn Htf Hnf Hh Hgh Hau
-    with ⟨Hnc, Hn, Hnf, Hh, Hgh, %dc, %d0, %lay, %kk, %γt, %s1, %nmw, %qn, %hnw, HQ, #Hp1, ⟨%I1, #HpI1, %hI1⟩, #Hlen,
-      Hnw, #Hlbw, Htf, Htk, Htv, %hcm⟩
+    with ⟨Hnc, Hn, Hh, Hgh, %dc, %d0, %lay, %kk, %γt, %s1, %nmw, %qn, %hnw, HQ, #Hp1, ⟨%I1, #HpI1, %hI1⟩, #Hlen,
+      Hnw, Hnf, #Hlbw, Htf, Htk, Htv, %hcm⟩
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
   imodintro
@@ -734,9 +747,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hsz0 : ∀ g ∈ gs0, g.om.size = g.bs.length := fun g hg => hgsz g (List.mem_append_left _ hg)
             have hls0 : ls.length = gs0.length := by rw [hlsl, hfI]
             have hfll0 : gs0.length ≤ fls.length := by rw [hfll]; simp
+            -- the look's claim and probe path back (P6b fix A)
+            iapply wp_notCrashed_acc _ _ rfl
+            iintro Hnc
+            imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+              $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+            imodintro
+            iframe Hnc
             iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
             iintro %dq HQ Htf Hfail
-            ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ fsI γt
+            ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ qpp fsI γt
                 d0.H d0.metadata lay.cuts lay.wr gl.om.size gl.om.size fdl lay.segs gl hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0
                 hwrT hclo1 rfl $$ [Hfail Hlg Hdir Hlocks Hls Hfp Hpipe Hns Hdff Hdf Hdfs Hph Hn Hout Hnf Hleft Htf He Htw]
             · rw [hft]
@@ -788,9 +808,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hsz0 : ∀ g ∈ gs0, g.om.size = g.bs.length := fun g hg => hgsz g (List.mem_append_left _ hg)
             have hls0 : ls.length = gs0.length := by rw [hlsl, hfI]
             have hfll0 : gs0.length ≤ fls.length := by rw [hfll]; simp
+            -- the look's claim and probe path back (P6b fix A)
+            iapply wp_notCrashed_acc _ _ rfl
+            iintro Hnc
+            imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+              $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+            imodintro
+            iframe Hnc
             iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
             iintro %dq HQ Htf Hfail
-            ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ fsI γt
+            ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ qpp fsI γt
                 d0.H d0.metadata lay.cuts lay.wr sz' gl.om.size fdl lay.segs gl hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0
                 hwrT hclo1 rfl $$ [Hfail Hlg Hdir Hlocks Hls Hfp Hpipe Hns Hdff Hdf Hdfs Hph Hn Hout Hnf Hleft Htf He Htw]
             · rw [hft]
@@ -841,7 +868,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · ileft; ipureintro; rfl
             rw [← hft]
             ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-            iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ γt
+            -- the look's claim and probe path back (P6b fix A)
+            iapply wp_notCrashed_acc _ _ rfl
+            iintro Hnc
+            imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+              $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+            imodintro
+            iframe Hnc
+            iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ qpp γt
               d0.H d0.metadata lay.cuts lay.wr mt bst fdl null hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0 hpt.2.1 hwrT
               $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks Hleft
               Htf Hft Hfdt Hkey Hmt Hbyt Hvt He Henc
@@ -894,7 +928,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · ileft; ipureintro; rfl
             rw [← hft]
             ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-            iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ γt
+            -- the look's claim and probe path back (P6b fix A)
+            iapply wp_notCrashed_acc _ _ rfl
+            iintro Hnc
+            imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+              $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+            imodintro
+            iframe Hnc
+            iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ qpp γt
               d0.H d0.metadata lay.cuts lay.wr mt bst fdl null hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0 hpt.2.1 hwrT
               $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks Hleft
               Htf Hft Hfdt Hkey Hmt Hbyt Hvt He Henc
@@ -917,6 +958,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           imod walInv_namedBy walCodec Mr R jr rt dir nmw s1 d0 (.only [nmw]) (DFrac.own qn) hnw j hnw.next ic w s I1 hI1
               hd1 hin1 (List.mem_singleton_self nmw) hcoh1 (Nat.le_refl _) hcur1
             $$ Hinv Hsi Hnc HpI1 Hgh Hnw Hcmt Hnf Hil with ⟨Hnc, Hgh, Hnw, #Hnamed, Hnf⟩
+          -- the claim and the probe's path back (P6b fix A): the handle keeps the pipeline's loan
+          imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+            $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
           imod walInv_tailH walCodec Mr R jr rt _ _ _ _ _ _ _ _ _ _ _ _ _ s1 w s ic I1 hI1 $$ Hinv Hnc HpI1 Hgh Htw
             with ⟨Hnc, Hgh, Htw, %hHle⟩
           ihave #Hsyn1 := walSyncedLb_le dir (n' := dc.H.length) (by rw [hle1.1]; exact hHle d0 hd1) $$ Hsyn
@@ -1000,7 +1044,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · iright; iexists _; iexact Henc
             rw [← hft]
             ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-            iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ γt
+            iapply readAll_failSynced Mr R jr rt w dir s Q dc _ _ rfl lg locks ls lt fls fp _ _ hj gs0 gl fsI df dfd _ qpp γt
               d0.H d0.metadata lay.cuts lay.wr m bs fdl e hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0 hp.2.1 hwrT
               $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hkd Hlks Hleft
               Htf Hf Hfd Hk Hm Hby Hv He Henc
@@ -1120,7 +1164,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iapply wp_notCrashed_acc _ _ rfl
             iintro Hnc
             imod walInv_appendOpening walCodec Mr R jr rt w dir s ic $$ Hinv Hnc Hgh with ⟨Hnc, Hopen, Hpw⟩
-            imod walInv_dirPath walCodec Mr R jr rt dir jd Xd $$ Hinv Hnc Hnf Hkd with ⟨Hnc, Hnf, %qd, Hpd⟩
+            unfold walHLoans
+            icases Hnf with ⟨%Lh1, Hnf, %hLh1⟩
+            have hLh1' := walHLoans_loans hin hLh1.1
+            simp only [List.map_cons, List.map_nil] at hLh1'
+            subst hLh1'
+            imod walInv_dirPath walCodec Mr R jr rt dir jd Xd _ $$ Hinv Hnc Hnf Hkd
+              with ⟨Hnc, %nmd, %qd, %hdd, Hnf, Hpd⟩
+            have hnmd : nmd = nm := Fs.child_inj (hdd.symm.trans (inArea_child hin))
+            subst nmd
+            ihave Hnf : walHLoans (W := W) dir none [qd, qpp] $$ [Hnf]
+            · have hm := walHLoans_mk (W := W) dir rt nm [qd, qpp] hin
+              simp only [List.map_cons, List.map_nil] at hm
+              iapply hm $$ Hnf
             imod walInv_readGive walCodec Mr R jr rt dir γt
               ((d0.H, d0.metadata, lay.cuts, lay.wr + ([] : List w8).length, gl.ino, none) : TailG)
               (gs.take fsI.length) _ jd Xd hSz rfl
@@ -1220,7 +1276,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               apply List.eq_nil_of_length_eq_zero
               rw [hmdvl.1]; rfl
             iapply (walOpenWFI_iff P Mr w dir ic).2
-            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0 false ic)
+            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0 false ic qpp)
+            ihave Hpipe := walPipeH_mono _ _ _ _ _ (fun _ dq => True ∧ dq = DFrac.own qpp)
+              (fun _ _ h => ⟨trivial, h⟩) $$ Hpipe
             iframe Hr0
             isplitl
             · unfold walHandleIn
@@ -1300,7 +1358,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       obtain ⟨rfl, rfl⟩ := hjd
       obtain ⟨hlastN, hXt⟩ := hglastN trivial
       ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-      iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
+      -- the look's claim and probe path back (P6b fix A)
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+        $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+      imodintro
+      iframe Hnc
+      iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ qpp γt _ d0 lay glr
         hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
         $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
         Htf Htk Htv
@@ -1525,7 +1590,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                     obtain ⟨rfl, rfl⟩ := hjd
                     obtain ⟨hlastN, hXt⟩ := hglastN trivial
                     ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-                    iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
+                    -- the look's claim and probe path back (P6b fix A)
+                    iapply wp_notCrashed_acc _ _ rfl
+                    iintro Hnc
+                    imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+                      $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+                    imodintro
+                    iframe Hnc
+                    iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ qpp γt _ d0 lay glr
                       hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                       $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
                       Htf Htk Htv
@@ -1590,7 +1662,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                   obtain ⟨rfl, rfl⟩ := hjd
                   obtain ⟨hlastN, hXt⟩ := hglastN trivial
                   ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-                  iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
+                  -- the look's claim and probe path back (P6b fix A)
+                  iapply wp_notCrashed_acc _ _ rfl
+                  iintro Hnc
+                  imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+                    $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+                  imodintro
+                  iframe Hnc
+                  iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ qpp γt _ d0 lay glr
                     hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                     $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
                     Htf Htk Htv
@@ -1954,7 +2033,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               obtain ⟨rfl, rfl⟩ := hjd
               obtain ⟨hlastN, hXt⟩ := hglastN trivial
               ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-              iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
+              -- the look's claim and probe path back (P6b fix A)
+              iapply wp_notCrashed_acc _ _ rfl
+              iintro Hnc
+              imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+                $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+              imodintro
+              iframe Hnc
+              iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ qpp γt _ d0 lay glr
                 hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                 $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
                 Htf Htk Htv
@@ -2092,7 +2178,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               obtain ⟨rfl, rfl⟩ := hjd
               obtain ⟨hlastN, hXt⟩ := hglastN trivial
               ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-              iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
+              -- the look's claim and probe path back (P6b fix A)
+              iapply wp_notCrashed_acc _ _ rfl
+              iintro Hnc
+              imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+                $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+              imodintro
+              iframe Hnc
+              iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ qpp γt _ d0 lay glr
                 hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
                 $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
                 Htf Htk Htv
@@ -2153,7 +2246,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           obtain ⟨rfl, rfl⟩ := hjd
           obtain ⟨hlastN, hXt⟩ := hglastN trivial
           ihave Hph := walPerm_ofW hWR dir _ $$ Hph
-          iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ γt _ d0 lay glr
+          -- the look's claim and probe path back (P6b fix A)
+          iapply wp_notCrashed_acc _ _ rfl
+          iintro Hnc
+          imod walInv_returnClaimPath walCodec Mr R jr rt dir nm nmw qProbe qn qpp _ _ hin
+            $$ Hinv Hnc Hnf Hnw HprobePath with ⟨Hnc, Hnf⟩
+          imodintro
+          iframe Hnc
+          iapply readAll_failPend Mr R jr rt w dir s Q dc _ _ rfl lg locks _ fls fp _ _ hj gs fs df dfd _ qpp γt _ d0 lay glr
             hglr hfl hll hfll hfk (hlastN glr hglr) hXt hgsz ⟨htm, hzf1, hdur1⟩ (by rw [tailStream_eq]; exact hwr)
             $$ Hinv Hgh HQ Hlg Hzap Hdir Hlocks Hls Hfp Hpipe Hns Hmu Henv Hdff Hdf Hdfs Hph Hn Hout Hnf Hk Hlks He Hst
             Htf Htk Htv

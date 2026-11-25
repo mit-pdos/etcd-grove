@@ -3,7 +3,8 @@
 # What `openLast` hands `Repair` (W7 of `notes/wal-fsext-plan.md`; the W7-W12 log, eighth session)
 
 `walLastOpen C Mr R jr dir lf`: the pin of the WAL's last segment (`walPinLast`'s resources, `RepairPin.lean`,
-with the segment named), a kept path to the WAL directory (`walInv_dirPath`'s), and the last segment's file
+with the segment named), a kept path to the WAL directory (`walInv_dirPath`'s) with its loan record
+(`walHLoans dir none [qd]`, P6b fix A: returned before the lock), and the last segment's file
 opened read-write and locked (`fileutil.LockFile(last, O_RDWR, 0600)`: the `*LockedFile` `lf`, its
 `*os.File` at offset 0, the fd whole). `Repair`'s proof reads the segment through it (law L2), truncates
 it (L4) and puts the pin back (L5).
@@ -39,7 +40,7 @@ def walLastOpen (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (dir : G
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧ lay.segs.getLast? = some gL ∧
       0 ≤ fd.toInt ∧ NameOk gL.name⌝ ∗
     walDirKey (W := W) dir lay.j X ∗ walLockedTok (W := W) ∗
-    (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
+    (walTailsFrag (W := W) ∅ ∗ walHLoans (W := W) dir none [qd]) ∗
     walOutFrag (W := W) ⟨[gL.ino], [(lay.j, .except X)], []⟩ ∗
     segRes (L := hG.goose_localGS) gL ∗ osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS (L := hG.goose_localGS) R dir (DFrac.own qd) lay.j ∗

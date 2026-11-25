@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncIdleF
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLent
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLentE
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.filePipeline__Close
 public import Spec.os.File__Close
@@ -71,7 +72,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
   intro R jr r w dir
   wp_start as ⟨#Harea, Hrf⟩
   icases walReadFailedF_elim Mr w dir $$ Hrf with ⟨Hfail, %lg, %locks, %ls, %lt, %fp, %j, %X, %hj, %gs0, %gL,
-    %fls, %df, %dfd, %ph, Hcm, Ht⟩
+    %fls, %df, %dfd, %ph, %qp, Hcm, Ht⟩
   unfold walFailCommon
   icases Hcm with ⟨Hlg, #Hzap, Hdir, Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout,
     Hnf, #Hk, %hp, Hsegs, Hfiles, #Hlks⟩
@@ -100,9 +101,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
   -- the pipeline's `Close`
   iunfold walPipeH at Hpipe
   icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
+  obtain ⟨hnp, rfl⟩ := hnp
   simp only [decide_eq_false hfpn]
   (try wp_auto)
-  wp_apply wp_fpClose fp γp Rp dir dqp j szp $$ [Hmain] as %perr Hleft
+  wp_apply wp_fpClose fp γp Rp dir (DFrac.own qp) j szp $$ [Hmain] as %perr Hleft
   · iframe Hisfp; ileft; iexists np; iexact Hmain
   subst hRpW
   (try wp_auto)
@@ -147,7 +149,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
     -- after the sync: the put-back, or (a lent tail's failed sync) what the handle held of the directory
     iunfold pipeLeft at Hleft
     iunfold pipeRes at Hleft
-    icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+    icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
     icases Hres with (⟨Htf, %fdt', %d', %g', Hft, Hfdt, Hlkt, HsT, %hg'⟩ | ⟨%he, %kk, %fdt', Hlk, #Hkk, %hcl⟩)
     rotate_left
     · -- returned before the locks
@@ -155,11 +157,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       rotate_left
       · exact absurd rfl he
       wp_auto
-      iapply (wp_notCrashed_acc _ _ rfl)
-      iintro Hnc
-      imod walInv_dirPath walCodec Mr R jr r dir j X $$ Hinv Hnc Hnf Hk with ⟨Hnc, Hnf, %qd, Hpd⟩
-      imodintro
-      iframe Hnc
+      -- the pipeline's path stays with what is left (the lock token is lost, so is its loan record)
+      ihave Hpd : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+      · rw [← hWR]; iexact Hpp
+      iclear Hnf
       wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
       (try wp_auto)
       iapply HΦ
@@ -168,7 +169,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       · ipureintro; exact he
       unfold walCloseLeft
       obtain ⟨segs, gLL, hcl, hgLL⟩ := hcl
-      iexists R, j, X, hj, segs, gLL, qd, kk, fdt'
+      iexists R, j, X, hj, segs, gLL, qp, kk, fdt'
       rw [hgLL]
       iframe Hsi Hpd Hn Hlk Hkk
       isplitr
@@ -183,6 +184,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
     · iframe
     iapply (wp_notCrashed_acc _ _ rfl)
     iintro Hnc
+    -- the pipeline's path loan back (P6b fix A)
+    ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+    · rw [← hWR]; iexact Hpp
+    imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
     imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [g']) true (by
         intro g hg
         rcases List.mem_append.1 hg with hg | hg
@@ -355,7 +360,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       -- after the sync: the put-back, or (a lent tail's failed sync) what the handle held of the directory
       iunfold pipeLeft at Hleft
       iunfold pipeRes at Hleft
-      icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+      icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
       icases Hres with (⟨Htf, %fdt', %d', %g', Hft, Hfdt, Hlkt, HsT, %hg'⟩ | ⟨%he, %kk, %fdt', Hlk, #Hkk, %hcl⟩)
       rotate_left
       · -- returned before the locks
@@ -363,11 +368,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         rotate_left
         · exact absurd rfl he
         wp_auto
-        iapply (wp_notCrashed_acc _ _ rfl)
-        iintro Hnc
-        imod walInv_dirPath walCodec Mr R jr r dir j X $$ Hinv Hnc Hnf Hk with ⟨Hnc, Hnf, %qd, Hpd⟩
-        imodintro
-        iframe Hnc
+        -- the pipeline's path stays with what is left (the lock token is lost, so is its loan record)
+        ihave Hpd : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+        · rw [← hWR]; iexact Hpp
+        iclear Hnf
         wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
         (try wp_auto)
         iapply HΦ
@@ -376,7 +380,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         · ipureintro; exact he
         unfold walCloseLeft
         obtain ⟨segs, gLL, hcl, hgLL⟩ := hcl
-        iexists R, j, X, hj, segs, gLL, qd, kk, fdt'
+        iexists R, j, X, hj, segs, gLL, qp, kk, fdt'
         rw [hgLL]
         iframe Hsi Hpd Hn Hlk Hkk
         isplitr
@@ -391,6 +395,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       · iframe
       iapply (wp_notCrashed_acc _ _ rfl)
       iintro Hnc
+      -- the pipeline's path loan back (P6b fix A)
+      ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+      · rw [← hWR]; iexact Hpp
+      imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
       imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [g']) true (by
           intro g hg
           rcases List.mem_append.1 hg with hg | hg
@@ -558,7 +566,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       -- after the sync: the put-back, or (a lent tail's failed sync) what the handle held of the directory
       iunfold pipeLeft at Hleft
       iunfold pipeRes at Hleft
-      icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+      icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
       icases Hres with (⟨Htf, %fdt', %d', %g', Hft, Hfdt, Hlkt, HsT, %hg'⟩ | ⟨%he, %kk, %fdt', Hlk, #Hkk, %hcl⟩)
       rotate_left
       · -- returned before the locks
@@ -566,11 +574,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         rotate_left
         · exact absurd rfl he
         wp_auto
-        iapply (wp_notCrashed_acc _ _ rfl)
-        iintro Hnc
-        imod walInv_dirPath walCodec Mr R jr r dir j X $$ Hinv Hnc Hnf Hk with ⟨Hnc, Hnf, %qd, Hpd⟩
-        imodintro
-        iframe Hnc
+        -- the pipeline's path stays with what is left (the lock token is lost, so is its loan record)
+        ihave Hpd : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+        · rw [← hWR]; iexact Hpp
+        iclear Hnf
         wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
         (try wp_auto)
         iapply HΦ
@@ -579,7 +586,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         · ipureintro; exact he
         unfold walCloseLeft
         obtain ⟨segs, gLL, hcl, hgLL⟩ := hcl
-        iexists R, j, X, hj, segs, gLL, qd, kk, fdt'
+        iexists R, j, X, hj, segs, gLL, qp, kk, fdt'
         rw [hgLL]
         iframe Hsi Hpd Hn Hlk Hkk
         isplitr
@@ -594,6 +601,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       · iframe
       iapply (wp_notCrashed_acc _ _ rfl)
       iintro Hnc
+      -- the pipeline's path loan back (P6b fix A)
+      ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+      · rw [← hWR]; iexact Hpp
+      imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
       imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [g']) true (by
           intro g hg
           rcases List.mem_append.1 hg with hg | hg

@@ -23,6 +23,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseOpeningFiles
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtSteps
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
 public import Perennial.Proof.sync.Results
 
@@ -97,7 +98,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   unfold walReadH walOpenIn walReadTie
   simp only [↓reduceIte]
   icases Hrh with ⟨⟨%lg, %sp, Hlg, #Hzap, Hdir, Hstart, #Hsp⟩, %dec, %IoE, %eof, %ueof, %fs, %locks,
-    %lfs, %fp, %rc, %j, Hdecf, Hdec, #Hdenv, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
+    %lfs, %fp, %rc, %j, %qs, Hdecf, Hdec, #Hdenv, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
     %Hfs, -, #Hlks⟩, Hlocks, Hls, Hcap, Hrc, Hfp, ⟨%hrc, Hpipe⟩, He, Hst, Hmd, Henti, Hsnapi, Hns,
     #Hmu, #Henv, #Hcrc, -⟩
   obtain ⟨hgs0, hnd, hsz, -, hlast, -⟩ := Hgs
@@ -176,7 +177,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   icases Hsy with ⟨%gL', %hgL', HsL⟩
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
+  obtain ⟨-, qp, rfl, rfl⟩ := hnp
   subst hRpW
   ihave Hperm2 := walPerm_ofW hWR dir _ $$ Hperm2
   ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
@@ -184,6 +186,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   · iframe
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  -- the pipeline's path loan back
+  ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+  · rw [← hWR]; iexact Hpp
+  imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
   imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [gL']) true (by
       intro g hg
       rcases List.mem_append.1 hg with hg | hg

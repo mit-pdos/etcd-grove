@@ -84,6 +84,21 @@ theorem walPipeH_mono (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (pp pp' : 
   iframe Hfp Hmain Hc
   ipureintro; exact ⟨⟨hn.1, hpp R dq hn.2⟩, hfp⟩
 
+/-- **A read handle's pipeline pin** (`walReadH`'s write branch): its one loan `qs = [qp]` named. -/
+theorem walPipeH_pinLoan (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (qs : List Qp) :
+    walPipeH (W := W) fp dir j k (fun _ dq => ∃ qp, dq = DFrac.own qp ∧ qs = [qp]) ⊢
+      ∃ qp : Qp, ⌜qs = [qp]⌝ ∗ walPipeH (W := W) fp dir j k (fun _ dq => dq = DFrac.own qp) := by
+  iintro Hp
+  unfold walPipeH
+  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn, %hfp⟩
+  obtain ⟨hnk, qp, rfl, hq⟩ := hn
+  iexists qp
+  isplitr
+  · ipureintro; exact hq
+  iexists γ, R, DFrac.own qp, sz, n
+  iframe Hfp Hmain Hc
+  ipureintro; exact ⟨⟨hnk, rfl⟩, hfp⟩
+
 /-- **The handle sealed at `Create`'s success exit, the lock quarter lent**: the pending names fragment
 `some dir` out (for the registration, `walInv_register`, which needs the lock at the handle's incarnation to
 know the WAL is still present), and with the record of the two loans of the pinned fraction `qp` (the

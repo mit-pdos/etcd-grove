@@ -10,6 +10,7 @@ error exits run the deferred `cleanupWAL` (`create_cleanup`, over `CreateCleanup
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Create
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWAL
@@ -141,6 +142,14 @@ theorem create_loSum (nm : GoString) {c x : Qp} (h : c + x = (1 : Qp).half) :
 theorem create_loSum2 (nm : GoString) {c d : Qp} (h : d + (d + c) = (1 : Qp).half) :
     c.val + loanSum [(nm, d + d)] nm = ((1 : Qp).half).val :=
   create_loSum nm (c := c) (x := d + d) (by rw [← h]; rw [Qp.ext_iff]; simp only [Qp.val_add]; grind)
+
+/-- The success exit's loans (P6b fix A): the registrant keeps the half `c.half` it names with (returned after
+the naming) and the handle's two path fractions `d`, from the spine law's `d + (d + c) = ½`. -/
+theorem create_loSum3 (nm : GoString) {c d : Qp} (h : d + (d + c) = (1 : Qp).half) :
+    c.half.val + loanSum [(nm, c.half), (nm, d), (nm, d)] nm = ((1 : Qp).half).val := by
+  rw [loanSum_cons_eq, loanSum_cons_eq, loanSum_cons_eq, loanSum_nil, ← h]
+  simp only [Qp.val_add, Qp.val_half]
+  grind
 
 set_option hygiene false in
 /-- **The deferred calls after the commit, on an error exit of the parent's sync** (the parent's
@@ -449,11 +458,21 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       with ⟨Hnm, Hnm2⟩
     · rw [Qp.half_add_half]; iexact Hnm
     imod walInv_registerL walCodec Mr R jr r s' I0 Il (child r nm) nm Wn c.half hn hin hnmO
-      (by rw [hs']; simp) (by rw [hIl, hI0]) ⟨J, hnc⟩ $$ Hinv Hsi Hnc Hpast Hl Hnf Hsf' Hnm
+      (by rw [hs']; simp) (by rw [hIl, hI0]) ⟨J, hnc⟩ [(nm, c.half), (nm, d), (nm, d)] (create_loSum3 nm _hcq)
+      (by simp) $$ Hinv Hsi Hnc Hpast Hl Hnf Hsf' Hnm
       with ⟨Hnc, Hl, Hnf, Hsf'⟩
     imod walInv_named walCodec Mr R jr r (child r nm) nm s' I0 (walDurFresh md) (.only [nm])
       (DFrac.own c.half) hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
-      $$ Hinv Hsi Hnc Hpast Hnm2 Hcm Hnf with ⟨Hnc, -, #Hnamed, Hnf⟩
+      $$ Hinv Hsi Hnc Hpast Hnm2 Hcm Hnf with ⟨Hnc, Hnm2, #Hnamed, Hnf⟩
+    -- the naming's half of the claim back (P6b fix A); the handle keeps its two path loans
+    imod walInv_returnLoan walCodec Mr R jr r (nm, c.half) _ List.mem_cons_self $$ Hinv Hnc Hnf [Hnm2]
+      with ⟨Hnc, Hnf⟩
+    · unfold walLoanP; iright; iexists hn; iexact Hnm2
+    simp only [List.erase_cons_head]
+    ihave Hnf : walHLoans (W := W) (child r nm) none [d, d] $$ [Hnf]
+    · have hm := walHLoans_mk (W := W) (child r nm) r nm [d, d] hin
+      simp only [List.map_cons, List.map_nil] at hm
+      iapply hm $$ Hnf
     iframe Hnc
     imodintro
     ihave #Hnamed : WalFs.walNamed (W := W) (child r nm) ic $$ [Hnamed]
@@ -1280,10 +1299,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       icases HhIn with ⟨%γt, HhIn⟩
       imod (receipt_zero (GF := GF)) with Hr0
       ihave Hw := walOpenWFU_intro P Mr wl (child r nm) R d f
-        (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic)
-        (createHS_done md i _ γt _ _) hmd $$ [HhIn Hr0]
+        (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic d)
+        (createHS_done md i _ γt _ _ _) hmd $$ [HhIn Hr0]
       · iframe
-      rw [show (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic).inc = ic
+      rw [show (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic d).inc = ic
         from rfl]
       create_named_cont wl f
         (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd' nmf d' $$ [Hf' Hfd' Hlks'] as %cerr' -

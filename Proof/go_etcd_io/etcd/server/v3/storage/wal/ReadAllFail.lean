@@ -111,12 +111,12 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 /-- The fields every failed handle holds, but the tail (`walFailH` without its last disjunct). -/
 def walFailCommon (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice) (ls : List Loc) (lt fp : Loc) (j : Ino)
     (X : List GoString) (hj : NamesH) (gs0 : List SegG) (gL : SegG) (fls : List Loc) (df : Loc)
-    (dfd : w64) (ph : DirPhS) : IProp GF :=
+    (dfd : w64) (ph : DirPhS) (qp : Qp) : IProp GF :=
   iprop(structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"lg" w ↦ lg ∗ zapLoggerOk lg ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* (ls ++ [lt]) ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j 0 ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j 0 (fun _ dq => dq = DFrac.own qp) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗
     sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
       (BI.pure True : IProp GF) ∗ encEnv ∗
@@ -124,7 +124,7 @@ def walFailCommon (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice) (ls : 
     os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
-    walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗
+    walHLoans (W := W) dir none [qp] ∗ walDirKey (W := W) dir j X ∗
     ⌜ls.length = gs0.length ∧ (walNames hj.cur).getLast? = some gL.name ∧
       hj.cur !! gL.name = some (.file gL.ino) ∧ (∀ t ∈ walTmps, t ∈ X) ∧
       ∀ g ∈ gs0, g.om.size = g.bs.length⌝ ∗
@@ -134,8 +134,8 @@ def walFailCommon (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice) (ls : 
 /-- `walReadFailedF` from its parts. -/
 theorem walReadFailedF_intro (Mr : WalMarshal) (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice) (ls : List Loc)
     (lt fp : Loc) (j : Ino) (X : List GoString) (hj : NamesH) (gs0 : List SegG) (gL : SegG)
-    (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) :
-    walReadFailed (W := W) w dir ∗ walFailCommon w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph ∗
+    (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (qp : Qp) :
+    walReadFailed (W := W) w dir ∗ walFailCommon w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph qp ∗
       (walFailIdle w dir (fls.getD gs0.length null) gL ∨
         walFailLent Mr w dir X hj (fls.getD gs0.length null) gL) ⊢
       walReadFailedF Mr w dir := by
@@ -143,7 +143,7 @@ theorem walReadFailedF_intro (Mr : WalMarshal) (w : Loc) (dir : GoString) (lg : 
   iintro ⟨Hf, ⟨Hlg, #Hz, Hdir, Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout,
     Hnf, #Hk, %hp, Hsegs, Hfiles, #Hlks⟩, Ht⟩
   iframe Hf
-  iexists lg, locks, ls, lt, fp, j, X, hj, gs0, gL, fls, df, dfd, ph
+  iexists lg, locks, ls, lt, fp, j, X, hj, gs0, gL, fls, df, dfd, ph, qp
   iframe
   iframe #
   ipureintro; exact hp
@@ -152,16 +152,16 @@ theorem walReadFailedF_intro (Mr : WalMarshal) (w : Loc) (dir : GoString) (lg : 
 theorem walReadFailedF_elim (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     walReadFailedF Mr w dir ⊢ walReadFailed (W := W) w dir ∗
       ∃ (lg : Loc) (locks : GoSlice) (ls : List Loc) (lt fp : Loc) (j : Ino) (X : List GoString) (hj : NamesH)
-        (gs0 : List SegG) (gL : SegG) (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS),
-      walFailCommon w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph ∗
+        (gs0 : List SegG) (gL : SegG) (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (qp : Qp),
+      walFailCommon w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph qp ∗
       (walFailIdle w dir (fls.getD gs0.length null) gL ∨
         walFailLent Mr w dir X hj (fls.getD gs0.length null) gL) := by
   unfold walReadFailedF walFailH walFailCommon
-  iintro ⟨Hf, %lg, %locks, %ls, %lt, %fp, %j, %X, %hj, %gs0, %gL, %fls, %df, %dfd, %ph, Hlg, #Hz, Hdir,
+  iintro ⟨Hf, %lg, %locks, %ls, %lt, %fp, %j, %X, %hj, %gs0, %gL, %fls, %df, %dfd, %ph, %qp, Hlg, #Hz, Hdir,
     Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout, Hnf, #Hk, %hp, Hsegs,
     Hfiles, #Hlks, Ht⟩
   iframe Hf
-  iexists lg, locks, ls, lt, fp, j, X, hj, gs0, gL, fls, df, dfd, ph
+  iexists lg, locks, ls, lt, fp, j, X, hj, gs0, gL, fls, df, dfd, ph, qp
   iframe
   iframe #
   ipureintro; exact hp
@@ -243,7 +243,7 @@ theorem walTie_filesLe (dir : GoString) (write : Bool) :
 non-tail files' streams (`fsI`, read as `gs0`), the tail's halves `gT` and file `ft`, the encoder. -/
 theorem walReadFailedF_idleIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice)
     (ls : List Loc) (lt fp : Loc) (j : Ino) (X : List GoString) (hj : NamesH) (gs0 : List SegG) (gL : SegG)
-    (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (fsI : List (DecFile GF)) (gT : SegG)
+    (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (qp : Qp) (fsI : List (DecFile GF)) (gT : SegG)
     (fdt : w64) (d : OsFd) (e : Loc)
     (hfl : fsI.length = gs0.length) (hll : ls.length = gs0.length) (hfll : gs0.length ≤ fls.length)
     (hfk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F → gs0[k]? = some g →
@@ -257,7 +257,7 @@ theorem walReadFailedF_idleIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
       locks ↦* (ls ++ [lt]) ∗
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j 0 ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j 0 (fun _ dq => dq = DFrac.own qp) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) ∗ encEnv ∗
@@ -265,7 +265,7 @@ theorem walReadFailedF_idleIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
-      walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗
+      walHLoans (W := W) dir none [qp] ∗ walDirKey (W := W) dir j X ∗
       ([∗list] k ↦ lf ∈ ls ++ [lt], fileutil.lockedFile lf (fls.getD k null)) ∗
       ([∗list] F ∈ fsI, ∃ r, F.S r) ∗
       walTailsFrag (W := W) ∅ ∗ segRes gT ∗ os.ownFile (fls.getD gs0.length null) fdt (child dir gL.name) (DFrac.own 1) ∗
@@ -276,7 +276,7 @@ theorem walReadFailedF_idleIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
   iintro ⟨Hf, Hlg, #Hz, Hdir, Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout,
     Hnf, #Hk, #Hlks, Hst, Htf, HsT, Hft, Hfdt, Hlkt, He, Henc⟩
   icases walTie_filesLe dir true gs0 fsI fls hfl hfll hfk $$ Hst with ⟨Hsegs, Hfiles⟩
-  iapply walReadFailedF_intro Mr w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph
+  iapply walReadFailedF_intro Mr w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph qp
   iframe Hf
   unfold walFailCommon
   iframe
@@ -294,7 +294,7 @@ theorem walReadFailedF_idleIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
 its fdatasync's errors hold. -/
 theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (lg : Loc) (locks : GoSlice)
     (ls : List Loc) (lt fp : Loc) (j : Ino) (X : List GoString) (hj : NamesH) (gs0 : List SegG) (gL : SegG)
-    (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (fsI : List (DecFile GF)) (γt : GName)
+    (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (qp : Qp) (fsI : List (DecFile GF)) (γt : GName)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz k : Nat) (fdt : w64)
     (segs : List SegG) (gLL : SegG)
     (hfl : fsI.length = gs0.length) (hll : ls.length = gs0.length) (hfll : gs0.length ≤ fls.length)
@@ -309,7 +309,7 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
       locks ↦* (ls ++ [lt]) ∗
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j 0 ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j 0 (fun _ dq => dq = DFrac.own qp) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) ∗ encEnv ∗
@@ -317,7 +317,7 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
-      walNamesFrag (W := W) none ∗ walDirKey (W := W) dir j X ∗
+      walHLoans (W := W) dir none [qp] ∗ walDirKey (W := W) dir j X ∗
       ([∗list] k ↦ lf ∈ ls ++ [lt], fileutil.lockedFile lf (fls.getD k null)) ∗
       ([∗list] F ∈ fsI, ∃ r, F.S r) ∗
       walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) ∗
@@ -329,7 +329,7 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
   iintro ⟨Hf, Hlg, #Hz, Hdir, Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout,
     Hnf, #Hk, #Hlks, Hst, Htf, He, Ht⟩
   icases walTie_filesLe dir true gs0 fsI fls hfl hfll hfk $$ Hst with ⟨Hsegs, Hfiles⟩
-  iapply walReadFailedF_intro Mr w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph
+  iapply walReadFailedF_intro Mr w dir lg locks ls lt fp j X hj gs0 gL fls df dfd ph qp
   iframe Hf
   unfold walFailCommon
   iframe
@@ -432,7 +432,7 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
     (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur) (e : Expr) (Φ : val → IProp GF)
     (h : toVal e = none) (lg : Loc) (locks : GoSlice) (lfs fls : List Loc) (fp : Loc) (j : Ino)
     (X : List GoString) (hj : NamesH) (gs : List SegG) (fs : List (DecFile GF)) (df : Loc) (dfd : w64)
-    (ph : DirPhS) (γt : GName) (k : Nat) (d0 : WalDur) (lay : WalLay) (gl : SegG)
+    (ph : DirPhS) (qp : Qp) (γt : GName) (k : Nat) (d0 : WalDur) (lay : WalLay) (gl : SegG)
     (hgl : gs.getLast? = some gl) (hfl : fs.length = gs.length) (hll : lfs.length = gs.length)
     (hfll : fls.length = gs.length)
     (hfk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
@@ -447,7 +447,7 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"lg" w ↦ lg -∗ zapLoggerOk lg -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks -∗ locks ↦* lfs -∗
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp -∗ walPipeH fp dir j 0 -∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp -∗ walPipeH fp dir j 0 (fun _ dq => dq = DFrac.own qp) -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false -∗
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) -∗ encEnv -∗
@@ -455,7 +455,7 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
       os.ownFile df dfd dir (DFrac.own 1) -∗ osDirFdS dfd j ph -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], [dir]⟩ -∗
-      walNamesFrag (W := W) none -∗ walDirKey (W := W) dir j X -∗
+      walHLoans (W := W) dir none [qp] -∗ walDirKey (W := W) dir j X -∗
       ([∗list] k ↦ lf ∈ lfs, fileutil.lockedFile lf (fls.getD k null)) -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ (null : Loc) -∗
       ([∗list] F ∈ fs, ∃ q, F.S q) -∗
@@ -497,7 +497,7 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
   rw [← hgetD] at *
   icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   ihave Hph := walPerm_toW hWR dir _ $$ Hph
-  iapply walReadFailedF_idleIntro Mr w dir lg locks ls lt fp j X hj gs0 gl fls df dfd ph fsI gl fdl
+  iapply walReadFailedF_idleIntro Mr w dir lg locks ls lt fp j X hj gs0 gl fls df dfd ph qp fsI gl fdl
     (walSegFd true lo lk gl.ino) null hfI hlI (by rw [hfll]; simp)
     (fun k F g h1 h2 => (hfk k F g (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 h1).1]; exact h1)
       (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 h2).1]; exact h2)).2.2)
@@ -518,7 +518,7 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
     (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur) (e : Expr) (Φ : val → IProp GF)
     (h : toVal e = none) (lg : Loc) (locks : GoSlice) (ls : List Loc) (lt : Loc) (fls : List Loc) (fp : Loc)
     (j : Ino) (X : List GoString) (hj : NamesH) (gs0 : List SegG) (gl : SegG) (fsI : List (DecFile GF))
-    (df : Loc) (dfd : w64) (ph : DirPhS) (γt : GName) (H : List (WalOpG WalEnt)) (md : List w8)
+    (df : Loc) (dfd : w64) (ph : DirPhS) (qp : Qp) (γt : GName) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) (o0 : Nat) (m : OsMeta) (bs : List ByteG) (fdl : w64) (enc : Loc)
     (hfI : fsI.length = gs0.length) (hlI : ls.length = gs0.length) (hfll : gs0.length ≤ fls.length)
     (hfk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F → gs0[k]? = some g →
@@ -532,7 +532,7 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks -∗
       locks ↦* (ls ++ [lt]) -∗
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp -∗ walPipeH fp dir j 0 -∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp -∗ walPipeH fp dir j 0 (fun _ dq => dq = DFrac.own qp) -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false -∗
       sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w)
         (BI.pure True : IProp GF) -∗ encEnv -∗
@@ -540,7 +540,7 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
       os.ownFile df dfd dir (DFrac.own 1) -∗ osDirFdS dfd j ph -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       walOutFrag (W := W) ⟨(gs0 ++ [gl]).map (·.ino), [(j, .except X)], [dir]⟩ -∗
-      walNamesFrag (W := W) none -∗ walDirKey (W := W) dir j X -∗
+      walHLoans (W := W) dir none [qp] -∗ walDirKey (W := W) dir j X -∗
       ([∗list] k ↦ lf ∈ ls ++ [lt], fileutil.lockedFile lf (fls.getD k null)) -∗
       ([∗list] F ∈ fsI, ∃ q, F.S q) -∗
       walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) Lk -∗
@@ -568,7 +568,7 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
   iapply Hcont $$ HQ
   icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   ihave Hph := walPerm_toW hWR dir _ $$ Hph
-  iapply walReadFailedF_idleIntro Mr w dir lg locks ls lt fp j X hj gs0 gl fls df dfd ph fsI ⟨gl.name, gl.ino, m, bs⟩
+  iapply walReadFailedF_idleIntro Mr w dir lg locks ls lt fp j X hj gs0 gl fls df dfd ph qp fsI ⟨gl.name, gl.ino, m, bs⟩
     fdl ⟨gl.ino, rd, true, lo, lk⟩ enc hfI hlI hfll hfk hlastN hiL hXt hsz ⟨rfl, hTM.1.1.symm⟩ rfl
   iframe
   iframe #

@@ -60,7 +60,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   both (`walInv_returnHLoans2`, `HandleLoans.lean`) before `walCloseLaw` (so `WalCloseLaw` is unchanged).
   Internal spec changes: `WAL.sync.specC`'s error arm gives `∃ qs, walHLoans dir nf qs` for `walNamesFrag nf`
   (the `unnamed` close reads `walNamesFrag (some dir)` back by `walHLoans_some`); `walLastOpen` (planned) carries its
-  loan. No trusted text.
+  loan. No trusted text. **Approved** (coordinator, P6b session 11 brief: `WalHS.qp` as a field of the handle
+  state, `InArea r' dir nm` in the loan record, `WAL.sync.specC`'s error arm giving `∃ qs, walHLoans dir nf qs`).
 
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 

@@ -144,6 +144,69 @@ theorem walInv_returnHLoans2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   imod walInv_dirPathRetDL C Mr R jr r dir nm2 q1 j1 [(nm2, q2)] hd $$ Hinv Hnc Hf Hp1 with ⟨Hnc, Hf⟩
   iapply walInv_dirPathRetD C Mr R jr r dir nm2 q2 j2 hd $$ Hinv Hnc Hf Hp2
 
+/-- **A handle's one loan returned** (a read handle's pipeline path, `Close` at the state `opening`; a
+failed handle's): `walInv_returnHLoans2` with one path. -/
+theorem walInv_returnHLoans1 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir : GoString) (j j1 : Ino) (X : List GoString) (q1 : Qp) :
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
+      walHLoans (W := W) dir none [q1] -∗
+      osPathS (L := hG.goose_localGS) R dir (DFrac.own q1) j1 ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walNamesFrag (W := W) none := by
+  iintro #Hinv Hnc #Hk Hl Hp1
+  imod walInv_dirKeyArea C Mr R jr r dir j X $$ Hinv Hnc Hk with ⟨Hnc, %hA⟩
+  obtain ⟨nm2, hA⟩ := hA
+  unfold walHLoans
+  icases Hl with ⟨%Lh, Hf, %hL⟩
+  obtain ⟨r', nm, hA', hLh⟩ := hL.1 rfl
+  obtain ⟨-, rfl⟩ := inArea_root hA hA'
+  subst hLh
+  have hd := inArea_child hA
+  simp only [List.map_cons, List.map_nil]
+  iapply walInv_dirPathRetD C Mr R jr r dir nm2 q1 j1 hd $$ Hinv Hnc Hf Hp1
+
+/-- **A handle's pipeline loan beside its record** (the read handle's `walHLoans dir none [qp]`, its owner
+known): the record is the loan of the WAL's own name `nm`. -/
+theorem walHLoans_loans {r dir nm : GoString} {qs : List Qp} {Lh : List (GoString × Qp)} (hin : InArea r dir nm)
+    (h : (none = (none : Option GoString) → ∃ r' nm', InArea r' dir nm' ∧ Lh = qs.map (fun q => (nm', q)))) :
+    Lh = qs.map (fun q => (nm, q)) := by
+  obtain ⟨r', nm', hA', hL⟩ := h rfl
+  obtain ⟨-, rfl⟩ := inArea_root hin hA'
+  exact hL
+
+/-- **A name claim and a path lent at `ReadAll`'s look returned** (its exits: `walInv_readCommitReg`'s claim
+of the WAL's name and the probe's path to its directory, `walInv_dirPath`'s), the read handle's pipeline loan
+`qp` left as its record. -/
+theorem walInv_returnClaimPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir nm nmw : GoString) (qPr qn qp : Qp) (jp : Ino) (hn : NamesH) (hin : InArea r dir nm) :
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
+      walNamesFragS (W := W) ⟨none, none, (nmw, qn) :: (nm, qPr) :: [(nm, qp)]⟩ -∗
+      osNames (L := hG.goose_localGS) jr (.only [nmw]) (DFrac.own qn) hn -∗
+      osPathS (L := hG.goose_localGS) R dir (DFrac.own qPr) jp ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walHLoans (W := W) dir none [qp] := by
+  iintro #Hinv Hnc Hf Hn Hp
+  imod walInv_returnLoan C Mr R jr r (nmw, qn) _ List.mem_cons_self $$ Hinv Hnc Hf [Hn] with ⟨Hnc, Hf⟩
+  · unfold walLoanP; iright; iexists hn; iexact Hn
+  simp only [List.erase_cons_head]
+  imod walInv_dirPathRetDL C Mr R jr r dir nm qPr jp [(nm, qp)] (inArea_child hin) $$ Hinv Hnc Hf Hp
+    with ⟨Hnc, Hf⟩
+  iframe Hnc
+  imodintro
+  have hm := walHLoans_mk (W := W) dir r nm [qp] hin
+  simp only [List.map_cons, List.map_nil] at hm
+  iapply hm $$ Hf
+
+/-- **No loan**: the record of a handle that holds none is `walNamesFrag none`. -/
+theorem walHLoans_nil (dir : GoString) :
+    walHLoans (W := W) dir none [] ⊢ walNamesFrag (W := W) none := by
+  unfold walHLoans
+  iintro ⟨%Lh, Hf, %hL⟩
+  obtain ⟨_, _, _, hLh⟩ := hL.1 rfl
+  simp only [List.map_nil] at hLh
+  subst hLh
+  iexact Hf
+
 end iris
 
 end WalFs

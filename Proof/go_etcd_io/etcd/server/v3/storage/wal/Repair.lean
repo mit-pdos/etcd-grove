@@ -12,6 +12,7 @@ fsync (`fileutil.Fsync.specRepTail`), the put-back by the pending token (`walInv
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Repair
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.openLast
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.RepairCallees
@@ -398,6 +399,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     iintro Hnc
     ihave HS : segRes gL $$ [Hm Hb]
     · unfold segRes; iframe
+    imod walInv_returnHLoans1 walCodec Mr R jr r dir lay.j lay.j X qd $$ Hinv Hnc Hkey Hnf Hpd with ⟨Hnc, Hnf⟩
     imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj Hkey
       with ⟨Hnc, Hu⟩
     · iframe
@@ -657,6 +659,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       ihave Hv' : tailVar (W := W) γ ((H, md, cuts, wr, gL.ino, none) : TailG)
         $$ [Hv]
       · iunfold tailVar; iexact Hv
+      imod walInv_returnHLoans1 walCodec Mr R jr r dir lay.j lay.j X qd $$ Hinv Hnc Hkey Hnf Hpd with ⟨Hnc, Hnf⟩
       imod walInv_repairPut Mr R jr r dir γ k2 H md cuts _ m2 bs2 lay.j X hj' gL hTM2.2 hwrS
         $$ Hinv Hnc Htf Hkt Hv' Hm2 Hb2 [Htk Hpk Hcf HIl] Hnf Ho Hj Hkey with ⟨Hnc, Hu⟩
       · unfold walLockedTok walLockedTokI; iexists Il; iframe

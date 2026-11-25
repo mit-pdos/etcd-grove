@@ -344,7 +344,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   -- the handle's two loans of the WAL's name returned (P6b fix A)
-  rw [hnp.2.2] at Hpp ⊢
+  rw [hnp.2.2]
   ihave Hpd : osPathS (L := hG.goose_localGS) R dir (DFrac.own qd) j $$ [Hpd]
   · rw [← hWR]; iexact Hpd
   ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own h.qp) j $$ [Hpp]
