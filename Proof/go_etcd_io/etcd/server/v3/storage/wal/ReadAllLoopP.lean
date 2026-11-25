@@ -185,6 +185,23 @@ theorem rdLoopP_pend_len {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0
     (hL : RdLoopP C U s fs0 accA accP pend fs off c st ix pOff pC) : accP.length = pend.length := by
   have := congrArg List.length hL.pendD; simpa using this
 
+/-- **The success fold at `io.EOF`** (`readAllFoldP`: the pending run ignored). -/
+theorem rdLoopP_foldP_eof {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0 : List (List w8)}
+    {accA accP : List WalRec} {pend : List EntryM} {fs : List (List w8)} {off : Nat}
+    {c : w32} {st : RAState} {ix : w64 × w64} {pOff : Nat} {pC : w32}
+    (hL : RdLoopP C U s fs0 accA accP pend fs off c st ix pOff pC)
+    (hr : (rdRest C fs0 0 0#32).recs = accA ++ accP) (hm : st.matched = true)
+    (hdec : ∀ r ∈ (rdRest C fs0 0 0#32).recs, r.typ = entryType → ∃ e, U.decEntry r.data = some e) :
+    readAllFoldP U s true (rdRest C fs0 0 0#32).recs .eof = .ok (st.md.getD [], st.hs, st.ents) := by
+  have hd : EntsDecode U ((accA ++ accP).map (fun r => (r.typ, r.data))) := by
+    intro x hx ht
+    obtain ⟨r, hr', rfl⟩ := List.mem_map.1 hx
+    exact hdec r (by rw [hr]; exact hr') ht
+  rw [hr, readAllFoldP_append U s true accA accP .eof hd hL.lastA hL.pendT]
+  unfold readAllFold
+  rw [hL.fold]
+  simp [bind, Except.bind, hm]
+
 /-- **A stop**: the reader read exactly the records handled, and stopped with `s'`. -/
 theorem rdLoopP_stop {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0 : List (List w8)}
     {accA accP : List WalRec} {pend : List EntryM} {fs fs' : List (List w8)} {off off' : Nat}

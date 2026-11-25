@@ -167,11 +167,22 @@ theorem readFiles_hasMd {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal}
 theorem readAll_md_some {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarshal}
     {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
-    (hkk : kk < lay.segs.length) {s : w64 × w64} {st : RAState} {acc : List WalRec}
-    (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc)
+    (hkk : kk < lay.segs.length) {s : w64 × w64} {st : RAState} {acc accP : List WalRec}
+    (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc ++ accP)
+    (hP : ∀ r ∈ accP, r.typ = entryType)
     (hf : (acc.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st) :
     ∃ md, st.md = some md := by
-  have := foldlM_raStep_mdSome _ _ _ hf (.inr (hacc ▸ readFiles_hasMd hC hab hex hwr kk hkk))
+  obtain ⟨td, htd, hmt⟩ := readFiles_hasMd hC hab hex hwr kk hkk
+  rw [hacc, List.map_append, List.mem_append] at htd
+  have hin : ∃ td ∈ acc.map (fun r => (r.typ, r.data)), td.1 = metadataType := by
+    rcases htd with h | h
+    · exact ⟨td, h, hmt⟩
+    · obtain ⟨r, hr, rfl⟩ := List.mem_map.1 h
+      have := hP r hr
+      simp only at hmt
+      rw [this] at hmt
+      exact absurd hmt (by decide)
+  have := foldlM_raStep_mdSome _ _ _ hf (.inr hin)
   exact Option.isSome_iff_exists.1 this
 
 /-! ## (e) The encoder at the tail's end -/
