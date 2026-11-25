@@ -69,7 +69,7 @@ theorem wSlot_unprot {a : BAbs} {st : CSt} {w : WDb} (hw : wdbOK w)
     rw [hl] at h2
     exact ⟨id, pg, hp, by omega, by omega⟩
   · -- the synced freelist page's extent: `X`
-    obtain ⟨hf2, hfh, -, -, -, -, -, -, hext, -⟩ := hflc f hf
+    obtain ⟨hf2, hfh, -, -, -, -, -, -, hext, -⟩ := hflc f hf f hf
     have hfin : f < f + (1 + pageOverflow (extentBytes w.wb f)) := by omega
     -- `f` is not pending
     have hfnp : f ∉ pendSlots w.fl := fun hp => (hext f (Nat.le_refl f) hfin).2
