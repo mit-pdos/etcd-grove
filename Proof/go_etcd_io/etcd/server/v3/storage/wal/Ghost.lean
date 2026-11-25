@@ -656,6 +656,19 @@ theorem walCrashTok_excl :
   iprop(∃ (γ : GName) (i : Nat) (I : GMap GoString Nat), walHandleDirI (W := W) w dir i γ ∗
     γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗ walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝)
 
+/-- `walHandleP` at the incarnation `i`. Sealed. -/
+@[no_expose] def walHandlePI (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(∃ (γ : GName) (I : GMap GoString Nat), walHandleDirI (W := W) w dir i γ ∗
+    γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗ walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝)
+
+theorem walHandleP_inc (w : Loc) (dir : GoString) (m : WalMode) :
+    walHandleP (W := W) w dir m ⊣⊢ ∃ i, walHandlePI (W := W) w dir i m := by
+  unfold walHandleP walHandlePI
+  constructor
+  · iintro ⟨%γ, %i, %I, H⟩; iexists i, γ, I; iexact H
+  · iintro ⟨%i, %γ, %I, H⟩; iexists γ, i, I; iexact H
+
 /-- **The key of the cleanup's pin in the creating map** (`walCreatingAuth`'s third case; W4,
 `notes/wal-units/create.md`, session 4): no WAL directory (`child r nm` is not empty). `Create`'s
 cleanup after its commit pins there the area claim its `cleanupWAL` renames in (`nm` onto

@@ -71,6 +71,19 @@ theorem walHandleP_mint (w : Loc) (dir : GoString) (m : WalMode) :
   iframe Hd Hm Hp Hl
   ipureintro; rfl
 
+/-- **A new handle with the lock token at the incarnations `I`**: the handle at `incOf I dir`. -/
+theorem walHandleP_mintI (w : Loc) (dir : GoString) (m : WalMode) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTokI (W := W) I ==∗
+      walHandleAuth (W := W) ∗ walHandlePI (W := W) w dir (incOf I dir) m := by
+  iintro Ha Hl
+  imod walHandle_alloc w dir (incOf I dir) m $$ Ha with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
+  imodintro
+  iframe Ha
+  unfold walHandlePI
+  iexists γ, I
+  iframe Hd Hm Hp Hl
+  ipureintro; rfl
+
 /-- **The handle `Open` mints** (mode `opening s`). -/
 theorem walOpening_mint (w : Loc) (dir : GoString) (s : w64 × w64) :
     ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTok (W := W) ==∗
@@ -108,6 +121,16 @@ theorem walHandleP_openW (w : Loc) (dir : GoString) :
   iintro ⟨%γ, %i, %I, #Hd, Hm, Hp, Hl, %hi⟩
   isplitl [Hm Hl]
   · iexists i, I; iframe Hl; isplitl; · iexists γ; iframe Hd Hm
+    ipureintro; exact hi
+  · iexists γ; iframe Hp; iexists i; iexact Hd
+
+/-- `walHandleP_openW` at the handle's incarnation. -/
+theorem walHandlePI_openWI (w : Loc) (dir : GoString) (i : Nat) :
+    walHandlePI (W := W) w dir i .append ⊢ walOpenWI (W := W) w dir i ∗ walPurgeW (W := W) w dir := by
+  unfold walHandlePI walOpenWI walPurgeW walHandleStI walHandleDir
+  iintro ⟨%γ, %I, #Hd, Hm, Hp, Hl, %hi⟩
+  isplitl [Hm Hl]
+  · iexists I; iframe Hl; isplitl; · iexists γ; iframe Hd Hm
     ipureintro; exact hi
   · iexists γ; iframe Hp; iexists i; iexact Hd
 

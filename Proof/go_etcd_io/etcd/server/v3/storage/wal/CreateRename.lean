@@ -173,7 +173,7 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   · unfold createU
     icases HU with ⟨#Hinv, -, HQ⟩
     simp only [walCreateQ]
-    icases HQ with ⟨-, -, -, -, -, -, -, -, #Hkey, -⟩
+    icases HQ with ⟨-, -, -, -, -, -, -, #Hkey, -⟩
     iexists walCodec, Mr, jr, r, walTmps
     iframe Hinv Hkey
   unfold createSp
@@ -186,7 +186,9 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
     unfold createU
     iintro ⟨-, -, HQ⟩ Hu
     unfold walCreateQ
-    icases HQ with ⟨-, -, -, -, Hl, -⟩
+    icases HQ with ⟨-, -, -, -, -, -, -, -, %s', %I, Hl, -⟩
+    ihave Hl : walLockedTok (W := W) $$ [Hl]
+    · unfold walLockedTok; iexists I; iexact Hl
     iapply walLockedTok_exclX $$ Hl Hu
   imod walInv_splitNew walCodec Mr R jr r nm (tmpName nm) _ _ hT hnm (tmpName_ne nm)
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm)

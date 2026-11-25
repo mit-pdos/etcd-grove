@@ -25,7 +25,26 @@
   * the lock's quarter lives inside `walLockedTokI I` (`walLockedTok := ∃ I, …`); `walOpenWI w dir i`
     is the handle with `⌜incOf I dir = i⌝`; `walHandleInc` dropped (`WalHS.inc` instead); the view's
     share is the quarter `walIncQ`; `walDirKey` by `(dir, i)` deferred until a re-`Create` needs it.
-  **Next (in progress)**: `CreateAu` — the plan: `walCreateP` gets `i`, its AU over `walDirIsI dir i o`,
+  **Later in session 2**: `CreateAu` (builds), `CreateAuFresh` (builds), `HandleAlloc` (+ `walHandlePI`,
+  `walHandleP_inc`, `walHandleP_mintI`, `walHandlePI_openWI`, builds); `CreateRename`/`CreateHandle`
+  threaded with the incarnation `ic` (`createU … nm ic …`, `createUH … nm ic …` with
+  `walPastI (s', I) ∗ ⌜incOf I (child r nm) = ic ∧ …⌝`), not yet built because `HandleUnnamed` (their
+  import) fails at `walOpenWFU_seal`: **the client handle must carry the incarnation**. Plan: add
+  `walOpenWFI P Mr w dir i := ∃ h, walHandleIn … h … ∗ ⌜h.inc = i⌝ ∗ …` (and `walOpenWFUI`), laws to the
+  old `walOpenWF` (`∃ i`); `walOpenWFU_seal` takes `walNamed dir i` and gives `walOpenWFI … i`; for the
+  shared handle, add `inc : Nat` to `WalShN` (so `walOpenWS … γ q` carries `γ.inc`, and `Save`'s AU is over
+  `walDiskAtI dir γ.inc d`, its post `walLenLb w dir γ.inc …`/`walSyncedLb dir γ.inc …`: minimal spec
+  churn). `walPurgeW_fresh_lbs` is ported (from `walPastI (s, I)`, facts at `incOf I dir`); the four
+  `_unlocked_excl` lemmas too. **Open design point**: `CreateSplit.lean:284` (`walInv_register`) and
+  similar lemmas use a past `walPast s0` with the WAL present to conclude it is present now; with
+  incarnations that needs currency (the caller's lock quarter: pass `walLockedTokI I0`/`walIncQ I0` and agree
+  with the ghost by `walGhost_inc`/`walGhostI_lockedI_agree`, then `walLeI`'s fourth conjunct at equal
+  incarnations gives the WAL). Same pattern expected in `CreateSteps`, `ReadAllNamed`, `TailLenLb`.
+  **Next**: `walOpenWFI`, `HandleUnnamed`, `CreateSplit`, `Create.lean` + `Spec/.../wal/Create.lean`
+  (`∀ i` in the spec, AU over `walDirIsI dir i`, post `walOpenWFI … i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗
+  walSyncedLb dir i 0`; ledger entry in `notes/specs-only/ledger.md` before the spec edit), then rebuild
+  `wal.Link`.
+  The `CreateAu` plan as carried out: `walCreateP` gets `i`, its AU over `walDirIsI dir i o`,
   committing `walDiskAtI dir i (walDurFresh md)`; at the commit, `walGhost_inc` with the view's quarter
   `Iv`, `walGhostI_upd`, the lock (from `walParked_lock`) agreed to `Iv` (`walIncQ_agree`), and
   `walCreateQ`'s `some` arm gives `walLockedTokI I ∗ ⌜incOf I dir = i⌝ ∗ walPastI (s', I)`; then a

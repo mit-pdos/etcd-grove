@@ -177,10 +177,11 @@ theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : G
 
 /-- **The fresh WAL's lower bounds** (`Create.spec`'s success post): its empty history written and
 synced, from the purge right's handle name and a past state with the fresh WAL. -/
-theorem walPurgeW_fresh_lbs (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur)
-    (hs : s.wal !! dir = some d) :
-    ⊢ walPurgeW (W := W) w dir -∗ walPast (W := W) s -∗
-      walPurgeW (W := W) w dir ∗ walLenLb (W := W) w dir 0 ∗ walSyncedLb (W := W) dir 0 := by
+theorem walPurgeW_fresh_lbs (w : Loc) (dir : GoString) (s : AbsDiskState) (I : GMap GoString Nat)
+    (d : WalDur) (hs : s.wal !! dir = some d) :
+    ⊢ walPurgeW (W := W) w dir -∗ walPastI (W := W) (s, I) -∗
+      walPurgeW (W := W) w dir ∗ walLenLb (W := W) w dir (incOf I dir) 0 ∗
+        walSyncedLb (W := W) dir (incOf I dir) 0 := by
   iintro Hpw #Hp
   unfold walPurgeW
   icases Hpw with ⟨%γ, #Hd, Hpt⟩
@@ -188,13 +189,10 @@ theorem walPurgeW_fresh_lbs (w : Loc) (dir : GoString) (s : AbsDiskState) (d : W
   · iexists γ; iframe Hd Hpt
   isplitl []
   · unfold walLenLb
-    iexists γ, s, d
+    iexists γ, s, I
     iframe Hd Hp
-    ipureintro; exact ⟨hs, Nat.zero_le _⟩
-  · unfold walSyncedLb
-    iexists s, d
-    iframe Hp
-    ipureintro; exact ⟨hs, Nat.zero_le _⟩
+    ipureintro; exact Or.inl ⟨rfl, d, hs, Nat.zero_le _⟩
+  · iapply walSyncedLb_intro s I dir d 0 hs (Nat.zero_le _) $$ Hp
 
 /-- **The handle before naming holds the lock token** (`create_areaBack`'s `T`). -/
 theorem walOpenWFU_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
@@ -206,8 +204,10 @@ theorem walOpenWFU_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (d
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hw, -⟩
-  unfold walOpenW
-  icases Hw with ⟨-, Hl⟩
+  unfold walOpenWI
+  icases Hw with ⟨%I, -, Hl, -⟩
+  ihave Hl : walLockedTok (W := W) $$ [Hl]
+  · unfold walLockedTok; iexists I; iexact Hl
   iapply walLockedTok_unlocked_excl $$ Hl Hu
 
 /-- The same against the free token less its names fragment. -/
@@ -220,8 +220,10 @@ theorem walOpenWFU_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hw, -⟩
-  unfold walOpenW
-  icases Hw with ⟨-, Hl⟩
+  unfold walOpenWI
+  icases Hw with ⟨%I, -, Hl, -⟩
+  ihave Hl : walLockedTok (W := W) $$ [Hl]
+  · unfold walLockedTok; iexists I; iexact Hl
   iapply walLockedTok_exclX $$ Hl Hu
 
 /-- **The handle holds the lock token.** -/
@@ -233,8 +235,10 @@ theorem walOpenWF_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (di
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hw, -⟩
-  unfold walOpenW
-  icases Hw with ⟨-, Hl⟩
+  unfold walOpenWI
+  icases Hw with ⟨%I, -, Hl, -⟩
+  ihave Hl : walLockedTok (W := W) $$ [Hl]
+  · unfold walLockedTok; iexists I; iexact Hl
   iapply walLockedTok_unlocked_excl $$ Hl Hu
 
 /-- The same against the free token less its names fragment. -/
@@ -246,8 +250,10 @@ theorem walOpenWF_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (d
   unfold walHandleIn
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hw, -⟩
-  unfold walOpenW
-  icases Hw with ⟨-, Hl⟩
+  unfold walOpenWI
+  icases Hw with ⟨%I, -, Hl, -⟩
+  ihave Hl : walLockedTok (W := W) $$ [Hl]
+  · unfold walLockedTok; iexists I; iexact Hl
   iapply walLockedTok_exclX $$ Hl Hu
 
 end handle

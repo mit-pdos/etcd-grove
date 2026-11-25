@@ -106,14 +106,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 
 /-- The ghost handle minted from the lock token, in append mode, on the invariant's contents. -/
 theorem walInvBody_mintAppend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (w : Loc) (dir : GoString) :
-    ⊢ walInvBody (W := W) C Mr R jr r s -∗ walLockedTok (W := W) ==∗
-      walInvBody (W := W) C Mr R jr r s ∗ walHandleP (W := W) w dir .append := by
+    (s : AbsDiskState) (w : Loc) (dir : GoString) (I : GMap GoString Nat) :
+    ⊢ walInvBody (W := W) C Mr R jr r s -∗ walLockedTokI (W := W) I ==∗
+      walInvBody (W := W) C Mr R jr r s ∗ walHandlePI (W := W) w dir (incOf I dir) .append := by
   iintro Hb Hl
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
-  imod walHandleP_mint (W := W) w dir .append $$ Ha Hl with ⟨Ha, Ho⟩
+  imod walHandleP_mintI (W := W) w dir .append I $$ Ha Hl with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
   imodintro
   iframe Ho
@@ -122,15 +122,15 @@ theorem walInvBody_mintAppend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
 
 /-- **The append-mode ghost handle minted** (`Create`'s). -/
 theorem walInv_mintAppend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) :
+    (w : Loc) (dir : GoString) (I : GMap GoString Nat) :
     ⊢ walInv (W := W) C Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      walLockedTok (W := W) ={⊤}=∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-        walHandleP (W := W) w dir .append := by
+      walLockedTokI (W := W) I ={⊤}=∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+        walHandlePI (W := W) w dir (incOf I dir) .append := by
   iintro #Hinv Hnc Hl
-  iapply walInv_step C Mr R jr r (walLockedTok (W := W)) (walHandleP (W := W) w dir .append) ⊤
+  iapply walInv_step C Mr R jr r (walLockedTokI (W := W) I) (walHandlePI (W := W) w dir (incOf I dir) .append) ⊤
     CoPset.subseteq_top (fun s => by
       iintro Hb Hl
-      imod walInvBody_mintAppend C Mr R jr r s w dir $$ Hb Hl with ⟨Hb, Ho⟩
+      imod walInvBody_mintAppend C Mr R jr r s w dir I $$ Hb Hl with ⟨Hb, Ho⟩
       imodintro
       iframe)
     $$ Hinv Hnc Hl
@@ -139,15 +139,15 @@ theorem walInv_mintAppend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
 lock token; the name **not** registered (design P, `notes/wal-units/create.md`: the names fragment `some
 dir` goes into the handle, and `createSpR`'s claim fraction `c` stays `Create`'s, with `qh + (qh + c) =
 ½` for the two pinned paths); `createUH qh x` the residue. -/
-theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : NamesH)
+theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat) (hC : NamesH)
     (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (J : Ino) (hJ : NamesH) (g : SegG)
     (Wn : List GoString) (c qh : Qp)
     (x : Nat × Nat) (w : Loc) (hc : qh + (qh + c) = (1 : Qp).half) :
     ⊢ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) -∗
+      createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J hJ g (some x) -∗
       createSpR (hG := hG) jr J nm c x ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ createUH (W := W) jr J r nm md Q Wn qh x ∗
-      walInv (W := W) walCodec Mr R jr r ∗ walHandleP (W := W) w (child r nm) .append ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ createUH (W := W) jr J r nm ic md Q Wn qh x ∗
+      walInv (W := W) walCodec Mr R jr r ∗ walHandlePI (W := W) w (child r nm) ic .append ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       walOutFrag (W := W) (WalOut.empty.create g.ino J walTmps (child r nm)) ∗
       walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
@@ -157,16 +157,17 @@ theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) 
   unfold createU
   icases HU with ⟨#Hinv, -, HQ⟩
   simp only [walCreateQ]
-  icases HQ with ⟨HQ, Hsf, Hm, Hb, Hlt, Ho, Htr, Hnf, #Hk, %s', #Hpast, %hs'⟩
+  icases HQ with ⟨HQ, Hsf, Hm, Hb, Ho, Htr, Hnf, #Hk, %s', %I, Hlt, #Hpast, %hI, %hs'⟩
+  subst hI
   unfold createSpR
   icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt, %hlw, #Hlog⟩
-  imod walInv_mintAppend walCodec Mr R jr r w (child r nm) $$ Hinv Hnc Hlt with ⟨Hnc, Hh⟩
+  imod walInv_mintAppend walCodec Mr R jr r w (child r nm) I $$ Hinv Hnc Hlt with ⟨Hnc, Hh⟩
   imodintro
   iframe Hnc Hinv Hh Hm Hb Ho Htr Hnf Hk
   unfold createUH
   iframe HQ Hsf Hlog
   isplitl []
-  · iexists s'; iframe Hpast; ipureintro; exact hs'
+  · iexists s', I; iframe Hpast; ipureintro; exact ⟨rfl, hs'⟩
   isplitl [Hnm]
   · iexists c, hn; iframe Hnm; ipureintro; exact ⟨hc, hnt.1, hlw⟩
   · iexists ht; iframe Htmp; ipureintro; exact hnt.2
