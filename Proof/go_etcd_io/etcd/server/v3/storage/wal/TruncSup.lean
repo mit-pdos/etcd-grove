@@ -22,7 +22,7 @@ An abort (either update) leaves the invariant as it was (`walInvBody_tailW_same`
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailCrashRep
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RzRep
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailAccW
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import Spec.os.File__TruncateAu
@@ -114,22 +114,22 @@ theorem rzSeg_of_okR {g1 : SegG} {t n wr : Nat} {m0 : OsMeta} {bs0 : List ByteG}
 /-- **The caller's part of the finish's update**: its key and half of the tail record, the truncate in
 flight on it (the start's `t`, `n`, the `OsMeta` and bytes it found), and the start's facts. -/
 def truncFinP (dir : GoString) (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
-    (wr : Nat) (i : Ino) (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) : IProp GF :=
+    (wr tg : Nat) (i : Ino) (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) : IProp GF :=
   iprop(walTailKeyL (W := W) dir γ ok ∗
-    tailVar (W := W) γ ((H, md, cuts, wr, i, some ⟨t, 0, [], n, m0, bs0, some (true, wr)⟩) : TailG) ∗
-    ⌜m0.size ≤ m0.hi ∧ wr ≤ m0.size⌝)
+    tailVar (W := W) γ ((H, md, cuts, wr, i, some ⟨t, 0, [], n, m0, bs0, some (true, tg)⟩) : TailG) ∗
+    ⌜m0.size ≤ m0.hi ∧ tg ≤ m0.size ∧ wr ≤ tg⌝)
 
 /-- **The finish's update** (see the file header). -/
 theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
+    (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr tg : Nat) (i : Ino)
     (t n : Nat) (m0 : OsMeta) (bs0 : List ByteG) :
-    ⊢ walInv (W := W) walCodec Mr R jr r -∗ truncFinP (W := W) dir γ ok H md cuts wr i t n m0 bs0 -∗
-      osAUnc (A := w64) (rsTok true t i wr m0 (bs0.drop (min m0.size wr)) n)
-        (rsOutT i wr m0 (bs0.drop (min m0.size wr)) n)
-        (fun e => iprop(os.truncOutH i wr m0 (bs0.drop (min m0.size wr)) n e ∗
+    ⊢ walInv (W := W) walCodec Mr R jr r -∗ truncFinP (W := W) dir γ ok H md cuts wr tg i t n m0 bs0 -∗
+      osAUnc (A := w64) (rsTok true t i tg m0 (bs0.drop (min m0.size tg)) n)
+        (rsOutT i tg m0 (bs0.drop (min m0.size tg)) n)
+        (fun e => iprop(os.truncOutH i tg m0 (bs0.drop (min m0.size tg)) n e ∗
           (walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG)))) := by
   iintro #Hinv HP
-  iapply osAUnc_coiter _ _ _ (truncFinP (W := W) dir γ ok H md cuts wr i t n m0 bs0) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (truncFinP (W := W) dir γ ok H md cuts wr tg i t n m0 bs0) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -138,7 +138,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   icases Hb with ⟨%s, Hb⟩
   unfold truncFinP
   icases HP with ⟨Hk, Hv, %hf⟩
-  obtain ⟨hhi, hwr⟩ := hf
+  obtain ⟨hhi, hwr, hwt⟩ := hf
   icases walInvBody_tailW walCodec Mr R jr r s dir γ ok _ m0 $$ Hb Hk Hv [] with
     ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g1, %hp, Hseg, Hk, Hv, Hv', -, Hclose⟩
   · dsimp only [tailHeld]; iempintro
@@ -148,9 +148,9 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   obtain ⟨hH, hmd, hcuts, hwrl, hino, hF⟩ := htg
   ihave Hv' : tailVar (W := W) γ (tailG d lay g1.ino (F !! g1.ino)) $$ [Hv']
   · rw [← htg0]; iexact Hv'
-  have eseg : segResF (GF := GF) F g1 = iprop(rsTok true t g1.ino wr m0 (bs0.drop (min m0.size wr)) n ∗
-      osBytes g1.ino 0 (DFrac.own (1 : Qp).half) (bs0.take (min m0.size wr)) ∗
-      ⌜SegFl.OkR ⟨t, 0, [], n, m0, bs0, some (true, wr)⟩ true wr g1⌝) := by
+  have eseg : segResF (GF := GF) F g1 = iprop(rsTok true t g1.ino tg m0 (bs0.drop (min m0.size tg)) n ∗
+      osBytes g1.ino 0 (DFrac.own (1 : Qp).half) (bs0.take (min m0.size tg)) ∗
+      ⌜SegFl.OkR ⟨t, 0, [], n, m0, bs0, some (true, tg)⟩ true tg g1⌝) := by
     unfold segResF; rw [← hF]
   rw [eseg]
   icases Hseg with ⟨Htok, Hbt, %hok⟩
@@ -176,12 +176,12 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     imodintro
     dsimp only
     iframe Hk Hv
-    ipureintro; exact ⟨hhi, hwr⟩
+    ipureintro; exact ⟨hhi, hwr, hwt⟩
   · iintro %e Hout
     imod Hcl'
     have hmcut' : m0.cut = none := hmcut
     have hlen : bs0.length = m0.size := hlen0
-    have hmin : min m0.size wr = wr := Nat.min_eq_right hwr
+    have hmin : min m0.size tg = tg := Nat.min_eq_right hwr
     have hg1 := rzSeg_of_okR hok
     obtain ⟨hlenOk, -, hom, hbs, -⟩ := hok
     obtain ⟨g0', hg0'⟩ : ∃ g0' : SegG, g0' = { g1 with om := m0, bs := bs0 } := ⟨_, rfl⟩
@@ -190,8 +190,8 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     have hg0bs : g0'.bs = bs0 := by rw [hg0']
     have hFd : ∀ i, i ≠ g1.ino → (GMap.delete g1.ino F) !! i = F !! i :=
       fun i hi => GMap.lookup_delete_ne _ (Ne.symm hi)
-    ihave Hout : rsDoneK true true g1.ino wr wr m0 (bs0.drop (min m0.size wr)) n ∨
-        (⌜e ≠ 0⌝ ∗ rsUndoneK true true g1.ino wr m0 (bs0.drop (min m0.size wr)) n) $$ [Hout]
+    ihave Hout : rsDoneK true true g1.ino tg tg m0 (bs0.drop (min m0.size tg)) n ∨
+        (⌜e ≠ 0⌝ ∗ rsUndoneK true true g1.ino tg m0 (bs0.drop (min m0.size tg)) n) $$ [Hout]
     · unfold rsOutT
       rw [show m0.cut.isNone = true by simp [hmcut']]
       icases Hout with (⟨-, Hd⟩ | ⟨%he, (Hd | Hu)⟩)
@@ -203,33 +203,34 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       unfold rsDoneK
       icases Hd with ⟨%zs, %hzs, Hm, -, -⟩
       icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
-      have hs' : lay.segs = pre ++ [rzSeg g0' true lay.wr n] := by rw [hs, ← hwrl, ← hg1]
-      obtain ⟨hW', hDK'⟩ := rzLand_pure (k := n) hW hd hl hs' (by rw [hg0om, hg0bs]; exact hlen)
-        (by rw [hg0om, ← hwrl]; exact hwr) (by rw [hg0om]; exact hhi) (by rw [hg0om]; exact hmcut')
-      have e1 : rzLand g0' lay.wr n = ({ g1 with
-          om := rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))
-          bs := bs0.take (min m0.size wr) } : SegG) := by
-        subst hg0'; rw [← hwrl, hmin]; rfl
-      have etg : tailG d (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) (rzLand g0' lay.wr n).ino
-          ((GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino) = ((H, md, cuts, wr, g1.ino, none) : TailG) := by
+      have hs' : lay.segs = pre ++ [rzSeg g0' true tg n] := by rw [hs, ← hg1]
+      obtain ⟨hW', hDK'⟩ := rzLand_pureT (k := n) hW hd hl hs' (by rw [hg0om, hg0bs]; exact hlen)
+        (by rw [← hwrl]; exact hwt) (by rw [hg0om]; exact hwr) (by rw [hg0om]; exact hhi)
+        (by rw [hg0om]; exact hmcut')
+      have e1 : rzLand g0' tg n = ({ g1 with
+          om := rsPostK true true m0 tg tg n (bs0.drop (min m0.size tg))
+          bs := bs0.take (min m0.size tg) } : SegG) := by
+        subst hg0'; rw [hmin]; rfl
+      have etg : tailG d (tailLay lay pre (rzLand g0' tg n) lay.wr) (rzLand g0' tg n).ino
+          ((GMap.delete g1.ino F) !! (rzLand g0' tg n).ino) = ((H, md, cuts, wr, g1.ino, none) : TailG) := by
         rw [e1]; simp [tailG, tailLay, GMap.lookup_delete_eq, hH, hmd, hcuts, hwrl]
-      imod tailVar_upd γ _ _ (tailG d (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) (rzLand g0' lay.wr n).ino
-        ((GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
-      ihave Hb := Hclose $$ %(rzLand g0' lay.wr n) %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt] Hv'
+      imod tailVar_upd γ _ _ (tailG d (tailLay lay pre (rzLand g0' tg n) lay.wr) (rzLand g0' tg n).ino
+        ((GMap.delete g1.ino F) !! (rzLand g0' tg n).ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
+      ihave Hb := Hclose $$ %(rzLand g0' tg n) %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt] Hv'
       · ipureintro
         refine ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK', ?_⟩
         have hR := hZ.rk
         rcases ok with _ | ⟨k, p⟩
         · trivial
         · have hR' : TailZeros lay ∨ RepOld lay := by cases p <;> exact hR
-          have hG : TailZeros (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) ∨
-              RepOld (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) := by
+          have hG : TailZeros (tailLay lay pre (rzLand g0' tg n) lay.wr) ∨
+              RepOld (tailLay lay pre (rzLand g0' tg n) lay.wr) := by
             rcases hR' with hR | hR
             · exact Or.inl hR
-            · exact Or.inr (repOld_rzLand hs' hR (by rw [hg0om, hg0bs]; exact hlen)
-                (by rw [hg0om, ← hwrl]; exact hwr) (by rw [hg0om]; exact hhi))
+            · exact Or.inr (repOld_rzLandT hs' hR (by rw [hg0om, hg0bs]; exact hlen)
+                (by rw [hg0om]; exact hwr) (by rw [hg0om]; exact hhi))
           cases p <;> exact hG
-      · have hn : (GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino = none := by
+      · have hn : (GMap.delete g1.ino F) !! (rzLand g0' tg n).ino = none := by
           rw [e1]; exact GMap.lookup_delete_eq _ _
         unfold segResF; rw [hn]; dsimp only
         unfold segRes
@@ -241,16 +242,16 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       dsimp only
       rw [etg]
       iframe Hk Hv
-      ihave Hdone : ∃ zs, os.ftDoneH g1.ino m0 wr zs $$ [Hm1]
+      ihave Hdone : ∃ zs, os.ftDoneH g1.ino m0 tg zs $$ [Hm1]
       · iexists []
         unfold os.ftDoneH
         isplitr
         · ipureintro; simp only [List.length_nil]; omega
         isplitl [Hm1]
-        · iexists (rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))).tc
-          iexists (rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))).rz
+        · iexists (rsPostK true true m0 tg tg n (bs0.drop (min m0.size tg))).tc
+          iexists (rsPostK true true m0 tg tg n (bs0.drop (min m0.size tg))).rz
           isplitr
-          · ipureintro; exact ⟨TcKnows.rsTail m0 wr wr n _, TcFrom.rsTail m0 wr wr n _⟩
+          · ipureintro; exact ⟨TcKnows.rsTail m0 tg tg n _, TcFrom.rsTail m0 tg tg n _⟩
           rw [← rsPostK_withTc]; iexact Hm1
         simp only [List.map_nil]
         unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
@@ -277,11 +278,11 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · ipureintro; exact ⟨rfl, rfl, hFd, Or.inl rfl, hW', hDK', by rw [tailLay_self hs]; exact hZ.rk⟩
       · unfold segResF; rw [GMap.lookup_delete_eq]; dsimp only
         unfold segRes
-        have hom' : g1.om = rsUnMeta true true m0 wr n := hom
-        have hbs' : g1.bs = bs0.take (min m0.size wr) ++ rsAnn n (bs0.drop (min m0.size wr)) := hbs
+        have hom' : g1.om = rsUnMeta true true m0 tg n := hom
+        have hbs' : g1.bs = bs0.take (min m0.size tg) ++ rsAnn n (bs0.drop (min m0.size tg)) := hbs
         rw [hom', hbs']
         iframe Hm2
-        have hl1 : (bs0.take (min m0.size wr)).length = min m0.size wr := by
+        have hl1 : (bs0.take (min m0.size tg)).length = min m0.size tg := by
           rw [List.length_take]; omega
         iapply osBytes_app0
         rw [hl1]
@@ -298,12 +299,12 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       iright
       unfold os.ftUndoneH
       isplitl [Hm1]
-      · iexists (rsTail true m0 wr m0.size n [])
+      · iexists (rsTail true m0 tg m0.size n [])
         iexists (n :: m0.rz)
         isplitr
-        · ipureintro; exact ⟨TcKnows.rsTail m0 wr m0.size n [], TcFrom.rsTail m0 wr m0.size n []⟩
-        have eU : rsUnMeta true true m0 wr n = (m0.announce (min m0.size wr) (rsHi true m0.size wr) wr).withTc
-            (rsTail true m0 wr m0.size n []) (n :: m0.rz) := rfl
+        · ipureintro; exact ⟨TcKnows.rsTail m0 tg m0.size n [], TcFrom.rsTail m0 tg m0.size n []⟩
+        have eU : rsUnMeta true true m0 tg n = (m0.announce (min m0.size tg) (rsHi true m0.size tg) tg).withTc
+            (rsTail true m0 tg m0.size n []) (n :: m0.rz) := rfl
         rw [← eU]; iexact Hm1
       iexact Hb1
 
@@ -438,10 +439,10 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     · iexists s; iexact Hb
     imodintro
     rw [etg]
-    iapply walTail_truncFin Mr R jr r dir γ ok H md cuts wr g0.ino t n g0.om g0.bs $$ Hinv [Hk Hv]
+    iapply walTail_truncFin Mr R jr r dir γ ok H md cuts wr wr g0.ino t n g0.om g0.bs $$ Hinv [Hk Hv]
     unfold truncFinP
     iframe
-    ipureintro; exact ⟨by omega, hwr⟩
+    ipureintro; exact ⟨by omega, hwr, Nat.le_refl _⟩
 
 end au
 
