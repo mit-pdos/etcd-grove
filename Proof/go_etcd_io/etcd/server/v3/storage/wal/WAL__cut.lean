@@ -237,12 +237,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       (cutSynced { h with sz := h.o0 + h.out.length }).inc = h.inc ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pend = [] ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).stNil = h.stNil ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).qp = h.qp ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).sz =
         (cutSynced { h with sz := h.o0 + h.out.length }).o0 +
           (cutSynced { h with sz := h.o0 + h.out.length }).out.length :=
-    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
   generalize cutSynced { h with sz := h.o0 + h.out.length } = h1 at hh1e ⊢
-  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1inc, h1pend, h1stNil, h1sz⟩ := hh1e
+  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1inc, h1pend, h1stNil, h1qp, h1sz⟩ := hh1e
   -- step 3: the name
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -259,6 +260,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1pc]
   try rw [h1pend]
   try rw [h1stNil]
+  try rw [h1qp]
   iunfold walDirH at Hdh
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, #HRdW, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
   obtain ⟨hnm0w, hnm0c, ⟨pd, hname⟩, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
@@ -331,7 +333,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   subst hfpath
   (try wp_auto)
   -- step 4: `w.fp.Open()`
-  ihave Hpipe : walPipeH fp dir j h.pc $$ [Hmain Hpc]
+  ihave Hpipe : walPipeH fp dir j h.pc (fun _ dq => True ∧ dq = DFrac.own h.qp) $$ [Hmain Hpc]
   · iunfold walPipeH
     iexists γp, Rp, dqp, szp, np
     iframe Hmain Hpc Hisfp
@@ -942,7 +944,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   isplitr
   · ipureintro; simp
   isplitl [Hmain Htm1 Htm2]
-  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp.1 hfpn hnp.2
+  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp.1 hfpn hnp.2.1 ⟨trivial, hnp.2.2⟩
     iframe Hisfp Hmain
     iapply tmpClaim_absent j (pipeTmp np)
       (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))

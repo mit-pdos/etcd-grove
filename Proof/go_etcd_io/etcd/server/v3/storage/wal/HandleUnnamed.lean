@@ -56,21 +56,22 @@ theorem walOpenWFU_intro (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
   iframe Hh Hr
   ipureintro; exact ⟨hD, hmd, rfl⟩
 
-/-- **The directory share's names fragment out**, and back (another one) with the naming fact changed
-along a wand. -/
+/-- **The directory share's names record out** (with the path's fraction `q` and the naming fact), and
+back (another record over the same fractions) with another naming fact. -/
 theorem walDirH_split (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
-    (lfs : List Loc) (cuts : List Nat) (A B : Roots → Qp → IProp GF) (nf : Option GoString) :
-    ⊢ walDirH (W := W) dir j dfd ino name k lfs cuts A nf -∗
-      walNamesFrag (W := W) nf ∗ ∀ nf' : Option GoString, walNamesFrag (W := W) nf' -∗
-        (∀ R q, A R q -∗ B R q) -∗ walDirH (W := W) dir j dfd ino name k lfs cuts B nf' := by
+    (lfs : List Loc) (cuts : List Nat) (qp : Qp) (A B : Roots → Qp → IProp GF) (nf : Option GoString) :
+    ⊢ walDirH (W := W) dir j dfd ino name k lfs cuts qp A nf -∗
+      ∃ (R : Roots) (q : Qp), A R q ∗ walHLoans (W := W) dir nf [q, qp] ∗
+        ∀ nf' : Option GoString, walHLoans (W := W) dir nf' [q, qp] -∗
+        B R q -∗ walDirH (W := W) dir j dfd ino name k lfs cuts qp B nf' := by
   iintro Hd
   unfold walDirH
   icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hrw, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩
-  iframe Hnf
+  iexists R, q
+  iframe Ha Hnf
   iintro %nf' Hnf' Hw
   iexists R, q, X, hj, nm0, ph
-  iframe Hk Hn Hp Hsi Hrw Hperm Hdfd Ho Ht Hnf' Hrest
-  iapply Hw $$ Ha
+  iframe Hk Hn Hp Hsi Hrw Hperm Hdfd Ho Ht Hnf' Hrest Hw
 
 /-- **The pipeline's pin weakened.** -/
 theorem walPipeH_mono (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (pp pp' : Roots → DFrac → Prop)
@@ -83,62 +84,16 @@ theorem walPipeH_mono (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (pp pp' : 
   iframe Hfp Hmain Hc
   ipureintro; exact ⟨⟨hn.1, hpp R dq hn.2⟩, hfp⟩
 
-/-- **The handle's names fragment out**, and back (another one) with the naming fact changed along a
-wand and the pipeline's pin weakened (`walDirH_split`, `walPipeH_mono`). -/
-theorem walHandleIn_split (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
-    (tm : Fs.OsMeta → List Fs.ByteG → Prop) (A B : Loc → Roots → Qp → IProp GF) (nf : Option GoString)
-    (pp pp' : Roots → DFrac → Prop) (hpp : ∀ R dq, pp R dq → pp' R dq) :
-    ⊢ walHandleIn (W := W) P Mr w dir h tm A nf pp -∗
-      walNamesFrag (W := W) nf ∗ ∀ nf' : Option GoString, walNamesFrag (W := W) nf' -∗
-        (∀ f R q, A f R q -∗ B f R q) -∗ walHandleIn (W := W) P Mr w dir h tm B nf' pp' := by
-  iintro Hh
-  unfold walHandleIn
-  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
-    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, H20, H21,
-    H22, H23, H24, H25, H26, Hpipe, Hr⟩
-  icases walDirH_split dir j dfd h.ino name h.pc lfs.dropLast h.cuts (A f) (B f) nf $$ Hd with ⟨Hnf, Hd⟩
-  iframe Hnf
-  iintro %nf' Hnf' Hw
-  iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
-  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25
-    H26 Hr
-  isplitl [Hd Hnf' Hw]
-  · iapply Hd $$ Hnf'
-    iintro %R %q
-    iapply Hw
-  iapply walPipeH_mono fp dir j h.pc pp pp' hpp $$ Hpipe
-
-/-- **The handle sealed at `Create`'s success exit**: the pending names fragment `some dir` out (for the
-registration, `walInv_register`, which returns `none`), and with `none` and the naming `walNamed dir i`
-(`walInv_named`, at the handle's incarnation), the client handle at `i`; the pins forgotten. -/
-theorem walOpenWFU_seal (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
-    (qp : Qp) (tf : Loc) (i : Nat) :
-    ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗ walNamesFrag (W := W) (some dir) ∗
-      (walNamesFrag (W := W) none -∗ walNamed (W := W) dir i -∗ walOpenWFI (W := W) P Mr w dir i) := by
-  iintro H
-  unfold walOpenWFUI
-  icases H with ⟨%h, Hh, %hD, %hmd, %hi, Hr⟩
-  subst hi
-  icases walHandleIn_split P Mr w dir h TailMetaW _ (fun _ _ _ => walNamed (W := W) dir h.inc) (some dir) _
-    (fun _ _ => True) (fun _ _ _ => trivial) $$ Hh with ⟨Hnf, Hh⟩
-  iframe Hnf
-  iintro Hnf #Hn
-  unfold walOpenWFI
-  iexists h
-  iframe Hr
-  isplitl [Hh Hnf]
-  · iapply Hh $$ Hnf
-    iintro %f %R %q -
-    iexact Hn
-  ipureintro; exact ⟨hD, hmd, rfl⟩
-
-/-- **`walOpenWFU_seal` with the lock quarter lent** (`Create`'s success exit: the registration,
-`walInv_register`, needs the lock at the handle's incarnation to know the WAL is still present). -/
+/-- **The handle sealed at `Create`'s success exit, the lock quarter lent**: the pending names fragment
+`some dir` out (for the registration, `walInv_register`, which needs the lock at the handle's incarnation to
+know the WAL is still present), and with the record of the two loans of the pinned fraction `qp` (the
+handle's path and its pipeline's, `walHLoans`), the naming `walNamed dir i` (`walInv_named`, at the
+handle's incarnation) and the lock quarter back, the client handle at `i`; the pins forgotten. -/
 theorem walOpenWFU_sealL (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
     (qp : Qp) (tf : Loc) (i : Nat) :
     ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗ walNamesFrag (W := W) (some dir) ∗
       ∃ I : GMap GoString Nat, walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
-      (walLockedTokI (W := W) I -∗ walNamesFrag (W := W) none -∗ walNamed (W := W) dir i -∗
+      (walLockedTokI (W := W) I -∗ walHLoans (W := W) dir none [qp, qp] -∗ walNamed (W := W) dir i -∗
         walOpenWFI (W := W) P Mr w dir i) := by
   iintro H
   unfold walOpenWFUI
@@ -150,9 +105,16 @@ theorem walOpenWFU_sealL (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
     H22, H23, H24, H25, H26, Hpipe, K1, K2, K3, Hw, K4⟩
   unfold walOpenWI
   icases Hw with ⟨%I, Hst, Hl, %hI⟩
-  icases walDirH_split dir j dfd h.ino name h.pc lfs.dropLast h.cuts
+  iunfold walPipeH at Hpipe
+  icases Hpipe with ⟨%γp, %Rpp, %dqp, %szp, %np, Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
+  obtain ⟨hnk, ⟨-, hq1⟩, hq2⟩ := hnp
+  have hqq : h.qp = qp := by rw [hq1] at hq2; exact (DFrac.own.inj hq2).symm
+  icases walDirH_split dir j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp
     (fun R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝)) (fun _ _ => walNamed (W := W) dir h.inc) (some dir)
-    $$ Hd with ⟨Hnf, Hd⟩
+    $$ Hd with ⟨%Rd, %qd, %hA, Hnf, Hd⟩
+  obtain ⟨-, -, hqd⟩ := hA
+  subst hqd
+  ihave Hnf := (walHLoans_some (W := W) dir dir _).1 $$ Hnf
   iframe Hnf
   iexists I
   iframe Hl
@@ -167,11 +129,14 @@ theorem walOpenWFU_sealL (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
     iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25
       H26 K1 K2 K3 K4
     isplitl [Hd Hnf']
-    · iapply Hd $$ Hnf'
-      iintro %R %q -
+    · rw [hqq]
+      iapply Hd $$ Hnf'
       iexact Hn
-    isplitl [Hpipe]
-    · iapply walPipeH_mono fp dir j h.pc _ _ (fun _ _ _ => trivial) $$ Hpipe
+    isplitl [Hisfp Hmain Hpc]
+    · iunfold walPipeH
+      iexists γp, Rpp, dqp, szp, np
+      iframe Hisfp Hmain Hpc
+      ipureintro; exact ⟨⟨hnk, trivial, hq2⟩, hfpn, hRpW⟩
     unfold walOpenWI
     iexists I
     iframe Hst Hl

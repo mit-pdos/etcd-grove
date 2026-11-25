@@ -27,6 +27,7 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.os.NsS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
@@ -339,9 +340,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   -- the put-back, at the next step
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  -- the handle's two loans of the WAL's name returned (P6b fix A)
+  rw [hnp.2.2] at Hpp ⊢
+  ihave Hpd : osPathS (L := hG.goose_localGS) R dir (DFrac.own qd) j $$ [Hpd]
+  · rw [← hWR]; iexact Hpd
+  ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own h.qp) j $$ [Hpp]
+  · rw [← hWR]; iexact Hpp
+  imod walInv_returnHLoans2 walCodec Mr R jr r dir j j j X qd h.qp $$ Hinv Hnc Hdk Hnf Hpd Hpp
+    with ⟨Hnc, Hnf⟩
   imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLaw (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
     b (pipeTmp (np + 1)) Q γ.inc hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc

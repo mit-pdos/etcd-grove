@@ -150,8 +150,8 @@ theorem walTailLk_excl (fd : w64) (i i' : Ino) (k : LockKind) (fd' : w64) :
 /-- **The handle's share of its directory, lent** (see the file header): back with the claim's names after
 removals of `.wal` names but the tail's. -/
 theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
-    (lfs : List Loc) (cuts : List Nat) (nmd : Roots → Qp → IProp GF) (nf : Option GoString) :
-    walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf ⊢
+    (lfs : List Loc) (cuts : List Nat) (qp : Qp) (nmd : Roots → Qp → IProp GF) (nf : Option GoString) :
+    walDirH (W := W) dir j dfd ino name k lfs cuts qp nmd nf ⊢
       ∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString),
         walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
         osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
@@ -162,7 +162,7 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
           osNames j (.except X) (DFrac.own (1 : Qp).half) hj' -∗ osPathS R dir (DFrac.own q) j -∗
           osSharedInv R -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
           walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗ walDirLks (W := W) dir hj' nm0 lfs cuts -∗
-          walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf := by
+          walDirH (W := W) dir j dfd ino name k lfs cuts qp nmd nf := by
   unfold walDirH
   iintro ⟨%R, %q, %X, %hj, %nm0, %ph, #Hkey, Hn, Hp, #Hsh, %hRW, Hc, Hfd, Hnmd, Ho, Hlk, Hnf, %hf⟩
   obtain ⟨hw0, hc0, hpd, htmp, hX, hsq, hmax⟩ := hf
@@ -213,7 +213,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
     Hl1, Hl2, Hl3, %hl4, Hl5, Hl6, Hl7, Hl8, Hl9, Hl10, Hl11, Hopen, %hpure⟩
   unfold walTailW
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ $$ Hdh with
+  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ _ $$ Hdh with
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
   icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,
@@ -272,7 +272,7 @@ theorem walOpenWFI_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoSt
     Hl1, Hl2, Hl3, %hl4, Hl5, Hl6, Hl7, Hl8, Hl9, Hl10, Hl11, Hopen, %hpure⟩
   unfold walTailW
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ $$ Hdh with
+  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ _ $$ Hdh with
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
   icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,

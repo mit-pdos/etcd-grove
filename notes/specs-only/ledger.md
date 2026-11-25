@@ -52,6 +52,15 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   plan as written (fix A, loans in γnm; fix B, `walDirKey` by `(dir, i)` with the four internal specs; state C; the
   two-update spec, `true` ⇒ `walAbsentI dir (ic+2)`, the fsync failure losing the lock token and `walAreaRes`).
   P5 (`bootstrap`'s owner) is asked whether the two-update shape fits its crash invariant; pending its answer.
+- **Loans carried in the handles (P6b session 10, covered by fix A's approval; the handle design approved by the
+  coordinator, session 10 brief).** A handle holds the lock holder's names record as `walHLoans dir nf qs`
+  (`Handle.lean`: `walNamesFragS ⟨nf, none, Lh⟩`, with no registration pending `Lh` the loans of the WAL's name `nm`,
+  `InArea r' dir nm`, one per fraction of `qs`; with one pending, `walNamesFrag (some _)`). `walDirH` takes the
+  pipeline's fraction `qp` (`WalHS.qp`, pinned in `walHandleIn`'s pipeline) and records `[q, qp]`; `Close` returns
+  both (`walInv_returnHLoans2`, `HandleLoans.lean`) before `walCloseLaw` (so `WalCloseLaw` is unchanged).
+  Internal spec changes: `WAL.sync.specC`'s error arm gives `∃ qs, walHLoans dir nf qs` for `walNamesFrag nf`
+  (the `unnamed` close reads `walNamesFrag (some dir)` back by `walHLoans_some`); `walLastOpen` (planned) carries its
+  loan. No trusted text.
 
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
