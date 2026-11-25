@@ -76,6 +76,23 @@ per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axio
      the premise removed from `craqnet/TopLevelRobustness.lean` (removal only), fresh `axiom` review in
      `notes/axiom-review/dsv-fix6/log-logger-2.md`, `etc/tcb-report.py --check --update`, `etc/gates.sh`.
 
+- **craq (item 1): steps 1-4 done (sixth session, 2026-11-25).** Net: `Client.Call.spec_plain`,
+  `DialHTTPPath`/`DialHTTP.spec_plain` (`wp_plain`, rpc `Results`), `ReadResponse.spec_errs`, `errPlain_*`
+  lemmas (old specs derived; internal `callPost`/`sendInv`'s `w0`/`inErr`/`decErr`/`crErr`/`wp_errors_New'`'s
+  post say more; `errFmt`'s `*OpError` `Err` also admits `poll.ErrDeadlineExceeded`'s value by
+  `globalAddr … ↦□`, Perennial's poll fact lacking its type, `perennial-changes.md`; `errLeaf` admits
+  `textproto.ProtocolError`). craq: `RpcClientSpecs` over the `_plain` specs, `Iface`/`Netrpc` error posts
+  `errPlain`; `LogHyp` → `Craq/LogAx.lean`'s three axioms (`LogDefault`, `LoggerPrintf`, `LoggerPrintln`),
+  class `LogSpecs` made by `logSpecs_holds`, premise removed from `craq_remote_robust`. The restatement
+  went through three fresh reviews: `log-logger-2` refuted the receiver `l ≠ null` (`new(log.Logger)`
+  panics: now opaque `StdLogger`, from `LogDefault`), `log-logger-3` refuted `Printf` under `%t` of an
+  `errLeaf` pointer (now `FmtVerbsOk msg`: verbs `v s q x X d`), `log-logger-4` on the current statement.
+  Spec weakening: craq's `isNodeSvc` Update post gives back `∃ dq', metaPtr ptr dq' m` (the log lends a
+  fraction; its only consumer discards it). Open findings: `StdLogger` is a pure opaque `Prop`
+  (log-logger-3 suggests a per-execution `IProp` against a future concrete semantics); Net's trusted
+  `(*OpError).Error` model (`Net/TrustedCode/net.lean`) calls nothing where Go calls
+  `Err.Error()`/`Addr.String()`: needs its own review (log-logger-3, "Related finding").
+
 ## 1. craq: `log.(*Logger).Printf`/`Println` (and the package-level `log.Printf`/`Println`)
 
 **Old premise** (`Craq/LogHyp.lean`, `LogHyp`): `l ≠ null →
