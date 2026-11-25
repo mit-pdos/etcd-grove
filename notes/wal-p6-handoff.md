@@ -519,7 +519,8 @@
   `laysResF`/`walParked` (segment halves dropped), the tmps claims, `walTailsRes`/`walNamesRes` over `Ls.delete
   dir`, `walGhostI_bump` with `walLeI_discard`, `AU₂` committed, `disc := none`, `walUnlockedTok` rebuilt), then
   the `Discard` proof, the crash lemma, docstrings, `gen-link --walfs`, builds. Session stopped at the ~150k-token
-  handoff rule (most of it spent reading for S).
+  handoff rule (most of it spent reading for S). **Build**: `lake build` of `wal.DiscardSPure` + `wal.DiscardR` on
+  fk-lean1 at `3b1a5575df`: 3023 jobs, exit 0, no `sorry` in either (`/shared/tmp/p6b-s18-b1.log`).
 - **2026-11-25, P6b session 17 (WIP, `etcd-safe-p6b-wip`): R done; S not started.** **Decision (coordinator,
   approved, internal, not a spec change):** `walDirKeysAuth` (Ghost.lean) gains `⌜∀ dir i x, Kall !! (dir, i) = some x
   → i ≤ incOf I dir⌝` (keys are recorded only at incarnations up to the current one; no existing lemma gave `Kall !!
