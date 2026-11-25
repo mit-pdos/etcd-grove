@@ -381,6 +381,38 @@ theorem wp_registerErr_lit (wp_IndexAny : strings.IndexAny.spec (GF := GF) (hG :
     try wp_auto
     reg_main
 
+/-- `mux.register(p, h)` by the owner: `p` registered for `h` (`registerErr` returns `nil`, so it
+does not panic). -/
+theorem wp_register_lit (wp_IndexAny : strings.IndexAny.spec (GF := GF) (hG := hG))
+    (wp_IndexByte : strings.IndexByte.spec (GF := GF) (hG := hG))
+    (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) (hG := hG))
+    (wp_Caller : runtime.Caller.spec (GF := GF) (hG := hG))
+    (wp_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
+    (mux : Loc) (γ : Mux22Names) (S : TreeSt) (ms : w64) (p : List w8) (h : GoInterface)
+    (hp : litPat p) (hnew : p ∉ S.pats.map Prod.fst) (hh : h ≠ interface.nil)
+    (hfn : ∀ v, h = interface.mkOk net.http.HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.strings ∗
+        isPkgInit (PROP := IProp GF) pkg_id.net.url ∗ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
+        sync.isRWMutexGuard (structFieldRef net.http.ServeMux go!"mu" mux) (mux22P γ mux) ∗
+        ghostVar γ.st (1 : Qp).half S ∗
+        idxRep (structFieldRef net.http.ServeMux go!"index" mux) (S.pats.map Prod.fst) ∗
+        globalAddr net.http.maxSlice ↦□ ms }}
+      (App (App (Val (mux @!! go.GoType.PointerType net.http.ServeMux.ty @!! go!"register"))
+        (Val #p)) (Val #h))
+    {{ RET #(); ∃ (S' : TreeSt) (pp : Loc), ghostVar γ.st (1 : Qp).half S' ∗
+        idxRep (structFieldRef net.http.ServeMux go!"index" mux) (S'.pats.map Prod.fst) ∗
+        p ↪[γ.r]□ h ∗ ⌜S'.pats = (p, pp, h) :: S.pats⌝ }} := by
+  wp_start as ⟨#Hguard, Hv, Hidx, #Hms⟩
+  try wp_auto
+  wp_apply (wp_registerErr_lit wp_IndexAny wp_IndexByte wp_PathUnescape wp_Caller wp_Sprintf mux γ S ms
+    p h hp hnew hh hfn) $$ [Hv Hidx] as ⟨%S', %pp, Hv, Hidx, #Hel, %HS'⟩
+  · iframe; iframe #
+  try wp_auto
+  iapply HΦ
+  iexists S', pp
+  iframe; iframe #
+  ipureintro; exact HS'
+
 end wp
 
 end net.http
