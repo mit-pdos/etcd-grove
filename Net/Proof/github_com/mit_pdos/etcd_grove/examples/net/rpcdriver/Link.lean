@@ -3,8 +3,7 @@
 # `net/rpcdriver`: the driver's functions linked to their callees' proofs
 
 Each function's proof (`<F>.wp_proof`) with its callees' linked results: net/rpc's
-(`Net/Proof/net/rpc/Results.lean`), net/http's interim axioms (`Handle.wp_proof`,
-`Serve.wp_proof_rpc`), Perennial's.
+(`Net/Proof/net/rpc/Results.lean`), net/http's (`Handle.wp`, proved; `Serve.wp_proof_rpc`, an interim axiom), Perennial's.
 Written by hand (`etc/gen-link.py` does not cover this part yet); its results are in
 `EtcdGrove.rpcdriver`, under the prefix every `Link.lean` shares (`etc/proof_roots.py`).
 -/
@@ -28,6 +27,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Cm
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client.Main
 public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.http.Results
 public import Net.Proof.net.rpc.HandleHTTP
 public import Net.Proof.net.rpc.Server__HandleHTTP
 public import Net.Proof.net.rpc.Accept
@@ -85,7 +85,7 @@ theorem wp_Client : Client.spec (GF := GF) (hG := hG) :=
 
 theorem wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG) :=
   net.rpc.HandleHTTP.wp_proof
-    (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp_proof net.rpc.Server.ServeHTTP.wp)
+    (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp)
 
 theorem wp_Accept : net.rpc.Accept.spec (GF := GF) (hG := hG) :=
   net.rpc.Accept.wp_proof net.rpc.Server.Accept.wp

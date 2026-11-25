@@ -135,6 +135,9 @@ public import Net.Proof.net.http.ServeHandler
 public import Net.Proof.net.Listener__Accept
 public import Net.Proof.net.Listener__Close
 public import Net.Proof.net.OpError__Temporary
+public import Net.Proof.net.http.Handle
+public import Perennial.Proof.sort.Link
+public import Perennial.Proof.runtime.Link
 
 @[expose] public section
 
@@ -373,6 +376,24 @@ theorem URL.EscapedPath.wp : URL.EscapedPath.spec (GF := GF) (hG := hG) :=
 end url
 
 end net.url
+
+namespace net.http
+
+section mux
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt Net.netExt]
+
+/-- `http.Handle`, over the real `ServeMux` (until 2026-11-25 an interim axiom). -/
+theorem Handle.wp : Handle.spec (GF := GF) (hG := hG) :=
+  Handle.wp_proof sort.wp_Search strings.wp_IndexAny strings.wp_IndexByte net.url.PathUnescape.wp
+    runtime.wp_Caller fmt.wp_Sprintf
+
+end mux
+
+end net.http
 end Perennial
 
 #print axioms Perennial.net.http.internal.NewChunkedWriter.wp
@@ -413,3 +434,4 @@ end Perennial
 #print axioms Perennial.net.url.URL.EscapedPath.wp
 #print axioms Perennial.net.http.Server.Serve.wp
 #print axioms Perennial.net.http.Serve.wpHandler
+#print axioms Perennial.net.http.Handle.wp
