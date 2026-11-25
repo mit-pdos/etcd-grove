@@ -59,7 +59,9 @@ theorem kvOnly_bounds {d : Deployment} (hw : d.WellFormed) (hkv : KvOnly d) :
     d.members.length ≤ 64 ∧ ∀ w ∈ d.workloads, 0 ≤ sint.Z w.clients ∧ sint.Z w.clients < 2 ^ 31 := by
   obtain ⟨t, he, hwf⟩ := hw
   obtain ⟨hm, -, -, hws, -⟩ := he
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hb, -, -, -, hmax, -, -, -⟩ := hwf
+  -- `WellFormed`'s conjuncts by their statements, not their positions (a new conjunct must not shift them)
+  have hb : ∀ tw ∈ t.workloads, tw.BoundsOk := by grind [typed.Deployment.WellFormed]
+  have hmax : t.members.length ≤ typed.maxMembers := by grind [typed.Deployment.WellFormed]
   refine ⟨?_, ?_⟩
   · rw [← hm]; simpa [typed.maxMembers] using hmax
   · intro w hw

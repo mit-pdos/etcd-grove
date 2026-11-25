@@ -188,7 +188,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: the key-value map of the ghost layer (see the file header). -/
-def kvR (g : GN) : RBase GF VsrModel.Store KIn KOut where
+def kvR (g : GN) : RBase GF VsrModel.Store KIn KIn KOut where
   B := kvB
   sysState σ := absOwnI g σ
   Eop := vsrE
