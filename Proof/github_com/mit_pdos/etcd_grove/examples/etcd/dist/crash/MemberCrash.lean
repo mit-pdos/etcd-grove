@@ -419,7 +419,7 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     (h : WalH GF) (W' : WalFs.WalGS GF) (hmd : h.md = walMetaEnc id cid) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) (hE' : ↑srvClusterN ⊆ E \ ↑rnDurKN) :
     ⊢ memberDurKeep (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h -∗
-      isCluster (hG := ⟨G, etcd_dist.atCtx L⟩) γn.cl srvClusterN -∗ £ 1 -∗ £ 1 -∗
+      isCluster γn.cl srvClusterN -∗ £ 1 -∗ £ 1 -∗
       crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
       memberWalCrash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ={E}=∗
       ∃ (S : RaftState) (σ : StorContents) (l : List LogEntry),
