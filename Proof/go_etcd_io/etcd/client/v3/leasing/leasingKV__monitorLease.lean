@@ -150,7 +150,7 @@ local macro "monitor_watch" : tactic => `(tactic| (
         · wp_apply hRes lkv γ pfx cctx
             ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
                PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key e.rev
-            $$ [$(frameH `Hpkg) $(frameH `Hlkv) $(frameH `Hcctx) $(frameH `HcctxC)]
+            $$ [$(frameH `Hlt) $(frameH `Hpkg) $(frameH `Hlkv) $(frameH `Hcctx) $(frameH `HcctxC)] as ⟨Hlt, -⟩
           · ipureintro; assumption
           (try wp_auto)
           wp_for_post
@@ -292,7 +292,7 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply hRes lkv γ pfx cctx
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
-        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC]
+        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC] as ⟨Hlt, -⟩
       · (try iframe Hlt)
         ipureintro; exact Hkl
       (try wp_auto)
@@ -326,7 +326,7 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply hRes lkv γ pfx cctx
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
-        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC]
+        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC] as ⟨Hlt, -⟩
       · (try iframe Hlt)
         ipureintro; exact Hkl
       (try wp_auto)
@@ -334,7 +334,7 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply Hcancel'
       · imodintro; itrivial
       (try wp_auto)
-      iapply HΦ $$ [Hlt]
+      iapply HΦ
       iframe Hlt
       itrivial
     (try wp_auto)

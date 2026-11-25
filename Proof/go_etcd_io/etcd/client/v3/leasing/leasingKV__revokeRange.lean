@@ -93,7 +93,7 @@ theorem leasingKV.revokeRange.wp_proof
       | nil => exact absurd rfl Hgne
       | ok g => exact ⟨g, rfl⟩
     wp_auto
-    iapply HΦ $$ Hrd
+    iapply HΦ; iframe Hlt Hrd
   subst Hgnil
   have HoP : (opGetModel (pfx ++ b) [withRangeM L]).isPrefixGet [] = false := by
     simp [OpFull.isPrefixGet, op_simps]
@@ -109,12 +109,12 @@ theorem leasingKV.revokeRange.wp_proof
   icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', -, #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
   ihave %Hks := etcdState_keys _ _ s' $$ Hs'
   wp_auto
-  wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hgps $Hgkvs]
-    as %m %err ⟨Hrd, -⟩
+  wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hlt $Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hgps $Hgkvs]
+    as %m %err ⟨Hlt, Hrd, -⟩
   · ipureintro
     exact rangeKvsOk_keys Hgok (fun w hw =>
       Hks w ((List.mem_filter.1 (List.mem_filter.1 hw).1).1))
-  iapply HΦ $$ Hrd
+  iapply HΦ; iframe Hlt Hrd
 
 end proof
 

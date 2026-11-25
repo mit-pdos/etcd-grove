@@ -112,10 +112,10 @@ theorem txnLeasing.serverTxn.wp_proof
   ihave ⟨%kv, #Hkvf, #HTxn, #Hpfxf, %Hpfx⟩ := isLeasingKV_kv $$ Hlkv
   ihave IH : iprop("Hl" ∷ structFieldRef txnLeasing go!"lkv" txn ↦ lkv ∗
       "Hc" ∷ structFieldRef txnLeasing go!"ctx" txn ↦ GoInterface.ok ctx ∗
-      "Hrd" ∷ lkvReader lkv γ pfx) $$ [Hl Hc Hrd]
+      "Hrd" ∷ lkvReader lkv γ pfx ∗ "Hlt" ∷ levelTok 0) $$ [Hl Hc Hrd Hlt]
   · simp only [named]; iframe
   wp_for IH
-  wp_apply hguard $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Huopsat] as %cmps %gerr ⟨Hl, Hc, Hrd, Hg⟩
+  wp_apply hguard $$ [$Hlt $Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Huopsat] as %cmps %gerr ⟨Hlt, Hl, Hc, Hrd, Hg⟩
   · ipureintro; exact LTxnBuild.sizeOk_ops Hsz
   icases Hg with (%Hgerr | ⟨%Hgerr, %ms, #Hms, %Hmsg⟩)
   · cases gerr with
@@ -141,7 +141,7 @@ theorem txnLeasing.serverTxn.wp_proof
     iintro %usl ⟨Husl, -⟩
     ipersist Husl
     wp_auto
-    wp_apply HTxn $$ %ctx %cs [$Hlt $Hctx $HctxC] as %t ⟨Hlt, %B, HB, #HBs⟩
+    wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
     iunfold txnBuilderSpecO at HBs
     icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit⟩
     wp_apply_raw HIf $$ %TxnBuild.empty %cmps %ms [$HB]
@@ -176,13 +176,13 @@ theorem txnLeasing.serverTxn.wp_proof
     inext
     iintro HB
     wp_auto
-    wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
+    wp_apply_raw HCommit $$ %_ %lo [$Hlt $HB $Hlo]
     · ipureintro
       refine ⟨TxnModel.under_nil _, ?_⟩
       simpa [TxnBuild.empty, TxnModel.empty] using
         serverTxn_sizeOk pfx b tops eops ms fos Hsz Ht He Hmsg ⟨Hfosl, Hfosg⟩
     inext
-    iintro %resp %cerr Hcr
+    iintro %resp %cerr ⟨Hlt, Hcr⟩
     simp only [TxnBuild.empty, TxnModel.empty, List.nil_append]
     unfold txnCommitResultO
     icases Hcr with (⟨%Hcerr, -⟩ | ⟨%Hcerr, Hok⟩)
@@ -349,7 +349,7 @@ theorem txnLeasing.serverTxn.wp_proof
             exact runOps_gets_keys r s fos etcdKeyMax Hks x hx) $$ Hops
           with ⟨%kvss, %Hkl, %Hkk, Hro⟩
         wp_auto
-        wp_apply hrfb $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hps $Hro] as %ferr ⟨Hl, Hc, Hrd⟩
+        wp_apply hrfb $$ [$Hlt $Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hps $Hro] as %ferr ⟨Hlt, Hl, Hc, Hrd⟩
         · ipureintro; exact ⟨Hkl, Hkk⟩
         cases ferr with
         | ok e =>

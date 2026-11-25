@@ -130,7 +130,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   ipersist HslC
   (try wp_auto)
   iunfold isEtcdTxnKVO at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hlt $Hctx $HctxC] as %t ⟨Hlt, %B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpecO at HBs
   icases HBs with ⟨#HIf, #HThen, -, #HCommit⟩
   wp_apply_raw HIf $$ %TxnBuild.empty %_
@@ -183,14 +183,14 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ (TxnBuild.mk (drpcTxn pfx key e maxLeaseRev) true true false) (by rfl) $$ HB
-  wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
+  wp_apply_raw HCommit $$ %_ %lo [$Hlt $HB $Hlo]
   · ipureintro
     refine ⟨TxnModel.under_nil _, ?_⟩
     simp [txnSizeOk, txnWireLen, drpcTxn, cmpWireLen, TxnOp.wireLen, opWireLen, wireSlack, compareM,
       cmpKeyM, cmpWithRangeM, rangeDeleteOp, op_simps]
     word
   inext
-  iintro %resp %err Hres
+  iintro %resp %err ⟨Hlt, Hres⟩
   iunfold txnCommitResultO at Hres
   icases Hres with (⟨%Hne, -⟩ | ⟨%Heq, Hok⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, err = GoInterface.ok g := by
