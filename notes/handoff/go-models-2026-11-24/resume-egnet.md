@@ -394,3 +394,7 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   log diff section dropped. Head table rows still name d81d2bfd8/16e82ffff7: update after the build.
 - tcb before/after: the pin bump changes no etcd-grove axiom (Perennial lean adds none); rerun only if the
   build's `#print axioms`/tcb differs.
+- (Session 11 results) Perennial 09bd3826c full build EXIT 0 (int-full11, 4 chunks). egnet re-pinned
+  (bedb8f9090): gen-link 0 differ, default build EXIT 0 (28094 jobs, eg-full13), `tcb-report --check` matches
+  the baseline (329 axioms, 0 sorry): axioms unchanged, tcb before/after not rerun. Packet head updated.
+  Open: etcd-grove lean merge (go-models-rest-egnet-lmerge/2026-11-25, blocked on lean's trusted UDP: decision).

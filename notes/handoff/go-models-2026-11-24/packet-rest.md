@@ -7,8 +7,8 @@ trusted exactly as on lean (decision below), so log has no Go model and no delta
 
 | repo | branch | head | state |
 |---|---|---|---|
-| Perennial | `goose-model-overlay-rest` | `d81d2bfd8` | whole library + PerennialMeta built (int-full10, EXIT 0); `etc/model-tests.sh` passes; log = lean's |
-| etcd-grove | `go-models-rest-egnet/2026-11-24` | `16e82ffff7` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above; **all default targets built, EXIT 0**; tcb-report identical to lean's (Evidence) |
+| Perennial | `goose-model-overlay-rest` | `09bd3826c` | lean `d5eb93cb5` (basic slice) merged; whole library + PerennialMeta built (int-full11, EXIT 0, all 4 chunks); `etc/model-tests.sh` and `go test ./goose/...` pass; log = lean's |
+| etcd-grove | `go-models-rest-egnet/2026-11-24` | `bedb8f9090` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above; **all default targets built, EXIT 0** (28094 jobs, eg-full13); `tcb-report --check` matches the baseline (329 axioms, 0 sorry), so the before/after of Evidence stands. Not yet merged with etcd-grove lean (blocked on lean's UDP: `go-models-rest-egnet-lmerge/2026-11-25`, WIP) |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
 **Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
