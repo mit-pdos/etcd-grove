@@ -33,7 +33,7 @@ theorem driverClient.unary.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     driverClient.unary.spec (GF := GF) (hG := hG) := by
-  intro dc conn addrs Spec m Φ Ψe ctx cd om inp opts vs method
+  intro dc conn addrs Spec m Φr Ψe ctx cd om inp opts vs method
   wp_start as ⟨#Hcc, #Hconn, #Hrpc, #Hom, Hspec, #Hctx, Hsend, #Hopts, %Hvs⟩
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
@@ -52,6 +52,7 @@ theorem driverClient.unary.wp_proof
     rcases List.mem_append.1 hv with h | h
     · exact Or.inl (Hsms v h)
     · exact Hvs v h
+  simp only [pbStringValueT, pbStringValue, stringValueSendB]
   icases Hsend with ⟨%x, Hx, %Hx⟩
   ihave Hsend : (pbStringValueT (GF := GF)).send inp m $$ [Hx]
   · simp only [pbStringValueT, pbStringValue, stringValueSendB]
@@ -63,8 +64,9 @@ theorem driverClient.unary.wp_proof
   · simp only [pbStringValueRT, pbStringValueR]
     iexists _; iexact «$r0»
   have hI := plain_Invoke wp_Invoke conn addrs method pbStringValueT pbStringValueRT
-    pbStringValueT_reqReg pbStringValueRT_repReg Spec m Φ Ψe ctx cd om inp «$r0_ptr» copts ([sm] ++ vs)
+    pbStringValueT_reqReg pbStringValueRT_repReg Spec m Φr Ψe ctx cd om inp «$r0_ptr» copts ([sm] ++ vs)
   simp only [pbStringValueT, pbStringValueRT, pbStringValue, pbStringValueR] at hI
+  try simp only [Msg.ty]
   wp_apply hI $$ [Hspec Hsend Hown] as %err ⟨-, Hout⟩
   · iframe #
     iframe
@@ -107,8 +109,11 @@ theorem driverClient.unary.wp_proof_done
     rcases List.mem_append.1 hv with h | h
     · exact Or.inl (Hsms v h)
     · exact Hvs v h
-  wp_apply (plain_Invoke_done wp_Invoke conn addrs method ctx cd _ _ copts ([sm] ++ vs)) $$ [Hdone]
-    as %err ⟨%Herr, #Hse, #Hcode⟩
+  have hD := plain_Invoke_done wp_Invoke conn addrs method ctx cd
+      (interface.mkOk (go.GoType.PointerType google_golang_org.protobuf.types.known.wrapperspb.StringValue.ty) #inp : GoInterface)
+      (interface.mkOk (go.GoType.PointerType google_golang_org.protobuf.types.known.wrapperspb.StringValue.ty) #«$r0_ptr» : GoInterface) copts ([sm] ++ vs)
+  try simp only [Msg.ty]
+  wp_apply hD $$ [Hdone] as %err ⟨%Herr, #Hse, #Hcode⟩
   · iframe #
     iframe
     ipureintro; exact hvs

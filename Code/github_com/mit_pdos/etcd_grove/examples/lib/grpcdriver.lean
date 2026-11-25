@@ -1123,12 +1123,20 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "sent" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!""))
   (Let "got" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"bidi-stream"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty) go!"CloseSend"))) (App (Val (GoInstruction (GoLoad (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Var "st"))) (Val #()))))))
   (App (App (App (Val doFor) (Lam BAnon
-  (Val #true))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "got"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "sent"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty) go!"Recv"))) (App (Val (GoInstruction (GoLoad (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Var "st"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1175,11 +1183,9 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Pair (Var "m") (Var "$r0"))))))))))))))
   (Lam BAnon
-  (Val #())))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "got") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty) go!"CloseSend"))) (App (Val (GoInstruction (GoLoad (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Var "st"))) (Val #()))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1229,7 +1235,7 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- work runs random operations on the ClientConn's client.
 
-    go: grpcdriver.go:370:6 -/
+    go: grpcdriver.go:373:6 -/
 noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -1289,7 +1295,7 @@ noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client connects to the server and runs random operations from random goroutines on one
     ClientConn, then closes it.
 
-    go: grpcdriver.go:394:6 -/
+    go: grpcdriver.go:397:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

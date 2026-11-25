@@ -51,23 +51,23 @@ theorem plain_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := 
     (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF)
     (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (om : GrpcMd) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) :
-    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
       grpcConn conn addrs [] [] anyRes ∗ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
       ▷ (∀ md, grpcAttemptMd conn om md -∗ Spec md m Φ Ψe) ∗
       ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
-      Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ ⊢
-    WP (App (App (App (App (App
+      Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ }}
+    (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
       (Val #(GoInterface.ok ctx))) (Val #method))
       (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)))
       (Val #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface))) (Val #opts))
-    {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ Req.send inp m ∗
+    {{ (err : GoInterface), RET #err; Req.send inp m ∗
         invokeOut method addrs Rep out Φ Ψe err }} := by
-  iintro ⟨#Hg, #Hc, #Hrpc, #Hom, Hspec, #Hctx, Hsend, %Hw, Hown, #Hopts, %Hvs⟩
+  iintro %Φk ⟨#Hg, #Hc, #Hrpc, #Hom, Hspec, #Hctx, Hsend, %Hw, Hown, #Hopts, %Hvs⟩ HΦk
   iapply wp_true_sep
   iapply (wp_Invoke conn addrs [] [] anyRes (GoInterface.ok ctx) method
     (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-    (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs iprop(True))
+    (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs iprop(True) Φk)
   iframe #
   isplitr
   · ipureintro; trivial
@@ -92,10 +92,8 @@ theorem plain_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := 
     iempintro
   inext
   iintro %err ⟨-, Hsend, -, Hout⟩
-  iexists err
+  iapply HΦk
   iframe Hsend
-  isplitr
-  · ipureintro; rfl
   unfold invokeOut
   iexact Hout
 
@@ -108,16 +106,16 @@ theorem plain_Invoke_done (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
     isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
       grpcConn conn addrs [] [] anyRes ∗ metadata.outMD ctx none ∗
       (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗ ctxOk ctx cd ∗
-      opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ ⊢
-    WP (App (App (App (App (App
+      opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ }}
+    (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
       (Val #(GoInterface.ok ctx))) (Val #method)) (Val #req)) (Val #reply)) (Val #opts))
-    {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗
+    {{ (err : GoInterface), RET #err;
         ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∗
         go_etcd_io.etcd.cache.v3.statusErrOk err ∗ go_etcd_io.etcd.cache.v3.statusCodeIs err (W32 1) }} := by
-  iintro ⟨#Hg, #Hc, #Hom, Hdone, #Hctx, #Hopts, %Hvs⟩
+  iintro %Φk ⟨#Hg, #Hc, #Hom, Hdone, #Hctx, #Hopts, %Hvs⟩ HΦk
   iapply wp_true_sep
-  iapply (wp_Invoke conn addrs [] [] anyRes (GoInterface.ok ctx) method req reply opts vs iprop(True))
+  iapply (wp_Invoke conn addrs [] [] anyRes (GoInterface.ok ctx) method req reply opts vs iprop(True) Φk)
   iframe #
   isplitr
   · ipureintro; trivial
@@ -139,9 +137,9 @@ theorem plain_Invoke_done (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
     iempintro
   inext
   iintro %err ⟨-, %Herr, #Hse, #Hcode⟩
-  iexists err
+  iapply HΦk
   iframe #
-  ipureintro; exact ⟨rfl, Herr⟩
+  ipureintro; exact Herr
 
 end defs
 

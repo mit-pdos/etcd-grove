@@ -347,9 +347,10 @@ func bidi(c svc.DriverClient) {
 			break
 		}
 	}
-	st.CloseSend()
+	// The echoes of what was sent, received before closing (the client still owns its sending end,
+	// so what it sent is the whole up queue), then the close.
 	got := ""
-	for {
+	for len(got) < len(sent) {
 		m, err := st.Recv()
 		if err == io.EOF {
 			reached("bidi-stream")
@@ -364,6 +365,8 @@ func bidi(c svc.DriverClient) {
 			panic("bidi-stream: a message out of order, lost, duplicated or never sent")
 		}
 	}
+	st.CloseSend()
+	reached("bidi-stream")
 }
 
 // work runs random operations on the ClientConn's client.
