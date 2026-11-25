@@ -488,6 +488,33 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 14 (WIP, `etcd-safe-p6b-wip`): tester built, pin bumped, `Discard` specified; state C
+  not started.** Ledger "fix B's lemma-level signatures" marked approved (`6413ef7702`). **Tester**: built on fk-lean1
+  (the coordinator allowed a seed there: worktree `/home/ubuntu/eg/wt/etcd-safe-p6b-wip`, `FKLEAN_HOST=fk-lean1`)
+  at `6413ef7702`: `WalTester...etcd.wal.{Link,Adequacy,TopLevelRobustness}`, 4264 jobs, exit 0, no `sorry`
+  (`/shared/tmp/p6b-tester-r1.log`). `etc/gen-link.py --walfs/--durable/--wal-tester --check`: all up to date.
+  **Pin bump** (`3793559312`, alone): `etc/goose.py` project `etcd` `rev` → `251a430ce042` (`goose-lean-fmt1c-discardfix`),
+  the examples' `go.mod`/`go.sum` (pseudo-version `v3.0.0-20261125101634-251a430ce042`, sums from `go mod download`;
+  `go list -mod=readonly -deps ./...` clean in each), `--project etcd` (2 files: `wal.lean`, `etcdserver.lean`), then
+  `--check`: every project up to date. No spec or proof names `DiscardUnsaved` (only docstrings: `Ghost.lean`,
+  `Inv.lean`, `NameClaims.lean`, `NameLoans.lean`, `Unsaved.lean`'s spec, `etcdserver/{InvCrashImage,CrashInterim}.lean`;
+  to reword with C). `bootstrap.wp_proof` is first-start only (`haveWAL = false`) and names neither `Unsaved` nor the
+  discard. Post-bump build of the leaves of `etc/importers.py --git 5a1c41d945 --leaves` (644, the 4 `notes.*`
+  leaves dropped: not targets) at `d767c73cac` on fk-lean1: 16389 jobs, exit 0, no `sorry`
+  (`/shared/tmp/p6b-bump-r3.log`): the bump breaks nothing.
+  **`Discard` spec** (`d767c73cac`, `Spec/.../wal/Discard.lean`, lean-checked; ledger 2026-11-25 "wal.Discard",
+  pending): the two updates without `walBlank` (the function reads nothing), `Create`'s area resources and
+  premises (with `dirDurable r`), post `osPathS ∗ osCallPerm 1 ∗ ∃ d, Q₁ d` and `nil` ⇒ `walAreaRes ∗ walUnlockedTok ∗
+  Q₂`, error ⇒ `AU₂` back. P5's three conditions: how each is met is in the ledger entry.
+  **Next (state C, then the proof)**, as session 7's plan with these anchors: `walLeI_bump` (Ghost.lean, exists) covers
+  R's unnaming and S's deletion (both bump `I`); `walNamesRes` (Inv.lean ~2290) has `st.disc = none` today: C
+  relaxes it to "`disc = some dir` ⇒ the WAL at `dir` unnamed, or the area claim still holds the directory at `nm`";
+  R's template is `Create`'s cleanup rename (`CleanupAu.lean` `cleanAU`, `CleanupMoved.lean` `movClaims`/`*_moved`,
+  target `nm.tmp` in place of `nm.broken.*`); merges by `osNames_merge` (`GooseLang/Ext/Fs/TreeShared.lean:122`);
+  the parked tmp state `walTmpParked` (Inv.lean:1789), `walTmpsRes`/`walTmpsHalf` (TmpClaim.lean). New file
+  `DiscardSteps.lean` (U/R/S as `walInv`-level lemmas), then `Proof/.../wal/Discard.lean` (`RemoveAll` as `Create`'s
+  `os.RemoveAll.specSubS`, U, `os.Rename.specDirSnc` with R, `syncDir.spec` with S, `lg.Info`), the window's crash
+  lemma (P5 condition 1) beside `walDiskAt_crash_keep` (Crash.lean), `etc/gen-link.py --walfs`, the builds.
 - **2026-11-25, P6b session 13 (WIP, `etcd-safe-p6b-wip` @ `8fc495f329`): fix B done; `wal.Link` builds with no
   `sorry`** (`lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`, 3847 jobs, `/shared/tmp/p6b-build8.log`;
   no `declaration uses 'sorry'`). The three session-12 ledger entries marked approved. Every lookup threads its
