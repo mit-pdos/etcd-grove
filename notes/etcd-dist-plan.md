@@ -1658,5 +1658,61 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
       an empty `PeerURLs` differently (`null`/`[]`); harmless while no verified reader sees the bytes;
       the robust form is "`MustSaveMemberToBackend` writes some value decoding to `mm`".
 
+  - **Route B, step 3 stopped at the design (2026-11-25): the boot policy cannot widen.**
+    - *Go evidence* (step 1, `examples/axiomcx/promotenobucket`, at the examples' etcd pin `6b942d23f`,
+      3/3 runs): (a) the real server applies a promotion of itself, a voter: `PromoteMember` returns
+      `ErrMemberNotLearner`, `applyConfChange` logs the validation's failure with `shouldApplyV3`
+      and never runs `PromoteMember(id, true)`; the `members`, `members_removed` and `cluster`
+      buckets are byte for byte as before; (b) restarted on the same data directory, the WAL replay
+      applies the entry again with `shouldApplyV3` false (the rejection set the consistent index):
+      `PromoteMember(_, false)` runs once ("ignore already promoted member"), no validation fails,
+      the buckets as before; (c) the image read back (`MustReadMembersFromBackend`'s members with
+      learner flags and peer URLs, the removed ids, the cluster version, the downgrade record) after
+      (a) and after (b) equals the one before; (d) at the `RaftCluster` level, a promotion of an id
+      not saved yet is `ErrIDNotFound`, writing nothing, and replayed writes nothing either.
+    - *Why `ccBootOk` cannot widen with `ccApplyOk`* (the decision of 2026-11-25 assumed it could):
+      a promotion among the **boot** entries is not harmless. Applied at the first boot with
+      `shouldApplyV3`, it is rejected with `ErrIDNotFound` (its member not saved yet: (d)), so its
+      member is never saved, while raft's bootstrap has already put it in raft's configuration. A
+      restart then builds its conf state from the `members` bucket (`buildConfStateFromV3store`,
+      the restart log's "Constructed a new raft snapshot from v3 state"), without that member. In
+      the proof: `restModel_confState` (`RestConf.lean`, used by `StopShutdown`'s stop image) needs
+      every id of `ps` saved (`memVoters`), which `boot_fold` gets from every boot entry being a
+      non-promotion `AddNode`; with a boot promotion its conclusion is false of the model and of Go.
+      So widening `BootFacts`/`BootCore.cc` would make the stop/restart results unprovable, not
+      just need new cases (and the `memBoot`-skips-promotions plan does not help: the bucket, not
+      `memBoot`, is what the restart reads). A promotion **after** the boot log is harmless (a), (b), (c).
+    - *Proposed instead (needs the coordinator's OK, not done):* the boot policy stays as it is and
+      only the committed log's policy widens. `ccAddOk` := today's `ccApplyOk` (a non-promotion
+      `AddNode` of a voter of `cfg`); `ccApplyOk cfg m := m.type = 0 ∧ m.nodeId ∈ cfg ∧
+      ((ccContextOf m.context = some (m.nodeId, false) ∧ (ccMemberOf m.context).isLearner = false) ∨
+      ccContextOf m.context = some (m.nodeId, true))` (the §16.3 promote disjunct); `ccBootOk` defined
+      from `ccAddOk` (its meaning unchanged, so `BootCore`/`BootFacts` and the five top-level
+      statements unchanged: neither narrowed nor widened); `ccPolOk`/`ccLogOk` (the log invariant's
+      and the KV invariant's per-entry policy) and `srvRuleKeeps` over the wide `ccApplyOk`;
+      `ccPolOk_static` deleted (false), `srv_committed_ccBoot` returning the wide policy; the boot
+      entries' narrowness kept as a new last conjunct of `srvClusterOk`
+      (`⌜∀ e ∈ γ.raft.boot, ccBootOk γ.raft.cfg e.Data'⌝`, from `BootCore.cc` at the cluster's
+      allocation; four `icases` patterns that name its current last conjunct get a `-`).
+      `clusterImageOk_restModel`'s premise `∀ m ∈ L', m.typ ≠ 0 → ccBootOk cfg m.data` becomes
+      `(∀ m ∈ L', m.typ ≠ 0 → ∀ cc, ccDecodeV1 m.data = some cc → ccApplyOk cfg cc) ∧
+      (∀ j m, L'[j]? = some m → j < γ.raft.boot.length → m.typ ≠ 0 → ccBootOk cfg m.data)`, which the
+      old premise implies (a pure widening); its docstring gains (a)-(d) and the voter argument
+      (every saved member a voter, so a promotion never validates and `ccRest`'s promotion branch,
+      unfaithful to `PromoteMember(id, true)`, is never taken).
+    - *The re-proofs it needs* (estimated 1000-2000 lines): `applyConfChange`'s spec and proof get the
+      promotion branches (with `v3`: a premise that a promotion does not validate, `ccValidOn rs.bk m
+      = false`, which its callers in `EtcdServer__apply` derive from the rest model's voters; without
+      `v3`: `PromoteMember(id, false)`, proved, and no `AddPeer`); `memSync` gains the members'
+      learner flags (`restEntry_sync`, `fold_sync`, `memSync_boot`), `ccRest_memVoters` and
+      `restEntry_memVoters` a promotion case (refused: the bucket's members are voters,
+      `membersOf_decode`'s flags); the four `clusterImageOk_restModel` call sites (`SnapRecvFacts`,
+      `SnapRecvOn`, `ApplyAllSnapLemmas` twice) the boot-prefix conjunct from `srvClusterOk`; the
+      restart sites (`NewServerRFacts`, `StopShutdown`, `ApplyRDefs`) the boot facts from
+      `srvClusterOk`; `srvRule_keeps` (`InvCfgView`) over the wide policy (it reads only the type and
+      node); `InvApRes`, `ApplyRDefs`, `SDRun`, `KVLemmas`, `KVAuthModel`, `ProposeOn` follow.
+      `etcd_noRefusal`/`etcd_noOtherRefusal` unaffected (a promotion of a voter changes no
+      learner flag; their docstrings' `ccLogOk` caveat is about a re-add as a learner).
+
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.
