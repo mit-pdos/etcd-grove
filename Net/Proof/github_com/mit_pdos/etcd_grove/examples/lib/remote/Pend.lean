@@ -336,7 +336,9 @@ theorem readNoop (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (l
     pendCtx (Gg := Gg) R S γ ⊢ □ lin (Gg := Gg) R i (fun _ => iprop(True)) := by
   iintro #Hinv
   imodintro
-  unfold lin pendCtx
+  iapply linF_read_lin R hw
+  imodintro
+  unfold linF pendCtx
   have hc := pendCtxN_sub _ hE
   iinv Hinv with >Hi Hclose
   iunfold pendBody at Hi
@@ -363,7 +365,9 @@ theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (
     ⊢ pendCtx (Gg := Gg) R S γ -∗ pendTok (Gg := Gg) γ n (R.mi i) -∗
       lin (Gg := Gg) R i (fun _ => iprop(True)) := by
   iintro #Hinv Htok
-  unfold lin pendCtx
+  unfold lin
+  iauintro
+  unfold atomic_acc pendCtx
   have hc := pendCtxN_sub _ hE
   iinv Hinv with >Hi Hclose
   iunfold pendBody at Hi
@@ -372,8 +376,21 @@ theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (
   icases ghost_map_lookup $$ Hm Htok with %hn
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iexists st
   iframe Hs
+  isplit
+  · -- abort: nothing moved
+    iintro Hs
+    imod Hclose2 with -
+    imod Hclose $$ [Hv Hs Hm] with -
+    · inext
+      unfold pendBody
+      iexists h, s, st, M, nx
+      iframe Hv Hs Hm
+      ipureintro; exact Hok
+    imodintro
+    iexact Htok
   iintro Hs
   imod Hclose2 with -
   imod ghost_map_delete $$ Hm Htok with Hm
@@ -473,18 +490,35 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
       iexists (fun o => K (R.ov o))
       isplitl [HU]
       · rw [slotUpd_write R hw]
-        unfold lin pendCtx
+        unfold lin
+        iauintro
+        unfold atomic_acc pendCtx
         iinv Hinv with >Hi Hclose
         try (exact hctx)
         iunfold pendBody at Hi
         icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
         icases sysState_keep R st $$ Hs with ⟨Hs, %hg⟩
-        imod pend_commit_core R hE S hS γ i K _ hsub st h s0 M nx Hok hg $$ HU Hv
-          with ⟨%h', %s', Hv, %Hok', HK⟩
-        imodintro
+        iapply fupd_mask_intro Std.LawfulSet.empty_subset
+        iintro Hclose2
+        isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
         iexists st
         iframe Hs
+        isplit
+        · -- abort: nothing moved
+          iintro Hs
+          imod Hclose2 with -
+          imod Hclose $$ [Hv Hs Hm] with -
+          · inext
+            unfold pendBody
+            iexists h, s0, st, M, nx
+            iframe Hv Hs Hm
+            ipureintro; exact Hok
+          imodintro
+          iexact HU
         iintro Hs
+        imod Hclose2 with -
+        imod pend_commit_core R hE S hS γ i K _ hsub st h s0 M nx Hok hg $$ HU Hv
+          with ⟨%h', %s', Hv, %Hok', HK⟩
         imod HK with HK
         imod Hclose $$ [Hv Hs Hm] with -
         · inext
@@ -515,7 +549,9 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
       isplitr [Htok]
       · rw [slotUpd_read R hw]
         imodintro
-        unfold lin pendCtx
+        iapply linF_read_lin R hw
+        imodintro
+        unfold linF pendCtx
         iinv Hinv with >Hi Hclose
         try (exact hctx)
         iunfold pendBody at Hi

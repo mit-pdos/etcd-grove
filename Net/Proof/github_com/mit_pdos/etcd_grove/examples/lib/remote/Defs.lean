@@ -17,9 +17,12 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   - **a report** (`reportSvc W P Q`): the far side runs a loop on the input `i`, given `P i` by the
     dialer, and answers an output `o` with `Q i o`, the loop's postcondition, persistent or not; the
     update is `P i ∗ ∀ o, Q i o -∗ Φ o`, and there are no unknown answers. `Report` calls one.
-* **The update of a store** `lin R i Φ`: the linearization point of the base operation `i`, a fancy
-  update from `⊤ ∖ Eop` (as lintest's atomic triples' updates, without the `▷`) that takes
-  `sysState st` to `sysState (step (mi i) st).1` (the model input of `i`) and gives `Φ` of the step's output.
+* **The update of a store** `lin R i Φ`: the linearization point of the base operation `i`, an atomic
+  update from `⊤ ∖ Eop` that takes `sysState st` to `sysState (step (mi i) st).1` (the model input of
+  `i`) and gives `Φ` of the step's output; it may be aborted, so a far side may hand it on as an atomic
+  update (the kv workload's, to etcd: `notes/specs-only/ledger.md`, 2026-11-25, "`remote.lin` cannot
+  abort"). `linF R i Φ`, the fancy update that fires it once (`lin_linF`), is what a far side that
+  steps its state itself uses; a read's `□ linF` is a `lin` (`linF_read_lin`).
 * **The slot of a connection** (the lab's spec (R), one slot per connection): after its `Dial`, the
   dialer registers its connection `cn` with ghost names `γ` and the input `i` in the slot map
   (`slotOf cn γ i`, persistent), whose invariant (`mapInv`) keeps every registered connection's
@@ -54,6 +57,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendMode
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.Token
+public import Iris.BI.Lib.Atomic
 
 @[expose] public section
 
@@ -205,10 +209,56 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St J I O)
   (S : RSvc GF I O)
 
-/-- The linearization point of the base operation `i` (see the file header). -/
-def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
+/-- The linearization point of the base operation `i`, fired once (see the file header). -/
+def linF (i : I) (Φ : O → IProp GF) : IProp GF :=
   iprop(|={⊤ \ R.Eop, ∅}=> ∃ st, R.sysState st ∗
     (R.sysState (R.B.step (R.mi i) st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step (R.mi i) st).2))
+
+/-- **The linearization point of the base operation `i`** (see the file header): an atomic update. -/
+def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (st : St), R.sysState st }> @ ⊤ \ R.Eop, ∅
+    <{ R.sysState (R.B.step (R.mi i) st).1, COMM Φ (R.B.step (R.mi i) st).2 }>)
+
+omit π ρ in
+/-- An atomic update fired once. -/
+theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := by
+  unfold lin linF
+  iintro H
+  ihave H := aupd_aacc $$ H
+  unfold atomic_acc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at H
+  imod H with ⟨%st, Hs, H⟩
+  imodintro
+  iexists st
+  iframe Hs
+  iintro Hs
+  icases H with ⟨-, H⟩
+  iapply H $$ Hs
+
+omit π ρ in
+/-- **A read's update, persistently, is an atomic update**: aborting it fires it at the same state
+(`reads_stay`). -/
+theorem linF_read_lin {i : I} {Φ : O → IProp GF} (hw : R.B.isWrite (R.mi i) = false) :
+    □ linF R i Φ ⊢ lin R i Φ := by
+  unfold lin
+  iintro #H
+  iauintro
+  unfold atomic_acc
+  unfold linF
+  imod H with ⟨%st, Hs, Hc⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists st
+  iframe Hs
+  isplit
+  · iintro Hs
+    imod Hc $$ [Hs] with -
+    · rw [R.reads_stay (R.mi i) st hw]
+      iexact Hs
+    imodintro
+    itrivial
+  · iintro Hs
+    iapply Hc $$ Hs
 
 /-- **The update a slot hands to the far side**: a write's one-shot `lin`; a read's `lin`
 persistently, which the far side may fire zero or more times (a read leaves the state unchanged,
