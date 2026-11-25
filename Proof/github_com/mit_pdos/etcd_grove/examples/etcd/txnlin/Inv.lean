@@ -391,11 +391,11 @@ header): the atomic triple's update, its `▷` stripped. -/
 def linU (γ : LinkvNames) (i : GoInterface) (Φ : val → IProp GF) : IProp GF :=
   iprop(|={⊤ \ linkvE, ∅}=> ∃ S, linkvState γ S ∗ ∀ S' o,
     (linkvState γ S' ∗ ⌜(linkvtxnS (GF := GF)).M.step S (i, o) = some S'⌝) -∗
-      |={∅, ⊤ \ linkvE}=> ((linkvtxnS (GF := GF)).ioOk i o -∗ Φ #o))
+      |={∅, ⊤ \ linkvE}=> ((linkvtxnS (GF := GF)).ioOk i o ∗ levelTok 0 -∗ Φ #o))
 
 /-- The continuation at the output `y`. -/
 abbrev contAt (x : Input) (y : Output) (Φ : val → IProp GF) : IProp GF :=
-  iprop((linkvtxnS (GF := GF)).ioOk (boxIn x) (boxOut y) -∗ Φ #(boxOut y))
+  iprop((linkvtxnS (GF := GF)).ioOk (boxIn x) (boxOut y) ∗ levelTok 0 -∗ Φ #(boxOut y))
 
 /-- **A write's result** at its firing at `σ` (see the file header): committed with `call`'s
 output (the continuation; the state good), or, at a state whose answer's revision does not fit a word, committed

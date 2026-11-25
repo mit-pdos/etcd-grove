@@ -31,10 +31,10 @@ protocol's premise both mean `count` waiters seen (`enterReady_counted`). -/
 abbrev DoubleBarrier.Enter.spec : Prop :=
   ∀ (b s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (key : GoString)
     (count : w64) (o : Option (Loc × RemoteKVSt)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isDoubleBarrier b s γ client id key count ∗ dbMyKey b (key ++ go!"/") o ∗
-      etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isDoubleBarrier b s γ client id key count ∗ dbMyKey b (key ++ go!"/") o ∗
+      etcdReached lo) }}
     (App (Val (b @!! go.GoType.PointerType DoubleBarrier.ty @!! go!"Enter")) (Val #()))
-  {{ (err : GoInterface), RET #err; enterResult b key count id lo err }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (enterResult b key count id lo err) }}
 
 end spec
 

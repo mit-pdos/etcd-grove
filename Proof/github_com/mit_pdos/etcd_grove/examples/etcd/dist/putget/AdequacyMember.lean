@@ -114,8 +114,6 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [log.NewModel] [net.FieldAssumptions]
     -- (wal-nostorageok: `NewStorage`'s contract proved, `etcdstart`'s linked results take `os`'s field steps)
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (HM : MemberBootHyps) (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
     (peer client : GoString) (hpeer : Net.addrOk peer = true) (hclient : Net.addrOk client = true)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
@@ -133,7 +131,6 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
   haveI : ReceiptBoundLe putgetGF (2 ^ 62) := ⟨by omega⟩
   haveI : ReceiptBoundLe putgetGF (2 ^ 28) := ⟨by omega⟩
   haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨by rw [hT]; omega⟩

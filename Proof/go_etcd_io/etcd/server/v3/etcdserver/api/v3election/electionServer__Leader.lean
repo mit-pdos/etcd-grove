@@ -34,7 +34,7 @@ theorem electionServer.Leader.wp_proof
     (hEL : concurrency.Election.Leader.spec (GF := GF) (hG := hG)) :
     electionServer.Leader.spec (GF := GF) (hG := hG) := by
   intro es c req nsl name ctx cs maxReq
-  wp_start as ⟨#Hes, #Hok, #Hnf, #Hns, %Hrecv, #Hctx, #HctxC, #Hcc⟩
+  wp_start as ⟨Hlt, #Hes, #Hok, #Hnf, #Hns, %Hrecv, #Hctx, #HctxC, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -42,7 +42,7 @@ theorem electionServer.Leader.wp_proof
   ihave #Hcpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency $$ []
   · iPkgInit
   wp_auto
-  wp_apply hSess es c _ ctx cs $$ [$Hes $Hok $Hctx $HctxC $Hcc] as %s %err Hs
+  wp_apply hSess es c _ ctx cs $$ [$Hlt $Hes $Hok $Hctx $HctxC $Hcc] as %s %err ⟨Hlt, Hs⟩
   icases Hs with (⟨%Hs, %γ, %id, #Hss, -⟩ | %Hs)
   rotate_left
   · obtain ⟨rfl, Herr⟩ := Hs
@@ -51,6 +51,7 @@ theorem electionServer.Leader.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Herr⟩
@@ -63,7 +64,7 @@ theorem electionServer.Leader.wp_proof
   · ipureintro; exact v3rpc.grpcRecvBytesOk.lt Hrecv.1 Hrecv.2
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
-  wp_apply hEL e s γ c id (name ++ go!"/") ctx cs (W64 0) $$ [$Hcpkg $He $Hctx $HctxC $Hlo] as %l %lerr Hl
+  wp_apply hEL e s γ c id (name ++ go!"/") ctx cs (W64 0) $$ [$Hcpkg $Hlt $He $Hctx $HctxC $Hlo] as %l %lerr ⟨Hlt, Hl⟩
   icases Hl with (⟨%Hle, %R, %kp, %kv, #Hrr, #HR, #Hone, #Hlk, -⟩ | ⟨%Hln, #Hpe, -⟩ | %Hle)
   · subst Hle
     iunfold getRespRev at Hrr
@@ -81,6 +82,7 @@ theorem electionServer.Leader.wp_proof
     generalize «$r0_ptr» = r0 at *
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -98,6 +100,7 @@ theorem electionServer.Leader.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Hne'⟩
@@ -107,6 +110,7 @@ theorem electionServer.Leader.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Hne'⟩

@@ -41,7 +41,7 @@ theorem Client.dial.wp_proof
     (wp_WithPerRPCCredentials : grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG)) :
     Client.dial.spec (GF := GF) (hG := hG) := by
   intro c cfg cr sl rb esl eps atb P
-  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
+  wp_start as ⟨Hlt, #Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1
@@ -63,7 +63,7 @@ theorem Client.dial.wp_proof
       ([∗list] o;d ∈ os1';(kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
           [GrpcDialOpt.transportCreds, GrpcDialOpt.streamInterceptor si,
             GrpcDialOpt.unaryInterceptor ic] ++ ex), grpcDialOptIs o d) ∗
-      (⌜ex = []⌝ ∨ ∃ pc, ⌜ex = [GrpcDialOpt.perRPCCreds pc]⌝ ∗ perRPCCredsOk pc anyRes (tokMdOk P)))
+      (⌜ex = []⌝ ∨ ∃ pc, ⌜ex = [GrpcDialOpt.perRPCCreds pc]⌝ ∗ perRPCCredsOk pc clientRes (tokMdOk P)))
     at next with [c opts Ho1c] as ⟨%o1', %ex, %os1', c, opts, #Hos1', Ho1c', #Hex, #Hexc⟩
   · icases Htb with (%Hnil | #Hb)
     · subst Hnil
@@ -172,7 +172,7 @@ theorem Client.dial.wp_proof
   · have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) rb := by
       rw [List.append_nil]; exact Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
+    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) clientRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
       as %conn %err Hres
     · isplitr
       · iunfold dialOptsAt
@@ -184,6 +184,7 @@ theorem Client.dial.wp_proof
       rw [Hcr, credsOfDial_nil]
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
+    iframe Hlt
     icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
     · ileft
       isplitr
@@ -204,7 +205,7 @@ theorem Client.dial.wp_proof
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
         [GrpcDialOpt.perRPCCreds pc]) rb :=
       dialOk_perRPCCreds _ rb pc Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
+    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) clientRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
       as %conn %err Hres
     · isplitr
       · iunfold dialOptsAt
@@ -217,6 +218,7 @@ theorem Client.dial.wp_proof
       iapply BigSepL.bigSepL_singleton.2
       iexact Hpc
     iapply HΦ
+    iframe Hlt
     icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
     · ileft
       isplitr

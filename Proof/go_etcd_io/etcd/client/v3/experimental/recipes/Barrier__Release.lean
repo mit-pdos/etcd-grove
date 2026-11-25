@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 
 theorem Barrier.Release.wp_proof : Barrier.Release.spec (GF := GF) (hG := hG) := by
   intro b client key lo
-  wp_start as ⟨#Hb, #Hlo⟩
+  wp_start as ⟨Hlt, #Hb, #Hlo⟩
   iunfold isBarrier at Hb
   icases Hb with ⟨#Hbc, #Hbx, #Hbk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
@@ -37,19 +37,22 @@ theorem Barrier.Release.wp_proof : Barrier.Release.spec (GF := GF) (hG := hG) :=
   ihave #Hnil := optsAt_nil (GF := GF)
   iunfold isEtcdDeleteKVTodo at HDel
   obtain ⟨hkk, hke⟩ := concurrency.deleteOp_fields key
-  wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hnil $Hlo] as %resp %err #Hres
-  · ipureintro
+  wp_apply HDel $$ %key %slice.nil %([] : List (OpFull → OpFull)) %lo [$Hlt $Hnil $Hlo] as %resp %err ⟨Hlt, #Hres⟩
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨concurrency.deleteOp_not_panics key, ?_, by rw [hke]; simp, rfl, deleteOp_size (by omega)⟩
     rw [hkk, hke]; exact concurrency.keyRangeUnder_key key key (List.prefix_refl key)
   iunfold deleteResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s, #Hr, %Hrr, #Hts⟩)
   · (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hne
   · subst Heq
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

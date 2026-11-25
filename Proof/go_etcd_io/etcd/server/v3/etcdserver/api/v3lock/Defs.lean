@@ -64,14 +64,13 @@ key, of the one key) (persistent). -/
 def unlockKVOk (c : Loc) : IProp GF :=
   iprop(∃ kv : GoInterfaceOk, clientKVAddr c ↦□ GoInterface.ok kv ∗
     □ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString),
-      {{ context.isContext ctx cs }}
+      {{ levelTok 0 ∗ context.isContext ctx cs }}
         (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok ctx)))
           (Val #key)) (Val #slice.nil))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (⌜err ≠ GoInterface.nil⌝ ∨
           (⌜err = GoInterface.nil⌝ ∗ ∃ hdr : Loc,
             structFieldRef go_etcd_io.etcd.client.v3.DeleteResponse go!"Header" resp ↦□ hdr ∗
-            deleteResult [] (W64 0) (opDeleteModel key []) GoInterface.nil) }})
+            deleteResult [] (W64 0) (opDeleteModel key []) GoInterface.nil)) }})
 
 instance unlockKVOk_persistent (c : Loc) : Persistent (unlockKVOk (GF := GF) c) := by
   unfold unlockKVOk; infer_instance

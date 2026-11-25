@@ -55,10 +55,10 @@ theorem Client.roundRobinQuorumBackoff.wp_proof
   ipersist waitBetween
   imodintro
   iapply HΦ
-  unfold backoffOk
-  iintro !> %a %Ψ HΨ
+  unfold backoffOkT
+  iintro !> %a %Ψ Htok HΨ
   wp_auto
-  wp_apply wp_Endpoints c $$ [$Hc] as %sl -
+  wp_apply wp_Endpoints c $$ [$Hc $Htok] as %sl ⟨Htok, -⟩
   -- `quorum = n/2 + 1` is not zero: no division by zero
   have hq : uint.Z (sl.len / W64 2 + W64 1) ≠ 0 := by word
   simp only [hq, ↓reduceIte]
@@ -77,7 +77,7 @@ theorem Client.roundRobinQuorumBackoff.wp_proof
     wp_apply wp_Debug lg _ _ $$ []
     · iframe #
     wp_apply wp_jitterUp w j as %r -
-    iapply HΨ
+    iapply HΨ $$ Htok
   · wp_apply wp_Uint as %f0 -
     wp_apply wp_Uint as %f1 -
     wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f0, f1]
@@ -88,7 +88,7 @@ theorem Client.roundRobinQuorumBackoff.wp_proof
     wp_apply wp_GetLogger c $$ [$Hlg] as %lg #Hlgn
     wp_apply wp_Debug lg _ _ $$ []
     · iframe #
-    iapply HΨ
+    iapply HΨ $$ Htok
 
 end proof
 

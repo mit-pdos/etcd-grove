@@ -31,19 +31,18 @@ was created with the session's lease. -/
 abbrev newEphemeralKV.spec : Prop :=
   ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx key val : GoString)
     (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
-      etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax ∧ val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
+      etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax ∧ val.length ≤ recipesStrMax⌝) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newEphemeralKV))
       (Val #s)) (Val #key)) (Val #val))
-  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (r : w64),
+  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (r : w64),
         clientKVAddr client ↦□ GoInterface.ok kv ∗
         ownEphemeralKV ek ⟨GoInterface.ok kv, key, r, val⟩ ∗
         etcdReached r ∗ keyCreatedAt pfx key val id r ∗
         ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ⌜ek = null⌝ ∗ ∃ r : w64, etcdReached r ∗
         etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      (⌜err ≠ GoInterface.nil ∧ ek = null⌝ ∗ clientErrIs err) }}
+      (⌜err ≠ GoInterface.nil ∧ ek = null⌝ ∗ clientErrIs err)) }}
 
 end spec
 

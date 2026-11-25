@@ -37,7 +37,6 @@ axioms ^(credentials\.perRPCCredential\.GetRequestMetadata|endpoint\.RequiresCre
 axioms ^(transport\.NewTimeoutTransport|httputil\.GracefulClose|types\.NewURLs|leasehttp\.RenewHTTP|rafthttp\.addPeerToProber)\.wp_proof$
 axioms ^rafthttp\.netErrNotRemoved_ok$
 axiom Client.Close.wp_proof
-axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -60,7 +59,6 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc

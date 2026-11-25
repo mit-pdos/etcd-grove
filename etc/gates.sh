@@ -421,6 +421,13 @@ if python3 etc/mode-check.py --check > "$tmp/mode.log" 2>&1; then
 else
   echo "mode: FAILED"; grep -v "^mode: ok" "$tmp/mode.log" | head -20; fail=1
 fi
+# 7c. no top-level statement takes a new Iris premise without a satisfiability witness
+# (etc/iris-premise-baseline.txt; reads the sources only; notes/axiom-review/ctx-readerrs-vacuity.md)
+if python3 etc/iris-premise-check.py --check > "$tmp/irisprem.log" 2>&1; then
+  echo "$(tail -1 "$tmp/irisprem.log")"
+else
+  echo "iris-premise: FAILED"; head -20 "$tmp/irisprem.log"; fail=1
+fi
 return $fail
 }
 
