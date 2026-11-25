@@ -335,3 +335,17 @@ Coordinator decisions applied (etcd-grove#8 7153952113, 7166757537):
   gen-init PART_INITS/NET_MAIN lose runtime/atomic/sys; parts' runtime Init copies deleted.
 - log gap analysis (issue text in packet-rest.md, "log.Println gap"): no proved path passes a Stringer/error.
 Scratch/logs: `tmp/gomodels/s10/` (manifest-p10.json, genlink-all.sh pointing at the nested Perennial clone).
+- Review of (b) (fresh agent): no divergence; DOC kvwitness pkgInitTable fixed (cde-era commit after 4313327873).
+  Packet updated (decisions, "The `log.Println` gap" section = the issue text, review).
+- NOT DONE (VM 146.148.67.74 unreachable from ~14:50Z to 16:05Z at least): 
+  1. Perennial build of d81d2bfd8 (only log changed): from `<handoff-pickup>/.lake/gm/perennial`,
+     `bash tmp/gomodels/scripts/fullbuild.sh <that dir> 9514b93e0b000028 tmp/gomodels/s10/int-full8.log`
+     (incremental in pgmRest's sync dir; p-gm-rest is not used by anyone else).
+  2. etcd-grove default build at the egnet head, key c61dd42e08d7d686 (`VMLAKE_KEY=c61dd42e08d7d686
+     ~/vmlake/vmlake build` from this worktree): expect no failures (SyncTail back on the no-op model; os
+     without runtime). Watch: kvwitness Adequacy table, os Init renumbering, io CopyFiles/CopyFrom.
+  3. tcb-report after (`vmlake env python3 etc/tcb-report.py -o ...`, no TCB_EXCLUDE patch now) vs before
+     (lean 622264bf5e, key 114ec12addaddd71, `tmp/gomodels/s9/tcb-base.txt` was produced WITH the 3-module
+     exclusion: rerun base without it in its own sync dir). Expected: runtime axioms back at 11 roots, the 30
+     results at lean's sets, `raft_kvdurable_porcupine_robust` 0 axioms; `--collection etc/tcb-collections/
+     raft-noax.txt --check`. Then fill packet-rest.md "Evidence".
