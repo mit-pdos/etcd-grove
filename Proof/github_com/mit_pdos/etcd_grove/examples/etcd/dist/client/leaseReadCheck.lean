@@ -92,6 +92,9 @@ theorem leaseReadCheck.wp_proof (svc : DistView → w64 → GrpcSvc GF)
   ihave #Hmc : memberCli svc cl addr (Classical.choice hV) Γ mid $$ []
   · iunfold memberCli; iframe #
   icases leaseClientV_of_memberCli svc cl addr (Classical.choice hV) Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
+  ihave #Hlc' := Hlc
+  iunfold leaseClientV at Hlc'
+  icases Hlc' with ⟨-, -, #Hlf, -⟩
   (try wp_auto)
   -- `leaseList(cli)`: the IDs have no duplicate
   wp_apply (wp_leaseList cl addr (Classical.choice hV) Γ mid hAs) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩

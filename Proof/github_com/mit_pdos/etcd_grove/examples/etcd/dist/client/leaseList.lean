@@ -54,6 +54,9 @@ theorem leaseList.wp_proof (svc : DistView → w64 → GrpcSvc GF)
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   icases leaseClientV_of_memberCli svc cl ep V Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
+  ihave #Hlc' := Hlc
+  iunfold leaseClientV at Hlc'
+  icases Hlc' with ⟨-, -, #Hlf, -⟩
   (try wp_auto)
   wp_apply wp_Background
   (try wp_auto)
@@ -83,6 +86,9 @@ theorem leaseList.wp_proofLive (svc : DistView → w64 → GrpcSvc GF)
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   icases leaseClientV_of_memberCli svc cl ep V Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
+  ihave #Hlc' := Hlc
+  iunfold leaseClientV at Hlc'
+  icases Hlc' with ⟨-, -, #Hlf, -⟩
   (try wp_auto)
   wp_apply wp_Background
   (try wp_auto)
@@ -112,6 +118,9 @@ theorem leaseList.wp_proofGranted (svc : DistView → w64 → GrpcSvc GF)
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   icases leaseClientV_of_memberCli svc cl ep V Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
+  ihave #Hlc' := Hlc
+  iunfold leaseClientV at Hlc'
+  icases Hlc' with ⟨-, -, #Hlf, -⟩
   (try wp_auto)
   wp_apply wp_Background
   (try wp_auto)
