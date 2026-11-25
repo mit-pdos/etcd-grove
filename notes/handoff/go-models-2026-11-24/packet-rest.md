@@ -6,8 +6,8 @@ once it lands on lean, lean is merged into the branches below and this packet sh
 
 | repo | branch | head | state |
 |---|---|---|---|
-| Perennial | `goose-model-overlay-rest` | `30102d8b2` | whole library + PerennialMeta built (int-full7, EXIT 0); `go test ./goose/...` and `etc/model-tests.sh` pass |
-| etcd-grove | `go-models-rest-egnet/2026-11-24` | `4527ef62a8` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above; default targets built except `SyncTail` (egnet-os3, below) |
+| Perennial | `goose-model-overlay-rest` | `d81d2bfd8` | whole library + PerennialMeta built (int-full10, EXIT 0); `etc/model-tests.sh` passes; log = lean's |
+| etcd-grove | `go-models-rest-egnet/2026-11-24` | `16e82ffff7` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above; **all default targets built, EXIT 0**; tcb-report identical to lean's (Evidence) |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
 **Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
@@ -28,7 +28,8 @@ once it lands on lean, lean is merged into the branches below and this packet sh
   names-only, so no proof could pass them); they are names-only now (lean: trusted, panicking), and
   goose drops `Process` (field `cleanup runtime.Cleanup`) to an opaque type, as on lean. **No Go model
   and no trusted text were needed**: the "model of KeepAlive/Cleanup" reduces to not translating the
-  three methods. The review of (b) found no divergence. tcb-report after: below (Evidence).
+  three methods. The review of (b) found no divergence. tcb-report after = before (Evidence): runtime axioms at
+  11 roots again, the 30 results at their lean axiom sets, `raft_kvdurable_porcupine_robust` at 0.
 
 ## How to read this packet (your format)
 
@@ -2457,6 +2458,19 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   time: `[propext, Classical.choice, Quot.sound]` only, except lean's own `strings.Fields.wp_proof`
   (`axioms-integration.txt`). `etc/trusted-delta.py` vs the basic slice: `trusted-delta-rest-vs-basic.md`
   (TrustedCode/fmt.lean −4053/+54, log −30/+4, syscall −70/+7).
+- **(2026-11-25, session 10, after both decisions)** Perennial `d81d2bfd8`: full library + PerennialMeta,
+  4 chunks (int-full10/10b), **every chunk EXIT 0** (chunk 01 re-run after a VM preemption). model-tests pass. etcd-grove egnet `16e82ffff7`
+  (pin `d81d2bfd8`): `lake build` (all default targets) **EXIT 0, 28094 jobs, no failure** (SyncTail included;
+  `tmp/gomodels/s10/eg-full12.log`). Base: lean merge-base `622264bf5e`, rebuilt from scratch (its sync dir
+  was evicted), EXIT 0, 28040 jobs (`s10/base-full.log`).
+- **tcb-report before/after, no exclusion** (`s10/tcb-{base,egnet}.txt`, compared by `scratch/tcbcmp.py`): roots
+  8399 / 8399; `sorry` 0 / 0; this repository's axioms 329 / 329, **every one used by the same number of roots**
+  (incl. `runtime.opaqueInitsOk`, `runtime.initFuncsOk`, `internal.runtime.sys.opaqueInitsOk`: 11 / 11); Perennial's
+  axioms 0 / 0; results 1119 / 1119, **every result with the same `sorry`/repo-axiom/Perennial-axiom counts**: the
+  30 results of the session-9 regression are back at their lean axiom sets. RaftNoAx's
+  `raft_kvdurable_porcupine_robust`: 0 axioms; `tcb-report --collection etc/tcb-collections/raft-noax.txt --check`:
+  "trust base matches (0 axioms, 0 sorries)". Definitions 18790 / 18802 (+12, net's `Base.lean` and its helpers).
+- (superseded by the above) session 9's reports, kept for the record:
 - etcd-grove builds: egnet-full (55c465fab3, before this session's fixes) and egnet-os3 (4527ef62a8, with them): `lake build` (all default targets, 28111 jobs) EXIT 1 with exactly one failing module, Dsverify swiftpaxos `SyncTail` (PENDING log.Println); everything else built, incl. every module the 2026-11-25 fixes touched (os NsS/NsChildS/NsSOk/Off/OffEnd, fileutil ReadDir*, WAL ExistCallees, walfs DSBase/DSCheck, durable tryWrite in WalTester/KvNet, Net/KvNet net Errors/Listen and their importers). Logs `tmp/gomodels/s9/`.
 - tcb-report before/after: `etc/tcb-report.py`, **before** = lean merge-base `622264bf5e` (Perennial `d9c8c1d97`, full build EXIT 0), **after** = egnet `4527ef62a8` (Perennial `30102d8b2`); both with the 3 root modules that import `SyncTail` excluded (swiftpaxos `swift/Results`, `examples/swiftnet/Link`, `.../swiftnet/TopLevelRobustness`; a VM-side temporary filter in `etc/proof_roots.py`, not committed), so both cover the same 8369 roots:
   - `sorry`: 0 / 0. This repository's axioms: 329 / 329, **the same names** (none added, none removed). Perennial's axioms 0 / 0. Results 1129 / 1129 with the same statements' files; definitions 18791 / 18803 (+12: `Net/Proof/net/Base.lean` +6 (`errStr`, `fdAt` with `isPkgInit net`, ...), `Spec/hash/crc32/Model.lean` +6, `filepathlite/PkgInit` +1, raxos SharedLoop +1; `Proof/sync/MutexLitSemantics.lean` gone).

@@ -349,3 +349,12 @@ Scratch/logs: `tmp/gomodels/s10/` (manifest-p10.json, genlink-all.sh pointing at
      exclusion: rerun base without it in its own sync dir). Expected: runtime axioms back at 11 roots, the 30
      results at lean's sets, `raft_kvdurable_porcupine_robust` 0 axioms; `--collection etc/tcb-collections/
      raft-noax.txt --check`. Then fill packet-rest.md "Evidence".
+- (later, VM back at 146.148.67.74 after spot preemption; base sync dir evicted, rebuilt) RESULTS: Perennial
+  d81d2bfd8 full build EXIT 0 (int-full10 + chunk 01 re-run int-full10b). etcd-grove egnet 16e82ffff7 default
+  build EXIT 0, 28094 jobs (eg-full12; first attempt failed on a half-synced dir after the preemption).
+  Base 622264bf5e (key 114ec12addaddd71, rebuilt, worktree `<handoff-pickup>/.lake/gm/base`) EXIT 0.
+  tcb-report before/after, no exclusion: identical (8399 roots, 1119 results with the same axiom counts, 329
+  axioms with the same root counts, runtime axioms 11/11, 0 sorry); raft-noax collection --check matches (0/0).
+  Packet Evidence filled. Comparison script: `<handoff-pickup>/.lake/gm/scratch/tcbcmp.py BASE AFTER`.
+Next: Upamanyu's review of the packet (coordinator brings it); once the basic slice lands on Perennial lean,
+merge lean into goose-model-overlay-rest and shrink the packet.
