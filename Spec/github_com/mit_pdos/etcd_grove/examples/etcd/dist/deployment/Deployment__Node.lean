@@ -35,7 +35,7 @@ abbrev Deployment.Node.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment ∗
       deploymentRepr v d }}
     (App (Val #(methods deployment.Deployment.ty go!"Node" #v)) (Val #n))
-  {{ (j c : w64) (ok : bool), RET (PairV (PairV #j #c) #ok);
+  {{ (j c : w64) (ok : Bool), RET (PairV (PairV #j #c) #ok);
       ⌜ok = true → 0 ≤ sint.Z n ∧ 0 ≤ sint.Z j ∧ 0 ≤ sint.Z c ∧
         ∃ w ns a, d.workloads[sint.nat j]? = some w ∧ d.nodes[sint.nat j]? = some ns ∧
           ns[sint.nat c]? = some a ∧ d.nodeList[sint.nat n]? = some (w, sint.nat c, a)⌝ }}

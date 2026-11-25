@@ -40,24 +40,22 @@ theorem NodeMain.wp_proof (NP : w64 → GoString → List GoString → IProp GF)
   ihave %Hel := ownSlice_len _ _ _ $$ Heps
   wp_auto
   wp_if_destruct
-  · iapply HΦ; done
-  wp_apply hNC as -
+  · iapply HΦ; ipureintro; trivial
+  wp_apply hNC
   rw [hnc]
-  wp_auto
   wp_if_destruct
-  · iapply HΦ; done
+  · iapply HΦ; ipureintro; trivial
   wp_if_destruct
-  · iapply HΦ; done
+  · iapply HΦ; ipureintro; trivial
   simp only [Workload.val, Hk]
   wp_auto
   wp_apply (hRot (V := GoString) (T := go.string) eps DFrac.discard epsL c) as %out ⟨-, Hout⟩
   · iframe #
     ipureintro
     constructor <;> word
-  wp_apply (hNode c addr out _) $$ [Hout HNP] as -
+  wp_apply (hNode c addr out _) $$ [Hout HNP]
   · iframe
-  wp_auto
-  iapply HΦ; done
+  iapply HΦ; ipureintro; trivial
 
 end proof
 

@@ -36,24 +36,21 @@ theorem MainReady.wp_proof (OP : List GoString → w64 → IProp GF)
   wp_auto
   wp_if_destruct
   · wp_func_call; wp_call; wp_auto
-    iapply HΦ; done
-  wp_apply hNC as -
-  wp_auto
+    iapply HΦ; ipureintro; trivial
+  wp_apply hNC
   wp_if_destruct
+  · -- `hasSetUp(KV)` is false: `ready()`
+    wp_func_call; wp_call; wp_auto
+    simp only [Workload.val, Hk]
+    wp_auto
+    iunfold readySpec at Hready
+    wp_apply Hready
+    -- the switch: kind 0, `RunKV`
+    wp_apply (hRun nodes ns w.ops ready) $$ [HOP] as %r -
+    · iunfold readySpec; iframe #; iframe
+    iapply HΦ; ipureintro; trivial
   · wp_func_call; wp_call; wp_auto
-    iapply HΦ; done
-  -- `hasSetUp(KV)` is false: `ready()`
-  wp_func_call; wp_call; wp_auto
-  simp only [Workload.val, Hk]
-  wp_auto
-  iunfold readySpec at Hready
-  wp_apply Hready as -
-  wp_auto
-  -- the switch: kind 0, `RunKV`
-  wp_apply (hRun nodes ns w.ops ready) $$ [HOP] as %r -
-  · iframe #; iframe
-  wp_auto
-  iapply HΦ; done
+    iapply HΦ; ipureintro; trivial
 
 end proof
 

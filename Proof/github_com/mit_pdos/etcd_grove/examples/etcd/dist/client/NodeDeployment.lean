@@ -42,7 +42,7 @@ theorem NodeDeployment.wp_proof (NP : w64 → GoString → List GoString → IPr
   wp_apply (hWF v d Hfips) as %err %Herr
   · iframe #
   wp_if_destruct
-  · iapply HΦ; done
+  · iapply HΦ; ipureintro; trivial
   sorry
 
 end proof
