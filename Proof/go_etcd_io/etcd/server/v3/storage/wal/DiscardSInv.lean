@@ -286,6 +286,58 @@ theorem dirKeysOk_discard {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDi
 
 end pure
 
+
+section iris
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+  [W : WalGS GF]
+
+/-- Both pipeline names of one directory, twice: impossible (two `qTmp`s of `0.tmp`'s claim). -/
+theorem walTmpsRes_excl (j : Ino) :
+    walTmpsRes (hG := ⟨G, L⟩) j ∗ walTmpsRes (hG := ⟨G, L⟩) j ⊢ iprop(False) := by
+  unfold walTmpsRes walTmps
+  iintro ⟨H1, H2⟩
+  icases BigSepL.bigSepL_cons.1 $$ H1 with ⟨H1, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨H2, -⟩
+  unfold tmpClaim
+  icases H1 with ⟨%h1, H1, -⟩
+  icases H2 with ⟨%h2, H2, -⟩
+  rw [osNames_of_ne _ _ (by simp : NameSet.only [go!"0.tmp"] ≠ .only [])]
+  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
+  exact (qTmp_two hv.1).elim
+
+/-- **Two layouts never share a directory** (the coordinator's route, session 19): with no write-mode
+handle out (`T = []`), the parked pipeline names hold, for each layout's directory, both its names'
+claims (`walTmpsRes`), at three quarters each; two layouts on one directory would hold two. -/
+theorem walTmpParked0_inj (Ls : GMap GoString WalLay) :
+    walTmpParked0 (G := G) (L := L) Ls [] ⊢
+      ⌜∀ dir1 dir2 (l1 l2 : WalLay), Ls !! dir1 = some l1 → Ls !! dir2 = some l2 → dir1 ≠ dir2 →
+        l1.j ≠ l2.j⌝ ∗ walTmpParked0 (G := G) (L := L) Ls [] := by
+  classical
+  by_cases hP : ∀ dir1 dir2 (l1 l2 : WalLay), Ls !! dir1 = some l1 → Ls !! dir2 = some l2 →
+      dir1 ≠ dir2 → l1.j ≠ l2.j
+  · iintro H; iframe H; ipureintro; exact hP
+  · simp only [not_forall, not_not] at hP
+    obtain ⟨d1, d2, l1, l2, h1, h2, hne, hj⟩ := hP
+    unfold walTmpParked0
+    iintro ⟨%Jt, %hp, Hm⟩
+    iexfalso
+    have e1 : Jt !! d1 = some l2.j := by rw [← hj]; exact hp d1 l1 h1
+    have e2 : (GMap.delete d1 Jt) !! d2 = some l2.j := by
+      rw [GMap.lookup_delete_ne _ hne]; exact hp d2 l2 h2
+    ihave Hm := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (J : Ino) =>
+      iprop(if dir ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J)) e1).1 $$ Hm
+    icases Hm with ⟨H1, Hm⟩
+    ihave Hm := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (J : Ino) =>
+      iprop(if dir ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J)) e2).1 $$ Hm
+    icases Hm with ⟨H2, -⟩
+    simp only [List.not_mem_nil, if_false]
+    iapply walTmpsRes_excl (G := G) (L := L) l2.j
+    iframe H1 H2
+
+end iris
+
 end WalFs
 end EtcdGrove
 end Perennial
