@@ -58,7 +58,7 @@ abbrev backend.newBackend.spec : Prop :=
         sint.Z cfg.MmapSize' ≤ 0xFFFFFFFFFFFF⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
       -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
-      envVerifyOff ∗
+      ⌜EtcdVerifyOff⌝ ∗
       (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
       threadTok }}
     (App (Val (@! newBackend)) (Val #cfg))

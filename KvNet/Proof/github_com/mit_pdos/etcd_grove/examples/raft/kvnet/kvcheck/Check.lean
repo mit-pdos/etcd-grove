@@ -1,6 +1,7 @@
 /-
 Proof of `KvNet/Spec/.../kvcheck/Check.lean` (kvdurable's `Run`/`Main` over the network). The
-addresses split and validated (the premise: `ValidAddrs` holds, so no panic); the checker built (its
+addresses split and validated (`ValidAddrs`: if it fails, `Check` returns at once; if it holds, the
+store's resources); the checker built (its
 mutex guarding the counters at `0`, the store's counter predicates `kvCnt`, `lastConf` nil); the
 proposers and the disruptor run in goroutines joined by a wait group (`sync.join`, an empty
 resource); the clients run `lintest.Run`'s test over a driver's copy of the store's state
@@ -70,21 +71,28 @@ theorem Check.wp_proof
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG))
     (wp_lintestRun : lintest.Run.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro γ addrs voters Hvalid Hrb
-  wp_start as ⟨#Hcc, #Hglob, #Hinv, Hval, Hopn, Hrseq, #Hprot⟩
+  intro γ addrs voters Hrb
+  wp_start as ⟨#Hcc, #Hglob, Hres⟩
   ihave #Hkpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet
     $$ []
   · iPkgInit
   try wp_auto
   wp_apply wp_SplitAddrs addrs $$ [$Hkpkg] as %sl ⟨Hsl, Hcap⟩
   try wp_auto
+  wp_apply wp_ValidAddrs sl (DFrac.own 1) (splitAddrs addrs) voters $$ [$Hkpkg $Hsl] as Hsl
+  -- invalid addresses: `Check` returns at once
+  by_cases Hvalid : validAddrs (splitAddrs addrs) (uint.nat voters) = true
+  case neg =>
+    rw [Bool.not_eq_true] at Hvalid
+    rw [Hvalid]
+    try wp_auto
+    iapply HΦ
+    itrivial
+  ihave ⟨#Hinv, Hval, Hopn, Hrseq, #Hprot⟩ := Hres $$ %Hvalid
+  rw [Hvalid]
   have Hv := Hvalid
   simp only [validAddrs, decide_eq_true_eq] at Hv
   obtain ⟨Hok, Hnd, Hlen32, Hv1, Hv2⟩ := Hv
-  have Hl63 : ∀ a ∈ splitAddrs addrs, a.length + 1 < 2 ^ 63 := fun a ha => by
-    have := addrOk_length (Hok a ha); omega
-  wp_apply wp_ValidAddrs sl (DFrac.own 1) (splitAddrs addrs) voters Hl63 $$ [$Hkpkg $Hsl] as Hsl
-  rw [Hvalid]
   try wp_auto
   -- the checker: `addrs` read-only, the mutex guarding the counters at `0` with the store's
   -- counter predicates

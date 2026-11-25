@@ -1,8 +1,7 @@
 /-
-`AddrOk(a)` (addrs.go): exactly the net extension's `addrOk a` (`GooseLang/Ext/Net/Impl.lean`), the
-top-level theorem's premise on a replica address (`goAddrOk_eq`). For `a` shorter than `2^63 - 1`
-bytes: its first loop runs `i` up to `len(a)` inclusive, and `i + 1` past `len(a) = 2^63 - 1` would
-wrap (a string no Go program can hold).
+`AddrOk(a)` (addrs.go): exactly the net extension's `addrOk a` (`GooseLang/Ext/Net/Impl.lean`)
+(`goAddrOk_eq`), for every string: one longer than 21 bytes is refused before the loops (whose
+index, run up to `len(a)` inclusive, would wrap past `len(a) = 2^63 - 1`).
 -/
 module
 
@@ -28,7 +27,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 
 /-- See the file header. -/
 abbrev AddrOk.spec : Prop :=
-  ∀ (a : GoString), a.length + 1 < 2 ^ 63 →
+  ∀ (a : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.AddrOk)) (Val #a))
   {{ RET #(Net.addrOk a); True }}

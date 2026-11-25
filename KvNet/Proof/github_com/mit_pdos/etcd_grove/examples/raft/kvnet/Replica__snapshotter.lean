@@ -35,29 +35,68 @@ attribute [local instance] kdStorageModel
 theorem Replica.snapshotter.wp_proof (wp_snapshot : Replica.snapshot.spec (GF := GF) (hG := hG)) :
     Replica.snapshotter.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ρ known
-  wp_start as ⟨#HR, #Hkn, #Hkni, Hrun⟩
+  wp_start as ⟨#HR, Hprod, #Hkn, #Hkni, Hrun⟩
   ihave #HR' := HR
   iunfold isReplicaR at HR'
   iNamed HR'
   try wp_auto
-  ihave Hinv : iprop(∃ (k : w64) (qv : KSnapReq), "known" ∷ known_ptr ↦ k ∗ "req" ∷ req_ptr ↦ qv ∗
-      "#Hk" ∷ memSnapLb ρ.γs (uint.nat k) ∗
+  ihave Hinv : iprop(∃ k : w64, "known" ∷ known_ptr ↦ k ∗ "#Hk" ∷ memSnapLb ρ.γs (uint.nat k) ∗
       "#Hki" ∷ monoNatLbOwn ρ.ph.is (uint.nat k) ∗
-      "Hrun" ∷ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) $$ [known req Hrun]
-  · iexists known, _
-    iframe known req Hrun Hkn Hkni
-  wp_for Hinv
-  wp_apply wp_bag_receive (t := github_com.mit_pdos.etcd_grove.examples.raft.kvnet.snapReq.ty) ρ.sn ρ.snc (snapReqOk γ ρ.key ρ.γs ρ.ph) $$ HsnB
-    as %q Hq
+      "Hprod" ∷ handoffProducer ρ.sd false ∗
+      "Hrun" ∷ nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half) $$ [known Hprod Hrun]
+  · iexists known
+    iframe known Hprod Hrun Hkn Hkni
+  wp_for_core
+  iNamed Hinv
   try wp_auto
-  wp_apply wp_snapshot γ vs dir id r n st sts sq ρ q k (1 : Qp).half $$ [$HR $Hq $Hk $Hki $Hrun]
-    as %k' ⟨#Hk', #Hki', Hrun⟩
-  try wp_auto
-  wp_for_post
-  iframe
-  iexists k', q
-  iframe
-  iframe Hk' Hki'
+  cleanup_bool_decide
+  wp_auto_lc 2
+  wp_apply_core chan.wp_select_blocking
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- a request
+    simp only [chan.blockingClausePre]
+    iexists KSnapReq, inferInstance, inferInstance, inferInstance, inferInstance, ρ.snc, ρ.sn
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply is_bag_is_chan $$ HsnB
+    iapply bag_recv_au $$ [$Hlc1 $Hlc2] HsnB
+    inext
+    iintro %q Hq
+    wp_auto
+    wp_apply wp_snapshot γ vs dir id r n st sts sq ρ q k (1 : Qp).half $$ [$HR $Hq $Hk $Hki $Hrun]
+      as %k' ⟨#Hk', #Hki', Hrun⟩
+    try wp_auto
+    wp_for_post
+    iframe
+    iexists k'
+    iframe
+    iframe Hk' Hki'
+  iapply BigAndL.bigAndL_cons.2
+  isplit
+  · -- `stopc` closed: the snapshotter's half of `nodeRunning` sent on `snapDone`
+    simp only [chan.blockingClausePre]
+    iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, ρ.stopc, ρ.sc
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iapply ownBroadcastChan_is_chan $$ HstopB
+    iapply broadcast_chan_receive _ _ _ _ _ $$ HstopB
+    iintro ⟨-, -⟩
+    try wp_auto
+    wp_apply wp_handoff_send ρ.sd ρ.sdc (fun _ => nodeRunning n γ.r.cluster kdRaftN (1 : Qp).half)
+      iprop(True) iprop(False) () $$ [$HsdH $Hprod Hrun] as -
+    · isplitl [Hrun]
+      · iexact Hrun
+      · itrivial
+    try wp_auto
+    wp_for_post
+    try wp_auto
+    iapply HΦ
+    itrivial
+  iapply BigAndL.bigAndL_nil.2
+  itrivial
 
 end proof
 

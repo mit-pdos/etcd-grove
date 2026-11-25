@@ -13,10 +13,10 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.google_golang_org.protobuf.proto.Init
-public import Dsverify.Proof.google_golang_org.protobuf.reflect.protoreflect.Init
-public import Dsverify.Proof.google_golang_org.protobuf.runtime.protoimpl.Init
+public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
+public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
 public import Dsverify.Proof.raxos.proto.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

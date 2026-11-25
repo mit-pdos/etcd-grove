@@ -10,6 +10,7 @@ variable).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Base
+public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Init

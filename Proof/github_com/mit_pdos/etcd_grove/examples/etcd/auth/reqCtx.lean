@@ -33,7 +33,7 @@ theorem reqCtx.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Append : metadata.AppendToOutgoingContext.spec (GF := GF) (hG := hG)) :
     reqCtx.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ CRE CEC who hAs
+  intro _ _ _ who hAs
   wp_start
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit

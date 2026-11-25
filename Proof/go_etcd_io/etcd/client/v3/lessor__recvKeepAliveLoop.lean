@@ -48,7 +48,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     lessor.recvKeepAliveLoop.spec (GF := GF) (hG := hG) := by
   intro l addr dc0 γd0
-  wp_start as ⟨#Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
+  wp_start as ⟨Hlt, #Hl, #Hstr, #Heof, #Hall, #Htg, #Hdc0, Hpend⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
@@ -70,8 +70,9 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_for
-  wp_apply wp_resetRecv l addr $$ [] as %st %err Hres
+  wp_apply wp_resetRecv l addr $$ [Hlt] as %st %err ⟨Hlt, Hres⟩
   · iframe #
+    iframe Hlt
   (try wp_auto)
   icases Hres with (⟨%Herr, %γ, %Up, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
   · subst Herr
@@ -84,12 +85,12 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         "HRt" ∷ cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ L) $$ [HRt]
     · iexists []; iframe
     wp_for IH
-    ihave #HR := HRecv $$ %L %iprop(True)
-    wp_apply HR $$ [HRt] as %resp %rerr ⟨-, Hres⟩
+    ihave #HR := HRecv $$ %L %(levelTok 0)
+    wp_apply HR $$ [HRt Hlt] as %resp %rerr ⟨Hlt, Hres⟩
     · isplitr
-      · ipureintro; trivial
-      isplitr
-      · itrivial
+      · ipureintro; rfl
+      isplitl [Hlt]
+      · iexact Hlt
       iframe
     (try wp_auto)
     icases Hres with (⟨%Herr, %m, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
@@ -228,7 +229,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
           · (try wp_auto)
@@ -340,7 +341,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
         · (try wp_auto)
@@ -412,7 +413,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iapply BigSepM.bigSepM_empty.2
               itrivial
             (try wp_auto)
-            iapply HΦ; itrivial
+            iapply HΦ; iframe Hlt; try itrivial
     · iunfold cliStreamErr at Hse0
       icases Hse0 with ⟨%Hce, #Hse, -⟩
       cases rerr with
@@ -540,7 +541,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
           · (try wp_auto)
@@ -652,7 +653,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
                   iapply BigSepM.bigSepM_empty.2
                   itrivial
                 (try wp_auto)
-                iapply HΦ; itrivial
+                iapply HΦ; iframe Hlt; try itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
         · (try wp_auto)
@@ -724,7 +725,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iapply BigSepM.bigSepM_empty.2
               itrivial
             (try wp_auto)
-            iapply HΦ; itrivial
+            iapply HΦ; iframe Hlt; try itrivial
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hse, -⟩
@@ -851,7 +852,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iapply BigSepM.bigSepM_empty.2
               itrivial
             (try wp_auto)
-            iapply HΦ; itrivial
+            iapply HΦ; iframe Hlt; try itrivial
         iapply BigAndL.bigAndL_nil.2
         itrivial
       · (try wp_auto)
@@ -922,7 +923,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
             iapply BigSepM.bigSepM_empty.2
             itrivial
           (try wp_auto)
-          iapply HΦ; itrivial
+          iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

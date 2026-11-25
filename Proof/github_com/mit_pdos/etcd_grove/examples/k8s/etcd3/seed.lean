@@ -27,7 +27,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 theorem seed.wp_proof (wp_seedOne : seedOne.spec (GF := GF) (hG := hG)) :
     seed.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γs hAs hms
-  wp_start as ⟨#Hnc, #Hwo, #Hregs, #Hsi, Hs⟩
+  wp_start as ⟨Hlt, #Hnc, #Hwo, #Hregs, #Hsi, Hs⟩
   wp_auto
   ihave #Hs0 : storeOwn (mstore.mk slice.nil (W64 1)) st1 $$ []
   · iunfold storeOwn
@@ -36,13 +36,14 @@ theorem seed.wp_proof (wp_seedOne : seedOne.spec (GF := GF) (hG := hG)) :
     · iapply ownSlice_nil
     ipureintro; trivial
   wp_apply (wp_seedOne cl ms V γs _ st1 kA (W64 2) σb hAs hms (by decide) (by simp [st1]))
-    $$ [Hs] as %s1 %ok1 Hr1
+    $$ [$Hlt Hs] as %s1 %ok1 ⟨Hlt, Hr1⟩
   · iframe #
     iframe Hs
   icases Hr1 with (%Hok | ⟨%Hok, Hs, #Hst1, %Hb⟩)
   · subst Hok
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft; ipureintro; rfl
   subst Hok
   rw [seed_step1]
@@ -50,8 +51,8 @@ theorem seed.wp_proof (wp_seedOne : seedOne.spec (GF := GF) (hG := hG)) :
   have hl1 : (setItemL [] itA).length + 1 < 2 ^ 63 := by
     rw [show setItemL [] itA = [itA] from rfl]; simp
   wp_apply (wp_seedOne cl ms V γs _ st2 kB (W64 3) σs1 hAs hms (by decide) hl1)
-    $$ [Hs]
-    as %s2 %ok2 Hr2
+    $$ [$Hlt Hs]
+    as %s2 %ok2 ⟨Hlt, Hr2⟩
   · iframe #
     iframe Hs
     iExactEq Hst1; rfl
@@ -59,6 +60,7 @@ theorem seed.wp_proof (wp_seedOne : seedOne.spec (GF := GF) (hG := hG)) :
   · subst Hok
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft; ipureintro; rfl
   subst Hok
   rw [seed_step2]
@@ -70,6 +72,7 @@ theorem seed.wp_proof (wp_seedOne : seedOne.spec (GF := GF) (hG := hG)) :
   imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
   wp_auto
   iapply HΦ
+  iframe Hlt
   iright
   iframe Hs
   isplitr

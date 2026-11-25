@@ -10,11 +10,11 @@ module
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.github_com.anishathalye.porcupine.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Init
-public import Net.Proof.net.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.github_com.anishathalye.porcupine.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Init
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

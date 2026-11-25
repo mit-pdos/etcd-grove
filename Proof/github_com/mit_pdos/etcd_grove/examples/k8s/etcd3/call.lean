@@ -727,6 +727,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [← hz]; iexact Hr0
     ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
     · iapply k8sctx.k8sCtxOk_background; iPkgInit
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_Create DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #p1) (mkObj x) (rvStr 0)
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) (storeKeyL x.Key')
@@ -735,11 +736,13 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
           rw [hc]; exact storedSize_small _ (by
             show ((mkObj x).toObj 0).Value'.length ≤ _
             rw [hmk 0]; exact hvl))
-        (by rw [hc]; exact parseRVD_rvStr 0)) $$ [Hobj Hout Hpre] as %err0 ⟨-, Hres⟩
+        (by rw [hc]; exact parseRVD_rvStr 0)) $$ [$Hlt Hobj Hout Hpre] as %err0 ⟨Hlt, -, Hres⟩
     · iframe #
       iframe Hobj Hout
       rw [hpp]
       iexact Hpre
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     -- the answer, as an error `errOut` places or the object `out` points to
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
           ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
@@ -801,16 +804,19 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [← hz]; iexact Hr0
     ihave #Hval := validateD_ok c hc eD x.HasReject' x.Reject' vf $$ [HvD HD Hvf]
     · iframe #
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_Delete DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) pp (kpreOf x)
         cx (caOf x) (zero_val _) (rejD eD x.HasReject' x.Reject') vf W Φu (storeKeyL x.Key'))
-        $$ [Hout HW Haus Hco] as %err0 Hres
+        $$ [$Hlt Hout HW Haus Hco] as %err0 ⟨Hlt, Hres⟩
     · iframe #
       iframe Hout HW Hco
       isplitr
       · ipureintro; exact ⟨hkey, hkl, rfl⟩
       rw [hpp, hc, show (driverSpec (GF := GF)).preF (kpreOf x) = preD x from rfl]
       iexact Haus
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     iunfold delOut at Hres
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
           ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
@@ -932,16 +938,19 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       · cases h
     ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
     · iapply k8sctx.k8sCtxOk_background; iPkgInit
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_Update DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0)
         x.IgnoreNotFound' pp (kpreOf x) cx (caOf x) (updD eU x) uf W Φu (storeKeyL x.Key'))
-        $$ [Hout HW Haus Hco] as %err0 Hres
+        $$ [$Hlt Hout HW Haus Hco] as %err0 ⟨Hlt, Hres⟩
     · iframe #
       iframe Hout HW Hco
       isplitr
       · ipureintro; exact ⟨hkey, hkl, hsz, hzs, hcs, hscope⟩
       rw [hpp, hz0, hc, show (driverSpec (GF := GF)).preF (kpreOf x) = preD x from rfl]
       iexact Haus
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     iunfold updOut at Hres
     rw [hz0] at *
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
@@ -999,12 +1008,15 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       unfold minOf; rw [hn]; rfl
     ihave #Hk8bg : k8sctx.k8sCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal $$ []
     · iapply k8sctx.k8sCtxOk_background; iPkgInit
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_Get DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         ⟨x.IgnoreNotFound', x.MinRV'⟩ (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr»)
-        dzero (rvStr 0) (storeKeyL x.Key') (minOf x) Q hQ) $$ [Hout Hpre] as %err0 Hres
+        dzero (rvStr 0) (storeKeyL x.Key') (minOf x) Q hQ) $$ [$Hlt Hout Hpre] as %err0 ⟨Hlt, Hres⟩
     · iframe #
       iframe Hout Hpre
       ipureintro; exact ⟨hkey, hkl, hparse⟩
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y ∗
           ⌜y.Err' = W64 3 → err0 = if x.Kind' = W64 1 then eD else eU⌝) ∨
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),

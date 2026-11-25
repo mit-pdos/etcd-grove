@@ -39,7 +39,14 @@ theorem Cache.getWatch.wp_proof
   unfold cacheWriter
   icases Hw with ⟨Hdw, #Hwo, %B, Hbd⟩
   wp_auto
-  wp_apply wp_get c cf γr γd cap cf.ictx ics B $$ [$Hpkg $Hc $Hctxi $HoCi $Hbd] as %resp %err Hres
+  -- (decision 1b) the call's level-0 token, split off the loop's thread token
+  iunfold cacheWgLoopRunning at Hrun
+  icases Hrun with ⟨Hown, Htt⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
+  wp_apply wp_get c cf γr γd cap cf.ictx ics B $$ [$Hpkg $Hl0 $Hc $Hctxi $HoCi $Hbd] as %resp %err ⟨Hl0, Hres⟩
+  ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
+  ihave Hrun : cacheWgLoopRunning (GF := GF) cf $$ [Hown Htt]
+  · iunfold cacheWgLoopRunning; iframe Hown Htt
   icases Hres with (⟨%Herr, Hbd, #HeS⟩ | ⟨%Herr, %R, #Hrev, Hbd, #Hrd, #Hlb, #Hslb, %HRb⟩)
   · -- the get failed: return its error
     obtain ⟨-, Hne⟩ := Herr

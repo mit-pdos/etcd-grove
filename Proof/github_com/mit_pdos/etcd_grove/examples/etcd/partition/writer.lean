@@ -39,8 +39,8 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Put_km : client_Put_km.law (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi hsz
-  wp_start as ⟨#Hcls, #Hcl, #Hms, #Ht, #Hkv, #Hmu⟩
+  intro CS clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi hsz
+  wp_start as ⟨Hlt, #Hcls, #Hcl, #Hms, #Ht, #Hkv, #Hmu⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -64,8 +64,8 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
   -- the writes' floor: no change seen
   imod (monoListLbOwn_nil (GF := GF) (A := List mvcc.Change) γ.ch) with #H0
   have hlen : cls.length ≠ 0 := fun h => hne (List.eq_nil_of_length_eq_zero h)
-  ihave HI : (∃ (k : w64), "k" ∷ k_ptr ↦ k ∗
-      "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi⌝ : IProp GF) $$ [k]
+  ihave HI : (∃ (k : w64), "k" ∷ k_ptr ↦ k ∗ "Hlt" ∷ levelTok 0 ∗
+      "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi⌝ : IProp GF) $$ [k Hlt]
   · iexists lo
     iframe
     ipureintro; constructor <;> word
@@ -129,7 +129,7 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
     -- `resp, err := cli.Put(ctx, p.Key, p.Val)`
     wp_apply (h_client_Put_km cl ms V γ.kv cctx ccd x.Key' x.Val' slice.nil
         (client.kmWriteQ γ [] (.put (client.putKeyOp x.Key' x.Val')))
-        (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [Hau] as %resp %err Hout
+        (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [$Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
     · iframe #; iexact Hau
     -- `cancel()`
     (try wp_auto)
@@ -185,7 +185,7 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
       iframe
       ipureintro; constructor <;> word
   · (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

@@ -7,7 +7,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
 axiom context.WithValue.wp_proof
-axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof

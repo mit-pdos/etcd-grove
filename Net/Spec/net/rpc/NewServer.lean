@@ -30,6 +30,15 @@ abbrev NewServer.spec : Prop :=
     (App (Val (@! net.rpc.NewServer)) (Val #()))
   {{ (s : Loc), RET #s; ∃ γ : GName, isServer s γ }}
 
+/-- `NewServer()` with an owned registry: a new server whose registry, empty, has an owner
+(`isServerO s γ (some γf)`, `svcOwn γf ∅`): its owner knows every name is free. Proved in
+`Net/Proof/net/rpc/NewServerOwned.lean`. -/
+abbrev NewServer.spec_owned : Prop :=
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sync }}
+    (App (Val (@! net.rpc.NewServer)) (Val #()))
+  {{ (s : Loc), RET #s; ∃ γ γf : GName, isServerO s γ (some γf) ∗
+      svcOwn γf (∅ : GMap GoString Unit) }}
+
 end spec
 
 end net.rpc

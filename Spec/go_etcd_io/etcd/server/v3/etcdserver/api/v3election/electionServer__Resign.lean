@@ -40,23 +40,21 @@ fact"). -/
 abbrev electionServer.Resign.spec : Prop :=
   ∀ (es c req lk : Loc) (name key : GoString) (rev lease : w64)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
-      isElectionServer es c ∗ electionClientOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ levelTok 0 ∗ (isElectionServer es c ∗ electionClientOk c ∗
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq⌝ ∗
       structFieldRef v3electionpb.ResignRequest go!"Leader" req ↦□ lk ∗
       (⌜lk = null⌝ ∨ leaderKeyAt lk name key rev lease ∗ ⌜name ≠ []⌝ ∗
         ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
           v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) key⌝) ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs) }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Resign"))
       (Val #(GoInterface.ok ctx))) (Val #req))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜lk = null ∧ resp = null⌝ ∗ globalAddr ErrMissingLeaderKey ↦□ err ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜lk = null ∧ resp = null⌝ ∗ globalAddr ErrMissingLeaderKey ↦□ err ∗
         ⌜err ≠ GoInterface.nil⌝) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (v : v3electionpb.ResignResponse),
         resp ↦ v ∗ ⌜v.Header' = hdr⌝ ∗
         (⌜¬ name <+: key⌝ ∨ ∃ R : w64, hdrRevAt hdr R ∗ etcdReached R ∗ notLeaderAt name key rev R)) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

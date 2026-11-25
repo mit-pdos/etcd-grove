@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.runSTM
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -44,17 +45,20 @@ theorem runSTM.wp_proof :
   imod start_bag (fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err') _ ch γ
     trivial $$ His Hown with #Hch
   ipersist outc
-  wp_apply wp_fork $$ [Hst s apply]
-  · wp_auto
+  -- the goroutine calls the connection: its fresh thread token's level 0 (`wp_fork_level0`)
+  wp_apply wp_fork_level0 $$ [Hst s apply]
+  · iintro Hlt
+    wp_auto
     wp_apply wp_with_defer_recover as %defer %pnc defer pnc
-    ihave IH : iprop(∃ o : stmResponse, "out" ∷ out_ptr ↦ o ∗ "Hst" ∷ stmStale lvl pfx p) $$ [out Hst]
+    ihave IH : iprop(∃ o : stmResponse, "out" ∷ out_ptr ↦ o ∗ "Hst" ∷ stmStale lvl pfx p ∗
+        "Hlt" ∷ levelTok 0) $$ [out Hst Hlt]
     · iexists _; simp only [named]; iframe
     wp_for IH
     (try rw [if_pos (decide_eq_true rfl)])
     (try wp_auto)
     wp_apply HReset $$ [$Hst] as Hst
     ihave #Happ := Hap' $$ %lvl %p %STMSt.empty Hm
-    wp_apply Happ $$ [$Hst] as %r Hr
+    wp_apply Happ $$ [$Hst $Hlt] as %r ⟨Hlt, Hr⟩
     · ipureintro; exact Nat.zero_le _
     iunfold stmRet at Hr
     icases Hr with (⟨%err, %Hr, %st', Hst, %Herr⟩ | %Hab)
@@ -69,7 +73,7 @@ theorem runSTM.wp_proof :
       wp_apply wp_bag_send (P := fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err')
         $$ [$Hch]
       · unfold stmResult; ileft; ipureintro; exact Hne
-      itrivial
+      iframe Hlt
     subst Hr
     wp_auto
     cases err with
@@ -80,10 +84,10 @@ theorem runSTM.wp_proof :
         $$ [$Hch]
       · unfold stmResult; ileft; ipureintro; simp
       wp_apply wp_recoverPanic $$ [$pnc] as pnc
-      itrivial
+      iframe Hlt
     | nil =>
       wp_auto
-      wp_apply HCommit $$ [$Hst $Hlo] as %r Hr
+      wp_apply HCommit $$ [$Hst $Hlo $Hlt] as %r ⟨Hlt, Hr⟩
       iunfold stmRet at Hr
       icases Hr with (⟨%resp, %Hr, Hst, Hres⟩ | %Hab)
       rotate_left
@@ -96,7 +100,7 @@ theorem runSTM.wp_proof :
         wp_apply wp_bag_send (P := fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err')
           $$ [$Hch]
         · unfold stmResult; ileft; ipureintro; exact Hne
-        itrivial
+        iframe Hlt
       subst Hr
       wp_auto
       icases Hres with (%Hnull | ⟨%Hnn, #Hout⟩)
@@ -121,7 +125,7 @@ theorem runSTM.wp_proof :
           iframe #
           ipureintro; exact Herr rfl
         wp_apply wp_recoverPanic $$ [$pnc] as pnc
-        itrivial
+        iframe Hlt
   wp_apply wp_bag_receive (t := stmResponse.ty) γ ch
     (fun r : stmResponse => stmResult (GF := GF) pfx lvl lo Q r.resp' r.err') $$ [$Hch] as %r #Hr
   iapply HΦ

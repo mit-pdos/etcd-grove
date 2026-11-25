@@ -41,8 +41,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assu
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
     (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry),
   1 ≤ k → k ≤ 1000 → ids.length = k →

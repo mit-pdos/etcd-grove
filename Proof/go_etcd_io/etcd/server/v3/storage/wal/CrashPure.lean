@@ -558,7 +558,20 @@ layouts over `m'` and the crashed files (a WAL-less name absent, as `AbsentNone`
 disjunct leaves it). Each WAL's crash condition gives its `CrashTo` (W1 over the
 ghost candidates, `W1G`, from W1 over the state's: `w1G_of_W1`, the only place W1 enters); the new
 layout keeps the cuts, the kept segments with their files' start resources, the last file's image
-as the bytes under its stream (`crashTo_start`). -/
+as the bytes under its stream (`crashTo_start`).
+
+**What it rests on** (etcd_safe P6, 2026-11-25): the world premise W1 (`W1.lean`, `hw1`) and nothing
+else of the world. In the states the WAL reaches every frame is written over zeros (below), so a crash W1
+excludes is a CRC-32C collision on the `Data` of a frame whose bytes under it were zero; a torn `Type`
+over zeros reads as type 0, an error. Tears over stale bytes are out of scope
+(`nonissues/etcd-wal-record-type-outside-crc.md`). **No frame over stale bytes**, with the torn-Save fix
+(fork `e94f33b50`): a `Save` (entry records, then its state record) and a cut's headers only append at
+the tail's write offset, and every byte from there on is zero and synced before the first append: a new
+segment is `alloc`'s `N.tmp`, opened with `O_TRUNC` and preallocated (zeros); `Create`'s first segment
+is a new file in its emptied temporary directory, preallocated; an opened WAL's write-mode `ReadAll` zeroes from its end, which is `pendOff` (before the
+dropped entry run of an interrupted `Save`) when there is one, and `Fdatasync`s the zeroing before
+returning (`wal.go`'s `ReadAll`, `ZeroToEnd`). So the next `Save` writes over the zeroed run, never
+over its stale frames. -/
 theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
     (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (han : AbsentNone s jr cl n)

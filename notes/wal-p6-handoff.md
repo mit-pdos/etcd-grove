@@ -2,17 +2,129 @@
 
 ## START HERE
 
+- **2026-11-25, session 6 (later): re-pinned to etcd_safe's one pin; P6 stays off `lean`** (coordinator-E, #50:
+  P6 goes in the one `etcd_safe` packet; the remote full build and gates not run).
+  * **Pin** `upamanyus/etcd` `goose-lean-fmt1c-crashfixes` @ `e94f33b50` (`etc/goose.py`, the examples' `go.mod`
+    by `bump-p6.sh`'s method). `server/storage/wal` is **identical** between `2bd3048d7` and `e94f33b50`
+    (`git diff --stat`: empty); `2bd3048d7` has nothing `e94f33b50` lacks (the whole diff only adds, but
+    bbolt's `go.sum` lines, replaced by the `upamanyus/bbolt` replace). Retranslation (`etc/goose.py
+    --project etcd`): 3 files, `Code/.../etcdserver.lean` (`bootstrap`'s backend removal,
+    `removeBackendDurably`, `applySnapshot`'s guard from `47d6cdeeb`), `Code/.../storage.lean`
+    (`OpenSnapshotBackend`/`RecoverSnapshotBackend`'s `syncDir`), `Code/.../storage/backend.lean`
+    (`finishDefrag`'s `syncParentDir`); no `GeneratedProof` change, no WAL change, no bbolt change (project
+    `bbolt` is pinned separately and the etcd project translates bbolt names-only). So **no WAL proof
+    breaks**. Proofs whose bodies changed (outside the WAL, not fixed here: integration round 2's):
+    `Proof/go_etcd_io/etcd/server/v3/etcdserver/{bootstrap,EtcdServer__applySnapshot}.lean`,
+    `Proof/go_etcd_io/etcd/server/v3/storage/OpenSnapshotBackend.lean`. `bootstrap`'s unsaved-WAL branch now
+    calls `wal.Unsaved` itself (then `removeBackendDurably`, then `DiscardUnsaved`): `Unsaved`'s spec is ready
+    for it; P6b/P5 must account for the backend removal.
+  * **W1**: the WAL's crash facts rest on W1 alone of the world (`walCrash_pure`'s `hw1`, which enters only
+    through `w1G_of_W1`; its docstring now says so). Stale-byte tears are out of scope
+    (`nonissues/etcd-wal-record-type-outside-crc.md`). **The torn-Save `Save` writes no frame over stale
+    bytes**: it only appends at the tail's write offset, and every byte from there on is zero and synced
+    before the first append: a new segment is `alloc`'s `N.tmp` (`O_TRUNC`, preallocated), `Create`'s first a
+    new file in its emptied temporary directory (preallocated), and an opened WAL's write-mode `ReadAll`
+    zeroes from its end, `pendOff` when an interrupted `Save`'s entry run was dropped, and `Fdatasync`s the
+    zeroing before returning (`wal.go` `ReadAll`, at `e94f33b50`). So W1's exclusions in reachable states are
+    CRC-32C collisions on the `Data` of zero-backed frames. (`W1.lean`'s header still describes the `Type`
+    question as open for review: its text is the statement's vocabulary, not edited here; the packet
+    should refresh it.)
+
+- **For the coordinator (2026-11-25, session 6): `Unsaved` done; `DiscardUnsaved` deferred to P6b (the order
+  relaxation as approved is unsound); P6 ready for the full build.**
+  * `Unsaved`: spec `Spec/go_etcd_io/etcd/server/v3/storage/wal/Unsaved.lean` (`ValidSnapshotEntries`' binders;
+    `true` ⇒ `err = nil` and a WAL at `dir` whose history is blank, `walBlank`), proof
+    `Proof/.../wal/Unsaved.lean` (the pin at the step after the logger check, every return puts it back at a
+    step before it; the first segment's sequence `first` is 0 only when nothing was purged, below `2^64` by the
+    step bound, which `walInv_openAll` now also returns), pure core `UnsavedDefs.lean` (`unsaved_blank`,
+    `walBlank_take`: every crash image of a blank history is blank; `running_typ`: the `default` arm is
+    unreachable). Linked (`walfs.wal.wp_Unsaved`, hypotheses `U.Ok`, `U.SnapCoh`, `WalDecEnvSupply` as
+    `ValidSnapshotEntries`'), no axiom, no `sorry`. "Reads `walFresh`" needs, at the server, that no snapshot at
+    index 0 has a nonzero term (raft's `IsEmptySnap`): P5/T7's obligation, stated in `UnsavedDefs.lean`'s header.
+  * **The relaxation "named → unnamed → absent, lower bounds read while present" is not enough.** `bootstrap`
+    re-`Create`s the WAL at the same `dir` in the same generation after `DiscardUnsaved`
+    (`bootstrap.go:82`, `haveWAL = false`, then `bootstrapRaft` creates it). The persistent facts
+    (`walNamed dir`, `walSyncedLb dir n`, `walPast s` with `dir` in `s`) do not say which WAL they are about, so a
+    fact of the discarded WAL reads as one of the new WAL while it is present: `walGhost_raiseNamed`
+    (`NamedView.lean`: a past state named ⇒ raise the view to named) would name the new WAL between its rename and
+    `Create`'s parent fsync, where a crash may still drop it (`walCrash`), and `walSyncedLb dir n` (n > 0, a
+    blank `Save` synced) would bound the new WAL's empty history. No relaxation of `absLe` alone can fix it: the
+    transitivity `named(old) ≤ unnamed ≤ absent ≤ fresh-unnamed` is exactly what makes stale facts apply.
+  * **Decided (coordinator, 2026-11-25): incarnations, in a follow-up P6b, not this landing.**
+    `DiscardUnsaved` stays **unspecified** in P6 (its Go is translated; no spec, no proof, nothing links
+    it). `bootstrap` is names-only here; its contract (P5) is what needs `DiscardUnsaved`'s spec, so P5's
+    owner waits for P6b. Design and sizes: "P6b" below.
+  * **P6's landing is ready for the full build** (the coordinator routes it): `wal.Link` (kernel build),
+    no interface step (`interface/` and `etc/gen-interface.py`'s gate were removed on `lean`,
+    `761f147a76`), `issues/raft-commit-lost-with-entries-kept.md` now `blocks-proof: yes` (the fork fix,
+    `## Fix`), STATUS.md entry. The fork pin change needs Upamanyu's OK before landing (#50 P4 rule).
+
+- **For the coordinator (2026-11-25): no trusted commit made; the `DiscardUnsaved` hard stop was a wrong
+  analysis.** The WAL over `fsExt` never executes an `AbsDiskStep`: its abstract state is ghost state of
+  the WAL layer (`wal/Ghost.lean`, untrusted: "Nothing of the extension's steps or interpretation is
+  used"), and `Create`'s commit and `named := true` are ghost updates there. The only trusted pieces it
+  uses are `walCrash`/`walImg` and the crash clause (`walStCrash := absDisk_semantics.crash`), which already
+  allow what the discard needs: an unnamed WAL may vanish at a crash, an absent one stays absent. So
+  `"WalUnnamed"`/`"WalDiscard"` in `Impl.lean` would be trusted text no proof uses; I did not add them.
+  What blocks the discard is **untrusted**: the WAL layer's monotone order on states (`absLe`,
+  `walMapLe`, `walDurLe` in `AbsDisk/Specs.lean`'s generic part, and the persistent facts built on it:
+  `absPast`, `walNamed`, `walSyncedLb`, `walLenLb`) never lets an entry be deleted or `named` go back to
+  `false`. The discard needs that order relaxed (an entry may go `named → unnamed → absent` under the lock
+  token, the lower bounds read "while present"), with every consumer of those facts rechecked; no top-level
+  statement mentions them (checked: the WAL's and WalTester's specs do, no `TopLevel*` file does). Design
+  below ("The hard stop: `DiscardUnsaved`", superseded paragraph kept for the record).
+
 - **Date**: 2026-11-24. **Branch** `etcd-safe-walfix-p6`, worktree `/shared/etcd-grove-p6`.
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
-- **State (2026-11-25, session 5)**: `WAL__ReadAll` builds (item 2 and `CloneStLaw` done, see "Session 5");
-  `wal.Link` regenerated (`etc/gen-link.py --walfs`); its build fails only in `RepairReg.lean` (E4: the
-  repaired tail with a pending run, "Repair with a pending run" below). **Next: that design (truncate at
-  `wr + |pend|`), then `OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5; once `wal.Link` builds, a real
-  `lake build` of it and `etc/tcb-report.py --check`.**
+- **State (2026-11-25, session 5, end)**: `wal.Link` builds (real `lake build`, d6aa9cce3a); `#print axioms`
+  of its 254 results = the `wal-fsext.txt` baseline, no `sorry` (`etc/tcb-report.py --check` needs a full
+  worktree build: not run). E4's `Repair` done ("Repair with a pending run" below); `WAL__Save` fixed (the
+  normalized op `wop`/`saveHS`, `stNil` in the entries loop's invariant). **Next: the WalTester consumers of
+  `CloneStLaw` (`Adequacy.lean`: `walRaftP_cloneSt`, regenerate its Link with `etc/gen-link.py --durable`);
+  `Unsaved`/`DiscardUnsaved` (new Go functions, unsaved.go, no spec yet: spec first); E5.**
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
+
+## P6b (follow-up; not started)
+
+1. **Incarnations in the WAL layer's ghost state** (for `DiscardUnsaved`; untrusted, reaches no
+   top-level statement). The past states become pairs `(s, I)`, `I : GMap GoString Nat` the incarnation
+   of each WAL directory, ordered by `absLe` on the directories whose incarnation is unchanged and
+   `I ≤ I'`; `DiscardUnsaved`'s rename (`named := false`, the files under `wal.tmp`) and its parent fsync
+   (the WAL gone) each bump `I !! dir` under the lock token; `Create` inserts at the current incarnation.
+   The program's view (`walDirIs dir o`) carries its incarnation (exact: every discard goes through the
+   program's update), and the persistent facts take it: `walNamed dir i`, `walSyncedLb dir i n`,
+   `walPast`'s pairs (`walLenLb` through its handle, whose directory record gets the incarnation). The
+   crash law keeps incarnations (a crash bumps none: a discarded WAL is absent or unnamed, and an
+   unnamed one may come back only as the same incarnation's `wal.tmp`, which no reader reads).
+   Then `DiscardUnsaved`'s spec (`true` ⇒ `walDirIs dir none` at the next incarnation; `false` ⇒
+   unchanged) and proof (`Unsaved`'s, then `RemoveAll(wal.tmp)`, `Rename`, `syncDir`, as
+   `Create`'s `renameWAL`).
+   * Where: `GooseLang/Ext/AbsDisk/Specs.lean`'s generic `absPastAt`/`absPastAuth` are shared with the
+     trusted extension's client vocabulary, so the WAL layer gets copies in `Ghost.lean` (not an edit of
+     the generic ones, which would touch the extension). Then `Ghost.lean` (the order, `walGhost_*`),
+     `Inv.lean`, `Crash.lean`/`CrashPure.lean`, `NamedView.lean`, the `*Lb` producers (`TailSync*`,
+     `TailLenLb`, `CreateNamed*`, `ReadAll{Named,Synced,Commit}`, `Handle*`, `CloseHandle`), the specs
+     naming the facts (`Create`, `WAL__Save`, `WAL__Sync`, `WAL__sync`, `WAL__ReadAll`, `Exist`,
+     `Open*`, `WalViews`, `WalRecs`), and the tester (`member__save`/`__sync`/`__close`, `MemberRep`,
+     `MemberInv`, `SaveAu`, `SnapAu`, its `Crash.lean`/`Inv.lean`, `restartRead`).
+   * Size: the facts appear 330 times in 114 files (`walSyncedLb|walNamed|walLenLb|walPast|walDirIs|
+     walDiskAt|walAbsent`); most uses only thread the new argument. Estimate 1,000-2,000 changed lines,
+     of them 300-500 new (the ghost order and its laws, `DiscardUnsaved`'s spec and proof, 300-400);
+     2-4 sessions.
+2. **The tester without torn images** (P6 of the d6 plan; optional strengthening, deferred from P6: more
+   than a session). Go: `walImgs` (`examples/etcd/wal/ref.go:198`) drops its `k` loop (only
+   `h[:j]`, `n ≤ j ≤ len h`); retranslate (project `etcd-wal`); rerun the crash tests
+   (`kpl_test.go`, `kn_test.go`, `robust_test.go`). Lean: the crash relation the tester sees must say
+   prefix-only, so the WAL layer's `walStCrash` (`Ghost.lean`, today the trusted `absDisk_semantics.crash`
+   with `walImg`'s torn disjunct) is restated with `walImgS` (`WalNorm.lean`; E2's producer already gives
+   `d.H.take j`, `TailCrashW.lean`'s `tailImg_walImg` becomes its `walImgS` form), with its consumers
+   (`CrashPure.lean`'s `walCrash` uses, `Abs.lean:941`, `BootPure.lean`); the tester's `tImgs`
+   (`Defs.lean:201`), `tTornImgs`/`mem_tImgs`/`tImgs_complete` (`RefLemmas.lean`), `walImgs.lean`
+   (337 lines, mostly the torn loop: shrinks), `Check.lean`'s `tHistWf_of_mem_tImgs`, its `CrashPure.lean`.
+   Estimate 300-600 changed lines (net negative), 1-2 sessions with the Go crash tests.
 
 ## The design (decided in this session; the coordinator's E0-E5 plan)
 
@@ -240,19 +352,68 @@ zero-word premise (`TailLast.repOld` instead of `lenZ_of_tailLast`).
   `SavePure:252` was a struct-instance continuation line left of its first field (`checkColGe`);
   `WAL__cut`: `saveState.specPre` takes `P.hsIn` (out of `walStIn`), and `h1.stNil = h.stNil`.
 
-### Repair with a pending run (E4, next)
+### Repair with a pending run (E4, done 2026-11-25)
 
-`walRepairFile` now returns the pending run `es`: `(recFrames rs).length = lay.wr + |pendFrames es|`
-(`es ≠ [] → z0 = wr`). `Repair` truncates at the decoder's `lastOffset` = `|recFrames rs|` (repair.go:86),
-which is past the stream's end `wr` when the torn frame follows a pending run: the run stays in the file.
-So `repair_register` cannot state the tail record at `|recFrames rs|`. Plan:
-1. `repair_register`: the record at `lay'.wr` (the stream's end) and `wr ≤ |recFrames rs|`, the bytes
-   between a pending run (`RepOld`/`PendStop`).
-2. `os.File.Truncate.specRepTail`/`fileutil.Fsync.specRepTail` (ours): truncate at `sz` with
-   `wr ≤ sz ≤ size`, the tail at `wr`; `walTail_truncSup` generalized from the target `wr` to `sz` (`rzSeg g0
-   true sz n`, `rzStart_pureK`/`rzLand_pure` with `sz`: the bytes `[wr, sz)` kept, `RepOld` there).
-3. `RepairSync`: the synced tail `sz` long, F-Z replaced by `RepOld` (no zeros past `wr`); `untailR`: `TailIdle`
-   with `m.size = sz` (post-crash layouts already have `old` past `wr`).
+`walRepairFile` returns the pending run `es`: `(recFrames rs).length = lay.wr + |pendFrames es|`
+(`es ≠ [] → z0 = wr`), and now also the reader's stop at `wr` on the bytes below `LastOffset`
+(`PendStop`) and, past `wr`, a nonzero byte of the run's first length word (`frames_nz`). `Repair`
+truncates at `tg = |recFrames rs| ∈ [wr, size]` (repair.go:86); the run stays in the file. Done:
+1. `repair_register`: the tail record at `lay'.wr` (the stream's end), `wr ≤ tg`, `TailMetaRP Mr (tailCrc …)
+   wr tg` (`TailMetaR`, the nonzero byte, the stop) — `RepairTailDefs.lean`.
+2. `os.File.Truncate.specRepTail` at target `tg` (pre `TailMetaRP`, post `TailMetaRWP`: `TailMetaRW`,
+   `wr ≤ size`, the stop); `walTailPO` no longer carries `LoWr`. Supply `walTail_truncSupR`
+   (`TruncSupRep.lean`): the tie `repTie` carries the caller's half of the run's nonzero byte (`repNZ`), which
+   with F-Z contradicts `WalAbsD.zeroPast`; `RepOld` starts via `rzStart_pureRT` (`RzRep.lean`); the state
+   property `RepP` (size `S0` or `tg`, `LoWr` at `tg = wr`), so `os.File.Truncate.specAu`'s closure was
+   widened (`m'.size = m.size ∨ m'.size = sz`, ours, proved).
+3. `fileutil.Fsync.specRepTail`: over `wp_tailFsyncPE`/`walInvBody_syncPE` (`syncLay_anyE`: F-Z, or
+   `TailPend` = `RepOld` with `syncLayP`), generalized over the token's kind; the post gives the pending token
+   back (`∃ k'`), not the key (no F-Z past a run).
+4. `walInv_repairPut` (moved to `UnregLent.lean`) unregisters by the token (`walInvBody_untailL`).
+   `walInvBody_untailR` (`RepairPut.lean`) and `RepairSync.lean` became unused: both files deleted.
+
+## The hard stop: `DiscardUnsaved` needs two abstract-disk steps (2026-11-25, open)
+
+`wal.DiscardUnsaved` (fork `unsaved.go:97`) renames `dir` to `dir.tmp` and fsyncs the parent, so its spec's
+success post must be "no WAL at `dir`" (`walDirIs dir none`, what `wal.bootRes`'s "no WAL, possibly
+`wal.tmp`" is built from). The trusted abstract disk (`GooseLang/Ext/AbsDisk/Impl.lean`) cannot reach that
+state:
+* no `AbsDiskStep` removes an entry of `s.wal` (`"WalCreate"` inserts; every other step goes through
+  `absDiskUpd`, which keeps the entry);
+* a crash keeps an absent WAL absent (`absDisk_semantics.crash`'s last clause), and `walCrash` lets a WAL
+  vanish only when `named = false`, which no step sets (`"WalNamed"` only sets it `true`).
+Between the rename and the parent's fsync a crash may keep the WAL at `dir` (the rename lost) or lose it
+(the rename durable): the abstract WAL must be one that "may vanish" there, and absent after the fsync.
+
+**Proposed** (superseded the same day, see START HERE: not needed, the fsExt WAL uses no step): two steps, mirroring `Create`'s rename/fsync pair in reverse:
+`"WalUnnamed"` of `dir` (`named := false`, at the rename: `walCrash`'s first disjunct then covers the
+rename made durable, its second the rename lost) and `"WalDiscard"` of `dir` (the entry deleted, at the
+parent's fsync, after which the rename is durable). No change to `walCrash`, `walImg` or the crash clause.
+
+1. **Minimal program that needs it**:
+   ```go
+   w, _ := wal.Create(lg, dir, md); w.Close()    // a WAL that holds nothing a Save wrote
+   if ok, err := wal.DiscardUnsaved(lg, dir); err == nil && ok && wal.Exist(dir) {
+       panic("discarded WAL still there")
+   }
+   ```
+   Its proof needs `walDirIs dir none` after `DiscardUnsaved` (`Exist`'s spec answers from `walDirIs`). With
+   the existing steps the abstract entry of `dir` stays `some d` (no step deletes it), while the WAL
+   invariant (`WalsOk`) ties every entry to a directory at `dir` holding its segments, which the rename
+   removes: no state of the invariant fits after the rename. Searched: `AbsDisk` is this repository's
+   extension (Perennial has no WAL model); its `Specs.lean` has no removal lemma, and none can exist since
+   the steps are the only transitions.
+2. **The real code has it**: etcd fork `goose-lean-fmt1c-tornsave` (`2bd3048d7`),
+   `server/storage/wal/unsaved.go:97` `DiscardUnsaved` (`os.Rename(dir, dir+".tmp")`, then
+   `syncDir(filepath.Dir(dir))`), called by `server/etcdserver/bootstrap.go:82` `bootstrap` before
+   `bootstrapBackend`, `haveWAL = !discarded`.
+
+`Unsaved` (read-only, a decode loop like `validSnapshotEntries`) needs no semantics change. Proposed spec
+(not yet written): `ValidSnapshotEntries`'s binders; post `b = true → err = nil ∧ ∃ d, o = some d ∧
+∀ op ∈ d.H.map WalOpG.toM, walOpBlank op` (`walOpBlank`: `.save h []` with `hsEmptyP h`, or `.snap m _` with
+index 0: what Go accepts), with a pure lemma that every crash image `H.take j` of such a history is blank
+(prefix-closed). "Reads `walFresh`" (server level, P5) needs in addition that no `SaveSnapshot` at index 0
+carries a nonzero term (raft never saves an empty snapshot: `IsEmptySnap`), a server-side fact.
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 

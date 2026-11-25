@@ -525,7 +525,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     (b t rt tm wg db lg wtx rtx : Loc) (m cm : GoMap) (γd : DBNames) (path : GoString)
     (γrw : sync.rwmutex.RWMutexNames) (D : Data) (sc dc : GoChan) (γsc γdc : ChanNames)
     (hP : P.Wf) (hrb : receiptBound GF ≤ 2 ^ 60) :
-    envVerifyOff ∗ hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+    ⌜EtcdVerifyOff⌝ ∗ hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗ metricsInv b ∗

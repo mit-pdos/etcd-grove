@@ -443,6 +443,38 @@ real WAL) is the natural report if the lead wants one.
   `proto.MarshalPb.spec`; no axiom): `WAL__ReadAll` builds. `wal.Link` regenerated; it fails only in
   `RepairReg` (E4: `Repair` truncates at `wr + |pending run|`, the specs `*.specRepTail` and
   `walTail_truncSup` to generalize; `notes/wal-p6-handoff.md`, "Repair with a pending run").
+- 2026-11-25 (session 5, later): E4's `Repair` with a pending run done (truncate at `LastOffset` ∈ `[wr, size]`,
+  the run kept; fsync and put-back by the pending token, the synced layout `TailPend` past a run; our specs
+  `os.File.Truncate.specRepTail`/`fileutil.Fsync.specRepTail` restated, `os.File.Truncate.specAu`'s closure
+  widened, all ours and proved); `WAL__Save` over the normalized op. **`wal.Link` builds** (real `lake build`,
+  kernel-checked); its axioms (`#print axioms` of all 254 linked results) are exactly the
+  `wal-fsext.txt` baseline, no `sorry`. `etc/tcb-report.py --check` itself needs a full build of the
+  worktree (965+ stale modules of other parts), not run. Left: the WalTester consumers of `CloneStLaw`,
+  `Unsaved`/`DiscardUnsaved` (new functions, no spec yet), E5.
+- 2026-11-25 (session 5, end): WalTester over `CloneStLaw`/`ZeroStLaw` (its Link regenerated, `Adequacy`);
+  its `TopLevelRobustness` builds. **Hard stop at P4**: `DiscardUnsaved`'s post (no WAL at `dir`) is
+  unreachable in the trusted abstract disk (no step removes a WAL, a crash never drops a named one); two
+  steps proposed (`"WalUnnamed"` at the rename, `"WalDiscard"` at the parent's fsync), with the minimal
+  program and the real code: `notes/wal-p6-handoff.md`, "The hard stop: `DiscardUnsaved`". `Unsaved`
+  needs no semantics change (its spec proposed there).
+- 2026-11-25 (session 6): **`Unsaved` specified and proved** (`Spec/.../wal/Unsaved.lean`, `Proof/.../wal/Unsaved.lean`,
+  pure `UnsavedDefs.lean`; linked as `walfs.wal.wp_Unsaved`, no new axiom): `true` ⇒ a WAL at `dir` whose history
+  is blank (`walBlank`: `Save`s of nothing, snapshots at index 0), prefix-closed (`walBlank_take`, every crash
+  image). `walInv_openAll` also returns the step bound `⧖ |H|` (the first segment's sequence below `2^64`).
+  **`DiscardUnsaved`: the approved order relaxation ("lower bounds read while present") is not enough**:
+  `bootstrap` re-`Create`s the WAL in the same generation after the discard, so a persistent fact of the
+  discarded WAL (`walNamed`, `walSyncedLb`) would read as a fact of the new one (`walGhost_raiseNamed` would
+  name a WAL that a crash may still drop). The facts need the WAL's incarnation.
+- 2026-11-25 (coordinator's decision): incarnations go in a follow-up **P6b** (`notes/wal-p6-handoff.md`,
+  "P6b"), with the tester's torn-free `walImgs` (d6 plan's P6). **`DiscardUnsaved` stays unspecified in P6's
+  landing**: P5's owner (`bootstrap`'s discard branch) needs its spec from P6b. P6 otherwise done:
+  `issues/raft-commit-lost-with-entries-kept.md` `blocks-proof: yes` (the fork fix in `## Fix`); no interface
+  step (removed on `lean`); ready for the full build, `tcb --check` and the gates.
+- 2026-11-25 (coordinator-E, #50): P6 stays off `lean` (the one `etcd_safe` packet). Re-pinned to `e94f33b50`
+  (`goose-lean-fmt1c-crashfixes`; its WAL identical to `2bd3048d7`'s): no WAL proof changes; `bootstrap`,
+  `applySnapshot`, `OpenSnapshotBackend` bodies change (integration round 2). W1: the crash facts rest on it
+  alone; no `Save` frame over stale bytes (`notes/wal-p6-handoff.md` START HERE).
+
 
 ### P8 progress (T5, branch `etcd-safe-p8`; `notes/wal-p8-handoff.md`)
 

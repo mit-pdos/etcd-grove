@@ -9,6 +9,8 @@ mode (no pipeline names): `walInv_openAll`. It does so once, before `ValidSnapsh
 that every attempt reads the same pinned segments; the put-back after the loop is `walInv_unpin` in read
 mode over every segment (`walInv_unpinAll`). Besides the pin, the client's state `o` is below the pinned
 one (`walOptLe`): the same history and read position, so the result's `walValidSnaps` is the client's.
+The pin also returns the step bound `⧖ |d.H|` (`walInvBody_stepsAt`), which `Unsaved` uses to bound the
+first segment's sequence (P6).
 -/
 module
 
@@ -69,6 +71,21 @@ theorem walInvBody_pinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   unfold walPinAllRes
   iframe
 
+/-- **The WALs' step bound at `dir`, at a look** (`walGhost_steps`, `walStepsLb_at`; Steps.lean's
+`walInvBody_tailSteps` without a tail record): the history of the WAL at `dir` is within it. -/
+theorem walInvBody_stepsAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ ⧖ d.H.length := by
+  iintro Hb
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  icases walGhost_steps (W := W) s $$ Hg with ⟨Hg, #Hst⟩
+  ihave #Hd := walStepsLb_at s dir d hd $$ Hst
+  iframe Hd
+  iexists Ls, cl, n, F
+  iframe
+
 /-- **`ValidSnapshotEntries`' update and pin** (see the file header): the update committed unchanged;
 the WAL absent (the area holds nothing at `nm`, the token kept), or the pin of every segment of the WAL
 `d`, the client's state below it. -/
@@ -86,7 +103,7 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
         ((⌜o = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
          (∃ (d : WalDur) (lay : WalLay) (X : List GoString) (hj : NamesH),
            ⌜walOptLe o (some d) ∧ VsePinOk C Mr jr d lay X hj⌝ ∗
-           walPinAllRes (L := L) (W := W) dir lay X hj)) := by
+           walPinAllRes (L := L) (W := W) dir lay X hj ∗ ⧖ d.H.length)) := by
   iintro #Hinv #Hsi Hnc Hu Hau Hn Hsf
   imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   imod walInvBody_areaAt C Mr R jr r s dir nm N dq h Wn hin hN walN_osShN_top' $$ Hb Hsi Hn Hsf
@@ -124,6 +141,7 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
       have h1 := HMs dir
       rw [hM0] at h1
       exact (walOptLe_some_iff _ _).1 h1
+    icases walInvBody_stepsAt C Mr R jr r s dir ds hsd $$ Hb with ⟨Hb, #Hst⟩
     imod walInvBody_pinAll C Mr R jr r s dir ds hsd $$ Hb Hu with ⟨Hb, %lay, %X, %hj, %hp, Hp⟩
     imod Hcl $$ [Hb] with -
     · iexists s; iexact Hb
@@ -133,7 +151,7 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     iframe HQ
     iright
     iexists ds, lay, X, hj
-    iframe Hp
+    iframe Hp Hst
     ipureintro; exact ⟨walDurLe_trans hle0 hle1, hp⟩
 
 /-- **The put-back of every pinned segment, unchanged** (`walInv_unpin` in read mode). -/

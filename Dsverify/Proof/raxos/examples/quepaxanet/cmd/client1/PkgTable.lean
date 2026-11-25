@@ -15,7 +15,6 @@ public import Dsverify.Proof.io.ioutil.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
 public import Dsverify.Proof.google_golang_org.grpc.codes.Init
-public import Dsverify.Proof.math.rand.Init
 
 @[expose] public section
 
@@ -34,7 +33,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.codes.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.InitHyp GF]
 variable [_root_.Perennial.encoding.gob.InitHyp GF]

@@ -13,6 +13,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.errors.NewVar
 public import Perennial.Proof.internal.bytealg.Base
+public import Proof.path.PkgInit
 -- (claim #34 stage 2, 2026-11-25) the imports of membership's and `types`' newly translated functions
 public import Perennial.Proof.crypto.sha1.Base
 public import Perennial.Proof.encoding.binary.Base
@@ -69,15 +70,7 @@ end go_etcd_io.etcd.pkg.v3.notify
 -- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
 -- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
 -- (prove-errinits, 2026-11-19: membership imports `path` for its store paths; until then in
--- the server's `BaseApply.lean`)
-namespace path
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
-
-end path
+-- the server's `BaseApply.lean`; since L1, 2026-11-24, in `Proof/path/PkgInit.lean`)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 

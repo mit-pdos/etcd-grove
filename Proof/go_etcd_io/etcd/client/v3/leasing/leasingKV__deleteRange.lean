@@ -41,7 +41,7 @@ theorem leasingKV.deleteRange.wp_proof
     (hCA : closeAll.spec (GF := GF) (hG := hG)) :
     leasingKV.deleteRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Hsh⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Hsh⟩
   obtain ⟨Hsk, Hse, -⟩ := Hsh
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
@@ -79,20 +79,22 @@ theorem leasingKV.deleteRange.wp_proof
     ihave #HErrD := HErr $$ %Broadcast.Done
     wp_apply HErrD $$ [$HCC] as %cerr2 %Hcerr2 -
     iapply HΦ
+    iframe Hlt
     iframe
     ileft; ipureintro; exact ⟨Hcerr2, rfl⟩
   | nil =>
   (try wp_auto)
   simp only [goose_wp_simp_extra, ↓reduceIte]
   (try wp_auto)
-  wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc]
-    as %maxRev %err1 Hrd
+  wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlt $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc]
+    as %maxRev %err1 ⟨Hlt, Hrd⟩
   · ipureintro; exact ⟨Hsk, Hse⟩
   (try wp_auto)
   rcases err1 with e1 | _
   · (try wp_auto)
     wp_for_post
     iapply HΦ
+    iframe Hlt
     isplitl [Hrd]
     · iexact Hrd
     ileft; ipureintro; exact ⟨by simp, rfl⟩
@@ -100,8 +102,8 @@ theorem leasingKV.deleteRange.wp_proof
   wp_apply (hLR (lkvLeases lkv) γ.lc pfx (leasingX lkv γ) (leasingSeen γ) o.key o.base.rangeEnd)
     $$ [$Hlc $Hpeek $Hwst] as %wsl ⟨%st, %ks, %wcs, Hwsl, -, Hwcs, -, -⟩
   (try wp_auto)
-  wp_apply (hRPC lkv γ pfx ctx cs maxRev o.key o.base.rangeEnd lo) $$ [$Hlkv $Hctx $HctxC $Hlo]
-    as %dr %err2 Hres
+  wp_apply (hRPC lkv γ pfx ctx cs maxRev o.key o.base.rangeEnd lo) $$ [$Hlt $Hlkv $Hctx $HctxC $Hlo]
+    as %dr %err2 ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨Hsk, Hse⟩
   (try wp_auto)
   wp_apply hCA $$ [$Hwsl $Hwcs] as -
@@ -112,6 +114,7 @@ theorem leasingKV.deleteRange.wp_proof
     · (try wp_auto)
       wp_for_post
       iapply HΦ
+      iframe Hlt
       isplitl [Hrd]
       · iexact Hrd
       ileft; ipureintro; exact ⟨by simp, rfl⟩
@@ -127,6 +130,7 @@ theorem leasingKV.deleteRange.wp_proof
     (try wp_auto)
     wp_for_post
     iapply HΦ
+    iframe Hlt
     iframe
     iright; iframe; ipureintro; rfl
 

@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 theorem rafthttp.newStreamRoundTripper.wp_proof
     (hNTT : transport.NewTimeoutTransport.spec (GF := GF) (hG := hG)) :
     rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG) := by
-  intro H tls dt
+  intro H tls dt Htls
   wp_start
   ihave #Htp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport $$ []
   · iPkgInit
@@ -34,7 +34,7 @@ theorem rafthttp.newStreamRoundTripper.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HCRT, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HCWT⟩
   wp_auto
-  wp_apply hNTT H tls dt (W64 5000000000) (W64 5000000000) as %tr %err Hres
+  wp_apply hNTT H tls dt (W64 5000000000) (W64 5000000000) Htls as %tr %err Hres
   iapply HΦ
   icases Hres with (%Hne | ⟨%He, #Hrt⟩)
   · ileft; ipureintro; exact Hne

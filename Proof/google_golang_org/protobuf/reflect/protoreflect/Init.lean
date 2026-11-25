@@ -7,7 +7,7 @@ initializers of its variables (`X.init`, models in `TrustedCode/` that do nothin
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.google_golang_org.protobuf.PkgInit
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

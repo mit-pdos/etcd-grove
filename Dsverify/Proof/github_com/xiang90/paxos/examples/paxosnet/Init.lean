@@ -9,10 +9,10 @@ module
 
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Base
 public import Perennial.Proof.time.Link
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Dsverify.Proof.github_com.xiang90.paxos.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
