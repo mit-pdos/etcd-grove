@@ -83,6 +83,7 @@ variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumpti
 variable [field_sem : net.FieldAssumptions] [π : NetProtoGS]
 
 attribute [local instance] decRep
+attribute [local instance] Perennial.github_com.tangledbytes.go_vsr.examples.vsrnet.jsonCodec
 
 /-- **Local axiom (test-only)**: `json.NewDecoder(conn)`, at `decOkM` (file header). -/
 axiom local_newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG)
