@@ -430,3 +430,6 @@ real WAL) is the natural report if the lead wants one.
   release/open positions invariant under normalization. Left: `WAL__ReadAll` (E3 proper), `TailPend` with a
   pending run, `RepairReg` (E4), then `Save`/`encodeState`/laws and the rest (`notes/wal-p6-handoff.md`,
   "Session 3").
+- 2026-11-25: the hard stop resolved: Upamanyu approved (#8, 00:38Z) `proto.MarshalPb.spec`'s post
+  `⌜l ≠ null → d ≠ slice.nil⌝` (trusted text, this one change); `proto.MarshalPbNonNil.law` deleted, the
+  `ZeroStLaw`/`walStMarsh` proofs take the spec.

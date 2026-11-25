@@ -83,8 +83,8 @@ abbrev WalPbIn.ZeroLaw (P : WalPbIn GF) : Prop :=
 
 /-- **A fresh zero hard state marshals to the zero state's encoding** (P6, the torn-`Save` fix: `Save`'s
 `w.state = &raftpb.HardState{}`, whose state record `encodeState` may write; `walStIn`). As `ZeroLaw.2`,
-with `walStMarsh`. Discharged for raft's instance from `proto.MarshalPbNonNil.law` (pending the
-strengthened `proto.Marshal` spec, `notes/wal-p6-handoff.md`). -/
+with `walStMarsh`. Discharged for raft's instance from `proto.MarshalPb.spec` (non-nil for a non-nil
+message: `RaftModel/LawsHsMarshal.lean`). -/
 abbrev WalPbIn.ZeroStLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (p : Loc) (E : CoPset),
     p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ |={E}=> P.hsIn p hsZero ∗ walStMarsh Mr p hsZero

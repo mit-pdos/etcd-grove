@@ -152,6 +152,11 @@ Left (failing in `wal.Link`'s build, or not yet reached):
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 
+**Resolved 2026-11-25:** Upamanyu approved the change (#8, 00:38Z). `proto.MarshalPb.spec`'s post now has
+`⌜l ≠ null → d ≠ slice.nil⌝` (no new premise); `proto.MarshalPbNonNil.law` is deleted, and
+`walRaftP_marshSt`/`walRaftP_zeroSt`/`walSrvP_zeroSt` take `proto.MarshalPb.spec`. The axiom
+`proto.MarshalPb.wp_proof` keeps its name (the tcb baseline lists names). What follows is the history.
+
 `Save(st, ents)` with `ents ≠ []` and `st` empty now writes `encodeState(w.state)`, and `w.state` can
 be the empty hard state (a WAL with no state record yet: `Save` sets `w.state = &raftpb.HardState{}`,
 wal.go:1345-1347). `encodeState` marshals it: `pbutil.MustMarshalMessage(s)` = `proto.Marshal(s)`
@@ -217,7 +222,7 @@ place the approval discharges).
 - `saveState(s)` (non-empty `s`, also `cut`'s `saveState(w.state)`): `walStMarsh` from `MarshalHsLaw`
   (its post already says non-nil). No new law.
 - `Save`'s `w.state = &HardState{}`: a new law `WalPbIn.ZeroStLaw P Mr` (as `ZeroLaw.2` with
-  `walStMarsh Mr p hsZero` added), discharged for the instance from `proto.MarshalPbNonNil.law`.
+  `walStMarsh Mr p hsZero` added), discharged for the instance from `proto.MarshalPb.spec` (non-nil since 2026-11-25).
 - `ReadAll`'s `w.state = proto.Clone(state)`: **needs provenance tracking** in the loop. `proto.Clone`
   copies the content with its presence bits, and `walHsIn` admits non-canonical empty contents, so a
   law over any `hsIn` pointer is false. True: `state` is `&HardState{}` or `MustUnmarshalState(d)` of a
@@ -226,7 +231,7 @@ place the approval discharges).
   `state` was unmarshalled from, `none` = the zero alloc) and the unmarshal law's post adds
   `⌜bs = Mr.encState h⌝ -∗ canonical`; at the end `bsSt` is the last state record's data, which
   the decoding lemmas equate to `Mr.encState`; a `CloneStLaw` carries `walStMarsh` through `Clone`.
-  Both laws discharged in `RaftModel/` from `proto.MarshalPbNonNil.law` (and the unmarshal model).
+  Both laws discharged in `RaftModel/` from `proto.MarshalPb.spec` (and the unmarshal model).
 
 **Second finding: `encodeState(w.state)` needs `w.state ≠ nil`, which the handle forgets.** `Save`
 checks `w.state == nil` at its top, but the loop over the entries closes the handle, whose `w.state`
@@ -246,6 +251,5 @@ handle slot as `walStIn P Mr sp h.st h.stNil`, with `walStIn_null/_intro/_set/_n
 in the entries loop (`Hnil` in `HI`); the `len(ents) > 0` branch (`wp_join (Q := …) at next`, the
 inner `IsEmptyHardState` join at `walStIn hp2 (saveHS …)`), `saveState` otherwise. New hypotheses of
 `Save.wp_proof`: `wp_encodeState`, `wp_encodeStateNE`, `wp_marshal` (`MarshalHsLaw`), `hzst`
-(`ZeroStLaw`). Laws: `proto.MarshalPbNonNil.law` (`Proof/google_golang_org/protobuf/proto/
-MarshalPbNonNil.lean`), `walRaftP_zeroC` (`LawsHs`), `walRaftP_marshSt`/`walRaftP_zeroSt`/`walSrvP_zeroSt`
+(`ZeroStLaw`). Laws: `proto.MarshalPb.spec` (non-nil post, approved 2026-11-25), `walRaftP_zeroC` (`LawsHs`), `walRaftP_marshSt`/`walRaftP_zeroSt`/`walSrvP_zeroSt`
 (`LawsHsMarshal`). Still to do there: `ReadAll`'s provenance and `CloneStLaw` (above), the Links.
