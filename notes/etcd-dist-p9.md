@@ -499,3 +499,8 @@ from P9's `remote` (`RBase`'s `J`, `lin` an AU), port them the same way (`lin_li
 is left here.
 
 **Left**: read `/shared/tmp/m1-tcb.log`, fix the build, update the baseline (N2's two axioms only), push.
+
+**Update (end of session 3):** the rerun at `d60e49bcad` got past `Kit`. The full build fails next in dsv-vr's
+`vsrnet/OrchProofDefs.lean:74-77`. Its `PendDec` instance predates P9's: it has field `err`, where P9's `PendDec`
+has `errW`/`errR` and takes a configuration. Use `PendDec.ofTotal` as P9 did for the existing instances (`760047072f`),
+then rerun `/shared/tmp/m1-tcb.sh`. TCB is still not run.
