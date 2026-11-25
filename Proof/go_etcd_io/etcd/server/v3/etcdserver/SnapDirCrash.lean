@@ -193,12 +193,14 @@ def snapSlot (sd : GoString) (J : Ino) (V : Hist) (i : w64) : IProp GF := onFs (
 /-- `snapDirKept` at the file extension's instances. -/
 def snapDirKeptF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V' : Hist)
     (sd : GoString) : IProp GF :=
-  iprop(□ ∀ (R0 : Roots) (dq : DFrac) (j : Ino), osSharedInv R0 -∗ osPathS R0 sd dq j -∗
-    ⌜lookupH R V' sd = some (.dir j)⌝)
+  iprop(□ ∀ (dq : DFrac) (j : Ino), osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝)
 
 /-- **The crash kept the snapshot directory** (persistent; T7's obligation, see the file header): every
 directory this generation resolves `sd` to is the one the crashed tree `V'` (under the roots `R`)
-resolves it to. -/
+resolves it to. (D-T7-1, 2026-11-25, approved by coordinator-E on #50, 15:22:46Z items 3-5; ledger "T6's
+`snapDirKept` is unprovable as stated": at the law's own roots `R`; until then over the roots `R0` of any
+shared invariant, which nothing relates to `R` without an update. The callers get `R0 = R` from
+`crashRest_roots`.) -/
 def snapDirKept (R : Roots) (V' : Hist) (sd : GoString) : IProp GF := onFs (snapDirKeptF R V' sd)
 
 instance snapDirKeptF_persistent [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V' : Hist)
@@ -206,6 +208,53 @@ instance snapDirKeptF_persistent [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (
   unfold snapDirKeptF; infer_instance
 
 end defs
+
+section roots
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
+
+/-- **The shared invariants of one generation have the crash's roots** (with its restart resources):
+two of them agree on their roots. What `old_dir`'s callers need to use `snapDirKeptF` at the law's roots (D-T7-1; T7's, moved here
+2026-11-25). -/
+theorem crashRest_roots (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R R0 : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗ osSharedInv (L := L) R0 -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ={E}=∗
+      ⌜R0 = R⌝ ∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
+  iintro #Hsi #Hsi0 Hr
+  unfold crashRest
+  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %hrel, Hab, Ham, Hfs, HAt, Htok, Htl, Hcc⟩
+  unfold crashShared
+  icases Hcc with ⟨Has, %hsh, Hcm⟩
+  unfold osSharedInv
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+  imod inv_acc hE $$ Hsi0 with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs0, %Γn0, Hs0, HAn0, %hcoh0, Halen0, HAlog0⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs0 with %hVs0
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs0
+  obtain ⟨hR0, rfl⟩ := hVs0
+  imod Hclose $$ [Hs0 HAn0 Halen0 HAlog0] with -
+  · inext; iexists _, Γn0; iframe; ipureintro; exact hcoh0
+  imodintro
+  isplitr
+  · ipureintro; rw [← hR0, hR]
+  iexists Γb, Γm, F, st, st', Γf, Γt
+  iframe Hab Ham Hfs HAt Htok Htl Has Hcm
+  isplitr
+  · ipureintro; exact hrel
+  ipureintro; exact hsh
+
+end roots
 
 /-! ### One index across the crash -/
 
@@ -239,16 +288,16 @@ theorem fileAtCrashF_mono (L : GooseLocalGS GF) (p : GoString) (D : Data)
   ipureintro; exact crashLeaves_mono hc (hP x)
 
 /-- The old generation's claim on index `i`'s name is in the directory the crashed tree has at `sd`. -/
-theorem old_dir (L : GooseLocalGS GF) (R R0 : Roots) (V' : Hist) (sd d b : GoString) (i : w64)
+theorem old_dir (L : GooseLocalGS GF) (R : Roots) (V' : Hist) (sd d b : GoString) (i : w64)
     (J j : Ino) (dq : DFrac) (hJ : lookupH R V' sd = some (.dir J)) (hb : NameOk b)
     (hp : snap.snapDBPath sd i = child d b) :
-    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R0 -∗
-      osPathS (L := L) R0 d dq j -∗ ⌜d = sd ∧ b = snap.snapDBName i ∧ j = J⌝ := by
+    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R -∗
+      osPathS (L := L) R d dq j -∗ ⌜d = sd ∧ b = snap.snapDBName i ∧ j = J⌝ := by
   rw [bootSnap.snapDBPath_child] at hp
   obtain ⟨rfl, rfl⟩ := child_inj (snap.snapDBName_nameOk i) hb hp
   unfold snapDirKeptF
-  iintro #Hk #Hsh Hp
-  ihave %h := Hk $$ %R0 %dq %j Hsh Hp
+  iintro #Hk Hp
+  ihave %h := Hk $$ %dq %j Hp
   ipureintro
   rw [hJ] at h
   cases h
@@ -263,7 +312,7 @@ theorem step_file (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D
     (hJ : lookupH R V' sd = some (.dir J))
     (hDl : ∀ x ∈ Dl, V'.now.entry J (snap.snapDBName i) ≠ some (.file x))
     (P : Ino → Option Node → Prop) (hP : ∀ x v, P x v → v = none ∨ v = some (.file x)) :
-    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗
+    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dl tt V' -∗
       fileAtCrashF (hG := ⟨G, L⟩) (snap.snapDBPath sd i) Dt P -∗
       snapSlotF (hG := ⟨G, L'⟩) sd J V' i ={⊤}=∗
@@ -274,11 +323,13 @@ theorem step_file (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D
             fileFreeDurF (hG := ⟨G, L'⟩) (snap.snapDBPath sd i)) ∨
           (⌜(V'.now.entry J (snap.snapDBName i)).isSome⌝ ∗
             fileAtCrashF (hG := ⟨G, L'⟩) (snap.snapDBPath sd i) Dt durNamed)) := by
-  iintro #Hk Hcr Hf Hs
+  iintro #Hk #HshR Hcr Hf Hs
   unfold fileAtCrashF
   icases Hf with ⟨%R0, %d, %b, %dq, %j, %qc, %h, %x, %hp, -, #Hsh, Hp, -, Hn, #Hnc, Hfh⟩
   obtain ⟨hpe, hb, -, -⟩ := hp
-  ihave %hdj := old_dir L R R0 V' sd d b i J j dq hJ hb hpe $$ Hk Hsh Hp
+  imod crashRest_roots Q L L' Dl tt V' R R0 ⊤ (by simp) $$ HshR Hsh Hcr with ⟨%hR0, Hcr⟩
+  subst hR0
+  ihave %hdj := old_dir L R V' sd d b i J j dq hJ hb hpe $$ Hk Hp
   obtain ⟨hd, hbn, hjJ⟩ := hdj
   subst d b j
   imod nameCrash_crash Q L L' Dl tt V' R0 J (snap.snapDBName i) (DFrac.own 1) h (P x) ⊤
@@ -339,18 +390,20 @@ new generation (nothing logged). -/
 theorem step_free (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (Dl : List Ino) (tt : Bool)
     (V' : Hist) (hV : V'.2 = []) (R : Roots) (J : Ino) (sd : GoString) (i : w64)
     (hJ : lookupH R V' sd = some (.dir J)) :
-    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗
+    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dl tt V' -∗
       fileFreeDurF (hG := ⟨G, L⟩) (snap.snapDBPath sd i) -∗
       snapSlotF (hG := ⟨G, L'⟩) sd J V' i ={⊤}=∗
       ⌜V'.now.entry J (snap.snapDBName i) = none⌝ ∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dl tt V' ∗
       fileFreeDurF (hG := ⟨G, L'⟩) (snap.snapDBPath sd i) := by
-  iintro #Hk Hcr Hf Hs
+  iintro #Hk #HshR Hcr Hf Hs
   unfold fileFreeDurF
   icases Hf with ⟨%R0, %d, %b, %dq, %j, %qc, %h, %hp, -, #Hsh, Hp, -, Hn, #Hnc⟩
   obtain ⟨hpe, hb, -, -⟩ := hp
-  ihave %hdj := old_dir L R R0 V' sd d b i J j dq hJ hb hpe $$ Hk Hsh Hp
+  imod crashRest_roots Q L L' Dl tt V' R R0 ⊤ (by simp) $$ HshR Hsh Hcr with ⟨%hR0, Hcr⟩
+  subst hR0
+  ihave %hdj := old_dir L R V' sd d b i J j dq hJ hb hpe $$ Hk Hp
   obtain ⟨hd, hbn, hjJ⟩ := hdj
   subst d b j
   imod nameCrash_crash Q L L' Dl tt V' R0 J (snap.snapDBName i) (DFrac.own 1) h (· = none) ⊤
@@ -435,14 +488,14 @@ theorem step_index (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (
     (hMF : ∀ i, F !! i ≠ none ↔ (E !! i = none ∧ M !! i = none)) (i : w64)
     (hJ : lookupH R V' sd = some (.dir J))
     (hDl : ∀ x ∈ Dl, V'.now.entry J (snap.snapDBName i) ≠ some (.file x)) :
-    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗
+    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dl tt V' -∗
       oldAt L sd img E M F i -∗ snapSlotF (hG := ⟨G, L'⟩) sd J V' i ={⊤}=∗
       ∃ Dn : List Ino, ⌜∀ x ∈ Dn, V'.now.entry J (snap.snapDBName i) = some (.file x)⌝ ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (Dn ++ Dl) tt V' ∗
         newAt L' V' J sd img E M F i := by
   classical
-  iintro #Hk Hcr Ho Hs
+  iintro #Hk #HshR Hcr Ho Hs
   unfold oldAt newAt
   icases Ho with ⟨HoM, HoF⟩
   cases hMi : M !! i with
@@ -456,7 +509,7 @@ theorem step_index (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (
     icases HoM with ⟨Hd, #Himg⟩
     icases Hd with (⟨%hE, Hf⟩ | ⟨%hE, Hf⟩)
     · imod step_file Q L L' Dl tt V' hV R J sd i D hJ hDl durNamed
-        (fun x v h => Or.inr h) $$ Hk Hcr Hf Hs with ⟨%Dn, %hDn, %hPx, Hcr, Hout⟩
+        (fun x v h => Or.inr h) $$ Hk HshR Hcr Hf Hs with ⟨%Dn, %hDn, %hPx, Hcr, Hout⟩
       obtain ⟨x, hPx⟩ := hPx
       have hkp : keepP V' J E i := Or.inr hE
       have hkM : keepM V' J E M i = some D := by simp [keepM, hMi, hkp]
@@ -475,7 +528,7 @@ theorem step_index (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (
         iexact Himg
       iempintro
     · imod step_file Q L L' Dl tt V' hV R J sd i D hJ hDl pendNamed
-        (fun x v h => h) $$ Hk Hcr Hf Hs with ⟨%Dn, %hDn, -, Hcr, Hout⟩
+        (fun x v h => h) $$ Hk HshR Hcr Hf Hs with ⟨%Dn, %hDn, -, Hcr, Hout⟩
       icases Hout with (⟨%hv, Hfr⟩ | ⟨%hv, Hf⟩)
       · have hkp : ¬ keepP V' J E i := by
           unfold keepP; rw [hv]; simp [hE]
@@ -510,7 +563,7 @@ theorem step_index (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (
     cases hFi : F !! i with
     | some u =>
       rw [optF_some (f := (F !! ·)) hFi, optF_some (f := keepF V' J E M F) (hkF.trans hFi)]
-      imod step_free Q L L' Dl tt V' hV R J sd i hJ $$ Hk Hcr HoF Hs with ⟨-, Hcr, Hfr⟩
+      imod step_free Q L L' Dl tt V' hV R J sd i hJ $$ Hk HshR Hcr HoF Hs with ⟨-, Hcr, Hfr⟩
       imodintro
       iexists []
       rw [List.nil_append]
@@ -535,13 +588,13 @@ theorem loop (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (tt : B
       j1 = j2 ∧ b1 = b2) :
     ∀ (l : List w64) (Dl : List Ino), l.Nodup →
     (∀ x ∈ Dl, ∀ i ∈ l, V'.now.entry J (snap.snapDBName i) ≠ some (.file x)) →
-    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗
+    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dl tt V' -∗
       ([∗list] i ∈ l, oldAt L sd img E M F i ∗ snapSlotF (hG := ⟨G, L'⟩) sd J V' i) ={⊤}=∗
       ∃ D' : List Ino, crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (D' ++ Dl) tt V' ∗
         [∗list] i ∈ l, newAt L' V' J sd img E M F i
   | [], Dl, _, _ => by
-    iintro #Hk Hcr -
+    iintro #Hk #HshR Hcr -
     imodintro
     iexists []
     rw [List.nil_append]
@@ -549,10 +602,10 @@ theorem loop (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (tt : B
     iapply BigSepL.bigSepL_nil.2; iempintro
   | i :: l, Dl, hl, hDl => by
     have hl' := List.nodup_cons.1 hl
-    iintro #Hk Hcr H
+    iintro #Hk #HshR Hcr H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨Ho, Hs⟩, H⟩
     imod step_index Q L L' Dl tt V' hV R J sd img E M F hMF i hJ
-      (fun x hx => hDl x hx i (List.mem_cons_self ..)) $$ Hk Hcr Ho Hs with ⟨%Dn, %hDn, Hcr, Hn⟩
+      (fun x hx => hDl x hx i (List.mem_cons_self ..)) $$ Hk HshR Hcr Ho Hs with ⟨%Dn, %hDn, Hcr, Hn⟩
     imod loop Q L L' tt V' hV R J sd img E M F hMF hJ huniq l (Dn ++ Dl) hl'.2
       (fun x hx i' hi' he => by
         rcases List.mem_append.1 hx with hx | hx
@@ -560,7 +613,7 @@ theorem loop (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (tt : B
           obtain ⟨-, hb⟩ := huniq _ _ _ _ _ he h1
           have := bootSnap.snapDBName_inj hb
           subst this; exact hl'.1 hi'
-        · exact hDl x hx i' (List.mem_cons_of_mem _ hi') he) $$ Hk Hcr H with ⟨%D', Hcr, H⟩
+        · exact hDl x hx i' (List.mem_cons_of_mem _ hi') he) $$ Hk HshR Hcr H with ⟨%D', Hcr, H⟩
     imodintro
     iexists D' ++ Dn
     rw [List.append_assoc]
@@ -692,7 +745,7 @@ theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
   ihave Hall := BigSepL.bigSepL_sep_eqv_symm.1 $$ [Hold Hslots]
   · iframe Hold Hslots
   imod loop Q (atC L) (atC L') tt V' hV R J sd img E M F hMF hJ hwf.2.2.2.2 snap.allW64 D
-    bootSnap.allW64_nodup (fun x hx i _ => hD x hx i) $$ Hk Hcr [Hall] with ⟨%D', Hcr, Hnew⟩
+    bootSnap.allW64_nodup (fun x hx i _ => hD x hx i) $$ Hk Hsh Hcr [Hall] with ⟨%D', Hcr, Hnew⟩
   · unfold oldAt; iexact Hall
   -- the new generation's maps
   unfold newAt

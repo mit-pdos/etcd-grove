@@ -125,7 +125,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A crash image that is a graceful one** (and its records meet the WAL's read facts): with the
 backend's index at or below the WAL's commit, at or above its snapshot (`snapRowB2`'s first case) and the
 bootstrap log, and the stored `confState` the index's (`confRowW`'s first case), the vacancy armed
-(`nodeVacant_arm`: its crash token returned, for `specC`'s post), the WAL's slot `wal.stopImage` from
+(`nodeVacant_arm`: its crash token returned, for `specC`'s post; and the snapshot directory's crash
+token, `srvSnapKeep`, D-T7-2: the graceful image keeps only the handle), the WAL's slot `wal.stopImage` from
 `wal.crashImageR`; the rest is the same. Otherwise the crash image is returned with the reason (T10's
 restatement, 2026-11-25, weakened those rows). -/
 theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
@@ -133,7 +134,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
     (M : GMap Loc MemStorNamesRec) (E : CoPset) :
     srvCrashImageAt (GF := GF) γ ρ id dd S σ i A D m M ⊢
       |={E}=> (srvDiskImageAt γ ρ id dd S σ i A D m M ∗ ⌜walReadFacts σ⌝ ∗
-        (∃ x, nodeCrashTok γ.cl id x)) ∨
+        (∃ x, nodeCrashTok γ.cl id x) ∗ srvSnapKeep γ id dd) ∨
       (srvCrashImageAt γ ρ id dd S σ i A D m M ∗
         ⌜¬ (uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i ∧
           ∀ cs, v3ConfStateIs D cs → confStateIs cs m)⌝) := by
@@ -152,12 +153,13 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
   icases Hrow with (%Hrow | ⟨%j, %Hj, -, -⟩)
   rotate_left
   · iexfalso; ipureintro; omega
+  icases snapDirKeep_handle _ _ _ _ $$ Hsdi with ⟨#Hsdh, Hsdi⟩
   imod nodeVacant_arm γ.cl id E $$ Hvac with ⟨%x, Hvac, Hct⟩
   ihave Hws := wal.stopImage_intro γ.cl S σ i Hw.1 hb hc $$ [Hcert Hl]
   · iframe Hcert Hl
   imodintro
   ileft
-  isplitl [Hvac HrS Hmv Hws Hreg Hfiles Hsdi Hmn]
+  isplitl [Hvac HrS Hmv Hws Hreg Hfiles Hmn]
   · iframe Hvac HrS HA Hmv Hconf Hws Hreg Hfiles
     isplitr
     · ipureintro; exact Hρ
@@ -168,12 +170,17 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
     isplitr
     · ipureintro; exact hcs
     iexists γd, γm, c
-    iframe Hsdi Hmn
+    iframe Hsdh Hmn
     ipureintro; exact ⟨Hsl, Hrow.2⟩
   isplitr
   · ipureintro; exact Hw.2
-  iexists x
-  iexact Hct
+  isplitl [Hct]
+  · iexists x
+    iexact Hct
+  iunfold srvSnapKeep
+  iexists γd, γm
+  iframe Hsdi
+  ipureintro; exact Hsl
 
 end image
 
