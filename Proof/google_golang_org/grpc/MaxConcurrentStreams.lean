@@ -50,7 +50,7 @@ theorem grpc.MaxConcurrentStreams.wp_proof : grpc.MaxConcurrentStreams.spec (GF 
     wp_auto
     iapply HΨ $$ Hp
     ipureintro
-    exact ⟨rfl, rfl, rfl⟩
+    exact ⟨(by unfold srvOptsSameBut; rfl), (by unfold srvCodecOk; exact Or.inl rfl), rfl, rfl, rfl⟩
 
 end proof
 

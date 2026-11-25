@@ -24,8 +24,15 @@ variable [sem : go.Semantics]
 `serverOptions` (`opt.apply(&opts)`), in order: `ChainUnaryInterceptor(ics...)` appends `ics` to
 `chainUnaryInts`, `ChainStreamInterceptor` to `chainStreamInts`; then `chainUnaryServerInterceptors`
 and `chainStreamServerInterceptors` compose them (no `UnaryInterceptor`/`StreamInterceptor` option:
-the chain is that list); the other options (`.neutral`) set limits, credentials, the codec, stats
-handlers. No service is registered; it does not serve until `Serve`. -/
+the chain is that list); `StatsHandler(h)` (`.stats h`) adds `h` to the stats handlers; the other
+options (`.neutral`) change only the fields of `srvOptsSameBut`'s whitelist (limits, flow control,
+buffers, keepalive, timeouts, workers) and the codec to a protobuf codec's (`srvCodecOk`). So no
+option of a kind sets `unaryInt`, `streamInt`, `creds`, `cp`, `dc`, `unknownStreamDesc` or
+`streamWrapper` (every kind keeps them, 2026-11-26, `notes/axiom-review/grpc-neutral-narrow.md`):
+they keep `defaultServerOptions`' values, nothing in front of the chain, no credentials (the model
+panics on non-insecure ones), no compressor (the model panics on one), `Unimplemented` for an
+unregistered method, no stream wrapper. No service is registered; it does not serve until
+`Serve`. -/
 axiom grpc.NewServer.wp_proof : grpc.NewServer.spec (GF := GF) (hG := hG)
 
 end proof
