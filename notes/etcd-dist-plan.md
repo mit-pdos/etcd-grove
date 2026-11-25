@@ -2375,6 +2375,9 @@ root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, 
 
 ## 21. M1 assembly (2026-11-25, branch `etcd-safe-m1-top/2026-11-25`; the etcd_safe lead's helper)
 
+**Needs `KvDefs` (N7-kv) to build.** `KvOnly` is in N7-kv's `Proof/.../dist/client/KvDefs.lean`, which is not on this
+base. The branch builds once it is rebased onto etcd-grove-03's `etcd-safe-m1`, which carries N7-kv.
+
 **Scope.** This branch has M1's statement, its skeleton, the premise witness and the collection root. It
 starts from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca`. etcd-grove-03 does §11.3 steps 1-5 on their
 branch `etcd-safe-m1`: the merge of `etcd-safe-p9-nc`, the port of `kvremote/Start.lean` to Γ,
