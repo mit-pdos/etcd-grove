@@ -6,8 +6,11 @@ rabia's `zerolog.Hyps` and QuePaxa's `PbHyp`, refuted as stated (`notes/axiom-re
 per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axioms"). grpc's initializer
 (item 4) and go-redis's (item 5) are not touched.
 
-**State (2026-11-25, fourth session): rabia done; QuePaxa done and reviewed; craq not started.**
-- **Gates (2026-11-25, at `eb7cf0b3fd`, rabia only): all passed.** QuePaxa's gates: see the last bullet.
+**State (2026-11-25, fourth session): rabia done; QuePaxa done, reviewed, gates passed; craq not started.**
+- **Gates: all passed** at `eb7cf0b3fd` (rabia only) and at `ebd1ac09ab` (rabia + QuePaxa; 386 axioms, 64
+  collections match, `pb-init: ok`). So `ebd1ac09ab` can be queued as it stands; craq is the next session's.
+- **Next session: craq** (item 1 below, option 1), from `ebd1ac09ab`. The check script lives in `etc/`, not
+  `etc/dsv/`: `etc/goose.py` loads every `etc/dsv/*.py` as a kit (it broke gen-link's output once).
 - **rabia (item 2 below): done.** `a28755b089`'s 16 zerolog axiom files and `HypsHoldLinked.lean` restored;
   `Spec.lean`'s `New.spec` is `New(interface.nil)` with post `loggerOk lg`, `Logger.level.spec` takes
   `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. Review: `notes/axiom-review/dsv-fix6/zerolog.md`,
