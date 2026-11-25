@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `Proof/runtime/Init.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Package initialization of `runtime`
 (item 8, 2026-10-17): its `wp_initialize'`.

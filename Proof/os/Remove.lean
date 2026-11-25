@@ -28,7 +28,7 @@ variable [os.Assumptions]
 
 theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) := by
   intro d b j i R dq h q r qc Q hb hi hq
-  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  wp_start_folded as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
   · iPkgInit
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
@@ -39,6 +39,8 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
   isplitr
   · iapply Hfe $$ Hsys
   iframe
+  unfold rmFileOutN rmFileOut
+  iexact Hrest
 
 /-- `specFileS` from `specFileSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := by

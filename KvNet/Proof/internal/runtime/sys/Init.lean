@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `Proof/internal/runtime/sys/Init.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Package initialization of `internal.runtime.sys`
 (item 8, 2026-10-17): its `wp_initialize'`.

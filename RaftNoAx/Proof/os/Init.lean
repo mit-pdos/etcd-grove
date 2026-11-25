@@ -27,10 +27,10 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Proof.internal.filepathlite.Init
+public import RaftNoAx.Proof.internal.filepathlite.Init
 public import RaftNoAx.Proof.internal.poll.Init
 public import RaftNoAx.Proof.io.fs.Init
-public import Proof.runtime.Init
+public import RaftNoAx.Proof.runtime.Init
 public import RaftNoAx.Proof.syscall.Init
 public import Proof.os.Models
 public import Perennial.Proof.sync.Link

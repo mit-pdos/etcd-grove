@@ -5342,7 +5342,10 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
               # (2026-11-03) `os`'s, now generated (raft's `Init.lean` imports it), and its imports'
               'os', 'syscall', 'io.fs',
               # (2026-11-07) `os`'s translated initializers' imports
-              'internal.poll', 'internal.syscall.unix']
+              'internal.poll', 'internal.syscall.unix',
+              # (2026-11-25, Go model overlays at Perennial e9a45a420) `os`'s new imports, whose
+              # `Init.lean` import `PkgInitExt`: runtime (and its imports), filepathlite
+              'runtime', 'internal.runtime.atomic', 'internal.runtime.sys', 'internal.filepathlite']
 
 
 def part_paths(inits):
@@ -5730,7 +5733,9 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
 NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
-            'internal.filepathlite']
+            'internal.filepathlite',
+            # (2026-11-25) `os` imports runtime: its `Init.lean` and its imports' import `PkgInitExt`
+            'runtime', 'internal.runtime.atomic', 'internal.runtime.sys']
 # ((Go model overlays S5) the models' internal/gomodel, which syscall's and os's import, is Perennial's:
 # no `Init.lean` of its own, here or in the part.)
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
@@ -5765,7 +5770,8 @@ def net_inits(ext_txt):
         # (`etc/goose.py`'s net lean roots): their translations and instances are the main tree's
         for p in NET_MAIN:
             inv[p] = saved[0][p]
-            inst[p] = saved[1][p]
+            if p in saved[1]:  # (runtime's instance is Perennial's)
+                inst[p] = saved[1][p]
         # their `Init.lean` copied into the part, over the part's `PkgInitExt` (the main tree's
         # imports raft's translation, and declares the same names)
         net_main = [(f'{NET_ROOT}/{path}', txt) for p in NET_MAIN for path, txt in gen(p, SPECIAL.get(p))]
@@ -5939,7 +5945,8 @@ def dsv_kit_raw(k, base):
         _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
             inv[p] = main_inv[p]
-            inst[p] = main_inst[p]
+            if p in main_inst:  # (runtime's instance is Perennial's)
+                inst[p] = main_inst[p]
         # the main tree's packages `MAIN` (always the main tree's inventory), and those of their
         # imports that `Net/` lacks
         st, seen = list(main), set()
