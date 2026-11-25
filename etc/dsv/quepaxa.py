@@ -64,7 +64,9 @@ MAIN = ['bufio', 'google_golang_org.protobuf.proto',
 # math/rand (math-rand-isinit, 2026-11-24): Perennial proves its `wp_initialize'`
 # (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so neither here nor
 # in `MAIN`
-HYP_INITS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encoding.gob',
+# Not io/ioutil (dsv-retire-1-inits, 2026-11-25): its `Discard` is translated, its `Init.lean`
+# generated with a proved `wp_initialize'`
+HYP_INITS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'encoding.gob',
              'google_golang_org.grpc', 'google_golang_org.grpc.codes']
 # the part's own names-only translations of packages the main tree translates otherwise (grpc's):
 # the main tree's configurations (`SPECIAL`) do not apply
@@ -74,6 +76,14 @@ OWN = {'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'google_golang_
 def special(g):
     """Configurations of the kit's packages (`g`: etc/gen-init.py's globals)."""
     SPECIAL = {}
+    # (dsv-retire-1-inits) io/ioutil: `var Discard io.Writer = io.Discard`, its only initializer
+    SPECIAL['io.ioutil'] = dict(
+        doc='''Its fact is `True`. Its initializer allocates `Discard`, initializes its import `io` and
+copies `io.Discard` (which io's fact holds, read-only) into `Discard`.''',
+        alloc_types={'Discard': 'GoInterface'},
+        before={'Discard': ['ihave #IO := _root_.Perennial.io.isInit_access $$ {Hd:io}',
+                            'icases IO with ⟨⟨%wd, #Hiod⟩, -⟩',
+                            'wp_auto']})
     # (dsv-quepaxa) QuePaxa's replica: its translated gRPC service descriptor (the fact keeps nothing yet;
     # the lab's `srcState` is the descriptor's points-to, for the recorder's `RegisterService`)
     # (dsv-quepaxa) QuePaxa's replica: its translated gRPC service descriptor; the fact `srcState`

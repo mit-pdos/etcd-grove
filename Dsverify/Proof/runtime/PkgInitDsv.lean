@@ -18,8 +18,6 @@ public import Dsverify.Code.github_com.rs.zerolog
 public import Dsverify.Code.google_golang_org.grpc
 public import Dsverify.Code.google_golang_org.grpc.codes
 public import Dsverify.Code.gopkg_in.yaml_v2
-public import Dsverify.Code.io.ioutil
-public import Dsverify.Code.os.signal
 public import Net.Code.net.http.chunk0
 public import Net.Code.net.rpc
 
@@ -50,14 +48,10 @@ theorem ExternalInit.google_golang_org_grpc_codes [GooseExts] [GoGlobalContext] 
     ExternalInit pkg_id.google_golang_org.grpc.codes _root_.Perennial.google_golang_org.grpc.codes.initialize' := ⟨⟩
 theorem ExternalInit.gopkg_in_yaml_v2 [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.gopkg_in.yaml_v2 _root_.Perennial.gopkg_in.yaml_v2.initialize' := ⟨⟩
-theorem ExternalInit.io_ioutil [GooseExts] [GoGlobalContext] :
-    ExternalInit pkg_id.io.ioutil _root_.Perennial.io.ioutil.initialize' := ⟨⟩
 theorem ExternalInit.net_http [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.net.http _root_.Perennial.net.http.initialize' := ⟨⟩
 theorem ExternalInit.net_rpc [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.net.rpc _root_.Perennial.net.rpc.initialize' := ⟨⟩
-theorem ExternalInit.os_signal [GooseExts] [GoGlobalContext] :
-    ExternalInit pkg_id.os.signal _root_.Perennial.os.signal.initialize' := ⟨⟩
 
 end EtcdGrove
 end Perennial

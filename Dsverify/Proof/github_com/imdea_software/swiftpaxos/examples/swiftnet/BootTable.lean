@@ -446,7 +446,7 @@ theorem wf_github_com_orcaman_concurrent_map {G : GoString → IProp GF} (h : Ki
 
 theorem wf_os_signal {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.os.signal G :=
-  And.intro h.e_os_signal True.intro
+  And.intro h.e_os_signal ⟨wf_os h, wf_sync h, True.intro⟩
 
 theorem wf_github_com_imdea_software_swiftpaxos_hook {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.hook G :=
@@ -820,7 +820,7 @@ theorem wfO_crypto_sha256 {G : GoString → IProp GF} (h : KitG G) (S : List GoS
 theorem wfO_os_signal {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.os.signal (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.os.signal ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_os_signal) True.intro
+    h.e_os_signal) ⟨wfO_os h S hS, wfO_sync h S hS, True.intro⟩
 
 theorem wfO_github_com_imdea_software_swiftpaxos_hook {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.hook (gOff S G) :=

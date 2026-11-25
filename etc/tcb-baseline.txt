@@ -56,7 +56,6 @@ axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
-axiom Perennial.io.ioutil.wp_initialize'
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
@@ -72,7 +71,6 @@ axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.os.signal.Notify.wp_proofQuietSigs
 axiom Perennial.os.signal.Notify.wp_proofUsr1Sigs
-axiom Perennial.os.signal.wp_initialize'
 axiom Perennial.raxos.hyp.fmt.Println.wp_proof
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux

@@ -75,7 +75,7 @@ PKGS = [f'github_com.emirpasic.gods.{p}' for p in
 MAIN = ['bufio', 'encoding.hex', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
 # initializers whose `wp_initialize'` is a trust-boundary axiom (their hand-written `Init.lean`;
-# dsv-fix3, #8 2026-11-25T02:20:53Z: until then the class `InitHyp`, a premise of the statement): os/signal (dsv-rabia's), and the
+# dsv-fix3, #8 2026-11-25T02:20:53Z: until then the class `InitHyp`, a premise of the statement): the
 # names-only encoding/gob, github.com/google/uuid. Their imports: all (the default). Not
 # net/rpc's and net/http's: `Net/`'s (external; their `wp_initialize'` and first-run
 # `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`), whose
@@ -83,7 +83,9 @@ MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
 # reach, so the programs' tables hold that closure. Not math/rand: the boot uses Perennial's proved `math.rand.wp_initialize'`
 # by hand (until math-rand-isinit, 2026-11-24, `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`, a
 # premise of the statement).
-HYP_INITS = ['os.signal', 'encoding.gob',
+# Not os/signal (dsv-retire-1-inits, 2026-11-25): its `wp_initialize'` is proved (its `Init.lean`
+# generated, kit rabia's `PKGS`).
+HYP_INITS = ['encoding.gob',
              'github_com.google.uuid']
 
 

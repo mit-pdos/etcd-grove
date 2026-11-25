@@ -1,5 +1,11 @@
 # Axiom review: `io/ioutil`'s initializer (`io.ioutil.wp_initialize'`, dsverify quepaxa)
 
+**Retired** (2026-11-25, branch `dsv-retire-1-inits`, mit-pdos/etcd-grove#49): the axiom is gone;
+`Discard` (`var Discard io.Writer = io.Discard`) is translated with its import `io`
+(`Dsverify/Code/io/ioutil.toml`), and `wp_initialize'` is a theorem, proved in the generated
+`Dsverify/Proof/io/ioutil/Init.lean` (it loads `io.Discard` from io's fact `#HDiscard`).
+The review below is of the axiom as it was.
+
 Reviewed 2026-11-25 by the `axiom` skill (independent reviewer), on branch `dsv-fix3` at
 `1b249c5399`; Go: the standard library of go1.27.3 (`etc/goose.py`'s `GO_TOOLCHAIN`),
 `src/io/ioutil/{ioutil.go,tempfile.go}`.

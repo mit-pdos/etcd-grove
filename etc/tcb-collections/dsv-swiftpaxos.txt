@@ -35,4 +35,3 @@ axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.os.signal.Notify.wp_proofUsr1Sigs
-axiom Perennial.os.signal.wp_initialize'
