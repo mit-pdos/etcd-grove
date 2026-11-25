@@ -1676,6 +1676,42 @@ initializers, which this line's configuration already generates from the main tr
 premise-witness, api, import-all; every `Link` regenerated on the VM matches; full VM build green (28661 jobs);
 `tcb-report --check` (338 axioms, 0 sorries) and every collection unchanged.
 
+### 16.3 `bootstrap`'s interim axiom at `etcd_safe`'s shape (2026-11-25, branch `etcd-safe-bootax/2026-11-25`)
+
+`bootstrap.spec` (#34) is false at a cluster of several members (the #34 ledger, B4: `isMemberBootstrapped`'s
+`GET /members` to the other members, `advertiseMatchesCluster`'s in-place sort of several URLs), so the
+members' `bootstrap` contract was an Iris premise (`Hprem`). Now an interim axiom, the trust-boundary
+counterpart of #34's restated spec (#34 comment 7152459179, etcd_safe's requirements):
+- **`bootstrap.wp_proof_dist : bootstrap.specDist`** (`Spec/.../etcdserver/bootstrapDist.lean`,
+  `Proof/.../etcdserver/bootstrapDist.lean`): `bootstrap.spec` word for word plus four shape premises (one peer
+  URL per initial-cluster entry, at most 64 entries, this member's peer URLs its entry's, one client URL) and, in
+  the precondition, the round-tripper contract `etcd_dist.bootRTOk γ id dir` (`S5Interim.lean`: every other
+  peer's address `httpAddrAt γ pid a`, and `noProxyEnv`), exactly `NewServer_dist`'s `#Hpeers ∗ #Hnoproxy`, which
+  the S5 interim axioms' callers hold. A failure is a returned error in the post; the post names `bootGo`'s
+  values. First start only (`bootCfgFresh`, `wal.bootRes`); the crash side (`bootstrapCrashContract`, which
+  etcd-grove-03 restates on `etcd-safe-t10`) is untouched.
+- **Retirement is a swap:** `bootstrap.specDist_of_spec` (`dist/BootDist.lean`) derives `specDist` from
+  `bootstrap.spec`; when #34 proves its restated spec, the axiom becomes that theorem.
+- **Derived:** `etcd_dist.bootstrapContract_of_specDist`, `bootPremiseDist_of_specDist` (`dist/BootDist.lean`,
+  defs; over `etcdstart.BootBridge`, now importable). `putgetk`'s member boot derives every member's contract
+  from the axiom and the pure `BootGoK` (`putgetk/Defs.lean`).
+- **Statements changed** (putgetK's line only; `putget_safe`'s `Hprem` and the shared `etcdstart.bootPremise`
+  unchanged): `putgetK_safe.spec` (top level), `PutgetKBoot`, `putgetk.Member.spec` and `StartMember_dist.spec`
+  (PLACEHOLDER, its `bootPremise` now `bootPremiseDist`): the premise `Hprem : ∀ n, n + 12 ≤ 2 ^ 40 → ∀ hG, ⊢
+  premises … n peers clients ps ctxs boot` becomes the pure `Hbgo : BootGoK peers clients ps ctxs` (Go's
+  values at each member's URLs, the shape, at most 64 members). `NewServer_dist.wp_proof` keeps `#Hboot :
+  bootstrapContract …` in its precondition (an axiom's precondition, now dischargeable from
+  `bootstrapContract_of_specDist`, not a premise of any statement).
+- **Review:** fresh `axiom`-skill review, survives with docstring/evidence changes (applied), re-reviewed:
+  `notes/axiom-review/bootstrap-dist.md`. A non-etcd `/members` answer `[null]` panics `bootstrap`
+  (`nonissues/etcd-bootstrap-members-null-panic.md`); `bootRTOk` excludes both routes to one.
+- **Go evidence** (`examples/axiomcx/bootstrapdist`, pin `e94f33b50`): three members boot through `NewServer`
+  (the first with its peers unreachable, the others after a `GET /members` answered by its peer handler); a
+  hanging peer (timeout, boot succeeds); two returned errors (data directory a file; this member already
+  published); the two panics `bootRTOk` excludes (a stand-in at a peer address, a proxy).
+- Gates: tier, bounds (390), premise-witness, iris-premise (putgetK's `Hprem` line dropped), api (etcdstart
+  lists `BootBridge`).
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces

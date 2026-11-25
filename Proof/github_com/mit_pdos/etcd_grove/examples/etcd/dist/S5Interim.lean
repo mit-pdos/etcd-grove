@@ -48,7 +48,11 @@ open Iris Iris.BI Net
 requests of etcd's peer API, from a member of the deployment's cluster) and the acceptor's (`.2`, what etcd's peer
 handler served by net/http writes back). Its intended reading, S5's: the HTTP protocols of etcd's peer API, each
 request carrying raft's message invariant (the in-process network's `raftProto`). Opaque so that no program but the
-member-side axioms writes or learns anything of such a connection. **Indexed by the cluster's raft names `γ` (the whole
+member-side axioms writes or learns anything of such a connection. (2026-11-25, the review of
+`bootstrap.wp_proof_dist`) The dialer's requests include `bootstrap`'s `GET /members` (`isMemberBootstrapped`,
+before the member is a started server: read-only, no raft message), which etcd's peer handler answers with its
+cluster's members (`etcdhttp/peer.go:112-120`); `bootstrap.wp_proof_dist` relies on that answer being etcd's
+(a `null` element would panic it). **Indexed by the cluster's raft names `γ` (the whole
 `SrvRaft` record one allocation gives every member) and the address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the same
 configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an address is
 set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it. -/
