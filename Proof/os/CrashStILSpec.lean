@@ -11,6 +11,9 @@ public import Spec.os.CrashStIL
 public import Spec.os.CrashSt
 public import Proof.os.CrashStIOps
 public import Proof.golang_org.x.sys.unix.MunmapDefs
+public import Spec.golang_org.x.sys.unix.Munmap
+public import Perennial.Golang.Theory.Unsafe
+public import GooseLang.Ext.Fs.NoMapLockErrSpecs
 public import Perennial.Golang.Theory.Plain
 
 @[expose] public section
