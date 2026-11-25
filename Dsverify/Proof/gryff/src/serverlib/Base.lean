@@ -5,12 +5,12 @@ module
 
 public import Dsverify.GeneratedProof.gryff.src.serverlib
 public import Dsverify.Proof.gryff.src.masterproto.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.rpc.PkgInit
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Perennial.Proof.fmt.Link
-public import Dsverify.Proof.net.http.Init
+public import Net.Proof.net.http.PkgInit
 
 @[expose] public section
 
@@ -25,9 +25,10 @@ open Iris Iris.BI
 namespace gryff.src.serverlib
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.gryff.src.serverlib :=

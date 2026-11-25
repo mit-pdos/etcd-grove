@@ -183,11 +183,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    (HEnv : EtcdVerifyOff)
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5)
@@ -213,7 +209,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     obtain ⟨p, -, rfl⟩ := Option.map_eq_some_iff.1 hm
     unfold sharesK
     rw [if_pos hi]
-    exact member_bootK HEnvTok Hctx HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
+    exact member_bootK HEnv HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
       (σs i) (Hm i hi) S5
   · rw [List.getElem?_append_right (by omega), hlen] at hm
     have hm' : m = (bootClient (clients.headD go!""), σc) := by
@@ -225,7 +221,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     subst hm'
     unfold sharesK
     rw [if_neg hi]
-    exact client_bootK Hctx Hcec (clients.headD go!"") σc γE mid
+    exact client_bootK (clients.headD go!"") σc γE mid
 
 set_option maxHeartbeats 3200000 in
 /-- **`PutgetKBoot` over S5's named hypotheses** (see the file header). -/
@@ -237,8 +233,8 @@ theorem putgetKBoot_of
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
-  intro _ lctx _ _ _ _ _ _ Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
-    Hfips Hnd Hok HEnv HEnvTok G hlo hb
+  intro _ lctx _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
+    Hfips Hnd Hok HEnv G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5
   have HSM' : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
@@ -331,7 +327,7 @@ theorem putgetKBoot_of
     iexists sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot γ0 (memberIdOf p0)
     isplitr
     · ipureintro
-      exact system_boots Hctx Hcec HEnvTok HSM' (p0 :: pr) (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
+      exact system_boots HEnv HSM' (p0 :: pr) (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
         Hprem σs σc Hm Hfips S5 γ0 (memberIdOf p0)
     unfold system
     iapply BigSepL.bigSepL_append.2
@@ -385,7 +381,7 @@ theorem putgetKBoot_of
       iexists sharesK S5 peers [] ps ctxs boot γE (W64 0)
       isplitr
       · ipureintro
-        exact system_boots Hctx Hcec HEnvTok HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
+        exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
           σs σc Hm Hfips S5 γE (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
@@ -412,7 +408,7 @@ theorem putgetKBoot_of
       iexists sharesK S5 peers (c0 :: cr) ps ctxs boot γE (W64 0)
       isplitr
       · ipureintro
-        exact system_boots Hctx Hcec HEnvTok HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
+        exact system_boots HEnv HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
           Hprem σs σc Hm Hfips S5 γE (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2

@@ -10,6 +10,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Election__Observe
 public import Spec.go_etcd_io.etcd.client.v3.concurrency.Election__observe
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -42,13 +43,16 @@ theorem Election.Observe.wp_proof (wp_observe : Election.observe.spec (GF := GF)
   · ileft; iexact Hoc
   have hP : observeElem (GF := GF) ⟨γsp, γr⟩ pfx =
       fun i v => observeElem (GF := GF) ⟨⟨γch, γch.1, γch.1⟩, γr⟩ pfx i v := rfl
-  wp_apply wp_fork $$ [Hprod Hauth]
-  · wp_apply wp_observe e s γs client id pfx ctx cs ch ⟨γsp, γr⟩ [] [lo] lo
-      $$ [$Hpkg $He $Hctx $HctxC $Hcc $Hprod $Hauth $Hlo]
+  -- the goroutine calls the connection: its fresh thread token's level 0 (`wp_fork_level0`)
+  wp_apply wp_fork_level0 $$ [Hprod Hauth]
+  · iintro Hlt
+    wp_apply wp_observe e s γs client id pfx ctx cs ch ⟨γsp, γr⟩ [] [lo] lo
+      $$ [$Hpkg $Hlt $He $Hctx $HctxC $Hcc $Hprod $Hauth $Hlo] as ⟨Hlt, -⟩
     · isplitl
       · unfold isObserveChan; dsimp only; rw [hP]; iexact Hsp
       ipureintro; exact ⟨⟨rfl, rfl⟩, Hlo0⟩
-    itrivial
+    iframe Hlt
+    ipureintro; exact isPanic_intoVal _
   iapply HΦ
   iexists ⟨γsp, γr⟩
   iframe Hcons

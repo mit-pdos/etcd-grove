@@ -1230,7 +1230,7 @@ theorem NewServer.wp_proofRG
     simp only
     rw [Hid]
     iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg HssI
-    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
+    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls, Hbco.2.2.2.2.2.1⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with

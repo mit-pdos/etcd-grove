@@ -4,11 +4,13 @@ the kit applied to its callees' results. Net's specs (`netN.NetSpecs`: `Conn.Rea
 RemoteAddr`, `Listener.Accept`, `Listen`, `Dial`, `DialTimeout`) and dsv-bufio's
 (`wire.BufioSpecs`) are built here from their `wp_proof`s (bundles given by `haveI`, never an
 `instance`); the RPC layer's codec laws (`gryffCodecLaws`, `gryffRcvLaws`); Net's net/rpc
-(`Client.Call`, `SetCodec`, the package-level `Register` on `defaultServer`); `io.ReadFull`'s
+(`Client.Call`, `SetCodec`, `NewServer`, `Server.Register` and the package-level `Register` on
+owned registries, `Server.HandleHTTP`, `HandleHTTP`) and net/http's `Serve` and `Handle` (Net's
+`Serve.wp_rpc`, over the interim context axioms, and `Handle.wp`, proved); `io.ReadFull`'s
 every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_proof`); remote's
 `Check`/`ServeClient`. `encoding/binary`'s varints (`binaryVarintHyps`, Perennial's proofs). What is not proved stays
-a premise (the statement's): the `InitHyp`s, `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`,
-`RpcHttpHyp`, `RpcBootHyp`; `StringsIndexHyp` stays a class here, discharged by the top-level proof
+a premise (the statement's): `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`; `RpcHttpAddr` is Net's
+(`netRpcHttpAddr`, given by the top-level proof); `StringsIndexHyp` stays a class here, discharged by the top-level proof
 (`StrIndexHolds.lean`). `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of
 `strings.Cut`/`TrimLeft`.
 -/
@@ -32,6 +34,10 @@ public import Net.Proof.net.rpc.Client__send
 public import Net.Proof.net.rpc.Client__Go
 public import Net.Proof.net.rpc.Client__Call
 public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.HandleHTTP
+public import Net.Proof.net.rpc.Server__HandleHTTP
+public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Serve
 public import Dsverify.Proof.gryff.Wire.Proof.VarintHolds
 public import Perennial.Proof.sync.Link
 public import Net.Proof.net.Listen
@@ -54,6 +60,11 @@ public import Proof.bufio.Writer__Flush
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.bufio.NewWriterSizeRep
 public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.HandleHTTP
+public import Net.Proof.net.rpc.Server__HandleHTTP
+public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Serve
+public import Net.Proof.net.http.Results
 
 @[expose] public section
 
@@ -132,17 +143,27 @@ section server
 variable [fa : gryff.src.fastrpc.Assumptions] [binA : wire.BinaryVarintHyps GF]
 variable [sortA : replica2.SortSliceHyp GF] [strconvA : strconv.Assumptions] [io.Assumptions]
 variable [net.Assumptions] [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
-variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
 variable [randA : lib.RandSeedHyp GF] [mA : gryff.src.masterlib.Assumptions]
 variable [sA : gryff.src.serverlib.Assumptions] [bufio.Assumptions] [sync.Assumptions]
 variable [errors.Assumptions]
+
+/-- `Server.HandleHTTP`, over net/http's `Handle` (Net's `Handle.wp`, proved over the real `ServeMux`). -/
+theorem wp_SHandleHTTP : net.rpc.Server.HandleHTTP.spec (GF := GF) (hG := hG) :=
+  net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp
+
+/-- `HandleHTTP` (on `DefaultServer`). -/
+theorem wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG) :=
+  net.rpc.HandleHTTP.wp_proof wp_SHandleHTTP
 
 /-- Every server machine (`DialHTTP`: Net's, see `section rpc`). -/
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) := by
   haveI := bufioSpecs (GF := GF) (hG := hG)
   haveI := netSpecs (GF := GF) (hG := hG)
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
-    net.rpc.DialHTTP.wp SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt) net.rpc.Register.wp
+    net.rpc.DialHTTP.wp SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt)
+    net.rpc.Register.wp_fresh net.rpc.NewServer.wp_owned net.rpc.Server.Register.wp_fresh
+    wp_SHandleHTTP wp_HandleHTTP net.http.Serve.wp_rpc
 
 end server
 

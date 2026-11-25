@@ -5,11 +5,13 @@ address, a lease of the minimum TTL granted through every member, and at every m
 listing no longer lists the lease granted through it, one more listing. Lean-first (no Rocq
 counterpart). `etcd_leaseexpiry`'s `Main.spec` for `k` members, on putgetN's start.
 
-**The triple:** for a member count `1 ≤ k ≤ 1000`, from the package's `isPkgInit`, the members' start
-bundles (`startOf (members k)`: each member's WAL directory fresh and the right to listen on its peer
-address with its HTTP protocol unregistered and on its client address), the main thread's token and
-`Main`'s named premises (`etcd_leaseexpiryN.premises`), `Main(k)` returns: it does not panic, so at every
-member, once a listing did not list the lease granted through it, the next listing did not either.
+**The triple:** for every `k`, from the package's `isPkgInit`, the start bundles of the members `Main(k)`
+starts (`startOf (cluster k)`: for `1 ≤ k ≤ 1000` the `k` members', each member's WAL directory fresh and
+the right to listen on its peer address with its HTTP protocol unregistered and on its client address;
+none otherwise, where `Main` returns at once), the main thread's token and `Main`'s named premises
+(`etcd_leaseexpiryN.premises`), `Main(k)` returns: it does not panic, so at every member, once a listing
+did not list the lease granted through it, the next listing did not either. (Until 2026-11-24 the triple
+took `1 ≤ k ≤ 1000` as a premise; `Main` now checks it, P6 of the pure-premises plan.)
 
 **The pure premises:** putgetN's, with the `k` members' ids `ids` (in the members' order) and the
 bootstrap log Go computes (`etcd_putgetN.BootFacts`), the ids' 15 low bits distinct (`leaseIdsApart`: the
@@ -41,11 +43,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
-    (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
+    (k : w64) (N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry),
-  1 ≤ k → k ≤ 1000 → ids.length = k →
+  ids.length = uint.nat k →
   etcd_putgetN.BootFacts ids ps ctxs boot → leaseIdsApart ids →
   threadBound GF ≤ 2 ^ 28 →
   srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
@@ -55,9 +55,9 @@ abbrev Main.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗
-      ([∗list] m ∈ startOf (members k), etcdstart.memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ∗
-      threadTok ∗ premises k N ids ps ctxs boot }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main)) (Val #(W64 k)))
+      ([∗list] m ∈ startOf (cluster k), etcdstart.memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ∗
+      threadTok ∗ premises (uint.nat k) N ids ps ctxs boot }}
+    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main)) (Val #k))
   {{ RET #(); True }}
 
 end spec

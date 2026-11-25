@@ -17,7 +17,7 @@ harness's goroutines share**, and **the node-API statements the harness takes as
   replicas and their nodes, the network's join, the counters' invariants, and the traced cluster
   with the harness's invariants (`tcOpsInv`, `confPolicy`, `tcSnapsInv`, from `ProbeA.lean`).
 * `repInfo`/`repOwn`: a replica's read-only fields and node, and the fields its `app` writes.
-* `ViewOk`: the `app`'s view of its node's configuration: the voters' simple membership, applied up
+* `ViewOk nv`: the `app`'s view of its node's configuration: the `nv` voters' simple membership, applied up
   to a point of the delivered log past which no conf entry is delivered yet.
 -/
 module
@@ -63,17 +63,19 @@ structure TcW [GooseExts] where
   /-- the stop channel -/
   sc : GoChan
   γsc : ChanNames
-  /-- the replicas, of ids `1, 2, 3` -/
+  /-- the number of voters (`cfg.Nodes`, `1 … maxNodes`; 2026-11-24, until then always `3`) -/
+  nv : Nat
+  /-- the replicas, of ids `1, …, nv` -/
   rs : List Loc
   /-- the network's join -/
   nj : NetJoinNames
   /-- the bootstrap log -/
   boot : List LogEntry
 
-/-- The voters. -/
-abbrev tcVs : List w64 := tcVoters
+/-- The `nv` voters. -/
+abbrev tcVs (nv : Nat) : List w64 := tcVoters nv
 /-- Their simple membership. -/
-abbrev tcMem : Membership := Membership.simple (GMap.listToSet tcVoters)
+abbrev tcMem (nv : Nat) : Membership := Membership.simple (GMap.listToSet (tcVoters nv))
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -139,8 +141,8 @@ def tcWorld (c : Loc) (W : TcW) : IProp GF :=
     c.[G.Cluster, go!"cfg"].[G.CConfig, go!"MaxDelay"] ↦□ W.cfg.MaxDelay' ∗
     c.[G.Cluster, go!"cfg"].[G.CConfig, go!"DropPct"] ↦□ W.cfg.DropPct' ∗
     c.[G.Cluster, go!"cfg"].[G.CConfig, go!"SnapshotEvery"] ↦□ W.cfg.SnapshotEvery' ∗
-    ⌜Workload W.cfg ∧ 0 < sint.Z W.cfg.Tick' ∧ Cluster.trace W.cl = some W.γd ∧
-      W.cl.snapLoc = (fun _ => none) ∧ BootLogFacts W.boot ∧ W.rs.length = 3 ∧
+    ⌜Workload W.nv W.cfg ∧ 0 < sint.Z W.cfg.Tick' ∧ Cluster.trace W.cl = some W.γd ∧
+      W.cl.snapLoc = (fun _ => none) ∧ BootLogFacts W.nv W.boot ∧ W.rs.length = W.nv ∧
       receiptBound GF + W.cl.bootLen ≤ 2 ^ 61 ∧ W.cl.maxData = none⌝ ∗
     c.[G.Cluster, go!"stop"] ↦□ W.sc ∗ ownBroadcastChan W.sc W.γsc iprop(True) .Unknown ∗
     replicasRO c W.rs ∗
@@ -159,8 +161,8 @@ instance tcWorld_persistent (c : Loc) (W : TcW) : Persistent (tcWorld (GF := GF)
 end defs
 
 /-- **The `app`'s view of its node's configuration** at the delivered log `D` (see the file header). -/
-def ViewOk [GooseExts] (D : List LogEntry) (v : ConfigView) : Prop :=
-  v.membership = tcMem ∧ v.applied ≤ D.length ∧ NoConfChangeIn D v.applied D.length
+def ViewOk [GooseExts] (nv : Nat) (D : List LogEntry) (v : ConfigView) : Prop :=
+  v.membership = tcMem nv ∧ v.applied ≤ D.length ∧ NoConfChangeIn D v.applied D.length
 
 /-! ## The proposer's update -/
 

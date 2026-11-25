@@ -14,6 +14,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.third_party.bridge
+public import Perennial.Proof.github_com.goose_lang.primitive.Base
 
 @[expose] public section
 noncomputable section

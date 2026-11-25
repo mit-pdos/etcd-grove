@@ -37,8 +37,9 @@ colliding id prefixes); `TestMemberIDEtcd`: `MemberID` is etcd's id on 3000.
   Iris premises (`Hprem`: per member `bootstrap`'s contract at its configuration and URLs, at the
   cluster's peer-URL directory and at the ids etcd computes, `proto.Marshal`'s at the bootstrap log, the
   raft wrapper's contracts: `premises`, the in-process `putgetN`'s audited form; at every ghost-state
-  instance), `context`'s two classes (`Hctx`, `Hcec`);
-- `ETCD_VERIFY` off on every machine's run (`HEnv`) and its token (`HEnvTok`), as `putget_safe`'s;
+  instance) (`context`'s two classes `Hctx`, `Hcec` until ctx-leaf-fix, 2026-11-25: theorems since);
+- `ETCD_VERIFY` off (`HEnv : EtcdVerifyOff`, the run's value enables no check), as `putget_safe`'s
+  (until 2026-11-25 `verifyEnvOff` of each machine's program and its token `HEnvTok`);
 - **new**: the `fips140` GODEBUG setting unset or `off` (`Hfips`, Perennial's environment premise
   `crypto.fips140.GodebugFips140Off`): the members' check computes the ids with `crypto/sha1`, whose `Sum`
   panics under `fips140=only`.
@@ -85,10 +86,6 @@ def putgetK_safe.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     -- the configuration: any members' peer and client addresses
     (peers clients : List GoString)
     -- bootstrap's log at the ids etcd computes (the peers in bootstrap's order, their contexts, the log)
@@ -104,9 +101,8 @@ def putgetK_safe.spec : Prop :=
     (σs : Nat → state) (σc : state) (g : GlobalState)
     (Hm : ∀ i < peers.length, MemberFiles i (σs i)) (Hc : ClientFiles σc)
     (Hd : Net.DistDeploy (addrs peers clients) (system peers clients σs σc) g)
-    -- `ETCD_VERIFY` off on every machine's run, and its token in the logic (putget_safe's)
-    (HEnv : ∀ m ∈ system peers clients σs σc, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    -- `ETCD_VERIFY` off (the deployment's value of the variable enables no check; putget_safe's)
+    (HEnv : EtcdVerifyOff)
     -- the `fips140` GODEBUG setting unset or `off` (`crypto/sha1`, the members' check)
     (Hfips : crypto.fips140.GodebugFips140Off),
     Robust [] (system peers clients σs σc) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)

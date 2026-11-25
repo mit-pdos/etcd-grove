@@ -27,6 +27,7 @@ public import Proof.k8s_io.client_go.tools.cache.InitLinked
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

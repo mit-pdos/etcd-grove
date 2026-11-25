@@ -53,10 +53,6 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [_root_.Perennial.errors.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (client : GoString) (hlc : client.length + 1 < 2 ^ 63) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
     DistBootWpST putgetSteps putgetThreads (bootClient client) σc
@@ -68,8 +64,6 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI : ContextReadErrs (GF := putgetGF) (hG := hG) := Hctx hG
-  haveI : ContextErrsClient (GF := putgetGF) (hG := hG) := Hcec hG
   haveI := etcdFsSemOk
   haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨Nat.le_trans (Nat.le_of_eq hT) (by decide)⟩
   iintro Hshare - Hgs -

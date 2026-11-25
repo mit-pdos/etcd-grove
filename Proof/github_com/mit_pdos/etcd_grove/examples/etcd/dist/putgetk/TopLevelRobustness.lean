@@ -45,10 +45,6 @@ def PutgetKBoot : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (peers clients : List GoString)
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (_Hbl : BootLogFacts (idsOf peers) ps ctxs boot)
@@ -60,8 +56,7 @@ def PutgetKBoot : Prop :=
     (_Hm : ∀ i < peers.length, MemberFiles i (σs i)) (_Hc : ClientFiles σc)
     (_Hfips : crypto.fips140.GodebugFips140Off)
     (_Hnd : (addrs peers clients).Nodup) (_Hok : ∀ a ∈ addrs peers clients, Net.addrOk a = true)
-    (_HEnv : ∀ m ∈ system peers clients σs σc, verifyEnvOff m.1)
-    (_HEnvTok : ⊢ envVerifyOff (GF := putgetGF)),
+    (_HEnv : EtcdVerifyOff),
     ∀ [GooseGlobalGS .hasLC putgetGF], srvLevelK ≤ receiptBound putgetGF →
       receiptBound putgetGF ≤ 2 ^ 28 - 1 →
       ⊢ ([∗list] a ∈ addrs peers clients, Net.addrUnset a) ={⊤}=∗
@@ -87,12 +82,12 @@ theorem system_fsInit [GoGlobalContext] [GoSemanticsFunctions] {peers clients : 
 /-- **`putgetK_safe` from the machines' boot WPs** (see the file header), by the all-stable bridge over
 `etcdNetExts` (`Net.robust_of_distBootIL`), with each machine's `FsInit` from the statement. -/
 theorem putgetK_safe_of_boot (HS : PutgetKBoot) : putgetK_safe.spec := by
-  intro _ _ _ _ _ _ _ _ Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc g Hm Hc
-    Hd HEnv HEnvTok Hfips
+  intro _ _ _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc g Hm Hc
+    Hd HEnv Hfips
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peers clients) (system peers clients σs σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
-    (fun hlo hb => HS Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc Hfips
-      Hd.1 Hd.2.1 HEnv HEnvTok hlo hb) Hd
+    (fun hlo hb => HS peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc Hfips
+      Hd.1 Hd.2.1 HEnv hlo hb) Hd
   exact etcdNetExts_initP g _ (system_fsInit Hm Hc)
 
 end etcd_putgetk_dist

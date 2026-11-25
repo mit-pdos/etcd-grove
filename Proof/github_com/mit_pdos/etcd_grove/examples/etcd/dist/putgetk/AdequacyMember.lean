@@ -143,9 +143,7 @@ set_option maxHeartbeats 3200000 in
 theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
-    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
+    (HEnv : EtcdVerifyOff)
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5)
@@ -166,7 +164,6 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
   haveI : ReceiptBoundLe putgetGF (2 ^ 62) := ⟨by omega⟩
   haveI : ReceiptBoundLe putgetGF (2 ^ 28) := ⟨by omega⟩
   haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨by rw [hT]; omega⟩
@@ -180,7 +177,8 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.regQs $$ Hregs
   ihave Hown := ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.getIsPkgInit (GF := putgetGF)) $$ Hgs
-  ihave #Hvoff := HEnvTok
+  ihave #Hvoff : ⌜EtcdVerifyOff⌝ $$ []
+  · ipureintro; exact HEnv
   imod etcdNetFs_start σm Hm.1 $$ Hls with ⟨#Hos, -, Htree⟩
   imodintro
   -- the member's WAL area, from its machine's files

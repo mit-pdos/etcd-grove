@@ -108,7 +108,8 @@ the rights to register the IDs of the packages `qs` (`regsFree qs`, prom-registr
 the run's registry ghost state `PromRegGS`, from the decided `regQsOk qs`), its body the right to
 listen at each address of `As` (distinct numeric loopback literals valid for the net extension:
 `netAddrFree`, program start's `addrClaim` with the extension's token), each address's HTTP protocol
-unregistered (`httpProtoFree`), the data directories `Ds` fresh, `ETCD_VERIFY` off, `T x` (ghost state
+unregistered (`httpProtoFree`), the data directories `Ds` fresh, `ETCD_VERIFY` off (from the premise
+`HEnv : EtcdVerifyOff`), `T x` (ghost state
 allocated first, at some `x`) and the extensions' local start resources. The WP proof at the thread
 bound `max TB srvLevelK` (`srvLevels`: a serving member's gRPC runs that many levels). -/
 theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext] [sem : go.Semantics]
@@ -121,7 +122,7 @@ theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (qs : List (GoString × List GoString × List w64)) (hqs : prometheus.regQsOk qs)
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
-    (HEnv : verifyEnvOff (init #() ;; body))
+    (HEnv : EtcdVerifyOff)
     (TB n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -131,13 +132,13 @@ theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         ∀ x, progOk (hG := heapWith hG lctx) (prometheus.regsFree (GF := GF) qs)
           iprop((([∗list] a ∈ As, netAddrFree (hG := heapWith hG lctx) a) ∗
             ([∗list] a ∈ As, httpProtoFree a) ∗
-            ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x ∗
+            ([∗list] d ∈ Ds, dataDirFresh d) ∗ ⌜EtcdVerifyOff⌝) ∗ T x ∗
             extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := GF) (n + 1) (max TB srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
-    As Ds hAs hDs hAsLit HAs HDs HEnv ?_
+    As Ds hAs hDs hAsLit HAs HDs ?_
     n κs t2 σ2 (Hsteps.mono (Nat.le_max_left _ _)) (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   have Hp0 := @Hprog hG HN HT
@@ -149,7 +150,7 @@ theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   rw [Hinit]
   iintro Hg Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hcl, Hps, Hds, #Hvoff⟩
+  icases Hrights with ⟨Hcl, Hps, Hds⟩
   ihave Has := netAddrFrees_start g.globalWorld As hAs hAsOk $$ [Hg Hcl]
   · iframe
   -- (prom-registry, route (b)) the run's registration rights: a fresh ghost map of its packages' IDs,
@@ -160,7 +161,8 @@ theorem etcd_adequate_alloc_below [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   obtain ⟨X, T, Halloc, Hp⟩ := @Hp0 ⟨γreg⟩
   imod Halloc with ⟨%x, HTx⟩
   iapply (wp_of_progOk _ _ init body φ (Hp x)) $$ Hgs Htok Hregs [Has Hps Hds HTx Hl]
-  iframe; iexact Hvoff
+  iframe
+  all_goals (ipureintro; exact HEnv)
 
 /-- **`etcd_adequate_alloc_below` without ghost state allocated first**. -/
 theorem etcd_adequate_below [hPre : GooseGpreS GF] [lctx : GoLocalContext] [sem : go.Semantics]
@@ -173,7 +175,7 @@ theorem etcd_adequate_below [hPre : GooseGpreS GF] [lctx : GoLocalContext] [sem 
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (qs : List (GoString × List GoString × List w64)) (hqs : prometheus.regQsOk qs)
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
-    (HEnv : verifyEnvOff (init #() ;; body))
+    (HEnv : EtcdVerifyOff)
     (TB n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -181,7 +183,7 @@ theorem etcd_adequate_below [hPre : GooseGpreS GF] [lctx : GoLocalContext] [sem 
       progOk (hG := heapWith hG lctx) (prometheus.regsFree (GF := GF) qs)
         iprop(([∗list] a ∈ As, netAddrFree (hG := heapWith hG lctx) a) ∗
           ([∗list] a ∈ As, httpProtoFree a) ∗
-          ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ∗
+          ([∗list] d ∈ Ds, dataDirFresh d) ∗ ⌜EtcdVerifyOff⌝ ∗
           extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
@@ -213,7 +215,7 @@ theorem etcd_adequate_members_below [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (qs : List (GoString × List GoString × List w64)) (hqs : prometheus.regQsOk qs)
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
-    (HEnv : verifyEnvOff (init #() ;; body))
+    (HEnv : EtcdVerifyOff)
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
     (TB n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -250,7 +252,7 @@ theorem etcd_adequate_alloc_members_below [hPre : GooseGpreS GF] [lctx : GoLocal
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (qs : List (GoString × List GoString × List w64)) (hqs : prometheus.regQsOk qs)
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
-    (HEnv : verifyEnvOff (init #() ;; body))
+    (HEnv : EtcdVerifyOff)
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
     (TB n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow TB n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))

@@ -37,6 +37,7 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 # (2026-11-23, etcd-grove#28) the etcd examples' extensions with the net extension (putget-dist's and the single-process theorems') and their
 # adequacy from the members' start bundles (`notes/single-process-restore.md`)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExtsCrash
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 # (wal-link P2 and the data-directory fix, 2026-11-19) the closed theorems' premise `etcdWalAreasInit`
 # (`HWal`) and the areas' allocation at adequacy, which `AdequacyMembers` publicly imports

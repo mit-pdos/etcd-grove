@@ -34,16 +34,14 @@ abbrev Client.dial.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
     (rb : GoInterface) (esl : GoSlice) (eps : List GoString) (atb : GoInterface)
     (P : GoString → IProp GF) (n : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
       noProxyOptsAt cfg.DialOptions' n ∗
       clientF c go!"authTokenBundle" ↦□ atb ∗ (⌜atb = GoInterface.nil⌝ ∨ tokenBundleInv atb P) ∗
       clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ eps ∗ ⌜plainEndpoints eps⌝ ∗
-      dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme eps }}
+      dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme eps) }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dial")) (Val #cr)) (Val #sl))
-  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ isEtcdConnG c conn eps ∗ connTokOk conn P) ∨
-        ⌜err ≠ GoInterface.nil⌝ }}
+  {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isEtcdConnG c conn eps ∗ connTokOk conn P) ∨
+        ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

@@ -30,12 +30,12 @@ returning its `deleteResult` (an error, or a revision `r ≥ lo` at which the ke
 `deleteTxn_absent`); either way the `kv` field becomes nil. -/
 abbrev RemoteKV.Delete.spec : Prop :=
   ∀ (rk : Loc) (st : RemoteKVSt) (pfx : GoString) (lo : w64),
-  {{ ownRemoteKV (GF := GF) rk st ∗ isRecipesKV st.kv pfx ∗ etcdReached lo ∗ ⌜pfx <+: st.key⌝ }}
+  {{ levelTok 0 ∗ (ownRemoteKV (GF := GF) rk st ∗ isRecipesKV st.kv pfx ∗ etcdReached lo ∗ ⌜pfx <+: st.key⌝) }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Delete")) (Val #()))
-  {{ (err : GoInterface), RET #err; ownRemoteKV rk { st with kv := GoInterface.nil } ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (ownRemoteKV rk { st with kv := GoInterface.nil } ∗
       match st.kv with
       | .nil => iprop(⌜err = GoInterface.nil⌝)
-      | .ok _ => deleteResult pfx lo (opDeleteModel st.key []) err }}
+      | .ok _ => deleteResult pfx lo (opDeleteModel st.key []) err) }}
 
 end spec
 

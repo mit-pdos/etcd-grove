@@ -6,7 +6,7 @@ The closed theorem's shape (`notes/trace-validation-plan.md`, "The statement"; a
 `raft_kv_porcupine_safe`'s, `kv/Adequacy.lean`): the program `initialize'(); Main()` -- the
 tracecheck package's initialization (raft's, the checker's, `context`'s and the others' among its
 imports'), then `Main` -- from a fresh state (no package initialized, one thread), for every real
-execution of `n` steps with `n + 4 ≤ 2^61` along which fewer than `2^31` threads are ever live at once
+execution of `n` steps with `n + 6 ≤ 2^61` along which fewer than `2^31` threads are ever live at once
 (`RealNstepsBelow`; 2026-11-19, replacing Q38's `n + 2 ≤ 2^31`), never gets stuck, no thread of it ends in a panic, and
 the main thread's result, if it has one, is `#()`. `Main` panics unless `CheckTrace` answers `TLCOK`
 on the run's trace, so no panic means the trace passes raft's TLA+ trace validation.
@@ -18,18 +18,22 @@ package initialization (`Init.lean`, `PkgTable.lean`, generated) and `Main`'s sp
 (`tracecheck_adequate_of`).
 
 - **The length bound** (Q38 (a), decided by the user, 2026-11-11). `Main.spec` takes
-  `receiptBound GF + 3 ≤ 2^61`: the traced cluster boots three voters from a bootstrap log of three
-  entries, and raft's `readyFits` (`cluster_alloc`'s premise) is `receiptBound + bootLen ≤ 2^61`; the
+  `receiptBound GF + 5 ≤ 2^61` (`+ 3` until 2026-11-24, when `Main` booted three voters): the traced
+  cluster boots at most five voters from a bootstrap log of as many entries, and raft's `readyFits`
+  (`cluster_alloc`'s premise) is `receiptBound + bootLen ≤ 2^61`; the
   same bound gives the event count below the checker's `numBound = 2^61`. It also takes the thread
   bound `[ThreadBoundLe GF (2 ^ 31)]`: the harness starts a goroutine per message and counts them in a
   `sync.WaitGroup`, which panics past `2^31` (`NetJoin.lean`). With `N = n + 1` and `T = 2^31` (the
   execution's own thread bound, `RealNstepsBelow (2^31) n`), the theorem is about executions of
-  `n + 4 ≤ 2^61` steps (`receiptBound + 3 = n + 4`) in which fewer than `2^31` goroutines are live at
+  `n + 6 ≤ 2^61` steps (`receiptBound + 5 = n + 6`) in which fewer than `2^31` goroutines are live at
   once. (Until 2026-11-19, `T = n + 2` over `goose_adequacy`, whose thread premise is about every
   execution of `n` steps, so `n + 2 ≤ 2^31`: the step count was capped by the thread bound.)
-- **The premises** (Q32, decided by the user): the bootstrap log's pure facts
-  (`tracecheck.BootLogFacts`) and, at every `HeapGS`, `proto.Marshal`'s contract at its conf changes
-  (`tracecheck.premises`, `Defs.lean`), as `etcd_putget_adequate`.
+- **No premise on the bootstrap log** (premises to axioms, 2026-11-24): `proto.Marshal`'s contract at the
+  bootstrap log's conf changes (`tracecheck.premises`, `Defs.lean`; Q32's premise until then) follows from
+  the trust-boundary axiom `proto.MarshalBootConfChange.wp_proof` at the log `tracecheck.bootLog nv` of
+  every size `nv ∈ 1 … maxNodes` `Main` can draw (`premises_of_spec`; 2026-11-24: until then three
+  voters, and a premise `boot` with its pure facts `tracecheck.BootLogFacts boot`, now proved,
+  `bootLogFacts_bootLog`, since `ccDecodeV1` is a function).
 - **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
   `GoLocalContext`, `go.Semantics`, the package assumptions `tracecheck.Assumptions`, and raft's
   initialization premise, the model of `log.New` (`log.NewModel`).
@@ -88,16 +92,15 @@ abbrev tcMainSpec : Prop :=
 /-- **The trace check never fails**, from `Main`'s spec (at every `HeapGS` of `tcGF` and every
 semantics): every real execution of `tracecheckProgram` (the package's initialization, then
 `Main()`) from a fresh state -- no package initialized (`IsInit`), one live thread -- of `n` steps,
-`n + 4 ≤ 2^61`, along which fewer than `2^31` threads are live at once, given the bootstrap log's facts and premises: if the main thread has finished, its
+`n + 6 ≤ 2^61`, along which fewer than `2^31` threads are live at once: if the main thread has finished, its
 result is `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
     (wp_Main : tcMainSpec)
-    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot) (Hbw : tracecheck.BootWireFacts boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n + 6 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
@@ -108,20 +111,24 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     Hthreads (2 ^ 31) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC tcGF := heapWith hG lctx
   haveI : ThreadBoundLe tcGF (2 ^ 31) := ⟨Nat.le_of_eq HT⟩
-  have Hbound : receiptBound tcGF + 3 ≤ 2 ^ 61 := by rw [HN]; omega
+  have Hbound : receiptBound tcGF + 5 ≤ 2 ^ 61 := by rw [HN]; omega
   unfold progOk0
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.getIsPkgInit_wf, ?_⟩
   iintro #Hpkg -
-  -- (premises to axioms, 2026-11-24: until then the premise `tracecheck.premises`) `bootMarshal` from
-  -- `proto.Marshal`'s trust-boundary axiom and the log's bytes
+  -- (premises to axioms, 2026-11-24: until then the premise `tracecheck.premises`, from 2026-11-24 at
+  -- each size `Main` can draw) `bootMarshal` from `proto.Marshal`'s trust-boundary axiom and the bytes
+  -- of `bootLog nv` (`premises_of_spec`)
   ihave #Hpp : isPkgInit (PROP := IProp tcGF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
-  ihave #Hprem' := tracecheck.premises_of_spec proto.MarshalBootConfChange.wp_proof boot Hbw $$ Hpp
+  ihave #Hprem' : □ (∀ nv : Nat, ⌜1 ≤ nv ∧ nv ≤ tracecheck.maxNodes⌝ -∗
+      tracecheck.premises (GF := tcGF) nv (tracecheck.bootLog nv)) $$ []
+  · iintro !> %nv %hnv
+    iapply (tracecheck.premises_of_spec proto.MarshalBootConfChange.wp_proof nv) $$ Hpp
   ihave #Hcc : context.isClosedchanInit (GF := tcGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply (wp_Main (TraceCheck.tcRunFits.intro Hbound) boot Hbf) $$ [Hpkg Hcc Hprem']
+  wp_apply (wp_Main (TraceCheck.tcRunFits.intro Hbound)) $$ [Hpkg Hcc Hprem']
   · iframe #
   ipureintro
   rfl

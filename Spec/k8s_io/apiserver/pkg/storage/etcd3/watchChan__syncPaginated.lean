@@ -44,21 +44,21 @@ abbrev watchChan.syncPaginated.spec : Prop :=
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   (∀ x ∈ c.ms, noRefusalAt x.addr) →
   m.forceInit = true → m.req ≤ lbf →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       storeWatchOk sp c W γk ∗ kWcProd wc sp c W γ cd sel emp inS m Q procd alive ctx kp recur ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ r0 ∗
       readAus c γk (Q lbf) ∗ (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev)) ∗
-      kProdSt γ cd [] ∗ dghostVar γ.prodEx (DFrac.own q) false }}
+      kProdSt γ cd [] ∗ dghostVar γ.prodEx (DFrac.own q) false) }}
     (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
       go!"syncPaginated")) (Val #()))
-  {{ (err : GoInterface), RET #err; dghostVar γ.prodEx (DFrac.own q) false ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (dghostVar γ.prodEx (DFrac.own q) false ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗
           ⌜kStartOk m σ0 σ0.rev ∧ kvRevFits σ0.rev⌝ ∗
           structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦
             W64 (σ0.rev : Int) ∗
           kProdSt γ cd (kInitRaws inS σ0 σ0.rev)) ∨
        (kErrOk err ∗ ∃ r : w64,
-          structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ r)) }}
+          structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"initialRev" wc ↦ r))) }}
 
 end spec
 

@@ -21,7 +21,8 @@ module
 
 public import Dsverify.GeneratedProof.gryff.src.gryff
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
-public import Dsverify.Proof.gryff.Rpc.RpcHttpHyps
+public import Dsverify.Proof.gryff.Rpc.RpcHttp
+public import Net.Proof.net.http.InitFirst
 
 @[expose] public section
 
@@ -90,18 +91,14 @@ theorem gEx_S2_le {PROP : Type _} [BI PROP] (g : GoString → PROP) (p : GoStrin
     · exact false_elim
     · exact .rfl
 
-/-- One more package excluded, as `RpcBootHyp`'s `gNoPkg`. -/
-theorem gEx_cons_le {PROP : Type _} [BI PROP] (q : GoString) (S : List GoString)
-    (g : GoString → PROP) (p : GoString) :
-    gEx (q :: S) g p ⊢ gNoPkg q (gEx S g) p := by
-  unfold gEx gNoPkg
-  dsimp only
-  by_cases h1 : p = q
-  · subst h1; rw [if_pos List.mem_cons_self]; exact false_elim
-  · rw [if_neg h1]
-    by_cases h2 : p ∈ S
-    · rw [if_pos (List.mem_cons_of_mem _ h2)]; exact false_elim
-    · rw [if_neg (by simp [h1, h2]), if_neg h2]
+/-- One more package excluded: the tables agree beyond it. -/
+theorem gEx_cons_ne {PROP : Type _} [BI PROP] (q : GoString) (S : List GoString)
+    (g : GoString → PROP) (p : GoString) (h : p ≠ q) :
+    gEx S g p = gEx (q :: S) g p := by
+  unfold gEx
+  by_cases h2 : p ∈ S
+  · rw [if_pos h2, if_pos (List.mem_cons_of_mem _ h2)]
+  · rw [if_neg h2, if_neg (by simp [h, h2])]
 
 section gen
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -238,25 +235,31 @@ open Net
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [RA : Perennial.gryff.RpcHttpAddr GF] [H : Perennial.gryff.RpcHttpHyp GF] [B : Perennial.gryff.RpcBootHyp GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 open Perennial.gryff in
-/-- net/http's owned initialization (`RpcBootHyp.wp_http_own`) in a table `gEx S0 g` with
-`S0 = net/http :: S`. -/
-theorem wp_http_own (S0 S : List GoString) (hS : S0 = pkg_id.net.http :: S) (g : GoString → IProp GF)
+/-- net/http's first initialization (`net.http.wp_init_first_mux`, over Net's interim axiom) in a table
+`gEx S0 g` with `S0 = net/http :: S`, on a machine of at most `2 ^ 30` threads. -/
+theorem wp_http_own (hT : threadBound GF ≤ 2 ^ 30) (S0 S : List GoString)
+    (hS : S0 = pkg_id.net.http :: S) (g : GoString → IProp GF)
     (hwf : GetIsPkgInitProp pkg_id.net.http (gEx S g)) :
     {{ ownInitializing (gEx S0 g) }} (App (Val net.http.initialize') (Val #()))
     {{ RET #(); ownInitializing (gEx S g) ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
         httpInitRes (GF := GF) }} := by
   subst hS
   iintro %Φ Hown HΦ
-  ihave Hown := ownInitializing_weaken _ _ (gEx_cons_le pkg_id.net.http S g) $$ Hown
-  iapply B.wp_http_own (gEx S g) hwf $$ Hown HΦ
+  iapply (net.http.wp_init_first_mux (gEx (pkg_id.net.http :: S) g) (gEx S g)
+    (gEx_no _ _ _ List.mem_cons_self) hwf (fun p hp => gEx_cons_ne _ _ _ _ hp)) $$ [Hown]
+  · iframe Hown; ipureintro; exact hT
+  iintro !> ⟨Hown, #Hpk, Hmux, #Hse⟩
+  iapply HΦ
+  iframe Hown Hpk
+  iapply httpInitRes_of_first
+  iframe Hmux Hse
 
 open Perennial.gryff in
-/-- net/rpc's owned initialization (`RpcBootHyp.wp_init_own`) in a table `gEx S0 g` with
-`S0 = net/rpc :: S`. -/
+/-- net/rpc's first initialization (`net.rpc.wp_init_first`, Net's interim axiom) in a table
+`gEx S0 g` with `S0 = net/rpc :: S`. -/
 theorem wp_rpc_own (S0 S : List GoString) (hS : S0 = pkg_id.net.rpc :: S) (g : GoString → IProp GF)
     (hwf : GetIsPkgInitProp pkg_id.net.rpc (gEx S g)) :
     {{ ownInitializing (gEx S0 g) }} (App (Val net.rpc.initialize') (Val #()))
@@ -264,8 +267,14 @@ theorem wp_rpc_own (S0 S : List GoString) (hS : S0 = pkg_id.net.rpc :: S) (g : G
         rpcInitRes (GF := GF) }} := by
   subst hS
   iintro %Φ Hown HΦ
-  ihave Hown := ownInitializing_weaken _ _ (gEx_cons_le pkg_id.net.rpc S g) $$ Hown
-  iapply B.wp_init_own (gEx S g) hwf $$ Hown HΦ
+  iapply (net.rpc.wp_init_first (gEx (pkg_id.net.rpc :: S) g) (gEx S g)
+    (gEx_no _ _ _ List.mem_cons_self) hwf (fun p hp => gEx_cons_ne _ _ _ _ hp)) $$ [Hown]
+  · iexact Hown
+  iintro !> ⟨Hown, #Hpk, Hf⟩
+  iapply HΦ
+  iframe Hown Hpk
+  iapply rpcInitRes_of_first
+  iframe Hpk Hf
 
 end rpcboot
 

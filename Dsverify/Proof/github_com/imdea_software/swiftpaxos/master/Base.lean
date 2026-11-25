@@ -6,14 +6,14 @@ module
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.master
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.http.PkgInit
+public import Net.Proof.net.rpc.PkgInit
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Proof.encoding.json.Base
 
 @[expose] public section
@@ -29,9 +29,10 @@ open Iris Iris.BI
 namespace github_com.imdea_software.swiftpaxos.master
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.master :=

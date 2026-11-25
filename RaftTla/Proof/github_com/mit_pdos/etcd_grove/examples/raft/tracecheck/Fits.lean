@@ -7,8 +7,9 @@ the owners. The harness's specs said `receiptBound GF + 3 ≤ 2^61` (`RunConcurr
 `L.length < receiptBound GF` (`SyncRecorder.Events`', `Cluster.Events`' post); they say the two named
 facts below instead, at the same strength (each is its definition):
 
-- `tcRunFits GF`: the traced cluster's receipts fit (`receiptBound GF + 3 ≤ 2^61`): raft's receipt fit
-  past the three voters' bootstrap entries (`readyFits`, `cluster_alloc`'s premise, and
+- `tcRunFits GF`: the traced cluster's receipts fit (`receiptBound GF + 5 ≤ 2^61`): raft's receipt fit
+  past the bootstrap entries of at most five voters (`Main` draws `1 … 5`, `tracecheck.maxNodes`;
+  until 2026-11-24 three voters and `+ 3`) (`readyFits`, `cluster_alloc`'s premise, and
   `traceReadyFits` at a traced node), which also keeps the event count below the checker's
   `numBound = 2^61` (`traceLenFits.lt_numBound`). Not a power of two, so not an instance
   (`ReceiptBoundLe GF (2^60)` would be stronger than the closed theorem's `n + 4 ≤ 2^61` gives).
@@ -34,17 +35,17 @@ variable {GF : BundledGFunctors} [ReceiptGS GF]
 
 /-- **The traced cluster's receipts fit** (see the file header). -/
 def tcRunFits (GF : BundledGFunctors) [ReceiptGS GF] : Prop :=
-  receiptBound GF + 3 ≤ 2 ^ 61
+  receiptBound GF + 5 ≤ 2 ^ 61
 
 /-- **The recorded events fit the receipts** (see the file header). -/
 def traceLenFits {α : Type} (GF : BundledGFunctors) [ReceiptGS GF] (L : List α) : Prop :=
   L.length < receiptBound GF
 
 /-- The fit, unfolded. -/
-theorem tcRunFits.le (h : tcRunFits GF) : receiptBound GF + 3 ≤ 2 ^ 61 := h
+theorem tcRunFits.le (h : tcRunFits GF) : receiptBound GF + 5 ≤ 2 ^ 61 := h
 
 /-- The fit, from the bound (the adequacy theorem's). -/
-theorem tcRunFits.intro (h : receiptBound GF + 3 ≤ 2 ^ 61) : tcRunFits GF := h
+theorem tcRunFits.intro (h : receiptBound GF + 5 ≤ 2 ^ 61) : tcRunFits GF := h
 
 /-- The event count's fit, from the receipts the lock holds. -/
 theorem traceLenFits.intro {α : Type} {L : List α} (h : L.length < receiptBound GF) :

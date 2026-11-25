@@ -65,33 +65,33 @@ theorem tc_toEntries_length (l : List LogEntry) (base : Nat) :
 
 /-- **The `app`'s view, as the apply loop keeps it**: the voters' membership, applied up to a point
 at most `p`, past which no conf entry of `l` before `p`. -/
-def ViewAt (l : List LogEntry) (p : Nat) (v : ConfigView) : Prop :=
-  v.membership = tcMem ∧ v.applied ≤ p ∧ NoConfChangeIn l v.applied p
+def ViewAt (nv : Nat) (l : List LogEntry) (p : Nat) (v : ConfigView) : Prop :=
+  v.membership = (tcMem nv) ∧ v.applied ≤ p ∧ NoConfChangeIn l v.applied p
 
-theorem viewAt_start (D ce : List LogEntry) (v : ConfigView) (h : ViewOk D v) :
-    ViewAt (D ++ ce) D.length v := by
+theorem viewAt_start (nv : Nat) (D ce : List LogEntry) (v : ConfigView) (h : ViewOk nv D v) :
+    ViewAt nv (D ++ ce) D.length v := by
   obtain ⟨h1, h2, h3⟩ := h
   refine ⟨h1, h2, fun k e hlo hhi hk => h3 k e hlo hhi ?_⟩
   rw [List.getElem?_append_left hhi] at hk; exact hk
 
-theorem viewAt_end (l : List LogEntry) (v : ConfigView) (h : ViewAt l l.length v) :
-    ViewOk l v := h
+theorem viewAt_end (nv : Nat) (l : List LogEntry) (v : ConfigView) (h : ViewAt nv l l.length v) :
+    ViewOk nv l v := h
 
-theorem viewAt_noConf (l : List LogEntry) (p : Nat) (e : LogEntry) (v : ConfigView)
-    (h : ViewAt l p v) (hk : l[p]? = some e) (hc : ¬ e.isConfChange) : ViewAt l (p + 1) v := by
+theorem viewAt_noConf (nv : Nat) (l : List LogEntry) (p : Nat) (e : LogEntry) (v : ConfigView)
+    (h : ViewAt nv l p v) (hk : l[p]? = some e) (hc : ¬ e.isConfChange) : ViewAt nv l (p + 1) v := by
   obtain ⟨h1, h2, h3⟩ := h
   refine ⟨h1, by omega, fun k e' hlo hhi hk' => ?_⟩
   by_cases hkp : k = p
   · subst hkp; rw [hk] at hk'; cases hk'; exact hc
   · exact h3 k e' hlo (by omega) hk'
 
-theorem viewAt_applied (l : List LogEntry) (p : Nat) :
-    ViewAt l (p + 1) ⟨p + 1, tcMem⟩ :=
+theorem viewAt_applied (nv : Nat) (l : List LogEntry) (p : Nat) :
+    ViewAt nv l (p + 1) ⟨p + 1, (tcMem nv)⟩ :=
   ⟨rfl, Nat.le_refl _, fun _ _ h1 h2 _ => absurd h2 (by simp only at h1; omega)⟩
 
-theorem tcMem_valid_mem (id : w64) (h : id ∈ tcVoters) : id ∈ tcMem.voters := by
-  show id ∈ GMap.listToSet tcVoters
-  exact (GMap.elem_of_list_to_set id tcVoters).2 h
+theorem tcMem_valid_mem (nv : Nat) (id : w64) (h : id ∈ tcVoters nv) : id ∈ (tcMem nv).voters := by
+  show id ∈ GMap.listToSet (tcVoters nv)
+  exact (GMap.elem_of_list_to_set id (tcVoters nv)).2 h
 
 end pure
 
@@ -105,12 +105,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **A committed `ConfChange` is a voter's bootstrap `AddNode`** (§2.3, A6's `ConfChange` arm): at
 its position (a bootstrap one, `tcOps_v1_boot`) the voters' membership; it decodes, applies leaving
 the membership, and the policy records it applied. -/
-theorem tc_conf1 (γ : Cluster) (boot l : List LogEntry) (p : Nat) (e : LogEntry)
-    (HB : BootLogFacts boot) (hk : l[p]? = some e) (ht : e.type = W32 1) :
+theorem tc_conf1 (nv : Nat) (γ : Cluster) (boot l : List LogEntry) (p : Nat) (e : LogEntry)
+    (HB : BootLogFacts nv boot) (hk : l[p]? = some e) (ht : e.type = W32 1) :
     ⊢ isCluster (GF := GF) γ tcRaftN -∗ tcOpsInv γ boot -∗ confPolicy γ tcConfN tcRule -∗
-      isCommittedLogLb γ boot -∗ isCommittedLogLb γ l -∗ confAt γ p tcMem ={⊤}=∗
+      isCommittedLogLb γ boot -∗ isCommittedLogLb γ l -∗ confAt γ p (tcMem nv) ={⊤}=∗
       ∃ cm : ConfChangeM, ⌜ccDecodeV1 e.data = some cm ∧
-          Membership.applyChange (.v1 cm) tcMem = some tcMem⌝ ∗
+          Membership.applyChange (.v1 cm) (tcMem nv) = some (tcMem nv)⌝ ∗
         confDecided γ p (.apply (.v1 cm)) := by
   iintro #Hc #Hops #Hpol #Hb #Hl #Ha
   imod tcOps_v1_boot γ boot l ⊤ HB (fun _ _ => CoPset.mem_full) $$ Hops Hb Hl with %Hv1
@@ -126,15 +126,15 @@ theorem tc_conf1 (γ : Cluster) (boot l : List LogEntry) (p : Nat) (e : LogEntry
       rw [List.getElem?_append_left hpl]; exact hk
   obtain ⟨id, ctx, Hid, -, -, -, Hm⟩ := HB.2.2 p e Hbk
   have Hdec1 : ccDecodeV1 e.data = some ⟨W32 0, id, ctx, W64 0⟩ := Hm
-  ihave %Hv := confAt_valid γ p tcMem $$ Ha
-  have Hin : id ∈ tcVoters := List.mem_of_getElem? Hid
-  have Hap : Membership.applyChange (.v1 ⟨W32 0, id, ctx, W64 0⟩) tcMem = some tcMem :=
-    Membership.applyChange_addVoter _ _ rfl (tcMem_valid_mem id Hin) Hv
+  ihave %Hv := confAt_valid γ p (tcMem nv) $$ Ha
+  have Hin : id ∈ tcVoters nv := List.mem_of_getElem? Hid
+  have Hap : Membership.applyChange (.v1 ⟨W32 0, id, ctx, W64 0⟩) (tcMem nv) = some (tcMem nv) :=
+    Membership.applyChange_addVoter _ _ rfl (tcMem_valid_mem nv id Hin) Hv
   have Hdec : ccDecode e = some (.v1 ⟨W32 0, id, ctx, W64 0⟩) := by
     unfold ccDecode; simp only [ht, ↓reduceIte, Hdec1]; rfl
-  have hs : (ConfDecision.ofRule (tcRule (l.take p) tcMem e)).step tcMem = some tcMem := by
+  have hs : (ConfDecision.ofRule (tcRule (l.take p) (tcMem nv) e)).step (tcMem nv) = some (tcMem nv) := by
     simp only [tcRule, Hdec, ConfDecision.ofRule, ConfDecision.step]; exact Hap
-  imod confPolicy_decide γ tcRaftN tcConfN ⊤ tcRule l p e tcMem tcMem hk (.inl ht)
+  imod confPolicy_decide γ tcRaftN tcConfN ⊤ tcRule l p e (tcMem nv) (tcMem nv) hk (.inl ht)
     (fun _ _ => CoPset.mem_full) hs $$ [Hc Hpol Hl Ha] with #Hd
   · iframe Hc Hpol Hl Ha
   imodintro
@@ -147,14 +147,14 @@ theorem tc_conf1 (γ : Cluster) (boot l : List LogEntry) (p : Nat) (e : LogEntry
 /-- **No committed `ConfChangeV2` at the voters' membership** (§2.3, A6's `ConfChangeV2` arm, refuted):
 it is an empty one (`tcOps_emptyV2`), committed only where the configuration is joint
 (`committed_emptyV2_joint`), and the voters' simple membership is not. -/
-theorem tc_noConf2 (γ : Cluster) (boot l : List LogEntry) (p : Nat) (e : LogEntry)
-    (HB : BootLogFacts boot) (hk : l[p]? = some e) (ht : e.type = W32 2) :
+theorem tc_noConf2 (nv : Nat) (γ : Cluster) (boot l : List LogEntry) (p : Nat) (e : LogEntry)
+    (HB : BootLogFacts nv boot) (hk : l[p]? = some e) (ht : e.type = W32 2) :
     ⊢ isCluster (GF := GF) γ tcRaftN -∗ tcOpsInv γ boot -∗ isCommittedLogLb γ l -∗
-      confAt γ p tcMem ={⊤}=∗ False := by
+      confAt γ p (tcMem nv) ={⊤}=∗ False := by
   iintro #Hc #Hops #Hl #Ha
   imod tcOps_emptyV2 γ boot l ⊤ HB (fun _ _ => CoPset.mem_full) $$ Hops Hl with %Hall
   have He2 : e.isEmptyV2 := Hall e (List.mem_of_getElem? hk) ht
-  ihave %Hj := committed_emptyV2_joint γ tcRaftN l p e tcMem hk He2 $$ [Hc Hl Ha]
+  ihave %Hj := committed_emptyV2_joint γ tcRaftN l p e (tcMem nv) hk He2 $$ [Hc Hl Ha]
   · iframe Hc Hl Ha
   exact absurd rfl Hj
 
@@ -313,7 +313,7 @@ theorem Cluster.handleReady.wp_proof
     · iPkgInit
     ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
     · iPkgInit
-    have Hv0 := viewAt_start D ce v Hview
+    have Hv0 := viewAt_start W.nv D ce v Hview
     ihave IH : iprop(∃ (j : w64) (ev : Loc) (a : w64) (cs : Loc) (cf : Bool) (v' : ConfigView),
         "i" ∷ i_ptr ↦ j ∗ "e" ∷ e_ptr ↦ ev ∗ "r" ∷ r_ptr ↦ r ∗ "confApplied" ∷ confApplied_ptr ↦ cf ∗
         "Happl" ∷ r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"applied"]
@@ -322,7 +322,7 @@ theorem Cluster.handleReady.wp_proof
           go!"confState"] ↦ cs ∗
         "Hcfg" ∷ nodeConfig n W.cl tcRaftN v' ∗ "Hrun" ∷ nodeRunning n W.cl tcRaftN 1 ∗
         "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (ce.length : Int) ∧
-          ViewAt (D ++ ce) (D.length + sint.nat j) v'⌝)
+          ViewAt W.nv (D ++ ce) (D.length + sint.nat j) v'⌝)
       $$ [i e r confApplied Happl Hcs Hcfg Hrun]
     · iexists W64 0, _, a0, cs0, false, v
       iframe
@@ -344,9 +344,9 @@ theorem Cluster.handleReady.wp_proof
         rw [List.getElem?_append_right (by omega)]; rw [show D.length + sint.nat j - D.length = sint.nat j by omega]; exact Hen
       obtain ⟨Hvm, Hva, Hvn⟩ := Hj.2.2
       icases nodeConfig_confAt n W.cl tcRaftN v' $$ Hcfg with ⟨Hcfg, #Hca⟩
-      ihave #Hca' : confAt W.cl v'.applied tcMem $$ []
+      ihave #Hca' : confAt W.cl v'.applied (tcMem W.nv) $$ []
       · rw [← Hvm]; iexact Hca
-      ihave #Hcap := confAt_noConf W.cl (D ++ ce) v'.applied (D.length + sint.nat j) tcMem Hvn Hva
+      ihave #Hcap := confAt_noConf W.cl (D ++ ce) v'.applied (D.length + sint.nat j) (tcMem W.nv) Hvn Hva
         (by rw [List.length_append]; omega) $$ [Hcl Hca']
       · iframe Hcl Hca'
       try wp_auto
@@ -361,7 +361,7 @@ theorem Cluster.handleReady.wp_proof
       wp_if_destruct
       · -- a `ConfChange`: the bootstrap log's, applied
         have Ht1 : en.type = W32 1 := Hif
-        imod tc_conf1 W.cl W.boot (D ++ ce) (D.length + sint.nat j) en Hpure.2.2.2.2.1 Hpos Ht1
+        imod tc_conf1 W.nv W.cl W.boot (D ++ ce) (D.length + sint.nat j) en Hpure.2.2.2.2.1 Hpos Ht1
           $$ Hclu Hops Hpol Hboot Hcl Hcap with ⟨%cm, ⟨%Hcm, %Hap⟩, #Hdec⟩
         try wp_auto
         wp_apply wp_GetData.1 ln DFrac.discard _ $$ [$Hpb $Hent] as %ds ⟨#Hds, -⟩
@@ -381,7 +381,7 @@ theorem Cluster.handleReady.wp_proof
         · rw [Hvm]; iexact Hcap
         try wp_auto
         wp_apply wp_ACC n W.cl tcRaftN id _ (.v1 cm) (.v1 cm) (D ++ ce) (D.length + sint.nat j) en v'
-            tcMem Hva Hpos (.inl Ht1) (by rw [Hvm]; exact Hap) (by rw [Hvm]; exact Hap)
+            (tcMem W.nv) Hva Hpos (.inl Ht1) (by rw [Hvm]; exact Hap) (by rw [Hvm]; exact Hap)
             (fun _ => Hvm.symm)
           $$ [$Hraft $Hnode $Hclu $Hdec $Hci $Hcfg $Hdl $Hsk'] as %csp %csm Hres
         icases Hres with (⟨Hcsp, Hcfg, -⟩ | ⟨-, Hstop⟩)
@@ -390,23 +390,23 @@ theorem Cluster.handleReady.wp_proof
           try wp_auto
           wp_for_post
           iframe
-          iexists j + W64 1, ln, _, _, true, ⟨D.length + sint.nat j + 1, tcMem⟩
+          iexists j + W64 1, ln, _, _, true, ⟨D.length + sint.nat j + 1, (tcMem W.nv)⟩
           iframe
           ipureintro
           refine ⟨Hs0, Hj1, ?_⟩
-          rw [Hp1]; exact viewAt_applied (D ++ ce) (D.length + sint.nat j)
+          rw [Hp1]; exact viewAt_applied W.nv (D ++ ce) (D.length + sint.nat j)
         · iexfalso
           iapply nodeRunning_stopped n W.cl tcRaftN 1
           iframe Hrun Hstop
       · have Hif0 := Hif
         wp_if_destruct
         · -- a `ConfChangeV2`: refuted
-          imod tc_noConf2 W.cl W.boot (D ++ ce) (D.length + sint.nat j) en Hpure.2.2.2.2.1 Hpos Hif
+          imod tc_noConf2 W.nv W.cl W.boot (D ++ ce) (D.length + sint.nat j) en Hpure.2.2.2.2.1 Hpos Hif
             $$ Hclu Hops Hcl Hcap with %F
           exact F.elim
         · -- another entry: no conf change
           have Hnc : ¬ en.isConfChange := fun h => h.elim Hif0 Hif
-          have Hv1 := viewAt_noConf (D ++ ce) (D.length + sint.nat j) en v' ⟨Hvm, Hva, Hvn⟩ Hpos Hnc
+          have Hv1 := viewAt_noConf W.nv (D ++ ce) (D.length + sint.nat j) en v' ⟨Hvm, Hva, Hvn⟩ Hpos Hnc
           try wp_auto
           wp_apply wp_GetIndex.1 ln DFrac.discard _ $$ [$Hpb $Hent] as -
           try wp_auto
@@ -433,7 +433,7 @@ theorem Cluster.handleReady.wp_proof
       isplitl [Hb]
       · iapply tc_advReceipt ms γs es k _ Hk $$ Hreg Hb
       ipureintro
-      apply viewAt_end
+      apply viewAt_end W.nv
       rw [List.length_append, ← Hfull]
       exact Hj.2.2
 

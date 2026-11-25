@@ -31,8 +31,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 /-- See the file header. -/
 abbrev Client.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)] [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
     (ep : GoString) (γE : GName) (mid : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk ∗

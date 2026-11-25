@@ -34,18 +34,16 @@ absence; its order, greater than every key under `kp` then, and its freshness ho
 premise on the keys under `kp`, `seqKeyPutAt_order`, `seqKeyPutAt_created`); or an error. -/
 abbrev PriorityQueue.Enqueue.spec : Prop :=
   ∀ (q client : Loc) (key val : GoString) (pr : w16) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isPriorityQueue q client key ∗ etcdReached lo ∗ ⌜val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isPriorityQueue q client key ∗ etcdReached lo ∗ ⌜val.length ≤ recipesStrMax⌝) }}
     (App (App (Val (q @!! go.GoType.PointerType PriorityQueue.ty @!! go!"Enqueue")) (Val #val))
       (Val #pr))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (k : GoString) (g r : w64), etcdReached r ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (k : GoString) (g r : w64), etcdReached r ∗
         seqKeyPutAt [] (key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5
             (_root_.Perennial.fmt.decimal (uint.Z pr))) k val g r ∗
         ⌜(key ++ go!"/" ++ _root_.Perennial.fmt.padZeros 5
             (_root_.Perennial.fmt.decimal (uint.Z pr)) ++ go!"/") <+: k ∧
           sint.Z lo ≤ sint.Z g ∧ sint.Z g ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

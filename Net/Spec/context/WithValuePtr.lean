@@ -1,6 +1,7 @@
 /-
-**Interim pending hypothesis** (not an axiom: a hypothesis of the linked results that use it, until
-its retirement below; approved as interim on #24, 2026-11-24, subject to an adversarial review).
+**Interim trust-boundary spec**, assumed by the axiom `context.WithValue.wp_proofPtr` (`Net/Proof/context/WithValuePtr.lean`; until
+2026-11-25 a hypothesis of the linked results that used it, approved as interim on #24, 2026-11-24,
+and adversarially reviewed: sound), until its retirement below.
 
 `context.WithValue(parent, key, val)` (go1.27.3 `src/context/context.go`) for a non-nil `parent`, a
 `key` whose dynamic type is a pointer type (`*T` for any `T`; the pointer itself may be `nil`) and
@@ -29,7 +30,7 @@ scan of the package's sources: no assignment to, or address taken of, a `valueCt
 `TestWithValueOddPointerKeys`, `TestZeroSizeKeyAlias`, and `TestReflectWritesEmbeddedContext` (the
 reflective write of `Context` from outside `context`: `key`/`val` not settable, `Context` settable).
 
-**Why a hypothesis.** Perennial translates `WithValue` names-only (`context.toml`:
+**Why assumed.** Perennial translates `WithValue` names-only (`context.toml`:
 `"!WithValue"`, for its `reflectlite.TypeOf(key).Comparable()`), so its body is not in the model.
 **Retired by** Perennial's `internal/reflectlite` model (reflection stage S0.5, Perennial branch
 `reflect-s05`): `WithValue` translated with its body and this triple proved over it

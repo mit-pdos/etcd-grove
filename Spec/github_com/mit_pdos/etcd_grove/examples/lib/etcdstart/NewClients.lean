@@ -43,17 +43,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 /-- See the file header. -/
 abbrev NewClients.spec : Prop :=
   ∀ (eps : GoSlice) (addrs : List GoString) (lg : Loc) (V : client.WEnv GF),
-  threadBound GF ≤ 2 ^ 31 → plainEndpoints addrs →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+  threadBound GF ≤ 2 ^ 30 → plainEndpoints addrs →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗ levelTok 0 ∗ (-- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
-      eps ↦*□ addrs }}
+      eps ↦*□ addrs) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients)) (Val #eps))
       (Val #lg))
-  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V ∗
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V ∗
         clientTokAt cl addrs (fun _ => iprop(False)) ∗ clientNoProxy cl) ∨
-      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec
 

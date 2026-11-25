@@ -9,8 +9,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
+  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvraft, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -71,12 +71,8 @@ GO_TOOLCHAIN = "go1.27.3"
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
 # The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
-# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md), and project kvdurable-noax's
-# source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
-# renames the copied kvdurable proofs' package accordingly).
+# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md).
 RAFT_NOAX_REV = "e98d795867e6d626df1cc4e71faa00c1c1f42764"
-KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
-KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 
 
 @dataclass
@@ -754,11 +750,11 @@ PROJECTS = [
                         "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org="],
             packages=["go.etcd.io/etcd/server/v3/storage/wal/walpb"],
             owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal", "walpb")]),
-            # and into the part KvNet, over its raft (raft-noax's; notes/kvnet-part.md)
+            # and into the part KvRaft, over its raft (raft-noax's; notes/kvraft-part.md)
             Part(
-            root="KvNet",
-            lean_roots=["go.etcd.io/etcd/server/v3/storage/wal/walpb=KvNet", "go.etcd.io/etcd=",
-                        "go.etcd.io/raft/v3=KvNet", "google.golang.org="],
+            root="KvRaft",
+            lean_roots=["go.etcd.io/etcd/server/v3/storage/wal/walpb=KvRaft", "go.etcd.io/etcd=",
+                        "go.etcd.io/raft/v3=KvRaft", "google.golang.org="],
             packages=["go.etcd.io/etcd/server/v3/storage/wal/walpb"],
             owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal", "walpb")])],
         # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
@@ -767,58 +763,28 @@ PROJECTS = [
         std_models=["encoding/json"],
     ),
     Project(
-        name="kv",
-        # An example application on raft's Node: a replicated string-to-string key-value
-        # store (Put, Get, Append; until 2026-10-19 the replicated string register
-        # `examples/register`), with its randomized linearizability test over the lintest
-        # driver and porcupine (check.go). A package of the examples' Go module (examples/go.mod),
-        # which replaces go.etcd.io/raft/v3 by the revision pinned above
-        # (`github.com/upamanyus/etcd/v3`, the fork's pseudo-version under a /v3 path, since
-        # its go.mod declares go.etcd.io/raft/v3; GO_MOD_PINS checks the two agree), and lintest and
-        # porcupine by this repository's copies.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "raft", "kv"),
-        # (raft v3.7, stage R6b: the store reaches protobuf-go's `proto`, which the raft
-        # tree translates into the root, `Code.google_golang_org.protobuf.proto`; lintest is
-        # the lintest project's translation, porcupine the porcupine project's)
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
-                    "github.com/anishathalye/porcupine="],
-        # the store; not its command (cmd/kvcheck), which only runs it
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kv")],
-    ),
-    Project(
         name="kvreconf",
         # The key-value store on raft that reconfigures and snapshots (`examples/raft/kvreconf`: every
         # choice the application may make is random; notes/raft-unified-plan.md, U11), with its
-        # randomized linearizability test (check.go). A package of the examples' Go module, as kv.
+        # randomized linearizability test (check.go). A package of the examples' Go module. Its
+        # top-level theorems retired on 2026-11-24 (kvraft_robust and kvraft-udp subsume them): the
+        # store is translated only into the part KvRaft (below), whose store proofs stand on its
+        # shared proofs; into the main tree only gokv's trusted_proph (examples/go.mod's gokv), whose
+        # ResolveBytes kvraft's checker resolves its prophecy with (trusted:
+        # Code/github_com/mit_pdos/gokv/trusted_proph.toml).
         repo=None,
         rev=None,
         local=os.path.join("examples", "raft", "kvreconf"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
                     "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-        # the store; not its command (cmd/kvreconfcheck), which only runs it; and gokv's
-        # trusted_proph (examples/go.mod's gokv), whose ResolveBytes `Cluster.Read` resolves its
-        # prophecy with (trusted: Code/github_com/mit_pdos/gokv/trusted_proph.toml)
-        packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf"),
-               os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
-        # the store alone into the part RaftNoAx too, over its raft (notes/raft-noax-part.md): the
-        # kvdurable proofs the part copies use kvreconf's shared proofs, which name its translation
+        packages=["github.com/mit-pdos/gokv/trusted_proph"],
+        owned=[os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
+        # the store alone into the part KvRaft (notes/kvraft-part.md): kvraft's store proofs (once
+        # kvdurablenoax's) stand on kvreconf's shared proofs, which name its translation
         parts=[Part(
-            root="RaftNoAx",
-            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=RaftNoAx",
-                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
-                        "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-            packages=["."],
-            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")]),
-            # and into the part KvNet (notes/kvnet-part.md), for the same reason: kvnet's store proofs
-            # reuse kvdurablenoax's, which stand on kvreconf's shared proofs
-            Part(
-            root="KvNet",
-            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=KvNet",
-                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "google.golang.org=",
+            root="KvRaft",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=KvRaft",
+                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvRaft", "google.golang.org=",
                         "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
             packages=["."],
             owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")])],
@@ -840,7 +806,7 @@ PROJECTS = [
         # `WalTester/` too (until 2026-11-15 `LinuxFs/`), over the main tree's `os` (fsExt) and
         # `path/filepath`, where its specs are proved (no trusted function:
         # `WalTester/Code/.../examples/lib/durable.toml` absent); the main tree's stays trusted over
-        # `durableExt` for kvdurable, kvfile and etcdstart (notes/wal-lean-integration.md)
+        # `durableExt` for kvfile and etcdstart (notes/wal-lean-integration.md; kvdurable until 2026-11-24)
         parts=[Part(
             root="WalTester",
             lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
@@ -849,11 +815,11 @@ PROJECTS = [
                         "internal/filepathlite="],
             packages=["."],
             owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")]),
-            # and the same into the part KvNet (notes/kvnet-part.md): kvnet's store writes its files
+            # and the same into the part KvRaft (notes/kvraft-part.md): kvraft's store writes its files
             # through the bodied `durable`, over fsExt
             Part(
-            root="KvNet",
-            lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=KvNet",
+            root="KvRaft",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=KvRaft",
                         "github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
                         "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
                         "internal/filepathlite="],
@@ -942,10 +908,17 @@ PROJECTS = [
         # (v3, 2026-11-14) `os`, `syscall`, `internal/poll`, `io/fs`, `internal/syscall` are the
         # main tree's, as every project's (`net`'s errors are their values: `*os.SyscallError`,
         # `poll.ErrNetClosing`, `poll.ErrDeadlineExceeded`).
+        # (2026-11-24, rpcdriver: net/rpc and net/http are the part's, from their models, as for the
+        # dsverify kits; the main tree's names-only `bufio`, `net/url`, `path`, `crypto/tls`)
         lean_roots=["github.com/mit-pdos/etcd-grove=Net", "net=Net", "os=", "syscall=",
-                    "io/fs=", "internal/poll=", "internal/syscall="],
+                    "io/fs=", "internal/poll=", "internal/syscall=", "bufio=", "net/url=", "path=",
+                    "crypto/tls=", "golang.org/x/net/http/httpguts=Net", "vendor=Net",
+                    "go/token=Net", "mime/multipart=Net"],
         packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
                   "./shutdown", "./preface",
+                  # net/rpc's driver (notes/library-drivers.md)
+                  "./rpcdriver", "./rpcdriver/service", "./rpcdriver/cmd/server",
+                  "./rpcdriver/cmd/client",
                   # each node a command of its example, its own process (examples/net/README.md)
                   "./echo/cmd/server",
                   "./echo/cmd/client",
@@ -964,11 +937,14 @@ PROJECTS = [
                   "./preface/cmd/junk",
                   "./shutdown/cmd/node"],
         owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
-        # `net` alone into the part KvNet too (notes/kvnet-part.md): kvnet's transport and client
+        # net/rpc and net/http from their models (the driver's; `goose` builds the generated codec's
+        # model half, rpc_model_gen.go)
+        std_models=["net/rpc", "net/http"],
+        # `net` alone into the part KvRaft too (notes/kvraft-part.md): kvraft's transport and client
         # protocol are over the net extension
         parts=[Part(
-            root="KvNet",
-            lean_roots=["net=KvNet", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
+            root="KvRaft",
+            lean_roots=["net=KvRaft", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
             packages=["net"],
             owned=["net"])],
     ),
@@ -1050,23 +1026,6 @@ PROJECTS = [
         # the store; not its command (cmd/durablekv), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvfile")],
-    ),
-    Project(
-        name="kvdurable",
-        # kvreconf made durable (`examples/raft/kvdurable`): kvreconf's store, its every application
-        # choice at random, with each replica's raft storage in a file of the durable package
-        # (written whole, before what raft needs durable is relied on; what it does not need,
-        # written late or not at all), and replicas that crash and restart from their files. A
-        # package of the examples' Go module, with kvreconf's imports (trusted_proph, translated
-        # by kvreconf's project) and the durable package's.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "raft", "kvdurable"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
-                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-        # the store; not its command (cmd/kvdurablecheck), which only runs it
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvdurable")],
     ),
     Project(
         name="common",
@@ -1293,7 +1252,9 @@ PROJECTS = [
         local=os.path.join("examples", "mvccrand"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    # (P3, 2026-11-24) `MainAt`'s `os.Lstat`: the os over the file extension
+                    "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
     ),
@@ -1309,7 +1270,9 @@ PROJECTS = [
         local=os.path.join("examples", "mvccfull"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    # (P3, 2026-11-24) `MainAt`'s `os.Lstat`: the os over the file extension
+                    "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccfull")],
     ),
@@ -2055,8 +2018,8 @@ PROJECTS = [
         name="raft-noax",
         # Raft without hand-written axioms (notes/raft-noax-part.md): raft whose `proto` calls are
         # replaced by hand-written raftpb functions, `fmt.Errorf` by `errors.New`, and stepLeader's
-        # `DescribeConfChange` dropped, for a closed theorem of kvdurable whose trust base has no
-        # axiom of this repository. Translated into the parallel tree RaftNoAx (modules
+        # `DescribeConfChange` dropped, for closed theorems (kvraft's; kvdurable's until 2026-11-24)
+        # whose trust base has no axiom of this repository. Translated into the parallel tree RaftNoAx (modules
         # RaftNoAx.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports; the same packages
         # as project raft, configured by RaftNoAx/Code/**.toml. At the fork's branch
         # raft37-goose-lean-noax (`RAFT_NOAX_REV`, notes/raft-noax.md).
@@ -2074,55 +2037,38 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
-        # the same into the part KvNet (notes/kvnet-part.md), where kvnet's proof lives
+        # the same into the part KvRaft (notes/kvraft-part.md), where kvraft's proof lives
         parts=[Part(
-            root="KvNet",
-            lean_roots=["go.etcd.io/raft/v3=KvNet", "google.golang.org=", "os=", "io/fs="],
+            root="KvRaft",
+            lean_roots=["go.etcd.io/raft/v3=KvRaft", "google.golang.org=", "os=", "io/fs="],
             packages=[".", "go.etcd.io/raft/v3/confchange", "go.etcd.io/raft/v3/quorum",
                       "go.etcd.io/raft/v3/raftpb", "go.etcd.io/raft/v3/tracker"],
             owned=[os.path.join("go_etcd_io", "raft")])],
     ),
     Project(
-        name="kvdurable-noax",
-        # The durable key-value store (project kvdurable) on raft-noax's raft, for its closed theorem
-        # without hand-written axioms (notes/raft-noax-part.md): `KVDURABLE_NOAX_DIR`, the Go package
-        # `KVDURABLE_NOAX_PKG`, translated into RaftNoAx, its raft the raft-noax project's, lintest,
-        # porcupine, durable and trusted_proph the main tree's (examples/raft/kvdurablenoax, a Go
-        # module of its own whose go.mod replaces raft by `RAFT_NOAX_REV`, GO_MOD_PINS).
-        repo=None,
-        rev=None,
-        local=KVDURABLE_NOAX_DIR,
-        root="RaftNoAx",
-        lean_roots=[f"{KVDURABLE_NOAX_PKG}=RaftNoAx",
-                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
-                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-        packages=["."],
-        owned=[os.path.join(*KVDURABLE_NOAX_PKG.replace(".", "_").replace("-", "_").split("/"))],
-    ),
-    Project(
-        name="kvnet",
-        # The networked key-value store on the axiom-free raft (`examples/raft/kvnet`,
-        # notes/kvnet-proof-plan.md): replicas exchange raft's messages over TCP (the net extension's
+        name="kvraft",
+        # The networked key-value store on the axiom-free raft (`examples/raft/kvraft`,
+        # notes/kvraft-proof-plan.md): replicas exchange raft's messages over TCP (the net extension's
         # `net`), keep their state in files of the bodied `durable` (over fsExt), and serve clients;
         # kvcheck its linearizability checker over lintest. A Go module of its own, whose go.mod
-        # replaces raft by `RAFT_NOAX_REV` (GO_MOD_PINS). Translated into the part KvNet
-        # (notes/kvnet-part.md), whose raft, `net` and `durable` are the parts of projects
+        # replaces raft by `RAFT_NOAX_REV` (GO_MOD_PINS). Translated into the part KvRaft
+        # (notes/kvraft-part.md), whose raft, `net` and `durable` are the parts of projects
         # raft-noax, net and durable translated into it; lintest, porcupine and gokv's trusted_proph
         # (kvcheck's `read` resolves its prophecy with `ResolveBytes`) the main tree's.
         repo=None,
         rev=None,
-        local=os.path.join("examples", "raft", "kvnet"),
-        root="KvNet",
-        lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvnet=KvNet",
-                    "github.com/mit-pdos/etcd-grove/examples/lib/durable=KvNet",
-                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "net=KvNet",
+        local=os.path.join("examples", "raft", "kvraft"),
+        root="KvRaft",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvraft=KvRaft",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/durable=KvRaft",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvRaft", "net=KvRaft",
                     "google.golang.org=", "github.com/anishathalye/porcupine=",
                     "github.com/mit-pdos/gokv=", "os=", "syscall=",
                     "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
                     "internal/filepathlite="],
         # the store and its checker; not the commands (cmd/, driver/), which only run them
         packages=[".", "./kvcheck"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvnet")],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvraft")],
     ),
     Project(
         name="raft-tla",
@@ -2273,8 +2219,7 @@ GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
-    os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
-    os.path.join("examples", "raft", "kvnet", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
+    os.path.join("examples", "raft", "kvraft", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "raft", "antithesis", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},

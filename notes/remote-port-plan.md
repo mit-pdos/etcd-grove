@@ -25,13 +25,13 @@ workloads (`notes/etcd-dist-plan.md` §2, D8).
 | `Remote/RunP.lean`, `DriverP.lean` (the driver's proof copied for persistent commit postconditions only) | none | **dropped**. The committed continuation comes back to the caller through the slot invariant (§4), so lintest's `applySpec` is proved for any postcondition |
 | The lab's unknown outcomes (porcupine's pending operations, through its axiom) | the pending-writes model `linkv.PendSpec`/`pM` (`Proof/.../etcd/txnlin/PendModel.lean`, used by txnlin and k8s etcd3) | **reused**. A failed write is pending: it may take effect later, at most once, or never. A failed read constrains nothing |
 | `Remote.lean`: `slotReg`, `reqProto`, `repProto`, `RemoteNames` (per-(c, j) claim tokens and saved predicates, allocated at the start for `j < k`) | `Remote/Defs.lean` | **redesigned** (§4): one slot per connection, made by the dialer once it has the connection and claimed by the acceptor with that connection's `connFresh`. No `j`, no `k`, no start allocation per operation |
-| `Remote/Wire.lean` | `Remote/Wire.lean` | **ported** to kvnet's frame format, with prefix lemmas (§2) |
+| `Remote/Wire.lean` | `Remote/Wire.lean` | **ported** to kvraft's frame format, with prefix lemmas (§2) |
 | `Remote/Call.lean`, `Serve.lean`, `RunRemote.lean`, `Init.lean` | `Remote/{Call,Do,Serve,ServeClient,Run,Init}.lean` | **re-proved** over the net extension's canonical specs (`Net/Spec/net/`) and `GooseLang/Ext/Net/Proto.lean` (`dial_au`, `accept_au`, `writeP`/`write_acc`, `read_au`, `close_au`, `deadline_au`) |
 | `Remote/Codec.lean` and the per-model codecs (`CodecKV`, `CodecCasReg`, `CodecKVScan`, ...) | `Remote/Codec.lean` (`CodecSpec`) and one codec per instance | **ported in form**. R4 gets the counter's codec. The lab's codecs are not ported (their models are the lab's) |
 | `Remote/Start.lean` (`remote_start`), `Dist.lean` (`remoteDistSafe` over `SafeDist`), `DistSha.lean` | `Remote/Start.lean`, `Remote/Robust.lean` (`remote_robust`) | **re-stated** as `DistDeploy … → Robust [] …` through `robust_of_distProto` (§6). SHA is not needed |
 | `RemoteKit`, `RemoteFacts`, `RemoteMainFacts`, `remoteMainImpl`/`clientNodeImpl` (`rfl` facts about kitgen's generated `Main`) | none | **dropped**. An instance proves its nodes' boot WPs itself, calling `remote.Check`'s and `remote.ServeClient`'s specs |
 | `Mux.lean` | not used by `Remote` | not needed |
-| kvnet's `kvcheck` (#22) | not edited | **reused as the reference** for the client side: one request frame per connection with a timeout, the frame format. Not imported: `remote` must not depend on kvnet |
+| kvraft's `kvcheck` (#22) | not edited | **reused as the reference** for the client side: one request frame per connection with a timeout, the frame format. Not imported: `remote` must not depend on kvraft |
 
 ## 2. Semantics: the lab's `NetConn` vs the net extension
 
@@ -43,7 +43,7 @@ workloads (`notes/etcd-dist-plan.md` §2, D8).
 | Read facts | immediate | one step later (`recvTokL`, `recvTokL_later`) | later credits in the read loop, as `wire.ReadFull`'s proof already does |
 | Abandoned dials (D16) | no | `Accept` may return a connection whose dial failed (an empty, shut direction) | `Serve` reads EOF and closes. No slot was made for it, and none is claimed |
 | Deadlines | timeouts | the value is not modeled: any operation may time out once a deadline is set (`deadline_au`) | a timeout is a failed attempt. Timing is never used for safety |
-| `Listen` | needs an exclusive address token | `addrTok` persistent; `Listen` on an address in use fails with `sys`; listening token `netLisTok` (v3.4) | `Serve` retries `Listen` (as the lab's and kvnet's do). A listening node's share includes its address's `addrUnset` and protocol |
+| `Listen` | needs an exclusive address token | `addrTok` persistent; `Listen` on an address in use fails with `sys`; listening token `netLisTok` (v3.4) | `Serve` retries `Listen` (as the lab's and kvraft's do). A listening node's share includes its address's `addrUnset` and protocol |
 | Deployment | `cfg.WellFormed`, plan, hosts | `DistDeploy addrs nodes g` (v3.4): addresses distinct and `addrOk`, no connections, no listeners | the addresses are the listening nodes' (client nodes, servers). Node 0 listens on none |
 | Crashes | none (`SafeDist`) | `Robust crashing stable`. The kits use `Robust []` (`robust_of_distBoot`) | the orchestrator and the client nodes are **stable** (they keep the history). R3 proves the `Robust []` form. Each node's boot WP is a separate lemma, so a mixed bridge (crashing servers: #22's `NetFs` adequacy, etcd-dist D3) can reuse them unchanged |
 | Liveness | not proved | not proved | a call that never gets a reply waits for its attempt's deadline. Safety only |
@@ -87,7 +87,7 @@ func Serve(addr string, sys any, op func(sys any, in any) any, codec Codec)
 func ServeClient(c int, addr string, newClient func(int) any, op func(sys any, in any) any, codec Codec)
 ```
 
-**The wire.** kvnet's frame format: an 8-byte little-endian length, then the body. One connection
+**The wire.** kvraft's frame format: an 8-byte little-endian length, then the body. One connection
 per attempt, carrying one request and at most one reply:
 
 - the request is the frame `in`;
@@ -148,7 +148,7 @@ attempt is its own connection and its own slot, and a reply is read on the conne
 its request, so a read's retry cannot be confused with a stale reply. `Serve` keeps no state
 between connections. This also removes the per-sender deduplication R4's server needed (§6, Q2).
 
-**Too long.** An encoding longer than `MaxLen` (2^20, as kvnet's `maxFrame`) is never sent: node 0
+**Too long.** An encoding longer than `MaxLen` (2^20, as kvraft's `maxFrame`) is never sent: node 0
 waits forever (`for {}`). No premise (Q4).
 
 **etcd-dist's seam** (branch `etcd-dist` at `59304d8044`, §2 "Stage D1"; not edited). The kv
@@ -247,7 +247,7 @@ values (scalars, strings, structs of them). The counter's `bool`/`int64` qualify
   `genSpec`, bounds), `CodecSpec`, `pendInv`'s start, node 0's share; then `r ≠ Illegal`, and
   `Check` returns;
 - `perclient.Run.spec` (lintest's `Run.spec` with an id-indexed `applySpec`; its proof reuses lintest's `Defs`, `InvLemmas`, `RunLemmas`);
-- the frame helpers, ported from kvnet's and `wire.ReadFull`'s proofs, not imported.
+- the frame helpers, ported from kvraft's and `wire.ReadFull`'s proofs, not imported.
 
 ## 5. Stages
 

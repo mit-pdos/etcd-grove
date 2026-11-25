@@ -74,7 +74,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- **What a `Main` takes per member** (program start's resources; see the file header). -/
 @[no_expose] def memberStartRes (name : GoString) (a : MemberAddrs) : IProp GF :=
-  iprop(envVerifyOff ∗ memberAreasFresh (memberDataDir name) ∗
+  iprop(⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with | some p => netAddrFree p ∗ httpProtoFree p | none => emp) ∗
     (match a.client with | some c => netAddrFree c | none => emp))
 
@@ -90,7 +90,7 @@ variable [sem : go.Semantics]
 the cluster's network `γn`. -/
 @[no_expose] def memberFreshRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF) :
     IProp GF :=
-  iprop(envVerifyOff ∗ memberAreasFresh (memberDataDir name) ∗
+  iprop(⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (memberDataDir name) ∗
     (match a.peer with
       | some p => http.httpAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))
       | none => emp) ∗
@@ -218,7 +218,7 @@ theorem memberFreshRes_boot [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (
 
 /-- (Sweep repairs 1, B4) **`ETCD_VERIFY` off, out of a fresh bundle** (to `NewServer`). -/
 theorem memberFreshRes_verify (n : GoString) (a : MemberAddrs) (γn : NetNames GF) :
-    memberFreshRes (GF := GF) n a γn ⊢ envVerifyOff ∗ memberFreshRes n a γn := by
+    memberFreshRes (GF := GF) n a γn ⊢ ⌜EtcdVerifyOff⌝ ∗ memberFreshRes n a γn := by
   unfold memberFreshRes
   iintro ⟨#Hv, H⟩
   iframe; try iframe #
@@ -242,7 +242,7 @@ theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
 /-- **The start bundle of a member that listens on no address, from its areas** (2026-11-24):
 `ETCD_VERIFY` off and the member's fresh areas (`StartOne.lean`'s `memberStartRes_one`). -/
 theorem memberStartRes_areas (n : GoString) :
-    envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir n) ⊢
+    ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir n) ⊢
       memberStartRes (GF := GF) n {} := by
   unfold memberStartRes
   simp only
@@ -257,7 +257,7 @@ theorem memberStartRes_areas (n : GoString) :
 private theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
     ([∗list] x ∈ a.addrs, netAddrFree (GF := GF) x) ∗ ([∗list] x ∈ a.addrs, httpProtoFree (GF := GF) x) ∗
       dataDirFresh (GF := GF) (memberDataDir n) ∗ memberAreasFresh (GF := GF) (memberDataDir n) ∗
-      envVerifyOff ⊢ memberStartRes n a := by
+      ⌜EtcdVerifyOff⌝ ⊢ memberStartRes n a := by
   unfold memberStartRes MemberAddrs.addrs
   obtain ⟨p, c⟩ := a
   cases p <;> cases c <;>
@@ -278,7 +278,7 @@ private theorem memberStartRes_of_lists_all (ms : List (GoString × MemberAddrs)
       ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), httpProtoFree (GF := GF) x) ∗
       ([∗list] d ∈ ms.map (fun m => memberDataDir m.1), dataDirFresh (GF := GF) d) ∗
       ([∗list] d ∈ ms.map (fun m => memberDataDir m.1), memberAreasFresh (GF := GF) d) ∗
-      envVerifyOff ⊢
+      ⌜EtcdVerifyOff⌝ ⊢
       [∗list] m ∈ ms, memberStartRes m.1 m.2 := by
   induction ms with
   | nil => iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
@@ -306,7 +306,7 @@ theorem memberStartRes_intro (ms : List (GoString × MemberAddrs)) (Bs As Ds : L
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
     (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds) :
     (([∗list] a ∈ As, netAddrFree (GF := GF) a) ∗ ([∗list] a ∈ As, httpProtoFree (GF := GF) a) ∗
-        ([∗list] d ∈ Ds, dataDirFresh (GF := GF) d) ∗ envVerifyOff) ∗
+        ([∗list] d ∈ Ds, dataDirFresh (GF := GF) d) ∗ ⌜EtcdVerifyOff⌝) ∗
         ([∗list] d ∈ Ds, memberAreasFresh (GF := GF) d) ⊢
       ([∗list] m ∈ ms, memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b := by
   iintro ⟨⟨Ha, Hf, Hd, #Hv⟩, Hw⟩

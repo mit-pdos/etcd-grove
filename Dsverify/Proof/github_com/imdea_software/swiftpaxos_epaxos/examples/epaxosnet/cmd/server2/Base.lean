@@ -19,9 +19,10 @@ open Iris Iris.BI
 namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server2
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server2 :=

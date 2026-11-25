@@ -68,7 +68,7 @@ theorem Main.wp_proof
     Main.spec (GF := GF) (hG := hG) := by
   have wp_Leases := lessor.Leases.specP_of wp_Leases
   have wp_TimeToLive := lessor.TimeToLive.specP_of wp_TimeToLive
-  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP Hms hAs
+  intro CS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
@@ -150,7 +150,7 @@ theorem Main.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23936" E { ρ with wait := γw } ρ.rd cfg
-      (fun _ _ _ => client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23936"))
+      (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23936" ∗ srvGoRes srv)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk HLR] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -158,12 +158,13 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    imod (etcdstart.kv_lease_served_false srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
-      mid R Hrb48 (by omega) Hrf HlP rfl (by rw [KVNames.lg_eq, hlg0]; rfl) HLv) $$ [Hg Hstk HLR]
-      with ⟨Htk, -, #Hlr⟩
+    imod (etcdstart.kv_lease_served_go srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23936" cid
+      mid R Hrb48 (by omega) Hrf HlP rfl .none
+      (KVNames.lm_of_lg_false (by rw [KVNames.lg_eq, hlg0]; rfl)) HLv) $$ [Hg Hstk HLR]
+      with ⟨Htk, Hgo, #Hlr, -⟩
     · iframe; iframe #
     imodintro; iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -174,9 +175,10 @@ theorem Main.wp_proof
   iunfold client.etcdLeaseReadAt at Hlr
   icases Hlr with ⟨#Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient go!"127.0.0.1:23936" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23936" [] null null [] null default)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -200,7 +202,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- `cli.Lease.Leases(lctx)`, `Q`: the IDs have no duplicate
   wp_apply (wp_Leases lp [go!"127.0.0.1:23936"] etcdLeaseLeasesSpecAny
-      (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) as %lsr %lerr Hls
+      (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
   · iframe #
     imodintro; inext
     iunfold etcdLeaseLeasesSpecAny, etcdLeaseLeasesSpecAnyW
@@ -296,7 +298,7 @@ theorem Main.wp_proof
     (try wp_auto)
     -- `cli.Lease.TimeToLive(tctx, leaseID)`, `Q`: the reply's ID is `7`
     wp_apply (wp_TimeToLive lp [go!"127.0.0.1:23936"] etcdLeaseTTLSpec
-        (fun m => iprop(⌜m.id = W64 7⌝)) tctx tcd (W64 7) slice.nil []) as %tr %terr Htl
+        (fun m => iprop(⌜m.id = W64 7⌝)) tctx tcd (W64 7) slice.nil []) $$ [$Hlt] as %tr %terr ⟨Hlt, Htl⟩
     · iframe #
       isplitl
       · imodintro; inext

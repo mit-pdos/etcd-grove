@@ -93,7 +93,7 @@ def bootstrapLeftContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
           storage.dbOpensOk⌝ ∗
         zapLoggerOk cfg.Logger' ∗
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-        envVerifyOff ∗
+        ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
         wal.bootResLeft cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))

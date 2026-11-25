@@ -38,7 +38,7 @@ theorem Client.dialWithBalancer.wp_proof
     (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
     Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
   intro c cfg cr r esl eps atb P n
-  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+  wp_start as ⟨Hlt, #Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1
@@ -47,7 +47,7 @@ theorem Client.dialWithBalancer.wp_proof
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_Endpoints c $$ [$Hc] as %esl' ⟨%eps, Hesl', Heq⟩
+  wp_apply wp_Endpoints c $$ [$Hc $Hlt] as %esl' ⟨Hlt, %eps, Hesl', Heq⟩
   ihave %Heq' := Heq $$ Heps Hesl
   subst Heq'
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl'
@@ -77,7 +77,7 @@ theorem Client.dialWithBalancer.wp_proof
   (try wp_auto)
   ihave Hrb := etcdResolver_grpc (GF := GF) r (ep :: rest) Hplain $$ Hro
   wp_apply wp_dial c cfg cr o2 (resolverIface r) esl (ep :: rest) atb P n
-    $$ [$Hc $Hcfg $Hdo $Hatb $Htb $Heps $Hesl $Hrb]
+    $$ [$Hlt $Hc $Hcfg $Hdo $Hatb $Htb $Heps $Hesl $Hrb]
     as %conn %err Hres
   · isplitr
     · ipureintro; exact Hplain

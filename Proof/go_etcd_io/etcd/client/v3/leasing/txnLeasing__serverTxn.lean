@@ -53,7 +53,7 @@ theorem txnLeasing.serverTxn.wp_proof
     (hrfb : txnLeasing.revokeFallback.spec (GF := GF) (hG := hG)) :
     txnLeasing.serverTxn.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs b lo
-  wp_start as ⟨Htxn, Hrd, #Hcc, #Hlo, %Hsz⟩
+  wp_start as ⟨Hlt, Htxn, Hrd, #Hcc, #Hlo, %Hsz⟩
   unfold ownTxnLeasing
   icases Htxn with ⟨%t0, %B0, %csl, %tsl, %esl, %tops, %eops, -, -, -, Hl, #Hlkv, Hc, #Hctx, #HctxC,
     Hcs, Hcso, Hts, Htso, Hes, Heso, %Hops⟩
@@ -72,6 +72,7 @@ theorem txnLeasing.serverTxn.wp_proof
     | ok e =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe
       iexists tops, eops
       isplitr
@@ -111,10 +112,10 @@ theorem txnLeasing.serverTxn.wp_proof
   ihave ⟨%kv, #Hkvf, #HTxn, #Hpfxf, %Hpfx⟩ := isLeasingKV_kv $$ Hlkv
   ihave IH : iprop("Hl" ∷ structFieldRef txnLeasing go!"lkv" txn ↦ lkv ∗
       "Hc" ∷ structFieldRef txnLeasing go!"ctx" txn ↦ GoInterface.ok ctx ∗
-      "Hrd" ∷ lkvReader lkv γ pfx) $$ [Hl Hc Hrd]
+      "Hrd" ∷ lkvReader lkv γ pfx ∗ "Hlt" ∷ levelTok 0) $$ [Hl Hc Hrd Hlt]
   · simp only [named]; iframe
   wp_for IH
-  wp_apply hguard $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Huopsat] as %cmps %gerr ⟨Hl, Hc, Hrd, Hg⟩
+  wp_apply hguard $$ [$Hlt $Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Huopsat] as %cmps %gerr ⟨Hlt, Hl, Hc, Hrd, Hg⟩
   · ipureintro; exact LTxnBuild.sizeOk_ops Hsz
   icases Hg with (%Hgerr | ⟨%Hgerr, %ms, #Hms, %Hmsg⟩)
   · cases gerr with
@@ -124,6 +125,7 @@ theorem txnLeasing.serverTxn.wp_proof
       wp_for_post
       wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
       iapply HΦ
+      iframe Hlt
       iframe
       iexists tops, eops
       isplitr
@@ -174,13 +176,13 @@ theorem txnLeasing.serverTxn.wp_proof
     inext
     iintro HB
     wp_auto
-    wp_apply_raw HCommit $$ %_ %lo [$HB $Hlo]
+    wp_apply_raw HCommit $$ %_ %lo [$Hlt $HB $Hlo]
     · ipureintro
       refine ⟨TxnModel.under_nil _, ?_⟩
       simpa [TxnBuild.empty, TxnModel.empty] using
         serverTxn_sizeOk pfx b tops eops ms fos Hsz Ht He Hmsg ⟨Hfosl, Hfosg⟩
     inext
-    iintro %resp %cerr Hcr
+    iintro %resp %cerr ⟨Hlt, Hcr⟩
     simp only [TxnBuild.empty, TxnModel.empty, List.nil_append]
     unfold txnCommitResultO
     icases Hcr with (⟨%Hcerr, -⟩ | ⟨%Hcerr, Hok⟩)
@@ -233,6 +235,7 @@ theorem txnLeasing.serverTxn.wp_proof
         · wp_for_post
           wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
           iapply HΦ
+          iframe Hlt
           iframe
           iexists tops, eops
           isplitr
@@ -304,6 +307,7 @@ theorem txnLeasing.serverTxn.wp_proof
           ipersist Hth
           wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           iexists tops, eops
           isplitr
@@ -345,7 +349,7 @@ theorem txnLeasing.serverTxn.wp_proof
             exact runOps_gets_keys r s fos etcdKeyMax Hks x hx) $$ Hops
           with ⟨%kvss, %Hkl, %Hkk, Hro⟩
         wp_auto
-        wp_apply hrfb $$ [$Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hps $Hro] as %ferr ⟨Hl, Hc, Hrd⟩
+        wp_apply hrfb $$ [$Hlt $Hl $Hc $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hps $Hro] as %ferr ⟨Hlt, Hl, Hc, Hrd⟩
         · ipureintro; exact ⟨Hkl, Hkk⟩
         cases ferr with
         | ok e =>
@@ -353,6 +357,7 @@ theorem txnLeasing.serverTxn.wp_proof
           wp_for_post
           wp_apply hclose $$ [$Hwsl $Hwcs] as Hwsl
           iapply HΦ
+          iframe Hlt
           iframe
           iexists tops, eops
           isplitr

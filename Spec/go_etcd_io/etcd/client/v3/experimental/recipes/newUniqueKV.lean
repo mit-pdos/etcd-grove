@@ -32,16 +32,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 `r ≥ lo` (`keyCreatedAt`); a nil pointer with the error otherwise. -/
 abbrev newUniqueKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx kp val : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10 ∧ val.length ≤ recipesStrMax⌝) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV))
       (Val #(GoInterface.ok kv))) (Val #kp)) (Val #val))
-  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
+  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
         ownRemoteKV rk ⟨GoInterface.ok kv, key, r, val⟩ ∗ etcdReached r ∗
         keyCreatedAt pfx key val (W64 0) r ∗
         ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧
           ∃ t : w64, key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z t)⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ rk = null⌝) }}
 
 end spec
 

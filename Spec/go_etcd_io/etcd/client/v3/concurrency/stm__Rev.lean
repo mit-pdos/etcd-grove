@@ -29,12 +29,12 @@ it. A client error aborts it (`stmRet`). The key is within `stmKeyMax`. -/
 abbrev stm.Rev.spec : Prop :=
   ∀ (b : Loc) (pfx : GoString) (reads : GMap GoString ReadM) (gs : List (OpFull → OpFull))
     (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b reads ∗ stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗
-      ⌜pfx <+: k ∧ k.length ≤ stmKeyMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (stmEnv pfx b ∗ stmRsetOwn pfx b reads ∗ stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗
+      ⌜pfx <+: k ∧ k.length ≤ stmKeyMax⌝) }}
     (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"Rev")) (Val #k))
-  {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
+  {{ (r : val), RET r; levelTok 0 ∗ (stmRet r fun rev : w64 => iprop(
       ∃ reads' : GMap GoString ReadM, stmRsetOwn pfx b reads' ∗
-      stmOptsOwn b gs ∗ ⌜ReadsGrow reads reads' [k] ∧ ∃ e, reads' !! k = some e ∧ rev = e.modRev⌝) }}
+      stmOptsOwn b gs ∗ ⌜ReadsGrow reads reads' [k] ∧ ∃ e, reads' !! k = some e ∧ rev = e.modRev⌝)) }}
 
 end spec
 

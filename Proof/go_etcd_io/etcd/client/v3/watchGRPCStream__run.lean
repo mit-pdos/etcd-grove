@@ -242,16 +242,18 @@ theorem watchGRPCStream.run.wp_proof
           Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
         wp_auto
         wp_apply wp_ptoPB pr as %preq Hpsend
-        wp_apply HSend $$ %S.L %preq %(.progress) %iprop(True) [Hstok Hpsend] as %err ⟨-, -, Hres'⟩
+        icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
+        wp_apply HSend $$ %S.L %preq %(.progress) %(levelTok 0) [Hl0 Hstok Hpsend] as %err ⟨Hl0, -, Hres'⟩
         · isplitr
-          · ipureintro; trivial
-          isplitr
-          · itrivial
+          · ipureintro; rfl
+          isplitl [Hl0]
+          · iexact Hl0
           iframe
           isplitl []; rotate_left
           · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
           unfold v3rpc.watchUp v3rpc.watchReqOk
           isplitr <;> itrivial
+        ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
         ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
             ⌜L' = S.L ∨ L' = S.L ++ [.progress]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
             $$ [Hres']
@@ -524,12 +526,13 @@ theorem watchGRPCStream.run.wp_proof
         · iframe Rflts prevKV filters fragment progressNotify end' key; iframe
         ihave #Hbdc := wsBdOk_cur V P0 $$ [Hconn Hbd0]
         · iframe Hconn Hbd0
+        icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
         wp_apply HSend $$ %S.L %preq %(.create (createOf P0.key P0.ed P0.rev P0.pn P0.sr P0.bd P0.o.base.prevKV))
-          %iprop(True) [Hstok Hpsend] as %err ⟨-, -, Hres⟩
+          %(levelTok 0) [Hl0 Hstok Hpsend] as %err ⟨Hl0, -, Hres⟩
         · isplitr
-          · ipureintro; trivial
-          isplitr
-          · itrivial
+          · ipureintro; rfl
+          isplitl [Hl0]
+          · iexact Hl0
           iframe
           isplitl []; rotate_left
           · ipureintro; exact wsReqOk_wire Hok _ _ _ _ _
@@ -538,6 +541,7 @@ theorem watchGRPCStream.run.wp_proof
           · ipureintro; simp [v3rpc.watchReqOk, createOf]
           dsimp only [createOf]
           iexact Hbdc
+        ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
             cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗ ⌜client.addCase S L' si si⌝ ∗
             client.upAtOpt γs si (client.createOfP P)) $$ [Hres]
@@ -1658,12 +1662,13 @@ theorem watchGRPCStream.run.wp_proof
           wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed B2.rr P2.pn P2.flt
             (DFrac.own q2) B2.srr P2.bd P2.o.base.prevKV $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
           · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
-          wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) %iprop(True) [Hstok Hpsend]
-            as %err ⟨-, -, Hres'⟩
+          icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
+          wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) %(levelTok 0) [Hl0 Hstok Hpsend]
+            as %err ⟨Hl0, -, Hres'⟩
           · isplitr
-            · ipureintro; trivial
-            isplitr
-            · itrivial
+            · ipureintro; rfl
+            isplitl [Hl0]
+            · iexact Hl0
             iframe
             isplitl []; rotate_left
             · iapply wsIs_wire V P2; iexact HP2
@@ -1673,6 +1678,7 @@ theorem watchGRPCStream.run.wp_proof
             dsimp only [createOf]
             iapply wsIs_bd V P2
             iframe Hconn HP2
+          ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
               cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗
               ⌜(L' = S1.L ∧ si = none ∧ si = none) ∨
@@ -2220,16 +2226,18 @@ theorem watchGRPCStream.run.wp_proof
           wp_auto
           wp_apply wp_Debug V.lg _ _ $$ []
           · iexact Hlg
-          wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) %iprop(True) [Hstok Hsend] as %err ⟨-, -, Hres'⟩
+          icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
+          wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) %(levelTok 0) [Hl0 Hstok Hsend] as %err ⟨Hl0, -, Hres'⟩
           · isplitr
-            · ipureintro; trivial
-            isplitr
-            · itrivial
+            · ipureintro; rfl
+            isplitl [Hl0]
+            · iexact Hl0
             iframe
             isplitl []; rotate_left
             · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
             unfold v3rpc.watchUp v3rpc.watchReqOk
             isplitr <;> itrivial
+          ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
           ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
               ⌜L' = S.L ∨ L' = S.L ++ [.cancel ρ.id]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
               $$ [Hres']
@@ -2482,16 +2490,18 @@ theorem watchGRPCStream.run.wp_proof
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
             · iexact Hlg
-            wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) %iprop(True) [Hstok Hsend] as %err ⟨-, -, Hres'⟩
+            icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
+            wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) %(levelTok 0) [Hl0 Hstok Hsend] as %err ⟨Hl0, -, Hres'⟩
             · isplitr
-              · ipureintro; trivial
-              isplitr
-              · itrivial
+              · ipureintro; rfl
+              isplitl [Hl0]
+              · iexact Hl0
               iframe
               isplitl []; rotate_left
               · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
               unfold v3rpc.watchUp v3rpc.watchReqOk
               isplitr <;> itrivial
+            ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
             ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
                 ⌜L' = S.L ∨ L' = S.L ++ [.cancel ρ.id]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
                 $$ [Hres']
@@ -2786,13 +2796,14 @@ theorem watchGRPCStream.run.wp_proof
         wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed B2.rr P2.pn P2.flt
           (DFrac.own q2) B2.srr P2.bd P2.o.base.prevKV $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
         · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
+        icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
         wp_apply HSend2 $$ %([] : List v3rpc.WatchReqM) %preq
-          %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) %iprop(True) [Hstok2 Hpsend]
-          as %err3 ⟨-, -, Hres'⟩
+          %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) %(levelTok 0) [Hl0 Hstok2 Hpsend]
+          as %err3 ⟨Hl0, -, Hres'⟩
         · isplitr
-          · ipureintro; trivial
-          isplitr
-          · itrivial
+          · ipureintro; rfl
+          isplitl [Hl0]
+          · iexact Hl0
           iframe
           isplitl []; rotate_left
           · iapply wsIs_wire V P2; iexact HP2
@@ -2802,6 +2813,7 @@ theorem watchGRPCStream.run.wp_proof
           dsimp only [createOf]
           iapply wsIs_bd V P2
           iframe Hconn HP2
+        ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
         have hne2 : (S.reconnect l').l.dropWhile (fun y => decide (y = null)) ≠ [] := by
           intro e0; rw [e0] at hhd; simp at hhd
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
@@ -3077,16 +3089,18 @@ theorem watchGRPCStream.run.wp_proof
       wp_auto
       wp_apply wp_Debug V.lg _ _ $$ []
       · iexact Hlg
-      wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) %iprop(True) [Hstok Hsend] as %err ⟨-, -, Hres⟩
+      icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt⟩
+      wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) %(levelTok 0) [Hl0 Hstok Hsend] as %err ⟨Hl0, -, Hres⟩
       · isplitr
-        · ipureintro; trivial
-        isplitr
-        · itrivial
+        · ipureintro; rfl
+        isplitl [Hl0]
+        · iexact Hl0
         iframe
         isplitl []; rotate_left
         · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
         unfold v3rpc.watchUp v3rpc.watchReqOk
         isplitr <;> itrivial
+      ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt]
       ihave ⟨%L', %HL', Hstok⟩ : iprop(∃ L' : List v3rpc.WatchReqM,
           ⌜L' = S.L ∨ L' = S.L ++ [.cancel ph.id]⌝ ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γs L')
           $$ [Hres]

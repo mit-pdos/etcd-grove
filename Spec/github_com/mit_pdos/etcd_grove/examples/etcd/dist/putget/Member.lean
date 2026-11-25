@@ -7,8 +7,8 @@ extension's `addrOk`) and distinct (2026-11-24). Lean-first (no Rocq counterpart
 
 **The triple:** from the package's `isPkgInit`, the main thread's token and, once the addresses are valid and
 distinct (a wand: what the machine's start gives only then), the member's named Iris premises
-(`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`envVerifyOff`, the statement's
-`HEnvTok`), its WAL area and data directory fresh (`memberAreasFresh`; since 2026-11-24 no `dataDirFresh`,
+(`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`EtcdVerifyOff`, the statement's
+`HEnv`), its WAL area and data directory fresh (`memberAreasFresh`; since 2026-11-24 no `dataDirFresh`,
 which `bootstrap`'s slot no longer takes), its share of the distributed start over the interim cross-machine
 vocabulary (`memberShare`, `notes/putget-dist-plan.md` §12: its client address set to serve etcd's KV
 calls for the publication name `γE` and its member id `id`, its half of the publication token, the
@@ -67,7 +67,7 @@ abbrev Member.spec : Prop :=
       threadTok ∗
       (⌜Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client⌝ -∗
         etcdstart.premises (GF := GF) name peer client (2 ^ 48 - 1) id ctxs boot ∗
-        envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
+        ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
         memberShare (G := hG.goose_globalGS) client γE id Pub ∗ memberPubOk Pub) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))
       (Val #client))

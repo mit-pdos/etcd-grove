@@ -31,7 +31,7 @@ theorem leasingKV.revokeRange.wp_proof
     (hRLK : leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG)) :
     leasingKV.revokeRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs b e
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, %Hbe⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, %Hbe⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkv, #Hp, -, -, -, #HKV, -⟩
@@ -77,8 +77,9 @@ theorem leasingKV.revokeRange.wp_proof
   iunfold isEtcdKV at HKV
   ihave #H0 := etcdReached_zero (GF := GF)
   ihave #HG := HKV $$ %ctx %cs %(pfx ++ b) %_ %([withRangeM L] : List (OpFull → OpFull)) %(W64 0)
-  wp_apply HG $$ [] as %gresp %gerr #Hgres
-  · iframe Hctx HctxC Hopts H0
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
+  · (try iframe Hlt)
+    iframe Hctx HctxC Hopts H0
     ipureintro
     refine ⟨by simp [opGetPanics, op_simps], by simp [op_simps], ?_⟩
     apply opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 2 ^ 27 + 2 ^ 26) (V := 0)
@@ -92,7 +93,7 @@ theorem leasingKV.revokeRange.wp_proof
       | nil => exact absurd rfl Hgne
       | ok g => exact ⟨g, rfl⟩
     wp_auto
-    iapply HΦ $$ Hrd
+    iapply HΦ; iframe Hlt Hrd
   subst Hgnil
   have HoP : (opGetModel (pfx ++ b) [withRangeM L]).isPrefixGet [] = false := by
     simp [OpFull.isPrefixGet, op_simps]
@@ -108,12 +109,12 @@ theorem leasingKV.revokeRange.wp_proof
   icases Hgr with ⟨%s', %gsl, %gps, %gkvs, #Hs', -, #Hgsl, #Hgps, #Hgkvs, %Hgok⟩
   ihave %Hks := etcdState_keys _ _ s' $$ Hs'
   wp_auto
-  wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hgps $Hgkvs]
-    as %m %err ⟨Hrd, -⟩
+  wp_apply hRLK lkv γ pfx ctx cs gsl gps gkvs $$ [$Hlt $Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hgps $Hgkvs]
+    as %m %err ⟨Hlt, Hrd, -⟩
   · ipureintro
     exact rangeKvsOk_keys Hgok (fun w hw =>
       Hks w ((List.mem_filter.1 (List.mem_filter.1 hw).1).1))
-  iapply HΦ $$ Hrd
+  iapply HΦ; iframe Hlt Hrd
 
 end proof
 

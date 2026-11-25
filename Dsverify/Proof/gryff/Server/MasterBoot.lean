@@ -4,7 +4,7 @@ gryff-bump-1, lab master 915f964; notes/dsv-gryff.md).
 
 The kit's codec registration (`gryffnet.Register()`, `rpc_model_gen.go`: `rpcmodel.SetCodec` of
 the generated `rpcEncode`/`rpcDecode`/`rpcReceiver`): `codecSet gryffCodec`, from the machine's
-net/rpc boot resource (`rpcBootRes`, `RpcBootHyp`) and `Net/`'s `SetCodec.spec` (a premise,
+net/rpc boot resource (`rpcBootRes`, from its first initialization) and `Net/`'s `SetCodec.spec` (a premise,
 discharged at linking). The rest of the lab's master boot (the node's boot over the lab's
 harness: `master_boot'`) is the deployment's (`Mains`), over remote's machines.
 -/
@@ -28,7 +28,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
 variable (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
 
 set_option goose.wp.extras true

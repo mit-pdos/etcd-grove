@@ -40,18 +40,17 @@ The value is at most `2 ^ 28` bytes (2026-10-30: the requests carrying it fit a 
 abbrev Election.Campaign.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isElection e s γ client id pfx ∗
       electionState e s st ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
-      etcdReached lo ∗ ⌜val.length ≤ concStrMax⌝ }}
+      etcdReached lo ∗ ⌜val.length ≤ concStrMax⌝) }}
     (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Campaign"))
       (Val #(GoInterface.ok ctx))) (Val #val))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R : w64) (hdr : Loc),
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R : w64) (hdr : Loc),
         electionState e s ⟨key, rev, s, hdr⟩ ∗ hdrRevAt hdr r ∗ etcdReached R ∗
         keyValAt pfx key rev val rv ∗ (leaderAt pfx key rev R ∨ campaignLost pfx key rev R) ∗
         ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z r ∧ sint.Z lo ≤ sint.Z r ∧
           sint.Z r ≤ sint.Z rv ∧ sint.Z rv ≤ sint.Z R⌝) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionState e s st') }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : ElectionSt, electionState e s st')) }}
 
 end spec
 

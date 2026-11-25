@@ -32,7 +32,7 @@ theorem leasingKV.monitorSession.wp_proof
     (hDone : EtcdGrove.concurrency.Session.Done.spec (GF := GF) (hG := hG)) :
     leasingKV.monitorSession.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx
-  wp_start as ⟨#Hlkv, Hmon⟩
+  wp_start as ⟨Hlt, #Hlkv, Hmon⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
@@ -62,7 +62,8 @@ theorem leasingKV.monitorSession.wp_proof
     simp only [goose_wp_simp_extra, Bool.false_eq_true, ↓reduceIte]
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iframe Hlt
+    try itrivial
   | nil =>
   (try wp_auto)
   simp only [goose_wp_simp_extra, ↓reduceIte]
@@ -115,7 +116,8 @@ theorem leasingKV.monitorSession.wp_proof
     (try wp_auto)
     wp_for_post
     iapply HΦ
-    itrivial
+    iframe Hlt
+    try itrivial
   subst Hv
   (try wp_auto)
   -- the first critical section: a fresh `sessionc` if it was closed, a fresh entries map
@@ -202,8 +204,9 @@ theorem leasingKV.monitorSession.wp_proof
   · rw [show (st.reset m).installed = st.installed from rfl]; iexact Hinst
   imod Hclose $$ %_ %(reset_wf Hwf m) Hfacts' Hinst Hready Hown HX with HP
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $HP]
-  wp_apply hNS cl cctx osl gs pctx pcs $$ [$Hcpkg $Hscl $Hopts $Hpc $Hpcc] as %s' %err1 Hns
-  · ipureintro; exact Hpctx
+  wp_apply hNS cl cctx osl gs pctx pcs $$ [$Hlt $Hcpkg $Hscl $Hopts $Hpc $Hpcc] as %s' %err1 ⟨Hlt, Hns⟩
+  · (try iframe Hlt)
+    ipureintro; exact Hpctx
   icases Hns with (%Hns | ⟨%Hns, %γs, %sid, #Hsess, -⟩)
   · -- no session: try again
     obtain ⟨rfl, Hne⟩ := Hns

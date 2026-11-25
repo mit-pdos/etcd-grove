@@ -23,11 +23,16 @@ is initialized; mustreg, 2026-11-20, until then one `(q, R)`, `ownInitRes g q R`
 `wp_initialize'` (Perennial's form, with the rights to register the closure's metric names,
 `namesFree initNames`, for the latter) follows. The other packages' (Perennial's, raft's, the B-tree's) `_lb` forms
 come from their `wp_initialize'` by `EtcdGrove.initLb_of_spec` (Perennial's
-`initLb_of_initSpec`), over the initializers listed in the generated
-`Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
+`initLb_of_initSpec`), over the initializers registered as `ExternalInit` in the generated
+`Proof/runtime/PkgInitExt.lean` (Perennial's packages: one module for every tree) and, for the
+others, in a tree's own registrations module (`EXT_LOCAL_MOD`: the main tree's
+`Proof/runtime/PkgInitExtRaft.lean`, raft's, protobuf's `proto` and the B-tree's; `Dsverify/`'s
+`PkgInitDsv.lean`; L1, 2026-11-24).
 
-The parallel trees `RaftWitness/` and `RaftNoAx/` get copies of the files they import that reach
-raft (`PARTS`: `PART_INITS`, and `PkgInitExt`), at `<part>/<path>`.
+The parts `Net/` and `Dsverify/` import the main tree's `Init.lean` of every package for which the
+main tree generates the same file (`shared_inits`): one per Go package. The parallel trees
+`RaftWitness/` and `RaftNoAx/` get copies of the files they import that reached raft until L1
+(`PARTS`: `PART_INITS`), and of `PkgInitExtRaft` over their raft, at `<part>/<path>`.
 The part `PorcupineDag/` (porcupine PR #46) gets its own package's `Init.lean`, from its own
 translation, and `Closures.lean`, the func literals its package fact names (`DAG_*`).
 
@@ -95,12 +100,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
-         'github_com.mit_pdos.etcd_grove.examples.raft.kv',
-         # (2026-10-29, track C) the store that reconfigures and snapshots
-         'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
-         # (2026-11-01) the durable store (its files through the durable-state extension's Go
-         # package `durable`)
-         'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable',
+         # gokv's trusted_proph (kvraft's checker's prophecy; KvRaft copies its `Init.lean`), reached
+         # from kvreconf's root until kvreconf's proofs retired (2026-11-24)
+         'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
@@ -242,7 +244,7 @@ def register(cfg, p, regs):
 
 
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
-PERENNIAL_HERE = {'math.rand', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+PERENNIAL_HERE = {'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
 # The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
 # and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
 PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
@@ -857,11 +859,9 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
-# (2026-11-23, Perennial 47ec64a9d translates `math/rand`'s global generator) `math.rand`'s fact stays
-# `True` here (`Proof/math/rand/Base.lean`, not Perennial's `isInit`): its initializer allocates
-# `globalRandGenerator` (dropped) and initializes `sync/atomic` and `sync`. Its other variables are
-# skipped by Perennial's configuration, so no `opaqueInitsOk` axiom any more.
-SPECIAL['math.rand'] = dict(alloc_types=_ALLOC_ANY)
+# (2026-11-24, rand-retire) `math.rand` is Perennial's (47ec64a9d translates its global generator and
+# proves its `wp_initialize'`, fact `isInit`); from 2026-11-23 to then its fact was `True` here and its
+# `Init.lean` generated.
 
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
 # `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the
@@ -3431,8 +3431,8 @@ axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
-pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
-fact lacks it). Its precondition has the registration rights of the metric
+pointer error (`EtcdGrove.ContextReadErrs.errs_strong`, from Perennial's `context.isInit`).
+Its precondition has the registration rights of the metric
 names of its import closure (`namesFree initNames`, decision D16; mustreg, 2026-11-20), which it
 passes on to its imports' initializers.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
@@ -3548,31 +3548,64 @@ _RD_CTX_PRE = [
     'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
     'variable [sem : go.Semantics]',
     '',
-    '/-- **The trust boundary: `context.Canceled` and `context.DeadlineExceeded` as Go defines them**',
-    '(a premise, stated locally; item 8, 2026-10-17): `Canceled = errors.New("context canceled")`, a',
-    'leaf pointer error without `Is` whose `Error()` returns, and `DeadlineExceeded =',
-    'deadlineExceededError{}`, a leaf non-pointer error (an empty struct: comparable, a safe map',
-    'key) without `Is` whose `Error()` returns (`context.go`: its methods are `Error`, `Timeout` and',
-    '`Temporary`). Perennial\'s `context.initialize\'` stores exactly these values, but its fact',
-    '(`isInit`) keeps only that they are typed errors, and the method sets are uninterpreted: the',
-    'general fix is a Perennial change (`notes/decisions.md`, "Item 8: context\'s facts"). A',
-    'premise rather than an axiom: `isPkgInit context` is not sealed (any proof holding the',
-    'variables\' cells could make it), so as an axiom the entailment could be used to prove `False`.',
-    '(`v3rpc`\'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.)',
-    "(incomingof Part B, 2026-11-18) Its former fields `descs` (both errors' `errDesc`) and, after it,",
-    "`descDeadline` (`DeadlineExceeded`'s) are gone: the users take `Error()`'s message per run",
-    '(`ctxErrsErr`, `ctxErrMsg`), and a pure `errDesc` fact had no per-run source',
-    '(`notes/axiom-review/incomingof-b.md`). -/',
-    'class EtcdGrove.ContextReadErrs : Prop where',
-    '  errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
-    '    EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗',
-    '      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW',
+    '/-- **`context.Canceled` and `context.DeadlineExceeded` as Go defines them** (item 8, 2026-10-17;',
+    'a premise, the class `ContextReadErrs`, until ctx-leaf-fix, 2026-11-25): `Canceled =',
+    'errors.New("context canceled")`, a leaf pointer error without `Is` or `GRPCStatus` whose `Error()`',
+    'returns its message, and `DeadlineExceeded = deadlineExceededError{}`, a leaf non-pointer error',
+    "without `Is` or `GRPCStatus`, a key of `togRPCError`'s map (`errKeyOk`), whose `Error()` returns",
+    "(`context.go`: its methods are `Error`, `Timeout` and `Temporary`). From Perennial's",
+    "`context.isInit` (`\"#HCanceledCell\"`, `\"#HDeadlineExceededTy\"`) and the method sets goose emits.",
+    "The premise had become unsatisfiable with Perennial's P8c (`DeadlineExceeded`'s value a",
+    '`SafeMapKey`, which no non-pointer is): `notes/axiom-review/ctx-readerrs-vacuity.md`. -/',
+    'theorem EtcdGrove.ContextReadErrs.errs [ctx_sem : _root_.Perennial.context.Assumptions]',
+    '    [_root_.Perennial.errors.Assumptions] :',
+    '    isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
+    '      EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗',
+    '        go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW := by',
+    '  iintro #Hp',
+    '  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []',
+    '  · iapply _root_.Perennial.context.isInit_access $$ Hp',
+    '  iNamed Hci',
+    '  icases HCanceledCell with ⟨%x, #Hx, #Hs⟩',
+    '  isplitl',
+    '  · iunfold EtcdGrove.errVarLeafW',
+    '    iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩',
+    '    iframe Hx',
+    '    isplitr',
+    '    · ipureintro',
+    '      have h := EtcdGrove.errorString_errLeaf x',
+    '      exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1⟩',
+    '    · iunfold EtcdGrove.errMsgOk',
+    '      iexists go!"context canceled"',
+    '      iintro !> %Φ HΦ',
+    '      rw [method_unfold]',
+    '      wp_auto',
+    '      iexact HΦ',
+    '  · have h := fun m => go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) m',
+    '    have hG := h go!"GRPCStatus"',
+    '    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hG',
+    '    have hl := EtcdGrove.deadlineExceededError_leaf (ctx_sem := ctx_sem)',
+    '      (#(zero_val _root_.Perennial.context.deadlineExceededError) : val)',
+    '    iexists ⟨_root_.Perennial.context.deadlineExceededError.ty,',
+    '      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩',
+    '    iframe HDeadlineExceededTy',
+    '    isplitr',
+    '    · ipureintro',
+    '      exact ⟨hl.1, hl.2, _root_.Perennial.context.deadlineExceededError_ne_ptr,',
+    '        Or.inr (Or.inr (Or.inl rfl)), hG⟩',
+    '    · iunfold EtcdGrove.errMsgOk',
+    '      iexists go!"context deadline exceeded"',
+    '      iintro !> %Φ HΦ',
+    '      wp_method_call',
+    '      unfold _root_.Perennial.context.deadlineExceededError.Error.impl',
+    '      wp_auto',
+    '      iexact HΦ',
     '',
     '/-- `ContextReadErrs.errs` with the two errors\' `Format` facts (premise-fixes-4: `errVarLeaf`,',
     '`ctxDeadlineLeaf`): neither has a `Format` method, from Perennial\'s `context.isInit` (`Canceled`\'s',
     'value is a `*errors.errorString`, `EtcdGrove.ErrorStringLeaf`; `DeadlineExceeded`\'s a',
     '`deadlineExceededError`, whose method set goose emits). -/',
-    'theorem EtcdGrove.ContextReadErrs.errs_strong [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]',
+    'theorem EtcdGrove.ContextReadErrs.errs_strong',
     '    [_root_.Perennial.context.Assumptions] [_root_.Perennial.errors.Assumptions] :',
     '    isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
     '      EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗',
@@ -3621,7 +3654,8 @@ SPECIAL[_RD] = dict(
 axiom `NewCounter.wp_proof`), `readIndexRetryTime`,
 the error variables it returns or compares with, from their packages' facts (`etcdserver/errors`'
 and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
-(`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
+(`EtcdGrove.ContextReadErrs.errs`, from Perennial's `context.isInit`; a premise until ctx-leaf-fix,
+2026-11-25). Its translated
 `init()` registers the two counters (`prometheus.MustRegister`, the trust-boundary axiom
 `MustRegister.wp_proof`), which takes the right to register each name: the precondition
 `namesFree regNames` (decision D16; until mustreg, 2026-11-20, `EtcdGrove.read.readRegPerm`).""",
@@ -3630,7 +3664,6 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
              'Proof.github_com.prometheus.client_golang.prometheus.MustRegister',
              'Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init'],
     pre=_RD_CTX_PRE,
-    vars=['[EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]'],
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
     before={'$inits': [
@@ -4647,11 +4680,34 @@ def ext_ctor(q):
     return n + '_' if n == 'unsafe' else n
 
 
+# (L1, 2026-11-24) The external initializers each generated file names (`ExternalInit.<ctor>`),
+# recorded while generating, for the registrations (`gen_ext`): a Perennial package's goes to the
+# shared `Proof/runtime/PkgInitExt.lean`, any other (raft's, protobuf's `proto`, the B-tree's; a
+# part's own translations) to the registration module of the tree being generated, `EXT_LOCAL_MOD`
+# (the main tree's `Proof/runtime/PkgInitExtRaft.lean`; a part's: `Dsverify/`'s `PkgInitDsv`), which
+# a generated file that names one imports beside the shared one.
+EXT_LOCAL_MOD = 'Proof.runtime.PkgInitExtRaft'
+EXT_SHARED = {}  # the shared module's registrations: package -> its translation's module
+EXT_MAIN = {}  # the main tree's `PkgInitExtRaft`'s
+EXT_RECORD = EXT_MAIN  # where the tree being generated records its own (a part's: a dict of its own)
+_EXT_CALL = set()  # the non-Perennial externals named by the current `gen` call
+
+
+def ext_shared(q):
+    """`q`'s translation is Perennial's: its registration is the shared module's."""
+    return code_module(q).startswith('Perennial.')
+
+
 def lb_term(q, hin):
     """A proof of `∀ σ0, {{ ownInitLb g σ0 }} q.initialize' #() {{ ... }}` (`hin`: its
     `GetIsPkgInitProp`)."""
     assert q not in ASSUMED, q
     if external(q):
+        if ext_shared(q):
+            EXT_SHARED[q] = code_module(q)
+        else:
+            EXT_RECORD[q] = code_module(q)
+            _EXT_CALL.add(q)
         return (f'(EtcdGrove.initLb_of_spec pkg_id.{q} _root_.Perennial.{q}.initialize\'\n'
                 f'      EtcdGrove.ExternalInit.{ext_ctor(q)} {init_thm(q)} _ {hin})')
     return f'(_root_.Perennial.{q}.wp_initialize\'_lb _ {hin})'
@@ -4762,6 +4818,21 @@ def linked_module(q):
 
 
 def gen(p, cfg=None):
+    """`_gen`'s files, each that names a non-Perennial external initializer importing the tree's
+    registrations (`EXT_LOCAL_MOD`) beside the shared ones."""
+    _EXT_CALL.clear()
+    outs = _gen(p, cfg)
+    base = 'public import Proof.runtime.PkgInitExt\n'
+    res = []
+    for path, txt in outs:
+        if any(f'EtcdGrove.ExternalInit.{ext_ctor(q)} ' in txt for q in _EXT_CALL):
+            assert base in txt, path
+            txt = txt.replace(base, base + f'public import {EXT_LOCAL_MOD}\n', 1)
+        res.append((path, txt))
+    return res
+
+
+def _gen(p, cfg=None):
     cfg = cfg or {}
     newvars = cfg.get('newvars', {})
     custom = cfg.get('custom', {})
@@ -5167,42 +5238,81 @@ def code_module(q):
 
 
 EXT_DOC = """/-
-The package initializers whose `wp_initialize'` is not generated here (Perennial's, raft's, the
-B-tree's), and their `_lb` forms (decision D19e). Generated by `etc/gen-init.py`; do not edit.
+The package initializers whose `wp_initialize'` is not generated here, and their `_lb` forms
+(decision D19e). Generated by `etc/gen-init.py`; do not edit.
 
-`initLb_of_spec`: if the initializer `init` of the package `p`, one of the `ExternalInit` list,
-meets Perennial's spec (`{{ ownInitializing g }} init #() {{ ownInitializing g ∗ isPkgInit p }}`),
-then it also keeps every package initialized before initialized (`ownInitLb g σ0`, for every
-`σ0`). Perennial's `initLb_of_initSpec`: `ownInitializing`'s package map is a monotone ghost map
-(Perennial `1aab4c42b`), so any proof that keeps `ownInitializing g` keeps its lower bound
-(`ownInitLb g σ0` is Perennial's `ownInitializingLb g σ0`). (Until 2026-11-07 a trust-boundary
-axiom: Perennial's theorems returned an arbitrary map.) The `ExternalInit` premise is not needed
-by the proof; it stays so that the statement is unchanged.
+One module for every tree (the main tree and the parts; L1, 2026-11-24): `ExternalInit p init`
+registers the initializer `init` of the package `p` as external. This module registers Perennial's
+packages, those any tree's generated initializers name; a tree registers the others in a module of
+its own, which imports this one (the main tree: raft's, protobuf's `proto` and the B-tree's,
+`Proof/runtime/PkgInitExtRaft.lean`; `Dsverify/`: its own translations', `PkgInitDsv.lean`), so that
+a part that does not import raft shares this module with the main tree. (Until 2026-11-24
+`ExternalInit` was an inductive listing the main tree's packages, and the parts `Net/` and
+`Dsverify/` had copies of this module, and of every package initializer that imported it.)
+
+`initLb_of_spec`: if the initializer `init` of the package `p`, a registered one, meets Perennial's
+spec (`{{ ownInitializing g }} init #() {{ ownInitializing g ∗ isPkgInit p }}`), then it also keeps
+every package initialized before initialized (`ownInitLb g σ0`, for every `σ0`). Perennial's
+`initLb_of_initSpec`: `ownInitializing`'s package map is a monotone ghost map (Perennial
+`1aab4c42b`), so any proof that keeps `ownInitializing g` keeps its lower bound (`ownInitLb g σ0` is
+Perennial's `ownInitializingLb g σ0`). (Until 2026-11-07 a trust-boundary axiom: Perennial's
+theorems returned an arbitrary map.) The `ExternalInit` premise is not needed by the proof (any
+initializer meeting the spec would do): it documents which initializers the generated proofs take
+from elsewhere.
+-/"""
+
+EXT_RAFT_DOC = """/-
+The main tree's registrations of external package initializers (`ExternalInit`,
+`Proof/runtime/PkgInitExt.lean`) whose translations are not Perennial's: raft's, protobuf's `proto`
+and the B-tree's (their `wp_initialize'` are hand-written: `Proof/go_etcd_io/raft/v3/Init.lean`,
+`Proof/k8s_io/utils/third_party/forked/golang/btree/initialize.lean`). A module of its own so that
+`PkgInitExt` imports no translation of this repository: the parts that do not import raft share it,
+and the parts with a raft of their own (`RaftWitness/`, `RaftNoAx/`, `RaftTla/`, `KvRaft/`) have a
+copy of this module over theirs. Generated by `etc/gen-init.py`; do not edit.
+-/"""
+
+EXT_DSV_DOC = """/-
+The part `Dsverify/`'s registrations of external package initializers (`ExternalInit`,
+`Proof/runtime/PkgInitExt.lean`) whose translations are not Perennial's: the packages whose
+`wp_initialize'` is a hypothesis of the part's proofs (`InitHyp`, `etc/dsv/<kit>.py`'s `HYP_INITS`)
+translated by this repository (the part's own translations, or `Net/`'s). Generated by
+`etc/gen-init.py` (`dsv_inits`); do not edit. (Until 2026-11-24 this module declared a variant of
+`initLb_of_spec` without the `ExternalInit` premise, the part importing `Net/`'s copy of
+`PkgInitExt`.)
 -/"""
 
 
+def ext_ns(L):
+    return L + ['', '@[expose] public section', '', 'set_option linter.unusedSectionVars false', '',
+                'noncomputable section', '', 'namespace Perennial', 'namespace EtcdGrove', '',
+                'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '']
+
+
+def ext_regs(pkgs):
+    return [f'theorem ExternalInit.{ext_ctor(q)} [GooseExts] [GoGlobalContext] :\n'
+            f'    ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize\' := ⟨⟩'
+            for q in sorted(pkgs)]
+
+
 def gen_ext():
-    exts = {x for p in packages() for x in inv[p]['imports'] if external(x)}
-    wt = wt_inventory()
-    exts = sorted(exts | {x for p in WT_PKGS for x in wt[p]['imports'] if x in inv and external(x)})
-    mods = sorted({code_module(q) for q in exts})
+    """The shared `PkgInitExt` (`ExternalInit`, Perennial's packages' registrations and
+    `initLb_of_spec`), and the main tree's `PkgInitExtRaft`."""
+    exts = EXT_SHARED
+    mods = sorted(set(exts.values()))
     L = [EXT_DOC, 'module', '', 'public import Proof.runtime.PkgInit']
     L += [f'public import {m}' for m in mods]
-    L += ['', '@[expose] public section', '', 'set_option linter.unusedSectionVars false', '',
-          'noncomputable section', '', 'namespace Perennial', 'namespace EtcdGrove', '',
-          'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '',
-          '/-- The initializers of the packages whose `wp_initialize\'` is not generated here. -/',
-          'inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where']
-    for q in exts:
-        L.append(f'  | {ext_ctor(q)} : ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize\'')
-    L += ['',
-          'section ax',
+    L = ext_ns(L)
+    L += ['/-- The registered initializers of the packages whose `wp_initialize\'` is not',
+          'generated here (see the file header). -/',
+          'structure ExternalInit [GooseExts] [GoGlobalContext] (p : GoString) (init : val) : Prop', '']
+    L += ['\n'.join(ext_regs(exts)), '']
+    L += ['section ax',
           'variable [GooseExts] [GooseSemantics] [GooseInterp]',
           'variable [go_gctx : GoGlobalContext]',
           'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]',
           'variable [sem : go.Semantics]',
           '',
-          '/-- A listed initializer keeps the initialized packages (see the file header). -/',
+          '/-- A registered initializer keeps the initialized packages (see the file header). -/',
           'theorem initLb_of_spec (p : GoString) (init : val) (_hext : ExternalInit p init)',
           '    [IsPkgInit (IProp GF) p] [GetIsPkgInitWf (IProp GF) p]',
           '    (Hstd : ∀ (get_is_pkg_init : GoString → IProp GF),',
@@ -5218,7 +5328,18 @@ def gen_ext():
           '',
           'end EtcdGrove',
           'end Perennial']
-    return 'Proof/runtime/PkgInitExt.lean', '\n'.join(L) + '\n'
+    return [('Proof/runtime/PkgInitExt.lean', '\n'.join(L) + '\n'),
+            ext_local('Proof/runtime/PkgInitExtRaft.lean', EXT_RAFT_DOC, EXT_MAIN)]
+
+
+def ext_local(path, doc, exts):
+    """A tree's registrations module (`path`) of the external initializers `exts` (package -> its
+    translation's module)."""
+    L = [doc, 'module', '', 'public import Proof.runtime.PkgInitExt']
+    L += [f'public import {m}' for m in sorted(set(exts.values()))]
+    L = ext_ns(L)
+    L += ['\n'.join(ext_regs(exts)), '', 'end EtcdGrove', 'end Perennial']
+    return path, '\n'.join(L) + '\n'
 
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
@@ -5239,12 +5360,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
             # tables, restored
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
@@ -5350,8 +5465,10 @@ def gen_table(p, path):
 
 
 # The parallel tree `RaftWitness/` (raft's witness experiment, notes/raft-witness.md) imports the
-# initializers of these packages, which reach raft through `PkgInitExt` (raft's `initialize'` is
-# an `ExternalInit`); no module may import both raft trees (the same declarations), so the part
+# initializers of these packages, which reached raft through `PkgInitExt` until 2026-11-24 (raft's
+# `initialize'` is an `ExternalInit`, registered since in `PkgInitExtRaft`, of which the part has a
+# copy; the copies of these packages' `Init.lean` remain, until a cleanup); no module may import
+# both raft trees (the same declarations), so the part
 # has its own copies: the same files, at `RaftWitness/<path>`, whose imports of these modules and
 # of raft's translation are the part's.
 PART_ROOT = 'RaftWitness'
@@ -5368,23 +5485,19 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
 def part_paths(inits):
     return ({f'Proof/{dirof(p)}/Init.lean' for p in inits}
             | {f'Proof/{dirof(p)}/InitLinked.lean' for p in inits if split(p)}
-            | {'Proof/runtime/PkgInitExt.lean'})
+            | {'Proof/runtime/PkgInitExtRaft.lean'})
 
 
 # Every such part: its packages, and the module prefixes (besides its copies of these files) whose
 # imports are the part's. The part `RaftNoAx/` (raft without hand-written axioms,
-# notes/raft-noax-part.md) imports kvdurable's initializer too, so durable's and trusted_proph's;
-# its other copies (etc/copy-part.py) are raft's proofs, kvdurable's and kvreconf's, and the
-# translations of kvdurable, kvreconf and walpb (etc/goose.py).
+# notes/raft-noax-part.md): its other copies (etc/copy-part.py) are raft's proofs, and the
+# translations raft's and walpb's (etc/goose.py). (Until 2026-11-24 also kvdurable's, kvreconf's and
+# their initializers, durable's and trusted_proph's: retired.)
 PARTS = {
     PART_ROOT: (PART_INITS, ['Code.go_etcd_io.raft']),
-    'RaftNoAx': (PART_INITS + ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
-                               'github_com.mit_pdos.gokv.trusted_proph'],
+    'RaftNoAx': (PART_INITS,
                  ['Code.go_etcd_io.raft', 'GeneratedProof.go_etcd_io.raft', 'Spec.go_etcd_io.raft',
-                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']
-                 + [f'{d}.github_com.mit_pdos.etcd_grove.examples.raft.{p}'
-                    for d in ('Code', 'GeneratedProof', 'Spec', 'Proof')
-                    for p in ('kvdurable', 'kvdurablenoax', 'kvreconf')]),
+                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']),
 }
 PART_PATHS = part_paths(PART_INITS)
 
@@ -5608,8 +5721,10 @@ def tla_outs():
     grt = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(grt)
     redirect = grt.plan()[4]
-    saved = inv, inst
+    global EXT_RECORD
+    saved = inv, inst, EXT_RECORD
     try:
+        EXT_RECORD = {}  # (the part's `PkgInitExtRaft` is etc/gen-raft-tla.py's copy of the main tree's)
         inv = dict(inv)
         inv.update({q: d for q, d in inventory(f'{TLA_ROOT}/Code').items() if not d['perennial']})
         inst = dict(inst)
@@ -5617,7 +5732,7 @@ def tla_outs():
         outs = gen(TLA_PROGRAM, SPECIAL.get(TLA_PROGRAM)) + [
                 gen_table(TLA_PROGRAM, f'Proof/{dirof(TLA_PROGRAM)}/PkgTable.lean')]
     finally:
-        inv, inst = saved
+        inv, inst, EXT_RECORD = saved
     def imp(m):
         return m.group(1) + redirect(m.group(2))
     return [(f'{TLA_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in outs]
@@ -5672,45 +5787,8 @@ def wt_inits():
     return [(f'{WT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
-# The part `RaftNoAx/` (raft without hand-written axioms, notes/raft-noax-part.md): its kvdurable is
-# the Go package `goose.KVDURABLE_NOAX_PKG` (examples/raft/kvdurablenoax) over the part's raft, whose
-# packages import other packages than the main raft's (no `proto`), so its `Init.lean` and
-# `PkgTable.lean` are generated as the main tree's kvdurable's, from the part's translation and
-# instances (over the main tree's), with the imports of the part's modules prefixed. (Raft's own
-# `Init.lean` is hand-written, the part's own copy.) etc/copy-part.py does not copy these
-# (`NOAX_MAIN_PATHS`, the main tree's files they stand for).
-NOAX_ROOT = 'RaftNoAx'
 sys.path.insert(0, os.path.join(ROOT, 'etc'))
 import goose as _goose  # noqa: E402
-NOAX_PKG = _goose.KVDURABLE_NOAX_PKG.replace('.', '_').replace('-', '_').replace('/', '.')
-NOAX_MAIN_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable'
-NOAX_MAIN_PATHS = [f'Proof/{dirof(NOAX_MAIN_PKG)}/Init.lean', f'Proof/{dirof(NOAX_MAIN_PKG)}/PkgTable.lean']
-
-
-def noax_inits():
-    """The part's kvdurable's `Init.lean` and `PkgTable.lean`."""
-    global inv, inst, CFG_OVERRIDE
-    saved = inv, inst, CFG_OVERRIDE
-    try:
-        inv = dict(inv)
-        for q, d in inventory(f'{NOAX_ROOT}/Code').items():
-            if not d['perennial']:
-                inv[q] = d
-        inst = {**inst, **instances(f'{NOAX_ROOT}/Proof/')}
-        CFG_OVERRIDE = {NOAX_PKG: SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))}
-        raw = gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))) + [
-               gen_table(NOAX_PKG, f'Proof/{dirof(NOAX_PKG)}/PkgTable.lean')]
-    finally:
-        inv, inst, CFG_OVERRIDE = saved
-    made = {path for path, _ in raw}
-
-    def imp(m):
-        x = m.group(2)
-        f = x.replace('.', '/') + '.lean'
-        if os.path.exists(f'{NOAX_ROOT}/{f}') or f in made or x == 'Proof.runtime.PkgInitExt':
-            x = f'{NOAX_ROOT}.{x}'
-        return m.group(1) + x
-    return [(f'{NOAX_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
 # The part `Net/` (the net extension's `net` and the programs over it, `examples/net/`; project
@@ -5734,7 +5812,38 @@ NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
             'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
-            'shutdown': ['node']}
+            'shutdown': ['node'], 'rpcdriver': ['server', 'client']}
+# (2026-11-24) net/rpc's driver (notes/library-drivers.md): its package and its service's
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver',
+             'github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service']
+# its fact is `True` (`Base.lean`): its variables (`reached`, a function value, and `failMsgs`, a
+# slice literal) are allocated and stored
+NET_SPECIAL['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports (net/rpc's
+and net/http's by their interim axioms, `Net/Proof/net/{rpc,http}/Init.lean`) and stores
+`reached`'s function value and `failMsgs`'s slice literal.''',
+    alloc_types=_ALLOC_ANY,
+    before={'reached': ['try wp_auto'],
+            'failMsgs': ['try wp_auto',
+                         'wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"]));'
+                         ' isplitr; (· ipureintro; rfl); iintro %sf -',
+                         'try wp_auto']})
+# (rpc-driver, 2026-11-24) The part's packages whose `wp_initialize'` is an interim trust-boundary
+# axiom (`Net/Proof/<pkg>/Init.lean`, hand-written; its fact in `PkgInit.lean`): net/rpc's and
+# net/http's models, whose closures reach initializers not translated (retired by L2 step 6,
+# notes/library-drivers.md). The generated initializers importing them take them as external
+# (`ExternalInit`, registered in the part's `Proof/runtime/PkgInitNet.lean`), their imports those
+# of the translation (the programs' tables hold their closures: the main tree's `bufio`, `net/url`,
+# `path`, `crypto/tls`, ..., with the main tree's facts). `Dsverify/` keeps them as hypotheses
+# (`InitHyp`) over the same facts.
+NET_AXIOM_INITS = ['net.rpc', 'net.http']
+NET_EXT_MOD = 'Proof.runtime.PkgInitNet'
+EXT_NET_DOC = """/-
+The part `Net/`'s registrations of external package initializers (`ExternalInit`,
+`Proof/runtime/PkgInitExt.lean`) whose translations are not Perennial's: net/rpc's and net/http's
+models, whose `wp_initialize'` is an interim trust-boundary axiom (`Net/Proof/net/{rpc,http}/Init.lean`;
+`NET_AXIOM_INITS`). Generated by `etc/gen-init.py` (`net_inits`); do not edit.
+-/"""
 NET_PKGS += [f'github_com.mit_pdos.etcd_grove.examples.net.{ex}.cmd.{n}'
             for ex, ns in NET_NODES.items() for n in ns]
 # The part's programs whose adequacy theorem needs the package table of their import closure (as
@@ -5757,25 +5866,57 @@ NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grov
              'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter']
 
 
-def net_prefix(txt, made=()):
-    """`txt` with its imports of the part's modules (those with a file under `NET_ROOT`, or among the
-    paths `made`, generated in the same run) prefixed."""
+IMPORT_RE = r'(?m)^(public import )(\S+)'
+
+
+def shared_inits(raw, main_txt, resolve):
+    """(L1, 2026-11-24) The part's generated files (`raw`: path under the part -> text, its imports
+    not yet redirected) that are the main tree's: with its imports redirected (`resolve(txt,
+    shared)`, given the files already found shared, whose modules are then the main tree's), the
+    file is the text the main tree generates at the same path (`main_txt`). The part imports the
+    main tree's file instead of generating a copy: one `Init.lean` per Go package."""
+    shared, changed = set(), True
+    while changed:
+        changed = False
+        for path, txt in raw:
+            if path not in shared and main_txt.get(path.split('/', 1)[1]) == resolve(txt, shared):
+                shared.add(path)
+                changed = True
+    return shared
+
+
+NET_GEN, NET_SHARED = set(), set()  # `Net/`'s generated paths (under the part), and which are shared
+
+
+def net_has(f, shared=frozenset()):
+    """Whether the module of the file `f` (a path in the main tree's layout) is `Net/`'s: a file of
+    the part this script does not write, or one it writes that is not the main tree's."""
+    g = f'{NET_ROOT}/{f}'
+    if g in NET_GEN:
+        return g not in shared and g not in NET_SHARED
+    return os.path.exists(g)
+
+
+def net_prefix(txt, shared=frozenset()):
+    """`txt` with its imports of the part's modules (`net_has`) prefixed."""
     def imp(m):
         x = m.group(2)
-        f = f'{NET_ROOT}/{x.replace(".", "/")}.lean'
-        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
+        if net_has(x.replace('.', '/') + '.lean', shared):
             x = f'{NET_ROOT}.{x}'
         return m.group(1) + x
-    return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
+    return re.sub(IMPORT_RE, imp, txt)
 
 
-def net_inits(ext_txt):
-    """The part's `Init.lean` files and `PkgInitExt.lean`."""
-    global inv, inst, CFG_OVERRIDE
+def net_inits(main_txt):
+    """The part's `Init.lean` files (those that are not the main tree's, `main_txt`: path -> text)
+    and its programs' `PkgTable.lean`; and the paths of the shared ones (stale if on disk)."""
+    global inv, inst, CFG_OVERRIDE, EXT_RECORD, EXT_LOCAL_MOD
     saved = inv, inst, CFG_OVERRIDE
-    outs = []
+    saved_ext = EXT_RECORD, EXT_LOCAL_MOD
+    ext_net = {}
     try:
         CFG_OVERRIDE = NET_SPECIAL
+        EXT_RECORD, EXT_LOCAL_MOD = ext_net, NET_EXT_MOD
         inv = inventory(f'{NET_ROOT}/Code')
         inst = instances(f'{NET_ROOT}/Proof/')
         # (v3, 2026-11-14) the main tree's `os` and the packages it imports, which `net` imports
@@ -5783,102 +5924,119 @@ def net_inits(ext_txt):
         for p in NET_MAIN:
             inv[p] = saved[0][p]
             inst[p] = saved[1][p]
-        # their `Init.lean` copied into the part, over the part's `PkgInitExt` (the main tree's
-        # imports raft's translation, and declares the same names)
-        net_main = [(f'{NET_ROOT}/{path}', txt) for p in NET_MAIN for path, txt in gen(p, SPECIAL.get(p))]
-        made = {path for path, _ in net_main}
-        outs += [(path, net_prefix(txt, made)) for path, txt in net_main]
-        raw = [(f'{NET_ROOT}/{path}', txt) for p in NET_PKGS
-               if os.path.exists(f'{NET_ROOT}/Code/{dirof(p)}.lean')
-               for path, txt in gen(p, NET_SPECIAL.get(p, SPECIAL.get(p)))]
-        made = made | {path for path, _ in raw}
-        outs += [(path, net_prefix(txt, made)) for path, txt in raw]
-        made = {path for path, _ in outs}
-        for p, path in NET_PROGRAMS.items():
-            path, txt = gen_table(p, path)
-            outs.append((f'{NET_ROOT}/{path}', net_prefix(txt, made)))
+        # (rpc-driver) the axiom packages' closures: the main tree's packages the part lacks
+        st = [q for p in NET_AXIOM_INITS for q in inv[p]['imports']]
+        while st:
+            q = st.pop()
+            if q in inv or q not in saved[0]:
+                continue
+            inv[q] = saved[0][q]
+            if q in saved[1]:
+                inst[q] = saved[1][q]
+            st += inv[q]['imports']
+        # and the axiom packages themselves: external here
+        for p in NET_AXIOM_INITS:
+            inv[p] = dict(inv[p], perennial=True)
+        # their `Init.lean` (the main tree's, `shared_inits`, since L1: until then copies, over a
+        # copy of `PkgInitExt` without raft)
+        raw = [(f'{NET_ROOT}/{path}', txt) for p in NET_MAIN for path, txt in gen(p, SPECIAL.get(p))]
+        raw += [(f'{NET_ROOT}/{path}', txt) for p in NET_PKGS
+                if os.path.exists(f'{NET_ROOT}/Code/{dirof(p)}.lean')
+                for path, txt in gen(p, NET_SPECIAL.get(p, SPECIAL.get(p)))]
+        tables = [(f'{NET_ROOT}/{path}', txt) for path, txt in
+                  (gen_table(p, path) for p, path in NET_PROGRAMS.items())]
     finally:
         inv, inst, CFG_OVERRIDE = saved
-    drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
-    ext = '\n'.join(l for l in ext_txt.split('\n') if not any(d in l for d in drop))
-    i = ext.index('\nmodule\n') + 1
-    note = (f'-- The copy for the part `{NET_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
-            f'-- the same, without raft, protobuf and the B-tree (which the part does not import).\n')
-    outs.append((f'{NET_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
-    return outs
+        EXT_RECORD, EXT_LOCAL_MOD = saved_ext
+
+    def axiom_fix(txt):
+        # an axiom package's `wp_initialize'` is the part's hand-written `Init.lean`'s
+        for p in NET_AXIOM_INITS:
+            txt = txt.replace(f'public import Perennial.Proof.{p}.Link\n', f'public import Proof.{p}.Init\n')
+        return txt
+    raw = [(path, axiom_fix(txt)) for path, txt in raw]
+    ext_path = f'{NET_ROOT}/{NET_EXT_MOD.replace(".", "/")}.lean'
+    NET_GEN.update(path for path, _ in raw + tables)
+    NET_GEN.add(ext_path)
+    NET_SHARED.update(shared_inits(raw, main_txt, net_prefix))
+    outs = [(path, net_prefix(txt)) for path, txt in raw + tables if path not in NET_SHARED]
+    outs.append(ext_local(ext_path, EXT_NET_DOC, ext_net))
+    return outs, sorted(NET_SHARED)
 
 
-# The part `KvNet/` (kvnet's proof, notes/kvnet-part.md): raft-noax's raft, the net extension's `net`
+# The part `KvRaft/` (kvraft's proof, notes/kvraft-part.md): raft-noax's raft, the net extension's `net`
 # (`Net/`'s) and the bodied `durable` over fsExt (`WalTester/`'s), in one closure. Each of its source
 # parts has its own `PkgInitExt` and its own copies of `os`'s initializers over it (`Net/`: without
 # raft; `RaftNoAx/`: with its raft), and `RaftNoAx/` and `WalTester/` both have a `durable`
 # initializer (the trusted one's, the bodied one's): the part's are generated here, as the main
-# tree's, from the part's translation (`KvNet/Code` over the main tree's) and instances
-# (`KvNet/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
+# tree's, from the part's translation (`KvRaft/Code` over the main tree's) and instances
+# (`KvRaft/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
 # configurations those of `Net/` and `WalTester/`, the imports of the part's modules prefixed, and a
-# `PkgInitExt` that is the main tree's with the part's raft; kvnet's and kvcheck's own, and their
-# programs' `PkgTable`s (`KVNET_PROGRAMS`).
-# etc/copy-part.py does not copy these (`kvnet_paths`).
-KVNET_ROOT = 'KvNet'
-KVNET_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
+# `PkgInitExt` that is the main tree's with the part's raft; kvraft's and kvcheck's own, and their
+# programs' `PkgTable`s (`KVRAFT_PROGRAMS`).
+# etc/copy-part.py does not copy these (`kvraft_paths`).
+KVRAFT_ROOT = 'KvRaft'
+KVRAFT_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
                             # (`durable`'s imports that `os` does not import)
                             'internal.filepathlite', 'path.filepath']
-# (2026-11-22) kvnet's and kvcheck's own (the two programs of the top-level theorem), and their tables
-KVNET_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvnet'
-KVNET_INITS += [KVNET_PKG, f'{KVNET_PKG}.kvcheck']
-KVNET_PROGRAMS = {KVNET_PKG: f'Proof/{KVNET_PKG.replace(".", "/")}/PkgTable.lean',
-                  f'{KVNET_PKG}.kvcheck': f'Proof/{KVNET_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
-KVNET_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
-# kvnet's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
+# (2026-11-22) kvraft's and kvcheck's own (the two programs of the top-level theorem), and their tables
+KVRAFT_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvraft'
+KVRAFT_INITS += [KVRAFT_PKG, f'{KVRAFT_PKG}.kvcheck']
+KVRAFT_PROGRAMS = {KVRAFT_PKG: f'Proof/{KVRAFT_PKG.replace(".", "/")}/PkgTable.lean',
+                  f'{KVRAFT_PKG}.kvcheck': f'Proof/{KVRAFT_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
+KVRAFT_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
+# kvraft's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
 # proof reads, is allocated and stored
-KVNET_SPECIAL[KVNET_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
-_KVNET_RAW = []
+KVRAFT_SPECIAL[KVRAFT_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
+_KVRAFT_RAW = []
+EXT_KVRAFT = {}  # the part's `PkgInitExtRaft`'s registrations (its raft, raft-noax's)
 
 
-def kvnet_raw():
+def kvraft_raw():
     """The part's `Init.lean` files, unprefixed: (path under the part, text)."""
-    global inv, inst, CFG_OVERRIDE
-    if _KVNET_RAW:
-        return _KVNET_RAW[0]
-    saved = inv, inst, CFG_OVERRIDE
+    global inv, inst, CFG_OVERRIDE, EXT_RECORD
+    if _KVRAFT_RAW:
+        return _KVRAFT_RAW[0]
+    saved = inv, inst, CFG_OVERRIDE, EXT_RECORD
     try:
+        EXT_RECORD = EXT_KVRAFT
         inv = dict(inv)
-        for q, d in inventory(f'{KVNET_ROOT}/Code').items():
+        for q, d in inventory(f'{KVRAFT_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
-        inst = {**inst, **instances(f'{KVNET_ROOT}/Proof/')}
-        CFG_OVERRIDE = KVNET_SPECIAL
-        raw = [o for p in KVNET_INITS
-               for o in gen(p, KVNET_SPECIAL.get(p, SPECIAL.get(p)))]
-        raw += [gen_table(p, path) for p, path in KVNET_PROGRAMS.items()]
+        inst = {**inst, **instances(f'{KVRAFT_ROOT}/Proof/')}
+        CFG_OVERRIDE = KVRAFT_SPECIAL
+        raw = [o for p in KVRAFT_INITS
+               for o in gen(p, KVRAFT_SPECIAL.get(p, SPECIAL.get(p)))]
+        raw += [gen_table(p, path) for p, path in KVRAFT_PROGRAMS.items()]
     finally:
-        inv, inst, CFG_OVERRIDE = saved
-    _KVNET_RAW.append(raw)
+        inv, inst, CFG_OVERRIDE, EXT_RECORD = saved
+    _KVRAFT_RAW.append(raw)
     return raw
 
 
-def kvnet_paths():
+def kvraft_paths():
     """The paths (relative to the part) this script writes for the part."""
-    return {path for path, _ in kvnet_raw()} | {'Proof/runtime/PkgInitExt.lean'}
+    return {path for path, _ in kvraft_raw()} | {'Proof/runtime/PkgInitExtRaft.lean'}
 
 
-def kvnet_inits(ext_txt):
-    """The part's `Init.lean` files and `PkgInitExt.lean` (from the main tree's, `ext_txt`)."""
-    raw = kvnet_raw()
-    made = {f'{KVNET_ROOT}/{path}' for path, _ in raw}
+def kvraft_inits():
+    """The part's `Init.lean` files and `PkgInitExtRaft.lean` (its registrations, `EXT_KVRAFT`)."""
+    raw = kvraft_raw()
+    made = {f'{KVRAFT_ROOT}/{path}' for path, _ in raw}
 
     def imp(m):
         x = m.group(2)
-        f = f'{KVNET_ROOT}/{x.replace(".", "/")}.lean'
-        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
-            x = f'{KVNET_ROOT}.{x}'
+        f = f'{KVRAFT_ROOT}/{x.replace(".", "/")}.lean'
+        if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExtRaft':
+            x = f'{KVRAFT_ROOT}.{x}'
         return m.group(1) + x
-    outs = [(f'{KVNET_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
-    ext = re.sub(r'(?m)^(public import )(Code\.go_etcd_io\.raft\S*)', rf'\1{KVNET_ROOT}.\2', ext_txt)
+    outs = [(f'{KVRAFT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+    path, ext = ext_local('Proof/runtime/PkgInitExtRaft.lean', EXT_RAFT_DOC, EXT_KVRAFT)
     i = ext.index('\nmodule\n') + 1
-    note = (f'-- The copy for the part `{KVNET_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
-            f'-- the same, but its raft is the part\'s (raft-noax\'s).\n')
-    outs.append((f'{KVNET_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
+    note = (f'-- The part `{KVRAFT_ROOT}/`\'s `Proof/runtime/PkgInitExtRaft.lean` (`etc/gen-init.py`):\n'
+            f'-- the registrations its generated initializers name, its raft the part\'s (raft-noax\'s).\n')
+    outs.append((f'{KVRAFT_ROOT}/{path}', ext[:i] + note + ext[i:]))
     return outs
 
 
@@ -5931,7 +6089,7 @@ def dsv_kit_raw(k, base):
     """Kit `k`'s generated files (paths under the part, imports not yet redirected), and the
     package directory -> hypothesis packages map of `dsv_hyp_fix`. `base`: the main tree's
     (`inv`, `inst`), and the inventory and instances of `Net/` and of `Dsverify/`."""
-    global inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports
+    global inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, EXT_RECORD, EXT_LOCAL_MOD
     main_inv, main_inst, net_inv, net_inst, dsv_inv, dsv_inst = base
     pkgs, programs = getattr(k, 'PKGS', []), getattr(k, 'PROGRAMS', {})
     hyp = list(getattr(k, 'HYP_INITS', []))
@@ -5944,8 +6102,11 @@ def dsv_kit_raw(k, base):
     main_gen = list(getattr(k, 'MAIN_GEN', main))
     own = set(getattr(k, 'OWN', ()))
     saved = inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, set(PERENNIAL_HERE)
+    saved_ext = EXT_RECORD, EXT_LOCAL_MOD
     saved_pi = pkginfo_imports
     try:
+        EXT_RECORD, EXT_LOCAL_MOD = EXT_DSV, 'Proof.runtime.PkgInitDsv'
+
         CFG_OVERRIDE = NET_SPECIAL
         RAFT_INIT = RAFT_INIT - set(main)  # a `MAIN` package's `Init` is the part's
         if hyp_none:
@@ -5980,9 +6141,15 @@ def dsv_kit_raw(k, base):
                 inv[q]['imports'] = []
             elif hyp_mode(q) == 'known':
                 inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
-        PERENNIAL_HERE.difference_update(hyp)
+        # (dsv-fix2, 2026-11-25) net/rpc's and net/http's models, when not a hypothesis of the
+        # kit: external, their `wp_initialize'` `Net/`'s interim axioms (`NET_AXIOM_INITS`), as in
+        # `Net/`'s programs
+        netax = [q for q in NET_AXIOM_INITS if q not in hyp and q in inv]
+        for q in netax:
+            inv[q] = dict(inv[q], perennial=True)
+        PERENNIAL_HERE.difference_update(hyp + netax)
         gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen
-        gen_pkgs = [p for p in dict.fromkeys(gen_pkgs) if p not in hyp]
+        gen_pkgs = [p for p in dict.fromkeys(gen_pkgs) if p not in hyp and p not in netax]
         need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
         inst.update(dsv_inst)
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
@@ -5991,18 +6158,26 @@ def dsv_kit_raw(k, base):
         for p, path in programs.items():
             path, txt = gen_table(p, path)
             raw.append((f'{DSV_ROOT}/{path}', txt))
+        # the axiom packages' `wp_initialize'`: `Net/`'s hand-written `Init.lean`
+        for q in netax:
+            raw = [(path, txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                                      f'public import Net.Proof.{q}.Init\n')) for path, txt in raw]
     finally:
         inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, here = saved
+        EXT_RECORD, EXT_LOCAL_MOD = saved_ext
         PERENNIAL_HERE.clear()
         PERENNIAL_HERE.update(here)
     return raw, need
 
 
 _DSV_KEEP = []
+EXT_DSV = {}  # the part's registrations (`Dsverify/Proof/runtime/PkgInitDsv.lean`)
 
 
-def dsv_inits():
-    """The part's `Init.lean` files and its programs' `PkgTable.lean`, every kit's."""
+def dsv_inits(main_txt):
+    """The part's `Init.lean` files and its programs' `PkgTable.lean`, every kit's (but those that
+    are the main tree's, `shared_inits`; after `net_inits`), and its registrations
+    (`PkgInitDsv.lean`); and the paths of the shared ones."""
     base = (inv, inst, inventory(f'{NET_ROOT}/Code'), instances(f'{NET_ROOT}/Proof/'),
             inventory(f'{DSV_ROOT}/Code'), instances(f'{DSV_ROOT}/Proof/'))
     raw, need, by = [], {}, {}
@@ -6016,39 +6191,31 @@ def dsv_inits():
             by[path] = (k.KIT, txt)
             raw.append((path, txt))
             need[path] = n
-    made = {path for path, _ in raw}
+    gen_paths = {path for path, _ in raw} | {f'{DSV_ROOT}/Proof/runtime/PkgInitDsv.lean'}
 
-    def imp(m):
-        x = m.group(2)
-        f = x.replace('.', '/') + '.lean'
-        if os.path.exists(f'{DSV_ROOT}/{f}') or f'{DSV_ROOT}/{f}' in made:
-            x = f'{DSV_ROOT}.{x}'
-        elif os.path.exists(f'{NET_ROOT}/{f}') or x == 'Proof.runtime.PkgInitExt':
-            x = f'{NET_ROOT}.{x}'
-        return m.group(1) + x
-    # an external initializer `Net/`'s `ExternalInit` does not list (`marshal`, which no package of
-    # `Net/` imports): `Dsverify/Proof/runtime/PkgInitDsv.lean`'s `initLb_of_spec`, without the guard
-    # (the part imports `Net/`'s `PkgInitExt`, which declares `ExternalInit`, so it cannot declare its
-    # own)
-    net_ext = open(f'{NET_ROOT}/Proof/runtime/PkgInitExt.lean').read()
-    have = set(re.findall(r'(?m)^  \| (\S+) : ExternalInit', net_ext))
+    def dsv_has(f, shared):
+        g = f'{DSV_ROOT}/{f}'
+        if g in gen_paths:
+            return g not in shared
+        return os.path.exists(g)
 
-    def ext(m):
-        if m.group(3) in have:
-            return m.group(0)
-        return f"(EtcdGrove.Dsv.initLb_of_spec {m.group(1)} {m.group(2)}\n      {m.group(4)}"
-    pat = (r"\(EtcdGrove\.initLb_of_spec (pkg_id\.\S+) (\S+)\n\s+EtcdGrove\.ExternalInit\.(\S+) "
-           r"(\S+)")
-
-    def fix(txt):
-        new = re.sub(pat, ext, txt)
-        if new != txt:
-            new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
-                              'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
-        return new
-    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt)),
-                               need[path]))
-            for path, txt in raw]
+    def hyp(path):
+        return need[path].get(os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):], [])
+    def resolve(txt, shared):
+        def imp(m):
+            x = m.group(2)
+            f = x.replace('.', '/') + '.lean'
+            if dsv_has(f, shared):
+                x = f'{DSV_ROOT}.{x}'
+            elif net_has(f):
+                x = f'{NET_ROOT}.{x}'
+            return m.group(1) + x
+        return re.sub(IMPORT_RE, imp, txt)
+    shared = shared_inits([(p, t) for p, t in raw if not hyp(p)], main_txt, resolve)
+    outs = [(path, dsv_hyp_fix(path, resolve(txt, shared), need[path]))
+            for path, txt in raw if path not in shared]
+    outs.append(ext_local(f'{DSV_ROOT}/Proof/runtime/PkgInitDsv.lean', EXT_DSV_DOC, EXT_DSV))
+    return outs, sorted(shared)
 
 
 def main(argv):
@@ -6056,20 +6223,35 @@ def main(argv):
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
     bad = []
     outs = [o for p in pkgs for o in gen(p, SPECIAL.get(p))]
-    if not [a for a in argv if not a.startswith('--')]:
-        outs.append(gen_ext())
+    full = not [a for a in argv if not a.startswith('--')]
+    stale = []
+    if full:
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
-    outs += [part_copy(path, txt, root) for root, (inits, _) in PARTS.items()
-             for path, txt in outs if path in part_paths(inits)]
-    if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures()] + dag_init() + [
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()
-        outs += noax_inits()
-        outs += net_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
-        outs += kvnet_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
-        outs += dsv_inits()
+        main_txt = dict(outs)
+        o, st = net_inits(main_txt)
+        outs += o
+        stale += st
+        outs += kvraft_inits()
+        o, st = dsv_inits(main_txt)
+        outs += o
+        stale += st
+        # (after every tree's generation: the registrations are those the generated files name)
+        outs += gen_ext()
+    outs += [part_copy(path, txt, root) for root, (inits, _) in PARTS.items()
+             for path, txt in outs if path in part_paths(inits)]
+    # the files of the parts' that are now the main tree's (`shared_inits`), and the parts' former
+    # copies of `PkgInitExt` (L1, 2026-11-24): stale, to delete
+    if full:
+        stale += [f'{r}/Proof/runtime/PkgInitExt.lean' for r in (NET_ROOT, KVRAFT_ROOT, *PARTS)]
+    for path in stale:
+        if os.path.exists(path):
+            if check:
+                bad.append(path)
+            print(f'gen-init: stale (delete it: git rm {path})', file=sys.stderr)
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

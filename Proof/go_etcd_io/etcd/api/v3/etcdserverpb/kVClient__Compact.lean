@@ -31,7 +31,7 @@ theorem kVClient.Compact.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Compact.spec (GF := GF) (hG := hG) := by
   intro kc conn addr Spec Q ctx om cd inp req opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -60,7 +60,7 @@ theorem kVClient.Compact.wp_proof
   rw [show (pbCompactionRequest (GF := GF)).ty = etcdserverpb.CompactionRequest.ty from rfl,
     show (pbCompactionResponse (GF := GF)).ty = etcdserverpb.CompactionResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre
-  wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
+  wp_apply hI $$ [Hlt Hsend Hblank Hpre] as %err ⟨Hlt, Hin', Hres⟩
   · iframe #
     iframe
     try (ipureintro; first | exact Hsz | exact (by decide : wireSlack < grpcMsgMax) | (simp only [pbCompactionRequest]; decide))
@@ -69,6 +69,7 @@ theorem kVClient.Compact.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe
     unfold compactCallOut
     ileft
@@ -82,6 +83,7 @@ theorem kVClient.Compact.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe
       unfold compactCallOut
       iright

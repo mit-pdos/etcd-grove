@@ -12,7 +12,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/(Results|MainLinked)\.lean$
 axiom Client.Close.wp_proof
-axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
@@ -58,13 +57,10 @@ axiom bridge.bridgeAt
 axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
-axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
-axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -263,6 +259,5 @@ axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom verifyEnvOff
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof

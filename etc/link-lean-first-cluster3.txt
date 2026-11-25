@@ -40,3 +40,7 @@ cluster3_StartCluster: cluster3_StartMember cluster3_StartBridge =mvcc.api.mvccA
 # `NewClient`: the examples' client constructor (common's `Link.lean`; notes/client-timeouts-plan.md)
 etcdstart_NewClients: @
 cluster3_NewClient: etcdstart_NewClients
+# (pure-premises P4, 2026-11-24) `RandomSchedule`: the programs' own fault schedules, over `below`
+# (Perennial's `RandomUint64`, used directly)
+cluster3_below:
+cluster3_RandomSchedule: cluster3_below

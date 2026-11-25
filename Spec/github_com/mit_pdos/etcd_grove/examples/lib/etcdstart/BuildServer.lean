@@ -26,8 +26,8 @@ then the precondition held none of them, so the triple was not provable. (Restar
 could give). (Restart S7.4, 2026-11-14, option (i); restart3 A1, 2026-11-15: deleted) Until restart3
 A1 also `NewServer.specR`'s restart-only rows at every image's witnesses (`□ ∀ A σ, srvRestartRows γ id
 A σ`), which the fork's window guard made unnecessary. (Restart S7.4, 2026-11-14,
-approved by etcd-grove-81) And `ETCD_VERIFY` off (`envVerifyOff`, `NewServer.specR`'s `#Hvoff`):
-persistent, the same world assumption (`verifyEnvOff`) the closed theorems already take at program
+approved by etcd-grove-81) And `ETCD_VERIFY` off (`EtcdVerifyOff`, `NewServer.specR`'s `#Hvoff`):
+pure, the environment premise (`HEnv : EtcdVerifyOff`) the closed theorems already take at program
 start; a first start's comes in its fresh bundle (`memberFreshRes_verify`), and a driver keeps it from
 there for the restart (the restart bundle, what a stop gives back, has none).
 -/
@@ -132,7 +132,7 @@ abbrev BuildServer.specRestart : Prop :=
       -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
       memberRestartFacts γ ρ id ∗
       -- (restart S7.4, 2026-11-14, approved by etcd-grove-81) `ETCD_VERIFY` off for the run
-      envVerifyOff }}
+      ⌜EtcdVerifyOff⌝ }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))

@@ -13,6 +13,7 @@ public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

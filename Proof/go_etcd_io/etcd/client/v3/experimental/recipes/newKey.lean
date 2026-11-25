@@ -28,12 +28,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem newKey.wp_proof (hNKV : newKV.spec (GF := GF) (hG := hG)) :
     newKey.spec (GF := GF) (hG := hG) := by
   intro kv pfx key lease lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   wp_auto
-  wp_apply hNKV kv pfx key [] lease lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+  wp_apply hNKV kv pfx key [] lease lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨Hk.1, Hk.2, by simp⟩
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   icases Hres with (H | H | ⟨%Hne, -⟩)
   · ileft; iexact H
   · iright; ileft; iexact H

@@ -279,7 +279,8 @@ def etcdSteps : Nat := 2 ^ 48
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
-/-- **The functors** the statements' Iris premise (`HEnvTok`) is stated at: `putgetGF`'s layout (the
+/-- **The functors** the proofs' ghost state is over (until 2026-11-25 also the statements' Iris premise
+`HEnvTok`, now the pure `EtcdVerifyOff`): `putgetGF`'s layout (the
 universal camera `AllG` at slot 0, invariants, later credits, GooseLang's heap, prophecies and package
 state, a ghost variable at slot 7; every other slot the unit functor). -/
 def etcdDistGF : BundledGFunctors := fun i =>

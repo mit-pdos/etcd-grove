@@ -32,15 +32,14 @@ abbrev retryLeaseClient.LeaseTimeToLive.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse)
     (Q : LeaseTTLRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseTimeToLiveRequest) (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryLeaseAt rlc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec (req.ID', req.Keys') Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs ∗
-      ⌜req.unknownFields' = slice.nil⌝ }}
+      ⌜req.unknownFields' = slice.nil⌝) }}
     (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
         go!"LeaseTimeToLive")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.LeaseTimeToLiveRequest, inp ↦ req') ∗ leaseTTLCallOut Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((∃ req' : etcdserverpb.LeaseTimeToLiveRequest, inp ↦ req') ∗ leaseTTLCallOut Q resp err) }}
 
 end spec
 

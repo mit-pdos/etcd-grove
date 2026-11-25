@@ -33,16 +33,15 @@ abbrev lessor.Revoke.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorRemoteAtC l conn addr ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec id Q ∗
-      ctxOk ctx cd ∗ ctxErrClient ctx cd }}
+      ctxOk ctx cd ∗ ctxErrClient ctx cd) }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
       (Val #(GoInterface.ok ctx))) (Val #id))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗ Q m) ∨
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗ Q m) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err) }}
+        go_etcd_io.etcd.cache.v3.statusErrOk err)) }}
 
 end spec
 

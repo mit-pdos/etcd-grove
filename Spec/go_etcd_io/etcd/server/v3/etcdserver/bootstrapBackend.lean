@@ -59,7 +59,7 @@ abbrev bootstrapBackend.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       zapLoggerOk cfg.Logger' ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      envVerifyOff ∗ backend.fileFree (config.backendPathOf cfg.DataDir') }}
+      ⌜EtcdVerifyOff⌝ ∗ backend.fileFree (config.backendPathOf cfg.DataDir') }}
     (App (App (Val (@! bootstrapBackend)) (Val #cfg)) (Val #false))
   {{ (bkl : Loc) (err : GoInterface), RET (PairV #bkl #err);
       ⌜err = GoInterface.nil⌝ ∗

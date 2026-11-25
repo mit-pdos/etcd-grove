@@ -83,6 +83,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
 public import Proof.github_com.dustin.go_humanize.Bytes
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
@@ -109,7 +110,6 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.As
 variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver

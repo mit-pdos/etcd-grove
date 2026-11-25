@@ -10,13 +10,14 @@ module
 public import Dsverify.Proof.gryff.src.masterlib.Base
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.log.Link
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Dsverify.Proof.gryff.src.genericsmrproto.Init
 public import Dsverify.Proof.gryff.src.masterproto.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
@@ -40,8 +41,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.gryff.src.masterlib.Assumptions]
 
 namespace gryff.src.masterlib
@@ -64,12 +63,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.net.http _root_.Perennial.net.http.initialize'
-      _root_.Perennial.net.http.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.net.http _root_.Perennial.net.http.initialize'
+      EtcdGrove.ExternalInit.net_http _root_.Perennial.net.http.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (_root_.Perennial.gryff.src.masterproto.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.net.rpc _root_.Perennial.net.rpc.initialize'
-      _root_.Perennial.net.rpc.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.net.rpc _root_.Perennial.net.rpc.initialize'
+      EtcdGrove.ExternalInit.net_rpc _root_.Perennial.net.rpc.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown

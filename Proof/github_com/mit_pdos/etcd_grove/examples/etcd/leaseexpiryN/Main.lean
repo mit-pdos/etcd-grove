@@ -2,6 +2,10 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Main.lean` (`notes/leaseN-plan.md`,
 2026-11-16). Lean-first (no Rocq counterpart).
 
+First `Main`'s range check (2026-11-24, P6): a `k` outside `[1, 1000]` returns at once, with no start
+bundles (`cluster k = []`); otherwise `cluster k = members k`, and the steps below run at `k` as a
+`Nat`.
+
 The steps (txnlinfaultsN's `startCluster`'s start, at the lease mode `revocable` and the examples'
 no-snapshot settings): the logger; the pure facts of the members and their ids (putgetN's); the
 ghost state of the cluster and its members (`etcdstart.allocN`, every member's start bundle with
@@ -159,9 +163,26 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC k N ids ps ctxs boot hk1 hk Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
+  intro CS kw N ids ps ctxs boot Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hlp Hms hAs
   wp_start as ⟨Hss, Htok, #Hprem⟩
+  -- the range check: `if k < 1 || k > 1000 { return }`
+  wp_auto
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ; itrivial
+  (try wp_auto)
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ; itrivial
+  have hk1 : 1 ≤ uint.nat kw := by word
+  have hk : uint.nat kw ≤ 1000 := by word
+  have hcl : cluster kw = members (uint.nat kw) := by
+    simp [cluster, hk1, hk]
+  rw [hcl]
+  have hkw : kw = W64 ((uint.nat kw : Nat) : Int) := by word
+  generalize uint.nat kw = k at *
+  subst hkw
   iunfold premises at Hprem
   icases Hprem with #Hbps
   -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the

@@ -56,7 +56,7 @@ def bootstrapAtR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : Boot
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
     {{ zapLoggerOk cfg.Logger' ∗
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-        envVerifyOff ∗
+        ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
@@ -208,7 +208,7 @@ abbrev NewServer.specRAt : Prop :=
       -- `bootstrap`'s contract on the stopped member's data directory
       "#HbootR" ∷ bootstrapAtR cfg U γ id N dir σ i A D M ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗

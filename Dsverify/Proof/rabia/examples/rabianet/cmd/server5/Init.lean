@@ -9,13 +9,12 @@ module
 
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.server5.Base
 public import Dsverify.Proof.rabia.examples.rabianet.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.math.rand.Init
 
 @[expose] public section
 
@@ -38,7 +37,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [_root_.Perennial.os.signal.InitHyp GF]
 variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]

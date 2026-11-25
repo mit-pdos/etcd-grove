@@ -11,19 +11,20 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.example
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Proof.bufio.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
-public import Net.Proof.net.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
@@ -47,8 +48,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Assumptions]
 
 namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet
@@ -78,10 +77,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.github_com_goose_lang_primitive _root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.net.rpc _root_.Perennial.net.rpc.initialize'
-      _root_.Perennial.net.rpc.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.net.http _root_.Perennial.net.http.initialize'
-      _root_.Perennial.net.http.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.net.rpc _root_.Perennial.net.rpc.initialize'
+      EtcdGrove.ExternalInit.net_rpc _root_.Perennial.net.rpc.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.net.http _root_.Perennial.net.http.initialize'
+      EtcdGrove.ExternalInit.net_http _root_.Perennial.net.http.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
       EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩

@@ -11,9 +11,8 @@ literal (`wp_deploymentLit`), calls its entry point (`server.MainDeployment`, `c
 error: `WellFormed.spec` returns `nil` only for a well-formed deployment.
 
 **Hypotheses** (no axiom):
-* `Hctx`: `ContextReadErrs` at every ghost state over the statement's local context (as `putget`'s
-  `member_boot`): the packages' initializers need it (`server.wp_initialize'`, `client.wp_initialize'`). To
-  be discharged by the per-function context axioms (premises-to-axioms), not a top-level premise.
+* none since ctx-leaf-fix (2026-11-25): `Hctx` (`ContextReadErrs` at every ghost state) became the
+  theorem `ContextReadErrs.errs`, which the packages' initializers use.
 The deployment check is `deployment`'s linked `wp_WellFormed` (`deployment/Link.lean`).
 -/
 module
@@ -77,12 +76,6 @@ local macro "bad_finish" hne:ident : tactic => `(tactic|
     | (wp_func_call; wp_call)
     | wp_auto))
 
-/-- `ContextReadErrs` at a ghost state over the local context `lctx`. -/
-abbrev CtxErrsAt [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-    (hG : HeapGS .hasLC etcdDistGF) : Prop :=
-  ContextReadErrs (GF := etcdDistGF)
-    (hG := ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩)
-
 section boot
 variable [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
   [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions] [log.NewModel]
@@ -90,7 +83,6 @@ variable [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
 /-- The WP of `serverBootBad`, from no package initialized and the main thread's token, under any ghost state over
 the statement's local context (no file or network resource: the program returns before using one). -/
 theorem serverBadWp [srv_sem : server.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     [G : GooseGlobalGS .hasLC etcdDistGF] (L : GooseLocalGS etcdDistGF)
     (hL : L.goose_go_local_context = lctx) :
@@ -101,7 +93,6 @@ theorem serverBadWp [srv_sem : server.Assumptions]
   try simp only at hL
   subst hL
   letI hG : HeapGS .hasLC etcdDistGF := ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
   haveI := etcdFsSemOk
   iintro Hgs Htok
   imod (prometheus.regKeys_alloc (GF := etcdDistGF) server.regQs server_regQsOk) with ⟨%γreg, Hregs⟩
@@ -135,7 +126,6 @@ theorem serverBadWp [srv_sem : server.Assumptions]
 
 /-- **A member's machine on a malformed deployment** (see the file header). -/
 theorem serverBootBad [srv_sem : server.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
@@ -144,12 +134,11 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   simp only at hGG
   subst hGG
   iintro - - Hgs Htok
-  iapply serverBadWp Hctx d Hd Hfips k L hL $$ Hgs Htok
+  iapply serverBadWp d Hd Hfips k L hL $$ Hgs Htok
 
 /-- The WP of `clientBootBad`, from no package initialized and the main thread's token, under any ghost state over
 the statement's local context (no file or network resource: the program returns before using one). -/
 theorem clientBadWp [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
     [G : GooseGlobalGS .hasLC etcdDistGF] (L : GooseLocalGS etcdDistGF)
     (hL : L.goose_go_local_context = lctx) :
@@ -160,7 +149,6 @@ theorem clientBadWp [cl_sem : client.Assumptions]
   try simp only at hL
   subst hL
   letI hG : HeapGS .hasLC etcdDistGF := ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
   haveI := etcdFsSemOk
   iintro Hgs Htok
   imod (prometheus.regKeys_alloc (GF := etcdDistGF) client.regQs client_regQsOk) with ⟨%γreg, Hregs⟩
@@ -193,7 +181,6 @@ theorem clientBadWp [cl_sem : client.Assumptions]
 
 /-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
 theorem clientBootBad [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
@@ -202,12 +189,11 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   simp only at hGG
   subst hGG
   iintro - - Hgs Htok
-  iapply clientBadWp Hctx d Hd Hfips j L hL $$ Hgs Htok
+  iapply clientBadWp d Hd Hfips j L hL $$ Hgs Htok
 
 /-- The WP of `nodeBootBad`, from no package initialized and the main thread's token, under any ghost state over
 the statement's local context (no file or network resource: the program returns before using one). -/
 theorem nodeBadWp [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
     [G : GooseGlobalGS .hasLC etcdDistGF] (L : GooseLocalGS etcdDistGF)
     (hL : L.goose_go_local_context = lctx) :
@@ -218,7 +204,6 @@ theorem nodeBadWp [cl_sem : client.Assumptions]
   try simp only at hL
   subst hL
   letI hG : HeapGS .hasLC etcdDistGF := ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
   haveI := etcdFsSemOk
   iintro Hgs Htok
   imod (prometheus.regKeys_alloc (GF := etcdDistGF) client.regQs client_regQsOk) with ⟨%γreg, Hregs⟩
@@ -246,7 +231,6 @@ theorem nodeBadWp [cl_sem : client.Assumptions]
 
 /-- **A client machine on a malformed deployment** (see the file header). -/
 theorem nodeBootBad [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
@@ -255,23 +239,19 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
   simp only at hGG
   subst hGG
   iintro - - Hgs Htok
-  iapply nodeBadWp Hctx d Hd Hfips n L hL $$ Hgs Htok
+  iapply nodeBadWp d Hd Hfips n L hL $$ Hgs Htok
 
 end boot
 
 /-- **`EtcdBootNCBad`**: on a malformed deployment every machine's boot program is safe from `True`
-(`serverBootBad`, `clientBootBad`, `nodeBootBad`). `Hctx` (`context`'s errors as Go defines them,
-`ContextReadErrs`, at every ghost state over the statement's local context) is a named hypothesis, not
-a top-level premise: it is to be discharged by the per-function context axioms. -/
-theorem etcdBootNCBad_holds
-    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG) :
+(`serverBootBad`, `clientBootBad`, `nodeBootBad`). -/
+theorem etcdBootNCBad_holds :
     EtcdBootNCBad := by
   intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
   rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
-  · exact serverBootBad (fun hG => Hctx hG) d Hd Hfips k σ
-  · exact clientBootBad (fun hG => Hctx hG) d Hd Hfips j σ
-  · exact nodeBootBad (fun hG => Hctx hG) d Hd Hfips n σ
+  · exact serverBootBad d Hd Hfips k σ
+  · exact clientBootBad d Hd Hfips j σ
+  · exact nodeBootBad d Hd Hfips n σ
 
 /-! ## The crash form: `EtcdBootCBad` -/
 
@@ -301,40 +281,32 @@ theorem crashBootBad_of_wp [GoGlobalContext] [lctx : GoLocalContext] [go.Semanti
 
 /-- **`EtcdBootCBad`**: on a malformed deployment every member's program, in every generation, and every
 stable machine's program checks the deployment and returns (`serverBadWp`, `clientBadWp`, `nodeBadWp`;
-the stable machines by `etcdBootNCBad_holds`'s lemmas). `Hctx` as in `etcdBootNCBad_holds`. -/
-theorem etcdBootCBad_holds
-    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG) :
+the stable machines by `etcdBootNCBad_holds`'s lemmas). -/
+theorem etcdBootCBad_holds :
     EtcdBootCBad := by
   intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb
   refine ⟨fun i m hm => ?_, fun j m hm => ?_⟩
   · simp only [servers, List.getElem?_mapIdx] at hm
     obtain ⟨σ, -, rfl⟩ := Option.map_eq_some_iff.mp hm
-    exact crashBootBad_of_wp _ (fun L hL => serverBadWp (fun hG => Hctx hG) d Hd Hfips i L hL)
+    exact crashBootBad_of_wp _ (fun L hL => serverBadWp d Hd Hfips i L hL)
   · have hm' : m ∈ clients d σc ++ nodeMachines d σn := List.mem_of_getElem? hm
     simp only [clients, nodeMachines, List.mem_append, List.mem_mapIdx] at hm'
     rcases hm' with ⟨j, hj, rfl⟩ | ⟨n, hn, rfl⟩
-    · exact clientBootBad (fun hG => Hctx hG) d Hd Hfips j _
-    · exact nodeBootBad (fun hG => Hctx hG) d Hd Hfips n _
+    · exact clientBootBad d Hd Hfips j _
+    · exact nodeBootBad d Hd Hfips n _
 
 /-- **`etcd_safe` from the well-formed deployment's boot WPs alone**: the skeleton `etcd_safe_of_boot`
-with its malformed-deployment hypothesis discharged by `etcdBootCBad_holds`. Left: `EtcdBootC`, and
-`Hctx` (as in `etcd_safe_nocrash_of_bootWF`). -/
+with its malformed-deployment hypothesis discharged by `etcdBootCBad_holds`. Left: `EtcdBootC`. -/
 theorem etcd_safe_of_bootWF
-    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG)
     (HS : EtcdBootC) : etcd_robust.spec :=
-  etcd_safe_of_boot HS (etcdBootCBad_holds Hctx)
+  etcd_safe_of_boot HS etcdBootCBad_holds
 
 /-- **`etcd_safe_nocrash` from the well-formed deployment's boot WPs alone**: the skeleton
 `etcd_safe_nocrash_of_boot` with its malformed-deployment hypothesis discharged by
-`etcdBootNCBad_holds`. Left: `EtcdBootNC`, and `Hctx` (the `context` package's errors, to be
-discharged by the per-function context axioms). -/
+`etcdBootNCBad_holds`. Left: `EtcdBootNC`. -/
 theorem etcd_safe_nocrash_of_bootWF
-    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG)
     (HS : EtcdBootNC) : etcd_robust_nocrash.spec :=
-  etcd_safe_nocrash_of_boot HS (etcdBootNCBad_holds Hctx)
+  etcd_safe_nocrash_of_boot HS etcdBootNCBad_holds
 
 end etcd_dist
 end EtcdGrove

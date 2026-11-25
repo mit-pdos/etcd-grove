@@ -31,13 +31,12 @@ revision `R ≥ lo`, sorted by create revision (`waitersResp`), or `(nil, err)`.
 abbrev DoubleBarrier.enteredClients.spec : Prop :=
   ∀ (b s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (key : GoString)
     (count lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isDoubleBarrier b s γ client id key count ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isDoubleBarrier b s γ client id key count ∗ etcdReached lo) }}
     (App (Val (b @!! go.GoType.PointerType DoubleBarrier.ty @!! go!"enteredClients"))
       (Val #client))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (kvs : List EtcdKv), etcdReached R ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (kvs : List EtcdKv), etcdReached R ∗
         waitersResp (key ++ go!"/") (key ++ go!"/waiters") resp R kvs ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

@@ -26,6 +26,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.strconv.Link
@@ -64,7 +65,6 @@ public import Proof.k8s_io.utils.buffer.Init
 public import Proof.k8s_io.utils.clock.Init
 public import Proof.k8s_io.utils.ptr.Init
 public import Proof.k8s_io.utils.trace.Init
-public import Proof.math.rand.Init
 public import Proof.os.Init
 
 @[expose] public section

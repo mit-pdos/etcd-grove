@@ -1024,7 +1024,7 @@ private theorem wp_RestartNode_impl
   have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
-  -- (2026-11-22, kvnet decision B) no node table: the node's handle carries its names
+  -- (2026-11-22, kvraft decision B) no node table: the node's handle carries its names
   ipersist n
   ihave #Hnp := n
   haveI := nodeTabOk_persistent (GF := GF) γ (⟨n_ptr, γn⟩ : ApiImpl.NodeH) γn

@@ -55,17 +55,15 @@ PROGRAMS = {f'{EPAXOS}.examples.epaxosnet.cmd.{n}':
 # the main tree's packages the part's closure adds to `NET_MAIN` (EPaxos: bufio, encoding/json
 # and net/http's)
 MAIN = ['bufio', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
-# of which the part gets a copy of the main tree's `Init.lean` (over the part's `PkgInitExt`):
+# of which the part generates the `Init.lean` (the main tree's, `shared_inits`, L1, 2026-11-24):
 # encoding/json's `wp_initialize'` is proved (J1, mit-pdos/etcd-grove#24), no longer an `InitHyp`
 MAIN_GEN = ['bufio', 'encoding.json']
-# initializers that are hypotheses of the part's proofs (notes/dsv-epaxos.md, "Hypotheses"; the
-# `InitHyp` class): net/rpc's and net/http's (`Net/`'s models: no initializer proof; their closure
-# reaches untranslated initializers)
-HYP_INITS = ['net.rpc', 'net.http']
-# their imports: all (the default; dsv-inithyp-fix): each `Init.lean`'s well-formedness condition
-# is `build_get_is_pkg_init_wf`, over every package its initializer reaches (net/http's closure's
-# packages without a fact elsewhere have a `True` one in the part, `Dsverify/Proof/<pkg>/Base.lean`),
-# so the programs' tables hold that closure
+# initializers that are hypotheses: none.
+# net/rpc's and net/http's initializers are `Net/`'s (external; their `wp_initialize'` and
+# first-run `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`)
+# whose well-formedness conditions are `build_get_is_pkg_init_wf`, over every package their
+# initializers reach, so the programs' tables hold that closure
+HYP_INITS = []
 
 
 def special(g):

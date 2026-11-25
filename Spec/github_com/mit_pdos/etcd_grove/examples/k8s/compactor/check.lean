@@ -40,19 +40,17 @@ variable [sync_sem : sync.Assumptions]
 /-- See the file header. -/
 abbrev check.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γr : ServerRaftNames)
     (γk : KVNames) (γ : CNames) (c cl' : Loc) (γc : CompactorNames),
   (∀ x ∈ ms, kvSame x.γr.kv γk) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       ([∗list] x ∈ ms, client.srvStart x) ∗ clientKvOk cl γk ∗ cinv γk γ ∗ kvInv γr γk ∗
-      isCompactor c cl' γk (fun _ => iprop(True)) γc ∗ compactRevLb γc (W64 0) }}
+      isCompactor c cl' γk (fun _ => iprop(True)) γc ∗ compactRevLb γc (W64 0)) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.check)) (Val #cl))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)
         #c : GoInterface)))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

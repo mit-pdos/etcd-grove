@@ -42,10 +42,6 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (ep : GoString) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient ep) σc
@@ -55,8 +51,6 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI : ContextReadErrs (GF := putgetGF) (hG := hG) := Hctx hG
-  haveI : ContextErrsClient (GF := putgetGF) (hG := hG) := Hcec hG
   haveI := etcdFsSemOk
   haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨by rw [hT]; omega⟩
   iintro Hshare - Hgs -

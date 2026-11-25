@@ -162,7 +162,7 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
       -- (sweep repairs 1, R1-4b, B4) `ETCD_VERIFY` off for the run, from program start (what
       -- `bootstrap`'s contract and the snapshot path's `OpenSnapshotBackend` take)
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗

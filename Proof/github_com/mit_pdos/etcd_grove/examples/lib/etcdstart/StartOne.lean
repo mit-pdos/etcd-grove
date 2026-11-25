@@ -43,7 +43,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 no address): `ETCD_VERIFY` off and its WAL area and data directory fresh (since 2026-11-24 no
 `dataDirFresh`: `bootstrap`'s slot no longer takes it). -/
 theorem memberStartRes_one (n : GoString) :
-    envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir n) ⊢
+    ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir n) ⊢
       memberStartRes (GF := GF) n {} := memberStartRes_areas n
 
 end bundle

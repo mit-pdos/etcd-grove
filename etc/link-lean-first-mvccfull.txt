@@ -106,6 +106,12 @@ lease_lessor__Recover: lease_lessor__initAndRecover
 # is, `Run`'s test that skips them)
 FilePaths: memberPath buildPath
 Main: MainConfig Run
+# (P3 of the pure-premise plan, 2026-11-24) `MainAt(r)`: the run in the directory `r`, after its own
+# checks of `r` (`dirFits`) and of each of its file names (`absent`: `os.Lstat`, then `errors.Is` of
+# its error against `os.ErrNotExist`, `errors.IsPathErrnoNotExist.spec`, proved in `Proof/errors/`)
+dirFits:
+absent: =_root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+MainAt: dirFits absent MainConfig FilePaths Run
 MainConfig: 
 Run: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds normalize walkKeys zap_NewNop memberPath runner__newMember runner__startEpoch runner__startReaders runner__write runner__stopReaders hashing runner__endEpoch runner__shut runner__open runner__checkAll
 buildPath: itoa

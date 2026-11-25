@@ -1,0 +1,21 @@
+# rpcdriver (examples/net/rpcdriver, notes/library-drivers.md): net/rpc's driver, the executable
+# specification of what the proofs rely on from net/rpc, in the part Net/: its top-level robustness
+# theorem `rpcdriver_robust` (Net/Proof/.../net/rpcdriver/TopLevelRobustness.lean: two machines,
+# Robust [] under DistDeploy, rpcThreads = 2^30 threads, rpcSteps = 2^63 - 1 steps). The library is done when
+# this collection is empty but for the models' trusted claims and the net extension's semantics.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/rpcdriver.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/rpcdriver.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/rpcdriver.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Proved 2026-11-24 over these interim axioms, each with a
+# docstring naming what retires it: net/rpc's and net/http's first-run initializers
+# (Net/Proof/net/{rpc,http}/InitFirst.lean, L2 step 6), and (since 2026-11-25, when net/http's
+# Handle and Serve were proved, S5) context's WithValue on a pointer key and WithCancel on a
+# valueCtx chain (Net/Proof/context/, retired by reflect-s05 and a wider isParentCtx).
+roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness\.lean$
+axiom Perennial.context.WithCancel.wp_proofValBg
+axiom Perennial.context.WithValue.wp_proofPtr
+axiom Perennial.net.http.wp_init_first
+axiom Perennial.net.rpc.wp_init_first
