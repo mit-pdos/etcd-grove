@@ -298,7 +298,7 @@ theorem startCluster.wp_proof
       · iframe; iframe #
       imod (etcdstart.kvWatch_served Hp Hr sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg gs' lis
         xj.1.Client' cid mid R Hrb48 Hrf rfl HLv Hms
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hwr⟩
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hwr, -⟩
       · iframe; iframe #
       imodintro
       iframe Htk
