@@ -1,22 +1,20 @@
 /-
-**Test only** (the non-vacuity rule; math-rand-isinit, 2026-11-24): the hypothesis class
-`math.rand.Hyps` (`Spec.lean`; rabia's and swiftpaxos's premise) holds. Its one field, `rands`,
-says some pair of tokens makes `NewSource`'s, `New`'s and `(*Rand).Intn`'s specs true. Here they
-are what real Go's are: `isRngSource src`, `src` is a `*rngSource` with its state's exclusive token
-`rngTok`; `ownRngRand r`, `r` is a `*Rand` (never written: only `Seed`/`Read` write one) whose
-source is such a `*rngSource`, with the token.
-
-`NewSource` and `New` are names only at Perennial 47ec64a9d, and so is `(*rngSource).Int63`: their
-specs are **local axioms** of this module (true of Go's code, quoted at each). `(*Rand).Intn` is
-translated: its spec is **proved** here from its body (`Intn` → `Int31n`/`Int63n` → `Int31`/`Int63`
-→ the source's `Int63`), as Perennial proves it over the runtime's source
-(`Perennial/Proof/math/rand/Rand__*.lean`), with the token threaded through. No statement or proof
-imports this module.
+`math.rand.Hyps` (`Spec.lean`; until dsv-fix4 a premise of rabia's and swiftpaxos's statements)
+**holds**, from per-function trust-boundary axioms over fixed tokens (`RngDefs.lean`: `isRngSource`,
+`ownRngRand`, over the opaque `rngTok`): `NewSource` and `New` (names only in Perennial) are the
+axioms `math.rand.NewSource.wp_proof` and `math.rand.New.wp_proof`, and so is
+`(*rngSource).Int63` (`rngSource__Int63.lean`); `(*Rand).Intn` is translated, and its spec over
+`ownRngRand` is **proved** here from its body (`Intn` → `Int31n`/`Int63n` → `Int31`/`Int63` → the
+source's `Int63`), as Perennial proves it over the runtime's source
+(`Perennial/Proof/math/rand/Rand__*.lean`), with the token threaded through. A linking module (it
+applies the axioms); the kits' top-level proofs discharge the former premise with `hyps_holds`.
+(Until dsv-fix4 the test-only `RandsInstancesLinked.lean`, with the three axioms local.)
 -/
 module
 
-public import Dsverify.Proof.math.rand.Spec
-public import Perennial.Proof.math.rand.Link
+public import Dsverify.Proof.math.rand.NewSource
+public import Dsverify.Proof.math.rand.New
+public import Dsverify.Proof.math.rand.rngSource__Int63
 
 @[expose] public section
 
@@ -25,47 +23,9 @@ set_option linter.unusedSectionVars false
 noncomputable section
 
 namespace Perennial
-namespace math.rand.instances
+namespace math.rand.rng
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section tokens
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-
-/-- The exclusive token of a `*rngSource`'s state (its `tap`, `feed` and `vec`, which `Int63`
-writes: Go's `rngSource` is not safe for concurrent use). Opaque: real Go's. -/
-opaque rngTok : Loc → IProp GF := fun _ => iprop(True)
-
-/-- `src` is a `*rngSource`, with its token (what `NewSource` returns). -/
-def isRngSource (src : GoInterface) : IProp GF :=
-  iprop(∃ p : Loc, ⌜src = interface.mkOk (go.PointerType rngSource.ty) #p⌝ ∗ rngTok p)
-
-/-- `r` is a `*Rand` over a `*rngSource`, with the source's token (what `New` returns). -/
-def ownRngRand (r : Loc) : IProp GF :=
-  iprop(∃ (p : Loc) (v : Rand), r ↦□ v ∗
-    ⌜v.src' = interface.mkOk (go.PointerType rngSource.ty) #p⌝ ∗ rngTok p)
-
-/-- **Local axiom (test-only; in no statement's trust base)**: `(*rngSource).Int63()`, with the
-source's token: a non-negative `int64`, the token kept. Go's `rng.go`:
-`func (rng *rngSource) Int63() int64 { return int64(rng.Uint64() & rngMask) }`, and `Uint64` steps
-the generator's own state (`tap`, `feed`, `vec`) and returns: no panic, no other state. -/
-axiom local_rngSource_Int63 : ∀ (p : Loc),
-  {{ rngTok (GF := GF) p }}
-    (App (Val (p @!! go.GoType.PointerType rngSource.ty @!! go!"Int63")) (Val #()))
-  {{ (x : w64), RET #x; rngTok p ∗ ⌜0 ≤ sint.Z x⌝ }}
-
-/-- **Local axiom (test-only)**: `NewSource(seed)` returns a fresh `*rngSource`, with its token. Go's
-`rand.go`: `func NewSource(seed int64) Source { return newSource(seed) }`, and `newSource` allocates
-`rng := new(rngSource)`, seeds it (`rng.Seed(seed)`, writing only `rng`) and returns `rng`. -/
-axiom local_NewSource : math.rand.NewSource.spec (GF := GF) isRngSource
-
-/-- **Local axiom (test-only)**: `New(src)` of a `*rngSource` returns a fresh `*Rand` over it (its
-points-to kept persistent: nothing here writes it), the source's token moved into it. Go's
-`rand.go`: `func New(src Source) *Rand { s64, _ := src.(Source64); return &Rand{src: src, s64: s64} }`. -/
-axiom local_New : math.rand.New.spec (GF := GF) isRngSource ownRngRand
-
-end tokens
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -85,7 +45,7 @@ theorem Rand_Int63_rng : ∀ (r : Loc),
   iStructNamed Hr
   wp_auto
   simp only [Hsrc, interface.mkOk]
-  wp_apply local_rngSource_Int63 $$ Htok as %x ⟨Htok, %Hx⟩
+  wp_apply math.rand.rngSource.Int63.wp_proof $$ Htok as %x ⟨Htok, %Hx⟩
   iapply HΦ
   isplitl [Htok]
   · iunfold ownRngRand
@@ -204,12 +164,12 @@ theorem Rand_Intn_rng : math.rand.Rand.Intn.ownSpec (GF := GF) ownRngRand := by
     ipureintro
     word
 
-/-- **The instance** (a theorem): `math.rand.Hyps`, from the local axioms above and the proof of
-`(*Rand).Intn`. -/
+/-- **`math.rand.Hyps` holds** (a theorem, not an instance): from the per-function axioms of
+`NewSource` and `New` and the proof of `(*Rand).Intn` above. -/
 theorem hyps_holds : math.rand.Hyps GF :=
-  ⟨⟨isRngSource, ownRngRand, ⟨local_NewSource, local_New, Rand_Intn_rng⟩⟩⟩
+  ⟨⟨isRngSource, ownRngRand, ⟨math.rand.NewSource.wp_proof, math.rand.New.wp_proof, Rand_Intn_rng⟩⟩⟩
 
 end proof
 
-end math.rand.instances
+end math.rand.rng
 end Perennial

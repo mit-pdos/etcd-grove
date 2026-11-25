@@ -28,7 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF] -- H1-R6 / N-1
 variable [strconvA : strconv.Assumptions] -- N-5
-variable [sortA : Perennial.gryff.replica2.SortSliceHyp GF]
 
 
 set_option goose.wp.extras true

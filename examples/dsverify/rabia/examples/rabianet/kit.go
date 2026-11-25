@@ -608,12 +608,13 @@ func attempt() time.Duration {
 	return time.Duration(AttemptMs) * time.Millisecond
 }
 
-// Orch is the orchestrator's program: it sends the configuration (New), waits StartMs, and
-// panics unless porcupine accepts the history of the clients' operations.
+// Orch is the orchestrator's program: it sends the configuration (New), waits a random 0 to
+// StartMs, draws each client's number of operations, 1 to K, and panics unless porcupine accepts
+// the history of the clients' operations.
 func Orch() {
 	New()
-	time.Sleep(time.Duration(StartMs) * time.Millisecond)
-	remote.Check(Model(), ClientAddrs(), Codec(), gens(), int(K), attempt())
+	time.Sleep(time.Duration(rand.Intn(int(StartMs)+1)) * time.Millisecond)
+	remote.Check(Model(), ClientAddrs(), Codec(), gens(), 1+rand.Intn(int(K)), attempt())
 }
 
 // Sys is a client machine's view of the deployment: the configuration, its one Rabia client

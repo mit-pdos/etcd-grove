@@ -127,7 +127,10 @@ theorem SCF.r {s s' : RState} (h : SCF s s') : ∀ K rd, s'.rops.get? K = some r
 
 theorem shortCircuit_v {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : SCF s s' ∧ VO Q o := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact ⟨⟨rfl, rfl, rfl, rfl, rfl, fun K rd h => h⟩, VO.nil⟩
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

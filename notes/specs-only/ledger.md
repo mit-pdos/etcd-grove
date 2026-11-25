@@ -6934,3 +6934,23 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `Spec/sort/Slice.lean` is deleted, and `Hsort` leaves `mvccrand_robust` (a strengthening).
 - **Decision.** coordinator-E, 2026-11-25 (option 1, within Upamanyu's direction on #18 7119112205: rewrite
   `sort.Slice` call sites to `slices.Sort`/`SortFunc` rather than add a reflection primitive).
+
+## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
+
+- **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
+  of gryff's premise `SortSliceHyp` (`Dsverify/Proof/gryff/Lib/SortHyps.lean`); its one user,
+  `gryffcommon.ShortCircuit`'s `sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })`.
+- **Defect.** As the entry above: no bound on the slice's length, and past `2^62` elements pdqsort's heapsort
+  fallback overflows `2*root+1`, so the triple may be false in the model (an axiom, here: it would make
+  `gryff_remote_robust` rest on a false statement).
+- **Evidence.** The entry above (`zsortfunc.go`, Perennial's sort specs' `2^62` premise; zeldovich, #18).
+- **Proposed change.** `ShortCircuit` (the kit's gryff fork, `examples/dsverify/gryff/src/gryffcommon/coordinator.go`)
+  sorts with `slices.Sort(keys)` and runs the sort and the reads short-circuit loop only while
+  `len(keys) <= maxShortReads` (`1 << 20`); the writes part stays unguarded. Skipping is safe: a read in
+  `ShortReads` has already sent its `Read1`s and stays in `OngoingReqs` and `rops`, so it completes by its own
+  replies, as any read the loop finds already completed. The model's `shortCircuit` takes the guard
+  (`shortReadsLen`, `maxShortReads`; past it nothing changes), and the proof applies Perennial's
+  `slices.wp_Sort` with `cmp.Less` at `int32` (`Spec/cmp/Less.lean`'s `specInt32`), the guard giving its
+  length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
+  no longer a premise since dsv-fix4).
+- **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).

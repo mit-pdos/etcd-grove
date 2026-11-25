@@ -9,7 +9,7 @@ owned registries, `Server.HandleHTTP`, `HandleHTTP`) and net/http's `Serve` and 
 `Serve.wp_rpc`, over the interim context axioms, and `Handle.wp`, proved); `io.ReadFull`'s
 every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_proof`); remote's
 `Check`/`ServeClient`. `encoding/binary`'s varints (`binaryVarintHyps`, Perennial's proofs). What is not proved stays
-a premise (the statement's): `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`; `RpcHttpAddr` is Net's
+a premise (the statement's): `MathPowHyp`, `RandSeedHyp`; `RpcHttpAddr` is Net's
 (`netRpcHttpAddr`, given by the top-level proof); `StringsIndexHyp` stays a class here, discharged by the top-level proof
 (`StrIndexHolds.lean`). `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of
 `strings.Cut`/`TrimLeft`.
@@ -141,7 +141,7 @@ theorem wp_Client [NaInvG GF] [bufio.Assumptions] [net.Assumptions]
 
 section server
 variable [fa : gryff.src.fastrpc.Assumptions] [binA : wire.BinaryVarintHyps GF]
-variable [sortA : replica2.SortSliceHyp GF] [strconvA : strconv.Assumptions] [io.Assumptions]
+variable [strconvA : strconv.Assumptions] [io.Assumptions]
 variable [net.Assumptions] [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
 variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
 variable [randA : lib.RandSeedHyp GF] [mA : gryff.src.masterlib.Assumptions]

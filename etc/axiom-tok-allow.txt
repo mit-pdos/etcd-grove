@@ -242,3 +242,6 @@ trunc Perennial.google_golang_org.grpc.codes.wp_initialize'
 trunc Perennial.gopkg_in.yaml_v2.wp_initialize'
 trunc Perennial.io.ioutil.wp_initialize'
 trunc Perennial.os.signal.wp_initialize'
+
+# dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): swiftpaxos's gob axioms
+entry Perennial.encoding.gob.Decoder.Decode.wp_proof 3:E:produced1/consumed0  E is the reader's error predicate, `∃`-bound inside the consumed (persistent) `bufio.readsOk rd I`; it occurs produced only in the post of the reader's own `Read` contract (`io.readerOk ri Pre I E`), which `Decode` calls; the axiom's post holds no `E` (review notes/axiom-review/dsv-fix4/encoding-gob.md)

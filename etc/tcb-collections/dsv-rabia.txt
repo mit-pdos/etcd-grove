@@ -2,9 +2,10 @@
 # extension and examples/lib/remote, in the part Dsverify/: the server's links
 # (roles/server/Link.lean), the kit's (examples/rabianet/Linked.lean) and its closed theorem
 # `rabia_remote_robust` (examples/rabianet/TopLevelRobustness.lean: twelve machines, Robust [] under
-# DistDeploy, the library hypotheses and the environment assumption `os.signal.NoSignals` premises of
-# the statement). Its `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only. The baseline
-# below is empty: written by hand (2026-11-23) from that `#print axioms`.
+# DistDeploy, over the premises go-redis's `InitHyp` and `zerolog.Hyps`). Its axioms: the baseline
+# below.
+# dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): the library functions are per-function trust-boundary
+# axioms (Dsverify/Proof/<pkg>/<fn>.lean, reviews notes/axiom-review/dsv-fix4/), listed below.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt --check    against the lines below
@@ -14,6 +15,13 @@
 # `axiom X`/`sorry X`: the baseline.
 roots ^Dsverify/Proof/rabia/
 axiom Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
+axiom Perennial.github_com.gogo.protobuf.proto.RegisterEnum.wp_proofMsgType
+axiom Perennial.github_com.gogo.protobuf.proto.RegisterFile.wp_proof
+axiom Perennial.github_com.gogo.protobuf.proto.RegisterType.wp_proof
 axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
 axiom Perennial.github_com.rs.zerolog.wp_initialize'
+axiom Perennial.math.rand.New.wp_proof
+axiom Perennial.math.rand.NewSource.wp_proof
+axiom Perennial.math.rand.rngSource.Int63.wp_proof
+axiom Perennial.os.signal.Notify.wp_proofQuietSigs
 axiom Perennial.os.signal.wp_initialize'

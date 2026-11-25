@@ -8,6 +8,7 @@ public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.ModelSet
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 public import Perennial.Spec.time.Sleep
+public import Dsverify.Proof.math.rand.IntnPos
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
@@ -329,6 +330,12 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (wp_Codec Γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 1) (by decide) as %x %Hx
+  have hx : x = W64 0 := by word
+  subst hx
+  rw [show (W64 1 + W64 0 : w64) = W64 1 from rfl]
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 4 := by
@@ -356,6 +363,8 @@ theorem Client.wp_proof (wp_NewNetCluster : NewNetCluster.spec (GF := GF) (hG :=
   · iPkgInit
   ihave #Hrp : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
+  · iPkgInit
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_PaxosAddrs as %sl Hsl
@@ -400,6 +409,7 @@ theorem Client.wp_proof (wp_NewNetCluster : NewNetCluster.spec (GF := GF) (hG :=
     rw [slotUpd_write _ rfl]
     ihave HAU := lin_opAU Γ i Φo $$ HL
     wp_auto
+    wp_apply math.rand.wp_Intn_pos (W64 1000 + W64 1) (by decide) as %w0 -
     wp_apply time.wp_Sleep
     have hi := i.2
     ihave Hwp := wp_Propose Γ cl c (W64 10000) i.1 (fun w => Φo (bnd w i)) hc hi $$ Hpp Hcl HAU

@@ -74,6 +74,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_sync : G pkg_id.sync = isPkgInit (PROP := IProp GF) pkg_id.sync
   e_io : G pkg_id.io = isPkgInit (PROP := IProp GF) pkg_id.io
   e_log : G pkg_id.log = isPkgInit (PROP := IProp GF) pkg_id.log
+  e_math_rand : G pkg_id.math.rand = isPkgInit (PROP := IProp GF) pkg_id.math.rand
   e_time : G pkg_id.time = isPkgInit (PROP := IProp GF) pkg_id.time
   e_context : G pkg_id.context = isPkgInit (PROP := IProp GF) pkg_id.context
   e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
@@ -160,6 +161,10 @@ theorem wf_io {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_log {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.log G :=
   And.intro h.e_log ⟨wf_sync h, True.intro⟩
+
+theorem wf_math_rand {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.math.rand G :=
+  And.intro h.e_math_rand ⟨wf_sync h, wf_sync_atomic h, True.intro⟩
 
 theorem wf_time {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.time G :=
@@ -375,7 +380,7 @@ theorem wf_github_com_mit_pdos_etcd_grove_examples_lib_remote {G : GoString → 
 
 theorem wf_github_com_despreston_go_craq_examples_craqnet {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.examples.craqnet G :=
-  And.intro h.e_github_com_despreston_go_craq_examples_craqnet ⟨wf_io h, wf_log h, wf_net h, wf_net_http h, wf_net_rpc h, wf_sync h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_despreston_go_craq_coordinator h, wf_github_com_despreston_go_craq_node h, wf_github_com_despreston_go_craq_store_kv h, wf_github_com_despreston_go_craq_transport_netrpc h, wf_github_com_goose_lang_primitive h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_errors h, wf_github_com_despreston_go_craq_transport h, True.intro⟩
+  And.intro h.e_github_com_despreston_go_craq_examples_craqnet ⟨wf_io h, wf_log h, wf_math_rand h, wf_net h, wf_net_http h, wf_net_rpc h, wf_sync h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_despreston_go_craq_coordinator h, wf_github_com_despreston_go_craq_node h, wf_github_com_despreston_go_craq_store_kv h, wf_github_com_despreston_go_craq_transport_netrpc h, wf_github_com_goose_lang_primitive h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_errors h, wf_github_com_despreston_go_craq_transport h, True.intro⟩
 
 theorem wfO_errors {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.errors (gOff S G) :=
@@ -416,6 +421,11 @@ theorem wfO_log {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.log (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.log ∉ ownedPkgs) (hS _ hm))).trans
     h.e_log) ⟨wfO_sync h S hS, True.intro⟩
+
+theorem wfO_math_rand {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.rand (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.rand ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_math_rand) ⟨wfO_sync h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_time {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.time (gOff S G) :=

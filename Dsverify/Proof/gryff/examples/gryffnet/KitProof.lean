@@ -5,6 +5,7 @@ as hypotheses.
 -/
 module
 
+public import Dsverify.Proof.math.rand.IntnPos
 public import Dsverify.Proof.gryff.examples.gryffnet.KitSpecs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
@@ -564,13 +565,17 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (Codec.wp_proof γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 4) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (casR γ) casS γp m addrs clientAddrs cd _ (W64 4) d pendN_gryff lintestN_gryff
-    (casS_pendDec γ) (casR_encOut_inj γ) (fun st => casR_timeless γ st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 12 (by decide) $$ [Hlib Hbud]
+  wp_apply wp_Check (casR γ) casS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_gryff
+    lintestN_gryff (casS_pendDec γ) (casR_encOut_inj γ) (fun st => casR_timeless γ st) hrb
+    (by rw [hlen']; decide) (by word) (by rw [hlen']; word) 12 (by simp only [readTries]; word)
+    $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     unfold EtcdGrove.lintest.genSpec

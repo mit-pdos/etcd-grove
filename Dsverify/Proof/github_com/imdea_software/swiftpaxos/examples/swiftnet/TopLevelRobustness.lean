@@ -10,6 +10,9 @@ specs (`Link.lean`).
 -/
 module
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.HypsHoldLinked
+public import Dsverify.Proof.math.rand.RandsLinked
+public import Dsverify.Proof.os.signal.Notify
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.TopLevelRobustness
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Mains
@@ -151,10 +154,11 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hsw hmr hns hor σ g
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi σ g
   refine robust_of_distProtoLisRBTT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 30)
     (2 ^ 63) swLas_pairwise swLas_disj ?_
   intro G π hrb
+  let l : SwiftNetPkgState netDistGF := encoding.gob.swiftLibsOf π
   letI := libsAt l π
   letI := netRpcHttpAddr netDistGF (Gg := G)
   iintro #Hreg Hs Hl
@@ -221,10 +225,10 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC netDistGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : SwiftHyps netDistGF := hsw G' hG.goose_localGS π
-    letI : math.rand.Hyps netDistGF := hmr G' hG.goose_localGS
-    letI : os.signal.NoSignals usr1Sigs netDistGF := hns G' hG.goose_localGS
-    letI : SwiftOsRandom netDistGF := hor G' hG.goose_localGS π
+    letI : SwiftHyps netDistGF := swiftHyps_holds π
+    letI : math.rand.Hyps netDistGF := math.rand.rng.hyps_holds
+    letI : os.signal.NoSignals usr1Sigs netDistGF := ⟨os.signal.Notify.wp_proofUsr1Sigs⟩
+    letI : SwiftOsRandom netDistGF := swiftOsRandom_holds π
     letI : RpcHttpHyp netDistGF := EtcdGrove.dsvswiftpaxos.netRpcHttpHyp
     letI : RpcFirstInit (GF := netDistGF) := rpcFirstInit_of net.rpc.NewServer.wp_owned hT
     have hrb' : receiptBound netDistGF ≤ 2 ^ 63 := by omega

@@ -19,6 +19,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.BindingsP
 public import Net.Spec.net.rpc.SetCodec
 public import Net.Spec.net.rpc.RegisterName
 public import Net.Spec.net.rpc.HandleHTTP
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -414,10 +415,14 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     · iexact Hcs
     · iexact Hcon
   (try wp_auto)
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   wp_apply wp_fork $$ [Hnst Htk «id» «conf» «n»]
   · wp_auto
     wp_func_call
     wp_call
+    (try wp_auto)
+    wp_apply math.rand.wp_Intn_pos (W64 300 + W64 1) (by decide) as %j -
     repeat (first | wp_auto | (wp_if_destruct))
     all_goals (
       wp_apply time.wp_Sleep

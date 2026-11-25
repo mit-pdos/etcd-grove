@@ -31,6 +31,18 @@ theorem cmp.Less.wp_proof : cmp.Less.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   ipureintro
   simp
+
+theorem cmp.Less.wp_proofInt32 : cmp.Less.specInt32 (GF := GF) (hG := hG) := by
+  intro x y
+  wp_start
+  wp_auto
+  wp_func_call
+  wp_call
+  wp_auto
+  iapply HΦ
+  ipureintro
+  simp
+
 end proof
 
 end EtcdGrove

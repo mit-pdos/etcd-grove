@@ -2,10 +2,13 @@ package gryffcommon
 
 import (
   "gryff/src/gryffproto"
-  "sort"
+  "slices"
   "gryff/src/stats"
   "gryff/src/state"
 )
+
+// maxShortReads bounds the reads ShortCircuit completes early (see ShortCircuit).
+const maxShortReads = 1 << 20
 
 func Max(a int32, b int32) int32 {
   if a > b {
@@ -227,35 +230,41 @@ func (c *GryffCoordinator) ShortCircuit(n int32, value *gryffproto.ValTag, fastO
   //     }
   // }
   keys := c.OngoingReqs[n].ShortReads
-  sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-  c.icoord.Printf("Shortcircuit (is fastoverwrite %v) called for op %d [%d,%d] with reads %v and writes %v.\n",
-    fastOverwrite, n, c.OngoingReqs[n].RequestId, c.OngoingReqs[n].ClientId, keys,
-    c.OngoingReqs[n].ShortWrites)
+  // The reads are short-circuited only while there are at most maxShortReads of them: slices.Sort
+  // needs a bound on the length (past 2^62 elements its heapsort fallback overflows). A read
+  // skipped here is not lost: it is still in OngoingReqs and rops, and completes by its own
+  // Read1/Read2 replies, as every read not concurrent with a write does.
+  if len(keys) <= maxShortReads {
+    slices.Sort(keys)
+    c.icoord.Printf("Shortcircuit (is fastoverwrite %v) called for op %d [%d,%d] with reads %v and writes %v.\n",
+      fastOverwrite, n, c.OngoingReqs[n].RequestId, c.OngoingReqs[n].ClientId, keys,
+      c.OngoingReqs[n].ShortWrites)
 
-  // iterate and shortcircuit any ongoing reads with sequence numbers < n
-  for _, k := range keys {
-      if k >= n && fastOverwrite {
-        break;
-      }
-      op, ok := c.OngoingReqs[k]
-      if !ok {
-        c.icoord.Printf("Ignored shortcircuit Read because request already completed.\n")
-        continue
-      }
-      id := ShiftInts(op.RequestId, op.ClientId)
-      read, ok := c.rops[id]
-      if !ok {
-        c.icoord.Printf("Ignored shortcircuit Read because request already completed.\n")
-        continue
-      }
-      c.icoord.Printf("Shortcircuit for read[%d,%d].\n", read.RequestId, read.ClientId)
-      c.icoord.GetStats().Increment("shortcircuit_reads")
-      if read.Key == 0 {
-        c.icoord.GetStats().Increment("shortcircuit_reads_0")
-      }
-      delete(c.OngoingReqs, k)
-      delete(c.rops, id)
-      c.icoord.CompleteRead(op.RequestId, op.ClientId, true, int64(value.V))
+    // iterate and shortcircuit any ongoing reads with sequence numbers < n
+    for _, k := range keys {
+        if k >= n && fastOverwrite {
+          break;
+        }
+        op, ok := c.OngoingReqs[k]
+        if !ok {
+          c.icoord.Printf("Ignored shortcircuit Read because request already completed.\n")
+          continue
+        }
+        id := ShiftInts(op.RequestId, op.ClientId)
+        read, ok := c.rops[id]
+        if !ok {
+          c.icoord.Printf("Ignored shortcircuit Read because request already completed.\n")
+          continue
+        }
+        c.icoord.Printf("Shortcircuit for read[%d,%d].\n", read.RequestId, read.ClientId)
+        c.icoord.GetStats().Increment("shortcircuit_reads")
+        if read.Key == 0 {
+          c.icoord.GetStats().Increment("shortcircuit_reads_0")
+        }
+        delete(c.OngoingReqs, k)
+        delete(c.rops, id)
+        c.icoord.CompleteRead(op.RequestId, op.ClientId, true, int64(value.V))
+    }
   }
   // cannot shortcircuit writes is this is a fast overwrite
   if fastOverwrite {

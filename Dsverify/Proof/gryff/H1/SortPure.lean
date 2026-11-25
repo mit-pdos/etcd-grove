@@ -1,8 +1,9 @@
 /-
 Ported from dsverify-lab examples/gryff/proof/GryffProof/H1/SortPure.lean (run gryff-bump-1, lab master 915f964; notes/dsv-gryff.md).
 
-Unit H1b: the insertion sort of the trusted `sort.Slice` model (`Harness/Code/sort_extra.lean`)
-on `[]int32` with `less = (<)`, as pure invariants: its result is `mergeSort` by `sle`.
+Unit H1b: the insertion sort of the lab's trusted `sort.Slice` model (`Harness/Code/sort_extra.lean`)
+on `[]int32` with `less = (<)`, as pure invariants: its result is `mergeSort` by `sle`. Here only
+`srt_perm_eq` is used (`H1/Sort.lean`: `slices.Sort`'s result is `mergeSort`'s).
 -/
 module
 

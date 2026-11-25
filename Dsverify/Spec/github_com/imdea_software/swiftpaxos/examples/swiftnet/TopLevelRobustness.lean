@@ -7,8 +7,7 @@ six client machines (each `remote.ServeClient`, an operation a SwiftPaxos client
 and six servers (server 1 the master, `master.Run`, net/rpc over HTTP on the wildcard `":7001"`;
 servers 2..6 the SwiftPaxos replicas, each registering with the master, then `swift.New`) --
 deployed at `swAddrs` (`DistDeploy`: the addresses distinct and valid, no connection, no
-listener). In every execution of fewer than `2 ^ 63` steps along which every machine keeps fewer
-than `2 ^ 30` live threads, no thread of any machine is stuck and none has a top-level panic
+listener). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps along which every machine keeps fewer than `rpcThreadBound` (`2 ^ 30`) live threads, no thread of any machine is stuck and none has a top-level panic
 (`Robust`). Since the orchestrator
 panics unless porcupine accepts the history, this says porcupine accepts every history, under
 every fault the net extension allows.
@@ -32,19 +31,13 @@ configured; a deployment whose clients connect earlier is not covered.
 gods' treemap, which `state` keeps its store in, is not a premise: its specs are proved of gods'
 own code (`github_com.emirpasic.gods.maps.treemap.hyps_true`, notes/gods-verified.md).
 
-**Premises** (visible; each at the kit's bundle `netDistGF`, for every machine's heap `heapAt G L`
-and the start's net protocol names `π`):
-* `l`, the libraries' representation choice (`SwiftNetPkgState`/`SwiftLibs`, `Base.lean`): gob's
-  encoder/decoder predicates and gob's wire format (`GobFmt`, the field `gobFmt`), each argued true
-  of the real library in its docstring;
-* the library specs (`SwiftHyps`, `Hyps.lean`: gob, bufio's lab lemmas, uuid's `ID`;
-  `math.rand.Hyps`, dsv-rabia's `math/rand` specs of `NewSource`/`New`/`Rand.Intn`; the
-  package-level `Intn` is Perennial's proved spec), the environment (`os.signal.NoSignals usr1Sigs`,
-  dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
-  fail, uuid's `New`).
-
-The package initializers without a proof here (encoding/gob's, os/signal's, google/uuid's) are
-per-package trust-boundary axioms (their `wp_initialize'`, `etc/dsv/README.md`), not premises;
+**No premise** but the translation's `Assumptions`, `net.FieldAssumptions` and
+`go.BasicIntoValInj`. gob's wire format and its encoder's and decoder's specs (over the fixed
+vocabulary of `Dsverify/Proof/encoding/gob/Vocab.lean`), uuid's `New` and `ID`, math/rand's
+`NewSource`/`New`/`(*rngSource).Int63`, and the environment claim that nobody sends SIGUSR1 to the
+deployment's processes (`signal.Notify(c, SIGUSR1)` registers a channel that never receives) are
+per-function trust-boundary axioms, and so are the package initializers without a proof here
+(encoding/gob's, os/signal's, google/uuid's: their `wp_initialize'`, `etc/dsv/README.md`);
 encoding/json's is the main tree's proved `wp_initialize'`, math/rand's is Perennial's.
 
 net/rpc and net/http (the client over HTTP, the server, `DefaultServeMux`, the packages' first
@@ -56,12 +49,10 @@ Proved in `Dsverify/Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.TopLevelDefs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
-public import Dsverify.Proof.math.rand.Spec
-public import Dsverify.Proof.os.signal.Spec
 
 @[expose] public section
 
@@ -95,15 +86,10 @@ def swiftpaxos_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (l : SwiftNetPkgState netDistGF),
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftHyps netDistGF) →
-    (∀ G L, letI := heapAt G L; math.rand.Hyps netDistGF) →
-    (∀ G L, letI := heapAt G L; os.signal.NoSignals usr1Sigs netDistGF) →
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftOsRandom netDistGF) →
+    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy swAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g (2 ^ 30) (2 ^ 63)
+    Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound
 
 end github_com.imdea_software.swiftpaxos.examples.swiftnet
 end Perennial
