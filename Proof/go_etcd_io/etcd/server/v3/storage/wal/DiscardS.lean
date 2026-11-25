@@ -167,12 +167,45 @@ theorem walParked_inj (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap In
   iframe Hpa Hoa Hs Hc Ht0 Hth Hw
   ipureintro; exact hp
 
+/-- **The others of a WAL directory are files** (`walOthers`' `tmpEnt`: no directory). -/
+theorem walOthers_files (j : Ino) (E : Ents) :
+    walOthers (L := L) [] j E ⊢ ⌜∀ b n, walNameP b = false → E !! b = some n → ∃ i, n = .file i⌝ := by
+  classical
+  by_cases hf : ∀ b n, walNameP b = false → E !! b = some n → ∃ i, n = .file i
+  · iintro -; ipureintro; exact hf
+  · have hx : ∃ b n, walNameP b = false ∧ E !! b = some n ∧ ¬ ∃ i, n = .file i := by
+      apply Classical.byContradiction; intro hc; apply hf; intro b n hw hE
+      apply Classical.byContradiction; intro hn; exact hc ⟨b, n, hw, hE, hn⟩
+    obtain ⟨b, n, hw, hE, hn⟩ := hx
+    cases n with
+    | file i => exact absurd ⟨i, rfl⟩ hn
+    | dir J' =>
+      iintro H
+      icases walOthers_lend (L := L) hw (by simp) hE $$ H with ⟨Hf, -⟩
+      have hF : tmpEnt (hG := ⟨G, L⟩) (some (Node.dir J')) ⊢ (iprop(False) : IProp GF) := .rfl
+      iexfalso
+      iapply hF
+      iexact Hf
+
+/-- **A WAL directory's entries are files**: its `.wal` names' by `SegsNamed`, the others by
+`walOthers`. -/
+theorem walDir_filesOnly (j : Ino) (E : Ents)
+    (hw : ∀ b n, walNameP b = true → E !! b = some n → ∃ i, n = .file i) :
+    walOthers (L := L) [] j E ⊢ ⌜FilesOnly E⌝ := by
+  iintro H
+  icases walOthers_files j E $$ H with %ho
+  ipureintro
+  intro b n hb
+  cases e : walNameP b
+  · exact ho b n e hb
+  · exact hw b n e hb
+
 /-- **S at a program step** (see the file header): after the area's fsync (`osCommitLb n` past `x`, the
 rename's entry, the last write of `nm` in the program's area claim `(jr, N, hC)`, holding nothing there),
 the WAL in `dir` discarded: `AU₂` committed, the free lock token back whole, and the WAL's directory
 claim (whole), pipeline names and others to the program. -/
 theorem walInv_discardS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir nm : GoString) (N : NameSet) (hC : NamesH) (ic : Nat) (Q₂ : IProp GF)
+    (dir nm : GoString) (N : NameSet) (hC : NamesH) (ic : Nat) (J : Ino) (Q₂ : IProp GF)
     (x : Nat) (e : LogEntry) (Es : Ents) (n : Nat)
     (hin : InArea r dir nm) (hN : N.Mem nm) (hNN : N ≠ .only [nm]) (hR : RootsOk R)
     (hcur : hC.cur !! nm = none) (hlw : LastWrite hC jr nm x e Es) (hx : x < n)
@@ -182,27 +215,28 @@ theorem walInv_discardS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir (ic + 1) d }> @ walAuMask, ∅
         <{ walAbsentI (W := W) dir (ic + 2), COMM Q₂ }>) -∗
       walUnlockedTokX (W := W) -∗ walNamesFragS (W := W) ⟨none, some dir, []⟩ -∗
-      osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC -∗ osCommitLb (L := L) n ={⊤}=∗
+      osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC -∗ osCommitLb (L := L) n -∗
+      walDirKey (W := W) dir (ic + 1) J walTmps ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ Q₂ ∗ walUnlockedTok (W := W) ∗
         osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC ∗
-        ∃ (J : Ino) (hj : NamesH), osNames (L := L) J (.except walTmps) (DFrac.own 1) hj ∗
+        ∃ hj : NamesH, osNames (L := L) J (.except walTmps) (DFrac.own 1) hj ∗
           walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J ∗
-          walOthers (L := L) [] J hj.cur ∗ ⌜J ≠ jr⌝ := by
+          ⌜FilesOnly hj.cur⌝ ∗ ⌜J ≠ jr⌝ := by
   classical
   have hN0 : N ≠ .only [] := nameSet_ne_empty hN
-  iintro #Hinv #Hsi Hnc Hau Hu Hnf Hn #Hc
+  iintro #Hinv #Hsi Hnc Hau Hu Hnf Hn #Hc #Hkey
   iapply walInv_stepS C Mr R jr r
-    iprop(osSharedInv (L := L) R ∗
+    iprop(osSharedInv (L := L) R ∗ walDirKey (W := W) dir (ic + 1) J walTmps ∗
       (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir (ic + 1) d }> @ walAuMask, ∅
         <{ walAbsentI (W := W) dir (ic + 2), COMM Q₂ }>) ∗
       walUnlockedTokX (W := W) ∗ walNamesFragS (W := W) ⟨none, some dir, []⟩ ∗
       osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC ∗ osCommitLb (L := L) n)
     iprop(Q₂ ∗ walUnlockedTok (W := W) ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC ∗
-        ∃ (J : Ino) (hj : NamesH), osNames (L := L) J (.except walTmps) (DFrac.own 1) hj ∗
+        ∃ hj : NamesH, osNames (L := L) J (.except walTmps) (DFrac.own 1) hj ∗
           walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J ∗
-          walOthers (L := L) [] J hj.cur ∗ ⌜J ≠ jr⌝)
+          ⌜FilesOnly hj.cur⌝ ∗ ⌜J ≠ jr⌝)
     ⊤ CoPset.subseteq_top (fun s => by
-      iintro Hb ⟨#Hsi, Hau, Hu, Hnf, Hn, #Hc⟩
+      iintro Hb ⟨#Hsi, #Hkey, Hau, Hu, Hnf, Hn, #Hc⟩
       unfold walInvBody
       icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
         Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -237,6 +271,9 @@ theorem walInv_discardS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       iintro Hab0
       unfold walDiskAtI walDirIsI
       icases Hab0 with ⟨%M, %I1, HM, HI1, %HMd, %hI1⟩
+      -- the WAL's directory key at its incarnation (R's): the layout's directory is `J`
+      icases walDirKey_lookup K dir (ic + 1) J walTmps I1 $$ Hdk Hkey HI1 with %hK
+      have hKd := hK hI1
       iunfold walGhost at Hg
       icases Hg with ⟨%I, Hg⟩
       unfold walUnlockedTokX walIncAny
@@ -279,7 +316,14 @@ theorem walInv_discardS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       have hlnm : lay.nm = nm := hnm'.trans (inArea_nm_inj hin' hin0)
       obtain ⟨X, hj, hok, hXe, hex⟩ := Hdko.2.2 dir lay hl
       subst hXe
-      obtain ⟨hJr, hXn, honce, -, -⟩ := hok
+      obtain ⟨hJr, hXn, honce, hcoh, -⟩ := hok
+      have hlj : lay.j = J := by
+        obtain ⟨lay', hj', hl', e', -⟩ := Hdko.1 dir J walTmps hKd
+        rw [hl] at hl'; cases hl'; exact e'
+      subst hlj
+      have hwal : ∀ b n, walNameP b = true → hj.cur !! b = some n → ∃ i, n = .file i :=
+        ((Hnm dir lay hl).1 hj ⟨walTmps, hXn, by obtain ⟨l1, l2, hcl, -, -⟩ := honce; rw [hcl]; simp,
+          hcoh⟩).2
       icases walParked_inj Ls _ F $$ Hpk Hof with ⟨%hdist, Hpk, Hof⟩
       have hs : DiscSet Ls cl jr dir lay (.except walTmps) hj :=
         ⟨hl, ⟨hlog, by obtain ⟨l1, l2, hcl, -, -⟩ := honce; rw [hcl]; simp, hex⟩,
@@ -346,9 +390,10 @@ theorem walInv_discardS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
         unfold walUnlockedTokX walIncAny
         iframe Ht1 Ht2 Ht3 Hof Htf
         iexists _; iexact HI2
-      iexists lay.j, hj
-      iframe Hw Htr Hth Hoth
-      ipureintro; exact hJr)
+      icases walDir_filesOnly lay.j hj.cur hwal $$ Hoth with %hfo
+      iexists hj
+      iframe Hw Htr Hth
+      ipureintro; exact ⟨hfo, hJr⟩)
     $$ Hinv Hnc [Hau Hu Hnf Hn]
   iframe Hau Hu Hnf Hn; iframe #
 

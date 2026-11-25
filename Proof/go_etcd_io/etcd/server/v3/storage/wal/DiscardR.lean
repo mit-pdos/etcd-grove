@@ -135,6 +135,33 @@ theorem dirKeysOk_unname {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDis
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
       exact hk.2.1 dir' d' lay hd' hl hcd
 
+/-- A WAL directory's name in the area is its path's. -/
+theorem inArea_nm_inj {r dir nm nm' : GoString} (h : InArea r dir nm) (h' : InArea r dir nm') :
+    nm' = nm := by
+  have e := h'.2.symm.trans h.2
+  exact List.append_cancel_left e
+
+/-- **`DirKeysOk` with a key added** for a WAL's directory (its layout's directory, the pipeline names
+excepted): `DirClaimsOk` gives the claim's facts the key records. (R records the discarded WAL's key at
+its new incarnation, so that S finds the layout's directory: `walInv_discardS`.) -/
+theorem dirKeysOk_addKey {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {c : Option GoString}
+    (hk : DirKeysOk C Mr jr s Ls cl n K c) {dir : GoString} {lay : WalLay} (hl : Ls !! dir = some lay) :
+    DirKeysOk C Mr jr s Ls cl n (<[dir := (lay.j, walTmps)]> K) c := by
+  refine ⟨fun d j X h => ?_, hk.2.1, hk.2.2⟩
+  by_cases e : d = dir
+  · subst e
+    rw [GMap.lookup_insert_eq] at h
+    cases h
+    obtain ⟨X, hj, hok, hex⟩ := hk.2.2 d lay hl
+    obtain ⟨hJr, hXn, honce, hcoh, hexc⟩ := hok
+    have hX := hex.1
+    subst hX
+    exact ⟨lay, hj, hl, rfl, hJr, hXn, honce, hcoh, hexc⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at h
+    exact hk.1 d j X h
+
 /-- **Strong absence with the WAL in `dir` unnamed** (its WAL-less names unchanged). -/
 theorem absentNone_unname {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat}
     (h : AbsentNone s jr cl n) (dir : GoString) : AbsentNone (unnameS s dir) jr cl n := by
@@ -245,11 +272,12 @@ def discP (dir : GoString) (N : NameSet) (h : NamesH) (jr : Ino) (ic : Nat) (Q�
     IProp GF :=
   iprop(walCleanPin (W := W) N h jr ∗ discAU₁ (W := W) dir ic Q₁)
 
-/-- What the rename's update gives: with no effect, what it held; logged, the token and `AU₁`'s result. -/
-def discQ (dir : GoString) (N : NameSet) (h : NamesH) (jr : Ino) (ic : Nat) (Q₁ : WalDur → IProp GF) :
+/-- What the rename's update gives: with no effect, what it held; logged, the token, `AU₁`'s result and the
+WAL's directory key at its new incarnation (`J`, the directory renamed: S finds the layout by it). -/
+def discQ (dir : GoString) (N : NameSet) (h : NamesH) (jr J : Ino) (ic : Nat) (Q₁ : WalDur → IProp GF) :
     Option (Nat × Nat) → IProp GF
   | none => discP (W := W) dir N h jr ic Q₁
-  | some _ => iprop(walUnlockedTokX (W := W) ∗ ∃ d, Q₁ d)
+  | some _ => iprop(walUnlockedTokX (W := W) ∗ (∃ d, Q₁ d) ∗ walDirKey (W := W) dir (ic + 1) J walTmps)
 
 /-- **R: `Discard`'s rename's update** (see the file header). The claim `(jr, N, h)` pinned
 (`walCleanPin`), holding `nm` (the WAL's directory `J`) and `tmp` (nothing). -/
@@ -261,7 +289,7 @@ theorem discAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     (htmp : ¬ walNameOk tmp) (htS : AreaSlot tmp) :
     ⊢ walInv (W := W) C Mr R jr r -∗ discP (W := W) dir N h jr ic Q₁ -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
-        (renDirOut jr J N nm tmp h (DFrac.own (1 : Qp).half) lb) (discQ (W := W) dir N h jr ic Q₁) := by
+        (renDirOut jr J N nm tmp h (DFrac.own (1 : Qp).half) lb) (discQ (W := W) dir N h jr J ic Q₁) := by
   classical
   iintro #Hinv HP
   iapply osAUnc_coiter _ _ _ (discP (W := W) dir N h jr ic Q₁) $$ [] HP
@@ -393,6 +421,16 @@ theorem discAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
       obtain ⟨ds, hsd, hd1s⟩ := (walOptLe_some_iff _ _).1 (e1 ▸ HMs dir)
       ihave Hdk := Hdk $$ %(<[dir := incOf I dir + 1]> I) %(GMap.delete dir K) %(keys_bump I K dir) HI3
       ihave Hpk := Hpk $$ %(<[dir := incOf I dir + 1]> I) HI4
+      -- the WAL's directory key at the new incarnation (its layout's directory, `J`)
+      obtain ⟨lay, nm', -, hl, hin0, -, hnm', -⟩ := Hok.1 dir ds hsd
+      have hlj : lay.j = J := by
+        have e : lay.nm = nm := hnm'.trans (inArea_nm_inj (by rw [Har]; exact hin) hin0)
+        rcases HAt.at hl hc (by rw [e]; exact hnmN) with h1 | h1 <;> rw [e, hJ] at h1
+        · cases h1; rfl
+        · cases h1
+      iunfold walIncQ at HI2
+      imod walDirKey_insertG (GMap.delete dir K) dir lay.j walTmps (1 : Qp).half.half
+        (<[dir := incOf I dir + 1]> I) (GMap.lookup_delete_eq _ _) rfl $$ Hdk HI2 with ⟨Hdk, Hkey, HI2⟩
       -- `AU₁` committed
       icases Hcla with ⟨-, Hco⟩
       isimp only [tforall_nil, Std.Tele.app, ULift.down] at Hco
@@ -477,9 +515,9 @@ theorem discAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
         isplitr
         · ipureintro; exact walsNamed_moved H HAt Hnm
         isplitl [Hdk Hcp]
-        · iexists GMap.delete dir K, cp
+        · iexists <[dir := (lay.j, walTmps)]> (GMap.delete dir K), cp
           iframe Hdk Hcp
-          ipureintro; exact dirKeysOk_moved H hok1 HAt hin'' hun htmp hdk1
+          ipureintro; exact dirKeysOk_addKey (dirKeysOk_moved H hok1 HAt hin'' hun htmp hdk1) hl
         isplitr
         · ipureintro; exact walsAt_moved hok1 HAt hin'' htmp hne hc
         isplitl [Hnms]
@@ -493,8 +531,13 @@ theorem discAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
       imodintro
       simp only [discQ]
       isplitl [Hu HI2 Hu4]
-      · iapply Hu $$ HI2 Hu4
-      iexists d0; iexact HQ
+      · iapply Hu $$ %(<[dir := incOf I dir + 1]> I) [HI2] Hu4
+        unfold walIncQ; iexact HI2
+      isplitl [HQ]
+      · iexists d0; iexact HQ
+      have hk : incOf (<[dir := incOf I dir + 1]> I) dir = ic + 1 := by rw [incOf_bump]; simp [hI1]
+      rw [← hlj, ← hk]
+      iexact Hkey
 
 end au
 

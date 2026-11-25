@@ -302,12 +302,6 @@ theorem discSet_of {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState
   exact ⟨hj, ⟨hl, ⟨hlog, by rw [hcl]; simp, hex⟩,
     fun d' l' hl' hne => hdist d' dir l' lay hl' hl hne, hjr⟩⟩
 
-/-- A WAL directory's name in the area is its path's. -/
-theorem inArea_nm_inj {r dir nm nm' : GoString} (h : InArea r dir nm) (h' : InArea r dir nm') :
-    nm' = nm := by
-  have e := h'.2.symm.trans h.2
-  exact List.append_cancel_left e
-
 /-- **`dir`'s name holds nothing, in the claims and after a crash** (`absentNone_discard`'s `hnone`):
 the one claim of the area on `nm` (`honly`, the shared invariant's disjointness) holds nothing there,
 and its last write of `nm` (the rename) is below the commit bound. -/
