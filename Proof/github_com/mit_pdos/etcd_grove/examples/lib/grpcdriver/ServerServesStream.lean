@@ -88,7 +88,7 @@ theorem serverStream_methodOk (wp_SS : server.ServerStream.spec (GF := GF) (hG :
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
   iunfold drvStrmSpec at Hdn
-  isimp only [strmMsg, pbStringValueST, pbStringValueS] at Hr
+  isimp only [strmMsg, pbStringValueS] at Hr
   iapply (wp_SS s r v st γ Dn ci cd md) $$ [Hst Hr HRt HSt]
   · iframe; iframe #
   inext

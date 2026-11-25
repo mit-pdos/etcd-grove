@@ -41,7 +41,7 @@ theorem _Driver_ServerStream_Handler.wp_proof
   subst Hst
   wp_auto
   ihave Hm : iprop((strmT (GF := GF)).own «$r0_ptr») $$ [«$r0»]
-  · simp only [strmT, pbStringValueST, pbStringValueS]
+  · simp only [strmT, pbStringValueS]
     iexists _
     iexact «$r0»
   have hty : msgAny (strmT (GF := GF)).ty «$r0_ptr» =
@@ -69,13 +69,14 @@ theorem _Driver_ServerStream_Handler.wp_proof
     ihave #Hst := hw $$ [ServerStream]
     · iframe #
       iintro !> %l Hl
-      simp only [strmT, pbStringValueST, pbStringValueS]
+      simp only [strmT, pbStringValueS]
       iexists _
       iexact Hl
     simp only [hsrv, ↓reduceIte]
     wp_auto
     iunfold ssMethodOk at Hh
-    rw [List.nil_append]
+    ihave HRt : iprop(srvRecvTok (Req := strmT (GF := GF)) γ [v]) $$ [HRt]
+    · iexact HRt
     wp_bind (App (App (Val #(methods srv.ty go!"ServerStream" srv.v)) _) _)
     iapply Hh $$ %γ %Dn %ci %cd %_ %_ %v %_ HSpec HS Hst Hrv HRt HSt
     inext

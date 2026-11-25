@@ -37,7 +37,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The driver's stream message (`StringValue`, `pbStringValueST`). -/
-abbrev strmT : StreamMsg GF := (pbStringValueST (GF := GF)).toStreamMsg
+abbrev strmT : StreamMsg GF := pbStringValueS (GF := GF)
 
 /-- **The wrapped server end's `SendAndClose`** (persistent): as `srvStreamIs`'s `Send`. -/
 def sacOk {Rep : StreamMsg GF} (st : GoInterface) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF) :

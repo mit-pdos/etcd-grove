@@ -117,12 +117,13 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
         try rw [if_pos rfl]
         try wp_auto
         by_cases hlx : l = x
-        · subst hlx
+        · rw [decide_eq_true hlx]
           try wp_auto
           wp_for_post
           iapply HΦ
           iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
-        · try wp_auto
+        · rw [decide_eq_false hlx]
+          try wp_auto
           wp_for_post
           iapply HΦ
           iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso

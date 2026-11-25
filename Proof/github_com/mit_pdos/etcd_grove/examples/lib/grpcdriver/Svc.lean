@@ -87,8 +87,9 @@ def metaSpec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
     iprop(⌜(go!",".intercalate (metadata.mdVals md mdKeyS)).length < stringValueMax⌝ ∗
       Φ (go!",".intercalate (metadata.mdVals md mdKeyS)))
 
-/-- A stream message (`StringValue`, `pbStringValueST`). -/
-abbrev strmMsg : StreamMsg GF := (pbStringValueST (GF := GF)).toStreamMsg
+/-- A stream message (`StringValue`, `pbStringValueS`, `pbStringValueST`'s message: a literal, so
+that its content type is `GoString` up to reducible unfolding). -/
+abbrev strmMsg : StreamMsg GF := pbStringValueS (GF := GF)
 
 /-- A stream message's wire part. -/
 abbrev strmWire : ProtoWire := (strmMsg (GF := GF)).wire

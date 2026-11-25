@@ -69,7 +69,7 @@ theorem server.ClientStream.wp_proof
     subst Herr
     iunfold csUp at HUp
     icases HUp with %HUp
-    isimp only [strmMsg, pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hm
+    isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
     icases Hm with ⟨%sv, Hsv, %Hsvp⟩
     obtain ⟨hval, -, -⟩ := Hsvp
     subst hval
@@ -80,6 +80,8 @@ theorem server.ClientStream.wp_proof
     iexists R ++ [sv.Value'], g ++ sv.Value'
     iframe
     ipureintro
+    have h1 := Hg.2.1
+    have h2 := Hg.2.2
     refine ⟨by simp [Hg.1], by simp; omega, by simp; omega⟩
   · -- `io.EOF`: the client closed after `R`
     iunfold eofIs at Heof
@@ -137,6 +139,8 @@ theorem server.ClientStream.wp_proof
         have hlx : l ≠ x := fun h => Hnx (by subst h; rfl)
         wp_auto
         try rw [if_pos rfl]
+        try wp_auto
+        try rw [decide_eq_false hlx]
         try wp_auto
         wp_for_post
         iapply HΦ

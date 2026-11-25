@@ -51,7 +51,7 @@ theorem server.ServerStream.wp_proof
   · iexists W64 0, []
     iframe
     ipureintro
-    refine ⟨by word, by simp, by simp⟩
+    refine ⟨by word, by simp, by first | rfl | decide | simp⟩
   wp_for IH
   have hlen' : sv.Value'.length < 2 ^ 30 := hlen
   wp_if_destruct

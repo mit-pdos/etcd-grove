@@ -48,7 +48,7 @@ theorem _Driver_Bidi_Handler.wp_proof
   ihave #Hst := hw $$ [ServerStream]
   · iframe #
     iintro !> %l Hl
-    simp only [strmT, pbStringValueST, pbStringValueS]
+    simp only [strmT, pbStringValueS]
     iexists _
     iexact Hl
   ihave #Hsac := hs $$ [ServerStream]
