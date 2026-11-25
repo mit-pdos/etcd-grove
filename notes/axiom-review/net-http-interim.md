@@ -110,3 +110,24 @@ handler), `HandleFunc`, `ReadResponse`, `wp_init_first`'s `use121` clause and th
 - **M1, wording:** `godebugHttpmuxgo121` is one constant, so `GodebugHttpmuxgo121Not1` is about every
   machine of a deployment: said so in its docstring and the statement's description.
 With N1 fixed: `done: OK` from zeldovich-proving-2 (no further round).
+
+**2026-11-25: proof stage, a gap the client proof hits (httpdriver proof agent; proposed, not applied).** The
+client wraps each connection in `bufio.NewReader`, whose spec asks the stream's law `□ ∀ r, S r -∗
+⌜r.length + 2 ^ 12 < 2 ^ 62⌝`; the stream's bytes are what `httpRespP` lets the server write, and nothing there
+bounds an answer's head: `hdrView hs hc` only pins `hc` at the keys outside `srvKeys`, so `hc` may hold any
+number of other keys with empty values, and the `srvKeys` values have no length bound; and `muxNoRoute` makes a
+protocol accept the mux's `404`/`307` for every `hs`, so the driver's `P` cannot bound `hs` either. Related:
+`ReadResponse.wp_proof_resp` reads a head of any size (the model's `modelReadMIMEHeader(r, math.MaxInt64)`)
+through `bufio` over a `readerStreamNE` whose `Read` is specified only below `2 ^ 62` bytes, yet its
+precondition has no length law: over a reader that fails past `2 ^ 62` bytes (it meets `readerStreamNE`) and a
+stream the precondition allows (a head of `2 ^ 62` bytes is `respOk`), the asserted WP is false. Proposed
+(each trusted text): (1) `ReadResponse.spec_resp` takes `(□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝)`, as
+`bufio.NewReader` does; (2) `hdrsOk hs` (`WireDefs.lean`) adds `(hs.flatMap hdrLineWire).length ≤ 2 ^ 21` (a
+handler's committed header block; the mux's own `307` carries a `Location` of a path of at most `2 ^ 20`
+bytes); (3) `respFacts` (`ProtoDefs.lean`) adds, for `.ans ρ`, `(respHeadWire ρ.st ρ.reason ρ.hc).length ≤
+2 ^ 22`, and the same for `.chunked st reason hc` (Go's server writes the status line, at most 46 bytes, the
+handler's lines, and its own `Date`, `Content-Type`, `Content-Length`, `Connection`, `Transfer-Encoding`
+lines, under 512 bytes). And one driver change, not trust: the client's loop leaves a connection after a
+`400` (`resp.StatusCode == http.StatusBadRequest`, the server closes it), not only after its junk request:
+after a close-delimited answer whose body ended early (a cut connection), the reader's bytes are a prefix of
+the `400` answer that no further `ReadResponse` precondition covers.
