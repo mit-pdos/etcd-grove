@@ -20,7 +20,6 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.shutdown
 
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.wire (addrInv)
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 
 open Robustness
