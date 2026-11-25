@@ -18,6 +18,7 @@ public import Perennial.GooseLang.Receipts
 public import Proof.os.Base
 public import Perennial.Ghost.DGhostVar
 public import GooseLang.Ext.Fs.FsNoErr
+public import Proof.go_etcd_io.bbolt.Inv.BFile
 
 @[expose] public section
 
@@ -101,18 +102,12 @@ def metaCellsQ (q : Qp) (ms : MapSt) (C : CommitSt) : IProp GF :=
       bytesPointsto (base +ₗ (4096 : Int)) (DFrac.own q) C.m1)
   | none => iprop(emp)
 
-/-- **The database's file** (the port onto the per-byte extension, 2026-11-12): its path (`db.path`,
-the `*os.File`'s name, `fileOwn`) and its inode (every file resource: `osMeta`, `osBytes`, `osFd`).
-One record, so that the invariants keep one file parameter. -/
-structure BFile where
-  path : GoString
-  ino : Ino
-deriving Inhabited
+-- `BFile` (the database's file): `Inv/BFile.lean` (W1: with its crash names).
 
 /-- A share of the meta slots' page-cache bytes, holding `C`'s metas (their crash candidates
 any). -/
 def metaOsBytes (p : BFile) (dq : DFrac) (C : CommitSt) : IProp GF :=
-  iprop(∃ xs : List ByteG, osBytes p.ino 0 dq xs ∗ ⌜xs.map Prod.fst = C.m0 ++ C.m1⌝)
+  iprop(∃ xs : List ByteG, bBytes p 0 dq xs ∗ ⌜xs.map Prod.fst = C.m0 ++ C.m1⌝)
 
 /-- The `*os.File` `f` is open on `fd`, named `name` (`os.ownFile`'s body, `fileOwn_eq`). -/
 def fileOwn (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
@@ -285,10 +280,10 @@ def wCells (ms : MapSt) (W : List Nat) : IProp GF :=
 last slot's too (batch 9: a file truncated to `growSize + AllocSize` need not end on a page). -/
 def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IProp GF :=
   iprop([∗list] s ∈ W, if 4096 * (s + 1) ≤ size then
-    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = wb s⌝)
     else if 4096 * s < size then
-      iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+      iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp))
 
@@ -296,7 +291,7 @@ def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IPro
 freelist page's, which the store holds the other half of while the page is the committed state's
 and not freed, `flxS`). -/
 def osSlotH (p : BFile) (s : Nat) (bs : List w8) : IProp GF :=
-  iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
+  iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
     ⌜xs.map Prod.fst = bs⌝)
 
 /-- The `W` slots `W` but `X` (as `wBytes`), and half of the slots `X`' bytes (session S4: `X` the

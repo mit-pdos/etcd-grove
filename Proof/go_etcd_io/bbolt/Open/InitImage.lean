@@ -7,7 +7,7 @@ an empty freelist page 2 and an empty leaf page 3 (`initImg`), and its committed
 module
 
 public import Proof.go_etcd_io.bbolt.Commit.MetaBuf
-public import Proof.go_etcd_io.bbolt.Inv.FileHolds
+public import Proof.go_etcd_io.bbolt.Inv.FileImg
 public import Proof.go_etcd_io.bbolt.Spill.STree
 
 @[expose] public section

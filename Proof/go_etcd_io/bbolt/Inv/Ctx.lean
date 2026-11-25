@@ -58,6 +58,12 @@ instance BC.core_persistent (K : BC) : Persistent (K.core (GF := GF)) := by
 instance BC.full_persistent (K : BC) : Persistent (K.full (GF := GF)) := by
   unfold BC.full isBoltP; infer_instance
 
+/-- The database's file is outside a crash invariant (W1, stage A: `isBoltCoreP`'s `p.cs = none`). -/
+theorem BC.core_cs (K : BC) : K.core (GF := GF) ⊢ ⌜K.p.cs = none⌝ := by
+  unfold BC.core isBoltCoreP
+  iintro ⟨-, -, %H, -⟩
+  ipureintro; exact H.2.2.2
+
 /-- **A live transaction's token for its statistics** (`txsInv` holds them; `TxStats`'s atomic
 methods need it): with `m = true` a share `q` of its `ex` token (a holder of a fraction of
 `boltTx`); with `m = false` its exclusive part's `done` half (the holder of `txExcl`, inside

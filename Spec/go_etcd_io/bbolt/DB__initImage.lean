@@ -6,6 +6,7 @@ the four pages `init` writes, as a new slice (`Open/InitImage.initImg`). `init` 
 module
 
 public import Proof.go_etcd_io.bbolt.Open.InitImage
+public import Proof.go_etcd_io.bbolt.Inv.FileHolds
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 
 @[expose] public section
