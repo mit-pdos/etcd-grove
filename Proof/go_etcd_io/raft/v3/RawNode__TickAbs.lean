@@ -39,13 +39,14 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section pure
+variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **`tickElection`'s end state, at the protocol level** (in the lifting lemmas' scope): `TickEnd`,
 the log's state kept. -/
 theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
     (h : TickElEnd c id s s') :
-    TickEnd c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
+    TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
   rcases h with rfl | ⟨he, -⟩
   · exact ⟨Or.inl rfl, rfl⟩
   · exact ⟨tickEnd_of_stepEnd_hup hsc rfl rfl he, logst_of_stepEnd_hup rfl rfl he⟩
@@ -55,7 +56,7 @@ check-quorum off: no quorum check): `TickEnd`, the log's state kept; the transfe
 to `toPState`. -/
 theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
     (hro : (toPState s).rd.ro.pending = []) (h : TickHbEnd c id s s') :
-    TickEnd c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
+    TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
   have hcq := hsc.2.1
   rcases h with ⟨s1, h1, h2⟩ | ⟨s1, s2, h1, -, -, h3, he⟩
   · rw [TickCqEnd.of_cq hcq h1] at h2
@@ -81,6 +82,7 @@ theorem TrOutMsg.not_snap {m : Msg} (h : TrOutMsg m) : m.ty ≠ .snap := by
 end pure
 
 section proof
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -150,12 +152,12 @@ theorem RawNode.Tick.wp_absProof
       ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) Hip4 $$ Hstrecs
       -- in the scope, the tick's exact effect, the log's state kept
       have Hlifted : sc = true →
-          TickEnd (rnCfg γ) id (toPState s) (toPState s') ∧ s'.logst = s.logst := fun h => by
+          TickEnd {} (rnCfg γ) id (toPState s) (toPState s') ∧ s'.logst = s.logst := fun h => by
         obtain ⟨hl, hv, hd⟩ := Hlift h
         first
-          | exact ⟨(tickElEnd_lift hl Hend).1.of_voters hv hd, (tickElEnd_lift hl Hend).2⟩
-          | exact ⟨(tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).1.of_voters hv hd,
-              (tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).2⟩
+          | exact ⟨(tickElEnd_lift (k := {}) hl Hend).1.of_voters hv hd, (tickElEnd_lift (k := {}) hl Hend).2⟩
+          | exact ⟨(tickHbEnd_lift (k := {}) hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).1.of_voters hv hd,
+              (tickHbEnd_lift (k := {}) hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).2⟩
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         (fun h Hs => by
           have hro := tickEnd_rd_out (Hlifted h).1

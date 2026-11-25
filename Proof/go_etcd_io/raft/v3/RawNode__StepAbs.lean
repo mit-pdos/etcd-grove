@@ -42,6 +42,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section pure
+variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- No type of the harness's network is local (`IsLocalMsg`'s table). -/
@@ -73,7 +74,7 @@ theorem antStep_mtype {t : w32} (h : t ∈ antStepTypes) : ∃ ty, mtypeOf t = s
 theorem handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : HandleEnd c id s m s') : s'.rd.pend = s.rd.pend := by
+    (h : HandleEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
   unfold HandleEnd at h
   rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
   · split at h
@@ -99,7 +100,7 @@ theorem handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PSt
 theorem recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : RecvEnd c id s m s') : s'.rd.pend = s.rd.pend := by
+    (h : RecvEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
   rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hp, h⟩
   · exact handleEnd_rd_pend hty h
   · rfl
@@ -109,6 +110,7 @@ theorem recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PStat
 end pure
 
 section ghost
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -151,6 +153,7 @@ theorem isMessage_app_wf (γ : RaftNames) (m : MessageM) (ents : List EntryM) (c
 end ghost
 
 section proof
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -384,7 +387,7 @@ local macro "step_tail" : tactic => `(tactic| (
       -- in the scope: the exact effect, the in-progress boundary, the scope kept
       have Hlifted : sc = true →
           (∀ ty, mtypeOf m.Type' = some ty →
-            RecvEnd (rnCfg γ) id (toPState s) (absMsg ty m ents ctx) (toPState s')) ∧
+            RecvEnd {} (rnCfg γ) id (toPState s) (absMsg ty m ents ctx) (toPState s')) ∧
           s'.rd.pend = s.rd.pend ∧
           uint.nat s'.logst.inprogress - 1 = min ip (lcpLen (toPState s).log (toPState s').log) ∧
           ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []) := by
@@ -392,7 +395,7 @@ local macro "step_tail" : tactic => `(tactic| (
         obtain ⟨Hl, -⟩ := Hlift h
         obtain ⟨hant, hctx, -⟩ := Hscp h
         have h0 : m.Term' ≠ W64 0 := (Hok.2.1 (antStep_stamped hant)).2.1
-        have HR := recvEnd_of_stepEnd_net Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
+        have HR := recvEnd_of_stepEnd_net (k := {}) Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
         have HC := HCf h
         obtain ⟨ty0, hty0⟩ := antStep_mtype hant
         refine ⟨fun ty hty => (HR ty hty).1.of_halves HC.1 HC.2.1 (HC.ids ((Hcin h).learners Hcfm)) (HR ty hty).2, ?_, ?_,

@@ -162,7 +162,7 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → PState �
                    (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ ∗
       -- (#33 S3c) the exact effect (`Protocol/InputEnd.lean`)
       "%Hend" ∷ ⌜S → (∀ ty, mtypeOf st.msg.Type' = some ty →
-        RecvEnd (rnCfg γ) id ps (absMsg ty st.msg st.ents st.ctx) ps') ∧
+        RecvEnd {} (rnCfg γ) id ps (absMsg ty st.msg st.ents st.ctx) ps') ∧
         ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
 
 /-- **`RawNode.Step`, strengthened** (design §2.2's table). -/
@@ -193,7 +193,7 @@ abbrev RawNode.Tick.form (R : RaftNames → Loc → w64 → RNState → PState �
       "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
       -- (the scope's exact effect at an untraced node only: the traced tick carries no `StepEnd`;
       -- the harness's cluster is untraced, `NewRawNode.emptyStartForm`)
-      "%Hend" ∷ ⌜S → γ.reTrace = none → TickEnd (rnCfg γ) id ps ps' ∧
+      "%Hend" ∷ ⌜S → γ.reTrace = none → TickEnd {} (rnCfg γ) id ps ps' ∧
         ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
 
 /-- **`RawNode.Tick`, strengthened**. -/
@@ -362,7 +362,7 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PStat
       -- (#33 S3c) the exact effect
       -- (#33 S4, 2026-11-24) the boundary's fact at a boundary at the log's end (the harness's, after a
       -- `Ready`): in general an acknowledgement can raise it past `min ip lcp` (ledger)
-      ⌜S → γ.reTrace = none → AdvanceEnd (rnCfg γ) id ps qs ps' ∧
+      ⌜S → γ.reTrace = none → AdvanceEnd {} (rnCfg γ) id ps qs ps' ∧
         (ip = ps.log.length → ip' = min ip (lcpLen ps.log ps'.log))⌝ }}
 
 /-- **`RawNode.Advance`, strengthened**. -/

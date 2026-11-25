@@ -23,6 +23,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section pure
+variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `toPState`'s read-index requests are the node's (`rdNL` keeps them). -/
@@ -36,7 +37,7 @@ theorem rnCfg_voters (γ : RaftNames) : (rnCfg γ).voters = γ.reCfg :=
 
 /-- `TickEnd` reads the configuration's voters and ids only. -/
 theorem TickEnd.of_voters {c c' : CfgM} {id : w64} {s s' : PState} (hv : c.voters = c'.voters)
-    (hd : c.ids = c'.ids) (h : TickEnd c id s s') : TickEnd c' id s s' := by
+    (hd : c.ids = c'.ids) (h : TickEnd k c id s s') : TickEnd k c' id s s' := by
   unfold TickEnd at h ⊢; rwa [← hv, ← hd]
 
 /-- **`LiftScope` from the pieces**: `RnScopeBasic`'s flags, no pre-candidate with pre-vote off, a
@@ -84,7 +85,7 @@ theorem RnScopeBasic.keep {rs rs' : RNState} {s s' : NState} (H : RnScopeBasic r
 
 /-- (#33 S4, msgShape) A tick keeps the read-only queue empty: a campaign is no leader, a leader's
 heartbeats touch no read state. -/
-theorem tickEnd_ro {c : CfgM} {id : w64} {s s' : PState} (hT : TickEnd c id s s')
+theorem tickEnd_ro {c : CfgM} {id : w64} {s s' : PState} (hT : TickEnd k c id s s')
     (h : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
   rcases hT with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
   · exact h
@@ -96,7 +97,7 @@ index; a new leader's `reset` installs a fresh one, `rdNL`). -/
 theorem handleEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : HandleEnd c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
+    (h : HandleEnd k c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
   unfold HandleEnd at h
   rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
   · split at h
@@ -124,7 +125,7 @@ theorem handleEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
 theorem recvEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : RecvEnd c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
+    (h : RecvEnd k c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
   rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
   · exact handleEnd_ro hty h hp
   · exact hp
@@ -167,7 +168,7 @@ theorem RnCfgInBasic.learners {γ : RaftNames} {id : w64} {rs : RNState} {c : Cf
 /-- A tick's end relation keeps the read-index requests and queues no `MsgSnap`: a campaign's votes,
 a leader's heartbeats. -/
 theorem tickEnd_rd_out {c : CfgM} {id : w64} {s s' : NState}
-    (hT : TickEnd c id (toPState s) (toPState s')) :
+    (hT : TickEnd k c id (toPState s) (toPState s')) :
     s'.rd.pend = s.rd.pend ∧ ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ m.ty ≠ .snap := by
   have ho : s'.outbox = (toPState s').outbox := rfl
   have ho0 : s.outbox = (toPState s).outbox := rfl
@@ -194,6 +195,7 @@ theorem tickEnd_rd_out {c : CfgM} {id : w64} {s s' : NState}
 end pure
 
 section ghost
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]

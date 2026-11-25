@@ -35,6 +35,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section lift
+variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The message-type constants unfolded, the `if`s on them decided. -/
@@ -187,7 +188,7 @@ theorem ie_appEnd_of_handle (id : w64) (t : NState) (ps : PState) (m : MessageM)
 theorem ie_handle_heartbeat {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgHeartbeat)
     (H : StepFnEnd c id t m ents ctx s') :
-    HandleEnd c id (toPState t) (absMsg .heartbeat m ents ctx) (toPState s') := by
+    HandleEnd k c id (toPState t) (absMsg .heartbeat m ents ctx) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := H
   unfold HandleEnd
   dsimp only [absMsg, absMsgFrom]
@@ -218,7 +219,7 @@ theorem ie_handle_heartbeat {c : CfgM} {id : w64} {t : NState} {m : MessageM} {e
 theorem ie_handle_app {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgApp)
     (H : StepFnEnd c id t m ents ctx s') :
-    HandleEnd c id (toPState t) (absMsg .app m ents ctx) (toPState s') := by
+    HandleEnd k c id (toPState t) (absMsg .app m ents ctx) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := H
   unfold HandleEnd
   dsimp only [absMsg, absMsgFrom]
@@ -309,7 +310,7 @@ theorem ie_rd_pend_nil (s : NState) (h : s.rd.pend = []) :
 theorem ie_handle_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgAppResp)
     (hns : NoSnapSent (toPState t) (toPState s')) (H : StepFnEnd c id t m ents ctx s') :
-    HandleEnd c id (toPState t) (absMsg .appResp m ents ctx) (toPState s') := by
+    HandleEnd k c id (toPState t) (absMsg .appResp m ents ctx) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := H
   unfold HandleEnd
   dsimp only [absMsg, absMsgFrom]
@@ -393,7 +394,7 @@ theorem ie_handle_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM
     {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope c id t)
     (hty : m.Type' = MsgHeartbeatResp) (hctx : ctx = [])
     (hns : NoSnapSent (toPState t) (toPState s')) (H : StepFnEnd c id t m ents ctx s') :
-    HandleEnd c id (toPState t) (absMsg .heartbeatResp m ents ctx) (toPState s') := by
+    HandleEnd k c id (toPState t) (absMsg .heartbeatResp m ents ctx) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := H
   unfold HandleEnd
   dsimp only [absMsg, absMsgFrom]
@@ -428,7 +429,7 @@ theorem ie_handle_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM
 theorem ie_handle_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgVoteResp)
     (hns : NoSnapSent (toPState t) (toPState s')) (H : StepFnEnd c id t m ents ctx s') :
-    HandleEnd c id (toPState t) (absMsg .voteResp m ents ctx) (toPState s') := by
+    HandleEnd k c id (toPState t) (absMsg .voteResp m ents ctx) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := H
   unfold HandleEnd
   dsimp only [absMsg, absMsgFrom]
@@ -491,7 +492,7 @@ theorem ie_handle_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {en
 theorem ie_handle_vote (c : CfgM) {id : w64} {t : NState} {m : MessageM} (ents : List EntryM)
     (ctx : List w8) {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgVote)
     (H : VoteEnd id t m s') :
-    HandleEnd c id (toPState t) (absMsg .vote m ents ctx) (toPState s') := by
+    HandleEnd k c id (toPState t) (absMsg .vote m ents ctx) (toPState s') := by
   have hlead : (toPState t).lead = t.lead := toPState_lead_nonpre _ hsc.1
   have hpv : ¬ m.Type' = MsgPreVote := by rw [hty]; ie_tyclose MsgVote
   have hg : VoteGrant t m ↔ (PCanVote (toPState t) m.From' ∧
@@ -608,7 +609,7 @@ theorem ie_preEnd_preState {s : NState} {m : MessageM} {ty : MsgType} {ents : Li
     {ctx : List w8} (pvs : GMap w64 Progress) (h0 : m.Term' ≠ W64 0) (hst : ¬ StaleMsg s m)
     (hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term')
     (hpl : preLead m = if fromLeader ty then m.From' else W64 0) :
-    PreEnd (toPState s) (absMsg ty m ents ctx) (toPState (preState s m pvs)) := by
+    PreEnd k (toPState s) (absMsg ty m ents ctx) (toPState (preState s m pvs)) := by
   rw [ie_toPState_preState]
   by_cases hb : PreBF m s
   · left
@@ -626,7 +627,7 @@ theorem ie_preEnd_preState {s : NState} {m : MessageM} {ty : MsgType} {ents : Li
 theorem ie_recvEnd_stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} {ty : MsgType} (hsc : LiftScope c id s) (hT : StepEndTy m.Type')
     (hpv : m.Type' ≠ MsgPreVote) (hst : StaleMsg s m) (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
+    RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
   obtain ⟨hs, -, -, -⟩ := h hT
   have he : s' = s := by
     rcases hs hst with he | ⟨ty', mm, hlow, -⟩
@@ -646,9 +647,9 @@ theorem ie_recvEnd_fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} 
     (h0 : m.Term' ≠ W64 0) (hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term')
     (hpl : preLead m = if fromLeader ty then m.From' else W64 0)
     (hH : ∀ t : NState, FnScope c id t → (toPState t).outbox = (toPState s).outbox →
-      StepFnEnd c id t m ents ctx s' → HandleEnd c id (toPState t) (absMsg ty m ents ctx) (toPState s'))
+      StepFnEnd c id t m ents ctx s' → HandleEnd k c id (toPState t) (absMsg ty m ents ctx) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
+    RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
   by_cases hst : StaleMsg s m
   · exact ie_recvEnd_stale hsc hT hpv hst h
   obtain ⟨-, -, -, hfn⟩ := h hT
@@ -677,7 +678,7 @@ theorem recvEnd_of_stepEnd_stale {c : CfgM} {id : w64} {m : MessageM} {ents : Li
     (hty : m.Type' = MsgApp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeat ∨
       m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgVote ∨ m.Type' = MsgVoteResp)
     (hst : StaleMsg s m) (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg ty m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') :=
   ie_recvEnd_stale hsc (by unfold StepEndTy; rcases hty with e | e | e | e | e | e <;> ie_tyclose e)
     (by rcases hty with e | e | e | e | e | e <;> (rw [e]; ie_tyclose MsgPreVote)) hst h
 
@@ -685,7 +686,7 @@ theorem recvEnd_of_stepEnd_stale {c : CfgM} {id : w64} {m : MessageM} {ents : Li
 theorem recvEnd_of_stepEnd_heartbeat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHeartbeat)
     (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .heartbeat m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg .heartbeat m ents ctx) (toPState s') :=
   ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
@@ -695,7 +696,7 @@ theorem recvEnd_of_stepEnd_heartbeat {c : CfgM} {id : w64} {m : MessageM} {ents 
 theorem recvEnd_of_stepEnd_app {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgApp)
     (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .app m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg .app m ents ctx) (toPState s') :=
   ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
@@ -707,7 +708,7 @@ theorem recvEnd_of_stepEnd_heartbeatResp {c : CfgM} {id : w64} {m : MessageM} {e
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHeartbeatResp)
     (h0 : m.Term' ≠ W64 0) (hctx : ctx = []) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .heartbeatResp m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg .heartbeatResp m ents ctx) (toPState s') :=
   ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
@@ -718,7 +719,7 @@ theorem recvEnd_of_stepEnd_appResp {c : CfgM} {id : w64} {m : MessageM} {ents : 
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgAppResp)
     (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .appResp m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg .appResp m ents ctx) (toPState s') :=
   ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
@@ -729,7 +730,7 @@ theorem recvEnd_of_stepEnd_voteResp {c : CfgM} {id : w64} {m : MessageM} {ents :
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgVoteResp)
     (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .voteResp m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg .voteResp m ents ctx) (toPState s') :=
   ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
@@ -739,7 +740,7 @@ theorem recvEnd_of_stepEnd_voteResp {c : CfgM} {id : w64} {m : MessageM} {ents :
 theorem recvEnd_of_stepEnd_vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgVote)
     (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .vote m ents ctx) (toPState s') := by
+    RecvEnd k c id (toPState s) (absMsg .vote m ents ctx) (toPState s') := by
   have hT : StepEndTy m.Type' := by unfold StepEndTy; ie_tyclose hty
   by_cases hst : StaleMsg s m
   · exact ie_recvEnd_stale hsc hT (by rw [hty]; ie_tyclose MsgPreVote) hst h
@@ -765,7 +766,7 @@ theorem recvEnd_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
     (h0 : m.Term' = W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
-    RecvEnd c id (toPState s) (absMsg .propose m ents ctx) (toPState s') :=
+    RecvEnd k c id (toPState s) (absMsg .propose m ents ctx) (toPState s') :=
   Or.inl ⟨h0, proposeEnd_of_stepEnd hsc hty h0 hns h⟩
 
 /-- **A tick's `MsgHup`** (`tickElection`): nothing, or a campaign at the next term (pre-vote
@@ -773,7 +774,7 @@ off). -/
 theorem tickEnd_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHup)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') :
-    TickEnd c id (toPState s) (toPState s') := by
+    TickEnd k c id (toPState s) (toPState s') := by
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
   obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty)
   obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
@@ -793,7 +794,7 @@ theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgBeat)
     (h0 : m.Term' = W64 0) (hro : (toPState s).rd.ro.pending = [])
     (h : StepEnd c id m ents ctx s s') :
-    TickEnd c id (toPState s) (toPState s') := by
+    TickEnd k c id (toPState s) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
       (by rw [hty]; ie_tyclose MsgVote) h0 h
   cases hr : s.role with
@@ -821,7 +822,7 @@ theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
       have h' := hro; unfold toPState at h'; simp only [hr, ite_true] at h'; exact h'
     exact Or.inr (Or.inr ⟨by rw [toPState_role, hr]; rfl, ms,
       fun y hy => ⟨(hok y hy).1, (hok y hy).2.2.1, (hok y hy).2.2.2.1, (hok y hy).2.2.2.2.1,
-        by rw [(hok y hy).2.1]; unfold hbCtx; rw [hpend]; rfl, ie_dst_ids rfl hpc (hok y hy).2.2.2.2.2⟩,
+        by rw [(hok y hy).2.1]; unfold hbCtx; rw [hpend, hro]; simp, ie_dst_ids rfl hpc (hok y hy).2.2.2.2.2⟩,
       ie_toPState_send_prvals s ms pvs (fun _ => hpm)⟩)
 
 /-- (#33 S4) **A tick's `MsgHup` keeps the log's state** (`HupOkC`: a campaign touches no log
