@@ -32,7 +32,7 @@ open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 section share
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
