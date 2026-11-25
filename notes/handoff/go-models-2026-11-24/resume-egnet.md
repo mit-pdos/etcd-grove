@@ -242,3 +242,18 @@ Lesson: wp_apply discharges `isPkgInit` conjuncts itself when derivable from the
 Open: Proof/os/OffEnd.lean:85 (egos's a2077383e1 made Seek past modelSeekMax stuck: `wp_endOff`'s
 hbig branch now reaches `gomodel.Stuck`; needs `m.size + off ≤ seekMax` as a premise and its callers
 (fileutil preallocExtendTrunc) to discharge it — egos/lead decision, not done here).
+Full build 2 (`tmp/egnet7/full2.log`, before the second merge of main, which brings OffEnd's fix
+659b2fff8b) exit 1; remaining errors (next session, in order):
+- Net: http/ReadResponse.lean:388 `icases` of a non-persistent `mimeErr E merr ∗ ∃ rr, ownReader…`
+  (mimeErr_errStr's premise: split the pair first, keep the reader).
+- Dsverify swiftpaxos: NetConn.lean:90 and epaxos ClientListener.lean:49 (`rewrite` in
+  `wp_method_call`/`unfold TCPAddr.String.impl`: look at the goal; NetConn's version compiled in
+  build 1? no — use `wp_method_call; wp_call` or the OpErrorMsg-private `wp_TCPAddr_String` made
+  public); BufioNet.lean:172/216 unsolved goals (the Read/Write pkg premises: add
+  `(try iframe …)`/connAt_poll as in KitDeps); OrchSend.lean:45 `GF` unknown (addnet.py's
+  `(PROP := IProp GF)` in a file whose GF is named otherwise: use that file's name, e.g. netDistGF);
+  raxos quepaxanet Linked.lean:80 type mismatch (a kit lemma's new Println/Listen argument).
+- Not net (newly reached now InvBbolt builds, or the re-pin): backend unsafeRange (curAt vs
+  backend.curAt), backend__Close/newBackend parse errors at `,` (FsCtx binder syntax?), os
+  Rename.lean:135 (`And.ok`), k8s clock RealClock__*/real*__Stop (Perennial time spec change at the
+  re-pin), RaftWitness kvwitness Adequacy.lean:183, Proof/os/OffEnd (fixed on main, re-check).
