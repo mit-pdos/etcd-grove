@@ -314,32 +314,45 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
 - `lake build` of `kvremote.Start` and `kvremote.Link` at `1e953d7b1c`: 11305 jobs, exit 0. `etc/tier-check.py
   --check`: ok (`Start` is defs). No axiom, `sorry`, trusted text or top-level premise added.
 
+## State (2026-11-25, ninth session): replayed onto the no-crash line; `member_boot_dist`
+
+- **The no-crash line** (the lead, #50 18:04Z): branch `etcd-safe-p9-nc` off `etcd-safe-nc/2026-11-25` @
+  `a9d9b94558`. P9's 29 commits on `etcd-safe-p9` after `5a1c41d945` (P9-node's two included, the Node merge
+  linearized), cherry-picked with `-x` in date order: no conflict but `notes/STATUS.md`/`status-history.md`
+  (the base's side kept; one P9 entry written afresh). The P9 files are byte-identical to `etcd-safe-p9`'s but
+  five Dsverify kit files, which the base had changed and the cherry-picks merged cleanly.
+- **`member_boot_dist`** (the lead's name; N5 proves it): `Start.lean`'s hypothesis, with statement
+  `member_boot_dist.law svc d MS`. Its members' facts are now per member, the shape of `etcdClusterStart`'s
+  client facts: `[∗list] m ∈ d.members, etcdAddrAtV svc m.client Γ (memberIdIn d m)` (the id `Deployment.ids`
+  computes); `membersAtV_of_members` gives `membersAtV svc (d.members.map Member.client) Γ` from them. On N2's
+  WIP (`etcd-safe-n2-wip`, `18fcc68766`) `etcdAddrAt` is re-indexed by `Γ` (`etcdAddrAt a Γ mid`, `svc :=
+  etcdSvc`) and `ClusterStart.clientSvcFacts ms Γ` is exactly this per-member form: the port renames
+  `etcdAddrAtV svc` to `etcdAddrAt`.
+- **`[HasExt idIssueExt]` on client machines**: intended (one `etcdNetExts` bundle); it resolves on this base
+  (the nc build below, `Node`/`CallDistLinked`/`Link`).
+- **`kvClientV`'s `KV` pointer** (item 5): N2's change to `NewClients`' post is not on N2's branches yet
+  (`etcdstart` unchanged at `18fcc68766`); `kvClientV_intro` to be rechecked when it lands.
+
 ## Handoff
 
-**Base**: still `5a1c41d945` (crash merges in it). P9's commits stay crash-free; the replay onto the no-crash base
-waits on the lead's answer (which commit).
+**Branch**: `etcd-safe-p9-nc` (the line M1 lands from; `etcd-safe-p9` is superseded). Edit loop
+`/shared/tmp/p9nc-chk.sh FILE -q -a`; builds `/shared/tmp/p9nc-build.sh TARGETS` (fk-lean2 `wt/etcd-safe-p9-nc`).
 
-**Done**: steps 1-4 of §11.3 proved; `wp_Orch` and `wp_Node` linked (`wp_Node` over N2's four drafts, as
-hypotheses); step 5's kv part (`kvremote/Start.lean`) over `MemberBootN5`.
+**Done**: §11.3 steps 1-4 proved; `wp_Orch` and `wp_Node` linked (`wp_Node` over N2's four drafts, as
+hypotheses); step 5's kv part (`kvremote/Start.lean`) over `member_boot_dist`.
 
 **Next, in order:**
-1. **When N7-kv merges** (its `client/KvDefs.lean`, `OrchWith`/`NodeWith`): add to `kvremote` the two instance
-   lemmas (`Node.spec svc = Node.specWith (kvNodePre svc)` by `rfl`; `Orch.spec → Orch.specWith kvOrchPre` by
-   specializing the timeout), and `membersAtV_sub` at `rotateL (d.members.map Member.client) c` (every element
-   of a rotation is in the list).
-2. **Step 6** (`dist/kvremote/TopLevelRobustness.lean`, linking): `EtcdBootNC` at a well-formed `KvOnly`
-   deployment: `netProto_alloc`, then `kv_start_deployment` (its `hb` from `kvOnly_bounds`/`BoundsOk` and
-   `receiptBound ≤ etcdSteps`; the empty-workload case: no orchestrator share, the nodes list empty), the shares
-   through N7-kv's `orchShare kvOrchPre`/`nodeShare (kvNodePre svc)` (`kvNodePre`'s `levelTok 0`, `threadBound`,
-   `plainEndpoints`, `AsTarget`, `Nonempty WEnv` from the machine's boot and the deployment), the boot WPs from
-   N7-kv's dispatch at `wp_Orch`/`wp_Node`; the members' from N5. Needs N5's statement (to replace
-   `MemberBootN5`) and N2's drafts as axioms (`X.wp_proof : X.spec etcdSvcV`, to discharge `wp_Node`'s four
-   hypotheses).
-Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
-yment must provide it.
-3. Steps 5-6 (the start, the theorem).
-Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
-
+1. **When N2 lands on the line**: port `Start.lean`'s `etcdAddrAtV svc`/`membersAtV svc` to N2's `Γ`-indexed
+   `etcdAddrAt`/`membersAt` (`svc := etcdSvc`), discharge `wp_Node`'s four hypotheses with N2's
+   `X.wp_proof`, recheck `kvClientV_intro` against `NewClients`' extended post.
+2. **When N7-kv lands**: the two instance lemmas (`Node.spec svc = Node.specWith (kvNodePre svc)` by `rfl`;
+   `Orch.spec → Orch.specWith kvOrchPre`, specializing the timeout), `membersAtV_sub` at `rotateL`.
+3. **Step 6** (`dist/kvremote/TopLevelRobustness.lean`, linking): `EtcdBootNC` at a well-formed `KvOnly`
+   deployment: `netProto_alloc`, `kv_start_deployment` (its `hb` from `kvOnly_bounds`/`BoundsOk` and
+   `receiptBound ≤ etcdSteps`; the no-workload case separately), the shares through N7-kv's `orchShare
+   kvOrchPre`/`nodeShare (kvNodePre svc)` (`levelTok 0`, `threadBound`, `plainEndpoints`, `AsTarget`,
+   `Nonempty WEnv` from the machine's boot and the deployment), the boot WPs from N7-kv's dispatch at
+   `wp_Orch`/`wp_Node`, the members' from N5 (`member_boot_dist`).
 ## State (2026-11-25, Node session, branch `etcd-safe-p9-node` off `3d773113e6`): the Node proved over `Call_dist`
 
 - **Spec** (`Spec/.../dist/kvremote/Node.lean`): `kvNodePre svc c addr eps := ∃ Γ, ⌜Γ.auth = false ∧ threadBound GF
