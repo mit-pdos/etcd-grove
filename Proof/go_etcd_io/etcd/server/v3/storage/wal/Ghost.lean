@@ -642,6 +642,45 @@ def walLockedTokI (I : GMap GoString Nat) : IProp GF :=
 /-- The lock token as an open handle holds it (`walLockedTokI` at some incarnations). -/
 def walLockedTok : IProp GF := iprop(∃ I : GMap GoString Nat, walLockedTokI (W := W) I)
 
+/-- **`walUnlockedTokX` at the incarnations `I`** (its quarter's value): what `Close.spec`'s `unnamed` arm returns,
+with `⌜incOf I dir = i⌝` (the cleanup's registration agrees the quarter with the ghost, `walInv_register`). -/
+def walUnlockedTokXI (I : GMap GoString Nat) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(token W.hA.γu ∗ walParkFrag (W := W) true ∗ walCutFrag (W := W) none ∗
+    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walIncQ (W := W) I)
+
+theorem walUnlockedTokXI_X (I : GMap GoString Nat) :
+    walUnlockedTokXI (W := W) I ⊢ walUnlockedTokX (W := W) := by
+  unfold walUnlockedTokXI walUnlockedTokX walIncAny
+  iintro ⟨H1, H2, H3, H4, H5, H6⟩
+  iframe H1 H2 H3 H4 H5
+  iexists I; iexact H6
+
+theorem walUnlockedTokX_XI :
+    walUnlockedTokX (W := W) ⊢ ∃ I, walUnlockedTokXI (W := W) I := by
+  unfold walUnlockedTokXI walUnlockedTokX walIncAny
+  iintro ⟨H1, H2, H3, H4, H5, %I, H6⟩
+  iexists I
+  iframe
+
+/-- The quarter out of `walUnlockedTokXI`, and back. -/
+theorem walUnlockedTokXI_incQ (I : GMap GoString Nat) :
+    walUnlockedTokXI (W := W) I ⊢ walIncQ (W := W) I ∗ (walIncQ (W := W) I -∗ walUnlockedTokXI (W := W) I) := by
+  unfold walUnlockedTokXI
+  iintro ⟨H1, H2, H3, H4, H5, H6⟩
+  iframe H6
+  iintro H6
+  iframe
+
+/-- The quarter out of `walLockedTokI`, and back. -/
+theorem walLockedTokI_incQ (I : GMap GoString Nat) :
+    walLockedTokI (W := W) I ⊢ walIncQ (W := W) I ∗ (walIncQ (W := W) I -∗ walLockedTokI (W := W) I) := by
+  unfold walLockedTokI
+  iintro ⟨H1, H2, H3, H6⟩
+  iframe H6
+  iintro H6
+  iframe
+
 /-- **The generation's crash token** (exclusive): `walInv_crash` takes it, to keep the old
 generation's invariant closed with it in place of its contents. -/
 def walCrashTok : IProp GF :=
@@ -1053,6 +1092,19 @@ theorem walLockedTok_unlock (b : Bool) :
   isplitr
   · ipureintro; exact hb
   iexists I; iexact Hi
+
+/-- `walLockedTok_unlockX` keeping the incarnations' quarter. -/
+theorem walLockedTokI_unlockXI (b : Bool) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTokI (W := W) I -∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ ==∗
+      ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTokXI (W := W) I := by
+  unfold walUnlockedTokXI walLockedTokI
+  iintro Ha ⟨Ht, Hf, Hc, Hi⟩ Ho Htf
+  icases walPark_agree (W := W) b false $$ Ha Hf with %hb
+  imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
+  imodintro
+  iframe Ha Ht Hf Hc Ho Htf Hi
+  ipureintro; exact hb
 
 /-- `walLockedTok_unlock` without the names fragment (`walUnlockedTokX`). -/
 theorem walLockedTok_unlockX (b : Bool) :
@@ -1550,6 +1602,15 @@ theorem walOpenW_inc (w : Loc) (dir : GoString) :
 theorem walOpenWI_openW (w : Loc) (dir : GoString) (i : Nat) :
     walOpenWI (W := W) w dir i ⊢ walOpenW (W := W) w dir := by
   unfold walOpenW; iintro H; iexists i; iexact H
+
+/-- **The open handle's lock, at its incarnation.** -/
+theorem walOpenWI_lockedTokI (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWI (W := W) w dir i ⊢ ∃ I, walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝ := by
+  unfold walOpenWI
+  iintro ⟨%I, -, Hl, %h⟩
+  iexists I
+  iframe Hl
+  ipureintro; exact h
 
 /-- **An open handle's incarnation is current** against a share `I`. -/
 theorem walOpenWI_cur (w : Loc) (dir : GoString) (i : Nat) (q : Qp) (I : GMap GoString Nat) :

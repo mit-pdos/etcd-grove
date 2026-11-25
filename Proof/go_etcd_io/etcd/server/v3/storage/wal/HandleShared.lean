@@ -50,12 +50,12 @@ structure WalShN where
 /-- **The states of a handle `Close` takes** (`WAL.Close.spec`, one spec over them; wal-link L1a): the whole
 share of an open WAL (`shared`), a failed `ReadAll`'s handle (`failed`), `Open`'s handle before `ReadAll`
 (`opening`, at its decoder's start `s`), `Create`'s handle before naming (`unnamed`, with the roots `Rp`,
-fraction `qp` and tail file `tf` `Create` lent). -/
+fraction `qp` and tail file `tf` `Create` lent, at the incarnation `i`). -/
 inductive WalCloseSt where
   | shared (γ : WalShN)
   | failed
   | opening (s : w64 × w64)
-  | unnamed (Rp : Roots) (qp : Qp) (tf : Loc)
+  | unnamed (Rp : Roots) (qp : Qp) (tf : Loc) (i : Nat)
 
 /-- **The states of a handle `SaveSnapshot` takes** (`WAL.SaveSnapshot.spec`, one spec over them; wal-link
 L1a): a share `q` of an open WAL (`shared`), or `Create`'s `w` before the rename (`pre`: its logger, metadata,

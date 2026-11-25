@@ -451,8 +451,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
     icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
     iframe Hnf
     isplitl [Hopen]
-    · ihave Hopen := walOpenWI_openW w dir h.inc $$ Hopen
-      iapply walOpenW_lockedTok $$ Hopen
+    · iapply walOpenWI_lockedTokI w dir h.inc $$ Hopen
     icases Htf with ⟨%rd, %lo, %lk, Hf, Hfd, Hlkt⟩
     iexists f, fd, name, ⟨h.ino, rd, true, lo, lk⟩, Rd, qd
     iframe Hnmd Hf Hfd Hlkt

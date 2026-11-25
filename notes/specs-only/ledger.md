@@ -45,7 +45,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   indices).
 - **Decision.** The facts, `∀ i` and `WalShN.inc`: accepted (coordinator, 2026-11-25, P6b v2.1); applied on branch
   `etcd-safe-p6b-wip`. The dropped `renameWALPost` arm (a stronger post of an internal callee, no client sees it):
-  taken in P6b session 3, for the coordinator to confirm.
+  taken in P6b session 3; confirmed (coordinator, 2026-11-25, session 6 brief: approved as long as `renameWAL`'s spec is
+  proved from its Go body, which it is: `Proof/.../wal/WAL__renameWAL.lean`).
 - **Applied in session 4 (2026-11-25), the same principle carried through the cone** (no new decision, recorded for
   review): every atomic update a client holds a view for is at the view's incarnation, so the client gets its
   `walDirIsI`/`walDiskAtI` back. `ReadAll.spec`, `Create.specFresh`, and the read-only updates of `Open`,
@@ -62,6 +63,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   incarnation is the view's: `walPinOut … ic`, `walLockedTokI_incQ_agree`); `ReadAll` takes `walOpeningF w dir s i`
   with its update at `i`; `Close`'s `opening s` arm takes `∃ i, walOpening w dir s i`. `walNamed` from
   `walInvBody_namedBy` at `i` takes the handle's `walIncLb dir i` (as the syncs do).
+  **Decision**: approved (coordinator, 2026-11-25, session 6 brief), with the session-4 changes and `walIncLb`, as
+  long as each is proved and no trusted text changes.
+- **`Create`'s deferred cleanup at the handle's incarnation (session 6; approved by the coordinator, 2026-11-25).**
+  *Defect*: `Create`'s error exits after the commit register the WAL's name (`walInv_register`), which needs the WAL
+  still present at the incarnation the registration's past names; `WAL.cleanupWAL.spec` and `WAL.Close.spec`'s
+  `unnamed` arm return the lock token (`walLockedTok`, `walUnlockedTokX`) without its incarnation, so this cannot be
+  shown. *Change*: (a) `walInv_register` takes only the quarter `walIncQ I'` (it only agrees it with the ghost);
+  (b) `WalCloseSt.unnamed` gains the incarnation `i`, `Close.spec`'s `unnamed` arm takes `walOpenWFUI … i` and
+  returns the token at an `I` with `⌜incOf I dir = i⌝` in both outcomes (`walUnlockedTokXI I`, `walLockedTokI I`);
+  `WAL.sync.specC`'s error arm likewise (`incOf I dir = h.inc`); (c) `cleanupWAL.spec` takes `walOpenWFUI … i` and
+  returns the same. Internal specs only (no client sees them); posts only stronger.
 
 ## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
 

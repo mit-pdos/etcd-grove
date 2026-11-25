@@ -261,8 +261,8 @@ theorem walInvBody_dropT (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   exact ⟨walsAt_drop hAt hd.mem, Hbd⟩
 
 /-- **The new WAL registered** (see the file header): `Create`'s pending registration (`walNamesFrag
-(some dir)`, its WAL present since a past state's, of the incarnation the lock holder's quarter `I'` still
-has: `walGhostI_lockedI_agree`) cleared, its name added to the split names, a fraction `q` of a claim on
+(some dir)`, its WAL present since a past state's, of the incarnation a quarter `I'` (the lock's, or the
+unlocked token's) still has: `walGhost_inc`) cleared, its name added to the split names, a fraction `q` of a claim on
 the name alone (the invariant's other half, `osClaims_keys`; holding the WAL's directory, `WalsAt`) given
 to the invariant. -/
 theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -272,10 +272,10 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     (hI : incOf I' dir = incOf I0 dir) (hE : ↑osShN ⊆ Em)
     (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      walPastI (W := W) (s0, I0) -∗ walLockedTokI (W := W) I' -∗
+      walPastI (W := W) (s0, I0) -∗ walIncQ (W := W) I' -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
       osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={Em}=∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTokI (W := W) I' ∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walIncQ (W := W) I' ∗
         walNamesFrag (W := W) none ∗ walSplitFrag (W := W) (nm :: Wn) := by
   have hnmM : (NameSet.only [nm]).Mem nm := by simp [NameSet.Mem]
   have hNe : NameSet.only [nm] ≠ .only [] := nameSet_ne_empty hnmM
@@ -283,10 +283,7 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iintro Hb #Hsi #Hp Hlk Hf Hsf H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, HCR, Htl, %hab,
     %hwn, Hpk, Hdk, %hAt, Hnms, %Hbd⟩
-  iunfold walGhost at Hg
-  icases Hg with ⟨%Ig, Hg⟩
-  icases walGhostI_lockedI_agree s Ig I' $$ Hg Hlk with ⟨Hg, Hlk, %hII⟩
-  subst hII
+  icases walGhost_inc s I' $$ Hg Hlk with ⟨Hg, Hlk⟩
   icases walPastI_ghost_le s I' (s0, I0) $$ Hg Hp with %hle
   ihave Hg := walGhostI_ghost s I' $$ Hg
   obtain ⟨d0, hd0⟩ := Option.ne_none_iff_exists'.1 hs0
@@ -410,17 +407,17 @@ theorem walInv_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (hI : incOf I' dir = incOf I0 dir)
     (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
-      notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗ walLockedTokI (W := W) I' -∗
+      notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗ walIncQ (W := W) I' -∗
       walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
       osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ walLockedTokI (W := W) I' ∗ walNamesFrag (W := W) none ∗
+      notCrashed (hC := L.goose_crashGS) ∗ walIncQ (W := W) I' ∗ walNamesFrag (W := W) none ∗
         walSplitFrag (W := W) (nm :: Wn) := by
   iintro #Hinv #Hsi Hnc #Hp Hl Hf Hsf H
   iapply walInv_step C Mr R jr r
-    iprop(osSharedInv (L := L) R ∗ walPastI (W := W) (s0, I0) ∗ walLockedTokI (W := W) I' ∗
+    iprop(osSharedInv (L := L) R ∗ walPastI (W := W) (s0, I0) ∗ walIncQ (W := W) I' ∗
       walNamesFrag (W := W) (some dir) ∗
       walSplitFrag (W := W) Wn ∗ osNames (L := L) jr (.only [nm]) (DFrac.own q) hn)
-    iprop(walLockedTokI (W := W) I' ∗ walNamesFrag (W := W) none ∗ walSplitFrag (W := W) (nm :: Wn))
+    iprop(walIncQ (W := W) I' ∗ walNamesFrag (W := W) none ∗ walSplitFrag (W := W) (nm :: Wn))
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨#Hsi, #Hp, Hl, Hf, Hsf, H⟩
       iapply walInvBody_register C Mr R jr r s s0 I0 I' dir nm Wn q hn hin hnok hs0 hI walN_osShN_top hJ
@@ -430,6 +427,27 @@ theorem walInv_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   isplitl []
   · iexact Hsi
   iexact Hp
+
+/-- `walInv_register` with the lock's quarter (`walLockedTokI I'`). -/
+theorem walInv_registerL (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s0 : AbsDiskState) (I0 I' : GMap GoString Nat) (dir nm : GoString) (Wn : List GoString) (q : Qp)
+    (hn : NamesH)
+    (hin : InArea r dir nm) (hnok : NameOk nm) (hs0 : s0.wal !! dir ≠ none)
+    (hI : incOf I' dir = incOf I0 dir)
+    (hJ : ∃ J, hn.cur !! nm = some (.dir J)) :
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
+      notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗ walLockedTokI (W := W) I' -∗
+      walNamesFrag (W := W) (some dir) -∗ walSplitFrag (W := W) Wn -∗
+      osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ walLockedTokI (W := W) I' ∗ walNamesFrag (W := W) none ∗
+        walSplitFrag (W := W) (nm :: Wn) := by
+  iintro #Hinv #Hsi Hnc #Hp Hl Hf Hsf H
+  icases walLockedTokI_incQ I' $$ Hl with ⟨Hq, Hback⟩
+  imod walInv_register C Mr R jr r s0 I0 I' dir nm Wn q hn hin hnok hs0 hI hJ
+    $$ Hinv Hsi Hnc Hp Hq Hf Hsf H with ⟨Hnc, Hq, Hf, Hsf⟩
+  imodintro
+  iframe Hnc Hf Hsf
+  iapply Hback $$ Hq
 
 end iris
 

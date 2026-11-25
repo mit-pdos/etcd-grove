@@ -430,10 +430,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     iintro %err H
     iapply HΦ
     iexact H
-  | unnamed Rp qp tf =>
+  | unnamed Rp qp tf i =>
     iintro %Φ ⟨#Harea, Hw, Hpw⟩ HΦ
     iapply (go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed P Mr wp_syncC wp_fpClose wp_tail
-      wp_Close wp_Error wp_LError R jr r w dir Rp qp tf) $$ [Hw Hpw]
+      wp_Close wp_Error wp_LError R jr r w dir Rp qp tf i) $$ [Hw Hpw]
     · iframe Harea Hw Hpw
     inext
     iintro %err H
