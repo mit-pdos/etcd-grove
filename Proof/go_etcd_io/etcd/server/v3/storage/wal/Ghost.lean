@@ -1737,6 +1737,18 @@ theorem walGhost_inc (s : AbsDiskState) (I' : GMap GoString Nat) :
   subst e
   iframe Hm Hp Hi Hr Hq
 
+/-- **The lock's incarnations are the ghost's.** -/
+theorem walGhostI_lockedI_agree (s : AbsDiskState) (I I' : GMap GoString Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walLockedTokI (W := W) I' -∗
+      walGhostI (W := W) s I ∗ walLockedTokI (W := W) I' ∗ ⌜I' = I⌝ := by
+  unfold walGhostI walLockedTokI walIncQ
+  letI := walAllG (W := W)
+  iintro ⟨Hm, ⟨Hp, Hi⟩, Hr⟩ ⟨Ht, Hf, Hc, Hq⟩
+  icases ghostVar_agree $$ Hi Hq with %e
+  subst e
+  iframe Hm Hp Hi Hr Ht Hf Hc Hq
+  ipureintro; rfl
+
 /-- **`walGhost` at a view's incarnation**: the view's `i` is the ghost's. -/
 theorem walGhost_dirIsI (s : AbsDiskState) (dir : GoString) (i : Nat) (o : Option WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walDirIsI (W := W) dir i o -∗
