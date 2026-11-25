@@ -684,7 +684,8 @@ it through `replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-202611
 in `go.mod`, `server/go.mod`, `etcdutl/go.mod`, `tests/go.mod`; `TestBackendOpensInterruptedInit`
 (`server/storage/backend`) panics without it.
 
-**Port to the verified bbolt: yes, needed, not done.** The proof verifies `upamanyus/bbolt` @
+**Port to the verified bbolt: done (2026-11-25, P13):** `upamanyus/bbolt` `goose-lean-init-crashsafe` @ `ea5656d`
+(on `7d335aa3`), pinned in `etc/goose.py`, `Open.spec` unchanged (`Open/InitPartial.lean`). What follows is the state before it. The proof verifies `upamanyus/bbolt` @
 `ca88bb6a` (`etc/goose.py`), 17 commits past v1.5.0 (`git log v1.5.0..ca88bb6a`: the goose forms,
 the bbolt#1311 fix, the two-sync `init` 3207bac and `needsInit` 42c80a7, the `Open` sync c5a6065,
 the entry limit, the leaf split, ...). Its `init` already syncs in two steps; its `needsInit` accepts

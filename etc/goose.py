@@ -224,7 +224,10 @@ PROJECTS = [
         # Then (real fmt stage 1, 2026-11-24, #9) 7d335aa3e (branch `goose-lean-fmt1`, on ca88bb6a8):
         # `Options.String` formats its bools with `%v` (as `%t`), the free-list type as a string, and
         # whether `OpenFile`/`Logger` are set in place of their addresses (`%p`).
-        rev="7d335aa3eb233822487e9dd7eb2c8f95d99ea2ad",
+        # Then (bbolt crash safety P13, 2026-11-25) ea5656d (branch `goose-lean-init-crashsafe`): a writable
+        # `Open` initializes again a file of at most four pages whose every byte is zero or `initImage`'s,
+        # unless it is that whole image (the etcd fork's 19e0771; issues/bbolt-init-not-crash-safe.md).
+        rev="ea5656d07684d720b464c200eaa1e7a1e1079891",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[

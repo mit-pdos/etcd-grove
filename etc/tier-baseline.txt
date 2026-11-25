@@ -90,7 +90,6 @@ Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.Close  # proof->proof
 Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.CloseTok  # proof->proof
 Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.FdatasyncW  # proof->proof
 Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.Flock  # proof->proof
-Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.MetasZero  # proof->proof
 Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.MmapOwn  # proof->proof
 Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Open.PageSize  # proof->proof
 Proof.go_etcd_io.bbolt.Open Proof.go_etcd_io.bbolt.Tx__Commit_err  # proof->proof

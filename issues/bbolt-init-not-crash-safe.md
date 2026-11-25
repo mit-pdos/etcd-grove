@@ -51,7 +51,7 @@ Through etcd: `TestBackendOpensInterruptedInit` (`server/storage/backend/init_cr
 
 ## Proof
 
-yes, since 2026-11-24 (etcd_safe: a member crashing inside its first backend open): see "The window between init's two syncs" below; the fix the proof needs is on the forks since 2026-11-25 (above), not yet in the verified bbolt. Before:
+yes, since 2026-11-24 (etcd_safe: a member crashing inside its first backend open): see "The window between init's two syncs" below; the fix the proof needs is on the forks since 2026-11-25 (above), and in the verified bbolt since 2026-11-25 (`ea5656d`): `Open`'s proof shows that a well-formed file `needsInit` accepts holds no data (`Proof/go_etcd_io/bbolt/Open/InitPartial.lean`, `openOK_initPartial`), so `Open.spec` is unchanged; the crash proof that uses it is open. Before:
 
 no: the top-level adequacy proof needs no fix on the goosed fork for it; a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
 old one had no crash semantics, `old/bbolt/notes/STATUS-bbolt.md`), and the example minibolt
@@ -76,8 +76,8 @@ or a meta of another txid). This covers both the window before the first sync an
 between the two syncs, and the files the old single write left. `TestOpen_FileTooSmall` now
 commits before truncating (a new database cut to one page is an interrupted init). The etcd fork
 uses it through a `replace` (`goose-lean-crashfixes2` @ `d49d01a07`, in `go.mod`, `server`,
-`etcdutl`, `tests`). The verified bbolt (`upamanyus/bbolt` @ `ca88bb6a`, `etc/goose.py`) still has
-the narrower recovery (zero metas only): see "The window between init's two syncs".
+`etcdutl`, `tests`). The verified bbolt has the same recovery since 2026-11-25 (`upamanyus/bbolt`
+`goose-lean-init-crashsafe` @ `ea5656d`, `etc/goose.py`), written with plain loops for goose (no `bytes.Equal`).
 
 ## Notes
 
@@ -109,5 +109,4 @@ the file extension's crash model (a trusted change).
 
 **Fixed on the forks (2026-11-25):** the `v1.5.0-init-crashsafe` fix above re-initializes such a
 file (torn metas, whole data pages: `metas-torn-*` in the test), the "fork change" way out. The
-verified bbolt's `needsInit` (`ca88bb6a`: zero metas over a subset of the data pages) still needs
-the same widening (every byte zero or `init`'s) before C-I1 can cover a crash inside `Open`.
+verified bbolt's `needsInit` has the same widening since `ea5656d` (2026-11-25).
