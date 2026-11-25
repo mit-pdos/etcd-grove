@@ -138,6 +138,9 @@ public import Net.Proof.net.OpError__Temporary
 public import Net.Proof.net.http.Handle
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.runtime.Link
+public import Net.Proof.net.http.Serve
+public import Net.Proof.context.WithValuePtr
+public import Net.Proof.context.WithCancelValBg
 
 @[expose] public section
 
@@ -393,6 +396,24 @@ theorem Handle.wp : Handle.spec (GF := GF) (hG := hG) :=
 
 end mux
 
+section serve_rpc
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [bufio_sem : bufio.Assumptions]
+
+/-- `http.Serve(l, nil)` on an rpc listener, over `Serve.wpHandler` with the two context axioms
+(`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`: interim, pending Perennial's
+`internal/reflectlite` model and a wider `isParentCtx`) and `DefaultServeMux`'s dispatch (until
+2026-11-25 an interim axiom). -/
+theorem Serve.wp_rpc [log.Assumptions] : Serve.spec_rpc (GF := GF) (hG := hG) :=
+  Serve.wp_proof_rpc (Serve.wpHandler context.WithValue.wp_proofPtr context.WithCancel.wp_proofValBg)
+    net.url.PathUnescape.wp strings.wp_IndexByte strings.wp_Count net.url.URL.EscapedPath.wp
+
+end serve_rpc
+
 end net.http
 end Perennial
 
@@ -435,3 +456,4 @@ end Perennial
 #print axioms Perennial.net.http.Server.Serve.wp
 #print axioms Perennial.net.http.Serve.wpHandler
 #print axioms Perennial.net.http.Handle.wp
+#print axioms Perennial.net.http.Serve.wp_rpc

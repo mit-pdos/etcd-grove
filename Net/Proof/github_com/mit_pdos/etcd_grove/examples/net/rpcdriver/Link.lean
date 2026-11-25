@@ -3,7 +3,7 @@
 # `net/rpcdriver`: the driver's functions linked to their callees' proofs
 
 Each function's proof (`<F>.wp_proof`) with its callees' linked results: net/rpc's
-(`Net/Proof/net/rpc/Results.lean`), net/http's (`Handle.wp`, proved; `Serve.wp_proof_rpc`, an interim axiom), Perennial's.
+(`Net/Proof/net/rpc/Results.lean`), net/http's (`Handle.wp` and `Serve.wp_rpc`, proved; the latter over the two interim context axioms), Perennial's.
 Written by hand (`etc/gen-link.py` does not cover this part yet); its results are in
 `EtcdGrove.rpcdriver`, under the prefix every `Link.lean` shares (`etc/proof_roots.py`).
 -/
@@ -93,7 +93,7 @@ theorem wp_Accept : net.rpc.Accept.spec (GF := GF) (hG := hG) :=
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof (svcRcv_holds drvCodecLaws service.Svc.Echo.wp_proof) noMethodsRcv_holds
     service.New.wp_proof net.rpc.Register.wp_fresh net.rpc.Register.wp_none wp_HandleHTTP
-    net.Listen.wp_proof net.http.Serve.wp_proof_rpc wp_Accept
+    net.Listen.wp_proof net.http.Serve.wp_rpc wp_Accept
 
 theorem wp_Register : Register.spec (GF := GF) (hG := hG) :=
   Register.wp_proof net.rpc.SetCodec.wp
