@@ -6,7 +6,7 @@ by zero).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessBase
 
 @[expose] public section
 

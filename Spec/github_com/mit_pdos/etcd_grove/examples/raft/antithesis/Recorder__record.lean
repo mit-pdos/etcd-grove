@@ -10,7 +10,7 @@ update the new stream's fit (`Stream.Fits`), and returns the update's `Q` (the t
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessBase
 
 @[expose] public section
 

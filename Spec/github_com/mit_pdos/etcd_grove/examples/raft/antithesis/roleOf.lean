@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-desi
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessBase
 
 @[expose] public section
 
