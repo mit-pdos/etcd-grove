@@ -29,7 +29,6 @@ axiom RangeRequest.String.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.CustomCodec.wp_proof
@@ -53,7 +52,6 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbAuthEnableRequestT_reg

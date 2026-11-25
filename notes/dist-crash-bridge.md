@@ -14,10 +14,10 @@ never crash, over the network and Linux file extensions together.
   them into Perennial's `nodeWp`/`nodeStart`.
 - `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/NetFsCrashLinked.lean`: the minimal
   instance, `echo_netfs_mixed_robust` (echo's server on a crashing machine, its client on a stable one,
-  both over `kvnetExts`); `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
+  both over `kvraftExts`); `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
 
-Nothing in `GooseLang/Ext/NetFs/` (#22's) changed: the bridge uses its `kvnetExts`, `kvnetGF` and
-the start/crash projections (`kvnet_net_globalStart`, `kvnet_fs_localStart`, `kvnet_fs_crashStart`)
+Nothing in `GooseLang/Ext/NetFs/` (#22's) changed: the bridge uses its `kvraftExts`, `kvraftGF` and
+the start/crash projections (`kvraft_net_globalStart`, `kvraft_fs_localStart`, `kvraft_fs_crashStart`)
 as they are.
 
 ## The statement
@@ -37,7 +37,7 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     NetFsDeploy addrs crashing stable g → Robust crashing stable g threads bound
 ```
 
-(at the extensions `kvnetExts`, any `GF` with `GooseGpreS GF`). `CrashBootWp e P`: for every local
+(at the extensions `kvraftExts`, any `GF` with `GooseGpreS GF`). `CrashBootWp e P`: for every local
 ghost state `L` of the statement's Go context, `P L ∗ threadTok ={⊤}=∗ WP e {v = #()} ∗ (∀ L' V',
 crashed L -∗ osInv L' -∗ crashRest True L L' [] false V' -∗ ownGoState L' ∅ ={⊤}=∗ P L')`.
 `StableBootWp e σ P`: `P ∗ fsStartRes L σ ∗ ownGoState ∅ ∗ threadTok ={⊤}=∗ WP e {v = #()}`.
@@ -55,15 +55,15 @@ crashed L -∗ osInv L' -∗ crashRest True L L' [] false V' -∗ ownGoState L' 
   positionally (Perennial branch `local-names` adds a field to it). Its users must `letI` the
   `HeapGS` again after `dsimp` (the example does).
 - **The file system in its legacy mode** (`fs_crash_adequacy`'s resources: `osTree` at the start,
-  `crashRest` after a crash) at the plain semantics `fs_semantics` (no `Q`/`SQ` premises): kvnet's
-  `kvnetExts`. The shared mode needs a Perennial change (below). A premise on crashes or steps
-  (`fsSemWith Q`, `fsSemWithS SQ Q`) would need a `kvnetExts` variant with that semantics; none has
+  `crashRest` after a crash) at the plain semantics `fs_semantics` (no `Q`/`SQ` premises): kvraft's
+  `kvraftExts`. The shared mode needs a Perennial change (below). A premise on crashes or steps
+  (`fsSemWith Q`, `fsSemWithS SQ Q`) would need a `kvraftExts` variant with that semantics; none has
   been needed yet.
 - **Step and thread bounds as `robust_of_distBootRB`**: the adequacy theorem at `n + 1` and `n + 2`
   for an execution of `n < bound` steps; `Hstart` gets `receiptBound GF ≤ bound`.
 - **Placement**: in the `Net` part (`Net/Statement/`), beside `DistBridge.lean`, because it uses
-  `DistDeploy` and `addrUnset` and the main tree cannot import the part. KvNet can copy it with
-  `etc/copy-part.py` if kvnet's statement uses it.
+  `DistDeploy` and `addrUnset` and the main tree cannot import the part. KvRaft can copy it with
+  `etc/copy-part.py` if kvraft's statement uses it.
 
 ## The Perennial gap (shared mode)
 
@@ -94,7 +94,7 @@ Verdict: sound, not vacuous, the right strength; documentation fixes (report:
   extensions' `initLocal`/`initGlobal` are `True` at this pin. **Open:** `Robustness/Statement.lean`'s
   header (lines 26-30) claims `Robust`'s premises already give "no listener, no connection, files as on
   disk", which is false at this pin; to be corrected with the owner of `Robustness/` (#22). The proper fix is
-  kvnet-robust-goal.md items 3-4 (the extensions' `initLocal`), after which `NetFsDeploy` is the address
+  kvraft-robust-goal.md items 3-4 (the extensions' `initLocal`), after which `NetFsDeploy` is the address
   facts only.
 - F2 (fixed in the docstring): each machine's roots are its own.
 - F3 (reworded): the echo example proves the implication only. Satisfiability: `NetLocal.init ⟨∅⟩`,

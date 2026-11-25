@@ -16,6 +16,7 @@ public import Net.Proof.net.AtAddr
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Perennial.Proof.time
 public import Perennial.Proof.sync.Base
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -201,7 +202,7 @@ theorem choose.wp_proof :
     {{ (cf : RCfg), RET #(confV cf); ⌜cf.Ok⌝ }} := by
   wp_start
   wp_auto
-  wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 3) (by decide) as %s %Hs
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := GF)) (W64 3) (by decide) as %s %Hs
   have hs : s = W64 0 ∨ s = W64 1 ∨ s = W64 2 := by
     have h1 : sint.Z s = 0 ∨ sint.Z s = 1 ∨ sint.Z s = 2 := by
       have : sint.Z (W64 3) = 3 := rfl; omega
@@ -220,9 +221,9 @@ theorem choose.wp_proof :
   rcases hs with rfl | rfl | rfl
   all_goals
     wp_auto
-    wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 4) (by decide) as %a %Ha
-    wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 5) (by decide) as %b %Hb
-    wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 4) (by decide) as %c %Hc
+    wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := GF)) (W64 4) (by decide) as %a %Ha
+    wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := GF)) (W64 5) (by decide) as %b %Hb
+    wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := GF)) (W64 4) (by decide) as %c %Hc
     rw [show sint.Z (W64 4) = 4 from rfl] at Ha Hc
     rw [show sint.Z (W64 5) = 5 from rfl] at Hb
     first

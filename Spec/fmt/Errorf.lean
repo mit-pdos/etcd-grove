@@ -4,9 +4,11 @@
 formatting methods as Go does and wraps `%w`; until then an axiom here). The vocabulary of the
 premise moved to Perennial with it (`Perennial/Proof/fmt/{Directives,Args}.lean`: `fmt.Directive`,
 `fmt.fmtDirectives`, `fmt.methodVerbs`, `fmt.errorfVerbs`, `fmt.stringMethodSpec`, `fmt.argOk`,
-`fmt.argOkAt`, `fmt.argsOkAt`, `fmt.argsOk`, the names used here before). What stays here: the
-slice arguments Perennial's model does not follow (`fmt.sliceArgOk`, `fmt.argOkAtSl`, `fmt.argsOkSl`:
-`fmt.ErrorfSlice`, `fmt.SprintfSlice`, klog's formatting), lemmas and tactics. Lean-first.
+`fmt.argOkAt`, `fmt.argsOkAt`, `fmt.argsOk`, the names used here before). What stays here:
+`fmt.argOkAtBase` (klog's formatting), lemmas and tactics. (Until 2026-11-24 also the slice arguments
+Perennial's model does not follow, `fmt.sliceArgOk`/`fmt.argOkAtSl`/`fmt.argsOkSl`, of the axioms
+`fmt.ErrorfSlice`/`fmt.SprintfSlice`, false of the real `fmt` and retired: their three call sites, in
+the k8s fork, now spell the slice out, `goose-lean-authz-fmt2`, mit-pdos/etcd-grove#9.) Lean-first.
 -/
 module
 
@@ -34,9 +36,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **One argument under the directive `d`**, without `%T`/`%p` (what klog's formatting and the
-slices' elements admit): `nil` or `fmt.ArgWf` under any directive; under a verb that is not a method
-verb, a value of integer kind with `Error() string` or `String() string` and no `Format` (Go prints
+/-- **One argument under the directive `d`**, without `%T`/`%p` (what klog's formatting admits): `nil`
+or `fmt.ArgWf` under any directive; under a verb that is not a method verb, a value of integer kind with `Error() string` or `String() string` and no `Format` (Go prints
 it as an integer by reflection, calling no method: `%d` of raft's `ConfChangeType`; since fmtmodel,
 2026-11-20, the method is required, as in Perennial's `fmt.argOkAt`); and `fmt.argOk` under a method
 verb other than `%#v`/`%#w` (under `w` only for a type with `Error() string`). The first three
@@ -63,114 +64,6 @@ theorem fmt.argOkAt_of_base {mv : List w8} {d : fmt.Directive} {a : GoInterface}
     · ileft; iexact H
     · iright; ileft; iexact H
     · iright; iright; ileft; iexact H
-
-/-- **A slice argument** under `%v` or `%s` (no `#`), the method verbs being `mv` (2026-11-20, the
-user's request: `fmt.Errorf("... %v ...", sets.List(decisions))` of conditional authorization's
-union authorizer, and `Sprintf` of the same; until then no slice was admitted): the argument's
-dynamic type is an unnamed slice type `[]T` of a non-interface element type `T` (so the slice type
-has no methods), its value a slice `sl` read-only for good (`sl ↦*□ xs`: nothing writes it any more,
-so formatting it touches nothing the caller owns), and every element, as a value of type `T`, is
-`fmt.argOkAtBase` the same directive (no nesting).
-
-Why Go then calls nothing but the elements' admitted methods (go1.27.3, `src/fmt/print.go`):
-`printArg` (line 674) finds no simple case for a slice other than `[]byte`, so it calls
-`handleMethods` on it (line 746), which finds nothing (an unnamed slice type has no methods: no
-`Formatter`, `error`, `Stringer`), then `printValue(reflect.ValueOf(arg), verb, 0)` (line 749).
-`printValue`'s `reflect.Slice` case (line 856): under `%s` a slice of a `uint8`-kind element type is
-printed as bytes (line 861, no method called); otherwise it writes `[`, then for each element
-`p.printValue(f.Index(i), verb, depth+1)` (line 889), then `]` (`%#v` takes the other branch,
-line 878, excluded here). At depth 1 `printValue` (line 756; its check, line 758) takes `value.Interface()` (the element,
-of dynamic type `T`: `T` is no interface type, so no `reflect.Interface` indirection) and calls
-`handleMethods(arg, value, verb)` (line 760) with the same verb: exactly what `fmt.argOkAtBase`
-admits of a top-level argument under that verb (`Format` excluded, `Error()`/`String()` with their
-WPs; an `fmt.ArgWf` value has no method and is printed by kind, line 764 on). A `nil` slice prints
-`[]`. A method's panic is recovered by `catchPanic`, but the WPs admitted rule it out anyway.
-Perennial's model of `fmt` does not follow this (it is stuck on reflection into a slice): the calls
-with such an argument rest on `fmt.ErrorfSlice`/`fmt.SprintfSlice`. -/
-def fmt.sliceArgOk (mv : List w8) (d : fmt.Directive) (ii : GoInterfaceOk) : IProp GF :=
-  iprop(⌜d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false⌝ ∗
-    ∃ (T : go.GoType) (V : Type) (_ : ZeroVal V) (_ : TypedPointsto (GF := GF) V)
-      (_ : IntoValTyped (GF := GF) V T) (sl : GoSlice) (xs : List V),
-      ⌜ii.ty = go.GoType.SliceType T ∧ ii.v = #sl ∧ go.isInterfaceType (underlying T) = false⌝ ∗
-      sl ↦*□ xs ∗ [∗list] x ∈ xs, fmt.argOkAtBase mv d (interface.mkOk T #x))
-
-/-- **One argument under the directive `d`, slices included**: `fmt.argOkAtBase`, or a slice of
-such arguments under `%v`/`%s` (`fmt.sliceArgOk`). -/
-def fmt.argOkAtSl (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
-  | .nil => iprop(True)
-  | .ok ii => iprop(fmt.argOkAtBase mv d (.ok ii) ∨ fmt.sliceArgOk mv d ii)
-
-/-- An argument `fmt.argOkAtBase` its directive is `fmt.argOkAtSl` it. -/
-theorem fmt.argOkAtSl_of_base {mv : List w8} {d : fmt.Directive} {a : GoInterface} :
-    fmt.argOkAtBase (GF := GF) mv d a ⊢ fmt.argOkAtSl mv d a := by
-  cases a with
-  | nil => unfold fmt.argOkAtSl; iintro _; itrivial
-  | ok ii => unfold fmt.argOkAtSl; iintro H; ileft; iexact H
-
-/-- A read-only slice of arguments each `fmt.argOkAtBase` a `%v`/`%s` directive is `fmt.argOkAtSl`
-it (`fmt.sliceArgOk`). -/
-theorem fmt.argOkAt_slice {mv : List w8} {d : fmt.Directive} {T : go.GoType} {V : Type}
-    [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V T]
-    (sl : GoSlice) (xs : List V)
-    (hd : d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false)
-    (hT : go.isInterfaceType (underlying T) = false) :
-    sl ↦*□ xs ∗ ([∗list] x ∈ xs, fmt.argOkAtBase (GF := GF) mv d (interface.mkOk T #x)) ⊢
-      fmt.argOkAtSl mv d (interface.mkOk (go.GoType.SliceType T) #sl) := by
-  iintro ⟨#Hs, Hxs⟩
-  unfold fmt.argOkAtSl fmt.sliceArgOk
-  iright
-  isplitr
-  · ipureintro; exact hd
-  · iexists T, V, inferInstance, inferInstance, inferInstance, sl, xs
-    isplitr
-    · ipureintro; exact ⟨rfl, rfl, hT⟩
-    isplitr
-    · iexact Hs
-    · iexact Hxs
-
-/-- The arguments under the directives, slices included: one each, in order; those left over are
-printed under `%v` (`EXTRA`). -/
-def fmt.argsOkAtSl (mv : List w8) : List fmt.Directive → List GoInterface → IProp GF
-  | _, [] => iprop(True)
-  | d :: ds, a :: xs => iprop(fmt.argOkAtSl mv d a ∗ fmt.argsOkAtSl mv ds xs)
-  | [], a :: xs => iprop(fmt.argOkAtSl mv ⟨W8 118, false⟩ a ∗ fmt.argsOkAtSl mv [] xs)
-
-/-- **The arguments `xs` of the format `format`, slices included**: the format's directives parse
-(`fmt.fmtDirectives`) and each argument is `fmt.argOkAtSl` its directive. -/
-def fmt.argsOkSl (mv : List w8) (format : GoString) (xs : List GoInterface) : IProp GF :=
-  iprop(∃ ds : List fmt.Directive, ⌜fmt.fmtDirectives format = some ds⌝ ∗ fmt.argsOkAtSl mv ds xs)
-
-/-- `fmt.argsOkSl` from the format's directives. -/
-theorem fmt.argsOkSl_intro {mv : List w8} {format : GoString} {ds : List fmt.Directive}
-    {xs : List GoInterface} (h : fmt.fmtDirectives format = some ds) :
-    fmt.argsOkAtSl (GF := GF) mv ds xs ⊢ fmt.argsOkSl mv format xs := by
-  unfold fmt.argsOkSl
-  iintro H
-  iexists ds
-  isplitr
-  · ipureintro; exact h
-  · iexact H
-
-/-- A read-only `[]string` is `fmt.argOkAtSl` a `%v`/`%s` directive (`fmt.sliceArgOk`: strings have
-no methods). -/
-theorem fmt.argOkAt_strSlice {mv : List w8} {d : fmt.Directive} (sl : GoSlice) (ss : List GoString)
-    (hd : d.verb ∈ mv ∧ (d.verb = W8 118 ∨ d.verb = W8 115) ∧ d.sharpV = false) :
-    sl ↦*□ ss ⊢ fmt.argOkAtSl (GF := GF) mv d (interface.mkOk (go.GoType.SliceType go.string) #sl) := by
-  iintro #Hs
-  iapply (fmt.argOkAt_slice (T := go.string) (V := GoString) sl ss hd (by
-    rw [go.is_underlying]; rfl))
-  isplitr; · iexact Hs
-  have key : ∀ (i : Nat) (x : GoString), ss[i]? = some x →
-      iprop(□ (True : IProp GF)) ⊢ fmt.argOkAtBase mv d (interface.mkOk go.string #x) := by
-    intro i x _
-    iintro -
-    unfold fmt.argOkAtBase
-    ileft
-    ipureintro
-    exact (show _root_.Perennial.fmt.ArgsWf [interface.mkOk go.string #x] from
-      .cons_string _ _ .nil) _ (List.mem_singleton_self _)
-  iapply (BigSepL.bigSepL_intro (P := iprop(□ (True : IProp GF))) key)
-  imodintro; itrivial
 
 /-- An argument that is `fmt.argOk` is `fmt.argOkAt` a method-verb directive other than `%#v`/`%#w`
 and `%w` (premise fixes 6, D; `%w` excluded since fmt soundness 2: under it, `fmt.argOkAt_of_error`). -/
@@ -312,13 +205,6 @@ macro "fmt_args_intro" : tactic => `(tactic| (
   try simp only [List.set_cons_succ, List.set_cons_zero]
   iapply Perennial.fmt.argsOk_intro (by rfl)
   try simp only [Perennial.fmt.argsOkAt]))
-
-/-- `fmt_args_intro` for `fmt.argsOkSl` (slices among the arguments). -/
-macro "fmt_args_intro_sl" : tactic => `(tactic| (
-  try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
-  try simp only [List.set_cons_succ, List.set_cons_zero]
-  iapply Perennial.EtcdGrove.fmt.argsOkSl_intro (by rfl)
-  try simp only [Perennial.EtcdGrove.fmt.argsOkAtSl]))
 
 /-- Turns a goal `fmt.argOkAt mv d a`, `d` a method verb of `mv` other than `%#v`/`%#w`, into
 `fmt.argOk a`, or the same goal with `fmt.argOkAt` unfolded into its `fmt.argOk` disjunct

@@ -10,7 +10,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/client/v3/(Link|Results)\.lean$
 axiom Client.Close.wp_proof
-axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
@@ -18,9 +17,7 @@ axiom WithRequireLeader.wp_proof
 axiom addrClaim
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
-axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -40,7 +37,6 @@ axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbAuthEnableRequestT_reg
 axiom pbAuthEnableResponseT_reg

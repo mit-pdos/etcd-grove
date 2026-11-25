@@ -39,20 +39,18 @@ fact"). -/
 abbrev electionServer.Leader.spec : Prop :=
   ∀ (es c req : Loc) (nsl : GoSlice) (name : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
-      isElectionServer es c ∗ electionClientOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ levelTok 0 ∗ (isElectionServer es c ∗ electionClientOk c ∗
       structFieldRef v3electionpb.LeaderRequest go!"Name" req ↦□ nsl ∗ nsl ↦*□ name ∗
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq ∧
         v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name⌝ ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs) }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Leader"))
       (Val #(GoInterface.ok ctx))) (Val #req))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr kp : Loc) (R : w64) (kv : EtcdKv)
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (hdr kp : Loc) (R : w64) (kv : EtcdKv)
           (v : v3electionpb.LeaderResponse),
         resp ↦ v ∗ ⌜v.Header' = hdr ∧ v.Kv' = kp⌝ ∗ hdrRevAt hdr R ∗ etcdReached R ∗
         kvValAt kp kv ∗ leaderKvAt (name ++ go!"/") kv R) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

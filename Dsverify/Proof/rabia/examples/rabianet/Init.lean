@@ -10,18 +10,18 @@ module
 public import Dsverify.Proof.rabia.examples.rabianet.Base
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Dsverify.Proof.rabia.internal.config.Init
 public import Dsverify.Proof.rabia.internal.message.Init
 public import Dsverify.Proof.rabia.internal.tcp.Init
 public import Dsverify.Proof.rabia.roles.server.Init
-public import Dsverify.Proof.runtime.PkgInitDsv
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
@@ -49,7 +49,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [_root_.Perennial.os.signal.InitHyp GF]
 variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
@@ -84,8 +83,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
-      _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
+      EtcdGrove.ExternalInit.math_rand _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.log _root_.Perennial.log.initialize'
       EtcdGrove.ExternalInit.log _root_.Perennial.log.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'

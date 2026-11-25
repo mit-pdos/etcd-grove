@@ -109,6 +109,64 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 `GOROOT=DIR GOTOOLCHAIN=local PATH=DIR/bin:$PATH go test -tags netmodel ./examples/...`. Both pass
 (2026-11-23).
 
+## Non-vacuity
+
+`RpcHttpAddr` is no premise of `epaxos_remote_robust`: the statement instantiates it with `netRpcHttpAddr`
+(`Interface/RpcHttpAddrNet.lean`, a defs module), Net's proved `rpcAddrP`/`rpcLisP` and their laws, with `httpW W` the
+world `W` with HTTP's handshake (`connectReq defaultRPCPath`/`connectAns`) at every address, as
+dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay generic in
+`[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
+no instance here.
+
+## Step bound 2^63 (2026-11-24, dsv-steps63)
+
+Perennial's pin 580868e54 (lean 5f5f28beeb, perennial#690) has `goose_dist_adequacy_below`
+(`Perennial/GooseLang/DistAdequacy.lean`): its executions are `DistCrashNstepsBelow [] T n`, the
+thread bound `T` along the execution at hand (exactly what `Robust`'s `threads` gives), where
+`goose_dist_adequacy` wanted `DistThreadsBelow T n`, the bound over every execution of `n` steps,
+which the bridges could only get as `T = n + 2` (`DistThreadsBelow.of_single`). Each machine's
+obligation still gets `threadBound GF = T` (`nodeWpBody`), and the receipt bound `N` is
+independent of `T`.
+
+**The bound.** Net's net/rpc server needs `threadBound GF ≤ 2^31` (its `sync.WaitGroup` counter is
+an `int32`), so `T`, and so `Robust`'s `threads`, can be at most `2^31`: every machine has fewer
+than `2^31` (at most `2^31 - 1`) live threads along the run, the int32 counter's range. The step
+bound is then only the receipts': remote's clock needs `receiptBound ≤ 2^63`, so `2^63` steps.
+`threads` can no longer be universally quantified (an arbitrary `threads` gives no
+`threadBound ≤ 2^31`), so the statements fix it at `2^31`:
+`DistDeploy … → Robust [] (system σ) g (2 ^ 31) (2 ^ 63)` (no `threads` binder). This is stronger
+than the old `∀ threads, Robust … threads (2 ^ 31 - 1)`: an execution of fewer than `2^31 - 1` steps
+from fresh machines has at most `2^31 - 1` threads per machine, so it is covered by the new one.
+
+**Kits changed (landed):**
+- epaxos: `examples/epaxosnet/Bridge.lean`: `robust_of_distBootLisRB(T)` use
+  `goose_dist_adequacy_below` (T = `threads`); the `T` variants' obligation is
+  `DistBootWpGT threads` (was `bound + 1`); `robust_of_distBootLisRB`/`robust_of_distProtoLisRB`
+  (quepaxa's) keep their signatures. `epaxos_remote_robust.spec`: `Robust … (2 ^ 31) (2 ^ 63)`.
+- swiftpaxos: `examples/swiftnet/Bridge.lean`'s `robust_of_distBootLisRBT_sha` the same;
+  `swiftpaxos_remote_robust.spec`: `Robust … (2 ^ 31) (2 ^ 63)`. kitgen does not generate
+  swiftpaxos's statement (its `KITGEN` has no `statement`; only the boot tables), so nothing to
+  regenerate; `kitgen --check` passes.
+- quepaxa, paxos, rabia: unchanged (already `2 ^ 63` with any `threads`; quepaxa uses
+  `robust_of_distProtoLisRB`, whose signature is unchanged).
+
+**Checked** (fk-lean1, ccfbb8c201, with a scratch module dropped after): `lake build` green (4980
+jobs) of the six closed theorems' modules (epaxos, swiftpaxos, quepaxa, paxos, rabia, Net's remote
+counter); `#print axioms` of each: `propext`, `Classical.choice`, `Quot.sound`. tier-check
+--check, gen-init --check, goose --check, kitgen --check, copy-part --check pass; `proof_roots`'
+namespace `Perennial.EtcdGrove.`; dups: the four lean has (doc-comment false positives).
+
+**Unlanded kits (not edited here):** gryff (`dsv-gryff`) and craq (`dsv-craq`) call
+`epaxosnet.robust_of_distProtoLisRBT … g threads (2 ^ 31 - 1)`. After they merge lean with this
+change, that call no longer proves their goal (the obligation's `threadBound ≤ threads` gives no
+`threadBound ≤ 2^31` for an arbitrary `threads`). Each must: in its `Spec/…/TopLevelRobustness.lean`
+drop `(threads : Nat)` from the final `∀` and state `Robustness.Robust [] (system σ) g (2 ^ 31)
+(2 ^ 63)`, and update the header's step-bound paragraph; in the proof drop `threads` from the
+`intro` and call `robust_of_distProtoLisRBT … g (2 ^ 31) (2 ^ 63) …`. The machine obligations'
+`omega`s (`threadBound ≤ 2 ^ 31`, `receiptBound ≤ 2 ^ 63`/`2 ^ 64`) then follow from `hT :
+threadBound ≤ 2 ^ 31` and `hrb : receiptBound ≤ 2 ^ 63` as before. Report the statement diff
+(kaashoek approves).
+
 ## Proof port: progress
 
 1. **Initializers: done** (`01ac72f60b`, `c7617216ca`). Notes: `gen-init`'s closure stopped at a
@@ -544,7 +602,8 @@ files; the 34 old `defs->proof` ones (`replica/*`, `wire/*`) remain (restructure
 empty baseline (`tcb-report --check` not run: it needs a full build).
 
 **Findings / open points (for the report and the next agent):**
-1. **Step bound `2^31 - 1`, not `2^63`**: Net's net/rpc server (`ServeCodec`/`ServeConn`/`Accept`,
+1. **(Resolved 2026-11-24, dsv-steps63: 2^63 steps, 2^31 threads; "Step bound 2^63" below.)**
+   **Step bound `2^31 - 1`, not `2^63`**: Net's net/rpc server (`ServeCodec`/`ServeConn`/`Accept`,
    hence `HandleHTTP_spec`/`Serve_spec`) needs `threadBound GF ≤ 2^31`, and the bridge's thread
    bound is the step count + 2 (`Bridge.lean`'s `robust_of_distProtoLisRBT` keeps that fact).
    Getting `2^63` back needs a dist adequacy whose thread bound is the run's `threads`: one that

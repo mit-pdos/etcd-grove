@@ -26,10 +26,10 @@ variable [package_sem : _root_.Perennial.path.filepath.Assumptions]
 
 theorem filepath.Join.wp_proof (hjoin : filepath.join.spec (GF := GF) (hG := hG)) :
     filepath.Join.spec (GF := GF) (hG := hG) := by
-  intro sl es dq _
+  intro sl es dq hes
   wp_start as Hsl
   try wp_auto
-  wp_apply hjoin sl es dq $$ [Hsl] as %r ⟨%Hr, Hsl⟩
+  wp_apply hjoin sl es dq hes $$ [Hsl] as %r ⟨%Hr, Hsl⟩
   · iframe
   try wp_auto
   iapply HΦ

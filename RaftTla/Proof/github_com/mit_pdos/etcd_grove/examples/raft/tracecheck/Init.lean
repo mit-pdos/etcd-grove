@@ -15,9 +15,10 @@ public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Init
 public import RaftTla.Proof.go_etcd_io.raft.v3.Init
-public import RaftTla.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
+public import RaftTla.Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

@@ -32,15 +32,14 @@ revision at most `maxCreateRev`; otherwise an error. -/
 abbrev waitDeletes.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (client : Loc) (pfx : GoString)
     (maxCreateRev lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
-      context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ concPfxMax ∧ 0 ≤ sint.Z maxCreateRev⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isEtcdMutexClient client pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
+      context.isCancelCtxCtx ctx cs ∗ etcdReached lo ∗ ⌜pfx ≠ [] ∧ pfx.length ≤ concPfxMax ∧ 0 ≤ sint.Z maxCreateRev⌝) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.concurrency.waitDeletes))
       (Val #(GoInterface.ok ctx))) (Val #client)) (Val #pfx)) (Val #maxCreateRev))
-  {{ (err : GoInterface), RET #err;
-      ⌜err ≠ GoInterface.nil⌝ ∨
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (⌜err ≠ GoInterface.nil⌝ ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (s : List EtcdKv), etcdReached R ∗
         □ etcdState R pfx s ∗ ⌜sint.Z lo ≤ sint.Z R ∧
-          ∀ v ∈ s, sint.Z maxCreateRev < sint.Z v.createRev⌝) }}
+          ∀ v ∈ s, sint.Z maxCreateRev < sint.Z v.createRev⌝)) }}
 
 end spec
 

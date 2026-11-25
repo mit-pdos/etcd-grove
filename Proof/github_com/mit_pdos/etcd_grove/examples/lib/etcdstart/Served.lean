@@ -7,9 +7,12 @@ and `go gs.Serve(l)`, once, for `Serve`'s caller's ghost step (`Serve.spec`'s `G
 * `kv_served`: from `v3rpc.Server`'s and `Listen`'s results (`grpcUp`) and the request slots a
   started member leaves (`memberUp`'s raw stocks; the run pools built from them, per-type stage B3), the right
   to serve and etcd's `Put`, `Range`, `DeleteRange` and `Txn` at the address
-  (`client.etcd_kv_started`);
-* `grpcUp_noRefusal`: the member never refuses (authentication off, a voter: the members' axiom
-  `etcd_noRefusal`, D29), which the examples whose clients retry take before `kv_served`.
+  (`client.etcd_kv_started`); `kv_served_at` (2026-11-24) also gives that the server now listening at
+  the address is etcd's (`etcdKVSrvAt`), from which
+  the examples whose clients retry take that the member never refuses (`etcd_noRefusal_at`:
+  authentication off, a voter, the members' axiom `etcd_noRefusal`, D29). Until 2026-11-24
+  `grpcUp_noRefusal` took it before `kv_served`, from `grpcUp`: the axiom then did not tie the address
+  to the server (`notes/axiom-review/norefusal-link.md`).
 -/
 module
 
@@ -113,28 +116,6 @@ theorem etcdKVAt_regs (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   iunfold etcdKVAt at H
   unfold client.kvRegsAt
   iexact H
-
-/-- **The member never refuses** (see the file header): `etcd_noRefusal` at `grpcUp`'s gRPC
-server and listener. -/
-theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
-    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
-    (HEo : E.authOn = false) :
-    isServerReq s E ρ ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      grpcUp s E ρ γr gs lis addr cid mid R ∗ ⌜noRefusalAt addr⌝ := by
-  iintro ⟨#Hreq, Hup⟩
-  iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo,
-    Hlis, Hleft, #Hlu⟩
-  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal addr gs q p s lis E ρ [il, im, iu]
-      [ims, is] svcs regs sregs HC.2.2.1 HEo) $$ [Hgsn Hlis]
-  · iframe Hgsn Hlis; iframe #
-  isplitl
-  · iunfold grpcUp
-    iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
-    iframe; iframe #
-    ipureintro; exact HC
-  ipureintro; exact Hnr
 
 /-- **The server's watch facts, as the watch path names them** (R9, the `lean` merge: v3rpc's
 `SrvW` of the server at its apply environment `E`, read names `γr` and auth mode `on`): the store's

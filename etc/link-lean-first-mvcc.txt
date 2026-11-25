@@ -226,7 +226,8 @@ mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syn
 watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev
 # Compaction (unit 5a, 2026-10-13; Compact.lean, InvCompact.lean, notes/decisions.md "mvcc:
 # compaction"): the compaction functions specified, their proofs pending (`sorry`: units 5b/5c);
-# the trust boundary they reach: the hash storage (`hashStorage.Store`; the hasher, `newKVHasher`,
+# the trust boundary they reach: the hash storage (`hashStorage.Store`, proved 2026-11-24 over the fork's
+# `slices.SortFunc`; the hasher, `newKVHasher`,
 # `kvHasher`'s `WriteKeyValue`/`Hash`, proved since 2026-11-21), zap's fields and `Info`/`Warn`, humanize's `Bytes` (axioms); the jobs
 # (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: proved in the request path's unit 4d);
 # the btree's `Clone`,
@@ -275,7 +276,10 @@ crc32_digest__Sum32:
 newKVHasher: crc32_MakeTable crc32_New schema_bucket__Name crc32_digest__Write
 kvHasher__WriteKeyValue: BytesToRev Revision__GreaterThan BytesToBucketKey crc32_digest__Write
 kvHasher__Hash: crc32_digest__Sum32
-hashStorage__Store:
+# (sortslice, 2026-11-24) `Store` over the fork's `slices.SortFunc` (Perennial's, linked by name) and
+# `cmp.Compare` (etcd-grove's spec at `int64`, Spec/cmp/Compare.lean)
+cmp_Compare:
+hashStorage__Store: zap_Uint32 zap_Int64 zap_Logger__Info cmp_Compare
 keyIndex__doCompact: generation__walk generation__isRecreatedAt
 keyIndex__compact: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__doCompact generation__isEmpty
 keyIndex__keep: keyIndex__isEmpty keyIndex__doCompact generation__isEmpty

@@ -38,8 +38,7 @@ workloads compatible and within their bounds), returning at once if it fails; `T
 - *environment and workload*, `EtcdEnv` (carried from the single-process theorems: `authRecordsFit`,
   `backendUnderQuota`, `grpcRepliesFit`, `diskOk`, `leasePeersOk`, conditional `leasesNoExpiry`; its
   `peerRequests` field is `True`, a PLACEHOLDER until phase 7 S5);
-- *`ETCD_VERIFY` off*, `HEnv` on every machine (approved 2026-11-23) and its token `HEnvTok` (the
-  single-process start gives it by its start axiom; premises-to-axioms item G, an adequacy decision).
+- *`ETCD_VERIFY` off*, `HEnv : EtcdVerifyOff` (2026-11-25; until then `verifyEnvOff` on every machine and its token `HEnvTok`).
 - *`GODEBUG` `fips140` off*, `Hfips` (Perennial's `GodebugFips140Off`, approved: `crypto/sha1` panics in
   `fips140=only` mode; every program's check of the deployment computes the member ids with it).
 - the instance binders: the Goose translations' `Assumptions` classes and models, as the single-process
@@ -122,9 +121,9 @@ def etcd_robust.spec : Prop :=
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
     (Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)
     (Hσn : σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ)
-    -- `ETCD_VERIFY` off on every machine's run, and its token in the logic (`putget_safe`'s)
-    (HEnv : ∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    -- `ETCD_VERIFY` off (the deployment's value of the variable enables no check; 2026-11-25, was
+    -- `verifyEnvOff` of each machine's program and its token `HEnvTok`)
+    (HEnv : EtcdVerifyOff)
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
@@ -147,8 +146,7 @@ def etcd_robust_nocrash.spec : Prop :=
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
     (Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)
     (Hσn : σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ)
-    (HEnv : ∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    (HEnv : EtcdVerifyOff)
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),

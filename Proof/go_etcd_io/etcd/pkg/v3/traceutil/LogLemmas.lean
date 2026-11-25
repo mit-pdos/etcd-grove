@@ -33,7 +33,7 @@ variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 theorem traceutil.fieldsWf_iff_mem {l : List traceutil.Field} :
     traceutil.fieldsWf l ↔ ∀ f ∈ l, traceutil.fieldsWf [f] := by
-  unfold traceutil.fieldsWf _root_.Perennial.fmt.ArgsWf
+  unfold traceutil.fieldsWf fmt.PureArgsWf
   constructor
   · intro h f hf ii hi
     simp only [List.map_cons, List.map_nil, List.mem_singleton] at hi

@@ -1042,7 +1042,7 @@ tests kept as differential tests against the real library, a "not modelled" pani
    allocation (`newBufioWriterSize(&w.cw, 2048)`, now proved).
    **The request line and URI (2026-11-23, same branch).** *Translation*: httpguts' `ValidHeaderFieldName` and
    its table `isTokenTable` (the array literal, so its initializer is translated: `isTokenTable.init` is gone),
-   net/http's `isToken`, `Server.maxHeaderValueCount`, `DefaultMaxHeaderValueCount`; regenerated (`KvNet/`'s
+   net/http's `isToken`, `Server.maxHeaderValueCount`, `DefaultMaxHeaderValueCount`; regenerated (`KvRaft/`'s
    copies, `gen-init --check` clean). *`url.ParseRequestURI`, not over its body*: Go's `parse(raw, true)` calls
    `strings.ToLower` (always) and `strings.Cut(rest, "?")` (Perennial: names only; `Cut`/`Index` reach
    `bytealg.IndexByteString`, untranslated), `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]`
@@ -1117,6 +1117,18 @@ tests kept as differential tests against the real library, a "not modelled" pani
    "no read deadlines on served connections" exclusion. Difftests pass. `origin/lean` merged (Perennial
    `ccfeb3895`), swiftpaxos's `RpcWorld` built by field names (`Start.lean`) and `NewWriterSize` over its
    `specRep` (`LibDepsLinked.lean`), from dsv-gryff `bb8e39f9c3`/`b30a1f41ce`.
+   **`crHeadErr` records the error's message (2026-11-24, proving session 2, branch `prove-ps2-s5srv/2026-11-24`;
+   agreed with dsverify-net on #24).** `crHeadErr γe r e := monoListLbOwn γe [r] ∗ errMsgOk e`
+   (`ConnReaderHead.lean`; `errMsgOk` from `RequestDefs.lean`): `connReader.Read`'s errors are `io.EOF`'s
+   `*errorString` (its `Error()` from `errors.newVar`) and the connection's `*OpError` (`net.wp_OpError_Error`,
+   Go's form, through `readErr_msgOk`); `crHeadErr_msg` is the law `readRequestLimit.spec` asks. A stronger
+   post of `connReader.Read.spec`; no other statement changed.
+   **net/url's `escape` proved (2026-11-24, same branch).** `Spec/net/url/escape.lean`: `escape(s, mode)`
+   returns `escapeF s mode` for the seven modes, given `3 * len(s) < 2^63` (Go's `len(s) + 2*hexCount`, the
+   result's length, must not overflow `int`, else `make` panics); proved over its body (both counting loops, the
+   64-byte stack buffer or `make`, the space-only `copy` path, the `%AB` writes through `upperhex`), linked in
+   `Results.lean`. Left: `unescape` (needs `strings.Builder.Grow`), `PathUnescape`, `URL.EscapedPath` (specs
+   drafted).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

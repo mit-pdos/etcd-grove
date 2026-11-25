@@ -86,6 +86,8 @@ abbrev NewServer.specR : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   netDirOk dir →
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24) the URLs within etcd's URL bounds (`NewServer.spec`'s)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m false →
   -- what the restart contract covers: no forced new cluster, the WAL in the data directory's
@@ -100,7 +102,7 @@ abbrev NewServer.specR : Prop :=
       -- `bootstrap`'s contract on the stopped member's data directory
       "#HbootR" ∷ bootstrapRestartContract cfg U γ id N dir ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗
@@ -124,7 +126,6 @@ abbrev NewServer.specR : Prop :=
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Hns" ∷ rnNewStorageOk ∗
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);

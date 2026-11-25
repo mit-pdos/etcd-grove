@@ -11,6 +11,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.raft.v3.Init
+public import Proof.go_uber_org.zap.InitLinked
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
@@ -26,6 +27,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
@@ -77,10 +79,12 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) snapSaveSec _ as HsnapSaveSec
   wp_apply wp_GlobalAlloc (V := GoInterface) snapMarshallingSec _ as HsnapMarshallingSec
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoDBSnapshot _ as HErrNoDBSnapshot
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.1))
+      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.1))

@@ -205,6 +205,9 @@ theorem startCluster.wp_proof
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
   have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
     fun x hx => members_names_len k _ (List.of_mem_zip hx).1
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds
+  have haf : ∀ x ∈ (members k).zip gs, etcdstart.addrFits x.1.Peer' ∧ etcdstart.addrFits x.1.Client' :=
+    fun x hx => etcdstart.membersOf_addrFits _ _ _ _ x.1 (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -239,7 +242,7 @@ theorem startCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (members k) ids) Φs γn .none false Htb Hrb48 HrbN HwbN
       (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hnlen haf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩
@@ -366,12 +369,13 @@ theorem startCluster.wp_proof
       iintro %gs' %lis %cid %mid %R Hg
       rw [HsvOff.1]
       ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-      ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs'
-        lis xj.1.Client' cid mid R HEo $$ [Hg]
+      imod (etcdstart.kv_served_at sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs' lis xj.1.Client' cid
+        mid R Hrb48 Hrf rfl HLv) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa⟩
       · iframe; iframe #
-      imod (etcdstart.kv_served sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd gs' lis xj.1.Client' cid mid R
-        Hrb48 Hrf rfl HLv) $$ [Hg Hstk] with ⟨Htk, #Hkv⟩
-      · iframe; iframe #
+      -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
+      ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo
+        $$ [Hksa]
+      · iframe #
       imodintro
       iframe Htk
       iframe #
@@ -511,11 +515,12 @@ theorem startCluster.wp_proof
     wp_apply (wp_slice_make2 (V := Loc) (W64 k)) as %clsl ⟨Hclsl, -⟩
     · ipureintro; word
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok1⟩
     ihave HJ : (∃ (j' : w64) (cs : List Loc),
-        "j" ∷ j_ptr ↦ j' ∗
+        "j" ∷ j_ptr ↦ j' ∗ "Hlt" ∷ levelTok 0 ∗
         "Hclsl" ∷ clsl ↦* (cs ++ List.replicate (k - cs.length) (zero_val Loc)) ∗
         "Hnc" ∷ ([∗list] cl ∈ cs, ∃ V : client.WEnv GF, isNewClient cl (bridges k) V) ∗
-        "%Hj'" ∷ ⌜uint.nat j' ≤ k ∧ cs.length = uint.nat j'⌝ : IProp GF) $$ [j Hclsl]
+        "%Hj'" ∷ ⌜uint.nat j' ≤ k ∧ cs.length = uint.nat j'⌝ : IProp GF) $$ [j Hclsl Hlt]
     · iexists W64 0, []
       iframe
       isplitl
@@ -527,7 +532,7 @@ theorem startCluster.wp_proof
     wp_for HJ
     wp_if_destruct
     · have hj : uint.nat j' < k := by rw [← hkn]; word
-      wp_apply (wp_NewClients basl (bridges k) lg (Classical.choice hVne) Htb31 Hpl) as %cl %cerr Hcl
+      wp_apply (wp_NewClients basl (bridges k) lg (Classical.choice hVne) (by omega) Hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
       · iframe; iframe #
       icases Hcl with (⟨%Hcerr, #Hnc1, -⟩ | %Hcfail)
       rotate_left
@@ -575,6 +580,8 @@ theorem startCluster.wp_proof
       have hck : cs.length = k := by rw [Hj'.2, hjk']
       ihave Hclsl : clsl ↦* cs $$ [Hclsl]
       · iExactEq Hclsl; rw [hck, Nat.sub_self, List.replicate_zero, List.append_nil]
+      ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok1]
+      · iframe
       iapply HΦ
       iright
       iframe

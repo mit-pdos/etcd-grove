@@ -1,4 +1,4 @@
-/- (2026-11-22, kvnet decision B: `notes/raft-cluster-global.md`) A node handle's install record, by
+/- (2026-11-22, kvraft decision B: `notes/raft-cluster-global.md`) A node handle's install record, by
 a countable name: what a client pins in place of the handle. -/
 module
 

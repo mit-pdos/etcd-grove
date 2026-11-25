@@ -64,7 +64,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
@@ -96,7 +96,7 @@ theorem Main.wp_proof
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`: the one member of a new cluster from the
   -- named premises (`wp_StartServer1`: `alloc1` inside; shared with `putget_safe`'s member)
   wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne N go!"putget" go!"127.0.0.1:23800"
-      go!"127.0.0.1:23790" lg id ctxs boot Hbf (by decide) (by decide) (by decide) Htb Hrb48 HrbN HwbN
+      go!"127.0.0.1:23790" lg id ctxs boot Hbf (by decide) (by decide) (by decide) (by decide) (by decide) Htb Hrb48 HrbN HwbN
       Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)
@@ -118,7 +118,8 @@ theorem Main.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cid mid))
+      (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cid mid ∗
+        srvGoRes srv)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -126,10 +127,10 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    iapply (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23790" cid mid
+    iapply (etcdstart.kv_served_go srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23790" cid mid
       R Hrb48 Hrf rfl HLv)
     iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -139,10 +140,12 @@ theorem Main.wp_proof
   wp_auto
   ihave #Hregs := etcdstart.etcdKVAt_regs go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cid mid
     rfl $$ Hkv
+  -- the main thread's level-0 token, back from the server's `GoAttach` resources
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23790" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23790" [] null null [] null default)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -178,7 +181,7 @@ theorem Main.wp_proof
   wp_apply (client.client_Put_own cl go!"127.0.0.1:23790" _ E ρ.rd γf cid mid
       pctx pcd go!"k" go!"v" slice.nil []
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide))) as %presp %perr Hput
+        (by decide))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hput⟩
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -203,7 +206,7 @@ theorem Main.wp_proof
   imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl go!"127.0.0.1:23790" _ E ρ.rd γf (W64 0) cid mid
       gctx gcd go!"k" go!"v" slice.nil []
-      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) $$ [$Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
   · iframe #
     iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl

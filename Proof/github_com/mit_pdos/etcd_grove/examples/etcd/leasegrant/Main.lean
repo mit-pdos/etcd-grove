@@ -68,13 +68,13 @@ theorem Main.wp_proof
     Main.spec (GF := GF) (hG := hG) := by
   have wp_Grant := lessor.Grant.specP_of wp_Grant
   have wp_Leases := lessor.Leases.specP_of wp_Leases
-  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP HnE Hms hAs
+  intro CS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP HnE Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leasegrantDir id)
       go!"leasegrant" go!"leasegrant"
@@ -117,7 +117,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" lg
       (LogEntry.toEntries boot 0) ctxs (leasegrantDir id) id γ ρ E₀ Φs γn .mono Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -152,7 +152,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23956" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23956" ∗
-        etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E ρ.rd)))
+        etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E ρ.rd ∗ srvGoRes srv)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk HLR] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -160,13 +160,13 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23956"
+    have h := etcdstart.kv_lease_served_go srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23956"
       cid mid R Hrb48 (by omega) Hrf HlP rfl .mono hlgρ HLv
     simp only [etcdstart.etcdLeaseServedAt] at h
-    imod h $$ [Hg Hstk HLR] with ⟨Htk, #Hlr, #Hga⟩
+    imod h $$ [Hg Hstk HLR] with ⟨Htk, Hgo, #Hlr, #Hga⟩
     · iframe; iframe #
     imodintro; iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr, #Hga⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr, #Hga, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -177,9 +177,10 @@ theorem Main.wp_proof
   iunfold etcdstart.etcdLeaseGrantAt at Hga
   icases Hga with ⟨#Hrg, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient go!"127.0.0.1:23956" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23956" [] null null [] null default)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -204,7 +205,7 @@ theorem Main.wp_proof
   -- `cli.Lease.Grant(gctx, grantTTL)`, `Q`: the reply's lease granted at an index of the history
   wp_apply (wp_Grant lp [go!"127.0.0.1:23956"]
       (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E ρ.rd false) (mvcc.api.mvccLeases E.γ))
-      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E.γ) i m.id)) gctx gcd) as %gr %gerr Hgr
+      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E.γ) i m.id)) gctx gcd) $$ [$Hlt] as %gr %gerr ⟨Hlt, Hgr⟩
   · iframe #
     imodintro; inext
     iunfold etcdLeaseGrantSpec, etcdLeaseGrantSpecW
@@ -231,7 +232,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- `cli.Lease.Leases(lctx)`, handing in the grant: `Q`, the listing has the granted lease
   wp_apply (wp_Leases lp [go!"127.0.0.1:23956"] (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ))
-      (fun m => iprop(⌜mg.id ∈ m.ids⌝)) lctx lcd) as %lsr %lerr Hls
+      (fun m => iprop(⌜mg.id ∈ m.ids⌝)) lctx lcd) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
   · iframe #
     imodintro; inext
     iunfold etcdLeaseLeasesSpec, etcdLeaseLeasesSpecW

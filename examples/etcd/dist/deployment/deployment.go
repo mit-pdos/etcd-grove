@@ -231,7 +231,7 @@ func nameOk(n string) bool {
 	return true
 }
 
-// AddrOk is the net extension's addrOk (Lean: Net.addrOk; kvnet.AddrOk's, copied: kvnet is a
+// AddrOk is the net extension's addrOk (Lean: Net.addrOk; kvraft.AddrOk's, copied: kvraft is a
 // module of its own): a canonical a.b.c.d:p, the first octet 1-223, the port 1-65535 outside
 // Linux's ephemeral range.
 func AddrOk(a string) bool {

@@ -119,7 +119,7 @@ def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
     {{ zapLoggerOk cfg.Logger' ∗
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-        envVerifyOff ∗
+        ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
         srvFiles cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))

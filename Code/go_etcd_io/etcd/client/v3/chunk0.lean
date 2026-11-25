@@ -685,6 +685,9 @@ noncomputable def ErrOldCluster [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrMutuallyExclusiveCfg [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrMutuallyExclusiveCfg"
 
+noncomputable def clientTargetSeq [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/client/v3.clientTargetSeq"
+
 noncomputable def LeaseResponseChSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.LeaseResponseChSize"
 
@@ -1537,6 +1540,45 @@ noncomputable def Client.Ctx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0"))))))
 
+/-- Endpoints lists the registered endpoints for the client.
+
+    go: client.go:167:18 -/
+noncomputable def Client.Endpoints.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.string)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))
+  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "eps") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"epMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"epMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c"))))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0"))))))
+
 /-- SetEndpoints updates client's endpoints.
 
     go: client.go:177:18 -/
@@ -1838,7 +1880,7 @@ noncomputable def Client.getToken.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dial configures and dials any grpc balancer target.
 
-    go: client.go:318:18 -/
+    go: client.go:322:18 -/
 noncomputable def Client.dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "creds"
@@ -1859,9 +1901,10 @@ noncomputable def Client.dial.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"DialOptions"))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Val #(go!"%s://%p/%s"))
+  (Let "$r0" (Let "$a0" (Val #(go!"%s://0x%x/%s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!"etcd-endpoints")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.PointerType Client.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.uint64 go.any))) (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Add"))) (App (Val (GoInstruction (GlobalVarAddr clientTargetSeq))) (Val #()))) (Var "$a0"))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"endpoints"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))) (Val #(W64 0)))))
   (App (App (Val (GoInstruction (FuncResolve authority []))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
@@ -1901,7 +1944,7 @@ noncomputable def Client.dial.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)))) (Pair (Var "opts") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ClientConn.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: client.go:331:6 -/
+/-- go: client.go:335:6 -/
 noncomputable def authority.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "endpoint"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1960,7 +2003,7 @@ noncomputable def authority.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "spl") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: client.go:345:18 -/
+/-- go: client.go:349:18 -/
 noncomputable def Client.credentialsForEndpoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ep"
@@ -2015,7 +2058,7 @@ noncomputable def Client.credentialsForEndpoint.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.internal.endpoint.CredsRequirement.ty))) (Pair (Var "r") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Var "$res0"))))))
 
-/-- go: client.go:362:6 -/
+/-- go: client.go:366:6 -/
 noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Client.ty)))) (Val #())))
@@ -2417,7 +2460,7 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
 /-- roundRobinQuorumBackoff retries against quorum between each backoff.
     This is intended for use with a round robin load balancer.
 
-    go: client.go:491:18 -/
+    go: client.go:495:18 -/
 noncomputable def Client.roundRobinQuorumBackoff.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "waitBetween"
@@ -2499,7 +2542,7 @@ noncomputable def Client.roundRobinQuorumBackoff.impl [GooseExts] [GoGlobalConte
 /-- isHaltErr returns true if the given error and context indicate no forward
     progress can be made, even after reconnecting.
 
-    go: client.go:570:6 -/
+    go: client.go:574:6 -/
 noncomputable def isHaltErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -2550,7 +2593,7 @@ noncomputable def isHaltErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- isUnavailableErr returns true if the given error is an unavailable error
 
-    go: client.go:588:6 -/
+    go: client.go:592:6 -/
 noncomputable def isUnavailableErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -2613,7 +2656,7 @@ noncomputable def isUnavailableErr.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ContextError converts the error into an EtcdError if the error message matches one of
     the defined messages; otherwise, it tries to retrieve the context error.
 
-    go: client.go:606:6 -/
+    go: client.go:610:6 -/
 noncomputable def ContextError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "err"
@@ -2707,7 +2750,7 @@ noncomputable def ContextError.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: client.go:628:6 -/
+/-- go: client.go:632:6 -/
 noncomputable def canceledByCaller.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "stopCtx"
   (Lam "err"
@@ -11484,6 +11527,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"etcdclient: no available endpoints"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -11634,6 +11678,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc ErrOldCluster go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrMutuallyExclusiveCfg go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc clientTargetSeq _root_.Perennial.sync.atomic.Uint64.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc LeaseResponseChSize go.int)) (Val #()))))))
   (App (Val doExecute)

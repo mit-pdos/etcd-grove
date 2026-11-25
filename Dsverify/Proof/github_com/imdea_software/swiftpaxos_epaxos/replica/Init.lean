@@ -16,17 +16,17 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.bufio.Init
+public import Proof.encoding.json.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.rpc.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Init
-public import Net.Proof.net.Init
-public import Net.Proof.os.Init
+public import Proof.net.Init
+public import Proof.os.Init
 public import Perennial.Proof.errors.NewVar
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

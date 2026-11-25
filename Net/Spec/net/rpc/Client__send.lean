@@ -37,14 +37,29 @@ abbrev Client.send.spec : Prop :=
     (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF),
   {{ isClientN c W a γ ∗
       ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil ∧ pc ≠ null⌝ ∗
-      codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
+      ⌜sm.length + 16 ≤ maxFrameN⌝ ∗ codecSet C ∗ C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) ∗
       ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
       callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ interface.nil ∗
       callDone γ.conn γt sm args reply ch γf K Φ Θ D }}
     (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"send")) (Val #pc))
   {{ RET #(); ∃ o, ticket γt o ∗
-      sendRes γ.conn o Rargs (C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs))) }}
+      sendRes γ.conn o Rargs (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs))) }}
+
+/-- `c.send(call)` on a client closing for good (`cliClosed c`): refused, whatever the call (no
+service, encoding or deposit needed): the call fails with `ErrShutdown` (`callPost` at no number,
+`D` back) and its ticket is `none`. Proved in `Net/Proof/net/rpc/Client__sendClosed.lean`. -/
+abbrev Client.send.spec_closed : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames) (pc : Loc) (sm : GoString)
+    (args reply : GoInterface) (ch : Loc) (γt : GName) (γf : FutureNames)
+    (K : Loc → IProp GF) (Φ : List w8 → GoString → IProp GF) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF),
+  {{ isClientN c W a γ ∗ cliClosed c ∗ D ∗
+      ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
+      callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ interface.nil ∗
+      callDone γ.conn γt sm args reply ch γf K Φ Θ D }}
+    (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"send")) (Val #pc))
+  {{ RET #(); ticket γt none }}
 
 end spec
 

@@ -55,7 +55,7 @@ theorem watcher.Watch.wp_proof
     watcher.Watch.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ _ wp sp c W γk ci cd kp n opts sie sel emp Q HQok Hhist Hnr Hpfx Hkp Hklen Hsuf Hn
     Hpn Hrt
-  wp_start as ⟨#Hst, #Hsw, #Hwp, #Hsie, #Hsel, #Hwl, #Hrs, #Hctx, #Hmd, #Hce, #Hsig, %Htb, #Hra,
+  wp_start as ⟨Hlt, #Hst, #Hsw, #Hwp, #Hsie, #Hsel, #Hwl, #Hrs, #Hctx, #Hmd, #Hce, #Hsig, %Htb, #Hra,
     #Hre⟩
   ihave #Hsw' := Hsw
   iunfold storeWatchOk at Hsw'
@@ -82,12 +82,12 @@ theorem watcher.Watch.wp_proof
     wp_auto
     wp_apply (wp_getStart wp crv (GoInterface.ok ci) n opts sie
       (fun r err => iprop(⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗
-        ∃ σ : KVState, □ Q 0 σ ∗ ⌜r = W64 (σ.rev : Int)⌝)))) $$ [] as %r0 %err Hr0
+        ∃ σ : KVState, □ Q 0 σ ∗ ⌜r = W64 (σ.rev : Int)⌝)))) $$ [$Hlt] as %r0 %err ⟨Hlt, Hr0⟩
     · iframe #
-      iintro %_
+      iintro %_ Hlt
       iapply Hcrv
-      wp_apply (wp_GetCRV Obj sp c ci cd c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ []
-        as %m %e Hout
+      wp_apply (wp_GetCRV Obj sp c ci cd c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ [$Hlt]
+        as %m %e ⟨Hlt, Hout⟩
       · iframe #
         isplitr
         · iapply ctxOk_of_isContext $$ [$Hctx $Hmd]
@@ -95,6 +95,7 @@ theorem watcher.Watch.wp_proof
       iexists m, e
       isplitr
       · ipureintro; rfl
+      iframe Hlt
       iexists m, e
       isplitr
       · ipureintro; rfl
@@ -161,6 +162,7 @@ theorem watcher.Watch.wp_proof
       | ok ei =>
         wp_auto
         iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact He
     subst He
     wp_auto
@@ -202,6 +204,7 @@ theorem watcher.Watch.wp_proof
     wp_apply (wp_WatchInitialized ci) $$ [$Pfc $Hsig]
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl
@@ -235,12 +238,12 @@ theorem watcher.Watch.wp_proof
     wp_auto
     wp_apply (wp_getStart wp crv (GoInterface.ok ci) n opts sie
       (fun r err => iprop(⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗
-        ∃ σ : KVState, □ Q 0 σ ∗ ⌜r = W64 (σ.rev : Int)⌝)))) $$ [] as %r0 %err Hr0
+        ∃ σ : KVState, □ Q 0 σ ∗ ⌜r = W64 (σ.rev : Int)⌝)))) $$ [$Hlt] as %r0 %err ⟨Hlt, Hr0⟩
     · iframe #
-      iintro %_
+      iintro %_ Hlt
       iapply Hcrv
-      wp_apply (wp_GetCRV Obj sp c ci cd c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ []
-        as %m %e Hout
+      wp_apply (wp_GetCRV Obj sp c ci cd c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ [$Hlt]
+        as %m %e ⟨Hlt, Hout⟩
       · iframe #
         isplitr
         · iapply ctxOk_of_isContext $$ [$Hctx $Hmd]
@@ -248,6 +251,7 @@ theorem watcher.Watch.wp_proof
       iexists m, e
       isplitr
       · ipureintro; rfl
+      iframe Hlt
       iexists m, e
       isplitr
       · ipureintro; rfl
@@ -314,6 +318,7 @@ theorem watcher.Watch.wp_proof
       | ok ei =>
         wp_auto
         iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact He
     subst He
     wp_auto
@@ -355,6 +360,7 @@ theorem watcher.Watch.wp_proof
     wp_apply (wp_WatchInitialized ci) $$ [$Pfc $Hsig]
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl

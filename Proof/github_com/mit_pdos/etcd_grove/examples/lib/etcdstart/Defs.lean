@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInterceptor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.net.InvNet
@@ -82,6 +83,27 @@ theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoS
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
 
+/-- **An address within etcd's URL bounds** (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2):
+`http://addr` a plain peer URL (`http://host:port`, `types.plainPeerURL`) of at most
+`etcdURLLenMax` bytes, so that a member's URL list `[http://addr]` is within `NewServer`'s
+`etcdURLsFit` (`etcdURLsFit_httpURL`). Decidable: the examples' literal addresses discharge it by
+`decide`. -/
+def addrFits (a : GoString) : Prop :=
+  types.plainPeerURL (go!"http://" ++ a) ∧ (go!"http://" ++ a).length ≤ etcdURLLenMax
+
+instance (a : GoString) : Decidable (addrFits a) := by unfold addrFits; infer_instance
+
+/-- **`[http://addr]` is within etcd's URL bounds**, of an address that fits (`NewServer`'s
+`etcdURLsFit` premise). -/
+theorem etcdURLsFit_httpURL (a : GoString) (h : addrFits a) : etcdURLsFit [httpURL a] := by
+  refine ⟨by simp [etcdURLCountMax], fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := h.1.2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape a hpl
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, h.2⟩
+
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
 the member's initial URLs its peer URLs. -/
@@ -116,16 +138,20 @@ theorem utf8Keys_insert (M : GMap GoString GoSlice) (n : GoString) (sl : GoSlice
 
 /-- **`bootstrap`'s configuration conditions at either start** (`bootCfgOk`; 2026-11-03, the
 whole-`bootOk` review, C) from the fields a configuration literal sets: the default quota,
-batch limit and bootstrap defragmentation (zero), raft's `10` ticks (2026-11-03, the boot premises:
+batch limit and bootstrap defragmentation (zero), raft's `10` ticks, peer TLS with no certificate
+(the literal leaves `PeerTLSInfo` zero; 2026-11-25) (2026-11-03, the boot premises:
 the clock no longer `bootCfgOk`'s; `raftNode.bootCfg_of` takes it; sweep repairs 1, R1-2: the logger
-no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract). -/
+no longer `bootCfgOk`'s, `zapLoggerOk` in `bootstrap`'s contract; claim #34's final stage, 2026-11-25:
+the WAL's fsync on, `UnsafeNoFsync` false, the literal's zero value). -/
 theorem bootCfgOk_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (hq : cfg.QuotaBackendBytes' = W64 0)
     (hbl : cfg.BackendBatchLimit' = W64 0)
     (hdf : cfg.BootstrapDefragThresholdMegabytes' = W64 0)
-    (het : cfg.ElectionTicks' = W64 10) : bootCfgOk cfg := by
+    (het : cfg.ElectionTicks' = W64 10)
+    (htls : transport.tlsEmpty cfg.PeerTLSInfo')
+    (hnf : cfg.UnsafeNoFsync' = false) : bootCfgOk cfg := by
   have hl : storage.openLimit cfg = W64 10000 := by unfold storage.openLimit; rw [if_pos hbl]
-  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_⟩
+  refine ⟨storage.openMmapOk_of_quota_zero cfg hq, ?_, ?_, hdf, ?_, htls, hnf⟩
   · rw [hl]; decide
   · rw [hl]; decide
   · rw [het]; decide
@@ -197,7 +223,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
 
 /-- **The premises shared by the members** (see the file header). -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance
@@ -499,7 +525,8 @@ being built with etcd's interceptor chains and services (`v3rpc.Server.spec`'s p
 the configuration `C` `grpcCfgOk_of_started` gives: the KV answers of the server's views at
 `E`, `ρ`, `γr`; the watch server's state `R` at `E`; per-type stage B3: no reader stock of the
 watchable store any more, the watch runs borrow from the run pools), the
-server's resources back, and the listener `lis` at `addr`. -/
+server's resources back, and the listener `lis` at `addr`; (2026-11-24) the unary chain etcd's by
+identity (`v3rpc.etcdUnaryIcs`, what `etcd_noRefusal` reads). -/
 def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
     (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw : Loc) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -519,7 +546,8 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs ∗
+    v3rpc.etcdUnaryIcs s [il, im, iu])
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -652,7 +680,8 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs ∗
+    v3rpc.etcdUnaryIcs s [il, im, iu])
 
 open Iris.ProofMode in
 /-- **`grpcUpM` with auth off is `grpcUp`** (a bridge): the configuration, the `*kvServer` and the
@@ -664,7 +693,7 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
+    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, #Hics⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
     rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
@@ -696,7 +725,7 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu, -⟩
   obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢
       v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by
@@ -737,6 +766,22 @@ theorem serveViews_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
   rw [hon, isServerReqM_false, isServerReadM_false]
   iframe #
   ipureintro; exact ⟨rfl, by rw [hM]; simp⟩
+
+/-- **The level-0 token of a member's `GoAttach` resources, lent out** (decision 1b, 2026-11-24): the
+thread holding `srvGoRes` (its own thread token, given to `Start`) borrows its level 0 for its client
+calls; `GoAttach` uses only the levels from 1 (`GoAttachTok.lean`). -/
+theorem srvGoRes_level0 (s : Loc) :
+    srvGoRes (GF := GF) s ⊢ levelTok 0 ∗ (levelTok 0 -∗ srvGoRes s) := by
+  iintro H
+  iunfold srvGoRes at H
+  icases H with ⟨Hwg, Htok⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
+  iframe H0
+  iintro H0
+  iunfold srvGoRes
+  iframe Hwg
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe
 
 end defs
 

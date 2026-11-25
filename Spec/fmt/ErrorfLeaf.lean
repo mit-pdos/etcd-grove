@@ -9,7 +9,8 @@ are aggregated: `Proof/.../util/errors/Defs.lean`'s `errLeafOk`). **Proved** fro
 method sets `Error`, `Unwrap` and `Error`: `Error() string`, no `Format`, no `Errors`; `Error()`
 returns the formatted message (`errOk`). The arguments' slice is read, and given back. (Until fmtmodel,
 proved over Perennial's previous model, `errors.New(format)`, and `fmt.argsOk` admitted read-only
-slices under `%v`/`%s`; those calls now use `fmt.ErrorfSlice`.) Lean-first.
+slices under `%v`/`%s`; those calls used the axiom `fmt.ErrorfSlice`, false of the real `fmt` and
+retired 2026-11-24: the k8s fork spells those slices out, mit-pdos/etcd-grove#9.) Lean-first.
 -/
 module
 

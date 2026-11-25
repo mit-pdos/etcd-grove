@@ -47,27 +47,28 @@ theorem Client.Get.latest (h : Client.Get.spec (GF := GF) (hG := hG))
     (opts : go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (Q : w64 → w64 → KVState → IProp GF)
     (hrev : opts.Revision' = W64 0) (hk : key.length ≤ opKeyMax) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
+      (isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      (∀ R m, |==> □ [∧list] x ∈ ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R m)) }}
+      (∀ R m, |==> □ [∧list] x ∈ ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R m))) }}
     (App (App (App (Val (kc @!! go_etcd_io.etcd.client.v3.kubernetes.Client.ty @!! go!"Get"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #opts))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (err : GoInterface),
-      RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) (modAt key σ) σ ∗
+      RET (PairV #resp #err); levelTok 0 ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) (modAt key σ) σ ∗
         ⌜resp.Revision' = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧
           ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗
         kvOut resp.KV' (mvcc.findKey key σ.kvs)) ∨
       ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-        go_etcd_io.etcd.cache.v3.errCellOk err }} := by
+        go_etcd_io.etcd.cache.v3.errCellOk err) }} := by
   have h0 : 0 ≤ sint.Z opts.Revision' := by rw [hrev]; decide
   iintro %Φ Hpre HΦ
   iapply (h kc ms V ci cd key opts Q h0 hk) $$ [Hpre]
   · iexact Hpre
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %σ, #HQ, %Hσ, #Hkv⟩ | ⟨%Herr, %Hce, #Hse, #Hcl, -⟩)
   · ileft
     isplitl []

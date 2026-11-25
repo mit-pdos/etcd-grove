@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Member.l
 
 The in-process putget's `Main` up to `Serve` (`Proof/.../examples/etcd/putget/Main.lean`), on a machine of its
 own: `zap.NewNop()`; the
-member's start bundle from `ETCD_VERIFY` off (the precondition's `envVerifyOff`) and the fresh data directory and WAL area
+member's start bundle from `ETCD_VERIFY` off (the precondition's `EtcdVerifyOff`) and the fresh data directory and WAL area
 (`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises (`etcdstart.wp_StartServer1`,
 shared with the in-process `Main`: `alloc1` inside); the client's putget invariant allocated from the
 bootstrap log's KV state (`client.putGetInv_alloc_log`, as the in-process `Main`); `etcdstart.Serve` in S2's
@@ -47,7 +47,7 @@ theorem Member.wp_proof
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S peer client id ctxs boot γE Pub Hbf hpl HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB S peer client id ctxs boot γE Pub Hbf hpl Hpf Hcf HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
   have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
@@ -72,7 +72,7 @@ theorem Member.wp_proof
   ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hdd Hwa]
   · iframe; iframe #
   wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 28) name peer client lg id ctxs boot Hbf hpl
-      (by decide) (by decide) Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
+      (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)
   · cases err with

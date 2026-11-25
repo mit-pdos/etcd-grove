@@ -88,7 +88,7 @@ abbrev NewServer.specC : Prop :=
       -- `bootstrap`'s contract on a data directory a crash (or a stop) left
       "#HbootC" ∷ bootstrapCrashContract cfg U γ id N dir ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the image the crash left, in the configuration's data directory
       "Himg" ∷ srvCrashImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗

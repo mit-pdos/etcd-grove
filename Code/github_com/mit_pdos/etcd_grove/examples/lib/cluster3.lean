@@ -12,6 +12,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Code.github_com.mit_pdos.etcd_grove.third_party.bridge
+public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -79,6 +80,12 @@ noncomputable def StartCluster [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def NewClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/cluster3.NewClient"
+
+noncomputable def below [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/cluster3.below"
+
+noncomputable def RandomSchedule [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/cluster3.RandomSchedule"
 
 /-- holdToken sleeps forever. StartMember runs it on a goroutine of its own, which touches no lock:
     the proof hands that goroutine's thread token to the gRPC server's one slot, for the goroutine
@@ -761,13 +768,75 @@ noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- below is a random number in [0, n) (n > 0).
+
+    go: schedule.go:10:6 -/
+noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
+
+/-- RandomSchedule is a schedule of n random steps (none if n <= 0): each after a delay below a
+    second, of a random kind on random members among the three (an out-of-range or equal pair does
+    nothing, as Step says). The program draws its own fault schedule, so the theorem about it is
+    about every schedule this can produce, with no premise on a schedule it is given.
+
+    go: schedule.go:16:6 -/
+noncomputable def RandomSchedule.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Step.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Step.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "sched" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Step.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Step.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Step.ty)))) (Var "sched"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Step.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Step.ty)))) (Var "sched"))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (Val #(W64 1000000000)))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 5))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
+  (Let "$v3" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction (CompositeLiteral Step.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Delay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"A")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"B")) (ElementExpression go.int (Var "$v3")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Step.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Step.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Step.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Step.ty)))) (Pair (Var "sched") (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Step.ty)))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge, pkg_id.github_com.goose_lang.primitive]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -799,7 +868,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))))
 
 structure Config [GooseExts] where
   mk ::
@@ -984,6 +1055,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Partitioner_unfold : FuncUnfold Partitioner [] Partitioner.impl
   StartCluster_unfold : FuncUnfold StartCluster [] StartCluster.impl
   NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
+  below_unfold : FuncUnfold below [] below.impl
+  RandomSchedule_unfold : FuncUnfold RandomSchedule [] RandomSchedule.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
@@ -995,6 +1068,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
   import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
 attribute [instance] Assumptions.Config_instance
   Assumptions.Step_instance
@@ -1006,6 +1080,8 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.Partitioner_unfold
   Assumptions.StartCluster_unfold
   Assumptions.NewClient_unfold
+  Assumptions.below_unfold
+  Assumptions.RandomSchedule_unfold
   Assumptions.import_net_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
@@ -1017,6 +1093,7 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.import_v3rpc_Assumption
   Assumptions.import_etcdstart_Assumption
   Assumptions.import_bridge_Assumption
+  Assumptions.import_primitive_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 

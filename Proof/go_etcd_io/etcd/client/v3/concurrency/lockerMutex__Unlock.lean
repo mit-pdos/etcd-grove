@@ -32,19 +32,20 @@ theorem lockerMutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG :=
     (hUnlock : Mutex.Unlock.spec (GF := GF) (hG := hG)) :
     lockerMutex.Unlock.spec (GF := GF) (hG := hG) := by
   intro lm m s γ client id pfx st cctx ccs lo
-  wp_start as ⟨Hlm, #Hm, Hst, #Hcc, #Hctx, #HctxC, #Hlo⟩
+  wp_start as ⟨Hlt, Hlm, #Hm, Hst, #Hcc, #Hctx, #HctxC, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, -, -, #Hsess, -⟩
   wp_auto
   wp_apply hCl s γ client id $$ [$Hpkg $Hsess]
   wp_apply hCtx client (GoInterface.ok cctx) $$ [$Hcc]
-  wp_apply hUnlock m s γ client id pfx st cctx ccs lo $$ [$Hpkg $Hm $Hst $Hctx $HctxC $Hlo]
-    as %err Hres
+  wp_apply hUnlock m s γ client id pfx st cctx ccs lo $$ [$Hlt $Hpkg $Hm $Hst $Hctx $HctxC $Hlo]
+    as %err ⟨Hlt, Hres⟩
   icases Hres with (⟨%Herr, Hok⟩ | ⟨#Hexp, Hst, -⟩ | ⟨%Hne, Hst⟩)
   · subst Herr
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe Hlm
     ileft
     isplitr
@@ -59,6 +60,7 @@ theorem lockerMutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG :=
     wp_auto
     wp_apply wp_panic
     iapply HΦ
+    iframe Hlt
     iframe Hlm
     iright
     iexists _
@@ -72,6 +74,7 @@ theorem lockerMutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG :=
     wp_auto
     wp_apply wp_panic
     iapply HΦ
+    iframe Hlt
     iframe Hlm
     iright
     iexists _

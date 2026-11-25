@@ -30,22 +30,20 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev callTxn.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
     (Q : KVState → IProp GF), decIn x = some (.txn cs t e) → t ++ e ≠ [] →
     minBytesLe inMax (.txn cs t e) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
       ([∗list] sv ∈ ms, client.kvRegsAt sv) ∗
-      ([∧list] sv ∈ ms, callUpd sv.γr.kv (.txn cs t e) Q) }}
+      ([∧list] sv ∈ ms, callUpd sv.γr.kv (.txn cs t e) Q)) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn)) (Val #cl))
       (Val #x))
-  {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
+  {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
       ∃ σ : KVState, callRes (.txn cs t e) Q σ ∗
         ⌜y = withResL
             (txnBase (if (linkv.MIn.txn cs t e).isWrite then
@@ -53,7 +51,7 @@ abbrev callTxn.spec : Prop :=
               (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).1)
             (((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
               (linkv.txnOf cs t e)).2.2.map linkv.resOf).map encRes) ∧
-          kvRevFits σ.rev⌝ }}
+          kvRevFits σ.rev⌝) }}
 
 end spec
 

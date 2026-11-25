@@ -30,13 +30,14 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem watcher.getStartWatchResourceVersion.wp_proof :
     watcher.getStartWatchResourceVersion.spec (GF := GF) (hG := hG) := by
   intro wp crv ctx rev opts sie R
-  wp_start as ⟨#Hcrvf, #Hsie, #Hon, Hcrv⟩
+  wp_start as ⟨Hlt, #Hcrvf, #Hsie, #Hon, Hcrv⟩
   wp_auto
   rw [show sint.Z (W64 0) = 0 from rfl]
   by_cases hr : 0 < sint.Z rev
   · rw [decide_eq_true hr]
     wp_auto
     iapply HΦ
+    iframe Hlt
     simp only [hr, ↓reduceIte]
     itrivial
   rw [decide_eq_false hr]
@@ -67,6 +68,7 @@ theorem watcher.getStartWatchResourceVersion.wp_proof :
     rw [hn]
     wp_auto
     iapply HΦ
+    iframe Hlt
     simp only [hr, reduceCtorEq, ↓reduceIte]
     ipureintro; simp
   | some v =>
@@ -79,22 +81,24 @@ theorem watcher.getStartWatchResourceVersion.wp_proof :
     | true =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       simp only [hr, Option.some.injEq, Bool.true_eq_false, ↓reduceIte]
       ipureintro; simp
     | false =>
       (try wp_auto)
       have hpre : sint.Z rev ≤ 0 ∧ some false = some false := ⟨by omega, rfl⟩
-      ispecialize Hcrv $$ %hpre
+      ispecialize Hcrv $$ %hpre Hlt
       wp_bind (App (Val _) (Val _))
       iapply (wp_wand) $$ [Hcrv]
       · iexact Hcrv
-      iintro %v ⟨%n, %err, %Hv, HR⟩
+      iintro %v ⟨Hlt, %n, %err, %Hv, HR⟩
       subst Hv
       wp_auto
       cases err with
       | nil =>
         wp_auto
         iapply HΦ
+        iframe Hlt
         simp only [hr, ↓reduceIte]
         iexists n
         isplitl [HR]
@@ -103,6 +107,7 @@ theorem watcher.getStartWatchResourceVersion.wp_proof :
       | ok ei =>
         wp_auto
         iapply HΦ
+        iframe Hlt
         simp only [hr, ↓reduceIte, reduceCtorEq]
         iexists n
         isplitl [HR]

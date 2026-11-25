@@ -11,6 +11,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.hash.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -24,7 +25,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Init
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.InitLinked
-public import Proof.hash.Init
 public import Proof.hash.crc32.InitLinked
 public import Proof.os.Init
 public import Proof.path.filepath.Init
@@ -41,6 +41,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
@@ -152,7 +153,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.hash.wp_initialize'_lb _ Hinit.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.hash _root_.Perennial.hash.initialize'
+      EtcdGrove.ExternalInit.hash _root_.Perennial.hash.wp_initialize' _ Hinit.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1))

@@ -242,7 +242,7 @@ theorem NewServer.wp_proofRG
     NewServer.specR (GF := GF) (hG := hG) := by
   haveI := Hp.1
   intro cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0 Hlog0 Hkcmp Hcbl
-    Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU Hrnc Hdirs Hlbc Hbco Hfnc
+    Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hlbc Hbco Hfnc
     Hdwd Hbwb
   have Hslg : ∃ m' : lease.Mode, lease.runCfg (GF := GF) ρ.rd.kv.lm m' := ⟨m, lease.bootCfg_run Hlbc⟩
   replace Hbnd : threadBound GF ≤ 2 ^ 28 := Hbnd
@@ -471,7 +471,7 @@ theorem NewServer.wp_proofRG
   · iunfold bootCfgRO at Hcfgro
     icases Hcfgro with ⟨-, #H, -⟩
     iexact H
-  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, ⟨%cuss, Hcus, -⟩⟩
+  wp_apply h13 $$ [ClientURLs] as %cus ⟨ClientURLs, ⟨%cuss, Hcus, %Hcuss⟩⟩
   · iframe ClientURLs; iframe #
   -- (prove-ps2-srvgoroutines, 2026-11-24) the attributes' URLs, read-only for good (`srvAttrsRO`)
   ipersist Hcus
@@ -1227,14 +1227,14 @@ theorem NewServer.wp_proofRG
   have HLmem : ∀ f, f ∈ ps.filter (· ≠ id) ↔ f ∈ ps ∧ f ≠ id := by
     intro f; simp [List.mem_filter]
   have Hturls : trURLsOk (netRh γn) id U.peer :=
-    trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
+    trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU HfU
   wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) (config.snapDirOf cfg.DataDir') U.peer (ps.filter (· ≠ id)))
     $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
     simp only
     rw [Hid]
     iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf HrPool Hzlg HssI
-    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls⟩ <;> first | rfl | trivial
+    ipureintro; refine ⟨Hssnn, Hlsnn, ?_, Hdid, HLnd, Hturls, Hbco.2.2.2.2.2.1⟩ <;> first | rfl | trivial
   icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #HtrNet, #Htrr, -⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with
@@ -2086,6 +2086,7 @@ theorem NewServer.wp_proofRG
     iunfold srvAttrsRO
     iexists _, _, _
     iframe NameA ClientURLsA Hcus
+    ipureintro; exact HfC.strings Hcuss.1 Hcuss.2
   ihave #Hrvkb : srvRevokeBuilt s (({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt, Wt := srvApi.winTok γwt, stq := (1 : Qp).half.half } : apply.AEnv GF) : apply.AEnv GF) $$ []
   · iapply srvRevokeBuilt_intro s _ astl
     isplitr

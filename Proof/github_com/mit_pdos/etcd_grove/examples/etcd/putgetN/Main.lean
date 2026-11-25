@@ -108,7 +108,7 @@ theorem Main.wp_proof
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
       ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC k N ids ps ctxs boot hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
+  intro CS k N ids ps ctxs boot hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hms hAs
   wp_start as ⟨Hss, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -183,6 +183,9 @@ theorem Main.wp_proof
     fun x hx => members_names_utf8 k _ (List.of_mem_zip hx).1
   have hnlen : ∀ x ∈ (members k).zip gs, x.1.Name'.length ≤ 200 :=
     fun x hx => members_names_len k _ (List.of_mem_zip hx).1
+  -- (fmt stage 1, 2026-11-24) the members' addresses within etcd's URL bounds
+  have haf : ∀ x ∈ (members k).zip gs, etcdstart.addrFits x.1.Peer' ∧ etcdstart.addrFits x.1.Client' :=
+    fun x hx => etcdstart.membersOf_addrFits _ _ _ _ x.1 (List.of_mem_zip hx).1
   have hnd : (((members k).zip gs).map (·.1.Name')).Nodup := by
     rw [show ((members k).zip gs).map (·.1.Name') = (((members k).zip gs).map (·.1)).map (·.Name')
       by rw [List.map_map]; rfl, hxs1]
@@ -216,7 +219,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartMembers N token (W64 10000) (W64 281474976710656) msl lg ((members k).zip gs) ps
       (LogEntry.toEntries boot 0) ctxs
       (dirN (members k) ids) Φs γn .none false Htb Hrb48 HrbN HwbN (by simp [LogEntry.toEntries, hblen]; omega)
-      hγn2 Hdok Hbc hnd hutf hnlen hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
+      hγn2 Hdok Hbc hnd hutf hnlen haf hxok Haf Hbuq Hdbo) $$ [Htok Hpres] as %ssl %serr Hsr
   · rw [hxs1]
     iframe; iframe #
   icases Hsr with ⟨Htok, (%Hserr | ⟨%Hserr, %ss, Hss, Hups⟩)⟩
@@ -289,7 +292,7 @@ theorem Main.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve s0 m0.Client' E { g0.ρ with wait := γw } g0.ρ.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt m0.Client' E { g0.ρ with wait := γw } g0.ρ.rd cid mid))
+      (fun cid mid _ => iprop(etcdstart.etcdKVAt m0.Client' E { g0.ρ with wait := γw } g0.ρ.rd cid mid ∗ srvGoRes s0)))
     $$ [Hac Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -297,10 +300,10 @@ theorem Main.wp_proof
     iintro %gs' %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    iapply (etcdstart.kv_served s0 E { g0.ρ with wait := γw } g0.ρ.rd gs' lis m0.Client' cid mid R
+    iapply (etcdstart.kv_served_go s0 E { g0.ρ with wait := γw } g0.ρ.rd gs' lis m0.Client' cid mid R
       Hrb48 Hrf rfl HLv)
     iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -313,10 +316,11 @@ theorem Main.wp_proof
   -- `NewClient(ms[0].Client, lg)` (etcd's default client configuration)
   simp only [Hbm, _root_.and_self, ↓reduceIte]
   (try wp_auto)
+  icases etcdstart.srvGoRes_level0 s0 $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient m0.Client' lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E g0.ρ.rd false) g0.ρ.rd m0.Client' [] null
         null [] null default)
-      (by rw [hm0]; exact loopback_plainEndpoint _) (by omega)) as %cl %cerr Hcl
+      (by rw [hm0]; exact loopback_plainEndpoint _) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -361,7 +365,7 @@ theorem Main.wp_proof
   wp_apply (client.client_Put_own cl m0.Client' _ E g0.ρ.rd γf cid mid
       pctx pcd go!"k" go!"v" slice.nil []
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide))) as %presp %perr Hput
+        (by decide))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hput⟩
   · iframe #
   (try wp_auto)
   wp_apply Hpcancel
@@ -386,7 +390,7 @@ theorem Main.wp_proof
   wp_apply (client.client_Get_own cl m0.Client' _ E g0.ρ.rd γf (W64 0) cid mid
       gctx gcd go!"k" go!"v" slice.nil []
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
-    as %gresp %gerr Hget
+    $$ [$Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
   · iframe #
     iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl

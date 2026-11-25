@@ -59,7 +59,7 @@ abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalCont
     (σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) ∧
     (σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ) ∧
     (σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ) ∧
-    (∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
+    EtcdVerifyOff
 
 /-- **The machines' boot WPs, for a well-formed deployment** (see the file header): at
 `etcd_robust_nocrash.spec`'s premises, the start update from the deployment's addresses unset to a share
@@ -70,7 +70,7 @@ def EtcdBootNC : Prop :=
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
-    (_Hp : BootPremises d σs σc σn) (_HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
       receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
@@ -102,7 +102,7 @@ distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` f
 `ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv HEnvTok Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -112,7 +112,7 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
   by_cases Hd : d.WellFormed
   · exact Net.robust_of_distBootIL (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
       (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) HI
-      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok Hfips hlo hb)
+      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hlo hb)
       ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootIL (GF := etcdDistGF) [] (machines d σs σc σn) g
       (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) HI
@@ -144,7 +144,7 @@ def EtcdBootC : Prop :=
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
-    (_Hp : BootPremises d σs σc σn) (_HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
+    (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     letI := etcdNetExtsCrashInterpD4b
     ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
@@ -188,7 +188,7 @@ Perennial's distributed crash adequacy restated as `Robust` over `etcdNetExts` w
 client machines do not; on a well-formed deployment at its addresses, on a malformed one at none; each
 machine's `FsInit` from `ServerStart`/`ClientStart`. -/
 theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv HEnvTok Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have Hfs : ∀ m, m ∈ servers d σs ++ (clients d σc ++ nodeMachines d σn) →
       Fs.FsInit (extLocal Fs.fsExt m.2.world) := fun m hm =>
     machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 (by simpa [machines, List.append_assoc] using hm)
@@ -197,7 +197,7 @@ theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spe
   · exact robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp (GF := etcdDistGF) d.addrs
       (servers d σs) (clients d σc ++ nodeMachines d σn) g (2 ^ 28) (2 ^ 28 - 1) srvLevelK hlo
       Hd.addrs.1 Hd.addrs.2 Hfs
-      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok Hfips
+      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips
         hlo hb)
   · refine robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp (GF := etcdDistGF) []
       (servers d σs) (clients d σc ++ nodeMachines d σn) g (2 ^ 28) (2 ^ 28 - 1) srvLevelK hlo

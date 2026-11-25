@@ -69,7 +69,7 @@ theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
     Client.List.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd pfx opts Q0 hpl hcl hrev hlim hcont
-  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
+  wp_start as ⟨Hlt, #Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
   wp_auto
   wp_apply (linkv.wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph)
     as %pr %xs Hpr
@@ -148,8 +148,8 @@ theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         (opSizeOk_opGetModel (K := 2 ^ 27) (E := 2 ^ 27) (V := 0)
           (optsKeep_cons (withRangeM_keep hel) (optsKeep_cons (withLimitM_keep _)
             (optsKeep_cons (withRevM_keep _) (optsKeep_nil _ _ _))))
-          hstl (by decide))) $$ []
-      as %resp %err ⟨-, Hout, #Heo⟩
+          hstl (by decide))) $$ [$Hlt]
+      as %resp %err ⟨Hlt, -, Hout, #Heo⟩
     · iframe #
       isplitl []
       · rw [show (opGetModel start [withRangeM (prefixRangeEnd pfx), withLimitM opts.Limit',
@@ -185,6 +185,7 @@ theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       isimp only [List.getD_cons_zero] at HQ
       imodintro
       iapply HΦ
+      iframe Hlt
       ileft
       isplitl []
       · ipureintro; rfl
@@ -213,6 +214,7 @@ theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       wp_auto
       imodintro
       iapply HΦ
+      iframe Hlt
       iright
       iunfold kvErr at Hke
       icases Hke with ⟨%Hce, #Hse, #Hcl⟩

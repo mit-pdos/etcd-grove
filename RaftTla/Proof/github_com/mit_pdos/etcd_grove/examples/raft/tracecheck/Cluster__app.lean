@@ -108,7 +108,7 @@ theorem Cluster.app.wp_proof
       "Hcfg" ∷ nodeConfig n W.cl tcRaftN v ∗ "Hrun" ∷ nodeRunning n W.cl tcRaftN 1 ∗
       "Hown" ∷ repOwn r ∗ "Hmeta" ∷ memStorMeta ms γs hs ∗
       "Had" ∷ njAdder tcNetN (c.[G.Cluster, go!"net"]) W.nj q ∗ "Htt" ∷ threadTok ∗
-      "%Hst" ∷ ⌜st.handling = none ∧ st.storage = memStorIface ms ∧ ViewOk st.delivered v⌝)
+      "%Hst" ∷ ⌜st.handling = none ∧ st.storage = memStorIface ms ∧ ViewOk W.nv st.delivered v⌝)
     $$ [Hdrv Hrs Hcfg Hrun Hown Hmeta Had Htt]
   · iexists st, v, hs0
     iframe

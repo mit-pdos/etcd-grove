@@ -16,6 +16,47 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+class TxnRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying TxnRequest.underlying TxnRequest
+  underlying : go.UnderlyingDirectedEq TxnRequest.ty TxnRequest.underlying
+  get_state : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : TxnRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : TxnRequest)))
+  get_Compare : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"Compare") #x (Val #(x.Compare'))
+  set_Compare : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"Compare") (PairV #x #y) (Val #(({ x with Compare' := y } : TxnRequest)))
+  get_Success : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"Success") #x (Val #(x.Success'))
+  set_Success : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"Success") (PairV #x #y) (Val #(({ x with Success' := y } : TxnRequest)))
+  get_Failure : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"Failure") #x (Val #(x.Failure'))
+  set_Failure : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"Failure") (PairV #x #y) (Val #(({ x with Failure' := y } : TxnRequest)))
+  get_unknownFields : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : TxnRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : TxnRequest)))
+  get_sizeCache : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : TxnRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet TxnRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : TxnRequest)))
+  method_set : go.MethodSetIs TxnRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TxnRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCompare", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Compare.ty))]))), (go!"GetFailure", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType RequestOp.ty))]))), (go!"GetSuccess", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType RequestOp.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_GetCompare_unfold : MethodUnfold (go.GoType.PointerType TxnRequest.ty) go!"GetCompare" TxnRequest.GetCompare.impl
+  ptr_GetFailure_unfold : MethodUnfold (go.GoType.PointerType TxnRequest.ty) go!"GetFailure" TxnRequest.GetFailure.impl
+  ptr_GetSuccess_unfold : MethodUnfold (go.GoType.PointerType TxnRequest.ty) go!"GetSuccess" TxnRequest.GetSuccess.impl
+
+attribute [instance] TxnRequest.TypeAssumptions.type_repr
+  TxnRequest.TypeAssumptions.underlying
+  TxnRequest.TypeAssumptions.get_state
+  TxnRequest.TypeAssumptions.set_state
+  TxnRequest.TypeAssumptions.get_Compare
+  TxnRequest.TypeAssumptions.set_Compare
+  TxnRequest.TypeAssumptions.get_Success
+  TxnRequest.TypeAssumptions.set_Success
+  TxnRequest.TypeAssumptions.get_Failure
+  TxnRequest.TypeAssumptions.set_Failure
+  TxnRequest.TypeAssumptions.get_unknownFields
+  TxnRequest.TypeAssumptions.set_unknownFields
+  TxnRequest.TypeAssumptions.get_sizeCache
+  TxnRequest.TypeAssumptions.set_sizeCache
+  TxnRequest.TypeAssumptions.method_set
+  TxnRequest.TypeAssumptions.ptr_method_set
+  TxnRequest.TypeAssumptions.ptr_GetCompare_unfold
+  TxnRequest.TypeAssumptions.ptr_GetFailure_unfold
+  TxnRequest.TypeAssumptions.ptr_GetSuccess_unfold
+
 class TxnResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TxnResponse.underlying TxnResponse
   underlying : go.UnderlyingDirectedEq TxnResponse.ty TxnResponse.underlying
@@ -1098,64 +1139,6 @@ attribute [instance] MemberUpdateResponse.TypeAssumptions.type_repr
   MemberUpdateResponse.TypeAssumptions.set_sizeCache
   MemberUpdateResponse.TypeAssumptions.method_set
   MemberUpdateResponse.TypeAssumptions.ptr_method_set
-
-class MemberListRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying MemberListRequest.underlying MemberListRequest
-  underlying : go.UnderlyingDirectedEq MemberListRequest.ty MemberListRequest.underlying
-  get_state : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : MemberListRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : MemberListRequest)))
-  get_Linearizable : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"Linearizable") #x (Val #(x.Linearizable'))
-  set_Linearizable : ∀ (x : MemberListRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"Linearizable") (PairV #x #y) (Val #(({ x with Linearizable' := y } : MemberListRequest)))
-  get_unknownFields : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : MemberListRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : MemberListRequest)))
-  get_sizeCache : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : MemberListRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : MemberListRequest)))
-  method_set : go.MethodSetIs MemberListRequest.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberListRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLinearizable", (some (go.signature.Signature [] false [go.bool]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-
-attribute [instance] MemberListRequest.TypeAssumptions.type_repr
-  MemberListRequest.TypeAssumptions.underlying
-  MemberListRequest.TypeAssumptions.get_state
-  MemberListRequest.TypeAssumptions.set_state
-  MemberListRequest.TypeAssumptions.get_Linearizable
-  MemberListRequest.TypeAssumptions.set_Linearizable
-  MemberListRequest.TypeAssumptions.get_unknownFields
-  MemberListRequest.TypeAssumptions.set_unknownFields
-  MemberListRequest.TypeAssumptions.get_sizeCache
-  MemberListRequest.TypeAssumptions.set_sizeCache
-  MemberListRequest.TypeAssumptions.method_set
-  MemberListRequest.TypeAssumptions.ptr_method_set
-
-class MemberListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying MemberListResponse.underlying MemberListResponse
-  underlying : go.UnderlyingDirectedEq MemberListResponse.ty MemberListResponse.underlying
-  get_state : ∀ (x : MemberListResponse), go.IsGoStepPureDetTagged under (StructFieldGet MemberListResponse.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : MemberListResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet MemberListResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : MemberListResponse)))
-  get_Header : ∀ (x : MemberListResponse), go.IsGoStepPureDetTagged under (StructFieldGet MemberListResponse.underlying go!"Header") #x (Val #(x.Header'))
-  set_Header : ∀ (x : MemberListResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet MemberListResponse.underlying go!"Header") (PairV #x #y) (Val #(({ x with Header' := y } : MemberListResponse)))
-  get_Members : ∀ (x : MemberListResponse), go.IsGoStepPureDetTagged under (StructFieldGet MemberListResponse.underlying go!"Members") #x (Val #(x.Members'))
-  set_Members : ∀ (x : MemberListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MemberListResponse.underlying go!"Members") (PairV #x #y) (Val #(({ x with Members' := y } : MemberListResponse)))
-  get_unknownFields : ∀ (x : MemberListResponse), go.IsGoStepPureDetTagged under (StructFieldGet MemberListResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
-  set_unknownFields : ∀ (x : MemberListResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MemberListResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : MemberListResponse)))
-  get_sizeCache : ∀ (x : MemberListResponse), go.IsGoStepPureDetTagged under (StructFieldGet MemberListResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
-  set_sizeCache : ∀ (x : MemberListResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MemberListResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : MemberListResponse)))
-  method_set : go.MethodSetIs MemberListResponse.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemberListResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType ResponseHeader.ty)]))), (go!"GetMembers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType Member.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-
-attribute [instance] MemberListResponse.TypeAssumptions.type_repr
-  MemberListResponse.TypeAssumptions.underlying
-  MemberListResponse.TypeAssumptions.get_state
-  MemberListResponse.TypeAssumptions.set_state
-  MemberListResponse.TypeAssumptions.get_Header
-  MemberListResponse.TypeAssumptions.set_Header
-  MemberListResponse.TypeAssumptions.get_Members
-  MemberListResponse.TypeAssumptions.set_Members
-  MemberListResponse.TypeAssumptions.get_unknownFields
-  MemberListResponse.TypeAssumptions.set_unknownFields
-  MemberListResponse.TypeAssumptions.get_sizeCache
-  MemberListResponse.TypeAssumptions.set_sizeCache
-  MemberListResponse.TypeAssumptions.method_set
-  MemberListResponse.TypeAssumptions.ptr_method_set
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 

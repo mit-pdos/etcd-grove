@@ -65,6 +65,8 @@ abbrev newServer.spec : Prop :=
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
@@ -113,6 +115,8 @@ abbrev newServer.specRestart : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   retention = W64 0 →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
@@ -122,7 +126,7 @@ abbrev newServer.specRestart : Prop :=
       bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #retention))

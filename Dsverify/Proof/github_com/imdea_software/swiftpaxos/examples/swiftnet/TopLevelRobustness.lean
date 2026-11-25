@@ -127,16 +127,16 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hrand hri hhi hgi hsi hui hsw hmr hns hor ra rh hfi σ g threads
-  refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g threads
-    (2 ^ 31 - 1) swLas_pairwise swLas_disj ?_
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hri hhi hgi hsi hui hsw hmr hns hor rh hfi σ g
+  refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 31)
+    (2 ^ 63) swLas_pairwise swLas_disj ?_
   intro G π hrb
   letI := libsAt l π
-  letI := ra G π
+  letI := netRpcHttpAddr netDistGF (Gg := G)
   iintro #Hreg Hs Hl
   unfold swAddrs
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hss, Hsc⟩
-  imod sw_start_at l π (ra G π) $$ Hreg Hss Hl with ⟨%γ, %γk, #Hcom, Hw, #Hli, Hsys, Hcs, Hss⟩
+  imod sw_start_at l π (netRpcHttpAddr netDistGF (Gg := G)) $$ Hreg Hss Hl with ⟨%γ, %γk, #Hcom, Hw, #Hli, Hsys, Hcs, Hss⟩
   imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ clientAddrs 24 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
   imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (swRK (G := G) γk)) a)
     (fun _ => repP (Gg := G) (RBase.svc (swRK (G := G) γk))) clientAddrs $$ Hreg Hsc with #Hpc
@@ -197,7 +197,6 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC netDistGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : math.rand.InitHyp netDistGF := hrand G' hG.goose_localGS
     letI : net.rpc.InitHyp netDistGF := hri G' hG.goose_localGS
     letI : net.http.InitHyp netDistGF := hhi G' hG.goose_localGS
     letI : encoding.gob.InitHyp netDistGF := hgi G' hG.goose_localGS

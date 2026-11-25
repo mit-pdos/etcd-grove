@@ -446,7 +446,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ cfg.ServerFeatureGate' ∗
     isFeatureGate cfg.ServerFeatureGate' ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off (what `OpenSnapshotBackend` takes)
-    envVerifyOff ∗
+    ⌜EtcdVerifyOff⌝ ∗
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ cfg.QuotaBackendBytes' ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ cfg.WarningApplyDuration' ∗
     -- the snapshotter, the backend hooks over the consistent index, the storage over the snapshotter

@@ -1820,7 +1820,7 @@ theorem cmtN_dbNs (p : GoString) : (↑cmtN : CoPset) ⊆ ⊤ \ ↑(dbNs p) := b
 
 /-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resources
 `W` (the lock holder's) and `Pk` (the hooks') (persistent). (Sweep repairs 1, B4, 2026-11-07) With
-`ETCD_VERIFY` off (`envVerifyOff`): what its batch transaction's lock checks
+`ETCD_VERIFY` off (`EtcdVerifyOff`): what its batch transaction's lock checks
 (`ValidateCalledInsideApply` and the others) take; from the opener's precondition. -/
 def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF :=
   iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
@@ -1836,7 +1836,7 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     -- (2026-11-04, R2b-3c) the database and its file
     (∃ path : GoString, bDBAt γ db path ∗ dbFile db γ.db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
-    envVerifyOff ∗
+    ⌜EtcdVerifyOff⌝ ∗
     -- (backend-snapshot B1) the commit invariant
     cmtInv γ P W Pk)
 
@@ -1846,13 +1846,13 @@ instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b :
 
 /-- (Sweep repairs 1, B4) **A backend's `ETCD_VERIFY` off** (what the lock checks and
 `VerifyBackendConsistency` take). -/
-theorem isBackend_envVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
-    isBackend γ P W Pk b ⊢ envVerifyOff := by
+theorem isBackend_etcdVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢ ⌜EtcdVerifyOff⌝ := by
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, #Hv, -⟩
-  iexact Hv
+    -, -, -, %Hv, -⟩
+  ipureintro; exact Hv
 
 /-- (backend-snapshot B1) **A backend's commit invariant**, and its database's namespace (what a
 commit or a snapshot opens it beside: `cmtN_dbNs`). -/

@@ -38,8 +38,8 @@ variable [π : NetProtoGS]
 abbrev Server.readRequest.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (sc t : Loc)
     (cn : Nat) (la ra : GoInterface),
-  {{ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ srvCodecAt sc t cn a la ra ∗
-      rdrOwn W a cn sc }}
+  {{ isServerAny s γs ∗ srvServes γs C W a ∗ srvEnv ∗ srvCodecAt sc t cn a la ra ∗
+      rdrOwn W a cn }}
     (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"readRequest"))
       (Val #(interface.mkOk (go.GoType.PointerType net.rpc.serverCodec.ty) #sc)))
   {{ (svc mt req : Loc) (argv replyv : GoInterface) (keep : Bool) (err : GoInterface),
@@ -47,7 +47,7 @@ abbrev Server.readRequest.spec : Prop :=
       ⌜keep = false ∧ err ≠ interface.nil⌝ ∨
       (⌜keep = true⌝ ∗ ∃ (k : Nat) (r : RpcReq) (Φ : List w8 → GoString → IProp GF),
         req ↦ { (_root_.Perennial.zero_val net.rpc.Request) with ServiceMethod' := r.sm, Seq' := W64 k } ∗
-        ansPend W a cn k r.sm Φ ∗ rdrOwn W a cn sc ∗
+        ansPend W a cn k r.sm Φ ∗ rdrOwn W a cn ∗
         ((⌜err = interface.nil⌝ ∗ callReady C svc mt argv replyv Φ) ∨
           (⌜err ≠ interface.nil⌝ ∗ errSrv err ∗ errCont Φ))) }}
 

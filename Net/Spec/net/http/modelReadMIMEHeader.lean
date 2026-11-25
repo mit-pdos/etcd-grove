@@ -6,7 +6,8 @@ without space at their ends; `Net/Proof/net/http/Defs.lean`), at most `maxHeader
 (the law over `E` and `S`), whose bytes past `r` are, as long as it is read, a prefix of the block's
 (`hdrWire hb eol`, its empty line `eol ++ "\n"`) followed by anything (`rest`): an error (a pointer's
 value a location, `io.ptrTyped`, which `ReadResponse` needs to compare it with `io.EOF`; the stream's,
-with `E`'s evidence, or a `textproto.ProtocolError` for a line cut by one), or `nil` and the map of
+with `E`'s evidence, or a `textproto.ProtocolError` for a line cut by one; the reader back, at some
+position), or `nil` and the map of
 the block (`hdrOwn`), the reader past the block. (The header blocks of net/rpc's answer, empty, and of
 net/http's `400` answer, `ReadResponse`; of net/rpc's `CONNECT` request, empty, `readRequestLimit`.)
 `httpEnv`: `fmt`'s initialization (a `ProtocolError`'s message) and httpguts' table, which
@@ -46,7 +47,8 @@ abbrev modelReadMIMEHeader.spec : Prop :=
     {{ EtcdGrove.bufio.ownReader b ri S E r }}
       (App (App (Val (@! net.http.modelReadMIMEHeader)) (Val #b)) (Val #maxH))
     {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);
-        (⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗ mimeErr E err) ∨
+        (⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗ mimeErr E err ∗
+          ∃ rr : List w8, EtcdGrove.bufio.ownReader b ri S E rr) ∨
         (⌜err = interface.nil⌝ ∗ hdrOwn m hb ∗
           EtcdGrove.bufio.ownReader b ri S E (r ++ hdrWire hb eol)) }}
 

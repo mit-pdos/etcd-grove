@@ -33,15 +33,16 @@ theorem kv.Put.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd key val sl gs Sp Qp
-  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api conn addr ci om cd opv (opPutModel key val gs) Sp Qp (fun _ _ _ _ => iprop(False))
-      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) (fun _ => iprop(True)) $$ [Hrun]
-    as %r %err ⟨-, Hout⟩
+      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) (fun _ => iprop(True)) $$ [Hlt Hrun]
+    as %r %err ⟨Hlt, -, Hout⟩
   · iframe #
+    iframe Hlt
     isplitl [Hrun]; rotate_left
     · ipureintro; exact Hsz
     unfold doRunGen
@@ -64,6 +65,7 @@ theorem kv.Put.wp_generic
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     unfold putCallOut
     ileft
     iframe
@@ -74,6 +76,7 @@ theorem kv.Put.wp_generic
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     unfold putCallOut
     iright
     iframe #
@@ -88,7 +91,7 @@ theorem kv.Put.wp_members
     (wp_Put : kv.Put.specG (GF := GF) (hG := hG)) :
     kv.Put.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key val sl gs Q F
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
@@ -97,8 +100,9 @@ theorem kv.Put.wp_members
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
   iapply (wp_Put api conn (ms.map SrvAt.addr) ci om cd key val sl gs (GrpcSpec.md (kvPutSpec ms))
-    (putAns ms F (putWireOf (opPutModel key val gs)) Q)) $$ [Hrun] HΦ
+    (putAns ms F (putWireOf (opPutModel key val gs)) Q)) $$ [Hlt Hrun] HΦ
   iframe #
+  iframe Hlt
   isplitl []
   · ipureintro; exact ⟨Hnp, Ht⟩
   isplitl []
@@ -116,14 +120,15 @@ theorem kv.Put.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key val sl gs Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht, Hl⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api γ dup ci cd opv (opPutModel key val gs) Q $$ [Hrun]
-    as %r %err Hout
+  wp_apply wp_Do api γ dup ci cd opv (opPutModel key val gs) Q $$ [Hlt Hrun]
+    as %r %err ⟨Hlt, Hout⟩
   · iframe #
+    iframe Hlt
     isplitl [Hrun]; rotate_left
     · ipureintro; exact Hsz
     unfold doRunOk
@@ -148,6 +153,7 @@ theorem kv.Put.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     iapply putCallOut_st
     unfold putCallOut
     ileft
@@ -159,6 +165,7 @@ theorem kv.Put.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     iapply putCallOut_st
     unfold putCallOut
     iright

@@ -50,7 +50,7 @@ theorem lessor.KeepAlive.wp_proof
   · iPkgInit
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, -, -, -, -, -, #Hchsz⟩
+  icases Hci with ⟨-, -, -, -, -, -, -, #Hchsz, -⟩
   wp_auto
   wp_apply chan.wp_make2 (V := Loc) (W64 16) $$ [] as %ch %γ ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; constructor <;> decide
@@ -202,10 +202,13 @@ theorem lessor.KeepAlive.wp_proof
       · iframe #
         iintro %Φ' !> HP HΦ'
         wp_auto
-        wp_apply wp_fork $$ [HP]
-        · wp_apply wp_recvLoop l addr dc γd $$ [HP] as %_ -
+        wp_apply wp_fork_level0 $$ [HP]
+        · iintro Hl0
+          wp_apply wp_recvLoop l addr dc γd $$ [Hl0 HP] as %_ ⟨Hl0, -⟩
           · iframe #; iframe
-          itrivial
+          isplitr
+          · itrivial
+          iexact Hl0
         (try wp_auto)
         wp_apply wp_fork $$ []
         · wp_apply wp_deadlineLoop l addr $$ []
@@ -295,10 +298,13 @@ theorem lessor.KeepAlive.wp_proof
       · iframe #
         iintro %Φ' !> HP HΦ'
         wp_auto
-        wp_apply wp_fork $$ [HP]
-        · wp_apply wp_recvLoop l addr dc γd $$ [HP] as %_ -
+        wp_apply wp_fork_level0 $$ [HP]
+        · iintro Hl0
+          wp_apply wp_recvLoop l addr dc γd $$ [Hl0 HP] as %_ ⟨Hl0, -⟩
           · iframe #; iframe
-          itrivial
+          isplitr
+          · itrivial
+          iexact Hl0
         (try wp_auto)
         wp_apply wp_fork $$ []
         · wp_apply wp_deadlineLoop l addr $$ []

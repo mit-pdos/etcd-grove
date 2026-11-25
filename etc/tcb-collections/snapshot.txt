@@ -23,7 +23,6 @@ roots ^EtcdServer\.wp_sendMergedSnap$
 axiom DescribeConfChange.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom context.WithValue.wp_proof
-axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom http.Flush_ok
 axiom http.NewRequest_ok
@@ -41,7 +40,6 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
 axiom pbMessageC_reg

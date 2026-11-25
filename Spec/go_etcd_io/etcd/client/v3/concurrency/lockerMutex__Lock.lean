@@ -32,18 +32,17 @@ reached `lo`: `Mutex.Lock`'s `nil` case (the lock held, or the key re-created); 
 abbrev lockerMutex.Lock.spec : Prop :=
   ∀ (lm m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗
-      structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" client ↦□ GoInterface.ok cctx ∗
-      context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx ∗ context.isCancelCtxCtx cctx ccs ∗ etcdReached lo }}
+      context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx ∗ context.isCancelCtxCtx cctx ccs ∗ etcdReached lo) }}
     (App (Val (lm @!! go.GoType.PointerType lockerMutex.ty @!! go!"Lock")) (Val #()))
-  {{ (r : val), RET r; structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
+  {{ (r : val), RET r; levelTok 0 ∗ (structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
       ((⌜r = #()⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc),
         mutexState m ⟨key, rev, hdr⟩ ∗ hdrRevAt hdr R ∗ etcdReached R ∗
         (lockedAt pfx key rev R ∨ keyRecreated pfx key rev R) ∗
         ⌜pfx <+: key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (∃ err : GoInterface, ⌜err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗
-        ∃ st' : MutexSt, mutexState m st')) }}
+        ∃ st' : MutexSt, mutexState m st'))) }}
 
 end spec
 

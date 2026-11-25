@@ -20,13 +20,14 @@ public import Proof.k8s_io.apimachinery.pkg.runtime.Init
 public import Proof.k8s_io.apimachinery.pkg.watch.Init
 public import Proof.k8s_io.apiserver.pkg.features.Init
 public import Proof.k8s_io.apiserver.pkg.storage.InitLinked
-public import Proof.k8s_io.apiserver.pkg.storage.cacher.consistency.Init
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.consistency.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.key.Init
 public import Proof.k8s_io.apiserver.pkg.util.feature.Init
-public import Proof.k8s_io.client_go.tools.cache.Init
+public import Proof.k8s_io.client_go.tools.cache.InitLinked
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
