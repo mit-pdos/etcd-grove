@@ -116,7 +116,7 @@ attribute [irreducible] part.ty
   #true
 
 @[reducible] noncomputable def scopeForwarding [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeDup [GooseExts] [GoGlobalContext] : val :=
   #true
@@ -131,25 +131,25 @@ attribute [irreducible] part.ty
   #true
 
 @[reducible] noncomputable def scopeRestarts [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeAsync [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeBatch [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeParallel [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeSplit [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeSnapshots [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def scopeConfChanges [GooseExts] [GoGlobalContext] : val :=
-  #true
+  #false
 
 @[reducible] noncomputable def splitNone [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
@@ -322,7 +322,7 @@ noncomputable def isRequest [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- MainScope is Main's scope, from the constants above.
 
-    go: driver.go:57:6 -/
+    go: driver.go:58:6 -/
 noncomputable def MainScope.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Scope.ty))) (App (Val (GoInstruction (GoZeroVal Scope.ty))) (Val #())))
@@ -351,7 +351,7 @@ noncomputable def MainScope.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Scope.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Scope.ty))) (Var "$res0")))))
 
-/-- go: driver.go:116:6 -/
+/-- go: driver.go:117:6 -/
 noncomputable def coin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -367,7 +367,7 @@ noncomputable def coin.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- may is a feature the scope allows (on), drawn at random.
 
-    go: driver.go:119:6 -/
+    go: driver.go:120:6 -/
 noncomputable def may.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "on"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -387,7 +387,7 @@ noncomputable def may.impl [GooseExts] [GoGlobalContext] : val :=
     MaxSizePerMsg are drawn from the simulator's values (inflight: 1, 2 or raft's usual 256; size:
     one entry per message, 64 bytes, or 1 MiB).
 
-    go: driver.go:126:6 -/
+    go: driver.go:127:6 -/
 noncomputable def DrawMode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Mode.ty))) (App (Val (GoInstruction (GoZeroVal Mode.ty))) (Val #())))
@@ -550,7 +550,7 @@ noncomputable def DrawMode.impl [GooseExts] [GoGlobalContext] : val :=
     without a leader), a behaviour every millisecond, an election or a transfer every 20ms, a
     restart every 40ms, for 150ms.
 
-    go: driver.go:180:6 -/
+    go: driver.go:181:6 -/
 noncomputable def DefaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -568,7 +568,7 @@ noncomputable def DefaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Config.ty))) (Var "$res0")))))
 
-/-- go: driver.go:235:19 -/
+/-- go: driver.go:236:19 -/
 noncomputable def Cluster.node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -597,7 +597,7 @@ noncomputable def Cluster.node.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick is a random node.
 
-    go: driver.go:243:19 -/
+    go: driver.go:244:19 -/
 noncomputable def Cluster.pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -615,7 +615,7 @@ noncomputable def Cluster.pick.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Events is the stream.
 
-    go: driver.go:246:19 -/
+    go: driver.go:247:19 -/
 noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -632,7 +632,7 @@ noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- CheckConfig is the binding's constants for the run: Server, InitVoters, Bootstrapped.
 
-    go: driver.go:249:19 -/
+    go: driver.go:250:19 -/
 noncomputable def Cluster.CheckConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -657,7 +657,7 @@ noncomputable def Cluster.CheckConfig.impl [GooseExts] [GoGlobalContext] : val :
 /-- RunCluster runs a cluster in mode: it starts the nodes and the behaviours, lets them run for
     Settle, stops them, and returns the cluster (its stream is Events).
 
-    go: driver.go:256:6 -/
+    go: driver.go:257:6 -/
 noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "mode"
@@ -830,7 +830,7 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Cluster.ty)))) (Pair (Var "c") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "$res0"))))))
 
-/-- go: driver.go:302:19 -/
+/-- go: driver.go:303:19 -/
 noncomputable def Cluster.spawn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "f"
@@ -856,7 +856,7 @@ noncomputable def Cluster.spawn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- running waits for d and says whether the run goes on.
 
-    go: driver.go:311:19 -/
+    go: driver.go:312:19 -/
 noncomputable def Cluster.running.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "d"
@@ -886,7 +886,7 @@ noncomputable def Cluster.running.impl [GooseExts] [GoGlobalContext] : val :=
 /-- deliver hands inp to n, unless the run stops first. A node that is down takes nothing until it
     is restarted.
 
-    go: driver.go:323:19 -/
+    go: driver.go:324:19 -/
 noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -909,7 +909,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
     each followed by its Readies, until the run stops or the node dies (a kill: its memory is
     dropped with the goroutine; what is on its disk stays, for the restarter).
 
-    go: driver.go:336:19 -/
+    go: driver.go:337:19 -/
 noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -972,7 +972,7 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Val #())))))))
   (Val #()))))
 
-/-- go: driver.go:358:19 -/
+/-- go: driver.go:359:19 -/
 noncomputable def Cluster.handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1044,7 +1044,7 @@ noncomputable def Cluster.handle.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- restart starts a new goroutine for node n, if it is down.
 
-    go: driver.go:394:19 -/
+    go: driver.go:395:19 -/
 noncomputable def Cluster.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1082,7 +1082,7 @@ noncomputable def Cluster.restart.impl [GooseExts] [GoGlobalContext] : val :=
     proposal (MsgProp) is dropped unless Mode.Forward (the first harness's choice,
     notes/antithesis-s4-design.md §7).
 
-    go: driver.go:413:19 -/
+    go: driver.go:414:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "m"
@@ -1172,7 +1172,7 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
 /-- The proposer: proposals "v1", "v2", ... (Propose) to random nodes; a follower forwards one to
     its leader. Exercises: every committed entry is the same on every node (the binding's chain).
 
-    go: driver.go:442:19 -/
+    go: driver.go:443:19 -/
 noncomputable def Cluster.proposer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1202,7 +1202,7 @@ noncomputable def Cluster.proposer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- The campaigner: Campaign on random nodes. Exercises: at most one leader per term
     (ElectionSafety), whoever starts an election and whenever.
 
-    go: driver.go:450:19 -/
+    go: driver.go:451:19 -/
 noncomputable def Cluster.campaigner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1223,7 +1223,7 @@ noncomputable def Cluster.campaigner.impl [GooseExts] [GoGlobalContext] : val :=
 /-- The reader: ReadIndex with contexts "r1", "r2", ... on random nodes. Exercises: a read index
     covers every entry committed before the read was asked (ReadIndexStale).
 
-    go: driver.go:458:19 -/
+    go: driver.go:459:19 -/
 noncomputable def Cluster.reader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1253,7 +1253,7 @@ noncomputable def Cluster.reader.impl [GooseExts] [GoGlobalContext] : val :=
 /-- The transferer: TransferLeader to a random node, on random nodes. Exercises: a handed-over
     leadership keeps every committed entry (the chain) and one leader per term.
 
-    go: driver.go:466:19 -/
+    go: driver.go:467:19 -/
 noncomputable def Cluster.transferer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1278,7 +1278,7 @@ noncomputable def Cluster.transferer.impl [GooseExts] [GoGlobalContext] : val :=
     Exercises: elections and commits stay safe while the voters change (joint configurations,
     learners, V1 and V2 changes).
 
-    go: driver.go:476:19 -/
+    go: driver.go:477:19 -/
 noncomputable def Cluster.confChanger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1300,7 +1300,7 @@ noncomputable def Cluster.confChanger.impl [GooseExts] [GoGlobalContext] : val :
     (CreateSnapshot and Compact at the applied index), so leaders send snapshots (MsgSnap) to
     nodes behind. Exercises: a restored snapshot is the chain's prefix.
 
-    go: driver.go:485:19 -/
+    go: driver.go:486:19 -/
 noncomputable def Cluster.snapshotter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1322,7 +1322,7 @@ noncomputable def Cluster.snapshotter.impl [GooseExts] [GoGlobalContext] : val :
     write's announcement and the write), and restarts every node that is down from what is on its
     disk. Exercises: a node recovers its durable state, and loses only what it never wrote.
 
-    go: driver.go:494:19 -/
+    go: driver.go:495:19 -/
 noncomputable def Cluster.restarter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1364,7 +1364,7 @@ noncomputable def Cluster.restarter.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- The flusher (Mode.Batch): each node takes its Ready, for every input since the last one.
 
-    go: driver.go:507:19 -/
+    go: driver.go:508:19 -/
 noncomputable def Cluster.flusher.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1395,7 +1395,7 @@ noncomputable def Cluster.flusher.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- The storage (Mode.Async): each node takes one step of its queued storage work (work).
 
-    go: driver.go:516:19 -/
+    go: driver.go:517:19 -/
 noncomputable def Cluster.storage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1430,7 +1430,7 @@ noncomputable def Cluster.storage.impl [GooseExts] [GoGlobalContext] : val :=
     E4), a V1 change of one node, a V2 change of one node, or a joint change of 1 to 3 nodes with
     any Transition. A node is added, removed, or made a learner; never the anchor removed.
 
-    go: driver.go:529:19 -/
+    go: driver.go:530:19 -/
 noncomputable def Cluster.change.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1553,7 +1553,7 @@ noncomputable def Cluster.change.impl [GooseExts] [GoGlobalContext] : val :=
 /-- changeOne is one node's change, of a node not yet in used: a voter is removed or made a learner
     (or re-added), a node that is not a voter is added, made a learner or removed (sim's `one`).
 
-    go: driver.go:556:19 -/
+    go: driver.go:557:19 -/
 noncomputable def Cluster.changeOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cs"
