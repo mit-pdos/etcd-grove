@@ -248,7 +248,9 @@ noncomputable def server.Meta.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Let "md" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val mdKey))
@@ -265,15 +267,29 @@ noncomputable def server.Meta.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Let "$a0" (Val #(go!""))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.types.known.wrapperspb.String []))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Var "$r1")))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Pair (Var "md") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Pair (Var "md") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.Msg.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
 /-- ServerStream sends its request's value one byte per message, then ends the stream cleanly.
 
-    go: grpcdriver.go:95:18 -/
+    go: grpcdriver.go:98:18 -/
 noncomputable def server.ServerStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "m"
@@ -322,7 +338,7 @@ noncomputable def server.ServerStream.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- ClientStream answers the concatenation of the messages it received, once the client is done.
 
-    go: grpcdriver.go:105:18 -/
+    go: grpcdriver.go:108:18 -/
 noncomputable def server.ClientStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "st"
@@ -381,7 +397,7 @@ noncomputable def server.ClientStream.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- Bidi sends back each message it receives, and ends cleanly once the client is done.
 
-    go: grpcdriver.go:120:18 -/
+    go: grpcdriver.go:123:18 -/
 noncomputable def server.Bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "st"
@@ -445,7 +461,7 @@ noncomputable def server.Bidi.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Server serves the service at Addr. It returns only if it cannot listen, or when Serve returns.
 
-    go: grpcdriver.go:136:6 -/
+    go: grpcdriver.go:139:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -487,7 +503,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "s") (Var "$r0"))))))))
   (Val #())))
 
-/-- go: grpcdriver.go:156:19 -/
+/-- go: grpcdriver.go:159:19 -/
 noncomputable def counter.take.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -519,7 +535,7 @@ noncomputable def counter.take.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- randomWord is a random string of letters of length at most maxLen.
 
-    go: grpcdriver.go:165:6 -/
+    go: grpcdriver.go:168:6 -/
 noncomputable def randomWord.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -559,7 +575,7 @@ noncomputable def randomWord.impl [GooseExts] [GoGlobalContext] : val :=
 /-- freshValue is a request value no other call of this run sends: the call's id, then random
     letters.
 
-    go: grpcdriver.go:176:6 -/
+    go: grpcdriver.go:179:6 -/
 noncomputable def freshValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ids"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -578,7 +594,7 @@ noncomputable def freshValue.impl [GooseExts] [GoGlobalContext] : val :=
 /-- errOk is the shape every error of a call or stream operation has: a gRPC status (or, from a
     stream's Recv, io.EOF).
 
-    go: grpcdriver.go:182:6 -/
+    go: grpcdriver.go:185:6 -/
 noncomputable def errOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -617,7 +633,7 @@ noncomputable def errOk.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkErr is what the client relies on from any error.
 
-    go: grpcdriver.go:191:6 -/
+    go: grpcdriver.go:194:6 -/
 noncomputable def checkErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Seq (App (Val exceptionDo)
@@ -637,7 +653,7 @@ noncomputable def checkErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- echo is the section unary-reply.
 
-    go: grpcdriver.go:200:6 -/
+    go: grpcdriver.go:203:6 -/
 noncomputable def echo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -691,7 +707,7 @@ noncomputable def echo.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- fail is the section status-roundtrip.
 
-    go: grpcdriver.go:216:6 -/
+    go: grpcdriver.go:219:6 -/
 noncomputable def fail.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -778,7 +794,7 @@ noncomputable def fail.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- meta is the section metadata.
 
-    go: grpcdriver.go:239:6 -/
+    go: grpcdriver.go:242:6 -/
 noncomputable def «meta».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -868,7 +884,7 @@ noncomputable def «meta».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- canceled is the section ctx-canceled.
 
-    go: grpcdriver.go:262:6 -/
+    go: grpcdriver.go:265:6 -/
 noncomputable def canceled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -924,7 +940,7 @@ noncomputable def canceled.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- serverStream is the section server-stream.
 
-    go: grpcdriver.go:275:6 -/
+    go: grpcdriver.go:278:6 -/
 noncomputable def serverStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1019,7 +1035,7 @@ noncomputable def serverStream.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- clientStream is the section client-stream.
 
-    go: grpcdriver.go:305:6 -/
+    go: grpcdriver.go:308:6 -/
 noncomputable def clientStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1115,7 +1131,7 @@ noncomputable def clientStream.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- bidi is the section bidi-stream.
 
-    go: grpcdriver.go:333:6 -/
+    go: grpcdriver.go:336:6 -/
 noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1245,7 +1261,7 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- work runs random operations on the ClientConn's client.
 
-    go: grpcdriver.go:370:6 -/
+    go: grpcdriver.go:373:6 -/
 noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -1305,7 +1321,7 @@ noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client connects to the server and runs random operations from random goroutines on one
     ClientConn, then closes it.
 
-    go: grpcdriver.go:394:6 -/
+    go: grpcdriver.go:397:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

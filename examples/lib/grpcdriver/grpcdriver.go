@@ -87,7 +87,10 @@ func (s *server) Fail(ctx context.Context, m *svc.Msg) (*svc.Msg, error) {
 
 // Meta answers the values the call's metadata has at mdKey, joined by ",".
 func (s *server) Meta(ctx context.Context, m *svc.Msg) (*svc.Msg, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return wrapperspb.String(""), nil
+	}
 	return wrapperspb.String(strings.Join(md.Get(mdKey), ",")), nil
 }
 
