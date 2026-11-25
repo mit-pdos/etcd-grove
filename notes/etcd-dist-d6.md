@@ -1390,12 +1390,68 @@ axiom, no `sorry`; `etc/tier-check.py --check` ok, the new file is defs tier):
 3. B1 (the backend's image invariant): a design note first (who deposits the image facts at each backend
    commit; `dbCrashKeep_new`/`_announce`/`_clear` at the apply thread's commit points; the facts must cover
    `Dl`, `Dn` and `pd`).
-4. The WAL+raft part of the assembly (no decision needed, but it fixes `Keep`'s WAL rows): `walInv_crash` on the
-   area (gives `walCrashWal h.W W'`, `walStart`, the new generation's lock token), `crashRest_treeS'`, then
-   `walBootCrash` (the new generation's `walInv`, its token: next `Keep`'s), and `rnDurK_crash_law_holds` with
-   `Φ σ := walFilesC {h.toWalA with W := W'} id cid σ true` (its callback is `walRecsH_crash`), `rnTakenK_stop`
-   for the second case. Watch: `rnDurK_crash` is stated at the ambient `hG` (the old generation's `crashed`),
-   while `walFilesC` must be at `L'`; `walRecsH` is sealed and does not mention the generation, so a law
-   `walRecsH_gen` (as `snapSaved_gen`) is needed in `WalRecsH.lean`, and `walFilesC` likewise.
+4. (done, session 2: see below) The WAL+raft part of the assembly.
 5. B2/B3/D-T7-2 decided (T4's `srvCrashImageAt`) → the image assembly; B4 (T3, T8's boot phases) → the
    `memberFirst` case; B5 (T8) → `memberKeep` as a definition and the law proved.
+
+### T7 status and handoff (2026-11-25, session 2; branch `etcd-safe-t7`)
+
+**Done** (built on fk-lean2, `lake build …dist.crash.MemberCrash`, 4499 jobs, exit 0, no warning in the file;
+no axiom, no `sorry`; tier and API checks ok):
+* `storage/WalRecsHGen.lean` (new, imports `WalRecsH` with `import all`, so nothing above rebuilds):
+  `walRecsH_gen`, the records at one generation are the records at another (both at the statement's Go
+  context: `go.Semantics` is over a `GoLocalContext`, so the generations are `{L with goose_go_local_context
+  := lctx}`, i.e. `etcd_dist.atCtx`). `walFilesC` needs no such lemma: T5's `walRecsH_crash` states it at the
+  new generation directly, so the callback runs at `L'` and only the records cross.
+* `MemberCrash.lean`, section `durDefs` (one `HeapGS` each; see the pitfall below): `memberDurKeep` (T2's
+  invariant, `token νk.tk`, `nodeCrashTok`, the stop's `token νk.ν.stop`: D-T7-3), `memberWalKeep h` (`walInv` at
+  `walCodec`/`walSrvMr`, `walCrashTok`, `osSharedInv h.R`), `memberWalCrashW h W'` (`walCrashWal`, `W'`'s lock
+  token), `memberWalCrash h W'` (that and the WAL directory's call permission's half), `memberDurOut` (T2's
+  outputs: `raftState`, `nodeVacant`, the image facts, `walSnapCert`, `walSnapDur`, the committed log);
+  `memberDurOut_gen` (`.rfl`).
+* `memberWal_crash`: `walInv_crash` at the member's WAL, first of the crash lemmas (`D = []`): `W'`,
+  `memberWalCrashW` at `L'`, `W'.roots = h.R ∧ TreeWf h.R V'.now`, the crash rest with the area's files.
+  The new generation's `walStart`/boot files are dropped: `memberGen`'s restart case holds only the files
+  (`srvFilesC`), so `walBootCrash` is **not** needed by T7 (the restarted server's area is `bootstrap`'s crash
+  contract's business; noted, not a blocker of T7).
+* `memberDur_crash` (T2 + T5): `memberDurKeep` at `L`, `isCluster`, **one** credit, `crashed` at `L`,
+  `memberWalCrash` at `L'` ⊢ `∃ S σ l, walFilesC (L') {h.toWalA with W := W'} id cid σ true ∗ memberDurOut (L)`.
+  `rnTakenK_stop` now needs no credit (the contradiction is pure under the later, `▷ ⌜False⌝`), so the
+  law's single `£ 1` goes to T2. **But `snapDir_crash.law` also takes a `£ 1`**: the assembly needs a second
+  credit, which `Keep` must carry (`£ 1` in `memberKeep`, deposited by T8; B5's) unless T6's law is
+  restated credit-free (its body is not timeless).
+
+**Pitfall (cost three builds).** In a statement over two generations, `G : GooseGlobalGS`, `L`, `L'` are all
+local instances (a binder of class type is one, brackets or not), so a predicate written directly in the
+statement gets instances Lean picks (`nodeCrashTok`'s `InvGS` came out as `invGS (goose_irisGS G L')`), not
+the law's (`… ⟨G, atCtx L⟩`), and `iapply`/`$$` fails with `IntoWand` on syntactically equal-looking
+terms. Fix: name each generation's resources by a definition over one `[hG : HeapGS]` and use it at
+`(hG := ⟨G, atCtx L⟩)`; predicates over `GooseGlobalGS` alone (`walCrashWal`) are fine.
+
+**Next, the assembly** (`memberGen_crash_law_holds`, one named hypothesis per blocker). Design:
+* `Keep L := memberKeep KeepF KeepB L`, two abstract keep pieces (parameters) for the blocked parts:
+  `clusterFacts …` (persistent) `∗ £ 1 ∗ (KeepF L ∨ memberKeepR KeepB L)`, where `memberKeepR` =
+  `∃ h νk γn ρo r cid …, memberDurKeep ∗ memberWalKeep h ∗ dbCrashKeep … ∗ snapDirKeep … ∗ osPathDur R sd J ∗
+  memberRestartFacts γ' ρo id ∗ KeepB L ∗ ⌜h.toWalA = etcdWalArea … ∧ h.md = walMetaEnc id cid ∧ h.dir =
+  srvWalDirOf dd ∧ …⌝`. The equation `h.toWalA = etcdWalArea …` is needed: `memberWalKeep`/`walInv_crash` are at
+  `h.ext`, the law's `crashRest` at the ambient `ExtSemantics`; `cases h` + `subst` makes `h.ext` the ambient
+  `inferInstance` definitionally.
+* Named hypotheses (each an `abbrev memberCrash.<name>.law : Prop` with a docstring naming its blocker):
+  - **B4** `memberFirstCrash.law KeepF`: `KeepF L` (and the crash's inputs) `={⊤}=∗ memberFirst` at `L'`.
+  - **B1** `memberImage.law KeepB`: `KeepB L`, the backend's `fileHoldsM i0 D'` (from `dbCrash`) and
+    `memberDurOut` give the image rows `srvRLogLb A`, `i = ai0 + |A|`, `imageRestAt`, `imageStOk`, `mvccImage`,
+    `confAt`, `v3ConfStateIs`, `memStorRegAuth M`, and the backend's `fileHolds (backendPathOf dd) D`
+    (the backend file name: B1's too).
+  - **B2** `σ.b ≤ i` and **B3** `bootLen ≤ i`: two pure hypotheses over B1's outputs (as stated they are false
+    in some runs, ledger 2026-11-25; T4's restatement of `srvCrashImageAt` replaces them).
+  - **D-T7-1**: `snapDirKept` from `snapDirKeptR` (the ledger's restatement makes it `snapDirKeptR_of`).
+  - **D-T7-2**: the snapshot directory's row of `srvCrashImageAt` (`snapDirInvH … ∗ monoNatAuthOwn γm 1 c`)
+    from `snapDir_crash`'s `snapDirKeep` at `L'`.
+  - **A1** `∀ st st', Q st st' → BoltCrashWhole (· = i0) st st'` (and `W1`), a plain hypothesis on `Q`
+    until `etcdCQ` has it.
+* Order of the proof: `memberWal_crash` → `dbCrash` (`Dx` = the WAL's `D`) → `crashRest_treeWf'`,
+  `crashRest_treeS'` (`V'.2 = []`, `osShared L' R V'`; the WAL directory's call permission's half out of
+  `osCallPerms`) → `osPathDur_lookup` → `snapDir_crash_law_holds` (its `snapDirOwn`/`snapSlot`s from the
+  shared claims of `dd`'s directories at `L'`: still to write, D-T7-4) → `memberDur_crash` → the image
+  hypotheses → `memberRestart` at `L'` (`memberRestartFacts`, `clusterFacts` moved to `L'`: check they are
+  generation-free by `.rfl`, as `memberDurOut_gen`).
