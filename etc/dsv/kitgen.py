@@ -426,9 +426,9 @@ def proof_file(kit, kg):
     ss = ' '.join(f's{m.i}' for m in ms)
     names = [n for n, _, _ in premises(st)]
     if names:
-        o.append(f'  intro gctx lctx sem {ss} fsem bvi\n    {" ".join(names)} σ g threads\n')
+        o.append(f'  intro gctx lctx sem {ss} bvi\n    {" ".join(names)} σ g threads\n')
     else:
-        o.append(f'  intro gctx lctx sem {ss} fsem bvi σ g threads\n')
+        o.append(f'  intro gctx lctx sem {ss} bvi σ g threads\n')
     o.append(lines(pr.get('bridge', f'  refine robust_of_distProtoRB (GF := remoteGF) {st["addrs"]} '
                                      f'(system σ) g threads ({st["steps"]}) ?_\n  intro G π hrb')))
     o.append(lines(pr['start']))

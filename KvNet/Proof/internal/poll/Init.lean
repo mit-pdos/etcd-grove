@@ -2,9 +2,9 @@
 Package initialization of `internal.poll`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
-initializer copies, hold some error for good, and `ErrFileClosing`, which `(*os.File).wrapErr`
-compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
+Its fact (`PkgInit.lean`): `ErrNoDeadline`, which `os`'s initializer copies, holds some
+error for good, `ErrDeadlineExceeded` (copied too) an `*DeadlineExceededError`, and
+`ErrFileClosing`, which `(*os.File).wrapErr` compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
 initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
 literal).
 -/

@@ -15,6 +15,11 @@ at the first failing step, `err` the `*OpError{Op: "write", Source: la, Addr: ra
 kind (`resErr`, D14): fewer bytes than asked only with an error, and an error with every byte
 written only for an empty `b` (whose one step may fail). Proved in
 `Net/Proof/net/Conn__Write.lean`.
+
+(2026-11-24, Go-model overlays S6: decided overnight by the lead, for Upamanyu's review) It takes
+`isPkgInit internal/poll`: Go's `conn.Write` wraps the error only `if err != nil`, and a timeout's
+error is `poll.ErrDeadlineExceeded`'s value `ed`, which poll's package fact makes an
+`*DeadlineExceededError` (not nil).
 -/
 module
 
@@ -40,7 +45,8 @@ variable [package_sem' : net.Assumptions]
 abbrev Conn.Write.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (b : GoSlice)
     (bs : List w8) (dq : DFrac) (ed : GoInterface) (P : List w8 → Option NetErr → IProp GF),
-  {{ connAt (GF := GF) t cn s a la ra ∗ b ↦*{dq} bs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      connAt (GF := GF) t cn s a la ra ∗ b ↦*{dq} bs ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] none ∗
       □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ P w none -∗
         |={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗ netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn s d ∗
