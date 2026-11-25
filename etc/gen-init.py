@@ -3914,7 +3914,7 @@ def logger_steps():
     """A `logger`'s translated initializer, `grpclog.Component(name)`: through `Component`'s proof."""
     return ['try wp_auto',
             'wp_apply (EtcdGrove.grpclog.Component.wp_proof (hG := hG) _ _ _) $$ [Hown] as %llogger ⟨Hown, -⟩',
-            '· iframe Hown; iexact {Hd:google_golang_org.grpc.grpclog}',
+            '· iframe Hown; try iexact {Hd:google_golang_org.grpc.grpclog}',
             'try wp_auto']
 
 

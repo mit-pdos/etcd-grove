@@ -82,7 +82,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of logger))
   try wp_auto
   wp_apply (EtcdGrove.grpclog.Component.wp_proof (hG := hG) _ _ _) $$ [Hown] as %llogger ⟨Hown, -⟩
-  · iframe Hown; iexact Hd12
+  · iframe Hown; try iexact Hd12
   try wp_auto
   -- the translated init.«0»
   wp_func_call
