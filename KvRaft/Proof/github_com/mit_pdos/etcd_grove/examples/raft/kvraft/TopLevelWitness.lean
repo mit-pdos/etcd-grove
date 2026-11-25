@@ -2,12 +2,13 @@
 
 # `raft/kvraft`: its top-level statements' premises are satisfiable
 
-`premise_sat%` (`Robustness/PremiseSat.lean`): `kvraft_robust`'s and `kvraft_robust_example`'s premises
-hold together with `Robust`'s antecedents. Every machine (the replicas' and the client's) starts as
-`kvStart`: a fresh process with no listener (`Net.NetLocal.init`) whose file system is the root
-`/var/lib/kvraft` alone, empty (`Robustness/FsStart.lean`: `FsInit`, and nothing below `dir`); the
-network has no connection (`Net.NetGlobal.init`). `kvraft_robust`'s witness is one replica at
-`10.0.0.1:7001` with the example's options; the example's, its five replicas. Nothing is left out.
+`premise_sat%` (`Robustness/PremiseSat.lean`): the premises of `kvraft_robust` (lean's statement)
+and of `kvraft_robust_example` hold together with `Robust`'s antecedents. Every machine is fresh,
+with no listener (the net extension's initial state) and a file system whose only root is
+`/var/lib/kvraft`, an empty directory (`Robustness/FsStart.lean`), so nothing is below it
+(`fsOneRoot_lookup_joinPath`); the network has no connection. For `kvraft_robust`: one replica at
+`10.0.0.1:7001`, the example's options with one bootstrap voter (the cluster's options and addresses
+are checked in Go since P8, so the statement has no premise on them).
 Checked by `etc/premise-witness.py`.
 -/
 module
@@ -19,63 +20,61 @@ public import Robustness.FsStart
 
 noncomputable section
 
+set_option linter.unusedSectionVars false
+
 namespace Perennial
 namespace EtcdGrove
 namespace kvraft
 
-open NetFs Robustness Fs
+open NetFs
+attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExts_hasNet kvraftExts_hasFs
 
-/-- The witnesses' directory, a root of every machine's file system. -/
-def witnessDir : GoString := go!"/var/lib/kvraft"
+open Robustness Fs
 
-theorem witnessDir_rootForm : RootForm witnessDir :=
+/-- The replicas' directory, a root's form. -/
+theorem kvraftDir_rootForm : RootForm go!"/var/lib/kvraft" :=
   ⟨[go!"var", go!"lib", go!"kvraft"], by simp, by decide, by decide⟩
 
-section witness
-attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExts_hasNet kvraftExts_hasFs
-variable [go_gctx : GoGlobalContext]
-
-/-- Every machine's start: a fresh process, no listener, the empty root `witnessDir`. -/
-def kvStart [lctx : GoLocalContext] : state :=
-  freshState ((default : Net.NetLocal), fsOneRoot witnessDir, ())
-
-/-- The network's start: no connection. -/
-def kvStartG : GlobalState := ⟨((default : Net.NetGlobal), (), ()), ∅⟩
-
-theorem kvStart_fs [lctx : GoLocalContext] : fsOf kvStart = fsOneRoot witnessDir := rfl
-
-/-- The premise on a machine: `witnessDir` an empty root of its file system. -/
-theorem kvStart_dir [lctx : GoLocalContext] :
-    witnessDir ∈ (fsOf kvStart).fs.roots.map (·.1) ∧
-      ∀ c, (fsOf kvStart).lookup (joinPath witnessDir [c]) = none := by
-  rw [kvStart_fs]
-  exact ⟨by simp [fsOneRoot], fun c => fsOneRoot_lookup_child _ c⟩
-
-theorem kvStart_initLocal [lctx : GoLocalContext] : extsInitLocal kvStart kvStartG := by
-  exact ⟨rfl, fsInit_fsOneRoot _ witnessDir_rootForm, trivial⟩
-
-theorem kvStart_initGlobal : extsInitGlobal kvStartG := by
-  exts_init
+/-- The example's options with one bootstrap voter. -/
+def oneVoterConfig : ClusterConfig := { exampleConfig with voters := 1 }
 
 theorem kvraft_robust.premisesSat : premise_sat% kvraft_robust.spec := by
   intros
-  refine ⟨exampleConfig, witnessDir, [(go!"10.0.0.1:7001", kvStart)], kvStart, kvStartG, ?_, ?_⟩
+  refine ⟨oneVoterConfig, go!"/var/lib/kvraft",
+    [(go!"10.0.0.1:7001", freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())))],
+    freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    (⟨((default : Net.NetGlobal), ((), ())), ∅⟩ : GlobalState),
+    ?_, robustStart_same (σ := freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())))
+      ?_ (fresh_freshState _) (by exts_init) ?_⟩
   · intro a σ h
-    obtain ⟨-, rfl⟩ : a = go!"10.0.0.1:7001" ∧ σ = kvStart := by simpa using h
-    exact kvStart_dir
-  · exact robustStart_same (σ := kvStart) (by simp) (fresh_freshState _) kvStart_initGlobal
-      kvStart_initLocal
+    simp only [List.mem_singleton, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨fsOneRoot_root_mem _, fun c => fsOneRoot_lookup_joinPath _ _ (List.cons_ne_nil _ _)⟩
+  · intro m hm
+    simp at hm
+    rcases hm with h | h <;> subst h <;> rfl
+  · exact ⟨rfl, fsInit_fsOneRoot _ kvraftDir_rootForm, trivial⟩
 
 theorem kvraft_robust_example.premisesSat : premise_sat% kvraft_robust_example.spec := by
   intros
-  refine ⟨kvStart, kvStart, kvStart, kvStart, kvStart, kvStart, kvStartG, ?_, ?_⟩
-  · intro σ h
-    obtain rfl : σ = kvStart := by simpa using h
-    exact kvStart_dir
-  · exact robustStart_same (σ := kvStart) (by simp) (fresh_freshState _) kvStart_initGlobal
-      kvStart_initLocal
-
-end witness
+  refine ⟨freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())),
+    (⟨((default : Net.NetGlobal), ((), ())), ∅⟩ : GlobalState),
+    ?_, robustStart_same (σ := freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())))
+      ?_ (fresh_freshState _) (by exts_init) ?_⟩
+  · intro σ hσ
+    have h : σ = freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvraft", ())) := by
+      simpa using hσ
+    subst h
+    exact ⟨fsOneRoot_root_mem _, fun c => fsOneRoot_lookup_joinPath _ _ (List.cons_ne_nil _ _)⟩
+  · intro m hm
+    simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hm
+    rcases hm with (h | h | h | h | h) | h <;> subst h <;> rfl
+  · exact ⟨rfl, fsInit_fsOneRoot _ kvraftDir_rootForm, trivial⟩
 
 end kvraft
 end EtcdGrove
