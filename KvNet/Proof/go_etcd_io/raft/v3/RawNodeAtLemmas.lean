@@ -120,42 +120,51 @@ theorem lentPend_pendAt (γ : RaftNames) (id : w64) (W : DurMaps) (o : Option Sn
     iexact H
 
 /-- The scope outside the harness: nothing. -/
-theorem rnScopeAt_false {γ : RaftNames} {id : w64} (rs : RNState) (s : NState) :
-    ⊢ rnScopeAt (GF := GF) γ id false rs s := by
-  unfold rnScopeAt; simp only [Bool.false_eq_true, ite_false]; iempintro
+theorem rnScopeAt_none {γ : RaftNames} {id : w64} (rs : RNState) (s : NState) :
+    ⊢ rnScopeAt (GF := GF) γ id none rs s := by
+  unfold rnScopeAt; iempintro
 
-/-- The scope's pure part, read out. -/
+/-- The basic scope off: nothing. -/
+theorem rnScopeAt_basicFalse {γ : RaftNames} {id : w64} (rs : RNState) (s : NState) :
+    ⊢ rnScopeAt (GF := GF) γ id (basicScope false) rs s := by
+  unfold rnScopeAt basicScope; iempintro
+
+/-- The basic scope's pure part, read out (flat, `RnScopeBasic`). -/
 theorem rnScopeAt_scope {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState) :
-    rnScopeAt (GF := GF) γ id sc rs s ⊢ ⌜sc = true → RnScope rs s⌝ ∗ rnScopeAt γ id sc rs s := by
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢
+      ⌜sc = true → RnScopeBasic rs s⌝ ∗ rnScopeAt γ id (basicScope sc) rs s := by
   cases sc with
   | false =>
     iintro H; iframe H; ipureintro; intro h; cases h
   | true =>
-    unfold rnScopeAt; simp only [ite_true]
+    unfold rnScopeAt basicScope
     iintro ⟨%H, #Hc⟩
-    iframe Hc
     isplitr
-    · ipureintro; intro _; exact H.1
-    · ipureintro; exact H
+    · ipureintro; intro _; exact (RnScope_empty rs s).1 H.1
+    · isplitr
+      · ipureintro; exact H
+      · imodintro; iexact Hc
 
-/-- The node in the harness's configuration (`RnCfgIn`), read out. -/
+/-- The node in the basic scope's configuration (`RnCfgInBasic`), read out. -/
 theorem rnScopeAt_cfgIn {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState) :
-    rnScopeAt (GF := GF) γ id sc rs s ⊢ ⌜sc = true → RnCfgIn γ id rs⌝ ∗ rnScopeAt γ id sc rs s := by
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢
+      ⌜sc = true → RnCfgInBasic γ id rs⌝ ∗ rnScopeAt γ id (basicScope sc) rs s := by
   cases sc with
   | false =>
     iintro H; iframe H; ipureintro; intro h; cases h
   | true =>
-    unfold rnScopeAt; simp only [ite_true]
+    unfold rnScopeAt basicScope
     iintro ⟨%H, #Hc⟩
-    iframe Hc
     isplitr
-    · ipureintro; intro _; exact H.2
-    · ipureintro; exact H
+    · ipureintro; intro _; exact (RnCfgIn_empty γ id rs).1 H.2
+    · isplitr
+      · ipureintro; exact H
+      · imodintro; iexact Hc
 
 /-- Closing `ownRawNodeAt`: `ownRawNode_intro_tr`'s premises and resources, the queue as `pendAt`, and
 the protocol reading, the in-progress boundary and the scope. -/
 theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
-    (qs : List Msg) (ip : Nat) (sc : Bool)
+    (qs : List Msg) (ip : Nat) (sc : Option RnMode)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg)
@@ -231,9 +240,9 @@ theorem ownRawNode_at : ownRawNode_at.law (GF := GF) := by
   iNamed H
   icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s $$ Hphys with ⟨%Hip1, Hphys⟩
   icases lentPend_pendAt γ id rs.bw rs.slent steps rs.steps $$ Hpend with ⟨%qs, Hpend⟩
-  ihave Hsc := rnScopeAt_false (GF := GF) (γ := γ) (id := id) rs s
+  ihave Hsc := rnScopeAt_none (GF := GF) (γ := γ) (id := id) rs s
   iexists toPState s, qs, uint.nat s.logst.inprogress - 1
-  iapply ownRawNodeAt_intro γ rn id rs (toPState s) qs (uint.nat s.logst.inprogress - 1) false s cf fp
+  iapply ownRawNodeAt_intro γ rn id rs (toPState s) qs (uint.nat s.logst.inprogress - 1) none s cf fp
     rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs rfl (by omega) Hgtr Hglq
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
@@ -293,7 +302,7 @@ theorem ownRaftPhysC_ipFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
 /-- In the scope (the log's boundary at `base0`, no snapshot pending), the recorded durable state is
 the storage's view (`durTie` at the empty full prefix). -/
 theorem durTie_scope (γ : RaftNames) (sc : Bool) (rs : RNState) (s : NState)
-    (H : sc = true → RnScope rs s) :
+    (H : sc = true → RnScopeBasic rs s) :
     durTie (GF := GF) γ rs s ⊢ ⌜sc = true → DurFull rs.dur s.logst.stored ∧
       uint.Z rs.dur.base.index' ≤ uint.Z s.logst.prev.index'⌝ := by
   cases sc with

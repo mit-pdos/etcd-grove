@@ -85,14 +85,14 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
   -- (2026-11-09 to 2026-11-11, Q8 stage 0 to slice 28n: `γ.reTrace = none`, an untraced node; the
   -- function logs nothing, and the node's logger is handed on in either mode, `TraceLoggerOkS`)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip sc }}
+      "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
       (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan), RET #rd;
       -- (#33 S4) at a named state `s`, which reads as `ps`, with the scope kept
       "Hrn" ∷ (∃ s : NState, ownRawNodeReadyS γ rn id rs rd ce es ms false L s ∗
-        rnScopeAt γ id sc rs s ∗
+        rnScopeAt γ id (basicScope sc) rs s ∗
         ⌜toPState s = ps ∧ uint.nat s.logst.inprogress = ip + 1 ∧
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧

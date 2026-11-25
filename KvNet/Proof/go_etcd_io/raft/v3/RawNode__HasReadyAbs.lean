@@ -47,7 +47,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`HasReady`'s `false`, at the protocol level** (pure): the facts the false path has. -/
 theorem pidle_of_hasReady (rs : RNState) (ps : PState) (ip : Nat) (s : NState) (sv : SoftState)
-    (Hps : toPState s = ps) (Hip : uint.nat s.logst.inprogress = ip + 1) (Hsc : RnScope rs s)
+    (Hps : toPState s = ps) (Hip : uint.nat s.logst.inprogress = ip + 1) (Hsc : RnScopeBasic rs s)
     (Hpre : s.role = .preCandidate → s.prevote = true) (Hout : s.outbox = [])
     (Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs) (Hphs : PhsOk rs s)
     (Hsoft : stateW64 s.role = sv.RaftState') (Hrole : rs.role = sv.RaftState')
@@ -109,7 +109,7 @@ local macro "finish0" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iapply ownRawNodeAt_intro γ rn id rs ps qs ip sc s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
+  iapply ownRawNodeAt_intro γ rn id rs ps qs ip (basicScope sc) s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hps Hip
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
       Hledger Hdur Hrntr Hsc))
@@ -161,7 +161,7 @@ local macro "finish_false" : tactic => `(tactic| (
       ⟨Hout0, Hnu, Hrd0, Hsn.2 rfl⟩
       Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
         Hloanc Hsloc Hhist Hledger Hdur Hrntr
-  · iapply ownRawNodeAt_intro γ rn id rs ps qs ip sc s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
+  · iapply ownRawNodeAt_intro γ rn id rs ps qs ip (basicScope sc) s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
       Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hps Hip
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
         Hledger Hdur Hrntr Hsc))

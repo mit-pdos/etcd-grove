@@ -31,6 +31,8 @@ code or `StepEnd` says:
 module
 
 public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.StepC
+public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.StepR
+public import Proof.go_etcd_io.raft.v3.Protocol.RnMode
 
 @[expose] public section
 
@@ -81,7 +83,7 @@ theorem NoSnapSent.of_outbox {s s1 s' : PState} (Ho : s1.outbox = s.outbox)
 higher term makes the node a follower at that term (`becomeFollower(m.Term, lead)`, the sender
 its leader for a leader's message: `MsgApp`, `MsgHeartbeat`, `MsgSnap`); one of the node's term
 leaves it as it is. (A lower term is `RecvEnd`'s second arm.) -/
-def PreEnd (s : PState) (m : Msg) (s1 : PState) : Prop :=
+def PreEnd (_k : NodeK) (s : PState) (m : Msg) (s1 : PState) : Prop :=
   (uint.Z s.term < uint.Z m.term ∧
     s1 = pbecomeFollower s m.term (if fromLeader m.ty then m.src else W64 0)) ∨
   (m.term = s.term ∧ s1 = s)
@@ -177,7 +179,7 @@ sender, `SendsEnd`; the read-index path is outside the scope); a proposal (`Prop
 ignores `MsgApp`/`MsgHeartbeat` of its term, a non-leader the responses to a leader, a
 non-candidate the vote responses. Other types (outside the harness's inputs): some `StepC`
 derivation. -/
-def HandleEnd (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+def HandleEnd (_k : NodeK) (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
   match m.ty with
   | .vote =>
     (PCanVote s m.src ∧ plogUpToDate s.base s.log (entryID.mk m.logterm m.index) = true ∧
@@ -209,10 +211,10 @@ def HandleEnd (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop 
 `MsgProp`; `send` stamps no term on it) goes to the type switch with no preamble; a stale one
 (`m.Term < r.Term`) is ignored (no answer with check-quorum and pre-vote off); otherwise the
 preamble (`PreEnd`), then the type switch (`HandleEnd`). -/
-def RecvEnd (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
-  (m.term = W64 0 ∧ HandleEnd c id s m s') ∨
+def RecvEnd (k : NodeK) (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PState) : Prop :=
+  (m.term = W64 0 ∧ HandleEnd k c id s m s') ∨
   (m.term ≠ W64 0 ∧ uint.Z m.term < uint.Z s.term ∧ s' = s) ∨
-  (m.term ≠ W64 0 ∧ ∃ s1, PreEnd s m s1 ∧ HandleEnd c id s1 m s')
+  (m.term ≠ W64 0 ∧ ∃ s1, PreEnd k s m s1 ∧ HandleEnd k c id s1 m s')
 
 /-- **A tick's step** (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`; `raft.go:820-870`):
 nothing; a campaign (`hup`, `campaign(campaignElection)`: a non-leader voter becomes a candidate
@@ -222,7 +224,7 @@ its last entry id: `StepC.campaign`); or a leader's heartbeats (`bcastHeartbeat`
 `Context`, so no index, log term or entries; #33 S4, msgShape: no context either, the context being
 `hbCtx` of the read-only queue, empty in the harness's scope; #33 S4, destinations: to a peer of
 the configuration, `c.ids`, as `bcastHeartbeat` visits the progress map). -/
-def TickEnd (c : CfgM) (id : w64) (s s' : PState) : Prop :=
+def TickEnd (_k : NodeK) (c : CfgM) (id : w64) (s s' : PState) : Prop :=
   s' = s ∨
   (s.role ≠ .leader ∧ id ∈ c.voters ∧
     ∃ (peers : List w64) (cl : List w8), peers ≡ₚ elements (c.voters \ {[id]}) ∧
@@ -230,15 +232,172 @@ def TickEnd (c : CfgM) (id : w64) (s s' : PState) : Prop :=
         ([Msg.plain .voteResp id id (s.term + W64 1) false] ++
          peers.map (fun d => pvoteReq id d (s.term + W64 1) (plogLast s.base s.log) cl))) ∨
   (s.role = .leader ∧ ∃ ms : List Msg, (∀ x ∈ ms, HeartbeatOk id s x ∧ x.index = W64 0 ∧ x.logterm = W64 0 ∧ x.entries = [] ∧
-      x.ctx = [] ∧ x.dst ∈ c.ids) ∧ s' = psendMsgs s ms)
+      x.ctx = hbCtx s.rd.ro ∧ x.dst ∈ c.ids) ∧ s' = psendMsgs s ms)
 
 /-- **`Advance`** (`rawnode.go:480-500`): the queued self-addressed messages `qs` (a leader's
 self-acknowledgement, a candidate's self-vote) stepped in order (`RecvEnd`); the storage
 acknowledgements leave `PState` as it is (`AckEnd`). -/
-inductive AdvanceEnd (c : CfgM) (id : w64) : PState → List Msg → PState → Prop
-  | nil (s : PState) : AdvanceEnd c id s [] s
+inductive AdvanceEnd (k : NodeK) (c : CfgM) (id : w64) : PState → List Msg → PState → Prop
+  | nil (s : PState) : AdvanceEnd k c id s [] s
   | cons (s s1 s' : PState) (q : Msg) (qs : List Msg) :
-      RecvEnd c id s q s1 → AdvanceEnd c id s1 qs s' → AdvanceEnd c id s (q :: qs) s'
+      RecvEnd k c id s q s1 → AdvanceEnd k c id s1 qs s' → AdvanceEnd k c id s (q :: qs) s'
+
+/-- (antithesis parity, design §1.2) `campaignTransfer`'s context bytes (`raft.go`:
+`[]byte(campaignTransfer)`), on a transfer's vote requests. -/
+def ctxTransfer : List w8 := go!"CampaignTransfer"
+
+/-- (antithesis parity, design §1.2) **`campaign(t)`** at `s` (`raft.go:1045-1090`), `TickEnd`'s
+campaign arm as a relation, with the request context `cl` (`[]` for an election, `ctxTransfer` for a
+transfer). -/
+def CampaignEnd (c : CfgM) (id : w64) (s : PState) (cl : List w8) (s' : PState) : Prop :=
+  id ∈ c.voters ∧ ∃ peers : List w64, peers ≡ₚ elements (c.voters \ {[id]}) ∧
+    s' = psendMsgs (pbecomeCandidate id s)
+      ([Msg.plain .voteResp id id (s.term + W64 1) false] ++
+       peers.map (fun d => pvoteReq id d (s.term + W64 1) (plogLast s.base s.log) cl))
+
+/-- (antithesis parity, design §1.2) **A pre-campaign** (`campaign(campaignPreElection)`): no term
+change, the leader hint cleared, the self pre-vote at the next term queued, a pre-vote request to
+every other voter. -/
+def PreCampaignEnd (c : CfgM) (id : w64) (s : PState) (s' : PState) : Prop :=
+  id ∈ c.voters ∧ ∃ peers : List w64, peers ≡ₚ elements (c.voters \ {[id]}) ∧
+    s' = psendMsgs { s with role := .follower, lead := W64 0, votes := ∅ }
+      ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
+       peers.map (fun d => { pvoteReq id d (s.term + W64 1) (plogLast s.base s.log) [] with ty := .preVote }))
+
+/-! ### The `RState` relations (antithesis parity, design §1.3)
+
+The final relations are over `RState` (`Protocol/StepR.lean`): the `PState` relations above, as the
+protocol content, wrapped with how the bookkeeping fields (`applied`, `pci`, `snap`, `cidx`, `cfg`,
+`fp`) move. The configuration the `PState` relations read is the node's, `r.cfg.cfg`. -/
+
+/-- The bookkeeping fields an input leaves. -/
+def KeepCfg (r r' : RState) : Prop :=
+  r'.applied = r.applied ∧ r'.cidx = r.cidx ∧ r'.cfg = r.cfg
+
+/-- `pendingConfIndex` after a step to `p'` (`reset` clears it at every `becomeX` but
+`becomePreCandidate`; `becomeLeader` sets it to the last index before its empty entry): a leader
+still leading keeps it (but `RecvEndR`'s accepted batch). -/
+def PciNext (r : RState) (p' : PState) : w64 :=
+  if p'.role = .leader then (if r.p.role = .leader then r.pci else W64 (plogLastIndexZ r.p.base r.p.log))
+  else W64 0
+
+/-- The ghost prefix and the restored flag after a step to `p'`: a restore takes a full prefix
+admissible at the snapshot (`StepR.snapRestore`'s premises); anything else keeps them. -/
+def FpNext (Adm : List EntryM → CCState → Prop) (id : w64) (r : RState) (m : Msg) (p' : PState)
+    (fp' : List EntryM) (sn' : Bool) : Prop :=
+  (p'.base = r.p.base ∧ fp' = r.fp ∧ sn' = r.snap) ∨
+  (m.ty = .snap ∧ p'.base = entryID.mk m.logterm m.index ∧ sn' = true ∧
+    FullOk (entryID.mk m.logterm m.index) fp' ∧ r.full.take (uint.nat r.p.commit) <+: fp' ∧
+    ∃ cs', id ∈ cs'.cfg.ids ∧ Adm fp' cs')
+
+/-- **A received message** at `r` (`RawNode.Step` on a protocol message): `RecvEnd` at the node's
+current configuration, the bookkeeping moved by `PciNext` and `FpNext`, and a leader's accepted
+proposal batch exactly `propBatch`'s (the conf-change loop with `pendingConfIndex`, what the
+binding's `AllSwitched`, B 246, needs). -/
+def RecvEndR (Adm : List EntryM → CCState → Prop) (k : NodeK) (id : w64) (r : RState) (m : Msg)
+    (r' : RState) : Prop :=
+  RecvEnd k r.cfg.cfg id r.p m r'.p ∧ KeepCfg r r' ∧ FpNext Adm id r m r'.p r'.fp r'.snap ∧
+  ((m.ty = .propose ∧ r.p.role = .leader ∧ r'.p.log ≠ r.p.log) →
+      ∃ cs, CCTypesOk m.entries cs ∧
+        r'.p.log = r.p.log ++ ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))) ∧
+        r'.pci = (propBatch r m.entries cs).2) ∧
+  (¬ (m.ty = .propose ∧ r.p.role = .leader ∧ r'.p.log ≠ r.p.log) → r'.pci = PciNext r r'.p)
+
+/-- **A tick** at `r`: `TickEnd` at the node's configuration, the bookkeeping kept but
+`pendingConfIndex` (`PciNext`). -/
+def TickEndR (k : NodeK) (id : w64) (r r' : RState) : Prop :=
+  TickEnd k r.cfg.cfg id r.p r'.p ∧ KeepCfg r r' ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧
+  r'.pci = PciNext r r'.p
+
+/-- **`Advance` / a storage acknowledgement** (`appliedTo`, `appliedSnap`): nothing, the applied index
+moved along committed entries (`StepR.advance`), or a pending snapshot applied, the configuration
+switched to the snapshot's (`StepR.applySnap`). (The design's fourth arm, a joint configuration's
+automatic leave, `AutoLeaveEnd`, comes with B3.) -/
+def AckEndR (dec : CCDec) (Adm : List EntryM → CCState → Prop) (id : w64) (r r' : RState) : Prop :=
+  (r' = r) ∨
+  (∃ a, StepR Adm dec id 0 r [] { r with applied := a, cidx := max r.cidx (uint.nat a) } ∧
+        r' = { r with applied := a, cidx := max r.cidx (uint.nat a) }) ∨
+  (∃ j sn cs', StepR Adm dec id 0 r [] { r with applied := j, snap := sn, cidx := uint.nat j, cfg := cs' } ∧
+        r' = { r with applied := j, snap := sn, cidx := uint.nat j, cfg := cs' })
+
+/-- **`Advance`** at `r` (`AdvanceEnd`'s `RState` form): the queued self-addressed messages stepped in
+order (`RecvEndR`), and the storage acknowledgements (`AckEndR`). -/
+inductive AdvanceEndR (Adm : List EntryM → CCState → Prop) (dec : CCDec) (k : NodeK) (id : w64) :
+    RState → List Msg → RState → Prop
+  | nil (r r' : RState) : AckEndR dec Adm id r r' → AdvanceEndR Adm dec k id r [] r'
+  | cons (r r1 r' : RState) (q : Msg) (qs : List Msg) :
+      RecvEndR Adm k id r q r1 → AdvanceEndR Adm dec k id r1 qs r' → AdvanceEndR Adm dec k id r (q :: qs) r'
+
+/-- `hasUnappliedConfChanges` (`raft.go:1013`): a conf entry committed and not applied. -/
+def UnappliedConf (r : RState) : Prop :=
+  ∃ (k : Nat) (e : EntryM), uint.nat r.applied ≤ k ∧ k < uint.nat r.p.commit ∧ r.full[k]? = some e ∧
+    IsConfEnt e
+
+/-- **`RawNode.Campaign`** (`MsgHup`, `campaignElection` or, with pre-vote, `campaignPreElection`;
+`hup`'s guards: not a leader, promotable, no committed conf change unapplied): nothing, or the
+campaign. -/
+def CampaignEndR (k : NodeK) (id : w64) (r r' : RState) : Prop :=
+  (r' = r ∨
+   (r.p.role ≠ .leader ∧ ¬ UnappliedConf r ∧ r.snap = false ∧
+     (k.prevote = false ∧ CampaignEnd r.cfg.cfg id r.p [] r'.p ∨
+      k.prevote = true ∧ PreCampaignEnd r.cfg.cfg id r.p r'.p))) ∧
+  KeepCfg r r' ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧ r'.pci = PciNext r r'.p
+
+/-- **`RawNode.TransferLeader(to)`** (local `MsgTransferLeader`; `raft.go:1450-1490`) at a leader:
+ignored (a learner or itself as target, the same transfer pending, R1: `leadTransferee` hidden), or
+recorded, and then either a `MsgTimeoutNow` to `to` (its `Match` the last index) or a probe
+(`sendAppend`). The `MsgTimeoutNow` has no `Msg` reading (`mtypeOf 14 = none`): it is the `XMsg`
+result. At a follower, forwarded to the leader (also an `XMsg`); otherwise dropped. -/
+def TransferEndR (id : w64) (r : RState) (to : w64) (r' : RState) (xs : List XMsg) : Prop :=
+  r'.applied = r.applied ∧ r'.cidx = r.cidx ∧ r'.cfg = r.cfg ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧
+  r'.pci = r.pci ∧
+  (if r.p.role = .leader then
+     (r'.p = r.p ∧ xs = []) ∨
+     (to ∈ r.cfg.cfg.voters ∧ to ≠ id ∧
+       ((r.p.matched !! to = some (W64 (plogLastIndexZ r.p.base r.p.log)) ∧ r'.p = r.p ∧
+          xs = [⟨.timeoutNow, id, to, r.p.term⟩]) ∨
+        (xs = [] ∧ SendsEnd r.cfg.cfg id r.p r'.p)))
+   else if r.p.lead ≠ W64 0 then r'.p = r.p ∧ xs = [⟨.transferLeader, to, r.p.lead, W64 0⟩]
+   else r'.p = r.p ∧ xs = [])
+
+/-- **A received `MsgTimeoutNow`** (`stepFollower`, `raft.go:1620`): a stale one ignored; otherwise
+after the preamble (a higher term: `becomeFollower(x.term, None)`, the design's `PreEnd` at a
+non-leader type, written out), a promotable node campaigns at once (`campaignTransfer`, no
+pre-vote, `ctxTransfer` on its requests); otherwise nothing. -/
+def TimeoutNowEndR (id : w64) (r : RState) (x : XMsg) (r' : RState) : Prop :=
+  (uint.Z x.term < uint.Z r.p.term ∧ r' = r) ∨
+  (uint.Z r.p.term ≤ uint.Z x.term ∧
+    (∃ p1, (uint.Z r.p.term < uint.Z x.term ∧ p1 = pbecomeFollower r.p x.term (W64 0) ∨
+              x.term = r.p.term ∧ p1 = r.p) ∧
+       (r'.p = p1 ∨ CampaignEnd r.cfg.cfg id p1 ctxTransfer r'.p)) ∧
+    KeepCfg r r' ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧ r'.pci = PciNext r r'.p)
+
+/-- **`RawNode.ReportSnapshot`** (`MsgSnapStatus`; design §1.4, B3): nothing, or at a leader a probe
+(`sendAppend`, `SendsEnd`), the bookkeeping kept. -/
+def SnapStatusEndR (id : w64) (r r' : RState) : Prop :=
+  r' = r ∨ (r.p.role = .leader ∧ SendsEnd r.cfg.cfg id r.p r'.p ∧ r' = { r with p := r'.p })
+
+/-- **`RawNode.ApplyConfChange`** of the next conf entry (`StepR.applyConf`'s right-hand side, the
+leader's step-down on removal with `StepDownOnRemoval`, `switchToConfig`): the entry committed,
+after the configuration index, the conf entries between decoder-rejected. -/
+def ApplyConfEndR (dec : CCDec) (Adm : List EntryM → CCState → Prop) (k : NodeK) (id : w64)
+    (r : RState) (kk : Nat) (r' : RState) (xs : List Msg) : Prop :=
+  ∃ (e : EntryM) (op : CCOp) (cs' : CCState) (p1 : PState),
+    r.cidx ≤ kk ∧ kk < uint.nat r.p.commit ∧ r.full[kk]? = some e ∧ IsConfEnt e ∧
+    NoUndecConfIn dec r.full r.cidx kk ∧ dec (r.full.take kk) e = some (.apply op) ∧
+    ccStepB op r.cfg = some cs' ∧ Adm (r.full.take (kk + 1)) cs' ∧
+    (p1 = r.p ∨ (r.p.role = .leader ∧ k.sdr = true ∧ id ∉ cs'.cfg.voters ∧
+                 p1 = pbecomeFollower r.p r.p.term (W64 0))) ∧
+    -- a leader still leading probes the new peers and may commit (`maybeCommit` at the new quorum)
+    (r'.p = p1 ∨ (p1.role = .leader ∧ ∃ n, (n = p1.commit ∨ PCommitOk cs'.cfg p1 n) ∧
+                   SendsEnd cs'.cfg id { p1 with commit := n } r'.p)) ∧
+    r' = { r with p := r'.p, cidx := kk + 1, cfg := cs', pci := PciNext r r'.p } ∧ xs = []
+
+/-- **The async storage responses** (B2; `MsgStorageAppendResp`/`MsgStorageApplyResp` stepped back):
+the acknowledgement's effect (`AckEndR`), then the write's `Responses` stepped (`AdvanceEndR`). -/
+def StoreAckEndR (Adm : List EntryM → CCState → Prop) (dec : CCDec) (k : NodeK) (id : w64)
+    (r : RState) (resp : List Msg) (r' : RState) : Prop :=
+  ∃ r1, AckEndR dec Adm id r r1 ∧ AdvanceEndR Adm dec k id r1 resp r'
 
 end input_end
 

@@ -1131,7 +1131,7 @@ theorem node.run.gated_of
     -- (#33 S4) at the node's state, outside the scope
     iunfold ownRawNodeReady at Hrn
     icases Hrn with ⟨%s0, Hrn⟩
-    ihave Hsc0 := rnScopeAt_false (GF := GF) (γ := γ.raft) (id := id) { rs with bw := W } s0
+    ihave Hsc0 := rnScopeAt_none (GF := GF) (γ := γ.raft) (id := id) { rs with bw := W } s0
     wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L s0 false
       (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $Hsc0 $HhhO]
       as %steps %ss2 %qs' %ip' ⟨#Hss2, %Hssn2, Hrn, Htoks, -⟩

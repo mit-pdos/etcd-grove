@@ -28,6 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section pure
+variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The message-type constants unfolded, the `if`s on them decided (`InputEndLift.lean`'s
@@ -423,7 +424,7 @@ theorem HandleEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' 
     (hi : c.incoming = c'.incoming) (ho : c.outgoing = c'.outgoing) (hd : c.ids = c'.ids)
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : HandleEnd c id s m s') : HandleEnd c' id s m s' := by
+    (h : HandleEnd k c id s m s') : HandleEnd k c' id s m s' := by
   unfold HandleEnd at h ⊢
   rcases hty with e | e | e | e | e | e <;> rw [e] at h ⊢ <;>
     simpa only [AppRespEnd, PCommitOk, JQuorum, JLost, hi, ho, SendsEnd.iff_of_ids hd,
@@ -434,7 +435,7 @@ theorem RecvEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' : 
     (hi : c.incoming = c'.incoming) (ho : c.outgoing = c'.outgoing) (hd : c.ids = c'.ids)
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : RecvEnd c id s m s') : RecvEnd c' id s m s' := by
+    (h : RecvEnd k c id s m s') : RecvEnd k c' id s m s' := by
   rcases h with ⟨h1, h2⟩ | h | ⟨h1, s1, h2, h3⟩
   · exact .inl ⟨h1, h2.of_halves hi ho hd hty⟩
   · exact .inr (.inl h)
@@ -448,7 +449,7 @@ theorem recvEnd_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List
     (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
     (hns : NoSnapSent (toPState s) (toPState s')) (h : StepEnd c id m ents ctx s s') :
     ∀ ty, mtypeOf m.Type' = some ty →
-      RecvEnd c id (toPState s) (absMsg ty m ents ctx) (toPState s') ∧
+      RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') ∧
       (ty = .app ∨ ty = .appResp ∨ ty = .vote ∨ ty = .voteResp ∨ ty = .heartbeat ∨
         ty = .heartbeatResp) := by
   intro ty hty'
@@ -474,6 +475,7 @@ theorem proposeEnd_rd {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
 end pure
 
 section ghost
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -494,15 +496,19 @@ theorem ownRaftPhysC_ackScope (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   · ipureintro; exact fun h => (Hp.1.2.2.2 h).2
   iapply Hback $$ %tv %s.votes Hf Htrk
 
-/-- The scope's storage cap, read out (persistent). -/
+/-- The basic scope's storage cap, read out (persistent). -/
 theorem rnScopeAt_cap {γ : RaftNames} {id : w64} {sc : Bool} (h : sc = true) (rs : RNState)
     (s : NState) :
-    rnScopeAt (GF := GF) γ id sc rs s ⊢ storCapF s.logst.storage 0 ∗ rnScopeAt γ id sc rs s := by
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢
+      storCapF s.logst.storage 0 ∗ rnScopeAt γ id (basicScope sc) rs s := by
   subst h
-  unfold rnScopeAt; simp only [ite_true]
+  unfold rnScopeAt basicScope
   iintro ⟨%H, #Hc⟩
-  iframe Hc
-  ipureintro; exact H
+  isplitr
+  · iapply Hc; ipureintro; rfl
+  · isplitr
+    · ipureintro; exact H
+    · imodintro; iexact Hc
 
 end ghost
 
