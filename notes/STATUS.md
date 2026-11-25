@@ -77,7 +77,12 @@ false`; `bootstrapRaft.spec`/`bootstrap.spec` take `bootGo.idRaftOk` (this membe
 local targets) and `bootGo.urlsNe` (every initial-cluster entry has a peer URL); pure facts of each example's
 configuration, for the final stage.
 
-### `bootstrapContract` and `UnsafeNoFsync` (found 2026-11-25; not fixed)
+### `bootstrapContract` and `UnsafeNoFsync` (found 2026-11-25; fixed the same day on `bootstrap-final/2026-11-25`)
+
+**Fixed** (coordinator-E's approval, #34; ledger 2026-11-25 "bootCfgOk"): `bootCfgOk`'s sixth conjunct
+`cfg.UnsafeNoFsync' = false`, proved by `rfl` in the examples. The `idRaftOk` gap below stays open (the
+final stage's conversion, plan §7.10).
+
 
 `bootstrapContract` (trusted, `InvBoot.lean`, a premise of `NewServer.spec` through `bootPremise`) covers
 `cfg.UnsafeNoFsync = true`, where `bootstrapNewWAL` sets the new WAL's `unsafeNoSync` and the open WAL of

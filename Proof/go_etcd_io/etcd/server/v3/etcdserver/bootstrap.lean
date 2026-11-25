@@ -188,7 +188,7 @@ theorem bootstrap.wp_proof
   -- `rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.PeerDialTimeout())`
   wp_apply (hPDT cfg_ptr cfg.ElectionTicks' cfg.TickMs') as %dt -
   · iframe #
-  wp_apply (hNRT bootstrap.anyNet _ _ Hcok.2.2.2.2.2) as %prt %perr Hprt
+  wp_apply (hNRT bootstrap.anyNet _ _ Hcok.2.2.2.2.2.1) as %prt %perr Hprt
   icases Hprt with (%Hne | ⟨%Heq, #Hrt, %Htr⟩)
   · obtain ⟨pi, rfl⟩ : ∃ pi, perr = GoInterface.ok pi := by
       cases perr with
