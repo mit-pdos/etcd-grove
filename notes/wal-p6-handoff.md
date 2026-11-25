@@ -488,6 +488,25 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 13 (WIP, `etcd-safe-p6b-wip` @ `8fc495f329`): fix B done; `wal.Link` builds with no
+  `sorry`** (`lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`, 3847 jobs, `/shared/tmp/p6b-build8.log`;
+  no `declaration uses 'sorry'`). The three session-12 ledger entries marked approved. Every lookup threads its
+  holder's quarter `walIncQ I` (`incOf I dir = i`): `walOpening_incQ`/`walOpenWI_incQ`/`walOpenWCI_incQ` (Ghost),
+  `walLockedTokI_incQ`; the close laws (`WalCloseLaw`, `walCloseLaw(U)`) take `walPipeKey` from `pipeLeft` and
+  give the reserve to `walInv_unpin(XI)`; `HandleLoans` and the lending laws (`BrokenLend`) take `walIncQ I`, not
+  the lock token; the failed handle is `walHandlePI w dir i .failed` (`walInv_failOpening`, `readAll_failWp*`,
+  `walFailCommon … i`, `walReadFailed_lockedTokI`); purge (`walPurgeP`/`walPurgeOP … I`, `walInv_walFiles`,
+  `walOpenWFI_lend` returns the handle's quarter, `walOpenWF_lend` removed as unused; the tester's `purgeRound`
+  threads it through its loop invariant) and the prefix probe (`probeHandles`/`prefixScanState … I`) carry the
+  quarter; `Create` passes `UH := createUK …`. One ledger entry for these lemma-level signatures ("fix B's
+  lemma-level signatures"). `WalTester/…/purgeRound.lean` checked with `etc/lean-check.py -a` (0 errors), the
+  tester's Link not yet built.
+  **Next:** build the tester (`etc/gen-link.py --walfs`, the tester's `TopLevelRobustness`), then the brief's
+  steps 2-4: the pin bump to upamanyus/etcd `goose-lean-fmt1c-discardfix` @ `251a430ce042` (`DiscardUnsaved` →
+  `func Discard(lg, dirpath) error`; `etc/goose.py`, `--project <affected>`, `--check`; the bump alone in one
+  commit; report if the bootstrap spec or proof cites `DiscardUnsaved`), state C, the `Discard` spec (ledger
+  first) and proof, then `gen-link --walfs` and the builds (wal.Link, the tester, the server WAL consumers, P8's
+  crash modules, the leaves of `etc/importers.py --git 5a1c41d945 --leaves`).
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
