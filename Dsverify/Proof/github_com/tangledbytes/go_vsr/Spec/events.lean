@@ -294,8 +294,8 @@ abbrev events.Event.ToWriter.spec : Prop :=
       bufio.errOrNil err }}
 
 /-- `json.NewDecoder(conn)` over a connection end `c` (the end `s` of `cn`) that has read nothing,
-whose stream protocol is `protoOf γ`: a decoder of `γ`'s stream (stated here, a hypothesis until the
-model's `Decoder` has its specs: `notes/dsv-vr.md`, "Hypotheses"). -/
+whose stream protocol is `protoOf γ`: a decoder of `γ`'s stream (proved at the model's decoder,
+`decRepModel`: `Proof/events/DecodeFrame.lean`). -/
 abbrev events.newDecoder.spec : Prop :=
   ∀ (γ : VsrGhost.Names) (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗
@@ -311,9 +311,8 @@ registered (`codecSet`: `Decode` takes the registered codec's `Scan` to read the
 `getCodec`) and `unmarshalVia` at `&f` (the contract the instance gives; `*vsrwire.Frame` has
 `JSONModelUnmarshal`, so its method, and `jsoncodec.Scan` computes `F`).
 
-A premise while the main tree has no `Decoder` spec (`Code/encoding/json.toml` translates neither
-`NewDecoder` nor `Decode`). True of the model's `Decode` (`v2_stream.go`) at the kit's contract
-`vsrnet.jsonCodec`: a sticky error is returned again (`decErr`); else `readValue` reads up to the
+Proved of the model's `Decode` (`v2_stream.go`) at its decoder (`decRepModel`) and the kit's
+contract `vsrnet.jsonCodec` (`Proof/events/DecodeFrame.lean`): a sticky error is returned again (`decErr`); else `readValue` reads up to the
 end of the next value with the registered codec's `Scan` (`jsoncodec.Scan`), fetching from the
 connection (`recvTok`), so the value read is whitespace and the next line's `encEvent m` of a
 message `γ`'s stream has (`rstreamAt`), or a read error is returned and kept; then the frame's

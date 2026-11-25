@@ -5,10 +5,8 @@
 `premise_sat%` (`Robustness/PremiseSat.lean`): the statement of
 `Dsverify/Spec/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLevelRobustness.lean` has premises
 that hold together with `Robust`'s antecedents: twelve fresh machines with no listener, no
-connection, and `DistDeploy`'s addresses (`vrKitAddrs`, distinct and valid, by evaluation). The JSON
-premise (`∃ DecoderRep, JsonHyps`, an Iris contract at each machine's heap) is left out by
-`premise_sat%` itself; its instance is `NonVacuityLinked.lean`'s (over local axioms, test-only).
-Checked by `etc/premise-witness.py`.
+connection, and `DistDeploy`'s addresses (`vrKitAddrs`, distinct and valid, by evaluation): the
+statement has no other premise. Checked by `etc/premise-witness.py`.
 -/
 module
 

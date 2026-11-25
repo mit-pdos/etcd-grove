@@ -2,8 +2,10 @@
 The vr kit's links (notes/dsv-vr.md; the kit's top-level `Link`, namespace `EtcdGrove.dsvvr`): the machines' functions' proofs
 (`OrchProof`, `ClientProof`, `ServerProof`) applied to their callees' results (the kit's own
 proofs `Conf`, `ModelProof`, `CodecProof`, `KitProof`, `MkClientProof`, `OpProof`, the packages'
-`Results.lean`, remote's `Link.lean`, `Net/`'s net proofs), over the library hypotheses that remain
-(`JsonHyps` (`JsonHyps.lean`): the `encoding/json` `Decoder` premises; the model's `Encoder` is
+`Results.lean`, remote's `Link.lean`, `Net/`'s net proofs). The `encoding/json` `Decoder` specs the
+machines' proofs take (`JsonHyps`, `JsonHyps.lean`) hold at the model's decoder (`decRepModel`):
+`jsonHypsModel`, from `Proof/events/DecodeFrame.lean` over the main tree's `NewDecoder`,
+`getCodec`, `skipSpace`, `endsInNumber` and `Decoder.fetch` on a connection; the model's `Encoder` is
 `encRepModel`, its `NewEncoder` and `Encode` proved (`Proof/encoding/json/Codec/`); a connection's `io.Reader` is Net's
 `net.conn_readerOk` over `net.Conn.Read`'s proof, finding 5); remote's `Check` and `ServeClient` are remote's proofs,
 the main tree's `Unmarshal` and `SetCodec` its proofs (`Proof/encoding/json/Results.lean`).
@@ -36,6 +38,8 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.encoding.json.Results
 public import Proof.encoding.json.Codec.NewEncoder
 public import Proof.encoding.json.Codec.Encoder__Encode_conn
+public import Proof.encoding.json.Codec.Decoder__fetch_conn
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.DecodeFrame
 public import Net.Proof.models_lab.Results
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Registered
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.PayloadEnc
@@ -183,6 +187,26 @@ theorem wp_Client (j : JsonHyps (GF := GF) (hG := hG)) :
     Codec.wp_proof
 
 end linked
+
+section model
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
+variable [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS]
+
+set_option warn.classDefReducibility false in
+attribute [local instance] encoding.json.decRepModel in
+/-- The `Decoder` specs the machines' proofs take hold at the model's decoder (`decRepModel`). -/
+theorem jsonHypsModel :
+    letI := encoding.json.decRepModel (hG := hG); JsonHyps (GF := GF) (hG := hG) :=
+  ⟨pkg.events.newDecoder.wp_proof encoding.json.NewDecoder.wp_proof,
+    pkg.events.Decoder.Decode_frame.wp_proof encoding.json.getCodec.wp encoding.json.skipSpace.wp
+      encoding.json.endsInNumber.wp
+      (encoding.json.Decoder.fetch_conn.wp_proof net.Conn.Read.wp_proofLc)⟩
+
+end model
 
 end EtcdGrove.dsvvr
 end Perennial

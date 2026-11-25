@@ -5,7 +5,7 @@ proved as paxos's: from the deployment's start (the registry, the addresses unse
 remote's slot map with the client addresses' call budgets, its pending library over the abstract
 state, every machine's share), and each machine's boot from its share: its generated initializer's
 spec and its `main`'s (`Mains.lean`) over the links (`Link.lean`)
-at the premise `JsonHyps` of its heap; a client's or server's boot is its first
+at the model's decoder (`decRepModel`, `jsonHypsModel`) of its heap; a client's or server's boot is its first
 run (`BootCmdsLinked.lean`), which returns encoding/json's fresh registry (`codecFresh`) for its
 `main` (`RegisterJSON()`).
 -/
@@ -122,7 +122,7 @@ theorem range5 : List.range 5 = [0, 1, 2, 3, 4] := rfl
 
 /-- **The vr kit** (see the statement's file). -/
 theorem vr_remote_robust : vr_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi hj σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) vrKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   iintro #Hreg Hs
@@ -161,7 +161,8 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    obtain ⟨_, hJ⟩ := hj G' hG.goose_localGS π
+    letI := encoding.json.decRepModel (hG := hG)
+    have hJ := EtcdGrove.dsvvr.jsonHypsModel (GF := remoteGF) (hG := hG)
     letI := encoding.json.encRepModel (hG := hG)
     match i, hm with
     | 0, hm =>

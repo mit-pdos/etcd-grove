@@ -52,7 +52,50 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 11: the encoder proved; JsonHyps down to the Decoder (2026-11-25; the current handoff)
+### Round 12: the Decoder proved; no premise left (2026-11-25; the current handoff)
+
+Brief (coordinator, 2026-11-25): go ahead with the Decoder (round 11's three steps); the overlapping
+`copy` worked around here, its general fix recorded in `notes/perennial-changes.md`.
+
+**Translation.** `Code/encoding/json.toml` adds `NewDecoder`, `Decoder.{Decode,readValue,badStart,fetch}`,
+`endsInNumber`, `(*SyntaxError).Error`; `etc/goose.py --check`: only `Code/encoding/json.lean` changed
+(ca79fd1bcf).
+
+**Main tree** (`Proof/encoding/json/`): `DecoderModel.lean` (defs: `decBufOk`, `decOkModel`,
+`decErrModel`, `decRepModel`); `Codec/NewDecoder.lean`; `Codec/Decoder__fetch_conn.lean`
+(`Decoder.fetch` on a connection, over `net.Conn.Read.specLc`; `fetchRes`: data, the stream's end
+with `readDead`, or a read error); `Codec/endsInNumber.lean`; `SliceLemmas.lean`
+(`wp_slice_copy_within_int`: the overlapping `copy`, the workaround of `notes/perennial-changes.md`'s
+entry; `ownSliceCap_restore`); `NetInit.lean` (`ed_of_net`, `eof_of_net`); `Proof/net/ReadAuDead.lean`.
+
+**vr** (`Dsverify/.../go_vsr/`): `kitCodecOk F` gains `⌜F = JsonScan.scanF⌝` (`kitCodecOk_pin`: the
+unmarshal of the value read needs `jsonValid F` of it, so `Decode_frame` is stated at
+`JsonScan.scanF`; `Hook.lean` takes the pin). `Proof/events/Frame.lean` (defs): the lab's
+`jsonstream` framing (`scan_next`), with `leadSpace_line`, `rstreamAt_append`.
+`Proof/events/DecodeFrame.lean` (proof): `jsonstream.wp_readValue` (the loop: scan, fetch while
+More, `io.EOF`/`io.ErrUnexpectedEOF` at the end, the read error kept), `events.Decoder.Decode_frame.wp_proof`
+and `events.newDecoder.wp_proof` at `decRepModel`. `Link.lean`: `jsonHypsModel` (the two at
+`decRepModel`, over the main tree's proofs).
+
+**Statement diff (round 11 → now)**: the premise `∀ G L π, letI := heapAt G L; ∃ (_ : DecoderRep
+remoteGF), JsonHyps` is gone; `vr_remote_robust.spec` is `DistDeploy vrKitAddrs (system σ) g →
+Robust [] (system σ) g threads (2 ^ 63)`; docstring. The proof takes `letI := decRepModel` per
+machine. `NonVacuityLinked.lean` (two test-only local axioms) deleted: nothing left to witness;
+`TopLevelWitness` unchanged but its docstring.
+
+**Checks (local).** `lean-check` of `DecodeFrame`, `Link`, both `TopLevelRobustness`,
+`TopLevelWitness`: 0 errors; `#print axioms vr_remote_robust`: `[propext, Classical.choice,
+Quot.sound]`. `tier-check --check` ok (208 known); `kitgen --check vr` ok; `premise-witness --check`
+ok; `gen-init --check` 272 up to date and `copy-part --check` 0 differ (both with
+`PERENNIAL_DIR=/shared/perennial-fce59af75`: the shared `.lake/packages/perennial` is at another pin
+and gives a `KeyError: 'internal.testlog'`). Found on the way: `word` and `omega` proofs whose
+auxiliary lemma is abstracted over `[GooseExts]` failed the kernel (application type mismatch) when
+the same fact was proved twice in one declaration; proving it once, by name, avoided it.
+
+**Next.** Full build on fk-lean1 and `etc/tcb-report.py --check`; merge lean; land.
+
+
+### Round 11: the encoder proved; JsonHyps down to the Decoder (2026-11-25; history)
 
 Brief (coordinator, 2026-11-25): finish `vr_remote_robust` with as few premises as possible; no new
 premise route for JSON; slog from the merged lean; bounds as the other kits.
