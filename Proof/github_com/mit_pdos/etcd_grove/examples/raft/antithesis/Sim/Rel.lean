@@ -225,11 +225,13 @@ def MemIs (N : Nat) (S : AntCheck.State) (n : Fin N) (v : NodeView) : Prop :=
   S.role[n.val]! = roleS v ∧ S.lastApplied[n.val]! = (v.delivered.length : Int) ∧
   S.config[n.val]! = confView N v.conf ∧ S.confAt[n.val]! = (v.confAt : Int)
 
-/-- **C1, sync mode's disk**: with no write queued, the disk is raft's own state (what the last
+/-- **C1, sync mode's disk** (not batching, splitting or sending early: those are parity B2's): with
+no write queued, the disk is raft's own state (what the last
 `ready` announced and wrote), and an announced write is not `made` before its `send`s or its
 `apply` end it (no `made` report in sync mode). -/
 def SyncDisk (R : RunCfg) (v : NodeView) : Prop :=
-  R.md.async = false → v.mems = [] → v.dur = durOf v.r ∧ (v.undo ≠ none → v.made = false)
+  R.md.async = false → R.drv.batch = false → R.drv.split = 0 → R.drv.parallel = false → v.mems = [] →
+    v.dur = durOf v.r ∧ (v.undo ≠ none → v.made = false)
 
 /-- **C1, the announced write** (`undo[n]`, B 349-359): there is one exactly when the view has the
 disk before it; its `made` is the view's; and what it reverts to (term, vote, commit, the log's kept
@@ -472,7 +474,7 @@ and agreeing with it (`subSeq`'s domain, B 434, 600), recorded under a term it h
 (`RecordedIn`, B 109-112, at a win and a request's commit); `confirmed` a prefix of its term's leader
 log while that is kept; every ack of a node at its term within its `confirmed` or its commit (what
 `CommitBeyondConfirmed`, B 435, needs); `ledLog`'s terms led; a node in `leaders` at its current term
-only while it leads it; the grants' and acks' senders and receivers and the votes' voters servers
+only while it leads it (but `BootInit`'s leader of term 1, B 733-753, a follower at its start); the grants' and acks' senders and receivers and the votes' voters servers
 (`GC` looks them up, B 699-708: an evaluation error otherwise); a node's vote at its term in
 `votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540);
 the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
@@ -495,7 +497,7 @@ def BindingOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
   (∀ p ∈ S.ledLog, ∃ l ∈ S.leaders, l.term = p.1) ∧
   (∀ n : Fin R.N, ∀ l ∈ S.leaders, l.server = nameOf (nodeId n) →
     l.term < S.currentTerm[n.val]! ∨
-      (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! = AntCheck.leader)) ∧
+      (l.term = S.currentTerm[n.val]! ∧ (S.role[n.val]! = AntCheck.leader ∨ (R.boot = true ∧ l.term = 1)))) ∧
   (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
     (∃ i : Fin R.N, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
   (∀ v ∈ S.votes, ∃ i : Fin R.N, v.voter = nameOf (nodeId i)) ∧

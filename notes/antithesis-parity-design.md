@@ -1032,3 +1032,8 @@ On the RawNode/InputEnd side (joint with them, after antithesis-s4 lands):
 4. **`XMsg` outside `Msg`** (§1.3): recommend yes. It keeps raft's message invariant untouched.
 5. **Nondeterministic arms (R1)**: recommend yes. No binding check needs the hidden state (lease,
    pre-candidate tally, `recentActive`, `leadTransferee`).
+6. **Cleanup: a pure module for what Sim needs** (B1, accepted for now). `CCState` lives in
+   `InvConfchange.lean`, whose imports reach `InvTracker` (Iris definitions); the Sim imports it
+   through `Protocol/StepR.lean` (and `InputEnd` once it imports `StepR`). Move `CCState` and the rest
+   of what the Sim reads (`cfgFlags`, `ccStepB`, `cfgFold`) into a pure module, so that the Sim
+   imports no Iris.

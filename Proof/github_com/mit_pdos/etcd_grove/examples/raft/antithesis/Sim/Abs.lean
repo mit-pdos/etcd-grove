@@ -43,10 +43,20 @@ def nameOf (id : w64) : AntCheck.Str :=
 /-- Go `names(n)`: `Name(1), ..., Name(n)`. -/
 def namesL (n : Nat) : List AntCheck.Str := (List.range n).map (fun (i : Nat) => nameOf (W64 ((i : Int) + 1)))
 
+/-- The driver's modes that are not a RawNode spec's scope (`driver.go`'s `Mode`: `Batch`,
+`Parallel`, `Split`, `Restarts`, `MaxDeliveries`): how the harness drives raft and reports. -/
+structure DrvMode where
+  batch : Bool := false
+  parallel : Bool := false
+  split : Nat := 0
+  restarts : Bool := false
+  maxDeliveries : Nat := 1
+deriving DecidableEq, Inhabited
+
 /-- **The run's configuration** (`notes/antithesis-parity-design.md` §3.1, parity B1): servers
 `raft1 … raftN`, the first `K` of them the initial voters, bootstrapped (`BootInit` written into each
 node's storage, B 733-753) or not, each node's `Config` flags (`NodeK`, drawn per run), and the
-batch's scope mask (`RnMode`, design R3). `N ≤ 9` keeps `setOf (namesL N) = namesL N` (string order
+batch's scope mask (`RnMode`, design R3), and the driver's other modes (`DrvMode`). `N ≤ 9` keeps `setOf (namesL N) = namesL N` (string order
 is numeric order for `raft1`-`raft9`); `K ≤ N` is `Server ⊇ InitVoters`. -/
 structure RunCfg where
   N : Nat
@@ -54,6 +64,7 @@ structure RunCfg where
   boot : Bool
   k : Fin N → NodeK
   md : RnMode
+  drv : DrvMode := {}
   hK : 1 ≤ K ∧ K ≤ N ∧ N ≤ 9
 
 /-- The binding's constants for the run: `Server = SetOf(names(N))`, `InitVoters = SetOf(names(K))`,
