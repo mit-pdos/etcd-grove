@@ -48,9 +48,12 @@ A connection the transport makes reaches a listener at `a` that may be another p
 `addrProto` lets its holder listen at `a`): such a program can write nothing there (no proof establishes the opaque
 acceptor protocol of any bytes), so the transport sees a peer that never answers, which it handles (a timeout, an
 error, a retry). The peer addresses' protocols name the cluster
-and the member (`httpAddrAt γ pid a`), and an address is set once (`addrUnset` spent by `http_addr_set`), so the
-transport of a member of another ghost cluster (a second `srvClusterBoot_alloc` with the same configuration: same ids)
-can never meet `Hpeers` at these addresses; a duplicate of a member inside `γ` is excluded by the exclusive
+and the member (`httpAddrAt γ pid a`: `httpPeerSvc γ.cl pid`, raft's cluster names, allocated once per cluster; not the
+member's whole record `γ`, whose storage registry `γ.reg` is the member's own, so that every member of the cluster reads
+the same fact of an address: 2026-11-25, `notes/axiom-review/s5-cluster-index.md`), and an address is set once
+(`addrUnset` spent by `http_addr_set`), so the
+transport of a member of another ghost cluster (a second `srvClusterBoot_alloc` with the same configuration: same ids,
+another `γ.cl`) can never meet `Hpeers` at these addresses; a duplicate of a member inside `γ.cl` is excluded by the exclusive
 `nodeVacant γ.cl id` and `raftState γ.cl id` (`Hnboot`; `nodeBoot` itself is persistent) (review of 2026-11-24: unindexed, two clusters at one address gave a duplicate member and
 raft's `tocommit out of range` panic). The network names `γn` the post gives are this member's.
 
