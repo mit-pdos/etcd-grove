@@ -424,3 +424,9 @@ real WAL) is the natural report if the lead wants one.
   (**E3's fold lemma `readAllFoldP_append`**), `Abs`, `Handle`, `Inv`, `SaveHandle`, `saveState`. E2's
   design settled (`notes/wal-p6-handoff.md`, "E2 settled"): `PendStop` in `CrashTo` and `tailStop`,
   ghost image `d.H.take j`, W1 needed for the pending-tail crash. Next: `CrashPure`/`TailCrash*`.
+- 2026-11-25 (session 3): **E2 compiles** (the crash image a prefix of `d.H`, `PendStop`, `LastDec`); W1 for a
+  pending run (`pendStop_transfer`, used for a repaired tail); E3's pure layer (the running decode, its end,
+  `readAllFoldP_wal`, `readAll_success` over the new fold); `VsePure` over normalized histories; the
+  release/open positions invariant under normalization. Left: `WAL__ReadAll` (E3 proper), `TailPend` with a
+  pending run, `RepairReg` (E4), then `Save`/`encodeState`/laws and the rest (`notes/wal-p6-handoff.md`,
+  "Session 3").

@@ -6,13 +6,10 @@
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
-- **State (2026-11-24, end of session 2)**: the hard stop is answered (below: the non-nil fact is the
-  undischarged `proto.MarshalPbNonNil.law`). Compiled (lake): `WalNorm`, `WalNormDisk`, `WalEncRecs`,
-  `WalEncSuffix`, `WalEncFold`, **`WalEncFoldPend` (E3's fold lemma `readAllFoldP_append`)**, `Abs`,
-  `Handle`, `SegPre`, `Inv`, `SaveHandle`, `BootPure`, `WAL__saveState{,NoErr}`, `ReadAllDecode`.
-  **Next failing module: `CrashPure.lean`**, which is E2 proper (the design is settled: "E2 settled"
-  below). Not yet attempted: `WAL__encodeState*` proofs (3-part `walStIn`), `WAL__Save`, `LawsHs*`,
-  `TailCrash*`, `WalEncSegsImg`'s callers, the `ReadAll` files, the Links.
+- **State (2026-11-25, end of session 3)**: E2 compiles (the crash image `walImgS`, `PendStop` in
+  `CrashTo`/`tailStop`, `LastDec`, the pending run in every consumer of the running decode). The `wal.Link`
+  build fails only in the modules listed under "Left" below. **Next: E3's `WAL__ReadAll.lean`** (the Go
+  loop's `pending`/`pendOff`/`pendCRC`), then `TailPend` with a pending run, then E4 (`RepairReg`).
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
@@ -97,6 +94,61 @@ the offset before the first dropped record). No trusted text, no Go change; the 
 - E3 started: `Proof/.../storage/WalEncFoldPend.lean` (`raStepP`, `readAllFoldP`, `foldlM_raStepP_eq`,
   `readAllFoldP_append`: over records ending in a non-entry record followed by decodable entry records
   the new read is the old `readAllFold` of the former). Not compiled.
+
+## Session 3 (2026-11-25): E2 done, E3's pure layer
+
+What is proved now (all compile; `wal.Link` build log `/shared/tmp/p6-build4.log`):
+- **E2.** `CrashPure`, `CrashStart`, `CutSynced`, `CutLay`, `SaveAbs`, `TailCrash`, `TailCrashW`,
+  `TailCrashPend` (its `TailPend` crash is the `es = []` case: `pendStop_nil`), `TailSyncLayP`/`TailSyncWin`,
+  `CreateAu`, `CreateHandle`, `CutHdrStream`, `CutAu`, `Append`, `HandleAppend`, `ReleaseTie`.
+- **W1 for a pending run** (`TailCrashRep.lean`): `pendStop_transfer` (pure): a pending run of `old` from
+  `off` carries over to a crash image that agrees with `old` on the core of every frame its reader accepts
+  from `off` (W1) and whose bytes from `off` are `old`'s or zero (the padding: `frame`'s pad is zeros);
+  the image's reader accepts a prefix of the run, then stops. `crashTo_tailR` (a repaired tail, `RepOld`)
+  uses it: the accepted frame at any `p ≥ wr` is as of the sync (`old`'s) or stamped by a write, which
+  `WinCands` excludes past `wr`. `crashTo_tailR`'s `himg` gained the "bytes from `wr` on are `old`'s or
+  zero" conjunct (from `crashImg_tail` and `WinCands`, in `crashOkA_tailRep`). Helpers `acceptsFrom_ge`,
+  `decStep_core_le`.
+- **E3's pure layer.** `walReadFiles_running` (`ReadAllFiles`) and `walReadFiles_running_end`
+  (`ReadAllEnd`, now one statement with the records, the end offset `wr + |pending frames|` and the CRC
+  `crcAfter … (pendDs es)`), `walDecodeFiles_running_end` and `filesOk_running` (`FilesAtRun`) over a
+  trailing run `Y`; `walRepairFile` (`RepairDecode`: the repaired file's records are the last segment's
+  then the pending run; its frames end at `wr + |pending frames|`). `readAllFoldP_wal`
+  (`WalEncFoldPend`): the new fold (`readAllFoldP`, with `pending`) on the WAL's records from any
+  position then a pending run is the old fold on the former (`NoEntLast`, `EntsEnc`). `readAll_success`
+  (`ReadAllPure`) now takes the `readAllFoldP` fold. `ReadAllOk` with `hNo`. `ReadAllLoop`'s
+  `readFiles_dec`/`readFiles_md`, `ReadAllWFPure`'s `readFiles_hasMd` over the pending run.
+- **`VsePure`** (`validSnapshotEntries`): `vseHs_opDs`/`vseHs_ops`/`vseHs_segsDs`/`vseOut_segs` take the
+  normalization hypothesis (false otherwise: an op `.save hsZero es` with `es ≠ []` writes a state record
+  in the encoding but not in `lhsStep`); `vseOut_pend`: trailing entry records change nothing.
+- **Normalization invariance** (`WalNormDisk`): `walReleasePos_normH`, `walOpenPos_normH`,
+  `walGuardPos_normH`, `walNameBound_normH`, `walRelGuard_normH`, `walLastSnapPos_normH`.
+
+Left (failing in `wal.Link`'s build, or not yet reached):
+1. **`WAL__ReadAll.lean`** (1,901 lines, E3 proper): the retranslated loop has `pending`, `pendOff`,
+   `pendCRC` (Code `wal.lean:4927-5740`). The loop invariant `RdLoop` (`ReadAllLoop.lean`) folds `raStep`;
+   it must fold `raStepP` (`WalEncFoldPend`) and carry `pendOff`/`pendCRC` (the offset/CRC before the first
+   pending record). At the end: success via `readAll_success` (already over `readAllFoldP`); write mode
+   seeks to `pendOff` (`= wr` by `walReadFiles_running_end`'s `es ≠ [] → z0 = |S|` and `RepOld`/`TailExact`;
+   `LastOffset()` when `pending` is empty) and `ZeroToEnd` from there, and `hzw` (the zero length word) is
+   at the decoder's end `wr + |pend|`, not at `pendOff`.
+2. **`TailPend` with a pending run** (`Abs.lean`, `TailCrashPend.lean`): a tail `ReadAll` registers before
+   `ZeroToEnd` has `old` = the pending frames on `[z0, e)` and `LenZ` at `e`; its crash needs
+   `pendStop_transfer` (the bytes from `z0` are `old`'s or a resize's zero: `WinShape`, writes excluded);
+   `walTailsRes_registerPend` and `crashOkA_tailPend` change with it.
+3. **E4 `RepairReg.lean`**: `walRepairFile` now gives `∃ rs es` with the frames ending at
+   `wr + |pending frames|`; the registration states the tail at the decoder's stop (`(recFrames rs).length`,
+   which was `lay'.wr`). Design: `Repair` truncates at `e ≥ wr` and keeps the pending frames; the
+   registered layout's `wr`/`z0` stay at the history's stream end, the tail record's offset is `e` (the
+   specs `os.File.Truncate.specRepTail`/`fileutil.Fsync.specRepTail` take the stream's length: they need
+   the offset `e` with `old`'s bytes on `[wr, e)`). Not started.
+4. Failing in the last `wal.Link` build besides `RepairReg`: `ReadAllIdx` (the `raIdx` fold of `w.enti`:
+   with `pending`, `enti` counts only applied entries; goes with item 1), `StreamBound.saveStream_le`
+   (the appended op is the normalized one, `wop H o`, whose state record may be `walLastHS`'s: needs a
+   bound on that state's encoding too), `SavePure.lean:252` (a syntax error in `SaveSt.finState`'s
+   record). Items 1-3 and these are what the next session starts on.
+5. Then the `encodeState`/`Save`/`LawsHs*` proofs (edited, unchecked), `ReadAll` provenance and
+   `CloneStLaw`, `ValidSnapshotEntries`/`OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5.
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 
