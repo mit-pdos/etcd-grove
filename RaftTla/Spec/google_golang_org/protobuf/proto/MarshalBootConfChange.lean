@@ -10,7 +10,6 @@ bootstrap log's bytes (`bootWire`). Lean-first.
 module
 
 public import RaftTla.Proof.go_etcd_io.raft.v3.ApiVocab
-public import Proof.google_golang_org.protobuf.proto.BootWire
 
 @[expose] public section
 

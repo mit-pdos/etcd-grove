@@ -12,7 +12,7 @@ is each machine's `threadBound`, independent of the receipts), with the interpre
 
 `PutgetBoot`: at the statement's premises (and the addresses valid, from `DistDeploy`), the start update
 from the two addresses unset to a share per machine, each machine's boot program safe from its share and
-its whole start (`DistBootWpST putgetSteps putgetThreads`: its files' and listeners' start resources, its
+its whole start (`DistBootWpST putgetThreads putgetSteps`: its files' and listeners' start resources, its
 main thread's token, the logic's bounds: at most `2 ^ 48` receipts, the member's ceiling, and the thread
 bound `putgetThreads`, which also gives the served member's `srvLevels`; the bridge `robust_of_distBootIT`
 runs an execution of `n` steps at `n + 1` receipts). Over the interim cross-machine axioms
@@ -98,7 +98,7 @@ def PutgetBoot : Prop :=
       ⊢ ([∗list] a ∈ startAddrs peer client, Net.addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp putgetGF,
           ⌜∀ (i : Nat) (m : Expr × state), (system peer client σm σc)[i]? = some m →
-            Net.DistBootWpST putgetSteps putgetThreads m.1 m.2 (Ps i)⌝ ∗
+            Net.DistBootWpST putgetThreads putgetSteps m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ system peer client σm σc, Ps i
 
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge

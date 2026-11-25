@@ -303,8 +303,9 @@ thread bound (`robust_of_distBootIL` runs an execution of `n` steps at `n + 2` t
 
 /-- **`DistBootWpS` with the thread bound decoupled from the receipts**: a machine's boot program safe
 from its share and its whole start at every receipt bound up to `bound` and the thread bound `T`
-(`threadBound GF = T`, the statement's `threads`). -/
-def DistBootWpST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (bound T : Nat) (e : Expr)
+(`threadBound GF = T`, the statement's `threads`; arguments `T bound`, as `lean`'s copy of the same
+bridge, merged 2026-11-25). -/
+def DistBootWpST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T bound : Nat) (e : Expr)
     (σ : state) (P : IProp GF) : Prop :=
   ∀ hG : HeapGS .hasLC GF, hG.goose_globalGS = G →
     hG.goose_localGS.goose_go_local_context = lctx →
@@ -317,9 +318,9 @@ def DistBootWpST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (bound T 
 omit [HasExt netExt] in
 /-- A machine's obligation in `goose_dist_adequacy_below` (`nodeWp`, at `T` threads and `N ≤ bound`
 receipts) from `DistBootWpST`. -/
-theorem nodeWp_of_distBootST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (bound T N : Nat)
+theorem nodeWp_of_distBootST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T bound N : Nat)
     (hN : receiptBound GF = N) (hb : N ≤ bound) (e : Expr) (σ : state) (P : IProp GF)
-    (hf : Fresh lctx σ) (H : DistBootWpST bound T e σ P) :
+    (hf : Fresh lctx σ) (H : DistBootWpST T bound e σ P) :
     P ⊢ nodeWp T e σ (fun v => v = #()) := by
   unfold nodeWp
   iintro HP %L
@@ -342,7 +343,7 @@ theorem robust_of_distBootIT [lctx : GoLocalContext] (addrs : List GoString)
       ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp GF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
-            DistBootWpST bound threads m.1 m.2 (Ps i)⌝ ∗
+            DistBootWpST threads bound m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
     addrs.Nodup → (∀ a ∈ addrs, addrOk a = true) → Robust [] nodes g threads bound := by
   intro Hnd Hok hfresh hg hl n κs c hsteps hn i tp σ hi e he
@@ -359,7 +360,7 @@ theorem robust_of_distBootIT [lctx : GoLocalContext] (addrs : List GoString)
     imodintro
     iapply BigSepL.bigSepL_mono ?_ $$ HPs
     intro j m hm
-    exact nodeWp_of_distBootST bound threads (n + 1) HN (by omega) m.1 m.2 (Ps j)
+    exact nodeWp_of_distBootST threads bound (n + 1) HN (by omega) m.1 m.2 (Ps j)
       (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
 
 /-- **The bridge, over any list of extensions with the net extension** (see the file header), with the
@@ -410,73 +411,6 @@ theorem robust_of_distBootE (Hc : GooseInitCompat) [lctx : GoLocalContext] (addr
       ipureintro
       exact fun i m hm => distBootWpS_of_E bound m.1 m.2 (Ps i) (HP i m hm))
 
-/-! ### With `Robust`'s thread bound
-
-`goose_dist_adequacy` bounds the threads of an execution of `n` steps by `n + 2`, so the bridges above give
-each machine `threadBound GF = receiptBound GF + 1`, and a program whose specs need a thread bound (a
-`RWMutex`'s reader slots, a wait group's `int32` counter) is covered only for that many steps.
-Perennial's `goose_dist_adequacy_below` instead takes the thread bound along the execution at hand
-(`DistCrashNstepsBelow [] T`, which is what `Robust`'s `threads` bounds), independent of the step bound:
-`DistBootWpST` and `robust_of_distBootIT` below (as dsv-steps63's kit bridges, 70406b8fd3). -/
-
-/-- **`DistBootWpS` with the thread bound `threads`** (`robust_of_distBootIT`): a machine's boot program
-safe from its share and its whole start, under the receipts' `receiptBound GF ≤ bound` and the threads'
-`threadBound GF = threads` (`Robust`'s thread bound, not tied to the step count). -/
-def DistBootWpST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (threads bound : Nat) (e : Expr)
-    (σ : state) (P : IProp GF) : Prop :=
-  ∀ hG : HeapGS .hasLC GF, hG.goose_globalGS = G →
-    hG.goose_localGS.goose_go_local_context = lctx →
-    receiptBound GF ≤ bound → threadBound GF = threads →
-    letI : HeapGS .hasLC GF := hG
-    P ⊢ extsLocalStart (L := hG.goose_localGS) σ.world -∗
-      ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
-      WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}
-
-omit [HasExt netExt] in
-/-- A machine's obligation in `goose_dist_adequacy_below` (`nodeWp`, at `threads` threads and `N`
-receipts, `N ≤ bound`) from `DistBootWpST`. -/
-theorem nodeWp_of_distBootST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF]
-    (threads bound N : Nat) (hN : receiptBound GF = N) (hb : N ≤ bound) (e : Expr) (σ : state)
-    (P : IProp GF) (hf : Fresh lctx σ) (H : DistBootWpST threads bound e σ P) :
-    P ⊢ nodeWp threads e σ (fun v => v = #()) := by
-  unfold nodeWp
-  iintro HP %L
-  unfold nodeWpBody
-  iintro %hT %hL Hls Hgs Htok
-  rw [hf.2.1]
-  iapply H ⟨G, L⟩ rfl (hL.trans hf.1) (by omega) hT $$ HP Hls Hgs Htok
-
-/-- **The bridge with `Robust`'s thread bound** (`robust_of_distBootI` over Perennial's
-`goose_dist_adequacy_below`): an execution of `n` steps along which every machine keeps fewer than
-`threads` live threads is run at `n + 1` receipts and the thread bound `threads`, so each machine's
-`DistBootWpST threads bound`. -/
-theorem robust_of_distBootIT [lctx : GoLocalContext] (addrs : List GoString)
-    (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
-    (HI : extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
-      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld)
-    (Hstart : ∀ [GooseGlobalGS .hasLC GF], receiptBound GF ≤ bound →
-      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
-        ∃ Ps : Nat → IProp GF,
-          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
-            DistBootWpST threads bound m.1 m.2 (Ps i)⌝ ∗
-          [∗list] i ↦ _m ∈ nodes, Ps i) :
-    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
-  rintro ⟨Hnd, Hok, -, -⟩ hfresh hg hl n κs c hsteps hn i tp σ hi e he
-  simp only [List.map_nil, List.nil_append] at hfresh hl hsteps
-  have H := goose_dist_adequacy_below (GF := GF) (n + 1) threads nodes g
-    (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm) (HI hg hl).1 (HI hg hl).2
-    ?_ n κs c hsteps (Nat.lt_succ_self n) (fun m hm => (hfresh m hm).2.2) i tp σ hi
-  · exact ⟨H.2.1 e he, H.2.2 e he⟩
-  · intro G HN
-    iintro Hg
-    ihave Hnet := hasExt_globalStart (X := netExt) g.globalWorld $$ Hg
-    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
-    imod Hstart (by omega) $$ Hs with ⟨%Ps, %HP, HPs⟩
-    imodintro
-    iapply BigSepL.bigSepL_mono ?_ $$ HPs
-    intro j m hm
-    exact nodeWp_of_distBootST threads bound (n + 1) HN (by omega) m.1 m.2 (Ps j)
-      (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
 
 end bridge
 
