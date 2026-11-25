@@ -9,8 +9,8 @@ else, the rest is its text verbatim):
 * the network's names `γn` are no binder: the post gives them (`∃ γn`, with `γn.N = srvNet γ` and `γn.dir = dir`,
   what the premise fixed before), as `StartMember_dist.spec` (`putgetk`) does;
 * `netHttpOk γn id` (the in-process streams' registry, every other member's host registered with raft's protocol
-  through the single-process `http.reserve`) is replaced by `httpAddrAt γ pid a` (`S5Interim.lean`: the deployment's
-  start set `a` to etcd's peer protocols of the cluster `γ` and member `pid`) for every other peer `pid`'s address
+  through the single-process `http.reserve`) is replaced by `httpAddrAt γ pid a` (`S5Interim.lean`: the deployment's start set `a` to etcd's peer protocols of `γ`'s cluster `γ.cl` and member `pid`; `httpAddrAt` reads `γ`
+  only through `γ.cl`) for every other peer `pid`'s address
   `a` in the directory;
 * `noProxyEnv` (this process has no HTTP proxy variable set; the program's check, `os.Getenv.specEnv`) is added.
 -/

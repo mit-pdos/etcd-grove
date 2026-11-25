@@ -2372,6 +2372,129 @@ baseline change is exactly N2's: `etc/tcb-baseline.txt` and `putget-dist.txt` ga
 and `etcd_dist.KV_Get_dist.wp_proof` and lose `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`. `KV_Delete_dist`, `KV_Compact_dist` and `Txn_Commit_dist` are declared, but no
 root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, no `sorry`, no new top-level premise.
+## 19. N5: the member machine's boot, `server.MainDeployment(d, i)` (2026-11-25, branch `etcd-safe-n5/2026-11-25`)
+
+From `etcd-safe-bootax/2026-11-25` @ `c14f88dec2`. First stopped on the interim peer transport's index (below);
+the coordinator decided the fix (2026-11-25): **index by the cluster**, done (see "Done" at the end of this section).
+
+**The blocker: `httpAddrAt` is indexed by the member's whole `SrvRaft`, which holds its own storage registry.**
+`httpAddrAt γ id a := addrProto a (httpPeerSvc γ id).1 (httpPeerSvc γ id).2` (`S5Interim.lean`), `httpPeerSvc`
+opaque, indexed by the whole `SrvRaft γ` since the 2026-11-24 re-review's hardening (§17.3: "indexed by the whole
+`SrvRaft` `γ`, not only `γ.cl`"). But the `γ` a member's `NewServer` runs at is per member: `memberBoot_of_slice`
+gives `memberBoot { c.γ with reg := c.reg id }` (`etcdstart/AllocN.lean`), because `NewServer` owns its storage
+registry's authority (`ghostMapAuth γ.reg 1 ∅`, `memberSlice`; `MemStorReg := ⟨γ.reg⟩`), so two members' `γ`s
+differ in `reg`. The three texts that read `httpAddrAt` all take it at the reading member's `γ`:
+- `NewServer_dist`'s `#Hpeers`: `httpAddrAt γ_A pid a` for every other peer `pid` of member `A`;
+- `bootstrap.wp_proof_dist`'s `bootRTOk γ id dir` (through `bootPremiseDist`, whose `γ` carries
+  `MemStorReg := ⟨γ.reg⟩`): the same, at `γ_A`;
+- `PeerServe_dist`: `httpAddrAt γ id pa` at a `γ` with `γn.N = srvNet γ`.
+At three members `A`, `B`, `C`, `B`'s address `b` must then carry `httpPeerSvc γ_A B` (for `A`'s `NewServer`) and
+`httpPeerSvc γ_C B` (for `C`'s); an address is set once (`addr_set_proto` spends `addrUnset b`), and two
+applications of the opaque `httpPeerSvc` to different records are not provably equal, so no start can give both.
+(One member: `Hpeers` and `bootRTOk` are vacuous but `noProxyEnv`; two: only if `srvNet` does not read `reg`.)
+`etcdClusterStart`'s `memberStartShare` is still over `S5Draft`'s unindexed `httpAddrAt`, so no share was ever
+built at the indexed one, which is why this did not surface.
+
+**Proposed fix** (a change to the interim axioms' trusted vocabulary, for the owner): index the peer protocols by the
+cluster, not the member's whole record: `httpAddrAt γ id a := addrProto a (httpPeerSvc γ.cl id).1 (…).2`, with
+`httpPeerSvc` taking the `Cluster` (the re-reviewed form before the hardening; `γ.cl` is allocated once per cluster,
+so the review's counterexample, a second ghost cluster with the same ids, stays excluded). The axioms' statements
+(`NewServer_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist`) are unchanged as text; `httpAddrAt γ_A pid a` and
+`httpAddrAt γ_C pid a` become the same proposition. Alternative: keep the record but erase `reg`
+(`httpPeerSvc { γ with reg := default } id`). Either wants the axiom skill's re-review of `NewServer_dist`.
+
+**What N5 needs besides, found on the way (none blocks):**
+- The Go refactor is still needed: `Serve_dist` is about `etcdstart.Serve`, and `MainLogger` inlines its body
+  (`v3rpc.Server`, `net.Listen`, `go gs.Serve`). `if etcdstart.Serve(s, c.Client) != nil { return }` after
+  `<-s.ReadyNotify()` keeps the order (serving after ready); the package doc's sentence on not using it goes.
+- `ReadyNotify` is called before serving, so it needs a spec: `return s.readych`, whose channel `srvReadyCh` (in
+  `srvReadyCloser`, `InvMonitors.lean`) is an `ownBroadcastChan rdc γ True .Pending` that `Start` hands to
+  `publishV3`. Before `Start`, split off the read-only field and the broadcast idiom's persistent receiver part;
+  the receive then blocks until `publishV3` closes it (post `True`).
+- `wp_Start_built` drops `memberBuilt`'s `memberPeerServeRes` (`-`); `MainLogger` serves the peer handler after
+  `Start`, so it needs `memberBuilt … false ⊢ memberBuilt … true ∗ (httpProcSlots × srvServeRes γn τ) ∗
+  □ srvNetMember γn s id τ` before `Start`. `NewServer_dist`'s post must also be turned into `memberBuilt` (the
+  single-process `etcdstart.newServer` proof does this for `NewServer.spec`; `putgetk` never did, its
+  `StartMember_dist` being a named hypothesis).
+- Bounds: `etcdSteps = 2 ^ 48` fits (`N = 2 ^ 48 - 1`: `N + 7 + bootWB ≤ backend.wbInit = 2 ^ 62 - 1`).
+
+**Done (2026-11-25, same branch).**
+- **The cluster index** (`149d218c5d`): `httpPeerSvc (cl : Cluster) (id : w64)`, `httpAddrAt γ id a := addrProto a
+  (httpPeerSvc γ.cl id).1 (…).2` (`S5Interim.lean`, the two declarations and their docstrings, and the header's
+  mention); the axioms' statements word for word unchanged. Fresh `axiom`-skill re-review of `NewServer_dist`,
+  `PeerServe_dist`, `NewPeerHandler_dist` and `bootstrap.wp_proof_dist`'s `bootRTOk` together:
+  **all survive** (`notes/axiom-review/s5-cluster-index.md`; Go evidence: strangers answered by a real three-member
+  cluster's `/members` boot or get "already bootstrapped", no panic); its docstring changes D1-D6 applied.
+- **Go program changes** (for the no-crash packet; `go test ./etcd/dist/ ./etcd/dist/server/` pass, `TestDist`
+  needs root, not run):
+  - `MainLogger` serves clients with `etcdstart.Serve(s, c.Client)` after `<-s.ReadyNotify()` (its inline body,
+    `Serve_dist`'s subject); the package doc's sentence on not using it gone.
+  - `deployment.WellFormed` bounds member names by `MaxNameLen = 200` (Lean `typed.maxNameLen`; addresses and the
+    token stay at `MaxLen = 255`): the member's data directory `<name>.etcd` and its WAL area's paths must fit in
+    a path component, and the proof's bound (`dirFits_memberDataDir`, `wp_walAreas`) is 200. **Names of 201-255
+    bytes are now refused by the check, so those machines return at once.** `TestWellFormed`: 200 accepted, 201
+    refused. `Deployment.WellFormed.members` gives the members' facts.
+- **Translated**: `EtcdServer.ReadyNotify` (`etcdserver.toml`).
+- **Specs** (`Spec/.../dist/server/`, namespace `etcd_dist.server`): `MainDeployment.spec`,
+  `MainDeploymentLogger.spec` (from `deploymentRepr`, the machine's fresh WAL area and `⌜d.WellFormed⌝ -∗` member
+  `i`'s share), `MainLogger.spec` (at `configRepr` and the share), `ConfigOf.spec`, `serverConfig.spec`
+  (`memberCfg`), `inCluster.spec`, `proxyEnvSet.spec` (`false` gives `noProxyEnv`), `holdForever.spec`; and
+  `EtcdServer.ReadyNotify.spec` (from `srvReadyRecv`, `ReadyRecv.lean`), `net.Listen.specProto` (a listener at an
+  `addrProto` address). Vocabulary: `dist/server/MemberDefs.lean` (`memberShareD`: putgetK's `memberShareK` at the
+  deployment's members with `peerAddrFactsAt`, the indexed peer facts; `BootGoD`: putgetK's `BootGoK` plus the
+  peers' permutation, which `BootFacts` lacks). Scope premise of the specs: `d.cfg.auth = false` (`Serve_dist`
+  serves a member with auth off).
+- **For `EtcdBootNC`'s discharge** (not N5's): `BootGoD d ps ctxs` is a hypothesis of the member boot that
+  `EtcdBootNC`'s `BootPremises` does not give (`BootFacts` has neither the permutation nor Go's values at the
+  members' URLs: putgetK takes `BootGoK` as a top-level premise); auth deployments need `Serve_dist`'s auth-on form;
+  the start must produce `memberShareD` (`etcdClusterStart` at `peerAddrFactsAt`).
+
+**On `etcd-safe-n5/2026-11-25` (head `d2c8f9a7cd`, built on the VM):** every N5 proof, and `member_boot_dist`
+(`dist/server/AdequacyMember.lean`): `Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c γE,
+memberShareD c d ps ctxs boot i γE Pub)` at a well-formed `d`, hypotheses `Hauth : d.cfg.auth = false` and
+`BootGoD d ps ctxs` beyond `EtcdBootNC`'s premises; every proof and interim axiom plugged in. Leaf proofs and
+`MainLogger` by helpers (A, B). bounds: `MemberSplit`'s hand-off of the HTTP stock allowed (`etc/bounds-allow.txt`).
+No `Link` entry: the linking is the manual `AdequacyMember` module, as putgetK's.
+
+**Port (2026-11-25), branch `etcd-safe-nc-n5/2026-11-25`** from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca` (the
+no-crash line with N2): N5's commits cherry-picked (`-x`); the generated files regenerated at this line's pins (the
+server translation, `dist/server`'s Init/PkgTable, SpecPlan's PkgInit; `ReadyNotify`'s translation at the etcd pin
+`df6af0c36`); `bounds-allow` without the crash line's `NewServerRAt` entry. Done on this branch (built on the VM, 11272 jobs: `server.AdequacyMember`, `dist.TopLevelRobustness` (Spec and
+Proof), `BootBad`, `BootFactsSat`, `deployment.Link`, `putgetk.Start`; tier, bounds, premise-witness, gen-init
+checks pass):
+- **Γ** (helper C): `memberShareD c d ps ctxs boot i` without the publication: its client fact is
+  `etcdAddrAt (member i's client) c.view (member i's id)` (N2's `memberStartShare`), `Serve_dist` at `Γ = c.view`
+  with `kvCongr ρ.rd.kv c.view.kv` from `memberBoot_of_slice`; the specs take `BootCore ps ctxs boot`.
+- **`member_boot_dist`** (`dist/server/AdequacyMember.lean`), the name and form M1's start takes:
+  `Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c, memberShareD c d (distPs d) (distCtxs d) boot i)`
+  at `Hd : d.WellFormed`, `Hbf : BootFacts d boot`, `EtcdEnv d`, `EtcdVerifyOff`, `GodebugFips140Off`,
+  `d.members[i]? = some m`, `ServerStart m σ`, and **one hypothesis beyond `EtcdBootNC`'s premises:
+  `Hauth : d.cfg.auth = false`** (M1's scope; the full theorem needs `Serve_dist`'s auth-on form, N11).
+
+**Packet items (the no-crash packet), Go program and statement changes of N5:**
+- Go: `MainLogger` calls `etcdstart.Serve(s, c.Client)` after `<-s.ReadyNotify()` (its inline body before).
+- Go: `deployment.WellFormed` bounds member names by `MaxNameLen = 200`: names of 201-255 bytes are now refused,
+  so those machines return at once.
+- Go: `deployment.WellFormed` refuses a member whose computed id is `MaxUint64` or `MaxUint64 − 1` (`RaftIdOk`;
+  raft v3.7's `Config.validate` refuses them, `StartNode` panics). Typed `WellFormed` mirrors it;
+  `TestWellFormed` tests `RaftIdOk` on crafted ids (a refusing deployment needs a SHA-1 preimage).
+- **BootFacts: ps/ctxs pinned to Go's computed values (they were free).** Old text (`etcd_robust_nocrash.spec`,
+  and the same in `etcd_robust.spec`):
+  ```
+      (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
+  ```
+  with `structure BootFacts (d) (ps) (ctxs) (boot) : Prop extends BootCore ps ctxs boot where perm : ps.Perm d.ids`.
+  New text:
+  ```
+      (boot : List LogEntry) (Hbf : BootFacts d boot)
+  ```
+  with (`TopLevelDefs.lean`) `abbrev BootFacts (d) (boot) : Prop := BootCore (distPs d) (distCtxs d) boot`,
+  `distPs d := bootGo.ps (distURLs d) d.token`, `distCtxs d := bootGo.ctxs (distURLs d) d.token`, `distURLs d` the
+  deployment's initial cluster (each name to its one peer URL `http://peer`). `EtcdBootNC`'s `BootPremises` is
+  `∃ boot, BootFacts d boot ∧ …`. Compiled witness of the remaining `BootFacts`: `BootFacts.sat : ∃ d boot,
+  d.WellFormed ∧ BootFacts d boot` (`BootFactsSat.lean`, a one-member deployment); the dist statements stay `* draft`
+  in the premise-witness baseline (their other premises have no witness yet).
+
 
 ## 21. M1 assembly (2026-11-25, branch `etcd-safe-m1-top/2026-11-25`; the etcd_safe lead's helper)
 

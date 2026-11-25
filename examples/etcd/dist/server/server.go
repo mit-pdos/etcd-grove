@@ -17,9 +17,7 @@
 //
 // Nothing here is a copy of a driver's code: etcdstart's newServerMode is unexported and fixes the
 // snapshot and token-provider settings, so the configuration is built here (the same fields, the
-// examples' fixed values for the others: plan Q9); etcdstart.Serve is not used because it serves
-// on a goroutine before returning, where Main serves only after ReadyNotify (review F4), which
-// etcdstart.Serve's callers do not need.
+// examples' fixed values for the others: plan Q9).
 package server
 
 import (
@@ -29,14 +27,11 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	"go.etcd.io/etcd/server/v3/config"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 	"go.etcd.io/etcd/server/v3/features"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
@@ -200,16 +195,11 @@ func MainLogger(c Config, lg *zap.Logger) {
 	// embed waits the same way before serving clients). TODO(proof): whether the server's specs can
 	// give ReadyNotify this meaning (plan D6).
 	<-s.ReadyNotify()
-	// insecure gRPC (no TLS: nil), no extra interceptor; the clients' keepalive pings allowed every
-	// 5 s, as etcdstart.Serve (and embed's default GRPCKeepAliveMinTime). TODO(model): v3rpc.Server
-	// installs otelgrpc.NewServerHandler (phase 7 S1).
-	gs := v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-		MinTime: 5 * time.Second,
-	}))
-	cl, err := net.Listen("tcp", c.Client)
-	if err != nil {
+	// etcd's gRPC API on the client address (etcdstart.Serve: insecure gRPC, no extra interceptor,
+	// the clients' keepalive pings allowed every 5 s, served on a goroutine). TODO(model):
+	// v3rpc.Server installs otelgrpc.NewServerHandler (phase 7 S1).
+	if err := etcdstart.Serve(s, c.Client); err != nil {
 		return
 	}
-	go gs.Serve(cl)
 	holdForever()
 }

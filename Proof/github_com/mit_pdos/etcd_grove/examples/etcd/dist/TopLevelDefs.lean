@@ -4,8 +4,8 @@
 
 The statements' definitions (the Spec file imports this module): the deployment as the programs receive
 it (a Go value: `Deployment`, `deploymentLit`), the machines and their boot programs (`servers`,
-`clients`, `nodeMachines`), the machines' start states (`ServerStart`, `ClientStart`), bootstrap's results
-(`BootFacts`), the environment premises not yet discharged (`EtcdEnv`) and the two bounds (`etcdThreads`,
+`clients`, `nodeMachines`), the machines' start states (`ServerStart`, `ClientStart`), the peers and contexts
+`bootstrap` computes from the deployment (`distPs`, `distCtxs`) and its bootstrap log (`BootFacts`), the environment premises not yet discharged (`EtcdEnv`) and the two bounds (`etcdThreads`,
 `etcdSteps`). What a placeholder is is marked `PLACEHOLDER`, with the stage of `notes/etcd-dist-plan.md`
 that replaces it. No premise is on the deployment: every program checks it (Go's `deployment.WellFormed`)
 and returns if it fails.
@@ -21,6 +21,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.google_golang_org.grpc.InvGrpcServer
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
@@ -111,14 +112,39 @@ def Deployment.ids (d : Deployment) : List w64 :=
 section boot
 variable [GooseExts]
 
-/-- **`bootstrap`'s results, as Go computes them** (every example's `BootFacts`, for the one
-cluster): the peers `ps` in `bootstrap`'s order, a permutation of the members' ids, their contexts
-`ctxs` and the bootstrap log `boot` (`BootCore`). Not decidable as stated (the log's encoding is
-opaque); like `memberId`, a function of the deployment once etcd's computation is a Lean
-definition (open question Q5). -/
-structure BootFacts (d : Deployment) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) : Prop extends BootCore ps ctxs boot where
-  perm : ps.Perm d.ids
+/-- A URL `http://<host>` (`url.URL{Scheme: "http", Host: host}`): a member's one peer URL, as
+`server.serverConfig` builds it from the member's peer address. -/
+def peerURL (host : GoString) : _root_.Perennial.net.url.URL :=
+  { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
+    RawQuery' := [], RawPath' := [], RawFragment' := [], ForceQuery' := false, OmitHost' := false }
+
+/-- **The deployment's initial cluster, as `bootstrap` reads it** (`BootURLs`): each member's name to its
+one peer URL `http://peer` (of the first member of that name), the map `server.serverConfig` builds from the
+deployment's members. `bootGo.ps` and `bootGo.ctxs` read only the map's keys and the URLs by name, not the
+map's slices or the configuration's own peer and client URLs, which are left empty. -/
+def distURLs (d : Deployment) : BootURLs where
+  peer := []
+  client := []
+  initMap := GMap.ofList (d.members.map (fun m => (m.name, slice.nil)))
+  initURLs := fun n => match d.members.find? (fun m => decide (m.name = n)) with
+    | some m => [peerURL m.peer]
+    | none => []
+
+/-- **The peers, as Go computes them** (`bootGo.ps` at the deployment's initial cluster and token:
+`NewClusterFromURLsMap`'s members' ids, in `MemberIDs()`' order, sorted). -/
+def distPs (d : Deployment) : List w64 := bootGo.ps (distURLs d) d.token
+
+/-- **The peers' contexts, as Go computes them** (`bootGo.ctxs`: `json.Marshal` of each member, in
+`distPs`' order). -/
+def distCtxs (d : Deployment) : List (List w8) := bootGo.ctxs (distURLs d) d.token
+
+/-- **`bootstrap`'s bootstrap log, as Go computes it** (every example's `BootFacts`, for the one
+cluster): `boot` is the node API's bootstrap log of Go's peers and contexts (`distPs d`, `distCtxs d`),
+with `BootCore`'s facts of it. (2026-11-25: until then the peers `ps` and contexts `ctxs` were
+quantified, with `ps` a permutation of the members' ids; `BootGoD.of_wf` derives that of a well-formed
+deployment.) -/
+abbrev BootFacts (d : Deployment) (boot : List LogEntry) : Prop :=
+  BootCore (distPs d) (distCtxs d) boot
 
 end boot
 

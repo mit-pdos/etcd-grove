@@ -2,6 +2,7 @@ package dist
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"strconv"
@@ -12,6 +13,8 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
+	"go.etcd.io/etcd/client/pkg/v3/types"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 )
 
 // TestMain runs a member, an orchestrator or a client machine instead of the tests when the test
@@ -83,9 +86,17 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("an ephemeral port passed")
 	}
-	// the size bounds (MaxMembers, MaxLen)
+	// the size bounds (MaxMembers, MaxNameLen, MaxLen)
 	bad = d
 	bad.Members = append([]Member(nil), d.Members...)
+	bad.Members[0].Name = strings.Repeat("n", deployment.MaxNameLen)
+	if err := WellFormed(bad); err != nil {
+		t.Errorf("a member name of MaxNameLen bytes refused: %v", err)
+	}
+	bad.Members[0].Name = strings.Repeat("n", deployment.MaxNameLen+1)
+	if WellFormed(bad) == nil {
+		t.Error("a member name of MaxNameLen+1 bytes passed")
+	}
 	bad.Members[0].Name = strings.Repeat("n", deployment.MaxLen+1)
 	if WellFormed(bad) == nil {
 		t.Error("a too-long member name passed")
@@ -136,6 +147,18 @@ func TestWellFormed(t *testing.T) {
 	}
 	if deployment.AddrOk("010.1.1.1:80") || deployment.AddrOk("10.1.1:80") || deployment.AddrOk("10.-1.2.3:80") || !deployment.AddrOk("10.77.1.1:2379") {
 		t.Error("AddrOk")
+	}
+	// the member ids raft refuses (IdsOk's RaftIdOk): a deployment with such an id would need a SHA-1
+	// preimage, so the check is tested on crafted ids, and the random deployments' ids pass it
+	if deployment.RaftIdOk(math.MaxUint64) || deployment.RaftIdOk(math.MaxUint64-1) ||
+		!deployment.RaftIdOk(math.MaxUint64-2) || !deployment.RaftIdOk(1) {
+		t.Error("RaftIdOk")
+	}
+	for _, m := range d.Members {
+		id := uint64(membership.NewMember(m.Name, types.URLs{{Scheme: "http", Host: m.Peer}}, d.Token, nil).ID)
+		if !deployment.RaftIdOk(id) {
+			t.Errorf("member %s's id %x refused", m.Name, id)
+		}
 	}
 	// the client machines: their number, their addresses
 	kv := []Workload{{Kind: deployment.KV, Clients: 2, Ops: 3}}

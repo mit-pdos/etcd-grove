@@ -5612,6 +5612,24 @@ noncomputable def EtcdServer.HardStop.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))]))))))))
   (Val #()))))
 
+/-- ReadyNotify returns a channel that will be closed when the server
+    is ready to serve client requests
+
+    go: server.go:1368:22 -/
+noncomputable def EtcdServer.ReadyNotify.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"readych"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
+
 /-- StoppingNotify returns a channel that receives an empty struct
     when the server is being stopped.
 
@@ -15431,6 +15449,7 @@ class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   ptr_RaftHandler_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RaftHandler" EtcdServer.RaftHandler.impl
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Range" EtcdServer.Range.impl
   ptr_RangeStream_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RangeStream" EtcdServer.RangeStream.impl
+  ptr_ReadyNotify_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReadyNotify" EtcdServer.ReadyNotify.impl
   ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"RemoveMember" EtcdServer.RemoveMember.impl
   ptr_ReportSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportSnapshot" EtcdServer.ReportSnapshot.impl
   ptr_ReportUnreachable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ReportUnreachable" EtcdServer.ReportUnreachable.impl
@@ -15652,6 +15671,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_RaftHandler_unfold
   EtcdServer.TypeAssumptions.ptr_Range_unfold
   EtcdServer.TypeAssumptions.ptr_RangeStream_unfold
+  EtcdServer.TypeAssumptions.ptr_ReadyNotify_unfold
   EtcdServer.TypeAssumptions.ptr_RemoveMember_unfold
   EtcdServer.TypeAssumptions.ptr_ReportSnapshot_unfold
   EtcdServer.TypeAssumptions.ptr_ReportUnreachable_unfold
