@@ -35,7 +35,7 @@ theorem nodeEntries_cons_get (w : Workload) (ns : List GoString)
   have hl : (nodeEntries (w, ns)).length = ns.length := by simp [nodeEntries]
   split
   · rw [List.getElem?_append_left (by omega)]
-    simp [nodeEntries, List.getElem?_zipIdx]
+    simp [nodeEntries, List.getElem?_zipIdx, Function.comp_def]
   · rw [List.getElem?_append_right (by omega), hl]
 
 /-- The loop's step: past `j` workloads, the remaining index `k` into the rest. -/
@@ -81,15 +81,69 @@ theorem Deployment.Node.wp_proof :
   wp_for HI
   obtain ⟨Hj1, Hj2, Hk0, Hjk⟩ := Hj
   wp_if_destruct
-  · -- both conditions hold
-    have hjw : j < d.workloads.length := by word
-    have hjn : j < d.nodes.length := by word
-    obtain ⟨s, hs⟩ : ∃ s, ss[j]? = some s := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
-    have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
-    ihave %Hsl := BigSepL2.bigSepL2_lookup_iff ⟨_, _⟩ $$ Hns
-    sorry
-  · sorry
+  · have hjw : j < d.workloads.length := by word
+    by_cases hjn' : sint.Z (W64 (j : Int)) < sint.Z v.Nodes'.len
+    · have hjn : j < d.nodes.length := by word
+      simp only [hjn', decide_true, ↓reduceIte]
+      wp_auto
+      obtain ⟨s, hs⟩ : ∃ s, ss[j]? = some s := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      obtain ⟨ns, hns⟩ : ∃ ns, d.nodes[j]? = some ns := ⟨_, List.getElem?_eq_getElem hjn⟩
+      obtain ⟨w, hw⟩ : ∃ w, d.workloads[j]? = some w := ⟨_, List.getElem?_eq_getElem hjw⟩
+      ihave #Hs := BigSepL2.bigSepL2_lookup hs hns $$ Hns
+      ihave %Hsl := ownSlice_len _ _ _ $$ Hs
+      have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
+      have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
+      have hdrop : (d.workloads.zip d.nodes).drop j = (w, ns) :: (d.workloads.zip d.nodes).drop (j + 1) := by
+        rw [zip_drop_cons _ _ j hjw hjn]
+        rw [List.getElem?_eq_getElem hjw] at hw
+        rw [List.getElem?_eq_getElem hjn] at hns
+        simp only [Option.some.injEq] at hw hns
+        rw [hw, hns]
+      rw [hdrop] at Hjk
+      simp only [h0, hjn', and_self, ↓reduceIte]
+      wp_apply (wp_load_slice_index v.Nodes' (sint.Z (W64 (j : Int))) ss DFrac.discard s h0) $$ [] as -
+      · iframe #; ipureintro; rw [hsj]; exact hs
+      wp_if_destruct
+      · -- `n < len(d.Nodes[j])`: client machine `n` of workload `j`
+        have hkn : sint.nat k < ns.length := by word
+        obtain ⟨a, ha⟩ : ∃ a, ns[sint.nat k]? = some a := ⟨_, List.getElem?_eq_getElem hkn⟩
+        rw [nodeEntries_cons_get, if_pos hkn, ha, Option.map_some] at Hjk
+        wp_for_post
+        iapply HΦ
+        ipureintro
+        intro _
+        refine ⟨by word, by word, Hk0, w, ns, a, ?_, ?_, ha, ?_⟩
+        · show d.workloads[sint.nat (W64 (j : Int))]? = some w
+          rw [show sint.nat (W64 (j : Int)) = j by word]; exact hw
+        · show d.nodes[sint.nat (W64 (j : Int))]? = some ns
+          rw [show sint.nat (W64 (j : Int)) = j by word]; exact hns
+        · exact Hjk
+      · -- the next workload, `n - len(d.Nodes[j])` into its client machines
+        have hkn : ¬ sint.nat k < ns.length := by word
+        rw [nodeEntries_cons_get, if_neg hkn] at Hjk
+        simp only [h0, hjn', and_self, ↓reduceIte]
+        wp_apply (wp_load_slice_index v.Nodes' (sint.Z (W64 (j : Int))) ss DFrac.discard s h0) $$ [] as -
+        · iframe #; ipureintro; rw [hsj]; exact hs
+        have hwj : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by
+          rw [show ((j + 1 : Nat) : Int) = (j : Int) + 1 by omega, W64, W64, W64, BitVec.ofInt_add]
+        wp_for_post
+        iframe
+        iexists (j + 1), k - s.len
+        rw [hwj]
+        iframe
+        ipureintro
+        refine ⟨by omega, by omega, by word, ?_⟩
+        rw [Hjk]
+        congr 1
+        word
+    · simp only [hjn', decide_false, Bool.false_eq_true, ↓reduceIte]
+      wp_auto
+      iapply HΦ
+      ipureintro
+      intro h; cases h
+  · iapply HΦ
+    ipureintro
+    intro h; cases h
 
 end proof
 
