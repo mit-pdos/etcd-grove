@@ -9,6 +9,7 @@ next step (`walInv_unpinLast`). Lean-first.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.openLast
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNames
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNamesAbsent

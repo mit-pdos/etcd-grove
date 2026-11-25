@@ -109,6 +109,33 @@ theorem walInv_returnAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     simp only [List.erase_cons_head]
     iapply ih $$ Hinv Hnc Hf Hl
 
+/-- `walInv_dirPathRet0` of a path to `dir = r/nm` (`walInv_dirPath`'s output as it comes). -/
+theorem walInv_dirPathRetD (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir nm : GoString) (q : Qp) (j : Ino) (hd : dir = child r nm) :
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
+      walNamesFragS (W := W) ⟨none, none, [(nm, q)]⟩ -∗
+      osPathS (L := hG.goose_localGS) R dir (DFrac.own q) j ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walNamesFrag (W := W) none := by
+  subst hd
+  exact walInv_dirPathRet0 C Mr R jr r nm q j
+
+/-- `walInv_dirPathRet` of a path to `dir = r/nm`, any loans. -/
+theorem walInv_dirPathRetDL (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir nm : GoString) (q : Qp) (j : Ino) (Lo : List (GoString × Qp)) (hd : dir = child r nm) :
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
+      walNamesFragS (W := W) ⟨none, none, (nm, q) :: Lo⟩ -∗
+      osPathS (L := hG.goose_localGS) R dir (DFrac.own q) j ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ := by
+  subst hd
+  iintro #Hinv Hnc Hf Hp
+  imod walInv_dirPathRet C Mr R jr r nm q j ((nm, q) :: Lo) List.mem_cons_self $$ Hinv Hnc Hf Hp
+    with ⟨Hnc, Hf⟩
+  simp only [List.erase_cons_head]
+  imodintro
+  iframe
+
 end iris
 
 end WalFs

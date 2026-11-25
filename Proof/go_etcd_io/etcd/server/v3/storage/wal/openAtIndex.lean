@@ -32,7 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFilesLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SegSize
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadState

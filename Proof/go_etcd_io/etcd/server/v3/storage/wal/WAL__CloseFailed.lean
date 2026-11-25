@@ -28,7 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllFail
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseOpeningFiles
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtSteps
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Perennial.Proof.sync.Results
 
 @[expose] public section

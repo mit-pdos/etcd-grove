@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.fmt.ErrorfErrs
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDirOk
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtPin
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 import all Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 
 @[expose] public section

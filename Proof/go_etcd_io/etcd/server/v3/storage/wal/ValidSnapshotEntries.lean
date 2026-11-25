@@ -13,7 +13,7 @@ public import Spec.go_uber_org.zap.Int
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.VsePin
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 
@@ -251,7 +251,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn⟩ := hpin
     unfold walPinAllRes
     icases Hpin with ⟨#Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
+    imod walInv_dirPath walCodec Mr R jr r dir lay.j X [] $$ Hinv Hnc Hnf Hkey with ⟨Hnc, %nmd, %qd, %hdn, Hnf, Hpd⟩
     imodintro
     iframe Hnc
     have hS : ∀ g ∈ lay.segs, g.om.size = g.bs.length := fun g hg => (habs.metas g hg).1
@@ -286,6 +286,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
       $$ [Hpd Hperm HS Hj Hp HN Hsf Hcl HQ Hl Htf Hnf Ho] as %sl %err HΨ
     · iframe; iframe #
       iintro %sl %err ⟨-, -, -, Hpd, Hperm, HS, Hj⟩ Hout Hnc
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nmd qd lay.j hdn $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
       imod walInv_unpinAll walCodec Mr R jr r dir lay X hj hS $$ Hinv Hnc [Hl Htf Hnf Ho HS Hj]
         with ⟨Hnc, Hu⟩
       · unfold walPinAllRes; iframe; iframe #

@@ -4,6 +4,7 @@ The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean` (W3/
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllProbe
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__reopenAtRecord
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__ReadAll

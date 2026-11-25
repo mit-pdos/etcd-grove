@@ -282,6 +282,59 @@
      `walLockedTok_unlock`. `walNamesRes_noneL` serves the naming steps with the handle's loans.
   Then `lake build` of `wal.Link`, push WIP, and B, C, the spec, the proof as session 7's plan.
 
+- **2026-11-25, P6b session 9 (WIP, `etcd-safe-p6b-wip`): fix A continued; the handles left.** Started from
+  `09932cd216`; a `lake build` of `wal.Link` there failed in ExistPin, ReadAllCommit, ValidSnapshotEntries,
+  openLast, Unsaved, openAtIndex, Open, Create (and what imports them). **Done, each lean-checked with 0 errors
+  (`-a`)**:
+  * New `NameLoans.lean` (imports NameClaims, NameSplit): `walLoanP R jr r x` (a path to `r/x.1` of fraction
+    `x.2`, or the claim's fraction); `walInvBody_returnName`/`walInv_returnLoan`/`walInv_returnAll` (every loan
+    back, `walNamesFrag none`); `walInv_dirPathRetD` (`[(nm, q)]`, the path to `dir` with `dir = child r nm` as
+    `walInv_dirPath` gives it) and `walInv_dirPathRetDL` (any further loans). `NameSplit`:
+    `walNamesRes_returnName0`. The pins' files now import NameLoans in place of NameClaims.
+  * **Pins done**: `ExistPin` (`existPin`/`existStart` hand out `walNamesFragS ⟨none, none, [(nm, q1)]⟩`;
+    `existUnpin`/`existEnd` take it with the claim `osNames jr (.only [nm]) (own q1) hn` and return it first),
+    `Exist` (keeps the claim `ReadDir` returns), `Unsaved` (macro `unsaved_putbackP`, used after the lend and by
+    `unsaved_close`), `ValidSnapshotEntries`. The destruct of `walInv_dirPath` is now
+    `⟨Hnc, %nmd, %qd, %hdn, Hnf, Hpd⟩` (with `Lo` passed, `[]` from a pin).
+  * `walInvBody_nameClaim` re-proved over `walNamesRes_lendAt` (any `Lo`, records `(nm, q)`; the area spine
+    fraction dropped); `walInv_readCommit`/`walInv_readCommitReg` take `{Lo}` and return
+    `walNamesFragS ⟨none, none, (nm, q) :: Lo⟩` **inside** their `∃ … nm q hn` (beside the claim).
+    `walInvBody_named`/`walInv_named` (Create) and `walInvBody_namedBy`/`walInv_namedBy` (ReadAll) take an
+    implicit `{Lo}` (frag `⟨none, none, Lo⟩` in and out), so `Create` can name after registering with loans.
+  **Not building yet** (in order): `openLast` (its success arm hands `walLastOpen` the path: give `walLastOpen`
+  the area root `r` and `∃ nm, ⌜dir = child r nm⌝ ∗ walNamesFragS ⟨none, none, [(nm, qd)]⟩` in place of
+  `walNamesFrag none`; its users `Repair`, `RepairPre`, `RepairReg`, `RepairBroken`, spec `openLast.lean` must
+  return it (`walInv_dirPathRetD`) before the lock, or hand it to `walCloseLeft`; its two failure arms return it
+  before `walInv_unpinLast`), `WAL__ReadAll` (line ~380: `walInv_dirPath … []` then `readCommitReg` with that
+  loan; the probe path and the name claim returned, `walInv_returnLoan`, after `walInv_namedBy` and before the
+  handle is formed, except the path the handle keeps), `openAtIndex` (read mode: return before returning the
+  lock; write mode: the path goes to the pipeline, `isFilePipe … dq`, a handle loan), `Open`, `WAL__CloseFailed`,
+  `Create` (the four `walInv_register(L)` calls need `Lo`/`hLo`/`hLn`: in `create_named_cont`'s error arms the
+  frag is dropped with the lock, so `Lo := [(nm, qh + qh)]` with `hLo` from `createUH`'s `qh + (qh + c) = ½`;
+  at 1383 `Lo := [(nm, d + d)]` from `create_qp_twice`; on the success arm (439) `Lo := [(nm, c.half), (nm, d),
+  (nm, d)]`, then `walInv_named` (now any loans) returns `Hnm2`, which goes back by `walInv_returnLoan`, leaving
+  the handle `[(nm, d), (nm, d)]`).
+  **The handles (decided this session, not started).** A write handle holds two path loans of one name: the
+  `walDirH` path (`osPathS R dir (own q) j`, `q` existential inside it) and the pipeline's (`isFilePipe fp γ R dir
+  dq j sz`, `dq` existential in `walPipeH`; `filePipeline.Close` gives it back in `pipeLeft`, so `Close` has both).
+  Plan: `walHandleIn` binds `qp : Qp`, passes `walPipeH … (fun R dq => pp R dq ∧ dq = DFrac.own qp)` and `qp` to
+  `walDirH` (new last parameter); `walDirH` holds `∃ Lh, walNamesFragS ⟨nf, none, Lh⟩` (for `walNamesFrag nf`)
+  with `⌜nf = none → ∃ r' nm, dir = child r' nm ∧ NameOk nm ∧ Lh = [(nm, q), (nm, qp)]⌝` and `⌜nf ≠ none → Lh =
+  []⌝`; `Close` merges the two paths and returns both (`walInv_dirPathRetDL` twice, `r' = r` by `child_inj`, copy
+  from `SnapDirCrash.lean`, against `walDirKey`'s `InArea r dir lay.nm`), before `walLockedTok_unlock`; the
+  `walFailH`/`walReadTie` handles likewise (`walFailH`: its pipeline loan only); `HandleUnnamed`'s seal takes the
+  loans `Create` registered. About 13 `unfold walDirH` sites, `CloseHandle`'s `WalCloseLaw` (frag in), `WAL__Close`,
+  `WAL__CloseU`. These are internal predicates (no trusted text), but `walLastOpen` and `WalCloseLaw` appear in
+  internal specs: add a ledger line ("loans carried in the handles", covered by fix A's approval) when editing them.
+  **Coordinator, during this session (for step 3, the spec):** the fork will drop `DiscardUnsaved`'s internal
+  `Unsaved` re-check (renamed `Discard`, or the same name documented as "the caller checked"); `bootstrap` calls it
+  only after `Unsaved` returned `(true, nil)` and the backend was removed. **Specify and prove that version**
+  (`RemoveAll(dir.tmp)`, `Rename(dir, dir.tmp)`, `syncDir(parent)`): its pre is what `bootstrap` holds there (the
+  WAL unsaved, from `Unsaved`'s post), no `Unsaved` completeness. P5's three conditions on the two updates: (1) a
+  crash lemma for the window between them (the unnamed blank WAL at `ic+1` crashes to the same blank WAL or to
+  none); (2) on a failed parent fsync, `AU₁`'s result stays with the crash invariant, not the caller; (3) the first
+  update commits only after the backend is gone (the caller's order). Pin and commit to come from the coordinator.
+
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash

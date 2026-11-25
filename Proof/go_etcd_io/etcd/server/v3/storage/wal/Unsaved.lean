@@ -38,7 +38,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNamesAbsent
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.parseWALName
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.isValidSeq
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.VsePin
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
@@ -73,6 +73,17 @@ local macro "unsaved_putback" : tactic => `(tactic| (
   imodintro
   iframe Hnc))
 
+-- `unsaved_putback` after the path was lent (`walInv_dirPath`): the path returned first.
+set_option hygiene false in
+local macro "unsaved_putbackP" : tactic => `(tactic| (
+  iapply wp_notCrashed_acc _ _ rfl
+  iintro Hnc
+  imod walInv_dirPathRetD walCodec Mr R jr r dir nmd qd lay.j hdn $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+  imod walInv_unpinAll walCodec Mr R jr r dir lay X hj hS $$ Hinv Hnc [Hl Htf Hnf Ho HS Hj] with ⟨Hnc, Hu⟩
+  · unfold walPinAllRes; iframe; iframe #
+  imodintro
+  iframe Hnc))
+
 -- A return of `false`, the pin put back, in `wal.Unsaved.wp_proof`.
 set_option hygiene false in
 local macro "unsaved_false" : tactic => `(tactic| (
@@ -96,7 +107,7 @@ local macro "unsaved_close" : tactic => `(tactic| (
   (try wp_auto)
   wp_for_post
   (try wp_auto)
-  unsaved_putback
+  unsaved_putbackP
   (try wp_auto)
   wp_apply Hclz $$ [Hclo] as %e3 -
   · iexact Hclo
@@ -173,7 +184,7 @@ theorem wal.Unsaved.wp_proof
     obtain ⟨hljr, hX, hcoh, habs, hid, hnd, hsn⟩ := hpin
     unfold walPinAllRes
     icases Hpin with ⟨#Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
+    imod walInv_dirPath walCodec Mr R jr r dir lay.j X [] $$ Hinv Hnc Hnf Hkey with ⟨Hnc, %nmd, %qd, %hdn, Hnf, Hpd⟩
     imodintro
     iframe Hnc
     ihave %hstl := preceipt_lt _ $$ Hstp
@@ -187,7 +198,7 @@ theorem wal.Unsaved.wp_proof
     rotate_left
     · -- `readWALNames` failed
       subst herr
-      unsaved_putback
+      unsaved_putbackP
       (try wp_auto)
       unsaved_false
     subst herr
@@ -231,7 +242,7 @@ theorem wal.Unsaved.wp_proof
       have e : decide (W64 ↑(lay.first + 0) = W64 0) = false := by
         rw [decide_eq_false_iff_not]; intro h0; apply hf0; word
       rw [e]
-      unsaved_putback
+      unsaved_putbackP
       (try wp_auto)
       unsaved_false
     have e : (W64 ↑(lay.first + 0) = W64 0) := by rw [hf0]; rfl
@@ -241,7 +252,7 @@ theorem wal.Unsaved.wp_proof
     rotate_left
     · -- index not 0: `false`
       simp only [hix, decide_false, Bool.not_false]
-      unsaved_putback
+      unsaved_putbackP
       (try wp_auto)
       unsaved_false
     simp only [hix, _root_.decide_true, Bool.not_true]
@@ -258,7 +269,7 @@ theorem wal.Unsaved.wp_proof
     cases vb
     · -- not consecutive: `false`
       simp only [Bool.not_false]
-      unsaved_putback
+      unsaved_putbackP
       (try wp_auto)
       unsaved_false
     simp only [Bool.not_true]
@@ -288,7 +299,7 @@ theorem wal.Unsaved.wp_proof
     rotate_left
     · -- `openWALFiles` failed
       subst herr
-      unsaved_putback
+      unsaved_putbackP
       (try wp_auto)
       unsaved_false
     subst herr2
@@ -464,7 +475,7 @@ theorem wal.Unsaved.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Hb with %hrecs
         (try wp_auto)
-        unsaved_putback
+        unsaved_putbackP
         (try wp_auto)
         wp_apply Hclz $$ [Hclo] as %e3 -
         · iexact Hclo
@@ -490,7 +501,7 @@ theorem wal.Unsaved.wp_proof
       · -- the decoder's error: `false`
         simp only [↓reduceIte]
         (try wp_auto)
-        unsaved_putback
+        unsaved_putbackP
         (try wp_auto)
         wp_apply Hclz $$ [Hclo] as %e3 -
         · iexact Hclo
@@ -541,7 +552,7 @@ theorem wal.Unsaved.wp_proof
       (try wp_auto)
       wp_for_post
       (try wp_auto)
-      unsaved_putback
+      unsaved_putbackP
       (try wp_auto)
       wp_apply Hclz $$ [Hclo] as %e3 -
       · iexact Hclo
