@@ -6,8 +6,10 @@
 (`examples/net/echo/`), each a machine that may crash and restart, satisfy the generic robustness
 statement (`Robustness/Statement.lean`, `Robust`): in every execution of fewer than `bound` steps,
 no thread of any machine is stuck and none has an unrecovered panic, so the client's check
-(`echo.Call`: the reply it read in full is its request) never fails. This file only states it (to
-audit); the proof is in
+(`echo.Call`: the reply it read in full is its request) never fails. The client's request and the
+junk node's bytes are drawn at random (`wire.RandomBytes`, `wire.RandomInt`);
+`examples/net/echo/control_test.go` shows the check fires against a server that corrupts its reply.
+This file only states it (to audit); the proof is in
 `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/TopLevelRobustness.lean`.
 
 What it assumes:
@@ -23,9 +25,9 @@ What it assumes:
   host, as `examples/net/echo/process_test.go` runs them.
 * **Trusted**: the models of the `net` functions and types the program calls
   (`Net/TrustedCode/net.lean`, over `netExt`, with their struct-field facts `net.FieldAssumptions`),
-  `Impl.lean`'s semantics, Perennial's Goose translation and Go semantics (`go.Semantics`; the
-  commands' `Assumptions` are the generated unfoldings of the translated bodies), and `Robust`.
-  Tracked by `etc/tcb-collections/net.txt`.
+  `Impl.lean`'s semantics, Perennial's Goose translation and Go semantics (`go.Semantics`; Goose's
+  model of `primitive.RandomUint64`, any `uint64`; the commands' `Assumptions` are the generated
+  unfoldings of the translated bodies), and `Robust`. Tracked by `etc/tcb-collections/net.txt`.
 -/
 module
 

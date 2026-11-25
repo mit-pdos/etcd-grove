@@ -6,8 +6,10 @@
 (`examples/net/acceptloop/`), each a machine that may crash and restart, satisfy the generic
 robustness statement (`Robustness/Statement.lean`, `Robust`): in every execution of fewer than
 `bound` steps, no thread of any machine is stuck and none has an unrecovered panic, so each of the
-client's calls' check (`acceptloop.CallOne`: the reply is its own id) never fails. This file only
-states it (to audit); the proof is in
+client's calls' check (`acceptloop.CallOne`: the reply is its own id) never fails. The number of
+calls is drawn at random (`wire.RandomInt`); `examples/net/acceptloop/control_test.go` shows the
+check fires against a server that replies with another id. This file only states it (to audit); the
+proof is in
 `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/acceptloop/TopLevelRobustness.lean`.
 
 What it assumes:
@@ -23,9 +25,9 @@ What it assumes:
   host, as `examples/net/acceptloop/process_test.go` runs them.
 * **Trusted**: the models of the `net` functions and types the program calls
   (`Net/TrustedCode/net.lean`, over `netExt`, with their struct-field facts `net.FieldAssumptions`),
-  `Impl.lean`'s semantics, Perennial's Goose translation and Go semantics (`go.Semantics`; the
-  commands' `Assumptions` are the generated unfoldings of the translated bodies), and `Robust`.
-  Tracked by `etc/tcb-collections/net.txt`.
+  `Impl.lean`'s semantics, Perennial's Goose translation and Go semantics (`go.Semantics`; Goose's
+  model of `primitive.RandomUint64`, any `uint64`; the commands' `Assumptions` are the generated
+  unfoldings of the translated bodies), and `Robust`. Tracked by `etc/tcb-collections/net.txt`.
 -/
 module
 

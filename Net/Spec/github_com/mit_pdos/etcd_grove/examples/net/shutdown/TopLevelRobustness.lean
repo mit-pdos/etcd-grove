@@ -6,7 +6,9 @@
 each a machine that may crash and restart, satisfy the generic robustness statement
 (`Robustness/Statement.lean`, `Robust`): in every execution of fewer than `bound` steps, no thread
 of any machine is stuck and none has an unrecovered panic, so the node's checks (`shutdown.Run`:
-every operation after a `Close` fails) never fails. This file only states it (to audit); the proof
+every operation after a `Close` fails) never fails. `examples/net/shutdown/control_test.go` shows
+the connection checks are reached (the node's dial of its own listener succeeds) and fire on a
+connection whose operations after a `Close` succeed. This file only states it (to audit); the proof
 is in `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/shutdown/TopLevelRobustness.lean`.
 
 What it assumes:
