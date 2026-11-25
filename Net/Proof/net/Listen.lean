@@ -37,7 +37,7 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
   · -- a failure
     unfold failV
     wp_auto
-    wp_apply wp_anyTCPAddr as %x #Hx
+    wp_apply wp_anyListenAddr as %x #Hx
     wp_apply wp_extAnyString as %nm
     wp_apply wp_kindErr (c := NetErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
     · unfold edAt; itrivial

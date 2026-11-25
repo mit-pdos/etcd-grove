@@ -158,7 +158,8 @@ func (ln *TCPListener) close() error {
 // socket(2), setsockopt, bind(2), listen(2)): for "tcp" and "tcp4" (D23; any other network is not
 // modelled: stuck), the extension's Listen of the address (D6); the listener's address arbitrary
 // (D18); an error is Go's `&OpError{Op: "listen", Net: network, Addr: <the resolved address>}`,
-// the address arbitrary and the failing system call's name too (any of Go's).
+// the address arbitrary (anyListenAddr: with a nil IP too, Go's for ":p") and the failing system
+// call's name too (any of Go's).
 func Listen(network, address string) (Listener, error) {
 	if !netOk(network) {
 		stuck()
@@ -167,7 +168,7 @@ func Listen(network, address string) (Listener, error) {
 	if code == 0 {
 		return &TCPListener{fd: modelFD(id, network, anyTCPAddr(), nil)}, nil
 	}
-	return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: anyTCPAddr(),
+	return nil, &OpError{Op: "listen", Net: network, Source: nil, Addr: anyListenAddr(),
 		Err: codeKindErr(code, extAnyString())}
 }
 
@@ -244,6 +245,16 @@ func newConn(id int, nw string) *TCPConn {
 // getpeername; never nil for a connected or bound IPv4 socket).
 func anyTCPAddr() Addr {
 	return &TCPAddr{IP: IP([]byte(extAnyString())), Port: int(extAnyW64()), Zone: extAnyString()}
+}
+
+// anyListenAddr: the address of Listen's error, Go's resolved local address: anyTCPAddr, or a
+// *TCPAddr with a nil IP and an arbitrary port (Go's for an empty host, ":p": internetAddrList's
+// inetaddr(IPAddr{}), with "tcp" and "tcp4").
+func anyListenAddr() Addr {
+	if extAnyBool() {
+		return &TCPAddr{Port: int(extAnyW64())}
+	}
+	return anyTCPAddr()
 }
 
 // codeKindErr: the error of a failure of code `code` (D14): poll.ErrNetClosing for `closed` (Go's

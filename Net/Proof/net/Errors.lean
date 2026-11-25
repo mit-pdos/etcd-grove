@@ -372,6 +372,32 @@ theorem wp_anyTCPAddr (Φ : val → IProp GF) :
   · ipureintro; rfl
   iexact Hp
 
+/-- `anyListenAddr()`: `anyTCPAddr()`, or a new `*TCPAddr` with a nil IP (Go's for `":p"`). -/
+theorem wp_anyListenAddr (Φ : val → IProp GF) :
+    (∀ x, netAddr (GF := GF) x -∗ Φ #x) -∗
+    WP (App (Val (@! net.anyListenAddr)) (Val #())) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  wp_auto
+  wp_apply wp_extAnyBool as %b
+  cases b
+  · wp_auto
+    wp_apply wp_anyTCPAddr as %x #Hx
+    wp_auto
+    iapply HΦ
+    iexact Hx
+  · wp_auto
+    wp_apply wp_extAnyW64 as %port
+    wp_alloc p as Hp
+    ipersist Hp
+    wp_auto
+    iapply HΦ
+    unfold netAddr
+    iexists p, _
+    isplitr
+    · ipureintro; rfl
+    iexact Hp
+
 /-- D23. The networks the model accepts (`netOk`): `true` for `"tcp"` and `"tcp4"`. -/
 theorem wp_netOk (nw : GoString) (hnw : tcpNet nw) (Φ : val → IProp GF) :
     Φ #true -∗ WP (App (Val (@! net.netOk)) (Val #nw)) {{ Φ }} := by
