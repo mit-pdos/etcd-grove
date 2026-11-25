@@ -101,7 +101,7 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
                 (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
@@ -128,9 +128,9 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }}) ∗
-    □ (∀ q : Qp, {{ storage.walOpen h q ∗ walStorRd st h }}
+    □ (∀ (q : Qp) (n : Nat), {{ storage.walOpen h q ∗ walStorRd st h ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc n) }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }}) ∗
+      {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) }}) ∗
     □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
         (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM)
         (Q : IProp GF),
@@ -172,7 +172,7 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
                 (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
@@ -199,10 +199,10 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }})
-    (hSync : ∀ q : Qp, R ⊢
-      {{ storage.walOpen h q ∗ walStorRd st h }}
+    (hSync : ∀ (q : Qp) (n : Nat), R ⊢
+      {{ storage.walOpen h q ∗ walStorRd st h ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc n) }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }})
+      {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) }})
     (hRel : ∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
         (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM)
         (Q : IProp GF), R ⊢
@@ -245,8 +245,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     iexact HR
   isplitr
   · iintro !>
-    iintro %q
-    iapply (hSync q)
+    iintro %q %n
+    iapply (hSync q n)
     iexact HR
   isplitr
   · iintro !>
@@ -301,7 +301,7 @@ theorem walSaveSized_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoIn
                 (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
@@ -418,7 +418,7 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
                 (Hs ++ [WalOpG.save hs (es.map EntryModel.toM)]) true, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
             (⌜walMustSync Hs hs (es.map EntryModel.toM)⌝ -∗
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h) }} := by
@@ -527,17 +527,18 @@ theorem walSaveSnap_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInt
   iexists Hs.length
   iexact Hrec
 
-/-- **`Sync`** (the contract's law). -/
+/-- **`Sync`** (the contract's law; (P5) every record the WAL handle has written, by its length bound
+`n` (`Save`'s post), synced). -/
 theorem walSync_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
-    (hst : st = GoInterface.ok si) (q : Qp) :
+    (hst : st = GoInterface.ok si) (q : Qp) (n : Nat) :
     isWalStorage (GF := GF) st h ss ⊢
-      {{ storage.walOpen h q ∗ walStorRd st h }}
+      {{ storage.walOpen h q ∗ walStorRd st h ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc n) }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }} := by
+      {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) }} := by
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, -, -, #HS, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %q
+  ispecialize HS $$ %q %n
   iexact HS
 
 /-- **`Release`** (the contract's law; until wal-link L3 the trusted `storage.Release.spec` on the concrete

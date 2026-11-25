@@ -2439,6 +2439,8 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames GF) (r : Loc) :
     iframe #
     isplitr
     · ipureintro; exact Hmsγ
+    isplitr
+    · ipureintro; exact Hsd
     ipureintro; exact Hnif
 
 /-- The right to close `done` (the loop's: its deferred `onStop`). -/

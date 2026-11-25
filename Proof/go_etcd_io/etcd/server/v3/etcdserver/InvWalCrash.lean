@@ -290,7 +290,7 @@ abbrev walSaveH.law : Prop :=
                 (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗

@@ -800,7 +800,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   -- (wal-link L3) the WAL contract's `Release` law, at the apply thread's share (`rnWalTokA`): the
   -- records read (`rnDur_read_au`), the snapshot's record from `notifyc`'s first receive
   iunfold rnWalTokA at HwT
-  icases HwT with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave⟩
+  icases HwT with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave, %Hsd⟩
   icombine Hstpf Hst0 gives %Hsteq
   have Hsteq' : st0 = interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
@@ -830,7 +830,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     · exact absurd (hsop.1 γw.ss) h
   subst hrerr
   ihave HwT : rnWalTokA γw (srvRAddr s) q $$ [Hwo Hwap Hrdw]
-  · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave
+  · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave; ipureintro; exact Hsd
   (try wp_auto)
   -- `s.alarmStore.Recover(schema.NewAlarmBackend(lg, newbe))`: the alarm store on the new backend
   wp_apply hInfo $$ []

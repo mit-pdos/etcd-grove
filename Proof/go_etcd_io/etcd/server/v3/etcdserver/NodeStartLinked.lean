@@ -106,7 +106,7 @@ theorem raftNode_of_StartNode
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨#Hsfresh, Hdrv, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, -, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n.installs pin default $$ HpinW with HpinW
   imod dghostVar_persist pin 1 n.installs $$ HpinW with #Hloc
   ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
@@ -156,7 +156,7 @@ theorem raftNode_of_StartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | rfl | simp only [rnNodeIface, Hwnl]
   ihave #Hsti' : isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss $$ []
   · rw [Hrvcfg]; iexact Hsti
@@ -224,6 +224,8 @@ theorem raftNode_of_StartNode
     · rw [Hwnode, Hwid, Hwwal]; iexact Hdur
     isplitr
     · rw [Hwnode, Hwnl]; iexact Harm
+    isplitr
+    · ipureintro; exact Hwsd
     -- the components are the same (`transport` is no component)
     iunfold rnParts at Hparts
     iunfold rnParts
@@ -370,7 +372,7 @@ theorem raftNode_of_RestartNode
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, -, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n.installs pin default $$ HpinW with HpinW
   imod dghostVar_persist pin 1 n.installs $$ HpinW with #Hloc
   ihave #Hattach : srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 $$ []
@@ -443,7 +445,7 @@ theorem raftNode_of_RestartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;>
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;>
       rw [Hrvcfg]
     all_goals first | rfl | simp only [rnNodeIface, Hwnl]
   ihave #Hsti' : isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss $$ []
@@ -515,6 +517,8 @@ theorem raftNode_of_RestartNode
     · rw [Hwnode, Hwid, Hwwal]; iexact Hdur
     isplitr
     · rw [Hwnode, Hwnl]; iexact Harm
+    isplitr
+    · ipureintro; exact Hwsd
     iunfold rnParts at Hparts
     iunfold rnParts
     iNamed Hparts

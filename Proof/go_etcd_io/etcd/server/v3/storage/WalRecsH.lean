@@ -116,10 +116,13 @@ theorem walRecsH_synced0 (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized
   · iexists d; iframe Hd Ha Hn; ipureintro; exact hf
   · iunfold WalFs.walNamed at Hn
     iunfold WalFs.walSyncedLb
-    icases Hn with ⟨%s, %d', #Hp, %hs⟩
-    iexists s, d'
+    icases Hn with ⟨%s, %I, #Hp, %hs⟩
+    iexists s, I
     iframe Hp
-    ipureintro; exact ⟨hs.1, Nat.zero_le _⟩
+    ipureintro
+    rcases hs with ⟨hi, d', hd, -⟩ | hlt
+    · exact Or.inl ⟨hi, d', hd, Nat.zero_le _⟩
+    · exact Or.inr hlt
 
 /-- **The records across a crash** (P8, 2026-11-25; T5's `walFilesC_crash` on the records with their
 history): from the crash view (`walCrashWal`, whole operations since P8), the records `σ` at the
@@ -163,8 +166,8 @@ theorem walRecsH_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : Lis
         @ WalFs.walAuMask, ∅
         <{ walRecsH h (walSave σ hs (cs.map EntryC.model)) (Hs ++ [WalOpG.save hs (cs.map EntryC.model)])
             sized, COMM Q Hs }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] },
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] },
           COMM Q (walSrvHist d.H) }> := by
   iintro Hau
   iauintro
@@ -227,8 +230,8 @@ theorem walRecsH_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM)
           ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }>
         @ WalFs.walAuMask, ∅
         <{ walRecsH h (walSaveSnap σ m) (Hs ++ [WalOpG.snap m al]) sized, COMM Q Hs }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [WalOpG.snap m al] },
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc { d with H := d.H ++ [WalOpG.snap m al] },
           COMM Q (walSrvHist d.H) ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m al]) }> := by
   iintro Hau
   iauintro
@@ -322,10 +325,10 @@ theorem walRecsH_releaseAU (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) (Q : 
     walSnapRec h i m ∗
       (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
         <{ walRecsH h σ Hs s, COMM Q }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗
           ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨m.ConfState', m.Index', m.Term'⟩ al)) ∧ i < i + 1⌝ }>
         @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc
             { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }, COMM Q }> := by
   iintro ⟨#Hw, Hau⟩
   iauintro

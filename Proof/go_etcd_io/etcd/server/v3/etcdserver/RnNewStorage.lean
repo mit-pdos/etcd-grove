@@ -46,18 +46,20 @@ def walStorSpecs (h : WalH GF) : Prop :=
 
 /-- **`Sync`'s law** from the storage's `Sync` (no error under `h.cov`; the length bound at `0` from the
 share). -/
-theorem walSync_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp) :
+theorem walSync_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp) (n : Nat) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h q ∗
-          walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h }}
+          walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
+          (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc n) }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Sync" #p))
           (Val #()))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗
-          walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h }} := by
+          walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
+          (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) }} := by
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨-, -, hSync, -, -⟩ := hS
   iintro ⟨#Hpkg, #Hover⟩
-  iintro !> %Φ ⟨Ho, Hrd⟩ HΦ
+  iintro !> %Φ ⟨Ho, Hrd, #HlenN⟩ HΦ
   iunfold storage.walOpen at Ho
   icases Ho with ⟨Hws, #Harea, #Hlen⟩
   iunfold walStorRd at Hrd
@@ -66,11 +68,12 @@ theorem walSync_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp) :
     have := ((interface_mkOk_inj _ _ _ _).1 Hp').2
     exact (go.intoVal_inj this).symm
   subst hp
-  wp_apply (hSync p' ss h.R h.jr h.r h.w h.dir h.γ q 0) $$ [Hrd Hws] as %err ⟨Hrd, Hpost⟩
-  · iframe Hover Hrd Harea Hws Hlen
+  wp_apply (hSync p' ss h.R h.jr h.r h.w h.dir h.γ q n) $$ [Hrd Hws] as %err ⟨Hrd, Hpost⟩
+  · iframe Hover Hrd Harea Hws HlenN
     ipureintro; exact Or.inl h.cov
-  icases Hpost with (⟨-, Hws, -⟩ | %Hbad)
+  icases Hpost with (⟨-, Hws, #Hsyn⟩ | %Hbad)
   · iapply HΦ
+    iframe Hsyn
     iunfold storage.walOpen
     iframe Hws Harea Hlen
     iunfold walStorRd
@@ -127,7 +130,7 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗
             walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
-            ∃ Hs : WalHist, Q Hs ∗
+            ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
               (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
                 (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
@@ -189,7 +192,7 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
       · ipureintro; exact hsz
       · iintro %_
         iexact HAU
-    icases Hpost with (⟨%he, Hws, %d, HQ, -, Hsync⟩ | ⟨%Hbad, -⟩ | ⟨%Hbig, -⟩)
+    icases Hpost with (⟨%he, Hws, %d, HQ, #HlenS, Hsync⟩ | ⟨%Hbad, -⟩ | ⟨%Hbig, -⟩)
     · iapply HΦ
       ileft
       isplitr
@@ -204,6 +207,8 @@ theorem walSave_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : Bo
         ipureintro; rfl
       iexists walSrvHist d.H
       iframe HQ
+      isplitr
+      · rw [walSrvHist_length]; iexact HlenS
       iintro %hm
       rw [walSrvHist_length]
       iapply Hsync
@@ -427,9 +432,9 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
         iintro ⟨#H1, #H2, -⟩
         iapply (walSaveSnap_law h (hS h) p ss sized q sn mp dq m al Q)
         iframe H1 H2)
-      (fun q => by
+      (fun q n => by
         iintro ⟨#H1, #H2, -⟩
-        iapply (walSync_law h (hS h) p ss q)
+        iapply (walSync_law h (hS h) p ss q n)
         iframe H1 H2)
       (fun q sn mp dq dq' md sd' γd img Rm i m Q => by
         iintro ⟨#H1, #H2, -⟩ %hm

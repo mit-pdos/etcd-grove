@@ -1269,3 +1269,15 @@ it and which `histOk_save` needs (ledger, 2026-11-25). Built: the 49 importer le
 **Left**: the integration (handoff, "Plan" step 4): `rnDurInvK` in place of `rnDurInv` in `isRaftNode` and
 the loop, allocated in `newRaftNode` after `StartNode`/`RestartNode`, the loop's `Save`/*enter*/`SaveSnap`,
 the stop's take, the apply thread's own snapshot.
+
+**P5 checkpoint 2 (2026-11-25, `etcd-safe-p5`, P6b `2d2f3cc470` merged).** The restart-independent integration
+is in and builds: `rnDurInvK` in `isRaftNode`/`rnWalTokA`; allocated in `bootstrappedRaft.newRaftNode` after
+`StartNode` (`rnDurK_alloc_fresh`) and, behind the one hypothesis `hRestartAlloc : rnRestartAllocK.law`, after
+`RestartNode`; the loop's `Save`/*enter*/`SaveSnap`, `onStop`'s take, `EtcdServer.snapshot`'s own snapshot and
+`SnapApplyWalk`'s read through the K laws. One labelled `sorry`, **P5-RESTART**, in `rnRestartAllocK_law_holds`
+(`walHistCerts` of the restart's history; switches with #50's decision on the restart slot). Changes the proof
+needed (handoff, "State"): `HistCommitMono` in `HistOkK` and the commit-bounded commit-only *enter*; the
+storage contract's `Sync` gives `walSyncedLb` at `Save`'s length bound, and a snapshot `Ready`'s *enter*
+follows etcd's explicit `Sync`; the snapshot directory's durability `WalNamesK.sd` is the trivial one until
+T6. Built: the change's 58 importer leaves (fk-lean2, 14,036 jobs, exit 0); `etc/tier-check.py --check` ok.
+`etc/tcb-baseline.txt` still lacks the P5-RESTART `sorry` (needs a local build to update).

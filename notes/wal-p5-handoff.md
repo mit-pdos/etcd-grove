@@ -10,7 +10,32 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
-- **State** (2026-11-25): the decision is approved (coordinator-E, #50 07:04Z). Done: the pure steps
+- **State** (2026-11-25, later): **the integration builds, restart allocation isolated.** `rnDurInvK` is in
+  `isRaftNode`/`rnWalTokA` (with the T6 placeholder `⌜γ.walK.sd = fun _ => True⌝`), allocated in
+  `bootstrappedRaft.newRaftNode` after `StartNode` (`rnDurK_alloc_fresh`) and after `RestartNode` (the named
+  hypothesis `hRestartAlloc : rnRestartAllocK.law`, linked by `rnRestartAllocK_law_holds`, which holds the one
+  labelled `sorry` **P5-RESTART**: the restart slot carries no `walHistCerts` for its history; pending #50's
+  restatement of `wal.restartOk`). The loop: `Save` through `rnDurK_save.law` (a saved `rnPendRec`), *enter*
+  through `rnDurK_enter.law` (synced, or commit-only via `imgOk_commitOnly`); the received snapshot's
+  `SaveSnap` through `rnDurK_saveSnap.law` and its batch's *enter* moved after the explicit `Sync` (below);
+  `onStop` through `rnDurK_take`; `EtcdServer.snapshot`/`SnapApplyWalk` through `rnDurK_ownSnap`/
+  `rnDurK_read_au`. P6b (`2d2f3cc470`, the WAL's incarnations) merged (`f426a79f6b`).
+  Invariant changes found on the way: `HistOkK` gains `HistCommitMono` (a restart may enter a durable commit
+  above the last saved one, so the commit-only *enter* is bounded by the entered hard state's commit);
+  `rnDurK_save.law` takes the commit's monotonicity; `rnReadyData`/`rnReadySnap` state `S' = readyDurable …`
+  and `S'.commit ≤ S'.last`. **The storage contract's `Sync` now syncs**: `Save`'s post gives the handle's
+  length bound `walLenLb … (|Hs|+1)` and `Sync` takes `walLenLb … n` to `walSyncedLb … n` (layer 1's
+  `storage.Sync.spec` already does): a snapshot `Ready` whose `Save` need not sync (`raft.MustSync` ignores
+  the commit) is durable only after etcd's explicit `Sync` (raft.go: "Force WAL to fsync its hard state"),
+  so its *enter* follows it (the commit-only route cannot hold: the new state's snapshot base is above
+  every old record's).
+  Built (fk-lean2): `NodeStartLinked`, `NewServer`, `NewServerR`, `newRaftNode`, `raftNode__onStop`,
+  `raftNode__start`, `EtcdServer__snapshot`, `SnapApplyWalk`, `RnNewStorage`; the leaves of the whole change
+  (`etc/importers.py --leaves --git 5a1c41d945`, 58 without the `notes.` target): fk-lean2, 14,036 jobs, exit 0;
+  the only `sorry`s in the tree's own files are P5-RESTART and the two that predate P5 (`NewServerCrash`,
+  `MemstorageApi`).
+  `etc/tier-check.py --check` ok. `etc/tcb-baseline.txt` not yet updated for P5-RESTART (needs a local build).
+- **State** (2026-11-25, earlier): the decision is approved (coordinator-E, #50 07:04Z). Done: the pure steps
   (`InvWalCrashPure`), the six step laws (`InvWalCrashSteps`), the contract's `Save`/`SaveSnap` over `walRecsH`
   (`isWalStorage`, `RnNewStorage`), the boot slots with history (`walOpenedH`, `wal.bootOk`, `wal.restartOk`,
   `wal.Create.specSrv`; ledger entry). Built: the 49 importer leaves of the change

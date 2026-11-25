@@ -187,6 +187,8 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
     isplitr
     · rw [Hmsγ]; iexact Hmsi
     isplitr
+    · ipureintro; exact Hsd
+    isplitr
     · ipureintro; exact Hnode
     iunfold rnTickPool
     iintro %l %hl

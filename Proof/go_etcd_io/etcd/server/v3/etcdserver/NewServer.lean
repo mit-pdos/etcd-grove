@@ -1140,7 +1140,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, HrnSnapZero, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnsd, Hrnss, Hrna0, HrnSnapZero, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1183,6 +1183,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [Hsteq']
     iframe Hrd2 Hsws
     iframe Hwapp Hdur
+    ipureintro; exact Hrnsd
   ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge Hrd1]
   · iunfold rnWalTokL
     iframe Hwtl
