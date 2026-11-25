@@ -502,6 +502,13 @@ def CsWf : CState → Prop
 def csOwnF (γ : GName) (s : CState) : IProp GF :=
   iprop(ghostVar γ (1 : Qp).half s ∗ thrResS (L := L) s ∗ ⌜CsWf s⌝)
 
+/-- The caller's part of the state `s` of the file `i`, with the token `Tok s` that ties it to its
+crash invariant (`csOwnF`'s half of the ghost variable, or `csOwnI`'s): the caller's resources of the
+state (`thrResS`) and what the specs keep of it (`CSt.Wf`). The operations of `CrashStOps.lean` are
+proved over it, for any invariant with an accessor (`CsAcc`). -/
+def csOwnG (Tok : CSt → IProp GF) (i : Ino) (s : CSt) : IProp GF :=
+  iprop(Tok s ∗ thrResS (L := L) (some (i, s)) ∗ ⌜s.Wf⌝)
+
 /-- The caller's part of the file at `p` in the state `s`: and the other half of the claim. -/
 def csOwn (p : GoString) (R : Roots) (γ : GName) (s : CState) : IProp GF :=
   iprop(csOwnF (L := L) γ s ∗ ∃ (j : Ino) (b : GoString) (h : NamesH),
