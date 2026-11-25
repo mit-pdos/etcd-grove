@@ -92,7 +92,16 @@ and gives a `KeyError: 'internal.testlog'`). Found on the way: `word` and `omega
 auxiliary lemma is abstracted over `[GooseExts]` failed the kernel (application type mismatch) when
 the same fact was proved twice in one declaration; proving it once, by name, avoided it.
 
-**Next.** Full build on fk-lean1 and `etc/tcb-report.py --check`; merge lean; land.
+**Land prep (merge of lean `6c5b77f34a`, head 0deb8528ae).** `etc/gates.sh` on fk-lean1: build ok
+(28730 jobs), tcb matches the baseline (329 axioms, 0 sorries: the deleted test axioms were local to
+`NonVacuityLinked` and in no baseline), collections 63 match. Three failures: `models` was real (the
+kit's `examples/vsrnet/json.toml`, of round 9's J3, was not in the gates' `jsoninputs`: added; its
+`jsongen --check` passes, and the whole section passes locally); `goose` (jsongen's same-package dump
+failed on fk-lean1 with an empty stderr) and `k8s owned reply Kvs` (`-race` needs cgo; fk-lean1 has
+no C compiler) are the host's: both pass locally (`etc/goose.py --check`, 72 up to date;
+`TestDefaultNoRace -race`).
+
+**Next.** Land through the land queue (#8).
 
 
 ### Round 11: the encoder proved; JsonHyps down to the Decoder (2026-11-25; history)
