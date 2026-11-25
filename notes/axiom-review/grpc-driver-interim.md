@@ -75,3 +75,12 @@ the model queues `io.EOF` only at `frameClose` (`model_transport.go:895-900`), e
 status" missed the unconverted second read of a non-client-streaming method (text fixed); partial
 messages are unreachable in the model; `Server.ServeHTTP`'s transport returns `io.EOF` at a body's end
 and is outside the axiom (noted in the docstring).
+
+## T4 `grpcInvokerDone` at the connection's resource (merge of lean, 2026-11-25; not yet reviewed)
+
+Lean's decision 1b runs every call on an etcd connection at `clientRes` (`levelTok 0`), and its
+`grpcInvokerOk_of_chainRes` builds `grpcInvokerOk` for a chain's invoker callable only with that token:
+the resource-free `grpcInvokerDone` could not be met. `grpcInvokerDone conn Ok inv` now lends
+`⌜Ok R⌝ ∗ R` (back untouched in the post), as `grpcInvokerOk`'s attempt triple does. The old triple
+implies the new one (frame `R`), so the axioms giving `grpcInvokerOk` promise no more than before; the
+driver's `plain_Invoke_done` uses it at `R := True` (`anyRes`).
