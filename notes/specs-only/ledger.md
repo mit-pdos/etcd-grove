@@ -6085,3 +6085,23 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
     thread's whole `threadTok` to the server (`StartServer`'s `srvGoRes s`, used by `GoAttach` and
     `Serve`), so the main thread has no `levelTok 0` left for its client calls (`NewClient`, `Put`,
     `Get`).
+- **Beyond the token (third pass, 2026-11-24).**
+  - *The two open conflicts, resolved.* (1) k8s' `closeOk` (a compactor's `onClose`) is lent the caller's
+    `levelTok 0`, and `compactor.Stop` takes it (pre and post); `Stop` lends it to the closure through
+    `sync.Once.Do` by `wp_Once_Do_lend` (`Proof/sync/OnceLend.lean`, a variant of Perennial's `Once.Do` spec where
+    the caller lends the closure a resource, proved over `Once`'s code; `notes/perennial-changes.md`). (2) No
+    server spec changes: the server's `GoAttach` uses the levels from 1 of the token in `srvGoRes` (`GoAttachTok`),
+    but the apply thread's `srvGoRes` (its own token, from `run`'s `threadTok`) lends level 0 to `lessor.Promote`
+    (`lessorLvl = 0`, `applyEntryNormal`), so `srvGoRes` keeps the whole token. The example `Main`s instead take
+    their `srvGoRes` back through `Serve`'s caller-chosen post, as `kv_lease_served_go` already did (new
+    `kv_served_go`; `watch`/`compactwatch` keep `grpcUp`'s `srvGoRes`), and lend its level 0 (`srvGoRes_level0`,
+    `etcdstart/Defs.lean`) to their client calls.
+  - *Closures lent the token*: k8s' `getStateOk` (`getCurrentState`'s closure, which calls `Get`) and
+    `watcher.getStartWatchResourceVersion`'s `getCurrentStorageRV` wand; txnlin's `linU`/`contAt` (the
+    continuation's premise gains the token, which `Apply`'s post gives back; `Apply.spec`'s pre and post take it;
+    `Check`'s `lintest` closure splits it off the worker's `threadTok`).
+  - *Bounds*: `etcdstart.NewClient(s)`, `cluster3.NewClient` and `leaseN.check` take `threadBound GF ≤ 2 ^ 30`
+    (was `2 ^ 31`), `New`'s (callers have `2 ^ 28`).
+  - *Thread-token holders that split it* (spec unchanged): k8s `store.getList` (reverted the first pass's extra
+    `levelTok 0` beside its `threadTok`), `pagedChunks`, `watchChan.startWatching`, the cache example's
+    second read, leaseN/leasecatchup/leaseexpiryN's `run` loops.

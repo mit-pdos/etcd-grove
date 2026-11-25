@@ -36,16 +36,15 @@ abbrev absent.spec : Prop :=
     (n : Nat) (F : mvcc.Log) (P : GoString → IProp GF) (Q : KVState → IProp GF),
   opSizeOk (opGetModel k []) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
-      clientTokAt root [addr] P ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗ levelTok 0 ∗ (clientTokAt root [addr] P ∗
       isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E γr cid mid) ∗
       committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗
       □ (∀ m : RangeRespM, rangeReplyOk E γr c F (rangeWireOf (opGetModel k [])) cid mid Q m -∗
-          ⌜m.kvs = []⌝) }}
+          ⌜m.kvs = []⌝)) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absent)) (Val #root))
       (Val #k)) (Val #why))
-  {{ (ok : Bool), RET #ok; True }}
+  {{ (ok : Bool), RET #ok; levelTok 0 ∗ (True) }}
 
 end spec
 

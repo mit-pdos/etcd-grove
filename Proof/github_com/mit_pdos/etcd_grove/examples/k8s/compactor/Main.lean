@@ -230,7 +230,7 @@ theorem Main.wp_proof
   have hrb : receiptBound GF ≤ 2 ^ 62 := by omega
   have hsame : ∀ y ∈ [x], kvSame y.γr.kv ρ.rd.kv := fun y hy => by
     simp only [List.mem_singleton] at hy; subst hy; exact kvSame_refl _
-  have htb : threadBound GF ≤ 2 ^ 31 := by omega
+  have htb : threadBound GF ≤ 2 ^ 30 := by omega
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd clientAddr [] null null go!"k" null ρ.rd.kv
   -- `wcli, err := NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient clientAddr lg V (by unfold plainEndpoint; decide) htb)

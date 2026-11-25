@@ -49,7 +49,7 @@ theorem grantPut.wp_proof
     (wp_WithLease : WithLease.spec (GF := GF) (hG := hG)) :
     grantPut.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC cli k addr s E ρ cid mid n F P Qg Qp R R' hon hrev hsz hAs
-  wp_start as ⟨#Htk, #Hn, #Hgr, #Hput, #HF, #HQg, HR, HFix⟩
+  wp_start as ⟨Hlt, #Htk, #Hn, #Hgr, #Hput, #HF, #HQg, HR, HFix⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -66,7 +66,7 @@ theorem grantPut.wp_proof
   (try wp_auto)
   -- `g, err := cli.Lease.Grant(ctx, grantTTL)`
   wp_apply (client_lease_grant_on lp conn addr (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ) gctx none gcd n grantTTLv Qg)
-    as %gr %gerr Hg
+    $$ [$Hlt] as %gr %gerr ⟨Hlt, Hg⟩
   · iframe #
     iintro !> %id
     iapply HQg
@@ -79,7 +79,7 @@ theorem grantPut.wp_proof
     | nil => exact absurd rfl Hgfail.1
     | ok ei =>
       (try wp_auto)
-      iapply HΦ; ileft; ipureintro; rfl
+      iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
   subst Hgerr
   (try wp_auto)
   -- the caller's ghost step at the granted id
@@ -120,7 +120,7 @@ theorem grantPut.wp_proof
   (try wp_auto)
   have hok := opPutModel_lease_ok k mg.id
   wp_apply (client_put_on api conn addr (srvTLSId s) E ρ cid mid pctx none pcd k go!"v" _ [withLeaseM mg.id] (Qp mg.id) F
-      (hsz mg.id) hok.1 hok.2 (Or.inr hrev)) as %presp %perr Hp
+      (hsz mg.id) hok.1 hok.2 (Or.inr hrev)) $$ [$Hlt] as %presp %perr ⟨Hlt, Hp⟩
   · iframe #
     ileft
     imodintro
@@ -135,6 +135,7 @@ theorem grantPut.wp_proof
   · subst Hperr
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitl []
     · ipureintro; rfl
@@ -146,7 +147,7 @@ theorem grantPut.wp_proof
     | nil => exact absurd rfl Hperr.1
     | ok ei =>
       (try wp_auto)
-      iapply HΦ; ileft; ipureintro; rfl
+      iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
 
 end proof
 

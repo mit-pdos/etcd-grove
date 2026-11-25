@@ -151,7 +151,7 @@ theorem MainPartition.wp_proof
   have hkc : sv0.γr.kv.cmp = true := by rw [hs0.2.2.2.2.2.1]; exact hkc₀
   have hkr : sv0.γr.kv.cret = 0 := by rw [hs0.2.2.2.2.2.2]; exact hkr₀
   have hrb : receiptBound GF ≤ 2 ^ 62 := by omega
-  have htb : threadBound GF ≤ 2 ^ 31 := by omega
+  have htb : threadBound GF ≤ 2 ^ 30 := by omega
   ihave ⟨-, #Hrd0⟩ := k8s_etcd3N.regs_lookup ms ws 0 sv0 w0 hsv0 hw0 $$ Hwregs
   ihave #Hinvs := srvKVInvs_of_read w0.1 sv0.E sv0.γr $$ Hrd0
   iunfold srvKVInvs at Hinvs

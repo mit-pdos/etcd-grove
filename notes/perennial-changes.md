@@ -4448,3 +4448,17 @@ the pending hypotheses are discharged.
   plus `GaugeVec.With`/`Set` for the two version gauges (`version.Version` from api/version's fact). After
   `prom-registry` (#15) lands, on its `reg_steps`.
 - **Status.** Not filed.
+
+## 2026-11-24: `sync.Once.Do` lends its closure nothing of the caller's (k8s compactor `Stop`, branch `prove-ps2-clientrdlock`)
+
+- **Limitation.** Perennial's `sync.Once.Do.spec` is `{{ isOnce o P Q ∗ {{ P }} f() {{ Q }} }} o.Do(f) {{ Q }}`: the
+  closure gets only the once's `P`. k8s' `compactor.Stop` calls `stopOnce.Do(func() { ...; c.onClose(); ... })`, and
+  the `onClose` that `StartCompactorPerEndpoint` installs calls `Client.Endpoints()`, which (decision 1b) needs the
+  caller's `levelTok 0`. Go runs the closure on the caller's goroutine and `Do` returns after it, so the caller can
+  lend it any resource.
+- **Worked around here.** `Proof/sync/OnceLend.lean`: `wp_Once_Do_lend` (and `wp_Once_doSlow_lend`),
+  `{{ isOnce o P Q ∗ R ∗ {{ P ∗ R }} f() {{ Q ∗ R }} }} o.Do(f) {{ Q ∗ R }}`, proved over `Do`'s and `doSlow`'s
+  translations by the argument of `Once__Do.lean`/`Once__doSlow.lean` (no axiom; `isOnce_unseal` is public).
+- **Proposed.** The same two theorems in Perennial's `Proof/sync/` (a spec `sync.Once.Do.specR` beside `Do.spec`,
+  `Do.spec` its instance at `R = True`), proved there; no trusted change.
+- **Status.** Not filed.
