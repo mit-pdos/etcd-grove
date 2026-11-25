@@ -34,7 +34,7 @@ abbrev check.spec : Prop :=
     (body : GoString),
     qOf q d → chkPre d rv.StatusCode' hc body →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver ∗
-      drvFacts ∗ resp ↦ rv ∗ net.http.hdrOwn (GF := GF) rv.Header' (net.http.dropConn hc) }}
+      drvFacts ∗ resp ↦□ rv ∗ net.http.hdrOwn (GF := GF) rv.Header' (net.http.dropConn hc) }}
     (App (App (App (Val (@! check)) (Val #q)) (Val #resp)) (Val #body))
   {{ RET #(); True }}
 

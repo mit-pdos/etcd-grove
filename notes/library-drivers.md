@@ -138,6 +138,18 @@ each retired by S5:
    `io.EOF` gives `□ Q ρ` of a response with that head whose body is what was read (`Content-Length`) or
    extends it (close-delimited), and gives back the reader past the response. Reviewed sound.
 
+Changed 2026-11-25 in the proof stage (approved by the dsverify-net lead as interim text; zeldovich-proving-2
+checks (2) and (3) against go1.27.3): (1) `ReadResponse.spec_resp` takes the stream's length law
+`□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝` (what `bufio.NewReader` takes; without it the axiom read heads
+of any size through a reader specified only below `2 ^ 62` bytes); (2) `hdrsOk hs` adds
+`(hs.flatMap hdrLineWire).length ≤ 2 ^ 21` (the handler's obligation, through `respOps`); (3) `respFacts`
+bounds the head of a handler's answer, `.ans` and `.chunked`, to `≤ 2 ^ 22` bytes (Go's server adds under 512
+bytes of its own: `writeStatusLine`, `(*chunkWriter).writeHeader`). The client needs (2) and (3) to bound its
+stream for `bufio.NewReader`. And the driver's client leaves a connection after a `400` (not only after its junk
+request): after a close-delimited answer whose body a cut connection ended early, no further `ReadResponse`
+precondition holds. `ServeMux.HandleFunc`, `NewServeMux`, `HandlerFunc.ServeHTTP`, `Header.Get`/`Set` (and
+textproto's `MIMEHeader.Get`/`Set`) are now translated, with their bodies.
+
 Also trusted, changed here: `net.http.wp_init_first`'s `initFirstRes` now says `use121` is `true` only if
 the run's `httpmuxgo121` setting is `"1"` (what the approved trusted `init` model does), so the driver
 learns `use121 = false` from the environment premise.
