@@ -132,7 +132,7 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
       (etcdProgAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
-    (HEnv : verifyEnvOff (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₁) n ids₁

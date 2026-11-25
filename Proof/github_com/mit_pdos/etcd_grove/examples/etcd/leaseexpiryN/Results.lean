@@ -85,7 +85,7 @@ theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.
     (Hlp : leasePeersOk)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
-    (HEnv : verifyEnvOff (leaseexpiryNProgram k))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) (uint.nat k) n ids ps

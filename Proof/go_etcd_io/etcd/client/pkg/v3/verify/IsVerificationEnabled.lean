@@ -1,6 +1,7 @@
 /-
 `verify.IsVerificationEnabled`'s proof (`client/pkg/verify/verify.go`; etcdstorage, 2026-11-20), over
-`os.Getenv`'s spec (under `envVerifyOff`, `ETCD_VERIFY`'s value is `etcdVerifyOffValue`) and
+`os.Getenv`'s spec (`ETCD_VERIFY`'s value is the run's `etcdVerifyEnv`, which `EtcdVerifyOff` says
+is `etcdVerifyOffValue`) and
 `strings.ToLower`'s (`strings.lowersTo`).
 -/
 module
@@ -34,28 +35,24 @@ theorem verify.IsVerificationEnabled.wp_proof (hGetenv : os.Getenv.spec (GF := G
   wp_func_call
   wp_call
   wp_auto
-  wp_apply hGetenv as %v Hoff
+  wp_apply hGetenv as %v %Hoff
   wp_apply hLower as %lv %Hlv
   by_cases hall : lv = go!"all"
   · rw [decide_eq_true hall]
     wp_auto
     iapply HΦ
-    iintro #Hv
-    ispecialize Hoff $$ Hv
-    icases Hoff with %Hoff
     ipureintro
-    obtain ⟨h1, -, -⟩ := Hoff (by first | rfl | trivial)
+    intro Hv
+    obtain ⟨h1, -, -⟩ : etcdVerifyOffValue v := by rw [Hoff (by first | rfl | trivial)]; exact Hv
     have := (Hlv go!"all" (by decide)).1 hall
     simp [h1] at this
   · rw [decide_eq_false hall]
     wp_auto
     wp_apply hLower as %av %Hav
     iapply HΦ
-    iintro #Hv
-    ispecialize Hoff $$ Hv
-    icases Hoff with %Hoff
     ipureintro
-    obtain ⟨-, h2, h3⟩ := Hoff (by first | rfl | trivial)
+    intro Hv
+    obtain ⟨-, h2, h3⟩ : etcdVerifyOffValue v := by rw [Hoff (by first | rfl | trivial)]; exact Hv
     intro ht
     simp only [decide_eq_false_iff_not]
     intro heq

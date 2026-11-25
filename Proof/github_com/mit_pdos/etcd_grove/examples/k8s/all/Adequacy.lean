@@ -140,7 +140,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
       (k8sProgAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
       (k8sProgDirs k₁ k₂))
-    (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) (uint.nat k₁) n ids ps ctxs boot)
@@ -296,7 +296,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       (k8sProgAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
       (k8sProgDirs k₁ k₂))
-    (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) (uint.nat k₁) n ids ps ctxs boot)

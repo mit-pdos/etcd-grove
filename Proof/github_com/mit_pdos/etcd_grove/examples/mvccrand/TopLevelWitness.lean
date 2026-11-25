@@ -8,7 +8,8 @@ together with `Robust`'s antecedents: the directory `r = /w` (a root, fitting), 
 system that root alone, empty (`Robustness/FsStart.lean`), so the database names are absent
 (the etcd file semantics `etcdFsSem` keeps the default `initLocal`, so `Robust` itself does not ask
 `FsInit`: `Hfs` is a premise of its own here, witnessed by `fsInit_fsOneRoot`). Left out:
-`HEnv` (`verifyEnvOff`, an axiom-declared environment proposition: `etc/premise-witness-baseline.txt`);
+`HEnv` (`EtcdVerifyOff`, over the opaque value `etcdVerifyEnv`: no Lean proof can establish it, but its
+value predicate holds of the unset variable, `etcdVerifyOffValue_unset`; `etc/premise-witness-baseline.txt`);
 `Hsort`, an Iris contract, is left out by `premise_sat%` itself. Checked by `etc/premise-witness.py`.
 -/
 module

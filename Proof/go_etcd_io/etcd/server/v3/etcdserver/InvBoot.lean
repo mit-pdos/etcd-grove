@@ -592,7 +592,7 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off: its backend's lock checks return (`bootOk`'s
         -- `isBackend` carries it)
-        envVerifyOff ∗
+        ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
         wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))

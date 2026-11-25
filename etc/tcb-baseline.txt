@@ -71,7 +71,6 @@ axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -324,7 +323,6 @@ axiom v3rpc.pbWatchResponseT_reg
 axiom v3rpc.wp_WithTimeout_weak
 axiom validation.IsDNS1123Subdomain.wp_proof
 axiom validation.IsDomainPrefixedKey.wp_proof
-axiom verifyEnvOff
 axiom wait.Jitter.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof
