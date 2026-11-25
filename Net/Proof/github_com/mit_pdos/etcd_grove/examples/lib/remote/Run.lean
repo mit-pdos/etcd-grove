@@ -36,9 +36,9 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St J I O : Type} [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
-omit [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O] in
+omit [Pos.Countable I] [Pos.Countable O] in
 /-- `n * m` units are `n` calls' worth of `m`. -/
 theorem budUnits_calls (a : GoString) (m : Nat) : ∀ n,
     budUnits (Gg := hG.goose_globalGS) a (n * m) ⊢
@@ -54,7 +54,7 @@ theorem budUnits_calls (a : GoString) (m : Nat) : ∀ n,
     iframe Hm
     iapply budUnits_calls a m n $$ Hn
 
-omit [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O] in
+omit [Pos.Countable I] [Pos.Countable O] in
 /-- A big separating conjunction over a list, by index. -/
 theorem bigSepL_range_getD {A : Type} [Inhabited A] (L : List A) (Q : A → IProp GF) :
     ([∗list] a ∈ L, Q a) ⊢ [∗list] c ∈ List.range L.length, Q (L.getD c default) := by
@@ -66,11 +66,11 @@ theorem bigSepL_range_getD {A : Type} [Inhabited A] (L : List A) (Q : A → IPro
   rw [BigSepL.bigSepL_map]
 
 theorem Run.wp_proof
-    (wp_Do : Do.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O))
+    (wp_Do : Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O))
     (wp_perclientRun : EtcdGrove.perclient.Run.spec (GF := GF) (hG := hG))
     (wp_CounterClock : CounterClock.spec (GF := GF) (hG := hG)) :
-    Run.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) := by
-  intro R S γ m addrs addrL cd gen ops d tmo HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
+    Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
+  intro J _ _ R S γ m addrs addrL cd gen ops d tmo HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
   haveI := HT
   wp_start as ⟨#Hcc, #Hm, #Hgen, #Haddrs, #Hra, #Hmap, #Hcd, #Hpend, Hlib, Hbud⟩
   wp_auto

@@ -53,7 +53,7 @@ variable [lintest_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assu
 variable [perclient_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions]
 variable [NaInvG GF]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St J I O : Type} [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem wp_hang : hang.spec (GF := GF) (hG := hG) := hang.wp_proof
 
@@ -64,7 +64,7 @@ theorem wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   attempt.wp_proof net.DialTimeout.wp_proof net.Conn.SetDeadline.wp_proof net.Conn.Close.wp_proof
     wp_deadline wp_writeFrame wp_readFrame
 
-theorem wp_Do : Do.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) :=
+theorem wp_Do : Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
   Do.wp_proof wp_attempt wp_hang github_com.goose_lang.primitive.wp_NewProph
     github_com.goose_lang.primitive.ProphId.wp_ResolveU64
 
@@ -84,10 +84,10 @@ theorem wp_Serve : Serve.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
 theorem wp_ServeClient : ServeClient.spec (GF := GF) (hG := hG) (I := I) (O := O) :=
   ServeClient.wp_proof wp_Serve
 
-theorem wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) :=
+theorem wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
   Run.wp_proof wp_Do EtcdGrove.perclient.wp_Run EtcdGrove.lintest.wp_CounterClock
 
-theorem wp_Check : Check.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) :=
+theorem wp_Check : Check.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) :=
   Check.wp_proof wp_Run
 
 end linked
