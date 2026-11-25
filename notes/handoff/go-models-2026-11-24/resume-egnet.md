@@ -447,3 +447,18 @@ merge lean into goose-model-overlay-rest and shrink the packet.
     ServeLemmas (208, 378), InitFirst (89), Net/Proof/net/rpc/Client__CloseClosed (82: errnoOk wand);
     membership/OwnedMutex (Type mismatch: lean's change vs basic slice's sync.Mutex?). Then a full build to
     find what was behind them.
+- STATE at hand-off point (session 12): branch `go-models-rest-egnet-lmerge/2026-11-25` pushed (head = this
+  notes commit; code at b873b7bcfb). Targeted VM build of the fixed modules running: targets
+  `tmp/gm12/targets2.txt`, log `tmp/gm12/b2.log` (key c61dd42e08d7d686). Full build 1 log `tmp/gm12/full1.log`.
+- LEFT: (1) read b2.log, fix its failures; (2) port the not-yet-fixed modules listed above (gryff NetAddr/
+  ConnErr cascade, LstatAnyS, encoding/json NetInit, http ServeLemmas/InitFirst, rpc Client__CloseClosed,
+  membership OwnedMutex); (3) full default build (`VMLAKE_KEY=c61dd42e08d7d686 ~/vmlake/vmlake build`) until
+  EXIT 0; (4) `vmlake env python3 etc/tcb-report.py --check`, then `--collection` kvraft, kvraft-udp,
+  raft-noax `--check` (condition 2: kvraft-udp must stay 0 axioms/0 sorry = lean's); (5) condition 3: the
+  build includes GooseLang.Ext.NetFsUdp.Adequacy and kvraft_udp TopLevelRobustness: confirm they built;
+  (6) packet-rest.md head table (new head, build/tcb results) and note the spec changes this port adds
+  (`net.Listen.specHttp`, `DialHTTP_kit`, `DialHTTP_tcp`, vr `wp_debug_resErr`/`network.resErr_errOrNil`,
+  `net.resErr_errOrNil` gain `isPkgInit net`/`syscall.errnoOk` premises; `net.opErr_errOrNil` and
+  `network.opErr_errOrNil` deleted) — these are lemma/spec premises, not top-level statements;
+  (7) fast-forward `go-models-rest-egnet/2026-11-24` (`git push origin HEAD:go-models-rest-egnet/2026-11-24`
+  from the lmerge worktree; the local branch is checked out in ho-gmr: don't touch it there); (8) #8 message.
