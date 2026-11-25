@@ -29,6 +29,8 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.io
+-- (phase 7 S2 core) grpc imports `encoding/binary` (the model's frame writers): its package fact
+public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.strconv.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
@@ -39,6 +41,8 @@ public import Net.Proof.net.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
 public import Proof.crypto.tls.PkgInit
 public import Proof.google_golang_org.protobuf.PkgInit
+-- (phase 7 S2 core) grpc imports `encoding/base64` (`encodeMetadataHeader`): its package fact
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -258,11 +262,11 @@ instance hookCells_persistent (V : Type) [TypedPointsto (GF := GF) V] (xs : List
   | nil => unfold hookCells; infer_instance
   | cons x xs ih => unfold hookCells hookCell; infer_instance
 
-/-- The hook variables of type `any` the translated `init`s set: `metadata`'s, `codes`', grpc's
-(`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s. -/
+/-- The write-only hook variables of type `any` the translated `init`s set: `codes`', grpc's
+(`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s (`metadata`'s, `FromOutgoingContextRaw`,
+which grpc's initializer also reads, has an invariant of its own, `fromOutRawInv`). -/
 def hooksAny : List GoString :=
-  [_root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw,
-   _root_.Perennial.google_golang_org.grpc.internal.CanonicalString,
+  [_root_.Perennial.google_golang_org.grpc.internal.CanonicalString,
    _root_.Perennial.google_golang_org.grpc.internal.AddGlobalDialOptions,
    _root_.Perennial.google_golang_org.grpc.internal.AddGlobalPerTargetDialOptions,
    _root_.Perennial.google_golang_org.grpc.internal.JoinDialOptions,
@@ -285,11 +289,40 @@ def hooksFunc : List GoString :=
    _root_.Perennial.google_golang_org.grpc.internal.HealthCheckFunc,
    _root_.Perennial.google_golang_org.grpc.internal.BalancerUnregister]
 
-/-- **`internal`'s package fact**: the invariants of its hook cells, which only package initializers
-write and no translated code reads (their readers, grpc-go's tests, xds, stats/opentelemetry, orca and
-`experimental`, are outside the model; `Code/google_golang_org/grpc/internal.toml`). -/
+/-- The namespace of `FromOutgoingContextRaw`'s invariant. -/
+def fromOutRawN : Namespace := nroot.@"grpcInternalFromOutgoingContextRaw"
+
+/-- The type of `metadata.fromOutgoingContextRaw`, `func(context.Context) (metadata.MD, [][]string,
+bool)`: what `metadata`'s `init` converts it from and grpc's `metadataFromOutgoingContextRaw` asserts. -/
+abbrev fromOutRawTy : go.GoType :=
+  go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false
+    [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.GoType.SliceType (go.GoType.SliceType go.string), go.bool])
+
+/-- `metadata.fromOutgoingContextRaw` as an `any`: what `metadata`'s `init` stores in
+`FromOutgoingContextRaw`. -/
+abbrev fromOutRawAny : GoInterface :=
+  interface.mkOk fromOutRawTy #(functions _root_.Perennial.google_golang_org.grpc.metadata.fromOutgoingContextRaw [])
+
+/-- **`FromOutgoingContextRaw`'s invariant** (phase 7 S2 core, 2026-11-23; W1, 2026-11-26, beside the
+hook cells). Two states, as `initInv`'s. *Held*: the cell, with a value that is `fromOutRawAny` once the
+counter `γS` is past `0` (it is `0` until `metadata`'s `init` stores, which then raises it), and the whole
+of the ghost variable `γI`. *Lent*: a package initializer's exclusive package state and half of `γI` at
+it (`grpc/internal/FromOutRaw.lean`, `fromOutRaw_acc`). Readers and writers are package initializers
+only: `metadata`'s `init` (the store) and grpc's `metadataFromOutgoingContextRaw` (the type assertion's
+load). -/
+def fromOutRawInv (γI γS : GName) : IProp GF :=
+  iprop((∃ (v : GoInterface) (n : Nat) (x : GMap GoString Bool),
+      globalAddr _root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw ↦ v ∗ ghost_var γI (DFrac.own 1) x ∗
+      monoNatAuthOwn γS 1 n ∗ ⌜n = 0 ∨ v = fromOutRawAny (GF := GF)⌝) ∨
+    (∃ σ : GMap GoString Bool, ownGoState σ ∗ ghost_var γI (DFrac.own (1 : Qp).half) σ))
+
+/-- **`internal`'s package fact**: the invariants of its write-only hook cells, which only package
+initializers write and no translated code reads (their readers, grpc-go's tests, xds,
+stats/opentelemetry, orca and `experimental`, are outside the model;
+`Code/google_golang_org/grpc/internal.toml`), and `FromOutgoingContextRaw`'s, at some ghost names. -/
 def internalInit : IProp GF :=
-  iprop(hookCells GoInterface hooksAny ∗ hookCells GoFunc hooksFunc)
+  iprop(hookCells GoInterface hooksAny ∗ hookCells GoFunc hooksFunc ∗
+    ∃ γI γS : GName, inv fromOutRawN (fromOutRawInv γI γS))
 
 instance internalInit_persistent : Persistent (internalInit (GF := GF)) := by
   unfold internalInit; infer_instance
@@ -306,8 +339,19 @@ end google_golang_org.grpc.internal
 -- `server/v3/auth/Base.lean`)
 namespace google_golang_org.grpc.metadata
 
+/-- **`metadata`'s package fact** (phase 7 S2 core, 2026-11-23; until then `True`): its `init` has
+stored `fromOutgoingContextRaw` in `internal.FromOutgoingContextRaw` for good (`internal`'s invariant,
+its counter past `0`). What grpc's `metadataFromOutgoingContextRaw` reads. -/
+def metadataInit : IProp GF :=
+  iprop(∃ γI γS : GName,
+    inv google_golang_org.grpc.internal.fromOutRawN (google_golang_org.grpc.internal.fromOutRawInv γI γS) ∗
+    monoNatLbOwn γS 1)
+
+instance metadataInit_persistent : Persistent (metadataInit (GF := GF)) := by
+  unfold metadataInit; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init metadataInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
   build_get_is_pkg_init_wf
 
@@ -376,6 +420,54 @@ instance get_isPkgInit_wf_inst :
   build_get_is_pkg_init_wf
 
 end google_golang_org.grpc.internal.grpcsync
+
+-- grpc's `codes` and `status` (before `grpc`, which imports them since phase 7 S2 core)
+instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  define_is_pkg_init iprop(True)
+instance grpc_codes_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  build_get_is_pkg_init_wf
+
+-- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
+-- `client/v3/leasing` names it).
+instance grpc_internal_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_internal_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
+  build_get_is_pkg_init_wf
+
+instance grpc_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  build_get_is_pkg_init_wf
+
+-- (phase 7 S2 core, 2026-11-23) grpc's `internal/grpcutil` and `internal/metadata` (what the client
+-- attempt's `createHeaderFields` calls), before `grpc`, which imports them
+/-- `grpcutil`'s package fact: `RegisteredCompressorNames` (`var RegisteredCompressorNames []string`,
+no initializer) holds the nil slice for good: only `encoding.RegisterCompressor` writes it, which no
+translated code calls (compression is outside the grpc model, `models/README.md`); a program that
+registers a compressor gets no proof (it would need the cell, which the generated `Init.lean` makes
+persistent). -/
+abbrev grpcutilInit : IProp GF :=
+  globalAddr _root_.Perennial.google_golang_org.grpc.internal.grpcutil.RegisteredCompressorNames ↦□
+    (zero_val GoSlice)
+
+instance grpc_grpcutil_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcutil :=
+  define_is_pkg_init grpcutilInit
+instance grpc_grpcutil_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcutil :=
+  build_get_is_pkg_init_wf
+
+instance grpc_imetadata_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.metadata :=
+  define_is_pkg_init iprop(True)
+instance grpc_imetadata_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.metadata :=
+  build_get_is_pkg_init_wf
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
@@ -536,12 +628,6 @@ instance etcdserverpb_is_pkg_init_inst :
   define_is_pkg_init etcdserverpbInit
 instance etcdserverpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
-  build_get_is_pkg_init_wf
-
-instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
-  define_is_pkg_init iprop(True)
-instance grpc_codes_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
   build_get_is_pkg_init_wf
 
 /-- The error value `e`'s `Error()` returns some string (and does not panic). -/
@@ -847,22 +933,6 @@ theorem notDescIn_ne (ds : List GoString) (err : GoInterface) :
   unfold notDescIn
   iintro ⟨%h, -⟩
   ipureintro; exact h
-
--- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
--- `client/v3/leasing` names it).
-instance grpc_internal_status_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
-  define_is_pkg_init iprop(True)
-instance grpc_internal_status_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
-  build_get_is_pkg_init_wf
-
-instance grpc_status_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
-  define_is_pkg_init iprop(True)
-instance grpc_status_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
-  build_get_is_pkg_init_wf
 
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`), as far as
 grpc's and Go's `errors` functions look (Go's typing, which the model lacks: method sets are

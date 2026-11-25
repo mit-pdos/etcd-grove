@@ -258,6 +258,21 @@ func newClientTransportStream(ctx context.Context, cc *ClientConn, conn net.Conn
 		conn.Close()
 		return nil, &newStreamError{Err: ErrClientConnClosing, AllowTransparentRetry: false}
 	}
+	if headerListTooLarge(fields) {
+		// MODEL: a head over the server's limit (model_wire.go, F1) is not written, and the stream
+		// ends as grpc-go's does when its server refuses the list: a FRAME_SIZE_ERROR reset (a list
+		// truncated in its last frame) or the end of the connection (the server's connection error,
+		// measured for a field over the limit), the model's choice; never retried (in grpc-go the
+		// server has read the head).
+		var st *status.Status
+		if modelChoose() {
+			st = status.New(codes.Internal, "stream terminated by RST_STREAM with error code: FRAME_SIZE_ERROR")
+		} else {
+			st = transportFailure("error reading from server: EOF")
+		}
+		s.closeStream(st.Err(), false, st, nil)
+		return s, nil
+	}
 	b := appendHeaderBlock(nil, frameHead, fields)
 	s.wmu.Lock()
 	n, werr := conn.Write(b)
@@ -280,7 +295,15 @@ func createHeaderFields(ctx context.Context, cc *ClientConn, authInfo credential
 	if len(perRPCCreds) != 0 || callHdr.Creds != nil {
 		// createAudience: omit port if it is the default one.
 		host := strings.TrimSuffix(callHdr.Host, ":443")
-		pos := strings.LastIndex(callHdr.Method, "/")
+		// MODEL: strings.LastIndex(callHdr.Method, "/"), as a backwards byte loop (Perennial has no
+		// model of LastIndex; for a one-byte separator the same index, -1 if absent)
+		pos := -1
+		for i := len(callHdr.Method) - 1; i >= 0; i-- {
+			if callHdr.Method[i] == '/' {
+				pos = i
+				break
+			}
+		}
 		if pos == -1 {
 			pos = len(callHdr.Method)
 		}
@@ -426,6 +449,10 @@ func (s *clientTransportStream) reader() {
 		switch kind {
 		case frameHeader, frameTrailer:
 			fields, err := readHeaderBlock(s.conn)
+			if err == errHeaderListTooLarge {
+				s.headerListTooLarge()
+				return
+			}
 			if err != nil {
 				s.readFailed(err)
 				return
@@ -482,6 +509,23 @@ func (s *clientTransportStream) handleRSTStream(errCode uint32) {
 	}
 	st := status.Newf(statusCode, "stream terminated by RST_STREAM with error code: %v", errCodeString(errCode))
 	s.closeStream(st.Err(), false, st, nil)
+}
+
+// headerListTooLarge ends the stream on a server's header block over the client's limit
+// (model_wire.go, F1), as grpc-go's client does, by the way the list goes over it: a field over the
+// limit (the hpack decoder's COMPRESSION_ERROR, a connection error; measured), a list over it in its
+// last frame (operateHeaders on a truncated frame: Internal, and a RST_STREAM), or a list continued
+// after it (a PROTOCOL_ERROR connection error). MODEL: the way is the model's choice.
+func (s *clientTransportStream) headerListTooLarge() {
+	switch modelChooseN(3) {
+	case 0:
+		s.readFailed(errHeaderListTooLarge)
+	case 1:
+		st := status.New(codes.Internal, "peer header list size exceeded limit")
+		s.closeStream(st.Err(), true, st, nil)
+	default:
+		s.readFailed(errors.New("connection error: PROTOCOL_ERROR"))
+	}
 }
 
 // readFailed ends the stream after its connection failed (http2Client.Close on a reader error).
@@ -1090,7 +1134,17 @@ func (t *serverTransport) writeEarlyAbort(contentSubtype string, stat *status.St
 			hf = append(hf, headerField{Name: grpcStatusDetailsBinHeader, Value: encodeBinHeader(stBytes)})
 		}
 	}
-	t.write(appendHeaderBlock(nil, frameTrailer, hf))
+	t.writeHeaderBlock(frameTrailer, hf)
+}
+
+// writeHeaderBlock writes a header or trailer block, or its over-limit marker if its list is over
+// the client's limit. MODEL: (model_wire.go, F1) grpc-go's server sends such a list, which its
+// client refuses; the model's reader refuses the marker in the same ways (headerListTooLarge).
+func (t *serverTransport) writeHeaderBlock(kind byte, fields []headerField) error {
+	if headerListTooLarge(fields) {
+		return t.write(appendOversizedBlock(nil, kind))
+	}
+	return t.write(appendHeaderBlock(nil, kind, fields))
 }
 
 // serverTransportStream is a dispatched server stream (transport.ServerStream).
@@ -1282,7 +1336,7 @@ func (s *serverTransportStream) writeHeaderLocked() error {
 		headerFields = append(headerFields, headerField{Name: "grpc-encoding", Value: s.sendCompress})
 	}
 	headerFields = appendHeaderFieldsFromMD(headerFields, s.header)
-	if err := s.st.write(appendHeaderBlock(nil, frameHeader, headerFields)); err != nil {
+	if err := s.st.writeHeaderBlock(frameHeader, headerFields); err != nil {
 		s.closeStream(err)
 		return err
 	}
@@ -1334,7 +1388,7 @@ func (s *serverTransportStream) WriteStatus(st *status.Status) error {
 
 	// Attach the trailer metadata.
 	headerFields = appendHeaderFieldsFromMD(headerFields, s.trailer)
-	err := s.st.write(appendHeaderBlock(nil, frameTrailer, headerFields))
+	err := s.st.writeHeaderBlock(frameTrailer, headerFields)
 	s.closeStream(contextErr(context.Canceled))
 	if err == nil && s.st.stats != nil {
 		// Note: The trailer fields are compressed with hpack after this call returns.

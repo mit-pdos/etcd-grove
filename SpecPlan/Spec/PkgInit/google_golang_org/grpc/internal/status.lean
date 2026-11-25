@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.internal.status
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes
 
 @[expose] public section
 noncomputable section

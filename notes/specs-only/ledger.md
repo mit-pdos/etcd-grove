@@ -680,6 +680,35 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. **(a)
   accepted** (Upamanyu's coordinator on #28, 2026-11-23: a vocabulary change with unchanged meaning is not covered
   by #8).
+## 2026-11-23: `metadata.builtRawMDRaw` -- a trusted opaque with no law, now defined by the `rawMD`'s contents (phase 7 S2 core, part 7)
+
+- **Spec.** `Proof/context/LibKeys.lean`: `metadata.builtRawMDRaw v f` (inside `metadata.outgoingHeld`, hence
+  `metadata.outMD`, `outgoingCtxOk`, `outgoingCtxOkC`, `context.libCtxOk(C)`). SpecPlan's `outMD` is unchanged.
+- **Defect.** Opaque and lawless: nothing related a context's outgoing metadata `md` (`outMD ctx md`) to what
+  grpc's transport reads of the context (`grpcHdr.outRawIs`, `createHeaderFields`' premise), so the client
+  attempt's proof could not connect the head it writes to `grpcAttemptMd`'s `om`.
+- **Evidence.** `notes/phase7-plan.md` §0a, "Built in the session's sixth part", the open gap.
+- **Proposed change.** A definition: `∃ M rows, metadata.rawMDAt v M rows ∗ ⌜f = metadata.rawView M rows⌝`,
+  `rawMDAt` the `rawMD`'s read-only contents (map values `M`, rows `rows`) with `rawOk M rows` (map and row keys
+  lower case, `strings.lowerWord`; rows of even length), `rawView` `FromOutgoingContext`'s merge. Proved from it:
+  `outRawIs_of_outMD` (`InvHeader.lean`). No statement's text changes; what changes is the meaning of the
+  trust-boundary axioms that produce `builtRawMDRaw` (directly or through `outMD`/`outgoingCtxOk(C)`/`libCtxOk`):
+  `metadata.AppendToOutgoingContext`, `withVersion`, `WithRequireLeader`, `context.WithCancelValCtx` (which only
+  carries its parent's), and the grpc model's server contexts (`srvRawStreamIs`'s `libCtxOkC`, which carry no
+  `rawMD`). Each now claims the contents. Checked against grpc v1.84 `metadata/metadata.go` and etcd's
+  `client/v3`: every `MD` they store is built by `Pairs`/`MD.Set`/`FromOutgoingContext`/`AppendToOutgoingContext`,
+  all lower-casing their keys (ASCII under these callers' keys: the API version key, `hasleader`, and
+  `AppendToOutgoingContext`'s `lowerKey` premise), fresh, and never written after; the `added` rows are fresh
+  copies or the parent's (read-only by the parent's `rawMDAt`). **Narrowed:** the opaque allowed a map with
+  upper-case keys that do not collide up to case (a literal `MD` given to `NewOutgoingContext`); the definition
+  does not. No verified program builds one (`NewOutgoingContext` is reached only through `withVersion` and
+  `WithRequireLeader`). Not retired: these axioms. Proving `AppendToOutgoingContext`/`withVersion` from their
+  bodies needs `context.WithValue` at grpc's key `mdOutgoingKey{}` and the `*valueCtx` it returns (the chain form):
+  this repository's `context.WithValue.spec` (a trust-boundary axiom; Perennial does not translate its body) lists
+  the key types it accepts, and extending it is a change to a trusted statement, left for the user with the
+  pending `requestInfoKey` case (§0a, fifth part).
+- **Decision.** Applied (branch `phase7-s2-core`, 2026-11-23); for the user's review as a change to what the
+  listed axioms claim.
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 

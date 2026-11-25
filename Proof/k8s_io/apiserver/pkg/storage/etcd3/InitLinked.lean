@@ -26,7 +26,7 @@ public import Proof.go_etcd_io.etcd.client.v3.kubernetes.InitLinked
 public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.google_golang_org.grpc.codes.InitLinked
 public import Proof.google_golang_org.grpc.grpclog.Init
-public import Proof.google_golang_org.grpc.status.Init
+public import Proof.google_golang_org.grpc.status.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
