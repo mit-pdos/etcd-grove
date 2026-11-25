@@ -8,7 +8,7 @@ trusted exactly as on lean (decision below), so log has no Go model and no delta
 | repo | branch | head | state |
 |---|---|---|---|
 | Perennial | `goose-model-overlay-rest` | `09bd3826c` | lean `d5eb93cb5` (basic slice) merged; whole library + PerennialMeta built (int-full11, EXIT 0, all 4 chunks); `etc/model-tests.sh` and `go test ./goose/...` pass; log = lean's |
-| etcd-grove | `go-models-rest-egnet/2026-11-24` | `bedb8f9090` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above; **all default targets built, EXIT 0** (28094 jobs, eg-full13); `tcb-report --check` matches the baseline (329 axioms, 0 sorry), so the before/after of Evidence stands. Not yet merged with etcd-grove lean (blocked on lean's UDP: `go-models-rest-egnet-lmerge/2026-11-25`, WIP) |
+| etcd-grove | `go-models-rest-egnet/2026-11-24` | `3c34552c7a` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above, **merged with etcd-grove lean `6865da10d6`** (lean's trusted UDP kept, #8 (a)); **all default targets built, EXIT 0** (28899 jobs, `tmp/gm13/full7.log`); `tcb-report --check` matches the baseline (378 axioms, 0 sorry: lean's baseline, unchanged); collections kvraft, kvraft-udp, raft-noax `--check`: 0 axioms, 0 sorry each (= lean). Not yet merged with lean `2926d09437` (basic slice landed + dsv-fix6; see resume-egnet.md session 13) |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
 **Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
@@ -2359,6 +2359,13 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   exhaustion, the extension's D12).
 
 # Evidence
+- **(2026-11-25, session 13, after the lean merge)** etcd-grove egnet = lmerge `3c34552c7a` (lean `6865da10d6` merged,
+  pin Perennial `09bd3826c`): `lake build` (all default targets) **EXIT 0, 28899 jobs** (`tmp/gm13/full7.log`);
+  `etc/tcb-report.py --check`: "trust base matches etc/tcb-baseline.txt (378 axioms, 0 sorries)" (the baseline
+  is lean's, byte for byte); `--collection` kvraft, kvraft-udp, raft-noax `--check`: each "matches (0 axioms,
+  0 sorries)", the collection files lean's. Condition 2 (#8): `kvraft_udp_robust`'s collection keeps lean's
+  axiom set (none). Condition 3: `GooseLang.Ext.NetFsUdp.Adequacy` (the `[net, fs, udp]` adequacy) and
+  kvraft_udp's `TopLevelRobustness` build over the Go-model net (explicit `lake build` of both, EXIT 0).
 - Perennial 30102d8b2: full library build int-full7 EXIT 0; `#print axioms` of the 241 linked theorems of
   bytes, errors, fmt, internal/{bytealg,gomodel,stringslite,sync}, log, os, runtime, strings, sync, syscall,
   time: `[propext, Classical.choice, Quot.sound]` only, except lean's own `strings.Fields.wp_proof`

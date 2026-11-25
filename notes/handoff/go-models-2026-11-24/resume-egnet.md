@@ -492,3 +492,14 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   DialHTTPPath, HttpDefs) where dsv-fix6's errLeaf/errPlain design over the old trusted OpError meets
   egnet's errStr/errnoOk over Go's OpError** (needs a design merge; dsv-fix6's own finding
   net-operr-error is what the Go model fixes), plus k8s clock NewTicker/NewTimer. Not done in session 13.
+- Builds 3-7 (`tmp/gm13/full{3..7}.log`) found the modules behind the first failures: etcd/k8s single-process
+  and putget intros (the predecessor had removed 1 of 3 FA binders: now all 3), mvcc `absent` intros, http
+  `conn.serve` (TCPAddr.String over the model) and `Server.Serve`'s accept error (`opErrOk` from `resErr`
+  via `kindErr_netOwnErr`/`opErr_opErrOk`, for `Temporary` and `opError_argOk`/`wp_logf_accept`), rpcdriver
+  TopLevelRobustness intro. **Full build 7: EXIT 0, 28899 jobs.** tcb-report --check: matches (378 axioms,
+  0 sorry); collections kvraft, kvraft-udp, raft-noax --check: 0/0 each. NetFsUdp.Adequacy + kvraft_udp TLR
+  built explicitly (EXIT 0). packet-rest.md: head table, Evidence, internal-spec section updated.
+- STATE at end of session 13: lmerge head = egnet head (fast-forwarded, pushed). LEFT: merge lean
+  `2926d09437` (see the trial-merge item above: keep pin 09bd3826c; regenerate PkgTables/BootTables, gen-init,
+  copy-part, gen-link; the dsv-fix6 Net rpc/http error lemmas need a design merge: lean's errLeaf/errPlain
+  vs egnet's errStr/errnoOk over Go's OpError.Error), then rebuild and re-run tcb.
