@@ -132,6 +132,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `reflect-s05`); `isParentCtx` widened to `ctxBg` chains (then `specValBg` is a corollary of `wp_WithCancel_gen`).
   Adversarial review (`axiom` skill, 2026-11-24): both sound, no counterexample
   (`notes/axiom-review/context-interim-hypotheses.md`); evidence moved to `examples/stdlib/ctxhyp/`.
+  **2026-11-25: made per-function trust-boundary axioms** (Upamanyu's option (a), #18 7144816148):
+  `context.WithValue.wp_proofPtr` (`Net/Proof/context/WithValuePtr.lean`) and
+  `context.WithCancel.wp_proofValBg` (`Net/Proof/context/WithCancelValBg.lean`), so that `http.Serve`'s
+  rpc spec is a closed linked result (`net.http.Serve.wp_rpc`); retired the same way.
   **Constraint on `reflect-s05` (and any later `reflect` spec):** a `*valueCtx`'s embedded `Context` field is
   exported, so Go's reflection can write it from outside `context` (`Elem().Field(0).Set`,
   `TestReflectWritesEmbeddedContext`). `specPtr`'s `↦□` on it is sound only because every write needs full
@@ -4643,6 +4647,17 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
   reviewed as a change to the trusted model's claim. **Status.** Not filed.
 
+## `copy` within one slice: its count's sign (2026-11-25, dsv-vr, the encoding/json model's `Decoder`)
+
+- **Limitation.** Perennial has `wp_slice_copy_within` (`Perennial/Golang/Theory/Slice.lean`: `copy(s[a:b], s[c:d])`
+  over one points-to of `s`, as the encoding/json model's `Decoder.fetch` makes, `copy(buf[:cap(buf)], buf[k:])`;
+  this entry first said there was no such spec, wrongly). Its count is stated as `sint.nat n = min ...`, which says
+  nothing of `n`'s sign when the minimum is `0`, and `fetch` slices with it (`dec.buf[:n]`, which needs `0 ≤ n`): the
+  `copy` count trap (#24 item 4) that `wp_slice_copy_int` fixed for `wp_slice_copy`.
+- **Work-around here.** `encoding.json.wp_slice_copy_within_int` (`Proof/encoding/json/SliceLemmas.lean`), a copy of
+  its proof stating `sint.Z n = min ...` (`wp_copyForward` gives it); used by `Decoder.fetch_conn.wp_proof`.
+- **Proposed (general).** `wp_slice_copy_within` states `sint.Z n` (as `wp_slice_copy_int`), or a
+  `wp_slice_copy_within_int` beside it. **Status.** Not filed.
 ## `MapKeys`/`SafeMapKey`: say that a non-pointer interface is never a `SafeMapKey` at the default keys (2026-11-25 · `notes/axiom-review/ctx-readerrs-vacuity.md`)
 
 - **Limitation.** Since P8c a `SafeMapKey` interface at `mapKeys_interface` is `nil` or a pointer, so stating `SafeMapKey go.error e` of a comparable struct error is `False`; two specs here did, unnoticed for a month. **Proposed.** One line in `Golang/Theory/Map.lean`'s `mapKeys_interface` doc warning of it (and pointing to a local instance). **Status.** Not filed.

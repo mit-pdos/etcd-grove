@@ -145,6 +145,25 @@ theorem nodeRep_split (q1 q2 : Qp) (d : NodeSt) :
     nodeRep (GF := GF) (hG := hG) (DFrac.own (q1 + q2)) d ⊣⊢
       nodeRep (DFrac.own q1) d ∗ nodeRep (DFrac.own q2) d := by
   unfold nodeRep
+  by_cases hpn : d.pat = null
+  rotate_left
+  · simp only [pfrac, hpn, ↓reduceIte]
+    refine ⟨?_, ?_⟩
+    · iintro ⟨#Hp, #Hh, Hm, Hmc, Hec⟩
+      icases (mapRep_split q1 q2 _ _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+      icases (pts_split q1 q2 _ _).1 $$ Hmc with ⟨Hmc1, Hmc2⟩
+      icases (pts_split q1 q2 _ _).1 $$ Hec with ⟨Hec1, Hec2⟩
+      isplitl [Hm1 Hmc1 Hec1]
+      · iframe; iframe #
+      · iframe; iframe #
+    · iintro ⟨⟨#Hp1, #Hh1, Hm1, Hmc1, Hec1⟩, ⟨-, -, Hm2, Hmc2, Hec2⟩⟩
+      iframe #
+      isplitl [Hm1 Hm2]
+      · iapply (mapRep_split q1 q2 _ _ _).2; iframe
+      isplitl [Hmc1 Hmc2]
+      · iapply (pts_split q1 q2 _ _).2; iframe
+      iapply (pts_split q1 q2 _ _).2; iframe
+  simp only [pfrac, hpn, ↓reduceIte]
   refine ⟨?_, ?_⟩
   · iintro ⟨Hp, Hh, Hm, Hmc, Hec⟩
     icases (pts_split q1 q2 _ _).1 $$ Hp with ⟨Hp1, Hp2⟩
@@ -414,6 +433,94 @@ theorem wp_register_lit (wp_IndexAny : strings.IndexAny.spec (GF := GF) (hG := h
   ipureintro; exact HS'
 
 end wp
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
+
+/-- The tree of a fresh mux: its root alone (the zero node at `muxRoot mux`), no pattern. -/
+def treeSt0 (root : Loc) : TreeSt :=
+  { nodes := <[([] : List Seg) := freshNode root]> ∅, pats := [] }
+
+theorem treeSt0_ok (root : Loc) (hr : root ≠ null) : (treeSt0 root).ok root := by
+  unfold TreeSt.ok treeSt0
+  refine ⟨⟨freshNode root, by simp, rfl⟩, by simp, by simp, ?_, by simp, ?_⟩
+  · intro k hk
+    by_cases h : ([] : List Seg) = k
+    · exact Or.inl h.symm
+    · simp [h] at hk
+  · intro k d hd
+    by_cases h : ([] : List Seg) = k
+    · subst h
+      simp only [GMap.lookup_insert_eq_iff, ↓reduceIte, Option.some.injEq] at hd
+      subst hd
+      refine ⟨hr, fun s hs => ?_, ?_, ?_, by simp, fun _ => ⟨rfl, rfl⟩⟩
+      · simp [freshNode, map.lookupL]
+      · simp [freshNode, locOf]
+      · simp [freshNode, locOf]
+    · simp [h] at hd
+
+/-- A fresh index (its zero value, owned): no pattern. -/
+theorem idxRep_zero (ix : Loc) :
+    ix ↦ (zero_val net.http.routingIndex) ⊢ idxRep (GF := GF) (hG := hG) ix [] := by
+  iintro H
+  iStructNamed H
+  iunfold idxRep
+  iexists map.nil, ∅, slice.nil
+  simp only [↓reduceIte]
+  iframe
+  isplitl []
+  · imodintro; iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitl []
+  · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitl []
+  · iapply slIdx_nil
+  iapply ownSliceCap_nil
+
+/-- **A fresh Go 1.22 matcher** (the zero `mu`, `tree` and `index` of a `ServeMux`, owned): its
+lock's guard, its reader slots in a thread pool of namespace `Np`, the owner's half of the tree's
+state (the root alone, `treeSt0`) and the empty index. -/
+theorem mux22_init {E : CoPset} (Np : Namespace) (mux : Loc) (Hb : threadBound GF ≤ 2 ^ 30) :
+    ⊢ structFieldRef net.http.ServeMux go!"mu" mux ↦ (zero_val sync.RWMutex) -∗
+      muxRoot mux ↦ (zero_val net.http.routingNode) -∗
+      structFieldRef net.http.ServeMux go!"index" mux ↦ (zero_val net.http.routingIndex) ={E}=∗
+      ∃ (γ : Mux22Names) (γp : GName),
+        sync.isRWMutexGuard (structFieldRef net.http.ServeMux go!"mu" mux) (mux22P (GF := GF) (hG := hG) γ mux) ∗
+        threadPool.isThreadPool Np γp
+          (sync.ownRWMutex (structFieldRef net.http.ServeMux go!"mu" mux) (mux22P γ mux)) ∗
+        ghostVar γ.st (1 : Qp).half (treeSt0 (muxRoot mux)) ∗
+        idxRep (structFieldRef net.http.ServeMux go!"index" mux) [] := by
+  iintro Hmu Htree Hidx
+  icases freshNode_rep (GF := GF) (hG := hG) (muxRoot mux) $$ Htree with ⟨Hn, %hr⟩
+  ihave Hidx := idxRep_zero _ $$ Hidx
+  imod ghostVar_alloc (GF := GF) (treeSt0 (muxRoot mux)) with ⟨%γs, Hv⟩
+  icases (ghostVar_split_half γs 1 (treeSt0 (muxRoot mux))).1 $$ Hv with ⟨Hv1, Hv2⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GoInterface) with ⟨%γr, HA⟩
+  ihave HP : mux22P (GF := GF) (hG := hG) ⟨γs, γr⟩ mux 1 $$ [Hv1 HA Hn]
+  · iunfold mux22P
+    iexists treeSt0 (muxRoot mux), ∅
+    iframe
+    isplitl [Hn]
+    · iunfold treeRep
+      rw [show (treeSt0 (muxRoot mux)).nodes =
+        Iris.Std.PartialMap.insert (∅ : GMap (List Seg) NodeSt) [] (freshNode (muxRoot mux)) from rfl]
+      isplitl [Hn]
+      · iapply (BigSepM.bigSepM_insert (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d)
+          (m := (∅ : GMap (List Seg) NodeSt)) (by rfl)).2
+        iframe
+        iapply (BigSepM.bigSepM_empty).2; iempintro
+      · simp only [treeSt0]; iempintro
+    ipureintro
+    exact ⟨treeSt0_ok _ hr, by intro k; simp [treeSt0], fun e he => by simp [treeSt0] at he⟩
+  imod sync.init_RWMutex_threadPool (mux22P (GF := GF) (hG := hG) ⟨γs, γr⟩ mux) (E := E) Np _ Hb
+    $$ HP Hmu with ⟨%γp, #Hguard, #Hpool⟩
+  imodintro
+  iexists ⟨γs, γr⟩, γp
+  iframe #
+  iframe
+end init
+
 
 end net.http
 end Perennial

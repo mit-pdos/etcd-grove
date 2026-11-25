@@ -6,6 +6,15 @@
 `muxRoute`, `muxRpc`). All interim: retired by phase 7's S5 (`Handle`, `Serve`) and L2 step 6 (the
 initializer).
 
+**2026-11-25: `Handle.wp_proof` and `Serve.wp_proof_rpc` are theorems** (S5). `Handle.wp_proof` over the real
+`ServeMux` (`MuxServe.lean`'s `wp_Handle_lit`); `Serve.wp_proof_rpc` from `Serve.specHandler` with the `nil`
+handler (`ServeRpc.lean`'s `srvAddrH_nil_rpc`: `DefaultServeMux`'s routed `CONNECT` dispatch,
+`wp_ServeMux_ServeHTTP_connect`, to the `rpcHjHandler` that `muxRpc` names; the address's protocols, head law
+and `400` from `rpcLisP`), linked as `net.http.Serve.wp_rpc` over the two interim context axioms
+(`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`,
+`notes/axiom-review/context-interim-hypotheses.md`). Neither spec's statement changed. Only `wp_init_first`
+(restated, reviewed: `/shared/tmp/ps2/revinit/review.md`, #24 7150317814, 7153375148) stays an axiom here.
+
 **2026-11-24: review by zeldovich-proving-2 (S5's owner) (#24 issuecomment-7135914632; Go test programs
 under `/shared/tmp/ps2/s5/muxtest/`), against Go 1.27.3. Two statements found false, one premise missing.**
 
@@ -45,3 +54,16 @@ issuecomment-7139755664). The server reads a request with the limit `DefaultMaxH
 `431 Request Header Fields Too Large`, which the rpc handler contract (`respProto`) does not allow.
 **Fix:** the premise `path.length ≤ 2 ^ 20` (the request line is then at most `2 ^ 20 + 19` bytes,
 within the limit). rpcdriver discharges it for `/_goRPC_` (`net.rpc.defaultRPCPath_short`, `decide`).
+
+**2026-11-25: `wp_init_first` restated, reviewed sound** (`/shared/tmp/ps2/revinit/review.md`, independent,
+axiom-skill method; Go probe `/shared/tmp/ps2/revinit/gocheck/`; coordinator-E #24 7153375148). Its post is now
+`initFirstRes` (`Net/Proof/net/http/InitFirst.lean`): the zero `defaultServeMux` (owned), `∃ b, use121 ↦□ b`,
+`maxSlice ↦□ 8`, `serveEnv`, `ctxKeys`, `∃ tm, aLongTimeAgo ↦□ tm`, `wPools`, `rPool`; no `threadBound` premise.
+`readEnv` is a lemma from `isPkgInit` (`readEnv_of_init`), and `wp_init_first_mux` (proved, through `muxOwnS_init`)
+gives the old `muxOwn … []` and `httpSrvEnv`. Two caveats, recorded in the docstring:
+1. The owned `defaultServeMux ↦ zero` is safe only while no other trusted spec writes the mux. A future
+   standard-shape `wp_initialize'` axiom for a package whose initializer registers on `DefaultServeMux` (expvar,
+   net/http/pprof, x/net/trace) would contradict it; such a package needs a first-init spec that consumes the mux.
+2. The pools' predicates (`wPoolP`, `rPoolP`) are chosen by the axiom. That is sound only because the pool
+   variables are untranslated and allocated inside their opaque initializers, so nothing else yields their
+   points-to; translating them reopens the question.

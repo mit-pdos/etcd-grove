@@ -28,7 +28,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
-variable [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [RA : RpcHttpAddr GF] [net.http.Assumptions]
 
 /-- **`Server(id)`**, server machine `id = i + 1` (`i < 4`: the master at `i = 0`, replica node
 `i - 1` else): from what its machine's boot hands its `main` (the file header). -/
@@ -38,7 +38,7 @@ abbrev Server.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
       serverBoot (GF := GF) ∗
       ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗ serverShare γ i ∗
-      (if i = 0 then iprop(True) else iprop(gryffGlobals ∗ bootProph)) }}
+      (if i = 0 then iprop(True) else iprop(gryffGlobals ∗ bootProph)) ∗ threadTok }}
     (App (Val (@! gryff.examples.gryffnet.Server)) (Val #(W64 ((i + 1 : Nat) : Int))))
   {{ RET #(); True }}
 

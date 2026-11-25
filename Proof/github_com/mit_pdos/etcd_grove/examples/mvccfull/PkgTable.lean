@@ -642,7 +642,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h120 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h1, h2, h8, h14, h7, h3, h27, h49, h53, h60, h107, h75, h119, True.intro⟩
+    exact ⟨h1, h2, h8, h14, h7, h3, h27, h49, h53, h60, h107, h75, h119, h0, h39, True.intro⟩
   exact h120
 
 end table
