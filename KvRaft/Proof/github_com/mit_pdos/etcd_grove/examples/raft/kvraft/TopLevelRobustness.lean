@@ -357,7 +357,7 @@ addresses split (`splitAddrs addrs`), at least as many as the machines
 * both pass: the store, the addresses' protocols, every replica's generations and the client. -/
 theorem kvraft_robust :
     kvraft_robust.spec := by
-  intro lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem cl dir replicas σc g
+  intro lctx sem package_sem log_sem cl dir replicas σc g
     hrep addrs hfresh hig hil
   have hm : replicas.length ≤ (splitAddrs addrs).length := by
     have h := splitAddrs_intercalate_length (replicas.map (·.1))
@@ -501,8 +501,8 @@ theorem kvraft_robust :
 its premise on the file systems passed through. -/
 theorem kvraft_robust_example_of (H : kvraft_robust.spec) :
     kvraft_robust_example.spec := by
-  intro lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅ σc g hfs
-  have h := @H lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem exampleConfig
+  intro lctx sem package_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅ σc g hfs
+  have h := @H lctx sem package_sem log_sem exampleConfig
     go!"/var/lib/kvraft"
     [(go!"10.0.0.1:7001", σ₁), (go!"10.0.0.2:7001", σ₂), (go!"10.0.0.3:7001", σ₃),
      (go!"10.0.0.4:7001", σ₄), (go!"10.0.0.5:7001", σ₅)] σc g
