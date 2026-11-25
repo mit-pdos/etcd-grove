@@ -66,7 +66,9 @@ theorem asModelled_etcdError :
         go.field_decl.FieldDecl go!"desc" go.string] := ⟨hu⟩
   refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 2, false, ?_⟩
   exact reflect.directIfaceN_struct_last (f := go.field_decl.FieldDecl go!"desc" go.string)
-    (u := go.string) (k := 24) 0 (by simp) (by simp) go.is_underlying (by simp [go.kindOf])
+    (u := go.string) (k := 24) 0 (by simp) (by simp)
+    (show underlying go.string = go.string from go.is_underlying)
+    (by simp [go.kindOf, List.find?, go.bool, go.int, go.int8, go.int16, go.int32, go.int64, go.uint, go.uint8, go.uint16, go.uint32, go.uint64, go.uintptr, go.float32, go.float64, go.complex64, go.complex128, go.string, «unsafe».Pointer])
     (by omega) (by omega) (by decide)
 
 /-- The model's reflection on a `context.deadlineExceededError` (an empty struct) is defined. -/
@@ -142,7 +144,7 @@ theorem kErrOk_intro (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) 
       k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)]
     -- the target `*corruptObjectDeletedError` is a pointer: no struct, channel or function kind
     exact ⟨hund, Or.inl rfl⟩
-  have hk := _root_.Perennial.errors.asTargetKind_pointer
+  have hk := _root_.Perennial.errors.asTargetKind_pointer (GF := GF) (hG := hG)
     k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
   wp_apply (wp_AsLeafTy e l v corrupt_asTarget hleaf hts hmod
     (fun h => by
@@ -418,7 +420,8 @@ theorem kErrOk_statusError (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG :=
           k8s_io.apimachinery.pkg.api.errors.StatusError.ty; simp)
     (by rw [go.is_underlying (t := go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty)]
         unfold k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty
-          k8s_io.apimachinery.pkg.api.errors.StatusError.ty; simp)) $$ Perr Hstr
+          k8s_io.apimachinery.pkg.api.errors.StatusError.ty; simp)
+    (_root_.Perennial.errors.asModelled_pointer _)) $$ Perr Hstr
   · iapply kErrOk_none_etcd
     go_type_set <;> simp
   · iapply kErrOk_none_grpc

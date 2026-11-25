@@ -68,7 +68,7 @@ theorem errors.errRepr_of_leaf {T : go.GoType} {e : GoInterface} (h : errors.asN
   · subst h; cases he
   · rw [h'] at he
     cases he
-    exact fun hI => _root_.Perennial.errors.asRepr_pointer T ii' (hp hI) hI
+    exact fun hI => _root_.Perennial.errors.asRepr_pointer T _ (hp hI) hI
 
 theorem errors.AsNoMatch.wp_proof : errors.AsNoMatch.spec (GF := GF) (hG := hG) := by
   intro err l T' _ _ T _ v hT hk hn

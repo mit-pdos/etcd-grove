@@ -506,3 +506,18 @@ Perennial `reflect-s05` @ **239c3b613** (pushed). Per-file state, each checked w
    6 differ (clientgo-cache, etcd-all-single-process, k8s-all-single-process, k8s, leaseexpiryN-single-process,
    server); all else ok except merge-status (VM sync dir not a git repo). Expected after: that sorry gone.
 4. Send the trimmed 6-item S0+S0.5 packet on #40 (draft in the Round-4 report; hashes to refresh after 1–3).
+
+### Round 4, after the limit reset (2026-11-25)
+- Step 1 DONE: b14 (`reflection/b14.log`) built the errors/reflectlite/reflectcore Links + umbrellas,
+  1,648 jobs, exit 0, no `sorry` warning. `AxCheckRefl05.lean`: `errors.wp_As`, `wp_AsType`, `wp_Is`,
+  `wp_initialize'`, reflectlite `wp_TypeOf`/`rtype.wp_{Elem,Kind}`/`wp_initialize'` all depend only on
+  `[propext, Classical.choice, Quot.sound]` (so no hidden sorry from the `intro` bug).
+- Step 2: `bin/pfull.sh … full3` running (log `reflection/pfull3.log`, chunks `pmods-full3.part.0*.log`).
+- Step 3: pin bumped to 239c3b6131c84989da87ba256716bb4ada42eaa7 (lakefile.toml + manifest rev/inputRev).
+  VM regen (`reflection/regen06.log`): no generated-file change (only __pycache__). Targeted build
+  `reflection/eg06.log` running; then gates.
+- New rule (#8 7146914944): each trusted item needs a minimal Go program + a named real program; the
+  packet draft carries them (real uses: k8s apimachinery `apierrors.reasonAndCodeForError`,
+  `SuggestsClientDelay` (errors.As → APIStatus); etcd rafthttp `pipelineHandler.ServeHTTP`,
+  `snapshotHandler.ServeHTTP` (errors.As → writerToResponse); etcd `txn.isNil` (ValueOf.IsNil);
+  k8s etcd3 `getTypeName` (TypeOf.String), `getNewItemFunc` (reflect.New)).

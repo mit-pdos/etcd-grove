@@ -256,7 +256,7 @@ theorem sentV_plain [_root_.Perennial.errors.Assumptions]
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
   unfold apierrors.apiErrAt
   ileft; ipureintro
-  refine Or.inr ⟨_, rfl, ?_, ?_, ?_, ?_⟩
+  refine Or.inr ⟨_, rfl, ?_, ⟨?_, ?_, ?_⟩, ⟨_, l, rfl, rfl⟩⟩
   · simp only
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]

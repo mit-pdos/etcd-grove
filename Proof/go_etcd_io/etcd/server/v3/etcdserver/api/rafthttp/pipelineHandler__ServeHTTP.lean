@@ -257,11 +257,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             wp_apply hAs xs writerErr_ptr (zero_val _) hAsT (ErrorStringLeaf.leaf _)
               ErrorStringNotWriter.notIn
               (_root_.Perennial.errors.asTargetKind_interface (T := rafthttp.writerToResponse.ty)
-                (by rw [go.is_underlying (t := rafthttp.writerToResponse.ty)]
-                    simp [rafthttp.writerToResponse.underlying, go.isInterfaceType])).1
+                (by rw [go.is_underlying (t := rafthttp.writerToResponse.ty)]; simp [rafthttp.writerToResponse.underlying, go.isInterfaceType])).1
               (_root_.Perennial.errors.asTargetKind_interface (T := rafthttp.writerToResponse.ty)
-                (by rw [go.is_underlying (t := rafthttp.writerToResponse.ty)]
-                    simp [rafthttp.writerToResponse.underlying, go.isInterfaceType])).2
+                (by rw [go.is_underlying (t := rafthttp.writerToResponse.ty)]; simp [rafthttp.writerToResponse.underlying, go.isInterfaceType])).2
               (fun h => by
                 exfalso; rw [go.is_underlying (t := rafthttp.writerToResponse.ty)] at h
                 simp [rafthttp.writerToResponse.underlying, go.isInterfaceType] at h) $$ [$writerErr] as writerErr
