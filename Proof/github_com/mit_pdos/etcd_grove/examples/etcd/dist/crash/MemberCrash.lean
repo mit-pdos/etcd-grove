@@ -1083,10 +1083,6 @@ theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) 
 
 end restartImage
 
-/- WIP (T7 session 6, handoff in `notes/etcd-dist-d6.md`): the proof below elaborates up to its last
-step but one (`lean-check`: one error, the snapshot directory's handle at the new generation: `srvImageM`
-at the old generation's `HeapGS` is not definitionally the new one's). Uncomment to continue.
-
 /-! ## The member's crash law (T7) -/
 
 section main
@@ -1216,8 +1212,8 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
       rw [bootSnap.snapDBName_length] at hl
       simp at hl
   have hlaw := snapCrash.snapDir_crash_law_holds (GF := GF) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ _ _ Q true V' (Dw ++ [i0]) R J
-    (config.snapDirOf cfg.DataDir') γd (srvImageM γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1))
-    (fun j => monoNatLbOwn γm (uint.nat j + 1)) hfs hfs' hV2 hJ hD
+    (config.snapDirOf cfg.DataDir') γd (srvImageM γ.authOn γ) (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ)
+    (fun j => monoNatLbOwn γm (uint.nat j + 1)) (fun j => monoNatLbOwn γm (uint.nat j + 1)) hfs hfs' hV2 hJ hD
   have hslot : ∀ i, snapCrash.snapSlot (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') J V' i =
       snapCrash.snapSlotF (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') J V' i :=
     fun i => backend.onFs_some (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) hfs' _
@@ -1227,7 +1223,14 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   simp only [hslot, hkept] at hlaw
   ihave #Hrm : iprop(□ ∀ j : w64, monoNatLbOwn γm (uint.nat j + 1) -∗ monoNatLbOwn γm (uint.nat j + 1)) $$ []
   · imodintro; iintro %j Hj; iexact Hj
-  imod hlaw $$ Hlc2 Hsnap Hcr Hrm Hkf [Hrest] Hown Hslots with ⟨%Dk, Hsnap', Hrest⟩
+  -- the image certificate at the new generation's ghost state (mvcc's `mvccImage_gen`, lifted)
+  ihave #Himgg : iprop(□ ∀ (j : w64) (Dt : backend.Data), srvImageM γ.authOn γ j Dt -∗
+      srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ j Dt) $$ []
+  · imodintro; iintro %j %Dt Hj
+    iapply (show srvImageM γ.authOn γ j Dt ⊢ srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ j Dt from
+      srvImageM_gen G ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γ.authOn γ j Dt)
+    iexact Hj
+  imod hlaw $$ Hlc2 Hsnap Hcr Hrm Himgg Hkf [Hrest] Hown Hslots with ⟨%Dk, Hsnap', Hrest⟩
   · isplitr
     · iexact Hsh
     · iexact Hrest
@@ -1272,14 +1275,13 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   isplitl [Hwf]; · iexact Hwf
   isplitl []
   · iapply (show snapDirInvH (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') γd
-        (srvImageM γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1)) ⊢
+        (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1)) ⊢
       snapDirInvH (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γd (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ.authOn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ)
         (fun j => monoNatLbOwn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γm (uint.nat j + 1)) from .rfl)
     iexact Hsh2
   iexact Hreg
 
 end main
--/
 
 end memberCrash
 end EtcdGrove
