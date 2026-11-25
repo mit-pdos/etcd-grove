@@ -834,6 +834,48 @@ theorem wp_addSegments (root : Loc) (P : List (List w8 × Loc × GoInterface)) (
       iframe
       ipureintro; exact hfin
 
+/-- `root.addPattern(pp, h)`: the owner registers the literal pattern `p` (not yet registered). -/
+theorem wp_tree_addPattern (root : Loc) (S : TreeSt) (p : List w8) (pp : Loc) (h : GoInterface)
+    (ms : w64) (hok : S.ok root) (hp : litPat p) (hnew : p ∉ S.pats.map Prod.fst) :
+    {{ globalAddr net.http.maxSlice ↦□ ms ∗ treeRep (GF := GF) (hG := hG) (DFrac.own 1) S ∗ patRep pp p }}
+      (App (App (Val (root @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"addPattern"))
+        (Val #pp)) (Val #h))
+    {{ RET #(); ∃ S' : TreeSt, treeRep (DFrac.own 1) S' ∗
+        ⌜S'.ok root ∧ S'.pats = (p, pp, h) :: S.pats⌝ }} := by
+  obtain ⟨d0, hd0, hl0⟩ := hok.1
+  have hokP := TreeSt.ok_okP root S hok
+  subst hl0
+  unfold treeRep
+  wp_start as ⟨#Hms, ⟨HN, #Hpats⟩, #Hpr⟩
+  iunfold patRep at Hpr
+  icases Hpr with ⟨%sl, %loc, Hpp, #Hsl⟩
+  iStructNamedPrefix Hpp "P"
+  wp_auto
+  wp_apply wp_addChild d0.l S [] d0 [] ms hokP hd0 $$ [$Hms $HN] as %c HN
+  icases HN with ⟨%N1, %d1, HN, %H1⟩
+  obtain ⟨hok1, hd1, hl1⟩ := H1
+  subst hl1
+  try wp_auto
+  wp_apply wp_addChild d0.l (TreeSt.mk N1 S.pats) [.lit []] d1 [] ms hok1 hd1 $$ [$Hms $HN] as %c HN
+  icases HN with ⟨%N2, %d2, HN, %H2⟩
+  obtain ⟨hok2, hd2, hl2⟩ := H2
+  subst hl2
+  try wp_auto
+  wp_apply wp_addSegments d0.l S.pats p pp h hp hnew ms (pathSegs p) N2 [.lit [], .lit []] d2 sl
+    rfl hok2 hd2 $$ [$Hms $HN $Hsl] as HN
+  icases HN with ⟨%N3, HN, %H3⟩
+  try wp_auto
+  iapply HΦ
+  iexists TreeSt.mk N3 ((p, pp, h) :: S.pats)
+  iframe
+  isplitl []
+  · simp only [BigSepL.bigSepL_cons]
+    iframe #
+    iunfold patRep
+    iexists sl, loc
+    iframe #
+  ipureintro; exact ⟨H3, rfl⟩
+
 end wp
 
 end net.http
