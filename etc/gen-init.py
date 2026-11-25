@@ -6106,7 +6106,7 @@ def dsv_kit_raw(k, base):
         # the axiom packages' `wp_initialize'`: `Net/`'s hand-written `Init.lean`
         for q in netax:
             raw = [(path, txt.replace(f'public import Perennial.Proof.{q}.Link\n',
-                                      f'public import Proof.{q}.Init\n')) for path, txt in raw]
+                                      f'public import Net.Proof.{q}.Init\n')) for path, txt in raw]
     finally:
         inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, here = saved
         EXT_RECORD, EXT_LOCAL_MOD = saved_ext

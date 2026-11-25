@@ -6,8 +6,8 @@ module
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client4
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
 public import Proof.encoding.json.Base
-public import Net.Proof.net.rpc.PkgInit
-public import Net.Proof.net.http.PkgInit
+public import Dsverify.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.os.signal.Init
 public import Perennial.Proof.math.rand.Link
 public import Dsverify.Proof.encoding.gob.Init
@@ -26,10 +26,9 @@ open Iris Iris.BI
 namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client4
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client4 :=

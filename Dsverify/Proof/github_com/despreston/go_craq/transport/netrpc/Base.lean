@@ -5,7 +5,7 @@ module
 
 public import Dsverify.GeneratedProof.github_com.despreston.go_craq.transport.netrpc
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.Base
-public import Net.Proof.net.rpc.PkgInit
+public import Dsverify.Proof.net.rpc.Init
 
 @[expose] public section
 
@@ -20,10 +20,9 @@ open Iris Iris.BI
 namespace github_com.despreston.go_craq.transport.netrpc
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : Assumptions]
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.despreston.go_craq.transport.netrpc :=
   define_is_pkg_init iprop(True)

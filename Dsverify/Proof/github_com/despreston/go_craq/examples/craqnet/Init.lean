@@ -12,8 +12,8 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
-public import Net.Proof.net.http.Init
-public import Net.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
+public import Dsverify.Proof.net.rpc.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
@@ -48,6 +48,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [_root_.Perennial.net.http.InitHyp GF]
+variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.despreston.go_craq.examples.craqnet.Assumptions]
 
 namespace github_com.despreston.go_craq.examples.craqnet
