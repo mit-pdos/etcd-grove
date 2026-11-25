@@ -4,7 +4,7 @@ checked: 2026-11-09
 links:
   - etcd-io/raft#300 pr closed: same root cause (HardState.Commit not persisted with the entries), different symptom (force-new-cluster drops a committed entry); closed, resolved on the etcd side
   - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
-blocks-proof: no
+blocks-proof: yes
 ---
 # raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index
 
@@ -73,13 +73,21 @@ stored with the second change already covers the first.)
 
 ## Proof
 
-no: not reached by the top-level results (no conf change is applied in the verified scope, and no
-restart from a torn write); the reconfiguration work assumes the entries and `HardState` of a
-`Ready` persist atomically (`notes/reconfiguration-safety.md`, A2).
+yes (2026-11-25): `etcd_safe` (D6) restarts members from crash images, and a torn first `Save` (the
+bootstrap conf changes kept above commit 0) is this bug's bootstrap instance (`notes/etcd-dist-d6.md`
+§10, Q1). The proof uses the fix on the goosed etcd fork (below): from etcd_safe P6 the verified WAL is
+the fixed one (a crash image is a prefix of the operations, no torn `Save`), and P5 removes the
+premise that stood for it (`readyCrashTorn.law`, `MemberGen.lean`). The reconfiguration work assumes
+the entries and `HardState` of a `Ready` persist atomically (`notes/reconfiguration-safety.md`, A2),
+which the fix makes true of etcd's WAL.
 
 ## Fix
 
-Not written. Either document that a `Ready`'s `HardState` and entries must be persisted atomically
+On the goosed etcd fork (`upamanyus/etcd` `2bd3048d7`, branch `goose-lean-fmt1c-tornsave`, the cherry-pick
+of `768ecf158`; `etc/goose.py`, project `etcd`): `WAL.Save` ends every `Save` that writes entries with
+a state record, `readAll` drops the entry records no record follows (an interrupted `Save` reads back
+as none), and `bootstrap` discards a WAL that holds nothing a `Save` wrote (`wal.Unsaved`,
+`wal.DiscardUnsaved`). Not proposed upstream yet. The alternatives considered: either document that a `Ready`'s `HardState` and entries must be persisted atomically
 (and make etcd's WAL recovery drop entry records not followed by the state record of their `Save`),
 or make raft's guard independent of the stored commit index (refuse to campaign while any conf
 change above the applied index is in the log, at the cost of a node holding an uncommitted conf

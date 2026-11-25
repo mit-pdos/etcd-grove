@@ -2,8 +2,8 @@
 
 ## START HERE
 
-- **For the coordinator (2026-11-25, session 6): `Unsaved` done; `DiscardUnsaved` stopped at a design
-  question (the order relaxation as approved is unsound).**
+- **For the coordinator (2026-11-25, session 6): `Unsaved` done; `DiscardUnsaved` deferred to P6b (the order
+  relaxation as approved is unsound); P6 ready for the full build.**
   * `Unsaved`: spec `Spec/go_etcd_io/etcd/server/v3/storage/wal/Unsaved.lean` (`ValidSnapshotEntries`' binders;
     `true` ⇒ `err = nil` and a WAL at `dir` whose history is blank, `walBlank`), proof
     `Proof/.../wal/Unsaved.lean` (the pin at the step after the logger check, every return puts it back at a
@@ -22,19 +22,14 @@
     `Create`'s parent fsync, where a crash may still drop it (`walCrash`), and `walSyncedLb dir n` (n > 0, a
     blank `Save` synced) would bound the new WAL's empty history. No relaxation of `absLe` alone can fix it: the
     transitivity `named(old) ≤ unnamed ≤ absent ≤ fresh-unnamed` is exactly what makes stale facts apply.
-  * **Proposed (untrusted, reaches no top-level statement; but large):** per-directory **incarnations** in the WAL
-    layer's ghost state. The past states become pairs `(s, I)`, `I : GMap GoString Nat`, ordered by `absLe` on
-    the directories whose incarnation is unchanged (`I ≤ I'`); the discard's rename (`named := false`) and its
-    delete each bump `I !! dir`; `Create` inserts at the current one. The program's view `walDirIs dir o` carries
-    the incarnation (exact: every discard goes through the program's update), and the facts take it
-    (`walNamed dir i`, `walSyncedLb dir i n`; `walLenLb` through its handle). Ripple: `AbsDisk/Specs.lean`'s
-    generic `absPastAt`/`absPastAuth` (or copies in `Ghost.lean`), every WAL spec that names these facts
-    (`Create`, `Save`, `Sync`, `ReadAll`, `Exist`, `Open*`), the crash law (`Crash.lean`), and the tester's specs
-    and invariants (`member__*`, `restartRead`, its `Crash.lean`/`Inv.lean`): several sessions. **Question:**
-    go ahead with incarnations, or another route (e.g. `DiscardUnsaved` proved at the server level only, or its
-    success post weaker than `walDirIs dir none`)? What does not depend on it: the tester's optional
-    strengthening (P6: Go `walImgs` without the torn images) and the interfaces. The server's P5 (`bootstrap`'s
-    discard branch, `MemberGen`) needs `DiscardUnsaved`'s spec, so it waits for the answer.
+  * **Decided (coordinator, 2026-11-25): incarnations, in a follow-up P6b, not this landing.**
+    `DiscardUnsaved` stays **unspecified** in P6 (its Go is translated; no spec, no proof, nothing links
+    it). `bootstrap` is names-only here; its contract (P5) is what needs `DiscardUnsaved`'s spec, so P5's
+    owner waits for P6b. Design and sizes: "P6b" below.
+  * **P6's landing is ready for the full build** (the coordinator routes it): `wal.Link` (kernel build),
+    no interface step (`interface/` and `etc/gen-interface.py`'s gate were removed on `lean`,
+    `761f147a76`), `issues/raft-commit-lost-with-entries-kept.md` now `blocks-proof: yes` (the fork fix,
+    `## Fix`), STATUS.md entry. The fork pin change needs Upamanyu's OK before landing (#50 P4 rule).
 
 - **For the coordinator (2026-11-25): no trusted commit made; the `DiscardUnsaved` hard stop was a wrong
   analysis.** The WAL over `fsExt` never executes an `AbsDiskStep`: its abstract state is ghost state of
@@ -63,6 +58,45 @@
   `Unsaved`/`DiscardUnsaved` (new Go functions, unsaved.go, no spec yet: spec first); E5.**
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
+
+## P6b (follow-up; not started)
+
+1. **Incarnations in the WAL layer's ghost state** (for `DiscardUnsaved`; untrusted, reaches no
+   top-level statement). The past states become pairs `(s, I)`, `I : GMap GoString Nat` the incarnation
+   of each WAL directory, ordered by `absLe` on the directories whose incarnation is unchanged and
+   `I ≤ I'`; `DiscardUnsaved`'s rename (`named := false`, the files under `wal.tmp`) and its parent fsync
+   (the WAL gone) each bump `I !! dir` under the lock token; `Create` inserts at the current incarnation.
+   The program's view (`walDirIs dir o`) carries its incarnation (exact: every discard goes through the
+   program's update), and the persistent facts take it: `walNamed dir i`, `walSyncedLb dir i n`,
+   `walPast`'s pairs (`walLenLb` through its handle, whose directory record gets the incarnation). The
+   crash law keeps incarnations (a crash bumps none: a discarded WAL is absent or unnamed, and an
+   unnamed one may come back only as the same incarnation's `wal.tmp`, which no reader reads).
+   Then `DiscardUnsaved`'s spec (`true` ⇒ `walDirIs dir none` at the next incarnation; `false` ⇒
+   unchanged) and proof (`Unsaved`'s, then `RemoveAll(wal.tmp)`, `Rename`, `syncDir`, as
+   `Create`'s `renameWAL`).
+   * Where: `GooseLang/Ext/AbsDisk/Specs.lean`'s generic `absPastAt`/`absPastAuth` are shared with the
+     trusted extension's client vocabulary, so the WAL layer gets copies in `Ghost.lean` (not an edit of
+     the generic ones, which would touch the extension). Then `Ghost.lean` (the order, `walGhost_*`),
+     `Inv.lean`, `Crash.lean`/`CrashPure.lean`, `NamedView.lean`, the `*Lb` producers (`TailSync*`,
+     `TailLenLb`, `CreateNamed*`, `ReadAll{Named,Synced,Commit}`, `Handle*`, `CloseHandle`), the specs
+     naming the facts (`Create`, `WAL__Save`, `WAL__Sync`, `WAL__sync`, `WAL__ReadAll`, `Exist`,
+     `Open*`, `WalViews`, `WalRecs`), and the tester (`member__save`/`__sync`/`__close`, `MemberRep`,
+     `MemberInv`, `SaveAu`, `SnapAu`, its `Crash.lean`/`Inv.lean`, `restartRead`).
+   * Size: the facts appear 330 times in 114 files (`walSyncedLb|walNamed|walLenLb|walPast|walDirIs|
+     walDiskAt|walAbsent`); most uses only thread the new argument. Estimate 1,000-2,000 changed lines,
+     of them 300-500 new (the ghost order and its laws, `DiscardUnsaved`'s spec and proof, 300-400);
+     2-4 sessions.
+2. **The tester without torn images** (P6 of the d6 plan; optional strengthening, deferred from P6: more
+   than a session). Go: `walImgs` (`examples/etcd/wal/ref.go:198`) drops its `k` loop (only
+   `h[:j]`, `n ≤ j ≤ len h`); retranslate (project `etcd-wal`); rerun the crash tests
+   (`kpl_test.go`, `kn_test.go`, `robust_test.go`). Lean: the crash relation the tester sees must say
+   prefix-only, so the WAL layer's `walStCrash` (`Ghost.lean`, today the trusted `absDisk_semantics.crash`
+   with `walImg`'s torn disjunct) is restated with `walImgS` (`WalNorm.lean`; E2's producer already gives
+   `d.H.take j`, `TailCrashW.lean`'s `tailImg_walImg` becomes its `walImgS` form), with its consumers
+   (`CrashPure.lean`'s `walCrash` uses, `Abs.lean:941`, `BootPure.lean`); the tester's `tImgs`
+   (`Defs.lean:201`), `tTornImgs`/`mem_tImgs`/`tImgs_complete` (`RefLemmas.lean`), `walImgs.lean`
+   (337 lines, mostly the torn loop: shrinks), `Check.lean`'s `tHistWf_of_mem_tImgs`, its `CrashPure.lean`.
+   Estimate 300-600 changed lines (net negative), 1-2 sessions with the Go crash tests.
 
 ## The design (decided in this session; the coordinator's E0-E5 plan)
 

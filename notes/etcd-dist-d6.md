@@ -464,5 +464,9 @@ real WAL) is the natural report if the lead wants one.
   **`DiscardUnsaved`: the approved order relaxation ("lower bounds read while present") is not enough**:
   `bootstrap` re-`Create`s the WAL in the same generation after the discard, so a persistent fact of the
   discarded WAL (`walNamed`, `walSyncedLb`) would read as a fact of the new one (`walGhost_raiseNamed` would
-  name a WAL that a crash may still drop). The facts need the WAL's incarnation; design and the question in
-  `notes/wal-p6-handoff.md` START HERE.
+  name a WAL that a crash may still drop). The facts need the WAL's incarnation.
+- 2026-11-25 (coordinator's decision): incarnations go in a follow-up **P6b** (`notes/wal-p6-handoff.md`,
+  "P6b"), with the tester's torn-free `walImgs` (d6 plan's P6). **`DiscardUnsaved` stays unspecified in P6's
+  landing**: P5's owner (`bootstrap`'s discard branch) needs its spec from P6b. P6 otherwise done:
+  `issues/raft-commit-lost-with-entries-kept.md` `blocks-proof: yes` (the fork fix in `## Fix`); no interface
+  step (removed on `lean`); ready for the full build, `tcb --check` and the gates.

@@ -33,6 +33,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3/leasing: a key read just before the leasing session expires keeps serving its old value after other clients write it](leasing-stale-entry-after-reset.md) | yes | etcd-io/etcd#19091 issue closed; etcd-io/etcd#19092 pr closed; etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a range delete goes through while another client still caches a key in the range](leasing-wait-rescind-no-delete.md) | yes | etcd-io/etcd#20704 issue closed |
 | [raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index](raft-advance-before-applyconfchange.md) | yes | etcd-io/etcd#4203 issue closed; etcd-io/raft#80 issue open; etcd-io/raft#234 issue closed; etcd-io/raft#456 issue open; etcd-io/etcd#12136 issue closed; etcd-io/raft#469 pr open |
+| [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | yes | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: a snapshot received while a conf change is being applied leaves a follower with the wrong configuration, or panics](raft-snapshot-during-apply-stale-confchange.md) | yes |  |
 | [raft: after a delayed stale-term message, a new leader sends a snapshot to a follower that is already caught up](raft-stale-term-appresp-index-zero-ack.md) | yes | etcd-io/raft#52 pr merged; etcd-io/raft#148 issue closed; etcd-io/raft#149 pr merged |
 | [raft: TLA+ trace validation rejects a new member that applies the bootstrap entries one at a time](raft-tla-bootstrap-entries-full-config.md) | yes |  |
@@ -81,7 +82,6 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [klog: Infof, Warningf and Errorf panic on an empty message when a logger is set](klog-printf-empty-with-logger.md) | no | kubernetes/klog#272 pr merged |
 | [clientv3/leasing: a `WithFromKey` delete does not make other leasing clients drop the keys they cache](leasing-delete-fromkey-skips-revoke.md) | no | etcd-io/etcd#22083 issue open; etcd-io/etcd#22118 pr open; etcd-io/etcd#20704 issue closed |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
-| [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | no | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
 | [The noax Raft fork rejects a configuration change carrying an optional protobuf field](raft-noax-confchange-wire-compat.md) | no |  |
 | [A healthy shared Raft witness cannot help a joint configuration commit](raft-witness-joint-progress.md) | no |  |
