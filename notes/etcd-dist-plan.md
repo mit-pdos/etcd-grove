@@ -1292,7 +1292,7 @@ module (linking where it uses `wp_*`):
    `idIssueExt` would not.
    Done so far (`dist/kvremote/Start.lean`, defs): `kv_start` (the kv part: `mapCtx_alloc`, `pend_alloc`,
    `addrs_set_proto`) and `kv_start_deployment` (one kv workload; the members' part a hypothesis
-   `MemberBootN5`, N5's statement as the start needs it). Not done: step 6's use (the boot WPs, the shares
+   `member_boot_dist`, which N5 proves). Not done: step 6's use (the boot WPs, the shares
    through N7-kv's `orchShare`/`nodeShare`).
 6. **The theorem** (`dist/kvremote/TopLevelRobustness.lean`, linking): `etcd_safe_nocrash_of_boot`'s
    shape with `EtcdBootNC` discharged by putgetK's k-member boot (`member_bootK`; `dist-putgetk`) for the
