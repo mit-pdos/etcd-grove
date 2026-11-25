@@ -137,6 +137,54 @@ theorem rdLoopP_rec {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0 : Li
     simp only [List.length_append, List.length_singleton] at this ⊢
     rwa [Nat.add_assoc] at this
 
+/-- **The flush of `pending`, one entry** (the old entry arm on `pend[i]`): the folds over the handled
+records and the first `i` pending ones extend by the `i`-th. -/
+theorem rdLoopP_flushStep {U : WalUnmarshal} {s : w64 × w64} {accA accP : List WalRec}
+    {pend : List EntryM} {i : Nat} {st : RAState} {ix : w64 × w64}
+    (hT : ∀ r ∈ accP, r.typ = entryType) (hD : accP.map (fun r => U.decEntry r.data) = pend.map some)
+    (hf : ((accA ++ accP.take i).map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st)
+    (hx : (accA ++ accP.take i).foldl (raIdx U s) (W64 0, W64 0) = ix)
+    {e : EntryM} (he : pend[i]? = some e) {ents' : List EntryM}
+    (hre : readEnt (uint.nat s.1) st.ents e = some ents') :
+    ((accA ++ accP.take (i + 1)).map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit =
+        .ok { st with ents := ents' } ∧
+      (accA ++ accP.take (i + 1)).foldl (raIdx U s) (W64 0, W64 0) = (e.Index', ix.2) := by
+  have hlen : accP.length = pend.length := by
+    have := congrArg List.length hD; simpa using this
+  have hi : i < accP.length := by
+    rw [hlen]; exact (List.getElem?_eq_some_iff.1 he).1
+  obtain ⟨r, hr⟩ : ∃ r, accP[i]? = some r := ⟨_, List.getElem?_eq_getElem hi⟩
+  have hrT : r.typ = entryType := hT r (List.mem_of_getElem? hr)
+  have hrD : U.decEntry r.data = some e := by
+    have h1 := congrArg (fun l => l[i]?) hD
+    simp only [List.getElem?_map, hr, he, Option.map_some] at h1
+    exact Option.some.inj h1
+  have htk : accP.take (i + 1) = accP.take i ++ [r] := by
+    rw [List.take_succ, hr]; rfl
+  rw [htk, ← List.append_assoc]
+  constructor
+  · rw [List.map_append, List.foldlM_append, hf]
+    simp only [List.map_cons, List.map_nil, List.foldlM_cons, List.foldlM_nil, bind, Except.bind,
+      raStep, hrT, if_pos, hrD, hre]
+    rfl
+  · rw [List.foldl_append, hx]
+    simp [raIdx, hrT, hrD]
+
+/-- The flush done: the folds over the handled and all pending records. -/
+theorem rdLoopP_flushStart {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0 : List (List w8)}
+    {accA accP : List WalRec} {pend : List EntryM} {fs : List (List w8)} {off : Nat}
+    {c : w32} {st : RAState} {ix : w64 × w64} {pOff : Nat} {pC : w32}
+    (hL : RdLoopP C U s fs0 accA accP pend fs off c st ix pOff pC) :
+    ((accA ++ accP.take 0).map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st ∧
+      (accA ++ accP.take 0).foldl (raIdx U s) (W64 0, W64 0) = ix := by
+  simp only [List.take_zero, List.append_nil]; exact ⟨hL.fold, hL.idx⟩
+
+theorem rdLoopP_pend_len {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0 : List (List w8)}
+    {accA accP : List WalRec} {pend : List EntryM} {fs : List (List w8)} {off : Nat}
+    {c : w32} {st : RAState} {ix : w64 × w64} {pOff : Nat} {pC : w32}
+    (hL : RdLoopP C U s fs0 accA accP pend fs off c st ix pOff pC) : accP.length = pend.length := by
+  have := congrArg List.length hL.pendD; simpa using this
+
 /-- **A stop**: the reader read exactly the records handled, and stopped with `s'`. -/
 theorem rdLoopP_stop {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {fs0 : List (List w8)}
     {accA accP : List WalRec} {pend : List EntryM} {fs fs' : List (List w8)} {off off' : Nat}

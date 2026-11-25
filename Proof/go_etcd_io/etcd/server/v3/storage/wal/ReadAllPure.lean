@@ -139,6 +139,58 @@ theorem readAll_success {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnm
     exact normFrom_idem _ _
   · exact hok
 
+/-! ## The read of a history as written -/
+
+theorem walSaveSnap_hs (σ : StorContents) (m : SnapshotMetadataM) : (walSaveSnap σ m).hs = σ.hs := by
+  unfold walSaveSnap; split <;> rfl
+
+/-- The fold over a history as written from the running state is the fold over the history. -/
+theorem walFoldChkFrom_normFrom (c : Nat) :
+    ∀ (D : WalHist) (σ : StorContents),
+      walFoldChkFrom σ ((normFrom σ.hs D).filter (walKeep c)) = walFoldChkFrom σ (D.filter (walKeep c))
+  | [], σ => rfl
+  | .snap m al :: D, σ => by
+    simp only [normFrom, normOp, opHS]
+    by_cases hk : walKeep c (.snap m al) = true
+    · rw [List.filter_cons_of_pos hk, List.filter_cons_of_pos hk]
+      simp only [walFoldChkFrom]
+      have := walFoldChkFrom_normFrom c D (walSaveSnap σ m)
+      rwa [walSaveSnap_hs] at this
+    · rw [List.filter_cons_of_neg hk, List.filter_cons_of_neg hk]
+      exact walFoldChkFrom_normFrom c D σ
+  | .save h es :: D, σ => by
+    have hk : ∀ h', walKeep c (.save h' es) = true := fun _ => rfl
+    simp only [normFrom, opHS]
+    have hn : ∃ h', normOp σ.hs (.save h es) = .save h' es ∧ phsNext σ.hs h' = phsNext σ.hs h := by
+      by_cases hc : es ≠ [] ∧ hsEmptyP h
+      · refine ⟨σ.hs, by simp [normOp, hc], ?_⟩
+        rw [phsNext_self', phsNext_of_hsEmptyP hc.2]
+      · exact ⟨h, by simp [normOp, hc], rfl⟩
+    obtain ⟨h', hn, hp⟩ := hn
+    rw [hn, List.filter_cons_of_pos (hk h'), List.filter_cons_of_pos (hk h)]
+    simp only [walFoldChkFrom, hp]
+    cases es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents with
+    | none => rfl
+    | some ents =>
+      have := walFoldChkFrom_normFrom c D { σ with hs := phsNext σ.hs h, ents := ents }
+      exact congrArg (fun x => (some ents : Option (List EntryM)) >>= fun _ => x) this
+
+theorem walReadAt_normH (I : WalHist) (k : Nat) (s : w64 × w64) :
+    walReadAt (normH I) k s = walReadAt I k s := by
+  unfold walReadAt
+  rw [normH_take, walLastHS_normH, walLastHS_normH, normH_drop]
+  exact walFoldChkFrom_normFrom _ (I.drop k) _
+
+/-- **`ReadAll`'s result over the history as written is over the history.** -/
+theorem walReadAllOk_normH (I : WalHist) (cut : Nat) (s : w64 × w64) (σ : StorContents) :
+    walReadAllOk (normH I) cut s σ ↔ walReadAllOk I cut s σ := by
+  unfold walReadAllOk
+  simp only [walOpenPos_normH, walValidSnaps_normH, walReadAt_normH]
+
+theorem walReadAllOk_histN (H : List (WalOpG WalEnt)) (cut : Nat) (s : w64 × w64) (σ : StorContents) :
+    walReadAllOk (histN H) cut s σ ↔ walReadAllOk (H.map WalOpG.toM) cut s σ :=
+  walReadAllOk_normH _ cut s σ
+
 end pure
 
 end WalFs
