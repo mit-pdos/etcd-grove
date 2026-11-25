@@ -1596,6 +1596,16 @@ errors, both in this line's crash-branch file `NewServerRAt.lean`, which P8 neve
   (`notes/wal-p8-handoff.md`): nothing on the restart path needs the mark. The other way is to raise the mark
   at boot.
 
+**P8 on the pin (2026-11-25), branch `etcd-safe-p8-pin` off `etcd-safe-main-pin-p8/2026-11-24`.** Both errors are
+fixed by the consumer change: `srvFilesC` moves from `SrvCrash` to `InvRestart`, and `srvDiskImageAt`,
+`bootstrapRestartContract` and `bootstrapAtR` take it. The graceful stop (`StopShutdown`) weakens its
+`walFiles` through `walFiles_walFilesC`; `NewServerR` uses `srvFilesC_dataDir_len`; `bootstrapAtR_of_crash`
+and `srvCrashImageAt_disk` hold unchanged. `bootstrapRestartContract` is an unproved premise (of
+`etcdstart.bootPremiseR`, reaching the restart examples' linked results, no closed theorem since D2): its pre is
+now weaker, so the premise is stronger, still true of Go (no restart step reads the WAL's synced mark). It
+builds on fk-lean2 (`NewServerR`, `NewServerRAt`, `NewServerCrash` (its labeled `sorry` unchanged),
+`StopShutdown`, `etcdstart.Restart`, `BuiltRestart`, the P8 modules), with no new axiom or `sorry`.
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
