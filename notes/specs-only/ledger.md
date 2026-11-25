@@ -7087,8 +7087,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   batch lock (`LockInsideApply` moves the stored index); a commit in between (the backend's timer) runs
   `OnPreCommitUnsafe`, which writes the dirty `confState` with the old index. A crash then leaves `D` with the stored
   index `k - 1` and the configuration of entry `k`. True only at quiescent points (the graceful stop).
-- **Evidence.** Code reading, `server/etcdserver/server.go:2036-2085` at the fork pin; no Go test yet. Not a Go bug (the
-  restart reapplies entry `k`).
+- **Evidence.** Code reading, `server/etcdserver/server.go:2036-2085` at the fork pin, and a Go test reaching the image
+  (`nonissues/etcd-confstate-ahead-of-consistent-index.md`, `TestConfChangeCommitBetweenSetConfStateAndLockInsideApply`:
+  index 1, `ConfState` voters `[1 2]`, members `[1]`). Not a Go bug: the restart reapplies entry `k` without error.
 - **Proposed change.** The row `confRowW γ.cl i D m`: the configuration at `i` or at `i + 1`
   (`dist/crash/BackendImage.lean`), with T10's other restatements of `srvCrashImageAt` (B2 `snapRowB2`, B3 dropped):
   `notes/etcd-dist-d6.md`, "T10 design".
