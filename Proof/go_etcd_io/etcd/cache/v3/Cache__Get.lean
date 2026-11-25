@@ -46,7 +46,7 @@ theorem Cache.Get.wp_proof
     (wp_store_Get : store.Get.spec (GF := GF) (hG := hG)) :
     Cache.Get.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap r0 ctx s key sl gs
-  wp_start as ⟨#Hc, #Hctx, #HoC, #Hopts, %Hnp, Hrd, #Hlb⟩
+  wp_start as ⟨Hlt, #Hc, #Hctx, #HoC, #Hopts, %Hnp, Hrd, #Hlb⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Hc' := Hc
@@ -84,6 +84,7 @@ theorem Cache.Get.wp_proof
         | ok e => exact ⟨e, rfl⟩
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe Hrd
       unfold cacheGetResult cacheGetErr
       ileft
@@ -111,6 +112,7 @@ theorem Cache.Get.wp_proof
         subst Heq
         wp_auto
         iapply HΦ
+        iframe Hlt
         iframe Hrd
         unfold cacheGetResult cacheGetErr
         ileft
@@ -133,7 +135,7 @@ theorem Cache.Get.wp_proof
         -- linearizable: catch up with etcd's current revision first
         simp only [Bool.not_false]
         wp_auto
-        wp_apply wp_serverRevision c cf γr γd cap ctx s $$ [$Hc $Hctx $HoC] as %srev %serr Hsr
+        wp_apply wp_serverRevision c cf γr γd cap ctx s $$ [$Hlt $Hc $Hctx $HoC] as %srev %serr ⟨Hlt, Hsr⟩
         icases Hsr with (⟨%Hsn, #Hm'⟩ | %Hsne)
         rotate_left
         · -- the client's error
@@ -144,6 +146,7 @@ theorem Cache.Get.wp_proof
             | ok e => exact ⟨e, rfl⟩
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -156,6 +159,7 @@ theorem Cache.Get.wp_proof
         wp_if_destruct
         · -- a future revision: `rpctypes.ErrFutureRev`
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -205,6 +209,7 @@ theorem Cache.Get.wp_proof
           subst Heq
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -220,6 +225,7 @@ theorem Cache.Get.wp_proof
             | ok e => exact ⟨e, rfl⟩
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -269,6 +275,7 @@ theorem Cache.Get.wp_proof
             word
           subst Hlrev
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetOk
           iright
@@ -310,6 +317,7 @@ theorem Cache.Get.wp_proof
           obtain ⟨-, -⟩ := Hres
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -332,6 +340,7 @@ theorem Cache.Get.wp_proof
           obtain ⟨-, -⟩ := Hres
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -353,6 +362,7 @@ theorem Cache.Get.wp_proof
           obtain ⟨-, -⟩ := Hres
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -375,6 +385,7 @@ theorem Cache.Get.wp_proof
           obtain ⟨-, -⟩ := Hres
           wp_auto
           iapply HΦ
+          iframe Hlt
           iframe Hrd
           unfold cacheGetResult cacheGetErr
           ileft
@@ -395,6 +406,7 @@ theorem Cache.Get.wp_proof
       subst He
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe Hrd
       unfold cacheGetResult cacheGetErr
       ileft

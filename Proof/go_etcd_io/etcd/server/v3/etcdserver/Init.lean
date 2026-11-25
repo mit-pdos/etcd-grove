@@ -70,6 +70,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
@@ -91,6 +92,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.golang_org.x.crypto.bcrypt.Init
 public import Proof.net.http.Init
+public import Proof.os.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes

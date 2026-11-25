@@ -14,7 +14,9 @@ import (
 // TLC would accept it (TLCOK: matched, the search never branched, no invariant violated, no
 // evaluation error).
 func Main() {
-	c, err := RunConcurrent(DefaultCConfig())
+	cfg := DefaultCConfig()
+	cfg.Nodes = 1 + below(5) // the bootstrap voters, ids 1..Nodes: the theorem covers each size
+	c, err := RunConcurrent(cfg)
 	if err != nil {
 		panic("tracecheck: the cluster did not start")
 	}

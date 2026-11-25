@@ -37,16 +37,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 abbrev newUserClient.spec : Prop :=
   ∀ (addr name pw : GoString) (lg : Loc) (V : WEnv GF) (P : GoString → IProp GF),
   plainEndpoint addr → threadBound GF ≤ 2 ^ 30 → strsSizeOk [name, pw] →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
-      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗ levelTok 0 ∗ (-- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
-      client.ctxErrClientAll ∗ authTokReg [addr] name pw P }}
+      client.ctxErrClientAll ∗ authTokReg [addr] name pw P) }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.newUserClient))
       (Val #addr)) (Val #name)) (Val #pw)) (Val #lg))
-  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
+  {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗
         clientTokAt cl [addr] P) ∨
-      ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec
 

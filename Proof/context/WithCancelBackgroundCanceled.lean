@@ -28,9 +28,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
-/-- See the file header. Interim, retired by the Perennial pin bump past the change of
+/-- See the file header. Interim, retired by mit-pdos/perennial#705 (the Perennial pin bump past it;
 `notes/perennial-changes.md`, "`context.WithCancel`'s `cancel` does not say `Err()` returns
-`Canceled`". -/
+`Canceled`"). -/
 axiom context.WithCancelBackground.wp_proof_canceled :
   context.WithCancelBackground.spec_canceled (GF := GF) (hG := hG)
 

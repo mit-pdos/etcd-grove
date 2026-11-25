@@ -92,7 +92,7 @@ theorem bootstrap.wp_proof
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
     (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     bootstrap.spec (GF := GF) (hG := hG) := by
-  intro _ _ cfg U γ N HU Hvs Hlog Hmem
+  intro _ _ cfg U γ N Hnf Hidr Hune HU Hfips HiOk Hvs Hlog Hmem
   wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres⟩
   obtain ⟨Hcok, Hfresh, Hwb, Hdb⟩ := Hpure
   wp_auto
@@ -188,7 +188,7 @@ theorem bootstrap.wp_proof
   -- `rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.PeerDialTimeout())`
   wp_apply (hPDT cfg_ptr cfg.ElectionTicks' cfg.TickMs') as %dt -
   · iframe #
-  wp_apply (hNRT bootstrap.anyNet) as %prt %perr Hprt
+  wp_apply (hNRT bootstrap.anyNet _ _ Hcok.2.2.2.2.2.1) as %prt %perr Hprt
   icases Hprt with (%Hne | ⟨%Heq, #Hrt, %Htr⟩)
   · obtain ⟨pi, rfl⟩ : ∃ pi, perr = GoInterface.ok pi := by
       cases perr with
@@ -218,7 +218,7 @@ theorem bootstrap.wp_proof
   -- `bootstrapCluster(cfg, nil, prt)`
   wp_apply hInfo
   · iexact Hzlg
-  wp_apply (hClus cfg U bootstrap.anyNet prt Hfresh HU) as %c %cerr Hc
+  wp_apply (hClus cfg U bootstrap.anyNet prt Hfresh HU Hfips HiOk) as %c %cerr Hc
   · iframe #
   icases Hc with (%Hne | ⟨%Heq, %bc, Hc, %Hbc, Hcb⟩)
   · obtain ⟨ci, rfl⟩ : ∃ ci, cerr = GoInterface.ok ci := by
@@ -244,7 +244,7 @@ theorem bootstrap.wp_proof
   iunfold clusterBuilt at Hcb
   icases Hcb with ⟨%ms, %lgc, %rp, %dp, Hclg, #Hlgok, Hlid, Hcid, Hcbe, Hmu, Hver, Hmem0, Hrm,
     Hrmm, Hdg, Hdgv, Hml, Hvc⟩
-  wp_apply (hStor cfg bkl c bc (DFrac.own 1) (DFrac.own 1) (bootGo.cid U cfg.InitialClusterToken'))
+  wp_apply (hStor cfg bkl c bc (DFrac.own 1) (DFrac.own 1) (bootGo.cid U cfg.InitialClusterToken') Hnf)
     $$ [Hwp Hc Hcid] as %sl ⟨%sto, %bw, Hs, Hbw, %Hsto, Hwal, Hc, Hcid⟩
   · iframe Hwp Hc Hcid; iframe #
   -- `cluster.Finalize(cfg, s)`
@@ -254,7 +254,7 @@ theorem bootstrap.wp_proof
   · rw [hstob]; iexact Hbk
   wp_apply (hFin cfg U c sl bc sto bk bw d (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) N D (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-      (DFrac.own 1) Hbc.2.2 Hbc.1 hhw Hbe.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.2.1
+      (DFrac.own 1) Hbc.2.2 HiOk Hbc.1 hhw Hbe.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.1 Hbe.2.2.2.2.2.2.2.2.2.2.2.2.1
       Hbe.2.2.2.2.2.2.2.2.2.2.2.2.2)
     $$ [Hc Hs Hbk Hbw Hnew Hwbt Hclg Hlid Hcid Hcbe Hmu Hver Hmem0 Hrm Hrmm Hdg Hdgv Hml Hvc]
     as %ferr ⟨Hc, Hs, Hbk, Hbw, Hnew, Hfin⟩
@@ -286,7 +286,7 @@ theorem bootstrap.wp_proof
   · iexact Hzlg
   iunfold bootClusterDone at Hdone
   iNamed Hdone
-  wp_apply (hRaft cfg U c sto.wal' bc bw (DFrac.own 1) (DFrac.own 1) Hfresh.1 Hcok Hbc.2.2 hhw hst
+  wp_apply (hRaft cfg U c sto.wal' bc bw (DFrac.own 1) (DFrac.own 1) Hfresh.1 Hcok Hbc.2.2 Hidr Hune hhw hst
       hents hsnap) $$ [Hc Hbw Hrauth Hmem] as %rl ⟨%bv, Hr, Hraft, Hc, Hbw, Hmem⟩
   · iframe Hc Hbw Hrauth Hmem; iframe #
   -- the record, and `bootOk` from its parts

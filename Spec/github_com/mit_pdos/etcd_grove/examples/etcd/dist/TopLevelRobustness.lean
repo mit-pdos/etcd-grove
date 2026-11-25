@@ -95,10 +95,10 @@ def etcd_robust.spec : Prop :=
     -- bootstrap's results; the premises not yet discharged
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
     (Henv : EtcdEnv d) (Htb : TrustBoundary d ps ctxs boot)
-    -- `ETCD_VERIFY` off and (non-loopback addresses) no proxy variables, on every machine, until the
-    -- programs clear them themselves with a spec (`clearProxyEnv`, review F8, Q10)
-    (HEnv : (∀ m ∈ d.members, verifyEnvOff (serverProg d m)) ∧
-      ∀ w ∈ d.workloads, verifyEnvOff (clientProg w (d.members.map Member.client)))
+    -- `ETCD_VERIFY` off (the deployment's value of the variable enables no check; 2026-11-25, was
+    -- `verifyEnvOff` of each machine's program); (non-loopback addresses) no proxy variables, until
+    -- the programs clear them themselves with a spec (`clearProxyEnv`, review F8, Q10)
+    (HEnv : EtcdVerifyOff)
     -- the machines' start states
     (σs σc : List state) (g : GlobalState)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)

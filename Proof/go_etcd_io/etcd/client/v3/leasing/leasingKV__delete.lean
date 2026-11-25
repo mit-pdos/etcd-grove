@@ -47,7 +47,7 @@ theorem leasingKV.delete.wp_proof
     (hLD : leaseCache.Delete.spec (GF := GF) (hG := hG)) :
     leasingKV.delete.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo
-  wp_start as ⟨#Hlkv, Hrd, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Hpre⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Hpre⟩
   obtain ⟨Hot, Hsh⟩ := Hpre
   have Htop : txnOpOf o = some (.delete o) := by simp [txnOpOf, Hot]
   ihave #Hlkv' := Hlkv
@@ -72,6 +72,7 @@ theorem leasingKV.delete.wp_proof
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe
     ileft; ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
@@ -79,11 +80,12 @@ theorem leasingKV.delete.wp_proof
   wp_apply hRange $$ [$Hcv $op $HopAt] as %esl ⟨op, #He⟩
   (try wp_auto)
   wp_if_destruct
-  · wp_apply (hDR lkv γ pfx ctx cs opv o lo) $$ [$Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hop $Hlo]
-      as %dr0 %err0 ⟨Hrd, Hres⟩
+  · wp_apply (hDR lkv γ pfx ctx cs opv o lo) $$ [$Hlt $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hop $Hlo]
+      as %dr0 %err0 ⟨Hlt, Hrd, Hres⟩
     · ipureintro; exact Hsh
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe
   wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
   wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
@@ -105,13 +107,14 @@ theorem leasingKV.delete.wp_proof
     ihave #HErrD := HErr $$ %Broadcast.Done
     wp_apply HErrD $$ [$HCC] as %cerr2 %Hcerr2 -
     iapply HΦ
+    iframe Hlt
     iframe
     ileft; ipureintro; exact ⟨Hcerr2, rfl⟩
   | nil =>
   (try wp_auto)
   simp only [goose_wp_simp_extra, ↓reduceIte]
   (try wp_auto)
-  wp_apply (hTry lkv γ pfx ctx cs opv o (.delete o) lo) $$ [$Hlkv $Hctx $HctxC $Hop $Hlo] as %resp1 %wc %err1 Htry
+  wp_apply (hTry lkv γ pfx ctx cs opv o (.delete o) lo) $$ [$Hlt $Hlkv $Hctx $HctxC $Hop $Hlo] as %resp1 %wc %err1 ⟨Hlt, Htry⟩
   · ipureintro; exact ⟨Htop, Or.inr Hot, Hsh⟩
   (try wp_auto)
   wp_join iprop(∃ (resp : Loc) (err : GoInterface), "resp" ∷ resp_ptr ↦ resp ∗ "err" ∷ err_ptr ↦ err ∗
@@ -119,16 +122,16 @@ theorem leasingKV.delete.wp_proof
       "lkv" ∷ lkv_ptr ↦ lkv ∗ "key" ∷ key_ptr ↦ o.key ∗ "wcp" ∷ wc_ptr ↦ wc ∗
       "Hres" ∷ (⌜err ≠ GoInterface.nil⌝ ∨
         (⌜err = GoInterface.nil⌝ ∗ (opCommitted lo (.delete o) resp ∨ notCommitted resp))) ∗
-      "Hwc" ∷ (⌜wc = null⌝ ∨ waitcClose wc))
-    at next with [resp err Hrd Htry ctx op lkv key wc]
-    as ⟨%resp, %err, resp, err, Hrd, ctx, op, lkv, key, wcp, Hres, Hwc⟩
+      "Hwc" ∷ (⌜wc = null⌝ ∨ waitcClose wc) ∗ "Hlt" ∷ levelTok 0)
+    at next with [resp err Hrd Htry ctx op lkv key wc Hlt]
+    as ⟨%resp, %err, resp, err, Hrd, ctx, op, lkv, key, wcp, Hres, Hwc, Hlt⟩
   · icases Htry with (⟨%Hr1, %Hw1⟩ | ⟨%He1, Hc1, Hw1⟩)
     · subst Hw1
       cases err1 with
       | ok e =>
         (try wp_auto)
-        wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
-          as %resp2 %err2 ⟨Hrd, Hr2⟩
+        wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlt $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
+          as %resp2 %err2 ⟨Hlt, Hrd, Hr2⟩
         · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
         (try wp_auto)
         wp_join_done
@@ -137,8 +140,8 @@ theorem leasingKV.delete.wp_proof
         ileft; ipureintro; rfl
       | nil =>
         (try wp_auto)
-        wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
-          as %resp2 %err2 ⟨Hrd, Hr2⟩
+        wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlt $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
+          as %resp2 %err2 ⟨Hlt, Hrd, Hr2⟩
         · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
         (try wp_auto)
         wp_join_done
@@ -149,8 +152,8 @@ theorem leasingKV.delete.wp_proof
       icases Hw1 with (%Hw1 | Hw1)
       · subst Hw1
         (try wp_auto)
-        wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
-          as %resp2 %err2 ⟨Hrd, Hr2⟩
+        wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlt $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
+          as %resp2 %err2 ⟨Hlt, Hrd, Hr2⟩
         · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
         (try wp_auto)
         wp_join_done
@@ -160,8 +163,8 @@ theorem leasingKV.delete.wp_proof
       · (try wp_auto)
         wp_if_destruct
         · (try wp_auto)
-          wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
-            as %resp2 %err2 ⟨Hrd, Hr2⟩
+          wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o (.delete o) lo) $$ [$Hlt $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
+            as %resp2 %err2 ⟨Hlt, Hrd, Hr2⟩
           · ipureintro; exact ⟨Htop, Hsh.1, Hsh⟩
           (try wp_auto)
           wp_join_done
@@ -187,6 +190,7 @@ theorem leasingKV.delete.wp_proof
     (try wp_auto)
     wp_for_post
     iapply HΦ
+    iframe Hlt
     iframe
     ileft; ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
@@ -227,6 +231,7 @@ theorem leasingKV.delete.wp_proof
     (try wp_auto)
     wp_for_post
     iapply HΦ
+    iframe Hlt
     iframe
     iright
     isplitr

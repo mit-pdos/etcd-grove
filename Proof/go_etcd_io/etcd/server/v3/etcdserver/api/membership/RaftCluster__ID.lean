@@ -33,6 +33,14 @@ theorem membership.RaftCluster.ID.wp_proof :
   iapply HΦ
   itrivial
 
+theorem membership.RaftCluster.ID.wp_proofO :
+    membership.RaftCluster.ID.specO (GF := GF) (hG := hG) := by
+  intro c dq cid
+  wp_start as Hcid
+  wp_auto
+  iapply HΦ
+  iframe
+
 end proof
 
 end EtcdGrove

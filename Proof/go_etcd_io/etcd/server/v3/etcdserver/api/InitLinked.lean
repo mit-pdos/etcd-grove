@@ -35,6 +35,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions]
 variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
+variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
 

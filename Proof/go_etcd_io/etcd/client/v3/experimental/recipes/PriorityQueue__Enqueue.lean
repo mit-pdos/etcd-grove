@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (hG := hG)) :
     PriorityQueue.Enqueue.spec (GF := GF) (hG := hG) := by
   intro q client key val pr lo
-  wp_start as ⟨#Hq, #Hlo, %Hv⟩
+  wp_start as ⟨Hlt, #Hq, #Hlo, %Hv⟩
   iunfold isPriorityQueue at Hq
   icases Hq with ⟨#Hqc, -, #Hqk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
@@ -54,7 +54,7 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
     simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_of_nonneg 5 (show 0 ≤ uint.Z pr by word)]
   subst Hpfx'
   (try wp_auto)
-  wp_apply hNSK kv [] _ val lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+  wp_apply hNSK kv [] _ val lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
   · ipureintro
     refine ⟨List.nil_prefix, List.nil_prefix, ?_, Hv⟩
     have h0 : 0 ≤ uint.Z pr ∧ uint.Z pr < 2 ^ 16 := by word
@@ -68,6 +68,7 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
   · subst Heq
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -76,6 +77,7 @@ theorem PriorityQueue.Enqueue.wp_proof (hNSK : newSequentialKV.spec (GF := GF) (
     ipureintro; exact ⟨Hrr.1, Hrr.2.1, Hrr.2.2.1⟩
   · (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hne.1
 

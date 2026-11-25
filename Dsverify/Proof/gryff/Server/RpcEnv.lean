@@ -1,16 +1,12 @@
 /-
 What a net/rpc client over HTTP reads on a server machine (`DialHTTP.spec`'s `cliEnv`, `httpEnv`,
-`connected`: `dialEnv`), and the kit's services' error answers (`withErr_errOk`). In this port
-`net/rpc` and `net/http` are names-only packages (`Dsverify/Proof/net/{rpc,http}/Init.lean`: their
-`InitHyp`s assert only that the initializers run, their facts are `True`), so these package
-variables' values come from the machine's boot (`RpcBootHyp`'s `rpcInitRes`, `httpInitRes`:
-`serverBoot`, `cmd/server*/Boot.lean`), never from `isPkgInit` (the earlier class `RpcEnvHyp`,
-which derived them from `isPkgInit`, had no true instance: Upamanyu's review of dsv-epaxos on
-#24, applied here).
+`connected`: `dialEnv`), and the kit's services' error answers (`withErr_errOk`). These package
+variables' values come from the machine's boot (`rpcInitRes`, `httpInitRes`: `serverBoot`,
+`cmd/server*/Boot.lean`, from net/rpc's and net/http's first initializations).
 -/
 module
 
-public import Dsverify.Proof.gryff.Rpc.RpcHttpHyps
+public import Dsverify.Proof.gryff.Rpc.RpcHttp
 public import Dsverify.Proof.gryff.Rpc.Defs
 public import Net.Spec.net.rpc.DialHTTP
 

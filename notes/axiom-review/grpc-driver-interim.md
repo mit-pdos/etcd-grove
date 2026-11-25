@@ -90,3 +90,12 @@ Independent axiom-skill review (2026-11-25, the trusted agent): **sound**, no co
 `context.isCancelCtxCtx ctx' …` (over-weak before: a proof uses one triple per call, so it could not get it from
 Perennial's `wp_WithCancel_Background` for the same context; it adds no trust, Perennial proves it). Docstring now
 names why nothing else sets `c.err`.
+
+## T4 `grpcInvokerDone` at the connection's resource (merge of lean, 2026-11-25; not yet reviewed)
+
+Lean's decision 1b runs every call on an etcd connection at `clientRes` (`levelTok 0`), and its
+`grpcInvokerOk_of_chainRes` builds `grpcInvokerOk` for a chain's invoker callable only with that token:
+the resource-free `grpcInvokerDone` could not be met. `grpcInvokerDone conn Ok inv` now lends
+`⌜Ok R⌝ ∗ R` (back untouched in the post), as `grpcInvokerOk`'s attempt triple does. The old triple
+implies the new one (frame `R`), so the axioms giving `grpcInvokerOk` promise no more than before; the
+driver's `plain_Invoke_done` uses it at `R := True` (`anyRes`).

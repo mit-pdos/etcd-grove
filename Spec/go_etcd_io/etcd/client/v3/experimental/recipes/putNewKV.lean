@@ -36,15 +36,14 @@ WithLease(leaseID)))` (`newKeyTxn`):
   transaction contract at `context.TODO()`). -/
 abbrev putNewKV.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key val : GoString) (lease lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax ∧ val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax ∧ val.length ≤ recipesStrMax⌝) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.putNewKV))
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #val)) (Val #lease))
-  {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err);
-      (⌜err = GoInterface.nil⌝ ∗ etcdReached rev ∗ keyCreatedAt pfx key val lease rev ∗
+  {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ etcdReached rev ∗ keyCreatedAt pfx key val lease rev ∗
         etcdRevToken rev ∗ ⌜sint.Z lo ≤ sint.Z rev ∧ sint.Z rev < 2 ^ 63 - 1⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ⌜rev = W64 0⌝ ∗ ∃ r : w64, etcdReached r ∗
         etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      (⌜err ≠ GoInterface.nil ∧ rev = W64 0⌝ ∗ clientErrIs err) }}
+      (⌜err ≠ GoInterface.nil ∧ rev = W64 0⌝ ∗ clientErrIs err)) }}
 
 end spec
 

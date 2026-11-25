@@ -14,6 +14,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.net.http
+public import SpecPlan.Spec.PkgInit.os
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.dustin.go_humanize
@@ -27,6 +28,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.snap
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage

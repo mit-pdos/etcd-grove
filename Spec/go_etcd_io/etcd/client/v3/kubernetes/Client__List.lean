@@ -48,22 +48,19 @@ abbrev Client.List.spec : Prop :=
     (opts : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (Q : w64 → KVState → IProp GF),
   pfx.length ≤ opKeyMax → opts.Continue'.length ≤ opKeyMax →
   0 ≤ sint.Z opts.Revision' → 0 ≤ sint.Z opts.Limit' → (opts.Continue' = [] ∨ pfx <+: opts.Continue') →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      (∀ R, |==> □ [∧list] x ∈ ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) }}
+      (∀ R, |==> □ [∧list] x ∈ ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R))) }}
     (App (App (App (Val (kc @!! go_etcd_io.etcd.client.v3.kubernetes.Client.ty @!! go!"List"))
       (Val #(GoInterface.ok ci))) (Val #pfx)) (Val #opts))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (err : GoInterface),
-      RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗
+      RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗
         ⌜σ.readRev opts.Revision' ≤ σ.rev ∧ kvRevFits σ.rev⌝ ∗
         listRespIs resp σ pfx true opts.Revision' opts.Limit'
           (if opts.Continue' = [] then pfx else opts.Continue')) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
         go_etcd_io.etcd.cache.v3.errCellOk err ∗
-        (⌜pfx ≠ [] ∧ ∀ x ∈ ms, noRefusalAt x.addr⌝ → rangeErrSound opts.Revision' Q err)) }}
+        (⌜pfx ≠ [] ∧ ∀ x ∈ ms, noRefusalAt x.addr⌝ → rangeErrSound opts.Revision' Q err))) }}
 
 end spec
 

@@ -49,18 +49,17 @@ abbrev store.Delete.spec : Prop :=
     (opts : k8s_io.apiserver.pkg.storage.DeleteOptions)
     (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) [Timeless W]
     (Φ : KVState → IProp GF) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key false = some k ∧ (c.pathPrefix ++ k).length ≤ opKeyMax ∧
         opts.ExpectTransformOrDecodeError' = false⌝ ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗ preAt pp pr ∗
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
       ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep (c.pathPrefix ++ k) (c.S.preF pr) validate) W Φ) ∗
-      validateOk c validate vf }}
+      validateOk c validate vf) }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Delete")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #out)) (Val #pp)) (Val #vf)) (Val #cx)) (Val #opts))
-  {{ (err : GoInterface), RET #err;
-      delOut c (c.pathPrefix ++ k) (c.S.preF pr) validate Φ err out }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (delOut c (c.pathPrefix ++ k) (c.S.preF pr) validate Φ err out) }}
 
 end spec
 

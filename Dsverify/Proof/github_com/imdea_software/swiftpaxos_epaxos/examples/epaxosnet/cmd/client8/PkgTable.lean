@@ -9,8 +9,6 @@ do not edit.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client8.Init
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 
@@ -29,8 +27,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client8.Assumptions]
 
 /-- Every package of the program's import closure, with its `isPkgInit`. -/
@@ -290,54 +286,54 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h9, True.intro⟩
-  have h44 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h45 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h46 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h44, h45, True.intro⟩
-  have h47 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h24, h34, h0, h36, h6, h37, h38, h39, h21, h12, h5, h1, h23, h40, h33, h42, h41, h35, h43, h13, h46, True.intro⟩
-  have h48 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h49 : GetIsPkgInitProp pkg_id.net.rpc (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h13, h0, h6, h37, h33, h47, h5, h48, True.intro⟩
-  have h50 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h51 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.config (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h13, h36, h32, h35, h12, h23, True.intro⟩
-  have h52 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.dlog (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h37, h32, True.intro⟩
-  have h53 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.rpc (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h6, True.intro⟩
-  have h54 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
+  have h44 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h20, h21, True.intro⟩
+  have h45 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h46 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h47 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h45, h46, True.intro⟩
+  have h48 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h24, h34, h0, h36, h6, h37, h38, h39, h21, h12, h5, h1, h23, h40, h33, h42, h41, h35, h14, h43, h44, h13, h47, True.intro⟩
+  have h49 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h50 : GetIsPkgInitProp pkg_id.net.rpc (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h13, h0, h6, h37, h33, h48, h5, h49, True.intro⟩
+  have h51 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h52 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.config (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h13, h36, h32, h35, h12, h23, True.intro⟩
+  have h53 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.dlog (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h37, h32, True.intro⟩
+  have h54 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.rpc (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, True.intro⟩
   have h55 : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.utils (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h23, h54, h36, h35, True.intro⟩
+    exact ⟨h23, h44, h36, h35, True.intro⟩
   have h56 : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.containers (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -373,19 +369,19 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h64 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.replica (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h0, h32, h54, h12, h22, h58, h6, h14, h33, h5, h23, h51, h52, h63, h53, h62, True.intro⟩
+    exact ⟨h13, h0, h32, h44, h12, h22, h58, h6, h14, h33, h5, h23, h52, h53, h63, h54, h62, True.intro⟩
   have h65 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.epaxos (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h6, h5, h53, h62, h22, h23, h51, h52, h64, h63, h54, h0, True.intro⟩
+    exact ⟨h13, h6, h5, h54, h62, h22, h23, h52, h53, h64, h63, h44, h0, True.intro⟩
   have h66 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.master (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h36, h33, h47, h49, h5, h23, h51, h52, h63, True.intro⟩
+    exact ⟨h0, h36, h33, h48, h50, h5, h23, h52, h53, h63, True.intro⟩
   have h67 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h24, h54, h23, h36, h12, True.intro⟩
+    exact ⟨h24, h44, h23, h36, h12, True.intro⟩
   have h68 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -397,11 +393,11 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h70 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h33, h23, h67, h50, h68, h69, True.intro⟩
+    exact ⟨h33, h23, h67, h51, h68, h69, True.intro⟩
   have h71 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h22, h33, h47, h49, h23, h50, h51, h52, h65, h66, h63, h62, h70, h67, h0, True.intro⟩
+    exact ⟨h13, h22, h33, h48, h50, h23, h51, h52, h53, h65, h66, h63, h62, h70, h67, h0, True.intro⟩
   have h72 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client8 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

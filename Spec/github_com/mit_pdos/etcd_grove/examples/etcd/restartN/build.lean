@@ -90,7 +90,7 @@ abbrev build.specRestart : Prop :=
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
       context.isClosedchanInit ∗ etcdstart.memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      etcdstart.memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      etcdstart.memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restartN.build))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);

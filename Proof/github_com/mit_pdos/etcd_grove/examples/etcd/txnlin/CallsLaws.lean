@@ -37,18 +37,16 @@ abbrev client_List_st.law : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
       (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
       (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          isNewClient cl (ms.map client.SrvAt.addr) V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
           ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [withRangeM listTo] ∗
-          □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) }}
+          □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q)) }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Get")) (Val #(GoInterface.ok ci))) (Val #listFrom)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
             □ Q σ ∗ ⌜m.kvs = σ.kvs.filter (fun v => inRange listFrom listTo v.key) ∧
               m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev⌝) ∨
-            ⌜err ≠ GoInterface.nil⌝ }}
+            ⌜err ≠ GoInterface.nil⌝) }}
 
 /-- `txn_Commit_st`'s statement (`CallsLinked.lean`, a linking module), as a hypothesis of the
 proofs that use it (the import tiers); `txn_Commit_st_law_holds` proves it. -/
@@ -58,15 +56,13 @@ abbrev txn_Commit_st.law : Prop :=
       (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
       (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)
       (hne : t ++ e ≠ []) (hsz : txnSizeOk (txnWireOf b.model)),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
           ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
           client.txnWriteOnce tp (ms.map client.SrvAt.addr) ∗
-          ([∧list] x ∈ ms, callUpd x.γr.kv (.txn cs t e) Q) }}
+          ([∧list] x ∈ ms, callUpd x.γr.kv (.txn cs t e) Q)) }}
         (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
           (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
             callRes (.txn cs t e) Q σ ∗
             ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
                 (linkv.txnOf cs t e)).1 ∧
@@ -78,7 +74,7 @@ abbrev txn_Commit_st.law : Prop :=
               kvRevFits σ.rev ∧
               -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
               ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }}
+            (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }}
 
 end laws1
 

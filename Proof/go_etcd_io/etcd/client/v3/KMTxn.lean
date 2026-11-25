@@ -308,14 +308,14 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (lo : w64) (pfx : GoString)
     (hp : TxnModel.plain b.model) (hu : b.model.Under pfx) (hx : b.model.exactGets)
     (hk : kmCovered b.model) (hsz : txnSizeOk b.model) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗
         txnKvIs tp api ∗ isKv api γ.kv false ∗ kmInv γ ∗ kmReachedAt γ (W64 1) ∗
         etcdReached (EM := etcdModelOfKV γ) lo }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo b.model resp err ∗
-        (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hkp, #Hkv, #Hinv, #H1, #Hlo⟩ HΦ
+        (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝)) }} := by
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hkp, #Hkv, #Hinv, #H1, #Hlo⟩ HΦ
   -- the floor: changes the client saw, `lo` of them or more, and at least one
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
   iunfold kmReachedAt at H1
@@ -334,7 +334,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
   · -- read-only, linearizable: the read update after the floor
     have hs : txn.txnSerializable (txnWireOf b.model) = false := by rw [hser, hlin]; rfl
     ihave #Hau := km_read_au γ lf $$ [$Hinv $Hlf]
-    iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b (kmSeenQ γ lf)) $$ [Hobj]
+    iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b (kmSeenQ γ lf)) $$ [Hlt Hobj]
     · iframe
       iframe #
       isplitl []
@@ -350,8 +350,9 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
       iexact Hau
     simp only [hro, hs, ↓reduceIte, Bool.false_eq_true]
     inext
-    iintro %resp %err Hout
+    iintro %resp %err ⟨Hlt, Hout⟩
     iapply HΦ
+    iframe Hlt
     icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs, -⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       iunfold kmSeenQ at HQ
@@ -376,7 +377,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
     have hl := kmFree_leaseFree _ hfree
     ihave Hau := km_write_au γ lf (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $Hlf]
     iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b
-      (kmWriteQ γ lf (.txn (txnWireOf b.model)))) $$ [Hobj Hau]
+      (kmWriteQ γ lf (.txn (txnWireOf b.model)))) $$ [Hlt Hobj Hau]
     · iframe
       iframe #
       isplitl []
@@ -392,8 +393,9 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
       iexact Hau
     simp only [hro, ↓reduceIte, Bool.false_eq_true]
     inext
-    iintro %resp %err Hout
+    iintro %resp %err ⟨Hlt, Hout⟩
     iapply HΦ
+    iframe Hlt
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, -⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       iunfold kmWriteQ at HQ
@@ -432,11 +434,11 @@ theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames
     (hp : TxnModel.plain b.model) (hx : b.model.exactGets)
     (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.kmFree b.model)
     (hsz : txnSizeOk b.model) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗
         txnKvIs tp api ∗ isKv api γ.kv false ∗ kmInv γ }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hkp, #Hkv, #Hinv⟩ HΦ
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ( txnAnyResult resp err) }} := by
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hkp, #Hkv, #Hinv⟩ HΦ
   imod (monoListLbOwn_nil (GF := GF) (A := List mvcc.Change) γ.ch) with #H0
   ihave Hupd : iprop(∃ Q : KVState → IProp GF,
       ⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
@@ -465,16 +467,18 @@ theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames
     · iexists (fun _ => iprop(True))
       ileft; ipureintro; exact ⟨rfl, rfl⟩
   icases Hupd with ⟨%Q, Hu⟩
-  iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b Q) $$ [Hobj Hu]
+  iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b Q) $$ [Hlt Hobj Hu]
   · simp only [intuitionisticallyIf, Bool.false_eq_true, ↓reduceIte]
+    iframe Hlt
     iframe
     iframe #
     isplitl []
     · ipureintro; exact ⟨hp, txnModelIn_wire _ hx⟩
     ipureintro; exact txnSizeOk_wireOf hsz
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   unfold txnAnyResult
   icases Hout with (⟨%Herr, %m, %σ, #Hm, -⟩ | ⟨%Herr, -⟩)
   · iright
@@ -498,15 +502,14 @@ def kmTxnUncoveredTodo (api : Loc) (γ : KMNames) [KMWritable γ] : IProp GF :=
       (cd : context.ContextDesc (IProp GF)) (b : TxnBuild),
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ ¬ kmCovered b.model⌝ -∗ txnKvIs tp api -∗
     ((□ ∀ (lo : w64) (pfx : GoString), ⌜b.model.Under pfx⌝ -∗
-      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
+      {{ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo b.model resp err ∗
-          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }}) ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo b.model resp err ∗
+          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝)) }}) ∗
      (⌜txn.txnReadonly (txnWireOf b.model) = false⌝ -∗
-      {{ txnObjAt tp addr ci cd b }}
+      {{ levelTok 0 ∗ txnObjAt tp addr ci cd b }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }})))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnAnyResult resp err) }})))
 
 instance kmTxnUncoveredTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] :
     Persistent (kmTxnUncoveredTodo (GF := GF) api γ) := by
@@ -546,24 +549,24 @@ theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
       txnSizeOk b.model →
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnKvIs tp api ∗
         isKv api γ.kv false ∗ kmInv γ ∗ kmReachedAt γ (W64 1) ∗ kmTxnUncoveredTodo api γ ⊢
-      {{ txnB tp addr cd b ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
+      {{ levelTok 0 ∗ txnB tp addr cd b ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
           txnCommitResultTok (EM := etcdModelOfKV γ) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
     intro b lo hu hx hsz
-    iintro ⟨#Pc, #Htk, #Hkv, #Hinv, #H1, #Hun⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
+    iintro ⟨#Pc, #Htk, #Hkv, #Hinv, #H1, #Hun⟩ !> %Φ ⟨Hlt, HB, #Hlo⟩ HΦ
     iunfold txnB at HB
     icases HB with ⟨Hobj, %hp⟩
     by_cases hk : kmCovered b.model
-    · iapply (kv_txn_commit_km api tp addr γ todoCtxVal cd b lo pfx hp hu hx hk hsz) $$ [Hobj] HΦ
+    · iapply (kv_txn_commit_km api tp addr γ todoCtxVal cd b lo pfx hp hu hx hk hsz) $$ [Hlt Hobj] HΦ
       iframe
       iframe #
     · iunfold kmTxnUncoveredTodo at Hun
       ihave ⟨#Ht, -⟩ := Hun $$ %tp %addr %todoCtxVal %cd %b %(⟨hp, hx, hk⟩) Htk
       ihave #Ht' := Ht $$ %lo %pfx %hu
-      iapply Ht' $$ [Hobj] HΦ
-      iframe Hobj Hlo
+      iapply Ht' $$ [Hlt Hobj] HΦ
+      iframe Hlt Hobj Hlo
   isplitl [Hobj]
   · unfold txnB
     iframe
@@ -619,19 +622,20 @@ theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
         · exact hp.2 op h
         · exact h2 op h⟩
     isplitl []
-    · iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Htk $Hkv $Hinv $H1 $Hun] [HB]
+    · iintro !> %b %lo %Φ' !> ⟨Hlt, HB, #Hlo, %hux⟩ HΦ'
+      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Htk $Hkv $Hinv $H1 $Hun] [Hlt HB]
       · iframe; iframe #
       inext
-      iintro %resp %err ⟨Hr, -⟩
+      iintro %resp %err ⟨Hlt, Hr, -⟩
       iapply HΦ'
+      iframe Hlt
       iexact Hr
-    · iintro !> %b %Φ' !> ⟨HB, %hxs⟩ HΦ'
+    · iintro !> %b %Φ' !> ⟨Hlt, HB, %hxs⟩ HΦ'
       obtain ⟨hx, hsz⟩ := hxs
       iunfold txnB at HB
       icases HB with ⟨Hobj, %hp⟩
       by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.kmFree b.model
-      · iapply (kv_txn_commit_any_km api tp addr γ todoCtxVal cd b hp hx hk hsz) $$ [Hobj] HΦ'
+      · iapply (kv_txn_commit_any_km api tp addr γ todoCtxVal cd b hp hx hk hsz) $$ [Hlt Hobj] HΦ'
         iframe
         iframe #
       · -- a writing transaction with a lease or an `IgnoreValue` put: the premise
@@ -645,15 +649,16 @@ theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
           · exact hk (Or.inr h)
         iunfold kmTxnUncoveredTodo at Hun
         ihave ⟨-, #Ht⟩ := Hun $$ %tp %addr %todoCtxVal %cd %b %(⟨hp, hx, hk2⟩) Htk
-        iapply Ht $$ %hk1 [Hobj] HΦ'
-        iexact Hobj
+        iapply Ht $$ %hk1 [Hlt Hobj] HΦ'
+        iframe Hlt Hobj
   · unfold txnCommitErrTodo
-    iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Htk $Hkv $Hinv $H1 $Hun] [HB]
+    iintro !> %b %lo %Φ' !> ⟨Hlt, HB, #Hlo, %hux⟩ HΦ'
+    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Htk $Hkv $Hinv $H1 $Hun] [Hlt HB]
     · iframe; iframe #
     inext
-    iintro %resp %err ⟨Hr, Herr⟩
+    iintro %resp %err ⟨Hlt, Hr, Herr⟩
     iapply HΦ'
+    iframe Hlt
     iframe Hr
     icases Herr with (%He | %He)
     · ileft; ipureintro; exact He

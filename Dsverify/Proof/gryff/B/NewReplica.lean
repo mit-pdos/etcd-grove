@@ -50,7 +50,7 @@ variable [binA : wire.BinaryVarintHyps GF]
 variable [sortA : SortSliceHyp GF] [strconvA : strconv.Assumptions]
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
-variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] [randA : lib.RandSeedHyp GF]
+variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions] [randA : lib.RandSeedHyp GF]
 
 
 /-- The registry's facts: three replicas, `nodes[id]` is node `k`'s address. -/

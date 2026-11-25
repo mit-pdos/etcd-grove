@@ -66,14 +66,17 @@ theorem store.getList.wp_proof
       (m := go!"Get")]
     wp_call
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
         c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision')
-        (fun R _ σ => Q R σ) hrev hkp) $$ [HQ]
-      as %gresp %gerr Hget
+        (fun R _ σ => Q R σ) hrev hkp) $$ [$Hlt HQ]
+      as %gresp %gerr ⟨Hlt, Hget⟩
     · iframe #
       iintro %R %m
       iapply HQ
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     (try wp_auto)
     icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
     wp_apply (wp_RecordEtcdRequest go!"get" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
@@ -166,12 +169,15 @@ theorem store.getList.wp_proof
       (m := go!"List")]
     wp_call
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_kList (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-        c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [HQ]
-      as %resp %lerr Hlist
+        c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [$Hlt HQ]
+      as %resp %lerr ⟨Hlt, Hlist⟩
     · iframe #
       iexact HQ
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     (try wp_auto)
     icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split lerr _ _ _) $$ Hlist with ⟨#Hse, Hlist⟩
     wp_apply (wp_RecordEtcdRequest go!"list" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []

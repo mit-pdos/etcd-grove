@@ -130,15 +130,19 @@ theorem plain_Invoke_done (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
   iunfold grpcInvokerOk at Hinv
   icases Hinv with ⟨-, #Hdn⟩
   iunfold grpcInvokerDone at Hdn
-  ihave Hdn' := Hdn $$ %ctx %cd %method %req %reply %opts' %vs %([] : List Loc)
+  ihave Hdn' := Hdn $$ %ctx %cd %method %req %reply %opts' %vs %([] : List Loc) %(iprop(True) : IProp GF)
   iapply Hdn' $$ [Hdone]
-  · iframe #
+  · isplitr
+    · ipureintro; trivial
+    isplitr
+    · itrivial
+    iframe #
     iframe
     try (isplitr; · ipureintro; exact Hvs)
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     iempintro
   inext
-  iintro %err ⟨-, %Herr, #Hse, #Hcode⟩
+  iintro %err ⟨-, -, %Herr, #Hse, #Hcode⟩
   iapply HΦk
   iframe #
   ipureintro; exact Herr

@@ -30,14 +30,13 @@ abbrev retryAuthClient.RoleAdd.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthRoleAddRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryAuthAt rac conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryAuthAt rac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleAdd" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthRoleAddRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
-      ⌜(pbAuthRoleAddRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
+      ⌜(pbAuthRoleAddRequest (GF := GF)).wireLen m < grpcMsgMax⌝) }}
     (App (App (App (Val (rac @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryAuthClient.ty @!!
         go!"RoleAdd")) (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (pbAuthRoleAddRequest (GF := GF)).send inp m ∗ authCallOut Φ resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((pbAuthRoleAddRequest (GF := GF)).send inp m ∗ authCallOut Φ resp err) }}
 
 end spec
 

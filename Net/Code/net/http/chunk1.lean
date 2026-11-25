@@ -250,6 +250,9 @@ class mapping.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_m : ∀ (K V : go.GoType) (K' V' : Type) (x : (mapping K' V')) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet (mapping.underlying K V) go!"m") (PairV #x #y) (Val #(({ x with m' := y } : (mapping K' V'))))
   method_set : ∀ (K V : go.GoType), go.MethodSetIs (mapping.ty K V) []
   ptr_method_set : ∀ (K V : go.GoType), go.MethodSetIs (go.GoType.PointerType (mapping.ty K V)) [(go!"net/http.add", (some (go.signature.Signature [K, V] false []))), (go!"net/http.eachPair", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))] false []))), (go!"net/http.find", (some (go.signature.Signature [K] false [V, go.bool])))]
+  ptr_add_unfold : ∀ (K V : go.GoType), MethodUnfold (go.GoType.PointerType (mapping.ty K V)) go!"add" (mapping.add.impl K V)
+  ptr_eachPair_unfold : ∀ (K V : go.GoType), MethodUnfold (go.GoType.PointerType (mapping.ty K V)) go!"eachPair" (mapping.eachPair.impl K V)
+  ptr_find_unfold : ∀ (K V : go.GoType), MethodUnfold (go.GoType.PointerType (mapping.ty K V)) go!"find" (mapping.find.impl K V)
 
 attribute [instance] mapping.TypeAssumptions.type_repr
   mapping.TypeAssumptions.underlying
@@ -259,6 +262,9 @@ attribute [instance] mapping.TypeAssumptions.type_repr
   mapping.TypeAssumptions.set_m
   mapping.TypeAssumptions.method_set
   mapping.TypeAssumptions.ptr_method_set
+  mapping.TypeAssumptions.ptr_add_unfold
+  mapping.TypeAssumptions.ptr_eachPair_unfold
+  mapping.TypeAssumptions.ptr_find_unfold
 
 class routingNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingNode.underlying routingNode
@@ -275,6 +281,16 @@ class routingNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_emptyChild : ∀ (x : routingNode) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet routingNode.underlying go!"emptyChild") (PairV #x #y) (Val #(({ x with emptyChild' := y } : routingNode)))
   method_set : go.MethodSetIs routingNode.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingNode.ty) [(go!"net/http.addChild", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType routingNode.ty)]))), (go!"net/http.addPattern", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), Handler.ty] false []))), (go!"net/http.addSegments", (some (go.signature.Signature [(go.GoType.SliceType segment.ty), (go.GoType.PointerType pattern.ty), Handler.ty] false []))), (go!"net/http.findChild", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType routingNode.ty)]))), (go!"net/http.match", (some (go.signature.Signature [go.string, go.string, go.string] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchMethodAndPath", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchPath", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchingMethods", (some (go.signature.Signature [go.string, go.string, (go.GoType.MapType go.string go.bool)] false []))), (go!"net/http.matchingMethodsPath", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.bool)] false []))), (go!"net/http.set", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), Handler.ty] false [])))]
+  ptr_addChild_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"addChild" routingNode.addChild.impl
+  ptr_addPattern_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"addPattern" routingNode.addPattern.impl
+  ptr_addSegments_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"addSegments" routingNode.addSegments.impl
+  ptr_findChild_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"findChild" routingNode.findChild.impl
+  ptr_match_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"match" routingNode.«match».impl
+  ptr_matchMethodAndPath_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchMethodAndPath" routingNode.matchMethodAndPath.impl
+  ptr_matchPath_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchPath" routingNode.matchPath.impl
+  ptr_matchingMethods_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchingMethods" routingNode.matchingMethods.impl
+  ptr_matchingMethodsPath_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"matchingMethodsPath" routingNode.matchingMethodsPath.impl
+  ptr_set_unfold : MethodUnfold (go.GoType.PointerType routingNode.ty) go!"set" routingNode.set.impl
 
 attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.underlying
@@ -290,6 +306,16 @@ attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.set_emptyChild
   routingNode.TypeAssumptions.method_set
   routingNode.TypeAssumptions.ptr_method_set
+  routingNode.TypeAssumptions.ptr_addChild_unfold
+  routingNode.TypeAssumptions.ptr_addPattern_unfold
+  routingNode.TypeAssumptions.ptr_addSegments_unfold
+  routingNode.TypeAssumptions.ptr_findChild_unfold
+  routingNode.TypeAssumptions.ptr_match_unfold
+  routingNode.TypeAssumptions.ptr_matchMethodAndPath_unfold
+  routingNode.TypeAssumptions.ptr_matchPath_unfold
+  routingNode.TypeAssumptions.ptr_matchingMethods_unfold
+  routingNode.TypeAssumptions.ptr_matchingMethodsPath_unfold
+  routingNode.TypeAssumptions.ptr_set_unfold
 
 class routingIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying routingIndex.underlying routingIndex
@@ -300,6 +326,8 @@ class routingIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_multis : ∀ (x : routingIndex) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet routingIndex.underlying go!"multis") (PairV #x #y) (Val #(({ x with multis' := y } : routingIndex)))
   method_set : go.MethodSetIs routingIndex.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType routingIndex.ty) [(go!"net/http.addPattern", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false []))), (go!"net/http.possiblyConflictingPatterns", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.error]))] false [go.error])))]
+  ptr_addPattern_unfold : MethodUnfold (go.GoType.PointerType routingIndex.ty) go!"addPattern" routingIndex.addPattern.impl
+  ptr_possiblyConflictingPatterns_unfold : MethodUnfold (go.GoType.PointerType routingIndex.ty) go!"possiblyConflictingPatterns" routingIndex.possiblyConflictingPatterns.impl
 
 attribute [instance] routingIndex.TypeAssumptions.type_repr
   routingIndex.TypeAssumptions.underlying
@@ -309,6 +337,8 @@ attribute [instance] routingIndex.TypeAssumptions.type_repr
   routingIndex.TypeAssumptions.set_multis
   routingIndex.TypeAssumptions.method_set
   routingIndex.TypeAssumptions.ptr_method_set
+  routingIndex.TypeAssumptions.ptr_addPattern_unfold
+  routingIndex.TypeAssumptions.ptr_possiblyConflictingPatterns_unfold
 
 class serveMux121.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serveMux121.underlying serveMux121
@@ -323,6 +353,13 @@ class serveMux121.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_hosts : ∀ (x : serveMux121) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serveMux121.underlying go!"hosts") (PairV #x #y) (Val #(({ x with hosts' := y } : serveMux121)))
   method_set : go.MethodSetIs serveMux121.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType serveMux121.ty) [(go!"net/http.findHandler", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [Handler.ty, go.string]))), (go!"net/http.handle", (some (go.signature.Signature [go.string, Handler.ty] false []))), (go!"net/http.handleFunc", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))] false []))), (go!"net/http.handler", (some (go.signature.Signature [go.string, go.string] false [Handler.ty, go.string]))), (go!"net/http.match", (some (go.signature.Signature [go.string] false [Handler.ty, go.string]))), (go!"net/http.redirectToPathSlash", (some (go.signature.Signature [go.string, go.string, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [(go.GoType.PointerType _root_.Perennial.net.url.URL.ty), go.bool]))), (go!"net/http.shouldRedirectRLocked", (some (go.signature.Signature [go.string, go.string] false [go.bool])))]
+  ptr_findHandler_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"findHandler" serveMux121.findHandler.impl
+  ptr_handle_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"handle" serveMux121.handle.impl
+  ptr_handleFunc_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"handleFunc" serveMux121.handleFunc.impl
+  ptr_handler_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"handler" serveMux121.handler.impl
+  ptr_match_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"match" serveMux121.«match».impl
+  ptr_redirectToPathSlash_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"redirectToPathSlash" serveMux121.redirectToPathSlash.impl
+  ptr_shouldRedirectRLocked_unfold : MethodUnfold (go.GoType.PointerType serveMux121.ty) go!"shouldRedirectRLocked" serveMux121.shouldRedirectRLocked.impl
 
 attribute [instance] serveMux121.TypeAssumptions.type_repr
   serveMux121.TypeAssumptions.underlying
@@ -336,6 +373,13 @@ attribute [instance] serveMux121.TypeAssumptions.type_repr
   serveMux121.TypeAssumptions.set_hosts
   serveMux121.TypeAssumptions.method_set
   serveMux121.TypeAssumptions.ptr_method_set
+  serveMux121.TypeAssumptions.ptr_findHandler_unfold
+  serveMux121.TypeAssumptions.ptr_handle_unfold
+  serveMux121.TypeAssumptions.ptr_handleFunc_unfold
+  serveMux121.TypeAssumptions.ptr_handler_unfold
+  serveMux121.TypeAssumptions.ptr_match_unfold
+  serveMux121.TypeAssumptions.ptr_redirectToPathSlash_unfold
+  serveMux121.TypeAssumptions.ptr_shouldRedirectRLocked_unfold
 
 class ServeMux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServeMux.underlying ServeMux
@@ -1015,6 +1059,12 @@ class pattern.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_loc : ∀ (x : pattern) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet pattern.underlying go!"loc") (PairV #x #y) (Val #(({ x with loc' := y } : pattern)))
   method_set : go.MethodSetIs pattern.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType pattern.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net/http.compareMethods", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.comparePaths", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.comparePathsAndMethods", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [relationship.ty]))), (go!"net/http.conflictsWith", (some (go.signature.Signature [(go.GoType.PointerType pattern.ty)] false [go.bool]))), (go!"net/http.lastSegment", (some (go.signature.Signature [] false [segment.ty])))]
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"String" pattern.String.impl
+  ptr_compareMethods_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"compareMethods" pattern.compareMethods.impl
+  ptr_comparePaths_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"comparePaths" pattern.comparePaths.impl
+  ptr_comparePathsAndMethods_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"comparePathsAndMethods" pattern.comparePathsAndMethods.impl
+  ptr_conflictsWith_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"conflictsWith" pattern.conflictsWith.impl
+  ptr_lastSegment_unfold : MethodUnfold (go.GoType.PointerType pattern.ty) go!"lastSegment" pattern.lastSegment.impl
 
 attribute [instance] pattern.TypeAssumptions.type_repr
   pattern.TypeAssumptions.underlying
@@ -1030,6 +1080,12 @@ attribute [instance] pattern.TypeAssumptions.type_repr
   pattern.TypeAssumptions.set_loc
   pattern.TypeAssumptions.method_set
   pattern.TypeAssumptions.ptr_method_set
+  pattern.TypeAssumptions.ptr_String_unfold
+  pattern.TypeAssumptions.ptr_compareMethods_unfold
+  pattern.TypeAssumptions.ptr_comparePaths_unfold
+  pattern.TypeAssumptions.ptr_comparePathsAndMethods_unfold
+  pattern.TypeAssumptions.ptr_conflictsWith_unfold
+  pattern.TypeAssumptions.ptr_lastSegment_unfold
 
 class segment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying segment.underlying segment

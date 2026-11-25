@@ -621,19 +621,22 @@ sections. It rests on the connection's service config setting no method config (
 `timeout`, no `waitForReady`): a method `timeout` makes `newClientStreamWithParams` wrap the context in
 a `WithTimeout`, which may give `DeadlineExceeded` first; `grpcResolverAt`'s configurations (etcd's,
 `loadBalancingPolicy` only) and `dialPassthrough`'s (none) set none. Review:
-`notes/axiom-review/grpc-driver-interim.md`. -/
-def grpcInvokerDone (conn : Loc) (inv : GoFunc) : IProp GF :=
+`notes/axiom-review/grpc-driver-interim.md`. As the attempt contract (`grpcInvokerOk`), the call is
+lent a resource `R` of the connection's family `Ok` and gives it back untouched (merge of decision 1b's
+`clientRes`, 2026-11-25: an invoker reached through a chain at the connection's resource, e.g. etcd's
+`levelTok 0`, meets it only so; at grpc's own `invoke` the frame rule gives it). -/
+def grpcInvokerDone (conn : Loc) (Ok : IProp GF → Prop) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (method : GoString)
-      (req reply : GoInterface) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ metadata.outMD ctx none ∗ (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗ ctxOk ctx cd ∗
-        opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
+      (req reply : GoInterface) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc) (R : IProp GF),
+    {{ ⌜Ok R⌝ ∗ R ∗ metadata.outMD ctx none ∗ (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗
+        ctxOk ctx cd ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method #req #reply #conn #opts)
-    {{ (err : GoInterface), RET #err; ([∗list] p ∈ ps, grpcPeerBuf p) ∗
+    {{ (err : GoInterface), RET #err; R ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
         ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∗
         go_etcd_io.etcd.cache.v3.statusErrOk err ∗ go_etcd_io.etcd.cache.v3.statusCodeIs err (W32 1) }})
 
-instance grpcInvokerDone_persistent (conn : Loc) (inv : GoFunc) :
-    Persistent (grpcInvokerDone (GF := GF) conn inv) := by
+instance grpcInvokerDone_persistent (conn : Loc) (Ok : IProp GF → Prop) (inv : GoFunc) :
+    Persistent (grpcInvokerDone (GF := GF) conn Ok inv) := by
   unfold grpcInvokerDone; infer_instance
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
@@ -760,7 +763,7 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) 
             ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
               d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝ ∗
             (⌜d ∈ handlerDescs⌝ -∗ Ψe d))) }}) ∗
-    grpcInvokerDone conn inv)
+    grpcInvokerDone conn Ok inv)
 
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop)
     (inv : GoFunc) : Persistent (grpcInvokerOk (GF := GF) conn addrs Ok inv) := by
@@ -867,9 +870,9 @@ theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (Ok : IProp GF �
     iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps
       %R %Ψ Hpre HΨ
   · unfold grpcInvokerDone
-    iintro !> %ctx %cd %method %req %reply %opts %vs %ps %Ψ !> Hpre HΨ
+    iintro !> %ctx %cd %method %req %reply %opts %vs %ps %R %Ψ !> Hpre HΨ
     iapply Hw
-    iapply Hdone $$ %ctx %cd %method %req %reply %opts %vs %ps %Ψ Hpre HΨ
+    iapply Hdone $$ %ctx %cd %method %req %reply %opts %vs %ps %R %Ψ Hpre HΨ
 
 /-- An invoker that behaves as one meeting the attempt contract, through a chain's invoker at the
 trivial resource (`chainWP iprop(True)`'s `inv'`), meets it. -/

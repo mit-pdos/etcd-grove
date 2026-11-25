@@ -836,7 +836,7 @@ this plan's order:
   `grpcSrvPI`/`protoEncodes`/`credsYieldRaw`, the codec axioms (W3), and the leaves E has. It is free of
   the family when E is (W8, S5, S4), less the single-process start. A collection for `putget_safe` is to
   be added when it lands.
-- **mvcc, mvcc-compaction, the dsverify kits, kvnet, net, models-net, remote-counter**: none.
+- **mvcc, mvcc-compaction, the dsverify kits, kvraft, net, models-net, remote-counter**: none.
 
 The lower collections to update with each branch (`--check --update`): cli 67, v3r 47, k8s 41, srv 38,
 cache-client 30, lsrv 29, k8s-compactor 24, slice 20, snap 18, lease 16, wat 15, recipes 15.

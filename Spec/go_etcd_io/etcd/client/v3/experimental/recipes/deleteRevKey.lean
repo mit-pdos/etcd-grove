@@ -35,15 +35,14 @@ prefix `pfx` of `kv`'s contracts), knowing etcd has reached `lo`: the transactio
 * `(false, err)` with an error. -/
 abbrev deleteRevKey.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key : GoString) (rev lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗
-      ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ key.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗
+      ⌜pfx <+: key ∧ 0 < sint.Z rev ∧ key.length ≤ recipesStrMax⌝) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.deleteRevKey))
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #rev))
-  {{ (ok : Bool) (err : GoInterface), RET (PairV #ok #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗
+  {{ (ok : Bool) (err : GoInterface), RET (PairV #ok #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗
         ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
         (if ok then revKeyDeleted pfx key rev r ∗ etcdRevToken r else revKeyGone pfx key rev r)) ∨
-      ⌜err ≠ GoInterface.nil ∧ ok = false⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ ok = false⌝) }}
 
 end spec
 

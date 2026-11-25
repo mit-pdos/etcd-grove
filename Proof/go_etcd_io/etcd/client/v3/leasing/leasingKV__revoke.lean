@@ -41,7 +41,7 @@ theorem leasingKV.revoke.wp_proof
     (hWR : leasingKV.waitRescind.spec (GF := GF) (hG := hG)) :
     leasingKV.revoke.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key opv o top lo
-  wp_start as ⟨#Hlkv, Hrd, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Htop⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Htop⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
@@ -164,8 +164,9 @@ theorem leasingKV.revoke.wp_proof
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ key)) .lt (.num (rv + W64 1))], [top], [TxnOp.putKeep (pfx ++ key) go!"REVOKE"]⟩, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro
+  wp_apply HCommit $$ %_ %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨TxnModel.under_nil _, ?_⟩
     have hw := txnOpOf_wireLen_le Htop.1
     obtain ⟨h1, h2, h3⟩ := Htop.2.2
@@ -181,6 +182,7 @@ theorem leasingKV.revoke.wp_proof
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe
     ileft; ipureintro; exact Hne
   subst Heq
@@ -197,6 +199,7 @@ theorem leasingKV.revoke.wp_proof
     · ipureintro; refine ⟨?_, ?_, Htop.2.1⟩ <;> omega
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe
     cases err2 with
     | ok e2 => ileft; ipureintro; simp
@@ -210,6 +213,7 @@ theorem leasingKV.revoke.wp_proof
   · simp only [↓reduceIte]
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe
     iright
     isplitr

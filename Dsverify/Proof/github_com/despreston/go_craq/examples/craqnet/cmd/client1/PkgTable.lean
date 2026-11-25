@@ -9,8 +9,6 @@ do not edit.
 module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.cmd.client1.Init
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 
@@ -29,8 +27,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.despreston.go_craq.examples.craqnet.cmd.client1.Assumptions]
 
 /-- Every package of the program's import closure, with its `isPkgInit`. -/
@@ -74,6 +70,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.io.fs, isPkgInit (PROP := IProp GF) pkg_id.io.fs),
    (pkg_id.iter, isPkgInit (PROP := IProp GF) pkg_id.iter),
    (pkg_id.log, isPkgInit (PROP := IProp GF) pkg_id.log),
+   (pkg_id.math, isPkgInit (PROP := IProp GF) pkg_id.math),
    (pkg_id.math.bits, isPkgInit (PROP := IProp GF) pkg_id.math.bits),
    (pkg_id.mime.multipart, isPkgInit (PROP := IProp GF) pkg_id.mime.multipart),
    (pkg_id.net, isPkgInit (PROP := IProp GF) pkg_id.net),
@@ -259,99 +256,103 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h37, True.intro⟩
-  have h39 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
+  have h39 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h40 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h23, True.intro⟩
-  have h40 : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h0, h6, True.intro⟩
-  have h41 : GetIsPkgInitProp pkg_id.bufio (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h40, h0, h6, h31, True.intro⟩
-  have h42 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h43 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h44 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h42, h43, True.intro⟩
-  have h45 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h9, h21, h0, h29, h6, h7, h30, h32, h35, h31, h5, h1, h8, h36, h20, h38, h37, h26, h39, h41, h44, True.intro⟩
-  have h46 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h47 : GetIsPkgInitProp pkg_id.net.rpc (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h41, h0, h6, h7, h20, h45, h5, h46, True.intro⟩
-  have h48 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
+  have h41 : GetIsPkgInitProp pkg_id.sort (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h11, h35, True.intro⟩
-  have h49 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
+  have h42 : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h9, h48, h8, h29, h31, True.intro⟩
-  have h50 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.transport (getIsPkgInit (GF := GF)) := by
+    exact ⟨h0, h6, True.intro⟩
+  have h43 : GetIsPkgInitProp pkg_id.bufio (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h42, h0, h6, h31, True.intro⟩
+  have h44 : GetIsPkgInitProp pkg_id.internal.runtime.sys (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h51 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.coordinator (getIsPkgInit (GF := GF)) := by
+  have h45 : GetIsPkgInitProp pkg_id.internal.runtime.atomic (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h7, h5, h8, h50, True.intro⟩
-  have h52 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.store (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h46 : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h44, h45, True.intro⟩
+  have h47 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h9, h21, h0, h29, h6, h7, h30, h32, h35, h31, h5, h1, h8, h36, h20, h38, h37, h26, h39, h40, h41, h43, h46, True.intro⟩
+  have h48 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h49 : GetIsPkgInitProp pkg_id.net.rpc (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h43, h0, h6, h7, h20, h47, h5, h48, True.intro⟩
+  have h50 : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h9, h41, h8, h29, h31, True.intro⟩
+  have h51 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.transport (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h52 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.coordinator (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h0, h7, h5, h8, h51, True.intro⟩
+  have h53 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.store (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, True.intro⟩
-  have h53 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.node (getIsPkgInit (GF := GF)) := by
+  have h54 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.node (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h7, h5, h52, h50, True.intro⟩
-  have h54 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.store.kv (getIsPkgInit (GF := GF)) := by
+    exact ⟨h0, h7, h5, h53, h51, True.intro⟩
+  have h55 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.store.kv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h5, h52, True.intro⟩
-  have h55 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.transport.netrpc (getIsPkgInit (GF := GF)) := by
+    exact ⟨h7, h5, h53, True.intro⟩
+  have h56 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.transport.netrpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h50, h47, True.intro⟩
-  have h56 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
+    exact ⟨h51, h49, True.intro⟩
+  have h57 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h57 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
+  have h58 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h1, h8, h49, True.intro⟩
-  have h58 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient (getIsPkgInit (GF := GF)) := by
+    exact ⟨h5, h1, h8, h50, True.intro⟩
+  have h59 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h8, h49, h57, True.intro⟩
-  have h59 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
+    exact ⟨h5, h8, h50, h58, True.intro⟩
+  have h60 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h20, h8, h49, h56, h57, h58, True.intro⟩
-  have h60 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.examples.craqnet (getIsPkgInit (GF := GF)) := by
+    exact ⟨h20, h8, h50, h57, h58, h59, True.intro⟩
+  have h61 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.examples.craqnet (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h7, h20, h45, h47, h5, h8, h49, h51, h53, h54, h55, h56, h59, h0, h50, True.intro⟩
-  have h61 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client1 (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h7, h20, h47, h49, h5, h8, h50, h52, h54, h55, h56, h57, h60, h0, h51, True.intro⟩
+  have h62 : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client1 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h60, True.intro⟩
-  exact h61
+    exact ⟨h61, True.intro⟩
+  exact h62
 
 end table
 

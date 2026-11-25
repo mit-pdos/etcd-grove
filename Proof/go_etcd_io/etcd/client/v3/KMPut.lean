@@ -239,11 +239,10 @@ def kmPutRestTodo (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString) : 
       op.Under pfx ∧ (opPutModel key val gs).t = W64 2 ∧
       ((putWireOf (opPutModel key val gs)).leaseID ≠ W64 0 ∨
         txn.needsPrev (putWireOf (opPutModel key val gs)) = true)⌝ -∗
-    {{ optsAt sl gs ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
+    {{ levelTok 0 ∗ optsAt sl gs ∗ etcdReached (EM := etcdModelOfKV γ) lo }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
         (Val #(GoInterface.ok todoCtxVal))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        putResult (EM := etcdModelOfKV γ) pfx lo op err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (putResult (EM := etcdModelOfKV γ) pfx lo op err) }})
 
 instance kmPutRestTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString) :
     Persistent (kmPutRestTodo (GF := GF) api γ pfx) := by
@@ -261,7 +260,7 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
       isEtcdPutKVTodo (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hkv, #Hinv, #Hrest⟩
   unfold isEtcdPutKVTodo
-  iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
+  iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨Hlt, #Hopts, #Hlo, %Hp⟩ HΦ
   obtain ⟨hpan, hop, hu, ht, hsz⟩ := Hp
   have hw := putTxnOp_wire _ _ hop ht
   by_cases hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0 ∧
@@ -274,24 +273,27 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
       · left; exact h0
     iunfold kmPutRestTodo at Hrest
     ihave #Ht := Hrest $$ %key %val %sl %gs %op %lo %(⟨hpan, hop, hu, ht, hl'⟩)
-    iapply Ht $$ [] HΦ
+    iapply Ht $$ [Hlt] HΦ
     iframe #
+    iframe Hlt
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
   ihave Hau := km_write_au γ l0 (.put (putWireOf (opPutModel key val gs))) (KMWritable.keep _) $$ [$Hinv $Hl0]
   iunfold kvOpAu1 at Hau
   iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Put api γ.kv false todoCtxVal cd key val sl gs
-    (kmWriteQ γ l0 (.put (putWireOf (opPutModel key val gs))))) $$ [Hau]
+    (kmWriteQ γ l0 (.put (putWireOf (opPutModel key val gs))))) $$ [Hlt Hau]
   · iframe #
+    iframe Hlt
     isplitl []
     · ipureintro; exact ⟨hpan, ht, hl.1⟩
     isplitl [Hau]
     · iexact Hau
     ipureintro; exact hsz
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs, -⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨-, -, h63, hok, hpost⟩ := Hs
@@ -313,7 +315,7 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
       isEtcdDeleteKVTodo (EM := etcdModelOfKV γ) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hkv, #Hinv, #H1⟩
   unfold isEtcdDeleteKVTodo
-  iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
+  iintro !> %key %sl %gs %lo %Φ !> ⟨Hlt, #Hopts, #Hlo, %Hp⟩ HΦ
   obtain ⟨hpan, hu, hz, ht, hsz⟩ := Hp
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
@@ -333,16 +335,18 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
   iunfold kvOpAu1 at Hau
   iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Delete api γ.kv false todoCtxVal cd key sl gs
-    (kmWriteQ γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))))) $$ [Hau]
-  · iframe #
+    (kmWriteQ γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))))) $$ [Hlt Hau]
+  · (try iframe Hlt)
+    iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht, by simpa [deleteWireOf, txn.deleteOpOf] using hz⟩
     isplitl [Hau]
     · iexact Hau
     ipureintro; exact hsz
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, %σ, -, HQ, %Hs⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨-, -, -, h63, hok, hpost⟩ := Hs

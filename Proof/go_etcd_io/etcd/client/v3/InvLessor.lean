@@ -141,14 +141,17 @@ instance leaseDescOk_persistent : Persistent (leaseDescOk (GF := GF)) := by
   unfold leaseDescOk; infer_instance
 
 /-- **`context.Canceled` and `context.DeadlineExceeded` are targets `errors.Is` takes** (persistent;
-`canceledByCaller` compares a stream's error with them): a pointer error and a comparable one.
-Go's (`context.go`: `errors.New(...)`, `deadlineExceededError{}`); from `context`'s facts as the
-read package states them (`EtcdGrove.ContextReadErrs`), `ctxErrTargets_of`. -/
+`canceledByCaller` compares a stream's error with them): a pointer error and
+`deadlineExceededError{}`. Go's (`context.go`: `errors.New(...)`, `deadlineExceededError{}`); from
+Perennial's `context.isInit`, `ctxErrTargets_of`. (ctx-leaf-fix, 2026-11-25) The second was a
+`SafeMapKey` at Perennial's interface keys, which since P8c are `nil` or pointers only, so the
+predicate was unsatisfiable: `notes/axiom-review/ctx-readerrs-vacuity.md`. -/
 def ctxErrTargets : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝) ∗
     (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e ∗
-      ⌜SafeMapKey (GF := GF) go.error (GoInterface.ok e)⌝))
+      ⌜e = ⟨_root_.Perennial.context.deadlineExceededError.ty,
+        #(zero_val _root_.Perennial.context.deadlineExceededError)⟩⌝))
 
 instance ctxErrTargets_persistent : Persistent (ctxErrTargets (GF := GF)) := by
   unfold ctxErrTargets; infer_instance
@@ -565,6 +568,28 @@ theorem kaPaired_get (γr : GName) (chs : List GoChan) (ctxs : List GoInterface)
   iintro #Hp
   unfold kaPaired
   iapply Hp $$ %i %ch %c %h1 %h2
+
+/-- **`ctxErrTargets` holds** (ctx-leaf-fix, 2026-11-25): from Perennial's `context.isInit`
+(`"#HCanceledCell"`: `Canceled`'s value is a `*errors.errorString`; `"#HDeadlineExceededTy"`:
+`DeadlineExceeded`'s is `deadlineExceededError{}`). -/
+theorem ctxErrTargets_of [_root_.Perennial.context.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrTargets := by
+  iintro #Hp
+  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+  · iapply _root_.Perennial.context.isInit_access $$ Hp
+  iNamed Hci
+  icases HCanceledCell with ⟨%x, #Hx, -⟩
+  iunfold ctxErrTargets
+  isplitl
+  · iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+    isplitl
+    · iexact Hx
+    · ipureintro; exact ⟨_, x, rfl, rfl⟩
+  · iexists ⟨_root_.Perennial.context.deadlineExceededError.ty,
+      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩
+    isplitl
+    · iexact HDeadlineExceededTy
+    · ipureintro; rfl
 
 end lemmas
 

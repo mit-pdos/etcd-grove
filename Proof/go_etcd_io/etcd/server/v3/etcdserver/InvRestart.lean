@@ -719,7 +719,7 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
         -- (premise fixes 1) the feature gate (`bootstrapContract`'s)
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`bootstrapContract`'s)
-        envVerifyOff ∗
+        ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
         -- (S5, 2026-11-18: no longer also the opaque `pathOwn` of the backend path, the claim on
         -- its name being `srvFiles`' file's)

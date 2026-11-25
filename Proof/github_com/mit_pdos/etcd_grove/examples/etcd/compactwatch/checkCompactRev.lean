@@ -50,8 +50,8 @@ theorem checkCompactRev.wp_proof
     (wp_CompactRev : etcdstart.CompactRev.spec (GF := GF) (hG := hG))
     (h_client_Get_rev : client_Get_rev.law (GF := GF) (hG := hG)) :
     checkCompactRev.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC cl key R E γr cid mid γf γl γv keys val hkl hcr hAs
-  wp_start as ⟨#Hnc, #HWF, #Hregs, #H00, #Hinv, #Hkvi⟩
+  intro CS cl key R E γr cid mid γf γl γv keys val hkl hcr hAs
+  wp_start as ⟨Hlt, #Hnc, #HWF, #Hregs, #H00, #Hinv, #Hkvi⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -140,7 +140,7 @@ theorem checkCompactRev.wp_proof
   (try wp_auto)
   cases cok
   · (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   (try wp_auto)
   ihave ⟨%c', %v, %r, Hok, %Hv⟩ := Hcr $$ %rfl
   iunfold etcdstart.stateCmpOk at Hok
@@ -174,7 +174,7 @@ theorem checkCompactRev.wp_proof
   wp_apply (h_client_Get_rev cl go!"127.0.0.1:23794" _ E γr γf γl γv keys val key
       (sint.Z crev + γr.kv.cret).toNat (W64 0) cid mid lctx lcd slice.nil []
       (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
-      as %lresp %lerr Hget
+      $$ [$Hlt] as %lresp %lerr ⟨Hlt, Hget⟩
   · iframe #
     iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl
@@ -187,7 +187,7 @@ theorem checkCompactRev.wp_proof
     | nil => exact absurd rfl Hgerr
     | ok ei => ?_
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   subst Hgerr
   (try wp_auto)
   iunfold rangeRespMsg at Hmg
@@ -203,7 +203,7 @@ theorem checkCompactRev.wp_proof
   wp_auto
   try simp only [Hnlt, decide_false, ↓reduceIte]
   wp_auto
-  iapply HΦ; itrivial
+  iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

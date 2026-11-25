@@ -49,8 +49,6 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- See the file header. -/
 abbrev MainPartition.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
     (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (sched : GoSlice) (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),
   1 ≤ k → k ≤ 1000 → ids.length = k →

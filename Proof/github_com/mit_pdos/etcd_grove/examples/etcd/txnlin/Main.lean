@@ -58,7 +58,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
@@ -135,7 +135,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cid mid ∗
-        ⌜noRefusalAt go!"127.0.0.1:23796"⌝)))
+        srvGoRes srv ∗ ⌜noRefusalAt go!"127.0.0.1:23796"⌝)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -146,13 +146,13 @@ theorem Main.wp_proof
     ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23796" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
-      $$ [Hg Hstk] with ⟨Hserv, #Hkv⟩
+    imod (etcdstart.kv_served_go srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
+      $$ [Hg Hstk] with ⟨Hserv, #Hkv, Hgo⟩
     · iframe; iframe #
     imodintro
-    iframe Hserv Hkv
+    iframe Hserv Hkv Hgo
     ipureintro; exact Hnr
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, %Hnr⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, Hgo, %Hnr⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -164,9 +164,10 @@ theorem Main.wp_proof
   iunfold etcdstart.etcdKVAt at Hkv
   icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23796" [] null null [] null default)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left

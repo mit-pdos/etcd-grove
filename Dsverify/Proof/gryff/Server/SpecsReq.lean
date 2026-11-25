@@ -32,11 +32,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [sA : gryff.src.serverlib.Assumptions]
 variable [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
 variable [nS : netN.NetSpecs GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
+variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
+variable (wp_SRegister : net.rpc.Server.Register.spec_fresh (GF := GF) (hG := hG))
+variable (wp_SHandleHTTP : net.rpc.Server.HandleHTTP.spec (GF := GF) (hG := hG))
+variable (wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG))
+variable (wp_Serve : net.http.Serve.spec_rpc (GF := GF) (hG := hG))
 
 omit mA sA kA nS in
 theorem masterRpcAddr_lis : lisAccepts masterRpcLis masterRpcAddr ∧ addrOk masterRpcAddr = true :=
@@ -80,24 +85,27 @@ theorem rpcAddrs_of_share (γ : GryffNames GF) :
   iapply BigSepL.bigSepL_nil.2
   iempintro
 
+include wp_Serve in
 theorem Master.Serve.wp_req (γ : GryffNames GF) (m : Loc) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗ masterOk γ m }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗ masterOk γ m ∗ threadTok }}
       (App (Val (m @!! go.GoType.PointerType gryff.src.masterlib.Master.ty @!! go!"Serve"))
         (Val #()))
     {{ RET #(); True }} := by
   unfold masterOk
-  exact wp_Master_Serve' γ m
+  exact wp_Master_Serve' wp_Serve γ m
 
-include L RL wp_Call wp_DialHTTP in
+include L RL wp_Call wp_DialHTTP wp_NewServer wp_SRegister wp_SHandleHTTP in
 theorem NewMaster.wp_req (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗ □ sharedInvs γ ∗ netShare γ ∗
         masterStartRes γ ∗ net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
-        H.muxFree net.rpc.defaultRPCPath ∗ dialEnv (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+        net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
+        net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ dialEnv (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
         isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗
         isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http }}
       (App (App (Val (@! gryff.src.masterlib.NewMaster)) (Val #(W64 3))) (Val #(W64 7501)))
     {{ (m : Loc), RET #m; masterOk γ m }} := by
-  iintro %Φ ⟨#Hpkg, #Hinv, #Hsh, Hstart, #Hcs, #Hse, Hmux, #Hde, %Hth, #Hkit, #Hrpc, #Hhttp⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hsh, Hstart, #Hcs, #Hse, Hmux, #Hhe, #Hcon, #Hde, %Hth, #Hkit, #Hrpc,
+    #Hhttp⟩ HΦ
   unfold masterStartRes deployStartDef
   icases Hstart with ⟨Hreg, #Hdep, %Hw⟩
   unfold netShare
@@ -108,7 +116,8 @@ theorem NewMaster.wp_req (γ : GryffNames GF) :
   · unfold rpcLises; iintro; icases Hrl with ⟨#Hm, -⟩; iexact Hm
   unfold sharedInvs protoInvs
   icases Hinv with ⟨⟨#Hg, -⟩, -⟩
-  iapply (wp_NewMaster' L RL wp_Call wp_DialHTTP γ) $$ [Hmux Hreg]
+  iapply (wp_NewMaster' L RL wp_Call wp_DialHTTP wp_NewServer wp_SRegister wp_SHandleHTTP γ)
+    $$ [Hmux Hreg]
   · iframe
     iframe #
     ipureintro; exact ⟨Hw, Hth⟩
@@ -147,15 +156,19 @@ theorem RegisterWithMaster.wp_req (γ : GryffNames GF) (k : Nat) (ws : List w64)
   iframe #
   ipureintro; exact hk
 
+include wp_HandleHTTP wp_Serve in
 theorem Serve.wp_req (γ : GryffNames GF) (k : Nat) (port : w64) (γs : GName) (hk : k < 3)
     (hport : sint.Z port = 8502 + k) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗ netShare γ ∗
-        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
-        net.rpc.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
-        replicaRegRes γ k ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ }}
+        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
+        net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
+        isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ net.http.httpEnv ∗
+        globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
+        net.rpc.defaultServerAny γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
+        replicaRegRes γ k ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ threadTok }}
       (App (Val (@! gryff.src.serverlib.Serve)) (Val #port))
     {{ RET #(); True }} := by
-  iintro %Φ ⟨#Hpkg, #Hsh, #Hcs, #Hse, Hmux, #Hds, #Hsreg, Hrr, %Hth⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hsh, #Hcs, #Hse, Hmux, #Hhttp, #Hhe, #Hcon, #Hds, #Hsreg, Hrr, %Hth, Htok⟩ HΦ
   unfold replicaRegRes deployRegResDef
   icases Hrr with ⟨-, %Hw⟩
   unfold netShare
@@ -172,7 +185,7 @@ theorem Serve.wp_req (γ : GryffNames GF) (k : Nat) (port : w64) (γs : GName) (
     · iexact H1
     · iexact H2
     · omega
-  iapply (wp_Serve' γ k hk port hport γs) $$ [Hmux]
+  iapply (wp_Serve' wp_HandleHTTP wp_Serve γ k hk port hport γs) $$ [Hmux Htok]
   · iframe
     iframe #
     ipureintro; exact ⟨Hw, Hth⟩

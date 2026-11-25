@@ -216,6 +216,7 @@ fields (a sender's message: `recv` is `send`). -/
 abbrev pbStringValueS : StreamMsg GF where
   ty := wrapperspb.StringValue.ty
   M := GoString
+  tree := stringValueTree
   cnt := inferInstance
   tree := stringValueTree
   send := stringValueSend

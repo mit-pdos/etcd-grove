@@ -105,7 +105,9 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_vendor_golang_org_x_net_http_httpguts : G pkg_id.vendor.golang_org.x.net.http.httpguts = isPkgInit (PROP := IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts
   e_net_textproto : G pkg_id.net.textproto = isPkgInit (PROP := IProp GF) pkg_id.net.textproto
   e_mime_multipart : G pkg_id.mime.multipart = isPkgInit (PROP := IProp GF) pkg_id.mime.multipart
+  e_math : G pkg_id.math = isPkgInit (PROP := IProp GF) pkg_id.math
   e_path : G pkg_id.path = isPkgInit (PROP := IProp GF) pkg_id.path
+  e_sort : G pkg_id.sort = isPkgInit (PROP := IProp GF) pkg_id.sort
   e_internal_runtime_sys : G pkg_id.internal.runtime.sys = isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.sys
   e_internal_runtime_atomic : G pkg_id.internal.runtime.atomic = isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.atomic
   e_runtime : G pkg_id.runtime = isPkgInit (PROP := IProp GF) pkg_id.runtime
@@ -283,9 +285,17 @@ theorem wf_mime_multipart {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.mime.multipart G :=
   And.intro h.e_mime_multipart ⟨wf_net_textproto h, True.intro⟩
 
+theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.math G :=
+  And.intro h.e_math True.intro
+
 theorem wf_path {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.path G :=
   And.intro h.e_path ⟨wf_errors h, wf_internal_bytealg h, True.intro⟩
+
+theorem wf_sort {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.sort G :=
+  And.intro h.e_sort ⟨wf_math_bits h, wf_slices h, True.intro⟩
 
 theorem wf_internal_runtime_sys {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.runtime.sys G :=
@@ -301,7 +311,7 @@ theorem wf_runtime {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.http G :=
-  And.intro h.e_net_http ⟨wf_context h, wf_crypto_tls h, wf_errors h, wf_fmt h, wf_io h, wf_log h, wf_net_http_internal_ascii h, wf_net_url h, wf_slices h, wf_strings h, wf_sync h, wf_sync_atomic h, wf_time h, wf_vendor_golang_org_x_net_http_httpguts h, wf_net h, wf_mime_multipart h, wf_net_textproto h, wf_strconv h, wf_path h, wf_bufio h, wf_runtime h, True.intro⟩
+  And.intro h.e_net_http ⟨wf_context h, wf_crypto_tls h, wf_errors h, wf_fmt h, wf_io h, wf_log h, wf_net_http_internal_ascii h, wf_net_url h, wf_slices h, wf_strings h, wf_sync h, wf_sync_atomic h, wf_time h, wf_vendor_golang_org_x_net_http_httpguts h, wf_net h, wf_mime_multipart h, wf_net_textproto h, wf_strconv h, wf_math h, wf_path h, wf_sort h, wf_bufio h, wf_runtime h, True.intro⟩
 
 theorem wf_go_token {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.go.token G :=
@@ -529,10 +539,20 @@ theorem wfO_mime_multipart {G : GoString → IProp GF} (h : KitG G) (S : List Go
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.mime.multipart ∉ ownedPkgs) (hS _ hm))).trans
     h.e_mime_multipart) ⟨wfO_net_textproto h S hS, True.intro⟩
 
+theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_math) True.intro
+
 theorem wfO_path {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.path (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.path ∉ ownedPkgs) (hS _ hm))).trans
     h.e_path) ⟨wfO_errors h S hS, wfO_internal_bytealg h S hS, True.intro⟩
+
+theorem wfO_sort {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sort (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sort ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_sort) ⟨wfO_math_bits h S hS, wfO_slices h S hS, True.intro⟩
 
 theorem wfO_internal_runtime_sys {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.runtime.sys (gOff S G) :=
@@ -562,7 +582,7 @@ theorem wfO_github_com_goose_lang_primitive {G : GoString → IProp GF} (h : Kit
 /-- net/http's facts at a table in which it is initialized (its imports avoid the owned packages). -/
 theorem wfX_net_http {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) (hn : pkg_id.net.http ∉ S) : GetIsPkgInitProp pkg_id.net.http (gOff S G) :=
-  And.intro ((gOff_ne S G _ hn).trans h.e_net_http) ⟨wfO_context h S hS, wfO_crypto_tls h S hS, wfO_errors h S hS, wfO_fmt h S hS, wfO_io h S hS, wfO_log h S hS, wfO_net_http_internal_ascii h S hS, wfO_net_url h S hS, wfO_slices h S hS, wfO_strings h S hS, wfO_sync h S hS, wfO_sync_atomic h S hS, wfO_time h S hS, wfO_vendor_golang_org_x_net_http_httpguts h S hS, wfO_net h S hS, wfO_mime_multipart h S hS, wfO_net_textproto h S hS, wfO_strconv h S hS, wfO_path h S hS, wfO_bufio h S hS, wfO_runtime h S hS, True.intro⟩
+  And.intro ((gOff_ne S G _ hn).trans h.e_net_http) ⟨wfO_context h S hS, wfO_crypto_tls h S hS, wfO_errors h S hS, wfO_fmt h S hS, wfO_io h S hS, wfO_log h S hS, wfO_net_http_internal_ascii h S hS, wfO_net_url h S hS, wfO_slices h S hS, wfO_strings h S hS, wfO_sync h S hS, wfO_sync_atomic h S hS, wfO_time h S hS, wfO_vendor_golang_org_x_net_http_httpguts h S hS, wfO_net h S hS, wfO_mime_multipart h S hS, wfO_net_textproto h S hS, wfO_strconv h S hS, wfO_math h S hS, wfO_path h S hS, wfO_sort h S hS, wfO_bufio h S hS, wfO_runtime h S hS, True.intro⟩
 
 end table
 

@@ -39,15 +39,15 @@ abbrev watchGRPCStream.serveWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (wc : GoInterface) (γs : StreamNames)
     (Dn : GoString → GrpcMd → Nat → v3rpc.WatchRespM → IProp GF)
     (cd' : context.ContextDesc (IProp GF)) (e : Nat) (γc : GName) (sent : List Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isWGS V G callSl ∗
       v3rpc.cliWatchStreamIs wc γs (watchUpW V) (watchMdW V G.omd) Dn cd' ∗
       □ (∀ a md, watchMdW V G.omd a md -∗
         v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md)) ∗
       cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
       monoListIdxOwn G.γep e ((γs, sent.length, γc) : EpInfo) ∗ sspscProducer G.γr sent ∗
-      monoNatAuthOwn γc 1 sent.length }}
+      monoNatAuthOwn γc 1 sent.length) }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"serveWatchClient")) (Val #wc))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

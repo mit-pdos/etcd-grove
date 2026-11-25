@@ -36,7 +36,7 @@ abbrev Run.spec : Prop :=
   backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds cfg.Path' ∅ ∗
-      threadTok ∗ envVerifyOff }}
+      threadTok ∗ ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Run)) (Val #cfg))
   {{ (rep : Report), RET #rep; True }}
 

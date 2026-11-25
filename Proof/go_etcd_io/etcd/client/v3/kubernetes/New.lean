@@ -32,12 +32,13 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro _ cfg eps V P
-  wp_start as ⟨#Hcfg, #Hauth⟩
+  wp_start as ⟨Hlt, #Hcfg, #Hauth⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_New cfg eps V P) $$ [] as %cl %err Hr
+  wp_apply (wp_New cfg eps V P) $$ [Hlt] as %cl %err ⟨Hlt, Hr⟩
   · iframe #
+    iframe Hlt
   icases Hr with (⟨%He, #Hnc, #Htok⟩ | ⟨%He, %Hcl⟩)
   · subst He
     iapply wp_fupd
@@ -45,6 +46,7 @@ theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     ipersist «$r0»
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -55,6 +57,7 @@ theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact He
 end proof

@@ -41,6 +41,45 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `CancelFunc`, which passes `Canceled`), so the axiom is true of Go; the ghost set is what makes the
   invariant say so. General: any program that tells a cancelled context from an expired one needs it.
 - **Status.** Workaround in place (the interim axiom); the Perennial change is not started.
+- **Workaround here.** None yet: the premise is stated; the driver cannot produce it until Perennial does.
+- **Proposed change.** `cancel()`'s post also gives that the new context's `Err()` returns `Canceled`'s
+  value on every call when the parent was not done first (for instance a parent whose `PDone` is `False`,
+  `Background()`'s): `cancelCtx.cancel` stores `Canceled` only if `err` is unset, and `propagateCancel`
+  sets the parent's error only if the parent finishes first. General: any program that tells a cancelled
+  context from an expired one needs it.
+- **Status.** Open (not started).
+### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvraft-udp)
+### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
+
+- **Status.** bag_nb_send_au(_now): Perennial branch chan-bag-nb-send (3b51f8790), replaces kvreconf's
+  BagSend and kvraft's queue_nb_send_au. **Done**: pinned (bca1cd2e5); the local copies deleted
+  (`bagsend-perennial/2026-11-24`, landed).
+### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvraft-udp)
+
+- **Limitation.** Go accepts a size of any integer type in `make` (`make([][]byte, d.total)`, where `d.total`
+  is a `uint32`). goose translates it as `FuncResolve go.make2 [st] #() (load uint32 ...)` and passes the w32
+  value unconverted. `make2_slice` unfolds to `make3_slice` (`Golang/Defn/Slice.lean:130`), which compares
+  its arguments with `<⟨go.int⟩`, and `lt_int` (`Predeclared.lean:284`) is defined only on w64 values. So
+  the call is stuck: a correct Go program has no proof.
+- **Who.** kvraft-udp's `reassembler.add` (`examples/raft/kvraft/udptransport.go`).
+- **Workaround here.** The Go code converts the size itself: `make([][]byte, int(d.total))` (same behaviour).
+- **Proposed change.** goose converts every `make` size and capacity argument whose type is not `int` to
+  `int` (`Convert t go.int`), as the Go spec's conversion of a typed integer size to `int` does. An untyped
+  constant needs no conversion.
+- **Status.** Open.
+### `sync.Mutex` has no spec for an owned (unshared) mutex (2026-11-25, claim #34 stage 2)
+
+- **Limitation.** Perennial's `sync.Mutex.Lock`/`Unlock` specs take `isMutex m R`, a lock invariant allocated
+  for good (`init_Mutex`, an `inv`), so a mutex that a constructor locks before it shares the object cannot be
+  given its real lock invariant afterwards.
+- **Who needs it.** `membership.NewClusterFromURLsMap`'s `genID` (`MemberIDs`) and `bootstrapNewClusterNoWAL`'s
+  `MemberByName` lock the new cluster's mutex before `Finalize` makes `isRaftCluster` of it.
+- **Workaround.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/membership/OwnedMutex.lean`: `lock.lock`/
+  `lock.unlock` of an owned lock (the first compare-and-swap with the whole points-to), and from them
+  `internal.sync.Mutex.wp_{Lock,Unlock}_owned`, `sync.Mutex.wp_{Lock,Unlock}_owned` (zero value to
+  `sync.lockedMutex` and back) and `RaftCluster`'s promoted pair. Derived from the trusted code, no trust.
+- **Proposed change.** The same lemmas in Perennial's `Golang/Theory/Lock.lean` and `Proof/sync/`.
+- **Status.** Not proposed yet.
 
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
@@ -3120,6 +3159,9 @@ sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : �
 P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
+**Done** (Perennial bca1cd2e5: `bag_nb_send_au` and `bag_nb_send_au_now`, the latter with `Φ` now and
+no credit). 2026-11-24 (branch `bagsend-perennial/2026-11-24`): the local `BagSend.lean` and kvraft's
+`queue_nb_send_au` (= `bag_nb_send_au_now`) deleted, their users on Perennial's.
 
 
 ## A bag channel's non-blocking receive (2026-10-31, S1)
@@ -4289,12 +4331,12 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed.** Name a blank of a generated file by the position its `//line` directive gives (the
   cgo source, `cgo_unix_cgo.go`), or accept the build-cache name (any base name) in `blankNameRx`.
 - **Status.** Not filed yet.
-**Update (2026-11-22, kvnet's top level, branch `kvnet-proof`):** kvnet needs, besides the extensions' local
+**Update (2026-11-22, kvraft's top level, branch `kvnet-proof`):** kvraft needs, besides the extensions' local
 interpretation before each generation's WP, **one later credit in the crash obligation** (`£ 1`, or a step): the
 crash opens the generation's file invariant (allocated at the boot) and must take its contents (raft's sealed
 `raftState`, `kdFileState`) without the later. The coordinator routed both to a Perennial session (branch
-`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
-(`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
+`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvraft's proof states the bridge it expects as `RobustOfNetFsBootG`
+(`KvRaft/Proof/.../kvraft/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
 
 ## SPSC receive that keeps the consumer after the close; `go.IntoValInj Unit` (prom-registry, 2026-11-22)
@@ -4440,7 +4482,7 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   (`ReadFull`: `ys.length < len(buf)`); both proofs change by one line. (The first version asked it at
   `ys.length < min` alone: with `min > len(buf)`, the `ErrShortBuffer` path, which reads nothing,
   Nat subtraction then asked `Pre _ 0`; round 2 of the review on #24, N3.) Alternative (not taken: Upamanyu's `Net/` spec, 64 importers
-  and the `KvNet/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
+  and the `KvRaft/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
   condition can be `True`.
 - **Status.** On Perennial branch `readatleast-prefix` (`af905abba`, after `d5cdfc558`, off `lean`
   `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
@@ -4562,6 +4604,19 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `prom-registry` (#15) lands, on its `reg_steps`.
 - **Status.** Not filed.
 
+## 2026-11-24: `sync.Once.Do` lends its closure nothing of the caller's (k8s compactor `Stop`, branch `prove-ps2-clientrdlock`)
+
+- **Limitation.** Perennial's `sync.Once.Do.spec` is `{{ isOnce o P Q ∗ {{ P }} f() {{ Q }} }} o.Do(f) {{ Q }}`: the
+  closure gets only the once's `P`. k8s' `compactor.Stop` calls `stopOnce.Do(func() { ...; c.onClose(); ... })`, and
+  the `onClose` that `StartCompactorPerEndpoint` installs calls `Client.Endpoints()`, which (decision 1b) needs the
+  caller's `levelTok 0`. Go runs the closure on the caller's goroutine and `Do` returns after it, so the caller can
+  lend it any resource.
+- **Worked around here.** `Proof/sync/OnceLend.lean`: `wp_Once_Do_lend` (and `wp_Once_doSlow_lend`),
+  `{{ isOnce o P Q ∗ R ∗ {{ P ∗ R }} f() {{ Q ∗ R }} }} o.Do(f) {{ Q ∗ R }}`, proved over `Do`'s and `doSlow`'s
+  translations by the argument of `Once__Do.lean`/`Once__doSlow.lean` (no axiom; `isOnce_unseal` is public).
+- **Proposed.** The same two theorems in Perennial's `Proof/sync/` (a spec `sync.Once.Do.specR` beside `Do.spec`,
+  `Do.spec` its instance at `R = True`), proved there; no trusted change.
+- **Status.** Not filed.
 ## 2026-11-24: real `fmt` stage 1's verified subset leaves verified call sites out (branch `prove-ps2-fmtstage1`, #9)
 
 - **Limitation.** Perennial's spec of the translated `fmt.Sprintf` (`50596346c`) covers literal text, `%%`,
@@ -4618,3 +4673,7 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `time.Duration.wp_String`) give the two arguments.
 - **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
   reviewed as a change to the trusted model's claim. **Status.** Not filed.
+
+## `MapKeys`/`SafeMapKey`: say that a non-pointer interface is never a `SafeMapKey` at the default keys (2026-11-25 · `notes/axiom-review/ctx-readerrs-vacuity.md`)
+
+- **Limitation.** Since P8c a `SafeMapKey` interface at `mapKeys_interface` is `nil` or a pointer, so stating `SafeMapKey go.error e` of a comparable struct error is `False`; two specs here did, unnoticed for a month. **Proposed.** One line in `Golang/Theory/Map.lean`'s `mapKeys_interface` doc warning of it (and pointing to a local instance). **Status.** Not filed.

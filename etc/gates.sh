@@ -100,7 +100,7 @@ if python3 etc/gen-raft-tla.py --check > "$tmp/tla.log" 2>&1; then
 else
   echo "gen-raft-tla: FAILED"; tail -10 "$tmp/tla.log"; fail=1
 fi
-# (the parts RaftNoAx/ and KvNet/: one summary line each)
+# (the parts RaftNoAx/ and KvRaft/: one summary line each)
 if python3 etc/copy-part.py --check > "$tmp/cp.log" 2>&1; then
   grep '^copy-part: [A-Za-z]*: ' "$tmp/cp.log"
 else
@@ -272,10 +272,10 @@ else
   echo "net-sticky: FAILED"; tail -10 "$tmp/sticky.log"; fail=1
 fi
 # protobuf stages S1/S2 (#37): the wire codecs' vectors modules EntryWireVectors.lean,
-# MessageWireVectors.lean, RecordWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
-# codecs) are what examples/pbschema/wirevectors{,_s2}_test.go generate from protobuf-go
+# MessageWireVectors.lean, RecordWireVectors.lean, ConfChangeWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
+# codecs) are what examples/pbschema/wirevectors{,_s2,_cc1}_test.go generate from protobuf-go
 # (examples/go.mod's pin); TestMessageDepthLimit checks the decoder's recursion limit in Go
-if (cd examples && GOWORK=off gotest -run '^(TestWireVectors|TestMessageWireVectors|TestRecordWireVectors|TestIrrWireVectors|TestMessageDepthLimit)$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
+if (cd examples && GOWORK=off gotest -run '^(TestWireVectors|TestMessageWireVectors|TestRecordWireVectors|TestConfChangeWireVectors|TestIrrWireVectors|TestMessageDepthLimit)$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
   echo "wirevectors: ok"
 else
   echo "wirevectors: FAILED"; tail -10 "$tmp/wirevec.log"; fail=1
@@ -421,6 +421,13 @@ if python3 etc/mode-check.py --check > "$tmp/mode.log" 2>&1; then
 else
   echo "mode: FAILED"; grep -v "^mode: ok" "$tmp/mode.log" | head -20; fail=1
 fi
+# 7c. no top-level statement takes a new Iris premise without a satisfiability witness
+# (etc/iris-premise-baseline.txt; reads the sources only; notes/axiom-review/ctx-readerrs-vacuity.md)
+if python3 etc/iris-premise-check.py --check > "$tmp/irisprem.log" 2>&1; then
+  echo "$(tail -1 "$tmp/irisprem.log")"
+else
+  echo "iris-premise: FAILED"; head -20 "$tmp/irisprem.log"; fail=1
+fi
 return $fail
 }
 
@@ -447,6 +454,14 @@ if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
   echo "$(tail -1 "$tmp/tier.log")"
 else
   echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
+fi
+# every top-level statement has a satisfiability witness of its premises, or a baseline line
+# (etc/premise-witness-baseline.txt; Robustness/PremiseSat.lean; reads the sources only: the build
+# checks the witnesses' proofs)
+if python3 etc/premise-witness.py --check > "$tmp/pw.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pw.log")"
+else
+  echo "premise-witness: FAILED"; head -20 "$tmp/pw.log"; fail=1
 fi
 return $fail
 }

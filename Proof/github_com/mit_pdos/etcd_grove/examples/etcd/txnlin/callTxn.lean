@@ -56,9 +56,9 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
     (h_txn_Commit_st : txn_Commit_st.law (GF := GF) (hG := hG)) :
     callTxn.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs x cs t e Q hx hne hb
+  intro _ cl ms V hAs x cs t e Q hx hne hb
   obtain ⟨hn, hcs, ht, he⟩ := decIn_txn x cs t e hx
-  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -81,7 +81,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   (try wp_auto)
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
-  wp_apply (h_client_Txn_st cl ms V cctx ccd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
+  wp_apply (h_client_Txn_st cl ms V cctx ccd) $$ [$Hlt] as %tv ⟨Hlt, %tp, %Htv, Hobj, Hkt⟩
   · iframe #
   subst Htv
   (try wp_auto)
@@ -112,8 +112,8 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
       (by
         show txnSizeOk (txnWireOf (clientTxn cs t e))
         rw [txnWireOf_clientTxn]
-        exact txnSizeOk_txnOf cs t e (decIn_txn_length x cs t e hx) hb)) $$ [Hobj Hau Hkt]
-    as %resp %err Hout
+        exact txnSizeOk_txnOf cs t e (decIn_txn_length x cs t e hx) hb)) $$ [$Hlt Hobj Hau Hkt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe
   -- `cancel()`
@@ -145,6 +145,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
       wp_apply wp_withRes _ rsl _ (DFrac.own 1) $$ [Hrsl] as %o' ⟨-, %Ho'⟩
       · iframe
       iapply HΦ
+      iframe Hlt
       iright
       iexists σ
       iframe HQ
@@ -171,6 +172,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
       wp_apply wp_withRes _ rsl _ (DFrac.own 1) $$ [Hrsl] as %o' ⟨-, %Ho'⟩
       · iframe
       iapply HΦ
+      iframe Hlt
       iright
       iexists σ
       iframe HQ
@@ -186,6 +188,7 @@ theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro; rfl
 end proof

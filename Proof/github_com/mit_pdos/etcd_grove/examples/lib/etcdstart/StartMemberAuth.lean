@@ -95,7 +95,7 @@ theorem StartMemberAuth.wp_proof
       (lease.bootCfg_of_run hslg (fun _ => hlgf))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ rfl rfl rfl rfl)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl)
       ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩
       HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres

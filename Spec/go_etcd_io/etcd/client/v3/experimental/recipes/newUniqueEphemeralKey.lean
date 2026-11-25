@@ -28,17 +28,16 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 abbrev newUniqueEphemeralKey.spec : Prop :=
   ∀ (s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (pfx kp : GoString)
     (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
-      etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (concurrency.isSession s γ client id ∗ isEtcdRecipesClient client pfx ∗
+      etcdReached lo ∗ ⌜pfx <+: kp ∧ kp.length ≤ recipesPfxMax + 2 ^ 10⌝) }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphemeralKey))
       (Val #s)) (Val #kp))
-  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (key : GoString) (r : w64),
+  {{ (ek : Loc) (err : GoInterface), RET (PairV #ek #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (kv : GoInterfaceOk) (key : GoString) (r : w64),
         clientKVAddr client ↦□ GoInterface.ok kv ∗
         ownEphemeralKV ek ⟨GoInterface.ok kv, key, r, []⟩ ∗
         etcdReached r ∗ keyCreatedAt pfx key [] id r ∗
         ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ ek = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ ek = null⌝) }}
 
 end spec
 

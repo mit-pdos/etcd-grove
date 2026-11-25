@@ -40,7 +40,7 @@ The client's update (`AU`) fires inside `RestartNode`, when it reads the storage
 unchanged: it checks that the storage holds `S` (`StorageHolds`), so that a stale storage fails it.
 (2026-11-22) It is given the generation's crash token `notCrashed` and gives it back (as durable's
 sync update and raft's trace updates), so that a client whose process crashes can keep `raftState`
-in an invariant that the generation's crash obligation empties (`notes/kvnet-part.md`, "`StartNode`
+in an invariant that the generation's crash obligation empties (`notes/kvraft-part.md`, "`StartNode`
 and the crash frame"); a client that needs no token passes a plain update (`restartAu_nc`).
 
 Raft names the storage by a fresh key `K` at the attach (`restartStorage`'s continuation). The post:
