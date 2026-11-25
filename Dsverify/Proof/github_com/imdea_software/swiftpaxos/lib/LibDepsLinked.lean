@@ -24,6 +24,7 @@ public import Net.Proof.net.Dial
 public import Net.Proof.net.DialTimeout
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
+public import Proof.bufio.NewWriterSizeRep
 
 @[expose] public section
 

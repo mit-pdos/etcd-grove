@@ -30,11 +30,11 @@ key; a written key's value; otherwise the prefetched reads of `keys` move to the
 (`WithRev`) (`GetPost`), for a call that fits (`STMCallOk`). A client error aborts it (`stmRet`). -/
 abbrev stmSerializable.Get.spec : Prop :=
   ∀ (lvl : w64) (p : Loc) (pfx : GoString) (st : STMSt) (ksl : GoSlice) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmState lvl pfx p st ∗ ksl ↦*□ ks ∗ ⌜isoSer lvl = true ∧ ∀ k ∈ ks, pfx <+: k⌝ ∗
-      ⌜STMCallOk st ks []⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (stmState lvl pfx p st ∗ ksl ↦*□ ks ∗ ⌜isoSer lvl = true ∧ ∀ k ∈ ks, pfx <+: k⌝ ∗
+      ⌜STMCallOk st ks []⌝) }}
     (App (Val (p @!! go.GoType.PointerType stmSerializable.ty @!! go!"Get")) (Val #ksl))
-  {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
-      ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝) }}
+  {{ (r : val), RET r; levelTok 0 ∗ (stmRet r fun v : GoString => iprop(
+      ∃ st' : STMSt, stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝)) }}
 
 end spec
 

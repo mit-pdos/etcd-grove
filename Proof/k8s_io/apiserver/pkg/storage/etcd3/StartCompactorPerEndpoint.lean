@@ -50,7 +50,7 @@ theorem StartCompactorPerEndpoint.wp_proof
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γk Seen recorded _ _ iv hsame hcmp hcret hiv
-  wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclaims⟩
+  wp_start as ⟨Hlt, #Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclaims⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pe : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
@@ -73,7 +73,7 @@ theorem StartCompactorPerEndpoint.wp_proof
   iunfold registryInv at HR
   icases HR with ⟨%mref, %m, Hmp, Hm, Hents⟩
   (try wp_auto)
-  wp_apply wp_Endpoints cl $$ [] as %esl ⟨%eps, Hesl, Heq⟩
+  wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps, Hesl, Heq⟩
   · iframe #
   ihave %Heq' := Heq $$ %esl0 %_ Hef Hes
   subst Heq'
@@ -135,7 +135,7 @@ theorem StartCompactorPerEndpoint.wp_proof
       wp_apply (wp_map_lookup2 (K := GoString) (V := Loc) go.string _ mref m e) $$ [$Hm] as Hm
       simp only [Hme, Option.isSome_some, Option.getD_some]
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [] as %esl2 ⟨%eps2, Hesl2, -⟩
+      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl2 ⟨Hlt, %eps2, Hesl2, -⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -163,6 +163,7 @@ theorem StartCompactorPerEndpoint.wp_proof
         iframe
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iunfold compactorFor at Hx'
       icases Hx' with ⟨#Hc, #H0⟩
       iexists x.2.1, ⟨x.2.2⟩
@@ -178,7 +179,7 @@ theorem StartCompactorPerEndpoint.wp_proof
       -- `onClose`: under the lock, delete the client's endpoints (dropping their entries)
       unfold closeOk
       iright
-      iintro !> %Φc HΦc
+      iintro !> %Φc Hlt HΦc
       (try wp_auto)
       wp_apply wp_with_defer as %defer2 defer2
       (try wp_auto)
@@ -187,7 +188,7 @@ theorem StartCompactorPerEndpoint.wp_proof
       iunfold registryInv at HR2
       icases HR2 with ⟨%mref2, %m2, Hmp2, Hm2, Hents2⟩
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [] as %esl3 ⟨%eps3, Hesl3, -⟩
+      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl3 ⟨Hlt, %eps3, Hesl3, -⟩
       · iframe #
       ipersist Hesl3
       ihave %Hsll3 := ownSlice_len $$ Hesl3
@@ -228,12 +229,12 @@ theorem StartCompactorPerEndpoint.wp_proof
           iexists mref2, m'
           iframe
         (try wp_auto)
-        iapply HΦc
+        iapply HΦc $$ Hlt
     ihave #Hfor : compactorFor γk recorded (c, cl, γc.lb) $$ []
     · iunfold compactorFor
       iframe #
     (try wp_auto)
-    wp_apply wp_Endpoints cl $$ [] as %esl4 ⟨%eps4, Hesl4, Heq4⟩
+    wp_apply wp_Endpoints cl $$ [$Hlt] as %esl4 ⟨Hlt, %eps4, Hesl4, Heq4⟩
     · iframe #
     ihave %Heq4' := Heq4 $$ %esl0 %_ Hef Hes
     subst Heq4'
@@ -285,6 +286,7 @@ theorem StartCompactorPerEndpoint.wp_proof
         iframe
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iexists cl, γc
       iframe #
 

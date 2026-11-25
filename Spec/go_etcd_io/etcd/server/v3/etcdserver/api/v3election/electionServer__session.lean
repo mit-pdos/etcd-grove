@@ -30,15 +30,13 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ap
 to expire), or no session and an error. -/
 abbrev electionServer.session.spec : Prop :=
   ∀ (es c : Loc) (lease : w64) (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
-      isElectionServer es c ∗ electionClientOk c ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
-      context.isCancelCtxCtx ctx cs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ levelTok 0 ∗ (isElectionServer es c ∗ electionClientOk c ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
+      context.isCancelCtxCtx ctx cs) }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"session"))
       (Val #(GoInterface.ok ctx))) (Val #lease))
-  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      (⌜err = GoInterface.nil ∧ s ≠ null⌝ ∗ ∃ (γ : SessionNames) (id : w64),
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err); levelTok 0 ∗ ((⌜err = GoInterface.nil ∧ s ≠ null⌝ ∗ ∃ (γ : SessionNames) (id : w64),
         isSession s γ c id ∗ ⌜id ≠ W64 0 ∧ (lease ≠ W64 0 → id = lease)⌝) ∨
-      ⌜s = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜s = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

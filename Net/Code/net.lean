@@ -642,11 +642,7 @@ opaque sockaddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque KeepAliveConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque UDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque addrPortUDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque UDPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque UnixAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -4096,22 +4092,50 @@ attribute [instance] TCPListener.TypeAssumptions.type_repr
   TCPListener.TypeAssumptions.ptr_Addr_unfold
   TCPListener.TypeAssumptions.ptr_Close_unfold
 
-opaque UDPAddr.nonempty_type : NonemptyType.{0}
-def UDPAddr : Type := UDPAddr.nonempty_type.type
-instance UDPAddr.nonempty : Nonempty UDPAddr := UDPAddr.nonempty_type.property
-opaque UDPAddr.zero_val : ZeroVal UDPAddr := ⟨Classical.ofNonempty⟩
-attribute [instance] UDPAddr.zero_val
+structure UDPAddr [GooseExts] where
+  mk ::
+  IP' : IP
+  Port' : w64
+  Zone' : GoString
+
+noncomputable instance UDPAddr.zero_val [GooseExts] : ZeroVal UDPAddr :=
+  ⟨UDPAddr.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def UDPAddr.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"IP" IP.ty),
+(go.field_decl.FieldDecl go!"Port" go.int),
+(go.field_decl.FieldDecl go!"Zone" go.string)]
+
+@[irreducible] noncomputable def UDPAddr.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  UDPAddr.fieldsUnsealed
+
+noncomputable instance equals_unfold_UDPAddr [GooseExts] [GoGlobalContext] :
+    EqualsUnfold UDPAddr.fields UDPAddr.fieldsUnsealed :=
+  ⟨by unfold UDPAddr.fields; rfl⟩
+
+@[reducible] noncomputable def UDPAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType UDPAddr.fields)
 
 class UDPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UDPAddr.underlying UDPAddr
   underlying : go.UnderlyingDirectedEq UDPAddr.ty UDPAddr.underlying
-  isUnderlying : go.IsUnderlying UDPAddr.underlying UDPAddr.underlying
+  get_IP : ∀ (x : UDPAddr), go.IsGoStepPureDetTagged under (StructFieldGet UDPAddr.underlying go!"IP") #x (Val #(x.IP'))
+  set_IP : ∀ (x : UDPAddr) (y : IP), go.IsGoStepPureDetTagged under (StructFieldSet UDPAddr.underlying go!"IP") (PairV #x #y) (Val #(({ x with IP' := y } : UDPAddr)))
+  get_Port : ∀ (x : UDPAddr), go.IsGoStepPureDetTagged under (StructFieldGet UDPAddr.underlying go!"Port") #x (Val #(x.Port'))
+  set_Port : ∀ (x : UDPAddr) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet UDPAddr.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : UDPAddr)))
+  get_Zone : ∀ (x : UDPAddr), go.IsGoStepPureDetTagged under (StructFieldGet UDPAddr.underlying go!"Zone") #x (Val #(x.Zone'))
+  set_Zone : ∀ (x : UDPAddr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet UDPAddr.underlying go!"Zone") (PairV #x #y) (Val #(({ x with Zone' := y } : UDPAddr)))
   method_set : go.MethodSetIs UDPAddr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPAddr.ty) [(go!"AddrPort", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.AddrPort" [])]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [_root_.Perennial.syscall.Sockaddr.ty, go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
 
 attribute [instance] UDPAddr.TypeAssumptions.type_repr
   UDPAddr.TypeAssumptions.underlying
-  UDPAddr.TypeAssumptions.isUnderlying
+  UDPAddr.TypeAssumptions.get_IP
+  UDPAddr.TypeAssumptions.set_IP
+  UDPAddr.TypeAssumptions.get_Port
+  UDPAddr.TypeAssumptions.set_Port
+  UDPAddr.TypeAssumptions.get_Zone
+  UDPAddr.TypeAssumptions.set_Zone
   UDPAddr.TypeAssumptions.method_set
   UDPAddr.TypeAssumptions.ptr_method_set
 
@@ -4134,24 +4158,20 @@ attribute [instance] addrPortUDPAddr.TypeAssumptions.type_repr
   addrPortUDPAddr.TypeAssumptions.method_set
   addrPortUDPAddr.TypeAssumptions.ptr_method_set
 
-opaque UDPConn.nonempty_type : NonemptyType.{0}
-def UDPConn : Type := UDPConn.nonempty_type.type
-instance UDPConn.nonempty : Nonempty UDPConn := UDPConn.nonempty_type.property
-opaque UDPConn.zero_val : ZeroVal UDPConn := ⟨Classical.ofNonempty⟩
-attribute [instance] UDPConn.zero_val
-
 class UDPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UDPConn.underlying UDPConn
   underlying : go.UnderlyingDirectedEq UDPConn.ty UDPConn.underlying
-  isUnderlying : go.IsUnderlying UDPConn.underlying UDPConn.underlying
   method_set : go.MethodSetIs UDPConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadFromUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"ReadMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"WriteToUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readFromAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.readFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeMsgAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"net.writeToAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error])))]
+  ptr_ReadFromUDP_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"ReadFromUDP" UDPConn.ReadFromUDP.impl
+  ptr_WriteToUDP_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"WriteToUDP" UDPConn.WriteToUDP.impl
 
 attribute [instance] UDPConn.TypeAssumptions.type_repr
   UDPConn.TypeAssumptions.underlying
-  UDPConn.TypeAssumptions.isUnderlying
   UDPConn.TypeAssumptions.method_set
   UDPConn.TypeAssumptions.ptr_method_set
+  UDPConn.TypeAssumptions.ptr_ReadFromUDP_unfold
+  UDPConn.TypeAssumptions.ptr_WriteToUDP_unfold
 
 opaque UnixAddr.nonempty_type : NonemptyType.{0}
 def UnixAddr : Type := UnixAddr.nonempty_type.type
@@ -4529,6 +4549,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   DialTimeout_unfold : FuncUnfold DialTimeout [] DialTimeout.impl
   Listen_unfold : FuncUnfold Listen [] Listen.impl
   isZeros_unfold : FuncUnfold isZeros [] isZeros.impl
+  ListenUDP_unfold : FuncUnfold ListenUDP [] ListenUDP.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
@@ -4637,6 +4658,7 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.DialTimeout_unfold
   Assumptions.Listen_unfold
   Assumptions.isZeros_unfold
+  Assumptions.ListenUDP_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_syscall_Assumption

@@ -33,11 +33,11 @@ variable [GoGlobalContext]
 theorem etcd_wal_safe : etcd_wal_safe.spec := by
   -- the Go context, the Go semantics, the packages' 27 assumptions, then the premises
   intro lctx sem _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-  intro Hopen σ g e Hinit hRe hr ho hne hf hpaths hfit Hfirst
+  intro σ g e Hinit hRe hr ho hne Hfirst
   haveI : go.BasicIntoValInj := inferInstance
   refine Robustness.Robust.of_single_crashing fun hfr n κs t2 σ2 b hn Hsteps => ?_
-  exact (etcd_wal_crash_safety_bounded (GF := fsGF) tAbsPre Hopen (2 ^ 62) (n + 2) (Nat.le_refl _)
-    σ g e hfr.1 hfr.2.1 Hinit hRe hr ho hne hf hpaths hfit Hfirst n κs t2 σ2 b Hsteps hn hfr.2.2
+  exact (etcd_wal_crash_safety_bounded (GF := fsGF) tAbsPre tStepBound (n + 2) (Nat.le_refl _)
+    σ g e hfr.1 hfr.2.1 Hinit hRe hr ho hne Hfirst n κs t2 σ2 b Hsteps hn hfr.2.2
     (RealCrashThreadsBelow.of_single hfr.2.2)).2
 
 end statement

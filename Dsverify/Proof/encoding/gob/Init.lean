@@ -11,7 +11,7 @@ translation or model lands.
 module
 
 public import Dsverify.Proof.encoding.gob.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

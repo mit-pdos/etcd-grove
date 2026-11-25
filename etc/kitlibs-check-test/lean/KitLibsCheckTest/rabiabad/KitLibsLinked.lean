@@ -32,7 +32,6 @@ axiom proto_ax : github_com.gogo.protobuf.proto.Hyps GF
 axiom gogoproto_init_ax : github_com.gogo.protobuf.gogoproto.InitHyp GF
 axiom redis_init_ax : github_com.go_redis.redis.v8.InitHyp GF
 axiom signal_init_ax : os.signal.InitHyp GF
-axiom rand_init_ax : math.rand.InitHyp GF
 axiom zerolog_ax [github_com.rs.zerolog.Assumptions] : github_com.rs.zerolog.Hyps GF
 axiom rand_ax : math.rand.Hyps GF
 axiom no_signals_ax : os.signal.NoSignals os.signal.quietSigs GF
@@ -53,7 +52,7 @@ theorem kitLibs_nonvacuity : kitLibs.premise := by
   intros _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ G L
   letI := heapAt G L
   exact ⟨zerolog_init_ax _, proto_init_ax _, proto_ax _, gogoproto_init_ax _, redis_init_ax _,
-    signal_init_ax _, rand_init_ax _, zerolog_ax _, rand_ax _, no_signals_ax _, concl_ax, getEnvInt_ax _⟩
+    signal_init_ax _, zerolog_ax _, rand_ax _, no_signals_ax _, concl_ax, getEnvInt_ax _⟩
 
 end rabia.examples.rabianet
 end Perennial

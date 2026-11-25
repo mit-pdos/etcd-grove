@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem claimFirstKey.wp_proof (hDRK : deleteRevKey.spec (GF := GF) (hG := hG)) :
     claimFirstKey.spec (GF := GF) (hG := hG) := by
   intro kv pfx sl ps vs lo
-  wp_start as ⟨#Hkv, #Hlo, #Hsl, #Hps, %Hvs⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, #Hsl, #Hps, %Hvs⟩
   ihave %Hlen := ownSlice_len $$ Hsl
   ihave #Hps' := Hps
   iunfold kvPtrsAt at Hps'
@@ -67,7 +67,7 @@ theorem claimFirstKey.wp_proof (hDRK : deleteRevKey.spec (GF := GF) (hG := hG)) 
     wp_auto
     wp_apply wp_bytes_to_string keySl v.key DFrac.discard $$ [$HKs] as -
     (try wp_auto)
-    wp_apply hDRK kv pfx v.key v.modRev lo $$ [$Hpkg $Hkv $Hlo] as %ok %err Hres
+    wp_apply hDRK kv pfx v.key v.modRev lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %ok %err ⟨Hlt, Hres⟩
     · ipureintro; exact Hvv
     icases Hres with (⟨%Heq, %r, #Hr, %Hrr, Hc⟩ | %Hne)
     · subst Heq
@@ -111,6 +111,7 @@ theorem claimFirstKey.wp_proof (hDRK : deleteRevKey.spec (GF := GF) (hG := hG)) 
         wp_auto
         wp_for_post
         iapply HΦ
+        iframe Hlt
         ileft
         isplitr
         · ipureintro; rfl
@@ -133,11 +134,13 @@ theorem claimFirstKey.wp_proof (hDRK : deleteRevKey.spec (GF := GF) (hG := hG)) 
       wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact ⟨Hne, rfl⟩
   · have Hif' : ¬ sint.Z n < sint.Z sl.len := by simpa using Hif
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

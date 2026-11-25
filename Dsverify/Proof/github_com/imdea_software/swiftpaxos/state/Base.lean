@@ -9,7 +9,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.sync.Link
-public import Dsverify.Proof.encoding.hex.Init
+public import Proof.encoding.hex.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Init
 public import Proof.encoding.json.Base
 

@@ -65,6 +65,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalLayoutFits
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Defs
 
 @[expose] public section
 
@@ -250,7 +251,13 @@ states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which
 takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/common.go`)
 meets all. (Sweep repairs 1, R1-2, L4, 2026-11-07: until then also `cfg.Logger' ≠ null`, which a
 zero `&zap.Logger{}` meets and on which `bootstrap` panics at its first log line; the logger is now
-`zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) (Claim #34, the final stage,
+`zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) (2026-11-25,
+`notes/axiom-review/transport-emptycn.md`) And peer TLS without a certificate (`transport.tlsEmpty
+cfg.PeerTLSInfo'`, Go's `PeerTLSInfo.Empty()`): `bootstrap`'s round tripper and `NewServer`'s
+transport are `transport.NewTimeoutTransport(cfg.PeerTLSInfo, ...)`, whose trust-boundary spec covers
+only that case (with `EmptyCN` and a certificate, Go's `ClientConfig` can panic:
+`issues/etcd-transport-emptycn-cert-reread-panic.md`).
+(Claim #34, the final stage,
 2026-11-25, approved by coordinator-E on #34: the WAL's fsync on, `UnsafeNoFsync = false`: at `true`
 `bootstrapNewWAL` calls `SetUnsafeNoFsync`, and the open WAL `bootOk`'s `Hwal` promises, whose `Sync`s
 fsync, is not Go's; until then the contracts covered it, false of Go there; ledger 2026-11-25
@@ -259,7 +266,8 @@ def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
-    1 < sint.Z cfg.ElectionTicks' ∧ cfg.UnsafeNoFsync' = false
+    1 < sint.Z cfg.ElectionTicks' ∧
+    transport.tlsEmpty cfg.PeerTLSInfo' ∧ cfg.UnsafeNoFsync' = false
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
@@ -578,8 +586,10 @@ the feature gate `nil` or a feature gate (`isFeatureGate`, which answers `NonBlo
 was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featuregate.New`'s empty
 gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
 fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`,
-`MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
-what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
+`MaxRequestBytes`, `PreVote`, `BootstrapTimeout`) make it return an error or do what `bootOk` says
+(2026-11-25: until then `PeerTLSInfo` was listed here too, but with `EmptyCN` and a certificate its
+`ClientConfig` can panic, `issues/etcd-transport-emptycn-cert-reread-panic.md`; it is `bootCfgOk`'s
+`transport.tlsEmpty` now), and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
 The WAL's slot `wal.bootRes`: the data directory fresh, the configuration's dedicated WAL directory
 the member's (`srvWalDirOf`, under its own `fsExt` root) and that WAL area fresh (`walAreaFresh`:
 what `wal.Create` takes of it), over layer 1's resources; until then the data directory alone, no
@@ -596,7 +606,7 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         -- (sweep repairs 1, B4) `ETCD_VERIFY` off: its backend's lock checks return (`bootOk`'s
         -- `isBackend` carries it)
-        envVerifyOff ∗
+        ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
         wal.bootRes cfg }}
       (App (Val (@! bootstrap)) (Val #cfg))

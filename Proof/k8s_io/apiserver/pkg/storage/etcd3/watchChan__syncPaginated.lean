@@ -90,30 +90,31 @@ theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
     (hsz : opSizeOk (opGetModel pk gs)) (hg : ¬ opGetPanics gs ∧ (opGetModel pk gs).t = W64 1)
     (hser : (rangeWireOf (opGetModel pk gs)).base.serializable = false)
     (hss : (opGetModel pk gs).base.sortSet = false) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         EtcdGrove.kvObjAt api (c.ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
         ctxOk ctx cdw ∗ ctxErrClient ctx cdw ∗ optsAt osl gs ∗ readAus c γk Qr }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Get")) (Val #(GoInterface.ok ctx))) (Val #pk)) (Val #osl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsgO resp m ∗ □ Qr σ ∗
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsgO resp m ∗ □ Qr σ ∗
           ⌜txn.srvRangeOk (rangeWireOf (opGetModel pk gs))
               (σ.at (σ.readRev (rangeWireOf (opGetModel pk gs)).base.rev)).kvs m.kvs m.more ∧
             m.hdr.revision = W64 (σ.rev : Int) ∧
             σ.readRev (rangeWireOf (opGetModel pk gs)).base.rev ≤ σ.rev ∧ kvRevFits σ.rev⌝) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ kClientErr err) }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hregs, #Hctx, #Hce, #Hopts, #Hra⟩ HΦ
+        (⌜err ≠ GoInterface.nil⌝ ∗ kClientErr err)) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hregs, #Hctx, #Hce, #Hopts, #Hra⟩ HΦ
   imod (client.srvStart_alloc (GF := GF) c.ms) with #Hst
   ihave #Hopts' := optsAt_res osl gs iprop(True) $$ Hopts
   ihave #Hst' := client.srvStart_both c.ms $$ Hst
   ihave #Hau := readAus_members c γk Qr (rangeWireOf (opGetModel pk gs)) hser $$ Hra
-  wp_apply (h_range_any api c.ms (W64 0) ctx cdw pk osl gs iprop(True) Qr [] hsz) $$ []
-    as %resp %err ⟨-, Hout, -⟩
+  wp_apply (h_range_any api c.ms (W64 0) ctx cdw pk osl gs iprop(True) Qr [] hsz) $$ [$Hlt]
+    as %resp %err ⟨Hlt, -, Hout, -⟩
   · iframe #
     isplitl []
     · rw [hss]; iapply sortNamesIf_false
     ipureintro; exact hg
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, Hm, %x, %hx, #Hq⟩ | ⟨⟨%Herr, %Hrn⟩, #Hke⟩)
   · subst Herr
     ihave Hs := kubernetes.rangeReply_state_at x.E x.γr (W64 0) x.cid x.mid _ [] Qr m hser $$ Hq
@@ -152,7 +153,7 @@ theorem watchChan.syncPaginated.wp_proof
     watchChan.syncPaginated.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
-  wp_start as ⟨#Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
+  wp_start as ⟨Hlt, #Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
   ihave #Hwc' := Hwc
   iunfold kWcProd at Hwc'
   icases Hwc' with ⟨%wp, %chI, %chR, %lg, %cf, %rse, %γc, #Hfw, #Hsw1, #Hfk, #Hfr, -, -, #Hfctx,
@@ -270,9 +271,10 @@ theorem watchChan.syncPaginated.wp_proof
         (∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗
           ⌜wr = W64 (σ0.rev : Int) ∧ ir = W64 (σ0.rev : Int) ∧ 0 < σ0.rev ∧ recur = true ∧
             kStartOk m σ0 σ0.rev ∧ kvRevFits σ0.rev ∧
-            I ++ (fromL (σ0.at σ0.rev) kp true pk).map KRaw.kv = kInitRaws inS σ0 σ0.rev⌝)) :
+            I ++ (fromL (σ0.at σ0.rev) kp true pk).map KRaw.kv = kInitRaws inS σ0 σ0.rev⌝)) ∗
+      "Hlt" ∷ levelTok 0 :
       IProp GF)
-      $$ [preparedKey withRev lastKey getResp err opts metricsOp Hir Hps Hpe Ho]
+      $$ [preparedKey withRev lastKey getResp err opts metricsOp Hir Hps Hpe Ho Hlt]
   · iexists kp, W64 0, _, _, _, r0, osl, []
     iframe
     isplitr
@@ -334,7 +336,7 @@ theorem watchChan.syncPaginated.wp_proof
     unfold syncGsOf syncGs
     split <;> (try cases recur) <;> rfl
   wp_apply (wp_syncGet h_range_any c γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
-    $$ [] as %resp %gerr Hget
+    $$ [$Hlt] as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
   (try wp_auto)
   icases Hget with (⟨%Hge, %mm, %σ, Hm, #HQσ, %Hσ⟩ | ⟨%Hge, #Hce'⟩)
@@ -356,6 +358,7 @@ theorem watchChan.syncPaginated.wp_proof
     wp_for_post
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe Hpe
     iright
     isplitr [Hir]
@@ -496,6 +499,7 @@ theorem watchChan.syncPaginated.wp_proof
     wp_for_post
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe Hpe
     iright
     isplitr [Hir]
@@ -666,6 +670,7 @@ theorem watchChan.syncPaginated.wp_proof
     wp_for_post
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iframe Hpe
     ileft
     isplitr

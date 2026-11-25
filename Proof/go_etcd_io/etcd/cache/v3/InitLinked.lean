@@ -20,6 +20,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.initialize
 public import Proof.fmt.Link
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

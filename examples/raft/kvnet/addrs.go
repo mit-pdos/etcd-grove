@@ -46,8 +46,13 @@ func decimal(s string, max uint64) (uint64, bool) {
 // AddrOk says whether a is a well-formed address: the canonical spelling a.b.c.d:p of an IPv4
 // address that is not in 0.0.0.0/8 and is below 224.0.0.0, with a port in 1-32767 or 61000-65535
 // (outside Linux's default ephemeral range). It is the net extension's addrOk
-// (GooseLang/Ext/Net/Deploy.lean), the top-level theorem's premise on every replica address.
+// (GooseLang/Ext/Net/Deploy.lean), which ValidAddrs checks of every replica address.
 func AddrOk(a string) bool {
+	// the longest well-formed address, 223.255.255.255:65535, has 21 bytes (and the loop's index
+	// below cannot overflow)
+	if len(a) > 21 {
+		return false
+	}
 	var parts [5]string
 	n := 0
 	start := 0
@@ -91,6 +96,10 @@ func ValidAddrs(addrs []string, voters uint64) bool {
 	}
 	return uint64(len(addrs)) < 1<<32 && 1 <= voters && voters <= uint64(len(addrs))
 }
+
+// MaxDirLen bounds the length of a replica's directory name: its files' names (the durable
+// package's, under the directory) must fit the file system's bounds.
+const MaxDirLen = 1 << 39
 
 // ValidCluster says whether the cluster is one the top-level theorem's premises allow: valid
 // addresses and voters (ValidAddrs), raft's size limits not both 0, and MaxInflightMsgs a

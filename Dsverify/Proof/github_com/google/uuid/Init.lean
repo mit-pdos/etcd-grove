@@ -9,7 +9,7 @@ closed statement, where it is a visible premise. To discharge: a model of the pa
 module
 
 public import Dsverify.GeneratedProof.github_com.google.uuid
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

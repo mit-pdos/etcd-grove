@@ -4,16 +4,16 @@ The initializer of `net/rpc` as a **hypothesis** of the part's EPaxos proofs (no
 it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/rpc`) and those of
 every package its initializer reaches (its imports' initializers run first: the well-formedness
 condition `GetIsPkgInitProp pkg_id.net.rpc` constrains the table at each of them, net/http's
-closure included; a package with no fact elsewhere has a `True` one in the part);
+closure included; a package with no fact elsewhere has a `True` one in `Net/`);
 generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
 prove `net.rpc.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
 -/
 module
 
 public import Net.GeneratedProof.net.rpc
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.go.token.Base
+public import Net.Proof.go.token.Base
 public import Perennial.Proof.log.Base
 
 @[expose] public section

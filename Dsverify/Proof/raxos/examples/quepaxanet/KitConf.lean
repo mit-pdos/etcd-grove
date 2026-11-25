@@ -14,6 +14,7 @@ public import Dsverify.Proof.raxos.Hyp
 public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.log.Base
 public import Perennial.Proof.strings.Base
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -250,7 +251,7 @@ theorem wp_choose [hr : hyp.RandHyp GF] :
   ihave #Hr : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
   · iPkgInit
   wp_auto
-  wp_apply hyp.RandHyp.Intn (GF := GF) (W64 2) (by decide) $$ [$Hr] as %x1 %Hx1
+  wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 2) (by decide) $$ [$Hr] as %x1 %Hx1
   have key : ∀ nv : w64, (nv = W64 3 ∨ nv = W64 5) → ∀ x2 x3 x4 x5 : w64,
       0 ≤ sint.Z x2 ∧ sint.Z x2 < sint.Z (W64 2) → 0 ≤ sint.Z x3 ∧ sint.Z x3 < sint.Z (W64 5) →
       0 ≤ sint.Z x4 ∧ sint.Z x4 < sint.Z (W64 5) → 0 ≤ sint.Z x5 ∧ sint.Z x5 < sint.Z (W64 8) →
@@ -264,10 +265,10 @@ theorem wp_choose [hr : hyp.RandHyp GF] :
   wp_if_destruct
   all_goals
     (try wp_auto)
-    wp_apply hyp.RandHyp.Intn (GF := GF) (W64 2) (by decide) $$ [$Hr] as %x2 %Hx2
-    wp_apply hyp.RandHyp.Intn (GF := GF) (W64 5) (by decide) $$ [$Hr] as %x3 %Hx3
-    wp_apply hyp.RandHyp.Intn (GF := GF) (W64 5) (by decide) $$ [$Hr] as %x4 %Hx4
-    wp_apply hyp.RandHyp.Intn (GF := GF) (W64 8) (by decide) $$ [$Hr] as %x5 %Hx5
+    wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 2) (by decide) $$ [$Hr] as %x2 %Hx2
+    wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 5) (by decide) $$ [$Hr] as %x3 %Hx3
+    wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 5) (by decide) $$ [$Hr] as %x4 %Hx4
+    wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 8) (by decide) $$ [$Hr] as %x5 %Hx5
   · obtain ⟨c, hc, hcv⟩ := key (W64 5) (by simp) x2 x3 x4 x5 Hx2 Hx3 Hx4 Hx5
     rw [← hcv]
     iapply HΦ; ipureintro; exact hc

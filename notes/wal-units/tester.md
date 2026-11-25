@@ -1415,3 +1415,37 @@ and re-runs the adequacy, where the tester has its own closed execution theorem.
 `wal-tester.txt` narrowed to the tester's Link (its pattern matched the whole directory, which now holds a second
 root). `#print axioms etcd_wal_safe`: Lean's 3 and 20 of this repository's, all already in the trust base (those of
 `etcd_wal_crash_safety_bounded`); no `sorry`, no axiom added.
+
+# Session (branch `wal-safe-review`, 2026-11-24): the #49 review of `etcd_wal_safe`
+
+The etcd group's robustness review on mit-pdos/etcd-grove#49 (2026-11-24 20:00Z, item 5) found one
+blocking premise and three smaller items; all are fixed.
+
+- **`Hopen` (blocking) is an axiom now.** `proto.UnmarshalWalRecordE.wp_proof`
+  (`Proof/google_golang_org/protobuf/proto/UnmarshalWalRecordE.lean`), its statement the spec verbatim
+  (`notes/axiom-review/unmarshalwalrecorde.md`); interim, retired by #37 S3. `TOpen` and `tHeapAt` are gone
+  from `TopLevelDefs.lean`, `Hopen` from the statement and from `etcd_wal_crash_safety_bounded`. The WAL's
+  Link (`--walfs`) and the tester's (`--wal-tester`) link the axiom: `h_proto_UnmarshalWalRecordE` is gone
+  from both. The tester's Link generator now skips `TopLevelRobustness` modules (it had started linking
+  `etcd_wal_safe` itself, an import cycle; the committed Link was stale), and `--wal-tester` is listed in
+  `etc/gen-link.py`'s usage so that the gates check it.
+- **The pure premises `hf`, `hpaths`, `hfit` moved into Go.** `Main` returns unless `dirOk` accepts both
+  directories (`examples/etcd/wal/wal.go`: `dirOk`, `compOk`; a clean absolute path `/c₁/…/cₙ`, each
+  component nonempty, neither `.` nor `..`, at most `maxName` = 255 bytes, the path shorter than
+  `maxDir` = 4000 bytes). Go tests `dirok_test.go`: `TestDirOk` (the crash driver's directories and paths at
+  the bounds accepted, the rest refused), `TestMainCheck` (refused directories: no file created; the
+  driver's: `Boot` runs). Proofs: `compOk`, `dirOk` (the loop is the scan `tStep` of `DirOk.lean`; only
+  soundness, `true → tDirOk p`), `Main.wp_proof` (checks then `Boot`), `Main.wp_proofInvalid`
+  (`Main.specInvalid`: `¬ tArgsOk e` → `Main` returns). `tArgsOk_of` derives the three premises
+  (`tArgsOk e`) from `tDirOk` of both directories. The bounded theorem splits on `tArgsOk e`: if it holds,
+  the generation invariant as before; if not, each generation's precondition is its empty package state
+  (`tBad_wp`). No predicate kept: all three are decidable from the two strings.
+- **Bounds named**: `tStepBound := 2 ^ 62` (the WAL's receipts: `walAreaOk`'s `ReceiptBoundLe GF (2 ^ 62)`,
+  `walPc_bound`) and `tThreads := tStepBound + 1` (no thread bound: within the step bound one thread never
+  has that many live), in `TopLevelDefs.lean`.
+- **Docstrings**: `bootWal`'s history removed; the statement's header lists the premises (all start
+  state), the bounds and what is trusted.
+
+`etcd_wal_safe.spec`'s premises, before: the 27 instance classes, `Hopen`, `σ g e`, `Hinit`, `hRe`, `hr`,
+`ho`, `hne`, `hf`, `hpaths`, `hfit`, `Hfirst`; after: the same without `Hopen`, `hf`, `hpaths`, `hfit`.
+`#print axioms etcd_wal_safe`: the previous 3 + 20, plus `proto.UnmarshalWalRecordE.wp_proof`.

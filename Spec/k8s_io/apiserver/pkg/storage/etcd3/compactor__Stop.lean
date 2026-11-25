@@ -5,7 +5,7 @@ counterpart). Returns, with nothing: `sync.Once` passes out only a persistent re
 of Draft 2, which had `Stop` give back the loop's thread token; the wait group is `sync.join`'s, its
 one `Add` needing no token).
 Before closing `stop`, it calls `onClose` when that is not `nil` (`closeOk`: it returns; Q1 (c),
-2026-11-05).
+2026-11-05), lending it the caller's `levelTok 0` (decision 1b, 2026-11-24).
 -/
 module
 
@@ -32,11 +32,11 @@ variable [sync_sem : sync.Assumptions]
 /-- See the file header. -/
 abbrev compactor.Stop.spec : Prop :=
   ∀ (c cl : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γc : CompactorNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗
       isCompactor c cl γk recorded γc }}
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"Stop")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 }}
 
 end spec
 

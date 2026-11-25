@@ -33,15 +33,16 @@ theorem kv.Delete.wp_generic
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.specG (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd key sl gs Sd Qd
-  wp_start as ⟨#Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hom, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api conn addr ci om cd opv (opDeleteModel key gs) (fun _ _ _ _ => iprop(False))
-      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd (fun _ => iprop(True)) $$ [Hrun]
-    as %r %err ⟨-, Hout⟩
+      (fun _ => iprop(True)) (fun _ _ _ _ => iprop(False)) (fun _ => iprop(True)) Sd Qd (fun _ => iprop(True)) $$ [Hlt Hrun]
+    as %r %err ⟨Hlt, -, Hout⟩
   · iframe #
+    iframe Hlt
     isplitl [Hrun]; rotate_left
     · ipureintro; exact Hsz
     unfold doRunGen
@@ -66,6 +67,7 @@ theorem kv.Delete.wp_generic
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     unfold deleteCallOut
     ileft
     iframe Hm
@@ -76,6 +78,7 @@ theorem kv.Delete.wp_generic
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     unfold deleteCallOut
     iright
     iframe #
@@ -90,7 +93,7 @@ theorem kv.Delete.wp_members
     (wp_Delete : kv.Delete.specG (GF := GF) (hG := hG)) :
     kv.Delete.specM (GF := GF) (hG := hG) := by
   intro api ms ci cd key sl gs Q F
-  iintro %Φ ⟨#Pc, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
+  iintro %Φ ⟨#Pc, Hlt, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, #HF, Hrun, %Hsz⟩ HΦ
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
@@ -99,8 +102,9 @@ theorem kv.Delete.wp_members
   icases Hkv with ⟨#Hobj, #Hregs⟩
   icases (kvObjAt_conn api (ms.map SrvAt.addr)).1 $$ Hobj with ⟨%conn, #Hobj⟩
   iapply (wp_Delete api conn (ms.map SrvAt.addr) ci om cd key sl gs (GrpcSpec.md (kvDeleteSpec ms))
-    (delAns ms F (deleteWireOf (opDeleteModel key gs)) Q)) $$ [Hrun] HΦ
+    (delAns ms F (deleteWireOf (opDeleteModel key gs)) Q)) $$ [Hlt Hrun] HΦ
   iframe #
+  iframe Hlt
   isplitl []
   · ipureintro; exact ⟨Hnp, Ht⟩
   isplitl []
@@ -118,14 +122,15 @@ theorem kv.Delete.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd key sl gs Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hopts, %Hnp, Hrun, %Hsz⟩
   obtain ⟨Hnp, Ht, Hz⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api γ dup ci cd opv (opDeleteModel key gs) Q $$ [Hrun]
-    as %r %err Hout
+  wp_apply wp_Do api γ dup ci cd opv (opDeleteModel key gs) Q $$ [Hlt Hrun]
+    as %r %err ⟨Hlt, Hout⟩
   · iframe #
+    iframe Hlt
     isplitl [Hrun]; rotate_left
     · ipureintro; exact Hsz
     unfold doRunOk
@@ -152,6 +157,7 @@ theorem kv.Delete.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     iapply deleteCallOut_st
     unfold deleteCallOut
     ileft
@@ -163,6 +169,7 @@ theorem kv.Delete.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     iapply deleteCallOut_st
     unfold deleteCallOut
     iright

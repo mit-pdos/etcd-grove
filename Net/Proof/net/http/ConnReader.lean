@@ -58,11 +58,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 variable [π : NetProtoGS]
 
-/-- What the server's reads need of the package state: `io.EOF`'s value (an `*errorString`) and
-`poll.ErrDeadlineExceeded`'s. -/
+/-- What the server's reads need of the package state: `io.EOF`'s value (an `*errorString`),
+`poll.ErrDeadlineExceeded`'s, and `io.ErrUnexpectedEOF`'s (an `*errorString` with Go's message,
+which `conn.serve` compares with `errTooLarge`). -/
 def readEnv : IProp GF :=
-  iprop(errors.newVar io.EOF go!"EOF" ∗ ∃ ed : GoInterface,
-    globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed)
+  iprop(errors.newVar io.EOF go!"EOF" ∗ (∃ ed : GoInterface,
+    globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed) ∗
+    errors.newVar io.ErrUnexpectedEOF go!"unexpected EOF")
 
 instance readEnv_persistent : Persistent (readEnv (GF := GF)) := by
   unfold readEnv; infer_instance

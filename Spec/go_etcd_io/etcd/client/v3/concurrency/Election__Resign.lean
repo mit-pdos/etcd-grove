@@ -33,16 +33,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 abbrev Election.Resign.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
-      electionState e s st ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isElection e s γ client id pfx ∗
+      electionState e s st ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo) }}
     (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Resign")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err;
-      (⌜st.sess = null ∧ err = GoInterface.nil⌝ ∗ electionState e s st) ∨
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜st.sess = null ∧ err = GoInterface.nil⌝ ∗ electionState e s st) ∨
       (⌜st.sess ≠ null ∧ err = GoInterface.nil⌝ ∗ ∃ hdr : Loc,
         electionState e s ⟨[], st.rev, null, hdr⟩ ∗
         (⌜¬ pfx <+: st.key⌝ ∨ ∃ R : w64, hdrRevAt hdr R ∗ etcdReached R ∗
           notLeaderAt pfx st.key st.rev R ∗ ⌜sint.Z lo ≤ sint.Z R⌝)) ∨
-      (⌜st.sess ≠ null ∧ err ≠ GoInterface.nil⌝ ∗ electionState e s ⟨[], st.rev, null, st.hdr⟩) }}
+      (⌜st.sess ≠ null ∧ err ≠ GoInterface.nil⌝ ∗ electionState e s ⟨[], st.rev, null, st.hdr⟩)) }}
 
 end spec
 

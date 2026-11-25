@@ -50,6 +50,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__Register
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

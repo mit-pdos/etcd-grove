@@ -43,18 +43,18 @@ theorem client_Get_round (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
     (k : GoString) (hk : keys[i]? = some k) (r : Nat) (c cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (F : mvcc.Log)
     (hsz : opSizeOk (opGetModel k [])) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ isNewClient cl [ep] V ∗
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γf (i + 1) ∗ monoNatLbOwn γv r ∗
         srvApi.kvLogLb E.γs F }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             ⌜m.kvs.head?.map EtcdKv.value = some val ∧ (r : Int) ≤ sint.Z m.hdr.revision⌝) ∨
-          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hlb, #Hrlb, #HF⟩ HΦ
+          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ ) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hlb, #Hrlb, #HF⟩ HΦ
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
@@ -65,10 +65,11 @@ theorem client_Get_round (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEn
   · iframe #
   wp_apply (client_get_end_to_end api [ep] E γr c cid mid ci cd k sl
     (fun σ => iprop(⌜(mvcc.findKey k σ.kvs).map EtcdKv.value = some val ∧ r ≤ σ.rev⌝)) F hsz)
-    $$ []
-    as %resp %err Hout
+    $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, Hm, #Hq⟩ | %Herr)
   · ileft
     ihave Hv := client_get_value_rev E γr c cid mid k F _ m $$ Hq
@@ -89,17 +90,17 @@ theorem client_Get_rev (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     (r : Nat) (c cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (F : mvcc.Log)
     (hsz : opSizeOk (opGetModel k [])) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ isNewClient cl [ep] V ∗
         kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γv r ∗ srvApi.kvLogLb E.γs F }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             ⌜(r : Int) ≤ sint.Z m.hdr.revision⌝) ∨
-          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hrlb, #HF⟩ HΦ
+          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ ) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hrlb, #HF⟩ HΦ
   ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
@@ -109,9 +110,10 @@ theorem client_Get_rev (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   ihave #Hau := getRevAu_round γr γf γl γv keys val r $$ [Hinv Hrlb]
   · iframe #
   wp_apply (client_get_end_to_end api [ep] E γr c cid mid ci cd k sl
-    (fun σ => iprop(⌜r ≤ σ.rev⌝)) F hsz) $$ [] as %resp %err Hout
+    (fun σ => iprop(⌜r ≤ σ.rev⌝)) F hsz) $$ [$Hlt] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, Hm, #Hq⟩ | %Herr)
   · ileft
     ihave Hv := client_get_value_rev E γr c cid mid k F _ m $$ Hq

@@ -46,7 +46,7 @@ theorem watchEvents.wp_proof
     (wp_GA : getAttrs.spec (GF := GF) (hG := hG)) :
     watchEvents.spec (GF := GF) (hG := hG) := by
   intro _ _ _ sp c γk x k n Q hS hQ hQQ hnr htb hk hkl hn hn63
-  wp_start as ⟨#Hst, #Hsw, #Hwl, #Hrs, HQ0, #HQup⟩
+  wp_start as ⟨Hlt, #Hst, #Hsw, #Hwl, #Hrs, HQ0, #HQup⟩
   wp_auto
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -64,7 +64,7 @@ theorem watchEvents.wp_proof
   ihave #Hsel := predOk_driverW wp_Matches wp_Empty wp_LM wp_LE wp_FM wp_FE wp_GA x x.Bookmarks' $$ Hpkg
   wp_apply (wp_Watch DObj sp c driverW γk ctx
       { Values := ∅, Deadline := none, Done_gn := γc, PDone := donePD γd } x.WKey' (watchOptsV x p)
-      k n (sieOfL x) (selD x) (predEmptyL x) Q hQ hQQ hnr) $$ [HQ0] as %wi %err Hr
+      k n (sieOfL x) (selD x) (predEmptyL x) Q hQ hQQ hnr) $$ [$Hlt HQ0] as %wi %err ⟨Hlt, Hr⟩
   · iframe #
     iframe HQ0
     isplitr
@@ -88,6 +88,7 @@ theorem watchEvents.wp_proof
     · iunfold donePD; iexact Hdone
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     rw [ite_eq_left rfl]
     ipureintro; exact ⟨hs, hn0⟩
   subst He
@@ -110,6 +111,7 @@ theorem watchEvents.wp_proof
   · iunfold donePD; iexact Hdone
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   rw [ite_eq_right Bool.false_ne_true]
   iexists rs, kes
   iframe

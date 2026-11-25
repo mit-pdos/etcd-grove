@@ -58,7 +58,7 @@ theorem bootstrapContract_of_spec [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF
   iintro %Φ !> Hpre HΦ
   icases Hpre with ⟨%Hpure, Hrest⟩
   have hnf : cfg.UnsafeNoFsync' = false := by
-    obtain ⟨⟨-, -, -, -, -, h⟩, -⟩ := Hpure; exact h
+    obtain ⟨⟨-, -, -, -, -, -, h⟩, -⟩ := Hpure; exact h
   iapply (hb cfg U γ N hnf hidr hune hplain hfips hiok hvs hbl hmem) $$ [Hrest] HΦ
   isplitr
   · iexact Hpkg

@@ -26,7 +26,9 @@ translate = ["!*", "Conn", "Listener", "Addr", "Error",
   "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline",
   "TCPConn.LocalAddr", "TCPConn.RemoteAddr",
   "TCPConn.SetReadBuffer", "TCPConn.SetWriteBuffer",
-  "IP.To4", "isZeros"]
+  "IP.To4", "isZeros",
+  # UDP (notes/net-udp.md): the address type, translated; `UDPConn` and its modeled calls trusted
+  "UDPAddr"]
 imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/poll"]
 trusted = ["conn", "TCPConn", "TCPListener",
   "Listen", "Dial", "DialTimeout",
@@ -38,6 +40,7 @@ trusted = ["conn", "TCPConn", "TCPListener",
   "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay", "TCPConn.SetLinger",
   "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
   "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  "UDPConn", "ListenUDP", "UDPConn.WriteToUDP", "UDPConn.ReadFromUDP",
   "TCPAddr.String",
   # (the package variables: their initializers do nothing, below, but `errClosed`, `ErrClosed`)
   "rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",

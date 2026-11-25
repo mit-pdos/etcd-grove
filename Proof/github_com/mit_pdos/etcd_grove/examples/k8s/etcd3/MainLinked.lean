@@ -43,12 +43,12 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 
 /-- **The driver's `startCluster(k)`** (stage A of `notes/k8s-7f6-scope.md`), over the examples'
 shared start's linked `Members`, `StartMembers`, `Serve`, cluster3's `StartBridge` and the kubernetes
 client's `New`, as txnlinfaultsN's. -/
-theorem wp_startCluster [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_startCluster [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.startCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcdstart.wp_Serve kubernetes.wp_New cluster3.wp_StartBridge
@@ -60,7 +60,8 @@ theorem wp_startCluster [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd
 /-- **The driver's `MainCluster` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member start's). -/
-theorem wp_MainCluster [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_MainCluster [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainCluster.wp_proof zap.wp_NewNop wp_startCluster wp_newStore context.wp_ErrAny
@@ -69,7 +70,8 @@ theorem wp_MainCluster [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.
 /-- **The driver's `MainPartition` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`MainCluster`'s, and the cluster's `Partitioner`). -/
-theorem wp_MainPartition [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_MainPartition [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainPartition.wp_proof zap.wp_NewNop wp_startCluster

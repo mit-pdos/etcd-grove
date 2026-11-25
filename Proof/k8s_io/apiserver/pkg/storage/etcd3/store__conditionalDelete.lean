@@ -68,10 +68,10 @@ local macro "cd_refresh" : tactic => `(tactic| (
     ihave Hmk := (rwInv_maker γc γt γp c key (delStep key (c.S.preF pr) validate) (stepHand c (delStep key (c.S.preF pr) validate))
       (handOk_del c key (c.S.preF pr) validate) W Φu) $$ [Hp]
     · iframe Hrw Hp Hau
-    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)))) $$ [Hos Hmk]
-      as %st' %err' Hr
+    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)))) $$ [Hlt Hos Hmk]
+      as %st' %err' ⟨Hlt, Hr⟩
     · isimp only [Hcur, Bool.false_eq_true, ↓reduceIte]
-      iframe Hos Hf Hmk
+      iframe Hlt Hos Hf Hmk
     isimp only [Hcur, Bool.false_eq_true, ↓reduceIte] at Hr
     icases Hr with (#Hu | ⟨%σ, %e0, #Hrq, -, Hat, %He'⟩)
     · ihave %Hne := unkErr_ne c err' $$ Hu
@@ -82,6 +82,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
       wp_for_post
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iunfold delOut
       ileft
       isplitr
@@ -111,6 +112,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
       wp_for_post
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iunfold delOut
       iright
       iexists σ1
@@ -141,6 +143,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
       wp_for_post
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iunfold delOut
       iright
       iexists σ1
@@ -167,10 +170,10 @@ local macro "cd_refresh" : tactic => `(tactic| (
       ipureintro; exact ⟨hf, Hs0⟩
   · -- a read's state: current, the check's error back
     have Hcur : s.current = true := Hkv.2.2.2.2
-    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)))) $$ [Hos]
-      as %st' %err' Hr
+    wp_apply (wp_refresh Obj c st s _ f x' key false (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate)))) $$ [Hlt Hos]
+      as %st' %err' ⟨Hlt, Hr⟩
     · isimp only [Hcur, ↓reduceIte]
-      iframe Hos
+      iframe Hlt Hos
     isimp only [Hcur, ↓reduceIte] at Hr
     icases Hr with ⟨%Heq, -⟩
     obtain ⟨rfl, rfl⟩ := Heq
@@ -186,6 +189,7 @@ local macro "cd_refresh" : tactic => `(tactic| (
     wp_for_post
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iunfold delOut
     iright
     iexists σ1
@@ -203,7 +207,7 @@ theorem store.conditionalDelete.wp_proof
     (wp_refresh : refreshOnError.spec (GF := GF) (hG := hG)) :
     store.conditionalDelete.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 v p pp pr cx ca validate vf W _ Φu hk hkl
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, %Hv, #Hpre, Hca, HW, #Hau, #Hval⟩
+  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hout, %Hv, #Hpre, Hca, HW, #Hau, #Hval⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -225,7 +229,7 @@ theorem store.conditionalDelete.wp_proof
     ipureintro; exact h.1
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci cd go!"deleteGet" key v p false
-      (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate))) hk hkl hR (by decide)) $$ [] as %f #Hf
+      (rdQ γc γp c key (stepHand c (delStep key (c.S.preF pr) validate))) hk hkl hR (by decide)) as %f #Hf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
@@ -243,7 +247,7 @@ theorem store.conditionalDelete.wp_proof
     · iframe Hrw Hp Hau
     ihave #Hf' := Hf
     iunfold getStateOk at Hf'
-    wp_apply Hf' $$ [Hmk] as %st %err Hr
+    wp_apply Hf' $$ [$Hlt] [Hmk] as %st %err Hlt Hr
     · iexact Hmk
     icases Hr with (#Herr | ⟨%σ, #Hrq, -, Hat⟩)
     · ihave %Hne := unkErr_ne c err $$ Herr
@@ -252,6 +256,7 @@ theorem store.conditionalDelete.wp_proof
       | ok ei =>
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iunfold delOut
         ileft
         isplitr
@@ -277,6 +282,7 @@ theorem store.conditionalDelete.wp_proof
       icases HT with ⟨%σ1, HΦ1, %Hsame⟩
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iunfold delOut
       iright
       iexists σ1
@@ -336,6 +342,7 @@ theorem store.conditionalDelete.wp_proof
       | ok ei =>
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iunfold delOut
         ileft
         isplitr
@@ -409,7 +416,7 @@ theorem store.conditionalDelete.wp_proof
             isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
             iexact HT
         wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s v p (c.S.preF pr) validate W Φu hk hkl
-            Hsr hpre hvd) $$ [Hos Hout HW] as %st' %ok %derr Hd
+            Hsr hpre hvd) $$ [$Hlt Hos Hout HW] as %st' %ok %derr ⟨Hlt, Hd⟩
         · iframe #
           iframe Hos Hout HW
           ipureintro; exact Hv
@@ -423,6 +430,7 @@ theorem store.conditionalDelete.wp_proof
           wp_for_post
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           iunfold delOut
           ileft
           iframe Hout
@@ -433,6 +441,7 @@ theorem store.conditionalDelete.wp_proof
           wp_for_post
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           iunfold delOut
           iright
           iexists σ'
@@ -453,6 +462,7 @@ theorem store.conditionalDelete.wp_proof
             wp_for_post
             (try wp_auto)
             iapply HΦ
+            iframe Hlt
             iunfold delOut
             iright
             iexists σ'
@@ -564,7 +574,7 @@ theorem store.conditionalDelete.wp_proof
               isimp only [hh, Bool.false_eq_true, ↓reduceIte] at HT
               iexact HT
           wp_apply (wp_deleteOnce Obj E sp c ci cd key out o0 rv0 st s v p (c.S.preF pr) validate W Φu hk hkl
-              Hsr hpre hvd) $$ [Hos Hout HW] as %st' %ok %derr Hd
+              Hsr hpre hvd) $$ [$Hlt Hos Hout HW] as %st' %ok %derr ⟨Hlt, Hd⟩
           · iframe #
             iframe Hos Hout HW
             ipureintro; exact Hv
@@ -578,6 +588,7 @@ theorem store.conditionalDelete.wp_proof
             wp_for_post
             (try wp_auto)
             iapply HΦ
+            iframe Hlt
             iunfold delOut
             ileft
             iframe Hout
@@ -588,6 +599,7 @@ theorem store.conditionalDelete.wp_proof
             wp_for_post
             (try wp_auto)
             iapply HΦ
+            iframe Hlt
             iunfold delOut
             iright
             iexists σ'
@@ -608,6 +620,7 @@ theorem store.conditionalDelete.wp_proof
               wp_for_post
               (try wp_auto)
               iapply HΦ
+              iframe Hlt
               iunfold delOut
               iright
               iexists σ'

@@ -19,10 +19,11 @@ public import Perennial.Proof.math.bits.Link
 public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec
 public import Perennial.Proof.errors.NewVar
 public import Proof.fmt.OutLemmas
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
@@ -82,14 +83,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.reflect _root_.Perennial.reflect.initialize'
       EtcdGrove.ExternalInit.reflect _root_.Perennial.reflect.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.math.bits _root_.Perennial.math.bits.initialize'
-      _root_.Perennial.math.bits.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math.bits _root_.Perennial.math.bits.initialize'
+      EtcdGrove.ExternalInit.math_bits _root_.Perennial.math.bits.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
       EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.github_com.gogo.protobuf.proto _root_.Perennial.github_com.gogo.protobuf.proto.initialize'
-      _root_.Perennial.github_com.gogo.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.github_com.gogo.protobuf.gogoproto _root_.Perennial.github_com.gogo.protobuf.gogoproto.initialize'
-      _root_.Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.github_com.gogo.protobuf.proto _root_.Perennial.github_com.gogo.protobuf.proto.initialize'
+      EtcdGrove.ExternalInit.github_com_gogo_protobuf_proto _root_.Perennial.github_com.gogo.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.github_com.gogo.protobuf.gogoproto _root_.Perennial.github_com.gogo.protobuf.gogoproto.initialize'
+      EtcdGrove.ExternalInit.github_com_gogo_protobuf_gogoproto _root_.Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
       EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
