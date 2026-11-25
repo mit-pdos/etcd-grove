@@ -30,21 +30,22 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
 
-/-- **A new handle** of `w` in `dir` in mode `m`, under a fresh ghost name, with its purge right. -/
-theorem walHandle_alloc (w : Loc) (dir : GoString) (m : WalMode) :
+/-- **A new handle** of `w` in `dir` (incarnation `i`) in mode `m`, under a fresh ghost name, with its
+purge right. -/
+theorem walHandle_alloc (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) :
     ⊢@{IProp GF} walHandleAuth (W := W) ==∗ walHandleAuth (W := W) ∗
-      ∃ γ : GName, walHandleDir (W := W) w dir γ ∗ (letI := walAllG (W := W); γ ↪[W.γh] m) ∗
+      ∃ γ : GName, walHandleDirI (W := W) w dir i γ ∗ (letI := walAllG (W := W); γ ↪[W.γh] m) ∗
         (letI := walAllG (W := W); γ ↪[W.γhp] ()) := by
   letI := walAllG (W := W)
-  unfold walHandleAuth walHandleDir
+  unfold walHandleAuth walHandleDirI
   iintro ⟨%n, %Hh, %Hd, %Hp, HA, HD, HP, %Hf⟩
   obtain ⟨h1, h2, h3⟩ := Hf n (Nat.le_refl n)
   imod ghost_map_insert n m h1 $$ HA with ⟨HA, Hm⟩
-  imod ghost_map_insert_persist n (w, dir) h2 $$ HD with ⟨HD, #Hdir⟩
+  imod ghost_map_insert_persist n (w, dir, i) h2 $$ HD with ⟨HD, #Hdir⟩
   imod ghost_map_insert n () h3 $$ HP with ⟨HP, Hpt⟩
   imodintro
   isplitl [HA HD HP]
-  · iexists (n + 1), (Hh.insert n m), (Hd.insert n (w, dir)), (Hp.insert n ())
+  · iexists (n + 1), (Hh.insert n m), (Hd.insert n (w, dir, i)), (Hp.insert n ())
     iframe HA HD HP
     ipureintro
     intro k hk
@@ -60,12 +61,15 @@ theorem walHandleP_mint (w : Loc) (dir : GoString) (m : WalMode) :
     ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTok (W := W) ==∗
       walHandleAuth (W := W) ∗ walHandleP (W := W) w dir m := by
   iintro Ha Hl
-  imod walHandle_alloc w dir m $$ Ha with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
+  unfold walLockedTok
+  icases Hl with ⟨%I, Hl⟩
+  imod walHandle_alloc w dir (incOf I dir) m $$ Ha with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
   imodintro
   iframe Ha
   unfold walHandleP
-  iexists γ
+  iexists γ, incOf I dir, I
   iframe Hd Hm Hp Hl
+  ipureintro; rfl
 
 /-- **The handle `Open` mints** (mode `opening s`). -/
 theorem walOpening_mint (w : Loc) (dir : GoString) (s : w64 × w64) :
@@ -80,7 +84,7 @@ theorem walHandleP_set (w : Loc) (dir : GoString) (m m' : WalMode) :
       walHandleAuth (W := W) ∗ walHandleP (W := W) w dir m' := by
   letI := walAllG (W := W)
   unfold walHandleAuth walHandleP
-  iintro ⟨%n, %Hh, %Hd, %Hp, HA, HD, HP, %Hf⟩ ⟨%γ, #Hdir, Hm, Hpt, Hl⟩
+  iintro ⟨%n, %Hh, %Hd, %Hp, HA, HD, HP, %Hf⟩ ⟨%γ, %i, %I, #Hdir, Hm, Hpt, Hl, %hi⟩
   icases ghost_map_lookup $$ HA Hm with %Hlk
   imod ghost_map_update m' $$ HA Hm with ⟨HA, Hm⟩
   imodintro
@@ -95,17 +99,17 @@ theorem walHandleP_set (w : Loc) (dir : GoString) (m m' : WalMode) :
       have : Hh !! γ = some m := Hlk
       rw [h1] at this; cases this
     exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1, h2, h3⟩
-  · iexists γ; iframe Hdir Hm Hpt Hl
+  · iexists γ, i, I; iframe Hdir Hm Hpt Hl; ipureintro; exact hi
 
 /-- **An append-mode handle as the client's** (`Create`'s handle): `walOpenW` and the purge right. -/
 theorem walHandleP_openW (w : Loc) (dir : GoString) :
     walHandleP (W := W) w dir .append ⊢ walOpenW (W := W) w dir ∗ walPurgeW (W := W) w dir := by
-  unfold walHandleP walOpenW walPurgeW walHandleSt
-  iintro ⟨%γ, #Hd, Hm, Hp, Hl⟩
-  iframe Hl
-  isplitl [Hm]
-  · iexists γ; iframe Hd Hm
-  · iexists γ; iframe Hd Hp
+  unfold walHandleP walOpenW walOpenWI walPurgeW walHandleStI walHandleDir
+  iintro ⟨%γ, %i, %I, #Hd, Hm, Hp, Hl, %hi⟩
+  isplitl [Hm Hl]
+  · iexists i, I; iframe Hl; isplitl; · iexists γ; iframe Hd Hm
+    ipureintro; exact hi
+  · iexists γ; iframe Hp; iexists i; iexact Hd
 
 variable {hlc : HasLC} [GooseExts] [GooseInterp] [G : GooseGlobalGS hlc GF]
 

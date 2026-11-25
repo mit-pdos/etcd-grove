@@ -375,7 +375,7 @@ theorem walPastI_snap (p : AbsDiskState × GMap GoString Nat) :
     · iframe Hs Ha
 
 /-- **A quarter of the incarnations** (`WalGS.γI`): the views' (`walDirIs`, `walDirIsI`) and the lock
-token's (`walIncAny` in `walUnlockedTok`, `walIncCur` in an open handle); `walGhost` holds the half. The
+token's (`walIncAny` in `walUnlockedTok`, `walLockedTokI` in an open handle); `walGhost` holds the half. The
 incarnations change only with all three (the discard), so neither under the program's view nor under an
 open handle. -/
 def walIncQ (I : GMap GoString Nat) : IProp GF :=
@@ -390,19 +390,6 @@ def walIncAny : IProp GF := iprop(∃ I : GMap GoString Nat, walIncQ (W := W) I)
 
 instance walIncAny_timeless : Timeless (walIncAny (W := W)) := by
   unfold walIncAny; infer_instance
-
-/-- **`dir`'s incarnation is `i`**, the lock's quarter (an open handle's, whose record says `i`). -/
-def walIncCur (dir : GoString) (i : Nat) : IProp GF :=
-  iprop(∃ I : GMap GoString Nat, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝)
-
-instance walIncCur_timeless (dir : GoString) (i : Nat) : Timeless (walIncCur (W := W) dir i) := by
-  unfold walIncCur; infer_instance
-
-theorem walIncCur_any (dir : GoString) (i : Nat) :
-    walIncCur (W := W) dir i ⊢ walIncAny (W := W) := by
-  unfold walIncCur walIncAny
-  iintro ⟨%I, H, -⟩
-  iexists I; iexact H
 
 /-- Two shares of the incarnations agree. -/
 theorem walIncQ_agree (I I' : GMap GoString Nat) (q : Qp) :
@@ -635,10 +622,14 @@ theorem walUnlockedTokX_join :
 program halves the invariant would otherwise park), no cut's rename pending (a cut sets the flag to
 its directory at the rename and back to `none` at the directory's sync: `walCut_begin`/`_end`).
 `walHandleP` and `walOpenW` carry it; `Close` returns `walUnlockedTok` after parking what the
-handle holds (`walPark_set`). -/
-def walLockedTok : IProp GF :=
+handle holds (`walPark_set`). With the lock's quarter of the incarnations at `I` (`walLockedTok`: at
+some value). -/
+def walLockedTokI (I : GMap GoString Nat) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(token W.hA.γu ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none)
+  iprop(token W.hA.γu ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none ∗ walIncQ (W := W) I)
+
+/-- The lock token as an open handle holds it (`walLockedTokI` at some incarnations). -/
+def walLockedTok : IProp GF := iprop(∃ I : GMap GoString Nat, walLockedTokI (W := W) I)
 
 /-- **The generation's crash token** (exclusive): `walInv_crash` takes it, to keep the old
 generation's invariant closed with it in place of its contents. -/
@@ -659,8 +650,8 @@ theorem walCrashTok_excl :
 /-- **`w` is a handle of `dir` in mode `m`, with its purge right and the lock token.** Sealed. -/
 @[no_expose] def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ (γ : GName) (i : Nat), walHandleDirI (W := W) w dir i γ ∗ γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗
-    walLockedTok (W := W) ∗ walIncCur (W := W) dir i)
+  iprop(∃ (γ : GName) (i : Nat) (I : GMap GoString Nat), walHandleDirI (W := W) w dir i γ ∗
+    γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗ walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝)
 
 /-- **The key of the cleanup's pin in the creating map** (`walCreatingAuth`'s third case; W4,
 `notes/wal-units/create.md`, session 4): no WAL directory (`child r nm` is not empty). `Create`'s
@@ -848,7 +839,8 @@ theorem walTailKey_excl (dir : GoString) (γ γ' : GName) :
 
 /-- **`w` is the WAL opened in `dir`, of incarnation `i` (the current one), ready to append.** Sealed. -/
 @[no_expose] def walOpenWI (w : Loc) (dir : GoString) (i : Nat) : IProp GF :=
-  iprop(walHandleStI (W := W) w dir i .append ∗ walLockedTok (W := W) ∗ walIncCur (W := W) dir i)
+  iprop(∃ I : GMap GoString Nat, walHandleStI (W := W) w dir i .append ∗ walLockedTokI (W := W) I ∗
+    ⌜incOf I dir = i⌝)
 
 /-- **`w` is the WAL opened in `dir`, ready to append** (at some incarnation, the current one). Sealed. -/
 @[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
@@ -908,7 +900,7 @@ instance walUnlockedTok_timeless : Timeless (walUnlockedTok (W := W)) := by
 instance walUnlockedTokX_timeless : Timeless (walUnlockedTokX (W := W)) := by
   unfold walUnlockedTokX walParkFrag walCutFrag walOutFrag walTailsFrag; infer_instance
 instance walLockedTok_timeless : Timeless (walLockedTok (W := W)) := by
-  unfold walLockedTok walParkFrag walCutFrag; infer_instance
+  unfold walLockedTok walLockedTokI walParkFrag walCutFrag walIncQ; infer_instance
 
 /-! ## Laws (as `AbsDisk/Specs.lean`'s, same statements) -/
 
@@ -1004,44 +996,48 @@ of the tails' authority, empty (`walTailsFrag`), and the pending registration, `
 theorem walUnlockedTok_lock (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walUnlockedTok (W := W) ==∗
       ⌜b = true⌝ ∗ walParkAuth (W := W) false ∗ walLockedTok (W := W) ∗
-        walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none ∗
-        walIncAny (W := W) := by
-  unfold walUnlockedTok walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf, Hn, Hi⟩
+        walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none := by
+  unfold walUnlockedTok walLockedTok walLockedTokI walIncAny
+  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf, Hn, %I, Hi⟩
   icases walPark_agree (W := W) b true $$ Ha Hf with %hb
   imod walPark_set (W := W) b true false $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf Hn Hi
-  ipureintro; exact hb
+  iframe Ha Ho Htf Hn
+  isplitr
+  · ipureintro; exact hb
+  iexists I; iframe Ht Hf Hc Hi
 
 /-- **Releasing the lock** (`Close`, an `Open` that failed after taking it): the flag back to `true`,
 with the empty record of what is out (everything put back first), no tail registered and no name
 claim's program half out. -/
 theorem walLockedTok_unlock (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) -∗
-      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none -∗
-      walIncAny (W := W) ==∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none ==∗
       ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTok (W := W) := by
-  unfold walUnlockedTok walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf Hn Hi
+  unfold walUnlockedTok walLockedTok walLockedTokI walIncAny
+  iintro Ha ⟨%I, Ht, Hf, Hc, Hi⟩ Ho Htf Hn
   icases walPark_agree (W := W) b false $$ Ha Hf with %hb
   imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf Hn Hi
-  ipureintro; exact hb
+  iframe Ha Ht Hf Hc Ho Htf Hn
+  isplitr
+  · ipureintro; exact hb
+  iexists I; iexact Hi
 
 /-- `walLockedTok_unlock` without the names fragment (`walUnlockedTokX`). -/
 theorem walLockedTok_unlockX (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) -∗
-      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walIncAny (W := W) ==∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ ==∗
       ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTokX (W := W) := by
-  unfold walUnlockedTokX walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf Hi
+  unfold walUnlockedTokX walLockedTok walLockedTokI walIncAny
+  iintro Ha ⟨%I, Ht, Hf, Hc, Hi⟩ Ho Htf
   icases walPark_agree (W := W) b false $$ Ha Hf with %hb
   imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf Hi
-  ipureintro; exact hb
+  iframe Ha Ht Hf Hc Ho Htf
+  isplitr
+  · ipureintro; exact hb
+  iexists I; iexact Hi
 
 /-- The halves of the pending registration agree. -/
 theorem walNames_agree (o o' : Option GoString) :
@@ -1080,17 +1076,17 @@ theorem walSplit_set (Wn1 Wn2 Wn : List GoString) :
 /-- The lock token held twice: impossible (one token). -/
 theorem walLockedTok_unlocked_excl :
     ⊢@{IProp GF} walLockedTok (W := W) -∗ walUnlockedTok (W := W) -∗ False := by
-  unfold walUnlockedTok walLockedTok
+  unfold walUnlockedTok walLockedTok walLockedTokI
   letI := walAllG (W := W)
-  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iintro ⟨%I, H1, -⟩ ⟨H2, -⟩
   iapply token_exclusive $$ H1 H2
 
 /-- The lock token held twice: impossible (one token). -/
 theorem walLockedTok_excl :
     ⊢@{IProp GF} walLockedTok (W := W) -∗ walLockedTok (W := W) -∗ False := by
-  unfold walLockedTok
+  unfold walLockedTok walLockedTokI
   letI := walAllG (W := W)
-  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iintro ⟨%I, H1, -⟩ ⟨%I', H2, -⟩
   iapply token_exclusive $$ H1 H2
 
 /-- The free lock token against the free token less its names fragment (one token). -/
@@ -1104,9 +1100,9 @@ theorem walUnlockedTok_exclX :
 /-- The taken lock token against the free token less its names fragment (one token). -/
 theorem walLockedTok_exclX :
     ⊢@{IProp GF} walLockedTok (W := W) -∗ walUnlockedTokX (W := W) -∗ False := by
-  unfold walLockedTok walUnlockedTokX
+  unfold walLockedTok walLockedTokI walUnlockedTokX
   letI := walAllG (W := W)
-  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iintro ⟨%I, H1, -⟩ ⟨H2, -⟩
   iapply token_exclusive $$ H1 H2
 
 /-- The free token less its names fragment, twice (one token). -/
@@ -1451,21 +1447,6 @@ theorem walHandleDir_agree (w w' : Loc) (dir dir' : GoString) (γ : GName) :
   icases walHandleDirI_agree $$ H1 H2 with %H
   ipureintro; exact ⟨H.1, H.2.1⟩
 
-/-- **An open handle's incarnation is current**: its quarter agrees with any other share `I` of the
-incarnations (the view's, `walGhost`'s). -/
-theorem walIncCur_agree (dir : GoString) (i : Nat) (q : Qp) (I : GMap GoString Nat) :
-    ⊢@{IProp GF} walIncCur (W := W) dir i -∗ (letI := walAllG (W := W); ghostVar W.γI q I) -∗
-      ⌜incOf I dir = i⌝ ∗ walIncCur (W := W) dir i ∗ (letI := walAllG (W := W); ghostVar W.γI q I) := by
-  unfold walIncCur walIncQ
-  letI := walAllG (W := W)
-  iintro ⟨%I', H1, %h⟩ H2
-  icases ghostVar_agree $$ H1 H2 with %e
-  subst e
-  iframe H2
-  isplitr
-  · ipureintro; exact h
-  iexists I'; iframe H1; ipureintro; exact h
-
 /-- The open handle at its incarnation. -/
 theorem walOpenW_inc (w : Loc) (dir : GoString) :
     walOpenW (W := W) w dir ⊣⊢ ∃ i, walOpenWI (W := W) w dir i := by
@@ -1479,20 +1460,24 @@ theorem walOpenWI_openW (w : Loc) (dir : GoString) (i : Nat) :
 theorem walOpenWI_cur (w : Loc) (dir : GoString) (i : Nat) (q : Qp) (I : GMap GoString Nat) :
     ⊢@{IProp GF} walOpenWI (W := W) w dir i -∗ (letI := walAllG (W := W); ghostVar W.γI q I) -∗
       ⌜incOf I dir = i⌝ ∗ walOpenWI (W := W) w dir i ∗ (letI := walAllG (W := W); ghostVar W.γI q I) := by
-  unfold walOpenWI
-  iintro ⟨Hs, Hl, Hc⟩ HI
-  icases walIncCur_agree dir i q I $$ Hc HI with ⟨%h, Hc, HI⟩
-  iframe Hs Hl Hc HI
-  ipureintro; exact h
+  unfold walOpenWI walLockedTokI walIncQ
+  letI := walAllG (W := W)
+  iintro ⟨%I', Hs, ⟨Ht, Hf, Hc, Hi⟩, %h⟩ HI
+  icases ghostVar_agree $$ Hi HI with %e
+  subst e
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iexists I'; iframe Hs Ht Hf Hc Hi; ipureintro; exact h
 
 theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (I : GMap GoString Nat)
     (d : WalDur) (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
     ⊢@{IProp GF} walOpenW (W := W) w dir -∗ walPastI (W := W) (s, I) -∗
       walOpenW (W := W) w dir ∗ walLenLb (W := W) w dir (incOf I dir) n := by
   unfold walOpenW walOpenWI walHandleStI walLenLb walHandleDir
-  iintro ⟨%i, ⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
+  iintro ⟨%i, %I', ⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
   isplitl [Hm Hu]
-  · iexists i; iframe Hu; iexists γ; iframe Hw Hm
+  · iexists i, I'; iframe Hu; iexists γ; iframe Hw Hm
   · iexists γ, s, I; iframe Hs
     isplitl
     · iexists i; iexact Hw
@@ -1504,9 +1489,9 @@ theorem walOpenW_lenLb_retired (w : Loc) (dir : GoString) (s : AbsDiskState) (I 
     ⊢@{IProp GF} walOpenW (W := W) w dir -∗ walPastI (W := W) (s, I) -∗
       walOpenW (W := W) w dir ∗ walLenLb (W := W) w dir i n := by
   unfold walOpenW walOpenWI walHandleStI walLenLb walHandleDir
-  iintro ⟨%i', ⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
+  iintro ⟨%i', %I', ⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
   isplitl [Hm Hu]
-  · iexists i'; iframe Hu; iexists γ; iframe Hw Hm
+  · iexists i', I'; iframe Hu; iexists γ; iframe Hw Hm
   · iexists γ, s, I; iframe Hs
     isplitl
     · iexists i'; iexact Hw
@@ -1516,7 +1501,8 @@ theorem walOpenW_lenLb_retired (w : Loc) (dir : GoString) (s : AbsDiskState) (I 
 is pending (`walOpenW_cut`). -/
 @[no_expose] def walOpenWC (w : Loc) (dir : GoString) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ i : Nat, walHandleStI (W := W) w dir i .append ∗ token W.hA.γu ∗ walIncCur (W := W) dir i)
+  iprop(∃ (i : Nat) (I : GMap GoString Nat), walHandleStI (W := W) w dir i .append ∗ token W.hA.γu ∗
+    walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝)
 
 /-- **The parking and pending-cut flags out of the ghost handle** (W2's `cut`: the parking flag
 `false` tells the rename's update that the handle has taken its WAL's halves out of `walParked`;
@@ -1524,10 +1510,10 @@ is pending (`walOpenW_cut`). -/
 theorem walOpenW_cut (w : Loc) (dir : GoString) :
     walOpenW (W := W) w dir ⊣⊢
       walOpenWC (W := W) w dir ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none := by
-  unfold walOpenW walOpenWI walOpenWC walLockedTok
+  unfold walOpenW walOpenWI walOpenWC walLockedTokI
   constructor
-  · iintro ⟨%i, Hs, ⟨Ht, Hf, Hc⟩, Hi⟩; iframe Hf Hc; iexists i; iframe Hs Ht Hi
-  · iintro ⟨⟨%i, Hs, Ht, Hi⟩, Hf, Hc⟩; iexists i; iframe Hs Ht Hf Hc Hi
+  · iintro ⟨%i, %I, Hs, ⟨Ht, Hf, Hc, Hi⟩, %h⟩; iframe Hf Hc; iexists i, I; iframe Hs Ht Hi; ipureintro; exact h
+  · iintro ⟨⟨%i, %I, Hs, Ht, Hi, %h⟩, Hf, Hc⟩; iexists i, I; iframe Hs Ht Hf Hc Hi; ipureintro; exact h
 
 theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState)
     (I : GMap GoString Nat) (d : WalDur)
@@ -1535,9 +1521,9 @@ theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDi
     ⊢@{IProp GF} walOpening (W := W) w dir sn -∗ walPastI (W := W) (s, I) -∗
       walOpening (W := W) w dir sn ∗ walLenLb (W := W) w dir (incOf I dir) n := by
   unfold walOpening walHandleP walLenLb walHandleDir
-  iintro ⟨%γ, %i, #Hw, Hm, Hp, Hu⟩ #Hs
+  iintro ⟨%γ, %i, %I', #Hw, Hm, Hp, Hu, %hi⟩ #Hs
   isplitl [Hm Hp Hu]
-  · iexists γ, i; iframe Hw Hm Hp Hu
+  · iexists γ, i, I'; iframe Hw Hm Hp Hu; ipureintro; exact hi
   · iexists γ, s, I; iframe Hs
     isplitl
     · iexists i; iexact Hw
