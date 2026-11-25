@@ -42,8 +42,8 @@ theorem os.OpenFile.wp_dirSOk (p : GoString) (perm : w32) (R : Roots) (j : Ino) 
   · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iframe Hp Hperm
-  icases Hr with (Hok | ⟨%e, %he, #Herr⟩)
-  · ileft; iexact Hok
+  icases Hr with (⟨%fd, %hfd, Hf, -, Hd⟩ | ⟨%e, %he, #Herr⟩)
+  · ileft; iexists fd; iframe Hf Hd; ipureintro; exact hfd
   · iright
     ihave %hne := (os.errnoPathErr_ne err e) $$ Herr
     isplitr
