@@ -9,7 +9,7 @@ module
 
 public import KvNet.Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.sync.Link
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

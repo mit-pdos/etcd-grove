@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.containers.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

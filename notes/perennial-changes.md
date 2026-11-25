@@ -17,6 +17,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
+
+- **Status.** bag_nb_send_au(_now): Perennial branch chan-bag-nb-send (3b51f8790), replaces kvreconf's
+  BagSend and kvnet's queue_nb_send_au. **Done**: pinned (bca1cd2e5); the local copies deleted
+  (`bagsend-perennial/2026-11-24`, landed).
+### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvudp)
+
+- **Limitation.** Go accepts a size of any integer type in `make` (`make([][]byte, d.total)`, where `d.total`
+  is a `uint32`). goose translates it as `FuncResolve go.make2 [st] #() (load uint32 ...)` and passes the w32
+  value unconverted. `make2_slice` unfolds to `make3_slice` (`Golang/Defn/Slice.lean:130`), which compares
+  its arguments with `<⟨go.int⟩`, and `lt_int` (`Predeclared.lean:284`) is defined only on w64 values. So
+  the call is stuck: a correct Go program has no proof.
+- **Who.** kvudp's `reassembler.add` (`examples/raft/kvnet/udptransport.go`).
+- **Workaround here.** The Go code converts the size itself: `make([][]byte, int(d.total))` (same behaviour).
+- **Proposed change.** goose converts every `make` size and capacity argument whose type is not `int` to
+  `int` (`Convert t go.int`), as the Go spec's conversion of a typed integer size to `int` does. An untyped
+  constant needs no conversion.
+- **Status.** Open.
 ### `sync.Mutex` has no spec for an owned (unshared) mutex (2026-11-25, claim #34 stage 2)
 
 - **Limitation.** Perennial's `sync.Mutex.Lock`/`Unlock` specs take `isMutex m R`, a lock invariant allocated
@@ -3109,6 +3127,9 @@ sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : �
 P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
+**Done** (Perennial bca1cd2e5: `bag_nb_send_au` and `bag_nb_send_au_now`, the latter with `Φ` now and
+no credit). 2026-11-24 (branch `bagsend-perennial/2026-11-24`): the local `BagSend.lean` and kvnet's
+`queue_nb_send_au` (= `bag_nb_send_au_now`) deleted, their users on Perennial's.
 
 
 ## A bag channel's non-blocking receive (2026-10-31, S1)

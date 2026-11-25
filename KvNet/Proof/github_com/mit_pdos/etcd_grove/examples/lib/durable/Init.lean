@@ -13,7 +13,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.sync.Link
 public import KvNet.Proof.os.Init
 public import KvNet.Proof.path.filepath.Init
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

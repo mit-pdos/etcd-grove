@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.DGhostVar
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.JsonDec
 public import Proof.unicode.utf8.Valid
 
 @[expose] public section
@@ -468,18 +469,7 @@ end ghostHeap
 section policy
 variable [GooseExts]
 
-/-- **`json.Unmarshal` of a conf change's context into a `membership.ConfigChangeContext`**
-(audit phase B3, 2026-10-18; `encoding/json` is not modelled, so opaque, a function of the
-bytes): the member's `ID` and `IsPromote` when the bytes unmarshal, `none` when they do not
-(where `applyConfChange` and `ValidateConfigurationChange` panic, `lg.Panic`). A
-`ConfigChangeContext` embeds the `Member`, so the JSON of a `Member` (what etcd's bootstrap puts in
-each peer's context) unmarshals to its `ID` with `IsPromote` false. -/
-opaque membership.ccContextOf : List w8 → Option (w64 × Bool)
-
-/-- **The member a conf change's context unmarshals to** (`json.Unmarshal` into a
-`membership.ConfigChangeContext`'s embedded `Member`; opaque, as `ccContextOf`, a function of the
-bytes; moved here from `InvRest`, 2026-11-04, for `ccApplyOk`): what `applyConfChange`'s `AddMember` saves. -/
-opaque membership.ccMemberOf : List w8 → apply.MemberM
+-- `membership.ccContextOf`, `membership.ccMemberOf`: definitions, `api/membership/JsonDec.lean`.
 
 /-- **A conf change the server's `applyConfChange` takes** (audit phase B3, 2026-10-18): an
 `AddNode` (type `0`) of a member of raft's configuration `cfg`, whose context unmarshals to that

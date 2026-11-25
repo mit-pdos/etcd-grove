@@ -156,6 +156,9 @@ func run(srvs []*etcdserver.EtcdServer, ms []etcdstart.Member, lg *zap.Logger) i
 // Main starts the k members of a new cluster and checks, at each member, that the lease granted
 // through it, once expired, is no longer listed (run).
 func Main(k uint64) {
+	if k < 1 || k > 1000 { // the cluster sizes the proof covers; any other k runs nothing
+		return
+	}
 	lg := zap.NewNop()
 	ms := etcdstart.Members("leaseexpiryN", k, PeerBase, ClientBase)
 	srvs, err := etcdstart.StartMembers(ms, Token, etcdstart.NoSnapCount, etcdstart.NoSnapCatchUp,

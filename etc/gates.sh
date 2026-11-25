@@ -196,6 +196,12 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# net/rpcdriver's boot table (etc/gen-rpcdriver-boottable.py, from the server command's PkgTable)
+if python3 etc/gen-rpcdriver-boottable.py --check > "$tmp/rpcboot.log" 2>&1; then
+  echo "$(tail -1 "$tmp/rpcboot.log")"
+else
+  echo "gen-rpcdriver-boottable: FAILED"; tail -3 "$tmp/rpcboot.log"; fail=1
+fi
 # the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
 # commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
 # the kits' codecs through their generators): after gen-init, whose PkgTables the boot tables read
@@ -441,6 +447,14 @@ if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
   echo "$(tail -1 "$tmp/tier.log")"
 else
   echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
+fi
+# every top-level statement has a satisfiability witness of its premises, or a baseline line
+# (etc/premise-witness-baseline.txt; Robustness/PremiseSat.lean; reads the sources only: the build
+# checks the witnesses' proofs)
+if python3 etc/premise-witness.py --check > "$tmp/pw.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pw.log")"
+else
+  echo "premise-witness: FAILED"; head -20 "$tmp/pw.log"; fail=1
 fi
 return $fail
 }

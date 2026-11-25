@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 public import Perennial.Proof.fmt.Link
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

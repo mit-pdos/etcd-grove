@@ -11,7 +11,7 @@ module
 public import Dsverify.Proof.github_com.despreston.go_craq.store.Base
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.errors.NewVar
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

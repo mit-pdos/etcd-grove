@@ -17,6 +17,7 @@ public import Dsverify.Proof.raxos.Proposer.Conv
 public import Dsverify.Proof.raxos.Proposer.Collect
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Results
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -383,7 +384,7 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
       wp_if_destruct
       · have Hlt : sint.Z n < c.n := by if_hyp
         rw [Hhi]
-        wp_apply hyp.RandHyp.Intn (GF := GF) (W64 100000 - W64 10) (by decide) as %x %Hx
+        wp_apply _root_.Perennial.math.rand.wp_Intn_pos (GF := GF) (W64 100000 - W64 10) (by decide) as %x %Hx
         ihave %HPl := ownSlice_len _ _ _ $$ HPis
         list_elem xs (sint.nat n) as y
         have Hb : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z Pis.len := ⟨Hxs.2.1, by word⟩

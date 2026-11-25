@@ -28,7 +28,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assum
 /-- See the file header. -/
 abbrev ValidCluster.spec : Prop :=
   ∀ (addrs : GoSlice) (dq : DFrac) (l : List GoString) (voters msz mcs mif : w64),
-  (∀ a ∈ l, a.length + 1 < 2 ^ 63) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ addrs ↦*{dq} l }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.ValidCluster)) (Val #addrs)) (Val #voters)) (Val #msz))
       (Val #mcs)) (Val #mif))

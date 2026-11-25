@@ -37,7 +37,7 @@ theorem Transport.dropped.wp_proof (wp_add : Stats.add.spec (GF := GF) (hG := hG
   intro F t γ N id n m dq dqe cap st
   wp_start as ⟨#Ht, Hm⟩
   unfold isTransportCore
-  icases Ht with ⟨%sp, #Hid, #Hnode, #Hstats, #Hs, #Hn, -, %Htr⟩
+  icases Ht with ⟨%sp, %sc, %γsc, #Hid, #Hnode, #Hstats, #Hs, #Hn, %Htr, -⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []

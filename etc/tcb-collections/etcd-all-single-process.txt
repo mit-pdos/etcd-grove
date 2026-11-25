@@ -62,7 +62,6 @@ axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
-axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof

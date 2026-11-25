@@ -31,6 +31,14 @@ at `kvFacts γ _`, `kvRep γ vs dir`, ...), so a result's statement is not alway
   `KdStorage`'s registry, `[KdStor GF]`).
 
 `--check` compares the output with the committed file.
+
+**kvudp** (`etc/gen-link.py --kvudp`, 2026-11-24, `notes/kvudp-proof-plan.md`): the UDP transport's
+proofs are the part's own proofs whose section has `[HasExt udpExt]`, and its pure helpers
+(`UDP_PURE`): `is_udp`. `--kvnet` leaves them
+out of its roots (their instances would make every kvnet result need the UDP extension, which kvnet's
+`[netExt, fsExt]` lacks); `--kvudp` links them, with the own proofs they reach (kvnet's, linked again
+under the UDP section's instances), into `KvNet/Proof/.../kvnet/cmd/kvudp/Link.lean`
+(namespace `Perennial.EtcdGrove.kvudpLink`).
 """
 import os
 import re
@@ -63,16 +71,24 @@ EXT_LINKS = [
 ]
 # explicit binder types a result may take as parameters
 PARAMS = [r"KdNames", r"List w64", r"GoString", r"KvFacts GF", r"Loc → w64 → IProp GF",
-          r"GoInterface → List w8 → IProp GF", r"List w8 → Prop",
+          r"GoInterface → List w8 → IProp GF", r"List w8 → Prop", r"NodeStopper GF",
           r"w64 → GoString → github_com\.mit_pdos\.etcd_grove\.examples\.raft\.kvnet\.Options → "
           r"GMap w64 GoString → IProp GF"]
 # the store's instantiation of the generic proofs (see the docstring)
 _STORE_B = "(γ : KdNames) (vs : List w64) (dir : GoString)"
 _STORE_3 = "(kvFacts γ (fun _ => True)) (kvRep γ vs dir) kvConfRead"
+# (2026-11-24, G5) the node's specs take the incarnation stopper before the conf read
+_STORE_4 = "(kvFacts γ (fun _ => True)) (kvRep γ vs dir) (kvStp γ vs dir) kvConfRead"
 INST = {
-    "Perennial.EtcdGrove.raft_kvnet.Node.handle.wp_proof": (_STORE_B, _STORE_3),
-    "Perennial.EtcdGrove.raft_kvnet.Node.serveClient.wp_proof": (_STORE_B, _STORE_3),
-    "Perennial.EtcdGrove.raft_kvnet.Node.serve.wp_proof": (_STORE_B, _STORE_3),
+    # (2026-11-24, kvudp) the UDP receiver and entry, linked as `Node.servePeer`'s callers and `Run`
+    "Perennial.EtcdGrove.raft_kvnet.udpNet.receive.wp_proof": (_STORE_B, _STORE_3.replace(" kvConfRead", "") + " (kvStp γ vs dir)"),
+    "Perennial.EtcdGrove.raft_kvnet.udpNet.stepper.wp_proof": (_STORE_B, _STORE_3.replace(" kvConfRead", "") + " (kvStp γ vs dir)"),
+    "Perennial.EtcdGrove.raft_kvnet.RunUDP.wp_proof": (_STORE_B, _STORE_3 + " (kvNodeStart γ vs dir)"),
+    "Perennial.EtcdGrove.raft_kvnet.RunNodeUDP.wp_proof": (_STORE_B, _STORE_3 + " (kvNodeStart γ vs dir)"),
+    "Perennial.EtcdGrove.raft_kvnet.Node.handle.wp_proof": (_STORE_B, _STORE_4),
+    "Perennial.EtcdGrove.raft_kvnet.Node.serveClient.wp_proof": (_STORE_B, _STORE_4),
+    "Perennial.EtcdGrove.raft_kvnet.Node.serve.wp_proof": (_STORE_B, _STORE_4),
+    "Perennial.EtcdGrove.raft_kvnet.Node.accept.wp_proof": (_STORE_B, _STORE_4),
     "Perennial.EtcdGrove.raft_kvnet.Run.wp_proof": (_STORE_B, _STORE_3 + " (kvNodeStart γ vs dir)"),
     "Perennial.EtcdGrove.raft_kvnet.RunNode.wp_proof": (_STORE_B, _STORE_3 + " (kvNodeStart γ vs dir)"),
 }
@@ -163,7 +179,17 @@ def link_bbolt_toks(s):
     return out
 
 
-def main(root, perennial, argv0, check=False):
+# kvudp's pure helpers (no UDP instance in their sections): linked with kvudp's, not kvnet's
+UDP_PURE = {"putUint32", "putHeader", "putFragment", "putAck", "fragments", "parseAddr"}
+OUT_UDP = "KvNet/Proof/" + KVDIR + "/cmd/kvudp/Link.lean"
+NS_UDP = "Perennial.EtcdGrove.kvudpLink"
+
+
+def main(root, perennial, argv0, check=False, udp=False):
+    global OUT, NS
+    if udp:
+        OUT, NS = OUT_UDP, NS_UDP
+    flag = "--kvudp" if udp else "--kvnet"
     decls, opens_of, vars_of = [], {}, {}
     # specs: the part's, the main tree's, Perennial's
     walk(os.path.join(root, "KvNet", "Spec"), "KvNet.Spec.", decls, opens_of, vars_of)
@@ -292,8 +318,12 @@ def main(root, perennial, argv0, check=False):
                     missing.add(b[2])
         order.append(s)
 
+    def is_udp(mod):
+        return any("HasExt udpExt" in line for line in vars_of.get(mod, [])) or \
+            mod.rsplit(".", 1)[-1] in UDP_PURE
+
     for s in sorted(own, key=lambda s: own[s]["name"]):
-        if own[s]["mod"].startswith(rootmod + "."):
+        if own[s]["mod"].startswith(rootmod + ".") and is_udp(own[s]["mod"]) == udp:
             visit(s)
 
     def rname(x):
@@ -384,7 +414,20 @@ def main(root, perennial, argv0, check=False):
     imports.add("KvNet.Proof." + KVDIR.replace("/", ".") + ".KdStorage")
     closed = [s for s in order if not hyps_of[s]]
     pend = sorted(set(n for s in order for n in hyps_of[s]))
+    what = ("kvudp's UDP transport's proofs (`notes/kvudp-proof-plan.md`) and the kvnet proofs they reach"
+            if udp else "kvnet's and kvcheck's proofs")
     head = ("/-\n" + textwrap.fill(
+        what + " (the part `KvNet/`, `notes/kvnet-part.md`), every proof applied to its "
+        "callees' results: the part's own, and raft-noax's, `durable`'s, lintest's, porcupine's and "
+        "Perennial's linked results (their `Link.lean`s, used as they are). The callees are read off each "
+        "proof's binders; a proof generic in kvnet's model parameters is linked at the store's "
+        f"(`etc/link_kvnet.py`'s docstring). Generated by `etc/gen-link.py {flag}` -- do not edit by hand.",
+        100, break_on_hyphens=False) + "\n\n" + textwrap.fill(
+        f"{len(order)} results, {len(closed)} of them with no hypothesis. The others take, as hypotheses, "
+        "the specs no result proves and the hypotheses of the linked results they use: "
+        + (", ".join(f"`{n}`" for n in pend) or "none") + ".", 100, break_on_hyphens=False)
+        + "\n\n`#print axioms` on a result is its trust base.\n-/")
+    _unused_head = ("/-\n" + textwrap.fill(
         "kvnet's and kvcheck's proofs (the part `KvNet/`, `notes/kvnet-part.md`), every proof applied to its "
         "callees' results: the part's own, and raft-noax's, `durable`'s, lintest's, porcupine's and "
         "Perennial's linked results (their `Link.lean`s, used as they are). The callees are read off each "
@@ -408,7 +451,7 @@ set_option linter.unusedVariables false
 
 namespace {NS}
 
-{OPENS}
+{OPENS.replace(" Perennial.EtcdGrove.raft_kvcheck", "") + "open Udp\n" if udp else OPENS}
 attribute [local instance] raft_kvnet.kdStorageModel
 """)
     out.append("section links\n" + sec)
@@ -420,18 +463,18 @@ attribute [local instance] raft_kvnet.kdStorageModel
     out.append(f"end {NS}")
     text = "\n".join(out) + "\n"
     if missing:
-        print("gen-link.py --kvnet: specs with no result (hypotheses): " + ", ".join(sorted(missing)),
+        print(f"gen-link.py {flag}: specs with no result (hypotheses): " + ", ".join(sorted(missing)),
               file=sys.stderr)
     rej = [x["name"] for x in decls if x["kind"] == "theorem" and re.search(r"\.wp_proof([A-Z][\w']*)?$", x["name"])
            and x["mod"].startswith(rootmod + ".") and x.get("spec") is None]
     if rej:
-        print("gen-link.py --kvnet: root proofs not linked (a binder of no known kind): "
+        print(f"gen-link.py {flag}: root proofs not linked (a binder of no known kind): "
               + ", ".join(sorted(rej)), file=sys.stderr)
     if check:
         p = os.path.join(root, OUT)
         cur = open(p, encoding="utf-8").read() if os.path.exists(p) else ""
         if cur != text:
-            print(f"gen-link.py --kvnet: {OUT} differs from the generated file", file=sys.stderr)
+            print(f"gen-link.py {flag}: {OUT} differs from the generated file", file=sys.stderr)
             sys.exit(1)
         return
     sys.stdout.write(text)

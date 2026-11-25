@@ -2,8 +2,8 @@
 
 # leaseexpiryN's closed theorem (`notes/leaseN-plan.md`, 2026-11-16; statement approved by the user, 2026-11-16, via etcd-grove-02)
 
-`etcd_leaseexpiry_safe` (`leaseexpiry/Adequacy.lean`) for `examples/etcd/leaseexpiryN` at any member count
-`1 ≤ k ≤ 1000`: the package's initialization followed by `Main(k)` -- `k` etcd members started in process,
+`etcd_leaseexpiry_safe` (`leaseexpiry/Adequacy.lean`) for `examples/etcd/leaseexpiryN` at any `k : w64`
+(`Main` returns at once outside `[1, 1000]`, 2026-11-24): the package's initialization followed by `Main(k)` -- `k` etcd members started in process,
 each serving its raft handler on its own peer listener and its gRPC API on its client address, a lease
 of the minimum TTL granted through a client of every member, and at every member, once its listing no
 longer lists the lease granted through it, one more listing, with a panic if it lists the lease --
@@ -13,7 +13,7 @@ it has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 
 It follows from `etcd_adequate_members` (`etcdstart/AdequacyMembers.lean`) with the registration rights it allocates
 (`leaseexpiryN_regQsOk`), the `2k` addresses (`leaseexpiryNAddrs`: the members' peer and client addresses, distinct
-loopback literals) and the `k` data directories (`leaseexpiryNDirs`), over putgetN's ghost-state bundle
+loopback literals) and the `k` data directories (`leaseexpiryNDirs`), none outside `[1, 1000]`, over putgetN's ghost-state bundle
 `putgetNGF`, from `leaseexpiryN`'s `wp_initialize'` (over the program's package table `PkgTable.lean`) and
 `etcd_leaseexpiryN.wp_Main` (`MainLinked.lean`).
 
@@ -84,7 +84,7 @@ instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
 single-process theorem over `etcdNetExts` takes their listening tokens from the extension's start):
 every port is `127.0.0.1:<p>` with `p` below `32768` (`addr_port`), below Linux's ephemeral range
 (`addrOk_loopback`). -/
-theorem etcd_leaseexpiryN.leaseexpiryNAddrs_ok (k : Nat) (hk : k ≤ 1000) :
+theorem etcd_leaseexpiryN.leaseexpiryNAddrs_ok (k : w64) :
     ∀ a ∈ etcd_leaseexpiryN.leaseexpiryNAddrs k, Net.addrOk a = true := by
   intro a ha
   obtain ⟨b, i, hb, hi, rfl⟩ := etcd_leaseexpiryN.addr_port k a ha
@@ -127,7 +127,7 @@ theorem leaseexpiryN_regQsOk : prometheus.regQsOk github_com.mit_pdos.etcd_grove
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
-/-- **leaseexpiryN is safe** (see the file header): for every member count `1 ≤ k ≤ 1000`, every real
+/-- **leaseexpiryN is safe** (see the file header): for every `k` (`Main` returns at once outside `[1, 1000]`), every real
 execution of `leaseexpiryNProgram k` from a fresh state with one thread, of `n` steps: if the main thread
 has finished, its result is `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
@@ -138,9 +138,9 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
+    (k : w64)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
+    (Hlen : ids.length = uint.nat k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
     (Hap : leaseIdsApart ids)
     (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
@@ -150,7 +150,8 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HEnv : verifyEnvOff (leaseexpiryNProgram k))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
-      ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
+      ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) (uint.nat k) n ids ps
+        ctxs boot)
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
@@ -163,13 +164,13 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members_below (GF := putgetNGF) (hmsL := etcd_leaseexpiryN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k hk)
-    (hAsOk := etcd_leaseexpiryN.leaseexpiryNAddrs_ok k hk)
+  refine etcd_adequate_members_below (GF := putgetNGF) (hmsL := etcd_leaseexpiryN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k)
+    (hAsOk := etcd_leaseexpiryN.leaseexpiryNAddrs_ok k)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize'
-    ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int)))
+    ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #k)
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseexpiryN.leaseexpiryNAddrs k)
-    (etcd_leaseexpiryN.leaseexpiryNAddrs_nodup k hk) (etcd_leaseexpiryN.leaseexpiryNDirs k)
-    (etcd_leaseexpiryN.leaseexpiryNDirs_nodup k hk) (etcd_leaseexpiryN.startAddrs k) []
+    (etcd_leaseexpiryN.leaseexpiryNAddrs_nodup k) (etcd_leaseexpiryN.leaseexpiryNDirs k)
+    (etcd_leaseexpiryN.leaseexpiryNDirs_nodup k) (etcd_leaseexpiryN.startAddrs k) []
     (etcd_leaseexpiryN.leaseexpiryNAddrs_perm k) (etcd_leaseexpiryN.leaseexpiryNDirs_perm k)
     σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.regQs leaseexpiryN_regQsOk HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
@@ -184,7 +185,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   unfold etcd_leaseexpiryN.startAddrs
   rw [BigSepL.bigSepL_map]
-  have hM := etcd_leaseexpiryN.wp_Main (GF := putgetNGF) k n ids ps ctxs boot hk1 hk Hlen Hbf Hap
+  have hM := etcd_leaseexpiryN.wp_Main (GF := putgetNGF) k n ids ps ctxs boot Hlen Hbf Hap
     (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega)
     (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo Hlp inferInstance
     EtcdGrove.rpctypesEtcdError_asTarget
