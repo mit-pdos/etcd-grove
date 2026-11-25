@@ -8,11 +8,10 @@
 // is none, each in Antithesis's default mode (antithesis-fm/rawnode/node.go, `drain`): the write
 // (HardState and entries) announced by a `ready` report and made, as one step; the messages, each
 // reported (`send`) before it is handed to the network; the committed entries reported (`apply`)
-// and applied; Advance. The network delivers each message from a goroutine of its own after a
-// random delay (so messages are reordered), or drops it; a proposer hands proposals to random
-// nodes (a follower forwards one to its leader, and the network drops every forwarded proposal,
-// notes/antithesis-s4-design.md §7); an isolator cuts a random node off the network for a while,
-// which makes the others elect another leader.
+// and applied; Advance. The network delivers each message from a goroutine of its own, so messages
+// are delivered in any order, and any of them may still be undelivered when the run stops; a
+// proposer hands proposals to random nodes until the run stops (a follower forwards one to its
+// leader, and the network drops every forwarded proposal, notes/antithesis-s4-design.md §7).
 //
 // Every report goes to one Recorder, whose lock orders them: the stream is the order in which
 // they were recorded. That order is one the binding can follow (notes/antithesis-check-design.md,
@@ -27,8 +26,7 @@
 //     request: the sender's earlier `ready`s; a vote request's fact: the candidate's `ready` that
 //     wrote its term), and everything a later step needs from the receiver's answer (a grant, an
 //     ack) is recorded by the receiver's `send` or `ready` before the answer reaches the network;
-//   - nothing else connects two nodes: a proposal is an input of one node, and the isolator only
-//     drops messages.
+//   - nothing else connects two nodes: a proposal is an input of one node.
 //
 // Scope (#33's decisions, notes/antithesis-check-design.md §8): three voters with empty logs
 // (EtcdBindingEmpty.cfg: each storage reports the voters as its ConfState and holds no entry),
@@ -235,25 +233,28 @@ func (s *bootStorage) Snapshot() (*pb.Snapshot, error) { return s.ms.Snapshot() 
 
 // Config is a run's configuration.
 type Config struct {
-	Nodes      uint64        // voters, ids 1..Nodes
-	Proposals  uint64        // proposals, one after another at random nodes
-	ProposeGap time.Duration // the pause between two proposals
-	Settle     time.Duration // how long the cluster runs after the last proposal
-	Tick       time.Duration // the nodes' tick interval
-	MaxDelay   time.Duration // a message's delay is uniform in [0, MaxDelay]
-	DropPct    uint64        // percentage of messages dropped
-	// Isolations: the isolator cuts a random node off the network (every message from or to it
-	// dropped) for IsolateFor, that many times, one after another.
-	Isolations uint64
-	IsolateFor time.Duration
+	Nodes uint64 // voters, ids 1..Nodes
+	// Settle is how long the cluster runs before it is stopped. Any duration gives a run the
+	// theorem covers; it is there so that a real run does something before it stops.
+	Settle time.Duration
+	// Tick is the nodes' tick interval; positive (time.NewTicker panics otherwise).
+	Tick time.Duration
 }
 
-// DefaultConfig is Main's run: three voters, 60 proposals, three isolations (leader changes).
+// DefaultConfig is Main's run: three voters, ticking every 2ms, for 60ms (a leader is elected after
+// 10 to 20 ticks, and then commits proposals).
 func DefaultConfig() Config {
-	return Config{Nodes: 3, Proposals: 60, ProposeGap: 5 * time.Millisecond, Settle: 100 * time.Millisecond,
-		Tick: 2 * time.Millisecond, MaxDelay: 4 * time.Millisecond, DropPct: 5, Isolations: 3,
-		IsolateFor: 80 * time.Millisecond}
+	return Config{Nodes: 3, Settle: 60 * time.Millisecond, Tick: 2 * time.Millisecond}
 }
+
+// raft's configuration of every node, and the inboxes' size.
+const (
+	electionTick    = 10      // ticks without a leader's message before a follower campaigns (raft's usual 10)
+	heartbeatTick   = 1       // a leader's heartbeat every tick (raft's usual 1)
+	maxSizePerMsg   = 1 << 20 // bytes of entries per append message (etcd's default 1 MiB)
+	maxInflightMsgs = 256     // append messages in flight per follower (etcd's default)
+	inboxSize       = 1024    // a node's input channel buffer: senders block only when it is full
+)
 
 // input kinds.
 const (
@@ -289,9 +290,6 @@ type Cluster struct {
 	nodes []*node
 	stop  chan struct{}
 
-	isoMu    sync.Mutex
-	isolated uint64 // the node cut off the network now (0: none)
-
 	nodesWg sync.WaitGroup // the nodes' goroutines
 	netWg   sync.WaitGroup // the network's goroutines
 }
@@ -303,27 +301,14 @@ func (c *Cluster) node(id uint64) *node {
 	return c.nodes[id-1]
 }
 
-func (c *Cluster) isolatedNow() uint64 {
-	c.isoMu.Lock()
-	x := c.isolated
-	c.isoMu.Unlock()
-	return x
-}
-
-func (c *Cluster) isolate(id uint64) {
-	c.isoMu.Lock()
-	c.isolated = id
-	c.isoMu.Unlock()
-}
-
 // Events is the stream.
 func (c *Cluster) Events() []*check.Event { return c.rec.Events() }
 
 // Servers is the binding's Server (and InitVoters): the nodes' names.
 func (c *Cluster) Servers() check.Set { return check.SetOf(names(c.cfg.Nodes)) }
 
-// RunCluster runs a cluster: it starts the nodes and their goroutines, makes the proposals and
-// isolations, lets the cluster settle, stops it, and returns it (its stream is Events).
+// RunCluster runs a cluster: it starts the nodes, their goroutines and the proposer, lets them run
+// for Settle, stops them, and returns the cluster (its stream is Events).
 func RunCluster(cfg Config) *Cluster {
 	c := &Cluster{cfg: cfg, rec: &Recorder{}, stop: make(chan struct{})}
 	var voters []uint64
@@ -334,18 +319,18 @@ func RunCluster(cfg Config) *Cluster {
 		ms := raft.NewMemoryStorage()
 		rc := &raft.Config{
 			ID:              i,
-			ElectionTick:    10,
-			HeartbeatTick:   1,
+			ElectionTick:    electionTick,
+			HeartbeatTick:   heartbeatTick,
 			Storage:         &bootStorage{ms: ms, voters: voters},
-			MaxSizePerMsg:   1 << 20,
-			MaxInflightMsgs: 256,
+			MaxSizePerMsg:   maxSizePerMsg,
+			MaxInflightMsgs: maxInflightMsgs,
 			Logger:          quietLogger{},
 		}
 		rn, err := raft.NewRawNode(rc)
 		if err != nil {
 			panic("antithesis: NewRawNode failed")
 		}
-		n := &node{id: i, name: Name(i), rn: rn, storage: ms, in: make(chan input, 1024), role: "follower"}
+		n := &node{id: i, name: Name(i), rn: rn, storage: ms, in: make(chan input, inboxSize), role: "follower"}
 		c.nodes = append(c.nodes, n)
 	}
 	for _, n := range c.nodes {
@@ -361,29 +346,24 @@ func RunCluster(cfg Config) *Cluster {
 		go c.run(n)
 	}
 
-	var drivers sync.WaitGroup
-	drivers.Add(2)
-	go func() { // the isolator
-		for k := uint64(0); k < cfg.Isolations; k++ {
-			time.Sleep(cfg.IsolateFor / 2)
-			c.isolate(1 + below(cfg.Nodes))
-			time.Sleep(cfg.IsolateFor)
-			c.isolate(0)
-		}
-		drivers.Done()
-	}()
-	go func() { // the proposer
-		for k := uint64(1); k <= cfg.Proposals; k++ {
+	var proposer sync.WaitGroup
+	proposer.Add(1)
+	go func() { // the proposer: proposals "v1", "v2", ... to random nodes, until the run stops
+		for k := uint64(1); ; k++ {
+			select {
+			case <-c.stop:
+				proposer.Done()
+				return
+			default:
+			}
 			n := c.nodes[below(cfg.Nodes)]
 			c.deliver(n, input{kind: inProp, data: []byte("v" + strconv.FormatUint(k, 10))})
-			time.Sleep(cfg.ProposeGap)
 		}
-		drivers.Done()
 	}()
-	drivers.Wait()
 	time.Sleep(cfg.Settle)
 
 	close(c.stop)
+	proposer.Wait()
 	c.nodesWg.Wait()
 	c.netWg.Wait()
 	return c
@@ -493,24 +473,17 @@ func (c *Cluster) drain(n *node, by string) {
 	}
 }
 
-// send delivers m after a random delay, or drops it, from a goroutine of its own. A forwarded
-// proposal (MsgProp) is always dropped: raft's proved Step takes a local proposal only (From 0 or
-// the node itself), notes/antithesis-s4-design.md §7; delivering them is #44.
+// send delivers m from a goroutine of its own. A forwarded proposal (MsgProp) is dropped: raft's
+// proved Step takes a local proposal only (From 0 or the node itself),
+// notes/antithesis-s4-design.md §7; delivering them is #44.
 func (c *Cluster) send(m *pb.Message) {
 	if m.GetType() == pb.MessageType_MsgProp {
 		return
 	}
-	delay := time.Duration(below(uint64(c.cfg.MaxDelay) + 1))
-	drop := below(100) < c.cfg.DropPct
 	c.netWg.Add(1)
 	go func() {
-		time.Sleep(delay)
-		iso := c.isolatedNow()
-		if iso != 0 && (iso == m.GetTo() || iso == m.GetFrom()) {
-			drop = true
-		}
 		dst := c.node(m.GetTo())
-		if dst != nil && !drop {
+		if dst != nil {
 			c.deliver(dst, input{kind: inMsg, msg: m})
 		}
 		c.netWg.Done()
