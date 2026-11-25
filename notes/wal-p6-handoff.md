@@ -421,6 +421,30 @@
     the lock (`walLockedTokI_incQ`), a handle (`walOpenWI_lockedTokI`), `walOpening`/`walHandlePI` (to add).
   * the 28 lookup sites (`grep walDirKey_lookup`) and the 4 internal specs (`WAL__renameWAL`, `newFilePipeline`,
     `WAL__syncIdle(F)`: `∀ i`, `walDirKey dir i j X`), approved in the ledger entry.
+- **2026-11-25, P6b session 11, fix B (subagent): stopped before any Lean edit; B's design has a gap.** B's lookup
+  (`walDirKey_lookup … walIncQ I' -∗ ⌜incOf I' dir = i → K !! dir = some (j, X)⌝`) needs, at every lookup, a
+  share of `γI` held by the caller. Two callers hold none, and giving them one changes specs beyond "take the
+  incarnation":
+  1. **The pipeline's goroutine** (`filePipeline.run`/`alloc` → `PipeLemmas.wp_createTmp`/the remove →
+     `walTmp_osAUnc` → `walInvBody_tmpAcc`, `TmpAu.lean:72`) holds only `isFilePipe` (persistent: the key),
+     `pipeRes` (`osPathS R dir dq j`, a quarter of `osCallPerm`) and `tmpClaim j b`; it runs concurrently with the
+     handle, so it cannot borrow the lock's quarter. A share in `pipeRes`/`pipeLeft` (split off the handle's
+     quarter, back at `filePipeline.Close`) changes `newFilePipeline` *and* `filePipeline.Close`/`run`/`alloc`
+     (they name `pipeRes`/`pipeLeft`): a ledger entry first.
+  2. **`WAL.sync.specIdle`/`specIdleF`** (`TailSyncIdle.lean:317`, `TailFsyncIdle`) hold the key,
+     `osNames j (.except X) ½`, `walTailsFrag ∅`, `walCutFrag none`, but not the lock's quarter (their callers,
+     `Close`, `CloseFailed`, `CloseOpening`, hold it). Adding `walIncQ I ∗ ⌜incOf I dir = i⌝` to their pre and
+     post is in the four approved specs, but more than the approved "takes `h.inc`".
+  Ways out (a decision, not a subagent's): (a) the specs as above (ledger entry for the pipeline family; the
+  sync change recorded); (b) no spec change: the keys authority keeps, for each retired key `(dir, i) ↦ (j, X)`,
+  the whole claims `osNames j (.except X)` and `osNames j (.only [b])` (`b ∈ walTmps`), so that a caller's
+  fraction of one of them (`osNames_frac`) proves its key current; the authority then needs `L` (it lives in
+  `Ghost.lean`, `W` only: move it or parametrize it), and C's discard must move those claims there (all parked
+  when the lock is free) and keep them (a later `RemoveAll(dir.tmp)` of that `j` needs them back: check); (c) a
+  path-based lookup for the pipeline, from its `osPathS R dir dq j` against `walNamesRes`'s share of `nm`
+  (fix A), which needs a "the directory at a registered `nm` is the current layout's `j`" fact. The other ~22
+  lookup sites have a holder (lock, `walOpenWI`/`walOpenWCI`, `walOpening`/`walHandlePI`, or a coiter predicate,
+  `walBrokenP` etc., that can be given the caller's quarter): B as designed works there.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
