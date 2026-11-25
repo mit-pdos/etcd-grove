@@ -145,7 +145,7 @@ theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) 
     (Wn : List GoString) (c qh : Qp)
     (x : Nat × Nat) (w : Loc) (hc : qh + (qh + c) = (1 : Qp).half) :
     ⊢ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J hJ g (some x) -∗
+      createUK (W := W) Mr R jr r nm ic md Q Wn J g x -∗
       createSpR (hG := hG) jr J nm c x ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ createUH (W := W) jr J r nm ic md Q Wn qh x ∗
       walInv (W := W) walCodec Mr R jr r ∗ walHandlePI (W := W) w (child r nm) ic .append ∗
@@ -153,11 +153,11 @@ theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) 
       walOutFrag (W := W) (WalOut.empty.create g.ino J walTmps (child r nm)) ∗
       walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
       walNamesFrag (W := W) (some (child r nm)) ∗
-      walDirKey (W := W) (child r nm) J walTmps := by
+      walDirKey (W := W) (child r nm) ic J walTmps := by
   iintro Hnc HU HSpR
-  unfold createU
-  icases HU with ⟨#Hinv, -, HQ⟩
-  simp only [walCreateQ]
+  unfold createUK
+  icases HU with ⟨#Hinv, HQ⟩
+  simp only [walCreateQK]
   icases HQ with ⟨HQ, Hsf, Hm, Hb, Ho, Htr, Hnf, #Hk, %s', %I, Hlt, #Hpast, %hI, %hs'⟩
   subst hI
   unfold createSpR

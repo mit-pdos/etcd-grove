@@ -124,7 +124,7 @@ theorem walOpenWFU_sealL (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
   icases Hpipe with ⟨%γp, %Rpp, %dqp, %szp, %np, Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
   obtain ⟨hnk, ⟨-, hq1⟩, hq2⟩ := hnp
   have hqq : h.qp = qp := by rw [hq1] at hq2; exact (DFrac.own.inj hq2).symm
-  icases walDirH_split dir j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp
+  icases walDirH_split dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp
     (fun R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝)) (fun _ _ => walNamed (W := W) dir h.inc) (some dir)
     $$ Hd with ⟨%Rd, %qd, %hA, Hnf, Hd⟩
   obtain ⟨-, -, hqd⟩ := hA

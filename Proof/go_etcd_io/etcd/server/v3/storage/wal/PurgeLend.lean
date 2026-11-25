@@ -213,7 +213,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
     Hl1, Hl2, Hl3, %hl4, Hl5, Hl6, Hl7, Hl8, Hl9, Hl10, Hl11, Hopen, %hpure⟩
   unfold walTailW
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ _ $$ Hdh with
+  icases walDirH_lend dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ _ $$ Hdh with
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
   icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,
@@ -272,7 +272,7 @@ theorem walOpenWFI_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoSt
     Hl1, Hl2, Hl3, %hl4, Hl5, Hl6, Hl7, Hl8, Hl9, Hl10, Hl11, Hopen, %hpure⟩
   unfold walTailW
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ _ $$ Hdh with
+  icases walDirH_lend dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ _ $$ Hdh with
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
   icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,

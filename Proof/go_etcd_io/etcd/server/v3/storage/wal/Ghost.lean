@@ -2150,6 +2150,24 @@ theorem walLockedTokI_incQ_agree (I I' : GMap GoString Nat) :
   iframe Ht Hf Hc Hq Hi
   ipureintro; rfl
 
+/-- **The pipeline's key from the lock's view** (`Create`'s spine law): the lock's quarter at `I`, the
+key at `dir`'s incarnation in `I` and the reserve make the pipeline's key (the reserve is at `I`). -/
+theorem walPipeKey_ofLocked (I : GMap GoString Nat) (dir : GoString) (i : Nat) (j : Fs.Ino)
+    (X : List GoString) (hi : incOf I dir = i) :
+    ⊢@{IProp GF} walLockedTokI (W := W) I -∗ walDirKey (W := W) dir i j X -∗ walIncEAny (W := W) -∗
+      walLockedTokI (W := W) I ∗ walPipeKey (W := W) dir j := by
+  unfold walLockedTokI walPipeKey walIncEAny walIncE walIncQ
+  letI := walAllG (W := W)
+  iintro ⟨Ht, Hf, Hc, Hq⟩ Hk ⟨%I', Hr⟩
+  icases ghostVar_agree $$ Hq Hr with %e
+  subst e hi
+  isplitl [Ht Hf Hc Hq]
+  · iframe Ht Hf Hc; iexact Hq
+  iexists I, X
+  isplitl [Hr]
+  · iexact Hr
+  iexact Hk
+
 /-- **`walGhost` at a view's incarnation**: the view's `i` is the ghost's. -/
 theorem walGhost_dirIsI (s : AbsDiskState) (dir : GoString) (i : Nat) (o : Option WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walDirIsI (W := W) dir i o -∗

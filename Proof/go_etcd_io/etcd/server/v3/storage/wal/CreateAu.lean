@@ -139,17 +139,24 @@ pipeline names: `WalOut.create`, the handle's to carry), the new WAL's tail regi
 (`walTailReg dir t`, `t` the tail record: the commit is the one step that knows the fresh WAL's
 layout, which the handle's encoder and offset must match; W4 log, twenty-third session), and the new
 WAL's directory key (`walDirKey dir J X`: the invariant holds the other half of `J`'s claim, once). -/
+def walCreateQK (dir : GoString) (i : Nat) (md : List w8) (Q : IProp GF) (Wn : List GoString)
+    (J : Ino) (X : List GoString) (g : SegG) (t : TailG) : IProp GF :=
+  iprop(Q ∗ walSplitFrag (W := W) Wn ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
+      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
+      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailReg (W := W) dir t ∗
+      walNamesFrag (W := W) (some dir) ∗
+      walDirKey (W := W) dir i J X ∗
+      ∃ (s' : AbsDiskState) (I : GMap GoString Nat), walLockedTokI (W := W) I ∗ walPastI (W := W) (s', I) ∗
+        ⌜incOf I dir = i ∧ s'.wal !! dir = some (walDurFresh md)⌝)
+
+/-- `walCreateQ … (some _)`: `walCreateQK` and the pipeline's eighth of the incarnations (the reserve
+the commit took out with the pipeline names, `walParked_create`; `RenameWALOk`'s spine law gives it to
+the pipeline, `walPipeKey`). -/
 def walCreateQ (dir : GoString) (i : Nat) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (Pv : Option WalDur → Prop) (Wn : List GoString)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) (t : TailG) : Option (Nat × Nat) → IProp GF
   | none => walCreateP (W := W) dir i N h md Q Pv Wn J X hJ g
-  | some _ => iprop(Q ∗ walSplitFrag (W := W) Wn ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
-      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
-      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailReg (W := W) dir t ∗
-      walNamesFrag (W := W) (some dir) ∗
-      walDirKey (W := W) dir i J X ∗ walIncEAny (W := W) ∗
-      ∃ (s' : AbsDiskState) (I : GMap GoString Nat), walLockedTokI (W := W) I ∗ walPastI (W := W) (s', I) ∗
-        ⌜incOf I dir = i ∧ s'.wal !! dir = some (walDurFresh md)⌝)
+  | some _ => iprop(walCreateQK (W := W) dir i md Q Wn J X g t ∗ walIncEAny (W := W))
 
 /-- **While `Create` of `dir` is creating, no WAL is in `dir`** (`notes/wal-units/fresh.md`): the
 creating entry holds the free lock token in the invariant (`walCreatingAuth`), so no registration is
@@ -532,7 +539,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           hlay, walsBounded_ins Hbd.1 rfl
             ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, histN, normH, normFrom, walDurFresh]⟩, Hbd.2⟩
       imodintro
-      dsimp only [walCreateQ]
+      dsimp only [walCreateQ, walCreateQK]
       rw [hgbs]
       isimp only [hIv] at Hkey
       iframe HQ Hsf Hm2 Hb2 Hkey Hres
