@@ -58,9 +58,11 @@ theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     Node.spec (GF := GF) (hG := hG) := by
   intro c addr eps epsL
   wp_start as ⟨Heps, Hpre⟩
+  iunfold kvNodePreL at Hpre
+  icases Hpre with ⟨Hlt, %htb, Hpre⟩
   iunfold kvNodePre at Hpre
-  icases Hpre with ⟨%Γ, %Hp, Hlt, #Hm, #Hra⟩
-  obtain ⟨hauth, htb, hpl, hAs, hV⟩ := Hp
+  icases Hpre with ⟨%Γ, %Hp, #Hm, #Hra⟩
+  obtain ⟨hauth, hpl, hAs, hV⟩ := Hp
   ihave #Hrp : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit

@@ -427,3 +427,46 @@ hypotheses); step 5's kv part (`kvremote/Start.lean`) over `member_boot_dist`.
 - **Builds**: fk-lean1 had 22 GB free (a seed needs 65), so checks ran in fk-lean2's `wt/etcd-safe-p9` with the two
   new files copied in (`/shared/tmp/p9node-chk.sh`), then removed: `lake build` of both modules there at `6602c665b8`'s
   text: built (4918 jobs, exit 0). `etc/tier-check.py --check`: ok.
+
+## M1 session 2 (2026-11-25, branch `etcd-safe-m1`)
+
+**Commits**: `c066130dfb` the CallDist fix; then the shares restatement (**unbuilt**, its commit message says
+so). Remote worktree: fk-lean2 `wt/etcd-safe-m1` now exists (created this session; `.lake/build` moved from
+`wt/etcd-safe-p9-nc`). Build: `/shared/tmp/m1-build.sh` of `kvremote.Link kvremote.Start` at `c066130dfb`;
+its result is under "Build state" below.
+
+**CallDist fix** (the six stuck `client.v3.Assumptions` errors): no binder was lost. Dropping `svc` left
+`GF` undetermined in the svc-free laws (`client_*_dist.law`, `txn_Commit_dist.law`), in N2's `KV_*_dist.spec`
+and `Txn_Commit_dist.spec`, and in `Call_dist.spec` used as a conclusion. Fix: `(GF := GF) (hG := hG)` at each
+use, in `CallDist.lean` and `CallDistLinked.lean`.
+
+**Shares at `[Gg : GooseGlobalGS]`** (the lead's §21.1 option (a), shaped like N5's `memberShareD`):
+- `kvR`/`kvSys` (`Store.lean`, section `sys`): at `Gg` (`etcdKV` is global already).
+- `kvOrchPre` (`Spec/.../kvremote/Orch.lean`, section `share`): at `Gg`, over a new **`linkvtxnSG`**. That is
+  txnlin's model `linkv.pM TS decOp` without `linkvtxnS`'s `rep`, which needs points-to and so a local state.
+  `pendCtx`/`pendLib` read only `S.M`, so `Orch.lean` converts them with `pendCtx_linkvtxnSG` and
+  `pendLib_linkvtxnSG`, both `.rfl`. `Orch.spec` takes `kvOrchPre (Gg := hG.goose_globalGS)`.
+- **`kvNodePre` split** (`Spec/.../kvremote/Node.lean`). `levelTok 0` and `threadBound GF` are of the
+  *local* ghost state (`ThreadGS` is in `GooseLocalGS`), so they cannot be in a global share:
+  - `kvNodePre c addr eps` (at `Gg`): `∃ Γ, ⌜Γ.auth = false ∧ plainEndpoints eps ∧ AsTarget ∧
+    Nonempty WEnv⌝ ∗ membersAt eps Γ ∗ remoteAddr (kvR Γ.kv) addr`. This is the machine's boot share.
+  - `kvNodePreL c addr eps := levelTok 0 ∗ ⌜threadBound GF ≤ 2^30⌝ ∗ kvNodePre (Gg := hG.goose_globalGS) …`
+    (under `HeapGS`). `Node.spec`'s pre is `kvNodePreL`, so `Node.spec = Node.specWith kvNodePreL`.
+  - **The machine's boot lemma supplies `levelTok 0`** (from its thread token: `threadTok_level0`) **and
+    `threadBound GF ≤ 2^30`** (from the boot's `hT`, as N5's `ThreadBoundLe`). Never as a top-level premise.
+    With N7-kv's `nodeShare` at `Gg` and `NP := kvNodePre`, the boot needs
+    `levelTok 0 ∗ ⌜b⌝ ∗ nodeShare kvNodePre d n ⊢ nodeShare kvNodePreL d n` (by `nodeShare`'s cases).
+- `Start.lean`: the section is at `Gg` (`hG.goose_globalGS` → `Gg`), covering `kv_start`,
+  `kv_start_deployment`, `membersAt_sub`, `membersAt_of_members` and `member_boot_dist.law`, whose text
+  changes only in that instance argument. `pend_alloc` is at `linkvtxnSG`. The lead's `TopLevelRobustness`
+  on `etcd-safe-m1-top` may name `kvNodePre` where it now needs `kvNodePreL`.
+
+**Left, in order:**
+1. Build `kvremote.Link kvremote.Start` at the restatement's commit (`/shared/tmp/m1-build.sh`) and fix it.
+   Likely spots: `linkvtxnSG`'s `decOp`/`TS` instances in the Spec `Orch.lean`; the `.rfl` lemmas; `Node.lean`'s
+   new `icases`.
+2. `etc/tier-check.py --check`; `etc/tcb-report.py --check`. Only N2's `KV_Delete_dist`/`Txn_Commit_dist`
+   may enter, with `--check --update`.
+3. Merge `etcd-safe-n7kv-nc2` when it is pushed (not pushed at this writing). Restate `orchShare`/`nodeShare`
+   at `Gg` (they only apply `OP`/`NP`), add the two instance lemmas (`Node.spec = Node.specWith kvNodePreL`
+   by `rfl`; `Orch.spec → Orch.specWith (kvOrchPre (Gg := …))`), and `membersAt_sub` at `rotateL`.
