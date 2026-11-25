@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetPh
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetRevision
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext__JSONModelMarshal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext__JSONModelUnmarshal
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AddMember
@@ -407,6 +408,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ValidateMaxLearnerConfig
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.WithMaxLearners
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.computeMemberID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jdecMember_ConfigChangeContext
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jdec_ConfigChangeContext
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jdec_S_string
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jenc_ConfigChangeContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jenc_Member
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.jenc_S_string
@@ -838,6 +842,22 @@ theorem membership.wp_jenc_ConfigChangeContext :
 theorem membership.ConfigChangeContext.wp_JSONModelMarshal :
     membership.ConfigChangeContext.JSONModelMarshal.spec (GF := GF) (hG := hG) :=
   membership.ConfigChangeContext.JSONModelMarshal.wp_proof membership.wp_jenc_ConfigChangeContext
+
+theorem membership.wp_jdec_S_string :
+    membership.jdec_S_string.spec (GF := GF) (hG := hG) :=
+  membership.jdec_S_string.wp_proof _root_.Perennial.models_lab.jsoncodec.At.wp _root_.Perennial.models_lab.jsoncodec.Empty.wp _root_.Perennial.models_lab.jsoncodec.Next.wp _root_.Perennial.models_lab.jsoncodec.String.wp
+
+theorem membership.wp_jdecMember_ConfigChangeContext :
+    membership.jdecMember_ConfigChangeContext.spec (GF := GF) (hG := hG) :=
+  membership.jdecMember_ConfigChangeContext.wp_proof _root_.Perennial.models_lab.jsoncodec.Uint.wp _root_.Perennial.models_lab.jsoncodec.String.wp _root_.Perennial.models_lab.jsoncodec.Bool.wp membership.wp_jdec_S_string
+
+theorem membership.wp_jdec_ConfigChangeContext :
+    membership.jdec_ConfigChangeContext.spec (GF := GF) (hG := hG) :=
+  membership.jdec_ConfigChangeContext.wp_proof _root_.Perennial.models_lab.jsoncodec.At.wp _root_.Perennial.models_lab.jsoncodec.Empty.wp _root_.Perennial.models_lab.jsoncodec.Member.wp _root_.Perennial.models_lab.jsoncodec.Next.wp membership.wp_jdecMember_ConfigChangeContext
+
+theorem membership.ConfigChangeContext.wp_JSONModelUnmarshal :
+    membership.ConfigChangeContext.JSONModelUnmarshal.spec (GF := GF) (hG := hG) :=
+  membership.ConfigChangeContext.JSONModelUnmarshal.wp_proof _root_.Perennial.models_lab.jsoncodec.Valid.wp membership.wp_jdec_ConfigChangeContext
 
 theorem DeleteRangeRequest.wp_GetKey :
     DeleteRangeRequest.GetKey.spec (GF := GF) (hG := hG) :=
@@ -1534,14 +1554,6 @@ theorem config.ServerConfig.wp_ElectionTimeout :
 theorem pbutil.wp_MustUnmarshalMessage :
     pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustUnmarshalMessage.wp_proof
-
-theorem encoding.json.wp_Unmarshal :
-    encoding.json.Unmarshal.spec (GF := GF) (hG := hG) :=
-  encoding.json.Unmarshal.wp_proof
-
-theorem membership.RaftCluster.wp_ValidateConfigurationChange :
-    membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.ValidateConfigurationChange.wp_proof encoding.json.wp_Unmarshal raftpb.ConfChange.wp_GetNodeId raftpb.ConfChange.wp_GetType
 
 theorem prometheus.gauge.wp_Set :
     prometheus.gauge.Set.spec (GF := GF) (hG := hG) :=
@@ -3053,6 +3065,14 @@ theorem EtcdServer.wp_setAppliedIndex :
 theorem EtcdServer.wp_setTerm :
     EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
   EtcdServer.setTerm.wp_proof
+
+theorem encoding.json.wp_Unmarshal :
+    encoding.json.Unmarshal.spec (GF := GF) (hG := hG) :=
+  encoding.json.Unmarshal.wp_proof _root_.Perennial.encoding.json.Unmarshal.wp membership.ConfigChangeContext.wp_JSONModelUnmarshal _root_.Perennial.models_lab.jsoncodec.scanOk_scanF
+
+theorem membership.RaftCluster.wp_ValidateConfigurationChange :
+    membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.ValidateConfigurationChange.wp_proof encoding.json.wp_Unmarshal raftpb.ConfChange.wp_GetNodeId raftpb.ConfChange.wp_GetType
 
 theorem schema.membershipBackend.wp_MustSaveMemberToBackend :
     schema.membershipBackend.MustSaveMemberToBackend.spec (GF := GF) (hG := hG) :=
