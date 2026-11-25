@@ -303,7 +303,8 @@ done
 jsoninputs="models/internal/jsondifftest/json.toml:models/internal/jsondifftest/codec:codec
 models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec
 examples/models/jsonetcd/json.toml:examples/models/jsonetcd:jsonetcd
-models/internal/jsonpkgtest/json.toml:models/internal/jsonpkgtest:jsonpkgtest"
+models/internal/jsonpkgtest/json.toml:models/internal/jsonpkgtest:jsonpkgtest
+examples/dsverify/vr/examples/vsrnet/json.toml:examples/dsverify/vr/examples/vsrnet:vsrnet"
 for x in $jsoninputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/json/jsongen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1

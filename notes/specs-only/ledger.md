@@ -6770,6 +6770,17 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   logger); not edited here.
 - **Decision.** `Spec/` restated (2026-11-25, branch `transport-emptycn/2026-11-25`); `SpecPlan/` open.
 
+## 2026-11-25: `encoding.json.Encoder.Encode_conn.spec` could not be proved (dsv-vr)
+
+- **Spec.** `encoding.json.Encoder.Encode_conn.spec` (`Spec/encoding/json/Codec/Encoder__Encode_conn.lean`), a
+  statement only (vr's premise until now).
+- **Defect.** Not provable of the model's `Encode` (translated with its body): its `w.Write` on a connection is
+  `net.Conn.Write.spec`, which takes `internal/poll.ErrDeadlineExceeded`'s value (a write error may be it), which
+  only `net`'s initialization gives; the precondition had `encoding/json`'s, which does not import `net`.
+- **Evidence.** The proof attempt (`Proof/encoding/json/Codec/Encoder__Encode_conn.lean`, branch `dsv-vr`).
+- **Proposed change.** Add `isPkgInit pkg_id.net` to the precondition (as vr's `events.newDecoder.spec` has);
+  vr's caller (`events.Event.ToWriter`) gets it from `events.wstream`, which now holds it. No `SpecPlan/` counterpart.
+- **Decision.** `Spec/` restated (2026-11-25, branch `dsv-vr`).
 ## 2026-11-25: `net.http.Handle.spec` admitted a `HandlerFunc` holding a non-function (s5)
 
 - **Spec.** `net.http.Handle.spec` (`Net/Spec/net/http/Handle.lean`), the interim trust-boundary axiom
