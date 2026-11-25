@@ -39,7 +39,7 @@ theorem sync.Mutex.wp_Lock_owned (m : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ m ↦ zero_val _root_.Perennial.sync.Mutex }}
       (App (Val (m @!! go.GoType.PointerType _root_.Perennial.sync.Mutex.ty @!! go!"Lock")) (Val #()))
     {{ RET #(); m ↦ sync.lockedMutex }} := by
-  wp_start as Hm
+  wp_start_folded as Hm
   wp_apply wp_Mutex_Lock_owned $$ Hm as Hm
   iapply HΦ
   iexact Hm
@@ -50,7 +50,7 @@ theorem sync.Mutex.wp_Unlock_owned (m : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ m ↦ sync.lockedMutex }}
       (App (Val (m @!! go.GoType.PointerType _root_.Perennial.sync.Mutex.ty @!! go!"Unlock")) (Val #()))
     {{ RET #(); m ↦ zero_val _root_.Perennial.sync.Mutex }} := by
-  wp_start as Hm
+  wp_start_folded as Hm
   wp_apply wp_Mutex_Unlock_owned $$ Hm as Hm
   iapply HΦ
   iexact Hm
