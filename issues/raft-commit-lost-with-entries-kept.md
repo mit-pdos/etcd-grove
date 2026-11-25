@@ -83,11 +83,11 @@ which the fix makes true of etcd's WAL.
 
 ## Fix
 
-On the goosed etcd fork (`upamanyus/etcd` `2bd3048d7`, branch `goose-lean-fmt1c-tornsave`, the cherry-pick
-of `768ecf158`; `etc/goose.py`, project `etcd`): `WAL.Save` ends every `Save` that writes entries with
+On the goosed etcd fork (`upamanyus/etcd` `e94f33b50`, branch `goose-lean-fmt1c-crashfixes`: `49bf5160f`, the
+cherry-pick of `768ecf158`; `etc/goose.py`, project `etcd`): `WAL.Save` ends every `Save` that writes entries with
 a state record, `readAll` drops the entry records no record follows (an interrupted `Save` reads back
 as none), and `bootstrap` discards a WAL that holds nothing a `Save` wrote (`wal.Unsaved`,
-`wal.DiscardUnsaved`). Not proposed upstream yet. The alternatives considered: either document that a `Ready`'s `HardState` and entries must be persisted atomically
+`wal.DiscardUnsaved`), its backend removed first (`a10c86ad4`). Not proposed upstream yet. The alternatives considered: either document that a `Ready`'s `HardState` and entries must be persisted atomically
 (and make etcd's WAL recovery drop entry records not followed by the state record of their `Save`),
 or make raft's guard independent of the stored commit index (refuse to campaign while any conf
 change above the applied index is in the log, at the cost of a node holding an uncommitted conf

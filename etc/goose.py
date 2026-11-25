@@ -400,7 +400,13 @@ PROJECTS = [
         # Save that writes entries with a state record (`encodeState`), `readAll` drops the entry
         # records no record follows (a Save a crash interrupted reads back as none), and
         # `Unsaved`/`DiscardUnsaved`, which `bootstrap` calls (issues/raft-commit-lost-with-entries-kept.md).
-        rev="2bd3048d72e14b0641a7a427cd71348e9a926ca2",
+        # Then (etcd_safe's one pin, mit-pdos/etcd-grove#50, 2026-11-25) e94f33b50 (branch
+        # `goose-lean-fmt1c-crashfixes`, on 47d6cdeeb: lean's fmt stage 1 and the `applySnapshot` guard):
+        # the same torn-Save fix (49bf5160f; the WAL's code identical to 2bd3048d7's), the directory
+        # synced after a database is renamed onto the backend path (533e06e9c), the backend removed
+        # durably before an unsaved WAL is discarded (a10c86ad4, test c4221eb9d), and bbolt replaced by
+        # upamanyus/bbolt v1.5.0-init-crashsafe @ 19e0771 (e94f33b50).
+        rev="e94f33b50d046939dd1aee60f4013d968feaeef4",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)

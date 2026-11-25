@@ -470,3 +470,7 @@ real WAL) is the natural report if the lead wants one.
   landing**: P5's owner (`bootstrap`'s discard branch) needs its spec from P6b. P6 otherwise done:
   `issues/raft-commit-lost-with-entries-kept.md` `blocks-proof: yes` (the fork fix in `## Fix`); no interface
   step (removed on `lean`); ready for the full build, `tcb --check` and the gates.
+- 2026-11-25 (coordinator-E, #50): P6 stays off `lean` (the one `etcd_safe` packet). Re-pinned to `e94f33b50`
+  (`goose-lean-fmt1c-crashfixes`; its WAL identical to `2bd3048d7`'s): no WAL proof changes; `bootstrap`,
+  `applySnapshot`, `OpenSnapshotBackend` bodies change (integration round 2). W1: the crash facts rest on it
+  alone; no `Save` frame over stale bytes (`notes/wal-p6-handoff.md` START HERE).

@@ -2,6 +2,34 @@
 
 ## START HERE
 
+- **2026-11-25, session 6 (later): re-pinned to etcd_safe's one pin; P6 stays off `lean`** (coordinator-E, #50:
+  P6 goes in the one `etcd_safe` packet; the remote full build and gates not run).
+  * **Pin** `upamanyus/etcd` `goose-lean-fmt1c-crashfixes` @ `e94f33b50` (`etc/goose.py`, the examples' `go.mod`
+    by `bump-p6.sh`'s method). `server/storage/wal` is **identical** between `2bd3048d7` and `e94f33b50`
+    (`git diff --stat`: empty); `2bd3048d7` has nothing `e94f33b50` lacks (the whole diff only adds, but
+    bbolt's `go.sum` lines, replaced by the `upamanyus/bbolt` replace). Retranslation (`etc/goose.py
+    --project etcd`): 3 files, `Code/.../etcdserver.lean` (`bootstrap`'s backend removal,
+    `removeBackendDurably`, `applySnapshot`'s guard from `47d6cdeeb`), `Code/.../storage.lean`
+    (`OpenSnapshotBackend`/`RecoverSnapshotBackend`'s `syncDir`), `Code/.../storage/backend.lean`
+    (`finishDefrag`'s `syncParentDir`); no `GeneratedProof` change, no WAL change, no bbolt change (project
+    `bbolt` is pinned separately and the etcd project translates bbolt names-only). So **no WAL proof
+    breaks**. Proofs whose bodies changed (outside the WAL, not fixed here: integration round 2's):
+    `Proof/go_etcd_io/etcd/server/v3/etcdserver/{bootstrap,EtcdServer__applySnapshot}.lean`,
+    `Proof/go_etcd_io/etcd/server/v3/storage/OpenSnapshotBackend.lean`. `bootstrap`'s unsaved-WAL branch now
+    calls `wal.Unsaved` itself (then `removeBackendDurably`, then `DiscardUnsaved`): `Unsaved`'s spec is ready
+    for it; P6b/P5 must account for the backend removal.
+  * **W1**: the WAL's crash facts rest on W1 alone of the world (`walCrash_pure`'s `hw1`, which enters only
+    through `w1G_of_W1`; its docstring now says so). Stale-byte tears are out of scope
+    (`nonissues/etcd-wal-record-type-outside-crc.md`). **The torn-Save `Save` writes no frame over stale
+    bytes**: it only appends at the tail's write offset, and every byte from there on is zero and synced
+    before the first append: a new segment is `alloc`'s `N.tmp` (`O_TRUNC`, preallocated), `Create`'s first a
+    new file in its emptied temporary directory (preallocated), and an opened WAL's write-mode `ReadAll`
+    zeroes from its end, `pendOff` when an interrupted `Save`'s entry run was dropped, and `Fdatasync`s the
+    zeroing before returning (`wal.go` `ReadAll`, at `e94f33b50`). So W1's exclusions in reachable states are
+    CRC-32C collisions on the `Data` of zero-backed frames. (`W1.lean`'s header still describes the `Type`
+    question as open for review: its text is the statement's vocabulary, not edited here; the packet
+    should refresh it.)
+
 - **For the coordinator (2026-11-25, session 6): `Unsaved` done; `DiscardUnsaved` deferred to P6b (the order
   relaxation as approved is unsound); P6 ready for the full build.**
   * `Unsaved`: spec `Spec/go_etcd_io/etcd/server/v3/storage/wal/Unsaved.lean` (`ValidSnapshotEntries`' binders;
