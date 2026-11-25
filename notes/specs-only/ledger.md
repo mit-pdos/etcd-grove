@@ -6062,3 +6062,26 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `Session.Close`, and the concurrency, recipes and leasing functions that call a contract (2026-11-24,
   in progress).
 - **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.
+- **Beyond the token (second pass, 2026-11-24).**
+  - *STM*: the STM's method contract `stmMethods` gives `Get`, `Rev` and `commit` the token, and the
+    user's closure contract `applySpec` is lent it (pre and post); `runSTM` and `NewSTM*` keep their
+    specs (`runSTM`'s goroutine gets the token from its fresh thread token, `wp_fork_level0`).
+    `Election.Observe` keeps its spec (its fork of `observe` likewise).
+  - *Leasing*: the KV's reader-slot pool moves from a whole-token pool (`isThreadPool`) to a level-1
+    pool (`isThreadPoolL leasingPoolN 1`; local `threadPool.loansL_lt`, `init_namedL` in
+    `PoolLoans.lean`, Perennial changes like `loans_lt`), so that `lkv_borrow` leaves the borrower its
+    `levelTok 0` (and `threadTokFrom 2`, which `lkv_giveBack` takes back). `Get`, `get`, `Do`, `Put`,
+    `Delete` and `txnLeasing.Commit` keep their specs exactly (`threadTok`, no extra token; the first
+    pass had given `get`/`Commit` `levelTok 0` on top of `threadTok`, which no single thread holds:
+    reverted). `get`'s lease monitor is forked with `wp_fork_tok`: the monitor takes the fresh token's
+    levels 0 and 2.., the caller its level 1.
+  - *Statements carrying the token*: `recipes.queue_vertical`'s `Enqueue`/`Dequeue` triples,
+    `kubernetes.Client.Get.latest`, k8s etcd3's local lemmas `cas_commit`, `client_Get_nil`,
+    `wp_syncGet`.
+  - *Open (conflicts, not resolved)*: (1) k8s etcd3's compactor `onClose` closure (`closeOk`), built by
+    `StartCompactorPerEndpoint`, calls `cl.Endpoints()` (token); `compactor.Stop` calls it inside
+    `sync.Once.Do`, whose spec (`{{ P }} f {{ Q }}`, persistent) lends the closure no resource of the
+    caller, so the closure cannot get a level-0 token. (2) The etcd examples' `Main`s give the main
+    thread's whole `threadTok` to the server (`StartServer`'s `srvGoRes s`, used by `GoAttach` and
+    `Serve`), so the main thread has no `levelTok 0` left for its client calls (`NewClient`, `Put`,
+    `Get`).
