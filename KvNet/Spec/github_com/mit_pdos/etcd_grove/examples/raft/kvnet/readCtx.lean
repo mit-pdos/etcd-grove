@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/readCtx.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
 
 `readCtx(replica, seq, key)` (kv.go): a read's context (`readCtxB`: the replica, little-endian,

@@ -25,9 +25,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `rand.Float64()`: some `float64`. -/
+/-- `rand.Float64()`: some `float64`. (Since math-rand-isinit, 2026-11-24, under `math/rand`'s
+`isPkgInit`, Perennial's `isInit`: Go's `Float64` reads the global generator, which `math/rand`'s
+initializer sets up.) -/
 abbrev rand.Float64.spec : Prop :=
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
     (App (Val (@! _root_.Perennial.math.rand.Float64)) (Val #()))
   {{ (x : w64), RET #x; True }}
 

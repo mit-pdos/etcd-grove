@@ -1,0 +1,72 @@
+/- Lean-first (no Rocq counterpart).
+
+# `net/rpcdriver`: the definitions its top-level statement is written in
+
+net/rpc's driver (`examples/net/rpcdriver`, notes/library-drivers.md): its two machines' boot
+programs (the commands `cmd/server` and `cmd/client`), the deployment's addresses and the step
+bound, the definitions the statement (`Spec/.../rpcdriver/TopLevelRobustness.lean`) names.
+-/
+module
+
+public import GooseLang.Ext.Net.Adequacy
+public import GooseLang.Ext.Net.Deploy
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server.Base
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client.Base
+public import Net.Statement.DistDeploy
+public import Robustness.Statement
+
+@[expose] public section
+
+noncomputable section
+
+set_option linter.iris.style.nameCheck false
+
+namespace Perennial
+
+open Iris Iris.BI Net
+
+namespace github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
+
+attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
+
+/-- The boot program of a command: run its package's initializer `init`, then call its `main`
+(as goose calls a function: resolve it, then apply it). -/
+def boot [GoGlobalContext] (init : val) (main : GoString) : Expr :=
+  Seq (App (Val init) (Val #()))
+    (App (App (Val (GoInstruction (FuncResolve main []))) (Val #())) (Val #()))
+
+/-- The server machine's program: the command `cmd/server` (`Register`, then `Server`: net/rpc
+over raw TCP at `TCPAddr` and over HTTP at `HTTPAddr`). -/
+abbrev boot_server [GoGlobalContext] : Expr := boot cmd.server.initialize' cmd.server.main
+
+/-- The client machine's program: the command `cmd/client` (`Register`, then `Client`: random
+calls, each outcome checked). -/
+abbrev boot_client [GoGlobalContext] : Expr := boot cmd.client.initialize' cmd.client.main
+
+/-- The system: the server and the client, each its own machine, from the local states `σs`
+and `σc`. -/
+def system [GoGlobalContext] (σs σc : state) : List (Expr × state) :=
+  [(boot_server, σs), (boot_client, σc)]
+
+/-- The deployment's addresses: the server's two (`rpcdriver.go`'s constants `TCPAddr` and
+`HTTPAddr`). -/
+def rpcAddrs : List GoString := [go!"127.0.0.1:7211", go!"127.0.0.1:7212"]
+
+/-- The statement's thread bound, `2 ^ 30`: every machine keeps fewer than `2 ^ 30` live threads
+(`Robust`'s `threads`). net/http's mux (`DefaultServeMux`'s `RWMutex`, whose reader-slot pools hold at
+most `2 ^ 30` readers: net/http's first initialization's `threadBound GF ≤ 2 ^ 30`) needs it; Net's
+net/rpc server (`Server.ServeCodec.spec`, its wait group's `int32` counter) needs only
+`threadBound GF ≤ 2 ^ 31`. The bridge (`robust_of_distBootIT`, over Perennial's
+`goose_dist_adequacy_below`) gives each machine `threadBound GF = rpcThreads`. -/
+def rpcThreads : Nat := 2 ^ 30
+
+/-- The statement's step bound, `2 ^ 63 - 1`: executions of fewer than `2 ^ 63 - 1` steps. The bridge
+runs an execution of `n` steps at `n + 1` receipts, and net/rpc's client (`NewClientWithCodec.spec`,
+under `Dial`/`DialHTTP`) needs `receiptBound GF ≤ 2 ^ 64`, which keeps its `uint64` sequence numbers
+distinct; the lower `2 ^ 63 - 1` follows the dsverify kits' `2 ^ 63`. (Until 2026-11-24 the bridge bounded the threads by the step count,
+`threadBound = receiptBound + 1`, and the step bound was the thread bound's, `2 ^ 30 - 1`, before that
+`2 ^ 31 - 1`.) -/
+def rpcSteps : Nat := 2 ^ 63 - 1
+
+end github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
+end Perennial

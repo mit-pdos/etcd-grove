@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/putMap.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/putMap.lean`. Lean-first (no Rocq
 counterpart). (2026-10-22: the first half of `encodeState`'s proof until then, over any `buf`.)

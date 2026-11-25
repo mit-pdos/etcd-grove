@@ -24,7 +24,6 @@ theorem math.rand.rands.wp_proof [h : math.rand.Hyps GF] :
     ∃ (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF),
       math.rand.RandSpecs GF isSource ownRand :=
   h.rands
-theorem math.rand.Intn.wp_proof [h : math.rand.Hyps GF] : math.rand.Intn.spec (GF := GF) := h.Intn
 
 end proof
 

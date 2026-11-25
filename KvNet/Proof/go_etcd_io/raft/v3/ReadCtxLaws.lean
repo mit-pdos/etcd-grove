@@ -1,4 +1,4 @@
--- The copy for the part `KvNet/` of `Proof/go_etcd_io/raft/v3/ReadCtxLaws.lean` (etc/copy-part.py; rerun it, do not edit).
+-- The copy for the part `KvNet/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/ReadCtxLaws.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 (2026-11-22, kvnet's checker) **A read context's log is unique**: `readCtxAfter γ N c l0` (`InvNode`,
 sealed) names the one log `l0` the context `c` was committed after (raft's `ctxs` map holds one entry

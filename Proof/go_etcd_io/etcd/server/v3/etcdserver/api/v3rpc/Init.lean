@@ -30,6 +30,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
@@ -70,7 +71,6 @@ public import Proof.google_golang_org.grpc.health.Init
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.status.Init
-public import Proof.math.rand.Init
 public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry

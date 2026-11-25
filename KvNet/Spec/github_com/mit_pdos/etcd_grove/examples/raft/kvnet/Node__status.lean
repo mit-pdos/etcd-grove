@@ -32,7 +32,7 @@ abbrev Node.status.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp :
     (App (Val (nd @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node.ty @!! go!"status")) (Val #()))
   {{ (s : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Status), RET #s;
       ∃ (M : GMap GoString GoString) (c : ConfStateM), s.Contents' ↦$ M ∗
-        csOpt s.Conf' DFrac.discard c ∗ ⌜s.Stats'.arr.length = 24⌝ }}
+        csOpt s.Conf' DFrac.discard c ∗ ⌜s.Stats'.arr.length = numStats.toNat⌝ }}
 
 end spec
 

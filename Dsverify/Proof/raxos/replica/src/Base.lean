@@ -28,7 +28,7 @@ public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import Proof.bufio.PkgInit
-public import Dsverify.Proof.google_golang_org.protobuf.Base
+public import Proof.google_golang_org.protobuf.PkgInit
 public import Proof.math.rand.Base
 public import Proof.os.PkgInit
 

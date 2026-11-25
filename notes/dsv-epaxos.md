@@ -109,6 +109,15 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 `GOROOT=DIR GOTOOLCHAIN=local PATH=DIR/bin:$PATH go test -tags netmodel ./examples/...`. Both pass
 (2026-11-23).
 
+## Non-vacuity
+
+`RpcHttpAddr` is no premise of `epaxos_remote_robust`: the statement instantiates it with `netRpcHttpAddr`
+(`Interface/RpcHttpAddrNet.lean`, a defs module), Net's proved `rpcAddrP`/`rpcLisP` and their laws, with `httpW W` the
+world `W` with HTTP's handshake (`connectReq defaultRPCPath`/`connectAns`) at every address, as
+dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay generic in
+`[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
+no instance here.
+
 ## Step bound 2^63 (2026-11-24, dsv-steps63)
 
 Perennial's pin 580868e54 (lean 5f5f28beeb, perennial#690) has `goose_dist_adequacy_below`

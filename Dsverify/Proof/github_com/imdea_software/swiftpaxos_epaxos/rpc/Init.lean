@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.rpc.Base
 public import Perennial.Proof.io.Link
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

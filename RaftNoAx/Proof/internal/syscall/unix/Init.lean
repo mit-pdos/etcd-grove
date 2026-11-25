@@ -11,7 +11,7 @@ module
 
 public import Proof.internal.syscall.unix.PkgInit
 public import RaftNoAx.Proof.syscall.Init
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/quietLogger__Debugf.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart).
 
 `quietLogger{}.Debugf(format, args)` (cluster.go): discards what raft logs (one of the four methods

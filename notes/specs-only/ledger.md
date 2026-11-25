@@ -60,6 +60,23 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Applied (ctx-leaf-fix, 2026-11-25, branch `hctx-vacuity/2026-11-25`): a trust-boundary
   axiom restated more weakly than its false form, for the coordinator's review before landing.
 
+## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvudp, `udpNet.receive`)
+
+- **Spec.** `Net/Spec/net/UDPConn__ReadFromUDP.lean`, `UDPConn.ReadFromUDP.spec` (its part copy
+  `KvNet/Spec/net/UDPConn__ReadFromUDP.lean`, `etc/copy-part.py`). A trust-boundary spec, with no SpecPlan
+  counterpart.
+- **Defect.** Unprovable, and it leaves every caller stuck: the post said `RET (PairV #n (PairV #addr #err))`,
+  but goose's 3-tuples are left-nested (`Perennial/GooseLang/Notation.lean`, `leftNest`). The model
+  `UDPConn.ReadFromUDP.impl` (`Net/TrustedCode/net.lean`) returns `((n, addr), err)`, and the caller's
+  translation reads `Fst (Fst __p)`, `Snd (Fst __p)`, `Snd __p`.
+- **Evidence.** `udpNet.receive`'s proof (`KvNet/Proof/.../kvnet/udpNet__receive.lean`): after `wp_apply` of
+  the spec, the code was stuck at `(#k).Fst`. Branch `udp-net/2026-11-24` (`7399eb8204`) had found and fixed it
+  already, and it proves the corrected spec (`Net/Proof/net/UDPConn__ReadFromUDP.lean`). No proof of the
+  mis-nested statement existed.
+- **Proposed change.** `RET (PairV (PairV #n #addr) #err)`. The failure case also gets `addr = null`, as in
+  `7399eb8204`'s statement (the model returns `#(null : Loc)`), which is a stronger post. The file is taken whole
+  from `7399eb8204`, so the two branches' versions are the same.
+- **Decision.** Accepted (the kvudp coordinator, 2026-11-24); applied on `kvudp/2026-11-24`.
 ## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`
@@ -6252,6 +6269,24 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+## 2026-11-24: json.Unmarshal into a *ConfigChangeContext: a zero target, ccContextOf/ccMemberOf defined (prove-ps2-jsonj5, #24 J2 batch 2b)
+
+- **Spec.** `EtcdGrove.encoding.json.Unmarshal.spec` (`Spec/encoding/json/Unmarshal.lean`), a trust-boundary axiom
+  (D43 M4), and its vocabulary `membership.ccContextOf`/`membership.ccMemberOf` (opaque, `SrvRaftLog.lean`).
+- **Defect.** (1) The premise asked only that `*p`'s URL slices be nil, but the post's id, `IsPromote`, learner flag
+  and name are the bytes' only if the object names them: encoding/json (and the model) leave a field the JSON omits
+  as it was, and the JSON etcd writes into a context (bootstrap's `json.Marshal(*Member)`) has no `isPromote`, and
+  omits `isLearner` when false and `name` when empty. With `ccContextOf` `some` on such bytes (what any useful
+  definition must be), the statement is false for a non-zero `*p`; with it opaque, nothing could use it. (2) `ccContextOf`/`ccMemberOf` were opaque: no caller could discharge `ccContextOf ctx = some _`.
+- **Evidence.** The proof over the model (`Proof/encoding/json/Unmarshal.lean`, membership's generated
+  `JSONModelUnmarshal`/`jdec_ConfigChangeContext`/`jdecMember_ConfigChangeContext`/`jdec_S_string`), which needs
+  the zero start for the omitted fields. Both callers (`ValidateConfigurationChange`, `applyConfChange`) decode into
+  `new(ConfigChangeContext)`.
+- **Proposed change.** The premise: `*p` is the zero `ConfigChangeContext` (all six fields). `ccContextOf`/
+  `ccMemberOf` are definitions over `membership.ccDecode` (`api/membership/JsonDec.lean`): `some` on the subset whose
+  decoding is proved (a compact object of distinct exact keys, values of their fields' kinds, plain strings, the
+  scanner's one value), `none` elsewhere. The callers discharge the zero premise by `rfl`; no other statement changes.
+- **Decision.** Applied (branch `prove-ps2-jsonj5/2026-11-24`); the axiom retired.
 ## 2026-11-24: fmt.Sprintf over the real `fmt` (stage 1): `fmt.Sprintf.spec`, `fmt.SprintfArgs.spec`, `traceutil.fieldsWf` (prove-ps2-fmtstage1, #9)
 
 - **Spec.** This repository's `fmt.Sprintf.spec` (`Spec/fmt/Sprintf.lean`, raft's callee; its copies in
@@ -6580,3 +6615,33 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   errors.New("unexpected EOF")`.
 - **Proposed change.** As above; the two premises have no caller to weaken.
 - **Decision.** Applied (zeldovich proving session 2, s5; `ctxKeys` agreed with the coordinator, session 10).
+
+## 2026-11-24: `MustSaveMemberToBackend.spec`'s post does not see the peer-URL slice's nil-ness (prove-ps2-jsonj6, #24 J2)
+
+- **Spec.** `schema.membershipBackend.MustSaveMemberToBackend.spec`
+  (`Spec/go_etcd_io/etcd/server/v3/storage/schema/membershipBackend__MustSaveMemberToBackend.lean`), a
+  trust-boundary axiom: its post puts `apply.memberEnc mm` (opaque, `apply/RestModel.lean`) for any record `m` with
+  `membership.memberAt m 1 mm`.
+- **Defect.** False of Go when `mm.peerURLs = []`. `memberAt` hides whether the `PeerURLs` slice is nil, and
+  `json.Marshal(m)` writes `"peerURLs":null` for a nil slice and `"peerURLs":[]` for an empty non-nil one (`[]string`
+  has no `omitempty` in `RaftAttributes`). So one `mm` has two encodings, but the post names one. Both kinds of
+  member reach the call. `applyConfChange` decodes the context with `json.Unmarshal`, which leaves the slice nil for
+  `"peerURLs":null` or an omitted key, and makes it empty non-nil for `"peerURLs":[]` (the model's generated
+  `jdec_S_string`, as Go's decoder does). Both give `ccMemberOf … .peerURLs = []`, and `ccApplyOk` admits both.
+  Nothing derives `False` from this, because `memberEnc` is opaque, but no definition of `memberEnc` can make the
+  axiom provable. Found while planning its proof over `json.Marshal`'s proved spec (`MarshalMember.spec`:
+  `memberJson v ps cs`, which reads the nil-ness off the value).
+- **Evidence.** Code reading: `api/membership/member.go` (`RaftAttributes.PeerURLs []string` with tag
+  `json:"peerURLs"`), go1.27.3 `encoding/json` (a nil slice encodes as `null`), the model's generated
+  `jenc_S_string`/`jdec_S_string` (`membership.jsonStrSlice`), and `membership.memberJson`'s
+  `decide (PeerURLs' = slice.nil)`.
+- **Proposed change.** Pending a decision (coordinator, #24/#18). The candidates:
+  (a) The premise `mm.peerURLs ≠ []` (then the slice is not nil), with `memberEnc mm := bootGo.memberJSON`'s formula
+  (the non-nil rendering, any strings). `applyConfChange` discharges it by adding
+  `(ccMemberOf m.context).peerURLs ≠ []` to `ccApplyOk`. Etcd's only conf changes after boot are bootstrap's (D3,
+  static membership), whose members all have peer URLs (`bootGo.urlsNe`), and Go's `MemberAdd` API rejects empty
+  peer URLs (`types.NewURLs`). `UpdateAttributes`' save (`restAfter`) needs the same fact of the cluster's members.
+  (b) `memberAt` records the nil-ness (a flag in the record or the predicate), and `memberEnc` takes it. This is
+  more faithful but touches every user of `memberAt`.
+  Until this is decided the axiom stays, and it is the obstacle to proving it.
+- **Decision.** Open.
