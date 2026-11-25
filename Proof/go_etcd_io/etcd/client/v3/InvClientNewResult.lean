@@ -68,7 +68,7 @@ theorem watchDescOk_of_init :
   · iapply isPkgInit_access $$ Hp
   icases Hi with ⟨-, -, -, -, ⟨%mds, %sds, Hd, %Hs⟩, -⟩
   iunfold pbDescIs at Hd
-  icases Hd with ⟨%msl, %ssl, -, -, -, -, #Hst, #Hsds⟩
+  icases Hd with ⟨%msl, %ssl, -, -, -, -, #Hst, #Hsds, -⟩
   unfold v3rpc.watchDescOk
   iexists ssl, sds
   iframe Hst Hsds

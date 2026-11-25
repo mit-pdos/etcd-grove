@@ -534,7 +534,8 @@ def pbDescIs (sd : Loc) (sn : GoString) (ht : GoInterface) (mds : List google_go
     structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" sd ↦□ sn ∗
     structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" sd ↦□ ht ∗
     structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" sd ↦□ msl ∗ msl ↦*□ mds ∗
-    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦□ ssl ∗ ssl ↦*□ sds)
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦□ ssl ∗ ssl ↦*□ sds ∗
+    ∃ md : GoInterface, structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" sd ↦□ md)
 
 instance pbDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
     (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc) :

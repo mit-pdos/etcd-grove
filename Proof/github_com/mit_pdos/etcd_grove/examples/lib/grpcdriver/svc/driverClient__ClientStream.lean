@@ -54,7 +54,7 @@ theorem driverClient.ClientStream.wp_proof
   icases Hd with ⟨%mds, %sds, #Hdesc, %Hms⟩
   obtain ⟨-, hs⟩ := Hms
   iunfold go_etcd_io.etcd.cache.v3.pbDescIs at Hdesc
-  icases Hdesc with ⟨%msl, %ssl, -, -, -, -, #HSs, #Hssl⟩
+  icases Hdesc with ⟨%msl, %ssl, -, -, -, -, #HSs, #Hssl, -⟩
   have hlen : sds.length = 3 := by
     have := congrArg List.length hs
     simpa using this
