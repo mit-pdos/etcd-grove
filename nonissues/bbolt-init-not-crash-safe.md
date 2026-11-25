@@ -10,17 +10,17 @@ blocks-proof: yes
 
 # bbolt: a crash while creating a new database can leave a file that never opens
 
-`init` writes a new database's four pages (two metas, the freelist, the root leaf) in one write
-and one `fdatasync`, with no ordering between them. A crash before the `fdatasync` completes can
-keep a valid meta and lose the freelist or root page (or keep less than a page): the next `Open`
-sees a non-empty file, does not re-run `init`, and fails or panics (`invalid freelist page`, a
-SIGBUS past the end of the file, `file size too small`), at every `Open`, until the file is
-deleted.
+A power loss while bbolt creates a new database can leave a file that every later `Open` rejects
+(`invalid freelist page`, `file size too small`, `invalid database`, `checksum error`), until the
+file is deleted. Through etcd: a member that loses power during its first start never starts again
+(the backend panics "failed to open database").
 
-**Why not an issue:** known upstream and documented as a known issue (bbolt#567, #1151, from
-etcd#16596, reproduced there with LazyFS); it only affects a database's first creation. Since
-2026-11-25 it has a test that fails at upstream (below), so it qualifies for `issues/`; it stays
-here for now because `Proof/` files (the crash agent's) and notes link to this path.
+**Expected:** `Open` should succeed on any file a power loss during `init` can leave (such a file
+holds no committed data), as the known issue's discussion proposes (bbolt#567).
+
+**Impact:** any database's first creation, including every etcd member's first start; known
+upstream and documented as a known issue (bbolt#567, #1151, from etcd#16596, reproduced there with
+LazyFS); every release through v1.5.0.
 
 **Reproduction:** `TestOpen_InterruptedInit` in
 [`bbolt-init-not-crash-safe/init_crash_test.go`](bbolt-init-not-crash-safe/init_crash_test.go),
@@ -40,9 +40,28 @@ panic: invalid freelist page: 0, page type is unknown<00> [recovered, repanicked
 FAIL	go.etcd.io/bbolt	0.009s
 ```
 
+**Cause:** `init` writes the four pages (two metas, the freelist, the root leaf) in one write
+and one `fdatasync`, with no ordering between them. A crash before the `fdatasync` completes can
+keep a valid meta and lose the freelist or root page (or keep less than a page): the next `Open`
+sees a non-empty file, does not re-run `init`, and fails or panics.
+
 Through etcd: `TestBackendOpensInterruptedInit` (`server/storage/backend/init_crash_test.go` on
-`upamanyus/etcd` `goose-lean-crashfixes2`) panics with v1.5.0 (`failed to open database`,
+`upamanyus/etcd` `goose-lean-crashfixes2`, and `goose-lean-fmt1c-crashfixes` @ `e94f33b50`, the verified etcd's pin) panics with v1.5.0 (`failed to open database`,
 `invalid database`) on a file whose two meta pages are torn over whole freelist and root pages.
+
+## Proof
+
+yes, since 2026-11-24 (etcd_safe: a member crashing inside its first backend open): see "The window between init's two syncs" below; the fix the proof needs is on the forks since 2026-11-25 (above), not yet in the verified bbolt. Before:
+
+no: the top-level adequacy proof needs no fix on the goosed fork for it; a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
+old one had no crash semantics, `old/bbolt/notes/STATUS-bbolt.md`), and the example minibolt
+initializes differently on purpose (`examples/osfs/bboltfs/README.md`, "One deliberate difference from
+bbolt: init"), as a bbolt proof would need. The goose target fork carries that fix (2026-11-02,
+`upamanyus/bbolt` branch `goose-lean`, 3207bac): `init` writes the four pages with zero meta
+pages and syncs, then the metas and syncs, and `Open` runs `init` again when every byte the file
+holds of its meta pages is zero (tested by `TestOpen_InterruptedInit`). This also matched damaged databases. The fork now
+checks the size and contents of the whole first write before reinitializing.
+[Regression and fix](bbolt-open-zero-meta-reinitializes-data.md)
 
 ## Fix
 
@@ -59,20 +78,6 @@ commits before truncating (a new database cut to one page is an interrupted init
 uses it through a `replace` (`goose-lean-crashfixes2` @ `d49d01a07`, in `go.mod`, `server`,
 `etcdutl`, `tests`). The verified bbolt (`upamanyus/bbolt` @ `ca88bb6a`, `etc/goose.py`) still has
 the narrower recovery (zero metas only): see "The window between init's two syncs".
-
-## Proof
-
-yes, since 2026-11-24 (etcd_safe: a member crashing inside its first backend open): see "The window between init's two syncs" below; the fix the proof needs is on the forks since 2026-11-25 (above), not yet in the verified bbolt. Before:
-
-no: the top-level adequacy proof needs no fix on the goosed fork for it; a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
-old one had no crash semantics, `old/bbolt/notes/STATUS-bbolt.md`), and the example minibolt
-initializes differently on purpose (`examples/osfs/bboltfs/README.md`, "One deliberate difference from
-bbolt: init"), as a bbolt proof would need. The goose target fork carries that fix (2026-11-02,
-`upamanyus/bbolt` branch `goose-lean`, 3207bac): `init` writes the four pages with zero meta
-pages and syncs, then the metas and syncs, and `Open` runs `init` again when every byte the file
-holds of its meta pages is zero (tested by `TestOpen_InterruptedInit`). This also matched damaged databases. The fork now
-checks the size and contents of the whole first write before reinitializing.
-[Regression and fix](../issues/bbolt-open-zero-meta-reinitializes-data.md)
 
 ## Notes
 

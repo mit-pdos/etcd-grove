@@ -100,10 +100,11 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (29)
+## Reported by others (30)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
+| [bbolt: a crash while creating a new database can leave a file that never opens](bbolt-init-not-crash-safe.md) | yes | etcd-io/bbolt#567 issue closed; etcd-io/bbolt#1151 pr merged; etcd-io/etcd#16596 issue closed |
 | [backend: after two puts of one key in one write session, reads return the older value until the next commit](etcd-backend-duplicate-put-stale-read.md) | yes | etcd-io/etcd#21986 issue open; etcd-io/etcd#21987 pr open; etcd-io/etcd#22298 pr open; etcd-io/etcd#21985 pr closed |
 | [mvcc: compacting at the revision of a txn that deletes a key and puts it again loses the key's value](etcd-compaction-delete-then-put.md) | yes | etcd-io/etcd#22376 issue open; etcd-io/etcd#22377 pr open; etcd-io/etcd#22395 pr open |
 | [clientv3: after a keep-alive stream loses its leader, canceling one `KeepAlive` closes another caller's channel](etcd-lease-close-require-leader-ctx-misaligned.md) | yes | etcd-io/etcd#22081 issue open; etcd-io/etcd#22087 pr open; etcd-io/etcd#21872 pr closed; etcd-io/etcd#22094 issue open |

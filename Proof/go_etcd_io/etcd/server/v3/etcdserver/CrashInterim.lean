@@ -66,7 +66,7 @@ configuration's dedicated WAL directory the member's, the WAL area fresh or hold
 (`walAreaUnsaved`), and the data directory fresh (`dataDirFresh` and `dataAreaFresh`, as `wal.bootRes`).
 The data area's leftovers (the backend file, `member/snap`) are not in it yet: their definition (T3) must
 allow committed bucket creation (`CreateMetaBucket`, the stores' buckets) and exclude torn meta pages
-(`nonissues/bbolt-init-not-crash-safe.md`) and a backend holding applied entries (review 2026-11-24,
+(`issues/bbolt-init-not-crash-safe.md`) and a backend holding applied entries (review 2026-11-24,
 `notes/axiom-review/c-i3-bootstrap-left.md`). `wal.bootRes cfg` is its first case. -/
 def wal.bootResLeft (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗

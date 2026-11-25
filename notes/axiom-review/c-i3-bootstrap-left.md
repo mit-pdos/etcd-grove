@@ -23,6 +23,6 @@ count, satisfiable by `Create`+`Close`); `Unsaved`'s error paths.
 ## Re-review (2026-11-24, a second fresh agent): **survives, too narrow**
 On one file system the new case (an unsaved WAL with the data area fresh) is unreachable: `bootstrapBackend`
 creates the backend before `wal.Create`, whose directory sync commits the creation too. The useful leftovers
-are a backend file (possibly with torn metas: `nonissues/bbolt-init-not-crash-safe.md`), which T3 must define.
+are a backend file (possibly with torn metas: `issues/bbolt-init-not-crash-safe.md`), which T3 must define.
 A WAL `Unsaved` cannot read (kept, Go restarts) is excluded only through the WAL's whole-sector premise
 (`SectorWhole`): to be stated. The snapshot-only history still reads `walFresh`: restate over the history.

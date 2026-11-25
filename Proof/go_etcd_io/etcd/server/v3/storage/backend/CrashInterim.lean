@@ -50,7 +50,7 @@ file extension's crash (`OsCrash`, `GooseLang/Ext/Fs/Impl.lean`).**
   after a directory sync; the fork `goose-lean-crashfixes` syncs after defrag's and the snapshot install's
   renames, `nonissues/etcd-backend-rename-without-dir-sync.md`). The record holds `bPath`, so a rename onto
   `path` closes it first (`dbCrashKeep_close`); a crash with the record closed is not covered by these laws.
-* **Restricted to files past `init`** (`nonissues/bbolt-init-not-crash-safe.md`): a record exists only for
+* **Restricted to files past `init`** (`issues/bbolt-init-not-crash-safe.md`): a record exists only for
   an opened database (`dbCrashKeep_new` takes a write transaction, which `Open` gives only after `init`'s
   two syncs). The fork's `needsInit` recognizes a crash before `init`'s first sync, but a crash between
   its two syncs can tear both meta pages under the file extension's per-byte crash (each byte of the

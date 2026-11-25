@@ -207,7 +207,7 @@ Sizes are rough Lean lines. "Now" = can start on this branch's statements.
   and `D_next` the one in flight. Sound because bbolt's meta-page switch is atomic under its checksum
   (its `P1`, `BootP1.lean`, measured for minibolt) and etcd commits every batch with a sync; the known
   restart hazard (`nonissues/bbolt-restart-reuses-pages-of-unsynced-commit.md`) needs a kill without
-  `sync`, outside the model. `nonissues/bbolt-init-not-crash-safe.md` (a crash inside the first
+  `sync`, outside the model. `issues/bbolt-init-not-crash-safe.md` (a crash inside the first
   `init`) must be refuted or the axiom restricted to files past `init`; review with the `axiom` skill.
 * **A2 (only if Q1 is answered "assume")**: no torn first batch, i.e. `readyCrashTorn.law` for the
   bootstrap batch. Not recommended: it is false of Go (finding 1); the fork fix of Q1 is.
@@ -534,7 +534,7 @@ Each reviewed by a fresh `axiom`-skill agent given the statement and the Go code
   `NoGrowSync` fields and the directory sync; until then the laws are vacuous) and `BoltCrashWhole`'s
   statement (a world premise for the owner, as `W1`); a closed database (defrag, the snapshot install)
   has no law.
-* **`nonissues/bbolt-init-not-crash-safe.md`: not refuted.** The fork's `needsInit` covers a crash before
+* **`issues/bbolt-init-not-crash-safe.md`: not refuted.** The fork's `needsInit` covers a crash before
   `init`'s first sync; between its two syncs the model can tear both metas, `Open` fails, etcd's
   `newBackend` panics. Now `blocks-proof: yes`; C-I1 is restricted to opened databases. Proposed fork fix:
   `needsInit` also reinitializes a four-page file whose pages 2-3 are the first write's and whose metas
@@ -674,7 +674,7 @@ control). For the laws: C-I2/C-I3's fresh case now holds a fresh backend too (no
 from an applied boot); T3's "first start with leftovers" keeps only the pre-WAL leftovers
 (`bootstrapBackend` before `bootstrapNewWAL`, consistent index 0).
 
-**bbolt's init (`nonissues/bbolt-init-not-crash-safe.md`).** `upamanyus/bbolt`
+**bbolt's init (`issues/bbolt-init-not-crash-safe.md`).** `upamanyus/bbolt`
 `v1.5.0-init-crashsafe` @ `19e0771` (on v1.5.0 `e7a8b2d`, the version etcd's `go.mod` names): `init`
 syncs the freelist and root pages before writing the metas; a writable `Open` re-initializes a file
 of at most four pages whose every byte is zero or `init`'s and which is not `init`'s whole image
