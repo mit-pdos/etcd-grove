@@ -56,8 +56,7 @@ theorem kvDeployment_scope : KvOnly kvDeployment ∧ kvDeployment.cfg.auth = fal
 theorem etcd_kv_safe_nocrash.premisesSat :
     premise_sat% etcd_kv_safe_nocrash.spec without [Henv, HEnv, Hfips] := by
   intros
-  refine ⟨kvDeployment, kvDeployment_scope, [etcd_putget_dist.pgId], [etcd_putget_dist.pgCtx],
-    etcd_putget_dist.pgBoot, bootFacts_witness kvDeployment rfl rfl,
+  refine ⟨kvDeployment, kvDeployment_scope, etcd_putget_dist.pgBoot, bootFacts_witness kvDeployment rfl rfl,
     [witnessMemberσ], [witnessClientσ], [witnessClientσ],
     ⟨((), (), (default : Net.NetGlobal), ()), ∅⟩,
     ⟨rfl, fun p hp => ?_⟩, ⟨rfl, fun σ hσ => ?_⟩,

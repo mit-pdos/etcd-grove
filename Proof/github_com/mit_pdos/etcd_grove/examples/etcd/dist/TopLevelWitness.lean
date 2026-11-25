@@ -43,7 +43,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 theorem etcd_robust_nocrash.premisesSat :
     premise_sat% etcd_robust_nocrash.spec without [Henv, HEnv, Hfips] := by
   intros
-  exact ⟨witnessDeployment, _, _, _, witnessDeployment_boot, serverStates witnessDeployment,
+  exact ⟨witnessDeployment, _, witnessDeployment_boot, serverStates witnessDeployment,
     clientStates witnessDeployment.workloads.length, clientStates witnessDeployment.nodeList.length,
     initGlobal, serverStates_start _ witnessDeployment_names, clientStates_start _, clientStates_start _,
     robustStart_nocrash _⟩
@@ -51,7 +51,7 @@ theorem etcd_robust_nocrash.premisesSat :
 theorem etcd_robust.premisesSat :
     premise_sat% etcd_robust.spec without [Henv, HEnv, Hfips] := by
   intros
-  exact ⟨witnessDeployment, _, _, _, witnessDeployment_boot, serverStates witnessDeployment,
+  exact ⟨witnessDeployment, _, witnessDeployment_boot, serverStates witnessDeployment,
     clientStates witnessDeployment.workloads.length, clientStates witnessDeployment.nodeList.length,
     initGlobal, serverStates_start _ witnessDeployment_names, clientStates_start _, clientStates_start _,
     robustStart_crash _⟩

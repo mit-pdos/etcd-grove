@@ -11,10 +11,10 @@ The member is `putget_safe`'s witness member (`putget/TopLevelWitness.lean`): `p
 `10.77.1.1:2380`, client address `10.77.1.1:2379`, in the cluster with token `putgetd`.
 
 - `witnessMember`, `witnessToken`: that member and token.
-- `witnessMember_id`: its id is the one Go computes, `memberId "http://10.77.1.1:2380" "putgetd" =
-  pgId`, evaluated by the kernel.
-- `bootFacts_witness`: `BootFacts` of any deployment whose members are `[witnessMember]` and whose token
-  is `witnessToken`, at the peers `[pgId]`, the contexts `[pgCtx]` and the log `pgBoot` (`pgBootCore`).
+- `bootFacts_witness`: `BootFacts` (pinned at Go's `distPs`/`distCtxs`) of any deployment whose members are
+  `[witnessMember]` and whose token is `witnessToken`, at the log `pgBoot`. Its peers and contexts are
+  N5's `satD`'s (`BootFactsSat.lean`: `satD_ps`, `satD_ctxs`, the computation `BootFacts.sat` uses), since
+  `distPs`/`distCtxs` read only the members and the token; the log's facts are `pgBootCore`.
 - `serverStart_witness`: `ServerStart` of the member at `witnessMemberσ`, a fresh machine whose files are
   its two empty roots (data directory, WAL area).
 - `clientStart_witness`: `ClientStart` at `witnessClientσ`, a fresh machine with the empty root `/tmp`.
@@ -41,6 +41,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelWitness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootFactsSat
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
 
 @[expose] public section
@@ -65,21 +66,14 @@ def witnessMember : Member :=
 /-- The witness cluster's token, `putgetd` (the token `etcd_putget_dist.pgId` is computed in). -/
 def witnessToken : GoString := etcd_putget_dist.name
 
-/-- **The witness member's id is SHA-1's**, as `etcd_putget_dist.pgId_eq` (`crypto.sha1.sha1` evaluated by
-the kernel, its message schedule's loops as folds). -/
-theorem witnessMember_id :
-    memberId (go!"http://" ++ witnessMember.peer) witnessToken = etcd_putget_dist.pgId := by
-  unfold witnessMember witnessToken memberId membership.memberIdOf crypto.sha1.sha1 crypto.sha1.compress
-  rw [show crypto.sha1.schedule = _ from funext crypto.sha1.schedule_eq]
-  decide +kernel
-
 /-- **`bootstrap`'s results** at a deployment of the witness member alone. -/
 theorem bootFacts_witness (d : Deployment) (hm : d.members = [witnessMember])
-    (ht : d.token = witnessToken) :
-    BootFacts d [etcd_putget_dist.pgId] [etcd_putget_dist.pgCtx] etcd_putget_dist.pgBoot := by
-  have hids : d.ids = [etcd_putget_dist.pgId] := by
-    simp only [Deployment.ids, hm, ht, List.map_cons, List.map_nil, witnessMember_id]
-  exact ⟨etcd_putget_dist.pgBootCore, by rw [hids]; try exact List.Perm.refl _⟩
+    (ht : d.token = witnessToken) : BootFacts d etcd_putget_dist.pgBoot := by
+  have hp : distPs d = distPs satD := by simp only [distPs, distURLs, hm, ht] <;> rfl
+  have hc : distCtxs d = distCtxs satD := by simp only [distCtxs, distURLs, hm, ht] <;> rfl
+  show BootCore (distPs d) (distCtxs d) etcd_putget_dist.pgBoot
+  rw [hp, hc, satD_ps, satD_ctxs]
+  exact etcd_putget_dist.pgBootCore
 
 /-- The witness member machine's start state: a fresh machine whose files are the member's two roots. -/
 def witnessMemberσ [GoLocalContext] : state :=
@@ -373,8 +367,7 @@ theorem witnessDeployment_names : ∀ m ∈ witnessDeployment.members, typed.nam
   subst hm
   decide
 
-theorem witnessDeployment_boot :
-    BootFacts witnessDeployment [etcd_putget_dist.pgId] [etcd_putget_dist.pgCtx] etcd_putget_dist.pgBoot :=
+theorem witnessDeployment_boot : BootFacts witnessDeployment etcd_putget_dist.pgBoot :=
   bootFacts_witness witnessDeployment rfl rfl
 
 theorem witnessDeployment_noExpiry : ∀ w ∈ witnessDeployment.workloads, w.needsNoExpiry = false := by

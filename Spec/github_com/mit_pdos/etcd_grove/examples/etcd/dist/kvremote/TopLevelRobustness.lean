@@ -58,7 +58,7 @@ def etcd_kv_safe_nocrash.spec : Prop :=
     (d : Deployment)
     -- M1's scope (the only premise beyond `etcd_robust_nocrash.spec`'s)
     (Hscope : KvOnly d ∧ d.cfg.auth = false)
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
+    (boot : List LogEntry) (Hbf : BootFacts d boot)
     (Henv : EtcdEnv d)
     (σs σc σn : List state) (g : GlobalState)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)

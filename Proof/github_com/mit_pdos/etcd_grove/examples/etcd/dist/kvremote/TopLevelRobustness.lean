@@ -39,8 +39,8 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 `etcd_kv_safe_nocrash`. The proof applies the full statement to M1's arguments and drops the scope, so it
 fails to compile if the two statements differ in anything but `Hscope`. -/
 theorem etcd_kv_safe_nocrash_of_full (H : etcd_robust_nocrash.spec) : etcd_kv_safe_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ _ d _Hscope ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
-  exact H d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ _ _ d _Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  exact H d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
 
 /-- **The machines' boot WPs, for a well-formed deployment of M1's scope**: `EtcdBootNC` with the scope
 `KvOnly d ∧ d.cfg.auth = false` as one more hypothesis. -/
@@ -64,7 +64,7 @@ def EtcdKvBootNC : Prop :=
 `etcd_safe_nocrash_of_boot`'s bridge, with the scope passed to `EtcdKvBootNC` and the malformed case from
 `etcdBootNCBad_holds`. -/
 theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ _ d Hscope ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ _ _ d Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -74,7 +74,7 @@ theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.
   by_cases Hd : d.WellFormed
   · exact Net.robust_of_distBootILT (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
       etcdThreads etcdSteps 0 (Nat.zero_le _) HI
-      (fun _ hb => HS d Hd Hscope σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
+      (fun _ hb => HS d Hd Hscope σs σc σn ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
       ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootILT (GF := etcdDistGF) [] (machines d σs σc σn) g
       etcdThreads etcdSteps 0 (Nat.zero_le _) HI

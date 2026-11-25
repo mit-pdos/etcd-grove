@@ -1,10 +1,10 @@
 # Top-level statements whose premises have no satisfiability witness yet, and binders witnesses
-# leave out (etc/premise-py; Robustness/PremiseSat.lean). One per line:
+# leave out (etc/premise-witness.py; Robustness/PremiseSat.lean). One per line:
 #   <spec file>:<statement> <binder|*> <class> <reason>
 # `*`: no witness yet. Classes: opaque (an opaque or axiom-declared environment proposition, no
 # Lean proof can establish it), pending-b (a fact about values Go computes that Lean cannot
 # evaluate yet), pending (to witness), draft (not instantiable yet). Only shrinks:
-# `etc/premise-py --check --update` drops the lines nothing needs any more.
+# `etc/premise-witness.py --check --update` drops the lines nothing needs any more.
 Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust * pending its data binder `qv : QpVocab` has no value without Perennial's sorry'd sync.Map TypedPointsto (MapVocab.tp); the witness needs one (dsv-fix4)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process * pending-b BootFacts (member ids, boot log over ccDecodeV1) not computable in Lean; plus opaque environment premises; Fs start state (HWal)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust Henv opaque EtcdEnv: at a deployment with no AuthLease/LeaseCatchup workload exactly the opaque authRecordsFit, apply.backendUnderQuota, grpcRepliesFit, storage.diskOk, leasePeersOk (etcdEnv_iff)
