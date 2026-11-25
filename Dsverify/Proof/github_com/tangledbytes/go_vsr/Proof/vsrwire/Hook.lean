@@ -47,12 +47,14 @@ theorem examples.vsrwire.decodeFrame.wp'
   iintro %F %γ %dec %Φ
   imodintro
   iintro ⟨#Hset, #HokF, Hrs⟩ HΦ
+  ihave %HF := encoding.json.kitCodecOk_pin F $$ HokF
+  subst HF
   wp_func_call
   wp_call
   wp_auto
-  ihave #Hvia := encoding.json.kitCodecOk_unmarshalVia F examples.vsrwire.Frame.ty f_ptr
+  ihave #Hvia := encoding.json.kitCodecOk_unmarshalVia JsonScan.scanF examples.vsrwire.Frame.ty f_ptr
     (by simp [encoding.json.kitTypes]) (by go_type_set) $$ HokF
-  wp_apply wp_Decode_frame F γ dec f_ptr (zero_val examples.vsrwire.Frame) rfl $$ [Hrs f]
+  wp_apply wp_Decode_frame γ dec f_ptr (zero_val examples.vsrwire.Frame) rfl $$ [Hrs f]
     as %err Hpost
   · iframe; isplit
     · iexact Hset

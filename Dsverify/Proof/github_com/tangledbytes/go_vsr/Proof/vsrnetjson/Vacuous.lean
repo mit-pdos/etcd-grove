@@ -201,6 +201,8 @@ theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
   ihave #⟨Hm, Hu⟩ := hc
   ihave #Hs := hs
   isplitr
+  · ipureintro; rfl
+  isplitr
   · unfold encoding.json.codecOkWith
     isplitl []
     · iexact Hm

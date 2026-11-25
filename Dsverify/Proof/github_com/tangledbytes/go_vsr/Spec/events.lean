@@ -321,11 +321,11 @@ message `γ`'s stream has (`rstreamAt`), or a read error is returned and kept; t
 `vsrnet.jsonCodec`'s `decP` frame case: `Frame{typeOf m, data}`, `data` a fresh slice of
 `encPayload m`. -/
 abbrev events.Decoder.Decode_frame.spec : Prop :=
-  ∀ (F : List w8 → Bool → w64 × w64) (γ : VsrGhost.Names) (dec p : Loc)
+  ∀ (γ : VsrGhost.Names) (dec p : Loc)
     (fr : examples.vsrwire.Frame), fr.Data' = slice.nil →
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗
       encoding.json.codecSet (GF := GF) ∗
-      encoding.json.unmarshalVia inferInstance F
+      encoding.json.unmarshalVia inferInstance JsonScan.scanF
         (interface.mkOk (go.GoType.PointerType examples.vsrwire.Frame.ty) #p) ∗
       events.rstream γ dec ∗ p ↦ fr }}
     (App (Val (dec @!! go.GoType.PointerType encoding.json.Decoder.ty @!! go!"Decode"))

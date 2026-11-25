@@ -28,6 +28,7 @@ module
 public import Proof.encoding.json.Registry
 public import Net.Proof.models_lab.Errors
 public import Proof.bufio.ErrOrNil
+public import Net.Proof.models_lab.jsoncodec.Scan.Def
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.pkg.events
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.pkg.log
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.examples.vsrwire
@@ -183,22 +184,30 @@ def kitTypes : List go.GoType :=
 
 variable [jc : models_lab.jsoncodec.JsonCodec GF]
 
-/-- **The kit's JSON facts** (persistent): the registered codec's functions meet `codecPart jc`
-and `jsoncodec.Scan` computes `F` (`codecOkWith`), and every kit type's methods meet `jc`
-(`typeCodecOk`). -/
+/-- **The kit's JSON facts** (persistent): `F` is `jsoncodec.Scan`'s function (`JsonScan.scanF`),
+the registered codec's functions meet `codecPart jc` and `jsoncodec.Scan` computes `F`
+(`codecOkWith`), and every kit type's methods meet `jc` (`typeCodecOk`). -/
 def kitCodecOk (F : List w8 → Bool → w64 × w64) : IProp GF :=
-  iprop(codecOkWith (jc := codecPart jc) F (kitFn go!"jsonMarshal") (kitFn go!"jsonUnmarshal") ∗
+  iprop(⌜F = JsonScan.scanF⌝ ∗
+    codecOkWith (jc := codecPart jc) F (kitFn go!"jsonMarshal") (kitFn go!"jsonUnmarshal") ∗
     □ ∀ T : go.GoType, ⌜T ∈ kitTypes⌝ → typeCodecOk jc F T)
 
 instance kitCodecOk_persistent F : Persistent (kitCodecOk (GF := GF) F) := by
   unfold kitCodecOk; infer_instance
+
+/-- `F` is `jsoncodec.Scan`'s function, from the kit's facts. -/
+theorem kitCodecOk_pin (F : List w8 → Bool → w64 × w64) :
+    kitCodecOk (GF := GF) F ⊢ ⌜F = JsonScan.scanF⌝ := by
+  unfold kitCodecOk
+  iintro ⟨%h, -⟩
+  ipureintro; exact h
 
 /-- A kit type's methods, from the kit's facts. -/
 theorem kitCodecOk_type (F : List w8 → Bool → w64 × w64) (T : go.GoType) (hT : T ∈ kitTypes) :
     kitCodecOk (GF := GF) F ⊢ typeCodecOk jc F T := by
   unfold kitCodecOk
   iintro #H
-  icases H with ⟨-, Hts⟩
+  icases H with ⟨-, -, Hts⟩
   ispecialize Hts $$ %T %hT
   iexact Hts
 
@@ -207,7 +216,7 @@ theorem kitCodecOk_scan (F : List w8 → Bool → w64 × w64) :
     kitCodecOk (GF := GF) F ⊢ models_lab.jsoncodec.scanOk F models_lab.jsoncodec.scanFn := by
   unfold kitCodecOk codecOkWith
   iintro #H
-  icases H with ⟨⟨-, -, Hs⟩, -⟩
+  icases H with ⟨-, ⟨-, -, Hs⟩, -⟩
   iexact Hs
 
 /-- The codec's route at `codecPart jc`, from the kit's facts and the codec registered. -/
@@ -215,7 +224,7 @@ theorem kitCodecOk_route (F : List w8 → Bool → w64 × w64) :
     codecSet (GF := GF) ∗ kitCodecOk F ⊢ codecRoute (codecPart jc) F := by
   unfold kitCodecOk codecRoute codecSet
   iintro ⟨#Hset, #Hk⟩
-  icases Hk with ⟨Hc, -⟩
+  icases Hk with ⟨-, Hc, -⟩
   iexists (kitFn go!"jsonMarshal"), (kitFn go!"jsonUnmarshal")
   isplitr
   · iexact Hset
