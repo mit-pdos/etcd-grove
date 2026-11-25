@@ -397,8 +397,75 @@ premise `BoltCrashWhole I`. C-I2/C-I3 as laws (`bootstrapCrashContract.law`, `bo
    fork's `Save`; C-I3 to be widened to the backend leftovers (T3) and restated over the WAL history
    (`walAreaUnsaved`); its dependence on the WAL's whole-sector premise to be stated.
 6. Handed to another agent (not this session): the torn-`Save` fix's fresh-start hole (an unsaved WAL beside a
-   backend that applied the boot entries) and the bbolt `init` fork fix.
+   backend that applied the boot entries) and the bbolt `init` fork fix. Done: "Torn-Save fix: fresh-start
+   hole" below (fork head `goose-lean-crashfixes2` @ `d49d01a07`).
 7. T4/T7 finding: `srvCrashImageAt`'s `γ.cl.bootLen ≤ i` excludes a crash between the first `Save` and the
    backend's first commit.
 8. Not run: `etc/tcb-report.py --check` (needs a local full build; no result uses the new axioms, so the
    baseline should not move).
+
+### Torn-Save fix: fresh-start hole (2026-11-25)
+
+**The hole (tested).** The raft loop sends a Ready's committed entries to the apply thread before
+it saves the Ready (`raftNode.start`, `server/etcdserver/raft.go:250-276` at `71295dd6d`), and raft
+(synchronous storage writes) hands out the bootstrap conf changes as committed in the first Ready.
+So the backend can commit members and consistent index `n` before the first `Save` is durable. A
+crash then leaves an unsaved WAL beside an applied backend; `goose-lean-crashfixes` (`71295dd6d`)
+discarded the WAL and bootstrapped fresh over that backend. No panic, members and raft's
+configuration right, but the bootstrap entries are replayed at or below the consistent index, where
+`applyConfChange` does not call `ApplyConfChange` (`server.go:2078`): `ep.confState` stays the
+fresh snapshot's empty one, is written to the backend (`beHooks.SetConfState`), and every raft
+snapshot the member makes and sends (`server.go:2158`, the merged snapshot `server.go:1013`) has
+`ConfState{}`; raft v3.7's `restore` rejects a snapshot not naming the receiver, so a follower that
+needs one from this member never catches up (liveness; no safety violation found: a follower sends
+nothing before its first `Save` returns). Test: `TestBootstrapUnsavedWALAppliedBackend`
+(`server/etcdserver/bootstrap_unsaved_applied_test.go`: a real `NewServer`, the first `Save` held,
+the bootstrap entry applied and committed, the data dir copied as the crash image) at `730b7bf62`:
+
+```
+control:   {members:1 raftVoters:[6e17..] backendCS:[6e17..] snapshotIndex:33 snapshotCS:[6e17..]}
+restarted: {members:1 raftVoters:[6e17..] backendCS:[]     snapshotIndex:33 snapshotCS:[]}
+```
+
+Fork-only (upstream has no `DiscardUnsaved`), so no `issues/` file.
+
+**The fix (decision: discard the backend with the WAL).** `bootstrap` (`8ceb22f8d`): when
+`wal.Unsaved`, remove `member/snap/db` (absent is fine) and fsync `member/snap`, then
+`DiscardUnsaved`. Until its first `Save` completed the member sent nothing, so whatever the backend
+applied (the bootstrap entries, or more if a leader's append was stepped before the first Ready) is
+fetched again from raft. Order: backend first, so a crash in between leaves the WAL unsaved and no
+backend, and the next start discards again (tested: the restart from that image matches the
+control). For the laws: C-I2/C-I3's fresh case now holds a fresh backend too (no `beExist` leftover
+from an applied boot); T3's "first start with leftovers" keeps only the pre-WAL leftovers
+(`bootstrapBackend` before `bootstrapNewWAL`, consistent index 0).
+
+**bbolt's init (`nonissues/bbolt-init-not-crash-safe.md`).** `upamanyus/bbolt`
+`v1.5.0-init-crashsafe` @ `19e0771` (on v1.5.0 `e7a8b2d`, the version etcd's `go.mod` names): `init`
+syncs the freelist and root pages before writing the metas; a writable `Open` re-initializes a file
+of at most four pages whose every byte is zero or `init`'s and which is not `init`'s whole image
+(covers before the first sync, between the two syncs, and the old single write's leftovers).
+`TestOpen_InterruptedInit` fails at v1.5.0 (one case panics), passes with the fix. The etcd fork uses
+it through `replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261125003757-19e0771281fa`
+in `go.mod`, `server/go.mod`, `etcdutl/go.mod`, `tests/go.mod`; `TestBackendOpensInterruptedInit`
+(`server/storage/backend`) panics without it.
+
+**Port to the verified bbolt: yes, needed, not done.** The proof verifies `upamanyus/bbolt` @
+`ca88bb6a` (`etc/goose.py`), 17 commits past v1.5.0 (`git log v1.5.0..ca88bb6a`: the goose forms,
+the bbolt#1311 fix, the two-sync `init` 3207bac and `needsInit` 42c80a7, the `Open` sync c5a6065,
+the entry limit, the leaf split, ...). Its `init` already syncs in two steps; its `needsInit` accepts
+only zero metas over a subset of the data pages, so the window between the two syncs stays open
+there. The port is the widened check (every byte zero or `init`'s image, not the whole image; about
+25 lines replacing `metasZero`), then `DB__init`/`Open`'s proofs and `SpecPlan/Spec/go_etcd_io/bbolt/Open.lean`.
+Until it lands, the binary etcd runs (v1.5.0 + this fix) and the verified bbolt differ by those
+17 commits, as they did with v1.5.0.
+
+**Combined fork head:** `upamanyus/etcd` `goose-lean-crashfixes2` @ `d49d01a07` = `71295dd6d`
+(snapshot guard, torn-`Save` fix, directory syncs) + `730b7bf62` (the test) + `8ceb22f8d` (backend
+discard) + `d49d01a07` (bbolt `replace` and its backend test). Tests (go1.27.3): every package of
+`server/etcdserver/...` and `server/storage/...` passes but `storage/wal`, whose whole suite runs past
+`go test`'s 10-minute default (the byte-mix tests; the package neither imports bbolt nor changed since
+`71295dd6d`), where the torn-`Save` tests pass (`TestTornSaveReadsAsNoSave`,
+`TestSaveEntriesEmptyHardStateWritesState`, `TestUnsaved`, `TestRestartWithEntriesButNotCommit`);
+`etcdutl/...` passes; bbolt `go test -short .` passes (`tests/failpoint` fails the same at v1.5.0: it
+needs a gofail build).
+Not bumped in `etc/goose.py`.

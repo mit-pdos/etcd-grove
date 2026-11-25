@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-11-02
+checked: 2026-11-25
 links:
   - etcd-io/bbolt#567 issue closed: this bug (power failure during initialization), closed 2026-02-21 by documenting it
   - etcd-io/bbolt#1151 pr merged: the documentation (README, known issues: "Bolt db can be corrupted during the initialization phase due to abrupt power failure")
@@ -18,12 +18,51 @@ SIGBUS past the end of the file, `file size too small`), at every `Open`, until 
 deleted.
 
 **Why not an issue:** known upstream and documented as a known issue (bbolt#567, #1151, from
-etcd#16596, reproduced there with LazyFS); it only affects a database's first creation. No test
-here (found by reasoning about Linux's write-back order).
+etcd#16596, reproduced there with LazyFS); it only affects a database's first creation. Since
+2026-11-25 it has a test that fails at upstream (below), so it qualifies for `issues/`; it stays
+here for now because `Proof/` files (the crash agent's) and notes link to this path.
+
+**Reproduction:** `TestOpen_InterruptedInit` in
+[`bbolt-init-not-crash-safe/init_crash_test.go`](bbolt-init-not-crash-safe/init_crash_test.go),
+copied into the root of etcd-io/bbolt@e7a8b2dd498494a3766ba24dd94d3509e5588485 (v1.5.0, the
+version etcd's `go.mod` uses), go1.27.3 linux/amd64. Each case writes a crash image of `init`'s
+unsynced write (any subset of its bytes) and opens it:
+
+```
+$ go test -run TestOpen_InterruptedInit -count=1 .
+    init_crash_test.go:115: Open after an interrupted init: invalid database
+    init_crash_test.go:115: Open after an interrupted init: file size too small 4096
+    init_crash_test.go:115: Open after an interrupted init: checksum error
+--- FAIL: TestOpen_InterruptedInit (0.00s)
+    --- FAIL: TestOpen_InterruptedInit/metas-torn-every-other-byte (0.00s)
+    --- FAIL: TestOpen_InterruptedInit/metas-whole-freelist-lost (0.00s)
+panic: invalid freelist page: 0, page type is unknown<00> [recovered, repanicked]
+FAIL	go.etcd.io/bbolt	0.009s
+```
+
+Through etcd: `TestBackendOpensInterruptedInit` (`server/storage/backend/init_crash_test.go` on
+`upamanyus/etcd` `goose-lean-crashfixes2`) panics with v1.5.0 (`failed to open database`,
+`invalid database`) on a file whose two meta pages are torn over whole freelist and root pages.
+
+## Fix
+
+**Branch**: `v1.5.0-init-crashsafe` (upamanyus/bbolt, pushed): 19e0771 test and fix
+**Base**: etcd-io/bbolt@e7a8b2dd498494a3766ba24dd94d3509e5588485
+
+`init` writes the freelist and root pages with zero metas and syncs, then the metas and syncs;
+`Open` (not read-only) initializes again a file of at most four pages whose every byte is zero or
+the byte `init` writes there and which is not `init`'s whole image (the empty database's state, so
+nothing is lost; a database past `init` holds a byte `init` does not write: a page past the fourth,
+or a meta of another txid). This covers both the window before the first sync and the window
+between the two syncs, and the files the old single write left. `TestOpen_FileTooSmall` now
+commits before truncating (a new database cut to one page is an interrupted init). The etcd fork
+uses it through a `replace` (`goose-lean-crashfixes2` @ `d49d01a07`, in `go.mod`, `server`,
+`etcdutl`, `tests`). The verified bbolt (`upamanyus/bbolt` @ `ca88bb6a`, `etc/goose.py`) still has
+the narrower recovery (zero metas only): see "The window between init's two syncs".
 
 ## Proof
 
-yes, since 2026-11-24 (etcd_safe: a member crashing inside its first backend open): see "The window between init's two syncs" below. Before:
+yes, since 2026-11-24 (etcd_safe: a member crashing inside its first backend open): see "The window between init's two syncs" below; the fix the proof needs is on the forks since 2026-11-25 (above), not yet in the verified bbolt. Before:
 
 no: the top-level adequacy proof needs no fix on the goosed fork for it; a crash-safety theorem of bbolt's `Open` would be false here; bbolt has no crash proof (the
 old one had no crash semantics, `old/bbolt/notes/STATUS-bbolt.md`), and the example minibolt
@@ -62,3 +101,8 @@ also reinitializing a file of exactly four pages whose pages 2 and 3 are the fir
 zero) and whose metas are each zero or invalid (only `init` writes such a file: a database past `init`
 has a valid meta, and its first commit grows the file past four pages); or a sector-atomicity premise in
 the file extension's crash model (a trusted change).
+
+**Fixed on the forks (2026-11-25):** the `v1.5.0-init-crashsafe` fix above re-initializes such a
+file (torn metas, whole data pages: `metas-torn-*` in the test), the "fork change" way out. The
+verified bbolt's `needsInit` (`ca88bb6a`: zero metas over a subset of the data pages) still needs
+the same widening (every byte zero or `init`'s) before C-I1 can cover a crash inside `Open`.
