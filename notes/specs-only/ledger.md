@@ -5770,3 +5770,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
      text: `r' = r`, or a leader's probe), `ApplyConfEndR`, `StoreAckEndR`.
 - **Decision.** Applied (the lead's brief, B1 stages 1-2; stage 1 reviewed). No new axiom or
   top-level premise; no theorem weakened (`spec_of_abs` and the old specs unchanged).
+
+## 2026-11-25 — antithesis parity B1: the Sim's statements over N servers (#33)
+
+- **Files.** `Proof/.../antithesis/Sim/{Abs,Rel,Stmts,MsgShapeStmt}.lean`
+  (`notes/antithesis-parity-design.md` §3).
+- **Change.** The refinement's statements move from S4's three-node, default-scope run to the run's
+  configuration `RunCfg` (`N` servers, `K` initial voters, boot, per-node `NodeK`, the mask `RnMode`,
+  the driver's `DrvMode`). `NodeView` is over `RState`, with the binding's disk, announced write,
+  queue, reads and configuration of the node (`ps` kept as a projection). `DurableIs` is split into
+  `DiskIs`/`MemIs`/`SyncDisk`/`UndoIs`/`QueueIs`/`ReadsIs`/`ConfLag`/`NodeFacts`. `AntSim R dec S V net
+  xnet` and the `SimPre`/`SimStep` frame. Statements for every report kind: init, boot (fresh, after
+  restart), recv (protocol, transfer), quiet, ready, send (protocol, transfer), apply, readreq, read,
+  mem, write, wrote, flush, net, made, conf, restore, snap, gc; `msgShape.stmt` over the mask's types.
+- **Deviations from the design (the lead's decisions, 2026-11-25).** `SyncDisk` without `Idle`, with
+  `undo ≠ none → made = false`, gated on sync and no batch/split/parallel; ready/send/sendX/apply move
+  `undo`/`made`; `evBoot` at commit 0 (Go writes `HardState{Term: 1}`); `antSim_init` takes
+  `BootFacts` (isLeader 1 1 and the term-1 campaign log, discharged by the raft side from the boot
+  allocation); BindingOk's leader conjunct admits BootInit's leader of term 1; `entOf`'s conf arm in
+  B3; `proposeConf` by type and bytes; `RunCfg.drv`; `NodeView` gains `rpend`, `xcause`, read floors;
+  fresh `boot` sets `alive`; `PendOk`'s redundant `_ => False` arm dropped; `RaftLaws` unchanged.
+- **Decision.** Approved by the lead. No new axiom or top-level premise; the Sim proofs migrate in
+  step 3.
