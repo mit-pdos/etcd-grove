@@ -174,10 +174,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.internal.oserror, isPkgInit pkg_id.internal.oserror),
    (pkg_id.internal.testlog, isPkgInit pkg_id.internal.testlog),
    (pkg_id.log, isPkgInit pkg_id.log),
-   (pkg_id.internal.filepathlite, isPkgInit pkg_id.internal.filepathlite),
-   (pkg_id.runtime, isPkgInit pkg_id.runtime),
-   (pkg_id.internal.runtime.sys, isPkgInit pkg_id.internal.runtime.sys),
-   (pkg_id.internal.runtime.atomic, isPkgInit pkg_id.internal.runtime.atomic)]
+   (pkg_id.internal.filepathlite, isPkgInit pkg_id.internal.filepathlite)]
 
 /-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/
 def getIsPkgInit (s : GoString) : IProp GF :=
