@@ -398,3 +398,31 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   (bedb8f9090): gen-link 0 differ, default build EXIT 0 (28094 jobs, eg-full13), `tcb-report --check` matches
   the baseline (329 axioms, 0 sorry): axioms unchanged, tcb before/after not rerun. Packet head updated.
   Open: etcd-grove lean merge (go-models-rest-egnet-lmerge/2026-11-25, blocked on lean's trusted UDP: decision).
+
+## Session 12 (2026-11-25, successor) — the lean merge, UDP kept as lean's (etcd-grove#8 decision (a))
+- Worktree `/home/ubuntu/.claude-D/jobs/43217da4/tmp/wt/eg-lmerge` on `go-models-rest-egnet-lmerge/2026-11-25`
+  (VM key c61dd42e08d7d686, the egnet sync dir: the egnet worktree is idle). Scratch/logs: `tmp/gm12/`
+  (scripts/strip_fa.py, goose*.log, full*.log).
+- History: 8e07d6297f (the WIP tree, single-parent) + `4657f30f5d` = `merge -s ours 823cf434cc` (records the lean
+  the WIP resolved) + `99e4f29144` = merge of egnet c8df216303 (notes only) + `2ce3866759` = merge of lean
+  6865da10d6 (15 newer commits; one conflict, quepaxanet's intro line).
+- UDP (decision (a), coordinator-E 7170869672): Net/TrustedCode/net.lean = our stubs + lean's UDP text verbatim
+  (UDPConn struct/layout, UdpFieldAssumptions, UDP section) + the six definitions of lean's old trusted net the
+  UDP section calls (`model.Addr/OpError/IP/Errno` type names, `model.opError`, `model.einval`), copied
+  verbatim: no TCP model, no state, no extension op. ManualProof/net.lean = lean's UDPConn instances (+
+  `Addr_ty_eq`/`Addr_named_underlying`, proved). net.toml: `UDPAddr` translated; `UDPConn`, `ListenUDP`,
+  `UDPConn.WriteToUDP`, `UDPConn.ReadFromUDP` trusted. Regenerated `UDPConn.TypeAssumptions` = lean's
+  (only the ReadFromUDP/WriteToUDP unfolds). GooseLang/Ext (Net, Udp, NetFsUdp) = lean's byte for byte.
+- Condition 1 (no shared state): udpExt is its own extension ("net.udp"), own local/global state and ghost
+  names (γsent, γsock); it reuses only pure definitions of the net extension (`addrOk`, `NetErr`, `errCode`,
+  `failV`, Deploy's `addrSpace`), which egnet did not change. The UDP trusted section calls only
+  `Udp.udpExt.name` operations. `UdpFieldAssumptions` is UDP's own class (the layout `uid/laddr/net`); no UDP
+  file uses `net.FieldAssumptions` (gone with the Go-model net).
+- FieldAssumptions: lean's newer files still had net/os.file/os.fileStat FieldAssumptions binders: stripped
+  (294 files, `tmp/gm12/scripts/strip_fa.py`; docstrings restored by hand); `intro … fsem …` lines lose `fsem`.
+- Deleted: files lean deleted that egnet had modified (KvNet/ remnants, part PkgInitExt copies, kvreconf's,
+  PkgTables, RaftTla Init copies) and Net/Proof/internal/filepathlite/Init.lean (gen-init: stale).
+- go/token.toml: lean's translated tokens/keywords/init.0 + our Go model of IsExported (no trusted).
+- Regenerated with PERENNIAL_DIR = the nested Perennial clone (09bd3826c): eggoose.sh (net, models-net
+  changed), gen-init, copy-part, gen-raft-tla, gen-specs-pkginit, kitgen, rpcdriver-boottable, k8s-deep,
+  pbschema, genlink-all (0 differ); every --check passes.
