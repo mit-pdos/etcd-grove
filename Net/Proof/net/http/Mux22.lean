@@ -145,6 +145,25 @@ theorem nodeRep_split (q1 q2 : Qp) (d : NodeSt) :
     nodeRep (GF := GF) (hG := hG) (DFrac.own (q1 + q2)) d ⊣⊢
       nodeRep (DFrac.own q1) d ∗ nodeRep (DFrac.own q2) d := by
   unfold nodeRep
+  by_cases hpn : d.pat = null
+  rotate_left
+  · simp only [pfrac, hpn, ↓reduceIte]
+    refine ⟨?_, ?_⟩
+    · iintro ⟨#Hp, #Hh, Hm, Hmc, Hec⟩
+      icases (mapRep_split q1 q2 _ _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
+      icases (pts_split q1 q2 _ _).1 $$ Hmc with ⟨Hmc1, Hmc2⟩
+      icases (pts_split q1 q2 _ _).1 $$ Hec with ⟨Hec1, Hec2⟩
+      isplitl [Hm1 Hmc1 Hec1]
+      · iframe; iframe #
+      · iframe; iframe #
+    · iintro ⟨⟨#Hp1, #Hh1, Hm1, Hmc1, Hec1⟩, ⟨-, -, Hm2, Hmc2, Hec2⟩⟩
+      iframe #
+      isplitl [Hm1 Hm2]
+      · iapply (mapRep_split q1 q2 _ _ _).2; iframe
+      isplitl [Hmc1 Hmc2]
+      · iapply (pts_split q1 q2 _ _).2; iframe
+      iapply (pts_split q1 q2 _ _).2; iframe
+  simp only [pfrac, hpn, ↓reduceIte]
   refine ⟨?_, ?_⟩
   · iintro ⟨Hp, Hh, Hm, Hmc, Hec⟩
     icases (pts_split q1 q2 _ _).1 $$ Hp with ⟨Hp1, Hp2⟩
