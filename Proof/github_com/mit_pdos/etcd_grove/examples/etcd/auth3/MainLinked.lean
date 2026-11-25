@@ -8,6 +8,7 @@ linked `SetUp`, `Work` and checks (`auth/Link.lean`). `Results.lean` restates it
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
@@ -83,7 +84,7 @@ theorem etcd_auth3.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [EtcdGrove.ErrorStringLeaf] :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=
   etcd_auth3.Main.wp_proof zap.NewNop.wp_proof etcd_auth3.wp_startMember etcd_auth3.wp_run
-    mvcc.api.mvccApi_names_nonempty_law_holds
+    mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

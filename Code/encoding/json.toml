@@ -6,9 +6,13 @@
 # translated (mit-pdos/etcd-grove#24, item 1).
 # (#24 J2, 2026-11-23) with their bodies: the codec registry (`SetCodec`, `getCodec`, over `codecMu`,
 # `codec`), the per-type dispatch (`marshalAny`) and the entry points over them (`Marshal`, `Unmarshal`
-# with its validity check, `NewEncoder`, `Encoder.Encode`); the rest names only.
+# with its validity check, `NewEncoder`, `Encoder.Encode`); (dsv-vr round 12, 2026-11-25) the stream
+# decoder (`NewDecoder`, `Decoder.Decode` and its buffer: `readValue`, `badStart`, `fetch`,
+# `endsInNumber`) and `(*SyntaxError).Error`; the rest names only.
 translate = ["!*", "codecMu", "codec", "SetCodec", "getCodec", "marshalAny", "Marshal", "Unmarshal",
-  "valid", "skipSpace", "isSpace", "scanDone", "scanMore", "NewEncoder", "Encoder.Encode"]
+  "valid", "skipSpace", "isSpace", "scanDone", "scanMore", "NewEncoder", "Encoder.Encode",
+  "NewDecoder", "Decoder.Decode", "Decoder.readValue", "Decoder.badStart", "Decoder.fetch",
+  "endsInNumber", "SyntaxError.Error"]
 imports = ["!*", "sync", "io"]
 
 # translate the definitions of all type declarations goose supports

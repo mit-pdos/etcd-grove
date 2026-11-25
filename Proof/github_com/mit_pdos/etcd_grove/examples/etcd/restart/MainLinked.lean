@@ -7,6 +7,7 @@ Lean-first (no Rocq counterpart); restart1's `MainLinked.lean`.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.build
@@ -66,7 +67,7 @@ theorem etcd_restart.wp_Main [_root_.Perennial.net.FieldAssumptions]
         EtcdServer.wp_Start)
       (etcd_restart.check.wp_proof EtcdServer.wp_Range EtcdServer.wp_Leader context.wp_Background
         context.WithTimeoutBackground.wp_proof)
-      mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds)
+      mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof)
 
 end results
 

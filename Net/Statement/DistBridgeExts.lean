@@ -311,10 +311,12 @@ theorem nodeWp_of_distBootST [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC G
   rw [hf.2.1]
   iapply H ⟨G, L⟩ rfl (hL.trans hf.1) (by omega) hT $$ HP Hls Hgs Htok
 
-/-- **The bridge with `Robust`'s thread bound** (`robust_of_distBootI` over Perennial's
-`goose_dist_adequacy_below`): an execution of `n` steps along which every machine keeps fewer than
-`threads` live threads is run at `n + 1` receipts and the thread bound `threads`, so each machine's
-`DistBootWpST threads bound`. -/
+/-- **The bridge with `Robust`'s thread bound** (`robust_of_distBootI` over
+`goose_dist_adequacy_below`): an execution of `n < bound` steps along which every machine has fewer than
+`threads` live threads is run at `n + 1` receipts and `threads` threads. Of the deployment it takes only
+the addresses distinct and valid (what `addrs_start` needs to hand out their `addrUnset`): the network's
+and the machines' net states at start come from `Robust`'s own `extsInitGlobal`/`extsInitLocal`, through
+`HI`, so `DistDeploy`'s `init` conjuncts are not taken. -/
 theorem robust_of_distBootIT [lctx : GoLocalContext] (addrs : List GoString)
     (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
     (HI : extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
@@ -325,8 +327,8 @@ theorem robust_of_distBootIT [lctx : GoLocalContext] (addrs : List GoString)
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
             DistBootWpST threads bound m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
-    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
-  rintro ⟨Hnd, Hok, -, -⟩ hfresh hg hl n κs c hsteps hn i tp σ hi e he
+    addrs.Nodup → (∀ a ∈ addrs, addrOk a = true) → Robust [] nodes g threads bound := by
+  intro Hnd Hok hfresh hg hl n κs c hsteps hn i tp σ hi e he
   simp only [List.map_nil, List.nil_append] at hfresh hl hsteps
   have H := goose_dist_adequacy_below (GF := GF) (n + 1) threads nodes g
     (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm) (HI hg hl).1 (HI hg hl).2

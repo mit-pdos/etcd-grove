@@ -7,6 +7,7 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
+axiom NewRaftLoggerZap.wp_proof
 axiom Perennial.context.WithCancel.wp_proofValBg
 axiom Perennial.context.WithValue.wp_proofPtr
 axiom Perennial.encoding.gob.wp_initialize'
@@ -64,6 +65,7 @@ axiom backend.newBoltLoggerZap.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
+axiom bootstrap.wp_proofOne
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
@@ -71,6 +73,7 @@ axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
+axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -86,6 +89,10 @@ axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_dist.Client_Get_dist.wp_proof
+axiom etcd_dist.Client_Put_dist.wp_proof
+axiom etcd_dist.Serve_dist.wp_proof
+axiom etcd_dist.etcdSvc
 axiom etcd_noRefusal
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.Sscanf.wp_proof
@@ -249,6 +256,7 @@ axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
+axiom proto.MarshalBootConfChange.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof

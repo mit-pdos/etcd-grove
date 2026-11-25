@@ -51,9 +51,12 @@ saved protocols, now set by `reserve`). No Go operation is involved: nothing to 
 for each data directory of `Ds`, for a program of which `dataDirsAbsent e Ds` holds: the
 directories are one directory each for the whole run and reached only through their strings, absent
 or empty at start, pairwise disjoint, and touched only by the operations whose specs state their
-effects. The verified code's first `bootstrap` of `dd` consumes the right. So each data directory
-of `Ds` is bootstrapped fresh at most once in a run, over an empty backend, which `bootstrap`'s
-contract needs (`wal.Exist(dir)` false: `bootstrapNewWAL`; no backend file: `HD`, `HmEmpty`).
+effects. (2026-11-24) No verified code consumes the right any more: `bootstrap`'s slot
+(`wal.bootRes`) takes the data directory's fresh area instead (`dataAreaFresh`, allocated at adequacy
+from the file extension's start, `lib/etcdstart/WalAreas.lean`), which says the same (no entry, so no
+backend file) as a claim on the tree; the start bundles drop the right. Until then the verified code's
+first `bootstrap` of `dd` consumed it. `dataDirFresh` is thus an unused axiom handed out here, which a
+separate change could delete with this conjunct.
 (Sweep repairs 1, W5) The addresses of `As` are numeric loopback literals (`hAsLit`, decidable; loopback since 2026-11-14, so no proxy), so each
 names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4, to 2026-11-25)
 For a program of which `verifyEnvOff e` held (`ETCD_VERIFY` off for the run), it also received
@@ -194,8 +197,9 @@ of `As` the program's claim on it (`addrClaim`; until the net swap, 2026-11-22, 
 listening token is now the net extension's) and the right to fix its HTTP protocol (`httpProtoFree`,
 D39a, 2026-10-23; the address part removed at the swap and restored 2026-11-23 for the single-process
 theorems); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
-(`dataDirFresh`), which a member's first start consumes. (Sweep repairs 1, B4, to 2026-11-25: also
-`ETCD_VERIFY` off for the run, the token `envVerifyOff`; now the pure premise `EtcdVerifyOff`.) -/
+(`dataDirFresh`; since 2026-11-24 consumed by nothing: `bootstrap` takes `dataAreaFresh`). (Sweep
+repairs 1, B4, to 2026-11-25: also `ETCD_VERIFY` off for the run, the token `envVerifyOff`; now the pure
+premise `EtcdVerifyOff`.) -/
 def startRights {GF : BundledGFunctors} [GooseExts] (As Ds : List GoString) : IProp GF :=
   iprop(([∗list] a ∈ As, addrClaim a) ∗
     ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d))

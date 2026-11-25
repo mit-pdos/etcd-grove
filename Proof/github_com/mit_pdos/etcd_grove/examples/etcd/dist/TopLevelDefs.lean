@@ -2,7 +2,7 @@
 
 # `etcd/dist`: the definitions its top-level statement is written in (DRAFT)
 
-**Draft for review** (`notes/etcd-dist-plan.md`): not built, nothing imports it. What is a
+**Draft** (`notes/etcd-dist-plan.md`): the statements' definitions (built; the Spec file imports it). What is a
 placeholder is marked `PLACEHOLDER`; each names the stage of the plan that replaces it.
 
 The deployment `etcd_safe` quantifies over: one etcd cluster of `k ≥ 1` members, each on a
@@ -31,6 +31,10 @@ public import Proof.google_golang_org.grpc.InvGrpcServer
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
+public import Perennial.GooseLang.InitAdequacy
+public import GooseLang.Ext.Net.Ghost
+public import GooseLang.Ext.IdIssue.Specs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 
 @[expose] public section
 
@@ -161,6 +165,12 @@ def Workload.BoundsOk : Workload → Prop
   | .durable n => n ≤ 256
   | _ => True
 
+/-- **The workload's client machines** (D8; Go's `client.NodeCount`): kv's clients, watch's and cache's
+writers, auth's four principals (`auth.Principals()`), each on a machine of its own, called by the
+workload's orchestrator machine; the other workloads run on their orchestrator alone. -/
+def Workload.nodeCount : Workload → Nat
+  | .kv c _ => c | .watch w _ => w | .cache w _ => w | .auth => 4 | _ => 0
+
 instance (w : Workload) : Decidable w.BoundsOk := by
   cases w <;> unfold Workload.BoundsOk <;> infer_instance
 
@@ -188,12 +198,19 @@ structure Member where
   client : GoString
 
 /-- **A deployment**: the cluster (its members, in the initial cluster's order, its token, its
-server configuration) and the client machines' workloads, one per client machine. -/
+server configuration), the workloads (each run by an orchestrator machine) and, per workload, its
+client machines' addresses (`nodes`, in the workloads' order; `nodeCount` of them each, D8). -/
 structure Deployment where
   members : List Member
   token : GoString
   cfg : ServerCfg
   workloads : List Workload
+  nodes : List (List GoString)
+
+/-- Every client machine of the deployment: its workload, its index among the workload's client
+machines, its address (in the workloads' order, then the index's). -/
+def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
+  (d.workloads.zip d.nodes).flatMap (fun p => p.2.zipIdx.map (fun q => (p.1, q.2, q.1)))
 
 /-- PLACEHOLDER (stage D0/D2, open question Q5): **etcd's member id**, as `membership.NewMember`
 computes it: the first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs
@@ -205,9 +222,10 @@ opaque memberId (peerURL : GoString) (token : GoString) : w64
 def Deployment.ids (d : Deployment) : List w64 :=
   d.members.map (fun m => memberId (go!"http://" ++ m.peer) d.token)
 
-/-- The addresses the deployment listens on: every member's peer and client address. -/
+/-- The addresses the deployment listens on: every member's peer and client address, then every
+client machine's (the orchestrators listen nowhere). -/
 def Deployment.addrs (d : Deployment) : List GoString :=
-  d.members.flatMap (fun m => [m.peer, m.client])
+  d.members.flatMap (fun m => [m.peer, m.client]) ++ d.nodes.flatten
 
 /-- A member name the data directory can carry: nonempty, of ASCII letters, digits and `-` (so
 no `/`, `.` or `..`: one directory per member, `etcdWalAreasInit`'s `memberDataDir`). -/
@@ -220,7 +238,8 @@ def nameOk (n : GoString) : Bool :=
 
 1. the cluster has a member, and the members' names are distinct and valid (`nameOk`);
 2. every address is the net extension's `addrOk` (a canonical `a.b.c.d:p`, first octet 1-223, port
-   outside the ephemeral range), and the members' peer and client addresses are all distinct;
+   outside the ephemeral range), and the members' peer and client addresses and the client
+   machines' addresses are all distinct; each workload has its `nodeCount` client machines;
 3. the members' ids have distinct, nonzero 16 low bits (etcd's request ids carry them: `BootCore`'s
    `lowNodup`/`lowNz`), and, when a workload grants leases, distinct 15 low bits
    (`leaseIdsApart`, `issues/etcd-lease-id-mask-member-prefix.md`);
@@ -231,6 +250,7 @@ def nameOk (n : GoString) : Bool :=
 def Deployment.WellFormed (d : Deployment) : Prop :=
   d.members ≠ [] ∧ (d.members.map Member.name).Nodup ∧ (∀ m ∈ d.members, nameOk m.name = true) ∧
   (∀ a ∈ d.addrs, Net.addrOk a = true) ∧ d.addrs.Nodup ∧
+  d.nodes.length = d.workloads.length ∧ (∀ p ∈ d.workloads.zip d.nodes, p.2.length = p.1.nodeCount) ∧
   (d.ids.map (fun id => uint.Z id % 2 ^ 16)).Nodup ∧ (∀ id ∈ d.ids, uint.Z id % 2 ^ 16 ≠ 0) ∧
   ((∃ w ∈ d.workloads, w.grantsLeases = true) → leaseIdsApart d.ids) ∧
   d.token ≠ [] ∧ d.cfg.Supported ∧
@@ -279,17 +299,33 @@ variable [GooseExts] [GoGlobalContext]
 expression at the first start and after every crash (etcd's `NewServer` restarts from the WAL). -/
 opaque serverProg (d : Deployment) (m : Member) : Expr
 
-/-- PLACEHOLDER (stage D2): **a client machine's boot program**, `client`'s initialization then
-`client.Main(w, eps)`, the members' client addresses `eps` in the members' order. -/
-opaque clientProg (w : Workload) (eps : List GoString) : Expr
+/-- PLACEHOLDER (stage D2): **a workload's orchestrator machine's boot program**, `client`'s
+initialization then `client.MainReady(w, eps, nodes, _)`, the members' client addresses `eps` in the
+members' order, the workload's client machines' addresses `nodes` (D8). -/
+opaque clientProg (w : Workload) (eps : List GoString) (nodes : List GoString) : Expr
+
+/-- PLACEHOLDER (stage D2): **a workload's client machine's boot program**, `client`'s initialization
+then `client.NodeMain(w, c, addr, eps)`: client machine `c` of `w`, listening at `addr` (D8). -/
+opaque nodeProg (w : Workload) (c : Nat) (addr : GoString) (eps : List GoString) : Expr
 
 /-- The members' machines, with their start states `σs`, in the members' order. -/
 def servers (d : Deployment) (σs : List state) : List (Expr × state) :=
   (d.members.zip σs).map (fun p => (serverProg d p.1, p.2))
 
-/-- The client machines, with their start states `σc`, in the workloads' order. -/
+/-- The workloads' orchestrator machines, with their start states `σc`, in the workloads' order. -/
 def clients (d : Deployment) (σc : List state) : List (Expr × state) :=
-  (d.workloads.zip σc).map (fun p => (clientProg p.1 (d.members.map Member.client), p.2))
+  ((d.workloads.zip d.nodes).zip σc).map
+    (fun p => (clientProg p.1.1 (d.members.map Member.client) p.1.2, p.2))
+
+/-- The workloads' client machines, with their start states `σn`, in `nodeList`'s order. -/
+def nodeMachines (d : Deployment) (σn : List state) : List (Expr × state) :=
+  (d.nodeList.zip σn).map
+    (fun p => (nodeProg p.1.1 p.1.2.1 p.1.2.2 (d.members.map Member.client), p.2))
+
+/-- **Every machine of the deployment**: the members', then the orchestrators', then the client
+machines'. -/
+def machines (d : Deployment) (σs σc σn : List state) : List (Expr × state) :=
+  servers d σs ++ clients d σc ++ nodeMachines d σn
 
 end programs
 
@@ -344,6 +380,42 @@ structure EtcdEnv (d : Deployment) : Prop where
   peerRequests : True
 
 end env
+
+/-! ## The ghost state the statements' Iris premise is stated at -/
+
+-- the bundle's extensions (GooseLang's `val` and the ghost-state slots are over them)
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std in
+/-- **The functors** the distributed statements' proofs run at (until 2026-11-25 also the Iris premise `HEnvTok`'s): `putgetGF`'s layout (the
+universal camera `AllG` at slot 0, invariants, later credits, GooseLang's heap, prophecies and package
+state, a ghost variable at slot 7; every other slot the unit functor). -/
+def etcdDistGF : BundledGFunctors := fun i =>
+  match i with
+  | 0 => ⟨AllURF, inferInstance⟩
+  | 1 => ⟨InvMapF, inferInstance⟩
+  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
+  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
+  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
+  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
+  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
+          inferInstance⟩
+  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
+  | _ => ⟨constOF Unit, inferInstance⟩
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std in
+/-- The universal camera at slot 0. -/
+def etcdDistGF_allG : AllG etcdDistGF := ⟨⟨0, rfl⟩⟩
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std in
+/-- The ghost state of GooseLang over `etcdNetExts` (each extension's at the universal camera). -/
+instance etcdDistGF_gooseGpreS : GooseGpreS etcdDistGF where
+  goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
+  goose_preG_heap := ⟨⟨5, rfl⟩⟩
+  goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
+  goosePreGExts := (⟨etcdDistGF_allG⟩, ⟨etcdDistGF_allG⟩, ⟨etcdDistGF_allG⟩, PUnit.unit)
+  goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
+  goosePreGAllG := etcdDistGF_allG
 
 end etcd_dist
 end EtcdGrove

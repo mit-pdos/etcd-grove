@@ -86,6 +86,8 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CollectPlan
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOne
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOneLinked
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.RespChan
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served

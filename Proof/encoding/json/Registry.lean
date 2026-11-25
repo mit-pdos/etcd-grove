@@ -37,9 +37,9 @@ def leadSpace (bs : List w8) : Nat := (bs.takeWhile (fun c => isSpaceB c)).lengt
 
 theorem isSpaceB_spaceB (c : w8) : isSpaceB c = models_lab.jsoncodec.spaceB c := rfl
 
-/-- The representation of the model's `*Encoder` while the bodies are opaque (no instance is given;
-the specs over it are hypotheses): `encOk enc w`, a healthy encoder (no sticky error) writing to
-`w`. A definition over the model's fields once its bodies are translated. -/
+/-- The representation of the model's `*Encoder`: `encOk enc w`, a healthy encoder (no sticky
+error) writing to `w`. The model's own, over its fields, is `encRepModel` (`EncoderModel.lean`),
+at which `NewEncoder` and `Encoder.Encode` on a connection are proved. -/
 class EncoderRep [GooseExts] (GF : BundledGFunctors) where
   encOk : Loc → GoInterface → IProp GF
 

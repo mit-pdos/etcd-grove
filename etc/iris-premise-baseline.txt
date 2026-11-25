@@ -16,7 +16,6 @@ Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:et
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₃ unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₄ unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₅ unwitnessed grandfathered (2026-11-25): no witness yet
-Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean:putget_safe Hprem unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean:etcd_leaseexpiryN_robust_single_process Hprem unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hafter unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₁ unwitnessed grandfathered (2026-11-25): no witness yet
