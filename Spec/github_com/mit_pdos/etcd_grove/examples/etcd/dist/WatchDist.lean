@@ -1,30 +1,24 @@
 /-
-**DRAFTS (N3, design only): `(*watcher).Watch` and `(*watcher).RequestProgress` by a client of members at
-other machines, at the cluster view** (`notes/etcd-dist-plan.md` §22; #50, the etcd_safe lead, 2026-11-25).
-Lean-first (no Rocq counterpart).
-
-STATEMENTS ONLY: definitions, no axiom, no proof, no `sorry`; unbuilt; nothing imports this file. The
-axioms these statements would be, with the reasons each cannot be proved now, are drafted (not declared) in
-`Proof/.../etcd/dist/WatchDist.lean`.
+`(*watcher).Watch` and `(*watcher).RequestProgress` by a client of members at other machines, at the cluster view
+(`notes/etcd-dist-plan.md` §22, §22.6 route (b); trust-boundary axioms until S2's etcd side has the `Watch`
+stream entry: `Proof/.../etcd/dist/WatchDist.lean`). Lean-first (no Rocq counterpart).
 
 Each statement is the proved single-process spec with the watcher's environment replaced by the cluster
 view:
 * `Watch_dist.spec` mirrors `watcher.Watch.spec` (`Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean`):
-  `isClientWatcher V w ∗ ⌜V.kst = γ.st⌝` becomes `watchClientAt cl w eps V Γ` with `γ := Γ.kv`; the
-  elements' KV names `V.kv` become `Γ.kv`; the auth row (gated on `V.nm = 1`, reading member 0's auth
-  tag and server) and its bound `n` are dropped (`Au := True`): the row needs per-member auth names in
-  the view (N11). Everything else is verbatim, so the post is restart-stable: it reads `Γ.kv` only (the
-  read update at its state variable `st`, and `cmpOkOf Γ.kv` at its `rlog` and `cret`), and `kvCongr`
-  keeps those across a restart (§18.2).
+  `isClientWatcher V w ∗ ⌜V.kst = γ.st⌝` becomes `watchClientAt cl w eps V Γ` (`WatchClientDist.lean`) with
+  `γ := Γ.kv`; the elements' KV names `V.kv` become `Γ.kv`; the auth row (gated on `V.nm = 1`, reading
+  member 0's auth tag and server) and its bound `n` are dropped (the row's slot is `True`): the row needs
+  per-member auth names in the view (N11). Everything else is verbatim, so the post reads `Γ.kv` only (the
+  read update at its state variable `st`, and `cmpOkOf Γ.kv` at its `rlog` and `cret`), which `kvCongr`
+  keeps across a restart (§18.2).
 * `RequestProgress_dist.spec` mirrors `watcher.RequestProgress.spec`: `isClientWatcher V w` becomes
   `watchClientAt cl w eps V Γ`; the post is the same (`statusErrOk err`, no logical effect: a progress
   notification is a response of the watch's channel, which `Watch_dist`'s elements already describe).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
-public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
-public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchClientDist
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
 public import Proof.go_etcd_io.etcd.client.v3.WatchStateDefs
@@ -55,23 +49,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **What the watch contracts across machines take of the client** (persistent; `kvClientAt`'s
-counterpart for the `Watcher` field): `New`'s client `cl` of the endpoints `eps` (no proxy dial path),
-its `Watcher` field the `*watcher` `w` (the one `isNewClient` names: the field is read-only), every
-endpoint serving a member of the cluster view `Γ` (`membersAt`). The watcher's environment `V` is the
-one `New` was given; nothing of it reaches the posts (see `notes/etcd-dist-plan.md` §22.3, "The
-watcher's environment"). -/
-def watchClientAt [π : NetProtoGS] (cl w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) :
-    IProp GF :=
-  iprop(isNewClient cl eps V ∗ clientNoProxy cl ∗
-    clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
-    membersAt (Gg := hG.goose_globalGS) eps Γ)
-
-instance watchClientAt_persistent [π : NetProtoGS] (cl w : Loc) (eps : List GoString) (V : WEnv GF)
-    (Γ : DistView) : Persistent (watchClientAt cl w eps V Γ) := by
-  unfold watchClientAt; infer_instance
-
-/-- **DRAFT `Watch_dist`: `(*watcher).Watch(ctx, key, opts...)` across machines** (mirrors
+/-- **`Watch_dist`: `(*watcher).Watch(ctx, key, opts...)` across machines** (mirrors
 `watcher.Watch.spec`; server side `v3rpc.watchSpec`, the member's `Watch` stream handler; see the file
 header for the differences). A watch of a range (any of `isRangeWatchP`'s: `WithPrefix`, `WithRange`,
 `WithFromKey`, `WithRev`, `WithProgressNotify`, `WithCreatedNotify`, `WithPrevKV`) from a revision
@@ -103,7 +81,7 @@ abbrev Watch_dist.spec : Prop :=
       spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn γw.cur 0 (rev - W64 1) }}
 
-/-- **DRAFT `RequestProgress_dist`: `(*watcher).RequestProgress(ctx)` across machines** (mirrors
+/-- **`RequestProgress_dist`: `(*watcher).RequestProgress(ctx)` across machines** (mirrors
 `watcher.RequestProgress.spec`): asks the gRPC stream of `ctx`'s key (opening it if there is none) for a
 progress notification, with no logical effect for the caller; returns `nil`, `ctx`'s error, the stream's
 close error or `errors.New`'s, each one grpc's `status` accepts. -/
