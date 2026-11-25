@@ -270,18 +270,21 @@ theorem osNames_same_name (R : Roots) (j : Ino) (N N' : NameSet) (dq dq' : DFrac
 /-- **The parent's fsync after `Create`'s rename: the WAL becomes named.** The invariant's contents
 at `s` (the WAL in `dir = r/nm` present), the program's claim (a fraction) on names `N ∋ nm` whose last
 writer of `nm` is the entry `x`, after which `nm` held a directory, and the commit bound `n > x`: the
-contents at `setNamed s dir`, and `walNamed dir`. -/
+contents at `setNamed s dir`, and `walNamed dir i` at the incarnation `i` of an earlier past
+`(s0, I0)` (P6b: current, or retired by then). -/
 theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir nm : GoString) (d : WalDur) (N : NameSet) (dq : DFrac) (h : NamesH)
     (x : Nat) (e : LogEntry) (E : Ents) (J : Ino) (n : Nat) {Em : CoPset}
+    (s0 : AbsDiskState) (I0 : GMap GoString Nat)
     (hd : s.wal !! dir = some d) (hin : InArea r dir nm) (hN : N.Mem nm)
     (hl : LastWrite h jr nm x e E) (hx : x < n) (hJ : E !! nm = some (.dir J))
     (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none ={Em}=∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none -∗
+      walPastI (W := W) (s0, I0) ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r (setNamed s dir) ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir ∗ walNamesFrag (W := W) none := by
-  iintro Hb #Hsh Hn #Hc Hnf
+        walNamed (W := W) dir (incOf I0 dir) ∗ walNamesFrag (W := W) none := by
+  iintro Hb #Hsh Hn #Hc Hnf #Hp0
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -298,10 +301,15 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _)) hJ
   have hdn : (setNamed s dir).wal !! dir = some { d with named := true } := by
     rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd, GMap.lookup_insert_eq]
-  imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
+  iunfold walGhost at Hg
+  icases Hg with ⟨%I, Hg⟩
+  icases walPastI_ghost_le (W := W) s I (s0, I0) $$ Hg Hp0 with %Hle0
+  imod walGhostI_upd_lag (W := W) s (setNamed s dir) I (walMapLe_setNamed · s dir)
     (absLe_setNamed s dir) (walKeysInArea_upd s dir _) (fun _ hn => hn.upd (fun _ => rfl))
     (unlMono_upd s dir _ (fun _ => Nat.le_refl _)) $$ Hg with
     ⟨Hg, #Hp⟩
+  ihave Hg : walGhost (W := W) (setNamed s dir) $$ [Hg]
+  · unfold walGhost; iexists I; iexact Hg
   icases walNamesRes_none R jr r Ls s (setNamed s dir) $$ Hnms Hnf with ⟨Hnms, Hnf⟩
   imodintro
   iframe Hnf
@@ -351,10 +359,8 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _)) hJ
     iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_upd Hbd.1 (fun _ => rfl) (fun _ => rfl), Hbd.2.upd⟩
   iframe Hn
-  unfold walNamed
-  iexists (setNamed s dir), { d with named := true }
-  iframe Hp
-  ipureintro; exact ⟨hdn, rfl⟩
+  iapply walNamed_of_le (setNamed s dir) s0 I I0 dir { d with named := true }
+    (walLeI_trans Hle0 (walLeI_of_absLe I (absLe_setNamed s dir))) hdn rfl $$ Hp
 
 end iris
 

@@ -9,7 +9,30 @@
   `walDirKey` keyed by `(dir, i)`. **Lean**: `Ghost.lean` additive core only (`γI`, `γpi`, `incOf`, `walLeI`
   and laws, `walPastI`/`walPastIAuth` and `_le`/`_grow`/`_snap`), checked with `etc/lean-check.py -a`
   (0 errors, no `sorry`); nothing uses it yet, so every proof is unchanged. **Built** at `d9eeabf41a` (local build-slot: `wal.Link`, `CrashS`, `WalRecsCrash`, `WalCrashRead`, WalTester `Link`/`Adequacy`/`TopLevelRobustness`; 4680 jobs, exit 0).
-- **Resume here**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
+- **2026-11-25, P6b session 2 (WIP, branch `etcd-safe-p6b-wip`).** The swap is in: `Ghost.lean` (v2.1,
+  below), `HandleAlloc`, `NamedView`, `OpenWLocked`, `Handle` (`WalHS.inc`, `walHandleIn` holds
+  `walOpenWI w dir h.inc`, `walDirH`'s `nmd` has no default), `Crash`/`CrashS` (keep lemmas at
+  incarnations: old view at `i`, new generation at `0`; `walCrashWal` carries the new generation's
+  `walIncQ ∅` and `walPastI (s', ∅)`), `CreateNamed`/`CreateNamedStep` build. `wal.Link` does not.
+  **v2.1 deviations from the approved v2** (to write into `notes/wal-p6b-design.md`):
+  * facts are retired-able: `walIncFact I dir i P := (incOf I dir = i ∧ P) ∨ i < incOf I dir`
+    (handle records are keyed by `GName`, a stale record of the same `Loc` cannot be excluded, so
+    `Sync` with a stale `walLenLb` must yield a (retired) `walSyncedLb`); `walSyncedLb dir i n`,
+    `walNamed dir i`, `walLenLb w dir i n` all take `i`;
+  * a step lemma that hands out a fact takes a past `walPastI (s0, I0)` and returns the fact at
+    `incOf I0 dir` (`walNamed_of_le`, `walSyncedLb_of_le`: current or retired), so no step lemma needs
+    the caller's quarter (pattern: `walInvBody_named`/`walInv_named`);
+  * the lock's quarter lives inside `walLockedTokI I` (`walLockedTok := ∃ I, …`); `walOpenWI w dir i`
+    is the handle with `⌜incOf I dir = i⌝`; `walHandleInc` dropped (`WalHS.inc` instead); the view's
+    share is the quarter `walIncQ`; `walDirKey` by `(dir, i)` deferred until a re-`Create` needs it.
+  **Next (in progress)**: `CreateAu` — the plan: `walCreateP` gets `i`, its AU over `walDirIsI dir i o`,
+  committing `walDiskAtI dir i (walDurFresh md)`; at the commit, `walGhost_inc` with the view's quarter
+  `Iv`, `walGhostI_upd`, the lock (from `walParked_lock`) agreed to `Iv` (`walIncQ_agree`), and
+  `walCreateQ`'s `some` arm gives `walLockedTokI I ∗ ⌜incOf I dir = i⌝ ∗ walPastI (s', I)`; then a
+  `walHandleP_mintI` from `walLockedTokI I` at `incOf I dir`. Specs take `i` as a spec parameter
+  (`∀ i`, AU over `walDiskAtI dir i …`), the handle `WalHS.inc = i`. Then rebuild `wal.Link` for the
+  next wave (`HandleUnnamed`, `Append`, `TailSync`, `CutAuLemmas`, `ReadAll*`, ...).
+- **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
   lemmas and P8's new consumers (`WalRecsCrash`, `WalCrashRead`), then `DiscardUnsaved`.

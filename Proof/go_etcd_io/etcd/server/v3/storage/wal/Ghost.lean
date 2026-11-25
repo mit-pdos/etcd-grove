@@ -1425,6 +1425,29 @@ theorem walNamed_retired (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoStr
   iintro #Hs
   iexists s, I; iframe Hs; ipureintro; exact Or.inr h
 
+/-- **A fact at an earlier past's incarnation**, from a later past: the incarnation of `dir` at
+`(s0, I0)` is the current one at `(s, I)` (the fact holds) or retired. -/
+theorem walNamed_of_le (s s0 : AbsDiskState) (I I0 : GMap GoString Nat) (dir : GoString) (d : WalDur)
+    (hle : walLeI (s0, I0) (s, I)) (hd : s.wal !! dir = some d) (hn : d.named = true) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walNamed (W := W) dir (incOf I0 dir) := by
+  iintro #Hs
+  have h := hle.2.2.1 dir
+  simp only at h
+  rcases Nat.lt_or_eq_of_le h with h | h
+  · iapply walNamed_retired s I dir _ h $$ Hs
+  · rw [h]; iapply walNamed_intro s I dir d hd hn $$ Hs
+
+theorem walSyncedLb_of_le (s s0 : AbsDiskState) (I I0 : GMap GoString Nat) (dir : GoString)
+    (d : WalDur) (n : Nat) (hle : walLeI (s0, I0) (s, I)) (hd : s.wal !! dir = some d)
+    (hn : n ≤ d.m) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walSyncedLb (W := W) dir (incOf I0 dir) n := by
+  iintro #Hs
+  have h := hle.2.2.1 dir
+  simp only at h
+  rcases Nat.lt_or_eq_of_le h with h | h
+  · iapply walSyncedLb_retired s I dir _ n h $$ Hs
+  · rw [h]; iapply walSyncedLb_intro s I dir d n hd hn $$ Hs
+
 /-- A past state with its incarnations, as a past state. -/
 theorem walPastI_past (p : AbsDiskState × GMap GoString Nat) :
     walPastI (W := W) p ⊢ walPast (W := W) p.1 := by
