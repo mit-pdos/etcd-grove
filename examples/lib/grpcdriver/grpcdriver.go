@@ -38,7 +38,9 @@ const Addr = "127.0.0.1:7301"
 // mdKey is the metadata key the client sets and the Meta method reads back.
 const mdKey = "x-driver"
 
-// Bounds on the client's random choices.
+// Bounds on the client's random choices. They bound a test's run time; any finite values would do, but
+// the proof's constants follow these (`ctrBudget = maxWorkers*maxOps + 1`, `wordOk`'s and `csUp`'s 16,
+// `meta`'s at most 3 values), so a change here changes those constants.
 const (
 	maxWorkers = 4  // goroutines using the ClientConn concurrently
 	maxOps     = 8  // operations per goroutine
@@ -201,8 +203,8 @@ func checkErr(err error) {
 
 // echo is the section unary-reply.
 func echo(c svc.DriverClient, ids *counter) {
-	// Section unary-reply: a unary call that returns no error ran the handler exactly once, on
-	// this request, and its reply is that run's.
+	// Section unary-reply: a unary call that returns no error ran the handler at most once on this
+	// request (the value is fresh, so a second run would answer "#2"), and its reply is that run's.
 	v := freshValue(ids)
 	r, err := c.Echo(context.Background(), wrapperspb.String(v))
 	if err != nil {

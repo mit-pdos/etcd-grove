@@ -26,7 +26,7 @@ func count(section string) {
 
 var serverOnce sync.Once
 
-// startServer runs the server in this process, once (as a machine), and waits until both addresses accept.
+// startServer runs the server in this process, once (as a machine), and waits until its address accepts.
 func startServer(t *testing.T) {
 	serverOnce.Do(func() {
 		go Server()

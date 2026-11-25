@@ -132,7 +132,8 @@ Statement (2026-11-24): `grpcdriver_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/TopLevelRobustness.lean`): the two machines,
 neither crashing, deployed at `grpcAddrs`, are `Robust [] … grpcThreads grpcSteps` (`grpcThreads = 2 ^ 31`, the
 client's `WaitGroup`; `grpcSteps = 2 ^ 63 - 1`). No premise but the deployment's start and the programs' typing
-facts. The proof is in progress (branch `grpc-driver-lean`); it rests on the canonical grpc specs strengthened
+facts. Proved 2026-11-25 (branch `grpc-driver-lean`, not landed; `Proof/.../grpcdriver/TopLevelRobustness.lean`,
+witness `TopLevelWitness.lean`, collection `etc/tcb-collections/grpcdriver.txt`); it rests on the canonical grpc specs strengthened
 on a trusted branch (the plan's T1-T11: error shapes, cancelled contexts, `ClientConn.Close`, a plain dial,
 server-streaming `NewStream`, the replies' size without `grpcRepliesFit`, the stream end, `MD.Get`).
 

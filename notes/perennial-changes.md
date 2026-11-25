@@ -27,13 +27,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   cancel(); c.Echo(ctx, …)` must fail with `Canceled`), through `grpcInvokerDone`'s premise
   `ctxCanceledIs ctx` (`Proof/google_golang_org/grpc/InvGrpc.lean`: a `*cancelCtx` whose `Err()` stably
   returns `Canceled`'s value).
-- **Workaround here.** None yet: the premise is stated; the driver cannot produce it until Perennial does.
-- **Proposed change.** `cancel()`'s post also gives that the new context's `Err()` returns `Canceled`'s
-  value on every call when the parent was not done first (for instance a parent whose `PDone` is `False`,
-  `Background()`'s): `cancelCtx.cancel` stores `Canceled` only if `err` is unset, and `propagateCancel`
-  sets the parent's error only if the parent finishes first. General: any program that tells a cancelled
-  context from an expired one needs it.
-- **Status.** Open (not started).
+- **Workaround here.** The interim axiom `context.WithCancelBackground.wp_proof_canceled`
+  (`Proof/context/WithCancelBackgroundCanceled.lean`, spec `context.WithCancelBackground.spec_canceled`):
+  `WithCancel(Background())`'s post adds that the context is a `*cancelCtx` (`isCancelCtxCtx`) and that its
+  `cancel()` leaves `Err()` returning `Canceled`'s value for good (`errIsCanceled`). Reviewed sound
+  (`notes/axiom-review/grpc-driver-interim.md`; the `isCancelCtxCtx` fix applied).
+- **Proposed change.** Perennial's `cancelCtxInv` records which errors `err` may take: e.g. a ghost set of
+  the errors allowed per context (for a child of `Background()` cancelled only by its own `cancel`, just
+  `Canceled`), from which `cancel()`'s post proves `errIsCanceled`. With only `isCtxErr` and the invariant's
+  full ownership of `err`, the theorem is not provable as stated: a GooseLang-only call of the internal
+  `c.cancel(false, DeadlineExceeded, nil)` would store `DeadlineExceeded` and contradict `errIsCanceled`.
+  That call is not reachable from Go (`cancelCtx` is unexported; `WithCancel`'s callers get only the
+  `CancelFunc`, which passes `Canceled`), so the axiom is true of Go; the ghost set is what makes the
+  invariant say so. General: any program that tells a cancelled context from an expired one needs it.
+- **Status.** Workaround in place (the interim axiom); the Perennial change is not started.
 
 ### `sort.Sort` with a `Less` that answers anything: `sort.Sort.wp_anyLess` stays an axiom (2026-11-24, sortslice, claim #18)
 ### `runtime.callers` may fill its buffer every time: `zap.Stack` cannot be proved (2026-11-23, zap-z2, claim #40)
