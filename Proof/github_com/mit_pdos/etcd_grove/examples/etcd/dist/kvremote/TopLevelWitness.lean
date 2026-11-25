@@ -61,8 +61,8 @@ theorem etcd_kv_safe_nocrash.premisesSat :
     [witnessMemberσ], [witnessClientσ], [witnessClientσ],
     ⟨((), (), (default : Net.NetGlobal), ()), ∅⟩,
     ⟨rfl, fun p hp => ?_⟩, ⟨rfl, fun σ hσ => ?_⟩,
-    ⟨by first | rfl | simp [Deployment.nodeList, kvDeployment], fun σ hσ => ?_⟩, ?_, by exts_init, ?_⟩
-  · simp only [kvDeployment, List.zip_cons_cons, List.zip_nil_left, List.zip_nil_right, List.mem_cons,
+    ⟨rfl, fun σ hσ => ?_⟩, ?_, by exts_init, ?_⟩
+  · simp only [kvDeployment, List.zip_cons_cons, List.zip_nil_right, List.mem_cons,
       List.not_mem_nil, or_false] at hp
     subst hp
     exact serverStart_witness
