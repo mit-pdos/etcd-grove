@@ -85,8 +85,6 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
   wp_apply (wp_SS dc conn [drvAddr] d ssUp (fun _ => strmSpec ssDn) context.backgroundCtxVal cd none
       inp v) $$ [Hinp] as %cs %err Hres
   · isplitr
-    · iexact Hsvc
-    isplitr
     · iexact Hcc
     isplitr
     · iexact Hconn
@@ -138,8 +136,9 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
       ihave Hss' := Hsp $$ %L.length %m HDn
       iunfold ssDn at Hss'
       icases Hss' with ⟨%v', #Hat, %Hv'⟩
+      iunfold upAt at Hat
       ihave %Hlk := mono_list_lb_idx_lookup γ.up [v] 0 v' (by simp) $$ [Hlb] Hat
-      · unfold upLb at Hlb; iexact Hlb
+      · iunfold upLb at Hlb; iexact Hlb
       have hvv : v' = v := by simpa using Hlk.symm
       subst hvv
       obtain ⟨hlt, rfl⟩ := Hv'
@@ -182,6 +181,7 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
       ihave #Hce' := Hce
       iunfold cliStreamErr at Hce'
       icases Hce' with ⟨%Hne, #Hso, -, #Hse, #Hsh⟩
+      isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
       try rw [hshape]
       cases err2 with
       | nil => exact absurd rfl Hne.1
@@ -235,6 +235,7 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hso, -, -, #Hsh⟩
+    isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
     try rw [hshape]
     subst Hcs
     cases err with

@@ -74,8 +74,6 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
   wp_apply (wp_CS dc conn [drvAddr] d csUp (fun _ => strmSpec csDn) context.backgroundCtxVal cd
       none) $$ [] as %cs %err Hres
   · isplitr
-    · iexact Hsvc
-    isplitr
     · iexact Hcc
     isplitr
     · iexact Hconn
@@ -179,6 +177,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
         word
       have hSv : S.flatten = v := by rw [Hk.2.2.2, hkv, List.take_length]
       try simp only [decide_true, ↓reduceIte, ite_true]
+      try rw [if_pos (decide_eq_true trivial)]
       try wp_auto
       wp_bind (App (Val #(methods ci.ty go!"CloseAndRecv" ci.v)) _)
       iapply HCar $$ %S [HSt HRt]
@@ -234,6 +233,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
             itrivial
           · iunfold cliStreamErr at Hce2
             icases Hce2 with ⟨-, #Hso, -, -, #Hsh⟩
+            isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
             try rw [hshape]
             wp_auto
             wp_apply wp_checkErr _ $$ []
@@ -244,6 +244,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hso, -, -, #Hsh⟩
+    isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
     try rw [hshape]
     subst Hcsn
     cases err with
