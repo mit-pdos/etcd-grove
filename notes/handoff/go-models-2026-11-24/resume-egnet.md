@@ -358,3 +358,13 @@ Scratch/logs: `tmp/gomodels/s10/` (manifest-p10.json, genlink-all.sh pointing at
   Packet Evidence filled. Comparison script: `<handoff-pickup>/.lake/gm/scratch/tcbcmp.py BASE AFTER`.
 Next: Upamanyu's review of the packet (coordinator brings it); once the basic slice lands on Perennial lean,
 merge lean into goose-model-overlay-rest and shrink the packet.
+
+## Session 10b (2026-11-25): basic slice landed (Perennial lean = d5eb93cb5). Plan (coordinator):
+1. Perennial: merge origin/lean into goose-model-overlay-rest (overlaps: take lean's = landed basic slice),
+   regenerate (pregen.sh --std-lib --models; restore strconv.lean churn), gen-link, model-tests, VM build of
+   changed modules (or fullbuild.sh, key 9514b93e0b000028).
+2. etcd-grove egnet: re-pin to the new integration head, merge etcd-grove origin/lean, regenerate (eggoose.sh,
+   gen-init with PERENNIAL_DIR, copy-part, gen-raft-tla, gen-specs-pkginit, kitgen, s10/genlink-all.sh), default
+   build (key c61dd42e08d7d686).
+3. packet-rest.md: keep fmt/os/syscall/net/durable/crc32/go-token (+log note), drop sync/time/runtime/bytealg;
+   recount MODEL: with Perennial's etc/model-deviations.py. tcb before/after only if axioms change.
