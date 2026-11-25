@@ -85,38 +85,6 @@ variable {B : linkv.PendSpec St I O}
 theorem pendOk_init : PendOk B (linkv.pInit B) B.init (∅ : GMap Nat I) 0 :=
   ⟨linkv.pInit_closed, fun _ _ => rfl, ⟨⟨B.init, []⟩, rfl, rfl, by simp [pendIns]⟩⟩
 
-/-- An operation answered at the real configuration: the state stepped. -/
-theorem pendOk_ok {S : linkv.PSet St I} {st : St} {M : GMap Nat I} {nx : Nat}
-    (H : PendOk B S st M nx) (i : I) (ho : B.isObs i = false) :
-    ∃ S', (linkv.pSeq B).step S (i, .ok (B.step i st).2) = some S' ∧
-      PendOk B S' (B.step i st).1 M nx := by
-  obtain ⟨c, hc, hst, hp⟩ := H.cfg
-  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_ok (P := B) hc i ho
-  rw [hst] at hS' hc'
-  exact ⟨S', hS', linkv.pSeq_step_closed hS', H.fresh, ⟨_, hc', rfl, hp⟩⟩
-
-/-- A write committed as pending, its token minted at `nx`. -/
-theorem pendOk_errW {S : linkv.PSet St I} {st : St} {M : GMap Nat I} {nx : Nat}
-    (H : PendOk B S st M nx) (i : I) (hw : B.isWrite i = true) (ho : B.isObs i = false) :
-    ∃ S', (linkv.pSeq B).step S (i, .err) = some S' ∧
-      PendOk B S' st (GMap.insert nx i M) (nx + 1) := by
-  obtain ⟨c, hc, hst, hp⟩ := H.cfg
-  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errW_pending (P := B) hc i hw ho
-  refine ⟨S', hS', linkv.pSeq_step_closed hS', ?_, ⟨_, hc', hst, ?_⟩⟩
-  · intro n hn
-    show (GMap.insert nx i M) !! n = none
-    rw [GMap.lookup_insert_ne _ _ (by omega)]
-    exact H.fresh n (by omega)
-  · exact (pendIns_insert M nx i (H.fresh nx (Nat.le_refl _))).trans (hp.cons _)
-
-/-- A read committed with no answer. -/
-theorem pendOk_errR {S : linkv.PSet St I} {st : St} {M : GMap Nat I} {nx : Nat}
-    (H : PendOk B S st M nx) (i : I) (hw : B.isWrite i = false) (ho : B.isObs i = false) :
-    ∃ S', (linkv.pSeq B).step S (i, .err) = some S' ∧ PendOk B S' st M nx := by
-  obtain ⟨c, hc, hst, hp⟩ := H.cfg
-  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errR (P := B) hc i hw ho
-  exact ⟨S', hS', linkv.pSeq_step_closed hS', H.fresh, ⟨c, hc', hst, hp⟩⟩
-
 /-- **A late effect**: the pending write `n ↦ i` takes effect, the model state unchanged. -/
 theorem pendOk_fire {S : linkv.PSet St I} {st : St} {M : GMap Nat I} {nx : Nat}
     (H : PendOk B S st M nx) (n : Nat) (i : I) (hn : M !! n = some i) :
@@ -155,18 +123,108 @@ end pure
 section dec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors}
-variable {St I O : Type} [DecidableEq I]
+variable {St J I O : Type}
 
-/-- porcupine's model `S` is the pending-writes model of `R.B` on the operations `R`'s Go values
-make: an answered operation `(iv i, ov o)` steps as `(i, ok o)`, an unknown one `(iv i, unk i)`
-as `(i, err)`, and porcupine's `Step` may be applied to both (`ioOk`). -/
-structure PendDec (R : RBase GF St I O) (S : ModelSpec GF (linkv.PSet St I)) : Prop where
+/-- porcupine's model `S` steps as the pending-writes model of `R.B` (on the model inputs `R.mi i`)
+on the operations `R`'s Go values make, **at every configuration `c` of a state `s` the far side may
+hold** (`R.good c.st`): an answered operation `(iv i, ov o)`, `o` the step's output from `c`, steps
+`s` to a closed state holding the stepped configuration (`ok`); an unknown one `(iv i, unk i)` to a
+closed state holding `c` with `mi i` pending, for a write (`errW`), or `c`, for a read (`errR`); and
+porcupine's `Step` may be applied to both (`ioOk`). (Only where the invariant's configuration is:
+`notes/specs-only/ledger.md`, 2026-11-25, "`remote.PendDec` ... cannot describe txnlin's model".) A
+store whose model is `pSeq R.B` itself over its Go inputs gets it from `PendDecTotal`
+(`PendDec.ofTotal`). -/
+structure PendDec (R : RBase GF St J I O) (S : ModelSpec GF (linkv.PSet St J)) : Prop where
+  init : S.M.init = linkv.pInit R.B
+  ok : ∀ (s : linkv.PSet St J) (c : linkv.PCfg St J) (i : I), s c → R.good c.st →
+    ∃ s', S.M.step s (R.iv i, R.ov (R.B.step (R.mi i) c.st).2) = some s' ∧
+      s' ⟨(R.B.step (R.mi i) c.st).1, c.pend⟩ ∧ linkv.PSet.Closed R.B s'
+  errW : ∀ (s : linkv.PSet St J) (c : linkv.PCfg St J) (i : I), s c → R.good c.st →
+    R.B.isWrite (R.mi i) = true →
+    ∃ s', S.M.step s (R.iv i, R.unk i) = some s' ∧ s' ⟨c.st, R.mi i :: c.pend⟩ ∧
+      linkv.PSet.Closed R.B s'
+  errR : ∀ (s : linkv.PSet St J) (c : linkv.PCfg St J) (i : I), s c → R.good c.st →
+    R.B.isWrite (R.mi i) = false →
+    ∃ s', S.M.step s (R.iv i, R.unk i) = some s' ∧ s' c ∧ linkv.PSet.Closed R.B s'
+  ioOk_ok : ∀ i o, ⊢ S.ioOk (R.iv i) (R.ov o)
+  ioOk_err : ∀ i, ⊢ S.ioOk (R.iv i) (R.unk i)
+  noObs : ∀ j, R.B.isObs j = false
+
+/-- `PendDec` for a store whose model input is its wire input (`R.mi i = i`), in the form of a
+function equality: porcupine's `S` steps an answered operation `(iv i, ov o)` exactly as `pSeq R.B`
+steps `(i, ok o)`, an unknown one as `(i, err)`, at every state (`PendDec.ofTotal`). -/
+structure PendDecTotal (R : RBase GF St I I O) (S : ModelSpec GF (linkv.PSet St I)) : Prop where
   init : S.M.init = linkv.pInit R.B
   ok : ∀ s i o, S.M.step s (R.iv i, R.ov o) = (linkv.pSeq R.B).step s (i, .ok o)
   err : ∀ s i, S.M.step s (R.iv i, R.unk i) = (linkv.pSeq R.B).step s (i, .err)
   ioOk_ok : ∀ i o, ⊢ S.ioOk (R.iv i) (R.ov o)
   ioOk_err : ∀ i, ⊢ S.ioOk (R.iv i) (R.unk i)
   noObs : ∀ i, R.B.isObs i = false
+
+/-- The total form gives `PendDec` (the counter's and dsverify's stores). -/
+theorem PendDec.ofTotal {R : RBase GF St I I O} {S : ModelSpec GF (linkv.PSet St I)}
+    (hmi : ∀ i, R.mi i = i) (h : PendDecTotal R S) : PendDec R S where
+  init := h.init
+  ok s c i hc _ := by
+    rw [hmi i, h.ok]
+    obtain ⟨S', hS', hc'⟩ := linkv.pSeq_ok (P := R.B) hc i (h.noObs i)
+    exact ⟨S', hS', hc', linkv.pSeq_step_closed hS'⟩
+  errW s c i hc _ hw := by
+    rw [hmi i] at hw ⊢
+    rw [h.err]
+    obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errW_pending (P := R.B) hc i hw (h.noObs i)
+    exact ⟨S', hS', hc', linkv.pSeq_step_closed hS'⟩
+  errR s c i hc _ hw := by
+    rw [hmi i] at hw
+    rw [h.err]
+    obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errR (P := R.B) hc i hw (h.noObs i)
+    exact ⟨S', hS', hc', linkv.pSeq_step_closed hS'⟩
+  ioOk_ok := h.ioOk_ok
+  ioOk_err := h.ioOk_err
+  noObs := h.noObs
+
+/-- The far side's state keeps its guard (`RBase.sysState_good`). -/
+theorem sysState_keep (R : RBase GF St J I O) (st : St) :
+    R.sysState st ⊢ iprop(R.sysState st ∗ ⌜R.good st⌝) :=
+  (BI.and_intro .rfl (R.sysState_good st)).trans BI.persistent_and_sep_mp
+
+variable [DecidableEq J] {R : RBase GF St J I O} {S : ModelSpec GF (linkv.PSet St J)}
+
+/-- An operation answered at the real configuration: the state stepped. -/
+theorem PendDec.pendOk_ok (hS : PendDec R S) {s : linkv.PSet St J} {st : St} {M : GMap Nat J}
+    {nx : Nat} (H : PendOk R.B s st M nx) (hg : R.good st) (i : I) :
+    ∃ s', S.M.step s (R.iv i, R.ov (R.B.step (R.mi i) st).2) = some s' ∧
+      PendOk R.B s' (R.B.step (R.mi i) st).1 M nx := by
+  obtain ⟨c, hc, hst, hp⟩ := H.cfg
+  subst hst
+  obtain ⟨s', h1, h2, h3⟩ := hS.ok s c i hc hg
+  exact ⟨s', h1, h3, H.fresh, ⟨_, h2, rfl, hp⟩⟩
+
+/-- A write committed as pending, its token minted at `nx`. -/
+theorem PendDec.pendOk_errW (hS : PendDec R S) {s : linkv.PSet St J} {st : St} {M : GMap Nat J}
+    {nx : Nat} (H : PendOk R.B s st M nx) (hg : R.good st) (i : I)
+    (hw : R.B.isWrite (R.mi i) = true) :
+    ∃ s', S.M.step s (R.iv i, R.unk i) = some s' ∧
+      PendOk R.B s' st (GMap.insert nx (R.mi i) M) (nx + 1) := by
+  obtain ⟨c, hc, hst, hp⟩ := H.cfg
+  subst hst
+  obtain ⟨s', h1, h2, h3⟩ := hS.errW s c i hc hg hw
+  refine ⟨s', h1, h3, ?_, ⟨_, h2, rfl, ?_⟩⟩
+  · intro n hn
+    show (GMap.insert nx (R.mi i) M) !! n = none
+    rw [GMap.lookup_insert_ne _ _ (by omega)]
+    exact H.fresh n (by omega)
+  · exact (pendIns_insert M nx (R.mi i) (H.fresh nx (Nat.le_refl _))).trans (hp.cons _)
+
+/-- A read committed with no answer. -/
+theorem PendDec.pendOk_errR (hS : PendDec R S) {s : linkv.PSet St J} {st : St} {M : GMap Nat J}
+    {nx : Nat} (H : PendOk R.B s st M nx) (hg : R.good st) (i : I)
+    (hw : R.B.isWrite (R.mi i) = false) :
+    ∃ s', S.M.step s (R.iv i, R.unk i) = some s' ∧ PendOk R.B s' st M nx := by
+  obtain ⟨c, hc, hst, hp⟩ := H.cfg
+  subst hst
+  obtain ⟨s', h1, h2, h3⟩ := hS.errR s c i hc hg hw
+  exact ⟨s', h1, h3, H.fresh, ⟨c, h2, rfl, hp⟩⟩
 
 end dec
 
@@ -201,32 +259,32 @@ include Gg
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
-variable (R : RBase GF St I O)
+variable {St J I O : Type} [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O]
+variable (R : RBase GF St J I O)
 
 /-- lintest's `libState`: half of the history's variable, the model state `run` reaches from it
 (a ghost variable needs a countable type, which a model state, a set of configurations, is not). -/
-def pendLib (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) (s : linkv.PSet St I) : IProp GF :=
+def pendLib (S : ModelSpec GF (linkv.PSet St J)) (γ : PendNames) (s : linkv.PSet St J) : IProp GF :=
   iprop(∃ h : List OpV, ghostVar γ.s (1 : Qp).half h ∗ ⌜run S.M S.M.init h = some s⌝)
 
 /-- **A pending write's token** (exclusive): the write `i` committed as pending under `n`. -/
-def pendTok (γ : PendNames) (n : Nat) (i : I) : IProp GF := ghostMapElem γ.p n (DFrac.own 1) i
+def pendTok (γ : PendNames) (n : Nat) (j : J) : IProp GF := ghostMapElem γ.p n (DFrac.own 1) j
 
 /-- The invariant's contents (see the file header). -/
-def pendBody (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) : IProp GF :=
-  iprop(∃ (h : List OpV) (s : linkv.PSet St I) (st : St) (M : GMap Nat I) (nx : Nat),
+def pendBody (S : ModelSpec GF (linkv.PSet St J)) (γ : PendNames) : IProp GF :=
+  iprop(∃ (h : List OpV) (s : linkv.PSet St J) (st : St) (M : GMap Nat J) (nx : Nat),
     ghostVar γ.s (1 : Qp).half h ∗ R.sysState st ∗ ghostMapAuth γ.p 1 M ∗
     ⌜run S.M S.M.init h = some s ∧ PendOk R.B s st M nx⌝)
 
 /-- The invariant (persistent). -/
-def pendCtx (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) : IProp GF :=
+def pendCtx (S : ModelSpec GF (linkv.PSet St J)) (γ : PendNames) : IProp GF :=
   inv pendCtxN (pendBody R S γ)
 
 instance pendCtx_persistent S γ : Persistent (pendCtx R S γ) := by unfold pendCtx; infer_instance
 
 /-- lintest's linearization point for the input `x` (its atomic triple's update, the `▷`
 stripped), over `pendLib`, with mask `Eapp`; `K o` is what committing with `o` gives. -/
-def linAU (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) (Eapp : CoPset) (x : GoInterface)
+def linAU (S : ModelSpec GF (linkv.PSet St J)) (γ : PendNames) (Eapp : CoPset) (x : GoInterface)
     (K : GoInterface → IProp GF) : IProp GF :=
   iprop(|={⊤ \ Eapp, ∅}=> ∃ s, pendLib S γ s ∗ ∀ s' o,
     (pendLib S γ s' ∗ ⌜S.M.step s (x, o) = some s'⌝) -∗ |={∅, ⊤ \ Eapp}=> K o)
@@ -242,22 +300,22 @@ include Gg
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 variable [π : NetProtoGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
-variable (R : RBase GF St I O) [hT : ∀ st, Timeless (R.sysState st)]
+variable {St J I O : Type} [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O]
+variable (R : RBase GF St J I O) [hT : ∀ st, Timeless (R.sysState st)]
 
 include hT in
-instance pendBody_timeless (S : ModelSpec GF (linkv.PSet St I)) (γ : PendNames) :
+instance pendBody_timeless (S : ModelSpec GF (linkv.PSet St J)) (γ : PendNames) :
     Timeless (pendBody (Gg := Gg) R S γ) := by
   unfold pendBody; infer_instance
 
 /-- The invariant at the deployment's start: the model's initial state, nothing pending. -/
-theorem pend_alloc (E : CoPset) (S : ModelSpec GF (linkv.PSet St I))
+theorem pend_alloc (E : CoPset) (S : ModelSpec GF (linkv.PSet St J))
     (hinit : S.M.init = linkv.pInit R.B) :
     ⊢ R.sysState R.B.init ={E}=∗ ∃ γ, pendCtx (Gg := Gg) R S γ ∗ pendLib (Gg := Gg) S γ S.M.init := by
   iintro Hs
   imod ghostVar_alloc (GF := GF) ([] : List OpV) with ⟨%γs, Hv⟩
   icases (ghostVar_split_half γs 1 ([] : List OpV)).mp $$ Hv with ⟨Hv1, Hv2⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := I) with ⟨%γp, Hm⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := J) with ⟨%γp, Hm⟩
   imod inv_alloc pendCtxN E (pendBody (Gg := Gg) R S ⟨γs, γp⟩) $$ [Hv1 Hs Hm] with #Hinv
   · inext
     unfold pendBody
@@ -273,8 +331,8 @@ theorem pend_alloc (E : CoPset) (S : ModelSpec GF (linkv.PSet St I))
   ipureintro; rfl
 
 /-- **A read's update with no result**, persistently: it changes nothing. -/
-theorem readNoop (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St I))
-    (γ : PendNames) (i : I) (hw : R.B.isWrite i = false) :
+theorem readNoop (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St J))
+    (γ : PendNames) (i : I) (hw : R.B.isWrite (R.mi i) = false) :
     pendCtx (Gg := Gg) R S γ ⊢ □ lin (Gg := Gg) R i (fun _ => iprop(True)) := by
   iintro #Hinv
   imodintro
@@ -289,7 +347,7 @@ theorem readNoop (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (l
   iframe Hs
   iintro Hs
   imod Hclose2 with -
-  rw [R.reads_stay i st hw]
+  rw [R.reads_stay (R.mi i) st hw]
   imod Hclose $$ [Hv Hs Hm] with -
   · inext
     unfold pendBody
@@ -300,9 +358,9 @@ theorem readNoop (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (l
   itrivial
 
 /-- **A pending write's update with no result**: it takes effect (once: its token). -/
-theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St I))
+theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St J))
     (γ : PendNames) (n : Nat) (i : I) :
-    ⊢ pendCtx (Gg := Gg) R S γ -∗ pendTok (Gg := Gg) γ n i -∗
+    ⊢ pendCtx (Gg := Gg) R S γ -∗ pendTok (Gg := Gg) γ n (R.mi i) -∗
       lin (Gg := Gg) R i (fun _ => iprop(True)) := by
   iintro #Hinv Htok
   unfold lin pendCtx
@@ -322,22 +380,23 @@ theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (
   imod Hclose $$ [Hv Hs Hm] with -
   · inext
     unfold pendBody
-    iexists h, s, (R.B.step i st).1, GMap.delete n M, nx
+    iexists h, s, (R.B.step (R.mi i) st).1, GMap.delete n M, nx
     iframe Hv Hs Hm
-    ipureintro; exact ⟨Hok.1, pendOk_fire Hok.2 n i hn⟩
+    ipureintro; exact ⟨Hok.1, pendOk_fire Hok.2 n (R.mi i) hn⟩
   imodintro
   itrivial
 
 /-- lintest's update committed at the step of `i` from the invariant's state: the update `lin`
 with lintest's continuation at the step's output. The core of `pend_choice`'s answered cases. -/
-theorem pend_commit_core (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St I))
+theorem pend_commit_core (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St J))
     (hS : PendDec R S) (γ : PendNames) (i : I) (K : GoInterface → IProp GF) (E : CoPset)
-    (hsub : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ E) (st : St) (h : List OpV) (s0 : linkv.PSet St I)
-    (M : GMap Nat I) (nx : Nat) (Hok : run S.M S.M.init h = some s0 ∧ PendOk R.B s0 st M nx) :
+    (hsub : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ E) (st : St) (h : List OpV) (s0 : linkv.PSet St J)
+    (M : GMap Nat J) (nx : Nat) (Hok : run S.M S.M.init h = some s0 ∧ PendOk R.B s0 st M nx)
+    (hg : R.good st) :
     ⊢ linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K -∗ ghostVar γ.s (1 : Qp).half h -∗
       |={E, ∅}=> ∃ h' s', ghostVar γ.s (1 : Qp).half h' ∗
-        ⌜run S.M S.M.init h' = some s' ∧ PendOk R.B s' (R.B.step i st).1 M nx⌝ ∗
-        |={∅, E}=> K (R.ov (R.B.step i st).2) := by
+        ⌜run S.M S.M.init h' = some s' ∧ PendOk R.B s' (R.B.step (R.mi i) st).1 M nx⌝ ∗
+        |={∅, E}=> K (R.ov (R.B.step (R.mi i) st).2) := by
   iintro HU Hv
   imod (fupd_mask_subseteq hsub) with Hclose3
   unfold linAU
@@ -348,17 +407,16 @@ theorem pend_commit_core (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSp
   subst Heq
   have Hs0 : s = s0 := Option.some.inj (Hr0.symm.trans Hok.1)
   subst Hs0
-  obtain ⟨S', HS', Hok'⟩ := pendOk_ok Hok.2 i (hS.noObs i)
-  have Hst : S.M.step s (R.iv i, R.ov (R.B.step i st).2) = some S' := by rw [hS.ok]; exact HS'
+  obtain ⟨S', Hst, Hok'⟩ := hS.pendOk_ok Hok.2 hg i
   have Hr' := run_snoc S.M S.M.init h s S' _ Hok.1 Hst
-  imod ghostVar_update_halves (h ++ [(R.iv i, R.ov (R.B.step i st).2)]) γ.s h h $$ Hv Hl
+  imod ghostVar_update_halves (h ++ [(R.iv i, R.ov (R.B.step (R.mi i) st).2)]) γ.s h h $$ Hv Hl
     with ⟨Hv, Hl⟩
   imodintro
   iexists _, S'
   iframe Hv
   isplitr
   · ipureintro; exact ⟨Hr', Hok'⟩
-  imod HU $$ %S' %(R.ov (R.B.step i st).2) [Hl] with HK
+  imod HU $$ %S' %(R.ov (R.B.step (R.mi i) st).2) [Hl] with HK
   · isplitl [Hl]
     · iexists _
       iframe Hl
@@ -374,7 +432,7 @@ committing it at the far side's step if an answer will come (a write's at its on
 which may fire several times, at the first firing whose output's bytes are `bs`: the read commit
 invariant at `readN`, with the continuation kept until `Do` returns), or a commit now and an update
 with no result if none will. -/
-theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St I))
+theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St J))
     (hS : PendDec R S) (hinj : ∀ o o', R.encOut (R.ov o) = R.encOut (R.ov o') → o = o')
     (γ : PendNames) (i : I) (K : GoInterface → IProp GF) :
     ⊢ pendCtx (Gg := Gg) R S γ -∗ £ 1 -∗ ▷ linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K -∗
@@ -406,7 +464,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
   cases known with
   | true =>
     simp only [↓reduceIte]
-    cases hw : R.B.isWrite i with
+    cases hw : R.B.isWrite (R.mi i) with
     | true =>
       -- a write: its one firing commits lintest's update with its answer
       imod (lc_fupd_elim_later (GF := GF) (E := ⊤)
@@ -420,7 +478,8 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
         try (exact hctx)
         iunfold pendBody at Hi
         icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
-        imod pend_commit_core R hE S hS γ i K _ hsub st h s0 M nx Hok $$ HU Hv
+        icases sysState_keep R st $$ Hs with ⟨Hs, %hg⟩
+        imod pend_commit_core R hE S hS γ i K _ hsub st h s0 M nx Hok hg $$ HU Hv
           with ⟨%h', %s', Hv, %Hok', HK⟩
         imodintro
         iexists st
@@ -430,7 +489,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
         imod Hclose $$ [Hv Hs Hm] with -
         · inext
           unfold pendBody
-          iexists h', s', (R.B.step i st).1, M, nx
+          iexists h', s', (R.B.step (R.mi i) st).1, M, nx
           iframe Hv Hs Hm
           ipureintro; exact Hok'
         imodintro
@@ -461,27 +520,28 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
         try (exact hctx)
         iunfold pendBody at Hi
         icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
+        icases sysState_keep R st $$ Hs with ⟨Hs, %hg⟩
         iinv Hci with Hc Hclosec
         try (exact hreadN)
-        have hst := R.reads_stay i st hw
-        by_cases hb : R.encOut (R.ov (R.B.step i st).2) = bs
+        have hst := R.reads_stay (R.mi i) st hw
+        by_cases hb : R.encOut (R.ov (R.B.step (R.mi i) st).2) = bs
         · icases Hc with (⟨HU, >Hlc, >Hγc⟩ | Hc)
           · -- the first firing with the answer's bytes: commit here
             imod (lc_fupd_elim_later (GF := GF) (E := ((⊤ \ R.Eop) \ ↑pendCtxN) \ ↑readN)
               (P := linAU (Gg := Gg) S γ (R.Eop ∪ ↑pendN) (R.iv i) K)) $$ Hlc HU with HU
-            imod pend_commit_core R hE S hS γ i K _ hsubR st h s0 M nx Hok $$ HU Hv
+            imod pend_commit_core R hE S hS γ i K _ hsubR st h s0 M nx Hok hg $$ HU Hv
               with ⟨%h', %s', Hv, %Hok', HK⟩
             imodintro
             iexists st
             iframe Hs
             iintro Hs
             imod HK with HK
-            imod dghostVar_update (some (R.B.step i st).2) γc none $$ Hγc with Hγc
-            imod dghostVar_persist γc 1 (some (R.B.step i st).2) $$ Hγc with #Hγc
+            imod dghostVar_update (some (R.B.step (R.mi i) st).2) γc none $$ Hγc with Hγc
+            imod dghostVar_persist γc 1 (some (R.B.step (R.mi i) st).2) $$ Hγc with #Hγc
             imod Hclosec $$ [HK] with -
             · inext
               iright
-              iexists (R.B.step i st).2
+              iexists (R.B.step (R.mi i) st).2
               iframe Hγc
               isplit
               · ipureintro; exact hb
@@ -489,7 +549,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
             imod Hclose $$ [Hv Hs Hm] with -
             · inext
               unfold pendBody
-              iexists h', s', (R.B.step i st).1, M, nx
+              iexists h', s', (R.B.step (R.mi i) st).1, M, nx
               iframe Hv Hs Hm
               ipureintro; exact Hok'
             imodintro
@@ -498,7 +558,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
           · -- committed before, with the same bytes: the same output
             imod (later_exists_except0 (PROP := IProp GF)) $$ Hc with ⟨%o', Hc⟩
             icases Hc with ⟨>%hbo', >#Hγo, HK⟩
-            have ho : (R.B.step i st).2 = o' := hinj _ _ (hb.trans hbo'.symm)
+            have ho : (R.B.step (R.mi i) st).2 = o' := hinj _ _ (hb.trans hbo'.symm)
             iapply fupd_mask_intro Std.LawfulSet.empty_subset
             iintro Hclose2
             iexists st
@@ -581,6 +641,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
     try (exact htop)
     iunfold pendBody at Hi
     icases Hi with ⟨%h, %s0, %st, %M, %nx, Hv, Hs, Hm, %Hok⟩
+    icases sysState_keep R st $$ Hs with ⟨Hs, %hg⟩
     imod (fupd_mask_subseteq hsub') with Hclose3
     unfold linAU
     imod HU with ⟨%s, Hl, HU⟩
@@ -590,13 +651,12 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
     subst Heq
     have Hs0 : s = s0 := Option.some.inj (Hr0.symm.trans Hok.1)
     subst Hs0
-    cases hw : R.B.isWrite i with
+    cases hw : R.B.isWrite (R.mi i) with
     | true =>
-      obtain ⟨S', HS', Hok'⟩ := pendOk_errW Hok.2 i hw (hS.noObs i)
-      have Hst : S.M.step s (R.iv i, R.unk i) = some S' := by rw [hS.err]; exact HS'
+      obtain ⟨S', Hst, Hok'⟩ := hS.pendOk_errW Hok.2 hg i hw
       have Hr' := run_snoc S.M S.M.init h s S' _ Hok.1 Hst
       imod ghostVar_update_halves (h ++ [(R.iv i, R.unk i)]) γ.s h h $$ Hv Hl with ⟨Hv, Hl⟩
-      imod ghost_map_insert nx i (Hok.2.fresh nx (Nat.le_refl _)) $$ Hm with ⟨Hm, Htok⟩
+      imod ghost_map_insert nx (R.mi i) (Hok.2.fresh nx (Nat.le_refl _)) $$ Hm with ⟨Hm, Htok⟩
       imod HU $$ %S' %(R.unk i) [Hl] with HK
       · isplitl [Hl]
         · iexists _
@@ -616,8 +676,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
       · unfold pendCtx; iexact Hinv
       · unfold pendTok; iexact Htok
     | false =>
-      obtain ⟨S', HS', Hok'⟩ := pendOk_errR Hok.2 i hw (hS.noObs i)
-      have Hst : S.M.step s (R.iv i, R.unk i) = some S' := by rw [hS.err]; exact HS'
+      obtain ⟨S', Hst, Hok'⟩ := hS.pendOk_errR Hok.2 hg i hw
       have Hr' := run_snoc S.M S.M.init h s S' _ Hok.1 Hst
       imod ghostVar_update_halves (h ++ [(R.iv i, R.unk i)]) γ.s h h $$ Hv Hl with ⟨Hv, Hl⟩
       imod HU $$ %S' %(R.unk i) [Hl] with HK

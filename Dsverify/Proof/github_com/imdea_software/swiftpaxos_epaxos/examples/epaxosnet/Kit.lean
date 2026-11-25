@@ -96,7 +96,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
 
 /-- **The far side's store**: the replicas' key-value store (see the file header). -/
-def epR (γ : EpNames) : RBase GF KvS EIn BStr where
+def epR (γ : EpNames) : RBase GF KvS EIn EIn BStr where
   B := epB
   sysState σ := own_state γ σ
   Eop := epEop

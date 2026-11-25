@@ -77,11 +77,11 @@ end srv
 section lin
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-theorem lin_mono (R : RBase GF St I O) (i : I) (Φ Ψ : O → IProp GF) :
+theorem lin_mono (R : RBase GF St J I O) (i : I) (Φ Ψ : O → IProp GF) :
     (∀ o, Φ o ⊢ Ψ o) → lin (Gg := Gg) R i Φ ⊢ lin (Gg := Gg) R i Ψ := by
   intro h
   unfold lin

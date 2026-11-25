@@ -91,7 +91,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: the paxos register (see the file header). -/
-def woR (Γ : Names) : RBase GF (Option GoString) BStr BStr where
+def woR (Γ : Names) : RBase GF (Option GoString) BStr BStr BStr where
   B := woB
   sysState σ := own_state Γ σ
   Eop := paxosEop

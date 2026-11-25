@@ -193,7 +193,7 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [AllG GF]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The far side's store**: the Gryff register (see the file header). -/
-def casR (γ : ProtoNames) : RBase GF w64 In w64 where
+def casR (γ : ProtoNames) : RBase GF w64 In In w64 where
   B := casBK
   sysState σ := regHalf γ σ
   Eop := ↑gryffN

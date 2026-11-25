@@ -27,11 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O]
 
 theorem Check.wp_proof
-    (wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O)) :
-    Check.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
+    (wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O)) :
+    Check.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) := by
   intro R S γ m addrs addrL cd gen ops d HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
   wp_start as ⟨#Hcc, #Hm, #Hgen, #Haddrs, #Hra, #Hmap, #Hcd, #Hpend, Hlib, Hbud⟩
   wp_auto

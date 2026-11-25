@@ -37,14 +37,14 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-- See the file header. -/
 abbrev Do.spec : Prop :=
-  ∀ (R : RBase GF St I O) (a : GoString) (i : I) (Φ : O → IProp GF) (Ψ : IProp GF)
+  ∀ (R : RBase GF St J I O) (a : GoString) (i : I) (Φ : O → IProp GF) (Ψ : IProp GF)
     (cd : remote.Codec) (d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ mapCtx (Gg := hG.goose_globalGS) (I := I) ∗ remoteAddr (Gg := hG.goose_globalGS) R a ∗
-      codecOk R cd ∗ budUnits (Gg := hG.goose_globalGS) a readTries ∗ (if R.B.isWrite i then iprop(True) else □ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True))) ∗
+      codecOk R cd ∗ budUnits (Gg := hG.goose_globalGS) a readTries ∗ (if R.B.isWrite (R.mi i) then iprop(True) else □ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True))) ∗
       (∀ (known : Bool) (bs : List w8), |={⊤}=> if known then
         (∃ Φb : O → IProp GF, slotUpd (Gg := hG.goose_globalGS) R i Φb ∗
           (∀ o, ⌜R.encOut (R.ov o) = bs⌝ -∗ Φb o -∗ £ 1 ={⊤}=∗ Φ o))
