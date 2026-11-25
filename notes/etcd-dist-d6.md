@@ -443,3 +443,11 @@ real WAL) is the natural report if the lead wants one.
   `proto.MarshalPb.spec`; no axiom): `WAL__ReadAll` builds. `wal.Link` regenerated; it fails only in
   `RepairReg` (E4: `Repair` truncates at `wr + |pending run|`, the specs `*.specRepTail` and
   `walTail_truncSup` to generalize; `notes/wal-p6-handoff.md`, "Repair with a pending run").
+- 2026-11-25 (session 5, later): E4's `Repair` with a pending run done (truncate at `LastOffset` ∈ `[wr, size]`,
+  the run kept; fsync and put-back by the pending token, the synced layout `TailPend` past a run; our specs
+  `os.File.Truncate.specRepTail`/`fileutil.Fsync.specRepTail` restated, `os.File.Truncate.specAu`'s closure
+  widened, all ours and proved); `WAL__Save` over the normalized op. **`wal.Link` builds** (real `lake build`,
+  kernel-checked); its axioms (`#print axioms` of all 254 linked results) are exactly the
+  `wal-fsext.txt` baseline, no `sorry`. `etc/tcb-report.py --check` itself needs a full build of the
+  worktree (965+ stale modules of other parts), not run. Left: the WalTester consumers of `CloneStLaw`,
+  `Unsaved`/`DiscardUnsaved` (new functions, no spec yet), E5.

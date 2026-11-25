@@ -6,10 +6,12 @@
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
-- **State (2026-11-25, session 5)**: `WAL__ReadAll` builds (item 2 and `CloneStLaw` done, see "Session 5");
-  E4's `Repair` with a pending run done ("Repair with a pending run" below); `wal.Link`'s real build
-  under way. **Next: `wal.Link` green, `etc/tcb-report.py --check`; the consumers of `CloneStLaw`
-  (WalTester `Adequacy`/`Link`: `walRaftP_cloneSt`); then `OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5.**
+- **State (2026-11-25, session 5, end)**: `wal.Link` builds (real `lake build`, d6aa9cce3a); `#print axioms`
+  of its 254 results = the `wal-fsext.txt` baseline, no `sorry` (`etc/tcb-report.py --check` needs a full
+  worktree build: not run). E4's `Repair` done ("Repair with a pending run" below); `WAL__Save` fixed (the
+  normalized op `wop`/`saveHS`, `stNil` in the entries loop's invariant). **Next: the WalTester consumers of
+  `CloneStLaw` (`Adequacy.lean`: `walRaftP_cloneSt`, regenerate its Link with `etc/gen-link.py --durable`);
+  `Unsaved`/`DiscardUnsaved` (new Go functions, unsaved.go, no spec yet: spec first); E5.**
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
