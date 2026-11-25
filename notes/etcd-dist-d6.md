@@ -1827,7 +1827,7 @@ row's statement against `applyConfChange`'s proof.
 
 ### T10 status and handoff, session 2 (2026-11-25, branch `etcd-safe-t10`)
 
-**Done (the order's step 1).** The two approved restatements (coordinator-E, #50 comment 2026-11-25T15:22:46Z,
+**Done (the order's step 1; built on fk-lean2, `BackendImage`, `NewServerCrash`, `etcdserver.CrashInterim`: 4521 jobs, 0 errors).** The two approved restatements (coordinator-E, #50 comment 2026-11-25T15:22:46Z,
 items 2 and 8; ledger entries marked approved, a new C-I1 entry listing `_new` loses a premise, `_close` returns
 less):
 * C-I1 without the name: `backend/CrashInterim.lean` (`dbCrashKeep γ i0 Dl Dn pd`; `bPath` gone from `_new`'s
