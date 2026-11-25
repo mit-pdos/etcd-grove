@@ -18,6 +18,8 @@ module
 public import Net.Proof.net.http.Mux22
 public import Net.Proof.net.http.Mux121
 public import Net.Proof.net.http.MuxDefs
+public import Proof.net.url.Escape
+public import Spec.net.url.URL__EscapedPath
 
 @[expose] public section
 
@@ -192,6 +194,194 @@ theorem wp_Handle_lit (wp_Search : sort.Search.spec (GF := GF) (hG := hG))
       iframe #
 
 end wp
+
+section dispatch
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
+
+/-- A route of the tree's state is one of its patterns. -/
+theorem routesOk_found (S : TreeSt) (Rt : GMap GoString GoInterface) (p : GoString) (h : GoInterface)
+    (hR : routesOk Rt S) (hRp : Rt !! p = some h) : ∃ pp, (p, pp, h) ∈ S.pats := by
+  rw [hR p] at hRp
+  cases hf : S.pats.find? (fun e => decide (e.1 = p)) with
+  | none => rw [hf] at hRp; simp at hRp
+  | some e =>
+    rw [hf] at hRp
+    have hm := List.mem_of_find?_eq_some hf
+    have he := List.find?_some hf
+    obtain ⟨a, b, c⟩ := e
+    simp only [Option.map_some, Option.some.injEq] at hRp
+    simp only [decide_eq_true_eq] at he
+    subst he hRp
+    exact ⟨b, hm⟩
+
+/-- A set node's `pattern` and `handler` fields (persistent). -/
+def nodeFix (l pp : Loc) (h : GoInterface) : IProp GF :=
+  iprop(structFieldRef net.http.routingNode go!"pattern" l ↦□ pp ∗
+    structFieldRef net.http.routingNode go!"handler" l ↦□ h)
+
+instance nodeFix_persistent (l pp : Loc) (h : GoInterface) :
+    Persistent (nodeFix (GF := GF) (hG := hG) l pp h) := by
+  unfold nodeFix; infer_instance
+
+/-- A registered pattern's node, from the tree: its set fields and its `*pattern` (persistent). -/
+theorem treeRep_fix (dq : DFrac) (root : Loc) (S : TreeSt) (hok : S.ok root)
+    (e : List w8 × Loc × GoInterface) (he : e ∈ S.pats) :
+    treeRep (GF := GF) (hG := hG) dq S ⊢ treeRep dq S ∗
+      (nodeFix (locOf (S.nodes !! patKeys e.1)) e.2.1 e.2.2 ∗ patRep e.2.1 e.1 ∗
+        ⌜locOf (S.nodes !! patKeys e.1) ≠ null⌝) := by
+  obtain ⟨dP, hdP⟩ := hok.node_of_prefix he (k := patKeys e.1) (List.prefix_refl _)
+  obtain ⟨hlP, -, -, -, hpatP, -⟩ := hok.2.2.2.2.2 _ dP hdP
+  obtain ⟨hppP, hhP⟩ := hpatP e he rfl
+  rw [hdP, show locOf (some dP) = dP.l from rfl]
+  unfold treeRep
+  iintro ⟨HN, #HP⟩
+  ihave #Hpe := BigSepL.bigSepL_mem (Φ := fun e => patRep (GF := GF) (hG := hG) e.2.1 e.1) he $$ HP
+  ihave %hpp : ⌜e.2.1 ≠ null⌝ $$ [Hpe]
+  · iunfold patRep at Hpe
+    icases Hpe with ⟨%sl, %loc, Hpp, -⟩
+    iapply typedPointsto_not_null _ _ _ $$ Hpp
+  have hdisc : pfrac dq dP.pat = DFrac.discard := by simp [pfrac, hppP, hpp]
+  icases (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdP).1 $$ HN
+    with ⟨Hd, HN⟩
+  iunfold nodeRep at Hd
+  rw [hdisc]
+  icases Hd with ⟨#Hp, #Hh, Hc, Hm, He⟩
+  isplitl [HN Hc Hm He]
+  · isplitl [HN Hc Hm He]
+    · iapply (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdP).2
+      iunfold nodeRep; rw [hdisc]
+      iframe; iframe #
+    · iexact HP
+  iunfold nodeFix
+  rw [← hppP, ← hhP]
+  iframe #
+  ipureintro; exact hlP
+
+/-- `escapedPathF` of a literal path with no `RawPath`: the path. -/
+theorem escapedPathF_lit (p : List w8) (hp : litPat p) : net.url.escapedPathF [] p = p := by
+  have hesc : ∀ c : w8, pathByte c = true → net.url.shouldEscapeRef c net.url.mPath = false := by
+    decide
+  have hnone : net.url.escapeF p net.url.mPath = p := by
+    have : ∀ l : List w8, (∀ c ∈ l, pathByte c = true) → net.url.escapeF l net.url.mPath = l := by
+      intro l hl
+      induction l with
+      | nil => rfl
+      | cons c l ih =>
+        have h1 := hesc c (hl c List.mem_cons_self)
+        have h2 : (net.url.mPath == net.url.mQueryComponent) = false := by decide
+        have ih' := ih (fun b hb => hl b (List.mem_cons_of_mem _ hb))
+        unfold net.url.escapeF at ih' ⊢
+        simp only [List.flatMap_cons, h2, Bool.and_false, Bool.false_eq_true, ↓reduceIte] at ih' ⊢
+        simp only [h1, Bool.false_eq_true, ↓reduceIte, List.singleton_append, ih']
+    exact this p hp.2
+  have hne : p ≠ [W8 42] := by
+    intro h0; rw [h0] at hp; have := hp.1; simp at this
+  unfold net.url.escapedPathF
+  simp only [List.isEmpty_nil, Bool.not_true, Bool.false_and, Bool.false_eq_true, ↓reduceIte,
+    beq_iff_eq, hne]
+  exact hnone
+
+/-- `mux.matchOrRedirect("", m, p, u)` of a registered literal path, by a reader of the Go 1.22
+matcher (`meth` neither `""` nor `HEAD`): `p`'s node, no matches, no redirect; and the node's set
+fields and `*pattern` (persistent), which `findHandler` reads after the lock is released. -/
+theorem wp_matchOrRedirect_found (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) (hG := hG))
+    (wp_IndexByte : strings.IndexByte.spec (GF := GF) (hG := hG))
+    (wp_Count : strings.Count.spec (GF := GF) (hG := hG))
+    (m : Loc) (γ : Mux22Names) (p : GoString) (h : GoInterface) (meth : GoString) (u : Loc)
+    (hm : meth ≠ []) (hhead : meth ≠ go!"HEAD") :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗
+        isPkgInit (PROP := IProp GF) pkg_id.strings ∗
+        sync.ownRWMutex (muxMu m) (mux22P (GF := GF) (hG := hG) γ m) ∗ p ↪[γ.r]□ h }}
+      (App (App (App (App (Val (m @!! go.GoType.PointerType net.http.ServeMux.ty @!! go!"matchOrRedirect"))
+        (Val #([] : List w8))) (Val #meth)) (Val #p)) (Val #u))
+    {{ (n : Loc), RET (PairV (PairV #n #slice.nil) #(null : Loc)); ∃ pp : Loc,
+        sync.ownRWMutex (muxMu m) (mux22P γ m) ∗ nodeFix n pp h ∗ patRep pp p ∗ ⌜n ≠ null⌝ }} := by
+  wp_start as ⟨Hrw, #Hel⟩
+  try wp_auto
+  wp_apply wp_with_defer as %defer defer
+  try wp_auto
+  wp_apply sync.RWMutex.wp_RLock $$ [$Hrw] as ⟨Hrl, HP⟩
+  iunfold mux22P at HP
+  icases HP with ⟨%S, %Rt, Hv, HA, Hrep, %HS⟩
+  ihave %HRp := ghost_map_lookup $$ HA Hel
+  obtain ⟨pp, he⟩ := routesOk_found S Rt p h HS.2.1 HRp
+  icases treeRep_fix _ (muxRoot m) S HS.1 (p, pp, h) he $$ Hrep with ⟨Hrep, #Hfix, #Hpr, %hn⟩
+  try wp_auto
+  wp_apply wp_tree_match_found wp_PathUnescape wp_IndexByte _ (muxRoot m) S HS.1 (p, pp, h) he meth hm
+    hhead $$ [$Hrep] as Hrep
+  try wp_auto
+  wp_apply wp_exactMatch_found wp_Count _ (muxRoot m) S HS.1 (p, pp, h) he $$ [$Hrep] as Hrep
+  try wp_auto
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hv HA Hrep] as Hrw
+  · iunfold mux22P; iexists S, Rt; iframe; ipureintro; exact HS
+  try wp_auto
+  iapply HΦ
+  iexists pp
+  iframe; iframe #
+  ipureintro; exact hn
+
+/-- `pp.String()` of a registered pattern: its string. -/
+theorem wp_pattern_String (pp : Loc) (p : List w8) :
+    {{ patRep (GF := GF) (hG := hG) pp p }}
+      (App (Val (pp @!! go.GoType.PointerType net.http.pattern.ty @!! go!"String")) (Val #()))
+    {{ RET #p; True }} := by
+  unfold patRep
+  wp_start as ⟨%sl, %loc, Hpp, #Hsl⟩
+  iStructNamedPrefix Hpp "P"
+  wp_auto
+  iapply HΦ
+  ipureintro; trivial
+
+/-- The URL of a `CONNECT` request for the path `p` (net/http's parse of `CONNECT p HTTP/1.x`). -/
+abbrev connURL (p : GoString) : net.url.URL := { (_root_.Perennial.zero_val net.url.URL) with Path' := p }
+
+/-- `mux.findHandler(r)` of a `CONNECT` request for a registered literal path, by a reader of the Go
+1.22 matcher: `p`'s handler, pattern and `*pattern`, no matches. -/
+theorem wp_findHandler22_connect (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) (hG := hG))
+    (wp_IndexByte : strings.IndexByte.spec (GF := GF) (hG := hG))
+    (wp_Count : strings.Count.spec (GF := GF) (hG := hG))
+    (wp_EscapedPath : net.url.URL.EscapedPath.spec (GF := GF) (hG := hG))
+    (m : Loc) (γ : Mux22Names) (r u : Loc) (dq : DFrac) (q : Qp) (p : GoString) (h : GoInterface)
+    (hp : litPat p) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗
+        isPkgInit (PROP := IProp GF) pkg_id.strings ∗
+        sync.ownRWMutex (muxMu m) (mux22P (GF := GF) (hG := hG) γ m) ∗ p ↪[γ.r]□ h ∗
+        structFieldRef net.http.Request go!"Method" r ↦□ go!"CONNECT" ∗
+        structFieldRef net.http.Request go!"URL" r ↦{dq} u ∗
+        structFieldRef net.http.Request go!"Host" r ↦{dq} ([] : List w8) ∗ u ↦{DFrac.own q} connURL p }}
+      (App (Val (m @!! go.GoType.PointerType net.http.ServeMux.ty @!! go!"findHandler")) (Val #r))
+    {{ (pp : Loc), RET (PairV (PairV (PairV #h #p) #pp) #slice.nil);
+        sync.ownRWMutex (muxMu m) (mux22P γ m) ∗
+        structFieldRef net.http.Request go!"URL" r ↦{dq} u ∗
+        structFieldRef net.http.Request go!"Host" r ↦{dq} ([] : List w8) ∗
+        u ↦{DFrac.own q.half} connURL p }} := by
+  wp_start as ⟨Hrw, #Hel, #Hmeth, Hurl, Hhost, Hu⟩
+  icases (typedPointsto_half_split u (connURL p) q).1 $$ Hu with ⟨Hu, Hu1⟩
+  iStructNamedPrefix Hu1 "U"
+  try wp_auto
+  wp_apply wp_EscapedPath u _ (connURL p) $$ [$Hu] as Hu
+  rw [escapedPathF_lit p hp]
+  try wp_auto
+  wp_apply wp_matchOrRedirect_found wp_PathUnescape wp_IndexByte wp_Count m γ p h go!"CONNECT" u
+    (by decide) (by decide) $$ [$Hrw $Hel] as %n ⟨%pp, Hrw, #Hfix, #Hpr, %hn⟩
+  · iframe #
+  try wp_auto
+  wp_apply wp_matchOrRedirect_found wp_PathUnescape wp_IndexByte wp_Count m γ p h go!"CONNECT" null
+    (by decide) (by decide) $$ [$Hrw $Hel] as %n2 ⟨%pp2, Hrw, #Hfix2, #Hpr2, %hn2⟩
+  · iframe #
+  try wp_auto
+  rw [decide_eq_false hn2]
+  iunfold nodeFix at Hfix2
+  icases Hfix2 with ⟨#Hfp, #Hfh⟩
+  try wp_auto
+  wp_apply wp_pattern_String pp2 p $$ [$Hpr2]
+  try wp_auto
+  iapply HΦ
+  iframe
+
+end dispatch
 
 end net.http
 end Perennial
