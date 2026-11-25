@@ -31,7 +31,7 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
     (hRev : stm.Rev.spec (GF := GF) (hG := hG)) :
     stmSerializable.Rev.spec (GF := GF) (hG := hG) := by
   intro lvl p pfx st k
-  wp_start as ⟨Hst, %Hsp, %Hc⟩
+  wp_start as ⟨Hlt, Hst, %Hsp, %Hc⟩
   obtain ⟨Hser, Hpk⟩ := Hsp
   ihave ⟨Hst, %Hsz⟩ := stmState_sizeOk lvl pfx p st $$ Hst
   wp_auto
@@ -41,7 +41,7 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
   iintro %ksl ⟨Hksl, -⟩
   ipersist Hksl
   wp_auto
-  wp_apply hGet lvl p pfx st _ [k] $$ [$Hpkg $Hst $Hksl] as %r Hr
+  wp_apply hGet lvl p pfx st _ [k] $$ [$Hpkg $Hlt $Hst $Hksl] as %r ⟨Hlt, Hr⟩
   · ipureintro; refine ⟨⟨Hser, ?_⟩, Hc⟩; simpa using Hpk
   iunfold stmRet at Hr
   icases Hr with (⟨%v, %Hrv, %st1, Hst, %Hgp⟩ | %Hab)
@@ -50,6 +50,7 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
     unfold stmAbort
     wp_auto
     iapply HΦ
+    iframe Hlt
     iapply stmRet_abort _ Hne
   subst Hrv
   wp_auto
@@ -63,7 +64,7 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
     rcases Hgs with h | ⟨S, h⟩
     · exact Or.inl h
     · exact Or.inr (Or.inr ⟨S, h⟩)
-  wp_apply hRev (structFieldRef stmSerializable go!"stm" p) pfx st1.reads gs k $$ [$Hpkg $Henv $Hrs $Hopts] as %r' Hr
+  wp_apply hRev (structFieldRef stmSerializable go!"stm" p) pfx st1.reads gs k $$ [$Hpkg $Hlt $Henv $Hrs $Hopts] as %r' ⟨Hlt, Hr⟩
   · ipureintro; exact ⟨Hgs', Hpk, Hc.2.1 k (List.mem_singleton_self _)⟩
   iunfold stmRet at Hr
   icases Hr with (⟨%r, %Hr', %reads', Hrs, Hopts, %Hrv⟩ | %Hab)
@@ -72,6 +73,7 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
     unfold stmAbort
     wp_auto
     iapply HΦ
+    iframe Hlt
     iapply stmRet_abort _ Hne
   subst Hr'
   wp_auto
@@ -85,6 +87,7 @@ theorem stmSerializable.Rev.wp_proof (hGet : stmSerializable.Get.spec (GF := GF)
   have Hsz' := STMSizeOk_reads Hsz Hc Hgrow
   rw [← Hgw] at Hsz'
   iapply HΦ
+  iframe Hlt
   iapply stmRet_ret
   iexists ({ reads := reads', writes := st1.writes, n := st.n + 1 } : STMSt)
   iframe Henv Hrs Hws Hcf

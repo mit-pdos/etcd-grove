@@ -44,11 +44,11 @@ theorem gone.wp_proof
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG)) :
     gone.spec (GF := GF) (hG := hG) := by
   intro cl eps V γl m id
-  wp_start as ⟨#Hnc, #Hrpc, #Hlb, %hAs⟩
+  wp_start as ⟨Hlt, #Hnc, #Hrpc, #Hlb, %hAs⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   (try wp_auto)
-  ihave IO : (∃ (n : w64), "i" ∷ i_ptr ↦ n : IProp GF) $$ [i]
+  ihave IO : (∃ (n : w64), "i" ∷ i_ptr ↦ n ∗ "Hlt" ∷ levelTok 0 : IProp GF) $$ [i Hlt]
   · iexists _; iframe
   wp_for IO
   wp_if_destruct
@@ -57,7 +57,7 @@ theorem gone.wp_proof
     (try wp_auto)
     -- the listing, at the lower bound `m`
     wp_apply (wp_leases cl eps V (etcdLeaseLeasesSpecLive γl)
-        (fun r => iprop(∃ j : Nat, ⌜m ≤ j⌝ ∗ lease.leaseIdsAt γl j r.ids))) as %ls %lerr Hls
+        (fun r => iprop(∃ j : Nat, ⌜m ≤ j⌝ ∗ lease.leaseIdsAt γl j r.ids))) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
@@ -81,6 +81,7 @@ theorem gone.wp_proof
         (try wp_auto)
         wp_for_post
         iapply HΦ
+        iframe Hlt
         simp only [↓reduceIte]
         iunfold lease.leaseIdsAt at Hids
         icases Hids with ⟨%τ, %Hτ, #Hτat⟩
@@ -97,9 +98,9 @@ theorem gone.wp_proof
       | ok ei => ?_
       (try wp_auto)
       wp_for_post
-      iapply HΦ; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      iapply HΦ; iframe Hlt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   · (try wp_auto)
-    iapply HΦ; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    iapply HΦ; iframe Hlt; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
 end proof
 

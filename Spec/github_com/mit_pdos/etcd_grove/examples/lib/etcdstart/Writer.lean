@@ -79,9 +79,7 @@ abbrev Writer.spec : Prop :=
   (∀ p, Persistent (OkF p)) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length → (∀ x ∈ tried, wkvSizeOk x) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
         GoInterface.ok (client.kvIfaceOf api) ∗
       client.isKv api γk false ∗ tsl ↦*□ tried ∗
       (□ ∀ (k v : GoString), ⌜(k, v) ∈ tried.map pairOf⌝ -∗
@@ -91,10 +89,10 @@ abbrev Writer.spec : Prop :=
       (□ ∀ (k v : GoString) (σ : KVState), QW k v σ -∗ ⌜σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝ -∗
         OkF ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩) ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" w)
-        (wsInvF w OkF) }}
+        (wsInvF w OkF)) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer))
       (Val #cl)) (Val #w)) (Val #tsl)) (Val #lo)) (Val #hi))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

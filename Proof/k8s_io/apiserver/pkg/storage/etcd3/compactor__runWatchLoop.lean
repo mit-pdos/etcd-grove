@@ -120,7 +120,7 @@ theorem compactor.runWatchLoop.wp_proof
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runWatchLoop.spec (GF := GF) (hG := hG) := by
   intro _ _ c cl eps V γk recorded γc sc γs
-  wp_start as ⟨#Hc, #Hstop, #Hcl, #Hko, #Hwo, #Hkr⟩
+  wp_start as ⟨Hlt, #Hc, #Hstop, #Hcl, #Hko, #Hwo, #Hkr⟩
   rw [show k8s_io.apiserver.pkg.storage.etcd3.compactRevKey = #compactRevKey from rfl]
   ihave #Hc' := Hc
   iunfold compactorCore at Hc'
@@ -152,8 +152,8 @@ theorem compactor.runWatchLoop.wp_proof
   (try wp_auto)
   ipersist c
   ipersist ctx
-  ihave HI : iprop(True) $$ []
-  · itrivial
+  ihave HI : iprop("Hlt" ∷ levelTok 0) $$ [Hlt]
+  · simp only [named]; iexact Hlt
   wp_for HI
   (try wp_auto)
   wp_apply (lc := 2) (time.After.spec_pkgInit wp_After _) as %ach %γach #Hbag
@@ -164,8 +164,8 @@ theorem compactor.runWatchLoop.wp_proof
   isplit
   · iintro %t
     (try wp_auto)
-    wp_apply (wp_getCompactRev c cl γk recorded γc (chanCtxVal sc) (chanCd γi)) $$ []
-      as %cr %cur %err Hout
+    wp_apply (wp_getCompactRev c cl γk recorded γc (chanCtxVal sc) (chanCd γi)) $$ [$Hlt]
+      as %cr %cur %err ⟨Hlt, Hout⟩
     · iframe #
     icases Hout with (⟨HerrF, %Herr⟩ | ⟨%Hok, #Hrec⟩)
     · -- the read failed: logged, the next iteration
@@ -173,7 +173,7 @@ theorem compactor.runWatchLoop.wp_proof
       | nil => exact absurd rfl Herr
       | ok ei =>
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [] as %esl ⟨%eps', Hesl, -⟩
+      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps', Hesl, -⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -273,7 +273,7 @@ theorem compactor.runWatchLoop.wp_proof
       | nil => exact absurd rfl Herr'
       | ok ei =>
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [] as %esl ⟨%eps', Hesl, -⟩
+      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps', Hesl, -⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -311,7 +311,8 @@ theorem compactor.runWatchLoop.wp_proof
     wp_for_post
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iframe Hlt
+    (try itrivial)
 
 end proof
 

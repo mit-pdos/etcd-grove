@@ -5,6 +5,7 @@ public import GeneratedProof.go_etcd_io.etcd.client.v3.credentials
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 
 @[expose] public section
 noncomputable section

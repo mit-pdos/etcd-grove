@@ -44,7 +44,7 @@ theorem store.Watch.wp_proof
     (wp_wWatch : watcher.Watch.spec (GF := GF) (hG := hG)) :
     store.Watch.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ _ sp c W γk ci cd key opts k n sie sel emp Q HQok Hhist Hnr
-  wp_start as ⟨#Hst, #Hsw, %Hpre, #Hsie, #Hsel, #Hwl, #Hrs, #Hctx, #Hmd, #Hce, #Hk8, %Htb, Hra,
+  wp_start as ⟨Hlt, #Hst, #Hsw, %Hpre, #Hsie, #Hsel, #Hwl, #Hrs, #Hctx, #Hmd, #Hce, #Hk8, %Htb, Hra,
     #Hre⟩
   obtain ⟨hk, hkl, hrv, hn, hpn, hrt⟩ := Hpre
   ihave #Hst' := Hst
@@ -169,10 +169,11 @@ theorem store.Watch.wp_proof
         exact Classical.not_not.1 hc
       · cases hk
   wp_apply (wp_wWatch Obj wp sp c W γk ci' cd (c.pathPrefix ++ k) _ opts sie sel emp Q HQok Hhist
-    Hnr hpfx hne hkl hsuf hn hpn hrt) $$ [] as %wi %err Hout
+    Hnr hpfx hne hkl hsuf hn hpn hrt) $$ [$Hlt] as %wi %err ⟨Hlt, Hout⟩
   · iframe #
     ipureintro; exact Htb
   iapply HΦ
+  iframe Hlt
   unfold kScopeOf
   iexact Hout
 

@@ -43,15 +43,14 @@ abbrev apiserver.spec : Prop :=
     (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γr : ServerRaftNames)
     (γk : KVNames) (γ : CNames) (shared : Bool),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       ([∗list] x ∈ ms, client.srvStart x) ∗ clientKvOk cl γk ∗ clientWatchOk cl γk ∗
       ([∗list] ep ∈ ms.map client.SrvAt.addr, epOf ep γk (fun _ => iprop(True))) ∗ cinv γk γ ∗
-      kvInv γr γk }}
+      kvInv γr γk) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.apiserver)) (Val #cl))
       (Val #shared))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

@@ -42,7 +42,7 @@ theorem electionServer.Campaign.wp_proof
     (hSL : concurrency.Session.Lease.spec (GF := GF) (hG := hG)) :
     electionServer.Campaign.spec (GF := GF) (hG := hG) := by
   intro es c req nsl vsl name val lease ctx cs maxReq
-  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hnf, #Hns, #Hlf, #Hvf, #Hvs, %Hrecv, #Hctx, #HctxC, #Hcc⟩
+  wp_start as ⟨Hlt, #Hes, #Hok, %Hcfg, #Hnf, #Hns, #Hlf, #Hvf, #Hvs, %Hrecv, #Hctx, #HctxC, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -50,7 +50,7 @@ theorem electionServer.Campaign.wp_proof
   ihave #Hcpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency $$ []
   · iPkgInit
   wp_auto
-  wp_apply hSess es c lease ctx cs $$ [$Hes $Hok $Hctx $HctxC $Hcc] as %s %err Hs
+  wp_apply hSess es c lease ctx cs $$ [$Hlt $Hes $Hok $Hctx $HctxC $Hcc] as %s %err ⟨Hlt, Hs⟩
   icases Hs with (⟨%Hs, %γ, %id, #Hss, %Hid⟩ | %Hs)
   rotate_left
   · obtain ⟨rfl, Herr⟩ := Hs
@@ -59,6 +59,7 @@ theorem electionServer.Campaign.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Herr⟩
@@ -74,7 +75,7 @@ theorem electionServer.Campaign.wp_proof
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hEC e s γ c id (name ++ go!"/") ElectionSt.init ctx cs val (W64 0) $$
-      [$Hcpkg $He $Hest $Hctx $HctxC $Hcc $Hlo] as %err Hc
+      [$Hcpkg $Hlt $He $Hest $Hctx $HctxC $Hcc $Hlo] as %err ⟨Hlt, Hc⟩
   · ipureintro; exact Nat.le_of_lt (Nat.lt_trans (v3rpc.grpcRecvBytesOk.lt Hcfg Hrecv.2) (by decide))
   icases Hc with (⟨%Herr, %key, %rev, %r, %rv, %R, %hdr, Hest, #Hhr, #HR, #Hkv, Hout, %Hp⟩ |
     ⟨%Hne, %st', Hest⟩)
@@ -84,6 +85,7 @@ theorem electionServer.Campaign.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Hne⟩
@@ -103,6 +105,7 @@ theorem electionServer.Campaign.wp_proof
   generalize «$r0_ptr» = r0 at *
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   ileft
   isplitr
   · ipureintro; rfl

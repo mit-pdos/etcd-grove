@@ -32,18 +32,16 @@ delete's error. -/
 abbrev lockServer.Unlock.spec : Prop :=
   ∀ (ls c req : Loc) (ksl : GoSlice) (key : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗
-      isLockServer ls c ∗ unlockKVOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗ levelTok 0 ∗ (isLockServer ls c ∗ unlockKVOk c ∗
       structFieldRef v3lockpb.UnlockRequest go!"Key" req ↦□ ksl ∗
       ksl ↦*□ key ∗
-      context.isContext ctx cs }}
+      context.isContext ctx cs) }}
     (App (App (Val (ls @!! go.GoType.PointerType lockServer.ty @!! go!"Unlock"))
       (Val #(GoInterface.ok ctx))) (Val #req))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (v : v3lockpb.UnlockResponse),
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (v : v3lockpb.UnlockResponse),
         resp ↦ v ∗ ⌜v.Header' = hdr⌝ ∗
         deleteResult [] (W64 0) (opDeleteModel key []) GoInterface.nil) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

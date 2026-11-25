@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     newUniqueKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx kp val lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   ihave Hri : (recipesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨⟨%eK, #HeK, %HeKl⟩, -, -, -⟩
@@ -63,7 +63,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   have Hkey' : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z x) := by
     simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hkey, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
   have Hpk : pfx <+: key := Hk.1.trans (by rw [Hkey', List.append_assoc]; exact List.prefix_append _ _)
-  wp_apply hPNK kv pfx key val (W64 0) lo $$ [$Hpkg $Hkv $Hlo] as %rev %err Hres
+  wp_apply hPNK kv pfx key val (W64 0) lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rev %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨Hpk, uniqueKey_length_le x Hk.2.1 Hkey', Hk.2.2⟩
   icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#HerrK, %Hrev, -⟩ | ⟨⟨%Hne, %Hrev⟩, #Hce⟩)
   · -- created
@@ -73,6 +73,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     generalize «$r0_ptr» = rk at *
     wp_for_post
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -108,6 +109,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     · wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact ⟨Hne, rfl⟩
     · wp_auto

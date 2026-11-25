@@ -58,7 +58,7 @@ theorem SetUp.wp_proof
     (h_client_Put_on : client_Put_on.law (GF := GF) (hG := hG)) :
     SetUp.spec (GF := GF) (hG := hG) := by
   intro CS EA FA RA cl ep V s E ρ cid mid γa hmode hc0 hAs
-  wp_start as ⟨#Hnc, #Htok, #Hput, #Hkv, #Hauth, #Htls, Hview⟩
+  wp_start as ⟨Hlt, #Hnc, #Htok, #Hput, #Hkv, #Hauth, #Htls, Hview⟩
   iunfold clientTokAt at Htok
   icases Htok with ⟨%api, %conn, #Hkvf, #Hobj, #Hctok, ⟨%ap, #Hauf, #Hap⟩, -⟩
   imod (setup_alloc ρ.kv ⊤) $$ Hview with ⟨%γz, #Hc, #Hn⟩
@@ -84,8 +84,8 @@ theorem SetUp.wp_proof
     iintro %i %f %g %Hf %Hg
     simp at Hf
   ihave HI : (∃ (j : w64) (w0 : GoString),
-      "i" ∷ i_ptr ↦ j ∗ "who" ∷ who_ptr ↦ w0 ∗ "Hpsl" ∷ psl ↦* principals ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z psl.len⌝ : IProp GF) $$ [i who Hpsl]
+      "i" ∷ i_ptr ↦ j ∗ "who" ∷ who_ptr ↦ w0 ∗ "Hpsl" ∷ psl ↦* principals ∗ "Hlt" ∷ levelTok 0 ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z psl.len⌝ : IProp GF) $$ [i who Hpsl Hlt]
   · iexists W64 0, _
     iframe
     ipureintro
@@ -110,8 +110,8 @@ theorem SetUp.wp_proof
     (try wp_auto)
     rename_i oi_ptr
     ihave HJ : (∃ (n : w64) (x0 : GoString),
-        "i" ∷ i_ptr ↦ n ∗ "x" ∷ x_ptr ↦ x0 ∗ "Hxsl" ∷ _ ↦* keyParts ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝ : IProp GF) $$ [i x Hxsl]
+        "i" ∷ i_ptr ↦ n ∗ "x" ∷ x_ptr ↦ x0 ∗ "Hxsl" ∷ _ ↦* keyParts ∗ "Hlt" ∷ levelTok 0 ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝ : IProp GF) $$ [i x Hxsl Hlt]
     · iexists W64 0, _
       iframe
       ipureintro
@@ -140,7 +140,7 @@ theorem SetUp.wp_proof
           go!"setup" slice.nil (fun _ => iprop(True)) []
           (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
             ((show ∀ k ∈ setupKeys, k.length ≤ 2 ^ 28 by decide) _ hk) (by decide) (by decide)))
-        $$ [] as %resp %err Hout
+        $$ [$Hlt] as %resp %err ⟨Hlt, Hout⟩
       · iframe #
         iintro !>
         iapply Hkv
@@ -163,6 +163,7 @@ theorem SetUp.wp_proof
           wp_for_post
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           simp only [Bool.false_eq_true, ↓reduceIte]
           itrivial
     · (try wp_auto)
@@ -182,7 +183,7 @@ theorem SetUp.wp_proof
     · iunfold setupCtx; iframe Hctok Htls
     (try wp_auto)
     wp_apply (wp_UserAdd ap conn [ep] cctx none cd go!"root" go!"root-pw" (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok go!"root" (fun _ => effLb ρ.kv 0)))) $$ [] as %resp0 %err0 Hout0
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok go!"root" (fun _ => effLb ρ.kv 0)))) $$ [$Hlt] as %resp0 %err0 ⟨Hlt, Hout0⟩
     · iframe #
       isplitl
       rotate_left
@@ -200,13 +201,14 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr0
     imod (setup_post_userAdd s E ρ conn _ γz 0 go!"root" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq0 with #F0
     (try wp_auto)
     wp_apply (wp_UserGrantRole ap conn [ep] cctx none cd go!"root" go!"root" (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole go!"root" go!"root") (fun _ => effLb ρ.kv 1)))) $$ [] as %resp1 %err1 Hout1
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole go!"root" go!"root") (fun _ => effLb ρ.kv 1)))) $$ [$Hlt] as %resp1 %err1 ⟨Hlt, Hout1⟩
     · iframe #
       isplitl
       rotate_left
@@ -224,13 +226,14 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr1
     imod (setup_post s E ρ conn _ γz 1 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq1 with #F1
     (try wp_auto)
     wp_apply (wp_RoleAdd ap conn [ep] cctx none cd go!"r" (v3rpc.etcdRoleAddSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrRoleAdd go!"r") (fun _ => effLb ρ.kv 2)))) $$ [] as %resp2 %err2 Hout2
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrRoleAdd go!"r") (fun _ => effLb ρ.kv 2)))) $$ [$Hlt] as %resp2 %err2 ⟨Hlt, Hout2⟩
     · iframe #
       isplitl
       rotate_left
@@ -248,13 +251,14 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr2
     imod (setup_post s E ρ conn _ γz 2 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq2 with #F2
     (try wp_auto)
     wp_apply (wp_RoleGrantPermission ap conn [ep] cctx none cd go!"r" go!"a" go!"b" (W32 2) (v3rpc.etcdRoleGrantPermissionSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) (fun _ => effLb ρ.kv 3)))) $$ [] as %resp3 %err3 Hout3
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) (fun _ => effLb ρ.kv 3)))) $$ [$Hlt] as %resp3 %err3 ⟨Hlt, Hout3⟩
     · iframe #
       isplitr
       · ipureintro; decide
@@ -274,13 +278,14 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr3
     imod (setup_post s E ρ conn _ γz 3 (irrRoleGrantPermission go!"r" (some (⟨W32 2, go!"a", go!"b"⟩ : auth.PermW))) rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq3 with #F3
     (try wp_auto)
     wp_apply (wp_UserAdd ap conn [ep] cctx none cd go!"u" go!"u-pw" (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok go!"u" (fun _ => effLb ρ.kv 4)))) $$ [] as %resp4 %err4 Hout4
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok go!"u" (fun _ => effLb ρ.kv 4)))) $$ [$Hlt] as %resp4 %err4 ⟨Hlt, Hout4⟩
     · iframe #
       isplitl
       rotate_left
@@ -298,13 +303,14 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr4
     imod (setup_post_userAdd s E ρ conn _ γz 4 go!"u" (fun um h1 h2 => ⟨um, rfl, h2, h1⟩) ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq4 with #F4
     (try wp_auto)
     wp_apply (wp_UserGrantRole ap conn [ep] cctx none cd go!"u" go!"r" (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole go!"u" go!"r") (fun _ => effLb ρ.kv 5)))) $$ [] as %resp5 %err5 Hout5
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole go!"u" go!"r") (fun _ => effLb ρ.kv 5)))) $$ [$Hlt] as %resp5 %err5 ⟨Hlt, Hout5⟩
     · iframe #
       isplitl
       rotate_left
@@ -322,13 +328,14 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr5
     imod (setup_post s E ρ conn _ γz 5 _ rfl ⊤ (fun _ _ => CoPset.mem_full) (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq5 with #F5
     (try wp_auto)
     wp_apply (wp_UserAdd ap conn [ep] cctx none cd go!"v" go!"v-pw" (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok go!"v" (fun _ => effLb ρ.kv 6)))) $$ [] as %resp6 %err6 Hout6
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok go!"v" (fun _ => effLb ρ.kv 6)))) $$ [$Hlt] as %resp6 %err6 ⟨Hlt, Hout6⟩
     · iframe #
       isplitl
       rotate_left
@@ -346,6 +353,7 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr6
@@ -364,7 +372,7 @@ theorem SetUp.wp_proof
       · iexact F5
       · iexact F6
     wp_apply (wp_AuthEnable ap conn [ep] cctx none cd (v3rpc.etcdAuthEnableSpec (srvTLSId s) E ρ)
-        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz)))) $$ [] as %resp7 %err7 Hout7
+        (setupReplied s E ρ conn (GoInterface.ok cctx) (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz)))) $$ [$Hlt] as %resp7 %err7 ⟨Hlt, Hout7⟩
     · iframe #
       iintro !>
       inext
@@ -379,6 +387,7 @@ theorem SetUp.wp_proof
         wp_apply Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
     subst Herr7
@@ -388,6 +397,7 @@ theorem SetUp.wp_proof
     wp_apply Hcancel
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     simp only [↓reduceIte]
     iexists γz, hs, Lset, k, r
     iframe Hf HLs Hk Hst

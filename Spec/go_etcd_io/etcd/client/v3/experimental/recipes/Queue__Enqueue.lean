@@ -30,13 +30,11 @@ reached (`keyCreatedAt`: absent at `r - 1`; its mod revision `r` is its place in
 an error. -/
 abbrev Queue.Enqueue.spec : Prop :=
   ∀ (q client : Loc) (kp val : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isQueue q client kp ∗ etcdReached lo ∗ ⌜val.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isQueue q client kp ∗ etcdReached lo ∗ ⌜val.length ≤ recipesStrMax⌝) }}
     (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64), etcdReached r ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64), etcdReached r ∗
         keyCreatedAt kp key val (W64 0) r ∗ ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

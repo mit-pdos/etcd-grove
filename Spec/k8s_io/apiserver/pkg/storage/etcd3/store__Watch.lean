@@ -52,7 +52,7 @@ abbrev store.Watch.spec : Prop :=
     kvRevFits σ.rev⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
   (∀ x ∈ c.ms, noRefusalAt x.addr) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       storeWatchOk sp c W γk ∗
       ⌜prepareKeyM c.resourcePrefix key opts.Recursive' = some k ∧
         (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV opts.ResourceVersion' = some n ∧
@@ -63,15 +63,14 @@ abbrev store.Watch.spec : Prop :=
       k8sctx.k8sCtxOk ci ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       (|==> readAus c γk (Q 0)) ∗
-      (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev)) }}
+      (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev))) }}
     (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Watch")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #opts))
-  {{ (wi err : GoInterface), RET (PairV #wi #err);
-      ⌜err ≠ GoInterface.nil ∧ sie = some false ∧ uint.nat n = 0⌝ ∨
+  {{ (wi err : GoInterface), RET (PairV #wi #err); levelTok 0 ∗ (⌜err ≠ GoInterface.nil ∧ sie = some false ∧ uint.nat n = 0⌝ ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ γ : KWatchNames,
         k8sWatch c W wi γ cd sel emp (kScopeOf c k opts.Recursive')
-          (kModeOf sie opts.Predicate'.AllowWatchBookmarks' n) Q) }}
+          (kModeOf sie opts.Predicate'.AllowWatchBookmarks' n) Q)) }}
 
 end spec
 

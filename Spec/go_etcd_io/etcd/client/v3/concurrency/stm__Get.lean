@@ -30,14 +30,14 @@ key's value, or `fetch`'s (`GetPost`), for a call that fits (`STMCallOk`). A cli
 abbrev stm.Get.spec : Prop :=
   ∀ (b : Loc) (pfx : GoString) (st : STMSt) (gs : List (OpFull → OpFull)) (ksl : GoSlice)
     (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
       stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗ ksl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗
-      ⌜STMCallOk st ks []⌝ }}
+      ⌜STMCallOk st ks []⌝) }}
     (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"Get")) (Val #ksl))
-  {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
+  {{ (r : val), RET r; levelTok 0 ∗ (stmRet r fun v : GoString => iprop(
       ∃ reads' : GMap GoString ReadM, stmRsetOwn pfx b reads' ∗
       stmWsetOwn pfx b st.writes ∗ stmOptsOwn b gs ∗
-      ⌜GetPost ks st v { reads := reads', writes := st.writes, n := st.n + ks.length }⌝) }}
+      ⌜GetPost ks st v { reads := reads', writes := st.writes, n := st.n + ks.length }⌝)) }}
 
 end spec
 

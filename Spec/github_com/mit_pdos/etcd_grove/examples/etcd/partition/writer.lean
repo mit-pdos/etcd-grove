@@ -43,18 +43,16 @@ abbrev writer.spec : Prop :=
   γ.W = wkW P → tried.map pairOf = P →
   cls ≠ [] → 0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length →
   (∀ x ∈ tried, etcdstart.wkvSizeOk x) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      clis ↦*□ cls ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (clis ↦*□ cls ∗
       ([∗list] cl ∈ cls, isNewClient cl (ms.map client.SrvAt.addr) V ∗
         client.clientWriteOnce cl (ms.map client.SrvAt.addr)) ∗
       ([∗list] x ∈ ms, memberPut γ.kv x) ∗
       tsl ↦*□ tried ∗ client.kmInv γ ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" w)
-        (wsInvH w γ) }}
+        (wsInvH w γ)) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.writer))
       (Val #clis)) (Val #w)) (Val #tsl)) (Val #lo)) (Val #hi))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

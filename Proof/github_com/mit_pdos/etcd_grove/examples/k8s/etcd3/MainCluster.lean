@@ -120,10 +120,13 @@ theorem MainCluster.wp_proof
   ihave #Hsis := seedInvs_of_same γs γk ms hsame $$ Hsi
   imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
   -- `newStore(kc)`: the seed, the features, `etcd3.New`
-  wp_apply (wp_newStore kc cl ms V γs γh hAs hmsne (by omega)) $$ [Hs] as %s %st0 %h0 %ok Hns
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok⟩
+  wp_apply (wp_newStore kc cl ms V γs γh hAs hmsne (by omega)) $$ [$Hlt Hs] as %s %st0 %h0 %ok ⟨Hlt, Hns⟩
   · rw [Hsva]
     iframe #
     iframe Hs
+  ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok]
+  · iframe
   icases Hns with (%Hok | ⟨%Hok, Hs, Hst0, ⟨%hs, #Hh0, Hhs⟩, #Hrs, #Hwl, %sp, %mt, %lt, %Hsp,
     #Hstore, #Hsw⟩)
   · subst Hok

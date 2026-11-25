@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem Session.Close.wp_proof (hO : Session.Orphan.spec (GF := GF) (hG := hG)) :
     Session.Close.spec (GF := GF) (hG := hG) := by
   intro s γ client id
-  wp_start as #Hs
+  wp_start as ⟨Hlt, #Hs⟩
   ihave #Hs' := Hs
   iunfold isSession at Hs'
   icases Hs' with ⟨%ops, %o, %octx, %ocs, %ctx, %cs, %cancel, %donec, #HC, #HO, #HI, #Hx, #Hcn,
@@ -48,11 +48,12 @@ theorem Session.Close.wp_proof (hO : Session.Orphan.spec (GF := GF) (hG := hG)) 
   icases Hl with ⟨-, -, #HRev⟩
   (try wp_auto)
   ihave #HtC := metadata.outgoingCtxOkC_from octx tctx $$ [$Htfrom $HoctxC]
-  wp_apply HRev $$ [$Htctx $HtC] as %resp %err -
+  wp_apply HRev $$ [$Hlt $Htctx $HtC] as %resp %err ⟨Hlt, -⟩
   (try wp_auto)
   wp_apply Htc
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   iexact Hsd
 
 end proof

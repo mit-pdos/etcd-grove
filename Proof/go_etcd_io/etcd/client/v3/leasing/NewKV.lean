@@ -159,9 +159,11 @@ theorem NewKV.wp_proof
   -- the session monitor
   wp_apply wp_fork_tok_body $$ [Hr1 Hs2 Hsc2 Hpend]
   · iintro Htok
+    -- the monitor's calls take its thread token's level 0
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Hrest⟩
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
-    wp_apply hMS «$r0_ptr» γ pfx $$ [$Hpkg $Hlkv Hs2 Hsc2 Hpend]
+    wp_apply hMS «$r0_ptr» γ pfx $$ [$Hpkg $Hlt $Hlkv Hs2 Hsc2 Hpend] as ⟨Hlt, -⟩
     · unfold sessionMonitor
       iexists null, sc, γsc, false
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -174,7 +176,8 @@ theorem NewKV.wp_proof
     wp_apply wp_leasingWg_DoneOwed «$r0_ptr» γ $$ [$Hsync $HisWg $HwgInv Hr1] as -
     · unfold leasingWgRunningOwed; iexact Hr1
     (try wp_auto)
-    iexact Htok
+    iapply (threadTok_level0 (GF := GF)).2
+    iframe
   -- `clearOldRevokes`
   wp_apply wp_fork_tok_body $$ [Hr2]
   · iintro Htok

@@ -34,7 +34,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.specG (GF := GF) (hG := hG) := by
   intro tp api0 conn0 addr ci om cd b Spec Q
-  wp_start as ⟨Htx, #Hom, #Hkv0, #Hobj0, #Hrpc, Hrun, %Hsz⟩
+  wp_start as ⟨Hlt, Htx, #Hom, #Hkv0, #Hobj0, #Hrpc, Hrun, %Hsz⟩
   iunfold txnObjAt at Htx
   icases Htx with ⟨%Htpn, %api, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #Hkvf, #Hkv, #Hctxf,
     #Hctx, #Hce, #Hmu, Hcif, Hcthen, Hcelse, Hiw, Hcmps, Hcsl, Hccap, #Hcpa, Hsus, Hssl, Hscap,
@@ -70,8 +70,8 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun
     unfold txnKvIs; iexact Hkvf
-  wp_apply wp_retry_Txn rkv conn0 addr Spec Q ci om cd _ _ (txnWireOf b.model) cosl vs $$ [«$r0» Hrun']
-    as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry_Txn rkv conn0 addr Spec Q ci om cd _ _ (txnWireOf b.model) cosl vs $$ [Hlt «$r0» Hrun']
+    as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     isplitl []; rotate_left
@@ -86,6 +86,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
     · inext; itrivial
     iapply HΦ
+    iframe Hlt
     unfold txnCallOut
     ileft
     iframe Hm
@@ -102,6 +103,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
       · inext; itrivial
       iapply HΦ
+      iframe Hlt
       unfold txnCallOut
       iright
       iframe #
@@ -114,14 +116,14 @@ theorem txn.Commit.wp_members (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.specM (GF := GF) (hG := hG) := by
   intro tp ms ci cd b c F Q
-  iintro %Φ ⟨#Pc, Hobj, #Hregs, %Hp, #Hk, Hu, %Hsz⟩ HΦ
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hregs, %Hp, #Hk, Hu, %Hsz⟩ HΦ
   icases txnObjAt_kv tp (ms.map SrvAt.addr) ci cd b $$ Hobj with ⟨%api, %conn, #Hkv, #Hkc, Hobj⟩
   icases txnObjAt_outMD tp (ms.map SrvAt.addr) ci cd b $$ Hobj with ⟨Hobj, %om, #Hom⟩
   -- the plain spec at every metadata (`GrpcSpec.md`)
   iapply (txn.Commit.wp_generic wp_retry_Txn wp_ContextError tp api conn (ms.map SrvAt.addr) ci om cd b
-    (GrpcSpec.md (kvTxnSpec ms)) (txnAns ms c F (txnWireOf b.model) Q)) $$ [Hobj Hu] HΦ
+    (GrpcSpec.md (kvTxnSpec ms)) (txnAns ms c F (txnWireOf b.model) Q)) $$ [Hlt Hobj Hu] HΦ
   iframe #
-  iframe Hobj
+  iframe Hlt Hobj
   isplitl []
   · iapply (isGrpcRpcs_md _ _ _).1; iapply (kvRegs_rpcTxn ms) $$ Hregs
   isplitl [Hu]; rotate_left
@@ -139,7 +141,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.spec (GF := GF) (hG := hG) := by
   intro tp addr api γ dup ci cd b Q
-  iintro %Φ ⟨#Pc, Hobj, #Hkt, #Hkv, %Hp, Hu, %Hsz⟩ HΦ
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hkt, #Hkv, %Hp, Hu, %Hsz⟩ HΦ
   ihave Hu := txnAu_upd dup γ (txnWireOf b.model) Q $$ Hu
   ihave ⟨%Hz, Hu⟩ := writeUpd_txn_nz (!dup) γ (txnWireOf b.model) Q $$ Hu
   iunfold isKv at Hkv
@@ -152,8 +154,8 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   · iframe Hobj; iframe #
   ihave #HK := srvStart_both ms $$ Hst
   iapply (txn.Commit.wp_members wp_retry_Txn wp_ContextError tp ms ci cd b (W64 0) [] Q)
-    $$ [Hobj Hu]
-  · iframe Hobj
+    $$ [Hlt Hobj Hu]
+  · iframe Hlt Hobj
     iframe #
     isplitl []
     · ipureintro; exact Hp
@@ -164,8 +166,9 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     iapply (txnReqPre_of_upd tp ms (!dup) (noRefusal_of_dup ms dup Hr) _ _
       (txnUpd_of ms γ Hn (txnWireOf b.model) Q)) $$ Hu
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   iapply (txnCallOut_st γ)
   iapply (txnCallOut_mono _ _ resp err
     (fun m => txnAns_st Hrb ms γ Hns (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
