@@ -49,12 +49,12 @@ interceptor (`grpcConnOpts`, `streamIc = none`), and the three streams registere
 address with the table's specifications (`strmSpec`: a response's content is the entry's `dn`). -/
 def drvStrmFacts (conn : Loc) : IProp GF :=
   iprop(□ ((∃ d : GrpcConnOpts, grpcConnOpts conn d ∗ ⌜d.streamIc = none⌝) ∗
-    isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr serverStreamName ssUp (strmSpec ssDn) ∗
-    isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr clientStreamName csUp (strmSpec csDn) ∗
-    isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr bidiName biUp (strmSpec biDn)))
+    isGrpcStreamMd (Req := strmMsg (GF := GF))
+      (Rep := strmMsg (GF := GF)) drvAddr serverStreamName ssUp (strmSpec ssDn) ∗
+    isGrpcStreamMd (Req := strmMsg (GF := GF))
+      (Rep := strmMsg (GF := GF)) drvAddr clientStreamName csUp (strmSpec csDn) ∗
+    isGrpcStreamMd (Req := strmMsg (GF := GF))
+      (Rep := strmMsg (GF := GF)) drvAddr bidiName biUp (strmSpec biDn)))
 
 instance drvStrmFacts_persistent (conn : Loc) : Persistent (drvStrmFacts (GF := GF) conn) := by
   unfold drvStrmFacts; infer_instance

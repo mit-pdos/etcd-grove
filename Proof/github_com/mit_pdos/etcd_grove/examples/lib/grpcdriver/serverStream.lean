@@ -84,11 +84,20 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     · iapply metadata.outgoingCtxOkC_background
   wp_apply (wp_SS dc conn [drvAddr] d ssUp (fun _ => strmSpec ssDn) context.backgroundCtxVal cd none
       inp v) $$ [Hinp] as %cs %err Hres
-  · iframe #
+  · isplitr
+    · iexact Hsvc
+    isplitr
+    · iexact Hcc
+    isplitr
+    · iexact Hconn
+    isplitr
+    · iexact Hopts
     isplitr
     · ipureintro; exact hnone
     isplitr
     · iexact Hss
+    isplitr
+    · iexact Hctx
     isplitr
     · iapply metadata.outMD_background
     isplitl [Hinp]
@@ -103,13 +112,14 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     subst Hci
     try wp_auto
     ihave IH : iprop(∃ (L : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
-        "HRt" ∷ cliRecvTok (Rep := (pbStringValueST (GF := GF)).toStreamMsg) γ L ∗
+        "HRt" ∷ cliRecvTok (Rep := strmMsg (GF := GF)) γ L ∗
         "%Hg" ∷ ⌜g = v.take L.length ∧ L.length ≤ v.length⌝) $$ [got HRt]
     · iexists [], go!""
       iframe
       ipureintro
       exact ⟨by simp, by simp⟩
     wp_for IH
+    try rw [if_pos (decide_eq_true rfl)]
     try wp_auto
     wp_bind (App (Val #(methods ci.ty go!"Recv" ci.v)) _)
     iapply HRecv $$ %L %iprop(True) [HRt]
@@ -124,16 +134,16 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     · -- a response: the next byte of `v`
       subst He2
       ihave #Hsp := HSpec $$ %a %md %Ha HMd
-      unfold strmSpec at Hsp
+      iunfold strmSpec at Hsp
       ihave Hss' := Hsp $$ %L.length %m HDn
-      unfold ssDn at Hss'
+      iunfold ssDn at Hss'
       icases Hss' with ⟨%v', #Hat, %Hv'⟩
       ihave %Hlk := mono_list_lb_idx_lookup γ.up [v] 0 v' (by simp) $$ [Hlb] Hat
       · unfold upLb at Hlb; iexact Hlb
       have hvv : v' = v := by simpa using Hlk.symm
       subst hvv
       obtain ⟨hlt, rfl⟩ := Hv'
-      isimp only [pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hm
+      isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
       icases Hm with ⟨%sv, Hsv, %Hsvp⟩
       obtain ⟨hval, -, -⟩ := Hsvp
       icases typedPointsto_split _ _ _ $$ Hsv with Hsv
@@ -172,7 +182,7 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
       ihave #Hce' := Hce
       iunfold cliStreamErr at Hce'
       icases Hce' with ⟨%Hne, #Hso, -, #Hse, #Hsh⟩
-      rw [hshape] at Hsh
+      try rw [hshape]
       cases err2 with
       | nil => exact absurd rfl Hne.1
       | ok ei =>
@@ -225,7 +235,7 @@ theorem serverStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hso, -, -, #Hsh⟩
-    rw [hshape] at Hsh
+    try rw [hshape]
     subst Hcs
     cases err with
     | nil => exact absurd rfl Hne.1

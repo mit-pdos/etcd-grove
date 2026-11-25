@@ -28,6 +28,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- The driver's stream message as a registered model: `pbStringValueST`, as a literal over
+`pbStringValueS` (so that its content type is `GoString` up to reducible unfolding). -/
+abbrev strmTT : StreamMsgT GF := ⟨pbStringValueS (GF := GF)⟩
+
+theorem strmTT_reqReg : streamReqModelOf GF (strmTT (GF := GF)).ty = some (strmTT (GF := GF)) :=
+  pbStringValueST_reqReg
+
+theorem strmTT_repReg : streamRepModelOf GF (strmTT (GF := GF)).ty = some (strmTT (GF := GF)) :=
+  pbStringValueST_repReg
+
 /-- **The wrapped client end's `CloseAndRecv`** (persistent): closes the up queue after the requests
 sent (`upClosed`), then receives the first response: its content (`Dn`), or an error (`io.EOF`'s
 value, or a stream error). -/

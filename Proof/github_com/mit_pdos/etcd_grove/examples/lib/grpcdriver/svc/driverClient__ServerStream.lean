@@ -99,8 +99,8 @@ theorem driverClient.ServerStream.wp_proof
     ileft
     iexact Hsm
   have hNS := wp_NewStream conn addrs [] anyRes d (fun om om' => om' = om)
-    go!"/grpcdriver.Driver/ServerStream" pbStringValueST pbStringValueST pbStringValueST_reqReg
-    pbStringValueST_repReg Up Spec ctx cd om
+    go!"/grpcdriver.Driver/ServerStream" strmTT strmTT strmTT_reqReg
+    strmTT_repReg Up Spec ctx cd om
   iapply (hNS _ copts ([sm] ++ []) iprop(True))
   · isplitr
     · iframe #
@@ -127,13 +127,13 @@ theorem driverClient.ServerStream.wp_proof
     wp_auto
     iStructNamed «$r0»
     ipersist ClientStream
-    have hReq : (pbStringValueST (GF := GF)).toStreamMsg.ty = wrapperspb.StringValue.ty := rfl
+    have hReq : (strmT (GF := GF)).ty = wrapperspb.StringValue.ty := rfl
     have hI : IntoValTyped (GF := GF) wrapperspb.StringValue
-        (pbStringValueST (GF := GF)).toStreamMsg.ty := hReq ▸ inferInstance
-    have hT : TypeRepr (pbStringValueST (GF := GF)).toStreamMsg.ty wrapperspb.StringValue :=
+        (strmT (GF := GF)).ty := hReq ▸ inferInstance
+    have hT : TypeRepr (strmT (GF := GF)).ty wrapperspb.StringValue :=
       hReq ▸ inferInstance
-    have hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) wrapperspb.StringValue wrapperspb.StringValue
+    have hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (strmT (GF := GF)))
+      (Rep := (strmT (GF := GF))) wrapperspb.StringValue wrapperspb.StringValue
       wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
       (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn cd'
       anyRes (streamErrShape d)
@@ -141,7 +141,7 @@ theorem driverClient.ServerStream.wp_proof
     ihave #Hw := hw $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
-      simp only [pbStringValueST, pbStringValueS]
+      simp only [strmT, pbStringValueS]
       iexists _
       iexact Hl
     -- the request, then the end of the up queue
@@ -152,21 +152,21 @@ theorem driverClient.ServerStream.wp_proof
     iunfold stringValueSend at Hinp
     iunfold stringValueSendB at Hinp
     icases Hinp with ⟨%sv, Hsv, %Hsvp⟩
-    have hwl : (pbStringValueST (GF := GF)).wireLen v < grpcMsgMax := by
+    have hwl : (strmT (GF := GF)).wireLen v < grpcMsgMax := by
       have h := Hsvp.2.2
-      simp only [pbStringValueST, pbStringValueS, stringValueWireLen, grpcMsgMax]
+      simp only [strmT, pbStringValueS, stringValueWireLen, grpcMsgMax]
       simp only [stringValueMax] at h
       omega
-    ihave Hinp : iprop((pbStringValueST (GF := GF)).send inp v) $$ [Hsv]
-    · simp only [pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB]
+    ihave Hinp : iprop((strmT (GF := GF)).send inp v) $$ [Hsv]
+    · simp only [strmT, pbStringValueS, stringValueSend, stringValueSendB]
       iexists sv
       iframe
       ipureintro; exact Hsvp
-    have hty : msgAny (pbStringValueST (GF := GF)).ty inp =
+    have hty : msgAny (strmT (GF := GF)).ty inp =
         interface.mkOk (go.GoType.PointerType Msg.ty) #inp := rfl
     rw [← hty]
     wp_bind (App (Val #(methods ci.ty go!"SendMsg" ci.v)) _)
-    iapply HSend $$ %([] : List (pbStringValueST (GF := GF)).M) %inp %v %iprop(True) [HSt Hinp HUp]
+    iapply HSend $$ %([] : List (strmT (GF := GF)).M) %inp %v %iprop(True) [HSt Hinp HUp]
     · isplitr
       · ipureintro; trivial
       isplitr
@@ -176,11 +176,12 @@ theorem driverClient.ServerStream.wp_proof
     iintro !> %err1 ⟨-, -, Hres1⟩
     icases Hres1 with (⟨%He1, HSt⟩ | ⟨#Hce1, -⟩)
     · subst He1
+      isimp only [List.nil_append] at HSt
       wp_auto
-      icases cliSendTok_lb (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ _ $$ HSt
+      icases cliSendTok_lb (Req := (strmT (GF := GF))) γ _ $$ HSt
         with ⟨HSt, #Hlb⟩
       wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
-      iapply HClose $$ %([v] : List (pbStringValueST (GF := GF)).M) %iprop(True) [HSt]
+      iapply HClose $$ %([v] : List (strmT (GF := GF)).M) %iprop(True) [HSt]
       · isplitr
         · ipureintro; trivial
         isplitr

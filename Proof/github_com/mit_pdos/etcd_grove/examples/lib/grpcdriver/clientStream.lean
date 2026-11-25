@@ -73,11 +73,20 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     · iapply metadata.outgoingCtxOkC_background
   wp_apply (wp_CS dc conn [drvAddr] d csUp (fun _ => strmSpec csDn) context.backgroundCtxVal cd
       none) $$ [] as %cs %err Hres
-  · iframe #
+  · isplitr
+    · iexact Hsvc
+    isplitr
+    · iexact Hcc
+    isplitr
+    · iexact Hconn
+    isplitr
+    · iexact Hopts
     isplitr
     · ipureintro; exact hnone
     isplitr
     · iexact Hcs
+    isplitr
+    · iexact Hctx
     iapply metadata.outMD_background
   icases Hres with (⟨%He, %γ, %Dn, %cd', Hw, #Hcar, HSt, HRt, #HSpec⟩ | ⟨%Hcsn, #Herr⟩)
   · subst He
@@ -93,7 +102,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
     have hv16 : v.length ≤ 16 := Hw.1
     try wp_auto
     ihave IH : iprop(∃ (k : w64) (S : List GoString), "i" ∷ i_ptr ↦ k ∗
-        "HSt" ∷ cliSendTok (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ S ∗
+        "HSt" ∷ cliSendTok (Req := strmMsg (GF := GF)) γ S ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ v.length ∧ S.length = sint.nat k ∧
           S.flatten = v.take (sint.nat k)⌝) $$ [i HSt]
     · iexists W64 0, []
@@ -129,7 +138,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
             ipureintro
             exact ⟨List.length_take_le _ _, by rw [Hk.2.2.1]; word⟩
           ipureintro
-          simp only [pbStringValueST, pbStringValueS, stringValueWireLen, grpcMsgMax]
+          simp only [strmMsg, pbStringValueS, stringValueWireLen, grpcMsgMax]
           have := List.length_take_le 1 (v.drop (sint.nat k))
           omega
         iintro !> %err1 ⟨-, -, Hres1⟩
@@ -138,11 +147,11 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
           wp_auto
           wp_for_post
           iframe
-          iexists k + W64 1, S ++ [(v.drop (sint.nat k)).take 1]
+          iexists k + 1, S ++ [(v.drop (sint.nat k)).take 1]
           iframe
           ipureintro
-          have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
-          refine ⟨by word, by word, by simp [Hk.2.2.1, hk1], ?_⟩
+          have hk1 : sint.nat (k + 1) = sint.nat k + 1 := by word
+          refine ⟨by word, by word, by simp [Hk.2.2.1]; word, ?_⟩
           rw [List.flatten_append, Hk.2.2.2, hk1, List.take_add]
           simp
         · ihave #Hce1' := Hce1
@@ -169,6 +178,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
         have := of_decide_eq_false hc
         word
       have hSv : S.flatten = v := by rw [Hk.2.2.2, hkv, List.take_length]
+      try simp only [decide_true, ↓reduceIte, ite_true]
       try wp_auto
       wp_bind (App (Val #(methods ci.ty go!"CloseAndRecv" ci.v)) _)
       iapply HCar $$ %S [HSt HRt]
@@ -177,9 +187,9 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
       icases Hres2 with (⟨%He2, %a, %md, %m, ⟨%Ha, #HMd⟩, Hm, HDn⟩ | ⟨%Hne, Hres2⟩)
       · subst He2
         ihave #Hsp := HSpec $$ %a %md %Ha HMd
-        unfold strmSpec at Hsp
+        iunfold strmSpec at Hsp
         ihave Hcd := Hsp $$ %0 %m HDn
-        unfold csDn at Hcd
+        iunfold csDn at Hcd
         icases Hcd with ⟨-, %L, #HclL, %HmL⟩
         iunfold upClosed at Hcl
         iunfold upClosed at HclL
@@ -187,7 +197,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
         subst Heq
         have hmv : m = v := by rw [HmL, hSv]
         subst hmv
-        isimp only [pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hm
+        isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
         icases Hm with ⟨%sv, Hsv, %Hsvp⟩
         obtain ⟨hval, -, -⟩ := Hsvp
         icases typedPointsto_split _ _ _ $$ Hsv with Hsv
@@ -224,7 +234,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
             itrivial
           · iunfold cliStreamErr at Hce2
             icases Hce2 with ⟨-, #Hso, -, -, #Hsh⟩
-            rw [hshape] at Hsh
+            try rw [hshape]
             wp_auto
             wp_apply wp_checkErr _ $$ []
             · iframe #
@@ -234,7 +244,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hso, -, -, #Hsh⟩
-    rw [hshape] at Hsh
+    try rw [hshape]
     subst Hcsn
     cases err with
     | nil => exact absurd rfl Hne.1

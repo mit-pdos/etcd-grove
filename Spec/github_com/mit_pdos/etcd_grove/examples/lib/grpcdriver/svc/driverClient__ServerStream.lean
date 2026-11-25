@@ -29,15 +29,15 @@ variable [package_sem : Assumptions]
 
 /-- See the file header. -/
 abbrev driverClient.ServerStream.spec : Prop :=
-  ∀ (dc conn : Loc) (addrs : List GoString) (d : GrpcConnOpts) (Up : Nat → (pbStringValueST (GF := GF)).M → IProp GF)
-    (Spec : GoString → GrpcMd → StreamSpec (pbStringValueST (GF := GF)).toStreamMsg)
+  ∀ (dc conn : Loc) (addrs : List GoString) (d : GrpcConnOpts) (Up : Nat → (strmT (GF := GF)).M → IProp GF)
+    (Spec : GoString → GrpcMd → StreamSpec (strmT (GF := GF)))
     (ctx : GoInterfaceOk) (cd : _root_.Perennial.context.ContextDesc (IProp GF)) (om : GrpcMd) (inp : Loc) (v : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ∗
       structFieldRef driverClient go!"cc" dc ↦□
         (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #conn : GoInterface) ∗
       grpcConn conn addrs [] [] anyRes ∗ grpcConnOpts conn d ∗ ⌜d.streamIc = none⌝ ∗
-      isGrpcStreamsMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-        (Rep := (pbStringValueST (GF := GF)).toStreamMsg) addrs go!"/grpcdriver.Driver/ServerStream"
+      isGrpcStreamsMd (Req := (strmT (GF := GF)))
+        (Rep := (strmT (GF := GF))) addrs go!"/grpcdriver.Driver/ServerStream"
         (fun _ => Up) Spec ∗
       ctxOk ctx cd ∗ metadata.outMD ctx om ∗
       stringValueSend inp v ∗ Up 0 v }}
@@ -45,15 +45,15 @@ abbrev driverClient.ServerStream.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #slice.nil))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames)
-          (Dn : GoString → GrpcMd → Nat → (pbStringValueST (GF := GF)).M → IProp GF)
+          (Dn : GoString → GrpcMd → Nat → (strmT (GF := GF)).M → IProp GF)
           (cd' : _root_.Perennial.context.ContextDesc (IProp GF)),
-        cliBidiStreamIs cs γ (pbStringValueST (GF := GF)).toStreamMsg
-          (pbStringValueST (GF := GF)).toStreamMsg Up
+        cliBidiStreamIs cs γ (strmT (GF := GF))
+          (strmT (GF := GF)) Up
           (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn
           cd' anyRes (streamErrShape d) ∗
-        upLb (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ [v] ∗
-        upClosed (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ [v] ∗
-        cliRecvTok (Rep := (pbStringValueST (GF := GF)).toStreamMsg) γ [] ∗
+        upLb (Req := (strmT (GF := GF))) γ [v] ∗
+        upClosed (Req := (strmT (GF := GF))) γ [v] ∗
+        cliRecvTok (Rep := (strmT (GF := GF))) γ [] ∗
         □ (∀ a md, ⌜a ∈ addrs⌝ -∗ streamAttemptMd conn (fun om om' => om' = om) om md -∗
           Spec a md γ (Dn a md))) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err (streamErrShape d)) }}

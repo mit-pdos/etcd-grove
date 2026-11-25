@@ -87,11 +87,20 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
     · iapply metadata.outgoingCtxOkC_background
   wp_apply (wp_Bi dc conn [drvAddr] d biUp (fun _ => strmSpec biDn) context.backgroundCtxVal cd
       none) $$ [] as %cs %err Hres
-  · iframe #
+  · isplitr
+    · iexact Hsvc
+    isplitr
+    · iexact Hcc
+    isplitr
+    · iexact Hconn
+    isplitr
+    · iexact Hopts
     isplitr
     · ipureintro; exact hnone
     isplitr
     · iexact Hbis
+    isplitr
+    · iexact Hctx
     iapply metadata.outMD_background
   icases Hres with (⟨%He, %γ, %Dn, %cd', Hw, HSt, HRt, #HSpec⟩ | ⟨%Hcsn, #Herr⟩)
   · subst He
@@ -102,7 +111,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
     wp_apply wp_randomWord as %v %Hw
     try wp_auto
     ihave IH : iprop(∃ (k : w64) (S : List GoString), "i" ∷ i_ptr ↦ k ∗ "sent" ∷ sent_ptr ↦ S.flatten ∗
-        "HSt" ∷ cliSendTok (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ S ∗
+        "HSt" ∷ cliSendTok (Req := strmMsg (GF := GF)) γ S ∗
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ v.length ∧ S.flatten = v.take (sint.nat k)⌝) $$ [i sent HSt]
     · iexists W64 0, []
       iframe
@@ -137,7 +146,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
             ipureintro
             exact List.length_take_le _ _
           ipureintro
-          simp only [pbStringValueST, pbStringValueS, stringValueWireLen, grpcMsgMax]
+          simp only [strmMsg, pbStringValueS, stringValueWireLen, grpcMsgMax]
           have := List.length_take_le 1 (v.drop (sint.nat k))
           omega
         iintro !> %err1 ⟨-, -, Hres1⟩
@@ -145,7 +154,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
         split
         · rw [h1]
           try wp_auto
-          have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+          have hk1 : sint.nat (k + 1) = sint.nat k + 1 := by word
           have hcat : S.flatten ++ (v.drop (sint.nat k)).take 1 = v.take (sint.nat k + 1) := by
             rw [Hk.2.2, List.take_add]
           icases Hres1 with (⟨%He1, HSt⟩ | ⟨#Hce1, %T, %HT, HSt⟩)
@@ -153,7 +162,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
             wp_auto
             wp_for_post
             iframe
-            iexists k + W64 1, S ++ [(v.drop (sint.nat k)).take 1]
+            iexists k + 1, S ++ [(v.drop (sint.nat k)).take 1]
             simp only [List.flatten_append, List.flatten_singleton]
             iframe
             ipureintro
@@ -173,7 +182,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                 · simp
               generalize S.flatten ++ (v.drop (sint.nat k)).take 1 = s at HTs ⊢
               ihave IH2 : iprop(∃ (L : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
-                  "HRt" ∷ cliRecvTok (Rep := (pbStringValueST (GF := GF)).toStreamMsg) γ L ∗
+                  "HRt" ∷ cliRecvTok (Rep := strmMsg (GF := GF)) γ L ∗
                   "%Hg" ∷ ⌜g = (T.take L.length).flatten⌝) $$ [got HRt]
               · iexists [], go!""
                 iframe
@@ -199,12 +208,13 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                   ⟨%Hnull, #Heof, %Hne, -, -⟩ | ⟨%Hnull, #Hce, -⟩)
                 · subst He2
                   ihave #Hsp := HSpec $$ %a %md %Ha HMd
-                  unfold strmSpec at Hsp
+                  iunfold strmSpec at Hsp
                   ihave Hat := Hsp $$ %L.length %m HDn
-                  unfold biDn upAt at Hat
+                  iunfold biDn at Hat
+                  iunfold upAt at Hat
                   iunfold cliSendTok at HSt
                   ihave %Hlk := mono_list_auth_idx_lookup γ.up _ T L.length m $$ HSt Hat
-                  isimp only [pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hm
+                  isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
                   icases Hm with ⟨%sv, Hsv, %Hsvp⟩
                   obtain ⟨hval, -, -⟩ := Hsvp
                   icases typedPointsto_split _ _ _ $$ Hsv with Hsv
@@ -214,9 +224,9 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                   rw [hval]
                   wp_apply wp_HasPrefix $$ [$Hstr]
                   have hlt : L.length < T.length := by
-                    by_contra h
-                    rw [List.getElem?_eq_none (by omega)] at Hlk
-                    cases Hlk
+                    rcases Nat.lt_or_ge L.length T.length with h | h
+                    · exact h
+                    · rw [List.getElem?_eq_none h] at Hlk; cases Hlk
                   have hpre : g ++ m = (T.take (L.length + 1)).flatten := by
                     rw [Hg, List.take_add_one, List.flatten_append, Hlk]
                     simp
@@ -246,7 +256,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                 · ihave #Hce' := Hce
                   iunfold cliStreamErr at Hce'
                   icases Hce' with ⟨%Hne, #Hso, -, #Hse, #Hsh⟩
-                  rw [hshape] at Hsh
+                  try rw [hshape]
                   cases err2 with
                   | nil => exact absurd rfl Hne.1
                   | ok ei =>
@@ -335,7 +345,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
       generalize hT : S = T at HTs HSt
       generalize S.flatten = s at HTs ⊢
       ihave IH2 : iprop(∃ (L : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
-          "HRt" ∷ cliRecvTok (Rep := (pbStringValueST (GF := GF)).toStreamMsg) γ L ∗
+          "HRt" ∷ cliRecvTok (Rep := strmMsg (GF := GF)) γ L ∗
           "%Hg" ∷ ⌜g = (T.take L.length).flatten⌝) $$ [got HRt]
       · iexists [], go!""
         iframe
@@ -361,12 +371,13 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
           ⟨%Hnull, #Heof, %Hne, -, -⟩ | ⟨%Hnull, #Hce, -⟩)
         · subst He2
           ihave #Hsp := HSpec $$ %a %md %Ha HMd
-          unfold strmSpec at Hsp
+          iunfold strmSpec at Hsp
           ihave Hat := Hsp $$ %L.length %m HDn
-          unfold biDn upAt at Hat
+          iunfold biDn at Hat
+          iunfold upAt at Hat
           iunfold cliSendTok at HSt
           ihave %Hlk := mono_list_auth_idx_lookup γ.up _ T L.length m $$ HSt Hat
-          isimp only [pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hm
+          isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
           icases Hm with ⟨%sv, Hsv, %Hsvp⟩
           obtain ⟨hval, -, -⟩ := Hsvp
           icases typedPointsto_split _ _ _ $$ Hsv with Hsv
@@ -376,9 +387,9 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
           rw [hval]
           wp_apply wp_HasPrefix $$ [$Hstr]
           have hlt : L.length < T.length := by
-            by_contra h
-            rw [List.getElem?_eq_none (by omega)] at Hlk
-            cases Hlk
+            rcases Nat.lt_or_ge L.length T.length with h | h
+            · exact h
+            · rw [List.getElem?_eq_none h] at Hlk; cases Hlk
           have hpre : g ++ m = (T.take (L.length + 1)).flatten := by
             rw [Hg, List.take_add_one, List.flatten_append, Hlk]
             simp
@@ -408,7 +419,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
         · ihave #Hce' := Hce
           iunfold cliStreamErr at Hce'
           icases Hce' with ⟨%Hne, #Hso, -, #Hse, #Hsh⟩
-          rw [hshape] at Hsh
+          try rw [hshape]
           cases err2 with
           | nil => exact absurd rfl Hne.1
           | ok ei =>
@@ -481,7 +492,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hso, -, -, #Hsh⟩
-    rw [hshape] at Hsh
+    try rw [hshape]
     subst Hcsn
     cases err with
     | nil => exact absurd rfl Hne.1

@@ -99,8 +99,8 @@ theorem driverClient.Bidi.wp_proof
     ileft
     iexact Hsm
   have hNS := wp_NewStream conn addrs [] anyRes d (fun om om' => om' = om)
-    go!"/grpcdriver.Driver/Bidi" pbStringValueST pbStringValueST pbStringValueST_reqReg
-    pbStringValueST_repReg Up Spec ctx cd om
+    go!"/grpcdriver.Driver/Bidi" strmTT strmTT strmTT_reqReg
+    strmTT_repReg Up Spec ctx cd om
   iapply (hNS _ copts ([sm] ++ []) iprop(True))
   · isplitr
     · iframe #
@@ -128,13 +128,13 @@ theorem driverClient.Bidi.wp_proof
     wp_alloc p as Hp
     iStructNamed Hp
     ipersist ClientStream
-    have hReq : (pbStringValueST (GF := GF)).toStreamMsg.ty = wrapperspb.StringValue.ty := rfl
+    have hReq : (strmT (GF := GF)).ty = wrapperspb.StringValue.ty := rfl
     have hI : IntoValTyped (GF := GF) wrapperspb.StringValue
-        (pbStringValueST (GF := GF)).toStreamMsg.ty := hReq ▸ inferInstance
-    have hT : TypeRepr (pbStringValueST (GF := GF)).toStreamMsg.ty wrapperspb.StringValue :=
+        (strmT (GF := GF)).ty := hReq ▸ inferInstance
+    have hT : TypeRepr (strmT (GF := GF)).ty wrapperspb.StringValue :=
       hReq ▸ inferInstance
-    have hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) wrapperspb.StringValue wrapperspb.StringValue
+    have hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (strmT (GF := GF)))
+      (Rep := (strmT (GF := GF))) wrapperspb.StringValue wrapperspb.StringValue
       wp_Send wp_Recv wp_CloseSend wp_Context p cs γ Up
       (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn cd'
       anyRes (streamErrShape d)
@@ -142,7 +142,7 @@ theorem driverClient.Bidi.wp_proof
     ihave #Hw := hw $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
-      simp only [pbStringValueST, pbStringValueS]
+      simp only [strmT, pbStringValueS]
       iexists _
       iexact Hl
     wp_auto
