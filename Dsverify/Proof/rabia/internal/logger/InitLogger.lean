@@ -38,9 +38,9 @@ theorem InitLogger.wp_proof : InitLogger.spec (GF := GF) := by
   simp only [confVal]
   wp_apply (github_com.rs.zerolog.Hyps.ParseLevel_warn (GF := GF))
   wp_apply (github_com.rs.zerolog.Hyps.SetGlobalLevel (GF := GF))
-  wp_apply (github_com.rs.zerolog.Hyps.New (GF := GF)) as %lg _
+  wp_apply (github_com.rs.zerolog.Hyps.New (GF := GF)) as %lg #Hok
   iapply HΦ
-  itrivial
+  iexact Hok
 
 end proof
 
