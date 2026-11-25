@@ -6960,3 +6960,12 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   sides change by a `lin_linF` each; no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changes.
 - **Decision.** Applied on `etcd-safe-p9` (P9, 2026-11-25), pending the coordinator's (`remote`'s owner) review
   before landing.
+- **Review** (P9, 2026-11-25, an independent `spec-reviewer`): sound, no must-fix. The new `lin` is stronger for
+  the far side only for writes (for a read `□ lin ⊣⊢ □ linF`, `lin_linF` and `linF_read_lin`); every producer
+  (`pend_fire`, `pend_choice`, `readNoop`, the counter client's forwarding) proves it; no `TopLevel*` text
+  mentions `lin`. Applied: the elimination law `lin_acc` (the state with the abort and the commit, telescopes
+  simplified; `lin_linF` now uses it), docstrings (`linF` "one-shot form", `lin`'s inner mask `∅`, "a write's
+  `lin`, committed at most once" for "one-shot `lin`" in `Defs`/`Do`, `Pend`'s abort, the five dsverify kits'
+  `opAU` notes now naming `linF`). Left (should-fix): an introduction law in the same plain form, so that
+  `pend_fire`/`pend_choice` and `kvremote/NodeUpd` stop unfolding telescopes; `lin_mono` (counter `Shared`)
+  and the two copies of `slotUpd_lin` (swiftnet `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.

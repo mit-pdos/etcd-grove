@@ -18,11 +18,13 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
     dialer, and answers an output `o` with `Q i o`, the loop's postcondition, persistent or not; the
     update is `P i ∗ ∀ o, Q i o -∗ Φ o`, and there are no unknown answers. `Report` calls one.
 * **The update of a store** `lin R i Φ`: the linearization point of the base operation `i`, an atomic
-  update from `⊤ ∖ Eop` that takes `sysState st` to `sysState (step (mi i) st).1` (the model input of
+  update from `⊤ ∖ Eop` to `∅` that takes `sysState st` to `sysState (step (mi i) st).1` (the model input of
   `i`) and gives `Φ` of the step's output; it may be aborted, so a far side may hand it on as an atomic
   update (the kv workload's, to etcd: `notes/specs-only/ledger.md`, 2026-11-25, "`remote.lin` cannot
-  abort"). `linF R i Φ`, the fancy update that fires it once (`lin_linF`), is what a far side that
-  steps its state itself uses; a read's `□ linF` is a `lin` (`linF_read_lin`).
+  abort"). A far side opens it by `lin_acc` (the state, with the abort and the commit). `linF R i Φ`,
+  its one-shot form (it commits and cannot abort; `lin_linF`), is what a far side that steps its state
+  itself uses; a read's `□ linF` is a `lin` (`linF_read_lin`), so for a read `□ lin` and `□ linF` are
+  the same.
 * **The slot of a connection** (the lab's spec (R), one slot per connection): after its `Dial`, the
   dialer registers its connection `cn` with ghost names `γ` and the input `i` in the slot map
   (`slotOf cn γ i`, persistent), whose invariant (`mapInv`) keeps every registered connection's
@@ -44,7 +46,7 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   (`codecOk_wireOk`).
 * **The far side's operation**: `svcOp S tok op`, given `S.upd i Φ`, `op(sys, iv i)` returns an
   output `ov o` with `Φ o`, or an answer `unkAns i v`. A store's `opMaybe R tok op`: given
-  `slotUpd R i Φ` (a write's one-shot `lin R i Φ`; a read's `□ lin R i Φ`, which it may fire zero or
+  `slotUpd R i Φ` (a write's `lin R i Φ`, committed at most once; a read's `□ lin R i Φ`, which it may fire zero or
   more times, each firing giving `Φ` of its output: the read form), `op(sys, iv i)` either returns
   `ov o` with `Φ o`, or returns `unk i` (a write's update may have fired, may fire later, or never:
   the lab's `opAwpMaybe`); `opMaybe_svcOp`. A report's `reportOp W P Q tok op`: `op(sys, iv i)`, given
@@ -209,7 +211,7 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St J I O)
   (S : RSvc GF I O)
 
-/-- The linearization point of the base operation `i`, fired once (see the file header). -/
+/-- **`lin`'s one-shot form**: it commits and cannot abort (see the file header). -/
 def linF (i : I) (Φ : O → IProp GF) : IProp GF :=
   iprop(|={⊤ \ R.Eop, ∅}=> ∃ st, R.sysState st ∗
     (R.sysState (R.B.step (R.mi i) st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step (R.mi i) st).2))
@@ -220,9 +222,13 @@ def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
     <{ R.sysState (R.B.step (R.mi i) st).1, COMM Φ (R.B.step (R.mi i) st).2 }>)
 
 omit π ρ [Pos.Countable I] [Pos.Countable O] in
-/-- An atomic update fired once. -/
-theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := by
-  unfold lin linF
+/-- **Opening `lin`**: the far side gets the state `st` and either closes it unchanged, getting `lin`
+back (the abort), or steps it, getting `Φ` of the output (the commit). -/
+theorem lin_acc (i : I) (Φ : O → IProp GF) :
+    lin R i Φ ⊢ |={⊤ \ R.Eop, ∅}=> ∃ st, R.sysState st ∗
+      ((R.sysState st ={∅, ⊤ \ R.Eop}=∗ lin R i Φ) ∧
+        (R.sysState (R.B.step (R.mi i) st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step (R.mi i) st).2)) := by
+  unfold lin
   iintro H
   ihave H := aupd_aacc $$ H
   unfold atomic_acc
@@ -231,9 +237,21 @@ theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := b
   imodintro
   iexists st
   iframe Hs
-  iintro Hs
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexact H
+
+omit π ρ [Pos.Countable I] [Pos.Countable O] in
+/-- **`lin` gives its one-shot form** `linF` (its commit; the abort is dropped). -/
+theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := by
+  unfold linF
+  iintro H
+  ihave H := lin_acc R i Φ $$ H
+  imod H with ⟨%st, Hs, H⟩
+  imodintro
+  iexists st
+  iframe Hs
   icases H with ⟨-, H⟩
-  iapply H $$ Hs
+  iexact H
 
 omit π ρ [Pos.Countable I] [Pos.Countable O] in
 /-- **A read's update, persistently, is an atomic update**: aborting it fires it at the same state
@@ -260,7 +278,7 @@ theorem linF_read_lin {i : I} {Φ : O → IProp GF} (hw : R.B.isWrite (R.mi i) =
   · iintro Hs
     iapply Hc $$ Hs
 
-/-- **The update a slot hands to the far side**: a write's one-shot `lin`; a read's `lin`
+/-- **The update a slot hands to the far side**: a write's `lin` (committed at most once); a read's `lin`
 persistently, which the far side may fire zero or more times (a read leaves the state unchanged,
 `reads_stay`), each firing giving `Φ` of its output (the read form; `notes/specs-only/ledger.md`,
 2026-11-22, "`remote.opMaybe`'s read form"). -/
