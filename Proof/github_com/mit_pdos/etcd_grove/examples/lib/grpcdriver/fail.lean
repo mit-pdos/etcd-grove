@@ -93,8 +93,9 @@ theorem fail.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG))
       · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
       ipureintro; intro v hv; cases hv
     unfold invokeOut
-    icases Hout with (⟨-, %m', -, -, []⟩ | ⟨⟨%Hne, -⟩, #Hse, -, -, -, #Hsh, -⟩)
-    cases err with
+    icases Hout with (⟨-, %m', -, -, %Hfalse⟩ | ⟨⟨%Hne, -⟩, #Hse, -, -, -, #Hsh, -⟩)
+    · exact Hfalse.elim
+    · cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
       try wp_auto
@@ -134,8 +135,9 @@ theorem fail.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG))
       · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
       ipureintro; intro v hv; cases hv
     unfold invokeOut
-    icases Hout with (⟨-, %m', -, -, []⟩ | ⟨⟨%Hne, -⟩, #Hse, -, -, -, #Hsh, -⟩)
-    cases err with
+    icases Hout with (⟨-, %m', -, -, %Hfalse⟩ | ⟨⟨%Hne, -⟩, #Hse, -, -, -, #Hsh, -⟩)
+    · exact Hfalse.elim
+    · cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
       try wp_auto
