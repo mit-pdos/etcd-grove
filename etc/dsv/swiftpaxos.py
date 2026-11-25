@@ -151,7 +151,6 @@ first, through `swiftnet`'s (`BootLinked.lean`, `boot_swiftnet`), at the command
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
 variable [encoding.gob.InitHyp netDistGF]
 variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]''',
