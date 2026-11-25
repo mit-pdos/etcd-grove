@@ -23,8 +23,7 @@ execution at hand, `Robust`'s `threads`.
 **The deployment** is not narrowed beyond `DistDeploy`: a client's operation that cannot reach its
 replica (its dial fails or times out, a read fails) is answered unknown, so no ordering of the
 machines' starts is assumed (the clients' start wait, `kit.go`'s `Start(c)`, is for performance
-only). What the kit's Go does differently from the lab's (notes/dsv-gryff.md, "Kit Go changes"):
-a client answers at most `K` = 4 operations, later ones unknown (remote's `Check` calls each client
+only). A client answers at most `K` = 4 operations, later ones unknown (remote's `Check` calls each client
 `K` times, with `K · readTries` = 12 of remote's per-client budget units, `budUnits`), and its
 operations run under its `Sys` lock.
 
