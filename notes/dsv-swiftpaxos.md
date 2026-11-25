@@ -1374,6 +1374,15 @@ unbuilt modules whose imports build, by how many wait on them; the error of each
   replace by remote's kit (the lab's `RemoteDistSpec` interface, its addresses `10.77.0.x`, its
   kitgen codec go).
 
+## Non-vacuity
+
+`RpcHttpAddr` is no premise of `swiftpaxos_remote_robust`: the statement instantiates it with `netRpcHttpAddr`
+(`lib/RpcHttpAddrNet.lean`, a defs module), Net's proved `rpcAddrP`/`rpcLisP` and their laws, with `httpW W` the
+world `W` with HTTP's handshake (`connectReq defaultRPCPath`/`connectAns`) at every address, as
+dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay generic in
+`[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
+no instance here.
+
 ## Step bound 2^63 (2026-11-24, dsv-steps63)
 
 `swiftpaxos_remote_robust.spec` now concludes `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)` (was `∀
