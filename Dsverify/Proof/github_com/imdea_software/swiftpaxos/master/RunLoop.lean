@@ -387,7 +387,9 @@ theorem master.Master.run.wp_proof
     rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nodesS0.len by have := Hj.2.2.1; word)]
     ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => rpcHttp W a) hra $$ Haddrs
     wp_auto
-    wp_apply DialHTTP_tcp W _ $$ [$Hra] as %c %derr Hd
+    ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply DialHTTP_tcp W _ $$ [$HnetPk $Hra] as %c %derr Hd
     wp_apply wp_store_slice_index $$ [$Hns] as Hns
     · ipureintro; have := Hj.2.2.1; word
     icases Hd with (⟨%Hd, #Hc⟩ | ⟨%Hd, #He⟩)

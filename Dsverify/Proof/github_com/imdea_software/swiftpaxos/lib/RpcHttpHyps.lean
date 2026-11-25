@@ -175,12 +175,12 @@ instance rpcHttp_persistent (W : RpcWorld GF) (a : GoString) :
 
 /-- `rpc.DialHTTP("tcp", a)` (`DialHTTP_spec` at `"tcp"`). -/
 theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
-    {{ rpcHttp W a }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ rpcHttp W a }}
       (App (App (Val (@! net.rpc.DialHTTP)) (Val #(go!"tcp"))) (Val #a))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }} := by
-  iintro %Φ Hp HΦ
+  iintro %Φ ⟨#Hnet, Hp⟩ HΦ
   iunfold rpcHttp at Hp
   icases Hp with ⟨%Hb, #Hc, Hd, #Ha⟩
   iunfold dialEnv at Hd
@@ -188,7 +188,7 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
   ihave #He := httpSrvEnv_env $$ Hse
   ihave #Ha' := RpcHttpAddr.rpcAddrP_net W a _ _ $$ Ha
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
-  iframe Hc He Hcon Ha'
+  iframe Hnet Hc He Hcon Ha'
   ipureintro; exact Hb
 
 /-- A listener address's rpc protocols over HTTP give, at every valid address it takes, the world's

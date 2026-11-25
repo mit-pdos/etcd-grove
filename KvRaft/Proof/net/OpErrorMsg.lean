@@ -1,4 +1,4 @@
--- The copy for the part `KvNet/` of `Net/Proof/net/OpErrorMsg.lean` (etc/copy-part.py; rerun it, do not edit).
+-- The copy for the part `KvRaft/` of `Net/Proof/net/OpErrorMsg.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 `(*OpError).Error()` over Go's own code (`OpError.Error.impl`, `net.go`), under `opErrOk` (D2,
 precondition approved by Upamanyu): a message of Go's form, its operation, some string (the network
@@ -9,7 +9,7 @@ translated Go but for `TCPAddr.String` (the model's arbitrary string) and `sysca
 -/
 module
 
-public import KvNet.Proof.net.Errors
+public import KvRaft.Proof.net.Errors
 public import Proof.syscall.ErrorOk
 
 @[expose] public section

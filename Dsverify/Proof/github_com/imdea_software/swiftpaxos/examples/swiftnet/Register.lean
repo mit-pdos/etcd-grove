@@ -184,7 +184,9 @@ theorem register.wp_proof (L : CodecLaws (GF := netDistGF))
   ipersist args
   ipersist maddr
   wp_for
-  wp_apply DialHTTP_tcp γ.W masterAddr $$ [$Ha] as %mc %err Hd
+  ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+  · solve_pkg_init
+  wp_apply DialHTTP_tcp γ.W masterAddr $$ [$HnetPk $Ha] as %mc %err Hd
   icases Hd with (⟨%Herr, #Hcl⟩ | ⟨%Herr, -⟩)
   rotate_left
   · cases err with

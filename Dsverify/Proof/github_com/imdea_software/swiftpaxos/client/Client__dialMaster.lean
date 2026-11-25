@@ -67,7 +67,9 @@ theorem client.Client.dialMaster.wp_proof
   · iexists _; iframe; ipureintro; word
   wp_for HI
   wp_if_destruct
-  · wp_apply DialHTTP_tcp W masterAddr $$ [$Ha] as %mc %err Hd
+  · ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply DialHTTP_tcp W masterAddr $$ [$HnetPk $Ha] as %mc %err Hd
     icases Hd with (⟨%Herr, #Hmc⟩ | ⟨%Herr, -⟩)
     · subst Herr
       wp_auto

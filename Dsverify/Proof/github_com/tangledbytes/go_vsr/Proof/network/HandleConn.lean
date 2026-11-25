@@ -137,7 +137,9 @@ theorem network.TCP.handleConn.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %sl4 ⟨Hsl4, -⟩
-        wp_apply network.wp_debug_resErr wp_Debug _ _ _ cres $$ [$Hcerr $Hsl4]
+        ihave #HnetD : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+        · solve_pkg_init
+        wp_apply network.wp_debug_resErr wp_Debug _ _ _ cres $$ [$HnetD $Hcerr $Hsl4]
         wp_join_done
     wp_join iprop(∃ mc2 : GMap GoString GoInterface, v.conns' ↦$ mc2 ∗
         ([∗map] k ↦ v ∈ mc2, network.entryOk ns D1 k v) ∗ key_ptr ↦ key ∗ tcp_ptr ↦ tcp ∗

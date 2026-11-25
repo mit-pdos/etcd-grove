@@ -8,6 +8,7 @@ module
 
 public import Net.Proof.go.token.Base
 public import Proof.runtime.PkgInitExt
+public import Perennial.Proof.internal.gomodel.Link
 
 @[expose] public section
 
@@ -40,6 +41,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply wp_GlobalAlloc (V := _) keywords _ as Hkw
   wp_apply wp_GlobalAlloc (V := _) tokens _ as Htk
+  try wp_auto
+  -- (Go model overlays) the model's `internal/gomodel` import, initialized first
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize'
+      EtcdGrove.ExternalInit.internal_gomodel _root_.Perennial.internal.gomodel.wp_initialize' _ Hinit.2.1) _
+      $$ Hown as ⟨Hown, #Hgm⟩
   try wp_auto
   wp_func_call
   wp_call

@@ -75,7 +75,7 @@ def EtcdBootNC : Prop :=
 over `etcdNetExts` (`Net.robust_of_distBootIL`), each machine's `FsInit` and listener-free start from the
 statement's `ServerStart`/`ClientStart`, the addresses' validity and distinctness from `WellFormed`. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) : etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ d Hd ps ctxs boot Hbf Henv Htb σs σc σn g Hσs Hσc Hσn Hg HEnv
+  intro _ _ _ _ _ _ _ _ _ d Hd ps ctxs boot Hbf Henv Htb σs σc σn g Hσs Hσc Hσn Hg HEnv
   refine Net.robust_of_distBootIL (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
     (fun hlo hb => HS d Hd ps ctxs boot Hbf Henv Htb σs σc σn Hσs Hσc Hσn HEnv hlo hb) ?_

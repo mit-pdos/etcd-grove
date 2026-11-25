@@ -32,7 +32,7 @@ theorem net.Listen.wp_proofHttp
     (wp_Listen : ∀ [HasExt netExt], _root_.Perennial.net.Listen.spec (GF := GF) (hG := hG)) :
     net.Listen.specHttp (GF := GF) (hG := hG) := by
   intro network addr
-  iintro %Φ ⟨%Hnw, Hfree⟩ HΦ
+  iintro %Φ ⟨#Hpkg, %Hnw, Hfree⟩ HΦ
   subst Hnw
   iunfold http.httpAddrFree at Hfree
   icases Hfree with ⟨Hclaim, #Hnet⟩
@@ -43,7 +43,8 @@ theorem net.Listen.wp_proofHttp
   · iapply addrProto_tok $$ Hp
   have hA := _root_.Perennial.net.Listen.spec_addrOk (GF := GF) (hG := hG) wp_Listen
   iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ []
-  · isplitr
+  · iframe Hpkg
+    isplitr
     · ipureintro; exact Hok
     · iapply listen_au $$ Hp
   iintro !> %li %err Hpost

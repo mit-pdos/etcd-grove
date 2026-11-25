@@ -85,7 +85,8 @@ theorem Encoder.Encode_conn.wp_proof (wp_marshalAny : marshalAny.spec (GF := GF)
     isplitl [Htok]
     · iapply writeP_init $$ Htok
     · iapply write_acc cn s P W _ $$ Hp0
-  ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ HE
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hca
+  ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ Hsys HE
   icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
   obtain ⟨⟨z, hz0⟩, hn, hnone, -⟩ := Hwr
   unfold writeP

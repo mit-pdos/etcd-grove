@@ -192,13 +192,16 @@ theorem network.connAt_agree (c : Loc) (cn1 cn2 : Nat) (s1 s2 : Bool) (a1 a2 : G
   iintro ⟨#H1, #H2⟩
   ihave %hb1 := network.connAt_bound c cn1 s1 a1 la1 ra1 $$ H1
   ihave %hb2 := network.connAt_bound c cn2 s2 a2 la2 ra2 $$ H2
-  unfold net.connAt
-  icases H1 with ⟨%nw1, -, #Ht1, -⟩
-  icases H2 with ⟨%nw2, -, #Ht2, -⟩
+  unfold net.connAt net.connFd net.fdAt
+  icases H1 with ⟨%nw1, -, ⟨%fd1, #Ht1, %v1, %hv1, #Hv1, -⟩, -⟩
+  icases H2 with ⟨%nw2, -, ⟨%fd2, #Ht2, %v2, %hv2, #Hv2, -⟩, -⟩
   icombine Ht1 Ht2 gives %h
-  ipureintro
   simp only [net.TCPConn.mk.injEq, net.conn.mk.injEq] at h
-  exact endId_inj hb1 hb2 h.1
+  subst h
+  icombine Hv1 Hv2 gives %hv
+  subst hv
+  ipureintro
+  exact endId_inj hb1 hb2 (hv1.1.symm.trans hv2.1)
 
 /-- `connL` agreement. -/
 theorem network.connL_agree (c : Loc) (cn1 cn2 : Nat) (s1 s2 : Bool) :
@@ -309,16 +312,24 @@ theorem network.wp_debug_err (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := h
   iintro -
   iapply HΦ; itrivial
 
-/-- An `*OpError` of the net model is an error result (`net.opErr_errOrNil`). -/
-theorem network.opErr_errOrNil (op : GoString) (src addr e err : GoInterface) :
-    net.opErr op src addr e err ⊢ bufio.errOrNil (GF := GF) err :=
-  net.opErr_errOrNil op src addr e err
+/-- `syscall`'s error table (what an `*OpError`'s `Error()` needs since the Go-model net) from
+`net`'s package fact (`net` imports `internal/poll`). -/
+theorem network.errnoOk_of_net :
+    isPkgInit (PROP := IProp GF) pkg_id.net ⊢ syscall.errnoOk (GF := GF) := by
+  iintro #Hn
+  ihave #Hp : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ [Hn]
+  · iPkgInit
+  iapply net.errnoOk_of_poll $$ Hp
 
-/-- A net operation's error (`net.resErr`) is an error result (`net.resErr_errOrNil`). -/
+/-- A net operation's error (`net.resErr`) is an error result (`net.resErr_errOrNil`), given
+`net`'s package fact. -/
 theorem network.resErr_errOrNil (res : Option NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) res op src addr ed nm err ⊢ bufio.errOrNil err :=
-  net.resErr_errOrNil res op src addr ed nm err
+    isPkgInit (PROP := IProp GF) pkg_id.net ⊢
+      net.resErr (GF := GF) res op src addr ed nm err -∗ bufio.errOrNil err := by
+  iintro #Hn #H
+  ihave #Hs := network.errnoOk_of_net $$ Hn
+  iapply net.resErr_errOrNil res op src addr ed nm err $$ Hs H
 
 /-- Learn the source `s` (under the write lock). -/
 theorem network.src_learn (ns : network.TcpNames) (S : GMap GoString Unit) (s : GoString) :
@@ -440,12 +451,12 @@ instance network.lockP_fractional (ns : network.TcpNames) (cm sm : Loc) :
 theorem network.wp_debug_resErr (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := hG))
     (msg s : GoString) (sl : GoSlice) (res : Option NetErr) (op : GoString)
     (src addr : GoInterface) (ed : Option GoInterface) (nm : GoString → Prop) (e : GoInterface) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog ∗ net.resErr res op src addr ed nm e ∗
-        sl ↦* [interface.mkOk go.string #s, e] }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog ∗ isPkgInit (PROP := IProp GF) pkg_id.net ∗
+        net.resErr res op src addr ed nm e ∗ sl ↦* [interface.mkOk go.string #s, e] }}
       (App (App (Val (@! log.slog.Debug)) (Val #msg)) (Val #sl))
     {{ RET #(); True }} := by
-  wp_start_folded as ⟨#He, Hsl⟩
-  ihave #He' := network.resErr_errOrNil res op src addr ed nm e $$ He
+  wp_start_folded as ⟨#Hn, #He, Hsl⟩
+  ihave #He' := network.resErr_errOrNil res op src addr ed nm e $$ Hn He
   wp_apply network.wp_debug_err wp_Debug msg s sl e $$ [$He' $Hsl]
   iapply HΦ; itrivial
 

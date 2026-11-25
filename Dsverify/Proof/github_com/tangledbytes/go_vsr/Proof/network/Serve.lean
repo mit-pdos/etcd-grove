@@ -169,7 +169,9 @@ theorem network.TCP.serve.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply network.wp_debug_resErr wp_Debug _ _ _ (some k) $$ [$Haerr $Hsl]
+    ihave #HnetD : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply network.wp_debug_resErr wp_Debug _ _ _ (some k) $$ [$HnetD $Haerr $Hsl]
     wp_for_post
     iframe
 

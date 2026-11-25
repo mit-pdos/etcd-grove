@@ -432,7 +432,8 @@ theorem Decoder.fetch_conn.wp_proof (wp_Read : net.Conn.Read.specLc (GF := GF) (
       obtain ⟨hk0, rfl⟩ := Hout
       subst hk0
       simp only [net.ReadErr]
-      ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ HE
+      ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hca
+      ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ Hsys HE
       unfold net.resErr net.opErr
       icases HE with ⟨%e, ⟨%pe, %nw, ⟨%Hpe, %Htcp⟩, -⟩, -⟩
       subst Hpe
@@ -498,7 +499,8 @@ theorem Decoder.fetch_conn.wp_proof (wp_Read : net.Conn.Read.specLc (GF := GF) (
       obtain ⟨hk0, rfl⟩ := Hout
       subst hk0
       simp only [net.ReadErr]
-      ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ HE
+      ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hca
+      ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ Hsys HE
       unfold net.resErr net.opErr
       icases HE with ⟨%e, ⟨%pe, %nw, ⟨%Hpe, %Htcp⟩, -⟩, -⟩
       subst Hpe

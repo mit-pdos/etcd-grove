@@ -33,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     (wp_absent : absent.spec (GF := GF) (hG := hG)) (wp_Run : Run.spec (GF := GF) (hG := hG)) :
     MainAt.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ _ _ _ _ r
+  intro _ _ _ _ _ _ r
   wp_start as ⟨Hroot, Htok, #Hvoff⟩
   try wp_auto
   wp_apply wp_dirFits as %fits %hfits
