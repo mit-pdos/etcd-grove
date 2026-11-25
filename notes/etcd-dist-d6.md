@@ -1281,3 +1281,86 @@ storage contract's `Sync` gives `walSyncedLb` at `Save`'s length bound, and a sn
 follows etcd's explicit `Sync`; the snapshot directory's durability `WalNamesK.sd` is the trivial one until
 T6. Built: the change's 58 importer leaves (fk-lean2, 14,036 jobs, exit 0); `etc/tier-check.py --check` ok.
 `etc/tcb-baseline.txt` still lacks the P5-RESTART `sorry` (needs a local build to update).
+
+## T7: the member's crash law (plan, 2026-11-25, branch `etcd-safe-t7`; etcd-grove-03)
+
+Base `etcd-safe-p5` @ `f353cbb2fb` (round 3 `5a1c41d945`, P6b `2d2f3cc470`, P5's T2 integration). File
+`dist/crash/MemberCrash.lean` (defs tier: it imports only defs and the proved defs-tier laws).
+
+**The law as it stands** (`MemberGen.lean`): `memberGen_crash.law C cfg id Keep Q` — for generations `L`, `L'`
+at the statement's Go context, `Keep L -∗ £ 1 -∗ crashed L -∗ Fs.crashRest Q L L' [] false V' -∗ Fs.osInv L'
+={⊤}=∗ memberGen (at L') C cfg id`. `Keep` and `Q` are parameters: T7 chooses `Keep` (`memberKeep`, what a run
+of a generation keeps for its crash) and proves the law for it under a premise on `Q`. `memberGen` =
+`clusterFacts ∗ (memberFirst ∨ memberRestart)`, `memberRestart` = `memberRestartFacts γ' ρo id ∗
+srvCrashImage γ' ρo id dd` (`InvCrashImage.lean`).
+
+**Inputs** (source; status):
+
+| input | what T7 uses | source | status |
+|---|---|---|---|
+| T1 raft torn law | — | `readyCrashTorn.law` (`MemberGen.lean`) | **retired**: the torn-`Save` fix (Q1 (a), fork `e94f33b50`) makes a torn `Save` read as none; T7 deletes `raftTorn`/`readyCrashTorn.law` (P5 plan step) |
+| T2 raft + WAL records | `raftState S`, `nodeVacant`, `StorageHolds S σ`, `walReadFacts σ`, `σ.b ≤ |l|`, `DurAgrees S l`, `walSnapCert`, `walSnapDur`, `isCommittedLogLb l`, and the WAL's borrowed `walRecsH`/`walSyncedLb` for the files | `rnDurK_crash.law` / `rnDurK_crash_law_holds` (`InvWalCrashLaws.lean`) | **proved**; its second disjunct `rnTakenK` (the stop took the records) must be excluded by `Keep` (decision D-T7-3 below) |
+| T2 allocation | — (the run's, not the law's) | `rnRestartAllocK.law` | named hypothesis of `newRaftNode` (P5-RESTART `sorry`), consumed as stated by T8's run, not by T7 |
+| T5 the WAL's files | `walFilesC` at `L'` from `walCrashWal`, the old `walDiskAtI`/`walSyncedLb`/`walNamed` | `walFilesC_crash` (`storage/WalRecsCrash.lean`); `walInv_crash` (`storage/wal/Crash.lean`, premise `Q → W1`); `walBootCrash` (`BootCrash.lean`) | **proved** |
+| T5 read facts | `walReadFacts σ` | `walReadFacts_of_take`; T2's post already carries it | **proved** |
+| T6 snapshot directory | `snapDirKeep` at `L'` | `snapDir_crash.law` / `snapDir_crash_law_holds` (`SnapDirCrash.lean`) | **proved**, with two premises owed by T7: `lookupH R V' sd = some (.dir J)` and `snapDirKept R V' sd` (item 2 below) |
+| A1 bbolt after a power loss | `bbolt.fileHoldsM i0 D'`, `D' ∈ {Dl, Dn, pd}` | `backend.dbCrash` (C-I1, `storage/backend/CrashInterim.lean`) | **interim axiom** (reviewed six times), premise `Q → BoltCrashWhole (· = i0)`; its record `dbCrashKeep` is made by `dbCrashKeep_new` at boot, used by no run yet |
+| `Q`'s premise | `Q → W1 walCodec` and `Q → BoltCrashWhole I` | `etcdCQ` (`etcdstart/FsExts.lean`) has `W1` only | **open**: `BoltCrashWhole` accepted for the packet, not yet in `etcdCQ`; T7's theorem takes `hQ` |
+| the backend's image across a crash | for each of `Dl`, `Dn`, `pd`: a committed prefix `A` with `i = ai0 + |A|`, `imageRestAt`, `imageStOk`, `mvccImage`, `confAt i m`, `srvRLogLb A`, `σ.b ≤ i`, `bootLen ≤ i` (all of `srvCrashImageAt`'s backend rows) | none: the apply thread's commits must deposit them beside `dbCrashKeep` (an invariant of the run, "D6.4") | **open, no task owns it** (proposed T10 below) |
+| the backend file's name after the crash | `Named V'.now i0` and `config.backendPathOf dd` naming `i0` in `V'` (`backend.fileHolds`) | the name's commit (`dbOpts`, the WAL's first directory sync, the fork's syncs after the renames; `renamedDur` from `OpenSnapshotBackend`, not persistent as stated: add the instance) | **open** (C-I1's note: "the caller derives which inode `path` names from the file extension's crash facts") |
+| the request ids | `memberRestartFacts γ' ρo id` (persistent, global) | the generation's boot (`memberRestartFacts_alloc`) kept in `Keep`; D4b's `idIssue` crash interpretation for the new incarnation | facts **proved**; D4b's crash interpretation open (Q5), not T7's |
+
+**Obligations** (what T7 proves, in order):
+1. **`memberGen` first** (the predicate both the first boot and the crash law produce and `NewServer` consumes):
+   (a) delete the torn law; (b) the rows the next generation's `Keep` needs that today's `memberRestart` drops:
+   the snapshot directory's crash token (`srvCrashImageAt` holds only the handle `snapDirInvH`; the next
+   crash law needs `snapDirKeep`, i.e. the token, with the same `γk`), raft's crash token (`specC` returns
+   it: T4 round 2), the WAL area's `walInv`/`walCrashTok` at `L'` (from `walInv_crash`/`walBootCrash`), and
+   the durable spine of `sd` (item 2). (b) changes `srvCrashImageAt` (shared with `NewServer.specC`, T4):
+   **reported, not done** (D-T7-2).
+2. **P7's two premises from `TouchDirAll`**: a persistent durable spine `osPathDur R sd J` (each component's
+   claim held at a discarded fraction, with `nameCrash` at its directory: what `TouchDirAll`'s post gives,
+   `h'.next ≤ n` and `osCommitLb n`, plus `osNames_histCoh`); `osPathDur_crash`: with `crashRest`,
+   `lookupH R V' sd = some (.dir J)`; `osPathDur_agree`: every spine of `sd` at the same roots ends at `J`, so
+   the fixed-root form of `snapDirKept` holds. P7's `snapDirKept` quantifies over the roots `R0` of any
+   `osSharedInv R0` and is a plain wand (no update): unprovable as stated (two shared invariants' roots agree
+   only under an update), see D-T7-1.
+3. **The assembly** `memberGen_crash_law_holds` for `memberKeep`: open `rnDurInvK` (T2), inside its `Φ` the
+   WAL's crash (`walInv_crash`, `walBootCrash`, `walFilesC_crash`: T5), the backend (`dbCrash`: A1, and the
+   image invariant: open), the snapshot directory (`snapDir_crash_law_holds` with item 2), the new
+   registry (`memStorRegAuth ∅` at a fresh name, Q4's decision), then `srvCrashImageAt` at `ρo`.
+
+**What blocks 3** (each needs a decision or a task outside T7; found by reading, 2026-11-25):
+* **B1 the backend's image invariant** (above): `Keep` must carry, for the data a crash can leave, the image
+  facts; nothing in the run records them. A task of its own (T10: the apply thread deposits each commit's image
+  facts next to `dbCrashKeep`; `dbCrashKeep_new`/`_announce` at its commit points).
+* **B2 Q3, the received-snapshot window**: between the WAL's `SaveSnap` (synced) and the apply thread's
+  rename of `<k>.snap.db` to `db` (`OpenSnapshotBackend`), a crash leaves `σ.b = k > i` (the old `db`);
+  Go recovers by opening the `.snap.db` at restart (`recoverSnapshot`). `srvCrashImageAt`'s `σ.b ≤ i` is then
+  false: the image (and `bootstrapCrashContract`) needs the `.snap.db` case (shared spec: T4's).
+* **B3 `γ.cl.bootLen ≤ i`** (C-I1 checkpoint item 7): after the first `Save` and before the backend's first
+  commit `i = 0`; `srvCrashImageAt` and `bootstrapCrashContract` exclude it (shared spec).
+* **B4 the first generation's boot phases**: a crash before `newRaftNode` allocates `rnDurInvK` (after
+  `bootstrapBackend`, `wal.Create`, an unsaved first `Save`) must give `memberFirst` (with T3's leftovers), so
+  `Keep` is a disjunction over the boot's phases (kvnet's `kd_boot_choose`); `memberFirst`'s slice is consumed
+  by `NewServer.specG` by then. Needs T3 and T8's boot.
+* **B5 `Keep` out of the run** (T8): `NewServer.spec{G,C}`'s posts return raft's crash token only; `rnDurInvK`'s
+  token and names, `snapDirKeep`, the WAL area's `walInv`/token, `dbCrashKeep`, the durable spine must come out
+  of `NewServer` into the member's program.
+
+**Decisions taken in T7 (D-T7-*)**:
+* D-T7-1 `snapDirKept` at fixed roots: T7 proves `□ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`
+  (the law's own `R`); P7's `snapDirKeptF` should take `R0 := R`, and `old_dir` get `R0 = R` from the two shared
+  invariants and `crashRest` (`crashRest_roots`, T7 proves it). A premise of P7's law weakened: ledger entry
+  2026-11-25; not edited here (shared law statement).
+* D-T7-2 `srvCrashImageAt` carries `snapDirKeep` (handle and token) instead of `snapDirInvH`, and `NewServer.specC`'s
+  post returns the token (as raft's crash token): T4's spec; reported.
+* D-T7-3 the stop excluded: `Keep` holds `token νk.ν.stop` (the member's program never stops its server, so the run
+  never takes it); `rnDurK_crash`'s `rnTakenK` case is refuted by it. Asks of T8: the run's specs do not need the
+  stop token (or route the graceful stop's image to the crash, §10T2 (4)).
+* D-T7-4 the durable spine is persistent: the boot discards a fraction of the claims on `member` (in `dd`) and `snap`
+  (in `member`) after `TouchDirAll` (`gElem` persist; Go never writes those names again: `DiscardUnsaved` renames
+  `member/wal`, the bootstrap fix removes `member/snap/db`, both other claims). Asks of T8: the discard at boot.
+
+**Order**: (1a) delete the torn law; (2) `osPathDur` and its lemmas (proved now); (1b)/(3) after B1-B5's decisions.
+Estimate for (3) once unblocked: the table's 600-1000 lines for the assembly alone, plus T10 (B1, 800-1500) and T8.
