@@ -72,9 +72,9 @@ theorem Client.wp_proof
   have hplain := etcd_dist.addrOk_plainEndpoint hc
   ispecialize Hshare $$ %(by simp [hc])
   iunfold clientShare at Hshare
-  icases Hshare with ⟨#Haddr, %Hauth, %γr, %γf, %Hkv, #Hall⟩
+  icases Hshare with ⟨#Haddr, %Hauth, %γf, #Hall⟩
   -- the putget invariant at the client's own heap
-  ihave #Hpg : client.putGetInv (GF := GF) γr γf go!"k" go!"v" $$ []
+  ihave #Hpg : etcd_dist.putGetInvK (GF := GF) Γ.kv γf go!"k" go!"v" $$ []
   · ihave HL := Hall $$ %hG.goose_localGS
     iexact HL
   -- `context`'s `closedchan`, from its package's fact
@@ -128,10 +128,10 @@ theorem Client.wp_proof
     iintro %i %f %g %Hf %Hg
     simp at Hf
   -- `cli.Put(pctx, "k", "v")`, at the cluster's view
-  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γr γf pctx pcd
+  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γf pctx pcd
       go!"k" go!"v" slice.nil
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide)) Hauth Hkv) $$ [Hlt] as %presp %perr ⟨Hlt, Hput⟩
+        (by decide)) Hauth) $$ [Hlt] as %presp %perr ⟨Hlt, Hput⟩
   · iframe Hlt; iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -153,10 +153,10 @@ theorem Client.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cli.Get(gctx, "k")`, after the put fired
-  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γr γf
+  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γf
       gctx gcd go!"k" go!"v" slice.nil
-      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))
-      Hkv) $$ [Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
+    $$ [Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
   · iframe Hlt; iframe #
   -- `gcancel()`
   (try wp_auto)

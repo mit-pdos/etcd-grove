@@ -122,7 +122,7 @@ theorem Member.wp_proof
   -- `Serve(s, client)` on a member machine, at the cluster's view (`Serve_dist`)
   wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id c.view) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg⟩
+    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
   cases serr with
   | ok ei =>
     wp_auto

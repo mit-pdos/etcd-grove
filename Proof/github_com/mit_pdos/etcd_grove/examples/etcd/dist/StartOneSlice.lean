@@ -41,6 +41,19 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+/-- **The raft network of the one-member directory of `http://peer`** (`alloc1`'s): its names over the
+cluster's payload, its HTTP fact for the member. -/
+theorem net1_alloc (γ : SrvRaft) (peer : GoString) (id : w64) :
+    ⊢ |={⊤}=> ∃ γn : NetNames GF, ⌜γn.N = srvNet γ ∧ γn.dir = dir1 peer id⌝ ∗ netHttpOk γn id := by
+  istart
+  imod (netNames_alloc (srvNet γ) (dir1 peer id) (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #HregN⟩
+  ihave #Hnet := netHttpOk_single γn id
+    (fun f hf => dirOne_member id _ f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
+  imodintro
+  iexists γn
+  iframe #
+  ipureintro; exact Hγn
+
 set_option maxHeartbeats 1600000 in
 /-- See the file header. -/
 theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG := hG))
@@ -87,10 +100,7 @@ theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG 
       Hx hiss hwn hfs hgen hc0 hch hlog hvs false hkc .none lease.runCfg_none hklg (fun h => nomatch h)
       hpo rfl hns) $$ Hmarsh Hcf Hsl with ⟨%ρ, %Hρ, Hmb⟩
   -- the raft network of the one-member directory (as `alloc1`)
-  imod (netNames_alloc (srvNet { c.γ with reg := c.reg id }) (dir1 peer id) (∅ : GMap w64 Unit) ⊤)
-    with ⟨%γn, %Hγn, -, #HregN⟩
-  ihave #Hnet := netHttpOk_single γn id
-    (fun f hf => dirOne_member id _ f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
+  imod (net1_alloc { c.γ with reg := c.reg id } peer id) with ⟨%γn, %Hγn, #Hnet⟩
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]

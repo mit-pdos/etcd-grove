@@ -31,7 +31,8 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 docstring): from today's `Serve.spec` premises for a one-member start (the logger, the method sets, the
 quota, the thread and receipt bounds, `grpcRepliesFit`, `srvLevels`), the started member (`memberUp`, its
 member id `mid`) whose KV names agree with the view's (`kvCongr ρ.rd.kv Γ.kv`: what every incarnation of
-every member of the cluster has, `notes/etcd-dist-plan.md` §18.3), and the address `a` set to serve etcd's
+every member of the cluster has, `notes/etcd-dist-plan.md` §18.3) at an auth-off view (the member's auth is
+off, `memberUp`; review F2, 2026-11-25), and the address `a` set to serve etcd's
 table for `(Γ, mid)` (`etcdAddrAt`), `Serve` returns. -/
 abbrev Serve_dist.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
@@ -40,7 +41,7 @@ abbrev Serve_dist.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
       ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ srvLevels (GF := GF) ∧
-        kvCongr ρ.rd.kv Γ.kv⌝ ∗
+        kvCongr ρ.rd.kv Γ.kv ∧ Γ.auth = false⌝ ∗
       etcdstart.memberUp s ρ E₀ lg γn mid ∗
       etcdAddrAt (Gg := hG.goose_globalGS) a Γ mid }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve)) (Val #s))

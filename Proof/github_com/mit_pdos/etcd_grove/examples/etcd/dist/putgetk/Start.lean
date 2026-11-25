@@ -12,10 +12,10 @@ The start: the protocol registry (`netProto_alloc`); then a case split on the pr
 (`cfgOk`):
 * **`cfgOk`**: the cluster's start `etcd_dist.etcdClusterStart` (every peer address set to rafthttp's
   protocol, the cluster's allocation, each member's client address at the cluster's view `c.view`), the
-  client's putget invariant allocated from the cluster's `etcdKV` (`putGetInv_alloc_all`); member `i`'s
+  client's putget invariant allocated from the cluster's `etcdKV` (`putGetInvK_alloc`); member `i`'s
   share is its `memberStartShare`, the client's member `0`'s address fact at the view and the invariant;
 * **not `cfgOk`**: every member's `Valid` fails, so its share is trivial; the client's address (member
-  `0`'s client address, if any) is set at a view of fresh KV names (`putGetInv_alloc_fresh`) that no member
+  `0`'s client address, if any) is set at a view of fresh KV names (`putGetInvK_alloc_fresh`) that no member
   serves.
 `putgetK_safe_of_S5 : putgetK_safe.spec` over `HS5` and `HSM` (`putgetK_safe_of_boot`).
 -/
@@ -77,10 +77,6 @@ theorem cms_head [GooseExts] (p0 c0 : GoString) (pr cr : List GoString) :
       (⟨p0, c0, memberIdOf p0⟩ : etcd_dist.ClusterMember) :: rest := by
   rw [cms_eq]
   simp
-
-/-- Read names at the cluster's KV names (the client's invariant reads only `kv`). -/
-abbrev rnOf [GooseExts] (c : etcd_dist.ClusterNames) : ReadNames :=
-  ⟨default, default, default, default, default, default, ⟨c.γ, [], W64 0⟩, c.γk⟩
 
 section bigops
 variable {GF : BundledGFunctors}
@@ -261,13 +257,8 @@ theorem putgetKBoot_of
     rw [cms_ids] at Hcok
     isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
     -- the client's invariant, from the cluster's `etcdKV`
-    ihave Hetcd' : etcdKV (GF := putgetGF) (rnOf c).kv
-        (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) $$ [Hetcd]
-    · rw [show (rnOf c).kv = c.γk from rfl]
-      iexact Hetcd
-    imod (putGetInv_alloc_all (GF := putgetGF) (rnOf c)
-        (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v") $$ Hetcd'
-      with ⟨%γf, #Hinv⟩
+    imod (putGetInvK_alloc (GF := putgetGF) c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))
+        go!"k" go!"v") $$ Hetcd with ⟨%γf, #Hinv⟩
     obtain ⟨rest, hrest⟩ := cms_head p0 c0 pr cr
     -- the client's share: member `0`'s address fact at the view, and the invariant
     iunfold etcd_dist.clientStartShare at Hcs
@@ -322,13 +313,11 @@ theorem putgetKBoot_of
       · iexact Hat0
       isplitr
       · ipureintro; rfl
-      iexists (rnOf c), γf
-      isplitr
-      · ipureintro; rfl
+      iexists γf
       iexact Hinv
   · -- no cluster: every member returns at once; the client's address set alone
     -- a putget invariant at fresh KV names, at a view no member serves
-    imod (putGetInv_alloc_fresh (GF := putgetGF) go!"k" go!"v") with ⟨%γr0, %γf0, #HinvE⟩
+    imod (putGetInvK_alloc_fresh (GF := putgetGF) go!"k" go!"v") with ⟨%γk0, %γf0, #HinvE⟩
     have hmem : ∀ k x, (peers.mapIdx (fun i _ => (bootMember peers clients i, σs i)))[k]? = some x →
         k < peers.length := by
       intro k x hk
@@ -337,11 +326,11 @@ theorem putgetKBoot_of
     cases clients with
     | nil =>
       imodintro
-      iexists sharesK S5 peers [] ps ctxs boot (etcd_dist.DistView.ofKV γr0.kv) (W64 0)
+      iexists sharesK S5 peers [] ps ctxs boot (etcd_dist.DistView.ofKV γk0) (W64 0)
       isplitr
       · ipureintro
         exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
-          σs σc Hm Hfips S5 (etcd_dist.DistView.ofKV γr0.kv) (W64 0)
+          σs σc Hm Hfips S5 (etcd_dist.DistView.ofKV γk0) (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
       isplitl []
@@ -362,13 +351,13 @@ theorem putgetKBoot_of
       ihave Hs := BigSepL.bigSepL_append.1 $$ Hs
       icases Hs with ⟨-, Hcl⟩
       icases BigSepL.bigSepL_cons.1 $$ Hcl with ⟨Hu, -⟩
-      imod (etcd_dist.etcdAddr_set ⊤ c0 (etcd_dist.DistView.ofKV γr0.kv) (W64 0)) $$ Hreg Hu with #Hat
+      imod (etcd_dist.etcdAddr_set ⊤ c0 (etcd_dist.DistView.ofKV γk0) (W64 0)) $$ Hreg Hu with #Hat
       imodintro
-      iexists sharesK S5 peers (c0 :: cr) ps ctxs boot (etcd_dist.DistView.ofKV γr0.kv) (W64 0)
+      iexists sharesK S5 peers (c0 :: cr) ps ctxs boot (etcd_dist.DistView.ofKV γk0) (W64 0)
       isplitr
       · ipureintro
         exact system_boots HEnv HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
-          Hprem σs σc Hm Hfips S5 (etcd_dist.DistView.ofKV γr0.kv) (W64 0)
+          Hprem σs σc Hm Hfips S5 (etcd_dist.DistView.ofKV γk0) (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
       isplitl []
@@ -392,9 +381,7 @@ theorem putgetKBoot_of
         · iexact Hat
         isplitr
         · ipureintro; rfl
-        iexists γr0, γf0
-        isplitr
-        · ipureintro; rfl
+        iexists γf0
         iexact HinvE
 
 /-- **`putgetK_safe` over S5's named hypotheses** (see the file header): S5's names exist (`HS5`), and

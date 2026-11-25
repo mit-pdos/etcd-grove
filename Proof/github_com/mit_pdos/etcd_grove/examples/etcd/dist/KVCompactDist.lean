@@ -46,15 +46,14 @@ facts at `Γ`) and the error arm without `kvErr`, for a cluster in compaction mo
   through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, `TestProxyRogue`, `TestWithNoProxyFix`).
   Each endpoint's table is set once by the start (`etcdAddr_set` spends `addrUnset`) and served only by
   `Serve_dist` at a member whose KV names are `kvCongr` to `Γ.kv`; `bridge.New` consumes `netAddrLeft`
-  (review 4). So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
+  (review 4). Another program at the address (a raw listener, an empty gRPC server, the only server that
+  serves the opaque table without its handlers) answers no call successfully: the error arm. So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
   asks of each member), and the handler's spec is the one its in-process proof meets.
 * *Errors, timeouts, retries are the error arm.* A compaction carries no update of the caller's; its
   premise is the caller's knowledge that the cluster's KV reached `rev` plus the retention (`kvRevLbZ`, of
-  the cluster's requested log, which a `Put`'s reply gives). A compaction past the compacted revision is an
-  error, so a retry is harmless either way.
-* *What a success claims* is `kv.Compact.spec`'s post, which the in-process proof derives from the member's
-  handler spec at its names through `kvSame`: the reply's fields as functions of the state the update fired
-  at, a compaction response.
+  the cluster's requested log, which a `Put`'s reply gives). It is non-repeatable (no retry policy in
+  clientv3's `retryKVClient`): retried only after a refusal, which an auth-off member never sends.
+* *What a success claims* is `kv.Compact.spec`'s post: a compaction response, nothing of the state.
 
 Retired by #24's S2 client side: `etcdSvc` defined (each entry the member's handler spec at its names),
 `Invoke` over the net model, and this statement proved from `kv.Compact.spec` over an `isKv` built from the

@@ -46,11 +46,13 @@ facts at `Γ`) and the builder's state (`txnObjAt`, what `kv.Txn`, `If`, `Then`,
   through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, `TestProxyRogue`, `TestWithNoProxyFix`).
   Each endpoint's table is set once by the start (`etcdAddr_set` spends `addrUnset`) and served only by
   `Serve_dist` at a member whose KV names are `kvCongr` to `Γ.kv`; `bridge.New` consumes `netAddrLeft`
-  (review 4). So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
+  (review 4). Another program at the address (a raw listener, an empty gRPC server, the only server that
+  serves the opaque table without its handlers) answers no call successfully: the error arm. So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
   asks of each member), and the handler's spec is the one its in-process proof meets.
-* *Errors, timeouts, retries are the error arm.* A read-only transaction is retried as a range (its
-  update persistent), a writing one only after a refusal, which an auth-off member never sends: it is sent
-  at most once and its one-shot update fires at most once.
+* *Errors, timeouts, retries are the error arm.* Every transaction is sent with clientv3's
+  non-repeatable call options, whatever it reads (`Commit` sends with `kv.callOpts`, never reading
+  `txn.isWrite`), so it is retried only after a refusal, which an auth-off member never sends: it is sent at
+  most once. A writing one's one-shot update fires at most once; a read-only one's update is persistent anyway.
 * *What a success claims* is `txn.Commit.spec`'s post, which the in-process proof derives from the member's
   handler spec at its names through `kvSame`: the reply's fields as functions of the state the update fired
   at, whether the comparisons succeeded, the branch's responses and the header revision, and the revision lower bound of the cluster's requested log (`txnRevLb`).

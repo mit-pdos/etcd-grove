@@ -46,12 +46,14 @@ facts at `Γ`) and the error arm without `kvErr`, in any auth mode:
   through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, `TestProxyRogue`, `TestWithNoProxyFix`).
   Each endpoint's table is set once by the start (`etcdAddr_set` spends `addrUnset`) and served only by
   `Serve_dist` at a member whose KV names are `kvCongr` to `Γ.kv`; `bridge.New` consumes `netAddrLeft`
-  (review 4). So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
+  (review 4). Another program at the address (a raw listener, an empty gRPC server, the only server that
+  serves the opaque table without its handlers) answers no call successfully: the error arm. So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
   asks of each member), and the handler's spec is the one its in-process proof meets.
 * *Errors, timeouts, retries are the error arm.* A deadline, a partition or a crashed member is
   `err ≠ nil` with no claim. A range is retried on `Unavailable` at the next endpoint
-  (`isSafeRetryImmutableRPC`); the read update is persistent (`□`), as in `kv.Get.spec`, so a retried or
-  repeated read fires it again harmlessly. A serializable range carries no update (its post `True`).
+  (`isSafeRetryImmutableRPC`), and also after a per-attempt context error, a learner's refusal or a token
+  refresh; the read update is persistent (`□`), as in `kv.Get.spec`, so a retried or repeated read fires it
+  again harmlessly. A serializable range carries no update (its post `True`).
 * *What a success claims* is `kv.Get.spec`'s post, which the in-process proof derives from the member's
   handler spec at its names through `kvSame`: the reply's fields as functions of the state the update fired
   at, the selection, count and header revision of the state the read linearized at (a linearizable range), or of some state (serializable).

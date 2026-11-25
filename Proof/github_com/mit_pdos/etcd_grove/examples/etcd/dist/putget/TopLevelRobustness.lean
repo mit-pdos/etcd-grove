@@ -20,7 +20,7 @@ runs an execution of `n` steps at `n + 1` receipts). Over the interim cross-mach
 `KV_Put_dist`, `KV_Get_dist`), `putget_safe` discharges it:
 * the start (`putget_shares`, proved): the one-member cluster's allocation (`etcdstart.clusterAllocN`), which
   fixes the cluster's view `c.view` (O1 option B, `notes/etcd-dist-plan.md` §18.3), the client's putget
-  invariant from its `etcdKV` (`putGetInv_alloc_all`), the client address set at the view
+  invariant from its `etcdKV` (`putGetInvK_alloc`), the client address set at the view
   (`etcdAddr_set`), the member's and the client's shares (`Defs.lean`);
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first
   half from the member's slice (`etcd_dist.wp_StartServer1_slice`), `Serve` on a member machine at the view
@@ -164,7 +164,7 @@ theorem putget_addr [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
 /-- **The deployment's start, at the addresses that pass the programs' checks** (`startAddrs`; #24's §1.3
 steps 1-4 over the interim vocabulary, O1 option B): the one-member cluster's allocation
 (`etcdstart.clusterAllocN` at `[id]`, lease mode `none`, no compaction), whose names `c` fix the view
-`c.view`; the client's putget invariant from the cluster's `etcdKV` (`putGetInv_alloc_all`); the shares,
+`c.view`; the client's putget invariant from the cluster's `etcdKV` (`putGetInvK_alloc`); the shares,
 each owed only once its machine's check passes (`memberShareIf`, `clientShareIf`), with the client
 address set at the view once the client's check passes (`putget_addr`). -/
 theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
@@ -182,13 +182,8 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
   isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   icases BigSepL.bigSepL_cons.1 $$ Hsl with ⟨Hsl, -⟩
   -- the client's invariant, from the cluster's `etcdKV`
-  ihave Hetcd' : etcdKV (GF := putgetGF)
-      (⟨default, default, default, default, default, default, ⟨γ, [], W64 0⟩, γk⟩ : ReadNames).kv
-      (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0))) $$ [Hetcd]
-  · iexact Hetcd
-  imod (putGetInv_alloc_all (GF := putgetGF) (⟨default, default, default, default, default, default, ⟨γ, [], W64 0⟩, γk⟩ : ReadNames)
-      (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v") $$ Hetcd'
-    with ⟨%γf, #Hinv⟩
+  imod (putGetInvK_alloc (GF := putgetGF) γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))
+      go!"k" go!"v") $$ Hetcd with ⟨%γf, #Hinv⟩
   imod (putget_addr peer client
       (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩) id)
     $$ Hreg Hs with #Ha
@@ -210,9 +205,7 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     · iexact Hat
     isplitr
     · ipureintro; rfl
-    iexists (⟨default, default, default, default, default, default, ⟨γ, [], W64 0⟩, γk⟩ : ReadNames), γf
-    isplitr
-    · ipureintro; rfl
+    iexists γf
     iexact Hinv
 
 end start

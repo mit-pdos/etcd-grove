@@ -9,7 +9,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
-public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 
 @[expose] public section
 
@@ -36,13 +36,13 @@ the put fired** (the cross-machine form of `client.client_Get_own`; the client d
 `clientNoProxy`): `nil` and a reply whose first key-value's value is `val`; or an error. -/
 abbrev Client_Get_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (γr : ReadNames) (γf : GName) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (γf : GName) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice),
-  opSizeOk (opGetModel key []) → γr.kv = Γ.kv →
+  opSizeOk (opGetModel key []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       isNewClient cl [ep] V ∗ clientNoProxy cl ∗ etcdAddrAt (Gg := hG.goose_globalGS) ep Γ mid ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-      putGetInv γr γf key val ∗ monoNatLbOwn γf 1 }}
+      putGetInvK Γ.kv γf key val ∗ monoNatLbOwn γf 1 }}
     (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
         go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
