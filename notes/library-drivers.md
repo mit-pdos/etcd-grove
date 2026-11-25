@@ -108,7 +108,8 @@ each retired by S5:
    `litPattern p → p ∉ Ps → f ≠ func.nil → {{ isPkgInit http ∗ muxOwn m Ps }} m.HandleFunc(p, f)
    {{ muxOwn m (p :: Ps) ∗ muxRoute m p (HandlerFunc f) }}`. Reviewed sound; provable like
    `wp_Handle_lit`, to be proved in the proof stage.
-2. `net.http.ServeMux.ServeHTTP.wp_proof` (`ServeMux__ServeHTTP.lean`): for literal patterns `L`, a
+2. `net.http.ServeMux.ServeHTTP.wp_proof` (`ServeMux__ServeHTTP.lean`): for literal, clean patterns `L`
+   (`litPattern ∧ pathClean`: no `//`, which Go's routing tree routes like a wildcard), a
    protocol allowing the mux's own answers to the requests clients send (`muxNoRoute P L`: a `307` to a
    request it redirects, `muxRedirect`: the path not clean, or not a pattern, not ending in `/`, with
    `path ++ "/"` a pattern; a `404` with `NotFound`'s body to one it does not redirect and no pattern

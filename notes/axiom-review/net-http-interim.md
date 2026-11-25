@@ -97,3 +97,16 @@ Also, from the merge: `muxSh` no longer holds `DefaultServeMux ↦□ m` (which 
 for a mux of the program's own); `http.Handle`'s lemma takes it, and `muxOwn` carries `serveEnv` for it
 (proofs only, no trusted text). `ServeMux.HandleFunc.wp_proof` stays an axiom for this review; it is provable
 like `wp_Handle_lit` (`wp_register_lit`, `wp_mux121_handle`) and will be proved in the proof stage.
+
+**2026-11-25: re-review of `f7b2807d4a`** (zeldovich-proving-2, #24 issuecomment-7155892191; go1.27.3 tests
+on tundra, `/shared/tmp/ps2/revhttp2/`). The five findings above: fixed, each rerun against Go. `Serve` (user
+handler), `HandleFunc`, `ReadResponse`, `wp_init_first`'s `use121` clause and the proof-only edits: sound;
+`ServeMux.ServeHTTP` matched Go on 24,000 random cases outside the case below. One new finding, fixed:
+- **N1, `ServeMux.ServeHTTP.wp_proof`: an empty segment of a literal pattern acts as a wildcard**
+  (`routing_tree.go:69-72` keys it like a single wildcard: with `//` registered, `GET /a/` runs its handler and
+  `GET /ab` gets a `307`; with `/a//b`, `GET /a/zzz/b` gets a `200`). **Fix:** the axiom takes
+  `∀ ph ∈ L, litPattern ph.1 ∧ pathClean ph.1` (a premise only; `litPattern`, `Handle.spec`,
+  `Serve.spec_rpc` unchanged). The driver's patterns `/echo`, `/status` are clean.
+- **M1, wording:** `godebugHttpmuxgo121` is one constant, so `GodebugHttpmuxgo121Not1` is about every
+  machine of a deployment: said so in its docstring and the statement's description.
+With N1 fixed: `done: OK` from zeldovich-proving-2 (no further round).

@@ -11,7 +11,9 @@ is under its pattern); otherwise a `404` with `NotFound`'s body. The protocol mu
 answers to the requests clients send (`muxNoRoute P L`). The request's fields the mux reads
 (`RequestURI`, `Host`, `URL`, the protocol, the method: `srvReq`) and writes (`Pattern`, `pat`,
 `matches`: `reqMuxFields`) are in `servePre`. The patterns are literal paths (`litPattern`, as
-`HandleFunc` registers). The machine's thread bound (`threadBound GF ≤ 2 ^ 30`): the mux's `RWMutex`
+`HandleFunc` registers) and clean (`pathClean`: no empty segment but the last, so no `//`; Go's
+routing tree keys an empty segment like a single wildcard, `routing_tree.go`, so `//` routes like
+`/{x}/`; zeldovich-proving-2's re-review, N1). The machine's thread bound (`threadBound GF ≤ 2 ^ 30`): the mux's `RWMutex`
 reader slots. httpdriver (2026-11-25); S5's `mux_handlerOk`, as the function's spec. Lean-first.
 -/
 module
@@ -40,7 +42,7 @@ abbrev ServeMux.ServeHTTP.spec : Prop :=
   ∀ (m : Loc) (L : List (GoString × GoInterface)) (P : HProto GF) (pfx : GoString)
     (w : GoInterface) (r : Loc) (R : HReq) (τ : GName) (rd : GoInterface)
     (I : RespSt → IProp GF) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF),
-    (∀ ph ∈ L, litPattern ph.1) → muxNoRoute P L → (∀ x, S x ⊢ iprop(⌜x.length < 2 ^ 60⌝)) →
+    (∀ ph ∈ L, litPattern ph.1 ∧ pathClean ph.1) → muxNoRoute P L → (∀ x, S x ⊢ iprop(⌜x.length < 2 ^ 60⌝)) →
   iprop(⌜threadBound GF ≤ 2 ^ 30⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
       globalAddr net.http.use121 ↦□ false ∗
       muxAt (GF := GF) (hG := hG) m (L.map Prod.fst) ∗
