@@ -1455,3 +1455,44 @@ terms. Fix: name each generation's resources by a definition over one `[hG : Hea
   shared claims of `dd`'s directories at `L'`: still to write, D-T7-4) → `memberDur_crash` → the image
   hypotheses → `memberRestart` at `L'` (`memberRestartFacts`, `clusterFacts` moved to `L'`: check they are
   generation-free by `.rfl`, as `memberDurOut_gen`).
+
+### T7 status and handoff (2026-11-25, session 3; branch `etcd-safe-t7`)
+
+Coordinator's ask: write `memberGen_crash_law_holds` with one named hypothesis per blocker (B4, B1, B2, B3, D-T7-1,
+D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; check the facts carry over.
+
+**Done** (built on fk-lean2, `…dist.crash.MemberCrash`, exit 0; no axiom, no `sorry`):
+* `memberClusterFacts` (wrapper over one `HeapGS`) and `memberClusterFacts_gen` (`.rfl`): the cluster's facts carry
+  over.
+* `memberRestartFacts_gen`: a restart's facts carry over **except `idPfxInv`**, which is heap-level (its invariant
+  holds the generators' `prefix` field points-to on the old heap). New blocker **B6**, ledger 2026-11-25
+  ("`memberGen`'s restart case asks for the old incarnation's `idPfxInv`…"): as stated, `memberRestart` is
+  unprovable after any crash. The lemma takes the new generation's `idPfxInv` as an input; the assembly takes it as
+  the named hypothesis B6.
+
+**Not done: the assembly.** Two plumbing facts found while reading its inputs, which fix `Keep`'s pure rows:
+* (instances, B7, internal to T7's `Keep`, no spec change) Three file-system instance sources meet: the law's ambient
+  `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` (its `crashRest`), the WAL's `h.ext/h.semOk/h.has` (`walInv`,
+  `walInv_crash`), and the backend's and snapshot directory's `theFs GF = some c` (`onFs`: `dbCrashKeep`'s
+  `bbolt.fileHoldsM`, `snapDir_crash.law`'s `crashRest` at `c`'s instances; `theFs` is a `Classical.choice`). `Keep`
+  must carry `⌜h.toWalA = etcdWalArea …⌝` and `⌜theFs GF = some ⟨‹_›, ‹_›, ‹_›, fa, fsa, ne⟩⌝` (ambient ones), and the
+  proof `cases`/`subst`s them before applying each crash lemma.
+* (D-T7-4) `snapDir_crash.law` takes `snapDirOwn (snapDBPath sd)` and `[∗list] i ∈ snap.allW64, snapSlot sd J V' i`
+  at `L'` (each slot: `osInv`, `osSharedInv R`, `osPathS R sd dq J`, a call permission share, the claim on index `i`'s
+  name `osNames J (.only [snapDBName i]) 1 …`, `PathFits`). They come from `osShared L' R V'` (`crashRest_treeS'`):
+  the whole claim `osNames J (.except []) 1 (namesOf V' J …)` of `sd`'s directory split into `.except snapDirNames`
+  and the `2^64` singletons (a lemma over `snap.allW64` by induction, no `[∗list]` materialized: never `iframe` it),
+  the path `osPathS R sd dq J` from the claims of `dd` and `member` (fractions split off `osShared`'s whole claims
+  along `osPathDur`'s spine), and the call permission from `osCallPerms R`.
+
+**Next, in order:**
+1. `memberKeep C cfg id KeepF KeepB L := memberClusterFacts ∗ £ 1 ∗ (KeepF L ∨ memberKeepR KeepB L)` (`£ 1` for
+   `snapDir_crash.law`: T8's obligation), `memberKeepR` with the rows of session 2's design plus B7's two pure rows and
+   `memberRestartFacts γ' ρo id`.
+2. The hypotheses, each an `abbrev memberCrash.<name>.law : Prop` with its blocker in the docstring: `memberFirstCrash`
+   (B4), `memberImage` (B1), `memberImageB` (B2, pure, "false in some runs as stated; replaced by T4's restatement"),
+   `memberImageBoot` (B3, likewise), `snapDirKeptOf` (D-T7-1: `snapDirKeptR ⊢ snapDirKeptF` at the law's roots),
+   `memberSnapRow` (D-T7-2: `snapDirKeep` at `L'` gives the image's snapshot row), `memberPfx` (B6: the new
+   generation's `idPfxInv`), `hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st'` (A1, until `etcdCQ`), and the
+   law's own premise `Q → W1 walCodec` (not a blocker).
+3. The proof, in session 2's order, with D-T7-4's split lemma (above) proved first in `MemberCrash.lean`.

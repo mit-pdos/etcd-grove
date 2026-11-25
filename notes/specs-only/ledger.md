@@ -7032,3 +7032,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
   image. Each is T4's to restate (with `bootstrapCrashContract`).
 - **Decision.** Pending (coordinator-E / T4). Not edited.
+
+## 2026-11-25: `memberGen`'s restart case asks for the old incarnation's `idPfxInv` at the new generation (T7, D6)
+
+- **Spec.** `etcd_dist.memberRestart` (`Proof/.../examples/etcd/dist/crash/MemberGen.lean`): `memberRestartFacts γ' ρo id`
+  at the new generation, `ρo` the names of the incarnation that wrote the files (`etcdstart/Restart.lean`).
+- **Defect.** Every row of `memberRestartFacts` is ghost-only and carries over to a new generation (T7's
+  `memberRestartFacts_gen`), but `idPfxInv ρo.ids.gen ρo.ids.pfx` (`idutil/Defs.lean`) is heap-level: its invariant
+  `idPfxBody γip γgp` holds `structFieldRef Generator "prefix" g ↦□ k.1` on the old machine's heap and the authorities
+  `ghostMapAuth γip 1`/`γgp 1`, and the names `(γip, γgp)` are fixed by `ρo.ids.gen`'s persistent element. After a
+  crash no generation has those points-to facts, and the authorities stay in the old invariant (not cancellable), so
+  the new generation's `idPfxInv` at `ρo`'s names cannot be made: `memberRestart` is unprovable after any crash.
+- **Evidence.** T7's `memberRestartFacts_gen` (`dist/crash/MemberCrash.lean`): the generic `.rfl` fails exactly at
+  `idPfxInv` (diagnosed row by row, 2026-11-25); the lemma takes the new generation's `idPfxInv` as an input.
+- **Proposed change.** (a) `memberRestartFacts` drops `idPfxInv`, and `NewServer.specC` takes a fresh prefix
+  invariant from the new incarnation's names (`idIncarnation_alloc`, with the issued ids' facts ghost-only, so they
+  persist); or (b) `idPfxInv`'s invariant made crash-aware (contents or `crashed ∗` a token, as `walInv`), with a
+  ghost-only part that survives and a heap part re-made per generation. D7's / T8's to decide.
+- **Decision.** Pending (coordinator-E). Not edited; T7 takes it as the named hypothesis B6.
