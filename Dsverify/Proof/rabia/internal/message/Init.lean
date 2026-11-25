@@ -144,10 +144,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterEnum (GF := GF)) $$ [$Hg $HMsgType_value] as Hg
   try wp_auto
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
+  · ipureintro; first | exact nofun | simp
   try wp_auto
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
+  · ipureintro; first | exact nofun | simp
   try wp_auto
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
+  · ipureintro; first | exact nofun | simp
   try wp_auto
   -- the translated init.«1»
   wp_func_call

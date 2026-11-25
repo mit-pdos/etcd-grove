@@ -14,7 +14,7 @@ name is optional; a kit without `GOOSE` has no goose project.
 | `GOOSE` | goose.py | the kit's project: a dict of `Project`'s fields (`name="dsv-<kit>"`, `local`, `root="Dsverify"`, `lean_roots`, `packages`, `owned`, `std_models`, `module_models`, `expand_comment_tabs`, ...), placed before project `models-net` |
 | `PKGS` | gen-init.py | the packages whose `Init.lean` is generated into `Dsverify/Proof/` (those with a `Dsverify/Code/<pkg>.lean`; a `HYP_INITS` package never) |
 | `PROGRAMS` | gen-init.py | program package -> its `PkgTable.lean` path, relative to `Dsverify/` |
-| `HYP_INITS` | gen-init.py | the packages whose `wp_initialize'` is a trust-boundary axiom (their hand-written `Dsverify/Proof/<pkg>/Init.lean`; "`HYP_INITS`: per-package `wp_initialize'` axioms" below): external here, and every generated file of the kit whose package's closure holds one imports that `Init` |
+| `HYP_INITS` | gen-init.py | the packages whose `wp_initialize'` is a trust-boundary axiom, or for gen-init's `DSV_PREMISE_INITS` a premise `InitHyp` (their hand-written `Dsverify/Proof/<pkg>/Init.lean`; "`HYP_INITS`: per-package `wp_initialize'` axioms" below): external here, and every generated file of the kit whose package's closure holds one imports that `Init` |
 | `HYP_IMPORTS` | gen-init.py | the `HYP_INITS` packages' imports as the closure sees them: `'all'` (default), `'known'` (those in the inventory), `'none'` (none, and their `PkgInfo` imports none: programs' tables stop there); or a dict, package -> one of these (`'all'` for a package it does not list), for a kit whose hypothesis packages differ. `'none'` only for a package whose initializer runs no import's initializer (names only, `PkgInfo` imports `[]`): a `wp_initialize'` axiom whose condition does not constrain a package the initializer reaches is false (that package is initialized after it, and `ownInitializing` then needs the table's fact for it; dsv-inithyp-fix: net/rpc's and net/http's now `build_get_is_pkg_init_wf`, `'all'`) |
 | `MAIN` | gen-init.py | main-tree packages the kit's closure adds to `NET_MAIN` (always the main tree's inventory and instances, with those of their imports `Net/` lacks; not raft's `Init` if listed in `RAFT_INIT`) |
 | `MAIN_GEN` | gen-init.py | the `MAIN` packages whose `Init.lean` is generated into the part (default: all of `MAIN`) |
@@ -41,14 +41,17 @@ A `HYP_INITS` package's `Dsverify/Proof/<pkg>/Init.lean` declares its `wp_initia
 **trust-boundary axiom**: run once, from a table holding its imports' facts, the package's
 initializer establishes its fact. It asserts that **Go runs the package's untranslated initializers
 without panicking** -- the same trust as gen-init's `opaqueInitsOk`/`initFuncsOk` axioms. So:
-- the axiom states exactly what the class `InitHyp` (kept in the file, as that statement) stated,
-  with the same post; it appears in no top-level statement, and no `InitHyp` premise remains;
-- each axiom has an `axiom`-skill review (`notes/axiom-review/dsv-inits/`);
+- the axiom states exactly what the class `InitHyp` (the premise it replaces, deleted) stated,
+  with the same post; it appears in no top-level statement;
+- each axiom has an `axiom`-skill review (`notes/axiom-review/dsv-inits/`), and a package whose
+  review refutes the axiom keeps its `InitHyp` premise (gen-init's `DSV_PREMISE_INITS`, whose
+  generated sections take it as an instance; the statement's `NonVacuityLinked.lean` instantiates it
+  through the test-only `Dsverify/Proof/<pkg>/InitInstancesLinked.lean`,
+  `etc/dsv/tools/inithyp-instances.py`): go-redis v8 and grpc (dsv-fix3, 2026-11-25:
+  `GODEBUG=fips140=bogus` panics in go-redis's `crypto/tls` closure; a program registering grpc's
+  `binarylog.proto` first panics in grpc's initializer), until Upamanyu picks the fix;
 - each is counted in the tcb collection of every kit whose programs initialize the package
-  (`etc/tcb-collections/dsv-<kit>.txt`, `etc/tcb-report.py --collection ... --check --update`);
-- the test-only `Dsverify/Proof/<pkg>/InitInstancesLinked.lean` (`etc/dsv/tools/inithyp-instances.py`)
-  derives the statement from local axioms on the package's untranslated initializers, a
-  per-initializer reading of the axiom.
+  (`etc/tcb-collections/dsv-<kit>.txt`, `etc/tcb-report.py --collection ... --check --update`).
 
 Paxos needs none: its statement rests on Lean's three axioms with no hypotheses.
 

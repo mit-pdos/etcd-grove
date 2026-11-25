@@ -59,7 +59,8 @@ MAIN = ['bufio', 'google_golang_org.protobuf.proto',
         'google_golang_org.protobuf.runtime.protoimpl', 'google_golang_org.protobuf.internal.impl',
         'google_golang_org.protobuf.internal.pragma']
 # the packages whose `wp_initialize'` is a trust-boundary axiom (`Dsverify/Proof/<pkg>/Init.lean`;
-# dsv-fix3, #8 2026-11-25T02:20:53Z: until then the class `InitHyp`, a premise of the statement): the names-only libraries, whose variables' initializers are untranslated. Not
+# dsv-fix3, #8 2026-11-25T02:20:53Z: until then the class `InitHyp`, a premise of the statement; go-redis's
+# and grpc's still are, gen-init's `DSV_PREMISE_INITS`: their axiom reviews refuted them): the names-only libraries, whose variables' initializers are untranslated. Not
 # math/rand (math-rand-isinit, 2026-11-24): Perennial proves its `wp_initialize'`
 # (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so neither here nor
 # in `MAIN`

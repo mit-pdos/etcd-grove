@@ -23,8 +23,10 @@ and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIG
 deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
 `log.Println` is proved from Perennial's trusted model of `log`; `math/rand`'s initializer and
 package-level `Intn` from Perennial's proofs. The initializers of those libraries (zerolog, gogo `proto`, `gogoproto`,
-go-redis v8, `os/signal`) are per-package trust-boundary axioms (their `wp_initialize'`,
-`etc/tcb-collections/dsv-rabia.txt`), not premises. Proved in
+`os/signal`) are per-package trust-boundary axioms (their `wp_initialize'`,
+`etc/tcb-collections/dsv-rabia.txt`), not premises, but go-redis v8's, still a premise (`InitHyp`:
+it runs without panicking; its axiom review refuted it as an axiom,
+`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`). Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
 -/
 module
@@ -35,6 +37,7 @@ public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
 public import Dsverify.Proof.github_com.rs.zerolog.Spec
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec
+public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.os.signal.Spec
 public import Dsverify.Proof.math.rand.Spec
 
@@ -78,6 +81,7 @@ def rabia_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.Hyps remoteGF) →
+    (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; os.signal.NoSignals os.signal.quietSigs remoteGF) →

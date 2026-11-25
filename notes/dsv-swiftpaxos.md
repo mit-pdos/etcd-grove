@@ -1424,3 +1424,19 @@ stay: the command's initializer runs net/rpc's before anything runs net/http's, 
 run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
 "dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
 kit's net/rpc premises discharged from `Net/`'s specs.
+
+## dsv-fix3: initializer premises become axioms (2026-11-25, #49)
+
+The names-only initializers' `InitHyp` premises became per-package trust-boundary axioms
+(`axiom wp_initialize'` in `Dsverify/Proof/<pkg>/Init.lean`, the class's statement exactly; Upamanyu,
+#8 2026-11-25T02:20:53Z; `etc/dsv/README.md`, "`HYP_INITS`: per-package `wp_initialize'` axioms"),
+each reviewed by the `axiom` skill (`notes/axiom-review/dsv-inits/`) and counted in the kit's
+collection. Two reviews refuted theirs in Go, go-redis v8's (`GODEBUG=fips140=bogus` panics in
+`crypto/internal/fips140`'s `init`, through `crypto/tls`) and grpc's (a program registering grpc's
+`binarylog.proto` first panics in grpc's initializer): those two stay `InitHyp` premises (gen-init's
+`DSV_PREMISE_INITS`) until Upamanyu picks a fix. The nine axiomatized packages' test-only
+`InitInstancesLinked.lean` (imported by nothing; their local `localInitFuncsOk`, true of no
+particular semantics, looked false where an `init` panics) are deleted with their `InitHyp` classes.
+
+Here: `os.signal`, `encoding.gob`, `github_com.google.uuid` are axioms; `swiftpaxos_remote_robust`
+loses its three `InitHyp` premises (statement diff: removals only).

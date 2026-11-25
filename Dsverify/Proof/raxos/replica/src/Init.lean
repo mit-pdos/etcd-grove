@@ -64,6 +64,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [_root_.Perennial.google_golang_org.grpc.InitHyp GF]
+variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.replica.src.Assumptions]
 
 namespace raxos.replica.src

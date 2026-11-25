@@ -6029,12 +6029,20 @@ DSV_ROOT = 'Dsverify'
 DSV_KITS = _goose.DSV_KITS
 
 
+# the `HYP_INITS` packages whose `wp_initialize'` stays a premise of the statement (the class
+# `InitHyp`, which the generated sections take as an instance) instead of a trust-boundary axiom:
+# their `axiom`-skill reviews refuted the axiom (dsv-fix3, 2026-11-25:
+# notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md, google-golang-org-grpc.md)
+DSV_PREMISE_INITS = ['github_com.go_redis.redis.v8', 'google_golang_org.grpc']
+
+
 def dsv_hyp_fix(path, txt, need):
     """A generated file of the part whose package's closure holds a hypothesis package (`need`:
     the package directory -> its hypothesis packages): its import of that package's
     initialization is the part's `Init.lean`, whose `wp_initialize'` is a trust-boundary axiom
     (dsv-fix3, mit-pdos/etcd-grove#8 2026-11-25T02:20:53Z: until then the class `InitHyp`, which
-    the file's sections took as an instance)."""
+    the file's sections took as an instance), or, for the `DSV_PREMISE_INITS`, still the class
+    `InitHyp`, which the file's sections take as an instance."""
     d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
     for q in need.get(d, []):
         txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
@@ -6043,6 +6051,9 @@ def dsv_hyp_fix(path, txt, need):
             txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
                          lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
                          count=1)
+        if q in DSV_PREMISE_INITS:
+            txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                         lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
     return txt
 
 

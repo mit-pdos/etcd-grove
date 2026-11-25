@@ -11,7 +11,11 @@ panicking (`etc/dsv/README.md`).
 What gogo/protobuf v1.3.2 does (`proto/properties.go`): each function writes a registry map of
 the package (`enumValueMaps`; `protoTypedNils` and `revProtoTypes`; `protoFiles`), unsynchronized,
 and returns. `RegisterEnum(typeName, ...)` panics if `typeName` was registered before;
-`RegisterType` logs a duplicate and returns; `RegisterFile` overwrites. So the preconditions:
+`RegisterType` logs a duplicate and returns, and panics on a `nil` interface (`reflect.Zero(nil)`:
+measured, gogo v1.3.2, go1.27.3; `notes/axiom-review/dsv-inits/github-com-gogo-protobuf-proto.md`);
+`RegisterFile` overwrites. So the preconditions:
+* `RegisterType`'s argument is not the `nil` interface (dsv-fix3, 2026-11-25: until then the spec
+  claimed no panic for every `x`, false of Go; rabia's calls pass typed `nil` pointers);
 
 * every call holds the program's package state `ownGoState σ` (exclusive, returned): the calls
   are made by package initializers, which Go runs one at a time, so no two registrations race
@@ -52,9 +56,10 @@ class Hyps [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
       (App (App (App (Val #(functions RegisterEnum [])) (Val #(go!"message.MsgType")))
         (Val #nameMap)) (Val #valueMap))
     {{ RET #(); ownGoState σ }}
-  /-- `proto.RegisterType(x, name)` (`message.pb.go`'s first `init`). -/
+  /-- `proto.RegisterType(x, name)` (`message.pb.go`'s first `init`), `x` not the `nil` interface
+  (Go panics on it, the file header). -/
   RegisterType : ∀ (σ : GMap GoString Bool) (x : GoInterface) (name : GoString),
-    {{ (ownGoState σ : IProp GF) }}
+    {{ ⌜x ≠ interface.nil⌝ ∗ (ownGoState σ : IProp GF) }}
       (App (App (Val #(functions RegisterType [])) (Val #x)) (Val #name))
     {{ RET #(); ownGoState σ }}
   /-- `proto.RegisterFile(filename, descriptor)` (`message.pb.go`'s second `init`). -/

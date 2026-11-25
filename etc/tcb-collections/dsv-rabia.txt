@@ -13,3 +13,7 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline.
 roots ^Dsverify/Proof/rabia/
+axiom Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
+axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
+axiom Perennial.github_com.rs.zerolog.wp_initialize'
+axiom Perennial.os.signal.wp_initialize'

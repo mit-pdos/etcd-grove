@@ -34,3 +34,7 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline.
 roots ^Dsverify/Proof/raxos/
+axiom Perennial.encoding.gob.wp_initialize'
+axiom Perennial.google_golang_org.grpc.codes.wp_initialize'
+axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
+axiom Perennial.io.ioutil.wp_initialize'
