@@ -1,0 +1,65 @@
+/- Lean-first (no Rocq counterpart).
+
+`txnlin.Call(cli, input)` **across machines** (`examples/etcd/txnlin/linkvtxn.go`): the call a kv
+client machine makes (`kvremote.Node`'s operation), through its own clientv3 client of the cluster's
+endpoints. txnlin's `Call.spec` with the in-process servers' registrations (`isNewClient ∗
+clientWriteOnce ∗ [∗list] kvRegsAt`, one update per member) replaced by the cluster view's client
+facts, `kvClientV svc cl api eps V Γ` (N2's drafts, `dist/ClientViewDist.lean`: `New`'s client `cl` of
+the endpoints `eps`, its `KV` field the `*kv` `api`, every endpoint a member of the view `Γ`), and one
+update at the cluster's KV names `Γ.kv` (`callUpd`). The post is `Call.spec`'s: the failed call's output
+(`errOut`), or a successful one at the state `σ` the update fired at (`callRes`), the model's answer at
+`σ` when `σ` is good, `σ`'s revision fitting a word. For a cluster with auth off (`Γ.auth = false`, the
+drafts' write calls': a write is sent at most once).
+
+`svc` is the drafts' table parameter (A1 restated at the view). Proved in
+`Proof/.../dist/kvremote/CallDist.lean` over the drafts `KV_Put_dist`, `KV_Get_dist`,
+`KV_Delete_dist`, `Txn_Commit_dist` (hypotheses).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientViewDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace etcd_txnlin
+
+open Iris Iris.BI Net github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+open EtcdGrove.etcd_dist.view
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- See the file header. -/
+abbrev Call_dist.spec (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
+    (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
+  Γ.auth = false →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
+      kvClientV svc cl api eps V Γ ∗ callUpd Γ.kv i Q }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Call)) (Val #cl))
+      (Val #(boxIn x)))
+  {{ (v : GoInterface), RET #v; levelTok 0 ∗ (⌜v = boxOut errOut⌝ ∨
+      ∃ (y : Output) (σ : KVState), callRes i Q σ ∗
+        ⌜v = boxOut y ∧ y.Err' = false ∧ kvRevFits σ.rev ∧ (GoodKV σ → y = outAt i σ)⌝) }}
+
+end spec
+
+end etcd_txnlin
+end EtcdGrove
+end Perennial
