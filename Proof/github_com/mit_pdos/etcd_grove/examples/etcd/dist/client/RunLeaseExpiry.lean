@@ -189,7 +189,8 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     -- `defer cli.Close()`: the chain's triple
     ihave ⟨%dv', defer, #Hdv'⟩ : iprop(∃ dv' : GoFunc, defer ↦ dv' ∗
         □ (∀ Ψ : val → IProp GF, ▷ Ψ #() -∗ WP (App (Val #dv') (Val #())) {{ Ψ }})) $$ [defer]
-    · iexists _; iframe
+    · iexists _
+      iframe defer
       iintro !> %Ψ HΨ
       wp_auto
       wp_apply wp_Close as %ce -
@@ -353,8 +354,8 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     icases Hgj with ⟨%aj, %Vj, %midj, #Hmcj, #Hcorej, Hσj⟩
     (try wp_auto)
     (try simp only [Hbm, _root_.and_self, ↓reduceIte])
-    (try wp_apply wp_load_slice_index eps (sint.Z n) _ _ x Hbm.1 $$ [Heps] as -)
-    (try (· iframe #; ipureintro; rw [hnz]; exact Hx_lookup))
+    (try (wp_apply wp_load_slice_index eps (sint.Z n) _ _ x Hbm.1 $$ [Heps] as -;
+      focus (iframe #; ipureintro; rw [hnz]; exact Hx_lookup)))
     (try wp_auto)
     (try simp only [Hb4, _root_.and_self, ↓reduceIte])
     wp_apply wp_load_slice_index oksl (sint.Z n) _ _ bj Hb4.1 $$ [Hoksl] as -
