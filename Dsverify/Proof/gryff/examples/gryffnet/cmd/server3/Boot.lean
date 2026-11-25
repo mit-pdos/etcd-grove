@@ -31,6 +31,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.gryff.examples.gryffnet.cmd.server3.Assumptions]
 variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable (hT : threadBound GF ≤ 2 ^ 30)
+variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
 
 /-! The program table's facts, for `getIsPkgInit` and for the excluded sets' tables. -/
 
@@ -1917,7 +1918,7 @@ theorem wp_gryff_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- `serverlib`'s initialization, with neither it nor net/http nor net/rpc initialized
 (`gEx noPkgsS0`): net/http's and net/rpc's initializations are the first (Net's
 `wp_init_first`, on a machine of at most `2 ^ 30` threads), and leave the machine's `serverBoot`. -/
@@ -1944,7 +1945,7 @@ theorem wp_serverlib_own :
       as ⟨Hown, #Hd4⟩
     wp_apply (_root_.Perennial.log.wp_initialize' _ wfS1_log) $$ Hown
       as ⟨Hown, #Hd3⟩
-    wp_apply (wp_rpc_own noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown
+    wp_apply (wp_rpc_own wp_NewServer noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown
       as ⟨Hown, #Hd2, HRp⟩
     wp_apply (_root_.Perennial.gryff.src.masterproto.wp_initialize' _ wfS2_gryff_src_masterproto) $$ Hown
       as ⟨Hown, #Hd1⟩
@@ -1956,7 +1957,7 @@ theorem wp_serverlib_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- `gryffnet`'s initialization, not yet initialized, keeping `gryff`'s variables and prophecy
 and the machine's `serverBoot`. -/
 theorem wp_gryffnet_own :
@@ -1980,7 +1981,7 @@ theorem wp_gryffnet_own :
       as ⟨Hown, #Hd16⟩
     wp_apply (_root_.Perennial.gryff.src.state.wp_initialize' _ wfS0_gryff_src_state) $$ Hown
       as ⟨Hown, #Hd15⟩
-    wp_apply (wp_serverlib_own hT) $$ Hown as ⟨Hown, #Hd14, HB⟩
+    wp_apply (wp_serverlib_own hT wp_NewServer) $$ Hown as ⟨Hown, #Hd14, HB⟩
     wp_apply (_root_.Perennial.gryff.src.masterlib.wp_initialize' _ wfNo_gryff_src_masterlib) $$ Hown
       as ⟨Hown, #Hd13⟩
     wp_apply (_root_.Perennial.gryff.src.gryffproto.wp_initialize' _ wfNo_gryff_src_gryffproto) $$ Hown
@@ -2012,7 +2013,7 @@ theorem wp_gryffnet_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- **The server machine's boot**: its program's initialization from a fresh process, keeping
 `gryff`'s variables and trace prophecy and the machine's `serverBoot`. -/
 theorem wp_initialize'_own :
@@ -2029,7 +2030,7 @@ theorem wp_initialize'_own :
   · iframe Hown
     iintro Hown
     wp_auto
-    wp_apply (wp_gryffnet_own hT) $$ Hown as ⟨Hown, #Hd1, HR⟩
+    wp_apply (wp_gryffnet_own hT wp_NewServer) $$ Hown as ⟨Hown, #Hd1, HR⟩
     iframe Hown HR
     is_pkg_init_finish
   · iintro ⟨Hown, Hpk, HR⟩

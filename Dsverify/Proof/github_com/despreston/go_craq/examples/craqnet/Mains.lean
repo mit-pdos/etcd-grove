@@ -229,17 +229,17 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server1.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
+theorem wp_main (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server1 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 1 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server1 ∗ codecFresh ∗ muxOwner [] ∗
+        rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg 1 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 1) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 1) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hdsv Hres]
   · rw [show uint.nat (W64 1) = 1 from rfl]
     iframe #
     iframe
@@ -259,17 +259,17 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server2.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
+theorem wp_main (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server2 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 2 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server2 ∗ codecFresh ∗ muxOwner [] ∗
+        rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg 2 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 2) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 2) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hdsv Hres]
   · rw [show uint.nat (W64 2) = 2 from rfl]
     iframe #
     iframe
@@ -289,17 +289,17 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server3.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
+theorem wp_main (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server3 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 3 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server3 ∗ codecFresh ∗ muxOwner [] ∗
+        rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 3) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 3) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hdsv Hres]
   · rw [show uint.nat (W64 3) = 3 from rfl]
     iframe #
     iframe
@@ -319,17 +319,17 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server4.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
+theorem wp_main (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server4 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 4 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server4 ∗ codecFresh ∗ muxOwner [] ∗
+        rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg 4 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 4) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 4) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hdsv Hres]
   · rw [show uint.nat (W64 4) = 4 from rfl]
     iframe #
     iframe
@@ -349,17 +349,17 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server5.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
+theorem wp_main (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server5 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 5 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server5 ∗ codecFresh ∗ muxOwner [] ∗
+        rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg 5 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 5) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 5) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hdsv Hres]
   · rw [show uint.nat (W64 5) = 5 from rfl]
     iframe #
     iframe
@@ -379,17 +379,17 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server6.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
+theorem wp_main (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 6 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6 ∗ codecFresh ∗ muxOwner [] ∗
+        rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg 6 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 6) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 6) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hdsv Hres]
   · rw [show uint.nat (W64 6) = 6 from rfl]
     iframe #
     iframe

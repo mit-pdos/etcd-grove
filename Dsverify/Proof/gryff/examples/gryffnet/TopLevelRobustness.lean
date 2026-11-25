@@ -321,7 +321,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       iintro HP Hgs Htok
       iapply wp_bootRT cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          (cmd.server1.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 0))
+          (cmd.server1.wp_initialize'_own hT' net.rpc.NewServer.wp_owned) (P := iprop(serverShare (G := G') γ 0))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
             iapply (cmd.server1.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
@@ -336,7 +336,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       iintro HP Hgs Htok
       iapply wp_bootRT cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          (cmd.server2.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 1))
+          (cmd.server2.wp_initialize'_own hT' net.rpc.NewServer.wp_owned) (P := iprop(serverShare (G := G') γ 1))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
             iapply (cmd.server2.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
@@ -351,7 +351,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       iintro HP Hgs Htok
       iapply wp_bootRT cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          (cmd.server3.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 2))
+          (cmd.server3.wp_initialize'_own hT' net.rpc.NewServer.wp_owned) (P := iprop(serverShare (G := G') γ 2))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
             iapply (cmd.server3.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ
@@ -366,7 +366,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       iintro HP Hgs Htok
       iapply wp_bootRT cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit
           iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph ∗ serverBoot (GF := remoteGF))
-          (cmd.server4.wp_initialize'_own hT') (P := iprop(serverShare (G := G') γ 3))
+          (cmd.server4.wp_initialize'_own hT' net.rpc.NewServer.wp_owned) (P := iprop(serverShare (G := G') γ 3))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, ⟨Hglob, Hbp, Hboot⟩, Htok⟩ HΦ
             iapply (cmd.server4.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot Htok] HΦ

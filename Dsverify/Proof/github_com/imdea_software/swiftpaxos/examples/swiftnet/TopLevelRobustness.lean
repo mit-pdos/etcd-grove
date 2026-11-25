@@ -16,6 +16,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swift
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Bridge
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.BootCmdsLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Start
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpAddrNet
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcBoot
 
 @[expose] public section
 
@@ -66,6 +68,28 @@ theorem wp_bootR [hG : HeapGS .hasLC GF] [sem : go.Semantics]
   · iframe
   ipureintro; rfl
 
+/-- `wp_bootR` whose `main` also gets the main thread's token (gryff's). -/
+theorem wp_bootRT [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+    (init : val) (main pkg : GoString) [IsPkgInit (IProp GF) pkg] (getIs : GoString → IProp GF)
+    (R : IProp GF)
+    (Hinit : {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
+        (App (Val init) (Val #()))
+      {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg ∗ R }})
+    (P : IProp GF)
+    (Hf : {{ isPkgInit (PROP := IProp GF) pkg ∗ P ∗ R ∗ threadTok }}
+        (App (Val (@! main)) (Val #()))
+      {{ RET #(); True }}) :
+    ⊢ P -∗ ownGoState ∅ -∗ threadTok -∗
+      WP (boot init main) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
+  iintro HP Hgs Htok
+  unfold boot
+  wp_apply Hinit $$ [Hgs] as ⟨-, #Hpkg, HR⟩
+  · iexact Hgs
+  wp_pures
+  wp_apply Hf $$ [HP HR Htok]
+  · iframe
+  ipureintro; rfl
+
 end boot
 
 section res
@@ -78,7 +102,7 @@ theorem bootRes_client (hrb : receiptBound netDistGF ≤ 2 ^ 64) :
     bootRes ⊢ client.ghostFresh ∗ codecFresh ∗ cliBoot ∗
       globalAddr swift.useFastAckPool ↦ false := by
   unfold bootRes rpcBootRes
-  iintro ⟨Hfr, Hmg, Hmu, Hcu, #Hse, -, -, #Hde⟩
+  iintro ⟨Hfr, Hmg, Hmu, Hcu, #Hse, -, -, #Hde, -⟩
   unfold swift.mutGlobalsInit
   icases Hmg with ⟨-, Hp, -⟩
   iframe Hfr Hp
@@ -92,10 +116,10 @@ theorem bootRes_client (hrb : receiptBound netDistGF ≤ 2 ^ 64) :
 /-- Server machine `i + 1`'s boot resources, from its boot. -/
 theorem bootRes_server (i : Nat)
     (hb : threadBound netDistGF ≤ 2 ^ 31 ∧ receiptBound netDistGF ≤ 2 ^ 64) :
-    bootRes ⊢ srvBoot i := by
+    bootRes ∗ threadTok ⊢ srvBoot i := by
   unfold bootRes rpcBootRes srvBoot
-  iintro ⟨Hfr, Hmg, Hmu, Hcu, #Hse, Hmux, Hds, #Hde⟩
-  iframe Hmux Hds Hse
+  iintro ⟨⟨Hfr, Hmg, Hmu, Hcu, #Hse, Hmux, Hds, #Hde, -⟩, Htok⟩
+  iframe Hmux Hds Hse Htok
   unfold codecFresh cliBoot
   iframe Hmu Hcu Hde
   iunfold net.rpc.srvEnv at Hse
@@ -127,8 +151,8 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hgi hsi hui hsw hmr hns hor rh hfi σ g
-  refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 31)
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hgi hsi hui hsw hmr hns hor σ g
+  refine robust_of_distProtoLisRBTT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 30)
     (2 ^ 63) swLas_pairwise swLas_disj ?_
   intro G π hrb
   letI := libsAt l π
@@ -204,8 +228,8 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
     letI : math.rand.Hyps netDistGF := hmr G' hG.goose_localGS
     letI : os.signal.NoSignals usr1Sigs netDistGF := hns G' hG.goose_localGS
     letI : SwiftOsRandom netDistGF := hor G' hG.goose_localGS π
-    letI : RpcHttpHyp netDistGF := rh G' hG.goose_localGS π
-    letI : RpcFirstInit (GF := netDistGF) := hfi G' hG.goose_localGS π
+    letI : RpcHttpHyp netDistGF := EtcdGrove.dsvswiftpaxos.netRpcHttpHyp
+    letI : RpcFirstInit (GF := netDistGF) := rpcFirstInit_of net.rpc.NewServer.wp_owned hT
     have hrb' : receiptBound netDistGF ≤ 2 ^ 63 := by omega
     have hb' : threadBound netDistGF ≤ 2 ^ 31 ∧ receiptBound netDistGF ≤ 2 ^ 64 := by
       constructor <;> omega
@@ -214,7 +238,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit bootRes
           cmd.orch.wp_boot (P := iprop(conf.writer γ ∗ common γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (swRK (G := G') γk) a) ∗ mapCtx (Gg := G') (I := KIn) ∗ pendCtx (Gg := G') (swRK (G := G') γk) (swS0 (GF := netDistGF)) γp ∗ pendLib (Gg := G') (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') (ρ := ρ) a 24))
           (by
@@ -226,7 +250,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit bootRes
           cmd.client0.wp_boot (P := iprop(clientNodeShare γ 0 ∗ cnode.linkInv (G := G') γ γk ∗ remoteAddr (Gg := G') (swRK (G := G') γk) (clientAddrs.getD 0 go!"") ∗ mapCtx (Gg := G') (I := KIn)))
           (by
@@ -242,7 +266,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit bootRes
           cmd.client1.wp_boot (P := iprop(clientNodeShare γ 1 ∗ cnode.linkInv (G := G') γ γk ∗ remoteAddr (Gg := G') (swRK (G := G') γk) (clientAddrs.getD 1 go!"") ∗ mapCtx (Gg := G') (I := KIn)))
           (by
@@ -258,7 +282,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit bootRes
           cmd.client2.wp_boot (P := iprop(clientNodeShare γ 2 ∗ cnode.linkInv (G := G') γ γk ∗ remoteAddr (Gg := G') (swRK (G := G') γk) (clientAddrs.getD 2 go!"") ∗ mapCtx (Gg := G') (I := KIn)))
           (by
@@ -274,7 +298,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit bootRes
           cmd.client3.wp_boot (P := iprop(clientNodeShare γ 3 ∗ cnode.linkInv (G := G') γ γk ∗ remoteAddr (Gg := G') (swRK (G := G') γk) (clientAddrs.getD 3 go!"") ∗ mapCtx (Gg := G') (I := KIn)))
           (by
@@ -290,7 +314,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit bootRes
           cmd.client4.wp_boot (P := iprop(clientNodeShare γ 4 ∗ cnode.linkInv (G := G') γ γk ∗ remoteAddr (Gg := G') (swRK (G := G') γk) (clientAddrs.getD 4 go!"") ∗ mapCtx (Gg := G') (I := KIn)))
           (by
@@ -306,7 +330,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
+      iintro HP Hgs -
       iapply wp_bootR cmd.client5.initialize' cmd.client5.main _ cmd.client5.getIsPkgInit bootRes
           cmd.client5.wp_boot (P := iprop(clientNodeShare γ 5 ∗ cnode.linkInv (G := G') γ γk ∗ remoteAddr (Gg := G') (swRK (G := G') γk) (clientAddrs.getD 5 go!"") ∗ mapCtx (Gg := G') (I := KIn)))
           (by
@@ -322,86 +346,86 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit bootRes
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit bootRes
           cmd.server1.wp_boot (P := iprop(serverShare γ 0))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, HR⟩ HΦ
-            ihave HB := bootRes_server 0 hb' $$ HR
+            iintro %Φ ⟨#Hpkg, Hsh, HR, Htok⟩ HΦ
+            ihave HB := bootRes_server 0 hb' $$ [$HR $Htok]
             iapply (cmd.server1.wp_main EtcdGrove.dsvswiftpaxos.wp_Server γ) $$ [Hsh HB] HΦ
             iframe #
             unfold serverRes
-            iframe Hsh HB) $$ HP Hgs
+            iframe Hsh HB) $$ HP Hgs Htok
     | 8, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit bootRes
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit bootRes
           cmd.server2.wp_boot (P := iprop(serverShare γ 1))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, HR⟩ HΦ
-            ihave HB := bootRes_server 1 hb' $$ HR
+            iintro %Φ ⟨#Hpkg, Hsh, HR, Htok⟩ HΦ
+            ihave HB := bootRes_server 1 hb' $$ [$HR $Htok]
             iapply (cmd.server2.wp_main EtcdGrove.dsvswiftpaxos.wp_Server γ) $$ [Hsh HB] HΦ
             iframe #
             unfold serverRes
-            iframe Hsh HB) $$ HP Hgs
+            iframe Hsh HB) $$ HP Hgs Htok
     | 9, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit bootRes
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit bootRes
           cmd.server3.wp_boot (P := iprop(serverShare γ 2))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, HR⟩ HΦ
-            ihave HB := bootRes_server 2 hb' $$ HR
+            iintro %Φ ⟨#Hpkg, Hsh, HR, Htok⟩ HΦ
+            ihave HB := bootRes_server 2 hb' $$ [$HR $Htok]
             iapply (cmd.server3.wp_main EtcdGrove.dsvswiftpaxos.wp_Server γ) $$ [Hsh HB] HΦ
             iframe #
             unfold serverRes
-            iframe Hsh HB) $$ HP Hgs
+            iframe Hsh HB) $$ HP Hgs Htok
     | 10, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit bootRes
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit bootRes
           cmd.server4.wp_boot (P := iprop(serverShare γ 3))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, HR⟩ HΦ
-            ihave HB := bootRes_server 3 hb' $$ HR
+            iintro %Φ ⟨#Hpkg, Hsh, HR, Htok⟩ HΦ
+            ihave HB := bootRes_server 3 hb' $$ [$HR $Htok]
             iapply (cmd.server4.wp_main EtcdGrove.dsvswiftpaxos.wp_Server γ) $$ [Hsh HB] HΦ
             iframe #
             unfold serverRes
-            iframe Hsh HB) $$ HP Hgs
+            iframe Hsh HB) $$ HP Hgs Htok
     | 11, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server5.initialize' cmd.server5.main _ cmd.server5.getIsPkgInit bootRes
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server5.initialize' cmd.server5.main _ cmd.server5.getIsPkgInit bootRes
           cmd.server5.wp_boot (P := iprop(serverShare γ 4))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, HR⟩ HΦ
-            ihave HB := bootRes_server 4 hb' $$ HR
+            iintro %Φ ⟨#Hpkg, Hsh, HR, Htok⟩ HΦ
+            ihave HB := bootRes_server 4 hb' $$ [$HR $Htok]
             iapply (cmd.server5.wp_main EtcdGrove.dsvswiftpaxos.wp_Server γ) $$ [Hsh HB] HΦ
             iframe #
             unfold serverRes
-            iframe Hsh HB) $$ HP Hgs
+            iframe Hsh HB) $$ HP Hgs Htok
     | 12, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro HP Hgs
-      iapply wp_bootR cmd.server6.initialize' cmd.server6.main _ cmd.server6.getIsPkgInit bootRes
+      iintro HP Hgs Htok
+      iapply wp_bootRT cmd.server6.initialize' cmd.server6.main _ cmd.server6.getIsPkgInit bootRes
           cmd.server6.wp_boot (P := iprop(serverShare γ 5))
           (by
-            iintro %Φ ⟨#Hpkg, Hsh, HR⟩ HΦ
-            ihave HB := bootRes_server 5 hb' $$ HR
+            iintro %Φ ⟨#Hpkg, Hsh, HR, Htok⟩ HΦ
+            ihave HB := bootRes_server 5 hb' $$ [$HR $Htok]
             iapply (cmd.server6.wp_main EtcdGrove.dsvswiftpaxos.wp_Server γ) $$ [Hsh HB] HΦ
             iframe #
             unfold serverRes
-            iframe Hsh HB) $$ HP Hgs
+            iframe Hsh HB) $$ HP Hgs Htok
   unfold system
   iapply BigSepL.bigSepL_cons.2
   isplitl [Hw Hlib Hbud]

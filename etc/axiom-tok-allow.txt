@@ -117,20 +117,18 @@ trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 trunc Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof
-# --- rpc-driver's interim init axioms (2026-11-24; for the coordinator's review) ---
-# `net.http.wp_init_first`, `net.rpc.wp_init_first` (Net/Proof/net/{http,rpc}/InitFirst.lean; interim,
-# retired by L2 step 6, notes/library-drivers.md): the shape of the swiftpaxos kit's `RpcFirstInit`. The
+# --- rpc-driver's interim init axiom (2026-11-24; for the coordinator's review) ---
+# `net.http.wp_init_first` (Net/Proof/net/http/InitFirst.lean; interim, retired by L2 step 6,
+# notes/library-drivers.md; net/rpc's, `net.rpc.wp_init_first`, is proved since dsv-fix2b,
+# 2026-11-25): the shape of the swiftpaxos kit's `RpcFirstInit`. The
 # note is the premise `hsame : ∀ p, p ≠ pkg → g' p = g p`, an equation between the caller's
 # initialization maps, not a resource; the walk stops at `ownInitializing` (Perennial's initialization
 # ghost state, given and returned: `g` before, `g'` after, equal off the package's own entry, which its
 # `isPkgInit` fixes). What the post returns besides is the package's own variables' state, which its
-# initializer allocates (net/rpc: `codecUnset` and `DefaultServer`'s empty owned registry; net/http:
-# `DefaultServeMux` empty), exclusive because `hnot : g pkg ⊢ False` (the package not yet initialized)
+# initializer allocates (net/http: `DefaultServeMux` empty), exclusive because `hnot : g pkg ⊢ False` (the package not yet initialized)
 # makes the first initialization run once per machine; no token or thread resource is produced.
 entry Perennial.net.http.wp_init_first note:IPropequation:g'p=gp  the initialization maps' equation off the package's own entry (see above), not a resource
-entry Perennial.net.rpc.wp_init_first note:IPropequation:g'p=gp  the initialization maps' equation off the package's own entry (see above), not a resource
 trunc Perennial.net.http.wp_init_first
-trunc Perennial.net.rpc.wp_init_first
 # --- dsv-fix2 (2026-11-25): Net's generic init axioms, now reached by the dsverify kits ---
 # `net.http.wp_initialize'`, `net.rpc.wp_initialize'` (Net/Proof/net/{http,rpc}/Init.lean; interim,
 # retired by L2 step 6): the walk stops at `ownInitializing` (Perennial's initialization ghost state,

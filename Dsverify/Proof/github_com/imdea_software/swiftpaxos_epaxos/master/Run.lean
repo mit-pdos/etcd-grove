@@ -75,7 +75,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
     (hRun : Master.run.specM (GF := GF) γ W) :
     Master.Run.specM (GF := GF) γ W := by
   intro m cfg logger
-  wp_start as ⟨Hfresh, Hunset, %HW, #Hlis, #Hrpcs, Hmux, #Hds0, #Hready, #Hsrv, #Hde, %Hbnd⟩
+  wp_start as ⟨Hfresh, Hunset, %HW, #Hlis, #Hrpcs, Hmux, Hds0, Htok, #Hready, #Hsrv, #Hde, %Hbnd⟩
   unfold masterFresh
   icases Hfresh with ⟨%x, %c, Hm, %Hx, Hnl, Hnlc, Hal, Halc, Hpl, Hplc, Hnds, Hld, Halv, Hlat, Hmu,
     #Hcond, #Hlog, #Hcfg, %Hleader⟩
@@ -134,36 +134,31 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
   iintro %sl2 ⟨-, -⟩
   wp_auto
   wp_apply (wp_Master_Printf hP) $$ [$Logger $Hlog]
-  icases Hds0 with ⟨%γs, #Hds⟩
+  unfold defaultSrvFresh
+  icases Hds0 with ⟨%γs, %γf, #Hds, Hsown⟩
   ihave Hrcvm := hRcv m $$ []
   · iframe HisM Hcodec; ipureintro; exact Hmnn
-  wp_apply (RpcHttpHyp.Register_spec γs epCodec (ptrIface master.Master.ty m) (masterSvc γ)
-    go!"Master" (W8 77) go!"aster" rfl (by decide)) $$ [$Hrpcpkg $Hds $Hcodec $Hrcvm] as %err Hreg
-  icases Hreg with (⟨%Herr, #Hsvc⟩ | %Herr)
-  rotate_left
-  · rcases err with ei | _
-    rotate_left
-    · exact absurd rfl Herr
-    wp_auto
-    wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any))))
-      (Val (LiteralValueV _)))
-    iapply wp_slice_literal (V := GoInterface) (t := go.any)
-      [interface.mkOk go.string #(go!"master register error:"), interface.ok ei]
-    wp_auto
-    isplitl []
-    · ipureintro; rfl
-    iintro %sl0 ⟨-, -⟩
-    wp_auto
-    wp_apply (wp_Master_Fatal hF) $$ [$Logger $Hlog]
-    iapply HΦ; itrivial
+  wp_apply (RH.Register_spec γs γf ∅ epCodec (ptrIface master.Master.ty m) (masterSvc γ)
+    go!"Master" (W8 77) go!"aster" rfl (by decide)) $$ [$Hds $Hsown $Hcodec $Hrcvm]
+    as %err ⟨%Herr, #Hsvc, -⟩
+  · ipureintro; simp [GMap.mem_iff]
   subst Herr
   wp_auto
-  ihave #Hserves := master_srvServes γ W γs HW $$ Hsvc
-  wp_apply (RpcHttpHyp.HandleHTTP_spec γs epCodec W (lisAccepts go!":7501") [])
-    $$ [$Hrpcpkg $Hmux $Hds $Hserves $Hsrv $Hcodec] as ⟨Hmux, #Hmh⟩
-  · isplitr
-    · ipureintro; exact Hbnd.1
-    ipureintro; simp
+  ihave #Hserves0 := master_srvServes γ W γs HW $$ Hsvc
+  ihave #Hserves : □ ∀ a, ⌜addrOk a = true ∧ lisAccepts go!":7501" a⌝ →
+      net.rpc.srvServes γs epCodec W a ∗ ⌜W.hs a ≠ [] ∧ W.hsAns a = net.rpc.connectAns⌝ $$ []
+  · iintro !> %a %Ha
+    isplitr
+    · iapply Hserves0; ipureintro; exact Ha.2
+    · iapply rpcLisP_hs W go!":7501" a Ha $$ Hlis
+  ihave #Hdsa := net.rpc.defaultServerO_any γs γf $$ Hds
+  ihave #Hde' := Hde
+  iunfold dialEnv at Hde'
+  icases Hde' with ⟨#Hhe, #Hcon⟩
+  wp_apply (RH.HandleHTTP_spec γs epCodec W (fun a => addrOk a = true ∧ lisAccepts go!":7501" a)
+      [] (by simp) (by simp))
+    $$ [$Hpkg2 $Hmux $Hdsa $Hserves $Hsrv $Hcodec $Hcon] as ⟨Hmux, #Hmh⟩
+  · ipureintro; exact Hbnd.1
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any))))
     (Val (LiteralValueV _)))
   iapply wp_slice_literal (V := GoInterface) (t := go.any) [interface.mkOk go.int #(W64 7501)]
@@ -215,8 +210,10 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
       ipureintro; exact ⟨HW, Hbnd.2⟩
     itrivial
   imod lisInv_alloc_m l go!":7501" $$ Hnl with #Hlinv
-  wp_apply (RpcHttpHyp.Serve_spec W go!":7501" defaultRPCPath li l)
-    $$ [$Hpkg2 $Hlis $Hmh $Hli $Hlon $Hlinv] as %e -
+  ihave #Hlisn := RpcHttpAddr.rpcLisP_net W go!":7501" _ _ $$ Hlis
+  wp_apply (RH.Serve_spec W go!":7501" net.rpc.defaultRPCPath li l
+      net.rpc.litPattern_rpc net.rpc.defaultRPCPath_short)
+    $$ [$Hpkg2 $Hhe $Hlisn $Hmh $Hli $Hlon $Hlinv $Htok] as %e -
   · ipureintro; exact Hbnd.1
   iapply HΦ; itrivial
 

@@ -29,7 +29,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions]
+variable [package_sem : Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -46,7 +46,7 @@ theorem wp_boot (hT : threadBound GF ≤ 2 ^ 30) :
   wp_start as Hgs
   ihave Hown := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server :: github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownedPkgs) (getIsPkgInit (GF := GF))) $$ Hgs
-  iapply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server)
+  iapply EtcdGrove.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server)
     (P := isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server) (Q := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.bootRes)
     (gA := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server :: github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownedPkgs) (getIsPkgInit (GF := GF)))
     (gB := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.gOff github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownedPkgs (getIsPkgInit (GF := GF))) (gC := getIsPkgInit (GF := GF))
@@ -71,7 +71,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions]
+variable [package_sem : Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -88,7 +88,7 @@ theorem wp_boot (hT : threadBound GF ≤ 2 ^ 30) :
   wp_start as Hgs
   ihave Hown := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client :: github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownedPkgs) (getIsPkgInit (GF := GF))) $$ Hgs
-  iapply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client)
+  iapply EtcdGrove.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client)
     (P := isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client) (Q := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.bootRes)
     (gA := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client :: github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownedPkgs) (getIsPkgInit (GF := GF)))
     (gB := github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.gOff github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ownedPkgs (getIsPkgInit (GF := GF))) (gC := getIsPkgInit (GF := GF))

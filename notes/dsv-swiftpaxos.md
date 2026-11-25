@@ -116,6 +116,22 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes the hypothesis rows above)
+
+The statement `swiftpaxos_remote_robust` has no net/rpc or net/http premise: `RpcHttpHyp` (`lib/RpcHttpHyps.lean`)
+bundles Net's specs (`net.rpc.DialHTTP.spec`, `HandleHTTP.spec`, `Register.spec_fresh`,
+`net.http.Serve.spec_rpc`) and `Link.lean`'s `netRpcHttpHyp` gives it from Net's proofs; `RpcFirstInit`
+(`lib/RpcBoot.lean`) is proved from Net's `net.rpc.wp_init_first_http` (`rpcFirstInit_of`, given
+`NewServer.wp_owned` and the machine's `threadBound ≤ 2^30`). `master.Run` and the replicas register on
+`DefaultServer`'s owned, empty registry (`Register.spec_fresh`), serve with Net's `HandleHTTP` and run
+`http.Serve` with the main thread's token (the bridge `robust_of_distProtoLisRBTT_sha`, `wp_bootRT`).
+The thread bound is `2^30` (net/http's first initialization's reader-slot pools; Upamanyu approved
+`2^31 → 2^30` on #8, 2026-11-25). `#print axioms`: Net's interim `net.http.wp_init_first`,
+`net.http.wp_initialize'`, `net.rpc.wp_initialize'` and the interim context axioms
+`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`, besides Lean's three
+(`Handle` and `Serve` on an rpc listener proved by S5, lean `676aede0a1`; `Serve` takes net/http's
+server variables `httpSrvEnv`, which `dialEnv` now holds).
+
 ## State (2026-11-23, fifteenth session: review fixes; resume here)
 
 Read with the fourteenth session's state below (accurate where this does not say otherwise).
