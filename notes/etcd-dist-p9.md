@@ -249,26 +249,43 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   `CallDist` spec, `ClientV` (and `kvremote.Link` again) at `fbdc33c19a`: built, exit 0.
   `etc/tier-check.py --check`: ok.
 
+## State (2026-11-25, seventh session): `Call_dist` proved (over the drafts)
+
+- **Laws** (defs, `kvremote/ClientCallDistLaws.lean`): `client_{Get,List,Put,Delete,Txn}_dist.law svc`,
+  `txn_Commit_dist.law svc`: the `_st` laws (`ClientCallLaws`, txnlin's `CallsLaws`) with `kvClientV svc cl
+  api eps V Γ` and one update at `Γ.kv`; writes take `Γ.auth = false`; error arm `⌜err ≠ nil⌝` only (no `kvErr`;
+  txnlin's `call*` never read it; Commit's post drops the values bound `v.value.length ≤ etcdKeyMax`, unused by
+  `callTxn`). `client_Txn_dist` returns `txnKvIs tp api` (what `Txn_Commit_dist` takes). Also
+  `kvClientV_persistent` (instance).
+- **Proof** (`kvremote/CallDist.lean`): `Call_dist.wp_proof svc` over the six laws and txnlin's helper specs
+  (`WithTimeoutBackground`, `ErrAny`, `vrOf`, `kvsFrom`, `withKVs`, `WithRange`, `cmpsFor`, `opsOf`, `thenOf`,
+  `elseOf`, `txnRes`, `withRes`, `txn.If/Then/Else`); internal copies `callGet_dist`, `callList_dist`,
+  `callPut_dist`, `callDel_dist`, `callTxn_dist`, `call_dist` of txnlin's proofs (txnlin's untouched; no spec
+  change, `CallDist.lean`'s statement unchanged).
+- **Linked** (`kvremote/CallDistLinked.lean`, linking tier by name): the laws proved from the drafts
+  (`client_*_dist_law_holds`; `Get_dist` serves get and list; Txn from `client.v3.kv.wp_Txn`, the `KV` field
+  agreeing with `isNewClient`'s by `typedPointsto_agree_wand`), and **`Call_dist_holds svc hPut hGet hDel
+  hCommit : Call_dist.spec svc`** (hypotheses `∀ [cache.Assumptions], KV_{Put,Get,Delete}_dist.spec svc`,
+  `Txn_Commit_dist.spec svc`; section `[NaInvG GF]`, from txnlin's `Link`, which it imports).
+- **Evidence**: fk-lean2 `etc/lean-check.py -a` (kernel on): `ClientCallDistLaws`, `CallDist`, `CallDistLinked`
+  0 errors (the last 301s, reopened over 6234 changed imports). `etc/tier-check.py --check`: ok. No `lake build`
+  of the three yet. No axiom, `sorry` or trusted text added.
+
 ## Handoff
 
 **Base**: still `5a1c41d945` (crash merges in it). P9's commits stay crash-free; the replay onto the no-crash base
 waits on the lead's answer (which commit).
 
 **Next, in order:**
-1. **Prove `Call_dist.spec`.** txnlin's `call*` proofs cannot be re-linked as they are: they take
-   `client.client_{Put,Get,Delete,Txn,List}_st.law` (`ClientCallLaws.lean`), whose statements are over `ms`,
-   `kvRegsAt`, `clientWriteOnce` and one update per member, not abstract. Plan: (a) a defs module
-   `kvremote/ClientCallDistLaws.lean` with `client_{Put,Get,Delete,List,Txn}_dist.law svc`, each the `_st` law
-   with `kvClientV` and one AU at `Γ.kv` (posts as the `_st` laws, error arm without `kvErr`: the drafts claim
-   nothing of a remote error; check txnlin's `call*` only need `err ≠ nil` there); (b) their proofs over the
-   drafts (hypotheses `KV_*_dist.spec svc`, `Txn_Commit_dist.spec svc`): `cl.Put` is `(*Client).Put` through the
-   embedded `KV` (`Client.TypeAssumptions.ptr_Put_unfold.method_unfold`, as `client_Put_rep`,
-   `ClientPutGet.lean:346`), then the `*kv` call via `clientF cl "KV" ↦□ api`; the post's revision facts from
-   the drafts' `m.hdr.revision`/`kvRevFits`; `List` is `Get` with `WithRange`; `Txn` is `kv.Txn`/`If`/`Then`/
-   `Else` (proved) then `Txn_Commit_dist`; (c) copies of txnlin's `callPut`/`callGet`/`callDel`/`callList`/
-   `callTxn`/`call`/`Call` proofs (862 lines) over the `_dist` laws, in `kvremote/` (or, better, generalize
-   txnlin's proofs over an abstract "client facts" predicate: a spec change to txnlin, ledger first).
-2. **The Node** (`ServeClient.spec`): as the fifth session's handoff, with `kvClientV_intro` after `NewClients`
-   and `membersAtV svc eps Γ` in its precondition (N7-kv's `Node.specWith NP`: `NP c addr epsL` would carry it).
+1. **`lake build`** the three modules (`kvremote.ClientCallDistLaws`, `.CallDist`, `.CallDistLinked`) on fk-lean2.
+2. **Link the Node** (coordinator, 2026-11-25): merge `etcd-safe-p9-node` @ `480f31de35` (new `Spec/`/`Proof/
+   .../kvremote/Node.lean`, `Node.spec svc = Node.specWith (kvNodePre svc)`, `Call_dist.spec svc` a hypothesis;
+   the session built two harmless `.olean`s in fk-lean2's `wt/etcd-safe-p9`). In `kvremote/Link.lean`
+   (section `linkedNet`, adding `[DialWithBalancerBody]`, v3rpc/etcdserver/cache.v3 `Assumptions`; it has
+   `net.FieldAssumptions`, `[NaInvG GF]`) add, importing `CallDistLinked` and `Node`:
+   `Node.wp_proof svc zap.NewNop.wp_proof etcdstart.wp_NewClients wp_Codec wp_Call_dist remote.wp_ServeClient`,
+   where `wp_Call_dist` is `Call_dist_holds svc hPut hGet hDel hCommit`: **the drafts are not proved**, so
+   `wp_Node` takes them as hypotheses (until they become N2's axioms, `X.wp_proof : X.spec etcdSvcV`).
+   Note `Call_dist.spec` (lead's) needs `[HasExt idIssueExt]`; the kv client deployment must provide it.
 3. Steps 5-6 (the start, the theorem).
 Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
