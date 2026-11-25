@@ -2,13 +2,27 @@
 
 ## START HERE
 
-- **Date**: 2026-11-25. **Branch** `etcd-safe-p8`, worktree `/shared/etcd-grove-p8`, based on P6's
-  `etcd-safe-walfix-p6` @ `5960660fb8` (merge P6's later commits: `git fetch /shared/etcd-grove-p6
-  etcd-safe-walfix-p6 && git merge FETCH_HEAD`).
-- **Build**: `export TMPDIR=/shared/tmp`; every lake command takes
-  `--packages=/shared/tmp/manifest-fce59af7.json`; builds through `/shared/tmp/build-slot.sh lake
-  --packages=… build TARGETS`; `etc/lean-check.py` for the edit loop.
-- **State**: see "Progress" (kept current). **Next**: see "Left".
+- **Date**: 2026-11-25 (session 2). **Branch** `etcd-safe-p8`, worktree `/shared/etcd-grove-p8`; P6's
+  re-pin (`etcd-safe-walfix-p6` @ `2c17304ea8`) merged (`97cfd9142a`).
+- **Build**: the remote hosts (`FKLEAN_HOST=fk-lean2 /shared/tmp/fklean1-check.sh /shared/etcd-grove-p8
+  etcd-safe-p8 TARGETS`; the branch's worktree lives on the host it was seeded on, so keep the host). fk-lean1
+  has too little disk to seed (37 GB free, 2026-11-25). Locally: `export TMPDIR=/shared/tmp`,
+  `--packages=/shared/tmp/manifest-fce59af7.json`, `/shared/tmp/build-slot.sh`.
+- **Commits** (each revertible on its own):
+  - (1) `8244ae66c1` + fix `1dce32d84a`: `CrashPure`'s `crashTo_start`/`CrashGood`/`walCrash_pure`
+    return the whole-operation image `walImgS` (`walStCrashS`); `walCrashWal` is over `walStCrashS`, so
+    `walInv_crash` gives it, and **`walInv_crashS.law` is gone** (`walCrashWalS` too: `CrashS.lean` keeps
+    `walImgS_mono` and `walDiskAt_crash_keepS` over `walCrashWal`). Coordinator's decision (1).
+  - (2) `cb9d0ce180`, a proposal to coordinator-E: `InvCrashImage.lean`/`CrashInterim.lean` (copied from
+    `etcd-safe-crash/2026-11-24` @ `05926dc6af`) with `srvFilesC` in `srvCrashImageAt`,
+    `bootstrapCrashContract`'s pre and C-I2.
+  - (3) `64aa0b94eb`, a proposal to coordinator-E: `WalRecsH.lean`, `InvWalCrash.lean`,
+    `InvWalCrashLaws.lean` (copied from `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4`, T2's WIP) with
+    `walRecsH_crash`, `HistReadOk` in `rnDurBodyK`, the crash law's callback returning `j` and a wand on
+    `walRead (Hs.take j) = some σ`, and `walReadFacts σ` in its post.
+  - (2) and (3) carry copies of the D6 branches' files: integrating them with those branches is an add/add
+    conflict per file; take this branch's version or reapply the diff of the commit.
+- **State / Next**: see "Progress" and "Left".
 
 ## What T5 delivers, and to whom
 
@@ -24,23 +38,24 @@ The consumers (none of their statements is fixed; all on unlanded D6 branches):
 - **T7** (`dist/crash/MemberCrash.lean`, not started): assembles `memberGen_crash.law` from
   `walInv_crash`, T2's crash law, the backend's A1 and T6.
 
-What this branch provides (all statements proved but the one law):
+What this branch provides (all proved; no axiom, no `sorry`):
 
 | file | what |
 |---|---|
 | `Proof/.../storage/WalCrashRead.lean` (pure) | I1-I4 of any read `walRead I = some σ` (`walRead_wf`, `walRead_last_le` from `walIdxLe B I`, `walRead_b_le_commit`, `walRead_commit_le_last` from `walCommitLe I`, `walRead_snapBase`); the two history conditions pass to prefixes (`walIdxLe_take`, `walCommitLeFrom_take`, `walCommitLe_take`) |
-| `Proof/.../storage/wal/CrashS.lean` | the crash view with whole operations `walCrashWalS` (`walStCrashS`: `walStCrash` and every new history a prefix `walImgS` at the old synced mark), `walCrashWalS_weak`, `walDiskAt_crash_keepS`; **`walInv_crashS.law`** (statement only: `walInv_crash` with `walCrashWalS`) |
+| `Proof/.../storage/wal/CrashPure.lean`, `Crash.lean` (P6's, edited by decision (1)) | `walStCrashS` (`walStCrash` and every new history a prefix `walImgS` at the old synced mark); `walCrashWal` over it, so `walInv_crash` gives whole-operation images |
+| `Proof/.../storage/wal/CrashS.lean` | `walImgS_mono`, `walDiskAt_crash_keepS` |
+| `Proof/.../storage/WalRecsH.lean` (T2's, commit (3)) | `walRecsH_crash`: `walFilesC_crash` on the unfolded `walRecsH` |
 | `Proof/.../storage/WalRecsCrash.lean` | `walFilesC` (the files a crash left: `walFiles` without the synced mark), `walFiles_walFilesC`, **`walFilesC_crash`** |
 | `Proof/.../etcdserver/SrvCrash.lean` | `walReadFacts_of_read`, `walReadFacts_of_take`; `srvFilesC`, `srvFiles_srvFilesC`, `srvFilesC_dataDir_len` |
 
-How T7 composes them: `walInv_crashS.law` (in place of `walInv_crash`) gives `walCrashWalS W W'`,
+How T7 composes them: `walInv_crash` gives `walCrashWal W W'` (now with whole-operation images),
 `walUnlockedTok (W := W')`; the program's boot gives the directory's call permission half. T2's
-callback is `walFilesC_crash h.toWalA W' d n id cid …` on the unfolded `walRecsH` (T2's module
-`import all`s `WalRecs`; a ten-line wrapper there), with `Φ σ := walFilesC {h.toWalA with W := W'} id cid σ
+callback is `walRecsH_crash h W' σ Hs n id cid hmd` (commit (3)), with `Φ σ := walFilesC {h.toWalA with W := W'} id cid σ
 true ∗ …`; `walReadFacts σ` from `walReadFacts_of_take` once T2's invariant keeps the two history
-conditions (below).
+conditions (`HistReadOk`, commit (3)).
 
-## Proposals to the consumers (statements not fixed yet; for the coordinator)
+## Proposals to the consumers (made on this branch: 1 = commit (2), 2 and 3 = commit (3); for coordinator-E)
 
 1. **`srvFilesC` in the crash image** (T4's `srvCrashImageAt`, `bootstrapCrashContract`'s pre, C-I2's
    law): `srvFiles` → `srvFilesC`. Why: `walFiles` says every operation of the history is synced
@@ -66,22 +81,21 @@ conditions (below).
    fold has it). Alternatively T2 keeps `walCommitLe (Hs.take j)` for each `j ≥ n` beside
    `CrashReadsHold`, and `walReadFacts_of_read` applies directly.
 
-## The P6 change P8 needs (`walInv_crashS.law`)
+## The P6 change (done, commit (1))
 
-`walInv_crashS.law` is `walInv_crash` with the crash view `walCrashWalS`. Its proof is
-`walInv_crash`'s once the pure crash returns the whole-operation images, which P6's proof already
-constructs and then weakens (`CrashPure.lean`, P6's file, not edited here):
+`crashTo_start` returns `walCrash d (some d') ∧ walImgS d.H d.m d'.H`; `CrashGood`'s first conjunct carries
+`∀ d', o.map Prod.fst = some d' → walImgS d.H d.m d'.H`; `walCrash_pure` returns `walStCrashS s s'`
+(defined in `CrashPure.lean`); `walCrashWal` is over `walStCrashS`, and its `_keep` lemmas take `hc.1`
+(`walCrash_view_keep` still returns `walStCrash`). No trusted text: `walImg`/`walCrash`
+(`GooseLang/Ext/AbsDisk/Impl.lean`) unchanged.
 
-1. `crashTo_start`: conclusion `walCrash d (some d')` → `walCrash d (some d') ∧ walImgS d.H d.m d'.H`
-   (in the proof: `himg : walImgS d.H d.m I`, `d'.H = I`).
-2. `CrashGood`: `walCrash d (o.map Prod.fst)` → `… ∧ ∀ d', o.map Prod.fst = some d' → walImgS d.H d.m
-   d'.H`; `crashGood_exists` passes it from `crashTo_start` (on `walFullD d …`, same `H` and `m`).
-3. `walCrash_pure`: `walStCrash s s'` → `walStCrashS s s'` (move `walStCrashS` from `CrashS.lean` to
-   `CrashPure.lean` or `Ghost.lean`).
-4. `Crash.lean`: `walCrashWal` over `walStCrashS` (then `walCrashWalS` = `walCrashWal` and the law is
-   `walInv_crash` itself; the `_keep` lemmas take `hc.1`), or `walInv_crash` builds `walCrashWalS`.
+## `HistReadOk` (commit (3)): why per prefix
 
-No trusted text: `walImg`/`walCrash` (`GooseLang/Ext/AbsDisk/Impl.lean`) stay as they are.
+`HistReadOk Hs n := walIdxLe (2^61-1) Hs ∧ ∀ j, n ≤ j → j ≤ |Hs| → walCommitLe (Hs.take j)`, not
+`walCommitLeFrom walFresh Hs`: a received snapshot's `SaveSnap` precedes the `Save` that covers it, so between
+the two the eager fold has `b > commit` and `walCommitLeFrom` fails, though every prefix's read is fine. T2
+must keep `HistReadOk` in its step proofs (each `Save`/`SaveSnap` appends; the crash point only grows) and
+prove it at allocation (`rnDurK_alloc.law` takes it as a premise).
 
 ## Progress
 
@@ -91,7 +105,17 @@ No trusted text: `walImg`/`walCrash` (`GooseLang/Ext/AbsDisk/Impl.lean`) stay as
   `abbrev` that nothing uses yet. Coordinator, 2026-11-25: P6 re-pins to fork `goose-lean-fmt1c-crashfixes`
   @ `e94f33b50`; merge it when pushed. The WAL crash facts rest on W1 only; stale-byte tears are out of scope.
 
+- 2026-11-25 (session 2): coordinator decisions (1)-(3) made as commits (1)-(3) above. The first remote build
+  (fk-lean2) found two source errors in (1) (a header comment, a projection), fixed in `1dce32d84a`. Pushed up to
+  `1dce32d84a` first, for P6b (who adds an incarnation argument to `Crash.lean`'s crash-view lemmas) to merge.
+  The copies in (2)/(3) needed adapting to the merged base: `envVerifyOff` → `⌜EtcdVerifyOff⌝` (InvCrashImage,
+  CrashInterim), and in `rnDurK_crash_law_holds` `iunfold rnTakenK`, `hE2 p hp` and `dsimp only [durOf]`
+  per case. Remote build on fk-lean2 (fresh seed): `wal.Crash`, `wal.CrashS`, WalTester's `wal.Crash`,
+  `WalRecsCrash`, `WalRecsH`, `SrvCrash`, `InvCrashImage`, `CrashInterim`, `InvWalCrash`,
+  `InvWalCrashLaws` all build; no axiom, no `sorry`; `import-all-check`, `tier-check --check` pass.
+
 ## Left
 
-- `walInv_crashS.law`'s discharge: the P6 change above (P6's owner, or P8 after P6 lands).
+- T2: maintain `HistReadOk` in the step proofs and at allocation (commit (3)).
+- Integration of (2)/(3) with the D6 branches (add/add).
 - T7 wiring (the coordinator's C8) over these lemmas.

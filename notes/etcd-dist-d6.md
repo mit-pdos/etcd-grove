@@ -489,3 +489,10 @@ real WAL) is the natural report if the lead wants one.
   invariant keeps `walIdxLe`/`walCommitLeFrom`.
   One P6 change discharges the law: `crashTo_start`/`CrashGood`/`walCrash_pure` return `walImgS`, which
   they already construct.
+- 2026-11-25 (session 2): the coordinator's decisions (1)-(3) are done as commits on `etcd-safe-p8`. (1)
+  `8244ae66c1`+`1dce32d84a`: `walCrashWal` is over `walStCrashS`, so `walInv_crash` gives whole-operation
+  images and `walInv_crashS.law` is gone (pushed alone first, for P6b). (2) `cb9d0ce180`: `srvFilesC` in
+  `srvCrashImageAt`, `bootstrapCrashContract` and C-I2 (copies of `etcd-safe-crash`'s files). (3)
+  `64aa0b94eb`: T2's crash law over `walRecsH_crash`, with `HistReadOk` (per-prefix `walCommitLe`) in
+  `rnDurBodyK` and `walReadFacts σ` in the post (copies of `etcd-safe-d6t2`'s files). All of it builds, with
+  no axiom and no `sorry`. Left for T2: maintain `HistReadOk` in its steps and at allocation.
