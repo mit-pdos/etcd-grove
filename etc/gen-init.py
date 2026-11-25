@@ -95,12 +95,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
-         'github_com.mit_pdos.etcd_grove.examples.raft.kv',
-         # (2026-10-29, track C) the store that reconfigures and snapshots
-         'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
-         # (2026-11-01) the durable store (its files through the durable-state extension's Go
-         # package `durable`)
-         'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable',
+         # gokv's trusted_proph (kvnet's checker's prophecy; KvNet copies its `Init.lean`), reached
+         # from kvreconf's root until kvreconf's proofs retired (2026-11-24)
+         'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
          'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
          'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
@@ -242,7 +239,7 @@ def register(cfg, p, regs):
 
 
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
-PERENNIAL_HERE = {'math.rand', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+PERENNIAL_HERE = {'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
 # The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
 # and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
 PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
@@ -850,11 +847,9 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
-# (2026-11-23, Perennial 47ec64a9d translates `math/rand`'s global generator) `math.rand`'s fact stays
-# `True` here (`Proof/math/rand/Base.lean`, not Perennial's `isInit`): its initializer allocates
-# `globalRandGenerator` (dropped) and initializes `sync/atomic` and `sync`. Its other variables are
-# skipped by Perennial's configuration, so no `opaqueInitsOk` axiom any more.
-SPECIAL['math.rand'] = dict(alloc_types=_ALLOC_ANY)
+# (2026-11-24, rand-retire) `math.rand` is Perennial's (47ec64a9d translates its global generator and
+# proves its `wp_initialize'`, fact `isInit`); from 2026-11-23 to then its fact was `True` here and its
+# `Init.lean` generated.
 
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) `io/fs` and `os` record
 # `ErrExist`'s error non-nil (`Proof/os/PkgInit.lean`; the part `LinuxFs/`'s until 2026-11-15, now the
@@ -5320,12 +5315,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
             # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
             # tables, restored
             'github_com.mit_pdos.etcd_grove.examples.k8s.all':
@@ -5446,18 +5435,14 @@ def part_paths(inits):
 
 # Every such part: its packages, and the module prefixes (besides its copies of these files) whose
 # imports are the part's. The part `RaftNoAx/` (raft without hand-written axioms,
-# notes/raft-noax-part.md) imports kvdurable's initializer too, so durable's and trusted_proph's;
-# its other copies (etc/copy-part.py) are raft's proofs, kvdurable's and kvreconf's, and the
-# translations of kvdurable, kvreconf and walpb (etc/goose.py).
+# notes/raft-noax-part.md): its other copies (etc/copy-part.py) are raft's proofs, and the
+# translations raft's and walpb's (etc/goose.py). (Until 2026-11-24 also kvdurable's, kvreconf's and
+# their initializers, durable's and trusted_proph's: retired.)
 PARTS = {
     PART_ROOT: (PART_INITS, ['Code.go_etcd_io.raft']),
-    'RaftNoAx': (PART_INITS + ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
-                               'github_com.mit_pdos.gokv.trusted_proph'],
+    'RaftNoAx': (PART_INITS,
                  ['Code.go_etcd_io.raft', 'GeneratedProof.go_etcd_io.raft', 'Spec.go_etcd_io.raft',
-                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']
-                 + [f'{d}.github_com.mit_pdos.etcd_grove.examples.raft.{p}'
-                    for d in ('Code', 'GeneratedProof', 'Spec', 'Proof')
-                    for p in ('kvdurable', 'kvdurablenoax', 'kvreconf')]),
+                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']),
 }
 PART_PATHS = part_paths(PART_INITS)
 
@@ -5747,46 +5732,8 @@ def wt_inits():
     return [(f'{WT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
-# The part `RaftNoAx/` (raft without hand-written axioms, notes/raft-noax-part.md): its kvdurable is
-# the Go package `goose.KVDURABLE_NOAX_PKG` (examples/raft/kvdurablenoax) over the part's raft, whose
-# packages import other packages than the main raft's (no `proto`), so its `Init.lean` and
-# `PkgTable.lean` are generated as the main tree's kvdurable's, from the part's translation and
-# instances (over the main tree's), with the imports of the part's modules prefixed. (Raft's own
-# `Init.lean` is hand-written, the part's own copy.) etc/copy-part.py does not copy these
-# (`NOAX_MAIN_PATHS`, the main tree's files they stand for).
-NOAX_ROOT = 'RaftNoAx'
 sys.path.insert(0, os.path.join(ROOT, 'etc'))
 import goose as _goose  # noqa: E402
-NOAX_PKG = _goose.KVDURABLE_NOAX_PKG.replace('.', '_').replace('-', '_').replace('/', '.')
-NOAX_MAIN_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable'
-NOAX_MAIN_PATHS = [f'Proof/{dirof(NOAX_MAIN_PKG)}/Init.lean', f'Proof/{dirof(NOAX_MAIN_PKG)}/PkgTable.lean']
-
-
-def noax_inits():
-    """The part's kvdurable's `Init.lean` and `PkgTable.lean`."""
-    global inv, inst, CFG_OVERRIDE, EXT_RECORD
-    saved = inv, inst, CFG_OVERRIDE, EXT_RECORD
-    try:
-        EXT_RECORD = {}  # (the part's `PkgInitExtRaft` is `part_copy`'s copy of the main tree's)
-        inv = dict(inv)
-        for q, d in inventory(f'{NOAX_ROOT}/Code').items():
-            if not d['perennial']:
-                inv[q] = d
-        inst = {**inst, **instances(f'{NOAX_ROOT}/Proof/')}
-        CFG_OVERRIDE = {NOAX_PKG: SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))}
-        raw = gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))) + [
-               gen_table(NOAX_PKG, f'Proof/{dirof(NOAX_PKG)}/PkgTable.lean')]
-    finally:
-        inv, inst, CFG_OVERRIDE, EXT_RECORD = saved
-    made = {path for path, _ in raw}
-
-    def imp(m):
-        x = m.group(2)
-        f = x.replace('.', '/') + '.lean'
-        if os.path.exists(f'{NOAX_ROOT}/{f}') or f in made or x == 'Proof.runtime.PkgInitExtRaft':
-            x = f'{NOAX_ROOT}.{x}'
-        return m.group(1) + x
-    return [(f'{NOAX_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
 # The part `Net/` (the net extension's `net` and the programs over it, `examples/net/`; project
@@ -6219,7 +6166,6 @@ def main(argv):
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()
-        outs += noax_inits()
         main_txt = dict(outs)
         o, st = net_inits(main_txt)
         outs += o

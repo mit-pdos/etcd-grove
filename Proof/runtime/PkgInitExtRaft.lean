@@ -11,9 +11,7 @@ module
 
 public import Proof.runtime.PkgInitExt
 public import Code.go_etcd_io.raft.v3
-public import Code.go_etcd_io.raft.v3.confchange
 public import Code.go_etcd_io.raft.v3.raftpb
-public import Code.go_etcd_io.raft.v3.tracker
 public import Code.google_golang_org.protobuf.proto
 public import Code.k8s_io.utils.third_party.forked.golang.btree
 
@@ -30,12 +28,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 theorem ExternalInit.go_etcd_io_raft_v3 [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize' := ⟨⟩
-theorem ExternalInit.go_etcd_io_raft_v3_confchange [GooseExts] [GoGlobalContext] :
-    ExternalInit pkg_id.go_etcd_io.raft.v3.confchange _root_.Perennial.go_etcd_io.raft.v3.confchange.initialize' := ⟨⟩
 theorem ExternalInit.go_etcd_io_raft_v3_raftpb [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize' := ⟨⟩
-theorem ExternalInit.go_etcd_io_raft_v3_tracker [GooseExts] [GoGlobalContext] :
-    ExternalInit pkg_id.go_etcd_io.raft.v3.tracker _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize' := ⟨⟩
 theorem ExternalInit.google_golang_org_protobuf_proto [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize' := ⟨⟩
 theorem ExternalInit.k8s_io_utils_third_party_forked_golang_btree [GooseExts] [GoGlobalContext] :

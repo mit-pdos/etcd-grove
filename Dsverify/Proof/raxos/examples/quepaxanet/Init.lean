@@ -11,7 +11,7 @@ public import Dsverify.Proof.raxos.examples.quepaxanet.Base
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
@@ -51,7 +51,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.codes.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.InitHyp GF]
 variable [_root_.Perennial.encoding.gob.InitHyp GF]

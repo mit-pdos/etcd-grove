@@ -29,7 +29,6 @@ public import Proof.net.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.math.rand.Init
 
 @[expose] public section
 
@@ -52,7 +51,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [_root_.Perennial.net.http.InitHyp GF]
 variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.gryff.examples.gryffnet.Assumptions]

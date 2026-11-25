@@ -17,6 +17,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
+
+- **Status.** bag_nb_send_au(_now): Perennial branch chan-bag-nb-send (3b51f8790), replaces kvreconf's
+  BagSend and kvnet's queue_nb_send_au. **Done**: pinned (bca1cd2e5); the local copies deleted
+  (`bagsend-perennial/2026-11-24`, landed).
 ### `sync.Mutex` has no spec for an owned (unshared) mutex (2026-11-25, claim #34 stage 2)
 
 - **Limitation.** Perennial's `sync.Mutex.Lock`/`Unlock` specs take `isMutex m R`, a lock invariant allocated
