@@ -19,7 +19,7 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section ax
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
 /-- **Trust-boundary axiom** (the file header). -/

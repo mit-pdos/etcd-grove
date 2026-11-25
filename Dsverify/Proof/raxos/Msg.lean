@@ -22,6 +22,11 @@ kit's codec (interface of stage 1, `notes/stage1-plan.md`).
   (so that it carries no unknown fields), its decoded value `v` with: any well formed value whose
   encoding is `bs` is `v`. (A successful decoding of other bytes gives nothing: protobuf keeps
   their unknown fields.)
+  Each kind also asks `isPkgInit` of the package declaring its type (`raxos/replica/src` for the
+  six consensus kinds, `raxos/proto/client` for `ClientBatch`; persistent): the generated
+  `ProtoReflect` indexes that package's `file_*_msgTypes`, which only its generated `init` fills, so
+  a `Marshal`/`Unmarshal` from the package's own variable initializers or earlier `init`s panics
+  (dsv-fix6, counterexample C of `notes/axiom-review/dsv-fix6/quepaxa-pb.md`).
 
 Changed against the lab (notes/dsv-quepaxa.md): the lab's `pbCodec` instance of its protobuf
 model's `PbCodec` (its generated codec `pbMarshal`/`pbUnmarshal`, proved by `kitCodecOk_holds`) is
@@ -213,19 +218,21 @@ def rrOk (r : RR) : Prop :=
 
 /-! ## protobuf's `state` of a message -/
 
+/-- The `MessageInfo` of the `i`th message type of `consensus.proto`: the address of the element
+`file_replica_src_consensus_proto_msgTypes[i]` in that slice variable's backing array (the
+generated `ProtoReflect`'s `mi`), which the package's generated `init` fills. An opaque tag: no
+translated program can take that address (the slice is unexported, its initializer and the
+generated `init` are trusted models), so the proofs need nothing of it but its name, one per
+type (dsv-fix6, after the review's remark that `&msgTypes[i]` is not an index of the variable's
+own address). -/
+opaque replicaMI : Nat → Loc
+
+/-- The `MessageInfo` of the `i`th message type of `client.proto`: the address of
+`file_proto_client_client_proto_msgTypes[i]` in its backing array (as `replicaMI`). -/
+opaque clientMI : Nat → Loc
+
 section state
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
-
-/-- The `MessageInfo` of the `i`th message type of `consensus.proto` (`file_…_msgTypes[i]`, the
-generated `ProtoReflect`'s `mi`). -/
-def replicaMI (i : Nat) : Loc :=
-  arrayIndexRef _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageInfo i
-    (globalAddr raxos.replica.src.file_replica_src_consensus_proto_msgTypes)
-
-/-- The `MessageInfo` of the `i`th message type of `client.proto`. -/
-def clientMI (i : Nat) : Loc :=
-  arrayIndexRef _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageInfo i
-    (globalAddr raxos.proto.client.file_proto_client_client_proto_msgTypes)
 
 /-- A message's `state` as protobuf leaves it: unset, or its type's own `MessageInfo` `mi`. -/
 def stateOk (mi : Loc) (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) : Prop :=
@@ -2666,25 +2673,6 @@ def repCB (l : Loc) (dq : DFrac) (b : Batch) : IProp GF :=
 def ptrIface (t : go.GoType) (l : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType t) #l
 
-/-- What the program marshals: a message of one of the kinds; its encoding if it is well formed
-(valid UTF-8 strings), else the codec's error (`Ψ none`). -/
-def marshalPre (m : GoInterface) (Ψ : Option (List w8) → IProp GF) : IProp GF :=
-  iprop(
-    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.ProposerMessage.ty l⌝ ∗ repPM l dq v ∗
-      (repPM l dq v -∗ ((⌜pmOk v⌝ -∗ Ψ (some (encPM v))) ∧ (⌜¬ (pmOk v)⌝ -∗ Ψ none)))) ∨
-    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.RecorderResponse.ty l⌝ ∗ repRR l dq v ∗
-      (repRR l dq v -∗ ((⌜rrOk v⌝ -∗ Ψ (some (encRR v))) ∧ (⌜¬ (rrOk v)⌝ -∗ Ψ none)))) ∨
-    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.DecideRequest.ty l⌝ ∗
-      repDReq l dq v ∗ (repDReq l dq v -∗ ((⌜∀ s ∈ v, strOk s⌝ -∗ Ψ (some (encDReq v))) ∧ (⌜¬ (∀ s ∈ v, strOk s)⌝ -∗ Ψ none)))) ∨
-    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.DecideResponse.ty l⌝ ∗
-      repDResp l dq v ∗ (repDResp l dq v -∗ ((⌜∀ b ∈ v, batchOk b⌝ -∗ Ψ (some (encDResp v))) ∧ (⌜¬ (∀ b ∈ v, batchOk b)⌝ -∗ Ψ none)))) ∨
-    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.Decisions.ty l⌝ ∗
-      repDecs l dq v ∗ (repDecs l dq v -∗ ((⌜∀ d ∈ v, dslotOk d⌝ -∗ Ψ (some (encDecs v))) ∧ (⌜¬ (∀ d ∈ v, dslotOk d)⌝ -∗ Ψ none)))) ∨
-    (∃ l dq, ⌜m = ptrIface raxos.replica.src.Empty.ty l⌝ ∗ repEmpty l dq ∗
-      (repEmpty l dq -∗ Ψ (some encEmpty))) ∨
-    (∃ l dq v, ⌜m = ptrIface raxos.proto.client.ClientBatch.ty l⌝ ∗ repCB l dq v ∗
-      (repCB l dq v -∗ ((⌜batchOk v⌝ -∗ Ψ (some (encBatch v))) ∧ (⌜¬ batchOk v⌝ -∗ Ψ none)))))
-
 /-- Decoding into a fresh message of type `t` at `l` with value type `A`: on success the decoded
 value `v` (owned, if `bs` is the encoding of a well formed value: only then does the message have
 no unknown fields), which is any well formed value whose encoding is `bs`; on failure,
@@ -2695,28 +2683,56 @@ def decInto {A : Type} (rep : Loc → DFrac → A → IProp GF) (ok : A → Prop
       ⌜∀ v0, ok v0 → enc v0 = bs → v = v0⌝ -∗ Ψ true) ∧
     Ψ false)
 
-/-- What the program unmarshals into: a fresh zero message of one of the kinds. -/
+end reps
+
+section codec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- What the program marshals: a message of one of the kinds, its declaring package initialized
+(`isPkgInit`: the type's `MessageInfo` table is filled); its encoding if it is well formed (valid
+UTF-8 strings), else the codec's error (`Ψ none`). -/
+def marshalPre (m : GoInterface) (Ψ : Option (List w8) → IProp GF) : IProp GF :=
+  iprop(
+    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.ProposerMessage.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ repPM l dq v ∗
+      (repPM l dq v -∗ ((⌜pmOk v⌝ -∗ Ψ (some (encPM v))) ∧ (⌜¬ (pmOk v)⌝ -∗ Ψ none)))) ∨
+    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.RecorderResponse.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ repRR l dq v ∗
+      (repRR l dq v -∗ ((⌜rrOk v⌝ -∗ Ψ (some (encRR v))) ∧ (⌜¬ (rrOk v)⌝ -∗ Ψ none)))) ∨
+    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.DecideRequest.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
+      repDReq l dq v ∗ (repDReq l dq v -∗ ((⌜∀ s ∈ v, strOk s⌝ -∗ Ψ (some (encDReq v))) ∧ (⌜¬ (∀ s ∈ v, strOk s)⌝ -∗ Ψ none)))) ∨
+    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.DecideResponse.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
+      repDResp l dq v ∗ (repDResp l dq v -∗ ((⌜∀ b ∈ v, batchOk b⌝ -∗ Ψ (some (encDResp v))) ∧ (⌜¬ (∀ b ∈ v, batchOk b)⌝ -∗ Ψ none)))) ∨
+    (∃ l dq v, ⌜m = ptrIface raxos.replica.src.Decisions.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
+      repDecs l dq v ∗ (repDecs l dq v -∗ ((⌜∀ d ∈ v, dslotOk d⌝ -∗ Ψ (some (encDecs v))) ∧ (⌜¬ (∀ d ∈ v, dslotOk d)⌝ -∗ Ψ none)))) ∨
+    (∃ l dq, ⌜m = ptrIface raxos.replica.src.Empty.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ repEmpty l dq ∗
+      (repEmpty l dq -∗ Ψ (some encEmpty))) ∨
+    (∃ l dq v, ⌜m = ptrIface raxos.proto.client.ClientBatch.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.proto.client ∗ repCB l dq v ∗
+      (repCB l dq v -∗ ((⌜batchOk v⌝ -∗ Ψ (some (encBatch v))) ∧ (⌜¬ batchOk v⌝ -∗ Ψ none)))))
+
+/-- What the program unmarshals into: a fresh zero message of one of the kinds, its declaring
+package initialized (as `marshalPre`). -/
 def unmarshalPre (bs : List w8) (m : GoInterface) (Ψ : Bool → IProp GF) : IProp GF :=
   iprop(
-    (∃ l, ⌜m = ptrIface raxos.replica.src.ProposerMessage.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.replica.src.ProposerMessage.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
       l ↦ (zero_val raxos.replica.src.ProposerMessage) ∗ decInto repPM pmOk encPM bs l Ψ) ∨
-    (∃ l, ⌜m = ptrIface raxos.replica.src.RecorderResponse.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.replica.src.RecorderResponse.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
       l ↦ (zero_val raxos.replica.src.RecorderResponse) ∗ decInto repRR rrOk encRR bs l Ψ) ∨
-    (∃ l, ⌜m = ptrIface raxos.replica.src.DecideRequest.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.replica.src.DecideRequest.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
       l ↦ (zero_val raxos.replica.src.DecideRequest) ∗
       decInto repDReq (fun v => ∀ s ∈ v, strOk s) encDReq bs l Ψ) ∨
-    (∃ l, ⌜m = ptrIface raxos.replica.src.DecideResponse.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.replica.src.DecideResponse.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
       l ↦ (zero_val raxos.replica.src.DecideResponse) ∗
       decInto repDResp (fun v => ∀ b ∈ v, batchOk b) encDResp bs l Ψ) ∨
-    (∃ l, ⌜m = ptrIface raxos.replica.src.Decisions.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.replica.src.Decisions.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
       l ↦ (zero_val raxos.replica.src.Decisions) ∗
       decInto repDecs (fun v => ∀ d ∈ v, dslotOk d) encDecs bs l Ψ) ∨
-    (∃ l, ⌜m = ptrIface raxos.replica.src.Empty.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.replica.src.Empty.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
       l ↦ (zero_val raxos.replica.src.Empty) ∗
       decInto (fun l dq (_ : Unit) => repEmpty l dq) (fun _ => True) (fun _ => encEmpty) bs l Ψ) ∨
-    (∃ l, ⌜m = ptrIface raxos.proto.client.ClientBatch.ty l⌝ ∗
+    (∃ l, ⌜m = ptrIface raxos.proto.client.ClientBatch.ty l⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.raxos.proto.client ∗
       l ↦ (zero_val raxos.proto.client.ClientBatch) ∗ decInto repCB batchOk encBatch bs l Ψ))
 
-end reps
+end codec
 
 end Perennial.raxos.msg

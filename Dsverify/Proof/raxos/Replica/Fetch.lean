@@ -252,6 +252,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     iexists lin
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hin
     unfold decInto
     isplit
@@ -297,6 +298,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iexists resp, DFrac.discard, bs'
   isplitr
   · ipureintro; rfl
+  iPkgInit
   iframe #
   iintro -
   isplit
@@ -465,6 +467,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     iexists lin
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hin
     unfold decInto
     isplit
@@ -511,6 +514,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iexists resp, DFrac.discard
   isplitr
   · ipureintro; rfl
+  iPkgInit
   iframe #
   iintro - %bs'' %Hbs''
   cases Hbs''

@@ -66,7 +66,7 @@ open models_lab.pbcodec (PbCodec)
 /-! ## protobuf -/
 
 section pb
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
@@ -89,7 +89,10 @@ unset or its type's own `MessageInfo` (`msg.stateOk`; the generated `ProtoReflec
 `state`, so another type's would marshal that type's layout), and a shared message's runtime fields
 sit in an invariant whose content (`msg.rt*`) is sealed, so only protobuf's own stores reach them;
 `sizeCache` is free in both, since `Marshal` sizes (storing every `sizeCache`) before it marshals
-with the cached sizes. -/
+with the cached sizes. Each kind of `msg.marshalPre`/`msg.unmarshalPre` asks `isPkgInit` of the
+message's declaring package (dsv-fix6, review `notes/axiom-review/dsv-fix6/quepaxa-pb.md`,
+counterexample C: before that package's generated `init` its `file_*_msgTypes` is unfilled, and
+`ProtoReflect` panics). -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (m : GoInterface) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msg.marshalPre m Ψ }}
@@ -112,7 +115,7 @@ abbrev proto.Unmarshal.spec : Prop :=
         (if ok then iprop(True) else errAny err) }}
 
 /-- The protobuf hypotheses, together. -/
-class PbHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+class PbHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   marshal : proto.Marshal.spec (GF := GF) (hG := hG)
   unmarshal : proto.Unmarshal.spec (GF := GF) (hG := hG)
