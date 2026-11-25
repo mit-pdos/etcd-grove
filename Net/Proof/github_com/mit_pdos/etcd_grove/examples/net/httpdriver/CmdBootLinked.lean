@@ -46,7 +46,7 @@ theorem wp_boot (HEnv : net.http.GodebugHttpmuxgo121Not1) :
   wp_start as Hgs
   ihave Hown := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.net.httpdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.server :: github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownedPkgs) (getIsPkgInit (GF := GF))) $$ Hgs
-  iapply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.server)
+  iapply EtcdGrove.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.server)
     (P := isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.server) (Q := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.bootRes)
     (gA := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.server :: github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownedPkgs) (getIsPkgInit (GF := GF)))
     (gB := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.gOff github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownedPkgs (getIsPkgInit (GF := GF))) (gC := getIsPkgInit (GF := GF))
@@ -88,7 +88,7 @@ theorem wp_boot (HEnv : net.http.GodebugHttpmuxgo121Not1) :
   wp_start as Hgs
   ihave Hown := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.net.httpdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.client :: github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownedPkgs) (getIsPkgInit (GF := GF))) $$ Hgs
-  iapply github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.client)
+  iapply EtcdGrove.wp_package_init_first (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.client)
     (P := isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.client) (Q := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.bootRes)
     (gA := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.gOff (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.client :: github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownedPkgs) (getIsPkgInit (GF := GF)))
     (gB := github_com.mit_pdos.etcd_grove.examples.net.httpdriver.gOff github_com.mit_pdos.etcd_grove.examples.net.httpdriver.ownedPkgs (getIsPkgInit (GF := GF))) (gC := getIsPkgInit (GF := GF))

@@ -13,7 +13,7 @@ initializers' proofs.
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.BootTable
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.PkgInitFirst
+public import Proof.runtime.PkgInitFirst
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.BootDefs
 public import Net.Proof.net.http.InitFirst
 public import Proof.bufio.Init
@@ -31,8 +31,7 @@ noncomputable section
 
 namespace Perennial.github_com.mit_pdos.etcd_grove.examples.net.httpdriver
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open github_com.mit_pdos.etcd_grove.examples.net.rpcdriver (wp_package_init_first)
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net EtcdGrove
 
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
