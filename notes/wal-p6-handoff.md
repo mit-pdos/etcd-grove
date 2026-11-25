@@ -511,7 +511,10 @@
   * pure facts over `cl'` (the dir claim dropped) by `regionCrashedK_dropDir`: other WALs' crash conditions read
     `entsOf m' lay'.j` and the area `jr`: **needs `lay'.j ≠ lay.j` for other layouts** (no lemma seen yet:
     check `DirKeysOk`/`walDirKey`'s keys, `DirClaimOk`'s `ClaimOnce`; else derive from `WalsAt` + the area
-    claim's entries) and `lay.j ≠ jr` (`WalsAt.ne`); `DirsOk` by `DirsRoots` (durable dirs are roots); `AbsentOk`
+    claim's entries; checked at the end of session 18: `DirKeysOk`/`DirClaimsOk` do not give it, and two layouts
+    sharing `J` would share one `ClaimOnce` claim; an Iris route: `walTmpHalves`' `[∗map] dir ↦ J ∈ Jh` holds one
+    `walTmpsHalf J` per layout, so two layouts on `J` give two `qTmpI` fractions of `osNames J (.only [0.tmp])`
+    besides the program's `qTmp` (parked, lock free): over 1 if `qTmp + qTmpI = 1`; check `TmpClaim.lean`) and `lay.j ≠ jr` (`WalsAt.ne`); `DirsOk` by `DirsRoots` (durable dirs are roots); `AbsentOk`
     is implied by `AbsentNone`; `AbsentNone` for `dir` from the raised commit lb past the rename (the rename is
     the last write of `nm` in the area claim: `regionCrashed_lastWrite`, as `CreateNamedStep`).
   **Next**: the rest of S (pure: `walsOk_discard`, `absentNone_discard`, `walsNamed_discard`, `dirKeysOk_discard`
