@@ -47,17 +47,18 @@ theorem NodeDeployment.wp_proof (NP : w64 → GoString → List GoString → IPr
     iapply HΦ; ipureintro; trivial
   | nil =>
     have hwf := Herr rfl
+    have hkv := Hkv hwf
     have hnl := wellFormed_nodes_length hwf
-    obtain ⟨hml, hclients⟩ := kvOnly_bounds hwf Hkv
+    obtain ⟨hml, hclients⟩ := kvOnly_bounds hwf hkv
+    ispecialize Hsh $$ %hwf
     wp_auto
-    ihave #Hd2 := Hd
-    iunfold deploymentRepr at Hd2
-    icases Hd2 with ⟨#Hm, %htok, %hcfg, #Hw, %ss, #Hn, #Hns⟩
-    ihave %Hml := ownSlice_len _ _ _ $$ Hm
+    ihave #Hw := deploymentRepr_workloads v d $$ Hd
+    ihave #Hn' := deploymentRepr_nodes v d $$ Hd
+    icases Hn' with ⟨%ss, #Hn, #Hns⟩
     ihave %Hwl := ownSlice_len _ _ _ $$ Hw
     ihave %Hnl := ownSlice_len _ _ _ $$ Hn
     ihave %Hssl := BigSepL2.bigSepL2_length $$ Hns
-    rw [List.length_map] at Hwl Hml
+    rw [List.length_map] at Hwl
     wp_method_call
     wp_call
     wp_auto
@@ -94,18 +95,15 @@ theorem NodeDeployment.wp_proof (NP : w64 → GoString → List GoString → IPr
       wp_apply (hEp v d) as %eps Heps
       · iframe #
       imod ownSlice_persist _ _ _ $$ Heps with #Heps
-      have hk : w.kind = W64 0 := Hkv w (List.mem_of_getElem? hw)
+      have hk : w.kind = W64 0 := hkv w (List.mem_of_getElem? hw)
       have hwc := hclients w (List.mem_of_getElem? hw)
       have hcc : W64 ((sint.nat c : Nat) : Int) = c := by word
-      have hsh : nodeShare NP d n =
-          NP c a (rotateL (d.members.map Member.client) (sint.nat c)) := by
-        unfold nodeShare; rw [if_pos hn0, hnl']; simp only; rw [hcc]
-      rw [hsh]
+      rw [nodeShare_eq NP d n w (sint.nat c) a hn0 hnl', hcc]
       wp_apply (hNM w c a eps (d.members.map Member.client)) $$ [Hsh]
       · iframe #
         iframe
         ipureintro
-        refine ⟨hk, ?_⟩
+        refine ⟨hk, fun _ _ => ?_⟩
         rw [List.length_map]
         omega
       iapply HΦ; ipureintro; trivial

@@ -46,11 +46,13 @@ theorem MainDeployment.wp_proof (OP : List GoString → w64 → IProp GF)
     iapply HΦ; ipureintro; trivial
   | nil =>
     have hwf := Herr rfl
+    have hkv := Hkv hwf
     have hnl := wellFormed_nodes_length hwf
+    ispecialize Hsh $$ %hwf
     wp_auto
-    ihave #Hd2 := Hd
-    iunfold deploymentRepr at Hd2
-    icases Hd2 with ⟨#Hm, %htok, %hcfg, #Hw, %ss, #Hn, #Hns⟩
+    ihave #Hw := deploymentRepr_workloads v d $$ Hd
+    ihave #Hn' := deploymentRepr_nodes v d $$ Hd
+    icases Hn' with ⟨%ss, #Hn, #Hns⟩
     ihave %Hwl := ownSlice_len _ _ _ $$ Hw
     ihave %Hnl := ownSlice_len _ _ _ $$ Hn
     ihave %Hssl := BigSepL2.bigSepL2_length $$ Hns
@@ -81,10 +83,8 @@ theorem MainDeployment.wp_proof (OP : List GoString → w64 → IProp GF)
     simp only [h0, hjn', and_self, ↓reduceIte]
     wp_apply (wp_load_slice_index v.Nodes' (sint.Z j) ss DFrac.discard s h0) $$ [] as -
     · iframe #; ipureintro; exact hs
-    have hk : w.kind = W64 0 := Hkv w (List.mem_of_getElem? hw)
-    have hsh : orchShare OP d j = OP ns w.ops := by
-      unfold orchShare; rw [if_pos h0, hw, hns]
-    rw [hsh]
+    have hk : w.kind = W64 0 := hkv w (List.mem_of_getElem? hw)
+    rw [orchShare_eq OP d j w ns h0 hw hns]
     wp_apply (hMR w eps s ns ready) $$ [Hsh] as %r -
     · iframe #
       iframe
