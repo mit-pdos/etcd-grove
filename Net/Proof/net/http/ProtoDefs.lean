@@ -16,7 +16,9 @@ them; S5 refines these definitions (where they differ from its draft: "Departure
   `PRI` (`methOk`), a path the model's URI parser leaves alone (`reqPath`), header lines the model
   reads as they are (`hdrBlockOk`), none of the keys that change how the server reads or answers
   (`reqKeysOut`: `Transfer-Encoding` (a chunked body is not modelled), `Expect`, `Connection`,
-  `Trailer`, `Upgrade`, `Te`), a `Host` the server accepts (`hostByte`, `ValidHostHeader`), a `Content-Length` line with `B`'s length (decimal) or none and no
+  `Trailer`, `Upgrade`, `Te`, and `Pragma`: `readRequest` adds `Cache-Control: no-cache` for
+  `Pragma: no-cache`), a `Host` the server accepts (`hostByte`, `ValidHostHeader`), at most 500 header
+  lines counting `Host` (`maxHeaderValueCount`: more get a `431`), a `Content-Length` line with `B`'s length (decimal) or none and no
   body, a head within the server's read limit (`2 ^ 20` bytes, as `Serve.spec_rpc`'s path) and a body
   shorter than `2 ^ 60` bytes.
 * `ReqSlot`: what a dialer writes for one request: a request `(R, τ, B)` (`τ` the client's ghost name
@@ -43,7 +45,7 @@ them; S5 refines these definitions (where they differ from its draft: "Departure
   lines a handler may commit (lines the model writes as they are, none of the keys that change the
   framing, and `Pragma`: `Content-Length`, `Transfer-Encoding`, `Connection`, `Trailer`, `Pragma`).
 * `pathUnder pfx p` (`SpecPlan`'s), `pathClean p` (`cleanPath(p) = p`: no empty, `.` or `..` segment
-  but a trailing empty one), `notFoundBody` (`NotFound`'s body).
+  but a trailing empty one), `notFoundBody` (`NotFound`'s body), `muxRedirect Ps p` (the mux's `307`).
 
 ## An address's protocol
 
@@ -75,9 +77,13 @@ server gets back its own state: S5 instantiates them with its invariants):
   the writer failed).
 * `bodyOps rd R τ P S E`: the request body `rd` reads by `io.readerOk` with the state `S` and the
   errors' evidence `E`: every prefix read meets `P.bodyPre`, and `io.EOF` comes with `P.body`.
-* `srvReq r R rd` (persistent): the request's `Method`, `URL.Path`, `Header` (`hdrRO`, read-only, the
-  lines of `R.hdr`), `Body` (`rd`) and `RemoteAddr`.
-* `servePre`: what a run gets (`R.path` a `reqPath` under `pfx`, `srvReq`, `□ P.hreq R τ`, the writer
+* `srvReq r R rd` (persistent): the request's `Method`, `URL` (the URL of `R.path` alone: the model's
+  parse of a `reqPath`), `RequestURI` (`R.path`), `Host`, protocol (`HTTP/1.1`), `Header` (`hdrRO`,
+  read-only, the lines of `R.hdr`), `Body` (`rd`) and `RemoteAddr`: what the handler and the
+  `ServeMux` read. `reqMuxFields r`: the fields the `ServeMux` writes (`Pattern`, `pat`, `matches`),
+  owned.
+* `servePre`: what a run gets (`R.path` a `reqPath` under `pfx`, a `methOk` method, `srvReq`,
+  `reqMuxFields`, `□ P.hreq R τ`, the writer
   and body reader at their start, the connection goroutine's thread token); `serveDone`: what it
   gives back (the token, the body reader's state, and the writer committed with `□ P.respEnd` of what
   it wrote, or failed, or a panic).
@@ -100,11 +106,9 @@ server gets back its own state: S5 instantiates them with its invariants):
 module
 
 public import Net.Proof.net.http.MuxDefs
-public import Net.Proof.net.http.RequestDefs
-public import Net.Proof.net.http.Defs
+public import Net.Proof.net.http.WireDefs
 public import GooseLang.Ext.Net.Proto
 public import Perennial.Proof.io.Reader
-public import Perennial.Proof.fmt.Base
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostMap
 
@@ -119,156 +123,6 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Net
 
 namespace net.http
-
-/-! ## Requests -/
-
-/-- See the file header. -/
-structure HReq where
-  meth : GoString
-  host : GoString
-  path : GoString
-  hdr : List HdrLine
-
-instance HReq.countable : Pos.Countable HReq :=
-  .ofInjective (fun R => Pos.Countable.encode (R.meth, R.host, R.path, R.hdr))
-    (fun ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h => by
-      have h' := Pos.encode_inj h
-      simp only [Prod.mk.injEq] at h'
-      obtain ⟨rfl, rfl, rfl, rfl⟩ := h'
-      rfl)
-
-/-- The value of the line named `k` of `hb` (the first), or `""` (`Header.Get` of a canonical key
-on the map of `hb`). -/
-def hdrGetL (hb : List HdrLine) (k : GoString) : GoString :=
-  ((hb.find? (fun kv => decide (kv.1 = k))).map Prod.snd).getD []
-
-/-- `hb` with the line `k: v` in place of the ones named `k` (`Header.Set` of a canonical key). -/
-def hdrSetL (hb : List HdrLine) (k v : GoString) : List HdrLine :=
-  hb.filter (fun kv => decide (kv.1 ≠ k)) ++ [(k, v)]
-
-/-- See the file header. -/
-def methOk (m : GoString) : Prop :=
-  m ≠ [] ∧ m.all fieldByte = true ∧ m ≠ go!"CONNECT" ∧ m ≠ go!"HEAD" ∧ m ≠ go!"PRI"
-
-/-- See the file header. -/
-def reqKeysOut : List GoString :=
-  [go!"Host", go!"Transfer-Encoding", go!"Expect", go!"Connection", go!"Trailer", go!"Upgrade",
-    go!"Te"]
-
-/-- A byte of a `Host` value the server accepts (a subset of httpguts' `validHostByte`: letters,
-digits, `-`, `.`, `:`). -/
-def hostByte (c : w8) : Bool :=
-  decide ((97 ≤ c.toNat ∧ c.toNat ≤ 122) ∨ (65 ≤ c.toNat ∧ c.toNat ≤ 90) ∨
-    (48 ≤ c.toNat ∧ c.toNat ≤ 57) ∨ c ∈ [W8 45, W8 46, W8 58])
-
-/-- See the file header. -/
-def reqWire (R : HReq) (B : List w8) : List w8 :=
-  R.meth ++ [W8 32] ++ R.path ++ go!" HTTP/1.1" ++ [W8 13, W8 10] ++
-    hdrWire ((go!"Host", R.host) :: R.hdr) [W8 13] ++ B
-
-/-- See the file header. -/
-def reqOk (R : HReq) (B : List w8) : Prop :=
-  methOk R.meth ∧ reqPath R.path ∧ R.host.all hostByte = true ∧
-  hdrBlockOk ((go!"Host", R.host) :: R.hdr) ∧
-  (∀ kv ∈ R.hdr, kv.1 ∉ reqKeysOut) ∧
-  (hdrGetL R.hdr go!"Content-Length" = fmt.decimalNat B.length ∨
-    (go!"Content-Length" ∉ R.hdr.map Prod.fst ∧ B = [])) ∧
-  (reqWire R []).length ≤ 2 ^ 20 ∧ B.length < 2 ^ 60
-
-/-- See the file header: a request `(R, τ, B)` or junk. -/
-abbrev ReqSlot := (HReq × GName × List w8) ⊕ List w8
-
-/-- See the file header. -/
-def junkOk (j : List w8) : Prop :=
-  ∃ l rest : List w8, j = l ++ [W8 10] ++ rest ∧ W8 10 ∉ l ∧ l.length ≤ 2 ^ 20 ∧
-    l.head? ≠ none ∧ l.head? ≠ some (W8 13) ∧
-    ¬ (go!"HTTP/" <+: (parseReqLine (dropCR l)).2.2.1)
-
-/-- A slot's wire. -/
-def slotWire : ReqSlot → List w8
-  | .inl (R, _, B) => reqWire R B
-  | .inr j => j
-
-/-- A slot is well-formed. -/
-def slotOk : ReqSlot → Prop
-  | .inl (R, _, B) => reqOk R B
-  | .inr j => junkOk j
-
-/-- Every slot well-formed, junk only as the last. -/
-def slotsOk (L : List ReqSlot) : Prop :=
-  (∀ s ∈ L, slotOk s) ∧ ∀ (i : Nat) (j : List w8), L[i]? = some (.inr j) → i + 1 = L.length
-
-/-- See the file header. -/
-def slotsWire (L : List ReqSlot) : List w8 := (L.map slotWire).flatten
-
-/-! ## Responses -/
-
-/-- See the file header. -/
-structure Resp where
-  st : w64
-  reason : List w8
-  hc : List HdrLine
-  body : List w8
-  close : Bool
-
-/-- A status whose response has a body (net/http's `bodyAllowedForStatus`, for statuses from `200`). -/
-def bodyAllowed (st : w64) : Bool := decide (st ≠ W64 204 ∧ st ≠ W64 304)
-
-/-- See the file header. -/
-def respHeadWire (st : w64) (reason : List w8) (hc : List HdrLine) : List w8 :=
-  go!"HTTP/1.1 " ++ fmt.decimalNat (uint.nat st) ++ [W8 32] ++ reason ++ [W8 13, W8 10] ++
-    hdrWire hc [W8 13]
-
-/-- See the file header. -/
-def respWire (ρ : Resp) : List w8 := respHeadWire ρ.st ρ.reason ρ.hc ++ ρ.body
-
-/-- See the file header. -/
-def respOk (ρ : Resp) : Prop :=
-  200 ≤ uint.nat ρ.st ∧ uint.nat ρ.st ≤ 999 ∧ ρ.reason.all valByte = true ∧ hdrBlockOk ρ.hc ∧
-  (∀ k ∈ [go!"Transfer-Encoding", go!"Trailer", go!"Pragma"], k ∉ ρ.hc.map Prod.fst) ∧
-  (∀ kv ∈ ρ.hc, kv.1 = go!"Connection" → kv.2 = go!"close") ∧ ρ.body.length < 2 ^ 60 ∧
-  (if ρ.close then go!"Content-Length" ∉ ρ.hc.map Prod.fst ∧ bodyAllowed ρ.st = true
-   else if bodyAllowed ρ.st then hdrGetL ρ.hc go!"Content-Length" = fmt.decimalNat ρ.body.length
-   else go!"Content-Length" ∉ ρ.hc.map Prod.fst ∧ ρ.body = [])
-
-/-- The header lines of a response as `ReadResponse` leaves them in its map: without a
-`Connection: close` line (`shouldClose` deletes it). -/
-def dropConn (hc : List HdrLine) : List HdrLine := hc.filter (fun kv => decide (kv.1 ≠ go!"Connection"))
-
-/-- net/http's `400` answer to a request it could not read (`net.rpc.badReqAns`). -/
-def badResp : Resp :=
-  ⟨W64 400, go!"Bad Request", badHdr, go!"400 Bad Request", true⟩
-
-/-- See the file header (`SpecPlan`'s). -/
-def srvKeys : List GoString :=
-  [go!"Date", go!"Content-Type", go!"Content-Length", go!"Transfer-Encoding", go!"Connection"]
-
-/-- See the file header. -/
-def hdrView (hs hc : List HdrLine) : Prop :=
-  ∀ k, k ∉ srvKeys → hdrGetL hc k = hdrGetL hs k
-
-/-- The keys a handler may not commit (they change the response's framing). -/
-def respKeysOut : List GoString :=
-  [go!"Content-Length", go!"Transfer-Encoding", go!"Connection", go!"Trailer", go!"Pragma"]
-
-/-- See the file header. -/
-def hdrsOk (hs : List HdrLine) : Prop :=
-  hdrBlockOk hs ∧ ∀ kv ∈ hs, kv.1 ∉ respKeysOut
-
-/-- `p` is a path under the mux pattern `pfx` (`SpecPlan`'s): `pfx` itself, or, for a pattern
-ending in `/`, below it. -/
-def pathUnder (pfx p : GoString) : Prop :=
-  p = pfx ∨ (pfx.getLast? = some (W8 47) ∧ pfx <+: p)
-
-/-- `cleanPath(p) = p` for a `/`-initial `p`: every `/`-separated segment after the first `/` is
-neither `.` nor `..`, and none but the last is empty. -/
-def pathClean (p : GoString) : Prop :=
-  let segs := (p.drop 1).splitOn (W8 47)
-  ∀ (i : Nat) (s : List w8), segs[i]? = some s →
-    s ≠ go!"." ∧ s ≠ go!".." ∧ (i + 1 < segs.length → s ≠ [])
-
-/-- The body of `NotFound`'s answer (`Error(w, "404 page not found", 404)`, `fmt.Fprintln`). -/
-def notFoundBody : List w8 := go!"404 page not found" ++ [W8 10]
 
 /-! ## The protocol -/
 
@@ -403,10 +257,22 @@ instance hdrRO_persistent (m : Loc) (hb : List HdrLine) : Persistent (hdrRO (GF 
 def srvReq (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF :=
   iprop(structFieldRef net.http.Request go!"Method" r ↦□ R.meth ∗
     (∃ u : Loc, structFieldRef net.http.Request go!"URL" r ↦□ u ∗
-      structFieldRef net.url.URL go!"Path" u ↦□ R.path) ∗
+      u ↦□ { (_root_.Perennial.zero_val net.url.URL) with Path' := R.path }) ∗
+    structFieldRef net.http.Request go!"RequestURI" r ↦□ R.path ∗
+    structFieldRef net.http.Request go!"Host" r ↦□ R.host ∗
+    structFieldRef net.http.Request go!"Proto" r ↦□ go!"HTTP/1.1" ∗
+    structFieldRef net.http.Request go!"ProtoMajor" r ↦□ (W64 1) ∗
+    structFieldRef net.http.Request go!"ProtoMinor" r ↦□ (W64 1) ∗
     (∃ hm : Loc, structFieldRef net.http.Request go!"Header" r ↦□ hm ∗ hdrRO hm R.hdr) ∗
     structFieldRef net.http.Request go!"Body" r ↦□ rd ∗
     (∃ ra : GoString, structFieldRef net.http.Request go!"RemoteAddr" r ↦□ ra))
+
+/-- The request's fields a `ServeMux` writes (`findHandler`: `Pattern`, `pat`, `matches`), owned. -/
+def reqMuxFields (r : Loc) : IProp GF :=
+  iprop(∃ (pt : GoString) (pp : Loc) (ms : GoSlice),
+    structFieldRef net.http.Request go!"Pattern" r ↦ pt ∗
+    structFieldRef net.http.Request go!"pat" r ↦ pp ∗
+    structFieldRef net.http.Request go!"matches" r ↦ ms)
 
 instance srvReq_persistent (r : Loc) (R : HReq) (rd : GoInterface) :
     Persistent (srvReq (GF := GF) r R rd) := by
@@ -457,7 +323,8 @@ instance bodyOps_persistent (rd : GoInterface) (R : HReq) (τ : GName) (P : HPro
 def servePre (P : HProto GF) (pfx : GoString) (w : GoInterface) (r : Loc) (R : HReq) (τ : GName)
     (rd : GoInterface) (I : RespSt → IProp GF) (S : List w8 → IProp GF)
     (E : List w8 → GoInterface → IProp GF) : IProp GF :=
-  iprop(⌜reqPath R.path ∧ pathUnder pfx R.path⌝ ∗ srvReq r R rd ∗ □ P.hreq R τ ∗
+  iprop(⌜reqPath R.path ∧ methOk R.meth ∧ pathUnder pfx R.path⌝ ∗ srvReq r R rd ∗ reqMuxFields r ∗
+    □ P.hreq R τ ∗
     respOps w R τ P I ∗ I (none, [], [], true) ∗ bodyOps rd R τ P S E ∗ S [] ∗ threadTok)
 
 /-- See the file header. -/
@@ -481,18 +348,22 @@ instance handlerOk_persistent (h : GoInterface) (P : HProto GF) (pfx : GoString)
     Persistent (handlerOk (GF := GF) h P pfx) := by
   unfold handlerOk; infer_instance
 
-/-- What a mux needs of a protocol for the requests it answers itself (`ServeMux.ServeHTTP.spec`):
-for a path no pattern of `L` routes, a `404` with `NotFound`'s body; for a path the mux redirects
-(not clean, or unrouted with `p ++ "/"` a pattern), any `301`. Only for requests a client sent
-(`P.hreq`). -/
+/-- `ServeMux`'s redirect of a request for `p` (Go 1.22's matcher, `findHandler`): `p` not clean
+(`cleanPath`), or not a pattern, not ending in `/`, and `p ++ "/"` a pattern (`matchOrRedirect`; even
+when a shorter subtree pattern routes `p`). Both answer `307` (`StatusTemporaryRedirect`). -/
+def muxRedirect (Ps : List GoString) (p : GoString) : Prop :=
+  ¬ pathClean p ∨ (p ∉ Ps ∧ p.getLast? ≠ some (W8 47) ∧ p ++ [W8 47] ∈ Ps)
+
+/-- What a mux with the routes `L` needs of a protocol for the requests it answers itself
+(`ServeMux.ServeHTTP.spec`), for those a client sent (`P.hreq`): a `307` to a request it redirects
+(`muxRedirect`); a `404` with `NotFound`'s body to one it does not redirect and no pattern routes
+(`pathUnder`). -/
 def muxNoRoute (P : HProto GF) (L : List (GoString × GoInterface)) : Prop :=
   ∀ (R : HReq) (τ : GName), reqPath R.path →
-    ((¬ pathClean R.path ∨
-        ((∀ ph ∈ L, ¬ pathUnder ph.1 R.path) ∧ R.path ++ [W8 47] ∈ L.map Prod.fst)) →
+    (muxRedirect (L.map Prod.fst) R.path →
       ∀ (hs : List HdrLine) (w : List w8),
-        (P.hreq R τ ⊢ □ P.resp R τ (W64 301) hs w) ∧ (P.hreq R τ ⊢ □ P.respEnd R τ (W64 301) hs w)) ∧
-    (pathClean R.path → (∀ ph ∈ L, ¬ pathUnder ph.1 R.path) →
-      R.path ++ [W8 47] ∉ L.map Prod.fst →
+        (P.hreq R τ ⊢ □ P.resp R τ (W64 307) hs w) ∧ (P.hreq R τ ⊢ □ P.respEnd R τ (W64 307) hs w)) ∧
+    (¬ muxRedirect (L.map Prod.fst) R.path → (∀ ph ∈ L, ¬ pathUnder ph.1 R.path) →
       (∀ (hs : List HdrLine) (w : List w8), w <+: notFoundBody →
         (P.hreq R τ ⊢ □ P.resp R τ (W64 404) hs w)) ∧
       ∀ hs : List HdrLine, (P.hreq R τ ⊢ □ P.respEnd R τ (W64 404) hs notFoundBody))

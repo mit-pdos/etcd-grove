@@ -20,7 +20,7 @@ reads. Proved in `Net/Proof/net/http/ReadResponse.lean`.
 2026-11-24): `b` a `*bufio.Reader` that has delivered `D` (`bufio.ownReader`) of a stream reader `ri`
 that makes progress (`io.readerStreamNE ri S E`), whose bytes past `D` are, as long as it is read,
 nothing yet, or a prefix of the wire of a response `ρ` the model reads as written (`respOk`,
-`ProtoDefs.lean`: no chunked body) or, for one delimited by its `Content-Length`, that wire followed by
+`WireDefs.lean`: no chunked body) or, for one delimited by its `Content-Length`, that wire followed by
 more, with the caller's persistent knowledge `Q ρ` of it (the law over `S`); and that delivers nothing
 after an error (the law over `E` and `S`, as the `CONNECT` spec's). It returns an error (with the
 reader), or a response with `ρ`'s status, its header lines (`hdrOwn`, the client's, without a
@@ -38,7 +38,7 @@ module
 
 public import Net.Proof.net.http.Defs
 public import Proof.io.ReaderStreamNE
-public import Net.Proof.net.http.ProtoDefs
+public import Net.Proof.net.http.WireDefs
 
 @[expose] public section
 

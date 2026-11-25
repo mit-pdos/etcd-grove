@@ -16,8 +16,10 @@ machine a fresh Go process (`Robust`'s premise). Since the client panics when a 
 fails, this says each holds, under every fault the net extension allows (cut, reset or delayed
 connections, refused dials).
 
-**Premises**: only the deployment's start (`DistDeploy`) and the program's typing facts (the
-commands' `Assumptions`, `net.FieldAssumptions`, `go.BasicIntoValInj`), as rpcdriver's. What it rests
+**Premises**: the deployment's start (`DistDeploy`), the environment premise
+`GodebugHttpmuxgo121Not1` (`GODEBUG` does not set `httpmuxgo121=1`, `Net/TrustedCode/net/http.lean`:
+the server's `ServeMux` runs Go 1.22's matcher, the one proved; #18's option (a)), and the program's
+typing facts (the commands' `Assumptions`, `net.FieldAssumptions`, `go.BasicIntoValInj`). What it rests
 on beyond the proofs, besides the net extension's semantics and the net/http model's trusted claim:
 the trust-base collection `etc/tcb-collections/httpdriver.txt`.
 Proved in `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/httpdriver/TopLevelRobustness.lean`.
@@ -45,7 +47,7 @@ def httpdriver_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState),
+    (σs σc : state) (g : GlobalState) (HEnv : net.http.GodebugHttpmuxgo121Not1),
     DistDeploy httpAddrs (system σs σc) g →
     Robustness.Robust [] (system σs σc) g httpThreads httpSteps
 
