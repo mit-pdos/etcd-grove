@@ -99,7 +99,7 @@ structure SrvRaft [GooseExts] where
   model the node API's node predicates are stated at (`srvStor`) -/
   reg : GName
   /-- the members' snapshot directories' ghost names (raft's `reSnapLoc` until 2026-10-27; the
-  snapshot path's `snapDirInv`, unreachable since the server's clusters send no snapshot) -/
+  snapshot path's `snapDirInvH`, unreachable since the server's clusters send no snapshot) -/
   snapLoc : w64 → Option GName
   log : GName
   fresh : GName

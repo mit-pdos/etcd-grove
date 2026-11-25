@@ -532,6 +532,15 @@ theorem fileHoldsM_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
     exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
   · ipureintro; rw [hsize]; exact hlen
 
+omit hG in
+/-- **The txid's receipt is the run's, not the generation's** (D6-T6, P7, 2026-11-25): a time receipt is
+global ghost state (`GooseGlobalGS`'s receipts), so `boltImageRcpt` at a generation `L` is it at any other
+`L'` (a crash keeps it: what a file kept whole across a crash needs, `backend.fileHoldsMDur_crash`). -/
+theorem boltImageRcpt_gen (G : GooseGlobalGS hlc GF) (L L' : GooseLocalGS GF) (bs : List w8) :
+    boltImageRcpt (hG := ⟨G, L⟩) bs ⊢ boltImageRcpt (hG := ⟨G, L'⟩) bs := by
+  unfold boltImageRcpt fileRcpt
+  exact .rfl
+
 end vocab
 
 section stat

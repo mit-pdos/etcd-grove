@@ -104,7 +104,7 @@ def srvSnapDir (s : Loc) (γm : GName) : IProp GF :=
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+    snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
     □ (∀ j : w64, monoNatLbOwn γm (uint.nat j + 1) -∗ Rm j))
 
 instance srvSnapDir_persistent (s : Loc) (γm : GName) :

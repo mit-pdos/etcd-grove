@@ -236,7 +236,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- (2026-11-01, J8a-1, item 8) the directory's removal fact `srvSnapRm`, as the server's
        -- bundle (`srvSnapRO`) has it (until then `snapTakenLb γt`, its first disjunct); (restart
        -- S6a) the member's removal counter `γt` (`snapRmM`), its authority at most the index plus one
-       inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd img (snapRmM γt)) ∗
+       snapDirInvH (config.snapDirOf cfg.DataDir') γd img (snapRmM γt) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗

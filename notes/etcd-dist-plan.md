@@ -1665,8 +1665,16 @@ merge). The etcd pin stays `e94f33b50` (`lean` did not move its own). What the m
   this line); etcdstart's API lists `NetExtsCrash`.
 **Checked:** goose, gen-init, gen-raft-tla, copy-part, gen-specs-pkginit, tier, issues, bounds (390), iris-premise,
 premise-witness, api; every `Link` regenerated on the VM matches; full VM build green after P8.
-**Not merged: P7** (`etcd-safe-p7`): its base is `lean` @ `2f8ee1548e`; left for a fresh agent (gen-init's `lib/remote`
-initializer through `etc/gen-init.py`'s configuration).
+**P7 merged** (`origin/etcd-safe-p7` @ `5573c4c603`, D6-T6: `snapDir_crash.law` proved; its base `lean` @ `2f8ee1548e`
+already on this line). Conflicts: dist `TopLevelRobustness` (Spec, Proof) and `deployment/deployment.go` kept this line's
+(P7's sides were older versions plus the same `EtcdVerifyOff` merge: this line's thread-bound bridge, the verified
+`AddrOk`); `notes/etcd-dist-d6.md` (§T6 after this line's sections) and `notes/axiom-review/README.md` (the `snapdir-crash`
+row) kept both. gen-init: up to date with no change (the 15 differences on P7's own branch were D2's `lib/remote`
+initializers, which this line's configuration already generates from the main tree's one source). Regenerated:
+`InvNodeChan`'s copies (gen-raft-tla, copy-part). `etc/api/backend.txt` lists `FileDur` (P7's `rafthttp/Net` imports it).
+**Checked:** goose, gen-init, gen-raft-tla, copy-part, gen-specs-pkginit, tier, issues, bounds (390), iris-premise,
+premise-witness, api, import-all; every `Link` regenerated on the VM matches; full VM build green (28661 jobs);
+`tcb-report --check` (338 axioms, 0 sorries) and every collection unchanged.
 
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 

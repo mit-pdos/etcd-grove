@@ -310,7 +310,7 @@ theorem rafthttp.Transport.Handler_core
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFixed Rh t lid γd R ∗
         t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗ snap.isSnapshotter ss sd ∗
-        inv snapDirN (snapDirInv sd γd Rh.γn.N.img Rm) ∗
+        snapDirInvH sd γd Rh.γn.N.img Rm ∗
         trAddRemoteReq Rh t lid ∗ trAddRemote Rh t lid }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
     {{ (h : GoInterface), RET #h;

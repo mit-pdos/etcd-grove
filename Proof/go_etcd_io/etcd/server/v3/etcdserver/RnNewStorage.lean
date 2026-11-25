@@ -330,7 +330,7 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
