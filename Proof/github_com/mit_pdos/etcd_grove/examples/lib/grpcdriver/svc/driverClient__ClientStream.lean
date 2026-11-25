@@ -58,14 +58,15 @@ theorem driverClient.ClientStream.wp_proof
   have hlen : sds.length = 3 := by
     have := congrArg List.length hs
     simpa using this
-  obtain ⟨sd0, hsd0⟩ : ∃ sd0, sds[((1 : Nat) : Int).toNat]? = some sd0 :=
+  obtain ⟨sd0, hsd0n⟩ : ∃ sd0, sds[1]? = some sd0 :=
     ⟨sds[1]'(by omega), by simp⟩
-  have hf := congrArg (fun l => l[1]?) hs
-  simp only [List.getElem?_map] at hf
-  rw [show (1 : Nat) = ((1 : Nat) : Int).toNat from rfl, hsd0] at hf
-  simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq, List.getElem?_cons_succ,
-    List.getElem?_cons_zero] at hf
-  obtain ⟨-, -, -, h1⟩ := hf
+  have hsd0 : sds[((1 : Nat) : Int).toNat]? = some sd0 := hsd0n
+  have hmem : (sd0.StreamName', (#sd0.Handler' : val), sd0.ServerStreams', sd0.ClientStreams') =
+      (sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val), sd.ServerStreams',
+        sd.ClientStreams')))[1]'(by simp; omega) := by
+    simp [hsd0n]
+  have hmem2 := hmem.trans (List.getElem_of_eq hs _)
+  have h1 : sd0.ClientStreams' = true := (congrArg (fun p => p.2.2.2) hmem2).trans rfl
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]

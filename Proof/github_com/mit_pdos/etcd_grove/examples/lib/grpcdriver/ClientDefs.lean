@@ -48,16 +48,16 @@ instance drvStubAt_persistent (c : GoInterface) (conn : Loc) :
 interceptor (`grpcConnOpts`, `streamIc = none`), and the three streams registered at the server's
 address with the table's specifications (`strmSpec`: a response's content is the entry's `dn`). -/
 def drvStrmFacts (conn : Loc) : IProp GF :=
-  iprop((∃ d : GrpcConnOpts, grpcConnOpts conn d ∗ ⌜d.streamIc = none⌝) ∗
+  iprop(□ ((∃ d : GrpcConnOpts, grpcConnOpts conn d ∗ ⌜d.streamIc = none⌝) ∗
     isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
       (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr serverStreamName ssUp (strmSpec ssDn) ∗
     isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
       (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr clientStreamName csUp (strmSpec csDn) ∗
     isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
-      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr bidiName biUp (strmSpec biDn))
+      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr bidiName biUp (strmSpec biDn)))
 
 instance drvStrmFacts_persistent (conn : Loc) : Persistent (drvStrmFacts (GF := GF) conn) := by
-  unfold drvStrmFacts isGrpcStreamMd grpcStreamSvcAt; infer_instance
+  unfold drvStrmFacts; infer_instance
 
 /-- The client's environment (see the file header). -/
 def drvCli (γid γb : GName) (c : GoInterface) (ids : Loc) : IProp GF :=
