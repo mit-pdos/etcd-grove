@@ -1268,7 +1268,8 @@ module (linking where it uses `wp_*`):
 1. **The kv store** (`dist/kvremote/Store.lean`, defs): `kvR γk : RBase GF MS MI VIn Output` with
    `sysState st := ∃ σ, etcdKV γk σ ∗ ⌜GoodKV σ ∧ absSt σ = st ∧ kvRevFits σ.rev⌝` (timeless), `Eop` the
    KV invariants' mask (`callUpd`'s), `B := TSo`, `good st := st.rev < 2 ^ 63`; `PendDec (kvR γk)
-   linkvtxnS` (pure, from `decOut_outOf`, `pSeq_ok`, `pSeq_errW_pending`, `pSeq_errR`); `hinj`.
+   linkvtxnS` (pure, from `decOut_outOf`, `pSeq_ok`, `pSeq_errW_pending`, `pSeq_errR`); `hinj`. (Done 2026-11-25, with `O := VOut`, outputs that fit a slice, and `good` bounding the
+   state's values too: `notes/etcd-dist-p9.md`, fourth session.)
 2. **The codec** (`dist/enc/*` specs and proofs; `dist/kvremote/{EncInput,DecInput,EncOutput,DecOutput,
    Codec}.lean`): `codecOk (kvR γk) (Codec())`.
 3. **The client machine** (`dist/kvremote/Node.lean`): `opMaybe (kvR γk) a tok op` for `Node`'s `op`
