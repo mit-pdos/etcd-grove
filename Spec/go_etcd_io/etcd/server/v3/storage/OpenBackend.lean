@@ -32,10 +32,11 @@ claim on the name (`bPath γ.db`): the axiom creates nothing (`notes/bbolt-integ
 gave `New`'s post at any receipt bound, which `New`'s proof does not (false above that bound).
 (etcd-dist D6, C-I1, 2026-11-25) And, when `cfg.UnsafeNoFsync` is `false`, the crash laws' token
 `backend.dbOpts γ.db` (`DbOpts.lean`): the database was opened with `NoSync = false` and
-`NoGrowSync = false` (`server/storage/backend.go:35` copies `UnsafeNoFsync` into the backend's
-configuration, `backend/backend.go:227-228` into `bopts.NoSync`/`bopts.NoGrowSync`, which `bolt.Open`
-stores in the `DB`). The one thing the post holds that `New`'s proved post does not: an opaque token
-about the Go configuration, read only by the C-I1 axioms (`backend/CrashInterim.lean`).
+`NoGrowSync = false` (`server/storage/backend.go:38` copies `UnsafeNoFsync` into the backend's
+configuration, `backend/backend.go:230-231` into `bopts.NoSync`/`bopts.NoGrowSync`, which `bolt.Open`
+stores in the `DB`). The one thing the post holds that `New`'s proved post does not: `dbOpts`, bbolt's
+`boltSyncs γ.db` (the `DB`'s two fields persistently `false`), read by the C-I1 laws
+(`backend/CrashInterim.lean`; review `notes/axiom-review/openbackend-dbopts.md`).
 -/
 module
 

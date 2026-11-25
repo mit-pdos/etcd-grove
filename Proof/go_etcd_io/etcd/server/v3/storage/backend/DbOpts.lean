@@ -33,10 +33,10 @@ from its options and never written again, `Inv/Bolt.lean`'s `dbFixed`), so that 
 `fdatasync`s after its pages and after its meta (`tx.go`, both under `!db.NoSync`), `DB.grow`
 `fsync`s after its `Truncate` (under `!db.NoGrowSync`), and `Open` `fdatasync`s before it returns
 (fork `db.go:326`). **Producer**: `storage.OpenBackend`'s post, when the configuration's
-`UnsafeNoFsync` is `false` (etcd's default; `server/storage/backend.go:35` copies it into the
-backend's configuration, `backend/backend.go:227-228` into `bopts.NoSync` and `bopts.NoGrowSync`,
-which `bolt.Open` stores; defrag reopens the database with the same `b.bopts`, `backend.go:594`).
-Never produced for defrag's temporary database (`NoSync = true`, `backend.go:531`), which no `γ` of
+`UnsafeNoFsync` is `false` (etcd's default; `server/storage/backend.go:38` copies it into the
+backend's configuration, `backend/backend.go:230-231` into `bopts.NoSync` and `bopts.NoGrowSync`,
+which `bolt.Open` stores; defrag reopens the database with the same `b.bopts`, `backend.go:603`).
+Never produced for defrag's temporary database (`NoSync = true`, `backend.go:534`), which no `γ` of
 a backend names. Concretely bbolt's `boltSyncs γ` (`Spec/go_etcd_io/bbolt/Api.lean`): `γ`'s `DB` has both
 fields `false` (persistent points-tos), which bbolt's invariant (`dbFixed`) agrees with. -/
 def dbOptsRaw [hG : HeapGS hlc GF] [sem : go.Semantics] (γ : DBNames) : IProp GF :=

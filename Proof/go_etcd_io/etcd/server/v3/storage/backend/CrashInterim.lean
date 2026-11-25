@@ -2,8 +2,8 @@
 
 # C-I1: bbolt's file after a power loss, at the backend's interface (interim axiom, etcd-dist D6)
 
-`notes/etcd-dist-d6.md`, "Crash interim axioms" (A1 of §7). **Trusted**: six laws over three opaque
-predicates (`dbOpts`, `dbCrashKeep`, `dbCrashHole`) and the crash premise `BoltCrashWhole`, retired by a
+`notes/etcd-dist-d6.md`, "Crash interim axioms" (A1 of §7). **Trusted**: six laws over the opaque
+predicates `dbCrashKeep`, `dbCrashHole` and the concrete `dbOpts` (bbolt's `boltSyncs`) and the crash premise `BoltCrashWhole`, retired by a
 crash proof of bbolt over the file extension (`plans/bbolt-crash-plan.md`; minibolt's
 `osfs/bboltfs/DBCrash.lean`, `BootP1.lean` the template). The member's crash law (`memberGen_crash.law`,
 T7) uses `dbCrash`; the backend's commit (T10) the record laws. Restated 2026-11-25 (bbolt-crash, agreed
