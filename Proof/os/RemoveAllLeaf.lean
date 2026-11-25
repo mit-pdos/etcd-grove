@@ -71,10 +71,14 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
   ihave Hst : (∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ : IProp GF)
     $$ [Hn]
   · iexists hc; iframe; ipureintro; exact LeafOk.refl c hc
-  iloeb as IH generalizing Hperm Hp Hst
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hst HΦ
+  wp_for_step
   icases Hst with ⟨%hc', Hn, %hsub⟩
   imod osNames_next R J _ _ hc' CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsUnlink.impl
   wp_apply +noauto wp_osCallBeginS R _ qc hc'.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -87,10 +91,13 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       try wp_auto
-      iapply IH $$ Hperm Hp [Hn] HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp [Hn] HΦ [$] [$]
       iexists hc'; iframe; ipureintro; exact hsub
     rw [decide_eq_false he4]
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     ipureintro; exact ⟨hsub, fun _ => hcur⟩
@@ -119,10 +126,13 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
     · rw [decide_eq_true he4]
       try wp_auto
       icases Hst with ⟨%hc2, Hn, %hlw⟩
-      iapply IH $$ Hperm Hp [Hn] HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp [Hn] HΦ [$] [$]
       iexists hc2; iframe; ipureintro; exact hlw.1
     rw [decide_eq_false he4]
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
 
@@ -147,8 +157,12 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
   have hcN' : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
   obtain ⟨hfl, htr, hcr⟩ := os.flRO_ok
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -160,9 +174,12 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       try wp_auto
-      iapply IH $$ Hperm Hp Hn HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$]
     rw [decide_eq_false he4]
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     isplitr
@@ -185,6 +202,7 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
            · exact absurd rfl ‹_›) $$ Hfd
       rw [decide_eq_false (show W64 0 ≠ W64 4 by decide)]
       try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       isplitr
@@ -197,9 +215,12 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         try wp_auto
-        iapply IH $$ Hperm Hp Hn HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$]
       rw [decide_eq_false he4]
       try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       isplitr
@@ -216,8 +237,12 @@ theorem os.model.wp_rmdirLoop_none (p c : GoString) (R : Roots) (J : Ino) (dq dq
         osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRmdir.impl
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -228,9 +253,12 @@ theorem os.model.wp_rmdirLoop_none (p c : GoString) (R : Roots) (J : Ino) (dq dq
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   ipureintro; exact he
@@ -249,7 +277,8 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
   ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
   · iPkgInit
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
-  rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
+  try wp_auto
+  try rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_leaf p c R J dq dqn hc qc hcN hcf hw $$ [Hp Hn Hperm]
     as %e ⟨Hp, Hperm, %hc', Hn, %hsubw⟩
   · iframe; iframe #
@@ -284,7 +313,9 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
     try wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 $$ Hsys as %pe Hpe
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.model.wp_pathErrorPtr_errnoV _ _ e he0 $$ Hsys as %pe Hpe
     iapply HΦ
     iframe
     ipureintro; exact hsubw
@@ -293,6 +324,9 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
   clear he0 he2
   rcases hcls with rfl | rfl | rfl <;> wp_auto
   all_goals
+    -- the passes' loop: on a name holding no directory its first pass returns or breaks
+    wp_for_bind
+    wp_for_step
     wp_apply os.model.wp_openLoop_leaf p c R J dq dqn hc' qc hcN hcf' $$ [Hp Hn Hperm]
       as %fd %e' ⟨Hp, Hn, Hperm, -, Hr⟩
     · iframe; iframe #
@@ -302,6 +336,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       by_cases he'2 : e' = W64 2
       · rw [decide_eq_true he'2]
         try wp_auto
+        wp_for_post
         iapply HΦ
         iframe
         isplitr
@@ -312,15 +347,21 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       by_cases he'20 : e' = W64 20
       · rw [decide_eq_true he'20]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
+        wp_apply os.wp_modelErrno
         try wp_auto
+        wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he0' $$ Hsys as %pe Hpe
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iframe
         ipureintro; exact hsubw
       rw [decide_eq_false he'20]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' $$ Hsys as %pe Hpe
+      wp_apply os.wp_modelErrno
       try wp_auto
+      wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he' $$ Hsys as %pe Hpe
+      try wp_auto
+      wp_for_post
       wp_apply os.model.wp_rmdirLoop_none p c R J dq dqn hc' qc hcN hcf'
         $$ [Hp Hn Hperm] as %e4 ⟨%he4, Hp, Hn, Hperm⟩
       · iframe; iframe #
@@ -340,7 +381,9 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       by_cases hpn : pe = null
       · simp only [decide_eq_true hpn, Bool.not_true]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he4 $$ Hsys as %pe' Hpe'
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he4 $$ Hsys as %pe' Hpe'
         iapply HΦ
         iframe
         ipureintro; exact hsubw
@@ -351,15 +394,18 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
         ipureintro; exact hsubw
     · simp only [decide_eq_true (show e' = W64 0 from he'), Bool.not_true]
       try wp_auto
-      try wp_auto
       wp_stub os.fsFdKind.impl
       wp_apply wp_osFdKind fd (DFrac.own 1) _ CoPset.subseteq_top $$ Hos Hfd as Hfd
       try wp_auto
       wp_stub os.fsClose.impl
       wp_apply wp_osClose fd _ CoPset.subseteq_top $$ [Hfd] as %ec -
       · iframe; iframe #; iapply lockToks_unlocked <;> rfl
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
       try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he0' $$ Hsys as %pe Hpe
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       ipureintro; exact hsubw

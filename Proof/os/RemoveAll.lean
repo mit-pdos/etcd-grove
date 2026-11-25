@@ -47,12 +47,15 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
-  rw [decide_eq_false (show child d b ≠ [] by simp [child])]
+  try wp_auto
+  try rw [decide_eq_false (show child d b ≠ [] by simp [child])]
   try wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
   icases (os.osCallPerm_halves _ qc).2 $$ Hperm with ⟨Hg, Hperm⟩
   icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
+  try wp_auto
+  wp_stub os.fsWithCall.impl
   wp_apply +noauto wp_osCallBeginGuardS R _ qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   try wp_auto
@@ -97,7 +100,9 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
       try wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       try wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_fin qc
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]
@@ -133,12 +138,15 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
   ihave Hst : rmAllOut j b J h hJ $$ [Hn HJ]
   · iapply os.rmPresent_out; unfold os.rmPresent; iexists hJ; iframe; ipureintro
     exact EntsSub.refl _
-  rw [decide_eq_false (show child d b ≠ [] by simp [child])]
+  try wp_auto
+  try rw [decide_eq_false (show child d b ≠ [] by simp [child])]
   try wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
   icases (os.osCallPerm_halves _ 1).2 $$ Hperm with ⟨Hg, Hperm⟩
   icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
+  try wp_auto
+  wp_stub os.fsWithCall.impl
   wp_apply +noauto wp_osCallBeginGuardS R _ (1 : Qp).half 0 CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   try wp_auto
@@ -182,7 +190,9 @@ theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) 
       try wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       try wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_fin (1 : Qp)
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]

@@ -60,7 +60,9 @@ local macro "rm_tail" pe:term:max : tactic => `(tactic| (
   by_cases hpn : $pe = null
   · simp only [decide_eq_true hpn, Bool.not_true]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e4 he40 $$ Hsys as %pe' Hpe'
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.model.wp_pathErrorPtr_errnoV _ _ e4 he40 $$ Hsys as %pe' Hpe'
     iapply HΦ
     iframe
   · simp only [decide_eq_false hpn, Bool.not_false]
@@ -77,6 +79,7 @@ local macro "rm_restore" hs:term : tactic => `(tactic| (
   ihave Hst : rmAllOut j b J h hJ0 $$ [Hb HJ]
   · iapply os.rmPresent_out; unfold os.rmPresent; iexists _; iframe; ipureintro; exact $hs))
 
+set_option maxHeartbeats 4000000 in
 theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
     (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hfo : FilesOnly hJ0.cur) (hqg : q + g = 1) :
@@ -91,7 +94,8 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
   · iPkgInit
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases osPathS_callKey R d _ j $$ Hp with ⟨Hp, %hkd⟩
-  rw [show d ++ [47#8] ++ b = child d b by simp [child, slashB]]
+  try wp_auto
+  try rw [show d ++ [47#8] ++ b = child d b by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_dirSt d b j J R (DFrac.own qd) h hJ0 q hb hJ $$ [Hp Hst Hperm]
     as %e ⟨%he0, Hp, Hst, Hperm⟩
   · iframe; iframe #
@@ -114,19 +118,26 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
     try wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 $$ Hsys as %pe Hpe
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.model.wp_pathErrorPtr_errnoV _ _ e he0 $$ Hsys as %pe Hpe
     iapply HΦ
     iframe
   rw [Classical.not_not] at hcls
   clear he2
   rcases hcls with rfl | rfl | rfl <;> wp_auto
   all_goals
-    obtain ⟨r0, hr0⟩ : ∃ r : Loc, null = r := ⟨_, rfl⟩
-    rw (occs := .pos [9]) [hr0]
+    obtain ⟨r0, hr0⟩ : ∃ r : Loc, r = null := ⟨_, rfl⟩
+    ihave Hrerr : (rerr_ptr ↦ r0 : IProp GF) $$ [rerr]
+    · rw [hr0]; iexact rerr
     ihave Hrr : os.peOk r0 $$ []
-    · rw [← hr0]; iapply os.peOk_null
+    · rw [hr0]; iapply os.peOk_null
     clear hr0
-    iloeb as IH generalizing %r0 Hp Hst Hperm Hg Hrr HΦ
+    -- the passes
+    wp_for_bind
+    iloeb as IH generalizing %r0 Hrerr Hrr Hp Hst Hperm Hg HΦ
+    wp_for_step
+    for_cond
     wp_apply os.model.wp_openLoop_dirSt d b j J R qd h hJ0 q hb hJ $$ [Hp Hst Hperm]
       as %fd %eo ⟨Hp, Hperm, Ho⟩
     · iframe; iframe #
@@ -136,6 +147,7 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
       by_cases heo2 : eo = W64 2
       · rw [decide_eq_true heo2]
         try wp_auto
+        wp_for_post
         iapply HΦ
         iframe
         iapply os.peOk_null
@@ -144,20 +156,26 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
       by_cases heo20 : eo = W64 20
       · rw [decide_eq_true heo20]
         try wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ (by decide) $$ Hsys as %pe Hpe
+        wp_apply os.wp_modelErrno
         try wp_auto
+        wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ (by decide) $$ Hsys as %pe Hpe
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iframe
       rw [decide_eq_false heo20]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ heo $$ Hsys as %pe Hpe
+      wp_apply os.wp_modelErrno
       try wp_auto
+      wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ heo $$ Hsys as %pe Hpe
+      try wp_auto
+      wp_for_post
       rm_tail pe
     · simp only [decide_eq_true (show eo = W64 0 from heo), Bool.not_true]
       try wp_auto
-      try wp_auto
       wp_stub os.fsFdKind.impl
       wp_apply wp_osFdKindDirS fd J .idle CoPset.subseteq_top $$ Hos Hfd as Hfd
+      try wp_auto
       unfold os.rmPresent
       icases Hpr with ⟨%hJ', Hb, HJ, %hsub⟩
       icases (os.osPathS_halves R d qd j).2 $$ Hp with ⟨Hp1, Hp2⟩
@@ -182,7 +200,10 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
       · ipureintro; subst hrs hfresh; simp
       clear hfresh hrs hsl0
       try wp_auto
-      iloeb as IHr generalizing %fresh %rs %rr0 %sl0 Hpu Hfd Hsl Hcap HJ
+      wp_for_bind
+      iloeb as IHr generalizing %fresh %rs %rr0 %sl0 Hpu Hfd Hsl Hcap HJ Hrerr Hrr Hg HΦ Hperm Hp2 Hpc Hback
+      wp_for_step
+      for_cond
       icases Hpu with %Hpu
       obtain ⟨hfr, hr0, hin⟩ := Hpu
       try wp_auto
@@ -198,7 +219,10 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
         · ipureintro; rfl
         iintro %sl1 ⟨Hsl1, -⟩
         wp_apply wp_slice_append $$ [$Hsl $Hcap $Hsl1] as %sl' ⟨Hsl, Hcap, -⟩
-        iapply IHr $$ %false %(c :: rs) %rr0' %sl' [] [Hfd] [Hsl] Hcap HJ Hg Hrr HΦ Hperm Hp2 Hpc Hback
+        try wp_auto
+        wp_for_post
+        inext
+        iapply IHr $$ %false %(c :: rs) %rr0' %sl' [] [Hfd] [Hsl] Hcap HJ Hrerr Hrr Hg HΦ Hperm Hp2 Hpc Hback [$] [$] [$] [$] [$] [$] [$]
         · ipureintro
           refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_⟩
           · cases fresh
@@ -212,40 +236,46 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
         · rw [List.reverse_cons]; iexact Hsl
       · obtain ⟨rfl, hall⟩ := hv
         try wp_auto
-        obtain ⟨k0, hk0, hk0'⟩ : ∃ k : Nat, (W64 0 : w64) = W64 (k : Int) ∧ k = 0 := ⟨0, rfl, rfl⟩
-        rw (occs := .pos [69, 70]) [hk0]
-        rw [show decide (W64 0 = sl0.len) = decide (W64 ((k0 : Nat) : Int) = sl0.len) by rw [← hk0]]
+        wp_for_post
+        iclear IHr
+        try wp_auto
         icases ownSlice_len sl0 _ _ $$ Hsl with %Hlen
+        obtain ⟨k0, hk0⟩ : ∃ k : Nat, k = 0 := ⟨_, rfl⟩
+        ihave Hkp : (k_ptr ↦ W64 ((k0 : Nat) : Int) : IProp GF) $$ [k]
+        · subst hk0; iexact k
         ihave Hpe : ⌜k0 ≤ rs.reverse.length ∧ EntsSub hJ'.cur hJ0.cur⌝ $$ []
         · ipureintro; exact ⟨by omega, hsub⟩
-        iclear IHr
-        clear hk0 hk0' hr0 hr1 hr2 hall hsub hfr
-        iloeb as IHe generalizing %k0 %r0 %hJ' Hpe Hrr HJ
+        clear hk0 hr0 hr1 hr2 hall hsub hfr
+        wp_for_bind
+        iloeb as IHe generalizing %k0 %r0 %hJ' Hpe Hkp Hrerr Hrr HJ Hsl Hcap Hg HΦ Hperm Hp2 Hpc Hback Hfd
+        wp_for_step
+        for_cond
         icases Hpe with %hpe
         obtain ⟨hk, hsubk⟩ := hpe
+        have h1 := Hlen.1
+        have h2 := Hlen.2
         by_cases hkn : k0 = rs.reverse.length
-        · rw [decide_eq_true (show W64 ((k0 : Nat) : Int) = sl0.len by
-            have h1 := Hlen.1; have h2 := Hlen.2; rw [hkn, h1]; word)]
-          try wp_auto
-          try wp_auto
+        · rw [decide_eq_false (show ¬ sint.Z (W64 ((k0 : Nat) : Int)) < sint.Z sl0.len by
+            rw [hkn, h1]; word)]
+          for_cond
           wp_stub os.fsDirClose.impl
           wp_apply wp_osDirCloseS fd J _ CoPset.subseteq_top $$ Hos Hfd as %ec
           rm_restore hsubk
-          wp_apply internal.gomodel.wp_ChooseUint64 as %y -
-          by_cases hy : y = W64 0
-          · subst hy
-            try wp_auto
+          wp_apply internal.gomodel.wp_Choose as %y -
+          cases y
+          · try wp_auto
+            wp_for_post
             rm_tail r0
-          · rw [decide_eq_false hy]
-            try wp_auto
-            iapply IH $$ %r0 Hp Hst Hperm Hg Hrr HΦ
-        · rw [decide_eq_false (show W64 ((k0 : Nat) : Int) ≠ sl0.len by
-            have h1 := Hlen.1; have h2 := Hlen.2; intro h; apply hkn; rw [h1, ← h]; word)]
-          try wp_auto
+          · try wp_auto
+            wp_for_post
+            inext
+            iapply IH $$ %r0 Hrerr Hrr Hp Hst Hperm Hg HΦ [$] [$] [$] [$]
+        · rw [decide_eq_true (show sint.Z (W64 ((k0 : Nat) : Int)) < sint.Z sl0.len by
+            have : k0 < rs.reverse.length := by omega
+            rw [h1] at this; word)]
+          for_cond
           have hkl : k0 < rs.reverse.length := by omega
-          have h1 := Hlen.1
-          have h2 := Hlen.2
-          rw [if_pos (show 0 ≤ sint.Z (W64 ((k0 : Nat) : Int)) ∧
+          try rw [if_pos (show 0 ≤ sint.Z (W64 ((k0 : Nat) : Int)) ∧
               sint.Z (W64 ((k0 : Nat) : Int)) < sint.Z sl0.len by
             constructor <;> word)]
           obtain ⟨c, hcget⟩ : ∃ c, rs.reverse[k0]? = some c := ⟨_, List.getElem?_eq_getElem hkl⟩
@@ -267,24 +297,32 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
           imod os.osNames_merge1 R J c hc' (hJ'.restrict J (.except [c])) $$ Hsi Hc Hr
             with ⟨%h'', HJ, %hm⟩
           have hsub'' : EntsSub h''.cur hJ0.cur := os.entsSub_merge1 hsubk hlo hm
+          try wp_auto
           wp_apply os.model.wp_prefixPath pe b $$ Hpe as Hpe
+          try wp_auto
           by_cases hrn : r0 = null
           · rw [decide_eq_true hrn]
             try wp_auto
+            wp_for_post
             rw [show W64 ((k0 : Nat) : Int) + W64 1 = W64 ((k0 + 1 : Nat) : Int) by word]
-            iapply IHe $$ %(k0 + 1) %pe %h'' [] Hpe HJ Hsl Hcap Hg HΦ Hperm Hp2 Hpc Hback Hfd
+            inext
+            iapply IHe $$ %(k0 + 1) %pe %h'' [] Hkp Hrerr Hpe HJ Hsl Hcap Hg HΦ Hperm Hp2 Hpc Hback Hfd [$] [$] [$] [$] [$] [$] [$]
             · ipureintro; exact ⟨by omega, hsub''⟩
           · rw [decide_eq_false hrn]
             try wp_auto
+            wp_for_post
             rw [show W64 ((k0 : Nat) : Int) + W64 1 = W64 ((k0 + 1 : Nat) : Int) by word]
-            iapply IHe $$ %(k0 + 1) %r0 %h'' [] Hrr HJ Hsl Hcap Hg HΦ Hperm Hp2 Hpc Hback Hfd
+            inext
+            iapply IHe $$ %(k0 + 1) %r0 %h'' [] Hkp Hrerr Hrr HJ Hsl Hcap Hg HΦ Hperm Hp2 Hpc Hback Hfd [$] [$] [$] [$] [$] [$] [$]
             · ipureintro; exact ⟨by omega, hsub''⟩
       · obtain ⟨he, rfl⟩ := hv
         try wp_auto
         by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
           try wp_auto
-          iapply IHr $$ %false %rs %rr0' %sl0 [] [Hfd] Hsl Hcap HJ Hg Hrr HΦ Hperm Hp2 Hpc Hback
+          wp_for_post
+          inext
+          iapply IHr $$ %false %rs %rr0' %sl0 [] [Hfd] Hsl Hcap HJ Hrerr Hrr Hg HΦ Hperm Hp2 Hpc Hback [$] [$] [$] [$] [$] [$] [$]
           · ipureintro
             refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin⟩
             cases fresh
@@ -295,22 +333,31 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
           try wp_auto
           simp only [decide_eq_false (show e ≠ W64 0 from he), Bool.not_false]
           try wp_auto
-          simp only [decide_eq_false (show e ≠ W64 0 from he), Bool.not_false]
+          wp_for_post
+          iclear IHr
           try wp_auto
+          simp only [decide_eq_false (show e ≠ W64 0 from he), Bool.not_false]
           try wp_auto
           wp_stub os.fsDirClose.impl
           wp_apply wp_osDirCloseS fd J _ CoPset.subseteq_top $$ Hos Hfd as %ec
           rm_restore hsub
+          try wp_auto
           by_cases he2 : e = W64 2
           · rw [decide_eq_true he2]
             try wp_auto
+            wp_for_post
             iapply HΦ
             iframe
             iapply os.peOk_null
           rw [decide_eq_false he2]
           try wp_auto
-          wp_apply os.model.wp_pathErrorPtr_rd _ e he $$ Hsys as %pe Hpe
+          wp_apply os.wp_modelErrno
           try wp_auto
+          wp_apply os.wp_modelPathError_ok _ _ e he $$ Hsys as %pe0 #Hok
+          try wp_auto
+          wp_apply os.model.wp_pathErrorPtr _ _ _ $$ Hok as %pe Hpe
+          try wp_auto
+          wp_for_post
           iapply HΦ
           iframe
 

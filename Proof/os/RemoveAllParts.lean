@@ -27,9 +27,8 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 theorem os.wp_endsWithDot_child (d b : GoString) (hb : NameOk b) :
-    {{ (True : IProp GF) }} (App (Val #(functions go!"os.endsWithDot" [])) (Val #(child d b)))
+    {{ (True : IProp GF) }} (App (Val #(functions os.endsWithDot [])) (Val #(child d b)))
     {{ RET #false; True }} := by
-  rw [show (go!"os.endsWithDot" : GoString) = os.endsWithDot from rfl]
   wp_start
   try wp_auto
   obtain ⟨hne, hdot, -, hs, -⟩ := hb
@@ -91,9 +90,8 @@ theorem os.wp_endsWithDot_child (d b : GoString) (hb : NameOk b) :
 
 theorem os.wp_splitPath_child (d b : GoString) (hb : NameOk b)
     (hd : ∃ c rest, d = slashB :: c :: rest ∧ c ≠ slashB) :
-    {{ (True : IProp GF) }} (App (Val #(functions go!"os.splitPath" [])) (Val #(child d b)))
+    {{ (True : IProp GF) }} (App (Val #(functions os.splitPath [])) (Val #(child d b)))
     {{ RET (PairV #d #b); True }} := by
-  rw [show (go!"os.splitPath" : GoString) = os.splitPath from rfl]
   obtain ⟨c, rest, hdd, hc⟩ := hd
   obtain ⟨hne, -, -, hs, -⟩ := hb
   obtain ⟨k, hk⟩ : ∃ k, b.length = k + 1 := ⟨b.length - 1, by
@@ -350,7 +348,48 @@ theorem os.model.wp_pathErrorPtr_rdN (b : GoString) (e : w64) (he : e ≠ 0) (Φ
   wp_apply os.model.wp_pathErrorPtrN _ _ _ $$ Hok as %pe ⟨%hpn, Hpe⟩
   iapply HΦ $$ %pe %hpn Hpe
 
+/-- `model.pathErrorPtr op path (Errno e)`, `e` nonzero, the `Errno` already evaluated (Go's order:
+the arguments before the callee). -/
+theorem os.model.wp_pathErrorPtr_errnoV (op path : GoString) (e : w64) (he : e ≠ 0)
+    (Φ : val → IProp GF) :
+    syscall.errnoOk (GF := GF) -∗ (∀ pe : Loc, os.peOk pe -∗ Φ #pe) -∗
+      WP (App (App (App (Val (@! os.modelPathErrorPtr)) (Val #op)) (Val #path))
+        (Val #(errnoErr e))) {{ Φ }} := by
+  iintro #Hsys HΦ
+  wp_apply os.model.wp_pathErrorPtr op path (errnoErr e) $$ [] as %pe Hpe
+  · iapply errnoErr_fmtErrorOk e he $$ Hsys
+  iapply HΦ $$ Hpe
+
+/-- `wp_pathErrorPtr_errnoV`, the pointer non-null. -/
+theorem os.model.wp_pathErrorPtr_errnoNV (op path : GoString) (e : w64) (he : e ≠ 0)
+    (Φ : val → IProp GF) :
+    syscall.errnoOk (GF := GF) -∗ (∀ pe : Loc, ⌜pe ≠ null⌝ -∗ os.peOk pe -∗ Φ #pe) -∗
+      WP (App (App (App (Val (@! os.modelPathErrorPtr)) (Val #op)) (Val #path))
+        (Val #(errnoErr e))) {{ Φ }} := by
+  iintro #Hsys HΦ
+  wp_apply os.model.wp_pathErrorPtrN op path (errnoErr e) $$ [] as %pe ⟨%hpn, Hpe⟩
+  · iapply errnoErr_fmtErrorOk e he $$ Hsys
+  iapply HΦ $$ %pe %hpn Hpe
+
+/-- A `for` loop's condition `true`, as `wp_for_loeb` leaves it. -/
+theorem os.for_cond_true {α : Sort _} (A B : α) :
+    (if decide ((#true : val) = #true) = true then A else B) = A := by
+  simp
+
+/-- A `for` loop's condition `false`, as `wp_for_loeb` leaves it. -/
+theorem os.for_cond_false {α : Sort _} (A B C : α) :
+    (if decide ((#false : val) = #true) = true then A else
+      if decide ((#false : val) = #false) = true then B else C) = B := by
+  have : (#false : val) ≠ #true := fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)
+  simp [this]
+
 end proof
+
+/-- `for_cond`: the condition of the `for` loop `wp_for_loeb` unfolded, once it is a literal. -/
+macro "for_cond" : tactic => `(tactic| (
+  (first | rw [os.for_cond_true] | rw [os.for_cond_false] |
+    simp only [Bool.false_eq_true, eq_self_iff_true, ↓reduceIte, Bool.not_false, Bool.not_true] |
+    skip); (try wp_auto)))
 
 end EtcdGrove
 end Perennial

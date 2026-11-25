@@ -101,8 +101,12 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
         osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsUnlink.impl
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -113,9 +117,12 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   isplitr
@@ -175,8 +182,12 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
         os.rmAllOutP j b J h hJ0 (FsNoErrAt (child d b) → e = ENOTEMPTY) ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg pg g }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
-  iloeb as IH generalizing Hperm Hp Hst Hg
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hst Hg HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRmdir.impl
   wp_apply +noauto wp_osCallBeginS R _ q sg CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlsg as %t1 %s0 %hs Hk Hls
   iclear Hls
@@ -207,9 +218,12 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
       · rw [decide_eq_true he4]
         try wp_auto
         ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
-        iapply IH $$ Hperm Hp Hst Hg HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp Hst Hg HΦ [$] [$]
       rw [decide_eq_false he4]
       try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
     · have hemp : hJ'.cur = ∅ := by
@@ -239,9 +253,12 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
       · rw [decide_eq_true he4]
         try wp_auto
         ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
-        iapply IH $$ Hperm Hp Hst Hg HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp Hst Hg HΦ [$] [$]
       rw [decide_eq_false he4]
       try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
   · obtain ⟨rfl, hemp⟩ := hlog
@@ -260,9 +277,12 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
     · rw [decide_eq_true he4]
       try wp_auto
       ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
-      iapply IH $$ Hperm Hp Hst Hg HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hst Hg HΦ [$] [$]
     rw [decide_eq_false he4]
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
 
@@ -291,7 +311,11 @@ theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : D
         (⌜e ≠ 0 ∧ e ≠ 2⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp HΦ
+  wp_for_step
+  try wp_auto
+  wp_open_stub
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -304,6 +328,7 @@ theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : D
     ihave Hfd := Hfd $$ %rfl
     rw [decide_eq_false (show W64 0 ≠ W64 4 by decide)]
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     iright
@@ -313,9 +338,12 @@ theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : D
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       try wp_auto
-      iapply IH $$ Hperm Hp HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp HΦ [$] [$] [$]
     rw [decide_eq_false he4]
     try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     ileft; ipureintro

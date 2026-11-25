@@ -140,8 +140,12 @@ theorem os.model.wp_unlinkLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsUnlink.impl
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -152,9 +156,12 @@ theorem os.model.wp_unlinkLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   ipureintro; exact he
@@ -171,8 +178,12 @@ theorem os.model.wp_openLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N :
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   obtain ⟨hfl, htr, hcr⟩ := os.flRO_ok
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -183,9 +194,12 @@ theorem os.model.wp_openLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N :
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   ipureintro; exact he
@@ -199,8 +213,12 @@ theorem os.model.wp_rmdirLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N 
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J N dqn hc ∗ osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRmdir.impl
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -211,9 +229,12 @@ theorem os.model.wp_rmdirLoop_absentN (p c : GoString) (R : Roots) (J : Ino) (N 
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     try wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$]
   rw [decide_eq_false he4]
   try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   ipureintro; exact he
@@ -232,7 +253,8 @@ theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino)
   ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
   · iPkgInit
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
-  rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
+  try wp_auto
+  try rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_absentN p c R J N dq dqn hc qc hcN hN hn $$ [Hp Hn Hperm]
     as %e ⟨%he0, Hp, Hn, Hperm⟩
   · iframe; iframe #
@@ -255,7 +277,9 @@ theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino)
     try wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 $$ Hsys as %pe Hpe
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.model.wp_pathErrorPtr_errnoV _ _ e he0 $$ Hsys as %pe Hpe
     iapply HΦ
     iframe
   rw [Classical.not_not] at hcls
@@ -263,6 +287,8 @@ theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino)
   clear he0 he2
   rcases hcls with rfl | rfl | rfl <;> wp_auto
   all_goals
+    wp_for_bind
+    wp_for_step
     wp_apply os.model.wp_openLoop_absentN p c R J N dq dqn hc qc hcN hN hn $$ [Hp Hn Hperm]
       as %fd %e' ⟨%he', Hp, Hn, Hperm⟩
     · iframe; iframe #
@@ -271,6 +297,7 @@ theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino)
     by_cases he'2 : e' = W64 2
     · rw [decide_eq_true he'2]
       try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       iapply os.peOk_null
@@ -279,14 +306,20 @@ theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino)
     by_cases he'20 : e' = W64 20
     · rw [decide_eq_true he'20]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he0' $$ Hsys as %pe Hpe
+      wp_apply os.wp_modelErrno
       try wp_auto
+      wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he0' $$ Hsys as %pe Hpe
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
     rw [decide_eq_false he'20]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' $$ Hsys as %pe Hpe
+    wp_apply os.wp_modelErrno
     try wp_auto
+    wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he' $$ Hsys as %pe Hpe
+    try wp_auto
+    wp_for_post
     wp_apply os.model.wp_rmdirLoop_absentN p c R J N dq dqn hc qc hcN hN hn
       $$ [Hp Hn Hperm] as %e4 ⟨%he4, Hp, Hn, Hperm⟩
     · iframe; iframe #
@@ -304,7 +337,9 @@ theorem os.model.wp_removeAllFrom_absentN (p c : GoString) (R : Roots) (J : Ino)
     by_cases hpn : pe = null
     · simp only [decide_eq_true hpn, Bool.not_true]
       try wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he4 $$ Hsys as %pe' Hpe'
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.model.wp_pathErrorPtr_errnoV _ _ _ he4 $$ Hsys as %pe' Hpe'
       iapply HΦ
       iframe
     · simp only [decide_eq_false hpn, Bool.not_false]
@@ -335,12 +370,15 @@ theorem os.RemoveAll.wp_proofAbsentN : os.RemoveAll.specAbsentN (GF := GF) (hG :
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
   obtain ⟨hd, hp⟩ := hpf
-  rw [decide_eq_false (show child d b ≠ [] by simp [child])]
+  try wp_auto
+  try rw [decide_eq_false (show child d b ≠ [] by simp [child])]
   try wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
   icases (os.osCallPerm_halves _ qc).2 $$ Hperm with ⟨Hg, Hperm⟩
   icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
+  try wp_auto
+  wp_stub os.fsWithCall.impl
   wp_apply +noauto wp_osCallBeginGuardS R _ qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   try wp_auto
@@ -378,7 +416,9 @@ theorem os.RemoveAll.wp_proofAbsentN : os.RemoveAll.specAbsentN (GF := GF) (hG :
       try wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       try wp_auto
-      wp_apply os.wp_pathError_ok _ _ eo heo $$ Hsys as %pe #Hok
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError_ok _ _ eo heo $$ Hsys as %pe #Hok
       rm_finN qc
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]
