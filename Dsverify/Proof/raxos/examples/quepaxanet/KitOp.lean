@@ -240,6 +240,8 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iexists _
       rw [ptCB_own]
       iframe Hbp
+      isplitr
+      · ipureintro; exact stateOk_zero _
       iexists [pm]
       iframe Hsl
       isplitr
@@ -255,7 +257,7 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
         iexists _
         rw [ptCSingle_own]
         iframe Hpm
-        ipureintro; exact ⟨rfl, rfl⟩
+        ipureintro; exact ⟨stateOk_zero _, rfl, rfl⟩
       · iapply BigSepL.bigSepL_nil.2; iempintro
     ihave %Hrl := ownSlice_len _ _ _ $$ Hrls
     rw [BigSepL.bigSepL_map] at *
