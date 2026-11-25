@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# A `Ready`'s messages' shape and the logs' normality: the statement (#33 S4, drain)
+# A `Ready`'s messages' shape and the logs' normality: the statement (#33 S4, drain; parity B1:
+N servers, the mask's message types, read contexts)
 
 What `Cluster.drain` takes of a `Ready` beyond `ReadyOutP` (statement only; proved by a `Sim`
 induction in `Sim/MsgShape.lean`, as `Outbox.lean`'s `outOk_reach`): every message the `Ready` hands
@@ -39,35 +40,43 @@ namespace AntSim
 section stmt
 variable [GooseExts]
 
-/-- Normal entries (`EntryNormal = 0`; `HarnessDefs.lean`'s `AllNormal`, restated here so that `Sim`
-imports only the protocol model). -/
+/-- Normal entries (`EntryNormal = 0`; `HarnessDefs.lean`'s `AllNormal`, restated here). -/
 def EntsNormal (es : List EntryM) : Prop := ∀ e ∈ es, e.Type' = W32 0
 
-/-- The message types the harness's network carries (`antStepTypes`). -/
-def NetTy (ty : MsgType) : Prop :=
-  ty = .app ∨ ty = .appResp ∨ ty = .vote ∨ ty = .voteResp ∨ ty = .heartbeat ∨ ty = .heartbeatResp
+/-- The harness's entries (`EntsHarness`): normal (a proposal's, a leader's empty entry, the boot
+entry). Parity B3 adds conf entries that decode (`CCDecodes`). -/
+def EntsHarness (es : List EntryM) : Prop := EntsNormal es
+
+/-- The message types the harness's network carries under the mask `md` (`stepTypes md`'s protocol
+types): `antStepTypes`, and pre-vote, read-index and snapshot messages when their features are on. -/
+def NetTy (md : RnMode) (ty : MsgType) : Prop :=
+  ty = .app ∨ ty = .appResp ∨ ty = .vote ∨ ty = .voteResp ∨ ty = .heartbeat ∨ ty = .heartbeatResp ∨
+  (md.prevote = true ∧ (ty = .preVote ∨ ty = .preVoteResp)) ∨
+  (md.reads = true ∧ (ty = .readIndex ∨ ty = .readIndexResp)) ∨ (md.snapshots = true ∧ ty = .snap)
 
 /-- **A `Ready`'s message to another node, as the drain hands it out** (from node `id`): from `id`;
-of a type the network carries (`RawNode.Step`'s types at the receiver), or a proposal (forwarded,
-which `Cluster.send` drops); a heartbeat or a heartbeat response with no context (no read-index
-request is pending, the harness's scope); its entries normal. (Its nonzero term, but a proposal's,
-is raft's `SentMsgShape`, in the `Ready`'s `isRaftMsg`.) -/
-def ReadyMsgShape (id : w64) (q : Msg) : Prop :=
-  q.src = id ∧ (NetTy q.ty ∨ q.ty = .propose) ∧
-  ((q.ty = .heartbeat ∨ q.ty = .heartbeatResp) → q.ctx = []) ∧ EntsNormal q.entries
+of a type the network carries, or a (forwarded) proposal; without reads, a heartbeat or a heartbeat
+response with no context; its entries the harness's. -/
+def ReadyMsgShape (md : RnMode) (id : w64) (q : Msg) : Prop :=
+  q.src = id ∧ (NetTy md q.ty ∨ q.ty = .propose) ∧
+  (md.reads = false → (q.ty = .heartbeat ∨ q.ty = .heartbeatResp) → q.ctx = []) ∧
+  EntsHarness q.entries
 
-/-- **The shape of a `Ready`'s messages and the normality of its log**: a `Ready` taken at the state
-`ps₁` node `n` reached from its view `v` (`Reach`, over the sent messages `net`; `NetOk`, `NodeOk`:
-the binding's relation, as `readyMsgNums`), its messages the outbox's to other nodes, the view's log
-and the handled message's entries normal, has its log normal, every message to another node
-`ReadyMsgShape`, and each to one of the three nodes (`ReadyMsgsToVoters`). -/
+/-- **The shape of a `Ready`'s messages and the harness's entries in its log**: a `Ready` taken at
+the state `r₁` node `n` reached from its view `v` (`Reach`; `NetOk`, `NodeOk`: the binding's
+relation), its messages the outbox's to other nodes, the view's full log and the handled message's
+entries the harness's (and, without reads, a handled heartbeat with no context), has its full log
+the harness's, every message to another node `ReadyMsgShape`, and each to one of the servers. -/
 abbrev msgShape.stmt : Prop :=
-  ∀ (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) (ps₁ : PState) (rd : ReadyD),
-    NetOk S net → NodeOk S net n v → Reach (nodeId n) net v ps₁ →
-    rd.msgs.Perm (ps₁.outbox.filter (fun q => decide (q.dst ≠ nodeId n))) →
-    EntsNormal v.ps.log →
-    (∀ m, v.cause = some m → EntsNormal m.entries ∧ (m.ty = .heartbeat → m.ctx = [])) →
-    EntsNormal ps₁.log ∧ (∀ q ∈ rd.msgs, ReadyMsgShape (nodeId n) q) ∧ ReadyMsgsToVoters rd
+  ∀ (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (S : AntCheck.State)
+    (net : List Msg) (xnet : List XMsg) (n : Fin R.N) (v : NodeView) (r₁ : RState)
+    (xs : List XMsg) (rd : ReadyD),
+    NetOk R S net → NodeOk R dec S net n v → Reach R dec Adm net xnet n v r₁ xs →
+    (rd.msgs ++ rd.resp).Perm (r₁.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n))) →
+    EntsHarness v.r.full →
+    (∀ m, v.cause = some m → EntsHarness m.entries ∧ (R.md.reads = false → m.ty = .heartbeat → m.ctx = [])) →
+    EntsHarness r₁.full ∧ (∀ q ∈ rd.msgs ++ rd.resp, ReadyMsgShape R.md (nodeId n) q) ∧
+    ReadyMsgsToVoters R.N rd
 
 end stmt
 
