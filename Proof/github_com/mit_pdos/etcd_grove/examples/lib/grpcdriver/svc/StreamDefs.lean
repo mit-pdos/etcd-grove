@@ -158,9 +158,6 @@ theorem sacOk_of_raw [grpc_sem : google_golang_org.grpc.Assumptions]
     sacOk (Rep := Rep) (interface.mkOk (go.GoType.PointerType
       (google_golang_org.grpc.GenericServerStream.ty Req.ty Rep.ty)) #p) γ Dn := by
   iintro ⟨#Hf, #Hraw⟩
-  iunfold srvRawStreamIsW at Hraw
-  icases Hraw with ⟨%si, %Hst, -, #HSend, -⟩
-  subst Hst
   unfold sacOk
   iexists _
   isplitr
@@ -168,6 +165,9 @@ theorem sacOk_of_raw [grpc_sem : google_golang_org.grpc.Assumptions]
   iintro !> %L %l %m %Φ !> ⟨Htok, Hs, HDn⟩ HΦ
   wp_method_call
   try wp_call
+  iunfold srvRawStreamIsW at Hraw
+  icases Hraw with ⟨%si, %Hst, -, #HSend, -⟩
+  subst Hst
   wp_auto
   wp_bind (App (Val #(methods si.ty go!"SendMsg" si.v)) _)
   iapply HSend $$ %L %l %m [Htok Hs HDn]
