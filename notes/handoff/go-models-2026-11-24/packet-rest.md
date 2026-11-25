@@ -10,17 +10,25 @@ once it lands on lean, lean is merged into the branches below and this packet sh
 | etcd-grove | `go-models-rest-egnet/2026-11-24` | `4527ef62a8` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above; default targets built except `SyncTail` (egnet-os3, below) |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
-**PENDING (your decision, etcd-grove#8 comment 7153919074): `log.Println`.** On lean `log.Println` is
-trusted; here it is a Go model over `fmt.Fprintln`, whose model printer is stuck on a map argument. One module
-needs it: Dsverify swiftpaxos `SyncTail` (`log.Println("FQ:", r.FQ, "SQ:", r.SQ)`, swiftpaxos recovery.go:704,
-`replica.Quorum` = `map[int32]struct{}`). Options: (a) fmt's model printer follows a map of int keys / empty
-struct values (a model change, its spec needs the map's points-to); (b) `log.Println` stays trusted as on lean.
-Until then `SyncTail` fails and with it 3 root modules (swiftpaxos `swift.Results`, swiftnet `Link` and
-`TopLevelRobustness`): every other default target builds (session 8's probe stubbed `SyncTail`'s call).
-
-**Also to decide (found 2026-11-25 by the tcb-report, Evidence below):** no axiom is added, but three existing
-runtime-initializer axioms now reach 81 roots instead of 11 (Go's `os` imports `runtime`), 30 top-level results
-among them, including RaftNoAx's no-axiom `raft_kvdurable_porcupine_robust` (0 -> 3).
+**Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
+- **`log.Println`/`Printf`: trusted exactly as on lean** (Perennial `d81d2bfd8`: log's toml, TrustedCode,
+  Code, GeneratedProof, Spec, Proof are lean's byte for byte; log's Go model deleted; fmt's `pp.doPrintln`
+  model and `fmt.Fprintln.spec` stay). No trusted text vs lean. Net's `log.Println.spec`/proof are back
+  (etcd-grove `c617de6bf3`), so swiftpaxos `SyncTail` proves again. Lean's gap (the no-op does not call
+  the arguments' `String`/`Error`/`Format`) is analysed in "The `log.Println` gap" below: **no proved
+  path passes such an argument**. Retirement plan: once reflection S0+S0.5 is approved, fmt's model
+  printer follows maps over the reflect models; `log.Println`/`Printf` then become the Go model again
+  (over `fmt.Fprintln`/`Fprintf`, as at Perennial `30102d8b2`).
+- **runtime initializer: (a) not cheap, (b) done.** Proving `runtime`'s initializer means translating or
+  modelling 94 names-only runtime variable initializers and 9 `init` functions (`findfunc`/`funcMaxSPDelta`
+  over the pclntab, cpu flags, `lockInit`, `go forcegchelper()`, `unsafe.Sizeof` checks), plus
+  internal/runtime/sys's 3; the basic slice's runtime models (Version/Caller/Callers/Frames.Next) cover
+  none of it. (b), etcd-grove `4313327873`: `os` no longer imports `runtime`. The only translated os
+  code calling `runtime.KeepAlive` was `rawConn.Control/Read/Write` (Go's bodies over `poll.FD.Raw*`,
+  names-only, so no proof could pass them); they are names-only now (lean: trusted, panicking), and
+  goose drops `Process` (field `cleanup runtime.Cleanup`) to an opaque type, as on lean. **No Go model
+  and no trusted text were needed**: the "model of KeepAlive/Cleanup" reduces to not translating the
+  three methods. The review of (b) found no divergence. tcb-report after: below (Evidence).
 
 ## How to read this packet (your format)
 
@@ -2321,8 +2329,8 @@ top-level results), `[net.FieldAssumptions]` (549 files, incl. 13 top-level resu
   main `EtcdGrove.net.Listen.spec`; every caller derives it (its own package imports net). Dsverify's
   undischarged `RpcHttpHyp.DialHTTPPath_spec` keeps its old precondition.
 - `http.ReadResponse.spec`: the stream-error law and the error post use `net.errStr`; stronger post.
-- log: Net's own `log.Println.spec` deleted; Perennial states and proves the identical statement
-  (`log.wp_Println`, over the Go model and `fmt.Fprintln.spec`, new).
+- log: none (2026-11-25: `log.Println`/`Printf` trusted as on lean again; Net's `log.Println.spec` as on lean).
+- os: `rawConn.Control/Read/Write` names-only (were trusted-panicking on lean): no spec named them.
 - (2026-11-25, os review fix) `os.Open/OpenFile.wp_dirS`, `wp_dirErrS`, `wp_dirChildS` give `os.ownOff f 0`;
   `os.File.Readdirnames.wp_dirS`/`wp_dirChildS` take it (and consume it: the offset is unknown after);
   `fileutil.ReadDir.wp_core`'s abstract `Fd` takes the `*File`. Internal; no caller outside os/fileutil/WAL/walfs.
@@ -2331,8 +2339,9 @@ top-level results), `[net.FieldAssumptions]` (549 files, incl. 13 top-level resu
 1. Printf's stdout write stays trusted as on lean (coordinator's "option 0"): a Go model of it needs a
    semantics primitive choosing an arbitrary interface value; fmt then imports no io/fs/poll/syscall, which
    etcd-grove translates itself under the same `Perennial.*` names. See criterion 14 below: its error's type.
-2. fmt models `pp.doPrintln` exactly like `pp.doPrint` (the model printer), so that log.Println (a Go model
-   over `fmt.Fprintln`) is provable; Go's real doPrintln calls printArg, whose proof covers only a subset.
+2. fmt models `pp.doPrintln` exactly like `pp.doPrint` (the model printer); Go's real doPrintln calls
+   printArg, whose proof covers only a subset. (Kept after log went back to lean's trusted model: it is what
+   log.Println's future Go model will use.)
 3. os review fixes: `Seek` is stuck on SEEK_DATA/SEEK_HOLE, past `modelSeekMax` on a directory, SEEK_END on a
    directory, SEEK_CUR after `Readdirnames` (offset unknown); `Readdirnames` is stuck unless the offset is 0.
 4. os/net: GooseLang has no GC, so `newFile`'s and `netFD`'s finalizers (closing an unreachable, unclosed
@@ -2343,8 +2352,7 @@ top-level results), `[net.FieldAssumptions]` (549 files, incl. 13 top-level resu
 6. `x/sys/unix` stays hand-written Lean (not std: no `internal/gomodel`; `Mmap` returns `unsafe.Pointer`).
 
 # Open (known divergences, not fixed)
-- **log.Println** (PENDING above).
-- **runtime-initializer axioms reach 70 more roots** (Evidence, tcb-report).
+- **log.Println/Printf** trusted as on lean (decided above; gap analysis below; retirement after reflection S0+S0.5).
 - **No GC** (decision 4): unreachable `*File` / dropped listener close.
 - **Readdirnames offset**: the model does not follow a directory's offset; it is now stuck wherever Go's
   answer depends on it (Seek SEEK_CUR after Readdirnames, SEEK_END of a directory, Readdirnames from a nonzero
@@ -2361,7 +2369,47 @@ top-level results), `[net.FieldAssumptions]` (549 files, incl. 13 top-level resu
   `Accept`/`Dial`, `ENOMEM`/`ENOSPC`): a criterion-14 exclusion (below).
 - Perennial: no `go.NotInterface` instance for predeclared named types (`uintptr`); net's proof adds a local one.
 
+# The `log.Println` gap (lean's trusted model; issue text, for coordinator-E to post)
+**Title:** Trusted `log.Println`/`log.Printf` do not call the arguments' `String`/`Error`/`Format` methods (documented gap; no proof affected)
+
+**Body:**
+
+Perennial's `log.Println` and `log.Printf` (`Perennial/TrustedCode/log.lean`, on `lean`) are trusted with the model `λ args, #()`: they do nothing. Real Go formats the arguments through fmt, and fmt calls user code on them:
+
+- `Format(fmt.State, rune)` for every verb except `%T`/`%p`;
+- `Error() string` or `String() string` for `%v %s %x %X %q` and for every `Println` operand;
+- `GoString()` for `%#v`.
+
+fmt also calls these on the elements it visits: struct fields, slice/array/map elements, and the struct behind a pointer at depth 0. User code that blocks, mutates shared state, races or does not terminate therefore runs in Go but not in the model. A proof that steps the no-op over such an argument could prove a program safe that is not.
+
+**Who reaches it today (etcd-grove at `go-models-rest-egnet/2026-11-24` 4313327873, all Code roots):** no proved path passes such an argument.
+
+- **Through specs that require `fmt.ArgsWf`.** These are `log.Printf.spec` (Perennial) and Net's `log.Println.spec`. `ArgsWf` admits only basic types, or named int/string types with `NoFmtMethods`.
+  - paxos: acceptor `receivePrepare`/`receivePropose`, learner `learn`/`receiveAccepted`, proposer `run`/`receivePromise`. All are `%d`/`%s` of int and string. They reach `paxos_remote_robust`.
+  - swiftnet: `configure` (one string) and `Sys.changeLeaders` (`%d` of uint64). They reach `swiftpaxos_remote_robust`.
+  - rabianet `send`: one string. Reaches `rabia_remote_robust`.
+  - net/rpc `Server.Accept`: one string, built with an explicit, verified `err.Error()`.
+- **Through local lemmas over the no-op.**
+  - quepaxanet `KitConf.wp_log_Println` takes a single string.
+  - swift `wp_PrintlnT` with the guard `swift.printable` covers `Replica.handleNewLeader` (string, int32) and `Replica.handleSync`. The latter prints string, int32 and int64 arguments, and `FQ`/`SQ` whose dynamic types are `replica.Quorum = map[int32]struct{}`, `Majority` or `ThreeQuarters` (int). Their method sets are only Contains/Size/Equals/copy, and the elements `int32`/`struct{}` have none.
+- **Not reached.**
+  - net/rpc `Client.input`, `Server.sendResponse` and `Server.ServeCodec` print an `error` operand, which is exactly the gap. They sit behind `debugLog`, which the proofs hold false (`Net/Proof/net/rpc/ClientDefs.lean:101`).
+  - The `Server.register` logging branches are excluded by its premises. `ServeHTTP` is proved only on a successful hijack.
+  - paxos `paxosNetwork.send`/`empty`/`recvFrom` and net/http `Server.logf` have no proof.
+  - The `dlog` loggers' specs require a quiet logger, which prints nothing in Go as well.
+
+**Weak spot.** `swift.printable` checks only the operand's own method set, not the elements fmt would visit. It is sound for its four current uses, but it would admit a bad argument if reused. Replacing it with `fmt.ArgsWf` plus a no-method lemma for the quorum types would close that.
+
+**Plan.** The trusted model stays as on `lean` (decision in etcd-grove#8 7153952113). The model will be retired once reflection S0+S0.5 is approved: fmt's model printer then follows maps, using the reflect models. After that, `log.Println`/`Printf` become Go models over `fmt.Fprintln`/`Fprintf` again (the Perennial `goose-model-overlay-rest` design before d81d2bfd8), and this gap closes. Until then, every new proof that reaches `log.Print*` must take a spec with `fmt.ArgsWf` (or an equivalent no-method premise), never the bare no-op.
+
 # Adversarial reviews (fresh agents, code only)
+- (2026-11-25) decision (b), `os` without `runtime` (code: `4313327873`): no divergence. `*rawConn`'s method
+  set is unchanged (only the unfolds and bodies are gone), so `SyscallConn`'s conversion and
+  `getPollFDAndNetwork`'s `PollFD` assertion (false, as in Go: Proof/io/CopyFiles.lean:102, CopyFrom.lean:185)
+  behave as before; no proof used the three methods. os's initializer reads nothing of runtime; packages that
+  reach runtime by another path (zap, klog, bbolt, rafthttp, net/http) still initialize it. `Process` is an
+  opaque type with generated `sorry -- axiomatized type` instances, identical to lean's. DOC: kvwitness's
+  hand-written `pkgInitTable` still listed runtime -> fixed (`RaftWitness/.../kvwitness/Adequacy.lean`).
 Round 1 (2026-11-25 early):
 - egos: UNSOUND Seek(3|4), UNSOUND directory seek limit -> fixed; directory offset -> open; finalizer ->
   framework gap; syscall: no divergence; DOC fixes done.
