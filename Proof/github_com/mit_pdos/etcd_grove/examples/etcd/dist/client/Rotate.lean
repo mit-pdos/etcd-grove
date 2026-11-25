@@ -17,6 +17,13 @@ namespace etcd_dist
 open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 
+/-- Go's `%` on non-negative `int`s is the mathematical remainder. -/
+theorem srem_of_nonneg (a b : w64) (ha : 0 ≤ sint.Z a) :
+    sint.Z (a.srem b) = sint.Z a % sint.Z b := by
+  rw [show sint.Z (a.srem b) = (a.srem b).toInt from rfl, BitVec.toInt_srem,
+    Int.tmod_eq_emod_of_nonneg ha]
+  rfl
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -24,7 +31,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem RunKV.wp_proof (OP : List GoString → w64 → IProp GF)
 theorem Rotate.wp_proof : Rotate.spec (GF := GF) (hG := hG) := by
   intro V _ _ T _ _ xs dq xsL i
   wp_start as ⟨Hxs, %Hi⟩

@@ -59,6 +59,10 @@ MainDeployment,Orchestrator,NodeMain,NodeDeployment,KvLinked}.lean`, `KvDefs.lea
 
 ## How to continue
 
+- Dependencies are built: fk-lean1's worktree `/home/ubuntu/eg/wt/etcd-safe-n7kv` (at `c14f88dec2`) built
+  `dist.BootBad` and its imports, 5062 jobs, exit 0 (2026-11-25). Push the branch there first
+  (`fklean1-check.sh`) so the worktree has the new Spec files before `n7kv-chk.sh` checks a proof.
+
 - Check loop: `/shared/tmp/n7kv-chk.sh <relative file> -q` (copies the file to fk-lean1's worktree
   `/home/ubuntu/eg/wt/etcd-safe-n7kv` and runs `etc/lean-check.py` there). Dependencies are built there by
   `/shared/tmp/fklean1-check.sh /shared/etcd-grove-n7kv etcd-safe-n7kv <targets>` (`FKLEAN_HOST=fk-lean1`;
