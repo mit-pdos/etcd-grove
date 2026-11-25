@@ -139,7 +139,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
           ∀ cs, v3ConfStateIs D cs → confStateIs cs m)⌝) := by
   by_cases hg : uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i ∧
       ∀ cs, v3ConfStateIs D cs → confStateIs cs m
-  swap
+  rotate_left
   · iintro Himg
     imodintro
     iright
@@ -150,7 +150,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
   iintro ⟨Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hconf, -, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
     ⟨%γd, %γm, %c, %Hsl, Hrow, Hsdi, Hmn⟩⟩
   icases Hrow with (%Hrow | ⟨%j, %Hj, -, -⟩)
-  swap
+  rotate_left
   · iexfalso; ipureintro; omega
   imod nodeVacant_arm γ.cl id E $$ Hvac with ⟨%x, Hvac, Hct⟩
   ihave Hws := wal.stopImage_intro γ.cl S σ i Hw.1 hb hc $$ [Hcert Hl]
