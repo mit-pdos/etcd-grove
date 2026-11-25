@@ -284,6 +284,79 @@ theorem dirKeysOk_discard {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDi
     exact ⟨X, hj', dirClaimOk_dropC (c := (lay.j, N, hj)) rfl hne hok', hXe,
       fun c'' hc'' => hex c'' (mem_of_mem_dropC hc'')⟩
 
+
+/-- **The setting of the drop, from the invariant**: the discarded WAL's directory claim is
+`(lay.j, .except walTmps, hj)` (`DirClaimsOk`), its drop allowed (`DirClaimExcl`), given the claims'
+log (`osClaims_log`) and that two layouts never share a directory (`walTmpParked0_inj`). -/
+theorem discSet_of {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {K : GMap GoString (Ino × List GoString)}
+    {cu : Option GoString} {dir : GoString} {lay : WalLay} (hl : Ls !! dir = some lay)
+    (hlog : ∃ log, Starts log ∧ ClaimsLog log cl)
+    (hdist : ∀ (dir1 dir2 : GoString) (l1 l2 : WalLay), Ls !! dir1 = some l1 → Ls !! dir2 = some l2 →
+      dir1 ≠ dir2 → l1.j ≠ l2.j)
+    (hk : DirKeysOk C Mr jr s Ls cl n K cu) :
+    ∃ hj, DiscSet Ls cl jr dir lay (.except walTmps) hj := by
+  obtain ⟨X, hj, hok, hXe, hex⟩ := hk.2.2 dir lay hl
+  subst hXe
+  obtain ⟨hjr, -, ⟨l1, l2, hcl, -, -⟩, -, -⟩ := hok
+  exact ⟨hj, ⟨hl, ⟨hlog, by rw [hcl]; simp, hex⟩,
+    fun d' l' hl' hne => hdist d' dir l' lay hl' hl hne, hjr⟩⟩
+
+/-- A WAL directory's name in the area is its path's. -/
+theorem inArea_nm_inj {r dir nm nm' : GoString} (h : InArea r dir nm) (h' : InArea r dir nm') :
+    nm' = nm := by
+  have e := h'.2.symm.trans h.2
+  exact List.append_cancel_left e
+
+/-- **`dir`'s name holds nothing, in the claims and after a crash** (`absentNone_discard`'s `hnone`):
+the one claim of the area on `nm` (`honly`, the shared invariant's disjointness) holds nothing there,
+and its last write of `nm` (the rename) is below the commit bound. -/
+theorem discNone_of {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat} {dir nm : GoString}
+    (hia : InArea s.area dir nm) {N0 : NameSet} {hC : NamesH} (hc : (jr, N0, hC) ∈ cl)
+    (hN : N0.Mem nm) (honly : ∀ N' h', (jr, N', h') ∈ cl → N'.Mem nm → h' = hC)
+    (hcur : hC.cur !! nm = none) {x : Nat} {e : LogEntry} {Es : Ents}
+    (hlw : LastWrite hC jr nm x e Es) (hx : x < n) (hEs : Es !! nm = none) :
+    ∀ nm', InArea s.area dir nm' →
+      (∀ N' h', (jr, N', h') ∈ cl → N'.Mem nm' → h'.cur !! nm' = none) ∧
+      ∀ m', RegionCrashed cl n m' → m'.entry jr nm' = none := by
+  intro nm' hia'
+  have e := inArea_nm_inj hia hia'
+  subst e
+  refine ⟨fun N' h' hm hN' => by rw [honly N' h' hm hN']; exact hcur, fun m' hr => ?_⟩
+  rw [regionCrashed_lastWrite hc hN hlw hx hr]; exact hEs
+
+/-- **S's pure facts** (the invariant's at the raised commit bound `n`, past the rename): the WAL in
+`dir` gone, its layout and its directory claim dropped, its keys out. -/
+theorem discS_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n0 n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {cu : Option GoString} {dir : GoString} {lay : WalLay}
+    {N : NameSet} {hj : NamesH} (hn : n0 ≤ n) (hs : DiscSet Ls cl jr dir lay N hj) (hR : RootsOk R)
+    (hnone : ∀ nm, InArea s.area dir nm →
+      (∀ N' h', (jr, N', h') ∈ cl → N'.Mem nm → h'.cur !! nm = none) ∧
+      ∀ m', RegionCrashed cl n m' → m'.entry jr nm = none)
+    (hwo : WalsOk C Mr R jr s Ls cl n0) (hwc : WalsCreateOk jr cl)
+    (hab : AbsentNone s jr cl n0 ∧ DirsAvoid R jr s) (hwn : WalsNamed Ls cl n0)
+    (hk : DirKeysOk C Mr jr s Ls cl n0 K cu) (hA : WalsAt jr Ls cl)
+    (hbd : WalsBounded s ∧ DirsRoots R s) :
+    WalsOk C Mr R jr (discS s dir) (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) n ∧
+      WalsCreateOk jr (dropC cl (lay.j, N, hj)) ∧
+      (AbsentNone (discS s dir) jr (dropC cl (lay.j, N, hj)) n ∧ DirsAvoid R jr (discS s dir)) ∧
+      WalsNamed (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) n ∧
+      DirKeysOk C Mr jr (discS s dir) (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) n
+        (GMap.delete dir K) cu ∧
+      WalsAt jr (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) ∧
+      (WalsBounded (discS s dir) ∧ DirsRoots R (discS s dir)) := by
+  have hwo := walsOk_mono hn hwo
+  have hab1 := absentNone_discard hs hnone (absentNone_mono hn hab.1)
+  have hw : ∀ dir' d, s.wal !! dir' = some d → ∃ lay', Ls !! dir' = some lay' ∧ lay'.jr = jr :=
+    fun dir' d hd => let ⟨lay', _, _, hl', _, hjr, _⟩ := hwo.1 dir' d hd; ⟨lay', hl', hjr⟩
+  refine ⟨walsOk_discard hs hR hbd.2 hab1 hwo, walsCreateOk_discard hs.jr hwc, ⟨hab1, hab.2⟩,
+    walsNamed_discard hs (walsNamed_mono hn hwn), dirKeysOk_discard hs hw (dirKeysOk_mono hn hk),
+    walsAt_discard hA, ⟨hbd.1.mono fun dir' d' hd' => ?_, hbd.2.congr rfl⟩⟩
+  by_cases e : dir' = dir
+  · subst e; rw [discS_wal_eq] at hd'; cases hd'
+  · rw [discS_wal_ne e] at hd'; exact ⟨d', hd', rfl, rfl⟩
+
 end pure
 
 
