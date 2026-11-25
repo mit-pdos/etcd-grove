@@ -335,6 +335,59 @@
   none); (2) on a failed parent fsync, `AU₁`'s result stays with the crash invariant, not the caller; (3) the first
   update commits only after the backend is gone (the caller's order). Pin and commit to come from the coordinator.
 
+- **2026-11-25, P6b session 10 (WIP, `etcd-safe-p6b-wip`): the write handle's loans done; the read handles
+  next.** Coordinator approvals (session 10 brief): the session-7 plan, the earlier choices, the session-9 handle
+  design, the edits to `walLastOpen`/`WalCloseLaw`; the ledger line "loans carried in the handles" added (fix A's
+  entry). Discard's fork change: `251a430ce` (branch `goose-lean-fmt1c-discardfix` on the pin `e94f33b50`,
+  local `/shared/tmp/p6/etcd-tornsave`, not pushed): `func Discard(lg, dirpath) error` = `RemoveAll(dir.tmp)`,
+  `Rename(dir, dir.tmp)`, `syncDir(parent)`, no `Unsaved` inside; `bootstrap` calls it after its own `Unsaved`
+  returned `(true, nil)` and after `removeBackendDurably`. Spec that version (pre: the WAL unsaved, `Unsaved`'s
+  post); no pin bump or retranslation until the coordinator says; the body's proof after it.
+  **Done, each lean-checked with 0 errors** (`-a`, `--fast` for the long ones; commit `109cb378e7`):
+  * `Handle.lean`: `WalHS.qp : Qp := 1` (the pipeline's path fraction; a field, not a binder of `walHandleIn`,
+    so its 61 destructs are unchanged: decision of this session, the approved design's `qp` bound once per
+    handle); `walHLoans dir nf qs := ∃ Lh, walNamesFragS ⟨nf, none, Lh⟩ ∗ ⌜(nf = none → ∃ r' nm, InArea r' dir nm
+    ∧ Lh = qs.map (nm, ·)) ∧ (nf ≠ none → Lh = [])⌝` (`InArea`, not `NameOk`: `walNameOk` excludes `/`, which
+    `inArea_root` needs, and does not exclude NUL, which `NameOk` does); `walHLoans_some` (`some d`: it is
+    `walNamesFrag (some d)`); `walDirH … cuts qp nmd nf` (new parameter after `cuts`) holds `walHLoans dir nf
+    [q, qp]` in place of `walNamesFrag nf` (same position: destruct arities unchanged); `walHandleIn` passes
+    `h.qp` and pins the pipeline: `walPipeH fp dir j h.pc (fun R dq => pp R dq ∧ dq = DFrac.own h.qp)`.
+  * New `HandleLoans.lean` (imports Handle, NameLoans): `sep_last_inj`, `inArea_root`, `inArea_child`,
+    `walInv_dirKeyArea` (a keyed WAL directory is `InArea r dir nm`, through `DirKeysOk`/`WalsOk`),
+    `walHLoans_mk` (the record from `qs.map (nm, ·)` loans), `walInv_returnHLoans2` (key + record + both paths →
+    `walNamesFrag none`).
+  * `HandleUnnamed`: `walDirH_split` now gives `∃ R q, A R q ∗ walHLoans dir nf [q, qp] ∗ (∀ nf', walHLoans … -∗ B R q
+    -∗ walDirH … B nf')`; `walHandleIn_split` and `walOpenWFU_seal` deleted (unused); `walOpenWFU_sealL`'s wand takes
+    `walHLoans dir none [qp, qp]` (for `walNamesFrag none`), `h.qp = qp` read off the pipeline's pin.
+  * `CreateHandle`: `createHS … ic qp` (new last parameter; `create_handleIn` at `q`). `CloseHandle`
+    (`walHandleC`'s `walDirH` at `h.qp`), `ReleaseLocks`/`PurgeLend` (`qp` parameter), `SaveHandle`,
+    `CutPipe` (`wp_walPipeH_open`/`walPipeH_next` over any `pp`, the open's post gives `pp R dq`), `WAL__cut`
+    (`h1.qp = h.qp` in `hh1e`), `WAL__sync`, `WAL__CloseU`: adapted.
+  * Spec `WAL__syncC.lean` (internal; ledger line): the error arm gives `∃ qs, walHLoans dir nf qs`.
+  * `WAL__Close.lean` (shared arm): keeps the pipeline's path from `pipeLeft` and returns both loans
+    (`walInv_returnHLoans2`) before `walCloseLaw`; **not yet checked** (it imports `WAL__CloseFailed`, a borrower).
+  **Next, in order:**
+  1. **The read handles** (decided, not started): `walReadTie dir write s j qs fs lfs w` (new parameter `qs`
+     after `j`) holds `walTailsFrag ∅ ∗ walHLoans dir none qs` for `walNamesFrag none`; `walReadH` binds `qs`
+     after `j` and its write branch pins the pipeline, `walPipeH fp dir j 0 (fun _ dq => ∃ qp, dq = DFrac.own qp
+     ∧ qs = [qp])`, its read branch `⌜fp = null ∧ qs = []⌝`; `walFailH` binds `qp`, `walPipeH … (fun _ dq => dq =
+     DFrac.own qp)`, `walHLoans dir none [qp]`; `walReadH_namesOut` (Open) gives the record out. Sites: walReadTie
+     (6 unfolds, 13 files), walReadH (9), walFailH (2), `ReadAllFail`'s own `walNamesFrag none` (5 statements:
+     with `walFailH`'s loan), `ReadAllGive` (the write handle from the read one: `walHLoans_mk` with `[qd, qp]`,
+     ReadAll's own `walInv_dirPath` loan first, the pipeline's second, `WalHS.mk … ic qp` at `WAL__ReadAll.lean`
+     ~1223).
+  2. **The borrowers** (each returns or hands over its `walInv_dirPath` loan): `Open` (returns its `OpenDir` path
+     right after `OpenDir`, `walInv_dirPathRetDL` with the pipeline's loan behind it in `Lo`, then `Hback`);
+     `openAtIndex` (write mode: the path goes to the pipeline, the read tie records `[qp]`; read mode: returned
+     before the lock); `openLast` (`walLastOpen` gets `r` and `∃ nm, ⌜dir = child r nm⌝ ∗ walNamesFragS ⟨none,
+     none, [(nm, qd)]⟩`; `Repair`, `RepairPre`, `RepairReg`, `RepairBroken`, spec `openLast.lean` return it,
+     `walInv_dirPathRetD`, before the lock or hand it to `walCloseLeft`); `WAL__ReadAll` (line ~381); 
+     `WAL__CloseFailed` (160, 368, 571: `walFailH`'s pipeline loan and its own probe path, `walInv_returnLoan`/
+     `walInv_returnAll`); `Create`'s success arm (line ~1288: `Lo := [(nm, c.half), (nm, d), (nm, d)]`, then
+     `walInv_named`, `walInv_returnLoan` of `c.half`, `walHLoans_mk` with `[d, d]` and `InArea r (child r nm)
+     nm` into `sealL`'s wand).
+  3. `lake build` of `wal.Link` (state at session start: openLast, openAtIndex, Open, WAL__ReadAll,
+     WAL__CloseFailed, Create failed, all at the loans), push WIP; then B, C, the Discard spec as session 7's plan.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
