@@ -214,7 +214,8 @@ client registers with its request: `ghost_register`), for the caller's postcondi
 output. -/
 theorem lin_AUof [NetProtoGS] (g : GN) (i : KIn) (Φ : KOut → IProp GF) :
     lin (Gg := Gg) (kvR g) i Φ ⊢ AUof g i.1 (fun _ _ o => Φ (bndO o)) := by
-  unfold lin AUof
+  refine (lin_linF (kvR g) i Φ).trans ?_
+  unfold linF AUof
   simp only [kvR, kvB]
   iintro H
   imod H with ⟨%σ, Hσ, Hc⟩
