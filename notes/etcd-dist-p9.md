@@ -142,17 +142,52 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   targets (`/shared/tmp/p9-targets-codec.txt`: `enc.Link` and the 14 kvremote proofs) at `188aae9446`: built
   (3594 jobs, exit 0). `etc/tier-check.py --check`: ok.
 
+## State (2026-11-25, fourth session): the store `kvR γk`, `kvPendDec`, `Codec` proved and linked
+
+- **The store** (`Proof/.../dist/kvremote/Store.lean`, defs): `kvR γk : RBase GF MS MI VIn VOut`.
+  Departs from the plan (§11.3 step 1) in the output type: **`O := VOut := {y : Output // y.Err' = false ∧
+  (outputBytes y).length < 2 ^ 63}`, not `Output`**. `RBase.encOut_len` bounds every encoding below `2 ^ 63`
+  bytes, and `Run.spec`'s `hinj` wants `encOut ∘ ov` injective on all of `O`: no injection of all
+  `Output`s (unbounded strings) into lists of bounded length exists, so `O` must be the outputs that fit;
+  `Err' = false` because `codecOk`'s `IsUnknown` must answer `false` on every `ov o`. So the base store is
+  `TSo` (`TS`'s step, its answer `kvOut o`: `⟨outOf o, _⟩` when it fits, else the zero output) and the guard
+  is **`kvGood st := st.rev < 2 ^ 63 ∧ StoreLe inMax st.kv`** (values at most `inMax` bytes: then every
+  answer's strings are, `mStep_le`, `outOf_le`, `outputBytes_le`, so the answer fits, `kvOut_good`).
+  `I := VIn := {x : Input // GenIn x}`, `mi := kvMi` (the decoding); `encIn x := inEnc x.1` (`inputBytes`
+  cut to `[]` past `2 ^ 63`: `GenIn` does not bound the fields `decIn` ignores; `EncInput`'s slice bounds the
+  bytes at run time, `inEnc_eq`), `encOut := kvEncOut` (`outEnc` of a boxed `Output`), `unk _ := boxOut
+  errOut`, `Eop := kvEop = srvRaftN ∪ kvN` (`kvEop_mask`: `⊤ \ kvEop = (⊤ \ srvRaftN) \ kvN`, `kvAu1`'s mask),
+  `sysState := kvSys γk st := ∃ σ, etcdKV γk σ ∗ ⌜GoodKV σ ∧ linkv.absSt σ = st ∧ kvGood st⌝` (timeless).
+  Laws: **`kvPendDec γk : PendDec (kvR γk) linkvtxnS`** (proved), **`kvR_hinj`** (`Run.spec`'s `hinj`),
+  `Pos.Countable VIn`/`VOut` (field tuples, no `sem` needed), `reach_TSo`/`closed_TSo`, `inEnc_dec`/
+  `outEnc_dec`, `kvEncOut_boxOut`, `boxIn_inj`/`boxOut_inj`. `Pos.Countable MI` is txnlin `Inv.lean`'s.
+- **For step 3 (Node)**: `kvSys` of the next state needs `kvGood` of it: the value bound from `kvOut_good`'s
+  `StoreLe` (with `absSt_step`), the revision from the server's `kvRoom σ` (`σ.rev + 4 ≤ 2 ^ 63`) given at the
+  AU's commit (the next revision is at most `σ.rev + 1`). Note `Call.spec`'s `kvRevFits` is not enough alone
+  (`kvRoom` of the old state is). `kvSys` deliberately carries `kvGood` (not `kvRevFits σ.rev`).
+- **The codec**: `Spec/.../kvremote/Codec.lean` (`Codec.spec : ∀ γk, {pkgInit} Codec() {cd. codecOk (kvR γk)
+  cd}`) and its proof (`Proof/.../kvremote/Codec.lean`, callees `EncInput`/`DecInput`/`EncOutput`/
+  `DecOutput`/txnlin's `IsWrite`), checked. `kvremote/Link.lean` (hand-written, namespace
+  `EtcdGrove.kvremote`): the 14 codec functions and `wp_Codec`, over `EtcdGrove.enc` and txnlin's `Link`
+  (`wp_IsWrite`; its section needs `[HasExt idIssueExt] [NaInvG GF]`).
+
 ## Handoff
 
-Next, in order (§11.3):
-1. **`codecOk`** (`Proof/.../dist/kvremote/Codec.lean`, after its spec): needs the store first (step 1 of
-   §11.3, `kvR γk : RBase GF MS MI VIn Output`, `Store.lean`), since `codecOk` is over `R`: `encIn i :=
-   inputBytes i.1`, `encOut v` (for `v = boxOut o`) `outputBytes o`, `iv x := boxIn x.1`, `ov := boxOut`,
-   `unk i := boxOut errOut`. Its parts: `EncIn` = `EncInput`; `DecIn` from `DecInput` and `inputBytes_inj`
-   (bound from `ownSlice_len` of `b ↦*{dq} inputBytes i`, taken before the call); `EncOut`/`DecOut` likewise
-   with `outputBytes`; `IsRead` from `txnlin.IsWrite.spec` (`isWriteL`, which must agree with `TSo.isWrite ∘
-   mi`); `Unknown` (`Output{Err: true}` is `errOut`?), `IsUnknown` (an output `outOf …` has `Err' = false`;
-   `errOut` has `true`). Follow counter's `Codec.lean` for the closures (`wp_func_lits`, type assertions).
-   Link: add `kvremote/Link.lean` (hand-written as `enc`'s) linking the 14 proofs over `EtcdGrove.enc`'s.
-2. kv's `PendDec` (pure, §11.3 step 1), then §11.3 steps 3-6.
+Done: §11.3 step 1 (the store, `kvPendDec`, `kvR_hinj`) and step 2 (`codecOk (kvR γk) (Codec())`, linked).
+Next, in order (§11.3), each spec first:
+1. **Step 3, the client machine** (`dist/kvremote/Node.lean`): `opMaybe (kvR γk) a tok op` for `Node`'s
+   `op` (`func(sys, in) any { return txnlin.Call(sys.(*clientv3.Client), in) }`), from `txnlin.Call.spec`
+   (`EtcdGrove.etcd_txnlin.wp_Call`, linked) at `x := i.1`, `i := kvMi x` (`kvMi_dec`), `GenIn` from `x.2`,
+   `Q` the continuation: a write's `slotUpd = lin` (`slotUpd_write`) must give `[∧list] sv ∈ ms, callUpd
+   sv.γr.kv (kvMi x) Q` with every `sv.γr.kv = γk` (D7: `tok cli` should carry that): `lin` -> `kvOpAu1 γk
+   (opIn i) Q` by opening `lin`'s fupd (mask `⊤ \ kvEop`, `kvEop_mask`), giving `etcdKV γk σ` from `kvSys`,
+   and at the commit rebuilding `kvSys` of `kvOpStep (opIn i) σ` (`GoodKV`: `goodKV_step` with
+   `inKeys_keysIn`; `absSt`: `absSt_step`; `kvGood`: `kvOut_good`'s `StoreLe` and `kvRoom σ` for the
+   revision) and `Q σ := Φ (outOf ..)`-ish matching `lin`'s `Φ (TSo.step ..).2` (`kvOut_good`: `.1 =
+   outOf`, and `Call.spec`'s `y = outAt i σ` under `GoodKV σ`). A read's `□ lin` -> `kvReadAu γk Q` likewise
+   (`reads_stay`). Model: txnlin's `Inv.lean` (`linkvInv_kvOpAu1`-style lemmas at lines ~536, ~779).
+   Then `Node`'s WP (`ServeClient.spec`, never returns). `tok` per §11.3 step 3.
+2. Step 4 (`Orch`: `Run.spec` at `kvR γk`, `linkvtxnS`, `kvPendDec`, `kvR_hinj`, `kvR_timeless`, txnlin's
+   `Model`/`Gen` (`genSpec` post `linkvInOk` -> `∃ i : VIn, x = boxIn i.1`), masks `pendN ⊆ ⊤ \ kvEop`,
+   `lintestN ⊆ ⊤ \ (kvEop ∪ pendN)`), then steps 5-6.
 Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS` (pushes HEAD to fk-lean2).
