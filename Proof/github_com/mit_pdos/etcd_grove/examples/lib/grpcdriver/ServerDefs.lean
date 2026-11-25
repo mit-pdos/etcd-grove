@@ -9,13 +9,13 @@ the map `m` of run counts it points to, and a list `ids` of call ids with their 
 carries its value's id's token, so a second run of a value would hold two tokens of one id
 (`mkVal_inj`): it does not happen, every count is `0` or `1`, and `Echo` answers `v#1`.
 
-**Errors**: an `errors.New` error is one grpc's server takes (`errStr_srvErrOk`), with its message
-as its description (`errStr_descIs`): what `Fail`'s plain error needs.
+The errors' lemmas (`errStr_srvErrOk`, `errStr_descIs`) are in `svc/StreamDefs.lean`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.Svc
 public import Proof.errors.NewVar
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.StreamDefs
 
 @[expose] public section
 
@@ -66,51 +66,6 @@ def isDrvServer (γid : GName) (s : Loc) : IProp GF :=
 instance isDrvServer_persistent (γid : GName) (s : Loc) :
     Persistent (isDrvServer (GF := GF) γid s) := by
   unfold isDrvServer; infer_instance
-
-/-- **An `errors.New` error is one grpc's server takes** (`srvErrOk`): a `*errorString` is a leaf
-without `Is` or `GRPCStatus` (`ErrorStringLeaf`), and its `Error()` returns its message. -/
-theorem errStr_srvErrOk (x : Loc) (msg : GoString) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
-        go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
-    go_etcd_io.etcd.cache.v3.srvErrOk
-      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
-  obtain ⟨-, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
-  iintro #Hm
-  iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
-  unfold go_etcd_io.etcd.cache.v3.statusErrOk
-  iintro !> %e %he
-  cases he
-  isplitr
-  · iexists msg
-    unfold go_etcd_io.etcd.cache.v3.errorMsgIs
-    iexact Hm
-  isplitr
-  · ipureintro; exact hl
-  isplitr
-  rotate_left
-  · ipureintro; exact ⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
-  unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
-  isplitl
-  · iintro %h
-    simp only [hG.1] at h; cases h
-  · iintro %h
-    exact absurd h hIs
-
-/-- **An `errors.New` error's description is its message** (`descIs`). -/
-theorem errStr_descIs (x : Loc) (msg : GoString) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
-        go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
-    go_etcd_io.etcd.cache.v3.descIs
-      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) msg := by
-  iintro #Hm
-  iapply (go_etcd_io.etcd.cache.v3.descIs_of_msg
-    ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ msg
-    (go_etcd_io.etcd.cache.v3.ptrTy_ne_etcdError _)
-    (by rw [EtcdGrove.ErrorStringLeaf.noGRPC]; simp))
-  unfold go_etcd_io.etcd.cache.v3.errorMsgIs
-  iexact Hm
 
 end defs
 

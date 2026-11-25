@@ -51,9 +51,9 @@ theorem server.Meta.wp_proof
   wp_apply (wp_FromIncoming ctx md) $$ [$Hmeta $Hin] as %mp %ok Hres
   icases Hres with (%Hno | ⟨%md0, %m, %Hc, Hm, Hsls⟩)
   · obtain ⟨rfl, rfl⟩ := Hno
-    wp_auto
+    try wp_auto
     wp_apply wp_String go!"" (by decide) as %l Hl
-    wp_auto
+    try wp_auto
     have he : (go!",".intercalate (metadata.mdVals none mdKeyS)) = go!"" := rfl
     rw [he]
     iapply HΦ
@@ -80,13 +80,11 @@ theorem server.Meta.wp_proof
     rw [hmd] at Hbound ⊢
     wp_apply wp_Join slice.nil ([] : List GoString) (DFrac.own 1) go!"," $$ [] as -
     · isplitr
-      · iexact Hstr
-      isplitr
       · iapply ownSlice_nil
       ipureintro; exact hlt _ Hbound
-    wp_auto
+    try wp_auto
     wp_apply wp_String _ Hbound as %l Hl
-    wp_auto
+    try wp_auto
     iapply HΦ
     isplitr
     · ipureintro; rfl
@@ -98,13 +96,11 @@ theorem server.Meta.wp_proof
       simp [metadata.mdVals, Hmd0]
     rw [hmd] at Hbound ⊢
     wp_apply wp_Join sl vs (DFrac.own 1) go!"," $$ [Hvs] as -
-    · isplitr
-      · iexact Hstr
-      iframe
+    · iframe
       ipureintro; exact hlt _ Hbound
-    wp_auto
+    try wp_auto
     wp_apply wp_String _ Hbound as %l Hl
-    wp_auto
+    try wp_auto
     iapply HΦ
     isplitr
     · ipureintro; rfl
