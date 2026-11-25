@@ -392,6 +392,7 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
         □ [∗list] a ∈ ns, remoteAddr (kvR (GF := etcdDistGF) Γ.kv) a) : IProp etcdDistGF) ⊢
         [∗list] k ↦ _x ∈ nodeMachines d σn, kvShares d boot w ns ρ (k + (servers d σs ++ clients d [σo]).length) :=
       bigSepL_of_box _ _ (fun k x hk => by
+        try dsimp only
         have hkl : k < d.nodeList.length := by
           have := (List.getElem?_eq_some_iff.1 hk).1
           simp only [nodeMachines, List.length_mapIdx] at this
