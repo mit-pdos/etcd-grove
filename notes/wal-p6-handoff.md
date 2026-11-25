@@ -488,6 +488,41 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 21 (WIP, `etcd-safe-p6b-wip`): `walInv_discardS` done; order steps 3-7 left.**
+  **Done** (no `sorry`, no axiom; `lake build` of `wal.DiscardS` on fk-lean1 at `867aa8b23e`: 3026 jobs, exit 0, no warning in `DiscardS`/`DiscardSInv`, `/shared/tmp/p6b-s21-b1.log`):
+  * `DiscardSInv.lean`: **`walParked_discard Ls cl F dir lay c hl (hW : WalDirClaimOf Ls c) (honce : ClaimOnce c cl)`**:
+    `walParked Ls cl F -∗ walOutFrag WalOut.empty -∗ walParked (delete dir Ls) (dropC cl c) F ∗ walOutFrag
+    WalOut.empty ∗ osNames c.1 c.2.1 half c.2.2 ∗ walTmpsRes lay.j ∗ walTmpsHalf lay.j ∗ walOthers [] c.1
+    c.2.2.cur` (helpers `walDirClaimOf_delete`, `claimP_deleteL`, `othersP_deleteL`).
+  * new **`DiscardS.lean`** (imports `DiscardSInv`, `DiscardSteps`, `CreateNamedStep`; nothing imports it yet):
+    `walGhostI_bump0` (`walGhostI_bump` with the token's `walTailsFrag T ∅` in place of `hlk`: a WAL goes, so
+    `UnlMono` fails; the empty locked ranges carry over), `nameShare_delete`, **`walNamesRes_discard`** (`disc :=
+    none`, `Ls → delete dir Ls`; `nm ∉ Wn` by `osNames_same_name` against the program's area claim, key `N ≠
+    .only [nm]`), `walParked_inj`, and **`walInv_discardS`**:
+    ```
+    walInv_discardS C Mr R jr r dir nm N hC ic Q₂ x e Es n
+      (hin : InArea r dir nm) (hN : N.Mem nm) (hNN : N ≠ .only [nm]) (hR : RootsOk R)
+      (hcur : hC.cur !! nm = none) (hlw : LastWrite hC jr nm x e Es) (hx : x < n) (hEs : Es !! nm = none) :
+      ⊢ walInv … -∗ osSharedInv R -∗ notCrashed -∗ AU₂ -∗ walUnlockedTokX -∗
+        walNamesFragS ⟨none, some dir, []⟩ -∗ osNames jr N half hC -∗ osCommitLb n ={⊤}=∗
+        notCrashed ∗ Q₂ ∗ walUnlockedTok ∗ osNames jr N half hC ∗
+        ∃ J hj, osNames J (.except walTmps) (DFrac.own 1) hj ∗ walTmpsRes J ∗ walTmpsHalf J ∗
+          walOthers [] J hj.cur ∗ ⌜J ≠ jr⌝
+    ```
+    (`AU₂` as in `wal.Discard.spec`; `hR` from `osPathS` at the caller, TreeSharedClaims.lean:582.) Inside: the
+    area claim's uniqueness on `nm` by `osClaims_keys` (with `WalsCreateOk` for its membership), the log by
+    `osClaims_log`, the creating map empty (`walCreating_empty`), then `discS_pure` at `max n0 n`.
+  **Decision (internal, no spec change):** `walGhostI_bump0` is a copy of `walGhostI_bump` (the latter's `hlk`
+  entailment cannot hold when a WAL goes); no invariant change.
+  **Left** (order steps 3-7): (3) the merges into `walAreaRes`: `osNames_merge` twice (`(J, .except walTmps)` +
+  `walTmpsRes`'s and `walTmpsHalf`'s pipeline claims, `TmpClaim.lean`: `walTmpsHalf`'s `qTmpI` + `walTmpsRes`'s
+  `qTmp` must make each pipeline name whole, check `qTmp + qTmpI = 1` there) into `(J, .except [], hj')`, tagged
+  `tmp` into `walAreaRes`'s `cl`; `SubCover (clOf cl' tmp) (some (.dir J))` needs every entry of `hj'.cur` a
+  file: **`walInv_discardS` does not yet return that fact**: add it to its post (from `SegsNamed`/`WalAbsD`
+  of the layout's segments, `tmpEnt` of the pipeline names, `walOthers`' `tmpEnt`s) or derive it from the
+  resources (`walOthers`/`walTmpsRes` hold `tmpEnt`s, files); then the program's area half merged back
+  (`walInvBody_mergeIn` shape at `discS`, as `CreateCommit.lean`); (4) the `Discard` proof; (5) the crash lemma
+  beside `walDiskAt_crash_keep`; (6) docstrings; (7) `gen-link --walfs`, builds.
 - **2026-11-25, P6b session 20 (WIP, `etcd-safe-p6b-wip`): S's resource-removal helpers done; `walInv_discardS`
   not started.** **Done**, in `DiscardSInv.lean` (`lake build` of the module on fk-lean1 at `aaa52b404d`: 3024 jobs,
   exit 0, no warning in the file, no `sorry`, `/shared/tmp/p6b-s20-b4.log`):
