@@ -412,7 +412,12 @@ PROJECTS = [
         # issues/bbolt-init-not-crash-safe.md). The bbolt replace changes no translation here: bbolt
         # is the bbolt project's translation (its own fork pin, below `rev` there), and this
         # project only names it.
-        rev="e94f33b50d046939dd1aee60f4013d968feaeef4",
+        # Then (P6b, 2026-11-25, mit-pdos/etcd-grove#50) 251a430ce, branch
+        # `goose-lean-fmt1c-discardfix` (on e94f33b50): the WAL's `DiscardUnsaved` becomes
+        # `func Discard(lg, dirpath) error` (RemoveAll(dir.tmp), Rename(dir, dir.tmp), syncDir of
+        # the parent), without its own `Unsaved` check: `bootstrap` calls it only after its
+        # `Unsaved` returned (true, nil) and after `removeBackendDurably`.
+        rev="251a430ce042bb53d06705fd28e182709ad3a32d",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
