@@ -1672,3 +1672,155 @@ Build evidence (session 5): fk-lean2, worktree `etcd-safe-p8` at `f27b5f6d36`, `
 one linter warning (`walk_two`: the `walk` argument of the inner `simp only` is unused). Helper:
 `/shared/tmp/t7-build.sh` (pushes `HEAD` as `etcd-safe-p8` to fk-lean2 and builds the module; log
 `/shared/tmp/t7-build.log`).
+
+## T10 design: the backend's image across a crash (2026-11-25, branch `etcd-safe-t10`; design only)
+
+Base `etcd-safe-t7` @ `7f26ddec0a`. Discharges T7's `memberImage.law cfg id KeepB` and `memberDbNamed.law KeepB`
+(B1), with B2 and B3. Draft statements: `dist/crash/BackendImage.lean` (defs tier, definitions and `abbrev` laws
+only; checked with `etc/lean-check.py` on fk-lean2's `etcd-safe-p8` worktree, `/shared/tmp/t10-chk.sh`, 0 errors).
+No proof, no axiom, no `sorry`, no shared statement edited.
+
+### 1. The invariant
+
+**Where it lives.** Not in `memberKeepR` (T7): the record `dbCrashKeep` is used at *every* commit
+(`dbCrashKeep_announce`, `_half`), so the running backend must hold it, and the crash frame gets it back only
+through an invariant with a crash token (the `walInv`/`rnDurInvK`/`snapDirInvK` shape). The natural place is
+the backend's commit invariant `cmtInv` (`backend/InvBackend.lean`), which already holds the committed data's
+`dbHalf γ.db Dc` (the half `dbCrashKeep` absorbs) and is opened at each commit point:
+
+* `cmtBody` becomes, for a crash-tracked backend (opened with `dbOpts`, etcd's default),
+  `∃ Dl Dc pd, dbCrashKeep γ.db i0 Dl Dc pd ∗ KB Dl Dc pd ∗ fkRd … ∗ cmtRegs … Dc` (or `bStopped`), and
+  `cmtInvK := inv cmtN (cmtBody ∨ crashed ∗ token γk)`; `KB` is the client's **crash payload** (a parameter of
+  the backend's names, as `W`/`Pk` are), untracked backends (tests, `mvccfull`, defrag's temporary) take
+  `KB := True` and the old body.
+* The backend applies three **client laws** on `KB` (`kbAnnounce.law`, `kbLand.law`, `kbSync.law`, drafted):
+  (a) at `unsafeCommit`'s hook step, after `OnPreCommitUnsafe` and before bbolt's `Commit` (with
+  `dbCrashKeep_announce`): `KB Dl Dn none ∗ CV S ==∗ KB Dl Dn (some S) ∗ CV S`, `CV S` the batch lock's view of
+  the session's data `S` (the lock's `W`, `Pk`, the readers' quarter, the hook's keys, the tracked buckets: what
+  `obsWand` already gets); (b) at the commit point inside `dbCrashKeep_half`: `KB Dl Dn (some S) ⊢ KB Dn S none`
+  (ghost); (c) after the commit returned, holding the fresh write transaction (`t.tx = begin(true)`): the
+  **resync** `KB Dl Dn pd ==∗ KB Dn Dn none`, with the record's resync derived from C-I1 as
+  `_clear; _close; _new` (no new axiom; needs C-I1's record without the path, below).
+* The server's payload: `KB Dl Dn pd := bkPayload γ ρ Dl Dn pd ∗ ciFloorAuth γc (ciOf Dl)` (drafted:
+  `bkPayload`, every data a crash can leave is an image, `bkImgAny`; `ciFloorAuth` a monotone counter at the
+  stored index of the fallback, raised by (c), whose lower bound `ciFloorLb γc j` the own snapshot's `SaveSnap(j)`
+  takes after its `ForceCommit`: B2's own-snapshot case). Beside it, in the **server's** crash-aware invariant
+  (`bkKeepInvK`, T10's, the token in `KeepB`): the durable name of `db` (below), the snapshot directory's removal
+  counter's authority `monoNatAuthOwn γm 1 c` with `c ≤ max(ciOf Dl, σ.b) + 1` (the apply thread keeps a
+  fraction-free view through the invariant instead of owning it), and which backend (`γb`, `i0`) is current.
+
+**What each commit deposits.** The image facts `bkImg γ ρ i A S m` of the announced data `S` (rows of
+`srvCrashImageAt`: `srvRLogLb A`, `i = ai0 + |A|`, `imageRestAt`, `imageStOk`, `mvccImage`, `confAt`, the
+membership row) at the hook step, from: (i) mvcc's **`mvccImage_commit.law`** (proposed, mvcc API: the writer's
+resource `W` at a commit's hook step gives `mvccImage S σ.log σ.crev u` for mvcc's state `σ`, `σ.pending = none`;
+the generalization of `mvccImage_snapshot.law`, whose AU already fires at `Snapshot`'s commit), (ii) **the image
+row of the batch lock's invariant** (`batchLockInv`, T10's new row): whenever the batch lock is free, the stored
+index's mirror `mm.1 = i` comes with a committed prefix `A` reaching `i`, mvcc's state at the KV model of `A`
+and the tracked buckets at `restModel … A`. The apply thread re-establishes the row at each `Unlock` (it holds
+`srvRLogLb A` and the applied log; the row is what it already knows at quiescence, `stop_imageAt`, made true at
+every unlock).
+
+**Specs it touches** (shared = T4's / the lead's / another owner's; own = T10's):
+
+| spec / definition | change | owner |
+|---|---|---|
+| C-I1 `dbCrashKeep` and its six axioms (`backend/CrashInterim.lean`) | the record drops `path` and the claim `bPath` (the crash law never used the name: it takes `Named V'.now i0`); `_new` stops consuming `bPath`, `_close` stops returning it. Needed: the snapshot install renames onto `db` while the old backend still commits (Go's `applySnapshot` closes the old backend only after `kv.Restore`), so the record cannot hold the name. A weakening of preconditions; **needs an `axiom`-skill re-review** | shared (C-I1's owner, the lead) |
+| `cmtBody`/`cmtInv`, `newPostK`, `backend.New.spec`, `storage.OpenBackend.spec`, `OpenSnapshotBackend.spec` (their `γ` gains `KB`, `γk`, the post a `dbCrashKeep`-backed invariant) | new crash-aware body; the open's post gives the token | shared (backend's API, `etc/api/backend.txt`) |
+| `batchTxBuffered.unsafeCommit`/`commit`/`Commit`, `backend.ForceCommit`, `backend.Close` (`bStopped`), `backend.Snapshot` proofs | apply (a)-(c) and the record laws | T10's (proofs inside the backend) |
+| mvcc `mvccImage_commit.law` | new API law | shared (mvcc API) |
+| `batchLockInv` (`etcdserver/InvApply.lean`) | the image row | T10's (server internals) |
+| `applyEntryNormal`, `applyConfChange`, the deferred `SetConsistentIndex`, the compactor's unlocks, `applySnapshot` | keep the row at every unlock; the install's record swap | T10's |
+| `raftNode.start`'s `SaveSnap` (T2's `rnDurInvK` records) | each saved snapshot index `j` with `ciFloorLb γc j ∨ snapSaved γd j` | T2's invariant (coordinate) |
+| `srvCrashImageAt`, `wal.crashImage`, `bootstrapCrashContract`, `NewServer.specC` | restated (§2) | **shared: T4's** |
+| `memberKeepR`, `MemberKN` (T7) | the `dbCrashKeep` row and the fields `γb i0 Dl Dn pd` leave `memberKeepR` (they move into `KeepB`) | T7's |
+| `memberImage.law`, `memberDbNamed.law`, T7's `dbCrash` step | replaced by `memberBackend.law` (drafted) | T7's |
+
+### 2. How it gives T7's laws; B2, B3; the restatement of T4
+
+**`memberBackend.law cfg id KeepB`** (drafted; replaces `memberImage.law`, `memberDbNamed.law` and T7's own
+`dbCrash` step, step 5 of session 5's plan): `KeepB L k` (the token of `bkKeepInvK` and of the backend's
+`cmtInvK`), `crashed`, `memberDurOut` (for `σ`), the crash rest with nothing taken, the new generation's claim on
+`db` and path/call shares ⊢ `∃ i0 i A D m, ⌜V'.now.entry J "db" = some (.file i0)⌝ ∗ crashRest … [i0] … ∗
+memberDurOut ∗ memberImageRowsR k dd σ i A D m`. Proof: open both invariants with their tokens (record and
+payload out); the durable name of `db` (below) gives the entry; `dbCrash` (C-I1, premise `BoltCrashWhole`) gives
+`fileHoldsM i0 D'`, `D' ∈ {Dl, Dn, pd}`; the payload gives `bkImg … D'`; `fileHoldsM` with the new claim gives
+`fileHolds (backendPathOf dd) D'`; the counter's authority and its bound with `σ` give `snapRowB2`. T7's proof then
+loses its `hB1`, `hB1n` and the `dbCrash` call, and takes `hB1' : memberBackend.law cfg id KeepB`.
+
+**The durable name of `db`** (what `memberDbNamed.law` asked): a `nameCrash`-style promise about the name `db` in
+`member/snap` (`backend/FileDur.lean`: `CrashLeaves h J "db" P n` with `osCommitLb n`), kept in `bkKeepInvK`:
+`P = (· = some (.file i0))` from the first boot's directory sync (`bootstrapNewWAL`'s; C-I1's notes) and after the
+install's `syncDir` (`renamedDur`, which `OpenSnapshotBackend.spec` already gives); **inside the install window**
+(the rename issued, its sync not returned) `P = (· = some (.file iOld) ∨ · = some (.file iNew))`, so the keep is a
+disjunction over two records (the old backend's, still committing to an inode that may lose its name, and the new
+one's, made by `_new` at its open). The rename is one directory entry change: in the crashed tree either `db`
+names `iOld` and `<k>.snap.db` names the snapshot's file again, or `db` names `iNew`; the law picks the record by
+the entry.
+
+**B2 (the received-snapshot window).** Go's order: the transport saves `<k>.snap.db` durably (`SaveDBFrom`,
+`snapSaved γd k`), raft's `Ready` carries the snapshot, the raft loop `SaveSnap`s `k` (synced), the apply thread
+waits for it (`<-apply.notifyc`) and runs `OpenSnapshotBackend` (counter to `k + 1`, rename, `syncDir`). A crash
+after the `SaveSnap` and before the rename's sync leaves `σ.b = k > i` (the old backend). Invariant (T2's records,
+deposited at `SaveSnap`): every saved snapshot index `j` has `ciFloorLb γc j` (own snapshot: `ForceCommit` at
+`j` returned before `SaveSnap`, so the fallback's index is `≥ j` after the resync) or `snapSaved γd j` (received).
+So after a crash `σ.b ≤ i` or `snapSaved γd σ.b`, and: before the install's take, the file is still in T6's
+invariant (`c ≤ σ.b`); after it, if the rename did not survive, the file is back under its name and T10's keep
+(which received it from `snapHeld` through `OpenSnapshotBackend`) hands it to the image (`c = σ.b + 1`,
+`fileAt … ∗ □ srvImageM … σ.b Ds`). That is `snapRowB2` (drafted).
+
+**B3 (`bootLen ≤ i`).** Reachable values of `i` after a crash once the first `Save` is durable (else B4's first
+case, the fork's discard): `0` (no commit since the boot: the meta keys never written, `UnsafeUpdateConsistentIndex`
+never saves `0`) and every `k` inside the bootstrap batch (the backend's timer commit between two bootstrap
+`AddMember`s, each its own `LockInsideApply` cycle). `restModel c0 boot (A)` is defined for any prefix (`restBootBk`
+has empty member buckets, `memBoot` is in memory only), so the image at `i < bootLen` is meaningful: drop the row.
+Two leftovers for T4/T3 (not T10's): at `i = 0`, `imageRestAt`'s meta clause must accept absent keys, and a file
+whose buckets `NewServer` has not yet committed (a crash after the first `Save` but before the buckets'
+commit, if reachable) is T3's backend leftover, not an image.
+
+**New finding (membership row).** `applyConfChange` calls `beHooks.SetConfState` *before* the change's
+`AddMember`/`RemoveMember` takes the batch lock with `LockInsideApply` (which moves the stored index): a timer
+commit in between stores the new `confState` with the old index `k - 1` (`OnPreCommitUnsafe` writes a dirty
+`confState`). `∀ cs, v3ConfStateIs D cs → confStateIs cs m` at `m = confAt (k - 1)` is then false. Not a Go bug
+(the restart reapplies entry `k`; in `etcd_safe`'s static cluster only the bootstrap batch has conf changes),
+so no `issues/` file; a spec defect (ledger 2026-11-25, "T10"). Weakened row: `confRowW` (the configuration at
+`i` or at `i + 1`). A Go test would confirm the window.
+
+**The restatement of T4's `srvCrashImageAt` T10 needs** (exact text: `srvCrashImageAtR`, `wal.crashImageR`,
+`snapRowB2`, `confRowW` in the draft file):
+1. `wal.crashImage cl S σ i` → `wal.crashImageR cl S σ` (drop `σ.b ≤ uint.nat i`);
+2. drop `⌜γ.cl.bootLen ≤ uint.nat i⌝`;
+3. `⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝` → `confRowW γ.cl i D m`;
+4. the snapshot row `⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝` → `⌜γ.snapLoc id = some γd⌝ ∗ snapRowB2 γ dd σ i γd c`.
+And correspondingly in `bootstrapCrashContract`: drop `σ.b ≤ uint.nat i` and `γ.cl.bootLen ≤ uint.nat i` from its
+premise (keep `γ.cl.bootLen ≤ σ.commit`), add the `.snap.db` case (`recoverSnapshot` opens `<σ.b>.snap.db` when
+the backend's index is below it: `beExist`/`ci` cases, T9's), accept absent meta keys at `i = 0`. D-T7-2 (the
+snapshot directory's token) is independent and stays as proposed.
+
+### 3. Draft statements
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/crash/BackendImage.lean`, namespace `bkImage`: `confRowW`,
+`bkImg`, `bkImgAny`, `bkPayload`, `kbAnnounce.law`, `kbLand.law`, `kbSync.law` (over an abstract `KB` and the
+backend's `CV`), `wal.crashImageR`, `snapRowB2`, `srvCrashImageAtR`, `memberImageRowsR`, `memberBackend.law`.
+Not drafted (internal to sealed modules, written with their proofs): `cmtBodyK`/`cmtInvK` (backend), the
+`batchLockInv` row, `bkKeepInvK`, `mvccImage_commit.law`.
+
+### 4. Estimate and risks
+
+| piece | lines |
+|---|---|
+| C-I1 restatement (record without `path`) + derived resync lemma + re-review | 50-100 |
+| backend: crash-aware `cmtInv` with `KB`, the opens' posts, `unsafeCommit`/`ForceCommit`/`Close`/`Snapshot` re-proved, the backend-level crash lemma | 800-1400 |
+| mvcc `mvccImage_commit.law` and its proof inside mvcc | 300-600 |
+| server: `batchLockInv`'s image row kept at every unlock (normal entries, conf changes, the deferred index moves, the compactor), `bkKeepInvK` (name, counter, current backend), the install window, `SaveSnap`'s floor/`snapSaved` deposit | 1000-1600 |
+| `memberBackend_law_holds` and T7's adaptation | 200-400 |
+| total | **2400-4100** |
+
+**Riskiest step: the image row of `batchLockInv` at every unlock.** Today the image is proved only at quiescent
+points (the graceful stop, `Snapshot` from the apply thread between entries). At an arbitrary unlock the apply
+thread may be inside an entry: the conf-change window above (already forces a weakened spec), entries whose
+index moves without the lock (`applyEntryNormal`'s deferred `SetConsistentIndex`, a rejected conf change's
+`SetConsistentIndex`: harmless only if the entry wrote nothing), and the compactor's own batch cycles after the
+index moved (covered by `mvccImage`'s unfinished-compaction bit, to be checked). Second risk: the install window
+(two records, the name's disjunctive crash promise, the `.snap.db` file moving between T6's invariant and T10's
+keep). Third: C-I1's restatement must survive review. Do first: a Go test of the conf-change window, then the
+row's statement against `applyConfChange`'s proof.

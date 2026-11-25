@@ -7078,3 +7078,18 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   out `snapDirKeep … img' Rm'` (the proof weakens the kept files' image facts with `bigSepM_impl` before
   allocating the new invariant). `mvccImage` stays `@[no_expose]`; no `etc/api/*.txt` change. The law's only
   importer is `dist/crash/MemberCrash.lean` (`etc/importers.py --uses snapDir_crash`).
+
+## 2026-11-25: the backend's stored `confState` can be one conf change ahead of its stored index (T10, D6)
+
+- **Spec.** `srvCrashImageAt`'s (and `srvDiskImageAt`'s) row `⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝` with
+  `confAt γ.cl (uint.nat i) m` (`etcdserver/InvCrashImage.lean`), as the crash image of every backend commit.
+- **Defect.** `applyConfChange` calls `beHooks.SetConfState` before the change's `AddMember`/`RemoveMember` takes the
+  batch lock (`LockInsideApply` moves the stored index); a commit in between (the backend's timer) runs
+  `OnPreCommitUnsafe`, which writes the dirty `confState` with the old index. A crash then leaves `D` with the stored
+  index `k - 1` and the configuration of entry `k`. True only at quiescent points (the graceful stop).
+- **Evidence.** Code reading, `server/etcdserver/server.go:2036-2085` at the fork pin; no Go test yet. Not a Go bug (the
+  restart reapplies entry `k`).
+- **Proposed change.** The row `confRowW γ.cl i D m`: the configuration at `i` or at `i + 1`
+  (`dist/crash/BackendImage.lean`), with T10's other restatements of `srvCrashImageAt` (B2 `snapRowB2`, B3 dropped):
+  `notes/etcd-dist-d6.md`, "T10 design".
+- **Decision.** Pending (coordinator-E / T4). Not edited.
