@@ -188,7 +188,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 bounded output). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : Names) (i : KIn) (Φ : KOut → IProp GF) :
     lin (Gg := Gg) (kvR γ) i Φ ⊢ opAU (G := Gg) γ.rab i.1 (fun _ _ o => Φ (clampO o)) := by
-  unfold lin opAU
+  refine (lin_linF (kvR γ) i Φ).trans ?_
+  unfold linF opAU
   simp only [kvR]
   iintro Hlin
   have hE : (⊤ \ rabiaE : CoPset) = cliE := rfl

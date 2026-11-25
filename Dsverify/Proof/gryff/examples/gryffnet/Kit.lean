@@ -227,7 +227,8 @@ theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : ProtoNames) (i : In) (Φ : w64 �
     intro v
     show ((applyG v i).1, (applyG v i).2.V') = _
     rw [applyG_casApply]
-  unfold lin opAU
+  refine (lin_linF (casR γ) i Φ).trans ?_
+  unfold linF opAU
   show iprop(|={⊤ \ ↑gryffN, ∅}=> ∃ st, regHalf γ st ∗
       (regHalf γ (casBK.step i st).1 ={∅, ⊤ \ ↑gryffN}=∗ Φ (casBK.step i st).2)) ⊢ _
   simp only [hs]

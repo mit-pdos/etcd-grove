@@ -121,7 +121,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 postcondition read on the bounded output). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (Γ : Names) (i : BStr) (Φ : BStr → IProp GF) :
     lin (Gg := Gg) (woR Γ) i Φ ⊢ opAU Γ i.1 (fun w => Φ (bnd w i)) := by
-  unfold lin opAU
+  refine (lin_linF (woR Γ) i Φ).trans ?_
+  unfold linF opAU
   simp only [woR, woB, woStep_eq]
   exact .rfl
 

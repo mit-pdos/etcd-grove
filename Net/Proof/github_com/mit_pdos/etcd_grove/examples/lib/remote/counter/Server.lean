@@ -90,7 +90,8 @@ theorem Server.wp_proof
       unfold syncInv
       iinv Hsync' with >Hi Hclose
       icases Hi with ⟨%n, Hg, Hcs⟩
-      unfold lin
+      ihave HL := lin_linF (Gg := hG.goose_globalGS) (cR γs) i Φ $$ HL
+      unfold linF
       have hE : (cR (GF := GF) γs).Eop = ↑syncN := rfl
       rw [hE]
       imod HL with ⟨%st, Hst, Hk⟩
