@@ -2622,3 +2622,54 @@ first try (5092 jobs); `premise-witness --check` (48 statements) and `tier-check
     already follows;
   - (b) give the shares here as their global parts, and rebuild `kvOrchPre`/`kvNodePre` inside the boot
     lemma at the machine's `hG` (`levelTok 0` is machine-local anyway).
+
+### 21.1 Checkpoint (2026-11-25 ~23:30Z, head `ecbdc08ef2` + this note)
+
+**Merged into this branch:** `etcd-safe-nc-n5/2026-11-25` @ `69f9417d8b` (N5: `member_boot_dist`, `BootFacts`
+pinned), `etcd-safe-p12/2026-11-25` @ `758571cd38` (P12's per-premise lemmas, already reconciled with this
+branch's `PremiseWitness` names) and etcd-grove-03's `etcd-safe-m1` @ `21db702041` (P9 on the line, `Start.lean`
+ported to Γ). One conflict, in the notes: both appended sections are kept.
+
+**Done since §21:**
+- M1's statement now has the pinned binders, `(boot) (Hbf : BootFacts d boot)`; `_of_full` and `_of_boot`
+  follow them.
+- `bootFacts_witness d hm ht : BootFacts d pgBoot` is now proved from N5's `satD_ps`/`satD_ctxs`. This works
+  because `distPs`/`distCtxs` read only the members and the token, so there is one computation of Go's peers and
+  contexts. `witnessMember_id` is dropped, since it duplicated `satD_ids`. P12's `witnessDeployment_boot`, its
+  `etcd_robust(_nocrash).premisesSat` and M1's witness are updated to the new arity.
+- `kvMemberBoot`: EtcdKvBootNC's member part, N5's `member_boot_dist` at `σs[i]`. Its share is
+  `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`.
+- The baseline header's broken `etc/premise-py` is restored to `etc/premise-witness.py`.
+
+**VM build** (`BootFactsSat`, `PremiseWitness`, `dist/TopLevelWitness`, `server/AdequacyMember`,
+`kvremote/Start`, `kvremote/Link`):
+- built: everything but `kvremote/Link`, including the pinned witnesses, `AdequacyMember` and `Start`;
+- **failed: etcd-grove-03's `kvremote/CallDist.lean`** at `21db702041`. Six errors "typeclass instance
+  problem is stuck: `go_etcd_io.etcd.client.v3.Assumptions`" (lines 69, 175, 259, 322, 391, 785), from their
+  port. That is their file, so it is left to them.
+- `kvremote/TopLevelRobustness` and `kvremote/TopLevelWitness` wait for `KvDefs` (`etcd-safe-n7kv-nc2`).
+
+**Next, in order:**
+1. When `etcd-safe-n7kv-nc2` and a fixed `etcd-safe-m1` are pushed: merge both, then build the kvremote
+   M1 modules.
+2. **The members' start** (the alignment of `Start.lean`'s `member_boot_dist.law`, ours to do). Instantiate
+   `MS Γ := ∃ c, ⌜c.view = Γ⌝ ∗ [∗list] i ↦ _ ∈ d.members, memberShareD c d (distPs d) (distCtxs d) boot i`,
+   with `boot` a new parameter of the law. Then prove the law, which nobody has proved yet. It is a variant of
+   `etcdClusterStart` at N5's indexed peer facts:
+   - `clusterAllocN` first, then `S5Interim.http_addr_set` at `c.γ` for every peer address, then
+     `members_svc_start`'s client part at `c.view`;
+   - `clusterMembersOf d = cmsD d`, by `List.zip`/`map`;
+   - `(kvR c.γk).sysState init` from the lease-mode-`none` `etcdKV c.γk (kvModelSt c.γk (bootEntries …))`.
+     This needs `GoodKV`, `absSt = init` and `kvGood` of the boot state (`InvBuild.kvModelSt_boot`).
+   Either a new defs module beside `Start.lean`, or `Start.lean` itself (allowed for the alignment).
+3. **Shares at `GooseGlobalGS`** (option (b), with etcd-grove-03's files untouched). Use putget's pattern,
+   `∀ L, X (hG := heapAt G L lctx)` (`putget/Defs.lean`'s `clientShare`). The start's updates (`kv_start`,
+   `kv_start_deployment`) are stated under `[hG : HeapGS]`, so running them at the start needs some local
+   state `L₀`. A probe is checking whether `GooseLocalGS GF` is inhabited. If it is not, (b) does not work
+   and etcd-grove-03 must restate `kvOrchPre`/`kvNodePre`/`kv_start` at `[Gg : GooseGlobalGS]` (option (a)).
+4. The orchestrators' and client machines' boot WPs: `BootBad.clientBadWp`'s initialization, then
+   `wp_OrchestratorKv kvOrchPre` / `wp_NodeDeploymentKv kvNodePre`. `levelTok 0` comes from
+   `threadTok_level0`, and `Orch.spec → Orch.specWith` is a timeout specialization.
+5. `EtcdKvBootNC` from steps 2-4 (`netProto_alloc`, the empty-workload case separately), then
+   `etcd_kv_safe_nocrash := etcd_kv_safe_nocrash_of_boot …`. Then the full VM build, the gates and
+   `tcb-report --check --update` (etcdhttp's two init axioms enter the baselines).
