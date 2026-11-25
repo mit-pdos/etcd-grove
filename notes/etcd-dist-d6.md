@@ -955,3 +955,57 @@ Checkpoint 2026-11-24: raft (a) and the law done; server job in the law's form. 
 `rnRestart_cmtBefore` (server, `ReplayJob.lean`): `rnRestartOk γ ∗ raftState γ.node.cl γ.id S0 ∗
 ⌜S0.term = γ.t0⌝ ∗ srvRaftLogInv … ∗ srvRLogLb γ.srv γ.a0 ⊢ |={⊤}=> raftState … S0 ∗ cmtBefore γ.node.cl
 γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.
+
+**2026-11-25, option (a), item 1 closed; item 3's pure lemmas proved.** No axiom, no `sorry`, no new
+top-level premise, no Go change.
+
+*Item 1, L1 at the restart (done, `c62ac989e4`).* Made at the producer, not in `raftNode.start` (whose
+loop state has moved past `S0` by then): `NodeStartLinked`'s restart arm holds `raftState γr.cl cv.ID' S`
+with `σ.hs.Term' = S.term` (`StorageHolds`), `isCluster` and the image `isCommittedLogLb (A₀.map toLE)`
+(already there for `replaySeed_facts`), and applies `raftState_cmtBefore`. The mark goes in the restart
+data: `rnRestartOk`'s restart disjunct gains `cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.
+New (`InvRaftNode.lean`): `rnRestart_cmtBefore (γ) : rnRestartOk γ ⊢ ⌜γ.a0 ≠ []⌝ -∗ cmtBefore γ.node.cl
+γ.id γ.t0 (γ.a0.map EntryModel.toLE)`. Built (VM): `NewServerCrash`, `NodeStartLinked`, `ReplayJob`,
+`AuthCompRows` and their cones (4993 jobs), green.
+
+*Item 3's pure lemmas (`ReplayCoverage.lean`; built with the server's `Link`, 9494 jobs, green).*
+- `replayHistoryMatches_append rs S S' n k first rest idx (h : replayHistoryMatches rs S n)
+  (hcut : replayCutIndex rs first.index k) below here : replayHistoryMatches ((first :: rest).foldl
+  replayAddEntry (replayRetain rs k first.index)) S' n`, with `below : ∀ ci t, n < ci → ci < first.index →
+  plogTermAt S' ci = some t → plogTermAt S ci = some t` and `here : ∀ ci t, n < ci → first.index ≤ ci →
+  plogTermAt S' ci = some t → ∃ e ∈ first :: rest, e.index = ci ∧ e.term = t` (`appendEntries_nonempty`'s
+  output; replaces `rnReplayState.appendEntries`' `above`, i.e. `Ha0p`).
+- `replayHistoryMatches_same rs S S' n m h (hb : S'.base = S.base) (he : S'.ents = S.ents) (hm : n ≤ m)`
+  (an empty batch, the tick arm).
+- `plogTermAt_next_batch S term vote commit first rest idx (hb : uint.Z S.base.index' < uint.Z
+  first.index) (hwf : PlogWf S'.base S'.ents)` with `S' := S.next term vote commit none ((first ::
+  rest).map toM)`: `below ∧ here` (without the cursor). `hwf` from `raftState_logView` at the entered
+  `S'`; `hb` from `rnReadyData`'s `p.Commit' < first.index` plus `S.base.index ≤ p.Commit'` (to find:
+  `rnLoopTokP`/`durPers`; else take it from raft's `Ready` post).
+  For a snapshot `Ready`: `S.next … (some sn) es` has the base/ents of `{S with base := snapId, ents :=
+  []}.next … none es` (by `rfl` on the fields), and `replayHistoryMatches [] {base := snapId, ents := []}
+  n` holds for `n ≥ snapIdx` (no entry above), so the lemma applies after the reset.
+
+*The design for items 2-4 (read off the code; not started).* The job is `applyAll`'s precondition
+(`taReplayBatch`, `EtcdServer__run.lean:1436` from the payload's field) and is used only after
+`<-apply.notifyc` (`EtcdServer__applyAll.lean:214`, the merge at :481). So:
+- `rnReplayState γ view n` → `rnReplayState γ view S n := ∃ runs, view ↦*□ runs ∗ ⌜replayHistoryMatches
+  runs S n⌝`, `S` the loop's durable state (`rnLoopTokP`'s); the seed is `replaySeed_facts`' `DurAgrees`
+  form (the WAL's entries are `S0`'s); `.advance` by `replayHistoryMatches_after`, `.appendEntries` by
+  the lemmas above, with `S'` the receive's (`rn_ready_recv` names it before the `Save`).
+- The payload (`rnApN`, `rnApSnap`, `InvRaftLoop`'s copy): `∃ S, rnReplayHist γ ap.replayTerms' S n ∗
+  ⌜S.term = ap.raftTerm' ∨ uint.Z ap.raftTerm' = 0⌝` in place of `rnReplayJob`, and the same `S` in the
+  `notifyc` deposit: `isNotify γnc ap.notifyc' (rnApR γ F ce ∗ rnLeadLaw γ S)` with `rnLeadLaw γ S :=
+  ⌜γ.a0 ≠ [] ∧ uint.Z γ.t0 < uint.Z S.term⌝ -∗ □ (snapshotLeader γ.node.cl γ.id S.term ={⊤}=∗
+  ⌜durLogAgrees S (γ.a0.map toLE)⌝)` (the snapshot's `isNotify2`: on the first send).
+- Item 2: after `rn_enter`/`rn_enterS` (`raftNode__start.lean:721, :1540`), `raftState_leadAgree` with
+  `rnRestart_cmtBefore`, `srv_confFixed` and `isCluster` (from `rnEnvOk`'s `srvClusterOk`) gives
+  `rnLeadLaw γ S'`; the `notifyc` sends deposit it.
+- Item 4: `taReplayBatch` carries the history; `applyAll` builds `rnReplayJob` after the receive by
+  `rnReplayJob_of_history` + `rnReplayJob_premise_of_lead` (its law premise made conditional as above).
+
+Checkpoint 2026-11-25. **Next statement:** `rnReplayState` over the durable state, `def rnReplayState
+(γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) : IProp GF := iprop(∃ runs, view ↦*□ runs ∗
+⌜replayHistoryMatches runs S n⌝)`, with `rnReplayState.appendEntries` re-proved over
+`replayHistoryMatches_append`/`plogTermAt_next_batch` (`S → S'`), then the loop invariant of
+`raftNode.start` (`Hhistory`) at `rnLoopTokP`'s `S`.
