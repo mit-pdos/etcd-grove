@@ -25,6 +25,53 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: `wal.restartOk` over the reader's fold -- not enough for P5-RESTART: the history's snapshot certificates must cross the restart, and the contract's `Save` is not a step of the reader's fold (D6-T2 / P5, etcd-safe-p5)
+
+- **Spec.** `wal.restartOk` (`etcdserver/WalApi.lean`, inside `bootOkR`/`bootstrapCrashContract`), the
+  restatement approved by coordinator-E on #50 (2026-11-25 15:22Z, item 1: over `walRead Hs`, with the
+  post-restart contract `isWalStorage`'s `WalSaveOk`/`ViewOk` against `walRead Hs`); `rnRestartAllocK.law`
+  (`etcdserver/InvWalCrash.lean`), whose proof holds the `sorry` P5-RESTART; `rnDurInvK`'s `walHistCerts`;
+  `walRecsH` (`storage/WalRecsH.lean`) and the contract's `walSaveH.law`.
+- **Defect.** Two, found while scoping the restatement (no Lean changed):
+  1. **Certificates.** P5-RESTART is `walHistCerts γn.cl sd Hs` at the restart: `snapshotValid` (with
+     `snapMade`, a registry entry: not derivable) of every snapshot record of the restart's history. The
+     reader's fold does not remove the need: a record `snap m` dropped at the restart (above the commit `c`,
+     the window of the 09:02Z report) is kept again by every later read once a `Save` commits at or above
+     `m` (`walRead` filters by the *last* commit), and that read's snapshot is then `snap m` (`walRead_snapSrc`),
+     whose certificate `rnDurK_crash.law` must give (`walSnapCert` of the image). So the certificate of
+     every snapshot record above the restart's commit must reach the new generation. Nothing carries it:
+     `wal.restartOk` names no cluster, `wal.stopImage`/the crash image hold only the read records'
+     certificate (`walSnapCert cl σ`), and `rnDurK_crash.law` gives only the image's.
+  2. **The contract's `Save` after such a restart.** `walRecsH h σ Hs` asserts the eager fold
+     (`walFoldChkFrom walFresh Hs = some σ`), and `walSaveH.law` moves `σ` to `walSave σ hs es`. Over the
+     reader's fold neither holds: `walRead (Hs ++ [save hs es])` is not `walSave (walRead Hs) hs es` once
+     `hs` commits at or above `m` (the fold then re-bases at `m`: base `m`, entries above `m` only), and
+     the eager fold `σe` (base `m`, no entries) refuses `WalSaveOk σe es` for the entries raft saves from
+     `c+1`. So "the contract over `walRead Hs`" is not `walSave` on a different record set: the contract's
+     post must name the new history's read (or only the history), `walRecsH` must drop or change its fold
+     row, and the invariant's `ViewOk`/`ImgOk` must accept a read whose base `m` lies above the handed
+     log (`σ.b ≤ v.l.length` fails when the `Ready` that commits `m` hands fewer entries; `snap m`'s
+     certificate gives a committed log of length `m` instead).
+- **Evidence.** `InvWalCrashSteps.lean`'s `rnRestartAllocK_law_holds` (the `sorry`: `walHistCerts γn.cl sd Hs`
+  with `sd` and the records' history arbitrary); `walRead`'s definition (`storage/WalHist.lean`:
+  `walKeep (walLastHS I).Commit'`); `walSaveSnap` (`WalRecsCore.lean`: a record above the commit empties the
+  entries); `readEnt` (an entry at or below the base resets the entries). In Go: `ValidSnapshotEntries` keeps a
+  snapshot record once the last hard state's commit reaches it, and `LoadNewestAvailable` then loads its
+  `.snap` file (written and synced before the record).
+- **Proposed change.** (a) Carry the certificates across the crash: `rnDurK_crash.law` also gives
+  `walHistCerts γn.cl νk.sd (Hs.take j)` (it holds them; persistent), and the restart slot carries them for
+  its history: either `wal.restartOk` gains the cluster and `sd` (`wal.restartOk cfg id cid w σ cl sd`,
+  holding `walHistCerts cl sd Hs`), or the image (`wal.stopImage`, `srvCrashImageAt`'s WAL row) holds
+  `∃ Hs, walHistOf … Hs ∗ walHistCerts cl sd Hs` tied to the slot's history. Either changes the restart hub
+  and T7's producer (the graceful stop's `rnDurK_take.law`/`raftNode.stop`'s post too, to give them). (b) The
+  contract over the history: `walRecsH h Hs` (no fold row; `walRead Hs` succeeding is the invariant's
+  `CrashReadsHold`), `walSaveH.law`'s AU over `Hs` with `WalSaveOk (walRead Hs) es`, and the invariant's
+  current records `walRead Hs`, with `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's
+  certificate. (b) touches `storage/WalRecsH.lean`, `RnNewStorage`'s contract proofs and every step law of
+  `rnDurInvK`.
+- **Decision.** Pending (coordinator-E / the etcd_safe lead). P5 stopped before editing: the approved
+  restatement alone does not discharge P5-RESTART, and (a) changes the restart hub's statements beyond it.
+
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,
@@ -6982,7 +7029,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `bootstrapContract` will become a per-function interim axiom (`bootstrap.wp_proofOne`'s pattern) before the
   etcd_safe packet; this strengthening lands in that axiom's text, to be reviewed with the axiom skill then.
 - **Decision.** Approved by coordinator-E on #50 (2026-11-25 07:04Z), for the etcd_safe branches, listed as
-  its own line in the final packet.
+  its own line in the final packet. (2026-11-25 15:22Z, #50 item 1: `wal.restartOk` and the post-restart
+  contract to be restated over the reader's fold `walRead Hs`, approved; not yet applied: see the entry
+  "`wal.restartOk` over the reader's fold -- not enough for P5-RESTART" above.)
 ## 2026-11-25: `fileutil.TouchDirAll.spec`'s post did not say the new directory's names are committed (P7, D6-T6)
 
 - **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).

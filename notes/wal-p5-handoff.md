@@ -10,6 +10,18 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-25, session 2, after #50 15:22Z item 1): **stopped, no Lean changed.** The approved
+  restatement (`wal.restartOk` and the post-restart contract over `walRead Hs`) does not discharge P5-RESTART:
+  (1) the `sorry` is `walHistCerts` of the restart's history, and a snapshot record dropped at the restart
+  (above its commit) is read again once a later `Save` commits past it, so its certificate must cross the
+  crash; nothing carries it (`wal.restartOk` names no cluster; the images and `rnDurK_crash.law` hold only the
+  read records' certificate). (2) After such a restart the contract's `Save` is no step of the reader's fold
+  (`walRead (Hs ++ [save])` re-bases at the dropped snapshot when the commit reaches it; the eager fold refuses
+  `WalSaveOk`), so `walRecsH`'s fold row, `walSaveH.law`'s post and the invariant's `ViewOk`/`ImgOk` change
+  too. Ledger: "`wal.restartOk` over the reader's fold -- not enough for P5-RESTART" (2026-11-25), with the
+  proposed changes (a) certificates through the crash law and the restart slot/image, (b) the contract over the
+  history. **Next**: the lead's decision on (a)/(b); then (b) first (it fixes the contract and every step law),
+  then (a) with T7's producer. Not done either: `etc/tcb-baseline.txt` for P5-RESTART.
 - **State** (2026-11-25, later): **the integration builds, restart allocation isolated.** `rnDurInvK` is in
   `isRaftNode`/`rnWalTokA` (with the T6 placeholder `⌜γ.walK.sd = fun _ => True⌝`), allocated in
   `bootstrappedRaft.newRaftNode` after `StartNode` (`rnDurK_alloc_fresh`) and after `RestartNode` (the named
