@@ -28,7 +28,7 @@ namespace logkvrw
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] Robustness.noExts Robustness.noExtsSemantics Robustness.noExtsInterp
 
 section adequacy
 

@@ -17,7 +17,8 @@ translated `CheckOperationsVerbose` with no timeout -- and panics unless the ans
 So no panic means porcupine answered `Ok`.
 
 It follows from Perennial's `goose_adequacy` (through `examples/lib/etcdstart/Adequacy.lean`'s `init_adequate`), as the counter's (`counter/Adequacy.lean`):
-the trivial extension (`common/TrivialExt.lean`; the proofs are generic over the extensions), a concrete ghost-state bundle `logkvsnapGF`,
+no extension (`Robustness.noExts`, `Robustness/NoExts.lean`; the proofs are generic over the
+extensions), a concrete ghost-state bundle `logkvsnapGF`,
 the bounds `N = n + 1` (time receipts) and `T = n + 2` (threads, `Proof/runtime/Threads.lean`),
 the package initialization (`logkvsnap/Init.lean`, at the program's table `PkgTable.lean`, both
 generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from `context`'s `isPkgInit`,
@@ -44,7 +45,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsna
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.PkgTable
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.TopLevelDefs
 
@@ -63,7 +63,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-! ## The ghost-state bundle -/
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] Robustness.noExts Robustness.noExtsSemantics Robustness.noExtsInterp
 
 /-- The functors: the register's (`registerGF`: the universal camera `AllG` at slot 0, then
 invariants, later credits, GooseLang's heap, prophecies and package state), and iris-lean's non-atomic invariants at slot 11. Every other slot is the unit
@@ -90,7 +90,7 @@ instance logkvsnapGF_gooseGpreS : GooseGpreS logkvsnapGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨logkvsnapGF_allG⟩, PUnit.unit)
+  goosePreGExts := PUnit.unit
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := logkvsnapGF_allG
 
@@ -132,7 +132,7 @@ theorem logkvsnap_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := logkvsnapGF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
   letI : HeapGS .hasLC logkvsnapGF := heapWith hG lctx
   have Hbound : receiptBound logkvsnapGF ≤ 2 ^ 63 := by rw [HN]; omega
