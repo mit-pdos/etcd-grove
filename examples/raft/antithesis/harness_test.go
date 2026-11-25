@@ -264,3 +264,34 @@ func summarize(evs []*check.Event, m Mode) summary {
 	}
 	return s
 }
+
+// TestReproducers keeps the minimized rejected streams of testdata/ rejected where they were: each
+// is a prefix of a run's stream, up to the report the model rejects.
+//   - e1-vote-before-write: AsyncStorageWrites without rawnode's hold (TestE1Reproducer): a
+//     candidate's vote request sent before the write of its new term (their E1);
+//   - split-hardstate-entries: a follower answering a request to append writes the new commit
+//     index before the request's entries (splitHardStateEntries, TestSplitOrders);
+//   - split-entries-hardstate: raft's README order: a follower's entries of a new term written
+//     before the HardState with that term (splitEntriesHardState).
+func TestReproducers(t *testing.T) {
+	three := check.SetOf(names(3))
+	cases := []struct {
+		file string
+		cfg  *check.Config
+		k    int
+	}{
+		{"e1-vote-before-write", &check.Config{Server: three, InitVoters: three, Bootstrapped: true}, 5},
+		{"split-hardstate-entries", &check.Config{Server: check.SetOf(names(5)), InitVoters: three,
+			Bootstrapped: true}, 46},
+		{"split-entries-hardstate", &check.Config{Server: three, InitVoters: three, Bootstrapped: true}, 40},
+	}
+	for _, tc := range cases {
+		evs, err := ndjson.ReadFile(filepath.Join("testdata", tc.file+".ndjson"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v := check.Check(tc.cfg, evs); v.Kind != check.Rejected || v.K != tc.k {
+			t.Errorf("%s: %v, want REJECTED %d", tc.file, v, tc.k)
+		}
+	}
+}

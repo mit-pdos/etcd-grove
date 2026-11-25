@@ -98,13 +98,14 @@ type Mode struct {
 // The write orders of Mode.Split (rawnode's Config.Split). DrawMode draws only the orders their
 // model accepts: one atomic write, or term-entries-commit. The other two are kept for the tests
 // that show what the model makes of them (harness_test.go, TestSplitOrders):
-//   - splitHardStateEntries writes a commit index before the entries it covers, against raft's
-//     documented order (README.md: "Entries first, then HardState"); the model rejects it at the
-//     first follower write where it does, with no kill (their own simulator's streams too, 30 of
-//     30 seeds, checked by package check);
-//   - splitEntriesHardState is raft's README order; the model rejects some runs with kills (their
-//     simulator: 5 of 30 seeds), a model limitation (plan §2; their E3 is this order with
-//     membership changes).
+//   - splitHardStateEntries writes the HardState before the entries, against raft's documented
+//     order (README.md: "Entries first, then HardState"); the model rejects the first write of a
+//     follower answering a request to append (new commit index, no entries yet), with no kill
+//     (their own simulator's streams too, 30 of 30 seeds, checked by package check);
+//   - splitEntriesHardState is raft's README order; the model rejects a write of entries of a newer
+//     term than the HardState on disk (a follower's first append in a new term: the term comes
+//     in the second write), a state it has no counterpart for, with no kill (their simulator: 5
+//     of 30 seeds): a model limitation (plan §2).
 const (
 	splitNone uint64 = iota
 	splitTermEntriesCommit
