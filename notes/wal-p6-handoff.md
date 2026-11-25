@@ -110,6 +110,14 @@
      naming the facts (`Create`, `WAL__Save`, `WAL__Sync`, `WAL__sync`, `WAL__ReadAll`, `Exist`,
      `Open*`, `WalViews`, `WalRecs`), and the tester (`member__save`/`__sync`/`__close`, `MemberRep`,
      `MemberInv`, `SaveAu`, `SnapAu`, its `Crash.lean`/`Inv.lean`, `restartRead`).
+   * Refinements (2026-11-25, later): (a) the incarnation can be the WAL directory's **inode** `j`, which
+     the layer already keys (`walDirKey dir j X`, `WalGS.γdk`, persistent elements): `Create` makes a fresh
+     directory (its temporary one renamed in), so a re-created WAL has a new `j`; the past states then pair
+     `s` with the map `dir ↦ j` of its WALs, and the facts take `j` (`walNamed dir j`, ...). (b) **Keep
+     `walGhost s`'s and `walGhost_init`'s signatures** (the incarnation map existential inside `walGhost`),
+     so that `Crash.lean`/`CrashPure.lean`, which P8 edits (`crashTo_start`/`CrashGood`/`walCrash_pure`'s
+     exact-prefix conjunct, `walCrashWal`), need no change; if the crash view's past-state facts must carry
+     `j`, tell the coordinator before editing them.
    * Size: the facts appear 330 times in 114 files (`walSyncedLb|walNamed|walLenLb|walPast|walDirIs|
      walDiskAt|walAbsent`); most uses only thread the new argument. Estimate 1,000-2,000 changed lines,
      of them 300-500 new (the ghost order and its laws, `DiscardUnsaved`'s spec and proof, 300-400);
