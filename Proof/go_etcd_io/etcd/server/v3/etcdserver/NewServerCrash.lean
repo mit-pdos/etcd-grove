@@ -60,7 +60,7 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
     iintro %Φ Hpre HΦ
     iNamed Hpre
     imod srvCrashImageAt_disk γ ρo id cfg.DataDir' S σ i A D mb M ⊤ hc $$ Himg with ⟨Himg, %Hw, HcT⟩
-    ihave #HbootR := bootstrapAtR_of_crash cfg U γ id N dir σ i A D M Hw hc $$ HbootC
+    ihave #HbootR := bootstrapAtR_of_crash cfg U γ id N dir σ i A D M Hw $$ HbootC
     iapply h' $$ [-HΦ HcT]
     · iframe
       iframe %Hγn
