@@ -228,7 +228,7 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     -- `g, err := leaseGrant(cli, expiryTTL)`: live in the member's lessor history from an index
     wp_apply (wp_leaseGrant cl x (Classical.choice hV) Γ mid _ hAs hlm) $$ [$Hlt] as %g %gerr ⟨Hlt, Hg⟩
     · iframe #
-    icases Hg with (⟨%Hgerr, %mg, #Hgid, -, -, ⟨%gi, %gl, #Hlive⟩, -⟩ | %Hgfail)
+    icases Hg with (⟨%Hgerr, %mg, #Hgid, -, -, %gi, %gl, #Hlive, -⟩ | %Hgfail)
     · subst Hgerr
       (try wp_auto)
       (try simp only [Hb3, _root_.and_self, ↓reduceIte])
@@ -338,9 +338,12 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     have Hb2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z clsl.len := ⟨Hn.1, by have := Hcll.1; word⟩
     have Hb3 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z idsl.len := ⟨Hn.1, by have := Hidl.1; word⟩
     have Hb4 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z oksl.len := ⟨Hn.1, by have := Hokl.1; word⟩
-    have Hbm : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z eps.len := ⟨Hn.1, Hif⟩
+    have Hif' : sint.Z n < sint.Z eps.len := by simpa using Hif
+    have Hbm : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z eps.len := ⟨Hn.1, Hif'⟩
+    have hzj1 : (gids.zip oks)[sint.nat n]? = some (idj, bj) :=
+      List.getElem?_zip_eq_some.2 ⟨Hidj_lookup, Hbj_lookup⟩
     have hzj : (cs.zip (gids.zip oks))[sint.nat n]? = some (cj, (idj, bj)) :=
-      List.getElem?_zip_eq_some.2 ⟨Hcj_lookup, List.getElem?_zip_eq_some.2 ⟨Hidj_lookup, Hbj_lookup⟩⟩
+      List.getElem?_zip_eq_some.2 ⟨Hcj_lookup, hzj1⟩
     ihave #Hgj := BigSepL.bigSepL_lookup hzj $$ Hgr
     iunfold expiryAt at Hgj
     icases Hgj with ⟨%aj, %Vj, %midj, #Hmcj, #Hcorej, Hσj⟩
@@ -362,6 +365,7 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
       iframe
       ipureintro; constructor <;> word
     simp only [↓reduceIte]
+    (try wp_auto)
     icases Hσj with ⟨%i, %σ, %Hσ, #Hσat⟩
     ihave #Hlb := lease.lessorAt_lb (Γ.ls midj) i σ $$ Hσat
     (try simp only [Hb2, _root_.and_self, ↓reduceIte])
@@ -436,12 +440,17 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     ipureintro; constructor <;> word
   -- after the checks
   (try wp_auto)
-  wp_if_destruct
-  · wp_apply wp_ended as %r -
+  by_cases hk : k = W64 0
+  · subst hk
+    simp only [_root_.decide_true, ↓reduceIte]
+    (try wp_auto)
+    wp_apply wp_ended as %r -
     (try wp_auto)
     wp_apply Hdv
     (try wp_auto)
     iapply HΦ; iframe Hlt
+  simp only [hk, decide_false, ↓reduceIte]
+  (try wp_auto)
   wp_apply wp_checked as %r -
   (try wp_auto)
   wp_apply Hdv
