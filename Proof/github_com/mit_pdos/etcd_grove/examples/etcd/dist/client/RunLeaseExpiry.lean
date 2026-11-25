@@ -291,6 +291,9 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
         iunfold expiryAt
         iexists x, Classical.choice hV, mid
         iframe #
+        have hzb : (zero_val Bool) = false := rfl
+        simp only [hzb, Bool.false_eq_true, ↓reduceIte]
+        itrivial
       iclear Hgr
       wp_for_post
       iframe
@@ -327,6 +330,7 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
   · iexists W64 0, _, _
     iframe
     ipureintro; exact ⟨by decide, by simp⟩
+  clear Hif
   wp_for IB
   wp_if_destruct
   · have hlt : sint.nat n < addrs.length := by word
@@ -442,14 +446,14 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
   (try wp_auto)
   by_cases hk : k = W64 0
   · subst hk
-    simp only [_root_.decide_true, ↓reduceIte]
+    (try simp only [_root_.decide_true, ↓reduceIte])
     (try wp_auto)
     wp_apply wp_ended as %r -
     (try wp_auto)
     wp_apply Hdv
     (try wp_auto)
     iapply HΦ; iframe Hlt
-  simp only [hk, decide_false, ↓reduceIte]
+  (try simp only [hk, decide_false, ↓reduceIte])
   (try wp_auto)
   wp_apply wp_checked as %r -
   (try wp_auto)
