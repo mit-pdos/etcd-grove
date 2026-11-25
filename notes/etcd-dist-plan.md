@@ -2372,3 +2372,130 @@ baseline change is exactly N2's: `etc/tcb-baseline.txt` and `putget-dist.txt` ga
 and `etcd_dist.KV_Get_dist.wp_proof` and lose `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`. `KV_Delete_dist`, `KV_Compact_dist` and `Txn_Commit_dist` are declared, but no
 root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, no `sorry`, no new top-level premise.
+
+## 22. N3: the watch stream contract (design, 2026-11-25; branch `etcd-safe-n3/2026-11-25`)
+
+The etcd_safe lead's spec phase for N3, the cross-machine contract of clientv3's `Watch` stream and
+`RequestProgress` (§18.5), which the watch, compact, cache and auth workloads need. Off M1's critical path (M1
+is kv-only). **Design only: no axiom added, nothing built** (no local Lean). Base `etcd-safe-nc-n2/2026-11-25` @
+`b35f8f67ca`. Drafts: `Spec/.../etcd/dist/WatchDist.lean` (`watchClientAt`, `Watch_dist.spec`,
+`RequestProgress_dist.spec`) and `Proof/.../etcd/dist/WatchDist.lean` (the two axioms' docstrings as text,
+nothing declared). Both are unbuilt and imported by nothing, but inside the `EtcdGrove` library's globs: the
+next VM build compiles them. The coordinator decides before any review or proof. (§19 and §21 are not on this
+line.)
+
+### 22.1 The workloads' watch calls, and what each check relies on
+
+| Workload | Client (machine, endpoints) | Calls (S = stream) | What the check reads of the responses |
+|---|---|---|---|
+| watch | O, all eps (one client of its own, opened before any write, kept across faults) | `Watcher.Watch(wk/, WithPrefix, WithRev(1), WithProgressNotify, WithCreatedNotify)` S | `Collect` up to the highest successful Put's revision (an error response or a closed channel ends it: no check); `Check`: exactly the writes, puts, strictly increasing, gap-free from 2. Relies on: the events arm (exactly the range's events from the cursor, in revision order, contiguous across responses and across reconnections), the progress arm skipping no event, the created notification keeping the position. Completeness from revision 1 (`WithRev(1)`). |
+| compact | O, all eps | `Watcher.Watch(k, WithRev(2))` S ×2 (the last round's key; then `checkCompactRev`) | First watch: `Collect` up to that round's Put; every event's value `"v"` (events arm; only this workload writes compact keys). `checkCompactRev`: the first response's `CompactRevision ≠ 0` gives `crev`; then a latest `Get`'s header is at least `crev + 1`. Relies on: the compaction revision being the cluster's permit (`cmpOkOf Γ.kv`: `kvRevLbZ Γ.kv (crev + Γ.kv.cret)`), `Γ.kv.cret ≥ 1` (the deployment's retention, `compactRetention`), and `KV_Get_dist`'s header revision. |
+| cache | O, all eps (the cache's client) | `cache.New` (its own watch: `Watch(cp/, WithPrefix, WithRev(r), WithProgressNotify, …)` S, through `isEtcdWatcher`; its `KV.Get` U); the cache's progress requestor's `Watcher.RequestProgress(ctx)` S; `c.Watch`, `c.RequestProgress`, `c.Get` are the cache's own (proved, no clientv3 call but those) | As watch (`Check`), plus `checkProgress`: the notification's revision at most the last event's (the progress arm: no event in `(c, p]`, every revision from 2 a put under the prefix); `checkGet` (the cache's store, from the events). RequestProgress: no logical effect (the notification is a response of the channel). |
+| auth | O: root's client (eps[0]) and u's (eps[1 mod k]), each one endpoint, with credentials; N: each principal one endpoint | O: root `Watch("", WithPrefix, WithRev(1))` S (everything), u `Watch("a", WithRange("b"), WithRev(1))` S; N: each principal's `Watch("c/", WithPrefix, WithRev(1))` S, which the server refuses | root: `CheckHistory` over the events (events arm, complete from 1) and a history invariant (every applied write permitted to its principal), which is N11's (auth-on writes, the members' auth names). u: every event a key u may read: the events arm alone (every key of `[a, b)` is permitted). Refused watch: no event at all, which needs the auth row (`watchCheckOk`: a response with events carries the server's check of the create, for the stream's token); the single-process gate `V.nm = 1` matches (each principal's client has one endpoint), but the row reads the member's auth tag and server: per-member auth names (N11). |
+
+No other workload watches (kv, putget, durable, authLease, leaseRead, leaseCatchup, leaseExpiry). Options used:
+`WithPrefix`, `WithRange`, `WithRev`, `WithProgressNotify`, `WithCreatedNotify`; all are `isRangeWatchP` options of
+the proved spec. `RequestProgress` only through the cache.
+
+### 22.2 What the contract reads of the cluster; what `Γ` gains
+
+The proved post (`watcher.Watch.spec`) reads, of its environment `V`: `V.kv` (its elements' `cmpOkOf V.kv`; the
+read update at `V.kst = γ.st`) and, only in the auth row, member 0's `tag`/`s` and `V.conn`. Everything else of `V`
+(each member's `v3rpc.WSrv`/`SrvW`: its server's heap locations, the apply environment of its incarnation, its
+store handle and certified log bounds) is in the precondition only (`isClientWatcher V w`'s `watchSrvFacts`).
+
+So, with the auth row dropped, the contract reads `Γ.kv` only, which §18.2 already showed restart-stable and
+server-owned:
+- **the history**: the read update's state variable `Γ.kv.st` (the cluster's `etcdKV`); the events are
+  `KVState.rangeEvents σ` of the state `σ` the update fired at (`σ` carries its log: `kvLogOkTo`);
+- **the compaction revision**: `cmpOkOf Γ.kv c` = `c = 0 ∨ kvCmpPermit Γ.kv c` = a positive `c` with
+  `kvRevLbZ Γ.kv (c + Γ.kv.cret)`, over the cluster's requested log `Γ.kv.rlog` and retention `cret`. §18.5's
+  worry ("`E.Cp` is a member's") is already resolved upstream of N2: since C3's watch side and strict M1 the
+  member's permit `crevOk` is `kvCpOk` at its KV names, and `cmpOkOf_same` moves it along `kvSame`;
+- **the progress revision**: `p ≤ σ.rev` and no event of the range in `(c, p]`, of the same `σ`.
+
+`kvCongr` keeps `st`, `rlog`, `cret` (and `c0`, `ch0`, `log0`, `cmp`) across a restart, so the statement is
+restart-stable. **`Γ` gains nothing for N3.** The auth row would need N11's per-member auth names in the view
+(§18.3's "Auth (N11)": `γa`, `KVNames.hist`, and here also the server's auth tag), which is where the refused
+watch's form belongs.
+
+### 22.3 The drafts
+
+| Draft | Function | Mirrors | Differences from the proved spec | Reads of `Γ` |
+|---|---|---|---|---|
+| `watchClientAt cl w eps V Γ` | (client predicate) | `kvClientAt` | the `Watcher` field `↦□ watcherIfaceOf w` for the `KV` field | `membersAt eps Γ` |
+| `Watch_dist` | `(*watcher).Watch` | `watcher.Watch.spec` (server side `v3rpc.watchSpec`) | `isClientWatcher V w ∗ ⌜V.kst = γ.st⌝` → `watchClientAt`, `γ := Γ.kv`; elements at `Γ.kv`; auth row and its bound `n` dropped (`Au := True`); any auth mode | `kv` |
+| `RequestProgress_dist` | `(*watcher).RequestProgress` | `watcher.RequestProgress.spec` | `isClientWatcher V w` → `watchClientAt`; post unchanged (`statusErrOk`) | none (`membersAt` only) |
+
+The workloads call `cli.Watcher.Watch` (an interface call on the `Client`'s `Watcher` field): a proved dispatch
+lemma per method gives them from the `(*watcher)` drafts, as the KV promotion lemmas do. The cache's and the
+watch workload's proofs use the adapter (`isEtcdWatcher_of_km`, `isEtcdProgressNotifier_of_km`,
+`isEtcdClient_of_km`), which today take `isKvWatcher w γ.kv` and apply the linked `watcher.wp_Watch`. Prove item
+(no trust): state each bridge over a persistent "watcher of KV `γk`" predicate (the triple of `watcher.Watch.spec`
+at a fixed `w` and `γk`), obtained in one process from `isKvWatcher` and the linked proof, and across machines from
+`watchClientAt` and `Watch_dist`; the bridges are then shared, not copied.
+
+**Resumption after a fault is inside `Watch_dist`, and the watch workload depends on it** ("kept across faults").
+It is not a separate function or statement: the single-process spec is already over a connection to several
+members (W3b; `run` reopens the stream after a non-halting error, re-creates each live substream from its resume
+revision, the cursor plus one, and the elements have one cursor across streams; proved, with the fork's four
+watch-resume fixes). Across machines the resumed stream may be at another member; its events are of the same
+cluster history and its progress notification comes only once its store reached the watcher's start
+(`progressIfSync`), so the post is the same. Errors, cancellation, compaction and a stream that never resumes are
+allowed outcomes: the error arm (position kept) and the channel's close; nothing says a response arrives.
+
+**Why neither can be proved now** (the standing rule's order; the full text is in the Proof file's draft
+docstrings): (1) the real Go is translated and proved in one process, over `watchSrvFacts V` (the `Watch` stream's
+registration at each member's address); across machines the stream is grpc's `NewStream` over the net extension,
+this line's S2 interface has unary table entries only, `etcdSvc` has no law and no proof establishes any bytes'
+protocols, so no `watchConnFacts V` exists for a remote member; (2) a Go model with the same behaviour is the grpc
+model, the same gap; (3) a trusted stand-in would trust the reconnection logic the single-process proof verifies.
+Retired by #24's S2 client side with streams (SW1's `.stream` entries, `NewStream` proved over the model,
+`etcdSvc`'s `Watch` entry defined), by `watcher.Watch.spec` over an `isClientWatcher` built from the table
+(`isNewClient_watcher_of`, `watchConnFacts_of_members`).
+
+**The watcher's environment (for the axiom review).** `New` fixes `V`, and the watcher's lock invariant keeps each
+stream's `isWGS V G`, which holds `watchSrvFacts V`. The drafts are stated for every `V` (as the KV contracts are;
+the posts read nothing of `V`). No proved spec opens the lock without `isClientWatcher V w` (every `watcher`
+method's spec takes it; `Client.Close` is names-only over `clientCoreAt`), so only these two axioms touch it. A
+retiring proof meets `∀ V` only after a client-proof refactor (no trust) that moves `watchSrvFacts` out of
+`isWGS` into what `run` learns per stream from the connection's table; without it, the theorem would be at the
+table's environment, a weaker statement. The same refactor is what `etcd_safe` (crashes) needs anyway: a `V`
+fixed at `New` lists each member's server values, which a restart changes.
+
+### 22.4 SW1's `.stream` route, compared
+
+SW1 (`phase7-switch` @ `fea0c78ee7`, not on `lean` nor on this line; its trusted text awaits the user's review,
+`notes/axiom-review/phase7-switch.md`) adds stream entries to the service table (`GrpcSvcEntry.stream ⟨Wq, Wp, up,
+dn, spec⟩`, `grpcStreamSvcAt`). The route: give `etcdSvc Γ mid` a law, its `"/etcdserverpb.Watch/Watch"` entry the
+member's `watchUp`/`watchSpec`, then build `watchConnFacts V` from the entries at every endpoint, and apply the
+proved `watcher.Watch.spec`/`RequestProgress.spec`/`Close.spec` unchanged (no client-side axiom).
+
+| | Per-function axioms (`Watch_dist`, `RequestProgress_dist`) | SW1's `.stream` entry |
+|---|---|---|
+| New trusted statements now | two Hoare triples, posts the proved spec's at `Γ.kv` | SW1's merge (its own trust changes, unreviewed), a law on `etcdSvc` (the `Watch` entry), and every member's `watchMemberFacts` (`srvWLaws`, `srvKVFacts`) at the client: published or axiomatized |
+| Names the trust mentions | `Γ.kv` only: restart-stable, server-owned | each member's `v3rpc.WSrv`/`SrvW` (its heap locations, its incarnation's apply environment, its store handle) in the table's index or entry: not restart-stable (§18.3 option A's failure), and values of another machine's heap inside a client fact |
+| Fit with decisions | §17.2 and item 6 (no `etcdSvc` law; per-function contracts at clientv3) | against both |
+| Proof reuse | bridges restated over a shared predicate (§22.3) | the proved watcher specs verbatim |
+| Retirement | each axiom becomes a theorem from `watcher.Watch.spec` once S2 has streams (plus the environment refactor for `∀ V`) | the law becomes a definition and the published facts proofs, with the same S2 stream work; restart needs the same refactor |
+
+Both retire by the same S2 stream work. The per-function route retires two statements that are corollaries of a
+proved spec at that point; SW1's route leaves a lawful table entry indexed by member values that must first be
+made restart-stable (a redesign of the index, not only a proof). **Recommendation: per-function axioms now**
+(smaller trust now, restart-stable, consistent with the N2 decisions, no dependency on SW1's review); take SW1's
+entries later as the vehicle of their retirement.
+
+### 22.5 Open questions
+
+1. **The route** (recommended: per-function, §22.4).
+2. **The auth row** (the refused watch): with N11 (per-member auth names in `Γ`), a stronger
+   `Watch_dist` form with the row for a one-endpoint client (`watchCheckOk` at the member's tag and server,
+   `authPubLbM` at its auth mode). Until then the auth workload's refused-watch check and `CheckHistory`'s
+   invariant are not provable across machines; naming at adoption by the naming rule (the stronger form takes
+   the plain name).
+3. **The environment refactor** (§22.3): before the axiom review, or recorded as the retiring proof's
+   obligation; it decides whether the retiring theorem keeps `∀ V`.
+4. **Deployment facts the workloads' proofs need, not trust**: compact's `Γ.kv.cret ≥ 1` (`WellFormed`'s
+   retention for the compact workload); watch's and cache's sole-writer property (every revision from 2 one of
+   the workload's puts: `needsSoleWriter`), as a client invariant over `etcdKV Γ.kv` the start allocates (as
+   `putGetInvK_alloc`).
