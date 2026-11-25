@@ -8,12 +8,12 @@ instance, built as a `theorem` (no `instance` of an `InitHyp` anywhere: etc/dsv/
 * a vocabulary `qv` (the statement quantifies over it): **local axioms** declaring real gRPC's and
   `sync.Map`'s representation predicates (`local_grpcV`, `local_mapOwn`) and `sync.Map`'s typed
   points-to (`local_syncMap_tp`);
-* the hypothesis classes `PbHyp`, `RandHyp` (`Seed`), `UtcHyp`, `SortHyp`, `PrintlnHyp`,
-  `grpc.GrpcHyp qv.grpc`, `grpc.GrpcWorldHyp qv.grpc`, `sync.MapHyp qv.map`: each field a **local
-  axiom** (every function they specify is names only: protobuf's `Marshal`/`Unmarshal` (the main
-  tree's translation), `math/rand.Seed`, `time.Time.UTC`, `sort.Ints`, `fmt.Println` (Perennial
-  47ec64a9d's), grpc (the part's own), `sync.Map`'s methods (Perennial's)), each the class's own
-  statement, argued of the real library in `Dsverify/Proof/raxos/Hyp.lean`.
+* the hypothesis classes `grpc.GrpcHyp qv.grpc`, `grpc.GrpcWorldHyp qv.grpc`, `sync.MapHyp
+  qv.map`: each field a **local axiom** (every function they specify is names only: grpc (the
+  part's own), `sync.Map`'s methods (Perennial's)), each the class's own statement, argued of the
+  real library in `Dsverify/Proof/raxos/Hyp.lean`. (Until dsv-fix4 also `PbHyp`, `RandHyp`,
+  `UtcHyp`, `SortHyp`, `PrintlnHyp`: per-function trust-boundary axioms now, which the proof
+  discharges them from.)
   One field is about Perennial's model, not Go's library: `MapHyp.ivt` (`sync.Map`'s memory respects
   the points-to `tp`). Perennial's own instances of it are `sorry` (`internal/sync.HashTrieMap` is an
   axiomatized type; `Hyp.lean`, `StoreInst.lean`): `local_syncMap_ivt` restates them.
@@ -66,29 +66,6 @@ end vocab
 section axioms
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-
-/-- **Local axiom (test-only)**: protobuf's `Marshal` of QuePaxa's messages (`Hyp.lean`). -/
-axiom local_pb_Marshal : proto.Marshal.spec (GF := GF)
-/-- **Local axiom (test-only)**: protobuf's `Unmarshal` into QuePaxa's messages (`Hyp.lean`). -/
-axiom local_pb_Unmarshal : proto.Unmarshal.spec (GF := GF)
-theorem pb_holds : PbHyp GF := ⟨local_pb_Marshal, local_pb_Unmarshal⟩
-
-/-- **Local axiom (test-only)**: `math/rand.Seed(seed)` returns (Go 1.24+: a no-op unless
-`GODEBUG=randseednop=0`; before, it reseeds the locked global source). -/
-axiom local_rand_Seed : math.rand.Seed.spec (GF := GF)
-theorem rand_holds : RandHyp GF := ⟨local_rand_Seed⟩
-
-/-- **Local axiom (test-only)**: `t.UTC()` returns some `Time` (`t.setLoc(&utcLoc)` on a copy). -/
-axiom local_time_UTC : time.Time.UTC.spec (GF := GF)
-theorem utc_holds : UtcHyp GF := ⟨local_time_UTC⟩
-
-/-- **Local axiom (test-only)**: `sort.Ints(x)` sorts `x` in place (`slices.Sort(x)`). -/
-axiom local_sort_Ints : sort.Ints.spec (GF := GF)
-theorem sort_holds : SortHyp GF := ⟨local_sort_Ints⟩
-
-/-- **Local axiom (test-only)**: `fmt.Println` of printable operands returns, the slice kept. -/
-axiom local_fmt_Println : fmt.Println.spec (GF := GF)
-theorem println_holds : PrintlnHyp GF := ⟨local_fmt_Println⟩
 
 section grpc
 variable [HasExt netExt] [π : NetProtoGS]
@@ -165,12 +142,11 @@ every machine's heap `heapAt G L`). -/
 theorem premises_hold :
     _root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF ∧
     _root_.Perennial.google_golang_org.grpc.InitHyp GF ∧
-    PbHyp GF ∧ RandHyp GF ∧ UtcHyp GF ∧ SortHyp GF ∧ PrintlnHyp GF ∧
     (∀ [NetProtoGS], grpc.GrpcHyp (cd := qpCodec) (local_qv (GF := GF)).grpc) ∧
     (∀ G : GooseGlobalGS HasLC.hasLC GF, grpc.GrpcWorldHyp (Gg := G) (local_qv (GF := GF)).grpc) ∧
     sync.MapHyp (local_qv (GF := GF)).map :=
   ⟨_root_.Perennial.github_com.go_redis.redis.v8.initHyp_holds,
-    _root_.Perennial.google_golang_org.grpc.initHyp_holds, pb_holds, rand_holds, utc_holds, sort_holds, println_holds,
+    _root_.Perennial.google_golang_org.grpc.initHyp_holds,
     fun {_} => grpc_holds, fun G => world_holds (Gg := G), map_holds⟩
 
 end bundle
@@ -190,14 +166,13 @@ theorem nonvacuous_premises :
     (∀ G L, letI := heapAt G L;
       _root_.Perennial.github_com.go_redis.redis.v8.InitHyp remoteGF ∧
       _root_.Perennial.google_golang_org.grpc.InitHyp remoteGF ∧
-      PbHyp remoteGF ∧ RandHyp remoteGF ∧ UtcHyp remoteGF ∧ SortHyp remoteGF ∧ PrintlnHyp remoteGF ∧
       (∀ [NetProtoGS], grpc.GrpcHyp (cd := qpCodec) (local_qv (GF := remoteGF)).grpc) ∧
       sync.MapHyp (local_qv (GF := remoteGF)).map) ∧
     (∀ G : GooseGlobalGS HasLC.hasLC remoteGF, grpc.GrpcWorldHyp (Gg := G) (local_qv (GF := remoteGF)).grpc) := by
   refine ⟨fun G L => ?_, fun G => world_holds (Gg := G)⟩
-  obtain ⟨h2, h5, h7, h8, h9, h10, h11, h12, -, h14⟩ := premises_hold (GF := remoteGF)
+  obtain ⟨h2, h5, h12, -, h14⟩ := premises_hold (GF := remoteGF)
     (hG := heapAt G L)
-  exact ⟨h2, h5, h7, h8, h9, h10, h11, h12, h14⟩
+  exact ⟨h2, h5, h12, h14⟩
 
 end statement
 

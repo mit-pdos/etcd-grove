@@ -19,18 +19,18 @@ machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepax
   axioms (`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`, `google-golang-org-grpc.md`);
 * `qv : hyp.QpVocab remoteGF`, the abstract vocabulary of the gRPC and `sync.Map` hypotheses (any:
   the premises below are about it);
-* protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`), math/rand's `Seed`
-  (`hyp.RandHyp`; the package-level `Intn` is Perennial's proved spec), `time.Time.UTC` (`hyp.UtcHyp`), `sort.Ints`
-  (`hyp.SortHyp`), `fmt.Println` (`hyp.PrintlnHyp`), gRPC's unary path over `qv.grpc` and the codec
-  `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap and every protocol registry `NetProtoGS`), a gRPC
-  world's registry can be allocated (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and
-  `sync.Map` over `qv.map` (`hyp.sync.MapHyp`);
+* gRPC's unary path over `qv.grpc` and the codec `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap
+  and every protocol registry `NetProtoGS`), a gRPC world's registry can be allocated
+  (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and `sync.Map` over `qv.map`
+  (`hyp.sync.MapHyp`);
 * the translation's `Assumptions` of the twelve commands (with, by their instances, those of every
   package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
-The initializers of the other libraries with no translation or model here (yaml.v2, io/ioutil,
-encoding/gob, grpc/codes) are per-package trust-boundary axioms (their `wp_initialize'`,
-`etc/tcb-collections/dsv-quepaxa.txt`), not premises; math/rand's is Perennial's proved
-`wp_initialize'`.
+Not premises: protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages, math/rand's `Seed`,
+`time.Time.UTC`, `sort.Ints` and `fmt.Println` are per-function trust-boundary axioms, and so are
+the initializers of the other libraries with no translation or model here (yaml.v2, io/ioutil,
+encoding/gob, grpc/codes; their `wp_initialize'`); every axiom the result rests on is listed in
+`etc/tcb-collections/dsv-quepaxa.txt`. math/rand's initializer and package-level `Intn` are
+Perennial's proofs.
 Proved in `Dsverify/Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean`.
 -/
 module
@@ -85,11 +85,6 @@ def quepaxa_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; google_golang_org.grpc.InitHyp remoteGF) →
     ∀ (qv : raxos.hyp.QpVocab remoteGF),
-    (∀ G L, letI := heapAt G L; raxos.hyp.PbHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.RandHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.UtcHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.SortHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.PrintlnHyp remoteGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L;
       raxos.hyp.grpc.GrpcHyp (cd := raxos.hyp.qpCodec) qv.grpc) →
     (∀ G : GooseGlobalGS HasLC.hasLC remoteGF, raxos.hyp.grpc.GrpcWorldHyp (Gg := G) qv.grpc) →
