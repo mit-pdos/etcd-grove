@@ -2462,6 +2462,8 @@ retiring proof meets `∀ V` only after a client-proof refactor (no trust) that 
 `isWGS` into what `run` learns per stream from the connection's table; without it, the theorem would be at the
 table's environment, a weaker statement. The same refactor is what `etcd_safe` (crashes) needs anyway: a `V`
 fixed at `New` lists each member's server values, which a restart changes.
+(Corrected by the axiom review, §22.7: `Client.Close.wp_proof`, an axiom, also locks the watcher, and the
+`∀ V` triples are not provable at today's `watcherMu` at all, not valid at `V.nm = 0`: sound by encapsulation.)
 
 ### 22.4 SW1's `.stream` route, compared
 
@@ -2595,3 +2597,55 @@ watch contract into a heap-free, `Γ`-indexed form. That redesign changes A1 and
 restarted member's `E` and mvcc names are new, so it needs a D6-style continuation, as P-L1 does for the
 lessor. Under (a)(ii) (a client-level entry) the entry is restart-stable, but it needs the same `WEnv`
 refactor.
+
+### 22.7 Implementation (2026-11-25; route (b); branch `etcd-safe-n3/2026-11-25`)
+
+Route (b) of §22.6, on the no-crash line. New files only; no existing trusted statement, Go code or top-level
+premise changed; no `sorry`.
+
+**What was declared.**
+- `Proof/.../etcd/dist/WatchClientDist.lean` (defs): `watchClientAt cl w eps V Γ` (moved out of the Spec draft,
+  as `kvClientAt` lives in `KVClientDist.lean`), its `Persistent` instance, and `watchClient_of_new` (proved):
+  `isNewClient cl eps V ∗ clientNoProxy cl ∗ membersAt eps Γ ⊢ ∃ w, watchClientAt cl w eps V Γ`, from the
+  `Watcher` field `isNewClient` names (as `kvClient_of_new`).
+- `Spec/.../etcd/dist/WatchDist.lean`: `Watch_dist.spec`, `RequestProgress_dist.spec`, statements exactly as
+  drafted in §22.3 (the DRAFT markers removed).
+- `Proof/.../etcd/dist/WatchDist.lean`: the two interim axioms
+  `axiom Watch_dist.wp_proof : Watch_dist.spec (GF := GF) (hG := hG)` and
+  `axiom RequestProgress_dist.wp_proof : RequestProgress_dist.spec (GF := GF) (hG := hG)`. The file header says
+  why they are axioms (the `Watch` stream's table entry cannot be stated before S2's etcd-side stream work,
+  §22.6), what retires them (route (a)), and that the `∀ V` form needs the watcher-environment refactor.
+
+**Review** (`notes/axiom-review/n3-watch-dist.md`; a fresh agent with the `axiom` skill, given the axiom text
+and the Go code: clientv3's `watch.go`, grpc-go v1.84, etcd's v3rpc watch server; Go evidence against fake
+servers in `notes/axiom-review/n3-watch-dist/`). Both **sound**; no statement changed. Docstring findings
+applied (`c9ad333c08`), re-reviewed closed:
+- F1: which halting cases give an error response and which close the channel with none (server cancel without
+  reason, the watch's context ended, `Close`); etcd's no-leader error halts too.
+- F2: a raw listener gives no response (`WaitForReady`): a closed channel when the caller's context ends.
+- F3 (the important one): at today's `watcherMu` a stream these calls add has no provable `isWGS V G` (it is
+  `False` at `V.nm = 0`), so the `∀ V` triples are not valid Iris triples at every `V` until the
+  watcher-environment refactor; they are sound by encapsulation (`mu` unexported; every lock-taking spec either
+  needs `isClientWatcher`, which no cross-machine program has, or is an axiom whose post reveals nothing:
+  these two and `Client.Close.wp_proof`). **Standing trigger**: any new spec or proof that locks the watcher
+  from `isNewClient`/`isClientWatcherCore` without `watchSrvFacts` must be reviewed with these axioms (in the
+  header and both `notes/audit.md` rows). Doing the refactor before a result rests on them removes the issue
+  (§22.5 question 3).
+- F5: "cursor plus one"; the auth bullet (every member serving `Γ` runs auth off, `Γ.auth` unconstrained).
+- Retirement: the retiring proof also needs what `watchConnFacts_of_members` takes (`context.ErrAny`,
+  `errors.AsTarget`, `Assumptions` instances, the members' `watchMemberFacts`), from the entries or the top level.
+- **F4, open, deferred**: `Serve_dist`'s docstring (on M1's line, so not touched here) must name the watch
+  streams; **the first commit that makes a result rest on these axioms carries the review's F4 text**, or F4
+  reopens.
+
+**Builds and checks.** The three modules build on the VM (4655 jobs, green; only the `π` unused-variable
+linter warning the KV specs also have). `etc/tier-check.py --check` ok (`WatchClientDist` defs, `WatchDist`
+spec and proof tiers; no new violation); `etc/bounds-check.py --check` ok (390, baseline 390). The axioms are
+reached by no result (nothing imports `Proof/.../dist/WatchDist.lean`), so `etc/tcb-baseline.txt` and the
+`etcd-dist` collection do not move; no collection line is added until a workload's proof reaches them.
+
+**Approval.** Declared on the branch per the coordinator's route decision (§22.6); as the ledger entry says
+(trust-boundary specs), the user's approval in the etcd_safe packet is still needed before they land.
+
+**Next (not done here).** The `Watcher` interface dispatch lemmas and the adapter bridges over a shared
+"watcher of KV `γk`" predicate (§22.3); the watch, compact and cache workloads' proofs; F4 with the first of them.

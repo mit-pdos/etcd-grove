@@ -729,3 +729,10 @@ The remaining baseline and the two generated admissions have not been discharged
 | axiom | verdict | reason |
 |---|---|---|
 | `transport.NewTimeoutTransport.wp_proof` | **false before 2026-11-25**; **fixed** (restated under `transport.tlsEmpty info`, Go's `info.Empty()`) | With `EmptyCN` and a certificate, `ClientConfig` reads the certificate file twice and dereferences the second `pem.Decode` block unchecked: a file rewritten between the reads panics (`TestClientConfigEmptyCNCertRewritten`, 5/5). With a certificate and `AllowedCN`, `baseConfig` logs through `info.Logger`, which panics on a zero `&zap.Logger{}`. The callers' configurations (`PeerTLSInfo` zero) meet the premise; it is `bootCfgOk`'s new conjunct and `Transport.Start.spec`'s. |
+
+### The N3 clientv3 watch contracts across machines (2026-11-25; branch `etcd-safe-n3/2026-11-25`; `notes/etcd-dist-plan.md` §22.6-§22.7; review `notes/axiom-review/n3-watch-dist.md`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `etcd_dist.Watch_dist.wp_proof` (interim; unreached by any result yet) | sound (fresh `axiom`-skill review; F1, F2, F3, F5 applied to the docstrings, statement unchanged) | `watcher.Watch.spec` with `watchClientAt` for `isClientWatcher`, `Γ.kv` for `V.kv`, no auth row; who answers as the KV contracts (only `Serve_dist` members register a `Watch` handler at a set address). **Standing review trigger (F3):** at today's `watcherMu` the `∀ V` triple is not provable (not valid at `V.nm = 0`); it is sound by encapsulation only, so any new spec or proof that locks the watcher from `isNewClient`/`isClientWatcherCore` without `watchSrvFacts` must be reviewed together with it. **Open, deferred (F4):** the first commit that makes a result rest on it must add the watch streams to `Serve_dist`'s docstring (the review's F4 text). |
+| `etcd_dist.RequestProgress_dist.wp_proof` (interim; unreached by any result yet) | sound (same review; F3 applied) | `watcher.RequestProgress.spec` with `watchClientAt`; post `statusErrOk`, no claim of the server's answer. The same F3 trigger and F4 condition. |
