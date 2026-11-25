@@ -44,15 +44,14 @@ abbrev checkCompactRev.spec : Prop :=
     (cid mid : w64) (γf γl γv : GName) (keys : List GoString) (val : GoString),
   key.length ≤ 2 → γr.kv.cret = 1 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch ∗
-      isNewClient cl [go!"127.0.0.1:23794"]
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch ∗ levelTok 0 ∗ (isNewClient cl [go!"127.0.0.1:23794"]
         (srvWEnv R (etcdstart.srvWOf R.E γr false) γr go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
       watchAddrFacts (srvWEnv R (etcdstart.srvWOf R.E γr false) γr go!"127.0.0.1:23794" [] null null go!"k" null γr.kv) ∗
       kvRegsAt (⟨go!"127.0.0.1:23794", E, γr, cid, mid⟩ : SrvAt GF) ∗ srvApi.kvLogLb E.γs [] ∗
-      roundsInv γr γf γl γv keys val ∗ kvInv γr.raft γr.kv }}
+      roundsInv γr γf γl γv keys val ∗ kvInv γr.raft γr.kv) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev))
       (Val #cl)) (Val #key))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 
