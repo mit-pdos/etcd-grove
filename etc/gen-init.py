@@ -6215,6 +6215,12 @@ def dsv_special():
     g = types.SimpleNamespace(**globals())
     for k in DSV_KITS:
         for p, cfg in (k.special(g) if hasattr(k, 'special') else {}).items():
+            if p in SPECIAL and p in getattr(k, 'OWN', ()):
+                # (dsv-retire-2, 2026-11-25) the kit's own translation of a package the main tree
+                # configures too (grpc's `codes` and `internal`): the kit's configuration, for its
+                # own generation only
+                DSV_OWN_CFG[(k.KIT, p)] = cfg
+                continue
             if p in SPECIAL:
                 sys.exit(f'gen-init: etc/dsv/{k.KIT}.py configures {p}, which already has a configuration')
             SPECIAL[p] = cfg
@@ -6222,6 +6228,7 @@ def dsv_special():
 
 
 DSV_CFG = {}  # a kit-configured package -> its kit
+DSV_OWN_CFG = {}  # (kit, package) -> the kit's configuration of its own translation of a main-tree package
 dsv_special()
 
 
@@ -6293,7 +6300,8 @@ def dsv_kit_raw(k, base):
         need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
         inst.update(dsv_inst)
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
-               for path, txt in gen(p, None if p in own and DSV_CFG.get(p) != k.KIT
+               for path, txt in gen(p, DSV_OWN_CFG[(k.KIT, p)] if (k.KIT, p) in DSV_OWN_CFG
+                                    else None if p in own and DSV_CFG.get(p) != k.KIT
                                     else SPECIAL.get(p))]
         for p, path in programs.items():
             path, txt = gen_table(p, path)

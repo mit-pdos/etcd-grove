@@ -16,7 +16,6 @@ public import Dsverify.Code.github_com.gogo.protobuf.gogoproto
 public import Dsverify.Code.github_com.gogo.protobuf.proto
 public import Dsverify.Code.github_com.rs.zerolog
 public import Dsverify.Code.google_golang_org.grpc
-public import Dsverify.Code.google_golang_org.grpc.codes
 public import Dsverify.Code.gopkg_in.yaml_v2
 public import Net.Code.net.http.chunk0
 public import Net.Code.net.rpc
@@ -44,8 +43,6 @@ theorem ExternalInit.github_com_rs_zerolog [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.github_com.rs.zerolog _root_.Perennial.github_com.rs.zerolog.initialize' := ⟨⟩
 theorem ExternalInit.google_golang_org_grpc [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.google_golang_org.grpc _root_.Perennial.google_golang_org.grpc.initialize' := ⟨⟩
-theorem ExternalInit.google_golang_org_grpc_codes [GooseExts] [GoGlobalContext] :
-    ExternalInit pkg_id.google_golang_org.grpc.codes _root_.Perennial.google_golang_org.grpc.codes.initialize' := ⟨⟩
 theorem ExternalInit.gopkg_in_yaml_v2 [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.gopkg_in.yaml_v2 _root_.Perennial.gopkg_in.yaml_v2.initialize' := ⟨⟩
 theorem ExternalInit.net_http [GooseExts] [GoGlobalContext] :

@@ -27,7 +27,6 @@ public import Dsverify.Proof.gopkg_in.yaml_v2.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
-public import Dsverify.Proof.google_golang_org.grpc.codes.Init
 
 @[expose] public section
 
