@@ -36,7 +36,7 @@ premises, to be discharged when each piece comes as one shared change:
   string keys.
 
 
-**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `PbHyp`, `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/google_golang_org/protobuf/proto/{Marshal,Unmarshal}.lean`, `math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `PbHyp` (its axiom review refuted it, `notes/axiom-review/dsv-fix4/quepaxa-pb.md`: `msg.marshalPre` admits any value of the runtime fields `state`/`sizeCache`), `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
 -/
 module
 

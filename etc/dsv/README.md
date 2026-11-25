@@ -63,8 +63,7 @@ one **trust-boundary `axiom` per Go function**, in `Dsverify/Proof/<pkg>/<fn>.le
 for a method), stating the class's field verbatim, over a **fixed vocabulary**: where the class was
 quantified over predicates (a token, a wire format), they become `opaque` constants
 (`math/rand/RngDefs.lean`'s `rngTok`, `encoding/gob/Vocab.lean`), and a pure law of them is an axiom
-too. An environment claim (no SIGUSR1 is sent; the OS's randomness does not fail; no
-`GODEBUG=randseednop=0`) is stated in the axiom's docstring. The top-level proof builds the class
+too. An environment claim (no SIGUSR1 is sent; no `GODEBUG=randseednop=0`) is stated in the axiom's docstring. The top-level proof builds the class
 from the axioms (`letI`/`haveI`, or a `*HypsHoldLinked`/`RandsLinked` theorem; in a kitgen kit the
 KITGEN statement key `discharged=[(class, term)]`), so the class stays the proofs' vocabulary and
 leaves the statement. Each axiom:
@@ -72,10 +71,12 @@ leaves the statement. Each axiom:
 - has an `axiom`-skill review by a reviewer given only the axiom, its Go function and its callers
   (`notes/axiom-review/dsv-fix4/`, indexed in `notes/axiom-review/README.md`); **a refuted axiom
   stays a premise**: craq's `LogHyp` (`fmt` calls an operand's `Format`/`GoString`, which `argOk`
-  admits) and rabia's `zerolog.Hyps` (`Msg` calls any writer's `Write`, which `New`'s spec admits);
+  admits) rabia's `zerolog.Hyps` (`Msg` calls any writer's `Write`, which `New`'s spec admits) and
+  quepaxa's `PbHyp` (the messages' representation admits any value of protobuf's runtime fields
+  `state`/`sizeCache`);
 - is counted in its kits' tcb collections (`etc/tcb-collections/dsv-<kit>.txt`).
 Left premises: craq's `RpcHttpServe` (waits on S5), the go-redis and grpc `InitHyp`s, quepaxa's
-`QpVocab`, `GrpcHyp`, `GrpcWorldHyp` (an allocation law of the ghost state) and `MapHyp` (its `ivt`
+`QpVocab`, `PbHyp`, `GrpcHyp`, `GrpcWorldHyp` (an allocation law of the ghost state) and `MapHyp` (its `ivt`
 stands in for Perennial's `sorry` instances of `sync.Map`'s memory: a model fact).
 
 ## Challenges: the dsverify skill and the challenge's `CLAUDE.md`

@@ -8,10 +8,10 @@ instance, built as a `theorem` (no `instance` of an `InitHyp` anywhere: etc/dsv/
 * a vocabulary `qv` (the statement quantifies over it): **local axioms** declaring real gRPC's and
   `sync.Map`'s representation predicates (`local_grpcV`, `local_mapOwn`) and `sync.Map`'s typed
   points-to (`local_syncMap_tp`);
-* the hypothesis classes `grpc.GrpcHyp qv.grpc`, `grpc.GrpcWorldHyp qv.grpc`, `sync.MapHyp
+* the hypothesis classes `PbHyp` (kept a premise: its axiom review refuted it), `grpc.GrpcHyp qv.grpc`, `grpc.GrpcWorldHyp qv.grpc`, `sync.MapHyp
   qv.map`: each field a **local axiom** (every function they specify is names only: grpc (the
   part's own), `sync.Map`'s methods (Perennial's)), each the class's own statement, argued of the
-  real library in `Dsverify/Proof/raxos/Hyp.lean`. (Until dsv-fix4 also `PbHyp`, `RandHyp`,
+  real library in `Dsverify/Proof/raxos/Hyp.lean`. (Until dsv-fix4 also `RandHyp`,
   `UtcHyp`, `SortHyp`, `PrintlnHyp`: per-function trust-boundary axioms now, which the proof
   discharges them from.)
   One field is about Perennial's model, not Go's library: `MapHyp.ivt` (`sync.Map`'s memory respects
@@ -66,6 +66,12 @@ end vocab
 section axioms
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+
+/-- **Local axiom (test-only)**: protobuf's `Marshal` of QuePaxa's messages (`Hyp.lean`). -/
+axiom local_pb_Marshal : proto.Marshal.spec (GF := GF)
+/-- **Local axiom (test-only)**: protobuf's `Unmarshal` into QuePaxa's messages (`Hyp.lean`). -/
+axiom local_pb_Unmarshal : proto.Unmarshal.spec (GF := GF)
+theorem pb_holds : PbHyp GF := ⟨local_pb_Marshal, local_pb_Unmarshal⟩
 
 section grpc
 variable [HasExt netExt] [π : NetProtoGS]
@@ -141,12 +147,12 @@ every global ghost state, for the vocabulary `local_qv` (the statement takes eac
 every machine's heap `heapAt G L`). -/
 theorem premises_hold :
     _root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF ∧
-    _root_.Perennial.google_golang_org.grpc.InitHyp GF ∧
+    _root_.Perennial.google_golang_org.grpc.InitHyp GF ∧ PbHyp GF ∧
     (∀ [NetProtoGS], grpc.GrpcHyp (cd := qpCodec) (local_qv (GF := GF)).grpc) ∧
     (∀ G : GooseGlobalGS HasLC.hasLC GF, grpc.GrpcWorldHyp (Gg := G) (local_qv (GF := GF)).grpc) ∧
     sync.MapHyp (local_qv (GF := GF)).map :=
   ⟨_root_.Perennial.github_com.go_redis.redis.v8.initHyp_holds,
-    _root_.Perennial.google_golang_org.grpc.initHyp_holds,
+    _root_.Perennial.google_golang_org.grpc.initHyp_holds, pb_holds,
     fun {_} => grpc_holds, fun G => world_holds (Gg := G), map_holds⟩
 
 end bundle
@@ -165,14 +171,14 @@ statement's own form (`quepaxa_remote_robust.spec`), for the vocabulary `local_q
 theorem nonvacuous_premises :
     (∀ G L, letI := heapAt G L;
       _root_.Perennial.github_com.go_redis.redis.v8.InitHyp remoteGF ∧
-      _root_.Perennial.google_golang_org.grpc.InitHyp remoteGF ∧
+      _root_.Perennial.google_golang_org.grpc.InitHyp remoteGF ∧ PbHyp remoteGF ∧
       (∀ [NetProtoGS], grpc.GrpcHyp (cd := qpCodec) (local_qv (GF := remoteGF)).grpc) ∧
       sync.MapHyp (local_qv (GF := remoteGF)).map) ∧
     (∀ G : GooseGlobalGS HasLC.hasLC remoteGF, grpc.GrpcWorldHyp (Gg := G) (local_qv (GF := remoteGF)).grpc) := by
   refine ⟨fun G L => ?_, fun G => world_holds (Gg := G)⟩
-  obtain ⟨h2, h5, h12, -, h14⟩ := premises_hold (GF := remoteGF)
+  obtain ⟨h2, h5, h7, h12, -, h14⟩ := premises_hold (GF := remoteGF)
     (hG := heapAt G L)
-  exact ⟨h2, h5, h12, h14⟩
+  exact ⟨h2, h5, h7, h12, h14⟩
 
 end statement
 

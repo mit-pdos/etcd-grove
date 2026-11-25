@@ -10,8 +10,6 @@ statement's per-heap hypotheses made instances on that machine's heap.
 -/
 module
 
-public import Dsverify.Proof.google_golang_org.protobuf.proto.Marshal
-public import Dsverify.Proof.google_golang_org.protobuf.proto.Unmarshal
 public import Dsverify.Proof.math.rand.Seed
 public import Dsverify.Proof.time.Time__UTC
 public import Dsverify.Proof.sort.Ints
@@ -101,7 +99,7 @@ end boot
 /-- **The QuePaxa kit, closed** (see the statement's file). -/
 theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hri hgri qv hgrpc hworld hmap σ g threads
+    hri hgri qv hpb hgrpc hworld hmap σ g threads
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRB
     (GF := remoteGF) quepaxaKitAddrs kitLis (system σ) g threads
     (2 ^ 63) kitLis_pairwise kitLis_disj ?_
@@ -157,7 +155,7 @@ theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     haveI : github_com.go_redis.redis.v8.InitHyp remoteGF := hri G' hG.goose_localGS
     haveI : google_golang_org.grpc.InitHyp remoteGF := hgri G' hG.goose_localGS
-    haveI : hyp.PbHyp remoteGF := ⟨hyp.proto.Marshal.wp_proof, hyp.proto.Unmarshal.wp_proof⟩
+    haveI : hyp.PbHyp remoteGF := hpb G' hG.goose_localGS
     haveI : hyp.RandHyp remoteGF := ⟨math.rand.Seed.wp_proof⟩
     haveI : hyp.UtcHyp remoteGF := ⟨hyp.time.Time.UTC.wp_proof⟩
     haveI : hyp.SortHyp remoteGF := ⟨hyp.sort.Ints.wp_proof⟩

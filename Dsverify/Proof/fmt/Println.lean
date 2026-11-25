@@ -7,7 +7,10 @@
 formats each operand with `%v` (`printArg`: a basic value by its kind, no method; an error's
 `Error()` after checking `Formatter`) and writes the result once to `os.Stdout`, returning the write
 error, never panicking on it. The premise `raxos.hyp.PrintlnHyp` of QuePaxa's statement until
-dsv-fix4, its field verbatim. Review: `notes/axiom-review/dsv-fix4/quepaxa-misc.md`.
+dsv-fix4, its field verbatim. **Condition** (the review's): `os.Stdout` holds the runtime's valid
+`*os.File` (Go panics after `os.Stdout = &os.File{}`); Perennial's model leaves `os.Stdout`
+unallocated, so no proof here can write it: when Perennial models it as a writable variable, this
+axiom needs that premise. Review: `notes/axiom-review/dsv-fix4/quepaxa-misc.md`.
 -/
 module
 
