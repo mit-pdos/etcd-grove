@@ -18,7 +18,7 @@ public import Perennial.Proof.time.Link
 public import KvRaft.Proof.internal.poll.Init
 public import KvRaft.Proof.os.Init
 public import KvRaft.Proof.syscall.Init
-public import KvRaft.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -14,7 +14,7 @@ public import KvRaft.Proof.internal.filepathlite.Init
 public import KvRaft.Proof.io.fs.Init
 public import KvRaft.Proof.os.Init
 public import Perennial.Proof.errors.NewVar
-public import KvRaft.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

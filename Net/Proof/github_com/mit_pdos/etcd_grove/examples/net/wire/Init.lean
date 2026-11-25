@@ -8,8 +8,8 @@ variable).
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Base
-public import Net.Proof.net.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

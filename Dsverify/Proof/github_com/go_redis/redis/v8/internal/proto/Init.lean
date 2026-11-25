@@ -9,7 +9,7 @@ kit's closed statement. Replace by the model's proved `wp_initialize'` when it l
 module
 
 public import Dsverify.Proof.github_com.go_redis.redis.v8.internal.proto.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

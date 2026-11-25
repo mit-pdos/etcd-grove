@@ -11,10 +11,10 @@ public import Dsverify.Proof.gryff.src.gryffproto.Base
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.gryff.src.fastrpc.Init
 public import Dsverify.Proof.gryff.src.state.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

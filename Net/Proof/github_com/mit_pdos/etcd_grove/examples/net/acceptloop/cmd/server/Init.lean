@@ -9,7 +9,7 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

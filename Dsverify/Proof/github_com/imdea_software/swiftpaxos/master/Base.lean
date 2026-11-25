@@ -13,7 +13,7 @@ public import Perennial.Proof.time.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Proof.encoding.json.Base
 
 @[expose] public section

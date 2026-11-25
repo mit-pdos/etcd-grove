@@ -17,7 +17,7 @@ public import KvRaft.Proof.internal.syscall.unix.Init
 public import KvRaft.Proof.syscall.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.errors.NewVar
-public import KvRaft.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -14,9 +14,10 @@ public import Perennial.Proof.time.Link
 public import KvRaft.Proof.github_com.anishathalye.porcupine.Init
 public import KvRaft.Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
 public import KvRaft.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Init
-public import KvRaft.Proof.github_com.mit_pdos.gokv.trusted_proph.Init
+public import Proof.github_com.mit_pdos.gokv.trusted_proph.Init
 public import KvRaft.Proof.go_etcd_io.raft.v3.Init
-public import KvRaft.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
+public import KvRaft.Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

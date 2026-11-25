@@ -10,7 +10,7 @@ module
 public import KvRaft.Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.strconv.Link
 public import KvRaft.Proof.google_golang_org.protobuf.internal.pragma.Init
-public import KvRaft.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

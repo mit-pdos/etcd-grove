@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.container.heap.PkgInit
 public import Perennial.Proof.sort.Link
 public import Proof.runtime.PkgInitExt
 

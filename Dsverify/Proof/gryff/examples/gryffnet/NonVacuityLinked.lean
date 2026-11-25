@@ -18,7 +18,7 @@ module
 
 public import Dsverify.Spec.gryff.examples.gryffnet.TopLevelRobustness
 public import Proof.math.Pow
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

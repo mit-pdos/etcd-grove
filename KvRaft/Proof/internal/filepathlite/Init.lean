@@ -11,7 +11,7 @@ public import Proof.internal.filepathlite.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.internal.stringslite.Link
 public import Perennial.Proof.errors.NewVar
-public import KvRaft.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
