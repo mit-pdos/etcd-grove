@@ -104,12 +104,13 @@ theorem Server.wp_proof
         simp [List.map_map, Function.comp_def]
       unfold descNames
       rw [h1, h2, hm, hs]
+      simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
       decide
     · intro sd hsd
       have hin := List.mem_map_of_mem (f := fun sd : google_golang_org.grpc.StreamDesc =>
         (sd.StreamName', (#sd.Handler' : val), sd.ServerStreams', sd.ClientStreams')) hsd
       rw [hs] at hin
-      simp only [drvStreams, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hin
+      simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, _root_.or_false] at hin
       rcases hin with ⟨-, -, h1, -⟩ | ⟨-, -, -, h2⟩ | ⟨-, -, h1, -⟩
       · exact Or.inr h1
       · exact Or.inl h2
@@ -126,7 +127,9 @@ theorem Server.wp_proof
         [] ++ descSRegs drvSvcName sds (interface.mkOk (go.GoType.PointerType server.ty) #sptr)⟩, [drvSvcName]
       isplitl [Hgs Hlo]
       · ileft
-        iframe
+        isplitl [Hgs]
+        · iexact Hgs
+        · iexact Hlo
       isplitr
       · ipureintro
         simp only [grpcSrvNodup, List.nil_append]
