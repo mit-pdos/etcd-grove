@@ -44,7 +44,7 @@ facts at `Γ`) and the error arm without `kvErr`, in any auth mode:
 * *Who answers.* The client dials the endpoints themselves: `clientNoProxy` (`grpc.WithNoProxy()` in its
   configuration: grpc-go never wraps the resolver in its proxy-resolving `delegatingresolver` nor dials
   through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, `TestProxyRogue`, `TestWithNoProxyFix`).
-  Each endpoint's table is set once by the start (`etcdAddr_set` spends `addrUnset`) and served only by
+  Each endpoint's table is set once by the start (`etcdAddr_set` spends `addrUnset`) and answered successfully only by
   `Serve_dist` at a member whose KV names are `kvCongr` to `Γ.kv`; `bridge.New` consumes `netAddrLeft`
   (review 4). Another program at the address (a raw listener, an empty gRPC server, the only server that
   serves the opaque table without its handlers) answers no call successfully: the error arm. So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
