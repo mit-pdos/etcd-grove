@@ -1252,3 +1252,20 @@ well above 3k lines across `InvRaftNode`, `raftNode__start` (2039 lines), `EtcdS
 `newRaftNode` and the WAL contract. (4) Open: the stop's taken state (`rnTakenK`): a member whose
 server stops gracefully and then crashes has its image in the stop's post, not in the crash's `Keep`;
 T7 must exclude it (the member never stops its server) or route the stop image to the crash.
+
+### P5 checkpoint (2026-11-25, branch `etcd-safe-p5`; `notes/wal-p5-handoff.md`)
+
+On round 3 (`57e4d118b7`, then `5a1c41d945` with P7) with d6t2 merged. **Proved** (no `sorry`, no axiom):
+the pure steps of `HistOkK` (`InvWalCrashPure`: `Save`, a received and an own `SaveSnap`, *enter*, the
+allocation at a first start, `histOk_fresh`, and at a restart, `histOk_restart`); the laws
+`rnDurK_{save,saveSnap,ownSnap,enter,take,alloc}` and `walSave{,Snap}H` (`InvWalCrashSteps`; with P8's
+`rnDurK_crash`, every step of `rnDurInvK`); the storage contract's `Save`/`SaveSnap` over `walRecsH` with the
+history and the synced bound (`isWalStorage`, `RnNewStorage`'s laws, `walSaveRn_spec`, `walSaveSnapH_spec`;
+the old record forms derived: `walSaveRnR_spec`, `walRecs_au_toH`); the boot slots with the history
+(`walOpenedH`; `wal.bootOk`: `walFresh`, `[]`; `wal.restartOk`: the synced mark at `|Hs|`, the index bound
+and the eager commit bound; `wal.Create.specSrv`'s post; `wal.{boot,restart}Ok_startK`). The approved text
+said the reader's `walCommitLe`; the slot states the eager fold's `walCommitLeFrom walFresh Hs`, which implies
+it and which `histOk_save` needs (ledger, 2026-11-25). Built: the 49 importer leaves on `4167bcf956` and after merging `5a1c41d945` (exit 0).
+**Left**: the integration (handoff, "Plan" step 4): `rnDurInvK` in place of `rnDurInv` in `isRaftNode` and
+the loop, allocated in `newRaftNode` after `StartNode`/`RestartNode`, the loop's `Save`/*enter*/`SaveSnap`,
+the stop's take, the apply thread's own snapshot.

@@ -3,7 +3,8 @@
 ## START HERE
 
 - **Date**: 2026-11-25 (session 1). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
-- **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7` (posted green on #50 07:18Z; same Perennial pin
+- **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7`, then its P7 update `5a1c41d945` merged in
+  (`fd7630f9da`) (posted green on #50 07:18Z; same Perennial pin
   `fce59af75`), with `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4` merged (`97ef57a342`: P8's
   `InvWalCrash`/`InvWalCrashLaws`/`WalRecsH` kept, d6t2's notes section as §10T2). (The first base,
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
@@ -12,7 +13,13 @@
 - **State** (2026-11-25): the decision is approved (coordinator-E, #50 07:04Z). Done: the pure steps
   (`InvWalCrashPure`), the six step laws (`InvWalCrashSteps`), the contract's `Save`/`SaveSnap` over `walRecsH`
   (`isWalStorage`, `RnNewStorage`), the boot slots with history (`walOpenedH`, `wal.bootOk`, `wal.restartOk`,
-  `wal.Create.specSrv`; ledger entry). Left: the integration (below). Remote builds: fk-lean2's `wt/etcd-safe-p8`
+  `wal.Create.specSrv`; ledger entry). Built: the 49 importer leaves of the change
+  (`etc/importers.py --leaves`) on `4167bcf956`, fk-lean2, 13,792 jobs, exit 0, and again after merging `5a1c41d945` (13,794 jobs, exit 0); `etc/tier-check.py --check` ok.
+  The eager commit bound: `wal.restartOk` states `walCommitLeFrom walFresh Hs` (the eager fold's), which implies
+  the approved reader form `walCommitLe` (`walCommitLe_of_fold`) and is what `histOk_save` needs (ledger entry).
+  Left: the integration (below); a first WIP of its `InvRaftNode` part (`RNNames.walK`, `raftState` out of
+  `rnDrv`/`rnBusyN`/`rnPendEnter`/`rnBusyS`, `rn_enter{,S}` removed, `isRaftNode`'s `#Harm`) is in
+  `git stash` "P5 integration WIP". Remote builds: fk-lean2's `wt/etcd-safe-p8`
   through the scratch ref `etcd-safe-p8` (a copy of `fklean1-check.sh` resolving `LOCAL_REV=etcd-safe-p5`).
 
 ## What exists (P8's proposal (3) + d6t2's WIP)
