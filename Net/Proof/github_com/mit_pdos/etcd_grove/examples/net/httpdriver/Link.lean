@@ -24,10 +24,6 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.httpdriver.c
 public import Net.Proof.net.http.Results
 public import Net.Proof.net.http.Serve
 public import Net.Proof.net.http.ServeMux__ServeHTTP
-public import Net.Proof.net.http.NewServeMux
-public import Net.Proof.net.http.HandlerFunc__ServeHTTP
-public import Net.Proof.net.http.Header__Set
-public import Net.Proof.net.textproto.MIMEHeader__Set
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Conn__Write
@@ -82,15 +78,13 @@ theorem wp_Client : Client.spec (GF := GF) (hG := hG) := Client.wp_proof wp_belo
 
 theorem wp_echo : echo.spec (GF := GF) (hG := hG) :=
   echo.wp_proof io.wp_ReadAll
-    (net.http.Header.Set.wp_proof (net.textproto.MIMEHeader.Set.wp_proof
-      net.textproto.CanonicalMIMEHeaderKey.wp_proof))
-    net.http.Header.Get.wp_ro
+    net.http.Header.Set.wp net.http.Header.Get.wp_ro
 
 theorem wp_teapot : teapotHandler.spec (GF := GF) (hG := hG) := teapotHandler.wp_proof
 
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) :=
-  Server.wp_proof net.http.NewServeMux.wp_proof net.http.ServeMux.HandleFunc.wp
-    net.http.HandlerFunc.ServeHTTP.wp_proof net.http.ServeMux.ServeHTTP.wp_proof net.Listen.wp_proof
+  Server.wp_proof net.http.NewServeMux.wp net.http.ServeMux.HandleFunc.wp
+    net.http.HandlerFunc.ServeHTTP.wp net.http.ServeMux.ServeHTTP.wp_proof net.Listen.wp_proof
     net.http.Serve.wp_proof wp_echo wp_teapot
 
 end link

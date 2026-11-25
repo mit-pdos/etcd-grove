@@ -3,8 +3,8 @@
 (httpdriver, 2026-11-24; `notes/library-drivers.md`, "net/http's driver"): phase 7 S5's draft
 vocabulary (`notes/phase7-plan.md`, "S5 draft signatures"; `SpecPlan/Spec/net/http/Api.lean`),
 defined. **Interim**: the specs over it (`Serve.spec`, `ServeMux.ServeHTTP.spec`,
-`ServeMux.HandleFunc.spec`, `ReadResponse.spec_resp`) are trust-boundary axioms until S5 proves
-them; S5 refines these definitions (where they differ from its draft: "Departures" below).
+`ReadResponse.spec_resp`) are trust-boundary axioms until S5 proves them (`ServeMux.HandleFunc.spec`
+is proved, 2026-11-25); S5 refines these definitions (where they differ from its draft: "Departures" below).
 
 ## Requests (pure)
 

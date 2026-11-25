@@ -101,13 +101,13 @@ matcher, the one proved. The boot table is `etc/gen-driver-boottable.py`'s (gene
 Vocabulary: `Net/Proof/net/http/WireDefs.lean` (pure: requests, responses, paths) and `ProtoDefs.lean`
 (phase 7 S5's draft vocabulary, defined; its header lists the departures from the draft), over S5's
 landed `MuxDefs` (`muxOwn`, `muxRoute`; `muxAt m Ps := inv (muxFrozenN m) (muxOwn m Ps)`). Review and
-fixes: `notes/axiom-review/net-http-interim.md` (2026-11-25). Four axioms, each in its function's file,
+fixes: `notes/axiom-review/net-http-interim.md` (2026-11-25). Four axioms (now three: `HandleFunc` proved), each in its function's file,
 each retired by S5:
 
 1. `net.http.ServeMux.HandleFunc.wp_proof` (`Net/{Spec,Proof}/net/http/ServeMux__HandleFunc.lean`):
    `litPattern p → p ∉ Ps → f ≠ func.nil → {{ isPkgInit http ∗ muxOwn m Ps }} m.HandleFunc(p, f)
-   {{ muxOwn m (p :: Ps) ∗ muxRoute m p (HandlerFunc f) }}`. Reviewed sound; provable like
-   `wp_Handle_lit`, to be proved in the proof stage.
+   {{ muxOwn m (p :: Ps) ∗ muxRoute m p (HandlerFunc f) }}`. Reviewed sound; **proved 2026-11-25**
+   (a theorem over the real `ServeMux`, as `wp_Handle_lit`; no longer an axiom).
 2. `net.http.ServeMux.ServeHTTP.wp_proof` (`ServeMux__ServeHTTP.lean`): for literal, clean patterns `L`
    (`litPattern ∧ pathClean`: no `//`, which Go's routing tree routes like a wildcard), a
    protocol allowing the mux's own answers to the requests clients send (`muxNoRoute P L`: a `307` to a
