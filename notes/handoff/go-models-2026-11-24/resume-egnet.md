@@ -526,3 +526,13 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   `errLeaf` address premises dropped (implied by `addrOrNil`); `errPlain_opErrPtr` curried
   `pe ↦□ v ⊢ errnoOk -∗ opErrMsgOk v -∗ errPlain`; `inErr_read` + errnoOk (lean's netAddr la/ra not
   needed); `readErr_some'` gives errLeaf too; `DialHTTP(Path).spec_plain` + `isPkgInit net`.
+- Results: targeted builds b1-b3 (`tmp/gm14/b{1,2,3}.log`; fixed: `wp_errors_New'`'s post now
+  `x.s ↦□ ∗ wp`, DialHTTPPath.wp_proof's derivation re-obtains `isPkgInit net` by solve_pkg_init after
+  wp_start_folded, ReadResponse.wp's pattern) then **full default build EXIT 0, 28901 jobs**
+  (`tmp/gm14/full1.log`, code 42f4df0a18). `tcb-report --check`: matches lean's baseline (381 axioms, 0 sorry);
+  **all 64 collections --check match** (`tmp/gm14/tcb.log`; kvraft, kvraft-udp, raft-noax 0/0; dsv-craq
+  6 = lean's). NetFsUdp.Adequacy + kvraft_udp TLR up to date (`lake build --no-build`, 4559 jobs).
+  Statements vs lean: craq's spec, Iface, LogHyp, LogAx, ErrFmt differ from lean only by the
+  FieldAssumptions binders (removal). net-operr-error: closed (packet-rest.md, last section; argued).
+- STATE: `go-models-rest-egnet/2026-11-24` fast-forwarded to this branch's head (pushed). LEFT: the #8
+  message (diff for etcd-grove-03, in the session report); merge newer lean when it moves.
