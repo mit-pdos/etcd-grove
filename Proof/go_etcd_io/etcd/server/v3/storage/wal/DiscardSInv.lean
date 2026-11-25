@@ -393,7 +393,7 @@ theorem walTailsRes_discard {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMar
       rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hla
       exact Hi k d la hk hd hla
   isplitr
-  · iapply BigSepM.bigSepM_empty_intro
+  · iapply BigSepM.bigSepM_empty.2; itrivial
   unfold walLentRes
   icases HL with ⟨%M, Hla, %HZ, %HI, Hm⟩
   iexists M
