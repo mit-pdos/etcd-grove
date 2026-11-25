@@ -39,5 +39,7 @@ axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
 axiom Perennial.io.ioutil.wp_initialize'
 axiom Perennial.math.rand.Seed.wp_proof
 axiom Perennial.raxos.hyp.fmt.Println.wp_proof
+axiom Perennial.raxos.hyp.proto.Marshal.wp_proof
+axiom Perennial.raxos.hyp.proto.Unmarshal.wp_proof
 axiom Perennial.raxos.hyp.sort.Ints.wp_proof
 axiom Perennial.raxos.hyp.time.Time.UTC.wp_proof

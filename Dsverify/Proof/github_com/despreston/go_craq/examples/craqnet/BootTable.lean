@@ -68,6 +68,7 @@ def ownedPkgs : List GoString :=
 structure KitG (G : GoString → IProp GF) : Prop where
   e_errors : G pkg_id.errors = isPkgInit (PROP := IProp GF) pkg_id.errors
   e_sync_atomic : G pkg_id.sync.atomic = isPkgInit (PROP := IProp GF) pkg_id.sync.atomic
+  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
   e_internal_sync : G pkg_id.internal.sync = isPkgInit (PROP := IProp GF) pkg_id.internal.sync
   e_internal_race : G pkg_id.internal.race = isPkgInit (PROP := IProp GF) pkg_id.internal.race
   e_internal_synctest : G pkg_id.internal.synctest = isPkgInit (PROP := IProp GF) pkg_id.internal.synctest
@@ -89,7 +90,6 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_os : G pkg_id.os = isPkgInit (PROP := IProp GF) pkg_id.os
   e_net : G pkg_id.net = isPkgInit (PROP := IProp GF) pkg_id.net
   e_crypto_tls : G pkg_id.crypto.tls = isPkgInit (PROP := IProp GF) pkg_id.crypto.tls
-  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
   e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
   e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
   e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
@@ -138,9 +138,13 @@ theorem wf_sync_atomic {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sync.atomic G :=
   And.intro h.e_sync_atomic True.intro
 
+theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.gomodel G :=
+  And.intro h.e_internal_gomodel True.intro
+
 theorem wf_internal_sync {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.sync G :=
-  And.intro h.e_internal_sync True.intro
+  And.intro h.e_internal_sync ⟨wf_sync_atomic h, wf_internal_gomodel h, True.intro⟩
 
 theorem wf_internal_race {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.race G :=
@@ -152,7 +156,7 @@ theorem wf_internal_synctest {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_sync {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sync G :=
-  And.intro h.e_sync ⟨wf_sync_atomic h, wf_internal_sync h, wf_internal_race h, wf_internal_synctest h, True.intro⟩
+  And.intro h.e_sync ⟨wf_sync_atomic h, wf_internal_sync h, wf_internal_gomodel h, wf_internal_race h, wf_internal_synctest h, True.intro⟩
 
 theorem wf_io {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io G :=
@@ -168,7 +172,7 @@ theorem wf_math_rand {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_time {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.time G :=
-  And.intro h.e_time ⟨wf_errors h, True.intro⟩
+  And.intro h.e_time ⟨wf_errors h, wf_internal_gomodel h, wf_sync_atomic h, True.intro⟩
 
 theorem wf_context {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.context G :=
@@ -221,10 +225,6 @@ theorem wf_net {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_crypto_tls {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.crypto.tls G :=
   And.intro h.e_crypto_tls True.intro
-
-theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.gomodel G :=
-  And.intro h.e_internal_gomodel True.intro
 
 theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.bytealg G :=
@@ -320,7 +320,7 @@ theorem wf_internal_runtime_atomic {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_runtime {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.runtime G :=
-  And.intro h.e_runtime ⟨wf_internal_runtime_sys h, wf_internal_runtime_atomic h, True.intro⟩
+  And.intro h.e_runtime ⟨wf_internal_runtime_sys h, wf_internal_runtime_atomic h, wf_internal_gomodel h, True.intro⟩
 
 theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.http G :=
@@ -392,10 +392,15 @@ theorem wfO_sync_atomic {G : GoString → IProp GF} (h : KitG G) (S : List GoStr
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sync.atomic ∉ ownedPkgs) (hS _ hm))).trans
     h.e_sync_atomic) True.intro
 
+theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_gomodel) True.intro
+
 theorem wfO_internal_sync {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.sync (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.sync ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_sync) True.intro
+    h.e_internal_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_internal_race {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.race (gOff S G) :=
@@ -410,7 +415,7 @@ theorem wfO_internal_synctest {G : GoString → IProp GF} (h : KitG G) (S : List
 theorem wfO_sync {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sync (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sync ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_sync h S hS, wfO_internal_race h S hS, wfO_internal_synctest h S hS, True.intro⟩
+    h.e_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_sync h S hS, wfO_internal_gomodel h S hS, wfO_internal_race h S hS, wfO_internal_synctest h S hS, True.intro⟩
 
 theorem wfO_io {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.io (gOff S G) :=
@@ -430,7 +435,7 @@ theorem wfO_math_rand {G : GoString → IProp GF} (h : KitG G) (S : List GoStrin
 theorem wfO_time {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.time (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.time ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_time) ⟨wfO_errors h S hS, True.intro⟩
+    h.e_time) ⟨wfO_errors h S hS, wfO_internal_gomodel h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_context {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.context (gOff S G) :=
@@ -496,11 +501,6 @@ theorem wfO_crypto_tls {G : GoString → IProp GF} (h : KitG G) (S : List GoStri
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.crypto.tls (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.crypto.tls ∉ ownedPkgs) (hS _ hm))).trans
     h.e_crypto_tls) True.intro
-
-theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_gomodel) True.intro
 
 theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
@@ -620,7 +620,7 @@ theorem wfO_internal_runtime_atomic {G : GoString → IProp GF} (h : KitG G) (S 
 theorem wfO_runtime {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.runtime (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.runtime ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_runtime) ⟨wfO_internal_runtime_sys h S hS, wfO_internal_runtime_atomic h S hS, True.intro⟩
+    h.e_runtime) ⟨wfO_internal_runtime_sys h S hS, wfO_internal_runtime_atomic h S hS, wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_go_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.go.token (gOff S G) :=

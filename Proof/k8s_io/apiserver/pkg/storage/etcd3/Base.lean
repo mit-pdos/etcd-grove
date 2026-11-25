@@ -447,19 +447,8 @@ instance k8s_io_apiserver_pkg_storage_etcd3_metrics_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   build_get_is_pkg_init_wf
 
-instance google_golang_org_grpc_grpclog_internal_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
-  define_is_pkg_init iprop(True)
-instance google_golang_org_grpc_grpclog_internal_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
-  build_get_is_pkg_init_wf
-
-instance google_golang_org_grpc_grpclog_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
-  define_is_pkg_init iprop(True)
-instance google_golang_org_grpc_grpclog_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
-  build_get_is_pkg_init_wf
+-- grpc's `grpclog` and `grpclog/internal`: their instances are `cache/v3/Base.lean`'s (phase7-inits
+-- batch 2, 2026-11-25: grpc's `logger` calls `grpclog.Component`)
 
 instance iter_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.iter :=

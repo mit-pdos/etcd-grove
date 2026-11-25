@@ -1064,7 +1064,13 @@ Two related gaps of this repository's own translations, not Perennial's: the mai
 (`Code/os.toml`, names only) has no body for `(*SyscallError).Unwrap` (nor `Error`, `Timeout`), so
 `errors.Is` on a `sys` error is stuck at its `Err`; and `internal/poll`'s package fact
 (`Proof/internal/poll/PkgInit.lean`) says only that `ErrDeadlineExceeded` holds some error, not
-`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise.
+`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise. (Now Perennial's
+`Proof/internal/poll/Base.lean`, `isInit`'s `∃ e`; its initializer proof could keep the
+`*DeadlineExceededError`.) dsv-fix6 (2026-11-25) meets it again: `models_lab.errFmt`
+(`Net/Proof/models_lab/ErrFmt.lean`) needs a timeout's `*OpError` `Err` to have no `Format`/`GoString`
+and to be printed as an address, which its type would give; without it, `errFmt`'s `*OpError` case
+admits for `Err` the variable's own points-to (`globalAddr poll.ErrDeadlineExceeded ↦□ Err`) beside
+`errLeaf`. With the stronger package fact that disjunct goes.
 
 ### `copy`'s count is only `sint.nat n = min …` (2026-11-14, branch `net-tcp`)
 
@@ -4702,3 +4708,44 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `Spec/cmp/Compare.lean`).
 - **Proposed change.** Move both (`cmp.Less` and `cmp.Compare` at `int64`, with `lessImplements_int64`
   beside `lessImplements_uint64`) to Perennial, and drop the local copies.
+
+## `TrustedCode/log.lean`'s no-op `Printf`/`Println` has no argument condition, and a proof here steps it with one too wide (2026-11-25, dsv-fix6)
+
+- **Limitation.** Perennial models the package-level `log.Printf`/`log.Println` as `λ: "format" "vs", #()` /
+  `λ: "vs", #()`: the model returns whatever the arguments are, while Go formats them through `fmt`, which calls an
+  operand's `Format` (every verb), `GoString` (`%#v`), `Error`/`String` (method verbs, every `Println` operand), and
+  the same methods of the exported fields, elements and top-level pointee it visits. Perennial's own
+  `Spec/log/Printf` asks for `fmt.ArgsWf`, but the trusted body is what a proof unfolds, so the spec's condition
+  does not bind a proof that steps the body. etcd-grove#56 records the model's gap and the rule ("every new proof
+  that reaches `log.Print*` must take a spec with `fmt.ArgsWf` or an equivalent no-method premise, never the bare
+  no-op") and says no proved path passes such an argument.
+- **What #56 misses.** craq does: `LogHyp.wp_Printf`/`LogHyp.wp_Println`
+  (`Dsverify/Proof/github_com/despreston/go_craq/Craq/LogHyp.lean`) are proved by `wp_start; wp_end` over the
+  no-op, for craq's `argOk` arguments, whose third disjunct admits any type with neither `Error` nor `String`
+  (so a `Formatter` or `GoStringer`) and whose `errAny` disjunct admits an error type with a `Format`
+  method. They are used by the coordinator's `log.Printf("...: %v", ..., err)` calls. The axiom review of the
+  same `argOk` for `*Logger`'s methods (`notes/axiom-review/dsv-fix4/log-logger.md`, "Also reached without these
+  axioms") exhibits the program: `log.Printf("%v", T{p: x})` with `T.Format` writing `*x`, then a check of `*x`,
+  is provably safe from the trusted model alone and panics in Go. No bug in go-craq (its arguments have no such
+  methods); the gap is in the trust base of `craq_remote_robust`.
+- **Work-around here (dsv-fix6, planned).** craq's restated `argOk` (`notes/dsv-fix6.md`) excludes
+  `Format`/`GoString` recursively; `LogHyp.wp_Printf`/`wp_Println` then take the narrowed condition, so the
+  no-op is stepped only where it is faithful.
+- **Proposed (general).** The model is stuck (or the spec is the only entry: the body sealed) outside `fmt`'s
+  argument condition (`fmt/Args.lean`'s `argOk`, which requires `Format = none`); or `log.Printf`/`Println`
+  over the real `fmt.Appendf`/`Appendln` once #56's plan lands. **Status.** Not filed (no post: dsv-fix6 brief).
+
+## `wp_apply Hdv` on a wand from an `ihave … $$ [defer]` chain silently replaces a bullet's proof by `sorry` (2026-11-25, etcd-safe-n9b, recorded by dsv-fix6)
+
+- **Limitation.** In `etcd-safe-n9b`'s `RunLeaseExpiry.lean` (before `598eedecc1`), `Hdv` was a wand obtained
+  through an `ihave … $$ [defer]` chain, and `wp_apply Hdv` in a bullet closed the bullet with no error: the
+  bullet's proof became `sorry`. The only traces were Lean's "declaration uses sorry" on the theorem and a
+  "never executed" linter warning on the tactic after it. No error, no unsolved goal: a reader of the build log
+  who does not look for the warning takes the proof as complete (the TCB report catches the `sorryAx`, a
+  `lake build` does not fail).
+- **Work-around.** `iapply Hdv; iexact HΨ` (apply the wand by hand, then discharge its premise) works and leaves
+  no `sorry`. A proof that uses `wp_apply` on a hypothesis from a deferred `ihave` should be checked with
+  `#print axioms` (or `etc/tcb-report.py --check`).
+- **Proposed (general).** `wp_apply` (or the `ihave … [defer]` machinery under it) must fail with an error when it
+  cannot discharge a deferred goal, never elaborate it to `sorry`; a minimal reproduction is the first step.
+  **Status.** Not filed (no post: dsv-fix6 brief); no reproduction outside `RunLeaseExpiry.lean` yet.

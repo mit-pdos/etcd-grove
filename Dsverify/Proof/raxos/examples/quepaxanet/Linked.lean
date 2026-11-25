@@ -9,7 +9,7 @@ module
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitServer
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitOrch
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitClient
-public import Perennial.Proof.time.After
+public import Perennial.Proof.time.Link
 public import Dsverify.Proof.raxos.examples.quepaxanet.ModelProof
 public import Dsverify.Proof.raxos.Replica.Results
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
@@ -77,7 +77,7 @@ theorem wp_Client [hyp.PbHyp GF] [raxos.replica.src.Assumptions] [raxos.proto.cl
     net.Dial.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proofOk
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
-    time.After.wp_proof
+    time.wp_After
 
 end linked
 

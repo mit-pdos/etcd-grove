@@ -20,7 +20,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_opentelemetry_io.otel.attribute.Init
-public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.google_golang_org.grpc.metadata.InitLinked
 public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init

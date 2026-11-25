@@ -13,7 +13,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.jonboulle.clockwork.Init
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
