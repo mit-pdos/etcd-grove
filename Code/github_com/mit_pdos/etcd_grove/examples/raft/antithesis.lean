@@ -63,6 +63,26 @@ noncomputable def Cluster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Cluster.ty
 
+/-- ticks without a leader's message before a follower campaigns (raft's usual 10) -/
+@[reducible] noncomputable def electionTick [GooseExts] [GoGlobalContext] : val :=
+  #(10 : Int)
+
+/-- a leader's heartbeat every tick (raft's usual 1) -/
+@[reducible] noncomputable def heartbeatTick [GooseExts] [GoGlobalContext] : val :=
+  #(1 : Int)
+
+/-- bytes of entries per append message (etcd's default 1 MiB) -/
+@[reducible] noncomputable def maxSizePerMsg [GooseExts] [GoGlobalContext] : val :=
+  #(1048576 : Int)
+
+/-- append messages in flight per follower (etcd's default) -/
+@[reducible] noncomputable def maxInflightMsgs [GooseExts] [GoGlobalContext] : val :=
+  #(256 : Int)
+
+/-- a node's input channel buffer: senders block only when it is full -/
+@[reducible] noncomputable def inboxSize [GooseExts] [GoGlobalContext] : val :=
+  #(1024 : Int)
+
 @[reducible] noncomputable def inMsg [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
@@ -102,7 +122,7 @@ noncomputable def RunCluster [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.Main"
 
-/-- go: harness.go:55:20 -/
+/-- go: harness.go:53:20 -/
 noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -112,7 +132,7 @@ noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:56:20 -/
+/-- go: harness.go:54:20 -/
 noncomputable def quietLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -124,7 +144,7 @@ noncomputable def quietLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:57:20 -/
+/-- go: harness.go:55:20 -/
 noncomputable def quietLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -134,7 +154,7 @@ noncomputable def quietLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:58:20 -/
+/-- go: harness.go:56:20 -/
 noncomputable def quietLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -146,7 +166,7 @@ noncomputable def quietLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:59:20 -/
+/-- go: harness.go:57:20 -/
 noncomputable def quietLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -156,7 +176,7 @@ noncomputable def quietLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:60:20 -/
+/-- go: harness.go:58:20 -/
 noncomputable def quietLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -168,7 +188,7 @@ noncomputable def quietLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:61:20 -/
+/-- go: harness.go:59:20 -/
 noncomputable def quietLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -178,7 +198,7 @@ noncomputable def quietLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:62:20 -/
+/-- go: harness.go:60:20 -/
 noncomputable def quietLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -190,7 +210,7 @@ noncomputable def quietLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val 
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:63:20 -/
+/-- go: harness.go:61:20 -/
 noncomputable def quietLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -201,7 +221,7 @@ noncomputable def quietLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: harness.go:64:20 -/
+/-- go: harness.go:62:20 -/
 noncomputable def quietLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -214,7 +234,7 @@ noncomputable def quietLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))
   (Val #())))))
 
-/-- go: harness.go:65:20 -/
+/-- go: harness.go:63:20 -/
 noncomputable def quietLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -225,7 +245,7 @@ noncomputable def quietLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: harness.go:66:20 -/
+/-- go: harness.go:64:20 -/
 noncomputable def quietLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -241,7 +261,7 @@ noncomputable def quietLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
 /-- below is a random number in [0, n) (n > 0): primitive.RandomUint64, whose spec gives any value
     (as examples/raft/tracecheck draws its).
 
-    go: harness.go:70:6 -/
+    go: harness.go:68:6 -/
 noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -255,7 +275,7 @@ noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
 
-/-- go: harness.go:81:20 -/
+/-- go: harness.go:79:20 -/
 noncomputable def Recorder.record.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ev"
@@ -278,7 +298,7 @@ noncomputable def Recorder.record.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Events is a copy of the reports recorded so far.
 
-    go: harness.go:88:20 -/
+    go: harness.go:86:20 -/
 noncomputable def Recorder.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -312,7 +332,7 @@ noncomputable def Recorder.Events.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Name is the name reports use for node id: "raft<id>" (the binding's servers), "" for none.
 
-    go: harness.go:97:6 -/
+    go: harness.go:95:6 -/
 noncomputable def Name.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -338,7 +358,7 @@ noncomputable def Name.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: harness.go:104:6 -/
+/-- go: harness.go:102:6 -/
 noncomputable def names.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -375,7 +395,7 @@ noncomputable def names.impl [GooseExts] [GoGlobalContext] : val :=
     empty and "command" (its data as the value) otherwise. A change of membership is out of scope:
     nothing proposes one, and raft makes none by itself in a configuration that is not joint.
 
-    go: harness.go:115:6 -/
+    go: harness.go:113:6 -/
 noncomputable def entryOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty))) (Val #())))
@@ -415,7 +435,7 @@ noncomputable def entryOf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty))) (Var "$res0")))))
 
-/-- go: harness.go:125:6 -/
+/-- go: harness.go:123:6 -/
 noncomputable def entriesOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "es"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty)))) (Val #())))
@@ -456,7 +476,7 @@ noncomputable def entriesOf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- msgType is rawnode's msgTypes.
 
-    go: harness.go:134:6 -/
+    go: harness.go:132:6 -/
 noncomputable def msgType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -575,7 +595,7 @@ noncomputable def msgType.impl [GooseExts] [GoGlobalContext] : val :=
 /-- msgOf is rawnode's msgOf, with `to` given (rawnode's `arrived` reports a message handed to a node
     as addressed to it).
 
-    go: harness.go:170:6 -/
+    go: harness.go:168:6 -/
 noncomputable def msgOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "to"
@@ -627,7 +647,7 @@ noncomputable def msgOf.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (Var "$res0"))))))
 
-/-- go: harness.go:180:6 -/
+/-- go: harness.go:178:6 -/
 noncomputable def roleOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -671,7 +691,7 @@ noncomputable def roleOf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: harness.go:206:23 -/
+/-- go: harness.go:204:23 -/
 noncomputable def bootStorage.InitialState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -782,7 +802,7 @@ noncomputable def bootStorage.InitialState.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (Var "hs") (Var "$r0")))))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))
 
-/-- go: harness.go:221:23 -/
+/-- go: harness.go:219:23 -/
 noncomputable def bootStorage.Entries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "lo"
@@ -813,7 +833,7 @@ noncomputable def bootStorage.Entries.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: harness.go:225:23 -/
+/-- go: harness.go:223:23 -/
 noncomputable def bootStorage.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -838,7 +858,7 @@ noncomputable def bootStorage.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: harness.go:227:23 -/
+/-- go: harness.go:225:23 -/
 noncomputable def bootStorage.LastIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -861,7 +881,7 @@ noncomputable def bootStorage.LastIndex.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: harness.go:229:23 -/
+/-- go: harness.go:227:23 -/
 noncomputable def bootStorage.FirstIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -884,7 +904,7 @@ noncomputable def bootStorage.FirstIndex.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: harness.go:231:23 -/
+/-- go: harness.go:229:23 -/
 noncomputable def bootStorage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -907,23 +927,18 @@ noncomputable def bootStorage.Snapshot.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- DefaultConfig is Main's run: three voters, 60 proposals, three isolations (leader changes).
+/-- DefaultConfig is Main's run: three voters, ticking every 2ms, for 60ms (a leader is elected after
+    10 to 20 ticks, and then commits proposals).
 
-    go: harness.go:252:6 -/
+    go: harness.go:246:6 -/
 noncomputable def DefaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "$r0" (Let "$v0" (Val #(W64 3))
-  (Let "$v1" (Val #(W64 60))
-  (Let "$v2" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 1000000))))
-  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val #(W64 1000000))))
-  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val #(W64 1000000))))
-  (Let "$v5" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 4)) (Val #(W64 1000000))))
-  (Let "$v6" (Val #(W64 5))
-  (Let "$v7" (Val #(W64 3))
-  (Let "$v8" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 80)) (Val #(W64 1000000))))
-  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Nodes")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Proposals")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"ProposeGap")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Settle")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Tick")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxDelay")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"DropPct")) (ElementExpression go.uint64 (Var "$v6"))), (KeyedElement (some (KeyField go!"Isolations")) (ElementExpression go.uint64 (Var "$v7"))), (KeyedElement (some (KeyField go!"IsolateFor")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v8")))])))))))))))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 60)) (Val #(W64 1000000))))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val #(W64 1000000))))
+  (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Nodes")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Settle")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Tick")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -931,7 +946,7 @@ noncomputable def DefaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Config.ty))) (Var "$res0")))))
 
-/-- go: harness.go:299:19 -/
+/-- go: harness.go:297:19 -/
 noncomputable def Cluster.node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -958,53 +973,9 @@ noncomputable def Cluster.node.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "$res0"))))))
 
-/-- go: harness.go:306:19 -/
-noncomputable def Cluster.isolatedNow.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "c"
-  (Lam BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isolated"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
-  (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isoMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "x") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isoMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #()))))))
-  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
-
-/-- go: harness.go:313:19 -/
-noncomputable def Cluster.isolate.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "c"
-  (Lam "id"
-  (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
-  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isoMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isolated"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isoMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #())))))))
-  (Val #()))))
-
 /-- Events is the stream.
 
-    go: harness.go:320:19 -/
+    go: harness.go:305:19 -/
 noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1021,7 +992,7 @@ noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Servers is the binding's Server (and InitVoters): the nodes' names.
 
-    go: harness.go:323:19 -/
+    go: harness.go:308:19 -/
 noncomputable def Cluster.Servers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1038,10 +1009,10 @@ noncomputable def Cluster.Servers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty))) (Var "$res0"))))))
 
-/-- RunCluster runs a cluster: it starts the nodes and their goroutines, makes the proposals and
-    isolations, lets the cluster settle, stops it, and returns it (its stream is Events).
+/-- RunCluster runs a cluster: it starts the nodes, their goroutines and the proposer, lets them run
+    for Settle, stops them, and returns the cluster (its stream is Events).
 
-    go: harness.go:327:6 -/
+    go: harness.go:312:6 -/
 noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Cluster.ty)))) (Val #())))
@@ -1058,59 +1029,20 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "drivers" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
+  (Let "proposer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
   (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "drivers")) (Val #())))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Isolations"))) (Var "cfg"))))))) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 0))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"isolate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"IsolateFor"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Nodes"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"isolate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"IsolateFor"))) (Var "cfg"))) (Val #(W64 2))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k") (Var "$r0")))))))))
-  (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$go" (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "drivers")) (Val #())))))
   (Let "$r0" (Val #(W64 1))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Proposals"))) (Var "cfg"))))))) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType node.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType node.ty))))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"nodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Nodes"))) (Var "cfg")))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))))
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType node.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"ProposeGap"))) (Var "cfg")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))
   (Let "$a1" (Let "$v0" (Val inProp)
@@ -1118,14 +1050,22 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (Val #(W64 10))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.FormatUint []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val (GoInstruction (CompositeLiteral input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"kind")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"data")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"deliver"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"deliver"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "n") (Var "$r0")))))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "proposer")) (Val #()))))))]))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k") (Var "$r0"))))))))
   (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1144,22 +1084,19 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"nodesWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #()))))))
   (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "proposer")) (Val #()))))))
+  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Settle"))) (Var "cfg")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Wait"))) (Var "drivers")) (Val #()))))))
-  (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Val #()))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 2))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "drivers")) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "proposer")) (Var "$a0"))))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType node.ty))))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"nodes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType node.ty)))) (Val #())))
   (App (App (Val (slice.forRange (go.GoType.PointerType node.ty))) (Var "$range"))
@@ -1215,13 +1152,13 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "ms" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
-  (Let "$v1" (Val #(W64 10))
-  (Let "$v2" (Val #(W64 1))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val electionTick))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val heartbeatTick))
   (Let "$v3" (App (Val (GoInstruction (GoAlloc bootStorage.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "ms"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "voters"))
   (App (Val (GoInstruction (CompositeLiteral bootStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ms")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v1")))])))))
-  (Let "$v4" (Val #(W64 1048576))
-  (Let "$v5" (Val #(W64 256))
+  (Let "$v4" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxSizePerMsg))
+  (Let "$v5" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxInflightMsgs))
   (Let "$v6" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType bootStorage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6")))]))))))))))
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Val #())))
@@ -1242,7 +1179,7 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve Name []))) (Val #())) (Var "$a0")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty)))) (Var "rn"))
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "ms"))
-  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv input.ty)]))) (Val #())) (Val #(W64 1024)))
+  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv input.ty)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val inboxSize)))
   (Let "$v5" (Val #(go!"follower"))
   (App (Val (GoInstruction (CompositeLiteral node.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"rn")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"storage")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"in")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv input.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"role")) (ElementExpression go.string (Var "$v5")))])))))))))
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType node.ty)))) (Val #())))
@@ -1296,7 +1233,7 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- deliver hands inp to n, unless the run stops first.
 
-    go: harness.go:393:19 -/
+    go: harness.go:373:19 -/
 noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1317,7 +1254,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- run is node n's goroutine: one input at a time, each followed by its Readies.
 
-    go: harness.go:401:19 -/
+    go: harness.go:381:19 -/
 noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1399,7 +1336,7 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reportCause is rawnode's: the message being handled is reported once, before the first report
     that follows from it.
 
-    go: harness.go:431:19 -/
+    go: harness.go:411:19 -/
 noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1425,7 +1362,7 @@ noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :
 /-- drain is rawnode's drain in its default mode: for each Ready, the write (announced, then made),
     the messages, the committed entries, Advance.
 
-    go: harness.go:440:19 -/
+    go: harness.go:420:19 -/
 noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1649,11 +1586,11 @@ noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Val #())))))
 
-/-- send delivers m after a random delay, or drops it, from a goroutine of its own. A forwarded
-    proposal (MsgProp) is always dropped: raft's proved Step takes a local proposal only (From 0 or
-    the node itself), notes/antithesis-s4-design.md §7; delivering them is #44.
+/-- send delivers m from a goroutine of its own. A forwarded proposal (MsgProp) is dropped: raft's
+    proved Step takes a local proposal only (From 0 or the node itself),
+    notes/antithesis-s4-design.md §7; delivering them is #44.
 
-    go: harness.go:499:19 -/
+    go: harness.go:479:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "m"
@@ -1661,22 +1598,9 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxDelay"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))) (Val #(W64 1))))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
-  (Let "delay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (Let "$a0" (Val #(W64 100))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"DropPct"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))))
-  (Let "drop" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
   (Seq (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"isolatedNow"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Val #()))
-  (Let "iso" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")))
   (Let "dst" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType node.ty)))) (Val #())))
@@ -1684,7 +1608,7 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"netWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #())))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "dst")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType node.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "drop"))) (Val #false))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "dst")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType node.ty)))) (Val UntypedNil))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "dst"))
   (Let "$a1" (Let "$v0" (Val inMsg)
@@ -1694,18 +1618,7 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "dst") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "iso")) (Val #(W64 0))))) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "iso")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "iso")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))))) (Val #false)))
-  (Let "$r0" (Val #true)
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "drop") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "iso") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "dst") (Var "$r0"))))))))
   (Val #())))
   (App (Val doExecute)
   (Fork
@@ -1713,10 +1626,6 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"netWg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "drop") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 2)))))
   (App (Val doReturn)
   (Val #()))
@@ -1980,28 +1889,16 @@ attribute [instance] bootStorage.TypeAssumptions.type_repr
 structure Config [GooseExts] where
   mk ::
   Nodes' : w64
-  Proposals' : w64
-  ProposeGap' : _root_.Perennial.time.Duration
   Settle' : _root_.Perennial.time.Duration
   Tick' : _root_.Perennial.time.Duration
-  MaxDelay' : _root_.Perennial.time.Duration
-  DropPct' : w64
-  Isolations' : w64
-  IsolateFor' : _root_.Perennial.time.Duration
 
 noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
-  ⟨Config.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Config.mk zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Config.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Nodes" go.uint64),
-(go.field_decl.FieldDecl go!"Proposals" go.uint64),
-(go.field_decl.FieldDecl go!"ProposeGap" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Settle" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"Tick" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"MaxDelay" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"DropPct" go.uint64),
-(go.field_decl.FieldDecl go!"Isolations" go.uint64),
-(go.field_decl.FieldDecl go!"IsolateFor" _root_.Perennial.time.Duration.ty)]
+(go.field_decl.FieldDecl go!"Tick" _root_.Perennial.time.Duration.ty)]
 
 @[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
@@ -2018,22 +1915,10 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   get_Nodes : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Nodes") #x (Val #(x.Nodes'))
   set_Nodes : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Nodes") (PairV #x #y) (Val #(({ x with Nodes' := y } : Config)))
-  get_Proposals : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Proposals") #x (Val #(x.Proposals'))
-  set_Proposals : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Proposals") (PairV #x #y) (Val #(({ x with Proposals' := y } : Config)))
-  get_ProposeGap : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"ProposeGap") #x (Val #(x.ProposeGap'))
-  set_ProposeGap : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ProposeGap") (PairV #x #y) (Val #(({ x with ProposeGap' := y } : Config)))
   get_Settle : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Settle") #x (Val #(x.Settle'))
   set_Settle : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Settle") (PairV #x #y) (Val #(({ x with Settle' := y } : Config)))
   get_Tick : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Tick") #x (Val #(x.Tick'))
   set_Tick : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Tick") (PairV #x #y) (Val #(({ x with Tick' := y } : Config)))
-  get_MaxDelay : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"MaxDelay") #x (Val #(x.MaxDelay'))
-  set_MaxDelay : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"MaxDelay") (PairV #x #y) (Val #(({ x with MaxDelay' := y } : Config)))
-  get_DropPct : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"DropPct") #x (Val #(x.DropPct'))
-  set_DropPct : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"DropPct") (PairV #x #y) (Val #(({ x with DropPct' := y } : Config)))
-  get_Isolations : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Isolations") #x (Val #(x.Isolations'))
-  set_Isolations : ∀ (x : Config) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Isolations") (PairV #x #y) (Val #(({ x with Isolations' := y } : Config)))
-  get_IsolateFor : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"IsolateFor") #x (Val #(x.IsolateFor'))
-  set_IsolateFor : ∀ (x : Config) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"IsolateFor") (PairV #x #y) (Val #(({ x with IsolateFor' := y } : Config)))
   method_set : go.MethodSetIs Config.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
@@ -2041,22 +1926,10 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
   Config.TypeAssumptions.get_Nodes
   Config.TypeAssumptions.set_Nodes
-  Config.TypeAssumptions.get_Proposals
-  Config.TypeAssumptions.set_Proposals
-  Config.TypeAssumptions.get_ProposeGap
-  Config.TypeAssumptions.set_ProposeGap
   Config.TypeAssumptions.get_Settle
   Config.TypeAssumptions.set_Settle
   Config.TypeAssumptions.get_Tick
   Config.TypeAssumptions.set_Tick
-  Config.TypeAssumptions.get_MaxDelay
-  Config.TypeAssumptions.set_MaxDelay
-  Config.TypeAssumptions.get_DropPct
-  Config.TypeAssumptions.set_DropPct
-  Config.TypeAssumptions.get_Isolations
-  Config.TypeAssumptions.set_Isolations
-  Config.TypeAssumptions.get_IsolateFor
-  Config.TypeAssumptions.set_IsolateFor
   Config.TypeAssumptions.method_set
   Config.TypeAssumptions.ptr_method_set
 
@@ -2208,21 +2081,17 @@ structure Cluster [GooseExts] where
   rec' : Loc
   nodes' : GoSlice
   stop' : GoChan
-  isoMu' : _root_.Perennial.sync.Mutex
-  isolated' : w64
   nodesWg' : _root_.Perennial.sync.WaitGroup
   netWg' : _root_.Perennial.sync.WaitGroup
 
 noncomputable instance Cluster.zero_val [GooseExts] : ZeroVal Cluster :=
-  ⟨Cluster.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Cluster.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Cluster.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cfg" Config.ty),
 (go.field_decl.FieldDecl go!"rec" (go.GoType.PointerType Recorder.ty)),
 (go.field_decl.FieldDecl go!"nodes" (go.GoType.SliceType (go.GoType.PointerType node.ty))),
 (go.field_decl.FieldDecl go!"stop" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
-(go.field_decl.FieldDecl go!"isoMu" _root_.Perennial.sync.Mutex.ty),
-(go.field_decl.FieldDecl go!"isolated" go.uint64),
 (go.field_decl.FieldDecl go!"nodesWg" _root_.Perennial.sync.WaitGroup.ty),
 (go.field_decl.FieldDecl go!"netWg" _root_.Perennial.sync.WaitGroup.ty)]
 
@@ -2247,22 +2116,16 @@ class Cluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_nodes : ∀ (x : Cluster) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"nodes") (PairV #x #y) (Val #(({ x with nodes' := y } : Cluster)))
   get_stop : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"stop") #x (Val #(x.stop'))
   set_stop : ∀ (x : Cluster) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"stop") (PairV #x #y) (Val #(({ x with stop' := y } : Cluster)))
-  get_isoMu : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"isoMu") #x (Val #(x.isoMu'))
-  set_isoMu : ∀ (x : Cluster) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"isoMu") (PairV #x #y) (Val #(({ x with isoMu' := y } : Cluster)))
-  get_isolated : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"isolated") #x (Val #(x.isolated'))
-  set_isolated : ∀ (x : Cluster) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"isolated") (PairV #x #y) (Val #(({ x with isolated' := y } : Cluster)))
   get_nodesWg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"nodesWg") #x (Val #(x.nodesWg'))
   set_nodesWg : ∀ (x : Cluster) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"nodesWg") (PairV #x #y) (Val #(({ x with nodesWg' := y } : Cluster)))
   get_netWg : ∀ (x : Cluster), go.IsGoStepPureDetTagged under (StructFieldGet Cluster.underlying go!"netWg") #x (Val #(x.netWg'))
   set_netWg : ∀ (x : Cluster) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Cluster.underlying go!"netWg") (PairV #x #y) (Val #(({ x with netWg' := y } : Cluster)))
   method_set : go.MethodSetIs Cluster.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cluster.ty) [(go!"Events", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty))]))), (go!"Servers", (some (go.signature.Signature [] false [_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.deliver", (some (go.signature.Signature [(go.GoType.PointerType node.ty), input.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.drain", (some (go.signature.Signature [(go.GoType.PointerType node.ty), go.string] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.isolate", (some (go.signature.Signature [go.uint64] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.isolatedNow", (some (go.signature.Signature [] false [go.uint64]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.node", (some (go.signature.Signature [go.uint64] false [(go.GoType.PointerType node.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.reportCause", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.run", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cluster.ty) [(go!"Events", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty))]))), (go!"Servers", (some (go.signature.Signature [] false [_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set'.ty]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.deliver", (some (go.signature.Signature [(go.GoType.PointerType node.ty), input.ty] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.drain", (some (go.signature.Signature [(go.GoType.PointerType node.ty), go.string] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.node", (some (go.signature.Signature [go.uint64] false [(go.GoType.PointerType node.ty)]))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.reportCause", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.run", (some (go.signature.Signature [(go.GoType.PointerType node.ty)] false []))), (go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])))]
   ptr_Events_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"Events" Cluster.Events.impl
   ptr_Servers_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"Servers" Cluster.Servers.impl
   ptr_deliver_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"deliver" Cluster.deliver.impl
   ptr_drain_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"drain" Cluster.drain.impl
-  ptr_isolate_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"isolate" Cluster.isolate.impl
-  ptr_isolatedNow_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"isolatedNow" Cluster.isolatedNow.impl
   ptr_node_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"node" Cluster.node.impl
   ptr_reportCause_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"reportCause" Cluster.reportCause.impl
   ptr_run_unfold : MethodUnfold (go.GoType.PointerType Cluster.ty) go!"run" Cluster.run.impl
@@ -2278,10 +2141,6 @@ attribute [instance] Cluster.TypeAssumptions.type_repr
   Cluster.TypeAssumptions.set_nodes
   Cluster.TypeAssumptions.get_stop
   Cluster.TypeAssumptions.set_stop
-  Cluster.TypeAssumptions.get_isoMu
-  Cluster.TypeAssumptions.set_isoMu
-  Cluster.TypeAssumptions.get_isolated
-  Cluster.TypeAssumptions.set_isolated
   Cluster.TypeAssumptions.get_nodesWg
   Cluster.TypeAssumptions.set_nodesWg
   Cluster.TypeAssumptions.get_netWg
@@ -2292,8 +2151,6 @@ attribute [instance] Cluster.TypeAssumptions.type_repr
   Cluster.TypeAssumptions.ptr_Servers_unfold
   Cluster.TypeAssumptions.ptr_deliver_unfold
   Cluster.TypeAssumptions.ptr_drain_unfold
-  Cluster.TypeAssumptions.ptr_isolate_unfold
-  Cluster.TypeAssumptions.ptr_isolatedNow_unfold
   Cluster.TypeAssumptions.ptr_node_unfold
   Cluster.TypeAssumptions.ptr_reportCause_unfold
   Cluster.TypeAssumptions.ptr_run_unfold

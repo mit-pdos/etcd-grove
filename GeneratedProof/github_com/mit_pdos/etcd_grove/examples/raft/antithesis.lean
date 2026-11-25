@@ -173,14 +173,8 @@ noncomputable instance Config_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config where
   typedPointstoDef l v dq := iprop(
     "Nodes" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Nodes" l) v.Nodes' dq ∗
-    "Proposals" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Proposals" l) v.Proposals' dq ∗
-    "ProposeGap" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) v.ProposeGap' dq ∗
     "Settle" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Settle" l) v.Settle' dq ∗
     "Tick" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Tick" l) v.Tick' dq ∗
-    "MaxDelay" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) v.MaxDelay' dq ∗
-    "DropPct" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"DropPct" l) v.DropPct' dq ∗
-    "Isolations" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Isolations" l) v.Isolations' dq ∗
-    "IsolateFor" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) v.IsolateFor' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -203,38 +197,6 @@ noncomputable instance Config_access_store_Nodes (l : Loc) (v : github_com.mit_p
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Nodes" l) v.Nodes' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Nodes" l) Nodes' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nodes' := Nodes' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_load_Proposals (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Proposals" l) v.Proposals' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Proposals" l) v.Proposals' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_store_Proposals (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (Proposals' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Proposals" l) v.Proposals' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Proposals" l) Proposals' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposals' := Proposals' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_load_ProposeGap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) v.ProposeGap' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) v.ProposeGap' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_store_ProposeGap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (ProposeGap' : _root_.Perennial.time.Duration) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) v.ProposeGap' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) ProposeGap' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProposeGap' := ProposeGap' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -267,70 +229,6 @@ noncomputable instance Config_access_store_Tick (l : Loc) (v : github_com.mit_pd
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Tick" l) v.Tick' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Tick" l) Tick' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tick' := Tick' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_load_MaxDelay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) v.MaxDelay' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) v.MaxDelay' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_store_MaxDelay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (MaxDelay' : _root_.Perennial.time.Duration) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) v.MaxDelay' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) MaxDelay' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxDelay' := MaxDelay' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_load_DropPct (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"DropPct" l) v.DropPct' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"DropPct" l) v.DropPct' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_store_DropPct (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DropPct' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"DropPct" l) v.DropPct' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"DropPct" l) DropPct' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DropPct' := DropPct' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_load_Isolations (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Isolations" l) v.Isolations' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Isolations" l) v.Isolations' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_store_Isolations (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (Isolations' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Isolations" l) v.Isolations' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Isolations" l) Isolations' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Isolations' := Isolations' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_load_IsolateFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) v.IsolateFor' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) v.IsolateFor' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Config_access_store_IsolateFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (IsolateFor' : _root_.Perennial.time.Duration) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) v.IsolateFor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) IsolateFor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsolateFor' := IsolateFor' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -636,8 +534,6 @@ noncomputable instance Cluster_typed_pointsto :
     "rec" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"rec" l) v.rec' dq ∗
     "nodes" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"nodes" l) v.nodes' dq ∗
     "stop" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"stop" l) v.stop' dq ∗
-    "isoMu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) v.isoMu' dq ∗
-    "isolated" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isolated" l) v.isolated' dq ∗
     "nodesWg" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"nodesWg" l) v.nodesWg' dq ∗
     "netWg" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"netWg" l) v.netWg' dq ∗
     "_" ∷ True)
@@ -710,38 +606,6 @@ noncomputable instance Cluster_access_store_stop (l : Loc) (v : github_com.mit_p
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"stop" l) v.stop' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"stop" l) stop' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stop' := stop' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Cluster_access_load_isoMu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) v.isoMu' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) v.isoMu' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Cluster_access_store_isoMu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (isoMu' : _root_.Perennial.sync.Mutex) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) v.isoMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) isoMu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isoMu' := isoMu' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Cluster_access_load_isolated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isolated" l) v.isolated' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isolated" l) v.isolated' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Cluster_access_store_isolated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (isolated' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isolated" l) v.isolated' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isolated" l) isolated' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isolated' := isolated' } : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
