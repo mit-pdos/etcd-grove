@@ -1,8 +1,6 @@
 /-
-The linked results of `models.lab/jsoncodec`'s encoders (#24 J2) and (dsv-vr, round 8/9) its
-scanner `SkipSpace`, `Scan` (`JsonScan.scanF`; `scanOk_scanF`), decoding helpers `ValueEnd`, `At`,
-`Next`, `Empty`, `Str`, `Member`, `Digits`, `Uint`, `QuotedUint`, `String` (at valid input),
-`AppendQuotedUint`, `Valid` (on one complete value), `Nesting` and `AppendCompact` (round 9), apart from `Results.lean` so that
+The linked results of `models.lab/jsoncodec`'s encoders (#24 J2) and of its scanner and decoding
+helpers (dsverify-lab's, from `dsv-vr`), `Nesting` and `AppendCompact`, apart from `Results.lean` so that
 a main-tree linking module (the server's `Link`, whose membership JSON proofs take them) imports
 them without the part's package initializers (`Init`, Net's `PkgInitExt`).
 -/
@@ -34,6 +32,7 @@ public import Net.Proof.models_lab.jsoncodec.Digits
 public import Net.Proof.models_lab.jsoncodec.Uint
 public import Net.Proof.models_lab.jsoncodec.QuotedUint
 public import Net.Proof.models_lab.jsoncodec.String
+public import Net.Proof.models_lab.jsoncodec.Bool
 
 @[expose] public section
 
@@ -132,6 +131,10 @@ theorem jsoncodec.QuotedUint.wp [jsoncodec.Assumptions] :
 theorem jsoncodec.String.wp [jsoncodec.Assumptions] :
     jsoncodec.String.spec (GF := GF) (hG := hG) :=
   jsoncodec.String.wp_proof jsoncodec.At.wp jsoncodec.Str.wp
+
+theorem jsoncodec.Bool.wp [jsoncodec.Assumptions] :
+    jsoncodec.Bool.spec (GF := GF) (hG := hG) :=
+  jsoncodec.Bool.wp_proof jsoncodec.At.wp jsoncodec.ValueEnd.wp
 
 theorem jsoncodec.AppendQuotedUint.wp [jsoncodec.Assumptions] :
     jsoncodec.AppendQuotedUint.spec (GF := GF) (hG := hG) :=

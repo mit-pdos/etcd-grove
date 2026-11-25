@@ -11,7 +11,7 @@ public import Dsverify.Proof.rabia.internal.ledger.Base
 public import Dsverify.Proof.rabia.internal.logger.Base
 public import Dsverify.Proof.rabia.internal.message.Base
 public import Dsverify.Proof.rabia.internal.queue.Base
-public import Dsverify.Proof.container.heap.Base
+public import Proof.container.heap.PkgInit
 public import Perennial.Proof.fmt.Base
 public import Proof.math.rand.Base
 public import Proof.os.PkgInit

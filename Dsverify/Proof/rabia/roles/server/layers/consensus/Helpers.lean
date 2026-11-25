@@ -217,7 +217,7 @@ theorem wp_toNet (γ : Names) (k : Nat) (γl : SrvNames) (γc : ConsNames)
 `math.rand.Hyps`' specs, for which `Intn`'s spec holds. -/
 def coinOk (c : Loc) : IProp GF :=
   iprop(∃ (r : Loc) (R : Loc → IProp GF), structFieldRef Consensus go!"Coin" c ↦ r ∗ R r ∗
-    ⌜math.rand.Rand.Intn.spec (GF := GF) R⌝)
+    ⌜math.rand.Rand.Intn.ownSpec (GF := GF) R⌝)
 
 /-- `c.ResetCommonCoin()`: a fresh `Rand` in `Coin`. -/
 theorem wp_ResetCommonCoin [math.rand.Hyps GF] (c : Loc) :

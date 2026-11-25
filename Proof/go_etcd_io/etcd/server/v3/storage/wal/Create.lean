@@ -667,7 +667,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     · ipureintro; rfl
     iintro %jsl ⟨Hjsl, -⟩
     try wp_auto
-    have hjl : ([child r (tmpName nm), walFileName 0 0].map List.length).sum + 2 < 2 ^ 62 := by
+    have hjl : ([child r (tmpName nm), walFileName 0 0].map List.length).sum + 2 ≤ _root_.Perennial.strings.joinMax := by
+      unfold _root_.Perennial.strings.joinMax
       simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, walFileName_length]
       omega
     have htc : filepath.CleanAbs (child r (tmpName nm)) := by

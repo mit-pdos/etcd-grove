@@ -11,15 +11,15 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.network.Base
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.assert.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.queue.Init
 public import Dsverify.Proof.log.slog.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Perennial.Proof.errors.NewVar
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

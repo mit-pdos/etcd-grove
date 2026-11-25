@@ -78,30 +78,32 @@ theorem member_port (k : Nat) (m : GMember) (hm : m ∈ members k) :
 
 /-! ## The program's addresses and data directories (`etcd_adequate_members`' premises) -/
 
-/-- **The program's addresses**: the members' peer addresses and their client addresses. -/
-def leaseexpiryNAddrs (k : Nat) : List GoString :=
-  (members k).map (·.Peer') ++ (members k).map (·.Client')
+/-- **The program's addresses**: the peer addresses and the client addresses of the members `Main(k)`
+starts (`cluster k`: none for a `k` outside `[1, 1000]`). -/
+def leaseexpiryNAddrs (k : w64) : List GoString :=
+  (cluster k).map (·.Peer') ++ (cluster k).map (·.Client')
 
-/-- **The program's data directories**: the members' `leaseexpiryN-i.etcd`. -/
-def leaseexpiryNDirs (k : Nat) : List GoString := (members k).map (fun m => memberDataDir m.Name')
+/-- **The program's data directories**: the members' `leaseexpiryN-i.etcd`, of the members `Main(k)`
+starts (`cluster k`). -/
+def leaseexpiryNDirs (k : w64) : List GoString := (cluster k).map (fun m => memberDataDir m.Name')
 
 /-- The program's start bundles, as `etcd_adequate_members` takes them. -/
-def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
-  (startOf (members k)).map (fun m => (m.1, ⟨some m.2.1, m.2.2⟩))
+def startAddrs (k : w64) : List (GoString × MemberAddrs) :=
+  (startOf (cluster k)).map (fun m => (m.1, ⟨some m.2.1, m.2.2⟩))
 
 /-- (wal-fsfix2) The start bundles' names are at most 200 bytes (`etcd_adequate_members`' `hmsL`). -/
-theorem startAddrs_names_len (k : Nat) : ∀ m ∈ startAddrs k, m.1.length ≤ 200 := by
+theorem startAddrs_names_len (k : w64) : ∀ m ∈ startAddrs k, m.1.length ≤ 200 := by
   intro m hm
   obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hm
   obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
-  exact members_names_len k y hy
+  exact members_names_len _ y (mem_cluster hy).1
 
-theorem leaseexpiryNAddrs_perm (k : Nat) :
+theorem leaseexpiryNAddrs_perm (k : w64) :
     ((startAddrs k).flatMap (fun (m : GoString × MemberAddrs) => m.2.addrs) ++ []).Perm
       (leaseexpiryNAddrs k) := by
   unfold startAddrs leaseexpiryNAddrs startOf
   rw [List.append_nil]
-  generalize members k = ms
+  generalize cluster k = ms
   induction ms with
   | nil => exact List.Perm.refl _
   | cons m r ih =>
@@ -110,33 +112,39 @@ theorem leaseexpiryNAddrs_perm (k : Nat) :
     refine List.Perm.cons _ ?_
     exact (List.Perm.cons _ ih).trans List.perm_middle.symm
 
-theorem leaseexpiryNDirs_perm (k : Nat) :
+theorem leaseexpiryNDirs_perm (k : w64) :
     ((startAddrs k).map (fun (m : GoString × MemberAddrs) => memberDataDir m.1)).Perm
       (leaseexpiryNDirs k) := by
   unfold startAddrs leaseexpiryNDirs startOf
   simp only [List.map_map]
   exact List.Perm.refl _
 
-theorem leaseexpiryNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (leaseexpiryNDirs k).Nodup := by
+theorem leaseexpiryNDirs_nodup (k : w64) : (leaseexpiryNDirs k).Nodup := by
   unfold leaseexpiryNDirs
+  rcases cluster_cases k with ⟨-, hk, he⟩ | he
+  rotate_left
+  · rw [he]; simp
+  rw [he]
   rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup _ hk)
 
 /-- Every address of the program is `127.0.0.1:<p>` with `p` in one of the two ranges. -/
-theorem addr_port (k : Nat) (a : GoString) (ha : a ∈ leaseexpiryNAddrs k) :
-    ∃ b i, (b = 12000 ∨ b = 13000) ∧ i < k ∧
+theorem addr_port (k : w64) (a : GoString) (ha : a ∈ leaseexpiryNAddrs k) :
+    ∃ b i, (b = 12000 ∨ b = 13000) ∧ i < 1000 ∧
       a = go!"127.0.0.1:" ++ decStr (W64 ((b + i : Nat) : Int)) := by
   unfold leaseexpiryNAddrs at ha
   rcases List.mem_append.1 ha with h | h
   · obtain ⟨m, hm, rfl⟩ := List.mem_map.1 h
-    obtain ⟨i, hi, hp, -⟩ := member_port k m hm
-    exact ⟨12000, i, Or.inl rfl, hi, hp⟩
+    obtain ⟨hm, hk⟩ := mem_cluster hm
+    obtain ⟨i, hi, hp, -⟩ := member_port _ m hm
+    exact ⟨12000, i, Or.inl rfl, by omega, hp⟩
   · obtain ⟨m, hm, rfl⟩ := List.mem_map.1 h
-    obtain ⟨i, hi, -, hc⟩ := member_port k m hm
-    exact ⟨13000, i, Or.inr rfl, hi, hc⟩
+    obtain ⟨hm, hk⟩ := mem_cluster hm
+    obtain ⟨i, hi, -, hc⟩ := member_port _ m hm
+    exact ⟨13000, i, Or.inr rfl, by omega, hc⟩
 
-theorem leaseexpiryNAddrs_lit (k : Nat) (hk : k ≤ 1000) :
+theorem leaseexpiryNAddrs_lit (k : w64) :
     ∀ a ∈ leaseexpiryNAddrs k, netAddrLit a = true := by
   intro a ha
   obtain ⟨b, i, hb, hi, rfl⟩ := addr_port k a ha
@@ -160,16 +168,19 @@ theorem members_client_plain (k : Nat) : ∀ m ∈ members k, plainEndpoint m.Cl
   obtain ⟨i, -, -, hc⟩ := member_port k m hm
   rw [hc]; exact loopback_plainEndpoint _
 
-theorem leaseexpiryNAddrs_nodup (k : Nat) (hk : k ≤ 1000) : (leaseexpiryNAddrs k).Nodup := by
+theorem leaseexpiryNAddrs_nodup (k : w64) : (leaseexpiryNAddrs k).Nodup := by
   unfold leaseexpiryNAddrs
-  rw [List.nodup_append]
-  refine ⟨members_peers_nodup k hk, members_clients_nodup k hk, ?_⟩
+  rcases cluster_cases k with ⟨-, hk, he⟩ | he
+  rotate_left
+  · rw [he]; simp
+  rw [he, List.nodup_append]
+  refine ⟨members_peers_nodup _ hk, members_clients_nodup _ hk, ?_⟩
   intro a ha c hc e
   subst e
   obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ha
   obtain ⟨m', hm', he⟩ := List.mem_map.1 hc
-  obtain ⟨i, hi, hp, -⟩ := member_port k m hm
-  obtain ⟨j, hj, -, hc'⟩ := member_port k m' hm'
+  obtain ⟨i, hi, hp, -⟩ := member_port _ m hm
+  obtain ⟨j, hj, -, hc'⟩ := member_port _ m' hm'
   rw [hp, hc'] at he
   have := congrArg BitVec.toNat (decStr_inj (List.append_cancel_left he))
   simp [W64] at this

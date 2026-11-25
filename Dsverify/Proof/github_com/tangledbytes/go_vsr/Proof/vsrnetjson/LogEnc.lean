@@ -15,7 +15,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Fact
 public import Net.Spec.models_lab.jsoncodec.AppendRaw
 public import Net.Spec.models_lab.jsoncodec.AppendQuotedUint
 public import Net.Spec.models_lab.jsoncodec.AppendString
-public import Net.Proof.models_lab.jsoncodec.QuoteBridge
+public import Net.Proof.models_lab.jsoncodec.Quote
 
 @[expose] public section
 

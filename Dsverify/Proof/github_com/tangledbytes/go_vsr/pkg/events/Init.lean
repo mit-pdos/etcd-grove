@@ -13,13 +13,13 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.Base
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.log.Init
-public import Net.Proof.models_lab.jsoncodec.Init
+public import Proof.models_lab.jsoncodec.Init
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.errors.NewVar
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

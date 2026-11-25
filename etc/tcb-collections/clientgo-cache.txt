@@ -8,6 +8,5 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/k8s_io/client_go/tools/cache/Link\.lean$
 axiom cache.wp_Errorf_setArgs
-axiom errors.AsNoMatch.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof

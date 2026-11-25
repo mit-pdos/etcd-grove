@@ -346,6 +346,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
 public import Perennial.Proof.time.Link
+public import Perennial.Proof.strings.Link
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -799,7 +800,7 @@ theorem fmt.wp_Sprintf [StorageModel GF] :
 
 theorem strings.wp_Join [StorageModel GF] :
     strings.Join.spec (GF := GF) (hG := hG) :=
-  strings.Join.wp_proof
+  strings.Join.wp_proof _root_.Perennial.strings.wp_Join
 
 theorem raft.wp_softState [StorageModel GF] :
     raft.softState.spec (GF := GF) (hG := hG) :=

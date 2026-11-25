@@ -15,7 +15,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Log
 public import Net.Spec.models_lab.jsoncodec.AppendCompact
 public import Net.Spec.models_lab.jsoncodec.Nesting
 public import Net.Spec.models_lab.jsoncodec.AppendUint
-public import Net.Proof.models_lab.jsoncodec.QuoteBridge
+public import Net.Proof.models_lab.jsoncodec.Quote
 
 @[expose] public section
 
@@ -854,7 +854,7 @@ theorem vsrnet.wp_jenc_Event (H : vsrnet.EncSpecs (GF := GF) (hG := hG)) (b : Go
   wp_apply (H.AppendRaw _ _ _) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
   try wp_auto
   wp_apply (H.AppendUint _ _ _) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
-  rw [models_lab.jsoncodec.decU64_decN]
+  rw [models_lab.jsoncodec.decU64_eq_decN]
   try wp_auto
   wp_apply (H.AppendRaw _ _ _) $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap⟩
   try wp_auto

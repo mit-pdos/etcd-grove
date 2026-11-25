@@ -53,12 +53,12 @@ theorem newServerMode.wp_proof
     newServerMode.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-    HU HU8 HnL Hmode Haf Hbuq Hdbo
+    HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
+  icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -94,6 +94,7 @@ theorem newServerMode.wp_proof
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hmode (fun _ => trivial) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      (etcdURLsFit_httpURL peerAddr Hpf) (etcdURLsFit_httpURL client Hcf)
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
@@ -104,7 +105,7 @@ theorem newServerMode.wp_proof
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #
@@ -183,7 +184,7 @@ theorem newServerMode.wp_proofRestart
     newServerMode.specRestart (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
-    HU Hret Haf Hbuq Hdbo
+    HU Hpf Hcf Hret Haf Hbuq Hdbo
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
@@ -191,7 +192,7 @@ theorem newServerMode.wp_proofRestart
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremiseR at Hboot
   iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
+  icases Hcom with ⟨#Hzap, #Htd⟩
   -- the restarted incarnation's names, from the cluster's facts at the stopped ones
   imod (memberRestartFacts_alloc hne γ ρ id) $$ Hrfs with ⟨%ρ', %E₀, %Φs, %Hρ', Hmb⟩
   iunfold memberRestartBoot at Hmb
@@ -227,9 +228,10 @@ theorem newServerMode.wp_proofRestart
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ Hret) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      (etcdURLsFit_httpURL peerAddr Hpf) (etcdURLsFit_httpURL client Hcf)
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
-      (bootCfgOk_of _ rfl rfl rfl rfl) rfl (srvWalDirOf_lit _) HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩) rfl (srvWalDirOf_lit _) HwbN)
     $$ [Htok Himg Hids Hwtok Hidx Hcok Hrev Hnk] as %srv %err Hres
   · iframe
     iframe #

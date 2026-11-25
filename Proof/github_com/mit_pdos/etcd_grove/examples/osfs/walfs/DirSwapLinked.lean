@@ -18,12 +18,13 @@ generation's shared resources come from the old generation's `osSharedInv` (`cra
 The boot program and its precondition are in `DirSwapResults.lean`; the proofs of `os`'s
 functions are passed to the specs' hypotheses here.
 
-**What is assumed**, as for `segdir`'s result (`Results.lean`): the package initializer
-(`Hinit_wp`), the hand-written `os.file` field facts and the program's Goose-generated package
+**What is assumed**, as for `segdir`'s result (`Results.lean`): the hand-written `os.file` field facts and the program's Goose-generated package
 facts (`package_sem`, which gives `os.Assumptions`) (instance hypotheses).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.PkgTable
+public import Proof.runtime.InitEmpty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults
 public import Proof.os.File__ReadAt
 public import Proof.os.File__WriteAt
@@ -58,10 +59,6 @@ threads are live. -/
 theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : Assumptions] [os.Assumptions] [os.file.FieldAssumptions]
     [hPre : GooseGpreS GF]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC GF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString) (j : Ino)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -126,7 +123,10 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
     isplitl [Hgs Hperm Hh Ht HT HK Hs]
     · -- the boot program
       unfold bootDS
-      wp_apply Hinit_wp $$ Hgs
+      ihave Hown0 := ownInitializing_of_empty (github_com.mit_pdos.etcd_grove.examples.osfs.walfs.getIsPkgInit (GF := GF)) $$ Hgs
+      wp_apply (github_com.mit_pdos.etcd_grove.examples.osfs.walfs.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.osfs.walfs.getIsPkgInit_wf) $$ Hown0 as ⟨-, #Hpkg⟩
+      ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_pures
       wp_apply wp_BootDir os.OpenFile.wp_proofCreateS os.File.Sync.wp_proofDirS os.File.ReadAt.wp_proof
           os.File.Close.wp_proof os.File.WriteAt.wp_proof
@@ -161,15 +161,10 @@ data (`DataGood`): the boot program's result is `#()`, no thread is stuck and no
 unrecovered panic, so `checkDir`'s and `check`'s panics never fire, however many times the node
 crashes (a machine crash keeping a set of the logged metadata operations closed under the journal
 order), in particular whenever a crash interrupts `Create` (after the removals, the `mkdir`, the
-create, the write, the sync, the rename of the directory or the parent's sync). It assumes that
-the package's initializer runs (`Hinit_wp`). (`dirswap_crash_safety_bounded` with the ghost state
+create, the write, the sync, the rename of the directory or the parent's sync). (`dirswap_crash_safety_bounded` with the ghost state
 `fsGF`.) -/
 theorem dirswap_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
     [os.file.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString) (j : Ino)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -183,7 +178,7 @@ theorem dirswap_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [packa
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  dirswap_crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir j Hlctx Hpkgs Hinit
+  dirswap_crash_safety_bounded (GF := fsGF) (n + 1) (n + 2) σ g dir j Hlctx Hpkgs Hinit
     Hdir Hsafe n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
 
 end adequacy

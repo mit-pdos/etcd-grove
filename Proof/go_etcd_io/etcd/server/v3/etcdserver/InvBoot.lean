@@ -65,6 +65,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalLayoutFits
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Defs
 
 @[expose] public section
 
@@ -93,6 +94,31 @@ peer's handler may add a remote for. -/
 def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
     Prop :=
   uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
+
+/-- **A member's URL list within etcd's URL bounds** (fmt stage 1, 2026-11-24; #9's decision
+7126397740, 2; a premise of `NewServer.spec`, of the caller's configuration, for its peer and its
+client URLs): at most `etcdURLCountMax` URLs, each of only the scheme `http` and a plain host,
+`http://host` at most `etcdURLLenMax` bytes (`plainURLsFit`). The server joins their strings
+(`strings.Join`: `publishV3`'s log lines of the client URLs, kept in the server's attributes,
+`srvAttrsRO`; the transport's `setPeerURLsHeader` of the peer URLs), which must stay below
+`Join`'s length bound. -/
+def etcdURLsFit (uvs : List _root_.Perennial.net.url.URL) : Prop :=
+  uvs.length ≤ etcdURLCountMax ∧ plainURLsFit uvs
+
+/-- The strings of URLs within etcd's URL bounds (`types.URLs.StringSlice`'s, `http://host` of each)
+are at most `etcdURLCountMax`, of at most `etcdURLLenMax` bytes each (`srvAttrsRO`'s bound). -/
+theorem etcdURLsFit.strings {us : List _root_.Perennial.net.url.URL} {ss : List GoString}
+    (hf : etcdURLsFit us) (hl : ss.length = us.length)
+    (hs : ∀ (j : Nat) (u : _root_.Perennial.net.url.URL), us[j]? = some u → http.urlRootPlain u →
+      ss[j]? = some (go!"http://" ++ u.Host')) :
+    ss.length ≤ etcdURLCountMax ∧ ∀ s ∈ ss, s.length ≤ etcdURLLenMax := by
+  refine ⟨by rw [hl]; exact hf.1, fun s hs' => ?_⟩
+  obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hs'
+  have hju : j < us.length := hl ▸ hj
+  have hu := hs j us[j] (List.getElem?_eq_getElem hju) (hf.2 _ (List.getElem_mem hju)).1
+  rw [List.getElem?_eq_getElem hj] at hu
+  rw [Option.some.inj hu]
+  exact (hf.2 _ (List.getElem_mem hju)).2
 
 /-- A one-member directory is well formed, of a member other than `0` with a plain URL. -/
 theorem dirOne_ok (id : w64) (url : GoString) (hid : id ≠ W64 0) (hpl : types.plainPeerURL url) :
@@ -134,10 +160,12 @@ omit [MemStorReg GF] in
 /-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
 theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
     (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)
-    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs) :
+    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs)
+    (hf : etcdURLsFit uvs) :
     trURLsOk (netRh γn) id uvs := by
   obtain ⟨-, hpl, hown, -⟩ := addPeer_dir γn dir hγ hd ps hps id hid (dir id) rfl
-  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2⟩⟩
+  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2,
+    (hf.2 u hu').2⟩⟩
 
 omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
@@ -223,12 +251,18 @@ states the heartbeat Go computes, true at every `TickMs`, and `NewServer`, which
 takes its sign, `raftNode.bootCfg`.) The examples' configuration (`examples/lib/etcdstart/common.go`)
 meets all. (Sweep repairs 1, R1-2, L4, 2026-11-07: until then also `cfg.Logger' ≠ null`, which a
 zero `&zap.Logger{}` meets and on which `bootstrap` panics at its first log line; the logger is now
-`zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) -/
+`zapLoggerOk cfg.Logger'` in the contracts' preconditions, an `IProp`.) (2026-11-25,
+`notes/axiom-review/transport-emptycn.md`) And peer TLS without a certificate (`transport.tlsEmpty
+cfg.PeerTLSInfo'`, Go's `PeerTLSInfo.Empty()`): `bootstrap`'s round tripper and `NewServer`'s
+transport are `transport.NewTimeoutTransport(cfg.PeerTLSInfo, ...)`, whose trust-boundary spec covers
+only that case (with `EmptyCN` and a certificate, Go's `ClientConfig` can panic:
+`issues/etcd-transport-emptycn-cert-reread-panic.md`). -/
 def bootCfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   storage.openMmapOk cfg ∧
     0 < sint.Z (storage.openLimit cfg) ∧ sint.Z (storage.openLimit cfg) ≤ 2 ^ 57 ∧
     cfg.BootstrapDefragThresholdMegabytes' = W64 0 ∧
-    1 < sint.Z cfg.ElectionTicks'
+    1 < sint.Z cfg.ElectionTicks' ∧
+    transport.tlsEmpty cfg.PeerTLSInfo'
 
 /-- **The bootstrapped record `b`** (see the file header) of the configuration `cfg` for this node `id` of the cluster with
 raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budget `N + 7` (D14g,
@@ -267,9 +301,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- unsatisfiable: `notes/snapdir-crossworld.md`)
     "#Hss" ∷ snap.isSnapshotter bs.ss' (config.snapDirOf cfg.DataDir') ∗
     -- (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; the first start only,
-    -- not `bootOkR`) the right to that snapshot directory: it holds no `.snap.db` file, and nothing
-    -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
-    -- names the one ghost map of its files (`snapDir_init`)
+    -- not `bootOkR`) the right to that snapshot directory (`snap.snapDirOwn`; claim #34, 2026-11-23,
+    -- approved by the owner via the coordinator: the file extension's claim on every name of the
+    -- directory but `db` and the canonical `.snap.db` names, which `bootstrapSnapshot` carves and the
+    -- directory's invariant keeps, `snapDir_init`; until then an environment right over an opaque
+    -- predicate)
     "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
     -- (S5, 2026-11-18) and the claims on that directory's snapshot names, every index's, free
     -- (`snapFreeAll`: the shared mode's claims on the names `bootstrap`'s new snapshot directory has,
@@ -545,8 +581,10 @@ the feature gate `nil` or a feature gate (`isFeatureGate`, which answers `NonBlo
 was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featuregate.New`'s empty
 gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
 fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`, `UnsafeNoFsync`,
-`MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
-what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
+`MaxRequestBytes`, `PreVote`, `BootstrapTimeout`) make it return an error or do what `bootOk` says
+(2026-11-25: until then `PeerTLSInfo` was listed here too, but with `EmptyCN` and a certificate its
+`ClientConfig` can panic, `issues/etcd-transport-emptycn-cert-reread-panic.md`; it is `bootCfgOk`'s
+`transport.tlsEmpty` now), and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
 The WAL's slot `wal.bootRes`: the data directory fresh, the configuration's dedicated WAL directory
 the member's (`srvWalDirOf`, under its own `fsExt` root) and that WAL area fresh (`walAreaFresh`:
 what `wal.Create` takes of it), over layer 1's resources; until then the data directory alone, no

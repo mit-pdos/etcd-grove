@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/hashString.lean` (etc/copy-part.py; rerun it, do not edit).
 /- kvreconf's (the same Go text), ported. Lean-first (no Rocq counterpart).
 
 `hashString(s)` (check.go): some hash of `s` (FNV-1a; nothing is claimed of it).

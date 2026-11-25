@@ -1,0 +1,7 @@
+# The receivers rpcdriver's server registers with net/rpc. The codec (rpc_gen.go,
+# rpc_model_gen.go, rpc_real_gen.go, rpc_gen_test.go) is generated from this by
+# models/net/rpc/rpcgen.py:
+#   models/net/rpc/rpcgen.py examples/net/rpcdriver/rpc.toml examples/net/rpcdriver --pkg rpcdriver
+[rpc]
+imports = { service = "github.com/mit-pdos/etcd-grove/examples/net/rpcdriver/service" }
+receivers = ["*service.Svc", "*service.NoMethods"]

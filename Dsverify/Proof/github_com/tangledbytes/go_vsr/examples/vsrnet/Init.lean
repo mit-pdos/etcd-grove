@@ -11,8 +11,8 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.encoding.json.Init
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Proof.encoding.json.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrkv.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrwire.Init
@@ -23,9 +23,9 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.network.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.replica.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.time.Init
 public import Dsverify.Proof.log.slog.Init
-public import Net.Proof.models_lab.jsoncodec.Init
-public import Net.Proof.net.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.models_lab.jsoncodec.Init
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrkv.Base
 public import Perennial.Proof.strings.Link
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

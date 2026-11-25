@@ -18,7 +18,7 @@ public import Perennial.Proof.time.Link
 public import KvNet.Proof.internal.poll.Init
 public import KvNet.Proof.os.Init
 public import KvNet.Proof.syscall.Init
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

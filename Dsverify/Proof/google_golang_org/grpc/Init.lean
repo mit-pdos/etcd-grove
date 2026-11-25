@@ -10,7 +10,7 @@ translation or model lands.
 module
 
 public import Dsverify.Proof.google_golang_org.grpc.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -96,7 +96,7 @@ theorem Main.wp_proof
   -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`: the one member of a new cluster from the
   -- named premises (`wp_StartServer1`: `alloc1` inside; shared with `putget_safe`'s member)
   wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne N go!"putget" go!"127.0.0.1:23800"
-      go!"127.0.0.1:23790" lg id ctxs boot Hbf (by decide) (by decide) (by decide) Htb Hrb48 HrbN HwbN
+      go!"127.0.0.1:23790" lg id ctxs boot Hbf (by decide) (by decide) (by decide) (by decide) (by decide) Htb Hrb48 HrbN HwbN
       Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)

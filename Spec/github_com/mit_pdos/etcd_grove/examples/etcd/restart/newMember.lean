@@ -49,7 +49,7 @@ abbrev newMember.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       threadTok ∗ etcdstart.memberBuilt s ρ E₀ lg γn id N false ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗
-      netAddrFree peerAddr ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
+      http.httpAddrFree peerAddr ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.newMember))
       (Val #s)) (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client))
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);
@@ -70,6 +70,8 @@ abbrev restartMember.spec : Prop :=
   γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  etcdstart.addrFits peerAddr → etcdstart.addrFits client →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       zapLoggerOk lg ∗ threadTok ∗ memberRec m γS γn name peerAddr client ∗

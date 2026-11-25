@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
@@ -41,6 +42,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.Assumptions]
 variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
+variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta
 

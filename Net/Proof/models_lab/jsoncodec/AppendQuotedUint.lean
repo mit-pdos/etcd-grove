@@ -1,14 +1,13 @@
 /-
 The proof of `jsoncodec.AppendQuotedUint` (`Net/Spec/models_lab/jsoncodec/AppendQuotedUint.lean`).
-Ported from dsverify-lab's `wp_AppendQuotedUint` (`GoEnc.lean`, lab master 915f964); over batch
-2a's `AppendUint` spec (`decU64`, bridged by `decU64_decN`, `QuoteBridge.lean`).
+Ported from dsverify-lab's `wp_AppendQuotedUint` (`GoEnc.lean`, lab master 915f964).
 -/
 module
 
 public import Net.Spec.models_lab.jsoncodec.AppendQuotedUint
 public import Net.Spec.models_lab.jsoncodec.AppendUint
+public import Net.Proof.models_lab.jsoncodec.Quote
 public import Net.Proof.models_lab.jsoncodec.ScanString
-public import Net.Proof.models_lab.jsoncodec.QuoteBridge
 
 @[expose] public section
 
@@ -47,7 +46,6 @@ theorem AppendQuotedUint.wp_proof (wp_AppendUint : AppendUint.spec (GF := GF) (h
   iintro %lit ⟨Hlit, -⟩
   wp_apply wp_slice_append (V := w8) _ _ _ _ _ $$ [$Hb $Hcap $Hlit] as %b1 ⟨Hb1, Hcap1, -⟩
   wp_apply (wp_AppendUint b1 _ x) $$ [$Hb1 $Hcap1] as %b2 ⟨Hb2, Hcap2⟩
-  rw [decU64_decN]
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
     (Val (LiteralValueV _)))
   iapply wp_slice_literal (V := w8) (t := go.byte) [W8 34]
@@ -57,6 +55,7 @@ theorem AppendQuotedUint.wp_proof (wp_AppendUint : AppendUint.spec (GF := GF) (h
   iintro %lit ⟨Hlit, -⟩
   wp_apply wp_slice_append (V := w8) _ _ _ _ _ $$ [$Hb2 $Hcap2 $Hlit] as %b3 ⟨Hb3, Hcap3, -⟩
   iapply HΦ
+  rw [← decU64_eq_decN]
   simp only [List.append_assoc, List.cons_append, List.nil_append, List.singleton_append]
   iframe
 end proof

@@ -59,7 +59,7 @@ local macro "rm_tail" pe:term:max : tactic => `(tactic| (
   by_cases hpn : $pe = null
   · simp only [decide_eq_true hpn, Bool.not_true]
     try wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e4 he40 as %pe' Hpe'
+    wp_apply os.model.wp_pathErrorPtr_errno _ _ e4 he40 $$ Hsys as %pe' Hpe'
     iapply HΦ
     iframe
   · simp only [decide_eq_false hpn, Bool.not_false]
@@ -79,12 +79,16 @@ local macro "rm_restore" hs:term : tactic => `(tactic| (
 theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
     (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hfo : FilesOnly hJ0.cur) (hqg : q + g = 1) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
       (App (App (Val os.model.removeAllFrom) (Val #d)) (Val #b))
     {{ (pe : Loc), RET #pe; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg (child d b) g ∗ os.peOk pe }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   icases osPathS_callKey R d _ j $$ Hp with ⟨Hp, %hkd⟩
   rw [show d ++ [47#8] ++ b = child d b by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_dirSt d b j J R (DFrac.own qd) h hJ0 q hb hJ $$ [Hp Hst Hperm]
@@ -109,7 +113,7 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
     wp_auto
     simp only [decide_eq_false h13, Bool.not_false]
     wp_auto
-    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 as %pe Hpe
+    wp_apply os.model.wp_pathErrorPtr_errno _ _ e he0 $$ Hsys as %pe Hpe
     iapply HΦ
     iframe
   rw [Classical.not_not] at hcls
@@ -139,13 +143,13 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
       by_cases heo20 : eo = W64 20
       · rw [decide_eq_true heo20]
         wp_auto
-        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ (by decide) as %pe Hpe
+        wp_apply os.model.wp_pathErrorPtr_errno _ _ _ (by decide) $$ Hsys as %pe Hpe
         try wp_auto
         iapply HΦ
         iframe
       rw [decide_eq_false heo20]
       wp_auto
-      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ heo as %pe Hpe
+      wp_apply os.model.wp_pathErrorPtr_errno _ _ _ heo $$ Hsys as %pe Hpe
       try wp_auto
       rm_tail pe
     · simp only [decide_eq_true (show eo = W64 0 from heo), Bool.not_true]
@@ -296,7 +300,7 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
             iapply os.peOk_null
           rw [decide_eq_false he2]
           wp_auto
-          wp_apply os.model.wp_pathErrorPtr_rd _ e he as %pe Hpe
+          wp_apply os.model.wp_pathErrorPtr_rd _ e he $$ Hsys as %pe Hpe
           try wp_auto
           iapply HΦ
           iframe

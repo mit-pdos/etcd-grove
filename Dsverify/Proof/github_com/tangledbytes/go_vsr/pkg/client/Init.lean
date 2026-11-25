@@ -16,7 +16,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.network.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.queue.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.time.Init
 public import Dsverify.Proof.log.slog.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

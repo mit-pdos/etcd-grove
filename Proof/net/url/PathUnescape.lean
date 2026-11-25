@@ -26,10 +26,10 @@ variable [package_sem : net.url.Assumptions]
 
 theorem PathUnescape.wp_proof (wp_unescape : unescape.spec (GF := GF) (hG := hG)) :
     PathUnescape.spec (GF := GF) (hG := hG) := by
-  intro s hlen
+  intro s
   wp_start as #Hpkg
   wp_auto
-  wp_apply wp_unescape s mPathSegment (by decide) hlen
+  wp_apply wp_unescape s mPathSegment (by decide)
   iapply HΦ
   itrivial
 

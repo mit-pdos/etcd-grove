@@ -11,6 +11,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
@@ -34,12 +35,12 @@ public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.status.Init
-public import Proof.math.rand.Init
 public import Proof.time.Unix
 public import Proof.math.rand.Float64
 public import Proof.go_etcd_io.etcd.client.v3.jitterUp
 public import Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
@@ -93,11 +94,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) defaultWaitForReady _ as HdefaultWaitForReady
   wp_apply wp_GlobalAlloc (V := GoSlice) noPrefixEnd _ as HnoPrefixEnd
   wp_apply wp_GlobalAlloc (V := w64) LeaseResponseChSize _ as HLeaseResponseChSize
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Uint64) clientTargetSeq _ as HclientTargetSeq
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrMutuallyExclusiveCfg _ as HErrMutuallyExclusiveCfg
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrOldCluster _ as HErrOldCluster
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoAvailableEndpoints _ as HErrNoAvailableEndpoints
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd28⟩
-  wp_apply (_root_.Perennial.math.rand.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
+      EtcdGrove.ExternalInit.math_rand _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd26⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd25⟩
@@ -196,6 +199,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HmaxBackoff
   ipersist HLeaseResponseChSize
   ipersist Sco
+  ihave Hcts : _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq) (DFrac.own 1) (W64 0) $$ [HclientTargetSeq]
+  · rw [_root_.Perennial.sync.atomic.ownUint64_unseal]
+    unfold _root_.Perennial.sync.atomic.ownUint64Def
+    have e : (zero_val _root_.Perennial.sync.atomic.Uint64) =
+        ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : _root_.Perennial.sync.atomic.Uint64) := rfl
+    rw [← e]; iexact HclientTargetSeq
+  imod inv_alloc go_etcd_io.etcd.cache.v3.clientTargetSeqN ⊤ (∃ n : w64, _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr go_etcd_io.etcd.client.v3.clientTargetSeq) (DFrac.own 1) n) $$ [Hcts] with #Hcts
+  · inext; iexists _; iexact Hcts
   iframe Hown
   imodintro
   isplitr
@@ -210,7 +221,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl
   have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl
   rw [h1, h2] at hv
-  simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil, or_false] at hv
+  simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
   rcases hv with rfl | rfl | rfl <;> exact ⟨_, _, rfl, by simp⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

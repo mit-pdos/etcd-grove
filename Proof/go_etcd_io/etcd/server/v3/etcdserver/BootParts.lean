@@ -14,12 +14,12 @@ The states:
   an existing root, so `TouchDirAll` stats it, syncs its parent and probes `DataDir/.touch`
   (`IsDirWriteable`: written and removed), and the directory is empty again;
 - after `TouchDirAll(MemberDir())`: `bootFs.memberDir cfg` (`bootFs.touchMember.law`): the member
-  directory `DataDir/member` new, empty and wholly the caller's (`bootFs.dirFresh`), the snapshot
-  directory's right (`snap.snapDirOwn`, which `bootOk`'s `Hsdo` hands on), and the WAL's part
+  directory `DataDir/member` new, empty and wholly the caller's (`bootFs.dirFresh`), and the WAL's part
   (`bootFs.walPart`);
-- `bootstrapSnapshot` takes the member directory and gives the snapshotter, the snapshot names' claims
-  and the backend file's free name (`backend.fileFree (config.backendPathOf DataDir)`), which
-  `bootstrapBackend` takes;
+- `bootstrapSnapshot` takes the member directory and gives the snapshotter, the snapshot names' claims,
+  the backend file's free name (`backend.fileFree (config.backendPathOf DataDir)`), which
+  `bootstrapBackend` takes, and (2026-11-23) the snapshot directory's right, the claim on its other
+  names (`snap.snapDirOwn`, `bootOk`'s `Hsdo`);
 - `wal.Exist(WALDir())` answers `false` on the WAL's part (`bootFs.walExist.law`), which
   `bootstrapStorage` takes.
 
@@ -31,11 +31,11 @@ The states:
   `dataAreaFresh`, which since then holds `Fs.osAboveInv` (the root's parent is synced above the roots) and
   the bound `d.length < 4096`;
 - `bootFs.touchMember.law`: `TouchDirAll.spec` covers it (`member` is absent in the data directory),
-  but `wal.bootRes` is sealed, and two things are missing from its body today: (1) **the snapshot
-  directory's right `snap.snapDirOwn`** (opaque: only `bootOk` gives it, plan §1's "Check": the
-  slot's body must grow by it), and (2) `dataAreaFresh` quantifies the file extension's instances
+  but `wal.bootRes` is sealed, and its `dataAreaFresh` quantifies the file extension's instances
   existentially, where the file claims `bootOk` gives (`backend.fileFree`, `backend.bPath`) are at the
-  program's (`backend.onFs`): its body must say they are the program's;
+  program's (`backend.onFs`): its body must say they are the program's. (Until 2026-11-23 the snapshot
+  directory's right `snap.snapDirOwn` was missing from it too; it is now `bootstrapSnapshot`'s, carved
+  from the snapshot directory that function makes.)
 - `bootFs.walExist.law`: **proved** (2026-11-23), `bootFs.walExist_law_holds` (`BootFsLaws.lean`), from
   `wal.Exist.spec` (whose post since then answers `false` with no WAL when the file system does not fail
   on the directory, `FsNoErrAt`): `ReadDir`'s `open` of the absent directory fails with `ENOENT`
@@ -44,7 +44,7 @@ The states:
 
 **The rows.** `bootOk`'s rows by the callee that makes them:
 
-- `bootstrapSnapshot`: `Hss`, `Hsfree` (`Hsdo` from the member state, framed);
+- `bootstrapSnapshot`: `Hss`, `Hsfree`, `Hsdo`;
 - `bootstrapBackend`: `bootBackendRows` (`Hci HisCI Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap Hbe HhkAt
   Hlate Hpath Hbfile`), `Hnew` at the data `D` after `CreateMetaBucket` (`bootBackendData`: `Hm0`,
   `HD`, the rest buckets empty, `HmEmpty`), and one write-back token for `Finalize`;
@@ -106,6 +106,186 @@ theorem withMemBkts_lookup [GooseExts] (D : backend.Data) (n : GoString) :
     rintro (h | h | h) <;> simp_all
   simp only [h1, h2, h3, h, ite_false]
 
+/-! ### `MemberIDs()` is `ps` (claim #34 stage 4, 2026-11-25; pure) -/
+
+theorem foldl_insert_isSome [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64) :
+    ((l.foldl (fun mem m => mem.insert m.id m) acc) !! k).isSome ↔
+      (acc !! k).isSome ∨ k ∈ l.map (·.id) := by
+  induction l generalizing acc with
+  | nil => simp
+  | cons m l ih =>
+    rw [List.foldl_cons, ih]
+    by_cases h : m.id = k
+    · subst h; simp
+    · have h' : k ≠ m.id := fun e => h e.symm
+      simp [h, h']
+
+/-- The members map's keys are the peers. -/
+theorem memMap_isSome [GooseExts] (U : BootURLs) (t : GoString) (k : w64) :
+    ((memMap U t) !! k).isSome ↔ k ∈ ps U t := by
+  unfold memMap ps
+  rw [foldl_insert_isSome]
+  simp
+
+/-- The peers are sorted (`mergeSort` by the ids' values). -/
+theorem ps_sorted [GooseExts] (U : BootURLs) (t : GoString) :
+    (ps U t).Pairwise (fun a b => a.toNat ≤ b.toNat) := by
+  unfold ps members
+  rw [List.pairwise_map]
+  have h := List.pairwise_mergeSort (le := fun a b : apply.MemberM => decide (a.id.toNat ≤ b.id.toNat))
+    (fun a b c hab hbc => by simp only [decide_eq_true_eq] at hab hbc ⊢; omega)
+    (fun a b => by
+      by_cases hab : a.id.toNat ≤ b.id.toNat
+      · simp [hab]
+      · have : b.id.toNat ≤ a.id.toNat := by omega
+        simp [this])
+    ((U.initMap.domList.map (memberOf U t)))
+  exact h.imp (fun hab => by simpa using hab)
+
+/-- With distinct peers, strictly increasing. -/
+theorem ps_lt [GooseExts] (U : BootURLs) (t : GoString) (hnd : (ps U t).Nodup) :
+    (ps U t).Pairwise (fun a b => uint.Z a < uint.Z b) := by
+  refine (ps_sorted U t).imp₂ (fun a b hab hne => ?_) (show (ps U t).Pairwise (· ≠ ·) from hnd)
+  have hne' : a.toNat ≠ b.toNat := fun e => hne (BitVec.eq_of_toNat_eq e)
+  simp only [uint.Z]
+  omega
+
+/-- Two strictly increasing lists of the same elements are equal. -/
+theorem eq_of_pairwise_lt {l1 l2 : List w64} (h1 : l1.Pairwise (fun a b => uint.Z a < uint.Z b))
+    (h2 : l2.Pairwise (fun a b => uint.Z a < uint.Z b)) (h : ∀ k, k ∈ l1 ↔ k ∈ l2) : l1 = l2 := by
+  induction l1 generalizing l2 with
+  | nil =>
+    cases l2 with
+    | nil => rfl
+    | cons b l2 => exact absurd ((h b).2 (by simp)) (by simp)
+  | cons a l1 ih =>
+    cases l2 with
+    | nil => exact absurd ((h a).1 (by simp)) (by simp)
+    | cons b l2 =>
+      rw [List.pairwise_cons] at h1 h2
+      have hab : a = b := by
+        apply Classical.byContradiction
+        intro hne
+        have ha : a ∈ b :: l2 := (h a).1 (by simp)
+        have hb : b ∈ a :: l1 := (h b).2 (by simp)
+        rcases List.mem_cons.1 ha with e | ha'
+        · exact hne e
+        rcases List.mem_cons.1 hb with e | hb'
+        · exact hne e.symm
+        have x1 := h2.1 a ha'
+        have x2 := h1.1 b hb'
+        omega
+      subst hab
+      congr 1
+      apply ih h1.2 h2.2
+      intro k
+      constructor
+      · intro hk
+        rcases List.mem_cons.1 ((h k).1 (List.mem_cons_of_mem _ hk)) with e | e
+        · subst e; have := h1.1 k hk; omega
+        · exact e
+      · intro hk
+        rcases List.mem_cons.1 ((h k).2 (List.mem_cons_of_mem _ hk)) with e | e
+        · subst e; have := h2.1 k hk; omega
+        · exact e
+
+/-- **`MemberIDs()` of the new cluster is `ps`**: the strictly increasing list of the members map's keys. -/
+theorem ids_eq_ps [GooseExts] (U : BootURLs) (t : GoString) (hnd : (ps U t).Nodup) (ids : List w64)
+    (hs : ids.Pairwise (fun a b => uint.Z a < uint.Z b))
+    (hk : ∀ k, k ∈ ids ↔ ((memMap U t) !! k).isSome) : ids = ps U t :=
+  eq_of_pairwise_lt hs (ps_lt U t hnd) (fun k => (hk k).trans (memMap_isSome U t k))
+
+/-! ### The members map's entries (claim #34 stage 4, 2026-11-25; pure) -/
+
+theorem foldl_insert_notin [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64)
+    (hk : k ∉ l.map (·.id)) :
+    (l.foldl (fun mem m => mem.insert m.id m) acc) !! k = acc !! k := by
+  induction l generalizing acc with
+  | nil => rfl
+  | cons m l ih =>
+    rw [List.foldl_cons, ih]
+    · have h : m.id ≠ k := fun e => hk (by simp [e])
+      simp [h]
+    · intro h; exact hk (by simp [h])
+
+theorem foldl_insert_mem [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM)
+    (hnd : (l.map (·.id)).Nodup) (m : apply.MemberM) (hm : m ∈ l) :
+    (l.foldl (fun mem m => mem.insert m.id m) acc) !! m.id = some m := by
+  induction l generalizing acc with
+  | nil => simp at hm
+  | cons a l ih =>
+    rw [List.foldl_cons]
+    rw [List.map_cons, List.nodup_cons] at hnd
+    rcases List.mem_cons.1 hm with rfl | hm'
+    · rw [foldl_insert_notin _ _ _ hnd.1]; simp
+    · exact ih _ hnd.2 hm'
+
+theorem foldl_insert_some [GooseExts] (l : List apply.MemberM) (acc : GMap w64 apply.MemberM) (k : w64)
+    (mm : apply.MemberM) (h : (l.foldl (fun mem m => mem.insert m.id m) acc) !! k = some mm) :
+    acc !! k = some mm ∨ (mm ∈ l ∧ mm.id = k) := by
+  induction l generalizing acc with
+  | nil => left; exact h
+  | cons a l ih =>
+    rw [List.foldl_cons] at h
+    rcases ih _ h with h1 | ⟨h1, h2⟩
+    · rw [GMap.lookup_insert_eq_iff] at h1
+      by_cases e : a.id = k
+      · rw [if_pos e] at h1; cases h1; right; exact ⟨by simp, e⟩
+      · rw [if_neg e] at h1; left; exact h1
+    · right; exact ⟨by simp [h1], h2⟩
+
+/-- A member of the initial cluster is its entry's `memberOf`. -/
+theorem mem_members [GooseExts] (U : BootURLs) (t : GoString) (m : apply.MemberM) :
+    m ∈ members U t ↔ ∃ name, (U.initMap !! name).isSome ∧ m = memberOf U t name := by
+  unfold members
+  rw [List.mem_mergeSort, List.mem_map]
+  constructor
+  · rintro ⟨name, hn, rfl⟩; exact ⟨name, (GMap.mem_dom_list _ _).1 hn, rfl⟩
+  · rintro ⟨name, hn, rfl⟩; exact ⟨name, (GMap.mem_dom_list _ _).2 hn, rfl⟩
+
+theorem memMap_lookup [GooseExts] (U : BootURLs) (t : GoString) (hnd : (ps U t).Nodup)
+    (m : apply.MemberM) (hm : m ∈ members U t) : memMap U t !! m.id = some m := by
+  unfold memMap
+  exact foldl_insert_mem _ _ hnd m hm
+
+theorem memMap_some [GooseExts] (U : BootURLs) (t : GoString) (k : w64) (mm : apply.MemberM)
+    (h : memMap U t !! k = some mm) : mm ∈ members U t ∧ mm.id = k := by
+  unfold memMap at h
+  rcases foldl_insert_some _ _ _ _ h with h1 | h1
+  · simp at h1
+  · exact h1
+
+/-- The members' names are distinct (each is its entry's key). -/
+theorem memMap_names [GooseExts] (U : BootURLs) (t : GoString) (k1 k2 : w64) (m1 m2 : apply.MemberM)
+    (h1 : memMap U t !! k1 = some m1) (h2 : memMap U t !! k2 = some m2) (hn : m1.name = m2.name) :
+    k1 = k2 := by
+  obtain ⟨hm1, rfl⟩ := memMap_some U t k1 m1 h1
+  obtain ⟨hm2, rfl⟩ := memMap_some U t k2 m2 h2
+  obtain ⟨n1, -, rfl⟩ := (mem_members U t m1).1 hm1
+  obtain ⟨n2, -, rfl⟩ := (mem_members U t m2).1 hm2
+  have : n1 = n2 := by simpa [memberOf] using hn
+  subst this; rfl
+
+/-- This member's entry. -/
+theorem memMap_self [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
+    (h : membersOk cfg U) :
+    memMap U cfg.InitialClusterToken' !! id cfg U =
+      some (memberOf U cfg.InitialClusterToken' cfg.Name') := by
+  unfold id
+  exact memMap_lookup U _ h.2.1 _ ((mem_members U _ _).2 ⟨_, h.1, rfl⟩)
+
+/-- A boot member has a peer URL. -/
+theorem members_urls [GooseExts] (U : BootURLs) (t : GoString) (hU : urlsNe U) (m : apply.MemberM)
+    (hm : m ∈ members U t) : m.peerURLs ≠ [] := by
+  obtain ⟨n, hn, rfl⟩ := (mem_members U t m).1 hm
+  simpa [memberOf] using hU n hn
+
+/-- A boot member is a voter with no client URLs, named by its entry. -/
+theorem members_shape [GooseExts] (U : BootURLs) (t : GoString) (m : apply.MemberM)
+    (hm : m ∈ members U t) : m.isLearner = false ∧ m.clientURLs = [] := by
+  obtain ⟨n, -, rfl⟩ := (mem_members U t m).1 hm
+  exact ⟨rfl, rfl⟩
+
 end bootGo
 
 section defs
@@ -139,12 +319,10 @@ def bootFs.dirFresh (d : GoString) : IProp GF :=
 
 /-- **The state after `TouchDirAll(cfg.MemberDir())`** (`bootstrap.go:68`; see the file header): the
 WAL's part, the member directory `DataDir/member` fresh (`MemberDir()` is
-`filepath.Join(DataDir, "member")`, `config.go:300`), and the snapshot directory's right
-(`snap.snapDirOwn` at the configuration's snapshot paths: the environment's, which `bootOk`'s `Hsdo`
-hands on; **not in `wal.bootRes`'s body today**, see the file header). -/
+`filepath.Join(DataDir, "member")`, `config.go:300`). (Until 2026-11-23 also the snapshot directory's
+right `snap.snapDirOwn`, now `bootstrapSnapshot`'s.) -/
 def bootFs.memberDir (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(bootFs.walPart cfg ∗ bootFs.dirFresh (path.joinModel [cfg.DataDir', go!"member"]) ∗
-    snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')))
+  iprop(bootFs.walPart cfg ∗ bootFs.dirFresh (path.joinModel [cfg.DataDir', go!"member"]))
 
 /-- **`TouchDirAll(lg, cfg.DataDir)` on the start** (`bootstrap.go:64`; a law, see the file header):
 an error, or the start again. True of Go: the data directory exists (a root), so `TouchDirAll`
@@ -291,6 +469,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [MemStorReg GF]
 
+/-- **The raft configuration `raftConfig(cfg, id, s)` builds** (`bootstrap.go:584-596`; claim #34 stage
+4, 2026-11-25): `ID` the member's id, `ElectionTick` the configuration's, `HeartbeatTick` `1`, the
+storage the `MemoryStorage` `s` (as raft's `Storage` interface), `MaxSizePerMsg` `maxSizePerMsg`
+(`2 ^ 20`, `raft.go:38`), `MaxInflightMsgs` `maxInflightMsgs` (`512`, `raft.go:41`), `CheckQuorum`,
+`PreVote` the configuration's, the logger `lok` (`NewRaftLoggerZap`'s), every other field zero. -/
+def raftCfgOf (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64) (s : Loc)
+    (lok : GoInterfaceOk) : Config :=
+  { (zero_val Config) with
+    ID' := id, ElectionTick' := cfg.ElectionTicks', HeartbeatTick' := W64 1,
+    Storage' := memStorIface s, MaxSizePerMsg' := W64 1048576, MaxInflightMsgs' := W64 512,
+    CheckQuorum' := true, PreVote' := cfg.PreVote', Logger' := interface.ok lok }
+
 /-- **The raft record `bv` as `bootstrapRaftFromCluster` makes it** (`bootstrap.go:548-572`,
 `raftConfig` `:584-596`): `bootOk`'s `Hraft` but its facts of the peers and of `γ`, and `Hc Hlok Hreg
 Hγsz Hrauth Hmlock Hlog0 Hend Hsnone Hmeta Hfresh Hpeers Hctx`, at this member's id `bootGo.id`, the
@@ -372,7 +562,7 @@ theorem bootBackendData_withMemBkts (γA : ApplyNames) (d : mvcc.KBReal) (D : ba
 /-- **The callees' posts join into `bootOk`** (see the file header): the records `bootstrap` holds
 (its own literal `b`, `bootstrapStorage`'s `sto` and `bw`, `bootstrapBackend`'s `bk`,
 `bootstrapCluster`'s `bc`, `bootstrapRaft`'s `bv`), the round tripper a `*http.Transport`, the WAL
-(`bootstrapStorage`), the snapshot rows (`bootstrapSnapshot`, and the member state's `snapDirOwn`),
+(`bootstrapStorage`), the snapshot rows (`bootstrapSnapshot`'s, `snapDirOwn` among them),
 `bootRaftBuilt`, `bootClusterDone`, `bootBackendRows` and `Hnew` after `Finalize`'s buckets give
 `bootOk` at Go's values, given `bootstrap.spec`'s pure preconditions on `γ` and the facts the callees'
 posts state (`membersOk`, this node's id, no remotes, `bootBackendData`). Framing, but for the

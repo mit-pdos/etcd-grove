@@ -8,9 +8,9 @@ variable).
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.log.Base
-public import Dsverify.Proof.encoding.json.Init
-public import Net.Proof.models_lab.jsoncodec.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.encoding.json.Init
+public import Proof.models_lab.jsoncodec.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

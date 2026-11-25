@@ -10,8 +10,8 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Base
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.fmt.Link
-public import Net.Proof.net.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.net.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

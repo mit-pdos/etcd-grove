@@ -9,9 +9,11 @@ directory's whole claim and wants one free name per file it may later create the
   previous one left of the shares).
 * `sepL_toMap`: a big separating conjunction over a duplicate-free list of indices as one over a finite
   map whose keys are the list's (`snapFree`'s shape).
-* `allW64`: every `w64`, once; `snapNames sd`: the backend's `db` and every index's `.snap.db`, distinct.
+* `mem_allW64`, `allW64_nodup`, `snapNames_nodup`: `snap.allW64` has every `w64` once, and
+  `snap.snapDirNames` (the backend's `db` and every index's `.snap.db`) is duplicate-free.
 * `snapDir_carve`: the snapshot directory `config.snapDirOf dd`, new and empty, gives the backend file's
-  free name and `snapFreeAll`'s claims, at the file extension's instances.
+  free name, `snapFreeAll`'s claims, and (2026-11-23) the claim on the rest of its names, `snap.snapDirOwn`'s,
+  at the file extension's instances.
 -/
 module
 
@@ -60,28 +62,9 @@ theorem nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α),
     subst this
     exact hl'.1 hb
 
-/-- A list of every `w64`, once, exists. -/
-theorem allW64_exists : ∃ l : List w64, (∀ i, i ∈ l) ∧ l.Nodup := by
-  refine ⟨(List.range (2 ^ 64)).map (fun n => BitVec.ofNat 64 n), fun i => ?_, ?_⟩
-  · exact List.mem_map.2 ⟨i.toNat, List.mem_range.2 i.isLt, BitVec.ofNat_toNat _ _⟩
-  refine nodup_map_on _ _ ?_ List.nodup_range
-  intro a ha b hb hab
-  have ha' := List.mem_range.1 ha
-  have hb' := List.mem_range.1 hb
-  have := congrArg BitVec.toNat hab
-  simp only [BitVec.toNat_ofNat] at this
-  rw [Nat.mod_eq_of_lt ha', Nat.mod_eq_of_lt hb'] at this
-  exact this
+theorem mem_allW64 (i : w64) : i ∈ snap.allW64 := (Classical.choose_spec snap.allW64_exists).1 i
 
-/-- **Every `w64`, once** (only through `mem_allW64` and `allW64_nodup`). Chosen, not
-`(List.range (2 ^ 64)).map _`: a definition the kernel can unfold made its check of
-`snapDir_carve` (the proof mode's `bigSepL_cons` on `go!"db" :: allW64.map _`) unfold the
-`2 ^ 64`-element list, a deterministic timeout (2026-11-24); the kernel cannot unfold a choice. -/
-noncomputable def allW64 : List w64 := Classical.choose allW64_exists
-
-theorem mem_allW64 (i : w64) : i ∈ allW64 := (Classical.choose_spec allW64_exists).1 i
-
-theorem allW64_nodup : allW64.Nodup := (Classical.choose_spec allW64_exists).2
+theorem allW64_nodup : snap.allW64.Nodup := (Classical.choose_spec snap.allW64_exists).2
 
 /-- Database snapshot names of distinct indices are distinct. -/
 theorem snapDBName_inj {i i' : w64} (h : snap.snapDBName i = snap.snapDBName i') : i = i' := by
@@ -133,12 +116,8 @@ theorem nameOk_snap : NameOk go!"snap" := by unfold NameOk; decide
 
 theorem nameOk_db : NameOk go!"db" := by unfold NameOk; decide
 
-/-- The names `bootstrapSnapshot` hands out of the new snapshot directory: `db` and every index's
-`.snap.db`. -/
-def snapNames : List GoString := go!"db" :: allW64.map snap.snapDBName
-
-theorem snapNames_nodup : snapNames.Nodup := by
-  unfold snapNames
+theorem snapNames_nodup : snap.snapDirNames.Nodup := by
+  unfold snap.snapDirNames
   refine List.nodup_cons.2 ⟨?_, ?_⟩
   · intro hm
     obtain ⟨i, -, hi⟩ := List.mem_map.1 hm
@@ -148,9 +127,9 @@ theorem snapNames_nodup : snapNames.Nodup := by
   · exact nodup_map_on _ _ (fun a _ b _ h => snapDBName_inj h) allW64_nodup
 
 theorem snapNames_ok {dd : GoString} (hd : DirFits dd) :
-    ∀ b ∈ snapNames, NameOk b ∧ PathFits (child (config.snapDirOf dd) b) := by
+    ∀ b ∈ snap.snapDirNames, NameOk b ∧ PathFits (child (config.snapDirOf dd) b) := by
   intro b hb
-  unfold snapNames at hb
+  unfold snap.snapDirNames at hb
   rcases List.mem_cons.1 hb with rfl | hb
   · exact ⟨nameOk_db, config.pathFits_snapDir_child hd (by decide)⟩
   · obtain ⟨i, -, rfl⟩ := List.mem_map.1 hb
@@ -214,11 +193,17 @@ theorem carveFree (R : Roots) (d : GoString) (j : Ino) (E : CoPset) (hE : ↑osS
     (∀ b ∈ l, NameOk b ∧ PathFits (child d b)) → (∀ b, h.cur !! b = none) →
     ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R d (DFrac.own q) j -∗
       osCallPerm (callKey R d) qc -∗ osNames j (.except X) (DFrac.own 1) h ={E}=∗
-      [∗list] b ∈ l, backend.fileFreeF (child d b)
-  | [], _, _, _, _, _, _, _, _ => by
+      ([∗list] b ∈ l, backend.fileFreeF (child d b)) ∗
+      ∃ (q' qc' : Qp) (h' : NamesH), osPathS R d (DFrac.own q') j ∗ osCallPerm (callKey R d) qc' ∗
+        osNames j (.except (X ++ l)) (DFrac.own 1) h'
+  | [], X, q, qc, h, _, _, _, _ => by
     iintro #Hinv #Hsh Hp Hc Hn
     imodintro
-    iapply BigSepL.bigSepL_nil.2; iempintro
+    isplitl []
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iexists q, qc, h
+    rw [List.append_nil]
+    iframe Hp Hc Hn
   | b :: l, X, q, qc, h, hl, hX, hok, hcur => by
     iintro #Hinv #Hsh Hp Hc Hn
     have hbX : b ∉ X := hX b (List.mem_cons_self ..)
@@ -238,8 +223,10 @@ theorem carveFree (R : Roots) (d : GoString) (j : Ino) (E : CoPset) (hE : ↑osS
         · exact hX c (List.mem_cons_of_mem _ hc) h'
         · rw [List.mem_singleton] at h'; subst h'; exact hl'.1 hc)
       (fun c hc => hok c (List.mem_cons_of_mem _ hc))
-      (fun c => restrictN_none _ _ hcur c) $$ Hinv Hsh Hp2 Hc2 Hr with Hl
+      (fun c => restrictN_none _ _ hcur c) $$ Hinv Hsh Hp2 Hc2 Hr with ⟨Hl, Hrest⟩
     imodintro
+    rw [show X ++ b :: l = X ++ [b] ++ l by simp]
+    iframe Hrest
     iapply BigSepL.bigSepL_cons.2
     iframe Hl
     unfold backend.fileFreeF
@@ -256,17 +243,23 @@ theorem snapDir_carve (R : Roots) (dd : GoString) (J : Ino) (q qc : Qp) (h : Nam
     ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R (config.snapDirOf dd) (DFrac.own q) J -∗
       osCallPerm (callKey R (config.snapDirOf dd)) qc -∗ osNames J (.except []) (DFrac.own 1) h ={⊤}=∗
       backend.fileFreeF (config.backendPathOf dd) ∗
-      ∃ F : GMap w64 Unit, ⌜∀ i, F !! i ≠ none⌝ ∗
-        [∗map] i ↦ _x ∈ F, backend.fileFreeF (snap.snapDBPath (config.snapDirOf dd) i) := by
+      (∃ F : GMap w64 Unit, ⌜∀ i, F !! i ≠ none⌝ ∗
+        [∗map] i ↦ _x ∈ F, backend.fileFreeF (snap.snapDBPath (config.snapDirOf dd) i)) ∗
+      ∃ (q' qc' : Qp) (h' : NamesH), osPathS R (config.snapDirOf dd) (DFrac.own q') J ∗
+        osCallPerm (callKey R (config.snapDirOf dd)) qc' ∗
+        osNames J (.except snap.snapDirNames) (DFrac.own 1) h' := by
   iintro #Hinv #Hsh Hp Hc Hn
-  imod carveFree R (config.snapDirOf dd) J ⊤ CoPset.subseteq_top snapNames [] q qc h
-    snapNames_nodup (fun _ _ h => by simp at h) (snapNames_ok hd) hcur $$ Hinv Hsh Hp Hc Hn with Hl
-  unfold snapNames
+  imod carveFree R (config.snapDirOf dd) J ⊤ CoPset.subseteq_top snap.snapDirNames [] q qc h
+    snapNames_nodup (fun _ _ h => by simp at h) (snapNames_ok hd) hcur $$ Hinv Hsh Hp Hc Hn
+    with ⟨Hl, Hrest⟩
+  rw [List.nil_append]
+  iframe Hrest
+  unfold snap.snapDirNames
   icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hdb, Hl⟩
   rw [BigSepL.bigSepL_map]
   simp only [snapDBPath_child, backendPathOf_child]
   icases sepL_toMap (fun i => backend.fileFreeF (GF := GF) (child (config.snapDirOf dd) (snap.snapDBName i)))
-    allW64 allW64_nodup $$ Hl with ⟨%F, %hF, HF⟩
+    snap.allW64 allW64_nodup $$ Hl with ⟨%F, %hF, HF⟩
   imodintro
   iframe Hdb
   iexists F

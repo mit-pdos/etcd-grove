@@ -1,12 +1,12 @@
 /-
 `RunNode(id, addrs, dir, voters, preVote, checkQuorum, stepDownOnRemoval, maxSizePerMsg,
 maxCommittedSizePerReady, maxInflightMsgs)` (`examples/raft/kvnet/node.go`): a replica's process,
-as the top-level theorem runs it: the cluster's addresses split (`SplitAddrs`), checked
-(`ValidCluster`, and `id` one of the replicas: else a panic, which the premises exclude), the
-address map built (replica `i` at the `i`-th address), then `Run`. The premises are the top-level
-theorem's: a valid cluster, `id` among its replicas, and the protocols of `id`'s address (`Run`'s,
-whose seams `rep`, `cf` are passed through, and whose start resources `S` are given at the id, the
-directory, the options built and every address map holding exactly the addresses: `addrMapOk`).
+as the top-level theorem runs it: the cluster's addresses split (`SplitAddrs`) and checked
+(`runNodeOk`: `ValidCluster`, `id` among the replicas, `dir` shorter than `MaxDirLen`; else it returns
+at once), the address map built (replica `i` at the `i`-th address), then `Run`. Every configuration
+is allowed: the resources `Run` needs, the protocols of `id`'s address (`Run`'s, whose seams `rep`,
+`cf` are passed through) and the start resources `S` (at the id, the directory, the options built and
+every address map holding exactly the addresses: `addrMapOk`), are needed only if the check passes.
 -/
 module
 
@@ -38,14 +38,13 @@ abbrev RunNode.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (S : w64 → GoString → github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options → GMap w64 GoString → IProp GF) : Prop :=
   ∀ (id : w64) (addrs dir : GoString) (voters : w64) (pv cq sd : Bool)
     (msz mcs mif : w64) (eof ed : GoInterface),
-  validCluster (splitAddrs addrs) (uint.nat voters) (uint.nat msz) (uint.nat mcs) (uint.nat mif)
-    = true →
-  1 ≤ uint.nat id → uint.nat id ≤ (splitAddrs addrs).length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
-      (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
-        addrProto a (kvP F id) (kvQ F id)) ∗
-      (∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
-        S id dir ⟨voters, pv, cq, sd, msz, mcs, mif⟩ M) ∗
+      (⌜runNodeOk (splitAddrs addrs) (uint.nat id) dir (uint.nat voters) (uint.nat msz)
+          (uint.nat mcs) (uint.nat mif)⌝ -∗
+        (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
+          addrProto a (kvP F id) (kvQ F id)) ∗
+        (∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
+          S id dir ⟨voters, pv, cq, sd, msz, mcs, mif⟩ M)) ∗
       globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
       context.isClosedchanInit }}
     (App (App (App (App (App (App (App (App (App (App
