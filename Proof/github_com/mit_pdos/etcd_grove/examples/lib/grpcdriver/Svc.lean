@@ -19,7 +19,9 @@ continuation `Φ`, the error's `Ψe`):
 * `Echo` (`echoSpec`): on a fresh value `v` with its id's token, `Φ (v ++ "#1")`;
 * `Fail` (`failSpec`): `Ψe v` (the handler always fails, with the request's value as its message;
   no reply);
-* `Meta` (`metaSpec`): `Φ` of the values the metadata has at `mdKeyS`, joined by `","`.
+* `Meta` (`metaSpec`): `Φ` of the values the metadata has at `mdKeyS`, joined by `","`, which the
+  caller says is below `stringValueMax` (the reply's bound; the client's metadata is a few short
+  words).
 -/
 module
 
@@ -82,7 +84,8 @@ def failSpec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
 def metaSpec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
     (pbStringValueRT (GF := GF)).toProtoMsg :=
   fun md _ (Φ : GoString → IProp GF) _ =>
-    Φ (go!",".intercalate (metadata.mdVals md mdKeyS))
+    iprop(⌜(go!",".intercalate (metadata.mdVals md mdKeyS)).length < stringValueMax⌝ ∗
+      Φ (go!",".intercalate (metadata.mdVals md mdKeyS)))
 
 /-- **The service's table** (unary methods; the streaming methods' entries are to come with the
 stream end's statement, T10 of `coordinator-notes`' plan). -/
