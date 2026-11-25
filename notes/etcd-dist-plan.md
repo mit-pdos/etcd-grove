@@ -2416,6 +2416,16 @@ they post it. It touches none of their files.
     `distPs`/`distCtxs` (`bootGo.ps`/`bootGo.ctxs`; `putget`'s `pgBootGo` computes those for this member).
 - **Collection**: `etc/tcb-collections/etcd-dist.txt` gains the root `kvremote/TopLevelRobustness`.
 
+**Checked** (VM, with N7-kv's `KvDefs.lean` copied in untracked, since it is not on this base): the four modules
+(the Spec statement, `dist/PremiseWitness`, `kvremote/TopLevelWitness`, `kvremote/TopLevelRobustness`) built on the
+first try (5092 jobs); `premise-witness --check` (48 statements) and `tier-check --check` pass. `#print axioms`:
+- `etcd_kv_safe_nocrash_of_full` and `etcd_kv_safe_nocrash.premisesSat`: only `propext`, `Classical.choice` and
+  `Quot.sound`;
+- `etcd_kv_safe_nocrash_of_boot`: 36 of this repository's axioms, all through `etcdBootNCBad_holds`'s package
+  initializers. All are in `etc/tcb-baseline.txt` except etcdhttp's generated `initFuncsOk`/`opaqueInitsOk`,
+  which are declared on this line but reached by no root before this one (§20). They enter
+  `etc/tcb-baseline.txt` and `etcd-dist.txt` at the `--check --update` after the full build.
+
 **Left: `EtcdKvBootNC`'s discharge** (once etcd-grove-03's head is posted).
 - The start:
   - `netProto_alloc`;
