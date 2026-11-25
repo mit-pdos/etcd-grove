@@ -708,7 +708,7 @@ theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
     fileFreeDur (hG := ⟨G, atC L'⟩) (snap.snapDBPath sd i)) (fun {i _} => by rw [hfreeN])) $$ HF'
   -- the image facts weakened, `img → img'`
   ihave HM' := BigSepM.bigSepM_impl (Ψ := fun i Dt =>
-    iprop(snapFileAt (hG := ⟨G, atC L'⟩) sd E i Dt ∗ □ img' i Dt)) $$ HM'
+    iprop(snapFileAt (hG := ⟨G, atC L'⟩) sd E i Dt ∗ □ img' i Dt)) $$ HM' []
   · iintro !> %i %Dt %_ ⟨Hf, #Hi⟩
     iframe Hf
     iintro !>

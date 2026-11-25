@@ -120,7 +120,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable {GF : BundledGFunctors}
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`mvccImage` is the same at every generation** (both at the Go context `lctx` of the program's
 instances) (D6-T7, the coordinator's option (a), 2026-11-25;

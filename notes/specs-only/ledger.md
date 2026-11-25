@@ -7067,4 +7067,14 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   mvccImage (hG := ⟨G, L'⟩) D M c u` (proved inside the package if its body is ghost-only), then `srvImageM_gen`; and
   T6's law takes `img img'` with `□ (∀ i D, img i D -∗ img' i D)` as it already does for `Rm → Rm'` (the body's image
   facts are persistent); or (b) `snapDirKeep`'s `img` stated over `GooseGlobalGS` only. (a) is the smaller change.
-- **Decision.** Pending (coordinator). Not edited; T7 stops here (session 6).
+- **Decision.** (a), the coordinator's (2026-11-25). Checked first: `⧖ n` (`preceipt`) reads only `AllG` and
+  `ReceiptGS`, both fields of `GooseGlobalGS` (Perennial `GooseLang/Receipts.lean`, `Lifting.lean`: the receipts
+  are global, "the step bound counts the steps of all generations"), and the rest of `mvccImage` is pure, so the
+  law holds by `.rfl` inside the sealed module. Done (T7 session 7): `mvcc.api.mvccImage_gen` (`EtcdBackend.lean`,
+  `⊣⊢`, both generations at the program's Go context `lctx`: `go.Semantics` and mvcc's `Assumptions` take a
+  `GoLocalContext`, so the law fixes it as `{L with goose_go_local_context := lctx}`, T6's `atC`); `srvImageM_gen`
+  (`etcdserver/ImageOn.lean`, `⊢`, through `srvImage`/`dbImage` and `srvImageOn`/`dbImageOn`); T6's
+  `snapDir_crash.law` takes `img img'` and `□ (∀ j Dt, img j Dt -∗ img' j Dt)` after the `Rm → Rm'` wand, its
+  out `snapDirKeep … img' Rm'` (the proof weakens the kept files' image facts with `bigSepM_impl` before
+  allocating the new invariant). `mvccImage` stays `@[no_expose]`; no `etc/api/*.txt` change. The law's only
+  importer is `dist/crash/MemberCrash.lean` (`etc/importers.py --uses snapDir_crash`).
