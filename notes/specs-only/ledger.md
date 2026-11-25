@@ -25,6 +25,41 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
+
+- **Spec.** `Spec/errors/IsStatusErr.lean`, `errors.IsStatusErr.spec` (the axiom `errors.IsStatusErr.wp_proof`).
+- **Defect.** Its third target case, "a non-nil `SafeMapKey go.error target`", added for
+  `canceledByCaller`'s comparison with `context.DeadlineExceeded`, has since Perennial's P8c admitted
+  only pointers (already the second case), so the one caller that needed it took the unsatisfiable
+  `client.ctxErrTargets` (`notes/axiom-review/ctx-readerrs-vacuity.md`).
+- **Evidence.** Perennial `Golang/Theory/Map.lean` (`mapKeys_interface`, `SafeMapKey.key_ok`);
+  go1.27.3 `src/errors/wrap.go:44-70` (`Is` compares `err == target`, which for different dynamic
+  types is `false` and for `deadlineExceededError`, an empty struct, does not panic).
+- **Proposed change.** The case becomes `target = deadlineExceededError{}`; `ctxErrTargets` states
+  that value (proved from `context.isInit`, `ctxErrTargets_of`).
+- **Decision.** Applied (branch `hctx-vacuity/2026-11-25`): a trust-boundary spec covering one more
+  target, true of Go; for the coordinator's review before landing.
+
+## 2026-11-25: bcrypt.GenerateFromPassword -- the non-pointer error branch is `False` (a `SafeMapKey` no non-pointer is)
+
+- **Spec.** `Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`, `bcrypt.GenerateFromPassword.spec`
+  (the axiom `bcrypt.GenerateFromPassword.wp_proof`); the plan's `SpecPlan/Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`
+  does not state the error's shape.
+- **Defect.** False of the Go code: the post's non-pointer branch asks `SafeMapKey go.error err`, which
+  since Perennial's P8c (`293bcbdd8`) no non-pointer, non-nil interface meets, so the axiom says bcrypt
+  never returns a non-pointer error; v0.57.0 returns `InvalidCostError(cost)` (an `int`) for
+  `cost > MaxCost`. (`notes/bcrypt-invalidcost-false.md`.)
+- **Evidence.** `bcrypt.go:95-102, 139-150, 299-303`; Perennial `Golang/Theory/Map.lean`
+  (`mapKeys_interface`, `SafeMapKey.key_ok`); the review's Lean check (`ctxDeadline_pure_false`, the
+  same contradiction).
+- **Proposed change.** The branch becomes `ei.ty = bcrypt.InvalidCostError.ty ∧ ∃ c : w64, ei.v = #c`
+  (Go's typing of the value bcrypt returns; it implies the old branch's non-pointer and
+  not-`deadlineExceededError` conjuncts). The caller `EtcdServer.UserAdd`'s proof derives what it used
+  (`errKeyOk_invalidCost`); the gRPC layer looks the error up under its own map keys (`errKeyOk`,
+  `v3rpc.errKeys`) instead of `SafeMapKey`. No other caller.
+- **Decision.** Applied (ctx-leaf-fix, 2026-11-25, branch `hctx-vacuity/2026-11-25`): a trust-boundary
+  axiom restated more weakly than its false form, for the coordinator's review before landing.
+
 ## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`

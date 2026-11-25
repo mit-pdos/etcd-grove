@@ -35,7 +35,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 abbrev foreign.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cli : Loc) (who addr : GoString) (id : w64) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γa : auth.AuthNames) (n m : Nat) (Qr : KVState → IProp GF) (R : IProp GF),
   who = go!"u" ∨ who = go!"v" → E.authOn = true →

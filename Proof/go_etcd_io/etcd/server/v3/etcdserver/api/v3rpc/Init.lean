@@ -11,8 +11,8 @@ axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
-pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
-fact lacks it). Its precondition has the registration rights of the metric
+pointer error (`EtcdGrove.ContextReadErrs.errs_strong`, from Perennial's `context.isInit`).
+Its precondition has the registration rights of the metric
 names of its import closure (`namesFree initNames`, decision D16; mustreg, 2026-11-20), which it
 passes on to its imports' initializers.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s

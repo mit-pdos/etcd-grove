@@ -136,8 +136,6 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
@@ -175,8 +173,6 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   intro _
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
-  haveI := Hctx hG
-  haveI := Hcec hG
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.getIsPkgInit_wf, ?_⟩

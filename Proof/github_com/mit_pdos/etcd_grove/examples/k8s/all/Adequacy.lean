@@ -167,8 +167,6 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids : List w64) (ps : List w64)
@@ -227,8 +225,6 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   refine ⟨GName, fun γ => EtcdGrove.k8s.regAuth (reg := ⟨γ⟩) (∅ : GMap GoString GName),
     EtcdGrove.k8s.regAuth_alloc, fun γ => ?_⟩
   letI : EtcdGrove.k8s.CompactorRegistry := ⟨γ⟩
-  haveI := Hctx hG
-  haveI := Hcec hG
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.all.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.k8s.all.getIsPkgInit_wf, ?_⟩
@@ -272,8 +268,6 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids : List w64) (ps : List w64)
@@ -308,7 +302,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_adequate_below Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 hk₂ ids' ps'
+  k8s_adequate_below Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 hk₂ ids' ps'
     ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul
     steps₁ steps₂ Hsteps₁ Hsteps₂ HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal Hlctx Hinit Hthreads
     κs t2 σ2 ((RealNstepsBelow.of_one Hsteps' Hthreads).mono (by omega)) (by omega)

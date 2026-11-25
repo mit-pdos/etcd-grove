@@ -105,7 +105,6 @@ at `γa`, its consistent index at start at most its start index (as at boot, whe
 abbrev SetUp.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (ep : GoString) (V : client.WEnv GF) (s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames),
   E.authMode = .on γa →

@@ -48,7 +48,7 @@ theorem grantPut.wp_proof
     (wp_WithTimeout : context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG))
     (wp_WithLease : WithLease.spec (GF := GF) (hG := hG)) :
     grantPut.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC cli k addr s E ρ cid mid n F P Qg Qp R R' hon hrev hsz hAs
+  intro CS ES FS RS cli k addr s E ρ cid mid n F P Qg Qp R R' hon hrev hsz hAs
   wp_start as ⟨#Htk, #Hn, #Hgr, #Hput, #HF, #HQg, HR, HFix⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

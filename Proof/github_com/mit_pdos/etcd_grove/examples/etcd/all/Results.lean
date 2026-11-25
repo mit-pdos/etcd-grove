@@ -71,8 +71,6 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     [_root_.Perennial.net.FieldAssumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC etcdGF, ContextErrsClient (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     -- KV: txnlinfaultsN's cluster, `k₁` members
     (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8))
     (boot₁ : List LogEntry) (Hlen₁ : ids₁.length = k₁)
@@ -171,7 +169,7 @@ theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_of (fun hG => etcd_all.wp_Main (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    Hctx Hcec k₁ hk₁1 hk₁ ids₁ ps₁ ctxs₁ boot₁ Hlen₁ Hbf₁ pid₁ pid₂ pid₃ psP ctxsP bootP HbfP cwId
+    k₁ hk₁1 hk₁ ids₁ ps₁ ctxs₁ boot₁ Hlen₁ Hbf₁ pid₁ pid₂ pid₃ psP ctxsP bootP HbfP cwId
     ctxsCW bootCW HbfCW cId ctxsC bootC HbfC kvId ctxsK bootK HbfK k₂ hk₂1 hk₂ ids₂ ps₂ ctxs₂ boot₂
     Hlen₂ Hbf₂ k₃ hk₃1 hk₃ ids₃ ps₃ ctxs₃ boot₃ Hlen₃ Hbf₃ Hap k₄ hk₄1 hk₄ ids₄ ps₄ ctxs₄ boot₄
     Hlen₄ Hbf₄ lid₁ lid₂ lid₃ psL ctxsL bootL HbfL k₅ hk₅3 hk₅ ids₅ ps₅ ctxs₅ boot₅ Hlen₅ Hbf₅ rId

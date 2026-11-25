@@ -92,13 +92,51 @@ def errLeaf (e : GoInterfaceOk) : Prop :=
     (methodSet e.ty !! go!"Format" = none ∧
       methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
 
-/-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
-`EtcdGrove.ContextReadErrs` states of `context.Canceled` (`errVarLeafW`), unchanged; the `Format`
+/-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what
+`EtcdGrove.ContextReadErrs.errs` proves of `context.Canceled` (`errVarLeafW`; a premise until ctx-leaf-fix, 2026-11-25); the `Format`
 fact follows from Perennial's `context.isInit` (`ContextReadErrs.errs_strong`). -/
 def errLeafW (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
     methodSet e.ty !! go!"GRPCStatus" = none
+
+/-- **An error `togRPCError` can look up in its `map[error]error`** (ctx-leaf-fix, 2026-11-25; until
+then `SafeMapKey` at Perennial's interface keys, which since P8c are `nil` or pointers only, so
+false of the two non-pointer errors below: `notes/axiom-review/ctx-readerrs-vacuity.md`): `nil`, a
+pointer error, `context.DeadlineExceeded`'s `deadlineExceededError{}` or a bcrypt
+`InvalidCostError` (an `int`). Go's `==` on two of these is Lean's equality
+(`v3rpc.errKeys`, `Proof/.../api/v3rpc/ErrMapKey.lean`: the map's keys, `wp_errMap_lookup2`). -/
+def errKeyOk (k : GoInterface) : Prop :=
+  k = GoInterface.nil ∨ (∃ (t : go.GoType) (l : Loc), k = interface.mkOk (go.PointerType t) #l) ∨
+    k = interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
+      #(zero_val _root_.Perennial.context.deadlineExceededError) ∨
+    ∃ c : w64, k = interface.mkOk _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty #c
+
+/-- A pointer error is an `errKeyOk` key. -/
+theorem errKeyOk_ptr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
+    errKeyOk (GoInterface.ok e) := by
+  obtain ⟨T, l, hT, hv⟩ := h
+  obtain ⟨ty, v⟩ := e
+  simp only at hT hv
+  subst hT hv
+  exact Or.inr (Or.inl ⟨T, l, rfl⟩)
+
+/-- A bcrypt `InvalidCostError` holding an `int` (`bcrypt.GenerateFromPassword`'s non-pointer
+error) is not a pointer, is an `errKeyOk` key, and is not a `deadlineExceededError`. -/
+theorem errKeyOk_invalidCost (e : GoInterfaceOk)
+    (hic : e.ty = _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty)
+    (hc : ∃ c : w64, e.v = #c) :
+    (∀ T, e.ty ≠ go.GoType.PointerType T) ∧ errKeyOk (GoInterface.ok e) ∧
+      e.ty ≠ _root_.Perennial.context.deadlineExceededError.ty := by
+  obtain ⟨c, hc⟩ := hc
+  obtain ⟨ty, v⟩ := e
+  simp only at hic hc
+  subst hic hc
+  refine ⟨fun T h => ?_, Or.inr (Or.inr (Or.inr ⟨c, rfl⟩)), fun h => ?_⟩
+  · unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty at h; cases h
+  · unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
+      _root_.Perennial.context.deadlineExceededError.ty at h
+    cases h
 
 end errIs
 
@@ -160,12 +198,13 @@ theorem errMsgOk_msgIs (ei : GoInterfaceOk) :
   iunfold go_etcd_io.etcd.cache.v3.errorMsgIs
   iexact H
 
-/-- **What the gRPC layer needs of an error besides its tree** (persistent): `nil`, or a safe key
-of `togRPCError`'s error map (`SafeMapKey`: comparing it with itself does not panic; a pointer
-error is one, `safeMapKey_ptrErr`) whose `Error()` returns (`errMsgOk`). -/
+/-- **What the gRPC layer needs of an error besides its tree** (persistent): `nil`, or a key
+`togRPCError` can look up in its error map (`errKeyOk`; a pointer error is one, `errKeyOk_ptr`;
+until ctx-leaf-fix, 2026-11-25, a `SafeMapKey` at Perennial's interface keys) whose `Error()`
+returns (`errMsgOk`). -/
 def errKeyMsg (err : GoInterface) : IProp GF :=
   iprop(⌜err = GoInterface.nil⌝ ∨
-    (⌜SafeMapKey (GF := GF) go.error err⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
+    (⌜errKeyOk err⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
       errMsgOk ei))
 
 instance errKeyMsg_persistent (err : GoInterface) : Persistent (errKeyMsg (GF := GF) err) := by
@@ -325,16 +364,6 @@ theorem applyErrIs_treeDE [_root_.Perennial.errors.Assumptions] (err : GoInterfa
   · iapply _root_.Perennial.errors.errorIsTree_of_walk S I U target $$ Ht
   ipureintro; exact ⟨HS.1, HS.2.2.2⟩
 
-/-- A pointer error is a safe map key at `error`: Go's `==` on two pointer errors of one type
-compares the pointers. -/
-theorem safeMapKey_ptrErr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
-    SafeMapKey (GF := GF) go.error (GoInterface.ok e) := by
-  obtain ⟨T, l, hT, hv⟩ := h
-  obtain ⟨ty, v⟩ := e
-  simp only at hT hv
-  subst hT hv
-  exact safeMapKey_interface_pointer go.error T l
-
 /-- `nil` is in the empty tree. -/
 theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   iunfold applyErrIs
@@ -363,7 +392,7 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   · isplitl
     · iunfold errKeyMsg; iright
       isplitr
-      · ipureintro; exact safeMapKey_ptrErr e h.1
+      · ipureintro; exact errKeyOk_ptr e h.1
       iexists e; iframe Hm; ipureintro; rfl
     · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
       iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2 $$ Hm
@@ -377,14 +406,16 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
 
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
-type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a safe
-key of a map (its `==` with itself does not panic), without a `GRPCStatus` method (k8s etcd3 7c,
+type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a
+key of `togRPCError`'s map (`errKeyOk`), without a `GRPCStatus` method (k8s etcd3 7c,
 HS-6), whose `Error()` returns. If it is of type `deadlineExceededError`, it holds
-`deadlineExceededError{}` (`hde`, Go's typing; errors-is-deadline, 2026-11-23). -/
+`deadlineExceededError{}` (`hde`, Go's typing; errors-is-deadline, 2026-11-23). (ctx-leaf-fix, 2026-11-25) A key of the
+map: `errKeyOk` (`deadlineExceededError{}` or an `InvalidCostError`; until then a `SafeMapKey` at
+Perennial's interface keys, false of a non-pointer). -/
 theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (hleaf : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
-    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
+    (hkey : errKeyOk (GoInterface.ok e))
     (hG : methodSet e.ty !! go!"GRPCStatus" = none)
     (hF : methodSet e.ty !! go!"Format" = none ∧
       methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
@@ -592,7 +623,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
         icases Hm with ⟨%x, %Hx, %s0, -, #Hs⟩
         subst Hx
         isplitr
-        · ipureintro; exact safeMapKey_ptrErr _ ⟨_, x, rfl, rfl⟩
+        · ipureintro; exact errKeyOk_ptr _ ⟨_, x, rfl, rfl⟩
         iexists _
         isplitr
         · ipureintro; rfl
@@ -602,7 +633,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
       · iunfold EtcdGrove.fmt.wrapErrIs at Hw2
         icases Hw2 with ⟨%Hm, ⟨%s, #Hs⟩, -⟩
         isplitr
-        · ipureintro; exact safeMapKey_ptrErr ii Hm.1
+        · ipureintro; exact errKeyOk_ptr ii Hm.1
         iexists ii
         isplitr
         · ipureintro; rfl
@@ -622,8 +653,8 @@ def errVarLeaf (g : GoString) : IProp GF :=
 instance errVarLeaf_persistent (g : GoString) : Persistent (errVarLeaf (GF := GF) g) := by
   unfold errVarLeaf; infer_instance
 
-/-- `errVarLeaf` over `errLeafW` (premise-fixes-4): what the premise `EtcdGrove.ContextReadErrs`
-states, unchanged. -/
+/-- `errVarLeaf` over `errLeafW` (premise-fixes-4): what `EtcdGrove.ContextReadErrs.errs`
+proves (a premise until ctx-leaf-fix, 2026-11-25). -/
 def errVarLeafW (g : GoString) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜errLeafW e⌝ ∗ errMsgOk e)
 

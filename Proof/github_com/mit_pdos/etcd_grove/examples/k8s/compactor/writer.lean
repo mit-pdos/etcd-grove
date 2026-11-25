@@ -43,7 +43,7 @@ theorem writer.wp_proof
     (wp_Itoa : EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG))
     (h_client_Put_kv : client.client_Put_kv.law (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ cl γk γ
+  intro _ _ cl γk γ
   wp_start as ⟨#Hko, #Hinv⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writeKey = #writeKeyS from rfl]
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []

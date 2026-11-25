@@ -42525,3 +42525,31 @@ full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange
 Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
 members' axioms are unchanged in statement and now speak of fewer calls.
 
+
+## `ContextReadErrs` was unsatisfiable: a local `MapKeys` for `togRPCError`, the classes theorems, a gate on Iris premises (2026-11-25 · soundness fix · branch `hctx-vacuity/2026-11-25`)
+
+**What.** The top-level premise `Hctx : ∀ hG, ContextReadErrs` stated of `context.DeadlineExceeded`'s
+value both "not a pointer" and `SafeMapKey go.error` at Perennial's interface keys, which since P8c
+(`mapKeys_interface`) are `nil` or pointers: `ContextReadErrs → isPkgInit context ⊢ False`, checked in
+Lean. Every statement taking it was vacuous for a month (`notes/axiom-review/ctx-readerrs-vacuity.md`,
+with the list). The Go fact is true; the Lean statement was wrong.
+
+**Choices.**
+- The conjunct was used only by `togRPCError`'s map lookup. Restated as `errKeyOk` (the keys Go's `==`
+  compares as Lean's equality: `nil`, pointers, `deadlineExceededError{}`, bcrypt's `InvalidCostError`)
+  with a local `MapKeys` instance `v3rpc.errKeys`, as Perennial's `MapKeys` doc invites (and as
+  `v3rpc.streamKeys` already did), not a change to Perennial's instance: no trust added, the
+  `SafeMapKey` of each key proved from `==`'s reduction.
+- The classes `ContextReadErrs` and `ContextErrsClient` became theorems from `isPkgInit context`
+  (Perennial's `context.isInit` names both errors' values since the context-errors change): no
+  premise is left to be false, and nothing to witness.
+- `client.ctxErrTargets` and `errors.IsStatusErr.spec`'s dead comparable-target case are restated for
+  `deadlineExceededError{}` (a trust-boundary spec covering one more target, true of Go; the ledger
+  entry of 2026-11-25), and `ctxErrTargets_of` proves the former.
+- **Prevention, kept small**: the pure-premise witness gate leaves out every binder over `HeapGS`, so a
+  second gate, `etc/iris-premise-check.py` (sources only; `etc/gates.sh`, CI), lists the Iris binders
+  of every top-level statement and refuses one not in `etc/iris-premise-baseline.txt`, either
+  `witness:<theorem>` (declared in the tree; the build checks it) or `unwitnessed` (the 19 present at
+  its introduction; the list only shrinks). It flags `Hctx`/`Hcec` on the tree before the fix. Not
+  done: a Lean-level check that a named witness really proves the premise at an initialized world (the
+  name is a pointer for review, not a proof obligation the script verifies).

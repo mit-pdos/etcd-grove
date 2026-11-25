@@ -4610,3 +4610,7 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `time.Duration.wp_String`) give the two arguments.
 - **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
   reviewed as a change to the trusted model's claim. **Status.** Not filed.
+
+## `MapKeys`/`SafeMapKey`: say that a non-pointer interface is never a `SafeMapKey` at the default keys (2026-11-25 · `notes/axiom-review/ctx-readerrs-vacuity.md`)
+
+- **Limitation.** Since P8c a `SafeMapKey` interface at `mapKeys_interface` is `nil` or a pointer, so stating `SafeMapKey go.error e` of a comparable struct error is `False`; two specs here did, unnoticed for a month. **Proposed.** One line in `Golang/Theory/Map.lean`'s `mapKeys_interface` doc warning of it (and pointing to a local instance). **Status.** Not filed.

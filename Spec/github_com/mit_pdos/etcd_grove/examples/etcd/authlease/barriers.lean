@@ -31,7 +31,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 abbrev barriers.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (msl : GoSlice) (lg : Loc) (ms : List etcdstart.GMember) (bs : List (BArgs GF)),
   ms.map (·.Client') = bs.map (·.addr) → threadBound GF ≤ 2 ^ 30 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

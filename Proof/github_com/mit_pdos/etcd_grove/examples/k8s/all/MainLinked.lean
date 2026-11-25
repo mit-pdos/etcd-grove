@@ -33,7 +33,6 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
 variable [NaInvG GF]
-variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
 
 include h_After in

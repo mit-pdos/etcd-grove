@@ -60,7 +60,7 @@ variable [NaInvG GF]
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
 theorem k8s_all_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.wp_Main h_After
@@ -82,8 +82,6 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members
@@ -125,7 +123,7 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_adequate Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids' ps'
+  k8s_adequate Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids' ps'
     ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁
     Hsteps₂ HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 

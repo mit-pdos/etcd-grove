@@ -34,7 +34,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 abbrev grantPut.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cli : Loc) (k addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (n : Nat) (F : mvcc.Log) (P : GoString → IProp GF) (Qg Qp : w64 → KVState → IProp GF)
     (R : IProp GF) (R' : w64 → IProp GF),

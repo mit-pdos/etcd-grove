@@ -37,7 +37,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assu
 /-- See the file header. -/
 abbrev run.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (srvsl msl : GoSlice) (lg : Loc) (ss : List Loc) (xs : List (GMember × MemberG GF))
     (γn : NetNames GF),
   (∀ x ∈ xs, plainEndpoint x.1.Client') → (∀ x ∈ xs, x.2.ρ.rd.kv.lm = .none) →

@@ -2,7 +2,7 @@
 
 A bug in this repository's own trust-boundary axiom (CLAUDE.md, "Issues in the verified code":
 `notes/`, not `issues/`). Found by the review that found
-[ctx-deadline-safemapkey-vacuous.md](ctx-deadline-safemapkey-vacuous.md), the same cause.
+[axiom-review/ctx-readerrs-vacuity.md](axiom-review/ctx-readerrs-vacuity.md), the same cause.
 
 ## What
 
@@ -42,10 +42,10 @@ The non-pointer branch with `SafeMapKey` dates from the auth plan's E3y (2026-10
 `EtcdServer.UserAdd`'s proof (`Proof/.../etcdserver/EtcdServer__UserAdd.lean`) and
 `authStore.selectPassword`'s use it; every closed result over the server's `UserAdd`/auth path rests
 on it (the `etcd/auth*` examples, `etcd_safe_single_process`, ...). Those are vacuous anyway through
-[ctx-deadline-safemapkey-vacuous.md](ctx-deadline-safemapkey-vacuous.md) while they take `Hctx`.
+[axiom-review/ctx-readerrs-vacuity.md](axiom-review/ctx-readerrs-vacuity.md) while they take `Hctx`.
 
 ## The fix
 
-Branch `ctx-leaf-fix/2026-11-25`: the non-pointer branch restated as what bcrypt returns, an
+Branch `hctx-vacuity/2026-11-25`: the non-pointer branch restated as what bcrypt returns, an
 `InvalidCostError` value (`ei.ty = bcrypt.InvalidCostError.ty ∧ ∃ c : w64, ei.v = #c`); the gRPC
 layer's map lookup takes it as a key under its own `MapKeys` instance (see the sibling note).

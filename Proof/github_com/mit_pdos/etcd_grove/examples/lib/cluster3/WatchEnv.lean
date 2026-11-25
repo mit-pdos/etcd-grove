@@ -137,7 +137,6 @@ theorem watchEnv_memWOf₃ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cl
 /-- **The watcher's facts at every connection to the bridges** (see the file header). -/
 theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (hcfg : cfgOk cfg)

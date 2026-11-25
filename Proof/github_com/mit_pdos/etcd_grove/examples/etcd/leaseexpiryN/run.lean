@@ -97,7 +97,7 @@ theorem run.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_gone : gone.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC srvsl msl lg ss xs γn hxl Hpe Hlm Htb HLv Hrb48 Hbuq Hrf Hlp Hms hAs
+  intro CS srvsl msl lg ss xs γn hxl Hpe Hlm Htb HLv Hrb48 Hbuq Hrf Hlp Hms hAs
   wp_start as ⟨#Hlgz, Hss, #Hmsl, Htok, Hcfree, Hups⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit

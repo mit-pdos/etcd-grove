@@ -260,8 +260,8 @@ structure BootFacts (d : Deployment) (ps : List w64) (ctxs : List (List w8))
 
 /-- PLACEHOLDER (stage D6): **the trust-boundary contracts today's statement takes as Iris
 premises** (`Hprem`: each member's `etcdstart.bootPremise`, with `bootstrapRestartContract` for its
-restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec`: `ContextReadErrs`,
-`ContextErrsClient`), at the proof's ghost state. A premise over the proof's ghost state has no
+restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec` until ctx-leaf-fix, 2026-11-25, theorems since),
+at the proof's ghost state. A premise over the proof's ghost state has no
 place in a deployment statement: each becomes an axiom of the trust boundary (reviewed) or a
 theorem (bootstrap over the real code; context's facts in Perennial, item 8), and this goes. -/
 opaque TrustBoundary (d : Deployment) (ps : List w64) (ctxs : List (List w8))
