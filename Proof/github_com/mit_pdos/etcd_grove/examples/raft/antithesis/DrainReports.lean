@@ -18,6 +18,7 @@ Lean-first (no Rocq counterpart). #33 S4: **the reports of `Cluster.drain`**, th
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRunLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Mono
 
@@ -186,15 +187,6 @@ theorem globalOk_mono {S : AntCheck.State} {net : List Msg} {G G' : AntSim.RaftF
 
 
 /-! ## A `Ready`'s data at the protocol level -/
-
-theorem lcpLen_le_left : ∀ (l1 l2 : List EntryM), lcpLen l1 l2 ≤ l1.length
-  | [], _ => by simp [lcpLen]
-  | _ :: _, [] => by simp [lcpLen]
-  | a :: xs, b :: ys => by
-    unfold lcpLen
-    split
-    · have := lcpLen_le_left xs ys; simp; omega
-    · simp
 
 theorem lcpLen_take : ∀ (l1 l2 : List EntryM), l1.take (lcpLen l1 l2) = l2.take (lcpLen l1 l2)
   | [], _ => by simp [lcpLen]

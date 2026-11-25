@@ -44,7 +44,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgBounds
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.join.NetJoin
 public import Proof.go_etcd_io.raft.v3.RawNodeApi
-public import Proof.go_etcd_io.raft.v3.InvRtk
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Proof.sync.WaitGroupJoin

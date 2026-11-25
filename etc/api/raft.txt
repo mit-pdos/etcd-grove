@@ -203,7 +203,84 @@ importable Proof.go_etcd_io.raft.v3.TracedLinked
 # (2026-11-12) `node.Advance.tracedSpec` stated over `sentTok` (re-exported by `TracedNodeApi`)
 importable Proof.go_etcd_io.raft.v3.TracedAdvanceSpec
 
+## The RawNode API (examples/raft/antithesis, #33 S4)
+# (2026-11-25) the RawNode API's laws over `ownRawNodeAt` (`rawNode_vote`, `rawNode_wf`,
+# `rawNode_logRecs`, `rawNode_committed`, `rawNode_appended`, ...), which the harness's drain and run take
+importable Proof.go_etcd_io.raft.v3.RawNodeApi
+# (2026-11-25) the cluster allocation and proposal-minting laws (`cluster_alloc_names`,
+# `rawNode_prop_mint`) that the harness's RunCluster takes
+importable Proof.go_etcd_io.raft.v3.RawNodeStartSpec
+# (2026-11-25) the protocol-level end relations of one input (`StepEnd`'s readings `RecvEnd`, `TickEnd`,
+# `ProposeEnd`, `AdvanceEnd`, `AppSendOk`), which the harness's Sim relates to the binding's steps
+importable Proof.go_etcd_io.raft.v3.Protocol.InputEnd
+# (2026-11-25) the RawNode API's statements (`RawNode.*.form`/`absSpec`, `ownRawNodeAt`'s scope), which
+# `RawNodeApi` publicly imports, and the campaign facts `InputEnd` publicly imports
+importable Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
+importable Proof.go_etcd_io.raft.v3.Protocol.CommitCamp
+importable Spec.go_etcd_io.raft.v3.raft__appendEntry
+importable Spec.go_etcd_io.raft.v3.raft__bcastAppend
+importable Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
+importable Spec.go_etcd_io.raft.v3.raft__becomeLeader
+importable Spec.go_etcd_io.raft.v3.raft__campaign
+importable Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+importable Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+importable Spec.go_etcd_io.raft.v3.raft__maybeCommit
+importable Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+importable Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+importable Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+importable Spec.go_etcd_io.raft.v3.raft__becomeFollower
+importable Spec.go_etcd_io.raft.v3.raft__hup
+importable Spec.go_etcd_io.raft.v3.raft__send
+importable Spec.go_etcd_io.raft.v3.stepCandidate
+importable Spec.go_etcd_io.raft.v3.stepFollower
+importable Spec.go_etcd_io.raft.v3.stepLeader
+importable Spec.go_etcd_io.raft.v3.traceReceiveMessage
+importable Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+importable Spec.go_etcd_io.raft.v3.raft__restore
+importable Proof.go_etcd_io.raft.v3.RawNodeAt
+importable Spec.go_etcd_io.raft.v3.RawNode__Advance
+importable Spec.go_etcd_io.raft.v3.RawNode__HasReady
+importable Spec.go_etcd_io.raft.v3.RawNode__Propose
+importable Spec.go_etcd_io.raft.v3.RawNode__Ready
+importable Spec.go_etcd_io.raft.v3.RawNode__Step
+importable Spec.go_etcd_io.raft.v3.RawNode__Tick
+importable Spec.go_etcd_io.raft.v3.raft__Step
+
 ## Debt: proof internals clients reach today (take them out of the list)
+# (2026-11-25, the RawNode API above) internals its statements still publicly import: `ownRawNodeAt`
+# over `InvRawnode`/`InvApi`, the start laws over `InvNodeChan`, and what those publicly import (the
+# lines up to the next comment; listed by `api-check --check` to a fixpoint). To seal behind the
+# RawNode API: one sealed predicate module, as `InvNode` seals the node API's
+importable Proof.go_etcd_io.raft.v3.InvRawnode
+importable Proof.go_etcd_io.raft.v3.InvApi
+importable Proof.go_etcd_io.raft.v3.InvNodeChan
+importable Proof.go_etcd_io.raft.v3.TraceSimInv
+importable Proof.go_etcd_io.raft.v3.MaybeAppendIp
+importable Proof.go_etcd_io.raft.v3.TraceSimFacts
+importable Proof.go_etcd_io.raft.v3.TraceSimSpecInv
+importable Proof.go_etcd_io.raft.v3.LemmasCampaign
+importable Proof.go_etcd_io.raft.v3.LemmasStepLeader
+importable Proof.go_etcd_io.raft.v3.TracedCap
+importable Proof.go_etcd_io.raft.v3.TracedMsgType
+importable Proof.go_etcd_io.raft.v3.LemmasRaftlogW
+importable Proof.go_etcd_io.raft.v3.TracedMsg
+importable Proof.go_etcd_io.raft.v3.TracedSend
+importable Proof.go_etcd_io.raft.v3.InvRaftPhys
+importable Proof.go_etcd_io.raft.v3.LemmasCeFrozen
+importable Proof.go_etcd_io.raft.v3.LemmasStepGates
+importable Proof.go_etcd_io.raft.v3.LogEntryOrder
+importable Proof.go_etcd_io.raft.v3.Protocol.LeadWit
+importable Proof.go_etcd_io.raft.v3.SnapRoleBack
+importable Proof.go_etcd_io.raft.v3.TraceFits
+importable Proof.go_etcd_io.raft.v3.InvRawnodeReady
+importable Proof.go_etcd_io.raft.v3.InvRtk
+importable Proof.go_etcd_io.raft.v3.InvStatus
+importable Proof.go_etcd_io.raft.v3.NetMsgOk
+importable Proof.go_etcd_io.raft.v3.Protocol.Term0
+importable Proof.go_etcd_io.raft.v3.SnapshotHistory
+importable Proof.go_etcd_io.raft.v3.StepGhostMode
+importable Proof.go_etcd_io.raft.v3.TracedConfExcl
+importable Proof.go_etcd_io.raft.v3.TracedRecvTok
 # tactics and lemma files the server, the examples or other packages' specs import
 importable Proof.go_etcd_io.raft.v3.FrameH
 importable Proof.go_etcd_io.raft.v3.ProjSimps
