@@ -1,0 +1,25 @@
+# The Iris premises of the top-level statements (etc/iris-premise-check.py): one line per binder,
+# `<spec file>:<statement> <binder> witness:<theorem>|unwitnessed <reason>`. `unwitnessed` lines are
+# the ones there when the gate came (2026-11-25, after `Hctx`/`Hcec` were found unsatisfiable and
+# removed: notes/axiom-review/ctx-readerrs-vacuity.md); the list only shrinks. A new Iris premise
+# needs a `witness:` theorem: the premise holds at an initialized world (from `isPkgInit`, or for
+# every heap).
+RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean:raft_tracecheck_robust Hprem unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremC unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremCW unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremK unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremL unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremP unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process HpremR unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₁ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₂ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₃ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₄ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process Hprem₅ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean:putget_safe HEnvTok unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean:putget_safe Hprem unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean:etcd_leaseexpiryN_robust_single_process Hprem unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hafter unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₁ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₂ unwitnessed grandfathered (2026-11-25): no witness yet
+Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/TopLevelRobustness.lean:mvccrand_robust Hsort unwitnessed grandfathered (2026-11-25): no witness yet

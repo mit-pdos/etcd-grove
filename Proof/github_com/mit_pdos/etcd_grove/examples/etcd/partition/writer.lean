@@ -39,7 +39,7 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Put_km : client_Put_km.law (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi hsz
+  intro CS clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi hsz
   wp_start as ⟨#Hcls, #Hcl, #Hms, #Ht, #Hkv, #Hmu⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

@@ -36,8 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
     (clis : List Loc),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → clis ≠ [] →

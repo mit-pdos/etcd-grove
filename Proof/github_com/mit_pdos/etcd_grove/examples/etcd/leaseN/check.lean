@@ -51,7 +51,7 @@ theorem check.wp_proof
     check.spec (GF := GF) (hG := hG) := by
   have wp_TimeToLive := lessor.TimeToLive.specP_of wp_TimeToLive
   have wp_Leases := lessor.Leases.specP_of wp_Leases
-  intro CRE CEC addr lg V Hpe Htb hAs
+  intro addr lg V Hpe Htb hAs
   wp_start as ⟨#Hlgz, #Hlr⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit

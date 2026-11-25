@@ -62,7 +62,7 @@ theorem barrier.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     barrier.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC addr lg V s E ρ cid mid γa γz hs Lset Lc r Q Hpe Htb HEo hAs
+  intro CS ES FS RS addr lg V s E ρ cid mid γa γz hs Lset Lc r Q Hpe Htb HEo hAs
   wp_start as ⟨#Hlgz, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst, #HQ⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   isimp only [hon] at Hrd

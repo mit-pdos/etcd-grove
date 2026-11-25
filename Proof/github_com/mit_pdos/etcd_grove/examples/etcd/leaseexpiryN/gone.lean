@@ -43,7 +43,7 @@ theorem gone.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG)) :
     gone.spec (GF := GF) (hG := hG) := by
-  intro CRE CEC cl eps V γl m id
+  intro cl eps V γl m id
   wp_start as ⟨#Hnc, #Hrpc, #Hlb, %hAs⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit

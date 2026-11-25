@@ -38,8 +38,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compactwatc
 /-- See the file header. -/
 abbrev checkCompactRev.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (key : GoString) (R : v3rpc.WSrv GF) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (γf γl γv : GName) (keys : List GoString) (val : GoString),
   key.length ≤ 2 → γr.kv.cret = 1 →

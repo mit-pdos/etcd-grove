@@ -43,7 +43,7 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     (wp_WithRange : EtcdGrove.WithRange.spec (GF := GF) (hG := hG))
     (h_client_List_st : client_List_st.law (GF := GF) (hG := hG)) :
     callList.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs Q
+  intro _ cl ms V hAs Q
   wp_start as ⟨#Hcl, #Hregs, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit

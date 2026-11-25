@@ -34,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 
 /-- See the file header. -/
 abbrev gone.spec : Prop :=
-  ∀ [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF) (γl : GName) (m : Nat) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗
       isNewClient cl eps V ∗

@@ -105,7 +105,7 @@ theorem Work.wp_proof
     (h_work_commit : work_commit.law (GF := GF) (hG := hG))
     (h_then_commit_nested_refused : then_commit_nested_refused.law (GF := GF) (hG := hG)) :
     Work.spec (GF := GF) (hG := hG) := by
-  intro CS EA FA RA CRE CEC cl who addr V s E ρ cid mid γa Lset n hwho hγa hV hAs
+  intro CS EA FA RA cl who addr V s E ρ cid mid γa Lset n hwho hγa hV hAs
   obtain ⟨hVa, hVm, hVw, hVn, hVs, hVE, hVk⟩ := hV
   wp_start as ⟨#Hnc, #Hwf, #Htok, #Hkv, #Htls, #Hinv, #Hf, #Htag⟩
   ihave #Htok0 := Htok
