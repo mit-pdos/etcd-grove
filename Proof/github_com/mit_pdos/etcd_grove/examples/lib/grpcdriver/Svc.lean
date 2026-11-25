@@ -123,6 +123,14 @@ def strmSpec (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
     GrpcMd → StreamNames → (Nat → GoString → IProp GF) → IProp GF :=
   fun md γ Dn => iprop(□ ∀ (j : Nat) (m : GoString), Dn j m -∗ dn md γ j m)
 
+/-- A stream entry's specification holds at its own content. -/
+theorem strmSpec_self (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+    ⊢ □ ∀ md γ, strmSpec dn md γ (dn md γ) := by
+  iintro !> %md %γ
+  unfold strmSpec
+  iintro !> %j %m H
+  iexact H
+
 /-- **The service's table**: the unary methods and the streams. -/
 def drvSvc (γid : GName) : GrpcSvc GF := fun name =>
   if name = echoName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid⟩)

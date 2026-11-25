@@ -7,7 +7,7 @@
 id counter `ids` (`isCtr`), and the generated stub `c` (a `*svc.driverClient`, as `svc.DriverClient`)
 over a connection `conn` to the server's address, dialed with no interceptor (`grpcConn conn
 [drvAddr] [] [] anyRes`), at which the service's methods are registered with their specs
-(`isGrpcRpcMd`, `Svc.lean`).
+(`isGrpcRpcMd`, `Svc.lean`), and the streams' facts (`drvStrmFacts`).
 -/
 module
 
@@ -44,6 +44,21 @@ instance drvStubAt_persistent (c : GoInterface) (conn : Loc) :
     Persistent (drvStubAt (GF := GF) c conn) := by
   unfold drvStubAt; infer_instance
 
+/-- **What the client's streams need of its connection** (persistent): its options set no stream
+interceptor (`grpcConnOpts`, `streamIc = none`), and the three streams registered at the server's
+address with the table's specifications (`strmSpec`: a response's content is the entry's `dn`). -/
+def drvStrmFacts (conn : Loc) : IProp GF :=
+  iprop((∃ d : GrpcConnOpts, grpcConnOpts conn d ∗ ⌜d.streamIc = none⌝) ∗
+    isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr serverStreamName ssUp (strmSpec ssDn) ∗
+    isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr clientStreamName csUp (strmSpec csDn) ∗
+    isGrpcStreamMd (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) drvAddr bidiName biUp (strmSpec biDn))
+
+instance drvStrmFacts_persistent (conn : Loc) : Persistent (drvStrmFacts (GF := GF) conn) := by
+  unfold drvStrmFacts isGrpcStreamMd grpcStreamSvcAt; infer_instance
+
 /-- The client's environment (see the file header). -/
 def drvCli (γid γb : GName) (c : GoInterface) (ids : Loc) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
@@ -54,7 +69,8 @@ def drvCli (γid γb : GName) (c : GoInterface) (ids : Loc) : IProp GF :=
       isGrpcRpcMd (Req := (pbStringValueT (GF := GF)).toProtoMsg)
         (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr failName failSpec ∗
       isGrpcRpcMd (Req := (pbStringValueT (GF := GF)).toProtoMsg)
-        (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr metaName metaSpec)
+        (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr metaName metaSpec ∗
+      drvStrmFacts conn)
 
 instance drvCli_persistent (γid γb : GName) (c : GoInterface) (ids : Loc) :
     Persistent (drvCli (GF := GF) γid γb c ids) := by

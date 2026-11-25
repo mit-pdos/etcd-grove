@@ -149,7 +149,7 @@ theorem driverClient.ServerStream.wp_proof
         interface.mkOk (go.GoType.PointerType Msg.ty) #inp := rfl
     rw [← hty]
     wp_bind (App (Val #(methods ci.ty go!"SendMsg" ci.v)) _)
-    iapply HSend $$ %[] %inp %v %iprop(True) [HSt Hinp HUp]
+    iapply HSend $$ %([] : List (pbStringValueST (GF := GF)).M) %inp %v %iprop(True) [HSt Hinp HUp]
     · isplitr
       · ipureintro; trivial
       isplitr
@@ -165,7 +165,7 @@ theorem driverClient.ServerStream.wp_proof
       ihave HSt : iprop(cliSendTok (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ [v]) $$ [HSt]
       · iunfold cliSendTok; iexact HSt
       wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
-      iapply HClose $$ %[v] %iprop(True) [HSt]
+      iapply HClose $$ %([v] : List (pbStringValueST (GF := GF)).M) %iprop(True) [HSt]
       · isplitr
         · ipureintro; trivial
         isplitr

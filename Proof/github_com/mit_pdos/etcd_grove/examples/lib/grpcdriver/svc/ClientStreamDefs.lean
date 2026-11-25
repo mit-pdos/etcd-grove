@@ -86,7 +86,7 @@ theorem carOk_of_raw [grpc_sem : google_golang_org.grpc.Assumptions]
     wp_auto
     ihave Hm := Hown $$ %«$r0_ptr» «$r0»
     wp_bind (App (Val #(methods ci.ty go!"RecvMsg" ci.v)) _)
-    iapply HRecv $$ %[] %«$r0_ptr» %iprop(True) [HRt Hm]
+    iapply HRecv $$ %([] : List Rep.M) %«$r0_ptr» %iprop(True) [HRt Hm]
     · isplitr
       · ipureintro; exact hOk
       isplitr
