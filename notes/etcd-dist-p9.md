@@ -169,7 +169,7 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   cd}`) and its proof (`Proof/.../kvremote/Codec.lean`, callees `EncInput`/`DecInput`/`EncOutput`/
   `DecOutput`/txnlin's `IsWrite`), checked. `kvremote/Link.lean` (hand-written, namespace
   `EtcdGrove.kvremote`): the 14 codec functions and `wp_Codec`, over `EtcdGrove.enc` and txnlin's `Link`
-  (`wp_IsWrite`; its section needs `[HasExt idIssueExt] [NaInvG GF]`).
+  (its `wp_IsWrite` from txnlin's `IsWrite`/`isWrite`/`thenOf`/`elseOf` proofs: txnlin's `Link` reaches the whole server).
 
 ## Handoff
 
