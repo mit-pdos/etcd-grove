@@ -3,8 +3,7 @@
 # `etcd/dist/putgetk`: member `i`'s machine's boot (`notes/putget-dist-plan.md` §13b, plan item 4)
 
 `member_bootK`: member `i`'s boot program (`putgetk.initialize' #()`, then `putgetk.Member(i, []string{peers…},
-[]string{clients…})`) is safe from its share of the start (`⌜cfgOk ∧ i < n⌝ -∗ memberShareK …` at
-`Pub = putgetPub`) and its whole start (`DistBootWpSL srvLevelK`), as putget's `member_boot`
+[]string{clients…})`) is safe from its share of the start (`⌜cfgOk ∧ i < n⌝ -∗ memberShareK …`) and its whole start (`DistBootWpSL srvLevelK`), as putget's `member_boot`
 (`dist/putget/AdequacyMember.lean`): the file extension's start, the member's WAL area from its machine's
 files (`MemberFiles i`), the package's initialization (its registration rights allocated here: putgetk's
 `regQs` is putget's list, so `putget_regQsOk` serves), the two slice literals (`wp_strSliceLit`: a list of
@@ -158,8 +157,8 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (i : Nat) (hi : i < peers.length) (σm : state) (Hm : MemberFiles i σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S5 : etcd_dist.S5Draft putgetGF) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootMember peers clients i) σm
-      (iprop(⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ (c : etcd_dist.ClusterNames) (γE : GName),
-        memberShareK S5 c peers clients ps ctxs boot i γE (putgetPub (GF := putgetGF)))) := by
+      (iprop(⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ c : etcd_dist.ClusterNames,
+        memberShareK S5 c peers clients ps ctxs boot i)) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -215,7 +214,7 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
       (fun S5' => HSM hG S5') mvcc.api.mvccApi_names_nonempty_law_holds
       _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
       (fun {_} {_} => _root_.Perennial.EtcdGrove.bootstrap.wp_proof_dist)
-      S5 peers clients ps ctxs boot i (putgetPub (GF := putgetGF)) psl csl Hfips Hblf Hbgo
+      S5 peers clients ps ctxs boot i psl csl Hfips Hblf Hbgo
       (by omega) (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hpsl Hcsl Hwa Hshare]
   · iframe; iframe #

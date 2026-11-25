@@ -1,12 +1,22 @@
 /-
-`(*Client).Put` to a member at another machine: a trust-boundary axiom until #24's S2
-(`notes/putget-dist-plan.md` §12). Lean-first (no Rocq counterpart).
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ClientPutDist.lean`: `cli.Put` through the
+`KV` field (`Client.Put`'s promotion, `ptr_Put_unfold`) is `(*kv).Put`, whose cross-machine contract is the
+interim axiom `KV_Put_dist` (a hypothesis here), at putget's put update fired at most once
+(`client.putAu_of_putGetInv`, `kvOpAu_one`). Until 2026-11-25 (O1-B, `notes/etcd-dist-plan.md` §18.3) an
+axiom of its own over the published view. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientPutDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
+public import Proof.go_etcd_io.etcd.client.v3.KeyOps
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
@@ -14,7 +24,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
 
-open Iris Iris.BI Net
+open Iris Iris.BI Iris.ProofMode Net client go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -26,42 +36,47 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **`(*Client).Put` to a member at another machine** (trust boundary until #24's S2;
-`notes/putget-dist-plan.md` §12). What it asserts of clientv3 v3.6 (`Client.Put` → `kv.Put` →
-`kv.Do` → the retry interceptor → the KV stub) and grpc-go v1.84's `ClientConn.Invoke` (the model)
-over the net extension, for a client that dials with **no proxy dial path** (`clientNoProxy`: the
-client's configuration carries `grpc.WithNoProxy()`, which `etcdstart.NewClients` passes, so grpc-go
-sets `useProxy` false and never wraps the resolver in its proxy-resolving `delegatingresolver`, nor
-dials through an HTTP `CONNECT` proxy that `HTTPS_PROXY` names; review F1, evidence `TestProxyRogue`
-and `TestWithNoProxyFix`, `notes/putget-dist-plan.md` §12): each attempt dials `ep` itself,
-deposits the call's request precondition in the connection's slot and writes the request under
-`ep`'s protocol (`etcdAddrAt`'s interpretation). The only acceptor at `ep` that can answer a call is the member `mid`
-publishing at `γE` (`Serve_dist`; review 4 found this false while `bridge.New` took only `netListenerAt l a`: a program could set `etcdAddrAt ep …` and relay `ep` to an unrelated etcd; since 2026-11-24 `bridge.New` also consumes `netAddrLeft a`, which whoever sets `ep`'s table has spent, `notes/axiom-review/bridge-addrleft.md`), which instantiates the deposit at its own published view, so the
-caller's update runs at that view. The deposit is under a later (review F2): the member takes program
-steps between reading the deposit from the connection's slot and firing the update, so it strips one
-`▷`. A `nil` result is the handler's reply after the put fired once on the member's store: its
-update, built from the invariant (`putAu_of_putGetInv`), set the flag.
-
-The caller lends its level-0 token (`levelTok 0`, given back in the post; decision 1b of
-prove-ps2-clientrdlock), as `client_Put_own` takes it: the client lends it to its retry
-interceptor (`etcdInterceptorOk`) and the interceptor to each attempt and to the backoff, one call at
-a time on the caller's goroutine. (Until 2026-11-25 the statement took no token, so it claimed the call
-ran without one, which `client_Put_own` does not give; the `axiom-tok` gate found it.)
-
-Why it is true: it is `client.client_Put_own` (proved) at the member's `⟨ep, E, ρ.rd, cid, mid⟩`.
-That proof's only cross-process step is `Invoke`'s registration (`kvRegsAt`), and the step that
-replaces it is the deposit's instantiation at the published view: `envAt_agree` and
-`putGetInv_st` turn the caller's invariant at `γr` into the member's at `ρ.rd`. The
-`kvLogLb E.γs []` floor is free (`kvLogLb_nil`). `client_Put_own`'s `putReplied` is dropped: no
-caller reads it. The deposit is persistent, so a resent attempt deposits it again, as in the
-in-process proof. Without the no-proxy fact it would be false: a proxy named by the environment
-receives every attempt (`TestProxyRogue`).
-
-Retired by #24's switch (`isGrpcRpcMd := grpcSvcAt`, `etcdAddrAt` defined; `grpcSvcAt_of_addr`
-gives `kvRegsPub ep γE mid`) together with clientv3's pub-form put, `client_Put_pub`, a new proved
-lemma. Then it is a theorem with this statement. The deposit is an update at the full mask (`={⊤}=∗`):
-the retiring proof's server must fire it with no invariant open, or this statement changes. -/
-axiom Client_Put_dist.wp_proof : Client_Put_dist.spec (GF := GF) (hG := hG)
+set_option maxHeartbeats 800000 in
+/-- See the file header. -/
+theorem Client_Put_dist.wp_proof (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) :
+    Client_Put_dist.spec (GF := GF) (hG := hG) := by
+  intro π cl ep V Γ mid γr γf ci cd key val sl hsz hauth hkv
+  iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hnp, #Hat, #Hctx, #Hce, #Hopts, #Hinv⟩ HΦ
+  ihave #Hms := membersAt_one (Gg := hG.goose_globalGS) ep Γ mid $$ Hat
+  ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl [ep] V Γ $$ [Hcl Hnp Hms]
+  · iframe #
+  ihave #Hkc' := Hkc
+  iunfold kvClientAt at Hkc'
+  icases Hkc' with ⟨-, -, #Hkvf, -⟩
+  -- putget's put update, fired at most once (`Γ.auth = false`: the put is sent at most once)
+  ihave #Hau := putAu_of_putGetInv γr γf key val $$ Hinv
+  ihave Hau1 := kvOpAu_one γr.kv (.put (putKeyOp key val)) (fun _ => monoNatLbOwn γf 1) $$ Hau
+  iunfold kvOpAu1 kvAu1 at Hau1
+  rw [hkv]
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (wp_KV_Put cl api [ep] V Γ ci cd key val sl [] (fun _ => iprop(□ monoNatLbOwn γf 1)) hauth)
+    $$ [Hlt Hau1] as %resp %err ⟨Hlt, Hout⟩
+  · (try iframe Hlt)
+    iframe #
+    isplitl []
+    · ipureintro
+      refine ⟨?_, rfl, rfl⟩
+      unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
+      simp
+    isplitl [Hau1]
+    · iexact Hau1
+    ipureintro; exact hsz
+  iapply HΦ
+  iframe Hlt
+  icases Hout with (⟨%Herr, %m, %σ, -, #HQ, -, -⟩ | %Herr)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexact HQ
+  · iright
+    ipureintro; exact Herr
 
 end proof
 

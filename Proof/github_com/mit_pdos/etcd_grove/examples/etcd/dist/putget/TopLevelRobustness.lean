@@ -17,16 +17,19 @@ main thread's token, the logic's bounds: at most `2 ^ 48` receipts, the member's
 bound `putgetThreads`, which also gives the served member's `srvLevels`; the bridge `robust_of_distBootIT`
 runs an execution of `n` steps at `n + 1` receipts). Over the interim cross-machine axioms
 (`notes/putget-dist-plan.md` §12; `etcd/dist/S2Interim.lean` and the axioms `Serve_dist`,
-`Client_Put_dist`, `Client_Get_dist`), `putget_safe` discharges it:
-* the start (`putget_start`, proved): the publication name and invariant (`envPub_start`), the client
-  address set (`etcdAddr_set`), the member's and the client's shares (`Defs.lean`);
+`KV_Put_dist`, `KV_Get_dist`), `putget_safe` discharges it:
+* the start (`putget_shares`, proved): the one-member cluster's allocation (`etcdstart.clusterAllocN`), which
+  fixes the cluster's view `c.view` (O1 option B, `notes/etcd-dist-plan.md` §18.3), the client's putget
+  invariant from its `etcdKV` (`putGetInv_alloc_all`), the client address set at the view
+  (`etcdAddr_set`), the member's and the client's shares (`Defs.lean`);
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first
-  half (`etcdstart.wp_StartServer1`, shared with it), the view published (`env_publish`), `Serve` on a
-  member machine (`Serve_dist`), from the statement's `EtcdVerifyOff` (`HEnv`) and the machine's own
+  half from the member's slice (`etcd_dist.wp_StartServer1_slice`), `Serve` on a member machine at the view
+  (`Serve_dist`), from the statement's `EtcdVerifyOff` (`HEnv`) and the machine's own
   start (its files' fresh areas; the metric IDs' registration rights allocated by each machine's boot,
   prom-registry);
 * the client's boot (`client_boot`, `AdequacyClient.lean`, proved): the in-process second half, its
-  `Put` learning the view (`Client_Put_dist`), its `Get` at it (`Client_Get_dist`).
+  `Put` and `Get` at the view (`Client_Put_dist`, `Client_Get_dist`, theorems over the interim axioms
+  `KV_Put_dist`, `KV_Get_dist`).
 -/
 module
 
@@ -118,109 +121,137 @@ theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
 /-! ## Over the interim cross-machine axioms (`notes/putget-dist-plan.md` §12) -/
 
 section start
-variable [GoGlobalContext] [GoLocalContext] [go.Semantics]
-  [go_etcd_io.etcd.client.v3.Assumptions]
+variable [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
+  [go_etcd_io.etcd.client.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+  [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The deployment's start** (#24's §1.3 steps 1-4, over the interim vocabulary): `γE` allocated with
-the publication invariant at `Pub` (`etcd_dist.envPub_start`), the client address set to serve etcd's KV
-calls for `(γE, mid)` (`etcd_dist.etcdAddr_set`, spending its `addrUnset`), the member's and the client's
-shares. The peer address's `addrUnset` is unused (nothing listens there). -/
-theorem putget_start [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
-    (peer client : GoString) (mid : w64) (Pub : etcd_dist.EnvView → IProp putgetGF) :
-    ⊢ regCtx -∗ addrUnset peer -∗ addrUnset client ={⊤}=∗
-      ∃ γE, memberShare client γE mid Pub ∗ clientShare client γE mid Pub := by
-  iintro #Hreg - Hc
-  imod (etcd_dist.envPub_start ⊤ Pub) with ⟨%γE, Hhalf, #Hinv⟩
-  imod (etcd_dist.etcdAddr_set ⊤ client γE mid) $$ Hreg Hc with #Ha
-  imodintro
-  iexists γE
-  unfold memberShare clientShare
-  iframe Hhalf
-  iframe #
-
-/-- **The start, at the addresses that pass the programs' checks** (`startAddrs`): the shares, each owed only
-once its machine's check passes (`memberShareIf`, `clientShareIf`). With both checks passing, `putget_start`;
-with only the client's, the publication invariant and the client address set (`envPub_start`,
-`etcdAddr_set`), the member's share vacuous; with neither, the publication invariant alone. -/
-theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
-    (peer client : GoString) (mid : w64) :
+/-- **The client address set at the view `Γ`, once the client's check passes** (persistent): the
+addresses the start sets (`startAddrs`) include the client's exactly when its check passes, and then
+`etcdAddr_set` spends its `addrUnset`. The peer address's `addrUnset` is unused (nothing listens there). -/
+theorem putget_addr [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
+    (peer client : GoString) (Γ : etcd_dist.DistView) (id : w64) :
     ⊢ regCtx -∗ ([∗list] a ∈ startAddrs peer client, addrUnset a) ={⊤}=∗
-      ∃ γE, memberShareIf peer client γE mid (putgetPub (GF := putgetGF)) ∗
-        clientShareIf client γE mid (putgetPub (GF := putgetGF)) := by
-  unfold memberShareIf clientShareIf
+      □ (⌜Net.addrOk client = true⌝ -∗ etcd_dist.etcdAddrAt client Γ id) := by
   by_cases hg : Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client
   · have hc := hg.2.1
     simp only [startAddrs, if_pos hg, if_pos hc, List.singleton_append]
-    iintro #Hreg ⟨Hp, Hcl, -⟩
-    imod putget_start peer client mid (putgetPub (GF := putgetGF)) $$ Hreg Hp Hcl with ⟨%γE, Hms, #Hcs⟩
+    iintro #Hreg ⟨-, Hcl, -⟩
+    imod (etcd_dist.etcdAddr_set ⊤ client Γ id) $$ Hreg Hcl with #Ha
     imodintro
-    iexists γE
-    isplitl [Hms]
-    · iintro -; iexact Hms
-    · iintro -; iexact Hcs
+    imodintro
+    iintro -
+    iexact Ha
   by_cases hc : Net.addrOk client = true
   · simp only [startAddrs, if_neg hg, if_pos hc, List.nil_append, BigSepL.bigSepL_cons,
       BigSepL.bigSepL_nil]
     iintro #Hreg ⟨Hcl, -⟩
-    imod (etcd_dist.envPub_start ⊤ (putgetPub (GF := putgetGF))) with ⟨%γE, -, #Hinv⟩
-    imod (etcd_dist.etcdAddr_set ⊤ client γE mid) $$ Hreg Hcl with #Ha
+    imod (etcd_dist.etcdAddr_set ⊤ client Γ id) $$ Hreg Hcl with #Ha
     imodintro
-    iexists γE
-    isplitl []
-    · iintro %h; exact absurd h hg
-    · iintro -
-      unfold clientShare
-      iframe #
+    imodintro
+    iintro -
+    iexact Ha
   · have hg' : ¬(Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client) :=
       fun h => hc h.2.1
     simp only [startAddrs, if_neg hg', if_neg hc, List.nil_append, BigSepL.bigSepL_nil]
     iintro - -
-    imod (etcd_dist.envPub_start ⊤ (putgetPub (GF := putgetGF))) with ⟨%γE, -, -⟩
     imodintro
-    iexists γE
-    isplitl []
-    · iintro %h; exact absurd h hg'
-    · iintro %h; exact absurd h hc
+    imodintro
+    iintro %h
+    exact absurd h hc
+
+/-- **The deployment's start, at the addresses that pass the programs' checks** (`startAddrs`; #24's §1.3
+steps 1-4 over the interim vocabulary, O1 option B): the one-member cluster's allocation
+(`etcdstart.clusterAllocN` at `[id]`, lease mode `none`, no compaction), whose names `c` fix the view
+`c.view`; the client's putget invariant from the cluster's `etcdKV` (`putGetInv_alloc_all`); the shares,
+each owed only once its machine's check passes (`memberShareIf`, `clientShareIf`), with the client
+address set at the view once the client's check passes (`putget_addr`). -/
+theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
+    (peer client : GoString) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : etcdstart.BootFacts id ctxs boot) (hb : receiptBound putgetGF ≤ putgetSteps) :
+    ⊢ regCtx -∗ ([∗list] a ∈ startAddrs peer client, addrUnset a) ={⊤}=∗
+      ∃ c : etcd_dist.ClusterNames, memberShareIf peer client c ctxs boot id ∗
+        clientShareIf client c.view id := by
+  have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
+  have hb' : receiptBound putgetGF ≤ 2 ^ 48 := hb
+  iintro #Hreg Hs
+  imod (etcdstart.clusterAllocN (GF := putgetGF) [id] [id] (List.Perm.refl _) id
+      (List.mem_singleton_self id) ctxs boot Hbf (by omega) (by omega) .none (fun h => nomatch h) false 0)
+    with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
+  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  icases BigSepL.bigSepL_cons.1 $$ Hsl with ⟨Hsl, -⟩
+  -- the client's invariant, from the cluster's `etcdKV`
+  ihave Hetcd' : etcdKV (GF := putgetGF)
+      ({ Classical.choice readNames_nonempty with kv := γk } : ReadNames).kv
+      (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0))) $$ [Hetcd]
+  · iexact Hetcd
+  imod (putGetInv_alloc_all (GF := putgetGF) { Classical.choice readNames_nonempty with kv := γk }
+      (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v") $$ Hetcd'
+    with ⟨%γf, #Hinv⟩
+  imod (putget_addr peer client
+      (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩) id)
+    $$ Hreg Hs with #Ha
+  imodintro
+  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩
+  iunfold memberShareIf clientShareIf
+  isplitl [Hsl]
+  · iintro %hg
+    ihave #Hat := Ha $$ %hg.2.1
+    iunfold memberShare
+    isplitr
+    · ipureintro; exact Hγ
+    iframe Hsl
+    iframe #
+  · iintro %hc
+    ihave #Hat := Ha $$ %hc
+    iunfold clientShare
+    isplitl
+    · iexact Hat
+    isplitr
+    · ipureintro; rfl
+    iexists { Classical.choice readNames_nonempty with kv := γk }, γf
+    isplitr
+    · ipureintro; rfl
+    iexact Hinv
 
 end start
 
-/-- **`putget_safe`** (see the file header): the start is proved (`putget_start`), the member's boot is
-proved (`member_boot`, at `Pub = putgetPub`), the client's boot is proved (`client_boot`), the bridge is
-proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms of
-`notes/putget-dist-plan.md` §12 (the table `etcd_dist.etcdSvc`, `Serve_dist`, `Client_Put_dist`,
-`Client_Get_dist`; the start law `etcdAddr_set` proved over grpc's `grpc_addr_set` since the S2 interface
-switch). -/
+/-- **`putget_safe`** (see the file header): the start is proved (`putget_shares`), the member's boot is
+proved (`member_boot`), the client's boot is proved (`client_boot`), the bridge is proved
+(`putget_safe_of_boot`); the cross-machine steps are the interim axioms of `notes/putget-dist-plan.md` §12 and
+`notes/etcd-dist-plan.md` §18 (the table `etcd_dist.etcdSvc`, `Serve_dist`, `KV_Put_dist`, `KV_Get_dist`;
+the start law `etcdAddr_set` proved over grpc's `grpc_addr_set` since the S2 interface switch,
+`Client_Put_dist`/`Client_Get_dist` theorems over the contracts since O1-B). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
   intro _ _ _ _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
     Hm Hc Hlp Hlc HEnv G hb
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
-  imod putget_shares peer client id $$ Hreg Hs with ⟨%γE, Hms, Hcs⟩
+  imod putget_shares peer client id ctxs boot Hbf hb $$ Hreg Hs with ⟨%c, Hms, Hcs⟩
   imodintro
-  iexists (fun i => if i = 0 then memberShareIf peer client γE id (putgetPub (GF := putgetGF))
-    else clientShareIf client γE id (putgetPub (GF := putgetGF)))
+  iexists (fun i => if i = 0 then memberShareIf peer client c ctxs boot id
+    else clientShareIf client c.view id)
   isplitr
   · ipureintro
     intro i m hm
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot HEnv peer client Hlp Hlc id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm Hm γE
+      exact member_boot HEnv peer client Hlp Hlc id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm Hm c
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
-        Option.some.injEq] at hm; subst hm; exact client_boot client Hlc σc γE id
+        Option.some.injEq] at hm; subst hm; exact client_boot client Hlc σc c.view id
     | k + 2, hm => simp [system] at hm
   simp only [system, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   isplitl [Hms]
-  · iapply (show memberShareIf peer client γE id (putgetPub (GF := putgetGF)) ⊢ (if (0 : Nat) = 0 then
-        memberShareIf peer client γE id (putgetPub (GF := putgetGF))
-        else clientShareIf client γE id (putgetPub (GF := putgetGF))) by
+  · iapply (show memberShareIf peer client c ctxs boot id ⊢ (if (0 : Nat) = 0 then
+        memberShareIf peer client c ctxs boot id
+        else clientShareIf client c.view id) by
       rw [if_pos rfl])
     iexact Hms
   isplitl [Hcs]
-  · iapply (show clientShareIf client γE id (putgetPub (GF := putgetGF)) ⊢ (if (0 : Nat) + 1 = 0 then
-        memberShareIf peer client γE id (putgetPub (GF := putgetGF))
-        else clientShareIf client γE id (putgetPub (GF := putgetGF))) by
+  · iapply (show clientShareIf (GF := putgetGF) client c.view id ⊢ (if (0 : Nat) + 1 = 0 then
+        memberShareIf peer client c ctxs boot id
+        else clientShareIf client c.view id) by
       rw [if_neg (by decide)])
     iexact Hcs
   iempintro

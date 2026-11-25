@@ -9,10 +9,8 @@ per-member premises (`etcdstart.bootPremise` at `etcd_putgetN.dirN` and `etcdsta
 * `nameOf j`: member `j`'s name as `putgetk.Name(j)` computes it;
 * `cmsOf ms ids`: the start's members (`etcd_dist.ClusterMember`: peer address, client address, member id)
   from the deployment's members and their ids, in the members' order;
-* `kvAgree ρ γk`: what `memberBoot_of_slice` says of the member's request names `ρ` against the cluster's
-  KV names;
-* `memberPubOkK γk Pub`: the member's publication obligation: its view, at any request names agreeing
-  with the cluster's KV names, satisfies `Pub` (the start's to provide, as putget's `memberPubOk`).
+* `memberShareK`: member `i`'s share of the cluster's start (its client address at the cluster's view,
+  `c.view`: O1 option B, `notes/etcd-dist-plan.md` §18.3; until 2026-11-25 also a publication obligation).
 -/
 module
 
@@ -42,11 +40,6 @@ def nameOf [GooseExts] (j : Nat) : GoString := go!"putgetk-" ++ fmtUint (W64 j) 
 in the members' order. -/
 def cmsOf [GooseExts] (ms : List GMember) (ids : List w64) : List etcd_dist.ClusterMember :=
   (ms.zip ids).map (fun p => ⟨p.1.Peer', p.1.Client', p.2⟩)
-
-/-- **The member's request names agree with the cluster's KV names** (`memberBoot_of_slice`'s pure post). -/
-def kvAgree [GooseExts] (ρ : ReqNames) (γk : KVNames) : Prop :=
-  ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
-    kvSame ρ.rd.kv γk
 
 /-! ## The configuration -/
 
@@ -132,23 +125,6 @@ def BootGoK (peers clients : List GoString) (ps : List w64) (ctxs : List (List w
 
 end defs
 
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]
-
-/-- **The member's publication obligation** (persistent): its view, at any request names agreeing with the
-cluster's KV names `γk`, satisfies `Pub` (`etcd_dist.memberView`; the start's to provide: putget's
-`memberPubOk`, with the client's invariant allocated by the start, not the member, now that the KV state
-is the cluster's). -/
-def memberPubOkK (γk : KVNames) (Pub : etcd_dist.EnvView → IProp GF) : IProp GF :=
-  iprop(□ ∀ ρ : ReqNames, ⌜kvAgree ρ γk⌝ -∗ Pub (etcd_dist.memberView ρ))
-
-instance memberPubOkK_persistent (γk : KVNames) (Pub : etcd_dist.EnvView → IProp GF) :
-    Persistent (memberPubOkK γk Pub) := by
-  unfold memberPubOkK; infer_instance
-
-end defs
-
 /-! ## Member `i`'s share of the start -/
 
 section shareK
@@ -162,16 +138,15 @@ variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [Has
 /-- **Member `i`'s share of the cluster's start** (when the configuration is `cfgOk`; `etcdClusterStart`'s,
 at S5's names `S5` and the cluster's names `c`): the names as the start chose them (`ClusterOk`, lease mode
 `none`, no compaction), the addresses distinct and valid (`DistDeploy`'s), its `memberStartShare` (of the
-configuration's members `cmsOf (membersOf peers clients) (idsOf peers)`) and its publication obligation. -/
+configuration's members `cmsOf (membersOf peers clients) (idsOf peers)`): its client address set at the
+cluster's view. -/
 def memberShareK (S5 : etcd_dist.S5Draft GF) (c : etcd_dist.ClusterNames) (peers clients : List GoString)
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (i : Nat) (γE : GName)
-    (Pub : etcd_dist.EnvView → IProp GF) : IProp GF :=
+    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (i : Nat) : IProp GF :=
   iprop(⌜etcd_dist.ClusterOk c ps boot .none false 0 (idsOf peers) ∧ (addrs peers clients).Nodup ∧
       ∀ a ∈ addrs peers clients, Net.addrOk a = true⌝ ∗
     etcd_dist.memberStartShare S5 c (cmsOf (membersOf peers clients) (idsOf peers)) ps ctxs
       (LogEntry.toEntries boot 0)
-      ((cmsOf (membersOf peers clients) (idsOf peers)).getD i ⟨go!"", go!"", W64 0⟩) γE Pub ∗
-    memberPubOkK c.γk Pub)
+      ((cmsOf (membersOf peers clients) (idsOf peers)).getD i ⟨go!"", go!"", W64 0⟩))
 
 end shareK
 
