@@ -9,6 +9,8 @@
 //     (isMemberBootstrapped's GETs are refused: it answers false and the boot goes on); then a's peer
 //     handler (etcdhttp.NewPeerHandler) is served on a's peer address, and b and c boot, each sending
 //     GET /members to a (counted) and getting a's member list, in which they have no client URL yet.
+//   - TestBootPeerHangs: a peer accepts the connection and never answers: isMemberBootstrapped's GET
+//     times out (the bootstrap timeout), it answers false and the boot goes on.
 //   - TestBootErrors: bootstrap returns an error, without panicking, when its data directory cannot
 //     be made (a regular file at the path), and when a peer's /members lists this member with client
 //     URLs ("has already been bootstrapped": what a real peer answers once this member published).
@@ -182,4 +184,31 @@ func TestBootErrors(t *testing.T) {
 		t.Fatalf("published member: NewServer returned %v", err)
 	}
 	t.Logf("published member: NewServer returned %v", err)
+}
+
+func TestBootPeerHangs(t *testing.T) {
+	dir := t.TempDir()
+	peers := map[string]string{"a": freeAddr(t), "b": freeAddr(t), "c": freeAddr(t)}
+	cl := cluster(peers)
+	// b's peer address accepts and never answers
+	l, err := net.Listen("tcp", peers["b"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	go func() {
+		for {
+			c, err := l.Accept()
+			if err != nil {
+				return
+			}
+			defer c.Close()
+		}
+	}()
+	start := time.Now()
+	s, err := etcdserver.NewServer(cfgFor(dir, "a", freeAddr(t), cl))
+	if err != nil {
+		t.Fatalf("a: NewServer: %v", err)
+	}
+	t.Logf("a booted, id %s, after %v with b hanging", s.MemberID(), time.Since(start))
 }
