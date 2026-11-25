@@ -49,7 +49,7 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
   intro γid γb c ids
   wp_start as #Hcli
   iunfold drvCli at Hcli
-  icases Hcli with ⟨#Hpkg, #Hf, -, %conn, #Hstub, #Hconn, -, -, -, #Hstrm⟩
+  icases Hcli with ⟨#Hpkg, #Hf, -, %conn, #Hstub, #Hconn, -, -, -, #Hstrm, -⟩
   iunfold drvStubAt at Hstub
   icases Hstub with ⟨%dc, %Hc, #Hcc⟩
   subst Hc
