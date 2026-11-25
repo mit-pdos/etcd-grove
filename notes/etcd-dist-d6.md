@@ -1547,3 +1547,81 @@ D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; 
 5. `snapDir_crash_law_holds` (second credit from `memberKeep`), `memberDur_crash` (the law's credit; the WAL
    directory's call permission's half from `osCallPerms R`), `hB1`, `hB6` + `memberRestartFacts_gen`, the Q4
    transport, and `srvCrashImageAt` assembled (`srvFilesC`: `walFilesC` with `a.dir = h.dir`, `B1`'s `fileHolds`).
+
+### T7 status and handoff (2026-11-25, session 5; branch `etcd-safe-t7`)
+
+**Done** (`dist/crash/MemberCrash.lean`, no axiom, no `sorry`; build evidence below):
+* The two open items of session 4, decided:
+  - **The backend file's durable name goes in B1's keep `KeepB`**, as the named hypothesis `memberDbNamed.law
+    KeepB` (crash rest in, `V'.now.entry J "db" = some (.file i0)` out, `KeepB` and the crash rest back). Why not
+    `memberKeepR`: the record `dbCrashKeep` holds the claim on `db` (`bPath`), so no `nameCrash` can sit beside it
+    (`nameCrash_crash` needs the claim); the name's commits are the backend's run's (bbolt's `Open`, the snapshot
+    rename's `renamedDur`), which T10's invariant tracks. T8 only threads `KeepB`. The theorem gets one more
+    hypothesis than session 4's list (`hB1n`).
+  - **The path at `L'`** (`snapClaims_new`): from `osShared`'s whole claims, the spine `dd/member/snap` at the
+    fraction `1` (claims `.only [member]`, `.only [snap]` split off `jd`'s and `jm`'s) and `J`'s whole claim. For it,
+    `memberKeepR` now keeps the **concrete spine** `osSpineDur k.jd [member, snap] k.J` (not `osPathDur`; T8 builds
+    it the same way, `osSpineDur_snoc`), with pure rows (T8's, from the boot's roots): `(dd, jd) ∈ R`,
+    `(h.r, h.jr) ∈ R`, `h.r ≠ dd`, `IsUnder h.r h.dir`, `snapDirOf dd = joinPath dd [member, snap]`, and
+    `∀ i, PathFits (snapDBPath sd i)` (`snapDir_split`'s premise). `MemberKN` gains `jd`.
+* Pure geometry (`section geom`): `walk_two`; `notInArea` (no file of `J` is in a WAL area directory: `J`'s parent
+  `jm` is a child, the area `jr` a root; what `walInv_crash`'s `hD` and `snapDir_crash.law`'s disjointness need);
+  `mem_dirsOf`; `spineDirs` (`jd`, `jm`, `J` in the tree, pairwise distinct); `namesOf_only_cur`.
+* `osCallPerms_two` (the data directory's and the WAL area's whole call permissions, at the keys of paths below
+  them), `osCallPerm_halve`, `root_ne_nil`.
+* `memberWal_crash` generalized to files `D` taken before it (`hD : ∀ i ∈ D, ¬ InAreaDir V'.now h.jr i`), its
+  post gains `∀ i ∈ D', InAreaDir V'.now h.jr i`.
+* `memberImage.law` (B1) returns `memberDurOut` (the image needs raft's state and vacancy after it).
+
+**Next: `memberGen_crash_law_holds`** (`(hQ) (hA1) (hB4) (hB1) (hB1n) (hB6) (hD1) : memberGen_crash.law C cfg id
+(memberKeep C cfg id KeepF KeepB) Q`), in this order (each step's lemma exists unless marked *new*):
+1. `intro L L' V' hL hL'`; `obtain ⟨fl, lc, nh, gs, th, cr⟩ := L` (and `L'`), `simp only at hL hL'`, `subst` (as
+   `BootBad.serverBadWp`), so `atCtx L` is `L` up to whnf. `iintro Hk Hlc #Hcr Hrest #Hosi` (`crashed`, `osInv`
+   persistent). `iunfold memberKeep at Hk`; `⟨#Hcf, Hlc2, (HF | HR)⟩`; `memberClusterFacts_gen` for the cluster row.
+2. First case: `hB4 L L' V' rfl rfl $$ HF Hlc Hcr Hrest Hosi`; `memberGen` = facts ∗ `ileft`.
+3. Restart case: `iunfold memberKeepR`; `⟨%k, %hk, #Hrf, Hdur, Hwal, Hdb, Hsnap, #Hsp, HKB⟩`. Destructure `k` and
+   `k.h` (`WalH` = `⟨⟨ext, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γ, md, γh⟩`),
+   `subst` `ext = S` (`has.sem_eq.symm.trans` the ambient's; `semOk`/`has` are proofs, defeq), likewise `c`
+   (`⟨S, ok, has, fa, fsa, ne⟩`); `hfs' : theFs (hG := new) = some c := hfs` (defeq: `theFs` ignores `hG`);
+   `haveI := inj`.
+4. Old generation: `iunfold memberWalKeep at Hwal` → `⟨Hwi, Hwt, #Hsh⟩`; `osSharedInv_rootsOk` → `RootsOk R`;
+   `crashRest_treeWf'` → `TreeWf R V'.now`; `osSpineDur_crash … [member, snap] jd J $$ Hsh Hrest Hsp` → walk;
+   `walk_two` → `jm`, `h1`, `h2`.
+5. `hB1n L L' k Q [] false V' $$ HKB Hrest` → `hdb`; `dbCrash … (hA1 i0) [] (by simp) V' ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest`
+   → `D'`, `fileHoldsM i0 D'`.
+6. `memberWal_crash L L' h Q hQ V' [i0] (notInArea hwf h1 h2 hrR hdb …) ⊤ … $$ [Hwi Hwt Hsh] Hcr Hrest` → `W'`, `Dw`.
+7. `crashRest_treeS' … (Dw ++ [i0]) …` → `V'.2 = []`, `osShared (L := L') R V'` (`⟨#Hsh', -, Hperms, -, Hall⟩`),
+   crash rest at `true`. `snapClaims_new … hwf hRok hdR hsd h1 h2 $$ Hsh' Hall` → path `1`, `J`'s claim.
+   `osCallPerms_two R dd r sd dir … hrne.symm (isUnder from hsd: isUnder_joinPath) hunder $$ Hperms`;
+   `osCallPerm_halve` for the WAL's half.
+8. `snapDir_split … 1 1 ⊤ … hfit $$ Hosi Hsh' Hp Hcs HJ` → slots, `db`'s claim, `q' qc'` path/perm, `.except` claim;
+   `rw [← Qp.half_add_half q', ← Qp.half_add_half qc']`, `osPathS_frac`/`osCallPerm_split`; `snapDirOwn` (`unfold;
+   rw [onFs_some hfs']`), the slots as `snapSlot` (`have hslot … onFs_some hfs'`, `simp only [hslot]`; never
+   `iframe` next to the list).
+9. `osPathDur` at the old generation from the spine and the rows (`unfold osPathDur; iexists dd, jd, [member, snap]`);
+   `osPathDur_lookup` → `lookupH`; `snapDirKeptR_of` + `hD1` + `onFs_some hfs` → `snapDirKept`.
+   Disjointness for `snapDir_crash.law`: `x ∈ Dw` by `notInArea` (with `hwp`), `x = i0` by uniqueness at `J`
+   (`db` ≠ `snapDBName i`: `bootSnap.snapDBName_length`). Apply `snapDir_crash_law_holds L L' c c Q true V' (Dw ++
+   [i0]) R J sd γd img Rm Rm …` with `Hlc2`, `Hsnap`, `Hcr`, `□ (∀ j, Rm j -∗ Rm j)`, the kept, `Hsh ∗ Hrest`, the own
+   and slots → `snapDirKeep` at `L'` (keep its handle: `snapDirKeep_handle`).
+10. `memberRestartFacts` → `ρo.rd.raft = ⟨γ, [], 0⟩` and `isCluster γ.cl srvClusterN` (*new* small lemma: unfold,
+    `srvRaftLogInv` → `srvClusterOk` → `isCluster`); `memberDur_crash … ⊤ CoPset.subseteq_top srvClusterN_rnDurKN $$
+    Hdur Hcl Hlc [Hwc Hcw]` → `S σ l`, `walFilesC`, `memberDurOut`. Watch the pitfall: `memberDur_crash`'s
+    `isCluster` was elaborated with instances Lean picked; if `$$` fails, wrap it as `memberIsCluster` over one `HeapGS`.
+11. `hB1 L L' V' k S σ l D' q'.half qc'.half hD' $$ HKB Hdo Hfm Hp2 Hc2 Hdbc` → `memberDurOut`, `memberImageRows`,
+    the bounds.
+12. Registry (Q4): `ghost_map_alloc_empty (K := Loc) (V := MemStorNamesRec)` → `r'`; `γ' := {γ with reg := r'}`,
+    `ρ' := {ρo with rd := {ρo.rd with raft := ⟨γ', [], 0⟩}}`; *new* `memberRestartFacts_move` (as
+    `memberRestartFacts_gen`, plus `rw [hr]` and the `*_reg` transports, `entails_refl`, of `Alloc3.lean`:
+    `srvRaftLogInv`, `kvInv`, `srvPropMint`, `srvRdCtxInv`; `srvRLogLb_reg` for the image), with `hB6 L' ρo`.
+13. `memberRestart` at `L'`: `iright; iexists ρ', γ'`, `⟨r', rfl⟩`-style pure row (`γ = {C.γ with reg := r}`),
+    `srvCrashImageAt γ' ρ' id dd S σ i A D m ∅`: rows from `memberDurOut` (`.rfl` across generations,
+    `memberDurOut_gen`), `memberImageRows`, the bounds, `srvFilesC` (`walFilesC` at `{h.toWalA with W := W'}`, `a.dir =
+    h.dir = srvWalDirOf dd`), the snapshot row (`snapDirKeep_handle` at `L'` + the counter authority; `srvImageM`
+    at `γ'` is `srvImageM` at `γ` if it does not read `reg`, else a transport lemma).
+
+Build evidence (session 5): fk-lean2, worktree `etcd-safe-p8` at `f27b5f6d36`, `lake build
+…dist.crash.MemberCrash`: `[4515/4515] Built …MemberCrash`, `Build completed successfully (4515 jobs)`, exit 0;
+one linter warning (`walk_two`: the `walk` argument of the inner `simp only` is unused). Helper:
+`/shared/tmp/t7-build.sh` (pushes `HEAD` as `etcd-safe-p8` to fk-lean2 and builds the module; log
+`/shared/tmp/t7-build.log`).
