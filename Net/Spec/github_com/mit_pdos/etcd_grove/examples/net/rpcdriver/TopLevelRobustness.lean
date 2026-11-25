@@ -47,7 +47,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 def rpcdriver_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState),
     DistDeploy rpcAddrs (system σs σc) g →
     Robustness.Robust [] (system σs σc) g rpcThreads rpcSteps

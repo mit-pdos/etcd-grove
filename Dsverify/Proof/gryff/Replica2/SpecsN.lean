@@ -27,7 +27,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
-variable [wire.BinaryVarintHyps GF] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
+variable [wire.BinaryVarintHyps GF] [net.Assumptions] [netN.NetSpecs GF]
 variable [io.Assumptions]
 
 /-- **`serveClient(conn, reader, hs)`** (client `hs`'s requests at `k`; its caller took the

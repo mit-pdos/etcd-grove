@@ -105,8 +105,6 @@ def kvClient (γ : KdNames) (rs : List GoString) : IProp GF :=
 
 variable [lctx : GoLocalContext] [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-variable [field_sem : net.FieldAssumptions]
-variable [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
 variable [log_sem : log.NewModel] [NaInvG GF]
 
 /-- **Every generation of replica `i + 1`** (`CrashBootWp`): the Go context substituted, a fresh

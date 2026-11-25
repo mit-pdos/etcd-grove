@@ -36,7 +36,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [net.Assumptions] [net.FieldAssumptions] [nS : NetSpecs GF] [strA : StringsIndexHyp GF]
+variable [net.Assumptions] [nS : NetSpecs GF] [strA : StringsIndexHyp GF]
 
 
 theorem sentToR_nil (q : Fin 3) : sentToR q [] = [] := by simp [sentToR, kahn.sentTo]; rfl

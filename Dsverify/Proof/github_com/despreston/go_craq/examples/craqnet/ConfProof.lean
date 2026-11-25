@@ -334,7 +334,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 
 local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet
 
@@ -726,7 +725,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS]
 
 local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet

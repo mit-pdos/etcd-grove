@@ -100,8 +100,7 @@ theorem etcd_all.wp_ParamsOk : etcd_all.ParamsOk.spec (GF := GF) (hG := hG) :=
 
 /-- **The program's entry point does not panic** (`MainChecked.lean`): `Main`'s linked triple behind
 `ParamsOk`, with the schedules `cluster3.RandomSchedule` draws. -/
-theorem etcd_all.wp_MainChecked [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+theorem etcd_all.wp_MainChecked
     [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_all.MainChecked.spec (GF := GF) (hG := hG) :=
   etcd_all.MainChecked.wp_proof etcd_all.wp_ParamsOk cluster3.wp_RandomSchedule etcd_all.wp_Main

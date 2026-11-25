@@ -31,7 +31,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : replica.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : replica.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- The `*Replica` `rp` is replica `r` of `γ` over the `*TCP` `tcp` (exclusive).
@@ -44,7 +44,7 @@ end defs
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : replica.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : replica.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 variable [models_lab.jsoncodec.JsonCodec GF]
 

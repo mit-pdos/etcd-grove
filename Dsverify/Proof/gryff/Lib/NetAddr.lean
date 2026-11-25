@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 section
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF]
-variable [sem : go.Semantics] [net.Assumptions] [net.FieldAssumptions]
+variable [sem : go.Semantics] [net.Assumptions]
 
 /-- `(*TCPAddr).String()`: some string, for any receiver. -/
 theorem wp_TCPAddr_String (x : Loc) :

@@ -61,7 +61,7 @@ variable [sem : go.Semantics]
 variable [package_sem' : Perennial.github_com.despreston.go_craq.examples.craqnet.Assumptions]
 variable [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions]
 variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [log.Assumptions] [π : NetProtoGS]
 variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 
 /-- Net's net/rpc client specs, for the kit's rpc clients (`Craq/Hyps.lean`'s `RpcClientSpecs`):

@@ -452,7 +452,7 @@ section
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
-variable [wire.BinaryVarintHyps GF] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
+variable [wire.BinaryVarintHyps GF] [net.Assumptions] [netN.NetSpecs GF]
 
 set_option hygiene false in
 /-- `serveClient`'s exit: `if err != nil && err != io.EOF { log.Printf(...) }` (`Herr`: the

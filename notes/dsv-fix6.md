@@ -6,33 +6,33 @@ rabia's `zerolog.Hyps` and QuePaxa's `PbHyp`, refuted as stated (`notes/axiom-re
 per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axioms"). grpc's initializer
 (item 4) and go-redis's (item 5) are not touched.
 
-**State (2026-11-25, second session): rabia done; QuePaxa and craq not started.**
+**State (2026-11-25, fourth session): rabia done; QuePaxa done and reviewed; craq not started.**
+- **Gates (2026-11-25, at `eb7cf0b3fd`, rabia only): all passed.** QuePaxa's gates: see the last bullet.
 - **rabia (item 2 below): done.** `a28755b089`'s 16 zerolog axiom files and `HypsHoldLinked.lean` restored;
   `Spec.lean`'s `New.spec` is `New(interface.nil)` with post `loggerOk lg`, `Logger.level.spec` takes
-  `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. `loggerOk lg := □ loggerMade lg`, `loggerMade`
-  an opaque with no law, **fixed** in `Spec.lean` (not existential in the class, unlike the design below:
-  `InitLogger.spec` and `proxyFields` name it without a `[zerolog.Hyps GF]` instance, so no spec gained an
-  instance argument; persistence by `infer_instance`, no axiom). Proof changes as planned:
-  `internal/logger/{Spec,InitLogger}.lean`, `Server__TerminalLogger.lean` (the local `tLogger` with
-  `DFrac.own 1`), `proxy/Spec.lean`'s `proxyFields` (`∃ lg, Logger ↦□ lg ∗ loggerOk lg`, for `⌜≠ null⌝`),
-  `ProxyInit.lean` (`ipersist Logger`), `KVSExecutor.lean` (`DFrac.discard`). The statement only lost
-  the premise `zerolog.Hyps` (and its import; kitgen from `etc/dsv/rabia.py`, `discharged` again).
-  Review: `notes/axiom-review/dsv-fix6/zerolog.md`, **survives** with conditions (no proof writes zerolog's
-  or `io/ioutil`'s package variables; `loggerMade` lawless); it found a doc bug in rabia's `GetLogLevel`
-  (`nonissues/rabia-getloglevel-doc-panics.md`). TCB: +16 axioms (`etc/tcb-baseline.txt`,
-  `etc/tcb-collections/dsv-rabia.txt`), one premise fewer. Built: `rabianet.{TopLevelRobustness,
-  NonVacuityLinked,TopLevelWitness}`, `zerolog.HypsLinked`.
-- **Gates (2026-11-25, at `b4c6c1c758`): not conclusive.** The disk (`/shared`, 969G) filled during the
-  run: the full `lake build` passed (28824 jobs), and links, errorf-wrap, axiom-tok, heapfree, bounds,
-  mode, api, import-all, tier, premise-witness and premisefix passed; tcb, pbschema, entsize, net-sticky,
-  wirevectors, models, featuregate, exit-check and the k8s reply-Kvs tests failed with ENOSPC (`no space
-  left on device`), gh-inbox failed too. Rerun `etc/gates.sh` once space is freed.
-- **QuePaxa (item 3): not started.** Scale: `Dsverify/Proof/raxos/Msg.lean` (2607 lines) holds every
-  `pt*`/`rt*`/`fields*` representation and its share lemmas (the `if dq = DFrac.own 1 then l ↦ v else
-  fields… ∗ inv pbRtN (rt… l)` pattern, ~10 message kinds), used by 5 more files (`grep -rln
-  'pbRtN\|rtPM\|ptPM' Dsverify/Proof/raxos`) and the `PbHyp` users (`grep -rln PbHyp Dsverify`, 17
-  files). Start: make the owned case `fields… l 1 v ∗ pbRt l` (`pbRt` sealed, holding `state`/`sizeCache`
-  with the allowed values) instead of the whole `l ↦ v`, and see what the allocation sites need.
+  `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. Review: `notes/axiom-review/dsv-fix6/zerolog.md`,
+  **survives** with conditions; doc bug `nonissues/rabia-getloglevel-doc-panics.md`. TCB: +16 axioms, one
+  premise fewer.
+- **QuePaxa (item 3): done.** `3a6222e221`: the owned case of a message representation asks
+  `⌜stateOk mi v.state'⌝` (unset or the type's own `MessageInfo`), the shared case's invariant content `rt*`
+  is sealed (closing the fix-4 review's A and B). Its review (`notes/axiom-review/dsv-fix6/quepaxa-pb.md`)
+  refuted it with counterexample C (a `Marshal` from the message package's own initializer, before its
+  generated `init` fills `file_*_msgTypes`). `c7b8cc6ee7`: each kind of `msg.marshalPre`/`unmarshalPre`
+  asks `isPkgInit` of its declaring package (`raxos.replica.src` for the six consensus kinds,
+  `raxos.proto.client` for `ClientBatch`; both defs now in `section codec` with `[HasExt Net.netExt]`,
+  as are `Hyp.lean`'s `pb` section, `PbHyp` and the two axiom files), proved at the 15 construction sites
+  by `iPkgInit`; `replicaMI`/`clientMI` are `opaque` tags. The statement text is unchanged; its
+  `GrpcHyp (cd := qpCodec)` premise only weakens (the codec's obligations, all the program's, ask more).
+  Fresh review `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md` (reviewer given only the Go and the
+  statement): **survives with a condition**: inside a declaring package `isPkgInit` can be assembled
+  before the generated `init` (its fact is `True`/`srcState`), so no hand-written package-level `var` or
+  `init()` may exist in `raxos/replica/src`, `raxos/proto/client`; today none does. Checked by the new
+  `etc/pb-init-check.py`, run in `etc/gates.sh` (section goose). The review's stronger alternative,
+  not done: a persistent token produced by the trusted `init.«0»` model inside the two packages'
+  `isPkgInitDef` (touches `TrustedCode` and `etc/gen-init.py`). TCB: +2 axioms
+  (`raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof`, exactly), baselines updated (`etc/tcb-baseline.txt`,
+  `etc/tcb-collections/dsv-quepaxa.txt`); reviews indexed in `notes/axiom-review/README.md`;
+  `etc/dsv/README.md`'s fix-4 section updated. Full `lake build` passes.
 - **craq (item 1): not started.** Coordinator-E chose option 1 (errAny's fact in `Net/`, proved at its
   producers; stop if a `TopLevelRobustness` text changes).
 

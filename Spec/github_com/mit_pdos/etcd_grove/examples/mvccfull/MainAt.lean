@@ -33,8 +33,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 
 /-- See the file header. -/
 abbrev MainAt.spec : Prop :=
-  ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-    [os.fileStat.FieldAssumptions] [backend.FsNoErrAll]
+  ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+    [backend.FsNoErrAll]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] (r : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗
       rootClaimF (GF := GF) r ∗ threadTok ∗ ⌜EtcdVerifyOff⌝ }}

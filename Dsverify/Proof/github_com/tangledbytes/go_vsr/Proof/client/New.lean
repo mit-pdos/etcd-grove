@@ -43,7 +43,7 @@ theorem get_append_rep {α} (ps : List α) (z : α) (n : Nat) (h : ps.length < n
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : client.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : client.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 variable [models_lab.jsoncodec.JsonCodec GF]
 variable [network.Assumptions] [ipv4port.Assumptions] [queue.Assumptions] [sort.Assumptions]

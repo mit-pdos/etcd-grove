@@ -387,7 +387,7 @@ end machines
 section rpchttp
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [examples.swiftnet.Assumptions]
 
 /-- `RpcHttpHyp` holds: `Net/`'s specs of the net/rpc-over-HTTP calls, from `Net/`'s proofs
 (`HandleHTTP` over net/http's `Handle`, and net/http's `Serve`: `Handle.wp` and `Serve.wp_rpc`,

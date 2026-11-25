@@ -55,7 +55,7 @@ section link
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Assumptions] [go.BasicIntoValInj]
 variable [π : NetProtoGS]
 
 theorem wp_below : below.spec (GF := GF) (hG := hG) :=

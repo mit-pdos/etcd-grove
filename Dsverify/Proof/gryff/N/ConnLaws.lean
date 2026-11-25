@@ -113,7 +113,7 @@ theorem u32Le_ne_nil (hs : w32) (Y : List w8) : u32Le hs ++ Y ≠ [] := by
 section
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
 
 /-! ## `portId`, `peerRole` -/
 

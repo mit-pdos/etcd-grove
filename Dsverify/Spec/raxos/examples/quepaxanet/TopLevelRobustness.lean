@@ -19,26 +19,18 @@ machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepax
   axioms (`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`, `google-golang-org-grpc.md`);
 * `qv : hyp.QpVocab remoteGF`, the abstract vocabulary of the gRPC and `sync.Map` hypotheses (any:
   the premises below are about it);
-* protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`; kept a premise because its
-  `axiom`-skill review refuted it as axioms: `notes/axiom-review/dsv-fix4/quepaxa-pb.md`);
 * gRPC's unary path over `qv.grpc` and the codec `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap
   and every protocol registry `NetProtoGS`), a gRPC world's registry can be allocated
   (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and `sync.Map` over `qv.map`
   (`hyp.sync.MapHyp`);
 * the translation's `Assumptions` of the twelve commands (with, by their instances, those of every
-<<<<<<< ours
   package they import) and `go.BasicIntoValInj`, as paxos's statement.
-||||||| base
-  package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
-=======
-  package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
-Not premises: math/rand's `Seed`,
+Not premises: protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages, math/rand's `Seed`,
 `time.Time.UTC`, `sort.Ints` and `fmt.Println` are per-function trust-boundary axioms, and so are
 the initializers of the other libraries with no translation or model here (yaml.v2, io/ioutil,
 encoding/gob, grpc/codes; their `wp_initialize'`); every axiom the result rests on is listed in
 `etc/tcb-collections/dsv-quepaxa.txt`. math/rand's initializer and package-level `Intn` are
 Perennial's proofs.
->>>>>>> theirs
 Proved in `Dsverify/Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean`.
 -/
 module
@@ -94,7 +86,6 @@ def quepaxa_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; google_golang_org.grpc.InitHyp remoteGF) →
     ∀ (qv : raxos.hyp.QpVocab remoteGF),
-    (∀ G L, letI := heapAt G L; raxos.hyp.PbHyp remoteGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L;
       raxos.hyp.grpc.GrpcHyp (cd := raxos.hyp.qpCodec) qv.grpc) →
     (∀ G : GooseGlobalGS HasLC.hasLC remoteGF, raxos.hyp.grpc.GrpcWorldHyp (Gg := G) qv.grpc) →

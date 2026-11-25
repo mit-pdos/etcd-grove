@@ -54,7 +54,7 @@ def EtcdBootNC : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (d : Deployment) (_Hd : d.WellFormed)
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (_Hbf : BootFacts d ps ctxs boot)
     (_Henv : EtcdEnv d) (_Htb : TrustBoundary d ps ctxs boot)

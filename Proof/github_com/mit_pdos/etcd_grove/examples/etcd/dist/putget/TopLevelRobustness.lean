@@ -101,28 +101,12 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` with `Robust`'s thread bound (`Net.robust_of_distBootIT`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-<<<<<<< ours
-  intro _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
-    Hm Hc Hd HEnv HEnvTok
-  refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
-    (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
-    (fun hlo hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
-      Hd.2.1 HEnv HEnvTok hlo hb) Hd
-||||||| base
-  intro _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
-    Hm Hc Hd HEnv HEnvTok
-  refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
-    (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
-    (fun hlo hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
-      Hd.2.1 HEnv HEnvTok hlo hb) Hd
-=======
-  intro _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
+  intro _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
     Hm Hc Hlp Hlc HEnv
   refine Net.robust_of_distBootIT (GF := putgetGF) (startAddrs peer client) (system peer client σm σc) g
     putgetThreads putgetSteps ?_
     (fun hb => HS peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc Hm Hc
       Hlp Hlc HEnv hb) (startAddrs_nodup peer client) (startAddrs_ok peer client)
->>>>>>> theirs
   refine etcdNetExts_initP g _ ?_
   intro m hm
   simp only [system, List.mem_cons, List.not_mem_nil, or_false] at hm
@@ -207,24 +191,8 @@ proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms o
 switch). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
-<<<<<<< ours
-  intro _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
-    Hm Hc Hok HEnv HEnvTok G hlo hb
-  have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
-    Hprem σc Hc
-  have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
-  have hclient : Net.addrOk client = true := Hok client (by simp [addrs])
-||||||| base
-  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
-    Hm Hc Hok HEnv HEnvTok G hlo hb
-  have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
-    Hprem σc Hc
-  have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
-  have hclient : Net.addrOk client = true := Hok client (by simp [addrs])
-=======
-  intro _ _ _ _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
+  intro _ _ _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
     Hm Hc Hlp Hlc HEnv G hb
->>>>>>> theirs
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   imod putget_shares peer client id $$ Hreg Hs with ⟨%γE, Hms, Hcs⟩

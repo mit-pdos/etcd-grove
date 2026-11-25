@@ -286,7 +286,7 @@ instance oclOnce_persistent (oc : Loc) : Persistent (oclOnce (GF := GF) oc) := b
 
 /-- `oc.Close()` on `Serve`'s `onceCloseListener` over this node's shared listener `l` at `la`:
 closed (once), its error returned. -/
-theorem wp_oclClose [net.Assumptions] [net.FieldAssumptions]
+theorem wp_oclClose [net.Assumptions]
     (wp_Close : net.Listener.Close.spec (GF := GF) (hG := hG))
     (oc tl : Loc) (l : w64) (x : GoInterface) (la : GoString) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ oclOnce oc ∗

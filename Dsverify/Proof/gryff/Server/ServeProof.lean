@@ -33,7 +33,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [sA : gryff.src.serverlib.Assumptions]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF]
 variable [nS : netN.NetSpecs GF]
 variable (wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG))
 variable (wp_Serve : net.http.Serve.spec_rpc (GF := GF) (hG := hG))

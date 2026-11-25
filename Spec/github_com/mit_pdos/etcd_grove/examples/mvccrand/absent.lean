@@ -32,7 +32,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 
 /-- See the file header. -/
 abbrev absent.spec : Prop :=
-  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.fileStat.FieldAssumptions]
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (d b : GoString) (R : Roots) (j : Ino) (qd : Qp) (h : NamesH) (qc : Qp),
   NameOk b → FsNoErrAt (child d b) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗

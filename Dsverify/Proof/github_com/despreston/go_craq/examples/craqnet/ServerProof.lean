@@ -45,7 +45,7 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumptions]
 variable [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions]
 variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [bvi : go.BasicIntoValInj]
 
 local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet

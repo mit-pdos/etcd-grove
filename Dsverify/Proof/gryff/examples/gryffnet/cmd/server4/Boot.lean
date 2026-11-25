@@ -29,7 +29,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.gryff.examples.gryffnet.cmd.server4.Assumptions]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [π : NetProtoGS]
 variable (hT : threadBound GF ≤ 2 ^ 30)
 variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
 

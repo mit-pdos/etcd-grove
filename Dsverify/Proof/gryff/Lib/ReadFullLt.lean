@@ -76,7 +76,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [π : NetProtoGS]
 
 /-- `io.ReadFull(c, p)` of the end `s` of the connection `cn` (its `*TCPConn` `t`): what it read
 extends the reader's token; no error only if it filled `p`. -/

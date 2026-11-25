@@ -43,7 +43,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 variable [package_sem : context.Assumptions] [bufio.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [net.Assumptions]
 
 set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 20000 in

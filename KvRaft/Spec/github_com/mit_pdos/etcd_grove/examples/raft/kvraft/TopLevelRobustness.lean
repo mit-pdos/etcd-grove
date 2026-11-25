@@ -49,15 +49,7 @@ nothing else. Their trusted semantics assume an environment, stated here in pros
 programs and of the packages they reach (kvraft, kvcheck, raft-noax's raft, `durable`, porcupine,
 lintest, gokv's `trusted_proph`, the standard library's models), the trusted `net` model, and the
 package-assumption instances the statement takes (`kvcheck.Assumptions`, which includes those of
-<<<<<<< ours
-every package kvcheck imports, kvnet's among them; `net.FieldAssumptions`;
-||||||| base
-every package kvcheck imports, kvnet's among them; `net.FieldAssumptions`; `os.file.FieldAssumptions`
-and `os.fileStat.FieldAssumptions`, the layouts of `os`'s `file` and `fileStat` its models read;
-=======
-every package kvcheck imports, kvraft's among them; `net.FieldAssumptions`; `os.file.FieldAssumptions`
-and `os.fileStat.FieldAssumptions`, the layouts of `os`'s `file` and `fileStat` its models read;
->>>>>>> theirs
+every package kvcheck imports, kvraft's among them;
 `log.NewModel`, the meaning of the name `log.New`, which raft's initializer calls and Perennial does not
 translate; added 2026-11-22 with the coordinator's approval: `notes/specs-only/ledger.md`).
 

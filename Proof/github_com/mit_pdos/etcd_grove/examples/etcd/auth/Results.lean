@@ -71,7 +71,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 (`server_new_auth_on`) and `Start.spec` (`server_Start`) at the auth slot's
 `on γa`. (The auth component's stage 3, 2026-11-04: until then `Start.specOn`, `server_Start_on`,
 which also took `ErrorStringLeaf`.) -/
-theorem authkv_startServer [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem authkv_startServer :
     etcd_auth.startServer.spec (GF := GF) (hG := hG) :=
   etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
     server_new_auth_on server_Start

@@ -312,7 +312,7 @@ address `NewServer` copies the struct to, from the new cluster's ghost allocatio
 registered `MemoryStorage`, the server's own invariants and the trust-boundary premises
 (`NodeStart.lean`'s header classifies them). `PreVote` and `CheckQuorum` either way (etcd's
 default configuration) since 2026-10-17. -/
-theorem server_raft_node_start [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem server_raft_node_start :
     NodeStartSpec (GF := GF) :=
   raftNode_of_StartNode bootstrappedRaft.wp_newRaftNode srvApi_wp_MemInitialState
     srvApi_wp_MemSnapshot srvApi_wp_MemLastIndex srvApi_wp_MemFirstIndex srvApi_wp_MemTerm
@@ -2190,8 +2190,8 @@ invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap
 (`kvInvOn_alloc_boot`), and its post the mode-indexed built part (`srvBuiltG true`): until then it
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
-theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
-    [os.fileStat.FieldAssumptions] :
+theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
+    :
     NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats

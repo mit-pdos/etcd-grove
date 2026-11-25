@@ -83,7 +83,7 @@ def craq_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; LogHyp remoteGF) →
     (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),

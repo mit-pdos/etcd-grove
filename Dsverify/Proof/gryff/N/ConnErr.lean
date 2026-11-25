@@ -35,7 +35,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 section
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
 
 /-- The reader state of a connection `*TCPConn` `t` (`net.conn_readerOk`'s contract). -/
 abbrev connRSt (t : Loc) (eof la ra ed : GoInterface) : wire.RSt GF :=

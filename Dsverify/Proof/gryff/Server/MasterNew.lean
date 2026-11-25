@@ -82,7 +82,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))

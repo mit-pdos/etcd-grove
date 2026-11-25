@@ -41,7 +41,7 @@ namespace net.rpc
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem' : net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- What net/rpc's first initialization returns besides its fact (see the file header). -/
 def rpcFirstRes : IProp GF :=

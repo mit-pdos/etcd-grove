@@ -235,7 +235,7 @@ open Net
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [π : NetProtoGS]
 
 open Perennial.gryff in
 /-- net/http's first initialization (`net.http.wp_init_first_mux`, over Net's interim axiom) in a table

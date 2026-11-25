@@ -404,7 +404,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
-variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions]
 variable [bufio_sem : bufio.Assumptions]
 
 /-- `http.Serve(l, nil)` on an rpc listener, over `Serve.wpHandler` with the two context axioms

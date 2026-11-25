@@ -23,7 +23,7 @@ namespace net
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
 
 /-- An `*OpError` of the net model is an error result (`OpError.Error` returns some string; its
 value is a pointer). -/

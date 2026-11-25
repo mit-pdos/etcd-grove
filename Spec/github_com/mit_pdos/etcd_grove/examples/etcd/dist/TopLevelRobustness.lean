@@ -99,7 +99,7 @@ def etcd_robust.spec : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     -- carried over from `etcd_robust` (review F7); each to go when its model is proved
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     -- the deployment, and its one decidable premise
     (d : Deployment) (Hd : d.WellFormed)
     -- bootstrap's results; the premises not yet discharged
@@ -130,7 +130,7 @@ def etcd_robust_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (d : Deployment) (Hd : d.WellFormed)
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
     (Henv : EtcdEnv d) (Htb : TrustBoundary d ps ctxs boot)

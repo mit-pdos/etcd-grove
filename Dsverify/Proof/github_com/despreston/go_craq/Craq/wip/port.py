@@ -24,7 +24,7 @@ s = re.sub(r'\nattribute \[local instance\] netConnExts netConnExtsSemantics net
 ext = ' [HasExt netExt]' if net else ''
 vars_ = ''.join(f' [{p}.Assumptions]' for p in pkgs)
 if net:
-    vars_ += '\nvariable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]'
+    vars_ += '\nvariable [net.rpc.Assumptions] [π : NetProtoGS]'
 s = s.replace('variable [go_gctx : GoGlobalContext]\n',
               'variable [GooseExts] [GooseSemantics] [GooseInterp]' + ext + ' [go_gctx : GoGlobalContext]\n')
 s = re.sub(r'variable \[sem : go\.Semantics\] \[package_sem : examples\.craqnet\.Assumptions\]\n',

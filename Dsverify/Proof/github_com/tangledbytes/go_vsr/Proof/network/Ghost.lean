@@ -32,7 +32,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 section connL
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.FieldAssumptions]
 
 /-- The `*TCPConn` `c` is the end `s` of `cn` (some dialed address and local/remote addresses;
 persistent): what `Defs.lean`'s registry and pool keep of a connection. -/
@@ -44,7 +43,7 @@ end connL
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 
 theorem network.threeQuarters_invalid :
     ¬ ((((1 : Qp).half + (1 : Qp).half.half) + ((1 : Qp).half + (1 : Qp).half.half)).val ≤ 1) := by

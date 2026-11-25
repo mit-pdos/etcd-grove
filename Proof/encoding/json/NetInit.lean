@@ -26,7 +26,7 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions]
+variable [HasExt netExt] [net.Assumptions]
 
 /-- `poll.ErrDeadlineExceeded`'s value, from `net`'s initialization. -/
 theorem ed_of_net :

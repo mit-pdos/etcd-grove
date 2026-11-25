@@ -131,7 +131,7 @@ section conn
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [wire.BufioSpecs GF]
-variable [net.Assumptions] [net.FieldAssumptions] [nS : NetSpecs GF]
+variable [net.Assumptions] [nS : NetSpecs GF]
 
 set_option goose.wp.extras true
 

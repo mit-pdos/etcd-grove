@@ -39,7 +39,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [π : NetProtoGS] [net.Assumptions] [log.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

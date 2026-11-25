@@ -32,7 +32,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : encoding.json.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [HasExt netExt] [net.Assumptions] [π : NetProtoGS]
 
 /-- The capacity bound after growing (`cap*2`): the capacity was small, or three quarters of it
 are kept bytes, fewer than `2^60`. -/

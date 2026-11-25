@@ -29,7 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `model.stat(op, d/b)` of a name holding nothing: a `*PathError` of a nonzero errno
 (`wp_stat_absentS` with the error made explicit). -/
