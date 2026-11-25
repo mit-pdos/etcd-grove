@@ -503,3 +503,26 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   `2926d09437` (see the trial-merge item above: keep pin 09bd3826c; regenerate PkgTables/BootTables, gen-init,
   copy-part, gen-link; the dsv-fix6 Net rpc/http error lemmas need a design merge: lean's errLeaf/errPlain
   vs egnet's errStr/errnoOk over Go's OpError.Error), then rebuild and re-run tcb.
+
+## Session 14 (2026-11-26, successor) — merge of lean `2926d09437` (basic slice + dsv-fix6)
+- Worktree `eg-lmerge`, NEW branch `go-models-rest-egnet-lmerge2/2026-11-26` (off 75c8e1c837), VM key
+  c61dd42e08d7d686; scratch `tmp/gm14/` (merge.log, conflicts.txt, scripts/{hunks.py, regen.sh, *.py the
+  per-file resolutions}, b*.log, full*.log).
+- #8: no reply after 21:00Z; coordinator relayed coordinator-E 7173879212: keep the go-models route,
+  re-prove dsv-fix6's lemmas with statements unchanged where possible, any craq-side change only ADDS
+  facts Go's real Error provides, no top-level statement touched, the diff posted on #8 for
+  etcd-grove-03 before landing; record that this closes `net-operr-error`.
+- Merge `c86c1b291d`: 187 conflicts. 143 generated PkgTable/BootTable: took lean's, regenerated
+  (`tmp/gm14/scripts/regen.sh WT write`: gen-init, copy-part, gen-raft-tla, gen-specs-pkginit, kitgen,
+  rpcdriver-boottable, k8s-deep, pbschema; then `tmp/gomodels/s10/genlink-all.sh WT --write`: 0 differ) —
+  result identical to ours (same pin). lakefile/manifest ours (09bd3826c). etc/gen-link.py ours (no FA
+  entries; lean's only change there was dropping MutexLitSemantics, which ours already had). 32 craq/dsv
+  files by `tmp/gm13/scripts/resolve.py`; craqnet TLR intro without hlog/fsem; raxos SharedLoop and k8s
+  clock NewTicker/NewTimer = lean's. Errs.lean (auto-merged) lost its `field_sem` binder.
+- Design merge (dsv-fix6 errLeaf/errPlain over Go's translated `OpError.Error`), statements changed only
+  by ADDED premises/facts (list in packet-rest.md, "dsv-fix6 lemmas over the Go-model net"):
+  `crErr` = lb ∗ `net.errStr` ∗ `⌜errLeaf⌝`; `ReadResponse.spec_errs` + errStr premise/post;
+  `errPlain_opErr`/`errPlain_resErr` + `syscall.errnoOk` (+ errStr/addrOrNil for opErr), their pure
+  `errLeaf` address premises dropped (implied by `addrOrNil`); `errPlain_opErrPtr` curried
+  `pe ↦□ v ⊢ errnoOk -∗ opErrMsgOk v -∗ errPlain`; `inErr_read` + errnoOk (lean's netAddr la/ra not
+  needed); `readErr_some'` gives errLeaf too; `DialHTTP(Path).spec_plain` + `isPkgInit net`.

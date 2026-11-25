@@ -2601,3 +2601,40 @@ Gain a premise:
 
 Deleted: `net.opErr_errOrNil` and vr `network.opErr_errOrNil` (an `*OpError` with an arbitrary `Err` has
 no defined `Error()` under Go's code; their callers use the `resErr_` forms, which know the `Err`).
+
+## dsv-fix6's `errPlain`/`errLeaf` lemmas over the Go-model net (lean `2926d09437` merge, session 14)
+
+dsv-fix6 (craq, landed on lean) proved Net's `errPlain` variants (`Net/Proof/models_lab/ErrFmt.lean`) over
+the old trusted `OpError.Error` model, which called none of the fields' methods. Here `OpError.Error` is Go's
+translated code, which calls `Source.String()`, `Addr.String()` and `Err.Error()`, so a lemma that turns an
+`*OpError` into `errAny`/`errPlain` needs what that code needs. Decision (coordinator-E, #8 7173879212):
+keep the go-models route; statements unchanged where possible; a change may only ADD facts Go's real
+`Error` provides. `ErrFmt.lean` (`errLeaf`, `errFmt`, `errPlain`), craq's statements (`Iface`, `Netrpc`,
+`LogHyp`/`LogAx`, `craq_remote_robust`) and every `TopLevelRobustness`/`Results` statement are
+**unchanged**. Internal statements that change (all in `Net/`; every caller updated in the same commit):
+
+| statement | lean (dsv-fix6) | here |
+|---|---|---|
+| `net.rpc.crErr γe r err` (`HttpDefs`) | `lb ∗ ⌜errLeaf err⌝` | `lb ∗ net.errStr err ∗ ⌜errLeaf err⌝` (both sides' facts) |
+| `net.http.ReadResponse.spec_errs` | premise `E r e -∗ ⌜L e⌝`; error post `⌜err ≠ nil ∧ L err⌝` | + premise `E r e -∗ net.errStr e`; error post `… ∗ net.errStr err` (as `ReadResponse.spec` here) |
+| `net.rpc.errPlain_opErr` | `(hs ha : errLeaf src/addr) : opErr ∗ errLeafOrEd e ⊢ errPlain err` | `syscall.errnoOk ∗ opErr ∗ net.errStr e ∗ addrOrNil src ∗ addrOrNil addr ∗ errLeafOrEd e ⊢ errPlain err` (`hs`/`ha` follow from `addrOrNil`: `errLeaf_addrOrNil`) |
+| `net.rpc.errPlain_opErrPtr` | `(h) : pe ↦□ v ⊢ errPlain …` | `(h) : pe ↦□ v ⊢ syscall.errnoOk -∗ net.opErrMsgOk v -∗ errPlain …` |
+| `net.rpc.errPlain_resErr` | `(hs ha) : resErr (some k) … ∗ (ed's points-to) ⊢ errPlain err` | `syscall.errnoOk ∗ resErr (some k) … ∗ (ed's points-to) ⊢ errPlain err` (`hs`/`ha` dropped: `resErr`'s `addrOrNil`) |
+| `net.rpc.inErr_read` | + `ed`'s points-to, `netAddr la`, `netAddr ra` | `syscall.errnoOk` + `ed`'s points-to (the addresses' facts come from `resErr`) |
+| `net.rpc.readErr_some'` (ours) | — | also gives `errLeaf err` |
+| `net.rpc.DialHTTPPath.spec_plain`, `DialHTTP.spec_plain` | no `isPkgInit` | + `isPkgInit net` (as `DialHTTPPath.spec`/`DialHTTP.spec` here: `syscall.errnoOk` for the `*OpError`'s `Error()`); craq's `Connect` discharges it at its `wp_apply` |
+
+Unchanged: `kindErr_leaf`, `errPlain_errorString`, `errPlain_newVar`, `errPlain_serverErr`, `errLeaf_netAddr`,
+`Client.Call.spec_plain`, `wp_errors_New'` (lean's `x.s ↦□` post kept).
+
+**This closes dsv-fix6's `net-operr-error` finding** (`notes/axiom-review/dsv-fix6/net-operr-error.md`):
+its crash program (`&net.OpError{Op: "read", Net: "tcp", Err: &pErr{}}` with `pErr.Error` panicking, then
+`pe.Error()`) is no longer provable safe. `OpError.Error` has no trusted model here (`Net/Code/net.toml`
+translates it; `Net/TrustedCode/net.lean` has no `OpError.Error.impl`), so a triple for the call is either
+the translated body's WP, which calls `pErr.Error()` and panics, or `net.wp_OpError_Error`, the only spec
+of it (and its `KvRaft/` copy), which asks `net.opErrMsgOk v`: `net.errStr v.Err'`, i.e. a WP of
+`v.Err'.Error()` returning a string, which `pErr` has not. `errAny`/`errPlain` of an `*OpError` (every
+`errPlain_*`/`errAny_*` lemma above, and `errFmt`'s `*OpError` case through `errPlain`'s `errAny` conjunct)
+inherits the condition. (Argued from the statements, not a Lean refutation; the racy variant, `Err.Error`
+writing a map another goroutine writes, is likewise outside `wp_OpError_Error` unless that `Error()` has a
+WP of its own, i.e. it is reduced to whether Go's map model admits that program.)
