@@ -1154,7 +1154,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     with ⟨%hJ, Hrest⟩
   ihave #Hkr := snapDirKeptR_of ⟨fl, lc', nh, gs, th, cr⟩ R V' _ J hJ $$ Hpd
   ihave #Hkf : snapCrash.snapDirKeptF (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R V' (config.snapDirOf cfg.DataDir') $$ []
-  · unfold snapCrash.snapDirKeptF; unfold snapDirKeptR at Hkr; iexact Hkr
+  · iunfold snapCrash.snapDirKeptF; iunfold snapDirKeptR at Hkr; iexact Hkr
   have hD : ∀ x ∈ Dw ++ [i0], ∀ i, V'.now.entry J (snap.snapDBName i) ≠ some (.file x) := by
     intro x hx i hxi
     rcases List.mem_append.1 hx with hx | hx
