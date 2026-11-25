@@ -336,6 +336,58 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
 - **`kvClientV`'s `KV` pointer** (item 5): N2's change to `NewClients`' post is not on N2's branches yet
   (`etcdstart` unchanged at `18fcc68766`); `kvClientV_intro` to be rechecked when it lands.
 
+## M1 session (2026-11-25, branch `etcd-safe-m1`, worktree `/shared/etcd-grove-m1`)
+
+**Base**: `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca` (no-crash line with N2), plus P9's commits from
+`etcd-safe-p9-nc` (`a9d9b94558..354e3cffd8`, cherry-picked; the one conflict, `dist/ClientViewDist.lean`,
+resolved to N2's file: the drafts are gone). Builds: fk-lean2 `wt/etcd-safe-m1` (its `.lake/build` moved
+from `wt/etcd-safe-p9-nc`, which has none now); `/shared/tmp/m1-build.sh TARGETS` (log
+`/shared/tmp/m1-build.log`), `/shared/tmp/m1-chk.sh FILE [-q -a]`.
+
+The lead's table of P9's draft names to N2's: `/shared/tmp/coord-03/n2-name-table.md` (use it for any
+name left over).
+
+**Ported to N2's names** (commit "M1: P9 ported to N2's names"):
+- no table parameter `svc` anywhere (N2 fixes the table `etcdSvc`): `Node.spec`, `kvNodePre`, `Call_dist.spec`,
+  the `client_*_dist.law`s, `Call_dist_holds`, `Node.wp_proof` lost it;
+- `kvClientV` → `kvClientAt` (`dist/KVClientDist.lean`); `kvremote/ClientV.lean` deleted (`kvClientV_intro`
+  → N2's `kvClient_of_new`, same arguments less `svc`); `kvClientV_persistent` dropped (N2's instance);
+- `membersAtV`/`etcdAddrAtV` → `membersAt`/`etcdAddrAt` (`S2Interim`, at `Γ`); P9's lemmas renamed
+  `membersAt_sub`, `membersAt_of_members`;
+- `member_boot_dist.law`'s per-member facts are `clientSvcFacts (clusterMembersOf d) Γ` (`ClusterStart`), with
+  `clusterMembersOf d := d.members.map (⟨m.peer, m.client, memberIdIn d m⟩)` (new, `kvremote/Start.lean`);
+  `membersAt_of_members` takes that form;
+- imports: `ClientCallDistLaws` imports `KVClientDist` (+ client `InvKVConn`/`InvOp`/`KVService`/`InvTxnBuilder`),
+  `CallDistLinked` N2's four Spec files, `Link` N2's four axiom modules.
+
+**`wp_Node`** (`kvremote/Link.lean`) takes **no hypotheses**: `Call_dist_holds KV_Put_dist.wp_proof
+KV_Get_dist.wp_proof KV_Delete_dist.wp_proof Txn_Commit_dist.wp_proof` (N2's interim axioms, unchanged; no
+new axiom). Expected tcb: N2's `KV_Delete_dist` and `Txn_Commit_dist` enter the baseline once a root reaches
+them (they are declared, unreached on `b35f8f67ca`); `KV_Put_dist`/`KV_Get_dist` already in it.
+
+**Build state**: pushed before the build reported (the lead was waiting); build of `kvremote.{Link,Start,Node,CallDistLinked}` running on fk-lean2 (log `/shared/tmp/m1-build.log`). Unverified: check it first.
+
+**Next, in order:**
+1. If the build failed: fix (likely spots: `(G := hG.goose_globalGS)` on `clientSvcFacts` in `Start.lean`, a
+   missing instance for `clientSvcFacts`' `etcdserver`/`v3rpc` Assumptions variables there; `ihave Hkv :=
+   kvClient_of_new cl epsL …` in `Node.lean`; the axioms' `[srv_sem]`/`[cache_sem]` instances at `wp_Node`).
+   Then `etc/tier-check.py --check` and `etc/tcb-report.py --check` (on fk-lean2 after `lake build` of the
+   roots; accept only N2's `KV_Delete_dist`/`Txn_Commit_dist` with `--check --update`).
+2. N7-kv's replay `etcd-safe-n7kv-nc2` (not pushed at 20:40Z; `git ls-remote https://github.com/mit-pdos/etcd-grove.git`):
+   merge it, then the two instance lemmas (`Node.spec = Node.specWith kvNodePre` by `rfl`; `Orch.spec →
+   Orch.specWith kvOrchPre`) and `membersAt_sub` at `rotateL`.
+3. **Align `Start`'s `member_boot_dist.law` with N5's** (`etcd-safe-nc-n5/2026-11-25` @ `69f9417d8b`, on
+   `nc-n2`): N5's `member_boot_dist` (`Proof/.../dist/server/AdequacyMember.lean`) is `Net.DistBootWpSLT
+   etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c, memberShareD c d (distPs d) (distCtxs d) boot i)`, with one
+   hypothesis `Hauth : d.cfg.auth = false`. So the start's member part takes `memberShareD` at
+   `distPs`/`distCtxs`, not this branch's `clientSvcFacts (clusterMembersOf d) Γ` form; the lead's helper
+   merges `nc-n5` and P12 into `etcd-safe-m1-top` on this head.
+4. Step 6 (`dist/kvremote/TopLevelRobustness.lean`): **the lead's agent's** (the statement, its witness and
+   the collection, on this branch's pushed head); not started here. The `robustness` skill was read; its checklist
+   applies (the statement file is the audit target; the restriction to one `kv` workload is the milestone's
+   scope, to be stated as `etcd_robust_nocrash.spec` at such deployments; the only new premise allowed is
+   `member_boot_dist` for N5). Needs N7-kv's `orchShare`/`nodeShare` and dispatch (item 2).
+
 ## Handoff
 
 **Branch**: `etcd-safe-p9-nc` (the line M1 lands from; `etcd-safe-p9` is superseded). Edit loop
