@@ -8,13 +8,10 @@ public import SpecPlan.Spec.PkgInit.net.http
 public import SpecPlan.Spec.PkgInit.os
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
-public import SpecPlan.Spec.PkgInit.google_golang_org.grpc
-public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.keepalive
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
-public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
