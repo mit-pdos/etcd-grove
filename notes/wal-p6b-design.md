@@ -149,3 +149,11 @@ Then `DiscardUnsaved`'s spec (pre as `Unsaved`'s plus the parent directory's res
 3. The tester.
 4. Merge `etcd-safe-p8`; `Crash.lean`.
 5. `DiscardUnsaved`.
+
+## Two layouts never share a directory (session 19, decided by the coordinator)
+
+S's crash facts for the other WALs need `lay'.j ≠ lay.j` for every other layout. The coordinator's order: the
+fraction argument first, an internal invariant fact only if it does not follow. It follows, with no change to the
+invariant: with the lock free (`walParked`'s `o.T = []`), `walTmpParked0` holds `walTmpsRes J` per layout
+directory, `qTmp` (¾) of `J`'s `0.tmp` claim each, so two layouts on one `J` contradict `qTmp_two`
+(`walTmpParked0_inj`, `DiscardSInv.lean`). (`walTmpHalves`' `qTmpI` quarters with one parked `qTmp` would also do.)

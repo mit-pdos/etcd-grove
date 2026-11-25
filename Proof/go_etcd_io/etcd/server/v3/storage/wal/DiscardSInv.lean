@@ -408,7 +408,7 @@ theorem walTmpParked0_inj (Ls : GMap GoString WalLay) :
     ihave Hm := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (J : Ino) =>
       iprop(if dir ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J)) e2).1 $$ Hm
     icases Hm with ⟨H2, -⟩
-    simp only [List.not_mem_nil, if_false]
+    simp only [List.not_mem_nil, ite_false]
     iapply walTmpsRes_excl (G := G) (L := L) l2.j
     iframe H1 H2
 

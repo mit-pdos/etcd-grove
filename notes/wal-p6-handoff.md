@@ -488,6 +488,53 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 19 (WIP, `etcd-safe-p6b-wip`): S's pure facts and the layouts' distinctness done; S's
+  Iris step not started.** **Decision (coordinator, internal):** the gap "two WALs have different directory inodes" by
+  the fraction argument, an invariant fact only if it does not follow; **it follows** with no invariant change: with no
+  write-mode handle out (`walParked`'s `o.T = []`, the lock token free), `walTmpParked0` holds `walTmpsRes J` for each
+  layout's directory, three quarters (`qTmp`) of `J`'s `0.tmp` claim each; two layouts on one `J` give two (`qTmp_two`).
+  (The `walTmpsHalf` route also works: `qTmp + qTmpI + qTmpI > 1`; the parked route is simpler.) Noted in
+  `notes/wal-p6b-design.md`.
+  **Done**, new `Proof/.../wal/DiscardSInv.lean` (imports `DiscardSPure`, `DiscardR`, `CreateDropInv`, `BootPure`;
+  `lake build` of the module on fk-lean1 at `2457004ed8`: exit 0, no `sorry`, `/shared/tmp/p6b-s19-b6.log`; nothing
+  imports it yet):
+  * `dropC cl c` (`cl.filter (· ≠ c)`, classical: `Claim` has no `BEq`; the form of `osClaims_filter_once`,
+    CreateMergeStep.lean, which takes the claim out of `osClaims` under `ClaimOnce`), `mem_dropC`;
+  * `DropDirOk cl j N h` (log, mem, no other claim of `j` on `N`) and **`DropDirOk.crash`**: a crash of `dropC cl
+    (j,N,h)` has a crash `m''` of `cl` equal off `j`'s names of `N` (over `regionCrashedK_dropDir` + `_cover`);
+    `entsOf_off`;
+  * `discS s dir` (`wal := delete dir`), `crashOkA_dropDir`/`crashOkW_dropDir`, `walDirClaim_dropDir`;
+  * `DiscSet Ls cl jr dir lay N hj` (lay at dir, `DropDirOk`, other layouts on other inodes, `lay.j ≠ jr`) and
+    **`discSet_of`**: from `DirKeysOk`'s `DirClaimsOk`/`DirClaimExcl` (N = `.except walTmps`), the claims' log
+    (`osClaims_log`), and the distinctness;
+  * `absentNone_discard`, `walsOk_discard` (`DirsOk` by `dirsOk_roots`: needs `RootsOk R`, from `osPathS`,
+    TreeSharedClaims.lean:582; `AbsentOk` by `absentOk_of_absentNone`), `walsNamed_discard`, `walsCreateOk_discard`,
+    `walsAt_discard`, `claimOnce_dropC`, `dirClaimOk_dropC`, `dirKeysOk_discard` (keys `K.delete dir`);
+  * **`discNone_of`**: `hnone` for `dir` from the area claim `(jr, N0, hC) ∈ cl` holding nothing at `nm`, being the
+    only claim of `jr` on `nm` (`honly`: from `osNames_disj`/`osClaims_excl` against the program's half), and
+    `LastWrite hC jr nm x e Es`, `x < n`, `Es !! nm = none` (`regionCrashed_lastWrite`); `inArea_nm_inj`;
+  * **`discS_pure`**: every pure conjunct of `walInvBody` at `(discS s dir, Ls.delete dir, dropC cl (lay.j, N, hj),
+    n, K.delete dir)` from the old ones at `n0 ≤ n` (mono lemmas inside), given `DiscSet`, `RootsOk`, `hnone`;
+  * Iris: `walTmpsRes_excl`, **`walTmpParked0_inj`** (`walTmpParked0 Ls [] ⊢ ⌜distinct⌝ ∗ walTmpParked0 Ls []`).
+  **Next: S's Iris step** (`walInv_discardS`, at a program step after `syncDir.spec`, mask ⊤, as `walInv_named`
+  in CreateNamedStep.lean). Program in: `walUnlockedTokX`, `walNamesFragS ⟨none, some dir, []⟩`, the program's half
+  of `(jr, .only [nm, tmp], hC)` after R (`renDirOut`'s: `nm` none, `tmp` the directory `J`), `osCommitLb n` with
+  the rename's `LastWrite hC jr nm x e Es`, `x < n`, `AU₂`, `osSharedInv R`, `osPathS` (for `RootsOk`). Inside
+  `walInvBody s`: `walGhost`'s `walGhostI s I` (`walGhostI_bump` to `(discS s dir, <[dir := incOf I dir + 1]> I)`,
+  `walLeI_discard`, Ghost.lean:294; the shares from `walUnlockedTokX_open`, `walParked_incE`,
+  `walDirKeysAuth_bump`, the view's out of `AU₂`, as `discAU`'s logged arm, DiscardR.lean); `osClaims_log` →
+  `DropDirOk.log`; `walParked` with `o = empty` (from the token's `walOutFrag empty`): `walTmpParked0_inj` →
+  distinctness; then `discSet_of`, `discNone_of` (`honly` by `osClaims_excl`), `discS_pure`; resources out:
+  `osClaims_filter_once` (the dir claim's invariant half), `walParked`'s `ParkedClaim` half of it, `walTmpsRes
+  lay.j` (`walTmpParked0`'s `Jt` delete `dir`) and `walTmpsHalf lay.j` (`walTmpHalves`' `Jh` delete `dir`),
+  segments' halves of `lay` dropped (`laysResF` and `walParked`'s `segResP` over `segsAll (Ls.delete dir)`:
+  split with `BigSepM.bigSepM_delete` as `segsAll_sep_same`, TailSync/PurgeAuLemmas), `walTailsRes` over
+  `Ls.delete dir` (find/write a `walTailsRes_delete`; `s.wal !! dir`'s tail record goes), `walOthersL` (dir's
+  others, files: to the program for `SubCover`), `walNamesRes` with `disc := none` (`Wn` unchanged: `dir` not
+  in it), `AU₂` committed (`walOwn M → M.delete dir`), `walUnlockedTok` rebuilt. Then out of the step:
+  `osNames_merge` twice (`.except walTmps` + `.only [0.tmp]` + `.only [1.tmp]` → `.except []`), tagged `tmp`
+  into `walAreaRes`'s `cl` (session 18's notes on `SubCover`/`ClRanked`), the program's area half merged back
+  (`walInv_mergeIn`). Then the `Discard` proof, the crash lemma, the docstrings, `gen-link --walfs`, builds.
 - **2026-11-25, P6b session 18 (WIP, `etcd-safe-p6b-wip`): S started (its crash-tree core); S's plan refined.**
   **Done**: new `Proof/.../wal/DiscardSPure.lean` (imports `CreateDrop`; `etc/lean-check.py -a`: 0 errors, no
   `sorry`; nothing imports it yet, not in a `lake build`): `exists_dir` (a `Dir` from a function supported on a
