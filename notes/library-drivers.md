@@ -96,7 +96,7 @@ slots), `httpSteps = 2 ^ 63 - 1` (rpcdriver's; no spec bounds the receipts). The
 (`GODEBUG` does not set `httpmuxgo121=1`, #18's option (a)) makes the server's `ServeMux` run Go 1.22's
 matcher, the one proved. The boot table is `etc/gen-driver-boottable.py`'s (generic over the drivers).
 
-### The interim axioms (revised on review 2026-11-25; nothing proved over them yet)
+### The interim axioms (revised on review 2026-11-25; `httpdriver_robust` proved over them, 2026-11-25)
 
 Vocabulary: `Net/Proof/net/http/WireDefs.lean` (pure: requests, responses, paths) and `ProtoDefs.lean`
 (phase 7 S5's draft vocabulary, defined; its header lists the departures from the draft), over S5's
