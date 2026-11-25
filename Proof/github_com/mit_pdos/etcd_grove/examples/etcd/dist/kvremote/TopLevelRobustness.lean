@@ -18,6 +18,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.TopLevelRobustness
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootBad
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.AdequacyMember
 
 @[expose] public section
 
@@ -87,6 +88,28 @@ theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.
       exact etcdBootNCBad_holds d Hd σs σc σn Hfips hb
     · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
       iempintro
+
+/-- **Member `i`'s machine's boot at M1's premises** (`EtcdKvBootNC`'s member part): N5's `member_boot_dist`
+from its share `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`, its start state `σs[i]` given by
+`Hσs` and the scope's `d.cfg.auth = false`. -/
+theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    (d : Deployment) (Hd : d.WellFormed) (Hscope : KvOnly d ∧ d.cfg.auth = false)
+    (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
+    (Hfips : crypto.fips140.GodebugFips140Off) (σs : List state)
+    (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
+    (i : Nat) (σ : state) (hi : σs[i]? = some σ)
+    [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] :
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ
+      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) := by
+  obtain ⟨hiσ, rfl⟩ := List.getElem?_eq_some_iff.1 hi
+  have hl : i < d.members.length := Hσs.1 ▸ hiσ
+  have Hst := Hσs.2 (d.members[i], σs[i]) (List.mem_iff_getElem.mpr
+    ⟨i, by simp [List.length_zip]; omega, by simp [List.getElem_zip]⟩)
+  exact member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips i d.members[i]
+    (List.getElem?_eq_getElem hl) σs[i] Hst
 
 end etcd_dist
 end EtcdGrove
