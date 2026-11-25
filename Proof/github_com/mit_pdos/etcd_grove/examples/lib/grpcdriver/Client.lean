@@ -150,7 +150,7 @@ theorem Client.wp_proof
   iintro %osl ⟨Hosl, -⟩
   imod ownSlice_persist _ _ _ $$ Hosl with #Hosl
   try wp_auto
-  wp_apply wp_NewClient go!"passthrough:///127.0.0.1:7301" osl [GrpcDialOpt.transportCreds]
+  wp_apply wp_NewClient go!"passthrough:///127.0.0.1:7301" _ [GrpcDialOpt.transportCreds]
       GoInterface.nil [] [drvAddr] anyRes (fun _ => iprop(True)) $$ []
     as %conn %err Hd
   · iframe #
@@ -163,8 +163,11 @@ theorem Client.wp_proof
     · iunfold dialTargetOk
       iright
       ipureintro; exact drvAddr_passthrough
+    rw [show credsOfDial [GrpcDialOpt.transportCreds] = [] from rfl]
     iapply BigSepL.bigSepL_nil.2; itrivial
   icases Hd with (⟨%He, #Hconn, #Hcreds, #Hopts⟩ | %He)
+  simp only [show unaryIcsOf [GrpcDialOpt.transportCreds] = [] from rfl,
+    show credsOfDial [GrpcDialOpt.transportCreds] = [] from rfl]
   rotate_left
   · cases err with
     | nil => exact absurd rfl He
@@ -197,11 +200,10 @@ theorem Client.wp_proof
   ihave #Hctr : isCtr γid γb cn $$ []
   · unfold isCtr; iframe Hsync; iexists start; iexact Hmu
   ihave #Hcli : drvCli γid γb (interface.mkOk (go.GoType.PointerType svc.driverClient.ty) #dc) cn $$ []
-  · iapply (drvCli_of π σ γid γb _ cn conn (connOptsOf [GrpcDialOpt.transportCreds]) rfl)
-    iframe #
-    isplitr
+  · ihave #Hstub : drvStubAt (GF := GF) (interface.mkOk (go.GoType.PointerType svc.driverClient.ty) #dc) conn $$ []
     · unfold drvStubAt; iexists dc; iframe #; ipureintro; rfl
-    iexact Hconn
+    iapply (drvCli_of π σ γid γb _ cn conn (connOptsOf [GrpcDialOpt.transportCreds]) rfl)
+    iframe #
   -- the credits: 32 for the workers, 1 for the call after `Close`
   rw [show ctrBudget = 32 + 1 from rfl]
   icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, Hc1⟩
@@ -233,7 +235,8 @@ theorem Client.wp_proof
   wp_for IH
   wp_if_destruct
   · -- a worker
-    have hw : uint.nat w < uint.nat (W64 1 + w0) := by word
+    have hw : uint.nat w < uint.nat (W64 1 + w0) := by
+      first | word | (simp at Hif; word) | (simp at Hif; omega)
     rw [show 8 * (uint.nat (W64 1 + w0) - uint.nat w) =
       8 * (uint.nat (W64 1 + w0) - uint.nat (w + W64 1)) + 8 by
         rw [show uint.nat (w + W64 1) = uint.nat w + 1 by word]; omega]
@@ -261,7 +264,8 @@ theorem Client.wp_proof
       iexists w + W64 1, n + 1, iprop(Pw ∗ True)
       iframe
       ipureintro; word
-  · try wp_auto
+  · try simp only [Hif, decide_true, ↓reduceIte]
+    try wp_auto
     wp_apply (sync.tokJoin.WaitGroup.wp_Wait wkN iprop(False) wg_ptr n Pw) $$ [$Hsync $Hadd]
       as ⟨-, -⟩
     try wp_auto
@@ -284,7 +288,8 @@ theorem Client.wp_proof
     try wp_auto
     let cd : context.ContextDesc (IProp GF) :=
       { Values := ∅, Deadline := none, Done_gn := ⟨γid, γid⟩, PDone := iprop(True) }
-    ihave #Hq := drv_ctxQuiet_background (GF := GF) $$ []
+    ihave #Hq : ctxQuiet (GF := GF) context.backgroundCtxVal $$ []
+    · iapply drv_ctxQuiet_background
     ihave #Hok : ctxOk context.backgroundCtxVal cd $$ []
     · iapply ctxOk_of_quiet
       iframe #
@@ -294,8 +299,6 @@ theorem Client.wp_proof
     · iframe #
       isplitl []
       · iapply metadata.outMD_background
-      isplitl []
-      · iright; iframe #
       isplitl []
       · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
       ipureintro; intro v hv; cases hv
