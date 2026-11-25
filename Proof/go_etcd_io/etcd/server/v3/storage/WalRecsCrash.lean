@@ -6,7 +6,7 @@
 `notes/wal-p8-handoff.md`. A member machine that crashes restarts `NewServer` on its data directory,
 whose WAL `bootstrap` opens and reads. The graceful restart takes the closed WAL's files
 `walFiles a id cid σ true` (`WalRecs.lean`, what `WAL.Close` leaves); after a crash this module makes
-the same files from the WAL's crash (`walCrashWalS`, `wal/CrashS.lean`), with one difference:
+the same files from the WAL's crash (`walCrashWal` over `walStCrashS`, `wal/CrashS.lean`), with one difference:
 
 **`walFilesC`, the files a crash left** (`walFiles` without its synced mark `walSyncedLb a.dir |H|`).
 A crash keeps the abstract state's synced mark (`walCrash`: `m` unchanged, `{d with H := I, ..}`), so
@@ -90,7 +90,7 @@ names `a.W`, the new generation's `W'`; the old state `d` given back. -/
 theorem walFilesC_crash (a : WalA GF) (W' : WalFs.WalGS GF) (d : WalDur) (n : Nat) (id cid : w64)
     (hmd : d.metadata = walMetaEnc id cid) (hsz : d.sized = true) (hes : walEntsSized d.H) :
     letI := a.ext; letI := a.semOk; letI := a.has
-    WalFs.walCrashWalS a.W W' ∗ WalFs.walDiskAt (W := a.W) a.dir d ∗
+    WalFs.walCrashWal a.W W' ∗ WalFs.walDiskAt (W := a.W) a.dir d ∗
       WalFs.walSyncedLb (W := a.W) a.dir n ∗ WalFs.walNamed (W := a.W) a.dir ∗
       WalFs.walUnlockedTok (W := W') ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ⊢
       WalFs.walDiskAt (W := a.W) a.dir d ∗ ∃ j : Nat, ⌜n ≤ j ∧ j ≤ d.H.length⌝ ∗

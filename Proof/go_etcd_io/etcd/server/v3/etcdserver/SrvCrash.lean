@@ -10,7 +10,7 @@ restart's `bootstrap` (`bootstrapCrashContract`, `InvCrashImage.lean` on the D6 
   (`walFilesC`, `storage/WalRecsCrash.lean`: no synced mark; see that file's header for why). The
   graceful image's files are an instance (`srvFiles_srvFilesC`). **Proposed** for the crash image
   (`srvCrashImageAt`) and `bootstrapCrashContract`'s pre in place of `srvFiles`; made by
-  `walFilesC_crash` from the WAL's crash (`walCrashWalS`, `walInv_crashS.law`) and the backend's
+  `walFilesC_crash` from the WAL's crash (`walCrashWal`, whose relation is `walStCrashS` since P8) and the backend's
   (interim axiom A1);
 * **the read facts** (`walReadFacts σ`, `WalApi.lean`'s I1-I4) of what the restart reads, `σ = walRead I`
   for the crash image `I` (a prefix of the WAL's history): `walReadFacts_of_read`, from two conditions on
