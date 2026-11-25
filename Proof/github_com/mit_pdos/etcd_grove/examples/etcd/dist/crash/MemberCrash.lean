@@ -515,28 +515,33 @@ theorem memberClusterFacts_gen (L L' : GooseLocalGS GF) (C : etcd_dist.MemberCl)
     memberClusterFacts (hG := ⟨G, etcd_dist.atCtx L⟩) C ⊣⊢
       memberClusterFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) C := .rfl
 
-/-- **A restart's facts carry over to any generation** (the lease configuration's is the one sealed
-fact that names the generation: at the lease mode `none` it holds at every generation). -/
+/-- **A restart's facts carry over to another generation but one** (B6, found 2026-11-25): the
+lease configuration (sealed, generation-named) holds at every generation at the lease mode `none`, and
+every other row is ghost-only, except **`idPfxInv`**, which is heap-level: its invariant holds
+persistent points-to facts of the prefix's generators (`structFieldRef … ↦□`) on the old machine's heap,
+which no later generation has. So the new generation's `idPfxInv` (at the old incarnation's names
+`ρo.ids.gen`, whose map authorities the old invariant keeps) is an input here. -/
 theorem memberRestartFacts_gen (L L' : GooseLocalGS GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) :
-    etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L⟩) γ ρ id ⊢
+    etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L⟩) γ ρ id ∗
+      idPfxInv (hG := ⟨G, etcd_dist.atCtx L'⟩) ρ.ids.gen ρ.ids.pfx ⊢
       etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) γ ρ id := by
   unfold etcdstart.memberRestartFacts
-  refine sep_mono (BI.pure_mono ?_) ?_
-  rotate_left
-  · iintro ⟨%hns, #H1, #H2, #H3, #H4, #H5, #H6, #H7, %x, #H8⟩
-    isplitr; · ipureintro; exact hns
-    isplitr; · iexact H1
-    isplitr; · iexact H2
-    isplitr; · iexact H3
-    isplitr; · iexact H4
-    isplitr; · iexact H5
-    isplitr; · iexact H6
-    isplitr; · iexact H7
-    iexists x; iexact H8
-  rintro ⟨a, b, c, d, e, f, g⟩
-  refine ⟨a, b, c, d, e, f, ?_⟩
-  rw [lease.runCfg_lm g]
-  exact lease.runCfg_none (hG := ⟨G, etcd_dist.atCtx L'⟩)
+  iintro ⟨⟨%hp, %hns, #H1, #H2, -, #H4, #H5, #H6, #H7, %x, #H8⟩, #H3⟩
+  isplitr
+  · ipureintro
+    obtain ⟨a, b, c, d, e, f, g⟩ := hp
+    refine ⟨a, b, c, d, e, f, ?_⟩
+    rw [lease.runCfg_lm g]
+    exact lease.runCfg_none (hG := ⟨G, etcd_dist.atCtx L'⟩)
+  isplitr; · ipureintro; exact hns
+  isplitr; · iexact H1
+  isplitr; · iexact H2
+  isplitr; · iexact H3
+  isplitr; · iexact H4
+  isplitr; · iexact H5
+  isplitr; · iexact H6
+  isplitr; · iexact H7
+  iexists x; iexact H8
 
 end dur
 
