@@ -293,10 +293,12 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
           · exact .inl h0
       · rcases valAt0_cases (g0.bs[k]'hk).2 with h0 | h0
         · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
-          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩
+          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩ | hq0
           · exact .inr ⟨by omega, h0⟩
           · rw [segBytesX_getD_lt hk, e] at hs0
             exact .inl ⟨s0, by rw [h0]; exact hs0⟩
+          · rw [segBytesX_getD_lt hk, e] at hq0
+            exact .inl (valAt_mem0 hq0)
         · exact .inl h0
     · intro z hz b hzb hb
       have := hzf z hz; omega

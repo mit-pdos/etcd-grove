@@ -339,9 +339,8 @@ theorem walAbsD_announceW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
     simp only [tailLay] at hb1 ⊢
     rw [hglo]
     by_cases hbl : b < g0.bs.length
-    · have hkeep : ∀ s, ((0 : w8), s) ∈ (g0.bs.getD b (0, [])).2 →
-          ((0 : w8), s) ∈ ((segBytesX g).getD b (0, [])).2 := by
-        intro s hs'
+    · have hkeepQ : ∀ q, q ∈ (g0.bs.getD b (0, [])).2 → q ∈ ((segBytesX g).getD b (0, [])).2 := by
+        intro q hs'
         rw [segBytesX_getD_lt (by omega), List.getD_eq_getElem?_getD, hgb b,
           List.getElem?_eq_getElem hbl]
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl, Option.getD_some] at hs'
@@ -350,11 +349,14 @@ theorem walAbsD_announceW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
         · simp only [Option.getD_some]; exact hs'
       by_cases hx0 : SegExact g0
       · obtain ⟨s, hs'⟩ := tail_zero_cand ((habs.last g0 hg0).1 hx0) hZ hb1 hbl
-        exact .inr ⟨s, hkeep s hs'⟩
-      · rcases habs.winHead g0 hg0 hx0 b hb1 (Nat.lt_of_lt_of_le hbl segBytesX_length_le) with h | ⟨s, hs'⟩
+        exact .inr (.inl ⟨s, hkeepQ _ hs'⟩)
+      · rcases habs.winHead g0 hg0 hx0 b hb1 (Nat.lt_of_lt_of_le hbl segBytesX_length_le) with
+          h | ⟨s, hs'⟩ | ⟨q, hq, hq0⟩
         · exact .inl h
         · rw [segBytesX_getD_lt hbl] at hs'
-          exact .inr ⟨s, hkeep s hs'⟩
+          exact .inr (.inl ⟨s, hkeepQ _ hs'⟩)
+        · rw [segBytesX_getD_lt hbl] at hq
+          exact .inr (.inr ⟨q, hkeepQ _ hq, hq0⟩)
     · exact .inl (by omega)
   · -- `WinZero`: the values unchanged
     simp only [tailLay] at hb

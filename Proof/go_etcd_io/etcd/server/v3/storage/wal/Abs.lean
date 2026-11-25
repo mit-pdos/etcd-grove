@@ -394,10 +394,13 @@ resize window, I3b; W6 log, twentieth and twenty-first sessions; in place of `lo
 past the size from an exact tail falsifies: it keeps `lo` at the size it found, above the write position
 until it completes): each byte of `segBytesX g` from `wr` on is at or past the least size a crash may
 leave (`lo`), or has a zero candidate (an exact tail's `(old b, 0)` with `old b = 0` by F-Z, a truncate's
-announced zero, the zeros past `zf`; candidates are only appended, so every step keeps it). -/
+announced zero, the zeros past `zf`; candidates are only appended, so every step keeps it), or has a
+stamp-0 candidate (P6: `Repair`'s truncate past `wr`, to the end of a pending run, keeps the durable bytes
+between, below the new `lo`; the image as of the last sync is then a candidate, `valAt_mem0`). -/
 def WinHead (lay : WalLay) (g : SegG) : Prop :=
   ∀ b, lay.wr ≤ b → b < (segBytesX g).length →
-    g.om.lo ≤ b ∨ ∃ s, ((0 : w8), s) ∈ ((segBytesX g).getD b (0, [])).2
+    g.om.lo ≤ b ∨ (∃ s, ((0 : w8), s) ∈ ((segBytesX g).getD b (0, [])).2) ∨
+      ∃ q ∈ ((segBytesX g).getD b (0, [])).2, q.2 = 0
 
 /-- `lo ≤ wr` (a window opened by a truncate to `wr`) gives `WinHead`. -/
 theorem WinHead.of_lo {lay : WalLay} {g : SegG} (h : g.om.lo ≤ lay.wr) : WinHead lay g :=
