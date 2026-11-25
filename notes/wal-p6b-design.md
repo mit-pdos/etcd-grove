@@ -1,5 +1,12 @@
 # P6b item 1: per-incarnation WAL facts (design, 2026-11-25)
 
+## State C, keys (2026-11-25, P6b session 17; approved by the coordinator)
+
+`walDirKeysAuth` records keys only at incarnations up to the current one (`⌜∀ dir i x, Kall !! (dir, i) = some x →
+i ≤ incOf I dir⌝`, internal invariant, no spec change), so a bump of `dir`'s incarnation (`Discard`'s rename and
+fsync) leaves no key at the new incarnation and the authority's map becomes `K.delete dir`
+(`walDirKeysAuth_bump`, `keys_bump`).
+
 ## v2.1 (2026-11-25, P6b session 2; approved by the coordinator): supersedes v2 below where they differ
 
 1. **Facts can be retired.** `walIncFact I dir i P := (incOf I dir = i ∧ P) ∨ i < incOf I dir`: a fact of

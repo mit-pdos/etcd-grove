@@ -488,6 +488,36 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 17 (WIP, `etcd-safe-p6b-wip`): R done; S not started.** **Decision (coordinator,
+  approved, internal, not a spec change):** `walDirKeysAuth` (Ghost.lean) gains `⌜∀ dir i x, Kall !! (dir, i) = some x
+  → i ≤ incOf I dir⌝` (keys are recorded only at incarnations up to the current one; no existing lemma gave `Kall !!
+  (dir, ic+1) = none`). Sites fixed: `walDirKey_lookupG`, `walDirKey_insertG` (the new key is at the current
+  incarnation), `walDirKeysAuth_getG`, `walGhost_init` (`Kall = ∅`). New `walDirKeysAuth_bump K : walDirKeysAuth K ⊢ ∃ I,
+  walIncE I ∗ ∀ I' K', ⌜(∀ d, incOf I d ≤ incOf I' d) ∧ ∀ d x, K' !! d = some x ↔ (incOf I' d = incOf I d ∧ K !! d =
+  some x)⌝ -∗ walIncE I' -∗ walDirKeysAuth K'`. Ghost.lean lean-checked (0 errors).
+  **R** in the new `Proof/.../wal/DiscardR.lean` (imports `DiscardSteps`, `CleanupAu`, `CreateNamed`; `etc/lean-check.py
+  -a`: 0 errors; nothing imports it yet, not yet in a `lake build`):
+  * pure: `unnameS s dir := absDiskUpd s dir (named := false)` (+ `_none`/`_wal`/`_area`/`_dirs`), `crashTo_unname`,
+    `crashOkA_unname`, `crashOkW_unname`, `walFullOk_unname`, `walsOk_unname`, `dirKeysOk_unname` (over fewer keys
+    `K'`), `absentNone_unname`, `walDurLe_unname`, `incOf_bump`, `keys_bump` (`K.delete dir` after the bump);
+  * `walUnlockedTokX_open` (the token less its `walIncQ` quarter and `walOutFrag empty`, a wand back at any `I'`),
+    `walParked_incE` (the pipeline reserve's eighth out of `walParked`, lock free);
+  * **`discAU`**: `⊢ walInv … -∗ discP dir N h jr ic Q₁ -∗ osAUnc (osNames jr N ½ h) (renDirOut jr J N nm tmp h ½ lb)
+    (discQ dir N h jr ic Q₁)`, premises `InArea r dir nm`, `nm ≠ tmp`, `N.Mem nm`, `N.Mem tmp`, `h.cur !! nm = some
+    (.dir J)`, `h.cur !! tmp = none`, `h.next ≤ lb`, `¬ walNameOk tmp`, `AreaSlot tmp`. `discP := walCleanPin N h jr ∗
+    discAU₁ dir ic Q₁` (`discAU₁` = the spec's `AU₁`); `discQ none := discP` (as `walCreateQ`), `discQ (some _) :=
+    walUnlockedTokX ∗ ∃ d, Q₁ d`. Opens `AU₁` up front with the os update (as `walCreate_osAUnc`); the logged arm:
+    `walCreating_deleteC` (token back), the five shares (`walUnlockedTokX_open`, `walParked_incE`,
+    `walDirKeysAuth_bump`, the view's, `walGhostI`'s) through `walGhostI_bump` with `walLeI_unname`, `AU₁` committed at
+    `unnameS s dir`, `<[dir := ic+1]> I`, the claims `movClaims` (`renDirEnt = movEnt` as `h.cur !! tmp = none`), the
+    pure facts `walsOk_unname` then `*_moved` over `unnameS s dir`, keys `K.delete dir`, `walNamesRes_congr`.
+  **The pin**: the Discard proof calls `walInv_pinClean` (CleanupAu.lean; `b := nm`, `walNameOk nm` from U') right
+  after `walInv_discardU`, depositing U's `walUnlockedTokX`; the pin is needed because `osAuMask` excludes `osShN`
+  (no `osClaims_keys` inside the update).
+  **Next:** S (`syncDir.spec`'s commit: as session 7's/16's plan; `walGhostI_bump` again with `walLeI_discard`, keys
+  `K.delete dir` again trivial (`keys_bump`), the WAL's layout out of `Ls` and its directory's claims out, tagged
+  `tmpName nm`, into `walAreaRes`'s `cl` (`SubCover`, `ClRanked`)), the `Discard` proof, the crash lemma, docstrings,
+  `gen-link --walfs`, the builds.
 - **2026-11-25, P6b session 16 (WIP, `etcd-safe-p6b-wip`): U' done; R/S not started.** Ledger "wal.Discard's
   post had no arm for a failed `RemoveAll(dir.tmp)`" marked approved (coordinator: the `RemoveAll` error arm returns
   `walAreaRes`, `walUnlockedTok`, `AU₁`, `AU₂`, nothing committed; U' with `Create`'s creating-claim shape `.only [nm,

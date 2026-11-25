@@ -879,12 +879,15 @@ instance walCreating_timeless (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) 
 
 /-- **The authority of the WAL directories' claim keys** (the invariant's, `DirKeysOk`), with a
 copy of every key (persistent), so that a holder of the lock finds the key of a WAL keyed earlier in
-the generation (`walDirKeysAuth_get`: `Open`'s pin, after a `Close`). -/
+the generation (`walDirKeysAuth_get`: `Open`'s pin, after a `Close`). Keys are recorded only at incarnations
+up to the current one (internal, P6b state C: a bump of `dir`'s incarnation leaves no key at the new one,
+`walDirKeysAuth_bump`). -/
 def walDirKeysAuth (K : GMap GoString (Fs.Ino × List GoString)) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (Kall : GMap (GoString × Nat) (Fs.Ino × List GoString)) (I : GMap GoString Nat),
     ghostMapAuth W.γdk 1 Kall ∗ ([∗map] k ↦ x ∈ Kall, k ↪[W.γdk]□ x) ∗ walIncE (W := W) I ∗
-    ⌜∀ dir x, K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x⌝)
+    ⌜∀ dir x, K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x⌝ ∗
+    ⌜∀ dir i x, Kall !! (dir, i) = some x → i ≤ incOf I dir⌝)
 
 instance walDirKeysAuth_timeless (K : GMap GoString (Fs.Ino × List GoString)) :
     Timeless (walDirKeysAuth (W := W) K) := by
@@ -1566,7 +1569,7 @@ theorem walDirKey_lookupG (K : GMap GoString (Fs.Ino × List GoString)) (dir : G
       (letI := walAllG (W := W); ghostVar W.γI q I) -∗ ⌜incOf I dir = i → K !! dir = some (j, X)⌝ := by
   unfold walDirKeysAuth walDirKey walIncE
   letI := walAllG (W := W)
-  iintro ⟨%Kall, %I', Ha, -, HI', %hK⟩ ⟨Hk, -⟩ HI
+  iintro ⟨%Kall, %I', Ha, -, HI', %hK, -⟩ ⟨Hk, -⟩ HI
   icases ghostVar_agree $$ HI' HI with %e
   subst e
   icases ghost_map_lookup $$ Ha Hk with %h
@@ -1627,7 +1630,7 @@ theorem walDirKey_insertG (K : GMap GoString (Fs.Ino × List GoString)) (dir : G
       (letI := walAllG (W := W); ghostVar W.γI q I) := by
   unfold walDirKeysAuth walDirKey walIncE
   letI := walAllG (W := W)
-  iintro ⟨%Kall, %I', Ha, Hm, HI', %hKa⟩ HI
+  iintro ⟨%Kall, %I', Ha, Hm, HI', %hKa, %hKi⟩ HI
   icases ghostVar_agree $$ HI' HI with %e
   subst e
   have hKa' : Kall !! (dir, incOf I' dir) = none := by
@@ -1644,6 +1647,7 @@ theorem walDirKey_insertG (K : GMap GoString (Fs.Ino × List GoString)) (dir : G
     · iapply (BigSepM.bigSepM_insert (Φ := fun (k : GoString × Nat) (x : Fs.Ino × List GoString) =>
         iprop(k ↪[W.γdk]□ x)) hKa').2
       iframe Hk Hm
+    isplitr
     · ipureintro
       intro d x
       by_cases hd : d = dir
@@ -1652,6 +1656,11 @@ theorem walDirKey_insertG (K : GMap GoString (Fs.Ino × List GoString)) (dir : G
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd), GMap.lookup_insert_ne]
         · exact hKa d x
         · intro h; exact hd (congrArg Prod.fst h).symm
+    · ipureintro
+      intro d i x hx
+      by_cases hdi : (d, i) = (dir, incOf I' dir)
+      · simp only [Prod.mk.injEq] at hdi; obtain ⟨rfl, rfl⟩ := hdi; exact Nat.le_refl _
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdi)] at hx; exact hKi d i x hx
   · iframe Hk; ipureintro; exact hX
 
 /-- `walDirKey_insertG` with a quarter. -/
@@ -1672,13 +1681,13 @@ theorem walDirKeysAuth_getG (K : GMap GoString (Fs.Ino × List GoString)) (dir :
       (letI := walAllG (W := W); ghostVar W.γI q I) := by
   unfold walDirKeysAuth walDirKey walIncE
   letI := walAllG (W := W)
-  iintro ⟨%Kall, %I', Ha, #Hm, HI', %hKa⟩ HI
+  iintro ⟨%Kall, %I', Ha, #Hm, HI', %hKa, %hKi⟩ HI
   icases ghostVar_agree $$ HI' HI with %e
   subst e
   have hk : Kall !! (dir, incOf I' dir) = some (j, X) := (hKa dir (j, X)).1 hK
   iframe HI
   isplitl [Ha HI']
-  · iexists Kall, I'; iframe Ha Hm HI'; ipureintro; exact hKa
+  · iexists Kall, I'; iframe Ha Hm HI'; ipureintro; exact ⟨hKa, hKi⟩
   isplitl []
   · iapply (BigSepM.bigSepM_lookup (Φ := fun (k : GoString × Nat) (x : Fs.Ino × List GoString) =>
       iprop(k ↪[W.γdk]□ x)) hk) $$ Hm
@@ -1692,6 +1701,32 @@ theorem walDirKeysAuth_get (K : GMap GoString (Fs.Ino × List GoString)) (dir : 
   unfold walIncQ
   iintro Ha HI
   iapply walDirKeysAuth_getG $$ Ha HI <;> assumption
+
+/-- **The keys' authority across a bump of the incarnations** (P6b state C, `Discard`'s commits): its eighth
+`walIncE I` out; given back at `I'` (every incarnation at least as high), the authority holds the keys of the
+directories whose incarnation is unchanged (no key is recorded above the current incarnation). -/
+theorem walDirKeysAuth_bump (K : GMap GoString (Fs.Ino × List GoString)) :
+    walDirKeysAuth (W := W) K ⊢ ∃ I : GMap GoString Nat, walIncE (W := W) I ∗
+      ∀ (I' : GMap GoString Nat) (K' : GMap GoString (Fs.Ino × List GoString)),
+        ⌜(∀ d, incOf I d ≤ incOf I' d) ∧
+          ∀ d x, K' !! d = some x ↔ (incOf I' d = incOf I d ∧ K !! d = some x)⌝ -∗
+        walIncE (W := W) I' -∗ walDirKeysAuth (W := W) K' := by
+  unfold walDirKeysAuth
+  letI := walAllG (W := W)
+  iintro ⟨%Kall, %I, Ha, #Hm, HI, %hKa, %hKi⟩
+  iexists I
+  iframe HI
+  iintro %I' %K' %hh HI'
+  iexists Kall, I'
+  iframe Ha Hm HI'
+  ipureintro
+  refine ⟨fun d x => ?_, fun d i x hx => Nat.le_trans (hKi d i x hx) (hh.1 d)⟩
+  rw [hh.2 d x]
+  constructor
+  · rintro ⟨e, hk⟩; rw [e]; exact (hKa d x).1 hk
+  · intro hk
+    have e : incOf I' d = incOf I d := Nat.le_antisymm (hKi _ _ _ hk) (hh.1 d)
+    exact ⟨e, (hKa d x).2 (by rw [← e]; exact hk)⟩
 
 theorem walIncFact.mono {I : GMap GoString Nat} {dir : GoString} {i : Nat} {P Q : Prop}
     (h : walIncFact I dir i P) (hPQ : P → Q) : walIncFact I dir i Q :=
@@ -2762,7 +2797,7 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
     iframe Hdk HIk
     isplitl
     · iapply BigSepM.bigSepM_empty.2; iempintro
-    · ipureintro; intro d x; simp [GMap.lookup_empty]
+    · ipureintro; exact ⟨fun d x => by simp [GMap.lookup_empty], fun d i x h => by simp [GMap.lookup_empty] at h⟩
   · simp only [WalOut.empty, ↓reduceIte]
     unfold walIncEAny walIncE
     iexists ∅; iexact HIr
