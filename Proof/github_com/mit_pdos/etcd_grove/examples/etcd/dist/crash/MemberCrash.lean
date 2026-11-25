@@ -358,7 +358,10 @@ end stop
 section dur
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors}
+-- (not an instance: the ghost instances the statements' predicates take must come from the one
+-- `HeapGS` of each generation, as in the laws they are passed to)
+variable {G : GooseGlobalGS HasLC.hasLC GF}
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -392,12 +395,12 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     (fun σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
     Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl⟩ | Htaken)
   · iintro %σr %Hs %n Hr Hsy
-    ihave Hr := (walRecsH_gen L L' h σr Hs true).1 $$ Hr
+    ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).1 $$ Hr
     icases Hw with ⟨Hcw, Hu, Hc⟩
     icases walRecsH_crash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' σr Hs n id cid hmd $$ [Hcw Hr Hsy Hu Hc] with
       ⟨Hr, %j, %hj, Hf⟩
     · iframe Hcw Hr Hsy Hu Hc
-    ihave Hr := (walRecsH_gen L L' h σr Hs true).2 $$ Hr
+    ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).2 $$ Hr
     imodintro
     iframe Hr
     iexists j
