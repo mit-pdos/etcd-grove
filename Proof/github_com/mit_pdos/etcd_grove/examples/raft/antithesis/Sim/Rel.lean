@@ -1,28 +1,31 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# The refinement to Antithesis's binding: the relation (#33 S3c step 5 / S4)
+# The refinement to Antithesis's binding: the relation (#33 S3c step 5 / S4; parity B1)
 
-`AntSim S V net` (`notes/antithesis-rawnode-design.md` §3.2, C1-C4) relates the binding's state `S`
-(the S3b transcription's `AntCheck.State`), each node's view `V n` (its protocol state between
-inputs, or at its last `Ready` in a drain) and the messages sent so far `net`; `GlobalOk S net G`
-(C5) says that what `S` and `net` hold is certified by raft's global facts `G` (`RaftFacts`: the
-pure content of the persistent ghost facts `isLeader`, `isVote`, `logRecs`, `isCamp`,
-`isCommitted`, `commitIn`, which the harness's invariant keeps and turns into a `RaftFacts`
-satisfying `RaftLaws` before each report, `notes/antithesis-rawnode-design.md` §3.4). `Prefix cfg evs
-S` (`notes/antithesis-s4-design.md` §3): the checker took `evs`, rejected none, found no violation,
-and is at `S`; `Prefix.accepts` turns it into the closed statement's `Accepts`.
+`AntSim R dec S V net xnet` (`notes/antithesis-parity-design.md` §3.3; S4's
+`notes/antithesis-rawnode-design.md` §3.2, C1-C4) relates the binding's state `S` (the S3b
+transcription's `AntCheck.State`) for the run `R` (`RunCfg`: `N` servers, `K` initial voters, boot,
+flags, mask), each node's view `V n` (raft's `RState` between inputs, or at its last `Ready` in a
+drain, with the binding's disk, announced write, queue, reads and configuration of it, §3.2), the
+messages sent so far `net` and the transfer messages sent `xnet`; `dec` is the run's conf-change
+decoder. `GlobalOk R S net G` (C5) says that what `S` and `net` hold is certified by raft's global
+facts `G` (`RaftFacts`: the pure content of the persistent ghost facts `isLeader`, `isVote`,
+`logRecs`, `isCamp`, `isCommitted`, `commitIn`, and for snapshots and conf changes the certified
+prefixes and admissible configurations, which the harness's invariant keeps and turns into a
+`RaftFacts` satisfying `RaftLaws` before each report). `Prefix cfg evs S`
+(`notes/antithesis-s4-design.md` §3): the checker took `evs`, rejected none, found no violation,
+and is at `S`; `Prefix.accepts` turns it into the closed statement's `Accepts`. `SimPre`/`SimStep`
+are every statement's frame (`Stmts.lean`).
 
-These are the statements' vocabulary (`Stmts.lean`); C2-C4 are as the design lists them and may be
-strengthened by the invariant phase (the per-report proofs). §3.5 of the design note lists where
-they differ from the sketch.
-
-Pure: imports only raft's protocol model, `InputEnd`, and the transcription.
+Imports raft's protocol model, `InputEnd`, `StepR` (`RState`, `CCState`, `cfgFold`), and the
+transcription.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Abs
 public import Proof.go_etcd_io.raft.v3.Protocol.InputEnd
+public import Proof.go_etcd_io.raft.v3.Protocol.StepR
 
 @[expose] public section
 
@@ -32,7 +35,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace AntSim
 
-open GMap
+open GMap go_etcd_io.raft.v3
 
 /-! ## The checker's prefix -/
 
@@ -63,27 +66,118 @@ theorem Prefix.accepts {cfg : AntCheck.Config} {evs : List AntCheck.Event} {S : 
 section rel
 variable [GooseExts]
 
+/-! ## The run's initial state -/
+
+/-- The entry a bootstrapped run's node writes first (`node.start`: `{Term: 1, Index: 1, Data:
+bootData()}`, a normal entry): `entOf` reports it as the binding's `"config"` entry (B 742). -/
+def bootEnt : EntryM := EntryM.mk (W64 1) (W64 1) (W32 0) bootData
+
+/-- The log every node of the run starts with: empty, or the boot entry (`BootInit`, B 733-753). -/
+def bootLog (R : RunCfg) : List EntryM := if R.boot then [bootEnt] else []
+
+/-- The initial voters, `1, …, K`. -/
+def RunCfg.voters0 (R : RunCfg) : GSet w64 :=
+  GMap.listToSet ((List.range R.K).map fun (i : Nat) => W64 ((i : Int) + 1))
+
+/-- The initial configuration state: voters `1, …, K`, no learner, not joint (the conf state raft
+starts from, before any conf entry). -/
+def RunCfg.c0 (R : RunCfg) : CCState :=
+  { cfg := CfgM.simple R.voters0 ∅, prs := cfgFlags R.voters0 ∅ }
+
+/-- The static configuration of the S4 run (`R3`): voters `1, 2, 3`. -/
+def voters3 : GSet w64 := GMap.listToSet [W64 1, W64 2, W64 3]
+
+/-- A set of ids as the binding's set of names (`idNames`, sorted): the ids `1, …, N` in it. The
+configurations of the run hold only those (the harness proposes no other id). -/
+def idsView (N : Nat) (s : GSet w64) : AntCheck.SSet :=
+  AntCheck.setOf ((List.range N).filterMap fun (i : Nat) =>
+    if W64 ((i : Int) + 1) ∈ s then some (nameOf (W64 ((i : Int) + 1))) else none)
+
+/-- A configuration as the binding's `Conf` (`Types.lean`: `cin`, `cout`; the binding has no
+learners). -/
+def confView (N : Nat) (cs : CCState) : AntCheck.Conf :=
+  { cin := idsView N cs.cfg.incoming, cout := idsView N cs.cfg.outgoing }
+
+/-- The binding's `LastConf(l, k)` (R 160) over raft's entries: the position (from 1) of the last
+conf entry among `l`'s first `k`, `0` for none. -/
+def lastConfIdx (l : List EntryM) (k : Nat) : Nat :=
+  (List.range k).foldl (fun last (i : Nat) =>
+    match l[i]? with
+    | some e => if IsConfEnt e then i + 1 else last
+    | none => last) 0
+
 /-! ## A node's view -/
 
-/-- What the relation knows of node `n` (the S4 invariant's view fragment, `γ.view`): its protocol
-state `ps` and the committed entries it has handed out `delivered` (`RNState.delivered`), and, in a
-drain after a `Ready` (§3.2's drain phase), what that `Ready` left: the self-addressed messages
-`Advance` will step (`qs`), its messages not yet reported (`pend`, in the `Ready`'s order) and its
-committed entries not yet reported (`ce`). `byE` and `cause` are the drain's (`drain(n, by)`, and the
-message handled for `by = recv`); `told` says its `recv` was reported (`reportCause`), so that the
-binding's `pending[n]` is that message. Between inputs `qs`, `pend`, `ce` are empty (`Idle`). -/
+/-- What the binding holds as a node's disk: the last announced write (`currentTerm`, `voteFor`,
+`log`, `commitIndex`, B 290-436). `log` is the full log, from index 1. -/
+structure DurW where
+  term : w64
+  vote : w64
+  commit : w64
+  log : List EntryM
+  deriving Inhabited
+
+/-- Async (parity B2): an announced in-memory state whose write comes later (the binding's
+`queue[n]`, B 450-459), with what its `mem` report said. -/
+structure MemRec where
+  role : Role
+  pre : Bool
+  term : w64
+  vote : w64
+  commit : w64
+  ents : List EntryM
+  snap : Option entryID
+  cause : Option Msg
+  byE : AntCheck.Str
+
+/-- What the relation knows of a node (the invariant's view fragment, `γ.view`): raft's state `r`
+between inputs, or at its last `Ready` in a drain (`toRState`); the committed entries it handed out
+(`delivered`, `RNState.delivered`); the binding's disk of it (`dur`, the last announced write), the
+disk before that write while it is not made (`undo`, `made`: what a restart may revert to,
+B 349-359, 496), the announced in-memory states not yet written (`mems`, async); the configuration
+the binding counts with and its index (`conf`, `confAt`); whether the last reported role was
+`precandidate` (`pre`); the read contexts asked and not given, with the committed length known when each was asked
+(`reads`); whether it runs (`alive`,
+false from a restart's stop to its `boot`); and, in a drain after a `Ready` (§3.2's drain phase),
+what that `Ready` left: the self-addressed messages `Advance` will step (`qs`), its messages and
+transfer messages not yet reported (`pend`, `xpend`, in the `Ready`'s order), its committed
+entries not yet reported (`ce`) and its read states not yet reported (`rpend`). `byE` and `cause`
+(`xcause` for a transfer message) are the drain's (`by`, and the message handled for `by = recv`); `told` says its `recv` was reported (`reportCause`), so that the binding's
+`pending[n]` is that message. Between inputs `qs`, `pend`, `xpend`, `ce`, `rpend` are empty (`Idle`). -/
 structure NodeView where
-  ps : PState
+  r : RState
   delivered : List EntryM
+  dur : DurW
+  undo : Option DurW := none
+  made : Bool := true
+  mems : List MemRec := []
+  conf : CCState
+  confAt : Nat := 0
+  pre : Bool := false
+  reads : List (AntCheck.Str × Nat) := []
+  alive : Bool := true
   qs : List Msg := []
   pend : List Msg := []
+  xpend : List XMsg := []
   ce : List EntryM := []
+  rpend : List ReadStateM := []
   byE : AntCheck.Str := []
   cause : Option Msg := none
+  xcause : Option XMsg := none
   told : Bool := false
 
+/-- The view's protocol state (the S4 view's `ps`, kept as a projection). -/
+abbrev NodeView.ps (v : NodeView) : PState := v.r.p
+
+/-- The disk a node in sync mode has between writes: its own hard state and full log. -/
+def durOf (r : RState) : DurW := ⟨r.p.term, r.p.vote, r.p.commit, r.full⟩
+
+/-- The role the binding has for the node (`roleOf`, `"precandidate"` if `pre`). -/
+def roleS (v : NodeView) : AntCheck.Str := roleStr v.pre v.ps.role
+
 /-- Between inputs: nothing of a `Ready` left (`Advance` done, `HasReady` false). -/
-def NodeView.Idle (v : NodeView) : Prop := v.qs = [] ∧ v.pend = [] ∧ v.ce = []
+def NodeView.Idle (v : NodeView) : Prop :=
+  v.qs = [] ∧ v.pend = [] ∧ v.xpend = [] ∧ v.ce = [] ∧ v.rpend = []
 
 /-- A fresh node (`NewRawNode.emptyStartSpec`'s `pInit`): term 0, no vote, no leader, follower, no
 tally, empty outbox, empty log from `base0`, commit 0, no `Match`. -/
@@ -91,19 +185,27 @@ def PInit (ps : PState) : Prop :=
   ps.term = W64 0 ∧ ps.vote = W64 0 ∧ ps.lead = W64 0 ∧ ps.role = .follower ∧ ps.votes = ∅ ∧
   ps.outbox = [] ∧ ps.base = base0 ∧ ps.log = [] ∧ ps.commit = W64 0 ∧ ps.matched = ∅
 
-/-- The static configuration (`γ.reCfg`): voters `1, 2, 3`. -/
-def voters3 : GSet w64 := GMap.listToSet [W64 1, W64 2, W64 3]
+/-- **A node of the run `R` at its start** (`NewRawNode` on the fresh storage, or on the bootstrapped
+one: `HardState{Term: 1}` and the boot entry): term 0 or 1, no vote, no leader, follower, no tally,
+empty outbox, the log `bootLog R` from `base0`, commit 0, no `Match`; nothing applied, no pending
+conf index, no snapshot, at the initial configuration, no ghost prefix. -/
+def PInitR (R : RunCfg) (r : RState) : Prop :=
+  r.p.term = W64 (if R.boot then 1 else 0) ∧ r.p.vote = W64 0 ∧ r.p.lead = W64 0 ∧
+  r.p.role = .follower ∧ r.p.votes = ∅ ∧ r.p.outbox = [] ∧ r.p.base = base0 ∧
+  r.p.log = bootLog R ∧ r.p.commit = W64 0 ∧ r.p.matched = ∅ ∧
+  r.applied = W64 0 ∧ r.pci = W64 0 ∧ r.snap = false ∧ r.cidx = 0 ∧ r.cfg = R.c0 ∧ r.fp = []
 
-/-- A log from `base0` whose entries carry their positions as indices (`PlogWf base0`'s index part):
-the binding's positions (`TermAt`, `SubSeq`, an `apply`'s `first`) are raft's indices. -/
+/-- A log from index 1 whose entries carry their positions as indices (`PlogWf`'s index part): the
+binding's positions (`TermAt`, `SubSeq`, an `apply`'s `first`) are raft's indices. -/
 def LogIdx (l : List EntryM) : Prop := ∀ (k : Nat) (e : EntryM), l[k]? = some e → uint.Z e.Index' = (k : Int) + 1
 
-/-- The binding's per-server lists are those of `cfg3`'s three servers. -/
-def Shape (S : AntCheck.State) : Prop :=
-  S.cfg = cfg3 ∧ S.currentTerm.length = 3 ∧ S.voteTerm.length = 3 ∧ S.voteFor.length = 3 ∧
-  S.log.length = 3 ∧ S.commitIndex.length = 3 ∧ S.role.length = 3 ∧ S.lastApplied.length = 3 ∧
-  S.config.length = 3 ∧ S.confAt.length = 3 ∧ S.confirmed.length = 3 ∧ S.undo.length = 3 ∧
-  S.pending.length = 3 ∧ S.queue.length = 3 ∧ S.reads.length = 3
+/-- The binding's constants are the run's and its per-server lists are of its `N` servers. -/
+def Shape (R : RunCfg) (S : AntCheck.State) : Prop :=
+  S.cfg = R.cfg ∧ S.currentTerm.length = R.N ∧ S.voteTerm.length = R.N ∧ S.voteFor.length = R.N ∧
+  S.log.length = R.N ∧ S.commitIndex.length = R.N ∧ S.role.length = R.N ∧
+  S.lastApplied.length = R.N ∧ S.config.length = R.N ∧ S.confAt.length = R.N ∧
+  S.confirmed.length = R.N ∧ S.undo.length = R.N ∧ S.pending.length = R.N ∧
+  S.queue.length = R.N ∧ S.reads.length = R.N
 
 /-- An ack fact `[type |-> "ack", src, dst, term |-> t, index |-> k']` with `k' ≥ k` is in `msgs`. -/
 def AckIn (S : AntCheck.State) (src dst : AntCheck.Str) (t k : Int) : Prop :=
@@ -111,26 +213,75 @@ def AckIn (S : AntCheck.State) (src dst : AntCheck.Str) (t k : Int) : Prop :=
 
 /-! ## C1-C2: the per-node part -/
 
-/-- **C1, the node's durable part**: the binding's variables for `n` are the view's (every change of
-term, vote, log, commit or role is in a `Ready` whose `ready` report the harness makes before its
-write), its outbox empty (taken by the `Ready`), no snapshot, its log's indices its positions, the
-initial configuration; what it
-handed out (`delivered`, and in a drain `ce`) a prefix of its log within its commit. -/
-def DurableIs (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
-  S.currentTerm[n.val]! = uint.Z v.ps.term ∧ S.vote n.val = nameOf v.ps.vote ∧
-  S.log[n.val]! = logOf v.ps.log ∧ S.commitIndex[n.val]! = uint.Z v.ps.commit ∧
-  S.role[n.val]! = roleOf v.ps.role ∧ S.lastApplied[n.val]! = (v.delivered.length : Int) ∧
-  v.ps.outbox = [] ∧ v.ps.base = base0 ∧ LogIdx v.ps.log ∧
-  S.config[n.val]! = cfg3.initConf ∧ S.confAt[n.val]! = 0 ∧
-  v.delivered ++ v.ce <+: v.ps.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.ps.commit
+/-- **C1, the node's disk** (`DiskIs`): the binding's term, vote, log and commit for `n` are the
+view's disk's (every write is announced by its report before it is made). -/
+def DiskIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
+  S.currentTerm[n.val]! = uint.Z v.dur.term ∧ S.vote n.val = nameOf v.dur.vote ∧
+  S.log[n.val]! = logOf v.dur.log ∧ S.commitIndex[n.val]! = uint.Z v.dur.commit
+
+/-- **C1, the node's in-memory part** (`MemIs`): the binding's role (the last reported one, B 248-249),
+applied index (what was handed out), configuration and its index are the view's. -/
+def MemIs (N : Nat) (S : AntCheck.State) (n : Fin N) (v : NodeView) : Prop :=
+  S.role[n.val]! = roleS v ∧ S.lastApplied[n.val]! = (v.delivered.length : Int) ∧
+  S.config[n.val]! = confView N v.conf ∧ S.confAt[n.val]! = (v.confAt : Int)
+
+/-- **C1, sync mode's disk**: with no write queued, the disk is raft's own state (what the last
+`ready` announced and wrote), and an announced write is not `made` before its `send`s or its
+`apply` end it (no `made` report in sync mode). -/
+def SyncDisk (R : RunCfg) (v : NodeView) : Prop :=
+  R.md.async = false → v.mems = [] → v.dur = durOf v.r ∧ (v.undo ≠ none → v.made = false)
+
+/-- **C1, the announced write** (`undo[n]`, B 349-359): there is one exactly when the view has the
+disk before it; its `made` is the view's; and what it reverts to (term, vote, commit, the log's kept
+prefix and the suffix the write replaced, B 170-181) is that disk. -/
+def UndoIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
+  ((S.undo[n.val]!).isNone ↔ v.undo = none) ∧
+  ∀ p, S.undo[n.val]! = some p → p.made = v.made ∧ ∃ d, v.undo = some d ∧
+    p.term = uint.Z d.term ∧ S.voteOf p.voteTerm p.voteFor p.term = nameOf d.vote ∧
+    p.commit = uint.Z d.commit ∧ (S.log[n.val]!).take p.keep.toNat ++ p.suffix = logOf d.log
+
+/-- A queued `mem` report as the binding keeps it (B 452): the report and the message handled. -/
+def MemRec.item (id : w64) (m : MemRec) : AntCheck.QItem :=
+  { ev := evMem id m.byE (roleStr m.pre m.role) m.term m.vote m.commit m.ents m.snap,
+    m := (m.cause.map (fun c => msgOf c id)).toList }
+
+/-- **C1, the queue** (async, B 450-459): the binding's `queue[n]` is the view's announced
+in-memory states, in order. -/
+def QueueIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
+  S.queue[n.val]! = v.mems.map (MemRec.item (nodeId n))
+
+/-- **C1, the reads** (B 657-667): the binding's `reads[n]` are the view's contexts asked and not
+given, in order, each with its floor (the chain's length at its `readreq`) within the view's (the
+committed log's length known then, `G.committed`, which the chain is a prefix of: C5). -/
+def ReadsIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
+  (S.reads[n.val]!).map (·.ctx) = v.reads.map (·.1) ∧
+  ∀ (k : Nat) (a : AntCheck.ReadRec) (b : AntCheck.Str × Nat), (S.reads[n.val]!)[k]? = some a →
+    v.reads[k]? = some b → a.floor ≤ (b.2 : Int)
+
+/-- **C1, the configuration** (`ConfLag`): the binding's configuration is raft's applied one, but
+after a snapshot restored and not yet applied, when the binding already switched to the
+snapshot's (design §6.3). -/
+def ConfLag (dec : CCDec) (R : RunCfg) (v : NodeView) : Prop :=
+  (v.conf = v.r.cfg ∧ v.confAt = lastConfIdx v.r.full v.r.cidx) ∨
+  (v.r.snap = true ∧ ∃ cs, cfgFold dec R.c0 v.r.fp = some cs ∧ v.conf = cs ∧
+     v.confAt = lastConfIdx v.r.fp v.r.fp.length)
+
+/-- **C1, raft's side**: the outbox empty between `Ready`s (taken by the last one); without
+snapshots the log from `base0` and no ghost prefix; without conf changes the initial configuration;
+the disk's log's indices its positions; what was handed out (`delivered`, and in a drain `ce`) a
+prefix of the disk's log within its commit. -/
+def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
+  v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = []) ∧
+  (R.md.confChanges = false → v.r.cfg.cfg = CfgM.simple R.voters0 ∅) ∧ LogIdx v.dur.log ∧
+  v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
 (`conf1` keeps `confirmed[n]` then); the win and each proposal's store set it to `{T, last}`
 (`conf1`'s `stores` arm), and an accepting acknowledgement's `send` only raises its index at the
 same term. -/
-def LeaderConfOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
-  (S.confirmed[n.val]!).term = uint.Z v.ps.term ∧ (v.ps.log.length : Int) ≤ (S.confirmed[n.val]!).index
+def LeaderConfOk (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
+  (S.confirmed[n.val]!).term = uint.Z v.ps.term ∧ (v.r.full.length : Int) ≤ (S.confirmed[n.val]!).index
 
 /-- **C2, a leader's part**: it is in `leaders` at its term, `ledLog` at its term is its log; every
 `Match` it holds is backed by acknowledgements in `msgs`: at any index of its term within a voter's
@@ -138,14 +289,14 @@ def LeaderConfOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
 `lastIndex`, is below every entry of its term), and for another voter at the `Match` itself (what a
 heartbeat's commit `min(Match, committed)` needs, through C3's `confirmed`, B 435); its
 `confirmed` at its term covering its log (`LeaderConfOk`). -/
-def LeaderPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
+def LeaderPart (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
   v.ps.role = .leader →
     S.leaders.contains { server := nameOf (nodeId n), term := uint.Z v.ps.term } ∧
-    S.ledLog.get (uint.Z v.ps.term) = .ok (logOf v.ps.log) ∧
-    (∀ (j : Fin 3) (k : w64), uint.Z k ≤ uint.Z (matchOf v.ps (nodeId j)) →
-      plogTermAt base0 v.ps.log k = some v.ps.term →
+    S.ledLog.get (uint.Z v.ps.term) = .ok (logOf v.r.full) ∧
+    (∀ (j : Fin N) (k : w64), uint.Z k ≤ uint.Z (matchOf v.ps (nodeId j)) →
+      plogTermAt v.ps.base v.ps.log k = some v.ps.term →
       AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z k)) ∧
-    (∀ j : Fin 3, j ≠ n → matchOf v.ps (nodeId j) = W64 0 ∨
+    (∀ j : Fin N, j ≠ n → matchOf v.ps (nodeId j) = W64 0 ∨
       AckIn S (nameOf (nodeId j)) (nameOf (nodeId n)) (uint.Z v.ps.term)
         (uint.Z (matchOf v.ps (nodeId j)))) ∧
     LeaderConfOk S n v
@@ -154,9 +305,9 @@ def LeaderPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
 grant facts of its term sent to it, its own vote), and its campaign's vote request is in `msgs`
 (`VoteRequest(n, currentTerm[n])`, R 217-219, recorded by the campaign's `ready`, B 418: what a
 `send` of one of its requests checks, B 532). -/
-def CandPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
+def CandPart (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
   v.ps.role = .candidate →
-    (∀ j : Fin 3, v.ps.votes !! nodeId j = some true → (S.granted n.val).has (nameOf (nodeId j))) ∧
+    (∀ j : Fin N, v.ps.votes !! nodeId j = some true → (S.granted n.val).has (nameOf (nodeId j))) ∧
     S.voteRequest n.val (S.currentTerm[n.val]!) ∈ S.msgs
 
 /-- What raft says of a message of a `Ready` that the harness has not reported yet, at the view's
@@ -168,14 +319,16 @@ reads, not `AppSendOk`'s equal one, since an `Advance` stepping two self-message
 batch with a stale commit; `HeartbeatOk`), an acknowledgement answers the
 handled `MsgApp` (accepting: its last index, the log after the write matching it, B 571-575; stale:
 the commit index, B 577-580), a heartbeat response is at the node's term; a forwarded proposal is
-unchecked (B 524, 586), from the node at term `0` (`ProposeEnd`'s forward). A heartbeat
+unchecked (B 524, 586), from the node at term `0` (`ProposeEnd`'s forward); a pre-vote request or
+response, a read-index request (local, forwarded) or response is unchecked (`isUnmodelled`, B 702)
+but for its sender; a snapshot is a leader's (parity B3 states what `snapOk` needs). A heartbeat
 carries no index, term or entries (`sendHeartbeat`), which the binding's `Sendable` reads (B 120-124).
 An acknowledgement is of a drain caused by a `recv` (`by = "recv"`, whose `pending[n]` it reads). -/
-def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
-  q.dst ≠ id ∧ (∃ j : Fin 3, q.dst = nodeId j) ∧
+def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
+  q.dst ≠ id ∧ (∃ j : Fin N, q.dst = nodeId j) ∧
   match q.ty with
   | .vote => q.src = id ∧ v.ps.role = .candidate ∧ q.term = v.ps.term ∧ v.ps.vote = id ∧
-      q.index = (plogLast base0 v.ps.log).index' ∧ q.logterm = (plogLast base0 v.ps.log).term'
+      q.index = (plogLast v.ps.base v.ps.log).index' ∧ q.logterm = (plogLast v.ps.base v.ps.log).term'
   | .voteResp => q.src = id ∧ q.term = v.ps.term ∧ (q.reject = false → v.ps.vote = q.dst)
   | .app => v.ps.role = .leader ∧ AppOk id v.ps q
   | .heartbeat => v.ps.role = .leader ∧ HeartbeatOk id v.ps q ∧
@@ -184,18 +337,22 @@ def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
       q.term = m.term ∧ q.term = v.ps.term ∧
       (q.reject = false →
         (uint.Z q.index = uint.Z m.index + m.entries.length ∧
-          plogTermAt base0 v.ps.log m.index = some m.logterm ∧
+          plogTermAt v.ps.base v.ps.log m.index = some m.logterm ∧
           ∀ (k : Nat) (e : EntryM), m.entries[k]? = some e →
-            plogTermAt base0 v.ps.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
+            plogTermAt v.ps.base v.ps.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
         (uint.Z m.index < uint.Z v.ps.commit ∧ q.index = v.ps.commit))
   | .heartbeatResp => q.src = id ∧ q.term = v.ps.term
   | .propose => q.src = id ∧ q.term = W64 0
-  | _ => False
+  | .preVote => q.src = id
+  | .preVoteResp => q.src = id
+  | .readIndex => q.src = id
+  | .readIndexResp => q.src = id
+  | .snap => q.src = id ∧ v.ps.role = .leader
 
 /-- The self-addressed messages `Advance` steps (`stepsOnAdvance`): a leader's self-acknowledgement,
 its ack fact already recorded by the `ready` of its write (B 407), or a candidate's self-vote,
 recorded by the campaign's (B 418). -/
-def QsOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) (q : Msg) : Prop :=
+def QsOk (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) (q : Msg) : Prop :=
   q.src = nodeId n ∧ q.dst = nodeId n ∧ q.term = v.ps.term ∧ q.reject = false ∧
   ((q.ty = .appResp ∧
       AckIn S (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z q.index)) ∨
@@ -208,26 +365,38 @@ down resets `lead` (`becomeFollower`), or sets it to the sender of a message, ne
 `m.src ≠ m.dst`). And the hint is no node or one of the three (`LeadIn`): `lead` is set only to a
 sender of a leader's message (a node: the network carries only theirs) or to the node itself. A
 follower forwards a proposal to it (`ProposeEnd`), so a `Ready`'s forwarded proposal is to a node. -/
-def LeadIn (s : PState) : Prop := s.lead = W64 0 ∨ ∃ j : Fin 3, s.lead = nodeId j
+def LeadIn (N : Nat) (s : PState) : Prop := s.lead = W64 0 ∨ ∃ j : Fin N, s.lead = nodeId j
 
-def LeadOk (n : Fin 3) (v : NodeView) : Prop :=
-  (v.ps.role ≠ .leader → v.ps.lead ≠ nodeId n) ∧ LeadIn v.ps
+def LeadOk {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
+  (v.ps.role ≠ .leader → v.ps.lead ≠ nodeId n) ∧ LeadIn N v.ps
 
 /-- **C1, a non-follower's vote is its own** (raft's `GhostState` fact `s.role ≠ .follower →
 s.vote = id`): a campaign votes for the node itself (`TickEnd`'s `elect`), a win and a leader's
 steps keep the vote, and every step that changes the vote otherwise makes the node a follower
 (`voteSelf_ready`). -/
-def VoteSelf (n : Fin 3) (v : NodeView) : Prop := v.ps.role ≠ .follower → v.ps.vote = nodeId n
+def VoteSelf {N : Nat} (n : Fin N) (v : NodeView) : Prop := v.ps.role ≠ .follower → v.ps.vote = nodeId n
 
-/-- C1, C2 and the drain's facts for node `n`: its pending messages (`PendOk`), its queued
+/-- A transfer message of the `Ready` not yet reported (`XPendOk`): to another server, the node's own
+or a forwarded `MsgTransferLeader` (whose sender is the transferee). -/
+def XPendOk (N : Nat) (id : w64) (x : XMsg) : Prop :=
+  x.dst ≠ id ∧ (∃ j : Fin N, x.dst = nodeId j) ∧ (x.src = id ∨ x.ty = .transferLeader)
+
+/-- C1, C2 and the drain's facts for node `n`: its disk, in-memory part, sync disk, announced write,
+queue, reads and configuration (`DiskIs`, `MemIs`, `SyncDisk`, `UndoIs`, `QueueIs`, `ReadsIs`,
+`ConfLag`), raft's side (`NodeFacts`), its pending messages (`PendOk`, `XPendOk`), its queued
 self-messages (`QsOk`), once its drain's `recv` is reported, `pending[n]` (B 201), and the message
 its drain handles was sent to it (an acknowledgement's `send` reads its `Sendable`, kept by C4);
 the leader hint (`LeadOk`); a non-follower's vote its own (`VoteSelf`). -/
-def NodeOk (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) : Prop :=
-  DurableIs S n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
-  (∀ q ∈ v.pend, PendOk (nodeId n) v q) ∧ (∀ q ∈ v.qs, QsOk S n v q) ∧
-  (v.told = true → ∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∧
-  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ LeadOk n v ∧ VoteSelf n v
+def NodeOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n : Fin R.N)
+    (v : NodeView) : Prop :=
+  DiskIs S n v ∧ MemIs R.N S n v ∧ SyncDisk R v ∧ UndoIs S n v ∧ QueueIs S n v ∧ ReadsIs S n v ∧
+  ConfLag dec R v ∧ NodeFacts R v ∧ LeaderPart S n v ∧ CandPart S n v ∧
+  (∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧ (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) x) ∧
+  (∀ q ∈ v.qs, QsOk S n v q) ∧
+  (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
+    (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x])) ∧
+  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ (∀ x, v.xcause = some x → x.dst = nodeId n) ∧
+  LeadOk n v ∧ VoteSelf n v
 
 /-! ## C3: the binding's own invariants -/
 
@@ -236,15 +405,15 @@ recorded only at the recorder's current term (`OnDisk`'s `t1`, B 407; a `send`'s
 it checks is `currentTerm[n]`, B 571-580), and terms only grow. With `HbCommitOk`'s derivation at a
 heartbeat's `send`, it makes a leader's ack fact from `j` at the leader's term be at `currentTerm[j]`
 (C3's ack conjunct then applies). -/
-def AckTermsOk (S : AntCheck.State) : Prop :=
-  ∀ n : Fin 3, ∀ a ∈ S.msgs, a.type = go!"ack" → a.src = nameOf (nodeId n) →
+def AckTermsOk (N : Nat) (S : AntCheck.State) : Prop :=
+  ∀ n : Fin N, ∀ a ∈ S.msgs, a.type = go!"ack" → a.src = nameOf (nodeId n) →
     a.term ≤ S.currentTerm[n.val]!
 
 /-- **C3, the vote's term**: `voteTerm[i] ≤ currentTerm[i]` (`OnDisk` sets `voteTerm` to the new
 term `t1` only). So a term change that writes no vote leaves `Vote(n)` empty (`VoteOf`'s
 `vt = t`, B 99), what `ready`'s `S'.vote n = []` needs. -/
-def VoteTermOk (S : AntCheck.State) : Prop :=
-  ∀ n : Fin 3, S.voteTerm[n.val]! ≤ S.currentTerm[n.val]!
+def VoteTermOk (N : Nat) (S : AntCheck.State) : Prop :=
+  ∀ n : Fin N, S.voteTerm[n.val]! ≤ S.currentTerm[n.val]!
 
 /-- **C3, the confirmed records**: each `confirmed[j]` is at a term `j` has reached (`conf1` sets it at
 `t1`; an accepting ack's `send` at `currentTerm[n]`, B 571-575), and either empty, at a term
@@ -254,10 +423,10 @@ nonzero index (whose `confirmed[j]` would otherwise have to be a prefix of the n
 C3's confirmed conjunct). `GC` removes from `ledLog` only terms every node has passed (`StaleLed`:
 `Over`, `EffTerm ≤ currentTerm`, B 153, 709); a `ready` or a `send` confirms only at a term in
 `ledLog` (`Sendable`, B 117-126, or the leader's own term). -/
-def ConfirmedOk (S : AntCheck.State) : Prop :=
-  ∀ j : Fin 3,
+def ConfirmedOk (N : Nat) (S : AntCheck.State) : Prop :=
+  ∀ j : Fin N,
     ((S.confirmed[j.val]!).index = 0 ∨ S.ledLog.has (S.confirmed[j.val]!).term = true ∨
-      ∀ i : Fin 3, (S.confirmed[j.val]!).term < S.currentTerm[i.val]!) ∧
+      ∀ i : Fin N, (S.confirmed[j.val]!).term < S.currentTerm[i.val]!) ∧
     (S.confirmed[j.val]!).term ≤ S.currentTerm[j.val]!
 
 /-- `old` (B 346) as a value: the commit `termLen` records for term `t` (`0` if none). -/
@@ -273,20 +442,23 @@ leader's commit is what its term records once it is at an entry of the term (the
 at its commit, `InMemory`'s `cmt`, B 252-258), and never below it (a follower records at most the
 commit of its leader's message, C4's `LeadCommitMsgOk`). `InMemory`'s guards on a leader's commit
 (`cmt`: beyond the recorded one) and a proposal (no new commit) read it. -/
-def TermLenOk (S : AntCheck.State) : Prop :=
+def TermLenOk (N : Nat) (S : AntCheck.State) : Prop :=
   (∀ T, 0 < tlOld S.termLen T →
-    (∃ l ∈ S.leaders, l.term = T) ∨ ∀ i : Fin 3, T < S.currentTerm[i.val]!) ∧
-  ∀ n : Fin 3, S.role[n.val]! = AntCheck.leader →
+    (∃ l ∈ S.leaders, l.term = T) ∨ ∀ i : Fin N, T < S.currentTerm[i.val]!) ∧
+  ∀ n : Fin N, S.role[n.val]! = AntCheck.leader →
     (AntCheck.termAt (S.log[n.val]!) (S.commitIndex[n.val]!) = S.currentTerm[n.val]! →
       S.commitIndex[n.val]! ≤ tlOld S.termLen (S.currentTerm[n.val]!)) ∧
     tlOld S.termLen (S.currentTerm[n.val]!) ≤ S.commitIndex[n.val]!
 
-/-- **C3, the leader configurations**: every term with a leader log has the initial configuration
-as its leader configuration (`InMemory`'s `lc1` records `config[n]`, the initial one, at a win,
-B 260; `GC` drops a term from `ledLog` and `ledConf` together, B 717; no configuration change is
-ever proposed). `cmt`'s `Acked` quorum (B 252) reads `ledConf` at the leader's term. -/
-def LedConfOk (S : AntCheck.State) : Prop :=
-  ∀ T, S.ledLog.has T = true → S.ledConf.get T = .ok cfg3.initConf
+/-- **C3, the leader configurations**: every term with a leader log has as its leader configuration
+the one the conf entries of that log's first `ledAt` entries make from the initial one (`InMemory`'s
+`lc1` records `config[n]` at a win, B 260, and a leader's applied change moves it, B 627; `GC` drops a
+term from `ledLog`, `ledConf` and `ledAt` together, B 717). `cmt`'s `Acked` quorum (B 252) reads
+`ledConf` at the leader's term. -/
+def LedConfOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
+  ∀ T, S.ledLog.has T = true → ∃ (l : List EntryM) (a : Nat) (cs : CCState),
+    S.ledLog.get T = .ok (logOf l) ∧ S.ledAt.get T = .ok (a : Int) ∧
+    cfgFold dec R.c0 (l.take a) = some cs ∧ S.ledConf.get T = .ok (confView R.N cs)
 
 /-- **C3, `termLen` sorted by term**: `TermFn.with` inserts a term in order (replacing its entry),
 and `GC` leaves `termLen` alone; so a term's entry is the one `tlOld` finds (`tlOld_mem`). A
@@ -294,9 +466,8 @@ candidate's commit recorded under its own term is then within `tlOld` at that te
 `TermLenOk` bounds (a win's `cmt` guard, B 252). -/
 def TlSorted (S : AntCheck.State) : Prop := S.termLen.Pairwise (fun a b => a.1 < b.1)
 
-/-- **C3**: facts about `S` alone, kept by every step and by `GC` (§3.2): no violation; no queued
-write or read (default mode); an announced write never `made` (`undo`, B 349-359, only between a
-`ready` and the next `send`/`apply`); `termLen` within `chain`; each node's commit within `chain`
+/-- **C3**: facts about `S` alone, kept by every step and by `GC` (§3.2): no violation (the queue, the reads and the announced write
+are per node: `QueueIs`, `ReadsIs`, `UndoIs`); `termLen` within `chain`; each node's commit within `chain`
 and agreeing with it (`subSeq`'s domain, B 434, 600), recorded under a term it has reached
 (`RecordedIn`, B 109-112, at a win and a request's commit); `confirmed` a prefix of its term's leader
 log while that is kept; every ack of a node at its term within its `confirmed` or its commit (what
@@ -307,41 +478,43 @@ only while it leads it; the grants' and acks' senders and receivers and the vote
 the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
 (`ConfirmedOk`) within the nodes' terms; the terms' recorded commits (`TermLenOk`); the leader configurations (`LedConfOk`); `termLen` sorted
 (`TlSorted`). -/
-def BindingOk (S : AntCheck.State) : Prop :=
+def BindingOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
-  (∀ n : Fin 3, S.queue[n.val]! = [] ∧ S.reads[n.val]! = []) ∧
-  (∀ (n : Fin 3) (p : AntCheck.Pre), S.undo[n.val]! = some p → p.made = false) ∧
   (∀ p ∈ S.termLen, p.2 ≤ S.chain.length) ∧
-  (∀ n : Fin 3, S.commitIndex[n.val]! ≤ S.chain.length ∧
+  (∀ n : Fin R.N, S.commitIndex[n.val]! ≤ S.chain.length ∧
     S.chain.take (S.commitIndex[n.val]!).toNat = (S.log[n.val]!).take (S.commitIndex[n.val]!).toNat) ∧
-  (∀ n : Fin 3, S.commitIndex[n.val]! = 0 ∨
+  (∀ n : Fin R.N, S.commitIndex[n.val]! = 0 ∨
     ∃ p ∈ S.termLen, p.1 ≤ S.currentTerm[n.val]! ∧ S.commitIndex[n.val]! ≤ p.2) ∧
-  (∀ n : Fin 3, ∀ l, S.ledLog.get (S.confirmed[n.val]!).term = .ok l →
+  (∀ n : Fin R.N, ∀ l, S.ledLog.get (S.confirmed[n.val]!).term = .ok l →
     (S.confirmed[n.val]!).index ≤ (S.log[n.val]!).length ∧ (S.confirmed[n.val]!).index ≤ l.length ∧
     (S.log[n.val]!).take (S.confirmed[n.val]!).index.toNat = l.take (S.confirmed[n.val]!).index.toNat) ∧
-  (∀ n : Fin 3, ∀ a ∈ S.msgs, a.type = go!"ack" → a.src = nameOf (nodeId n) →
+  (∀ n : Fin R.N, ∀ a ∈ S.msgs, a.type = go!"ack" → a.src = nameOf (nodeId n) →
     a.term = S.currentTerm[n.val]! →
     ((S.confirmed[n.val]!).term = a.term ∧ a.index ≤ (S.confirmed[n.val]!).index) ∨
       a.index ≤ S.commitIndex[n.val]!) ∧
   (∀ p ∈ S.ledLog, ∃ l ∈ S.leaders, l.term = p.1) ∧
-  (∀ n : Fin 3, ∀ l ∈ S.leaders, l.server = nameOf (nodeId n) →
+  (∀ n : Fin R.N, ∀ l ∈ S.leaders, l.server = nameOf (nodeId n) →
     l.term < S.currentTerm[n.val]! ∨
       (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! = AntCheck.leader)) ∧
   (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
-    (∃ i : Fin 3, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin 3, f.dst = nameOf (nodeId j)) ∧
-  (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i)) ∧
-  (∀ n : Fin 3, S.vote n.val ≠ [] →
+    (∃ i : Fin R.N, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
+  (∀ v ∈ S.votes, ∃ i : Fin R.N, v.voter = nameOf (nodeId i)) ∧
+  (∀ n : Fin R.N, S.vote n.val ≠ [] →
     { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes) ∧
-  AckTermsOk S ∧ VoteTermOk S ∧ ConfirmedOk S ∧ TermLenOk S ∧ LedConfOk S ∧ TlSorted S
+  AckTermsOk R.N S ∧ VoteTermOk R.N S ∧ ConfirmedOk R.N S ∧ TermLenOk R.N S ∧ LedConfOk R dec S ∧
+  TlSorted S
 
-theorem BindingOk.termLenOk {S : AntCheck.State} (h : BindingOk S) : TermLenOk S :=
-  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+theorem BindingOk.termLenOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h : BindingOk R dec S) :
+    TermLenOk R.N S :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
 
-theorem BindingOk.ledConfOk {S : AntCheck.State} (h : BindingOk S) : LedConfOk S :=
-  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+theorem BindingOk.ledConfOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h : BindingOk R dec S) :
+    LedConfOk R dec S :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
 
-theorem BindingOk.tlSorted {S : AntCheck.State} (h : BindingOk S) : TlSorted S :=
-  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+theorem BindingOk.tlSorted {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h : BindingOk R dec S) :
+    TlSorted S :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C4: the network -/
 
@@ -352,8 +525,8 @@ it when `j` commits on the heartbeat. `GC` can drop the leader's ack from `j` on
 `HeartbeatOk` (`commit ≤ Match[j]`), `LeaderPart`'s ack at `Match[j]`, `AckTermsOk` (that ack is at
 `currentTerm[j]`) and C3's ack conjunct; it is kept since `confirmed[j]` moves only to a later term
 or a larger index at its term (`ConfirmedOk`'s `term ≤ currentTerm[j]`) and commits only grow. -/
-def HbCommitOk (S : AntCheck.State) (net : List Msg) : Prop :=
-  ∀ m ∈ net, m.ty = .heartbeat → ∀ j : Fin 3, m.dst = nodeId j →
+def HbCommitOk (N : Nat) (S : AntCheck.State) (net : List Msg) : Prop :=
+  ∀ m ∈ net, m.ty = .heartbeat → ∀ j : Fin N, m.dst = nodeId j →
     S.currentTerm[j.val]! ≤ uint.Z m.term →
     ((S.confirmed[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (S.confirmed[j.val]!).index) ∨
       uint.Z m.commit ≤ S.commitIndex[j.val]!
@@ -363,8 +536,8 @@ while `i` is not a follower, carries at most `i`'s commit (`AppOk`/`HeartbeatOk`
 `commit` the sender's; commits only grow, and a node is a non-follower at a term only after
 campaigning to it, when it had sent nothing at it). With election safety, a follower's commit on it
 stays within its term's leader's commit (`TermLenOk`). -/
-def LeadCommitMsgOk (S : AntCheck.State) (net : List Msg) : Prop :=
-  ∀ m ∈ net, (m.ty = .app ∨ m.ty = .heartbeat) → ∀ i : Fin 3, m.src = nodeId i →
+def LeadCommitMsgOk (N : Nat) (S : AntCheck.State) (net : List Msg) : Prop :=
+  ∀ m ∈ net, (m.ty = .app ∨ m.ty = .heartbeat) → ∀ i : Fin N, m.src = nodeId i →
     S.role[i.val]! ≠ AntCheck.follower → S.currentTerm[i.val]! = uint.Z m.term →
     uint.Z m.commit ≤ S.commitIndex[i.val]!
 
@@ -387,12 +560,13 @@ ack) and is kept while its receiver has not passed its term (GC drops only what 
 passed, B 696-709); a heartbeat's commit within its receiver's confirmation or commit
 (`HbCommitOk`); every message's shape (`NetShape`); a leader's message's commit within its own
 (`LeadCommitMsgOk`). -/
-def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
+def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
   (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp ∨ m.ty = .propose) ∧
-    (∃ i : Fin 3, m.src = nodeId i ∧ uint.Z m.term ≤ S.currentTerm[i.val]!) ∧
-    ∃ j : Fin 3, m.dst = nodeId j ∧
+      m.ty = .heartbeatResp ∨ m.ty = .propose ∨ m.ty = .preVote ∨ m.ty = .preVoteResp ∨
+      m.ty = .readIndex ∨ m.ty = .readIndexResp ∨ m.ty = .snap) ∧
+    (∃ i : Fin R.N, m.src = nodeId i ∧ uint.Z m.term ≤ S.currentTerm[i.val]!) ∧
+    ∃ j : Fin R.N, m.dst = nodeId j ∧
       (S.currentTerm[j.val]! ≤ uint.Z m.term →
         ((m.ty = .app ∨ m.ty = .heartbeat) →
           (AntCheck.toAppendFact (msgOf m m.dst) >>= S.sendable) = .ok true) ∧
@@ -402,12 +576,20 @@ def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
             AntCheck.Fact) ∈ S.msgs) ∧
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
-  HbCommitOk S net ∧ NetShape net ∧ LeadCommitMsgOk S net
+  HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net
+
+/-- **C4, the transfer messages**: every `MsgTransferLeader`/`MsgTimeoutNow` sent (`xnet`) is
+between two servers, of a term its sender has reached (a forwarded transfer's sender, the
+transferee, at term 0). The binding checks nothing more of them (`isUnmodelled`, B 702). -/
+def XNetOk (R : RunCfg) (S : AntCheck.State) (xnet : List XMsg) : Prop :=
+  ∀ x ∈ xnet, (∃ i : Fin R.N, x.src = nodeId i ∧ uint.Z x.term ≤ S.currentTerm[i.val]!) ∧
+    ∃ j : Fin R.N, x.dst = nodeId j
 
 set_option linter.iris.dupNamespace false in
-/-- **The refinement relation** (§3.2: C1-C4). -/
-def AntSim (S : AntCheck.State) (V : Fin 3 → NodeView) (net : List Msg) : Prop :=
-  Shape S ∧ BindingOk S ∧ NetOk S net ∧ ∀ n : Fin 3, NodeOk S net n (V n)
+/-- **The refinement relation** (§3.3: C1-C4), over the run's `N` servers. -/
+def AntSim (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView)
+    (net : List Msg) (xnet : List XMsg) : Prop :=
+  Shape R S ∧ BindingOk R dec S ∧ NetOk R S net ∧ XNetOk R S xnet ∧ ∀ n, NodeOk R dec S net n (V n)
 
 /-! ## C5: raft's global facts -/
 
@@ -423,6 +605,11 @@ structure RaftFacts where
   camps : List (w64 × List EntryM)
   committed : List EntryM
   commits : List (w64 × Nat)
+  /-- parity B3: the committed prefixes snapshots stand for (`raftSnapCert`), with their lengths -/
+  snaps : List (Nat × List EntryM) := []
+  /-- parity B3: the configuration fold's admissible pairs (`Adm`: a full log prefix, the
+  configuration it makes) -/
+  confs : List (List EntryM × CCState) := []
 
 /-- **A campaign log's terms are below its term** (raft's `isCamp γ c T F`, the log when the node
 became a candidate at `T`, carries `CampOk T F`: every entry of an earlier term). With it a win's
@@ -451,11 +638,11 @@ are raft's, its logs (`log[·]`, `ledLog[·]`, each starting with its term's cam
 `chain` a committed prefix, each `termLen` a commit recorded in its term, each append's entries a
 slice of a certified log. With `RaftLaws G`: `ElectionSafety`, `OneVotePerTerm` (R 581-586), any two
 logs `Matching` (B 132), and leader completeness for the terms after a commit's. -/
-def GlobalOk (S : AntCheck.State) (net : List Msg) (G : RaftFacts) : Prop :=
+def GlobalOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) (G : RaftFacts) : Prop :=
   (∀ l ∈ S.leaders, ∃ j t, (j, t) ∈ G.leaders ∧ l.server = nameOf j ∧ l.term = uint.Z t) ∧
   (∀ v ∈ S.votes, ∃ a t c, (a, t, c) ∈ G.votes ∧
     v.voter = nameOf a ∧ v.term = uint.Z t ∧ v.cand = nameOf c) ∧
-  (∀ n : Fin 3, ∃ l ∈ G.logs, S.log[n.val]! = logOf l) ∧
+  (∀ n : Fin R.N, ∃ l ∈ G.logs, S.log[n.val]! = logOf l) ∧
   (∀ p ∈ S.ledLog, ∃ l ∈ G.logs, p.2 = logOf l ∧
     ∃ t l0, uint.Z t = p.1 ∧ (t, l0) ∈ G.camps ∧ l0 <+: l) ∧
   (∃ c ≤ G.committed.length, S.chain = logOf (G.committed.take c)) ∧
@@ -463,22 +650,36 @@ def GlobalOk (S : AntCheck.State) (net : List Msg) (G : RaftFacts) : Prop :=
   (∀ m ∈ net, m.ty = .app →
     ∃ l ∈ G.logs, (l.drop (uint.nat m.index)).take m.entries.length = m.entries)
 
-/-- The raft facts a `ready` report needs of the node's new state `ps` (at node `id`), already in
-`G` (the harness adds them from `rawNode`'s laws before the report, §3.4): its log certified, its
-committed prefix the committed log's, its commit recorded in its term, its leadership raft's with
-its campaign log, its vote raft's. -/
-def ReadyFacts (G : RaftFacts) (id : w64) (ps : PState) : Prop :=
-  ps.log ∈ G.logs ∧ uint.nat ps.commit ≤ G.committed.length ∧
-  ps.log.take (uint.nat ps.commit) = G.committed.take (uint.nat ps.commit) ∧
-  (ps.term, uint.nat ps.commit) ∈ G.commits ∧
-  (ps.role = .leader → (id, ps.term) ∈ G.leaders ∧ ∃ l0, (ps.term, l0) ∈ G.camps ∧ l0 <+: ps.log) ∧
-  (ps.vote ≠ W64 0 → (id, ps.term, ps.vote) ∈ G.votes)
+/-- The raft facts a `ready` report needs of the node's new state `r` (at node `id`), already in
+`G` (the harness adds them from `rawNode`'s laws before the report, §3.4): its full log certified,
+its committed prefix the committed log's, its commit recorded in its term, its leadership raft's
+with its campaign log, its vote raft's. -/
+def ReadyFacts (G : RaftFacts) (id : w64) (r : RState) : Prop :=
+  r.full ∈ G.logs ∧ uint.nat r.p.commit ≤ G.committed.length ∧
+  r.full.take (uint.nat r.p.commit) = G.committed.take (uint.nat r.p.commit) ∧
+  (r.p.term, uint.nat r.p.commit) ∈ G.commits ∧
+  (r.p.role = .leader → (id, r.p.term) ∈ G.leaders ∧ ∃ l0, (r.p.term, l0) ∈ G.camps ∧ l0 <+: r.full) ∧
+  (r.p.vote ≠ W64 0 → (id, r.p.term, r.p.vote) ∈ G.votes)
 
 /-- The raft facts a `send` report needs of its message (`isMessage`'s): an append's entries a slice
 of a certified log, a grant raft's vote. -/
 def MsgFacts (G : RaftFacts) (q : Msg) : Prop :=
   (q.ty = .app → ∃ l ∈ G.logs, (l.drop (uint.nat q.index)).take q.entries.length = q.entries) ∧
   ((q.ty = .voteResp ∧ q.reject = false) → (q.src, q.term, q.dst) ∈ G.votes)
+
+/-! ## The statements' frame -/
+
+/-- What every statement assumes (§3.3): the checker's prefix at `S`, the relation, raft's laws, and
+`S`, `net` certified by `G`. -/
+def SimPre (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
+    (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) : Prop :=
+  Prefix R.cfg evs S ∧ AntSim R dec S V net xnet ∧ RaftLaws G ∧ GlobalOk R S net G
+
+/-- What every report's statement concludes (§3.3): the checker takes `ev` (with the `GC` steps due
+before it) to a state related to the new views and networks, certified by `G`. -/
+def SimStep (R : RunCfg) (dec : CCDec) (evs : List AntCheck.Event) (G : RaftFacts)
+    (ev : AntCheck.Event) (V' : Fin R.N → NodeView) (net' : List Msg) (xnet' : List XMsg) : Prop :=
+  ∃ S', Prefix R.cfg (evs ++ [ev]) S' ∧ AntSim R dec S' V' net' xnet' ∧ GlobalOk R S' net' G
 
 end rel
 
