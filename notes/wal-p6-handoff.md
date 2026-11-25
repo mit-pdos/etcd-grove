@@ -517,7 +517,8 @@
   **Next:** S (`syncDir.spec`'s commit: as session 7's/16's plan; `walGhostI_bump` again with `walLeI_discard`, keys
   `K.delete dir` again trivial (`keys_bump`), the WAL's layout out of `Ls` and its directory's claims out, tagged
   `tmpName nm`, into `walAreaRes`'s `cl` (`SubCover`, `ClRanked`)), the `Discard` proof, the crash lemma, docstrings,
-  `gen-link --walfs`, the builds.
+  `gen-link --walfs`, the builds. **Build**: `lake build` of `wal.Link` + `wal.DiscardR` on fk-lean1 at `c1366806fa`:
+  3849 jobs, exit 0, no `sorry` (`/shared/tmp/p6b-s17-b1.log`). Session stopped at the ~150k-token handoff rule.
 - **2026-11-25, P6b session 16 (WIP, `etcd-safe-p6b-wip`): U' done; R/S not started.** Ledger "wal.Discard's
   post had no arm for a failed `RemoveAll(dir.tmp)`" marked approved (coordinator: the `RemoveAll` error arm returns
   `walAreaRes`, `walUnlockedTok`, `AU₁`, `AU₂`, nothing committed; U' with `Create`'s creating-claim shape `.only [nm,
