@@ -2383,3 +2383,185 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   - **REGRESSION TO DECIDE:** three existing trust-boundary axioms, `runtime.opaqueInitsOk`, `runtime.initFuncsOk`, `internal.runtime.sys.opaqueInitsOk` (`Proof/runtime/Init.lean`, `Proof/internal/runtime/sys/Init.lean`: runtime's untranslated initializers and `init` functions return), used by 11 roots before and **81** after: every result whose program imports `os` or `net` now runs `runtime`'s initializer, because the translated Go `os` imports `runtime` (`runtime.KeepAlive` in `File.Fd`/`readFrom`/..., `runtime.Cleanup` in `Process`). 30 top-level results gain them, among them the net examples' `*_crash_robust`, `counter/paxos/rabia/quepaxa/epaxos_remote_robust`, `osfs_*` `crash_robust`, `raft_kvnet_robust_example` (0 -> 3), the raft kv results (9 -> 12), `kv_porcupine_robust` (7 -> 10), `raft_tracecheck_robust` (10 -> 13), and **RaftNoAx's `raft_kvdurable_porcupine_robust` (0 -> 3), whose point is no axiom of this repository** (its collection `etc/tcb-collections/raft-noax.txt` would fail `--check`). Options: (a) prove runtime's initializer instead of assuming it (Perennial's runtime model of the basic slice may give `runtime.wp_initialize'`: check after it lands); (b) keep `runtime` out of etcd-grove os's imports (os.toml: `runtime.KeepAlive` and `Cleanup` are what pull it in; KeepAlive is a no-op in the model); (c) accept and update the baselines. Not decided here (rule: no new axioms in a result's trust base without your OK).
 - `etc/model-tests.sh` (etcd-grove os, syscall, durable, net, crc32, go/token; with the fixes): `gomodels:
   tests ok`; Perennial's: pass, skips listed with reasons.
+
+## Statement changes from the etcd-grove lean merge (session 12): FieldAssumptions premises dropped
+
+Every top-level result whose statement on etcd-grove `lean` (`6865da10d6`) takes `net.FieldAssumptions`,
+`os.file.FieldAssumptions` or `os.fileStat.FieldAssumptions` changes here **only by losing those premises**
+(the classes are gone: the Go-model `net` and `os` translate the structs, so goose emits their field facts).
+No premise is added and no conclusion changes. `net.UdpFieldAssumptions` (lean's trusted UDP, kept, #8 (a))
+stays. Listed from lean's text (`tmp/gm12/scripts/fa_results.py`); "premises" = which classes it took.
+
+141 named results/specs:
+
+| file (on lean) | result | premises dropped |
+|---|---|---|
+| `Dsverify/Proof/raxos/Proxy/Results.lean` | `Proxy.NetworkInit.wp_proof` | net |
+| `Dsverify/Proof/raxos/Proxy/Results.lean` | `qpNetDeps_holds` | net |
+| `Dsverify/Spec/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean` | `craq_remote_robust.spec` | net |
+| `Dsverify/Spec/github_com/imdea_software/swiftpaxos/examples/swiftnet/TopLevelRobustness.lean` | `swiftpaxos_remote_robust.spec` | net |
+| `Dsverify/Spec/github_com/imdea_software/swiftpaxos_epaxos/examples/epaxosnet/TopLevelRobustness.lean` | `epaxos_remote_robust.spec` | net |
+| `Dsverify/Spec/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLevelRobustness.lean` | `vr_remote_robust.spec` | net |
+| `Dsverify/Spec/github_com/xiang90/paxos/examples/paxosnet/TopLevelRobustness.lean` | `paxos_remote_robust.spec` | net |
+| `Dsverify/Spec/gryff/examples/gryffnet/TopLevelRobustness.lean` | `gryff_remote_robust.spec` | net |
+| `Dsverify/Spec/rabia/examples/rabianet/TopLevelRobustness.lean` | `rabia_remote_robust.spec` | net |
+| `Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean` | `quepaxa_remote_robust.spec` | net |
+| `KvRaft/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/TopLevelRobustness.lean` | `kvraft_robust.spec` | net, os.file, os.fileStat |
+| `KvRaft/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/TopLevelRobustness.lean` | `kvraft_robust_example.spec` | net, os.file, os.fileStat |
+| `KvRaft/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/TopLevelRobustness.lean` | `kvraft_udp_robust.spec` | net, os.file, os.fileStat |
+| `KvRaft/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/TopLevelRobustness.lean` | `kvraft_udp_robust_example.spec` | net, os.file, os.fileStat |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/acceptloop/Results.lean` | `acceptloop_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/acceptloop/Results.lean` | `acceptloop_crash_safety_bounded` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/duplex/Results.lean` | `duplex_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/duplex/Results.lean` | `duplex_crash_safety_bounded` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/Results.lean` | `echo_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/Results.lean` | `echo_crash_safety_bounded` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/framed/Results.lean` | `framed_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/framed/Results.lean` | `framed_crash_safety_bounded` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/halfclose/Results.lean` | `halfclose_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/halfclose/Results.lean` | `halfclose_crash_safety_bounded` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/preface/Results.lean` | `preface_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/preface/Results.lean` | `preface_crash_safety_bounded` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/shutdown/Results.lean` | `shutdown_crash_safety` | net |
+| `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/shutdown/Results.lean` | `shutdown_crash_safety_bounded` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/lib/remote/counter/TopLevelRobustness.lean` | `counter_remote_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/acceptloop/TopLevelRobustness.lean` | `acceptloop_crash_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/duplex/TopLevelRobustness.lean` | `duplex_crash_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/echo/TopLevelRobustness.lean` | `echo_crash_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/framed/TopLevelRobustness.lean` | `framed_crash_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/halfclose/TopLevelRobustness.lean` | `halfclose_crash_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/preface/TopLevelRobustness.lean` | `preface_crash_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness.lean` | `rpcdriver_robust.spec` | net |
+| `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/shutdown/TopLevelRobustness.lean` | `shutdown_crash_robust.spec` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/MainLinked.lean` | `etcd_all.wp_Auth` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/MainLinked.lean` | `etcd_all.wp_KV` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/MainLinked.lean` | `etcd_all.wp_Lease` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/MainLinked.lean` | `etcd_all.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/MainLinked.lean` | `etcd_all.wp_MainChecked` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/MainLinked.lean` | `etcd_all.wp_Restart` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean` | `etcd_all_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean` | `etcd_all_MainChecked` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean` | `etcd_safe_single_process` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Results.lean` | `authkv_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Results.lean` | `authkv_startServer` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/MainLinked.lean` | `etcd_auth3.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/MainLinked.lean` | `etcd_auth3.wp_run` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/MainLinked.lean` | `etcd_auth3.wp_startMember` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/Results.lean` | `auth3_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/MainLinked.lean` | `etcd_authN.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/MainLinked.lean` | `etcd_authN.wp_StartMemberAuth` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/MainLinked.lean` | `etcd_authN.wp_StartMembersAuth` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/MainLinked.lean` | `etcd_authN.wp_run` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Results.lean` | `authN_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/MainLinked.lean` | `etcd_authlease.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/MainLinked.lean` | `etcd_authlease.wp_run` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/Results.lean` | `authlease_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/Results.lean` | `cachekv_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/MainLinked.lean` | `etcd_compacted.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Results.lean` | `putgetc_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/MainLinked.lean` | `etcd_compactwatch.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Results.lean` | `compactkv_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean` | `EtcdBootNC` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean` | `PutgetBoot` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/MainLinked.lean` | `etcd_lease.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/Results.lean` | `leasekv_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/MainLinked.lean` | `etcd_leaseN.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/MainLinked.lean` | `etcd_leaseN.wp_run` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/Results.lean` | `leaseN_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/MainLinked.lean` | `etcd_leasecatchup.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/MainLinked.lean` | `etcd_leasecatchup.wp_run` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/Results.lean` | `leasecatchup_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/MainLinked.lean` | `etcd_leaseexpiry.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/Results.lean` | `leaseexpiry_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/MainLinked.lean` | `etcd_leaseexpiryN.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/MainLinked.lean` | `etcd_leaseexpiryN.wp_run` | net |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results.lean` | `etcd_leaseexpiryN_safe_single_process` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results.lean` | `leaseexpiryN_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/MainLinked.lean` | `etcd_leasegrant.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/Results.lean` | `leasegrant_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Results.lean` | `linkv3p_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Results.lean` | `linkv3p_MainWatch` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/MainLinked.lean` | `etcd_putget.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Results.lean` | `putget_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/MainLinked.lean` | `etcd_putget3.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Results.lean` | `putget3_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/MainLinked.lean` | `etcd_putgetN.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putgetN/Results.lean` | `putgetN_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/MainLinked.lean` | `etcd_restart.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart/Results.lean` | `restart3_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/MainLinked.lean` | `etcd_restart1.wp_Main` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/Results.lean` | `restart1_Main` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/MainLinked.lean` | `etcd_restartN.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/Results.lean` | `restartN_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Results.lean` | `linkvtxn_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/MainLinked.lean` | `etcd_txnlinfaultsN.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/Results.lean` | `txnlinfaultsN_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Results.lean` | `watchkv_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/MainLinked.lean` | `k8s_all.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/MainLinked.lean` | `k8s_all.wp_MainChecked` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/Results.lean` | `k8s_all_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/Results.lean` | `k8s_all_MainChecked` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/Results.lean` | `k8s_safe_single_process` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainLinked.lean` | `k8s_compactor.wp_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainLinked.lean` | `k8s_compactor.wp_MainPartition` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainLinked.lean` | `k8s_compactor.wp_startCluster` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/Results.lean` | `k8s_compactor_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/Results.lean` | `k8s_compactor_MainPartition` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainLinked.lean` | `wp_MainCluster` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainLinked.lean` | `wp_MainPartition` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainLinked.lean` | `wp_startCluster` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results.lean` | `k8setcd3_Main` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results.lean` | `k8setcd3_MainCluster` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results.lean` | `k8setcd3_MainPartition` | net, os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Results.lean` | `mvccfull_safe` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Results.lean` | `bootCrashSafety` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Results.lean` | `bootCrashSafety_bounded` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/Results.lean` | `crash_safety` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/Results.lean` | `crash_safety_bounded` | os.file, os.fileStat |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/Results.lean` | `crash_safety` | os.file |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/Results.lean` | `crash_safety_bounded` | os.file |
+| `Proof/go_etcd_io/etcd/server/v3/etcdserver/Results.lean` | `new_storage_contract` | os.file, os.fileStat |
+| `Proof/go_etcd_io/etcd/server/v3/etcdserver/Results.lean` | `server_new_auth_on` | os.file, os.fileStat |
+| `Proof/go_etcd_io/etcd/server/v3/etcdserver/Results.lean` | `server_raft_node_start` | os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean` | `etcd_robust_single_process.spec` | net, os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean` | `etcd_robust.spec` | net |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean` | `etcd_robust_nocrash.spec` | net |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean` | `putget_safe.spec` | net, os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean` | `etcd_leaseexpiryN_robust_single_process.spec` | net, os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean` | `k8s_robust_single_process.spec` | net, os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean` | `mvccfull_robust.spec` | os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/TopLevelRobustness.lean` | `mvccrand_robust.spec` | os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/TopLevelRobustness.lean` | `bootCrashRobust.spec` | os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/TopLevelRobustness.lean` | `crash_robust.spec` | os.file, os.fileStat |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean` | `crash_robust.spec` | os.file |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean` | `dirswap_crash_robust.spec` | os.file |
+| `Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean` | `seglog_crash_robust.spec` | os.file |
+| `WalTester/Spec/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness.lean` | `etcd_wal_safe.spec` | os.file, os.fileStat |
+
+Plus the results declared under a section `variable [… FieldAssumptions]` in these 24 files (each such
+result loses the same premise):
+
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos/client/Results.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet/TopLevelRobustness.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos/master/Results.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos/replica/Results.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos/swift/Results.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/epaxos/Results.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/master/Results.lean`
+- `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/replica/Results.lean`
+- `Dsverify/Proof/github_com/tangledbytes/go_vsr/Proof/client/Results.lean`
+- `Dsverify/Proof/github_com/tangledbytes/go_vsr/Proof/events/Results.lean`
+- `Dsverify/Proof/github_com/tangledbytes/go_vsr/Proof/network/Results.lean`
+- `Dsverify/Proof/github_com/tangledbytes/go_vsr/Proof/replica/Results.lean`
+- `Dsverify/Proof/github_com/tangledbytes/go_vsr/Proof/vsrwire/Results.lean`
+- `Dsverify/Proof/gryff/Replica2/Results.lean`
+- `Dsverify/Proof/raxos/Replica/Results.lean`
+- `KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/TopLevelRobustness.lean`
+- `KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/TopLevelRobustness.lean`
+- `Net/Proof/net/http/Results.lean`
+- `Net/Proof/net/rpc/Results.lean`
+- `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results.lean`
+- `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/Results.lean`
+- `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Results.lean`
+- `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean`
+- `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean`
