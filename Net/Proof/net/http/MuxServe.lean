@@ -381,6 +381,108 @@ theorem wp_findHandler22_connect (wp_PathUnescape : net.url.PathUnescape.spec (G
   iapply HΦ
   iframe
 
+/-- `mux.ServeHTTP(w, r)` of a `CONNECT` request for a registered literal path `p` (the fields
+net/http's request parser leaves, `RequestURI` the path, `Host` empty), over either matcher: a
+reader slot borrowed from the matcher's pool for the lookup, then `p`'s handler `h` serves the
+request with the thread token. -/
+theorem wp_ServeMux_ServeHTTP_connect
+    (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) (hG := hG))
+    (wp_IndexByte : strings.IndexByte.spec (GF := GF) (hG := hG))
+    (wp_Count : strings.Count.spec (GF := GF) (hG := hG))
+    (wp_EscapedPath : net.url.URL.EscapedPath.spec (GF := GF) (hG := hG))
+    (m : Loc) (p : GoString) (h : GoInterface) (e : GoInterfaceOk) (hhe : h = interface.ok e)
+    (hp : litPattern p) (w : GoInterface) (r u : Loc) (pat0 : GoString) (pp0 : Loc) (ms0 : GoSlice)
+    (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗
+      isPkgInit (PROP := IProp GF) pkg_id.strings ∗ muxRouteS (GF := GF) (hG := hG) m p h ∗ threadTok ∗
+      structFieldRef net.http.Request go!"Method" r ↦□ go!"CONNECT" ∗
+      structFieldRef net.http.Request go!"RequestURI" r ↦ p ∗
+      structFieldRef net.http.Request go!"URL" r ↦ u ∗
+      structFieldRef net.http.Request go!"Host" r ↦ ([] : List w8) ∗
+      structFieldRef net.http.Request go!"Pattern" r ↦ pat0 ∗
+      structFieldRef net.http.Request go!"pat" r ↦ pp0 ∗
+      structFieldRef net.http.Request go!"matches" r ↦ ms0 ∗ u ↦ connURL p ∗
+      (threadTok -∗ WP (App (App (Val #(methods e.ty go!"ServeHTTP" e.v)) (Val #w)) (Val #r))
+        {{ v, ⌜v = #()⌝ ∗ Φ #() }}) ⊢
+    WP (App (App (Val (m @!! go.GoType.PointerType net.http.ServeMux.ty @!! go!"ServeHTTP")) (Val #w))
+      (Val #r)) {{ Φ }} := by
+  iintro ⟨#Hsync, #Hurl0, #Hstr, #Hrt, Htok, #Hmeth, Hruri, Hurl, Hhost, Hpat, Hpp, Hms, Hu, Hk⟩
+  iunfold muxRouteS at Hrt
+  icases Hrt with ⟨%b, %γ, #Hsh, #Hel⟩
+  iunfold muxSh at Hsh
+  icases Hsh with ⟨#Hu121, #Hd, #Hshb⟩
+  subst hhe
+  have hpstar : p ≠ go!"*" := by
+    intro h0; have := hp.1; rw [h0] at this; simp at this
+  cases b
+  · irevert Hshb Hel
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨#Hg, #Hpool⟩ #Hel
+    iapply fupd_wp
+    imod threadPool.borrow (muxPoolN m) γ.p22
+      (sync.ownRWMutex (muxMu m) (mux22P (GF := GF) (hG := hG) γ.n22 m)) ⊤ (fun _ _ => CoPset.mem_full)
+      $$ [Hpool Htok] with ⟨Hrw, Hloan⟩
+    · iframe #; iframe
+    imodintro
+    rw [method_unfold (t := go.GoType.PointerType net.http.ServeMux.ty)]
+    wp_call
+    try wp_auto
+    rw [decide_eq_false hpstar]
+    try wp_auto
+    wp_apply wp_findHandler22_connect wp_PathUnescape wp_IndexByte wp_Count wp_EscapedPath m γ.n22 r u
+      (DFrac.own 1) 1 p (interface.ok e) hp $$ [$Hrw $Hel $Hmeth $Hurl $Hhost $Hu]
+      as %pp ⟨Hrw, Hurl, Hhost, Hu⟩
+    · iframe #
+    iapply fupd_wp
+    imod threadPool.giveBack (muxPoolN m) γ.p22
+      (sync.ownRWMutex (muxMu m) (mux22P (GF := GF) (hG := hG) γ.n22 m)) ⊤ (fun _ _ => CoPset.mem_full)
+      $$ [Hpool Hloan Hrw] with Htok
+    · iframe #; iframe
+    imodintro
+    try wp_auto
+    wp_bind (App (App (Val #(methods e.ty go!"ServeHTTP" e.v)) (Val #w)) (Val #r))
+    iapply wp_wand $$ (Hk $$ Htok)
+    iintro %v ⟨%hv, HΦ⟩
+    subst hv
+    wp_auto
+    iexact HΦ
+  · irevert Hshb Hel
+    simp only [↓reduceIte]
+    iintro ⟨#Hg, #Hpool⟩ #Hel
+    iapply fupd_wp
+    imod threadPool.borrow (muxPoolN m) γ.p121
+      (sync.ownRWMutex (mux121Mu m) (mux121P (GF := GF) (hG := hG) γ.n121 (mux121Loc m))) ⊤
+      (fun _ _ => CoPset.mem_full) $$ [Hpool Htok] with ⟨Hrw, Hloan⟩
+    · iframe #; iframe
+    imodintro
+    rw [method_unfold (t := go.GoType.PointerType net.http.ServeMux.ty)]
+    wp_call
+    try wp_auto
+    rw [decide_eq_false hpstar]
+    try wp_auto
+    iStructNamedPrefix Hu "U"
+    imod (typedPointsto_dfractional (GF := GF) _ u).dfractional_persist (DFrac.own 1) $$ Hurl with #Hurl
+    imod (typedPointsto_dfractional (GF := GF) _ ([] : List w8)).dfractional_persist (DFrac.own 1) $$ Hhost
+      with #Hhost
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist (DFrac.own 1) $$ UHost with #UHost
+    imod (typedPointsto_dfractional (GF := GF) _ p).dfractional_persist (DFrac.own 1) $$ UPath with #UPath
+    wp_apply wp_mux121_findHandler_connect (mux121Loc m) γ.n121 DFrac.discard r u p [] [] (interface.ok e)
+      $$ [$Hrw $Hel] as ⟨Hrw, -⟩
+    · iunfold connReqFields; iframe #
+    iapply fupd_wp
+    imod threadPool.giveBack (muxPoolN m) γ.p121
+      (sync.ownRWMutex (mux121Mu m) (mux121P (GF := GF) (hG := hG) γ.n121 (mux121Loc m))) ⊤
+      (fun _ _ => CoPset.mem_full) $$ [Hpool Hloan Hrw] with Htok
+    · iframe #; iframe
+    imodintro
+    try wp_auto
+    wp_bind (App (App (Val #(methods e.ty go!"ServeHTTP" e.v)) (Val #w)) (Val #r))
+    iapply wp_wand $$ (Hk $$ Htok)
+    iintro %v ⟨%hv, HΦ⟩
+    subst hv
+    wp_auto
+    iexact HΦ
+
 end dispatch
 
 end net.http
