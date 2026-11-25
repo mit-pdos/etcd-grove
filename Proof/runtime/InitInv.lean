@@ -19,7 +19,7 @@ and `Proof/google_golang_org/grpc/internal/Hooks.lean` (the laws), names and sta
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Perennial.Golang.Theory.Pkg
+public import Perennial.Golang.Theory
 public import Proof.runtime.PkgInit
 
 @[expose] public section
