@@ -22,7 +22,6 @@ theorem srem_of_nonneg (a b : w64) (ha : 0 ≤ sint.Z a) :
     sint.Z (a.srem b) = sint.Z a % sint.Z b := by
   rw [show sint.Z (a.srem b) = (a.srem b).toInt from rfl, BitVec.toInt_srem,
     Int.tmod_eq_emod_of_nonneg ha]
-  rfl
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -38,7 +37,6 @@ theorem Rotate.wp_proof : Rotate.spec (GF := GF) (hG := hG) := by
   ihave %Hxl := ownSlice_len _ _ _ $$ Hxs
   wp_apply (wp_slice_make2 (V := V) (t := T) xs.len) as %out ⟨Hout, -⟩
   · ipureintro; word
-  wp_auto
   ihave HI : (∃ (j : Nat) (outL : List V),
       "j" ∷ j_ptr ↦ W64 j ∗ "Hout" ∷ out ↦* outL ∗ "Hxs" ∷ xs ↦*{dq} xsL ∗
       "%Hj" ∷ ⌜j ≤ xsL.length ∧ outL.length = xsL.length ∧
@@ -53,10 +51,54 @@ theorem Rotate.wp_proof : Rotate.spec (GF := GF) (hG := hG) := by
   wp_if_destruct
   · have hj : j < xsL.length := by word
     have hk : 0 < xsL.length := by omega
-    have hidx : sint.Z ((i + W64 (j : Int)).srem (W64 (xsL.length : Int))) =
-        ((sint.nat i + j) % xsL.length : Nat) := by
-      sorry
-    sorry
+    have hxlen : sint.Z xs.len = (xsL.length : Int) := by word
+    have hlen0 : ¬ sint.Z xs.len = 0 := by omega
+    have hsum : 0 ≤ sint.Z (i + W64 (j : Int)) ∧
+        sint.Z (i + W64 (j : Int)) = ((sint.nat i + j : Nat) : Int) := by
+      constructor <;> word
+    have hidx : sint.Z ((i + W64 (j : Int)).srem xs.len) = ((sint.nat i + j) % xsL.length : Nat) := by
+      rw [srem_of_nonneg _ _ hsum.1, hsum.2, hxlen, Int.natCast_emod]
+    simp only [hlen0, ↓reduceIte]
+    wp_auto
+    have hm : (sint.nat i + j) % xsL.length < xsL.length := Nat.mod_lt _ hk
+    have hb1 : 0 ≤ sint.Z ((i + W64 (j : Int)).srem xs.len) := by rw [hidx]; omega
+    have hb2 : sint.Z ((i + W64 (j : Int)).srem xs.len) < sint.Z xs.len := by rw [hidx, hxlen]; omega
+    simp only [hb1, hb2, and_self, ↓reduceIte]
+    obtain ⟨x, hx⟩ : ∃ x, xsL[(sint.nat i + j) % xsL.length]? = some x :=
+      ⟨_, List.getElem?_eq_getElem hm⟩
+    wp_apply (wp_load_slice_index xs _ xsL dq x hb1) $$ [Hxs] as Hxs
+    · iframe
+      ipureintro
+      rw [hidx, Int.toNat_natCast]
+      exact hx
+    ihave %Hol := ownSlice_len _ _ _ $$ Hout
+    have hj0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
+    have hjo : sint.Z (W64 (j : Int)) < sint.Z out.len := by word
+    simp only [hj0, hjo, and_self, ↓reduceIte]
+    wp_apply (wp_store_slice_index out (sint.Z (W64 (j : Int))) outL x) $$ [Hout] as Hout
+    · iframe
+      ipureintro
+      constructor <;> word
+    have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
+    have hwj : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by
+      rw [show ((j + 1 : Nat) : Int) = (j : Int) + 1 by omega, W64, W64, W64, BitVec.ofInt_add]
+    rw [hsj]
+    wp_for_post
+    iframe
+    iexists (j + 1), outL.set j x
+    rw [hwj]
+    iframe
+    ipureintro
+    refine ⟨hj, by rw [List.length_set]; exact Hj2, fun m hm' => ?_⟩
+    rw [List.getElem?_set]
+    by_cases hmj : m = j
+    · subst hmj
+      rw [if_pos rfl, if_pos (by omega)]
+      simp only [rotateL, List.getElem?_map, List.getElem?_range hj, Option.map_some]
+      rw [getElem!_pos xsL _ hm, ← hx]
+      simp [List.getElem?_eq_getElem hm]
+    · rw [if_neg (Ne.symm hmj)]
+      exact Hj3 m (by omega)
   · have hj : j = xsL.length := by word
     subst hj
     iapply HΦ

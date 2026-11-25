@@ -41,7 +41,7 @@ theorem MainDeployment.wp_proof (OP : List GoString → w64 → IProp GF)
   · iframe #
   wp_if_destruct
   · wp_func_call; wp_call; wp_auto
-    iapply HΦ; done
+    iapply HΦ; ipureintro; trivial
   sorry
 
 end proof

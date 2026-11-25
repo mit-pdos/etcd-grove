@@ -32,26 +32,21 @@ theorem RunKV.wp_proof (OP : List GoString → w64 → IProp GF)
   wp_start as ⟨#Hnodes, #Hready, HOP⟩
   wp_auto
   iunfold readySpec at Hready
-  wp_apply Hready as -
-  wp_auto
-  wp_apply (hOrch nodes ns ops _) $$ [HOP] as %r %hr
+  wp_apply Hready
+  wp_apply (hOrch nodes ns ops (W64 120000000000)) $$ [HOP] as %r %hr
   · iframe #
     iframe
-  wp_auto
   wp_if_destruct
   · exact absurd rfl hr
-  wp_auto
   wp_if_destruct
-  · wp_auto
-    try wp_func_call
-    try wp_call
+  · wp_func_call
+    wp_call
     wp_auto
-    iapply HΦ; done
-  · wp_auto
-    try wp_func_call
-    try wp_call
+    iapply HΦ; ipureintro; trivial
+  · wp_func_call
+    wp_call
     wp_auto
-    iapply HΦ; done
+    iapply HΦ; ipureintro; trivial
 
 end proof
 

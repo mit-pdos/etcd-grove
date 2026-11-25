@@ -32,7 +32,6 @@ theorem Orchestrator.wp_proof (OP : List GoString → w64 → IProp GF)
   intro v d j
   wp_start as ⟨%Hp, #Hd, Hsh⟩
   wp_auto
-  try wp_func_lits
   wp_apply (hMD v d j _) $$ [Hsh] as %r -
   · iframe #
     iframe
@@ -41,9 +40,8 @@ theorem Orchestrator.wp_proof (OP : List GoString → w64 → IProp GF)
     iunfold readySpec
     wp_start
     wp_auto
-    iapply HΦ; done
-  wp_auto
-  iapply HΦ; done
+    iapply HΦ; ipureintro; trivial
+  iapply HΦ; ipureintro; trivial
 
 end proof
 
