@@ -8,7 +8,10 @@ its grown state, the caller's half of the new bytes. Lean-first (no Rocq counter
 module
 
 public import Spec.os.CrashStIL
-public import Proof.os.CrashStSpec
+public import Spec.os.CrashSt
+public import Proof.os.CrashStIOps
+public import Proof.golang_org.x.sys.unix.MunmapDefs
+public import Perennial.Golang.Theory.Plain
 
 @[expose] public section
 
