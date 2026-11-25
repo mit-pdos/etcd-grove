@@ -13,6 +13,9 @@ each cell lives in an invariant (`hookCell`), from which a package initializer, 
 exclusive package state `ownGoState σ`, takes it out for a plain store by lending that state
 (`hookCell_acc`).
 
+* `initInv_alloc`, `initInv_acc`: an init-time invariant (`initInv`, `cache/v3/Base.lean`), from its
+  resource; with a package state, the resource out of the invariant, and back (also `grpclog`'s
+  `cache`, `Component`'s proof).
 * `hookCell_alloc`: a freshly allocated cell gives its `hookCell`.
 * `hookCell_acc`: with a package state, the cell out of the invariant, and back.
 * `wp_store_hook`: a package initializer's store in a hook cell.
@@ -35,6 +38,7 @@ namespace EtcdGrove
 namespace grpcInternal
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open _root_.Perennial.go_etcd_io.etcd.cache.v3 (initInv)
 open _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal
   (hookN hookInv hookCell hookCells hooksAny hooksFunc internalInit)
 
@@ -62,19 +66,72 @@ theorem ownGoState_excl (σ σ' : GMap GoString Bool) :
 theorem half_add_half_own : (DFrac.own (1 : Qp)) = DFrac.own ((1 : Qp).half + (1 : Qp).half) := by
   rw [Qp.half_add_half]
 
+/-- **A new init-time invariant**, from its resource. -/
+theorem initInv_alloc (N : Namespace) (E : CoPset) (R : IProp GF) :
+    ⊢ ▷ R ={E}=∗ ∃ γI : GName, inv N (initInv (hG := hG) R γI) := by
+  iintro HR
+  imod ghost_var_alloc (A := GMap GoString Bool) ∅ with ⟨%γI, HI⟩
+  imod inv_alloc N E (initInv (hG := hG) R γI) $$ [HR HI] with #Hinv
+  · inext
+    unfold initInv
+    ileft
+    iframe HR
+    iexists ∅
+    iexact HI
+  imodintro
+  iexists γI
+  iexact Hinv
+
+/-- **Access to an init-time invariant's resource**, for a holder of a package state: `R`, until it
+gives it back, which returns its package state. -/
+theorem initInv_acc (N : Namespace) (E : CoPset) (hE : ↑N ⊆ E) (R : IProp GF) [Timeless R]
+    (γI : GName) (σ : GMap GoString Bool) :
+    ⊢ inv N (initInv (hG := hG) R γI) -∗ ownGoState σ ={E}=∗ R ∗ (R ={E}=∗ ownGoState σ) := by
+  iintro #Hinv Hg
+  -- take `R` out, lending the package state
+  ihave Hhalf : |={E}=> R ∗ ghost_var γI (DFrac.own (1 : Qp).half) σ $$ [Hg]
+  · iinv Hinv with Hi Hclose
+    unfold initInv
+    imod Hi with Hi
+    icases Hi with (⟨HR, %x, HI⟩ | ⟨%σ', Hg', -⟩)
+    · imod ghost_var_update σ γI x $$ HI with HI
+      rw [half_add_half_own]
+      ihave ⟨HI1, HI2⟩ := ghost_var_split γI σ _ _ $$ HI
+      imod Hclose $$ [Hg HI1] with -
+      · inext; iright; iexists σ; iframe Hg HI1
+      imodintro
+      iframe HR HI2
+    · iexfalso
+      iapply ownGoState_excl σ σ' $$ Hg Hg'
+  imod Hhalf with ⟨HR, HI⟩
+  imodintro
+  iframe HR
+  -- give it back, getting the package state back
+  iintro HR
+  iinv Hinv with Hi Hclose
+  try unfold initInv
+  imod Hi with Hi
+  icases Hi with (⟨-, %x, HI0⟩ | ⟨%σ', Hg, HI'⟩)
+  · icases ghost_var_valid_2 $$ HI0 HI with %H
+    exfalso
+    have := DFrac.valid_own_op H.1
+    simp at this
+  · icases ghost_var_agree $$ HI HI' with %Hσ
+    subst Hσ
+    icombine HI HI' as HI
+    imod Hclose $$ [HR HI] with -
+    · inext; ileft; iframe HR; iexists σ; iexact HI
+    imodintro
+    iexact Hg
+
 /-- **A freshly allocated cell gives its hook cell.** -/
 theorem hookCell_alloc {V : Type} [TypedPointsto (GF := GF) V] (E : CoPset) (a : Loc) (v : V) :
     ⊢ (a ↦ v : IProp GF) ={E}=∗ hookCell V a := by
   iintro Hc
-  imod ghost_var_alloc (A := GMap GoString Bool) ∅ with ⟨%γI, HI⟩
-  imod inv_alloc hookN E (hookInv (hG := hG) V a γI) $$ [Hc HI] with #Hinv
-  · inext
-    unfold hookInv
-    ileft
-    iexists v, ∅
-    iframe Hc HI
+  imod (initInv_alloc hookN E iprop(∃ v : V, (a ↦ v : IProp GF))) $$ [Hc] with ⟨%γI, #Hinv⟩
+  · inext; iexists v; iexact Hc
   imodintro
-  unfold hookCell
+  unfold hookCell hookInv
   iexists γI
   iexact Hinv
 
@@ -85,45 +142,16 @@ theorem hookCell_acc {V : Type} [TypedPointsto (GF := GF) V] (E : CoPset) (hE : 
     ⊢ hookCell V a -∗ ownGoState σ ={E}=∗
       ∃ v : V, (a ↦ v : IProp GF) ∗ (∀ v' : V, (a ↦ v' : IProp GF) ={E}=∗ ownGoState σ) := by
   iintro Hcell Hg
-  unfold hookCell
+  unfold hookCell hookInv
   icases Hcell with ⟨%γI, #Hinv⟩
-  -- take the cell out, lending the package state
-  ihave Hhalf : |={E}=> ∃ v : V, (a ↦ v : IProp GF) ∗ ghost_var γI (DFrac.own (1 : Qp).half) σ $$ [Hg]
-  · iinv Hinv with Hi Hclose
-    unfold hookInv
-    imod Hi with Hi
-    icases Hi with (⟨%v, %x, Hc, HI⟩ | ⟨%σ', Hg', -⟩)
-    · imod ghost_var_update σ γI x $$ HI with HI
-      rw [half_add_half_own]
-      ihave ⟨HI1, HI2⟩ := ghost_var_split γI σ _ _ $$ HI
-      imod Hclose $$ [Hg HI1] with -
-      · inext; iright; iexists σ; iframe Hg HI1
-      imodintro
-      iexists v
-      iframe Hc HI2
-    · iexfalso
-      iapply ownGoState_excl σ σ' $$ Hg Hg'
-  imod Hhalf with ⟨%v, Hc, HI⟩
+  imod (initInv_acc hookN E hE iprop(∃ v : V, (a ↦ v : IProp GF)) γI σ) $$ Hinv Hg with ⟨⟨%v, Hc⟩, Hback⟩
   imodintro
   iexists v
   iframe Hc
-  -- give it back, getting the package state back
   iintro %v' Hc
-  iinv Hinv with Hi Hclose
-  try unfold hookInv
-  imod Hi with Hi
-  icases Hi with (⟨%v0, %x, Hc0, HI0⟩ | ⟨%σ', Hg, HI'⟩)
-  · icases ghost_var_valid_2 $$ HI0 HI with %H
-    exfalso
-    have := DFrac.valid_own_op H.1
-    simp at this
-  · icases ghost_var_agree $$ HI HI' with %Hσ
-    subst Hσ
-    icombine HI HI' as HI
-    imod Hclose $$ [Hc HI] with -
-    · inext; ileft; iexists v', σ; iframe Hc HI
-    imodintro
-    iexact Hg
+  iapply Hback
+  iexists v'
+  iexact Hc
 
 /-- **A package initializer's store in a hook cell.** -/
 theorem wp_store_hook {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] {t : go.GoType}

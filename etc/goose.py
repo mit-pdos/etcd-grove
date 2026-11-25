@@ -629,6 +629,9 @@ PROJECTS = [
             # (`Code/google_golang_org/grpc/internal.toml`), and `FromOutgoingContextRaw`, which grpc's
             # `metadataFromOutgoingContextRaw` asserts
             "google.golang.org/grpc/internal",
+            # (phase7-inits batch 2, 2026-11-25) types and names only but its `logger`: `State`, the
+            # type grpc's `internal.HealthChecker` names
+            "google.golang.org/grpc/connectivity",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

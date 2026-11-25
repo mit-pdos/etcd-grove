@@ -1,7 +1,7 @@
 # (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4; first phase 7 S2 core, 2026-11-23, for
 # `FromOutgoingContextRaw`) Names only, but the hook variables (`internal.go`, `experimental.go`: no
 # initializers) that the translated `init`s of grpc (`dialoptions.go`, `rpc_util.go`, `server.go`),
-# `codes` and `metadata` set: their allocations. Only `FromOutgoingContextRaw` is read by
+# `codes`, `metadata` and `health` set: their allocations. Only `FromOutgoingContextRaw` is read by
 # translated code (grpc's `metadataFromOutgoingContextRaw`); the others are written only (their readers
 # are tests and packages outside the model: xds, stats/opentelemetry, orca, experimental), each cell in
 # an init-time invariant (`grpc/internal/Hooks.lean`).
@@ -12,11 +12,13 @@ translate = ["!*", "FromOutgoingContextRaw",
   "AcceptCompressors", "GetServerCredentials", "IsRegisteredMethod", "ServerFromContext",
   "AddGlobalServerOptions", "ClearGlobalServerOptions", "JoinServerOptions", "XDSFilterWrapperOption",
   # `codes`'
-  "CanonicalString"]
-imports = ["!*"]
+  "CanonicalString",
+  # `health`'s (batch 2, 2026-11-25)
+  "HealthCheckFunc", "RegisterClientHealthCheckListener"]
+# `HealthChecker` (`HealthCheckFunc`'s type) names `context` and `connectivity`
+imports = ["!*", "context", "google.golang.org/grpc/connectivity"]
 
-# translate the definitions of all type declarations goose supports (its interfaces, which name no
-# other package; `HealthChecker` names `context` and `connectivity`, not imported: axiomatized)
+# translate the definitions of all type declarations goose supports
 translate_types = true
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---

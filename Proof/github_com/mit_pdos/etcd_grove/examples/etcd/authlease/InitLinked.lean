@@ -13,7 +13,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLi
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
-public import Proof.google_golang_org.grpc.metadata.Init
+public import Proof.google_golang_org.grpc.metadata.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
