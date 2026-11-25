@@ -1593,6 +1593,15 @@ theorem walDirKey_lookupI (K : GMap GoString (Fs.Ino × List GoString)) (dir : G
   icases walDirKey_lookup K dir _ j X I $$ Ha Hk HI with %h
   ipureintro; exact h rfl
 
+/-- `walDirKey_lookupI` with the lock token's quarter. -/
+theorem walDirKey_lookupL (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString)
+    (j : Fs.Ino) (X : List GoString) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walLockedTokI (W := W) I -∗ ⌜K !! dir = some (j, X)⌝ := by
+  unfold walLockedTokI
+  iintro Ha Hk ⟨-, -, -, HI⟩
+  iapply walDirKey_lookupI $$ Ha Hk HI
+
 /-- **The pipeline's key is in the keys' authority.** -/
 theorem walPipeKey_lookup (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino) :
     ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walPipeKey (W := W) dir j -∗

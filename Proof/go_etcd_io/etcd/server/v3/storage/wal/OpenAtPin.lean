@@ -81,13 +81,13 @@ def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : 
   iprop(∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
-      (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
+      (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir ic lay.j X ∗
     (∃ I, walLockedTokI (W := W) I ∗ ⌜incOf I dir = ic⌝) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
       if write then [dir] else []⟩ ∗
     ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
     osNames (L := L) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-    (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j else emp))
+    (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j ∗ walIncEAny (W := W) else emp))
 
 /-- **The pin, as `walPinOut`** (`walInvBody_pin` repackaged). -/
 theorem walInvBody_pinOut (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -98,11 +98,11 @@ theorem walInvBody_pinOut (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
         walPinOut (L := L) (W := W) C Mr jr dir d k write ic := by
   iintro Hb Hu HI
   imod walInvBody_pin C Mr R jr r s dir d hd k write $$ Hb Hu with
-    ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj, Ht⟩
+    ⟨%lay, %X, %hj, %I, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj, Ht⟩
   obtain ⟨-, h1, h2, h3, h4, h5, h6⟩ := hp
-  iunfold walLockedTok at Hl
-  icases Hl with ⟨%I, Hl⟩
   icases walLockedTokI_incQ_agree I I0 $$ Hl HI with ⟨Hl, HI, %hII⟩
+  have hic : incOf I dir = ic := by rw [hII]; exact hI0
+  isimp only [hic] at Hkey
   imodintro
   iframe Hb HI
   unfold walPinOut
