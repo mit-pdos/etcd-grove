@@ -188,7 +188,7 @@ theorem walCov_sync (P : WalPbIn GF) (Mr : WalMarshal)
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } ∗
-          WalFs.walSyncedLb dir h.H.length) ∨
+          WalFs.walSyncedLb dir h.inc h.H.length) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
   iintro %Φ Hpre HΦ
   by_cases hc : walCov Sio
@@ -223,7 +223,7 @@ theorem walCov_syncC (P : WalPbIn GF) (Mr : WalMarshal)
       (⌜err = GoInterface.nil⌝ ∗ walHandleC P Mr w dir j
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
           TailMetaS nmd nf ∗
-          WalFs.walSyncedLb dir h.H.length) ∨
+          WalFs.walSyncedLb dir h.inc h.H.length) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
   iintro %Φ Hpre HΦ
   by_cases hc : walCov Sio

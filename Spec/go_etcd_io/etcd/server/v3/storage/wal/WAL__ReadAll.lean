@@ -58,7 +58,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (
   InArea r dir nm → cleanAbsPath r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) qc ∗
-      walOpeningF w dir s ∗
+      walOpeningF w dir s i ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir i d ∗
           ⌜some s = walNewestPair (walValidSnaps (d.H.map WalOpG.toM) d.cut) ∧
             walOpenPos (d.H.map WalOpG.toM) s.1 ≤ d.unl⌝ }> @ walAuMask, ∅

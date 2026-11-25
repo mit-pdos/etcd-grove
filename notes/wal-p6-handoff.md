@@ -80,6 +80,30 @@
     `walOpenWS` (`walOpenWS_acquire` now yields `walHdl … γ.inc`); `CreateSrv`; the tester; P8's
     consumers; `DiscardUnsaved`. Then merge `etcd-safe-main-pin/2026-11-24` @ `3717c7903b` (coordinator,
     2026-11-25: at the next building state pushed to `etcd-safe-p6b`).
+- **2026-11-25, P6b session 5 (WIP, `etcd-safe-p6b-wip`).** Checked (lean-check, 0 errors): the sync
+  chain (`TailFsync`, `FdatasyncPend`, `TailSyncPendE`, `TailFdatasync(NE)`, `WAL__sync`, `WAL__syncNoErr`,
+  `WAL__cut`, `CalleeCov`), `CloseLaw`, `CloseLawU`, `WAL__CloseU`, the read-only pins (`ExistPin`,
+  `RepairPin`, `VsePin`, `OpenAtPin`, `ReleaseAu`, `ReleaseTie`) and their callers (`Exist`, `openLast`,
+  `openAtIndex`, `ValidSnapshotEntries`, `Unsaved`, `Open`, `OpenForRead`), `WAL__ReleaseLockTo`,
+  `WAL__CloseOpening`, `PurgeLend`, `ReadAllOpen`, `HandleLaws`, `HandleAppend`. New:
+  * **the read handle at its incarnation** (ledger 2026-11-25, "session 5", decision needed):
+    `walOpening w dir s i` (= `walHandlePI … i (.opening s)`), `walOpeningF … i`; `Open` posts
+    `walOpeningF … ic` (`walPinOut … ic`: `walInvBody_pinOut` takes the view's `walIncQ` and agrees it with
+    the lock it hands out, `walLockedTokI_incQ_agree`); `ReadAll` pre `walOpeningF … i`; `Close`'s
+    `opening` arm `∃ i`. `walHandlePI_set`; `walOpening_incLb`; `walInvBody_pastAt` (a past at the view's
+    incarnation); `walOpening_ghost_inc`/`walOpening_pastCur` (Ghost: **currency**, a past state at the
+    handle's incarnation is below the ghost's at `dir`, by the lock), used by `ReadAllSynced.walInv_tailH`
+    and `ReadAllNamed.walInv_namedBy` (both now take `walPastI (s1, I1)`, `incOf I1 dir = ic` and the
+    handle); `walInv_readCommitReg` also returns that past. `walNamed_intro_le`.
+  * methods over `walOpenWS`: `walHdl_open … γ.inc` gives `h.inc = γ.inc`; `walHandleIn_lenLb` and
+    `walHandleIn_append` take `(i) (hi : h.inc = i)`; `SaveSt`/`SaveFin` carry `inc`; `cut`'s post adds
+    `h'.inc = h.inc`; `save_post` at `γ.inc`. Edited, being checked: `WAL__Save`, `WAL__SaveSnapshot`,
+    `WAL__Sync`, `WAL__Close`, `WAL__ReadAll`, `ReadAll{Exit,Synced,Named,RegCommit}`.
+  * **left**: finish those checks; `WAL__CloseFailed`/`WAL__syncLent`/`Repair` (failed only on stale
+    dependencies so far); `Create.lean` (handoff's session-3 list); `CreateSrv`; `storage__*`; then a
+    `lake build` of `wal.Link`; WalTester (20 files use the facts), P8's consumers (`WalViews`' crash laws
+    `walDiskAt_crash*` take facts without incarnation: they need `walDiskAtI`/facts at `i` and the
+    crash's incarnation map), `DiscardUnsaved`; then the merge of `3717c7903b`.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash

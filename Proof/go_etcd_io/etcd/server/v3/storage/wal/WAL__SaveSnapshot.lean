@@ -94,12 +94,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
       walSnapAt Mr sp md al cs ∗
       ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜(Mr.encSnap md al).length < 2 ^ 40⌝ ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md al] }, COMM Q d }> }}
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir γ.inc { d with H := d.H ++ [WalOpG.snap md al] }, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"SaveSnapshot")) (Val #sp))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walLenLb w dir (d.H.length + 1) ∗ WalFs.walSyncedLb dir (d.H.length + 1)) ∨
+          WalFs.walLenLb w dir γ.inc (d.H.length + 1) ∗ WalFs.walSyncedLb dir γ.inc (d.H.length + 1)) ∨
       (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) }} := by
   wp_start as ⟨#Harea, Hw, %hq, %hcov, #Hs, %hcs, %hidx, %hsz, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
@@ -188,9 +188,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
   -- the commit
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
-  imod walTail_append walCodec Mr R jr r w dir h.γ
+  ihave Hopen : walOpenWI (W := W) w dir γ.inc $$ [Hopen]
+  · rw [← hinc]; iexact Hopen
+  imod walTail_append walCodec Mr R jr r w dir γ.inc h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) (WalOpG.snap md al) sized
     Q hfit' (snapOp_noMax md al hidx) $$ Hinv Hnc Htk Hv Hopen Hau Hstp with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
+  ihave Hopen : walOpenWI (W := W) w dir h.inc $$ [Hopen]
+  · rw [hinc]; iexact Hopen
   unfold tailVar
   imodintro
   iframe Hnc
@@ -325,9 +329,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
     rw [hmap, walLastHS_snap]; exact hD.2
   generalize hh2 : ({ h with H := h.H ++ [WalOpG.snap md al], out := out', pend := pend', sz := sz', snapi := sv, enti := ev } : WalHS) = h2
   have e2 : h2.H = h.H ++ [WalOpG.snap md al] ∧ h2.md = h.md ∧ h2.cuts = h.cuts ∧ h2.rest = h.rest ∧
-      h2.st = h.st ∧ h2.pc = h.pc ∧ h2.o0 = h.o0 ∧ h2.out = out' ∧ h2.pend = pend' := by
-    subst hh2; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  obtain ⟨eH, emd, ecuts, erest, est, epc, eo0, eout, epend⟩ := e2
+      h2.st = h.st ∧ h2.pc = h.pc ∧ h2.o0 = h.o0 ∧ h2.out = out' ∧ h2.pend = pend' ∧ h2.inc = h.inc := by
+    subst hh2; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  obtain ⟨eH, emd, ecuts, erest, est, epc, eo0, eout, epend, einc⟩ := e2
   have hroom3 : walCov Sio → h2.o0 + h2.out.length + h2.pend.length ≤ maxBytes := by
     rw [eo0, eout, epend]; exact hroom2
   have hrest3 : h2.rest = 0 := by rw [erest]; exact hD.1
@@ -366,7 +370,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
           (fun hcv => save_room_small _ _ _ (by
             have := save_hif h2.o0 h2.out.length ho3 Hif
             have := hpu2.2.1
-            simp only [List.length_append, List.length_nil]; omega))
+            simp only [List.length_append, List.length_nil]; omega)) _ (einc.trans hinc)
         iframe Hh Hr
       imodintro
       try wp_auto
@@ -382,7 +386,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
       iframe HQ
       rw [hd]
       iframe Hlb
-      rw [← hlenH]
+      rw [← hlenH, ← hinc, ← einc]
       iexact Hsyn
     · -- the sync failed (only when not covered, and then with the whole share)
       rcases err with ei | _
@@ -423,7 +427,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
       hcpos (by rw [hlenH]; omega) hsz2 hcov hroom3) $$ [Hh2] as %err Hres
     · iframe Harea Hh2
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
-    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hroom'⟩ := hh'
+    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hinc', hroom'⟩ := hh'
       subst herr
       rw [epc] at hpc'
       iapply fupd_wp
@@ -432,7 +436,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
         ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
         rw [← hpc']
         iapply walHdl_close Sio P Mr w dir h' ⟨hrest', by rw [hst', hH']; exact hst3⟩
-          (by rw [hmd', emd]; exact hmd) (fun _ => save_room_small _ _ _ hroom')
+          (by rw [hmd', emd]; exact hmd) (fun _ => save_room_small _ _ _ hroom') _ (hinc'.trans (einc.trans hinc))
         iframe Hh Hr2
       imodintro
       try wp_auto
@@ -448,7 +452,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
       iframe HQ
       rw [hd]
       iframe Hlb
-      rw [← hlenH]
+      rw [← hlenH, ← hinc, ← einc]
       iexact Hsyn
     · rcases err with ei | _
       rotate_left

@@ -88,9 +88,9 @@ theorem walHandleP_mintI (w : Loc) (dir : GoString) (m : WalMode) (I : GMap GoSt
 theorem walOpening_mint (w : Loc) (dir : GoString) (s : w64 × w64) (I : GMap GoString Nat) :
     ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTokI (W := W) I -∗
       walIncLb (W := W) dir (incOf I dir) ==∗
-      walHandleAuth (W := W) ∗ walOpening (W := W) w dir s := by
+      walHandleAuth (W := W) ∗ walOpening (W := W) w dir s (incOf I dir) := by
   unfold walOpening
-  exact walHandleP_mint w dir (.opening s) I
+  exact walHandleP_mintI w dir (.opening s) I
 
 /-- **A handle's mode changed**, its purge right and lock token kept. -/
 theorem walHandleP_set (w : Loc) (dir : GoString) (m m' : WalMode) :
@@ -114,6 +114,29 @@ theorem walHandleP_set (w : Loc) (dir : GoString) (m m' : WalMode) :
       rw [h1] at this; cases this
     exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1, h2, h3⟩
   · iexists γ, i, I; iframe Hdir Hm Hpt Hl; ipureintro; exact hi
+
+/-- `walHandleP_set` at the incarnation `i` (kept). -/
+theorem walHandlePI_set (w : Loc) (dir : GoString) (i : Nat) (m m' : WalMode) :
+    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walHandlePI (W := W) w dir i m ==∗
+      walHandleAuth (W := W) ∗ walHandlePI (W := W) w dir i m' := by
+  letI := walAllG (W := W)
+  unfold walHandleAuth walHandlePI
+  iintro ⟨%n, %Hh, %Hd, %Hp, HA, HD, HP, %Hf⟩ ⟨%γ, %I, #Hdir, Hm, Hpt, Hl, %hi⟩
+  icases ghost_map_lookup $$ HA Hm with %Hlk
+  imod ghost_map_update m' $$ HA Hm with ⟨HA, Hm⟩
+  imodintro
+  isplitl [HA HD HP]
+  · iexists n, (Hh.insert γ m'), Hd, Hp
+    iframe HA HD HP
+    ipureintro
+    intro k hk
+    obtain ⟨h1, h2, h3⟩ := Hf k hk
+    have hne : γ ≠ k := by
+      rintro rfl
+      have : Hh !! γ = some m := Hlk
+      rw [h1] at this; cases this
+    exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1, h2, h3⟩
+  · iexists γ, I; iframe Hdir Hm Hpt Hl; ipureintro; exact hi
 
 /-- **An append-mode handle as the client's** (`Create`'s handle): `walOpenW` and the purge right. -/
 theorem walHandleP_openW (w : Loc) (dir : GoString) :

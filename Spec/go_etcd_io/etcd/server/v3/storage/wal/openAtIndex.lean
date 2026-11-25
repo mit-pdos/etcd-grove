@@ -58,7 +58,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) 
         ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) ∨
        (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) ∗
-        if write then iprop(WalFs.walOpening w dir s ∗ walReadH true w dir s ∗
+        if write then iprop(WalFs.walOpening w dir s ic ∗ walReadH true w dir s ∗
           osCallPerm (callKey R r) (1 : Qp).half.half ∗ osCallPerm (callKey R r) (1 : Qp).half)
         else iprop(WalFs.walLockedTok ∗ walReadH false w dir s ∗ osCallPerm (callKey R r) 1))) }}
 

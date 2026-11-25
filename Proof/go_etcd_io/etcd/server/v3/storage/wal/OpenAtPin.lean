@@ -77,12 +77,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **What the pin hands the program** (see the file header): `walInvBody_pin`'s outputs. -/
 def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : WalDur)
-    (k : WalLay → Nat) (write : Bool) : IProp GF :=
+    (k : WalLay → Nat) (write : Bool) (ic : Nat) : IProp GF :=
   iprop(∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
-    walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
+    (∃ I, walLockedTokI (W := W) I ∗ ⌜incOf I dir = ic⌝) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
       if write then [dir] else []⟩ ∗
     ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
@@ -92,19 +92,25 @@ def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : 
 /-- **The pin, as `walPinOut`** (`walInvBody_pin` repackaged). -/
 theorem walInvBody_pinOut (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d)
-    (k : WalLay → Nat) (write : Bool) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walPinOut (L := L) (W := W) C Mr jr dir d k write := by
-  iintro Hb Hu
+    (k : WalLay → Nat) (write : Bool) (ic : Nat) (I0 : GMap GoString Nat) (hI0 : incOf I0 dir = ic) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) -∗ walIncQ (W := W) I0 ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walIncQ (W := W) I0 ∗
+        walPinOut (L := L) (W := W) C Mr jr dir d k write ic := by
+  iintro Hb Hu HI
   imod walInvBody_pin C Mr R jr r s dir d hd k write $$ Hb Hu with
     ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj, Ht⟩
   obtain ⟨-, h1, h2, h3, h4, h5, h6⟩ := hp
+  iunfold walLockedTok at Hl
+  icases Hl with ⟨%I, Hl⟩
+  icases walLockedTokI_incQ_agree I I0 $$ Hl HI with ⟨Hl, HI, %hII⟩
   imodintro
-  iframe Hb
+  iframe Hb HI
   unfold walPinOut
   iexists lay, X, hj
-  iframe Hkey Hl Htf Hnf Ho HS Hj Ht
-  ipureintro; exact ⟨h1, h2, h3, h4, h5, h6⟩
+  iframe Hkey Htf Hnf Ho HS Hj Ht
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6⟩
+  iexists I; iframe Hl; ipureintro; rw [hII]; exact hI0
 
 /-- The program's map is below the invariant's state. -/
 theorem walInvBody_mapLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -135,7 +141,7 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
       ∃ o : Option WalDur, Q o ∗
         ((⌜o = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
-         (⌜o ≠ none⌝ ∗ ∃ d, walPinOut (L := L) (W := W) C Mr jr dir d (walOpenK idx) write)) := by
+         (⌜o ≠ none⌝ ∗ ∃ d, walPinOut (L := L) (W := W) C Mr jr dir d (walOpenK idx) write ic)) := by
   iintro #Hinv #Hsi Hnc Hu Hau Hn Hsf
   imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   imod walInvBody_areaAt C Mr R jr r s dir nm N dq h Wn hin hN walN_osShN_top' $$ Hb Hsi Hn Hsf
@@ -177,9 +183,10 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       exact ⟨ds, hds, walDurLe_trans hle0 hle1⟩
     cases write with
     | false =>
+      imod walInvBody_pinOut C Mr R jr r s dir ds hsd (walOpenK idx) false ic I hic $$ Hb Hu HI
+        with ⟨Hb, HI, Hp⟩
       imod Hcommit $$ [HM HI] with HQ
       · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
-      imod walInvBody_pinOut C Mr R jr r s dir ds hsd (walOpenK idx) false $$ Hb Hu with ⟨Hb, Hp⟩
       imod Hcl $$ [Hb] with -
       · iexists s; iexact Hb
       imodintro
@@ -194,6 +201,8 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       imod walInvBody_unl C Mr R jr r s dir (walOpenPos (dc.H.map WalOpG.toM) idx) M $$ Hb HM
         with ⟨-, Hb, HM, -⟩
       have hsd' := unlSt_lookup_self s dir (walOpenPos (dc.H.map WalOpG.toM) idx) ds hsd
+      imod walInvBody_pinOut C Mr R jr r _ dir _ hsd' (walOpenK idx) true ic I hic $$ Hb Hu HI
+        with ⟨Hb, HI, Hp⟩
       imod Hcommit $$ [HM HI] with HQ
       · iexists (unlSt s dir (walOpenPos (dc.H.map WalOpG.toM) idx)).wal, I
         iframe HM HI
@@ -201,7 +210,6 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
         refine ⟨?_, hic⟩
         simp only [ite_true, Option.map_some, hsd', walOptLe]
         exact walDurLe_unl _ hle
-      imod walInvBody_pinOut C Mr R jr r _ dir _ hsd' (walOpenK idx) true $$ Hb Hu with ⟨Hb, Hp⟩
       imod Hcl $$ [Hb] with -
       · iexists _; iexact Hb
       imodintro

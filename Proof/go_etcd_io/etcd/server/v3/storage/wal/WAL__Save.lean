@@ -76,16 +76,17 @@ lock (`walHdl`, the fresh room when covered). -/
 theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN) (hs : HardStateM)
     (es : List EntryM) (Q : WalDur → IProp GF) (h hc : WalHS)
     (hD : hc.Done) (hmd : hc.md.length < 2 ^ 41)
-    (hroom : walCov Sio → hc.o0 + hc.out.length + hc.pend.length + walFreshRoom ≤ maxBytes) :
+    (hroom : walCov Sio → hc.o0 + hc.out.length + hc.pend.length + walFreshRoom ≤ maxBytes)
+    (hinc : hc.inc = γ.inc) :
     ⊢ walHandleIn (W := W) P Mr w dir hc TailMetaW -∗ ⧗ hc.pc -∗
-      WalFs.walLenLb w dir (h.H.length + 1) -∗
+      WalFs.walLenLb w dir γ.inc (h.H.length + 1) -∗
       (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) -∗
-      (⌜walMustSync (h.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (h.H.length + 1)) -∗
-      (walHdl (W := W) Sio P Mr w dir ∗ ∃ d : WalDur, Q d ∗ WalFs.walLenLb w dir (d.H.length + 1) ∗
-        (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (d.H.length + 1))) := by
+      (⌜walMustSync (h.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir γ.inc (h.H.length + 1)) -∗
+      (walHdl (W := W) Sio P Mr w dir γ.inc ∗ ∃ d : WalDur, Q d ∗ WalFs.walLenLb w dir γ.inc (d.H.length + 1) ∗
+        (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir γ.inc (d.H.length + 1))) := by
   iintro Hh Hr #Hlb ⟨%d, HQ, %hd⟩ Hs
   isplitl [Hh Hr]
-  · iapply walHdl_close Sio P Mr w dir hc hD hmd hroom
+  · iapply walHdl_close Sio P Mr w dir hc hD hmd hroom _ hinc
     iframe Hh Hr
   iexists d
   rw [hd]
@@ -267,7 +268,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
         exact List.eq_nil_of_length_eq_zero (by omega)
       subst hes
       simpa [saveHS] using h0)
-    (saveOp_noMax hs es hidx) TailMetaW $$ Harea Hnc Hh Hau Hst with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
+    (saveOp_noMax hs es hidx) γ.inc hinc TailMetaW $$ Harea Hnc Hh Hau Hst with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
   imodintro
   iframe Hnc
   icases HQ with ⟨%dq, HQ, %hdq⟩
@@ -309,7 +310,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     have hf := SaveSt.finEmpty hs0 hD ⟨rfl, hse⟩
     rw [← hs0.pc]
     ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir γ hs [] Q h h1 hf.done
-      (by rw [hf.md]; exact hmd) hroom1 $$ Hh Hr Hlb HQ []
+      (by rw [hf.md]; exact hmd) hroom1 (hf.inc.trans hinc) $$ Hh Hr Hlb HQ []
     · iintro %hm
       exfalso
       rcases hm with hm | ⟨hm, -⟩
@@ -403,7 +404,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   · iexists W64 0, _, { h1 with stNil := false }
     iframe
     ipureintro
-    refine ⟨⟨hs0.H, hs0.md, hs0.cuts, hs0.rest, hs0.st, hs0.snapi, hs0.pc, hs0.enti0, hs0.entiS⟩, ?_,
+    refine ⟨⟨hs0.H, hs0.md, hs0.cuts, hs0.rest, hs0.st, hs0.snapi, hs0.pc, hs0.inc, hs0.enti0, hs0.entiS⟩, ?_,
       ⟨by decide, Nat.zero_le _⟩, rfl⟩
     intro hc
     have := hk hc
@@ -652,7 +653,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
         (by rw [hf.md]; exact hmd)
         (fun hc => save_room_small _ _ _ (by
           have := save_hif hc2.o0 hc2.out.length ho3 Hif; have := hroom2 hc; omega))
-        $$ Hh Hr Hlb HQ []
+        (hf.inc.trans hinc) $$ Hh Hr Hlb HQ []
       · iintro %hm
         exfalso
         refine not_walMustSync _ _ _ ?_ hm
@@ -692,9 +693,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
             have := save_hif hc2.o0 hc2.out.length ho3 Hif
             have := hroom2 hc
             simp only [List.length_append, List.length_nil]; omega))
-          $$ Hh Hr Hlb HQ []
+          (hf.inc.trans hinc) $$ Hh Hr Hlb HQ []
         · iintro -
-          rw [hlenH]; iexact Hsyn
+          rw [hlenH, ← hinc, ← hf.inc]; iexact Hsyn
         iapply fupd_wp
         imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hhdl] with ⟨Hw, Hlocked⟩
         · iframe Hpers Hheld Hhdl
@@ -743,15 +744,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       (by rw [hf.H]; simp) hsz2 hcov hroom2) $$ [Hh] as %err Hres
     · iframe Harea Hh
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
-    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hroom'⟩ := hh'
+    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hinc', hroom'⟩ := hh'
       subst herr
       rw [← hpc'] at *
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
       ihave ⟨Hhdl, Hpost⟩ := save_post (Sio := Sio) P Mr w dir γ hs es Q h h'
         ⟨hrest', by rw [hst', hH']; exact hf.st⟩
-        (by rw [hmd', hf.md]; exact hmd) (fun _ => save_room_small _ _ _ hroom') $$ Hh Hr2 Hlb HQ []
+        (by rw [hmd', hf.md]; exact hmd) (fun _ => save_room_small _ _ _ hroom') (hinc'.trans (hf.inc.trans hinc)) $$ Hh Hr2 Hlb HQ []
       · iintro -
-        rw [hlenH]; iexact Hsyn
+        rw [hlenH, ← hinc, ← hf.inc]; iexact Hsyn
       iapply fupd_wp
       imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hhdl] with ⟨Hw, Hlocked⟩
       · iframe Hpers Hheld Hhdl

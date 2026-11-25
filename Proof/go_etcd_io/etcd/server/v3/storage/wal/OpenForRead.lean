@@ -32,7 +32,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.OpenForRead.wp_proof (Mr : WalMars
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   try wp_auto
-  wp_apply wp_open lg R jr r dir nm sp s false qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
+  wp_apply wp_open lg R jr r dir nm sp s false qp Q ic hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %w %err ⟨Hp, Hres, %o, HQ, Hr⟩
   · iframe; iframe #
   iapply HΦ

@@ -30,17 +30,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- The ghost handle's mode set to `append`, on the invariant's contents. -/
 theorem walInvBody_appendOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walOpening (W := W) w dir sn ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walOpenW (W := W) w dir ∗ walPurgeW (W := W) w dir := by
+    (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walOpening (W := W) w dir sn ic ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walOpenWI (W := W) w dir ic ∗ walPurgeW (W := W) w dir := by
   iintro Hb Ho
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
   unfold walOpening
-  imod walHandleP_set (W := W) w dir (.opening sn) .append $$ Ha Ho with ⟨Ha, Ho⟩
+  imod walHandlePI_set (W := W) w dir ic (.opening sn) .append $$ Ha Ho with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
-  ihave Ho := walHandleP_openW (W := W) w dir $$ Ho
+  ihave Ho := walHandlePI_openWI (W := W) w dir ic $$ Ho
   imodintro
   iframe Ho
   iexists Ls, cl, n, F
@@ -48,16 +48,16 @@ theorem walInvBody_appendOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (j
 
 /-- **`ReadAll` succeeded: the ghost handle `append`** (see the file header). -/
 theorem walInv_appendOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (sn : w64 × w64) :
+    (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walOpening (W := W) w dir sn ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗
-        (walOpenW (W := W) w dir ∗ walPurgeW (W := W) w dir) := by
+      walOpening (W := W) w dir sn ic ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗
+        (walOpenWI (W := W) w dir ic ∗ walPurgeW (W := W) w dir) := by
   iintro #Hinv Hnc Ho
-  iapply walInv_step C Mr R jr r (walOpening (W := W) w dir sn)
-    iprop(walOpenW (W := W) w dir ∗ walPurgeW (W := W) w dir) ⊤
+  iapply walInv_step C Mr R jr r (walOpening (W := W) w dir sn ic)
+    iprop(walOpenWI (W := W) w dir ic ∗ walPurgeW (W := W) w dir) ⊤
     CoPset.subseteq_top (fun s => by
       iintro Hb Ho
-      imod walInvBody_appendOpening C Mr R jr r s w dir sn $$ Hb Ho with ⟨Hb, Ho⟩
+      imod walInvBody_appendOpening C Mr R jr r s w dir sn ic $$ Hb Ho with ⟨Hb, Ho⟩
       imodintro
       iframe)
     $$ Hinv Hnc Ho

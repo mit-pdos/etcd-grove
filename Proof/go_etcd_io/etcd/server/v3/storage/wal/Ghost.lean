@@ -870,9 +870,10 @@ theorem walTailKey_excl (dir : GoString) (γ γ' : GName) :
 @[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
   iprop(∃ i : Nat, walOpenWI (W := W) w dir i)
 
-/-- **`w` is the WAL opened in `dir` for reading at the snapshot `s`.** Sealed. -/
-@[no_expose] def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
-  walHandleP (W := W) w dir (.opening s)
+/-- **`w` is the WAL opened in `dir` for reading at the snapshot `s`**, at the incarnation `i` (the
+lock's, pinned when `Open` committed). Sealed. -/
+@[no_expose] def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) : IProp GF :=
+  walHandlePI (W := W) w dir i (.opening s)
 
 /-- **`w`'s `ReadAll` in `dir` failed.** Sealed. -/
 @[no_expose] def walReadFailed (w : Loc) (dir : GoString) : IProp GF :=
@@ -1490,6 +1491,16 @@ theorem walIncLb_zero (dir : GoString) : ⊢@{IProp GF} walIncLb (W := W) dir 0 
 
 /-- **A synced lower bound at a reached incarnation** `i`, from a past state where the WAL's synced
 prefix is `n` long (a step's: `i` is its incarnation, or retired). -/
+theorem walNamed_intro_le (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (d : WalDur)
+    (i : Nat) (hd : s.wal !! dir = some d) (hn : d.named = true) (hi : i ≤ incOf I dir) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walNamed (W := W) dir i := by
+  unfold walNamed
+  iintro #Hs
+  iexists s, I; iframe Hs; ipureintro
+  rcases Nat.lt_or_eq_of_le hi with h | h
+  · exact Or.inr h
+  · exact Or.inl ⟨h.symm, d, hd, hn⟩
+
 theorem walSyncedLb_intro_le (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (d : WalDur)
     (i n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.m) (hi : i ≤ incOf I dir) :
     ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walSyncedLb (W := W) dir i n := by
@@ -1629,15 +1640,15 @@ theorem walOpenWI_lenLb (w : Loc) (dir : GoString) (i : Nat) (s : AbsDiskState) 
     · iexists i; iexact Hw
     ipureintro; exact Or.inl ⟨hi, d, hd, hn⟩
 
-theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState)
+theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (i : Nat) (s : AbsDiskState)
     (I : GMap GoString Nat) (d : WalDur)
     (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
-    ⊢@{IProp GF} walOpening (W := W) w dir sn -∗ walPastI (W := W) (s, I) -∗
-      walOpening (W := W) w dir sn ∗ walLenLb (W := W) w dir (incOf I dir) n := by
-  unfold walOpening walHandleP walLenLb walHandleDir
-  iintro ⟨%γ, %i, %I', #Hw, Hm, Hp, Hu, %hi⟩ #Hs
+    ⊢@{IProp GF} walOpening (W := W) w dir sn i -∗ walPastI (W := W) (s, I) -∗
+      walOpening (W := W) w dir sn i ∗ walLenLb (W := W) w dir (incOf I dir) n := by
+  unfold walOpening walHandlePI walLenLb walHandleDir
+  iintro ⟨%γ, %I', #Hw, Hm, Hp, Hu, %hi⟩ #Hs
   isplitl [Hm Hp Hu]
-  · iexists γ, i, I'; iframe Hw Hm Hp Hu; ipureintro; exact hi
+  · iexists γ, I'; iframe Hw Hm Hp Hu; ipureintro; exact hi
   · iexists γ, s, I; iframe Hs
     isplitl
     · iexists i; iexact Hw
@@ -1807,6 +1818,25 @@ theorem walGhostI_lockedI_agree (s : AbsDiskState) (I I' : GMap GoString Nat) :
   iframe Hm Hp Hi Hr Ht Hf Hc Hq
   ipureintro; rfl
 
+theorem walLockedTokI_tok (I : GMap GoString Nat) :
+    walLockedTokI (W := W) I ⊢ walLockedTok (W := W) := by
+  unfold walLockedTok
+  iintro H
+  iexists I
+  iexact H
+
+/-- **The lock's incarnations are a view's** (both quarters of the ghost's). -/
+theorem walLockedTokI_incQ_agree (I I' : GMap GoString Nat) :
+    ⊢@{IProp GF} walLockedTokI (W := W) I -∗ walIncQ (W := W) I' -∗
+      walLockedTokI (W := W) I ∗ walIncQ (W := W) I' ∗ ⌜I = I'⌝ := by
+  unfold walLockedTokI walIncQ
+  letI := walAllG (W := W)
+  iintro ⟨Ht, Hf, Hc, Hq⟩ Hi
+  icases ghostVar_agree $$ Hq Hi with %e
+  subst e
+  iframe Ht Hf Hc Hq Hi
+  ipureintro; rfl
+
 /-- **`walGhost` at a view's incarnation**: the view's `i` is the ghost's. -/
 theorem walGhost_dirIsI (s : AbsDiskState) (dir : GoString) (i : Nat) (o : Option WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walDirIsI (W := W) dir i o -∗
@@ -1830,6 +1860,15 @@ theorem walGhostI_openWI (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (d
   ipureintro; exact h
 
 /-- **An open handle's incarnation is reached.** -/
+theorem walOpening_incLb (w : Loc) (dir : GoString) (sn : w64 × w64) (i : Nat) :
+    walOpening (W := W) w dir sn i ⊢ walOpening (W := W) w dir sn i ∗ walIncLb (W := W) dir i := by
+  unfold walOpening walHandlePI
+  iintro ⟨%γ, %I, #Hd, Hm, Hp, Hl, %h⟩
+  ihave #Hil := walHandleDirI_incLb w dir i γ $$ Hd
+  iframe Hil
+  iexists γ, I; iframe Hd Hm Hp Hl
+  ipureintro; exact h
+
 theorem walOpenWI_incLb (w : Loc) (dir : GoString) (i : Nat) :
     walOpenWI (W := W) w dir i ⊢ walOpenWI (W := W) w dir i ∗ walIncLb (W := W) dir i := by
   unfold walOpenWI walHandleStI
@@ -1877,6 +1916,35 @@ theorem walPastI_ghost_le (s : AbsDiskState) (I : GMap GoString Nat) (p : AbsDis
   unfold walGhostI
   iintro ⟨-, ⟨HP, -⟩, -⟩ Hp
   iapply walPastI_le $$ HP Hp
+
+/-- **The opening handle's incarnation is the ghost's** (its lock quarter). -/
+theorem walOpening_ghost_inc (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (dir : GoString)
+    (sn : w64 × w64) (i : Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walOpening (W := W) w dir sn i -∗
+      walGhostI (W := W) s I ∗ walOpening (W := W) w dir sn i ∗ ⌜incOf I dir = i⌝ := by
+  unfold walOpening walHandlePI
+  iintro Hg ⟨%γ, %I', #Hd, Hm, Hp, Hl, %hi⟩
+  icases walGhostI_lockedI_agree s I I' $$ Hg Hl with ⟨Hg, Hl, %e⟩
+  iframe Hg
+  isplitl [Hm Hp Hl]
+  · iexists γ, I'; iframe Hd Hm Hp Hl; ipureintro; exact hi
+  ipureintro; rw [← e]; exact hi
+
+/-- **A past state at the opening handle's incarnation is below the ghost's at `dir`** (the handle's
+lock pins the incarnation, so `walLeI`'s WAL conjunct applies). -/
+theorem walOpening_pastCur (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (dir : GoString)
+    (sn : w64 × w64) (i : Nat) (p : AbsDiskState) (I0 : GMap GoString Nat) (hI0 : incOf I0 dir = i) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walOpening (W := W) w dir sn i -∗ walPastI (W := W) (p, I0) -∗
+      walGhostI (W := W) s I ∗ walOpening (W := W) w dir sn i ∗
+      ⌜∀ d, p.wal !! dir = some d → ∃ d', s.wal !! dir = some d' ∧ d.m ≤ d'.m ∧
+        d.H.length ≤ d'.H.length ∧ (d.named = true → d'.named = true)⌝ := by
+  iintro Hg Ho #Hp
+  icases walOpening_ghost_inc s I w dir sn i $$ Hg Ho with ⟨Hg, Ho, %hi⟩
+  icases walPastI_ghost_le s I (p, I0) $$ Hg Hp with %hle
+  iframe Hg Ho
+  ipureintro
+  intro d hd
+  exact hle.2.2.2 dir d hd (hi.trans hI0.symm)
 
 /-- **A reached incarnation is at most the ghost's.** -/
 theorem walIncLb_ghost (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (i : Nat) :

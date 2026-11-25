@@ -76,13 +76,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (Q : WalDur → IProp GF) :
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ 1 ∗ WalFs.walPurgeW w dir ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir d, COMM Q d }> }}
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir γ.inc d, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
+          WalFs.walSyncedLb dir γ.inc d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
         ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
   wp_start as ⟨#Harea, Hw, Hpw, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ 1 $$ Hw with ⟨Hw, #Hpers⟩
@@ -125,7 +125,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt0
   simp only [decide_eq_false hltn]
   (try wp_auto)
-  wp_apply (walCov_syncC P Mr wp_syncC wp_syncCNE R jr r w dir j h (fun _ _ _ => WalFs.walNamed (W := W) dir) none
+  wp_apply (walCov_syncC P Mr wp_syncC wp_syncCNE R jr r w dir j h (fun _ _ _ => WalFs.walNamed (W := W) dir h.inc) none
       hD.1 (fun hc => by have := hroom hc; omega)) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
       Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp Hopen] as %err Hpost
   · iframe Harea
@@ -135,6 +135,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
       Hlocks Hls Hcap Hlks Hltf Hfp Henv Hcrc Hwpk Hopen
     ipureintro; exact ⟨Hen, Hlt, Hpure⟩
   icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | %Herr)
+  ihave #Hsy' : WalFs.walSyncedLb (W := W) dir γ.inc h.H.length $$ [Hsy]
+  · rw [← hinc]; iexact Hsy
   rotate_left
   · -- the sync failed: returned before the locks, the whole share spent
     rcases err with ei | _
@@ -342,9 +344,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   iintro Hnc
   imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLaw (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
-    b (pipeTmp (np + 1)) Q hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc
-    Hout Htf Hnf Hopen Hpw Hsy Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩
+    b (pipeTmp (np + 1)) Q γ.inc hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc
+    Hout Htf Hnf [Hopen] Hpw Hsy' Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩
   · unfold tailVar; iexact Hv2
+  · rw [← hinc]; iexact Hopen
   imodintro
   iframe Hnc
   -- the directory's `Close` (no error when covered)

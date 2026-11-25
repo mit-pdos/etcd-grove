@@ -110,7 +110,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walInv_releaseLks walCodec Mr R jr r dir a
-    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q j X hj h.γ
+    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q γ.inc j X hj h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) γt b hlkr.2.1
     $$ Hinv Hnc Hau Hdk Hcl Htk [Hv] Htf with ⟨Hnc, HQ, Hcl, Htk, Hv, %b', Htf, %hb'⟩
   · unfold tailVar; iexact Hv

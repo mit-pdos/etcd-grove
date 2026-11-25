@@ -42,11 +42,13 @@ theorem walOpenWF_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStri
 update; see the file header). -/
 theorem walHandleIn_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (P : WalPbIn GF) (E : CoPset) (hE : ↑walN ⊆ E) (w : Loc) (dir : GoString) (h : WalHS) (n : Nat)
+    (i : Nat) (hi : h.inc = i)
     (tm : OsMeta → List ByteG → Prop := TailMeta) :
     ⊢ walAreaOk C Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      walHandleIn (W := W) P Mr w dir h tm -∗ walLenLb (W := W) w dir h.inc n -∗
+      walHandleIn (W := W) P Mr w dir h tm -∗ walLenLb (W := W) w dir i n -∗
       |={E}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walHandleIn (W := W) P Mr w dir h tm ∗
         ⌜n ≤ h.H.length⌝ := by
+  subst hi
   letI := walAllG (W := W)
   iintro #Harea Hnc Hh #Hn
   unfold walAreaOk

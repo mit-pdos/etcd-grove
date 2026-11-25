@@ -55,6 +55,13 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `cutTail`) post `walSyncedLb dir h.inc …`; the tail's fdatasync lemmas take a persistent `walIncLb dir ic`
   ("the incarnation has reached `ic`"), which every ghost handle carries (`walHandleDirI`), so a sync's synced fact
   needs no share of the incarnation map.
+- **The read handle at its incarnation (session 5, proposed; decision needed).** `ReadAll`'s success post
+  `walOpenWFI … i` needs the opening handle's incarnation to be the update's `i`, but `walOpening`/`walOpeningF`
+  hid it. Change: `walOpening w dir s i` (`walHandlePI … i (.opening s)`), `walOpeningF w dir s i`; `Open`'s
+  success post is `walOpeningF w dir s ic` (the lock is taken in the same step as the update commits, so its
+  incarnation is the view's: `walPinOut … ic`, `walLockedTokI_incQ_agree`); `ReadAll` takes `walOpeningF w dir s i`
+  with its update at `i`; `Close`'s `opening s` arm takes `∃ i, walOpening w dir s i`. `walNamed` from
+  `walInvBody_namedBy` at `i` takes the handle's `walIncLb dir i` (as the syncs do).
 
 ## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
 

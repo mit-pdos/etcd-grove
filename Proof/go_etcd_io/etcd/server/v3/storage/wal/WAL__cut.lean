@@ -234,14 +234,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       (cutSynced { h with sz := h.o0 + h.out.length }).enti = h.enti ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).snapi = h.snapi ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pc = h.pc ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).inc = h.inc ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pend = [] ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).stNil = h.stNil ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).sz =
         (cutSynced { h with sz := h.o0 + h.out.length }).o0 +
           (cutSynced { h with sz := h.o0 + h.out.length }).out.length :=
-    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
   generalize cutSynced { h with sz := h.o0 + h.out.length } = h1 at hh1e ⊢
-  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1pend, h1stNil, h1sz⟩ := hh1e
+  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1inc, h1pend, h1stNil, h1sz⟩ := hh1e
   -- step 3: the name
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -661,6 +662,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hcl' with ⟨Hcl1, Hcl2⟩
   icases (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI ht).1
     $$ Hn2 with ⟨Hn2b, Hn2a⟩
+  rw [h1inc]
   icases (walOpenWI_cut w dir h.inc).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
   ihave #Hinv : walInv (W := W) walCodec Mr R jr r $$ [Harea]
   · iunfold WalFs.walAreaOk at Harea; icases Harea with ⟨#H, -, -⟩; iexact H

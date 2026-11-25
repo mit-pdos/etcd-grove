@@ -337,8 +337,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLawU (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts
     (h.o0 + (h.out ++ h.pend).length) m2 bs2 b (pipeTmp (np + 1)) hp2.2.1 hwr hb (pipeTmp_memU _)
-    $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc Hout Htf Hopen Hpw with ⟨Hnc, Hunl⟩
+    $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc Hout Htf [Hopen] Hpw with ⟨Hnc, Hunl⟩
   · unfold tailVar; iexact Hv2
+  · iapply walOpenWI_openW w dir _ $$ Hopen
   imodintro
   iframe Hnc
   -- the directory's `Close`

@@ -87,8 +87,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
   -- the lock token, out of the ghost handle
   ihave Hl := walReadFailed_lockedTok w dir $$ Hfail
-  unfold walLockedTok
-  icases Hl with ⟨Hlt, Hpf, Hcf⟩
+  unfold walLockedTok walLockedTokI
+  icases Hl with ⟨%Il, Hlt, Hpf, Hcf, HIl⟩
   ihave #HltL := (BigSepL.bigSepL_snoc (PROP := IProp GF)).1 $$ Hlks
   icases HltL with ⟨-, #HltL⟩
   have hll : (ls ++ [lt]).length = (gs0 ++ [gL]).length := by simp [hlsl]
@@ -187,9 +187,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         intro g hg
         rcases List.mem_append.1 hg with hg | hg
         · exact hsz0 g hg
-        · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf] [Htf Hnf] [Hout]
+        · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
         [Hsegs HsT] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-    · unfold walLockedTok; iframe
+    · unfold walLockedTok walLockedTokI; iexists Il; iframe
     · iframe
     · iapply walOutFrag_eq' (W := W) $$ Hout
       ipureintro
@@ -395,9 +395,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
           intro g hg
           rcases List.mem_append.1 hg with hg | hg
           · exact hsz0 g hg
-          · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf] [Htf Hnf] [Hout]
+          · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
           [Hsegs HsT] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-      · unfold walLockedTok; iframe
+      · unfold walLockedTok walLockedTokI; iexists Il; iframe
       · iframe
       · iapply walOutFrag_eq' (W := W) $$ Hout
         ipureintro
@@ -598,9 +598,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
           intro g hg
           rcases List.mem_append.1 hg with hg | hg
           · exact hsz0 g hg
-          · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf] [Htf Hnf] [Hout]
+          · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
           [Hsegs HsT] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-      · unfold walLockedTok; iframe
+      · unfold walLockedTok walLockedTokI; iexists Il; iframe
       · iframe
       · iapply walOutFrag_eq' (W := W) $$ Hout
         ipureintro

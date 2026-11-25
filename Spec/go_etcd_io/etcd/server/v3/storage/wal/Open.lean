@@ -56,7 +56,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.Open.spec (Mr : WalMarshal) : Prop 
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ ∃ o : Option WalDur, Q o ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R r) 1) ∨
-       (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗ walOpeningF w dir s ∗ osCallPerm (callKey R r) (1 : Qp).half)) }}
+       (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗ walOpeningF w dir s ic ∗ osCallPerm (callKey R r) (1 : Qp).half)) }}
 
 end spec
 

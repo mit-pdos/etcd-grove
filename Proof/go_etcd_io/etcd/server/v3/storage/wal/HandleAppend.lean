@@ -158,16 +158,17 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
       ((opDs Mr (wop h.H o)).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
         max (uint.nat h.enti) (uint.nat h.snapi)) ∧
       walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi)
-    (hox : ¬ walHasMaxIdx [o.toM])
+    (hox : ¬ walHasMaxIdx [o.toM]) (i : Nat) (hi : h.inc = i)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       walHandleIn (W := W) P Mr w dir h tm -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir h.inc d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ walDiskAtI (W := W) dir h.inc { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (h.H.length + 1) -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir i d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir i { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (h.H.length + 1) -∗
       |={⊤}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
         walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [o], rest := (opDs Mr (wop h.H o)).length } tm ∗
-        walLenLb (W := W) w dir h.inc (h.H.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) ∗
+        walLenLb (W := W) w dir i (h.H.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) ∗
         ⌜(∀ b ∈ h.cuts, walCutPos (h.H.map WalOpG.toM) b) ∧ h.cuts.Pairwise (· < ·)⌝ := by
+  subst hi
   letI := walAllG (W := W)
   iintro #Harea Hnc Hh Hau #Hst
   unfold walAreaOk
