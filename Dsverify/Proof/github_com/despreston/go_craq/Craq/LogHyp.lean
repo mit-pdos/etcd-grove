@@ -92,6 +92,27 @@ proof has it only from `LogDefault.spec`. A `*Logger` made otherwise (`new(log.L
 `out` is nil) panics in `Printf`/`Println` (`notes/axiom-review/dsv-fix6/log-logger-2.md`). -/
 opaque StdLogger : Loc → Prop
 
+/-- A `Printf` format whose every directive ends in one of the verbs `v s q x X d` or is `%%`, with
+only flags (`+ - # space 0`), width and precision digits and `.` before it: no `*`, no `%[n]`, no
+trailing `%` (state `true`: inside a directive). Under other verbs (`%t`, `%e`, ...) `fmt` reprints a
+pointer at depth ≥ 1 through `badVerb` at depth 0, dereferencing it, which `errLeaf`'s pointers do not
+allow (`notes/axiom-review/dsv-fix6/log-logger-3.md`). -/
+def FmtVerbsOk.go : Bool → List w8 → Bool
+  | false, [] => true
+  | true, [] => false
+  | false, c :: r => if c = 37 then FmtVerbsOk.go true r else FmtVerbsOk.go false r
+  | true, c :: r =>
+    if c ∈ ([118, 115, 113, 120, 88, 100, 37] : List w8) then FmtVerbsOk.go false r
+    else if c ∈ ([43, 45, 35, 32, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 46] : List w8) then
+      FmtVerbsOk.go true r
+    else false
+
+/-- See `FmtVerbsOk.go`. -/
+def FmtVerbsOk (msg : GoString) : Prop := FmtVerbsOk.go false msg = true
+
+instance (msg : GoString) : Decidable (FmtVerbsOk msg) :=
+  inferInstanceAs (Decidable (FmtVerbsOk.go false msg = true))
+
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {hlc : HasLC} (GF : BundledGFunctors) [HeapGS hlc GF]
@@ -105,9 +126,9 @@ abbrev LogDefault.spec : Prop :=
   {{ (l : Loc), RET #l; ⌜l ≠ null ∧ StdLogger l⌝ }}
 
 /-- `l.Printf(format, args...)` on the standard logger (`StdLogger l`; a nil or zero `*Logger`
-panics) and operands `argOk` allows, which it gives back. A `Logger` is safe for concurrent use: no ownership of it. -/
+panics), a format `FmtVerbsOk` allows and operands `argOk` allows, which it gives back. A `Logger` is safe for concurrent use: no ownership of it. -/
 abbrev LoggerPrintf.spec : Prop :=
-  ∀ (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac), StdLogger l →
+  ∀ (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac), StdLogger l → FmtVerbsOk msg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
     (App (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Printf")) (Val #msg))
       (Val #arg))
@@ -163,3 +184,4 @@ end printf
 end github_com.despreston.go_craq
 
 end Perennial
+

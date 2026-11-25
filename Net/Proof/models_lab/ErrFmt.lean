@@ -5,7 +5,7 @@ only persistent memory. Go's `fmt` (`print.go`, `handleMethods`, `printValue`) c
 `Format` under every verb and `GoString` under `%#v`; under `%#v` it dereferences a top-level pointer
 to a struct and visits the struct's fields (depth 1), calling the same methods of an exported field's
 value and, for an interface field, of its dynamic value (depth 2), where a pointer is printed as an
-address (nothing read) and a struct's fields are visited again. So `errFmt e` asks: `e`'s type has
+address (nothing read; under the verbs `v s q x X d` only: other verbs reprint it through `badVerb`, dereferencing it, so a `Printf` using `errFmt` asks for those verbs, craq's `FmtVerbsOk`) and a struct's fields are visited again. So `errFmt e` asks: `e`'s type has
 neither `Format` nor `GoString` (it implements neither `fmt.Formatter` nor `fmt.GoStringer`), and `e`
 is one of the shapes the net world's errors take, with the memory `%#v` reads persistent:
 * `ServerError` (net/rpc's, a string type: printed as a quoted string);
