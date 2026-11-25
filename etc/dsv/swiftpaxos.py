@@ -105,7 +105,9 @@ def special(g):
 v1.3.1's `util.go`; dsv-retire-2, 2026-11-25: until then names only, its `wp_initialize'` a
 trust-boundary axiom).''',
         alloc_types={'xvalues': 'GoArray w8 256'},
-        before={'xvalues': ['try wp_auto']})
+        before={'xvalues': ['try wp_auto']},
+        # the literal's 256 nested `Let`s
+        rec_depth=100000, heavy=True)
     SPECIAL[f'{SWIFT}.dlog'] = dict(
         doc='''Its fact is `True`. Its initializer initializes its imports, allocates `DLOG` and stores
 `false`.''',

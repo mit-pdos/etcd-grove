@@ -39,6 +39,8 @@ variable [package_sem : _root_.Perennial.github_com.google.uuid.Assumptions]
 
 namespace github_com.google.uuid
 
+set_option maxHeartbeats 8000000 in
+set_option maxRecDepth 100000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.github_com.google.uuid get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
