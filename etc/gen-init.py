@@ -2226,7 +2226,8 @@ literal) and initializes its imports.''',
             'iStructNamed HDriver_ServiceDesc', 'iframe Hown', 'is_pkg_init_finish'] +
            ['try imodintro', 'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.drvDescs go_etcd_io.etcd.cache.v3.pbDescIs',
             'iframe #',
-            'first | (ipureintro; exact ⟨rfl, rfl⟩) | exact ⟨rfl, rfl⟩'])
+            'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
+            'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩'])
 
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service

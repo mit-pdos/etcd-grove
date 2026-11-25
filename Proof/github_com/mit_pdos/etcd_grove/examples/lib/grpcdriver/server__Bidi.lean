@@ -53,7 +53,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
   iapply HRecv $$ %R [HRt]
   · iexact HRt
   iintro !> %req %err Hres
-  icases Hres with (⟨%Herr, %m, Hm, -, HRt⟩ | ⟨#Heof, %Hne, HRt, #Hcl⟩ |
+  icases Hres with (⟨%Herr, %m, Hm, -, HRt⟩ | ⟨#Heof, %Hne, HRt, -⟩ |
     ⟨%Hne, #Hse, #Hso, HRt, -⟩)
   · -- a request: sent back
     subst Herr

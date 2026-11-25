@@ -39,10 +39,6 @@ theorem server.ServerStream.wp_proof
   subst Hsi
   iunfold srvRecvTok at HRt
   icases HRt with ⟨-, #Hlb⟩
-  ihave #Hat : iprop(upAt (Req := strmMsg (GF := GF)) γ 0 v) $$ []
-  · iapply (upLb_at (Req := strmMsg (GF := GF)) γ [v] 0 v rfl)
-    unfold upLb
-    iexact Hlb
   iunfold stringValueSendB at Hr
   icases Hr with ⟨%sv, Hsv, %Hsvp⟩
   obtain ⟨hval, -, hlen⟩ := Hsvp
@@ -73,7 +69,10 @@ theorem server.ServerStream.wp_proof
         iapply Hdn
         unfold ssDn
         iexists sv.Value'
-        iframe Hat
+        isplitr
+        · iapply (upLb_at (Req := strmMsg (GF := GF)) γ [sv.Value'] 0 sv.Value' rfl)
+          unfold upLb
+          iexact Hlb
         ipureintro
         rw [Hk.2.2]
         exact ⟨by word, rfl⟩

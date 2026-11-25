@@ -43,6 +43,11 @@ def drvStrmSpec (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M 
     GrpcMd → StreamSpec (strmMsg (GF := GF)) :=
   fun md γ Dn => iprop(□ ∀ (j : Nat) (m : (strmMsg (GF := GF)).M), dn md γ j m -∗ Dn j m)
 
+instance drvStrmSpec_persistent (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF)
+    (md : GrpcMd) (γ : StreamNames) (Dn : Nat → (strmMsg (GF := GF)).M → IProp GF) :
+    Persistent (drvStrmSpec dn md γ Dn) := by
+  unfold drvStrmSpec; infer_instance
+
 /-- `drvStrmSpec dn` holds at `dn`. -/
 theorem drvStrmSpec_self (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
     ⊢ □ ∀ md γ, drvStrmSpec dn md γ (dn md γ) := by

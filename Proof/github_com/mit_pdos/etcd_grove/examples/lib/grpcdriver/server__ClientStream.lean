@@ -47,7 +47,8 @@ theorem server.ClientStream.wp_proof
   subst Hsi
   iunfold svc.sacOk at Hsac
   icases Hsac with ⟨%si', %Hsi', #HSac⟩
-  obtain rfl : si' = si := by injection Hsi' with h; exact h.symm
+  have hsi : si = si' := by injection Hsi'
+  subst hsi
   wp_auto
   ihave IH : iprop(∃ (R : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
       "HRt" ∷ srvRecvTok (Req := strmMsg (GF := GF)) γ R ∗
@@ -62,7 +63,7 @@ theorem server.ClientStream.wp_proof
   iapply HRecv $$ %R [HRt]
   · iexact HRt
   iintro !> %req %err Hres
-  icases Hres with (⟨%Herr, %m, Hm, HUp, HRt⟩ | ⟨#Heof, %Hne, HRt, #Hcl⟩ |
+  icases Hres with (⟨%Herr, %m, Hm, HUp, HRt⟩ | ⟨#Heof, %Hne, HRt, Hcl⟩ |
     ⟨%Hne, #Hse, #Hso, HRt, #Hnot⟩)
   · -- a request: appended
     subst Herr
