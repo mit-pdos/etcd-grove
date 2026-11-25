@@ -335,21 +335,22 @@ T2's crash law `rnDurK_crash.law`) contradicts the invariant once the stop's tok
 theorem rnTakenK_stop (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) :
     letI := srvStor (GF := GF) γn;
-    ⊢ rnDurInvK γn id νk h -∗ rnTakenK νk -∗ token νk.ν.stop -∗ £ 1 ={E}=∗ False := by
-  iintro #Hinv Htk Hst Hlc
-  iunfold rnDurInvK at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
+    ⊢ rnDurInvK γn id νk h -∗ rnTakenK νk -∗ token νk.ν.stop ={E}=∗ False := by
+  iintro #Hinv Htk Hst
+  iunfold rnDurInvK at Hinv; icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with Hi Hclose
-  imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  icases Hi with (Hb | ⟨Hst', -, -, -⟩)
-  · iunfold rnDurBodyK at Hb
-    icases Hb with ⟨%vk, %σ, %Hs, %n, -, -, Htn, -⟩
-    iunfold rnTakenK at Htk
-    ihave %Hbad := dghostVar_valid_2 νk.tkn _ _ _ _ $$ Htn Htk
-    exfalso
-    have h1 := DFrac.valid_own_op Hbad.1
-    exact absurd h1 (by decide)
-  · iexfalso; iapply token_exclusive $$ Hst Hst'
+  -- (no credit: the contradiction is pure, under the later)
+  ihave Hf : iprop(▷ ⌜False⌝) $$ [Hi Htk Hst]
+  · inext
+    icases Hi with (Hb | ⟨Hst', -, -, -⟩)
+    · iunfold rnDurBodyK at Hb
+      icases Hb with ⟨%vk, %σ, %Hs, %n, -, -, Htn, -⟩
+      iunfold rnTakenK at Htk
+      ihave %Hbad := dghostVar_valid_2 νk.tkn _ _ _ _ $$ Htn Htk
+      exfalso; have h1 := DFrac.valid_own_op Hbad.1; exact absurd h1 (by decide)
+    · iexfalso; iapply token_exclusive $$ Hst Hst'
+  icases Hf with >%hF
+  exact hF.elim
 
 end stop
 
@@ -410,7 +411,7 @@ theorem memberDurOut_gen (L L' : GooseLocalGS GF) (γn : SrvRaft) (id : w64) (ν
       memberDurOut (hG := ⟨G, etcd_dist.atCtx L'⟩) γn id νk S σ l := .rfl
 
 /-- **The member's durable raft state and its WAL's files after a crash** (the T2 and T5 part of the
-assembly): from the old generation `L`'s `memberDurKeep`, the cluster, two later credits, `crashed`, and
+assembly): from the old generation `L`'s `memberDurKeep`, the cluster, a later credit, `crashed`, and
 the WAL's crash at the new generation `L'` (`memberWalCrash`, from `walInv_crash`; both at the
 statement's Go context, `atCtx`): raft's durable state `memberDurOut` and the new generation's WAL files
 holding its records (`walFilesC`). T2's callback runs T5's `walRecsH_crash` at the new generation
@@ -419,13 +420,13 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     (h : WalH GF) (W' : WalFs.WalGS GF) (hmd : h.md = walMetaEnc id cid) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) (hE' : ↑srvClusterN ⊆ E \ ↑rnDurKN) :
     ⊢ memberDurKeep (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h -∗
-      isCluster γn.cl srvClusterN -∗ £ 1 -∗ £ 1 -∗
+      isCluster γn.cl srvClusterN -∗ £ 1 -∗
       crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
       memberWalCrash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ={E}=∗
       ∃ (S : RaftState) (σ : StorContents) (l : List LogEntry),
         walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true ∗
         memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk S σ l := by
-  iintro Hk #Hcl Hlc1 Hlc2 Hcr Hw
+  iintro Hk #Hcl Hlc1 Hcr Hw
   iunfold memberDurKeep at Hk
   icases Hk with ⟨#Hinv, Htk, Hx, Hst⟩
   imod rnDurK_crash_law_holds (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E
