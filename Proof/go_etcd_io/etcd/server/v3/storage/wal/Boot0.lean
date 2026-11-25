@@ -98,7 +98,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       ∃ W : WalGS GF, walAreaOk (L := L) (W := W) C Mr R jr r ∗ walAreaRes (L := L) (W := W) jr ∗
         walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗ walPast (W := W) (walBoot0St r) ∗
-        walOwn (W := W) ∅ ∗
+        walOwn (W := W) ∅ ∗ walIncQ (W := W) ∅ ∗
         osNames (L := L) jr ((NameSet.except []).inter (areaOthers V.now jr)) (DFrac.own 1)
           (namesOf V jr ((NameSet.except []).inter (areaOthers V.now jr))) ∗
         [∗list] j ∈ Js.erase jr,
@@ -117,7 +117,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   -- the WAL's start and the area's path
   have hnone : ∀ nm, walNameOk nm → V.now.entry jr nm = none :=
     fun nm h => hslots nm (areaSlot_of_walName h)
-  imod walStart_boot0 hPre L C Mr R jr r V.now hR hr hnone with ⟨%W, %hWR, Hst, #Hp, Hu, Hc, Hown⟩
+  imod walStart_boot0 hPre L C Mr R jr r V.now hR hr hnone with ⟨%W, %hWR, Hst, #Hp, Hu, Hc, Hown, HIq⟩
   imod osPathS_root R r jr (DFrac.own 1) hr hE $$ Hsh with Hsp
   -- the invariant's claims: the area's names holding no entry
   let N : NameSet := .except (areaOthers V.now jr)
@@ -167,7 +167,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   rw [if_neg hc]
   imodintro
   iexists W
-  iframe Hu Hc Hp Hown Hoth Hrest
+  iframe Hu Hc Hp Hown HIq Hoth Hrest
   isplitr
   · unfold walAreaOk
     iframe Hinv Hos Hsh Hab
@@ -209,7 +209,7 @@ theorem walBoot0s (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalM
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       ([∗list] a ∈ As, ∃ W : WalGS GF, walAreaOk (L := L) (W := W) C Mr R a.2 a.1 ∗
           walAreaRes (L := L) (W := W) a.2 ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
-          walPast (W := W) (walBoot0St a.1) ∗ walOwn (W := W) ∅ ∗
+          walPast (W := W) (walBoot0St a.1) ∗ walOwn (W := W) ∅ ∗ walIncQ (W := W) ∅ ∗
           osNames (L := L) a.2 ((NameSet.except []).inter (areaOthers V.now a.2)) (DFrac.own 1)
             (namesOf V a.2 ((NameSet.except []).inter (areaOthers V.now a.2)))) ∗
         [∗list] j ∈ As.foldl (fun l a => l.erase a.2) Js,
@@ -237,7 +237,7 @@ theorem walBoot0s (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalM
     iintro #Hos #Hsh #Hab Hall
     imod walBoot0 hPre C hC Mr L R a.2 a.1 V hV hR (hAR a List.mem_cons_self) Js
       (hJ a List.mem_cons_self) (hsl a List.mem_cons_self) hrb henc E hE $$ Hos Hsh Hab Hall
-      with ⟨%W, Hok, Hres, Hu, Hc, Hp, Hown, Hoth, Hrest⟩
+      with ⟨%W, Hok, Hres, Hu, Hc, Hp, Hown, HIq, Hoth, Hrest⟩
     imod ih (Js.erase a.2) (fun a' h => hAR a' (List.mem_cons_of_mem _ h)) hnd' hJ'
       (fun a' h => hsl a' (List.mem_cons_of_mem _ h)) $$ Hos Hsh Hab Hrest with ⟨Has, Hrest⟩
     imodintro

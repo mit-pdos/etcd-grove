@@ -45,16 +45,16 @@ abbrev member.sync.spec : Prop :=
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
       oracleRep v o ∗ tOrOwn γ os none ∗ tWalOwn γ (some d) ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
-      walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
-      WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.area) }}
+      walOpenWFI (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) 0 ∗
+      WalFs.walLenLb (W := W) w (tWalDir e.area) 0 d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.area) 0 }}
     (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"sync")) (Val #()))
   {{ (b : Bool), RET #b; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ tWalOwn γ (some d) ∗
       if b then oracleRep v' (tSynced o) ∗ tOrOwn γ (tSynced o) none ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
-        WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.area) d.H.length
+        walOpenWFI (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) 0 ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.area) 0 d.H.length ∗
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 d.H.length
       else oracleRep v' o ∗ tOrOwn γ os none }}
 
 end spec

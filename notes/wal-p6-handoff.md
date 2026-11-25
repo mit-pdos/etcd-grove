@@ -119,6 +119,24 @@
     `lake build` of `wal.Link`; WalTester (20 files use the facts), P8's consumers (`WalViews`' crash laws
     `walDiskAt_crash*` take facts without incarnation: they need `walDiskAtI`/facts at `i` and the
     crash's incarnation map), `DiscardUnsaved`; then the merge of `3717c7903b`.
+- **2026-11-25, P6b session 6 (WIP, `etcd-safe-p6b-wip`).** Coordinator approvals recorded in the ledger (the
+  Create cleanup fix (a)-(c); `renameWAL`'s arm 2, proved from its body; the session-4/5 spec changes, `walIncLb`,
+  the read handle at its incarnation). **Create done**: `walInv_register` takes the quarter `walIncQ I'`
+  (`walInv_registerL` with the lock); `WalCloseSt.unnamed … i`, `Close.spec`'s `unnamed` arm over `walOpenWFUI … i`
+  returning `∃ I, walUnlockedTokXI I ∗ ⌜incOf I dir = i⌝` / `∃ I, walLockedTokI I ∗ …`; `cleanupWAL.spec` likewise;
+  `sync.specC`'s error arm at `h.inc`. New Ghost lemmas: `walUnlockedTokXI` (+ `_X`, `_incQ`), `walLockedTokI_incQ`,
+  `walLockedTokI_unlockXI`, `walOpenWI_lockedTokI`; `walParked_unlockXI`, `walInvBody_unpinXI` (the old `unpinX` a
+  corollary); `walCloseLawU` takes `walOpenWI … i`. **`wal.Link` builds** (real `lake build`, 3842 jobs, exit 0, no
+  `sorry` outside the generated axiomatized types): commit `a283427990`.
+  **Server/P8 consumers**: `WalRecs` at the handle's `h.γ.inc` (`walRecs`, `walSnapRec`, `walOpen`'s `walLenLb … 0`,
+  the AU laws over `walDiskAtI h.dir h.γ.inc`); `walFiles`/`walFilesC` `∃ i`; `walFilesC_crash` takes `i` (new
+  generation at `0`). **Tester**: incarnation `0` throughout (a tester never discards; a crash's new generation is at
+  `0`): `TInvBody` over `walDirIsI … 0`, `tRelI`/`tRelW` facts at `0`, its specs (`member__{save,sync,close}`,
+  `restartRead`) over `walOpenWFI … 0`, `purgeRound` at any `i`; `Boot` passes `0` to `Create.specFresh`.
+  Also: `walStart_boot0`/`walBoot0`/`walBoot0s` hand out the first generation's `walIncQ ∅` (the view's quarter,
+  for `walAbsent`/`walDirIsI … 0` at boot; `WalAreas`, the tester's `Boot0`); `walPurgeAcc dir inc Pc` over
+  `walDiskAtI dir inc` (ledger); the shared handle (`walOpenWS_alloc … i`, `⌜γ.inc = i⌝`) substituted to `0` in the
+  tester (`rcases γs …; subst; let γs := ⟨_, _, 0⟩`).
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash

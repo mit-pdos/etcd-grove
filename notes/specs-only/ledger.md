@@ -74,6 +74,12 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   returns the token at an `I` with `⌜incOf I dir = i⌝` in both outcomes (`walUnlockedTokXI I`, `walLockedTokI I`);
   `WAL.sync.specC`'s error arm likewise (`incOf I dir = h.inc`); (c) `cleanupWAL.spec` takes `walOpenWFUI … i` and
   returns the same. Internal specs only (no client sees them); posts only stronger.
+- **`walPurgeAcc` at an incarnation (session 6; internal, proved, under the brief's approval of proved internal
+  changes).** *Defect*: a purge round's repeatable commit `walPurgeAcc dir Pc` was over `walDiskAt dir d` (any
+  incarnation), so a client keeping `walDiskAtI dir i d` (the tester's invariant, at `0`) could not get it back after
+  the commit. *Change*: `walPurgeAcc dir inc Pc` over `walDiskAtI dir inc d`; `walPurge_osAUnc` takes `inc` (the
+  commit hands back the same `walIncQ`, so the incarnation is kept); the tester's `purgeRound.spec` passes its
+  handle's `i`. No trusted text.
 
 ## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
 

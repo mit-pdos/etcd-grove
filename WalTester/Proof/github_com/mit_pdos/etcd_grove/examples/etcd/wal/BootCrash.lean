@@ -49,7 +49,7 @@ def TCrashed (e : TEnv) (V : Hist) : IProp GF :=
     walStart L W walCodec walRaftMr e.R e.jr (e.area) s V.now ∗
     ([∗list] i ∈ bootFiles V.now e.jr, trFile (hG := ⟨G, L⟩) i False) ∗
     WalFs.walUnlockedTok (W := W) ∗ WalFs.walCrashTok (W := W) ∗
-    WalFs.walDirIs (W := W) (tWalDir e.area) od ∗ tRelI (W := W) e.area o od ∗
+    WalFs.walDirIsI (W := W) (tWalDir e.area) 0 od ∗ tRelI (W := W) e.area o od ∗
     WalFs.dirDurable (W := W) (e.area) ∗
     DurFs.durFound (L := L) e.orFile V.now v ∗ DurFs.durFoundTmp (L := L) e.orFile V.now)
 
