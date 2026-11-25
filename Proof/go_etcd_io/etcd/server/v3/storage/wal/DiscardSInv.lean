@@ -316,7 +316,7 @@ theorem walTmpParked0_inj (Ls : GMap GoString WalLay) :
       ⌜∀ dir1 dir2 (l1 l2 : WalLay), Ls !! dir1 = some l1 → Ls !! dir2 = some l2 → dir1 ≠ dir2 →
         l1.j ≠ l2.j⌝ ∗ walTmpParked0 (G := G) (L := L) Ls [] := by
   classical
-  by_cases hP : ∃ d1 d2 (l1 l2 : WalLay), Ls !! d1 = some l1 ∧ Ls !! d2 = some l2 ∧ d1 ≠ d2 ∧
+  by_cases hP : ∃ (d1 d2 : GoString) (l1 l2 : WalLay), Ls !! d1 = some l1 ∧ Ls !! d2 = some l2 ∧ d1 ≠ d2 ∧
       l1.j = l2.j
   rotate_left
   · iintro H; iframe H; ipureintro
