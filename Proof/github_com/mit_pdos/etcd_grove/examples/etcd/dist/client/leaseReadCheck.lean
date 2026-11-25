@@ -12,7 +12,6 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.leaseReadCheck
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.newClient
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.leaseList
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientLeaseTTLDist
 public import Spec.go_etcd_io.etcd.client.v3.Client__Close
 public import Perennial.Spec.context.Background
 public import Spec.context.WithTimeoutBackground
@@ -34,6 +33,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Iris.ProofMode Net client
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
+open etcd_dist.view
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -48,19 +48,19 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 set_option maxHeartbeats 1600000 in
 /-- See the file header. -/
-theorem leaseReadCheck.wp_proof
+theorem leaseReadCheck.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
-    (wp_leaseList : leaseList.spec (GF := GF) (hG := hG))
+    (wp_leaseList : leaseList.spec (GF := GF) (hG := hG) svc)
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_TTL_dist : etcd_dist.Client_LeaseTimeToLive_dist.spec (GF := GF) (hG := hG))
+    (wp_TTL_dist : Client_LeaseTimeToLive_dist.spec (GF := GF) (hG := hG) svc)
     (wp_Close : EtcdGrove.Client.Close.spec (GF := GF) (hG := hG)) :
-    leaseReadCheck.spec (GF := GF) (hG := hG) := by
-  intro π addr hV Htb hAs
+    leaseReadCheck.spec (GF := GF) (hG := hG) svc := by
+  intro π Γ addr hV Htb hAs
   wp_start as ⟨Hlt, #Hm⟩
   iunfold leaseMember at Hm
-  icases Hm with ⟨%Hok, %γE, %mid, #Haddr⟩
+  icases Hm with ⟨%Hok, %mid, #Haddr⟩
   have hpl : plainEndpoints [addr] := plainEndpoints_singleton _ (etcd_dist.addrOk_plainEndpoint Hok)
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -89,12 +89,12 @@ theorem leaseReadCheck.wp_proof
   subst Hcerr
   ihave #Hcore := clientCoreAt_of_new cl [addr] (Classical.choice hV) $$ [Hnc Hnp]
   · iframe #
-  ihave #Hnc' := Hnc
-  iunfold isNewClient at Hnc'
-  icases Hnc' with ⟨-, -, -, -, ⟨%lp, #Hlf, -⟩, -⟩
+  ihave #Hmc : memberCli svc cl addr (Classical.choice hV) Γ mid $$ []
+  · iunfold memberCli; iframe #
+  icases leaseClientV_of_memberCli svc cl addr (Classical.choice hV) Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
   (try wp_auto)
   -- `leaseList(cli)`: the IDs have no duplicate
-  wp_apply (wp_leaseList cl addr (Classical.choice hV) γE mid hAs) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
+  wp_apply (wp_leaseList cl addr (Classical.choice hV) Γ mid hAs) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
   · iframe #
   icases Hls with (⟨%Hlerr, %ids, %sl, #Hslf, Hsl, %Hnd⟩ | %Hlfail)
   rotate_left
@@ -185,7 +185,7 @@ theorem leaseReadCheck.wp_proof
       as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -⟩
     (try wp_auto)
     -- `cli.Lease.TimeToLive(tctx, leaseReadID)`: the reply's ID is `7`
-    wp_apply (wp_TTL_dist cl lp addr (Classical.choice hV) γE mid tctx tcd (W64 7)) $$ [$Hlt]
+    wp_apply (wp_TTL_dist cl lp addr (Classical.choice hV) Γ mid tctx tcd (W64 7)) $$ [$Hlt]
       as %tr %terr ⟨Hlt, Htl⟩
     · iframe #
     -- `tcancel()`

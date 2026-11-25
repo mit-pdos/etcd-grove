@@ -21,6 +21,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Net client
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
+open etcd_dist.view
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -32,14 +33,14 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- See the file header. -/
-abbrev RunLeaseRead.spec : Prop :=
-  ∀ [π : NetProtoGS] (eps : GoSlice) (addrs : List GoString),
+abbrev RunLeaseRead.spec (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+  ∀ [π : NetProtoGS] (Γ : DistView) (eps : GoSlice) (addrs : List GoString),
   -- a watch environment for `newClient`'s client (the lease calls read none of it)
   Nonempty (WEnv GF) →
   threadBound GF ≤ 2 ^ 30 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      levelTok 0 ∗ eps ↦*□ addrs ∗ [∗list] a ∈ addrs, leaseMember (Gg := hG.goose_globalGS) a }}
+      levelTok 0 ∗ eps ↦*□ addrs ∗ [∗list] a ∈ addrs, leaseMember (Gg := hG.goose_globalGS) svc Γ a }}
     (App (Val (@! client.RunLeaseRead)) (Val #eps))
   {{ (r : client.Result), RET #r; levelTok 0 }}
 

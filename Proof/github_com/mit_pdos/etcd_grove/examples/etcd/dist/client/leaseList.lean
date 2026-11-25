@@ -1,12 +1,12 @@
 /-
-Proof of `leaseList.spec`: the request timeout's context, `cli.Lease.Leases` at the member at another
-machine (the draft `etcd_dist.Client_LeaseLeases_dist`), the cancel.
+Proofs of `leaseList.spec`/`specLive`/`specGranted`: the request timeout's context, `cli.Lease.Leases` at
+the member at another machine (the drafts `etcd_dist.view.Client_LeaseLeases_dist`, `Lease_LeasesLive_dist`,
+`Lease_LeasesGranted_dist`), the cancel.
 Lean-first (no Rocq counterpart); #50 N9b (`notes/etcd-dist-n9b.md`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.leaseList
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientLeaseLeasesDist
 public import Perennial.Spec.context.Background
 public import Spec.context.WithTimeoutBackground
 public import Spec.context.ErrAny
@@ -27,6 +27,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Iris.ProofMode Net client
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
+open etcd_dist.view
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -40,29 +41,85 @@ variable [esrv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 set_option maxHeartbeats 800000 in
-theorem leaseList.wp_proof
+theorem leaseList.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_Leases_dist : etcd_dist.Client_LeaseLeases_dist.spec (GF := GF) (hG := hG)) :
-    leaseList.spec (GF := GF) (hG := hG) := by
-  intro π cl ep V γE mid hAs
-  wp_start as ⟨Hlt, #Hnc, #Hnp, #Haddr⟩
+    (wp_Leases_dist : Client_LeaseLeases_dist.spec (GF := GF) (hG := hG) svc) :
+    leaseList.spec (GF := GF) (hG := hG) svc := by
+  intro π cl ep V Γ mid hAs
+  wp_start as ⟨Hlt, #Hmc⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
-  ihave #Hnc' := Hnc
-  iunfold isNewClient at Hnc'
-  icases Hnc' with ⟨-, -, -, -, ⟨%lp, #Hlf, -⟩, -⟩
+  icases leaseClientV_of_memberCli svc cl ep V Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
   (try wp_auto)
   wp_apply wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
   (try wp_auto)
-  wp_apply (wp_Leases_dist cl lp ep V γE mid ctx cd) $$ [$Hlt] as %resp %err ⟨Hlt, Hres⟩
+  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd) $$ [$Hlt] as %resp %err ⟨Hlt, Hres⟩
   · iframe #
+  (try wp_auto)
+  wp_apply Hcancel
+  (try wp_auto)
+  iapply HΦ
+  iframe Hlt
+  iexact Hres
+
+set_option maxHeartbeats 800000 in
+theorem leaseList.wp_proofLive (svc : DistView → w64 → GrpcSvc GF)
+    (wp_Background : context.Background.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_Leases_dist : Lease_LeasesLive_dist.spec (GF := GF) (hG := hG) svc) :
+    leaseList.specLive (GF := GF) (hG := hG) svc := by
+  intro π cl ep V Γ mid n hAs hlm
+  wp_start as ⟨Hlt, #Hmc, #HG⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
+  · iPkgInit
+  icases leaseClientV_of_memberCli svc cl ep V Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
+  (try wp_auto)
+  wp_apply wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
+  (try wp_auto)
+  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd n hlm) $$ [$Hlt] as %resp %err ⟨Hlt, Hres⟩
+  · iframe #
+  (try wp_auto)
+  wp_apply Hcancel
+  (try wp_auto)
+  iapply HΦ
+  iframe Hlt
+  iexact Hres
+
+set_option maxHeartbeats 800000 in
+theorem leaseList.wp_proofGranted (svc : DistView → w64 → GrpcSvc GF)
+    (wp_Background : context.Background.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_Leases_dist : Lease_LeasesGranted_dist.spec (GF := GF) (hG := hG) svc) :
+    leaseList.specGranted (GF := GF) (hG := hG) svc := by
+  intro π cl ep V Γ mid G hAs hlm
+  wp_start as ⟨Hlt, #Hmc, HG⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
+  · iPkgInit
+  icases leaseClientV_of_memberCli svc cl ep V Γ mid $$ Hmc with ⟨%lp, #Hlc⟩
+  (try wp_auto)
+  wp_apply wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
+  (try wp_auto)
+  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd G hlm) $$ [$Hlt HG] as %resp %err ⟨Hlt, Hres⟩
+  · iframe
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)

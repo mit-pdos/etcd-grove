@@ -26,6 +26,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Iris.ProofMode Net client
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
+open etcd_dist.view
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -38,12 +39,12 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 set_option maxHeartbeats 800000 in
 /-- See the file header. -/
-theorem RunLeaseRead.wp_proof
-    (wp_leaseReadCheck : leaseReadCheck.spec (GF := GF) (hG := hG))
+theorem RunLeaseRead.wp_proof (svc : DistView → w64 → GrpcSvc GF)
+    (wp_leaseReadCheck : leaseReadCheck.spec (GF := GF) (hG := hG) svc)
     (wp_checked : checked.spec (GF := GF) (hG := hG))
     (wp_ended : ended.spec (GF := GF) (hG := hG)) :
-    RunLeaseRead.spec (GF := GF) (hG := hG) := by
-  intro π eps addrs hV Htb hAs
+    RunLeaseRead.spec (GF := GF) (hG := hG) svc := by
+  intro π Γ eps addrs hV Htb hAs
   wp_start as ⟨Hlt, #Heps, #Hms⟩
   ihave %Hlen := ownSlice_len $$ Heps
   (try wp_auto)
@@ -67,7 +68,7 @@ theorem RunLeaseRead.wp_proof
     · iframe #; ipureintro; rw [show (sint.Z j).toNat = sint.nat j by word]; exact hx
     (try wp_auto)
     ihave #Hmx := BigSepL.bigSepL_lookup hx $$ Hms
-    wp_apply (wp_leaseReadCheck x hV Htb hAs) $$ [$Hlt] as %b Hlt
+    wp_apply (wp_leaseReadCheck Γ x hV Htb hAs) $$ [$Hlt] as %b Hlt
     · iframe #
     (try wp_auto)
     cases b
