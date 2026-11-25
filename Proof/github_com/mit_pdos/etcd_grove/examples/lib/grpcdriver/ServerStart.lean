@@ -28,7 +28,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver
 abbrev drvSvcName : GoString := go!"grpcdriver.Driver"
 
 section lists
-variable [GooseExts] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The methods `Driver_ServiceDesc` lists (`svc.drvDescs`'s). -/
 abbrev drvMethods : List (GoString × val) :=
@@ -40,14 +40,6 @@ abbrev drvStreams : List (GoString × val × Bool × Bool) :=
   [(go!"ServerStream", @! svc._Driver_ServerStream_Handler, true, false),
    (go!"ClientStream", @! svc._Driver_ClientStream_Handler, false, true),
    (go!"Bidi", @! svc._Driver_Bidi_Handler, true, true)]
-
-end lists
-
-section serves
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : Assumptions]
 
 /-- **A registered unary method** is one of the table's three, with its generated handler. -/
 theorem drv_regs_mem {mds : List google_golang_org.grpc.MethodDesc} {ss : GoInterface}
@@ -101,7 +93,7 @@ theorem drv_regs_names {mds : List google_golang_org.grpc.MethodDesc} (ss : GoIn
         (fun p => grpcFullName drvSvcName p.1) := by
     simp [descRegs, List.map_map, Function.comp_def]
   rw [h1, hm]
-  rfl
+  decide
 
 /-- The registered streams' names. -/
 theorem drv_sregs_names {sds : List google_golang_org.grpc.StreamDesc} (ss : GoInterface)
@@ -113,7 +105,7 @@ theorem drv_sregs_names {sds : List google_golang_org.grpc.StreamDesc} (ss : GoI
         sd.ClientStreams'))).map (fun p => grpcFullName drvSvcName p.1) := by
     simp [descSRegs, List.map_map, Function.comp_def]
   rw [h1, hs]
-  rfl
+  decide
 
 /-- **The registrations' full names are jointly distinct.** -/
 theorem drv_nodup {mds : List google_golang_org.grpc.MethodDesc}
@@ -124,6 +116,14 @@ theorem drv_nodup {mds : List google_golang_org.grpc.MethodDesc}
     ((descRegs drvSvcName mds ss ++ descSRegs drvSvcName sds ss).map Prod.fst).Nodup := by
   rw [List.map_append, drv_regs_names ss hm, drv_sregs_names ss hs]
   decide
+
+end lists
+
+section serves
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 /-- **The server's registrations serve the driver's table** (no interceptors). -/
 theorem drv_serves

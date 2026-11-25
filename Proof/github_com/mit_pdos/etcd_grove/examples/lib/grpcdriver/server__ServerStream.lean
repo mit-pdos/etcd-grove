@@ -57,6 +57,7 @@ theorem server.ServerStream.wp_proof
     refine ⟨by word, by simp, by first | rfl | decide | simp⟩
   wp_for IH
   have hlen' : sv.Value'.length < 2 ^ 30 := hlen
+  try wp_auto
   wp_if_destruct
   · split
     · rename_i hb
