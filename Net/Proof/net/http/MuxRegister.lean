@@ -562,6 +562,10 @@ theorem TreeSt.okP_locOf (root : Loc) (S : TreeSt) (kc k : List Seg) (hok : S.ok
     have := (hok.2.2.2.2.2.2.2 k d h).1
     exact ⟨fun h' => absurd h' (by simpa [locOf] using this), fun _ => ⟨d, rfl, by simp [locOf]⟩⟩
 
+theorem gmap_insert_insert {K V : Type} [DecidableEq K] (m : GMap K V) (k : K) (v1 v2 : V) :
+    <[k := v2]> (<[k := v1]> m) = <[k := v2]> m :=
+  GMap.ext (fun k' => by simp only [GMap.lookup_insert_eq_iff]; by_cases hk : k = k' <;> simp [hk])
+
 theorem gmap_insert_same {K V : Type} [DecidableEq K] (m : GMap K V) (k : K) (v : V)
     (h : m !! k = some v) : <[k := v]> m = m :=
   GMap.ext (fun k' => by rw [GMap.lookup_insert_eq_iff]; by_cases hk : k = k' <;> simp [hk, ← h])
@@ -689,12 +693,14 @@ theorem wp_addChild (root : Loc) (S : TreeSt) (kc : List Seg) (d : NodeSt) (key 
       exact GMap.lookup_insert _ _ _
 
 /-- `n.set(pp, h)` on a node without a pattern. -/
-theorem wp_set (d : NodeSt) (pp : Loc) (h : GoInterface) (hnil : d.pat = null ∧ d.h = interface.nil) :
+theorem wp_set (d : NodeSt) (l pp : Loc) (h : GoInterface) (hl : d.l = l)
+    (hnil : d.pat = null ∧ d.h = interface.nil) :
     {{ nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d }}
-      (App (App (Val (d.l @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"set")) (Val #pp)) (Val #h))
+      (App (App (Val (l @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"set")) (Val #pp)) (Val #h))
     {{ RET #(); nodeRep (DFrac.own 1) (setPat d pp h) }} := by
   unfold nodeRep
   obtain ⟨hp0, hh0⟩ := hnil
+  subst hl
   wp_start as ⟨Hp, Hh, Hc, Hm, He⟩
   wp_auto
   rw [hp0, hh0]
@@ -702,6 +708,131 @@ theorem wp_set (d : NodeSt) (pp : Loc) (h : GoInterface) (hnil : d.pat = null �
   iapply HΦ
   simp only [setPat]
   iframe
+
+/-- `n.addSegments(segs, pp, h)` at the node `kc`, `segs` the rest of `p`'s keys. -/
+theorem wp_addSegments (root : Loc) (P : List (List w8 × Loc × GoInterface)) (p : List w8)
+    (pp : Loc) (h : GoInterface) (hp : litPat p) (hnew : p ∉ P.map Prod.fst) (ms : w64) :
+    ∀ (rest : List Seg) (N : GMap (List Seg) NodeSt) (kc : List Seg) (d : NodeSt) (sl : GoSlice),
+    kc ++ rest = patKeys p → TreeSt.okP root (TreeSt.mk N P) kc → N !! kc = some d →
+    {{ globalAddr net.http.maxSlice ↦□ ms ∗
+        ([∗map] _k ↦ d ∈ N, nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d) ∗
+        sl ↦*□ rest.map segVal }}
+      (App (App (App (Val (d.l @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"addSegments"))
+        (Val #sl)) (Val #pp)) (Val #h))
+    {{ RET #(); ∃ N' : GMap (List Seg) NodeSt, ([∗map] _k ↦ d ∈ N', nodeRep (DFrac.own 1) d) ∗
+        ⌜TreeSt.ok root (TreeSt.mk N' ((p, pp, h) :: P))⌝ }} := by
+  intro rest
+  induction rest with
+  | nil =>
+    intro N kc d sl hk hok hd
+    wp_start as ⟨#Hms, HN, #Hsl⟩
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+    wp_auto
+    rw [decide_eq_true (show sl.len = W64 0 by simp at Hlen; word)]
+    wp_auto
+    have hkc : kc = patKeys p := by simpa using hk
+    subst hkc
+    obtain ⟨hnil, hokF⟩ := TreeSt.okP_set root (TreeSt.mk N P) p pp h hok hp hnew d hd
+    icases BigSepM.bigSepM_insert_acc (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d) hd $$ HN
+      with ⟨Hd, HN⟩
+    wp_apply wp_set d d.l pp h rfl hnil $$ Hd as Hd
+    ispecialize HN $$ Hd
+    try wp_auto
+    iapply HΦ
+    iexists _
+    iframe
+    ipureintro; exact hokF
+  | cons x rest ih =>
+    intro N kc d sl hk hok hd
+    wp_start as ⟨#Hms, HN, #Hsl⟩
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+    wp_auto
+    rw [decide_eq_false (show sl.len ≠ W64 0 by simp at Hlen; word)]
+    wp_auto
+    have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by simp at Hlen; word
+    rw [ite_cond_eq_true _ _ (eq_true h0)]
+    wp_apply wp_load_slice_index sl (sint.Z (W64 0)) _ _ (segVal x) h0.1 $$ [Hsl] as -
+    · iframe #; ipureintro; rfl
+    cases x with
+    | lit s =>
+      simp only [segVal]
+      wp_auto
+      ihave %Hwf := ownSlice_wf _ _ _ $$ Hsl
+      have hb : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap := by
+        simp at Hlen; refine ⟨by word, by word, by word⟩
+      rw [ite_cond_eq_true _ _ (eq_true hb)]
+      wp_auto
+      wp_apply wp_addChild root (TreeSt.mk N P) kc d s ms hok hd $$ [$Hms $HN] as %c HN
+      icases HN with ⟨%N1, %d1, HN, %H1⟩
+      obtain ⟨hok1, hd1, hl1⟩ := H1
+      subst hl1
+      icases (ownSlice_slice (W64 1) sl.len sl DFrac.discard _ ⟨hb.1, hb.2.1, by word⟩).1 $$ Hsl
+        with ⟨-, #Hsl', -⟩
+      have hsub : subslice (sint.nat (W64 1)) (sint.nat sl.len) (List.map segVal (Seg.lit s :: rest)) =
+          List.map segVal rest := by
+        simp at Hlen
+        rw [show sint.nat (W64 1) = 1 by word, show sint.nat sl.len = rest.length + 1 by word]
+        simp [subslice]; exact List.take_of_length_le (by simp)
+      rw [hsub]
+      wp_apply ih N1 (kc ++ [.lit s]) d1 _ (by rw [← hk]; simp) hok1 hd1 $$ [$Hms $HN $Hsl']
+        as HN
+      try wp_auto
+      iapply HΦ
+      iexact HN
+    | multi =>
+      have hpk : patKeys p = kc ++ [.multi] :=
+        patKeys_multi_prefix kc p hp ⟨rest, by rw [← hk]; simp⟩
+      have hrest : rest = [] := by
+        have := congrArg List.length (hk.trans hpk); simp at this
+        exact this
+      subst hrest
+      simp only [segVal]
+      wp_auto
+      rw [decide_eq_true (show sl.len = W64 1 by simp at Hlen; word)]
+      wp_auto
+      obtain ⟨hroot, hlit, hnd, hdom, hpre, hkc, hpar, hnodes⟩ := hok
+      have hfresh : N !! (kc ++ [.multi]) = none := by
+        cases hn : N !! (kc ++ [.multi]) with
+        | none => rfl
+        | some _ =>
+          exfalso
+          rcases hdom (kc ++ [.multi]) (by rw [hn]; rfl) with h0 | ⟨e, he, hpe⟩ | hpe
+          · simp at h0
+          · have h1 := patKeys_multi_prefix kc e.1 (hlit e he) hpe
+            exact hnew (by
+              rw [← patKeys_inj e.1 p (hlit e he) hp (h1.trans hpk.symm)]
+              exact List.mem_map_of_mem he)
+          · exact absurd hpe.length_le (by simp)
+      have hok : TreeSt.okP root (TreeSt.mk N P) kc :=
+        ⟨hroot, hlit, hnd, hdom, hpre, hkc, hpar, hnodes⟩
+      icases BigSepM.bigSepM_insert_acc (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d) hd $$ HN
+        with ⟨Hd, HN⟩
+      iunfold nodeRep at Hd
+      icases Hd with ⟨Hp, Hh, Hc, Hm, He⟩
+      wp_auto
+      icases freshNode_rep «$r0_ptr» $$ «$r0» with ⟨Hfr, %hcn⟩
+      wp_apply wp_set (freshNode «$r0_ptr») «$r0_ptr» pp h rfl ⟨rfl, rfl⟩ $$ Hfr as Hfr
+      ihave Hd' : nodeRep (DFrac.own 1) (linkUpd d .multi «$r0_ptr» d.ms) $$ [Hp Hh Hc Hm He]
+      · iunfold nodeRep; simp only [linkUpd]; iframe
+      ispecialize HN $$ Hd'
+      have hfr : Iris.Std.PartialMap.get? (Std.insert N kc (linkUpd d .multi «$r0_ptr» d.ms))
+          (kc ++ [.multi]) = none := by
+        show (<[kc := linkUpd d .multi «$r0_ptr» d.ms]> N) !! (kc ++ [.multi]) = none
+        rw [GMap.lookup_insert_ne _ _ (append_single_ne kc _)]; exact hfresh
+      ihave HN := (BigSepM.bigSepM_insert (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d)
+        (x := setPat (freshNode «$r0_ptr») pp h) hfr).2 $$ [Hfr HN]
+      · iframe
+      try wp_auto
+      have hok2 := TreeSt.okP_addNode root (TreeSt.mk N P) kc .multi hok d hd hfresh «$r0_ptr» hcn d.ms
+      rw [← hpk] at hok2
+      have hfin := (TreeSt.okP_set root _ p pp h hok2 hp hnew (freshNode «$r0_ptr»)
+        (GMap.lookup_insert _ _ _)).2
+      rw [hpk] at hfin
+      simp only [gmap_insert_insert] at hfin
+      iapply HΦ
+      iexists _
+      iframe
+      ipureintro; exact hfin
 
 end wp
 
