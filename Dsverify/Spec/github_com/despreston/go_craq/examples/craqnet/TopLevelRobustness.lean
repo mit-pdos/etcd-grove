@@ -20,14 +20,25 @@ of `DefaultServeMux`'s `RWMutex`), which the deployment bridge (dsv-epaxos's
 `robust_of_distProtoLisRBT`, here with no wildcard listener, over Perennial's
 `goose_dist_adequacy_below`) takes along the execution at hand, `Robust`'s `threads`.
 
-**Premise** (at `remoteGF`, for every machine's heap `heapAt G L` and the start's `NetProtoGS`):
-`http.ListenAndServe(a, nil)` (`RpcHttpServe`, `Craq/HttpRpc.lean`): Net proves `http.Serve` on a
-listener, not `ListenAndServe`; the premise serves `a`'s connections with `DefaultServeMux`, over
-Net's `muxRpc` and models-rpc-http's `RpcWorld` and `rpcAddrP`. Not premises: the `log` functions
-Perennial's model leaves without a body (`log.Default`, `*Logger`'s `Printf` and `Println`) are
-per-function trust-boundary axioms (`Dsverify/Proof/log/`); net/rpc's server side but
-`ListenAndServe`, and its client over HTTP, are `Net/`'s proved specs; each machine's boot is proved
-(`BootLinked.lean`). The trust-boundary axioms the result rests on are listed in
+**Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
+machine's heap `heapAt G L` and the start's `NetProtoGS`; never an instance):
+* H6: `LogHyp` (`log.Default` and `*Logger`'s methods, which Perennial's trusted `log` model
+  leaves without a body);
+* H3, `http.ListenAndServe(a, nil)` (`RpcHttpServe`, `Craq/HttpRpc.lean`): Net proves `http.Serve`
+  on a listener, not `ListenAndServe`; the premise serves `a`'s connections with
+  `DefaultServeMux`, over Net's `muxRpc` and models-rpc-http's `RpcWorld` and `rpcAddrP`.
+Not premises: net/rpc's server side but `ListenAndServe` is `Net/`'s (`rpc.HandleHTTP`, Net's
+`net.rpc.HandleHTTP.wp_proof` over net/http's `Handle`; the package-level `rpc.RegisterName` of a
+fresh name, `net.rpc.RegisterName.wp_fresh`); net/rpc's client over HTTP (`rpc.DialHTTP`,
+models-rpc-http's `DialHTTP.wp`, over `DialHTTPPath` and net/http's `ReadResponse`) is proved; each
+client and server machine's boot (F2: the codec registry, net/rpc's and net/http's package
+variables, `DefaultServeMux` unclaimed, `DefaultServer` with an owned, empty registry) is proved
+from Net's first runs of net/http's and net/rpc's initializers (`BootLinked.lean`); and so is the
+allocation of the net/rpc world at the server addresses (Net's `addrs_set_proto` and the
+registry's invariant). F1, RemoveNode's method obligation, is proved (net-rpc-errors' `callRet`
+admits a forwarded `errAny` error, `cnewArg_RemoveNode`); F3, the chain nodes' `errOk`, is proved
+(Net's `errOk` is over the server's own messages, `srvErrMsg`, which Read's not-found is not;
+`nodeSpec_errOk`). The trust-boundary axioms the proof rests on are listed in
 `etc/tcb-collections/dsv-craq.txt`.
 Proved in `Dsverify/Proof/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean`.
 -/
@@ -35,6 +46,7 @@ module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.TopLevelDefs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.HttpRpc
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
@@ -78,6 +90,7 @@ def craq_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    (∀ G L, letI := heapAt G L; LogHyp remoteGF) →
     (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy craqKitAddrs (system σ) g →
