@@ -32,6 +32,9 @@ sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 # directory slot, sealed; callers use their laws only.
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+# (D6-T6, P7, 2026-11-25) the snapshot directory's crash law opens the sealed `snapDirInvK`/`snapDirBody`
+# (taking the old generation's contents, closing it with the crash token) and builds the new generation's
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapDirCrash
 
 # (wal-link L2, T1, 2026-11-17; `notes/axiom-review/releasesnapdbs.md`) the snapshot directory's take:
 # `snapDirInv` (sealed in `rafthttp.Net`, above) and the take token `storage.snapHeld` (sealed here),

@@ -10,8 +10,11 @@ of the stream contract (`http.streamReaderOk`: the snapshot handler's body after
 `http.bodyStream`), from what has been read `r0`, the rest's complete streams images of `D`
 (`boltImage`) with the certificate `□ img id D`, and the snapshot directory's invariant
 (`snapDirInvH`, `Proof/.../rafthttp/Net.lean`, D22 S-i): on success the rest was read to its end
-(`Φ`) and the index is saved (`snapSaved`; its ghost steps on the directory: at the link, the
-index added to the files `M` with the file and to the saved `E`; nothing at a kept file). An error
+(`Φ`) and the index is saved (`snapSaved`; its ghost steps on the directory (`snapDirBody`, D6-T6
+2026-11-25): at the link, the index added to the files `M` with the file, pending (its name not yet
+durable, `fileAtPend`); at the directory's sync that follows, on both paths (the link's and a kept
+file's), the index added to the saved `E`, its file durable (`fileAtDur`); nothing else at a kept file;
+an index that `ReleaseSnapDBs` removed meanwhile is in `E` already). An error
 reads some of it. On success the count `n` (`io.Copy`'s) is not negative (2026-10-25, stage 7e: the
 handler adds it to a counter). The trust boundary (an axiom since the handler's proof, stage 7e).
 Lean-first (no Rocq counterpart).

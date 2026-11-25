@@ -43,7 +43,9 @@ a failed removal (a non-empty directory, I/O) is logged and skipped, not returne
   `etc/import-all.txt`), whose premise refutes `Rm j` and which keeps the resource it could make
   `Rm j` from sealed in the token: so no caller of this function holds `Rm j` for a held `j`, and Go
   removes only files in `M` below `i`. At each removal the file leaves `M` with its removal fact
-  `Rm j` (given); a file whose removal failed leaves `M` too (forgetting its `fileHolds` is sound; a
+  `Rm j` (given), and its index joins the saved `E` if it was pending (linked by a `SaveDBFrom` not
+  yet past its directory sync, D6-T6 2026-11-25: the name may reappear after a crash, an orphan
+  later releases remove; `nonissues/etcd-snapdb-removed-before-dirsync.md`); a file whose removal failed leaves `M` too (forgetting its `fileHolds` is sound; a
   later `SaveDBFrom` of `j` keeps the file, `j` saved already). A file linked by a concurrent
   `SaveDBFrom` after the listing is not removed and joins `M`.
 * A non-canonical name (`5.snap.db`, 19 digits, uppercase hex) and an empty directory of such a
