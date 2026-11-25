@@ -73,7 +73,7 @@ instance linkInv_persistent (γ : SwiftNames netDistGF) (γk : GName) :
   unfold linkInv; infer_instance
 
 /-- The kit's store over the slot. -/
-abbrev swRK (γk : GName) : RBase netDistGF St KIn BStr := swR (sysK γk) swEop
+abbrev swRK (γk : GName) : RBase netDistGF St KIn KIn BStr := swR (sysK γk) swEop
 
 end defs
 

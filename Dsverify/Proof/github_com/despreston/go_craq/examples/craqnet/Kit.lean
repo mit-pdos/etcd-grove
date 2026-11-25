@@ -117,7 +117,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: the key-value map (see the file header). -/
-def kvR (γ : CraqNames) : RBase GF St KIn KOut where
+def kvR (γ : CraqNames) : RBase GF St KIn KIn KOut where
   B := kvB
   sysState a := ownState γ (lift a)
   Eop := craqEop

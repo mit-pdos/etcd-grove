@@ -6934,4 +6934,7 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
   stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
   top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
-- **Decision.** Open: reported to the `etcd_safe` lead (a change to `remote`'s shared statements); not made.
+- **Decision.** Approved as proposed (the coordinator, `remote`'s owner, #28; 2026-11-25): `RBase GF St J I O`
+  (wire input `I`, model input `J`, `mi : I → J`), `good` with `sysState_good`, `PendDec` at a configuration,
+  `PendDec.ofTotal` for the existing instances; condition: no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text
+  changes. Applied on `etcd-safe-p9`.

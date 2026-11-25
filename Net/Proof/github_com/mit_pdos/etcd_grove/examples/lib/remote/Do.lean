@@ -40,7 +40,7 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-! The reply's byte loop: its counter `j` stays below the reply's length `L < 2^63`. -/
 
@@ -78,7 +78,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     (wp_hang : hang.spec (GF := GF) (hG := hG))
     (wp_NewProph : github_com.goose_lang.primitive.NewProph.spec (GF := GF) (hG := hG))
     (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG)) :
-    Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
+    Do.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) := by
   intro R a i Φo Ψ cd d
   wp_start as ⟨#Hm, #Ha, #Hcd, Hbu, Hrd, Hch⟩
   iunfold codecOk at Hcd
@@ -95,10 +95,10 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     have : sint.nat req.len = uint.nat req.len := by word
     simp only [maxLen]; word
   wp_apply HIsRead $$ %i []
-  obtain ⟨T, hT⟩ : ∃ T : Nat, T = if R.B.isWrite i = true then 1 else 3 := ⟨_, rfl⟩
+  obtain ⟨T, hT⟩ : ∃ T : Nat, T = if R.B.isWrite (R.mi i) = true then 1 else 3 := ⟨_, rfl⟩
   have hT1 : 1 ≤ T ∧ T ≤ 3 := by split at hT <;> omega
   ihave #Hrlin : iprop(□ (⌜1 < T⌝ -∗ slotUpd (Gg := hG.goose_globalGS) R i (fun _ => iprop(True)))) $$ [Hrd]
-  · cases hw : R.B.isWrite i
+  · cases hw : R.B.isWrite (R.mi i)
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrd with #Hrd
       imodintro
@@ -114,7 +114,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
   iapply (wp_wand_l (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ tries_ptr ↦ W64 T)))
   isplitr [tries]
   rotate_left
-  · cases hw : R.B.isWrite i
+  · cases hw : R.B.isWrite (R.mi i)
     · wp_auto
       have h3 : T = 3 := by simp [hT, hw]
       subst h3
@@ -149,7 +149,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
       icases Hk with ⟨HΨ, HL⟩
       iexists (fun _ => iprop(True))
       iframe HΨ
-      cases hw : R.B.isWrite i
+      cases hw : R.B.isWrite (R.mi i)
       · ihave HL' := Hrlin $$ %(by simp [hT, hw])
         iframe HL'
         iintro %h; cases h
