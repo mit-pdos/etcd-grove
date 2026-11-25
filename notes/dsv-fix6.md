@@ -22,6 +22,11 @@ per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axio
   (`nonissues/rabia-getloglevel-doc-panics.md`). TCB: +16 axioms (`etc/tcb-baseline.txt`,
   `etc/tcb-collections/dsv-rabia.txt`), one premise fewer. Built: `rabianet.{TopLevelRobustness,
   NonVacuityLinked,TopLevelWitness}`, `zerolog.HypsLinked`.
+- **Gates (2026-11-25, at `b4c6c1c758`): not conclusive.** The disk (`/shared`, 969G) filled during the
+  run: the full `lake build` passed (28824 jobs), and links, errorf-wrap, axiom-tok, heapfree, bounds,
+  mode, api, import-all, tier, premise-witness and premisefix passed; tcb, pbschema, entsize, net-sticky,
+  wirevectors, models, featuregate, exit-check and the k8s reply-Kvs tests failed with ENOSPC (`no space
+  left on device`), gh-inbox failed too. Rerun `etc/gates.sh` once space is freed.
 - **QuePaxa (item 3): not started.** Scale: `Dsverify/Proof/raxos/Msg.lean` (2607 lines) holds every
   `pt*`/`rt*`/`fields*` representation and its share lemmas (the `if dq = DFrac.own 1 then l ↦ v else
   fields… ∗ inv pbRtN (rt… l)` pattern, ~10 message kinds), used by 5 more files (`grep -rln
