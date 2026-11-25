@@ -21,8 +21,11 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
 public import Net.Statement.DistBridgeExts
+<<<<<<< HEAD
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExtsCrash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
+=======
+>>>>>>> origin/etcd-safe-transport/2026-11-24
 
 @[expose] public section
 
@@ -127,6 +130,7 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
       exact HB d Hd σs σc σn Hfips hb
     · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
       iempintro
+<<<<<<< HEAD
 
 /-! ## The crash form: `etcd_safe` from the machines' boot WPs -/
 
@@ -230,6 +234,8 @@ theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spe
       iempintro
     · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
       iempintro
+=======
+>>>>>>> origin/etcd-safe-transport/2026-11-24
 
 end etcd_dist
 end EtcdGrove

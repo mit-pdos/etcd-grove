@@ -38,6 +38,9 @@ translate = ["!*",
   "setIsLearnerMetric", "RaftCluster.updateMembershipMetric",
   # (prove-ps2-members, 2026-11-22) the backend's setter (`applySnapshot`'s), proved
   "RaftCluster.SetBackend",
+  # (route B, 2026-11-25) the promotion's writer, which `applyConfChange` calls on a replayed promotion
+  # (without `shouldApplyV3`: the learner metric, a log line), proved
+  "RaftCluster.PromoteMember",
   # (prove-ps2-bootstage1, 2026-11-23, #34 stage 1) the cluster's version, read under the lock
   # (`rcLockInv`'s version slot), proved
   "RaftCluster.Version",

@@ -1119,7 +1119,10 @@ PROJECTS = [
         local=os.path.join("examples", "etcd", "dist"),
         lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
                     "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    # (2026-11-24, notes/etcd-dist-plan.md "Interim transport") `server`'s proxy check reads the
+                    # environment through this repository's `os` (its `Getenv` spec), as etcd's packages
+                    "os=", "io/fs="],
         # (etcd-dist D2, 2026-11-24) etcd_safe's programs: the deployment and its check, the member
         # machine's server, the orchestrators' and client machines' client, kvremote, enc
         packages=["./putget", "./deployment", "./enc", "./kvremote", "./server", "./client"],

@@ -678,7 +678,7 @@ addresses' `addrUnset`; no heap):
 
 | What | From | Today's section | D7 |
 |---|---|---|---|
-| raft's cluster `γ.cl` with its bootstrap log: `isClusterU`, `clusterInv`, `rdPool` (with its time receipts), the budget, `isCommittedLogLb γ boot`; per voter `raftState γ.cl id init`, `nodeVacant γ.cl id` | `cluster_alloc_boot_impl_tr` | heap, **only because of `bootMarshal`** | a global `cluster_alloc_bootG` without `bootMarshal`, giving per voter `nodeBootG` (below) |
+| raft's cluster `γ` with its bootstrap log: `isClusterU`, `clusterInv`, `rdPool` (with its time receipts), the budget, `isCommittedLogLb γ boot`; per voter `raftState γ.cl id init`, `nodeVacant γ.cl id` | `cluster_alloc_boot_impl_tr` | heap, **only because of `bootMarshal`** | a global `cluster_alloc_bootG` without `bootMarshal`, giving per voter `nodeBootG` (below) |
 | `srvRaftLogInv`, `kvInv`, `idClusterInv`, `(0) ↪[issued]□ none`, `srvPropMint`, `srvRdCtxInv`, and per member `(pfx,0) ↪[cnt]`, `idKeyFactAt fs (pfx,0) (idx id).slog`, `idWaitTokAt wn (pfx,0)`, the snapshot directory's `ghostMapAuth γd` | `srvClusterBoot_alloc` (`kvInv_alloc_boot`, `idCluster_alloc`, ...) | heap | re-sectioned (their bodies read only global ghost state: checked for `kvInv`, `srvRaftLogInv`, `srvFloorFacts`) |
 | each member's store names `idx id`, `cok id`, `rev id` with their fresh resources (`newServerStoreFreshA`, the two empty maps) | `newServerNames_allocL` | heap | re-sectioned; **must be global**: the claims' invariant names every member's `(idx id).slog` (`xsOf`) and every member's boot needs the claimers' facts of all members (`ΦsOf ids idx`), so they are chosen before `srvClusterBoot_alloc` |
 | the client's `etcdKV γk (kvModelSt …)` (lease mode `none`) | `srvClusterBoot_alloc` | **already global** (`InvRequest.lean:297`) | to the share of the machine running the KV check (below) |
@@ -1501,3 +1501,323 @@ What the merges needed (all on this line only; the source branches untouched):
   `NewRaftLoggerZap.wp_proofNN` (hprem-axioms), `proto.UnmarshalWalRecordE.wp_proof` (`lean`); `-`
   `errors.AsNoMatch`, `fmt.ErrorfSlice`, `fmt.SprintfSlice`, `fmt.SprintfWalName`, `slices.ContainsFunc`
   (`lean`). 337 axioms, no `sorry` reached (`NewServer.wp_proofC`'s is unlinked).
+
+## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
+
+The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
+(each reviewed by a fresh `axiom`-skill agent; the reviews' verdicts below). Branch base: `etcd-safe-lit`
+(`c022542b8b`) merged with `dist-putgetk` (which carries `dist-putget-interim` up to `886b7e46f1`) and three of
+`dist-putget-interim`'s later commits cherry-picked (`395a24818f`, `e41f4752d2`, `39b0b45cf8`); its last one,
+`6c436a379d` (`putget_safe` at `Robust`'s thread bound), sits on a squash-merge of `lean` and conflicts with lit's
+thread-bound bridge: left for the integration branch. The tier check's three refusals are `putgetk/Start.lean`'s
+(unbuilt WIP on `dist-putgetk`), not this work's.
+
+### 17.1 N4 (I-3, I-4): the member's peer side
+
+**Vocabulary** (`Proof/.../etcd/dist/S5Interim.lean`, defs, no axiom): `httpPeerSvc` (opaque, a pair of
+`Net.Proto`s, as grpc's `grpcCliPI`/`grpcSrvPI`: no proof establishes either of any bytes), `httpAddrAt a :=
+addrProto a httpPeerSvc.1 httpPeerSvc.2`, **`http_addr_set` a theorem** (`addr_set_proto`), `s5Interim : S5Draft`
+and **`s5Holds : S5Holds GF`** (the D9 skeleton's and `putgetk`'s named hypothesis, discharged); `noProxyEnv`
+(the four proxy variables `osEnvIs k ""`); `peerHandlerOf h s` (opaque, per process).
+
+**Axioms** (each in its own Spec/Proof pair under `.../etcd/dist/`, docstring: what, why true, what retires it):
+- `NewServer_dist.wp_proof : NewServer.specG_dist on cmp` (I-3): `NewServer.specG` verbatim but for the network:
+  no `γn` binder (the post's `∃ γn` with `γn.N = srvNet γ ∧ γn.dir = dir`, as `putgetk`'s `StartMember_dist`),
+  `netHttpOk γn id` replaced by `httpAddrAt γ pid a` of every other peer's directory address, and `noProxyEnv` added.
+- `NewPeerHandler_dist.wp_proof` and `PeerServe_dist.wp_proof` (I-4): `etcdhttp.NewPeerHandler(lg, s)` on a
+  started member returns `peerHandlerOf h s`; `http.Serve(pl, h)` at `pa` (`httpAddrAt pa`, `netListenerOpen pl
+  pa`, `srvNetMember`, `isServerReqM`, the `httpProcSlots` of `srvServeRes`) is safe, post `True`. Two axioms because
+  `http.Server` is an axiomatized type here (its composite literal has no field model): the program now calls
+  `http.Serve(pl, h)`, which is `(&http.Server{Handler: h}).Serve(pl)`.
+- `os.Getenv.wp_proofEnv : os.Getenv.specEnv` (`Proof/os/GetenvEnv.lean`; vocabulary `Proof/os/EnvIs.lean`): the
+  value read is the process's for the run (`osEnvIs key v`, opaque, per process: it takes the `HeapGS`). Beside
+  `os.Getenv.spec`, not in place of it.
+
+**The proxy hole, closed in the program** (`examples/etcd/dist/server`): `MainLogger` returns at once if
+`HTTP_PROXY`, `http_proxy`, `HTTPS_PROXY` or `https_proxy` is nonempty (`proxyEnvSet`, `os.Getenv`), before any
+net/http use (net/http reads them once, `envProxyFunc`'s `sync.Once`); nothing in the process sets them. Go tests:
+`TestProxyEnvSet` (false with none set; true with each one; and non-vacuity: with none set
+`httpproxy.FromEnvironment` proxies no peer URL, with each one set it proxies the peer URL of its scheme) and
+`TestMainLoggerProxyRefused` (with `HTTP_PROXY` set `Main` returns before `NewServer`: no data directory).
+`os=`/`io/fs=` added to project `putget-dist`'s lean roots (this repository's `os`, as etcd's packages). Not
+Unsetenv: `os.Unsetenv` has no spec, and a model of it is a larger trusted change. Not the fork's `Proxy: nil`.
+
+**Also changed in the program**: the peer handler is served after `s.Start()` (etcd's embed does the same:
+`StartEtcd` starts the server, then `servePeers`): `/leases` waits on the server's apply wait, which `start` makes
+(a forwarded lease request reaching a member before its `Start` would call a nil `*timeList`; after a crash a peer
+may still forward to the restarted member as its old leader).
+
+### 17.2 N2 (I-1): the service table's unary entries
+
+**Not done: `etcdSvc` stays an axiom, and no `etcdSvc_unary` law is added.** The law of the plan (`etcdSvc γE mid
+m.path = some ⟨Req.wire, Rep.wire, fun md γs => ∀ ν, envAt γE ν -∗ ▷ etcdMethodSpec m (etcdEnvOf ν) md γs⟩`) needs
+`etcdEnvOf ν` (and the view's read names and cluster id) as *definitions* tied to the member's own names; over
+today's `EnvView` (`⟨st⟩` only) they could only be opaque, and a table whose specs are at names the member does not
+own would make `Serve_dist` (A3) claim a server meets specs it cannot meet (the client's deposit at other names
+than the server's), while giving the clients nothing to derive A4/A5 from. Defining them is #24's S2 etcd side (in
+flight with its owner): not duplicated here. What was checked (step 1, O1/O2):
+- **Heap**: every client-facing unary spec has a heap-free form over `GooseGlobalGS` and `GoLocalContext` since
+  2026-11-23 (KV: `etcdPutSpecW`, `etcdRangeSpecW`/`EW`, `etcdDeleteSpecW`, `etcdTxnSpecW`, `etcdCompactSpecW`;
+  auth-on `…OnW`/`…MW`; lease `etcdLeaseGrantSpec*W`, `etcdLeaseRevokeSpec*W`, `etcdLeaseTTLSpec*W`,
+  `etcdLeaseLeasesSpec*W`; auth `etcdAuthenticateSpecW`, `etcdUserAddSpecW`, ..., `etcdAuthEnableSpecW`). **The
+  auth-on forms take a parameter `T`, which the server's registrations instantiate as `srvTLSId s`**
+  (`srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ true`, `AuthnServedOn.lean`: a points-to on the member's heap): a
+  table entry must fix `T` heap-free (e.g. `False`, the configuration's `ClientCertAuthEnabled` being false,
+  `srvTLSId_false`), with the server converting.
+- **The view** (O1): the specs read `E.γs`, `E.Nx`, `E.Cp`, `E.authOn`, the whole `ReadNames` (`committedAtLeast`
+  reads `γr.committed`, `γr.raft`) and `cid`. `ReadNames.raft` holds `SrvRaft`, whose `rule` and `snapLoc : w64 →
+  Option GName` are functions: not countable, so not a `dghostVar` value as it stands.
+- **Restart** (step 5): `restartNames` (`InvRestart.lean`) keeps only `rd.raft`, `kvCongr` of `rd.kv` (with `st`),
+  `ids.issued` and `ids.pfx`; `ReadNames`' other fields (`committed`, `applied`, `cursor`, ...) are the
+  incarnation's. A view holding them would differ after a restart (a restarted member could not publish the same
+  one); `committedAtLeast γr` reads `γr.committed`, so the crash theorem needs the client-facing specs stated over
+  the cluster-level names only (`rd.raft`, `kvCongr`'s fields). Today's `EnvView` (`st`) is restart-stable
+  (`restartNames_st`).
+- A route found on the way, for #24's owner: the member's `ρ` and `E₀` are inputs of its boot (the start's share,
+  `memberBoot γ ctxs ρ E₀ …`), and `NewServer`'s `E` agrees with `E₀` (`envAgree`: `γs`, `Nx`, ...): a table
+  defined at the start over `E₀`/`ρ.rd` (no publication) may work once `E.Cp`'s agreement and the cluster id (a
+  pure function of the members' ids) are checked.
+
+Since no table content was added, A3's re-review (step 6) has nothing new to review.
+
+### 17.3 The axiom reviews (2026-11-24; fresh agents with the `axiom` skill, given the code, not the reasoning)
+
+- **`os.Getenv.wp_proofEnv`: sound**, docstrings corrected (the setters' evidence is that none has a spec and the
+  Go closure of the programs has no non-test caller, not "the programs are verified"; `golang.org/x/sys/unix`'s
+  setters; cgo's `setenv` does not reach Go's copy; per process *run*: `HeapGS` `⟨G, L⟩` with `L` bound per boot).
+  Evidence `/tmp/envaxiom/` (not kept in the repository). Shared caveat of every names-only contract: the axioms
+  quantify over every `go.Semantics`, whose `functions "os.Getenv"` could be any `GoFunc` (as `notes/audit.md`'s
+  `dialWithBalancer` row).
+- **`NewServer_dist`: unsound as first stated; fixed.** `httpPeerSvc` named no cluster, so a second ghost cluster
+  (`srvClusterBoot_alloc` is a theorem) with the same configuration (same ids) could run a duplicate of member 1 at the
+  same peer addresses; Go: the duplicate's raft panics (`tocommit(58) is out of range [lastIndex(3)]`, 5/6 runs, with
+  bootstrap's `GET /members` refused by a fault). Fix applied: `httpPeerSvc γ id` (an address set once, for one
+  cluster and one member), `Hpeers` at `γ pid`, the docstring's "allocated once by the start" argument replaced.
+  **Re-review (fresh agent, same day): survives.** Routes blocked: two members at one address (`dirHostsDistinct`,
+  `addrUnset` spent once), one id twice (`nodeVacant`/`raftState` exclusive; the docstring's "exclusive `nodeBoot`"
+  corrected: `nodeBoot` is persistent), an own address set for another id, disagreeing peer configurations (ids, peers,
+  contexts pinned to the cluster's allocation), relaying bytes (protocols per connection), the proxy, bootstrap's
+  `GET /members` (a non-etcd server there crashes `NewServer`: `[null]` members, a nil dereference, unrecovered; out of
+  reach through `Hpeers`). Hardening applied: indexed by the whole `SrvRaft` `γ`, not only `γ.cl`. Open, not a
+  counterexample: `bootstrapCluster.spec` takes only `roundTripperOk H prt` and asserts no panic, its soundness
+  resting on its callers' address facts (`Hpeers` here, `netHttpOk` in one process): state them in it, or say so.
+- **`NewPeerHandler_dist`: sound.**
+- **`PeerServe_dist`: unsound in combination with two existing axioms; recorded, not fixed here.**
+  (1) The single-process start (`goose_adequacy_start`) hands out both the net extension's `addrUnset pa` and the
+  HTTP registry's `httpProtoFree pa`: a one-process program sets `pa` with `http_addr_set`, serves the peer handler
+  there with this axiom, reserves `pa` in the registry with a `True` request protocol (`http.reserve`) and sends a
+  forged heartbeat through `rafthttp.NewRoundTripper`'s round tripper; Go: the member's raft panics
+  (`tocommit(1000000) is out of range`). Fix (a trusted change on `lean`, for the owner): `http.reserve` also consumes
+  `addrUnset a` (the `http.register`/`netAddrLeft` hole of `notes/putget-dist-plan.md` §12, review 5, is the same
+  family). (2) The names-only `leasehttp.RenewHTTP` axiom posts to any URL: requests to `pa`'s `/leases/internal`
+  (a recovered nil dereference), `/members/promote/<id>` (a rejected promote's conf-change entry reaches the log:
+  outside `srvRule`/`ccLogOk`, no Go panic found), `/leases`. Fix: restrict `RenewHTTP` to a member's lease URL. Applied
+  here: `pa` tied to the member's directory entry and its cluster (`httpAddrAt γ id pa`, `γn.N = srvNet γ`);
+  docstrings no longer claim that nothing but the axioms writes at `pa`. Evidence `/tmp/peerforge/` (not kept).
+- `etcdSvc` (A1) and A3: no new table content, so no re-review.
+- **2026-11-25, the two holes of `PeerServe_dist`.**
+  - **(1) closed: `http.reserve` narrowed** (`notes/axiom-review/http-reserve-pend.md`). Old:
+    `⊢ httpProtoFree a ==∗ httpProtoAt a P ∗ httpProtoOwn a P`. New: `⊢ httpProtoFree a ∗ netAddrPend a ==∗ …` (the
+    same post), `netAddrPend a` the address's exclusive empty pending set (`netPend NG a ∅`), which every law making
+    an `addrProto` spends (`addr_set_proto`, `_tok`, `lis_set_proto` through `lisUnset`), so `http_addr_set pa` and
+    `reserve pa` exclude each other. `net.Listen.spec` (proved) now takes `netAddrRsv` (`netAddrFree` without the
+    pending set) and leaves `netAddrLis`; `netAddrFree_split`, `netAddrLeft_intro` rejoin. Re-proved users: the
+    reservations (`netHttp_reserve3`, `netHttp_reserveL`, `alloc3Http`, `alloc3OnHttp`, `memberStartRes_split`,
+    `alloc3`, `alloc3On`, `allocN`, `allocNOn`), the bundles (`memberFreshRes`, `memberRestartRes` hold `netAddrRsv`),
+    the peer listeners (`etcdstart.NewMember`, `StartMemberAuth`, `auth3.startMember`, `restart`/`restartN`
+    `newMember`, specs and proofs), the other `Listen` callers (`cluster3.StartBridge`, `cluster3.StartMember`,
+    `etcdstart.Serve`) and the draft `ListenerClose_spec`. No new axiom, `sorry` or premise; no top-level statement
+    changed.
+  - **(2) open: `leasehttp.RenewHTTP` not narrowed.** Restricting `url` to a member's lease URL (`u ++ LeasePrefix`,
+    `u` a peer URL of a cluster member, `http://<netAddrLit host>`) needs its one caller, `EtcdServer.LeaseRenew`
+    (in the landed lease results: lease, leaseN, authlease, leaseexpiry(N), k8s), to know the leader's `PeerURLs`
+    are such: `waitLeader`'s post and `RaftCluster.Member`'s say nothing of them (a fresh `Member` record, any
+    strings), and the cluster's lock invariant (`rcLockInv`/`memAt`) records no fact of its members' peer URLs. A
+    fact of the record alone is no restriction (a program allocates a `Member` with any URLs). So the landed proof
+    of `LeaseRenew` uses `RenewHTTP` at URLs it knows nothing of, and narrowing it means first adding to the
+    cluster's invariant a fact of every member's peer URLs (from bootstrap's `memberRO`/directory facts and each
+    `AddMember`/`UpdateRaftAttributes` writer) and to `waitLeader`'s post. Stopped there (the task's rule: a landed
+    result that cannot be re-proved without the old power); `PeerServe_dist` stays unsound in combination with
+    `RenewHTTP` until then (its docstring says so).
+  - **Fresh review** (`axiom` skill, given the axioms and the Go code, `RenewHTTP`'s route declared known): `PeerServe_dist`
+    with the narrowed `reserve` **survives**. Attacks: reserve/set in either order; taking the pending set out of an
+    address's invariant (cannot close it again); a wildcard listener (`lisUnset` holds `pa`'s pending set); two
+    spellings of one socket (`addrOk`, `netAddrLit` canonical); `reserve` at a second `HeapGS` (its registry predicates
+    are indexed by `hG`: inferred, unchecked); writing through the net extension (opaque `httpPeerSvc`); other clients
+    (gRPC needs `grpc.start`'s listener at `pa`; the prober's `GET /raft/probing` is peer API; `leaseTimeToLive`
+    forwards only in its cluster). Docstrings corrected as it asked (`PeerServeDist`, `InvNet`'s header, the review
+    note). Side finding outside the targets: `rafthttp.addPeerToProber.wp_proof` admits a nil prober `p` (Go:
+    `p.AddHTTP` panics); unexported, etcd's callers pass non-nil, so no counterexample; a premise `p ≠ nil` would
+    make it true.
+  - **`NewServer_dist` at its final text** (`httpPeerSvc` indexed by the whole `SrvRaft γ`, 4277b6acaf), fresh `axiom`-skill
+    review with `PeerServe_dist`, `NewPeerHandler_dist`, the narrowed `reserve` and the starts. The three versions:
+    unindexed (review affa32: **refuted**, a duplicate member in a second ghost cluster with the same configuration);
+    cluster+member index (review a1f026: no counterexample); whole-`SrvRaft` index (this review: **survives**). Its
+    argument: `httpPeerSvc` is opaque with no laws, so the re-indexing only refines the cluster+member version; a
+    second `γ'` over one cluster is pinned out (`ownCommittedOps`, `nodeBoot`/`nodeVacant`/`raftState`, `srvRaftLogInv`);
+    plus attacks 4-10 as for `PeerServe_dist` (registry, wildcard, aliasing, relay, `π`, proxy, double serve). Not
+    tried: the crash law and restart path. Stale docstrings it found (`S5Interim`'s `httpAddrAt` "of the cluster `cl`",
+    one-argument `httpAddrAt` in `NewServerDist`/`PeerServeDist`, `NewServerDist`'s "only the other members accept",
+    `Start.lean`'s `netAddrFree`/`nameFree` wording) are fixed with route B's commit. Note: the dist top-level theorems
+    still take the unindexed `S5Draft.httpAddrAt` as a hypothesis, so these axioms are on no exported result's path yet.
+  - **Route B (2026-11-24, chosen with the coordinator), Go evidence** (`examples/premisefix/peerforge`, at the examples'
+    etcd pin): `PromoteMember` of an unknown id is refused before any proposal (`isLearnerReady`: `ErrIDNotFound`, no
+    entry applied); of a voter it proposes an `AddNode{IsPromote}` that apply rejects (`ErrMemberNotLearner`): one entry
+    applied, members unchanged, no panic; the same through `RenewHTTP` to `/members/promote/<decimal id>`.
+    `RenewHTTP` to `/leases/internal`: the handler dereferences a nil `LeaseTimeToLiveRequest`
+    (`lease/leasehttp/http.go:123`, before any lock), `net/http`'s `conn.serve` recovers (`http: panic serving`), the
+    client gets `EOF`; afterwards `LeaseGrant`, `LeaseRenew`, `LeaseTimeToLive`, `RenewHTTP` to `/leases` and `Range`
+    succeed. 3/3 runs. Next: widen `ccApplyOk` to admit rejected promotes and re-prove its consumers.
+  - **Route B, stopped before the widening (2026-11-25): it needs an axiom's statement changed.** With `v3`,
+    `ValidateConfigurationChange` of a promote (`membership/cluster.go:324-330`) reads `membersMap[id].IsLearner`, and
+    the member is present (every `cfg` id is a boot member in the `members` bucket), so the load is reached. The only
+    source of `membersMap` is the trust-boundary axiom `schema.membershipBackend.MustReadMembersFromBackend.wp_proof`,
+    whose post `membership.membersRead` gives each record's `PeerURLs` only (`memberURLsAt`), and its model
+    `membership.membersOf` (opaque, with the axioms `membersOf_decode`, `membersOfBk_empty`) has codomain
+    `GMap w64 (List GoString) × GMap w64 Bool`, no learner flag; so the promote branch has no proof and `ccValidM`
+    cannot state Go's verdict (member present and a learner). Needed, for the owner: `membersOf`'s members carry
+    `IsLearner` (`membersOf_decode` gives `(mm.peerURLs, mm.isLearner)`: `json.Unmarshal` of `json.Marshal` keeps a
+    bool) and `membersRead` gives `mIsLearnerAddr l ↦ b` (`readMembersFromBackend` unmarshals the whole `Member`), or
+    a new axiom on a separate opaque. Also: without `v3` (a replayed promote at restart, whose rejection set the
+    consistent index) Go calls `RaftCluster.PromoteMember(id, false)`, names-only today (`membership.toml`): translate
+    it and prove it (lock, `isLearner.Set(0)` for the local id, a log line, unlock). The rest is as planned:
+    `ccApplyOk`'s promote disjunct, `ccValidM`'s promote branch, an invariant that every saved member is a voter
+    (from `ccApplyOk`'s `isLearner = false` and `membersOf_decode`), then the consumers.
+
+  - **Route B, steps 1-2 and the validation's promotion branch (2026-11-25).**
+    - *The members extension* (approved for the final packet): `membership.membersOf`'s members carry the
+      learner flag (`GMap w64 (List GoString × Bool) × GMap w64 Bool`); `membersOf_decode` gives the flags by
+      id with no UTF-8 premise (a boolean and the key, which `json.Marshal`'s coercion never touches, as
+      `memberEnc_id_learner`) and the `(peerURLs, isLearner)` pairs under `hu`; `membersRead` gives each
+      record's `IsLearner` field (`memberReadAt`, in place of `memberURLsAt`). Go evidence
+      `examples/axiomcx/memberslearner` (the real `snapshotmeta.ReadMembers` over `json.Marshal`ed members:
+      the flag reads back, beside a peer URL coerced to U+FFFD). Docstrings cite the pin `6b942d23f`
+      (`readMembersFromBackend` now reads the members through `snapshotmeta.ReadMembers`).
+    - *`RaftCluster.PromoteMember` translated with its body* (`membership.toml`) and proved without
+      `shouldApplyV3` (lock, the learner gauge for the local id, a log line, unlock); linked in the server's
+      `Link`. `etc/goose.py --check` and `etc/gen-init.py --check` pass.
+    - *`ValidateConfigurationChange`* admits a promotion's context (`∃ i b`) and `ccValidM` has Go's
+      promotion branch (`ccIsPromote`: the member present and a learner); proved (`ErrIDNotFound`,
+      `ErrMemberNotLearner`, `nil`).
+    - **Stopped before widening `ccApplyOk`: it changes another axiom.** Admitting a promotion into the
+      committed log's policy (`ccPolOk`/`ccLogOk`) makes `ccPolOk_static` (committed conf entries are
+      `ccBootOk`) false, and its consumers on the snapshot path (`SnapRecvFacts`, `SnapRecvOn`,
+      `ApplyAllSnapLemmas`) pass that fact to the trust-boundary axiom
+      `membership.clusterImageOk_restModel`, whose premise is `∀ m ∈ L', m.typ ≠ 0 → ccBootOk γ.raft.cfg
+      m.data`. Either its premise is widened (to the wide policy, so the axiom claims the image fact also
+      for logs with promotions), or `ccBootOk` keeps its name with a wide meaning (the same claim,
+      silently). Go: a promotion of a voter is rejected (`ErrMemberNotLearner`, no bucket written:
+      `applyConfChange` returns before `PromoteMember`), and a replayed one (`PromoteMember(id, false)`)
+      writes no bucket, so the widened claim is true of Go; but it is an axiom change beyond the members
+      extension, for the owner. `BootFacts`/`BootCore.cc` (`ccBootOk`, defined from `ccApplyOk`) widen with
+      it and must not be narrowed (coordinator, 2026-11-25: five top-level statements reach `ccApplyOk`
+      through `BootFacts`; a weaker premise is a stronger theorem). So a boot entry may then be a
+      promotion, and the boot proofs (`memBoot`, which inserts every boot change's member;
+      `memOk_memBoot`, `boot_step`, `memSync_boot`) must handle it: `memBoot` should skip a promotion's
+      member, matching Go (a boot promotion of an id not yet saved is rejected, `ErrIDNotFound`).
+    - *Fresh review* (`axiom` skill, given the axioms and the Go code at the pin) of `membersOf`,
+      `membersOfBk_empty`, the restated `membersOf_decode` and `MustReadMembersFromBackend`'s contract:
+      **survives**. Attacks: the learner flag without `hu` (the real `ReadMembers`), ids at `0` and
+      `2^64-1`, URL escapes and nil/empty slices under `hu`, `null` and extra records, the fresh records'
+      ownership, the validation's promotion branch against `cluster.go:324-330`. Docstring citations
+      corrected (the pin's `ReadMembers`/`MustParseMemberID`, `membership.go:84-117`). Side finding, not a
+      counterexample (pre-existing): `apply.memberEnc` is a function of `MemberM`, but Go marshals a nil and
+      an empty `PeerURLs` differently (`null`/`[]`); harmless while no verified reader sees the bytes;
+      the robust form is "`MustSaveMemberToBackend` writes some value decoding to `mm`".
+
+  - **Route B, step 3 stopped at the design (2026-11-25): the boot policy cannot widen.**
+    - *Go evidence* (step 1, `examples/axiomcx/promotenobucket`, at the examples' etcd pin `6b942d23f`,
+      3/3 runs): (a) the real server applies a promotion of itself, a voter: `PromoteMember` returns
+      `ErrMemberNotLearner`, `applyConfChange` logs the validation's failure with `shouldApplyV3`
+      and never runs `PromoteMember(id, true)`; the `members`, `members_removed` and `cluster`
+      buckets are byte for byte as before; (b) restarted on the same data directory, the WAL replay
+      applies the entry again with `shouldApplyV3` false (the rejection set the consistent index):
+      `PromoteMember(_, false)` runs once ("ignore already promoted member"), no validation fails,
+      the buckets as before; (c) the image read back (`MustReadMembersFromBackend`'s members with
+      learner flags and peer URLs, the removed ids, the cluster version, the downgrade record) after
+      (a) and after (b) equals the one before; (d) at the `RaftCluster` level, a promotion of an id
+      not saved yet is `ErrIDNotFound`, writing nothing, and replayed writes nothing either.
+    - *Why `ccBootOk` cannot widen with `ccApplyOk`* (the decision of 2026-11-25 assumed it could):
+      a promotion among the **boot** entries is not harmless. Applied at the first boot with
+      `shouldApplyV3`, it is rejected with `ErrIDNotFound` (its member not saved yet: (d)), so its
+      member is never saved, while raft's bootstrap has already put it in raft's configuration. A
+      restart then builds its conf state from the `members` bucket (`buildConfStateFromV3store`,
+      the restart log's "Constructed a new raft snapshot from v3 state"), without that member. In
+      the proof: `restModel_confState` (`RestConf.lean`, used by `StopShutdown`'s stop image) needs
+      every id of `ps` saved (`memVoters`), which `boot_fold` gets from every boot entry being a
+      non-promotion `AddNode`; with a boot promotion its conclusion is false of the model and of Go.
+      So widening `BootFacts`/`BootCore.cc` would make the stop/restart results unprovable, not
+      just need new cases (and the `memBoot`-skips-promotions plan does not help: the bucket, not
+      `memBoot`, is what the restart reads). A promotion **after** the boot log is harmless (a), (b), (c).
+    - *Proposed instead (needs the coordinator's OK, not done):* the boot policy stays as it is and
+      only the committed log's policy widens. `ccAddOk` := today's `ccApplyOk` (a non-promotion
+      `AddNode` of a voter of `cfg`); `ccApplyOk cfg m := m.type = 0 ∧ m.nodeId ∈ cfg ∧
+      ((ccContextOf m.context = some (m.nodeId, false) ∧ (ccMemberOf m.context).isLearner = false) ∨
+      ccContextOf m.context = some (m.nodeId, true))` (the §17.3 promote disjunct); `ccBootOk` defined
+      from `ccAddOk` (its meaning unchanged, so `BootCore`/`BootFacts` and the five top-level
+      statements unchanged: neither narrowed nor widened); `ccPolOk`/`ccLogOk` (the log invariant's
+      and the KV invariant's per-entry policy) and `srvRuleKeeps` over the wide `ccApplyOk`;
+      `ccPolOk_static` deleted (false), `srv_committed_ccBoot` returning the wide policy; the boot
+      entries' narrowness kept as a new last conjunct of `srvClusterOk`
+      (`⌜∀ e ∈ γ.raft.boot, ccBootOk γ.raft.cfg e.Data'⌝`, from `BootCore.cc` at the cluster's
+      allocation; four `icases` patterns that name its current last conjunct get a `-`).
+      `clusterImageOk_restModel`'s premise `∀ m ∈ L', m.typ ≠ 0 → ccBootOk cfg m.data` becomes
+      `(∀ m ∈ L', m.typ ≠ 0 → ∀ cc, ccDecodeV1 m.data = some cc → ccApplyOk cfg cc) ∧
+      (∀ j m, L'[j]? = some m → j < γ.raft.boot.length → m.typ ≠ 0 → ccBootOk cfg m.data)`, which the
+      old premise implies (a pure widening); its docstring gains (a)-(d) and the voter argument
+      (every saved member a voter, so a promotion never validates and `ccRest`'s promotion branch,
+      unfaithful to `PromoteMember(id, true)`, is never taken).
+    - *The re-proofs it needs* (estimated 1000-2000 lines): `applyConfChange`'s spec and proof get the
+      promotion branches (with `v3`: a premise that a promotion does not validate, `ccValidOn rs.bk m
+      = false`, which its callers in `EtcdServer__apply` derive from the rest model's voters; without
+      `v3`: `PromoteMember(id, false)`, proved, and no `AddPeer`); `memSync` gains the members'
+      learner flags (`restEntry_sync`, `fold_sync`, `memSync_boot`), `ccRest_memVoters` and
+      `restEntry_memVoters` a promotion case (refused: the bucket's members are voters,
+      `membersOf_decode`'s flags); the four `clusterImageOk_restModel` call sites (`SnapRecvFacts`,
+      `SnapRecvOn`, `ApplyAllSnapLemmas` twice) the boot-prefix conjunct from `srvClusterOk`; the
+      restart sites (`NewServerRFacts`, `StopShutdown`, `ApplyRDefs`) the boot facts from
+      `srvClusterOk`; `srvRule_keeps` (`InvCfgView`) over the wide policy (it reads only the type and
+      node); `InvApRes`, `ApplyRDefs`, `SDRun`, `KVLemmas`, `KVAuthModel`, `ProposeOn` follow.
+      `etcd_noRefusal`/`etcd_noOtherRefusal` unaffected (a promotion of a voter changes no
+      learner flag; their docstrings' `ccLogOk` caveat is about a re-add as a learner).
+
+  - **Route B, done (2026-11-25; the design above approved by the coordinator).** Definitions
+    (`SrvRaftLog.lean`): `ccAddOk` (the former `ccApplyOk`), `ccApplyOk` with the promotion disjunct,
+    `ccBootOk` from `ccAddOk` (meaning unchanged), `ccWideOk` (the wide policy of an entry's bytes),
+    `ccPolOk_wide` in place of `ccPolOk_static`, `srvRuleKeeps` and `srv_committed_ccBoot` over
+    `ccWideOk`, `srvClusterOk`'s new last conjunct (the boot entries' `ccBootOk`, from `BootCore.cc` at
+    `NewServerAlloc`/`NewServerAllocOn`), `srv_bootPrefix_ccBoot` (a committed log's first `|boot|`
+    entries `ccBootOk`), `srv_first_boot`/`srv_first_entry` also give the first entry's
+    non-promotion context. `clusterImageOk_restModel`'s premise widened as proposed (old premise
+    verbatim: `(∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →`; new: `(∀ m ∈ L', m.typ ≠ W32 0
+    → ccWideOk γ.raft.cfg m.data) → (∀ (j : Nat) (m : EntryModel), L'[j]? = some m → j <
+    γ.raft.boot.length → m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →`). Re-proved: the four call
+    sites; `RestConf` (`memVoters` now over a cover list, with the bucket's exact members and nothing
+    removed; `ccValidOn_promote_false`, `memVoters_restModel`, `ccValidOn_restModel_promote`,
+    `memVoters_boot`); `RestReplay` (`restEntry_sync`/`fold_sync` refuse a promotion through
+    `memVoters`); the restart sites (`NewServerRFacts`, `StopShutdown`, `ApplyRDefs`: the boot facts
+    from `srvClusterOk`); `applyConfChange` (spec: with `v3`, a promotion does not validate, a new
+    premise; proof: the replayed promotion's `PromoteMember(id, false)`, linked); `EtcdServer__apply`
+    (the premise from `srv_promote_novalid`, `ApplyRDefs.lean`). `BootFacts`/`BootCore` and the five
+    top-level statements (etcd.dist, dist.putget, leaseexpiryN, etcd.all, k8s.all) unchanged in
+    meaning: they reach the policy only through `BootCore.cc`'s `ccBootOk`, whose body now names
+    `ccAddOk`, the same proposition the old `ccApplyOk` was. No axiom but the approved one changed,
+    no `sorry`, `etcd_noRefusal`/`etcd_noOtherRefusal` untouched.
+  - **Fresh reviews of route B** (`axiom` skill, given the axioms and the Go code, not the reasoning):
+    (i) the widened `clusterImageOk_restModel`: **survives** (promotions of voters with odd contexts,
+    case-folded and duplicate JSON keys, the boot boundary, replays, ids outside the configuration,
+    context/node mismatch; a temporary Go test over the real `ValidateConfigurationChange`/
+    `AddMember`/`PromoteMember` on bbolt, buckets byte for byte unchanged); docstring fixed as it asked
+    (`PromoteMember(id, false)` also resets the local learner gauge; the route-B bullet's pin). Noted,
+    pre-existing: the axiom takes no fact tying `γ.raft.boot` to the running cluster. (ii)
+    `PeerServe_dist` with the unchanged `RenewHTTP`/`promoteHTTPOk` and the widened invariants:
+    **survives** (a 3-member Go cluster, 4/4 runs: forged promotions of every voter through
+    `RenewHTTP` at followers, unknown/out-of-range ids, 90 concurrent promotions across restarts and a
+    full WAL replay; rafthttp's paths refuse `RenewHTTP`'s requests with 412; `/leases/internal`'s nil
+    dereference recovered). Its docstring rewritten: sound against `RenewHTTP`'s request shape (not
+    "any request": arbitrary bytes with raft's headers would crash raft, and no program can write
+    them at `pa`), with the waiter note. The server-side `/leases/internal` panic recorded:
+    `nonissues/etcd-leasehttp-internal-nil-request-panic.md`.
+
+None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
+`etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.

@@ -481,14 +481,33 @@ opaque membership.ccContextOf : List w8 → Option (w64 × Bool)
 bytes; moved here from `InvRest`, 2026-11-04, for `ccApplyOk`): what `applyConfChange`'s `AddMember` saves. -/
 opaque membership.ccMemberOf : List w8 → apply.MemberM
 
-/-- **A conf change the server's `applyConfChange` takes** (audit phase B3, 2026-10-18): an
+/-- **A boot conf change the server's `applyConfChange` takes** (audit phase B3, 2026-10-18; named
+`ccApplyOk` until route B, 2026-11-25, which widened that name to the committed log's policy): an
 `AddNode` (type `0`) of a member of raft's configuration `cfg`, whose context unmarshals to that
 member, not a promotion; (2026-11-04, the restart plan's R2b-3d gap 3, the user's choice) the member
 it saves a voter (`ccMemberOf`'s `IsLearner` false: etcd's `--initial-cluster` members are), which a
 restart's `buildConfStateFromV3store` reads back. -/
-def ccApplyOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
+def ccAddOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
   m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false) ∧
     (membership.ccMemberOf m.context).isLearner = false
+
+/-- **A conf change the server's `applyConfChange` takes in the committed log** (route B,
+2026-11-25, `notes/etcd-dist-plan.md` §17.3): an `AddNode` of a member of raft's configuration
+`cfg` whose context unmarshals to that member, either not a promotion and saving a voter (the
+boot entries', `ccAddOk`), or a promotion (`IsPromote`, what `EtcdServer.PromoteMember` proposes,
+also on a forged peer request to `/members/promote/<id>`). A promotion of a voter is rejected
+(`ErrMemberNotLearner`, nothing written) and, replayed, `PromoteMember(id, false)` writes nothing
+(`examples/axiomcx/promotenobucket`). -/
+def ccApplyOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
+  m.type = W32 0 ∧ m.nodeId ∈ cfg ∧
+    ((membership.ccContextOf m.context = some (m.nodeId, false) ∧
+        (membership.ccMemberOf m.context).isLearner = false) ∨
+      membership.ccContextOf m.context = some (m.nodeId, true))
+
+/-- The boot policy is within the committed log's. -/
+theorem ccApplyOk_of_add (cfg : GSet w64) (m : ConfChangeM) (h : ccAddOk cfg m) :
+    ccApplyOk cfg m :=
+  ⟨h.1, h.2.1, .inl ⟨h.2.2.1, h.2.2.2⟩⟩
 
 /-- **A conf change `applyConfChange` takes** (D43 M5d/M5e; 2026-10-30, the repair, D3: static
 membership after boot, so `ccApplyOk` only; until then, in a dynamic cluster, also a `RemoveNode` of
@@ -501,7 +520,15 @@ abbrev ccApplyOkM (γs : ServerRaftNames) (m : ConfChangeM) : Prop := ccApplyOkR
 
 /-- The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes. -/
 def ccBootOk (cfg : GSet w64) (d : List w8) : Prop :=
+  ∀ m, ccDecodeV1 d = some m → ccAddOk cfg m
+
+/-- The bytes `d` of a conf-change entry decode to a change of the committed log's policy
+(`ccApplyOk`, route B). -/
+def ccWideOk (cfg : GSet w64) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOk cfg m
+
+theorem ccWideOk_of_boot (cfg : GSet w64) (d : List w8) (h : ccBootOk cfg d) : ccWideOk cfg d :=
+  fun m hm => ccApplyOk_of_add _ _ (h m hm)
 
 /-- **The members the bootstrap log's conf changes add** (their contexts' members, in order). -/
 def bootMembers (bootLog : List EntryM) : List apply.MemberM :=
@@ -567,11 +594,12 @@ def ccPolOk (γ : SrvRaft) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOkR γ m
 
 theorem ccPolOk_of_boot (γ : SrvRaft) (d : List w8) (h : ccBootOk γ.cfg d) : ccPolOk γ d :=
-  fun m hm => h m hm
+  fun m hm => ccApplyOk_of_add _ _ (h m hm)
 
-/-- `ccPolOk` is `ccBootOk` (2026-10-30, the repair: one mode; until then in a static cluster). -/
-theorem ccPolOk_static (γ : SrvRaft) (d : List w8) (h : ccPolOk γ d) :
-    ccBootOk γ.cfg d :=
+/-- `ccPolOk` is `ccWideOk` at the configuration (route B, 2026-11-25: until then `ccPolOk_static`,
+`ccBootOk`, which a committed promotion no longer meets). -/
+theorem ccPolOk_wide (γ : SrvRaft) (d : List w8) (h : ccPolOk γ d) :
+    ccWideOk γ.cfg d :=
   fun m hm => h m hm
 
 /-- **A v1 change raft's node applies without changing its configuration `cfg`** (raft's static
@@ -587,7 +615,7 @@ every other entry (an empty `ConfChangeV2`, raft's; the server proposes none) is
 cluster's `confPolicy` rule satisfies (`srvClusterOk`; `srvRule_keeps`, `InvCfgView.lean`). -/
 def srvRuleKeeps (r : ConfRule) (cfg : GSet w64) : Prop :=
   ∀ (pre : List LogEntry) (e : LogEntry),
-    (e.type = W32 1 → ccBootOk cfg e.data → ∀ o, r pre (Membership.simple cfg) e = some o →
+    (e.type = W32 1 → ccWideOk cfg e.data → ∀ o, r pre (Membership.simple cfg) e = some o →
       Membership.applyChange o (Membership.simple cfg) = some (Membership.simple cfg)) ∧
     (e.type ≠ W32 1 → r pre (Membership.simple cfg) e = none)
 
@@ -946,7 +974,11 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     -- `md`): what the node API's size premises (`Propose`'s data, `ReadIndex`'s context,
     -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
     -- `maxData = none`
-    ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝)
+    ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ ∗
+    -- (route B, 2026-11-25, `notes/etcd-dist-plan.md` §17.3) the boot entries' changes are the
+    -- boot policy's (`BootCore.cc`): the committed log's policy (`ccPolOk`) admits promotions,
+    -- the boot log has none (a boot promotion would leave its member unsaved)
+    ⌜∀ e ∈ γ.raft.boot, ccBootOk γ.raft.cfg e.Data'⌝)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
@@ -1014,7 +1046,7 @@ theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
   unfold srvRaftLogInv srvClusterOk
   iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
-  ipureintro; exact H.2
+  ipureintro; exact H.2.1
 
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by
@@ -1081,9 +1113,12 @@ prefix's first entry is a conf entry decoding to an `AddNode` (the bootstrap log
 theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryModel)
     (hm : L.head? = some m) :
     srvRaftLogInv (GF := GF) γ ∗ srvRLogLb γ L ⊢
-      ⌜m.typ = W32 1 ∧ ∃ cm : ConfChangeM, ccDecodeV1 m.data = some cm ∧ cm.type = W32 0⌝ := by
+      ⌜m.typ = W32 1 ∧ ∃ cm : ConfChangeM, ccDecodeV1 m.data = some cm ∧ cm.type = W32 0 ∧
+        membership.ccContextOf cm.context = some (cm.nodeId, false)⌝ := by
   unfold srvRaftLogInv
-  iintro ⟨⟨-, -, -, -, -, #Hb, %Hok⟩, #HL⟩
+  iintro ⟨⟨-, #Hcl, -, -, -, #Hb, %Hok⟩, #HL⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, -, -, %Hbcc0⟩
   ihave %Hp := srvRLogLb_prefix γ (γ.raft.boot.map EntryModel.ofM) L $$ [Hb HL]
   · iframe Hb HL
   ipureintro
@@ -1103,7 +1138,9 @@ theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryMo
     · rw [← ht, List.head?_append, hm] at hhead
       simpa using hhead
   subst heq
-  exact ⟨hty, cm, hcm, hct⟩
+  -- (route B) a boot entry, of the boot policy: no promotion
+  have hnp := (Hbcc0 e (List.mem_of_getElem? he) cm (by simpa [EntryModel.ofM] using hcm)).2.2.1
+  exact ⟨hty, cm, hcm, hct, hnp⟩
 
 /-- (2026-10-31, S5) **The apply loop's first entry** (`srv_first_boot` at the loop's position): the
 `j`-th entry `m` of the batch `ms` after the applied log `A`, if nothing is before it, is the first
@@ -1112,7 +1149,8 @@ theorem srv_first_entry (γ : ServerRaftNames) (A ms : List EntryModel) (j : Nat
     (hm : ms[j]? = some m) :
     srvRaftLogInv (GF := GF) γ ∗ srvRLogLb γ (A ++ ms) ⊢
       ⌜A ++ ms.take j = [] → γ.pre = [] ∧ m.typ = W32 1 ∧
-        ∃ cm : ConfChangeM, ccDecodeV1 m.data = some cm ∧ cm.type = W32 0⌝ := by
+        ∃ cm : ConfChangeM, ccDecodeV1 m.data = some cm ∧ cm.type = W32 0 ∧
+          membership.ccContextOf cm.context = some (cm.nodeId, false)⌝ := by
   iintro ⟨#Hi, #HL⟩
   by_cases h : A ++ ms.take j = []
   · obtain ⟨hA, ht⟩ := List.append_eq_nil_iff.1 h
@@ -1235,7 +1273,7 @@ start log is empty), whose changes the server takes (`ccPolOk`). -/
 theorem srv_committed_ccBoot (γ : ServerRaftNames) (l : List LogEntry) (E : CoPset)
     (hL : ↑srvLogN ⊆ E) :
     srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl l ⊢
-      |={E}=> ⌜∀ e ∈ l, e.type = W32 1 → ccBootOk γ.raft.cfg e.data⌝ := by
+      |={E}=> ⌜∀ e ∈ l, e.type = W32 1 → ccWideOk γ.raft.cfg e.data⌝ := by
   iintro ⟨#Hinv, #Hl⟩
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -, %Hpre, -⟩
@@ -1269,12 +1307,42 @@ theorem srv_committed_ccBoot (γ : ServerRaftNames) (l : List LogEntry) (E : CoP
   have := Hp.subset hin
   rw [hops] at this
   obtain ⟨m, hm, rfl⟩ := List.mem_map.1 this
-  exact ccPolOk_static γ.raft _ (Hfacts.2.2.2.2 m hm ht)
+  exact ccPolOk_wide γ.raft _ (Hfacts.2.2.2.2 m hm ht)
+
+/-- (route B, 2026-11-25) **A committed log's entries within the boot log's length are the boot
+policy's** (`ccBootOk`: no promotion): the log and the bootstrap log, both committed, are
+comparable (`srvRLogLb_prefix`), so its first `|boot|` entries are the boot entries, whose changes
+`srvClusterOk` keeps. What `clusterImageOk_restModel`'s boot premise asks. -/
+theorem srv_bootPrefix_ccBoot (γ : ServerRaftNames) (L : List EntryModel) :
+    srvRaftLogInv (GF := GF) γ ∗ srvRLogLb γ L ⊢
+      ⌜∀ (j : Nat) (m : EntryModel), L[j]? = some m → j < γ.raft.boot.length → m.typ ≠ W32 0 →
+        ccBootOk γ.raft.cfg m.data⌝ := by
+  iintro ⟨#Hinv, #HL⟩
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨-, #Hcl, -, -, -, #Hb, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, -, -, %Hbt⟩
+  ihave %Hcmp := srvRLogLb_prefix γ L (γ.raft.boot.map EntryModel.ofM) $$ [HL Hb]
+  · iframe HL Hb
+  ipureintro
+  intro j m hj hlt _
+  have hb : (γ.raft.boot.map EntryModel.ofM)[j]? = some m := by
+    rcases Hcmp with ⟨t, ht⟩ | ⟨t, ht⟩
+    · have hjl : j < L.length := (List.getElem?_eq_some_iff.1 hj).1
+      rw [← ht, List.getElem?_append_left hjl]; exact hj
+    · rw [← ht, List.getElem?_append_left (by simpa using hlt)] at hj; exact hj
+  rw [List.getElem?_map] at hb
+  cases he : γ.raft.boot[j]? with
+  | none => rw [he] at hb; cases hb
+  | some e =>
+    rw [he] at hb
+    cases hb
+    exact Hbt e (List.mem_of_getElem? he)
 
 /-- One more index of a committed log at the voters' membership (`srv_confAt_simple`'s step). -/
 theorem srv_confAt_simple_ind (γ : ServerRaftNames) (l : List LogEntry) (E : CoPset)
     (hC : ↑srvConfN ⊆ E)
-    (hall : ∀ e ∈ l, e.type = W32 1 → ccBootOk γ.raft.cfg e.data)
+    (hall : ∀ e ∈ l, e.type = W32 1 → ccWideOk γ.raft.cfg e.data)
     (hkeep : srvRuleKeeps γ.raft.rule γ.raft.cfg) :
     ∀ k, k ≤ l.length → (letI := srvStor (GF := GF) γ.raft
       isCluster (GF := GF) γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗

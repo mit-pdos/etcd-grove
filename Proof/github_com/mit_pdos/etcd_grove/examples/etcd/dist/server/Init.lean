@@ -24,6 +24,7 @@ public import Proof.google_golang_org.grpc.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.net.Init
 public import Proof.net.http.Init
+public import Proof.os.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

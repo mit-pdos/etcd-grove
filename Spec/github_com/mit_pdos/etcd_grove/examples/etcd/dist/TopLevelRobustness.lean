@@ -25,11 +25,6 @@ or has an unrecovered panic**. Each client panics if its check fails, so no chec
   lifetime counters of the Go code: `idutil`'s request ids (a 48-bit suffix: distinct for fewer than
   `2 ^ 48` ids per generator), the mvcc store's changes, and the auth store's admin requests (its fuel).
 
-  The crash statement `etcd_robust.spec` keeps, for now, `2 ^ 28` threads and `2 ^ 28 - 1` steps: its
-  bridge (`robust_of_dist_crash_adequacy_etcdNet`) gives each generation `receiptBound + 1` threads, so
-  its bounds move to `etcdThreads`/`etcdSteps` once the crash bridge separates threads from receipts
-  (issue #50, piece P11).
-
 **The deployment is not a premise.** Every machine's program receives the whole deployment as a Go value
 and checks it first (Go's `deployment.WellFormed`: names, `addrOk` addresses, all distinct, the members'
 ids apart in their low bits, the server configuration in its supported set, the workloads compatible and
@@ -99,8 +94,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 /-- **`etcd_safe`** (see the file header): every deployment of an etcd cluster on machines that may
 crash and restart, and of its checking clients on machines that never crash (each workload an
 orchestrator machine and its client machines), is robust: no thread of any machine is stuck or has
-an unrecovered panic. Its bounds are `2 ^ 28` threads and `2 ^ 28 - 1` steps until the crash bridge
-separates threads from receipts (see the file header). -/
+an unrecovered panic. -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -124,8 +118,8 @@ def etcd_robust.spec : Prop :=
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
-    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := 2 ^ 28)
-      (bound := 2 ^ 28 - 1)
+    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := etcdThreads)
+      (bound := etcdSteps)
 
 /-- **`etcd_safe_nocrash`** (the interim milestone): `etcd_safe`'s deployment with no
 machine crashing (`Robust []` over every machine: members, orchestrators, client machines). The crash
