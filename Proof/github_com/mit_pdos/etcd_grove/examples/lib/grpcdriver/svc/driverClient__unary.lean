@@ -65,26 +65,29 @@ theorem driverClient.unary.wp_proof
     iexists _; iexact «$r0»
   have hI := plain_Invoke wp_Invoke conn addrs method pbStringValueT pbStringValueRT
     pbStringValueT_reqReg pbStringValueRT_repReg Spec m Φr Ψe ctx cd om inp «$r0_ptr» copts ([sm] ++ vs)
-  simp only [pbStringValueT, pbStringValueRT, pbStringValue, pbStringValueR] at hI
-  try simp only [Msg.ty]
+  rw [show (pbStringValueT (GF := GF)).ty = Msg.ty from rfl,
+    show (pbStringValueRT (GF := GF)).ty = Msg.ty from rfl] at hI
   wp_apply hI $$ [Hspec Hsend Hown] as %err ⟨-, Hout⟩
   · iframe #
     iframe
     isplitr
+    · iexact Hrpc
+    isplitr
     · ipureintro; exact hw
     ipureintro; exact hvs
-  try wp_auto
-  wp_if_destruct
-  · try wp_auto
-    iapply HΦ
-    iexists «$r0_ptr»
-    iframe
-    ipureintro; intro h; exact absurd h Hif
-  · try wp_auto
+  cases err with
+  | nil =>
+    try wp_auto
     iapply HΦ
     iexists «$r0_ptr»
     iframe
     ipureintro; intro _; rfl
+  | ok e =>
+    try wp_auto
+    iapply HΦ
+    iexists «$r0_ptr»
+    iframe
+    ipureintro; intro h; cases h
 
 theorem driverClient.unary.wp_proof_done
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
@@ -117,13 +120,10 @@ theorem driverClient.unary.wp_proof_done
   · iframe #
     iframe
     ipureintro; exact hvs
-  try wp_auto
-  wp_if_destruct
-  · try wp_auto
-    iapply HΦ
-    iframe #
-    ipureintro; exact Herr
-  · try wp_auto
+  cases err with
+  | nil => exact absurd rfl Herr.1
+  | ok e =>
+    try wp_auto
     iapply HΦ
     iframe #
     ipureintro; exact Herr
