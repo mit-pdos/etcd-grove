@@ -10,7 +10,7 @@ first start's leftovers (T3). No proof uses them yet: `NewServer.specC`'s proof 
 `bootstrapCrashContract`, the member's first start (T7) `bootstrapLeftContract`.
 
 **Both are about the fork with the torn-`Save` fix** (`upamanyus/etcd` branch
-`goose-lean-fmtattrs-tornsave`, `768ecf158` on the pin `bc2b5f4d0`; `notes/etcd-dist-d6.md` §10, branch
+`goose-lean-fmt1c-crashfixes`, the etcd_safe pin `e94f33b50`, which carries it (first as `768ecf158` on `bc2b5f4d0`); `notes/etcd-dist-d6.md` §10, branch
 `etcd-safe-walfix/2026-11-24`): `WAL.Save` with entries always ends with a state record, `ReadAll` drops
 the trailing run of entry records (an unfinished `Save`), and `bootstrap` first calls
 `wal.DiscardUnsaved`, which renames a WAL that holds no state record, no snapshot record above index 0
@@ -128,8 +128,12 @@ contract's files are `srvFilesC` (the WAL's files without their synced mark, wha
 `SrvCrash.lean`); `bootstrap`'s `Open` and `ReadAll` take no synced mark, and write-mode `ReadAll` syncs.
 (T10, 2026-11-25, approved by coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2) The contract no longer
 asks `bootLen ≤ i`, and has a second case, the `.snap.db` recovery (`i < σ.b`: `recoverSnapshot` opens
-`<σ.b>.snap.db`, which the caller gives, and the post is at the snapshot's index). **The C-I2 review above
-covers only the first case; the second needs its own `axiom`-skill review before this law becomes an axiom.** -/
+`<σ.b>.snap.db`, which the caller gives, and the post is at the snapshot's index). In the second case
+(`i < σ.b = j`), `recoverSnapshot` takes `j` (the newest valid snapshot record, `σ.b`),
+`RecoverSnapshotBackend` finds the old backend's index `i` (or `0` without `db`) below it and
+`OpenSnapshotBackend` renames the caller's `<j>.snap.db` onto `db`, syncs the directory and opens it; the
+`kvindex` check reads `Ds`'s index `j`; the rest is the first case's at `(σ, j, Ds)`. Review
+`notes/axiom-review/c-i2-snapdb.md` (2026-11-25): sound. -/
 abbrev bootstrapCrashContract.law : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (ps : List w64),

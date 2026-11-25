@@ -1907,3 +1907,9 @@ Base: `etcd-safe-main-r4/2026-11-25` not posted yet (no such branch on origin); 
   naming the opened WAL's history `Hs`; (4) `bootstrapRestartContract`, `srvDiskImageAt` certificate-free.
 * **The image row in `consInv`** (order item 4; design in session 2's handoff; ledger entry "the backend's image row
   lives in the apply protocol's `consInv`", approved, internal).
+* **C-I2 `.snap.db` review (sound, `notes/axiom-review/c-i2-snapdb.md`) followed up**: the case-2 argument added to
+  `bootstrapCrashContract.law`'s docstring and the header's fork updated to the pin `e94f33b50`; the two caller
+  obligations on `snapRowB2` recorded on it: (1) the file `<σ.b>.snap.db` in the `c ≤ σ.b` branch is kept by the
+  directory's invariant (saved, its `Rm` refuted by the counter at `c ≤ j`; the fork's `purgeFile` no longer purges
+  `.snap.db`, `a4d2bb172`), to be taken with `snapDir_take` at the restart; (2) its stored index is `j` by the image
+  certificate's `imageRestAt`. No ledger entry needed (nothing could not be kept).

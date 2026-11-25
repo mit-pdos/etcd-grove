@@ -78,7 +78,17 @@ is above it (index `j`), its `.snap.db` was saved (durably) in the member's snap
 it) or the install took it and the crash undid the rename (`c = j + 1`; the rename onto `db` and its
 directory sync not durable): the file, back under its name, is an image at `j` (`fileAt`, with its
 certificate). (The fork syncs the directory before it opens the new backend, so nothing has committed
-to the snapshot's file in that window.) -/
+to the snapshot's file in that window.)
+
+The `.snap.db` case of `bootstrapCrashContract` needs, beside this row (review
+`notes/axiom-review/c-i2-snapdb.md`, the caller's obligations): (1) in the `c ≤ σ.b` branch, the file itself,
+which the directory's invariant (`snapDirKeep`'s body `snapDirBody`) still holds: `j` is saved (`E`) and its
+removal fact `Rm j = monoNatLbOwn γm (j + 1)` is refuted by the counter's authority at `c ≤ j`, so `j ∈ M`, a file
+with its image; the restart takes it out (`snapDir_take`) as `fileAt`. Nothing removes it in between: the
+fork's `purgeFile` no longer purges `.snap.db` files (`a4d2bb172`, in the pin's history;
+`nonissues/etcd-purge-snapdb-unopened.md`), `ReleaseSnapDBs` removes only below the released index (and then
+gives `Rm`). (2) The file's stored index is `j` exactly: the image certificate `srvImageM … j Ds` (the
+invariant's `img`, and this row's `□ srvImageM`) has `imageRestAt … j …`, the receiver's save gives it. -/
 def snapRowB2 (γ : SrvRaft) (dd : GoString) (σ : StorContents) (i : w64) (γd : GName) (c : Nat) :
     IProp GF :=
   iprop(⌜σ.b ≤ uint.nat i ∧ c ≤ uint.nat i + 1⌝ ∨
