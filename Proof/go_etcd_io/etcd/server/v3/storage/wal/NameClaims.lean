@@ -10,7 +10,7 @@ and a fraction of the area's spine (`walNamesRes`, `Inv.lean`), and lends half o
 * `walInvBody_dirPath`: with the lock's record of no pending registration (`walNamesFragS ⟨none, none,
   Lo⟩`: every present WAL registered) and the WAL's key, a fraction of the path to its directory, the
   loan recorded in the record (P6b fix A: lent fractions are returned, `walInvBody_dirPathRet`, before
-  the lock token is, so that `DiscardUnsaved`, with the free token, gets the name's claim whole).
+  the lock token is, so that `Discard`, with the free token, gets the name's claim whole).
 * `walInv_dirPath`, `walInv_dirPathRet`: the same at a program step (`notCrashed`); `openAtIndex` and
   `Open` take their paths from it (until 2026-11-14 the hypothesis `WalDirPathLaw`, the area's spine
   framed).

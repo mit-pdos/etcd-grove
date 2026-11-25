@@ -5,7 +5,7 @@
 A holder of the lock that borrowed fractions of a registered WAL's name claim (`walInv_dirPath`'s paths,
 `walNamesRes_lendAt`'s claims) keeps them as `walLoanP` beside the lock's record of them
 (`walNamesFragS ⟨none, none, Lo⟩`), and returns them all (`walInv_returnAll`) before it gives the lock token
-back, so that the free token finds every name's program half whole (`DiscardUnsaved`'s merge).
+back, so that the free token finds every name's program half whole (`Discard`'s merge).
 
 * `walLoanP R jr r x`: the loan `x = (nm, q)` held: a path to `r/nm` of fraction `q`, or the claim's.
 * `walInvBody_returnName`/`walInv_returnName`: `walNamesRes_returnName` under the invariant.

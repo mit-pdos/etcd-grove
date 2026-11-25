@@ -12,10 +12,10 @@ first start's leftovers (T3). No proof uses them yet: `NewServer.specC`'s proof 
 **Both are about the fork with the torn-`Save` fix** (`upamanyus/etcd` branch
 `goose-lean-fmtattrs-tornsave`, `768ecf158` on the pin `bc2b5f4d0`; `notes/etcd-dist-d6.md` §10, branch
 `etcd-safe-walfix/2026-11-24`): `WAL.Save` with entries always ends with a state record, `ReadAll` drops
-the trailing run of entry records (an unfinished `Save`), and `bootstrap` first calls
-`wal.DiscardUnsaved`, which renames a WAL that holds no state record, no snapshot record above index 0
-and no entry record followed by another record (it reads as `walFresh`) to the temporary directory
-`Create` removes, so that `bootstrap` takes the first-start branch. At the current pin (`bc2b5f4d0`,
+the trailing run of entry records (an unfinished `Save`), and `bootstrap` first checks `wal.Unsaved` and,
+on `true`, removes the backend and calls `wal.Discard` (`DiscardUnsaved` before the pin `251a430ce`), which
+renames a WAL that holds no state record, no snapshot record above index 0 and no entry record followed by
+another record (it reads as `walFresh`) to the temporary directory `Create` removes, so that `bootstrap` takes the first-start branch. At the current pin (`bc2b5f4d0`,
 `etc/goose.py`'s project `etcd`) neither axiom is true: there `ReadAll` keeps a torn `Save`'s entries
 (`issues/raft-commit-lost-with-entries-kept.md`) and an unsaved WAL is restarted with `RestartNode` on
 an empty log. **They are false of the pinned code, so they are not axioms** (review 2026-11-24): each
@@ -104,7 +104,7 @@ def bootstrapLeftContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) 
 (`bootstrapCrashContract`, `InvCrashImage.lean`: the graceful restart contract with the backend's index
 `i` only above the WAL's base, not below its commit, and the WAL's read facts `walReadFacts σ` the
 caller's premise). Why it holds of the fixed fork (see the file header): `bootstrap` reads `haveWAL`
-(`wal.Exist`), finds a WAL that is not unsaved (`DiscardUnsaved` keeps it: its records `σ` are those of
+(`wal.Exist`), finds a WAL that is not unsaved (`bootstrap` does not `Discard` it: its records `σ` are those of
 complete `Save`s), opens the backend (`bootstrapBackend`: `recoverSnapshot` with `beExist`, the backend's
 index `i ≥ σ.b`, so no `.snap.db` is opened), and `bootstrapWALFromSnapshot` opens the WAL at the
 snapshot and `ReadAll`s exactly `σ` (the trailing entry run of an unfinished `Save` dropped, the fix's
@@ -135,7 +135,7 @@ abbrev bootstrapCrashContract.law : Prop :=
 
 /-- (C-I3, the interim axiom's statement) **`bootstrap`'s first-start branch on a first start's leftovers**
 (`bootstrapLeftContract`). Why it holds of the fixed fork (see the file header): an unsaved WAL is
-renamed away by `DiscardUnsaved` before anything else (one atomic rename to `Create`'s temporary
+renamed away by `wal.Discard` before anything else (one atomic rename to `Create`'s temporary
 directory, then the parent's sync), after which `haveWAL` is false, as on a fresh WAL area; a leftover
 `wal.tmp` is removed by `Create`. The data area's leftovers are not covered yet (see `wal.bootResLeft`);
 a backend holding applied entries beside an unsaved WAL is likely reachable with the fork's fix (raft

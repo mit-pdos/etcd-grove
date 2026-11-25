@@ -2268,7 +2268,7 @@ a fraction `q` of the program's half of the claim `(jr, .only [nm], hn)` on the 
 invariant holds its other half among its claims, `osClaims`), the name valid for the system calls
 (`NameOk`), a WAL name, and holding the WAL's directory (`lay.j` of the layout named `nm`). The rest of
 the program's half, `ls`, is lent out, in paths to the WAL's directory (the loans of `NmSt`, P6b fix A),
-and returned before the lock token is: `DiscardUnsaved`, holding the free token, gets the half whole. -/
+and returned before the lock token is: `Discard`, holding the free token, gets the half whole. -/
 def nameShare (jr : Ino) (Ls : GMap GoString WalLay) (nm : GoString) (ls : Rat) : IProp GF :=
   iprop(∃ (q : Qp) (hn : NamesH), osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ∗
     ⌜q.val + ls = ((1 : Qp).half).val ∧ NameOk nm ∧ walNameOk nm ∧

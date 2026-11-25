@@ -84,7 +84,7 @@ instance : Pos.Countable WalOut :=
     rfl)
 
 /-- **The names' ghost state** (`WalGS.γnm`; P6b fix A, `notes/wal-p6-handoff.md`, session 7): the WAL
-directory `Create` has committed and not yet registered (`reg`), the one `DiscardUnsaved` is unregistering
+directory `Create` has committed and not yet registered (`reg`), the one `Discard` is unregistering
 (`disc`), and the fractions of registered names' claims lent out (`loans`: the name and the fraction,
 returned before the lock token is: `walNamesFrag o` has none). -/
 structure NmSt where
@@ -158,7 +158,7 @@ class WalGS (GF : BundledGFunctors) where
   γlk : GName
   /-- **The WALs' incarnations** (P6b, `notes/wal-p6b-design.md`, v2): a ghost variable of a
   `GMap GoString Nat`, each WAL directory to its incarnation (`incOf`, absent = 0), bumped when the WAL
-  in it is discarded (`DiscardUnsaved`). Allocated at `∅`; not yet used (the swap is P6b's next step). -/
+  in it is discarded (`Discard`, at its rename and at its parent's fsync). Allocated at `∅`. -/
   γI : GName
   /-- **The past states with their incarnations** (`walPastI`/`walPastIAuth`, P6b v2): persistent
   elements of a ghost map keyed by `(s, I)`, all below the present under `walLeI`. Not yet used. -/
@@ -250,7 +250,7 @@ end steps
 /-! ## Incarnations (P6b v2, `notes/wal-p6b-design.md`; not yet used by `walGhost`)
 
 A WAL directory's incarnation is a ghost counter, bumped when its WAL is discarded
-(`DiscardUnsaved`), so that the persistent facts of a discarded WAL (keyed by the incarnation) say
+(`Discard`), so that the persistent facts of a discarded WAL (keyed by the incarnation) say
 nothing of a WAL `Create` makes later at the same directory. The past states are paired with the
 incarnations (`walPastI`), ordered by `walLeI`: a WAL may go (or anything happen to it) only where its
 incarnation grows; where it stays, the WAL stays and grows as `absLe` has it. -/
@@ -290,7 +290,7 @@ theorem walLeI_of_absLe {s s' : AbsDiskState} (I : GMap GoString Nat) (h : absLe
     walLeI (s, I) (s', I) :=
   ⟨h.1, h.2.1, fun _ => Nat.le_refl _, fun dir d hd _ => h.2.2 dir d hd⟩
 
-/-- **The discard of `dir`'s WAL** (`DiscardUnsaved`'s commit): the WAL gone, its incarnation bumped. -/
+/-- **The discard of `dir`'s WAL** (`Discard`'s commit): the WAL gone, its incarnation bumped. -/
 theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
     walLeI (s, I) ({ s with wal := GMap.delete dir s.wal }, <[dir := incOf I dir + 1]> I) := by
   have hinc : ∀ k, incOf (<[dir := incOf I dir + 1]> I) k =
@@ -314,7 +314,7 @@ theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoStrin
       show (GMap.delete dir s.wal) !! k = some d
       rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hd
 
-/-- **Any change of `dir`'s WAL with its incarnation bumped** (P6b session 7, `DiscardUnsaved`'s steps): the
+/-- **Any change of `dir`'s WAL with its incarnation bumped** (P6b session 7, `Discard`'s steps): the
 area and the durable directories kept, every other WAL unchanged. -/
 theorem walLeI_bump (s s' : AbsDiskState) (I : GMap GoString Nat) (dir : GoString)
     (ha : s'.area = s.area) (hd : ∀ x, s.dirs !! x = some () → s'.dirs !! x = some ())
@@ -340,7 +340,7 @@ theorem walLeI_bump (s s' : AbsDiskState) (I : GMap GoString Nat) (dir : GoStrin
       show s'.wal !! k = some d
       rw [hw k e]; exact hk
 
-/-- **`dir`'s WAL unnamed, its incarnation bumped** (`DiscardUnsaved`'s rename: a crash may keep or lose the
+/-- **`dir`'s WAL unnamed, its incarnation bumped** (`Discard`'s rename: a crash may keep or lose the
 directory, and the facts of the old incarnation, `walNamed` among them, are retired). -/
 theorem walLeI_unname (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
     walLeI (s, I) (absDiskUpd s dir (fun d => { d with named := false }), <[dir := incOf I dir + 1]> I) := by
