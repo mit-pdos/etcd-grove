@@ -2449,7 +2449,7 @@ theorem walNamesRes_addWal (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
   iframe Ha Hs Hsp
   isplitr
   · ipureintro
-    refine ⟨fun nm hm => ?_, fun dir' l hl' ho => ?_⟩
+    refine ⟨fun nm hm => ?_, fun dir' l hl' ho _ => ?_⟩
     · obtain ⟨d', l, hl', rfl⟩ := hf.1 nm hm
       have e : d' ≠ dir := by rintro rfl; rw [hLd] at hl'; cases hl'
       exact ⟨d', l, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', rfl⟩
