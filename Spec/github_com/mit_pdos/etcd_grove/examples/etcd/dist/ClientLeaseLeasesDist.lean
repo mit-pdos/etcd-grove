@@ -38,11 +38,14 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 file header): the client's `Lease` is the `*lessor` `lp`, called with a context the client accepts; the
 member at `ep` serves etcd's table. `nil` and a listing that names no lease twice
 (`etcdLeaseLeasesSpecAnyW`: what the member's `LeaseLeases` answers, about any of its lessor's states, so
-nothing of the member's view is read); or an error. -/
+nothing of the member's view is read); or an error.
+
+The caller's `levelTok 0` is lent and returned (review N9b, `notes/axiom-review/n9b-lease-leases.md`): as in the proved in-process `lessor.Leases.spec`/`lessor.TimeToLive.spec`, the retry interceptor's backoff reads `c.Endpoints()` under `epMu`'s read lock (`backoffOkT`), a reader slot the bounds discipline pays with the token (CLAUDE.md, "Bounds"). Its member side: the call reaches a member's `LeaseLeases`/`LeaseTimeToLive` handler, proved in one process against `etcdLeaseLeasesSpecAny`/`etcdLeaseTTLSpec` (`LeaseReadServed.lean`); when this becomes an axiom, `etcdSvc`'s and `Serve_dist`'s docstrings (which name only the KV calls, review F4) must list these entries. -/
 abbrev Client_LeaseLeases_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (γE : GName) (mid : w64)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
+      isNewClient cl [ep] V ∗
       clientNoProxy cl ∗
       clientF cl go!"Lease" ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
@@ -50,11 +53,11 @@ abbrev Client_LeaseLeases_dist.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd }}
     (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases"))
       (Val #(GoInterface.ok ci)))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (ids : List w64) (sl : GoSlice),
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (ids : List w64) (sl : GoSlice),
           structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"Leases" resp ↦□ sl ∗
           sl ↦* (ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id))) ∗ ⌜ids.Nodup⌝) ∨
-        ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }}
+        ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 end spec
 

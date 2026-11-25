@@ -47,7 +47,7 @@ theorem leaseList.wp_proof
     (wp_Leases_dist : etcd_dist.Client_LeaseLeases_dist.spec (GF := GF) (hG := hG)) :
     leaseList.spec (GF := GF) (hG := hG) := by
   intro π cl ep V γE mid hAs
-  wp_start as ⟨#Hnc, #Hnp, #Haddr⟩
+  wp_start as ⟨Hlt, #Hnc, #Hnp, #Haddr⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -61,12 +61,13 @@ theorem leaseList.wp_proof
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
   (try wp_auto)
-  wp_apply (wp_Leases_dist cl lp ep V γE mid ctx cd) $$ [] as %resp %err Hres
+  wp_apply (wp_Leases_dist cl lp ep V γE mid ctx cd) $$ [$Hlt] as %resp %err ⟨Hlt, Hres⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   iexact Hres
 
 end proof

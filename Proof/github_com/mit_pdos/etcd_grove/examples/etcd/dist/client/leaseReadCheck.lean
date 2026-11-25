@@ -94,7 +94,7 @@ theorem leaseReadCheck.wp_proof
   icases Hnc' with ⟨-, -, -, -, ⟨%lp, #Hlf, -⟩, -⟩
   (try wp_auto)
   -- `leaseList(cli)`: the IDs have no duplicate
-  wp_apply (wp_leaseList cl addr (Classical.choice hV) γE mid hAs) $$ [] as %lsr %lerr Hls
+  wp_apply (wp_leaseList cl addr (Classical.choice hV) γE mid hAs) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
   · iframe #
   icases Hls with (⟨%Hlerr, %ids, %sl, #Hslf, Hsl, %Hnd⟩ | %Hlfail)
   rotate_left
@@ -185,8 +185,8 @@ theorem leaseReadCheck.wp_proof
       as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -⟩
     (try wp_auto)
     -- `cli.Lease.TimeToLive(tctx, leaseReadID)`: the reply's ID is `7`
-    wp_apply (wp_TTL_dist cl lp addr (Classical.choice hV) γE mid tctx tcd (W64 7)) $$ []
-      as %tr %terr Htl
+    wp_apply (wp_TTL_dist cl lp addr (Classical.choice hV) γE mid tctx tcd (W64 7)) $$ [$Hlt]
+      as %tr %terr ⟨Hlt, Htl⟩
     · iframe #
     -- `tcancel()`
     (try wp_auto)

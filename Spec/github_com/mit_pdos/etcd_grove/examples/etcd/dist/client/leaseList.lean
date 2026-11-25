@@ -30,19 +30,20 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `leaseList(cli)` by a client of the member at `ep`, which serves etcd's table: `nil` and a listing that
+/-- `leaseList(cli)` by a client of the member at `ep`, which serves etcd's table (the caller's `levelTok 0` lent
+and returned): `nil` and a listing that
 names no lease twice, or an error. -/
 abbrev leaseList.spec : Prop :=
   ∀ [π : NetProtoGS] (cl : Loc) (ep : GoString) (V : WEnv GF) (γE : GName) (mid : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      isNewClient cl [ep] V ∗ clientNoProxy cl ∗ etcd_dist.etcdAddrAt (Gg := hG.goose_globalGS) ep γE mid }}
+      levelTok 0 ∗ isNewClient cl [ep] V ∗ clientNoProxy cl ∗ etcd_dist.etcdAddrAt (Gg := hG.goose_globalGS) ep γE mid }}
     (App (Val (@! client.leaseList)) (Val #cl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (ids : List w64) (sl : GoSlice),
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (ids : List w64) (sl : GoSlice),
           structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"Leases" resp ↦□ sl ∗
           sl ↦* (ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id))) ∗ ⌜ids.Nodup⌝) ∨
-        ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }}
+        ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 end spec
 
