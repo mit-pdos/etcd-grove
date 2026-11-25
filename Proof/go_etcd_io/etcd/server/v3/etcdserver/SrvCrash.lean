@@ -56,51 +56,5 @@ theorem walReadFacts_of_take {H : WalHist} {j : Nat} {σ τ : StorContents}
 
 end facts
 
-/-! ## The files of a crashed member's data directory -/
-
-section files
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **The files of a crashed member's data directory hold `σ` and `D`** (`srvFiles` with the WAL's
-files as a crash leaves them, `walFilesC`; see the file header). -/
-def srvFilesC (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
-  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗ walFilesC a id cid σ true) ∗
-    backend.fileHolds (config.backendPathOf dd) D)
-
-/-- **A stopped member's files are files a crash may leave.** -/
-theorem srvFiles_srvFilesC (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
-    srvFiles (GF := GF) dd id σ D ⊢ srvFilesC dd id σ D := by
-  unfold srvFiles srvFilesC
-  iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
-  iframe Hb
-  iexists a, cid
-  isplitr
-  · ipureintro; exact ha
-  iapply walFiles_walFilesC
-  iexact Hw
-
-/-- **The data directory of a crashed member's files is shorter than `2^60` bytes**
-(`srvFiles_dataDir_len`'s). -/
-theorem srvFilesC_dataDir_len (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
-    srvFilesC (GF := GF) dd id σ D ⊢ ⌜dd.length < 2 ^ 60⌝ ∗ srvFilesC dd id σ D := by
-  unfold srvFilesC
-  iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
-  have hf := a.fits
-  rw [ha] at hf
-  have hl : (srvWalDirOf dd).length < 3800 := hf.1
-  simp only [srvWalDirOf, walAreaOf, List.length_append, List.length_drop] at hl
-  have hdb : dataBase.length = 20 := by decide
-  isplitr
-  · ipureintro; omega
-  iframe Hb
-  iexists a, cid
-  iframe Hw
-  ipureintro; exact ha
-
-end files
-
 end EtcdGrove
 end Perennial
