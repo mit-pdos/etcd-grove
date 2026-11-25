@@ -14,6 +14,7 @@ are dropped by `ReadAll`), which is what the server's crash law needs (`notes/et
 This module has the keep lemma that exposes it (`walDiskAt_crash_keepS`: the WAL's new state an image
 `walImgS` of the old history at the synced mark). No trusted text: `walImg`/`walCrash` stay the
 vocabulary of the trusted extension; the `_keep` lemmas of `Crash.lean` still give `walImg`.
+-/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Crash

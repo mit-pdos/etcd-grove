@@ -1209,7 +1209,7 @@ theorem walAbsent_crash_keep (dir : GoString) :
     exact (walOptLe_none_iff _).1 h
   isplitl [HM]
   · iexists M; iframe HM; ipureintro; exact HMd
-  iexists s'.wal; iframe HM'; ipureintro; rw [hc.1.2.2.2 dir hs]; trivial
+  iexists s'.wal; iframe HM'; ipureintro; rw [hc.2.2.2 dir hs]; trivial
 
 theorem dirDurable_crash_keep (d : GoString) :
     ⊢@{IProp GF} walCrashWal W W' -∗ dirDurable (W := W) d -∗
