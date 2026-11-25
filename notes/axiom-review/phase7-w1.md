@@ -266,49 +266,58 @@ non-whitelisted field. That is true of the model, whose closure sets only `stats
 
 ## 3. Step 3 (`grpcSrvNew` defined; `NewServer`, `RegisterService` proved): status and design
 
-**Not done on this branch yet.** The groundwork is in place: the translations, `grpcInit`'s two cells,
-the narrowed `.neutral`, and `CustomCodec`. `grpcSrvNew` is still the axiom; `NewServer` and
-`RegisterService` are still axioms.
+**`grpcSrvNew` is a definition** (commit `0e7177cb0c`; −1 axiom). `NewServer` and `RegisterService` are
+still axioms, now about this concrete predicate; their proofs are next.
 
-### 3.1 The definition
+### 3.1 The definition (`InvGrpcServer.lean`)
 
-`grpcSrvNew gs ics sics svcs regs sregs` would hold all of the following, owned exclusively:
+Chosen with the lead: the handler closure is **(a), the exact closure value**. A wrap closure is
+`wrapUnaryClosure cs cm`: the function literal of the generated `Server.wrapUnaryHandler` body, with its
+two captured cells substituted (`subst "md" #cm (subst "s" #cs ·)`). That is the value Go builds; the
+chained interceptors are `chainUnaryClosure`/`chainStreamClosure` likewise. The literal is read from the
+generated term by a `match`. A build checks that it reduces; if goose's output shape changes, the
+`match` falls to its poison arm and the proofs fail, which is the intended alarm.
 
-- `gs ↦ srv`;
-- `srv.opts`:
-  - `chainUnaryInts ↦* ics` and `chainStreamInts ↦* sics`, with their capacities;
-  - `statsHandlers ↦*□ hs` with `∀ h ∈ hs, grpcStatsHandlerOk h` (the `.stats` kind must carry the
-    property, see 3.2);
-  - `unaryInt`: `nil` if `ics = []`, `ics[0]` if `[i]`, else `chainUnaryInterceptors`' closure over a
-    cell holding the chain's slice; `streamInt` likewise;
+`grpcSrvNew gs ics sics svcs regs sregs` holds:
+
+- **Options and stats handler.** `opts ↦ so` with `srvOptsIs so sh ics sics`:
+  - `chainUnaryInts ↦*□ ics` and `chainStreamInts ↦*□ sics`;
+  - `unaryInt`/`streamInt` is nil, the one interceptor, or the chaining closure over a read-only cell
+    holding the chain's slice (`srvChainIs`);
+  - `statsHandlers ↦*□ hs`, each with `grpcStatsHandlerOk`, and `statsHandler = sh` = `NewCombinedHandler`'s
+    value (`srvStatsIs`);
   - `creds`, `cp`, `dc`, `unknownStreamDesc` and `streamWrapper` are nil;
-  - `codec` is nil or a protobuf codec's bridge (`srvCodecOk`'s form);
-- `srv.statsHandler` = `NewCombinedHandler(hs)`'s value;
-- `srv.mu`: `isMutex` at `True`, unlocked. Exclusive `ownMutex` lets a later proof of `Serve` encode its
-  own lock invariant;
-- `lis`, `conns` empty maps; `serve`, `drain` false; `events` nil; `cv` a `sync.Cond` on `mu`; `quit`,
-  `done` fresh `Event`s; the wait groups zero;
-- `services ↦$ M`, with `dom M = svcs`. For each service, its `*serviceInfo` holds the service value and
-  a `streams` map:
-  - each stream name maps to its `&sd.Streams[i]`, read-only through `grpcDescIs`;
-  - each method name maps to a `&StreamDesc{name, Handler: wrapUnaryHandler(&sd.Methods[i]), false, false}`;
-  - each `regs`/`sregs` entry is read off this map.
+  - `codec` is nil or a protobuf codec's bridge.
+- **Synchronization.** `sync.isMutex mu True`; `cv ↦ c` with `sync.isCond c mu`.
+- **The rest of the state.** `lis` and `conns` are empty maps; `serve` and `drain` are false; `events`
+  is nil; `quit` and `done` are fresh events (`srvEventIs`: an unbuffered, idle, owned channel); the two
+  wait groups are zero.
+- **Registrations.** `services ↦ svm`, `ownMap svm M`. The registrations `rs : List GrpcSrvReg` are in
+  order:
+  - `svcs = rs.map sn`, without duplicates;
+  - `M` maps `svcs` to the `*serviceInfo`s `ils`;
+  - `regs`/`sregs` are `rs.flatMap descRegs/descSRegs`;
+  - every stream descriptor is flagged;
+  - each registration satisfies `srvRegIs`: the descriptor (`grpcDescIs`), the `serviceInfo` with its
+    `streams` map (`srvStreamsL`: `&sd.Streams[i]`, then each method's fresh `&StreamDesc{name,
+    wrapUnaryClosure cs cm, false, false}` with `cs ↦□ gs`, `cm ↦□ &sd.Methods[j]`).
 
-**Open question (needs a decision before the proofs).** How the definition names the method handlers'
-closure `wrapUnaryHandler(md)`. In GooseLang it is a `func.mk` value capturing two fresh cells (`s`,
-`md`). Three options:
+### 3.1a Found while defining it (each needed before the proofs)
 
-- **(a) The exact closure value.** A Lean definition rebuilt from the generated `Server.wrapUnaryHandler`
-  body, with the two cells substituted. Exact, but it is coupled to the generated text.
-- **(b) A persistent WP spec of the closure.** New trusted text: what a run of the handler does, which the
-  `Serve` axiom then assumes.
-- **(c) Leave the handler existential.** Rejected: `Serve`'s axiom would then be false on states with
-  other handlers. Its truth would rest on Go's visibility rules, which the semantics does not have.
+1. **`NewServer`'s spec has no `isPkgInit`.** Its body reads `defaultServerOptions` and
+   `globalServerOptions`, grpc's package variables, and calls `sync.NewCond`. The spec must take
+   `isPkgInit pkg_id.google_golang_org.grpc`. Once proved the spec is untrusted, so this is not a trusted
+   change. Its one caller, `v3rpc.Server`'s proof, gets the fact from its own package's dependencies.
+2. **`RegisterService` reads `sd.Metadata`**, which `grpcDescIs` does not hold. `grpcDescIs` and
+   `pbDescIs` (`cache/v3/Base.lean`) gain `structFieldRef ServiceDesc "Metadata" sd ↦□ md`. `pbDescIs` is
+   part of `etcdserverpb`'s package fact, so its generated `Init` steps gain the field. This is not trusted
+   (a package fact is proved), but it is a rebuild of the same cone, so it belongs in this batch.
+3. **`.stats` must carry `grpcStatsHandlerOk h`** (`grpc-neutral-narrow`'s next commit, etcd-grove#60).
+   Until that commit is merged here, the `NewServer` axiom's post claims `grpcStatsHandlerOk` of every
+   handler without a premise for it. That is an over-claim, though not a contradiction (the property is
+   an opaque `Prop`). This branch must not land before that merge.
 
-I recommend (a), proved by `rfl` after `wp_func_lits`, once a build can check that the generated term
-reduces.
-
-### 3.2 Trusted statements that gain content when `grpcSrvNew` is defined (old text unchanged; meaning changes)
+### 3.2 Trusted statements that gain content now that `grpcSrvNew` is defined (old text unchanged; meaning changes)
 
 | statement | where `grpcSrvNew` is | effect | why it stays true |
 |---|---|---|---|
