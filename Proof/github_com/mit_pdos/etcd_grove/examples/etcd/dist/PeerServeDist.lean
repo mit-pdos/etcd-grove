@@ -37,7 +37,7 @@ bootstrap's `GET /members`; `GET /version`), or by a program holding `httpAddrAt
 extension (no proof establishes the dialer protocol of any bytes); no HTTP proxy relays to it (`noProxyEnv` in
 `NewServer_dist`). The names-only `leasehttp.RenewHTTP` axiom (and `promoteHTTPOk`) lets any program `POST`
 a `LeaseKeepAliveRequest` body, with only a `Content-Type` header, to any URL, `pa`'s paths included (found by the
-axiom review of 2026-11-24, `notes/etcd-dist-plan.md` §16.3). This axiom is sound against every request of that
+axiom review of 2026-11-24, `notes/etcd-dist-plan.md` §17.3). This axiom is sound against every request of that
 shape (route B, 2026-11-25; fresh `axiom`-skill review: survives): rafthttp's paths refuse it (`412`: no
 `X-Etcd-Cluster-ID` or version header, `rafthttp/http.go:471-516`); the GET-only paths answer `405`; `/leases` renews a
 lease (the checkpointer off: no raft entry); `/leases/internal` dereferences a nil `LeaseTimeToLiveRequest`
@@ -52,7 +52,8 @@ with arbitrary bytes and raft's headers is not of that shape (it could crash raf
 program can write one at `pa` (above). The other route the review found is closed
 (2026-11-25): a single-process run holds both `addrUnset pa` (the net extension's start resources, inside
 `netAddrFree pa`; to `http_addr_set`) and `httpProtoFree pa` (`goose_adequacy_start`),
-and `http.reserve` now also spends `pa`'s pending set (`netAddrPend`), which `http_addr_set` needs, so no program
+and `http.reserve` now takes `pa`'s net protocols as net/http's (`httpAddrNet pa`, set by `httpAddrFree_set` from
+`netAddrFree pa`, spending its pending set, which `http_addr_set` needs too; `lean`'s `501e3fa84d`), so no program
 holds both `httpAddrAt γ id pa` and a reservation of `pa` in the single-process registry (without it a one-process
 program forged a raft message to its own member through rafthttp's round tripper; Go: `tocommit out of range`). The in-process `http.Serve_ok` with the raft handler
 (`EtcdServer.RaftHandler.spec`, `srvServeRes`) is proved safe on what the in-process network carries

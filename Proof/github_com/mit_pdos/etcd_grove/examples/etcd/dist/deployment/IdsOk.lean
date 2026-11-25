@@ -32,10 +32,10 @@ theorem IdsOk.wp_proof
     (hIDs : etcd_dist.memberIDs.spec (GF := GF) (hG := hG))
     (hGrants : etcd_dist.grantsLeases.spec (GF := GF) (hG := hG)) :
     etcd_dist.IdsOk.spec (GF := GF) (hG := hG) := by
-  intro v d hfips
+  intro v d hfips hpeers
   wp_start as #Hd
   wp_auto
-  wp_apply (hIDs v d hfips) $$ [] as %isl %ids ⟨Hids, %Hids⟩
+  wp_apply (hIDs v d hfips hpeers) $$ [] as %isl %ids ⟨Hids, %Hids⟩
   · iframe #
   iunfold deploymentRepr at Hd
   icases Hd with ⟨#Hm, %htok, %hcfg, #Hw, %ss, #Hn, #Hns⟩

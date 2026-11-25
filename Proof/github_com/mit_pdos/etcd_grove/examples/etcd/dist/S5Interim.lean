@@ -8,7 +8,7 @@ start to the opaque peer protocols `httpPeerSvc` (`httpAddrAt a`), as S2's inter
 grpc's opaque `grpcCliPI`/`grpcSrvPI` (`grpcAddrAt`). With it:
 * `http_addr_set` is a theorem (`addr_set_proto`). `S5Draft`'s unindexed `httpAddrAt` is not instantiated: the
   protocol is indexed by the cluster and the member (`httpPeerSvc γ id`), so `S5Draft` must gain those indices
-  before its fields are these (`notes/etcd-dist-plan.md` §16.3);
+  before its fields are these (`notes/etcd-dist-plan.md` §17.3);
 * the member-side axioms are `NewServer_dist` (`etcdserver.NewServer` with the network across machines),
   `NewPeerHandler_dist` and `PeerServe_dist` (etcd's peer handler served on the member's peer listener);
 * `noProxyEnv`: the member's process has no HTTP proxy variable set (four `osEnvIs k ""`), which `NewServer_dist`
@@ -18,10 +18,10 @@ The protocols are opaque: no proof can establish `httpPeerSvc`'s dialer protocol
 protocol, so no program but the member-side axioms' (the transport inside `NewServer_dist`, the server inside
 `PeerServe_dist`) writes on a connection to a peer address; a program holding `httpAddrAt a` may dial, listen
 (`listen_au`) and accept at `a`, and can write nothing there through the net extension. (Two other routes reach a
-peer address, found by the 2026-11-24 review, `notes/etcd-dist-plan.md` §16.3: the names-only
+peer address, found by the 2026-11-24 review, `notes/etcd-dist-plan.md` §17.3: the names-only
 `leasehttp.RenewHTTP` axiom, any URL, still open; and the single-process HTTP registry, `httpProtoFree`/`http.reserve`,
-which the one-process start hands out beside `addrUnset`: closed 2026-11-25, `http.reserve` now spends the address's
-pending set, `netAddrPend`, which `http_addr_set` needs too.) Defined here: no axiom.
+which the one-process start hands out beside `addrUnset`: closed: `http.reserve` takes the address's net protocols as
+net/http's, `httpAddrNet`, whose producer `httpAddrFree_set` spends the pending set, which `http_addr_set` needs too.) Defined here: no axiom.
 -/
 module
 

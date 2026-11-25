@@ -63,7 +63,7 @@ abbrev Member.spec : Prop :=
       -- the configuration's named premises (`putgetN`'s)
       premises (2 ^ 28) peers clients ps ctxs boot ∗
       -- the machine's start
-      envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir (nameOf i)) ∗
+      ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir (nameOf i)) ∗
       -- its share of the cluster's start, if the configuration is one the program runs
       (⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ (c : etcd_dist.ClusterNames) (γE : GName),
         memberShareK (G := hG.goose_globalGS) S5 c peers clients ps ctxs boot i γE Pub) }}

@@ -26,9 +26,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.needsNoExpiry
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.needsSoleWriter
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.writesKeys
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.computeMemberID
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.newMember
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMemberOne
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.computeMemberIDOne
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.newMemberOne
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlice
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs__StringSlicePlain
 public import Perennial.Proof.strings.Link
@@ -131,25 +131,25 @@ theorem types.URLs.wp_StringSlicePlain :
     EtcdGrove.types.URLs.StringSlicePlain.spec (GF := GF) (hG := hG) :=
   EtcdGrove.types.URLs.StringSlicePlain.wp_proof http.URLStringAny_ok
 
-theorem membership.wp_computeMemberID :
-    EtcdGrove.membership.computeMemberID.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.membership.computeMemberID.wp_proof types.URLs.wp_StringSlicePlain _root_.Perennial.sort.wp_Strings _root_.Perennial.strings.wp_Join _root_.Perennial.crypto.sha1.wp_Sum binary.bigEndian.wp_Uint64
+theorem membership.wp_computeMemberIDOne :
+    EtcdGrove.membership.computeMemberID.specOne (GF := GF) (hG := hG) :=
+  EtcdGrove.membership.computeMemberID.wp_proofOne types.URLs.wp_StringSlicePlain _root_.Perennial.sort.wp_Strings _root_.Perennial.strings.wp_Join _root_.Perennial.crypto.sha1.wp_Sum binary.bigEndian.wp_Uint64
 
 theorem types.URLs.wp_StringSlice :
     EtcdGrove.types.URLs.StringSlice.spec (GF := GF) (hG := hG) :=
   EtcdGrove.types.URLs.StringSlice.wp_proof http.URLStringAny_ok
 
-theorem membership.wp_newMember :
-    EtcdGrove.membership.newMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.membership.newMember.wp_proof types.URLs.wp_StringSlice
+theorem membership.wp_newMemberOne :
+    EtcdGrove.membership.newMember.specOne (GF := GF) (hG := hG) :=
+  EtcdGrove.membership.newMember.wp_proofOne types.URLs.wp_StringSlice
 
-theorem membership.wp_NewMember :
-    EtcdGrove.membership.NewMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.membership.NewMember.wp_proof membership.wp_computeMemberID membership.wp_newMember
+theorem membership.wp_NewMemberOne :
+    EtcdGrove.membership.NewMember.specOne (GF := GF) (hG := hG) :=
+  EtcdGrove.membership.NewMember.wp_proofOne membership.wp_computeMemberIDOne membership.wp_newMemberOne
 
 theorem wp_memberIDs :
     EtcdGrove.etcd_dist.memberIDs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_dist.memberIDs.wp_proof membership.wp_NewMember
+  EtcdGrove.etcd_dist.memberIDs.wp_proof membership.wp_NewMemberOne
 
 theorem wp_IdsOk :
     EtcdGrove.etcd_dist.IdsOk.spec (GF := GF) (hG := hG) :=

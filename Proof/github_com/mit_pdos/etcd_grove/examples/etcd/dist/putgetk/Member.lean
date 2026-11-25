@@ -21,6 +21,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Val
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Name
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.holdForever
 public import Spec.go_uber_org.zap.NewNop
+public import Spec.google_golang_org.protobuf.proto.MarshalBootConfChange
+public import Proof.go_etcd_io.raft.v3.BootMarshal
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.StartMemberDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
@@ -218,7 +220,10 @@ theorem Member.wp_proof
     (wp_Serve_dist : etcd_dist.Serve_dist.spec (GF := GF) (hG := hG))
     (wp_StartMember_dist : ∀ [π : Net.NetProtoGS] (S5 : etcd_dist.S5Draft (G := hG.goose_globalGS) GF),
       etcd_dist.StartMember_dist.spec (GF := GF) (hG := hG) S5)
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (etcd-safe-main, 2026-11-25: hprem-axioms' swap; until then the premise `bootMarshal`)
+    -- `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
   intro CS π TB RB S5 peers clients ps ctxs boot i Pub peersSl clientsSl Hfips Hblf Hi64 HLv Haf
     Hbuq Hrf Hdbo Hms
@@ -311,7 +316,12 @@ theorem Member.wp_proof
     rw [cms_ids]; exact xsOf_at _ _ Hpfxnd _ (List.mem_of_getElem? hidi)
   -- the member's bootstrap premise
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with #Hbps
+  -- `proto.Marshal`'s bytes at the bootstrap log's conf changes, from its trust-boundary spec and the
+  -- log's bytes (`Hblf.wire`), as putgetN's
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hblf.wire $$ Hpp
   ihave #Hbp : etcdstart.bootPremise (2 ^ 28) ps (LogEntry.toEntries boot 0) ctxs
       (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token (nameOf i)
       (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) (memberIdOf pi) $$ []

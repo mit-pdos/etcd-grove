@@ -10,9 +10,8 @@ literal (`wp_deploymentLit`), calls its entry point (`server.MainDeployment`, `c
 error: `WellFormed.spec` returns `nil` only for a well-formed deployment.
 
 **Hypotheses** (no axiom):
-* `Hctx`: `ContextReadErrs` at every ghost state over the statement's local context (as `putget`'s
-  `member_boot`): the packages' initializers need it (`server.wp_initialize'`, `client.wp_initialize'`). To
-  be discharged by the per-function context axioms (premises-to-axioms), not a top-level premise.
+* none since ctx-leaf-fix (2026-11-25): `Hctx` (`ContextReadErrs` at every ghost state) became the
+  theorem `ContextReadErrs.errs`, which the packages' initializers use.
 The deployment check is `deployment`'s linked `wp_WellFormed` (`deployment/Link.lean`).
 -/
 module
@@ -44,7 +43,7 @@ open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic go_etcd_io.raft.v3 Net
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
-  etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
+  etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem etcdFsSemOk GooseGlobalGS.gooseInvGS
 
 /-- The registering packages' IDs can have their rights (`server`'s; decided by the kernel). -/
 theorem server_regQsOk : prometheus.regQsOk server.regQs :=
@@ -76,30 +75,25 @@ local macro "bad_finish" hne:ident : tactic => `(tactic|
     | (wp_func_call; wp_call)
     | wp_auto))
 
-/-- `ContextReadErrs` at a ghost state over the local context `lctx`. -/
-abbrev CtxErrsAt [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-    (hG : HeapGS .hasLC etcdDistGF) : Prop :=
-  ContextReadErrs (GF := etcdDistGF)
-    (hG := ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩)
-
 section boot
 variable [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
   [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions] [log.NewModel]
 
-/-- **A member's machine on a malformed deployment** (see the file header). -/
-theorem serverBootBad [srv_sem : server.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
+/-- The WP of `serverBootBad`, from no package initialized and the main thread's token, under any ghost state over
+the statement's local context (no file or network resource: the program returns before using one). -/
+theorem serverBadWp [srv_sem : server.Assumptions]
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
-    (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
-  intro hG hGG hL hlo hrb hT
-  obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
-  simp only at hGG hL
-  subst hGG hL
-  letI hG : HeapGS .hasLC etcdDistGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
+    [G : GooseGlobalGS .hasLC etcdDistGF] (L : GooseLocalGS etcdDistGF)
+    (hL : L.goose_go_local_context = lctx) :
+    letI : HeapGS .hasLC etcdDistGF := ⟨G, L⟩
+    (⊢ ownGoState (hG := L.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
+      WP (serverProg d k) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}) := by
+  obtain ⟨fl, lc, nh, gs, th, cr⟩ := L
+  try simp only at hL
+  subst hL
+  letI hG : HeapGS .hasLC etcdDistGF := ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := etcdFsSemOk
-  iintro - Hls Hgs Htok
+  iintro Hgs Htok
   imod (prometheus.regKeys_alloc (GF := etcdDistGF) server.regQs server_regQsOk) with ⟨%γreg, Hregs⟩
   letI : prometheus.PromRegGS etcdDistGF := ⟨γreg⟩
   ihave Hns := prometheus.idToks_regsFree (GF := etcdDistGF) server.regQs $$ Hregs
@@ -129,20 +123,33 @@ theorem serverBootBad [srv_sem : server.Assumptions]
   | ok i =>
     bad_finish hne
 
-/-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
-theorem clientBootBad [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
-    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
+/-- **A member's machine on a malformed deployment** (see the file header). -/
+theorem serverBootBad [srv_sem : server.Assumptions]
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSLT etcdThreads 0 etcdSteps (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
-  obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
-  simp only at hGG hL
-  subst hGG hL
-  letI hG : HeapGS .hasLC etcdDistGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
+  obtain ⟨G', L⟩ := hG
+  simp only at hGG
+  subst hGG
+  iintro - - Hgs Htok
+  iapply serverBadWp d Hd Hfips k L hL $$ Hgs Htok
+
+/-- The WP of `clientBootBad`, from no package initialized and the main thread's token, under any ghost state over
+the statement's local context (no file or network resource: the program returns before using one). -/
+theorem clientBadWp [cl_sem : client.Assumptions]
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
+    [G : GooseGlobalGS .hasLC etcdDistGF] (L : GooseLocalGS etcdDistGF)
+    (hL : L.goose_go_local_context = lctx) :
+    letI : HeapGS .hasLC etcdDistGF := ⟨G, L⟩
+    (⊢ ownGoState (hG := L.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
+      WP (clientProg d j) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}) := by
+  obtain ⟨fl, lc, nh, gs, th, cr⟩ := L
+  try simp only at hL
+  subst hL
+  letI hG : HeapGS .hasLC etcdDistGF := ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := etcdFsSemOk
-  iintro - Hls Hgs Htok
+  iintro Hgs Htok
   imod (prometheus.regKeys_alloc (GF := etcdDistGF) client.regQs client_regQsOk) with ⟨%γreg, Hregs⟩
   letI : prometheus.PromRegGS etcdDistGF := ⟨γreg⟩
   ihave Hns := prometheus.idToks_regsFree (GF := etcdDistGF) client.regQs $$ Hregs
@@ -171,20 +178,33 @@ theorem clientBootBad [cl_sem : client.Assumptions]
   | ok i =>
     bad_finish hne
 
-/-- **A client machine on a malformed deployment** (see the file header). -/
-theorem nodeBootBad [cl_sem : client.Assumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
-    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
+/-- **A workload's orchestrator machine on a malformed deployment** (see the file header). -/
+theorem clientBootBad [cl_sem : client.Assumptions]
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSLT etcdThreads 0 etcdSteps (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
-  obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
-  simp only at hGG hL
-  subst hGG hL
-  letI hG : HeapGS .hasLC etcdDistGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
+  obtain ⟨G', L⟩ := hG
+  simp only at hGG
+  subst hGG
+  iintro - - Hgs Htok
+  iapply clientBadWp d Hd Hfips j L hL $$ Hgs Htok
+
+/-- The WP of `nodeBootBad`, from no package initialized and the main thread's token, under any ghost state over
+the statement's local context (no file or network resource: the program returns before using one). -/
+theorem nodeBadWp [cl_sem : client.Assumptions]
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
+    [G : GooseGlobalGS .hasLC etcdDistGF] (L : GooseLocalGS etcdDistGF)
+    (hL : L.goose_go_local_context = lctx) :
+    letI : HeapGS .hasLC etcdDistGF := ⟨G, L⟩
+    (⊢ ownGoState (hG := L.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
+      WP (nodeProg d n) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}) := by
+  obtain ⟨fl, lc, nh, gs, th, cr⟩ := L
+  try simp only at hL
+  subst hL
+  letI hG : HeapGS .hasLC etcdDistGF := ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := etcdFsSemOk
-  iintro - Hls Hgs Htok
+  iintro Hgs Htok
   imod (prometheus.regKeys_alloc (GF := etcdDistGF) client.regQs client_regQsOk) with ⟨%γreg, Hregs⟩
   letI : prometheus.PromRegGS etcdDistGF := ⟨γreg⟩
   ihave Hns := prometheus.idToks_regsFree (GF := etcdDistGF) client.regQs $$ Hregs
@@ -208,31 +228,36 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
   | ok i =>
     bad_finish hne
 
+/-- **A client machine on a malformed deployment** (see the file header). -/
+theorem nodeBootBad [cl_sem : client.Assumptions]
+    (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
+    (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
+    Net.DistBootWpSLT etcdThreads 0 etcdSteps (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
+  intro hG hGG hL hlo hrb hT
+  obtain ⟨G', L⟩ := hG
+  simp only at hGG
+  subst hGG
+  iintro - - Hgs Htok
+  iapply nodeBadWp d Hd Hfips n L hL $$ Hgs Htok
+
 end boot
 
 /-- **`EtcdBootNCBad`**: on a malformed deployment every machine's boot program is safe from `True`
-(`serverBootBad`, `clientBootBad`, `nodeBootBad`). `Hctx` (`context`'s errors as Go defines them,
-`ContextReadErrs`, at every ghost state over the statement's local context) is a named hypothesis, not
-a top-level premise: it is to be discharged by the per-function context axioms. -/
-theorem etcdBootNCBad_holds
-    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG) :
+(`serverBootBad`, `clientBootBad`, `nodeBootBad`). -/
+theorem etcdBootNCBad_holds :
     EtcdBootNCBad := by
   intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
   rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
-  · exact serverBootBad (fun hG => Hctx hG) d Hd Hfips k σ
-  · exact clientBootBad (fun hG => Hctx hG) d Hd Hfips j σ
-  · exact nodeBootBad (fun hG => Hctx hG) d Hd Hfips n σ
+  · exact serverBootBad d Hd Hfips k σ
+  · exact clientBootBad d Hd Hfips j σ
+  · exact nodeBootBad d Hd Hfips n σ
 
 /-- **`etcd_safe_nocrash` from the well-formed deployment's boot WPs alone**: the skeleton
 `etcd_safe_nocrash_of_boot` with its malformed-deployment hypothesis discharged by
-`etcdBootNCBad_holds`. Left: `EtcdBootNC`, and `Hctx` (the `context` package's errors, to be
-discharged by the per-function context axioms). -/
+`etcdBootNCBad_holds`. Left: `EtcdBootNC`. -/
 theorem etcd_safe_nocrash_of_bootWF
-    (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
-      (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG)
     (HS : EtcdBootNC) : etcd_robust_nocrash.spec :=
-  etcd_safe_nocrash_of_boot HS (etcdBootNCBad_holds Hctx)
+  etcd_safe_nocrash_of_boot HS etcdBootNCBad_holds
 
 end etcd_dist
 end EtcdGrove

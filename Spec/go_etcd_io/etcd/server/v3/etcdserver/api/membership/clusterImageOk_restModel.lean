@@ -103,7 +103,7 @@ unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bul
   version.
 
 * *Promotions in the committed log write nothing* (route B, 2026-11-25, `notes/etcd-dist-plan.md`
-  §16.3; etcd at the pin `6b942d23f`). Past the boot log, a conf change may be a promotion
+  §17.3; etcd at the pin `6b942d23f`). Past the boot log, a conf change may be a promotion
   (`ccWideOk`'s second disjunct: an `AddNode` of a configuration member whose context has
   `IsPromote`, what `EtcdServer.PromoteMember` proposes, also on a forged peer request). Every
   saved member is a voter: the boot members are (`ccBootOk`'s `isLearner = false`, the boot log

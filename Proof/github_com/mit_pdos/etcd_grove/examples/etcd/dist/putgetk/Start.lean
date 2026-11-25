@@ -166,7 +166,7 @@ def memberPK (S5 : etcd_dist.S5Draft putgetGF) (peers clients : List GoString) (
 
 /-- The client machine's share (`client_bootK`'s). -/
 def clientPK (ep : GoString) (γE : GName) (mid : w64) : IProp putgetGF :=
-  iprop(⌜ep ≠ []⌝ -∗ ⌜plainEndpoint ep⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))
+  iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))
 
 /-- The machines' shares: member `i`'s for `i < n`, then the client's. -/
 def sharesK (S5 : etcd_dist.S5Draft putgetGF) (peers clients : List GoString) (ps : List w64)
@@ -183,11 +183,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    (HEnv : EtcdVerifyOff)
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5)
@@ -213,7 +209,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     obtain ⟨p, -, rfl⟩ := Option.map_eq_some_iff.1 hm
     unfold sharesK
     rw [if_pos hi]
-    exact member_bootK HEnvTok Hctx HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
+    exact member_bootK HEnv HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
       (σs i) (Hm i hi) S5
   · rw [List.getElem?_append_right (by omega), hlen] at hm
     have hm' : m = (bootClient (clients.headD go!""), σc) := by
@@ -225,7 +221,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     subst hm'
     unfold sharesK
     rw [if_neg hi]
-    exact client_bootK Hctx Hcec (clients.headD go!"") σc γE mid
+    exact client_bootK (clients.headD go!"") σc γE mid
 
 set_option maxHeartbeats 3200000 in
 /-- **`PutgetKBoot` over S5's named hypotheses** (see the file header). -/
@@ -237,8 +233,8 @@ theorem putgetKBoot_of
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
-  intro _ lctx _ _ _ _ _ _ Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
-    Hfips Hnd Hok HEnv HEnvTok G hlo hb
+  intro _ lctx _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
+    Hfips Hnd Hok HEnv G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5
   have HSM' : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
@@ -272,7 +268,7 @@ theorem putgetKBoot_of
     have Hbc : BootCore ps ctxs boot :=
       { boot := Hbl.boot, cc := Hbl.cc, urls := Hbl.urls, data := Hbl.data,
         lowNodup := (Hbl.perm.map _).nodup_iff.2 hids.1,
-        lowNz := fun id h => hids.2 id (Hbl.perm.subset h) }
+        lowNz := fun id h => hids.2 id (Hbl.perm.subset h), wire := Hbl.wire }
     have hbl : boot.length ≤ 2 ^ 16 := by rw [Hbl.boot.1, Hbl.perm.length_eq]; omega
     -- the addresses, per member
     ihave Hs2 : [∗list] m ∈ cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr)),
@@ -331,7 +327,7 @@ theorem putgetKBoot_of
     iexists sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot γ0 (memberIdOf p0)
     isplitr
     · ipureintro
-      exact system_boots Hctx Hcec HEnvTok HSM' (p0 :: pr) (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
+      exact system_boots HEnv HSM' (p0 :: pr) (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
         Hprem σs σc Hm Hfips S5 γ0 (memberIdOf p0)
     unfold system
     iapply BigSepL.bigSepL_append.2
@@ -367,7 +363,7 @@ theorem putgetKBoot_of
       iintro %-
       isplitr
       · ipureintro
-        exact etcd_dist.addrOk_plainEndpoint (Hok c0 (by simp [addrs]))
+        exact Hok c0 (by simp [addrs])
       iunfold clientShare
       isplitl
       · iexact Hat0
@@ -385,7 +381,7 @@ theorem putgetKBoot_of
       iexists sharesK S5 peers [] ps ctxs boot γE (W64 0)
       isplitr
       · ipureintro
-        exact system_boots Hctx Hcec HEnvTok HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
+        exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
           σs σc Hm Hfips S5 γE (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
@@ -412,7 +408,7 @@ theorem putgetKBoot_of
       iexists sharesK S5 peers (c0 :: cr) ps ctxs boot γE (W64 0)
       isplitr
       · ipureintro
-        exact system_boots Hctx Hcec HEnvTok HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
+        exact system_boots HEnv HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
           Hprem σs σc Hm Hfips S5 γE (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
@@ -431,7 +427,7 @@ theorem putgetKBoot_of
         iintro %-
         isplitr
         · ipureintro
-          exact etcd_dist.addrOk_plainEndpoint (Hok c0 (by simp [addrs]))
+          exact Hok c0 (by simp [addrs])
         iunfold clientShare
         isplitl
         · iexact Hat

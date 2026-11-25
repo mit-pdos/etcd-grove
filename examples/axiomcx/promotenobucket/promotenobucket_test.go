@@ -1,5 +1,5 @@
 // Package promotenobucket is the Go evidence for the widened premise of the trust-boundary axiom
-// `membership.clusterImageOk_restModel` (route B, 2026-11-25, notes/etcd-dist-plan.md §16.3): a
+// `membership.clusterImageOk_restModel` (route B, 2026-11-25, notes/etcd-dist-plan.md §17.3): a
 // committed log may hold promotion conf changes (`AddNode` whose context has `isPromote` true,
 // `ccApplyOk`'s promotion disjunct), and the membership buckets, so the cluster image `Recover`
 // loads, are what they would be without them, because every saved member is a voter.

@@ -1,5 +1,5 @@
 // Package peerforge is the Go evidence for route B of the PeerServe_dist review (2026-11-25,
-// notes/etcd-dist-plan.md §16.3): what an arbitrary peer request can do to a member, through the
+// notes/etcd-dist-plan.md §17.3): what an arbitrary peer request can do to a member, through the
 // names-only leasehttp.RenewHTTP (which posts a LeaseKeepAliveRequest to any URL) and through the
 // server's PromoteMember.
 //

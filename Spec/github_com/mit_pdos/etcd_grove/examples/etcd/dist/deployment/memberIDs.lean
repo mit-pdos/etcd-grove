@@ -33,6 +33,7 @@ when every peer address is valid (`Net.addrOk`: the URL is then rendered as `htt
 abbrev memberIDs.spec : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment),
   crypto.fips140.GodebugFips140Off →
+  (∀ m ∈ d.members, Net.addrOk m.peer = true ∧ m.peer.length ≤ typed.maxLen) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment ∗ deploymentRepr v d }}
     (App (Val (@! deployment.memberIDs)) (Val #v))
   {{ (sl : GoSlice) (ids : List w64), RET #sl; sl ↦* ids ∗

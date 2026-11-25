@@ -17,9 +17,9 @@ internal lemmas takes it, and no top-level statement does (Upamanyu, 2026-11-24)
   every other peer of the directory, its address's (`S5Draft.httpAddrAt`, set by the start,
   `etcdClusterStart`'s `peerAddrFacts`);
 * `memberFreshRes name ⟨some peerAddr, none⟩ γn` (its fresh WAL area, `ETCD_VERIFY` off, the right to listen
-  on the peer address with its protocol reserved) is replaced by its file part (`envVerifyOff`,
+  on the peer address with its protocol reserved) is replaced by its file part (`⌜EtcdVerifyOff⌝`,
   `memberAreasFresh`): the listen right is in `httpAddrAt`.
-Everything else (`bootPremise`, `commonPremises`, `memberBoot`, the bounds, the directory's pure facts) is
+Everything else (`bootPremise`, `memberBoot`, the bounds, the directory's pure facts) is
 `StartMember.spec`'s.
 -/
 module
@@ -67,7 +67,7 @@ abbrev StartMember_dist.spec [π : Net.NetProtoGS] (S5 : S5Draft (G := hG.goose_
       zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      bootPremise N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       -- S5's address facts: its own peer address, and every other peer's in the directory
@@ -75,7 +75,7 @@ abbrev StartMember_dist.spec [π : Net.NetProtoGS] (S5 : S5Draft (G := hG.goose_
       (□ ∀ (pid : w64) (a : GoString), ⌜pid ∈ ps ∧ pid ≠ id ∧ go!"http://" ++ a ∈ dir pid⌝ -∗
         S5.httpAddrAt a) ∗
       -- the file part of `memberFreshRes`
-      envVerifyOff (GF := GF) ∗ memberAreasFresh (GF := GF) (memberDataDir name) }}
+      ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir name) }}
     (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #token))

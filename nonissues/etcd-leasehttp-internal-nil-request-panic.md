@@ -19,7 +19,7 @@ of the client-side `issues/etcd-leasehttp-timetolive-nil-*` findings.
 **Why not an issue:** no wrong result or crash of the member: the panic is recovered by the HTTP
 server and only that request fails; only a peer (or a program posting to the peer URL) reaches it.
 Go evidence: `examples/premisefix/peerforge` (3/3 runs), and the route-B review of `PeerServe_dist`
-(2026-11-25, `notes/etcd-dist-plan.md` §16.3).
+(2026-11-25, `notes/etcd-dist-plan.md` §17.3).
 
 ## Proof
 
