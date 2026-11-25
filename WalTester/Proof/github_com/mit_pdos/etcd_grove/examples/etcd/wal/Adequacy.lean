@@ -20,7 +20,7 @@ one, `Main.specInvalid`), and a generation's precondition is its empty package s
 
 Each generation allocates its own registration rights for the WAL's metric IDs (`tRegQsOk`, route (b) of
 prom-registry) and runs the generated `wp_initialize'` (`InitLinked.lean`, `PkgTable.lean`). The model's
-laws are discharged (`walPb_laws`, `LawsHsMarshal`, `LawsHsPb`: `CloneHsLaw` and `WalHsOwn.unmarshal` over
+laws are discharged (`walPb_laws`, `LawsHsMarshal`, `LawsHsPb`: `CloneStLaw`, `ZeroStLaw` and `WalHsOwn.unmarshal` over
 `proto.Clone`'s and `proto.Unmarshal`'s trust-boundary specs).
 -/
 module
@@ -225,9 +225,10 @@ theorem tMain_linked : Main.spec (GF := GF) (hG := hG) :=
   walTester.etcd_wal.wp_Main walRaftP walRaftU walRaftHsO walRaftU_ok walRaftU_snapCoh
     wal_decEnvSupply (walRaftHsO_own proto.UnmarshalPb.wp_proof)
     (walRaftHsO_own proto.UnmarshalPb.wp_proof)
-    (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
+    (walRaftP_cloneSt proto.ClonePb.wp_proof proto.MarshalPb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm
+    walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
-    walPb_laws.unmarshalEnt walPb_laws.zero
+    walPb_laws.unmarshalEnt walPb_laws.zero (walRaftP_zeroSt proto.MarshalPb.wp_proof)
 
 /-- **`Main.specInvalid`, linked**: the tester Link's `wp_MainInvalid`. -/
 theorem tMainInvalid_linked : Main.specInvalid (GF := GF) (hG := hG) :=

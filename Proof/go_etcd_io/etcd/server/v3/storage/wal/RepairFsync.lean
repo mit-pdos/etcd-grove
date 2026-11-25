@@ -48,7 +48,7 @@ theorem walAreaOk_osInv (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   iintro ⟨-, #H, -⟩
   iexact H
 
-/-- **`f.Sync()` of `Repair`'s truncated tail** (`os.File.Sync.wp_proof` with `wp_tailFsyncR` for the
+/-- **`f.Sync()` of `Repair`'s truncated tail** (`os.File.Sync.wp_proof` with `wp_tailFsyncPE` for the
 extension's step; see the file header). -/
 theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)

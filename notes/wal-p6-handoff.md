@@ -259,8 +259,50 @@ truncates at `tg = |recFrames rs| ∈ [wr, size]` (repair.go:86); the run stays 
    `TailPend` = `RepOld` with `syncLayP`), generalized over the token's kind; the post gives the pending token
    back (`∃ k'`), not the key (no F-Z past a run).
 4. `walInv_repairPut` (moved to `UnregLent.lean`) unregisters by the token (`walInvBody_untailL`).
-   `walInvBody_untailR` (`RepairPut.lean`) and `RepairSync.lean`'s `walInvBody_syncR` are now unused
-   (cleanup candidates).
+   `walInvBody_untailR` (`RepairPut.lean`) and `RepairSync.lean` became unused: both files deleted.
+
+## The hard stop: `DiscardUnsaved` needs two abstract-disk steps (2026-11-25, open)
+
+`wal.DiscardUnsaved` (fork `unsaved.go:97`) renames `dir` to `dir.tmp` and fsyncs the parent, so its spec's
+success post must be "no WAL at `dir`" (`walDirIs dir none`, what `wal.bootRes`'s "no WAL, possibly
+`wal.tmp`" is built from). The trusted abstract disk (`GooseLang/Ext/AbsDisk/Impl.lean`) cannot reach that
+state:
+* no `AbsDiskStep` removes an entry of `s.wal` (`"WalCreate"` inserts; every other step goes through
+  `absDiskUpd`, which keeps the entry);
+* a crash keeps an absent WAL absent (`absDisk_semantics.crash`'s last clause), and `walCrash` lets a WAL
+  vanish only when `named = false`, which no step sets (`"WalNamed"` only sets it `true`).
+Between the rename and the parent's fsync a crash may keep the WAL at `dir` (the rename lost) or lose it
+(the rename durable): the abstract WAL must be one that "may vanish" there, and absent after the fsync.
+
+**Proposed** (trusted text: needs approval): two steps, mirroring `Create`'s rename/fsync pair in reverse:
+`"WalUnnamed"` of `dir` (`named := false`, at the rename: `walCrash`'s first disjunct then covers the
+rename made durable, its second the rename lost) and `"WalDiscard"` of `dir` (the entry deleted, at the
+parent's fsync, after which the rename is durable). No change to `walCrash`, `walImg` or the crash clause.
+
+1. **Minimal program that needs it**:
+   ```go
+   w, _ := wal.Create(lg, dir, md); w.Close()    // a WAL that holds nothing a Save wrote
+   if ok, err := wal.DiscardUnsaved(lg, dir); err == nil && ok && wal.Exist(dir) {
+       panic("discarded WAL still there")
+   }
+   ```
+   Its proof needs `walDirIs dir none` after `DiscardUnsaved` (`Exist`'s spec answers from `walDirIs`). With
+   the existing steps the abstract entry of `dir` stays `some d` (no step deletes it), while the WAL
+   invariant (`WalsOk`) ties every entry to a directory at `dir` holding its segments, which the rename
+   removes: no state of the invariant fits after the rename. Searched: `AbsDisk` is this repository's
+   extension (Perennial has no WAL model); its `Specs.lean` has no removal lemma, and none can exist since
+   the steps are the only transitions.
+2. **The real code has it**: etcd fork `goose-lean-fmt1c-tornsave` (`2bd3048d7`),
+   `server/storage/wal/unsaved.go:97` `DiscardUnsaved` (`os.Rename(dir, dir+".tmp")`, then
+   `syncDir(filepath.Dir(dir))`), called by `server/etcdserver/bootstrap.go:82` `bootstrap` before
+   `bootstrapBackend`, `haveWAL = !discarded`.
+
+`Unsaved` (read-only, a decode loop like `validSnapshotEntries`) needs no semantics change. Proposed spec
+(not yet written): `ValidSnapshotEntries`'s binders; post `b = true → err = nil ∧ ∃ d, o = some d ∧
+∀ op ∈ d.H.map WalOpG.toM, walOpBlank op` (`walOpBlank`: `.save h []` with `hsEmptyP h`, or `.snap m _` with
+index 0: what Go accepts), with a pure lemma that every crash image `H.take j` of such a history is blank
+(prefix-closed). "Reads `walFresh`" (server level, P5) needs in addition that no `SaveSnapshot` at index 0
+carries a nonzero term (raft never saves an empty snapshot: `IsEmptySnap`), a server-side fact.
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 

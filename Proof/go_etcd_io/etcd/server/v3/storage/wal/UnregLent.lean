@@ -5,20 +5,22 @@
 `Close` of the handle a failed `ReadAll` leaves (`WAL.Close.spec` (state `failed`)) puts back a tail the handle
 holds by the lent token (`walLentTokB dir γ k p`: `p = true`, registered, not yet zeroed, the exits
 before `ZeroToEnd`; `p = false`, after `ZeroToEnd`'s first step), not by the key. As
-`walInvBody_untailR` (`RepairPut.lean`), but the token's entry of the lent registry deleted with the
+`walInvBody_untail` (`CloseLaw.lean`) over `TailMetaR` (`Repair`'s synced tail), but the token's entry of the lent registry deleted with the
 registration (`walLentRes_unregLent`): the key comes out of the registry and is consumed by the
 unregistration; the WAL's `IdleZ0` from the registered entry's `TailZ0`.
 
 * `walLentRes_unregLent`: the registry without the entry, the registration of `dir` gone;
 * `walTailsRes_closeL`: `walTailsRes_close` by the token;
-* `walInvBody_untailL`: `walInvBody_untailR` by the token (the tail idle: exact, all written, every byte
+* `walInvBody_untailL`: `walInvBody_untail` by the token (the tail idle: exact, all written, every byte
   durable, the zeros known only past its end);
 * `walInv_repairPut`: `Repair`'s put-back after its truncate and fsync, by the pending token (P6: the
   synced layout may keep a pending run past `wr`, so no F-Z and no key), then the pin put back.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPut
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandlePend
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPin
 
 @[expose] public section
 
@@ -136,7 +138,7 @@ theorem walTailsRes_closeL (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (
     · exact HTi k d' lay' (GMap.lookup_insert_ne _ _ e) hd' hl'
   · iapply BigSepM.bigSepM_empty.2; iempintro
 
-/-- **The open handle's tail unregistered by the lent token** at the body (`walInvBody_untailR` with the
+/-- **The open handle's tail unregistered by the lent token** at the body (`walInvBody_untail` with the
 token; see the file header). -/
 theorem walInvBody_untailL (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState)
     (dir : GoString) (γ γt : GName) (k : Nat) (p : Bool) (H : List (WalOpG WalEnt)) (md : List w8)
