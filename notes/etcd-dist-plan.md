@@ -1533,6 +1533,18 @@ of `bootstrap` (`wal.Unsaved`, `removeBackendDurably`, `wal.DiscardUnsaved`: the
 `encodeState`); the bbolt `replace` in etcd's `go.mod` changes no translation (bbolt is project `bbolt`'s, from its
 own fork pin; the etcd project names it only).
 
+**Checkpoint (2026-11-25, end of round 2's session).** `etcd-safe-main/2026-11-24` @ `42de3cddaf`: full VM build
+green, `etc/tcb-report.py --check` matches (337 axioms, 0 `sorry`; the baseline file is round 1's, unchanged: no
+axiom C-I1 or S5 added is reached by a linked result yet). `etcd-safe-main-pin/2026-11-24` (the pin and P6, built
+on the VM): every module but `storage.OpenSnapshotBackend` and what imports it. **Next, on the pin branch**
+(the coordinator's request): specify `storage.syncDir` (`server/storage/backend.go`, the same body as
+`fileutil.syncDir`: copy `Spec/.../fileutil/syncDir.lean` and its proof, with `isPkgInit` of `storage`), and call
+it in `OpenSnapshotBackend`'s proof after the rename, with the parent directory's `osPathS`/`osCallPerm` taken out
+of `fileAt dst`'s `nameAtF` (`path = child d b`; `filepath.Dir (child d b) = d` is needed) inside `onFs`, and put
+back. The durable-name fact C-I1's `dbCrash` leaves to the caller (`Fs.Named`, from a directory sync after the
+rename) needs the rename's log position: `os.Rename.spec` (proved, `Proof/os/Rename.lean`) would have to return
+`osLogLb n` past its entry, and the post of `OpenSnapshotBackend` `osCommitLb n`; T7 decides the form.
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
