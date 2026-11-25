@@ -2337,3 +2337,38 @@ the transport branch, `NewServer_dist.wp_proof`, `PeerServe_dist.wp_proof`, `New
 `IsLearner`); from putgetk, none; from bootax, `bootstrap.wp_proof_dist`. No crash item (D4a/D4b/D4c',
 `DistCrashAdequacy`, C-I1's `dbCrash*`, `BoltCrashWhole`, `szCrash`, snapDir changes, the pin's translation).
 No new axiom, `sorry` or top-level premise beyond the merged branches'; no Go change of this line's own.
+
+### 20.1 N2 ported (2026-11-25, branch `etcd-safe-nc-n2/2026-11-25`)
+
+§18's O1/N2 work (option B: `Γ : DistView`, `etcdSvc`/`etcdAddrAt`/`Serve_dist` at the view, no publication,
+`Client_Put/Get_dist` theorems from the interim axioms `KV_Put/Get_dist`) on this line. Its eleven commits
+(`5a1c41d945..etcd-safe-n2/2026-11-25` @ `b5f215386a`) were on `etcd-safe-main-r3`, so they were cherry-picked
+(`-x`), in order, onto `etcd-safe-nc/2026-11-25` @ `a9d9b94558`, and the conflicts resolved there; one commit
+of this line's own regenerates `SpecPlan`'s `PkgInit` of `dist/client` (`gen-specs-pkginit`, after the
+`newUserClient` change).
+
+**Conflicts and resolutions** (both sides kept: this line's bootax port and `lean`'s putget changes, and N2's
+re-indexing and removal of the publication):
+- `Spec`/`Proof` `ClientPutDist`/`ClientGetDist`: N2's (the theorems and their new statements). This line's
+  only change to them was `levelTok 0` in the axioms' pre and post, which N2's statements already carry.
+- putget `AdequacyMember`: bootax's `premises_holds … Hfips Hbg` (no `Hprem`), without the publication's
+  `memberPubOk_putgetPub`; putget `TopLevelRobustness`: `member_boot … Hbg Hfips σm Hm c`; `AdequacyClient`:
+  this line's `Hl0` token name at N2's `client Γ mid`; `Spec`/`Proof` putget `Client`: N2's (`Hauth`, the
+  token threaded), one-line binder header.
+- putgetk `Member`/`AdequacyMember`/`Start`: N2's (no `Pub`, the view `c.view`/`DistView.ofKV γk0`) with
+  bootax's `Hbgo` in place of `Hprem` and `bootstrap.wp_proof_dist` passed to `Member.wp_proof`.
+- `dist/client/PkgTable` (generated): `etc/gen-init.py` rerun; notes: §18 placed before §20.
+- The final tree equals the three-way merge of r3, this line and N2's head in every N2-touched file but these
+  hunks. No N2 change needed a crash-line-only definition: the changed modules and their importers built
+  unmodified. No interim axiom's statement differs from N2's reviewed one (`notes/axiom-review/n2-kv-dist.md`).
+- N2's Go change (`dist/client/auth.go`: `newUserClient` with `grpc.WithNoProxy()`, §18.8 item 4) comes with
+  it; `goose.py --check --project putget-dist` passes at this line's pin.
+
+**Checked:** gen-init, gen-specs-pkginit, gen-raft-tla, gen-rpcdriver-boottable `--check`; tier (208 known), bounds
+(390), iris-premise (16, all listed), premise-witness (47 statements); VM build of the changed modules' importers
+(13492 jobs), then the full build (28959 jobs), both first try; every `Link` regenerated on the VM matches (61), btree's
+too. Through `vmlake env`: `tcb-report --check` matches (364 axioms, 0 `sorry`) and every collection matches. The
+baseline change is exactly N2's: `etc/tcb-baseline.txt` and `putget-dist.txt` gain `etcd_dist.KV_Put_dist.wp_proof`
+and `etcd_dist.KV_Get_dist.wp_proof` and lose `etcd_dist.Client_Put_dist.wp_proof` and
+`etcd_dist.Client_Get_dist.wp_proof`. `KV_Delete_dist`, `KV_Compact_dist` and `Txn_Commit_dist` are declared, but no
+root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, no `sorry`, no new top-level premise.
