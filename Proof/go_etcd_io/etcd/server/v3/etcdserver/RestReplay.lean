@@ -375,8 +375,8 @@ theorem memSync_putMember (ps : List w64) (r : apply.RestM) (mm' : apply.MemberM
 /-- **A step of the committed log past the boot** keeps the sync and changes the members as the
 v2-only step does: an attribute write overwrites (and with `v3` saves the record), a version
 request does nothing to them, an `AddNode` of a voter is refused. -/
-theorem restEntry_sync (ps : List w64) (c0 : w64) (e : EntryModel) (r : apply.RestM)
-    (hs : memSync ps r)
+theorem restEntry_sync (ps : List w64) {cov : List w64} (c0 : w64) (e : EntryModel) (r : apply.RestM)
+    (hs : memSync ps r) (hvot : memVoters ps cov r)
     (hcc : e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc → ccApplyOk (GMap.listToSet ps) cc) :
     (restEntry c0 e r).mem = memStep e r.mem ∧ memSync ps (restEntry c0 e r) := by
   have hmemI := hs.2.2
@@ -434,16 +434,21 @@ theorem restEntry_sync (ps : List w64) (c0 : w64) (e : EntryModel) (r : apply.Re
     | none => exact ⟨by first | trivial | rfl, hs⟩
     | some cc =>
       simp only
-      obtain ⟨hty, hin, hctx, -⟩ := hcc ht cc hc
+      obtain ⟨hty, hin, hctx⟩ := hcc ht cc hc
       have hin' : cc.nodeId ∈ ps := (GMap.elem_of_list_to_set _ _).1 hin
-      have hf := ccValidOn_false ps r cc hs hty hin' (membership.ccIsPromote_of _ _ _ hctx)
+      -- an `AddNode` of a voter is refused (`ErrIDExists`), (route B) a promotion too
+      -- (`ErrMemberNotLearner`: the bucket's members are voters)
+      have hf : membership.ccValidOn r.bk cc = false := by
+        rcases hctx with ⟨hctx, -⟩ | hctx
+        · exact ccValidOn_false ps r cc hs hty hin' (membership.ccIsPromote_of _ _ _ hctx)
+        · exact ccValidOn_promote_false ps r cc hvot hty (membership.ccIsPromote_of _ _ _ hctx)
       unfold ccRest
       rw [if_neg (by rintro ⟨-, h⟩; rw [hf] at h; cases h)]
       exact ⟨by first | trivial | rfl, hs⟩
 
 /-- **The log past the boot, in sync**: the model's members are the v2-only fold's. -/
-theorem fold_sync (ps : List w64) (c0 : w64) (R : List EntryModel) (r : apply.RestM)
-    (hs : memSync ps r)
+theorem fold_sync (ps : List w64) {cov : List w64} (c0 : w64) (R : List EntryModel) (r : apply.RestM)
+    (hs : memSync ps r) (hv : memVoters ps cov r)
     (hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
       ccApplyOk (GMap.listToSet ps) cc) :
     (R.foldl (fun r m => restEntry c0 m r) r).mem = foldMem R r.mem := by
@@ -451,8 +456,9 @@ theorem fold_sync (ps : List w64) (c0 : w64) (R : List EntryModel) (r : apply.Re
   | nil => rfl
   | cons e R ih =>
     rw [List.foldl_cons]
-    obtain ⟨h1, h2⟩ := restEntry_sync ps c0 e r hs (hcc e List.mem_cons_self)
-    rw [ih _ h2 (fun e' he' => hcc e' (List.mem_cons_of_mem _ he')), h1]
+    obtain ⟨h1, h2⟩ := restEntry_sync ps c0 e r hs hv (hcc e List.mem_cons_self)
+    rw [ih _ h2 (restEntry_memVoters ps c0 e r hv (hcc e List.mem_cons_self))
+      (fun e' he' => hcc e' (List.mem_cons_of_mem _ he')), h1]
     rfl
 
 /-! ## The boot -/
@@ -538,7 +544,7 @@ theorem memValid_boot_fold (boot : List EntryM) (hurl : bootURLsOk boot) (Q : Li
 /-- **The rest model after the bootstrap log is in sync.** -/
 theorem memSync_boot (ps : List w64) (boot : List EntryM)
     (hps : srvBootLogOk ps boot) (hnd : ps.Nodup) (hurl : bootURLsOk boot)
-    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccApplyOk (GMap.listToSet ps) cc) :
+    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc) :
     memSync ps (boot.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r) (restBoot boot)) := by
   have hids := bootSaved_ids ps boot hps
   have h0 : bootInv ps [] (restBoot boot) := by
@@ -546,7 +552,7 @@ theorem memSync_boot (ps : List w64) (boot : List EntryM)
     · simp [memBktOf, restBoot, restBootBk, GMap.lookup_insert_eq_iff, bootSaved]
     · simp [restBoot, restBootBk, GMap.lookup_insert_eq_iff]
   have hall : ∀ e ∈ boot, e.Type' = W32 1 ∧ 0 < uint.Z e.Index' ∧
-      ∃ cc, ccDecodeV1 e.Data' = some cc ∧ ccApplyOk (GMap.listToSet ps) cc := by
+      ∃ cc, ccDecodeV1 e.Data' = some cc ∧ ccAddOk (GMap.listToSet ps) cc := by
     intro e he
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem he
     obtain ⟨-, -, hkk⟩ := hps
@@ -572,7 +578,7 @@ committed log that starts with the bootstrap log `boot` of the voters `ps` (dist
 rest model back (see the file header). -/
 theorem restReplay_close (ps : List w64) (boot : List EntryM) (R : List EntryModel) (j : Nat)
     (hps : srvBootLogOk ps boot) (hnd : ps.Nodup) (hurl : bootURLsOk boot)
-    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccApplyOk (GMap.listToSet ps) cc)
+    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc)
     (hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
       ccApplyOk (GMap.listToSet ps) cc) :
     ((boot.map EntryModel.ofM ++ R).drop j).foldl (fun r m => restEntryV2 m r)
@@ -583,7 +589,7 @@ theorem restReplay_close (ps : List w64) (boot : List EntryM) (R : List EntryMod
         (boot.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r) (restBoot boot)) := by
     simp [restModel, List.foldl_append, List.foldl_map]
   have hsync := memSync_boot ps boot hps hnd hurl hbcc
-  have hmem := fold_sync ps (W64 0) R _ hsync hcc
+  have hmem := fold_sync ps (W64 0) R _ hsync (memVoters_boot ps boot hps hnd hurl hbcc) hcc
   rw [fold_restEntryV2]
   -- the replayed boot entries are conf entries
   have hbt : ∀ m ∈ boot.map EntryModel.ofM, m.typ ≠ W32 0 := by

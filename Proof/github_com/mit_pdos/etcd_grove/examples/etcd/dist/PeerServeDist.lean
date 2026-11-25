@@ -35,10 +35,21 @@ streams (`GET /raft/stream/...`), pipelines (`POST /raft`), probes (`GET /raft/p
 (`POST /raft/snapshot`); leasehttp's forwarded `TimeToLive` and `KeepAlive` (`POST /leases`, `/leases/internal`);
 bootstrap's `GET /members`; `GET /version`), or by a program holding `httpAddrAt γ id pa`, which may dial `pa` and can write nothing there through the net
 extension (no proof establishes the dialer protocol of any bytes); no HTTP proxy relays to it (`noProxyEnv` in
-`NewServer_dist`). **Not** covered, found by the axiom review of 2026-11-24 (`notes/etcd-dist-plan.md` §16.3): the
-names-only `leasehttp.RenewHTTP` axiom lets any program `POST` a lease body to any URL, `pa`'s paths included:
-**this axiom is unsound in combination with it until `RenewHTTP` is restricted to a member's lease URL** (open:
-the server's proofs know nothing of a member's peer URLs, §16.3). The other route the review found is closed
+`NewServer_dist`). The names-only `leasehttp.RenewHTTP` axiom (and `promoteHTTPOk`) lets any program `POST`
+a `LeaseKeepAliveRequest` body, with only a `Content-Type` header, to any URL, `pa`'s paths included (found by the
+axiom review of 2026-11-24, `notes/etcd-dist-plan.md` §16.3). This axiom is sound against every request of that
+shape (route B, 2026-11-25; fresh `axiom`-skill review: survives): rafthttp's paths refuse it (`412`: no
+`X-Etcd-Cluster-ID` or version header, `rafthttp/http.go:471-516`); the GET-only paths answer `405`; `/leases` renews a
+lease (the checkpointer off: no raft entry); `/leases/internal` dereferences a nil `LeaseTimeToLiveRequest`
+(`lease/leasehttp/http.go:123`, before any lock), which `conn.serve` recovers; `/members/promote/<id>` proposes a
+promotion only of an id in raft's progress (`isLearnerReady`, `server.go:1589-1611`: the static configuration), an
+`AddNode` whose context has `IsPromote`, which the committed log's policy admits (`ccApplyOk`'s second disjunct) and
+which changes nothing: with `shouldApplyV3` its validation fails (`ErrMemberNotLearner`: every saved member is a
+voter), replayed `PromoteMember(id, false)` writes no bucket (`examples/axiomcx/promotenobucket`). Go's `configure`
+registers a waiter at that change's id, which no proved code observes (the server's invariant gives a committed conf
+change's id no waiter, `reqWaitNone`); the apply's `Trigger` hands it the `confChangeResponse` it expects. A request
+with arbitrary bytes and raft's headers is not of that shape (it could crash raft: `tocommit out of range`), and no
+program can write one at `pa` (above). The other route the review found is closed
 (2026-11-25): a single-process run holds both `addrUnset pa` (the net extension's start resources, inside
 `netAddrFree pa`; to `http_addr_set`) and `httpProtoFree pa` (`goose_adequacy_start`),
 and `http.reserve` now also spends `pa`'s pending set (`netAddrPend`), which `http_addr_set` needs, so no program
@@ -49,7 +60,7 @@ program forged a raft message to its own member through rafthttp's round tripper
 checked by the handler (the cluster id, `X-Raft-To` against the member's id, a removed sender refused). The other
 paths are etcd's own: `/leases` waits on the server's apply wait, which `start` makes (hence `isServerReqM`: the
 program serves after `Start`, as etcd's embed does); `/members` reads the cluster; `/members/promote` proposes a promotion
-only when asked (no member of the deployment asks: no client calls `MemberPromote`); `/members/hashkv` and
+only when asked (above); `/members/hashkv` and
 `/downgrade/enabled` are what the (off) monitors of the other members would call. Go's server answers a malformed
 request with a 4xx and closes; a handler's panic is recovered by `conn.serve`.
 

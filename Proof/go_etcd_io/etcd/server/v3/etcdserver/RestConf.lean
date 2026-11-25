@@ -51,13 +51,18 @@ def bootInv (ps : List w64) (P : List EntryM) (r : apply.RestM) : Prop :=
   (r.bk.lookup go!"members_removed").getD ∅ = ∅
 
 /-- **Phase 2's invariant**: every entry of the bucket a voter of `ps` under its own id, every id of
-`ps` with an entry; the in-memory members voters of `ps`. -/
-def memVoters (ps : List w64) (r : apply.RestM) : Prop :=
+`cov` with an entry (`ps` after the boot log, none before it); the in-memory members voters of `ps`; (route B, 2026-11-25) the bucket exactly
+some members' records, of distinct ids, and nothing removed: what `membersOf_decode` reads back,
+so that a promotion does not validate (`ccValidOn_promote_false`). -/
+def memVoters (ps cov : List w64) (r : apply.RestM) : Prop :=
   memOk ps r.mem ∧
   (∀ k v, (memBktOf r.bk).lookup k = some v →
     ∃ mm : apply.MemberM, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm ∧ mm.id ∈ ps ∧
       mm.isLearner = false) ∧
-  (∀ id ∈ ps, ∃ v, (memBktOf r.bk).lookup (apply.memberKey id) = some v)
+  (∀ id ∈ cov, ∃ v, (memBktOf r.bk).lookup (apply.memberKey id) = some v) ∧
+  (∃ ms : List apply.MemberM, (∀ k v, (memBktOf r.bk).lookup k = some v ↔
+      ∃ mm ∈ ms, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm) ∧ (ms.map (·.id)).Nodup) ∧
+  (r.bk.lookup go!"members_removed").getD ∅ = ∅
 
 /-! ### Rest-model steps on the `members` bucket -/
 
@@ -77,11 +82,11 @@ theorem removed_putIn_members (r : apply.RestM) (k v : GoString) :
 /-! ### The in-memory members -/
 
 theorem memOk_memBoot (ps : List w64) (boot : List EntryM)
-    (hcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccApplyOk (GMap.listToSet ps) cc) :
+    (hcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc) :
     memOk ps (memBoot boot) := by
   unfold memBoot
   suffices H : ∀ (l : List EntryM), (∀ e ∈ l, ∀ cc, ccDecodeV1 e.Data' = some cc →
-      ccApplyOk (GMap.listToSet ps) cc) → ∀ acc, memOk ps acc →
+      ccAddOk (GMap.listToSet ps) cc) → ∀ acc, memOk ps acc →
       memOk ps (l.foldl (fun mem e => match ccDecodeV1 e.Data' with
         | some cc => mem.insert cc.nodeId (membership.ccMemberAt cc)
         | none => mem) acc) from H boot hcc ∅ (fun id mm h => by simp at h)
@@ -115,11 +120,12 @@ theorem memOk_insert (ps : List w64) (mem : GMap w64 apply.MemberM) (id : w64) (
 
 /-! ### Phase 2 -/
 
-theorem memVoters_putMember (ps : List w64) (r : apply.RestM) (mm : apply.MemberM)
-    (h : memVoters ps r) (hin : mm.id ∈ ps) (hl : mm.isLearner = false) :
-    memVoters ps (r.putIn go!"members" (apply.memberKey mm.id) (apply.memberEnc mm)) := by
-  obtain ⟨hm, hf, hc⟩ := h
-  refine ⟨hm, fun k v hk => ?_, fun id hid => ?_⟩
+theorem memVoters_putMember (ps : List w64) {cov : List w64} (r : apply.RestM) (mm : apply.MemberM)
+    (h : memVoters ps cov r) (hin : mm.id ∈ ps) (hl : mm.isLearner = false) :
+    memVoters ps cov (r.putIn go!"members" (apply.memberKey mm.id) (apply.memberEnc mm)) := by
+  obtain ⟨hm, hf, hc, ⟨ms, hb, hnd⟩, hrm⟩ := h
+  refine ⟨hm, fun k v hk => ?_, fun id hid => ?_,
+    ⟨mm :: ms.filter (fun x => decide (x.id ≠ mm.id)), fun k v => ?_, ?_⟩, ?_⟩
   · rw [memBktOf_putIn_members, GMap.lookup_insert_eq_iff] at hk
     split at hk
     · next he => cases hk; exact ⟨mm, he.symm, rfl, hin, hl⟩
@@ -128,21 +134,81 @@ theorem memVoters_putMember (ps : List w64) (r : apply.RestM) (mm : apply.Member
     split
     · exact ⟨_, rfl⟩
     · exact hc id hid
+  · rw [memBktOf_putIn_members, GMap.lookup_insert_eq_iff]
+    simp only [List.mem_cons, List.mem_filter, decide_eq_true_eq]
+    split
+    · next hk =>
+      constructor
+      · intro hv; cases hv; exact ⟨mm, Or.inl rfl, hk.symm, rfl⟩
+      · rintro ⟨x, rfl | ⟨-, hne⟩, h1, h2⟩
+        · rw [h2]
+        · exact absurd (apply.memberKey_inj _ _ (hk.trans h1)).symm hne
+    · next hk =>
+      rw [hb]
+      constructor
+      · rintro ⟨x, hx, h1, h2⟩
+        refine ⟨x, Or.inr ⟨hx, fun he => hk ?_⟩, h1, h2⟩
+        rw [h1, he]
+      · rintro ⟨x, rfl | ⟨hx, -⟩, h1, h2⟩
+        · exact absurd h1.symm hk
+        · exact ⟨x, hx, h1, h2⟩
+  · simp only [List.map_cons, List.nodup_cons]
+    refine ⟨?_, ((List.filter_sublist (l := ms)).map _).nodup hnd⟩
+    intro hmem
+    obtain ⟨x, hx, he⟩ := List.mem_map.1 hmem
+    have := (List.mem_filter.1 hx).2
+    simp only [ne_eq, decide_eq_true_eq] at this
+    exact this he
+  · rw [removed_putIn_members]; exact hrm
 
-theorem memVoters_other (ps : List w64) (r : apply.RestM) (n k v : GoString)
-    (h : memVoters ps r) (hn : n ≠ go!"members") : memVoters ps (r.putIn n k v) := by
-  obtain ⟨hm, hf, hc⟩ := h
-  refine ⟨hm, ?_, ?_⟩
+theorem memVoters_other (ps : List w64) {cov : List w64} (r : apply.RestM) (n k v : GoString)
+    (h : memVoters ps cov r) (hn : n ≠ go!"members") (hn' : n ≠ go!"members_removed") :
+    memVoters ps cov (r.putIn n k v) := by
+  obtain ⟨hm, hf, hc, ⟨ms, hb, hnd⟩, hrm⟩ := h
+  refine ⟨hm, ?_, ?_, ⟨ms, ?_, hnd⟩, ?_⟩
   · rw [memBktOf_putIn_other _ _ _ _ hn]; exact hf
   · rw [memBktOf_putIn_other _ _ _ _ hn]; exact hc
+  · rw [memBktOf_putIn_other _ _ _ _ hn]; exact hb
+  · rw [putIn_other _ _ _ _ _ hn']; exact hrm
 
-theorem restAfter_memVoters (ps : List w64) (rq : apply.IRRModel) (v3 : Bool) (r : apply.RestM)
-    (h : memVoters ps r) : memVoters ps (apply.restAfter rq v3 r) := by
+/-- (route B, 2026-11-25) **A promotion does not validate** once the bucket holds voters only:
+`ValidateConfigurationChange` reads each member's learner flag back (`membersOf_decode`), and a
+promotion of a voter is `ErrMemberNotLearner`, of an unknown id `ErrIDNotFound`. -/
+theorem ccValidOn_promote_false (ps : List w64) {cov : List w64} (r : apply.RestM) (cc : ConfChangeM)
+    (h : memVoters ps cov r) (hty : cc.type = W32 0)
+    (hp : membership.ccIsPromote cc.context = true) : membership.ccValidOn r.bk cc = false := by
+  obtain ⟨-, hf, -, ⟨ms, hb, hnd⟩, hrm⟩ := h
+  have hvot : ∀ mm ∈ ms, mm.isLearner = false := by
+    intro mm hmm
+    obtain ⟨mm', -, hv', -, hl⟩ := hf _ _ ((hb _ _).2 ⟨mm, hmm, rfl, rfl⟩)
+    obtain ⟨-, hlr⟩ := apply.memberEnc_id_learner _ _ hv'
+    exact hlr.trans hl
+  obtain ⟨hfl, -, -⟩ := membership.membersOf_decode (r.bk.lookup go!"members")
+    (r.bk.lookup go!"members_removed") ms [] hb hnd (fun k => by rw [hrm]; simp)
+  unfold membership.ccValidOn membership.membersOfBk
+  classical
+  apply decide_eq_false
+  unfold membership.ccValidM
+  rintro ⟨-, h2⟩
+  rw [if_pos hty] at h2
+  simp only [hp, ↓reduceIte] at h2
+  obtain ⟨pus, hpus⟩ := h2
+  have h3 := hfl cc.nodeId
+  rw [hpus] at h3
+  cases hfd : ms.find? (fun x => decide (x.id = cc.nodeId)) with
+  | none => rw [hfd] at h3; cases h3
+  | some mm =>
+    rw [hfd] at h3
+    have := hvot mm (List.mem_of_find?_eq_some hfd)
+    simp [this] at h3
+
+theorem restAfter_memVoters (ps : List w64) {cov : List w64} (rq : apply.IRRModel) (v3 : Bool) (r : apply.RestM)
+    (h : memVoters ps cov r) : memVoters ps cov (apply.restAfter rq v3 r) := by
   unfold apply.restAfter
   split
   · unfold apply.restSetVersion
     split
-    · exact memVoters_other _ _ _ _ _ h (by decide)
+    · exact memVoters_other _ _ _ _ _ h (by decide) (by decide)
     · exact h
   · split
     · next a _ =>
@@ -151,30 +217,36 @@ theorem restAfter_memVoters (ps : List w64) (rq : apply.IRRModel) (v3 : Bool) (r
       · exact h
       · next m hm =>
         obtain ⟨hid, hin, hl⟩ := h.1 _ _ hm
-        have h1 : memVoters ps { r with mem := r.mem.insert a.memberID (m.withAttrs a) } :=
-          ⟨memOk_insert ps r.mem _ _ h.1 hid hin hl, h.2.1, h.2.2⟩
+        have h1 : memVoters ps cov { r with mem := r.mem.insert a.memberID (m.withAttrs a) } :=
+          ⟨memOk_insert ps r.mem _ _ h.1 hid hin hl, h.2⟩
         split
         · have := memVoters_putMember ps _ (m.withAttrs a) h1 (hid ▸ hin) hl
           simpa [apply.MemberM.withAttrs, hid] using this
         · exact h1
     · exact h
 
-theorem ccRest_memVoters (ps : List w64) (v3 : Bool) (cc : ConfChangeM) (r : apply.RestM)
-    (h : memVoters ps r) (hok : ccApplyOk (GMap.listToSet ps) cc) :
-    memVoters ps (ccRest v3 cc r) := by
-  obtain ⟨hty, hin, -, hl⟩ := hok
+theorem ccRest_memVoters (ps : List w64) {cov : List w64} (v3 : Bool) (cc : ConfChangeM) (r : apply.RestM)
+    (h : memVoters ps cov r) (hok : ccApplyOk (GMap.listToSet ps) cc) :
+    memVoters ps cov (ccRest v3 cc r) := by
+  obtain ⟨hty, hin, hctx⟩ := hok
   have hin' : cc.nodeId ∈ ps := (GMap.elem_of_list_to_set _ _).1 hin
   unfold ccRest
   split
-  · have h1 : memVoters ps { r with mem := r.mem.insert cc.nodeId (membership.ccMemberAt cc) } :=
-      ⟨memOk_insert ps r.mem _ _ h.1 rfl hin' hl, h.2.1, h.2.2⟩
-    exact memVoters_putMember ps _ (membership.ccMemberAt cc) h1 hin' hl
+  · next hv =>
+    rcases hctx with ⟨-, hl⟩ | hpr
+    · try rw [if_pos hty]
+      have h1 : memVoters ps cov { r with mem := r.mem.insert cc.nodeId (membership.ccMemberAt cc) } :=
+        ⟨memOk_insert ps r.mem _ _ h.1 rfl hin' hl, h.2⟩
+      exact memVoters_putMember ps _ (membership.ccMemberAt cc) h1 hin' hl
+    · -- (route B) a promotion does not validate against voters
+      have hf := ccValidOn_promote_false ps r cc h hty (membership.ccIsPromote_of _ _ _ hpr)
+      rw [hf] at hv; exact absurd hv.2 (by simp)
   · exact h
 
-theorem restEntry_memVoters (ps : List w64) (c0 : w64) (e : EntryModel) (r : apply.RestM)
-    (h : memVoters ps r)
+theorem restEntry_memVoters (ps : List w64) {cov : List w64} (c0 : w64) (e : EntryModel) (r : apply.RestM)
+    (h : memVoters ps cov r)
     (hcc : e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc → ccApplyOk (GMap.listToSet ps) cc) :
-    memVoters ps (restEntry c0 e r) := by
+    memVoters ps cov (restEntry c0 e r) := by
   unfold restEntry
   split
   · split
@@ -187,11 +259,11 @@ theorem restEntry_memVoters (ps : List w64) (c0 : w64) (e : EntryModel) (r : app
     · next cc hd => exact ccRest_memVoters _ _ _ _ h (hcc hty cc hd)
     · exact h
 
-theorem fold_memVoters (ps : List w64) (c0 : w64) (R : List EntryModel) (r : apply.RestM)
-    (h : memVoters ps r)
+theorem fold_memVoters (ps : List w64) {cov : List w64} (c0 : w64) (R : List EntryModel) (r : apply.RestM)
+    (h : memVoters ps cov r)
     (hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
       ccApplyOk (GMap.listToSet ps) cc) :
-    memVoters ps (R.foldl (fun r m => restEntry c0 m r) r) := by
+    memVoters ps cov (R.foldl (fun r m => restEntry c0 m r) r) := by
   induction R generalizing r with
   | nil => exact h
   | cons e R ih =>
@@ -223,7 +295,7 @@ theorem bootSaved_peerURLs (P : List EntryM) :
 /-- **One boot entry**: its `AddNode` validates and saves its member. -/
 theorem boot_step (ps : List w64) (P : List EntryM) (e : EntryM) (r : apply.RestM)
     (h : bootInv ps P r) (hty : e.Type' = W32 1) (hidx : 0 < uint.Z e.Index')
-    (cc : ConfChangeM) (hd : ccDecodeV1 e.Data' = some cc) (hok : ccApplyOk (GMap.listToSet ps) cc)
+    (cc : ConfChangeM) (hd : ccDecodeV1 e.Data' = some cc) (hok : ccAddOk (GMap.listToSet ps) cc)
     (hnew : cc.nodeId ∉ (bootSaved P).map (·.id)) (hndP : ((bootSaved P).map (·.id)).Nodup)
     (hu : ∀ mm ∈ bootSaved P, ∀ u ∈ mm.peerURLs, utf8Valid u)
     (hdisj : ∀ mm ∈ bootSaved P, ∀ u ∈ mm.peerURLs, u ∉ (membership.ccMemberOf cc.context).peerURLs) :
@@ -286,7 +358,7 @@ theorem boot_step (ps : List w64) (P : List EntryM) (e : EntryM) (r : apply.Rest
 /-- **The boot entries `Q` after `P`**: each validates and saves its member. -/
 theorem boot_fold (ps : List w64) (P Q : List EntryM) (r : apply.RestM) (h : bootInv ps P r)
     (hall : ∀ e ∈ Q, e.Type' = W32 1 ∧ 0 < uint.Z e.Index' ∧
-      ∃ cc, ccDecodeV1 e.Data' = some cc ∧ ccApplyOk (GMap.listToSet ps) cc)
+      ∃ cc, ccDecodeV1 e.Data' = some cc ∧ ccAddOk (GMap.listToSet ps) cc)
     (hnd : ((bootSaved (P ++ Q)).map (·.id)).Nodup) (hurl : bootURLsOk (P ++ Q)) :
     bootInv ps (P ++ Q) (Q.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r) r) := by
   induction Q generalizing P r with
@@ -397,18 +469,39 @@ theorem bootSaved_ids (ps : List w64) (boot : List EntryM) (h : srvBootLogOk ps 
     obtain ⟨-, -, -, m, hd, -, hp⟩ := hk k e he
     exact ⟨m, hd, hp⟩
 
-/-- **What a restart reads back is the static cluster's membership** (see the file header): the
-`members` bucket of the rest model at a committed log that starts with the bootstrap log `boot`
-of the peers `ps` (distinct, their URLs `bootURLsOk`), whose conf changes are all `ccApplyOk`'s. -/
-theorem restModel_confState (ps : List w64) (boot : List EntryM) (R : List EntryModel)
-    (hps : srvBootLogOk ps boot) (hnd : ps.Nodup) (hurl : bootURLsOk boot)
-    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccApplyOk (GMap.listToSet ps) cc)
-    (hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
+/-- (route B, 2026-11-25) **The rest model's bucket holds voters only**, at any start `c0` and any
+log `L` whose conf changes are the committed log's (`ccApplyOk`), from the boot members of the
+boot policy (`ccAddOk`): no member is covered (`cov = []`). -/
+theorem memVoters_restModel (ps : List w64) (c0 : w64) (boot : List EntryM) (L : List EntryModel)
+    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc)
+    (hcc : ∀ e ∈ L, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
+      ccApplyOk (GMap.listToSet ps) cc) :
+    memVoters ps [] (restModel c0 boot L) := by
+  refine fold_memVoters ps c0 L _ ⟨memOk_memBoot ps boot hbcc, fun k v hk => ?_, fun id hid => ?_,
+    ⟨[], fun k v => ?_, List.nodup_nil⟩, ?_⟩ hcc
+  · simp [memBktOf, restBoot, restBootBk, GMap.lookup_insert_eq_iff] at hk
+  · cases hid
+  · simp [memBktOf, restBoot, restBootBk, GMap.lookup_insert_eq_iff]
+  · simp [restBoot, restBootBk, GMap.lookup_insert_eq_iff]
+
+/-- (route B) **A promotion does not validate on the rest model's buckets** (`memVoters_restModel`,
+`ccValidOn_promote_false`). -/
+theorem ccValidOn_restModel_promote (ps : List w64) (c0 : w64) (boot : List EntryM)
+    (L : List EntryModel)
+    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc)
+    (hcc : ∀ e ∈ L, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
       ccApplyOk (GMap.listToSet ps) cc)
-    (D : backend.Data)
-    (hD : D.lookup go!"members" =
-      (restModel (W64 0) boot (boot.map EntryModel.ofM ++ R)).bk.lookup go!"members") :
-    ∀ cs, v3ConfStateIs D cs → confStateIs cs (Membership.simple (GMap.listToSet ps)) := by
+    (cc : ConfChangeM) (hty : cc.type = W32 0) (hp : membership.ccIsPromote cc.context = true) :
+    membership.ccValidOn (restModel c0 boot L).bk cc = false :=
+  ccValidOn_promote_false ps _ cc (memVoters_restModel ps c0 boot L hbcc hcc) hty hp
+
+/-- **After the bootstrap log, the bucket holds the boot members, voters** (phase 1 then phase 2's
+invariant; route B, 2026-11-25: out of `restModel_confState`, for the replay's `fold_sync`). -/
+theorem memVoters_boot (ps : List w64) (boot : List EntryM)
+    (hps : srvBootLogOk ps boot) (hnd : ps.Nodup) (hurl : bootURLsOk boot)
+    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc) :
+    memVoters ps ps (boot.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r)
+      (restBoot boot)) := by
   have hids := bootSaved_ids ps boot hps
   -- phase 1
   have h0 : bootInv ps [] (restBoot boot) := by
@@ -416,7 +509,7 @@ theorem restModel_confState (ps : List w64) (boot : List EntryM) (R : List Entry
     · simp [memBktOf, restBoot, restBootBk, GMap.lookup_insert_eq_iff, bootSaved]
     · simp [restBoot, restBootBk, GMap.lookup_insert_eq_iff]
   have hall : ∀ e ∈ boot, e.Type' = W32 1 ∧ 0 < uint.Z e.Index' ∧
-      ∃ cc, ccDecodeV1 e.Data' = some cc ∧ ccApplyOk (GMap.listToSet ps) cc := by
+      ∃ cc, ccDecodeV1 e.Data' = some cc ∧ ccAddOk (GMap.listToSet ps) cc := by
     intro e he
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem he
     obtain ⟨-, -, hkk⟩ := hps
@@ -424,26 +517,38 @@ theorem restModel_confState (ps : List w64) (boot : List EntryM) (R : List Entry
     exact ⟨hty, by rw [hix]; omega, cc, hd, hbcc _ he cc hd⟩
   have h1 := boot_fold ps [] boot _ h0 hall (by simpa [hids] using hnd) (by simpa using hurl)
   simp only [List.nil_append] at h1
-  -- phase 2
-  have h2 : memVoters ps (boot.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r)
-      (restBoot boot)) := by
-    obtain ⟨hm, hb, -⟩ := h1
-    refine ⟨hm, fun k v hk => ?_, fun id hid => ?_⟩
-    · obtain ⟨mm, hmm, rfl, rfl⟩ := (hb k v).1 hk
-      refine ⟨mm, rfl, rfl, ?_, ?_⟩
-      · rw [← hids]; exact List.mem_map.2 ⟨mm, hmm, rfl⟩
-      · obtain ⟨e, he, hmm'⟩ := List.mem_filterMap.1 hmm
-        obtain ⟨cc, hd, rfl⟩ := Option.map_eq_some_iff.1 hmm'
-        exact (hbcc e he cc hd).2.2.2
-    · rw [← hids] at hid
-      obtain ⟨mm, hmm, rfl⟩ := List.mem_map.1 hid
-      exact ⟨_, (hb _ _).2 ⟨mm, hmm, rfl, rfl⟩⟩
+  obtain ⟨hm, hb, hrm⟩ := h1
+  refine ⟨hm, fun k v hk => ?_, fun id hid => ?_, ⟨bootSaved boot, hb, by rw [hids]; exact hnd⟩, hrm⟩
+  · obtain ⟨mm, hmm, rfl, rfl⟩ := (hb k v).1 hk
+    refine ⟨mm, rfl, rfl, ?_, ?_⟩
+    · rw [← hids]; exact List.mem_map.2 ⟨mm, hmm, rfl⟩
+    · obtain ⟨e, he, hmm'⟩ := List.mem_filterMap.1 hmm
+      obtain ⟨cc, hd, rfl⟩ := Option.map_eq_some_iff.1 hmm'
+      exact (hbcc e he cc hd).2.2.2
+  · rw [← hids] at hid
+    obtain ⟨mm, hmm, rfl⟩ := List.mem_map.1 hid
+    exact ⟨_, (hb _ _).2 ⟨mm, hmm, rfl, rfl⟩⟩
+
+/-- **What a restart reads back is the static cluster's membership** (see the file header): the
+`members` bucket of the rest model at a committed log that starts with the bootstrap log `boot`
+of the peers `ps` (distinct, their URLs `bootURLsOk`), whose boot conf changes are the boot
+policy's (`ccAddOk`) and later ones the committed log's (`ccApplyOk`: promotions refused). -/
+theorem restModel_confState (ps : List w64) (boot : List EntryM) (R : List EntryModel)
+    (hps : srvBootLogOk ps boot) (hnd : ps.Nodup) (hurl : bootURLsOk boot)
+    (hbcc : ∀ e ∈ boot, ∀ cc, ccDecodeV1 e.Data' = some cc → ccAddOk (GMap.listToSet ps) cc)
+    (hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
+      ccApplyOk (GMap.listToSet ps) cc)
+    (D : backend.Data)
+    (hD : D.lookup go!"members" =
+      (restModel (W64 0) boot (boot.map EntryModel.ofM ++ R)).bk.lookup go!"members") :
+    ∀ cs, v3ConfStateIs D cs → confStateIs cs (Membership.simple (GMap.listToSet ps)) := by
+  have h2 := memVoters_boot ps boot hps hnd hurl hbcc
   have h3 := fold_memVoters ps (W64 0) R _ h2 hcc
   have hfold : restModel (W64 0) boot (boot.map EntryModel.ofM ++ R) =
       R.foldl (fun r m => restEntry (W64 0) m r)
         (boot.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r) (restBoot boot)) := by
     simp [restModel, List.foldl_append, List.foldl_map]
-  obtain ⟨-, hf, hc⟩ := h3
+  obtain ⟨-, hf, hc, -⟩ := h3
   rw [← hfold] at hf hc
   exact confState_of_memVoters ps hnd _ hf hc D (by rw [hD])
 

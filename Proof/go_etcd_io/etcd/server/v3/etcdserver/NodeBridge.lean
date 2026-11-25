@@ -317,7 +317,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames GF)
     icases Hcl with ⟨-, #Hcl, -⟩
     iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
-    ipureintro; exact H.2
+    ipureintro; exact H.2.1
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩
   isplitr
@@ -457,7 +457,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
   ihave %Hmd : ⌜γ.node.cl.maxData = some (2 ^ 30)⌝ $$ []
   · iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
-    ipureintro; exact H.2
+    ipureintro; exact H.2.1
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl.loc⟩
   isplitr

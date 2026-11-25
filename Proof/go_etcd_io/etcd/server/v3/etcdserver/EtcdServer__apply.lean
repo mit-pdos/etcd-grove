@@ -189,7 +189,7 @@ theorem EtcdServer.apply.wp_proofOff
       (hcfg : GMap.size γs.raft.cfg ≤ 2 ^ 20) =>
     hACC s cc ep m cs false null GoInterface.nil E γs iprop(True) iprop(True) iprop(True)
       iprop(True) (W64 0) (W64 0) γB cl rs d al st lp none [] ⟨0, Membership.empty⟩ 0 Membership.empty e lg bh ix
-      lgh tl lid prs lgc cid hok hro (fun _ => hp)
+      lgh tl lid prs lgc cid hok (fun h => absurd h Bool.false_ne_true) hro (fun _ => hp)
       (fun h => absurd (hok.1.symm.trans h) (by decide : ¬ (W32 0 : w32) = W32 1)) (fun _ => hsz)
       hcfg (fun h => absurd h Bool.false_ne_true)
   simp only [Bool.false_eq_true, ↓reduceIte] at hACCR
@@ -689,9 +689,12 @@ theorem EtcdServer.apply.wp_proofOff
         ihave #HlbL : iprop(srvRLogLb γr.raft (A ++ ms.take (sint.nat j))) $$ []
         · iapply srvRLogLb_mono γr.raft _ _ (List.prefix_append _ _) $$ HlbJ
         iunfold srvRLogLb at HlbL
-        icases HlbL with ⟨#HlbL, -⟩
+        icases HlbL with ⟨#HlbL, %HidxL⟩
         imod srv_noRemovedIn γr.raft (A ++ ms.take (sint.nat j)) ⊤ CoPset.subseteq_top
           $$ [$Hrli $HlbL] with %Hnr
+        -- (route B) no promotion validates on the applied log's rest model
+        imod srv_promote_novalid γr.raft (A ++ ms.take (sint.nat j)) γr.kv.c0 ⊤ CoPset.subseteq_top
+          HidxL $$ [$Hrli $HlbL] with %Hnpv
         icases dvView_ccR s ρ.raft dv γr.kv.c0 lid (A ++ ms.take (sint.nat j)) (ms.drop (sint.nat j + 1))
           m cm h1 Hdec (fun γn h => by
             obtain ⟨-, -, hpre, hai⟩ := hdv.2 γn h
@@ -724,7 +727,9 @@ theorem EtcdServer.apply.wp_proofOff
           (srvLE ρ.raft ((A ++ ms.take (sint.nat j)) ++ m :: ms.drop (sint.nat j + 1))) v
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
-          (Hcb cm Hdec) HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (Hcb cm Hdec)
+          (fun _ hp => by rw [ccValidOn_restLeasesWith]; exact Hnpv cm (Hcb cm Hdec).1 hp)
+          HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
           (by first | exact hsz20 | (rw [hρr]; exact hsz20) | (rw [← hρr]; exact hsz20))
           (fun _ => ⟨hkbB, hgbB, fun h => hdv.1 h m hmem h1,
             fun γn h => (by
@@ -803,13 +808,13 @@ theorem EtcdServer.apply.wp_proofOff
           · obtain ⟨hf, rfl⟩ := Hf
             have hA : A ++ ms.take (sint.nat j) ≠ [] := by
               intro hA0
-              obtain ⟨hpre0, -, cm0, hcm0, hct0⟩ := Hfb hA0
+              obtain ⟨hpre0, -, cm0, hcm0, hct0, hnp0⟩ := Hfb hA0
               obtain rfl : cm0 = cm := Option.some.inj (hcm0.symm.trans Hdec)
               have hbk : (restModel γr.kv.c0 γr.raft.raft.boot
                   (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))).bk = restBootBk := by
                 rw [hA0, hpre0]; rfl
               rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0
-                (membership.ccIsPromote_of _ _ _ (Hcb _ Hdec).2.2.1)] at hf
+                (membership.ccIsPromote_of _ _ _ hnp0)] at hf
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv
@@ -1243,7 +1248,7 @@ theorem EtcdServer.apply.wp_proofOn
       (hcfg : GMap.size γs.raft.cfg ≤ 2 ^ 20) =>
     hACC s cc ep m cs false null GoInterface.nil E γs iprop(True) iprop(True) iprop(True)
       iprop(True) (W64 0) (W64 0) γB cl rs d al st lp none [] ⟨0, Membership.empty⟩ 0 Membership.empty e lg bh ix
-      lgh tl lid prs lgc cid hok hro (fun _ => hp)
+      lgh tl lid prs lgc cid hok (fun h => absurd h Bool.false_ne_true) hro (fun _ => hp)
       (fun h => absurd (hok.1.symm.trans h) (by decide : ¬ (W32 0 : w32) = W32 1)) (fun _ => hsz)
       hcfg (fun h => absurd h Bool.false_ne_true)
   simp only [Bool.false_eq_true, ↓reduceIte] at hACCR
@@ -1770,9 +1775,12 @@ theorem EtcdServer.apply.wp_proofOn
         ihave #HlbL : iprop(srvRLogLb γr.raft (A ++ ms.take (sint.nat j))) $$ []
         · iapply srvRLogLb_mono γr.raft _ _ (List.prefix_append _ _) $$ HlbJ
         iunfold srvRLogLb at HlbL
-        icases HlbL with ⟨#HlbL, -⟩
+        icases HlbL with ⟨#HlbL, %HidxL⟩
         imod srv_noRemovedIn γr.raft (A ++ ms.take (sint.nat j)) ⊤ CoPset.subseteq_top
           $$ [$Hrli $HlbL] with %Hnr
+        -- (route B) no promotion validates on the applied log's rest model
+        imod srv_promote_novalid γr.raft (A ++ ms.take (sint.nat j)) γr.kv.c0 ⊤ CoPset.subseteq_top
+          HidxL $$ [$Hrli $HlbL] with %Hnpv
         icases dvView_ccR s ρ.raft dv γr.kv.c0 lid (A ++ ms.take (sint.nat j)) (ms.drop (sint.nat j + 1))
           m cm h1 Hdec (fun γn h => by
             obtain ⟨-, -, hpre, hai⟩ := hdv.2 γn h
@@ -1805,7 +1813,9 @@ theorem EtcdServer.apply.wp_proofOn
           (srvLE ρ.raft ((A ++ ms.take (sint.nat j)) ++ m :: ms.drop (sint.nat j + 1))) v
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
-          (Hcb cm Hdec) HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (Hcb cm Hdec)
+          (fun _ hp => by rw [ccValidOn_restLeasesWith]; exact Hnpv cm (Hcb cm Hdec).1 hp)
+          HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
           (by first | exact hsz20 | (rw [hρr]; exact hsz20) | (rw [← hρr]; exact hsz20))
           (fun _ => ⟨hkbB, hgbB, fun h => hdv.1 h m hmem h1,
             fun γn h => (by
@@ -1884,13 +1894,13 @@ theorem EtcdServer.apply.wp_proofOn
           · obtain ⟨hf, rfl⟩ := Hf
             have hA : A ++ ms.take (sint.nat j) ≠ [] := by
               intro hA0
-              obtain ⟨hpre0, -, cm0, hcm0, hct0⟩ := Hfb hA0
+              obtain ⟨hpre0, -, cm0, hcm0, hct0, hnp0⟩ := Hfb hA0
               obtain rfl : cm0 = cm := Option.some.inj (hcm0.symm.trans Hdec)
               have hbk : (restModel γr.kv.c0 γr.raft.raft.boot
                   (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))).bk = restBootBk := by
                 rw [hA0, hpre0]; rfl
               rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0
-                (membership.ccIsPromote_of _ _ _ (Hcb _ Hdec).2.2.1)] at hf
+                (membership.ccIsPromote_of _ _ _ hnp0)] at hf
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv

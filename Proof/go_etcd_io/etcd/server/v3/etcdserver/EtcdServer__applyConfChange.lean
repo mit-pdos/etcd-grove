@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ValidateConfigurationChange
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__AddMember
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__PromoteMember
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__RemoveMember
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
@@ -485,6 +486,7 @@ theorem EtcdServer.applyConfChange.wp_proof
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hValid : membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG))
     (hAdd : membership.RaftCluster.AddMember.spec (GF := GF) (hG := hG))
+    (hPromote : membership.RaftCluster.PromoteMember.spec (GF := GF) (hG := hG))
     (hRemove : membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG))
     (hSave : schema.membershipBackend.MustSaveMemberToBackend.spec (GF := GF) (hG := hG))
     (hDelete : schema.membershipBackend.MustDeleteMemberFromBackend.spec (GF := GF) (hG := hG))
@@ -500,13 +502,15 @@ theorem EtcdServer.applyConfChange.wp_proof
     (hZErr : zap.Error.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) := by
   intro s cc ep m cs v3 ci ua E γs Pre Q Post Adv i t γB cl rs d al st lp dv ds vw k mb e
-    lg bh ix lgh tl lid prs lgc cid Hok HRO Hpeer Hloc Hsz Hcfg Hv3p
+    lg bh ix lgh tl lid prs lgc cid Hok Hnp HRO Hpeer Hloc Hsz Hcfg Hv3p
   cases v3
   · -- (R2d'a, swap batch 1) a replayed `AddNode`: `applyConfChange(cc, ep, false)`
     simp only [Bool.false_eq_true, ↓reduceIte]
     clear Hv3p Hloc
-    obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
-        membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
+    -- (route B) the context's `IsPromote` flag `b`: a promotion when `true`
+    obtain ⟨hty0, hin, b, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
+        ∃ b, membership.ccContextOf m.context = some (m.nodeId, b) :=
+      ⟨Hok.1, Hok.2.1, Hok.2.2.elim (fun h => ⟨false, h.1⟩) (fun h => ⟨true, h⟩)⟩
     wp_start as ⟨#Hlg, #Hlgnn, Hlr, #Hcl, #Hclg, #Hclgnn, #Hcid, Hcc, Hcs, #Hbh, #Hbhi, #Htr, #Hmid,
       Hmr, HRS⟩
     try wp_method_call
@@ -563,7 +567,7 @@ theorem EtcdServer.applyConfChange.wp_proof
     icases ownConfChange_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc'⟩
     wsteps
     irename «$r0» => Hcv
-    wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
+    wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId b hctx) $$ [Hcv]
       as %err ⟨%Herr, -, %v', %pus, Hcv, Hpus, Hcus, %Hv'⟩
     · iframe #; iframe
       -- a fresh `ConfigChangeContext`: its URL slices are `nil`
@@ -583,6 +587,34 @@ theorem EtcdServer.applyConfChange.wp_proof
     simp only [_root_.decide_true, Bool.not_true]
     wsteps
     rw [Hvprom]
+    cases b
+    case true =>
+      -- (route B) a replayed promotion: `PromoteMember(id, false)`, a log line under the
+      -- cluster's lock; no `AddPeer`
+      simp only [ccMembRes]
+      icases Hmr with ⟨#Hrc, %γn, %c, %ps, %Hcl', Hlive, #Hmd, %Hdk⟩
+      ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
+      wsteps
+      wp_apply (hPromote cl membership.rcStatic _ lgc cid) $$ []
+      · iframe #
+      wsteps
+      iapply HΦ
+      isplitr
+      · ipureintro; rfl
+      iframe Hlr
+      isplitr
+      · iexists m; iframe Hcc; ipureintro; rfl
+      isplitl [Hcsf]
+      · iunfold epConfState; iframe Hcsf Hcsok
+      isplitl [Hlive]
+      · iframe Hrc; iexists γn, c, ps; iframe Hlive Hmd; ipureintro; exact ⟨Hcl', Hdk⟩
+      iunfold srvRestOwnH; iunfold srvRestOwn; iunfold srvObjsOn; iunfold clusterBeOn
+      iframe Hcb Hnc Hcm Hal Hau Hle
+      isplitr
+      · ipureintro; exact Hmi
+      iexists mbl, lgm
+      iframe Hbef Hmbe Hmlg
+      ipureintro; exact Hlgmnn
     wsteps
     rw [Hvlrn, Hvnm]
     subst Hpus
@@ -664,8 +696,9 @@ theorem EtcdServer.applyConfChange.wp_proof
   simp only [↓reduceIte]
   obtain ⟨γn, rfl⟩ : ∃ n, dv = some n := Option.ne_none_iff_exists'.mp Hdv
   have Hccp := Hdyn γn rfl
-  obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
-      membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
+  obtain ⟨hty0, hin, b, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
+      ∃ b, membership.ccContextOf m.context = some (m.nodeId, b) :=
+    ⟨Hok.1, Hok.2.1, Hok.2.2.elim (fun h => ⟨false, h.1⟩) (fun h => ⟨true, h⟩)⟩
   clear Hdyn Hdv Hloc
   wp_start as ⟨#Hlg, #Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, #Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
     #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hwt, ⟨%W, #HisBk⟩, #Hplh, %Hfnn, Hhook, Hupd,
@@ -734,6 +767,11 @@ theorem EtcdServer.applyConfChange.wp_proof
   by_cases hv : membership.ccValidOn rs.bk m = true
   · have he : err = GoInterface.nil := Herr'.2 hv
     subst he
+    -- (route B) a validated change is no promotion (the premise `Hnp`)
+    have hctx : membership.ccContextOf m.context = some (m.nodeId, false) := by
+      cases b
+      · exact hctx
+      · exact absurd hv (by rw [Hnp rfl (membership.ccIsPromote_of _ _ _ hctx)]; simp)
     clear Herr Herr'
     wp_pures
     wp_auto
