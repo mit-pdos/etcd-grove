@@ -383,7 +383,7 @@ theorem wp_anyListenAddr (Φ : val → IProp GF) :
   cases b
   · wp_auto
     wp_apply wp_anyTCPAddr as %x #Hx
-    wp_auto
+    (try wp_auto)
     iapply HΦ
     iexact Hx
   · wp_auto
