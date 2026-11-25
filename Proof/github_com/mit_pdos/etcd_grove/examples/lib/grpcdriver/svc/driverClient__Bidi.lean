@@ -1,0 +1,153 @@
+/- Lean-first (no Rocq counterpart).
+
+# `svc.(*driverClient).Bidi`'s proof
+
+As etcd's `watchClient.Watch`: `NewStream` with `Driver_ServiceDesc.Streams[2]` (`drvDescs`), the stream
+wrapped (`cliBidiStreamIs_of_raw`).
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.driverClient__Bidi
+public import Spec.google_golang_org.grpc.StaticMethod
+public import Spec.google_golang_org.grpc.ClientConn__NewStream
+public import Spec.google_golang_org.grpc.GenericClientStream__Send
+public import Spec.google_golang_org.grpc.GenericClientStream__Recv
+public import Spec.google_golang_org.grpc.GenericClientStream__CloseSend
+public import Spec.google_golang_org.grpc.GenericClientStream__Context
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode EtcdGrove
+  google_golang_org.protobuf.types.known
+
+namespace github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
+
+theorem driverClient.Bidi.wp_proof
+    (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
+    (wp_NewStream : grpc.ClientConn.NewStream.spec (GF := GF) (hG := hG))
+    (wp_Send : grpc.GenericClientStream.Send.spec (GF := GF) (hG := hG))
+    (wp_Recv : grpc.GenericClientStream.Recv.spec (GF := GF) (hG := hG))
+    (wp_CloseSend : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG))
+    (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG)) :
+    driverClient.Bidi.spec (GF := GF) (hG := hG) := by
+  intro dc conn addrs d Up Spec ctx cd om
+  wp_start as ⟨#Hcc, #Hconn, #Hopts, %hnone, #Hstr, #Hctx, #Hom⟩
+  ihave #Hsvc : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc $$ []
+  · iPkgInit
+  ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
+  · iPkgInit
+  ihave #Hd := drvDescs_of_init $$ Hsvc
+  icases Hd with ⟨%mds, %sds, #Hdesc, %Hms⟩
+  obtain ⟨-, hs⟩ := Hms
+  iunfold go_etcd_io.etcd.cache.v3.pbDescIs at Hdesc
+  icases Hdesc with ⟨%msl, %ssl, -, -, -, -, #HSs, #Hssl⟩
+  have hlen : sds.length = 3 := by
+    have := congrArg List.length hs
+    simpa using this
+  obtain ⟨sd0, hsd0⟩ : ∃ sd0, sds[((2 : Nat) : Int).toNat]? = some sd0 :=
+    ⟨sds[2]'(by omega), by simp⟩
+  have hf := congrArg (fun l => l[2]?) hs
+  simp only [List.getElem?_map] at hf
+  rw [show (2 : Nat) = ((2 : Nat) : Int).toNat from rfl, hsd0] at hf
+  simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq, List.getElem?_cons_succ,
+    List.getElem?_cons_zero] at hf
+  obtain ⟨-, -, -, h1⟩ := hf
+  wp_auto
+  wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
+  wp_apply wp_slice_literal (V := GoInterface) [sm]
+  isplitr
+  · ipureintro; rfl
+  iintro %sl_ptr ⟨Hsl, Hcap⟩
+  wp_auto
+  wp_apply wp_slice_append $$ [$Hsl $Hcap] as %copts ⟨Hco, Hcocap, -⟩
+  · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
+  ipersist Hco
+  ihave #Hs1 := callOptsOk_singleton sm $$ Hsm
+  ihave %Hdl := ownSlice_len ssl _ sds $$ Hssl
+  have hb : 0 ≤ sint.Z (W64 2) ∧ sint.Z (W64 2) < sint.Z ssl.len := by
+    constructor
+    · word
+    · have := Hdl.1; word
+  wp_auto
+  simp only [hb, and_self, ↓reduceIte]
+  ihave ⟨#Hd0, -⟩ := ownSlice_elem_acc ((2 : Nat) : Int) sd0 ssl _ sds (by omega) hsd0 $$ Hssl
+  wp_auto
+  wp_bind (App (App (App (App (Val _) _) _) _) _)
+  ihave #Hok3 := streamCallOptsOk_of ([sm] ++ []) $$ [Hs1]
+  · simp only [List.append_nil]; iexact Hs1
+  have hNS := wp_NewStream conn addrs [] anyRes d (fun om om' => om' = om)
+    go!"/grpcdriver.Driver/Bidi" pbStringValueST pbStringValueST pbStringValueST_reqReg
+    pbStringValueST_repReg Up Spec ctx cd om
+  iapply (hNS _ copts ([sm] ++ []) iprop(True))
+  · isplitr
+    · iframe #
+    isplitr
+    · iframe #
+    isplitr
+    · iframe #
+    isplitr
+    · ipureintro; exact Or.inl ⟨hnone, fun _ _ => Iff.rfl⟩
+    isplitr
+    · ipureintro; trivial
+    isplitr
+    · itrivial
+    iframe #
+    iexists _
+    simp only [show sint.Z (W64 2) = ((2 : Nat) : Int) from rfl]
+    iframe Hd0
+    ipureintro; exact Or.inl h1
+  inext
+  iintro %cs %err ⟨-, Hres⟩
+  wp_auto
+  icases Hres with (⟨%Herr, %γ, %Dn, %cd', #Hcs, HSt, HRt, #HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  · subst Herr
+    wp_auto
+    iStructNamed «$r0»
+    ipersist ClientStream
+    ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+      (Rep := (pbStringValueST (GF := GF)).toStreamMsg) wrapperspb.StringValue wrapperspb.StringValue
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
+      (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn cd'
+      anyRes (streamErrShape d) $$ [ClientStream]
+    · iframe #
+      iintro !> %l Hl
+      iexists _
+      iexact Hl
+    wp_auto
+    iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists γ, Dn, cd'
+    iframe Hw HSt HRt HSpec
+  · ihave #Herr' := Herr
+    iunfold cliStreamErr at Herr'
+    icases Herr' with ⟨%Hne, -⟩
+    subst Hcs
+    cases err with
+    | nil => exact absurd rfl Hne.1
+    | ok ei =>
+      wp_auto
+      iapply HΦ
+      iright
+      iframe #
+      ipureintro; rfl
+
+end proof
+
+end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc
+end Perennial
