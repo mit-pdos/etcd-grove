@@ -45,8 +45,11 @@ theorem NetTCPInit.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) 
   ihave Hc2 := Hconf
   iStructNamed Hc2
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp (netAddr k) as %lv %err Hres
-  · iframe %Haok
+  · (try iframe HnetPk)
+    iframe %Haok
     iapply listen_au $$ Hproto
   ihave HI : (∃ (lv err : GoInterface), "listener" ∷ listener_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
       "Hres" ∷ ((⌜err = interface.nil⌝ ∗ ∃ (l : w64), ownListener lv l (netAddr k)) ∨
@@ -127,8 +130,11 @@ theorem NetTCPInit.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) 
     rw [if_pos (by simp)]
     wp_auto
     wp_apply time.wp_Sleep
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp (netAddr k) as %lv' %err' Hres
-    · iframe %Haok
+    · (try iframe HnetPk)
+      iframe %Haok
       iapply listen_au $$ Hproto
     wp_for_post
     iframe

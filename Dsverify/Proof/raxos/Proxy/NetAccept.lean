@@ -85,6 +85,7 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
   ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
   · iPkgInit
   icases (github_com.mit_pdos.etcd_grove.examples.net.wire.ed_of_poll) $$ Hpoll with ⟨%ed, #Hed⟩
+  ihave #Hsys := net.errnoOk_of_poll $$ Hpoll
   ihave #Hioi := _root_.Perennial.io.isInit_access $$ Hio
   icases Hioi with ⟨-, -, -, -, #HEOFv, #HUEOFv, -⟩
   iunfold errors.newVar at HEOFv
@@ -99,8 +100,11 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
   rw [show (zero_val (GoArray w8 4)).arr = [W8 0, W8 0, W8 0, W8 0] from rfl]
   wp_for
   rw [show go!"0.0.0.0:" ++ decStr (7606 + k) = proxyLis k from rfl]
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Listen go!"tcp" net.tcpNet_tcp (proxyLis k) as %li %err Hres
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact proxyLis_listenOk k Hk
     iapply listen_lis_au $$ Hpp
   icases Hres with (⟨%Herr, %l, #Hli, Hl, #Hon⟩ | ⟨%x, -, #Herr⟩)
@@ -151,7 +155,7 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
       cases err with
       | ok ie =>
         ihave #Hea := readFull_errAny _ _ la ra ed [] data 4 (GoInterface.ok ie) (by intro h; cases h)
-          $$ [$Hio $Heof $Hueof]
+          $$ [$Hio $Hsys $Heof $Hueof]
         · rw [← Hxs]; iexact Hres
         wp_auto
         wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
@@ -246,7 +250,7 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
         iexists _, _
         iframe
         ipureintro; rfl
-    · ihave #Hea := errAny_resErr' $$ Herr
+    · ihave #Hea := errAny_resErr' $$ Hsys Herr
       ihave %Hne := models_lab.errAny_ne_nil $$ [Hea]
       · icases Hea with ⟨-, #Hea⟩; iexact Hea
       cases err with

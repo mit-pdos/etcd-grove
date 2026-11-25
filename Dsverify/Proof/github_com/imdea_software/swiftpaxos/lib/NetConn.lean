@@ -81,14 +81,16 @@ theorem net.TCPConn.Close.labProof [github_com.imdea_software.swiftpaxos.SwiftNe
   itrivial
 
 /-- lab `Harness/Proof/net/Base.lean` `net.wp_TCPAddr_String`: an arbitrary string (`Net/`'s model,
-`TrustedCode/net.lean` `TCPAddr.String.impl`). -/
+`models/net/model.go`'s `TCPAddr.String`: `extAnyString`). -/
 theorem net.wp_TCPAddr_String (x : Loc) :
     {{ (True : IProp GF) }}
       (App (Val (x @!! go.GoType.PointerType net.TCPAddr.ty @!! go!"String")) (Val #()))
     {{ (s : GoString), RET #s; True }} := by
   wp_start
-  iapply wp_net_AnyString
-  iintro %s
+  wp_method_call
+  unfold net.TCPAddr.String.impl
+  wp_auto
+  wp_apply net.wp_extAnyString as %s
   iapply HΦ
   itrivial
 

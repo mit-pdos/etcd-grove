@@ -101,11 +101,14 @@ theorem wp_sendConf_of
   icases HEOFv with ⟨%xe, #Heof, -⟩
   icases HUEOFv with ⟨%xu, #Hueof, -⟩
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp a iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (confInProto γ) ackProto [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %cv %err (⟨%Herr, %cn, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Hok
     isplit
     · itrivial

@@ -11,6 +11,9 @@ closed and its direction shut and empty, the call failing with `Qfail`. A failur
 
 The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the valid IPv4
 addresses, the network kept in the connection or listener and put in its errors.
+
+It takes `net`'s package fact (`isPkgInit net`, 2026-11-25, egnet: a `netFD` is net's), which the connection keeps (`fdAt`) for its operations (`Conn.Read`'s
+`io.EOF` comparison, the errors' `Error()`: `errnoOk_of_poll`).
 -/
 module
 
@@ -35,7 +38,7 @@ variable [package_sem' : net.Assumptions]
 /-- See the file header. -/
 abbrev Dial.spec : Prop :=
   ∀ (nw : GoString), tcpNet nw → ∀ (a : GoString) (Qfail : IProp GF) (Qok : Nat → IProp GF),
-  {{ ⌜addrOk a = true⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜addrOk a = true⌝ ∗
       (Qfail ∧
         |={⊤,∅}=> ∃ S, netPend (extGlobalGS netExt (G := hG.goose_globalGS)) a S ∗
           ∀ cn, ⌜cn ∉ S⌝ -∗ netPend (extGlobalGS netExt (G := hG.goose_globalGS)) a (S ∪ {[cn]}) -∗ netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗

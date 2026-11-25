@@ -233,8 +233,11 @@ theorem wp_newClient (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     ihave %Hok := addrTok_ok (clientAddr c) $$ [Hcp]
     · iapply addrProto_tok $$ Hcp
     have wp_L := net.Listen.spec_addrOk wp_Listen
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply wp_L go!"tcp" net.tcpNet_tcp (clientAddr c) as %li %err Hres
-    · isplitr
+    · (try iframe HnetPk)
+      isplitr
       · ipureintro; exact Hok
       iapply listen_au $$ Hcp
     ihave HLs : (∃ (lv' err' : GoInterface), "l" ∷ l_ptr ↦ lv' ∗ "err" ∷ err_ptr ↦ err' ∗
@@ -328,8 +331,11 @@ theorem wp_newClient (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
           hidx2.1 $$ [Hasl] as -
         · iframe Hasl; ipureintro
           rw [hidx2', addrsL_get _ (by omega), clientAddr_port]
+        ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+        · solve_pkg_init
         wp_apply wp_L go!"tcp" net.tcpNet_tcp (clientAddr c) as %li2 %err2 Hres2
-        · isplitr
+        · (try iframe HnetPk)
+          isplitr
           · ipureintro; exact Hok
           iapply listen_au $$ Hcp
         wp_for_post

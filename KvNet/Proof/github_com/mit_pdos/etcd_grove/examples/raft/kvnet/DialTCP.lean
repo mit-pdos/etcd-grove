@@ -29,8 +29,11 @@ theorem DialTCP.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
   intro a dur et ed Qfail Qok
   wp_start as ⟨%Ha, #Het, #Hed, Hupd⟩
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_DialTimeout go!"tcp" (Or.inl rfl) a dur et ed Qfail Qok $$ [Hupd] as %c %err Hpost
-  · iframe Het Hed Hupd
+  · (try iframe HnetPk)
+    iframe Het Hed Hupd
     ipureintro; exact Ha
   try wp_auto
   iapply HΦ

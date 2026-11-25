@@ -88,9 +88,12 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
   wp_apply wp_load_slice_index p.addrs (id : Int) L DFrac.discard (L.getD id []) (by omega)
     $$ [HL0] as -
   · iframe #; ipureintro; simpa using hgl
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk EpNetDeps.listen) go!"tcp" net.tcpNet_tcp (L.getD id [])
     as %lv %err Hres
-  · iframe %Hok
+  · (try iframe HnetPk)
+    iframe %Hok
     iapply listen_au $$ Hap
   -- retry until listening
   ihave HI : (∃ (lv' e : GoInterface), "l" ∷ l_ptr ↦ lv' ∗ "err" ∷ err_ptr ↦ e ∗
@@ -132,9 +135,12 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
     wp_apply wp_load_slice_index p.addrs (id : Int) L DFrac.discard (L.getD id []) (by omega)
       $$ [HL0] as -
     · iframe #; ipureintro; simpa using hgl
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply (net.Listen.spec_addrOk EpNetDeps.listen) go!"tcp" net.tcpNet_tcp (L.getD id [])
       as %lv2 %err2 Hres
-    · iframe %Hok
+    · (try iframe HnetPk)
+      iframe %Hok
       iapply listen_au $$ Hap
     wp_for_post
     iframe

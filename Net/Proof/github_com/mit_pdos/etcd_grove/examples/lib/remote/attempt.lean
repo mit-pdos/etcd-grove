@@ -54,12 +54,15 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
   ihave %Hok := addrTok_ok a $$ [Ha]
   · unfold svcAddr; iapply addrProto_tok $$ Ha
   wp_auto_lc 2
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP S a) (repP S) [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false ∗
         rdlTok (Gg := hG.goose_globalGS) cn false false)) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh, Hrdl⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-  · iframe Het Hed
+  · (try iframe HnetPk)
+    iframe Het Hed
     isplitr
     · ipureintro; exact Hok
     isplit

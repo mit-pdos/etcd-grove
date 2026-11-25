@@ -138,11 +138,14 @@ theorem wp_NetTCP_dialing (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k :
     ihave #Hproto := shared_netProto γ (sint.nat i) hjm $$ Hsh
     ihave %Haok := addrTok_ok (netAddr (sint.nat i)) $$ [Hproto]
     · iapply addrProto_tok $$ Hproto
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply D.dial go!"tcp" net.tcpNet_tcp (netAddr (sint.nat i)) iprop(True)
         (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (netP γ (sint.nat i)) noneP [] [] ∗
           connFresh (Gg := hG.goose_globalGS) cn false))
       as %cv %err (⟨%Herr, %cid, #Hc, Hend, -⟩ | ⟨-, %x, -, #HE⟩)
-    · iframe %Haok
+    · (try iframe HnetPk)
+      iframe %Haok
       isplit
       · itrivial
       · iapply dial_au _ _ noneP $$ Hproto

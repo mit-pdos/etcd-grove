@@ -340,7 +340,8 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
       iunfold sendRes
       ileft
       iexact HR
-    · ihave #HEa := errAny_resErr $$ HE
+    · ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
+      ihave #HEa := errAny_resErr $$ Hsys HE
       ihave %HEns := notServerErr_resErr $$ HE
       ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
       obtain ⟨-, Hne⟩ := Hnet

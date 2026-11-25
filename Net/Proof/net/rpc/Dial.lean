@@ -82,7 +82,10 @@ theorem Dial.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; intro h; cases h
-    iapply errAny_resErr $$ HE
+    ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ [Hpkg]
+    · iPkgInit
+    ihave #Hsys := net.errnoOk_of_poll $$ Hpoll
+    iapply errAny_resErr $$ Hsys HE
 
 end proof
 

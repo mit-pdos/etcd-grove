@@ -79,7 +79,8 @@ theorem readFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
           ⌜r.got.length ≤ (slice.slice b w8 k b.len).len.toNat ∧
             (r = .bytes [] → (slice.slice b w8 k b.len).len.toNat = 0)⌝)) $$ [Hb2 HP]
       as %k' %err ⟨%r, %bs', ⟨HP, HF, %Hrl0⟩, Hb2, %Hout, HE⟩
-    · iframe Hc Hb2 Heof Hed
+    · ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hc
+      (try iframe Hio); (try iframe Hpoll); iframe Hc Hb2 Heof Hed
       imod Hacc $$ %got %((slice.slice b w8 k b.len).len.toNat) HP
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro

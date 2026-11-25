@@ -179,7 +179,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
         (fun res => iprop(recvTokL (Gg := hG.goose_globalGS) cn false (respProto W a) r ∗
           ⌜res.got = [] ∧ (p.len.toNat ≠ 0 → ∀ bs, res ≠ .bytes bs)⌝)) $$ [Hp HrL]
       as %k %err ⟨%res, %bs', ⟨HrL, %Hres⟩, Hp, %Hout, HE, -⟩
-    · iframe Hconn Hp Hxe Hed
+    · (try iframe Hio); (try iframe Hpoll); iframe Hconn Hp Hxe Hed
       imod read_after_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat $$ [$HrL $Hdead]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -249,7 +249,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
           (⌜res = .eof ∨ res = .err .sys ∨ res = .err .closed⌝ -∗
             readDead (Gg := hG.goose_globalGS) cn false))) $$ [Hp HrL Hrdl]
       as %k %err ⟨%res, %bs', ⟨HrL, Hrdl, %Hro, Hdead⟩, Hp, %Hout, HE, Hlc1, Hlc2⟩
-    · iframe Hconn Hp Hxe Hed
+    · (try iframe Hio); (try iframe Hpoll); iframe Hconn Hp Hxe Hed
       imod read_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat false $$ [$HrL $Hrdl]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -344,6 +344,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   -- `Conn.Read` takes `internal/poll`'s package fact: `net`'s (a precondition) imports it
   ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
   · solve_pkg_init
+  ihave #Hsys := net.errnoOk_of_poll $$ Hpoll
   wp_auto
   wp_apply wp_Dial nw hnw a iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqProto W a) (respProto W a)
@@ -381,7 +382,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     ihave HwP := writeP_init (Gg := hG.goose_globalGS) cn false (reqProto W a) [] $$ Hsend
     wp_apply wp_Write t cn false a la ra sl (connectReq path) _ ed
         (writeP (Gg := hG.goose_globalGS) cn false (reqProto W a) [])
-        $$ [$Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
+        $$ [$Hpoll $Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
     obtain ⟨Hw, -⟩ := Hw
     iunfold writeP at HwP
     simp only [List.nil_append]
@@ -460,6 +461,8 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       · ipureintro; intro h; cases h
       iapply errAny_opErrPtr
       isplitr
+      · iexact Hsys
+      isplitr
       · iexact Hpe
       unfold net.opErrMsgOk net.addrOrNil
       isplitr
@@ -490,6 +493,8 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; intro h; cases h
       iapply errAny_opErrPtr
+      isplitr
+      · iexact Hsys
       isplitr
       · iexact Hpe
       unfold net.opErrMsgOk net.addrOrNil
@@ -551,7 +556,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; intro h; cases h
-    iapply errAny_resErr $$ HE
+    iapply errAny_resErr $$ Hsys HE
 
 end proof
 

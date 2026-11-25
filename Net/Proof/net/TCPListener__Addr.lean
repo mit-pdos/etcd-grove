@@ -28,7 +28,7 @@ variable [go.BasicIntoValInj]
 theorem TCPListener.Addr.wp_proof : TCPListener.Addr.spec (GF := GF) (hG := hG) := by
   intro t l x
   unfold lisAt lisFd fdAt
-  wp_start as ⟨%nw, %Hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv⟩, #Hx, %hl⟩
+  wp_start as ⟨%nw, %Hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv, -⟩, #Hx, %hl⟩
   obtain ⟨-, -, rfl, -⟩ := hv
   iStructNamed Ht
   iStructNamed Hv

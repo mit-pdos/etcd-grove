@@ -112,6 +112,7 @@ theorem conn_readerOk [_root_.Perennial.io.Assumptions]
       io.readerOk (connIface t) (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cn s P)
         (connReadE eof la ra ed) := by
   iintro ⟨#Hio, #Hc, #Heof, #Hed⟩
+  ihave #Hpoll := connAt_poll _ _ _ _ _ _ $$ Hc
   ihave %heof := eof_ptrTyped eof $$ [Hio Heof]
   · iframe Hio Heof
   unfold io.readerOk connIface
@@ -123,7 +124,7 @@ theorem conn_readerOk [_root_.Perennial.io.Assumptions]
   iapply wp_Read t cn s a la ra p xs eof ed
     (fun r => iprop(recvTokL (Gg := hG.goose_globalGS) cn s P (R ++ r.got) ∗
       ⌜r.got.length ≤ p.len.toNat ∧ (r = .bytes [] → p.len.toNat = 0)⌝)) $$ [HP Hp]
-  · iframe Hc Hp Heof Hed
+  · (try iframe Hio); (try iframe Hpoll); iframe Hc Hp Heof Hed
     imod read_au cn s P R p.len.toNat $$ HP with ⟨%st, %d, HE, HD, Hcl⟩
     imodintro
     iexists st, d
@@ -198,6 +199,7 @@ theorem conn_streamWriterOk (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG
       EtcdGrove.io.streamWriterOk (connIface t) (sendTok (Gg := hG.goose_globalGS) cn s P) (P cn)
         (connWriteE la ra ed) := by
   iintro ⟨#Hc, #Hed⟩
+  ihave #Hpoll := connAt_poll _ _ _ _ _ _ $$ Hc
   unfold EtcdGrove.io.streamWriterOk EtcdGrove.io.prefixClosed connIface
   isplitr
   · iintro !> %x %y #Hxy
@@ -207,7 +209,7 @@ theorem conn_streamWriterOk (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG
   iintro !> %Φ ⟨HS, #HQ, Hp⟩ HΦ
   dsimp only
   iapply wp_Write t cn s a la ra p xs dq ed (writeP cn s P W) $$ [HS Hp]
-  · iframe Hc Hp Hed
+  · (try iframe Hpoll); iframe Hc Hp Hed
     isplitl [HS]
     · iapply writeP_init $$ HS
     · iapply write_acc cn s P W xs $$ HQ

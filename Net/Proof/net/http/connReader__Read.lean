@@ -16,6 +16,7 @@ public import Net.Proof.net.http.ConnReaderLemmas
 public import Proof.bufio.Base
 public import GooseLang.Ext.Net.Proto
 public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -106,19 +107,19 @@ theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
           (Val #())) {{ Φ }}) ∗
-      globalAddr io.EOF ↦□ interface.mkOk errors.errorString.ty.PointerType #xe ∗
+      globalAddr io.EOF ↦□ interface.mkOk errors.errorString.ty.PointerType #xe ∗ syscall.errnoOk ∗
       net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
       net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ∗
         (⌜err = interface.nil⌝ ∨ (errMsgOk err ∗ crErrId err)) := by
   cases r with
   | bytes bs =>
     simp only [net.ReadErr]
-    iintro ⟨-, -, %h⟩; isplitr
+    iintro ⟨-, -, -, %h⟩; isplitr
     · ipureintro; exact h
     · ileft; ipureintro; exact h
   | eof =>
     simp only [net.ReadErr]
-    iintro ⟨#HW, #Hxe, %h⟩; subst h; isplitr
+    iintro ⟨#HW, #Hxe, -, %h⟩; subst h; isplitr
     · ipureintro; rfl
     iright
     isplitl []
@@ -131,22 +132,24 @@ theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg
     ipureintro; rfl
   | err k =>
     simp only [net.ReadErr]
-    iintro ⟨-, -, #HE⟩
+    iintro ⟨-, -, #Hsys, #HE⟩
     iframe HE
     iright
     unfold net.resErr
-    icases HE with ⟨%e, #Hop, -⟩
+    icases HE with ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
     isplitl []
     · unfold net.opErr
       icases Hop with ⟨%pe, %nw, ⟨%h, -⟩, #Hpe⟩
       subst h
+      ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk go!"read" nw la ra e) $$ []
+      · unfold net.opErrMsgOk; iframe Hes Hs Ha
       iunfold errMsgOk
       iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
       isplitr
       · ipureintro; rfl
       imodintro
       iintro %Φ HΦ
-      iapply net.wp_OpError_Error pe _ Φ $$ Hpe
+      iapply net.wp_OpError_Error pe _ Φ $$ Hpe Hok Hsys
       inext
       iintro %m %hm
       iapply HΦ
@@ -314,7 +317,9 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
           (⌜∃ bs, res = .bytes bs⌝ ∗ monoListAuthOwn γe 1 ([] : List (List w8))))))
       $$ [Hp HrL Hrdl Hc]
     as %k %err0 ⟨%res, %bs', ⟨HrL, Hrdl, ⟨%Hgl, %Hg0⟩, Hc⟩, Hp, %Hout, HE⟩
-  · iframe Hca Hp Hxe Hed
+  · ihave #Hio' := net.connAt_io _ _ _ _ _ _ $$ Hca
+    ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hca
+    (try iframe Hio'); (try iframe Hpoll); iframe Hca Hp Hxe Hed
     icases Hc with (⟨Hc, Hd⟩ | Hc)
     · -- the reading is dead: nothing
       icases Hd with (#Hd | %Hd)
@@ -362,7 +367,8 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
         iframe Hc Hd
         ipureintro; intro bs h; cases h)
   ihave %Hptr := readErr_ptrTyped res la ra ed err0 xe $$ HE
-  icases readErr_msgOk res la ra ed err0 xe go!"EOF" (by decide) $$ [$HxeE $Hxe $HE] with ⟨HE, #Hem⟩
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hca
+  icases readErr_msgOk res la ra ed err0 xe go!"EOF" (by decide) $$ [$HxeE $Hxe $Hsys $HE] with ⟨HE, #Hem⟩
   ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
   wp_auto_lc 1
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT

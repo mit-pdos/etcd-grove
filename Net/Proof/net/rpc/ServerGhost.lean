@@ -219,9 +219,9 @@ theorem rdErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     (err : GoInterface) :
     errors.newVar (GF := GF) net.rpc.errFrame go!"rpc: malformed frame" ∗
       globalAddr net.rpc.errFrame ↦□ ef ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
-      globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
+      syscall.errnoOk ∗ globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       (⌜err = ef⌝ ∨ readErr la ra eof ueof ed first got err) ⊢ rdErr err := by
-  iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, #HE⟩
+  iintro ⟨#HefV, #Hef, #Hio, #Hsys, #Heof, #Hueof, #HE⟩
   icases HE with (%He | #HE)
   · subst He
     iapply rdErr_newVar _ go!"rpc: malformed frame" _ (srvErrMsg_rd _ (Or.inl rfl)) $$ HefV Hef
@@ -235,7 +235,7 @@ theorem rdErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     icases Hi with ⟨-, -, -, -, -, #HU, -⟩
     iapply rdErr_newVar _ go!"unexpected EOF" _ (srvErrMsg_rd _ (Or.inr (Or.inr (Or.inl rfl))))
       $$ HU Hueof
-  · ihave #Hn := errSrv_resErr_read $$ HE
+  · ihave #Hn := errSrv_resErr_read $$ Hsys HE
     ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
     obtain ⟨-, Hne⟩ := Hnet
     obtain ⟨pe, rfl⟩ := Hne (by simp)
@@ -262,10 +262,10 @@ theorem rdErr_readF (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : L
     (err : GoInterface) (F : IProp GF) :
     errors.newVar (GF := GF) net.rpc.errFrame go!"rpc: malformed frame" ∗
       globalAddr net.rpc.errFrame ↦□ ef ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
-      globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
+      syscall.errnoOk ∗ globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       (⌜err = ef⌝ ∨ readErr la ra eof ueof ed first got err ∗ F) ⊢ rdErr err := by
-  iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, HE⟩
-  iapply rdErr_read la ra eof ueof ed ef first got err $$ [$HefV $Hef $Hio $Heof $Hueof HE]
+  iintro ⟨#HefV, #Hef, #Hio, #Hsys, #Heof, #Hueof, HE⟩
+  iapply rdErr_read la ra eof ueof ed ef first got err $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof HE]
   icases HE with (%He | ⟨#HE, -⟩)
   · ileft; ipureintro; exact He
   · iright; iexact HE
@@ -275,10 +275,10 @@ theorem rdErr_readE (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : L
     (err : GoInterface) :
     errors.newVar (GF := GF) net.rpc.errFrame go!"rpc: malformed frame" ∗
       globalAddr net.rpc.errFrame ↦□ ef ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
-      globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
+      syscall.errnoOk ∗ globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       readErr la ra eof ueof ed first got err ⊢ rdErr err := by
-  iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, #HE⟩
-  iapply rdErr_read la ra eof ueof ed ef first got err $$ [$HefV $Hef $Hio $Heof $Hueof]
+  iintro ⟨#HefV, #Hef, #Hio, #Hsys, #Heof, #Hueof, #HE⟩
+  iapply rdErr_read la ra eof ueof ed ef first got err $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof]
   iright; iexact HE
 
 /-- The reader predicate of a read at the acceptor's end after `R0`, with the end's read deadline

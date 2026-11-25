@@ -171,6 +171,8 @@ theorem mimeErr_errStr (E : List w8 → GoInterface → IProp GF) (err : GoInter
     iexists ⟨net.textproto.ProtocolError.ty, #msg⟩
     isplitr
     · ipureintro; rfl
+    imodintro
+    iintro -
     iapply protocolError_str
 
 /-- An `*errors.errorString`'s `Error()` returns its message (`net.errStr`). -/
@@ -182,6 +184,8 @@ theorem errorString_errStr (x : Loc) (s : GoString) :
   iexists ⟨go.GoType.PointerType errors.errorString.ty, #x⟩
   isplitr
   · ipureintro; rfl
+  imodintro
+  iintro -
   unfold fmt.stringMethodSpec
   iintro !>
   iintro %Φ HΦ

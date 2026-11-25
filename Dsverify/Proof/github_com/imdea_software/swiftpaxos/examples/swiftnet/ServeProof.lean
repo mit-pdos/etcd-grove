@@ -469,8 +469,11 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
         (Φ := fun _ la => RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns)
         hrpc $$ Hrr
       ihave %Hlok := RpcHttpAddr.rpcLisP_ok γ.W _ _ _ $$ Hrl
+      ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      · solve_pkg_init
       wp_apply (D.listen go!"tcp" net.tcpNet_tcp (atStr (8 + k) (W64 1000))) as %lv %lerr Hl
-      · isplitr
+      · (try iframe HnetPk)
+        isplitr
         · ipureintro; exact Hlok
         iapply RpcHttpAddr.rpcLisP_lis
         iexact Hrl

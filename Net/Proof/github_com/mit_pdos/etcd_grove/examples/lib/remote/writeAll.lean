@@ -56,7 +56,8 @@ theorem writeAll.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
     wp_apply wp_Write t cn s a la ra b' (bs.drop w.length) dq ed (writeP cn s P (W0 ++ w))
         $$ [Hb Htok] as %n %err ⟨%w2, %res, Htok, Hb, %Hw2, #HE⟩
-    · iframe Hc Hb Hed
+    · ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hc
+      (try iframe Hpoll); iframe Hc Hb Hed
       isplitl [Htok]
       · iapply writeP_init $$ Htok
       · iapply write_acc cn s P (W0 ++ w) (bs.drop w.length)

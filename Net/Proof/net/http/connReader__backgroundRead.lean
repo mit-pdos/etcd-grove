@@ -84,7 +84,9 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
         ⌜∃ st d d', ReadOutcome st d 1 res d'⌝))
       $$ [Hs HrL]
     as %k %err ⟨%res, %bs', ⟨HrL, %Hro⟩, Hs, %Hout, HE⟩
-  · iframe Hca Hs Hxe Hed
+  · ihave #Hio' := net.connAt_io _ _ _ _ _ _ $$ Hca
+    ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hca
+    (try iframe Hio'); (try iframe Hpoll); iframe Hca Hs Hxe Hed
     imod read_au (Gg := hG.goose_globalGS) cn true _ _ 1 $$ HrL
       with ⟨%st, %d, HE, HD, Hcl⟩
     imodintro
@@ -200,10 +202,15 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
     simp only [net.ReadOut] at Hout
     obtain ⟨rfl, rfl⟩ := Hout
     simp only [net.ReadErr, net.resErr]
-    icases HE with ⟨%e, HE, -⟩
+    icases HE with ⟨%e, HE, #Hk, -, #Hsa, #Haa⟩
     unfold net.opErr
     icases HE with ⟨%pe, %nw, ⟨%HE, -⟩, #Hpe⟩
     subst HE
+    ihave #HpollT := net.connAt_poll _ _ _ _ _ _ $$ Hca
+    ihave %hed := net.edTyped_of_poll _ $$ [$HpollT $Hed]
+    ihave #HownE := net.kindErr_netOwnErr _ _ _ e hed $$ Hk
+    ihave #Hok : net.opErrOk (GF := GF) (net.OpError.mk go!"read" nw la ra e) $$ []
+    · unfold net.opErrOk; iframe HownE Hsa Haa
     wp_auto
     simp only [opError_netError, ↓reduceIte]
     wp_auto
@@ -236,7 +243,7 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
       wp_apply sync.Cond.wp_Broadcast $$ [$Hcv]
       iapply HΦ; itrivial
     · wp_auto
-      wp_apply wp_Timeout $$ [$Hpe] as %b -
+      wp_apply wp_Timeout $$ [$Hpe $Hok] as %b -
       cases b
       · wp_auto
         wp_apply wp_handleReadErrorLocked cr c _ $$ [$Hc $Hcok] as Hc

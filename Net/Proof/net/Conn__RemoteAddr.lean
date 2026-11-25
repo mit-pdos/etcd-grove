@@ -28,7 +28,7 @@ variable [go.BasicIntoValInj]
 theorem Conn.RemoteAddr.wp_proof : Conn.RemoteAddr.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra
   unfold connAt connFd fdAt
-  wp_start as ⟨%nw, %Hnw, ⟨%fd, #Ht, %v, %hv, #Hv⟩, #Hla, #Hra, #Hat⟩
+  wp_start as ⟨%nw, %Hnw, ⟨%fd, #Ht, %v, %hv, #Hv, -⟩, #Hla, #Hra, #Hat⟩
   obtain ⟨-, -, rfl, rfl⟩ := hv
   ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht

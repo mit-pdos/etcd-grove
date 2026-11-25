@@ -62,10 +62,13 @@ theorem Transport.dial.wp_proof (wp_add : Stats.add.spec (GF := GF) (hG := hG))
   try wp_auto
   wp_apply wp_add sp (W64 20) (by decide) (by decide) $$ [$Hpkg $Hs]
   try wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a _ et ed iprop(True)
       (fun cn => iprop(connEnd cn false (kvP F pid) (kvQ F pid) [] [] ∗ connFresh cn false)) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, ⟨Hce, -⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-  · iframe %Hok
+  · (try iframe HnetPk)
+    iframe %Hok
     iframe Het Hed
     isplit
     · itrivial

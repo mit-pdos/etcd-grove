@@ -152,7 +152,7 @@ theorem DialTimeout.wp_proof : DialTimeout.spec (GF := GF) (hG := hG) := by
       imod Hk $$ Hfr with HQ
       imodintro
       wp_auto
-      wp_apply wp_newConn c false a nw $$ %hnw Hat as %tc %la %ra #Hc
+      wp_apply wp_newConn c false a nw $$ Hpkg %hnw Hat as %tc %la %ra #Hc
       (try wp_auto)
       iapply HΦ
       ileft

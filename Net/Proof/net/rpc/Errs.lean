@@ -158,10 +158,10 @@ theorem errNE_newVar (X msg : GoString) (e : GoInterface) (hm : msg ≠ []) :
 /-- A new `*OpError` whose `Err` has an `Error()` and whose addresses net made (what
 `resErr (some k)` gives) is `errNE`: its `Error()` is of Go's form, not empty. -/
 theorem errNE_opErr (op : GoString) (src addr e err : GoInterface) :
-    net.opErr (GF := GF) op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗ net.addrOrNil addr ⊢
-      errNE err := by
+    syscall.errnoOk (GF := GF) ∗ net.opErr op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗
+      net.addrOrNil addr ⊢ errNE err := by
   unfold net.opErr
-  iintro ⟨⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, #Hes, #Hs, #Ha⟩
+  iintro ⟨#Hsys, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, #Hes, #Hs, #Ha⟩
   subst Herr
   ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk op nw src addr e) $$ []
   · unfold net.opErrMsgOk; iframe Hes Hs Ha
@@ -173,15 +173,15 @@ theorem errNE_opErr (op : GoString) (src addr e err : GoInterface) :
   · ipureintro; exact opError_ptr_isError
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe Hok
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg %hmsg
   iapply HΦ; ipureintro; exact net.opErrMsg_ne _ _ hmsg
 
 /-- A new `*OpError` is `errAny`: its `Error()` is an arbitrary string. -/
 theorem errAny_opErr (op : GoString) (src addr e err : GoInterface) :
-    net.opErr (GF := GF) op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗ net.addrOrNil addr ⊢
-      models_lab.errAny err := by
+    syscall.errnoOk (GF := GF) ∗ net.opErr op src addr e err ∗ net.errStr e ∗ net.addrOrNil src ∗
+      net.addrOrNil addr ⊢ models_lab.errAny err := by
   iintro H
   iapply errNE_errAny
   iapply errNE_opErr $$ H
@@ -190,9 +190,9 @@ theorem errAny_opErr (op : GoString) (src addr e err : GoInterface) :
 `nil` or net's (`opErrMsgOk`) is `errAny`: its `Error()` returns a message of Go's form
 (`DialHTTPPath`'s `"dial-http"` error, whose `Net` is not a TCP network's name). -/
 theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
-    (pe ↦□ v ∗ net.opErrMsgOk v : IProp GF) ⊢
+    (syscall.errnoOk ∗ pe ↦□ v ∗ net.opErrMsgOk v : IProp GF) ⊢
       models_lab.errAny (GF := GF) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
-  iintro ⟨#Hpe, #Hok⟩
+  iintro ⟨#Hsys, #Hpe, #Hok⟩
   unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
   isplitr
@@ -201,7 +201,7 @@ theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
   · ipureintro; exact opError_ptr_isError
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe Hok
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg -
   iapply HΦ
@@ -209,20 +209,21 @@ theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errNE`. -/
 theorem errNE_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ errNE err := by
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) op src addr ed nm err -∗ errNE err := by
   unfold net.resErr
-  iintro ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
+  iintro #Hsys ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
   iapply errNE_opErr
-  iframe Hop Hes Hs Ha
+  iframe Hsys Hop Hes Hs Ha
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errAny`. -/
 theorem errAny_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) op src addr ed nm err -∗
+      models_lab.errAny err := by
   unfold net.resErr
-  iintro ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
+  iintro #Hsys ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
   iapply errAny_opErr
-  iframe Hop Hes Hs Ha
+  iframe Hsys Hop Hes Hs Ha
 
 /-- A failure's error is not a `ServerError`. -/
 theorem notServerErr_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
@@ -323,9 +324,9 @@ theorem errSrv_newVar (X msg : GoString) (e : GoInterface) (hm : srvErrMsg msg) 
 /-- A read's failure (`resErr (some k)` of the operation `"read"`, an `*OpError`) is `errSrv`. -/
 theorem errSrv_resErr_read (k : NetErr) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) go!"read" src addr ed nm err ⊢ errSrv err := by
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) go!"read" src addr ed nm err -∗ errSrv err := by
   unfold net.resErr net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩
+  iintro #Hsys ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩
   subst Herr
   ihave #Hok : net.opErrMsgOk (GF := GF) (net.OpError.mk go!"read" nw src addr e) $$ []
   · unfold net.opErrMsgOk; iframe Hes Hs Ha
@@ -337,7 +338,7 @@ theorem errSrv_resErr_read (k : NetErr) (src addr : GoInterface)
   · ipureintro; exact opError_ptr_isError
   imodintro
   iintro %Φ HΦ
-  iapply net.wp_OpError_Error $$ Hpe Hok
+  iapply net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg %hmsg
   iapply HΦ; ipureintro

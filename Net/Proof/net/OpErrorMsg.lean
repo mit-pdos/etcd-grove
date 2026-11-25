@@ -3,7 +3,8 @@
 precondition approved by Upamanyu): a message of Go's form, its operation, some string (the network
 and the addresses), `": "`, the error's message (`opErrMsg`, `wp_OpError_Error`). The callees are
 translated Go but for `TCPAddr.String` (the model's arbitrary string) and `syscall.Errno.Error`
-(trusted, some string: `errno_stringMethodSpec`).
+(translated: some string, given `syscall`'s package fact, `errno_stringMethodSpecLe`; so
+`errStr` is conditional on `syscall.errnoOk`, and so is `wp_OpError_Error`).
 -/
 module
 
@@ -53,16 +54,18 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 variable [go.BasicIntoValInj]
 
-/-- `syscall.Errno(n).Error()`: some string (trusted, `errno_stringMethodSpec`). -/
+/-- `syscall.Errno(n).Error()`: some string, given `syscall`'s package fact
+(`errno_stringMethodSpecLe`). -/
 private theorem wp_Errno_Error (n : w64) (Φ : val → IProp GF) :
-    (∀ s : GoString, Φ #s) -∗
+    syscall.errnoOk (GF := GF) -∗ (∀ s : GoString, Φ #s) -∗
     WP (App (Val #(methods syscall.Errno.ty go!"Error" #n)) (Val #())) {{ Φ }} := by
-  iintro HΦ
-  ihave #H := errno_stringMethodSpec (GF := GF) n
-  rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
+  iintro #Hok HΦ
+  ihave #H := errno_stringMethodSpecLe (GF := GF) n $$ Hok
+  iunfold EtcdGrove.stringMethodSpecLe at H
   iapply H
   inext
-  iexact HΦ
+  iintro %s -
+  iapply HΦ
 
 /-- `TCPAddr.String`'s model: some string. -/
 private theorem wp_TCPAddr_String (p : Loc) (Φ : val → IProp GF) :
@@ -95,10 +98,12 @@ theorem netOwnErr_errStr (e : GoInterface) : netOwnErr (GF := GF) e ⊢ errStr e
     iexists _
     isplitr
     · ipureintro; rfl
+    imodintro
+    iintro #Hsys
     rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
     imodintro
     iintro %Φ HΦ
-    repeat' (first | (wp_apply wp_Errno_Error as %es) | (wp_method_call) | (wp_func_call; wp_call) |
+    repeat' (first | (wp_apply wp_Errno_Error $$ Hsys as %es) | (wp_method_call) | (wp_func_call; wp_call) |
       (dsimp only) | (wp_auto) | (wp_call) |
       (unfold internal.poll.errNetClosing.Error.impl) |
       (unfold internal.poll.DeadlineExceededError.Error.impl) |
@@ -148,16 +153,17 @@ set_option maxHeartbeats 2000000 in
 /-- `e.Error()` on an `*OpError` `pe` whose `Err` has an `Error()` and whose addresses net made
 (`opErrMsgOk`; `opErrOk` gives it): a message of Go's form (`opErrMsg`) for its `Op`. -/
 theorem wp_OpError_Error (pe : Loc) (v : net.OpError) (Φ : val → IProp GF) :
-    (pe ↦□ v : IProp GF) -∗ opErrMsgOk v -∗
+    (pe ↦□ v : IProp GF) -∗ opErrMsgOk v -∗ syscall.errnoOk (GF := GF) -∗
       ▷ (∀ msg : GoString, ⌜opErrMsg v.Op' msg⌝ -∗ Φ #msg) -∗
     WP (App (Val #(methods (go.GoType.PointerType OpError.ty) go!"Error" #pe)) (Val #()))
       {{ Φ }} := by
-  iintro #Hpe #Hok HΦ
+  iintro #Hpe #Hok #Hsys HΦ
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hpe
   ihave #H2 := Hpe
   iStructNamed H2
   unfold opErrMsgOk errStr addrOrNil
-  icases Hok with ⟨⟨%ii, %he, #He⟩, #Hs, #Ha⟩
+  icases Hok with ⟨⟨%ii, %he, #He0⟩, #Hs, #Ha⟩
+  ihave #He := He0 $$ Hsys
   wp_method_call
   wp_call
   wp_auto
@@ -189,6 +195,8 @@ theorem errStr_of_wp (ii : GoInterfaceOk) (s : GoString) :
   iexists ii
   isplitr
   · ipureintro; rfl
+  imodintro
+  iintro -
   rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
   imodintro
   iintro %Φ HΦ
@@ -209,10 +217,12 @@ theorem resErr_errStr (k : NetErr) (op : GoString) (src addr : GoInterface)
   iexists ⟨go.GoType.PointerType OpError.ty, #pe⟩
   isplitr
   · ipureintro; rfl
+  imodintro
+  iintro #Hsys
   rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
   imodintro
   iintro %Φ HΦ
-  iapply wp_OpError_Error $$ Hpe Hok
+  iapply wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg -
   iapply HΦ

@@ -788,6 +788,8 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
   · iexists _; iexact i
   wp_for HI
   wp_if_destruct
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   · wp_apply wp_Listen go!"tcp" net.tcpNet_tcp a as %lv %err Hres
     · iframe %Hok
       iapply listen_au $$ Hp
@@ -809,7 +811,8 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
       iframe
       iexists _
       iexact i
-  · wp_end
+  · (try iframe HnetPk)
+    wp_end
 
 theorem tcpNetwork.send.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG := hG))
     (wp_SetWriteDeadline : net.Conn.SetWriteDeadline.spec (GF := GF) (hG := hG))
@@ -870,11 +873,14 @@ theorem tcpNetwork.send.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := G
         ihave #Hpa := BigSepM.bigSepM_lookup ha $$ Hprotos
         ihave %Hok2 := addrTok_ok a2 $$ [Hpa]
         · iapply addrProto_tok $$ Hpa
+        ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+        · solve_pkg_init
         wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a2 _ et ed iprop(True)
             (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (wireProto Ψ) noProto [] [] ∗
               connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
           as %c2 %err (⟨%Herr, %cn2, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-        · iframe Het Hed
+        · (try iframe HnetPk)
+          iframe Het Hed
           isplitr
           · ipureintro; exact Hok2
           isplit
@@ -956,11 +962,14 @@ theorem tcpNetwork.send.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := G
       ihave #Hpa := BigSepM.bigSepM_lookup ha $$ Hprotos
       ihave %Hok2 := addrTok_ok a2 $$ [Hpa]
       · iapply addrProto_tok $$ Hpa
+      ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      · solve_pkg_init
       wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a2 _ et ed iprop(True)
           (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (wireProto Ψ) noProto [] [] ∗
             connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
         as %c2 %err (⟨%Herr, %cn2, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
-      · iframe Het Hed
+      · (try iframe HnetPk)
+        iframe Het Hed
         isplitr
         · ipureintro; exact Hok2
         isplit

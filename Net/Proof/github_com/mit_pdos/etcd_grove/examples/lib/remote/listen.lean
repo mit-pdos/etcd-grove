@@ -41,8 +41,11 @@ theorem listen.wp_proof
   ihave %Hok := addrTok_ok a $$ [Haddr]
   · iapply addrProto_tok $$ Haddr
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a as %li %err HL
-  · iframe %Hok
+  · (try iframe HnetPk)
+    iframe %Hok
     iapply listen_au $$ Haddr
   ihave HI : (∃ (li : GoInterface) (err : GoInterface), "Hl" ∷ l_ptr ↦ li ∗ "Herr" ∷ err_ptr ↦ err ∗
       "HL" ∷ ((⌜err = GoInterface.nil⌝ ∗ ∃ l, net.isListener li l ∗
@@ -76,8 +79,11 @@ theorem listen.wp_proof
     cleanup_bool_decide
     (try wp_auto)
     wp_apply wp_Sleep
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a as %li' %err' HL
-    · iframe %Hok
+    · (try iframe HnetPk)
+      iframe %Hok
       iapply listen_au $$ Haddr
     wp_for_post
     iframe

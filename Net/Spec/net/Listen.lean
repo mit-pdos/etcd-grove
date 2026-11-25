@@ -16,6 +16,9 @@ address, with `a`'s token and `netLisAt`, is `Listen.spec_addrOk` (`Net/Proof/ne
 
 The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the valid IPv4
 addresses, the network kept in the connection or listener and put in its errors.
+
+It takes `net`'s package fact (`isPkgInit net`, 2026-11-25, egnet: a `netFD` is net's), which the listener keeps (`fdAt`) for its operations (`Conn.Read`'s
+`io.EOF` comparison, the errors' `Error()`: `errnoOk_of_poll`).
 -/
 module
 
@@ -40,7 +43,7 @@ variable [package_sem' : net.Assumptions]
 /-- See the file header. -/
 abbrev Listen.spec : Prop :=
   ∀ (nw : GoString), tcpNet nw → ∀ (a : GoString),
-  {{ ⌜listenOk a = true⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜listenOk a = true⌝ ∗
       (|={⊤,∅}=> lisToks (extGlobalGS netExt (G := hG.goose_globalGS)) a ∗
         (lisToks (extGlobalGS netExt (G := hG.goose_globalGS)) a ={∅,⊤}=∗ True)) }}
     (App (App (Val (@! net.Listen)) (Val #nw)) (Val #a))

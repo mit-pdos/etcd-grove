@@ -42,11 +42,14 @@ theorem sendConf.wp_proof (D : SwNetDeps (hG := hG)) : sendConf.spec (hG := hG) 
   ihave #Hio : (isPkgInit (PROP := IProp netDistGF) pkg_id.io) $$ []
   · iPkgInit
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply D.dial go!"tcp" net.tcpNet_tcp a iprop(True)
       (fun cid => iprop(connEnd (Gg := hG.goose_globalGS) cid false P Q [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cid false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcl, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Haok
     isplit
     · itrivial

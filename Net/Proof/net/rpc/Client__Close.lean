@@ -74,7 +74,8 @@ theorem Client.Close.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
       ileft; ipureintro; exact Herr
     | some k =>
       iright
-      iapply errAny_resErr $$ Herr
+      ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
+      iapply errAny_resErr $$ Hsys Herr
   · -- closing already: `ErrShutdown`
     wp_auto
     wp_apply wp_Unlock _ (muInv γ c) $$ [$Hsync $Hmu $Hown Hseq Hpend Hmp Hsd Hcls Hsq Hr Hdown Hnm

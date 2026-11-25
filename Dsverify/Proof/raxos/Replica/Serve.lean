@@ -264,8 +264,11 @@ theorem wp_serve (γ : QNames) (k : Nat) (r gc : Loc) :
   wp_apply wp_RegisterConsensusServer s γs (recAddr k) γ [] gc $$ [$Hsrv $Hown $Hdesc]
     as ⟨Hown, -⟩
   · ipureintro; simp
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply QpNetDeps.listen go!"tcp" net.tcpNet_tcp (recLis k) as %li %err Hres
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact recLis_listenOk k Hk
     iapply listen_lis_au $$ Hlp
   icases Hres with (⟨%Herr, %l, #Hli, Hl, Hon⟩ | ⟨%x, -, Herr⟩)

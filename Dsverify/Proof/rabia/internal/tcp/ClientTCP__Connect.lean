@@ -360,11 +360,14 @@ theorem wp_ClientTCP_connect (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (
     $$ [HConn HReader HWriter]
   · iexists cn, rd, wr; iframe
   wp_for HI
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply D.dial go!"tcp" net.tcpNet_tcp (proxyAddr (c % cf.n)) iprop(True)
       (fun cid => iprop(connEnd (Gg := hG.goose_globalGS) cid false (proxyP γ (c % cf.n))
         (proxyQ γ (c % cf.n)) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cid false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcl, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Haok
     isplit
     · itrivial

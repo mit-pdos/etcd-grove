@@ -57,7 +57,7 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     wp_auto
     wp_apply wp_anyTCPAddr as %x #Hx
     (try wp_auto)
-    wp_apply wp_modelFD as %fd #Hfd
+    wp_apply wp_modelFD $$ Hpkg as %fd #Hfd
     (try wp_auto)
     wp_alloc tl as Htl
     ipersist Htl

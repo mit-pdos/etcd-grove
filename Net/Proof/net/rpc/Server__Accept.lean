@@ -101,7 +101,8 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
     wp_for_post
     iframe
   · -- `Accept` failed: logged, and the loop ends
-    ihave #Ha := errAny_resErr $$ HE
+    ihave #Hsys := net.lisAt_errnoOk _ _ _ $$ HlisAt
+    ihave #Ha := errAny_resErr $$ Hsys HE
     ihave #Ha' := Ha
     iunfold models_lab.errAny at Ha'
     icases Ha' with ⟨%e, %He, -, #HW⟩

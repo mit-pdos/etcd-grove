@@ -190,11 +190,14 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     · iframe #; ipureintro; simpa using hgl
     ihave %Hokk := addrTok_ok _ $$ [Hap]
     · iapply addrProto_tok $$ Hap
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply EpNetDeps.dial go!"tcp" net.tcpNet_tcp (L.getD k []) iprop(True)
         (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (repDialP γ (L.getD k []))
           (repAccP γ (L.getD k [])) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
       as %cv %err (⟨%Herr, %cid, #Hc, Hend, Hfresh⟩ | ⟨-, %x, -, #Herr⟩)
-    · isplitr
+    · (try iframe HnetPk)
+      isplitr
       · ipureintro; exact Hokk
       isplit
       · itrivial
