@@ -488,6 +488,35 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 20 (WIP, `etcd-safe-p6b-wip`): S's resource-removal helpers done; `walInv_discardS`
+  not started.** **Done**, in `DiscardSInv.lean` (`lake build` of the module on fk-lean1 at `aaa52b404d`: 3024 jobs,
+  exit 0, no warning in the file, no `sorry`, `/shared/tmp/p6b-s20-b4.log`):
+  * **`walTailsRes_discard`** (order step 1; no such helper existed): `walTailsRes C Mr s Ls F -∗ walTailsFrag ∅ Lk
+    -∗ walTailsRes C Mr (discS s dir) (GMap.delete dir Ls) F ∗ walTailsFrag ∅ Lk`: the free token's `walTailsFrag ∅`
+    forces `T = ∅` (`walTails_agree`), so no tail record, nothing lent (`LentOk ∅` false), every WAL idle;
+  * `segsAll_sep_delete Φ Ls dir lay hl`: `[∗list] segsAll Ls ⊢ [∗list] lay.pg ++ lay.segs ∗ [∗list] segsAll
+    (delete dir Ls)` (for `laysResF` with `segResF F` and `walParked`'s `if g.ino ∈ o.O then emp else segResP g`,
+    `o = empty`: drop the left part);
+  * `walTmpParked0_delete Ls dir lay hl`: `walTmpParked0 Ls [] ⊢ walTmpsRes lay.j ∗ walTmpParked0 (delete dir Ls) []`;
+    `walTmpHalves_delete`: `walTmpHalves Ls ⊢ walTmpsHalf lay.j ∗ walTmpHalves (delete dir Ls)`.
+  **Confirmed signatures for `walInv_discardS`** (read this session, no need to re-read): `walLeI_discard s I dir :
+  walLeI (s, I) ({s with wal := delete dir s.wal}, <[dir := incOf I dir + 1]> I)` (Ghost.lean:294; `discS s dir` is
+  that state by `rfl`); `walGhostI_bump` (DiscardSteps.lean, end) and its use in `discAU`'s commit arm (DiscardR.lean
+  ~395-420: `walUnlockedTokX_open`, `walParked_incE`, `walDirKeysAuth_bump K` then `Hdk $$ %I' %(delete dir K)
+  %(keys_bump I K dir) HI3`): copy that block; `osClaims_filter_once c cl dq (h : ClaimOnce c cl)` (CreateMergeStep
+  :160, gives `osNames c.1 c.2.1 dq c.2.2 ∗ osClaims (filter (≠ c))` = `dropC`, by `rfl`/`dropC`'s def);
+  `walNamesRes_congr R jr r Ls s s' hs` changes only `s` (for `Ls → delete dir Ls` unfold `walNamesRes`: `st.disc
+  = some dir` → set `⟨none, none, []⟩` with `walNamesS_set` against the program's `walNamesFragS ⟨none, some dir,
+  []⟩`; the `Wn` list unchanged, `nameShare` over `delete dir Ls` needs a congr: `nameShare jr Ls nm` reads `Ls`
+  only through the layout named `nm`, and `nm ∉ Wn`); `ParkedClaim Ls D c := WalDirClaimOf Ls c ∧ (c.1, c.2.1) ∉
+  D` (Inv.lean:617). `walInv_mergeIn` (CreateSteps:183) takes `N2` whole (`DFrac.own 1`) with no WAL name, so the
+  final merge of the program's half of `(jr, .only [nm, tmp], hC)` into its area claim is `walInvBody_mergeIn`'s
+  shape at `discS` (as `Create`'s commit, `CreateCommit.lean`), not `walInv_mergeIn`.
+  **Left for `walInv_discardS`** (`walInv_stepS`, CreateNamedStep.lean, with `discAU`'s commit-arm block): the
+  `walParked` claims part over `dropC` and `delete dir Ls` (the dir claim's `ParkedClaim` half out: write
+  `walParked_discard`, `osClaims`-list split by `BigSepL` at the claim's position, `ClaimOnce`), `walOthersL` over
+  `dropC`/`delete dir Ls` (the dir claim's others out to the program), `laysResF` by `segsAll_sep_delete`, then
+  `discS_pure`. Then order steps 3-7 of the brief. Session stopped at the ~150k-token handoff rule.
 - **2026-11-25, P6b session 19 (WIP, `etcd-safe-p6b-wip`): S's pure facts and the layouts' distinctness done; S's
   Iris step not started.** **Decision (coordinator, internal):** the gap "two WALs have different directory inodes" by
   the fraction argument, an invariant fact only if it does not follow; **it follows** with no invariant change: with no
