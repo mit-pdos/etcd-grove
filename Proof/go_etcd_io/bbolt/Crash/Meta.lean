@@ -2,7 +2,7 @@
 
 # Meta slots on raw bytes, for the crash proof
 
-What the crash premise (`Crash/Premise.lean`) says of a meta slot is stated on its raw bytes
+What the crash premise (`Spec/go_etcd_io/bbolt/CrashPremise.lean`) says of a meta slot is stated on its raw bytes
 (`boltMetaValidates`, the first 56 bytes "as of one change"); bbolt's model reads a slot as
 `metaOf` (`Model/Meta.lean`). This file connects the two:
 * `metaValid_validates`: a valid decoded meta's raw bytes validate;
@@ -11,7 +11,7 @@ What the crash premise (`Crash/Premise.lean`) says of a meta slot is stated on i
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Crash.Premise
+public import Spec.go_etcd_io.bbolt.CrashPremise
 public import Proof.go_etcd_io.bbolt.Model.Meta
 
 @[expose] public section

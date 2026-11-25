@@ -11,14 +11,14 @@ could move to `Proof/os/`).
 smallest size since the last sync (`CrashFile`). The candidates the client knows (`crashCands s b`):
 below the size the bytes `s.bs` hold, past it those the `OsMeta` knows, each with the change in
 flight's announced value over its range (`crashCands_cand`). The premise `BoltCrashWhole`
-(`Crash/Premise.lean`) adds, for a file whose size has not moved since its last sync (`vmeta`'s
+(`Spec/go_etcd_io/bbolt/CrashPremise.lean`) adds, for a file whose size has not moved since its last sync (`vmeta`'s
 bounds equal to the size), that a meta slot that validates holds its first 56 meta bytes as of one
 stamp (`valAt`), and its checksum bytes as of that stamp or older. The crash's size is between
 `vmeta`'s bounds and at most `maxBytes`.
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Crash.Premise
+public import Spec.go_etcd_io.bbolt.CrashPremise
 public import Proof.os.CrashSt
 
 @[expose] public section
