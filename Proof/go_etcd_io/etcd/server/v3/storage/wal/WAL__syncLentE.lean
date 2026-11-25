@@ -88,7 +88,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLentE [os.file.Fi
         (∃ d : OsFd, osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ ⌜d.ino = i⌝) ∗
         ∃ g : SegG, segRes g ∗ ⌜g.ino = i ∧ g.om.size = g.bs.length⌝) ∨
      (⌜errnoErr 0 ≠ GoInterface.nil⌝ ∗ walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
-        walTailPE (W := W) f fd name dir γ i H md cuts o0 k))
+        walTailPE (W := W) Mr f fd name dir γ i H md cuts o0 k))
       $$ [Htf Hf Hfd Hlkt Hm Hb]
   · ileft
     iframe Htf Hf
@@ -107,7 +107,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLentE [os.file.Fi
         (∃ d : OsFd, osFd fd (DFrac.own 1) d ∗ fdLocks fd d ∗ ⌜d.ino = i⌝) ∗
         ∃ g : SegG, segRes g ∗ ⌜g.ino = i ∧ g.om.size = g.bs.length⌝) ∨
      (⌜errnoErr en ≠ GoInterface.nil⌝ ∗ walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
-        walTailPE (W := W) f fd name dir γ i H md cuts o0 k)) $$ [Htf Htw]
+        walTailPE (W := W) Mr f fd name dir γ i H md cuts o0 k)) $$ [Htf Htw]
   · iright
     iframe Htf Htw
     ipureintro; exact WalFs.errnoErr_ne en he

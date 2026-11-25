@@ -3,8 +3,8 @@
 # `fileutil.Fdatasync` of the tail a failed `ZeroToEnd` left (unit `synclent`)
 
 `Fdatasync.wp_specWalLentE`: `Fdatasync.specWalLentE` (`Spec/…/wal/FdatasyncLentE.lean`) over `os.File.Fd`, as
-`Fdatasync.wp_specWalPend` (`FdatasyncPend.lean`) but from `walTailPE` (`TailMetaE`: the length word at the write
-position zero, nothing known of the bytes past it) and over `walInvBody_syncPE` (`TailSyncPendE.lean`): on
+`Fdatasync.wp_specWalPend` (`FdatasyncPend.lean`) but from `walTailPE` (`TailMetaE`: the reader's stop at the write
+position, `PendStop`) and over `walInvBody_syncPE` (`TailSyncPendE.lean`): on
 success the token kept (its `|old|` the synced layout's), the tail synced (`TailMetaR` of the synced `OsMeta`,
 every byte durable, the zeros known from the size on); on failure everything back.
 
@@ -41,7 +41,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 theorem wp_tailFsyncPE (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd) (Φ : val → IProp GF)
-    (hm : TailMetaE wr m bs)
+    (hm : TailMetaE Mr (tailCrc Mr H md cuts) wr m bs)
     (hzf : ∀ z, m.zf = some z → m.size ≤ z) (hwr : wr = (tailStream Mr H md cuts).length) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walLentTokB (W := W) dir γ k false -∗
       tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) -∗ walCutFrag (W := W) none -∗
@@ -85,8 +85,9 @@ theorem wp_tailFsyncPE (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
     rw [← hwrl, hwr, hH, hmd, hcuts]; rfl
   have hzf' : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z := fun z hz => by
     rw [hm.1]; exact hzf z hz
-  have hlw : ∀ j, j < 8 → (g0.bs.getD (lay.wr + j) (0, [])).1 = 0 := fun j hj => by
-    rw [← hwrl]; exact hm.2.2.2 j hj
+  have hpv : PendStop walCodec Mr (g0.bs.map (·.1)) lay.wr
+      (WalEnc.chainEnd walCodec 0#32 (recsOfSegs walCodec Mr dw.metadata (segsOf (histM dw) lay.cuts))) := by
+    rw [← hwrl, ← hcuts, ← hmd, show histM dw = histN H by rw [histM, hH]]; exact hm.2.2.2
   imod (fupd_mask_subseteq (show (⊤ : CoPset) \ ↑walN ⊆ (⊤ : CoPset) \ ↑walN from fun _ h => h)) with Hid
   imodintro
   iframe Hnc
@@ -97,7 +98,7 @@ theorem wp_tailFsyncPE (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
     icases Hconts with ⟨Hsucc, -⟩
     imod Hsucc $$ [] [Hm2 Hb2] with ⟨Hb, -, Hk⟩
-    · ipureintro; exact ⟨rfl, htail, hzf', hlw⟩
+    · ipureintro; exact ⟨rfl, htail, hzf', hpv⟩
     · dsimp only [syncTail]; rw [← hino]; iframe
     imod Hid
     imod Hcl $$ [Hb]
@@ -128,7 +129,7 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 theorem syscall.Fdatasync.wp_tailPE (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd)
-    (hm : TailMetaE wr m bs)
+    (hm : TailMetaE Mr (tailCrc Mr H md cuts) wr m bs)
     (hzf : ∀ z, m.zf = some z → m.size ≤ z) (hwr : wr = (tailStream Mr H md cuts).length) :
     {{ walAreaOk walCodec Mr R jr r ∗ osFd fd dq d ∗ walLentTokB (W := W) dir γ k false ∗
         tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) ∗ walCutFrag (W := W) none ∗

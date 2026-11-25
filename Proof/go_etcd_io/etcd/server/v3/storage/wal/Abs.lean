@@ -345,13 +345,41 @@ theorem pendStop_nil {C : WalCodec} {Mr : WalMarshal} {img : List w8} {off : Nat
   ⟨[], fun _ h => by simp [pendDs, chainRecs] at h, by simp [pendDs, chainRecs, recFrames_nil],
     by simpa [pendDs, chainRecs, recFrames_nil, crcAfter] using h⟩
 
+/-- **`PendStop` depends on the image from `off` on only** (`decStep` at `p ≥ off` reads `bs.drop p` and
+`bs.length`). -/
+theorem pendStop_congr {C : WalCodec} {Mr : WalMarshal} {img img' : List w8} {off : Nat} {c : w32}
+    (hd : img'.drop off = img.drop off) (hl : off ≤ img.length) (hl' : off ≤ img'.length)
+    (h : PendStop C Mr img off c) : PendStop C Mr img' off c := by
+  obtain ⟨es, hfit, hpre, hst⟩ := h
+  have hlen : img'.length = img.length := by
+    have h1 := congrArg List.length hd
+    simp only [List.length_drop] at h1; omega
+  refine ⟨es, hfit, by rw [hd]; exact hpre, fun r len c' => ?_⟩
+  have hq : ∀ q, off ≤ q → img'.drop q = img.drop q := fun q hq => by
+    have e1 : img'.drop q = (img'.drop off).drop (q - off) := by
+      rw [List.drop_drop]; congr 1; omega
+    have e2 : img.drop q = (img.drop off).drop (q - off) := by
+      rw [List.drop_drop]; congr 1; omega
+    rw [e1, e2, hd]
+  have e : decStep C true img' (off + (recFrames C (chainRecs C c (pendDs Mr es))).length)
+      (crcAfter C c (pendDs Mr es)) = decStep C true img (off + (recFrames C (chainRecs C c
+        (pendDs Mr es))).length) (crcAfter C c (pendDs Mr es)) := by
+    unfold decStep; rw [hq _ (Nat.le_add_right _ _), hlen]
+  rw [e]; exact hst r len c'
+
 /-- **The length word at the write position is zero** (`old`'s 8 bytes from `wr`; zero past `old`;
 `TailCrashPend.lean`, `wal-tc16`). -/
 def LenZ (lay : WalLay) : Prop := ∀ j, j < 8 → lay.old.getD (lay.wr + j) 0 = 0
 
-/-- **A tail registered, not yet zeroed, whose reader stopped at `wr` with `io.EOF`**: nothing written
-past the start's frames (`wr = z0`), the length word there zero (`LenZ`). -/
-def TailPend (lay : WalLay) : Prop := lay.wr = lay.z0 ∧ LenZ lay
+/-- **A pending tail lent to `ZeroToEnd`** (`ReadAll`'s, its reader stopped at `wr` with `io.EOF`, after a
+run of entry records or none: P6 item 2, `notes/wal-p6-handoff.md`): nothing written past the start's
+frames (`wr = z0`), and from `wr` on each byte the segment may leave lies within `old` and reads `old`'s
+byte as of the last sync (a crash image's reader then accepts a prefix of `old`'s pending run and stops,
+`crashTo_tailR`). This is `RepOld` (`Inv.lean`); until P6 it was `wr = z0 ∧ LenZ` (the length word at `wr`
+zero), which a pending run does not have. -/
+def TailPend (lay : WalLay) : Prop :=
+  lay.wr = lay.z0 ∧ ∀ g, lay.segs.getLast? = some g → ∀ b, lay.wr ≤ b → b < (segBytesX g).length →
+    b < lay.old.length ∧ valAt ((segBytesX g).getD b (0, [])).2 0 = lay.old.getD b 0
 
 /-- **The last segment's bytes past the write position are zero-valued** (in a resize window, I3b:
 finding 2, W6 log, sixteenth session; nineteenth session): `cut`'s truncate leaves none past `wr`, a write

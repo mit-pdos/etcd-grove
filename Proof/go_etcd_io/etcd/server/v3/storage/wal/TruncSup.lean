@@ -219,13 +219,16 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · ipureintro
         refine ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK', ?_⟩
         have hR := hZ.rk
-        rcases ok with _ | ⟨k, _ | _⟩
+        rcases ok with _ | ⟨k, p⟩
         · trivial
-        · trivial
-        · rcases hR with hR | hR
-          · exact Or.inl hR
-          · exact Or.inr (repOld_rzLand hs' hR (by rw [hg0om, hg0bs]; exact hlen)
-              (by rw [hg0om, ← hwrl]; exact hwr) (by rw [hg0om]; exact hhi))
+        · have hR' : TailZeros lay ∨ RepOld lay := by cases p <;> exact hR
+          have hG : TailZeros (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) ∨
+              RepOld (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) := by
+            rcases hR' with hR | hR
+            · exact Or.inl hR
+            · exact Or.inr (repOld_rzLand hs' hR (by rw [hg0om, hg0bs]; exact hlen)
+                (by rw [hg0om, ← hwrl]; exact hwr) (by rw [hg0om]; exact hhi))
+          cases p <;> exact hG
       · have hn : (GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino = none := by
           rw [e1]; exact GMap.lookup_delete_eq _ _
         unfold segResF; rw [hn]; dsimp only

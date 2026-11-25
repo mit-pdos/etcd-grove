@@ -132,7 +132,7 @@ theorem walTailKeyL_same (T : GMap GoString GName) (Ls : GMap GoString WalLay) (
     iframe Hk
     iintro %lay' %h
     obtain ⟨ho, hz, hp, hz0, -⟩ := h
-    iapply walLentRes_insert_same (W := W) T Ls dir lay lay' hl ho hz hp hz0
+    iapply walLentRes_insert_same (W := W) T Ls dir lay lay' hl ho hz (fun _ => hp) hz0
       (fun _ _ => Or.inl (hz hZ)) $$ HL
   · rw [walTailKeyL_some]
     iintro Hk HL
@@ -146,7 +146,7 @@ theorem walTailKeyL_same (T : GMap GoString GName) (Ls : GMap GoString WalLay) (
     iframe Hk
     iintro %lay' %h
     obtain ⟨ho, hz, hp, hz0, hr⟩ := h
-    iapply walLentRes_insert_same (W := W) T Ls dir lay lay' hl ho hz hp hz0
+    iapply walLentRes_insert_same (W := W) T Ls dir lay lay' hl ho hz (fun _ => hp) hz0
       (fun _ _ => hr) $$ HL
 
 /-- **The tail's access, the new invariant's pure parts given** (see the file header), by the tail's
@@ -266,9 +266,10 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · iapply HLw
       ipureintro
       exact ⟨rfl, id,
-        (fun hp => hwr'.elim (fun e => Or.inr (by
-          show wr' = lay.z0 ∧ ∀ j, j < 8 → lay.old.getD (wr' + j) 0 = 0
-          rw [e]; exact hp)) Or.inl),
+        (fun _ => match ok, hZ, hR' with
+          | none, hZ, _ => Or.inl hZ
+          | some (_, false), _, hR' => hR'
+          | some (_, true), _, hR' => hR'),
         (fun h => absurd h (by rw [HT]; simp)), hR'⟩
     iframe HTa HL
     isplitr

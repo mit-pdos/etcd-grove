@@ -16,6 +16,7 @@ tail lent (`walLentTokB dir γ k p`) for the key.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailCrashPend
 
 @[expose] public section
 
@@ -55,11 +56,35 @@ theorem TailMetaW.tailMetaZ {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMetaW 
   ⟨h.1, h.2.1, h.2.2.1.pageEnd_size⟩
 
 /-- **The tail after a failed `ZeroToEnd`** (W4c U5, fifth session; `ZeroToEnd.specWalTail`'s error arm):
-all its bytes, no mappings, at least `o0` long, the length word at `o0` zero (nothing changed, a truncate
-announced that did not land, or the truncate landed: no bytes past `o0`, or the growth's zeros). Whether a
-resize window is open is not known. -/
-def TailMetaE (o0 : Nat) (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ o0 ≤ m.size ∧ ∀ j, j < 8 → (bs.getD (o0 + j) (0, [])).1 = 0
+all its bytes, no mappings, at least `o0` long, and the reader, from `o0` at the chain value `c`, accepts
+a run of entry records, then nothing (`PendStop`: nothing changed or a truncate announced that did not
+land, the values `ReadAll`'s reader stopped on; or the truncate landed: no bytes past `o0`, or the
+growth's zeros). Until P6 item 2 the length word at `o0` zero, which a torn `Save`'s pending run does not
+have. Whether a resize window is open is not known. -/
+def TailMetaE [GooseExts] (Mr : WalMarshal) (c : w32) (o0 : Nat) (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
+  bs.length = m.size ∧ m.maps = ∅ ∧ o0 ≤ m.size ∧ PendStop walCodec Mr (bs.map (·.1)) o0 c
+
+/-- `bs.take o0 ++ ys` read from `o0` is `ys`, and the values of `ys` are those of `bs` from `o0` on, or
+all zero: the reader's stop on `bs` at `o0` is kept (`pendStop_congr`, `pendStop_zeroWord`). -/
+theorem pendStop_of_vals [GooseExts] {Mr : WalMarshal} {c : w32} (bs ys : List Fs.ByteG) (o0 : Nat)
+    (ho : o0 ≤ bs.length)
+    (hv : ys.map Prod.fst = (bs.drop o0).map Prod.fst ∨ ∀ y ∈ ys, y.1 = 0)
+    (h : PendStop walCodec Mr (bs.map (·.1)) o0 c) :
+    PendStop walCodec Mr ((bs.take o0 ++ ys).map (·.1)) o0 c := by
+  have hd : ((bs.take o0 ++ ys).map (·.1)).drop o0 = ys.map Prod.fst := by
+    rw [List.map_append, List.drop_append_of_le_length (by simp; omega)]
+    simp [ho]
+  rcases hv with hv | hv
+  · refine pendStop_congr ?_ (by simp; omega) (by simp; omega) h
+    rw [hd, hv, List.map_drop]
+  · apply pendStop_zeroWord
+    intro j _
+    have e := congrArg (fun l => l.getD j 0) hd
+    simp only [List.getD_eq_getElem?_getD, List.getElem?_drop] at e
+    rw [List.getD_eq_getElem?_getD, e, List.getElem?_map]
+    cases hy : ys[j]? with
+    | none => rfl
+    | some y => exact hv y (List.mem_of_getElem? hy)
 
 /-- The length word of the bytes `bs.take o0 ++ ys` at `o0` is `ys`'s first eight values. -/
 theorem lenWord_app_take (bs ys : List Fs.ByteG) (o0 : Nat) (ho : o0 ≤ bs.length) (j : Nat) :
@@ -114,17 +139,17 @@ def walTailP (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
 /-- **The handle's tail after a failed `ZeroToEnd`** (W4c U5, fifth session): `walTailP` with the lent
-token of kind `false` (`ZeroToEnd`'s first step), the file's offset unknown, `TailMetaE o0`. `Close`
+token of kind `false` (`ZeroToEnd`'s first step), the file's offset unknown, `TailMetaE Mr (tailCrc …) o0`. `Close`
 (`WAL.Close.spec` (state `failed`)) syncs it and puts it back. -/
-def walTailPE (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
-    (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 : Nat) (k : Nat) : IProp GF :=
+def walTailPE (Mr : WalMarshal) (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName)
+    (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 : Nat) (k : Nat) : IProp GF :=
   letI := walAllG (W := W)
   iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ (rd : Bool) (lo lk : Option Bool), osFd fd (DFrac.own 1) ⟨i, rd, true, lo, lk⟩ ∗
     fdLocksW fd ⟨i, rd, true, lo, lk⟩) ∗
     (∃ o' : w64, os.ownOff f o') ∗ walLentTokB (W := W) dir γ k false ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-    ⌜0 ≤ fd.toInt ∧ TailMetaE o0 m bs⌝ ∗
+    ⌜0 ≤ fd.toInt ∧ TailMetaE Mr (tailCrc Mr H md cuts) o0 m bs⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0, i, none) : TailG))
 
 end handle

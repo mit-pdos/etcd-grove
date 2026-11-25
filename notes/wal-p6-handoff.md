@@ -208,6 +208,23 @@ tail exact, `TailLast.repOld`), and the generic step of `walInvBody_tailW` (`Tai
 resizes and the sync act on a pending lent tail). `ZeroToEnd.specWalTail`/`walTailP_ofRead` then drop the
 zero-word premise (`TailLast.repOld` instead of `lenZ_of_tailLast`).
 
+**Refined (same session), being implemented:**
+1. `TailPend` := `RepOld`'s formula (done, `Abs.lean`; `tailPend_iff_repOld`). `TailRK (some (_, false))` is
+   now `TailZeros ∨ TailPend` (a lent tail's step must keep it; `TailAccW`'s lent `ZerosOk` proof uses it).
+   `rzStart_pureK` false case = true case (`rzStart_pureR`). Deleted: `WalAbsD.pendVals`,
+   `crashOkA_tailPend` (`TailCrashPend`), `tailPend_tailLay`, `tailCrashStep_rzStartP`, `rzStart_pureP`
+   (`TruncSupPend`).
+2. The failure path (`ZeroToEnd` fails, `Close` syncs: `syncLayP`, `old` := the synced values from `wr`)
+   needs the static `tailStop` of `syncLayP`: a `PendStop` of the handle's values at `wr`. It goes in the
+   handle: `TailMetaE` gets `Mr` and the chain CRC (`tailCrc Mr H md cuts`) and its last conjunct becomes
+   `PendStop walCodec Mr (bs.map (·.1)) o0 c` (was the zero length word); `walTailPE` gets `Mr`.
+   `ZeroToEnd`'s first step derives it from the invariant (exact tail: handle values = `old`; `tailStop`
+   with `z0 = wr = |S|`, or F-Z: zero word); its internal states keep it (`pendStop_congr`: values from
+   `o0` unchanged, or all zero: `decStep_zeroWord`).
+3. `TailSyncLayP`: `hlw` → that `PendStop`; `crashOk_syncP` over `crashTo_tailR` (not `crashTo_tailP`).
+4. `GrowSup`: `TailRK (some (k, false))` for the grown layouts: `RepOld` kept by a growth (new lemmas).
+5. `specWalTail`'s pre drops the zero word; `walTailP_ofRead` drops `hz`; `WAL__ReadAll`'s marker goes.
+
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 
 **Resolved 2026-11-25:** Upamanyu approved the change (#8, 00:38Z). `proto.MarshalPb.spec`'s post now has

@@ -224,6 +224,9 @@ def RepOld (lay : WalLay) : Prop :=
   lay.wr = lay.z0 ∧ ∀ g, lay.segs.getLast? = some g → ∀ b, lay.wr ≤ b → b < (segBytesX g).length →
     b < lay.old.length ∧ valAt ((segBytesX g).getD b (0, [])).2 0 = lay.old.getD b 0
 
+/-- `TailPend` is `RepOld` (P6 item 2). -/
+theorem tailPend_iff_repOld {lay : WalLay} : TailPend lay ↔ RepOld lay := Iff.rfl
+
 /-- **What a step of the tail knows of F-Z** by its right (`walTailKeyL`'s `ok`): F-Z by the key
 (`none`); F-Z or `TailPend` lent (`some (k, false)`: by the key's holder, or a pending tail whose reader
 stopped at `wr`, `walLentRes_pendStop`; `wal-tc17`, finding B); `TailZ0` registered, not yet zeroed
@@ -248,23 +251,24 @@ theorem TailZK.zp {ok : Option (Nat × Bool)} {lay : WalLay} (hok : ∀ k, ok �
   · exact absurd rfl (hok k)
 
 /-- **What a step of a tail registered, not yet zeroed, keeps** (the lent registry's `LentOk`; the W7-W12
-log, thirteenth session): F-Z or `RepOld`; nothing for the other rights. -/
+log, thirteenth session): F-Z or `RepOld`; for a lent one (kind `false`), F-Z or `TailPend` (which is
+`RepOld`, P6 item 2: a lent tail's step must keep it, as a registered one's); nothing for the key. -/
 def TailRK : Option (Nat × Bool) → WalLay → Prop
   | some (_, true), lay => TailZeros lay ∨ RepOld lay
-  | _, _ => True
+  | some (_, false), lay => TailZeros lay ∨ TailPend lay
+  | none, _ => True
 
 theorem TailZK.rk {ok : Option (Nat × Bool)} {lay : WalLay} (h : TailZK ok lay) : TailRK ok lay := by
   rcases ok with _ | ⟨k, _ | _⟩
   · trivial
-  · trivial
+  · exact h
   · exact h.2
 
-theorem TailRK.of_ne {ok : Option (Nat × Bool)} {lay : WalLay} (h : ∀ k, ok ≠ some (k, true)) :
+theorem TailRK.of_ne {ok : Option (Nat × Bool)} {lay : WalLay} (h : ∀ k p, ok ≠ some (k, p)) :
     TailRK ok lay := by
-  rcases ok with _ | ⟨k, _ | _⟩
+  rcases ok with _ | ⟨k, p⟩
   · trivial
-  · trivial
-  · exact absurd rfl (h k)
+  · exact absurd rfl (h k p)
 
 theorem TailZK.z0 {ok : Option (Nat × Bool)} {lay : WalLay} (h : TailZK ok lay) : TailZ0 lay := by
   rcases ok with _ | ⟨k, _ | _⟩
@@ -1058,12 +1062,13 @@ theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString Wal
   iframe Hk
   ipureintro; exact h k x hk
 
-/-- **A layout replaced, its `old` as long, F-Z kept, `TailPend` kept or turned into F-Z** (any step
+/-- **A layout replaced, its `old` as long, F-Z kept, `TailPend` kept or turned into F-Z if registered** (any step
 but a cut and the window's fdatasync), F-Z or `RepOld` kept if registered (`hr`: only a tail
 registered, not yet zeroed, needs it; `walLentRes_insert_sameL` for the other lent ones). -/
 theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
     (lay lay' : WalLay) (hl : Ls !! dir = some lay) (ho : lay'.old.length = lay.old.length)
-    (hz : TailZeros lay → TailZeros lay') (hp : TailPend lay → TailZeros lay' ∨ TailPend lay')
+    (hz : TailZeros lay → TailZeros lay')
+    (hp : T !! dir ≠ none → TailPend lay → TailZeros lay' ∨ TailPend lay')
     (hz0 : T !! dir = none → TailZ0 lay → TailZ0 lay')
     (hr : T !! dir ≠ none → TailZeros lay ∨ RepOld lay → TailZeros lay' ∨ RepOld lay') :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T (<[dir := lay']> Ls) := by
@@ -1076,7 +1081,7 @@ theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString Wal
     · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hk, hkr⟩
   · by_cases e : d = dir
     · subst e; rw [GMap.lookup_insert] at hla'; cases hla'
-      exact ⟨lay, hT, hl, hz, hp⟩
+      exact ⟨lay, hT, hl, hz, hp hT⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla'
       exact ⟨la', hT, hla', id, Or.inr⟩
   · by_cases e : d = dir

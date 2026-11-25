@@ -12,8 +12,9 @@ length, and the token is not turned into the key (no F-Z). `Close` then puts the
 
 * `walLentRes_relend`: a lent tail's layout replaced, F-Z or `TailPend`, the token's `|old|` with it;
 * `walTailsRes_cutPE`: `walTailsRes_cutP` with the token kept (`walLentRes_relend`), F-Z or `TailPend`;
-* `walInvBody_syncPE`: `walInvBody_syncP` from the handle's zero length word at `wr` in place of its
-  zeros from `wr` on, the token kept;
+* `walInvBody_syncPE`: `walInvBody_syncP` from the reader's stop on the handle's values at `wr`
+  (`PendStop`; until P6 item 2 the zero length word there) in place of its zeros from `wr` on, the token
+  kept;
 * `walInv_untailLent`: `walInv_untailPend` for a token of kind `false`.
 -/
 module
@@ -187,7 +188,8 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
         segResF (L := L) F g0 ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗
         ((⌜F !! g0.ino = none ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
             (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧
-            (∀ j, j < 8 → (g0.bs.getD (lay.wr + j) (0, [])).1 = 0)⌝ -∗
+            PendStop C Mr (g0.bs.map (·.1)) lay.wr
+              (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
             walPast (W := W) (walSyncS s dir d) ∗ ∃ k' : Nat, walLentTokB (W := W) dir γ k' false) ∧
@@ -244,12 +246,12 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
       iframe Hdk Hcp
       ipureintro; exact Hdko
     iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
-  iintro ⟨%hF, %htail, %hzf, %hlw⟩ Hseg
+  iintro ⟨%hF, %htail, %hzf, %hpv⟩ Hseg
   icases Htlc with ⟨Htlc, -⟩
   have hmH : d.m ≤ d.H.length := habs.synced.1
   -- the synced layout: `syncLay_any`'s (F-Z), or `syncLayP` (`TailPend`)
   obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLpg, hLZ, hLB, hLW, hLK⟩ :=
-    syncLay_anyE hC HW hd hl hs htail hZP hlw hzf Hdko habs
+    syncLay_anyE hC HW hd hl hs htail hZP hpv hzf Hdko habs
   have e : tailG d Lw (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
     rw [htg]; unfold tailG; rw [hLc, hLw]; rfl
   imod Htlc $$ %Lw %(syncTail g0) %F [] with ⟨Hk, Htlc⟩
