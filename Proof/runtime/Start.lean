@@ -162,7 +162,7 @@ connect clause reworded after the independent review the same day) Two parts:
 address of `As` (a local process can dial `127.0.0.1:p` and send requests,
 `examples/premisefix/foreignconn`). (2026-11-23) Still needed over the net extension: the gRPC and
 HTTP traffic of the programs' models (grpc's `ClientConn`, `http.Transport`) does not go through the
-extension (`grpc.start`, `http.register` rest on `addrClaim` until phase 7's S2/S5), so the extension's
+extension (`Server.Serve`'s axiom, `http.register` rest on `addrClaim` until phase 7's S2/S5), so the extension's
 closed network does not exclude a foreign connection to a gRPC or HTTP listener;
 (b) **what `e` itself does** (a fact of its code, checked against the source): every connection to
 an address of `As` is made by `e`, and its requests are either sent through operations this

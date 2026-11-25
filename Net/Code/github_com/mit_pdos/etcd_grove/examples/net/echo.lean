@@ -28,6 +28,9 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 @[reducible] noncomputable def reqLen [GooseExts] [GoGlobalContext] : val :=
   #(5 : Int)
 
+@[reducible] noncomputable def maxJunk [GooseExts] [GoGlobalContext] : val :=
+  #(16 : Int)
+
 noncomputable def serveConn [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/echo.serveConn"
 
@@ -42,7 +45,7 @@ noncomputable def SendJunk [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- serveConn echoes one request of the connection c, then closes it.
 
-    go: echo.go:29:6 -/
+    go: echo.go:34:6 -/
 noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -68,7 +71,7 @@ noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve listens at SrvAddr, then accepts connections one at a time and echoes
     one request on each. It returns only if it cannot listen.
 
-    go: echo.go:39:6 -/
+    go: echo.go:44:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -120,12 +123,17 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "l") (Var "$r0")))))))))))))
   (Val #())))
 
-/-- Call sends the request "hello" on a new connection and checks the reply.
+/-- Call sends a request of reqLen random bytes on a new connection and checks
+    the reply.
 
-    go: echo.go:54:6 -/
+    go: echo.go:60:6 -/
 noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val reqLen))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomBytes []))) (Val #())) (Var "$a0")))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Val #(go!"tcp"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val SrvAddr))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Dial []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -147,7 +155,7 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))) (Val #())))))
   (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "resp"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "resp"))) (Val #(go!"hello"))))) (Val #false))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "resp"))) (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "req")))))) (Val #false))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"echo: the reply is not the request")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -155,7 +163,7 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "resp") (Var "$r0")))))))))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"hello")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "req"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -184,15 +192,23 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "req") (Var "$r0"))))))))
   (Val #())))
 
-/-- SendJunk sends bytes of its own to the server.
+/-- SendJunk sends bytes of its own to the server, drawn at random, from reqLen
+    to maxJunk of them.
 
-    go: echo.go:71:6 -/
+    go: echo.go:79:6 -/
 noncomputable def SendJunk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val reqLen)) (Let "$a0" (Val #(W64 11))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt []))) (Val #())) (Var "$a0")))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomBytes []))) (Val #())) (Var "$a0")))
+  (Let "junk" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Val #(go!"tcp"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val SrvAddr))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Dial []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -219,7 +235,7 @@ noncomputable def SendJunk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "resp") (Var "$r0")))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"xxxxxxxxxx")))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "junk"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
@@ -229,7 +245,9 @@ noncomputable def SendJunk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "junk") (Var "$r0"))))))))
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.echo where

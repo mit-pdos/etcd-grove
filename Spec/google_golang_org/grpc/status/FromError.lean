@@ -74,7 +74,13 @@ it allocates (`notes/errdesc-ghost-plan.md`). (errdesc stage 2b, 2026-11-21) Lik
 `statusErrOk_descIs` gives some), not the pure `errDesc err`; for an error without a status, the
 `Error()` the precondition's `descIs` makes stable (its `errorMsgIs`, or an `EtcdError`'s `desc`),
 which `FromError` calls during the call (the fromerror-wand reading above), so the former conjunct
-`ok = false → errDesc err = m` is the precondition itself. -/
+`ok = false → errDesc err = m` is the precondition itself.
+(grpc-trusted-T, T3, 2026-11-24; interim, retired by the `status-bodies` stage) An error whose dynamic
+type has `GRPCStatus() *Status` (`hasGRPCStatus`) gives `ok = true`: `FromError`'s type assertion
+`err.(grpcstatus)` succeeds on it, and its `GRPCStatus()` returns the non-nil read-only status
+`statusErrOk` gives (`statusAt`, `s ≠ null`), which `FromError` returns with `true` (grpc v1.84.0
+`status/status.go:96-127`, `models/grpc/status/status.go` `FromError`'s first branch). With the
+conjunct before it, `ok` is now known of every error the precondition admits. -/
 abbrev status.FromError.spec : Prop :=
   ∀ (err : GoInterface) (m : GoString) (c : w32),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
@@ -97,7 +103,9 @@ abbrev status.FromError.spec : Prop :=
         methodSet e.ty !! go!"GRPCStatus" ≠
           some (go.Signature [] false
             [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) →
-        ok = false⌝ }}
+        ok = false⌝ ∗
+      -- (grpc-trusted-T, T3, 2026-11-24) and one with it is a status error
+      ⌜hasGRPCStatus err → ok = true⌝ }}
 
 end spec
 

@@ -1,14 +1,17 @@
 /- Lean-first (no Rocq counterpart).
 
 The proof of `Main`: `CounterClock()` gives a clock (its invariant at `counterClockN`, apart
-from the driver's `lintestN`); `Check(clock, 4, 10, 0)` then answers `Ok` (no timeout), so the
-panic branch is not taken.
+from the driver's `lintestN`); `Check(clock, clients, ops, 0)`, its counts drawn
+below the caps 8 and 32 (within `Run`'s bounds, `randCounts_runBounds`), then answers `Ok` (no
+timeout), so the panic branch is not taken.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
+public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.RandCount
 
 @[expose] public section
 
@@ -43,9 +46,13 @@ theorem Main.wp_proof
     Main.spec (GF := GF) (hG := hG) := by
   intro Hbound
   wp_start as #Hcc
+  wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %r1 _
+  wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %r2 _
   wp_apply wp_CounterClock counterClockN Hbound as %f ⟨%clockVal, #Hclk, Ht0⟩
-  wp_apply wp_Check clockVal (W64 0) ↑counterClockN f (W64 4) (W64 10) (W64 0)
-    lintestN_counterClockN (by decide) (by decide) (by decide) (by decide) $$ [Ht0]
+  have ⟨H0, H31, Hops, Hmul⟩ := randCounts_runBounds r1 r2 8 32 (by decide) (by decide)
+    (by decide) (by decide) (by decide)
+  wp_apply wp_Check clockVal (W64 0) ↑counterClockN f (W64 1 + r1 % W64 8) (W64 1 + r2 % W64 32)
+    (W64 0) lintestN_counterClockN H0 H31 Hops Hmul $$ [Ht0]
     as %r %Hr
   · iframe
     iframe #

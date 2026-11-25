@@ -14,6 +14,8 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Results
+public import Proof.google_golang_org.grpc.InvGrpcRun
 
 @[expose] public section
 
@@ -41,8 +43,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **etcd's server, started for a watch client, given the watch path's server facts and the
 watch condition** (`srvWOk V.W`, `srvOnce V.W`: the store does not compact, watchkv's and
 cachekv's, `client.srvOnce_noCmp`; or no revision writes a key twice, `compactkv`'s; watches across a
-compaction, W4, 2026-11-01); (2026-11-24) with the server listening at the address etcd's
-(`etcdKVSrvAt` at its unary chain, which with the chain's identity is what `etcd_noRefusal_at` takes). -/
+compaction, W4, 2026-11-01). -/
 theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -73,25 +74,29 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
+        ((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr) ∨
+          grpcSrvAtLis gs lis addr [il, im, iu] [ims, is] svcs regs sregs) ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorWOk is (levelTok 0) ∗
         client.srvKVFacts V ∗ client.eofOk ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         v3rpc.srvOnce V.W ⊢
       |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗
-        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ etcdKVSrvAt addr s [il, im, iu] ∗
-        watchAddrFacts V := by
+        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ watchAddrFacts V := by
   haveI := v3rpc.srvWOk_persistent Hp V.W V.R.wsl v3rpc.wsN
-  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp,
+  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hleft, #Hb, #Hrp,
     #Hws, #Hims, #His, #Hnd, #Heof, #HW, #Hon⟩
-  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
-    hregs Hrf hnd hrd HL) $$ [Hgs Hlis Hleft] with ⟨%γ, Htok', #Hss, #Hksa, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
-  · iframe; iframe #
-  imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγm Htb HL hset hwreg) $$ []
-    with #Hst
+  -- (phase 7's switch, SW1) the `Watch` stream's run contract, which the start registers
+  ihave #Hwr := v3rpc.etcd_watch_served_chain pw V.R V.W ims is γr hγm Htb HL hset $$ []
   · rw [hs, hE]
     iframe #
+  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
+    [v3rpc.watchMethod pw V.R V.W] hregs
+    (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact hwreg) (by simp)
+    Hrf hnd hrd HL) $$ [Hgs Hleft] with ⟨Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp, -, -⟩
+  · iframe; iframe #
+  ihave #Hst := BigSepL.bigSepL_singleton.1 $$ Hss
+  try simp only [v3rpc.watchMethod, v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT]
   ihave #Hwl := client.srvWLaws_of_ok V.W V.R.wsl v3rpc.wsN $$ HW
   ihave #Hlaws := client.watchLaws_srv V false γr hWM hWL hH $$ Hwl
   imodintro
@@ -101,8 +106,6 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
   · unfold client.kvRegsAt
     subst hrd
     iframe #
-  isplitr
-  · iexact Hksa
   unfold watchAddrFacts
   rw [hV]
   iframe #

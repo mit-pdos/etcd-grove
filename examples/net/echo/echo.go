@@ -5,7 +5,8 @@
 // request in full, and writes it back.
 //
 // Three nodes, each a process (cmd/server, cmd/client, cmd/junk): the server
-// listens at SrvAddr; the client checks that the reply is its request; the junk
+// listens at SrvAddr; the client sends a request of reqLen random bytes and
+// checks that the reply is its request; the junk
 // node dials the server too and writes bytes of its own. The client's check
 // holds however the reads are split, whatever the junk node sends (a connection
 // carries only its own dialer's bytes) and however often any node crashes (a
@@ -24,6 +25,10 @@ const SrvAddr = "127.0.0.1:7101"
 
 // reqLen is the size of a request.
 const reqLen = 5
+
+// maxJunk is the most bytes the junk node sends (at least reqLen, so that
+// the server, which reads reqLen bytes, replies and moves on).
+const maxJunk = 16
 
 // serveConn echoes one request of the connection c, then closes it.
 func serveConn(c net.Conn) {
@@ -50,30 +55,34 @@ func Serve() {
 	}
 }
 
-// Call sends the request "hello" on a new connection and checks the reply.
+// Call sends a request of reqLen random bytes on a new connection and checks
+// the reply.
 func Call() {
+	req := wire.RandomBytes(reqLen)
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	if _, err := c.Write([]byte("hello")); err != nil {
+	if _, err := c.Write(req); err != nil {
 		c.Close()
 		return
 	}
 	resp := make([]byte, reqLen)
-	if wire.ReadFull(c, resp) && string(resp) != "hello" {
+	if wire.ReadFull(c, resp) && string(resp) != string(req) {
 		panic("echo: the reply is not the request")
 	}
 	c.Close()
 }
 
-// SendJunk sends bytes of its own to the server.
+// SendJunk sends bytes of its own to the server, drawn at random, from reqLen
+// to maxJunk of them.
 func SendJunk() {
+	junk := wire.RandomBytes(reqLen + wire.RandomInt(maxJunk-reqLen))
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	c.Write([]byte("xxxxxxxxxx"))
+	c.Write(junk)
 	resp := make([]byte, 3)
 	wire.ReadFull(c, resp)
 	c.Close()

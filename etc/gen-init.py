@@ -60,6 +60,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
+         # gRPC's robustness driver (notes/library-drivers.md): its two machines' commands
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server',
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -2197,6 +2200,36 @@ translated initializers, two slice literals (`mvccrand.go`), whose slices are ma
            ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
 )
 
+# (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
+# `drvFacts` (`Base.lean`, 2026-11-25; `True` until then): `reached`, a function value, is allocated and
+# stored, and its calls return
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver'] = dict(
+    doc='''Its fact (`drvFacts`, `Base.lean`): its variable `reached`, read-only, holds a function whose calls
+return. Its initializer allocates `reached`, initializes its imports and stores `reached`'s function value.''',
+    alloc_types={'reached': 'GoFunc'},
+    before={'reached': ['try wp_auto']},
+    finish=['ipersist Hreached',
+            'iframe Hown', 'is_pkg_init_finish', 'try imodintro',
+            'isplitr', '· ipureintro; exact isPanic_intoVal _',
+            'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts',
+            'try imodintro', 'try imodintro',
+            'iexists _', 'iframe Hreached', 'imodintro', 'iintro %s', 'wp_auto', 'ipureintro; rfl'])
+# (grpcdriver server, 2026-11-25) its fact `drvDescs` (`svc/Base.lean`): the descriptor's fields, its
+# methods and streams exactly, as etcdserverpb's
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc'] = dict(
+    doc='''Its fact (`drvDescs`, `svc/Base.lean`): its service descriptor `Driver_ServiceDesc`, read-only, with
+its methods and streams exactly. Its initializer allocates and sets the descriptor (a `grpc.ServiceDesc`
+literal) and initializes its imports.''',
+    alloc_types={'Driver_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
+    finish=['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pm ⟨Sm, -⟩; wp_auto',
+            'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %ps ⟨Ss, -⟩; wp_auto',
+            'ipersist Sm', 'ipersist Ss', 'ipersist HDriver_ServiceDesc',
+            'iStructNamed HDriver_ServiceDesc', 'iframe Hown', 'is_pkg_init_finish'] +
+           ['try imodintro', 'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.drvDescs go_etcd_io.etcd.cache.v3.pbDescIs',
+            'iframe #',
+            'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
+            'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩'])
+
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
 descriptors (`KV_ServiceDesc`, ...: `grpc.ServiceDesc` literals), initializes its imports and
@@ -2776,7 +2809,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 # `ErrGRPCNotSupportedForLearner`, whose fact says its value is a pointer (`errors.IsPointerError`,
 # `ptr`: from the spec's dynamic type and pointer value).
 def status_steps(x, desc=None, ptr=False):
-    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
+    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
              f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
@@ -5516,6 +5549,11 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
 # distributed theorem (notes/putget-dist-plan.md)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
+# (grpcdriver, 2026-11-24) gRPC's robustness driver's two commands (each machine's boot program runs its
+# command's initializer), for grpcdriver_robust
+for _c in ['server', 'client']:
+    PROGRAMS[f'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.{_c}'] = \
+        f'Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/cmd/{_c}/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
@@ -5942,7 +5980,8 @@ NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
             'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
-            'shutdown': ['node'], 'rpcdriver': ['server', 'client']}
+            'shutdown': ['node'], 'rpcdriver': ['server', 'client'],
+            'httpdriver': ['server', 'client']}
 # (2026-11-24) net/rpc's driver (notes/library-drivers.md): its package and its service's
 NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver',
              'github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service']
@@ -5958,6 +5997,14 @@ and net/http's by their interim axioms, `Net/Proof/net/{rpc,http}/Init.lean`) an
                          'wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"]));'
                          ' isplitr; (· ipureintro; rfl); iintro %sf -',
                          'try wp_auto']})
+# (2026-11-24) net/http's driver (notes/library-drivers.md): its fact is `True`; its one variable,
+# `reached`, a function value, is allocated and stored
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.httpdriver']
+NET_SPECIAL['github_com.mit_pdos.etcd_grove.examples.net.httpdriver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variable, initializes its imports (net/http's by
+its interim axiom, `Net/Proof/net/http/Init.lean`) and stores `reached`'s function value.''',
+    alloc_types=_ALLOC_ANY,
+    before={'reached': ['try wp_auto']})
 # (rpc-driver, 2026-11-24) The part's packages whose `wp_initialize'` is an interim trust-boundary
 # axiom (`Net/Proof/<pkg>/Init.lean`, hand-written; its fact in `PkgInit.lean`): net/rpc's and
 # net/http's models, whose closures reach initializers not translated (retired by L2 step 6,

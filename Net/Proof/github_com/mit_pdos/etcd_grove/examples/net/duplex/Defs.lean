@@ -24,7 +24,7 @@ the per-address protocol (`wire/Addr.lean`) and the per-direction stream protoco
 * **The client's end** (`cliInv cn γ γw`, an invariant the client allocates after its dial,
   `cliInv_alloc`): the dialer end's state, shared by the writer goroutine and the reader (the main
   thread, which also closes it), and the up-direction's writer's half: the bytes written are the
-  first `w` of 1, 2, 3, 4 (`dseq`), `w` mirrored by the ghost variable `γw` whose other half is the
+  first `w` of 1, 2, ..., n (`dseq n`, `n` the client's random count), `w` mirrored by the ghost variable `γw` whose other half is the
   writer's, updated at each step of the writer's `Write`s (`cli_write_au`, the writer
   predicate `cliWP` and its accessor `cli_write_acc`). The server's `Write`s go the same way
   (`server_write_au` per step, `srvP`, `srv_write_acc`). The reader's half of the down-direction
@@ -32,7 +32,7 @@ the per-address protocol (`wire/Addr.lean`) and the per-direction stream protoco
 
 The client's check (`client_check`): what the client read (`sentLb γ.down`, from its reads) is a
 prefix of what the server wrote (`sentAll γ.down W`), a prefix of what the server read
-(`sentLb γ.up R`), a prefix of what the client wrote (`sentAll γ.up`), a prefix of `dseq`: the byte
+(`sentLb γ.up R`), a prefix of what the client wrote (`sentAll γ.up`), a prefix of `dseq n`: the byte
 read at position `i - 1` is `i`.
 -/
 module
@@ -57,8 +57,10 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.duplex
 /-- The server's address, as a Go string. -/
 abbrev srvAddr : GoString := go!"127.0.0.1:7104"
 
-/-- The bytes the client writes, in order. -/
-abbrev dseq : List w8 := [W8 1, W8 2, W8 3, W8 4]
+/-- The bytes the client writes, in order, when it writes `n` of them: `1, 2, ..., n`. -/
+def dseq : Nat → List w8
+  | 0 => []
+  | n + 1 => dseq n ++ [W8 (n + 1)]
 
 def addrN : Namespace := nroot.@"duplex_addr"
 def srvN : Namespace := nroot.@"duplex_conns"
@@ -84,28 +86,35 @@ instance DupNames.countable : Pos.Countable DupNames :=
 
 /-! ## Pure facts -/
 
-theorem dseq_take_succ (i : Nat) (hi : i < 4) :
-    dseq.take i ++ [W8 (i + 1)] = dseq.take (i + 1) := by
-  match i, hi with
-  | 0, _ => rfl
-  | 1, _ => rfl
-  | 2, _ => rfl
-  | 3, _ => rfl
+@[simp] theorem dseq_length (n : Nat) : (dseq n).length = n := by
+  induction n with
+  | zero => rfl
+  | succ n ih => simp [dseq, ih]
 
-/-- The bytes read so far, `j + 1` of them a prefix of `dseq`: the last is `j + 1`. -/
-theorem dseq_last (R got : List w8) (j : Nat) (hj : j < 4) (hR : R.length = j)
-    (hg : got.length = 1) (hp : R ++ got <+: dseq) : got = [W8 (j + 1)] := by
+theorem dseq_take (n m : Nat) (h : m ≤ n) : (dseq n).take m = dseq m := by
+  induction n with
+  | zero => obtain rfl : m = 0 := by omega
+            rfl
+  | succ n ih =>
+    rcases Nat.lt_or_ge m (n + 1) with hm | hm
+    · rw [dseq, List.take_append_of_le_length (by simp; omega), ih (by omega)]
+    · obtain rfl : m = n + 1 := by omega
+      exact List.take_of_length_le (by simp)
+
+theorem dseq_take_succ (n i : Nat) (hi : i < n) :
+    (dseq n).take i ++ [W8 (i + 1)] = (dseq n).take (i + 1) := by
+  rw [dseq_take n i (by omega), dseq_take n (i + 1) hi]
+  rfl
+
+/-- The bytes read so far, `j + 1` of them a prefix of `dseq n`: the last is `j + 1`. -/
+theorem dseq_last (n : Nat) (R got : List w8) (j : Nat) (hj : j < n) (hR : R.length = j)
+    (hg : got.length = 1) (hp : R ++ got <+: dseq n) : got = [W8 (j + 1)] := by
   have hlen : (R ++ got).length = j + 1 := by simp [hR, hg]
-  have ht : R ++ got = dseq.take (j + 1) := by
+  have ht : R ++ got = dseq (j + 1) := by
     have := List.prefix_iff_eq_take.1 hp
-    rw [hlen] at this; exact this
+    rw [hlen, dseq_take n (j + 1) hj] at this; exact this
   have hd : got = (R ++ got).drop j := by rw [List.drop_left' hR]
-  rw [hd, ht]
-  match j, hj with
-  | 0, _ => rfl
-  | 1, _ => rfl
-  | 2, _ => rfl
-  | 3, _ => rfl
+  rw [hd, ht, dseq, List.drop_left' (dseq_length j)]
 
 section defs
 variable {GF : BundledGFunctors}
@@ -187,13 +196,13 @@ theorem dupInvs_elim (γm : GName) :
       inv srvN (srvState (Gg := Gg) γm) := .rfl
 
 /-- The client's end of `cn` (names `γ`): its state, and the up-direction's written bytes, the
-first `w` of `dseq` (`γw`). -/
-def cliInv (cn : Nat) (γ : DupNames) (γw : GName) : IProp GF :=
-  iprop(∃ (st : NetEnd) (w : Nat), netEnd G cn false st ∗ sentAll (Gg := Gg) γ.up (dseq.take w) ∗
+first `w` of `dseq n` (`γw`). -/
+def cliInv (n cn : Nat) (γ : DupNames) (γw : GName) : IProp GF :=
+  iprop(∃ (st : NetEnd) (w : Nat), netEnd G cn false st ∗ sentAll (Gg := Gg) γ.up ((dseq n).take w) ∗
     half G γw w)
 
-instance cliInv_timeless (cn : Nat) (γ : DupNames) (γw : GName) :
-    Timeless (cliInv (Gg := Gg) cn γ γw) := by
+instance cliInv_timeless (n cn : Nat) (γ : DupNames) (γw : GName) :
+    Timeless (cliInv (Gg := Gg) n cn γ γw) := by
   unfold cliInv; infer_instance
 
 /-- The reader's predicate of `wire.ReadFull` on the client's end: the bytes `got` this call has
@@ -456,12 +465,12 @@ theorem srv_write_acc (γm : GName) (cn : Nat) (γ : DupNames) (R bs : List w8) 
   iframe Hend Hh
 
 /-- The client's end, put in its invariant after the dial: nothing written. -/
-theorem cliInv_alloc (cn : Nat) (γ : DupNames) :
+theorem cliInv_alloc (n : Nat) (cn : Nat) (γ : DupNames) :
     netEnd (G (Gg := Gg)) cn false NetEnd.fresh -∗ sentAll (Gg := Gg) γ.up [] ={⊤}=∗
-      ∃ γw, inv cliN (cliInv cn γ γw) ∗ half G γw (0 : Nat) := by
+      ∃ γw, inv cliN (cliInv n cn γ γw) ∗ half G γw (0 : Nat) := by
   iintro Hend Hw
   imod half_alloc (Gg := Gg) (0 : Nat) with ⟨%γw, Hw1, Hw2⟩
-  imod inv_alloc cliN ⊤ (cliInv (Gg := Gg) cn γ γw) $$ [Hend Hw Hw1] with #Hinv
+  imod inv_alloc cliN ⊤ (cliInv (Gg := Gg) n cn γ γw) $$ [Hend Hw Hw1] with #Hinv
   · inext
     unfold cliInv
     iexists NetEnd.fresh, 0
@@ -473,8 +482,8 @@ theorem cliInv_alloc (cn : Nat) (γ : DupNames) :
 
 /-- The reader's accessor of the client's end (`wire.ReadFull`'s), for `cliP`: the end's state
 from the client's invariant, the down-direction from the connection's. -/
-theorem cli_read_acc (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
-    ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn true γ.down) -∗
+theorem cli_read_acc (n : Nat) (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
+    ⊢ inv cliN (cliInv (Gg := Gg) n cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn true γ.down) -∗
       □ (∀ (got : List w8) (m : Nat), cliP γ R0 got -∗
         |={⊤,∅}=> ∃ st d, netEnd G cn false st ∗ netDir G cn true d ∗
           ∀ r d', ⌜ReadOutcome st d m r d'⌝ -∗ netEnd G cn false st -∗
@@ -521,19 +530,19 @@ theorem cli_read_acc (cn : Nat) (γ : DupNames) (γw : GName) (R0 : List w8) :
   rw [List.append_assoc]
   iframe Hr Hlb
 
-/-- A step of a write after the first `i` bytes of `dseq` of bytes `rs` that continue them: the
+/-- A step of a write after the first `i` bytes of `dseq n` of bytes `rs` that continue them: the
 bytes written are then the first `i + |rs.take k|`. -/
-theorem dseq_take_app (i k : Nat) (rs : List w8) (hi : i ≤ 4) (h : dseq.take i ++ rs <+: dseq) :
-    dseq.take i ++ rs.take k = dseq.take (i + (rs.take k).length) := by
-  have hp : dseq.take i ++ rs.take k <+: dseq :=
+theorem dseq_take_app (n : Nat) (i k : Nat) (rs : List w8) (hi : i ≤ n) (h : (dseq n).take i ++ rs <+: (dseq n)) :
+    (dseq n).take i ++ rs.take k = (dseq n).take (i + (rs.take k).length) := by
+  have hp : (dseq n).take i ++ rs.take k <+: (dseq n) :=
     ((List.prefix_append_right_inj _).2 (List.take_prefix k rs)).trans h
   rw [List.prefix_iff_eq_take.1 hp, List.length_append, List.length_take_of_le (by simpa using hi)]
 
-/-- A step of the writer's `Write`, after the first `i` of `dseq`, of bytes `rs` that continue
+/-- A step of the writer's `Write`, after the first `i` of `dseq n`, of bytes `rs` that continue
 them: the bytes written are then the first `i + |rs.take k|`. -/
-theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (rs : List w8) (hi : i ≤ 4)
-    (hrs : dseq.take i ++ rs <+: dseq) :
-    ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
+theorem cli_write_au (n : Nat) (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (rs : List w8) (hi : i ≤ n)
+    (hrs : (dseq n).take i ++ rs <+: (dseq n)) :
+    ⊢ inv cliN (cliInv (Gg := Gg) n cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
       half G γw i -∗
       |={⊤,∅}=> ∃ st d, netEnd G cn false st ∗ netDir G cn false d ∗
         ∀ k ok d', ⌜WriteOutcome st d rs k ok d'⌝ -∗ netEnd G cn false st -∗
@@ -554,13 +563,13 @@ theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (rs : Li
   iframe Hend Hd
   iintro %k %ok %d' %Hwr Hend Hd
   imod Hmask
-  imod wire.sentAll_app γ.up W (dseq.take i) (rs.take k) $$ Hwa Hw with ⟨%Heq, Hwa, Hw⟩
+  imod wire.sentAll_app γ.up W ((dseq n).take i) (rs.take k) $$ Hwa Hw with ⟨%Heq, Hwa, Hw⟩
   subst Heq
   imod half_update (Gg := Gg) γw i i (i + (rs.take k).length) $$ Hwh Hwh' with ⟨Hwh, Hwh'⟩
-  have htk := dseq_take_app i k rs hi hrs
+  have htk := dseq_take_app n i k rs hi hrs
   imod Hclose' $$ [Hd Hwa Hr] with -
   · inext
-    iexists d', dseq.take i ++ rs.take k, R
+    iexists d', (dseq n).take i ++ rs.take k, R
     iframe Hd Hwa Hr
     ipureintro; exact Net.dirOk_write Hok Hwr
   imod Hclose $$ [Hend Hw Hwh'] with -
@@ -572,14 +581,14 @@ theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (rs : Li
   iframe Hwh
 
 /-- The writer goroutine's writer predicate of `net.Conn.Write.spec`, for its `Write` of the byte
-`j + 1` after the first `j` of `dseq`: the bytes written, `j` and this call's `w`. -/
+`j + 1` after the first `j` of `dseq n`: the bytes written, `j` and this call's `w`. -/
 def cliWP (γw : GName) (j : Nat) (w : List w8) (_res : Option NetErr) : IProp GF :=
   half G γw (j + w.length)
 
 /-- The writer goroutine's accessor of `net.Conn.Write.spec` for `cliWP`: each step by
 `cli_write_au`. -/
-theorem cli_write_acc (cn : Nat) (γ : DupNames) (γw : GName) (j : Nat) (hj : j < 4) :
-    ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
+theorem cli_write_acc (n : Nat) (cn : Nat) (γ : DupNames) (γw : GName) (j : Nat) (hj : j < n) :
+    ⊢ inv cliN (cliInv (Gg := Gg) n cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
       □ (∀ (w rs : List w8), ⌜w ++ rs = [W8 (j + 1)]⌝ -∗ cliWP γw j w none -∗
         |={⊤,∅}=> ∃ st d, netEnd G cn false st ∗ netDir G cn false d ∗
           ∀ k res d', ⌜WriteOutcome st d rs k res d'⌝ -∗ netEnd G cn false st -∗
@@ -591,15 +600,15 @@ theorem cli_write_acc (cn : Nat) (γ : DupNames) (γw : GName) (j : Nat) (hj : j
     have := congrArg List.length Hw
     simp only [List.length_append, List.length_singleton] at this
     omega
-  have hrs : dseq.take (j + w.length) ++ rs <+: dseq := by
+  have hrs : (dseq n).take (j + w.length) ++ rs <+: (dseq n) := by
     rcases List.append_eq_singleton_iff.1 Hw with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · simp only [List.length_nil, Nat.add_zero]
-      rw [dseq_take_succ j hj]
+      rw [dseq_take_succ n j hj]
       exact List.take_prefix _ _
     · simp only [List.length_singleton, List.append_nil]
       exact List.take_prefix _ _
   unfold cliWP
-  imod cli_write_au cn γ γw (j + w.length) rs (by omega) hrs $$ Hcli Hdir HP
+  imod cli_write_au n cn γ γw (j + w.length) rs (by omega) hrs $$ Hcli Hdir HP
     with ⟨%st, %d, Hend, Hd, Hk⟩
   imodintro
   iexists st, d
@@ -611,8 +620,8 @@ theorem cli_write_acc (cn : Nat) (γ : DupNames) (γw : GName) (j : Nat) (hj : j
   iexact Hwh
 
 /-- A close of the client's end, by the reader (the writer may still be writing). -/
-theorem cli_close_au (cn : Nat) (γ : DupNames) (γw : GName) :
-    ⊢ inv cliN (cliInv (Gg := Gg) cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
+theorem cli_close_au (n : Nat) (cn : Nat) (γ : DupNames) (γw : GName) :
+    ⊢ inv cliN (cliInv (Gg := Gg) n cn γ γw) -∗ inv srvN (dirInv (Gg := Gg) cn false γ.up) -∗
       |={⊤,∅}=> ∃ st d, netEnd G cn false st ∗ netDir G cn false d ∗
         ∀ ok st' d', ⌜CloseOutcome st d ok st' d'⌝ -∗ netEnd G cn false st' -∗
           netDir G cn false d' ={∅,⊤}=∗ True := by
@@ -643,10 +652,10 @@ theorem cli_close_au (cn : Nat) (γ : DupNames) (γw : GName) :
   itrivial
 
 /-- The client's check: what it read (`resp`) is a prefix of the server's bytes, of what the
-server read, of what the client wrote: of `dseq`. -/
-theorem client_check (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName) (resp : List w8) :
-    ⊢ inv srvN (srvState (Gg := Gg) γm) -∗ srvName γm cn γ -∗ inv cliN (cliInv cn γ γw) -∗
-      sentLb (Gg := Gg) γ.down resp ={⊤}=∗ ⌜resp <+: dseq⌝ := by
+server read, of what the client wrote: of `dseq n`. -/
+theorem client_check (n : Nat) (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName) (resp : List w8) :
+    ⊢ inv srvN (srvState (Gg := Gg) γm) -∗ srvName γm cn γ -∗ inv cliN (cliInv n cn γ γw) -∗
+      sentLb (Gg := Gg) γ.down resp ={⊤}=∗ ⌜resp <+: (dseq n)⌝ := by
   iintro #Hinv #Hname #Hcli #Hresp
   iinv Hinv with Hi Hclose
   imod Hi
@@ -660,7 +669,7 @@ theorem client_check (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName) (res
   · exact ndot_mask nroot "duplex_client" "duplex_conns" (by decide)
   unfold cliInv
   icases Hj with ⟨%st, %w, >Hend, >Hw, >Hwh⟩
-  icases wire.sentLb_prefix γ.up (dseq.take w) Rs $$ Hw HRs with %HRw
+  icases wire.sentLb_prefix γ.up ((dseq n).take w) Rs $$ Hw HRs with %HRw
   imod Hclose' $$ [Hend Hw Hwh] with -
   · inext
     iexists st, w
@@ -674,7 +683,7 @@ theorem client_check (γm : GName) (cn : Nat) (γ : DupNames) (γw : GName) (res
     ipureintro; exact HWs
   imodintro
   ipureintro
-  exact Hrs.trans (HWs.trans (HRw.trans (List.take_prefix w dseq)))
+  exact Hrs.trans (HWs.trans (HRw.trans (List.take_prefix w (dseq n))))
 
 /-- The protocol's invariants on a fresh network, from `srvAddr`'s pending set (empty). -/
 theorem dupInvs_alloc :

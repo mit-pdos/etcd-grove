@@ -61,6 +61,18 @@ structure LeaseGrantRespM where
 structure LeaseRevokeRespM where
   hdr : HdrM
 
+instance LeaseGrantRespM.msgCountable : Pos.Countable LeaseGrantRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.id, r.ttl, r.err))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance LeaseRevokeRespM.msgCountable : Pos.Countable LeaseRevokeRespM :=
+  .ofInjective (fun r => Pos.Countable.encode r.hdr)
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
 end model
 
 section defs

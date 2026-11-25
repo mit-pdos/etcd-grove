@@ -12,8 +12,9 @@
 // listens at SrvAddr and serves each connection in turn: it sets a deadline,
 // reads a 4-byte preface, closes the connection if the preface is not Magic (no
 // panic: junk connections happen), and otherwise clears the deadline and echoes
-// a 1-byte request; the client writes Magic, then a 1-byte request, and checks
-// that the reply is its request; the junk node writes half a preface and waits.
+// a 1-byte request; the client writes Magic, then a 1-byte request drawn at
+// random, and checks that the reply is its request; the junk node writes fewer
+// bytes than a preface (0 to 3, drawn at random) and waits.
 // The client's check holds because its bytes arrive in order and intact on its
 // own connection, so the byte the server reads after the preface is the
 // client's request. A failure with a deadline set may be a timeout of a live
@@ -71,9 +72,10 @@ func Serve() {
 	}
 }
 
-// Call writes the preface and the request 42 on a new connection and checks
-// the reply.
+// Call writes the preface and a random 1-byte request on a new connection and
+// checks the reply.
 func Call() {
+	req := wire.RandomBytes(1)
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
@@ -82,8 +84,6 @@ func Call() {
 		c.Close()
 		return
 	}
-	req := make([]byte, 1)
-	req[0] = 42
 	if _, err := c.Write(req); err != nil {
 		c.Close()
 		return
@@ -95,14 +95,15 @@ func Call() {
 	c.Close()
 }
 
-// SendJunk writes half a preface, then waits for a reply (the server's
-// deadline makes it give up and close the connection).
+// SendJunk writes fewer bytes than a preface, drawn at random, then waits for a
+// reply (the server's deadline makes it give up and close the connection).
 func SendJunk() {
+	junk := wire.RandomBytes(wire.RandomInt(prefaceLen - 1))
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	c.Write([]byte("PR"))
+	c.Write(junk)
 	resp := make([]byte, 1)
 	wire.ReadFull(c, resp)
 	c.Close()

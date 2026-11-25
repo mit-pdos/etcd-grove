@@ -11,15 +11,16 @@ The proofs of `examples/net/halfclose`'s functions, over the specs of `net` and 
   (`hc_close_au`).
 * `Serve`: `Listen` (of the plan's own address at the node's host, `listenAt_self`), then the
   accept loop (`wire.accept_lis_au`: each accepted connection's protocol, an abandoned dial's too).
-* `Call`: the dial (`dial_both_au`, the deposits `hc_deposit` and, for an abandoned connection,
-  `hc_deposit_ab`), the write of `"hello"`, a loop of steps (`client_write_acc`: each step's bytes
-  extend a prefix of `"hello"`; a failing step's error ends the call), the shutdown of the write side (`hc_closeWrite_au`), `readAll`
-  (`client_read_acc`), and the check: the response is a prefix of `"hello"` (`client_check`), so
-  `prefixOf` returns `true` and the panic is unreachable.
+* `Call`: the request `rq`, 0 to 255 random bytes (`wire.RandomInt`, `wire.RandomBytes`), the dial
+  (`dial_both_au`, the deposits `hc_deposit` and, for an abandoned connection, `hc_deposit_ab`),
+  the write of `rq`, a loop of steps (`client_write_acc`: each step's bytes extend what it wrote; a
+  failing step's error ends the call, and success means all of `rq` written), the shutdown of the
+  write side (`hc_closeWrite_au`), `readAll` (`client_read_acc`), and the check: the response is a
+  prefix of what the client wrote, `rq` (`client_check`), so `prefixOf` returns `true` and the
+  panic is unreachable.
 * `eof_init`: `io.EOF`'s value, from the package's initialization (what the commands' `main`s,
   `cmd/{server,client}/Main.lean`, pass to `Serve` and `Call`); `poll.ErrDeadlineExceeded`'s, which
-  the `Read` and `Write` specs name, from `internal/poll`'s package fact (`wire.ed_of_poll`; the
-  package imports `net`, not `wire`).
+  the `Read` and `Write` specs name, from `internal/poll`'s package fact (`wire.ed_of_poll`).
 
 A failure's error is an `*OpError` (`net.resErr`, of any kind, D14), never `nil` and never `io.EOF`
 (`net.resErr_netErr`): the code's `err != nil` and `err == io.EOF` tests need nothing more.
@@ -27,6 +28,8 @@ A failure's error is an `*OpError` (`net.resErr`, of any kind, D14), never `nil`
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.Defs
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomBytes
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
@@ -309,10 +312,11 @@ theorem wp_prefixOf (a b : GoSlice) (xs ys : List w8) (dqa dqb : DFrac) :
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
 state's, the same up to unfolding). -/
-theorem client_check' (γm : GName) (cn : Nat) (ns : HcNames) (R : List w8) :
+theorem client_check' (γm : GName) (cn : Nat) (ns : HcNames) (W R : List w8) :
     ⊢ inv hcN (hcState (Gg := hG.goose_globalGS) γm) -∗ hcName (Gg := hG.goose_globalGS) γm cn ns -∗
-      rcvdAll (Gg := hG.goose_globalGS) ns.d R ={⊤}=∗ ⌜R <+: hello⌝ ∗ rcvdAll ns.d R :=
-  client_check γm cn ns R
+      sentAll (Gg := hG.goose_globalGS) ns.u W -∗ rcvdAll (Gg := hG.goose_globalGS) ns.d R ={⊤}=∗
+      ⌜R <+: W⌝ ∗ sentAll ns.u W ∗ rcvdAll ns.d R :=
+  client_check γm cn ns W R
 
 theorem wp_serveConn
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
@@ -438,6 +442,8 @@ theorem wp_Serve
     itrivial
 
 theorem wp_Call
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
+    (wp_RandomBytes : wire.RandomBytes.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -453,6 +459,12 @@ theorem wp_Call
   ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
   · iPkgInit
   icases wire.ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
+  (try wp_auto)
+  wp_apply wp_RandomInt (W64 255) as %k %Hk
+  · ipureintro; decide
+  (try wp_auto)
+  wp_apply wp_RandomBytes k as %req ⟨%rq, Hreq, -⟩
+  · ipureintro; exact Hk.1
   (try wp_auto)
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => clientProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcp⟩ | ⟨-, %xa, #Hxa, HE⟩)
@@ -471,18 +483,16 @@ theorem wp_Call
     unfold clientProto
     icases Hcp with ⟨%ns, Hend, Hw, Hr, #Hname⟩
     wp_auto
-    wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
-    (try wp_auto)
-    ihave #Hwacc := client_write_acc γm cn ns NetEnd.fresh $$ [HhcInv Hname]
+    ihave #Hwacc := client_write_acc γm cn ns NetEnd.fresh rq $$ [HhcInv Hname]
     · iframe HhcInv Hname
-    wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
-        (fun w _ => cliW ns cn NetEnd.fresh w) $$ [Hsl Hend Hw]
-      as %n %err ⟨%w, %res, HW, Hsl, -, HE⟩
-    · iframe Hca Hsl Hed Hwacc
+    wp_apply wp_Write t cn false srvAddr la ra req rq (DFrac.own 1) ed
+        (fun w _ => cliW ns cn NetEnd.fresh w) $$ [Hreq Hend Hw]
+      as %n %err ⟨%w, %res, HW, Hsl, %Hwp, HE⟩
+    · iframe Hca Hreq Hed Hwacc
       unfold cliW
       iframe Hend Hw
     unfold cliW
-    icases HW with ⟨Hend, -⟩
+    icases HW with ⟨Hend, Hw⟩
     icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Herr
     cases res
     case some e =>
@@ -497,6 +507,9 @@ theorem wp_Call
       iapply HΦ
       itrivial
     rw [Herr.1 rfl]
+    obtain ⟨-, -, Hall, -⟩ := Hwp
+    have hw := Hall rfl
+    subst w
     wp_auto
     -- shut the write side
     wp_apply wp_CloseWrite t cn false srvAddr la ra (fun _ => netEnd G cn false NetEnd.fresh)
@@ -539,8 +552,8 @@ theorem wp_Call
       iexact Hacc
     unfold cliP
     icases HP with ⟨Hend, Hr⟩
-    -- the response is a prefix of `"hello"`
-    imod client_check' γm cn ns data $$ HhcInv Hname Hr with ⟨%Hpre, Hr⟩
+    -- the response is a prefix of the request
+    imod client_check' γm cn ns rq data $$ HhcInv Hname Hw Hr with ⟨%Hpre, Hw, Hr⟩
     cases ok
     · -- an error: close
       wp_auto
@@ -553,11 +566,9 @@ theorem wp_Call
       itrivial
     · -- EOF: `prefixOf` holds, no panic
       wp_auto
-      wp_apply wp_string_to_bytes with %hsl ⟨Hhsl, -⟩
-      (try wp_auto)
-      wp_apply wp_prefixOf rsl hsl data hello (DFrac.own 1) (DFrac.own 1) $$ [Hd Hhsl]
-        as %b ⟨Hd, Hhsl, %Hb⟩
-      · iframe Hd Hhsl
+      wp_apply wp_prefixOf rsl req data rq (DFrac.own 1) (DFrac.own 1) $$ [Hd Hsl]
+        as %b ⟨Hd, Hsl, %Hb⟩
+      · iframe Hd Hsl
       rw [Hb.2 Hpre]
       wp_auto
       wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
