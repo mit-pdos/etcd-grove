@@ -25,6 +25,36 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: filePipeline (newFilePipeline, Close, run, alloc), WAL.renameWAL, WAL.sync.specIdle(F) -- fix B's key lookup needs a share of the incarnations the pipeline and the idle syncs do not hold
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{newFilePipeline,filePipeline__Close,filePipeline__run,
+  filePipeline__alloc,WAL__renameWAL,WAL__syncIdle,WAL__syncIdleF}.lean` and the predicates they name
+  (`Proof/.../wal/Pipe.lean`: `pipeRes`, `pipeLeft`, `isFilePipe`; `RenameWALOk`). Internal; no `SpecPlan/`
+  counterpart.
+- **Defect.** Fix B (the entry below: `walDirKey dir i j X`, keyed by `(dir, i)`) makes a key lookup
+  conditional on the incarnation being current, which the holder shows with a share of `WalGS.γI`. Two holders
+  have none (P6b session 11, fix B subagent): the pipeline's goroutine (`run`/`alloc` step on the pipeline
+  names through `walTmp_osAUnc`, concurrently with the handle, so it cannot borrow the lock's quarter), and
+  `WAL.sync.specIdle`/`specIdleF` (their callers hold the lock's quarter, the specs do not take it).
+- **Evidence.** `TmpAu.lean` `walInvBody_tmpAcc` (the lookup); `TailSyncIdle.lean`, `TailFsyncIdle.lean`.
+- **Proposed change (option (a) of the session-11 handoff).** (1) The pipeline family holds an eighth of `γI`:
+  `pipeRes R dir dq j` gains `walPipeKey dir j := ∃ I X, ghostVar γI ⅛ I ∗ walDirKey dir (incOf I dir) j X`
+  (so `pipeLeft` returns it at `filePipeline.Close`); `isFilePipe` and `newFilePipeline`'s pre keep the WAL
+  invariant but no longer a key (it is in `pipeRes`); `RenameWALOk`'s spine law returns `walPipeKey dir J` in
+  place of `walDirKey dir J X`. The texts of `filePipeline.Close`/`run`/`alloc` are unchanged; their meaning
+  changes through `pipeRes`/`pipeLeft`. Where the eighth comes from: `γI` is split `walGhostI` ¼, the keys'
+  authority ⅛, the parked pipeline reserve ⅛, the views' ¼ (`walIncQ`), the lock's ¼. The reserve is held by
+  the parked pipeline names (`walTmpParked0 Ls T`, when `T = []`) and goes out with them: a write-mode `Open`
+  (`walParked_takeTmps`) and `Create`'s commit (`WalOut.create`) take it with the directory's pipeline names,
+  `Close`'s put-back (`delTmp`) returns it, so it is in the invariant whenever the lock is free (`walUnlockedTok`
+  holds `walOutFrag WalOut.empty`) and the discard can gather all of `γI`. (2) `WAL.sync.specIdle`/`specIdleF`
+  take `walIncQ I ∗ ⌜incOf I dir = i⌝` in the pre and return it in the post. (3) As approved below: `walDirKey
+  dir i j X`; `renameWAL`, `newFilePipeline`, `syncIdle(F)` name the key at the incarnation.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 12 brief: option (a), the pipeline family's share
+  in `pipeRes`/`pipeLeft` returned at `filePipeline.Close`, and `specIdle`/`specIdleF` taking `walIncQ I ∗
+  ⌜incOf I dir = i⌝` in pre and post). The reserve's place (the parked pipeline names) is this session's
+  encoding of "a share of `γI`", recorded here for review.
+
 ## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
 
 - **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/DiscardUnsaved.lean` (`wal.DiscardUnsaved.spec`; none in
