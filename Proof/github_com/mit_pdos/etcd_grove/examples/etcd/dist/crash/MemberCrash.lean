@@ -716,13 +716,15 @@ theorem nameOk_member : NameOk go!"member" := by unfold NameOk; decide
 
 /-- **The new generation's claims on the snapshot directory's spine** (D-T7-4): out of the whole claims of
 `osShared`, the path `dd/member/snap` at the fraction `1` and the snapshot directory's whole claim. -/
-theorem snapClaims_new (R : Roots) (V : Hist) (dd : GoString) (jd jm J : Ino) (E : CoPset)
+theorem snapClaims_new (R : Roots) (V : Hist) (dd sd : GoString) (jd jm J : Ino) (E : CoPset)
     (hE : ↑osShN ⊆ E) (hwf : TreeWf R V.now) (hR : RootsOk R) (hd : (dd, jd) ∈ R)
+    (hsd : sd = joinPath dd [go!"member", go!"snap"])
     (h1 : V.now.entry jd go!"member" = some (.dir jm)) (h2 : V.now.entry jm go!"snap" = some (.dir J)) :
-    ⊢ osSharedInv R -∗
+    ⊢ osSharedInv (GF := GF) R -∗
       ([∗list] j ∈ dirsOf V, osNames j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
-      osPathS R (joinPath dd [go!"member", go!"snap"]) (DFrac.own 1) J ∗
+      osPathS R sd (DFrac.own 1) J ∗
       osNames J (.except []) (DFrac.own 1) (namesOf V J (.except [])) := by
+  subst hsd
   obtain ⟨hjd, hjm, hJ, hne1, hne2, hne3⟩ := spineDirs hwf hd h1 h2
   iintro #Hsh Hall
   icases (BigSepL.bigSepL_perm (List.perm_cons_erase (mem_dirsOf hjd))).1 $$ Hall with Hall
@@ -762,6 +764,39 @@ theorem snapClaims_new (R : Roots) (V : Hist) (dd : GoString) (jd jm J : Ino) (E
   isplitl [] <;> ipureintro
   · rw [namesOf_only_cur]; exact h2
   · rfl
+
+/-- A root's path is not `[]`. -/
+theorem root_ne_nil {R : Roots} (hR : RootsOk R) {r : GoString} {j : Ino} (hr : (r, j) ∈ R) :
+    ([] : GoString) ≠ r := by
+  obtain ⟨cs, hcs, -, hrc⟩ := (hR.2.2 _ hr).1
+  intro h0
+  rw [← h0] at hrc
+  cases cs with
+  | nil => exact hcs rfl
+  | cons c cs => simp [joinPath] at hrc
+
+/-- **Two roots' whole call permissions**, out of a generation's (`osCallPerms`), each at the key of a
+path below it. -/
+theorem osCallPerms_two (R : Roots) (r1 r2 p1 p2 : GoString) (j1 j2 : Ino) (hR : RootsOk R)
+    (h1 : (r1, j1) ∈ R) (h2 : (r2, j2) ∈ R) (hne : r1 ≠ r2) (hu1 : IsUnder r1 p1) (hu2 : IsUnder r2 p2) :
+    osCallPerms (GF := GF) R ⊢ osCallPerm (callKey R p1) 1 ∗ osCallPerm (callKey R p2) 1 := by
+  rw [callKey_eq hR h1 hu1, callKey_eq hR h2 hu2]
+  iintro Hp
+  icases osCallPerms_root R r1 j1 hR h1 $$ Hp with ⟨H1, Hp⟩
+  rw [callKey_eq hR h1 (.inl rfl)]
+  have hl : GMap.delete r1 (GMap.delete [] (permMap R)) !! r2 = some () := by
+    rw [GMap.lookup_delete_ne _ hne, GMap.lookup_delete_ne _ (root_ne_nil hR h2)]
+    exact permMap_lookup R r2 (.inr ⟨j2, h2⟩)
+  icases (BigSepM.bigSepM_delete (M := GMap GoString)
+    (Φ := fun (r' : GoString) (_u : Unit) => osCallPerm (GF := GF) r' 1) (x := ()) hl).1 $$ Hp
+    with ⟨H2, -⟩
+  iframe H1 H2
+
+/-- A whole call permission in halves. -/
+theorem osCallPerm_halve (k : GoString) :
+    osCallPerm (GF := GF) k 1 ⊢ osCallPerm k (1 : Qp).half ∗ osCallPerm k (1 : Qp).half := by
+  have h := (osCallPerm_split (GF := GF) k (1 : Qp).half (1 : Qp).half).1
+  rwa [Qp.half_add_half] at h
 
 end newClaims
 
@@ -821,7 +856,8 @@ directory's invariant with its token (`snapDirKeep`), the snapshot directory's d
 knows `J`'s parent is no root), the program's file-system context (B7: `snapDir_crash.law` and `onFs` are at
 `theFs`), and the abstract piece `KeepB k` (B1). Pure geometry (session 5, T8's from the boot's roots):
 the data directory `dd` is a root at `jd`, the WAL area `h.r` a root at `h.jr`, other than `dd`, the WAL
-directory below it, and `snapDirOf dd` the path `dd/member/snap`. -/
+directory below it, `snapDirOf dd` the path `dd/member/snap`, and its index files' paths fit
+(`snapDir_split`'s premise). -/
 def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
     (KeepB : MemberKN GF → IProp GF) : IProp GF :=
   iprop(∃ k : MemberKN GF,
@@ -829,7 +865,8 @@ def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config
       k.h.md = walMetaEnc id k.cid ∧ k.γ.snapLoc id = some k.γd ∧ (∃ c, theFs GF = some c) ∧
       (cfg.DataDir', k.jd) ∈ k.h.R ∧ (k.h.r, k.h.jr) ∈ k.h.R ∧ k.h.r ≠ cfg.DataDir' ∧
       IsUnder k.h.r k.h.dir ∧
-      config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"]⌝ ∗
+      config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"] ∧
+      ∀ i, PathFits (snap.snapDBPath (config.snapDirOf cfg.DataDir') i)⌝ ∗
     etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
     backend.dbCrashKeep k.γb (config.backendPathOf cfg.DataDir') k.i0 k.Dl k.Dn k.pd ∗
     memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
@@ -896,7 +933,7 @@ abbrev memberFirstCrash.law (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.serv
 /-- **B1, the backend's image invariant** (named hypothesis; T10's): the run's keep `KeepB` and what the
 crash left of the backend file (`dbCrash`'s `fileHoldsM i0 D'`, `D'` one of the record's data) and of raft
 (`memberDurOut`), with the new generation's claim on the name `db` and shares of the snapshot directory's
-path and call permission, give the image rows (`memberImageRows`) at some index `i`, with B2's and B3's
+path and call permission, give the image rows (`memberImageRows`) at some index `i` (raft's state back), with B2's and B3's
 bounds (`memberImageB`, `memberImageBoot`: false in some runs as stated, see each). -/
 abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
     (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
@@ -910,6 +947,7 @@ abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id
       osNames (L := etcd_dist.atCtx L') k.J (.only [go!"db"]) (DFrac.own 1)
         (namesOf V' k.J (.only [go!"db"])) ={⊤}=∗
       ∃ (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership),
+        memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) k.γ id k.νk S σ l ∗
         memberImageRows (hG := ⟨G, etcd_dist.atCtx L'⟩) k cfg.DataDir' i A D m ∗
         ⌜memberImageB σ i ∧ memberImageBoot k.γ i⌝
 
