@@ -326,7 +326,11 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                       iapply HΦ
                       itrivial
               · -- all received: close, and the section is done
-                try simp only [Hif, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
+                have hgs : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int))) = false := by
+                  cases h : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int)))
+                  · rfl
+                  · rw [h] at Hif; exact absurd rfl Hif
+                try simp only [hgs, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
                 try wp_auto
                 wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
                 iapply HClose $$ %T %iprop(True) [HSt]
@@ -489,7 +493,11 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
               iapply HΦ
               itrivial
       · -- all received: close, and the section is done
-        try simp only [Hif, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
+        have hgs : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int))) = false := by
+          cases h : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int)))
+          · rfl
+          · rw [h] at Hif; exact absurd rfl Hif
+        try simp only [hgs, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
         try wp_auto
         wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
         iapply HClose $$ %T %iprop(True) [HSt]
