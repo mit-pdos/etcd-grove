@@ -33,7 +33,7 @@ theorem RunKV.wp_proof (OP : List GoString → w64 → IProp GF)
   wp_auto
   iunfold readySpec at Hready
   wp_apply Hready
-  wp_apply (hOrch nodes ns ops (W64 120000000000)) $$ [HOP] as %r %hr
+  wp_apply (hOrch nodes ns ops) $$ [HOP] as %r %hr
   · iframe #
     iframe
   wp_if_destruct

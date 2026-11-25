@@ -51,6 +51,7 @@ theorem Rotate.wp_proof : Rotate.spec (GF := GF) (hG := hG) := by
   wp_if_destruct
   · have hj : j < xsL.length := by word
     have hk : 0 < xsL.length := by omega
+    obtain ⟨Hi0, Hi1⟩ := Hi (List.ne_nil_of_length_pos hk)
     have hxlen : sint.Z xs.len = (xsL.length : Int) := by word
     have hlen0 : ¬ sint.Z xs.len = 0 := by omega
     have hsum : 0 ≤ sint.Z (i + W64 (j : Int)) ∧

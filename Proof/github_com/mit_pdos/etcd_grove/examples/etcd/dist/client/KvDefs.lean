@@ -115,6 +115,19 @@ def nodeShare (NP : w64 → GoString → List GoString → IProp GF) (d : Deploy
     | none => iprop(True)
   else iprop(True)
 
+/-- **Law**: workload `j`'s share, when the deployment has a workload `j`. -/
+theorem orchShare_eq (OP : List GoString → w64 → IProp GF) (d : Deployment) (j : w64) (w : Workload)
+    (ns : List GoString) (h0 : 0 ≤ sint.Z j) (hw : d.workloads[sint.nat j]? = some w)
+    (hns : d.nodes[sint.nat j]? = some ns) : orchShare OP d j = OP ns w.ops := by
+  unfold orchShare; rw [if_pos h0, hw, hns]
+
+/-- **Law**: the `n`-th client machine's share, when the deployment has an `n`-th client machine. -/
+theorem nodeShare_eq (NP : w64 → GoString → List GoString → IProp GF) (d : Deployment) (n : w64)
+    (w : Workload) (c : Nat) (a : GoString) (h0 : 0 ≤ sint.Z n)
+    (hn : d.nodeList[sint.nat n]? = some (w, c, a)) :
+    nodeShare NP d n = NP (W64 c) a (rotateL (d.members.map Member.client) c) := by
+  unfold nodeShare; rw [if_pos h0, hn]
+
 end defs
 
 end etcd_dist
