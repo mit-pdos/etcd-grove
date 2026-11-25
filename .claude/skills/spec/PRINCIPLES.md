@@ -392,7 +392,10 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   bound is there, a change of the limit is one edit, and a caller composes named quantities. Define
   it next to the law that chose it, `@[word_unfold]` so that `word` sees through it. A literal is
   for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
-  `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
+  `int64`). Upamanyu, 2026-11-24 (the `strings.Join` sites): **a spec does not expose a literal
+  bound** a caller must discharge from its configuration (URL counts and lengths: `etcdURLCountMax`,
+  `etcdURLLenMax`, the literal only in their definitions; a message bound: `syscall.errnoMsgMax`).
+  Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
 - **A closer gives back what the goroutines it waits for held**: a `Close` that stops goroutines and
   waits for them (`wg.Wait()`, a stop channel's last payload) returns their resources, which they

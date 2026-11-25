@@ -144,8 +144,8 @@ theorem wp_isH2Upgrade (r : Loc) (rq : net.http.Request) (h : rq.Method' ≠ go!
   iapply HΦ; iexact Hr
 
 set_option hygiene false in
-/-- An error return (`e`, a pointer when of a pointer type: `Hpe`), through the deferred rewrite
-of `io.EOF` (`xe`, `xu`: `io.EOF`'s and `io.ErrUnexpectedEOF`'s locations). -/
+/-- An error return (`e`, a pointer when of a pointer type: `Hpe`; one of `reqErr`'s: `Hre`), through
+the deferred rewrite of `io.EOF` (`xe`, `xu`: `io.EOF`'s and `io.ErrUnexpectedEOF`'s locations). -/
 local macro "rrl_fail" : tactic => `(tactic| (
   try wp_auto
   by_cases hty : e.ty = go.GoType.PointerType errors.errorString.ty
@@ -156,11 +156,20 @@ local macro "rrl_fail" : tactic => `(tactic| (
     simp only [↓reduceIte]
     wp_auto
     wp_if_destruct
-    all_goals (try wp_auto); iapply HΦ; ileft; ipureintro; simp [interface.mkOk]
+    all_goals (try wp_auto); iapply HΦ; ileft; isplitr; (· ipureintro; simp [interface.mkOk])
+    all_goals isplitl []
+    all_goals first
+      | iexact Hre
+      | (iunfold reqErr; iright; ileft; iexists xu; iframe Hxu; ipureintro; rfl)
+      | (iexists _; iexact Hb)
   · simp only [hty, ↓reduceIte]
     try wp_auto
     iapply HΦ
-    ileft; ipureintro; simp))
+    ileft; isplitr
+    · ipureintro; simp
+    isplitl []
+    · iexact Hre
+    iexists _; iexact Hb))
 
 theorem readRequestLimit.wp_proof
     (wp_ReadLine : modelReadLine.spec (GF := GF) (hG := hG))
@@ -183,7 +192,8 @@ theorem readRequestLimit.wp_proof
   wp_apply wp_ReadLine b ri S E [] $$ Hstream Hbound [Hb] as %line %err ⟨%l, %Hl10, Hcase⟩
   · iexact Hb
   -- the line read: the whole request line, a prefix of it (cut by an error), or an error
-  ihave Hu : ((⌜line = [] ∧ err ≠ GoInterface.nil⌝) ∨
+  ihave Hu : ((⌜line = [] ∧ err ≠ GoInterface.nil⌝ ∗ (∃ r0 : List w8, □ E r0 err) ∗
+        ∃ rr : List w8, EtcdGrove.bufio.ownReader b ri S E rr) ∨
       (⌜err = GoInterface.nil ∧ line <+: reqLine path⌝ ∗
         ∃ rr : List w8, EtcdGrove.bufio.ownReader b ri S E rr ∗
         (⌜rr = reqLine path ++ [W8 10] ∧ line = reqLine path⌝ ∨
@@ -230,9 +240,19 @@ theorem readRequestLimit.wp_proof
         iintro %r' HS
         iapply Hlaw2 $$ %([] ++ l) %r' %e HE HS
       · ileft
-        ipureintro
-        exact ⟨hline, herr ▸ He⟩
-  icases Hu with (%Hc | ⟨⟨%Herr, %Hline⟩, %rr, Hb, Hk⟩)
+        isplitr
+        · ipureintro
+          exact ⟨hline, herr ▸ He⟩
+        unfold EtcdGrove.io.errAt
+        icases Hea with ⟨(%Hen | #HE), -⟩
+        · exact absurd Hen He
+        subst herr
+        isplitr [Hb]
+        · iexists _
+          iexact HE
+        iexists _
+        iexact Hb
+  icases Hu with (⟨%Hc, ⟨%r0, #HE0⟩, Hb⟩ | ⟨⟨%Herr, %Hline⟩, %rr, Hb, Hk⟩)
   · -- nothing read: the error, before the deferred rewrite
     obtain ⟨-, Hne⟩ := Hc
     cases err with
@@ -241,11 +261,15 @@ theorem readRequestLimit.wp_proof
     simp only []
     wp_auto
     iapply HΦ
-    ileft; ipureintro; simp
+    ileft; isplitr
+    · ipureintro; simp
+    isplitl []
+    · iunfold reqErr; ileft; iunfold mimeErr; ileft; iexists r0; iexact HE0
+    iexact Hb
   subst Herr
   ihave #Henv' := Henv
   iunfold httpEnv at Henv'
-  icases Henv' with ⟨#Hbufio, #Hio, #Hfmt, #Hstrconv, ⟨#Htok, #Hstrs, %ltl, #Htl⟩, %nb, #Hnb⟩
+  icases Henv' with ⟨#Hbufio, #Hio, #Hfmt, #Hstrconv, ⟨#Htok, #Hstrs, #Htl⟩, %nb, #Hnb⟩
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, #HUEOF, -⟩
   unfold errors.newVar
@@ -260,7 +284,11 @@ theorem readRequestLimit.wp_proof
   cases pok
   · simp only [Bool.not_false]
     wp_auto
-    wp_apply wp_bad $$ Hfmt as %e ⟨%Hpe, -⟩
+    wp_apply wp_bad $$ Hfmt as %e ⟨%Hpe, %x, %s, %hxs, #Hxs⟩
+    ihave #Hre : (reqErr E (interface.ok e) : IProp GF) $$ []
+    · iunfold reqErr; iright; iright; iexists x, s; iframe Hxs; ipureintro
+      exact ⟨by rw [hxs.1],
+        (by decide : (go!"malformed HTTP " : List w8) <+: go!"malformed HTTP request").trans hxs.2⟩
     rrl_fail
   obtain ⟨hm, hu, hpr⟩ := parse_prefix hp Hline (by rw [hpl])
   rw [hpl] at hm hu hpr
@@ -277,7 +305,11 @@ theorem readRequestLimit.wp_proof
   cases vok
   · simp only [Bool.not_false]
     wp_auto
-    wp_apply wp_bad $$ Hfmt as %e ⟨%Hpe, -⟩
+    wp_apply wp_bad $$ Hfmt as %e ⟨%Hpe, %x, %s, %hxs, #Hxs⟩
+    ihave #Hre : (reqErr E (interface.ok e) : IProp GF) $$ []
+    · iunfold reqErr; iright; iright; iexists x, s; iframe Hxs; ipureintro
+      exact ⟨by rw [hxs.1],
+        (by decide : (go!"malformed HTTP " : List w8) <+: go!"malformed HTTP version").trans hxs.2⟩
     rrl_fail
   have hproto : proto = go!"HTTP/1.0" := by
     have h := Hvok1.symm
@@ -341,22 +373,22 @@ theorem readRequestLimit.wp_proof
   wp_apply wp_MIME b ri S E rr [] [] [] maxH (by decide) (Or.inl rfl) (by simpa using hmax)
       $$ Henv Hstream Hbound HL Hlaw2 [Hb] as %m %merr Hm
   · iexact Hb
-  icases Hm with (⟨⟨%Hme, %Hpe⟩, #Hme2⟩ | ⟨%Hmn, Hm, Hb⟩)
-  · -- an error: `errTooLarge` if its message says so
+  icases Hm with (⟨⟨%Hme, %Hpe⟩, #Hme2, %rr', Hb⟩ | ⟨%Hmn, Hm, Hb⟩)
+  · -- an error: never `"message too large"` (`errMsgOk`), so not `errTooLarge`
     ihave #Hmsg := mimeErr_msg E merr $$ [$Herrs $Hme2]
     iunfold errMsgOk at Hmsg
     icases Hmsg with ⟨%ei, %Hei, #HW⟩
     subst Hei
+    ihave #Hre : (reqErr E (interface.ok ei) : IProp GF) $$ []
+    · iunfold reqErr; ileft; iexact Hme2
     wp_auto
     wp_bind (App (Val #(methods _ go!"Error" _)) (Val #()))
-    iunfold fmt.stringMethodSpec at HW
     iapply HW
     inext
-    iintro %msg
+    iintro %msg %Hmsg
     wp_auto
     wp_if_destruct
-    · wp_if_destruct
-      all_goals (try wp_auto); iapply HΦ; ileft; ipureintro; simp [interface.mkOk]
+    · exact absurd rfl Hmsg
     · generalize ei = e at Hpe ⊢
       rrl_fail
   subst Hmn

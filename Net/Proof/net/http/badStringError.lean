@@ -34,12 +34,16 @@ theorem badStringError.wp_proof (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := h
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
   wp_auto
-  wp_apply wp_Errorf _ _ _ _ $$ [$Hsl] as %e ⟨-, %s, -, Hee⟩
+  wp_apply wp_Errorf _ _ _ _ $$ [$Hsl] as %e ⟨-, %s, %Hout, Hee⟩
   · iapply fmt.argsOk_of_argsWf
     rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
     exact fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
   iunfold fmt.errorfErr at Hee
-  icases Hee with ⟨⟨%Hptr, -⟩, #Hw, -⟩
+  icases Hee with ⟨⟨%Hptr, -⟩, -, Hm⟩
+  obtain ⟨ds, hds, hw⟩ : ∃ ds, fmt.fmtDirectives go!"%s %q" = some ds ∧ fmt.wrapArgs ds 2 = [] :=
+    ⟨_, rfl, rfl⟩
+  simp only [hds, List.length_set, List.length_cons, List.length_nil, Nat.reduceAdd, hw]
+  icases Hm with ⟨%l, %hl, #Hl⟩
   iapply HΦ
   isplitr
   · ipureintro
@@ -47,16 +51,10 @@ theorem badStringError.wp_proof (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := h
     intro ii T' h hty
     cases h
     exact ⟨l, hl⟩
-  unfold errMsgOk
-  iexists e
-  isplitr
-  · ipureintro; rfl
-  rw [fmt.stringMethodSpec_unfold]
-  imodintro
-  iintro %Φ HΦ
-  iapply Hw
-  inext
-  iapply HΦ
+  iexists l, s
+  iframe Hl
+  ipureintro
+  exact ⟨hl, fmt.SprintfOut.str_prefix what go!" %q" _ s Hout⟩
 
 end proof
 

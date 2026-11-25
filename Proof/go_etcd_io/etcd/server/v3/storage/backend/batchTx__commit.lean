@@ -43,8 +43,8 @@ case. An ordinary commit arms every registration there with the batch lock's inp
 committed data `S` (`obsIn`, given back; `regs_arm`), the commit counter up by one (`cntLb`). A
 stopping commit (paid with the rest of the open flag, `stopPay`) stops the backend there and takes the
 invariant's half out (`dbHalf`, for `Close`), leaving `bStopped` in its place. -/
-private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Commit.spec (GF := GF) (hG := hG)) :
   ∀ (db tx : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (path : GoString) (stop : Bool)
     (D S : backend.Data) (n : Nat) (F : IProp GF),
   armStep γ P W Pk γ.db.ns F S n →
@@ -206,8 +206,8 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.Stats_kv`). -/
-private theorem bbolt.kvGlue_Tx__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Stats.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Stats.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.txDone tx }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Stats")) (Val #()))
@@ -273,10 +273,10 @@ private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db :
     iframe Hdb Hs Hrest Hopn Hi Hlb'
 
 theorem backend.batchTx.commit.wp_proof
-    (hCommit : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec (GF := GF) (hG := hG))
-    (hStats : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Stats.spec (GF := GF) (hG := hG))
+    (hCommit : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Commit.spec (GF := GF) (hG := hG))
+    (hStats : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Stats.spec (GF := GF) (hG := hG))
     (hSeconds : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))

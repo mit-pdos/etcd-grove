@@ -17,8 +17,11 @@ is a crash of the invariant's half, so `DataGood` (if the crash dropped it, the 
 the next generation's shared resources come from the old generation's `osSharedInv`
 (`crashRest_treeS'`).
 
-**What is assumed**, as for `examples/osfs/crashlog`: the package initializer (`Hinit_wp`, which
-needs `wp_initialize'` of this repository's `os` and `syscall`), the hand-written `os.file` field
+The package initializer is proved, as for `examples/osfs/crashlog` (2026-11-24; until then the
+hypothesis `Hinit_wp`): the generated `wp_initialize'` (`Init.lean`, `PkgTable.lean`), from the
+fresh package state of each generation (`ownInitializing_of_empty`).
+
+**What is assumed**: the hand-written `os.file` field
 facts, and the program's Goose-generated package facts (`package_sem`, which gives those of the
 packages it imports, `os.Assumptions` among them) (instance hypotheses). The trust base is otherwise the extension's semantics
 (`GooseLang/Ext/Fs/Impl.lean`) and the trusted models of `os` and `syscall`
@@ -26,6 +29,8 @@ packages it imports, `os.Assumptions` among them) (instance hypotheses). The tru
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.PkgTable
+public import Proof.runtime.InitEmpty
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Boot
 public import Proof.os.File__ReadAt
 public import Proof.os.File__SyncS
@@ -71,12 +76,8 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `crash_safety` for executions of fewer than `N` steps along which fewer than `T` threads are
 live. -/
 theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.Assumptions] [os.file.FieldAssumptions]
+    [os.Assumptions]
     [hPre : GooseGpreS GF]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC GF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -159,7 +160,10 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
     isplitl [Hgs Hperm Hh Hs]
     · -- the boot program
       unfold boot
-      wp_apply Hinit_wp $$ Hgs
+      ihave Hown0 := ownInitializing_of_empty (github_com.mit_pdos.etcd_grove.examples.osfs.walfs.getIsPkgInit (GF := GF)) $$ Hgs
+      wp_apply (github_com.mit_pdos.etcd_grove.examples.osfs.walfs.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.osfs.walfs.getIsPkgInit_wf) $$ Hown0 as ⟨-, #Hpkg⟩
+      ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+      · iPkgInit
       wp_pures
       wp_apply wp_Boot os.File.Sync.wp_proofDirS os.File.ReadAt.wp_proof os.File.Close.wp_proof os.File.WriteAt.wp_proof
           os.File.Fd.wp_proof syscall.Fdatasync.wp_proof R dir j hrj γ ko _ $$ [Hperm Hh Hs]
@@ -193,14 +197,8 @@ with no package initialized, the main thread only, the Linux file extension's st
 boot program's result is `#()`, no thread is stuck and no thread has an unrecovered panic, so
 `check`'s panic never fires, however many times the node crashes or (after a `sync`) the process restarts, and in
 particular whenever one interrupts `commit` (after the create, the write, the `fdatasync`, the
-rename or the directory's sync). It assumes that the package's initializer runs (`Hinit_wp`, the
-module docstring). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
+rename or the directory's sync). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
 theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -215,7 +213,7 @@ theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir Hnd
+  crash_safety_bounded (GF := fsGF) (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir Hnd
     Hseg n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
 
 end adequacy

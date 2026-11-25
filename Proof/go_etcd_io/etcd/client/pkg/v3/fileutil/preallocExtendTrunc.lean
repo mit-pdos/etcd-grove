@@ -22,7 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [os.file.FieldAssumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proof
     (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG)) :

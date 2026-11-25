@@ -23,30 +23,35 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [syscall.Assumptions]
+variable [os.Assumptions]
 
 theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := hG) := by
   intro d bs bt j N R qd dqn h qc hbs hbt hN hN' hsrc
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   icases osCallPerm_child R d bt _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsLstatDir.impl
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
+  -- PORT: which stub? (LstatDirS)
   wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) dqn h t s0 qc hbt hN'
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %isDir %e %hd Hperm Hp Hn
   by_cases h1 : isDir = W64 1
   · rw [decide_eq_true h1]
-    wp_auto
-    wp_apply wp_linkError
-    iintro %le
+    try wp_auto
+    wp_linkError
     iapply HΦ
     iframe
     ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
   rw [decide_eq_false h1]
-  wp_auto
+  try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_stub os.fsRename.impl
   wp_apply +noauto wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t' %s1 %hs' Hk Hls
   iclear Hls
@@ -60,17 +65,19 @@ theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := 
   ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
   · iframe
   rw [Qp.half_add_half]
-  wp_auto
+  try wp_auto
   by_cases he4 : e' = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    try wp_auto
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$]
   rw [decide_eq_false (show e' ≠ W64 4 from he4)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show e' ≠ W64 0 from he')]
-  wp_auto
-  wp_apply wp_linkError
-  iintro %le
+  try wp_auto
+  wp_linkError
+  wp_for_post
   iapply HΦ
   iframe
   ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩

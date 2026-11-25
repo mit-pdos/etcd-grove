@@ -14,14 +14,11 @@ old generation's invariant and takes from it what the crash left at `dir/log` (`
 over `crashRest_region'`): a `Good` file, or none; the new generation's tree resources come from the
 restart (`crashRest_treeS'`).
 
-**What is assumed.** The package initializer is not proved: `crash_safety` takes as a hypothesis
-`Hinit_wp`, that the package's `initialize'` runs from the fresh package state (`ownGoState ∅`)
-without getting stuck or panicking. Proving it needs `wp_initialize'` of this repository's `os`,
-`syscall` (and their imports' `io/fs`, Perennial's `io` and `errors`): `etc/gen-init.py` does not
-generate them (its roots do not reach project bboltfs's translations, whose `os` initializer runs
-`init.0` and allocates about thirty variables, `Stdin`, `ErrNotExist`, ..., many of them
-untranslated initializers that would need its trust-boundary axioms). `Boot` itself reads no
-package variable, so nothing of the initialized state is needed beyond that.
+**The package initializer** is proved (2026-11-24; until then the hypothesis `Hinit_wp`, that it runs
+from the fresh package state): each generation turns its fresh package state into the right to
+initialize (`ownInitializing_of_empty`) and runs the generated `wp_initialize'` (`Init.lean`, over the
+program's package table `PkgTable.lean`), whose `isPkgInit` `Boot` takes (the path specs of `os` take
+`os`'s).
 The hand-written `os.file` and `os.fileStat` field facts (`TrustedCode/os.lean`) are instance
 hypotheses, as for every `OpenFile` and `Stat` spec.
 -/
@@ -37,6 +34,8 @@ public import Proof.os.File__Close
 public import GooseLang.Ext.Fs.Adequacy
 public import Robustness.Statement
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.PkgTable
+public import Proof.runtime.InitEmpty
 
 @[expose] public section
 
@@ -114,12 +113,7 @@ def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : Goos
 /-- `crash_safety` for executions of fewer than `N` steps along which fewer than `T` threads are
 live. -/
 theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC GF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -203,7 +197,10 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
     isplitl [Hgs Hperm Hown]
     · -- the boot program
       unfold boot
-      wp_apply Hinit_wp $$ Hgs
+      ihave Hown0 := ownInitializing_of_empty
+        (github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.getIsPkgInit (GF := GF)) $$ Hgs
+      wp_apply (github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.wp_initialize' _
+        github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.getIsPkgInit_wf) $$ Hown0 as ⟨-, #Hpkg⟩
       wp_pures
       wp_apply wp_Boot os.OpenFile.wp_proof_crash os.File.Close.wp_proof os.File.ReadAt.wp_proof
           os.File.WriteAt.wp_proof_crash os.File.Fd.wp_proof syscall.Fdatasync.wp_proof_crash
@@ -243,14 +240,8 @@ extension's state as on disk (`FsInit`), `dir` one of its roots, in which `dir/l
 directory and, if it names a file, names one that is `Good` (a nonzero flag byte at offset 8 means
 the 8 bytes of data at offset 0, and the size below `2^62`): the boot program's result is `#()`, no
 thread is stuck and no thread has an unrecovered panic, so `Boot`'s panics never fire, however many
-times the node crashes. It assumes that the package's initializer runs (`Hinit_wp`, the module
-docstring). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
+times the node crashes. (`crash_safety_bounded` with the ghost state `fsGF`.) -/
 theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))
@@ -264,7 +255,7 @@ theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir Hnd
+  crash_safety_bounded (GF := fsGF) (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir Hnd
     Hlog n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
 
 end adequacy

@@ -56,6 +56,9 @@ KITGEN = dict(
     lean_pkg=f'{PAXOS}.examples.paxosnet',
     # the kit's own Lean (Dsverify/{Proof,Spec}/<root>/): never exported (--export-challenge)
     proof_roots=[PAXOS],
+    # the opening prompt's sentences about the system (etc/dsv/challenge-prompt.txt)
+    prompt=dict(system="a Paxos deployment over Go's net",
+                check="whose driver runs a linearizability check of the clients' history"),
     roles=[
         dict(cmd='orch', go_doc="the paxos kit's orchestrator machine", go_call='Orch()',
              share='([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (woR Γ) a) ∗ mapCtx (Gg := G) (I := BStr) ∗ '

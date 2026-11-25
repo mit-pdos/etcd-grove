@@ -43,7 +43,7 @@ theorem isChan_cap_agree (ch : Loc) (γ1 γ2 : ChanNames) :
 theorem Client.Call.wp_proof (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
     Client.Call.spec (GF := GF) (hG := hG) := by
   intro c W a sm svc M S args reply Φm Rargs D Θ C
-  wp_start as ⟨#Hcl, %Hsv, #Hset, Henc, HD, #Hdec⟩
+  wp_start as ⟨#Hcl, %Hsv, %Hsm, #Hset, Henc, HD, #Hdec⟩
   iunfold isClient at Hcl
   icases Hcl with ⟨%γ, #Hcl⟩
   ihave #Hcl' := Hcl
@@ -69,6 +69,8 @@ theorem Client.Call.wp_proof (wp_Go : Client.Go.spec (GF := GF) (hG := hG)) :
     · ipureintro; exact Hsv
     isplitr
     · ipureintro; exact ⟨Hchn, by rw [hcap]; decide⟩
+    isplitr
+    · ipureintro; exact Hsm
     iunfold callDone
     iframe Hfut Hful
     iintro %pc %o %err Hf Ht He Hp

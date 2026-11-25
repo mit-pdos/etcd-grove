@@ -56,7 +56,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
-variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
@@ -77,6 +77,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     (wp_FName : os.fileStat.Name.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr := by
   intro lg R jr r dir nm sp s write qp Q hin hnmO hr hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
@@ -208,7 +209,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     try wp_auto
     wp_apply wp_openFiles lg dir rr ws (DFrac.own 1) kk write ((lay.segs.map (·.ino)).drop (sint.nat kk))
       R lay.j (DFrac.own qd) 1 (.except X) (DFrac.own (1 : Qp).half) hj hk0 (by omega)
-      (by simp [hwl]) (by omega) (walOpenNames_ok (sint.nat kk) hX hsn hnmf hout hws)
+      (by simp [hwl]) hdl (walOpenNames_ok (sint.nat kk) hX hsn hnmf hout hws)
       $$ [Hpd Hperm Hj Hws] as %rsl %lsl %clo %err2 ⟨Hpd, Hperm, Hj, Hws, Hopen⟩
     · iframe; iframe #
     icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles, -⟩ | ⟨%e, %herr, #He, -⟩)

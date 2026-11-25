@@ -96,6 +96,11 @@ jobs:
       # byte for byte (k8s 7g, `notes/k8s-7g-scope.md` §1.1). Reads the sources and the module.
       - name: Check the k8s checker copy
         run: ./etc/k8s-correctness-check.py
+      # No robustness theorem's program reports a violation by exiting: under `Robust` an exit is a
+      # safe run (Perennial models `syscall.Exit` as `AngelicExit`), so a check must panic. Every exit
+      # in the programs' own code (under `examples/`) has its reason in `etc/exit-allow.txt`.
+      - name: Check the robustness programs' exits
+        run: ./etc/exit-check.py
       # `RaftTla/` (raft's `with_tla` build, for the trace check) compiles the main tree's raft
       # specs and proofs again: its copies must be what `etc/gen-raft-tla.py` generates from them.
       # Reads the sources only.

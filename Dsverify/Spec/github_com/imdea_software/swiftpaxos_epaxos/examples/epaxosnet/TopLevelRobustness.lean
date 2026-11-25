@@ -7,14 +7,17 @@ ten client machines (each `remote.ServeClient`, an operation a `Propose` to a re
 `":7501"`; servers 2..6 the EPaxos replicas of swiftpaxos, each registering with the master, then
 `epaxos.New` and its net/rpc service over HTTP) -- deployed at `epAddrs` (`DistDeploy`: the
 addresses distinct and valid, no connection, no listener). In every execution of fewer than
-`2 ^ 31 - 1` steps, with any number of threads, no thread of any machine is stuck and none has a
-top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
-porcupine accepts the history, this says porcupine accepts every history, under every fault the
-net extension allows.
+`2 ^ 63` steps along which every machine keeps fewer than `2 ^ 31` live threads, no thread of any
+machine is stuck and none has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since
+the orchestrator panics unless porcupine accepts the history, this says porcupine accepts every
+history, under every fault the net extension allows.
 
-The step bound: Net's net/rpc server (`Server.ServeCodec.spec`) needs the machine's thread bound
-`threadBound GF ≤ 2 ^ 31` (its wait group's counter is an `int32`), and the deployment bridge's
-thread bound is the step count plus 2 (`Bridge.lean`, `robust_of_distProtoLisRBT`).
+The bounds: `2 ^ 63` steps (remote's clock, `receiptBound ≤ 2 ^ 63`) and fewer than `2 ^ 31` live
+threads per machine: Net's net/rpc server (`Server.ServeCodec.spec`) needs the machine's thread bound
+`threadBound GF ≤ 2 ^ 31` (its wait group's counter is an `int32`), which the deployment bridge
+(`Bridge.lean`, `robust_of_distProtoLisRBT`, over Perennial's `goose_dist_adequacy_below`) takes
+along the execution at hand, `Robust`'s `threads`. (Until 2026-11-24 the bridge bounded the threads
+by the step count plus 2, and the step bound was `2 ^ 31 - 1`.)
 
 gods' treemap, which `state` keeps its store in, is not a premise: its specs are proved of gods'
 own code (`github_com.emirpasic.gods.maps.treemap.hyps_true`, notes/gods-verified.md).
@@ -102,9 +105,9 @@ def epaxos_remote_robust.spec : Prop :=
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := ra G π; letI := rh G L π;
       RpcBoot (GF := remoteGF) cmd.server6.initialize'
         pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server6) →
-    ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
+    ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy epAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 31 - 1)
+    Robustness.Robust [] (system σ) g (2 ^ 31) (2 ^ 63)
 
 end github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet
 end Perennial

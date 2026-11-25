@@ -8,6 +8,8 @@ os.ErrNotExist)`). Lean-first.
 -/
 module
 
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 public import Proof.os.NsChildS
 public import GooseLang.Ext.Fs.TreeSharedOpenFileN
 
@@ -27,7 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `os.OpenFile(d/b, flag, perm)`, `flag` without `O_TRUNC`, of the file `i` that `d/b` holds (a
 fraction of a claim on names of `d`'s directory containing `b`): a fresh `*os.File` on a fresh fd of
@@ -37,7 +39,7 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm (callKey R d) qc ∗
@@ -45,16 +47,27 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
+
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osLogLb_0 with #Hlb
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
+  try rw [os.file_ty_eq]
+  try rw [os.File_ty_eq]
+  try rw [show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
+  -- PORT: which stub? (OpenFileSN)
   wp_apply wp_osOpenFileSN' R d b j i N dq dqn h t s0 qc fl hfl htr hb hN hi CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %fd %e %hres Hperm Hp Hn Hfd
   by_cases he0 : e = W64 0
@@ -68,12 +81,15 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       by split
          · iintro H; iexact H
          · exact absurd rfl ‹_›) $$ Hfd
-    wp_auto
-    iStructNamed inner
+    try wp_auto
+    os_newfile
+    wp_for_post_core
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
+    ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -84,12 +100,14 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     · ipureintro; exact ⟨rfl, hfd0⟩
     unfold os.ownFile os.ownOff
     isplitr [off]
-    · iexists inner_ptr
+    · iexists _
       iframe
-      isplitl [] <;> iassumption
-    · iexists inner_ptr
-      iframe
-      iassumption
+      (repeat' isplitl []) <;> iassumption
+    · iexists _
+      isplitl []
+      · iexact f
+      (try rw [show (W64 0 : w64) = 0 from rfl])
+      iexact off
   · iclear Hfd
     have hne : e ≠ ENOENT := by
       rcases hres with ⟨h0, -⟩ | ⟨-, h1, -⟩
@@ -97,17 +115,23 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       · exact h1
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, -, h⟩; exact absurd h he0; exact h
     subst hfd
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp Hn HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$] [$] [$]
     · rw [decide_eq_false he4]
-      wp_auto
-      wp_apply os.wp_pathError_errno as %err #Herr
+      try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_pathError_errnoV as %err #Herr
+      wp_for_post
       iapply HΦ
       iframe
       iright
@@ -119,7 +143,7 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
 theorem os.Open.wp_fileSN (d b : GoString) (R : Roots) (j i : Ino) (N : NameSet)
     (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Open)) (Val #(child d b)))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm (callKey R d) qc ∗
@@ -129,12 +153,16 @@ theorem os.Open.wp_fileSN (d b : GoString) (R : Roots) (j i : Ino) (N : NameSet)
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
   have e : W64 0 ||| W64 0x80000 = flRO := by decide
   rw [← e]
+
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
-  wp_auto
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
+  try wp_auto
   wp_apply os.OpenFile.wp_fileSN d b (W64 0) (W32 0) R j i N dq dqn h qc
     (by rw [e]; exact flRO_ok) (by rw [e]; decide) hb hN hi
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iexact Hr
 

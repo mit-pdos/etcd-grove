@@ -58,6 +58,9 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     DB.munmap.spec (GF := GF) (hG := hG) := by
   intro db base l lg p m vf hdb hl hmap
   wp_start as ⟨#Hos, #Hlg, #Hlgok, Hmf, Hsz, Hm, Hc⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   ihave %hgoos : ⌜goosLinux⌝ $$ []
   · iapply goosLinux_of_pkgInit $$ Hpkg
   ihave %hgoarch : ⌜goarchAmd64⌝ $$ []
@@ -94,7 +97,7 @@ theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     obtain ⟨ii, hii⟩ : ∃ ii, errnoErr e = GoInterface.ok ii :=
       ⟨⟨syscall.Errno.ty, #e⟩, by simp only [errnoErr, he, ↓reduceIte, interface.mkOk]⟩
     rw [hii] at hS ⊢
-    ihave #HeS := hS
+    ihave #HeS := hS $$ Hsys
     try rw [hgoos, hgoarch]
     wp_auto
     wp_apply wp_slice_literal

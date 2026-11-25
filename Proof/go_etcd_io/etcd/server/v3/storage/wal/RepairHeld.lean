@@ -31,6 +31,7 @@ theorem wal.Repair.wp_specHeld
     (wp_openLast : go_etcd_io.etcd.server.v3.storage.wal.openLast.specHeld (GF := GF) (hG := hG)) :
     wal.Repair.specHeld (GF := GF) (hG := hG) := by
   intro lg R dir j X hj segs gL qd dqn k fd hX hsn hino hnd hsort hnmf hgL hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hinv, #Hsi, Hpd, Hperm, Hj, Hl, #Hk⟩
   ihave %hlgn := zapLoggerOk_ne_null lg $$ Hzap
   try wp_auto

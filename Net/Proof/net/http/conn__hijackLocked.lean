@@ -63,15 +63,26 @@ theorem conn.hijackLocked.wp_proof
     iapply Hz $$ %cn HZ Hsend
   subst HR Hhb
   wp_apply wp_SetDeadline t cn true a la ra _
-      (fun _ => iprop(∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b')) $$ [$Hca Hrdl]
-    as %err0 ⟨%res0, ⟨%b2, Hrdl⟩, -⟩
-  · imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 0) _ b1 $$ Hrdl with ⟨%st, Hend, Hcl⟩
+      (fun _ => iprop(∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' ∗
+        (⌜b' = false⌝ ∨ readDead (Gg := hG.goose_globalGS) cn true))) $$ [$Hca Hrdl]
+    as %err0 ⟨%res0, ⟨%b2, Hrdl, Hdis⟩, -⟩
+  · imod deadline_dead_au (Gg := hG.goose_globalGS) cn true (W64 0) _ b1 $$ Hrdl
+      with ⟨%st, Hend, Hcl⟩
     imodintro
     iexists st
     iframe Hend
     iintro %res %st' %Hd Hend
-    imod Hcl $$ %res %st' %Hd Hend with ⟨-, Hrdl⟩
-    imodintro; iexists _; iexact Hrdl
+    imod Hcl $$ %res %st' %Hd Hend with ⟨-, Hrdl, Hdead⟩
+    imodintro
+    iexists _
+    iframe Hrdl
+    -- the deadline cleared, or the end closed (`DeadlineOutcome`)
+    unfold DeadlineOutcome at Hd
+    split at Hd
+    · rename_i hcl
+      iright; iapply Hdead; ipureintro; rw [Hd.2]; exact hcl
+    · ileft; ipureintro; rw [Hd.2]
+      first | rfl | (simp [timeIsZero]; done) | decide
   wp_apply wp_Reset bw sz _ $$ [$Hraw] as Hraw
   · ipureintro; right; refine ⟨_, rfl, ?_⟩
     intro h
@@ -82,7 +93,10 @@ theorem conn.hijackLocked.wp_proof
   wp_apply wp_NewReadWriter as %buf -
   wp_apply wp_setState c s _ (W64 3) (by decide) $$ [$Hsrv $Hs $Hst] as Hst
   iapply HΦ
-  iframe Hhj Hraw Hst Hrecv Hsend Hrdl
+  iframe Hhj Hraw Hst Hrecv Hsend
+  isplitr [Hrdl Hdis]
+  rotate_left
+  · iexists b2; iframe Hrdl Hdis
   iunfold crLeft
   iframe Hph Hrr
   iexists c', false, ab

@@ -141,7 +141,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 theorem wp_dataOk (sl : GoSlice) (dq : DFrac) (vs : List w8) (h : vs = dataC) :
     {{ (sl ↦*{dq} vs : IProp GF) }}
@@ -209,7 +209,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (R : Roots) (w : GoString) (dq : DFrac) (J : Ino) (N : NameSet) (dqn : DFrac) (h : NamesH)
     (qc : Qp) (i : Ino) (hN : N.Mem segB) (hi : h.cur !! segB = some (.file i))
     (m : OsMeta) (bs : List ByteG) (hok : CheckOk m bs) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R w dq J ∗ osNames J N dqn h ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R w dq J ∗ osNames J N dqn h ∗
         osCallPerm (callKey R w) qc ∗
         osMeta (GF := GF) i (DFrac.own (1 : Qp).half) m ∗
         osBytes (GF := GF) i 0 (DFrac.own (1 : Qp).half) bs }}
@@ -268,7 +268,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
 any result. -/
 theorem wp_syncDir (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
     (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.syncDir)) (Val #d))
     {{ (ok : Bool), RET #ok; osPathS R d dq j ∗ osCallPerm (callKey R d) qc }} := by
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩

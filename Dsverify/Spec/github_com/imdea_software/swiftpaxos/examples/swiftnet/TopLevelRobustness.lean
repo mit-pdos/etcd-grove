@@ -7,19 +7,20 @@ six client machines (each `remote.ServeClient`, an operation a SwiftPaxos client
 and six servers (server 1 the master, `master.Run`, net/rpc over HTTP on the wildcard `":7001"`;
 servers 2..6 the SwiftPaxos replicas, each registering with the master, then `swift.New`) --
 deployed at `swAddrs` (`DistDeploy`: the addresses distinct and valid, no connection, no
-listener). In every execution of fewer than `2 ^ 31 - 1` steps, with any number of threads, no
-thread of any machine is stuck and none has a top-level panic (`Robust`). Since the orchestrator
+listener). In every execution of fewer than `2 ^ 63` steps along which every machine keeps fewer
+than `2 ^ 31` live threads, no thread of any machine is stuck and none has a top-level panic
+(`Robust`). Since the orchestrator
 panics unless porcupine accepts the history, this says porcupine accepts every history, under
 every fault the net extension allows.
 
-**The step bound** is `2 ^ 31 - 1`, not `2 ^ 63` (remote's clock, `receiptBound ≤ 2 ^ 63`, would
-allow more): Net's net/rpc server (`Server.ServeCodec.spec`, run by the master and the replicas)
-needs the machine's thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an
-`int32`), and the deployment bridge bounds the threads by the step count (`Bridge.lean`,
-`robust_of_distProtoLisRBT_sha`). A full real run (the orchestrator's 15 s and 30 s waits, the
-clients' and replicas' polling loops, thirteen processes) may take more GooseLang steps than that,
-so the theorem covers every prefix of fewer than `2 ^ 31 - 1` steps of such a run, not the whole of
-a long one.
+**The bounds**: `2 ^ 63` steps (remote's clock, `receiptBound ≤ 2 ^ 63`) and fewer than `2 ^ 31`
+live threads per machine: Net's net/rpc server (`Server.ServeCodec.spec`, run by the master and the
+replicas) needs the machine's thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is
+an `int32`). The deployment bridge (`Bridge.lean`, `robust_of_distProtoLisRBT_sha`, over Perennial's
+`goose_dist_adequacy_below`) takes that thread bound along the execution at hand, `Robust`'s
+`threads`, independent of the step bound. (Until 2026-11-24 the bridge bounded the threads by the
+step count, and the step bound was `2 ^ 31 - 1`.) An execution in which a machine reaches `2 ^ 31`
+live threads is covered up to the configuration before.
 
 **The start message narrows the deployment**: the kit's orchestrator sends each client node its
 start (the configuration again, on the node's start port, `conf.startP`) only after every node has
@@ -113,9 +114,9 @@ def swiftpaxos_remote_robust.spec : Prop :=
       (rh : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; letI := ra G π; RpcHttpHyp netDistGF),
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; letI := ra G π; letI := rh G L π;
       RpcFirstInit (GF := netDistGF)) →
-    ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
+    ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy swAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 31 - 1)
+    Robustness.Robust [] (system σ) g (2 ^ 31) (2 ^ 63)
 
 end github_com.imdea_software.swiftpaxos.examples.swiftnet
 end Perennial

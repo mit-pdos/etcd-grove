@@ -42,9 +42,14 @@ func fsPRead(fd int, off int64, n int) (string, uintptr) {
 }
 
 // fsPWrite is pwrite(fd, data, off): (written, errno). GooseLang: the extension's PWriteStart, then
-// PWriteFinish of its token.
+// PWriteFinish of its token. Go: on an fd that cannot seek (a pipe or a terminal: ESPIPE), write(2),
+// so that a gc build's os.Stdout and os.Stderr (the real NewFile's, which the extension does not
+// model) still print, as the model's File.Write over them would otherwise fail and then be stuck.
 func fsPWrite(fd int, off int64, data string) (int, uintptr) {
 	m, err := syscall.Pwrite(fd, []byte(data), off)
+	if err == syscall.ESPIPE {
+		m, err = syscall.Write(fd, []byte(data))
+	}
 	if m < 0 {
 		m = 0
 	}

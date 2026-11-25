@@ -1,8 +1,8 @@
 /-
 The proof of `Server.Accept` (`Net/Spec/net/rpc/Server__Accept.lean`): the loop's invariant is
 `True` (everything it needs is persistent). Each `Accept` through the listener's interface
-(`net.Listener.Accept.spec` with `accept_addrs_shared_au`, at the address it was dialed to): a connection gives the acceptor's tokens and
-its fresh token (`rpcAccepted`), served by `ServeConn` in a goroutine of its own, which gets the
+(`net.Listener.Accept.spec` with `accept_addrs_shared_rdl_au`, at the address it was dialed to): a connection gives the acceptor's tokens,
+its fresh token and its read deadline's token, not set (`rpcAccepted`), served by `ServeConn` in a goroutine of its own, which gets the
 fresh thread token of its `go` statement (`wp_fork_tok_body`) and returns it; a failure's error
 (an `*OpError`, `errAny_resErr`) is logged (`log.Println` of a string) and `Accept` returns.
 -/
@@ -62,10 +62,11 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
   wp_apply wp_Accept tl l x la (fun _ => iprop(True))
       (fun a cn => iprop(connEnd (Gg := hG.goose_globalGS) cn true
         (respProto (Gg := hG.goose_globalGS) W a)
-        (reqProto (Gg := hG.goose_globalGS) W a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
+        (reqProto (Gg := hG.goose_globalGS) W a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true ∗
+        rdlTok (Gg := hG.goose_globalGS) cn true false))
       $$ [$HlisAt $Hon]
-    as %c %err (⟨%Herr, %cn, %a, %Ha, #Hc, Hend, Hfr⟩ | ⟨%k, -, #HE⟩)
-  · iapply accept_addrs_shared_au la (reqProto (Gg := hG.goose_globalGS) W)
+    as %c %err (⟨%Herr, %cn, %a, %Ha, #Hc, Hend, Hfr, Hrdl⟩ | ⟨%k, -, #HE⟩)
+  · iapply accept_addrs_shared_rdl_au la (reqProto (Gg := hG.goose_globalGS) W)
       (respProto (Gg := hG.goose_globalGS) W) $$ Hap Hli
   · -- a connection: served in a goroutine of its own
     subst Herr
@@ -76,7 +77,7 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
     iunfold connEnd at Hend
     icases Hend with ⟨Hsend, Hrecv⟩
     wp_bind (Fork _)
-    iapply wp_fork_tok_body $$ [Hsend Hrecv Hfr]
+    iapply wp_fork_tok_body $$ [Hsend Hrecv Hfr Hrdl]
     · inext
       iintro Htok
       ihave ⟨#Haddr, #Hserves⟩ := Hall $$ %a %Ha
@@ -84,12 +85,14 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
       iunfold rpcAddrP at Haddr
       icases Haddr with ⟨-, -, ⟨%Hhs, %HhsA⟩⟩
       wp_apply wp_ServeConn s γs C W a t cn la' ra
-        $$ [$Hsrv $Hserves $Henv $Hset $Hca Hsend Hrecv Hfr Htok] as Htok
+        $$ [$Hsrv $Hserves $Henv $Hset $Hca Hsend Hrecv Hfr Hrdl Htok] as Htok
       · isplitr
         · ipureintro; exact Hb
         isplitr [Htok]
         · iunfold rpcAccepted; rw [Hhs, HhsA]; iexists []; iframe Hsend Hrecv Hfr
-          ipureintro; exact List.nil_prefix
+          isplitr
+          · ipureintro; exact List.nil_prefix
+          ileft; iexact Hrdl
         iexact Htok
       iframe Htok
       ipureintro; exact isPanic_intoVal ()

@@ -19,6 +19,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.os.PkgInit
 public import Spec.os.OpenFileS
 public import GooseLang.Ext.Fs.NoErrSpecsTrunc
 
@@ -64,7 +65,7 @@ abbrev os.OpenFile.specCreateTruncS : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1 →
   NameOk b → h.cur !! b = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
@@ -85,7 +86,7 @@ abbrev os.OpenFile.specCreateTruncSnc : Prop :=
   OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
   (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1 →
   NameOk b → h.cur !! b = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))

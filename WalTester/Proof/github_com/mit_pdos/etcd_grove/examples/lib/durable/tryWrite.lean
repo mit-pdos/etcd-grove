@@ -39,7 +39,6 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
-variable [os.file.FieldAssumptions]
 
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
     (wp_Dir : filepath.Dir.spec (GF := GF) (hG := hG))

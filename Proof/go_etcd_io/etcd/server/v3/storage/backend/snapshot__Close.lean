@@ -34,7 +34,7 @@ variable [go_etcd_io.bbolt.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- bbolt's `Tx.Rollback` of a whole read transaction in the backend's vocabulary, at `theFs`. -/
 private theorem bbolt.kvGlue_TxRollback_ro (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
+, bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D : backend.Data),
   {{ txLive (GF := GF) tx γ 1 (bbolt.TxView.ro D) }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Rollback")) (Val #()))
@@ -71,8 +71,8 @@ private theorem snap_take (sc : GoChan) (γsc : ChanNames) (γ : GName) (tx : Lo
 
 /-- `s.Close()`: `stopc` closed, `donec` awaited, the read transaction rolled back. -/
 theorem backend.snapshot.Close.wp_proof
-    (hRollback : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
+    (hRollback : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Rollback.spec (GF := GF) (hG := hG)) :
     backend.snapshot.Close.spec (GF := GF) (hG := hG) := by
   replace hRollback := bbolt.kvGlue_TxRollback_ro hRollback
   intro sp D γ

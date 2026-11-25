@@ -9,7 +9,6 @@ roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
@@ -24,7 +23,4 @@ axiom storage.NewBackendQuota.wp_proof
 axiom strings.ToLower.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

@@ -50,8 +50,6 @@ variable [NaInvG GF]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
 variable [os.Assumptions]
-variable [os.fileStat.FieldAssumptions]
-variable [os.file.FieldAssumptions]
 variable [syscall.Assumptions]
 variable [log.NewModel]
 

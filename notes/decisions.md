@@ -14702,6 +14702,8 @@ one index") is gone with the single deposit.
 
 ## D26: the bridge is part of the network: trust-boundary specs, its code not verified (2026-10-21 · decided by the user; `notes/client-cut-plan.md` K1)
 
+*Superseded in part* (2026-11-24): `bridge.New`'s spec also consumes `netAddrLeft a` ("`bridge.New` consumes what sets the bridged address's protocols", below).
+
 **Problem.** linkv3p's clients reach their members through a copy of etcd's test bridge
 (`third_party/bridge`): a TCP proxy that accepts at a bridge address `a`, dials the member's client
 address `b` once per accepted connection, and copies bytes both ways, or drops them (`Blackhole`),
@@ -14939,6 +14941,10 @@ wrapper over its KV service, and the gRPC server `gs` with the KV registrations 
 at `addr`, the facts `etcd_kv_started` takes. `errDesc`, `refusalDescs` and `noRefusal` are in
 `Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusErrOk`, and `noRefusalAt` is in
 `InvGrpc.lean`.
+
+*Superseded in part (2026-11-24): the premises `gs` and the listener did not tie `addr` to the server;
+the axiom now takes the server listening at `addr` (`grpcAddrIs`, `grpcSrvCfg`), see "`etcd_noRefusal`
+over the server listening at the address".*
 
 **What it buys.** The client proves (R4): `isSafeRetry`, `isSafeRetryMutableRPC` and
 `shouldRefreshToken` return `true` for a `nonRepeatable` call only on a refusal. So on a
@@ -42329,4 +42335,140 @@ connection could otherwise change the deadline the token records); a write deadl
 it, so `deadline_w_au` needs only `connIs`. `readDead` also covers a closed end (a counter per end,
 `c s`): a reader whose end may be closed by another thread has no exclusive knowledge that it is
 not, and `closed` is as sticky as EOF, so the witness says "reads nothing more" for either reason.
+
+## `bridge.New` consumes what sets the bridged address's protocols (2026-11-24 · the coordinator, trust-shrinking, the owner informed · branch `bridge-new-addrleft/2026-11-24`)
+
+**Problem.** D26's `bridge.New` took only the listener (`netListenerAt l a`). Since phase 7 S2's interface,
+`net.Listen` also returns `netAddrLeft a`, from which a program sets `a`'s protocols itself (`addr_set_proto_tok`;
+`grpc.start'` sets a grpc table that way). So a program could listen at `a`, give `a` a grpc table of its choosing,
+and bridge `a` to a server that meets none of its specs; a client axiom over the table then proves a false result.
+Found against etcd-dist's interim `Client_Get_dist` (review 4 of `notes/putget-dist-plan.md` §12; Go: a `Get` through
+the bridge returns a value the real store lacks, and the program's check panics, 5/5 runs).
+
+**Choice.** `New` also consumes `netAddrLeft a`: a bridged address's protocols are its target's, so the program that
+bridges `a` keeps nothing to set them with. Trust-shrinking (a stronger precondition of an axiom); its one caller,
+`cluster3.StartBridge`, passes `Listen`'s `netAddrLeft`, its own spec unchanged. A second review found the hole on
+`lean` itself, with no interim axiom: the table set to etcd's own KV entries at fabricated read names, and the proved
+`client_Get_own` (over `grpc.ClientConn.Invoke`) promises a value the real store lacks (`examples/axiomcx/bridgeinvoke/`);
+with the fix it found no route (`notes/axiom-review/bridge-addrleft.md`).
+
+
+## Go's process exit stays angelic, and checkers panic (2026-11-24 · branch `angelic-exit-doc/2026-11-24`)
+
+**The user's approval** (2026-11-24): Go's process exit (`os.Exit` → `syscall.Exit`, so `log.Fatal` and
+zap's and klog's `Fatal`) stays modelled as `AngelicExit` (Perennial `ca6df841b`:
+`Exit.impl := λ: "code", AngelicExit #()`, Perennial's `TrustedCode/syscall.lean` and this
+repository's), on the condition that the consequence is documented.
+
+**The consequence.** `AngelicExit` steps to itself forever: the exiting goroutine is neither stuck nor
+panicking, and the machine's other goroutines keep running (Go ends the process). So under `Robust`
+(`Robustness/Statement.lean`) an exit of any status is a safe run, not "the program ends with a
+failure": a program that checks a property and reports a violation with `os.Exit(1)` or `log.Fatal`
+proves nothing about the property. A check must panic. Go's run of a machine that exits is, up to the
+exit, an execution of the model, and after it is like a machine the scheduler stops picking; the
+model's extra executions (the other goroutines running on) only add to what the proof must show safe.
+
+**Documented** in `Robust`'s docstring and the header of `Robustness/Statement.lean`,
+`notes/robustness.md` ("An exit is a safe run, so a checker panics"), CLAUDE.md's `Robustness/` bullet,
+and Perennial's `docs/KNOWN_LIMITATIONS.md` (branch `angelic-exit-doc`).
+
+**Enforced** by a gate, `etc/exit-check.py` (in `etc/gates.sh` and CI), untrusted tooling: for every
+program a `TopLevelDefs.lean` boots (`<X>.initialize'`, resolved to its Go package through the
+translations' `go!"..."` package names), `etc/exitcheck` type-checks the program's own packages (its
+`go list -deps` closure under `examples/`; dependencies such as raft and etcd are not checked) and
+lists every use of an exit (`os.Exit`, `syscall.Exit`, `runtime.Goexit`, `log.Fatal*`, zap's, klog's,
+glog's, logrus's and zerolog's `Fatal`, `testing`'s `Fatal`/`FailNow`/`Skip*`), calls and function
+values, and of every wrapper of its own that forwards a parameter to one (callers decide what it
+reports). Each needs an entry in `etc/exit-allow.txt` with its reason; a stale entry fails.
+
+**What it found at landing** (36 `TopLevelDefs.lean`, 108 program packages, 206 own packages): no
+exit in any check written in this repository. Thirty exits, all in the Dsverify kits' forked protocols
+(`examples/dsverify/{epaxos,swiftpaxos,quepaxa}`), none reporting a check's failure: SwiftPaxos's
+`dlog.Logger.Fatal` (exits only for a nil or verbose logger, and every deployment's logger is the kits'
+`&dlog.Logger{}`, so the protocol's `r.Fatal(...)` self-checks return, in Go as in the model), and
+QuePaxa's exits on a failed `grpc.Dial` or debug-dump file (environment failures). Two
+`TopLevelDefs.lean` name no program (`etcd/dist`'s draft, `etcdstart`'s shared definitions).
+
+Not done: a whole-program analysis (an exit in a dependency, or a wrapper that decides by itself whose
+callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
+is where a vacuous check would be written.
+
+## `etcd_noRefusal` over the server listening at the address (2026-11-24 · trust-shrinking, from an axiom sweep · branch `norefusal-link/2026-11-24`)
+
+*Supersedes D29's sentence on the members' axiom's premises ("the gRPC server `gs` with the KV
+registrations and the listener at `addr`, the facts `etcd_kv_started` takes") and the same premises of
+`etcd_noOtherRefusal` (F-S2 part 1).*
+
+**Problem.** `etcd_noRefusal` took etcd's gRPC server being built (`grpcSrvNew gs …` with `kvRegs q`
+among its registrations) and a listener at `addr` (`netListenerAt lis addr`), and gave both back with
+the pure, global `noRefusalAt addr`, which the attempt contract (`grpcInvokerOk`) reads for every KV
+call at `addr`. Nothing tied `addr` to `gs`: a program built `gs`, never served it, and served `addr`
+with another server whose `Put` returns the learner refusal (through `grpc.start'` on the same listener);
+a `Put` at `addr` then had a proof that it is not refused, and Go refuses it
+(`examples/axiomcx/norefusal/`, `TestMainPanics`; `notes/axiom-review/norefusal-link.md`).
+`etcd_noOtherRefusal` had the same shape (latent: no result uses it).
+
+**Choice.** Both axioms take the server listening at `addr` after its start: `grpcAddrIs addr γ ∗
+grpcSrvCfg γ c` with `kvRegs q` among `c.regs`, beside `isServerReq` and `quotaKVServerAt q … s`, and
+conclude the pure fact only (nothing to give back: the premises are persistent). `grpcAddrIs` is made
+only by `grpc.start` (consuming the server and the listener) and `bridge.New`, one per address
+(`grpcAddrIs_agree`); `grpcSrvCfg` is that server's configuration (`grpcSrvCfg_agree`). Bundled as
+`etcdKVSrvAt addr s` (`NoRefusal.lean`), made from `grpc.start'`'s `grpcServerAt` by
+`etcdKVSrvAt_of_serverAt`; `etcd_noRefusal_at` applies the axiom to it.
+
+Rejected: (i) keep the pre-start position and return a binding token: any token the axiom returns
+beside a plain `netListenerAt` can be dropped and the listener used by another server, and a sealed
+wrapper is not a soundness argument; (ii) a variant of `grpc.start'` that also concludes `noRefusalAt`
+(formally a weakening of the old axiom with the start): sound for this route, but it duplicates
+`grpc.start'`'s statement in a trusted axiom and the call sites start the server inside proved theorems
+(`client.etcd_kv_started_with`) that would have to call it, which is the same cascade as returning
+`etcdKVSrvAt`; (iii) applying the axiom inside the started theorems: every result over them (putget's,
+lease's, ...) would then rest on it, a per-result growth of trust.
+
+**Trust.** Weaker, per execution: every instance is the old axiom's at the moment of the start (or the
+old axiom's at a bridge's target with the bridge's carry), and the instances where `addr` is served by
+another server are gone. The statement is not a syntactic strengthening of the premises (pre-start
+resources became post-start facts). Axiom count unchanged; no top-level statement changed; per-result
+axiom sets unchanged (the started theorems return `etcdKVSrvAt` without using the axiom, and only the
+old call sites apply it).
+
+**Cascade.** `client.etcd_kv_started_with`, `etcd_kv_started`, `kv_lease_served_core`,
+`etcdstart.kvWatch_served`, `etcd_watch.wk_served_nd` return `etcdKVSrvAt addr s`; `etcdstart.kv_served_at`
+is new (`kv_served`, unchanged, is its weakening); `etcdstart.grpcUp_noRefusal` is removed. The call
+sites (cache, watch, compactwatch, k8s compactor's and etcd3's `Main`s and `startCluster`s, txnlin,
+txnlinfaultsN, `cluster3.StartMember`, `kv_lease_served_watch`) apply `etcd_noRefusal_at` after the start.
+
+**The chain by identity (same day, after an independent review: the first fix, `665f2f1efa`, left the
+unary chain unread).** A server registering etcd's KV service over the member behind a refusing
+interceptor of the program's met the first fix's premises, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainInterceptorPanics`, 5/5 on the review): interceptor contracts
+(`srvInterceptorOk`) allow any non-handler error. Both axioms now also take `v3rpc.etcdUnaryIcs s c.ics`
+(`v3rpc/UnaryChain.lean`): the chain is exactly `[il, im, iu]`, `il`/`iu` the closures
+`newLogUnaryInterceptor(s)`/`newUnaryInterceptor(s)` return (their translated code over a variable
+holding `s`, `v3rpc.icClosureOf`, read off the code; their proved specs return it), `im` one of
+grpc-prometheus's (`promUnaryIc`, opaque). `v3rpc.Server`'s spec returns it, `grpcUp` carries it,
+`etcdKVSrvAt addr s ics` records `c.ics = ics`, and `etcdKVSrv addr s` adds the identity.
+
+Rejected: (b) interceptor contracts bounding their own errors' descriptions, proved for etcd's and
+assumed for grpc-prometheus's, with the voter fact moved onto `IsLearner`: a smaller axiom, but it
+redesigns the learner spec and the interceptor contract; not needed to close the hole.
+
+**Trust.** The axioms only lose instances again (their chain must be etcd's; the old axiom read no
+chain). One trusted spec restated: `grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof`
+also returns `⌜promUnaryIc ic⌝` (opaque, a `Prop`: no axiom), naming the value Go returns (the closure
+`interceptors.UnaryServerInterceptor(reporter)`), read only by the members' axioms; nothing else grows.
+
+**Docstrings corrected** (the review's): `grpcAddrIs_agree` and `InvNet.lean`'s header said an address
+is listened on once per run, false (`listen_au` lends the listening token again once the address's
+protocols are set); what holds is that `addrClaim`, which `grpc.start` and `bridge.New` consume for
+good, is given once per address.
+
+**`kvMethod` exact (same day, a second independent review of `152b805937`).** The attempt contract
+read `noRefusalAt` for `kvMethod method`, then the prefix `/etcdserverpb.KV/`: a program registering a
+service named `etcdserverpb.KV/Evil` on etcd's own server got the promise for `/etcdserverpb.KV/Evil/Put`,
+which grpc-go dispatches (at the last `/`) to that service, and Go refuses
+(`examples/axiomcx/norefusal/`, `TestMainSlashPanics`). `kvMethod` is now membership in the five exact
+full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange`/`_txn`/`_range`.
+Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
+members' axioms are unchanged in statement and now speak of fewer calls.
 

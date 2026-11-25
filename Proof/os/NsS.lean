@@ -11,6 +11,8 @@ permission, which comes back. Lean-first (no Rocq counterpart); the legacy count
 -/
 module
 
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 public import Spec.os.OpenFileS
 public import Proof.os.File__Close
 public import Proof.os.SharedExt
@@ -34,7 +36,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `os.OpenFile(d/b, flag, perm)` of a name holding the file `i`, `flag` without `O_TRUNC`, with
 a fraction of a claim on names containing `b`: a fresh fd on `i` with `flag`'s access mode, or an
@@ -44,7 +46,7 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm (callKey R d) qc ∗
@@ -55,14 +57,23 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
            ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e ∗
              ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
+  try rw [os.file_ty_eq]
+  try rw [os.File_ty_eq]
+  try rw [show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   wp_apply +noauto wp_osOpenFileSW R d b j i N dq dqn h t s0 qc fl hfl htr hb hN hi
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk
@@ -75,12 +86,15 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
       by split
          · iintro H; iexact H
          · exact absurd rfl ‹_›) $$ Hfd
-    wp_auto
-    iStructNamed inner
+    try wp_auto
+    os_newfile
+    wp_for_post_core
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
+    ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -91,35 +105,42 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     · ipureintro; exact ⟨rfl, hfd0⟩
     unfold os.ownFile os.ownOff
     isplitr [off]
-    · iexists inner_ptr
+    · iexists _
       iframe
-      isplitl [] <;> iassumption
-    · iexists inner_ptr
-      iframe
-      iassumption
+      (repeat' isplitl []) <;> iassumption
+    · iexists _
+      isplitl []
+      · iexact f
+      (try rw [show (W64 0 : w64) = 0 from rfl])
+      iexact off
   · iclear Hfd
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
     subst hfd
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp Hn HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$] [$] [$]
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
-    wp_auto
-    wp_apply os.wp_pathError_errno as %err #Herr
+    try wp_auto
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.wp_pathError_errnoV as %err #Herr
     ihave %hne := os.errnoPathErr_ne err e $$ Herr
+    wp_for_post
     iapply HΦ
     iframe
     iright
     isplitr
     · ipureintro; exact ⟨hne, rfl⟩
     isplitl []
-    · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he0) $$ Herr
+    · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he0) $$ Hsys Herr
     iexists e
     iframe Herr
     ipureintro
@@ -132,33 +153,43 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
 not read, holding nothing; or a `*PathError` of a nonzero errno. -/
 theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osLogLb_0 with #Hlb
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp HΦ
+  wp_for_step
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
   (try wp_auto)
+  -- PORT: which stub? (OpenDirS)
   wp_apply wp_osOpenDirS R p j dq t s0 qc CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hk as %fd %e %hres Hperm Hp Hfd
   by_cases he0 : e = W64 0
   · subst he0
     ihave Hfd := Hfd $$ %rfl
     rw [decide_eq_true rfl]
-    wp_auto
-    iStructNamed inner
+    try wp_auto
+    os_newfile
+    wp_for_post_core
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
+    ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -168,21 +199,26 @@ theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino)
     isplitr
     · ipureintro; rfl
     unfold os.ownFile
-    iexists inner_ptr
+    iexists _
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp HΦ [$] [$] [$] [$] [$]
     · rw [decide_eq_false he4]
-      wp_auto
-      wp_apply os.wp_pathError_errno as %err #Herr
+      try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_pathError_errnoV as %err #Herr
+      wp_for_post
       iapply HΦ
       iframe
       iright
@@ -194,33 +230,43 @@ theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino)
 not read, holding nothing; or an error. -/
 theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osLogLb_0 with #Hlb
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp HΦ
+  wp_for_step
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
   (try wp_auto)
+  -- PORT: which stub? (OpenDirS)
   wp_apply wp_osOpenDirS R p j dq t s0 qc CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hk as %fd %e %hres Hperm Hp Hfd
   by_cases he0 : e = W64 0
   · subst he0
     ihave Hfd := Hfd $$ %rfl
     rw [decide_eq_true rfl]
-    wp_auto
-    iStructNamed inner
+    try wp_auto
+    os_newfile
+    wp_for_post_core
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
+    ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -230,22 +276,28 @@ theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (d
     isplitr
     · ipureintro; rfl
     unfold os.ownFile
-    iexists inner_ptr
+    iexists _
     iframe
-    isplitl [] <;> iassumption
+    (repeat' isplitl []) <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp HΦ [$] [$] [$] [$] [$]
     · rw [decide_eq_false he4]
-      wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError
+      iintro %pe
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       iright
@@ -253,31 +305,39 @@ theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (d
 
 /-- `os.Open(p)` of the directory `j`, the error explicit: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirErrS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
-  wp_auto
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
+  try wp_auto
   wp_apply os.OpenFile.wp_dirErrS p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
+  try wp_auto
   iapply HΦ
   iexact Hr
 
 /-- `os.Open(p)` of the directory `j`: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
-  wp_auto
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
+  try wp_auto
   wp_apply os.OpenFile.wp_dirS p (W32 0) R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
+  try wp_auto
   iapply HΦ
   iexact Hr
 
@@ -288,28 +348,32 @@ theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; EtcdGrove.fmtErrorOkOrNil err }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   ihave %hfd0 := osDirFdS_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
-  wp_auto
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  wp_stub os.fsDirClose.impl
   wp_apply wp_osDirCloseS fd j ph CoPset.subseteq_top $$ Hinv Hosfd as %e
   by_cases he : e = W64 0
   · rw [decide_eq_true he]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iapply EtcdGrove.fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
-    wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn
+    try wp_auto
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn Hsys
     iintro %pe #Hpe
+    try wp_auto
     iapply HΦ
     iapply EtcdGrove.fmtErrorOkOrNil_of $$ Hpe
 
@@ -330,15 +394,13 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
          ((∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e) ∗
             ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hcl⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hcl⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z (W64 0) < sint.Z n by
     rw [show sint.Z (W64 0) = 0 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   wp_apply wp_slice_literal (V := GoString) []
   isplitr
   · ipureintro; rfl
@@ -357,29 +419,39 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
       (∀ b, N.Mem b → rs.count b ≤ 1) ∧ rs.length ≤ 2 ^ 44⌝ $$ []
   · ipureintro; subst hrs hfresh; simp
   clear hfresh hrs hsl0
-  wp_auto
+  wp_for_bind
   iloeb as IH generalizing %fresh %rs %r0 %sl0 Hp Hosfd Hsl Hcap Hcl
+  wp_for_step
   icases Hp with %Hp
   obtain ⟨hfr, hr0, hin, hcnt, hlen⟩ := Hp
+  try wp_auto
+  wp_stub os.fsDirReadNext.impl
   wp_apply wp_osDirReadNextS R fd j N r0 rs fresh dq h hfr hr0 CoPset.subseteq_top
     CoPset.subseteq_top $$ Hinv Hsi Hosfd Hcl as %v Hcl ⟨%r0', %hr1, %hr2, Hv⟩
   icases Hv with (⟨%b, %hv, Hosfd⟩ | ⟨%hv, Hosfd⟩ | ⟨%e, %hv, Hosfd⟩)
   · obtain ⟨rfl, hb, hbr⟩ := hv
-    wp_auto
+    try wp_auto
     ihave %hsl := ownSlice_len _ _ _ $$ Hsl
-    wp_apply_core wp_assume
-    iintro %hlt
+    by_cases hbig : sint.Z (W64 17592186044416) ≤ sint.Z sl0.len
+    · rw [decide_eq_true hbig]
+      try wp_auto
+      wp_for
+      wp_for_post
+      iframe
+    rw [decide_eq_false hbig]
     have hlt' : rs.length < 2 ^ 44 := by
       rw [List.length_reverse] at hsl
-      have := of_decide_eq_true hlt
       word
-    wp_auto
+    try wp_auto
     wp_apply wp_slice_literal (V := GoString) [b]
     isplitr
     · ipureintro; rfl
     iintro %sl1 ⟨Hsl1, -⟩
     wp_apply wp_slice_append $$ [$Hsl $Hcap $Hsl1] as %sl' ⟨Hsl, Hcap, -⟩
-    iapply IH $$ %false %(b :: rs) %r0' %sl' [] [Hosfd] [Hsl] Hcap Hcl HΦ Hfd
+    try wp_auto
+    wp_for_post
+    inext
+    iapply IH $$ %false %(b :: rs) %r0' %sl' [] [Hosfd] [Hsl] Hcap Hcl HΦ Hfd [$] [$] [$] [$]
     · ipureintro
       refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, ?_, ?_, ?_⟩
       · cases fresh
@@ -400,11 +472,12 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
     · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hosfd
     · rw [List.reverse_cons]; iexact Hsl
   · obtain ⟨rfl, hall⟩ := hv
-    wp_auto
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     isplitl []
-    · isplitl [] <;> iassumption
+    · (repeat' isplitl []) <;> iassumption
     ileft
     iexists rs.reverse
     iframe
@@ -415,11 +488,13 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
       exact ⟨hall x hx, fun hm => (hin x hm).2 hx⟩
     · rw [List.count_reverse]; exact hcnt x hx
   · obtain ⟨he, rfl⟩ := hv
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
-      iapply IH $$ %false %rs %r0' %sl0 [] [Hosfd] Hsl Hcap Hcl HΦ Hfd
+      try wp_auto
+      wp_for_post
+      inext
+      iapply IH $$ %false %rs %r0' %sl0 [] [Hosfd] Hsl Hcap Hcl HΦ Hfd [$] [$] [$] [$]
       · ipureintro
         refine ⟨fun h => absurd h Bool.false_ne_true, fun _ => ?_, hin, hcnt, hlen⟩
         cases fresh
@@ -427,14 +502,15 @@ theorem os.File.Readdirnames.wp_dirS (f : Loc) (fd : w64) (name : GoString) (dqf
         · exact hr2 rfl
       · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hosfd
     · rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show ¬ e = W64 0 from he)]
-      wp_auto
+      try wp_auto
       wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %err #Herr
+      wp_for_post
       iapply HΦ
       iframe
       isplitl []
-      · isplitl [] <;> iassumption
+      · (repeat' isplitl []) <;> iassumption
       iright
       isplitr
       · iexists e; iframe Herr; ipureintro; exact he

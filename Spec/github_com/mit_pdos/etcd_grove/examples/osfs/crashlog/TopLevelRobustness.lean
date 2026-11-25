@@ -42,11 +42,6 @@ a fresh Go process (`Robust`'s premise), under `crash_safety`'s other hypotheses
 execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
 def crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hnd : ∀ J, (extLocal fsExt σ.world).lookup (child dir logB) ≠ some (.dir J))

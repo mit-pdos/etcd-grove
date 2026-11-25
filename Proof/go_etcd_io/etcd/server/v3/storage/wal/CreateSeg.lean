@@ -79,7 +79,7 @@ variable [os_sem : os.Assumptions]
 
 /-- **`createNewWALFile(dir/b, false)` of a name absent from the whole claim held** (see the file
 header). -/
-theorem wp_createSeg [os.file.FieldAssumptions]
+theorem wp_createSeg
     (wp_create : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF)
       (hG := hG))
     (wp_open : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
@@ -99,24 +99,26 @@ theorem wp_createSeg [os.file.FieldAssumptions]
             osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocksW fd ⟨i, false, true, lo, lk⟩) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   iintro %Φ ⟨#Hos, #Hpkg, #Hsi, Hp, Hperm, Hn⟩ HΦ
+  ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+  · iPkgInit
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_create
   let A : Option (Nat × Nat × Ino) → Bool → IProp GF := fun o _ =>
     iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ crOut j b h (DFrac.own 1) o ∗ crMeta o)
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := by
     intro J hJ; rw [hcur] at hJ; cases hJ
   have hT : fileutil.OpenTriple
-      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.only [b]) (DFrac.own 1) h)
       (child dir b) (wal.walOpenFlag false) (W32 384) A (crIno b h) := by
     unfold fileutil.OpenTriple
-    iintro %Ψ ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩ HΨ
+    iintro %Ψ ⟨#Hospkg, #Hos, #Hsi, Hp, Hperm, Hn⟩ HΨ
     icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
     ihave Hau := osAUnc_triv (A := Option (Nat × Nat × Ino))
       (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
       (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
     iapply wp_open dir b (wal.walOpenFlag false) (W32 384) R j dq h (1 : Qp).half (1 : Qp).half
       qc (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd
-      (Qp.half_add_half 1) $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+      (Qp.half_add_half 1) $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
     inext
     iintro %f %err ⟨Hp, Hperm, %o, Ho1, Ho2, Hm, Hr⟩
     iapply HΨ
@@ -140,7 +142,7 @@ theorem wp_createSeg [os.file.FieldAssumptions]
       iframe Hok
       simp only [A]
       iframe
-  wp_apply wp_create (child dir b) false _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
+  wp_apply wp_create (child dir b) false _ _ A (crIno b h) hT $$ [$Hospkg $Hos $Hpkg $Hsi $Hp $Hperm $Hn]
     as %lf %err Hpost
   unfold fileutil.lockPostW
   icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩

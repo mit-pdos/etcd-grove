@@ -20,24 +20,6 @@ func errnoErr(e Errno) error {
 	return e
 }
 
-// modelString is an arbitrary string (it can return every string, and may also not terminate).
-func modelString() string {
-	var s string
-	for gomodel.ChooseUint64() != 0 {
-		s += string([]byte{byte(gomodel.ChooseUint64())})
-	}
-	return s
-}
-
-// MODEL: (Errno).Error (syscall_unix.go): some string. Go's body reads the read-only table errors
-// (zerrors_linux_amd64.go) inside its bounds and calls strconv.Itoa: it returns a string, never
-// panics, and touches no memory a caller owns. The model returns an arbitrary string, so every result
-// of Go's is one of the model's. (Go's body translates; it reads a package variable, which needs
-// syscall's package fact, and Errno.Error's spec (fmtErrorOk) has none.)
-func (e Errno) Error() string {
-	return modelString()
-}
-
 // MODEL: syscall's init function (rlimit.go) raises the process's soft limit on open files through
 // the raw prlimit system call (RawSyscall6, assembly) and records the original limit in
 // origRlimitNofile, which only Setrlimit and exec read. It cannot panic. The model does nothing: the
@@ -185,3 +167,10 @@ func Unlink(path string) error {
 func Rmdir(path string) error {
 	return errnoErr(Errno(fsRmdir(path)))
 }
+
+// Not modelled: the environment setters (Setenv, Unsetenv, Clearenv, and the runtime's setenv hook
+// they call; os.Setenv, ... over them). They are neither translated nor modelled in this package's
+// configuration (Code/syscall.toml), so a program reaching them has no translation. A model of them
+// must be stuck when the key is "GODEBUG" (the lead's decision, 2026-11-24): Go's runtime re-parses
+// GODEBUG there, and the models that read a GODEBUG setting (time's timer channels, ...) assume it is
+// constant during the run.

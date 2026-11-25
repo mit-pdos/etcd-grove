@@ -44,8 +44,10 @@ nothing (the reads after it fail when there is none). Logically atomic: the stat
 committed as accessed (the body linearizes before its `ReadDir`, at a ghost step; no client update
 needs it inside an `os` call). With the lock token (framed: reading a present WAL's directory takes its
 claim out of the parked state, `walParked_lock`, and puts it back; `notes/specs-only/ledger.md`,
-2026-11-14). The `false` arm rests on a hypothesis about `ENOENT` that the current model does not give
-(`ExistCallees.lean`). -/
+2026-11-14). The `false` arm rests on `ENOENT`, which the semantics gives only for a path that does not
+resolve (`ExistCallees.lean`). Conversely (2026-11-23, claim #34), with no WAL (`o = none`: the area
+holds nothing at `nm`) `Exist` answers `false` when the file system does not fail on `dir`
+(`FsNoErrAt`: `ReadDir`'s `open` then fails with `ENOENT`, `NoIoErr`'s `PathErrno`). -/
 abbrev wal.Exist.spec (C : WalCodec) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
   InArea r dir nm → NameOk nm →
@@ -56,7 +58,8 @@ abbrev wal.Exist.spec (C : WalCodec) (Mr : WalMarshal) : Prop :=
         <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
   {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
-      WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗ ⌜b = false → wal.ExistFalseOk o⌝ }}
+      WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗ ⌜b = false → wal.ExistFalseOk o⌝ ∗
+        ⌜o = none → FsNoErrAt dir → b = false⌝ }}
 
 end spec
 

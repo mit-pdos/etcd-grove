@@ -5,7 +5,8 @@ Package initialization of `go_uber_org.zap.zapcore`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's
-initializer runs, loads it; prove-initleft, 2026-11-21: until then `True`). Its initializer initializes its imports, allocates its variables and runs
+initializer runs, loads it; prove-initleft, 2026-11-21: until then `True`), and `_cePool` a fixed pool of
+owned entries (zap-z2, 2026-11-23: `CheckedEntry.Write` and `After` use it). Its initializer initializes its imports, allocates its variables and runs
 their translated initializers and its translated `init` (prove-misc, 2026-11-20; until then the
 trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`): the pools (`pool.New`, proved), the interface
 assertions, `nullLiteralBytes`, `errUnmarshalNilLevel` (`errors.New`), the level colors (a map literal)
@@ -20,8 +21,12 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Proof.go_uber_org.multierr.Init
 public import Proof.go_uber_org.zap.internal.color.Init
+public import Proof.go_uber_org.zap.internal.exit.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
+public import Proof.runtime.Init
+public import Proof.fmt.SprintfPure
 public import Perennial.Proof.errors.NewVar
 
 @[expose] public section

@@ -32,7 +32,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [golang_org.x.sys.unix.Assumptions]
+variable [os.Assumptions] [golang_org.x.sys.unix.Assumptions]
 
 /-- `lockFile(f)`: an OFD write lock on the whole file, without waiting (`unix.FcntlFlock`'s
 `F_OFD_SETLK`), on a writable fd with no OFD lock: on success the fd holds it, with its token; on an
@@ -104,7 +104,7 @@ theorem wp_Segment (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R)
     (h : NamesH) (hn : h.cur !! logB = none) (sl : GoSlice) (dqs : DFrac) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h ∗ sl ↦*{dqs} dataC }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h ∗ sl ↦*{dqs} dataC }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Segment))
         (Val #(child dir logB))) (Val #sl))
     {{ (e : w64) (err : GoInterface), RET (PairV #e #err);
@@ -526,7 +526,7 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (dqn : DFrac) (qc : Qp)
     (h : NamesH) (i : Ino) (hk : h.cur !! logB = some (.file i)) (dqm dqb : DFrac)
     (m : OsMeta) (bs : List ByteG) (hsz : 8 ≤ m.size) (hbl : bs.length = 8) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R dir) qc ∗ osNames j lN dqn h ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R dir) qc ∗ osNames j lN dqn h ∗
         osMeta (GF := GF) i dqm m ∗ osBytes (GF := GF) i 0 dqb bs }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Reread))
         (Val #(child dir logB))) (Val #(W64 8)))
@@ -586,7 +586,7 @@ theorem wp_Run (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (h0 : NamesH) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h0 ∗ DS.subRes (GF := GF) logB h0 }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h0 ∗ DS.subRes (GF := GF) logB h0 }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Run)) (Val #dir))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hos, #Hsi, Hh, Hsub⟩

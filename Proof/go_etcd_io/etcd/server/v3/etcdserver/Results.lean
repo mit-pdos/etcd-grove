@@ -333,8 +333,8 @@ storage package's initialization, `rnNewStorageOk`, from `NewStorage`'s proof an
 the WAL's linked results at the server's message model (whose hard-state marshal law rests on the registered
 `raftpb.HardState`, `hsEncC_ok`/`pbHsC_reg`). Under `os`'s field assumptions (the WAL's), so not yet passed to
 `bootstrappedRaft.newRaftNode`, whose spec keeps the premise `rnNewStorageOk`. -/
-theorem new_storage_contract [os.fileStat.FieldAssumptions]
-    [os.file.FieldAssumptions] : rnNewStorageOk.law (GF := GF) (hG := hG) :=
+theorem new_storage_contract
+ : rnNewStorageOk.law (GF := GF) (hG := hG) :=
   rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex
 
 end triples

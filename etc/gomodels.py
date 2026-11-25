@@ -102,8 +102,10 @@ def materialize(candidates=()):
 # Every test runs with the translation's build tags (goose, netgo), unless its arguments give -tags.
 TESTS = [
     ("crc32", "Code", "models", ["hash/crc32"], ["hash/crc32"],
-     "none left out (TestArchCastagnoli compares archUpdateCastagnoli, the model's portable CRC-32C, "
-     "with simpleUpdate: trivially equal under the model)"),
+     "none left out; but TestArchCastagnoli SKIPs under the overlay (gomodel.Choose's Go body is "
+     "false, so archAvailableCastagnoli is false and the model's archUpdateCastagnoli never runs here). "
+     "Its evidence: real Go's TestArchCastagnoli (assembly = slicing) with TestSlicing/TestSimple, and the "
+     "adversarial review's differential with Choose forced true (2026-11-24: all crc32 tests pass)"),
     ("token", os.path.join("Net", "Code"), "models", ["go/token"], ["go/token"],
      "none left out (go/token's own tests do not call IsExported)"),
     # (without the tag goose: rpcdifftest's codec files of that tag need the net/rpc model)
@@ -114,13 +116,22 @@ TESTS = [
     # (S5) os's and syscall's models over the Linux file extension's stubs (the stubs' Go bodies are
     # the real system calls)
     ("os", "Code", "project:bboltfs", ["os", "syscall"],
-     ["-run", "^Test(ReadAt|WriteAt|Seek|Truncate|MkdirAll|Remove|RemoveAll|Rename|Stat|Lstat|"
-      "Readdirnames|OpenFile|Close|Fd|ReadFrom|CopyFileRange)",
-      "-skip", "^(TestWriteAtInAppendMode|TestOpenFileKeepsPermissions|TestCloseWithBlockingReadByFd|TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl|TestRemoveAllLongPath|TestClosedPipeRaceWrite|TestClosedPipeRaceRead)$", "-timeout", "90s", "os"],
-     "os's tests of the modelled calls only; left out: what reaches gomodel.Stuck in the model "
-     "(O_APPEND, nonblocking and pipe files, deadlines, Readdirnames(n > 0), a closed File's methods; "
-     "gomodel.Stuck blocks forever in Go builds, so TestWriteAtInAppendMode is skipped) "
-     "and what is not modelled at all (Chmod, Chown, links, Root, processes, finalizers)"),
+     ["-run", "^Test(ReadAt|WriteAt|Seek|Truncate|MkdirAll|Remove|RemoveAll|Rename|Stat|Readdirnames)",
+      "-skip", "^(TestWriteAtInAppendMode|TestReaddirnamesOneAtATime|TestRemoveAllWithMoreErrorThanReqSize|"
+      "TestStatStdin|TestStatDirModeExec|TestSeekError|TestWriteAtConcurrent|TestRemoveAllLongPath|"
+      "TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl|TestRenameNotExisting)$", "os"],
+     "os's tests of the modelled calls the plan lists (ReadAt, WriteAt, Seek, Truncate, MkdirAll, "
+     "Remove, RemoveAll, Rename, Stat, Readdirnames); left out: what reaches gomodel.Stuck, which blocks "
+     "forever in gc builds (O_APPEND: TestWriteAtInAppendMode; Readdirnames(n > 0): "
+     "TestReaddirnamesOneAtATime, TestRemoveAllWithMoreErrorThanReqSize); a choice whose gc answer is "
+     "not Linux's (mode bits, gomodel.ChooseUint64 = 0: TestStatStdin, TestStatDirModeExec); what the "
+     "file extension does not model, where the stubs' gc bodies differ from Go (pipes: TestSeekError; "
+     "symlinks: TestRemoveAllSymlinkRemovalFailure; paths over PATH_MAX, which RemoveAll's model names "
+     "whole where Go uses the *at calls: TestRemoveAllLongPath; a strace child process: "
+     "TestRemoveAllNoFcntl); concurrent Write calls, whose offset the model updates without Go's lock "
+     "(more outcomes than Go: TestWriteAtConcurrent; models/os/model.go, Write); a stub whose gc body "
+     "answers one of the model's outcomes only (fsLstatDir: EEXIST for a directory destination, where Go "
+     "answers the Lstat of oldname's error: TestRenameNotExisting)"),
     ("syscall", "Code", "project:bboltfs", ["os", "syscall"],
      ["-run", "^TestLocks(OFDConflict|OFDRemoveThenClose|OFDSameDescription|Flock|FlockVsOFD)$",
       "github.com/mit-pdos/etcd-grove/examples/osfs/semantics"],

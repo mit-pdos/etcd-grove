@@ -231,7 +231,7 @@ errors_IsStatusErr:
 go_humanize_Bytes:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Uint64:
@@ -270,7 +270,7 @@ IsEmptySnap: @
 SetLogger: @
 zap_Duration:
 zap_Time:
-zap_Logger__Fatal:
+zap_Logger__Fatal: pool_Pool__Get os_Exit
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
 # NodeApiLink's `srvApi_wp_MemAppend`)
 proto_CloneSnapshot: @
@@ -904,6 +904,9 @@ etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger_
 # configuration's `BackendPath`; raft's metadata getter and `fmt.Errorf` are linked elsewhere (`@`).
 fmt_Errorf: @
 snap_Snapshotter__DBFilePath:
+# (claim #34, 2026-11-23) the snapshotter's constructor, proved (`snapshotterRO` defined, the
+# `fsyncDir` field: axiom review in notes/axiom-review/)
+snap_New: zap_NewNop
 os_Rename:
 # (bkarea, 2026-11-22) `BackendPath` proved over `datadir` (translated with its bodies) and
 # `filepath.Join` (the part's translation, proved; the WAL's Link links it in its own namespace)
@@ -1145,3 +1148,9 @@ path_lazybuf__string:
 # auth store's `WithRoot` its inner goroutines call
 auth_authStore__WithRoot:
 EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:
+pool_Pool__Get:
+os_Exit: syscall_Exit
+syscall_Exit:

@@ -25,7 +25,7 @@ machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepax
   world's registry can be allocated (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and
   `sync.Map` over `qv.map` (`hyp.sync.MapHyp`);
 * the translation's `Assumptions` of the twelve commands (with, by their instances, those of every
-  package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
+  package they import) and `go.BasicIntoValInj`, as paxos's statement.
 Proved in `Dsverify/Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean`.
 -/
 module

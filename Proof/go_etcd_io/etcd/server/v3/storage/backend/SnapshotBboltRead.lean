@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.Bucket_kvr`). -/
-theorem bbolt.kvGlue_Tx__Bucket_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
+theorem bbolt.kvGlue_Tx__Bucket_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data) (name : GoSlice) (n : GoString) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx γ q (bbolt.TxView.ro D) ∗ name ↦*{dq} n }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Bucket")) (Val #name))
@@ -62,8 +62,8 @@ theorem bbolt.kvGlue_Tx__Bucket_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Bucket.Cursor_kvr`). -/
-theorem bbolt.kvGlue_Bucket__Cursor_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG)) :
+theorem bbolt.kvGlue_Bucket__Cursor_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data) (b : Loc) (n : GoString) (m : backend.BktData),
   D.lookup n = some m →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ wBkt tx γ b n 0 ∗ txLive tx γ q (bbolt.TxView.ro D) }}

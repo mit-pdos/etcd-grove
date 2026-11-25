@@ -64,7 +64,7 @@ theorem pipeTmp_mem (n : Nat) : pipeTmp n ∈ walTmps := by
   unfold pipeTmp walTmps; split <;> simp
 
 /-- **`Close` of the whole share** (see the file header). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_syncC : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (W := W) P Mr)
@@ -388,7 +388,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
     iframe
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_syncC : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (W := W) P Mr)

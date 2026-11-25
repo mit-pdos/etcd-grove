@@ -35,7 +35,7 @@ section triples
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
-variable [sem : go.Semantics] [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os_sem : os.Assumptions]
 
 theorem qQuarter_three : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
   apply Subtype.ext
@@ -54,7 +54,7 @@ theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := G
     (bt : GoString) (qc : Qp) (hb : NameOk bt) (hN : (NameSet.except X).Mem bt)
     (hcur : hj.cur !! bt = none) :
     fileutil.OpenTriple
-      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.except X) (DFrac.own qQuarter) hj ∗
         osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
           (crOutN j (.except X) bt hj (DFrac.own ((1 : Qp).half + qQuarter)))
@@ -63,10 +63,10 @@ theorem repBroken_tripleNew (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := G
       (crIno bt hj) := by
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_ok
   unfold fileutil.OpenTriple
-  iintro %Ψ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΨ
+  iintro %Ψ ⟨#Hospkg, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΨ
   iapply wp_OpenN dir bt (wal.walOpenFlag true) (W32 384) R j (.except X) dq hj qQuarter
     ((1 : Qp).half + qQuarter) qc (walBrokenQ (W := W) dir j X hj o bt) hfl hcr htr hb hN hcur
-    qQuarter_three $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    qQuarter_three $$ [$Hospkg $Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
   iintro %f %err ⟨Hp, Hperm, %x, HQ, Ho, Htr, Hr⟩
   iapply HΨ
@@ -105,15 +105,15 @@ theorem repBroken_tripleOld (R : Roots) (dir : GoString) (dq dqn : DFrac) (j : I
     (hj : NamesH) (bt : GoString) (i : Ino) (qc : Qp) (hb : NameOk bt) (hN : (NameSet.except X).Mem bt)
     (hcur : hj.cur !! bt = some (.file i)) :
     fileutil.OpenTriple
-      iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osNames j (.except X) dqn hj ∗
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osNames j (.except X) dqn hj ∗
         osCallPerm (callKey R dir) qc ∗ trFile i False)
       (child dir bt) (wal.walOpenFlag true) (W32 384) (repBrokenOldA (GF := GF) R dir dq dqn j X hj i qc)
       (fun _ i' => i' = i) := by
   obtain ⟨hfl, -, htr⟩ := walOpenFlag_ok
   unfold fileutil.OpenTriple
-  iintro %Ψ ⟨#Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
+  iintro %Ψ ⟨#Hospkg, #Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
   iapply os.OpenFile.wp_truncS dir bt (wal.walOpenFlag true) (W32 384) R j i (.except X) dq dqn hj qc
-    hfl htr hb hN hcur $$ [$Hos $Hsi $Hp $Hn $Hperm $Htr]
+    hfl htr hb hN hcur $$ [$Hospkg $Hos $Hsi $Hp $Hn $Hperm $Htr]
   inext
   iintro %f %err ⟨Hp, Hn, Hperm, Htr, Hr⟩
   iapply HΨ

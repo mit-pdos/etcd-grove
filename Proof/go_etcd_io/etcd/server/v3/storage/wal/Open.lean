@@ -35,7 +35,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
-variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- The WAL's key, held by a read handle (persistent). -/
 theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) :
@@ -84,6 +84,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.Open.spec (W := W) Mr := by
   intro lg R jr r dir nm sp s qp Q hin hnmO hr hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'

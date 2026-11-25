@@ -99,22 +99,24 @@ theorem stampAt_clockLb (γc : ClockName) (P : IProp GF) (T : Int) :
   iexact H
 
 /-- **Where stamps come from**: Go's `time.After(d)` (over Perennial's spec, `time.After.spec`),
-which `realClock.After` calls: for a persistent `P` and a bound `clockLb n` the caller holds, the
+which `realClock.After` calls: under `time`'s `isPkgInit`, for a persistent `P` and a bound `clockLb n` the caller holds, the
 clock's reading `T ≥ n` at the call, a stamp of `P` at `T`, and a channel whose values come only once
 the real clock has reached `T + d`. -/
 theorem wp_After_stamp [github_com.jonboulle.clockwork.Assumptions]
     (wp_After : time.After.spec (GF := GF) (hG := hG)) (d : time.Duration)
     (P : IProp GF) (n : Int) :
-    ⊢ □ P -∗ clockLb realClock n -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.time -∗ □ P -∗ clockLb realClock n -∗
       {{ True }} (App (Val (@! time.After)) (Val #d))
       {{ (ch : Loc) (γ : ChanNames), RET #ch; ∃ T : Int, ⌜n ≤ T⌝ ∗ stampAt realClock iprop(□ P) T ∗
           isChanBag γ ch (V := time.Time) (fun _ => clockLb realClock (T + sint.Z d)) }} := by
-  iintro #HP #Hn
+  iintro #Ht #HP #Hn
   unfold clockLb
   imodintro
   iintro %Φ _ HΦ
   wp_apply_core wp_After d n (fun T => time.clockLb (T + sint.Z d)) $$ [Hn]
-  · iframe Hn
+  · isplitr
+    · iexact Ht
+    iframe Hn
     iintro %T _ #H
     iexact H
   iintro %ch %γ %T ⟨%HT, #HTlb, #Hch⟩

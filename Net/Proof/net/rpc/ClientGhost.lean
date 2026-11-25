@@ -56,7 +56,7 @@ theorem req_append (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnName
     (L : List RpcReq) (i : Nat) (hi : L.length = i) (sm svc M : GoString) (S : MethodSpec GF) (eb : List w8)
     (Φ : List w8 → GoString → IProp GF) (post col ap : GName)
     (hL : ∀ r ∈ L, reqOk r) (hlen : L.length + 1 ≤ 2 ^ 64)
-    (hsm : sm.length + 16 < 2 ^ 63) (heb : eb.length < 2 ^ 63)
+    (hsm : sm.length + 16 ≤ maxFrameN) (heb : eb.length ≤ maxFrameN)
     (hsv : splitSM sm = some (svc, M) ∧ W.SS a svc = some S) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
       sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) ∗ £ 1 ∗

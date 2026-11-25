@@ -1,7 +1,8 @@
 /-
 `badStringError(what, val)` (`fmt.Errorf("%s %q", what, val)`): a non-nil error, a pointer
-(`io.ptrTyped`: `readRequestLimit` compares it with `io.EOF`), whose `Error()` returns some string
-(`errMsgOk`: `fmt.Errorf`'s error). Proved in
+(`io.ptrTyped`: `readRequestLimit` compares it with `io.EOF`), an `*errors.errorString` (`errors.New`
+of the message) whose message starts with `what` (what tells it from the package's other
+`errors.New` errors, `errTooLarge`). Proved in
 `Net/Proof/net/http/badStringError.lean`.
 -/
 module
@@ -29,8 +30,10 @@ abbrev badStringError.spec : Prop :=
   ∀ (what val : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt }}
     (App (App (Val (@! net.http.badStringError)) (Val #what)) (Val #val))
-  {{ (e : GoInterfaceOk), RET #(interface.ok e);
-      ⌜_root_.Perennial.io.ptrTyped (interface.ok e)⌝ ∗ errMsgOk (interface.ok e) }}
+  {{ (e : GoInterfaceOk), RET #(interface.ok e); ⌜_root_.Perennial.io.ptrTyped (interface.ok e)⌝ ∗
+      ∃ (x : Loc) (s : GoString),
+        ⌜e = ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ ∧ what <+: s⌝ ∗
+        x.[errors.errorString, go!"s"] ↦□ s }}
 
 end spec
 

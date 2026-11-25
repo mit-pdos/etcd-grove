@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Net.ManualProof.net.rpc
 public import GeneratedProof.bufio
 public import Perennial.GeneratedProof.errors
 public import Net.GeneratedProof.go.token
@@ -691,7 +692,6 @@ noncomputable instance serverCodec_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "rwc" ∷ typedPointsto (structFieldRef net.rpc.serverCodec go!"rwc" l) v.rwc' dq ∗
     "werr" ∷ typedPointsto (structFieldRef net.rpc.serverCodec go!"werr" l) v.werr' dq ∗
-    "rerr" ∷ typedPointsto (structFieldRef net.rpc.serverCodec go!"rerr" l) v.rerr' dq ∗
     "closed" ∷ typedPointsto (structFieldRef net.rpc.serverCodec go!"closed" l) v.closed' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -731,22 +731,6 @@ noncomputable instance serverCodec_access_store_werr (l : Loc) (v : net.rpc.serv
       (typedPointsto (structFieldRef net.rpc.serverCodec go!"werr" l) v.werr' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.serverCodec go!"werr" l) werr' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with werr' := werr' } : net.rpc.serverCodec) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance serverCodec_access_load_rerr (l : Loc) (v : net.rpc.serverCodec) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.rpc.serverCodec go!"rerr" l) v.rerr' dq)
-      (typedPointsto (structFieldRef net.rpc.serverCodec go!"rerr" l) v.rerr' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance serverCodec_access_store_rerr (l : Loc) (v : net.rpc.serverCodec) (rerr' : GoError) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.rpc.serverCodec go!"rerr" l) v.rerr' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.rpc.serverCodec go!"rerr" l) rerr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rerr' := rerr' } : net.rpc.serverCodec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

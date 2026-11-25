@@ -171,6 +171,7 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
   have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
     Hprem σc Hc
   have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
+  have hclient : Net.addrOk client = true := Hok client (by simp [addrs])
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   obtain ⟨S⟩ := @HS2 _ G π
@@ -186,7 +187,7 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HM HEnvTok peer client hpeer id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
+      exact member_boot Hctx HM HEnvTok peer client hpeer hclient id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact HCb S γE
     | k + 2, hm => simp [system] at hm

@@ -8,6 +8,7 @@ public import Code.io.fs
 public import Perennial.Code.runtime
 public import Perennial.Code.sync
 public import Code.syscall
+public import Perennial.Code.internal.testlog
 public import Code.internal.poll
 public import Perennial.Code.errors
 public import Perennial.Code.sync.atomic
@@ -270,7 +271,8 @@ opaque doInRootCreatingDirectory [GooseExts] [GoGlobalContext] : val
 
 opaque doInRootAlwaysResolveTerminalSlash [GooseExts] [GoGlobalContext] : val
 
-opaque supportsCreateWithStickyBit [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def supportsCreateWithStickyBit [GooseExts] [GoGlobalContext] : val :=
+  #true
 
 opaque supportsCloseOnExec [GooseExts] [GoGlobalContext] : val
 
@@ -1076,7 +1078,7 @@ noncomputable def fsWithCall [GooseExts] [GoGlobalContext] : GoString :=
     Perennial's append treats as an assumption already
     (examples/osfs/semantics/model_os_readdirnames_len.go).
 
-    go: model.go:468:16 -/
+    go: model.go:471:16 -/
 noncomputable def File.Readdirnames.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "n"
@@ -1323,7 +1325,7 @@ noncomputable def LinkError.Error.impl [GooseExts] [GoGlobalContext] : val :=
     copied into b). An empty b returns 0, nil at once (poll.FD.Read). Not modelled: a closed file, an
     unknown offset, a read reaching modelOffMax.
 
-    go: model.go:320:16 -/
+    go: model.go:323:16 -/
 noncomputable def File.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "b"
@@ -1767,9 +1769,12 @@ noncomputable def genericReadFrom.impl [GooseExts] [GoGlobalContext] : val :=
     a zero-byte write(2) whose answer depends on the fd's mode (EBADF on a read-only fd), returns
     (0, nil) or (0, f.wrapErr("write", e)) for any errno, changing nothing (POSIX; measured,
     TestEmptyWrite; examples/osfs/semantics/model_os_writefile.go). Not modelled: a closed file, an
-    unknown offset, a write reaching modelOffMax.
+    unknown offset, a write reaching modelOffMax. Concurrent Write or Read calls on one File, which
+    Go serializes (poll.FD's fdMutex; Linux's f_pos update is atomic), read and write off without a
+    lock here: the model has at least Go's outcomes (also lost offset updates, which Go has not; in
+    gc builds os's TestWriteAtConcurrent fails for that reason).
 
-    go: model.go:284:16 -/
+    go: model.go:287:16 -/
 noncomputable def File.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "b"
@@ -2536,7 +2541,7 @@ noncomputable def OpenFile.impl [GooseExts] [GoGlobalContext] : val :=
     (the extension's Rename, after its own CallBegin, each attempt). Go's body is not translated: its
     SameFile reads fileStat.sys, which the models leave zero.
 
-    go: model.go:440:6 -/
+    go: model.go:443:6 -/
 noncomputable def Rename.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "oldpath"
   (Lam "newpath"
@@ -2949,7 +2954,7 @@ noncomputable def syscallMode.impl [GooseExts] [GoGlobalContext] : val :=
     looking at the fd, without a system call (the extension's ftruncate is stuck on it). fsFtruncate
     is the extension's FtruncateStart and FtruncateFinish. Not modelled: a closed file.
 
-    go: model.go:385:16 -/
+    go: model.go:388:16 -/
 noncomputable def File.Truncate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "size"
@@ -3028,7 +3033,7 @@ noncomputable def File.Truncate.impl [GooseExts] [GoGlobalContext] : val :=
     directory's outside the roots' trees (fsFdKind). A failed Fsync changes nothing (the extension
     assumes no failed writeback) and never returns EINTR.
 
-    go: model.go:410:16 -/
+    go: model.go:413:16 -/
 noncomputable def File.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -3477,7 +3482,7 @@ noncomputable def MkdirAll.impl [GooseExts] [GoGlobalContext] : val :=
     strictly below a root and canonical: the model is stuck on any other (as every path step).
     examples/osfs/semantics/model_os_removeall.go.
 
-    go: model.go:779:6 -/
+    go: model.go:782:6 -/
 noncomputable def RemoveAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -3810,6 +3815,33 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))
 
+/-- Exit causes the current program to exit with the given status code.
+    Conventionally, code zero indicates success, non-zero an error.
+    The program terminates immediately; deferred functions are not run.
+
+    For portability, the status code should be in the range [0, 125].
+
+    go: proc.go:62:6 -/
+noncomputable def Exit.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "code"
+  (Seq (App (Val exceptionDo)
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.int))) (Var "code"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Exit []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
+  (App (App (Val (GoInstruction (FuncResolve runtime_beforeExit []))) (Val #())) (Var "$a0")))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "code")) (Val #(W64 0)))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.testlog.PanicOnExit0 []))) (Val #())) (Val #())) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected call to os.Exit(0) during test")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
 /-- go: rawconn.go:18:19 -/
 noncomputable def rawConn.Control.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
@@ -3959,7 +3991,7 @@ noncomputable def newRawConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: Stat (stat.go): testlog.Stat(name), a no-op outside go test's logging (its logger is
     nil), then statNolog: modelStat with Op "stat".
 
-    go: model.go:577:6 -/
+    go: model.go:580:6 -/
 noncomputable def Stat.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc FileInfo.ty))) (App (Val (GoInstruction (GoZeroVal FileInfo.ty))) (Val #())))
@@ -3987,7 +4019,7 @@ noncomputable def Stat.impl [GooseExts] [GoGlobalContext] : val :=
     roots' trees there are no symlinks and no root is one (the extension's environment), so lstat
     answers as stat does on every path below an ancestor of a root.
 
-    go: model.go:584:6 -/
+    go: model.go:587:6 -/
 noncomputable def Lstat.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc FileInfo.ty))) (App (Val (GoInstruction (GoZeroVal FileInfo.ty))) (Val #())))
@@ -4016,7 +4048,7 @@ noncomputable def Lstat.impl [GooseExts] [GoGlobalContext] : val :=
     extension's Fstat gives only the size, and is stuck on a directory's fd, so the mode is a regular
     file's (modelMode(0)); the name is filepathlite.Base(f.name), as fillFileStatFromSys sets it.
 
-    go: model.go:362:16 -/
+    go: model.go:365:16 -/
 noncomputable def File.Stat.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam BAnon
@@ -4471,7 +4503,7 @@ noncomputable def File.spliceToFile.impl [GooseExts] [GoGlobalContext] : val :=
     their kernel offsets, which poll.FD does not hold). Go reads the function from the package
     variable pollCopyFileRange, which only os's tests reassign.
 
-    go: model.go:927:16 -/
+    go: model.go:930:16 -/
 noncomputable def File.copyFileRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "r"
@@ -4972,7 +5004,7 @@ noncomputable def modelMode.impl [GooseExts] [GoGlobalContext] : val :=
     ENOMEM, ...), and neither changes anything; the model also lets Stat see a symlink (only more
     answers). examples/osfs/semantics/model_os_stat_above.go.
 
-    go: model.go:501:6 -/
+    go: model.go:504:6 -/
 noncomputable def modelStatAbove.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "op"
   (Lam "name"
@@ -5067,7 +5099,7 @@ noncomputable def modelStatAbove.impl [GooseExts] [GoGlobalContext] : val :=
     modelled), and where it fails Open can fail with the same errno. At an ancestor of a root
     (fsPathKind 2), modelStatAbove. examples/osfs/semantics/model_os_stat.go, model_os_stat_above.go.
 
-    go: model.go:532:6 -/
+    go: model.go:535:6 -/
 noncomputable def modelStat.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "op"
   (Lam "name"
@@ -5232,7 +5264,7 @@ noncomputable def modelStat.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelUnlinkLoop is unlink(2) of p, each attempt after its own CallBegin, EINTR retried: the errno.
 
-    go: model.go:589:6 -/
+    go: model.go:592:6 -/
 noncomputable def modelUnlinkLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
@@ -5261,7 +5293,7 @@ noncomputable def modelUnlinkLoop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelRmdirLoop is rmdir(2) of p, each attempt after its own CallBegin, EINTR retried: the errno.
 
-    go: model.go:599:6 -/
+    go: model.go:602:6 -/
 noncomputable def modelRmdirLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uintptr))) (App (Val (GoInstruction (GoZeroVal go.uintptr))) (Val #())))
@@ -5291,7 +5323,7 @@ noncomputable def modelRmdirLoop.impl [GooseExts] [GoGlobalContext] : val :=
 /-- modelOpenLoop is open(p, O_RDONLY|O_CLOEXEC), each attempt after its own CallBegin, EINTR
     retried: (fd, errno).
 
-    go: model.go:610:6 -/
+    go: model.go:613:6 -/
 noncomputable def modelOpenLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -5335,7 +5367,7 @@ noncomputable def modelOpenLoop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelCloseFd closes the fd of a file or of a directory (fsFdKind), ignoring the errno.
 
-    go: model.go:620:6 -/
+    go: model.go:623:6 -/
 noncomputable def modelCloseFd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Seq (App (Val exceptionDo)
@@ -5352,7 +5384,7 @@ noncomputable def modelCloseFd.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelPrefixPath is `pe.Path = pre + "/" + pe.Path` for a non-nil pe (removeall_at.go).
 
-    go: model.go:629:6 -/
+    go: model.go:632:6 -/
 noncomputable def modelPrefixPath.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pe"
   (Lam "pre"
@@ -5411,7 +5443,7 @@ noncomputable def modelPrefixPath.impl [GooseExts] [GoGlobalContext] : val :=
     more exactly when a chunk was full, which depends on the directory's size and on entries added
     meanwhile. Errnos: ENOENT 2, ENOTDIR 20, EISDIR 21, EPERM 1, EACCES 13.
 
-    go: model.go:676:6 -/
+    go: model.go:679:6 -/
 noncomputable def modelRemoveAllFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "parent"
   (Lam "base"
@@ -5711,7 +5743,7 @@ noncomputable def modelRemoveAllFrom.impl [GooseExts] [GoGlobalContext] : val :=
     modelled: a closed file, an unknown offset, offsets reaching modelOffMax.
     examples/osfs/semantics/model_os_copy_file_range.go.
 
-    go: model.go:831:6 -/
+    go: model.go:834:6 -/
 noncomputable def modelCopyFileRangeRound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dst"
   (Lam "src"
@@ -5858,7 +5890,7 @@ noncomputable def modelCopyFileRangeRound.impl [GooseExts] [GoGlobalContext] : v
 /-- modelHandleCopyFileRangeErr is internal/poll's handleCopyFileRangeErr (copy_file_range_linux.go),
     copied verbatim: os cannot call poll's unexported function.
 
-    go: model.go:863:6 -/
+    go: model.go:866:6 -/
 noncomputable def modelHandleCopyFileRangeErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Lam "copied"
@@ -5941,7 +5973,7 @@ noncomputable def modelHandleCopyFileRangeErr.impl [GooseExts] [GoGlobalContext]
     copyFileRange's writeLock/readLock (fdMutex, failing only on a closed file) are not modelled (as
     Read/Write do not lock either); one round is modelCopyFileRangeRound, EINTR retried.
 
-    go: model.go:895:6 -/
+    go: model.go:898:6 -/
 noncomputable def modelPollCopyFileRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dst"
   (Lam "src"
@@ -6124,12 +6156,13 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"os.modelDirNamesMu", "The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read\nand written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's\nDirReadNext).", "var modelDirNamesMu sync.Mutex"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.os where
-  pkgImportedPkgs := [pkg_id.internal.gomodel, pkg_id.internal.filepathlite, pkg_id.io, pkg_id.io.fs, pkg_id.runtime, pkg_id.sync, pkg_id.syscall, pkg_id.internal.poll, pkg_id.errors, pkg_id.sync.atomic, pkg_id.time]
+  pkgImportedPkgs := [pkg_id.internal.gomodel, pkg_id.internal.filepathlite, pkg_id.io, pkg_id.io.fs, pkg_id.runtime, pkg_id.sync, pkg_id.syscall, pkg_id.internal.testlog, pkg_id.internal.poll, pkg_id.errors, pkg_id.sync.atomic, pkg_id.time]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.os)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6293,6 +6326,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.internal.testlog.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.poll.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7438,6 +7473,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   splitPath_unfold : FuncUnfold splitPath [] splitPath.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   runtime_args_unfold : FuncUnfold runtime_args [] runtime_args.impl
+  Exit_unfold : FuncUnfold Exit [] Exit.impl
+  runtime_beforeExit_unfold : FuncUnfold runtime_beforeExit [] runtime_beforeExit.impl
   newRawConn_unfold : FuncUnfold newRawConn [] newRawConn.impl
   Stat_unfold : FuncUnfold Stat [] Stat.impl
   Lstat_unfold : FuncUnfold Lstat [] Lstat.impl
@@ -7488,6 +7525,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  import_testlog_Assumption : _root_.Perennial.internal.testlog.Assumptions
   import_poll_Assumption : _root_.Perennial.internal.poll.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
@@ -7540,6 +7578,8 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.splitPath_unfold
   Assumptions.«init.0_unfold»
   Assumptions.runtime_args_unfold
+  Assumptions.Exit_unfold
+  Assumptions.runtime_beforeExit_unfold
   Assumptions.newRawConn_unfold
   Assumptions.Stat_unfold
   Assumptions.Lstat_unfold
@@ -7590,6 +7630,7 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.import_runtime_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_syscall_Assumption
+  Assumptions.import_testlog_Assumption
   Assumptions.import_poll_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_atomic_Assumption

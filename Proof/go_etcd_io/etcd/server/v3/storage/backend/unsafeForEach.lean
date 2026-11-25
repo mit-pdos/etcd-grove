@@ -32,8 +32,8 @@ variable [go_etcd_io.bbolt.Assumptions]
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- bbolt's canonical `Tx.Bucket` in the backend's vocabulary, at `theFs`, at any view. -/
-private theorem bbolt.kvGlue_Tx__Bucket (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Bucket (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (T : bbolt.TxView) (name : GoSlice) (n : GoString) (dq : DFrac),
   (T.rw = true → q = 1) →
   {{ txLive (GF := GF) tx γ q T ∗ name ↦*{dq} n }}
@@ -55,8 +55,8 @@ private theorem bbolt.kvGlue_Tx__Bucket (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsS
 
 /-- bbolt's canonical `Bucket.ForEach` in the backend's vocabulary, at `theFs`: the visitor's
 `curAt` of an entry is its two slices. -/
-private theorem bbolt.kvGlue_Bucket__ForEach (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.ForEach.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Bucket__ForEach (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.ForEach.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (T : bbolt.TxView) (b : Loc) (n : GoString) (m : backend.BktData)
     (fn : GoFunc) (I : Nat → IProp GF) (E : Nat → GoInterface → IProp GF),
   T.cur.lookup n = some m →
@@ -97,10 +97,10 @@ private theorem bktEnts_bktOf_none {D : Data} {n : GoString} (h : D.lookup n = n
   unfold bktOf bktEnts; rw [h]; simp [GMap.toList_empty]
 
 theorem backend.unsafeForEach.wp_proof
-    (hB : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
-    (hF : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.ForEach.spec (GF := GF) (hG := hG)) :
+    (hB : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
+    (hF : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.ForEach.spec (GF := GF) (hG := hG)) :
     backend.unsafeForEach.spec (GF := GF) (hG := hG) := by
   replace hB := bbolt.kvGlue_Tx__Bucket hB
   replace hF := bbolt.kvGlue_Bucket__ForEach hF

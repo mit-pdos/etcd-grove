@@ -49,6 +49,8 @@ theorem wp_hijack
           #bw) #(interface.nil : GoInterface));
         connAt N.t N.cn true N.a N.la N.ra ∗ sendTok (Gg := hG.goose_globalGS) N.cn true Q [] ∗
         recvTok (Gg := hG.goose_globalGS) N.cn true P hs ∗ connFresh (Gg := hG.goose_globalGS) N.cn true ∗
+        (∃ b : Bool, rdlTok (Gg := hG.goose_globalGS) N.cn true b ∗
+          (⌜b = false⌝ ∨ readDead (Gg := hG.goose_globalGS) N.cn true)) ∗
         hjDone N hs }} := by
   wp_start as Hpre
   iunfold hjPre at Hpre
@@ -80,15 +82,17 @@ theorem wp_hijack
   subst Hag
   wp_apply wp_hijackLocked N.c N.cr N.s N.γ N.t N.cn N.a N.la N.ra P Q hs Z N.tm N.br N.bw 4096 b0
     $$ [$Hhj $Hr $Hrwc $Hbr $Hbw $Hbraw $Hsrv $Hs $Hst $Hcr $Htm $Hcrwc $Hph $Hrr $Hca $Hsend $Hz $Hrdl]
-    as %buf ⟨Hhj, Hbraw, Hst, Hrecv, Hsend, Hleft, Hrdl⟩
+    as %buf ⟨Hhj, Hbraw, Hst, Hrecv, Hsend, Hleft, %b1, Hrdl, Hdis⟩
   imod ghostVar_update_halves true N.γh _ _ $$ Hγh Hγh2 with ⟨Hγh, Hγh2⟩
   wp_apply wp_putBufioWriter wp_Reset N.ww 2048 (Or.inl rfl) $$ [$Hpools $Hwraw]
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hown Hhj Hγh2]
   · inext; iunfold connMuInv; iexists true; iframe Hhj Hγh2
   iapply HΦ
   iframe Hca Hsend Hrecv Hfresh
+  isplitl [Hrdl Hdis]
+  · iexists b1; iframe Hrdl Hdis
   iunfold hjDone
-  iframe Hγh Hleft Hst Hhd Hrdl
+  iframe Hγh Hleft Hst Hhd
 
 theorem response.Hijack.wp_proof
     (wp_hijackLocked : conn.hijackLocked.spec (GF := GF) (hG := hG))
@@ -100,8 +104,8 @@ theorem response.Hijack.wp_proof
   iintro %Φ HΦ
   iapply (wp_hijack wp_hijackLocked wp_Reset N P Q hs Z) $$ Hpre
   inext
-  iintro %bw ⟨#Hca, Hsend, Hrecv, Hfresh, HD⟩
-  iapply HΦ $$ Hca Hsend Hrecv Hfresh HD
+  iintro %bw ⟨#Hca, Hsend, Hrecv, Hfresh, Hrdl, HD⟩
+  iapply HΦ $$ Hca Hsend Hrecv Hfresh Hrdl HD
 
 end proof
 

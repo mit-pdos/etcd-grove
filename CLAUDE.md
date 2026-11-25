@@ -190,7 +190,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:
@@ -345,7 +347,9 @@ which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
 (`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
-by adding a collection for it.
+by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
+baseline to the axioms and `sorry`s whose name or module file matches one: what one family of
+declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
 

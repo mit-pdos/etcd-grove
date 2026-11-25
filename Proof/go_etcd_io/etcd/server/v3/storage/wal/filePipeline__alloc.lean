@@ -34,7 +34,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [os_sem : os.Assumptions] [os_fa : os.file.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
@@ -74,7 +74,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   (try wp_auto)
   wp_apply wp_Join _ [dir, pipeTmp n] _ (by
       have : (pipeTmp n).length = 5 := by unfold pipeTmp; split <;> rfl
-      simp [this]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+      simp [this, _root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
   rw [join_child hclean (pipeTmp_nameOk n)] at hpth
   subst hpth
   (try wp_auto)

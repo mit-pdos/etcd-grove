@@ -57,7 +57,7 @@ theorem client.Client.call.wp_proof
     (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF) (hG := hG)) :
     client.Client.call.specI (hG := hG) := by
   intro cl v r W a sm svc M S args reply Φc Rargs D Θ
-  wp_start as ⟨Hcl, #Hq, #Hcs, #Hko, #Hrc, %HS, Henc, HD, #HDw⟩
+  wp_start as ⟨Hcl, #Hq, #Hcs, #Hko, #Hrc, %HS, %Hsm, Henc, HD, #HDw⟩
   obtain ⟨HS1, HS2, Hreply⟩ := HS
   have HS : _ ∧ _ := ⟨HS1, HS2⟩
   wp_auto
@@ -77,6 +77,8 @@ theorem client.Client.call.wp_proof
     · dsimp only [net.rpc.RpcCodec.spec]
       isplitr
       · ipureintro; exact ⟨HS.1, HS.2, Hreply⟩
+      isplitr
+      · ipureintro; exact Hsm
       isplitl [Henc]
       · iexact Henc
       iexact HDw

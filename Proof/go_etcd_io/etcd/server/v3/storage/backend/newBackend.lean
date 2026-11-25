@@ -69,7 +69,7 @@ file (`dbRestF`: the inode, with the closer token) in `ownDB`, and the claim on 
 the inode, to the caller (`bPath`, S5). The options come back with their
 `InitialMmapSize` unknown (`Open` gives back `optsAtNoErr`, which bounds it only). -/
 private theorem bbolt.kvGlue_Open
-    (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    (h : ∀,
       bbolt.Open.spec (GF := GF) (hG := hG)) :
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
@@ -150,7 +150,7 @@ theorem backend.newBackend.wp_proof
     (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG))
-    (hOpen : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    (hOpen : ∀,
       bbolt.Open.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
   intro _ _ cfg P D W Pk K

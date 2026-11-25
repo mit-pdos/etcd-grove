@@ -11,6 +11,9 @@ It returns `nil` exactly when `b` is full of the bytes read (an empty `b` reads 
 `got` is not all of `b`, and the error is `io.EOF` when the connection ended before any byte and
 `first` (between two frames), `io.ErrUnexpectedEOF` when it ended after some byte or with
 `first = false` (within a frame), or the `Read`'s `*OpError` (`resErr` of a failure kind, D14).
+The accessor also says what a failed `Read` gives the caller (`F`, from a result that is not bytes:
+the server's `readDead`, `ServerGhost.lean`; `True` for the client), which the error comes with:
+a `readFull` fails only at a `Read` that failed.
 Proved in `Net/Proof/net/rpc/readFull.lean`.
 -/
 module
@@ -50,7 +53,8 @@ instance readErr_persistent (la ra eof ueof ed : GoInterface) (first : Bool) (go
 /-- See the file header. -/
 abbrev readFull.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (b : GoSlice)
-    (bs0 : List w8) (first : Bool) (P : List w8 → IProp GF) (eof ueof ed : GoInterface),
+    (bs0 : List w8) (first : Bool) (P : List w8 → IProp GF) (F : IProp GF)
+    (eof ueof ed : GoInterface),
   {{ net.connAt (GF := GF) t cn s a la ra ∗ b ↦* bs0 ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
       globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] ∗
@@ -60,13 +64,13 @@ abbrev readFull.spec : Prop :=
           ∀ r d', ⌜ReadOutcome st d m r d'⌝ -∗
             netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st -∗
             netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d' ={∅,⊤}=∗
-              P (got ++ r.got)) }}
+              P (got ++ r.got) ∗ (⌜∀ bs, r ≠ .bytes bs⌝ -∗ F)) }}
     (App (App (App (Val (@! net.rpc.readFull))
       (Val #(interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t))) (Val #b)) (Val #first))
   {{ (err : GoInterface), RET #err; ∃ (got bs' : List w8), P got ∗ b ↦* bs' ∗
       ⌜bs'.length = bs0.length ∧ got <+: bs'⌝ ∗
       (⌜err = interface.nil ∧ got = bs'⌝ ∨
-        ⌜got ≠ bs'⌝ ∗ readErr la ra eof ueof ed first got err) }}
+        ⌜got ≠ bs'⌝ ∗ readErr la ra eof ueof ed first got err ∗ F) }}
 
 end spec
 

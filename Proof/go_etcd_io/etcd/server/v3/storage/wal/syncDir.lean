@@ -25,7 +25,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os_sem : os.Assumptions] [go.BasicIntoValInj]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.syncDir.wp_proof
     (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG))
@@ -35,7 +35,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.syncDir.wp_proof
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm, #Hlb⟩
   wp_auto
   wp_apply wp_OpenDir p R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
   icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr
     wp_auto

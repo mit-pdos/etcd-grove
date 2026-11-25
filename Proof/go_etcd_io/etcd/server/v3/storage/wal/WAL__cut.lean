@@ -110,7 +110,7 @@ theorem cut_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
 
 -- (the proof term's instantiation at the end of the declaration exceeds the default budget)
 set_option maxHeartbeats 1000000 in
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
     [FsStepSat (NoMapLockErr Sio)] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
@@ -323,7 +323,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   · ipureintro; rfl
   iintro %jsl ⟨Hjsl, -⟩
   (try wp_auto)
-  wp_apply wp_Join _ _ _ (by simp [walFileName_length]; omega) $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
+  wp_apply wp_Join _ _ _ (by simp [walFileName_length, _root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
   rw [join_child hclean (walFileName_nameOk _ _)] at hfpath
   subst hfpath
   (try wp_auto)
@@ -779,6 +779,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       osPathS Rd dir (DFrac.own qd) j by rw [Qp.half_add_half])
     iapply (osPathS_frac Rd dir qd.half qd.half j).2; iframe
   ihave #Hfupk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil $$ []
+  · iPkgInit
+  ihave #Hospkg : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
   · iPkgInit
   have hbn : NameOk bt := by rw [← hbt]; exact walFileName_nameOk _ _
   wp_apply (wp_LockFile (child dir bt) (W64 1) (W32 384) _ Unit _ _

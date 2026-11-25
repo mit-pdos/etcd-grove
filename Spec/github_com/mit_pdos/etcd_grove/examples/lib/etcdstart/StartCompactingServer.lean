@@ -52,6 +52,8 @@ abbrev StartCompactingServer.spec : Prop :=
   -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
   -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
   name.length ≤ 200 →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   -- (K3 of the k8s compactor plan, 2026-11-04) the retention positive, or `0`: etcd's compactor
   -- off, every compaction a client's (Kubernetes' deployment; `v3compactor.bootCfg`'s off case)
   0 ≤ sint.Z retention →

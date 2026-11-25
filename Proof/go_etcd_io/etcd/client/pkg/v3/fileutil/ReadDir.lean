@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     (wp_Strings : sort.Strings.spec (GF := GF) (hG := hG))
@@ -35,6 +35,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec (GF := GF) (hG := hG) := by
   intro d sl gs es dqs R j dq qc N dqn h hlen
   iintro %Φ ⟨#Hinv, #Hsi, #Hpkg, Hp, Hperm, Hn, Hsl, #Hgs⟩ HΦ
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   let OkN : List GoString → Prop := fun names => (∀ b ∈ names, NameOk b) ∧
     (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧ (∀ b, N.Mem b → names.count b ≤ 1) ∧
     names.length ≤ 2 ^ 44
@@ -42,7 +45,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
   have hOk : ∀ names, OkN names → names.length ≤ 2 ^ 62 := fun names h => by
     have := h.2.2.2; omega
   have wpOpen : ∀ Φ : val → IProp GF,
-      ⊢ iprop(osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
+      ⊢ iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗
+          osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
         (∀ (f : Loc) (err : GoInterface),
           ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗
               iprop(osDirFdS fd j .idle ∗ osInv) ∗
@@ -51,9 +55,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
               iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h))) -∗ Φ (PairV #f #err)) -∗
         WP (App (Val (@! os.Open)) (Val #d)) {{ Φ }} := by
     intro Φ
-    iintro ⟨#Hinv, #Hsi, Hp, Hperm, Hn⟩ HΦ
+    iintro ⟨#Hosp0, #Hinv, #Hsi, Hp, Hperm, Hn⟩ HΦ
     wp_apply os.Open.wp_dirErrS d R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
-    · iframe; isplitl [] <;> iassumption
+    · iframe; (repeat' isplitl []) <;> iassumption
     icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%e, %he, #Herr⟩)
     · iapply HΦ; ileft; iexists fd; iframe
       isplitr
@@ -108,10 +112,10 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     iapply HΦ
   wp_apply (fileutil.ReadDir.wp_core wp_Strings wp_Ext d sl gs es dqs _ _ _ _ _ OkN Er Er hlen hOk
     wpOpen wpRead wpClose) $$ [Hp Hperm Hn Hsl] as %r %err ⟨Hsl, ⟨Hp, Hperm, Hn⟩, Hr⟩
-  · iframe
-    isplitl []
-    · isplitl [] <;> iassumption
-    isplitl [] <;> iassumption
+  · ihave #Hosp1 : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+    · iPkgInit
+    iframe
+    (repeat' isplitl []) <;> iassumption
   iapply HΦ
   iframe
   icases Hr with (⟨%names, %rs, %hr, Hr⟩ | ⟨%herr, Herr⟩)
@@ -124,7 +128,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     · iPkgInit
     icases Herr with (⟨%e, %he, #Herr⟩ | ⟨%e, %he, #Herr⟩) <;>
     · isplitl []
-      · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he) $$ Herr
+      · iapply (os.errnoPathErr_fmtErrorOkOrNil err e he) $$ Hsys Herr
       · iapply (wp_Term err e he) $$ Hosp Herr
 
 end proof

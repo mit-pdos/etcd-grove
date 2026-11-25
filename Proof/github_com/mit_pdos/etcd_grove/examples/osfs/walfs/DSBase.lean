@@ -93,14 +93,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `readNames(d)`, `d` the directory `j` (a spine to it), with a fraction of the call permission
 and of a claim on names `N` of `j`: every name returned is valid, a name of `N` is returned iff it is
 there, at most once; or `ok = false`. -/
 theorem wp_readNamesS (d : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet)
     (dqn : DFrac) (h : NamesH) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
         osNames j N dqn h }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.readNames)) (Val #d))
     {{ (sl : GoSlice) (ok : Bool), RET (PairV #sl #ok); osPathS R d dq j ∗

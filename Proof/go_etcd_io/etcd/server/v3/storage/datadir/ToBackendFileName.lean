@@ -39,7 +39,7 @@ theorem datadir.ToBackendFileName.wp_proof (wp_Join : filepath.Join.spec (GF := 
   wp_auto
   have hl := path.joinModel_triple_length d go!"member" go!"snap" (by decide) (by decide)
   wp_apply wp_Join _ [path.joinModel [d, go!"member", go!"snap"], go!"db"] _
-    (by simp at hl ⊢; omega) $$ [$Hsl] as %r ⟨%hr, -⟩
+    (by simp [_root_.Perennial.strings.joinMax] at hl ⊢; omega) $$ [$Hsl] as %r ⟨%hr, -⟩
   rw [path.joinModel_triple_snoc d _ _ _ (by decide) (by decide) (by decide) (by decide)] at hr
   subst hr
   iapply HΦ

@@ -127,9 +127,9 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 bvi l hrand hri hhi hgi hsi hui hsw hmr hns hor ra rh hfi σ g threads
-  refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g threads
-    (2 ^ 31 - 1) swLas_pairwise swLas_disj ?_
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 bvi l hrand hri hhi hgi hsi hui hsw hmr hns hor ra rh hfi σ g
+  refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 31)
+    (2 ^ 63) swLas_pairwise swLas_disj ?_
   intro G π hrb
   letI := libsAt l π
   letI := ra G π

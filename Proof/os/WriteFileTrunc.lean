@@ -25,7 +25,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- A file held whole after a truncation is held whole (`trFile i P` forgets `P`'s facts). -/
 theorem trFile_false (i : Ino) (P : Prop) : trFile (GF := GF) i P ⊢ trFile i False :=
@@ -39,7 +39,7 @@ theorem os.WriteFile.wp_proofTruncS (wp_Close : os.File.Close.spec (GF := GF) (h
   wp_apply os.OpenFile.wp_truncS d b (W64 1 ||| W64 64 ||| W64 512) perm R j i N dq dqn h qc
       (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hb hN hi
       $$ [Hp Hn Hperm Htr] as %f %err ⟨Hp, Hn, Hperm, Htr, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   ihave Htr := trFile_false i _ $$ Htr
   icases Hr with (⟨%fd, ⟨%herr, %hfd⟩, Hf, Ho, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr

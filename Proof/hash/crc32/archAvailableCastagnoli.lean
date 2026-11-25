@@ -4,7 +4,7 @@ The proof of `Spec/hash/crc32/archAvailableCastagnoli.lean`, over the trusted mo
 module
 
 public import Spec.hash.crc32.archAvailableCastagnoli
-public import Proof.internal.gomodel.LocalChoose
+public import Perennial.Proof.internal.gomodel.Link
 
 @[expose] public section
 
@@ -29,7 +29,7 @@ theorem hash.crc32.archAvailableCastagnoli.wp_proof :
   -- the Go model: `return gomodel.Choose()`
   wp_start as -
   try wp_auto
-  wp_apply internal.gomodel.Choose.wp_local as %b -
+  wp_apply internal.gomodel.wp_Choose as %b -
   try wp_auto
   iapply HΦ
   itrivial

@@ -108,7 +108,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of _errArrayElemPool))
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
-  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pea -
+  wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pea -
   try wp_auto
   -- translated initializer of _minTimeInt64))
   try wp_auto

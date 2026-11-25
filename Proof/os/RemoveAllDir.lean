@@ -23,7 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- The whole claim on a directory's names splits off the name `c`. -/
 theorem os.osNames_split1 (R : Roots) (J : Ino) (c : GoString) (hJ : NamesH) :
@@ -94,28 +94,35 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hnf : ∀ i, hc.cur !! c ≠ some (.file i)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
         osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
-      (App (Val os.model.unlinkLoop) (Val #(child p c)))
+      (App (Val (@! os.modelUnlinkLoop)) (Val #(child p c)))
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗
         ⌜FsNoErrAt (child p c) → (∃ J', hc.cur !! c = some (.dir J')) → e = EISDIR⌝ ∗
         osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
         osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp Hn
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsUnlink.impl
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  wp_auto
+  try wp_auto
   wp_apply +noauto wp_osUnlinkS_noneW R p c J dq dqn hc t s0 qc hcN hnf CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he %hw Hperm Hp Hn
-  wp_auto
+  try wp_auto
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    try wp_auto
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$]
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   isplitr
@@ -170,17 +177,21 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
     (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ osLogLb sg }}
-      (App (Val os.model.rmdirLoop) (Val #(child d b)))
+      (App (Val (@! os.modelRmdirLoop)) (Val #(child d b)))
     {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗
         os.rmAllOutP j b J h hJ0 (FsNoErrAt (child d b) → e = ENOTEMPTY) ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg pg g }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
-  iloeb as IH generalizing Hperm Hp Hst Hg
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp Hst Hg HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRmdir.impl
   wp_apply +noauto wp_osCallBeginS R _ q sg CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlsg as %t1 %s0 %hs Hk Hls
   iclear Hls
-  wp_auto
+  try wp_auto
   isimp only [rmAllOut] at Hst
   icases Hst with ⟨%h', %hJ', Hb, HJ, %hsub, Hor⟩
   icases Hor with (%hh | ⟨%x, %s, Hlog, %hlog⟩)
@@ -202,14 +213,17 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
       · unfold os.rmAllOutP; iexists h', hJ'; iframe; isplitr
         · ipureintro; exact hsub
         ileft; ipureintro; exact ⟨rfl, hw⟩
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
-        iapply IH $$ Hperm Hp Hst Hg HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp Hst Hg HΦ [$] [$]
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
     · have hemp : hJ'.cur = ∅ := by
@@ -234,14 +248,17 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
           isplitl
           · dsimp only [rmDirEnt]; iexact Hlog
           ipureintro; exact ⟨rfl, hemp⟩
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
-        iapply IH $$ Hperm Hp Hst Hg HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp Hst Hg HΦ [$] [$]
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
   · obtain ⟨rfl, hemp⟩ := hlog
@@ -255,14 +272,17 @@ theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (q
       isplitl
       · iexact Hlog
       ipureintro; exact ⟨rfl, hemp⟩
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
-      iapply IH $$ Hperm Hp Hst Hg HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hst Hg HΦ [$] [$]
     rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
 
@@ -272,7 +292,7 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
     (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ osLogLb sg }}
-      (App (Val os.model.rmdirLoop) (Val #(child d b)))
+      (App (Val (@! os.modelRmdirLoop)) (Val #(child d b)))
     {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg pg g }} := by
   iintro %Φ Hpre HΦ
@@ -286,24 +306,29 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
 fd on it. -/
 theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
-      (App (Val os.model.openLoop) (Val #p))
+      (App (Val (@! os.modelOpenLoop)) (Val #p))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         (⌜e ≠ 0 ∧ e ≠ 2⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp
+  wp_for_bind
+  iloeb as IH generalizing Hperm Hp HΦ
+  wp_for_step
+  try wp_auto
+  wp_open_stub
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  wp_auto
+  try wp_auto
   wp_apply +noauto wp_osOpenDirS R p j dq t s0 qc CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hk as %fd %e %hres Hperm Hp Hfd
-  wp_auto
+  try wp_auto
   by_cases he0 : e = W64 0
   · subst he0
     ihave Hfd := Hfd $$ %rfl
     rw [decide_eq_false (show W64 0 ≠ W64 4 by decide)]
-    wp_auto
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     iright
@@ -312,10 +337,13 @@ theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : D
   · iclear Hfd
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
-      iapply IH $$ Hperm Hp HΦ
+      try wp_auto
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp HΦ [$] [$] [$]
     rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     ileft; ipureintro
@@ -326,7 +354,7 @@ theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : D
 
 theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
-      (App (Val os.model.openLoop) (Val #p))
+      (App (Val (@! os.modelOpenLoop)) (Val #p))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
   iintro %Φ Hpre HΦ
@@ -340,10 +368,14 @@ theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DF
 /-- `model.closeFd` of a shared directory fd. -/
 theorem os.model.wp_closeFd_dir (fd : w64) (j : Ino) (ph : DirPhS) :
     {{ osInv (GF := GF) ∗ osDirFdS fd j ph }}
-      (App (Val os.model.closeFd) (Val #fd))
+      (App (Val (@! os.modelCloseFd)) (Val #fd))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hos, Hfd⟩
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hos Hfd as Hfd
+  try wp_auto
+  wp_stub os.fsDirClose.impl
   wp_apply wp_osDirCloseS fd j ph CoPset.subseteq_top $$ Hos Hfd as %e
   iapply HΦ; itrivial
 
@@ -367,7 +399,7 @@ theorem os.model.wp_unlinkLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) qc }}
-      (App (Val os.model.unlinkLoop) (Val #(child d b)))
+      (App (Val (@! os.modelUnlinkLoop)) (Val #(child d b)))
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗
         os.rmAllOutP j b J h hJ0 (FsNoErrAt (child d b) → e = EISDIR) ∗ osCallPerm (callKey R d) qc }} := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hst, Hperm⟩ HΦ
@@ -404,7 +436,7 @@ theorem os.model.wp_unlinkLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (d
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) qc }}
-      (App (Val os.model.unlinkLoop) (Val #(child d b)))
+      (App (Val (@! os.modelUnlinkLoop)) (Val #(child d b)))
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) qc }} := by
   iintro %Φ Hpre HΦ
   wp_apply os.model.wp_unlinkLoop_dirStW d b j J R dq h hJ0 qc hb hJ $$ Hpre as %e ⟨%he, Hp, Hst, Hperm⟩
@@ -420,7 +452,7 @@ theorem os.model.wp_openLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (qd
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) qc }}
-      (App (Val os.model.openLoop) (Val #(child d b)))
+      (App (Val (@! os.modelOpenLoop)) (Val #(child d b)))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
         ((⌜e ≠ 0⌝ ∗ os.rmAllOutP j b J h hJ0 (e ≠ 2)) ∨
          (⌜e = 0⌝ ∗ osDirFdS fd J .idle ∗ os.rmPresent j b J h hJ0)) }} := by
@@ -472,7 +504,7 @@ theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd 
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) qc }}
-      (App (Val os.model.openLoop) (Val #(child d b)))
+      (App (Val (@! os.modelOpenLoop)) (Val #(child d b)))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
         ((⌜e ≠ 0⌝ ∗ rmAllOut j b J h hJ0) ∨
          (⌜e = 0⌝ ∗ osDirFdS fd J .idle ∗ os.rmPresent j b J h hJ0)) }} := by

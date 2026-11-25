@@ -3,7 +3,7 @@
 `netLisOn`; `lis` its `Listener`, shared: `lisInv`), on a server whose registrations serve each valid
 address `a` the listener takes (`srvServes`), each serving raw net/rpc (`rpcAddr W a`: from
 `rpcLisP W la [] []` by `rpcLisP_addr`, or at a valid `la` its own), with a registered codec meeting
-`C`: it accepts connections (`Listener.Accept.spec` with `accept_addrs_shared_au`: each connection's
+`C`: it accepts connections (`Listener.Accept.spec` with `accept_addrs_shared_rdl_au`: each connection's
 acceptor's end and tokens, at the address it was dialed to) and serves each in a goroutine of its own
 (`ServeConn`, with the fresh thread token of its `go` statement), until an `Accept` fails, which it
 logs (`log.Println`) before it returns. Proved in `Net/Proof/net/rpc/Server__Accept.lean`; at a valid

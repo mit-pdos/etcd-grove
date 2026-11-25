@@ -9,6 +9,8 @@ module
 public import Proof.os.ErrorOk
 public import Proof.syscall.ErrorOk
 public import Spec.os.OpenFileTruncS
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
@@ -90,7 +92,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- `os.OpenFile(d/b, flag, perm)`, `flag` with `O_TRUNC` (with or without `O_CREATE`), of a name
 holding the file `i` (a leftover `N.tmp`), with a fraction of a claim on names containing `b` and
@@ -102,7 +104,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         trFile i False }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
@@ -113,14 +115,23 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err ∗
            ⌜¬ (FsNoErrOn (· = child d b) ∧ PathFits (child d b))⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hf⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn Hf HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
+  try rw [os.file_ty_eq]
+  try rw [os.File_ty_eq]
+  try rw [show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   isimp only [trFile] at Hf
   icases Hf with ⟨%m, %bs, Hm, Hb, -, %hmb⟩
@@ -139,12 +150,15 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
          · exact absurd rfl ‹_›) $$ Hfd
     icases Htr with (⟨%he, -⟩ | ⟨%n, Hd⟩)
     · exact absurd rfl he
-    wp_auto
-    iStructNamed inner
+    try wp_auto
+    os_newfile
+    wp_for_post_core
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
+    ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -157,12 +171,14 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     · ipureintro; exact ⟨rfl, hfd0⟩
     unfold os.ownFile os.ownOff
     isplitr [off]
-    · iexists inner_ptr
+    · iexists _
       iframe
-      isplitl [] <;> iassumption
-    · iexists inner_ptr
-      iframe
-      iassumption
+      (repeat' isplitl []) <;> iassumption
+    · iexists _
+      isplitl []
+      · iexact f
+      (try rw [show (W64 0 : w64) = 0 from rfl])
+      iexact off
   · iclear Hfd
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
     have hW := fun hne : e ≠ 0 => (hres.resolve_left (fun h => hne h.1)).2.2
@@ -173,18 +189,24 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
         unfold trFile; iexists m, bs; iframe; isplitl [Hc]; · iexact Hc
         ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
       · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 hmb.2.2.2.2.2.1 $$ Hd
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm Hp Hn Hm HΦ
+      wp_for_post
+      inext
+      iapply IH $$ Hperm Hp Hn Hm HΦ [$] [$] [$] [$] [$]
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
-    wp_auto
-    wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+    try wp_auto
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+    try wp_auto
+    wp_for_post
     iapply HΦ
     iframe
     isplitl [Hm]

@@ -249,8 +249,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
     "EtcdGrove.ErrorStringNotWriter",
-    # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
-    "EtcdGrove.MutexLitSemantics",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
@@ -643,7 +641,10 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                            "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked"],
                  # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
-                 "--raft": ["Perennial.Proof.time.Link"],
+                 "--raft": ["Perennial.Proof.time.Link", "Perennial.Proof.strings.Link"],
+                 # (fmt stage 1, 2026-11-24) Perennial's `strings.Join` (raft's `strings.Join`, `=` callee)
+                 "--raft-tla": ["Perennial.Proof.strings.Link"],
+                 "--raft-witness": ["Perennial.Proof.strings.Link"],
                  # (prove-ps2-rqb, 2026-11-22) Perennial's `math.Float64bits` (zap's `Float64`, `=` callee)
                  "--client": ["Perennial.Proof.math.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
@@ -849,10 +850,10 @@ PER_FN_PENDING = {"--k8s-etcd3"}
 # The modes whose `@` callees with no Link of their own package are looked up in every imported Link
 # (k8s 7e-4: the driver's `storage`/`labels`/`fields` callees, linked in the k8s etcd3 store's Link)
 EXT_ANY_LINK = {"--k8setcd3"}
-# The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
-# layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
-# emit; `OpenFile`'s and `Stat`'s proofs take them).
-PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
+# The trusted assumptions a mode's linked proofs need beyond its package's, first (none since
+# 2026-11-24: minibolt's were the layouts of `os.file` and `os.fileStat`, `os.file.FieldAssumptions`,
+# which the Go-model overlays (S5) made translated).
+PRE_VARS: dict = {}
 # The section variables a mode's specs take besides the usual ones, last (kvdurable's: the durable
 # extension, `GooseLang/Ext/Durable`, and the injectivity of strings its file names need)
 EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n",

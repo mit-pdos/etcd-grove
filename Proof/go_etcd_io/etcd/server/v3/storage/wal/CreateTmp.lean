@@ -35,7 +35,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 /-- `os.Stat` of a directory, its result's `FileInfo` dropped (the form `fileutil.Exist.spec` takes):
 an error only when the file system can fail on the path. -/
@@ -149,19 +149,23 @@ variable [os_sem : os.Assumptions]
 system does not fail on `d/b` and `d`. -/
 theorem wp_removeAllTmp (wp_RmSub : os.RemoveAll.specSubS (GF := GF) (hG := hG))
     (d b : GoString) (R : Roots) (j : Ino) (qd : Qp) (h : NamesH) (hb : NameOk b) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ tmpAny j b h ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ tmpAny j b h ∗
         osCallPerm (callKey R d) 1 }}
       (App (Val (@! os.RemoveAll)) (Val #(child d b)))
     {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
         (∃ h', tmpAny j b h' ∗
           ⌜err = interface.nil → FsNoErrAt (child d b) → FsNoErrAt d → h'.cur !! b = none⌝) ∗
         fmtErrorOkOrNil err }} := by
-  iintro %Φ ⟨#Hinv, #Hsi, Hp, Ht, Hperm⟩ HΦ
+
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hsi, Hp, Ht, Hperm⟩ HΦ
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   unfold tmpAny tmpCls
   icases Ht with ⟨Hn, %ct, Hct, %hct⟩
   wp_apply wp_RmSub d b j R qd h ct hb hct.1 hct.2 $$ [Hp Hn Hct Hperm]
     as %err ⟨Hp, Hperm, ⟨%h', %cl', Hn, Hcl, %hpost⟩, Hok⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   obtain ⟨hes, hcs, hnil⟩ := hpost
   iapply HΦ
   iframe Hp Hperm Hok

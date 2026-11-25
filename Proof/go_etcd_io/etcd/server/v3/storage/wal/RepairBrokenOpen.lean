@@ -38,7 +38,7 @@ section triples
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
-variable [sem : go.Semantics] [os_sem : os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os_sem : os.Assumptions]
 
 /-- What `repair_brokenOpen` gives on success. -/
 def repBrokenOk (dir bt : GoString) (j : Ino) (X : List GoString) (o : WalOut) (f : Loc) : IProp GF :=
@@ -56,14 +56,14 @@ theorem repair_brokenOpen
     (bt : GoString) (hb : NameOk bt) (hbt : go!".wal.broken" <:+ bt)
     (hX : ∀ b ∈ X, ¬ go!".wal.broken" <:+ b) (hoD : (j, NameSet.except X) ∈ o.D)
     (hD : lendKey j bt ∉ o.D) :
-    {{ walInv (W := W) C Mr R jr r ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walDirKey (W := W) dir j X ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ walInv (W := W) C Mr R jr r ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walDirKey (W := W) dir j X ∗
         osPathS R dir dq j ∗ osCallPerm (callKey R dir) 1 ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
         walOutFrag (W := W) o }}
       (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
           [go.GoType.PointerType os.File.ty])) (Val #(child dir bt))) (Val #true))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R dir dq j ∗ osCallPerm (callKey R dir) 1 ∗
         ((⌜err = interface.nil⌝ ∗ repBrokenOk (W := W) dir bt j X o f) ∨ ⌜err ≠ interface.nil⌝) }} := by
-  iintro %Φ ⟨#Hinv, #Hos, #Hsi, #Hk, Hp, Hperm, Hn, Ho⟩ HΦ
+  iintro %Φ ⟨#Hospkg, #Hinv, #Hos, #Hsi, #Hk, Hp, Hperm, Hn, Ho⟩ HΦ
   have hw : walNameP bt = false := walNameP_broken hbt
   have hN : (NameSet.except X).Mem bt := fun h => hX bt h hbt
   rcases hcur : hj.cur !! bt with _ | n
