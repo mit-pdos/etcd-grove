@@ -51,7 +51,7 @@ abbrev storage.storage.Release.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
         storageOver p w ss ∗ storageRd p w ∗ isSnapshotter ss sd ∗
         sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-        inv snapDirN (snapDirInv sd γd img Rm) ∗
+        snapDirInvH sd γd img Rm ∗
         □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
         WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
         AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗

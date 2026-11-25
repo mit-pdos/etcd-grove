@@ -198,7 +198,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
        (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
-       inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd img (snapRmM γt)) ∗
+       snapDirInvH (config.snapDirOf cfg.DataDir') γd img (snapRmM γt) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗

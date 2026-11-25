@@ -357,7 +357,7 @@ instance authCloseOk_persistent (ast : Loc) : Persistent (authCloseOk (GF := GF)
 -- `lessorLookupOk` deleted (prove-ps2-newlessor5, 2026-11-21): `isApplyLessor`'s `Lookup` clause is gone.
 
 /-- **The removal fact of the member's snapshot directory** (restart S6a, 2026-11-13, decided by
-etcd-grove-81 (b′); `snapDirInv`'s `Rm`): a `.snap.db` file of index `j` may be gone once the
+etcd-grove-81 (b′); `snapDirInvH`'s `Rm`): a `.snap.db` file of index `j` may be gone once the
 member-level removal counter `γm` is past `j` (at least `j + 1`). The apply thread holds the
 counter's authority at most its ghost applied index plus one (`srvSnapOwn`; restart S6's CP2 route
 (C), 2026-11-13: the ghost index `g`, until then Go's applied index `ai ≤ g`): `applySnapshot(i)` raises it
@@ -464,8 +464,8 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
     -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImageM γr.raft.raft.authOn γr.raft.raft)
-      (snapRmM γm)) ∗
+    snapDirInvH (config.snapDirOf cfg.DataDir') γd (srvImageM γr.raft.raft.authOn γr.raft.raft)
+      (snapRmM γm) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗

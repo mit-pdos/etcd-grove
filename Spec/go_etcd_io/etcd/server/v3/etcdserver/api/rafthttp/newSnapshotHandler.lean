@@ -33,7 +33,7 @@ abbrev rafthttp.newSnapshotHandler.spec : Prop :=
   Rh.owner a = lid →
   {{ t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ zapLoggerOk lg ∗ t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
       □ netRaftOk Rh.γn lid γd Rs r ∗
-      snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd Rh.γn.N.img Rm) ∗
+      snap.isSnapshotter ss sd ∗ snapDirInvH sd γd Rh.γn.N.img Rm ∗
       □ (∀ (r' : Loc) (R' : http.HReq) (rd : GoInterface),
         {{ http.reqAt r' R' rd ∗ ⌜fromOkAt Rh lid R'.hdr⌝ }}
           (App (App (Val (@! rafthttp.addRemoteFromRequest))

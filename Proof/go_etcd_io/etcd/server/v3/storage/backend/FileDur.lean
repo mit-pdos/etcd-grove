@@ -1,7 +1,7 @@
 /-
 **Database files and free names that survive a crash** (D6-T6, P7, 2026-11-25; `notes/etcd-dist-d6.md`
 §T6, rounds 3 and 4). Lean-first. A defs module: the vocabulary the snapshot directory's invariant
-(`snapDirInv`, `Proof/.../rafthttp/Net.lean`) keeps its files and free names in across a crash, and the
+(`snapDirInvH`, `Proof/.../rafthttp/Net.lean`) keeps its files and free names in across a crash, and the
 crash lemmas over the file extension's restart resources (`crashRest`).
 
 * `CrashLeaves h j b P n` (pure): every crash keeping the claim's entries below `n` leaves the name `b`

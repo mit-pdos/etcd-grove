@@ -74,8 +74,8 @@ def srvCrashImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S
     srvFiles dd id σ D ∗
     (∃ (γd γm : GName) (c : Nat),
       ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
-      inv snapDirN (snapDirInv (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
-        (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
+      snapDirInvH (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
+        (fun j => monoNatLbOwn γm (uint.nat j + 1)) ∗
       monoNatAuthOwn γm 1 c))
 
 /-- **Member `id`'s data directory after a crash** (`srvCrashImageAt` at some witnesses). -/

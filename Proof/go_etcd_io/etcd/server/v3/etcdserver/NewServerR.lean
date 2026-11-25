@@ -1201,7 +1201,7 @@ theorem NewServer.wp_proofRG
   -- most one past the image's index (in place of `snapDir_init` and a fresh counter at `0`)
   icases Hsdimg with ⟨%γd, %γt, %ct, %Hsd, #Hsdir, Hγt⟩
   obtain ⟨Hsloc, Hct⟩ := Hsd
-  ihave #Hsdir : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt)) $$ []
+  ihave #Hsdir : snapDirInvH (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt) $$ []
   · rw [Hγn.1]; iExactEq Hsdir; rfl
   ihave #Hprocok : srvProcOk γn s id γd $$ []
   · iunfold srvProcOk

@@ -9,7 +9,7 @@ that one (D22's finding 7: both are images of the committed state at `id`). Stat
 of the stream contract (`http.streamReaderOk`: the snapshot handler's body after the envelope,
 `http.bodyStream`), from what has been read `r0`, the rest's complete streams images of `D`
 (`boltImage`) with the certificate `□ img id D`, and the snapshot directory's invariant
-(`snapDirInv`, `Proof/.../rafthttp/Net.lean`, D22 S-i): on success the rest was read to its end
+(`snapDirInvH`, `Proof/.../rafthttp/Net.lean`, D22 S-i): on success the rest was read to its end
 (`Φ`) and the index is saved (`snapSaved`; its ghost steps on the directory: at the link, the
 index added to the files `M` with the file and to the saved `E`; nothing at a kept file). An error
 reads some of it. On success the count `n` (`io.Copy`'s) is not negative (2026-10-25, stage 7e: the
@@ -54,7 +54,7 @@ abbrev snap.Snapshotter.SaveDBFrom.spec : Prop :=
     (e : GoInterface) (r0 : List w8) (id : w64) (D : backend.Data) (γd : GName)
     (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
   (∀ t, Φ (r0 ++ t) → backend.boltImage t D) →
-  {{ isSnapshotter (GF := GF) ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+  {{ isSnapshotter (GF := GF) ss sd ∗ snapDirInvH sd γd img Rm ∗
       http.streamReaderOk rd Src Pre Φ e ∗ http.ioEOF e ∗ Src r0 ∗ □ img id D }}
     (App (App (Val (ss @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!

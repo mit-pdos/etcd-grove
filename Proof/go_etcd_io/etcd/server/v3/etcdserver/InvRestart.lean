@@ -203,8 +203,8 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
     -- (wal-link, 2026-11-19: the invariant of the directory `config.snapDirOf dd` itself)
     (∃ (γd γm : GName) (c : Nat),
       ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
-      inv snapDirN (snapDirInv (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
-        (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
+      snapDirInvH (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
+        (fun j => monoNatLbOwn γm (uint.nat j + 1)) ∗
       monoNatAuthOwn γm 1 c))
 
 /-- **Member `id`'s data directory as its last stop left it** (`srvDiskImageAt`'s body, above, at
