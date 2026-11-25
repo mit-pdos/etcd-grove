@@ -7087,6 +7087,29 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
 
+## 2026-11-25: wal.Discard (new; replaces wal.DiscardUnsaved at the pin 251a430ce) -- the fork drops the internal `Unsaved` check
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`; none in `SpecPlan/`), in
+  place of the planned `wal.DiscardUnsaved.spec` (entry "wal.DiscardUnsaved" above, never written).
+- **Defect.** The approved two-update shape was for `DiscardUnsaved(lg, dir) (bool, error)`, which read the WAL
+  (`Unsaved`) before discarding it. The etcd pin `251a430ce` (`goose-lean-fmt1c-discardfix`, coordinator's decision)
+  replaces it by `Discard(lg, dir) error`: no `Unsaved` re-check (`bootstrap` calls it only after its own `Unsaved`
+  returned `(true, nil)` and after `removeBackendDurably`), and a log line after the fsync.
+- **Evidence.** `unsaved.go:93-116` and `bootstrap.go:91-101` at `251a430ce`.
+- **Proposed change.** The same two updates, without the `walBlank` clause (the function does not read the WAL; the
+  blankness is the caller's, from `Unsaved`'s post): `AU₁ <{∃∃ d, walDiskAtI dir ic d}> <{walDiskAtI dir (ic+1)
+  {d with named := false}, COMM Q₁ d}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir (ic+1) d}> <{walAbsentI dir
+  (ic+2), COMM Q₂}>` at the parent's fsync. Pre `Create`'s area resources (`zapLoggerOk lg`, `walAreaOk`,
+  `dirDurable r`, `osPathS R r qp jr`, `walAreaRes jr`, `osCallPerm 1`, `walUnlockedTok`) and premises (`InArea`,
+  `NameOk`, `dir.length < 2^59`, `cleanAbsPath r`, `FsNoErrOn`/`PathFits` on `dir`, `dir.tmp`, `r`). Post, always
+  `osPathS`, `osCallPerm 1` and `∃ d, Q₁ d` (the rename cannot fail), and: `nil` with `walAreaRes jr ∗
+  walUnlockedTok ∗ Q₂`; an error (the fsync failed) with `AU₂` back (token and `walAreaRes` lost). P5's three
+  conditions: (1) the window's crash lemma (an unnamed WAL view at `ic+1` crashes to the same WAL or to none) is a
+  WAL-level lemma beside `walDiskAt_crash_keep`, to be proved with state C; (2) on a failed fsync `AU₁`'s result is
+  whatever the client put in `Q₁` (a client keeping it in its crash invariant commits it there and takes `Q₁ := True`);
+  (3) `AU₁` commits inside `Discard`'s rename, after anything the caller did before calling it.
+- **Decision.** Pending (reported to the coordinator, P6b session 14).
+
 ## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
 
 - **Spec.** Internal laws of the WAL proof (`Proof/go_etcd_io/etcd/server/v3/storage/wal/`), none exported:
