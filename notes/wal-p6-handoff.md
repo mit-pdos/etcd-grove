@@ -8,7 +8,7 @@
   handle currency through a three-way split of `γI` (walGhost ½, the program's `walOwn` ¼, the lock ¼);
   `walDirKey` keyed by `(dir, i)`. **Lean**: `Ghost.lean` additive core only (`γI`, `γpi`, `incOf`, `walLeI`
   and laws, `walPastI`/`walPastIAuth` and `_le`/`_grow`/`_snap`), checked with `etc/lean-check.py -a`
-  (0 errors, no `sorry`); nothing uses it yet, so every proof is unchanged.
+  (0 errors, no `sorry`); nothing uses it yet, so every proof is unchanged. **Built** at `d9eeabf41a` (local build-slot: `wal.Link`, `CrashS`, `WalRecsCrash`, `WalCrashRead`, WalTester `Link`/`Adequacy`/`TopLevelRobustness`; 4680 jobs, exit 0).
 - **Resume here**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
