@@ -809,3 +809,20 @@ fixed here):
   with Go's premises (`d1 = sendrecv`, one side unnamed; both pointer types unnamed), keeping the
   `[under]` route only for identical underlying types; record the field-name gap in
   KNOWN_LIMITATIONS (or qualify unexported field names in goose's struct types).
+
+**Round 6 state (2026-11-25, done):**
+- Perennial `reflect-s05` @ `93d6825d7` (pushed; `b70e1c7f3` the change, `93d6825d7` the ConvertAt WP
+  lemmas' premise). Targeted VM build (refl-c5/b2: Links of reflectcore/reflect/reflectlite/errors,
+  Tests): 1,894 jobs ok; full chunked build (refl-lm/pmods-c5full.*): 3 chunks exit 0, no `sorry`
+  outside GeneratedProof. `#print axioms` (AxCheckRefl05.lean + `Value.wp_Elem` x2, reflectcore
+  `wp_ConvertAt`, `wp_initialize'`): Lean's three only. `go test ./goose/...` ok; harness (gen.sh;
+  `GOWORK=off go test ./...`) ok; `etc/model-tests.sh`, `gen-layout-modelled --check`,
+  `gen-link --check` ok. Trusted delta: `etc/trusted-delta.py 1e3c8a368..93d6825d7 --no-diff`.
+- etcd-grove `reflect-s05/2026-11-24` @ `dae06648e8` (pin `93d6825d7`; the PkgTables/BootTable
+  regenerated: `internal/reflectcore` no longer imports `unsafe`; goose refused nothing in any of
+  the 73 projects). Full VM build 28,217 jobs ok. Gates (refl-lm/c5gates2.log): all ok but
+  `merge-status` (VM sync dir not a git repo); tcb 324 axioms / 0 sorries (baseline), axiom-tok ok,
+  collections 61/0. Gotchas: a `vmlake sh` between the regen and the pullback re-syncs and erases
+  the regen's output (pull back right after `eg.sh regen`); the VM's root disk was full (100%):
+  run gates with `LAKE_CACHE_DIR`, `GOCACHE`, `TMPDIR` under the sync dir's `.lake/gt/`.
+- Left: post the #40 message (in the round-6 report); open the `Convert` item as its own issue.
