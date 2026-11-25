@@ -146,7 +146,7 @@ theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoS
     iframe Himg
     ipureintro; exact hg
   obtain ⟨hc, hb, hbl, hcs⟩ := hg
-  unfold srvCrashImageAt srvDiskImageAt wal.crashImageR
+  unfold srvCrashImageAt srvDiskImageAt wal.crashImageR snapRowB2
   iintro ⟨Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hconf, -, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
     ⟨%γd, %γm, %c, %Hsl, Hrow, Hsdi, Hmn⟩⟩
   icases Hrow with (%Hrow | ⟨%j, %Hj, -, -⟩)
