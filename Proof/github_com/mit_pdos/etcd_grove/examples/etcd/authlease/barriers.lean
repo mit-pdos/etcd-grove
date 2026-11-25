@@ -33,15 +33,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 theorem barriers.wp_proof (wp_barrier : barrier.spec (GF := GF) (hG := hG)) :
     barriers.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC msl lg ms bs hms htb hAs
-  wp_start as ⟨#Hlg, #Hmsl, #Hbs⟩
+  wp_start as ⟨Hlt, #Hlg, #Hmsl, #Hbs⟩
   ihave %Hmsll := ownSlice_len $$ Hmsl
   have hlen : ms.length = bs.length := by
     have := congrArg List.length hms; simpa using this
   (try wp_auto)
   ihave IB : (∃ (j : w64) (mv : etcdstart.GMember),
-      "i" ∷ i_ptr ↦ j ∗ "m" ∷ m_ptr ↦ mv ∗
+      "i" ∷ i_ptr ↦ j ∗ "m" ∷ m_ptr ↦ mv ∗ "Hlt" ∷ levelTok 0 ∗
       "#Hok" ∷ ([∗list] b ∈ bs.take (sint.nat j), barrierPost b) ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ ms.length⌝ : IProp GF) $$ [i m]
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ ms.length⌝ : IProp GF) $$ [i m Hlt]
   · iexists W64 0, _
     have h00 : sint.nat (W64 0) = 0 := rfl
     simp only [h00, List.take_zero]
@@ -71,12 +71,12 @@ theorem barriers.wp_proof (wp_barrier : barrier.spec (GF := GF) (hG := hG)) :
     icases Hpre with ⟨%Hpe, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst, #HQ⟩
     rw [haddr]
     wp_apply (wp_barrier bj.addr lg bj.V bj.s bj.E bj.ρ bj.cid bj.mid bj.γa bj.γz bj.hs bj.Lset bj.Lc bj.r
-        bj.Q Hpe.1 htb Hpe.2 hAs) as %okj Hbj
+        bj.Q Hpe.1 htb Hpe.2 hAs) $$ [$Hlt] as %okj ⟨Hlt, Hbj⟩
     · iframe #; ipureintro; exact ⟨Hh, HLcst⟩
     icases Hbj with (%Hb | ⟨%Hb, #Hfix, #Hfloor⟩) <;> subst Hb
     · (try wp_auto)
       wp_for_post
-      iapply HΦ; ileft; ipureintro; rfl
+      iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
     (try wp_auto)
     have htk : bs.take (sint.nat j + 1) = bs.take (sint.nat j) ++ [bj] := by
       rw [List.take_add_one, Hbj_lookup, Option.toList_some]
@@ -98,6 +98,7 @@ theorem barriers.wp_proof (wp_barrier : barrier.spec (GF := GF) (hG := hG)) :
   · have hnk' : sint.nat j = bs.length := by have := Hmsll.1; word
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitl []
     · ipureintro; rfl

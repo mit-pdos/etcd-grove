@@ -35,11 +35,10 @@ abbrev barriers.spec : Prop :=
     (msl : GoSlice) (lg : Loc) (ms : List etcdstart.GMember) (bs : List (BArgs GF)),
   ms.map (·.Client') = bs.map (·.addr) → threadBound GF ≤ 2 ^ 30 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
-      zapLoggerOk lg ∗ msl ↦*□ ms ∗ [∗list] b ∈ bs, barrierPre b }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗ levelTok 0 ∗ (zapLoggerOk lg ∗ msl ↦*□ ms ∗ [∗list] b ∈ bs, barrierPre b) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barriers)) (Val #msl))
       (Val #lg))
-  {{ (ok : Bool), RET #ok; ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ [∗list] b ∈ bs, barrierPost b) }}
+  {{ (ok : Bool), RET #ok; levelTok 0 ∗ (⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ [∗list] b ∈ bs, barrierPost b)) }}
 
 end spec
 
