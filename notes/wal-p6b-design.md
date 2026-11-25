@@ -1,4 +1,55 @@
-# P6b item 1: per-incarnation WAL facts (design, 2026-11-25; not started in Lean)
+# P6b item 1: per-incarnation WAL facts (design, 2026-11-25)
+
+## v2 (2026-11-25, P6b session 1): supersedes "Proposed shape" below where they differ
+
+Implementing v1 found three gaps; v2 closes them. Nothing trusted changes (the crash clause already lets
+an unnamed WAL vanish; `walImg`/`walCrash` untouched).
+
+1. **The incarnation is a ghost counter, not the directory inode `j`.** With `j`, a fact of the discarded
+   incarnation `(dir, j_old)` revives if `Create`'s new directory gets `j_old` again. The Fs model never
+   reuses an inode (`nextIno` only grows, kept by a crash), but no client spec of the Fs extension says so
+   (mkdir's post names a new inode, not one never seen), and the old directory is deleted (`Create`'s
+   `RemoveAll(dir.tmp)`) before the new one is made, so no claim the WAL layer holds tells them apart.
+   Proving freshness would need a new Fs spec. A counter needs nothing: `I : GMap GoString Nat`,
+   `incOf I dir` (absent = 0), bumped by the discard, never lowered; a new generation starts at `∅`.
+2. **The program's view must carry the incarnation.** v1 said `walDirIs dir o` needs none. But the
+   facts' consumers combine a view with a fact (`walDiskAt_crash_keep{,S}`: `walDiskAt dir d ∗
+   walSyncedLb dir n ∗ walNamed dir`; `walGhost_raiseNamed`): to use `walSyncedLb dir i n` they need the
+   view's WAL to be incarnation `i`. So the program owns a share of `I` with its map (`walOwnI M I`), and
+   the views take `i`: `walDiskAtI dir i d := ∃ M I, walOwnI M I ∗ ⌜walOptLe (some d) (M !! dir) ∧ incOf I dir = i⌝`.
+   Keep `walDiskAt dir d := ∃ i, walDiskAtI dir i d` (and `walDirIs`, `walAbsent` likewise), so that only the
+   clients that use facts (the tester, `WalRecs*`, `WalViews`, the crash lemmas) switch to the `I` forms.
+3. **The handles must know their incarnation is current** (`TailSync*`/`TailLenLb`: `walLenLb` to
+   `walSyncedLb` needs the handle's `i` = the present `incOf I dir`). Through the lock: the discard needs
+   the free lock token, every handle holds the taken one. `γI` is split in three: half in `walGhost`, a
+   quarter in `walOwn` (the program's view), a quarter in the lock token (`walUnlockedTok` when free,
+   the handle predicates when taken). The handle's record gets `i` (`γhd : GName ↦ (Loc × GoString × Nat)`,
+   set at `walHandle_alloc` from the lock's quarter), and the sealed handle predicates (`walOpenW`,
+   `walHandleP`, `walOpening`, `walReadFailed`) say `incOf I dir = i` of their quarter: `I` changes only
+   with all three shares, so it cannot change under an open handle. `walHandleInc w dir i` (persistent:
+   the record) is what a spec names to tie a handle's facts to the client's view (`Sync`: pre
+   `walHandleInc w dir i ∗ walLenLb w dir n`, post `walSyncedLb dir i n`).
+4. **`walDirKey`** ("fixed for the generation", 22 `walDirKey_lookup` sites) is keyed by `(dir, i)`:
+   `walDirKey dir i j X`; the authority's current map is `K` at `(dir, incOf I dir)`; a lookup takes the
+   holder's `i`, current by 3.
+
+**The past states** become pairs `(s, I)` (`walPastI`, `WalGS.γpi`), ordered by `walLeI`: area and durable
+directories kept, every incarnation at least as high, a WAL whose incarnation is unchanged kept and grown
+(`absLe`'s clause). `walPast s := ∃ I, walPastI (s, I)` keeps the area and `dirDurable` users unchanged. The
+facts: `walSyncedLb dir i n`, `walNamed dir i` (a past pair with `incOf I dir = i` and the WAL there synced
+to `n` / named), `walLenLb w dir n` (through the handle's record, its signature unchanged). A crash maps
+incarnation `i` of the old generation to `0` of the new one (the new generation's `I` is `∅`;
+`walCrashWal` gives `walOwnI W' s'.wal ∅ ∗ walPastI W' (s', ∅)`, so `walGhost_init` returns those).
+
+**Done (P6b session 1, Ghost.lean, additive, nothing uses it yet):** `WalGS.γI`, `WalGS.γpi` (allocated
+in `walGhost_init`), `incOf`, `walLeI` (+ `_refl`, `_trans`, `_of_absLe`, `_discard`), `walPastI`,
+`walPastIAuth`, `walPastI_le`/`_grow`/`_snap`. **Next**: the swap (`walGhost`'s body over `walPastIAuth`
+and the `γI` half; `walOwn`/views/lock tokens with their quarters; handle records with `i`; the facts'
+new definitions; then the producers and specs bottom-up).
+
+---
+
+## v1 (the previous session's; superseded where v2 differs)
 
 Goal: `wal.DiscardUnsaved` (`true` ⇒ the program's view `walDirIs dir none`), with `bootstrap` then
 re-`Create`ing the WAL at the same `dir` in the same generation (`bootstrap.go`, fork `e94f33b50`:

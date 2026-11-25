@@ -1,5 +1,19 @@
 # P6 (etcd_safe #52/#50), phase B: re-prove the WAL over the torn-Save fix — handoff
 
+## P6b progress (branch `etcd-safe-p6b`, worktree `/shared/etcd-grove-p6`; keep current at each push)
+
+- **2026-11-25, P6b session 1.** Merged `etcd-safe-p8` @ `1dce32d84a` (clean; the coordinator: merge early).
+  **Design revised (v2, `notes/wal-p6b-design.md` top)**: incarnation = a ghost counter (not the inode:
+  freshness unprovable from the Fs specs); the views carry it (`walDiskAtI dir i d`, the old names as `∃ i`);
+  handle currency through a three-way split of `γI` (walGhost ½, the program's `walOwn` ¼, the lock ¼);
+  `walDirKey` keyed by `(dir, i)`. **Lean**: `Ghost.lean` additive core only (`γI`, `γpi`, `incOf`, `walLeI`
+  and laws, `walPastI`/`walPastIAuth` and `_le`/`_grow`/`_snap`), checked with `etc/lean-check.py -a`
+  (0 errors, no `sorry`); nothing uses it yet, so every proof is unchanged.
+- **Resume here**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
+  `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
+  bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
+  lemmas and P8's new consumers (`WalRecsCrash`, `WalCrashRead`), then `DiscardUnsaved`.
+
 ## START HERE
 
 - **P6b item 1: approved (incarnation = the directory inode `j`); design in `notes/wal-p6b-design.md`,
