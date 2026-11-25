@@ -8,17 +8,18 @@ From the methods' specs (`server.Echo.spec`, `server.Fail.spec`) and the generat
 * each method meets its table spec as a service method (`grpcHandlerOkMd`, at any resource);
 * each generated handler on the server `s` meets it as a run (`grpcRunOkMd`), with no interceptors
   (`grpc.NewServer()` with no options: the chain `[]`);
-* so `s`'s registrations serve the table's entries `echoName` and `failName` (`grpcServesEnt`),
+* so `s`'s registrations serve the table's entries `echoName`, `failName` and `metaName` (`grpcServesEnt`),
   for registrations that put, under each name, its generated handler on `s` and no stream.
 
-`Meta` is left for later (its `metadata.MD.Get` spec).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.server__Echo
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.server__Fail
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.server__Meta
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc._Driver_Echo_Handler
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc._Driver_Fail_Handler
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc._Driver_Meta_Handler
 public import Proof.google_golang_org.grpc.InvGrpcRun
 
 @[expose] public section
@@ -57,6 +58,13 @@ theorem drvSvc_fail (γid : GName) :
       some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec⟩) := by
   unfold drvSvc
   rw [if_neg (by decide), if_pos rfl]
+
+/-- The table's entry for `metaName`. -/
+theorem drvSvc_meta (γid : GName) :
+    drvSvc (GF := GF) γid metaName =
+      some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩) := by
+  unfold drvSvc
+  rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
 
 /-- **`Echo` meets `echoSpec`** as a service method (at any resource `S`, which it does not touch). -/
 theorem echo_handlerOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG)) (γid : GName) (s : Loc)
@@ -108,6 +116,35 @@ theorem fail_handlerOk (wp_Fail : server.Fail.spec (GF := GF) (hG := hG)) (s : L
   iframe Hse
   iintro %Hnil
   exact absurd Hnil Hne
+
+/-- **`Meta` meets `metaSpec`** as a service method (at any resource `S`, which it does not touch). -/
+theorem meta_handlerOk (wp_Meta : server.Meta.spec (GF := GF) (hG := hG)) (s : Loc) (S : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ⊢
+      grpcHandlerOkMd (Req := (pbStringValueT (GF := GF)).toProtoMsg)
+        (Rep := (pbStringValueRT (GF := GF)).toProtoMsg)
+        (s @!! go.GoType.PointerType server.ty @!! go!"Meta") S metaSpec := by
+  iintro #Hpkg
+  unfold grpcHandlerOkMd
+  iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iunfold grpcSpecAt at HSpec
+  icases HSpec with ⟨%md, #Hmd, HSpec⟩
+  iapply wp_Meta s ci r m md Φ Ψe $$ [HSpec]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨%Herr, Hsend, HΦ⟩
+  subst Herr
+  iapply HΨ
+  iframe HS
+  isplitl [Hsend HΦ]
+  · iintro %_
+    simp only [pbStringValueRT, pbStringValueR]
+    iexists _
+    isplitl [Hsend]
+    · iexact Hsend
+    · iexact HΦ
+  isplitr
+  · iapply handlerErrOut_nil
+  · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
 
 /-- **The generated `Echo` handler on the server `s` meets `echoSpec` as a run** (no interceptors). -/
 theorem echo_runOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
@@ -204,7 +241,7 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
     (sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
     (hsr : echoName ∉ sregs.map Prod.fst)
     (hreg : ∀ mh srv, (echoName, mh, srv) ∈ regs →
-      mh = functions svc._Driver_Echo_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_Echo_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) :
     isDrvServer γid s ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -215,7 +252,8 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hsr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), echoSpec γid
   isplitr
   · ipureintro
@@ -230,7 +268,7 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
     (sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
     (hsr : failName ∉ sregs.map Prod.fst)
     (hreg : ∀ mh srv, (failName, mh, srv) ∈ regs →
-      mh = functions svc._Driver_Fail_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_Fail_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -241,12 +279,84 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hsr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (failSpec (GF := GF))
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
   iapply fail_runOk wp_Fail wp_H s
+  iframe #
+
+/-- **The generated `Meta` handler on the server `s` meets `metaSpec` as a run** (no
+interceptors). -/
+theorem meta_runOk (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
+    (wp_H : svc._Driver_Meta_Handler.spec (GF := GF) (hG := hG)) (s : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
+      grpcRunOkMd (Req := (pbStringValueT (GF := GF)).toProtoMsg)
+        (Rep := (pbStringValueRT (GF := GF)).toProtoMsg)
+        #(functions svc._Driver_Meta_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
+        [] metaSpec := by
+  iintro ⟨#Hpkg, #Hsvc⟩
+  ihave #Hh := meta_handlerOk wp_Meta s iprop((True : IProp GF) ∗ [∗list] R ∈ ([] : List (IProp GF)), R) $$ Hpkg
+  ihave #Hh' := grpcHandlerOkMd_own _ _ _ $$ Hh
+  unfold grpcRunOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, #Hd, #Hch, HSpec⟩ HΨ
+  iapply (wp_H (pbStringValueT (GF := GF)).toProtoMsg (pbStringValueRT (GF := GF)).toProtoMsg
+    metaSpec ⟨go.GoType.PointerType server.ty, #s⟩ iprop(True) [] [] (fun _ => iprop(True))
+    m Φ Ψe ci cd dec ui rfl rfl server_isDriverServer) $$ [HSpec]
+  · isplitr
+    · iexact Hsvc
+    isplitr
+    · iintro !> %l Hl
+      simp only [pbStringValueT, pbStringValue]
+      iexact Hl
+    isplitr
+    · iexact Hh'
+    isplitr
+    · simp only [srvInterceptorsOk]
+      itrivial
+    isplitr
+    · iintro !> %l -
+      itrivial
+    isplitr
+    · itrivial
+    isplitr
+    · iapply (BigSepL.bigSepL_nil_intro (PROP := IProp GF) (P := iprop(True)))
+      itrivial
+    iframe; iframe #
+  inext
+  iintro %resp %err ⟨-, -, Hres, Herr, #Hse⟩
+  iapply HΨ
+  iframe Hse
+  iframe
+
+/-- **The server's registrations serve the table's `Meta` entry** (`grpcServesEnt`), as
+`echo_servesEnt`. -/
+theorem meta_servesEnt (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
+    (wp_H : svc._Driver_Meta_Handler.spec (GF := GF) (hG := hG)) (s : Loc)
+    (sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
+    (hsr : metaName ∉ sregs.map Prod.fst)
+    (hreg : ∀ mh srv, (metaName, mh, srv) ∈ regs →
+      (#mh : val) = (@! svc._Driver_Meta_Handler) ∧
+        srv = interface.mkOk (go.GoType.PointerType server.ty) #s) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
+      grpcServesEnt [] sics regs sregs metaName
+        (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩) := by
+  iintro ⟨#Hpkg, #Hsvc⟩
+  simp only [grpcServesEnt]
+  isplitr
+  · ipureintro; exact hsr
+  iintro %mh %srv %hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
+  iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (metaSpec (GF := GF))
+  isplitr
+  · ipureintro
+    exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  iapply meta_runOk wp_Meta wp_H s
   iframe #
 
 end serves

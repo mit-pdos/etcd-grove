@@ -2213,12 +2213,21 @@ SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver'] = dict(
 and stores `reached`'s function value.''',
     alloc_types={'reached': 'GoFunc'},
     before={'reached': ['try wp_auto']})
+# (grpcdriver server, 2026-11-25) its fact `drvDescs` (`svc/Base.lean`): the descriptor's fields, its
+# methods and streams exactly, as etcdserverpb's
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates and sets its translated gRPC service descriptor
-(`Driver_ServiceDesc`, a `grpc.ServiceDesc` literal) and initializes its imports.''',
+    doc='''Its fact (`drvDescs`, `svc/Base.lean`): its service descriptor `Driver_ServiceDesc`, read-only, with
+its methods and streams exactly. Its initializer allocates and sets the descriptor (a `grpc.ServiceDesc`
+literal) and initializes its imports.''',
     alloc_types={'Driver_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
-    finish=['repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; wp_auto)',
-            'iframe Hown', 'is_pkg_init_finish'])
+    finish=['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pm ⟨Sm, -⟩; wp_auto',
+            'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %ps ⟨Ss, -⟩; wp_auto',
+            'ipersist Sm', 'ipersist Ss', 'ipersist HDriver_ServiceDesc',
+            'iStructNamed HDriver_ServiceDesc', 'iframe Hown', 'is_pkg_init_finish'] +
+           ['try imodintro', 'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.drvDescs go_etcd_io.etcd.cache.v3.pbDescIs',
+            'iframe #',
+            'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
+            'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩'])
 
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service

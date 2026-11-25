@@ -19,7 +19,9 @@ continuation `Φ`, the error's `Ψe`):
 * `Echo` (`echoSpec`): on a fresh value `v` with its id's token, `Φ (v ++ "#1")`;
 * `Fail` (`failSpec`): `Ψe v` (the handler always fails, with the request's value as its message;
   no reply);
-* `Meta` (`metaSpec`): `Φ` of the values the metadata has at `mdKeyS`, joined by `","`.
+* `Meta` (`metaSpec`): `Φ` of the values the metadata has at `mdKeyS`, joined by `","`, which the
+  caller says is below `stringValueMax` (the reply's bound; the client's metadata is a few short
+  words).
 -/
 module
 
@@ -82,14 +84,54 @@ def failSpec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
 def metaSpec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
     (pbStringValueRT (GF := GF)).toProtoMsg :=
   fun md _ (Φ : GoString → IProp GF) _ =>
-    Φ (go!",".intercalate (metadata.mdVals md mdKeyS))
+    iprop(⌜(go!",".intercalate (metadata.mdVals md mdKeyS)).length < stringValueMax⌝ ∗
+      Φ (go!",".intercalate (metadata.mdVals md mdKeyS)))
 
-/-- **The service's table** (unary methods; the streaming methods' entries are to come with the
-stream end's statement, T10 of `coordinator-notes`' plan). -/
+/-- A stream message (`StringValue`, `pbStringValueS`, `pbStringValueST`'s message: a literal, so
+that its content type is `GoString` up to reducible unfolding). -/
+abbrev strmMsg : StreamMsg GF := pbStringValueS (GF := GF)
+
+/-- A stream message's wire part. -/
+abbrev strmWire : ProtoWire := (strmMsg (GF := GF)).wire
+
+/-- `ServerStream`'s requests: one, the first. -/
+def ssUp : Nat → GoString → IProp GF := fun i _ => iprop(⌜i = 0⌝)
+
+/-- `ServerStream`'s responses: the `j`th byte of the first request's value. -/
+def ssDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
+  iprop(∃ v : GoString, upAt (Req := strmMsg (GF := GF)) γ 0 v ∗
+    ⌜j < List.length v ∧ m = List.take 1 (List.drop j v)⌝)
+
+/-- `ClientStream`'s requests: at most 16, each at most one byte. -/
+def csUp : Nat → GoString → IProp GF := fun i m => iprop(⌜List.length m ≤ 1 ∧ i < 16⌝)
+
+/-- `ClientStream`'s response: one, the concatenation of the requests, once the client closed. -/
+def csDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
+  iprop(⌜j = 0⌝ ∗ ∃ L : List GoString, upClosed (Req := strmMsg (GF := GF)) γ L ∗
+    ⌜m = List.flatten L⌝)
+
+/-- `Bidi`'s requests: each at most one byte. -/
+def biUp : Nat → GoString → IProp GF := fun _ m => iprop(⌜List.length m ≤ 1⌝)
+
+/-- `Bidi`'s responses: the `j`th request, echoed. -/
+def biDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
+  upAt (Req := strmMsg (GF := GF)) γ j m
+
+/-- The streams' specification, for clients: nothing beyond the responses' content. -/
+def strmSpec : GrpcMd → StreamNames → (Nat → GoString → IProp GF) → IProp GF :=
+  fun _ _ _ => iprop(True)
+
+/-- **The service's table**: the unary methods and the streams. -/
 def drvSvc (γid : GName) : GrpcSvc GF := fun name =>
   if name = echoName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), echoSpec γid⟩)
   else if name = failName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec⟩)
   else if name = metaName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩)
+  else if name = serverStreamName then
+    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec⟩)
+  else if name = clientStreamName then
+    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec⟩)
+  else if name = bidiName then
+    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec⟩)
   else none
 
 end specs

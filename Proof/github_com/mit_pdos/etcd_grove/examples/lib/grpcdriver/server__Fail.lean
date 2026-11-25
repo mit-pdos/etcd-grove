@@ -57,10 +57,10 @@ theorem server.Fail.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF := GF) (
     · unfold handlerErrOut
       iexists v
       isplitr
-      · iapply errStr_descIs $$ Hx
+      · iapply svc.errStr_descIs $$ Hx
       · iintro %_
         iexact HΨ
-    · iapply errStr_srvErrOk $$ Hx
+    · iapply svc.errStr_srvErrOk $$ Hx
   · rw [decide_eq_false hp]
     try wp_auto
     wp_apply wp_status_Error (W32 5) v as %err ⟨%Hne, #Hse, #Hd, -, -⟩
