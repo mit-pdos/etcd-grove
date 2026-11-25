@@ -40,19 +40,19 @@ abbrev store.getList.spec : Prop :=
   kp.length ≤ opKeyMax → lo.Continue'.length ≤ opKeyMax → 0 ≤ sint.Z lo.Revision' →
   0 ≤ sint.Z lo.Limit' → (recur = false → lo.Continue' = []) → (lo.Continue' = [] ∨ kp <+: lo.Continue') →
   kp ≠ [] → (∀ x ∈ c.ms, noRefusalAt x.addr) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
-      (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R))) }}
+      (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"getList")) (Val #(GoInterface.ok ci)))
       (Val #kp)) (Val #recur)) (Val #lo))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (err : GoInterface),
-      RET (PairV #resp #err); levelTok 0 ∗ (threadTok ∗
+      RET (PairV #resp #err); threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, □ Q (W64 (σ.rev : Int)) σ ∗
           ⌜σ.readRev lo.Revision' ≤ σ.rev⌝ ∗
           listRespIs resp σ kp recur lo.Revision' lo.Limit'
             (if lo.Continue' = [] then kp else lo.Continue')) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ readErrIs c lo.Revision' Q err))) }}
+       (⌜err ≠ GoInterface.nil⌝ ∗ readErrIs c lo.Revision' Q err)) }}
 
 end spec
 

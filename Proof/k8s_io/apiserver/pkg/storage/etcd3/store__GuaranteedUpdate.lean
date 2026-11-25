@@ -196,7 +196,8 @@ local macro "gu_ret" : tactic => `(tactic| (
   · iframe #
     ipureintro; exact Hspn
   (try wp_auto)
-  iapply HΦ))
+  iapply HΦ
+  iframe Hlt))
 
 set_option hygiene false in
 /-- After `updateOnce` (`Hd`): an error, the write, or a conflict's next reading. -/
@@ -269,10 +270,10 @@ local macro "gu_refresh" : tactic => `(tactic| (
     ihave Hmk := (rwInv_maker γc γt γp c pk STEP (stepHand c STEP)
       (handOk_upd c pk ign c.S.zero (c.S.preF pr) f) W Φu) $$ [Hp]
     · iframe Hrw Hp Hau
-    wp_apply (wp_refresh Obj c st s _ gf x' pk ign (rdQ γc γp c pk (stepHand c STEP))) $$ [Hx Hmk]
-      as %st' %err' Hr
+    wp_apply (wp_refresh Obj c st s _ gf x' pk ign (rdQ γc γp c pk (stepHand c STEP))) $$ [Hlt Hx Hmk]
+      as %st' %err' ⟨Hlt, Hr⟩
     · isimp only [Hcur, Bool.false_eq_true, ↓reduceIte]
-      iframe Hx Hgf Hmk
+      iframe Hlt Hx Hgf Hmk
     isimp only [Hcur, Bool.false_eq_true, ↓reduceIte] at Hr
     icases Hr with (#Hu | ⟨%σ, %e0, #Hrq, %Hvals, Hat, %He'⟩)
     · ihave %Hne := unkErr_ne c err' $$ Hu
@@ -343,10 +344,10 @@ local macro "gu_refresh" : tactic => `(tactic| (
       ipureintro; exact Hrd
   · -- a read's state: current, the check's error back
     have Hcur : s.current = true := rdOf_current c pk ign σ s Hrd
-    wp_apply (wp_refresh Obj c st s _ gf x' pk ign (rdQ γc γp c pk (stepHand c STEP))) $$ [Hx]
-      as %st' %err' Hr
+    wp_apply (wp_refresh Obj c st s _ gf x' pk ign (rdQ γc γp c pk (stepHand c STEP))) $$ [Hlt Hx]
+      as %st' %err' ⟨Hlt, Hr⟩
     · isimp only [Hcur, ↓reduceIte]
-      iframe Hx
+      iframe Hlt Hx
     isimp only [Hcur, ↓reduceIte] at Hr
     icases Hr with ⟨%Heq, -⟩
     obtain ⟨rfl, rfl⟩ := Heq
@@ -376,7 +377,7 @@ theorem store.GuaranteedUpdate.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GuaranteedUpdate.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 ign pp pr cx ca f uf W _ Φu k
-  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, #Hpp, Hca, HW, #Hau, #Hup⟩
+  wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, #Hpp, Hca, HW, #Hau, #Hup⟩
   obtain ⟨hk, hkl, hfsz, hzsz, hcsz, hD1⟩ := Hpre
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -451,7 +452,7 @@ theorem store.GuaranteedUpdate.wp_proof
   obtain ⟨rfl, Hv⟩ := Hen'
   wp_auto_lc 1
   wp_apply (wp_getCur Obj sp c ci' cd go!"updateGet" (c.pathPrefix ++ k) v p ign
-      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f))) hpfx hkl hR (by decide)) $$ [] as %gf #Hgf
+      (rdQ γc γp c (c.pathPrefix ++ k) (stepHand c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f))) hpfx hkl hR (by decide)) as %gf #Hgf
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
@@ -471,7 +472,7 @@ theorem store.GuaranteedUpdate.wp_proof
     · iframe Hrw Hp Hau
     ihave #Hgf' := Hgf
     iunfold getStateOk at Hgf'
-    wp_apply Hgf' $$ [Hmk] as %st %err Hr
+    wp_apply Hgf' $$ [$Hlt] [Hmk] as %st %err Hlt Hr
     · iexact Hmk
     icases Hr with (#Herr | ⟨%σ, #Hrq, %Hvals, Hat⟩)
     · ihave %Hne := unkErr_ne c err $$ Herr
@@ -737,7 +738,7 @@ theorem store.GuaranteedUpdate.wp_proof
               wp_apply (wp_updateOnce Obj E sp c ci' cd spn pk
                   (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st s x' esl v p ign
                   (c.S.preF pr) f o' W Φu hpfx hkl hpre hfr (hsz o' hfr hw) hw)
-                  $$ [$Hx $Hout $HW] as %st' %ok %uerr Hd
+                  $$ [$Hlt $Hx $Hout $HW] as %st' %ok %uerr ⟨Hlt, Hd⟩
               · iframe #
                 ipureintro; exact ⟨Hspn, hsr0, Hv⟩
               gu_once
@@ -766,7 +767,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 · iframe Hrw Hp Hau
                 ihave #Hgf' := Hgf
                 iunfold getStateOk at Hgf'
-                wp_apply Hgf' $$ [Hmk] as %st2 %err2 Hr
+                wp_apply Hgf' $$ [$Hlt] [Hmk] as %st2 %err2 Hlt Hr
                 · iexact Hmk
                 icases Hr with (#Herr | ⟨%σ, #Hrq, %Hvals, Hat⟩)
                 · ihave %Hne := unkErr_ne c err2 $$ Herr
@@ -882,7 +883,7 @@ theorem store.GuaranteedUpdate.wp_proof
                         (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st2 s2 x2 esl v p ign
                         (c.S.preF pr) f o' W Φu hpfx hkl hpre2 hok2
                         (rd_szOk c pk ign f σ s2 hfsz hzsz Hrd Hvals o' hok2 hw2) hw2)
-                        $$ [$Hx2 $Hout $HT] as %st' %ok %uerr Hd
+                        $$ [$Hlt $Hx2 $Hout $HT] as %st' %ok %uerr ⟨Hlt, Hd⟩
                     · iframe #
                       ipureintro; exact ⟨Hspn, Hsr2.1, Hv⟩
                     gu_once
@@ -925,7 +926,7 @@ theorem store.GuaranteedUpdate.wp_proof
             wp_apply (wp_updateOnce Obj E sp c ci' cd spn pk
                 (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 st s x' esl v p ign
                 (c.S.preF pr) f o' W Φu hpfx hkl hpre hfr (hsz o' hfr hw) hw)
-                $$ [$Hx $Hout $HW] as %st' %ok %uerr Hd
+                $$ [$Hlt $Hx $Hout $HW] as %st' %ok %uerr ⟨Hlt, Hd⟩
             · iframe #
               ipureintro; exact ⟨Hspn, hsr0, Hv⟩
             gu_once

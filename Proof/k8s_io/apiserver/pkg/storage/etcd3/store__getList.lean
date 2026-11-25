@@ -38,7 +38,7 @@ theorem store.getList.wp_proof
     (wp_rse : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG)) :
     store.getList.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
-  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -66,6 +66,7 @@ theorem store.getList.wp_proof
       (m := go!"Get")]
     wp_call
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
         c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision')
@@ -74,6 +75,8 @@ theorem store.getList.wp_proof
     · iframe #
       iintro %R %m
       iapply HQ
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     (try wp_auto)
     icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
     wp_apply (wp_RecordEtcdRequest go!"get" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
@@ -93,7 +96,6 @@ theorem store.getList.wp_proof
       (try wp_auto)
       (try wp_if_destruct) <;> (try wp_auto) <;> (
         iapply HΦ
-        iframe Hlt
         iframe Htt
         icases Hget with (⟨%Hge, %σ, #HQσ, %Hσ, #Hkv⟩ | ⟨%Hge, %Hce', #Hse, #Hcl', #Hrs⟩)
         · ileft
@@ -167,12 +169,15 @@ theorem store.getList.wp_proof
       (m := go!"List")]
     wp_call
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_kList (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
         c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [$Hlt HQ]
       as %resp %lerr ⟨Hlt, Hlist⟩
     · iframe #
       iexact HQ
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     (try wp_auto)
     icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split lerr _ _ _) $$ Hlist with ⟨#Hse, Hlist⟩
     wp_apply (wp_RecordEtcdRequest go!"list" c.gr _ _ (by decide) Hutf.1 Hutf.2) $$ []
@@ -184,7 +189,6 @@ theorem store.getList.wp_proof
     (try wp_auto)
     wp_if_destruct <;> (try wp_auto) <;> (
       iapply HΦ
-      iframe Hlt
       iframe Htt
       icases Hlist with (⟨%Hle, %σ, #HQσ, %Hσ, Hresp⟩ | ⟨%Hle, %Hce', #Hse, #Hcl', #Hrs⟩)
       · ileft

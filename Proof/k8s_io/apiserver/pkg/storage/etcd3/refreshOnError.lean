@@ -32,13 +32,14 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ c st s err f x key ign R
-  wp_start as ⟨Hs, Hf⟩
+  wp_start as ⟨Hlt, Hs, Hf⟩
   iunfold ownStateX at Hs
   icases Hs with ⟨%m, %dsl, %Hst, Hst, #Hdsl, Hm⟩
   cases hcur : s.current with
   | true =>
     wp_auto
     iapply HΦ
+    iframe Hlt
     simp only [↓reduceIte]
     isplitr
     · ipureintro; exact ⟨trivial, trivial⟩
@@ -53,9 +54,9 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
     wp_auto
     wp_bind
     iunfold getStateOk at Hget
-    iapply Hget $$ Hmk
+    iapply Hget $$ Hlt Hmk
     inext
-    iintro %st' %e0 Hr
+    iintro %st' %e0 Hlt Hr
     wp_auto
     icases Hr with (#Hu | ⟨%σ, #HR, %hv, Hst'⟩)
     · ihave %hne := unkErr_ne c e0 $$ Hu
@@ -64,6 +65,7 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
       | ok ii =>
         wp_auto
         iapply HΦ
+        iframe Hlt
         ileft
         iexact Hu
     · iunfold stAt at Hst'
@@ -79,6 +81,7 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
           subst hl
           wp_auto
           iapply HΦ
+          iframe Hlt
           iright
           iexists σ, _
           iframe HR
@@ -108,6 +111,7 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
           · rw [decide_eq_true hr]
             wp_auto
             iapply HΦ
+            iframe Hlt
             iright
             iexists σ, GoInterface.nil
             iframe HR
@@ -127,6 +131,7 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
           · rw [decide_eq_false hr]
             wp_auto
             iapply HΦ
+            iframe Hlt
             iright
             iexists σ, GoInterface.nil
             iframe HR
@@ -156,6 +161,7 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
         · rw [decide_eq_true hr]
           wp_auto
           iapply HΦ
+          iframe Hlt
           iright
           iexists σ, GoInterface.nil
           iframe HR
@@ -178,6 +184,7 @@ theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := b
         · rw [decide_eq_false hr]
           wp_auto
           iapply HΦ
+          iframe Hlt
           iright
           iexists σ, GoInterface.nil
           iframe HR

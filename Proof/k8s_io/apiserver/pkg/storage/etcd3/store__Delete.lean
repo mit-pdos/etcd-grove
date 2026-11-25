@@ -44,7 +44,7 @@ theorem store.Delete.wp_proof
     (wp_condDelete : store.conditionalDelete.spec (GF := GF) (hG := hG)) :
     store.Delete.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 pp pr cx ca opts validate vf W _ Φu k
-  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, Hout, #Hpp, Hca, HW, #Hau, #Hval⟩
+  wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, Hout, #Hpp, Hca, HW, #Hau, #Hval⟩
   obtain ⟨hk, hkl, hopt⟩ := Hpre
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -86,11 +86,12 @@ theorem store.Delete.wp_proof
     (try wp_auto)
     wp_apply (wp_condDelete Obj E sp c ci cd (c.pathPrefix ++ k)
         (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 v p pp pr cx ca validate vf W
-        Φu hpfx hkl) $$ [$Hout $Hca $HW] as %err Hres
+        Φu hpfx hkl) $$ [$Hlt $Hout $Hca $HW] as %err ⟨Hlt, Hres⟩
     · iframe #
       ipureintro; exact Hv
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iexact Hres
 
 end proof
