@@ -546,7 +546,7 @@ theorem eventsForRVsL_eq (s0 : w64) (R : RReplay) (h : HSt) (x : Input)
   have h2 : 2 ≤ r := by omega
   unfold evAtL
   rw [if_pos h2]
-  cases hc : changeAtL (histN h.hist (r - 1)).items (histN h.hist r).items r with
+  cases hc : changeAtL (k8s_etcd3.histN h.hist (r - 1)).items (k8s_etcd3.histN h.hist r).items r with
   | none =>
     simp only [Option.map_none, Option.bind_none]
     split <;> rfl
@@ -938,7 +938,7 @@ theorem validateWatchL_of_watchOkL (s0 : w64) (R : RReplay) (h : HSt) (x : Input
       rename_i hinit
       have hann' : N[b].o.Annotated' = true := by simpa using hann
       simp only [Bool.not_eq_true', Bool.not_eq_false] at hinit
-      have hinit' : initialEventsL x (histN h.hist (uint.nat N[b].o.ResourceVersion')) =
+      have hinit' : initialEventsL x (k8s_etcd3.histN h.hist (uint.nat N[b].o.ResourceVersion')) =
           (nonErr W).take b := evsEqL_eq hinit
       have hdropN : ∀ e ∈ N.drop b, e.t ≠ 4 := fun e he => hN e (List.mem_of_mem_drop he)
       -- the start of the reliable part, after `s0`
@@ -988,7 +988,7 @@ theorem validateWatchL_of_watchOkL (s0 : w64) (R : RReplay) (h : HSt) (x : Input
         · unfold initialEventsR
           rw [hR.1 _ hs0b hbH]
           simp only [Option.map_some]
-          have htk : N.take b = initialEventsL x (histN h.hist (uint.nat N[b].o.ResourceVersion')) := by
+          have htk : N.take b = initialEventsL x (k8s_etcd3.histN h.hist (uint.nat N[b].o.ResourceVersion')) := by
             rw [hinit', ← hNp', List.take_append_of_le_length (by omega)]
           rw [htk, initialEventsL_absR x _ (hsort _ (by omega))]
           refine compareEventsL_self _ (fun e he => ?_)
