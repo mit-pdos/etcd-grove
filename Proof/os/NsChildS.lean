@@ -43,7 +43,7 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq jp ∗
         osNames jp Np dqn hp ∗ osCallPerm (callKey R d) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
-            osDirFdS fd J .idle) ∨
+            os.ownOff f (W64 0) ∗ osDirFdS fd J .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
 
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
@@ -86,10 +86,16 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
     iframe
     isplitr
     · ipureintro; rfl
-    unfold os.ownFile
-    iexists _
-    iframe
-    (repeat' isplitl []) <;> iassumption
+    unfold os.ownFile os.ownOff
+    isplitr [off]
+    · iexists _
+      iframe
+      (repeat' isplitl []) <;> iassumption
+    · iexists _
+      isplitl []
+      · iexact f
+      (try rw [show (W64 0 : w64) = 0 from rfl])
+      iexact off
   · iclear Hfd
     have hne : e ≠ ENOENT := by
       rcases hres with ⟨h0, -⟩ | ⟨-, h1, -⟩
@@ -128,7 +134,7 @@ theorem os.Open.wp_dirChildS (d b : GoString) (R : Roots) (jp J : Ino) (Np : Nam
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq jp ∗
         osNames jp Np dqn hp ∗ osCallPerm (callKey R d) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
-            osDirFdS fd J .idle) ∨
+            os.ownOff f (W64 0) ∗ osDirFdS fd J .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
 
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
@@ -224,7 +230,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
     (d b : GoString) (jp : Ino) (Np : NameSet) (dqp dqn : DFrac) (hp : NamesH) (hb : NameOk b)
     (hNp : Np.Mem b) (hJ : hp.cur !! b = some (.dir j)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ os.ownFile (GF := GF) f fd name dqf ∗
-        osDirFdS fd j .idle ∗ osNames j N dq h ∗ osPathS R d dqp jp ∗ osNames jp Np dqn hp }}
+        os.ownOff (GF := GF) f (W64 0) ∗ osDirFdS fd j .idle ∗ osNames j N dq h ∗ osPathS R d dqp jp ∗ osNames jp Np dqn hp }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))
     {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); os.ownFile f fd name dqf ∗
         osNames j N dq h ∗ osPathS R d dqp jp ∗ osNames jp Np dqn hp ∗
@@ -234,14 +240,20 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
             osDirFdS fd j .done) ∨
          ((∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT⌝ ∗ os.errnoPathErr err e) ∗
             ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
-  unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hcl, Hpp, Hnp⟩
+  unfold os.ownFile os.ownOff
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, ⟨%inner', #Hf', Hoff⟩, Hosfd, Hcl, Hpp, Hnp⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
   rw [decide_eq_false (show ¬ sint.Z (W64 0) < sint.Z n by
     rw [show sint.Z (W64 0) = 0 from rfl]; omega)]
+  icombine Hf Hf' gives %hin
+  cases hin
   try wp_auto
+  try rw [show decide ((W64 0 : w64) = W64 0) = true from decide_eq_true rfl]
+  try simp only [Bool.not_true]
+  try wp_auto
+  iclear Hoff
   wp_apply wp_slice_literal (V := GoString) []
   isplitr
   · ipureintro; rfl

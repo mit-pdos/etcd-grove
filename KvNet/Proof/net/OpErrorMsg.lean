@@ -185,26 +185,6 @@ theorem wp_OpError_Error (pe : Loc) (v : net.OpError) (Φ : val → IProp GF) :
     repeat (apply opPrefix_append)
     exact opPrefix_self _
 
-/-- An error whose `Error()` returns a fixed string (`errors.New`'s, `errors.newVar`'s) has
-`errStr`. -/
-theorem errStr_of_wp (ii : GoInterfaceOk) (s : GoString) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-      WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ⊢
-      errStr (interface.ok ii) := by
-  iintro #H
-  unfold errStr
-  iexists ii
-  isplitr
-  · ipureintro; rfl
-  imodintro
-  iintro -
-  rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
-  imodintro
-  iintro %Φ HΦ
-  iapply H
-  inext
-  iapply HΦ
-
 /-- A failure's error (`resErr (some k)`, an `*OpError`) has an `Error()`. -/
 theorem resErr_errStr (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
@@ -229,6 +209,33 @@ theorem resErr_errStr (k : NetErr) (op : GoString) (src addr : GoInterface)
   iapply HΦ
 
 end proof
+
+section errStrWp
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- An error whose `Error()` returns a fixed string (`errors.New`'s, `errors.newVar`'s) has
+`errStr`. -/
+theorem errStr_of_wp (ii : GoInterfaceOk) (s : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+      WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ⊢
+      errStr (interface.ok ii) := by
+  iintro #H
+  unfold errStr
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro -
+  rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
+  imodintro
+  iintro %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
+end errStrWp
 
 end net
 end Perennial

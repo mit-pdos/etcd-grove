@@ -75,7 +75,7 @@ theorem fileutil.ReadDir.wp_proofAbsentErr
     iintro Hf %hF
     exact hF.elim
   wp_apply (fileutil.ReadDir.wp_core wp_Strings wp_Ext (child d b) sl gs es dqs _ _ _
-    (fun _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝)) (fun _ => False) Er Er
+    (fun _ _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝)) (fun _ => False) Er Er
     hlen (fun _ h => h.elim) wpOpen wpRead wpClose) $$ [Hp Hperm Hn Hsl]
     as %r %err ⟨Hsl, ⟨Hp, Hperm, Hn⟩, Hr⟩
   · iframe

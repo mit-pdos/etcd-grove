@@ -141,6 +141,12 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   rw [decide_eq_false hfd']
   try wp_auto
   try wp_auto
+  wp_stub os.fsFdKind.impl
+  wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  try rw [show decide ((W64 0 : w64) = W64 0) = true from decide_eq_true rfl]
+  try simp only [Bool.not_true]
+  try wp_auto
   wp_stub os.fsFstat.impl
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   rcases hr with ⟨rfl, rfl⟩ | ⟨he, rfl⟩

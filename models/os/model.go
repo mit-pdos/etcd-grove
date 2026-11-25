@@ -9,16 +9,17 @@
 //     nonblock, appendMode and dirinfo stay zero (the extension's Open refuses O_APPEND and
 //     O_NONBLOCK, and no model reads a directory through dirinfo), so Go's methods that read them
 //     take the branch the model takes. off is the kernel's file offset of the fd's open file
-//     description (f_pos), which Go does not keep: Seek, Write, Read and copy_file_range use it.
+//     description (f_pos), which Go does not keep: Seek, Write, Read and copy_file_range use it, and
+//     Readdirnames makes it unknown (getdents moves it).
 //   - Go retries EINTR (ignoringEINTR, poll's loops); so do the models (errno 4).
 //   - An error is Go's: &PathError{Op, Path: f.name, Err: Errno(e)} (f.wrapErr of an errno), &LinkError,
 //     io.EOF unwrapped.
 //   - The models are less defined than Go (gomodel.Stuck, or a stuck extension step) where Go's
 //     answer depends on what is not modelled: a closed file (fd -1, which only Close sets; Go answers
 //     ErrClosed), a nil File (Go: ErrInvalid) or a zero one (Go: Close answers EINVAL, the other
-//     methods dereference nil), an operation racing Close (Go's reference count
-//     makes it safe; in the model it is a race on the file cell), an unknown offset (after a failed
-//     Write), offsets reaching 2^62.
+//     methods dereference nil; the model's load at nil is stuck, not a recoverable panic), an
+//     operation racing Close (Go's reference count makes it safe; in the model it is a race on the
+//     file cell), an unknown offset (after a failed Write, or Readdirnames), offsets reaching 2^62.
 //   - A fileStat the models make has name, size and mode; modTime and sys stay zero, so ModTime, Sys
 //     and sameFile (and SameFile) stay untranslated (no proof can call them).
 
@@ -239,8 +240,10 @@ func (f *File) WriteAt(b []byte, off int64) (n int, err error) {
 // a whence above SEEK_HOLE or a negative result, changing nothing.
 // Past modelSeekMax (ext4's limit for a regular file) a regular file's lseek answers EINVAL.
 // Not modelled (gomodel.Stuck): a closed file, SEEK_DATA/SEEK_HOLE (3, 4: ext4 answers them),
-// SEEK_CUR from an unknown offset, a directory's result past modelSeekMax (its limit is 2^63-1), a
-// result at or past modelOffMax.
+// SEEK_CUR from an unknown offset (also a directory's after Readdirnames: getdents moves its offset,
+// to 2^63-1 at the end of an ext4 htree directory), SEEK_END of a directory (ext4 answers from the
+// htree's end, 2^63-1, not from the size), a directory's result past modelSeekMax (its limit is
+// 2^63-1), a result at or past modelOffMax.
 func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 	inner := f.file
 	fd := inner.pfd.Sysfd
@@ -257,6 +260,9 @@ func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 		}
 		base = cur
 	} else if whence == 2 {
+		if fsFdKind(fd) != 0 {
+			gomodel.Stuck()
+		}
 		base, e = fsFstat(fd)
 	} else if whence == 3 || whence == 4 {
 		gomodel.Stuck()
@@ -473,7 +479,10 @@ func Rename(oldpath, newpath string) error {
 // error returns the names so far and &PathError{"readdirent", name, Errno(e)}; the result is never a
 // nil slice. The extension's DirReadNext gives a name at a time, with POSIX's readdir across
 // concurrent changes; it is stuck on a fd that is not a directory's (Go: ENOTDIR) and on a second
-// read of one fd (Go returns no names). n > 0 is not modelled. Before each append the loop assumes
+// read of one fd (Go returns no names). n > 0 is not modelled, nor a directory whose offset is not 0
+// (Go's getdents reads from the offset a Seek set). getdents(2) moves the offset (f_pos: on ext4 a
+// hash cookie, 2^63-1 at the end), so the model makes it unknown (-1: a later Seek SEEK_CUR is
+// stuck). Before each append the loop assumes
 // (an infinite loop otherwise, Perennial's assume) that fewer than 2^44 names were read: Go's append
 // panics ("growslice: len out of range") once a []string's capacity passes maxAlloc/16 = 2^44
 // (linux/amd64), so the assumption excludes only executions Go ends in that runtime panic, which
@@ -485,6 +494,10 @@ func (f *File) Readdirnames(n int) (names []string, err error) {
 	if n > 0 {
 		gomodel.Stuck()
 	}
+	if inner.off != 0 {
+		gomodel.Stuck()
+	}
+	inner.off = -1
 	names = []string{}
 	for {
 		nm, done, e := fsDirReadNext(fd)

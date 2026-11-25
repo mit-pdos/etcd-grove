@@ -275,7 +275,7 @@ theorem wp_syncDir (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply os.Open.wp_dirS d R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
   · iframe; isplitl [] <;> iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, -, Hfd⟩ | %herr)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with

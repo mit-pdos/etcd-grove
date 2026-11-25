@@ -49,7 +49,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
           osCallPerm (callKey R d) qc ∗ osNames j N dqn h) -∗
         (∀ (f : Loc) (err : GoInterface),
           ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗
-              iprop(osDirFdS fd j .idle ∗ osInv) ∗
+              iprop(os.ownOff f (W64 0) ∗ osDirFdS fd j .idle ∗ osInv) ∗
               iprop(osSharedInv R ∗ osNames j N dqn h ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc)) ∨
            (⌜err ≠ interface.nil⌝ ∗ Er err ∗
               iprop(osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h))) -∗ Φ (PairV #f #err)) -∗
@@ -58,7 +58,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
     iintro ⟨#Hosp0, #Hinv, #Hsi, Hp, Hperm, Hn⟩ HΦ
     wp_apply os.Open.wp_dirErrS d R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
     · iframe; (repeat' isplitl []) <;> iassumption
-    icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%e, %he, #Herr⟩)
+    icases Hr with (⟨%fd, %herr, Hf, Hoff, Hfd⟩ | ⟨%e, %he, #Herr⟩)
     · iapply HΦ; ileft; iexists fd; iframe
       isplitr
       · ipureintro; exact herr
@@ -69,7 +69,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
       · ipureintro; exact hne
       iexists e; iframe Herr; ipureintro; exact he.1
   have wpRead : ∀ (f : Loc) (fd n : w64) (Φ : val → IProp GF), ⊢ ⌜sint.Z n ≤ 0⌝ -∗
-      os.ownFile f fd d (DFrac.own 1) -∗ iprop(osDirFdS fd j .idle ∗ osInv) -∗
+      os.ownFile f fd d (DFrac.own 1) -∗ iprop(os.ownOff f (W64 0) ∗ osDirFdS fd j .idle ∗ osInv) -∗
       iprop(osSharedInv R ∗ osNames j N dqn h ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc) -∗
       (∀ (r : GoSlice) (err : GoInterface), os.ownFile f fd d (DFrac.own 1) -∗
         iprop(osInv ∗ ∃ ph, osDirFdS fd j ph) -∗
@@ -79,9 +79,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proof
       WP (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Readdirnames")) (Val #n))
         {{ Φ }} := by
     intro f fd n Φ
-    iintro %hn Hf ⟨Hfd, #Hinv⟩ ⟨#Hsi, Hn, Hp, Hperm⟩ HΦ
+    iintro %hn Hf ⟨Hoff, Hfd, #Hinv⟩ ⟨#Hsi, Hn, Hp, Hperm⟩ HΦ
     wp_apply os.File.Readdirnames.wp_dirS f fd d (DFrac.own 1) R j N dqn h n hn
-      $$ [Hf Hfd Hn] as %r %err ⟨Hf, Hn, Hr⟩
+      $$ [Hf Hoff Hfd Hn] as %r %err ⟨Hf, Hn, Hr⟩
     · iframe; isplitl [] <;> iassumption
     icases Hr with (⟨%names, %hr, Hr, Hfd⟩ | ⟨⟨%e, %he, #Herr⟩, %r0, %rs, Hfd⟩)
     · obtain ⟨herr, h1, h2, h3, h4⟩ := hr

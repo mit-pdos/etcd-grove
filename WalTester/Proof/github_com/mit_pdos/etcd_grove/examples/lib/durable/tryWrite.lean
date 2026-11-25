@@ -289,7 +289,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   wp_apply os.Open.wp_dirS f.d R f.J (DFrac.own qd) qc $$ [Hinv Hsi Hpath Hperm]
     as %dfl %e5 ⟨Hpath, Hperm, Hres⟩
   · iframe; iframe #
-  icases Hres with (⟨%dfd, %he5, Hdf, Hdfd⟩ | ⟨%he5, -⟩)
+  icases Hres with (⟨%dfd, %he5, Hdf, -, Hdfd⟩ | ⟨%he5, -⟩)
   rotate_left
   · cases e5 with
     | nil => exact absurd rfl he5
