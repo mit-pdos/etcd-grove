@@ -145,7 +145,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
-    (HEnv : verifyEnvOff (leaseexpiryNProgram k))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) (uint.nat k) n ids ps

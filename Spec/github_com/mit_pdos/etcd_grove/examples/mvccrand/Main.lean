@@ -34,7 +34,7 @@ abbrev Main.spec : Prop :=
   backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       backend.fileHolds go!"mvccrand.db" ∅ ∗
-      threadTok ∗ envVerifyOff }}
+      threadTok ∗ ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Main)) (Val #()))
   {{ RET #(); True }}
 

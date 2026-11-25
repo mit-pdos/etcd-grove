@@ -21,7 +21,7 @@ of a distributed start, where in one process `goose_adequacy_start` hands it out
   definition over the machine's file tree (the WAL link, `notes/wal-link-scope.md`; blocked on the fs
   redesign, etcd-grove#15).
 
-`ETCD_VERIFY` off (`envVerifyOff`) is the statement's `HEnvTok`, passed in (`member_boot`'s `HEnvTok`).
+`ETCD_VERIFY` off (`EtcdVerifyOff`) is the statement's `HEnv`, passed in (`member_boot`'s `HEnv`).
 That a valid address's peer URL `http://a` is plain (`host:port`) is proved (`etcd_dist.addrOk_plainPeerURL`).
 -/
 module
@@ -114,7 +114,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [log.NewModel] [net.FieldAssumptions]
     -- (wal-nostorageok: `NewStorage`'s contract proved, `etcdstart`'s linked results take `os`'s field steps)
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (HM : MemberBootHyps) (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    (HM : MemberBootHyps) (HEnv : EtcdVerifyOff)
     (peer client : GoString) (hpeer : Net.addrOk peer = true) (hclient : Net.addrOk client = true)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
@@ -146,7 +146,8 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   ihave Hown := ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
   ihave Hdd := HM.dataDir
-  ihave #Hvoff := HEnvTok
+  ihave #Hvoff : ⌜EtcdVerifyOff⌝ $$ []
+  · ipureintro; exact HEnv
   imod etcdNetFs_start σm Hm.1 $$ Hls with ⟨#Hos, -, Htree⟩
   imodintro
   -- the member's WAL area, from its machine's files

@@ -1,6 +1,6 @@
 /-
 `backend.VerifyBackendConsistency`'s proof (`verify.go`; etcdstorage, 2026-11-20, until then the trust
-boundary, an axiom): one `verify.Verify` call, over its spec with assertions off (`envVerifyOff`): its
+boundary, an axiom): one `verify.Verify` call, over its spec with assertions off (`EtcdVerifyOff`): its
 closure (which locks the backend and compares the buckets) is not run.
 -/
 module
@@ -31,12 +31,15 @@ theorem backend.VerifyBackendConsistency.wp_proof
     (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) := by
   intro b lg skip bs
-  wp_start as #Hvoff
+  wp_start as %Hvoff
   ihave #Hvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify $$ []
   · iPkgInit
   wp_auto
   wp_apply (hVerify _ _ iprop(True)) $$ []
   · iframe #
+    isplitr
+    · itrivial
+    iright; ipureintro; exact Hvoff
   try wp_auto
   iapply HΦ
   itrivial
