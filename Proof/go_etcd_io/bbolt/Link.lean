@@ -80,9 +80,11 @@ public import Proof.go_etcd_io.bbolt.DB__freepages
 public import Proof.go_etcd_io.bbolt.DB__grow
 public import Proof.go_etcd_io.bbolt.DB__hasSyncedFreelist
 public import Proof.go_etcd_io.bbolt.DB__init
+public import Proof.go_etcd_io.bbolt.DB__initImage
 public import Proof.go_etcd_io.bbolt.DB__loadFreelist
 public import Proof.go_etcd_io.bbolt.DB__meta
 public import Proof.go_etcd_io.bbolt.DB__mmap
+public import Proof.go_etcd_io.bbolt.DB__needsInit
 public import Proof.go_etcd_io.bbolt.DB__page
 public import Proof.go_etcd_io.bbolt.DB__pageInBuffer
 public import Proof.go_etcd_io.bbolt.Mmap.Alloc
@@ -103,7 +105,6 @@ public import Proof.go_etcd_io.bbolt.Open.CloseFile
 public import Proof.go_etcd_io.bbolt.Open.CloseTok
 public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
 public import Proof.go_etcd_io.bbolt.Open.Flock
-public import Proof.go_etcd_io.bbolt.Open.MetasZero
 public import Proof.go_etcd_io.bbolt.Open.MmapOwn
 public import Proof.go_etcd_io.bbolt.Open.PageSize
 public import Proof.go_etcd_io.bbolt.Options__String
@@ -1220,9 +1221,9 @@ theorem DB.wp_hasSyncedFreelist :
     _root_.Perennial.EtcdGrove.bbolt.DB.hasSyncedFreelist.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.hasSyncedFreelist.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Freelist
 
-theorem DB.wp_pageInBuffer :
-    _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
+theorem DB.wp_pageInBuffer_own :
+    _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.spec_own (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.wp_proof_own
 
 theorem internal.common.Meta.wp_SetMagic :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.SetMagic.spec (GF := GF) (hG := hG) :=
@@ -1256,6 +1257,10 @@ theorem internal.common.wp_NewInBucket :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.NewInBucket.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.internal.common.NewInBucket.wp_proof
 
+theorem DB.wp_initImage :
+    _root_.Perennial.EtcdGrove.bbolt.DB.initImage.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.initImage.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_pageInBuffer_own _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetId _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetFlags _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetCount _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetMagic _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetVersion _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetPageSize _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetFreelist _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetRootBucket _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetPgid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetTxid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetChecksum _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Sum64 _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_NewInBucket
+
 theorem os.File.wp_WriteAt :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof
@@ -1270,7 +1275,7 @@ theorem wp_fdatasyncW :
 
 theorem DB.wp_init :
     _root_.Perennial.EtcdGrove.bbolt.DB.init.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.init.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_pageInBuffer _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetId _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetFlags _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetCount _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetMagic _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetVersion _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetPageSize _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetFreelist _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetRootBucket _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetPgid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetTxid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetChecksum _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Sum64 _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_NewInBucket _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAt _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncW
+  _root_.Perennial.EtcdGrove.bbolt.DB.init.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_initImage _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAt _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncW
 
 theorem wp_newFreelist :
     _root_.Perennial.EtcdGrove.bbolt.newFreelist.spec (GF := GF) (hG := hG) :=
@@ -1300,10 +1305,6 @@ theorem DB.wp_loadFreelist_open :
     _root_.Perennial.EtcdGrove.bbolt.DB.loadFreelist.spec_open (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.loadFreelist.wp_proof_open _root_.Perennial.EtcdGrove.bbolt.wp_newFreelist _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.DB.wp_meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Freelist _root_.Perennial.EtcdGrove.bbolt.DB.wp_page _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_Read _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_Init _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_FreeCount _root_.Perennial.EtcdGrove.bbolt.DB.wp_freepages
 
-theorem DB.wp_metasZero_own :
-    _root_.Perennial.EtcdGrove.bbolt.DB.metasZero.spec_own (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.metasZero.wp_proof_own _root_.Perennial.EtcdGrove.bbolt.os.File.wp_ReadAtRacyLt
-
 theorem DB.wp_mmapUnlocked_own :
     _root_.Perennial.EtcdGrove.bbolt.DB.mmapUnlocked.spec_own (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.mmapUnlocked.wp_proof_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_fileSize _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapSize _root_.Perennial.EtcdGrove.bbolt.wp_mmapF _root_.Perennial.EtcdGrove.bbolt.DB.wp_page _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Validate
@@ -1312,9 +1313,13 @@ theorem DB.wp_munmap_none :
     _root_.Perennial.EtcdGrove.bbolt.DB.munmap.spec_none (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.munmap.wp_proof_none
 
-theorem DB.wp_pageInBuffer_own :
-    _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.spec_own (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.wp_proof_own
+theorem DB.wp_needsInit :
+    _root_.Perennial.EtcdGrove.bbolt.DB.needsInit.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.needsInit.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_ReadAtRacyLt _root_.Perennial.EtcdGrove.bbolt.DB.wp_initImage
+
+theorem DB.wp_pageInBuffer :
+    _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
 
 theorem os.wp_OpenFileCreateS :
     _root_.Perennial.EtcdGrove.os.OpenFile.specCreateS (GF := GF) (hG := hG) :=
@@ -1426,7 +1431,7 @@ theorem fs.FileMode.wp_String :
 
 theorem wp_Open :
     _root_.Perennial.EtcdGrove.bbolt.Open.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Open.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateS _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Name _root_.Perennial.EtcdGrove.bbolt.wp_flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Stat _root_.Perennial.EtcdGrove.bbolt.os.fileStat.wp_Size _root_.Perennial.EtcdGrove.bbolt.DB.wp_metasZero_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_init _root_.Perennial.EtcdGrove.bbolt.DB.wp_getPageSize_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapUnlocked_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_loadFreelist_open _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncW _root_.Perennial.EtcdGrove.bbolt.DB.wp_Begin _root_.Perennial.EtcdGrove.bbolt.Tx.wp_Commit_err _root_.Perennial.EtcdGrove.bbolt.DB.wp_CloseTok _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.Options.wp_String _root_.Perennial.EtcdGrove.bbolt.fs.FileMode.wp_String
+  _root_.Perennial.EtcdGrove.bbolt.Open.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateS _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Name _root_.Perennial.EtcdGrove.bbolt.wp_flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Stat _root_.Perennial.EtcdGrove.bbolt.os.fileStat.wp_Size _root_.Perennial.EtcdGrove.bbolt.DB.wp_needsInit _root_.Perennial.EtcdGrove.bbolt.DB.wp_init _root_.Perennial.EtcdGrove.bbolt.DB.wp_getPageSize_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapUnlocked_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_loadFreelist_open _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncW _root_.Perennial.EtcdGrove.bbolt.DB.wp_Begin _root_.Perennial.EtcdGrove.bbolt.Tx.wp_Commit_err _root_.Perennial.EtcdGrove.bbolt.DB.wp_CloseTok _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.Options.wp_String _root_.Perennial.EtcdGrove.bbolt.fs.FileMode.wp_String
 
 theorem Spill.Bucket.wp_spillC :
     _root_.Perennial.EtcdGrove.bbolt.Spill.Bucket.spill.specC (GF := GF) (hG := hG) :=
