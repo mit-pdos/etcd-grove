@@ -35,27 +35,24 @@ Dispatch (each parametric in `OP`/`NP`; post `True`, i.e. no panic):
   `client/Orchestrator.lean` (`⌜KvOnly d ∧ Fips off⌝ ∗ deploymentRepr v d ∗ orchShare OP d j`),
   `client/NodeMain.lean` (`⌜w.kind = 0 ∧ clients + |eps| ≤ 2^63⌝`), `client/NodeDeployment.lean`.
 
-## The proofs: state at handoff (NONE CHECKED YET)
+## The proofs: state (2026-11-25, second session)
 
-All drafted blind, never compiled (the fk-lean1 worktree was still seeding when the context ran out):
-`Proof/.../dist/deployment/Deployment__{Endpoints,Node}.lean`, `Proof/.../dist/client/{Rotate,RunKV,MainReady,
-MainDeployment,Orchestrator,NodeMain,NodeDeployment,KvLinked}.lean`, `KvDefs.lean`'s lemmas.
-- Complete drafts (expect tactic fixes): `Deployment__Endpoints` (copied from `memberIDs.lean`'s loop),
-  `RunKV`, `MainReady`, `Orchestrator`, `NodeMain`, `KvDefs` (`kvOnly_bounds`: check the conjunct count of
-  `typed.Deployment.WellFormed`, 21).
-- `sorry` placeholders left (must go before landing): `Deployment__Node` (the loop body and exit; pure lemmas
-  `nodeEntries_cons_get`, `zip_drop_cons` drafted for the invariant
-  `d.nodeList[n0]? = (((ws.zip ns).drop j).flatMap nodeEntries)[k]?`); `Rotate` (the index `srem` lemma and the
-  body: store at `j` with `wp_store_slice_index`, invariant `outL[m]? = rotateL[m]?` for `m < j`);
-  `MainDeployment` (after the `WellFormed` check: the `j` range check, load
-  `Workloads[j]` and `Nodes[j]` from `deploymentRepr`, `Endpoints` through the pointer method, then `hMR` with
-  `orchShare` unfolded); `NodeDeployment` (after the check: `Herr` gives `d.WellFormed`, `kvOnly_bounds`,
-  `hNd`, `¬ok` return, loads, `Endpoints`, persist the slice, `hNM` with `nodeShare` unfolded).
-- Open question for the method calls: the code calls `MethodResolve (PointerType Deployment.ty) "Endpoints"`
-  on the local `d`; the specs are on the value receiver (`#(methods Deployment.ty …)`), as `fields.Set.Get`.
-- `KvLinked.lean` (linking tier by name): `wp_OrchestratorKv OP hOrch`, `wp_NodeDeploymentKv NP hNode`, the
-  results step 6 uses. Needs `deployment/Link.lean` regenerated: `etc/link-lean-first-deployment.txt` already
-  lists `deployment_Deployment__Endpoints`/`__Node`; run `etc/gen-link.py --deployment`.
+**All proved, no `sorry`, no axiom** (each compiled with plain `lake env lean` on fk-lean1):
+`Deployment__{Endpoints,Node}`, `Rotate` (with `srem_of_nonneg`), `RunKV`, `MainReady`, `MainDeployment`,
+`Orchestrator`, `NodeMain`, `NodeDeployment`, `KvDefs` (`kvOnly_bounds`, new `wellFormed_nodes_length`).
+`deployment/Link.lean` regenerated (`etc/gen-link.py --deployment > .../Link.lean`: it writes to stdout), giving
+`Deployment.wp_Endpoints`/`wp_Node`; `KvLinked` gives `wp_OrchestratorKv OP hOrch`, `wp_NodeDeploymentKv NP hNode`.
+`etc/tier-check.py --check` ok; `etc/api-check.py` ok on every list (no new warning). fk-lean1 `lake build
+KvLinked deployment.Link`: 4708 jobs, exit 0 (log `/shared/tmp/n7kv-build3.log`).
+
+Proof notes:
+- The pointer-receiver call `MethodResolve (PointerType Deployment.ty) "Endpoints"` on the local `d` goes
+  through `wp_method_call; wp_call; wp_auto` to the value-receiver spec (`#(methods Deployment.ty …)`).
+- `GoInterface` error checks: `cases err with | ok i => … | nil => …`, not `wp_if_destruct`.
+- An `orchShare`/`nodeShare` in the Iris context is rewritten by a Lean `have hsh : … = …` and `rw [hsh]` on
+  the goal (no `rw … at` an Iris hypothesis).
+- `etc/lean-check.py` (incremental) reported spurious kernel errors (`wp_proof._proof_1_13` type mismatch) and
+  missed errors after a `-a`; `lake env lean FILE` is the reliable check (`/shared/tmp/n7kv-lean.sh FILE`).
 
 ## How to continue
 
