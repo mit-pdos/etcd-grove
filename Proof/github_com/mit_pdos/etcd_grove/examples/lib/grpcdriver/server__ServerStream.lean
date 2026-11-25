@@ -44,6 +44,9 @@ theorem server.ServerStream.wp_proof
   icases Hr with ⟨%sv, Hsv, %Hsvp⟩
   obtain ⟨hval, -, hlen⟩ := Hsvp
   subst hval
+  icases typedPointsto_split _ _ _ $$ Hsv with Hsv
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hsv with ⟨-, HV, -, -, -⟩
   wp_auto
   ihave IH : iprop(∃ (k : w64) (L : List GoString), "i" ∷ i_ptr ↦ k ∗
       "HSt" ∷ srvSendTok (Rep := strmMsg (GF := GF)) γ L ∗

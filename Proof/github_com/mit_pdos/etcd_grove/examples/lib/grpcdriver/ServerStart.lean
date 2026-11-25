@@ -27,11 +27,8 @@ namespace github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver
 /-- The driver's service name. -/
 abbrev drvSvcName : GoString := go!"grpcdriver.Driver"
 
-section serves
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : Assumptions]
+section lists
+variable [GooseExts] [GoGlobalContext]
 
 /-- The methods `Driver_ServiceDesc` lists (`svc.drvDescs`'s). -/
 abbrev drvMethods : List (GoString × val) :=
@@ -43,6 +40,14 @@ abbrev drvStreams : List (GoString × val × Bool × Bool) :=
   [(go!"ServerStream", @! svc._Driver_ServerStream_Handler, true, false),
    (go!"ClientStream", @! svc._Driver_ClientStream_Handler, false, true),
    (go!"Bidi", @! svc._Driver_Bidi_Handler, true, true)]
+
+end lists
+
+section serves
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 /-- **A registered unary method** is one of the table's three, with its generated handler. -/
 theorem drv_regs_mem {mds : List google_golang_org.grpc.MethodDesc} {ss : GoInterface}
