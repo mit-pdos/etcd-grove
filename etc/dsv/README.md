@@ -70,8 +70,14 @@ leaves the statement. Each axiom:
 - claims no more than the premise it replaces;
 - has an `axiom`-skill review by a reviewer given only the axiom, its Go function and its callers
   (`notes/axiom-review/dsv-fix4/`, indexed in `notes/axiom-review/README.md`); **a refuted axiom
-  stays a premise**: craq's `LogHyp` (`fmt` calls an operand's `Format`/`GoString`, which `argOk`
-  admits), until restated narrowly and reviewed again (dsv-fix6, `notes/dsv-fix6.md`): rabia's
+  stays a premise** until restated narrowly and reviewed again (dsv-fix6, `notes/dsv-fix6.md`): craq's
+  `LogHyp` (`fmt` called an operand's `Format`/`GoString`, which `argOk` admitted) is restated as three
+  axioms (`Craq/LogAx.lean`: `LogDefault`, `LoggerPrintf`, `LoggerPrintln`) over an opaque `StdLogger`
+  from `log.Default`, a narrowed `argOk` (errors `errPlain`, `Net/Proof/models_lab/ErrFmt.lean`) and
+  Go's directive grammar `FmtVerbsOk` (verbs `v s q x X d`), after four refuting rounds survives the
+  fifth (`notes/axiom-review/dsv-fix6/log-logger-5.md`), and `craq_remote_robust` lost the premise
+  (an open finding beside it: Net's trusted `(*OpError).Error` calls no field method,
+  `notes/axiom-review/dsv-fix6/net-operr-error.md`); rabia's
   `zerolog.Hyps` (`Msg` called any writer's `Write`, which `New`'s spec admitted) is restated with
   `New` at the `nil` writer only and the level methods over a points-to of a logger `New(nil)` made
   (`loggerOk`), reviewed in `notes/axiom-review/dsv-fix6/zerolog.md` (survives), and is axioms
