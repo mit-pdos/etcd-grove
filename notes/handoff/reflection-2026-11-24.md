@@ -521,3 +521,25 @@ Perennial `reflect-s05` @ **239c3b613** (pushed). Per-file state, each checked w
   `SuggestsClientDelay` (errors.As → APIStatus); etcd rafthttp `pipelineHandler.ServeHTTP`,
   `snapshotHandler.ServeHTTP` (errors.As → writerToResponse); etcd `txn.isNil` (ValueOf.IsNil);
   k8s etcd3 `getTypeName` (TypeOf.String), `getNewItemFunc` (reflect.New)).
+- etcd-grove at the new pin (0cc12bd614, pushed): fixed AsNoMatch (`ii'` → `_`), rafthttp
+  snapshot/pipeline handlers (multi-line `(by …)` → `;`), ErrOk (`kindOf go.string` needs the
+  Tests/ReflectTypeQuery simp set; `asTargetKind_pointer (GF := GF) (hG := hG)` — the Perennial lemma
+  sits in section `wps` and auto-binds `errors.Assumptions`; kErrOk_statusError's missing `hmod`),
+  ErrViews (constructor nesting for plainLeaf's `leafErrTy` triple + IsPointerError).
+  Build `reflection/eg08.log`: only `k8s/etcd3/Calls.lean` fails (downstream k8s Links/MainLinked unbuilt).
+
+**BLOCKER (Calls.clientErr_notTooLarge:169), needs a spec decision.** The WIP made `apierrors.plainLeaf`
+carry `IsPointerError ii` (to discharge Perennial's `asRepr` for the interface target `APIStatus`).
+A client error (`clientErr`, `clientErrTys`) may be an `rpctypes.EtcdError` or a
+`context.deadlineExceededError` (structs, not pointers), and `clientErr` gives a Lean value only for
+`EtcdError` (`AsTypeTyped`), so neither `IsPointerError` nor `asRepr` (`∃ W x, IntoValTyped W ii.ty ∧
+ii.v = #x`) is provable for client errors. Strengthening `clientErr` is out: it is in ~30 client
+proofs and in trust-boundary statements. Proposed fix (spec-only, no trusted text):
+1. Perennial: `asNoMatch` needs only a TYPE representation for the no-match path (`implements`
+   allocates a zero value of `ii.ty`; `ValueOf(err)` is reached only on a match): replace `errRepr`
+   in `asNoMatch`/`asNoMatchLeaf` with `asTyRepr T ii := isInterface T → ∃ W _ _ (_ : IntoValTyped W ii.ty), True`
+   (strictly weaker premise); adjust `errors.as_` conj 3 and `As.lean`; rebuild + full build.
+2. etcd-grove: `plainLeaf` (View.lean) carries a type-level repr instead of `IsPointerError`
+   (make it take `GF`, or a GF-free list predicate with a lemma to `asTyRepr`); discharge for
+   `clientErrTys` case by case (EtcdError, deadlineExceededError, *errorString, grpc `*status.Error`
+   all have generated `IntoValTyped`); redo ErrViews/Calls; rebuild; gates.
