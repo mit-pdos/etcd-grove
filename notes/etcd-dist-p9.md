@@ -170,6 +170,9 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   `DecOutput`/txnlin's `IsWrite`), checked. `kvremote/Link.lean` (hand-written, namespace
   `EtcdGrove.kvremote`): the 14 codec functions and `wp_Codec`, over `EtcdGrove.enc` and txnlin's `Link`
   (its `wp_IsWrite` from txnlin's `IsWrite`/`isWrite`/`thenOf`/`elseOf` proofs: txnlin's `Link` reaches the whole server).
+- **Build evidence** (fk-lean2, `/shared/tmp/p9-build.sh`): `kvremote.Store`, the `Codec` spec and proof and
+  `kvremote.Link` at `e2aa743ad7`: built (4970 jobs, exit 0), no `sorry` or axiom added. `etc/tier-check.py
+  --check`: ok (Store defs, Codec proof, Link linking).
 
 ## Handoff
 
