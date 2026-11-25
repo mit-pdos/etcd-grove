@@ -134,13 +134,18 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
       omega
     wp_auto_lc 1
-    ihave #Hdinv' : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImage γr.raft.raft) (snapRmM γt)) $$ []
+    ihave #Hdinv' : snapDirInvH (config.snapDirOf cfg.DataDir') γd (srvImage γr.raft.raft) (snapRmM γt) $$ []
     · rw [← srvImageM_off, ← hao]; iexact Hdinv
     ihave Htake := snapRmM_take (GF := GF) γt sv.Metadata'.Index' nt hnt'
     icases Htake with ⟨Hno, Hup⟩
+    -- (D6-T6) a crash-token update: the directory's invariant has a crash side
+    iapply wp_ncfupd _ _ rfl
+    iintro Hnc
     imod snapDir_take (config.snapDirOf cfg.DataDir') γd (srvImage γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
         (monoNatAuthOwn γt 1 nt) (monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1))
-        $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup with ⟨%D, Hfile, #Himg⟩
+        $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup Hnc with ⟨Hnc, %D, Hfile, #Himg⟩
+    imodintro
+    iframe Hnc
     -- the image's facts (`snapRecv_image`): its committed log `A'` extending `A`
     have hai0 : uint.Z ag = uint.Z γr.raft.ai0 + A.length := by
       rw [hraft]; have := hAL; word
@@ -630,13 +635,18 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
     omega
   wp_auto_lc 1
-  ihave #Hdinv' : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImageOn γr.raft.raft) (snapRmM γt)) $$ []
+  ihave #Hdinv' : snapDirInvH (config.snapDirOf cfg.DataDir') γd (srvImageOn γr.raft.raft) (snapRmM γt) $$ []
   · rw [← srvImageM_on, ← hao]; iexact Hdinv
   ihave Htake := snapRmM_take (GF := GF) γt sv.Metadata'.Index' nt hnt'
   icases Htake with ⟨Hno, Hup⟩
+  -- (D6-T6) a crash-token update: the directory's invariant has a crash side
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
   imod snapDir_take (config.snapDirOf cfg.DataDir') γd (srvImageOn γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
       (monoNatAuthOwn γt 1 nt) (monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1))
-      $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup with ⟨%D, Hfile, #Himg⟩
+      $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup Hnc with ⟨Hnc, %D, Hfile, #Himg⟩
+  imodintro
+  iframe Hnc
   -- the image's facts (`snapRecv_imageOn`): its committed log `A'` extending `A`
   have hai0 : uint.Z ag = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word

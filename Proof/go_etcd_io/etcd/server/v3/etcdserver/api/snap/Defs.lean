@@ -18,7 +18,7 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
   2026-11-23, approved by the owner via the coordinator: a file-system claim): the claim on every name
   of the snapshot directory whose files are at the paths `p` but `db` and the canonical `.snap.db`
   names (`snapDirNames`), which `bootstrapSnapshot` carves and the directory's invariant holds
-  (`snapDirInv`, `Proof/.../rafthttp/Net.lean`). Until then `snapDirIs p γd` over the opaque
+  (`snapDirInvH`, `Proof/.../rafthttp/Net.lean`). Until then `snapDirIs p γd` over the opaque
   `snapDirIsRO`, a right only `bootOk` gave.
 * `msgIs m ml rc` (persistent; D22 S-i): `m` is a `*snap.Message` (`snap.NewMessage(ml, rc,
   size)`: the raft message `ml`, the reader `rc` wrapped in an exact-size reader, the total size
@@ -173,7 +173,7 @@ is the file extension's whole claim on every name of `sd` but those `snapDirName
 backend's file, and every index's `<16 hex>.snap.db`, whose claims go to the backend and to `snapFreeAll`),
 with shares of `sd`'s path and of its root's call permission, at the program's file-extension instances.
 `bootstrapSnapshot` carves it out of the snapshot directory it makes (`bootSnap.snapDir_carve`), and
-`snapDir_init` puts it in the directory's invariant for good (`snapDirInv`, `Proof/.../rafthttp/Net.lean`).
+`snapDir_init` puts it in the directory's invariant for good (`snapDirInvH`, `Proof/.../rafthttp/Net.lean`).
 
 What it makes true. The claims of a directory are disjoint (the extension's `NamesCoh.disj`), so while the
 invariant holds this claim no one else holds a claim on any name of `sd` outside `snapDirNames`: no

@@ -293,7 +293,7 @@ def fileFreeF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) : 
     osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
 
 /-- **The file at `path` holds `D`, and is a file** (S5; exclusive): what a received snapshot's file
-is (`snapDirInv`'s files), what `os.Rename` moves. -/
+is (`snapDirInvH`'s files), what `os.Rename` moves. -/
 def fileAt (path : GoString) (D : Data) : IProp GF := onFs (fileAtF path D)
 
 /-- **The name `path` is free** (S5; exclusive): the claim on a name no file has, what `SaveDBFrom`

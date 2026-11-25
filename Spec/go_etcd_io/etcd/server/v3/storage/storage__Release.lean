@@ -37,7 +37,8 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 (given back) and a share of the WAL's handle (kept): `snap`'s metadata read at index `i = md.Index`, a synced
 snapshot record of index `i` in the WAL (the update of `ReleaseLockTo`, which lets the server purge the
 segments before the one holding it), and `ReleaseSnapDBs`'s premises (the snapshot directory's invariant at
-removal facts below `i`): `nil`, or an error the snapshotter's directory listing caused.
+removal facts below `i`): `nil`, or an error the snapshotter's directory listing caused. (A removed index that
+was pending joins the saved set with its removal fact, as in `ReleaseSnapDBs`, D6-T6 2026-11-25.)
 
 Why the WAL half needs the record (`notes/wal-link-scope.md` §3.3, C6): Go's `ReleaseLockTo` compares the
 locks' first indices and needs no record, but the server always releases at a snapshot it saved just
@@ -51,7 +52,7 @@ abbrev storage.storage.Release.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
         storageOver p w ss ∗ storageRd p w ∗ isSnapshotter ss sd ∗
         sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-        inv snapDirN (snapDirInv sd γd img Rm) ∗
+        snapDirInvH sd γd img Rm ∗
         □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
         WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
         AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗

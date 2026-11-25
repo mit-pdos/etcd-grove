@@ -43,12 +43,14 @@ a failed removal (a non-empty directory, I/O) is logged and skipped, not returne
   `etc/import-all.txt`), whose premise refutes `Rm j` and which keeps the resource it could make
   `Rm j` from sealed in the token: so no caller of this function holds `Rm j` for a held `j`, and Go
   removes only files in `M` below `i`. At each removal the file leaves `M` with its removal fact
-  `Rm j` (given); a file whose removal failed leaves `M` too (forgetting its `fileHolds` is sound; a
+  `Rm j` (given), and its index joins the saved `E` if it was pending (linked by a `SaveDBFrom` not
+  yet past its directory sync, D6-T6 2026-11-25: the name may reappear after a crash, an orphan
+  later releases remove; `nonissues/etcd-snapdb-removed-before-dirsync.md`); a file whose removal failed leaves `M` too (forgetting its `fileHolds` is sound; a
   later `SaveDBFrom` of `j` keeps the file, `j` saved already). A file linked by a concurrent
   `SaveDBFrom` after the listing is not removed and joins `M`.
 * A non-canonical name (`5.snap.db`, 19 digits, uppercase hex) and an empty directory of such a
   name: the claim on every such name of the directory is the invariant's (`snap.snapDirOwn`, the
-  claim on all the names but `db` and the canonical ones, which `snapDirInv` holds for good; claim
+  claim on all the names but `db` and the canonical ones, which `snapDirInvH` holds for good; claim
   #34, 2026-11-23: until then an environment clause of the opaque `snapDirOwn`), and the claims of a
   directory are disjoint, so no one else holds a claim on such a name, and no proof's resource
   records a file there or a path through it. A removal is a step on the invariant's claim, which
@@ -64,7 +66,7 @@ abbrev snap.Snapshotter.ReleaseSnapDBs.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗
       isSnapshotter ss sd ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-      inv snapDirN (snapDirInv sd γd img Rm) ∗
+      snapDirInvH sd γd img Rm ∗
       □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) }}
     (App (Val (ss @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!

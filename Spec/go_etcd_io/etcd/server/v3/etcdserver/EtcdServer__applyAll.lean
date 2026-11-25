@@ -173,7 +173,7 @@ the KV's rows in the mode (`isServerM`/`srvApplyKVM`/
 `kvAppliedM` at `E.authOn`, on at the applied log's auth state `sa`), the start's chain the mode's;
 the store's snapshot clause, `srvAuthSnapOk`, is `srvSnapRO`'s gated row; after, at the image's auth
 state. Read under `srvSnapRO`'s image certificate in the mode (review round 1's F5:
-`srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, the mode-off certificate,
+`srvSnapOwn`'s `srvSnapRO` holds `snapDirInvH … (srvImage γr.raft.raft)`, the mode-off certificate,
 false of an auth-on cluster's images; in the merge `srvImageM` at the cluster's mode, `srvImageOn` in the
 mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), and under
 `authApplyResB`'s redefinition as `specSnapM` is.
