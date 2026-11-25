@@ -1548,6 +1548,59 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
   here: `pa` tied to the member's directory entry and its cluster (`httpAddrAt γ id pa`, `γn.N = srvNet γ`);
   docstrings no longer claim that nothing but the axioms writes at `pa`. Evidence `/tmp/peerforge/` (not kept).
 - `etcdSvc` (A1) and A3: no new table content, so no re-review.
+- **2026-11-25, the two holes of `PeerServe_dist`.**
+  - **(1) closed: `http.reserve` narrowed** (`notes/axiom-review/http-reserve-pend.md`). Old:
+    `⊢ httpProtoFree a ==∗ httpProtoAt a P ∗ httpProtoOwn a P`. New: `⊢ httpProtoFree a ∗ netAddrPend a ==∗ …` (the
+    same post), `netAddrPend a` the address's exclusive empty pending set (`netPend NG a ∅`), which every law making
+    an `addrProto` spends (`addr_set_proto`, `_tok`, `lis_set_proto` through `lisUnset`), so `http_addr_set pa` and
+    `reserve pa` exclude each other. `net.Listen.spec` (proved) now takes `netAddrRsv` (`netAddrFree` without the
+    pending set) and leaves `netAddrLis`; `netAddrFree_split`, `netAddrLeft_intro` rejoin. Re-proved users: the
+    reservations (`netHttp_reserve3`, `netHttp_reserveL`, `alloc3Http`, `alloc3OnHttp`, `memberStartRes_split`,
+    `alloc3`, `alloc3On`, `allocN`, `allocNOn`), the bundles (`memberFreshRes`, `memberRestartRes` hold `netAddrRsv`),
+    the peer listeners (`etcdstart.NewMember`, `StartMemberAuth`, `auth3.startMember`, `restart`/`restartN`
+    `newMember`, specs and proofs), the other `Listen` callers (`cluster3.StartBridge`, `cluster3.StartMember`,
+    `etcdstart.Serve`) and the draft `ListenerClose_spec`. No new axiom, `sorry` or premise; no top-level statement
+    changed.
+  - **(2) open: `leasehttp.RenewHTTP` not narrowed.** Restricting `url` to a member's lease URL (`u ++ LeasePrefix`,
+    `u` a peer URL of a cluster member, `http://<netAddrLit host>`) needs its one caller, `EtcdServer.LeaseRenew`
+    (in the landed lease results: lease, leaseN, authlease, leaseexpiry(N), k8s), to know the leader's `PeerURLs`
+    are such: `waitLeader`'s post and `RaftCluster.Member`'s say nothing of them (a fresh `Member` record, any
+    strings), and the cluster's lock invariant (`rcLockInv`/`memAt`) records no fact of its members' peer URLs. A
+    fact of the record alone is no restriction (a program allocates a `Member` with any URLs). So the landed proof
+    of `LeaseRenew` uses `RenewHTTP` at URLs it knows nothing of, and narrowing it means first adding to the
+    cluster's invariant a fact of every member's peer URLs (from bootstrap's `memberRO`/directory facts and each
+    `AddMember`/`UpdateRaftAttributes` writer) and to `waitLeader`'s post. Stopped there (the task's rule: a landed
+    result that cannot be re-proved without the old power); `PeerServe_dist` stays unsound in combination with
+    `RenewHTTP` until then (its docstring says so).
+  - **Fresh review** (`axiom` skill, given the axioms and the Go code, `RenewHTTP`'s route declared known): `PeerServe_dist`
+    with the narrowed `reserve` **survives**. Attacks: reserve/set in either order; taking the pending set out of an
+    address's invariant (cannot close it again); a wildcard listener (`lisUnset` holds `pa`'s pending set); two
+    spellings of one socket (`addrOk`, `netAddrLit` canonical); `reserve` at a second `HeapGS` (its registry predicates
+    are indexed by `hG`: inferred, unchecked); writing through the net extension (opaque `httpPeerSvc`); other clients
+    (gRPC needs `grpc.start`'s listener at `pa`; the prober's `GET /raft/probing` is peer API; `leaseTimeToLive`
+    forwards only in its cluster). Docstrings corrected as it asked (`PeerServeDist`, `InvNet`'s header, the review
+    note). Side finding outside the targets: `rafthttp.addPeerToProber.wp_proof` admits a nil prober `p` (Go:
+    `p.AddHTTP` panics); unexported, etcd's callers pass non-nil, so no counterexample; a premise `p ≠ nil` would
+    make it true.
+  - **`NewServer_dist` at its final text** (`httpPeerSvc` indexed by the whole `SrvRaft γ`, 4277b6acaf), fresh `axiom`-skill
+    review with `PeerServe_dist`, `NewPeerHandler_dist`, the narrowed `reserve` and the starts. The three versions:
+    unindexed (review affa32: **refuted**, a duplicate member in a second ghost cluster with the same configuration);
+    cluster+member index (review a1f026: no counterexample); whole-`SrvRaft` index (this review: **survives**). Its
+    argument: `httpPeerSvc` is opaque with no laws, so the re-indexing only refines the cluster+member version; a
+    second `γ'` over one cluster is pinned out (`ownCommittedOps`, `nodeBoot`/`nodeVacant`/`raftState`, `srvRaftLogInv`);
+    plus attacks 4-10 as for `PeerServe_dist` (registry, wildcard, aliasing, relay, `π`, proxy, double serve). Not
+    tried: the crash law and restart path. Stale docstrings it found (`S5Interim`'s `httpAddrAt` "of the cluster `cl`",
+    one-argument `httpAddrAt` in `NewServerDist`/`PeerServeDist`, `NewServerDist`'s "only the other members accept",
+    `Start.lean`'s `netAddrFree`/`nameFree` wording) are fixed with route B's commit. Note: the dist top-level theorems
+    still take the unindexed `S5Draft.httpAddrAt` as a hypothesis, so these axioms are on no exported result's path yet.
+  - **Route B (2026-11-24, chosen with the coordinator), Go evidence** (`examples/premisefix/peerforge`, at the examples'
+    etcd pin): `PromoteMember` of an unknown id is refused before any proposal (`isLearnerReady`: `ErrIDNotFound`, no
+    entry applied); of a voter it proposes an `AddNode{IsPromote}` that apply rejects (`ErrMemberNotLearner`): one entry
+    applied, members unchanged, no panic; the same through `RenewHTTP` to `/members/promote/<decimal id>`.
+    `RenewHTTP` to `/leases/internal`: the handler dereferences a nil `LeaseTimeToLiveRequest`
+    (`lease/leasehttp/http.go:123`, before any lock), `net/http`'s `conn.serve` recovers (`http: panic serving`), the
+    client gets `EOF`; afterwards `LeaseGrant`, `LeaseRenew`, `LeaseTimeToLive`, `RenewHTTP` to `/leases` and `Range`
+    succeed. 3/3 runs. Next: widen `ccApplyOk` to admit rejected promotes and re-prove its consumers.
 
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.

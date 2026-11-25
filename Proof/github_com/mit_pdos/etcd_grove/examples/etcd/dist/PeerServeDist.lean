@@ -33,15 +33,17 @@ Why it is true: every connection to `pa` is a dial at an address whose protocols
 bytes are written by another member's transport inside `NewServer_dist` (requests of etcd's peer API: rafthttp's
 streams (`GET /raft/stream/...`), pipelines (`POST /raft`), probes (`GET /raft/probing`), snapshots
 (`POST /raft/snapshot`); leasehttp's forwarded `TimeToLive` and `KeepAlive` (`POST /leases`, `/leases/internal`);
-bootstrap's `GET /members`; `GET /version`), or by a program holding `httpAddrAt pa`, which may dial `pa` and can write nothing there through the net
+bootstrap's `GET /members`; `GET /version`), or by a program holding `httpAddrAt γ id pa`, which may dial `pa` and can write nothing there through the net
 extension (no proof establishes the dialer protocol of any bytes); no HTTP proxy relays to it (`noProxyEnv` in
 `NewServer_dist`). **Not** covered, found by the axiom review of 2026-11-24 (`notes/etcd-dist-plan.md` §16.3): the
-names-only `leasehttp.RenewHTTP` axiom lets any program `POST` a lease body to any URL, `pa`'s paths included; and
-the single-process start (`goose_adequacy_start`) hands out both `addrUnset pa` (to `http_addr_set`) and
-`httpProtoFree pa` (to `http.reserve`, any request protocol), so a one-process program can forge a raft message
-to its own member through `rafthttp`'s round tripper (Go: the member panics, `tocommit out of range`). **This axiom
-is unsound in combination with those two until they are fixed** (`http.reserve` consuming `addrUnset`, and
-`RenewHTTP` restricted to a member's lease URL). The in-process `http.Serve_ok` with the raft handler
+names-only `leasehttp.RenewHTTP` axiom lets any program `POST` a lease body to any URL, `pa`'s paths included:
+**this axiom is unsound in combination with it until `RenewHTTP` is restricted to a member's lease URL** (open:
+the server's proofs know nothing of a member's peer URLs, §16.3). The other route the review found is closed
+(2026-11-25): a single-process run holds both `addrUnset pa` (the net extension's start resources, inside
+`netAddrFree pa`; to `http_addr_set`) and `httpProtoFree pa` (`goose_adequacy_start`),
+and `http.reserve` now also spends `pa`'s pending set (`netAddrPend`), which `http_addr_set` needs, so no program
+holds both `httpAddrAt γ id pa` and a reservation of `pa` in the single-process registry (without it a one-process
+program forged a raft message to its own member through rafthttp's round tripper; Go: `tocommit out of range`). The in-process `http.Serve_ok` with the raft handler
 (`EtcdServer.RaftHandler.spec`, `srvServeRes`) is proved safe on what the in-process network carries
 (`raftProto`), which is what these requests carry across machines: raft's messages of the cluster's members, each
 checked by the handler (the cluster id, `X-Raft-To` against the member's id, a removed sender refused). The other

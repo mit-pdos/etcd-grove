@@ -13,15 +13,17 @@ token left:
   (`goose_adequacy_start`, `Proof/runtime/Start.lean`) hands it out for the addresses `As` of a
   single-process closed theorem (removed at the net swap, restored 2026-11-23,
   `notes/single-process-restore.md`); nothing else produces it; `etcd_safe`'s deployment premise is to
-  give it. The same for `httpProtoFree` below (whose docstring predates the restoration: program start
-  gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`),
+  give it. The same for `httpProtoFree` below. Consumed by `net.Listen` (into `netListenerAt`),
   so an address is listened on at most once in a run (`grpcAddrIs_agree`).
 * `netAddrFree addr` := `addrClaim addr ∗ addrUnset addr`: the claim, and the address unset in the net
   extension's ghost state (`addrUnset`: its pending set, empty, `addr` a valid address, `addrOk`,
   `GooseLang/Ext/Net/Impl.lean`, and the right to listen at it, `netLisTok`, all from its start
   resources; since phase 7 S2's interface, 2026-11-24, until then the listening token and validity).
-* `netAddrLeft addr`: what `Listen` leaves of `addrUnset` (the pending set, the validity, the listening
-  token in an invariant): what sets the address's protocols afterwards (`grpc.start'`).
+* `netAddrLeft addr`: the pending set, the validity, the listening token in an invariant: what sets the
+  address's protocols after `Listen` (`grpc.start'`). (2026-11-25) `Listen` takes `netAddrRsv addr`
+  (`netAddrFree` without the pending set `netAddrPend addr`, `netAddrFree_split`) and leaves `netAddrLis addr`
+  (the validity and the token's invariant); `netAddrLeft_intro` rejoins it with `netAddrPend`. `http.reserve`
+  spends `netAddrPend`, so a reserved address's protocols are never set in the net extension.
 * `netListenerAt l addr` := the claim and `netListenerOpen l addr`, the extension's open listener at
   `addr` (`netLis`, `netLisAt`), `l` a `*TCPListener` (what Net's `Listen` returns,
   `Net/Spec/net/Listen.lean`).
@@ -47,8 +49,12 @@ axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
 rafthttp stage 6a): `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's
 protocol before its listener exists (a raft member sends to its peers before they listen). Purely ghost:
-no Go operation consumes or needs it. Until the net swap (2026-11-22) program start gave it once per
-address, with `netAddrFree`; now nothing does (net/http's S5, or `etcd_safe`'s deployment, is to). -/
+no Go operation consumes or needs it. Program start gives it once per address, with `netAddrFree`
+(`goose_adequacy_start`, single-process only; removed at the net swap, 2026-11-22, restored 2026-11-23).
+(The PeerServe_dist review, 2026-11-25) `http.reserve` also takes the address's pending set
+(`netAddrPend`), so a reserved address never gets net-extension protocols (`addr_set_proto`): without it a
+one-process program set `a` to etcd's peer protocols (`http_addr_set`) and also reserved `a` here with a
+request protocol of its choice, forging a raft message to the member served at `a`. -/
 axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 section defs
@@ -72,6 +78,27 @@ def netAddrLeft (addr : GoString) : IProp GF :=
   iprop(∃ _ : HasExt netExt, netPend (NG (Gg := hG.goose_globalGS)) addr ∅ ∗
     addrTok (GF := GF) addr ∗ lisTokInv (Gg := hG.goose_globalGS) addr)
 
+/-- **`addr`'s pending set, empty** (exclusive; the PeerServe_dist review's fix, 2026-11-25): the piece of
+`addrUnset` (and of `netAddrLeft`) that every law setting the address's net-extension protocols spends
+(`addr_set_proto`, `addr_set_proto_tok`, through `netPend`'s exclusive fragment) and that `Listen` does not
+need. `http.reserve` consumes it, so an address whose HTTP protocol is reserved in the single-process
+registry never gets protocols in the net extension's (`netAddrFree_split`). -/
+def netAddrPend (addr : GoString) : IProp GF :=
+  iprop(∃ _ : HasExt netExt, netPend (NG (Gg := hG.goose_globalGS)) addr ∅)
+
+/-- **The right to listen at `addr`, with the claim on its requests, its protocols never to be set**
+(exclusive; 2026-11-25): `netAddrFree` without its pending set (`netAddrPend`): what `net.Listen` takes,
+and all an address reserved for HTTP (`http.reserve`) keeps. -/
+def netAddrRsv (addr : GoString) : IProp GF :=
+  iprop(addrClaim addr ∗ ∃ _ : HasExt netExt, addrTok (GF := GF) addr ∗
+    netLisTok (NG (Gg := hG.goose_globalGS)) addr)
+
+/-- **What `Listen` leaves of `netAddrRsv`** (2026-11-25): the address's validity and its listening token
+in an invariant (`lisTokInv`); with the pending set (`netAddrPend`), what sets its protocols
+(`netAddrLeft_intro`). -/
+def netAddrLis (addr : GoString) : IProp GF :=
+  iprop(∃ _ : HasExt netExt, addrTok (GF := GF) addr ∗ lisTokInv (Gg := hG.goose_globalGS) addr)
+
 /-- **The listener `l` is open at `addr`, unused** (no claim; split from `netListenerAt` at phase 7
 S2's interface: what a member that its deployment's start set the address of holds, beside a server
 being built, `grpcServeTok`). -/
@@ -85,6 +112,37 @@ def netListenerOpen (l : GoInterface) (addr : GoString) : IProp GF :=
 header). -/
 def netListenerAt (l : GoInterface) (addr : GoString) : IProp GF :=
   iprop(addrClaim addr ∗ netListenerOpen l addr)
+
+open Iris.ProofMode in
+/-- **The right to listen at `addr` is the reserved right and the pending set** (2026-11-25). -/
+theorem netAddrFree_split (addr : GoString) :
+    netAddrFree (hG := hG) addr ⊢ netAddrRsv (hG := hG) addr ∗ netAddrPend (hG := hG) addr := by
+  iintro Hf
+  iunfold netAddrFree at Hf
+  icases Hf with ⟨Hc, %hX, Hu⟩
+  iunfold addrUnset at Hu
+  icases Hu with ⟨Hp, #Ht, Hl⟩
+  isplitr [Hp]
+  · iunfold netAddrRsv
+    iframe Hc
+    iexists hX
+    iframe Hl Ht
+  · iunfold netAddrPend
+    iexists hX
+    iexact Hp
+
+open Iris.ProofMode in
+/-- **What `Listen` left, with the pending set, is what sets the protocols** (2026-11-25). -/
+theorem netAddrLeft_intro (addr : GoString) :
+    netAddrPend (hG := hG) addr ∗ netAddrLis (hG := hG) addr ⊢ netAddrLeft (hG := hG) addr := by
+  iintro ⟨Hp, Hl⟩
+  iunfold netAddrPend at Hp
+  iunfold netAddrLis at Hl
+  icases Hp with ⟨%hX, Hp⟩
+  icases Hl with ⟨%hY, #Ht, #Hi⟩
+  iunfold netAddrLeft
+  iexists hX
+  iframe Hp Ht Hi
 
 end defs
 

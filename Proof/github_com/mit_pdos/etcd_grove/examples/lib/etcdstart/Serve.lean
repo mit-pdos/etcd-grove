@@ -89,6 +89,7 @@ theorem Serve.wp_proof
   -- the registrations' old form (`serverRegsOk`, exact since auth-mediation M1)
   replace Hregs := v3rpc.serverRegsOk_sub Hregs
   -- `net.Listen("tcp", addr)`
+  icases netAddrFree_split _ $$ Haddr with ⟨Haddr, Hpend⟩
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
   icases Hlis with (⟨%Hlerr, Hlis, Hleft⟩ | %Hlerr)
@@ -99,6 +100,8 @@ theorem Serve.wp_proof
     wp_auto
     iapply HΦ; ileft; ipureintro; simp
   subst Hlerr
+  ihave Hleft := netAddrLeft_intro _ $$ [Hpend Hleft]
+  · iframe
   wp_auto
   -- the caller's ghost step, between `Listen` and `go gs.Serve(l)`
   obtain ⟨hRs, hRE, hRw, hRγ⟩ := HR

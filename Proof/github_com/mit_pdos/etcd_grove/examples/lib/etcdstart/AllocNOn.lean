@@ -178,7 +178,7 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
     $$ Hsrl Hcl H0 Hpm Hrc Hkv Hms Hwns Hns Hpis with ⟨%gs, %Hgs, Hbs⟩
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
-  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), httpProtoFree (GF := GF) a $$ [Hfs]
+  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), (httpProtoFree (GF := GF) a ∗ netAddrPend a) $$ [Hfs]
   · rw [BigSepL.bigSepL_map]; iexact Hfs
   imod (netHttp_reserveL γn (ms.map (·.2.1)) Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
     $$ Hreg Hfs with ⟨#Hnet, Hos⟩

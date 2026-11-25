@@ -61,13 +61,14 @@ separate change could delete with this conjunct.
 names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4) For a program of
 which `verifyEnvOff e` holds (`ETCD_VERIFY` off for the run), it also receives `envVerifyOff`,
 which the backend's lock checks and `VerifyBackendConsistency` take.
-Why it is once only: nothing else produces `nameFree`, `netAddrFree` or `httpProtoFree` (axiomatized
-predicates, `Registry.lean`, `InvNet.lean`; no axiom or definition gives one), so the rights exist
+Why it is once only: nothing else produces `addrClaim` or `httpProtoFree` (axiomatized predicates,
+`InvNet.lean`; no axiom or definition gives one; `netAddrFree` is a definition, `addrClaim` with the net
+extension's exclusive `addrUnset`, since 2026-11-22), so the rights exist
 only where this axiom's premise hands them out: once, to the one WP proof of one execution, under
 the ghost state `goose_init` allocates for it. The axiom is about executions (its conclusion is
 `goose_adequacy`'s), not an entailment: it cannot be applied inside a proof to obtain rights.
 
-Satisfiable whatever the semantics: with `nameFree`, `netAddrFree` and `httpProtoFree` read as `True` (no axiom
+Satisfiable whatever the semantics: with `addrClaim` and `httpProtoFree` read as `True` (no axiom
 says either is exclusive) and the names-only `MustRegister` and `Listen` as diverging functions,
 the premise is `goose_adequacy`'s premise and the conclusion its conclusion.
 

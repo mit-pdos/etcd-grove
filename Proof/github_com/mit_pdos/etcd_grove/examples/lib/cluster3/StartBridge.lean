@@ -38,10 +38,13 @@ theorem StartBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     $$ []
   · iPkgInit
   wp_auto
+  icases netAddrFree_split _ $$ Hfree with ⟨Hfree, Hpend⟩
   wp_apply wp_Listen go!"tcp" addr $$ [Hfree] as %l %err Hr
   · iframe; ipureintro; rfl
   icases Hr with (⟨%Herr, Hl, Hleft⟩ | %Herr)
   · subst Herr
+    ihave Hleft := netAddrLeft_intro _ $$ [Hpend Hleft]
+    · iframe
     wp_auto
     wp_apply wp_New client addr l $$ [Hl Hleft] as %br ⟨Hob, #Hfw, %Hnr⟩
     · iframe #; iframe

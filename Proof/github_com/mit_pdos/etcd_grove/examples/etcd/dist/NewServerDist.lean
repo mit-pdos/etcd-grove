@@ -30,14 +30,14 @@ or fails as in one process, and the threads it starts (rafthttp's transport: its
 readers, pipelines and probers, which dial the other members' peer addresses `http://a` of the directory; the
 raft node; the lessor), and its own requests to the peers (bootstrap's `isMemberBootstrapped`: `GET /members` at
 each peer, an error ending `NewServer` with an error), neither get stuck nor panic, the bytes written on a
-connection to a peer address being requests of etcd's peer API from this member (`httpAddrAt a`'s protocols, `httpPeerSvc`, opaque); its post is
+connection to a peer address being requests of etcd's peer API from this member (`httpAddrAt γ pid a`'s protocols, `httpPeerSvc`, opaque); its post is
 `specG`'s, at network names `γn` with the in-process network's payload (`srvNet γ`) and directory.
 
 Why it is true: `NewServer.wp_proofG` proves `specG`'s text over the in-process network, whose HTTP side
 (`netHttpOk`: every other member's host registered with raft's protocol, `http.reserve`) is what the transport's
 round trips use. Across machines the round trips go to the other members' peer addresses, which the deployment's
-start set to `httpPeerSvc` (`http_addr_set`) and on which only the other members' peer handlers accept
-(`PeerServe_dist`): what differs is how a message reaches its receiver, the transport's own code being the same.
+start set to `httpPeerSvc` (`http_addr_set`), served by the other members' peer handlers (`PeerServe_dist`; any
+holder of `httpAddrAt` may also listen and accept there, but write nothing): what differs is how a message reaches its receiver, the transport's own code being the same.
 The proxy: Go's transport (etcd's `transport.NewTimeoutTransport`, `Proxy: http.ProxyFromEnvironment`) would send
 every peer request to an HTTP proxy named by `HTTP_PROXY`/`http_proxy` (`HTTPS_PROXY`/`https_proxy` for `https`
 URLs), which may answer anything (raft messages that make the member panic, `commitTo` past its last index);

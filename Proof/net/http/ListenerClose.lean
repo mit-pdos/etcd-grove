@@ -7,7 +7,7 @@ DRAFT trust-boundary statements, not yet axioms: the proofs that need them take 
 until the axiom review (the `axiom` skill) has checked them, with the old `http.Serve`'s handlers
 still running after the close.
 
-Until now an address is listened on once in a run: `net.Listen` consumes `netAddrFree a` for good
+Until now an address is listened on once in a run: `net.Listen` consumes `netAddrRsv a` (until 2026-11-25 `netAddrFree a`) for good
 (`Proof/net/InvNet.lean`), and `register` turns the listener into `httpListenerAt`, which `Serve`
 takes whole. Here:
 
@@ -16,7 +16,7 @@ takes whole. Here:
   its own goroutine), and says the listener is an interface value with a dynamic type (`net.Listen`
   returns one with a `nil` error), whose `Close` method the program calls.
 * `ListenerClose_spec`: `l.Close()` with the closing half gives back the address
-  (`netAddrFree a`) and the right to serve it with its protocol (`httpProtoOwn a P`). The protocol
+  (`netAddrRsv a`: the pending set stays spent, `http.reserve`) and the right to serve it with its protocol (`httpProtoOwn a P`). The protocol
   stays the address's (`httpProtoAt a P` is persistent): a later listener at `a` serves the same
   protocol. `Serve` then returns (its accept fails); the handlers it started keep running and keep
   what they borrowed, and (http-boundary-fix, second review, 2026-11-14) so do its connections: a
@@ -64,7 +64,7 @@ def ListenerClose_spec : Prop :=
     l = GoInterface.ok li →
     ⊢ {{ httpListenerCloser (GF := GF) l a P }}
         (App (Val #(methods li.ty go!"Close" li.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; netAddrFree a ∗ httpProtoOwn a P }}
+      {{ (err : GoInterface), RET #err; netAddrRsv a ∗ httpProtoOwn a P }}
 
 end defs
 

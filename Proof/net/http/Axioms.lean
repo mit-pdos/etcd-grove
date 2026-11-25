@@ -43,13 +43,20 @@ True of a model with a global ghost map from addresses to saved protocols whose 
 set once, with the exclusive `httpProtoFree a`. (http-boundary-fix, 2026-11-14) Of a protocol
 that admits the server's own answers (`Proto.srvOk`): `RoundTrip`'s post promises the protocol's
 `resp` of whatever status it returns, which may be one Go's server made running no handler (`431`
-for headers over `MaxHeaderBytes`, `examples/premisefix/httpsrvstatus`). -/
+for headers over `MaxHeaderBytes`, `examples/premisefix/httpsrvstatus`). (The PeerServe_dist review,
+2026-11-25, `notes/axiom-review/http-reserve-pend.md`) It also consumes the address's empty pending set in the
+net extension (`netAddrPend a`, a piece of `netAddrFree a`; `Listen` keeps the rest, `netAddrRsv`), so that
+the address's net-extension protocols are never set (`addr_set_proto`, `addr_set_proto_tok` need it): the
+single-process registry and the net extension's protocols never both describe `a`. Without it a one-process
+program set `a` to etcd's peer protocols (`http_addr_set`), served etcd's peer handler there
+(`PeerServe_dist`), reserved `a` here with the request protocol `True`, and sent a forged raft heartbeat through
+rafthttp's round tripper: in Go the member's raft panics (`tocommit(1000000) is out of range`). -/
 axiom reserve (a : GoString) (P : Proto GF) (hP : P.srvOk) :
-  ⊢ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
+  ⊢ httpProtoFree (GF := GF) a ∗ netAddrPend (hG := hG) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
 
 /-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the
 address's reserved protocol, serves it with that protocol (the model: the listener bound once,
-`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). -/
+`net.Listen` consuming `netAddrRsv a`; the protocol the ghost map's entry for `a`). -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :
   ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
 

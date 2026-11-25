@@ -204,7 +204,8 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
     (cmp : Bool := false) (cret : Nat := 0) :
     -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
+      (httpProtoFree (GF := GF) a₁ ∗ netAddrPend a₁) -∗ (httpProtoFree (GF := GF) a₂ ∗ netAddrPend a₂) -∗
+      (httpProtoFree (GF := GF) a₃ ∗ netAddrPend a₃) ={⊤}=∗
       ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
@@ -366,6 +367,18 @@ theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
   iintro #Hmarsh ⟨#Hv₁, WaHw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, WaHw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, WaHw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  -- (2026-11-25) the peer address's pending set, to `http.reserve`
+  icases netAddrFree_split _ $$ Ha₁ with ⟨Ha₁, Hp₁⟩
+  ihave Hf₁ : (httpProtoFree (GF := GF) a₁ ∗ netAddrPend a₁) $$ [Hf₁ Hp₁]
+  · iframe
+  -- (2026-11-25) the peer address's pending set, to `http.reserve`
+  icases netAddrFree_split _ $$ Ha₂ with ⟨Ha₂, Hp₂⟩
+  ihave Hf₂ : (httpProtoFree (GF := GF) a₂ ∗ netAddrPend a₂) $$ [Hf₂ Hp₂]
+  · iframe
+  -- (2026-11-25) the peer address's pending set, to `http.reserve`
+  icases netAddrFree_split _ $$ Ha₃ with ⟨Ha₃, Hp₃⟩
+  ihave Hf₃ : (httpProtoFree (GF := GF) a₃ ∗ netAddrPend a₃) $$ [Hf₃ Hp₃]
+  · iframe
   imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
       Hrb2 lm hrun hap cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,

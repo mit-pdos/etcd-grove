@@ -19,8 +19,9 @@ protocol, so no program but the member-side axioms' (the transport inside `NewSe
 `PeerServe_dist`) writes on a connection to a peer address; a program holding `httpAddrAt a` may dial, listen
 (`listen_au`) and accept at `a`, and can write nothing there through the net extension. (Two other routes reach a
 peer address, found by the 2026-11-24 review, `notes/etcd-dist-plan.md` §16.3: the names-only
-`leasehttp.RenewHTTP` axiom, any URL; and the single-process HTTP registry, `httpProtoFree`/`http.reserve`, which
-the one-process start hands out beside `addrUnset`.) Defined here: no axiom.
+`leasehttp.RenewHTTP` axiom, any URL, still open; and the single-process HTTP registry, `httpProtoFree`/`http.reserve`,
+which the one-process start hands out beside `addrUnset`: closed 2026-11-25, `http.reserve` now spends the address's
+pending set, `netAddrPend`, which `http_addr_set` needs too.) Defined here: no axiom.
 -/
 module
 
@@ -60,7 +61,7 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The peer address `a` is member `id`'s of the cluster `cl` and serves etcd's peer API** (persistent, no heap):
+/-- **The peer address `a` is member `id`'s of the server raft `γ` (its cluster and names) and serves etcd's peer API** (persistent, no heap):
 `a`'s protocols are `httpPeerSvc γ id`'s. -/
 def httpAddrAt (γ : SrvRaft) (id : w64) (a : GoString) : IProp GF :=
   addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) γ id).1 (httpPeerSvc (GF := GF) γ id).2

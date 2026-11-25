@@ -44,11 +44,11 @@ of addresses; probe A): the network's HTTP side for every member, and each addre
 theorem netHttp_reserveL (γn : NetNames GF) (As : List GoString) (hd0 : γn.dir 0 = [])
     (hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ γn.dir i → h ∈ As) :
     ⊢ inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) -∗
-      ([∗list] a ∈ As, httpProtoFree a) ==∗
+      ([∗list] a ∈ As, (httpProtoFree a ∗ netAddrPend a)) ==∗
       (□ ∀ lid : w64, netHttpOk γn lid) ∗
         [∗list] a ∈ As, http.httpProtoOwn a (raftProto (netRh γn)) := by
   have hres : ∀ (L : List GoString),
-      ⊢ ([∗list] a ∈ L, httpProtoFree (GF := GF) a) ==∗
+      ⊢ ([∗list] a ∈ L, (httpProtoFree (GF := GF) a ∗ netAddrPend a)) ==∗
         (□ ∀ h, ⌜h ∈ L⌝ -∗ http.httpProtoAt h (raftProto (netRh γn))) ∗
         [∗list] a ∈ L, http.httpProtoOwn a (raftProto (netRh γn)) := by
     intro L
@@ -387,15 +387,17 @@ theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (b
     iapply BigSepL.bigSepL_cons.2
     iframe
 
-/-- **A start bundle with a peer address, split at its HTTP protocol**: the unregistered protocol,
-and the fresh bundle at any network once the protocol is the network's raft protocol. -/
+/-- **A start bundle with a peer address, split at its HTTP protocol**: the unregistered protocol
+with the address's pending set (`http.reserve`'s; 2026-11-25), and the fresh bundle at any network once
+the protocol is the network's raft protocol. -/
 theorem memberStartRes_split (n p : GoString) (c : Option GoString) :
     memberStartRes (GF := GF) n ⟨some p, c⟩ ⊢
-      httpProtoFree p ∗ (∀ γn : NetNames GF,
+      (httpProtoFree p ∗ netAddrPend p) ∗ (∀ γn : NetNames GF,
         http.httpProtoOwn p (raftProto (netRh γn)) -∗ memberFreshRes n ⟨some p, c⟩ γn) := by
   simp only [memberStartRes, memberFreshRes]
   iintro ⟨#Hv, WaHw, ⟨Ha, Hf⟩, Hc⟩
-  iframe Hf
+  icases netAddrFree_split _ $$ Ha with ⟨Ha, Hp⟩
+  iframe Hf Hp
   iintro %γn Ho
   iframe; iframe #
 
@@ -445,7 +447,7 @@ theorem allocN (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : 
   -- the raft network, each peer address reserved for the raft protocol
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
-  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), httpProtoFree (GF := GF) a $$ [Hfs]
+  ihave Hfs : [∗list] a ∈ ms.map (·.2.1), (httpProtoFree (GF := GF) a ∗ netAddrPend a) $$ [Hfs]
   · rw [BigSepL.bigSepL_map]; iexact Hfs
   imod (netHttp_reserveL γn (ms.map (·.2.1)) Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
     $$ Hreg Hfs with ⟨#Hnet, Hos⟩

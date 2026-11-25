@@ -34,11 +34,9 @@ theorem net.Listen.wp_proof
   intro network addr
   iintro %Φ ⟨%Hnw, Hfree⟩ HΦ
   subst Hnw
-  iunfold netAddrFree at Hfree
-  icases Hfree with ⟨Hclaim, %hX, Hu⟩
+  iunfold netAddrRsv at Hfree
+  icases Hfree with ⟨Hclaim, %hX, #Hvalid, Htok⟩
   haveI : HasExt netExt := hX
-  iunfold addrUnset at Hu
-  icases Hu with ⟨Hpend, #Hvalid, Htok⟩
   ihave %Hok := addrTok_ok (GF := GF) addr $$ Hvalid
   -- the listening token goes to an invariant, which the step opens and `netAddrLeft` keeps
   imod inv_alloc (lisTokN addr) ⊤ (netLisTok (NG (Gg := hG.goose_globalGS)) addr) $$ [Htok]
@@ -67,14 +65,14 @@ theorem net.Listen.wp_proof
     iframe Hclaim
     iunfold _root_.Perennial.net.isListener at Hli
     icases Hli with ⟨%t, %x, %Hli, -⟩
-    isplitr [Hpend]
+    isplitl [Hlis Hat]
     · iunfold netListenerOpen
       iexists hX, t, l
       iframe Hlis Hat
       ipureintro; exact Hli
-    · iunfold netAddrLeft
+    · iunfold netAddrLis
       iexists hX
-      iframe Hpend Hvalid
+      iframe Hvalid
       unfold lisTokInv
       ileft
       iexact Hinv

@@ -91,7 +91,8 @@ member's listener, `http.register`). -/
 theorem netHttp_reserve3 (γn : NetNames GF) (a₁ a₂ a₃ : GoString) (hd0 : γn.dir 0 = [])
     (hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ γn.dir i → h = a₁ ∨ h = a₂ ∨ h = a₃) :
     ⊢ inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) -∗
-      httpProtoFree a₁ -∗ httpProtoFree a₂ -∗ httpProtoFree a₃ ==∗
+      (httpProtoFree a₁ ∗ netAddrPend a₁) -∗ (httpProtoFree a₂ ∗ netAddrPend a₂) -∗
+        (httpProtoFree a₃ ∗ netAddrPend a₃) ==∗
       (□ ∀ lid : w64, netHttpOk γn lid) ∗ http.httpProtoOwn a₁ (raftProto (netRh γn)) ∗
         http.httpProtoOwn a₂ (raftProto (netRh γn)) ∗ http.httpProtoOwn a₃ (raftProto (netRh γn)) := by
   iintro #Hreg Hf₁ Hf₂ Hf₃
