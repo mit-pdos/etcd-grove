@@ -240,8 +240,10 @@ theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState
     rw [Hst]
     iframe Hc
     ipureintro
-    refine ⟨H Hs.1, Hs.2.1, ?_, Hs.2.2.2⟩
-    rw [hcf.1, hcf.2]; exact Hs.2.2.1
+    refine ⟨H Hs.1, Hs.2.1, ?_, Hs.2.2.2.1, ?_, ?_⟩
+    · rw [hcf.1, hcf.2]; exact Hs.2.2.1
+    · rw [hcf.1]; exact Hs.2.2.2.2.1
+    · rw [hcf.2]; exact Hs.2.2.2.2.2
 
 end sep
 

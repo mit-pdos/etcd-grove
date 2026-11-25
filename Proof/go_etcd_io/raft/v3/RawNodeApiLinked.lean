@@ -130,7 +130,7 @@ theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
   icases rnScopeAt_scope true rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   icases rnScopeAt_cfgIn true rs s $$ Hsc with ⟨%Hcin, -⟩
   ipureintro
-  obtain ⟨H1, H2, H3⟩ := Hcin rfl
+  obtain ⟨H1, H2, H3, -⟩ := Hcin rfl
   exact ⟨H1, H3, fun h => ⟨H2 h, (Hscope rfl).1 h⟩⟩
 
 theorem rawNode_phsTerm : rawNode_phsTerm.law (GF := GF) := by

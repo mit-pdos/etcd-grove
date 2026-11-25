@@ -134,6 +134,14 @@ theorem AntHarness.wp_roleOf :
     AntHarness.roleOf.spec (GF := GF) (hG := hG) :=
   AntHarness.roleOf.wp_proof
 
+theorem AntHarness.Cluster.wp_drain [StorageModel GF] :
+    AntHarness.Cluster.drain.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.drain.wp_proof (RawNode.HasReady.wp_apiProof SoftState.wp_equal wp_IsEmptyHardState wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_hasNextUnstableEnts raftLog.wp_hasNextCommittedEnts raft.wp_softState raft.wp_hardState) (RawNode.Ready.wp_apiProof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady) (AntHarness.drainSend AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_msgOf raftpb.Message.wp_GetTo AntHarness.Cluster.wp_send (AntHarness.cloneMsg_law_of proto.wp_ClonePb) rnBudget_persistent rnTermLB_persistent rnTermLB_rb rnTermLB_le) (AntHarness.drainAdvance AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_entriesOf raftpb.Entry.wp_GetIndex (RawNode.Advance.wp_apiProof raft.wp_Step)) rawNode_vote rawNode_wf rawNode_noSnap rawNode_logTerms rawNode_term_tc rnBudget_persistent rnTermLB_persistent rnTermLB_rb rawNode_logRecs rawNode_commitInv rawNode_commit rawNode_committed rawNode_leader AntSim.msgShape AntHarness.wp_roleOf wp_IsEmptyHardState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit wp_IsEmptySnap rawNode_appended rawNode_phsTerm AntSim.antSim_ready AntHarness.Cluster.wp_reportCause AntHarness.Recorder.wp_record AntHarness.wp_entriesOf AntHarness.wp_Name raftpb.Entry.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_SetHardState
+
+theorem AntHarness.Cluster.wp_run [StorageModel GF] :
+    AntHarness.Cluster.run.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.run.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop _root_.Perennial.sync.WaitGroup.wp_Done AntHarness.wp_msgOf AntHarness.Cluster.wp_drain (RawNode.Tick.wp_apiProof raft.wp_tickElection raft.wp_tickHeartbeat) (RawNode.Step.wp_apiProof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom) (RawNode.Propose.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) rawNode_wf rawNode_term_tc rawNode_raise_tc rnBudget_persistent rnBudget_spend rnBudget_step
+
 theorem AntHarness.wp_DefaultConfig :
     AntHarness.DefaultConfig.spec (GF := GF) (hG := hG) :=
   AntHarness.DefaultConfig.wp_proof
@@ -166,36 +174,15 @@ theorem AntHarness.wp_below :
     AntHarness.below.spec (GF := GF) (hG := hG) :=
   AntHarness.below.wp_proof
 
-end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
-variable (h_readyMsgsOk : AntHarness.readyMsgsOk.law)
-include h_readyMsgsOk
-
-theorem AntHarness.Cluster.wp_drain [StorageModel GF] :
-    AntHarness.Cluster.drain.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.drain.wp_proof (RawNode.HasReady.wp_apiProof SoftState.wp_equal wp_IsEmptyHardState wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_hasNextUnstableEnts raftLog.wp_hasNextCommittedEnts raft.wp_softState raft.wp_hardState) (RawNode.Ready.wp_apiProof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady) (AntHarness.drainSend AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_msgOf raftpb.Message.wp_GetTo AntHarness.Cluster.wp_send (AntHarness.cloneMsg_law_of proto.wp_ClonePb) rnBudget_persistent rnTermLB_persistent rnTermLB_rb rnTermLB_le) (AntHarness.drainAdvance AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_entriesOf raftpb.Entry.wp_GetIndex (RawNode.Advance.wp_apiProof raft.wp_Step)) rawNode_vote rawNode_wf rawNode_noSnap rawNode_logTerms rawNode_term_tc rnBudget_persistent rnTermLB_persistent rnTermLB_rb rawNode_logRecs rawNode_commitInv rawNode_commit rawNode_committed rawNode_leader h_readyMsgsOk AntSim.msgShape AntHarness.wp_roleOf wp_IsEmptyHardState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit wp_IsEmptySnap rawNode_appended rawNode_phsTerm AntSim.antSim_ready AntHarness.Cluster.wp_reportCause AntHarness.Recorder.wp_record AntHarness.wp_entriesOf AntHarness.wp_Name raftpb.Entry.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_SetHardState
-
-theorem AntHarness.Cluster.wp_run [StorageModel GF] :
-    AntHarness.Cluster.run.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.run.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop _root_.Perennial.sync.WaitGroup.wp_Done AntHarness.wp_msgOf (AntHarness.Cluster.wp_drain h_readyMsgsOk) (RawNode.Tick.wp_apiProof raft.wp_tickElection raft.wp_tickHeartbeat) (RawNode.Step.wp_apiProof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom) (RawNode.Propose.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) rawNode_wf rawNode_term_tc rawNode_raise_tc rnBudget_persistent rnBudget_spend rnBudget_step
-
 theorem AntHarness.wp_RunCluster [StorageModel GF] :
     AntHarness.RunCluster.spec (GF := GF) (hG := hG) :=
-  AntHarness.RunCluster.wp_proof wp_NewMemoryStorage AntHarness.bootStorage.wp_InitialState AntHarness.bootStorage.wp_Snapshot AntHarness.bootStorage.wp_LastIndex AntHarness.bootStorage.wp_FirstIndex AntHarness.bootStorage.wp_Term AntHarness.bootStorage.wp_Entries (NewRawNode.wp_proofEmptyStartApi wp_NewRawNode) AntHarness.wp_Name AntHarness.wp_names AntHarness.Recorder.wp_record (AntHarness.Cluster.wp_drain h_readyMsgsOk) (AntHarness.Cluster.wp_run h_readyMsgsOk) AntHarness.Cluster.wp_deliver AntHarness.wp_below _root_.Perennial.time.wp_Sleep _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done _root_.Perennial.sync.WaitGroup.wp_Wait _root_.Perennial.strconv.wp_FormatUint cluster_alloc_names rawNode_prop_mint raftState_open_rn rawNode_committed rawNode_logRecs
+  AntHarness.RunCluster.wp_proof wp_NewMemoryStorage AntHarness.bootStorage.wp_InitialState AntHarness.bootStorage.wp_Snapshot AntHarness.bootStorage.wp_LastIndex AntHarness.bootStorage.wp_FirstIndex AntHarness.bootStorage.wp_Term AntHarness.bootStorage.wp_Entries (NewRawNode.wp_proofEmptyStartApi wp_NewRawNode) AntHarness.wp_Name AntHarness.wp_names AntHarness.Recorder.wp_record AntHarness.Cluster.wp_drain AntHarness.Cluster.wp_run AntHarness.Cluster.wp_deliver AntHarness.wp_below _root_.Perennial.time.wp_Sleep _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done _root_.Perennial.sync.WaitGroup.wp_Wait _root_.Perennial.strconv.wp_FormatUint cluster_alloc_names rawNode_prop_mint raftState_open_rn rawNode_committed rawNode_logRecs
 
 theorem AntHarness.wp_Main [StorageModel GF] :
     AntHarness.Main.spec (GF := GF) (hG := hG) :=
-  AntHarness.Main.wp_proof AntHarness.wp_DefaultConfig (AntHarness.wp_RunCluster h_readyMsgsOk) AntHarness.Cluster.wp_Servers AntHarness.Cluster.wp_Events AntCheck.wp_Run
+  AntHarness.Main.wp_proof AntHarness.wp_DefaultConfig AntHarness.wp_RunCluster AntHarness.Cluster.wp_Servers AntHarness.Cluster.wp_Events AntCheck.wp_Run
 
-end links_pending
+end links_hasLC
 
 end EtcdGrove
 end Perennial

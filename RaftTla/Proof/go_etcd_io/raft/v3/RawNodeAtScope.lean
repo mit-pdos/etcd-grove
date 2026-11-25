@@ -35,19 +35,19 @@ theorem toPState_rd_pend (s : NState) : (toPState s).rd.pend = s.rd.pend := by
 theorem rnCfg_voters (γ : RaftNames) : (rnCfg γ).voters = γ.reCfg :=
   CfgM.voters_of_out rfl
 
-/-- `TickEnd` reads the configuration's voters only. -/
+/-- `TickEnd` reads the configuration's voters and ids only. -/
 theorem TickEnd.of_voters {c c' : CfgM} {id : w64} {s s' : PState} (hv : c.voters = c'.voters)
-    (h : TickEnd c id s s') : TickEnd c' id s s' := by
-  unfold TickEnd at h ⊢; rwa [← hv]
+    (hd : c.ids = c'.ids) (h : TickEnd c id s s') : TickEnd c' id s s' := by
+  unfold TickEnd at h ⊢; rwa [← hv, ← hd]
 
 /-- **`LiftScope` from the pieces**: `RnScope`'s flags, no pre-candidate with pre-vote off, a
 follower's tally empty, the progress map's halves, and the node in the configuration. -/
 theorem liftScope_of {c : CfgM} {id : w64} {rs : RNState} {s : NState} (H : RnScope rs s)
     (Hpre : s.role = .preCandidate → s.prevote = true) (Hfv : FollowerVotesOk (toPState s))
     (Hd1 : domSet s.prvals = domSet s.progress) (Hd2 : domSet s.progress = c.ids)
-    (Hid : id ∈ c.voters) : LiftScope id s := by
+    (Hid : id ∈ c.voters) : LiftScope c id s := by
   obtain ⟨-, Hpv, Hcq, Hrd, -⟩ := H
-  refine ⟨Hpv, Hcq, fun h => (by have := Hpre h; rw [Hpv] at this; cases this), Hfv, Hrd, Hd1, ?_⟩
+  refine ⟨Hpv, Hcq, fun h => (by have := Hpre h; rw [Hpv] at this; cases this), Hfv, Hrd, Hd1, ?_, Hd2⟩
   rw [Hd1, Hd2]
   exact GMap.elem_of_union_l c.learners Hid
 
@@ -142,6 +142,12 @@ def CfgScope (γ : RaftNames) (c : CfgM) : Prop :=
 theorem CfgScope.voters {γ : RaftNames} {c : CfgM} (HC : CfgScope γ c) : c.voters = γ.reCfg := by
   rw [CfgM.voters_of_out HC.2.1, HC.1]
 
+/-- (#33 S4, destinations) With no learners (`RnCfgIn.learners`), the configuration's ids are
+the static configuration's (`rnCfg`). -/
+theorem CfgScope.ids {γ : RaftNames} {c : CfgM} (HC : CfgScope γ c) (hl : c.learners = ∅) :
+    c.ids = (rnCfg γ).ids := by
+  unfold CfgM.ids; rw [HC.voters, rnCfg_voters, hl]; rfl
+
 /-- `CfgScope` from the mode's configuration facts (`ownStepGhost_cfgScope`) and the scope's. -/
 theorem cfgScope_of {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM}
     (Hs : RnScope rs s) (Hc : RnCfgIn γ id rs)
@@ -151,6 +157,13 @@ theorem cfgScope_of {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c :
   cases hd : rs.mode.isDyn
   · have H := Hm.1 hd; exact ⟨H.1, H.2.1, trivial⟩
   · rw [← Hm.2 hd]; exact ⟨Hc.2.1 hd, Hs.1 hd, trivial⟩
+
+/-- (#33 S4, destinations) In the scope the configuration has no learners (`RnCfgIn`: the dynamic
+mode's configuration has none). -/
+theorem RnCfgIn.learners {γ : RaftNames} {id : w64} {rs : RNState} {c : CfgM} (Hc : RnCfgIn γ id rs)
+    (Hm : (rs.mode.isDyn = false → CfgStatic γ c) ∧ (rs.mode.isDyn = true → rs.cfg.cfg = c)) :
+    c.learners = ∅ := by
+  rw [← Hm.2 Hc.2.2.2.1]; exact Hc.2.2.2.2
 
 /-- A tick's end relation keeps the read-index requests and queues no `MsgSnap`: a campaign's votes,
 a leader's heartbeats. -/
@@ -285,8 +298,10 @@ theorem rnScopeAt_keepIf {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNSta
     rw [hst]
     iframe Hc
     ipureintro
-    refine ⟨H rfl Hs.1, Hs.2.1, ?_, Hs.2.2.2⟩
-    rw [hcf.1, hcf.2]; exact Hs.2.2.1
+    refine ⟨H rfl Hs.1, Hs.2.1, ?_, Hs.2.2.2.1, ?_, ?_⟩
+    · rw [hcf.1, hcf.2]; exact Hs.2.2.1
+    · rw [hcf.1]; exact Hs.2.2.2.2.1
+    · rw [hcf.2]; exact Hs.2.2.2.2.2
 
 end ghost
 

@@ -114,7 +114,7 @@ local macro "prop_tail" : tactic => `(tactic| (
       Hfr.2.2.2.2.1 Hfr.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.1 $$ Hstrecs
     -- in the scope, the proposal's exact effect, the log only appended to
     have Hlifted : sc = true →
-        ProposeEnd id (toPState s)
+        ProposeEnd cf id (toPState s)
           (absMsg .propose ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
             [propEntryM data] []) (toPState s') ∧ LogGrow s.logst s'.logst := fun h =>
       ⟨proposeEnd_of_stepEnd (Hlift h).1 rfl rfl (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1,
@@ -162,7 +162,7 @@ local macro "prop_tail" : tactic => `(tactic| (
     ipureintro
     intro h
     have Hg := (Hlifted h).2
-    refine ⟨by rw [← Hps]; exact (Hlifted h).1, ?_⟩
+    refine ⟨by rw [← Hps]; exact (Hlifted h).1.of_ids (Hlift h).2.2, ?_⟩
     have := ip_of_logGrow Hg (by
       have := Hipf.1.2; rw [Hp0 h] at this; rw [List.length_append]; push_cast; omega)
     rw [Hip, Nat.add_sub_cancel] at this
@@ -190,11 +190,12 @@ theorem RawNode.Propose.wp_absProof
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
   icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
-  have Hlift : sc = true → LiftScope id s ∧ AckScope cf := fun h => by
+  have Hlift : sc = true → LiftScope cf id s ∧ AckScope cf ∧ cf.ids = (rnCfg γ).ids := fun h => by
     have Hs := Hscope h
     obtain ⟨HC, Hid⟩ := cfgScope_of Hs (Hcin h) Hcfm
     have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid), Hal0 HC.2.1⟩
+    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid), Hal0 HC.2.1,
+      HC.ids ((Hcin h).learners Hcfm)⟩
   have Hp0 : sc = true → uint.Z s.logst.prev.index' = 0 := fun h => by
     rw [(Hscope h).2.2.2.2.2.1]; rfl
   wp_auto_lc 1
@@ -261,7 +262,7 @@ theorem RawNode.Propose.wp_absProof
       (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-      (by tr_none) (Hlift hsc).2 $$ [$Hphys $Hghost $Hlc1 Hm Htk Hcr]
+      (by tr_none) (Hlift hsc).2.1 $$ [$Hphys $Hghost $Hlc1 Hm Htk Hcr]
     · prop_frame
       isplitr
       · imodintro

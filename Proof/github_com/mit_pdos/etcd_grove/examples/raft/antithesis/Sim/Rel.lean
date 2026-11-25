@@ -205,8 +205,13 @@ def QsOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) (q : Msg) : Prop :=
 /-- **C1, the leader hint**: a node that does not lead does not name itself as leader (raft's
 `LeadOk`): every step that sets `lead` to the node itself makes it leader, and a leader that steps
 down resets `lead` (`becomeFollower`), or sets it to the sender of a message, never itself (D:
-`m.src ≠ m.dst`). -/
-def LeadOk (n : Fin 3) (v : NodeView) : Prop := v.ps.role ≠ .leader → v.ps.lead ≠ nodeId n
+`m.src ≠ m.dst`). And the hint is no node or one of the three (`LeadIn`): `lead` is set only to a
+sender of a leader's message (a node: the network carries only theirs) or to the node itself. A
+follower forwards a proposal to it (`ProposeEnd`), so a `Ready`'s forwarded proposal is to a node. -/
+def LeadIn (s : PState) : Prop := s.lead = W64 0 ∨ ∃ j : Fin 3, s.lead = nodeId j
+
+def LeadOk (n : Fin 3) (v : NodeView) : Prop :=
+  (v.ps.role ≠ .leader → v.ps.lead ≠ nodeId n) ∧ LeadIn v.ps
 
 /-- **C1, a non-follower's vote is its own** (raft's `GhostState` fact `s.role ≠ .follower →
 s.vote = id`): a campaign votes for the node itself (`TickEnd`'s `elect`), a win and a leader's

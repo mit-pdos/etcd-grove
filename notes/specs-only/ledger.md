@@ -5687,3 +5687,60 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with `xw`; `RnScope` gains `xs = false`; `readyWithoutAccept` (in the scope) and `Ready`'s `%Hout` (under
   `S`) give `∀ q ∈ ms, (absMsgOf q.st).isSome`; `readyMsgsOk.law` keeps only the destinations (`hvot`). The flag-free alternative (state-only posts with `lt = 0`) was evaluated and is blocked: the physical queue is not in `NState` (`s.outbox` drops untyped messages), and `lt = 0` holds with a forwarded transfer or a surviving `MsgTimeoutNow` queued.
 - **Decision.** Applied (the lead's approval: `SendOk`'s clause, `Ready`'s `%Hout`; raft helper H2).
+
+## 2026-11-25: a `Ready`'s messages go to the nodes, proved; `readyMsgsOk.law` retired (#33 S4)
+
+- **Spec.** The antithesis Link's last hypothesis, `AntHarness.readyMsgsOk.law` (Cluster__drain.lean:
+  every message a `Ready` hands out is to one of the three nodes), and the statements its proof reads:
+  raft's `ReplSends` and the heartbeat posts (`Defs.lean`, `raft__bcastHeartbeat(WithCtx).lean`,
+  `stepLeader.lean`'s `LeaderNonpropResultC`), `Protocol/InputEnd.lean`'s `AppSendOk`/`WinEnd`/
+  `SendsEnd`/`ProposeEnd`/`TickEnd`, `RawNode.Propose.form` (`RawNodeAbsSpecs.lean`), `ownRawNodeAt`
+  (`RawNodeAt.lean`), `NewRawNode.restartAtSpec` (`RawNodeStart.lean`), `AntSim.InputStep`,
+  `NodeOk`'s `LeadOk`/`LeadHint` (`Sim/Rel.lean`, `Sim/Quiet.lean`) and `msgShape.stmt`
+  (`Sim/MsgShapeStmt.lean`).
+- **Defect.** The destinations were assumed: no raft statement said where a leader's appends and
+  heartbeats go (`ReplSends` said it of a snapshot only, the heartbeat posts and `AppSendOk`/`TickEnd`
+  nothing), and the Sim said nothing of the leader hint a follower forwards a proposal to.
+- **Evidence.** `maybeSendAppend` sends only to a peer of the progress map (`to ∈ domSet s.progress`, its
+  gate premise); `bcastHeartbeat` visits the progress map; the progress map's ids are the
+  configuration's (`ownTrackerC`, `CfgM.ids`); in the scope the configuration has no learners and its
+  voters are the names' (`CfgScope`), so `c.ids = (rnCfg γ).ids` = the three nodes (`cfgM3`). Responses
+  go to the sender of the handled message (a node, `NetOk`); a campaign's requests to the voters; a
+  forwarded proposal to the leader hint, which is `0` or a node (`LeadIn`, kept by every input).
+- **Change.**
+  1. `ReplSends`' third conjunct `m.ty = .snap → m.dst ∈ domSet s.progress` becomes
+     `m.dst ∈ domSet s.progress` (every message); `raft.bcastHeartbeat(WithCtx).spec` and
+     `LeaderNonpropResultC`'s `MsgBeat` arm gain `m.dst ∈ domSet s.progress` as the per-message
+     conjunction's last conjunct (raft sub-helper, fca4fd042c).
+  2. `AppSendOk c id s m := AppOk id s m ∧ AppCommitEq s m ∧ m.dst ∈ c.ids` (was without `c` and the
+     third conjunct); `WinEnd`, `SendsEnd`, `ProposeEnd` take the configuration `c`; `TickEnd`'s
+     heartbeat arm gains `x.dst ∈ c.ids` (last conjunct). `RawNode.Propose.form`'s `%Hend` is
+     `ProposeEnd (rnCfg γ) id …`; `AntSim.InputStep`'s proposal `ProposeEnd cfgM3 id …`. The lifting
+     scope `LiftScope`/`FnScope` (`InputEndLift.lean`, proof-internal) gains `c` and
+     `domSet progress = c.ids`.
+  3. The scope's configuration facts `RnCfgIn` (`RawNodeAt.lean`, read by `rnScopeAt`, so by
+     `ownRawNodeAt` and `RawNode.acceptReady.spec`'s precondition at `sc = true`) gain
+     `rs.mode.isDyn = true ∧ rs.cfg.cfg.learners = ∅`: the dynamic mode and no learners, so the
+     configuration's ids are the voters (`RnCfgIn.learners`, `CfgScope.ids`). (The lead first approved
+     `ownRawNodeAt`'s `"%Hlrn" ∷ ⌜sc = true → cf.learners = ∅⌝`; `acceptReady`'s precondition is
+     `ownRawNodeReadyS` and `rnScopeAt`, with no `ownRawNodeAt` to read it from, so it sits in
+     `rnScopeAt`, on `rs.cfg`, which every API of the scope keeps.) No API of the scope (`sc = true`)
+     changes the configuration (`ApplyConfChange` is not in the scoped API: only `node__run_gated`
+     uses it, through `ownRawNode`); the scope's start, `NewRawNode.restartAtSpec`'s `sc = true`
+     premise, gains `m.learners = ∅` (met by `emptyStartAbsSpec`'s `Membership.simple`; its only
+     callers are `RawNodeStart.lean`'s two, `restartSpec` at `sc = false` and
+     `wp_proofEmptyStartAbs` at `sc = true`; `RawNodeStart` has no RaftTla/RaftNoAx/KvNet copy); its
+     mode is dynamic already (`isCluster`). Static mode leaves the scope: a grep of `rnScopeAt`,
+     `RnScope`, `RnCfgIn` over every tree (main, RaftTla, RaftNoAx, KvNet, RaftWitness, the examples)
+     finds one place that establishes the scope from scratch, `RawNodeStart.lean`'s `rnScopeAt_start`
+     (main tree only, at `restartAtSpec`'s dynamic `rs0`); every other site reads it or carries it
+     (`rnScopeAt_keep(If)`, mode and `cfg` kept); no example outside raft names it. `CfgM.ids` moves from `InvTrackerC.lean` to
+     `Protocol/StepC.lean` (next to `CfgM.voters`), for `InputEnd.lean`.
+  4. `NodeOk`'s `LeadOk` and `LeadHint` gain `LeadIn` (the leader hint is `0` or a node).
+  5. `msgShape.stmt`'s premise on the `Ready` is its messages clause only (`rd.msgs` the outbox's
+     messages to other nodes, was all of `ReadyOutP`, whose last conjunct is the destinations); its
+     conclusion gains `ReadyMsgsToVoters rd`. `drainReady_pure` drops `hvot`; `Cluster.drain.wp_proof`
+     drops `(h_rdm : readyMsgsOk.law)`, which is deleted, with the `?(h_readyMsgsOk …)` line of
+     etc/link-lean-first-antithesis.txt; Link.lean's `AntHarness.wp_Main` has no hypothesis.
+- **Decision.** Applied (the lead's approvals of 1-3, option (a); 4-5 authorized by the destinations
+  brief). No new axiom or top-level premise; a hypothesis of the top-level result retired.

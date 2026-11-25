@@ -15,11 +15,18 @@ message carries no entries, the log's (an append, `AppOk`), or the cause's (a fo
 `TickEnd` (`Protocol/InputEnd.lean`) says in its heartbeat arm (`x.ctx = []`, lifted from
 `stepLeader`'s exact context, `hbCtx`, `[]` with no read request pending, the RawNode scope's):
 `tickHbCtx`, and `msgShape := msgShape_of tickHbCtx`.
+
+`dst_reach` (#33 S4, destinations): every message of the state a `Ready` is taken at to another
+node is to one of the three (`DstIn`): a response to the handled message's sender (a node,
+`NetOk`), a leader's appends and heartbeats to the configuration's peers (`AppSendOk`'s and
+`TickEnd`'s `c.ids`, `cfgM3`'s the three), a campaign's requests to the voters, a forwarded proposal
+to the leader hint (`LeadIn`, a node or none). `msgShape_of` concludes `ReadyMsgsToVoters` from it.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgShapeStmt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Outbox
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet
 
 @[expose] public section
 
@@ -33,6 +40,7 @@ open GMap go_etcd_io.raft.v3
 
 section shape
 variable [GooseExts]
+variable {cf : CfgM}
 
 /-! ## Normal logs -/
 
@@ -210,12 +218,12 @@ theorem outShape_apps {id : w64} {c : Option Msg} {X : PState} {ms : List Msg}
   fun q hq hne => mshape_app hl (hms q (mem_psend hX hq) hne)
 
 theorem outShape_sends {id : w64} {c : Option Msg} {X s' : PState} (hX : X.outbox = [])
-    (hl : EntsNormal s'.log) (h : SendsEnd id X s') : OutShape id c s' := by
+    (hl : EntsNormal s'.log) (h : SendsEnd cf id X s') : OutShape id c s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   exact outShape_apps hX hl fun x hx _ => (hms x hx).1
 
 theorem outShape_win {id : w64} {c : Option Msg} {X s' : PState} (hX : X.outbox = [])
-    (hl : EntsNormal s'.log) (h : WinEnd id X s') : OutShape id c s' := by
+    (hl : EntsNormal s'.log) (h : WinEnd cf id X s') : OutShape id c s' := by
   obtain ⟨mt, ms, -, hms, rfl⟩ := h
   refine outShape_apps hX hl fun x hx hne => ?_
   rcases List.mem_append.mp hx with hx | hx
@@ -224,7 +232,7 @@ theorem outShape_win {id : w64} {c : Option Msg} {X s' : PState} (hX : X.outbox 
 
 theorem outShape_propose {id : w64} {c : Option Msg} {X s' : PState} {m : Msg}
     (hX : X.outbox = []) (hl : EntsNormal s'.log) (hent : EntsNormal m.entries)
-    (h : ProposeEnd id X m s') : OutShape id c s' := by
+    (h : ProposeEnd cf id X m s') : OutShape id c s' := by
   unfold ProposeEnd at h
   split at h
   · rcases h with rfl | ⟨es, ms, -, hms, rfl⟩
@@ -366,27 +374,216 @@ theorem shape_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeV
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
 
+/-! ## The destinations -/
+
+/-- A member of the cluster's configuration is one of the three nodes. -/
+theorem cfgM3_ids_node {d : w64} (h : d ∈ cfgM3.ids) : ∃ j : Fin 3, d = nodeId j := by
+  have hv : d ∈ voters3 := by
+    simp only [CfgM.ids, CfgM.voters, cfgM3, CfgM.simple, GMap.elem_of_union] at h
+    rcases h with (h | h) | h
+    · exact h
+    · exact absurd h (by simp [Membership.mem, GMap.lookup_empty])
+    · exact absurd h (by simp [Membership.mem, GMap.lookup_empty])
+  have e : ∀ (y : w64) (X : GSet w64), ((insert y () X) !! d).isSome = true ↔
+      d = y ∨ (X !! d).isSome = true :=
+    fun y X => elem_of_insert_set d y X
+  have hv' : ((insert (W64 1) () (insert (W64 2) () (insert (W64 3) () (∅ : GSet w64)))) !! d).isSome
+      = true := hv
+  rw [e, e, e] at hv'
+  simp only [GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true, or_false] at hv'
+  rcases hv' with h | h | h
+  · exact ⟨0, h⟩
+  · exact ⟨1, h⟩
+  · exact ⟨2, h⟩
+
+/-- Every message of `s`'s outbox to another node is to one of the three. -/
+def DstIn (id : w64) (s : PState) : Prop := ∀ q ∈ s.outbox, q.dst ≠ id → ∃ j : Fin 3, q.dst = nodeId j
+
+theorem dstIn_nil {id : w64} {s : PState} (h : s.outbox = []) : DstIn id s := by
+  intro q hq; rw [h] at hq; cases hq
+
+theorem dstIn_send {id : w64} {s X : PState} {ms : List Msg} (hX : X.outbox = s.outbox)
+    (h : DstIn id s) (hms : ∀ x ∈ ms, x.dst ≠ id → ∃ j : Fin 3, x.dst = nodeId j) :
+    DstIn id (psendMsgs X ms) := by
+  intro q hq hne
+  rw [psendMsgs_outbox, hX] at hq
+  rcases List.mem_append.mp hq with hq | hq
+  · exact h q hq hne
+  · exact hms q hq hne
+
+theorem dstIn_one {id d : w64} {s X : PState} {q : Msg} (hX : X.outbox = s.outbox) (h : DstIn id s)
+    (hd : q.dst = d) (hdn : ∃ j : Fin 3, d = nodeId j) : DstIn id (psendMsgs X [q]) :=
+  dstIn_send hX h fun x hx _ => by rw [List.mem_singleton.mp hx, hd]; exact hdn
+
+theorem dstIn_sends {id : w64} {X s' : PState} (h : SendsEnd cfgM3 id X s') (hX : DstIn id X) :
+    DstIn id s' := by
+  obtain ⟨ms, hms, rfl⟩ := h
+  exact dstIn_send rfl hX fun x hx _ => cfgM3_ids_node (hms x hx).2.2
+
+theorem dstIn_win {id : w64} {X s' : PState} (h : WinEnd cfgM3 id X s') (hX : DstIn id X) :
+    DstIn id s' := by
+  obtain ⟨mt, ms, -, hms, rfl⟩ := h
+  refine dstIn_send rfl hX fun x hx hne => ?_
+  rcases List.mem_append.mp hx with hx | hx
+  · rw [List.mem_singleton] at hx; subst hx; exact absurd (pselfAck_dst id _) hne
+  · exact cfgM3_ids_node (hms x hx).2.2
+
+theorem dstIn_propose {id : w64} {X s' : PState} {m : Msg} (hl : LeadIn X)
+    (h : ProposeEnd cfgM3 id X m s') (hX : DstIn id X) : DstIn id s' := by
+  unfold ProposeEnd at h
+  split at h
+  · rcases h with rfl | ⟨es, ms, -, hms, rfl⟩
+    · exact hX
+    · refine dstIn_send rfl hX fun x hx hne => ?_
+      rcases List.mem_append.mp hx with hx | hx
+      · rw [List.mem_singleton] at hx; subst hx; exact absurd (pselfAck_dst id _) hne
+      · exact cfgM3_ids_node (hms x hx).2.2
+  · split at h
+    · rename_i hc
+      subst h
+      exact dstIn_one rfl hX rfl (hl.resolve_left hc.2)
+    · subst h; exact hX
+
+/-- The type switch's messages go to the sender (one of the three), a leader's appends to the
+configuration's peers, a forwarded proposal to the leader (one of the three, `LeadIn`). -/
+theorem dstIn_handle {id : w64} {s s' : PState} {m : Msg} (hX : DstIn id s) (hl : LeadIn s)
+    (hsn : ∃ j : Fin 3, m.src = nodeId j)
+    (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp ∨ m.ty = .propose)
+    (h : HandleEnd cfgM3 id s m s') : DstIn id s' := by
+  unfold HandleEnd at h
+  rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
+  · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
+    · exact dstIn_one rfl hX rfl hsn
+    · exact dstIn_one rfl hX rfl hsn
+  · split at h
+    · rcases h with ⟨-, rfl⟩ | ⟨-, hw⟩ | ⟨-, rfl⟩
+      · exact hX
+      · exact dstIn_win hw hX
+      · exact hX
+    · subst h; exact hX
+  · split at h
+    · subst h; exact hX
+    · rcases h with ⟨-, rfl⟩ | ⟨-, lastnewi, es', -, rfl⟩ | ⟨-, -, hint, hintterm, -, -, rfl⟩
+      · exact dstIn_one rfl hX rfl hsn
+      · exact dstIn_one rfl hX rfl hsn
+      · exact dstIn_one rfl hX rfl hsn
+  · split at h
+    · unfold AppRespEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩
+      · exact hX
+      · exact dstIn_sends hs hX
+      · exact dstIn_sends hs hX
+    · subst h; exact hX
+  · split at h
+    · subst h; exact hX
+    · subst h; exact dstIn_one rfl hX rfl hsn
+  · split at h
+    · exact dstIn_sends h hX
+    · subst h; exact hX
+  · exact dstIn_propose hl h hX
+
+theorem dstIn_recv {id : w64} {s s' : PState} {m : Msg} (hX : DstIn id s) (hl : LeadIn s)
+    (hsn : ∃ j : Fin 3, m.src = nodeId j)
+    (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp ∨ m.ty = .propose)
+    (h : RecvEnd cfgM3 id s m s') : DstIn id s' := by
+  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  · exact dstIn_handle hX hl hsn hsc hh
+  · exact hX
+  · have ho := (preEnd_facts hpre).1
+    have hl1 : LeadIn s1 := by
+      rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+      · show (if fromLeader m.ty then m.src else W64 0) = W64 0 ∨
+          ∃ j : Fin 3, (if fromLeader m.ty then m.src else W64 0) = nodeId j
+        split
+        · exact .inr hsn
+        · exact .inl rfl
+      · exact hl
+    exact dstIn_handle (fun q hq => hX q (ho ▸ hq)) hl1 hsn hsc hh
+
+theorem dstIn_tick {id : w64} {s s' : PState} (hX : s.outbox = []) (h : TickEnd cfgM3 id s s') :
+    DstIn id s' := by
+  rcases h with rfl | ⟨-, -, peers, cl, hp, rfl⟩ | ⟨-, ms, hms, rfl⟩
+  · exact dstIn_nil hX
+  · intro q hq hne
+    rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
+    · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
+    · obtain ⟨d, hd, rfl⟩ := List.mem_map.mp hq
+      have hd' : d ∈ elements (cfgM3.voters \ {[id]}) := hp.mem_iff.mp hd
+      rw [GMap.elem_of_elements, GMap.elem_of_difference] at hd'
+      exact cfgM3_ids_node ((GMap.elem_of_union _ _ _).2 (.inl hd'.1))
+  · intro q hq _
+    exact cfgM3_ids_node (hms q (mem_psend hX hq)).2.2.2.2.2
+
+/-- `Advance`'s steps (the node's own acknowledgements and vote responses) keep `DstIn` and the
+leader hint. -/
+theorem dstIn_adv {n : Fin 3} {s s' : PState} {qs : List Msg} (hX : DstIn (nodeId n) s)
+    (hl : LeadHint (nodeId n) s)
+    (hq : ∀ q ∈ qs, (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = nodeId n)
+    (ha : AdvanceEnd cfgM3 (nodeId n) s qs s') : DstIn (nodeId n) s' := by
+  induction ha with
+  | nil => exact hX
+  | cons s s1 s' q qs hr _ ih =>
+    have hq0 := hq q (List.mem_cons_self ..)
+    have hsc : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨
+        q.ty = .heartbeat ∨ q.ty = .heartbeatResp ∨ q.ty = .propose := by
+      rcases hq0.1 with h0 | h0
+      · exact .inr (.inr (.inr (.inl h0)))
+      · exact .inr (.inl h0)
+    exact ih (dstIn_recv hX hl.2 ⟨n, hq0.2⟩ hsc hr)
+      (leadHint_recv hl (nodeId_ne_zero n) ⟨n, rfl⟩ hsc (.inr hq0.1) ⟨n, hq0.2⟩ hr)
+      (fun x hx => hq x (List.mem_cons_of_mem _ hx))
+
+/-- **The destinations of the messages of the state a `Ready` is taken at**: every one to another
+node is to one of the three. -/
+theorem dst_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
+    {ps₁ : PState} (hnet : NetOk S net) (hv : NodeOk S net n v)
+    (hr : Reach (nodeId n) net v ps₁) : DstIn (nodeId n) ps₁ := by
+  obtain ⟨hd, -, -, -, hqs, -, -, hlo, -⟩ := hv
+  obtain ⟨-, -, -, -, -, -, hX, -, -⟩ := hd
+  cases hr with
+  | stay _ => exact dstIn_nil hX
+  | input inp _ _ _ _ hm hs =>
+    cases inp with
+    | recv m =>
+      obtain ⟨hmn, -, -⟩ := hm m rfl
+      obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1
+      exact dstIn_recv (dstIn_nil hX) hlo.2 ⟨i, hi⟩ (hnet.1 m hmn).1 hs
+    | tick => exact dstIn_tick hX hs
+    | propose d => exact dstIn_propose hlo.2 hs (dstIn_nil hX)
+  | advance _ _ _ _ ha =>
+    refine dstIn_adv (dstIn_nil hX) hlo (fun q hq => ?_) ha
+    obtain ⟨h1, -, -, -, h5⟩ := hqs q hq
+    exact ⟨h5.imp (fun h => h.1) (fun h => h.1), h1⟩
+
 /-- **`msgShape.stmt` but a heartbeat's context** (the `Ready`'s messages are the outbox's to other
 nodes, `ReadyOutP`): the log normal; every message to another node from the node, of a type the
 network carries or a proposal, its entries normal, a heartbeat response's context the handled
 heartbeat's. -/
 theorem msgShape_core {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
     {ps₁ : PState} {rd : ReadyD} (ht : TickHbCtx) (hnet : NetOk S net) (hv : NodeOk S net n v)
-    (hr : Reach (nodeId n) net v ps₁) (hro : ReadyOutP (nodeId n) v ps₁ rd)
+    (hr : Reach (nodeId n) net v ps₁)
+    (hmsg : rd.msgs.Perm (ps₁.outbox.filter (fun q => decide (q.dst ≠ nodeId n))))
     (hl : EntsNormal v.ps.log) (hcm : ∀ m, v.cause = some m → EntsNormal m.entries) :
     EntsNormal ps₁.log ∧ ∀ q ∈ rd.msgs, MShape (nodeId n) v.cause q := by
   obtain ⟨hl', ho⟩ := shape_reach ht hnet hv hr hl hcm
   refine ⟨hl', fun q hq => ?_⟩
-  have hq' := (hro.2.2.2.2.2.2.2.1.mem_iff).mp hq
+  have hq' := (hmsg.mem_iff).mp hq
   rw [List.mem_filter] at hq'
   exact ho q hq'.1 (of_decide_eq_true hq'.2)
 
 /-- **`msgShape.stmt` from `TickHbCtx`**: a heartbeat response echoes the handled heartbeat's
-context, `[]` by the premise. -/
+context, `[]` by the premise; the destinations by `dst_reach`. -/
 theorem msgShape_of (ht : TickHbCtx) : msgShape.stmt := by
-  intro S net n v ps₁ rd hnet hv hr hro hl hcm
-  obtain ⟨hl', hq⟩ := msgShape_core ht hnet hv hr hro hl (fun m h => (hcm m h).1)
-  refine ⟨hl', fun q hmem => ?_⟩
+  intro S net n v ps₁ rd hnet hv hr hmsg hl hcm
+  obtain ⟨hl', hq⟩ := msgShape_core ht hnet hv hr hmsg hl (fun m h => (hcm m h).1)
+  have hds := dst_reach hnet hv hr
+  refine ⟨hl', fun q hmem => ?_, fun q hmem => ?_⟩
+  swap
+  · have hq' := (hmsg.mem_iff).mp hmem
+    rw [List.mem_filter] at hq'
+    exact hds q hq'.1 (of_decide_eq_true hq'.2)
   obtain ⟨h1, h2, h3, h4, h5⟩ := hq q hmem
   refine ⟨h1, h2, fun hh => ?_, h3⟩
   rcases hh with hh | hh
@@ -402,7 +599,7 @@ theorem tickHbCtx : TickHbCtx := by
   · rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hty; simp [Msg.plain] at hty
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq; simp [pvoteReq] at hty
-  · exact (hms q (mem_psend hX hq)).2.2.2.2
+  · exact (hms q (mem_psend hX hq)).2.2.2.2.1
 
 /-- **`msgShape.stmt`**. -/
 theorem msgShape : msgShape.stmt := msgShape_of tickHbCtx

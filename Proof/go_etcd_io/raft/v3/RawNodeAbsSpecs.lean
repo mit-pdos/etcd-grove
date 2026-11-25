@@ -223,7 +223,7 @@ abbrev RawNode.Propose.form (R : RaftNames → Loc → w64 → RNState → PStat
   {{ (err : GoInterface) (ps' : PState) (ip' : Nat), RET #err;
       "Hrn" ∷ R γ rn id rs ps' qs ip' ∗
       "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) ∗
-      "%Hend" ∷ ⌜S → ProposeEnd id ps
+      "%Hend" ∷ ⌜S → ProposeEnd (rnCfg γ) id ps
         (absMsg .propose { propMsgM with From' := id } [propEntryM data]) ps' ∧
         ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
 
