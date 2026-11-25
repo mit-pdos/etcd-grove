@@ -101,7 +101,7 @@ far side holds satisfies (`sysState_good`; by default nothing): the model need a
 at such states (`PendDec`). -/
 structure RBase (GF : BundledGFunctors) (St J I O : Type) where
   B : EtcdGrove.linkv.PendSpec St J O
-  mi : I → J := by exact id
+  mi : I → J := by exact fun i => i
   sysState : St → IProp GF
   good : St → Prop := fun _ => True
   sysState_good : ∀ st, sysState st ⊢ iprop(⌜good st⌝) := by
