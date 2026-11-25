@@ -7,7 +7,7 @@ etcd's peer handler, dialed by the other members' rafthttp and leasehttp round t
 start to the opaque peer protocols `httpPeerSvc` (`httpAddrAt a`), as S2's interface sets a client address to
 grpc's opaque `grpcCliPI`/`grpcSrvPI` (`grpcAddrAt`). With it:
 * `http_addr_set` is a theorem (`addr_set_proto`). `S5Draft`'s unindexed `httpAddrAt` is not instantiated: the
-  protocol is indexed by the cluster and the member (`httpPeerSvc γ id`), so `S5Draft` must gain those indices
+  protocol is indexed by the cluster and the member (`httpPeerSvc γ.cl id`), so `S5Draft` must gain those indices
   before its fields are these (`notes/etcd-dist-plan.md` §17.3);
 * the member-side axioms are `NewServer_dist` (`etcdserver.NewServer` with the network across machines),
   `NewPeerHandler_dist` and `PeerServe_dist` (etcd's peer handler served on the member's peer listener);
@@ -52,11 +52,14 @@ member-side axioms writes or learns anything of such a connection. (2026-11-25, 
 `bootstrap.wp_proof_dist`) The dialer's requests include `bootstrap`'s `GET /members` (`isMemberBootstrapped`,
 before the member is a started server: read-only, no raft message), which etcd's peer handler answers with its
 cluster's members (`etcdhttp/peer.go:112-120`); `bootstrap.wp_proof_dist` relies on that answer being etcd's
-(a `null` element would panic it). **Indexed by the cluster's raft names `γ` (the whole
-`SrvRaft` record one allocation gives every member) and the address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the same
-configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an address is
-set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it. -/
-opaque httpPeerSvc [GooseExts] {GF : BundledGFunctors} (γ : SrvRaft) (id : w64) :
+(a `null` element would panic it). **Indexed by the cluster `cl` (raft's cluster names, allocated once per cluster)
+and the address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the
+same configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an
+address is set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it.
+(2026-11-25, N5, `notes/etcd-dist-plan.md` §19: by the cluster, not the member's whole `SrvRaft` record, which
+holds the member's own storage registry `reg`: every member reads the other members' addresses at its own record, so
+an index by the record could not be met at three members; `notes/axiom-review/s5-cluster-index.md`.) -/
+opaque httpPeerSvc [GooseExts] {GF : BundledGFunctors} (cl : Cluster) (id : w64) :
     Proto GF × Proto GF := (fun _ _ => iprop(True), fun _ _ => iprop(True))
 
 section addr
@@ -65,10 +68,11 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The peer address `a` is member `id`'s of the server raft `γ` (its cluster and names) and serves etcd's peer API** (persistent, no heap):
-`a`'s protocols are `httpPeerSvc γ id`'s. -/
+/-- **The peer address `a` is member `id`'s of the cluster of the server raft `γ` and serves etcd's peer API**
+(persistent, no heap): `a`'s protocols are `httpPeerSvc γ.cl id`'s (by `γ`'s cluster only: two members' records,
+which differ in their storage registries, read the same fact). -/
 def httpAddrAt (γ : SrvRaft) (id : w64) (a : GoString) : IProp GF :=
-  addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) γ id).1 (httpPeerSvc (GF := GF) γ id).2
+  addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) γ.cl id).1 (httpPeerSvc (GF := GF) γ.cl id).2
 
 instance httpAddrAt_persistent (γ : SrvRaft) (id : w64) (a : GoString) :
     Persistent (httpAddrAt (Gg := Gg) γ id a) := by
