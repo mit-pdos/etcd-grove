@@ -10,6 +10,8 @@
 # `badStringError`, `readTransfer` and its helpers on a head without header lines), `Handle` and the ServeMux's
 # registration and dispatch, `Serve`/`ListenAndServe` and the server's connection loop up to a
 # hijack (`conn.serve`, `readRequest`, `Hijack`, the response writer's header and status). The
+# httpdriver's calls (2026-11-25): `NewServeMux`, `ServeMux.HandleFunc`, `HandlerFunc.ServeHTTP`,
+# `Header.Get`/`Set`. The
 # rest: types and names (an untranslated function is an `opaque` constant). The imports are the
 # packages these bodies call (crypto/tls for a type assertion; the vendored httpguts through the
 # forwarding module Net/Code/golang_org/x/net/http/httpguts.lean).
@@ -20,7 +22,8 @@ translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessa
              "modelIndexByte", "modelTrimOWS", "modelLowerASCII", "modelTokenEqual", "ParseHTTPVersion", "badStringError",
              "fixPragmaCacheControl", "readTransfer", "transferReader.parseTransferEncoding",
              "transferReader.protoAtLeast", "fixLength", "fixTrailer", "shouldClose",
-             "bodyAllowedForStatus", "noResponseBodyExpected", "Header.Del", "Handle", "ServeMux.Handle", "ServeMux.register", "ServeMux.registerErr",
+             "bodyAllowedForStatus", "noResponseBodyExpected", "Header.Del", "Header.Get", "Header.Set", "Handle", "ServeMux.Handle", "ServeMux.HandleFunc",
+             "NewServeMux", "HandlerFunc.ServeHTTP", "ServeMux.register", "ServeMux.registerErr",
              "ServeMux.ServeHTTP", "ServeMux.Handler", "ServeMux.findHandler", "ServeMux.matchOrRedirect",
              "Serve", "ListenAndServe", "Server.Serve", "Server.ListenAndServe", "Server.newConn",
              "conn.serve", "conn.readRequest", "conn.hijacked", "conn.hijackLocked", "response.Hijack",

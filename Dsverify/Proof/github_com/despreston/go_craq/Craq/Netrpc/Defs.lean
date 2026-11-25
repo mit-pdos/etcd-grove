@@ -130,7 +130,7 @@ theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (
       (⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true) ∨
       (∃ msg : GoString, ⌜msg ≠ [] ∧ err = net.rpc.serverErr msg⌝ ∗ net.rpc.errMsg err msg ∗ Rargs ∗
         (∃ rep, Φ rep msg) ∗ D) ∨
-      (⌜err ≠ interface.nil ∧ net.rpc.notServerErr err⌝ ∗ models_lab.errAny err ∗
+      (⌜err ≠ interface.nil ∧ net.rpc.notServerErr err⌝ ∗ models_lab.errPlain err ∗
         ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
           (craqCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D))) }} := by
   have HT2 : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝ ∗ Φ rep [] := fun rep =>

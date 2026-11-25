@@ -346,7 +346,10 @@ theorem stepWrite1_spec {s s' : RState} {m : Write1ProxiedM} {o : List Out}
 
 theorem shortCircuit_fw {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : FW s s' ∧ NoW o := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact ⟨FW.rfl', noW_nil⟩
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

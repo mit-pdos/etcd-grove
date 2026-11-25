@@ -1,7 +1,7 @@
 /-
 **etcd's unary methods and their registered message models** (phase 7 S2's interface, 2026-11-24): the
 table `etcdTys` the single-process start (`grpc.start'`) sets a served address's service table with
-(`grpcGoSvc ics regs etcdTys`, `InvGrpc.lean`), by full name.
+(`grpcStartSvc ics regs etcdTys sms`, `InvGrpcRun.lean`: phase 7's switch, SW1), by full name.
 
 The table is read off the registries (`etcdTyOf`): `etcdTyNames` names each method's request and reply
 Go types, and the entry is the registered models of those types. So `etcdTys_reg` (what `grpc.start'`

@@ -129,12 +129,12 @@ theorem akOut_cases (who : GoString) :
 
 /-- **The token of an attempt of `who`'s client** with a context of outgoing metadata
 `akOut who`. -/
-theorem akTokSeen_attempt (γa : auth.AuthNames) (who : GoString) (conn : Loc) (md : GrpcMd)
-    (hmd : clientAttemptMdOf conn (akOut who) md) :
-    attemptTokOk (GF := GF) conn (akTokP γa who) ⊢ akTokSeen γa who (auth.mdTokenOf md) := by
-  iintro #Ht
+theorem akTokSeen_attempt (γa : auth.AuthNames) (who : GoString) (conn : Loc) (md : GrpcMd) :
+    clientAttemptMd conn (akOut who) md ⊢
+      attemptTokOk (GF := GF) conn (akTokP γa who) -∗ akTokSeen γa who (auth.mdTokenOf md) := by
+  iintro #Hmd #Ht
   unfold attemptTokOk
-  ihave Hc := Ht $$ %(akOut who) %md %hmd
+  ihave Hc := Ht $$ %(akOut who) %md Hmd
   iapply (akTokSeen_of γa who (akOut who) _ (akOut_cases who)) $$ Hc
 
 /-- **The token of `who`'s watch stream**: the stream's metadata has the stream key of `who`'s
@@ -343,9 +343,8 @@ theorem akOpGranted_of_grant (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames
       client.clientGrant (srvTLSId s) E ρ conn (akOut who) op Lset σ ={Em}=∗ ⌜akOpGranted who op⌝ := by
   iintro ⟨#Hf, #Hat, #Htls⟩ Hg
   unfold client.clientGrant
-  icases Hg with ⟨%md, %Hmd, Hg⟩
-  have Hmd' : clientAttemptMdOf conn (akOut who) md := Hmd
-  ihave #Hseen := akTokSeen_attempt γa who conn md Hmd' $$ Hat
+  icases Hg with ⟨%md, #Hmd, Hg⟩
+  ihave #Hseen := akTokSeen_attempt γa who conn md $$ Hmd Hat
   cases op with
   | put o =>
     simp only [v3rpc.opGrantT, akOpGranted]

@@ -73,7 +73,7 @@ theorem Svc.Echo.wp_proof : Svc.Echo.spec (GF := GF) (hG := hG) := by
       iframe Hbig Htok
       (try (ipureintro; first | rfl | decide | exact h01 | exact hz))
     wp_if_destruct
-    all_goals (try (wp_apply net.rpc.wp_errors_New' as %x #HN))
+    all_goals (try (wp_apply net.rpc.wp_errors_New' as %x ⟨-, #HN⟩))
     all_goals (
       iapply HΦ
       iframe Ha

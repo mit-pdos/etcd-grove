@@ -6,8 +6,9 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Spec/gob/Encoder__EncodeW.lea
 stream `S` (`writeSink`). What Go's `Encoder.Encode` does (`encoder.go`, `EncodeValue`): it
 encodes the type definitions the value needs and writes each as a message (`writeMessage`, one
 `w.Write` each), then encodes the value, iterating its maps in the run time's order, and writes
-it as one message unless it is too big (`tooBig`), stopping at the first failed `Write`; it
-returns that error, or nil. So the bytes it writes, if no `Write` fails, are a gob stream
+it as one message unless it is too big (`tooBig`); after a failed `Write` it may still write the
+remaining type definitions (measured, go1.27.3: notes/axiom-review/dsv-fix4/encoding-gob.md), which
+`writeSink`'s dead stream absorbs; it returns the first error, or nil. So the bytes it writes, if no `Write` fails, are a gob stream
 `bs` of a listing `m'` of `v`'s maps (`GobFmt.bytes m' bs`, `m'` equal to `m` up to the maps'
 order, `KitVal.equiv`), in one or more `Write`s of consecutive pieces of `bs`; the size error
 cannot happen when every such listing fits (`GobFmt.fits`). The caller's obligations: `□ Q` of

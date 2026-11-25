@@ -40,7 +40,6 @@ public import Dsverify.Proof.raxos.proto.client.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
-public import Dsverify.Proof.io.ioutil.Init
 public import Dsverify.Proof.encoding.gob.Init
 
 @[expose] public section

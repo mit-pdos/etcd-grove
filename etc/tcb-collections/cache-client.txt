@@ -18,12 +18,9 @@ axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpc.start
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
-axiom grpcSrvLink
+axiom grpcSrvAtLis
 axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom os.Getenv.wp_proof
@@ -52,6 +49,7 @@ axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof

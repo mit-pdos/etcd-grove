@@ -82,7 +82,10 @@ theorem shortCircuit_del {s s' : RState} {n : w32} {value : ValTag} {f : Bool} {
     (h : shortCircuit s n value f = some (s', o)) {cid rid : w32} {v : w64} {f' : w8}
     (hx : Out.ext (.readReply cid rid v f') ∈ o) : s'.rops.get? (shiftInts rid cid) = none := by
   revert cid rid v f'
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · intro _ _ _ _ hx; cases hx
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals (try (cases h))
   all_goals (

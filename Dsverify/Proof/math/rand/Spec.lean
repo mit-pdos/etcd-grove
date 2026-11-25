@@ -20,6 +20,9 @@ such a source, used by its holder alone". So `r.Intn` is not claimed of a `Rand`
 `Intn` (and `Rand.Intn`, over the runtime's source), and declares both names: the package-level one
 is Perennial's now (`IntnPos.lean`), and this one is `Rand.Intn.ownSpec`. `NewSource`/`New` stay
 names only at that pin, so `rands` stays a hypothesis.)
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `NewSource`/`New`/`(*rngSource).Int63` are trust-boundary axioms over the fixed tokens of `RngDefs.lean`, `Seed` one too (review `notes/axiom-review/dsv-fix4/math-rand-{rng,seed}.md`); `RandsLinked.lean` proves `Hyps` from them.
 -/
 module
 
@@ -58,8 +61,9 @@ abbrev math.rand.Rand.Intn.ownSpec (ownRand : Loc → IProp GF) : Prop :=
       (App (Val (r @!! go.GoType.PointerType math.rand.Rand.ty @!! go!"Intn")) (Val #n))
     {{ (x : w64), RET #x; ownRand r ∗ ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
 
-/-- The package-level `Seed(seed)`: it returns, nothing claimed (it reseeds the locked global
-source; it has no precondition and does not panic). gryff's `NewReplica` calls it. -/
+/-- The package-level `Seed(seed)`: it returns, nothing claimed (go1.24 and later: a no-op unless
+`GODEBUG=randseednop=0`, when it reseeds the global source; it has no precondition and does not
+panic). gryff's `NewReplica` and QuePaxa's `proxy` call it. -/
 abbrev math.rand.Seed.spec : Prop :=
   ∀ (seed : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}

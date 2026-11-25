@@ -99,6 +99,10 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Run|RunLemmas)\.l
 # length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length); only the
 # registered instances' files in their owner packages.
 wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcdserver/api/v3rpc)/PerType[A-Za-z]*\.lean$
+# (grpc-driver-lean, 2026-11-25) The same for protobuf's `StringValue`, registered for gRPC's robustness
+# driver in its owner package: `PerTypeStringValue` owns `stringValueWireLen` and proves rule 7's witness and
+# the send bound from it, and gives its clients `pbStringValueS_wireLen_lt` (the driver's proofs unfold nothing).
+wire-unfold ^Proof/google_golang_org/protobuf/types/known/wrapperspb/PerTypeStringValue\.lean$
 
 # k8s 7e (decided by etcd-grove-81, 2026-11-10; follow-up: thread `threadTok` through the owner instead,
 # `notes/k8s-7e-1-handoff.md`, "Follow-ups"). The etcd3 store's list path (7e-2): `New` builds
@@ -129,6 +133,12 @@ spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(newCancellable
 # of its own thread token to the renewals (`levelTok v3rpc.ctxErrLvl`, `threadTok_lend4`), as `sendLoop`'s.
 spec-thread ^Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/LeaseServer__LeaseKeepAlive\.lean$
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/(lib/etcdstart/Serve|etcd/restart/serveClient)\.lean$
+# (grpc-driver-lean, 2026-11-25) gRPC's robustness driver's `Client()`: the owner of its workers' wait group
+# (`var wg sync.WaitGroup`, made by `sync.tokJoin.init`, whose premise is `threadBound GF ≤ 2 ^ 31`), as
+# `newLessor` makes `le.mu` and takes its lock's bound (above); its only caller is the command's `main`
+# (`cmd/client/Main.lean`, a proof), which takes it from the adequacy theorem's constants. (net/rpc's driver's
+# `callOn`, the same owner pattern, sits in `Net/`, which this check does not scan.)
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/Client\.lean$
 
 # The auth realization's reader pools (auth-schema-srv A6, 2026-11-18; ported 2026-11-19): their owner,
 # `authReal`, builds its ticket and reserved pools from the backend's auth reader slots (`authRdN`) and

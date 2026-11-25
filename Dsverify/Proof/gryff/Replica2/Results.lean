@@ -14,6 +14,7 @@ this module.
 -/
 module
 
+public import Proof.cmp.Less
 public import Dsverify.Proof.gryff.Replica2.Specs
 public import Dsverify.Proof.gryff.H1.Parti
 public import Dsverify.Proof.gryff.H1.CoordStart
@@ -48,7 +49,6 @@ public import Dsverify.Proof.gryff.H2c2.Executed
 public import Dsverify.Proof.gryff.H2c2.ExecOverwrite
 public import Dsverify.Proof.gryff.H2c2.PreAcceptReply
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.gryff.Lib.SortHyps
 
 @[expose] public section
 
@@ -124,7 +124,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
@@ -144,7 +143,7 @@ theorem gryffPartiDeps_holds : GryffPartiDeps (GF := GF) where
   handleWrite1 := GryffParticipant.HandleWrite1.wp_proof
 
 theorem gryffSCDeps_holds : GryffSCDeps (GF := GF) where
-  shortCircuit := GryffCoordinator.ShortCircuit.wp_int
+  shortCircuit := GryffCoordinator.ShortCircuit.wp_int EtcdGrove.cmp.Less.wp_proofInt32
 
 attribute [local instance] gryffSCDeps_holds in
 theorem gryffCoordDeps_holds : GryffCoordDeps (GF := GF) where
@@ -341,7 +340,7 @@ theorem GryffCoordinator.ShortCircuit.wp (ρ : Repl2Names) (co : Loc) (ic : GoIn
         icoordOk ρ ic k C ∗ C vt (outs ++ o) ∗ vp ↦□ gv }}
       (App (App (App (coordM co go!"ShortCircuit") (Val #n)) (Val #vp)) (Val #fo))
     {{ RET #(); coordOwn ρ co ic k s' ∗ C vt o }} := by
-  exact GryffCoordinator.ShortCircuit.wp_proof ρ co ic k C s s' outs o vt n vp gv fo hsc -- unit H1
+  exact GryffCoordinator.ShortCircuit.wp_proof EtcdGrove.cmp.Less.wp_proofInt32 ρ co ic k C s s' outs o vt n vp gv fo hsc -- unit H1
 
 /-- The participant's callbacks act on the store's value `r.State.Store[0]` (moved from
 `Specs.lean`; H1b-R2: `gryff`'s initialization for `Printf`, `h1Fixed` for `GetStats`). -/

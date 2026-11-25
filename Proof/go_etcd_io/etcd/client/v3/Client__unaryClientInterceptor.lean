@@ -167,6 +167,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   · unfold retryOptsPol; iexists cov; iframe Hcov; ipureintro; first | rfl | trivial
   icases options_fields_ro co cov $$ Hcov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   iunfold grpcInvokerOk at Hinv
+  icases Hinv with ⟨#Hinv, -⟩
   (try wp_auto)
   wp_if_destruct
   · -- `callOpts.max == 0`: one attempt
@@ -174,7 +175,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     · cases once
       · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
       · simp only [↓reduceIte, laterHid]; iexact Hpre
-    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md⌝ -∗ Spec md m Φ' Ψe)
+    ihave Hsp : ▷ (∀ md, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md -∗ Spec md m Φ' Ψe)
       $$ [Hsp]
     · inext; iapply (attemptPre_attempt conn om vver) $$ Hsp
     wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %Ψe %ci
@@ -192,7 +193,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       itrivial
     iapply HΨ
     iframe
-    icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, -, -, %d, #Hd, -, Heo⟩)
+    icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, -, -, -, %d, #Hd, -, Heo⟩)
     · ileft; iframe; ipureintro; exact He
     · iright; iframe Hcl Hse
       isplitl []
@@ -283,7 +284,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitl [Hp]
           · iapply Hp; ipureintro; exact Ha0
           · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
-      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md⌝ -∗ Spec md m Φ' Ψe)
+      ihave Hsp : ▷ (∀ md, grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [vver]) md -∗ Spec md m Φ' Ψe)
         $$ [Hsp]
       · inext; iapply (attemptPre_attempt conn om vver) $$ Hsp
       wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %Ψe %ci
@@ -300,7 +301,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, #Hnl, %d, #Hd, %Hnr, Heo'⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, #Hnl, -, %d, #Hd, %Hnr, Heo'⟩)
       · subst He
         (try wp_auto)
         wp_for_post
@@ -464,11 +465,14 @@ theorem Client.unaryClientInterceptor.wp_proof
         -- (C1) the client's connection, under the induction hypothesis
         ihave #Hcc : iprop(▷ isEtcdConn cconn ceps) $$ []
         · inext
+          ihave #Hrd := Hready
+          iunfold clientReady at Hrd
+          icases Hrd with ⟨%_, %_, -, -, -, #Hcst⟩
           iapply isEtcdConnG_ready
           iframe Hready
           unfold isEtcdConnG
           iexists _
-          iframe Hcg
+          iframe Hcg Hcst
           unfold etcdInterceptorOkG
           iexact IH
         wp_apply wp_refresh c cconn ceps ci { cd with Values := vsv } $$ [$Hc $Hready $Hcc $Hctx' $Htok]

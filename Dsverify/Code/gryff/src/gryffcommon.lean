@@ -2,7 +2,7 @@
 module
 
 public import Dsverify.Code.gryff.src.gryffproto
-public import Perennial.Code.sort
+public import Perennial.Code.slices
 public import Dsverify.Code.gryff.src.stats
 public import Dsverify.Code.gryff.src.state
 public import Perennial.Golang.Defn
@@ -84,6 +84,9 @@ noncomputable def IRMWHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] IRMWHandler.ty
 
+@[reducible] noncomputable def maxShortReads [GooseExts] [GoGlobalContext] : val :=
+  #(1048576 : Int)
+
 noncomputable def Max [GooseExts] [GoGlobalContext] : GoString :=
   go!"gryff/src/gryffcommon.Max"
 
@@ -114,7 +117,7 @@ noncomputable def newWriteOp [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewGryffParticipant [GooseExts] [GoGlobalContext] : GoString :=
   go!"gryff/src/gryffcommon.NewGryffParticipant"
 
-/-- go: coordinator.go:10:6 -/
+/-- go: coordinator.go:13:6 -/
 noncomputable def Max.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -137,7 +140,7 @@ noncomputable def Max.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0"))))))
 
-/-- go: coordinator.go:77:6 -/
+/-- go: coordinator.go:80:6 -/
 noncomputable def NewOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "requestId"
   (Lam "clientId"
@@ -166,7 +169,7 @@ noncomputable def NewOp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Op.ty)))) (Pair (Var "o") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "$res0"))))))))
 
-/-- go: coordinator.go:87:6 -/
+/-- go: coordinator.go:90:6 -/
 noncomputable def newOngoingOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "requestId"
   (Lam "clientId"
@@ -204,7 +207,7 @@ noncomputable def newOngoingOp.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType OngoingOp.ty)))) (Pair (Var "oop") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType OngoingOp.ty)))) (Var "$res0"))))))))))
 
-/-- go: coordinator.go:103:6 -/
+/-- go: coordinator.go:106:6 -/
 noncomputable def newRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "requestId"
   (Lam "clientId"
@@ -248,7 +251,7 @@ noncomputable def newRead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ReadOp.ty)))) (Pair (Var "r") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ReadOp.ty)))) (Var "$res0")))))))))
 
-/-- go: coordinator.go:123:6 -/
+/-- go: coordinator.go:126:6 -/
 noncomputable def newWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "requestId"
   (Lam "clientId"
@@ -304,7 +307,7 @@ noncomputable def newWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType WriteOp.ty)))) (Pair (Var "w") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WriteOp.ty)))) (Var "$res0")))))))))))
 
-/-- go: coordinator.go:184:6 -/
+/-- go: coordinator.go:187:6 -/
 noncomputable def NewGryffCoordinator.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "icoord"
@@ -375,7 +378,7 @@ noncomputable def NewGryffCoordinator.impl [GooseExts] [GoGlobalContext] : val :
 /-- *
      * Begin common procedures
 
-    go: coordinator.go:216:6 -/
+    go: coordinator.go:219:6 -/
 noncomputable def ShiftInts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -391,7 +394,7 @@ noncomputable def ShiftInts.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: coordinator.go:220:28 -/
+/-- go: coordinator.go:223:28 -/
 noncomputable def GryffCoordinator.ShortCircuit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -404,8 +407,6 @@ noncomputable def GryffCoordinator.ShortCircuit.impl [GooseExts] [GoGlobalContex
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "n"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (App (Val (GoInstruction (StructFieldRef OngoingOp.ty go!"ShortReads"))) (App (App (Val (map.lookup1 go.int32 (go.GoType.PointerType OngoingOp.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 (go.GoType.PointerType OngoingOp.ty))))) (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"OngoingReqs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "n")))))
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.int32)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -527,6 +528,10 @@ noncomputable def GryffCoordinator.ShortCircuit.impl [GooseExts] [GoGlobalContex
   (Val #()))
   (App (Val doExecute)
   (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.int32)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxShortReads)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "keys"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.int32))) (App (Val (GoInstruction (GoZeroVal go.int32))) (Val #())))
   (App (App (Val (slice.forRange go.int32)) (Var "$range"))
@@ -628,7 +633,7 @@ noncomputable def GryffCoordinator.ShortCircuit.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "k") (Var "$value")))))))))))))
+  (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "k") (Var "$value"))))))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"Shortcircuit (is fastoverwrite %v) called for op %d [%d,%d] with reads %v and writes %v.\n"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.bool (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "fastOverwrite")))
@@ -640,21 +645,10 @@ noncomputable def GryffCoordinator.ShortCircuit.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType []))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl0"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl1"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl2"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl3"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl4"))), (KeyedElement none (ElementExpression (go.GoType.InterfaceType []) (Var "$sl5")))]))))))))
   (App (App (App (Val (GoInstruction (MethodResolve IGryffCoordinator.ty go!"Printf"))) (App (Val (GoInstruction (GoLoad IGryffCoordinator.ty))) (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"icoord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.int32) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "keys")))
-  (Let "$a1" (Lam "i"
-  (Lam "j"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.int32)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.int32)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "keys")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.slices.«Sort» [(go.GoType.SliceType go.int32), go.int32]))) (Val #())) (Var "$a0")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.int32)))) (Pair (Var "keys") (Var "$r0"))))))))))))
   (Val #()))))))
@@ -662,7 +656,7 @@ noncomputable def GryffCoordinator.ShortCircuit.impl [GooseExts] [GoGlobalContex
 /-- *
      * Begin Read related procedures
 
-    go: coordinator.go:319:28 -/
+    go: coordinator.go:328:28 -/
 noncomputable def GryffCoordinator.StartRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "requestId"
@@ -791,7 +785,7 @@ noncomputable def GryffCoordinator.StartRead.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"maxN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c"))) (App (Val (GoInstruction (GoOp GoPlus go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"maxN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c")))) (Val #(W32 1))))))))))))))
   (Val #())))))))
 
-/-- go: coordinator.go:355:28 -/
+/-- go: coordinator.go:364:28 -/
 noncomputable def GryffCoordinator.HandleRead1Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1047,7 +1041,7 @@ noncomputable def GryffCoordinator.HandleRead1Reply.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ReadOp.ty)))) (Pair (Var "read") (Var "$r0")))))))))))))))))
   (Val #()))))))
 
-/-- go: coordinator.go:442:28 -/
+/-- go: coordinator.go:451:28 -/
 noncomputable def GryffCoordinator.HandleRead2Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1125,7 +1119,7 @@ noncomputable def GryffCoordinator.HandleRead2Reply.impl [GooseExts] [GoGlobalCo
 /-- *
      * Begin Write related procedures
 
-    go: coordinator.go:473:28 -/
+    go: coordinator.go:482:28 -/
 noncomputable def GryffCoordinator.StartWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "requestId"
@@ -1336,7 +1330,7 @@ noncomputable def GryffCoordinator.StartWrite.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"maxN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c"))) (App (Val (GoInstruction (GoOp GoPlus go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"maxN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c")))) (Val #(W32 1)))))))))))))))
   (Val #()))))))))
 
-/-- go: coordinator.go:560:28 -/
+/-- go: coordinator.go:569:28 -/
 noncomputable def GryffCoordinator.HandleForceWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1362,7 +1356,7 @@ noncomputable def GryffCoordinator.HandleForceWrite.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore _root_.Perennial.gryff.src.state.Key.ty))) (Pair (Var "key") (Var "$value")))))))))))))
   (Val #()))))
 
-/-- go: coordinator.go:567:28 -/
+/-- go: coordinator.go:576:28 -/
 noncomputable def GryffCoordinator.HandleWrite1Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1566,7 +1560,7 @@ noncomputable def GryffCoordinator.HandleWrite1Reply.impl [GooseExts] [GoGlobalC
   (App (App (App (Val (GoInstruction (MethodResolve IGryffCoordinator.ty go!"Printf"))) (App (Val (GoInstruction (GoLoad IGryffCoordinator.ty))) (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"icoord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1"))))))))))))
   (Val #())))))))
 
-/-- go: coordinator.go:653:28 -/
+/-- go: coordinator.go:662:28 -/
 noncomputable def GryffCoordinator.HandleWrite2ConcurrentTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "requestId"
@@ -1659,7 +1653,7 @@ noncomputable def GryffCoordinator.HandleWrite2ConcurrentTimeout.impl [GooseExts
   (App (App (App (Val (GoInstruction (MethodResolve IGryffCoordinator.ty go!"Printf"))) (App (Val (GoInstruction (GoLoad IGryffCoordinator.ty))) (App (Val (GoInstruction (StructFieldRef GryffCoordinator.ty go!"icoord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GryffCoordinator.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")))))))))))
   (Val #()))))))
 
-/-- go: coordinator.go:680:28 -/
+/-- go: coordinator.go:689:28 -/
 noncomputable def GryffCoordinator.getThriftyReplicas.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "replicas"
@@ -1727,7 +1721,7 @@ noncomputable def GryffCoordinator.getThriftyReplicas.impl [GooseExts] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.int32)))) (Pair (Var "thriftyReplicas") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "$res0")))))))
 
-/-- go: coordinator.go:699:28 -/
+/-- go: coordinator.go:708:28 -/
 noncomputable def GryffCoordinator.HandleWrite2Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -2679,7 +2673,7 @@ noncomputable def GryffParticipant.HandleOverwrite.impl [GooseExts] [GoGlobalCon
   (Val #()))))))
 
 noncomputable instance info' : PkgInfo pkg_id.gryff.src.gryffcommon where
-  pkgImportedPkgs := [pkg_id.gryff.src.gryffproto, pkg_id.sort, pkg_id.gryff.src.stats, pkg_id.gryff.src.state]
+  pkgImportedPkgs := [pkg_id.gryff.src.gryffproto, pkg_id.slices, pkg_id.gryff.src.stats, pkg_id.gryff.src.state]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2691,7 +2685,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.gryff.src.gryffproto.initialize') (Val #())))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.slices.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.gryff.src.stats.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3500,7 +3494,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   newWriteOp_unfold : FuncUnfold newWriteOp [] newWriteOp.impl
   NewGryffParticipant_unfold : FuncUnfold NewGryffParticipant [] NewGryffParticipant.impl
   import_gryffproto_Assumption : _root_.Perennial.gryff.src.gryffproto.Assumptions
-  import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  import_slices_Assumption : _root_.Perennial.slices.Assumptions
   import_stats_Assumption : _root_.Perennial.gryff.src.stats.Assumptions
   import_state_Assumption : _root_.Perennial.gryff.src.state.Assumptions
 
@@ -3527,7 +3521,7 @@ attribute [instance] Assumptions.Op_instance
   Assumptions.newWriteOp_unfold
   Assumptions.NewGryffParticipant_unfold
   Assumptions.import_gryffproto_Assumption
-  Assumptions.import_sort_Assumption
+  Assumptions.import_slices_Assumption
   Assumptions.import_stats_Assumption
   Assumptions.import_state_Assumption
 

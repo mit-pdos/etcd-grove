@@ -23,8 +23,8 @@ specs here are stated over that real format, abstractly (`sp.GobFmt`, Spec/swift
   its maps listed in `m`'s order).
 * `writeSink e S Q`: the writer `e`'s `Write` appends the bytes to the abstract stream `S` (the
   caller's obligation `□ Q` of the extended stream), and after a `Write` that fails the stream is
-  dead (`∀ X, S X`: a `*bufio.Writer`'s error is sticky, `wire.wsink`): what `Encode`, which stops
-  at its first failed `Write`, needs to give the whole value's stream back.
+  dead (`∀ X, S X`: a `*bufio.Writer`'s error is sticky, `wire.wsink`): what `Encode`, which may
+  write on after a failed `Write`, needs to give the whole value's stream back.
 -/
 module
 

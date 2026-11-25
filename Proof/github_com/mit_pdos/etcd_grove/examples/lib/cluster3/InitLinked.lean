@@ -16,7 +16,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
-public import Proof.google_golang_org.grpc.Init
+public import Proof.google_golang_org.grpc.InitLinked
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.net.Init
 public import Proof.runtime.PkgInitExt

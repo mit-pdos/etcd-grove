@@ -9,7 +9,7 @@ precondition `True`; an `InitHyp` asserts only that the package's initializer ru
 panicking (`etc/dsv/README.md`).
 
 What gogo/protobuf v1.3.2 does (`proto/properties.go`): each function writes a registry map of
-the package (`enumValueMaps`; `protoTypedNils` and `revProtoTypes`; `protoFiles`), unsynchronized,
+the package (`enumValueMaps` and `enumStringMaps`; `protoTypedNils` and `revProtoTypes`; `protoFiles`), unsynchronized,
 and returns. `RegisterEnum(typeName, ...)` panics if `typeName` was registered before;
 `RegisterType` logs a duplicate and returns, and panics on a `nil` interface (`reflect.Zero(nil)`:
 measured, gogo v1.3.2, go1.27.3; `notes/axiom-review/dsv-inits/github-com-gogo-protobuf-proto.md`);
@@ -27,6 +27,9 @@ measured, gogo v1.3.2, go1.27.3; `notes/axiom-review/dsv-inits/github-com-gogo-p
   covers exactly the one registration of that name in each of rabia's programs (no other package
   of the twelve programs registers `message.MsgType`), and a second registration, which panics,
   is not covered.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: the three specs are trust-boundary axioms (`RegisterEnum.lean`, `RegisterType.lean`, `RegisterFile.lean`; review `notes/axiom-review/dsv-fix4/gogo-proto-register.md`), from which `HypsHoldLinked.lean` proves `Hyps`.
 -/
 module
 

@@ -60,6 +60,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
+         # gRPC's robustness driver (notes/library-drivers.md): its two machines' commands
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server',
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -2178,6 +2181,36 @@ trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.''',
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
 )
 
+# (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
+# `drvFacts` (`Base.lean`, 2026-11-25; `True` until then): `reached`, a function value, is allocated and
+# stored, and its calls return
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver'] = dict(
+    doc='''Its fact (`drvFacts`, `Base.lean`): its variable `reached`, read-only, holds a function whose calls
+return. Its initializer allocates `reached`, initializes its imports and stores `reached`'s function value.''',
+    alloc_types={'reached': 'GoFunc'},
+    before={'reached': ['try wp_auto']},
+    finish=['ipersist Hreached',
+            'iframe Hown', 'is_pkg_init_finish', 'try imodintro',
+            'isplitr', '· ipureintro; exact isPanic_intoVal _',
+            'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts',
+            'try imodintro', 'try imodintro',
+            'iexists _', 'iframe Hreached', 'imodintro', 'iintro %s', 'wp_auto', 'ipureintro; rfl'])
+# (grpcdriver server, 2026-11-25) its fact `drvDescs` (`svc/Base.lean`): the descriptor's fields, its
+# methods and streams exactly, as etcdserverpb's
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc'] = dict(
+    doc='''Its fact (`drvDescs`, `svc/Base.lean`): its service descriptor `Driver_ServiceDesc`, read-only, with
+its methods and streams exactly. Its initializer allocates and sets the descriptor (a `grpc.ServiceDesc`
+literal) and initializes its imports.''',
+    alloc_types={'Driver_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
+    finish=['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pm ⟨Sm, -⟩; wp_auto',
+            'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %ps ⟨Ss, -⟩; wp_auto',
+            'ipersist Sm', 'ipersist Ss', 'ipersist HDriver_ServiceDesc',
+            'iStructNamed HDriver_ServiceDesc', 'iframe Hown', 'is_pkg_init_finish'] +
+           ['try imodintro', 'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.drvDescs go_etcd_io.etcd.cache.v3.pbDescIs',
+            'iframe #',
+            'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
+            'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩'])
+
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
 descriptors (`KV_ServiceDesc`, ...: `grpc.ServiceDesc` literals), initializes its imports and
@@ -2757,7 +2790,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 # `ErrGRPCNotSupportedForLearner`, whose fact says its value is a pointer (`errors.IsPointerError`,
 # `ptr`: from the spec's dynamic type and pointer value).
 def status_steps(x, desc=None, ptr=False):
-    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
+    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
              f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
@@ -3756,25 +3789,113 @@ the trust-boundary axiom `opaqueInitsOk`).''',
     before={'codeToStr': map_lit_steps('Hcs', 'w32', 'GoString', f'{_OC}.Code.ty', 'go.string', 3),
             'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_OC}.Code.ty', 3)},
 )
+# (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4; the mechanism of phase 7 S2 core's
+# `FromOutgoingContextRaw`, 2026-11-23, for every hook) grpc's `internal`: names only but its hook
+# variables, which the translated `init`s of `metadata`, `codes` and grpc set and no translated code
+# reads. Its fact (`internalInit`, `cache/v3/Base.lean`) is the hook cells' invariants
+# (`grpc/internal/Hooks.lean`); a package initializer's store goes through them, lending its package state.
+_GI = 'google_golang_org.grpc.internal'
+_GI_ANY = ['FromOutgoingContextRaw', 'CanonicalString', 'AddGlobalDialOptions',
+           'AddGlobalPerTargetDialOptions', 'JoinDialOptions', 'DisableGlobalDialOptions',
+           'AcceptCompressors', 'GetServerCredentials', 'IsRegisteredMethod', 'ServerFromContext',
+           'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption',
+           'RegisterClientHealthCheckListener']
+_GI_FUNC = ['ClearGlobalDialOptions', 'ClearGlobalPerTargetDialOptions', 'ClearGlobalServerOptions',
+            'HealthCheckFunc', 'BalancerUnregister']
+_GI_BASE = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal'
+
+
+def hook_fact_steps():
+    """`internal`'s fact, from the importer's facts (an `init` storing in its hooks)."""
+    return [f'ihave #Hfi : ({_GI_BASE}.internalInit (hG := hG) : IProp GF) $$ []',
+            '· iapply isPkgInit_access $$ {Hd:google_golang_org.grpc.internal}']
+
+
+def hook_store_steps(names):
+    """A translated `init`'s stores in `internal`'s hooks `names`, in order."""
+    out = []
+    for n in names:
+        assert n in _GI_ANY + _GI_FUNC, n
+        kind, lst = ('Any', 'hooksAny') if n in _GI_ANY else ('Func', 'hooksFunc')
+        out += ['try wp_auto',
+                f'wp_apply (EtcdGrove.grpcInternal.wp_store_hook{kind} (hG := hG) _root_.Perennial.{_GI}.{n}',
+                f'    (by unfold {_GI_BASE}.{lst}; mem_tac) _ _ _) $$ [Hfi Hown] as Hown',
+                '· iframe Hown Hfi']
+    return out + ['try wp_auto']
+
+
+def _hook_alloc_steps(V, names):
+    return [f'imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := {V}) ⊤ _ _) $$ H{n} with #C{n}' for n in names]
+
+
+SPECIAL[_GI] = dict(
+    doc='''Its fact (`internalInit`, `cache/v3/Base.lean`): the invariants of its hook cells (`hookCell`),
+which a package initializer holding its package state opens for a plain store (`grpc/internal/Hooks.lean`).
+Its initializer allocates the hook variables that the translated `init`s of `metadata`, `codes` and grpc
+set (`internal.go`, `experimental.go`: no initializers, so each holds `nil`) and puts each cell in its
+invariant (phase7-inits, 2026-11-25; `FromOutgoingContextRaw` first in phase 7 S2 core, 2026-11-23); its
+other variables with initializers are goose `[[skip]]`s (literals), the rest names only.''',
+    alloc_types={**{n: 'GoInterface' for n in _GI_ANY}, **{n: 'GoFunc' for n in _GI_FUNC}},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
+    finish=_hook_alloc_steps('GoInterface', _GI_ANY) + _hook_alloc_steps('GoFunc', _GI_FUNC)
+        + FIN_PRE[:6] + ['try imodintro',
+                         f'unfold {_GI_BASE}.internalInit {_GI_BASE}.hooksAny {_GI_BASE}.hooksFunc',
+                         f'simp only [{_GI_BASE}.hookCells]', 'iframe #', 'try (imodintro; itrivial)'],
+)
 _GC = 'google_golang_org.grpc.codes'
 SPECIAL[_GC] = dict(
-    doc='''Its fact is `True`. Its initializer allocates `strToCode` and runs its translated initializer, a
-map literal (prove-smallinits, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and
-its untranslated `init` function (it sets `internal.CanonicalString`, another package's variable),
-which the trust-boundary axiom `initFuncsOk` says returns.''',
+    doc='''Its fact is `True`. Its initializer allocates `strToCode`, initializes its import (grpc's
+`internal`), runs its translated initializer, a map literal (prove-smallinits, 2026-11-20; until then the
+trust-boundary axiom `opaqueInitsOk`), and its translated `init` function (phase7-inits, 2026-11-25; until
+then the trust-boundary axiom `initFuncsOk`), which stores `canonicalString`, converted to `any`, in
+`internal.CanonicalString`, another package's variable: through `internal`'s invariants, lending the
+initializer's package state (`grpc/internal/Hooks.lean`, `wp_store_hookAny`).''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
+    after={'init.«0»': hook_fact_steps() + hook_store_steps(['CanonicalString'])},
 )
 _GM = 'google_golang_org.grpc.metadata'
 SPECIAL[_GM] = dict(
     doc='''Its fact is `True`. Its initializer allocates `loggableMetadataKeys`, initializes its imports, runs
 its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
-2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated `init` function
-(it sets `internal.FromOutgoingContextRaw`, another package's variable), which the trust-boundary
-axiom `initFuncsOk` says returns.''',
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its translated `init` function
+(phase7-inits, 2026-11-25, first phase 7 S2 core; until then the trust-boundary axiom `initFuncsOk`),
+which stores `fromOutgoingContextRaw`, converted to `any`, in `internal.FromOutgoingContextRaw`, another
+package's variable: through `internal`'s invariants, lending the initializer's package state
+(`grpc/internal/Hooks.lean`, `wp_store_hookAny`).''',
     alloc_types={'loggableMetadataKeys': 'Loc'},
     before={'loggableMetadataKeys': map_lit_steps('Hlk', 'GoString', 'Bool', 'go.string', 'go.bool', 10)},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
+    after={'init.«0»': hook_fact_steps() + hook_store_steps(['FromOutgoingContextRaw'])},
 )
+# (phase7-inits, 2026-11-25) grpc's three `init`s translated (until then `initFuncsOk`): their stores of
+# function values and closures in `internal`'s hooks, and the slices their closures append to
+# (`globalDialOptions`, `globalPerTargetDialOptions`, `globalServerOptions`: no initializers, allocated)
+_G = SPECIAL['google_golang_org.grpc']
+_G['doc'] = _G['doc'].replace('''runs the
+untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated `init`
+functions, which the trust-boundary axiom `initFuncsOk` says return.''', '''runs the
+untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its three translated `init`
+functions (`dialoptions.go`, `rpc_util.go`, `server.go`; phase7-inits, 2026-11-25, until then the
+trust-boundary axiom `initFuncsOk`), which store function values and closures in `internal`'s hook
+variables, through `internal`'s invariants (`grpc/internal/Hooks.lean`); it allocates the slices the
+closures append to (`globalDialOptions`, `globalPerTargetDialOptions`, `globalServerOptions`).''')
+assert 'phase7-inits' in _G['doc']
+_G.setdefault('alloc_types', {}).update({'globalDialOptions': 'GoSlice', 'globalPerTargetDialOptions': 'GoSlice',
+                                         'globalServerOptions': 'GoSlice'})
+_G.setdefault('imports', []).append('Proof.google_golang_org.grpc.internal.Hooks')
+_G.setdefault('after', {}).update({
+    'init.«0»': hook_fact_steps() + hook_store_steps(
+        ['AddGlobalDialOptions', 'ClearGlobalDialOptions', 'AddGlobalPerTargetDialOptions',
+         'ClearGlobalPerTargetDialOptions', 'JoinDialOptions', 'DisableGlobalDialOptions']),
+    'init.«1»': hook_fact_steps() + hook_store_steps(['AcceptCompressors']),
+    'init.«2»': hook_fact_steps() + hook_store_steps(
+        ['GetServerCredentials', 'IsRegisteredMethod', 'ServerFromContext', 'AddGlobalServerOptions',
+         'ClearGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption']),
+})
 _GL = 'google_golang_org.grpc.grpclog'
 SPECIAL[_GL] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates `cache` and runs its
@@ -3785,6 +3906,70 @@ trust-boundary axiom `initFuncsOk` says returns.''',
     before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
         f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
 )
+# (phase7-inits batch 2, 2026-11-25) `grpclog`'s fact: `cache`'s map in an init-time invariant, for
+# `Component` (translated), which the `logger`s of grpc, `credentials`, `health` and `connectivity` call
+_GLB = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog'
+SPECIAL[_GL]['doc'] = '''Its fact (`grpclogInit`, `cache/v3/Base.lean`; phase7-inits batch 2, 2026-11-25, until then
+`True`): `cache` holds a map for good, whose contents are in an init-time invariant (`initInv`), for
+`Component`, which package initializers call (`Spec/google_golang_org/grpc/grpclog/Component.lean`). Its
+initializer initializes its imports, allocates `cache` and runs its translated initializer, an empty map
+literal (prove-grpcext, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its
+untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the trust-boundary axiom
+`initFuncsOk` says returns.'''
+SPECIAL[_GL]['imports'] = ['Proof.google_golang_org.grpc.internal.Hooks']
+SPECIAL[_GL]['finish'] = [
+    'ipersist Hcache',
+    f'imod (EtcdGrove.grpcInternal.initInv_alloc (hG := hG) {_GLB}.cacheN ⊤ iprop(∃ M : GMap GoString Loc, (mHc ↦$ M : IProp GF))) $$ [Hc] with ⟨%γC, #HC⟩',
+    '· inext; iexists _; iexact Hc'] + FIN_PRE[:6] + [
+    'try imodintro', f'unfold {_GLB}.grpclogInit', 'iexists mHc, γC', 'iframe #']
+
+
+def logger_steps():
+    """A `logger`'s translated initializer, `grpclog.Component(name)`: through `Component`'s proof."""
+    return ['try wp_auto',
+            'wp_apply (EtcdGrove.grpclog.Component.wp_proof (hG := hG) _ _ _) $$ [Hown] as %llogger ⟨Hown, -⟩',
+            '· iframe Hown; try iexact {Hd:google_golang_org.grpc.grpclog}',
+            'try wp_auto']
+
+
+_LOGGER_DOC = '''runs its translated initializer of `logger`, `grpclog.Component(...)` (phase7-inits batch 2,
+2026-11-25, until then the trust-boundary axiom `opaqueInitsOk`; `Component`'s proof, through
+`grpclog`'s fact)'''
+for _p in ['google_golang_org.grpc', 'google_golang_org.grpc.credentials', 'google_golang_org.grpc.health',
+           'google_golang_org.grpc.connectivity', 'google_golang_org.grpc.balancer']:
+    _c = SPECIAL.setdefault(_p, {})
+    _c.setdefault('alloc_types', {})['logger'] = 'GoInterface'
+    _c.setdefault('before', {})['logger'] = logger_steps()
+    _c.setdefault('imports', []).append('Proof.google_golang_org.grpc.grpclog.Component')
+    if 'doc' in _c:
+        _c['doc'] = _c['doc'].rstrip('.') + '; it ' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.credentials']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports, allocates `logger` and ''' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.balancer']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports (`grpclog`, grpc's `internal`), allocates `logger`, ''' + _LOGGER_DOC + ''', and runs its translated
+`init` (`balancer.go:77`), which stores `unregisterForTesting` in `internal.BalancerUnregister`, through
+`internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+SPECIAL['google_golang_org.grpc.balancer']['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+SPECIAL['google_golang_org.grpc.balancer']['after'] = {
+    'init.«0»': hook_fact_steps() + hook_store_steps(['BalancerUnregister'])}
+SPECIAL['google_golang_org.grpc.connectivity']['doc'] = '''Its fact is `True`. Its initializer initializes its
+import (`grpclog`), allocates `logger` and ''' + _LOGGER_DOC + '.'
+# `health`: its `logger` and its two `init`s (until then `initFuncsOk`): `client.go`'s stores
+# `clientHealthCheck` in `internal.HealthCheckFunc`; `producer.go`'s sets `producerBuilderSingleton` (its
+# own variable) and stores `registerClientSideHealthCheckListener` in `internal.RegisterClientHealthCheckListener`
+_GH = SPECIAL['google_golang_org.grpc.health']
+_GH['doc'] = '''Its fact is `True`. Its initializer initializes its imports, allocates `logger` and
+`producerBuilderSingleton`, ''' + _LOGGER_DOC + ''', and runs its two translated `init`s (phase7-inits
+batch 2, 2026-11-25; until then the trust-boundary axiom `initFuncsOk`): `client.go`'s stores
+`clientHealthCheck` in `internal.HealthCheckFunc` and `producer.go`'s sets `producerBuilderSingleton` to a
+new `producerBuilder` and stores `registerClientSideHealthCheckListener` in
+`internal.RegisterClientHealthCheckListener`, both through `internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+_GH['alloc_types']['producerBuilderSingleton'] = 'Loc'
+_GH['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+_GH.setdefault('after', {}).update({
+    'init.«0»': hook_fact_steps() + hook_store_steps(['HealthCheckFunc']),
+    'init.«1»': hook_fact_steps() + ['try wp_auto'] + hook_store_steps(['RegisterClientHealthCheckListener']),
+})
 # (prove-http3, 2026-11-21) net/textproto: `CanonicalMIMEHeaderKey`'s interned keys
 _TP = 'net.textproto'
 def _tp_lit(x, n):
@@ -5342,6 +5527,11 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
 # distributed theorem (notes/putget-dist-plan.md)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
+# (grpcdriver, 2026-11-24) gRPC's robustness driver's two commands (each machine's boot program runs its
+# command's initializer), for grpcdriver_robust
+for _c in ['server', 'client']:
+    PROGRAMS[f'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.{_c}'] = \
+        f'Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/cmd/{_c}/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
@@ -5768,7 +5958,8 @@ NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
             'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
-            'shutdown': ['node'], 'rpcdriver': ['server', 'client']}
+            'shutdown': ['node'], 'rpcdriver': ['server', 'client'],
+            'httpdriver': ['server', 'client']}
 # (2026-11-24) net/rpc's driver (notes/library-drivers.md): its package and its service's
 NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver',
              'github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service']
@@ -5784,6 +5975,14 @@ and net/http's by their interim axioms, `Net/Proof/net/{rpc,http}/Init.lean`) an
                          'wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"]));'
                          ' isplitr; (· ipureintro; rfl); iintro %sf -',
                          'try wp_auto']})
+# (2026-11-24) net/http's driver (notes/library-drivers.md): its fact is `True`; its one variable,
+# `reached`, a function value, is allocated and stored
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.httpdriver']
+NET_SPECIAL['github_com.mit_pdos.etcd_grove.examples.net.httpdriver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variable, initializes its imports (net/http's by
+its interim axiom, `Net/Proof/net/http/Init.lean`) and stores `reached`'s function value.''',
+    alloc_types=_ALLOC_ANY,
+    before={'reached': ['try wp_auto']})
 # (rpc-driver, 2026-11-24) The part's packages whose `wp_initialize'` is an interim trust-boundary
 # axiom (`Net/Proof/<pkg>/Init.lean`, hand-written; its fact in `PkgInit.lean`): net/rpc's and
 # net/http's models, whose closures reach initializers not translated (retired by L2 step 6,

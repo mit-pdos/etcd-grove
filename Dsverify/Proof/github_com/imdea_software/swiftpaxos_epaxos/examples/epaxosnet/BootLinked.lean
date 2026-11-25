@@ -149,6 +149,8 @@ theorem boot_epaxosnet :
   try wp_auto
   wp_apply net.wp_initialize' _ (wf_net hk) $$ Hown as ⟨Hown, #Hg7⟩
   try wp_auto
+  wp_apply math.rand.wp_initialize' _ (wf_math_rand hk) $$ Hown as ⟨Hown, #Hg10⟩
+  try wp_auto
   wp_apply encoding.binary.wp_initialize' _ (wf_encoding_binary hk) $$ Hown as ⟨Hown, #Hg8⟩
   try wp_auto
   wp_apply bufio.wp_initialize' _ (wf_bufio hk) $$ Hown as ⟨Hown, #Hg9⟩

@@ -1,15 +1,19 @@
 package vsrnet
 
 import (
+	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/anishathalye/porcupine"
+	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 )
 
 // TestDeployment runs the twelve machines in one process (each at its own addresses; the real
-// encoding/json and log/slog) and checks that the orchestrator's history is accepted (Orch panics
-// otherwise).
+// encoding/json and log/slog) and checks that the orchestrator's history is accepted. It runs
+// Orch's steps with remote.Run in place of remote.Check (at the largest count Orch draws, Ops), to
+// count the answered operations.
 func TestDeployment(t *testing.T) {
 	for id := uint64(1); id <= MaxReplicas; id++ {
 		go Server(id)
@@ -18,10 +22,50 @@ func TestDeployment(t *testing.T) {
 		go Client(c)
 	}
 	time.Sleep(200 * time.Millisecond)
-	t0 := time.Now()
-	Orch()
-	if time.Since(t0) < time.Duration(StartMs)*time.Millisecond {
-		t.Errorf("the orchestrator's calls did not reach the client machines")
+	Configure(CfgAddrs(), choose())
+	var known atomic.Int64
+	cdc := Codec()
+	dec := cdc.DecOut
+	cdc.DecOut = func(b []byte) (any, bool) {
+		o, ok := dec(b)
+		if ok && !o.(Out).Unknown {
+			known.Add(1)
+		}
+		return o, ok
+	}
+	if r := remote.Run(Model(), ClientAddrs(), cdc, Gen, int(Ops), attempt(), 0); r != porcupine.Ok {
+		t.Fatalf("porcupine: %v", r)
+	}
+	t.Logf("%d of %d operations answered", known.Load(), NC*Ops)
+	if known.Load() == 0 {
+		t.Errorf("no operation was answered")
+	}
+}
+
+// TestControlPhantom (the negative control): client machines whose gets return a value nobody
+// put, as a store that invents values would, are caught.
+func TestControlPhantom(t *testing.T) {
+	var addrs []string
+	for c := uint64(0); c < NC; c++ {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, l.Addr().String())
+		l.Close()
+	}
+	phantom := func(sys any, in any) any {
+		if in.(In).Put {
+			return Out{Done: true}
+		}
+		return Out{Found: true, V: "phantom"}
+	}
+	for c := range addrs {
+		go remote.ServeClient(c, addrs[c], func(int) any { return nil }, phantom, Codec(), attempt())
+	}
+	time.Sleep(200 * time.Millisecond)
+	if r := remote.Run(Model(), addrs, Codec(), Gen, int(Ops), attempt(), 0); r != porcupine.Illegal {
+		t.Fatalf("porcupine: %v, want Illegal", r)
 	}
 }
 

@@ -230,8 +230,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
     "EtcdGrove.ErrorStringNotWriter",
-    # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
-    "EtcdGrove.MutexLitSemantics",
     # (wal-nostorageok, 2026-11-21) `os`'s field steps of its trusted `file`/`fileStat` layouts, which
     # goose does not emit (`TrustedCode/os.lean`): the WAL's results take them, and so, through
     # `=rnNewStorageOk_law_holds`, does the server's `newRaftNode` and every result reaching it. A mode

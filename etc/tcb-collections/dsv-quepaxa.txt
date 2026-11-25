@@ -4,12 +4,11 @@
 # closed theorem `quepaxa_remote_robust` (examples/quepaxanet/TopLevelRobustness.lean: twelve
 # machines, Robust [] under DistDeploy; the statement,
 # Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean, takes as visible premises the
-# libraries' initialization hypotheses `InitHyp` (yaml.v2, go-redis v8, io/ioutil, encoding/gob,
-# grpc, grpc/codes, math/rand) and the library hypotheses of Dsverify/Proof/raxos/Hyp.lean:
-# `PbHyp`, `RandHyp`, `UtcHyp`, `SortHyp`, `PrintlnHyp`, `GrpcHyp`, `GrpcWorldHyp`, `MapHyp`, over
-# an arbitrary vocabulary `QpVocab`). Its `#print axioms`: `propext`, `Classical.choice`,
-# `Quot.sound` only. The baseline below is empty: written by hand (2026-11-23) from that
-# `#print axioms`.
+# `InitHyp`s of go-redis v8 and grpc and the library hypotheses `PbHyp`, `GrpcHyp`, `GrpcWorldHyp`,
+# `MapHyp` of Dsverify/Proof/raxos/Hyp.lean, over an arbitrary vocabulary `QpVocab`). Its axioms:
+# the baseline below.
+# dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): the library functions are per-function trust-boundary
+# axioms (Dsverify/Proof/<pkg>/<fn>.lean, reviews notes/axiom-review/dsv-fix4/), listed below.
 #
 # Trusted code (not axioms, so not in the baseline; goose `trusted` declarations, part of the trust
 # base as CLAUDE.md's `TrustedCode/` says): Dsverify/TrustedCode/raxos/replica/src.lean and
@@ -37,4 +36,7 @@ roots ^Dsverify/Proof/raxos/
 axiom Perennial.encoding.gob.wp_initialize'
 axiom Perennial.google_golang_org.grpc.codes.wp_initialize'
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
-axiom Perennial.io.ioutil.wp_initialize'
+axiom Perennial.math.rand.Seed.wp_proof
+axiom Perennial.raxos.hyp.fmt.Println.wp_proof
+axiom Perennial.raxos.hyp.proto.Marshal.wp_proof
+axiom Perennial.raxos.hyp.proto.Unmarshal.wp_proof

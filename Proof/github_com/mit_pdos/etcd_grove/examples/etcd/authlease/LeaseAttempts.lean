@@ -71,11 +71,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
 
+omit package_sem in
 /-- **The token an attempt of `who`'s call carries** (`akTokSeen_attempt` at `reqCtx`'s context). -/
 theorem akTokSeen_md (γa : auth.AuthNames) (who : GoString) (conn : Loc) (c : GrpcMd) (md : GrpcMd)
-    (hout : c = akOut who) (hmd : clientAttemptMd conn c md) :
-    attemptTokOk (GF := GF) conn (akTokP γa who) ⊢ akTokSeen γa who (auth.mdTokenOf md) :=
-  akTokSeen_attempt γa who conn md (by unfold clientAttemptMd at hmd; rw [hout] at hmd; exact hmd)
+    (hout : c = akOut who) :
+    clientAttemptMd conn c md ⊢
+      attemptTokOk (GF := GF) conn (akTokP γa who) -∗ akTokSeen γa who (auth.mdTokenOf md) := by
+  subst hout
+  exact akTokSeen_attempt γa who conn md
 
 /-- `Grant(ttl)`'s attempts, refuted. -/
 theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
@@ -91,7 +94,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseGrantSpecOn etcdLeaseGrantSpecOnW
   isplitr
   · iintro !> %_; itrivial
@@ -106,17 +109,17 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
     · simp only [leaseGrantPermitM]
       iintro %id
       ihave Hau1 := Hau $$ %id
-      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ (Q id) Hmd $$ Hau1
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ (Q id) $$ Hmd Hau1
       iapply kvOpAuOn_leaseGrant $$ H
   iintro %m %_ #_ _ _ #Hck
-  ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
+  ihave #Hs := akTokSeen_md γa who conn c md hout $$ Hmd Htok
   iapply Hno $$ %_ %_ %m Hs Hck
 
 /-- `Revoke(id)`'s attempts, with the caller's update `Q` and the reply's result. -/
 theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c : GrpcMd)
     (n : Nat) (id : w64) (Q : KVState → IProp GF) (Φ : LeaseRevokeRespM → IProp GF) :
     auth.authPubLbM E.authMode n ∗ □ clientOpAuOn (srvTLSId s) E ρ conn c (.leaseRevoke id) Q ∗
-      □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), ⌜clientAttemptMd conn c md⌝ -∗
+      □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), clientAttemptMd conn c md -∗
           v3rpc.leaseRevokeResT E.authOn (srvTLSId s) E ρ (auth.mdTokenOf md) id Q -∗
           leaseCheckFrom (srvTLSId s) E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
     □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) id Φ := by
@@ -124,7 +127,7 @@ theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseRevokeSpecOn etcdLeaseRevokeSpecOnW
   isplitr
   · iintro !> %_; itrivial
@@ -135,10 +138,10 @@ theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q $$ Hmd Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #_ Hres #Hck
-  iapply HΦ $$ %md %m %Hmd Hres Hck
+  iapply HΦ $$ %md %m Hmd Hres Hck
 
 /-- `Revoke(id)`'s attempts, refuted. -/
 theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γa : auth.AuthNames)
@@ -154,7 +157,7 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseRevokeSpecOn etcdLeaseRevokeSpecOnW
   isplitr
   · iintro !> %_; itrivial
@@ -165,10 +168,10 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q $$ Hmd Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #_ - #Hck
-  ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
+  ihave #Hs := akTokSeen_md γa who conn c md hout $$ Hmd Htok
   iapply Hno $$ %_ %_ %m Hs Hck
 
 /-- `TimeToLive(req)`'s attempts, the reply's check at the token of one of them handed to `Φ`. -/
@@ -184,7 +187,7 @@ theorem ttl_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseTTLSpecMd etcdLeaseTTLSpecMdW
   isplitr
   · iintro !> %_; itrivial
@@ -192,7 +195,7 @@ theorem ttl_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth
   iexists m
   iframe Hn Hm
   iintro %r %_ - Hck
-  ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
+  ihave #Hs := akTokSeen_md γa who conn c md hout $$ Hmd Htok
   iapply HΦ $$ %r %(auth.mdTokenOf md) Hs Hck
 
 /-- `TimeToLive(req)`'s attempts, refuted. -/
@@ -208,7 +211,7 @@ theorem ttl_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseTTLSpecMd etcdLeaseTTLSpecMdW
   isplitr
   · iintro !> %_; itrivial
@@ -216,7 +219,7 @@ theorem ttl_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
   iexists m
   iframe Hn Hm
   iintro %r %_ - Hck
-  ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
+  ihave #Hs := akTokSeen_md γa who conn c md hout $$ Hmd Htok
   iapply Hno $$ %_ %_ %r Hs Hck
 
 /-- `Leases()`'s attempts, the listing and the reply's check at the token of one of them handed to
@@ -234,7 +237,7 @@ theorem leases_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseLeasesSpecMd etcdLeaseLeasesSpecMdW
   isplitr
   · iintro !> %_; itrivial
@@ -242,7 +245,7 @@ theorem leases_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
   iexists m
   iframe Hn Hm
   iintro %r %_ ⟨%i, %hi, Hids, Hck⟩
-  ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
+  ihave #Hs := akTokSeen_md γa who conn c md hout $$ Hmd Htok
   iapply HΦ $$ %r %(auth.mdTokenOf md) %i %hi Hs Hids Hck
 
 /-- `Leases()`'s attempts, refuted. -/
@@ -258,7 +261,7 @@ theorem leases_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa 
   imodintro
   inext
   unfold attemptPre
-  iintro %md %Hmd
+  iintro %md #Hmd
   unfold etcdLeaseLeasesSpecMd etcdLeaseLeasesSpecMdW
   isplitr
   · iintro !> %_; itrivial
@@ -266,7 +269,7 @@ theorem leases_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa 
   iexists m
   iframe Hn Hm
   iintro %r %_ ⟨%i, -, -, Hck⟩
-  ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
+  ihave #Hs := akTokSeen_md γa who conn c md hout $$ Hmd Htok
   iapply Hno $$ %_ %_ %r Hs Hck
 
 end attempts

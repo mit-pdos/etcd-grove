@@ -29,6 +29,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitS
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Proof.time.Link
+public import Dsverify.Proof.math.rand.IntnPos
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 
@@ -249,8 +250,9 @@ theorem wp_op
           unfold opPost
           iright
           ipureintro; rfl
-    · unfold models_lab.errAny
-      icases Herr with ⟨%e2, %He2, -⟩
+    · ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
+      unfold models_lab.errAny
+      icases Herrₐ with ⟨%e2, %He2, -⟩
       subst He2
       wp_auto
       iapply HΦ
@@ -311,16 +313,18 @@ theorem wp_op
           Option.isNone_some, Bool.and_self, Bool.and_false, Bool.false_eq_true, ↓reduceIte,
           reduceCtorEq, ite_true] at Ho' ⊢
         rfl
-      · unfold models_lab.errAny
-        icases Herr2 with ⟨%e2, %He2, -⟩
+      · ihave #Herr2ₐ := models_lab.errPlain_errAny _ $$ Herr2
+        unfold models_lab.errAny
+        icases Herr2ₐ with ⟨%e2, %He2, -⟩
         subst He2
         wp_auto
         iapply HΦ
         unfold opPost
         iright
         ipureintro; rfl
-    · unfold models_lab.errAny
-      icases Herr with ⟨%e2, %He2, -⟩
+    · ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
+      unfold models_lab.errAny
+      icases Herrₐ with ⟨%e2, %He2, -⟩
       subst He2
       wp_auto
       iapply HΦ
@@ -336,7 +340,7 @@ theorem node_idx (N n : w64) (h2 : 2 ≤ uint.Z n) (h : uint.Z n ≤ uint.Z N + 
   rw [hidx]; omega
 
 /-- `s.remove(rs)`: each removal asked of the coordinator (`RemoveNode`, any address). -/
-theorem wp_Sys_remove [LogHyp GF]
+theorem wp_Sys_remove [LogSpecs GF]
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (s : Loc) (conf : Conf) (rs : GoSlice)
     (rl : List removal) :
@@ -391,7 +395,7 @@ theorem wp_Sys_remove [LogHyp GF]
       isplitl []
       · ipureintro; rfl
       iintro %args_sl ⟨Hargs, -⟩
-      wp_apply LogHyp.wp_Println _ _ _ $$ [Hargs]
+      wp_apply LogSpecs.wp_Println _ _ _ $$ [Hargs]
       · iframe
         iapply argOks_of_wf _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
       iintro -
@@ -454,8 +458,9 @@ theorem wp_Sys_remove [LogHyp GF]
           simp only [TypedPointsto.typedPointstoDef]
           iframe
         ipureintro; refine ⟨by word, by word⟩
-      · unfold models_lab.errAny
-        icases Herr with ⟨%e2, %He2, -⟩
+      · ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
+        unfold models_lab.errAny
+        icases Herrₐ with ⟨%e2, %He2, -⟩
         subst He2
         wp_auto
         wp_for_post
@@ -477,7 +482,7 @@ theorem wp_Sys_remove [LogHyp GF]
 
 /-- `newSys(c)`: client machine `c`'s `Sys`, once its configuration arrived; the codec is
 registered (`rpcReady`); its removals run in a goroutine. -/
-theorem wp_newSys [LogHyp GF]
+theorem wp_newSys [LogSpecs GF]
     (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF))
@@ -541,7 +546,7 @@ theorem wp_newSys [LogHyp GF]
   iexists m.conf'
   iframe #
 
-theorem Client.wp_proof [LogHyp GF]
+theorem Client.wp_proof [LogSpecs GF]
     (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_NewNC : netrpc.wp_NewNodeClient.spec (GF := GF))
@@ -680,13 +685,16 @@ theorem Orch.wp_proof
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (wp_Codec γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 6) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 5 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (kvR γ) kvS γp m addrs clientAddrs cd _ _ d pendN_craq lintestN_craq
-    (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by decide)
-    (by rw [hlen']; decide) 18 (by decide) $$ [Hlib Hbud]
+  wp_apply wp_Check (kvR γ) kvS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_craq lintestN_craq
+    (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by word)
+    (by rw [hlen']; word) 18 (by simp only [readTries]; word) $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)

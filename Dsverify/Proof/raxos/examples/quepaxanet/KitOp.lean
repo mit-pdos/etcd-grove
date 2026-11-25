@@ -17,6 +17,7 @@ module
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitOpLib
 public import Dsverify.Proof.raxos.Proxy.SliceLit
 public import Perennial.Spec.time.After
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -195,8 +196,11 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   have hd2 : decide (uint.Z (W64 20) ≤ uint.Z (W64 (n : Int))) = false := by
     simp only [decide_eq_false_iff_not]; word
   rw [hd2]
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   wp_auto
   wp_if_destruct
+  all_goals (try (wp_apply math.rand.wp_Intn_pos (W64 6 * W64 1000 + W64 1) (by decide) as %w0 -))
   all_goals (try (wp_apply time.wp_Sleep))
   all_goals
     wp_apply wp_digits
@@ -236,6 +240,8 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iexists _
       rw [ptCB_own]
       iframe Hbp
+      isplitr
+      · ipureintro; exact stateOk_zero _
       iexists [pm]
       iframe Hsl
       isplitr
@@ -251,7 +257,7 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
         iexists _
         rw [ptCSingle_own]
         iframe Hpm
-        ipureintro; exact ⟨rfl, rfl⟩
+        ipureintro; exact ⟨stateOk_zero _, rfl, rfl⟩
       · iapply BigSepL.bigSepL_nil.2; iempintro
     ihave %Hrl := ownSlice_len _ _ _ $$ Hrls
     rw [BigSepL.bigSepL_map] at *

@@ -5,8 +5,7 @@ ten machines, none of which crashes -- the orchestrator (`remote.Check` of four 
 against the write-once register with pending proposals), four client machines (each
 `remote.ServeClient`, its operation the client's proposal over its own paxos node) and five servers
 (three acceptors, two learners; xiang90/paxos over TCP) -- deployed at `paxosKitAddrs` (`DistDeploy`:
-the addresses distinct and valid, no connection, no listener). In every execution of fewer than
-`2^63` steps, with any number of threads, no thread of any machine is stuck and none has a
+the addresses distinct and valid, no connection, no listener). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any number of threads, no thread of any machine is stuck and none has a
 top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows. Proved in `Dsverify/Proof/.../paxosnet/TopLevelRobustness.lean`.
@@ -14,6 +13,7 @@ net extension allows. Proved in `Dsverify/Proof/.../paxosnet/TopLevelRobustness.
 module
 
 public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.TopLevelDefs
+public import Dsverify.Proof.Bounds
 
 @[expose] public section
 
@@ -45,7 +45,7 @@ def paxos_remote_robust.spec : Prop :=
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy paxosKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 63)
+    Robustness.Robust [] (system σ) g threads remoteStepBound
 
 end github_com.xiang90.paxos.examples.paxosnet
 end Perennial

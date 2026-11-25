@@ -42,7 +42,7 @@ GOOSE = dict(
 # etc/gen-init.py: Rabia's packages, the names-only libraries the lab modelled, the kit and its
 # programs
 RABIA_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
-PKGS = [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
+PKGS = ['os.signal'] + [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
                                'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
                                'roles.server.layers.network', 'roles.server.layers.consensus',
                                'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
@@ -62,12 +62,23 @@ MAIN = ['bufio', 'container.heap', 'path']
 # neither here nor in `MAIN`
 HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
              'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
-             'github_com.go_redis.redis.v8.internal.proto', 'os.signal']
+             'github_com.go_redis.redis.v8.internal.proto']
+# Not os/signal (dsv-retire-1-inits, 2026-11-25): its variables and `init` are translated, its
+# `Init.lean` generated (`PKGS`) with a proved `wp_initialize'`
 
 
 def special(g):
     """Configurations of the kit's packages (`g`: etc/gen-init.py's globals)."""
     SPECIAL, newvars_cfg, FIN_PRE = {}, g.newvars_cfg, g.FIN_PRE
+    # (dsv-retire-1-inits) os/signal: the zero-valued `handlers`, `watchSignalLoopOnce`,
+    # `watchSignalLoop`, and `init.0` (`watchSignalLoop = loop`)
+    SPECIAL['os.signal'] = dict(
+        doc='''Its fact is `True`. Its initializer allocates `handlers`, `watchSignalLoopOnce` and
+`watchSignalLoop` (zero values), initializes its imports `os` and `sync`, and runs its `init`, which
+stores the function value `loop` (not called) in `watchSignalLoop`.''',
+        alloc_types={'handlers': '_root_.Perennial.os.signal.«struct#c69a5a71»',
+                     'watchSignalLoopOnce': '_root_.Perennial.sync.Once',
+                     'watchSignalLoop': 'GoFunc'})
     SPECIAL['rabia.internal.config'] = dict(
         doc='''Its fact (`Base.lean`): `Conf`'s invariant `confInv`, as initialized. Its initializer
 allocates `Conf` and initializes its imports.''',
@@ -240,34 +251,37 @@ the configuration, configures Rabia and connects its Rabia client endpoint, then
 `remote.ServeClient`) and five server machines (each waits for the configuration and, if it is one
 of its `n` servers, runs a Rabia server; rabia over TCP) -- deployed at `rabiaKitAddrs`
 (`DistDeploy`: the addresses distinct and valid, no connection, no listener). In every execution
-of fewer than `2^63` steps, with any number of threads, no thread of any machine is stuck and none
+of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any number of threads, no thread of any machine is stuck and none
 has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows.
 
-**Premises** (visible, each a hypothesis class of the proof, at the bundle `remoteGF` the proof
-uses, for every machine's heap): the libraries translated with names only, whose functions
-(`zerolog.Hyps`: a logger's five non-panicking levels on a
-non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
-`message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
-`NewSource`/`New`/`Rand.Intn` with exclusive tokens) have no model here,
-and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
-deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
-`log.Println` is proved from Perennial's trusted model of `log`; `math/rand`'s initializer and
-package-level `Intn` from Perennial's proofs. The initializers of those libraries (zerolog, gogo `proto`, `gogoproto`,
-`os/signal`) are per-package trust-boundary axioms (their `wp_initialize'`,
-`etc/tcb-collections/dsv-rabia.txt`), not premises, but go-redis v8's, still a premise (`InitHyp`:
-it runs without panicking; its axiom review refuted it as an axiom,
-`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`). Proved in
+**Premise** (at the bundle `remoteGF` the proof uses, for every machine's heap): go-redis v8's
+initializer runs without panicking (`InitHyp`; its axiom review refuted it as an axiom,
+`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`). Not premises: the functions of the
+libraries translated with names only (zerolog's `New(nil)`, a logger's levels, events and `Msg`; gogo `proto`'s
+`Register*` calls in `message`'s initialization; math/rand's `NewSource`/`New`/`(*rngSource).Int63`)
+and the environment claim that nobody sends SIGINT or SIGTERM to the deployment's processes
+(`signal.Notify(c, SIGINT, SIGTERM)` registers a channel that never receives) are per-function
+trust-boundary axioms, and so are the initializers of zerolog, gogo `proto`, `gogoproto` and
+`os/signal` (their `wp_initialize'`); every axiom the result rests on is listed in
+`etc/tcb-collections/dsv-rabia.txt`. `log.Println` is proved from Perennial's trusted model of
+`log`; `math/rand`'s initializer, package-level `Intn` and `(*Rand).Intn` from Perennial's code.
+Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.''',
-        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.rs.zerolog.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init', 'public import Dsverify.Proof.os.signal.Spec', 'public import Dsverify.Proof.math.rand.Spec'],
+        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init'],
         opens=['open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         heap_at='spec',
         heap_at_doc='''A machine's heap over `remoteGF` at the deployment's Go local context `lctx` (the heaps the
 proof makes, one per machine): the global ghost state `G` and the local `L`, its local context
 `lctx`. The premises below hold of every such heap.''',
-        addrs='rabiaKitAddrs', steps='2 ^ 63',
-        premises=[('hph', 'github_com.gogo.protobuf.proto.Hyps'), ('hri', 'github_com.go_redis.redis.v8.InitHyp'), ('hz', 'github_com.rs.zerolog.Hyps'), ('hmr', 'math.rand.Hyps'), ('hns', 'os.signal.NoSignals os.signal.quietSigs')],
+        addrs='rabiaKitAddrs', steps='remoteStepBound',
+        premises=[('hri', 'github_com.go_redis.redis.v8.InitHyp')],
+        # (dsv-fix4) the library classes the proof discharges from per-function axioms
+        discharged=[('github_com.gogo.protobuf.proto.Hyps', 'github_com.gogo.protobuf.proto.hyps_holds'),
+                    ('github_com.rs.zerolog.Hyps', 'github_com.rs.zerolog.hyps_holds'),
+                    ('math.rand.Hyps', 'math.rand.rng.hyps_holds'),
+                    ('os.signal.NoSignals os.signal.quietSigs', '⟨os.signal.Notify.wp_proofQuietSigs⟩')],
     ),
     defs=dict(
         doc='''The rabia kit's deployment (notes/dsv-rabia.md): its twelve machines' boot programs and addresses,
@@ -291,7 +305,7 @@ addresses still unset), remote's map of operations, the client machines' address
 state, and each machine's boot program from its share, through `robust_of_distProtoRB`. The boot
 (`wp_boot`) hands `main` the machine's package state after the initialization (`ownGoState`, out
 of `ownInitializing`): the clients and servers claim `config.Conf` with it.''',
-        imports=['public import Dsverify.Proof.rabia.examples.rabianet.Linked', 'public import Dsverify.Proof.rabia.examples.rabianet.CodecProof', 'public import Dsverify.Proof.rabia.Core.Start', 'public import Net.Statement.DistBridge'],
+        imports=['public import Dsverify.Proof.rabia.examples.rabianet.Linked', 'public import Dsverify.Proof.rabia.examples.rabianet.CodecProof', 'public import Dsverify.Proof.rabia.Core.Start', 'public import Net.Statement.DistBridge', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.HypsHoldLinked', 'public import Dsverify.Proof.github_com.rs.zerolog.HypsHoldLinked', 'public import Dsverify.Proof.math.rand.RandsLinked', 'public import Dsverify.Proof.os.signal.Notify'],
         options=['set_option linter.unusedSectionVars false', 'set_option maxRecDepth 100000'],
         opens=['open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote rabia', 'open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         boot='gostate',

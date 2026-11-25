@@ -153,6 +153,8 @@ theorem boot_craqnet :
   try wp_auto
   wp_apply net.wp_initialize' _ (wf_net hk) $$ Hown as ⟨Hown, #Hg8⟩
   try wp_auto
+  wp_apply math.rand.wp_initialize' _ (wf_math_rand hk) $$ Hown as ⟨Hown, #Hg11⟩
+  try wp_auto
   wp_apply log.wp_initialize' _ (wf_log hk) $$ Hown as ⟨Hown, #Hg9⟩
   try wp_auto
   wp_apply io.wp_initialize' _ (wf_io hk) $$ Hown as ⟨Hown, #Hg10⟩

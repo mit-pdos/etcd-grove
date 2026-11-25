@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.github_com.anishathalye.porcupine
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
 public import Dsverify.GeneratedProof.github_com.xiang90.paxos
+public import Perennial.GeneratedProof.math.rand
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.xiang90.paxos.examples.paxosnet

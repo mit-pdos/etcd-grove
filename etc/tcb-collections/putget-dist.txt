@@ -20,14 +20,7 @@ axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
-axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.health.grpc_health_v1.initFuncsOk
-axiom Perennial.google_golang_org.grpc.health.initFuncsOk
-axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.initFuncsOk
-axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
-axiom Perennial.google_golang_org.grpc.opaqueInitsOk
+axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
@@ -46,7 +39,6 @@ axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
-axiom etcdStreamInterceptor
 axiom etcd_dist.Client_Get_dist.wp_proof
 axiom etcd_dist.Client_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
@@ -57,11 +49,9 @@ axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcResolverAt
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom hsEncC_ok
 axiom http.CloseIdleConnections_ok
@@ -154,6 +144,7 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
+axiom streamIcMdIs
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof

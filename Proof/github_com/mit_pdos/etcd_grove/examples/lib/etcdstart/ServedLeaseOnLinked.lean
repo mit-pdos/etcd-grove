@@ -38,7 +38,7 @@ with auth on at `γa`, from the server token `grpcServerAt` of the address (whos
 `grpcLeaseUp`'s), the four Lease methods registered (`etcdLeaseServedOn`). -/
 theorem lease_served_on (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (A : v3rpc.KVAns GF) (il im iu : GoFunc) (regs : List (GoString × GoFunc × GoInterface))
-    (γ : GName) (γa : auth.AuthNames) (hγa : E.authMode = .on γa) (hlm : ρ.rd.kv.lm = .revocable)
+    (sms : List (GrpcStreamMethod GF)) (γa : auth.AuthNames) (hγa : E.authMode = .on γa) (hlm : ρ.rd.kv.lm = .revocable)
     (hA : A.revR = mvcc.api.mvccReaders E.γ 1)
     (HT : threadBound GF ≤ 2 ^ 30 - 1) (Hrb : receiptBound GF ≤ 2 ^ 62) (hP : leasePeersOk)
     (HL : srvLevels (GF := GF)) :
@@ -49,14 +49,14 @@ theorem lease_served_on (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : Re
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
       |={⊤}=> etcdLeaseServedOn addr s E ρ := by
   iintro ⟨#Pv, #Ps, #Hreq, #Hrd, #Hlb, #HNR, #Hlr, #Hlu, #Hil, #Him, #Hiu, #Hat, #Hb, #Hrp⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
   iunfold grpcLeaseUp at Hlu
   icases Hlu with ⟨%ql, %pl, %lcid, %lmid, %HLr, #Hql, #Hlat⟩
   -- the grant and the revocation
-  imod (client.etcd_lease_auth_served_on addr ql pl s A lcid lmid E ρ ρ.rd il im iu regs γ γa hγa
+  imod (client.etcd_lease_auth_served_on addr ql pl s A lcid lmid E ρ ρ.rd il im iu regs sms γa hγa
       hlm rfl HLr HL) $$ [] with ⟨#HG, #HR⟩
   · iframe #
   -- the reads' contract, from the server
@@ -74,7 +74,7 @@ theorem lease_served_on (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : Re
     $$ []
   · iframe #
   imod (client.etcd_lease_read_served addr ql pl s A lcid lmid E ρ.rd (mvcc.api.mvccLeases E.γ)
-      il im iu regs γ hA HLr HL) $$ [] with ⟨#HT', #HL'⟩
+      il im iu regs sms hA HLr HL) $$ [] with ⟨#HT', #HL'⟩
   · iframe #
   imodintro
   iunfold etcdLeaseServedOn

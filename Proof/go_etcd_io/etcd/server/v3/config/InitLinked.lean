@@ -15,7 +15,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.Init
-public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Init
+public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.path.filepath.Init
 public import Proof.runtime.PkgInitExt

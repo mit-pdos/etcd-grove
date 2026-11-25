@@ -25,6 +25,30 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__{openWatchClient,newWatchClient,serveWatchClient}.lean`
+  (the watch client), `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/leaseClient__LeaseKeepAlive.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/{retryLeaseClient__LeaseKeepAlive,lessor__resetRecv,lessor__sendKeepAliveLoop}.lean`
+  (the lease client). SpecPlan: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__*.lean`,
+  `.../etcdserverpb/watchClient__Watch.lean` (same shape as the old real specs).
+- **Defect.** Too strong, inherited from `NewStream`'s (the entry below): each fixes, when the stream is
+  returned, its address (the member `i`, the content `watchUp (V.mem i).2`) and its metadata `md`
+  (`clientAttemptMd`, the token `auth.mdTokenOf md`, which `run`'s epoch recorded, `EpInfo`).
+- **Evidence.** SW1's `NewStream` (`phase7-switch`, commit 5): one content `Up` for every address, the
+  dispatch learned with each response (`streamDispIs γ a md`, `Md a md`, `Dn a md`).
+- **Proposed change (applied on `phase7-switch-ab`).** The watch client: the requests' content is one for
+  every member (`client.watchUpW V`: a create's bound published at every member's auth store, which
+  `wsBdOk` already holds; `watchConnFacts`' per-member registration gives it, `isGrpcStreamMd_mono`,
+  `watchConnFacts_regW`); the specs return `cliWatchStreamIs … (watchUpW V) (watchMdW V om) Dn` and
+  `□ ∀ a md, watchMdW V om a md -∗ watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md)`;
+  `EpInfo` drops the member and the token; `respcE` carries each response's dispatch; `run`'s epoch
+  (`epochAt`) learns its member and token with its first response (until then no substream's state reads
+  them: `wsElem_atIdx_nil`). The callers' guarantees (`watcher.Watch.spec`, `watchCheckOk`'s statement
+  but its `clientAttemptMd` conjunct, now SW1's `IProp` `clientAttemptMdI`) are unchanged. The lease
+  client: an existential dispatch family `Md` and a dispatch-indexed `Dn` (it never reads the content).
+- **Decision.** Applied with SW1 (branch `phase7-switch-ab`), pending the user's review of SW1.
 ## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
@@ -6978,3 +7002,22 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the validation passes, `Run`'s checks are reached). The hashes remain outside until F2.
 - **Decision.** Pending: the program the top-level statement is about changes, Upamanyu's (#8, via
   coordinator-E).
+## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
+
+- **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
+  of gryff's premise `SortSliceHyp` (`Dsverify/Proof/gryff/Lib/SortHyps.lean`); its one user,
+  `gryffcommon.ShortCircuit`'s `sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })`.
+- **Defect.** As the entry above: no bound on the slice's length, and past `2^62` elements pdqsort's heapsort
+  fallback overflows `2*root+1`, so the triple may be false in the model (an axiom, here: it would make
+  `gryff_remote_robust` rest on a false statement).
+- **Evidence.** The entry above (`zsortfunc.go`, Perennial's sort specs' `2^62` premise; zeldovich, #18).
+- **Proposed change.** `ShortCircuit` (the kit's gryff fork, `examples/dsverify/gryff/src/gryffcommon/coordinator.go`)
+  sorts with `slices.Sort(keys)` and runs the sort and the reads short-circuit loop only while
+  `len(keys) <= maxShortReads` (`1 << 20`); the writes part stays unguarded. Skipping is safe: a read in
+  `ShortReads` has already sent its `Read1`s and stays in `OngoingReqs` and `rops`, so it completes by its own
+  replies, as any read the loop finds already completed. The model's `shortCircuit` takes the guard
+  (`shortReadsLen`, `maxShortReads`; past it nothing changes), and the proof applies Perennial's
+  `slices.wp_Sort` with `cmp.Less` at `int32` (`Spec/cmp/Less.lean`'s `specInt32`), the guard giving its
+  length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
+  no longer a premise since dsv-fix4).
+- **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).

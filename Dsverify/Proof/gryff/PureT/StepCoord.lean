@@ -268,7 +268,13 @@ theorem shortCircuit_ok (s : RState) (hc : CoordOK s.maxN s.ongoingReqs s.wops s
     intro h; have := (hsr n h).2 op hn; rw [hw] at this; cases this
   have hc0 := hc.putSame (op' := { op with shortReads := op.shortReads.mergeSort (fun a b => sle a b) })
     hn rfl (fun x hx => (List.mem_mergeSort).1 hx)
-  simp only [shortCircuit, hn]
+  unfold shortCircuit
+  have hl : shortReadsLen s n = op.shortReads.length := by simp [shortReadsLen, hn]
+  rw [hl]
+  split
+  rotate_left
+  · exact OkO.some ⟨s.ongoingReqs, s.rops, rfl, hc, by simp⟩
+  simp only [shortCircuitReads, hn]
   apply OkO.bind
   refine (OkO.loop _ _ _ (fun _ b => ∃ oq rs, b.1 = { s with ongoingReqs := oq, rops := rs } ∧
       CoordOK s.maxN oq s.wops rs s.used ∧

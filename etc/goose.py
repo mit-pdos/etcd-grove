@@ -624,10 +624,24 @@ PROJECTS = [
             "google.golang.org/grpc/status",
             # names only: the target of the alias grpc/status.Status (client/v3/leasing)
             "google.golang.org/grpc/internal/status",
+            # (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23) names only but the hook
+            # variables the translated `init`s of grpc, `codes`, `metadata` and `health` set
+            # (`Code/google_golang_org/grpc/internal.toml`), and `FromOutgoingContextRaw`, which grpc's
+            # `metadataFromOutgoingContextRaw` asserts
+            "google.golang.org/grpc/internal",
+            # (phase7-inits batch 2, 2026-11-25) types and names only but its `logger`: `State`, the
+            # type grpc's `internal.HealthChecker` names
+            "google.golang.org/grpc/connectivity",
+            # (phase7-inits batch 2) types and names only but its `logger` and `init`: `SubConn`, the
+            # type `health`'s `registerClientSideHealthCheckListener` names
+            "google.golang.org/grpc/balancer",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
             "google.golang.org/protobuf/internal/pragma",
+            # types only: the message gRPC's robustness driver (examples/lib/grpcdriver) carries,
+            # `StringValue`, and its constructor `String`, with its body
+            "google.golang.org/protobuf/types/known/wrapperspb",
             # names only: the types of clientv3.Client's fields
             "google.golang.org/grpc",
             "google.golang.org/grpc/credentials",
@@ -899,6 +913,8 @@ PROJECTS = [
                   # net/rpc's driver (notes/library-drivers.md)
                   "./rpcdriver", "./rpcdriver/service", "./rpcdriver/cmd/server",
                   "./rpcdriver/cmd/client",
+                  # net/http's driver (notes/library-drivers.md)
+                  "./httpdriver", "./httpdriver/cmd/server", "./httpdriver/cmd/client",
                   # each node a command of its example, its own process (examples/net/README.md)
                   "./echo/cmd/server",
                   "./echo/cmd/client",
@@ -1069,6 +1085,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["./putget"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+    ),
+    Project(
+        name="grpcdriver",
+        # gRPC's robustness driver (examples/lib/grpcdriver, notes/library-drivers.md): its server and
+        # client machines' package, its service (`svc`, in protoc-gen-go-grpc's form over protobuf's
+        # `StringValue`) and their commands. A package of the examples' Go module (examples/go.mod);
+        # grpc (from its model), protobuf's `wrapperspb` and the rest are the etcd project's
+        # translations (names reached through the empty root), `net` the part Net/'s.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "grpcdriver"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=",
+                    "net/http/httptrace=", "net=Net"],
+        packages=[".", "./svc", "./cmd/server", "./cmd/client"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "grpcdriver")],
     ),
     Project(
         name="axiomcx-bboltnan",

@@ -85,7 +85,7 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
 /-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
-its message `msg`, `rpcErrDecode()`'s, persistently. The generated codec's `Decode` returns no other error:
+its message `msg`, `rpcErrDecode()`'s, and whose field `s` holds it, persistently. The generated codec's `Decode` returns no other error:
 only `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")`
 (`models/net/rpc/rpcgen_core.py`), on bytes that do not parse. It also panics (`rpcNotModelled`)
 on a type tag that parses but names another type than the target's, and on a `nil` or unlisted
@@ -101,6 +101,7 @@ def decErr (err : GoInterface) : IProp GF :=
   iprop(∃ (x : Loc) (msg : GoString),
     ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∧
       msg = go!"net/rpc model: malformed value"⌝ ∗
+    x.[errors.errorString, go!"s"] ↦□ msg ∗
     □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
         (Val #())) {{ Φ }})

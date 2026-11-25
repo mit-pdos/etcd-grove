@@ -1222,8 +1222,7 @@ noncomputable def command.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Op is client c's operation, run on client machine c with its QuePaxa client (NewClient's Sys),
     one request as QuePaxa's benchmark client sends one: before the client's first request it waits
-    c*StaggerMs (staggered clients keep fault-free histories small enough for the check; time is
-    not modeled: the theorem allows any delay); a ClientBatch from the client (its name the sender)
+    a random 0 to NC*StaggerMs (time is not modeled: the theorem allows any delay); a ClientBatch from the client (its name the sender)
     with one command and a fresh batch id ("<name>.<seq>": distinct across the clients, whose names
     are) sent to every replica's proxy; then the first answer with that id, for at most OpMs: no
     answer in time is an unknown outcome (Out{Unknown: true}). An answer's command is the store's
@@ -1236,7 +1235,7 @@ noncomputable def command.impl [GooseExts] [GoGlobalContext] : val :=
     (NC clients, K each: notes/dsv-quepaxa.md). An operation past the budget has an unknown outcome
     without sending anything.
 
-    go: kit.go:450:6 -/
+    go: kit.go:449:6 -/
 noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
@@ -1338,7 +1337,8 @@ noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "id") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "seq")) (Val #(W64 0)))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Sys.ty go!"c"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Sys.ty)))) (Var "s")))) (Val StaggerMs)))) (Val #(W64 1000000))))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (Val NC) (Val StaggerMs)))) (Val #(W64 1))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))) (Val #(W64 1000000))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))
@@ -1369,7 +1369,7 @@ noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
 /-- result is the operation's output from the answer rep. With checks (the stress test only), the
     answer must be to a command of the request's type and key.
 
-    go: kit.go:486:6 -/
+    go: kit.go:485:6 -/
 noncomputable def result.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "checks"
   (Lam "in"
@@ -1450,7 +1450,7 @@ noncomputable def result.impl [GooseExts] [GoGlobalContext] : val :=
     key for the round is mix(c, r) mod NKeys, so the rounds spread over the keys without a fixed
     per-client pattern of the keys' order and without state.
 
-    go: kit.go:510:6 -/
+    go: kit.go:509:6 -/
 noncomputable def mix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "r"
@@ -1485,7 +1485,7 @@ noncomputable def mix.impl [GooseExts] [GoGlobalContext] : val :=
     and every key is written and read by several clients); put values "v<c><j>" (c's one digit,
     then j in decimal) are distinct, never empty and never "nil" (c below 10).
 
-    go: kit.go:522:6 -/
+    go: kit.go:521:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "j"
@@ -1531,7 +1531,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
     may be called for any c >= 0, concurrently (its spec is lintest's genSpec), so the counters are
     taken under a lock, client c's at index c mod NC.
 
-    go: kit.go:533:6 -/
+    go: kit.go:532:6 -/
 noncomputable def Gens.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Val #())))
@@ -1584,7 +1584,7 @@ noncomputable def Gens.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- digit is n's last decimal digit.
 
-    go: kit.go:547:6 -/
+    go: kit.go:546:6 -/
 noncomputable def digit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1601,7 +1601,7 @@ noncomputable def digit.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- digits is n in decimal.
 
-    go: kit.go:552:6 -/
+    go: kit.go:551:6 -/
 noncomputable def digits.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1635,7 +1635,7 @@ noncomputable def digits.impl [GooseExts] [GoGlobalContext] : val :=
     configuration.NewInstanceConfig, no replica's or client's own IP is replaced by 0.0.0.0 (every
     node dials its peers' configured addresses, itself included; QuePaxa listens on 0.0.0.0 anyway).
 
-    go: kit.go:565:6 -/
+    go: kit.go:564:6 -/
 noncomputable def config.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "addrs"
@@ -1726,7 +1726,7 @@ noncomputable def config.impl [GooseExts] [GoGlobalContext] : val :=
     with an acknowledgment (the orchestrator sends again until it has one); the first is sent on ch.
     A connection that fails, or whose bytes are not a configuration, is closed without an answer.
 
-    go: kit.go:584:6 -/
+    go: kit.go:583:6 -/
 noncomputable def awaitConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "ch"
@@ -1864,7 +1864,7 @@ noncomputable def awaitConf.impl [GooseExts] [GoGlobalContext] : val :=
     operation 1) starts them: Server.StartProposers. A server machine that is not one of the
     replicas only waits. It never returns.
 
-    go: kit.go:619:6 -/
+    go: kit.go:618:6 -/
 noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -1946,7 +1946,7 @@ noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- registerProto: the real google.golang.org/protobuf needs no codec (the lab's protobuf model took
     the kit's generated codec here, proto.SetCodec; notes/dsv-quepaxa.md, "What is missing").
 
-    go: kit.go:639:6 -/
+    go: kit.go:638:6 -/
 noncomputable def registerProto.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -1956,7 +1956,7 @@ noncomputable def registerProto.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- attempt is AttemptMs as a duration.
 
-    go: kit.go:642:6 -/
+    go: kit.go:641:6 -/
 noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -1970,7 +1970,8 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
 
 /-- orch is the orchestrator over the given configuration and client addresses: New, a wait of
-    StartMs for the machines to connect (time is not modeled), then remote.Check.
+    StartMs for the machines to connect (time is not modeled), then remote.Check of a random 1 to K
+    operations per client.
 
     go: kit.go:648:6 -/
 noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1988,7 +1989,8 @@ noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "clients"))
   (Let "$a2" (App (App (Val (GoInstruction (FuncResolve Codec []))) (Val #())) (Val #()))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
-  (Let "$a4" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val K))
+  (Let "$a4" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val K))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))))
   (Let "$a5" (App (App (Val (GoInstruction (FuncResolve attempt []))) (Val #())) (Val #()))
   (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")))))))))))
   (App (Val doExecute)

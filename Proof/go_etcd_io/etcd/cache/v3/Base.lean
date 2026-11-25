@@ -53,6 +53,19 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace go_etcd_io.etcd.cache.v3
 
+section grpcStatus
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- **`err` carries a gRPC status** (pure; grpc-trusted-T, T3, 2026-11-24): a non-nil error whose
+dynamic type has grpc's `GRPCStatus() *Status` method, so that `status.FromError` takes it as a status
+error (`ok = true`, given `statusErrOk`'s non-nil status: grpc v1.84.0 `status.go:96-127`). What a
+caller tells grpc's own errors apart by (the gRPC driver's `errOk`); `*status.Error` is such a type. -/
+def hasGRPCStatus (err : GoInterface) : Prop :=
+  ∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" =
+    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+
+end grpcStatus
+
 section desc
 
 -- An error's description (D29): the per-run relation `descIs err m` below (errdesc stage 2b, 2026-11-21;
@@ -158,6 +171,135 @@ instance authpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.a
 instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf
+
+/-- **An init-time invariant** (phase7-inits, 2026-11-25; the mechanism of phase 7 S2 core's
+`fromOutRawInv`): a resource `R` that only package initializers use, shared between packages (one
+allocates it, others use it, and a package fact is persistent). Two states. *Held*: `R` and the whole of
+the ghost variable `γI`. *Lent*: a package initializer's exclusive package state (`ownGoState σ`, the
+program's half of the package map with the authority of the initialized packages) and half of `γI` at
+`σ`. A package initializer, which holds its `ownGoState`, takes `R` out by lending its package state (so
+no other holder of a package state can take it meanwhile: two `ownGoState`s conflict), uses it with plain
+(non-atomic) steps, and puts it back, getting its own package state back (`γI`'s halves agree):
+`grpc/internal/Hooks.lean`, `initInv_acc`. -/
+def initInv (R : IProp GF) (γI : GName) : IProp GF :=
+  iprop((R ∗ ∃ x : GMap GoString Bool, ghost_var γI (DFrac.own 1) x) ∨
+    (∃ σ : GMap GoString Bool, ownGoState σ ∗ ghost_var γI (DFrac.own (1 : Qp).half) σ))
+
+-- grpc's `grpclog` and `grpclog/internal` (types and names only, but `grpclog`'s `cache` and
+-- `Component`), before `connectivity`, `credentials`, `health` and grpc, whose `logger`s call
+-- `grpclog.Component` at init (phase7-inits batch 2, 2026-11-25; until then in
+-- `k8s/.../storage/etcd3/Base.lean`, fact `True`)
+instance google_golang_org_grpc_grpclog_internal_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  define_is_pkg_init iprop(True)
+instance google_golang_org_grpc_grpclog_internal_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  build_get_is_pkg_init_wf
+
+namespace google_golang_org.grpc.grpclog
+
+/-- The namespace of `cache`'s invariant. -/
+def cacheN : Namespace := nroot.@"grpclogCache"
+
+/-- **`grpclog`'s package fact** (phase7-inits batch 2, 2026-11-25; until then `True`): `cache` holds a
+map for good, whose contents (a component's name to its `*componentData`) are in an init-time invariant
+(`initInv`): `Component`, which reads and writes the map, is called only by package initializers (the
+`logger`s of grpc, `credentials`, `health` and `connectivity`; `Spec/google_golang_org/grpc/grpclog/Component.lean`). -/
+def grpclogInit : IProp GF :=
+  iprop(∃ (m : Loc) (γI : GName),
+    globalAddr _root_.Perennial.google_golang_org.grpc.grpclog.cache ↦□ m ∗
+    inv cacheN (initInv (∃ M : GMap GoString Loc, m ↦$ M) γI))
+
+instance grpclogInit_persistent : Persistent (grpclogInit (GF := GF)) := by
+  unfold grpclogInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
+  define_is_pkg_init grpclogInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.grpclog
+
+-- (phase7-inits batch 2) grpc's `connectivity` (types and names only but its `logger`): `State`, the
+-- type grpc's `internal.HealthChecker` names; before `internal`
+instance grpc_connectivity_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.connectivity :=
+  define_is_pkg_init iprop(True)
+instance grpc_connectivity_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.connectivity :=
+  build_get_is_pkg_init_wf
+
+-- (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23, for `FromOutgoingContextRaw`) grpc's
+-- `internal` (names only but its hook variables), before `metadata`, `codes` and grpc, whose `init`s set
+-- them
+namespace google_golang_org.grpc.internal
+
+/-- The namespace of the hook cells' invariants. -/
+def hookN : Namespace := nroot.@"grpcInternalHook"
+
+/-- **A hook cell's invariant**: the cell `a`, with some value, in an init-time invariant (`initInv`).
+The cell is another package's: `internal`'s initializer allocates it, the `init` of grpc, `codes`,
+`metadata` or `health` writes it. -/
+def hookInv (V : Type) [TypedPointsto (GF := GF) V] (a : Loc) (γI : GName) : IProp GF :=
+  initInv iprop(∃ v : V, a ↦ v) γI
+
+/-- A write-only hook cell: `a`'s invariant, at some ghost name. -/
+def hookCell (V : Type) [TypedPointsto (GF := GF) V] (a : Loc) : IProp GF :=
+  iprop(∃ γI : GName, inv hookN (hookInv V a γI))
+
+/-- The hook cells of the variables `xs`, of Lean type `V`. -/
+def hookCells (V : Type) [TypedPointsto (GF := GF) V] : List GoString → IProp GF
+  | [] => iprop(True)
+  | x :: xs => iprop(hookCell V (globalAddr x) ∗ hookCells V xs)
+
+instance hookCells_persistent (V : Type) [TypedPointsto (GF := GF) V] (xs : List GoString) :
+    Persistent (hookCells (GF := GF) V xs) := by
+  induction xs with
+  | nil => unfold hookCells; infer_instance
+  | cons x xs ih => unfold hookCells hookCell; infer_instance
+
+/-- The hook variables of type `any` the translated `init`s set: `metadata`'s, `codes`', grpc's
+(`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s. -/
+def hooksAny : List GoString :=
+  [_root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw,
+   _root_.Perennial.google_golang_org.grpc.internal.CanonicalString,
+   _root_.Perennial.google_golang_org.grpc.internal.AddGlobalDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.AddGlobalPerTargetDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.JoinDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.DisableGlobalDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.AcceptCompressors,
+   _root_.Perennial.google_golang_org.grpc.internal.GetServerCredentials,
+   _root_.Perennial.google_golang_org.grpc.internal.IsRegisteredMethod,
+   _root_.Perennial.google_golang_org.grpc.internal.ServerFromContext,
+   _root_.Perennial.google_golang_org.grpc.internal.AddGlobalServerOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.JoinServerOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.XDSFilterWrapperOption,
+   _root_.Perennial.google_golang_org.grpc.internal.RegisterClientHealthCheckListener]
+
+/-- The hook variables of function type the translated `init`s set: grpc's `func()`s, `health`'s
+`HealthCheckFunc` (an `internal.HealthChecker`) and `balancer`'s `BalancerUnregister` (a `func(string)`). -/
+def hooksFunc : List GoString :=
+  [_root_.Perennial.google_golang_org.grpc.internal.ClearGlobalDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalPerTargetDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalServerOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.HealthCheckFunc,
+   _root_.Perennial.google_golang_org.grpc.internal.BalancerUnregister]
+
+/-- **`internal`'s package fact**: the invariants of its hook cells, which only package initializers
+write and no translated code reads (their readers, grpc-go's tests, xds, stats/opentelemetry, orca and
+`experimental`, are outside the model; `Code/google_golang_org/grpc/internal.toml`). -/
+def internalInit : IProp GF :=
+  iprop(hookCells GoInterface hooksAny ∗ hookCells GoFunc hooksFunc)
+
+instance internalInit_persistent : Persistent (internalInit (GF := GF)) := by
+  unfold internalInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal :=
+  define_is_pkg_init internalInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal
 
 -- `google.golang.org/grpc/metadata` (types and names only), before `grpc`, which imports it
 -- (unit W-W: grpc's `ClientStream`/`ServerStream` name `metadata.MD`; moved here from
