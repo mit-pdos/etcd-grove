@@ -16,6 +16,9 @@ module
 public import Dsverify.Spec.gryff.examples.gryffnet.TopLevelRobustness
 public import Dsverify.Proof.gryff.examples.gryffnet.Link
 public import Dsverify.Proof.gryff.examples.gryffnet.StrIndexHolds
+public import Dsverify.Proof.sort.Slice
+public import Dsverify.Proof.math.rand.Seed
+public import Proof.math.Pow
 public import Dsverify.Proof.gryff.examples.gryffnet.Mains
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
 public import Dsverify.Proof.gryff.Start
@@ -144,7 +147,7 @@ end boot
 /-- **The gryff kit, closed** (see the statement's file); net/rpc's client over HTTP over Perennial's
 proofs of `strings.Cut`/`TrimLeft` (Net's `DialHTTP.wp`, in `Link.lean`'s `wp_Server`). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hss hmp hrs σ g
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBTT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 30)
     (2 ^ 63) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
@@ -198,9 +201,9 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     letI : wire.BinaryVarintHyps remoteGF := EtcdGrove.dsvgryff.binaryVarintHyps
     letI : netN.StringsIndexHyp remoteGF := instances.stringsIndexHyp_holds
-    letI : replica2.SortSliceHyp remoteGF := hss G' hG.goose_localGS
-    letI : lib.MathPowHyp remoteGF := hmp G' hG.goose_localGS
-    letI : lib.RandSeedHyp remoteGF := hrs G' hG.goose_localGS
+    letI : replica2.SortSliceHyp remoteGF := ⟨sort.Slice.wp_proofInt32Lt⟩
+    letI : lib.MathPowHyp remoteGF := ⟨EtcdGrove.math.Pow.wp_proof⟩
+    letI : lib.RandSeedHyp remoteGF := ⟨math.rand.Seed.wp_proof⟩
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hT' : threadBound remoteGF ≤ 2 ^ 30 := hT
     have hb' : threadBound remoteGF ≤ 2 ^ 31 ∧ receiptBound remoteGF ≤ 2 ^ 64 := by

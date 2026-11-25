@@ -28,13 +28,13 @@ a client answers at most `K` = 4 operations, later ones unknown (remote's `Check
 `K` times, with `K · readTries` = 12 of remote's per-client budget units, `budUnits`), and its
 operations run under its `Sys` lock.
 
-**Premises** (library pieces not proved in the model; each a hypothesis about real Go, never an
-instance; notes/dsv-gryff.md, "Hypotheses"): `sort.Slice` on `[]int32` with `<` (`SortSliceHyp`);
-`math.Pow` (`MathPowHyp`, the main tree's `math.Pow.spec`); `math/rand.Seed` (`RandSeedHyp`, the
-shared `math.rand.Seed.spec`). Each holds of every machine heap (`heapAt`). net/rpc and net/http
-(the client over HTTP, the server, `DefaultServeMux`, the packages' initializations) are `Net/`'s
-proved specs, over the interim trust-boundary axioms listed in `etc/tcb-collections/dsv-gryff.txt`
-(their first-run initializers, net/http's `Handle` and `Serve`); `encoding/binary`'s varint
+**Premises**: none beyond the deployment. The library functions the proof uses without a proof here
+are per-function trust-boundary axioms, not premises: `sort.Slice` on `[]int32` with `<`
+(`sort.Slice.wp_proofInt32Lt`), `math.Pow` (the main tree's `math.Pow.wp_proof`), `math/rand.Seed`
+(`math.rand.Seed.wp_proof`); net/rpc and net/http (the client over HTTP, the server,
+`DefaultServeMux`, the packages' initializations) are `Net/`'s proved specs, over the interim
+trust-boundary axioms (their first-run initializers, net/http's `Handle` and `Serve`); every axiom
+the result rests on is listed in `etc/tcb-collections/dsv-gryff.txt`. `encoding/binary`'s varint
 functions are Perennial's.
 -/
 module
@@ -43,9 +43,6 @@ public import Dsverify.Proof.gryff.examples.gryffnet.TopLevelDefs
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
-public import Dsverify.Proof.gryff.Lib.SortHyps
-public import Dsverify.Proof.gryff.Lib.MathHyps
-public import Dsverify.Proof.gryff.Lib.RandHyps
 
 @[expose] public section
 
@@ -63,11 +60,6 @@ open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)
 
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 
-/-- A machine's heap over `remoteGF` at the deployment's Go local context `lctx` (rabia's). -/
-abbrev heapAt [lctx : GoLocalContext] (G : GooseGlobalGS HasLC.hasLC remoteGF)
-    (L : GooseLocalGS remoteGF) : HeapGS HasLC.hasLC remoteGF :=
-  ⟨G, { L with goose_go_local_context := lctx }⟩
-
 /-- See the file header. -/
 def gryff_remote_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
@@ -83,9 +75,6 @@ def gryff_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] [rpc_sem : net.rpc.Assumptions],
-    (∀ G L, letI := heapAt G L; replica2.SortSliceHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; lib.MathPowHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; lib.RandSeedHyp remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy gryffKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g (2 ^ 30) (2 ^ 63)
