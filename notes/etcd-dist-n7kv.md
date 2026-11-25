@@ -91,6 +91,11 @@ with nits: everything else. No reachable panic under the premises. Applied (belo
 - Not done (future work, N7): `Deployment.Node`'s converse; `MainReady`'s per-kind share.
 - Go nits: `nonissues/grove-dist-rotate-doc.md`, `nonissues/grove-dist-ready-twice-kv.md` (`blocks-proof: no`).
 - `etc/lean-check.py`'s misbehaviour: `notes/STATUS.md`, "`etc/lean-check.py`: a spurious kernel error".
+- Checked: fk-lean1 `lake build` of `client.KvLinked` and `deployment.Link`, 4708 jobs, exit 0
+  (`/shared/tmp/n7kv-build5.log`); plain `lake env lean` (`/shared/tmp/n7kv-lean.sh`) of every changed module
+  (`Repr`, `KvDefs`, `Rotate`, `RunKV`, `NodeMain`, `MainDeployment`, `NodeDeployment`, `Orchestrator`,
+  `KvLinked`): no error, no `sorry` (`/shared/tmp/n7kv-lean-all.log`); `etc/tier-check.py --check` ok;
+  `etc/api-check.py` ok on every list; `etc/issues-status.py --check` ok.
 
 ## How to continue
 
