@@ -454,7 +454,7 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     iunfold memberDurOut
     iframe HrS Hvac Hsc Hsd Hl
     ipureintro; exact hp
-  · imod rnTakenK_stop (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E hE $$ Hinv Htaken Hst Hlc2 with %hF
+  · imod rnTakenK_stop (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E hE $$ Hinv Htaken Hst with %hF
     exact hF.elim
 
 end dur
