@@ -43,8 +43,7 @@ environment assumption over them is dsv-rabia's `os.signal.NoSignals usr1Sigs`
 (Dsverify/Proof/os/signal/Spec.lean): no `SIGUSR1` is sent to a node. **Not a library spec**:
 real Go's `Notify` registers `c`, and the runtime sends every `SIGUSR1` the process receives on
 it. -/
-def github_com.imdea_software.swiftpaxos.usr1Sigs : List os.Signal :=
-  [interface.mkOk syscall.Signal.ty #(W64 10)]
+abbrev github_com.imdea_software.swiftpaxos.usr1Sigs : List os.Signal := os.signal.usr1Sigs
 
 /-- lab `Harness/Proof/uuid/Specs.lean` `uuid.wp_New` (see the file header): `New()` returns some
 `UUID`. Go's `New` is `Must(NewRandom())`: it reads 16 bytes from `crypto/rand.Reader` (the OS's

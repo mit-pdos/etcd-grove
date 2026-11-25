@@ -6,7 +6,7 @@ applying the index `n + 1` (`applying`), sending the published revision on the t
 so many operations (`isTicks`, its producer's end `ticksW`: each value a published revision,
 positive), then closing it. Started between operations (`writerOwn`, the lessor's `writerLe`), the
 hook's counters at index `0`, with enough room for the values (`vals`, at most three per operation),
-the lease ids (`nextID`, at most one per operation) and the lessor's write tokens (one per
+the lease ids (`nextID`, at most one per operation, at most `2^62`: `genLease`'s bound) and the lessor's write tokens (one per
 operation); ends between operations at index `ops`, the channel closed.
 -/
 module
@@ -37,7 +37,7 @@ abbrev writer.run.spec : Prop :=
     (Hs : List HRev) (L : List w64) (nid : w64) (k : Nat) (T R : IProp GF) (s v ops : w64)
     (γt : SpscNames),
   0 ≤ sint.Z ops → sint.Z ops < 2 ^ 62 → sint.Z ops ≤ k →
-  0 ≤ sint.Z v → sint.Z v + 3 * sint.Z ops < 2 ^ 63 → sint.Z nid + sint.Z ops < 2 ^ 63 →
+  0 ≤ sint.Z v → sint.Z v + 3 * sint.Z ops < 2 ^ 63 → sint.Z nid + sint.Z ops ≤ 2 ^ 62 →
   {{ writerCtx w wv γ (etcdStorage B) f ∗ writerOwn wv γ (etcdStorage B) q σ Hs L ∗
       writerLe w wv γ B f L nid k T R ∗ hookPre wv (W64 0) s ∗ wF go!"vals" w ↦ v ∗
       ticksW γt wv.ticks' γ }}

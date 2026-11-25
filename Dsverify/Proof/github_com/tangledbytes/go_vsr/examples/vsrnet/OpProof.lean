@@ -17,6 +17,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ClientDefs
 public import Perennial.Spec.time.Sleep
+public import Dsverify.Proof.math.rand.IntnPos
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OpProofDefs
 
@@ -67,6 +68,8 @@ theorem Op.wp_proof
   · iPkgInit
   ihave #Hnp : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.network $$ []
   · iPkgInit
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   unfold sysRes
   icases Hres with ⟨%x, %tcp, %vc, %st, %gu, %cst, %N, %Hsys, Hx, #Htcp, Hcl, Hnext, #HsysI,
     #HregI, #Hsize, %Hinv⟩
@@ -79,6 +82,7 @@ theorem Op.wp_proof
       x ↦ Sys.mk tcp vc (W64 (c : Int)) true gu ∗ x_ptr ↦ x))) $$ [Hx x]
   · cases st
     · wp_auto
+      wp_apply math.rand.wp_Intn_pos (W64 3000 + W64 6 * W64 300 + W64 1) (by decide) as %w0 -
       wp_apply time.wp_Sleep
       iframe
       itrivial

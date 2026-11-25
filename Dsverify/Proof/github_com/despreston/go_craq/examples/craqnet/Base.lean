@@ -14,6 +14,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.log
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
+public import Perennial.Proof.math.rand.Base
 public import Net.Proof.net.rpc.PkgInit
 public import Net.Proof.net.http.PkgInit
 

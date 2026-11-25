@@ -6,48 +6,44 @@ against the key-value map with pending puts, porcupine over kit.go's `Model()`),
 machines (each waits for the configuration, registers the codec, then `remote.ServeClient`; a put
 is the coordinator's `Write`, a get a chain node's `Read`), the coordinator's machine and five
 chain machines (go-craq's `coordinator` and `node` over net/rpc over HTTP) -- deployed at
-`craqKitAddrs` (`DistDeploy`). In every execution of fewer than `2 ^ 63` steps along which every
-machine keeps fewer than `2 ^ 31` live threads, no thread of any machine is stuck and none has a
+`craqKitAddrs` (`DistDeploy`). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps along which every
+machine keeps fewer than `rpcThreadBound` (`2 ^ 30`) live threads, no thread of any machine is stuck and none has a
 top-level panic (`Robust`). Since the orchestrator panics unless porcupine accepts the history,
 this says porcupine accepts every history, under every fault the net extension allows.
 
-**The bounds**: `2 ^ 63` steps (remote's clock, `receiptBound ≤ 2 ^ 63`) and fewer than `2 ^ 31`
+**The bounds**: `2 ^ 63` steps (remote's clock, `receiptBound ≤ 2 ^ 63`) and fewer than `2 ^ 30`
 live threads per machine: net/rpc's server (Net's `Server.ServeHTTP.spec`/`ServeCodec.spec`, run
-under `RpcHttpServe`'s `HandleHTTP`/`ListenAndServe` by the coordinator's and the chain machines)
-needs the machine's thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an
-`int32`), which the deployment bridge (dsv-epaxos's `robust_of_distProtoLisRBT`, here with no
-wildcard listener, over Perennial's `goose_dist_adequacy_below`) takes along the execution at
-hand, `Robust`'s `threads`. (Until 2026-11-24 the bridge bounded the threads by the step count
-plus 2, and the step bound was `2 ^ 31 - 1`.)
+under `HandleHTTP`'s handler by the coordinator's and the chain machines) needs the machine's
+thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an `int32`), and net/http's
+first initialization (Net's `net.http.wp_init_first`) `threadBound ≤ 2 ^ 30` (the reader-slot pools
+of `DefaultServeMux`'s `RWMutex`), which the deployment bridge (dsv-epaxos's
+`robust_of_distProtoLisRBT`, here with no wildcard listener, over Perennial's
+`goose_dist_adequacy_below`) takes along the execution at hand, `Robust`'s `threads`.
 
-**Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
-machine's heap `heapAt G L` and the start's `NetProtoGS`; never an instance):
-* H6: `LogHyp` (`log.Default` and `*Logger`'s methods, which Perennial's trusted `log` model
-  leaves without a body);
-* H2/H3, net/rpc's server over HTTP (`RpcHttpServe`: `rpc.HandleHTTP`, `http.ListenAndServe`
-  and `DefaultServeMux`), over models-rpc-http's `RpcWorld` and `rpcAddrP`;
-* F2: each machine's boot resources from its initialization (`RpcBoot`: the codec registry,
-  net/rpc's and net/http's package variables, `DefaultServeMux` unclaimed, `DefaultServer`, Net's
-  `net.rpc.defaultServer`).
-Not premises: the package-level `rpc.RegisterName` on `DefaultServer` (Net's
-`net.rpc.RegisterName.wp`, rpc-defaultserver); net/rpc's client over HTTP (`rpc.DialHTTP`,
-models-rpc-http's `DialHTTP.wp`, over `DialHTTPPath` and net/http's `ReadResponse`) is proved,
-and so is the allocation of the net/rpc world at the server addresses (Net's `addrs_set_proto` and
-the registry's invariant). F1, RemoveNode's method obligation, is proved (net-rpc-errors'
-`callRet` admits a forwarded `errAny` error, `cnewArg_RemoveNode`); F3, the chain nodes' `errOk`,
-is proved (Net's `errOk` is over the server's own messages, `srvErrMsg`, which Read's not-found is
-not; `nodeSpec_errOk`).
+**Premises** (each at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the start's
+`NetProtoGS`):
+* `LogHyp`: `log.Default` and `*Logger`'s `Printf`/`Println` on the operands craq logs (`argOk`),
+  which Perennial's trusted `log` model leaves without a body (its axiom review refuted it as
+  axioms: `fmt` calls an operand's `Format`/`GoString`, `notes/axiom-review/dsv-fix4/log-logger.md`);
+* `RpcHttpServe` (`Craq/HttpRpc.lean`): `http.ListenAndServe(a, nil)` serves `a`'s connections with
+  `DefaultServeMux`, over Net's `muxRpc` and models-rpc-http's `RpcWorld` and `rpcAddrP` (Net proves
+  `http.Serve` on a listener, not `ListenAndServe`).
+Not premises: net/rpc's server side but `ListenAndServe` (`rpc.HandleHTTP`, `rpc.RegisterName` of a
+fresh name), net/rpc's client over HTTP (`rpc.DialHTTP`), each machine's boot (the codec registry,
+net/rpc's and net/http's package variables) and the allocation of the net/rpc world at the server
+addresses are proved, over `Net/`'s specs. The trust-boundary axioms the proof rests on are listed
+in `etc/tcb-collections/dsv-craq.txt`.
 Proved in `Dsverify/Proof/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean`.
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.TopLevelDefs
-public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitSpecs
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.HttpRpc
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
-public import Net.Proof.net.rpc.Init
-public import Net.Proof.net.http.Init
 
 @[expose] public section
 
@@ -89,32 +85,10 @@ def craq_remote_robust.spec : Prop :=
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; LogHyp remoteGF) →
-    ∀ (rs : ∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF),
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.client0.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client0) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.client1.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client1) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.client2.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client2) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.client3.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client3) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.client4.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client4) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.server1.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server1) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.server2.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server2) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.server3.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server3) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.server4.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server4) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.server5.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server5) →
-    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, letI := rs G L π;
-      RpcBoot (GF := remoteGF) cmd.server6.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6) →
+    (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy craqKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g (2 ^ 31) (2 ^ 63)
+    Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound
 
 end github_com.despreston.go_craq.examples.craqnet
 end Perennial

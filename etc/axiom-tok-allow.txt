@@ -117,20 +117,18 @@ trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 trunc Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof
-# --- rpc-driver's interim init axioms (2026-11-24; for the coordinator's review) ---
-# `net.http.wp_init_first`, `net.rpc.wp_init_first` (Net/Proof/net/{http,rpc}/InitFirst.lean; interim,
-# retired by L2 step 6, notes/library-drivers.md): the shape of the swiftpaxos kit's `RpcFirstInit`. The
+# --- rpc-driver's interim init axiom (2026-11-24; for the coordinator's review) ---
+# `net.http.wp_init_first` (Net/Proof/net/http/InitFirst.lean; interim, retired by L2 step 6,
+# notes/library-drivers.md; net/rpc's, `net.rpc.wp_init_first`, is proved since dsv-fix2b,
+# 2026-11-25): the shape of the swiftpaxos kit's `RpcFirstInit`. The
 # note is the premise `hsame : ∀ p, p ≠ pkg → g' p = g p`, an equation between the caller's
 # initialization maps, not a resource; the walk stops at `ownInitializing` (Perennial's initialization
 # ghost state, given and returned: `g` before, `g'` after, equal off the package's own entry, which its
 # `isPkgInit` fixes). What the post returns besides is the package's own variables' state, which its
-# initializer allocates (net/rpc: `codecUnset` and `DefaultServer`'s empty owned registry; net/http:
-# `DefaultServeMux` empty), exclusive because `hnot : g pkg ⊢ False` (the package not yet initialized)
+# initializer allocates (net/http: `DefaultServeMux` empty), exclusive because `hnot : g pkg ⊢ False` (the package not yet initialized)
 # makes the first initialization run once per machine; no token or thread resource is produced.
 entry Perennial.net.http.wp_init_first note:IPropequation:g'p=gp  the initialization maps' equation off the package's own entry (see above), not a resource
-entry Perennial.net.rpc.wp_init_first note:IPropequation:g'p=gp  the initialization maps' equation off the package's own entry (see above), not a resource
 trunc Perennial.net.http.wp_init_first
-trunc Perennial.net.rpc.wp_init_first
 # --- dsv-fix2 (2026-11-25): Net's generic init axioms, now reached by the dsverify kits ---
 # `net.http.wp_initialize'`, `net.rpc.wp_initialize'` (Net/Proof/net/{http,rpc}/Init.lean; interim,
 # retired by L2 step 6): the walk stops at `ownInitializing` (Perennial's initialization ghost state,
@@ -229,3 +227,21 @@ trunc Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
+# --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
+# `<pkg>.wp_initialize'` of the nine `HYP_INITS` packages whose `axiom`-skill review survived
+# (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at
+# `ownInitializing` (Perennial's initialization ghost state, given and returned with the same map);
+# the post adds only the package's persistent `isPkgInit` (fact `True`, zerolog's with `io`'s). No
+# token or thread resource is produced.
+trunc Perennial.encoding.gob.wp_initialize'
+trunc Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
+trunc Perennial.github_com.gogo.protobuf.proto.wp_initialize'
+trunc Perennial.github_com.google.uuid.wp_initialize'
+trunc Perennial.github_com.rs.zerolog.wp_initialize'
+trunc Perennial.google_golang_org.grpc.codes.wp_initialize'
+trunc Perennial.gopkg_in.yaml_v2.wp_initialize'
+trunc Perennial.io.ioutil.wp_initialize'
+trunc Perennial.os.signal.wp_initialize'
+
+# dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): swiftpaxos's gob axioms
+entry Perennial.encoding.gob.Decoder.Decode.wp_proof 3:E:produced1/consumed0  E is the reader's error predicate, `∃`-bound inside the consumed (persistent) `bufio.readsOk rd I`; it occurs produced only in the post of the reader's own `Read` contract (`io.readerOk ri Pre I E`), which `Decode` calls; the axiom's post holds no `E` (review notes/axiom-review/dsv-fix4/encoding-gob.md)

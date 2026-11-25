@@ -35,7 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.os.signal.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos.hook.Assumptions]
 
 namespace github_com.imdea_software.swiftpaxos.hook

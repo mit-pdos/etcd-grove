@@ -3,6 +3,7 @@ module
 
 public import Code.bufio
 public import Perennial.Code.encoding.binary
+public import Perennial.Code.math.rand
 public import Net.Code.net
 public import Net.Code.net.http
 public import Net.Code.net.rpc
@@ -406,7 +407,7 @@ noncomputable def rpcCall_r1_Ping [GooseExts] [GoGlobalContext] : GoString :=
     replicas). Server id listens at its port (the master: on every interface, as SwiftPaxos's
     master does); a replica's net/rpc server 1000 above it.
 
-    go: kit.go:61:6 -/
+    go: kit.go:62:6 -/
 noncomputable def ServerAddrs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -427,7 +428,7 @@ noncomputable def ServerAddrs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ClientAddrs is the client machines' addresses for the orchestrator's calls (remote.Serve).
 
-    go: kit.go:76:6 -/
+    go: kit.go:77:6 -/
 noncomputable def ClientAddrs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -450,7 +451,7 @@ noncomputable def ClientAddrs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")))))
 
-/-- go: kit.go:91:6 -/
+/-- go: kit.go:92:6 -/
 noncomputable def digit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -471,7 +472,7 @@ noncomputable def digit.impl [GooseExts] [GoGlobalContext] : val :=
     for the others (keys up to NKeys-1+ScanN: one never written). A replica's two clients (c and
     c+NReplicas) send it commands of both kinds.
 
-    go: kit.go:100:6 -/
+    go: kit.go:101:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -539,7 +540,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
     little-endian bytes), whose reply value is the values of the keys K..K+N present, in key order,
     concatenated (state.Command.Execute). An unknown outcome on any error or another reply.
 
-    go: kit.go:121:6 -/
+    go: kit.go:122:6 -/
 noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "c"
@@ -699,10 +700,9 @@ noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "conn") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad Out.ty))) (Var "$res0")))))))
 
-/-- start is client c's delay before its first operation: every client waits for the replicas to
-    register, connect and finish their start-up; then the clients of the replica Server(2 + r)
-    start r*StaggerMs later (time is not modeled: the theorem allows any delay; the tests' fault-free
-    histories stay small enough for the check).
+/-- start is client c's delay before its first operation, drawn at each call: every client waits
+    for the replicas to register, connect and finish their start-up (StartMs), then a random 0 to
+    NReplicas*StaggerMs (time is not modeled: the theorem allows any delay).
 
     go: kit.go:158:6 -/
 noncomputable def start.impl [GooseExts] [GoGlobalContext] : val :=
@@ -710,7 +710,8 @@ noncomputable def start.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "c"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val StartMs) (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c")) (Val NReplicas))) (Val StaggerMs)))))) (Val #(W64 1000000))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val StartMs) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (Val NReplicas) (Val StaggerMs)))) (Val #(W64 1))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0"))))))) (Val #(W64 1000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -733,8 +734,8 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
 
-/-- Orch is the orchestrator's program: it panics unless porcupine accepts the history of the
-    clients' operations.
+/-- Orch is the orchestrator's program: it draws each client's number of operations, 1 to Ops, and
+    panics unless porcupine accepts the history of the clients' operations.
 
     go: kit.go:169:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
@@ -745,7 +746,8 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve ClientAddrs []))) (Val #())) (Val #()))
   (Let "$a2" (App (App (Val (GoInstruction (FuncResolve Codec []))) (Val #())) (Val #()))
   (Let "$a3" (App (Val (GoInstruction (FuncResolve Gen []))) (Val #()))
-  (Let "$a4" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val Ops))
+  (Let "$a4" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val Ops))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))))
   (Let "$a5" (App (App (Val (GoInstruction (FuncResolve attempt []))) (Val #())) (Val #()))
   (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))))
   (Val #())))
@@ -6086,7 +6088,7 @@ noncomputable def rpcCall_r1_Ping.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet where
-  pkgImportedPkgs := [pkg_id.bufio, pkg_id.encoding.binary, pkg_id.net, pkg_id.net.http, pkg_id.net.rpc, pkg_id.time, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.config, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.dlog, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.epaxos, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.master, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.replica.defs, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.github_com.anishathalye.porcupine, pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.bufio, pkg_id.encoding.binary, pkg_id.math.rand, pkg_id.net, pkg_id.net.http, pkg_id.net.rpc, pkg_id.time, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.config, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.dlog, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.epaxos, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.master, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.replica.defs, pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.github_com.anishathalye.porcupine, pkg_id.errors]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -6107,10 +6109,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.bufio.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.binary.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.rand.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6456,6 +6461,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   rpcCall_r1_Ping_unfold : FuncUnfold rpcCall_r1_Ping [] rpcCall_r1_Ping.impl
   import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
+  import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
   import_rpc_Assumption : _root_.Perennial.net.rpc.Assumptions
@@ -6577,6 +6583,7 @@ attribute [instance] Assumptions.In_instance
   Assumptions.rpcCall_r1_Ping_unfold
   Assumptions.import_bufio_Assumption
   Assumptions.import_binary_Assumption
+  Assumptions.import_rand_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_http_Assumption
   Assumptions.import_rpc_Assumption

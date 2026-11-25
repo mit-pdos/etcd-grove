@@ -6,7 +6,8 @@ keys on it, in key order, as `end`'s pending revision), every result checked (`R
 hook ran with the index `i`; `Lookup(id)` is `nil` after). The writer, between operations
 (`writerOwn`, `writerLe`), ends between operations at the live leases `L` less `id` (`L` itself when
 none was drawn: no live lease is `0`); the hook saved `i` if a lease was revoked (`hookPost`), else
-nothing ran (`hookPre`, unchanged).
+nothing ran (`hookPre`, unchanged). `nextID` is at most `2^62` (so is every live id, `genLease`'s
+premise).
 -/
 module
 
@@ -34,6 +35,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev writer.revoke.spec : Prop :=
   ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (q : Qp) (σ : MvccState)
     (Hs : List HRev) (L : List w64) (n : w64) (k : Nat) (T R : IProp GF) (i s : w64),
+  sint.Z n ≤ 2 ^ 62 →
   {{ writerCtx w wv γ (etcdStorage B) f ∗ writerOwn wv γ (etcdStorage B) q σ Hs L ∗ writerLe w wv γ B f L n k T R ∗
       hookPre wv i s }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"revoke")) (Val #i))

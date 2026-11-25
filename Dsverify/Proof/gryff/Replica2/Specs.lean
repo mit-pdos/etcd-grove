@@ -152,7 +152,7 @@ variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wi
 /- The harness's trusted models the code calls (H1-R6, N-1): `io.ReadFull` / `ReadAtLeast` in every
 `Unmarshal`, `binary.PutVarint` / `ReadVarint` in the command slices' `Marshal` / `Unmarshal`,
 `strings.Index` (`waitForPeerConnections`), `time.Sleep` (`ConnectToPeers`,
-`waitForPeerConnections`, `SetForceWrite`), `sort.Slice` (`ShortCircuit`). The nodes'
+`waitForPeerConnections`, `SetForceWrite`). The nodes'
 `nodeAssumptions` (`GryffNetSpec.lean`) contain all of them: `replica_boot` (`Server/Boot.lean`)
 takes them from its `Node.Assumptions` hypothesis and passes them to `NewReplica.wp`
 (`Server/Specs.lean`), whose proof reaches these specs. -/

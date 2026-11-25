@@ -12,8 +12,8 @@ counterpart).
   every check passes. From the package's `isPkgInit`, the file's emptiness, the thread
   and receipt bounds, `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
   succeeding; 2026-11-08: until then `runChecks`' result, which admitted `backend.New`'s panic)
-  (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/Main.lean`), and the hypothesis
-  `sort.Slice.spec` (`Spec/sort/Slice.lean`: specified, neither proved nor assumed). The closed
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/Main.lean`) (2026-11-25: no longer the
+  hypothesis `sort.Slice.spec`; `genLease` sorts with `slices.Sort`, proved). The closed
   theorem over it is `Adequacy.lean`'s `mvccrand_adequate`, about executions of fewer than `2 ^ 28`
   steps: each prefix of a run up to that length, not necessarily a complete run (mvcc-r3-1).
 -/
@@ -41,11 +41,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **Every check of mvcc's randomized tester passes** (`Link.lean`'s `mvccrand.wp_Main`; see the
-file header), given `sort.Slice`'s spec. -/
-theorem mvccrand_Main [go_etcd_io.etcd.cache.v3.Assumptions]
-    (h_sort_Slice : sort.Slice.spec (GF := GF) (hG := hG)) :
+file header). -/
+theorem mvccrand_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvccrand.Main.spec (GF := GF) (hG := hG) :=
-  mvccrand.wp_Main h_sort_Slice
+  mvccrand.wp_Main
 
 end results
 

@@ -2348,8 +2348,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   proved here). (It replaces the 2026-11-23 entry "`sort.Slice` is
   names-only": Upamanyu chose rewriting the call in the fork over a model of `reflectlite.Swapper`, #18;
   `slices.SortFunc` is translated and proved in Perennial, `slices.wp_SortFunc`. mvccrand's `genLease`
-  keeps `sort.Slice` and its `Spec/sort/Slice.lean` hypothesis: `slices.Sort` needs `len ≤ 2^62`, which its
-  spec does not bound.)
+  kept `sort.Slice` and its `Spec/sort/Slice.lean` hypothesis until 2026-11-25, when it moved to `slices.Sort`
+  with the `2^62` bound derived from the live lease ids, sortslice2.)
 - **Workaround.** None: `Store` waited for the rule (the fork keeps the idiomatic `cmp.Compare`).
 - **Proposed change.** Complete the `neg_*` scheme in `Predeclared.lean` with an identity `pos_*` beside each
   (`pos_untyped_int (v : Int) : ⟦GoUnOp GoPos go.untypedInt, #v⟧ ⤳ #v`, `pos_int`, ...: Go's `+x` is `0 + x`,
@@ -4692,3 +4692,13 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 ## `MapKeys`/`SafeMapKey`: say that a non-pointer interface is never a `SafeMapKey` at the default keys (2026-11-25 · `notes/axiom-review/ctx-readerrs-vacuity.md`)
 
 - **Limitation.** Since P8c a `SafeMapKey` interface at `mapKeys_interface` is `nil` or a pointer, so stating `SafeMapKey go.error e` of a comparable struct error is `False`; two specs here did, unnoticed for a month. **Proposed.** One line in `Golang/Theory/Map.lean`'s `mapKeys_interface` doc warning of it (and pointing to a local instance). **Status.** Not filed.
+
+### `cmp.Less` is specified only at `uint64` and `string` (2026-11-25, sortslice2, claim #18)
+
+- **Limitation.** Perennial's `cmp.Less.spec` (`Perennial/Spec/cmp/Less.lean`) covers `uint64` and `string`;
+  `slices.Sort` of an `[]int64` needs `lessImplements` at `int64` (`slices.Sort.spec`).
+- **Needed by.** mvccrand's `writer.genLease` (`slices.Sort(ids)`, `ids []int64`).
+- **Workaround.** A local spec and proof at `int64`, `Spec/cmp/Less.lean`, `Proof/cmp/Less.lean` (as
+  `Spec/cmp/Compare.lean`).
+- **Proposed change.** Move both (`cmp.Less` and `cmp.Compare` at `int64`, with `lessImplements_int64`
+  beside `lessImplements_uint64`) to Perennial, and drop the local copies.

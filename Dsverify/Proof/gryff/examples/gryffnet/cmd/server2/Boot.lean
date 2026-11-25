@@ -31,6 +31,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.gryff.examples.gryffnet.cmd.server2.Assumptions]
 variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable (hT : threadBound GF ≤ 2 ^ 30)
+variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
 
 /-! The program table's facts, for `getIsPkgInit` and for the excluded sets' tables. -/
 
@@ -148,6 +149,11 @@ theorem wf_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgIn
   refine And.intro ?_ ?_
   · rfl
   exact ⟨wf_errors, wf_io, wf_math, wf_reflect, wf_slices, wf_sync, True.intro⟩
+
+theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_sync, wf_sync_atomic, True.intro⟩
 
 theorem wf_time : GetIsPkgInitProp pkg_id.time (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -372,12 +378,7 @@ theorem wf_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr (
 theorem wf_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_gryff_src_gryffproto, wf_sort, wf_gryff_src_stats, wf_gryff_src_state, True.intro⟩
-
-theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
-  refine And.intro ?_ ?_
-  · rfl
-  exact ⟨wf_sync, wf_sync_atomic, True.intro⟩
+  exact ⟨wf_gryff_src_gryffproto, wf_slices, wf_gryff_src_stats, wf_gryff_src_state, True.intro⟩
 
 theorem wf_gryff_src_gryff : GetIsPkgInitProp pkg_id.gryff.src.gryff (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -402,7 +403,7 @@ theorem wf_gryff_src_serverlib : GetIsPkgInitProp pkg_id.gryff.src.serverlib (ge
 theorem wf_gryff_examples_gryffnet : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_bufio, wf_encoding_binary, wf_net, wf_net_rpc, wf_strings, wf_sync, wf_time, wf_github_com_anishathalye_porcupine, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote, wf_gryff_src_clientproto, wf_gryff_src_gryff, wf_gryff_src_gryffproto, wf_gryff_src_masterlib, wf_gryff_src_serverlib, wf_gryff_src_state, wf_errors, wf_gryff_src_genericsmrproto, wf_gryff_src_masterproto, True.intro⟩
+  exact ⟨wf_bufio, wf_encoding_binary, wf_math_rand, wf_net, wf_net_rpc, wf_strings, wf_sync, wf_time, wf_github_com_anishathalye_porcupine, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote, wf_gryff_src_clientproto, wf_gryff_src_gryff, wf_gryff_src_gryffproto, wf_gryff_src_masterlib, wf_gryff_src_serverlib, wf_gryff_src_state, wf_errors, wf_gryff_src_genericsmrproto, wf_gryff_src_masterproto, True.intro⟩
 
 theorem wf_gryff_examples_gryffnet_cmd_server2 : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet.cmd.server2 (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -523,6 +524,11 @@ theorem wfNo_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gNo (get
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_errors, wfNo_io, wfNo_math, wfNo_reflect, wfNo_slices, wfNo_sync, True.intro⟩
+
+theorem wfNo_math_rand : GetIsPkgInitProp pkg_id.math.rand (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_sync, wfNo_sync_atomic, True.intro⟩
 
 theorem wfNo_time : GetIsPkgInitProp pkg_id.time (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -747,12 +753,7 @@ theorem wfNo_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfNo_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_gryff_src_gryffproto, wfNo_sort, wfNo_gryff_src_stats, wfNo_gryff_src_state, True.intro⟩
-
-theorem wfNo_math_rand : GetIsPkgInitProp pkg_id.math.rand (gNo (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_sync, wfNo_sync_atomic, True.intro⟩
+  exact ⟨wfNo_gryff_src_gryffproto, wfNo_slices, wfNo_gryff_src_stats, wfNo_gryff_src_state, True.intro⟩
 
 theorem wfNo_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -883,6 +884,11 @@ theorem wfS2_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gEx noPk
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS2_errors, wfS2_io, wfS2_math, wfS2_reflect, wfS2_slices, wfS2_sync, True.intro⟩
+
+theorem wfS2_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS2_sync, wfS2_sync_atomic, True.intro⟩
 
 theorem wfS2_time : GetIsPkgInitProp pkg_id.time (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1107,12 +1113,7 @@ theorem wfS2_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfS2_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_gryff_src_gryffproto, wfS2_sort, wfS2_gryff_src_stats, wfS2_gryff_src_state, True.intro⟩
-
-theorem wfS2_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_sync, wfS2_sync_atomic, True.intro⟩
+  exact ⟨wfS2_gryff_src_gryffproto, wfS2_slices, wfS2_gryff_src_stats, wfS2_gryff_src_state, True.intro⟩
 
 theorem wfS2_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1238,6 +1239,11 @@ theorem wfS1_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gEx noPk
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS1_errors, wfS1_io, wfS1_math, wfS1_reflect, wfS1_slices, wfS1_sync, True.intro⟩
+
+theorem wfS1_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS1_sync, wfS1_sync_atomic, True.intro⟩
 
 theorem wfS1_time : GetIsPkgInitProp pkg_id.time (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1457,12 +1463,7 @@ theorem wfS1_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfS1_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_gryff_src_gryffproto, wfS1_sort, wfS1_gryff_src_stats, wfS1_gryff_src_state, True.intro⟩
-
-theorem wfS1_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_sync, wfS1_sync_atomic, True.intro⟩
+  exact ⟨wfS1_gryff_src_gryffproto, wfS1_slices, wfS1_gryff_src_stats, wfS1_gryff_src_state, True.intro⟩
 
 theorem wfS1_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1583,6 +1584,11 @@ theorem wfS0_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gEx noPk
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS0_errors, wfS0_io, wfS0_math, wfS0_reflect, wfS0_slices, wfS0_sync, True.intro⟩
+
+theorem wfS0_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS0_sync, wfS0_sync_atomic, True.intro⟩
 
 theorem wfS0_time : GetIsPkgInitProp pkg_id.time (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1797,12 +1803,7 @@ theorem wfS0_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfS0_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_gryff_src_gryffproto, wfS0_sort, wfS0_gryff_src_stats, wfS0_gryff_src_state, True.intro⟩
-
-theorem wfS0_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_sync, wfS0_sync_atomic, True.intro⟩
+  exact ⟨wfS0_gryff_src_gryffproto, wfS0_slices, wfS0_gryff_src_stats, wfS0_gryff_src_state, True.intro⟩
 
 theorem wfS0_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1917,7 +1918,7 @@ theorem wp_gryff_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- `serverlib`'s initialization, with neither it nor net/http nor net/rpc initialized
 (`gEx noPkgsS0`): net/http's and net/rpc's initializations are the first (Net's
 `wp_init_first`, on a machine of at most `2 ^ 30` threads), and leave the machine's `serverBoot`. -/
@@ -1944,7 +1945,7 @@ theorem wp_serverlib_own :
       as ⟨Hown, #Hd4⟩
     wp_apply (_root_.Perennial.log.wp_initialize' _ wfS1_log) $$ Hown
       as ⟨Hown, #Hd3⟩
-    wp_apply (wp_rpc_own noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown
+    wp_apply (wp_rpc_own wp_NewServer noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown
       as ⟨Hown, #Hd2, HRp⟩
     wp_apply (_root_.Perennial.gryff.src.masterproto.wp_initialize' _ wfS2_gryff_src_masterproto) $$ Hown
       as ⟨Hown, #Hd1⟩
@@ -1956,7 +1957,7 @@ theorem wp_serverlib_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- `gryffnet`'s initialization, not yet initialized, keeping `gryff`'s variables and prophecy
 and the machine's `serverBoot`. -/
 theorem wp_gryffnet_own :
@@ -1973,34 +1974,36 @@ theorem wp_gryffnet_own :
     iintro Hown
     wp_auto
     wp_apply (_root_.Perennial.gryff.src.masterproto.wp_initialize' _ wfS0_gryff_src_masterproto) $$ Hown
-      as ⟨Hown, #Hd18⟩
+      as ⟨Hown, #Hd19⟩
     wp_apply (_root_.Perennial.gryff.src.genericsmrproto.wp_initialize' _ wfS0_gryff_src_genericsmrproto) $$ Hown
-      as ⟨Hown, #Hd17⟩
+      as ⟨Hown, #Hd18⟩
     wp_apply (_root_.Perennial.errors.wp_initialize' _ wfS0_errors) $$ Hown
-      as ⟨Hown, #Hd16⟩
+      as ⟨Hown, #Hd17⟩
     wp_apply (_root_.Perennial.gryff.src.state.wp_initialize' _ wfS0_gryff_src_state) $$ Hown
-      as ⟨Hown, #Hd15⟩
-    wp_apply (wp_serverlib_own hT) $$ Hown as ⟨Hown, #Hd14, HB⟩
+      as ⟨Hown, #Hd16⟩
+    wp_apply (wp_serverlib_own hT wp_NewServer) $$ Hown as ⟨Hown, #Hd15, HB⟩
     wp_apply (_root_.Perennial.gryff.src.masterlib.wp_initialize' _ wfNo_gryff_src_masterlib) $$ Hown
-      as ⟨Hown, #Hd13⟩
+      as ⟨Hown, #Hd14⟩
     wp_apply (_root_.Perennial.gryff.src.gryffproto.wp_initialize' _ wfNo_gryff_src_gryffproto) $$ Hown
-      as ⟨Hown, #Hd12⟩
-    wp_apply wp_gryff_own $$ Hown as ⟨Hown, #Hd11, HG, HPr⟩
+      as ⟨Hown, #Hd13⟩
+    wp_apply wp_gryff_own $$ Hown as ⟨Hown, #Hd12, HG, HPr⟩
     wp_apply (_root_.Perennial.gryff.src.clientproto.wp_initialize' _ wf_gryff_src_clientproto) $$ Hown
-      as ⟨Hown, #Hd10⟩
+      as ⟨Hown, #Hd11⟩
     wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.wp_initialize' _ wf_github_com_mit_pdos_etcd_grove_examples_lib_remote) $$ Hown
-      as ⟨Hown, #Hd9⟩
+      as ⟨Hown, #Hd10⟩
     wp_apply (_root_.Perennial.github_com.anishathalye.porcupine.wp_initialize' _ wf_github_com_anishathalye_porcupine) $$ Hown
-      as ⟨Hown, #Hd8⟩
+      as ⟨Hown, #Hd9⟩
     wp_apply (_root_.Perennial.time.wp_initialize' _ wf_time) $$ Hown
-      as ⟨Hown, #Hd7⟩
+      as ⟨Hown, #Hd8⟩
     wp_apply (_root_.Perennial.sync.wp_initialize' _ wf_sync) $$ Hown
-      as ⟨Hown, #Hd6⟩
+      as ⟨Hown, #Hd7⟩
     wp_apply (_root_.Perennial.strings.wp_initialize' _ wf_strings) $$ Hown
-      as ⟨Hown, #Hd5⟩
+      as ⟨Hown, #Hd6⟩
     wp_apply (_root_.Perennial.net.rpc.wp_initialize' _ wf_net_rpc) $$ Hown
-      as ⟨Hown, #Hd4⟩
+      as ⟨Hown, #Hd5⟩
     wp_apply (_root_.Perennial.net.wp_initialize' _ wf_net) $$ Hown
+      as ⟨Hown, #Hd4⟩
+    wp_apply (_root_.Perennial.math.rand.wp_initialize' _ wf_math_rand) $$ Hown
       as ⟨Hown, #Hd3⟩
     wp_apply (_root_.Perennial.encoding.binary.wp_initialize' _ wf_encoding_binary) $$ Hown
       as ⟨Hown, #Hd2⟩
@@ -2012,7 +2015,7 @@ theorem wp_gryffnet_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- **The server machine's boot**: its program's initialization from a fresh process, keeping
 `gryff`'s variables and trace prophecy and the machine's `serverBoot`. -/
 theorem wp_initialize'_own :
@@ -2029,7 +2032,7 @@ theorem wp_initialize'_own :
   · iframe Hown
     iintro Hown
     wp_auto
-    wp_apply (wp_gryffnet_own hT) $$ Hown as ⟨Hown, #Hd1, HR⟩
+    wp_apply (wp_gryffnet_own hT wp_NewServer) $$ Hown as ⟨Hown, #Hd1, HR⟩
     iframe Hown HR
     is_pkg_init_finish
   · iintro ⟨Hown, Hpk, HR⟩

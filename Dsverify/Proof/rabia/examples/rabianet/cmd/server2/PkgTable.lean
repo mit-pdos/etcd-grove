@@ -32,11 +32,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.os.signal.InitHyp GF]
 variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
-variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
-variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
-variable [_root_.Perennial.github_com.rs.zerolog.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.examples.rabianet.cmd.server2.Assumptions]
 
 /-- Every package of the program's import closure, with its `isPkgInit`. -/

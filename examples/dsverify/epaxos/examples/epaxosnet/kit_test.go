@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 }
 
 // TestDeployment starts the server and client machines as processes and runs the orchestrator
-// (Orch, its outputs counted): porcupine must accept the history and every operation be answered;
+// (Orch at the largest count it draws, Ops, its outputs counted): porcupine must accept the history and every operation be answered;
 // no machine may end meanwhile.
 func TestDeployment(t *testing.T) {
 	if testing.Short() {
@@ -124,6 +124,40 @@ func TestDeployment(t *testing.T) {
 	}
 	if time.Since(t0) < time.Duration(StartMs)*time.Millisecond {
 		t.Errorf("the orchestrator's calls did not reach the client machines")
+	}
+}
+
+// TestControlPhantom (the negative control): client machines whose gets and scans return a value
+// nobody put, as a store that invents values would, are caught.
+func TestControlPhantom(t *testing.T) {
+	var addrs []string
+	for c := uint64(0); c < NC; c++ {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, l.Addr().String())
+		l.Close()
+	}
+	phantom := func(sys any, in any) any {
+		if in.(In).Op == OpPut {
+			return Out{}
+		}
+		return Out{V: "phantom"}
+	}
+	for c := range addrs {
+		go remote.ServeClient(c, addrs[c], func(int) any { return nil }, phantom, Codec(), attempt())
+	}
+	time.Sleep(200 * time.Millisecond)
+	// every client's first operation a get or scan
+	gen := func(c int) any {
+		if uint64(c) < NReplicas {
+			return In{Op: OpGet, K: 0}
+		}
+		return In{Op: OpScan, K: 0, N: ScanN}
+	}
+	if r := remote.Run(Model(), addrs, Codec(), gen, int(Ops), attempt(), 0); r != porcupine.Illegal {
+		t.Fatalf("porcupine: %v, want Illegal", r)
 	}
 }
 

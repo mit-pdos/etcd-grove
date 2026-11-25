@@ -147,7 +147,7 @@ def boot(cmd):
                           f'    as ⟨Hown, #Hd{n}, HH⟩')
             kind = 'wfS1'
         elif q == 'net.rpc':
-            ssteps.append(f'  wp_apply (wp_rpc_own noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown\n'
+            ssteps.append(f'  wp_apply (wp_rpc_own wp_NewServer noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown\n'
                           f'    as ⟨Hown, #Hd{n}, HRp⟩')
             kind = 'wfS2'
         else:
@@ -156,7 +156,7 @@ def boot(cmd):
     nsteps, kind = [], 'wfS0'
     for q, n in ni:
         if q == 'gryff.src.serverlib':
-            nsteps.append(f'  wp_apply (wp_serverlib_own hT) $$ Hown as ⟨Hown, #Hd{n}, HB⟩')
+            nsteps.append(f'  wp_apply (wp_serverlib_own hT wp_NewServer) $$ Hown as ⟨Hown, #Hd{n}, HB⟩')
             kind = 'wfNo'
         elif q == 'gryff.src.gryff':
             nsteps.append(f'  wp_apply wp_gryff_own $$ Hown as ⟨Hown, #Hd{n}, HG, HPr⟩')
@@ -205,6 +205,7 @@ variable [sem : go.Semantics]
 {hyps}
 variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable (hT : threadBound GF ≤ 2 ^ 30)
+variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
 
 /-! The program table's facts, for `getIsPkgInit` and for the excluded sets' tables. -/
 
@@ -230,7 +231,7 @@ theorem wp_gryff_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- `serverlib`'s initialization, with neither it nor net/http nor net/rpc initialized
 (`gEx noPkgsS0`): net/http's and net/rpc's initializations are the first (Net's
 `wp_init_first`, on a machine of at most `2 ^ 30` threads), and leave the machine's `serverBoot`. -/
@@ -256,7 +257,7 @@ theorem wp_serverlib_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- `gryffnet`'s initialization, not yet initialized, keeping `gryff`'s variables and prophecy
 and the machine's `serverBoot`. -/
 theorem wp_gryffnet_own :
@@ -279,7 +280,7 @@ theorem wp_gryffnet_own :
     iapply HΦ
     iframe
 
-include hT in
+include hT wp_NewServer in
 /-- **The server machine's boot**: its program's initialization from a fresh process, keeping
 `gryff`'s variables and trace prophecy and the machine's `serverBoot`. -/
 theorem wp_initialize'_own :
@@ -296,7 +297,7 @@ theorem wp_initialize'_own :
   · iframe Hown
     iintro Hown
     wp_auto
-    wp_apply (wp_gryffnet_own hT) $$ Hown as ⟨Hown, #Hd1, HR⟩
+    wp_apply (wp_gryffnet_own hT wp_NewServer) $$ Hown as ⟨Hown, #Hd1, HR⟩
     iframe Hown HR
     is_pkg_init_finish
   · iintro ⟨Hown, Hpk, HR⟩

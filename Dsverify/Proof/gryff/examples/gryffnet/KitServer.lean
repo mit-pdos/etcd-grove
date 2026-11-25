@@ -169,7 +169,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : replica2.SortSliceHyp GF] [strconvA : strconv.Assumptions]
+variable [strconvA : strconv.Assumptions]
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
 variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions] [randA : lib.RandSeedHyp GF]

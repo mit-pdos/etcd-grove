@@ -5,9 +5,10 @@ the store, node and coordinator specs, transport/netrpc's clients, the configura
 Net's `net` specs, Net's `SetCodec`, remote's `Check`/`ServeClient`; then the kit's `Client`,
 `Orch`, `Server`; net/rpc's client over HTTP (`DialHTTP`) is Net's (models-rpc-http's
 `net.rpc.DialHTTP.wp`, in `RpcClientSpecs`, over Perennial's proofs of `strings.Cut`/`TrimLeft`),
-and the package-level `rpc.RegisterName` is Net's
-(`net.rpc.RegisterName.wp`). What is not proved stays an argument: the hypothesis
-classes (instance arguments: `LogHyp`, `RpcHttpServe`, the server side), which the statement takes
+and so are the package-level `rpc.RegisterName` of a fresh name (`net.rpc.RegisterName.wp_fresh`)
+and `rpc.HandleHTTP` (`net.rpc.HandleHTTP.wp_proof`, over net/http's `Handle`). What is not proved
+stays an argument: the hypothesis classes (instance arguments: `LogHyp`, `RpcHttpServe`'s
+`http.ListenAndServe`), which the statement takes
 (F1, RemoveNode's obligation: `cnewArg_RemoveNode`; F3, the nodes' `errOk`: `nodeSpec_errOk`).
 -/
 module
@@ -28,6 +29,10 @@ public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Svc
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Start
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.New
 public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.HandleHTTP
+public import Net.Proof.net.rpc.Server__HandleHTTP
+public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Results
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
@@ -101,7 +106,10 @@ theorem wp_configure [LogHyp GF] : configure.spec (GF := GF) (hG := hG) :=
 /-- Every server machine (F1 discharged, `cnewArg_RemoveNode`; F3 discharged, `nodeSpec_errOk`). -/
 theorem wp_Server [LogHyp GF] [RpcHttpServe GF] :
     Server.spec (GF := GF) (hG := hG) :=
-  Server.wp_proof net.rpc.RegisterName.wp net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
+  Server.wp_proof net.rpc.RegisterName.wp_fresh
+    (net.rpc.HandleHTTP.wp_proof
+      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp))
+    net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
     (coordinator.coord_svc assign.holds collect.holds) factory kvp.wp_New node.wp_New
     (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf
     (fun cfg a => nodeSpec_errOk cfg.γ cfg.chain a)

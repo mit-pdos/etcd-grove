@@ -2,7 +2,8 @@
 
 `w.genLease()` (`examples/mvccrand/mvccrand.go`): no lease (`0`) half the time or when the model has
 no live lease, else one of the model's live leases `Lm` (the ids sorted, one chosen at random). The
-map is only read; the generator moves.
+map is only read; the generator moves. Every live id is in `(0, 2^62]` (so at most `2^62` of them, the
+bound `slices.Sort` needs; the writer's ids are at most `nextID`).
 -/
 module
 
@@ -29,6 +30,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- See the file header. -/
 abbrev writer.genLease.spec : Prop :=
   ∀ (w : Loc) (wv : writer) (Lm : GMap w64 Bool) (g : rng),
+  (∀ id, (Lm !! id).isSome = true → 0 < sint.Z id ∧ sint.Z id ≤ 2 ^ 62) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
       writerRO w wv ∗ wv.leases' ↦$ Lm ∗ wv.r' ↦ g }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"genLease")) (Val #()))

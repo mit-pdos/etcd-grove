@@ -224,6 +224,7 @@ theorem boot_vsrnet :
     (wf_github_com_anishathalye_porcupine hk) $$ Hown as ⟨Hown, #Hd9⟩
   wp_apply time.wp_initialize' _ (wf_time hk) $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply net.wp_initialize' _ (wf_net hk) $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply math.rand.wp_initialize' _ (wf_math_rand hk) $$ Hown as ⟨Hown, #Hd18⟩
   wp_apply log.slog.wp_initialize' _ (wf_log_slog hk) $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply io.wp_initialize' _ (wf_io hk) $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply pkg.log.wp_initialize' _ (wf_github_com_tangledbytes_go_vsr_pkg_log hk)

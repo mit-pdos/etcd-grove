@@ -6,6 +6,7 @@ module
 public import Dsverify.GeneratedProof.github_com.xiang90.paxos.examples.paxosnet
 public import Dsverify.Proof.github_com.xiang90.paxos.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
+public import Perennial.Proof.math.rand.Base
 
 @[expose] public section
 

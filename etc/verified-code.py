@@ -127,17 +127,16 @@ TEST_PKG = re.compile(r"(^|/)[^/]*(test|mock)[^/]*(/|$)")
 STATES = ["verified", "unfinished", "assumed", "translated", "not translated"]
 
 # Go functions whose spec is proved over a trusted model (a `trusted` declaration of a Goose
-# configuration, `TrustedCode/`) that rests on model-only leaves, axioms standing for Go composites
-# (per-type stage B: grpc's `Server.Serve`, `TrustedCode/google_golang_org/grpc.lean`,
-# whose leaves are `Spec/google_golang_org/grpc/model/`): what is proved is the model, not the Go
-# code, so they count as assumed, not verified.
-ASSUMED_MODELS = {"grpc.Server.Serve"}
+# configuration, `TrustedCode/`) that rests on model-only leaves, axioms standing for Go composites:
+# what is proved is the model, not the Go code, so they count as assumed, not verified. None since
+# 2026-11-25 (phase7-inits): grpc's `Server.Serve` (per-type stage B, `TrustedCode/google_golang_org/grpc.lean`)
+# was the one, its trusted model deleted (its spec an axiom since S2's interface).
+ASSUMED_MODELS = set()
 
-# The model-only names (the trusted model `grpc.model.Serve` and its leaves, as
-# `TrustedCode/google_golang_org/grpc.lean`'s `model.names`): they are not Go functions and
-# are not counted. Exact names only, so that a real Go package or function named `model` still counts.
-MODEL_ONLY = {"grpc.model.Serve", "grpc.model.acceptRun", "grpc.model.acceptRunConns",
-              "grpc.model.respond", "grpc.model.finishStream"}
+# The model-only names (a trusted model's leaves): they are not Go functions and are not counted.
+# Exact names only, so that a real Go package or function named `model` still counts. None since
+# 2026-11-25 (grpc's `model.Serve` and its leaves, deleted with `Server.Serve`'s model).
+MODEL_ONLY = set()
 
 
 def read(path):

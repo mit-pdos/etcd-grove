@@ -17,6 +17,7 @@ module
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitOpLib
 public import Dsverify.Proof.raxos.Proxy.SliceLit
 public import Perennial.Spec.time.After
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -195,8 +196,11 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   have hd2 : decide (uint.Z (W64 20) ≤ uint.Z (W64 (n : Int))) = false := by
     simp only [decide_eq_false_iff_not]; word
   rw [hd2]
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   wp_auto
   wp_if_destruct
+  all_goals (try (wp_apply math.rand.wp_Intn_pos (W64 6 * W64 1000 + W64 1) (by decide) as %w0 -))
   all_goals (try (wp_apply time.wp_Sleep))
   all_goals
     wp_apply wp_digits

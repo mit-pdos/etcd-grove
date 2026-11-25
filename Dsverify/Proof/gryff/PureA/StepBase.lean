@@ -239,7 +239,10 @@ theorem quietO_mapM_sendPeer {s : RState} {l : List w32} {m : Msg} {r : List Out
 
 theorem shortCircuit_quiet {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : QuietO o := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact quietO_nil
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

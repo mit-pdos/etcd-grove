@@ -34,6 +34,9 @@ premises, to be discharged when each piece comes as one shared change:
   `own m M` and the memory's points-to `tp` (`MapVocab`, abstract) and the class `MapHyp` of its
   laws (`ivt`: `tp` is the memory's, `own_timeless`, `own_zero` from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
   string keys.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `PbHyp` (its axiom review refuted it, `notes/axiom-review/dsv-fix4/quepaxa-pb.md`: `msg.marshalPre` admits any value of the runtime fields `state`/`sizeCache`), `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
 -/
 module
 

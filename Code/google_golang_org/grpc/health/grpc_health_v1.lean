@@ -4,6 +4,7 @@ module
 public import Perennial.Code.context
 public import Code.google_golang_org.grpc
 public import Perennial.Golang.Defn
+public import TrustedCode.google_golang_org.grpc.health.grpc_health_v1
 
 @[expose] public section
 
@@ -405,6 +406,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   HealthServer_instance : HealthServer.TypeAssumptions
   UnimplementedHealthServer_instance : UnimplementedHealthServer.TypeAssumptions
   UnsafeHealthServer_instance : UnsafeHealthServer.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
 
@@ -418,6 +420,7 @@ attribute [instance] Assumptions.HealthCheckResponse_ServingStatus_instance
   Assumptions.HealthServer_instance
   Assumptions.UnimplementedHealthServer_instance
   Assumptions.UnsafeHealthServer_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_context_Assumption
   Assumptions.import_grpc_Assumption
 

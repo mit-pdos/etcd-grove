@@ -226,7 +226,7 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
           RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns) hkr)
         iexact Hrpcs
       wp_auto
-      wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W (rpcAddrOf k)) $$ [$Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
+      wp_apply (DialHTTP_kit W (rpcAddrOf k)) $$ [$Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
       · ipureintro; exact HW.2
       wp_apply wp_store_slice_index nds (sint.Z iw) ns cl $$ [$Hnds] as Hnds
       · ipureintro; constructor <;> word

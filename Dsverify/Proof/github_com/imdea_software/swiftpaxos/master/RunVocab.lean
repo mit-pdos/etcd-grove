@@ -64,8 +64,9 @@ abbrev master.Master.Run.specFull : Prop :=
       master.createdFull m γc γm N (W64 7001) ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
-      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
-      (∃ γs, H.defaultServer γs) ∗ RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
+      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ muxOwner [] ∗
+      (∃ γs γf, net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅) ∗ dialEnv ∗ threadTok ∗
+      RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
