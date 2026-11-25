@@ -1,4 +1,4 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/LeaderCompleteLaw.lean` (etc/copy-part.py; rerun it, do not edit).
+-- The copy for the part `KvRaft/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/LeaderCompleteLaw.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 # Leader completeness through the node API (2026-11-24, `notes/etcd-dist-d6.md`, T4 round 4)
 
@@ -18,13 +18,13 @@ the leader's needs a voter of both quorums, which two quorums of one configurati
 membership changes it needs a recursion over the certificate's witness tree, not done).
 -/
 module
-public import KvNet.Proof.go_etcd_io.raft.v3.InvNodeRule
-import KvNet.Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
-import all KvNet.Proof.go_etcd_io.raft.v3.InvNodeRule
-import all KvNet.Proof.go_etcd_io.raft.v3.InvNode
-import KvNet.Proof.go_etcd_io.raft.v3.InvApi
-import KvNet.Proof.go_etcd_io.raft.v3.InvApiDec
-import KvNet.Proof.go_etcd_io.raft.v3.Protocol.Enter
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvNodeRule
+import KvRaft.Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
+import all KvRaft.Proof.go_etcd_io.raft.v3.InvNodeRule
+import all KvRaft.Proof.go_etcd_io.raft.v3.InvNode
+import KvRaft.Proof.go_etcd_io.raft.v3.InvApi
+import KvRaft.Proof.go_etcd_io.raft.v3.InvApiDec
+import KvRaft.Proof.go_etcd_io.raft.v3.Protocol.Enter
 
 @[expose] public section
 noncomputable section
