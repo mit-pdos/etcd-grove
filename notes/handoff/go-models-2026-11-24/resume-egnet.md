@@ -467,3 +467,28 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   in NetInit, http/rpc InitFirst, gryff Client/Conn, N/ClientConn, N/WaitPeers; rpcdriver `dial.spec` and
   `Client.spec` take `isPkgInit net` (Main supplies it by `iPkgInit`); vr `wp_debug_resErr`: wp_start_folded
   consumes the isPkgInit conjuncts, net's fact re-obtained by solve_pkg_init. Full build 2 log `tmp/gm12/full2.log`.
+
+## Session 13 (2026-11-25, successor) — the lean merge's port, continued
+- Same worktree/key (`eg-lmerge`, c61dd42e08d7d686); scratch `tmp/gm13/` (full3.log, scripts/resolve.py).
+- Full build 2 (`tmp/gm12/full2.log`, 27532fcf83): EXIT 1, 13 modules: membership OwnedMutex, os LstatAnyS,
+  rpc Client__CloseClosed, http ServeLemmas, gryff Lib.NetAddr and N.ConnErr (all from build 1); rpcdriver
+  `dial` (the spec change held but `wp_start` consumes the `isPkgInit net` conjunct: re-obtained by
+  `solve_pkg_init`), vr `network.Serve` (not reached in build 1), kvraft TopLevelRobustness (intro arity),
+  gryff server1-4 Boot (generated, stale after the sync/runtime → internal/gomodel imports).
+- Fixed (b32b450571, 47d14c7096): gryff `wp_TCPAddr_String` and vr's over `net.wp_extAnyString` (as
+  swiftpaxos's); gryff `opErrPtr_errAny` takes `opErrMsgOk ∗ errnoOk`, new `resErr_errAny_sys`, errnoOk
+  threaded through `rdErr_conn(')`, `resErr_errAny(')`, `resErr_errAny_m` and their callers (Connect,
+  WaitPeers, ClientConn, Serve, MasterNew, ServeProof, ReadFullLt); LstatAnyS over `os.modelStat` (StatS's
+  shape, `wp_pathError_errnoV`); rpc CloseClosed `connAt_errnoOk`; http ServeLemmas (crErrId carries the
+  OpError's netOwnErr/addrOrNil, readErr_msgOk takes `edTyped`, Timeout gets `opErrOk`; `wp_Fprintf_noVerb`
+  over fmt's Go-model printer, callees threaded to conn.serve and Results); OwnedMutex = lean's
+  (Proof/sync/MutexOwned); kvraft/kvraft_udp intros lose field_sem/os_file_sem/os_stat_sem; gryff boots
+  regenerated (`etc/dsv/_gryff_boot.py`). packet-rest.md: new section "Internal spec and lemma changes".
+- lean moved to 2926d09437 (basic slice landed + dsv-fix6). A trial merge (aborted) gives 155 conflicts:
+  ~120 generated PkgTables (regenerate), lakefile/manifest (keep our pin 09bd3826c), etc/gen-link.py,
+  32 Dsverify craq/other files resolved mechanically by `tmp/gm13/scripts/resolve.py` (ours = strip_fa(base)
+  → take strip_fa(lean)), and 9 by hand: craq TopLevelRobustness (intro without hlog and fsem), raxos
+  SharedLoop (lean's), and **Net rpc/http error lemmas (ReadResponse, Client__input, Client__send,
+  DialHTTPPath, HttpDefs) where dsv-fix6's errLeaf/errPlain design over the old trusted OpError meets
+  egnet's errStr/errnoOk over Go's OpError** (needs a design merge; dsv-fix6's own finding
+  net-operr-error is what the Go model fixes), plus k8s clock NewTicker/NewTimer. Not done in session 13.

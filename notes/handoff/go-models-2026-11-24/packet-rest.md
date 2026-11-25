@@ -2565,3 +2565,29 @@ result loses the same premise):
 - `Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Results.lean`
 - `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean`
 - `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean`
+
+## Internal spec and lemma changes from the etcd-grove lean merge (sessions 12-13)
+
+Code `lean` added since `622264bf5e` was written over the old trusted `net`/`os`/`fmt` models; ported to
+the Go models. None of these is a top-level statement (no `TopLevelRobustness` spec, no `Results`
+result gains a premise); each is a function spec or lemma whose callers were updated in the same change.
+
+Gain a premise:
+- `isPkgInit net`: lean's `net.Listen.specHttp` (as egnet's `net.Listen.spec`); epaxos `DialHTTP_kit`,
+  swiftpaxos `DialHTTP_tcp`; rpcdriver `dial.spec`, `Client.spec` (its `Main` supplies it); vr
+  `network.resErr_errOrNil`, `network.wp_debug_resErr`. Why: Go's `OpError.Error` (now translated) calls
+  `Err.Error()`, and a syscall error's `Error()` reads `syscall`'s table: `syscall.errnoOk`, which every
+  importer of `net` has.
+- `syscall.errnoOk`: `net.resErr_errOrNil` (Proof/net/ErrOrNil); gryff `netN.opErrPtr_errAny` (also
+  `net.opErrMsgOk v`), `rdErr_conn`, `rdErr_conn'`, `resErr_errAny`, `resErr_errAny'`, `resErr_errAny_m`
+  (callers obtain it from `internal/poll`'s package fact, `net.errnoOk_of_poll`, or a connection's
+  `net.connAt_errnoOk`).
+- Net http: `readErr_msgOk` takes `net.edTyped (some ed)` (from `internal/poll`'s fact); `crErrId` (an
+  internal predicate) carries the `*OpError`'s `netOwnErr`/`addrOrNil` parts, so `reqErr_opErr` gives
+  `net.opErrOk v`, what Go's `OpError.Timeout` needs (`net.OpError.Timeout.spec`, egnet's).
+- Net http `wp_Fprintf_noVerb` and `conn.serve.wp_proof` take fmt's Go-model callees
+  (`fmt.newPrinter`, `fmt.buffer.writeString`, `fmt.pp.free`, `internal.gomodel.Choose`/`ChooseUint64`
+  specs), linked in `Net/Proof/net/http/Results.lean` (`conn.serve.wp` unchanged).
+
+Deleted: `net.opErr_errOrNil` and vr `network.opErr_errOrNil` (an `*OpError` with an arbitrary `Err` has
+no defined `Error()` under Go's code; their callers use the `resErr_` forms, which know the `Err`).
