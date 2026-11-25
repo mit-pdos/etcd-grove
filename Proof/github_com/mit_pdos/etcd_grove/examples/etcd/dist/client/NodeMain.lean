@@ -52,7 +52,7 @@ theorem NodeMain.wp_proof (NP : w64 → GoString → List GoString → IProp GF)
   wp_apply (hRot (V := GoString) (T := go.string) eps DFrac.discard epsL c) as %out ⟨-, Hout⟩
   · iframe #
     ipureintro
-    intro -
+    intro _
     have h0 : 0 ≤ sint.Z c := by word
     have h1 : sint.Z c < sint.Z w.clients := by word
     exact ⟨h0, Hb h0 h1⟩
