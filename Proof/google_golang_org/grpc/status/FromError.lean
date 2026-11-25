@@ -24,15 +24,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [status_sem : google_golang_org.grpc.status.Assumptions]
-variable [rpctypes_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 /-- `status.FromError` (`status/status.go:96-127`): `nil` gives `(nil, true)`; an error whose type
 has `GRPCStatus() *Status` (a `*status.Error`, `grpcStatusIs`) the status it holds and `true`; any
 other (a leaf, so `errors.As` finds nothing) `New(Unknown, err.Error())` and `false`. -/
-theorem status.FromError.wp_proof
-    (wp_EtcdErrorError : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG)) :
-    status.FromError.spec (GF := GF) (hG := hG) := by
-  intro err m c
+theorem status.FromError.wp_triple (err : GoInterface) (m : GoString) (c : w32)
+    (hE : ∀ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      err = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x →
+      ⊢ (□ ∀ Ψ : val → IProp GF, ▷ Ψ #x.desc' -∗
+        WP (App (Val #(methods go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty go!"Error" #x))
+          (Val #())) {{ Ψ }} : IProp GF)) :
+    status.FromError.triple (GF := GF) err m c := by
   wp_start as ⟨#Hok, #Hd, #Hc⟩
   cases err with
   | nil =>
@@ -59,8 +61,9 @@ theorem status.FromError.wp_proof
     · ipureintro; rintro ⟨e', h, -⟩; cases h
   | ok e =>
     by_cases hg : methodSet e.ty !! go!"GRPCStatus" = some grpcStatusSig
-    · ihave ⟨%s, %c', #Hgd⟩ := descIs_GRPC e m hg $$ Hd
-      ihave ⟨%s', %m', #Hgc⟩ := statusCodeIs_GRPC e c hg $$ Hc
+    · ihave ⟨%s', %m', #Hgc⟩ := statusCodeIs_GRPC e c hg $$ Hc
+      ihave %hty := grpcStatusIs_ty _ _ _ _ $$ Hgc
+      ihave ⟨%s, %c', #Hgd⟩ := descIs_GRPC e m hg hty $$ Hd
       ihave %hag := status.grpcStatusIs_agree _ _ _ _ _ _ _ $$ Hgd Hgc
       obtain ⟨rfl, rfl, rfl⟩ := hag
       ihave #Hw := status.grpcStatusIs_wp _ _ _ _ $$ Hgd
@@ -101,12 +104,11 @@ theorem status.FromError.wp_proof
       · ihave #Hdn := descIs_noGRPC e m hg $$ Hd
         icases Hdn with (%hx | #Hm)
         · obtain ⟨x, hx, rfl⟩ := hx
+          have hE' := hE x hx
           simp only [interface.mkOk] at hx
           injection hx with hx
           subst hx
-          iintro !> %Ψ HΨ
-          wp_apply wp_EtcdErrorError
-          iapply HΨ
+          iapply hE'
         · unfold errorMsgIs
           iexact Hm
       ihave %hleaf : ⌜_root_.Perennial.errors.isLeafError e⌝ $$ [Hok]
@@ -154,6 +156,21 @@ theorem status.FromError.wp_proof
       isplitr
       · ipureintro; intros; rfl
       · ipureintro; rintro ⟨e', he, hg'⟩; cases he; exact absurd hg' hg
+
+/-- `status.FromError` of every error, given `EtcdError.Error()`'s spec. -/
+theorem status.FromError.wp_proof
+    (wp_EtcdErrorError : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG)) :
+    status.FromError.spec (GF := GF) (hG := hG) := by
+  intro err m c
+  refine status.FromError.wp_triple err m c (fun x _ => ?_)
+  iintro !> %Ψ HΨ
+  wp_apply wp_EtcdErrorError
+  iapply HΨ
+
+/-- `status.FromError` of an error that is no `EtcdError` value. -/
+theorem status.FromError.wp_proofNE : status.FromError.specNE (GF := GF) (hG := hG) := by
+  intro err m c hne
+  exact status.FromError.wp_triple err m c (fun x hx => absurd hx (hne x))
 
 end proof
 

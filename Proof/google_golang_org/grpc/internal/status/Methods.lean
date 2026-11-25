@@ -195,9 +195,11 @@ theorem statusCodeIs_GRPC (e : GoInterfaceOk) (c : w32)
   · obtain ⟨he, -⟩ := h; cases he
     iexists s, m; iexact H
 
-/-- The description of an error with `GRPCStatus`: the message of the status it holds. -/
-theorem descIs_GRPC [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] (e : GoInterfaceOk)
-    (m : GoString) (hg : methodSet e.ty !! go!"GRPCStatus" = some grpcStatusSig) :
+/-- The description of an error with `GRPCStatus` of a type other than `EtcdError`'s (a
+`*status.Error`, `grpcStatusIs_ty`): the message of the status it holds. -/
+theorem descIs_GRPC (e : GoInterfaceOk) (m : GoString)
+    (hg : methodSet e.ty !! go!"GRPCStatus" = some grpcStatusSig)
+    (hty : e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     descIs (GF := GF) (GoInterface.ok e) m ⊢
       ∃ (s : Loc) (c : w32), status.grpcStatusIs e s c m := by
   unfold descIs
@@ -206,12 +208,53 @@ theorem descIs_GRPC [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] (e : GoI
   · obtain ⟨x, hx, -⟩ := h
     simp only [interface.mkOk] at hx
     injection hx with hx
-    subst hx
-    rw [etcdError_noGRPCStatus] at hg
-    cases hg
+    exact absurd (by rw [hx]) hty
   · obtain ⟨he, -⟩ := h; cases he; exact absurd hg hg'
   · obtain ⟨he, -⟩ := h; cases he
     iexists s, c; iexact H
+
+/-- A `*status.Error`'s type is not `EtcdError`'s. -/
+theorem grpcStatusIs_ty (e : GoInterfaceOk) (s : Loc) (c : w32) (m : GoString) :
+    status.grpcStatusIs (GF := GF) e s c m ⊢
+      ⌜e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ := by
+  unfold status.grpcStatusIs
+  iintro ⟨%h, -⟩
+  ipureintro
+  rw [h]
+  unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
+  nofun
+
+/-- An error whose type is not `EtcdError`'s is no `EtcdError` value. -/
+theorem ne_etcdError_of_ty (e : GoInterfaceOk)
+    (hty : e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    ∀ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      GoInterface.ok e ≠ interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x := by
+  intro x hx
+  simp only [interface.mkOk] at hx
+  injection hx with hx
+  exact hty (by rw [hx])
+
+/-- **An error of a code other than `OK` and `Unknown`, or with `GRPCStatus`, is no `EtcdError`
+value**: it is a `*status.Error` (`statusCodeIs`'s third case). -/
+theorem statusCodeIs_notEtcd (err : GoInterface) (c : w32)
+    (h : c ≠ W32 0 ∧ c ≠ W32 2 ∨ hasGRPCStatus err) :
+    statusCodeIs (GF := GF) err c ⊢
+      ⌜∀ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+        err ≠ interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x⌝ := by
+  unfold statusCodeIs
+  iintro (%h' | %h' | ⟨%e, %s, %m, %h', #H⟩)
+  · obtain ⟨rfl, rfl⟩ := h'
+    rcases h with h | ⟨e, he, -⟩
+    · exact absurd rfl h.1
+    · cases he
+  · obtain ⟨e, rfl, hg, rfl⟩ := h'
+    rcases h with h | ⟨e', he, hg'⟩
+    · exact absurd rfl h.2
+    · cases he; exact absurd hg' hg
+  · obtain ⟨rfl, -⟩ := h'
+    ihave %hty := grpcStatusIs_ty _ _ _ _ $$ H
+    ipureintro
+    exact ne_etcdError_of_ty e hty
 
 /-- The description of an error without `GRPCStatus`: an `EtcdError`'s `desc`, or what its `Error()`
 stably returns. -/

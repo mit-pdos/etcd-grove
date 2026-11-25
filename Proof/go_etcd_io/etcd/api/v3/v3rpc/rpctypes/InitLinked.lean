@@ -764,119 +764,119 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
      EtcdGrove.RpctypesEtcdErrorMethods.noIs, EtcdGrove.RpctypesEtcdErrorMethods.noFormat,
      EtcdGrove.RpctypesEtcdErrorMethods.errorSig⟩
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCEmptyKey) _) $$ [$Hd2 $OErrGRPCEmptyKey $DRErrGRPCEmptyKey]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCEmptyKey) _) $$ [$Hd2 $OErrGRPCEmptyKey $DRErrGRPCEmptyKey]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCKeyNotFound) _) $$ [$Hd2 $OErrGRPCKeyNotFound $DRErrGRPCKeyNotFound]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCKeyNotFound) _) $$ [$Hd2 $OErrGRPCKeyNotFound $DRErrGRPCKeyNotFound]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCValueProvided) _) $$ [$Hd2 $OErrGRPCValueProvided $DRErrGRPCValueProvided]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCValueProvided) _) $$ [$Hd2 $OErrGRPCValueProvided $DRErrGRPCValueProvided]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCLeaseProvided) _) $$ [$Hd2 $OErrGRPCLeaseProvided $DRErrGRPCLeaseProvided]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCLeaseProvided) _) $$ [$Hd2 $OErrGRPCLeaseProvided $DRErrGRPCLeaseProvided]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCTooManyOps) _) $$ [$Hd2 $OErrGRPCTooManyOps $DRErrGRPCTooManyOps]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCTooManyOps) _) $$ [$Hd2 $OErrGRPCTooManyOps $DRErrGRPCTooManyOps]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCDuplicateKey) _) $$ [$Hd2 $OErrGRPCDuplicateKey $DRErrGRPCDuplicateKey]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCDuplicateKey) _) $$ [$Hd2 $OErrGRPCDuplicateKey $DRErrGRPCDuplicateKey]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCInvalidSortOption) _) $$ [$Hd2 $OErrGRPCInvalidSortOption $DRErrGRPCInvalidSortOption]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCInvalidSortOption) _) $$ [$Hd2 $OErrGRPCInvalidSortOption $DRErrGRPCInvalidSortOption]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCCompacted) _) $$ [$Hd2 $OErrGRPCCompacted $DRErrGRPCCompacted]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCCompacted) _) $$ [$Hd2 $OErrGRPCCompacted $DRErrGRPCCompacted]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCFutureRev) _) $$ [$Hd2 $OErrGRPCFutureRev $DRErrGRPCFutureRev]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCFutureRev) _) $$ [$Hd2 $OErrGRPCFutureRev $DRErrGRPCFutureRev]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCNoSpace) _) $$ [$Hd2 $OErrGRPCNoSpace $DRErrGRPCNoSpace]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCNoSpace) _) $$ [$Hd2 $OErrGRPCNoSpace $DRErrGRPCNoSpace]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCLeaseNotFound) _) $$ [$Hd2 $OErrGRPCLeaseNotFound $DRErrGRPCLeaseNotFound]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCLeaseNotFound) _) $$ [$Hd2 $OErrGRPCLeaseNotFound $DRErrGRPCLeaseNotFound]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCLeaseExist) _) $$ [$Hd2 $OErrGRPCLeaseExist $DRErrGRPCLeaseExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCLeaseExist) _) $$ [$Hd2 $OErrGRPCLeaseExist $DRErrGRPCLeaseExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCLeaseTTLTooLarge) _) $$ [$Hd2 $OErrGRPCLeaseTTLTooLarge $DRErrGRPCLeaseTTLTooLarge]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCLeaseTTLTooLarge) _) $$ [$Hd2 $OErrGRPCLeaseTTLTooLarge $DRErrGRPCLeaseTTLTooLarge]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCMemberExist) _) $$ [$Hd2 $OErrGRPCMemberExist $DRErrGRPCMemberExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCMemberExist) _) $$ [$Hd2 $OErrGRPCMemberExist $DRErrGRPCMemberExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCPeerURLExist) _) $$ [$Hd2 $OErrGRPCPeerURLExist $DRErrGRPCPeerURLExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCPeerURLExist) _) $$ [$Hd2 $OErrGRPCPeerURLExist $DRErrGRPCPeerURLExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCMemberNotEnoughStarted) _) $$ [$Hd2 $OErrGRPCMemberNotEnoughStarted $DRErrGRPCMemberNotEnoughStarted]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCMemberNotEnoughStarted) _) $$ [$Hd2 $OErrGRPCMemberNotEnoughStarted $DRErrGRPCMemberNotEnoughStarted]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCMemberBadURLs) _) $$ [$Hd2 $OErrGRPCMemberBadURLs $DRErrGRPCMemberBadURLs]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCMemberBadURLs) _) $$ [$Hd2 $OErrGRPCMemberBadURLs $DRErrGRPCMemberBadURLs]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCMemberNotFound) _) $$ [$Hd2 $OErrGRPCMemberNotFound $DRErrGRPCMemberNotFound]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCMemberNotFound) _) $$ [$Hd2 $OErrGRPCMemberNotFound $DRErrGRPCMemberNotFound]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCMemberNotLearner) _) $$ [$Hd2 $OErrGRPCMemberNotLearner $DRErrGRPCMemberNotLearner]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCMemberNotLearner) _) $$ [$Hd2 $OErrGRPCMemberNotLearner $DRErrGRPCMemberNotLearner]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCLearnerNotReady) _) $$ [$Hd2 $OErrGRPCLearnerNotReady $DRErrGRPCLearnerNotReady]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCLearnerNotReady) _) $$ [$Hd2 $OErrGRPCLearnerNotReady $DRErrGRPCLearnerNotReady]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCTooManyLearners) _) $$ [$Hd2 $OErrGRPCTooManyLearners $DRErrGRPCTooManyLearners]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCTooManyLearners) _) $$ [$Hd2 $OErrGRPCTooManyLearners $DRErrGRPCTooManyLearners]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCClusterIDMismatch) _) $$ [$Hd2 $OErrGRPCClusterIDMismatch $DRErrGRPCClusterIDMismatch]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCClusterIDMismatch) _) $$ [$Hd2 $OErrGRPCClusterIDMismatch $DRErrGRPCClusterIDMismatch]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRequestTooLarge) _) $$ [$Hd2 $OErrGRPCRequestTooLarge $DRErrGRPCRequestTooLarge]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRequestTooLarge) _) $$ [$Hd2 $OErrGRPCRequestTooLarge $DRErrGRPCRequestTooLarge]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRequestTooManyRequests) _) $$ [$Hd2 $OErrGRPCRequestTooManyRequests $DRErrGRPCRequestTooManyRequests]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRequestTooManyRequests) _) $$ [$Hd2 $OErrGRPCRequestTooManyRequests $DRErrGRPCRequestTooManyRequests]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRootUserNotExist) _) $$ [$Hd2 $OErrGRPCRootUserNotExist $DRErrGRPCRootUserNotExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRootUserNotExist) _) $$ [$Hd2 $OErrGRPCRootUserNotExist $DRErrGRPCRootUserNotExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRootRoleNotExist) _) $$ [$Hd2 $OErrGRPCRootRoleNotExist $DRErrGRPCRootRoleNotExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRootRoleNotExist) _) $$ [$Hd2 $OErrGRPCRootRoleNotExist $DRErrGRPCRootRoleNotExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCUserAlreadyExist) _) $$ [$Hd2 $OErrGRPCUserAlreadyExist $DRErrGRPCUserAlreadyExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCUserAlreadyExist) _) $$ [$Hd2 $OErrGRPCUserAlreadyExist $DRErrGRPCUserAlreadyExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCUserEmpty) _) $$ [$Hd2 $OErrGRPCUserEmpty $DRErrGRPCUserEmpty]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCUserEmpty) _) $$ [$Hd2 $OErrGRPCUserEmpty $DRErrGRPCUserEmpty]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCUserNotFound) _) $$ [$Hd2 $OErrGRPCUserNotFound $DRErrGRPCUserNotFound]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCUserNotFound) _) $$ [$Hd2 $OErrGRPCUserNotFound $DRErrGRPCUserNotFound]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRoleAlreadyExist) _) $$ [$Hd2 $OErrGRPCRoleAlreadyExist $DRErrGRPCRoleAlreadyExist]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRoleAlreadyExist) _) $$ [$Hd2 $OErrGRPCRoleAlreadyExist $DRErrGRPCRoleAlreadyExist]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRoleNotFound) _) $$ [$Hd2 $OErrGRPCRoleNotFound $DRErrGRPCRoleNotFound]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRoleNotFound) _) $$ [$Hd2 $OErrGRPCRoleNotFound $DRErrGRPCRoleNotFound]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRoleEmpty) _) $$ [$Hd2 $OErrGRPCRoleEmpty $DRErrGRPCRoleEmpty]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRoleEmpty) _) $$ [$Hd2 $OErrGRPCRoleEmpty $DRErrGRPCRoleEmpty]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCAuthFailed) _) $$ [$Hd2 $OErrGRPCAuthFailed $DRErrGRPCAuthFailed]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCAuthFailed) _) $$ [$Hd2 $OErrGRPCAuthFailed $DRErrGRPCAuthFailed]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCPermissionDenied) _) $$ [$Hd2 $OErrGRPCPermissionDenied $DRErrGRPCPermissionDenied]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCPermissionDenied) _) $$ [$Hd2 $OErrGRPCPermissionDenied $DRErrGRPCPermissionDenied]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCRoleNotGranted) _) $$ [$Hd2 $OErrGRPCRoleNotGranted $DRErrGRPCRoleNotGranted]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCRoleNotGranted) _) $$ [$Hd2 $OErrGRPCRoleNotGranted $DRErrGRPCRoleNotGranted]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCPermissionNotGranted) _) $$ [$Hd2 $OErrGRPCPermissionNotGranted $DRErrGRPCPermissionNotGranted]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCPermissionNotGranted) _) $$ [$Hd2 $OErrGRPCPermissionNotGranted $DRErrGRPCPermissionNotGranted]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCAuthNotEnabled) _) $$ [$Hd2 $OErrGRPCAuthNotEnabled $DRErrGRPCAuthNotEnabled]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCAuthNotEnabled) _) $$ [$Hd2 $OErrGRPCAuthNotEnabled $DRErrGRPCAuthNotEnabled]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCInvalidAuthToken) _) $$ [$Hd2 $OErrGRPCInvalidAuthToken $DRErrGRPCInvalidAuthToken]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCInvalidAuthToken) _) $$ [$Hd2 $OErrGRPCInvalidAuthToken $DRErrGRPCInvalidAuthToken]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCInvalidAuthMgmt) _) $$ [$Hd2 $OErrGRPCInvalidAuthMgmt $DRErrGRPCInvalidAuthMgmt]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCInvalidAuthMgmt) _) $$ [$Hd2 $OErrGRPCInvalidAuthMgmt $DRErrGRPCInvalidAuthMgmt]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCAuthOldRevision) _) $$ [$Hd2 $OErrGRPCAuthOldRevision $DRErrGRPCAuthOldRevision]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCAuthOldRevision) _) $$ [$Hd2 $OErrGRPCAuthOldRevision $DRErrGRPCAuthOldRevision]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCNoLeader) _) $$ [$Hd2 $OErrGRPCNoLeader $DRErrGRPCNoLeader]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCNoLeader) _) $$ [$Hd2 $OErrGRPCNoLeader $DRErrGRPCNoLeader]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCNotLeader) _) $$ [$Hd2 $OErrGRPCNotLeader $DRErrGRPCNotLeader]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCNotLeader) _) $$ [$Hd2 $OErrGRPCNotLeader $DRErrGRPCNotLeader]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCLeaderChanged) _) $$ [$Hd2 $OErrGRPCLeaderChanged $DRErrGRPCLeaderChanged]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCLeaderChanged) _) $$ [$Hd2 $OErrGRPCLeaderChanged $DRErrGRPCLeaderChanged]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCNotCapable) _) $$ [$Hd2 $OErrGRPCNotCapable $DRErrGRPCNotCapable]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCNotCapable) _) $$ [$Hd2 $OErrGRPCNotCapable $DRErrGRPCNotCapable]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCStopped) _) $$ [$Hd2 $OErrGRPCStopped $DRErrGRPCStopped]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCStopped) _) $$ [$Hd2 $OErrGRPCStopped $DRErrGRPCStopped]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCTimeout) _) $$ [$Hd2 $OErrGRPCTimeout $DRErrGRPCTimeout]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCTimeout) _) $$ [$Hd2 $OErrGRPCTimeout $DRErrGRPCTimeout]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCTimeoutDueToLeaderFail) _) $$ [$Hd2 $OErrGRPCTimeoutDueToLeaderFail $DRErrGRPCTimeoutDueToLeaderFail]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCTimeoutDueToLeaderFail) _) $$ [$Hd2 $OErrGRPCTimeoutDueToLeaderFail $DRErrGRPCTimeoutDueToLeaderFail]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCTimeoutDueToConnectionLost) _) $$ [$Hd2 $OErrGRPCTimeoutDueToConnectionLost $DRErrGRPCTimeoutDueToConnectionLost]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCTimeoutDueToConnectionLost) _) $$ [$Hd2 $OErrGRPCTimeoutDueToConnectionLost $DRErrGRPCTimeoutDueToConnectionLost]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCUnhealthy) _) $$ [$Hd2 $OErrGRPCUnhealthy $DRErrGRPCUnhealthy]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCUnhealthy) _) $$ [$Hd2 $OErrGRPCUnhealthy $DRErrGRPCUnhealthy]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCCorrupt) _) $$ [$Hd2 $OErrGRPCCorrupt $DRErrGRPCCorrupt]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCCorrupt) _) $$ [$Hd2 $OErrGRPCCorrupt $DRErrGRPCCorrupt]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCNotSupportedForLearner) _) $$ [$Hd2 $OErrGRPCNotSupportedForLearner $DRErrGRPCNotSupportedForLearner]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCNotSupportedForLearner) _) $$ [$Hd2 $OErrGRPCNotSupportedForLearner $DRErrGRPCNotSupportedForLearner]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCBadLeaderTransferee) _) $$ [$Hd2 $OErrGRPCBadLeaderTransferee $DRErrGRPCBadLeaderTransferee]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCBadLeaderTransferee) _) $$ [$Hd2 $OErrGRPCBadLeaderTransferee $DRErrGRPCBadLeaderTransferee]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCClusterVersionUnavailable) _) $$ [$Hd2 $OErrGRPCClusterVersionUnavailable $DRErrGRPCClusterVersionUnavailable]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCClusterVersionUnavailable) _) $$ [$Hd2 $OErrGRPCClusterVersionUnavailable $DRErrGRPCClusterVersionUnavailable]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCWrongDowngradeVersionFormat) _) $$ [$Hd2 $OErrGRPCWrongDowngradeVersionFormat $DRErrGRPCWrongDowngradeVersionFormat]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCWrongDowngradeVersionFormat) _) $$ [$Hd2 $OErrGRPCWrongDowngradeVersionFormat $DRErrGRPCWrongDowngradeVersionFormat]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCInvalidDowngradeTargetVersion) _) $$ [$Hd2 $OErrGRPCInvalidDowngradeTargetVersion $DRErrGRPCInvalidDowngradeTargetVersion]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCInvalidDowngradeTargetVersion) _) $$ [$Hd2 $OErrGRPCInvalidDowngradeTargetVersion $DRErrGRPCInvalidDowngradeTargetVersion]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCDowngradeInProcess) _) $$ [$Hd2 $OErrGRPCDowngradeInProcess $DRErrGRPCDowngradeInProcess]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCDowngradeInProcess) _) $$ [$Hd2 $OErrGRPCDowngradeInProcess $DRErrGRPCDowngradeInProcess]
   try wp_auto
-  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) (GoInterface.ok eErrGRPCNoInflightDowngrade) _) $$ [$Hd2 $OErrGRPCNoInflightDowngrade $DRErrGRPCNoInflightDowngrade]
+  wp_apply ((EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (GoInterface.ok eErrGRPCNoInflightDowngrade) _) $$ [$Hd2 $OErrGRPCNoInflightDowngrade $DRErrGRPCNoInflightDowngrade]
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string go.error) as %mesm Hesm0
   ihave Hesm := EtcdGrove.rpctypes_errMapInv_empty mesm $$ Hesm0
@@ -1001,56 +1001,56 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist Hesm
   ipersist HerrStringToError
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCEmptyKey _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCEmptyKey _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCEmptyKey $DRErrGRPCEmptyKey] as %xErrEmptyKey ⟨%XErrEmptyKey, #SErrEmptyKey⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrKeyNotFound))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCKeyNotFound _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCKeyNotFound _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCKeyNotFound $DRErrGRPCKeyNotFound] as %xErrKeyNotFound ⟨%XErrKeyNotFound, #SErrKeyNotFound⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrValueProvided))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCValueProvided _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCValueProvided _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCValueProvided $DRErrGRPCValueProvided] as %xErrValueProvided ⟨%XErrValueProvided, #SErrValueProvided⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrLeaseProvided))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseProvided _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseProvided _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCLeaseProvided $DRErrGRPCLeaseProvided] as %xErrLeaseProvided ⟨%XErrLeaseProvided, #SErrLeaseProvided⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTooManyOps))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTooManyOps _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTooManyOps _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCTooManyOps $DRErrGRPCTooManyOps] as %xErrTooManyOps ⟨%XErrTooManyOps, #SErrTooManyOps⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrDuplicateKey))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCDuplicateKey _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCDuplicateKey _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCDuplicateKey $DRErrGRPCDuplicateKey] as %xErrDuplicateKey ⟨%XErrDuplicateKey, #SErrDuplicateKey⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrInvalidSortOption))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidSortOption _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidSortOption _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCInvalidSortOption $DRErrGRPCInvalidSortOption] as %xErrInvalidSortOption ⟨%XErrInvalidSortOption, #SErrInvalidSortOption⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrCompacted))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCCompacted _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCCompacted _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCCompacted $DRErrGRPCCompacted] as %xErrCompacted ⟨%XErrCompacted, #SErrCompacted⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
@@ -1063,7 +1063,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of ErrFutureRev))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCFutureRev _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCFutureRev _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCFutureRev $DRErrGRPCFutureRev] as %xErrFutureRev ⟨%XErrFutureRev, #SErrFutureRev⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
@@ -1076,217 +1076,217 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of ErrNoSpace))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNoSpace _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNoSpace _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCNoSpace $DRErrGRPCNoSpace] as %xErrNoSpace ⟨%XErrNoSpace, #SErrNoSpace⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrLeaseNotFound))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseNotFound _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseNotFound _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCLeaseNotFound $DRErrGRPCLeaseNotFound] as %xErrLeaseNotFound ⟨%XErrLeaseNotFound, #SErrLeaseNotFound⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrLeaseExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCLeaseExist $DRErrGRPCLeaseExist] as %xErrLeaseExist ⟨%XErrLeaseExist, #SErrLeaseExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrLeaseTTLTooLarge))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseTTLTooLarge _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaseTTLTooLarge _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCLeaseTTLTooLarge $DRErrGRPCLeaseTTLTooLarge] as %xErrLeaseTTLTooLarge ⟨%XErrLeaseTTLTooLarge, #SErrLeaseTTLTooLarge⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrMemberExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCMemberExist $DRErrGRPCMemberExist] as %xErrMemberExist ⟨%XErrMemberExist, #SErrMemberExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrPeerURLExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCPeerURLExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCPeerURLExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCPeerURLExist $DRErrGRPCPeerURLExist] as %xErrPeerURLExist ⟨%XErrPeerURLExist, #SErrPeerURLExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrMemberNotEnoughStarted))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberNotEnoughStarted _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberNotEnoughStarted _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCMemberNotEnoughStarted $DRErrGRPCMemberNotEnoughStarted] as %xErrMemberNotEnoughStarted ⟨%XErrMemberNotEnoughStarted, #SErrMemberNotEnoughStarted⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrMemberBadURLs))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberBadURLs _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberBadURLs _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCMemberBadURLs $DRErrGRPCMemberBadURLs] as %xErrMemberBadURLs ⟨%XErrMemberBadURLs, #SErrMemberBadURLs⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrMemberNotFound))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberNotFound _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberNotFound _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCMemberNotFound $DRErrGRPCMemberNotFound] as %xErrMemberNotFound ⟨%XErrMemberNotFound, #SErrMemberNotFound⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrMemberNotLearner))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberNotLearner _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCMemberNotLearner _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCMemberNotLearner $DRErrGRPCMemberNotLearner] as %xErrMemberNotLearner ⟨%XErrMemberNotLearner, #SErrMemberNotLearner⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrMemberLearnerNotReady))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLearnerNotReady _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLearnerNotReady _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCLearnerNotReady $DRErrGRPCLearnerNotReady] as %xErrMemberLearnerNotReady ⟨%XErrMemberLearnerNotReady, #SErrMemberLearnerNotReady⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTooManyLearners))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTooManyLearners _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTooManyLearners _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCTooManyLearners $DRErrGRPCTooManyLearners] as %xErrTooManyLearners ⟨%XErrTooManyLearners, #SErrTooManyLearners⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRequestTooLarge))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRequestTooLarge _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRequestTooLarge _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRequestTooLarge $DRErrGRPCRequestTooLarge] as %xErrRequestTooLarge ⟨%XErrRequestTooLarge, #SErrRequestTooLarge⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTooManyRequests))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRequestTooManyRequests _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRequestTooManyRequests _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRequestTooManyRequests $DRErrGRPCRequestTooManyRequests] as %xErrTooManyRequests ⟨%XErrTooManyRequests, #SErrTooManyRequests⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRootUserNotExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRootUserNotExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRootUserNotExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRootUserNotExist $DRErrGRPCRootUserNotExist] as %xErrRootUserNotExist ⟨%XErrRootUserNotExist, #SErrRootUserNotExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRootRoleNotExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRootRoleNotExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRootRoleNotExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRootRoleNotExist $DRErrGRPCRootRoleNotExist] as %xErrRootRoleNotExist ⟨%XErrRootRoleNotExist, #SErrRootRoleNotExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrUserAlreadyExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUserAlreadyExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUserAlreadyExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCUserAlreadyExist $DRErrGRPCUserAlreadyExist] as %xErrUserAlreadyExist ⟨%XErrUserAlreadyExist, #SErrUserAlreadyExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrUserEmpty))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUserEmpty _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUserEmpty _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCUserEmpty $DRErrGRPCUserEmpty] as %xErrUserEmpty ⟨%XErrUserEmpty, #SErrUserEmpty⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrUserNotFound))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUserNotFound _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUserNotFound _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCUserNotFound $DRErrGRPCUserNotFound] as %xErrUserNotFound ⟨%XErrUserNotFound, #SErrUserNotFound⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRoleAlreadyExist))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleAlreadyExist _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleAlreadyExist _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRoleAlreadyExist $DRErrGRPCRoleAlreadyExist] as %xErrRoleAlreadyExist ⟨%XErrRoleAlreadyExist, #SErrRoleAlreadyExist⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRoleNotFound))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleNotFound _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleNotFound _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRoleNotFound $DRErrGRPCRoleNotFound] as %xErrRoleNotFound ⟨%XErrRoleNotFound, #SErrRoleNotFound⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRoleEmpty))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleEmpty _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleEmpty _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRoleEmpty $DRErrGRPCRoleEmpty] as %xErrRoleEmpty ⟨%XErrRoleEmpty, #SErrRoleEmpty⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrAuthFailed))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCAuthFailed _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCAuthFailed _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCAuthFailed $DRErrGRPCAuthFailed] as %xErrAuthFailed ⟨%XErrAuthFailed, #SErrAuthFailed⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrPermissionDenied))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCPermissionDenied _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCPermissionDenied _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCPermissionDenied $DRErrGRPCPermissionDenied] as %xErrPermissionDenied ⟨%XErrPermissionDenied, #SErrPermissionDenied⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrRoleNotGranted))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleNotGranted _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCRoleNotGranted _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCRoleNotGranted $DRErrGRPCRoleNotGranted] as %xErrRoleNotGranted ⟨%XErrRoleNotGranted, #SErrRoleNotGranted⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrPermissionNotGranted))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCPermissionNotGranted _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCPermissionNotGranted _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCPermissionNotGranted $DRErrGRPCPermissionNotGranted] as %xErrPermissionNotGranted ⟨%XErrPermissionNotGranted, #SErrPermissionNotGranted⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrAuthNotEnabled))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCAuthNotEnabled _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCAuthNotEnabled _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCAuthNotEnabled $DRErrGRPCAuthNotEnabled] as %xErrAuthNotEnabled ⟨%XErrAuthNotEnabled, #SErrAuthNotEnabled⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrInvalidAuthToken))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidAuthToken _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidAuthToken _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCInvalidAuthToken $DRErrGRPCInvalidAuthToken] as %xErrInvalidAuthToken ⟨%XErrInvalidAuthToken, #SErrInvalidAuthToken⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrAuthOldRevision))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCAuthOldRevision _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCAuthOldRevision _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCAuthOldRevision $DRErrGRPCAuthOldRevision] as %xErrAuthOldRevision ⟨%XErrAuthOldRevision, #SErrAuthOldRevision⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrInvalidAuthMgmt))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidAuthMgmt _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidAuthMgmt _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCInvalidAuthMgmt $DRErrGRPCInvalidAuthMgmt] as %xErrInvalidAuthMgmt ⟨%XErrInvalidAuthMgmt, #SErrInvalidAuthMgmt⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrClusterIDMismatch))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCClusterIDMismatch _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCClusterIDMismatch _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCClusterIDMismatch $DRErrGRPCClusterIDMismatch] as %xErrClusterIDMismatch ⟨%XErrClusterIDMismatch, #SErrClusterIDMismatch⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
@@ -1294,117 +1294,117 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrClusterIdMismatch))
   -- translated initializer of ErrNoLeader))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNoLeader _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNoLeader _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCNoLeader $DRErrGRPCNoLeader] as %xErrNoLeader ⟨%XErrNoLeader, #SErrNoLeader⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrNotLeader))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNotLeader _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNotLeader _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCNotLeader $DRErrGRPCNotLeader] as %xErrNotLeader ⟨%XErrNotLeader, #SErrNotLeader⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrLeaderChanged))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaderChanged _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCLeaderChanged _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCLeaderChanged $DRErrGRPCLeaderChanged] as %xErrLeaderChanged ⟨%XErrLeaderChanged, #SErrLeaderChanged⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrNotCapable))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNotCapable _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNotCapable _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCNotCapable $DRErrGRPCNotCapable] as %xErrNotCapable ⟨%XErrNotCapable, #SErrNotCapable⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrStopped))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCStopped _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCStopped _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCStopped $DRErrGRPCStopped] as %xErrStopped ⟨%XErrStopped, #SErrStopped⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTimeout))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeout _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeout _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCTimeout $DRErrGRPCTimeout] as %xErrTimeout ⟨%XErrTimeout, #SErrTimeout⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTimeoutDueToLeaderFail))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeoutDueToLeaderFail _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeoutDueToLeaderFail _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCTimeoutDueToLeaderFail $DRErrGRPCTimeoutDueToLeaderFail] as %xErrTimeoutDueToLeaderFail ⟨%XErrTimeoutDueToLeaderFail, #SErrTimeoutDueToLeaderFail⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTimeoutDueToConnectionLost))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeoutDueToConnectionLost _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeoutDueToConnectionLost _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCTimeoutDueToConnectionLost $DRErrGRPCTimeoutDueToConnectionLost] as %xErrTimeoutDueToConnectionLost ⟨%XErrTimeoutDueToConnectionLost, #SErrTimeoutDueToConnectionLost⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrTimeoutWaitAppliedIndex))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initAny (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeoutWaitAppliedIndex)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initAny (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCTimeoutWaitAppliedIndex)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCTimeoutWaitAppliedIndex] as %rErrTimeoutWaitAppliedIndex -
   try wp_auto
   -- translated initializer of ErrUnhealthy))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUnhealthy _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCUnhealthy _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCUnhealthy $DRErrGRPCUnhealthy] as %xErrUnhealthy ⟨%XErrUnhealthy, #SErrUnhealthy⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrCorrupt))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCCorrupt _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCCorrupt _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCCorrupt $DRErrGRPCCorrupt] as %xErrCorrupt ⟨%XErrCorrupt, #SErrCorrupt⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrBadLeaderTransferee))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCBadLeaderTransferee _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCBadLeaderTransferee _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCBadLeaderTransferee $DRErrGRPCBadLeaderTransferee] as %xErrBadLeaderTransferee ⟨%XErrBadLeaderTransferee, #SErrBadLeaderTransferee⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrClusterVersionUnavailable))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCClusterVersionUnavailable _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCClusterVersionUnavailable _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCClusterVersionUnavailable $DRErrGRPCClusterVersionUnavailable] as %xErrClusterVersionUnavailable ⟨%XErrClusterVersionUnavailable, #SErrClusterVersionUnavailable⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrWrongDowngradeVersionFormat))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCWrongDowngradeVersionFormat _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCWrongDowngradeVersionFormat _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCWrongDowngradeVersionFormat $DRErrGRPCWrongDowngradeVersionFormat] as %xErrWrongDowngradeVersionFormat ⟨%XErrWrongDowngradeVersionFormat, #SErrWrongDowngradeVersionFormat⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrInvalidDowngradeTargetVersion))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidDowngradeTargetVersion _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCInvalidDowngradeTargetVersion _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCInvalidDowngradeTargetVersion $DRErrGRPCInvalidDowngradeTargetVersion] as %xErrInvalidDowngradeTargetVersion ⟨%XErrInvalidDowngradeTargetVersion, #SErrInvalidDowngradeTargetVersion⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrDowngradeInProcess))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCDowngradeInProcess _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCDowngradeInProcess _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCDowngradeInProcess $DRErrGRPCDowngradeInProcess] as %xErrDowngradeInProcess ⟨%XErrDowngradeInProcess, #SErrDowngradeInProcess⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))
   try wp_auto
   -- translated initializer of ErrNoInflightDowngrade))
   try wp_auto
-  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof) EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNoInflightDowngrade _)
+  wp_apply (EtcdGrove.rpctypes.Error.wp_initErr (EtcdGrove.rpctypes.ErrorDesc.wp_init (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)) (EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof) EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc eErrGRPCNoInflightDowngrade _)
       $$ [$Hd2 $HerrStringToError $Hesm $MS $MD $OErrGRPCNoInflightDowngrade $DRErrGRPCNoInflightDowngrade] as %xErrNoInflightDowngrade ⟨%XErrNoInflightDowngrade, #SErrNoInflightDowngrade⟩
   · ipureintro
     repeat (first | exact EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inl rfl) | refine EtcdGrove.rpctypes_lookup_insert_isSome _ _ _ _ (Or.inr ?_))

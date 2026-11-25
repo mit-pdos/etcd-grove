@@ -11,6 +11,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.canceled
 public import Spec.context.WithCancelBackground
 public import Spec.google_golang_org.grpc.status.Code
+public import Proof.google_golang_org.grpc.internal.status.Methods
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.freshValue
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.checkErr
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.driverClient__Echo
@@ -43,7 +44,7 @@ theorem canceled.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG)
     (wp_String : google_golang_org.protobuf.types.known.wrapperspb.String.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (wp_WithCancel : context.WithCancelBackground.spec_canceled (GF := GF) (hG := hG))
-    (wp_Code : status.Code.spec (GF := GF) (hG := hG)) :
+    (wp_Code : status.Code.specNE (GF := GF) (hG := hG)) :
     canceled.spec (GF := GF) (hG := hG) := by
   intro γid γb c ids
   wp_start as ⟨#Hcli, Hcred⟩
@@ -99,7 +100,8 @@ theorem canceled.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG)
     · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
     ipureintro; intro v hv; cases hv
   try wp_auto
-  wp_apply wp_Code err (W32 1) $$ []
+  ihave %hne := statusCodeIs_notEtcd _ (W32 1) (Or.inl ⟨by decide, by decide⟩) $$ Hcode
+  wp_apply wp_Code err (W32 1) hne $$ []
   · iframe #
   try wp_auto
   iunfold drvFacts at Hf

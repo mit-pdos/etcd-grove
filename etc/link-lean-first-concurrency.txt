@@ -63,9 +63,9 @@ Session__Close: Session__Orphan
 OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
 WithRev:
 WithSerializable:
-status_FromError:
-rpctypes_ErrorDesc: status_FromError
 rpctypes_EtcdError__Error:
+status_FromError: rpctypes_EtcdError__Error
+rpctypes_ErrorDesc: status_FromError
 rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 status_Error:
 WatchResponse__Err: rpctypes_Error status_Error rpctypes_EtcdError__Error

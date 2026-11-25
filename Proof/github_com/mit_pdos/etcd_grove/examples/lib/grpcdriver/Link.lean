@@ -116,7 +116,7 @@ theorem wp_take : counter.take.spec (GF := GF) (hG := hG) := counter.take.wp_pro
 theorem wp_freshValue : freshValue.spec (GF := GF) (hG := hG) :=
   freshValue.wp_proof wp_take wp_randomWord _root_.Perennial.strconv.wp_FormatUint
 
-theorem wp_errOk : errOk.spec (GF := GF) (hG := hG) := errOk.wp_proof status.FromError.wp_proof
+theorem wp_errOk : errOk.spec (GF := GF) (hG := hG) := errOk.wp_proof status.FromError.wp_proofNE
 
 theorem wp_checkErr : checkErr.spec (GF := GF) (hG := hG) := checkErr.wp_proof wp_errOk
 
@@ -167,7 +167,7 @@ theorem wp_meta : «meta».spec (GF := GF) (hG := hG) :=
 
 theorem wp_canceled : canceled.spec (GF := GF) (hG := hG) :=
   canceled.wp_proof wp_freshValue wp_EchoStub_done wp_String _root_.Perennial.context.wp_Background
-    context.WithCancelBackground.wp_proof_canceled status.Code.wp_proof
+    context.WithCancelBackground.wp_proof_canceled (status.Code.wp_proofNE status.FromError.wp_proofNE)
 
 theorem wp_serverStream : serverStream.spec (GF := GF) (hG := hG) :=
   serverStream.wp_proof wp_randomWord wp_checkErr wp_ServerStreamStub wp_String
@@ -188,7 +188,7 @@ theorem wp_Client : Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof github_com.goose_lang.primitive.wp_RandomUint64 wp_below wp_work wp_freshValue
     wp_EchoStub_done svc.NewDriverClient.wp_proof wp_String _root_.Perennial.context.wp_Background
     insecure.NewCredentials.wp_proof grpc.WithTransportCredentials.wp_proof grpc.NewClient.wp_proof
-    grpc.ClientConn.Close.wp_proof status.Code.wp_proof
+    grpc.ClientConn.Close.wp_proof (status.Code.wp_proofNE status.FromError.wp_proofNE)
 
 theorem wp_sEcho : server.Echo.spec (GF := GF) (hG := hG) :=
   server.Echo.wp_proof _root_.Perennial.strconv.wp_FormatUint wp_String
