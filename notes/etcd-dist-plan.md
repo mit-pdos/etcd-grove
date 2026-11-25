@@ -1710,7 +1710,11 @@ counterpart of #34's restated spec (#34 comment 7152459179, etcd_safe's requirem
   hanging peer (timeout, boot succeeds); two returned errors (data directory a file; this member already
   published); the two panics `bootRTOk` excludes (a stand-in at a peer address, a proxy).
 - Gates: tier, bounds (390), premise-witness, iris-premise (putgetK's `Hprem` line dropped), api (etcdstart
-  lists `BootBridge`).
+  lists `BootBridge`). Full VM build green (28664 jobs). `tcb-report --check` matches the baseline unchanged
+  (338 axioms, 0 `sorry`): no proof root reaches the axiom, since `putgetK_safe` is proved only as
+  `putgetK_safe_of_S5` (`putgetk/Start.lean`, over the named hypotheses `HS5`, `HSM`), which is not a root
+  (`etc/proof_roots.py`); the baseline and the collections gain it when `putgetK_safe` (or the member boot of
+  `etcd_safe`) becomes a root.
 
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
