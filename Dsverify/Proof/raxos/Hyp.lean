@@ -36,7 +36,7 @@ premises, to be discharged when each piece comes as one shared change:
   string keys.
 
 
-**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `PbHyp` (its axiom review refuted it, `notes/axiom-review/dsv-fix4/quepaxa-pb.md`: `msg.marshalPre` admits any value of the runtime fields `state`/`sizeCache`), `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4; `PbHyp` since dsv-fix6, after its review in fix 4 refuted it and `Msg.lean`'s representation was narrowed: an owned message's `state` unset or its type's own `MessageInfo`, `stateOk`; a shared message's runtime fields in a sealed invariant) no longer a statement premise: `PbHyp`, `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/google_golang_org/protobuf/proto/{Marshal,Unmarshal}.lean`, `math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
 -/
 module
 
@@ -83,7 +83,13 @@ read with `dq = 1` owns both (the whole struct, existentially); one read with an
 them in an invariant (`msg.pbRtN`), so the stores of concurrent marshals of a shared message are
 justified (review #24, finding 2). gRPC's codec (`encoding/proto/proto.go:51-64`: `proto.Size`,
 then `Marshal` with `UseCachedSize`) writes the same fields: `PbCodec.marshal` is this
-precondition. -/
+precondition. The representation admits only the runtime-field values protobuf itself leaves
+(dsv-fix6, after review `notes/axiom-review/dsv-fix4/quepaxa-pb.md`): an owned message's `state` is
+unset or its type's own `MessageInfo` (`msg.stateOk`; the generated `ProtoReflect` uses the one in
+`state`, so another type's would marshal that type's layout), and a shared message's runtime fields
+sit in an invariant whose content (`msg.rt*`) is sealed, so only protobuf's own stores reach them;
+`sizeCache` is free in both, since `Marshal` sizes (storing every `sizeCache`) before it marshals
+with the cached sizes. -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (m : GoInterface) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msg.marshalPre m Ψ }}

@@ -176,7 +176,8 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
   iintro (⟨%Hv, re, req, response, «$res0»⟩ | ⟨%Hv, re, req, response, «$res0»⟩)
   rotate_left
   · subst Hv
-    imod ptRR_share ⊤ _ _ $$ response with #response
+    imod ptRR_share ⊤ _ _ ?st $$ response with #response
+    case st => exact stateOk_zero _
     wp_auto
     iapply HΦ
     iexists rrNotFound
@@ -260,9 +261,12 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
     F.priority' F.proposer_id' F.thread_id' F.ids')) => HFp
   irename : (_ ↦ (RecorderResponse_Proposal.mk zeroValDef 0 slice.nil
     M.priority' M.proposer_id' M.thread_id' M.ids')) => HMp
-  imod ptRRProp_share ⊤ _ _ $$ HFp with #HFp
-  imod ptRRProp_share ⊤ _ _ $$ HMp with #HMp
-  imod ptRR_share ⊤ _ _ $$ response with #response
+  imod ptRRProp_share ⊤ _ _ ?st $$ HFp with #HFp
+  case st => exact stateOk_zero _
+  imod ptRRProp_share ⊤ _ _ ?st $$ HMp with #HMp
+  case st => exact stateOk_zero _
+  imod ptRR_share ⊤ _ _ ?st $$ response with #response
+  case st => exact stateOk_zero _
   imodintro
   iapply HΦ
   iunfold valRep at HF

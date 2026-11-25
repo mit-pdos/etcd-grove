@@ -204,7 +204,8 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
     wp_apply context.wp_WithTimeout_Background as %ctx %γctx %cancel %dl ⟨#Hcancel, #Hctx, -⟩
     rw [Hprc]
     wp_auto
-    imod ptDReq_share ⊤ _ _ $$ «$a1» with #«$a1»
+    imod ptDReq_share ⊤ _ _ ?st $$ «$a1» with #«$a1»
+    case st => exact stateOk_zero _
     have Hr : 1 ≤ jr + 1 ∧ jr + 1 ≤ 5 := by omega
     wp_apply wp_FetchBatches γ (jr + 1) l cc ctx _ _ .discard ids slice.nil $$ [] as %out %err Hres
     · iframe #
@@ -463,7 +464,8 @@ theorem wp_handleDecisionRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) 
     wp_apply wp_fork $$ [Hdone]
     · wp_pures
       wp_apply wp_with_defer as %defer Hdefer
-      imod ptDecs_share ⊤ _ _ $$ «$a1» with #«$a1»
+      imod ptDecs_share ⊤ _ _ ?st $$ «$a1» with #«$a1»
+      case st => exact stateOk_zero _
       rw [Hprc]
       wp_auto
       have Hr : 1 ≤ sint.nat n + 1 ∧ sint.nat n + 1 ≤ 5 := by word

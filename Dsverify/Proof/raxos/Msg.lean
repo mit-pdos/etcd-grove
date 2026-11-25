@@ -13,7 +13,7 @@ kit's codec (interface of stage 1, `notes/stage1-plan.md`).
   protobuf's `Marshal` appends a message's unknown fields to its encoding, `internal/impl/
   encode.go`, so `enc*` is the encoding only of a message without them). Each message is a
   `pt*`: read with `dq = 1`, the whole struct (its protobuf runtime fields `state`, `sizeCache`
-  arbitrary, owned); with any other `dq`, its other fields and the runtime fields in an invariant
+  owned, `state` unset or the type's own `MessageInfo`, `stateOk`); with any other `dq`, its other fields and the runtime fields in an invariant
   (protobuf writes them while marshalling: "Ownership of a message" below).
 * **The codec's preconditions** (`marshalPre`, `unmarshalPre`): `marshalPre m Ψ` is a message
   of one of the program's kinds, whose encoding, if well formed (valid UTF-8 strings), is
@@ -211,6 +211,32 @@ def rrPropOk (p : RRProp) : Prop :=
 def rrOk (r : RR) : Prop :=
   i64Ok r.s ∧ (∀ p, r.f = some p → rrPropOk p) ∧ (∀ p, r.m = some p → rrPropOk p)
 
+/-! ## protobuf's `state` of a message -/
+
+section state
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The `MessageInfo` of the `i`th message type of `consensus.proto` (`file_…_msgTypes[i]`, the
+generated `ProtoReflect`'s `mi`). -/
+def replicaMI (i : Nat) : Loc :=
+  arrayIndexRef _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageInfo i
+    (globalAddr raxos.replica.src.file_replica_src_consensus_proto_msgTypes)
+
+/-- The `MessageInfo` of the `i`th message type of `client.proto`. -/
+def clientMI (i : Nat) : Loc :=
+  arrayIndexRef _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageInfo i
+    (globalAddr raxos.proto.client.file_proto_client_client_proto_msgTypes)
+
+/-- A message's `state` as protobuf leaves it: unset, or its type's own `MessageInfo` `mi`. -/
+def stateOk (mi : Loc) (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) : Prop :=
+  st.atomicMessageInfo' = null ∨ st.atomicMessageInfo' = mi
+
+theorem stateOk_zero (mi : Loc) :
+    stateOk mi (zero_val _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :=
+  Or.inl rfl
+
+end state
+
 /-! ## Go representations -/
 
 section reps
@@ -226,10 +252,35 @@ sizing it (`internal/impl/encode.go:67,123,128`, `atomic.StoreInt32`), and the g
 `ProtoReflect` stores its `state` on its first reflection (`pointer_unsafe.go:207-208`,
 `StoreMessageInfo`, `atomic.StorePointer`). So a message read with a fraction cannot be the whole
 struct's points-to. `pt*` is a message at `l` read with `dq`: owned (`dq = 1`), the whole struct
-(the program may copy it: a struct load reads `state` and `sizeCache` too); shared (any other
-`dq`), its other fields with `dq` (`fields*`) and the two runtime fields in an invariant
-(`pbRtN`), which protobuf's atomic stores may open. Sharing an owned message allocates that
-invariant (`pt*_persist`). (Review #24, finding 2.) -/
+(the program may copy it: a struct load reads `state` and `sizeCache` too) with its `state` unset
+or the type's own `MessageInfo` (`stateOk`); shared (any other `dq`), its other fields with `dq`
+(`fields*`) and the two runtime fields in an invariant (`pbRtN`), which protobuf's atomic stores
+may open. Sharing an owned message allocates that invariant (`pt*_persist`). (Review #24,
+finding 2.)
+
+**dsv-fix6** (the review of `PbHyp`, `notes/axiom-review/dsv-fix4/quepaxa-pb.md`, refuted it with
+an owned message whose `state` held another type's `MessageInfo`, counterexample A, and with a
+client storing into a shared message's `sizeCache` through the invariant, counterexample B): the
+owned case asks `stateOk` (`ProtoReflect` uses the `MessageInfo` already in `state`, so any other
+value marshals another type's layout; unset, protobuf stores the type's own), and the invariant's
+content `rt*` is sealed (`@[no_expose]`: no client can take the runtime fields out of it and store
+into them; only the axioms `proto.Marshal`/`proto.Unmarshal` stand for the stores protobuf makes).
+`sizeCache` is unconstrained in both: `proto.Marshal` sizes the message (storing every
+`sizeCache`) before marshalling with the cached sizes (`proto/encode.go:183-191`), and concurrent
+marshals of a shared, so immutable, message store the same sizes. -/
+
+/-- An access through `P` is one through `P ∗ ⌜φ⌝` (an owned message's `stateOk`). -/
+theorem access_sep_pure {A A' P P' : IProp GF} {φ : Prop} [h : Access A A' P P'] :
+    iprop(P ∗ ⌜φ⌝) ⊢ iprop(A ∗ (A' -∗ P' ∗ ⌜φ⌝)) := by
+  iintro ⟨HP, %Hφ⟩
+  ihave H := h.access $$ HP
+  icases H with ⟨HA, Hb⟩
+  iframe HA
+  iintro HA
+  ispecialize Hb $$ HA
+  isplitl [Hb]
+  · iexact Hb
+  · ipureintro; exact Hφ
 
 /-- The invariants holding shared messages' runtime fields. -/
 def pbRtN : Namespace := ndot nroot "protobuf"
@@ -259,19 +310,20 @@ instance fieldsPMSingle_pers (l : Loc) (v : raxos.replica.src.ProposerMessage_Cl
   unfold fieldsPMSingle; infer_instance
 
 /-- Protobuf's runtime fields of a `*ProposerMessage_ClientBatch_SingleMessage` at `l`, owned. -/
-def rtPMSingle (l : Loc) : IProp GF :=
+@[no_expose] def rtPMSingle (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 9) st⌝)
 
 open scoped Classical in
 /-- A `*ProposerMessage_ClientBatch_SingleMessage` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptPMSingle (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsPMSingle l dq v ∗ inv pbRtN (rtPMSingle l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 9) v.state'⌝) else iprop(fieldsPMSingle l dq v ∗ inv pbRtN (rtPMSingle l))
 
 theorem ptPMSingle_own (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) :
-    ptPMSingle (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptPMSingle (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 9) v.state'⌝) := by
   unfold ptPMSingle; exact if_pos rfl
 
 theorem ptPMSingle_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) (h : dq ≠ DFrac.own 1) :
@@ -289,11 +341,11 @@ theorem ptPMSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replic
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptPMSingle_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtPMSingle (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtPMSingle; iexists _, _; iframe
+    · inext; unfold rtPMSingle; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Message;
     imodintro; unfold fieldsPMSingle; iframe #; ipureintro; exact Hnn
   · rw [ptPMSingle_shared l dq v h]
@@ -302,14 +354,17 @@ theorem ptPMSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replic
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ProposerMessage_ClientBatch_SingleMessage`. -/
-theorem ptPMSingle_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) :
+theorem ptPMSingle_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) (hst : stateOk (replicaMI 9) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptPMSingle l .discard v := by
-  rw [← ptPMSingle_own]; exact ptPMSingle_persist E l _ v
+  refine BI.Entails.trans ?_ (ptPMSingle_persist E l (DFrac.own 1) v)
+  rw [ptPMSingle_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptPMSingle_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage) :
     ptPMSingle (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptPMSingle_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptPMSingle_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptPMSingle_shared l dq v h]
     unfold fieldsPMSingle
     iintro ⟨H, -⟩
@@ -325,7 +380,7 @@ instance (priority := high) ptPMSingle_access_load_unknownFields (l : Loc) (v : 
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMSingle_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMSingle_shared l dq v h]
       unfold fieldsPMSingle
@@ -340,7 +395,7 @@ instance (priority := high) ptPMSingle_access_load_Message (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMSingle_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMSingle_shared l dq v h]
       unfold fieldsPMSingle
@@ -375,19 +430,20 @@ instance fieldsPMBatch_pers (l : Loc) (v : raxos.replica.src.ProposerMessage_Cli
   unfold fieldsPMBatch; infer_instance
 
 /-- Protobuf's runtime fields of a `*ProposerMessage_ClientBatch` at `l`, owned. -/
-def rtPMBatch (l : Loc) : IProp GF :=
+@[no_expose] def rtPMBatch (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 6) st⌝)
 
 open scoped Classical in
 /-- A `*ProposerMessage_ClientBatch` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptPMBatch (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_ClientBatch) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsPMBatch l dq v ∗ inv pbRtN (rtPMBatch l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 6) v.state'⌝) else iprop(fieldsPMBatch l dq v ∗ inv pbRtN (rtPMBatch l))
 
 theorem ptPMBatch_own (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch) :
-    ptPMBatch (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptPMBatch (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 6) v.state'⌝) := by
   unfold ptPMBatch; exact if_pos rfl
 
 theorem ptPMBatch_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_ClientBatch) (h : dq ≠ DFrac.own 1) :
@@ -405,11 +461,11 @@ theorem ptPMBatch_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptPMBatch_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtPMBatch (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtPMBatch; iexists _, _; iframe
+    · inext; unfold rtPMBatch; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Sender; ipersist Messages; ipersist Id;
     imodintro; unfold fieldsPMBatch; iframe #; ipureintro; exact Hnn
   · rw [ptPMBatch_shared l dq v h]
@@ -418,14 +474,17 @@ theorem ptPMBatch_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ProposerMessage_ClientBatch`. -/
-theorem ptPMBatch_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch) :
+theorem ptPMBatch_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_ClientBatch) (hst : stateOk (replicaMI 6) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptPMBatch l .discard v := by
-  rw [← ptPMBatch_own]; exact ptPMBatch_persist E l _ v
+  refine BI.Entails.trans ?_ (ptPMBatch_persist E l (DFrac.own 1) v)
+  rw [ptPMBatch_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptPMBatch_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_ClientBatch) :
     ptPMBatch (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptPMBatch_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptPMBatch_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptPMBatch_shared l dq v h]
     unfold fieldsPMBatch
     iintro ⟨H, -⟩
@@ -441,7 +500,7 @@ instance (priority := high) ptPMBatch_access_load_unknownFields (l : Loc) (v : r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMBatch_shared l dq v h]
       unfold fieldsPMBatch
@@ -456,7 +515,7 @@ instance (priority := high) ptPMBatch_access_load_Sender (l : Loc) (v : raxos.re
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMBatch_shared l dq v h]
       unfold fieldsPMBatch
@@ -471,7 +530,7 @@ instance (priority := high) ptPMBatch_access_load_Messages (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMBatch_shared l dq v h]
       unfold fieldsPMBatch
@@ -486,7 +545,7 @@ instance (priority := high) ptPMBatch_access_load_Id (l : Loc) (v : raxos.replic
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMBatch_shared l dq v h]
       unfold fieldsPMBatch
@@ -521,19 +580,20 @@ instance fieldsPMSlot_pers (l : Loc) (v : raxos.replica.src.ProposerMessage_Deci
   unfold fieldsPMSlot; infer_instance
 
 /-- Protobuf's runtime fields of a `*ProposerMessage_DecidedSlot` at `l`, owned. -/
-def rtPMSlot (l : Loc) : IProp GF :=
+@[no_expose] def rtPMSlot (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 8) st⌝)
 
 open scoped Classical in
 /-- A `*ProposerMessage_DecidedSlot` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptPMSlot (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_DecidedSlot) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsPMSlot l dq v ∗ inv pbRtN (rtPMSlot l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 8) v.state'⌝) else iprop(fieldsPMSlot l dq v ∗ inv pbRtN (rtPMSlot l))
 
 theorem ptPMSlot_own (l : Loc) (v : raxos.replica.src.ProposerMessage_DecidedSlot) :
-    ptPMSlot (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptPMSlot (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 8) v.state'⌝) := by
   unfold ptPMSlot; exact if_pos rfl
 
 theorem ptPMSlot_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_DecidedSlot) (h : dq ≠ DFrac.own 1) :
@@ -551,11 +611,11 @@ theorem ptPMSlot_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptPMSlot_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtPMSlot (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtPMSlot; iexists _, _; iframe
+    · inext; unfold rtPMSlot; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Index; ipersist Ids; ipersist Proposer;
     imodintro; unfold fieldsPMSlot; iframe #; ipureintro; exact Hnn
   · rw [ptPMSlot_shared l dq v h]
@@ -564,14 +624,17 @@ theorem ptPMSlot_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ProposerMessage_DecidedSlot`. -/
-theorem ptPMSlot_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_DecidedSlot) :
+theorem ptPMSlot_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_DecidedSlot) (hst : stateOk (replicaMI 8) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptPMSlot l .discard v := by
-  rw [← ptPMSlot_own]; exact ptPMSlot_persist E l _ v
+  refine BI.Entails.trans ?_ (ptPMSlot_persist E l (DFrac.own 1) v)
+  rw [ptPMSlot_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptPMSlot_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_DecidedSlot) :
     ptPMSlot (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptPMSlot_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptPMSlot_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptPMSlot_shared l dq v h]
     unfold fieldsPMSlot
     iintro ⟨H, -⟩
@@ -587,7 +650,7 @@ instance (priority := high) ptPMSlot_access_load_unknownFields (l : Loc) (v : ra
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMSlot_shared l dq v h]
       unfold fieldsPMSlot
@@ -602,7 +665,7 @@ instance (priority := high) ptPMSlot_access_load_Index (l : Loc) (v : raxos.repl
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"Index" l) v.Index' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"Index" l) v.Index' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMSlot_shared l dq v h]
       unfold fieldsPMSlot
@@ -617,7 +680,7 @@ instance (priority := high) ptPMSlot_access_load_Ids (l : Loc) (v : raxos.replic
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"Ids" l) v.Ids' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"Ids" l) v.Ids' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMSlot_shared l dq v h]
       unfold fieldsPMSlot
@@ -632,7 +695,7 @@ instance (priority := high) ptPMSlot_access_load_Proposer (l : Loc) (v : raxos.r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPMSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"Proposer" l) v.Proposer' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_DecidedSlot go!"Proposer" l) v.Proposer' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPMSlot_shared l dq v h]
       unfold fieldsPMSlot
@@ -669,19 +732,20 @@ instance fieldsProp_pers (l : Loc) (v : raxos.replica.src.ProposerMessage_Propos
   unfold fieldsProp; infer_instance
 
 /-- Protobuf's runtime fields of a `*ProposerMessage_Proposal` at `l`, owned. -/
-def rtProp (l : Loc) : IProp GF :=
+@[no_expose] def rtProp (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 7) st⌝)
 
 open scoped Classical in
 /-- A `*ProposerMessage_Proposal` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptProp (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_Proposal) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsProp l dq v ∗ inv pbRtN (rtProp l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 7) v.state'⌝) else iprop(fieldsProp l dq v ∗ inv pbRtN (rtProp l))
 
 theorem ptProp_own (l : Loc) (v : raxos.replica.src.ProposerMessage_Proposal) :
-    ptProp (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptProp (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 7) v.state'⌝) := by
   unfold ptProp; exact if_pos rfl
 
 theorem ptProp_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_Proposal) (h : dq ≠ DFrac.own 1) :
@@ -699,11 +763,11 @@ theorem ptProp_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.sr
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptProp_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtProp (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtProp; iexists _, _; iframe
+    · inext; unfold rtProp; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Priority; ipersist ProposerId; ipersist ThreadId; ipersist Ids; ipersist ClientBatches;
     imodintro; unfold fieldsProp; iframe #; ipureintro; exact Hnn
   · rw [ptProp_shared l dq v h]
@@ -712,14 +776,17 @@ theorem ptProp_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.sr
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ProposerMessage_Proposal`. -/
-theorem ptProp_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_Proposal) :
+theorem ptProp_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage_Proposal) (hst : stateOk (replicaMI 7) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptProp l .discard v := by
-  rw [← ptProp_own]; exact ptProp_persist E l _ v
+  refine BI.Entails.trans ?_ (ptProp_persist E l (DFrac.own 1) v)
+  rw [ptProp_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptProp_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage_Proposal) :
     ptProp (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptProp_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptProp_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptProp_shared l dq v h]
     unfold fieldsProp
     iintro ⟨H, -⟩
@@ -735,7 +802,7 @@ instance (priority := high) ptProp_access_load_unknownFields (l : Loc) (v : raxo
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptProp_shared l dq v h]
       unfold fieldsProp
@@ -750,7 +817,7 @@ instance (priority := high) ptProp_access_load_Priority (l : Loc) (v : raxos.rep
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"Priority" l) v.Priority' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"Priority" l) v.Priority' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptProp_shared l dq v h]
       unfold fieldsProp
@@ -765,7 +832,7 @@ instance (priority := high) ptProp_access_load_ProposerId (l : Loc) (v : raxos.r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"ProposerId" l) v.ProposerId' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"ProposerId" l) v.ProposerId' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptProp_shared l dq v h]
       unfold fieldsProp
@@ -780,7 +847,7 @@ instance (priority := high) ptProp_access_load_ThreadId (l : Loc) (v : raxos.rep
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"ThreadId" l) v.ThreadId' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"ThreadId" l) v.ThreadId' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptProp_shared l dq v h]
       unfold fieldsProp
@@ -795,7 +862,7 @@ instance (priority := high) ptProp_access_load_Ids (l : Loc) (v : raxos.replica.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"Ids" l) v.Ids' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"Ids" l) v.Ids' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptProp_shared l dq v h]
       unfold fieldsProp
@@ -810,7 +877,7 @@ instance (priority := high) ptProp_access_load_ClientBatches (l : Loc) (v : raxo
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"ClientBatches" l) v.ClientBatches' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage_Proposal go!"ClientBatches" l) v.ClientBatches' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptProp_shared l dq v h]
       unfold fieldsProp
@@ -847,19 +914,20 @@ instance fieldsPM_pers (l : Loc) (v : raxos.replica.src.ProposerMessage) :
   unfold fieldsPM; infer_instance
 
 /-- Protobuf's runtime fields of a `*ProposerMessage` at `l`, owned. -/
-def rtPM (l : Loc) : IProp GF :=
+@[no_expose] def rtPM (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 0) st⌝)
 
 open scoped Classical in
 /-- A `*ProposerMessage` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptPM (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsPM l dq v ∗ inv pbRtN (rtPM l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 0) v.state'⌝) else iprop(fieldsPM l dq v ∗ inv pbRtN (rtPM l))
 
 theorem ptPM_own (l : Loc) (v : raxos.replica.src.ProposerMessage) :
-    ptPM (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptPM (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 0) v.state'⌝) := by
   unfold ptPM; exact if_pos rfl
 
 theorem ptPM_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage) (h : dq ≠ DFrac.own 1) :
@@ -877,11 +945,11 @@ theorem ptPM_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.src.
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptPM_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtPM (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtPM; iexists _, _; iframe
+    · inext; unfold rtPM; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Sender; ipersist Index; ipersist P; ipersist S; ipersist DecidedSlots;
     imodintro; unfold fieldsPM; iframe #; ipureintro; exact Hnn
   · rw [ptPM_shared l dq v h]
@@ -890,14 +958,17 @@ theorem ptPM_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.src.
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ProposerMessage`. -/
-theorem ptPM_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage) :
+theorem ptPM_share (E : CoPset) (l : Loc) (v : raxos.replica.src.ProposerMessage) (hst : stateOk (replicaMI 0) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptPM l .discard v := by
-  rw [← ptPM_own]; exact ptPM_persist E l _ v
+  refine BI.Entails.trans ?_ (ptPM_persist E l (DFrac.own 1) v)
+  rw [ptPM_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptPM_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.ProposerMessage) :
     ptPM (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptPM_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptPM_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptPM_shared l dq v h]
     unfold fieldsPM
     iintro ⟨H, -⟩
@@ -913,7 +984,7 @@ instance (priority := high) ptPM_access_load_unknownFields (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPM_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPM_shared l dq v h]
       unfold fieldsPM
@@ -928,7 +999,7 @@ instance (priority := high) ptPM_access_load_Sender (l : Loc) (v : raxos.replica
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPM_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"Sender" l) v.Sender' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"Sender" l) v.Sender' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPM_shared l dq v h]
       unfold fieldsPM
@@ -943,7 +1014,7 @@ instance (priority := high) ptPM_access_load_Index (l : Loc) (v : raxos.replica.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPM_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"Index" l) v.Index' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"Index" l) v.Index' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPM_shared l dq v h]
       unfold fieldsPM
@@ -958,7 +1029,7 @@ instance (priority := high) ptPM_access_load_P (l : Loc) (v : raxos.replica.src.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPM_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"P" l) v.P' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"P" l) v.P' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPM_shared l dq v h]
       unfold fieldsPM
@@ -973,7 +1044,7 @@ instance (priority := high) ptPM_access_load_S (l : Loc) (v : raxos.replica.src.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPM_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"S" l) v.S' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"S" l) v.S' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPM_shared l dq v h]
       unfold fieldsPM
@@ -988,7 +1059,7 @@ instance (priority := high) ptPM_access_load_DecidedSlots (l : Loc) (v : raxos.r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptPM_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"DecidedSlots" l) v.DecidedSlots' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.ProposerMessage go!"DecidedSlots" l) v.DecidedSlots' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptPM_shared l dq v h]
       unfold fieldsPM
@@ -1024,19 +1095,20 @@ instance fieldsRRProp_pers (l : Loc) (v : raxos.replica.src.RecorderResponse_Pro
   unfold fieldsRRProp; infer_instance
 
 /-- Protobuf's runtime fields of a `*RecorderResponse_Proposal` at `l`, owned. -/
-def rtRRProp (l : Loc) : IProp GF :=
+@[no_expose] def rtRRProp (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 10) st⌝)
 
 open scoped Classical in
 /-- A `*RecorderResponse_Proposal` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptRRProp (l : Loc) (dq : DFrac) (v : raxos.replica.src.RecorderResponse_Proposal) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsRRProp l dq v ∗ inv pbRtN (rtRRProp l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 10) v.state'⌝) else iprop(fieldsRRProp l dq v ∗ inv pbRtN (rtRRProp l))
 
 theorem ptRRProp_own (l : Loc) (v : raxos.replica.src.RecorderResponse_Proposal) :
-    ptRRProp (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptRRProp (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 10) v.state'⌝) := by
   unfold ptRRProp; exact if_pos rfl
 
 theorem ptRRProp_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.RecorderResponse_Proposal) (h : dq ≠ DFrac.own 1) :
@@ -1054,11 +1126,11 @@ theorem ptRRProp_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptRRProp_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtRRProp (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtRRProp; iexists _, _; iframe
+    · inext; unfold rtRRProp; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Priority; ipersist ProposerId; ipersist ThreadId; ipersist Ids;
     imodintro; unfold fieldsRRProp; iframe #; ipureintro; exact Hnn
   · rw [ptRRProp_shared l dq v h]
@@ -1067,14 +1139,17 @@ theorem ptRRProp_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*RecorderResponse_Proposal`. -/
-theorem ptRRProp_share (E : CoPset) (l : Loc) (v : raxos.replica.src.RecorderResponse_Proposal) :
+theorem ptRRProp_share (E : CoPset) (l : Loc) (v : raxos.replica.src.RecorderResponse_Proposal) (hst : stateOk (replicaMI 10) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptRRProp l .discard v := by
-  rw [← ptRRProp_own]; exact ptRRProp_persist E l _ v
+  refine BI.Entails.trans ?_ (ptRRProp_persist E l (DFrac.own 1) v)
+  rw [ptRRProp_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptRRProp_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.RecorderResponse_Proposal) :
     ptRRProp (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptRRProp_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptRRProp_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptRRProp_shared l dq v h]
     unfold fieldsRRProp
     iintro ⟨H, -⟩
@@ -1090,7 +1165,7 @@ instance (priority := high) ptRRProp_access_load_unknownFields (l : Loc) (v : ra
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRRProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRRProp_shared l dq v h]
       unfold fieldsRRProp
@@ -1105,7 +1180,7 @@ instance (priority := high) ptRRProp_access_load_Priority (l : Loc) (v : raxos.r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRRProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"Priority" l) v.Priority' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"Priority" l) v.Priority' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRRProp_shared l dq v h]
       unfold fieldsRRProp
@@ -1120,7 +1195,7 @@ instance (priority := high) ptRRProp_access_load_ProposerId (l : Loc) (v : raxos
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRRProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"ProposerId" l) v.ProposerId' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"ProposerId" l) v.ProposerId' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRRProp_shared l dq v h]
       unfold fieldsRRProp
@@ -1135,7 +1210,7 @@ instance (priority := high) ptRRProp_access_load_ThreadId (l : Loc) (v : raxos.r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRRProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"ThreadId" l) v.ThreadId' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"ThreadId" l) v.ThreadId' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRRProp_shared l dq v h]
       unfold fieldsRRProp
@@ -1150,7 +1225,7 @@ instance (priority := high) ptRRProp_access_load_Ids (l : Loc) (v : raxos.replic
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRRProp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"Ids" l) v.Ids' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse_Proposal go!"Ids" l) v.Ids' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRRProp_shared l dq v h]
       unfold fieldsRRProp
@@ -1186,19 +1261,20 @@ instance fieldsRR_pers (l : Loc) (v : raxos.replica.src.RecorderResponse) :
   unfold fieldsRR; infer_instance
 
 /-- Protobuf's runtime fields of a `*RecorderResponse` at `l`, owned. -/
-def rtRR (l : Loc) : IProp GF :=
+@[no_expose] def rtRR (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 1) st⌝)
 
 open scoped Classical in
 /-- A `*RecorderResponse` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptRR (l : Loc) (dq : DFrac) (v : raxos.replica.src.RecorderResponse) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsRR l dq v ∗ inv pbRtN (rtRR l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 1) v.state'⌝) else iprop(fieldsRR l dq v ∗ inv pbRtN (rtRR l))
 
 theorem ptRR_own (l : Loc) (v : raxos.replica.src.RecorderResponse) :
-    ptRR (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptRR (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 1) v.state'⌝) := by
   unfold ptRR; exact if_pos rfl
 
 theorem ptRR_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.RecorderResponse) (h : dq ≠ DFrac.own 1) :
@@ -1216,11 +1292,11 @@ theorem ptRR_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.src.
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptRR_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtRR (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtRR; iexists _, _; iframe
+    · inext; unfold rtRR; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist S; ipersist F; ipersist M; ipersist ClientBatchesNotFound;
     imodintro; unfold fieldsRR; iframe #; ipureintro; exact Hnn
   · rw [ptRR_shared l dq v h]
@@ -1229,14 +1305,17 @@ theorem ptRR_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.src.
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*RecorderResponse`. -/
-theorem ptRR_share (E : CoPset) (l : Loc) (v : raxos.replica.src.RecorderResponse) :
+theorem ptRR_share (E : CoPset) (l : Loc) (v : raxos.replica.src.RecorderResponse) (hst : stateOk (replicaMI 1) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptRR l .discard v := by
-  rw [← ptRR_own]; exact ptRR_persist E l _ v
+  refine BI.Entails.trans ?_ (ptRR_persist E l (DFrac.own 1) v)
+  rw [ptRR_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptRR_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.RecorderResponse) :
     ptRR (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptRR_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptRR_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptRR_shared l dq v h]
     unfold fieldsRR
     iintro ⟨H, -⟩
@@ -1252,7 +1331,7 @@ instance (priority := high) ptRR_access_load_unknownFields (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRR_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRR_shared l dq v h]
       unfold fieldsRR
@@ -1267,7 +1346,7 @@ instance (priority := high) ptRR_access_load_S (l : Loc) (v : raxos.replica.src.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRR_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"S" l) v.S' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"S" l) v.S' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRR_shared l dq v h]
       unfold fieldsRR
@@ -1282,7 +1361,7 @@ instance (priority := high) ptRR_access_load_F (l : Loc) (v : raxos.replica.src.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRR_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"F" l) v.F' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"F" l) v.F' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRR_shared l dq v h]
       unfold fieldsRR
@@ -1297,7 +1376,7 @@ instance (priority := high) ptRR_access_load_M (l : Loc) (v : raxos.replica.src.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRR_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"M" l) v.M' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"M" l) v.M' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRR_shared l dq v h]
       unfold fieldsRR
@@ -1312,7 +1391,7 @@ instance (priority := high) ptRR_access_load_ClientBatchesNotFound (l : Loc) (v 
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptRR_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"ClientBatchesNotFound" l) v.ClientBatchesNotFound' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.RecorderResponse go!"ClientBatchesNotFound" l) v.ClientBatchesNotFound' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptRR_shared l dq v h]
       unfold fieldsRR
@@ -1345,19 +1424,20 @@ instance fieldsDReq_pers (l : Loc) (v : raxos.replica.src.DecideRequest) :
   unfold fieldsDReq; infer_instance
 
 /-- Protobuf's runtime fields of a `*DecideRequest` at `l`, owned. -/
-def rtDReq (l : Loc) : IProp GF :=
+@[no_expose] def rtDReq (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 2) st⌝)
 
 open scoped Classical in
 /-- A `*DecideRequest` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptDReq (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideRequest) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsDReq l dq v ∗ inv pbRtN (rtDReq l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 2) v.state'⌝) else iprop(fieldsDReq l dq v ∗ inv pbRtN (rtDReq l))
 
 theorem ptDReq_own (l : Loc) (v : raxos.replica.src.DecideRequest) :
-    ptDReq (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptDReq (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 2) v.state'⌝) := by
   unfold ptDReq; exact if_pos rfl
 
 theorem ptDReq_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideRequest) (h : dq ≠ DFrac.own 1) :
@@ -1375,11 +1455,11 @@ theorem ptDReq_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.sr
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptDReq_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtDReq (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtDReq; iexists _, _; iframe
+    · inext; unfold rtDReq; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Ids;
     imodintro; unfold fieldsDReq; iframe #; ipureintro; exact Hnn
   · rw [ptDReq_shared l dq v h]
@@ -1388,14 +1468,17 @@ theorem ptDReq_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.sr
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*DecideRequest`. -/
-theorem ptDReq_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideRequest) :
+theorem ptDReq_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideRequest) (hst : stateOk (replicaMI 2) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptDReq l .discard v := by
-  rw [← ptDReq_own]; exact ptDReq_persist E l _ v
+  refine BI.Entails.trans ?_ (ptDReq_persist E l (DFrac.own 1) v)
+  rw [ptDReq_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptDReq_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideRequest) :
     ptDReq (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptDReq_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptDReq_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptDReq_shared l dq v h]
     unfold fieldsDReq
     iintro ⟨H, -⟩
@@ -1411,7 +1494,7 @@ instance (priority := high) ptDReq_access_load_unknownFields (l : Loc) (v : raxo
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDReq_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDReq_shared l dq v h]
       unfold fieldsDReq
@@ -1426,7 +1509,7 @@ instance (priority := high) ptDReq_access_load_Ids (l : Loc) (v : raxos.replica.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDReq_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"Ids" l) v.Ids' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideRequest go!"Ids" l) v.Ids' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDReq_shared l dq v h]
       unfold fieldsDReq
@@ -1459,19 +1542,20 @@ instance fieldsDRSingle_pers (l : Loc) (v : raxos.replica.src.DecideResponse_Cli
   unfold fieldsDRSingle; infer_instance
 
 /-- Protobuf's runtime fields of a `*DecideResponse_ClientBatch_SingleMessage` at `l`, owned. -/
-def rtDRSingle (l : Loc) : IProp GF :=
+@[no_expose] def rtDRSingle (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 12) st⌝)
 
 open scoped Classical in
 /-- A `*DecideResponse_ClientBatch_SingleMessage` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptDRSingle (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsDRSingle l dq v ∗ inv pbRtN (rtDRSingle l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 12) v.state'⌝) else iprop(fieldsDRSingle l dq v ∗ inv pbRtN (rtDRSingle l))
 
 theorem ptDRSingle_own (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) :
-    ptDRSingle (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptDRSingle (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 12) v.state'⌝) := by
   unfold ptDRSingle; exact if_pos rfl
 
 theorem ptDRSingle_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) (h : dq ≠ DFrac.own 1) :
@@ -1489,11 +1573,11 @@ theorem ptDRSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replic
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptDRSingle_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtDRSingle (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtDRSingle; iexists _, _; iframe
+    · inext; unfold rtDRSingle; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Message;
     imodintro; unfold fieldsDRSingle; iframe #; ipureintro; exact Hnn
   · rw [ptDRSingle_shared l dq v h]
@@ -1502,14 +1586,17 @@ theorem ptDRSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replic
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*DecideResponse_ClientBatch_SingleMessage`. -/
-theorem ptDRSingle_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) :
+theorem ptDRSingle_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) (hst : stateOk (replicaMI 12) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptDRSingle l .discard v := by
-  rw [← ptDRSingle_own]; exact ptDRSingle_persist E l _ v
+  refine BI.Entails.trans ?_ (ptDRSingle_persist E l (DFrac.own 1) v)
+  rw [ptDRSingle_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptDRSingle_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) :
     ptDRSingle (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptDRSingle_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptDRSingle_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptDRSingle_shared l dq v h]
     unfold fieldsDRSingle
     iintro ⟨H, -⟩
@@ -1525,7 +1612,7 @@ instance (priority := high) ptDRSingle_access_load_unknownFields (l : Loc) (v : 
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDRSingle_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDRSingle_shared l dq v h]
       unfold fieldsDRSingle
@@ -1540,7 +1627,7 @@ instance (priority := high) ptDRSingle_access_load_Message (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDRSingle_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDRSingle_shared l dq v h]
       unfold fieldsDRSingle
@@ -1575,19 +1662,20 @@ instance fieldsDRBatch_pers (l : Loc) (v : raxos.replica.src.DecideResponse_Clie
   unfold fieldsDRBatch; infer_instance
 
 /-- Protobuf's runtime fields of a `*DecideResponse_ClientBatch` at `l`, owned. -/
-def rtDRBatch (l : Loc) : IProp GF :=
+@[no_expose] def rtDRBatch (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 11) st⌝)
 
 open scoped Classical in
 /-- A `*DecideResponse_ClientBatch` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptDRBatch (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse_ClientBatch) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsDRBatch l dq v ∗ inv pbRtN (rtDRBatch l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 11) v.state'⌝) else iprop(fieldsDRBatch l dq v ∗ inv pbRtN (rtDRBatch l))
 
 theorem ptDRBatch_own (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch) :
-    ptDRBatch (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptDRBatch (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 11) v.state'⌝) := by
   unfold ptDRBatch; exact if_pos rfl
 
 theorem ptDRBatch_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse_ClientBatch) (h : dq ≠ DFrac.own 1) :
@@ -1605,11 +1693,11 @@ theorem ptDRBatch_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptDRBatch_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtDRBatch (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtDRBatch; iexists _, _; iframe
+    · inext; unfold rtDRBatch; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Sender; ipersist Messages; ipersist Id;
     imodintro; unfold fieldsDRBatch; iframe #; ipureintro; exact Hnn
   · rw [ptDRBatch_shared l dq v h]
@@ -1618,14 +1706,17 @@ theorem ptDRBatch_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*DecideResponse_ClientBatch`. -/
-theorem ptDRBatch_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch) :
+theorem ptDRBatch_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch) (hst : stateOk (replicaMI 11) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptDRBatch l .discard v := by
-  rw [← ptDRBatch_own]; exact ptDRBatch_persist E l _ v
+  refine BI.Entails.trans ?_ (ptDRBatch_persist E l (DFrac.own 1) v)
+  rw [ptDRBatch_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptDRBatch_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse_ClientBatch) :
     ptDRBatch (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptDRBatch_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptDRBatch_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptDRBatch_shared l dq v h]
     unfold fieldsDRBatch
     iintro ⟨H, -⟩
@@ -1641,7 +1732,7 @@ instance (priority := high) ptDRBatch_access_load_unknownFields (l : Loc) (v : r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDRBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDRBatch_shared l dq v h]
       unfold fieldsDRBatch
@@ -1656,7 +1747,7 @@ instance (priority := high) ptDRBatch_access_load_Sender (l : Loc) (v : raxos.re
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDRBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDRBatch_shared l dq v h]
       unfold fieldsDRBatch
@@ -1671,7 +1762,7 @@ instance (priority := high) ptDRBatch_access_load_Messages (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDRBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDRBatch_shared l dq v h]
       unfold fieldsDRBatch
@@ -1686,7 +1777,7 @@ instance (priority := high) ptDRBatch_access_load_Id (l : Loc) (v : raxos.replic
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDRBatch_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDRBatch_shared l dq v h]
       unfold fieldsDRBatch
@@ -1719,19 +1810,20 @@ instance fieldsDResp_pers (l : Loc) (v : raxos.replica.src.DecideResponse) :
   unfold fieldsDResp; infer_instance
 
 /-- Protobuf's runtime fields of a `*DecideResponse` at `l`, owned. -/
-def rtDResp (l : Loc) : IProp GF :=
+@[no_expose] def rtDResp (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 3) st⌝)
 
 open scoped Classical in
 /-- A `*DecideResponse` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptDResp (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsDResp l dq v ∗ inv pbRtN (rtDResp l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 3) v.state'⌝) else iprop(fieldsDResp l dq v ∗ inv pbRtN (rtDResp l))
 
 theorem ptDResp_own (l : Loc) (v : raxos.replica.src.DecideResponse) :
-    ptDResp (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptDResp (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 3) v.state'⌝) := by
   unfold ptDResp; exact if_pos rfl
 
 theorem ptDResp_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse) (h : dq ≠ DFrac.own 1) :
@@ -1749,11 +1841,11 @@ theorem ptDResp_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.s
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptDResp_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtDResp (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtDResp; iexists _, _; iframe
+    · inext; unfold rtDResp; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist ClientBatches;
     imodintro; unfold fieldsDResp; iframe #; ipureintro; exact Hnn
   · rw [ptDResp_shared l dq v h]
@@ -1762,14 +1854,17 @@ theorem ptDResp_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.s
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*DecideResponse`. -/
-theorem ptDResp_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideResponse) :
+theorem ptDResp_share (E : CoPset) (l : Loc) (v : raxos.replica.src.DecideResponse) (hst : stateOk (replicaMI 3) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptDResp l .discard v := by
-  rw [← ptDResp_own]; exact ptDResp_persist E l _ v
+  refine BI.Entails.trans ?_ (ptDResp_persist E l (DFrac.own 1) v)
+  rw [ptDResp_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptDResp_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.DecideResponse) :
     ptDResp (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptDResp_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptDResp_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptDResp_shared l dq v h]
     unfold fieldsDResp
     iintro ⟨H, -⟩
@@ -1785,7 +1880,7 @@ instance (priority := high) ptDResp_access_load_unknownFields (l : Loc) (v : rax
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDResp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDResp_shared l dq v h]
       unfold fieldsDResp
@@ -1800,7 +1895,7 @@ instance (priority := high) ptDResp_access_load_ClientBatches (l : Loc) (v : rax
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDResp_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"ClientBatches" l) v.ClientBatches' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.DecideResponse go!"ClientBatches" l) v.ClientBatches' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDResp_shared l dq v h]
       unfold fieldsDResp
@@ -1835,19 +1930,20 @@ instance fieldsDecSlot_pers (l : Loc) (v : raxos.replica.src.Decisions_DecidedSl
   unfold fieldsDecSlot; infer_instance
 
 /-- Protobuf's runtime fields of a `*Decisions_DecidedSlot` at `l`, owned. -/
-def rtDecSlot (l : Loc) : IProp GF :=
+@[no_expose] def rtDecSlot (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 13) st⌝)
 
 open scoped Classical in
 /-- A `*Decisions_DecidedSlot` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptDecSlot (l : Loc) (dq : DFrac) (v : raxos.replica.src.Decisions_DecidedSlot) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsDecSlot l dq v ∗ inv pbRtN (rtDecSlot l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 13) v.state'⌝) else iprop(fieldsDecSlot l dq v ∗ inv pbRtN (rtDecSlot l))
 
 theorem ptDecSlot_own (l : Loc) (v : raxos.replica.src.Decisions_DecidedSlot) :
-    ptDecSlot (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptDecSlot (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 13) v.state'⌝) := by
   unfold ptDecSlot; exact if_pos rfl
 
 theorem ptDecSlot_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.Decisions_DecidedSlot) (h : dq ≠ DFrac.own 1) :
@@ -1865,11 +1961,11 @@ theorem ptDecSlot_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptDecSlot_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtDecSlot (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtDecSlot; iexists _, _; iframe
+    · inext; unfold rtDecSlot; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Index; ipersist Ids; ipersist Proposer;
     imodintro; unfold fieldsDecSlot; iframe #; ipureintro; exact Hnn
   · rw [ptDecSlot_shared l dq v h]
@@ -1878,14 +1974,17 @@ theorem ptDecSlot_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*Decisions_DecidedSlot`. -/
-theorem ptDecSlot_share (E : CoPset) (l : Loc) (v : raxos.replica.src.Decisions_DecidedSlot) :
+theorem ptDecSlot_share (E : CoPset) (l : Loc) (v : raxos.replica.src.Decisions_DecidedSlot) (hst : stateOk (replicaMI 13) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptDecSlot l .discard v := by
-  rw [← ptDecSlot_own]; exact ptDecSlot_persist E l _ v
+  refine BI.Entails.trans ?_ (ptDecSlot_persist E l (DFrac.own 1) v)
+  rw [ptDecSlot_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptDecSlot_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.Decisions_DecidedSlot) :
     ptDecSlot (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptDecSlot_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptDecSlot_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptDecSlot_shared l dq v h]
     unfold fieldsDecSlot
     iintro ⟨H, -⟩
@@ -1901,7 +2000,7 @@ instance (priority := high) ptDecSlot_access_load_unknownFields (l : Loc) (v : r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDecSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDecSlot_shared l dq v h]
       unfold fieldsDecSlot
@@ -1916,7 +2015,7 @@ instance (priority := high) ptDecSlot_access_load_Index (l : Loc) (v : raxos.rep
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDecSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"Index" l) v.Index' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"Index" l) v.Index' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDecSlot_shared l dq v h]
       unfold fieldsDecSlot
@@ -1931,7 +2030,7 @@ instance (priority := high) ptDecSlot_access_load_Ids (l : Loc) (v : raxos.repli
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDecSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"Ids" l) v.Ids' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"Ids" l) v.Ids' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDecSlot_shared l dq v h]
       unfold fieldsDecSlot
@@ -1946,7 +2045,7 @@ instance (priority := high) ptDecSlot_access_load_Proposer (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDecSlot_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"Proposer" l) v.Proposer' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"Proposer" l) v.Proposer' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDecSlot_shared l dq v h]
       unfold fieldsDecSlot
@@ -1979,19 +2078,20 @@ instance fieldsDecs_pers (l : Loc) (v : raxos.replica.src.Decisions) :
   unfold fieldsDecs; infer_instance
 
 /-- Protobuf's runtime fields of a `*Decisions` at `l`, owned. -/
-def rtDecs (l : Loc) : IProp GF :=
+@[no_expose] def rtDecs (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.Decisions go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.Decisions go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.Decisions go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 4) st⌝)
 
 open scoped Classical in
 /-- A `*Decisions` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptDecs (l : Loc) (dq : DFrac) (v : raxos.replica.src.Decisions) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsDecs l dq v ∗ inv pbRtN (rtDecs l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 4) v.state'⌝) else iprop(fieldsDecs l dq v ∗ inv pbRtN (rtDecs l))
 
 theorem ptDecs_own (l : Loc) (v : raxos.replica.src.Decisions) :
-    ptDecs (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptDecs (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 4) v.state'⌝) := by
   unfold ptDecs; exact if_pos rfl
 
 theorem ptDecs_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.Decisions) (h : dq ≠ DFrac.own 1) :
@@ -2009,11 +2109,11 @@ theorem ptDecs_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.sr
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptDecs_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtDecs (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtDecs; iexists _, _; iframe
+    · inext; unfold rtDecs; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist DecidedSlots;
     imodintro; unfold fieldsDecs; iframe #; ipureintro; exact Hnn
   · rw [ptDecs_shared l dq v h]
@@ -2022,14 +2122,17 @@ theorem ptDecs_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.sr
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*Decisions`. -/
-theorem ptDecs_share (E : CoPset) (l : Loc) (v : raxos.replica.src.Decisions) :
+theorem ptDecs_share (E : CoPset) (l : Loc) (v : raxos.replica.src.Decisions) (hst : stateOk (replicaMI 4) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptDecs l .discard v := by
-  rw [← ptDecs_own]; exact ptDecs_persist E l _ v
+  refine BI.Entails.trans ?_ (ptDecs_persist E l (DFrac.own 1) v)
+  rw [ptDecs_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptDecs_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.Decisions) :
     ptDecs (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptDecs_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptDecs_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptDecs_shared l dq v h]
     unfold fieldsDecs
     iintro ⟨H, -⟩
@@ -2045,7 +2148,7 @@ instance (priority := high) ptDecs_access_load_unknownFields (l : Loc) (v : raxo
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDecs_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Decisions go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Decisions go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDecs_shared l dq v h]
       unfold fieldsDecs
@@ -2060,7 +2163,7 @@ instance (priority := high) ptDecs_access_load_DecidedSlots (l : Loc) (v : raxos
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptDecs_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Decisions go!"DecidedSlots" l) v.DecidedSlots' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Decisions go!"DecidedSlots" l) v.DecidedSlots' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptDecs_shared l dq v h]
       unfold fieldsDecs
@@ -2092,19 +2195,20 @@ instance fieldsEmpty_pers (l : Loc) (v : raxos.replica.src.Empty) :
   unfold fieldsEmpty; infer_instance
 
 /-- Protobuf's runtime fields of a `*Empty` at `l`, owned. -/
-def rtEmpty (l : Loc) : IProp GF :=
+@[no_expose] def rtEmpty (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.replica.src.Empty go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.replica.src.Empty go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.replica.src.Empty go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (replicaMI 5) st⌝)
 
 open scoped Classical in
 /-- A `*Empty` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptEmpty (l : Loc) (dq : DFrac) (v : raxos.replica.src.Empty) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsEmpty l dq v ∗ inv pbRtN (rtEmpty l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (replicaMI 5) v.state'⌝) else iprop(fieldsEmpty l dq v ∗ inv pbRtN (rtEmpty l))
 
 theorem ptEmpty_own (l : Loc) (v : raxos.replica.src.Empty) :
-    ptEmpty (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptEmpty (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (replicaMI 5) v.state'⌝) := by
   unfold ptEmpty; exact if_pos rfl
 
 theorem ptEmpty_shared (l : Loc) (dq : DFrac) (v : raxos.replica.src.Empty) (h : dq ≠ DFrac.own 1) :
@@ -2122,11 +2226,11 @@ theorem ptEmpty_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.s
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptEmpty_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtEmpty (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtEmpty; iexists _, _; iframe
+    · inext; unfold rtEmpty; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields;
     imodintro; unfold fieldsEmpty; iframe #; ipureintro; exact Hnn
   · rw [ptEmpty_shared l dq v h]
@@ -2135,14 +2239,17 @@ theorem ptEmpty_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.replica.s
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*Empty`. -/
-theorem ptEmpty_share (E : CoPset) (l : Loc) (v : raxos.replica.src.Empty) :
+theorem ptEmpty_share (E : CoPset) (l : Loc) (v : raxos.replica.src.Empty) (hst : stateOk (replicaMI 5) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptEmpty l .discard v := by
-  rw [← ptEmpty_own]; exact ptEmpty_persist E l _ v
+  refine BI.Entails.trans ?_ (ptEmpty_persist E l (DFrac.own 1) v)
+  rw [ptEmpty_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptEmpty_not_null (l : Loc) (dq : DFrac) (v : raxos.replica.src.Empty) :
     ptEmpty (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptEmpty_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptEmpty_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptEmpty_shared l dq v h]
     unfold fieldsEmpty
     iintro ⟨H, -⟩
@@ -2158,7 +2265,7 @@ instance (priority := high) ptEmpty_access_load_unknownFields (l : Loc) (v : rax
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptEmpty_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.replica.src.Empty go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.replica.src.Empty go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptEmpty_shared l dq v h]
       unfold fieldsEmpty
@@ -2191,19 +2298,20 @@ instance fieldsCSingle_pers (l : Loc) (v : raxos.proto.client.ClientBatch_Single
   unfold fieldsCSingle; infer_instance
 
 /-- Protobuf's runtime fields of a `*ClientBatch_SingleMessage` at `l`, owned. -/
-def rtCSingle (l : Loc) : IProp GF :=
+@[no_expose] def rtCSingle (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (clientMI 2) st⌝)
 
 open scoped Classical in
 /-- A `*ClientBatch_SingleMessage` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptCSingle (l : Loc) (dq : DFrac) (v : raxos.proto.client.ClientBatch_SingleMessage) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsCSingle l dq v ∗ inv pbRtN (rtCSingle l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (clientMI 2) v.state'⌝) else iprop(fieldsCSingle l dq v ∗ inv pbRtN (rtCSingle l))
 
 theorem ptCSingle_own (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) :
-    ptCSingle (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptCSingle (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (clientMI 2) v.state'⌝) := by
   unfold ptCSingle; exact if_pos rfl
 
 theorem ptCSingle_shared (l : Loc) (dq : DFrac) (v : raxos.proto.client.ClientBatch_SingleMessage) (h : dq ≠ DFrac.own 1) :
@@ -2221,11 +2329,11 @@ theorem ptCSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.proto.c
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptCSingle_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtCSingle (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtCSingle; iexists _, _; iframe
+    · inext; unfold rtCSingle; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Message;
     imodintro; unfold fieldsCSingle; iframe #; ipureintro; exact Hnn
   · rw [ptCSingle_shared l dq v h]
@@ -2234,14 +2342,17 @@ theorem ptCSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.proto.c
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ClientBatch_SingleMessage`. -/
-theorem ptCSingle_share (E : CoPset) (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) :
+theorem ptCSingle_share (E : CoPset) (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (hst : stateOk (clientMI 2) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptCSingle l .discard v := by
-  rw [← ptCSingle_own]; exact ptCSingle_persist E l _ v
+  refine BI.Entails.trans ?_ (ptCSingle_persist E l (DFrac.own 1) v)
+  rw [ptCSingle_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptCSingle_not_null (l : Loc) (dq : DFrac) (v : raxos.proto.client.ClientBatch_SingleMessage) :
     ptCSingle (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptCSingle_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptCSingle_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptCSingle_shared l dq v h]
     unfold fieldsCSingle
     iintro ⟨H, -⟩
@@ -2257,7 +2368,7 @@ instance (priority := high) ptCSingle_access_load_unknownFields (l : Loc) (v : r
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptCSingle_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptCSingle_shared l dq v h]
       unfold fieldsCSingle
@@ -2272,7 +2383,7 @@ instance (priority := high) ptCSingle_access_load_Message (l : Loc) (v : raxos.p
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptCSingle_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptCSingle_shared l dq v h]
       unfold fieldsCSingle
@@ -2307,19 +2418,20 @@ instance fieldsCB_pers (l : Loc) (v : raxos.proto.client.ClientBatch) :
   unfold fieldsCB; infer_instance
 
 /-- Protobuf's runtime fields of a `*ClientBatch` at `l`, owned. -/
-def rtCB (l : Loc) : IProp GF :=
+@[no_expose] def rtCB (l : Loc) : IProp GF :=
   iprop(∃ (st : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) (sc : w32),
     typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"state" l) st (DFrac.own 1) ∗
-    typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"sizeCache" l) sc (DFrac.own 1))
+    typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"sizeCache" l) sc (DFrac.own 1) ∗
+    ⌜stateOk (clientMI 0) st⌝)
 
 open scoped Classical in
 /-- A `*ClientBatch` at `l` read with `dq`: owned (`dq = 1`), the whole struct; shared, its fields
 with `dq` and its runtime fields protobuf's, in an invariant. -/
 def ptCB (l : Loc) (dq : DFrac) (v : raxos.proto.client.ClientBatch) : IProp GF :=
-  if dq = DFrac.own 1 then iprop(l ↦ v) else iprop(fieldsCB l dq v ∗ inv pbRtN (rtCB l))
+  if dq = DFrac.own 1 then iprop(l ↦ v ∗ ⌜stateOk (clientMI 0) v.state'⌝) else iprop(fieldsCB l dq v ∗ inv pbRtN (rtCB l))
 
 theorem ptCB_own (l : Loc) (v : raxos.proto.client.ClientBatch) :
-    ptCB (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v) := by
+    ptCB (GF := GF) l (DFrac.own 1) v = iprop(l ↦ v ∗ ⌜stateOk (clientMI 0) v.state'⌝) := by
   unfold ptCB; exact if_pos rfl
 
 theorem ptCB_shared (l : Loc) (dq : DFrac) (v : raxos.proto.client.ClientBatch) (h : dq ≠ DFrac.own 1) :
@@ -2337,11 +2449,11 @@ theorem ptCB_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.proto.client
   by_cases h : dq = DFrac.own 1
   · subst h
     rw [ptCB_own]
-    iintro Hv
+    iintro ⟨Hv, %Hst⟩
     ihave %Hnn := typedPointsto_not_null $$ Hv
     iStructNamed Hv
     imod inv_alloc pbRtN E (rtCB (GF := GF) l) $$ [state sizeCache] with #Hi
-    · inext; unfold rtCB; iexists _, _; iframe
+    · inext; unfold rtCB; iexists _, _; iframe; ipureintro; exact Hst
     ipersist unknownFields; ipersist Sender; ipersist Messages; ipersist Id;
     imodintro; unfold fieldsCB; iframe #; ipureintro; exact Hnn
   · rw [ptCB_shared l dq v h]
@@ -2350,14 +2462,17 @@ theorem ptCB_persist (E : CoPset) (l : Loc) (dq : DFrac) (v : raxos.proto.client
     imodintro; iframe #
 
 /-- Sharing a freshly owned `*ClientBatch`. -/
-theorem ptCB_share (E : CoPset) (l : Loc) (v : raxos.proto.client.ClientBatch) :
+theorem ptCB_share (E : CoPset) (l : Loc) (v : raxos.proto.client.ClientBatch) (hst : stateOk (clientMI 0) v.state') :
     typedPointsto (GF := GF) l v (DFrac.own 1) ⊢ |={E}=> ptCB l .discard v := by
-  rw [← ptCB_own]; exact ptCB_persist E l _ v
+  refine BI.Entails.trans ?_ (ptCB_persist E l (DFrac.own 1) v)
+  rw [ptCB_own]; iintro Hv; isplitl [Hv]
+  · iexact Hv
+  · ipureintro; exact hst
 
 theorem ptCB_not_null (l : Loc) (dq : DFrac) (v : raxos.proto.client.ClientBatch) :
     ptCB (GF := GF) l dq v ⊢ ⌜l ≠ null⌝ := by
   by_cases h : dq = DFrac.own 1
-  · subst h; rw [ptCB_own]; exact typedPointsto_not_null _ _ _
+  · subst h; rw [ptCB_own]; iintro ⟨Hv, -⟩; iapply typedPointsto_not_null; iexact Hv
   · rw [ptCB_shared l dq v h]
     unfold fieldsCB
     iintro ⟨H, -⟩
@@ -2373,7 +2488,7 @@ instance (priority := high) ptCB_access_load_unknownFields (l : Loc) (v : raxos.
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptCB_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptCB_shared l dq v h]
       unfold fieldsCB
@@ -2388,7 +2503,7 @@ instance (priority := high) ptCB_access_load_Sender (l : Loc) (v : raxos.proto.c
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptCB_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptCB_shared l dq v h]
       unfold fieldsCB
@@ -2403,7 +2518,7 @@ instance (priority := high) ptCB_access_load_Messages (l : Loc) (v : raxos.proto
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptCB_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptCB_shared l dq v h]
       unfold fieldsCB
@@ -2418,7 +2533,7 @@ instance (priority := high) ptCB_access_load_Id (l : Loc) (v : raxos.proto.clien
   access := by
     by_cases h : dq = DFrac.own 1
     · subst h; rw [ptCB_own]
-      exact Access.access (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
+      exact access_sep_pure (A := typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
         (P := typedPointsto l v (DFrac.own 1))
     · rw [ptCB_shared l dq v h]
       unfold fieldsCB

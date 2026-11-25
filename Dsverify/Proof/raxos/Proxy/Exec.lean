@@ -38,8 +38,9 @@ theorem wp_applySMRLogic (pr bm : Loc) (st : pure.Store) (cs : GoSlice)
       (App (Val (pr @!! go.GoType.PointerType Proxy.ty @!! go!"applySMRLogic")) (Val #cs))
     {{ (rs : GoSlice) (outs : List raxos.proto.client.ClientBatch), RET #rs;
         kvOwn bm (runBatches st (bs.map Batch.cmds)).1 ∗ rs ↦* outs ∗
-        [∗list] k ↦ o ∈ outs, ∃ b r, ⌜bs[k]? = some b ∧ (runBatches st (bs.map Batch.cmds)).2[k]? = some r⌝ ∗
-          repCBVal o (DFrac.own 1) ⟨b.id, b.sender, r⟩ }} := by
+        ([∗list] k ↦ o ∈ outs, ∃ b r, ⌜bs[k]? = some b ∧ (runBatches st (bs.map Batch.cmds)).2[k]? = some r⌝ ∗
+          repCBVal o (DFrac.own 1) ⟨b.id, b.sender, r⟩) ∗
+        ⌜∀ o ∈ outs, stateOk (clientMI 0) o.state'⌝ }} := by
   wp_start as ⟨#Hbm, Hkv, #Hcs, Hrep⟩
   wp_auto
   wp_apply wp_Execute bm st cs cbs bs hok $$ [Hkv Hrep] as %rs %outs H
@@ -60,9 +61,10 @@ theorem wp_executeClientBatches (γ : QNames) (γs : GName) (pr cb bm ebm : Loc)
     {{ (rs : GoSlice) (outs : List raxos.proto.client.ClientBatch), RET #rs;
         ∃ E', ebm ↦$ E' ∗ ⌜doneRel E' (execIds (fun x => Bm !! x) es ids).done⌝ ∗
         kvOwn bm (execIds (fun x => Bm !! x) es ids).store ∗ rs ↦* outs ∗
-        [∗list] k ↦ o ∈ outs, ∃ x b r, ⌜(freshIds es.done ids)[k]? = some x ∧ Bm !! x = some b ∧
+        ([∗list] k ↦ o ∈ outs, ∃ x b r, ⌜(freshIds es.done ids)[k]? = some x ∧ Bm !! x = some b ∧
           (execIds (fun x => Bm !! x) es ids).results x = some r⌝ ∗
-          repCBVal o (DFrac.own 1) ⟨x, b.sender, r⟩ }} := by
+          repCBVal o (DFrac.own 1) ⟨x, b.sender, r⟩) ∗
+        ⌜∀ o ∈ outs, stateOk (clientMI 0) o.state'⌝ }} := by
   wp_start as ⟨#Hcb, #Hst, #Hbm, #Hebm, Hm, Hkv, #Hsl, #Hhas, #Hknown⟩
   wp_auto
   ihave %Hsllen := ownSlice_len $$ Hsl
@@ -197,7 +199,7 @@ theorem wp_executeClientBatches (γ : QNames) (γs : GName) (pr cb bm ebm : Loc)
       obtain ⟨b', hb'⟩ := Option.isSome_iff_exists.1 (hB x hxi)
       rw [hb'] at hc
       exact hcmd x b' hb' c hc
-    wp_apply wp_applySMRLogic pr bm es.store bsl cbv _ hok $$ [Hkv Hrep] as %rs %outs ⟨Hkv, Hrs, Houts⟩
+    wp_apply wp_applySMRLogic pr bm es.store bsl cbv _ hok $$ [Hkv Hrep] as %rs %outs ⟨Hkv, Hrs, Houts, %Hst⟩
     · iframe Hbm Hkv Hbsl Hrep
     -- the slot's execution, as the Go code did it
     have Hcm : ((freshIds es.done ids).map (fun x => (Bm !! x).getD default)).map Batch.cmds =
@@ -216,6 +218,9 @@ theorem wp_executeClientBatches (γ : QNames) (γs : GName) (pr cb bm ebm : Loc)
     iframe Hm Hkv Hrs
     isplitr
     · ipureintro; exact HE'
+    isplitl [Houts]
+    rotate_left
+    · ipureintro; exact Hst
     iapply BigSepL.bigSepL_impl $$ Houts
     imodintro
     iintro %k %o %hk ⟨%b0, %r, %Hbr, Hr⟩
