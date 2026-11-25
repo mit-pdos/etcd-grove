@@ -133,7 +133,7 @@ abbrev Lease_LeasesLive_dist.spec : Prop :=
 
 /-- **`Client_LeaseLeases_dist` (etcd-grove-03's draft, `etcd-safe-n9b` b0076abbbe) re-indexed by the
 view**: the body unchanged but for `etcdAddrAt ep γE mid` → `etcdAddrAt ep Γ mid` (inside
-`leaseClientAt`) and `levelTok 0` threaded (see §18.6). View-free (`etcdLeaseLeasesSpecAnyW`): any lease
+`leaseClientAt`) and `levelTok 0` threaded (see §18.7). View-free (`etcdLeaseLeasesSpecAnyW`): any lease
 mode. -/
 abbrev Client_LeaseLeases_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
