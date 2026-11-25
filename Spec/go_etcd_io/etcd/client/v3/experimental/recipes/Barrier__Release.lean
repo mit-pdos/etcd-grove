@@ -28,13 +28,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 the key was absent at some `r ≥ lo` etcd has reached (deleted, or already gone); or an error. -/
 abbrev Barrier.Release.spec : Prop :=
   ∀ (b client : Loc) (key : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isBarrier b client key ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isBarrier b client key ∗ etcdReached lo) }}
     (App (Val (b @!! go.GoType.PointerType Barrier.ty @!! go!"Release")) (Val #()))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ etcdAbsent key key r ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ etcdAbsent key key r ∗
         ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

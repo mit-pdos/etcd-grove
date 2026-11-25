@@ -11,6 +11,7 @@ transport's directory bound for up to `1000` members by `rafthttp.bootCfg_of_le`
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run
@@ -118,11 +119,11 @@ theorem etcd_authlease.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] 
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     (etcdstart.StartMembersAuth.wp_proof (etcdstart.StartMemberAuth.wp_proof
-      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_Listen
+      etcdstart.features.wp_NewDefaultServerFeatureGate server_new_auth_on etcdstart.net.wp_ListenHttp
       EtcdServer.wp_RaftHandler server_Start)) etcd_authlease.wp_run
     (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
     mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

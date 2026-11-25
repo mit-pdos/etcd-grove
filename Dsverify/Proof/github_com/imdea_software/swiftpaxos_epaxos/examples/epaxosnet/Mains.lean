@@ -397,20 +397,20 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server1 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server1 ∗ codecFresh ∗ muxOwner [] ∗
+        defaultSrvFresh ∗ threadTok ∗
         net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 1 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Hds, #Henv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, Hds, Htok, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ W (W64 1) (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server γ W (W64 1) (by decide) (by decide) $$ [Hcf Hmux Hds Htok Hres]
   · rw [show uint.nat (W64 1) = 1 from rfl]
     iframe #
-    iframe Hcf Hmux Hres
+    iframe Hcf Hmux Hds Htok Hres
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -433,20 +433,20 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server2 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server2 ∗ codecFresh ∗ muxOwner [] ∗
+        defaultSrvFresh ∗ threadTok ∗
         net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 2 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Hds, #Henv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, Hds, Htok, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ W (W64 2) (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server γ W (W64 2) (by decide) (by decide) $$ [Hcf Hmux Hds Htok Hres]
   · rw [show uint.nat (W64 2) = 2 from rfl]
     iframe #
-    iframe Hcf Hmux Hres
+    iframe Hcf Hmux Hds Htok Hres
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -469,20 +469,20 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server3 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server3 ∗ codecFresh ∗ muxOwner [] ∗
+        defaultSrvFresh ∗ threadTok ∗
         net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Hds, #Henv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, Hds, Htok, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ W (W64 3) (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server γ W (W64 3) (by decide) (by decide) $$ [Hcf Hmux Hds Htok Hres]
   · rw [show uint.nat (W64 3) = 3 from rfl]
     iframe #
-    iframe Hcf Hmux Hres
+    iframe Hcf Hmux Hds Htok Hres
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -505,20 +505,20 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server4 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server4 ∗ codecFresh ∗ muxOwner [] ∗
+        defaultSrvFresh ∗ threadTok ∗
         net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 4 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Hds, #Henv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, Hds, Htok, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ W (W64 4) (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server γ W (W64 4) (by decide) (by decide) $$ [Hcf Hmux Hds Htok Hres]
   · rw [show uint.nat (W64 4) = 4 from rfl]
     iframe #
-    iframe Hcf Hmux Hres
+    iframe Hcf Hmux Hds Htok Hres
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -541,20 +541,20 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server5 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server5 ∗ codecFresh ∗ muxOwner [] ∗
+        defaultSrvFresh ∗ threadTok ∗
         net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 5 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Hds, #Henv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, Hds, Htok, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ W (W64 5) (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server γ W (W64 5) (by decide) (by decide) $$ [Hcf Hmux Hds Htok Hres]
   · rw [show uint.nat (W64 5) = 5 from rfl]
     iframe #
-    iframe Hcf Hmux Hres
+    iframe Hcf Hmux Hds Htok Hres
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -577,20 +577,20 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server6 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server6 ∗ codecFresh ∗ muxOwner [] ∗
+        defaultSrvFresh ∗ threadTok ∗
         net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 6 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Hds, #Henv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, Hds, Htok, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ W (W64 6) (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server γ W (W64 6) (by decide) (by decide) $$ [Hcf Hmux Hds Htok Hres]
   · rw [show uint.nat (W64 6) = 6 from rfl]
     iframe #
-    iframe Hcf Hmux Hres
+    iframe Hcf Hmux Hds Htok Hres
     ipureintro; exact Hb
   iapply HΦ
   itrivial

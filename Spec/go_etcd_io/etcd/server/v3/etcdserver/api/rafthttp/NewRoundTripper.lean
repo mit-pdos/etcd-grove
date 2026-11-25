@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.net.http.Boundary
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
+public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.Defs
 
 @[expose] public section
 
@@ -27,9 +28,11 @@ variable [sem : go.Semantics]
 /-- **`NewRoundTripper(tlsInfo, dialTimeout)`** (the pipeline's round tripper): an error, or a round tripper of
 any network `H` (`http.roundTripperOk`) whose dynamic type is `*http.Transport` (Go's `util.go`:
 `return transport.NewTimeoutTransport(tlsInfo, dialTimeout, 0, 0)`, an `*http.Transport`;
-`bootstrap`'s `prt`, which `NewServer` stores and `LeaseRenew` forwards through, 2026-11-23). -/
+`bootstrap`'s `prt`, which `NewServer` stores and `LeaseRenew` forwards through, 2026-11-23), for a
+`TLSInfo` with no certificate (`transport.tlsEmpty`, `NewTimeoutTransport`'s premise, 2026-11-25). -/
 abbrev rafthttp.NewRoundTripper.spec : Prop :=
   ∀ (H : http.HttpNet GF) (tls : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dt : w64),
+  transport.tlsEmpty tls →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }}
     (App (App (Val (@! rafthttp.NewRoundTripper)) (Val #tls)) (Val #dt))
   {{ (rt err : GoInterface), RET (PairV #rt #err);

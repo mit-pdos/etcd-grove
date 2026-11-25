@@ -33,7 +33,7 @@ theorem retryLeaseClient.LeaseGrant.wp_proof
     (wp_stub : leaseClient.LeaseGrant.spec (GF := GF) (hG := hG)) :
     retryLeaseClient.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro rlc conn addr Spec Q ctx om cd inp req opts vs
-  wp_start as ⟨#Hrlc, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, %Hcap, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hrlc, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hopts, %Hcap, #Hok, %Hsz⟩
   iunfold retryLeaseAt at Hrlc
   icases Hrlc with ⟨%lc, #Hlc, #Hstub⟩
   wp_auto
@@ -57,7 +57,7 @@ theorem retryLeaseClient.LeaseGrant.wp_proof
   ihave #Hs1 := callOptsOk_singleton _ $$ Hro1
   ihave #Hok2 := callOptsOk_app vs _ $$ [Hok Hs1]
   · iframe #
-  wp_apply wp_stub lc conn addr Spec Q ctx om cd inp req copts _ $$ [Hin] as %resp %err Hres
+  wp_apply wp_stub lc conn addr Spec Q ctx om cd inp req copts _ $$ [Hlt Hin] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)

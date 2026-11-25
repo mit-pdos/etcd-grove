@@ -58,13 +58,12 @@ theorem Server.TerminalLogger.wp_proof
   ihave Hc2 := Hc
   iStructNamedPrefix Hc2 "C"
   wp_apply wp_with_defer as %defer Hdefer
-  wp_apply hIL cf $$ [] as %lg -
+  wp_apply hIL cf $$ [] as %lg #Hlok
   · iexact Hconf
   wp_apply time.wp_NewTicker (W64 4000000000) as %tk %tch %γt #Htk
   · ipureintro; decide
   unfold time.isTicker
   icases Htk with ⟨#HC, -, -, #Htbag⟩
-  ihave %HtlNN := typedPointsto_not_null _ _ _ $$ tLogger
   ihave HI : (∃ (a b : w64), "lastNotNulls" ∷ lastNotNulls_ptr ↦ a ∗
       "lastCBProcessed" ∷ lastCBProcessed_ptr ↦ b) $$ [lastNotNulls lastCBProcessed]
   · iexists W64 0, W64 0; iframe
@@ -106,7 +105,7 @@ theorem Server.TerminalLogger.wp_proof
     · iexact Htro
     wp_apply hSS c $$ [] as %a1 %a2 %a3 %a4 -
     · iexact Hstro
-    wp_apply hW tLogger_ptr HtlNN as %e He
+    wp_apply hW tLogger_ptr lg (DFrac.own 1) $$ [$tLogger $Hlok] as %e ⟨tLogger, He⟩
     wp_apply hU $$ [$He] as He
     wp_apply hI $$ [$He] as He
     wp_apply hI $$ [$He] as He

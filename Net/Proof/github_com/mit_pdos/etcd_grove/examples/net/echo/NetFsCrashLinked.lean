@@ -1,13 +1,13 @@
 /-
 `examples/net/echo` with its server on a machine that crashes and restarts and its client on one that
-never crashes, over the network and Linux files together (`[netExt, fsExt]`, `kvnetExts`): the
+never crashes, over the network and Linux files together (`[netExt, fsExt]`, `kvraftExts`): the
 minimal instance of the bridge `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`, etcd-dist
 stage D3), the check that it applies to a real system. (It proves the implication only; that its
 premise `NetFsDeploy` is satisfiable is argued in `notes/dist-crash-bridge.md`, not proved here.)
 
 Two machines: the crashing `[(boot_serverNF, σs)]` and the stable `[(boot_clientNF, σc)]` (echo's
 commands `cmd/server` and `cmd/client`, `TopLevelDefs.lean`), the address `[SrvAddr]` (valid:
-`decide`). The proof is `echo_dist_robust`'s (`RobustLinked.lean`), over `kvnetExts`: from `SrvAddr`
+`decide`). The proof is `echo_dist_robust`'s (`RobustLinked.lean`), over `kvraftExts`: from `SrvAddr`
 unset, echo's protocol (`echoInvs`, `Defs.lean`), which is global ghost state and so survives the
 server's crashes; the server's precondition in a generation is the protocol and its empty package
 state, which every crash gives back (the file system's crash rest is not needed: the server keeps
@@ -46,8 +46,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net NetFs Robustness
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 
-attribute [local instance] kvnetExts kvnetExtsSemantics kvnetExtsInterp kvnetExtsCrashInterp
-  kvnetExts_hasNet kvnetExts_hasFs GooseGlobalGS.gooseInvGS
+attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExtsInterp kvraftExtsCrashInterp
+  kvraftExts_hasNet kvraftExts_hasFs GooseGlobalGS.gooseInvGS
 
 /-- A command's boot program over `[netExt, fsExt]` (`TopLevelDefs.lean`'s `boot`, which is over
 `[netExt]`: a program's syntax is over its list of extensions): run its package's initializer `init`,
@@ -106,7 +106,7 @@ theorem echo_netfs_mixed_robust [GoGlobalContext] [lctx : GoLocalContext] [sem :
     (σs σc : state) (g : GlobalState) (threads bound : Nat) :
     NetFsDeploy [srvAddr] [(boot_serverNF, σs)] [(boot_clientNF, σc)] g →
       Robust [(boot_serverNF, σs)] [(boot_clientNF, σc)] g threads bound := by
-  refine robust_of_netFsBoot (GF := kvnetGF) _ _ _ g threads bound ?_
+  refine robust_of_netFsBoot (GF := kvraftGF) _ _ _ g threads bound ?_
   intro G _
   iintro Hs
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hu, -⟩
@@ -126,7 +126,7 @@ theorem echo_netfs_mixed_robust [GoGlobalContext] [lctx : GoLocalContext] [sem :
       cases hm
       subst hL
       dsimp only
-      letI hG : HeapGS .hasLC kvnetGF := ⟨G, L⟩
+      letI hG : HeapGS .hasLC kvraftGF := ⟨G, L⟩
       iintro ⟨#Hinvs, #Hplan, Hgs⟩ -
       imodintro
       isplitl [Hgs]
@@ -150,7 +150,7 @@ theorem echo_netfs_mixed_robust [GoGlobalContext] [lctx : GoLocalContext] [sem :
       cases hm
       subst hL
       dsimp only
-      letI hG : HeapGS .hasLC kvnetGF := ⟨G, L⟩
+      letI hG : HeapGS .hasLC kvraftGF := ⟨G, L⟩
       iintro ⟨#Hinvs, #Hplan⟩ - Hgs -
       imodintro
       rw [show boot_clientNF = bootNF cmd.client.initialize' cmd.client.main from rfl]

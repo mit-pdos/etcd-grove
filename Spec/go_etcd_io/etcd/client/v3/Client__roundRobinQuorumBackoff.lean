@@ -30,7 +30,7 @@ abbrev Client.roundRobinQuorumBackoff.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"roundRobinQuorumBackoff")) (Val #w)) (Val #j))
-  {{ (bf : GoFunc), RET #bf; backoffOk bf }}
+  {{ (bf : GoFunc), RET #bf; backoffOkT bf }}
 
 end spec
 

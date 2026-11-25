@@ -26,7 +26,8 @@ storage tokens, the `InitialState` closure and the static/dynamic boot tokens of
 API's unified `StartNode.spec`): the configuration and the peers (`rnStartCfg`: the wrapper's
 logger, `NewRawNode`'s premises on `b.config` with `b.storage` its `MemoryStorage`, `PreVote` and
 `CheckQuorum` either way since 2026-10-17; the peers non-empty with their ids `ps`), a positive
-heartbeat (`newRaftNode`'s, a scope restriction), the WAL read (`NewStorage`'s contract); the
+heartbeat (`newRaftNode`'s, a scope restriction), the WAL read (the open WAL `ν.h`; `NewStorage`'s
+contract was a premise until wal-nostorageok, 2026-11-21: now proved, the proof's law); the
 receiver and `b.config`, the logger; the storage as `StartNode` boots it (`restartStorage` at the
 empty contents, the zero hard state and the empty conf state, with the frame `Q` its
 `InitialState`'s continuation gives at the storage's key: the server's from `srvMem_bootStorage`);
@@ -85,7 +86,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (2026-11-09, Q8 stage 0) and the cluster untraced (`cluster_alloc`'s): `StartNode`'s premise;
       -- (wal-link L3, 2026-11-19: until then `storage.walReady wal`) the WAL the open WAL `ν.h`'s
       "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧ Cluster.trace γr.cl = none⌝ ∗
-      -- (wal-link L3) the snapshotter (`NewStorage`'s precondition, `rnNewStorageOk`)
+      -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
       "#Hssi" ∷ snap.isSnapshotter ss sd ∗
       -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode`'s, which it logs through)
       "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
@@ -99,8 +100,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       "Hboot" ∷ rnBootPre γr bv cv lok pv ps ctxs Q SV bt ∗
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, `newRaftNode`'s
       -- proof calls the ticker's spec)
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
+      -- (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved: the proof's law `rnNewStorageOk.law`)
+      "#Hrs" ∷ rnRaftStatusOk ∗
       "#Hcl" ∷ rnClusterOk cl }}
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
       (Val #ss)) (Val #wal)) (Val #cl))
@@ -121,7 +123,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- the wrapper, over the config built here
         -- (wal-link L3, 2026-11-19: until then `isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝`)
         -- the storage over the open WAL `ν.h` and the snapshotter `ss`, with its two reader tokens (the raft
-        -- loop's and the apply thread's: `rnNewStorageOk`'s)
+        -- loop's and the apply thread's: `NewStorage`'s contract's, `rnNewStorageOk`)
         isRNIDRemoved f ∗ isWalStorage st γw.wal.h γw.ss ∗ walStorRd st γw.wal.h ∗ walStorRd st γw.wal.h ∗
         -- (restart S3 items 5-6) its `cum` at the boot's start log `bt.P` (`[]` fresh)
         terms ↦*□ bt.seedRuns ∗ rnBuilt E γw r

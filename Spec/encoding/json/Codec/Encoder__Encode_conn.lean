@@ -5,8 +5,9 @@ connection end (mit-pdos/etcd-grove#24, item 1). Moved from `Dsverify`'s vr kit
 registry generic in the codec's functions `fm`, `fu` (`Unmarshal`'s header). Stated over the
 connection (`net.isConn`, `sendTok`) rather than a generic writer contract: the model's `Encode`
 writes the encoding and a newline in one `Write` (Go's), and a connection's `Write` error has no
-`Error` spec in `Net/` for a generic `errOrNil` writer contract. A statement only: neither assumed
-nor proved yet. (#24 J2/J3, 2026-11-23: `marshalVia J F v`, the contract `J` explicit, in place of
+`Error` spec in `Net/` for a generic `errOrNil` writer contract. `net`'s initialization: a write error may be
+`internal/poll.ErrDeadlineExceeded`'s value (`net.Conn.Write.spec`). Proved at the model's encoder,
+`Proof/encoding/json/Codec/Encoder__Encode_conn.lean`. (#24 J2/J3, 2026-11-23: `marshalVia J F v`, the contract `J` explicit, in place of
 `codecSetWith fm fu ∗ codecOkWith F fm fu`, its codec case.) Lean-first (no Rocq counterpart).
 -/
 module
@@ -35,7 +36,7 @@ variable [sem : go.Semantics]
 variable [encoding.json.Assumptions] [EncoderRep GF]
 variable [HasExt netExt] [net.Assumptions] [π : NetProtoGS]
 
-/-- `enc.Encode(v)`, `enc` a healthy encoder writing to the end `s` of a connection `cn`
+/-- `enc.Encode(v)` (`net` initialized), `enc` a healthy encoder writing to the end `s` of a connection `cn`
 (`net.isConn`) whose written stream (protocol `P`) is `W`, the encoding allowed after `W`, `v`
 marshalled by its own method or the registered codec (`marshalVia J F v`, #24 J3), meeting `J`: `Marshal` failed (`err` non-nil, `Ψ none`,
 nothing written); or the encoding `bs` and a newline were written in one `Write`, `k` bytes of them
@@ -43,7 +44,7 @@ nothing written); or the encoding `bs` and a newline were written in one `Write`
 abbrev Encoder.Encode_conn.spec : Prop :=
   ∀ (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64) (enc : Loc) (v w : GoInterface) (cn : Nat)
     (s : Bool) (a : GoString) (P : Proto GF) (W : List w8) (Ψ : Option (List w8) → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ isPkgInit (PROP := IProp GF) pkg_id.net ∗
       marshalVia J F v ∗
       EncoderRep.encOk (GF := GF) enc w ∗
       net.isConn w cn s a ∗ sendTok cn s P W ∗ J.enc v Ψ ∗

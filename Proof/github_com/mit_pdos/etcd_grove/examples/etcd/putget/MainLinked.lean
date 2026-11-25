@@ -9,6 +9,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -45,7 +46,7 @@ theorem etcd_putget.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_putget.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
+    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

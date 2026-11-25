@@ -330,7 +330,7 @@ abbrev Master.Run.specM (γ : EpNames) (W : net.rpc.RpcWorld GF) : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
       masterFresh m cfg logger ∗ listUnset γ ∗ ⌜W.SS = rpcSS γ⌝ ∗
       RpcHttpAddr.rpcLisP W go!":7501" (connectReq defaultRPCPath) connectAns ∗
-      replicaRpcs W ∗ RpcHttpHyp.muxOwner [] ∗ (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+      replicaRpcs W ∗ muxOwner [] ∗ defaultSrvFresh ∗ threadTok ∗
       rpcReady ∗ net.rpc.srvEnv ∗ dialEnv ∗
       ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))

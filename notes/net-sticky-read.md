@@ -175,7 +175,7 @@ unchanged.
   a direction back keeps it by the `*_dead` lemmas.
 * New, persistent: `readDead cn s := ∃ γ, connElem cn γ ∗ monoNatLbOwn (γ.x (!s)) 1`: the
   direction towards the end `s` is dead.
-* `read_au` is unchanged (its users, about fifteen files in `Net/`, `KvNet/`, `Dsverify/`, keep their proofs). New
+* `read_au` is unchanged (its users, about fifteen files in `Net/`, `KvRaft/`, `Dsverify/`, keep their proofs). New
   laws beside it:
   * `read_dead_au` (the update `net.Conn.Read.spec` takes, as `read_au`'s): the same, and the
     result also gives `⌜r = .eof ∨ r = .err .sys⌝ -∗ readDead cn s`;
@@ -252,7 +252,7 @@ relation (only the pattern fixes in `Stream`/`Decide`).
   `readOutcome_got_le`, `readOutcome_bytes_pos`, `readOutcome_of_closed`, `dirOk_read`, whose
   statements do not change. `Proto.lean`'s internals change (`dirSt`, `reg_open`, `conn_register`
   and the laws that write a direction back), no external statement but `deadline_au`'s (the token).
-* **Rebuild**: `Impl.lean`'s change rebuilds every module over the net extension (`Net/`, `KvNet/`,
+* **Rebuild**: `Impl.lean`'s change rebuilds every module over the net extension (`Net/`, `KvRaft/`,
   `Dsverify/`, the single-process theorems).
 * **The wrappers' proofs**: `rerr`'s removal touches the rpc server's reader invariant and five
   specs; the `errFrame` case is the open question there.

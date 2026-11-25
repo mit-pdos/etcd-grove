@@ -40,12 +40,14 @@ theorem NewServer.wp_proof : NewServer.spec (GF := GF) (hG := hG) := by
   wp_apply (wp_map_make1 (K := GoString) (V := Loc)) as %mp Hmp
   iStructNamed «$r0»
   imod svcMap_alloc (GF := GF) with ⟨%γ, Hγ⟩
-  imod sync.init_Mutex (svcMapInv γ «$r0_ptr») ⊤
+  imod sync.init_Mutex (svcMapInvO γ none «$r0_ptr») ⊤
       (structFieldRef net.rpc.Server go!"mapLock" «$r0_ptr») $$ mapLock [serviceMap Hmp Hγ] with #Hmu
   · inext
-    iunfold svcMapInv
+    iunfold svcMapInvO
     iexists mp, ∅
     iframe serviceMap Hmp Hγ
+    simp only [svcOwnIn]
+    itrivial
   imod sync.init_Mutex (reqFreeInv «$r0_ptr») ⊤
       (structFieldRef net.rpc.Server go!"reqLock" «$r0_ptr») $$ reqLock [freeReq] with #Hrq
   · inext
@@ -66,6 +68,7 @@ theorem NewServer.wp_proof : NewServer.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iexists γ
   iunfold isServer
+  iunfold isServerO
   iframe Hpkg Hmu Hrq Hrs
 
 end proof

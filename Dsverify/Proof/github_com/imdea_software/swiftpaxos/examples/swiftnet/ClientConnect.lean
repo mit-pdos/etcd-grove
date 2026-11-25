@@ -14,6 +14,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeDefs
 public import Perennial.Proof.time
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -101,7 +102,11 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     have : addrs.length = 13 := rfl
     constructor <;> word
   have ha1 : addrs[(sint.Z (W64 6 + W64 1)).toNat]? = some go!"127.0.0.1:7001" := rfl
+  ihave #Hrand : isPkgInit (PROP := IProp netDistGF) pkg_id.math.rand $$ []
+  · iPkgInit
   wp_auto
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 6 * W64 200 + W64 1)
+    (by decide) as %w0 -
   wp_apply time.wp_Sleep
   simp only [hb1, and_self, ↓reduceIte]
   wp_apply wp_load_slice_index asl (sint.Z (W64 6 + W64 1)) addrs _ _ hb1.1 $$ [] as -

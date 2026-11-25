@@ -44,9 +44,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.orch.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -89,9 +86,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.client0.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -134,9 +128,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.client1.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -179,9 +170,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.client2.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -224,9 +212,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.client3.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -269,9 +254,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.client4.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -314,9 +296,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.client5.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -359,9 +338,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.server1.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -404,9 +380,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.server2.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -449,9 +422,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.server3.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -494,9 +464,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.server4.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -539,9 +506,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.server5.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by
@@ -584,9 +548,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.server6.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 
 theorem kitG : KitG (getIsPkgInit (GF := netDistGF)) := by

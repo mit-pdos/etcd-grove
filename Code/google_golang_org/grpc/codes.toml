@@ -9,8 +9,11 @@ translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimpl
   # (prove-smallinits, 2026-11-20) `strToCode`, a map literal of the codes (until then
   # `opaqueInitsOk`), and the codes it names
   "strToCode", "InvalidArgument", "NotFound", "AlreadyExists", "PermissionDenied",
-  "ResourceExhausted", "Aborted", "OutOfRange", "DataLoss", "Unauthenticated"]
-imports = ["!*"]
+  "ResourceExhausted", "Aborted", "OutOfRange", "DataLoss", "Unauthenticated",
+  # (phase7-inits, 2026-11-25) its `init` (`code_string.go`: `internal.CanonicalString =
+  # canonicalString`) with its body (until then `initFuncsOk`); hence the import of grpc's `internal`
+  "init.0"]
+imports = ["!*", "google.golang.org/grpc/internal"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

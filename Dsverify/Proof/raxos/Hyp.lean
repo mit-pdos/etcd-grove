@@ -24,9 +24,9 @@ premises, to be discharged when each piece comes as one shared change:
   server runs a handler only on a whole request frame); here `dec` hands it over, as grpc-go runs a
   handler on the request's headers (review #24). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
   world's registry: the recorders' addresses get those protocols in the deployment.
-* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,Intn}.spec` (the
-  package-level generator, safe for concurrent use; `Intn` for `0 < n` only, Go panics otherwise),
-  the class `RandHyp`.
+* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.Seed.spec` (names only at
+  Perennial 47ec64a9d), the class `RandHyp`. (Until 2026-11-24, math-rand-isinit, also the
+  package-level `Intn`: Perennial proves it now, `Dsverify/Proof/math/rand/IntnPos.lean`.)
 * **`strconv.Atoi`** is no longer a hypothesis: its value spec and the class `AtoiSpec` are in
   `AtoiSpec.lean` (imported here, so the proofs see them), proved in `AtoiProof.lean` over
   Perennial's translation.
@@ -34,6 +34,9 @@ premises, to be discharged when each piece comes as one shared change:
   `own m M` and the memory's points-to `tp` (`MapVocab`, abstract) and the class `MapHyp` of its
   laws (`ivt`: `tp` is the memory's, `own_timeless`, `own_zero` from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
   string keys.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `PbHyp` (its axiom review refuted it, `notes/axiom-review/dsv-fix4/quepaxa-pb.md`: `msg.marshalPre` admits any value of the runtime fields `state`/`sizeCache`), `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
 -/
 module
 
@@ -124,22 +127,14 @@ abbrev math.rand.Seed.spec : Prop :=
       (App (Val (@! Perennial.math.rand.Seed)) (Val #seed))
     {{ RET #(); True }}
 
-/-- **Hypothesis** the package-level `Intn(n)` for `n > 0`: some `x` with `0 ≤ x < n`, no
-resource (Go's top-level generator is safe for concurrent use). -/
-abbrev math.rand.Intn.spec : Prop :=
-  ∀ (n : w64), 0 < sint.Z n →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! Perennial.math.rand.Intn)) (Val #n))
-    {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
-
-/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves none of these), together.
+/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves `Intn`, no longer here,
+and leaves `Seed` names only).
 Only the package-level functions: QuePaxa's `rand.New(rand.NewSource(..))`/`(*Rand).Intn` run only
 in asynchronous mode (`isAsynchronous`), which the deployment never sets (`Proposer/Slots.lean`), so
 no spec of them is assumed. -/
 class RandHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Seed : math.rand.Seed.spec (GF := GF) (hG := hG)
-  Intn : math.rand.Intn.spec (GF := GF) (hG := hG)
 
 end rand
 

@@ -14,6 +14,12 @@ states it (to audit); the proof is in
 `single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
 name; against the tag the statement gains the instance argument `[net.FieldAssumptions]` (dropped since, 2026-11-24, Go-model overlays S6), and its
 semantics the net extension; the network's initial state is `Robust`'s own premise.)
+
+(2026-11-24, P6 of the pure-premises plan) `k` is a `uint64`, `Main`'s own argument, and the premises
+`1 ≤ k` and `k ≤ 1000` are gone: `Main` checks them (`if k < 1 || k > 1000 { return }`; its addresses and
+directories, `leaseexpiryNAddrs k` and `leaseexpiryNDirs k`, are then empty). It took a `Nat` before,
+cast to `uint64` in the program; without the range premise a `Nat` at or above `2^64` would run a
+cluster other than the one the premises describe.
 -/
 module
 
@@ -59,17 +65,16 @@ def etcd_leaseexpiryN_robust_single_process.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
+    (k : w64) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (Hlen : ids.length = uint.nat k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
     (Hap : leaseIdsApart ids) (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk) (Hlp : leasePeersOk)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
-    (HEnv : verifyEnvOff (leaseexpiryNProgram k))
+    (HEnv : EtcdVerifyOff)
     (Hprem : ∀ n : Nat, ∀ hG : HeapGS .hasLC putgetNGF,
-      ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
+      ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) (uint.nat k) n ids ps ctxs
+        boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseexpiryN.leaseexpiryNDirs k)),

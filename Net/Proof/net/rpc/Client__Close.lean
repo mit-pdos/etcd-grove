@@ -48,12 +48,15 @@ theorem Client.Close.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
     Hdown, Hnm, %Hnm, Hrest⟩
   wp_auto
   cases cls
-  · -- not closing yet: set it, then close the connection
+  · -- not closing yet: set it (for good: a persistent points-to), then close the connection
+    simp only [clsFrac_false]
     wp_auto
-    wp_apply wp_Unlock _ (muInv γ c) $$ [$Hsync $Hmu $Hown Hseq Hpend Hmp Hsd Hcls Hsq Hr Hdown Hnm
+    ipersist Hcls
+    wp_apply wp_Unlock _ (muInv γ c) $$ [$Hsync $Hmu $Hown Hseq Hpend Hmp Hsd Hsq Hr Hdown Hnm
         Hrest]
     · iunfold muInv
       iexists sq, n, mp, m, sd, true, NM
+      simp only [clsFrac_true]
       iframe Hseq Hpend Hmp Hsd Hcls Hsq Hr Hdown Hnm Hrest
       ipureintro; exact ⟨Hb, Hnm⟩
     wp_apply wp_ccClose cc t cn false a la ra (fun _ => iprop(True)) $$ [$Hrwc $Hconn] as

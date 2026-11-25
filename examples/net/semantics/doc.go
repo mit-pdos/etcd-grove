@@ -257,6 +257,76 @@
 //	TestAcceptOrder              D7   8 pending: back-to-back Dials accepted in Dial order (0/50 out of    measured   AcceptStep (any pending connection)
 //	                                  order); concurrent ones 47-50/50 out of Dial-return order
 //
+// UDP (udp_*_test.go; the UDP extension, GooseLang/Ext/Udp/Impl.lean, version u1, decisions
+// U1-U13; notes/net-udp.md). Go 1.27.3, Linux 7.0.0-1014-aws (2026-11-24): the plain tests
+// over 127.0.0.1 with explicit ports of 20000-29999 (outside the ephemeral range, as addrOk
+// requires), go test -count=3; the UDPNetns tests (udp_netns_test.go) in the client, router
+// and server namespaces above (veth pairs, MTU 1500), NET_NETNS=1 -run UDPNetns, re-run as root:
+//
+//	TestUDPListenForms           U1   ListenUDP("udp4") at a.b.c.d:p: the 4-byte IP, the 16-byte      measured   udpAddrOf, ipv4Of, ValidDest,
+//	                                  IPv4-mapped one and a junk Zone all bind the same a.b.c.d:p                    ListenStep
+//	                                  (ipToSockaddrInet4: ip.To4(), the Zone ignored)
+//	TestUDPListenTwice           U1   a second bind of an open socket's address: EADDRINUSE as          measured   ListenStep (sys; success also
+//	                                  *OpError{listen, udp4, Source nil, Addr the laddr} >                           allowed: more than Linux)
+//	                                  *os.SyscallError{bind} > Errno 98; SO_REUSEADDR 0, SO_REUSEPORT
+//	                                  0 (SO_BROADCAST 1); after Close it binds
+//	TestUDPListenNotLocal        U1   a non-local IP (192.0.2.1): EADDRNOTAVAIL, the same shape         measured   ListenStep (sys)
+//	TestUDPAndTCPSamePort        U1   a TCP listener and a UDP socket at one ip:port coexist, both work  measured   udpExt apart from netExt
+//	TestUDPSendDelivered         U2,U3 WriteToUDP (len, nil); received byte for byte (1, 100, 524,     measured   SendStep, Intact, RecvStep
+//	                                  1472 bytes), the source the sender's address
+//	TestUDPSendToUnbound         U2   10 sends to an unbound port: (len, nil) each; the unconnected     measured   SendStep (success)
+//	                                  sender's reads never ECONNREFUSED (__udp4_lib_err: no IP_RECVERR);
+//	                                  control: a DialUDP socket gets ECONNREFUSED (not modeled)
+//	TestUDPSendSizeLimit         U2,U3 loopback: 65507 bytes delivered whole; 65508: (0, *OpError       measured   SendStep (sys), Intact
+//	                                  {write, udp4, Source laddr, Addr dest} > *os.SyscallError{sendto}
+//	                                  > EMSGSIZE), nothing arrives
+//	TestUDPZeroLength            U2,U4 an empty datagram: WriteToUDP (0, nil), ReadFromUDP (0, sender,   measured   SendStep, RecvStep
+//	                                  nil), not EOF (ZeroReadIsEOF false for SOCK_DGRAM)
+//	TestUDPRecvTruncates         U4   a 100-byte datagram into 10 bytes: (10, its first 10, sender,     measured   RecvStep (d.take n)
+//	                                  nil); the rest discarded, the next read the next datagram
+//	TestUDPRecvEmptyBuffer       U4   a 0-byte buffer: no shortcut (poll.FD.ReadFromInet4); blocks      measured   RecvStep (n = 0; the model does
+//	                                  with nothing queued; (0, sender, nil) with one, consumed                       not consume: allows more)
+//	TestUDPZeroValue             U9   zero UDPConn: ReadFromUDP (0, nil, EINVAL), WriteToUDP (0, EINVAL), measured   the models' id-0 check (net.lean)
+//	                                  the bare Errno (c.ok())
+//	TestUDPKilledProcess         U5,U7 a SIGKILLed child's socket with 3 datagrams queued: gone, the   measured   udp_semantics.crash, UdpLocal.init;
+//	                                  address binds again, none of the 3 is received (the model                      RecvStep (over-approximates)
+//	                                  allows it), a later one is
+//	TestUDPNetnsFragmentation    U2,U3 MTU 1500 (veth ends, router ports, a bridge with a veth port; lo measured   Intact (above intactMax: any
+//	                                  65536), no ICMP: 1472 bytes one packet (Ip.FragCreates +0), intact;            bytes), SendStep
+//	                                  1473 (1473, nil), fragmented (FragOKs +1, FragCreates +2), not
+//	                                  EMSGSIZE (IP_MTU_DISCOVER WANT, ip_no_pmtu_disc 0)
+//	TestUDPNetnsPmtuFloor        U3   the path MTU decides, and any ICMP "fragmentation needed" lowers   measured   intactMax = 524, Intact
+//	                                  it (forged from the peer's namespace, raw socket), never below
+//	                                  net.ipv4.route.min_pmtu = 552 (measured): a forged MTU 68 gives
+//	                                  "mtu lock 552", 524 bytes one packet (FragCreates +0), 525
+//	                                  fragmented (+2); from a flushed route, a forged MTU 552 fragments
+//	                                  1472 bytes (+3): refutes the earlier intactMax = 1472
+//	TestUDPNetnsFaults           U3,U5 netem loss 20%, duplicate 20%, delay 5ms 5ms, reorder 25%: of    measured   UdpGlobal.sent, RecvStep, Intact
+//	                                  2000 datagrams (48-1472 bytes) some lost, some received twice,
+//	                                  some out of order, every one received identical to one sent
+//	                                  (the model: intact up to 524 bytes, any bytes above)
+//	TestUDPNetnsSentBeforeBind   U5   a datagram sent before the bind is dropped (Udp.NoPorts +1) and   measured   UdpGlobal.sent, RecvStep
+//	                                  never received after it (the model allows it: over-approximation)
+//	(the interfaces' MTU)        U3   examples/lib/robust sets no MTU: its veth pairs and bridge br0    documented (target configuration; not what
+//	                                  have the default 1500 (as measured above), its local mode uses                 intactMax rests on since the
+//	                                  127.x (lo, 65536); every interface's MTU is at least 552                       path-MTU review)
+//	(the path MTU's floor)       U3   min_pmtu is a sysctl: the target configuration keeps its default  assumed    intactMax (prose: the deployment,
+//	                                  552 (measured above); a lower setting would let an ICMP message               net.ipv4.route.min_pmtu = 552)
+//	                                  fragment a datagram of at most 524 bytes
+//	(no corruption)              U3   the target links (veth, loopback, bridge) copy memory, and no      assumed    Intact (prose: the deployment)
+//	                                  netem corrupt is used (robust's LinkFaults has none); a real
+//	                                  link's corruption would also have to pass the UDP checksum
+//	(the closed world)           U5   no process but the deployment's nodes sends a datagram to an      assumed    (prose: Impl.lean, the deployment)
+//	                                  address a node's socket is bound to
+//	(the initial network)        U8   no datagram before the deployment's processes start              assumed    UdpGlobal.init
+//	(the stutter convention)     U13  every operation may stutter (a blocked ReadFromUDP or            documented UdpStep, IsUdpStep, OrInvalid
+//	                                  WriteToUDP); an invalid argument panics
+//	(not modeled)                U12  Close and every other method promoted from conn (deadlines,       not modeled (no trusted model: a
+//	                                  LocalAddr, RemoteAddr, SetReadBuffer, ...), DialUDP and connected               program calling one is stuck)
+//	                                  Read/Write, ListenPacket, the networks "udp" and "udp6", wildcard
+//	                                  and IPv6 addresses, broadcast, multicast, ReadMsgUDP/WriteMsgUDP;
+//	                                  the tests' own Close and deadlines are the harness's
+//
 // The refutation, and the fix (2026-11-14). The first draft of D1 broke a
 // direction only in a Read that returned an error. After a crash (D10) the dead
 // node's directions stay open and the dead node runs no Close, so they could

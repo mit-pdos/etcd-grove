@@ -109,6 +109,32 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 `GOROOT=DIR GOTOOLCHAIN=local PATH=DIR/bin:$PATH go test -tags netmodel ./examples/...`. Both pass
 (2026-11-23).
 
+## Non-vacuity
+
+`RpcHttpAddr` is no premise of `epaxos_remote_robust`: the statement instantiates it with `netRpcHttpAddr`
+(`Interface/RpcHttpAddrNet.lean`, a defs module), Net's proved `rpcAddrP`/`rpcLisP` and their laws, with `httpW W` the
+world `W` with HTTP's handshake (`connectReq defaultRPCPath`/`connectAns`) at every address, as
+dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay generic in
+`[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
+no instance here.
+
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes "Hypotheses" below)
+
+`epaxos_remote_robust` has no net/rpc or net/http premise and no `RpcBoot`: `RpcHttpHyp`
+(`Interface/RpcHttpHyps.lean`) bundles Net's specs (`DialHTTP.spec`, `HandleHTTP.spec`,
+`Register.spec_fresh`, `http.Serve.spec_rpc`), given by `Link.lean`'s `netRpcHttpHyp`; the six server
+commands' first-run boots are proved (kitgen `boot=`, `etc/dsv/epaxos.py`: `BootTable.lean`,
+`BootCmdsLinked.lean`; `BootLinked.lean`'s `boot_master` and `boot_epaxosnet`, through
+`RpcBoot.lean`'s `wp_rpc_first` over Net's `net.rpc.wp_init_first_http`: `master`'s initializer runs
+net/rpc's, the machine's first run of net/rpc and net/http). The master and the replicas register on
+`DefaultServer`'s owned, empty registry (`defaultSrvFresh`, `Register.spec_fresh`) and run `http.Serve`
+with the main thread's token (`robust_of_distProtoLisRBTT`, `wp_bootRT`). The thread bound is `2^30`
+(net/http's first initialization; Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`:
+Net's interim `net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'` and the
+interim context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`, besides
+Lean's three (`Handle` and `Serve` on an rpc listener proved by S5, lean `676aede0a1`; `Serve` takes
+net/http's server variables `httpSrvEnv`, which `dialEnv` now holds).
+
 ## Step bound 2^63 (2026-11-24, dsv-steps63)
 
 Perennial's pin 580868e54 (lean 5f5f28beeb, perennial#690) has `goose_dist_adequacy_below`
@@ -808,3 +834,14 @@ TCB baseline `etc/tcb-collections/dsv-epaxos.txt` (still the roots and an empty 
 Edit loop: `export PATH=$HOME/.elan/bin:$PATH` (lake is not on the default PATH here), then
 `etc/lean-check.py -a -q FILE`; `etc/gen-init.py --check` needs
 `PERENNIAL_DIR=/shared/perennial-7b2259a12` (the worktree has no `.lake/packages`).
+
+## dsv-fix2 (2026-11-25): net/rpc's and net/http's package facts from `Net/`
+
+The kit's net/rpc and net/http are `Net/`'s packages for their initializations too: their facts
+(`Net/Proof/net/{rpc,http}/PkgInit.lean`) and `wp_initialize'` (`Net/`'s interim axioms, by
+`etc/gen-init.py`'s `NET_AXIOM_INITS`), so the statement's `net.rpc.InitHyp`/`net.http.InitHyp`
+premises are gone (`Dsverify/Proof/net/{rpc,http}/Init.lean` deleted). The other net/rpc premises
+stay: the command's initializer runs net/rpc's before anything runs net/http's, so net/http's first
+run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
+"dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
+kit's net/rpc premises discharged from `Net/`'s specs.

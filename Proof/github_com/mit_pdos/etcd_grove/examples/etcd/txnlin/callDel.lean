@@ -37,8 +37,8 @@ theorem callDel.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Delete_st : client.client_Delete_st.law (GF := GF) (hG := hG)) :
     callDel.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs key Q hkl
-  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
+  intro _ cl ms V hAs key Q hkl
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -52,8 +52,8 @@ theorem callDel.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   ihave #Hrr := client.kvRegs_del ms $$ Hregs
   ihave #Hst' := client.srvStart_idx ms $$ Hst
   wp_apply (h_client_Delete_st cl ms V cctx ccd key slice.nil Q
-      (opSizeOk_opDeleteModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ [Hau]
-    as %resp %err Hout
+      (opSizeOk_opDeleteModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ [$Hlt Hau]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iexact Hau
   -- `cancel()`
@@ -68,6 +68,7 @@ theorem callDel.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     iexists σ
     iframe HQ
@@ -80,6 +81,7 @@ theorem callDel.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro; rfl
 

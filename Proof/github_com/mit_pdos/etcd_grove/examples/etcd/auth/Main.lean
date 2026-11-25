@@ -50,14 +50,21 @@ theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_startServer : startServer.spec (GF := GF) (hG := hG))
     (wp_Run : Run.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS ES FS RS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -76,8 +83,6 @@ theorem Main.wp_proof
   imod (akHist_alloc ρ.rd.kv σ₀ hσ₀) $$ Hetcd with #Hhist
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   have Hdirok : netDirOk (akDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   -- `startServer(lg)`: the member with auth on

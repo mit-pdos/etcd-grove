@@ -4,6 +4,7 @@ module
 public import Perennial.Code.time
 public import Perennial.Code.context
 public import Perennial.Code.io
+public import Code.google_golang_org.grpc.internal
 public import Code.google_golang_org.grpc.keepalive
 public import Code.google_golang_org.grpc.resolver
 public import Net.Code.net
@@ -12,7 +13,6 @@ public import Code.google_golang_org.grpc.stats
 public import Code.google_golang_org.grpc.metadata
 public import Code.google_golang_org.grpc.peer
 public import Perennial.Golang.Defn
-public import TrustedCode.google_golang_org.grpc
 
 @[expose] public section
 
@@ -1484,7 +1484,79 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
-/-- go: dialoptions.go:152:28 -/
+/-- go: dialoptions.go:45:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType DialOption.ty)] true [])) go.any))) (Lam "opt"
+  (Seq (App (Val exceptionDo)
+  (Let "opt" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType DialOption.ty)))) (Var "opt"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType DialOption.ty)))) (App (Val (GoInstruction (GlobalVarAddr globalDialOptions))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType DialOption.ty)))) (Var "opt"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType DialOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType DialOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalDialOptions))) (Val #())) (Var "$r0")))))))
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType DialOption.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType DialOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalDialOptions))) (Val #())) (Var "$r0"))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [go.any] false [])) go.any))) (Lam "opt"
+  (Seq (App (Val exceptionDo)
+  (Let "opt" (App (Val (GoInstruction (GoAlloc go.any))) (Var "opt"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 perTargetDialOption.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "opt")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ptdo" (App (Val (GoInstruction (GoAlloc perTargetDialOption.ty))) (App (Val (GoInstruction (GoZeroVal perTargetDialOption.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType perTargetDialOption.ty)))) (App (Val (GoInstruction (GlobalVarAddr globalPerTargetDialOptions))) (Val #())))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad perTargetDialOption.ty))) (Var "ptdo"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType perTargetDialOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression perTargetDialOption.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType perTargetDialOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType perTargetDialOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalPerTargetDialOptions))) (Val #())) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore perTargetDialOption.ty))) (Pair (Var "ptdo") (Var "$r0"))))))))))))))
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType perTargetDialOption.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType perTargetDialOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalPerTargetDialOptions))) (Val #())) (Var "$r0"))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType DialOption.ty)] true [DialOption.ty])) go.any))) (App (Val (GoInstruction (FuncResolve newJoinDialOption []))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [] false [DialOption.ty])) go.any))) (App (Val (GoInstruction (FuncResolve newDisableGlobalDialOptions []))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.DisableGlobalDialOptions))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.JoinDialOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalPerTargetDialOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.AddGlobalPerTargetDialOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalDialOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.AddGlobalDialOptions))) (Val #())) (Var "$r0")))))))
+  (Val #())))
+
+/-- go: dialoptions.go:156:28 -/
 noncomputable def funcDialOption.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fdo"
   (Lam "do"
@@ -1496,7 +1568,7 @@ noncomputable def funcDialOption.apply.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))))) (App (Val (GoInstruction (StructFieldRef funcDialOption.ty go!"f"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "fdo")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: dialoptions.go:156:6 -/
+/-- go: dialoptions.go:160:6 -/
 noncomputable def newFuncDialOption.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcDialOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType funcDialOption.ty)))) (Val #())))
@@ -1511,11 +1583,39 @@ noncomputable def newFuncDialOption.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType funcDialOption.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "$res0")))))
 
+/-- WithNoProxy returns a DialOption which disables the use of proxies for this
+    ClientConn. This is ignored if WithDialer or WithContextDialer are used.
+
+    # Experimental
+
+    Notice: This API is EXPERIMENTAL and may be changed or removed in a
+    later release.
+
+    go: dialoptions.go:423:6 -/
+noncomputable def WithNoProxy.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"useProxy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
 /-- WithTransportCredentials returns a DialOption which configures a connection
     level security credentials (e.g., TLS/SSL). This should not be used together
     with WithCredentialsBundle.
 
-    go: dialoptions.go:443:6 -/
+    go: dialoptions.go:447:6 -/
 noncomputable def WithTransportCredentials.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "creds"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
@@ -1539,7 +1639,7 @@ noncomputable def WithTransportCredentials.impl [GooseExts] [GoGlobalContext] : 
 /-- WithPerRPCCredentials returns a DialOption which sets credentials and places
     auth state on each outbound RPC.
 
-    go: dialoptions.go:451:6 -/
+    go: dialoptions.go:455:6 -/
 noncomputable def WithPerRPCCredentials.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "creds"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
@@ -1566,7 +1666,7 @@ noncomputable def WithPerRPCCredentials.impl [GooseExts] [GoGlobalContext] : val
 /-- WithUnaryInterceptor returns a DialOption that specifies the interceptor for
     unary RPCs.
 
-    go: dialoptions.go:591:6 -/
+    go: dialoptions.go:595:6 -/
 noncomputable def WithUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
@@ -1590,7 +1690,7 @@ noncomputable def WithUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val 
 /-- WithStreamInterceptor returns a DialOption that specifies the interceptor for
     streaming RPCs.
 
-    go: dialoptions.go:610:6 -/
+    go: dialoptions.go:614:6 -/
 noncomputable def WithStreamInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
@@ -1621,7 +1721,7 @@ noncomputable def WithStreamInterceptor.impl [GooseExts] [GoGlobalContext] : val
     Notice: This API is EXPERIMENTAL and may be changed or removed in a
     later release.
 
-    go: dialoptions.go:767:6 -/
+    go: dialoptions.go:771:6 -/
 noncomputable def WithResolvers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
@@ -1643,6 +1743,15 @@ noncomputable def WithResolvers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
+/-- go: rpc_util.go:45:6 -/
+noncomputable def init.«1».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.string)] true [CallOption.ty])) go.any))) (App (Val (GoInstruction (FuncResolve acceptCompressors []))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.AcceptCompressors))) (Val #())) (Var "$r0"))))))
+  (Val #())))
 
 /-- StaticMethod returns a CallOption which specifies that a call is being made
     to a method that is static, which means the method is known at compile time
@@ -1741,7 +1850,76 @@ noncomputable def MaxCallSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
 
-/-- go: server.go:223:30 -/
+/-- go: server.go:74:6 -/
+noncomputable def init.«2».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Server.ty)] false [_root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty])) go.any))) (Lam "srv"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "srv"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"creds"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "srv")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Var "$res0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Server.ty), go.string] false [go.bool])) go.any))) (Lam "srv"
+  (Lam "method"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "method" (App (Val (GoInstruction (GoAlloc go.string))) (Var "method"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "srv"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "method"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"isRegisteredMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "srv"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType Server.ty)])) go.any))) (App (Val (GoInstruction (FuncResolve serverFromContext []))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType ServerOption.ty)] true [])) go.any))) (Lam "opt"
+  (Seq (App (Val exceptionDo)
+  (Let "opt" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ServerOption.ty)))) (Var "opt"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ServerOption.ty)))) (App (Val (GoInstruction (GlobalVarAddr globalServerOptions))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ServerOption.ty)))) (Var "opt"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType ServerOption.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType ServerOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalServerOptions))) (Val #())) (Var "$r0")))))))
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType ServerOption.ty)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType ServerOption.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr globalServerOptions))) (Val #())) (Var "$r0"))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType ServerOption.ty)] true [ServerOption.ty])) go.any))) (App (Val (GoInstruction (FuncResolve newJoinServerOption []))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.FunctionType (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [ServerStream.ty] false [ServerStream.ty, go.error]))] false [ServerOption.ty])) go.any))) (App (Val (GoInstruction (FuncResolve xdsFilterWrapperOption []))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.XDSFilterWrapperOption))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.JoinServerOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalServerOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.AddGlobalServerOptions))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.ServerFromContext))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.IsRegisteredMethod))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.GetServerCredentials))) (Val #())) (Var "$r0")))))))
+  (Val #())))
+
+/-- go: server.go:225:30 -/
 noncomputable def funcServerOption.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fdo"
   (Lam "do"
@@ -1753,7 +1931,7 @@ noncomputable def funcServerOption.apply.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false []))))) (App (Val (GoInstruction (StructFieldRef funcServerOption.ty go!"f"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcServerOption.ty)))) (Var "fdo")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:227:6 -/
+/-- go: server.go:229:6 -/
 noncomputable def newFuncServerOption.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcServerOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType funcServerOption.ty)))) (Val #())))
@@ -1770,7 +1948,7 @@ noncomputable def newFuncServerOption.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- KeepaliveEnforcementPolicy returns a ServerOption that sets keepalive enforcement policy for the server.
 
-    go: server.go:350:6 -/
+    go: server.go:352:6 -/
 noncomputable def KeepaliveEnforcementPolicy.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kep"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1794,7 +1972,7 @@ noncomputable def KeepaliveEnforcementPolicy.impl [GooseExts] [GoGlobalContext] 
 /-- MaxRecvMsgSize returns a ServerOption to set the max message size in bytes the server can receive.
     If this is not set, gRPC uses the default 4MB.
 
-    go: server.go:451:6 -/
+    go: server.go:453:6 -/
 noncomputable def MaxRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1818,7 +1996,7 @@ noncomputable def MaxRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MaxSendMsgSize returns a ServerOption to set the max message size in bytes the server can send.
     If this is not set, gRPC uses the default `math.MaxInt32`.
 
-    go: server.go:459:6 -/
+    go: server.go:461:6 -/
 noncomputable def MaxSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1842,7 +2020,7 @@ noncomputable def MaxSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MaxConcurrentStreams returns a ServerOption that will apply a limit on the number
     of concurrent streams to each ServerTransport.
 
-    go: server.go:467:6 -/
+    go: server.go:469:6 -/
 noncomputable def MaxConcurrentStreams.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1875,7 +2053,7 @@ noncomputable def MaxConcurrentStreams.impl [GooseExts] [GoGlobalContext] : val 
     while the last interceptor will be the inner most wrapper around the real call.
     All unary interceptors added by this method will be chained.
 
-    go: server.go:499:6 -/
+    go: server.go:501:6 -/
 noncomputable def ChainUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "interceptors"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1903,7 +2081,7 @@ noncomputable def ChainUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val
     while the last interceptor will be the inner most wrapper around the real call.
     All stream interceptors added by this method will be chained.
 
-    go: server.go:520:6 -/
+    go: server.go:522:6 -/
 noncomputable def ChainStreamInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "interceptors"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -2166,7 +2344,7 @@ has no effect beyond its variable.
 - `ErrServerStopped` (`var ErrServerStopped = errors.New("grpc: the server has been stopped")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
 its variable.
-- `_@server.go:1014` (`var _ http.Handler = (*Server)(nil)`): An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.
+- `_@server.go:1016` (`var _ http.Handler = (*Server)(nil)`): An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.
 - `metadataFromOutgoingContextRaw` (`var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bo … [sha256:c5234af11967de4d]`): `internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type
 assertion of a function value that `metadata`'s `init` (run before this package's, which imports it)
 has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect
@@ -2219,7 +2397,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc.statusOK", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So\neach terminates, cannot panic and has no effect beyond its variable.", "var statusOK = status.New(codes.OK, \"\")"⟩,
   ⟨"google.golang.org/grpc.defaultServerOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultServerOptions = serverOptions{ maxConcurrentStreams: math.MaxUint32, maxReceiveMessageSize: defaultServerMaxR … [sha256:aa3dcd153a10a22e]"⟩,
   ⟨"google.golang.org/grpc.ErrServerStopped", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrServerStopped = errors.New(\"grpc: the server has been stopped\")"⟩,
-  ⟨"google.golang.org/grpc._@server.go:1014", "An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.", "var _ http.Handler = (*Server)(nil)"⟩,
+  ⟨"google.golang.org/grpc._@server.go:1016", "An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.", "var _ http.Handler = (*Server)(nil)"⟩,
   ⟨"google.golang.org/grpc.metadataFromOutgoingContextRaw", "`internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type\nassertion of a function value that `metadata`'s `init` (run before this package's, which imports it)\nhas set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect\nbeyond the variable.", "var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bo … [sha256:c5234af11967de4d]"⟩,
   ⟨"google.golang.org/grpc.emptyMethodConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var emptyMethodConfig = serviceconfig.MethodConfig{}"⟩,
   ⟨"google.golang.org/grpc._@stream_interfaces.go:169", "An interface check: a nil pointer converted to `ServerStreamingClient[string]`. No call, no panic,\nno effect.", "var _ ServerStreamingClient[string] = (*GenericClientStream[int, string])(nil)"⟩,
@@ -2230,12 +2408,16 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2265,6 +2447,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.internal.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.resolver.initialize') (Val #()))))))
@@ -2278,6 +2462,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc globalDialOptions (go.GoType.SliceType DialOption.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc globalPerTargetDialOptions (go.GoType.SliceType perTargetDialOption.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc globalServerOptions (go.GoType.SliceType ServerOption.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc EnableTracing go.bool)) (Val #()))))))))
 
@@ -4865,14 +5055,12 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, _root_.Perennial.net.Conn.ty] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.PointerType serverTransport.ty), (go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransportStream.ty), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransport.ty), _root_.Perennial.net.Conn.ty] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
-  ptr_Serve_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"Serve" Server.Serve.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
-  Server.TypeAssumptions.ptr_Serve_unfold
 
 structure serverOptions [GooseExts] where
   mk ::
@@ -6206,17 +6394,21 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newFuncDialOption_unfold : FuncUnfold newFuncDialOption [] newFuncDialOption.impl
+  WithNoProxy_unfold : FuncUnfold WithNoProxy [] WithNoProxy.impl
   WithTransportCredentials_unfold : FuncUnfold WithTransportCredentials [] WithTransportCredentials.impl
   WithPerRPCCredentials_unfold : FuncUnfold WithPerRPCCredentials [] WithPerRPCCredentials.impl
   WithUnaryInterceptor_unfold : FuncUnfold WithUnaryInterceptor [] WithUnaryInterceptor.impl
   WithStreamInterceptor_unfold : FuncUnfold WithStreamInterceptor [] WithStreamInterceptor.impl
   WithResolvers_unfold : FuncUnfold WithResolvers [] WithResolvers.impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
   StaticMethod_unfold : FuncUnfold StaticMethod [] StaticMethod.impl
   Peer_unfold : FuncUnfold Peer [] Peer.impl
   WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
   MaxCallRecvMsgSize_unfold : FuncUnfold MaxCallRecvMsgSize [] MaxCallRecvMsgSize.impl
   MaxCallSendMsgSize_unfold : FuncUnfold MaxCallSendMsgSize [] MaxCallSendMsgSize.impl
+  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   newFuncServerOption_unfold : FuncUnfold newFuncServerOption [] newFuncServerOption.impl
   KeepaliveEnforcementPolicy_unfold : FuncUnfold KeepaliveEnforcementPolicy [] KeepaliveEnforcementPolicy.impl
   MaxRecvMsgSize_unfold : FuncUnfold MaxRecvMsgSize [] MaxRecvMsgSize.impl
@@ -6227,6 +6419,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
   import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
@@ -6358,17 +6551,21 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.«init.0_unfold»
   Assumptions.newFuncDialOption_unfold
+  Assumptions.WithNoProxy_unfold
   Assumptions.WithTransportCredentials_unfold
   Assumptions.WithPerRPCCredentials_unfold
   Assumptions.WithUnaryInterceptor_unfold
   Assumptions.WithStreamInterceptor_unfold
   Assumptions.WithResolvers_unfold
+  Assumptions.«init.1_unfold»
   Assumptions.StaticMethod_unfold
   Assumptions.Peer_unfold
   Assumptions.WaitForReady_unfold
   Assumptions.MaxCallRecvMsgSize_unfold
   Assumptions.MaxCallSendMsgSize_unfold
+  Assumptions.«init.2_unfold»
   Assumptions.newFuncServerOption_unfold
   Assumptions.KeepaliveEnforcementPolicy_unfold
   Assumptions.MaxRecvMsgSize_unfold
@@ -6379,6 +6576,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_time_Assumption
   Assumptions.import_context_Assumption
   Assumptions.import_io_Assumption
+  Assumptions.import_internal_Assumption
   Assumptions.import_keepalive_Assumption
   Assumptions.import_resolver_Assumption
   Assumptions.import_net_Assumption

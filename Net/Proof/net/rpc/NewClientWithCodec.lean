@@ -66,6 +66,7 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
   · inext
     iunfold muInv
     iexists 0, 0, mp, ∅, false, false, ∅
+    simp only [clsFrac_false]
     iframe seq pending Hmp shutdown closing Hsq2 Hr0 Hd1 Hnm
     isplitr
     · ipureintro; exact ⟨rfl, Hbound⟩

@@ -6,6 +6,7 @@ counterpart); putget's `MainLinked.lean`.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.startMember
@@ -42,7 +43,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.As
 
 /-- **restart1's `Main` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restart1/Main.lean`),
 over its callees' linked results. -/
-theorem etcd_restart1.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_restart1.wp_Main
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_restart1.Main.spec (GF := GF) (hG := hG) :=
   etcd_restart1.Main.wp_proof zap.NewNop.wp_proof
     (etcd_restart1.Run.wp_proof
@@ -53,7 +55,7 @@ theorem etcd_restart1.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
       (etcd_restart1.stop.wp_proof EtcdServer.wp_AppliedIndex EtcdServer.wp_HardStop)
       (etcd_restart1.check.wp_proof EtcdServer.wp_Range EtcdServer.wp_Leader context.wp_Background
         context.WithTimeoutBackground.wp_proof)
-      mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds)
+      mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof)
 
 end results
 

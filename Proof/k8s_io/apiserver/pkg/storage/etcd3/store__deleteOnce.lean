@@ -54,7 +54,7 @@ theorem store.deleteOnce.wp_proof
     (wp_kDel : kubernetes.Client.OptimisticDelete.spec (GF := GF) (hG := hG)) :
     store.deleteOnce.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 st s v p pre validate W Φu hk hkl hr hpre hval
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hos, #Hfrom, Hout, %Hv, HW, #Hau⟩
+  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hos, #Hfrom, Hout, %Hv, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -101,9 +101,10 @@ theorem store.deleteOnce.wp_proof
   (try wp_auto)
   wp_apply (wp_kDel (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
-        #c.kc)) c.ms c.V ci cd key s.rev ⟨true⟩ _) $$ [Hau']
-    as %resp %derr Hdel
+        #c.kc)) c.ms c.V ci cd key s.rev ⟨true⟩ _) $$ [Hlt Hau']
+    as %resp %derr ⟨Hlt, Hdel⟩
   · iframe #
+    iframe Hlt
     iexact Hau'
   (try wp_auto)
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split derr _ _ _) $$ Hdel with ⟨#Hse0, Hdel⟩
@@ -157,6 +158,7 @@ theorem store.deleteOnce.wp_proof
         ipureintro; exact Hv
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       iright
       isplitr
@@ -191,6 +193,7 @@ theorem store.deleteOnce.wp_proof
       subst Hderr
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ileft
       isplitr
@@ -206,6 +209,7 @@ theorem store.deleteOnce.wp_proof
     | ok ei =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft
       isplitr
       · iapply (unkErr_client c _ (by nofun) Hdce) $$ Hdcl

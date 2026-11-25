@@ -64,12 +64,10 @@ theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     (r : GoString)
-    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
-    (Hrfit : Fs.DirFits r)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -77,7 +75,7 @@ theorem mvccfull_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  mvccfull_adequate r HEnv σ g Hlctx Hinit Hfs j0 Hr Habs Hrfit Hthreads n κs t2 σ2 Hsteps Hn
+  mvccfull_adequate r HEnv σ g Hlctx Hinit Hfs j0 Hr Hthreads n κs t2 σ2 Hsteps Hn
 
 end adequacy
 

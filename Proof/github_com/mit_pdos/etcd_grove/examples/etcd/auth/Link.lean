@@ -49,6 +49,7 @@ public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
@@ -255,7 +256,7 @@ include h_auth_startServer
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_auth.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_auth.Main.wp_proof zap.wp_NewNop h_auth_startServer wp_Run mvcc.api.mvccApi_names_nonempty_law_holds
+  EtcdGrove.etcd_auth.Main.wp_proof zap.wp_NewNop h_auth_startServer wp_Run mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end links_pending
 

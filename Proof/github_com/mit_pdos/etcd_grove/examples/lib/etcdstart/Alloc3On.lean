@@ -182,7 +182,9 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
+      (netAddrFree (GF := GF) a₁ ∗ httpProtoFree (GF := GF) a₁) -∗
+      (netAddrFree (GF := GF) a₂ ∗ httpProtoFree (GF := GF) a₂) -∗
+      (netAddrFree (GF := GF) a₃ ∗ httpProtoFree (GF := GF) a₃) ={⊤}=∗
       ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
@@ -191,11 +193,11 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.c0 = W64 0 ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         sameCluster ρ₁ ρ₂ ∧ sameCluster ρ₁ ρ₃⌝ ∗
       memberBootOn { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ ∗
-      (netHttpOk γn id₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
+      (netHttpOk γn id₁ ∗ (http.httpAddrFree a₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn)))) ∗
       memberBootOn { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ ∗
-      (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
+      (netHttpOk γn id₂ ∗ (http.httpAddrFree a₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn)))) ∗
       memberBootOn { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ ∗
-      (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
+      (netHttpOk γn id₃ ∗ (http.httpAddrFree a₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn)))) ∗
       etcdKV ρ₁.rd.kv (kvStateOf (kvModelOn ρ₁.rd.kv srvAuthSt0
         (bootEntries (LogEntry.toEntries boot 0)))) ∗
       authHistView ρ₁.rd.kv [srvAuthSt0] := by
@@ -261,7 +263,7 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
   imod (netNames_alloc (srvNet γ) dir (∅ : GMap w64 Unit) ⊤) with ⟨%γn, %Hγn, -, #Hreg⟩
   have Hd0' : γn.dir 0 = [] := by rw [Hγn.2]; exact Hd0
   imod (netHttp_reserve3 γn a₁ a₂ a₃ Hd0' (fun i h hm => Hhost i h (by rw [← Hγn.2]; exact hm)))
-    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, Ho₁, Ho₂, Ho₃⟩
+    $$ Hreg Hf₁ Hf₂ Hf₃ with ⟨#Hnet, ⟨Hq₁, Ho₁⟩, ⟨Hq₂, Ho₂⟩, ⟨Hq₃, Ho₃⟩⟩
   ihave #Hs₁ := Hnet $$ %id₁
   ihave #Hs₂ := Hnet $$ %id₂
   ihave #Hs₃ := Hnet $$ %id₃
@@ -276,7 +278,7 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
     env₀ γm idx₁ rev₁ (srvApi.kvNx ρ₁.rd true), env₀ γm idx₂ rev₂ (srvApi.kvNx ρ₂.rd true),
     env₀ γm idx₃ rev₃ (srvApi.kvNx ρ₃.rd true), Φs, γn
-  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
+  iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Hq₁ Ho₁ Hq₂ Ho₂ Hq₃ Ho₃
   isplitr
   · ipureintro
     exact ⟨hvs, hrule, hboot, Hγn.1, Hγn.2, by rw [hc0₁, hc0], by rw [hlog₁, hlog],
@@ -322,11 +324,11 @@ theorem alloc3On (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (
         (bootEntries (LogEntry.toEntries boot 0)))) ∗
       authHistView ρ₁.rd.kv [srvAuthSt0] := by
   simp only [memberStartRes, memberFreshRes]
-  iintro #Hmarsh ⟨#Hv₁, Hw₁, WaHw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, WaHw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, WaHw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  iintro #Hmarsh ⟨#Hv₁, WaHw₁, Hf₁, Hc₁⟩ ⟨#Hv₂, WaHw₂, Hf₂, Hc₂⟩ ⟨#Hv₃, WaHw₃, Hf₃, Hc₃⟩
   imod (alloc3OnHttp hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb Hrb2)
       $$ Hmarsh Hf₁ Hf₂ Hf₃
-    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
-      Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd, Hview⟩
+    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ha₁, Ho₁⟩,
+      Hb₂, ⟨Hn₂, Ha₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ha₃, Ho₃⟩, Hetcd, Hview⟩
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃, E₁, E₂, E₃, Φs, γn
   iframe; iframe #

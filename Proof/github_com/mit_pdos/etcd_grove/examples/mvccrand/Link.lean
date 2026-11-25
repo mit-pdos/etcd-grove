@@ -9,13 +9,17 @@ hand.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MainAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.absent
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkRange
+public import Proof.cmp.Less
 public import Proof.context.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.copyState
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.dirFits
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
 public import Proof.container.heap.Pop
@@ -118,7 +122,7 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
-public import Spec.sort.Slice
+public import Proof.errors.IsPathErrnoNotExist
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 @[expose] public section
@@ -292,6 +296,10 @@ theorem writer.wp_newVal :
     EtcdGrove.mvccrand.writer.newVal.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.writer.newVal.wp_proof wp_itoa
 
+theorem cmp.wp_Less :
+    EtcdGrove.cmp.Less.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cmp.Less.wp_proof
+
 theorem pending.wp_put :
     EtcdGrove.mvccrand.pending.put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.pending.put.wp_proof
@@ -412,6 +420,14 @@ theorem watcher.wp_advance :
     EtcdGrove.mvccrand.watcher.advance.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.watcher.advance.wp_proof
 
+theorem wp_dirFits :
+    EtcdGrove.mvccrand.dirFits.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.dirFits.wp_proof
+
+theorem wp_absent :
+    EtcdGrove.mvccrand.absent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.absent.wp_proof _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -489,13 +505,29 @@ theorem writer.wp_end [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.writer.end.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.writer.end.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds wp_check history.wp_appendRev
 
+theorem writer.wp_genLease :
+    EtcdGrove.mvccrand.writer.genLease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.writer.genLease.wp_proof rng.wp_intn cmp.wp_Less
+
 theorem wp_checkRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.checkRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.checkRange.wp_proof wp_check wp_inRange wp_checkKV mvcc.api.mvccApi_errVars_law_holds
 
+theorem writer.wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.writer.put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.writer.put.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds wp_check writer.wp_begin writer.wp_checkHook writer.wp_view writer.wp_end rng.wp_genKey writer.wp_newVal writer.wp_genLease pending.wp_put wp_checkRange traceutil.wp_TODO context.wp_TODO
+
 theorem writer.wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.writer.deleteRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.writer.deleteRange.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds wp_check writer.wp_begin writer.wp_checkHook writer.wp_view writer.wp_end rng.wp_genKey rng.wp_genEnd pending.wp_del wp_checkRange traceutil.wp_TODO context.wp_TODO
+
+theorem writer.wp_writeOp [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.writer.writeOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.writer.writeOp.wp_proof mvcc.api.mvccApi_shapes_law wp_check rng.wp_intn rng.wp_genKey rng.wp_genEnd rng.wp_genRange writer.wp_newVal writer.wp_genLease pending.wp_put pending.wp_del writer.wp_view wp_checkRange context.wp_TODO
+
+theorem writer.wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.writer.txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.writer.txn.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds wp_check writer.wp_cur writer.wp_begin writer.wp_checkHook writer.wp_end writer.wp_writeOp history.wp_snapshot rng.wp_intn rng.wp_genKey rng.wp_genRange wp_checkRange traceutil.wp_TODO context.wp_TODO mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api
 
 theorem lease.wp_NewLease :
     EtcdGrove.lease.NewLease.spec (GF := GF) (hG := hG) :=
@@ -517,6 +549,10 @@ theorem lease.lessor.wp_Revoke [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.lease.lessor.Revoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.lessor.Revoke.wp_proof lease.Lease.wp_Keys sort.StringSlice.wp_Sort schema.wp_UnsafeDeleteLease backend.backend.wp_BatchTx mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_mvccBackend_isBackend_law_holds mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
 
+theorem writer.wp_revoke [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.writer.revoke.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.writer.revoke.wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds wp_check writer.wp_genLease writer.wp_begin writer.wp_end writer.wp_checkHook lease.lessor.wp_Revoke lease.lessor.wp_Lookup
+
 theorem writer.wp_checkLeases :
     EtcdGrove.mvccrand.writer.checkLeases.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.writer.checkLeases.wp_proof wp_check history.wp_snapshot lease.lessor.wp_Lookup lease.lessor.wp_GetLease lease.Lease.wp_Keys _root_.Perennial.sort.wp_Strings
@@ -524,6 +560,10 @@ theorem writer.wp_checkLeases :
 theorem writer.wp_read [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.writer.read.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.writer.read.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds wp_check writer.wp_cur history.wp_snapshot rng.wp_genRange wp_checkRange traceutil.wp_TODO context.wp_TODO
+
+theorem writer.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.writer.run.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.writer.run.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds rng.wp_intn writer.wp_cur writer.wp_put writer.wp_deleteRange writer.wp_txn writer.wp_grant writer.wp_revoke writer.wp_checkLeases writer.wp_read
 
 theorem wp_reader [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.reader.spec (GF := GF) (hG := hG) :=
@@ -541,62 +581,27 @@ theorem watchCheck.wp_complete :
     EtcdGrove.mvccrand.watchCheck.complete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.watchCheck.complete.wp_proof watchCheck.wp_expect
 
+theorem wp_runChecks [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.runChecks.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.runChecks.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_wsChan_recv_law_holds mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_mvccImage_fresh_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds zap.wp_NewNop backend.wp_New backend.backend.wp_SetTxPostLockInsideApplyHook lease.wp_NewLessor lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter mvcc.api.mvccApi_New_wp_proof noCluster.wp_Version wp_check wp_newHistory writer.wp_run wp_reader watchCheck.wp_register watchCheck.wp_receive watchCheck.wp_complete
+
 theorem lease.lessor.wp_Stop :
     EtcdGrove.lease.lessor.Stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lease.lessor.Stop.wp_proof
 
-end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
-variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable (h_sort_Slice : EtcdGrove.sort.Slice.spec (GF := GF) (hG := hG))
-include h_sort_Slice
-
-theorem writer.wp_genLease :
-    EtcdGrove.mvccrand.writer.genLease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.writer.genLease.wp_proof rng.wp_intn h_sort_Slice
-
-theorem writer.wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.mvccrand.writer.put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.writer.put.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds wp_check writer.wp_begin writer.wp_checkHook writer.wp_view writer.wp_end rng.wp_genKey writer.wp_newVal (writer.wp_genLease h_sort_Slice) pending.wp_put wp_checkRange traceutil.wp_TODO context.wp_TODO
-
-theorem writer.wp_writeOp [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.mvccrand.writer.writeOp.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.writer.writeOp.wp_proof mvcc.api.mvccApi_shapes_law wp_check rng.wp_intn rng.wp_genKey rng.wp_genEnd rng.wp_genRange writer.wp_newVal (writer.wp_genLease h_sort_Slice) pending.wp_put pending.wp_del writer.wp_view wp_checkRange context.wp_TODO
-
-theorem writer.wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.mvccrand.writer.txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.writer.txn.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds wp_check writer.wp_cur writer.wp_begin writer.wp_checkHook writer.wp_end (writer.wp_writeOp h_sort_Slice) history.wp_snapshot rng.wp_intn rng.wp_genKey rng.wp_genRange wp_checkRange traceutil.wp_TODO context.wp_TODO mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api
-
-theorem writer.wp_revoke [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.mvccrand.writer.revoke.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.writer.revoke.wp_proof mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds wp_check (writer.wp_genLease h_sort_Slice) writer.wp_begin writer.wp_end writer.wp_checkHook lease.lessor.wp_Revoke lease.lessor.wp_Lookup
-
-theorem writer.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.mvccrand.writer.run.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.writer.run.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds rng.wp_intn writer.wp_cur (writer.wp_put h_sort_Slice) writer.wp_deleteRange (writer.wp_txn h_sort_Slice) writer.wp_grant (writer.wp_revoke h_sort_Slice) writer.wp_checkLeases writer.wp_read
-
-theorem wp_runChecks [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.mvccrand.runChecks.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.runChecks.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_wsChan_recv_law_holds mvcc.api.mvccApi_mvccW_alloc_law_holds mvcc.api.mvccApi_mvccImage_fresh_law_holds mvcc.api.mvccApi_etcdStorage_open_law_holds mvcc.api.mvccApi_backendRest_open_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds zap.wp_NewNop backend.wp_New backend.backend.wp_SetTxPostLockInsideApplyHook lease.wp_NewLessor lease.lessor.wp_GetLease lease.lessor.wp_Attach lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter mvcc.api.mvccApi_New_wp_proof noCluster.wp_Version wp_check wp_newHistory (writer.wp_run h_sort_Slice) wp_reader watchCheck.wp_register watchCheck.wp_receive watchCheck.wp_complete
-
 theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.Run.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.Run.wp_proof (wp_runChecks h_sort_Slice) lease.lessor.wp_Stop backend.backend.wp_Close wp_check
+  EtcdGrove.mvccrand.Run.wp_proof wp_runChecks lease.lessor.wp_Stop backend.backend.wp_Close wp_check
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccrand.Main.wp_proof (wp_Run h_sort_Slice)
+  EtcdGrove.mvccrand.Main.wp_proof wp_Run
 
-end links_pending
+theorem wp_MainAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.MainAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.MainAt.wp_proof wp_dirFits wp_absent wp_Run
+
+end links_hasLC
 
 end mvccrand
 end EtcdGrove

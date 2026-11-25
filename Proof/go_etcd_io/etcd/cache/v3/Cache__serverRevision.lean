@@ -29,7 +29,7 @@ theorem Cache.serverRevision.wp_proof
     (wp_WithCountOnly : WithCountOnly.spec (GF := GF) (hG := hG)) :
     Cache.serverRevision.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap ctx s
-  wp_start as ⟨#Hc, #Hctx, #HoC⟩
+  wp_start as ⟨Hlt, #Hc, #Hctx, #HoC⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   unfold isCacheFields
@@ -66,8 +66,8 @@ theorem Cache.serverRevision.wp_proof
   iunfold isEtcdKVE at HisKV
   ihave #HG := HisKV $$ %ctx %s %(if cf.pfx = [] then (go!"/" : GoString) else cf.pfx) %optsSl
     %([withLimitM (W64 1), withCountOnlyM] : List (OpFull → OpFull)) %(W64 0)
-  wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
-  · iframe Hctx HoC Hopts
+  wp_apply HG $$ [Hlt] as %resp %err ⟨Hlt, #Hres, #HeS⟩
+  · iframe Hlt Hctx HoC Hopts
     isplitr
     · iapply etcdReached_zero
     ipureintro
@@ -84,6 +84,7 @@ theorem Cache.serverRevision.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Herr, rfl⟩
   · subst Herr
@@ -91,6 +92,7 @@ theorem Cache.serverRevision.wp_proof
     icases Hrev with ⟨%hdr, #Hh, %Hnn, #Hr⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

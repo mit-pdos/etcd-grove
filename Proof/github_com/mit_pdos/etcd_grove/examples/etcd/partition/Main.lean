@@ -37,7 +37,7 @@ namespace EtcdGrove
 namespace etcd_partition
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcd_putget3 (httpURL commonPremises)
+open etcd_putget3 (httpURL)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -54,7 +54,7 @@ theorem Main.wp_proof
     (wp_partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
+  intro CS N id₁ id₂ id₃ ps ctxs boot clients ops sched steps Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts

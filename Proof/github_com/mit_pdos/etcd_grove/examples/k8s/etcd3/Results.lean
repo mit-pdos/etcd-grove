@@ -15,9 +15,9 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   checked against the model's watch observation; porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic and returns
   `Ok` or `Unknown`. From `isPkgInit k8setcd3`, the right to listen on `127.0.0.1:23896`, the main
   thread's token and `Main`'s named premises
-  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`), at the context errors'
-  premise `ContextReadErrs` (k8s etcd3 7c-2 part 2, S7: the compactor's channel context's errors'
-  descriptions; `k8s_etcd3_safe` already took it, `Hctx`).
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`). (Until ctx-leaf-fix,
+  2026-11-25, also at the context errors' premise `ContextReadErrs`, unsatisfiable since Perennial's
+  P8c and a theorem since: `notes/axiom-review/ctx-readerrs-vacuity.md`.)
 * **`k8setcd3_MainCluster`** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`; step 1 of "k8s etcd3
   over cluster3" in `notes/k8s-etcd3-plan.md`, 2026-11-06; `k` members since stage A of
   `notes/k8s-7f6-scope.md`, 2026-11-16, approved by the user): `MainCluster(k, clients, ops, watchers, wops)` --
@@ -84,20 +84,23 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `k8s_etcd3.wp_Main`). -/
-theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
+theorem k8setcd3_Main
+      [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_Main
 
 /-- **`MainCluster` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`). -/
-theorem k8setcd3_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
+theorem k8setcd3_MainCluster
+      [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_MainCluster
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`). -/
-theorem k8setcd3_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)] :
+theorem k8setcd3_MainPartition
+      [go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_MainPartition
 

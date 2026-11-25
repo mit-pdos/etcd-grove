@@ -58,7 +58,7 @@ theorem writer.put.wp_proof
     (wp_trTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (wp_ctxTODO : context.TODO.spec (GF := GF) (hG := hG)) :
     writer.put.spec (GF := GF) (hG := hG) := by
-  intro w wv γ B f q σ Hs L i s n hn0 hn1
+  intro w wv γ B f q σ Hs L i s n hn0 hn1 hL
   haveI := hpers.1 wv.kv' γ.kv
   haveI := fun σ => hpers.2.2.2.2.2.1 γ.kv σ
   haveI := fun S => hpers.2.2.2.2.2.2.1 γ.ws S
@@ -209,7 +209,7 @@ theorem writer.put.wp_proof
   wp_apply wp_newVal w n hn0 hn1 $$ [$Hpkg $Hvals] as Hvals
   (try wp_auto)
   icases Hlm with ⟨%Lm, Hlm, %HLm⟩
-  wp_apply wp_genLease w wv Lm g1 $$ [$Hpkg $Hw $Hlm $Hg] as %l ⟨Hlm, ⟨%g2, Hg⟩, %Hl⟩
+  wp_apply (wp_genLease w wv Lm g1 (fun id h => hL id ((HLm id).1 h))) $$ [$Hpkg $Hw $Hlm $Hg] as %l ⟨Hlm, ⟨%g2, Hg⟩, %Hl⟩
   (try wp_auto)
   wp_apply wp_bytes_to_string ks kk DFrac.discard $$ [$Hks] as -
   (try wp_auto)

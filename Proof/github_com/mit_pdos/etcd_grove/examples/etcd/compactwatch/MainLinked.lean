@@ -14,6 +14,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev
@@ -65,7 +66,7 @@ theorem etcd_compactwatch.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBod
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_Collect
     etcd_compactwatch.wp_checkCompactRev mvcc.api.mvccApi_names_nonempty_law_holds
     mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
-    mvcc.api.mvccApi_mvccReaders_split_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

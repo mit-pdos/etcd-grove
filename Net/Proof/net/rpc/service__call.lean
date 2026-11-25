@@ -42,9 +42,7 @@ theorem service.call.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
     service.call.spec (GF := GF) (hG := hG) := by
   intro svc s γs C W a sc t cn la ra sending wg mt req rqv argv replyv k Φc
   wp_start as ⟨#Hsrv, #Henv, #Hset, #Hsc, #Hmu, Hreq, ⟨%Hseq, %Hwg⟩, Hpend, Hcall, Hdone⟩
-  ihave #Hsrv' := Hsrv
-  iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨#Hsync, -⟩
+  ihave #Hsync := isServerAny_sync s γs $$ Hsrv
   iunfold callReady at Hcall
   icases Hcall with ⟨%rcvr, %mm, %v, #Hrcvr, #Hm, #Hv, #Hmmu, Hwp⟩
   wp_apply wp_with_defer as %defer Hdefer

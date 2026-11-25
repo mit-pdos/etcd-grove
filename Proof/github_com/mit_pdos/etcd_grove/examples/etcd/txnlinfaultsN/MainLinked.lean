@@ -9,6 +9,7 @@ restates it.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.startCluster
@@ -52,7 +53,7 @@ theorem etcd_txnlinfaultsN.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions]
       etcdstart.wp_Serve etcdstart.wp_NewClients cluster3.wp_StartBridge
       (etcd_txnlinfaultsN.bridgeAddr.wp_proof etcdstart.strconv.wp_FormatUint)
       etcd_txnlinfaultsN.holdToken.wp_proof mvcc.api.mvccApi_names_nonempty_law_holds
-      (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)))
+      (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof)
     cluster3.wp_Partitioner etcd_partition.wp_Check
 
 end results

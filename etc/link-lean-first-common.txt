@@ -39,10 +39,12 @@ etcdstart_StartPeriodicServer: etcdstart_newServerMode EtcdServer__Start
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen: =_root_.Perennial.net.Listen.wp_proof
+# (2026-11-24) `net.Listen` at an address reserved for HTTP (`Spec/net/ListenHttp.lean`): a member's peer listener
+net_Listen+Http: =_root_.Perennial.net.Listen.wp_proof
 # (2026-10-24, rafthttp stage 6d/6f) `RaftHandler` linked in the server's `Link.lean`; the HTTP
 # boundary's `Serve` (`http.Serve_ok`) used by `NewMember`'s proof directly
 EtcdServer__RaftHandler: @
-etcdstart_NewMember: etcdstart_newServer net_Listen EtcdServer__RaftHandler
+etcdstart_NewMember: etcdstart_newServer net_Listen+Http EtcdServer__RaftHandler
 etcdstart_StartMember: etcdstart_NewMember EtcdServer__Start
 # (putgetN, the clusterN Scope, 2026-11-15) `Members`: the members of a cluster of any size
 # (`strconv.FormatUint`'s trust-boundary axiom); `StartMembers`: `NewMember` and `Start` for each
@@ -62,7 +64,10 @@ etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Se
 # `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked
 # in its `Link.lean`); `NewClient`: of one address (notes/client-timeouts-plan.md, D-T1)
 client_v3_New: @
-etcdstart_NewClients: client_v3_New
+# (2026-11-24, notes/putget-dist-plan.md section 12, F1) grpc's `WithNoProxy`, proved over the
+# model's body: `NewClients` passes it
+grpc_WithNoProxy:
+etcdstart_NewClients: client_v3_New grpc_WithNoProxy
 etcdstart_NewClient: etcdstart_NewClients
 # the watch workload's shared part (`watch.go`): `Gen`, `GenAll`, `MaxRev`, `Attempted`, `Check`,
 # `Writer` (over the client's `Put`, which its proof uses directly, in a context with the request

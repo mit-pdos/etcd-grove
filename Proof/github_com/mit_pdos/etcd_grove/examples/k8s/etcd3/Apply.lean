@@ -273,13 +273,14 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     -- (k8s 7g) the read updates fire past the seeded revision `s0n`: the watch starts after the seeds
     obtain ⟨s0n, hs0n⟩ : ∃ s0n, s0n = uint.nat g0.st.rv := ⟨_, rfl⟩
     imod (kInv_lb_seed γ c g0 γk hg) $$ HinvK with ⟨%ls, #Hls, %hls⟩
+    icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
     wp_apply (wp_runWatch sp c γk x k n (fun lb σ => watchQ γ c (max lb s0n) σ) hc
       (fun lb σ => by
         iintro H
         ihave %h := watchQ_pure γ c _ σ $$ H
         ipureintro
         exact ⟨Nat.le_trans (Nat.le_max_left _ _) h.1, h.2⟩)
-      (fun lb lb' σ σ' => watchQ_same γ c _ _ σ σ') hnr htb hok) $$ [] as %y %o %ok Hy
+      (fun lb lb' σ σ' => watchQ_same γ c _ _ σ σ') hnr htb hok) $$ [$Hlt] as %y %o %ok ⟨Hlt, Hy⟩
     · iframe #
       isplitr
       · imodintro
@@ -297,6 +298,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       rw [hmax]
       iapply watch_readAus γ c g0 γk σ.changes σ.rev hrev
       iframe #
+    ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+    · iframe
     -- the commit: the answer is accepted at the state then
     have Hcommit : ∀ (l : List (List mvcc.Change)) (P : Prop),
         (∀ (σe : KVState) (cf : linkv.PCfg HSt Input), l <+: σe.changes → KHistI γ σe →

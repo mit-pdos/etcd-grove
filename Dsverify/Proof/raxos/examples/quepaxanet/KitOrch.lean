@@ -14,6 +14,7 @@ public import Dsverify.Proof.raxos.examples.quepaxanet.KitAwait
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitCodecFn
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Perennial.Spec.time.Sleep
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -418,6 +419,9 @@ theorem Orch.wp_proof [hr : hyp.RandHyp GF]
     iPkgInit
   wp_apply wp_Model as %m #Hm
   wp_apply (codec_proof γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 20) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
@@ -425,9 +429,10 @@ theorem Orch.wp_proof [hr : hyp.RandHyp GF]
     have : clientAddrs.length = 6 := rfl
     have h3 : ((sint.nat addrs.len : Nat) : Int) = sint.Z addrs.len := Int.toNat_of_nonneg h2
     omega
-  wp_apply wp_Check (qR γ) qS γp m addrs clientAddrs cd gen _ d pendN_raxos lintestN_raxos
-    (qS_pendDec γ) (qR_encOut_inj γ) (fun st => qR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) 60 (by decide) $$ [Hlib Hbud]
+  wp_apply wp_Check (qR γ) qS γp m addrs clientAddrs cd gen (W64 1 + x) d pendN_raxos
+    lintestN_raxos (qS_pendDec γ) (qR_encOut_inj γ) (fun st => qR_timeless γ st) hrb
+    (by rw [hlen']; decide) (by word) (by rw [hlen']; word) 60 (by simp only [readTries]; word)
+    $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     simp only [qR]; iexact Hgen

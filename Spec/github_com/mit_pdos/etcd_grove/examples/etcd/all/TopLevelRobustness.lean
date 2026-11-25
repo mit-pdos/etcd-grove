@@ -9,9 +9,9 @@ that may crash and restart and of those that never crash, each a fresh Go proces
 steps, no thread is stuck and none has an unrecovered panic). The program runs, in one process and at
 once, eleven etcd examples, each on a cluster of its own, in four parts:
 
-- **KV**: txnlinfaultsN's transactional workload on `k₁` members under the partition schedule `steps₁`
-  (porcupine checks the history's linearizability); partition's watch workload on three members under
-  `steps₂` (`MainWatch`: the watches see the writes); compactwatch's watches under the revision
+- **KV**: txnlinfaultsN's transactional workload on `k₁` members under a partition schedule of `n₁`
+  steps (porcupine checks the history's linearizability); partition's watch workload on three members
+  under a schedule of `n₂` steps (`MainWatch`: the watches see the writes); compactwatch's watches under the revision
   auto-compactor and compacted's Put then Get under the periodic one, on one member each; cache's watch
   cache under the periodic compactor, on one member;
 - **Auth**: authN on `k₂` members (the principals' rights enforced at every member) and authlease on `k₃`
@@ -21,8 +21,15 @@ once, eleven etcd examples, each on a cluster of its own, in four parts:
 - **Restart**: restartN on `k₅` members (a follower stopped and restarted, no acknowledged write lost)
   and restart1 (the one member stopped and restarted).
 
-Each panics if its check fails; so no check fails, for every `1 ≤ k₁ ≤ 1000`, every `1 ≤ k₂, k₃, k₄ ≤ 300`,
-every `3 ≤ k₅ ≤ 300`, every two schedules and every workload within the bounds. It is to replace the
+Each panics if its check fails; so no check fails, for every value of the program's arguments
+(`MainChecked`, `TopLevelDefs.lean`'s `etcdProgram`; the pure-premises plan's P4, 2026-11-24): it runs the
+examples when the member counts and workloads are in the ranges the proof covers (`ParamsOk`:
+`1 ≤ k₁ ≤ 1000`, `1 ≤ k₂, k₃, k₄ ≤ 300`, `3 ≤ k₅ ≤ 300`, each workload's clients in `[0, 2^31)` and its
+total operations below `2^60` or `2^62`), under fault schedules it draws itself (`cluster3.RandomSchedule`,
+`n₁` and `n₂` random steps), and otherwise returns at once. Until then those ranges and the two
+schedules (lists given to the program) were premises; the Go test `TestMainCheckedRun`
+(`examples/etcd/all/checked_test.go`) shows the check passes and every part runs at `k = 3` with drawn
+schedules, and `TestParamsOk` that `ParamsOk` agrees with the former premises on 200 000 boundary draws. It is to replace the
 drivers' own closed theorems and the single examples' theorems they subsume (stage E4). What the
 replaced theorems claimed and this one does not: authN's, authlease's, leaseN's and restartN's own
 theorems claimed `k ≤ 1000`; here they run on at most 300 members (the user's decision N2: with the
@@ -61,8 +68,7 @@ This file only states it (to audit); the proof is to be in
 **The premises** are the union of the composed drivers' theorems': each cluster's member ids and
 bootstrap log (`BootFacts`; authlease's ids also apart in 15 bits, `Hap`), the server's opaque workload and
 environment premises once (`Haf`, `Hbuq`, `Hrf`, `Hdbo`), the lease premises of leaseN, authlease and
-leasecatchup once (`Hlp`, `Hlne`), the three workloads' bounds, the schedules' lengths, the program's
-addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
+leasecatchup once (`Hlp`, `Hlne`), the program's addresses and data directories (all clusters', concatenated), `ETCD_VERIFY` off, each
 cluster's named premises (`Hprem…`, at every step bound `n` with `n + 1 ≤ 2 ^ 48`, the bound the proof
 uses), the file system's initial state and the
 members' WAL areas (`HWal`, all clusters'); and one premise of the composition, `Hlow`: the 16 low bits of
@@ -72,6 +78,10 @@ generators of the process issue one id), checked at these bounds by `examples/et
 (with the drivers' tokens searched for it, 2026-11-21; at five clusters of 1000 no tokens make it hold).
 The proof does not use it: it states the condition under which that trusted model is faithful (each
 cluster's own `BootFacts` states it for that cluster, `BootCore.lowNodup`).
+The counts are the program's `uint64` arguments, any value: the premises indexed by them (`Hlen…`,
+`Hbf…`, `Hprem…`, `Hlow`) are stated at `uint.nat kᵢ`, and the addresses and data directories (`HAs`,
+`HDs`, `HWal`) are `etcdProgAddrs`/`etcdProgDirs` (`TopLevelDefs.lean`): the clusters' at counts in
+range, none outside, where `MainChecked` starts no member (as leaseexpiryN's `cluster k`, P6).
 -/
 module
 
@@ -129,11 +139,9 @@ def etcd_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC etcdGF, ContextErrsClient (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     -- KV: txnlinfaultsN's cluster, `k₁` members
-    (k₁ : Nat) (hk₁1 : 1 ≤ k₁) (hk₁ : k₁ ≤ 1000) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8))
-    (boot₁ : List LogEntry) (Hlen₁ : ids₁.length = k₁)
+    (k₁ : w64) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8))
+    (boot₁ : List LogEntry) (Hlen₁ : ids₁.length = uint.nat k₁)
     (Hbf₁ : etcd_txnlinfaultsN.BootFacts ids₁ ps₁ ctxs₁ boot₁)
     -- KV: partition's cluster (three members)
     (pid₁ pid₂ pid₃ : w64) (psP : List w64) (ctxsP : List (List w8)) (bootP : List LogEntry)
@@ -146,21 +154,21 @@ def etcd_robust_single_process.spec : Prop :=
     (kvId : w64) (ctxsK : List (List w8)) (bootK : List LogEntry)
     (HbfK : etcd_putget.BootFacts kvId ctxsK bootK)
     -- Auth: authN's cluster, `k₂` members, and authlease's, `k₃` (their ids apart in 15 bits)
-    (k₂ : Nat) (hk₂1 : 1 ≤ k₂) (hk₂ : k₂ ≤ 300) (ids₂ ps₂ : List w64) (ctxs₂ : List (List w8))
-    (boot₂ : List LogEntry) (Hlen₂ : ids₂.length = k₂)
+    (k₂ : w64) (ids₂ ps₂ : List w64) (ctxs₂ : List (List w8))
+    (boot₂ : List LogEntry) (Hlen₂ : ids₂.length = uint.nat k₂)
     (Hbf₂ : etcd_putgetN.BootFacts ids₂ ps₂ ctxs₂ boot₂)
-    (k₃ : Nat) (hk₃1 : 1 ≤ k₃) (hk₃ : k₃ ≤ 300) (ids₃ ps₃ : List w64) (ctxs₃ : List (List w8))
-    (boot₃ : List LogEntry) (Hlen₃ : ids₃.length = k₃)
+    (k₃ : w64) (ids₃ ps₃ : List w64) (ctxs₃ : List (List w8))
+    (boot₃ : List LogEntry) (Hlen₃ : ids₃.length = uint.nat k₃)
     (Hbf₃ : etcd_putgetN.BootFacts ids₃ ps₃ ctxs₃ boot₃) (Hap : leaseIdsApart ids₃)
     -- Lease: leaseN's cluster, `k₄` members, and leasecatchup's (three members)
-    (k₄ : Nat) (hk₄1 : 1 ≤ k₄) (hk₄ : k₄ ≤ 300) (ids₄ ps₄ : List w64) (ctxs₄ : List (List w8))
-    (boot₄ : List LogEntry) (Hlen₄ : ids₄.length = k₄)
+    (k₄ : w64) (ids₄ ps₄ : List w64) (ctxs₄ : List (List w8))
+    (boot₄ : List LogEntry) (Hlen₄ : ids₄.length = uint.nat k₄)
     (Hbf₄ : etcd_putgetN.BootFacts ids₄ ps₄ ctxs₄ boot₄)
     (lid₁ lid₂ lid₃ : w64) (psL : List w64) (ctxsL : List (List w8)) (bootL : List LogEntry)
     (HbfL : cluster3.BootFacts lid₁ lid₂ lid₃ psL ctxsL bootL)
     -- Restart: restartN's cluster, `k₅` members, and restart1's one member
-    (k₅ : Nat) (hk₅3 : 3 ≤ k₅) (hk₅ : k₅ ≤ 300) (ids₅ ps₅ : List w64) (ctxs₅ : List (List w8))
-    (boot₅ : List LogEntry) (Hlen₅ : ids₅.length = k₅)
+    (k₅ : w64) (ids₅ ps₅ : List w64) (ctxs₅ : List (List w8))
+    (boot₅ : List LogEntry) (Hlen₅ : ids₅.length = uint.nat k₅)
     (Hbf₅ : etcd_restartN.BootFacts ids₅ ps₅ ctxs₅ boot₅)
     (rId : w64) (ctxsR : List (List w8)) (bootR : List LogEntry)
     (HbfR : etcd_restart1.BootFacts rId ctxsR bootR)
@@ -172,28 +180,19 @@ def etcd_robust_single_process.spec : Prop :=
     (Hdbo : storage.diskOk)
     -- peers answer `/leases/internal` as etcd's handler does or not with 200; no lease expires in the run
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
-    -- txnlinfaultsN's workload and schedule
-    (clients ops : w64) (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31)
-    (Hops : 0 ≤ sint.Z ops) (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
-    (steps₁ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps₁ : steps₁.length < 2 ^ 63)
-    -- partition's watch workload and schedule
-    (nw nops : w64) (Hnw0 : 0 ≤ sint.Z nw) (Hnw31 : sint.Z nw < 2 ^ 31) (Hnops : 0 ≤ sint.Z nops)
-    (Hnmul : sint.Z nw * sint.Z nops < 2 ^ 62)
-    (steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
-    (Hsteps₂ : steps₂.length < 2 ^ 63)
-    -- cache's workload
-    (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
-    (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
+    -- txnlinfaultsN's workload and its schedule's length, partition's watch workload and its
+    -- schedule's length, cache's workload (any values: `MainChecked` checks them)
+    (clients ops n₁ nw nops n₂ cnw cnops : w64)
     -- the program's addresses, data directories and environment
-    (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdAddrs k₁ k₂ k₃ k₄ k₅))
-    (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
-      (etcdDirs k₁ k₂ k₃ k₄ k₅))
-    (HEnv : verifyEnvOff (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅))
+    (HAs : addrsUnclaimed (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
+      (etcdProgAddrs k₁ k₂ k₃ k₄ k₅))
+    (HDs : dataDirsAbsent (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
+      (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
+    (HEnv : EtcdVerifyOff)
     -- each cluster's named premises
     (Hprem₁ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₁ n ids₁ ps₁ ctxs₁ boot₁)
+      ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₁) n ids₁
+          ps₁ ctxs₁ boot₁)
     (HpremP : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_partition.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n pid₁ pid₂ pid₃ psP ctxsP
           bootP)
@@ -204,22 +203,27 @@ def etcd_robust_single_process.spec : Prop :=
     (HpremK : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_cache.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n kvId ctxsK bootK)
     (Hprem₂ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_authN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₂ n ids₂ ps₂ ctxs₂ boot₂)
+      ⊢ etcd_authN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₂) n ids₂ ps₂
+          ctxs₂ boot₂)
     (Hprem₃ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_authlease.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₃ n ids₃ ps₃ ctxs₃ boot₃)
+      ⊢ etcd_authlease.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₃) n ids₃
+          ps₃ ctxs₃ boot₃)
     (Hprem₄ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_leaseN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₄ n ids₄ ps₄ ctxs₄ boot₄)
+      ⊢ etcd_leaseN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₄) n ids₄ ps₄
+          ctxs₄ boot₄)
     (HpremL : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ cluster3.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) etcd_leasecatchup.clusterCfg n
           lid₁ lid₂ lid₃ psL ctxsL bootL)
     (Hprem₅ : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₅ n ids₅ ps₅ ctxs₅ boot₅)
+      ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅
+          ps₅ ctxs₅ boot₅)
     (HpremR : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdDirs k₁ k₂ k₃ k₄ k₅)),
-    Robustness.Robust [] [(etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅, σ)] g
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world)
+      (etcdProgDirs k₁ k₂ k₃ k₄ k₅)),
+    Robustness.Robust [] [(etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅, σ)] g
       (threads := 2 ^ 28) (bound := 2 ^ 48)
 
 end adequacy

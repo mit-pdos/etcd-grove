@@ -11,6 +11,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Base
 public import Perennial.Proof.context.Link
+public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
@@ -23,6 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.os.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

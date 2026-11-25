@@ -115,7 +115,7 @@ def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterfa
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
     hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
-    envVerifyOff)
+    ⌜EtcdVerifyOff⌝)
 
 /-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
 theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
@@ -123,7 +123,7 @@ theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : 
     iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗ zapLoggerOk cfg.Logger' ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
       hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ) ∗
-      envVerifyOff) ⊢
+      ⌜EtcdVerifyOff⌝) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
   iintro ⟨%Hc, #Hzl, Hg, #Hh, Hmk, #Hvoff⟩
   iunfold openPre

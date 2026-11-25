@@ -12,6 +12,7 @@ nil pointer); the methods are not empty (`rcvrIs`). Proved in
 module
 
 public import Net.Proof.net.rpc.ServerDefs
+public import Perennial.Proof.log.Base
 
 @[expose] public section
 
@@ -46,6 +47,38 @@ abbrev Server.register.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ svcReg γ C (if useName then name else nm) S) ∨
         ⌜err ≠ interface.nil⌝ }}
+
+/-- `register` on a server whose registry has an owner (`isServerO s γ (some γf)`), by the owner
+(`svcOwn γf R`), of a name free in `R`: it succeeds, the name registered (`svcReg`) and added to
+`R`. The name is not taken: every name taken has its owner's element (`svcOwnIn`), so it is in `R`.
+The premises are `Server.register.spec`'s. Proved in `Net/Proof/net/rpc/Server__registerFresh.lean`. -/
+abbrev Server.register.spec_fresh : Prop :=
+  ∀ (s : Loc) (γ γf : GName) (R : GMap GoString Unit) (C : CodecSpec GF) (rcvr : GoInterface)
+    (S : MethodSpec GF) (nm : GoString) (np : Bool) (name : GoString) (useName : Bool),
+  regNameOk nm np name useName →
+  {{ isServerO s γ (some γf) ∗ svcOwn γf R ∗ ⌜(if useName then name else nm) ∉ R⌝ ∗ codecSet C ∗
+      C.rcv rcvr (rcvrIs C rcvr S nm np) }}
+    (App (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"register"))
+      (Val #rcvr)) (Val #name)) (Val #useName))
+  {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗
+      svcReg γ C (if useName then name else nm) S ∗
+      svcOwn γf (R.insert (if useName then name else nm) ()) }}
+
+variable [log.Assumptions]
+
+/-- `register` of a receiver with no method net/rpc can serve (`rcvrNone nm`: name `nm`, not a nil
+pointer, no methods), under `register`'s premises on the name (`regNameOk`): it logs ("has no
+exported methods of suitable type", `log.Println`) and returns an error, whatever the server's
+registry mode (`isServerAny`; the server is not touched). Proved in
+`Net/Proof/net/rpc/Server__registerNone.lean`. -/
+abbrev Server.register.spec_none : Prop :=
+  ∀ (s : Loc) (γ : GName) (C : CodecSpec GF) (rcvr : GoInterface) (nm : GoString)
+    (name : GoString) (useName : Bool),
+  regNameOk nm false name useName →
+  {{ isServerAny s γ ∗ codecSet C ∗ C.rcv rcvr (rcvrNone nm) ∗ isPkgInit (PROP := IProp GF) pkg_id.log }}
+    (App (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"register"))
+      (Val #rcvr)) (Val #name)) (Val #useName))
+  {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ }}
 
 end spec
 

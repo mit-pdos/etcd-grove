@@ -54,11 +54,9 @@ theorem newServerMode.wp_proof
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
-  iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -105,7 +103,7 @@ theorem newServerMode.wp_proof
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #
@@ -188,11 +186,9 @@ theorem newServerMode.wp_proofRestart
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
   have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremiseR at Hboot
-  iunfold commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   -- the restarted incarnation's names, from the cluster's facts at the stopped ones
   imod (memberRestartFacts_alloc hne γ ρ id) $$ Hrfs with ⟨%ρ', %E₀, %Φs, %Hρ', Hmb⟩
   iunfold memberRestartBoot at Hmb
@@ -231,7 +227,7 @@ theorem newServerMode.wp_proofRestart
       (etcdURLsFit_httpURL peerAddr Hpf) (etcdURLsFit_httpURL client Hcf)
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
-      (bootCfgOk_of _ rfl rfl rfl rfl) rfl (srvWalDirOf_lit _) HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl) rfl (srvWalDirOf_lit _) HwbN)
     $$ [Htok Himg Hids Hwtok Hidx Hcok Hrev Hnk] as %srv %err Hres
   · iframe
     iframe #

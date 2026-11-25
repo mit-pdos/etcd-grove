@@ -51,9 +51,7 @@ theorem Server.ServeCodec.wp_proof
     Server.ServeCodec.spec (GF := GF) (hG := hG) := by
   intro s γs C W a sc t cn la ra
   wp_start as ⟨%Hb, #Hsrv, #Hserves, #Henv, #Hset, #Hsc, Hown, Htok⟩
-  ihave #Hsrv' := Hsrv
-  iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨#Hsync, -⟩
+  ihave #Hsync := isServerAny_sync s γs $$ Hsrv
   iunfold srvCodecOwn at Hown
   icases Hown with ⟨Hwerr, Hclosed, Hacc⟩
   iunfold rpcAccepted at Hacc

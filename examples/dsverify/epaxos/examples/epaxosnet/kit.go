@@ -23,6 +23,7 @@ package epaxosnet
 import (
 	"bufio"
 	"encoding/binary"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -151,12 +152,11 @@ func Op(addrs []string, c uint64, x In) Out {
 	return Out{V: string(rep.Value)}
 }
 
-// start is client c's delay before its first operation: every client waits for the replicas to
-// register, connect and finish their start-up; then the clients of the replica Server(2 + r)
-// start r*StaggerMs later (time is not modeled: the theorem allows any delay; the tests' fault-free
-// histories stay small enough for the check).
+// start is client c's delay before its first operation, drawn at each call: every client waits
+// for the replicas to register, connect and finish their start-up (StartMs), then a random 0 to
+// NReplicas*StaggerMs (time is not modeled: the theorem allows any delay).
 func start(c uint64) time.Duration {
-	return time.Duration(StartMs+(c%NReplicas)*StaggerMs) * time.Millisecond
+	return time.Duration(StartMs+uint64(rand.Intn(int(NReplicas*StaggerMs)+1))) * time.Millisecond
 }
 
 // attempt is AttemptMs as a duration.
@@ -164,10 +164,10 @@ func attempt() time.Duration {
 	return time.Duration(AttemptMs) * time.Millisecond
 }
 
-// Orch is the orchestrator's program: it panics unless porcupine accepts the history of the
-// clients' operations.
+// Orch is the orchestrator's program: it draws each client's number of operations, 1 to Ops, and
+// panics unless porcupine accepts the history of the clients' operations.
 func Orch() {
-	remote.Check(Model(), ClientAddrs(), Codec(), Gen, int(Ops), attempt())
+	remote.Check(Model(), ClientAddrs(), Codec(), Gen, 1+rand.Intn(int(Ops)), attempt())
 }
 
 // Client is client machine c's program (c < NC): remote.ServeClient whose system is the server

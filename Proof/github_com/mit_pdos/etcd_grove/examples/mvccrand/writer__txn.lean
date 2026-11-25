@@ -218,7 +218,7 @@ theorem writer.txn.wp_proof
     (wp_ctxTODO : context.TODO.spec (GF := GF) (hG := hG))
     (wp_roTxn : mvcc.api.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG)) :
     writer.txn.spec (GF := GF) (hG := hG) := by
-  intro w wv γ B f q σ Hs L i s n hn0 hn1
+  intro w wv γ B f q σ Hs L i s n hn0 hn1 hL
   haveI := hpers.1 wv.kv' γ.kv
   wp_start as ⟨Hctx, Hown, Hpre, Hvals⟩
   iunfold writerCtx at Hctx
@@ -476,7 +476,7 @@ theorem writer.txn.wp_proof
       ihave HctxW : writerCtx w wv γ B f $$ []
       · iunfold writerCtx; iunfold hookOk; rw [hkv]; iframe #
       wp_apply (wp_writeOp w wv γ B f σ Hs' L (interface.mkOk tty tv) trace2 true p P pend nv
-          hok hLok hcrev hrev1 (by omega) (by omega) (by word))
+          hok hLok hcrev hrev1 (by omega) (by omega) (by word) hL)
         $$ [$HctxW $Hrd $Hidle $Htw $Htrc2 $Hp $Hlm $Hlo $Hvals Hg]
         as ⟨%pend', %P', %n', %Hop, Hrd, Hidle, Htw, Htrc2, Hp, Hg, Hlm, Hlo, Hvals⟩
       · iexists g5; iframe

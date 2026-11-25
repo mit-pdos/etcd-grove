@@ -105,6 +105,90 @@ theorem types.URLs.StringSlice.wp_proof
     have := Hul.1
     unfold sint.nat at *; word
 
+/-- `StringSlice` of plain URLs (claim #34, stage 2, 2026-11-25): the same loop, its invariant also
+saying the strings written so far are `http://` and each URL's host. -/
+theorem types.URLs.StringSlice.wp_proofP
+    (hURLString : http.URLStringAny_spec (GF := GF)) :
+    types.URLs.StringSlice.specP (GF := GF) (hG := hG) := by
+  intro p dq sl us Hplain
+  wp_start as ⟨Hp, #Hus⟩
+  ihave %Hul := ownSlice_len _ _ _ $$ Hus
+  wp_auto
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_slice_make2 (V := GoString) as %out ⟨Hout, Houtcap⟩
+  · ipureintro; exact Hul.2
+  (try wp_auto)
+  rename_i iu_ptr
+  irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+  ihave HF : (∃ (k iv : w64) (xs : List GoString),
+      "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "Hout" ∷ out ↦* xs ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z sl.len ∧ xs.length = us.length ∧
+        ∀ j, j < sint.nat k → xs[j]? = (us.map fun u => go!"http://" ++ u.Host')[j]?⌝ :
+        IProp GF)
+    $$ [i Hiu Hout]
+  · iexists W64 0, _, _
+    iframe
+    ipureintro
+    refine ⟨by decide, Hul.2, by rw [List.length_replicate, Hul.1], ?_⟩
+    intro j hj
+    exact absurd hj (by simp)
+  wp_for HF
+  obtain ⟨Hk1, Hk2, Hk3, Hk4⟩ := Hk
+  (try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false])
+  wp_if_destruct
+  · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len := ⟨Hk1, Hif⟩
+    simp only [Hb, _root_.and_self, ↓reduceIte]
+    list_elem us (sint.nat k) as u
+    wp_apply (wp_load_slice_index sl (sint.Z k) us DFrac.discard u Hk1) $$ [] as -
+    · iframe #; ipureintro; exact Hu_lookup
+    (try wp_auto)
+    (try simp only [Hb, _root_.and_self, ↓reduceIte])
+    ihave ⟨Hu, -⟩ := (ownSlice_elem_acc (sint.Z k) u sl DFrac.discard us Hk1 Hu_lookup) $$ Hus
+    wp_apply (hURLString _ DFrac.discard u) $$ [Hu] as %s ⟨-, %Hs⟩
+    · iexact Hu
+    (try wp_auto)
+    ihave %Houtl := ownSlice_len $$ Hout
+    have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z out.len := by
+      constructor
+      · exact Hk1
+      · have : xs.length = us.length := Hk3
+        word
+    simp only [Hb', _root_.and_self, ↓reduceIte]
+    wp_apply wp_store_slice_index $$ [Hout] as Hout
+    · iframe; ipureintro; constructor <;> word
+    have hsu : s = go!"http://" ++ u.Host' :=
+      Hs (Hplain u (List.mem_of_getElem? Hu_lookup))
+    wp_for_post
+    iframe
+    iexists k + W64 1, k, _
+    iframe
+    ipureintro
+    have hn : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+    refine ⟨by word, by word, by simp [Hk3], ?_⟩
+    intro j hj
+    rw [hn] at hj
+    have hkl : sint.nat k < xs.length := by rw [Hk3, Hul.1]; word
+    by_cases hjk : j = sint.nat k
+    · subst hjk
+      rw [List.getElem?_set_self hkl, List.getElem?_map, Hu_lookup, hsu]
+      rfl
+    · rw [List.getElem?_set_ne (Ne.symm hjk)]
+      exact Hk4 j (by omega)
+  · (try wp_auto)
+    iapply HΦ
+    iframe
+    have hk : sint.nat k = us.length := by rw [Hul.1]; word
+    have hxs : xs = us.map fun u => go!"http://" ++ u.Host' := by
+      apply List.ext_getElem?
+      intro j
+      by_cases hj : j < us.length
+      · exact Hk4 j (by omega)
+      · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp; omega)]
+    rw [← hxs]
+    iexact Hout
+
 end proof
 
 end EtcdGrove

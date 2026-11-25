@@ -174,7 +174,7 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
   intro cr γ t cn a la ra P Q hs Z L c γe r p xs
   wp_start as ⟨⟨%Hc, %HL, %Hrx⟩, #Hcr, #Henv, #Hio, #Hcok, #Hrwc, #Hca, Hst, Hp⟩
   iunfold readEnv at Henv
-  icases Henv with ⟨-, %ed, #Hed⟩
+  icases Henv with ⟨-, ⟨%ed, #Hed⟩, -⟩
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, #HUEOF, -⟩
   unfold errors.newVar

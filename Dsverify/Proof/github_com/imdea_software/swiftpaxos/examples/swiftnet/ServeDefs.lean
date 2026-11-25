@@ -4,9 +4,10 @@ the kit over remote (`ServeProof.lean` proves them):
 
 * `srvBoot γ i`: server node `i + 1`'s boot resources: net/rpc's fresh codec state
   (`codecFresh`), the dialer's state (`cliBoot`), the server's (`net.rpc.srvEnv`, the thread
-  bound), net/http's `muxOwner []`, net/rpc's `DefaultServer` (`∃ γs, defaultServer γs`: a boot
-  resource since Upamanyu's EPaxos review), and on a replica node the node's fresh ghost
-  (`client.ghostFresh`) and the mutable globals' points-to (`swift.mutGlobals`);
+  bound), net/http's `muxOwner []`, net/rpc's `DefaultServer` with an owned, empty registry
+  (`defaultServerO γs γf ∗ svcOwn γf ∅`), the main thread's token (`http.Serve` runs on it), and on
+  a replica node the node's fresh ghost (`client.ghostFresh`) and the mutable globals' points-to
+  (`swift.mutGlobals`);
 * `serverRes γ i`: its share and its boot resources.
 -/
 module
@@ -36,7 +37,7 @@ variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 /-- Server node `i + 1`'s boot resources (see the file header). -/
 def srvBoot (i : Nat) : IProp netDistGF :=
   iprop(cnode.codecFresh ∗ cnode.cliBoot ∗ ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗
-    H.muxOwner [] ∗ (∃ γs, H.defaultServer γs) ∗
+    muxOwner [] ∗ (∃ γs γf, net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅) ∗ threadTok ∗
     (if i = 0 then iprop(True) else client.ghostFresh ∗ swift.mutGlobals))
 
 /-- Server node `i + 1`'s start: its share and its boot resources. -/

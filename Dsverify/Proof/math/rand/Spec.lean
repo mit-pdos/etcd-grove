@@ -8,13 +8,21 @@ every theorem that calls them takes as an instance argument, up to the kit's clo
 Each is what Go's `math/rand` does, up to the values drawn (arbitrary: a proof cannot depend on
 them): `NewSource(seed)` returns a fresh `Source` with its token `isSource src`; `New(src)`, given
 that token, a fresh `*Rand` with its token `ownRand r`; `r.Intn(n)`, given `r`'s token, for `n > 0`
-a number in `[0, n)`; the package-level `Intn(n)` (its locked global source, safe for concurrent
-use) for `n > 0` a number in `[0, n)`. The tokens are exclusive (a `Rand` and its `rngSource` are
+a number in `[0, n)`. The tokens are exclusive (a `Rand` and its `rngSource` are
 not safe for concurrent use) and abstract: the class says some pair of predicates makes the three
 specs true (`∃ isSource ownRand, RandSpecs isSource ownRand`); real Go's are "`src` is an
 `*rngSource` made by `NewSource`, used by its holder alone" and "`r` is a `*Rand` made by `New` over
 such a source, used by its holder alone". So `r.Intn` is not claimed of a `Rand` whose source is
 `nil` (the zero `Rand`, where Go panics: #24) or any other `Source`.
+
+(Until 2026-11-24, math-rand-isinit, the class also had the package-level `Intn` as a field, and
+`Rand.Intn`'s spec was named `math.rand.Rand.Intn.spec`. Perennial 47ec64a9d translates and proves
+`Intn` (and `Rand.Intn`, over the runtime's source), and declares both names: the package-level one
+is Perennial's now (`IntnPos.lean`), and this one is `Rand.Intn.ownSpec`. `NewSource`/`New` stay
+names only at that pin, so `rands` stays a hypothesis.)
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `NewSource`/`New`/`(*rngSource).Int63` are trust-boundary axioms over the fixed tokens of `RngDefs.lean`, `Seed` one too (review `notes/axiom-review/dsv-fix4/math-rand-{rng,seed}.md`); `RandsLinked.lean` proves `Hyps` from them.
 -/
 module
 
@@ -47,18 +55,20 @@ abbrev math.rand.New.spec (isSource : GoInterface → IProp GF) (ownRand : Loc �
     {{ (r : Loc), RET #r; ownRand r }}
 
 /-- `r.Intn(n)` for `n > 0`, `r` from `New` (its token): some `x` in `[0, n)`; the token kept. -/
-abbrev math.rand.Rand.Intn.spec (ownRand : Loc → IProp GF) : Prop :=
+abbrev math.rand.Rand.Intn.ownSpec (ownRand : Loc → IProp GF) : Prop :=
   ∀ (r : Loc) (n : w64), 0 < sint.Z n →
     {{ ownRand r }}
       (App (Val (r @!! go.GoType.PointerType math.rand.Rand.ty @!! go!"Intn")) (Val #n))
     {{ (x : w64), RET #x; ownRand r ∗ ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
 
-/-- The package-level `Intn(n)` for `n > 0`: some `x` in `[0, n)`. -/
-abbrev math.rand.Intn.spec : Prop :=
-  ∀ (n : w64), 0 < sint.Z n →
+/-- The package-level `Seed(seed)`: it returns, nothing claimed (go1.24 and later: a no-op unless
+`GODEBUG=randseednop=0`, when it reseeds the global source; it has no precondition and does not
+panic). gryff's `NewReplica` and QuePaxa's `proxy` call it. -/
+abbrev math.rand.Seed.spec : Prop :=
+  ∀ (seed : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! math.rand.Intn)) (Val #n))
-    {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
+      (App (Val (@! math.rand.Seed)) (Val #seed))
+    {{ RET #(); True }}
 
 end spec
 
@@ -68,13 +78,12 @@ structure math.rand.RandSpecs [GooseExts] [GooseSemantics] [GooseInterp] [GoGlob
     (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF) : Prop where
   NewSource : math.rand.NewSource.spec (GF := GF) isSource
   New : math.rand.New.spec (GF := GF) isSource ownRand
-  Rand_Intn : math.rand.Rand.Intn.spec (GF := GF) ownRand
+  Rand_Intn : math.rand.Rand.Intn.ownSpec (GF := GF) ownRand
 
 /-- **The hypotheses** (the header). -/
 class math.rand.Hyps [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   rands : ∃ (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF),
     math.rand.RandSpecs GF isSource ownRand
-  Intn : math.rand.Intn.spec (GF := GF)
 
 end Perennial

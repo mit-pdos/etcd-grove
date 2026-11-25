@@ -479,6 +479,7 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" Client.Ctx.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Delete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
+  ptr_Endpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Endpoints" Client.Endpoints.impl
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Get"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" Client.GetLogger.impl
@@ -552,6 +553,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_Compact_unfold
   Client.TypeAssumptions.ptr_Ctx_unfold
   Client.TypeAssumptions.ptr_Delete_unfold
+  Client.TypeAssumptions.ptr_Endpoints_unfold
   Client.TypeAssumptions.ptr_Get_unfold
   Client.TypeAssumptions.ptr_GetLogger_unfold
   Client.TypeAssumptions.ptr_Put_unfold

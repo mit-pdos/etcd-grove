@@ -10,6 +10,7 @@ the transport's directory bound for up to `1000` members by `rafthttp.bootCfg_of
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run
@@ -52,7 +53,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 theorem etcd_authN.wp_StartMemberAuth :
     etcdstart.StartMemberAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMemberAuth.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
+    server_new_auth_on etcdstart.net.wp_ListenHttp EtcdServer.wp_RaftHandler server_Start
 
 /-- **The `k` members started with auth on** (`StartMembersAuth.lean`). -/
 theorem etcd_authN.wp_StartMembersAuth :
@@ -91,7 +92,7 @@ theorem etcd_authN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     etcd_authN.wp_StartMembersAuth etcd_authN.wp_run
     mvcc.api.mvccApi_names_nonempty_law_holds
-    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega))
+    (fun dir ps h hl => rafthttp.bootCfg_of_le dir ps h (by unfold peersMax; omega)) _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

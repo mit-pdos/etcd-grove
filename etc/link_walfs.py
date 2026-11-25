@@ -328,6 +328,9 @@ def main(root, perennial, argv0, check=False, cfg=None):
     for x in decls:
         if not x["mod"].startswith(PROOF_PFX) or x["kind"] not in ("theorem", "axiom"):
             continue
+        # a top-level result is proved over the Link, not linked in it
+        if x["mod"].endswith(".TopLevelRobustness"):
+            continue
         c = concl(x)
         if not c:
             continue

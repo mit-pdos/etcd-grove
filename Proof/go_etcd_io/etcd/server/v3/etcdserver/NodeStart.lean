@@ -32,7 +32,7 @@ the allocation and contracts of before the node API):
   `RaftState.init`; the fresh registered `MemoryStorage` as `NewMemoryStorage` leaves it; the
   peers and their contexts; the WAL's durability invariant, the loop's view at the start and its
   token (`wal.bootOk_start`);
-* the contracts (`rnLoggerZapOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`,
+* the contracts (`rnLoggerZapOk`, `rnTimeoutDetectorOk` (`rnNewStorageOk` until wal-nostorageok, 2026-11-21),
   `rnClusterOk` on names-only callees; `rnRaftStatusOk` the invariant of the package globals
   `raftStatus`/`raftStatusMu`);
 * the installer's, given when the server exists (since unit N1 of the server-construction unit,
@@ -775,8 +775,8 @@ abbrev NodeStartSpec : Prop :=
         "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
           nodeVacant γr.cl cv.ID') ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-        "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
+        -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
+        "#Hrs" ∷ rnRaftStatusOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
         "#Hssi" ∷ snap.isSnapshotter ss sd ∗
@@ -886,8 +886,8 @@ abbrev NodeStartSpecR : Prop :=
         "#Hlinv" ∷ srvRaftLogInv ⟨γr, [], W64 0⟩ ∗ "#HA0" ∷ srvRLogLb ⟨γr, [], W64 0⟩ A₀ ∗
         "#Hcert" ∷ walSnapCert γr.cl σ ∗
         -- the names-only contracts
-        "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-        "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
+        -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
+        "#Hrs" ∷ rnRaftStatusOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
         "#Hssi" ∷ snap.isSnapshotter ss sd ∗

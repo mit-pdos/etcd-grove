@@ -23,6 +23,114 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+namespace CompactionRequest
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+noncomputable instance CompactionRequest_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"state" l) v.state' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Revision" l) v.Revision' dq ∗
+    "Physical" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Physical" l) v.Physical' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance CompactionRequest_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance CompactionRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Revision" l) v.Revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (Revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Revision" l) Revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := Revision' } : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_load_Physical (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Physical" l) v.Physical' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Physical" l) v.Physical' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_store_Physical (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (Physical' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Physical" l) v.Physical' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"Physical" l) Physical' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Physical' := Physical' } : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance CompactionRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end CompactionRequest
+
 namespace CompactionResponse
 section def_
 
@@ -1273,205 +1381,6 @@ noncomputable instance LeaseRevokeRequest_access_store_sizeCache (l : Loc) (v : 
 
 end def_
 end LeaseRevokeRequest
-
-namespace LeaseRevokeResponse
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-noncomputable instance LeaseRevokeResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance LeaseRevokeResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance LeaseRevokeResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (Header' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"Header" l) Header' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseRevokeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end LeaseRevokeResponse
-
-namespace LeaseCheckpoint
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-noncomputable instance LeaseCheckpoint_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' dq ∗
-    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' dq ∗
-    "Remaining_TTL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance LeaseCheckpoint_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance LeaseCheckpoint_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_load_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_store_ID (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (ID' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"ID" l) ID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_load_Remaining_TTL (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_store_Remaining_TTL (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (Remaining_TTL' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) v.Remaining_TTL' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"Remaining_TTL" l) Remaining_TTL' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Remaining_TTL' := Remaining_TTL' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance LeaseCheckpoint_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end LeaseCheckpoint
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end

@@ -176,13 +176,30 @@ def callRes (γ : RpcConnNames) (s : w64) (pc : Loc) : IProp GF :=
 
 /-! ## The client's invariants -/
 
+/-- The fraction `mutex`'s invariant holds of `closing` when it is `b`: all of it while the client
+is not closing, a persistent part once it is (`Close` sets it for good; `cliClosed`). -/
+def clsFrac : Bool → DFrac
+  | true => DFrac.discard
+  | false => DFrac.own 1
+
+theorem clsFrac_true : clsFrac true = DFrac.discard := rfl
+theorem clsFrac_false : clsFrac false = DFrac.own 1 := rfl
+
+/-- The client `c` is closing, for good (persistent): `Close` set its `closing` flag, which nothing
+clears (`mutex`'s invariant then holds a persistent points-to of it, `clsFrac`). -/
+def cliClosed (c : Loc) : IProp GF :=
+  iprop(structFieldRef net.rpc.Client go!"closing" c ↦□ true)
+
+instance cliClosed_persistent (c : Loc) : Persistent (cliClosed (GF := GF) c) := by
+  unfold cliClosed; infer_instance
+
 /-- The invariant of `mutex` (see the file header). -/
 def muInv (γ : ClientNames) (c : Loc) : IProp GF :=
   iprop(∃ (sq : w64) (n : Nat) (mp : Loc) (m : GMap w64 Loc) (sd cls : Bool)
       (NM : GMap Nat (GName × GName × GName)),
     structFieldRef net.rpc.Client go!"seq" c ↦ sq ∗ structFieldRef net.rpc.Client go!"pending" c ↦ mp ∗
     mp ↦$ m ∗ structFieldRef net.rpc.Client go!"shutdown" c ↦ sd ∗
-    structFieldRef net.rpc.Client go!"closing" c ↦ cls ∗
+    structFieldRef net.rpc.Client go!"closing" c ↦{clsFrac cls} cls ∗
     ghostVar γ.sq (1 : Qp).half n ∗ ⧗ n ∗ ⌜sq = W64 n ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
     ghostVar γ.down (1 : Qp).half sd ∗
     ghostMapAuth γ.conn.nm 1 NM ∗ ⌜∀ i, (NM.lookup i).isSome → i < n⌝ ∗

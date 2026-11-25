@@ -60,7 +60,7 @@ abbrev runChecks.spec : Prop :=
       threadTok ∗
       -- (2026-11-08, `lean`'s sweep repairs: the `ETCD_VERIFY` finding) the environment leaves
       -- `ETCD_VERIFY` unset, which `backend.New` takes (as etcdstart's start resources do)
-      envVerifyOff }}
+      ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.runChecks)) (Val #cfg))
   {{ (rep : Report) (lp b : Loc) (γB : backend.BNames) (P : backend.BParams) (W : IProp GF),
       RET (PairV (PairV #rep #(lease.lessorIface lp))

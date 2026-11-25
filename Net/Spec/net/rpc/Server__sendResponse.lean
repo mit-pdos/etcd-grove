@@ -33,7 +33,7 @@ abbrev Server.sendResponse.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (sc t : Loc)
     (cn : Nat) (la ra : GoInterface) (sending req : Loc) (rqv : net.rpc.Request)
     (reply : GoInterface) (errmsg : GoString) (k : Nat) (Φ : List w8 → GoString → IProp GF),
-  {{ isServer s γs ∗ srvEnv ∗ codecSet C ∗ srvCodecAt sc t cn a la ra ∗
+  {{ isServerAny s γs ∗ srvEnv ∗ codecSet C ∗ srvCodecAt sc t cn a la ra ∗
       sync.isMutex sending (srvSendInv W a cn sc) ∗ req ↦ rqv ∗ ⌜rqv.Seq' = W64 k⌝ ∗
       ansPend W a cn k rqv.ServiceMethod' Φ ∗ ansRes C errmsg reply Φ }}
     (App (App (App (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"sendResponse"))

@@ -23,7 +23,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.verify.Assumptions]
 
-/-- `IsVerificationEnabled(t)` returns; with `ETCD_VERIFY` off for the run (`envVerifyOff`), it
+/-- `IsVerificationEnabled(t)` returns; with `ETCD_VERIFY` off for the run (`EtcdVerifyOff`), it
 returns `false` for the checks etcd's code asks about, `assert` (`Verify`) and `lock` (the backend's
 lock checks). -/
 abbrev verify.IsVerificationEnabled.spec : Prop :=
@@ -31,7 +31,7 @@ abbrev verify.IsVerificationEnabled.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify }}
     (App (Val (@! verify.IsVerificationEnabled)) (Val #t))
   {{ (b : Bool), RET #b;
-      envVerifyOff -∗ ⌜t = go!"assert" ∨ t = go!"lock" → b = false⌝ }}
+      ⌜EtcdVerifyOff → t = go!"assert" ∨ t = go!"lock" → b = false⌝ }}
 
 end spec
 

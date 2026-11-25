@@ -29,17 +29,18 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem Barrier.Hold.wp_proof (hNK : newKey.spec (GF := GF) (hG := hG)) :
     Barrier.Hold.spec (GF := GF) (hG := hG) := by
   intro b client key lo
-  wp_start as ⟨#Hb, #Hlo⟩
+  wp_start as ⟨Hlt, #Hb, #Hlo⟩
   iunfold isBarrier at Hb
   icases Hb with ⟨#Hbc, -, #Hbk, #Hcl, %Hkl⟩
   ihave ⟨%kv, #Hkvf, #Hkv⟩ := isEtcdRecipesClient_kv $$ Hcl
   wp_auto
-  wp_apply hNK kv key key (W64 0) lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+  wp_apply hNK kv key key (W64 0) lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨List.prefix_refl key, by word⟩
   icases Hres with (⟨%Heq, %r, -, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrk, %r, #Hr, #Hp, %Hlr⟩ | %Hne)
   · subst Heq
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -48,6 +49,7 @@ theorem Barrier.Hold.wp_proof (hNK : newKey.spec (GF := GF) (hG := hG)) :
     ipureintro; exact Hrr.1
   · (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; ileft
     iframe Herr
     iexists r
@@ -55,6 +57,7 @@ theorem Barrier.Hold.wp_proof (hNK : newKey.spec (GF := GF) (hG := hG)) :
     ipureintro; exact Hlr
   · (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; iright
     ipureintro; exact Hne.1
 

@@ -45,6 +45,22 @@ abbrev Client.Go.spec : Prop :=
   {{ (pc : Loc), RET #pc; callFields pc sm args reply done ∗ ∃ o, ticket γt o ∗
       sendRes γ.conn o Rargs (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs))) }}
 
+/-- `c.Go(sm, args, reply, done)` on a client closing for good (`cliClosed c`), with a buffered
+`done`: whatever the call, `send` refuses it (`Client.send.spec_closed`): its outcome
+(`ErrShutdown`, `callPost` at no number) goes to `done`, its ticket is `none`. Proved in
+`Net/Proof/net/rpc/Client__GoClosed.lean`. -/
+abbrev Client.Go.spec_closed : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames) (sm : GoString)
+    (args reply : GoInterface) (done : Loc) (γt : GName) (γf : FutureNames)
+    (K : Loc → IProp GF) (Φ : List w8 → GoString → IProp GF) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF),
+  {{ isClientN c W a γ ∗ cliClosed c ∗ ⌜done ≠ null ∧ 0 < sint.Z γf.chanName.chanCap⌝ ∗ D ∗
+      ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
+      callDone γ.conn γt sm args reply done γf K Φ Θ D }}
+    (App (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Go"))
+      (Val #sm)) (Val #args)) (Val #reply)) (Val #done))
+  {{ (pc : Loc), RET #pc; callFields pc sm args reply done ∗ ticket γt none }}
+
 end spec
 
 end net.rpc

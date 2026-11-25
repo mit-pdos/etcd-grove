@@ -107,7 +107,9 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_vendor_golang_org_x_net_http_httpguts : G pkg_id.vendor.golang_org.x.net.http.httpguts = isPkgInit (PROP := IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts
   e_net_textproto : G pkg_id.net.textproto = isPkgInit (PROP := IProp GF) pkg_id.net.textproto
   e_mime_multipart : G pkg_id.mime.multipart = isPkgInit (PROP := IProp GF) pkg_id.mime.multipart
+  e_math : G pkg_id.math = isPkgInit (PROP := IProp GF) pkg_id.math
   e_path : G pkg_id.path = isPkgInit (PROP := IProp GF) pkg_id.path
+  e_sort : G pkg_id.sort = isPkgInit (PROP := IProp GF) pkg_id.sort
   e_bytes : G pkg_id.bytes = isPkgInit (PROP := IProp GF) pkg_id.bytes
   e_bufio : G pkg_id.bufio = isPkgInit (PROP := IProp GF) pkg_id.bufio
   e_internal_runtime_sys : G pkg_id.internal.runtime.sys = isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.sys
@@ -116,11 +118,9 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_net_http : G pkg_id.net.http = isPkgInit (PROP := IProp GF) pkg_id.net.http
   e_go_token : G pkg_id.go.token = isPkgInit (PROP := IProp GF) pkg_id.go.token
   e_net_rpc : G pkg_id.net.rpc = isPkgInit (PROP := IProp GF) pkg_id.net.rpc
-  e_sort : G pkg_id.sort = isPkgInit (PROP := IProp GF) pkg_id.sort
   e_github_com_anishathalye_porcupine : G pkg_id.github_com.anishathalye.porcupine = isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine
   e_github_com_goose_lang_primitive : G pkg_id.github_com.goose_lang.primitive = isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive
   e_github_com_google_uuid : G pkg_id.github_com.google.uuid = isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid
-  e_math : G pkg_id.math = isPkgInit (PROP := IProp GF) pkg_id.math
   e_encoding_binary : G pkg_id.encoding.binary = isPkgInit (PROP := IProp GF) pkg_id.encoding.binary
   e_encoding_hex : G pkg_id.encoding.hex = isPkgInit (PROP := IProp GF) pkg_id.encoding.hex
   e_github_com_emirpasic_gods_utils : G pkg_id.github_com.emirpasic.gods.utils = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.utils
@@ -313,9 +313,17 @@ theorem wf_mime_multipart {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.mime.multipart G :=
   And.intro h.e_mime_multipart ⟨wf_net_textproto h, True.intro⟩
 
+theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.math G :=
+  And.intro h.e_math True.intro
+
 theorem wf_path {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.path G :=
   And.intro h.e_path ⟨wf_errors h, wf_internal_bytealg h, True.intro⟩
+
+theorem wf_sort {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.sort G :=
+  And.intro h.e_sort ⟨wf_math_bits h, wf_slices h, True.intro⟩
 
 theorem wf_bytes {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.bytes G :=
@@ -339,7 +347,7 @@ theorem wf_runtime {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.http G :=
-  And.intro h.e_net_http ⟨wf_context h, wf_crypto_tls h, wf_errors h, wf_fmt h, wf_io h, wf_log h, wf_net_http_internal_ascii h, wf_net_url h, wf_slices h, wf_strings h, wf_sync h, wf_sync_atomic h, wf_time h, wf_vendor_golang_org_x_net_http_httpguts h, wf_net h, wf_mime_multipart h, wf_net_textproto h, wf_strconv h, wf_path h, wf_bufio h, wf_runtime h, True.intro⟩
+  And.intro h.e_net_http ⟨wf_context h, wf_crypto_tls h, wf_errors h, wf_fmt h, wf_io h, wf_log h, wf_net_http_internal_ascii h, wf_net_url h, wf_slices h, wf_strings h, wf_sync h, wf_sync_atomic h, wf_time h, wf_vendor_golang_org_x_net_http_httpguts h, wf_net h, wf_mime_multipart h, wf_net_textproto h, wf_strconv h, wf_math h, wf_path h, wf_sort h, wf_bufio h, wf_runtime h, True.intro⟩
 
 theorem wf_go_token {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.go.token G :=
@@ -348,10 +356,6 @@ theorem wf_go_token {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_net_rpc {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.rpc G :=
   And.intro h.e_net_rpc ⟨wf_bufio h, wf_errors h, wf_io h, wf_log h, wf_net h, wf_net_http h, wf_sync h, wf_go_token h, True.intro⟩
-
-theorem wf_sort {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.sort G :=
-  And.intro h.e_sort ⟨wf_math_bits h, wf_slices h, True.intro⟩
 
 theorem wf_github_com_anishathalye_porcupine {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine G :=
@@ -364,10 +368,6 @@ theorem wf_github_com_goose_lang_primitive {G : GoString → IProp GF} (h : KitG
 theorem wf_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.google.uuid G :=
   And.intro h.e_github_com_google_uuid True.intro
-
-theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.math G :=
-  And.intro h.e_math True.intro
 
 theorem wf_encoding_binary {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.binary G :=
@@ -682,10 +682,20 @@ theorem wfO_mime_multipart {G : GoString → IProp GF} (h : KitG G) (S : List Go
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.mime.multipart ∉ ownedPkgs) (hS _ hm))).trans
     h.e_mime_multipart) ⟨wfO_net_textproto h S hS, True.intro⟩
 
+theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_math) True.intro
+
 theorem wfO_path {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.path (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.path ∉ ownedPkgs) (hS _ hm))).trans
     h.e_path) ⟨wfO_errors h S hS, wfO_internal_bytealg h S hS, True.intro⟩
+
+theorem wfO_sort {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sort (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sort ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_sort) ⟨wfO_math_bits h S hS, wfO_slices h S hS, True.intro⟩
 
 theorem wfO_bytes {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.bytes (gOff S G) :=
@@ -717,11 +727,6 @@ theorem wfO_go_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.go.token ∉ ownedPkgs) (hS _ hm))).trans
     h.e_go_token) ⟨wfO_internal_gomodel h S hS, True.intro⟩
 
-theorem wfO_sort {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sort (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sort ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_sort) ⟨wfO_math_bits h S hS, wfO_slices h S hS, True.intro⟩
-
 theorem wfO_github_com_anishathalye_porcupine {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.anishathalye.porcupine ∉ ownedPkgs) (hS _ hm))).trans
@@ -736,11 +741,6 @@ theorem wfO_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) (S :
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.google.uuid (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.google.uuid ∉ ownedPkgs) (hS _ hm))).trans
     h.e_github_com_google_uuid) True.intro
-
-theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_math) True.intro
 
 theorem wfO_encoding_binary {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.binary (gOff S G) :=

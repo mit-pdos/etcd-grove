@@ -46,7 +46,7 @@ theorem register.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
   wp_auto
   ipersist «$r0»
   wp_for
-  wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W masterAddr) $$ [$Hce $Hhe $Hcon $Hra]
+  wp_apply (DialHTTP_kit W masterAddr) $$ [$Hce $Hhe $Hcon $Hra]
     as %mc %err Hd
   · ipureintro; exact Hrb
   icases Hd with (⟨%He, #Hcl⟩ | ⟨%He, -⟩)

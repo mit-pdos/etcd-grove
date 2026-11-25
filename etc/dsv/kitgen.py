@@ -52,11 +52,12 @@ CODEC_GEN = {'rpc': 'models/net/rpc/rpcgen.py', 'json': 'models/json/jsongen.py'
 
 def load_kits():
     """The kit files `etc/dsv/*.py` with a `KITGEN` section, by name (as goose.dsv_kits loads
-    them: name order, files starting with `_`, this script and the experiment scripts' proxy.py
-    skipped)."""
+    them: name order, files starting with `_`, this script, the experiment scripts' proxy.py and the
+    run-analysis scripts skipped)."""
     out = {}
     for f in sorted(os.listdir(DSV)):
-        if not f.endswith('.py') or f.startswith('_') or f in ('kitgen.py', 'proxy.py'):
+        if not f.endswith('.py') or f.startswith('_') or f in ('kitgen.py', 'proxy.py', 'tokens.py',
+                                                                'backtrack.py', 'parallel.py', 'compare.py'):
             continue
         spec = importlib.util.spec_from_file_location('kitgen_kit_' + f[:-3], os.path.join(DSV, f))
         m = importlib.util.module_from_spec(spec)
@@ -234,6 +235,7 @@ def spec_file(kit, kg):
     ms = machines(kg)
     o = [lean_header(kit), doc(st['doc']), 'module\n\n']
     o.append(f'public import Dsverify.Proof.{pkg}.TopLevelDefs\n')
+    o.append('public import Dsverify.Proof.Bounds\n')  # remoteStepBound (fix 5a)
     o.append(lines(st.get('imports')))
     o.append('\n@[expose] public section\n\nnoncomputable section\n\n'
              'set_option linter.iris.style.nameCheck false\n\nnamespace Perennial\n\n'
@@ -257,7 +259,7 @@ def spec_file(kit, kg):
         o.append('    [go.BasicIntoValInj]\n')
         o.append('    (σ : Nat → state) (g : GlobalState) (threads : Nat),\n')
     o.append(f'    DistDeploy {st["addrs"]} (system σ) g →\n')
-    o.append(f'    Robustness.Robust [] (system σ) g threads ({st["steps"]})\n\n')
+    o.append(f'    Robustness.Robust [] (system σ) g threads {st["steps"]}\n\n')
     o.append(f'end {pkg}\nend Perennial\n')
     return ''.join(o)
 
@@ -452,6 +454,10 @@ def proof_file(kit, kg):
         for n, t, cls in premises(st):
             if t.startswith('    (∀ G L, letI := heapAt G L; '):
                 o.append(f'    haveI : {cls[0]} remoteGF := {n} G\' hG.goose_localGS\n')
+        # classes discharged in the proof, not premises (dsv-fix4: per-function axioms; KITGEN's
+        # statement `discharged`, [(class, term)], the term usually a linking module's `hyps_holds`)
+        for cls, term in st.get('discharged', []):
+            o.append(f'    haveI : {cls} remoteGF := {term}\n')
     o.append('    match i, hm with\n')
     for m in ms:
         frame = role_get(m, 'frame')
@@ -1099,7 +1105,8 @@ COORDINATION = ('etc/sessions.txt', 'etc/gh-inbox.py', 'notes/coordination.md', 
 EXPERIMENT = ('etc/dsv/sandbox.sh', 'etc/dsv/run.sh', 'etc/dsv/experiment.sh', 'etc/dsv/check-env.sh',
               'etc/dsv/verify.sh', 'etc/dsv/proxy.py', 'etc/dsv/inside.sh', 'etc/dsv/ask-hook.sh',
               'etc/dsv/model-hook.sh', 'etc/dsv/managed-settings.json', 'etc/dsv/loadlog.sh',
-              'etc/dsv/snapshot.sh')
+              'etc/dsv/snapshot.sh', 'etc/dsv/tokens.py', 'etc/dsv/backtrack.py', 'etc/dsv/parallel.py',
+              'etc/dsv/compare.py', 'etc/dsv/rundone.py')
 
 
 def excluded(f, kit, allow, others, roots, other_roots):

@@ -32,7 +32,7 @@ variable [π : NetProtoGS] [log.Assumptions]
 abbrev Server.Accept.specAddr : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString)
     (lis : GoInterface) (l : w64),
-  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
+  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServerAny s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
       isPkgInit (PROP := IProp GF) pkg_id.log ∗ rpcAddr (Gg := hG.goose_globalGS) W a ∗
       net.isListener (GF := GF) lis l ∗ netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a ∗
       lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l a }}

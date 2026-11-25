@@ -34,7 +34,7 @@ theorem watchClient.Watch.wp_proof
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG)) :
     watchClient.Watch.spec (GF := GF) (hG := hG) := by
   intro wc conn addrs ics Up Spec ctx cd om opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -68,25 +68,25 @@ theorem watchClient.Watch.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
-  have hNS := wp_NewStream conn addrs ics anyRes go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
+  have hNS := wp_NewStream conn addrs ics clientRes go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
     v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd om
   simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT] at hNS
-  iapply (hNS _ copts ([sm] ++ vs) iprop(True))
+  iapply (hNS _ copts ([sm] ++ vs) (levelTok 0)) $$ [Hlt]
   · isplitr
     · iframe #
     isplitr
     · iframe #
     isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
+    · ipureintro; rfl
+    isplitl [Hlt]
+    · iexact Hlt
     iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
     iframe Hd0
     ipureintro; exact hcs
   inext
-  iintro %cs %err ⟨-, Hres⟩
+  iintro %cs %err ⟨Hlt, Hres⟩
   wp_auto
   icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, %Ha, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
@@ -96,13 +96,14 @@ theorem watchClient.Watch.wp_proof
     ipersist ClientStream
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := v3rpc.pbWatchRequest)
       (Rep := v3rpc.pbWatchResponse) etcdserverpb.WatchRequest etcdserverpb.WatchResponse
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (Up a) Dn cd' anyRes $$ [ClientStream]
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (Up a) Dn cd' clientRes $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
       iexact Hl
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -120,6 +121,7 @@ theorem watchClient.Watch.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro; rfl

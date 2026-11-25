@@ -38,6 +38,24 @@ variable [GooseExts]
 /-- **The members of `Main(k)`'s cluster** (`Members("leaseexpiryN", k, PeerBase, ClientBase)`). -/
 abbrev members (k : Nat) : List GMember := membersOf go!"leaseexpiryN" k (W64 12000) (W64 13000)
 
+/-- **The members `Main(k)` starts** (2026-11-24, P6): `Main` returns at once for a `k` outside
+`[1, 1000]` (`if k < 1 || k > 1000 { return }`), starting none; otherwise `members k`. -/
+def cluster (k : w64) : List GMember :=
+  if 1 ≤ uint.nat k ∧ uint.nat k ≤ 1000 then members (uint.nat k) else []
+
+theorem cluster_cases (k : w64) :
+    (1 ≤ uint.nat k ∧ uint.nat k ≤ 1000 ∧ cluster k = members (uint.nat k)) ∨ cluster k = [] := by
+  unfold cluster
+  split
+  · next h => exact Or.inl ⟨h.1, h.2, rfl⟩
+  · exact Or.inr rfl
+
+theorem mem_cluster {k : w64} {m : GMember} (h : m ∈ cluster k) :
+    m ∈ members (uint.nat k) ∧ uint.nat k ≤ 1000 := by
+  rcases cluster_cases k with ⟨-, hk, he⟩ | he
+  · rw [he] at h; exact ⟨h, hk⟩
+  · rw [he] at h; simp at h
+
 /-- The cluster's token (`Token`). -/
 abbrev token : GoString := go!"leaseexpiryN-1973196"
 
@@ -61,9 +79,7 @@ def premises (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)
   iprop(
     ([∗list] m; id ∈ members k; ids,
       etcdstart.bootPremise N ps (LogEntry.toEntries boot 0) ctxs (etcd_putgetN.dirN (members k) ids) token
-        m.Name' (urlsN (members k) m) id) ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
-    etcdstart.commonPremises)
+        m.Name' (urlsN (members k) m) id))
 
 instance premises_persistent (k N : Nat) (ids : List w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

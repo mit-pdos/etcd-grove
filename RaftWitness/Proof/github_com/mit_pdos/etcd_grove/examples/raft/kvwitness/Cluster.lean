@@ -68,7 +68,7 @@ def qLogger [GooseExts] [GoGlobalContext] : GoInterfaceOk := interface.mk qLogge
 read-index requests and (2026-10-13) `MsgTimeoutNow`: replication, leader election and the
 read-index responses (`RawNode.Step`'s `netStepTypes` but `MsgReadIndex` and the leader
 transfer and local types). -/
-def kvNetTypes : List w32 :=
+def kvRaftTypes : List w32 :=
   [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp]
 
 /-- What `deliverable` checks of a message holding `st` (see the file header; raft v3.7, stage
@@ -76,7 +76,7 @@ R6b: over the message's state, `m.Entries != nil` and `m.Context == nil` read as
 context bytes being empty, `msgPtsC_fields_acc`). -/
 def Deliverable [GooseExts] (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgProp ∨ (st.msg.Type' = MsgReadIndex ∧ st.msg.Term' = W64 0) ∨
-    (st.msg.Type' ∈ kvNetTypes ∧ st.msg.Term' ≠ W64 0) ∨
+    (st.msg.Type' ∈ kvRaftTypes ∧ st.msg.Term' ≠ W64 0) ∨
     (st.msg.Type' = MsgTimeoutNow ∧ st.msg.Term' ≠ W64 0 ∧ st.ents = [])) ∧
   st.msg.From' ≠ W64 0 ∧ st.msg.From' ≠ st.msg.To' ∧
   (st.ctx = [] ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
@@ -129,7 +129,7 @@ snapshot. -/
 theorem deliverable_mtype (st : MsgSt) (Hd : Deliverable st) :
     st.msg.Type' = MsgTimeoutNow ∨ ∃ ty, mtypeOf st.msg.Type' = some ty ∧ ty ≠ .snap := by
   obtain ⟨Hty, -⟩ := Hd
-  unfold kvNetTypes at Hty
+  unfold kvRaftTypes at Hty
   rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
   · exact .inr ⟨_, by rw [h]; exact mtypeOf_MsgProp, by decide⟩
   · exact .inr ⟨_, by rw [h]; exact mtypeOf_MsgReadIndex, by decide⟩
@@ -173,13 +173,13 @@ theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) 
     iexact Hmsg
   · rw [Hty0] at Hsn; cases Hsn; exact absurd rfl Hns
 
-/-- (2026-10-17) No pre-vote request is delivered (`kvNetTypes`). -/
+/-- (2026-10-17) No pre-vote request is delivered (`kvRaftTypes`). -/
 theorem deliverable_not_prevote (st : MsgSt) (Hd : Deliverable st) : st.msg.Type' ≠ MsgPreVote := by
   obtain ⟨Hty, -⟩ := Hd
   rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
   · rw [h]; simp [MsgProp, MsgPreVote]
   · rw [h]; simp [MsgReadIndex, MsgPreVote]
-  · simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at h
+  · simp only [kvRaftTypes, List.mem_cons, List.not_mem_nil, or_false] at h
     rcases h with h | h | h | h | h | h | h <;> rw [h] <;>
       simp [MsgPreVote, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
         MsgHeartbeatResp, MsgReadIndexResp]
@@ -196,7 +196,7 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
     rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
     · exact absurd h Hnp
     · rw [h]; simp [MsgReadIndex, MsgTransferLeader]
-    · simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at h
+    · simp only [kvRaftTypes, List.mem_cons, List.not_mem_nil, or_false] at h
       rcases h with h | h | h | h | h | h | h <;> rw [h] <;>
         simp [MsgTransferLeader, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
           MsgHeartbeatResp, MsgReadIndexResp]
@@ -214,13 +214,13 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
   · refine ⟨by rw [Hri]; simp [netStepTypes], fun h => absurd (.inl Hri) h, fun _ => Ht0,
       fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl, fun _ => HF'⟩
   · have Hun : ¬ UnstampedType st.msg.Type' := by
-      simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
+      simp only [kvRaftTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
       rcases Hn with h | h | h | h | h | h | h <;> rw [h] <;>
         simp [UnstampedType, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
           MsgHeartbeatResp, MsgReadIndexResp, MsgReadIndex, MsgTransferLeader, MsgForgetLeader,
           MsgUnreachable, MsgSnapStatus]
     have Hnet : st.msg.Type' ∈ netStepTypes := by
-      simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
+      simp only [kvRaftTypes, List.mem_cons, List.not_mem_nil, or_false] at Hn
       simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false]
       rcases Hn with h | h | h | h | h | h | h <;> simp [h]
     exact ⟨Hnet, fun _ => ⟨Hto, Ht, HF⟩, fun h => absurd h Hun, fun _ => HF', fun _ _ => HF',
@@ -304,7 +304,7 @@ theorem stepP_witResp (γn : NodeNames) (id : w64) (l : Loc) (rr : WResp) (μ : 
     · simp only at h'; rw [h] at h'; simp [MsgReadIndex, MsgPreVoteResp] at h'
     · simp only at h'
       rw [h] at h'
-      simp [kvNetTypes, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+      simp [kvRaftTypes, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
         MsgHeartbeatResp, MsgReadIndexResp, MsgPreVoteResp] at h'
     · simp only at h'; rw [h] at h'; simp [MsgTimeoutNow, MsgPreVoteResp] at h'
   obtain ⟨Hto, -, Hty3⟩ := Ha Hnpv

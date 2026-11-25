@@ -59,6 +59,16 @@ abbrev Client.Call.spec : Prop :=
         ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
           (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D))) }}
 
+/-- `c.Call(sm, args, reply)` on a client closing for good (`cliClosed c`, `Client.Close.spec_closed`):
+an error, not a `ServerError` (`ErrShutdown`: `send` refuses the call before encoding anything), for
+any `sm`, `args` and `reply`. Proved in `Net/Proof/net/rpc/Client__CallClosed.lean`. -/
+abbrev Client.Call.spec_closed : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a sm : GoString) (args reply : GoInterface),
+  {{ isClient c W a ∗ cliClosed c }}
+    (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
+      (Val #sm)) (Val #args)) (Val #reply))
+  {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil ∧ notServerErr err⌝ }}
+
 end spec
 
 end net.rpc

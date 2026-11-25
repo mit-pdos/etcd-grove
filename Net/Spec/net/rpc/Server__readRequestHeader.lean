@@ -40,7 +40,7 @@ variable [π : NetProtoGS]
 abbrev Server.readRequestHeader.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (sc t : Loc)
     (cn : Nat) (la ra : GoInterface),
-  {{ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ srvCodecAt sc t cn a la ra ∗
+  {{ isServerAny s γs ∗ srvServes γs C W a ∗ srvEnv ∗ srvCodecAt sc t cn a la ra ∗
       rdrOwn W a cn }}
     (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"readRequestHeader"))
       (Val #(interface.mkOk (go.GoType.PointerType net.rpc.serverCodec.ty) #sc)))

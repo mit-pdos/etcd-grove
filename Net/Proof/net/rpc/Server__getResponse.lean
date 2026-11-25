@@ -32,8 +32,8 @@ theorem Server.getResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (
     Server.getResponse.spec (GF := GF) (hG := hG) := by
   intro s γ
   wp_start as #Hs
-  unfold isServer
-  icases Hs with ⟨#Hsync, #Hmu, #Hrq, #Hrs⟩
+  unfold isServerAny isServerO
+  icases Hs with ⟨%o, #Hsync, #Hmu, #Hrq, #Hrs⟩
   wp_auto
   wp_apply wp_Lock _ _ $$ [$Hsync $Hrs] as ⟨Hown, Hinv⟩
   iunfold respFreeInv at Hinv

@@ -22,6 +22,7 @@ public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrIsTerm
 public import Proof.errors.ErrorStringOk
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

@@ -7,7 +7,7 @@ history `Hs`, `writerIdle`), whose changes so far are `pend` and the tester's mo
 delete or a range read, every result checked. After it the transaction has the changes
 `pend ++ pend'` (at most six more: a delete removes at most the tester's six keys), the model
 `P'` of them (`pendOk`, `LogOk` kept), and at most one value was drawn (`vals`). The writer's
-generator, its leases' map and mvcc's lease ownership (at the pending items) are threaded through.
+generator, its leases' map and mvcc's lease ownership (at the pending items) are threaded through. Every live lease id is in `(0, 2^62]` (`genLease`'s premise).
 -/
 module
 
@@ -38,6 +38,7 @@ abbrev writer.writeOp.spec : Prop :=
     (P : PendM) (pend : List Change) (n : w64),
   pendOk σ Hs pend P → txn.LogOk (σ.log ++ [pend]) → σ.crev = -1 → 1 ≤ σ.rev →
   pend.length + 6 < 2 ^ 63 → 0 ≤ sint.Z n → sint.Z n + 1 < 2 ^ 63 →
+  (∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ 2 ^ 62) →
   {{ writerCtx w wv γ B f ∗ histRd wv.h' γ.h ∗ writerIdle γ σ Hs ∗
       mvccTxn tw γ.kv trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗ ownPending p P ∗
       (∃ g : rng, (wv.r' ↦ g : IProp GF)) ∗

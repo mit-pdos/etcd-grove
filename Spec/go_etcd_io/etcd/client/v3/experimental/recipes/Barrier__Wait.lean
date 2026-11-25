@@ -32,13 +32,11 @@ reached (at the get's revision, or at the delete event's). Or the get's error, o
 canceled or closed watch: never `nil` before the delete event). -/
 abbrev Barrier.Wait.spec : Prop :=
   ∀ (b client : Loc) (key : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      context.isClosedchanInit ∗ isBarrier b client key ∗ etcdReached lo ∗ ⌜0 ≤ sint.Z lo⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (context.isClosedchanInit ∗ isBarrier b client key ∗ etcdReached lo ∗ ⌜0 ≤ sint.Z lo⌝) }}
     (App (Val (b @!! go.GoType.PointerType Barrier.ty @!! go!"Wait")) (Val #()))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ etcdAbsent key key r ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ etcdAbsent key key r ∗
         ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

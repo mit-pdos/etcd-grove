@@ -40,7 +40,7 @@ theorem StartMembers.wp_proof (wp_NewMember : NewMember.spec (GF := GF) (hG := h
     StartMembers.spec (GF := GF) (hG := hG) := by
   intro CS N token snapCount catchUp msl lg xs ps bootLog ctxs dir Φs γn lm cmp Htb Hrb48 HrbN HwbN Hbl Hγnd Hdok Hbc
     Hnd Hutf HnL HaF Hx Haf Hbuq Hdbo
-  wp_start as ⟨#Hlg, Htok, #Hms, #Hcom, #Hcc, Hpre⟩
+  wp_start as ⟨#Hlg, Htok, #Hms, #Hcc, Hpre⟩
   ihave %Hmsl := ownSlice_len $$ Hms
   (try wp_auto)
   wp_apply wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.client.pkg.v3.types.URLs) as %pm Hpm

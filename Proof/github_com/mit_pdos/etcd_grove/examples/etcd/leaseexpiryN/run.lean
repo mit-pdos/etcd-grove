@@ -97,7 +97,7 @@ theorem run.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_gone : gone.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC srvsl msl lg ss xs γn hxl Hpe Hlm Htb HLv Hrb48 Hbuq Hrf Hlp Hms hAs
+  intro CS srvsl msl lg ss xs γn hxl Hpe Hlm Htb HLv Hrb48 Hbuq Hrf Hlp Hms hAs
   wp_start as ⟨#Hlgz, Hss, #Hmsl, Htok, Hcfree, Hups⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -236,14 +236,15 @@ theorem run.wp_proof
   (try wp_auto)
   have hkn : sint.nat msl.len = xs.length := by word
   -- the grant loop
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
   ihave IG : (∃ (n jv : w64) (mv : GMember) (cs : List Loc) (gids : List w64),
-      "i" ∷ i_ptr ↦ n ∗ "j" ∷ j_ptr ↦ jv ∗ "m" ∷ m_ptr ↦ mv ∗
+      "i" ∷ i_ptr ↦ n ∗ "j" ∷ j_ptr ↦ jv ∗ "m" ∷ m_ptr ↦ mv ∗ "Hlt" ∷ levelTok 0 ∗
       "Hclsl" ∷ clsl ↦* (cs ++ List.replicate (xs.length - cs.length) (zero_val Loc)) ∗
       "Hidsl" ∷ idsl ↦* (gids ++ List.replicate (xs.length - gids.length) (zero_val w64)) ∗
       "#Hgr" ∷ ([∗list] p ∈ cs.zip gids, grantedAt (GF := GF) p.1 p.2) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length ∧ cs.length = sint.nat n ∧
         gids.length = sint.nat n⌝ : IProp GF)
-      $$ [i j m Hclsl Hidsl]
+      $$ [i j m Hlt Hclsl Hidsl]
   · iexists W64 0, _, _, [], []
     simp only [List.length_nil, Nat.sub_zero, List.nil_append, List.zip_nil_left]
     iframe
@@ -272,7 +273,7 @@ theorem run.wp_proof
     icases Hsj with ⟨%EM, %γl, %V, #Hrg, #Hrls, #HrdInv⟩
     -- `cli, err := etcdstart.NewClient(m.Client, lg)`
     wp_apply (wp_NewClient xj.1.Client' lg V (Hpe xj hxj) (by omega))
-      as %cl %cerr Hcl
+      $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
     · iframe #
     icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
     rotate_left
@@ -288,7 +289,7 @@ theorem run.wp_proof
     -- `g, err := grant(cli)`, `Q`: the lease live in the member's lessor from an index
     wp_apply (wp_grant cl [xj.1.Client'] V
         (etcdLeaseGrantSpecLive (EM := EM) γl)
-        (fun r => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i r.id l))) as %gr %gerr Hgr
+        (fun r => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i r.id l))) $$ [$Hlt] as %gr %gerr ⟨Hlt, Hgr⟩
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
@@ -373,8 +374,8 @@ theorem run.wp_proof
   ihave %Hidl := ownSlice_len $$ Hidsl
   (try wp_auto)
   -- the check loop
-  ihave IB : (∃ (n jv : w64), "i" ∷ i_ptr ↦ n ∗ "j" ∷ j_ptr ↦ jv ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length⌝ : IProp GF) $$ [i j]
+  ihave IB : (∃ (n jv : w64), "i" ∷ i_ptr ↦ n ∗ "j" ∷ j_ptr ↦ jv ∗ "Hlt" ∷ levelTok 0 ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length⌝ : IProp GF) $$ [i j Hlt]
   · iexists W64 0, _
     iframe
     ipureintro; exact ⟨by decide, by simp⟩
@@ -409,7 +410,7 @@ theorem run.wp_proof
     · iframe #; ipureintro; rw [hnz]; exact Hidj_lookup
     (try wp_auto)
     -- `gone(clis[j], ids[j])`
-    wp_apply (wp_gone cj eps V γl i idj) as %b Hb
+    wp_apply (wp_gone cj eps V γl i idj) $$ [$Hlt] as %b ⟨Hlt, Hb⟩
     · iframe #; ipureintro; exact hAs
     cases b
     · (try wp_auto)
@@ -426,7 +427,7 @@ theorem run.wp_proof
     · iframe #; ipureintro; rw [hnz]; exact Hcj_lookup
     (try wp_auto)
     wp_apply (wp_leases cj eps V (etcdLeaseLeasesSpecLive γl)
-        (fun r => iprop(∃ j : Nat, ⌜k ≤ j⌝ ∗ lease.leaseIdsAt γl j r.ids))) as %ls %lerr Hls
+        (fun r => iprop(∃ j : Nat, ⌜k ≤ j⌝ ∗ lease.leaseIdsAt γl j r.ids))) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext

@@ -2,9 +2,8 @@
 Package initialization of `google_golang_org.grpc.health.grpc_health_v1`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
-initialized variable).
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
 -/
 module
 
@@ -29,26 +28,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace google_golang_org.grpc.health.grpc_health_v1
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `google_golang_org.grpc.health.grpc_health_v1`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end google_golang_org.grpc.health.grpc_health_v1
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -72,7 +51,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

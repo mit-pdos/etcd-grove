@@ -36,6 +36,7 @@ public import Proof.hash.PkgInit
 public import Perennial.Proof.reflect.Base
 public import Proof.golang_org.x.sys.unix.PkgInit
 public import Spec.fmt.ErrorOk
+public import Proof.encoding.hex.PkgInit
 
 @[expose] public section
 
@@ -53,14 +54,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-namespace encoding.hex
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.hex :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.hex :=
-  build_get_is_pkg_init_wf
-
-end encoding.hex
+-- `encoding/hex`'s instance: `Proof/encoding/hex/PkgInit.lean` (L1, 2026-11-24)
 
 namespace go_etcd_io.bbolt.errors
 

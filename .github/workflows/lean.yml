@@ -107,10 +107,10 @@ jobs:
       - name: Check RaftTla's generated copies
         run: ./etc/gen-raft-tla.py --check
       # `RaftNoAx/` (raft without hand-written axioms, notes/raft-noax-part.md) copies the main
-      # tree's modules its closed theorem reaches raft through, and `KvNet/` (notes/kvnet-part.md)
-      # RaftNoAx's, Net's, WalTester's and the main tree's modules kvnet's closure needs: their
+      # tree's modules its closed theorem reaches raft through, and `KvRaft/` (notes/kvraft-part.md)
+      # RaftNoAx's, Net's, WalTester's and the main tree's modules kvraft's closure needs: their
       # copies must be what `etc/copy-part.py` writes from them. Reads the sources only.
-      - name: Check RaftNoAx's and KvNet's copies
+      - name: Check RaftNoAx's and KvRaft's copies
         run: ./etc/copy-part.py --check
       # Each package's clients import only its importable modules (`etc/api/<pkg>.txt`;
       # CLAUDE.md, "Package APIs"). Reads the sources only.
@@ -128,10 +128,20 @@ jobs:
       # thread-bound, receipt-bound or reader-slot premise in a spec. Reads the sources only.
       - name: Check the bounds baseline
         run: ./etc/bounds-check.py --check
+      # Every top-level statement (`Spec/**/TopLevelRobustness.lean`) has a satisfiability witness of
+      # its premises (`premise_sat%`, `Robustness/PremiseSat.lean`) in `Proof/**/TopLevelWitness.lean`,
+      # or a line in `etc/premise-witness-baseline.txt`. Reads the sources only; the build below
+      # checks the witnesses.
+      - name: Check the premise witnesses
+        run: ./etc/premise-witness.py --check
       # The auth-mode divergence outside the auth component only goes down (the auth component's
       # stage 2, D2): no new match on a mode, off/on twin or literal mode. Reads the sources only.
       - name: Check the auth-mode baseline
         run: ./etc/mode-check.py --check
+      # No top-level statement takes a new Iris premise (a binder over `HeapGS`) without a
+      # satisfiability witness (etc/iris-premise-baseline.txt). Reads the sources only.
+      - name: Check the Iris premises' witnesses
+        run: ./etc/iris-premise-check.py --check
       # Every registration on etcd's client port has a row in `etc/auth-table.txt`, with the specs
       # that carry its access check, no row weaker than its baseline (stage M0 of
       # `notes/auth-mediation-scope.md`). Reads the Go sources (`.lake/goose/etcd`, cloned by the

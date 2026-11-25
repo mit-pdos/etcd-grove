@@ -30,12 +30,21 @@ translate = ["!*", "Conn", "Listener", "Addr", "Error",
   "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline",
   "TCPConn.LocalAddr", "TCPConn.RemoteAddr",
   "TCPConn.SetReadBuffer", "TCPConn.SetWriteBuffer",
+<<<<<<< ours
   "TCPConn.CloseWrite", "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay",
   "TCPConn.SetLinger",
   "TCPListener", "TCPListener.ok", "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
   "netFD", "ListenConfig", "KeepAliveConfig", "mptcpStatusListen",
   "IP.To4", "isZeros"]
+||||||| base
+  "IP.To4", "isZeros"]
+=======
+  "IP.To4", "isZeros",
+  # UDP (notes/net-udp.md): the address type, translated; `UDPConn` and its modeled calls trusted
+  "UDPAddr"]
+>>>>>>> theirs
 imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/poll"]
+<<<<<<< ours
 # The primitive stubs of the model (models/net/model.go; Net/TrustedCode/net.lean) and `errClosed`'s
 # initializer (it holds `poll.ErrNetClosing`'s value, the only value of its type).
 trusted = ["extListen", "extDial", "extAccept", "extRead", "extWrite", "extClose", "extLisClose",
@@ -60,6 +69,36 @@ replaces = ["netFD.Read", "netFD.Write", "netFD.Close", "netFD.closeWrite",
 # variable. The code the model translates reads none of them.
 [[skip]]
 names = ["rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
+||||||| base
+trusted = ["conn", "TCPConn", "TCPListener",
+  "Listen", "Dial", "DialTimeout",
+  "conn.Read", "conn.Write", "conn.Close",
+  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
+  "conn.LocalAddr", "conn.RemoteAddr",
+  "conn.SetReadBuffer", "conn.SetWriteBuffer",
+  "TCPConn.CloseWrite",
+  "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay", "TCPConn.SetLinger",
+  "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
+  "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  "TCPAddr.String",
+  # (the package variables: their initializers do nothing, below, but `errClosed`, `ErrClosed`)
+  "rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
+=======
+trusted = ["conn", "TCPConn", "TCPListener",
+  "Listen", "Dial", "DialTimeout",
+  "conn.Read", "conn.Write", "conn.Close",
+  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
+  "conn.LocalAddr", "conn.RemoteAddr",
+  "conn.SetReadBuffer", "conn.SetWriteBuffer",
+  "TCPConn.CloseWrite",
+  "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay", "TCPConn.SetLinger",
+  "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
+  "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  "UDPConn", "ListenUDP", "UDPConn.WriteToUDP", "UDPConn.ReadFromUDP",
+  "TCPAddr.String",
+  # (the package variables: their initializers do nothing, below, but `errClosed`, `ErrClosed`)
+  "rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
+>>>>>>> theirs
   "errCannotUnmarshalDNSMessage", "errCannotMarshalDNSMessage", "errServerMisbehaving",
   "errInvalidDNSResponse", "errNoAnswerFromDNSServer", "errServerTemporarilyMisbehaving",
   "netedns0", "distantFuture", "lookupOrderName", "defaultNS", "getHostname", "testHookLookupIP",

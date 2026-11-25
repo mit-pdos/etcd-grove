@@ -40,7 +40,7 @@ abbrev runner.write.spec : Prop :=
   backend.dbOpenOk → backend.dbCloseOk →
   sint.Z (limOf cfg) ≤ 2 ^ 57 → batchLimitOk (cblOf cfg) →
   {{ writerCtx (GF := GF) x ks cfg wr h γ.h ∗
-      envVerifyOff ∗ threadTok ∗ writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs }}
+      ⌜EtcdVerifyOff⌝ ∗ threadTok ∗ writerOwn x ks cfg h γ mp0 mp1 f0 f1 ops v0 v1 nv nb q qs }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"write") (Val #()))
   {{ RET #(); threadTok ∗
       ∃ (ops' : List OpM) (v0' v1' : MemS) (nv' nb' : Nat) (q' qs' : Qp),

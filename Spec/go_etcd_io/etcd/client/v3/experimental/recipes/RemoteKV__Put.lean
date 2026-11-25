@@ -30,11 +30,11 @@ key, val)` (no lease: etcd detaches the key from any lease), returning its `putR
 record is unchanged (the code does not update its `val`). -/
 abbrev RemoteKV.Put.spec : Prop :=
   ∀ (rk : Loc) (st : RemoteKVSt) (kv : GoInterfaceOk) (pfx val : GoString) (lo : w64),
-  {{ ownRemoteKV (GF := GF) rk st ∗ ⌜st.kv = GoInterface.ok kv⌝ ∗ isRecipesKV st.kv pfx ∗
-      etcdReached lo ∗ ⌜pfx <+: st.key ∧ val.length ≤ recipesStrMax⌝ }}
+  {{ levelTok 0 ∗ (ownRemoteKV (GF := GF) rk st ∗ ⌜st.kv = GoInterface.ok kv⌝ ∗ isRecipesKV st.kv pfx ∗
+      etcdReached lo ∗ ⌜pfx <+: st.key ∧ val.length ≤ recipesStrMax⌝) }}
     (App (Val (rk @!! go.GoType.PointerType RemoteKV.ty @!! go!"Put")) (Val #val))
-  {{ (err : GoInterface), RET #err; ownRemoteKV rk st ∗
-      putResult pfx lo (.put st.key val (W64 0)) err }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (ownRemoteKV rk st ∗
+      putResult pfx lo (.put st.key val (W64 0)) err) }}
 
 end spec
 

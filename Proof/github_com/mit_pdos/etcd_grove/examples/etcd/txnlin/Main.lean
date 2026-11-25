@@ -57,23 +57,28 @@ theorem Main.wp_proof
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : etcdstart.NewClient.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS N id ctxs boot clients ops Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (linkvtxnDir id) go!"linkvtxn" go!"linkvtxn"
       (etcdstart.urls1 go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796") id cfgOk urlsOk
       (fun _ h => h)
       (fun _ h => h) $$ Hboot
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -136,7 +141,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cid mid ∗
-        ⌜noRefusalAt go!"127.0.0.1:23796"⌝)))
+        srvGoRes srv ∗ ⌜noRefusalAt go!"127.0.0.1:23796"⌝)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -144,17 +149,17 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    imod (etcdstart.kv_served_at srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
-      $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa⟩
+    imod (etcdstart.kv_served_at_go srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23796" cid mid R Hrb48 Hrf rfl HLv)
+      $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa, Hgo⟩
     · iframe; iframe #
     -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
     ihave %Hnr := EtcdGrove.etcd_noRefusal_srv go!"127.0.0.1:23796" srv E { ρ with wait := γw } HEo
       $$ [Hksa]
     · iframe #
     imodintro
-    iframe Hserv Hkv
+    iframe Hserv Hkv Hgo
     ipureintro; exact Hnr
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, %Hnr⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, Hgo, %Hnr⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -166,9 +171,10 @@ theorem Main.wp_proof
   iunfold etcdstart.etcdKVAt at Hkv
   icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23796" [] null null [] null default)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
