@@ -80,7 +80,7 @@ theorem server.Echo.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF)
     rw [h0]; exact Hz
   wp_apply wp_map_lookup1 $$ [Hmap] as Hmap
   · iexact Hmap
-  first | rw [Hz'] | rw [Hz]
+  rw [Hz']
   try wp_auto
   wp_apply wp_mapInsert $$ [Hmap] as Hmap
   · iexact Hmap
