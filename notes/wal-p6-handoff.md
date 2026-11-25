@@ -445,6 +445,49 @@
   (fix A), which needs a "the directory at a registered `nm` is the current layout's `j`" fact. The other ~22
   lookup sites have a holder (lock, `walOpenWI`/`walOpenWCI`, `walOpening`/`walHandlePI`, or a coiter predicate,
   `walBrokenP` etc., that can be given the caller's quarter): B as designed works there.
+- **2026-11-25, P6b session 12 (WIP, `etcd-safe-p6b-wip`): fix B half done; `wal.Link` does not build yet.**
+  Coordinator's decision: option (a). Ledger entries (newest first, all marked approved/applied and to report):
+  "filePipeline … fix B's key lookup needs a share" (approved; amended: the reserve's place), "WAL.renameWAL
+  (`RenameWALOk`'s spine law …)" (the law returns `UH x`, arms 1 and 4 hold `UH x`), "openAtIndex …, WAL.Close
+  (`.opening`) -- the read handle's key must name its incarnation".
+  **The encoding (Ghost.lean, checked).** `γI` split: `walGhostI` ¼, views ¼ (`walIncQ`), lock ¼ (inside
+  `walLockedTokI`), keys authority ⅛ (`walIncE`, in `walDirKeysAuth`), pipeline reserve ⅛. The reserve is in
+  `walOutAuth o` when `o.T = []` (`walOutOut o` is its holder's side: `walOut_setR` moves it, `walOut_set`
+  needs `o.T` unchanged); it leaves with the pipeline names (`walParked_takeTmps0`, write-mode `Open`;
+  `walParked_create`, `Create`'s commit) and comes back with them (`walParked_putTmps0`, `T = [dir]`).
+  `walDirKey dir i j X` (keyed by `(dir, i)`), `walPipeKey dir j := ∃ I X, walIncE I ∗ walDirKey dir (incOf I
+  dir) j X` (in `pipeRes`). Lookups: `walDirKey_lookup{G,,I,L,WC,H}` (any share; the view's quarter; the lock
+  token; `walOpenWCI`; `walHandlePI`), `walPipeKey_lookup`, `walPipeKey_ofLocked`, `walHandlePI_incQ`. A
+  lookup that only needs `∀ b ∈ X, walNameP b = false` takes no share: `walDirKey_tmps` (`ReadAllGive`).
+  **Done (each `etc/lean-check.py -a`, 0 errors):** Ghost, Parked (+ `takeTmps0`/`putTmps0`), ParkedPut,
+  BrokenAu*/BrokenLend/CutAuLemmas (`walOut_set … rfl`), CreateKeys, CreateAu (`walCreateQK`; `walCreateQ …
+  (some _) = walCreateQK ∗ walIncEAny`), CreateRename (`createUK`, `create_spine` gives `walPipeKey`),
+  CreateHandle (`create_ghost` from `createUK`), TmpAu, PipeLemmas (`wp_createTmp`/`wp_removeTmp` thread
+  `walPipeKey`), Pipe, filePipeline alloc/run, `WAL__renameWAL` (spec + proof), NameClaims (`walInv_dirPath`
+  takes `I` and `walIncQ I`), ReadAllLaws, ReadAllWF, OpenPinTake, ExistPin, Exist, OpenAtPin (`walPinOut`:
+  key at `ic`, write mode `walTmpsRes ∗ walIncEAny`), OpenUnpin/OpenAtSteps (`walInv_unpin` takes
+  `walLockedTokI I`, `hi : incOf I dir = i`, the reserve in write mode), RepairPin (`walPinLast` with `I`,
+  `walInv_unpinLast … I`), VsePin (`walPinAllRes` starts `∃ I`), ValidSnapshotEntries, Unsaved, HandleLoans
+  (`walInv_dirKeyArea`/`returnHLoans{1,2}` take `i I hi` and the lock token), ReadAllGive (`i`), CutAu (key at
+  the handle's `i`, `walDirKey_lookupWC`), TailSyncIdle/TailFsyncIdle/FdatasyncIdle/`WAL__syncIdle(F)` (the
+  approved `walIncQ I ∗ ⌜incOf I dir = i⌝`), ReadDefs (`walReadTie dir i …`, `walReadH … s i`, `walFailH … i`,
+  `walReadFailedF := ∃ i, walHandlePI w dir i .failed ∗ walFailH … i`, `walReadOnlyF := ∃ I, walLockedTokI I ∗
+  walReadH false … (incOf I dir) ∗ …`), OpenLastDefs (`walLastOpen` with `I`), ReadState (`i I hi`, `walIncQ`).
+  Specs edited: `WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle(F)`, `openAtIndex` (post), `WAL__Close`
+  (`.opening` pre); `Pipe.lean`'s `pipeRes`.
+  **Frontier** (`lake build …wal.Link`, `/shared/tmp/p6b-build6.log`): `BrokenAu:183,192`, `CloseHandle:124`
+  (`WalCloseLaw`: key at the handle's `i`, and it must take the pipeline's `walPipeKey` from `pipeLeft` to
+  put the reserve back with `walParked_putTmps0`; same in `CloseLaw`, `CloseLawU`, `WAL__CloseOpening`,
+  `WAL__CloseFailed`), `CutSync:148`, `Open:42-64` and `OpenForRead:47` (`walReadH … i`), `ReadAllCommit:78,128`
+  and `ReadAllInv:76` (thread `walIncQ I` from the handle: `walHandlePI_incQ` / `walLockedTokI_incQ`),
+  `ReleaseTie:105-162`, `openAtIndex:144` (`subst hIl` then `walInv_dirPath … Il` with `walLockedTokI_incQ`;
+  pass `walLockedTokI Il` to `walInv_unpin` directly instead of `walLockedTokI_tok`; write mode's reserve),
+  `openLast:98` (`walPinLast` now has `%I`; `walInv_dirPath … I` with the quarter). Behind them (not yet
+  reached): Repair, CloseFailed/CloseOpening, WAL__ReadAll (`walDirKey_agree` at `:359`), PurgeAu/PurgeOther/
+  PurgeRoundLaws, RepairPre, ReadAllPrefixAccess, ReadAllRegCommit, HandleUnnamed's users, Create.lean (pass
+  `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
+  **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
+  (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash

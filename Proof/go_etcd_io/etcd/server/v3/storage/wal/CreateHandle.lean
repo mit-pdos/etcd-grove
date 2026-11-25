@@ -208,7 +208,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocksW fd d ∗ os.ownOff f off ∗
       walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
-      walDirKey (W := W) (child r nm) J walTmps ∗
+      walDirKey (W := W) (child r nm) ic J walTmps ∗
       osNames J (.except walTmps) (DFrac.own (1 : Qp).half) hj ∗
       osPathS R (child r nm) (DFrac.own q) J ∗ osSharedInv R ∗ osCallPerm (callKey R (child r nm)) (1 : Qp).half.half ∗
       osDirFdS dfd J .idle ∗
