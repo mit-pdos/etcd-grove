@@ -48,6 +48,29 @@ variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 variable [pkg_wr : google_golang_org.protobuf.types.known.wrapperspb.Assumptions]
 
+/-- The sender's token and the `i`th request sent: the token stays, and the request is its `i`th. -/
+theorem sendTok_upAt_lookup {Req : StreamMsg GF} (γ : StreamNames) (T : List Req.M) (i : Nat)
+    (m : Req.M) :
+    cliSendTok (GF := GF) γ T ∗ upAt γ i m ⊢ cliSendTok γ T ∗ ⌜T[i]? = some m⌝ := by
+  have h : cliSendTok (GF := GF) γ T ∗ upAt γ i m ⊢ ⌜T[i]? = some m⌝ := by
+    unfold cliSendTok upAt
+    iintro ⟨H1, H2⟩
+    iapply (mono_list_auth_idx_lookup γ.up _ T i m) $$ H1 H2
+  refine (persistent_entails_left h).trans ?_
+  iintro ⟨⟨H1, -⟩, %hp⟩
+  isplitl [H1]
+  · iexact H1
+  · ipureintro; exact hp
+
+theorem sendTok_upAt_lookup' {Req : StreamMsg GF} (γ : StreamNames) (T : List Req.M) (i : Nat)
+    (m : Req.M) :
+    ⊢ cliSendTok (GF := GF) γ T -∗ upAt γ i m -∗ cliSendTok γ T ∗ ⌜T[i]? = some m⌝ := by
+  iintro H1 H2
+  iapply (sendTok_upAt_lookup γ T i m)
+  isplitl [H1]
+  · iexact H1
+  · iexact H2
+
 theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
     (wp_checkErr : checkErr.spec (GF := GF) (hG := hG))
     (wp_Bi : svc.driverClient.Bidi.spec (GF := GF) (hG := hG))
@@ -88,8 +111,6 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
   wp_apply (wp_Bi dc conn [drvAddr] d biUp (fun _ => strmSpec biDn) context.backgroundCtxVal cd
       none) $$ [] as %cs %err Hres
   · isplitr
-    · iexact Hsvc
-    isplitr
     · iexact Hcc
     isplitr
     · iexact Hconn
@@ -211,9 +232,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                   iunfold strmSpec at Hsp
                   ihave Hat := Hsp $$ %L.length %m HDn
                   iunfold biDn at Hat
-                  iunfold upAt at Hat
-                  iunfold cliSendTok at HSt
-                  ihave %Hlk := mono_list_auth_idx_lookup γ.up _ T L.length m $$ HSt Hat
+                  ihave ⟨HSt, %Hlk⟩ := sendTok_upAt_lookup' γ _ L.length _ $$ HSt Hat
                   isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
                   icases Hm with ⟨%sv, Hsv, %Hsvp⟩
                   obtain ⟨hval, -, -⟩ := Hsvp
@@ -256,6 +275,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                 · ihave #Hce' := Hce
                   iunfold cliStreamErr at Hce'
                   icases Hce' with ⟨%Hne, #Hso, -, #Hse, #Hsh⟩
+                  isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
                   try rw [hshape]
                   cases err2 with
                   | nil => exact absurd rfl Hne.1
@@ -306,6 +326,11 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                       iapply HΦ
                       itrivial
               · -- all received: close, and the section is done
+                have hgs : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int))) = false := by
+                  cases h : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int)))
+                  · rfl
+                  · rw [h] at Hif; exact absurd rfl Hif
+                try simp only [hgs, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
                 try wp_auto
                 wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
                 iapply HClose $$ %T %iprop(True) [HSt]
@@ -341,9 +366,9 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
         · rw [h] at Hif; exact absurd rfl Hif
       simp only [hc, Bool.false_eq_true, ↓reduceIte]
       try wp_auto
-      have HTs : S.flatten <+: S.flatten := List.prefix_refl _
-      generalize hT : S = T at HTs HSt
-      generalize S.flatten = s at HTs ⊢
+      generalize hs : S.flatten = s
+      have HTs : S.flatten <+: s := by rw [hs]; exact List.prefix_refl _
+      generalize hT : S = T at HTs ⊢
       ihave IH2 : iprop(∃ (L : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
           "HRt" ∷ cliRecvTok (Rep := strmMsg (GF := GF)) γ L ∗
           "%Hg" ∷ ⌜g = (T.take L.length).flatten⌝) $$ [got HRt]
@@ -374,9 +399,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
           iunfold strmSpec at Hsp
           ihave Hat := Hsp $$ %L.length %m HDn
           iunfold biDn at Hat
-          iunfold upAt at Hat
-          iunfold cliSendTok at HSt
-          ihave %Hlk := mono_list_auth_idx_lookup γ.up _ T L.length m $$ HSt Hat
+          ihave ⟨HSt, %Hlk⟩ := sendTok_upAt_lookup' γ _ L.length _ $$ HSt Hat
           isimp only [strmMsg, pbStringValueS, stringValueSend, stringValueSendB] at Hm
           icases Hm with ⟨%sv, Hsv, %Hsvp⟩
           obtain ⟨hval, -, -⟩ := Hsvp
@@ -419,6 +442,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
         · ihave #Hce' := Hce
           iunfold cliStreamErr at Hce'
           icases Hce' with ⟨%Hne, #Hso, -, #Hse, #Hsh⟩
+          isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
           try rw [hshape]
           cases err2 with
           | nil => exact absurd rfl Hne.1
@@ -469,6 +493,11 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
               iapply HΦ
               itrivial
       · -- all received: close, and the section is done
+        have hgs : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int))) = false := by
+          cases h : decide (sint.Z (W64 (g.length : Int)) < sint.Z (W64 (s.length : Int)))
+          · rfl
+          · rw [h] at Hif; exact absurd rfl Hif
+        try simp only [hgs, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
         try wp_auto
         wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
         iapply HClose $$ %T %iprop(True) [HSt]
@@ -492,6 +521,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, #Hso, -, -, #Hsh⟩
+    isimp only [streamErrShape, hnone, grpcErrShape] at Hsh
     try rw [hshape]
     subst Hcsn
     cases err with
