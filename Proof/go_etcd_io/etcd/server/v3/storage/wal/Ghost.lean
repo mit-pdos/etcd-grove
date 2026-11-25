@@ -292,6 +292,46 @@ theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoStrin
       show (GMap.delete dir s.wal) !! k = some d
       rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hd
 
+/-- **Any change of `dir`'s WAL with its incarnation bumped** (P6b session 7, `DiscardUnsaved`'s steps): the
+area and the durable directories kept, every other WAL unchanged. -/
+theorem walLeI_bump (s s' : AbsDiskState) (I : GMap GoString Nat) (dir : GoString)
+    (ha : s'.area = s.area) (hd : ∀ x, s.dirs !! x = some () → s'.dirs !! x = some ())
+    (hw : ∀ k, k ≠ dir → s'.wal !! k = s.wal !! k) :
+    walLeI (s, I) (s', <[dir := incOf I dir + 1]> I) := by
+  have hinc : ∀ k, incOf (<[dir := incOf I dir + 1]> I) k =
+      if k = dir then incOf I dir + 1 else incOf I k := by
+    intro k
+    unfold incOf
+    by_cases e : k = dir
+    · subst e; rw [GMap.lookup_insert_eq]; simp
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; simp [e]
+  refine ⟨ha, hd, fun k => ?_, fun k d hk he => ?_⟩
+  · show incOf I k ≤ _
+    rw [hinc k]
+    by_cases e : k = dir
+    · subst e; simp
+    · simp [e]
+  · rw [hinc k] at he
+    by_cases e : k = dir
+    · simp [e] at he
+    · refine ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩
+      show s'.wal !! k = some d
+      rw [hw k e]; exact hk
+
+/-- **`dir`'s WAL unnamed, its incarnation bumped** (`DiscardUnsaved`'s rename: a crash may keep or lose the
+directory, and the facts of the old incarnation, `walNamed` among them, are retired). -/
+theorem walLeI_unname (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
+    walLeI (s, I) (absDiskUpd s dir (fun d => { d with named := false }), <[dir := incOf I dir + 1]> I) := by
+  refine walLeI_bump _ _ I dir ?_ ?_ ?_
+  · unfold absDiskUpd; split <;> rfl
+  · intro x hx; unfold absDiskUpd; split <;> exact hx
+  · intro k hk
+    unfold absDiskUpd
+    split
+    · show (<[dir := _]> s.wal) !! k = s.wal !! k
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)]
+    · rfl
+
 instance : DecidableEq (AbsDiskState × GMap GoString Nat) := fun a b => Classical.propDecidable (a = b)
 
 

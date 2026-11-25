@@ -25,6 +25,32 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/DiscardUnsaved.lean` (`wal.DiscardUnsaved.spec`; none in
+  `SpecPlan/`); the internal specs naming `walDirKey` (`WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle`,
+  `WAL__syncIdleF`).
+- **Defect.** (1) The planned spec (P6b handoff, session 6: one update `<{∃∃ d, walDiskAtI dir ic d}>
+  <{walAbsentI dir (ic+1)}>` committed at the parent's fsync) is unprovable: between `os.Rename(dir, dir.tmp)` and
+  the fsync a crash may keep or lose `dir`, so the real WAL must be unnamed there and `walNamed dir ic` retired (an
+  incarnation bump), which needs the view's quarter of the incarnations and an unnamed view (`walMapLe`); the view
+  changes twice and an update commits once (its abort returns the same `α x`). (2) `walDirKey dir j X` is keyed by
+  `dir` alone, persistent: after the discard the key outlives the layout (`DirKeysOk` fails) and `bootstrap`'s
+  re-`Create` cannot insert its new directory's key.
+- **Evidence.** `Crash.lean` `walDiskAt_crash_keep`/`_any_keep` (a named view or a `walNamed` fact keeps the WAL
+  across a crash; false in the window); `Ghost.lean` `walLeI` (named kept at an unchanged incarnation); `CreateAu.lean:448`
+  and `OpenPinTake.lean:126` (`walDirKey_insert` needs `K !! dir = none`).
+- **Proposed change.** (1) Two updates: `AU₁ <{∃∃ o, walDirIsI dir ic o}> <{∃ d, ⌜o = some d ∧ walBlank (d.H.map
+  WalOpG.toM)⌝ ∗ walDiskAtI dir (ic+1) {d with named := false}, COMM Q₁ o}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir
+  (ic+1) d}> <{walAbsentI dir (ic+2), COMM Q₂}>` at the fsync; pre `Unsaved`'s plus `Create`'s `FsNoErrOn`/`PathFits`
+  premise on `dir`, `dir.tmp`, `r`; post `false, nil` with both updates back (nothing done), `true, nil` with
+  `Q₁ o ∗ Q₂` and the lock token and `walAreaRes` back, `false, err` (the fsync failed) with `Q₁ o ∗ AU₂` (lock token
+  and `walAreaRes` lost; the WAL unnamed at `dir.tmp`, as `Create`'s arm 3). Full text: `notes/wal-p6-handoff.md`,
+  P6b session 7. A client with an owned view instantiates both updates trivially. (2) `walDirKey dir i j X`, the
+  map keyed by `(dir, i)`; the four internal specs take the handle's incarnation (`h.inc`). Internal, no trusted text.
+- **Decision.** Pending (coordinator; internal specs, the brief's after-the-fact approval if proved). `bootstrap`'s
+  owner (P5) should confirm the two-update shape suits its crash invariant.
+
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,

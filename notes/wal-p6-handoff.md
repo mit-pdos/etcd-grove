@@ -150,6 +150,84 @@
   `RemoveAll(dir.tmp)` removes (its segments' resources move to the tmp-parked part, `walTmpParked`). The spec:
   `Unsaved`'s pre plus the parent's resources (as `Create`'s), `walUnlockedTok`, and an update
   `<{∃∃ d, walDiskAtI dir ic d}> <{walAbsentI dir (ic+1), COMM Qd}>` committed only on `true`.
+- **2026-11-25, P6b session 7: the `DiscardUnsaved` plan (no Lean yet).** Reading the invariant against the Go
+  (`DiscardUnsaved`, fork `e94f33b50` `unsaved.go:97`: `lg` nil check; `Unsaved` (error or `false` → `false, nil`);
+  `dir := Clean(dirpath)`; `os.RemoveAll(dir.tmp)`; `os.Rename(dir, dir.tmp)`; `syncDir(Dir(dir))`; each error →
+  `false, err`; `true, nil`) found **three obstacles the session-6 sketch missed**, each a prerequisite:
+  1. **The WAL's name claim cannot be made whole (the path loans leak).** The rename (`os.Rename.specDirS`/
+     `specDirAnySnc`) needs one *whole* claim holding `nm` and `nm.tmp`. A registered WAL's `nm` is its own claim
+     `(jr, .only [nm], hn)`: the invariant's half in `cl`, the program's half in `nameShare` (`walNamesRes`), from
+     which `walInvBody_dirPath` lends fractions that are **never returned** (it even drops part: `⟨Hne, -⟩`,
+     `NameClaims.lean`); `Unsaved` itself borrows one (`Unsaved.lean:176`) and drops it. So after `Unsaved` no proof
+     can merge `nm` back into the area claim. **Fix (A, loans)**: the γnm ghost variable's value becomes
+     `NmSt := ⟨reg : Option GoString, disc : Option GoString, loans : List (GoString × Qp)⟩` (Ghost.lean;
+     `walNamesFrag o := walNamesFragS ⟨o, none, []⟩`, `walNamesAuth` likewise, so the specs naming `walNamesFrag`
+     — `WAL__Close`, `WAL__cleanupWAL`, `WAL__syncC` — are unchanged); `walNamesRes` keeps
+     `nameShare jr Ls nm q` with `q + Σ (loans of nm) = ½` (exact); `walInv(Body)_dirPath` takes
+     `walNamesFragS ⟨none, none, L⟩` and returns it with `(nm, e) :: L`; a new `walInv_dirPathRet` takes the path
+     `osPathS R dir (own e) j` back (decomposed by `osPathS_child`'s inverse: the area spine's fraction and the
+     name claim's) and erases the loan. Every function that returns `walUnlockedTok` (or a handle that later does,
+     `Close`) returns its loans first: call sites of `walInv_dirPath` — `openLast`, `openAtIndex`, `Open` (the
+     handle keeps its loan in `walNamesFragS`, `Close` returns it), `ValidSnapshotEntries`, `Unsaved`,
+     `WAL__ReadAll` (2), `WAL__CloseFailed` (3: `walCloseLeft` carries its loan; check `Repair.specHeld`, which takes
+     `walCloseLeft` and returns the lock); arms that lose the lock token may drop loans. Users of `walNamesRes`'s
+     fields: 29 files (most only frame it). Boot (`Crash.lean` ~1043, `walInv_alloc`): `⟨none, none, []⟩`, every
+     `nameShare` at `½`.
+  2. **The client's view cannot stay named across the rename (one AU is not enough).** Between the rename and the
+     parent's fsync a crash may keep `dir` or lose it, so the real WAL must be **unnamed** there (`walCrash`), and
+     `walNamed dir ic` must be retired (`walDiskAt_crash_keep` would be false), so the incarnation is bumped at the
+     rename (`walLeI` keeps `named` at an unchanged incarnation). Bumping needs the view's quarter (`walIncQ`, inside
+     the client's `walDiskAtI`), and `walMapLe M s.wal` needs the view unnamed too: the view must change at the
+     rename, and again at the fsync (absent; a second bump, since `walLeI` keeps a present WAL at an unchanged
+     incarnation and facts minted at `ic+1` in the window must not bind a re-created WAL). An AU commits once and
+     its abort returns the same `α x`, so **the spec takes two AUs** (ledger entry 2026-11-25, "DiscardUnsaved"):
+     `AU₁ <{∃∃ o, walDirIsI dir ic o}> <{∃ d, ⌜o = some d ∧ walBlank (d.H.map WalOpG.toM)⌝ ∗
+     walDiskAtI dir (ic+1) {d with named := false}, COMM Q₁ o}>` (at the rename's commit) and
+     `AU₂ <{∃∃ d, walDiskAtI dir (ic+1) d}> <{walAbsentI dir (ic+2), COMM Q₂}>` (at the parent's fsync). Pre as
+     `Unsaved`'s (with `zapLoggerOk lg`, `walAreaOk`, `osPathS R r qp jr`, `walAreaRes jr`, `osCallPerm 1`,
+     `walUnlockedTok`) plus `Create`'s premise `FsNoErrOn (p = dir ∨ p = dir.tmp ∨ p = r) ∧ PathFits dir.tmp ∧
+     PathFits dir`, `dir.length < 2^59` (so `RemoveAll`/`Rename` cannot fail; `syncDir` can). Post, always
+     `osPathS R r qp jr ∗ osCallPerm (callKey R r) 1` and: `b = false ∧ err = nil` with `walAreaRes jr ∗
+     walUnlockedTok ∗ AU₁ ∗ AU₂` back; or `b = true ∧ err = nil` with `walAreaRes jr ∗ walUnlockedTok ∗ ∃ o, Q₁ o ∗
+     Q₂`; or `b = false ∧ err ≠ nil` (the fsync failed) with `∃ o, Q₁ o ∗ AU₂` (the lock token and `walAreaRes` lost:
+     the WAL is left unnamed at `nm.tmp`, unregistered, as `Create`'s failed arm 3 leaves its WAL).
+  3. **`walDirKey` must be keyed by the incarnation now** (design v2.1 item 5, deferred until a re-`Create`): after
+     the fsync the WAL's layout leaves `Ls`, so `DirKeysOk`'s clause for a persistent `dir ↦ (j, X)` fails, and
+     `bootstrap`'s re-`Create` cannot insert its new `(j', X)`. **Fix (B)**: `γdk : GMap (GoString × Nat) (Ino ×
+     List GoString)`, `walDirKey dir i j X`; `DirKeysOk` speaks of the current incarnation only (`walInvBody` exposes
+     `walGhostI s I`'s `I`, or `DirKeysOk` takes it); lookups take the holder's incarnation (handles: `h.inc`, current
+     by their lock quarter; pins: the lock token's `walIncAny`). 189 occurrences in 55 files; internal specs naming
+     it: `WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle(F)` (ledger entry with B).
+  **The discarding state (C)**, reusing `Create`'s failed-cleanup state (an unnamed WAL whose layout stays in `Ls`,
+  its directory moved off `nm`: `WalsAt`'s `none` disjunct, `CrashTo`'s left disjunct) with `NmSt.disc = some dir`
+  in place of `reg` (so `Create`'s cleanup keeps "the pending registration's WAL is unnamed": the clause becomes
+  `disc = some dir → named = false ∨ the area's claim still holds the directory at nm`, the second only before the
+  rename). Steps, all under `walUnlockedTok` (no handle, everything parked, `CR` empty, no cut):
+  * **U (unregister, ghost, after `RemoveAll(dir.tmp)`)**: loans `[]` ⇒ `nameShare` at `½`; take the invariant's
+    half of `(jr, .only [nm], hn)` from `cl` and of the area claim `(jr, N, h)`; with `walAreaRes`'s half,
+    `osNames_merge` (`osSharedInv`, `osShN`) into `(jr, N ∪ {nm}, h')`, halves back (one claim replaces two in `cl`:
+    `ClaimOnce`, `WalsCreateOk`, `WalsAt`, `AbsentNone`, `CreatingOk` (vacuous, `CR = ∅`)); `Wn' = Wn.erase nm`
+    (both `walSplit` halves); `disc := some dir`.
+  * **R (the rename's commit, inside `os.Rename.specDirSnc`'s `osAUnc`)**: real `s` → `nm` unnamed, `I` bumped
+    (`walLeI_unname`, new: as `walLeI_discard` without the deletion); AU₁ committed (`walOwn M` →
+    `M[dir := unnamed]`, all three quarters of `I`); invariant as `CleanupAu`'s rename (to `nm.tmp` in place of
+    `nm.broken.*`; `nm.tmp` is an `AreaSlot`, `DirsAvoid` unchanged).
+  * **S (the parent's fsync's commit lb, ghost)**: `osCommitLb n` raised past the rename (as `CreateNamedStep`);
+    real `s` → `dir` deleted, `I` bumped (`walLeI_discard`); AU₂ committed (`M.delete dir`); `Ls.delete dir`;
+    out of the invariant, whole: the directory claim `(lay.j, .except walTmps, hj)` (both halves: `cl` and
+    `walParked`), `walTmpsRes lay.j` + `walTmpsHalf lay.j` (`walTmpParked`'s `Jt`/`Jh` lose `dir`); merged
+    (`osNames_merge`, twice) into `(lay.j, .except [], hj')` and tagged `tmpName nm` in `walAreaRes`'s `cl`
+    (`SubCover`: every entry of a WAL directory is a file — `SegsNamed`, `tmpEnt`, `walOthersL`; no other claim of
+    `lay.j` among the program's, by `osNames_disj`; `ClRanked`: `lay.j` ranked above the rest). Segment files'
+    halves dropped. `AbsentNone`/`AbsentOk` for `dir` from the raised commit lb. `disc := none`; `walUnlockedTok`
+    rebuilt.
+  **Order of work** (each step lean-checked, then a `lake build` of `wal.Link` at A, at B, at C):
+  A (loans) → B (keys by incarnation) → C's ghost lemmas (`walLeI_unname`, `walGhost` steps U/R/S as
+  `Inv`-level lemmas in a new `DiscardSteps.lean`) → the spec (`Spec/.../wal/DiscardUnsaved.lean`, after the ledger
+  entry is accepted) → the proof (`Proof/.../wal/DiscardUnsaved.lean`: `Unsaved` with a peek AU from AU₁,
+  `os.RemoveAll.specSubS` as `Create`'s, U, `os.Rename.specDirSnc` with R, `syncDir.spec`, S) → `etc/gen-link.py
+  --walfs` → builds (wal.Link, tester, server consumers, P8 crash modules, then `etc/importers.py --git 5a1c41d945
+  --leaves`). Estimate: A 400-800 lines, B 300-600, C 600-1000, spec+proof 300-500: three to five sessions.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
