@@ -1824,3 +1824,51 @@ index moved (covered by `mvccImage`'s unfinished-compaction bit, to be checked).
 (two records, the name's disjunctive crash promise, the `.snap.db` file moving between T6's invariant and T10's
 keep). Third: C-I1's restatement must survive review. Do first: a Go test of the conf-change window, then the
 row's statement against `applyConfChange`'s proof.
+
+### T10 status and handoff, session 2 (2026-11-25, branch `etcd-safe-t10`)
+
+**Done (the order's step 1).** The two approved restatements (coordinator-E, #50 comment 2026-11-25T15:22:46Z,
+items 2 and 8; ledger entries marked approved, a new C-I1 entry listing `_new` loses a premise, `_close` returns
+less):
+* C-I1 without the name: `backend/CrashInterim.lean` (`dbCrashKeep γ i0 Dl Dn pd`; `bPath` gone from `_new`'s
+  premises and `_close`'s result; the review's docstring fixes, and `memberDbNamed.law`'s). The install window has
+  one record (the fork syncs the directory before it opens the new file): §1's "disjunction over two records" is
+  superseded; the `db` name's crash promise inside the window is `iOld ∨ iNew` with only the old record, the
+  received file still `snapHeld`/`fileAt … Ds`.
+* T4's `srvCrashImageAt` (`etcdserver/InvCrashImage.lean`): `wal.crashImageR`, `confRowW`, `snapRowB2` moved there
+  from the draft (the draft `dist/crash/BackendImage.lean` keeps only T10's own definitions and laws);
+  `bootLen ≤ i` dropped. `bootstrapCrashContract`: two cases, the backend kept (`σ.b ≤ i`, no `bootLen ≤ i`) and
+  the `.snap.db` recovery (`i < σ.b = j`, the caller gives `<j>.snap.db` holding an image `Ds` at `j`, the post at
+  `(j, Ls, Ds)`). `σ.b ≤ i` could not be dropped outright: with only the old backend file in the pre, Go opens the
+  `.snap.db` when it exists and the post at the old `D` would be false. "Absent meta keys at `i = 0`" needed no
+  change: `imageRestAt` already accepts them (`encMeta 0 = none`).
+* Fixed what they broke: `srvCrashImageAt_disk` (`NewServerRAt.lean`) now returns the graceful image or the crash
+  image with the reason (`¬ (i ≤ σ.commit ∧ σ.b ≤ i ∧ bootLen ≤ i ∧ conf strict)`); `NewServer.wp_proofC`'s one WIP
+  `sorry` (T4's, unlinked) takes all the non-graceful cases; `bootstrapAtR_of_crash` takes the first case;
+  `memberCrash.crashImage_of` builds the weakened rows from T7's strict ones. The C-I2 law's docstring says the new
+  case needs its own `axiom`-skill review before the law becomes an axiom.
+
+**The riskiest step, refined by reading the protocol (no Lean yet).** The image row belongs in the apply protocol's
+invariant `consInv` (`InvApply.lean`), not in `batchLockInv`: the protocol's state `s = (k, p, eff, pending)`
+already says what a commit stores (`commitOk s m`: `eff ≤ m ≤ p`, `commit_save_au`), and the steps that move it are
+few (`hook_set_au`, `writes_done`, `skip_done`, `ci_advance_au`, `ci_swap_au`, the freeze). Proposed row, in
+`flightInv`'s `false` branch (and kept through the `pending` one): `∃ A, srvRLogLb A ∗ ⌜uint.Z s.p = ai0 + |A|⌝ ∗
+⌜∀ m, eff ≤ m ≤ p → the KV model and `restModel` of `A`'s prefix at `m` are `A`'s⌝` (the entries in `(eff, p]` wrote
+nothing). Then at a commit `commit_save_au`'s `Ψ` gets the image index `m` with a prefix whose models are the batch's;
+`mvccImage_commit.law` and the hooks' keys (`CV S`) give `S`'s image. Obligations: `skip_done` takes "entry `i` is
+model-neutral" from its callers (`applyEntryNormal`'s no-write paths, a rejected conf change); `writes_done` takes the
+new `A` (the apply thread's `kvApplied`); `confRowW` absorbs `SetConfState` before `LockInsideApply`. The row keeps
+`consInv`'s openers (`consInv_open`/`_close`) unchanged if it is added inside `consInvAt`/`consFrozen` with its own
+accessor lemmas. Next session: write the row and re-prove the five step lemmas in `InvApply.lean`, then their callers.
+
+**Handoff order** (coordinator, relaying the etcd_safe lead, #50 15:29Z; ledger entries marked approved, not yet
+applied). On this branch, before the riskiest step, as they touch the same statements; `NewServer.specC`'s proof is
+the lead's `sorry` (T4): edit only its statement and move its callers.
+1. **D-T7-2:** `srvCrashImageAt` holds `snapDirKeep` (handle and token), and `NewServer.specC` returns the token.
+2. **B6 (a):** `memberRestartFacts` drops `idPfxInv`; `NewServer.specC` allocates a fresh one under the new
+   incarnation's names; T7's `memberPfx.law` hypothesis goes.
+3. **D-T7-1:** `snapDirKept`/`snapDirKeptF` restated at the law's own `R`; P7's `old_dir` gets `R0 = R` from
+   `crashRest_roots`; T7's `snapDirKeptOf.law` hypothesis goes.
+4. Then the riskiest step above (the image row in `consInv`), then the design's order.
+Base: merge `etcd-safe-main-r4/2026-11-25` (the lead's r3 + d6t4b + t7) once the lead posts its head.
+

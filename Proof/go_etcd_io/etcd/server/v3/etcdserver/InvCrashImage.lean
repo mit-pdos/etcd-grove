@@ -171,7 +171,7 @@ def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
   (□ ∀ (σ : StorContents) (i : w64) (D : backend.Data) (j : w64) (Ls : List EntryModel)
       (Ds : backend.Data) (M : GMap Loc MemStorNamesRec),
     ⌜uint.nat i < σ.b ∧ uint.nat j = σ.b ∧
-      dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
+      backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta i ∧
       walReadFacts σ ∧ γ.cl.bootLen ≤ σ.commit ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir' ∧
       storage.dbOpensOk ∧

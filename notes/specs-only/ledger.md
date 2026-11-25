@@ -7013,7 +7013,8 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** `snapDirKeptF R V' sd := snapDirKeptR`'s body (no `R0`, no `osSharedInv`); `old_dir` (and its two
   siblings) take `⌜R0 = R⌝`, which `snapDir_crash_law_holds` gets from `crashRest_roots` before each use (it holds the
   law's `osSharedInv R` and `crashRest`). A weaker premise: the law gets stronger.
-- **Decision.** Pending (coordinator-E; reported by T7, 2026-11-25). Not edited.
+- **Decision.** **Approved** (D-T7-1; coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z). Queued on `etcd-safe-t10` after T4's restatement (T10 handoff,
+  session 2); then T7's `snapDirKeptOf.law` hypothesis goes. Not edited yet.
 ## 2026-11-25: `srvCrashImageAt` misses three crash images and drops a crash token (T7, D6)
 
 - **Spec.** `srvCrashImageAt` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean`), the vocabulary of
@@ -7031,7 +7032,12 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   token). (2) A disjunct of the backend row: the `.snap.db` of `σ.b` saved and durable in the snapshot directory, its
   data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
   image. Each is T4's to restate (with `bootstrapCrashContract`).
-- **Decision.** Pending (coordinator-E / T4). Not edited.
+- **Decision.** (1) is D-T7-2: **approved** (coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z): `srvCrashImageAt` holds `snapDirKeep`, `NewServer.specC`
+  returns the token; queued on `etcd-safe-t10` after T4's restatement, not edited yet. (2) and (3): **approved**
+  (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2) in T10's form: `snapRowB2` for (2), `bootLen ≤ i` dropped for (3) (no `∨ i = 0` needed:
+  `imageRestAt` already accepts absent meta keys at `i = 0`, `encMeta 0 = none`). Applied on `etcd-safe-t10`
+  (2026-11-25, T10 session 2): `etcdserver/InvCrashImage.lean` (`srvCrashImageAt`, `wal.crashImageR`, `snapRowB2`,
+  `bootstrapCrashContract`'s two cases).
 
 ## 2026-11-25: `memberGen`'s restart case asks for the old incarnation's `idPfxInv` at the new generation (T7, D6)
 
@@ -7049,7 +7055,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   invariant from the new incarnation's names (`idIncarnation_alloc`, with the issued ids' facts ghost-only, so they
   persist); or (b) `idPfxInv`'s invariant made crash-aware (contents or `crashed ∗` a token, as `walInv`), with a
   ghost-only part that survives and a heap part re-made per generation. D7's / T8's to decide.
-- **Decision.** Pending (coordinator-E). Not edited; T7 takes it as the named hypothesis B6.
+- **Decision.** **(a) approved** (B6; coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z): the restart facts drop `idPfxInv`, `NewServer.specC` allocates a
+  fresh one under the new incarnation's names; then T7's `memberPfx.law` goes. Queued on `etcd-safe-t10` after T4's
+  restatement, not edited yet.
 
 2026-11-25: T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation (T7, D6)
 
@@ -7093,4 +7101,29 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** The row `confRowW γ.cl i D m`: the configuration at `i` or at `i + 1`
   (`dist/crash/BackendImage.lean`), with T10's other restatements of `srvCrashImageAt` (B2 `snapRowB2`, B3 dropped):
   `notes/etcd-dist-d6.md`, "T10 design".
-- **Decision.** Pending (coordinator-E / T4). Not edited.
+- **Decision.** **Approved** (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2: "approved as drafted", the conf-change window shown
+  reachable by the Go test). Applied on `etcd-safe-t10` (2026-11-25, T10 session 2): `confRowW` in
+  `etcdserver/InvCrashImage.lean`, `srvCrashImageAt`'s row; `bootstrapCrashContract` drops `bootLen ≤ i` and gains
+  the `.snap.db` recovery case (its first case keeps `σ.b ≤ i`: dropping it from a contract whose pre has only the
+  backend file would promise `bootOkR` at the old backend where Go opens the `.snap.db`; the second case is
+  `i < σ.b`). `srvCrashImageAt_disk` now returns the image with the reason when it is not a graceful one, and
+  `NewServer.wp_proofC`'s WIP branch (its one `sorry`, T4's) takes those cases too. The C-I2 law
+  (`bootstrapCrashContract.law`, not an axiom yet) needs an `axiom`-skill review of the new case before it becomes
+  one.
+
+## 2026-11-25: C-I1's crash record claims the database's name (T10, D6)
+
+- **Spec.** C-I1, `backend.dbCrashKeep γ path i0 Dl Dn pd` and its six axioms
+  (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`): the record held `bPath γ path`.
+- **Defect.** The snapshot install renames `<k>.snap.db` onto `db` while the old backend still commits (Go's
+  `applySnapshot` closes the old backend only after `kv.Restore`), so a record holding the name cannot exist through
+  the install; and the crash law never used the name (`dbCrash` takes `Named V'.now i0` and concludes about the inode).
+- **Evidence.** `notes/axiom-review/c-i1-nopath.md` (`axiom` skill: survives; rename window measured on configuration C,
+  0 bad of 140 crashes).
+- **Proposed change.** The record without `path`/`bPath`: **`dbCrashKeep_new` loses a premise** (`bPath γ path`) and
+  **`dbCrashKeep_close` returns less** (no `bPath γ path`); `_announce`, `_half`, `_clear`, `dbCrash` lose the argument.
+  Design correction (the review's): the fork syncs the directory before it opens the new backend, so the install window
+  has one record (the old backend's), not two.
+- **Decision.** **Approved** for the etcd_safe branches (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 8): a reviewed interim axiom, to go in the one
+  etcd_safe trusted packet as its own item, listing both points above. Applied on `etcd-safe-t10` (2026-11-25, T10
+  session 2) with the review's docstring fixes (`CrashInterim.lean`'s header and laws, `memberDbNamed.law`'s).
