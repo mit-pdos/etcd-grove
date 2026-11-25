@@ -6954,3 +6954,34 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
   no longer a premise since dsv-fix4).
 - **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
+- **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
+- **Defect.** Too weak for its consumer: `bootstrapSnapshot` carves the fresh `member/snap`'s names into the snapshot
+  directory's free names, which must be durable (`backend.fileFreeDur`, so that the crash law `snapDir_crash.law`
+  can keep them across a crash), and that needs every history entry writing a name of the new directory (other than
+  the `.touch` probe, which `IsDirWriteable` writes and removes) to be below a commit index the caller holds.
+  The post said only `h'.next ≤ n`.
+- **Evidence.** The proof of `bootSnap.snapDir_carve` (`BootSnapCarve.lean`); Go: `TouchDirAll` ends with
+  `IsDirWriteable`'s fsync of the directory (fileutil.go), committing the journal (ext4, configuration C).
+- **Proposed change.** The post's pure part gains `∀ xe ∈ hJ.ents, ∀ b, b ≠ ".touch" → xe.2.1.op.Writes J b →
+  xe.1 < n`, proved from `osNames_histCoh` (a strengthening: no caller loses anything). `SpecPlan/` has no such
+  vocabulary; nothing to change there.
+- **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
+  branch `etcd-safe-p7`.
+
+## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
+
+- **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
+  `remote.Check.spec` (`Net/Spec/.../lib/remote/{Run,Check}.lean`): `genSpec gen (∃ i, x = R.iv i)`, `PendDec R S`,
+  `hinj`; `RBase`'s one input type shared by the wire and the model.
+- **Defect.** Too narrow for the kv workload (`kvremote.Orch` = `remote.Run` of `txnlin.Model()`): with `S =
+  linkvtxnS` the model input is `MI`, and (1) `Gen`'s inputs are not a function of their `MI` (`genFrom` sets fields
+  `decTOp`/`decCmp` ignore); (2) `ioOk_*`/`err` over every `MI` fail for inputs `decIn` cannot produce or `ValidIn`
+  excludes; (3) `ok` over every output fails, since `decOut` reads an output by the input's kind; (4) `hinj` fails
+  for `O = MO` (`outOf` collides across kinds), and `O = Output` breaks (3)'s equality at revisions past `2 ^ 64`.
+- **Evidence.** `notes/etcd-dist-p9.md` (each with file and line); the Pend proof uses `ok` only at the invariant's
+  configuration (Pend.lean:352).
+- **Proposed change.** `RBase` with a wire input `I` and a model input `J` (`mi : I → J`), a state guard `good`
+  with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
+  stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
+  top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
+- **Decision.** Open: reported to the `etcd_safe` lead (a change to `remote`'s shared statements); not made.
