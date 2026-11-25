@@ -554,3 +554,14 @@ proofs and in trust-boundary statements. Proposed fix (spec-only, no trusted tex
   (also the `.plain` wrapper in `apiErrAt`); Checks/AsNoMatch/ErrViews/Calls adjusted;
   `Calls.clientErrTy_modelled` discharges the four `clientErrTys`. Pin → 534dab4a3; regen no change.
   Targeted build `reflection/eg09.log`; then gates.
+- Perennial 534dab4a3 full build `pfull4`: 3 chunks exit 0.
+- etcd-grove 1ab5f503ee (pushed): AsLeafTy converts its `IsPointerError` premise to `asTyRepr`;
+  Calls inlines `asModelled_{etcdError,deadlineExceeded}'` (ErrOk is not imported there).
+  Targeted build `reflection/eg10.log`: 13,405 jobs, exit 0.
+- **Gates at 1ab5f503ee (`reflection/gates06.log`, key 44b7416aff694723, `/shared` overrides): build ok
+  (28,218 jobs); tcb: trust base matches `etc/tcb-baseline.txt` (324 axioms, 0 sorries) — the
+  `errors.As.wp_proof` sorry is GONE (before, at 4337c89ef1: NEW sorry, 6 collections differ);
+  collections 61 match / 0 differ; axiom-tok ok; all other gates ok except `merge-status` (the VM sync
+  dir is not a git repo; environmental, as before).**
+- Remaining: send the 6-item packet (#40) to Upamanyu via coordinator-E; nothing merges before his OK.
+  F1 for Perennial lean: `goose-localtype-varinit` a751ac526 (in the packet).
