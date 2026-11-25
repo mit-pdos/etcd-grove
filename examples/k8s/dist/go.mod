@@ -4,7 +4,7 @@ go 1.27.1
 
 // bbolt: the fork examples/go.mod uses (project bbolt's pin), so that the members run what
 // etcd-dist's members run.
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261125170327-ea5656d07684
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261125221737-2f6fcfff7e4b
 
 // etcd and raft: the forks at the pins of etc/goose.py's projects etcd and raft (as examples/go.mod
 // and the other k8s modules).

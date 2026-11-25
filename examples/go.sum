@@ -114,6 +114,8 @@ github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23 h1:4ZtCM9krEnL599t
 github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
 github.com/upamanyus/bbolt v0.0.0-20261125170327-ea5656d07684 h1:0UfPSkCsfse49TuUj9R6zPISSH06lJkzxswJGn9ps9E=
 github.com/upamanyus/bbolt v0.0.0-20261125170327-ea5656d07684/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
+github.com/upamanyus/bbolt v0.0.0-20261125221737-2f6fcfff7e4b h1:M1RVFcEBzyxBtpvlIbBaF9H46gAnp6pU7jHuro7aWF8=
+github.com/upamanyus/bbolt v0.0.0-20261125221737-2f6fcfff7e4b/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261102234523-ce3dbc097fff h1:DtzJ5UC2WDIrGjIS1stoMJf+Qqa5mXVtlsl9jPuZAdM=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261102234523-ce3dbc097fff/go.mod h1:/DuZ/osddKIES1LfZeye/OS8B5pOfQ1XkTzP6Z/t8Gk=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261103162249-673da07c8fab h1:mj5vIRn1NTlr8Tn/N1/iTNfnYbsQ8kkHqgrADJPdh4I=
