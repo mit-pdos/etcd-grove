@@ -159,7 +159,8 @@ postcondition read on the store's output). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : CraqNames) (i : KIn) (Φ : KOut → IProp GF) :
     lin (Gg := Gg) (kvR γ) i Φ ⊢
       opAU γ i.1 (fun o => iprop(∃ o' : KOut, ⌜o = liftOut i o'⌝ ∗ Φ o')) := by
-  unfold lin opAU clientMask
+  refine (lin_linF (kvR γ) i Φ).trans ?_
+  unfold linF opAU clientMask
   simp only [kvR]
   iintro Hl
   imod Hl with ⟨%a, Hs, Hk⟩

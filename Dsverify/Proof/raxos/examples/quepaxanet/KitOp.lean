@@ -76,7 +76,7 @@ theorem slotUpd_opUpd (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
     iintro #H
     iintro !>
     iapply opAU_step
-    iapply (lin_opAU γ i Φ).1 $$ H
+    iapply lin_opAU γ i Φ $$ H
   · have hw : (qR (Gg := Gg) γ).B.isWrite i = true := by
       simp [qR, qB, outB, subB, kvB, h]
     rw [slotUpd_write _ hw]
@@ -85,7 +85,7 @@ theorem slotUpd_opUpd (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
     simp only [↓reduceIte]
     iintro H
     iapply opAU_step
-    iapply (lin_opAU γ i Φ).1 $$ H
+    iapply lin_opAU γ i Φ $$ H
 
 end ghost
 

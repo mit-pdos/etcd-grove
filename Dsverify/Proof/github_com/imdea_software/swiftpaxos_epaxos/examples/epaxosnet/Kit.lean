@@ -134,7 +134,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 postcondition read on the output's bytes, bounded). -/
 theorem lin_opU [RemoteGS] (γ : EpNames) (i : EIn) (Φ : BStr → IProp GF) :
     lin (Gg := Gg) (epR γ) i Φ ⊢ opU γ i.1 (fun o => Φ (bnd (outBytes o))) := by
-  unfold lin opU
+  refine (lin_linF (epR γ) i Φ).trans ?_
+  unfold linF opU
   simp only [epR, epB]
   exact .rfl
 

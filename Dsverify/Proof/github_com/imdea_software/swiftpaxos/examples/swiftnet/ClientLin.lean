@@ -161,7 +161,8 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
     iframe
   · iintro Hσ'
     imod Hmask with -
-    iunfold lin at Hlin
+    ihave Hlin := lin_linF (swRK γk) i Φ $$ Hlin
+    iunfold linF at Hlin
     rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
     ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]
@@ -230,7 +231,8 @@ theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i
     iframe
   · iintro Hσ'
     imod Hmask with -
-    iunfold lin at Hlin
+    ihave Hlin := lin_linF (swRK γk) i Φ $$ Hlin
+    iunfold linF at Hlin
     rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
     ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]

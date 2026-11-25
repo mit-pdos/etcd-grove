@@ -134,7 +134,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- **The store's linearization point is QuePaxa's request update** (definitionally), its answer
 clamped into `QOut` (`clampO`: the answer itself for every answer the codec encodes). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
-    lin (Gg := Gg) (qR γ) i Φ ⊣⊢ opAU γ i.1 (fun o => Φ (clampO qOut0 o)) := .rfl
+    lin (Gg := Gg) (qR γ) i Φ ⊢ opAU γ i.1 (fun o => Φ (clampO qOut0 o)) :=
+  (lin_linF (qR γ) i Φ).trans .rfl
 
 end base
 

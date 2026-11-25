@@ -6938,3 +6938,25 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   (wire input `I`, model input `J`, `mi : I → J`), `good` with `sysState_good`, `PendDec` at a configuration,
   `PendDec.ofTotal` for the existing instances; condition: no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text
   changes. Applied on `etcd-safe-p9`.
+
+## 2026-11-25: `remote.lin` cannot abort, so a far side whose system takes an atomic update cannot use it (P9)
+
+- **Spec.** `remote.lin` (`Net/Proof/.../lib/remote/Defs.lean`), the linearization point a slot hands the far
+  side (`slotUpd`, `opMaybe`): a one-shot fancy update `|={⊤ \ Eop, ∅}=> ∃ st, sysState st ∗ (sysState st' ={∅, ⊤ \
+  Eop}=∗ Φ o)`, with no way back without stepping.
+- **Defect.** The kv workload's far side (`kvremote.Node`, `txnlin.Call.spec`) hands the update to etcd as an Iris
+  atomic update (`callUpd`: a write's `kvOpAu1 γk`, `AU <{ ∃∃ σ, etcdKV γk σ }> @ ⊤ \ kvEop, ∅ <{ … }>`), whose
+  accessor must be abortable (`atomic_acc`'s abort: `etcdKV γk σ ={∅, ⊤ \ kvEop}=∗ AU`). `etcdKV γk σ` comes only
+  from `lin`'s `sysState`, and `lin` once opened can only be closed by stepping, so a write's `kvOpAu1` cannot be
+  built from `lin` (a read's can: `□ lin` closes at the same state, `reads_stay`). The dsverify kits never needed
+  the abort (their servers fire `lin` directly; gryff's `opAU` note: "which cannot abort").
+- **Evidence.** `atomic_acc` (`Iris/BI/Lib/Atomic.lean:26`); `kvAu1` (`InvRequest.lean:1024`); the producer
+  (`Pend.lean`, `pend_choice`'s write case) can abort: it opens only `pendCtx` before handing `sysState` over, and
+  lintest's update (`pend_commit_core`) can run in the commit branch instead, at the same mask.
+- **Proposed change.** `lin` becomes the atomic update `AU <{ ∃∃ st, sysState st }> @ ⊤ \ Eop, ∅ <{ sysState
+  (step st).1, COMM Φ (step st).2 }>` (stronger for the far side: `lin_linF` gives back the old form, renamed
+  `linF`, for the far sides that fire it directly; `linF_read_lin` builds a read's `lin` from `□ linF`). The
+  producer's write cases (`pend_choice`, `pend_fire`) abort by closing `pendCtx` unchanged; the instances' far
+  sides change by a `lin_linF` each; no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changes.
+- **Decision.** Applied on `etcd-safe-p9` (P9, 2026-11-25), pending the coordinator's (`remote`'s owner) review
+  before landing.
