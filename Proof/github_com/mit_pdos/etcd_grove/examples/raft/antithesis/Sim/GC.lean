@@ -29,6 +29,8 @@ namespace AntSim
 
 open AntCheck
 
+variable {R : RunCfg}
+
 /-! ## The evaluation monad -/
 
 theorem eok_bind {α β : Type} (x : α) (f : α → EvalM β) : ((Except.ok x : EvalM α) >>= f) = f x := rfl
@@ -126,28 +128,43 @@ theorem nameOf_inj {a b : w64} (h : nameOf a = nameOf b) : a = b := by
     injection h2 with h2
     exact BitVec.eq_of_toNat_eq h2
 
-theorem nodeId_inj {i j : Fin 3} (h : nodeId i = nodeId j) : i = j := by
-  revert i j; decide
+theorem nodeId_inj {R : RunCfg} {i j : Fin R.N} (h : nodeId i = nodeId j) : i = j := by
+  have := R.hK.2.2; have hi := i.isLt; have hj := j.isLt
+  unfold nodeId at h; apply Fin.ext
+  have h2 := congrArg (fun w : w64 => w.toNat) h
+  rw [BitVec.toNat_ofInt, BitVec.toNat_ofInt] at h2
+  omega
 
-theorem name_inj {i j : Fin 3} (h : nameOf (nodeId i) = nameOf (nodeId j)) : i = j :=
+theorem name_inj {R : RunCfg} {i j : Fin R.N} (h : nameOf (nodeId i) = nameOf (nodeId j)) : i = j :=
   nodeId_inj (nameOf_inj h)
 
-theorem idxOf_name : ∀ j : Fin 3, (namesL 3).idxOf? (nameOf (nodeId j)) = some j.val := by
-  decide +kernel
+theorem server_get {N : Nat} (j : Fin N) : (namesL N)[j.val]! = nameOf (nodeId j) := by
+  simp [namesL, nodeId, j.isLt]
 
-theorem server_get : ∀ j : Fin 3, (namesL 3)[j.val]! = nameOf (nodeId j) := by
-  decide +kernel
+theorem namesL_length (N : Nat) : (namesL N).length = N := by simp [namesL]
 
-theorem namesL_length : (namesL 3).length = 3 := by simp [namesL]
+/-- Up to 9 servers, the names are sorted (`raft1` < … < `raft9`), so `SetOf(names(N))` is
+`names(N)`, and each name's position is its node's. -/
+theorem setOf_namesL {N : Nat} (hN : N ≤ 9) : AntCheck.setOf (namesL N) = namesL N := by
+  have : N = 0 ∨ N = 1 ∨ N = 2 ∨ N = 3 ∨ N = 4 ∨ N = 5 ∨ N = 6 ∨ N = 7 ∨ N = 8 ∨ N = 9 := by omega
+  rcases this with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide +kernel
 
-theorem idx_name {S : State} (h : S.cfg = cfg3) (j : Fin 3) : S.idx (nameOf (nodeId j)) = .ok j.val := by
-  unfold State.idx; rw [h, cfg3_server, idxOf_name]; rfl
+theorem idxOf_name {N : Nat} (hN : N ≤ 9) (j : Fin N) : (namesL N).idxOf? (nameOf (nodeId j)) = some j.val := by
+  have : N = 0 ∨ N = 1 ∨ N = 2 ∨ N = 3 ∨ N = 4 ∨ N = 5 ∨ N = 6 ∨ N = 7 ∨ N = 8 ∨ N = 9 := by omega
+  rcases this with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> revert j <;> decide +kernel
 
-theorem server_of {S : State} (h : S.cfg = cfg3) (j : Fin 3) : S.cfg.server[j.val]! = nameOf (nodeId j) := by
-  rw [h, cfg3_server, server_get]
+theorem RunCfg.server_eq (R : RunCfg) : R.cfg.server = namesL R.N := setOf_namesL R.hK.2.2
 
-theorem server_length {S : State} (h : S.cfg = cfg3) : S.cfg.server.length = 3 := by
-  rw [h, cfg3_server, namesL_length]
+theorem idx_name {R : RunCfg} {S : State} (h : S.cfg = R.cfg) (j : Fin R.N) :
+    S.idx (nameOf (nodeId j)) = .ok j.val := by
+  unfold State.idx; rw [h, R.server_eq, idxOf_name R.hK.2.2]; rfl
+
+theorem server_of {R : RunCfg} {S : State} (h : S.cfg = R.cfg) (j : Fin R.N) :
+    S.cfg.server[j.val]! = nameOf (nodeId j) := by
+  rw [h, R.server_eq, server_get]
+
+theorem server_length {R : RunCfg} {S : State} (h : S.cfg = R.cfg) : S.cfg.server.length = R.N := by
+  rw [h, R.server_eq, namesL_length]
 
 /-! ## What `GC` removes -/
 
@@ -157,11 +174,11 @@ theorem effTerm_le (S : State) (j : Nat) : S.effTerm j ≤ S.currentTerm[j]! := 
   · unfold imin; split <;> omega
 
 /-- A term some node has not passed is not `Over`. -/
-theorem over_false {S : State} (hc : S.cfg = cfg3) {t : Int} (j : Fin 3) (h : S.currentTerm[j.val]! ≤ t) :
+theorem over_false {S : State} (hc : S.cfg = R.cfg) {t : Int} (j : Fin R.N) (h : S.currentTerm[j.val]! ≤ t) :
     S.over t = false := by
   unfold State.over
   rw [server_length hc]
-  cases h' : (List.range 3).all (fun j => decide (S.effTerm j > t))
+  cases h' : (List.range R.N).all (fun j => decide (S.effTerm j > t))
   · rfl
   · rw [List.all_eq_true] at h'
     have h1 := h' j.val (List.mem_range.mpr j.isLt)
@@ -176,8 +193,8 @@ theorem garbage_vote {S : State} {g : List Fact} (hg : S.garbage = .ok g) {f : F
   simp (config := { decide := true }) only [ht, ite_true, epure] at h
   injection h
 
-theorem garbage_grant {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.garbage = .ok g) {f : Fact}
-    (hf : f ∈ g) (ht : f.type = go!"grant") (j : Fin 3) (hd : f.dst = nameOf (nodeId j)) :
+theorem garbage_grant {S : State} (hc : S.cfg = R.cfg) {g : List Fact} (hg : S.garbage = .ok g) {f : Fact}
+    (hf : f ∈ g) (ht : f.type = go!"grant") (j : Fin R.N) (hd : f.dst = nameOf (nodeId j)) :
     S.effTerm j.val > f.term := by
   unfold State.garbage at hg
   have h := (filterM_mem hg hf).2
@@ -186,8 +203,8 @@ theorem garbage_grant {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.ga
   injection h with h
   exact of_decide_eq_true h
 
-theorem garbage_ack {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.garbage = .ok g) {f : Fact}
-    (hf : f ∈ g) (ht : f.type = go!"ack") (j : Fin 3) (hd : f.dst = nameOf (nodeId j)) :
+theorem garbage_ack {S : State} (hc : S.cfg = R.cfg) {g : List Fact} (hg : S.garbage = .ok g) {f : Fact}
+    (hf : f ∈ g) (ht : f.type = go!"ack") (j : Fin R.N) (hd : f.dst = nameOf (nodeId j)) :
     S.effTerm j.val > f.term ∨ ∃ a ∈ S.msgs, a.type = go!"ack" ∧ a.src = f.src ∧ a.dst = f.dst ∧
       a.term = f.term ∧ a.index > f.index := by
   unfold State.garbage at hg
@@ -208,12 +225,12 @@ theorem garbage_ack {S : State} (hc : S.cfg = cfg3) {g : List Fact} (hg : S.garb
     · rw [if_neg hcond] at h; cases h
 
 /-- The facts' well-formedness `GC` needs (`BindingOk`'s last conjuncts). -/
-def FactsWf (S : State) : Prop :=
+def FactsWf (R : RunCfg) (S : State) : Prop :=
   (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
-    (∃ i : Fin 3, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin 3, f.dst = nameOf (nodeId j)) ∧
-  (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i))
+    (∃ i : Fin R.N, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
+  (∀ v ∈ S.votes, ∃ i : Fin R.N, v.voter = nameOf (nodeId i))
 
-theorem garbage_ok {S : State} (hc : S.cfg = cfg3) (hw : FactsWf S) : ∃ g, S.garbage = .ok g := by
+theorem garbage_ok {S : State} (hc : S.cfg = R.cfg) (hw : FactsWf R S) : ∃ g, S.garbage = .ok g := by
   unfold State.garbage
   apply filterM_ok
   intro m hm
@@ -237,7 +254,7 @@ theorem garbage_ok {S : State} (hc : S.cfg = cfg3) (hw : FactsWf S) : ∃ g, S.g
       · exact ⟨_, rfl⟩
     · exact ⟨_, rfl⟩
 
-theorem oldVotes_ok {S : State} (hc : S.cfg = cfg3) (hw : FactsWf S) : ∃ o, S.oldVotes = .ok o := by
+theorem oldVotes_ok {S : State} (hc : S.cfg = R.cfg) (hw : FactsWf R S) : ∃ o, S.oldVotes = .ok o := by
   unfold State.oldVotes
   apply filterM_ok
   intro v hv
@@ -245,8 +262,8 @@ theorem oldVotes_ok {S : State} (hc : S.cfg = cfg3) (hw : FactsWf S) : ∃ o, S.
   rw [hi, idx_name hc, eok_bind]
   exact ⟨_, rfl⟩
 
-theorem oldVotes_mem {S : State} (hc : S.cfg = cfg3) {o : List VoteRec} (ho : S.oldVotes = .ok o)
-    {v : VoteRec} (hv : v ∈ o) (j : Fin 3) (hj : v.voter = nameOf (nodeId j)) : S.effTerm j.val > v.term := by
+theorem oldVotes_mem {S : State} (hc : S.cfg = R.cfg) {o : List VoteRec} (ho : S.oldVotes = .ok o)
+    {v : VoteRec} (hv : v ∈ o) (j : Fin R.N) (hj : v.voter = nameOf (nodeId j)) : S.effTerm j.val > v.term := by
   unfold State.oldVotes at ho
   have h := (filterM_mem ho hv).2
   rw [hj, idx_name hc, eok_bind] at h
@@ -409,7 +426,7 @@ theorem gcRes_get_ok {l : List Entry} (h : (gcRes S g o).ledLog.get t = .ok l) :
   · cases h
   · exact h
 
-variable (hc : S.cfg = cfg3) (hg : S.garbage = .ok g) (ho : S.oldVotes = .ok o)
+variable (hc : S.cfg = R.cfg) (hg : S.garbage = .ok g) (ho : S.oldVotes = .ok o)
 include hc hg
 
 theorem gcRes_vote_keep {f : Fact} (h : f ∈ S.msgs) (ht : f.type = go!"vote") (hn : S.over f.term = false) :
@@ -417,14 +434,14 @@ theorem gcRes_vote_keep {f : Fact} (h : f ∈ S.msgs) (ht : f.type = go!"vote") 
   refine lset_minus_mem.mpr ⟨h, fun hf => ?_⟩
   rw [garbage_vote hg hf ht] at hn; cases hn
 
-theorem gcRes_grant_keep {f : Fact} (h : f ∈ S.msgs) (ht : f.type = go!"grant") (j : Fin 3)
+theorem gcRes_grant_keep {f : Fact} (h : f ∈ S.msgs) (ht : f.type = go!"grant") (j : Fin R.N)
     (hd : f.dst = nameOf (nodeId j)) (hle : S.currentTerm[j.val]! ≤ f.term) : f ∈ (gcRes S g o).msgs := by
   refine lset_minus_mem.mpr ⟨h, fun hf => ?_⟩
   have := garbage_grant hc hg hf ht j hd
   have := effTerm_le S j.val
   omega
 
-theorem gcRes_ack_keep {src : Str} {t k : Int} (j : Fin 3) (h : AckIn S src (nameOf (nodeId j)) t k)
+theorem gcRes_ack_keep {src : Str} {t k : Int} (j : Fin R.N) (h : AckIn S src (nameOf (nodeId j)) t k)
     (hle : S.currentTerm[j.val]! ≤ t) : AckIn (gcRes S g o) src (nameOf (nodeId j)) t k := by
   obtain ⟨a, ha, hP, hmax⟩ := exists_max (fun a : Fact => a.index)
     (fun a => a.type = go!"ack" ∧ a.src = src ∧ a.dst = nameOf (nodeId j) ∧ a.term = t ∧ k ≤ a.index)
@@ -438,7 +455,7 @@ theorem gcRes_ack_keep {src : Str} {t k : Int} (j : Fin 3) (h : AckIn S src (nam
 
 omit hg in
 include ho in
-theorem gcRes_votes_keep {v : VoteRec} (h : v ∈ S.votes) (j : Fin 3) (hj : v.voter = nameOf (nodeId j))
+theorem gcRes_votes_keep {v : VoteRec} (h : v ∈ S.votes) (j : Fin R.N) (hj : v.voter = nameOf (nodeId j))
     (hle : S.currentTerm[j.val]! ≤ v.term) : v ∈ (gcRes S g o).votes := by
   refine lset_minus_mem.mpr ⟨h, fun hv => ?_⟩
   have := oldVotes_mem hc ho hv j hj
@@ -489,7 +506,7 @@ theorem sendable_gc {S : State} {g : List Fact} {o : List VoteRec} {F : AppendFa
 /-- **No violation** where `viol` is empty and `GlobalOk` holds: `ElectionSafety` and `OneVotePerTerm`
 are raft's (`RaftLaws`). -/
 theorem violated_nil [GooseExts] {S : State} {net : List Msg} {G : RaftFacts} (hv : S.viol = [])
-    (hl : RaftLaws G) (hg : GlobalOk S net G) : violated S = [] := by
+    (hl : RaftLaws G) (hg : GlobalOk R S net G) : violated S = [] := by
   have he : S.electionSafety = true := by
     unfold State.electionSafety
     rw [List.all_eq_true]; intro a ha; rw [List.all_eq_true]; intro b hb
@@ -524,19 +541,20 @@ theorem violated_nil [GooseExts] {S : State} {net : List Msg} {G : RaftFacts} (h
 section rel
 variable [GooseExts]
 
-theorem BindingOk.factsWf {S : State} (hb : BindingOk S) : FactsWf S :=
-  ⟨hb.2.2.2.2.2.2.2.2.2.2.1, hb.2.2.2.2.2.2.2.2.2.2.2.1⟩
+theorem BindingOk.factsWf {dec : CCDec} {S : State} (hb : BindingOk R dec S) : FactsWf R S :=
+  ⟨hb.2.2.2.2.2.2.2.2.1, hb.2.2.2.2.2.2.2.2.2.1⟩
 
-theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} {g : List Fact}
-    {o : List VoteRec} (hs : AntSim S V net) (hgo : GlobalOk S net G) (hg : S.garbage = .ok g)
-    (ho : S.oldVotes = .ok o) : AntSim (gcRes S g o) V net ∧ GlobalOk (gcRes S g o) net G := by
-  obtain ⟨hsh, hb, hn, hno⟩ := hs
-  have hc : S.cfg = cfg3 := hsh.1
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
+theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg} {xnet : List XMsg}
+    {G : RaftFacts} {g : List Fact}
+    {o : List VoteRec} (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G) (hg : S.garbage = .ok g)
+    (ho : S.oldVotes = .ok o) : AntSim R dec (gcRes S g o) V net xnet ∧ GlobalOk R (gcRes S g o) net G := by
+  obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs
+  have hc : S.cfg = R.cfg := hsh.1
+  obtain ⟨hb1, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
     hb19⟩ := hb
-  refine ⟨⟨hsh, ?_, ?_, ?_⟩, ?_⟩
+  refine ⟨⟨hsh, ?_, ?_, hxn, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19⟩
+    refine ⟨hb1, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha
@@ -576,14 +594,17 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
       · exact .inr h
     · intro T hT
       change (S.ledLog.without S.staleLed).has T = true at hT
-      show (S.ledConf.without S.staleLed).get T = _
       rw [has_without] at hT
-      rw [get_without]
       cases hs : S.staleLed.contains T
-      · rw [hs] at hT; exact hb18 T (by simpa using hT)
+      · rw [hs] at hT
+        obtain ⟨l, a, cs, h1, h2, h3, h4⟩ := hb18 T (by simpa using hT)
+        refine ⟨l, a, cs, ?_, ?_, h3, ?_⟩
+        · show (S.ledLog.without S.staleLed).get T = _; rw [get_without, hs]; exact h1
+        · show (S.ledAt.without S.staleLed).get T = _; rw [get_without, hs]; exact h2
+        · show (S.ledConf.without S.staleLed).get T = _; rw [get_without, hs]; exact h4
       · rw [hs] at hT; cases hT
   · -- NetOk
-    refine ⟨fun m hm => ?_, hn.2.1, hn.2.2.1, hn.2.2.2⟩
+    refine ⟨fun m hm => ?_, hn.2.1, hn.2.2.1, hn.2.2.2.1, hn.2.2.2.2⟩
     obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
     refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩
     obtain ⟨h1, h2, h3, h4⟩ := hj hle
@@ -602,21 +623,21 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
       exact gcRes_ack_keep hc hg j this hle
   · -- NodeOk
     intro n
-    obtain ⟨hd, hL, hC, hP, hQ, hT⟩ := hno n
-    have hct : S.currentTerm[n.val]! = uint.Z (V n).ps.term := hd.1
-    have hov : S.over (uint.Z (V n).ps.term) = false := over_false hc n (by rw [hct]; exact Int.le_refl _)
-    refine ⟨hd, ?_, ?_, hP, ?_, hT⟩
+    obtain ⟨hd, hM, hSy, hU, hQu, hR, hCL, hF, hL, hC, hP, hX, hQ, hT⟩ := hno n
+    have hct : S.currentTerm[n.val]! ≤ uint.Z (V n).ps.term := by rw [hd.1]; exact hF.durTerm
+    have hov : S.over (uint.Z (V n).ps.term) = false := over_false hc n hct
+    refine ⟨hd, hM, hSy, hU, hQu, hR, hCL, hF, ?_, ?_, hP, hX, ?_, hT⟩
     · intro hlead
       obtain ⟨hl1, hl2, hl3, hl4, hl5⟩ := hL hlead
       refine ⟨?_, ?_, ?_, ?_, hl5⟩
       · exact List.contains_iff_mem.mpr (gcRes_leaders_keep (List.contains_iff_mem.mp hl1) hov)
       · rw [gcRes_get hov]; exact hl2
       · intro j k hk hkt
-        exact gcRes_ack_keep hc hg n (hl3 j k hk hkt) (by rw [hct]; exact Int.le_refl _)
+        exact gcRes_ack_keep hc hg n (hl3 j k hk hkt) hct
       · intro j hj
         rcases hl4 j hj with h | h
         · exact .inl h
-        · exact .inr (gcRes_ack_keep hc hg n h (by rw [hct]; exact Int.le_refl _))
+        · exact .inr (gcRes_ack_keep hc hg n h hct)
     · intro hcand
       obtain ⟨hC1, hC2⟩ := hC hcand
       refine ⟨fun j hj => ?_, gcRes_vote_keep hc hg hC2 rfl (over_false hc n (Int.le_refl _))⟩
@@ -633,8 +654,8 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
       obtain ⟨q1, q2, q3, q4, q5⟩ := hQ q hq
       refine ⟨q1, q2, q3, q4, ?_⟩
       rcases q5 with ⟨h1, h2⟩ | ⟨h1, h2⟩
-      · exact .inl ⟨h1, gcRes_ack_keep hc hg n h2 (by rw [hct]; exact Int.le_refl _)⟩
-      · exact .inr ⟨h1, gcRes_votes_keep hc ho h2 n rfl (by rw [hct]; exact Int.le_refl _)⟩
+      · exact .inl ⟨h1, gcRes_ack_keep hc hg n h2 hct⟩
+      · exact .inr ⟨h1, gcRes_votes_keep hc ho h2 n rfl hct⟩
   · -- GlobalOk
     obtain ⟨g1, g2, g3, g4, g5, g6, g7⟩ := hgo
     refine ⟨fun l hl => g1 l (gcRes_leaders_sub hl), fun v hv => g2 v (gcRes_votes_sub hv), g3,
@@ -687,12 +708,13 @@ theorem gcM_lt {S : State} {g : List Fact} {o : List VoteRec} (hg : S.garbage = 
 section rel
 variable [GooseExts]
 
-theorem gcLoop_rel {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} (hl : RaftLaws G) :
-    ∀ (k : Nat) (S : State), gcM S < k → AntSim S V net → GlobalOk S net G →
-      ∃ S', gcLoop k S = .ok (S', none) ∧ AntSim S' V net ∧ GlobalOk S' net G
+theorem gcLoop_rel {dec : CCDec} {V : Fin R.N → NodeView} {net : List Msg} {xnet : List XMsg}
+    {G : RaftFacts} (hl : RaftLaws G) :
+    ∀ (k : Nat) (S : State), gcM S < k → AntSim R dec S V net xnet → GlobalOk R S net G →
+      ∃ S', gcLoop k S = .ok (S', none) ∧ AntSim R dec S' V net xnet ∧ GlobalOk R S' net G
   | 0, _, h, _, _ => absurd h (Nat.not_lt_zero _)
   | k + 1, S, hlt, hs, hgo => by
-    have hc : S.cfg = cfg3 := hs.1.1
+    have hc : S.cfg = R.cfg := hs.1.1
     obtain ⟨g, hg⟩ := garbage_ok hc hs.2.1.factsWf
     obtain ⟨o, ho⟩ := oldVotes_ok hc hs.2.1.factsWf
     cases hd : (decide (g.length + o.length ≥ gcBatch) || S.staleLed.length != 0)
@@ -711,7 +733,7 @@ end rel
 /-- **`GC`** (B 713-723): the `GC` steps due end within `gcFuel`, with no violation, the relation
 holding after them. -/
 theorem antSim_gc [GooseExts] : antSim_gc.stmt := by
-  intro S V net G hs hl hgo
+  intro R dec S V net xnet G hs hl hgo
   exact gcLoop_rel hl (gcFuel S) S (by unfold gcFuel gcM; omega) hs hgo
 
 /-- **One more event**: the checker at `S` takes `ev` when its `GC` steps end at `S1` with no verdict,

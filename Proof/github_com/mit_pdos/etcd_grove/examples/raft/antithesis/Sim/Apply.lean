@@ -14,6 +14,7 @@ which C1 and C3 then hold of.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Scope
 
 @[expose] public section
 
@@ -70,10 +71,10 @@ theorem logOf_length (l : List EntryM) : (logOf l).length = l.length := List.len
 def applyS (S : State) (n : Nat) (last : Int) : State :=
   { S with lastApplied := S.lastApplied.set n last, undo := S.undo.set n none, i := S.i + 1 }
 
-theorem apply_eq {S : State} (n : Fin 3) (v : NodeView) (hc : S.cfg = cfg3) (hce : v.ce ≠ [])
+theorem apply_eq {R : RunCfg} {S : State} (n : Fin R.N) (v : NodeView) (hc : S.cfg = R.cfg) (hce : v.ce ≠ [])
     (hla : S.lastApplied[n.val]! = (v.delivered.length : Int))
-    (hlg : S.log[n.val]! = logOf v.ps.log) (hidx : LogIdx v.ps.log)
-    (hpre : v.delivered ++ v.ce <+: v.ps.log)
+    (hlg : S.log[n.val]! = logOf v.dur.log) (hidx : LogIdx v.dur.log)
+    (hpre : v.delivered ++ v.ce <+: v.dur.log)
     (hch : ((v.delivered ++ v.ce).length : Int) ≤ S.chain.length)
     (hag : S.chain.take (v.delivered ++ v.ce).length = (S.log[n.val]!).take (v.delivered ++ v.ce).length)
     (hq : S.queue[n.val]! = [])
@@ -85,10 +86,10 @@ theorem apply_eq {S : State} (n : Fin 3) (v : NodeView) (hc : S.cfg = cfg3) (hce
     | nil => exact absurd h hce
     | cons a b => exact ⟨a, b, rfl⟩
   obtain ⟨tl, htl⟩ := hpre
-  have hlog : v.ps.log = v.delivered ++ v.ce ++ tl := htl.symm
-  have hd : (v.delivered.length : Nat) < v.ps.log.length := by
+  have hlog : v.dur.log = v.delivered ++ v.ce ++ tl := htl.symm
+  have hd : (v.delivered.length : Nat) < v.dur.log.length := by
     rw [hlog, hce']; simp
-  have he0 : v.ps.log[v.delivered.length]? = some e0 := by
+  have he0 : v.dur.log[v.delivered.length]? = some e0 := by
     rw [hlog, hce']; simp
   have hfirst : firstOf v.ce = (v.delivered.length : Int) + 1 := by
     rw [hce']; unfold firstOf; exact hidx _ _ he0
@@ -126,54 +127,66 @@ theorem apply_eq {S : State} (n : Fin 3) (v : NodeView) (hc : S.cfg = cfg3) (hce
     hs3, decide_eq_true hlogn, decide_eq_true hch, Bool.and_self, hmem, hnot]
   rfl
 
-/-- **`apply`** (B 598-609). -/
-theorem antSim_apply : antSim_apply.stmt := by
-  intro S V net evs G n hp hs hl hgo hce _
-  obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc S V net G hs hl hgo
-  obtain ⟨hsh, hb, hn, hno⟩ := hs1
-  have hc : S1.cfg = cfg3 := hsh.1
-  obtain ⟨hd, hlp, hcp, hpend, hqs, htold⟩ := hno n
-  obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13⟩ := hd
-  obtain ⟨hcl, hag⟩ := hb.2.2.2.2.1 n
+/-- **`apply`** (B 598-609), for the runs a mask below `mskS4` admits (sync: no queued write). -/
+theorem antSim_apply_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
+    ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
+      (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N),
+      InMask msk R net xnet →
+      SimPre R dec S V net xnet evs G → R.md.async = false → (V n).ce ≠ [] → Told (V n) →
+      SimStep R dec evs G (evApply (nodeId n) (V n).byE (V n).ce)
+        (setV V n { V n with delivered := (V n).delivered ++ (V n).ce, ce := [], undo := none,
+                             made := true }) net xnet := by
+  intro R dec S V net xnet evs G n hin ⟨hp, hs, hl, hgo⟩ hasync hce _
+  obtain ⟨_, _, hbt, hpar, hspl, _, _, _⟩ := hin.s4 hmsk
+  obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
+  obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs1
+  have hc : S1.cfg = R.cfg := hsh.1
+  obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17, d18⟩ := hno n
+  have hmems := (d3 hasync hbt hspl hpar).1
+  obtain ⟨hcl, hag⟩ := hb.2.2.1 n
   have hmc : (((V n).delivered ++ (V n).ce).length : Int) ≤ S1.commitIndex[n.val]! := by
-    rw [d4]
-    have h1 : ((uint.nat (V n).ps.commit : Nat) : Int) = uint.Z (V n).ps.commit := by word
-    have := d13; omega
+    rw [d1.2.2.2]
+    have h1 : ((uint.nat (V n).dur.commit : Nat) : Int) = uint.Z (V n).dur.commit := by word
+    have := d8.len; omega
   have hag' : S1.chain.take ((V n).delivered ++ (V n).ce).length =
       (S1.log[n.val]!).take ((V n).delivered ++ (V n).ce).length := by
     have e : ((V n).delivered ++ (V n).ce).length =
         min ((V n).delivered ++ (V n).ce).length (S1.commitIndex[n.val]!).toNat := by omega
     rw [e, ← List.take_take, ← List.take_take, hag]
-  have hstep := apply_eq n (V n) hc hce d6 d3 d9 d12 (by omega) hag' (hb.2.1 n).1 hmc
+  have hq : S1.queue[n.val]! = [] := by rw [d5, hmems]; rfl
+  have hstep := apply_eq n (V n) hc hce d2.2.1 d1.2.2.1 d8.logIdx d8.prefix (by omega) hag' hq hmc
   obtain ⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩ := hsh
-  obtain ⟨hb1, hb2, hb3, hb4⟩ := hb
   let L : Int := (((V n).delivered ++ (V n).ce).length : Int)
-  have hgo2 : GlobalOk (applyS S1 n.val L) net G := hgo1
-  have hrel : AntSim (applyS S1 n.val L)
-      (setV V n { V n with delivered := (V n).delivered ++ (V n).ce, ce := [] }) net := by
+  have hgo2 : GlobalOk R (applyS S1 n.val L) net G := hgo1
+  have hrel : AntSim R dec (applyS S1 n.val L)
+      (setV V n { V n with delivered := (V n).delivered ++ (V n).ce, ce := [], undo := none,
+                           made := true }) net xnet := by
     refine ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, by simpa [applyS] using sh7, sh8, sh9, sh10,
-      by simpa [applyS] using sh11, sh12, sh13, sh14⟩, ⟨hb1, hb2, ?_, hb4⟩, hn, fun k => ?_⟩
-    · intro j p hp
-      by_cases hj : j = n
-      · subst hj
-        change (S1.undo.set j.val none)[j.val]! = some p at hp
-        rw [get!_set_self _ (by rw [sh11]; exact j.isLt)] at hp; cases hp
-      · change (S1.undo.set n.val none)[j.val]! = some p at hp
-        rw [get!_set_ne _ _ (fun h => hj (Fin.ext h))] at hp
-        exact hb3 j p hp
-    · by_cases hk : k = n
-      · subst hk
-        simp only [setV, ite_true]
-        refine ⟨⟨d1, d2, d3, d4, d5, ?_, d7, d8, d9, d10, d11, by simpa using d12,
-          by simpa using d13⟩, hlp, hcp, hpend, hqs, htold⟩
-        change (S1.lastApplied.set k.val L)[k.val]! = _
+      by simpa [applyS] using sh11, sh12, sh13, sh14⟩, hb, hn, hxn, fun k => ?_⟩
+    by_cases hk : k = n
+    · subst hk
+      simp only [setV, ite_true]
+      obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := d8
+      refine ⟨d1, ⟨d2.1, ?_, d2.2.2⟩, fun a b c e => ⟨hmems, (d3 a b c e).2.1, fun h => absurd rfl h⟩,
+        ⟨?_, ?_⟩, d5, d6, d7, ⟨f1, f2, f3, f4, by simpa using f5, by simpa using f6, f7⟩, d9, d10, d11, d12,
+        d13, d14, d15, d16, d17, d18⟩
+      · change (S1.lastApplied.set k.val L)[k.val]! = _
         rw [get!_set_self _ (by rw [sh7]; exact k.isLt)]
-      · simp only [setV, hk, ite_false]
-        obtain ⟨e1, e2, e3, e4, e5, e6⟩ := hno k
-        refine ⟨⟨e1.1, e1.2.1, e1.2.2.1, e1.2.2.2.1, e1.2.2.2.2.1, ?_, e1.2.2.2.2.2.2⟩, e2, e3, e4, e5, e6⟩
-        change (S1.lastApplied.set n.val L)[k.val]! = _
-        rw [get!_set_ne _ _ (fun h => hk (Fin.ext h))]; exact e1.2.2.2.2.2.1
-  exact ⟨_, Prefix.snoc hp hgc hstep (violated_nil hb1 hl hgo2), hrel, hgo2⟩
+      · change ((S1.undo.set k.val none)[k.val]!).isNone = true ↔ (none : Option DurW) = none
+        rw [get!_set_self _ (by rw [sh11]; exact k.isLt)]; simp
+      · intro p hp
+        change (S1.undo.set k.val none)[k.val]! = some p at hp
+        rw [get!_set_self _ (by rw [sh11]; exact k.isLt)] at hp; cases hp
+    · simp only [setV, hk, ite_false]
+      have hne : k.val ≠ n.val := fun h => hk (Fin.ext h)
+      obtain ⟨e1, e2, e3, e4, e5⟩ := hno k
+      refine ⟨e1, ⟨e2.1, ?_, e2.2.2⟩, e3, ?_, e5⟩
+      · rw [show (applyS S1 n.val L).lastApplied[k.val]! = S1.lastApplied[k.val]! from get!_set_ne _ _ hne]
+        exact e2.2.1
+      · unfold UndoIs
+        rw [show (applyS S1 n.val L).undo[k.val]! = S1.undo[k.val]! from get!_set_ne _ _ hne]
+        exact e4
+  exact ⟨_, Prefix.snoc hp hgc hstep (violated_nil hb.1 hl hgo2), hrel, hgo2⟩
 
 end apply
 

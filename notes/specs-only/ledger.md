@@ -5814,3 +5814,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `antSim_X_in msk (hmsk : msk ≤ mskS4)`, widened by later batches, the plain statements at `mskTop`.
 - **Decision.** Approved by the lead (2026-11-25; `MsgMask` in `NodeFacts` for the pending messages
   is what keeps `NetOk`'s at `send`). No new axiom or top-level premise.
+- **Addendum (step 3, same day; for the lead's review).** Two invariant strengthenings the migration
+  needed, both true in every mode: `NodeFacts` gains `uint.Z v.dur.term ≤ uint.Z v.ps.term` (`GC` keeps
+  a leader's and a candidate's records at raft's term, which it reached only through `DiskIs`'s disk
+  term: the S4 proof read the term off `DurableIs` directly); `SyncDisk` concludes `v.mems = []` instead
+  of assuming it (sync, no batch/split/parallel: no `mem` report, so no queued write; `apply`'s
+  `memCommit` and `boot` read the queue empty, which S4's `BindingOk` stated directly).

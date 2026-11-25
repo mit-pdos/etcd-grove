@@ -12,6 +12,7 @@ node; a request (`app`, `hb`; no snapshot is ever sent, C4) of a term at least t
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Scope
 
 @[expose] public section
 
@@ -55,7 +56,7 @@ theorem reqFactIn_msgOf (ll : TermFn (List Entry)) (m : Msg) (to : w64) (h : m.t
 def recvS (S : State) (n : Nat) (m : AntCheck.Msg) : State :=
   { S with pending := S.pending.set n [m], i := S.i + 1 }
 
-theorem recv_eq {S : State} (n : Fin 3) (m : Msg) (hc : S.cfg = cfg3) (hty : m.ty ≠ .snap)
+theorem recv_eq {R : RunCfg} {S : State} (n : Fin R.N) (m : Msg) (hc : S.cfg = R.cfg) (hty : m.ty ≠ .snap)
     (hreq : (m.ty = .app ∨ m.ty = .heartbeat) → S.currentTerm[n.val]! ≤ uint.Z m.term →
       (toAppendFact (msgOf m (nodeId n)) >>= S.sendable) = .ok true) :
     S.step (evRecv (nodeId n) m) = .ok (some (recvS S n.val (msgOf m (nodeId n)))) := by
@@ -80,38 +81,45 @@ theorem recv_eq {S : State} (n : Fin 3) (m : Msg) (hc : S.cfg = cfg3) (hty : m.t
   · simp only [hq, decide_false, Bool.false_eq_true, ite_false]
     rfl
 
-/-- **`recv`** (B 199-204). -/
-theorem antSim_recv : antSim_recv.stmt := by
-  intro S V net evs G n m hp hs hl hgo hm hdst hcause
-  obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc S V net G hs hl hgo
-  obtain ⟨hsh, hb, hn, hno⟩ := hs1
-  have hc : S1.cfg = cfg3 := hsh.1
-  obtain ⟨hty, _, j, hj, hjk⟩ := hn.1 m hm
+/-- **`recv`** (B 199-204), for the runs a mask below `mskS4` admits (no snapshot message: `MsgMask`). -/
+theorem antSim_recv_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
+    ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
+      (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (m : Msg),
+      InMask msk R net xnet →
+      SimPre R dec S V net xnet evs G → m ∈ net → m.dst = nodeId n → (V n).cause = some m →
+      SimStep R dec evs G (evRecv (nodeId n) m) (setV V n { V n with told := true }) net xnet := by
+  intro R dec S V net xnet evs G n m hin ⟨hp, hs, hl, hgo⟩ hm hdst hcause
+  have hmd := (hin.s4 hmsk).1
+  obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
+  obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs1
+  have hc : S1.cfg = R.cfg := hsh.1
+  obtain ⟨_, _, j, hj, hjk⟩ := hn.1 m hm
   have hjn : j = n := nodeId_inj (hj.symm.trans hdst)
   subst hjn
-  have hsnap : m.ty ≠ .snap := by
-    rcases hty with h | h | h | h | h | h | h <;> rw [h] <;> decide
+  have hsnap : m.ty ≠ .snap := (hn.2.2.2.2 m hm).2 (by rw [hmd])
   have hstep := recv_eq j m hc hsnap (fun ht hle => by
     have := (hjk hle).1 ht
     rw [hj] at this; exact this)
-  have hrel : AntSim (recvS S1 j.val (msgOf m (nodeId j))) (setV V j { V j with told := true }) net := by
+  have hrel : AntSim R dec (recvS S1 j.val (msgOf m (nodeId j))) (setV V j { V j with told := true }) net
+      xnet := by
     obtain ⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩ := hsh
     refine ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11,
-      by simpa [recvS] using sh12, sh13, sh14⟩, hb, hn, fun k => ?_⟩
-    obtain ⟨d1, d2, d3, d4, d5, d6, d7⟩ := hno k
+      by simpa [recvS] using sh12, sh13, sh14⟩, hb, hn, hxn, fun k => ?_⟩
+    obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, d17, d18⟩ := hno k
     by_cases hk : k = j
     · subst hk
       simp only [setV, ite_true]
-      refine ⟨d1, d2, d3, d4, d5, fun _ => ⟨m, hcause, ?_⟩, d7⟩
+      refine ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, fun _ => .inl ⟨m, hcause, ?_⟩, d15,
+        d16, d17, d18⟩
       change (S1.pending.set k.val [msgOf m (nodeId k)])[k.val]! = _
       exact get!_set_self _ (by rw [sh12]; exact k.isLt)
     · simp only [setV, hk, ite_false]
-      refine ⟨d1, d2, d3, d4, d5, fun ht => ?_, d7⟩
-      obtain ⟨m', hm1, hm2⟩ := d6 ht
-      refine ⟨m', hm1, ?_⟩
-      change (S1.pending.set j.val [msgOf m (nodeId j)])[k.val]! = _
-      rw [get!_set_ne _ _ (fun h => hk (Fin.ext h))]; exact hm2
-  have hgo2 : GlobalOk (recvS S1 j.val (msgOf m (nodeId j))) net G := hgo1
+      have hne : k.val ≠ j.val := fun h => hk (Fin.ext h)
+      refine ⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, fun ht => ?_, d15, d16, d17, d18⟩
+      rw [show (recvS S1 j.val (msgOf m (nodeId j))).pending[k.val]! = S1.pending[k.val]! from
+        get!_set_ne _ _ hne]
+      exact d14 ht
+  have hgo2 : GlobalOk R (recvS S1 j.val (msgOf m (nodeId j))) net G := hgo1
   exact ⟨_, Prefix.snoc hp hgc hstep (violated_nil hb.1 hl hgo2), hrel, hgo2⟩
 
 end recv

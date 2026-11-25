@@ -225,13 +225,13 @@ def MemIs (N : Nat) (S : AntCheck.State) (n : Fin N) (v : NodeView) : Prop :=
   S.role[n.val]! = roleS v ∧ S.lastApplied[n.val]! = (v.delivered.length : Int) ∧
   S.config[n.val]! = confView N v.conf ∧ S.confAt[n.val]! = (v.confAt : Int)
 
-/-- **C1, sync mode's disk** (not batching, splitting or sending early: those are parity B2's): with
-no write queued, the disk is raft's own state (what the last
+/-- **C1, sync mode's disk** (not batching, splitting or sending early: those are parity B2's): no
+write queued (no `mem` report in sync mode), and the disk is raft's own state (what the last
 `ready` announced and wrote), and an announced write is not `made` before its `send`s or its
 `apply` end it (no `made` report in sync mode). -/
 def SyncDisk (R : RunCfg) (v : NodeView) : Prop :=
-  R.md.async = false → R.drv.batch = false → R.drv.split = 0 → R.drv.parallel = false → v.mems = [] →
-    v.dur = durOf v.r ∧ (v.undo ≠ none → v.made = false)
+  R.md.async = false → R.drv.batch = false → R.drv.split = 0 → R.drv.parallel = false →
+    v.mems = [] ∧ v.dur = durOf v.r ∧ (v.undo ≠ none → v.made = false)
 
 /-- **C1, the announced write** (`undo[n]`, B 349-359): there is one exactly when the view has the
 disk before it; its `made` is the view's; and what it reverts to (term, vote, commit, the log's kept
@@ -282,14 +282,16 @@ def MsgMask (R : RunCfg) (m : Msg) : Prop :=
 snapshots the log from `base0`, no ghost prefix and no snapshot restored; without conf changes the
 initial configuration and only normal entries (raft's and the disk's); the disk's log's indices its
 positions; what was handed out (`delivered`, and in a drain `ce`) a prefix of the disk's log within
-its commit; the `Ready`'s messages not yet sent under the mask (`MsgMask`). -/
+its commit; the `Ready`'s messages not yet sent under the mask (`MsgMask`); the disk's term within
+raft's (a write is of a state raft had, and terms only grow: what `GC` needs to keep a leader's and a
+candidate's records at raft's term). -/
 def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
     v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log) ∧
   LogIdx v.dur.log ∧
   v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit ∧
-  ∀ q ∈ v.pend, MsgMask R q
+  (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -542,7 +544,12 @@ theorem NodeFacts.len {R : RunCfg} {v : NodeView}
 theorem NodeFacts.pendMask {R : RunCfg} {v : NodeView}
     (h : NodeFacts R v) :
     ∀ q ∈ v.pend, MsgMask R q :=
-  h.2.2.2.2.2.2
+  h.2.2.2.2.2.2.1
+
+theorem NodeFacts.durTerm {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    uint.Z v.dur.term ≤ uint.Z v.ps.term :=
+  h.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 
