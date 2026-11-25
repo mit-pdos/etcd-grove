@@ -96,10 +96,10 @@ theorem Client_Get_dist.wp_proof (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG :=
     ipureintro
     obtain ⟨-, hsel, -⟩ := Hs
     have hrr : σ.readRev (W64 0) = σ.rev := by simp [KVState.readRev]
-    have hkvs : (σ.at (σ.readRev (rangeWireOf (opGetModel key [])).base.rev)).kvs = σ.kvs := by
-      show (σ.at (σ.readRev (W64 0))).kvs = σ.kvs
+    have hkvs : (σ.at (σ.readRev (W64 0))).kvs = σ.kvs := by
       rw [hrr]
       rfl
+    try rw [show (rangeWireOf (opGetModel key [])).base.rev = W64 0 from rfl] at hsel
     rw [hkvs] at hsel
     have h1 := (srvRangeOk_getKey key σ.kvs m.kvs m.more hsel).1
     obtain ⟨kv, hf, hv⟩ : ∃ kv, mvcc.findKey key σ.kvs = some kv ∧ kv.value = val := by
