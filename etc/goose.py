@@ -202,7 +202,7 @@ PROJECTS = [
         # helpers, whole-struct copies through a local; Perennial's
         # docs/design/unsafe-memory.md, section 6), the fix of etcd-io/bbolt#1311
         # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
-        # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
+        # (issues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
         # label; then branch `goose-lean-v2` (b30879b2): `getPageSize` returns a meta read error
         # instead of probing further (D18), `splitTwo`'s float threshold factored out as
         # `splitThreshold`, trusted (D17) (b30879b2); then `Tx.WriteTo` writes the current meta at
@@ -407,7 +407,16 @@ PROJECTS = [
         # branch etcd-safe-walfix/2026-11-24).
         # The two combined (etcd-safe-main, 2026-11-24): 47d6cdeeb, branch `goose-lean-fmt1c-snapguard`,
         # 8aa40fd5c cherry-picked onto df6af0c36.
-        rev="47d6cdeeb1802f72fba4cae2b2d4536e0ac79fc6",
+        # Then (etcd-dist D6, integration round 2, 2026-11-25) e94f33b50, branch
+        # `goose-lean-fmt1c-crashfixes` (on 47d6cdeeb): the WAL's torn-Save fix (49bf5160f: a `Save` a
+        # crash interrupts reads back as no `Save`, its state record written last), the directory
+        # syncs after renaming a database onto the backend path (533e06e9c), the backend removed
+        # beside a WAL that holds no saved state (c4221eb9d, a10c86ad4), and bbolt replaced by
+        # upamanyus/bbolt v1.5.0-init-crashsafe @ 19e0771 in etcd's go.mod files (e94f33b50:
+        # issues/bbolt-init-not-crash-safe.md). The bbolt replace changes no translation here: bbolt
+        # is the bbolt project's translation (its own fork pin, below `rev` there), and this
+        # project only names it.
+        rev="e94f33b50d046939dd1aee60f4013d968feaeef4",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)

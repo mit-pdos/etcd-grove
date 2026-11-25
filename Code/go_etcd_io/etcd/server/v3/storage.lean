@@ -105,6 +105,9 @@ noncomputable def OpenBackend [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def RecoverSnapshotBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.RecoverSnapshotBackend"
 
+noncomputable def syncDir [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage.syncDir"
+
 noncomputable def NewBackendHooks [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage.NewBackendHooks"
 
@@ -134,7 +137,7 @@ noncomputable def GetEffectiveNodeIDsFromWALEntries [GooseExts] [GoGlobalContext
 
 /-- OpenSnapshotBackend renames a snapshot db to the current etcd db and opens it.
 
-    go: backend.go:63:6 -/
+    go: backend.go:66:6 -/
 noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "ss"
@@ -159,6 +162,7 @@ noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType BackendHooks.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Hooks.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendHooks.ty)))) (Var "hooks")))
   (App (App (App (Val (GoInstruction (FuncResolve OpenBackend []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -171,6 +175,29 @@ noncomputable def OpenSnapshotBackend.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"BackendPath"))) (Var "cfg")) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.path.filepath.Dir []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve syncDir []))) (Val #())) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"failed to sync database directory (%w)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "snapPath"))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"BackendPath"))) (Var "cfg")) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Rename []))) (Val #())) (Var "$a0")) (Var "$a1"))))
