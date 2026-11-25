@@ -40,8 +40,7 @@ namespace AntSim
 section stmt
 variable [GooseExts]
 
-/-- Normal entries (`EntryNormal = 0`; `HarnessDefs.lean`'s `AllNormal`, restated here). -/
-def EntsNormal (es : List EntryM) : Prop := ∀ e ∈ es, e.Type' = W32 0
+-- `EntsNormal`: `Rel.lean` (`NodeFacts` and `MsgMask` read it).
 
 /-- The harness's entries (`EntsHarness`): normal (a proposal's, a leader's empty entry, the boot
 entry). Parity B3 adds conf entries that decode (`CCDecodes`). -/

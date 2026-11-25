@@ -268,14 +268,28 @@ def ConfLag (dec : CCDec) (R : RunCfg) (v : NodeView) : Prop :=
   (v.r.snap = true ∧ ∃ cs, cfgFold dec R.c0 v.r.fp = some cs ∧ v.conf = cs ∧
      v.confAt = lastConfIdx v.r.fp v.r.fp.length)
 
+/-- Normal entries (`EntryNormal = 0`; `HarnessDefs.lean`'s `AllNormal`): a proposal's, a leader's
+empty entry, the boot entry. Without conf changes every entry of the run is one. -/
+def EntsNormal (es : List EntryM) : Prop := ∀ e ∈ es, e.Type' = W32 0
+
+/-- **A message under the run's mask** (`MsgMask`): without conf changes an append's or a
+proposal's entries are normal; without snapshots it is no snapshot. -/
+def MsgMask (R : RunCfg) (m : Msg) : Prop :=
+  (R.md.confChanges = false → (m.ty = .app ∨ m.ty = .propose) → EntsNormal m.entries) ∧
+  (R.md.snapshots = false → m.ty ≠ .snap)
+
 /-- **C1, raft's side**: the outbox empty between `Ready`s (taken by the last one); without
-snapshots the log from `base0` and no ghost prefix; without conf changes the initial configuration;
-the disk's log's indices its positions; what was handed out (`delivered`, and in a drain `ce`) a
-prefix of the disk's log within its commit. -/
+snapshots the log from `base0`, no ghost prefix and no snapshot restored; without conf changes the
+initial configuration and only normal entries (raft's and the disk's); the disk's log's indices its
+positions; what was handed out (`delivered`, and in a drain `ce`) a prefix of the disk's log within
+its commit; the `Ready`'s messages not yet sent under the mask (`MsgMask`). -/
 def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
-  v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = []) ∧
-  (R.md.confChanges = false → v.r.cfg.cfg = CfgM.simple R.voters0 ∅) ∧ LogIdx v.dur.log ∧
-  v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit
+  v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
+  (R.md.confChanges = false →
+    v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log) ∧
+  LogIdx v.dur.log ∧
+  v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit ∧
+  ∀ q ∈ v.pend, MsgMask R q
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -399,6 +413,136 @@ def NodeOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n :
     (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x])) ∧
   (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ (∀ x, v.xcause = some x → x.dst = nodeId n) ∧
   LeadOk n v ∧ VoteSelf n v
+
+
+/-! The conjuncts of `NodeOk` and `NodeFacts` by name. -/
+
+theorem NodeOk.disk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    DiskIs S n v :=
+  h.1
+
+theorem NodeOk.mem {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    MemIs R.N S n v :=
+  h.2.1
+
+theorem NodeOk.sync {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    SyncDisk R v :=
+  h.2.2.1
+
+theorem NodeOk.undo {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    UndoIs S n v :=
+  h.2.2.2.1
+
+theorem NodeOk.queue {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    QueueIs S n v :=
+  h.2.2.2.2.1
+
+theorem NodeOk.reads {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ReadsIs S n v :=
+  h.2.2.2.2.2.1
+
+theorem NodeOk.confLag {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ConfLag dec R v :=
+  h.2.2.2.2.2.2.1
+
+theorem NodeOk.facts {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    NodeFacts R v :=
+  h.2.2.2.2.2.2.2.1
+
+theorem NodeOk.leader {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    LeaderPart S n v :=
+  h.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.cand {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    CandPart S n v :=
+  h.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.pend {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ∀ q ∈ v.pend, PendOk R.N (nodeId n) v q :=
+  h.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.xpend {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ∀ x ∈ v.xpend, XPendOk R.N (nodeId n) x :=
+  h.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.qs {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ∀ q ∈ v.qs, QsOk S n v q :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.told {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
+      (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x]) :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.cause {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.xcause {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    ∀ x, v.xcause = some x → x.dst = nodeId n :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.leadOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    LeadOk n v :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeOk.voteSelf {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
+    (h : NodeOk R dec S net n v) :
+    VoteSelf n v :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+
+theorem NodeFacts.outbox {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    v.ps.outbox = [] :=
+  h.1
+
+theorem NodeFacts.snap0 {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false :=
+  h.2.1
+
+theorem NodeFacts.conf0 {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    R.md.confChanges = false →
+      v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log :=
+  h.2.2.1
+
+theorem NodeFacts.logIdx {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    LogIdx v.dur.log :=
+  h.2.2.2.1
+
+theorem NodeFacts.prefix {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    v.delivered ++ v.ce <+: v.dur.log :=
+  h.2.2.2.2.1
+
+theorem NodeFacts.len {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit :=
+  h.2.2.2.2.2.1
+
+theorem NodeFacts.pendMask {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    ∀ q ∈ v.pend, MsgMask R q :=
+  h.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 
@@ -561,7 +705,7 @@ binding checks at its receipt or of its answer was recorded by its sender's repo
 ack) and is kept while its receiver has not passed its term (GC drops only what a term has
 passed, B 696-709); a heartbeat's commit within its receiver's confirmation or commit
 (`HbCommitOk`); every message's shape (`NetShape`); a leader's message's commit within its own
-(`LeadCommitMsgOk`). -/
+(`LeadCommitMsgOk`); every message under the run's mask (`MsgMask`). -/
 def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
   (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
@@ -578,7 +722,7 @@ def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
             AntCheck.Fact) ∈ S.msgs) ∧
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
-  HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net
+  HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net ∧ ∀ m ∈ net, MsgMask R m
 
 /-- **C4, the transfer messages**: every `MsgTransferLeader`/`MsgTimeoutNow` sent (`xnet`) is
 between two servers, of a term its sender has reached (a forwarded transfer's sender, the

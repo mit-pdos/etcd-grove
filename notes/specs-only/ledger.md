@@ -5792,3 +5792,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   fresh `boot` sets `alive`; `PendOk`'s redundant `_ => False` arm dropped; `RaftLaws` unchanged.
 - **Decision.** Approved by the lead. No new axiom or top-level premise; the Sim proofs migrate in
   step 3.
+
+## 2026-11-25 — antithesis parity B1: the mask's invariants, `applyConf` out of `Reach` (#33)
+
+- **Files.** `Proof/.../antithesis/Sim/{Rel,Stmts,MsgShapeStmt}.lean`, new `Sim/Scope.lean`.
+- **Defect.** (1) `antSim_quiet.stmt` (and `antSim_ready.stmt`) were false in every mode:
+  `Quiet.noReady` after `Reach.input (.applyConf k)` moves `r.cfg` to the applied configuration while
+  the view's `conf` stays (no `conf` report yet), so `ConfLag` fails (N=2, K=1, a follower with the
+  committed conf entry `[e]` at `cidx = 0`, `dec [] e = some (.apply op)`, `ccStepB op R.c0 = some cs'
+  ≠ R.c0`, `(([e]), cs') ∈ G.confs`). (2) Under `md.confChanges = false` / `md.snapshots = false`
+  nothing kept conf entries out of the logs, the network and proposals, or snapshot messages out of
+  the network, so `NodeFacts`' initial configuration and `base0` were not preserved.
+- **Change.** `InputStep`: `.applyConf` is no input (`antSim_conf` takes `ApplyConfChange` and its
+  report as one step, as the driver reports `conf` at the apply); `.proposeConf` needs
+  `md.confChanges = true`. `EntsNormal` moved from `MsgShapeStmt` to `Rel` (unchanged). `MsgMask R m`
+  (confChanges off: an append's or proposal's entries normal; snapshots off: no `.snap`); `NodeFacts`
+  gains `r.snap = false` (snapshots off), `EntsNormal` of the full and disk logs (confChanges off),
+  and `MsgMask` of the `Ready`'s unsent messages; `NetOk` gains `MsgMask` of every message;
+  `ReadyOutP`'s snapshots-off clause gains no `.snap` in the outbox. `Scope.lean`: `SimMask`,
+  `InMask`, `Input.InMask`, `ReachIn`/`QuietIn`, `mskS4 ≤ mskB1 ≤ mskTop`; the proofs are
+  `antSim_X_in msk (hmsk : msk ≤ mskS4)`, widened by later batches, the plain statements at `mskTop`.
+- **Decision.** Approved by the lead (2026-11-25; `MsgMask` in `NodeFacts` for the pending messages
+  is what keeps `NetOk`'s at `send`). No new axiom or top-level premise.

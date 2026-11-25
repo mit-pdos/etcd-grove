@@ -101,7 +101,10 @@ def readMsg (id : w64) (ctx : List w8) : Msg :=
 /-- The configuration fold's admissible pairs certified in `G` (raft's `Adm`, parity B3). -/
 def admOf (G : RaftFacts) : List EntryM → CCState → Prop := fun l cs => (l, cs) ∈ G.confs
 
-/-- What one input does to node `n`'s state (design §3.4), with the transfer messages it queues. -/
+/-- What one input does to node `n`'s state (design §3.4), with the transfer messages it queues. A
+conf change is proposed only with conf changes on. `ApplyConfChange` is no input here: the driver
+reports `conf` at the apply, in the node's goroutine, so `antSim_conf` takes it and its report as one
+step (`ApplyConfEndR`). -/
 def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (n : Fin R.N)
     (r : RState) : Input → RState → List XMsg → Prop
   | .recv m, r', xs => RecvEndR Adm (R.k n) (nodeId n) r m r' ∧ xs = []
@@ -110,13 +113,13 @@ def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop
   | .tick, r', xs => TickEndR (R.k n) (nodeId n) r r' ∧ xs = []
   | .propose d, r', xs => RecvEndR Adm (R.k n) (nodeId n) r (propMsg (nodeId n) d) r' ∧ xs = []
   | .proposeConf ty d, r', xs =>
-      RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r' ∧ xs = []
+      R.md.confChanges = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r' ∧ xs = []
   | .readIndex c, r', xs => RecvEndR Adm (R.k n) (nodeId n) r (readMsg (nodeId n) c) r' ∧ xs = []
   | .campaign, r', xs => CampaignEndR (R.k n) (nodeId n) r r' ∧ xs = []
   | .transfer to, r', xs => TransferEndR (nodeId n) r to r' xs
   | .snapStatus to ok, r', xs => SnapStatusEndR (nodeId n) r r' ∧ xs = []
   | .unreachable _, r', xs => r' = r ∧ xs = []
-  | .applyConf k, r', xs => ApplyConfEndR dec Adm (R.k n) (nodeId n) r k r' [] ∧ xs = []
+  | .applyConf _, _, _ => False
   | .storeAck resp, r', xs => StoreAckEndR Adm dec (R.k n) (nodeId n) r resp r' ∧ xs = []
 
 /-- The view once the node has taken an input (before any report): the drain's `by` and cause; its
@@ -181,7 +184,7 @@ conflict with the disk's log or past its end); without a snapshot and with no en
 is the disk's; its messages are `r`'s outbox, those to itself queued for `Advance` (up to
 permutation), the others to servers (in async mode split: `AfterAppTy` ones released by the write);
 its transfer messages `xs`; its committed entries follow what was handed out, within the commit;
-its read states `r`'s; without snapshots no snapshot and the log from `base0`; the full log's
+its read states `r`'s; without snapshots no snapshot, the log from `base0` and no snapshot message; the full log's
 indices its positions. -/
 def ReadyOutP (R : RunCfg) (n : Fin R.N) (v : NodeView) (r : RState) (xs : List XMsg)
     (rd : ReadyD) : Prop :=
@@ -199,7 +202,8 @@ def ReadyOutP (R : RunCfg) (n : Fin R.N) (v : NodeView) (r : RState) (xs : List 
   rd.xmsgs = xs ∧
   v.delivered ++ rd.ce <+: r.full ∧ (v.delivered ++ rd.ce).length ≤ uint.nat r.p.commit ∧
   rd.reads = r.p.rd.states ∧
-  (R.md.snapshots = false → r.p.base = base0 ∧ rd.snap = none) ∧ LogIdx r.full ∧
+  (R.md.snapshots = false → r.p.base = base0 ∧ rd.snap = none ∧ ∀ q ∈ r.p.outbox, q.ty ≠ .snap) ∧
+  LogIdx r.full ∧
   ReadyMsgsToVoters R.N rd
 
 /-- The harness reports the `Ready` (`write || role != n.role`, or a snapshot): its hard state differs
