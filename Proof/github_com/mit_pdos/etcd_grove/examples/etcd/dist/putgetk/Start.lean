@@ -313,6 +313,7 @@ theorem putgetKBoot_of
       isplitr
       · ipureintro; rfl
       iexists γf
+      rw [show (etcd_dist.ClusterNames.view c).kv = c.γk from rfl]
       iexact Hinv
   · -- no cluster: every member returns at once; the client's address set alone
     -- a putget invariant at fresh KV names, at a view no member serves
@@ -381,6 +382,7 @@ theorem putgetKBoot_of
         isplitr
         · ipureintro; rfl
         iexists γf0
+        rw [show (etcd_dist.DistView.ofKV γk0).kv = γk0 from rfl]
         iexact HinvE
 
 /-- **`putgetK_safe` over S5's named hypotheses** (see the file header): S5's names exist (`HS5`), and
