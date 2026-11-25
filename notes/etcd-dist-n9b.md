@@ -167,3 +167,49 @@ adapted; built on fk-lean1 (`Proof…dist.client.leaseList`, `leaseReadCheck`, `
 For the lead, when they become axioms: `etcdSvc`'s and `Serve_dist`'s docstrings (F4) name the KV calls
 only and must add the two lease entries (`etcdLeaseLeasesSpecAny`, `etcdLeaseTTLSpec`). The same token gap
 is in `Client_Get_dist`/`Client_Put_dist` (not changed here).
+
+## 10. leaseCatchup and leaseExpiry over the lead's drafts (option B), 2026-11-25
+
+The lead's O1/N2 design (#50, 2026-11-25T15:52:14Z; `notes/etcd-dist-plan.md` §18): the view is a Lean value
+`DistView := ⟨kv, ls, auth⟩`, the lease drafts `Lease_Grant_dist`, `Lease_GrantLive_dist`,
+`Lease_LeasesGranted_dist`, `Lease_LeasesLive_dist` at `Γ.ls mid`, our two drafts re-indexed `γE → Γ` with
+`levelTok 0` threaded (all in `Proof/.../etcd/dist/ClientViewDist.lean`, namespace `etcd_dist.view`, each
+`X.spec svc` over the table `svc : DistView → w64 → GrpcSvc GF`, A1 re-indexed).
+
+- **Merge**: `etcd-safe-n2/2026-11-25` @ `70588fe058` merged whole (one commit over our base: the drafts file,
+  §18, STATUS). `ClientViewDist.lean` built unchanged on fk-lean1 (warnings only: unused `π`).
+- **Re-index**: our `Spec/.../dist/ClientLeaseLeasesDist.lean`/`ClientLeaseTTLDist.lean` are deleted; the
+  proofs use the lead's re-indexed copies (`view.Client_LeaseLeases_dist`, `view.Client_LeaseTimeToLive_dist`).
+  Every N9b spec takes `svc`; `leaseMember svc Γ a` (`⌜addrOk a⌝ ∗ ∃ mid, etcdAddrAtV svc a Γ mid`), and
+  `memberCli svc cl ep V Γ mid` (`New`'s client of one member, no proxy, its address fact) with
+  `leaseClientV_of_memberCli` (the drafts' `leaseClientV`, the `Lease` field from `isNewClient`)
+  (`Proof/.../dist/client/LeaseDefs.lean`). `RunLeaseRead.spec svc` quantifies `Γ` (one view for every member).
+- **New specs and proofs** (`dist/client`, each `wp_proof` taking its callees' specs, the drafts among them):
+  `leaseList.spec`/`specLive`/`specGranted` (one per Leases draft), `leaseGrant.spec` (revocable,
+  `Lease_GrantLive_dist`)/`specMono` (`Lease_Grant_dist`), `listed` (leaseexpiryN's, copied), `gone`
+  (leaseexpiryN's argument; a listing's error polls again), `RunLeaseCatchup`, `RunLeaseExpiry`.
+  - `RunLeaseCatchup.spec svc`: `Γ.kv.lm = .mono`, `addrs ≠ []` (`eps[k-1]` panics on none; `MainReady`
+    checks it), `ready` any call that returns (`∀ Ψ, ▷ Ψ #() -∗ WP ready #() {{ Ψ }}`; the orchestrator's is
+    `func() {}`). The panic is unreachable because `g1` is granted at the last member's lessor and
+    `Lease_LeasesGranted_dist` at `G = [g1]` lists it, whatever the fillers did (leasecatchup's argument).
+  - `RunLeaseExpiry.spec svc`: `Γ.kv.lm = .revocable`. The deferred `Close`s in the grant loop are a chain
+    whose triple the loop invariant carries.
+
+### What the lead's drafts lack (for the lead; not edited here)
+
+1. **"Absent stays absent" at a remote member.** leaseexpiryN's check uses `lease.lessorAt_absent_stays`, whose
+   premise `lessorRdInv γl` is the lessor's reader invariant: it holds the member's heap (`lsF l ↦□ id` in
+   `lessorRdBody`), so a client at another machine cannot hold it, and no draft's post gives the fact. The
+   proof of `RunLeaseExpiry` takes it as a hypothesis, the draft law `lessorAbsentStays_dist.law svc`
+   (`LeaseDefs.lean`): from `etcdAddrAtV svc a Γ mid` and three `lessorAt (Γ.ls mid)` snapshots at
+   `i ≤ k ≤ j` (the lease in the first, not in the second), it is not in the third (`|={⊤}=>`). It is heap-free
+   in substance (`histOnce` of the history). Options for N2/P-L1: (a) split `lessorRdInv` into a heap-free
+   history invariant the start hands to clients with the address fact (then the law is a theorem); (b) add the
+   law as a reviewed interim axiom beside the lease drafts; (c) strengthen `Lease_LeasesLive_dist`'s post with
+   "a lease the caller knows absent from index `k ≤ n` after it was live is not listed". (a) is the least trust.
+   With crashes (D6), the law also needs the restarted lessor's history to continue at `ls mid` (§18.3).
+2. `leaseClientV` has no `Persistent` instance (added in `LeaseDefs.lean`, not in the drafts file).
+3. No draft is needed for `ready`: it is the orchestrator's `func() {}`; N7 gives its triple.
+
+Nothing else: `Lease_Grant_dist`/`Lease_LeasesGranted_dist` suffice for leaseCatchup as drafted, and
+`Lease_GrantLive_dist`/`Lease_LeasesLive_dist` for leaseExpiry with the law above.
