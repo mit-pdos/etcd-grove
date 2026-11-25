@@ -25,6 +25,7 @@ where the operation is a phase boundary (minibolt's `commitClean_okS`/`commitMet
 module
 
 public import Proof.go_etcd_io.bbolt.Crash.Trans
+public import Proof.go_etcd_io.bbolt.Crash.Ok
 
 @[expose] public section
 
@@ -62,14 +63,28 @@ theorem crashCands_lt (s : CSt) (hb0 : s.busy = .idle) (b : Nat) (hb : b < s.m.s
 
 omit [GooseExts] in
 theorem getD_mem' {α : Type} (l : List α) (n : Nat) (d : α) (h : n < l.length) : l.getD n d ∈ l := by
-  rw [List.getD_eq_getElem _ _ h]; exact List.getElem_mem h
+  rw [getD_eq_getElem' _ _ _ h]; exact List.getElem_mem h
 
 /-! ## Mappings -/
+
+/-- `BDur` reads of a state only its bytes, change in flight, size and bounds, what a crash picks
+from, and `vmeta`'s bounds. -/
+theorem bDur_congr {a : BAbs} {s s' : CSt} (h : BDur a s) (hbs : s'.bs = s.bs)
+    (hb : s'.busy = s.busy) (hsz : s'.m.size = s.m.size) (hlo : s'.m.lo = s.m.lo)
+    (hhi : s'.m.hi = s.m.hi) (hcc : crashCands s' = crashCands s)
+    (hvlo : s'.vmeta.lo = s.vmeta.lo) (hvhi : s'.vmeta.hi = s.vmeta.hi) : BDur a s' := by
+  unfold BDur BWf BusyIn IdleOk CommitOk InitOk PSync WrIn at *
+  simp only [hbs, hb, hsz, hlo, hhi, hcc, hvlo, hvhi]
+  exact h
 
 /-- **A mapping's change keeps `BDur`** (it changes only the `OsMeta`'s mappings). -/
 theorem bDur_maps (a : BAbs) (m : OsMeta) (bs : List ByteG) (fa fb : Nat) (busy : CBusy)
     (mp : GMap Loc Nat) (h : BDur a ⟨m, bs, fa, fb, busy⟩) :
-    BDur a ⟨{ m with maps := mp }, bs, fa, fb, busy⟩ := h
+    BDur a ⟨{ m with maps := mp }, bs, fa, fb, busy⟩ := by
+  refine bDur_congr h rfl rfl rfl rfl rfl ?_ ?_ ?_
+  · funext b; cases busy <;> rfl
+  · cases busy <;> rfl
+  · cases busy <;> rfl
 
 /-! ## The idle facts, monotone -/
 
@@ -179,8 +194,9 @@ theorem wreach_inside {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8
     · by_cases hbs : b < m.size
       · rw [finBytes_out (by omega) (by omega) (by omega) b (by omega) (by omega)]
         exact hout b hb
-      · rw [List.getElem?_eq_none (by rw [finBytes_length (by omega) (by omega) (by omega), hpw];
-          omega), List.getElem?_eq_none (by omega)]
+      · have hfl : (finBytes m0 bs0 (off + nn0) (data.drop nn0) k n zs).length = m0.size := by
+          rw [finBytes_length (by omega) (by omega) (by omega), hpw]
+        rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
 
 /-- **A write of unprotected bytes inside the file keeps the idle facts** (`Tx.write`'s dirty pages,
 `commitFreelist`'s page: pages free for the committed state, not a meta slot), in every state of
@@ -202,7 +218,7 @@ theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
   have hal : m.size % 4096 = 0 := hI.2.2.2.2.2.1
   have hprot : ∀ b, (b < 8192 ∨ protData a.xcur a.cur b) → b < off ∨ off + data.length ≤ b := by
     intro b hb
-    by_contra hc
+    apply Classical.byContradiction; intro hc
     have := hun b (by omega) (by omega)
     rcases hb with hb | hb
     · omega
@@ -260,7 +276,8 @@ theorem candOV_snoc {c : Cands} {o v : w8} {N : Option Nat} (h : CandOV c o v N)
   · cases N with
     | none =>
       dsimp only at hN ⊢; subst hN
-      exact ⟨by simp, fun q hq => by simp only [List.nil_append, List.mem_singleton] at hq; rw [hq]⟩
+      exact ⟨by simp, fun q hq => by
+        simp only [List.nil_append, List.mem_singleton] at hq; rw [hq]; exact Nat.le_refl n⟩
     | some N0 =>
       obtain ⟨hmem, hge⟩ := hN
       dsimp only
@@ -384,7 +401,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
     | @step nn0 m0 bs0 k nn' n zs hW0 hnn hk hnn' hzs hZ hPF ih =>
       obtain ⟨N', hN', hsl'⟩ := ih
       obtain ⟨hs0, -, -, hl0, -, -⟩ := wreach_inside hW0 hin hl hlo hhi
-      exact ⟨some (N'.getD n), fun h => by cases h,
+      exact ⟨some (N'.getD n), (fun h => by cases h),
         metaSlot_step (o := fun j => xb Xp (4096 * (C.txid % 2) + j))
           (v := fun j => xb Xc (4096 * (C.txid % 2) + j)) (by omega) hlen (by omega)
           (by rw [hlen] at hnn; exact hnn) hk hdat hN' hPF hsl'⟩
@@ -397,7 +414,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
     ⟨N', fun k hk => ?_⟩,
     fun b hb => hpsync _ _ (.inl hb) (hdp b hb) _ (fun _ _ _ _ h => by cases h),
     fun b hb => hpsync _ _ (.inr (.inl hb)) (hdc b hb) _ (fun _ _ _ _ h => by cases h),
-    by show _ ≤ m'.lo; omega, by show _ ≤ m'.lo; omega,
+    Nat.le_trans hhp' (Nat.le_of_eq hlo'.symm), Nat.le_trans hhc' (Nat.le_of_eq hlo'.symm),
     by show m'.size % 4096 = 0; rw [hs]; exact hal',
     by show m'.lo = m'.size; omega, by show m'.hi = m'.size; omega, fun _ _ _ _ h => by cases h⟩,
     fun hlt t n hPF => ⟨⟨by show bs'.length = m'.size; rw [hs]; exact hl', by show _ ≤ m'.size; omega,
@@ -408,7 +425,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
     fun b hb => hpsync _ _ (.inl hb) (hdp b hb) _ (fun _ _ _ _ he => by cases he; rw [hd]; omega),
     fun b hb => hpsync _ _ (.inr (.inl hb)) (hdc b hb) _
       (fun _ _ _ _ he => by cases he; rw [hd]; omega),
-    by show _ ≤ m'.lo; omega, by show _ ≤ m'.lo; omega,
+    Nat.le_trans hhp' (Nat.le_of_eq hlo'.symm), Nat.le_trans hhc' (Nat.le_of_eq hlo'.symm),
     by show m'.size % 4096 = 0; rw [hs]; exact hal',
     by show (cfMeta m' _ _).lo = m'.size; rw [cfMeta_lo, hd]; omega,
     by show (cfMeta m' _ _).hi = m'.size; rw [cfMeta_hi, hd]; omega,
@@ -495,7 +512,7 @@ theorem bDur_sync_commit (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (H
   have hPm := hRp.mok
   obtain ⟨-, -, hPps, -, -, hPv, hPis, -⟩ := hPm
   refine ⟨csSynced_bwf m H F T fa fb hl, hRc, ?_, fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩,
-    fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩, by show _ ≤ m.size; omega, hal',
+    fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩, Nat.le_trans hhc' (Nat.le_of_eq hvlo'), hal',
     fun _ _ _ _ h => by cases h⟩
   · rw [hsl]; exact metaPre_of_valid (hPps _ hPv) (by rw [hPis.1, htx]; omega)
   · rw [hsb]
@@ -638,6 +655,9 @@ theorem bDur_init_done (a : BAbs) (ha : a.phase = .init) (m : OsMeta) (H F T : L
   have hsb := csSynced_bs m H F T fa fb hF
   obtain ⟨hi, hm, ht, hfl, hh, h1, h2, -⟩ := initImg_ok
   have hR : RefImg initImg initC := ⟨hi, hm, ht, hfl, hh, h1, h2, initImg_tails⟩
+  have hhwm : initC.hwm * 4096 ≤ m.size := by
+    have h4 : initC.hwm = 4 := rfl
+    rw [h4, hsz]; decide
   have hbyte : ∀ b < 16384, PSync (csSynced m H F T fa fb) b (xb initImg b) := by
     intro b hb
     refine ⟨?_, fun _ _ _ _ h => by cases h⟩
@@ -645,13 +665,16 @@ theorem bDur_init_done (a : BAbs) (ha : a.phase = .init) (m : OsMeta) (H F T : L
     obtain ⟨x, hx, hx1⟩ := Option.map_eq_some_iff.1 (himg b hb)
     rw [hx]; simp only [Option.map_some, hx1]; rfl
   refine ⟨csSynced_bwf m H F T fa fb hl, hR, ?_, fun b hb => hbyte b (by omega),
-    fun b hb => hbyte b (protData_range hR hb).2,
-    by show 4 * 4096 ≤ m.size; omega, by show m.size % 4096 = 0; omega, fun _ _ _ _ h => by cases h⟩
+    fun b hb => hbyte b (by
+      have := (protData_range hR hb).2; rw [show initC.hwm = 4 from rfl] at this; omega),
+    hhwm, by show m.size % 4096 = 0; simp [hsz], fun _ _ _ _ h => by cases h⟩
   -- slot 0 holds `init`'s meta of txid 0
   show metaPre (metaOf (initC.slot 2)) 1
   have e : initC.slot 2 = metaBuf (initMv 0) := rfl
   rw [e, metaOf_metaBuf]
-  exact metaPre_of_valid (initMv_summed_pageSize 0) (by decide)
+  refine metaPre_of_valid (initMv_summed_pageSize 0) ?_
+  rw [metaSummed_txid]
+  exact (by decide : (W64 ((0 : Nat) : Int)).toNat < 1)
 
 end phases
 

@@ -99,6 +99,10 @@ def WrIn (s : CSt) : Prop :=
 /-- `X`'s byte `b`. -/
 abbrev xb (X : List w8) (b : Nat) : w8 := X.getD b 0
 
+omit [GooseExts] in
+theorem getD_eq_getElem' {α : Type} (l : List α) (i : Nat) (d : α) (h : i < l.length) :
+    l.getD i d = l[i] := (List.getElem_eq_getD (h := h) d).symm
+
 /-- **The idle facts** of the committed state `C` with reference image `X` (see the file header). -/
 def IdleOk (C : CommitSt) (X : List w8) (s : CSt) : Prop :=
   RefImg X C ∧ metaPre (metaOf (C.slot (C.txid + 1))) C.txid ∧

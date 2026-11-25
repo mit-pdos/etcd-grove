@@ -37,7 +37,7 @@ variable [GooseExts]
 omit [GooseExts] in
 theorem xb_some (X : List w8) (b : Nat) (hb : b < X.length) : some (xb X b) = X[b]? := by
   show some (X.getD b 0) = _
-  rw [List.getElem?_eq_getElem hb, List.getD_eq_getElem _ _ hb]
+  rw [List.getElem?_eq_getElem hb, getD_eq_getElem' _ _ _ hb]
 
 theorem maxBytes_bounds (n : Nat) (h : n ≤ maxBytes) : n < 2 ^ 62 ∧ n ≤ 0xFFFFFFFFFFFF := by
   unfold maxBytes at h; constructor <;> omega
@@ -95,6 +95,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
     (bGoodU (treeData C) f ∨ bGoodU (treeData P) f) ∧ f.size % 4096 = 0 := by
   obtain ⟨hRp, hRc, htx, hsl, hpre, hslotp, ⟨N, hfl⟩, hdp, hdc, hhp, hhc, hal, hvlo, hvhi, -⟩ := hC
   have h3 := refImg_hwm hRp
+  have hC3 := refImg_hwm hRc
   have hXpl := hRp.len
   have hXcl := hRc.len
   have hlo := vmeta_lo_of s hW
@@ -164,8 +165,8 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
         (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096)).txid'.toNat < P.txid) →
       bGoodU (treeData P) f := by
     intro hoth
-    have hm : ({ P with m0 := bytesAt f.contents 0 4096,
-        m1 := bytesAt f.contents 4096 4096 } : CommitSt).metaOk := by
+    have hm : ({ P with m0 := bytesAt f.contents 0 4096, m1 := bytesAt f.contents 4096 4096 } :
+        CommitSt).metaOk := by
       apply metaOk_mk _ hlen0 hlen1
       · rw [slot_with]; show metaValid (metaOf (bytesAt f.contents (4096 * (P.txid % 2)) 4096))
         rw [hslp]; exact hPv
@@ -176,7 +177,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       · rw [slot_with]; show metaValid (metaOf (bytesAt f.contents (4096 * ((P.txid + 1) % 2)) 4096)) → _
         rw [hjp]; exact hoth
       · exact tails_drop1024 _ htz
-    have hok := fileOK_transfer Xp f.contents P hRp (by omega) hagp hm
+    have hok := fileOK_transfer Xp f.contents P hRp (by rw [hyl, hfsz]; exact hhp) hagp hm
     rw [hyl] at hok
     exact ⟨hok, hb1, hb2, htz⟩
   -- the meta of the slot being written
@@ -202,7 +203,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       rcases N with _ | N0
       · left; intro k hk
         obtain ⟨c, hc, hov⟩ := hk' k hk
-        rw [hn k hk c hc]; exact valAt_candOV hov
+        rw [hn k hk c hc]; exact valAt_candOV hov n
       · by_cases hN : N0 ≤ n
         · right; intro k hk
           obtain ⟨c, hc, hov⟩ := hk' k hk
@@ -245,8 +246,8 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
         meta_eq_of_valid _ _ heq hv hCv
       have hslc : bytesAt f.contents (4096 * ((C.txid + 1) % 2)) 4096 = P.slot P.txid := by
         rw [hpj, hslp]
-      have hm : ({ C with m0 := bytesAt f.contents 0 4096,
-          m1 := bytesAt f.contents 4096 4096 } : CommitSt).metaOk := by
+      have hm : ({ C with m0 := bytesAt f.contents 0 4096, m1 := bytesAt f.contents 4096 4096 } :
+          CommitSt).metaOk := by
         apply metaOk_mk _ hlen0 hlen1
         · rw [slot_with]; show metaValid (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))
           rw [hmeq]; exact hCv
@@ -260,7 +261,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
           rw [hslc]; intro _
           exact ⟨hPps _ hPv, by show _ < C.txid; rw [hPis.1, htx]; omega⟩
         · exact tails_drop1024 _ htz
-      have hok := fileOK_transfer Xc f.contents C hRc (by omega) hagc hm
+      have hok := fileOK_transfer Xc f.contents C hRc (by rw [hyl, hfsz]; exact hhc) hagc hm
       rw [hyl] at hok
       exact ⟨hok, hb1, hb2, htz⟩
   · exact Or.inr (hgoodP (fun h => absurd h hv))
@@ -283,7 +284,8 @@ theorem initImg_tails : metaTailsZero initImg := by
     simp only [initImg, List.append_assoc]
   rw [e] at hv
   rcases (show j = 0 ∨ j = 1 by omega) with rfl | rfl
-  · rw [List.getElem?_append_left (by rw [metaBuf_length]; omega), metaBuf_tail _ k hk1 hk2] at hv
+  · rw [show 4096 * 0 + k = k by omega,
+      List.getElem?_append_left (by rw [metaBuf_length]; omega), metaBuf_tail _ k hk1 hk2] at hv
     cases hv; rfl
   · rw [List.getElem?_append_right (by rw [metaBuf_length]; omega), metaBuf_length,
       show 4096 * 1 + k - 4096 = k by omega,
@@ -298,6 +300,7 @@ theorem bGood_initImg (f : OsFile) (hsz : f.size = 16384)
     by_cases hb : b < 16384
     · rw [contents_getElem? f b (by omega), hall b hb,
         ← xb_some initImg b (by rw [initImg_length]; exact hb)]
+      rfl
     · rw [List.getElem?_eq_none (by rw [contents_length']; omega),
         List.getElem?_eq_none (by rw [initImg_length]; omega)]
   obtain ⟨hi, hm, ht, hfl, hh, h1, h2, hd⟩ := initImg_ok
@@ -342,7 +345,7 @@ theorem bDur_view_al {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s)
   obtain ⟨hW, hP⟩ := h
   unfold bCrash
   revert hP hst
-  cases a.phase <;> intro hP hst <;> dsimp only at hP ⊢
+  cases a.phase <;> intro hst hP <;> dsimp only at hP ⊢
   · obtain ⟨h1, h2⟩ := idle_view hW hP hV
     exact bGoodU_bGood h1 (h2 (hst rfl))
   · obtain ⟨h1, h2⟩ := commit_view hW hP hV

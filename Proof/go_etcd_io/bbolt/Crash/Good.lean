@@ -304,7 +304,7 @@ theorem tails_drop1024 (ys : List w8) (h : metaTailsZero ys) :
     ∀ b ∈ (bytesAt ys 0 4096).drop 1024, b = 0 := by
   intro b hb
   obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
-  have hlen : (bytesAt ys 0 4096).length ≤ 4096 := by simp [bytesAt]
+  have hlen : (bytesAt ys 0 4096).length ≤ 4096 := by simp [bytesAt]; omega
   have hk1 : 1024 + k < (bytesAt ys 0 4096).length := by simp only [List.length_drop] at hk; omega
   have e : ((bytesAt ys 0 4096).drop 1024)[k] = (bytesAt ys 0 4096)[1024 + k] := by
     simp only [List.getElem_drop]

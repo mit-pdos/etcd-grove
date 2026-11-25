@@ -89,7 +89,7 @@ theorem cfRange_getD {m : OsMeta} {bs : List ByteG} {off n j : Nat} (hl : bs.len
     (hoff : off ≤ m.size) (hj : j < min (off + n) m.size - off) :
     (cfRange m bs off n).getD j (0, []) = bs[off + j]'(by omega) := by
   simp only [cfRange, cfLo, cfHi, Nat.min_eq_left hoff]
-  rw [List.getD_eq_getElem _ _ (by simp; omega)]
+  rw [getD_eq_getElem' _ _ _ (by simp; omega)]
   simp
 
 /-- **A landed attempt shows every candidate list the attempt in flight showed.** -/
@@ -103,9 +103,8 @@ theorem cands_landed {m : OsMeta} {bs : List ByteG} {fa fb t off : Nat} {data : 
   have hS2 : pwSize m.size off k ≤ max m.size (off + data.length) := by
     unfold pwSize; split <;> omega
   rw [crashCands_write] at hc
-  show baseCands ⟨pwPostK true m off data k n, finBytes m bs off data k n zs, fa, fb, .idle⟩ b = _
-  unfold baseCands
-  simp only [pwPostK_size]
+  show (if b < pwSize m.size off k then ((finBytes m bs off data k n zs)[b]?).map Prod.snd
+    else (pwPostK true m off data k n).pc b) = _
   simp only [crashCands, baseCands] at hc
   have hmin : min off m.size = off := Nat.min_eq_left hoff
   rw [hmin] at hc
@@ -137,8 +136,9 @@ theorem cands_landed {m : OsMeta} {bs : List ByteG} {fa fb t off : Nat} {data : 
       have hb : ¬ b < m.size := by omega
       rw [if_neg hb] at hc0
       unfold OsMeta.pc
-      rw [pwPostK_tc, pwTail_lookup, if_pos (by simp only [inRange, Bool.and_eq_true,
-        decide_eq_true_eq]; exact ⟨hr.1, hr.2⟩), if_pos (by omega), hc0]
+      have hir : inRange off (off + data.length) b = true := by
+        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; exact ⟨hr.1, hr.2⟩
+      rw [pwPostK_tc, pwTail_lookup, if_pos hir, if_pos (by omega), hc0]
       rfl
   · rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)] at hc
     by_cases hb : b < m.size
@@ -153,8 +153,9 @@ theorem cands_landed {m : OsMeta} {bs : List ByteG} {fa fb t off : Nat} {data : 
     · rw [if_neg hb] at hc
       rw [if_neg (by omega)]
       unfold OsMeta.pc at hc ⊢
-      rw [pwPostK_tc, pwTail_lookup, if_neg (by simp only [inRange, Bool.and_eq_true,
-        decide_eq_true_eq]; omega), pwPostK_zf]
+      have hir : ¬ inRange off (off + data.length) b = true := by
+        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega
+      rw [pwPostK_tc, pwTail_lookup, if_neg hir, pwPostK_zf]
       revert hc
       cases m.tc !! b with
       | some c' => exact id
@@ -205,7 +206,12 @@ theorem finBytes_val {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8}
           have hnone : (cfRange m bs off data.length).getD (b - off) (0, []) = (0, []) := by
             rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
           rw [show off + (b - off) - off = b - off by omega, hnone]
-    · exact .inl ⟨x, hx, rfl⟩
+    · refine .inl ⟨x, ?_, rfl⟩
+      have hS' : m.size ≤ pwSize m.size off k := by unfold pwSize; split <;> omega
+      by_cases hle : off + data.length ≤ m.size
+      · rwa [show min (off + data.length) m.size + (b - off - (min (off + data.length)
+          (pwSize m.size off k) - off)) = b by omega] at hx
+      · rw [List.getElem?_eq_none (by omega)] at hx; cases hx
 
 /-! ## A sync -/
 
