@@ -141,10 +141,10 @@ theorem walTailsRes_only {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarsha
 /-- **The non-tail segments given back** (see the file header). -/
 theorem walInvBody_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (γt : GName) (tg : TailG) (S : List SegG) (o : WalOut)
-    (j : Ino) (X : List GoString) (hS : ∀ g ∈ S, g.om.size = g.bs.length)
+    (i : Nat) (j : Ino) (X : List GoString) (hS : ∀ g ∈ S, g.om.size = g.bs.length)
     (hfl : tg.2.2.2.2.2 = none) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailsFrag (W := W) (<[dir := γt]> ∅) Lk -∗
-      walTailKey (W := W) dir γt -∗ tailVar (W := W) γt tg -∗ walDirKey (W := W) dir j X -∗
+      walTailKey (W := W) dir γt -∗ tailVar (W := W) γt tg -∗ walDirKey (W := W) dir i j X -∗
       walOutFrag (W := W) o -∗ ([∗list] g ∈ S, segRes (L := L) g) ==∗
       ⌜(∃ d, s.wal !! dir = some d ∧ d.H = tg.1 ∧ d.metadata = tg.2.1) ∧ WalsBounded s ∧
         (∀ b ∈ X, walNameP b = false)⌝ ∗
@@ -155,8 +155,12 @@ theorem walInvBody_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMar
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup (W := W) K dir j X $$ HKa Hkey with %hK
-  obtain ⟨-, -, -, -, -, hX, -⟩ := HDK.1 dir j X hK
+  ihave %hXt := walDirKey_tmps (W := W) dir i j X $$ Hkey
+  have hX : ∀ b ∈ X, walNameP b = false := fun b hb => by
+    subst hXt
+    cases h : walNameP b
+    · rfl
+    · exact absurd hb (not_walTmps_of_wal h)
   icases walTailsRes_lookupR C Mr s Ls F dir γt tg $$ Htl Hk Hv with ⟨%hlk, Htl, Hk, Hv⟩
   obtain ⟨d, lay, g0, hd, hl, hg0, htg⟩ := hlk
   -- nothing in flight: the holder's tails name only this WAL's, whose record says none
@@ -211,11 +215,11 @@ theorem walInvBody_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMar
 /-- **`walInvBody_readGive` at a program step** (`notCrashed`). -/
 theorem walInv_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γt : GName) (tg : TailG) (S : List SegG) (o : WalOut)
-    (j : Ino) (X : List GoString) (hS : ∀ g ∈ S, g.om.size = g.bs.length)
+    (i : Nat) (j : Ino) (X : List GoString) (hS : ∀ g ∈ S, g.om.size = g.bs.length)
     (hfl : tg.2.2.2.2.2 = none) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
       walTailsFrag (W := W) (<[dir := γt]> ∅) Lk -∗
-      walTailKey (W := W) dir γt -∗ tailVar (W := W) γt tg -∗ walDirKey (W := W) dir j X -∗
+      walTailKey (W := W) dir γt -∗ tailVar (W := W) γt tg -∗ walDirKey (W := W) dir i j X -∗
       walOutFrag (W := W) o -∗ ([∗list] g ∈ S, segRes (L := L) g) ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗
       ⌜(∃ s d, s.wal !! dir = some d ∧ d.H = tg.1 ∧ d.metadata = tg.2.1 ∧ WalsBounded s) ∧
@@ -226,7 +230,7 @@ theorem walInv_readGive {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal
   iintro #Hinv Hnc Htf Hk Hv #Hkey Ho HS
   imod walInv_open (L := L) C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_readGive C Mr R jr r s dir γt tg S o j X hS hfl $$ Hb Htf Hk Hv Hkey Ho HS
+  imod walInvBody_readGive C Mr R jr r s dir γt tg S o i j X hS hfl $$ Hb Htf Hk Hv Hkey Ho HS
     with ⟨%hp, Hb, Htf, Hk, Hv, Ho⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb

@@ -47,8 +47,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIdleF [os.file.Fi
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdleF (W := W) Mr := by
-  intro R jr r w lg locks ls lt f fd name dir j X hj b fl m bs e hb hi hlen
-  wp_start as ⟨#Harea, He, Henc, Hns, Hlg, #Hzap, Hlocks, Hls, #Hltf, #Henv, Hf, Hfd, Hk, Hn, Htf,
+  intro R jr r w lg locks ls lt f fd name dir i I j X hj b fl m bs e hb hi hlen
+  wp_start as ⟨#Harea, He, Henc, Hns, Hlg, #Hzap, Hlocks, Hls, #Hltf, #Henv, Hf, Hfd, Hk, HI, %hiI, Hn, Htf,
     Hcf, Hm, Hb⟩
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -94,9 +94,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIdleF [os.file.Fi
     iunfold fileutil.lockedFile at Hlt0
     iStructNamed Hlt0
     wp_auto
-    wp_apply (fileutil.Fdatasync.wp_idle wp_Fd Mr R jr r f fd name dir j X hj b m bs (DFrac.own 1)
-        (DFrac.own 1) fl hb hi hlen) $$ [Hf Hfd Hk Hn Htf Hcf Hm Hb]
-        as %en ⟨Hf, Hfd, Hk, Hn, Htf, Hcf, Hsy⟩
+    wp_apply (fileutil.Fdatasync.wp_idle wp_Fd Mr R jr r f fd name dir i I hiI j X hj b m bs (DFrac.own 1)
+        (DFrac.own 1) fl hb hi hlen) $$ [Hf Hfd Hk HI Hn Htf Hcf Hm Hb]
+        as %en ⟨Hf, Hfd, Hk, HI, Hn, Htf, Hcf, Hsy⟩
     · iframe; iexact Harea
     wp_apply wp_Since as %dur -
     try wp_auto
@@ -119,7 +119,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIdleF [os.file.Fi
       wp_apply Hhspec
       try wp_auto
       iapply HΦ
-      iframe He Henc Hns Hlg Hlocks Hls Hf Hfd Hk Hn Htf Hcf
+      iframe He Henc Hns Hlg Hlocks Hls Hf Hfd Hk HI Hn Htf Hcf
+      isplitr
+      · ipureintro; exact hiI
       icases Hsy with (⟨%H0, Hm, Hb⟩ | ⟨%H0, Hm, Hb⟩)
       · ileft; iframe Hm Hb; ipureintro; subst H0; rfl
       · iright; iframe Hm Hb; ipureintro; unfold errnoErr; simp; exact H0
@@ -130,7 +132,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIdleF [os.file.Fi
       wp_apply Hhspec
       try wp_auto
       iapply HΦ
-      iframe He Henc Hns Hlg Hlocks Hls Hf Hfd Hk Hn Htf Hcf
+      iframe He Henc Hns Hlg Hlocks Hls Hf Hfd Hk HI Hn Htf Hcf
+      isplitr
+      · ipureintro; exact hiI
       icases Hsy with (⟨%H0, Hm, Hb⟩ | ⟨%H0, Hm, Hb⟩)
       · ileft; iframe Hm Hb; ipureintro; subst H0; rfl
       · iright; iframe Hm Hb; ipureintro; unfold errnoErr; simp; exact H0)

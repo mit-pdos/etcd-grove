@@ -70,17 +70,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **A WAL directory with a key is in the area**: `InArea r dir nm` for the invariant's root `r`
 (`DirKeysOk`: a layout; `WalsOk`: a WAL, in the area). -/
 theorem walInv_dirKeyArea (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) :
+    (dir : GoString) (i : Nat) (j : Ino) (X : List GoString) (I : GMap GoString Nat) (hi : incOf I dir = i) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ ⌜∃ nm, InArea r dir nm⌝ := by
-  iintro #Hinv Hnc #Hk
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
+      walLockedTokI (W := W) I ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗ ⌜∃ nm, InArea r dir nm⌝ := by
+  iintro #Hinv Hnc #Hk Hl
+  subst hi
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, Hbd⟩
-  icases walDirKey_lookup (W := W) K dir j X $$ HKa Hk with %hK
+  icases walDirKey_lookupL (W := W) K dir j X I $$ HKa Hk Hl with %hK
   have hin : ∃ nm, InArea r dir nm := by
     obtain ⟨lay, -, hl, -⟩ := HDK.1 dir j X hK
     cases hw : s.wal !! dir with
@@ -108,7 +110,7 @@ theorem walInv_dirKeyArea (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
       ipureintro; exact HDK
     ipureintro; exact HAt
   imodintro
-  iframe Hnc
+  iframe Hnc Hl
   ipureintro; exact hin
 
 /-- **A handle's record from the loans made** (`walInv_dirPath`'s, in the order of `qs`). -/
@@ -124,15 +126,18 @@ theorem walHLoans_mk (dir r nm : GoString) (qs : List Qp) (h : InArea r dir nm) 
 /-- **A write handle's two loans returned** (`Close`): with the WAL's key (for the area root) and the two
 paths to `dir`, the record back to no loan out. -/
 theorem walInv_returnHLoans2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j j1 j2 : Ino) (X : List GoString) (q1 q2 : Qp) :
+    (dir : GoString) (i : Nat) (j j1 j2 : Ino) (X : List GoString) (q1 q2 : Qp) (I : GMap GoString Nat)
+    (hi : incOf I dir = i) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
-      walHLoans (W := W) dir none [q1, q2] -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
+      walLockedTokI (W := W) I -∗ walHLoans (W := W) dir none [q1, q2] -∗
       osPathS (L := hG.goose_localGS) R dir (DFrac.own q1) j1 -∗
       osPathS (L := hG.goose_localGS) R dir (DFrac.own q2) j2 ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walNamesFrag (W := W) none := by
-  iintro #Hinv Hnc #Hk Hl Hp1 Hp2
-  imod walInv_dirKeyArea C Mr R jr r dir j X $$ Hinv Hnc Hk with ⟨Hnc, %hA⟩
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗
+      walNamesFrag (W := W) none := by
+  iintro #Hinv Hnc #Hk HlI Hl Hp1 Hp2
+  imod walInv_dirKeyArea C Mr R jr r dir i j X I hi $$ Hinv Hnc Hk HlI with ⟨Hnc, HlI, %hA⟩
+  iframe HlI
   obtain ⟨nm2, hA⟩ := hA
   unfold walHLoans
   icases Hl with ⟨%Lh, Hf, %hL⟩
@@ -147,14 +152,17 @@ theorem walInv_returnHLoans2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
 /-- **A handle's one loan returned** (a read handle's pipeline path, `Close` at the state `opening`; a
 failed handle's): `walInv_returnHLoans2` with one path. -/
 theorem walInv_returnHLoans1 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j j1 : Ino) (X : List GoString) (q1 : Qp) :
+    (dir : GoString) (i : Nat) (j j1 : Ino) (X : List GoString) (q1 : Qp) (I : GMap GoString Nat)
+    (hi : incOf I dir = i) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
-      walHLoans (W := W) dir none [q1] -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
+      walLockedTokI (W := W) I -∗ walHLoans (W := W) dir none [q1] -∗
       osPathS (L := hG.goose_localGS) R dir (DFrac.own q1) j1 ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walNamesFrag (W := W) none := by
-  iintro #Hinv Hnc #Hk Hl Hp1
-  imod walInv_dirKeyArea C Mr R jr r dir j X $$ Hinv Hnc Hk with ⟨Hnc, %hA⟩
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗
+      walNamesFrag (W := W) none := by
+  iintro #Hinv Hnc #Hk HlI Hl Hp1
+  imod walInv_dirKeyArea C Mr R jr r dir i j X I hi $$ Hinv Hnc Hk HlI with ⟨Hnc, HlI, %hA⟩
+  iframe HlI
   obtain ⟨nm2, hA⟩ := hA
   unfold walHLoans
   icases Hl with ⟨%Lh, Hf, %hL⟩

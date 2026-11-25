@@ -2211,6 +2211,26 @@ theorem walOpenWI_incLb (w : Loc) (dir : GoString) (i : Nat) :
   · iexists γ; iframe Hd Hm
   ipureintro; exact h
 
+/-- **A key lookup by a write handle** (its quarter of the incarnations is at `i`). -/
+theorem walDirKey_lookupWC (K : GMap GoString (Fs.Ino × List GoString)) (w : Loc) (dir : GoString) (i : Nat)
+    (j : Fs.Ino) (X : List GoString) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir i j X -∗ walOpenWCI (W := W) w dir i -∗
+      ⌜K !! dir = some (j, X)⌝ := by
+  unfold walOpenWCI
+  iintro Ha Hk ⟨%I, -, -, Hq, %h⟩
+  subst h
+  iapply walDirKey_lookupI $$ Ha Hk Hq
+
+/-- **A key lookup by a handle** (`walHandlePI`: the lock's quarter at `i`). -/
+theorem walDirKey_lookupH (K : GMap GoString (Fs.Ino × List GoString)) (w : Loc) (dir : GoString) (i : Nat)
+    (m : WalMode) (j : Fs.Ino) (X : List GoString) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir i j X -∗ walHandlePI (W := W) w dir i m -∗
+      ⌜K !! dir = some (j, X)⌝ := by
+  unfold walHandlePI
+  iintro Ha Hk ⟨%γ, %I, -, -, -, Hl, %h⟩
+  subst h
+  iapply walDirKey_lookupL $$ Ha Hk Hl
+
 /-- `walOpenWI_incLb` of the cut form. -/
 theorem walOpenWCI_incLb (w : Loc) (dir : GoString) (i : Nat) :
     walOpenWCI (W := W) w dir i ⊢ walOpenWCI (W := W) w dir i ∗ walIncLb (W := W) dir i := by

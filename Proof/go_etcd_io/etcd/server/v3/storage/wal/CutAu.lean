@@ -70,7 +70,7 @@ def walCutP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : 
     (ht : NamesH) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr0 : Nat) (i0 : Ino) (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (o : WalOut) (w : Loc) (i : Nat) :
     IProp GF :=
-  iprop(walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗
+  iprop(walDirKey (W := W) dir i j X ∗ walTailKey (W := W) dir γ ∗
     tailVar (W := W) γ ((H, md, cuts, wr0, i0, none) : TailG) ∗
     osNames j (.except X) (DFrac.own qQuarter) hj ∗ osNames j (.only [tmp]) (DFrac.own qTmpI) ht ∗
     walParkFrag (W := W) false ∗ walOutFrag (W := W) o ∗ walCutFrag (W := W) none ∗
@@ -92,7 +92,7 @@ def walCutQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : 
       osNames j (.only [tmp]) (DFrac.own qTmpI)
         (ht.log x (renFileEnt j tmp j bt g.ino hj s0) (GMap.delete tmp ht.cur)) ∗
       osNames j (.except X) (DFrac.own qQuarter) (cutClaim j X hj tmp bt g.ino x s0).2.2 ∗
-      walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗
+      walDirKey (W := W) dir i j X ∗ walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts ++ [H.length], wr, g.ino, none) : TailG) ∗
       walParkFrag (W := W) false ∗ walOutFrag (W := W) ((o.delSeg i0).addSeg g.ino) ∗
       walCutFrag (W := W) (some dir) ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
@@ -163,7 +163,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupWC K w dir i j X $$ Hdk Hkey Hwc with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
