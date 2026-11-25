@@ -25,6 +25,46 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: raft's `readyRest` (the batch's facts) -- the batch's durable log is tied to the committed log only through the handed entries `ce`, so a WAL read re-based at a snapshot record above the handed log holds no provable state (D6-T2 / P5 (b), etcd-safe-p5)
+
+- **Spec.** Raft's node API: `readyRest`/`ReadyRestFacts` (`Proof/go_etcd_io/raft/v3/NodeApiVocab.lean`,
+  `InvNode.lean`'s `readyRest_ceInBatch`, `deliveredLogLb_committed`); on the server, `ViewOk`/`ImgOk`/
+  `crashOk` (`etcdserver/InvWal.lean`, `InvWalCrash.lean`), step 3 of P5 (b) ("a K form of `ViewOk`/`ImgOk`
+  whose base may exceed the handed log when a certified snapshot record gives a committed log of length
+  `m`", the entry below, Decision (b)).
+- **Defect.** (b)'s step 3 is not provable from the certificate alone. After a restart whose history holds a
+  snapshot record `snap m` above the restart's commit `c` (dropped by `walRead`), raft may commit past `m`
+  with a `Ready` whose committed entries stop below `m` (raft limits them, `maxApplyingEntsSize` =
+  `MaxCommittedSizePerReady`; etcd sets `MaxSizePerMsg`): `hs.Commit ≥ m > |v'.l|`. From that `Save` on,
+  every crash prefix reads records re-based at `m` (base `(m, m.Term')`, entries above `m`), and the crash
+  law must give `StorageHolds v'.S σ'` of them, whose second row is `plogTermAt v'.S.base v'.S.ents m = some
+  m.Term'`: raft's durable log has the committed term at `m`. The certificate (`snapshotValid`) gives a
+  committed log `L` of length `m` ending at term `m.Term'`, but nothing ties `v'.S` (the batch's
+  `readyDurable`) to a committed log beyond the handed `ce` (`ReadyRestFacts`' sixth row,
+  `readyRest_ceInBatch`), and `DurAgrees v'.S v'.l` covers only `v'.l`. So neither the base row
+  (`σ.b ≤ l.length`, which `L` would replace) nor the term row (which needs `DurAgrees v'.S L`) holds; it
+  is true of raft (log matching: a node's log up to its commit index is the committed log) but not exported.
+- **Evidence.** `StorageHolds` (`NodeApiVocab.lean`): `plogTermAt S.base S.ents σ.base.index' = some
+  σ.base.term'`; `walRead`'s filter (`storage/WalHist.lean`, `walKeep` by the last commit) and `walSaveSnap`
+  (`WalRecsCore.lean`, a record above the fold's commit starts the records at `m` with no entries); the
+  `ReadyRestFacts` `none` case (`NodeApiVocab.lean`): `(st.delivered ++ ce).length ≤ commit`, the entries of
+  `ce` above the base the batch's, nothing about indices in `(|st.delivered ++ ce|, commit]`. No Lean changed.
+- **Proposed change.** Raft exports, with the batch's facts, the committed log up to the batch's commit,
+  which the batch's durable log holds: in `readyRest` (or a law on it, `readyRest_commitLog`, beside
+  `readyRest_ceInBatch`), `∃ L, isCommittedLogLb γ L ∗ ⌜L.length = uint.nat (phsNext st.hardState h).Commit' ∧
+  st.delivered ++ ce <+: L ∧ ∀ i e, uint.nat d.base.index' ≤ i + 1 → L[i]? = some e → plogTermAt d.base d.ents
+  (W64 (i+1)) = some e.term⌝` with `d = readyDurable st.durable (phsNext st.hardState h) loan es` (and the
+  snapshot case alike). Proof: raft's log matching at its commit index (raft's own proof, its owner). Then
+  the server needs **no** K form of `ViewOk`/`ImgOk`: the loop's view hands `v'.l := L` (the committed log
+  up to the saved commit, of which the apply thread's log is a prefix), so a re-kept `snap m` has `m ≤
+  commit = |v'.l|` and its term is `v'.l`'s (`isCommittedLogLb_agree` with the certificate's log), and
+  `ViewOk`/`ImgOk` stay as they are. Moves: `raftNode__start`'s two `Save` sites (the view's `l`),
+  `walSaveStep_ready` (its `v'.l`), the steps of (b) otherwise as planned (the contract over `walHistH`, the
+  body over `walRead Hs`). Without it, (b) steps 1, 2 and 4 cannot be closed: the `Save` law's post
+  (`ViewOk v' (walRead (Hs ++ [save]))`) fails in the case above. A raft API change (its node API's batch
+  facts): the lead's, and raft's owner's.
+- **Decision.** Pending (P5 stopped before (b)'s Lean, session 4).
+
 ## 2026-11-25: `wal.restartOk` over the reader's fold -- not enough for P5-RESTART: the history's snapshot certificates must cross the restart, and the contract's `Save` is not a step of the reader's fold (D6-T2 / P5, etcd-safe-p5)
 
 - **Spec.** `wal.restartOk` (`etcdserver/WalApi.lean`, inside `bootOkR`/`bootstrapCrashContract`), the

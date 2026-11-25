@@ -2,7 +2,7 @@
 
 ## START HERE
 
-- **Date**: 2026-11-25 (session 1; session 3 the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
+- **Date**: 2026-11-25 (session 1; session 4 the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
 - **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7`, then its P7 update `5a1c41d945` merged in
   (`fd7630f9da`) (posted green on #50 07:18Z; same Perennial pin
   `fce59af75`), with `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4` merged (`97ef57a342`: P8's
@@ -10,6 +10,19 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-25, session 4): **stopped before (b)'s Lean; ledger entry pending.** Merged
+  `etcd-safe-p6b` @ `9615f76264` (`bd51f55338`: `wal.Discard.spec`, `walDiskAt_crash_blank_keep`; clean).
+  While scoping (b) step 3: the K form of `ViewOk`/`ImgOk` from a snapshot certificate is not provable. A
+  record `snap m` dropped at a restart is kept again once a `Save` commits past `m`; if that `Ready`'s
+  committed entries stop below `m` (raft's `maxApplyingEntsSize`), the crash prefixes read records based at
+  `m`, and `StorageHolds v'.S` of them needs raft's durable term at `m` = `m.Term'`, which nothing exported
+  gives (`ReadyRestFacts` ties the batch's log to the committed log only on `ce`). Ledger: "raft's
+  `readyRest` (the batch's facts) -- the batch's durable log is tied to the committed log only through the
+  handed entries" (2026-11-25), proposing a raft law giving the committed log `L` up to the batch's commit,
+  held by the batch's durable log; with it the view hands `v'.l := L` and `ViewOk`/`ImgOk` need no K form.
+  Steps 1, 2, 4 are not done alone: the contract's AU (step 1) is what `rnDurK_save.law` hands the loop's
+  `Save`, so changing it moves the body (step 2), whose `Save` step needs step 3. **Next**: the lead's (and
+  raft's owner's) decision on that entry; then (b) 1-5 as planned, step 3 replaced by the loop's `v'.l := L`.
 - **State** (2026-11-25, session 3, after #50 15:33Z: (b) then (a) approved, (a) through the restart slot):
   **(a) stopped, (b) begun.** (a) cannot go through `wal.restartOk` alone: the slot is the post of the
   interim axiom `bootstrapCrashContract.law` (C-I2) / `bootstrapRestartContract`, from `srvFilesC`, whose
