@@ -426,3 +426,24 @@ merge lean into goose-model-overlay-rest and shrink the packet.
 - Regenerated with PERENNIAL_DIR = the nested Perennial clone (09bd3826c): eggoose.sh (net, models-net
   changed), gen-init, copy-part, gen-raft-tla, gen-specs-pkginit, kitgen, rpcdriver-boottable, k8s-deep,
   pbschema, genlink-all (0 differ); every --check passes.
+- Coordinator (#8 7171395756): the six helpers kept, marked "UDP-only, retired by #58" (trailing comments, no
+  line shifts); condition 1 accepted. packet-rest.md lists the 141 results/specs (+ 24 section-variable
+  files) whose statements lose FieldAssumptions premises (`tmp/gm12/scripts/fa_results.py`).
+- Full default build 1 (`tmp/gm12/full1.log`, at 2ce3866759): EXIT 1, 22 failing modules. Cause: lean's NEW
+  code (since 622264bf5e) written over the old trusted net/os models; it needs the same port egnet S5/S6 did:
+  * fixed (b873b7bcfb, building `tmp/gm12/b2.log`): dist TopLevelRobustness and mvccrand/mvccfull MainAt
+    intro arities; Net go/token Init (`internal.gomodel.initialize'` first); `net.Listen.specHttp` (lean's)
+    takes `isPkgInit net` like egnet's `net.Listen.spec` (5 callers: `ihave … · iPkgInit`); epaxos
+    `DialHTTP_kit` / swiftpaxos `DialHTTP_tcp` take `isPkgInit net` (6 callers, `solve_pkg_init`), rpcdriver
+    dial; Proof/net/ErrOrNil: `resErr_errOrNil` takes `syscall.errnoOk` (`opErr_errOrNil` deleted: unprovable
+    without the Err's facts), callers via `net.connAt_errnoOk`; vr: `network.resErr_errOrNil` and
+    `wp_debug_resErr` take `isPkgInit net` (`network.errnoOk_of_net`), `connAt_agree` over `connFd`/`fdAt`;
+    stale KvRaft/Proof/net/OpErrorMsg (a KvNet copy header) recopied.
+  * NOT fixed yet: gryff (`Lib/NetAddr.lean` wp_TCPAddr_String: use Net's, make OpErrorMsg's public;
+    `N/ConnErr.lean` opErrPtr_errAny needs `opErrMsgOk v ∗ syscall.errnoOk`, cascading to resErr_errAny',
+    resErr_errAny, rdErr_conn and 5 callers: thread errnoOk, e.g. from `isPkgInit net` via
+    `network`-style errnoOk_of_net); Proof/os/LstatAnyS (lean-new, over `os.model.stat`: port to the os Go
+    model, cf. egnet's Lstat proofs); Proof/encoding/json/NetInit (isPkgInitDef unify); Net/Proof/net/http/
+    ServeLemmas (208, 378), InitFirst (89), Net/Proof/net/rpc/Client__CloseClosed (82: errnoOk wand);
+    membership/OwnedMutex (Type mismatch: lean's change vs basic slice's sync.Mutex?). Then a full build to
+    find what was behind them.
