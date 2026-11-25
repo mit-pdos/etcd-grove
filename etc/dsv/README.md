@@ -75,6 +75,12 @@ leaves the statement. Each axiom:
   quepaxa's `PbHyp` (the messages' representation admits any value of protobuf's runtime fields
   `state`/`sizeCache`);
 - is counted in its kits' tcb collections (`etc/tcb-collections/dsv-<kit>.txt`).
+Where a pure fact the program could check is what the axiom needs, it goes into the Go code instead
+(#49's bar): gryff's `sort.Slice.wp_proofInt32Lt` (retired 2026-11-25) had no length bound, and
+pdqsort's heapsort fallback overflows `2*root+1` past `2^62` elements (#18), so `ShortCircuit` now
+sorts with `slices.Sort` and short-circuits the reads only while `len(keys) <= maxShortReads`
+(`1 << 20`; a read skipped completes by its own replies), proved over Perennial's `slices.wp_Sort`
+and `cmp.Less` at `int32` (`Spec/cmp/Less.lean`).
 Left premises: craq's `RpcHttpServe` (waits on S5), the go-redis and grpc `InitHyp`s, quepaxa's
 `QpVocab`, `PbHyp`, `GrpcHyp`, `GrpcWorldHyp` (an allocation law of the ghost state) and `MapHyp` (its `ivt`
 stands in for Perennial's `sorry` instances of `sync.Map`'s memory: a model fact).

@@ -5,7 +5,8 @@
 # (examples/gryffnet/TopLevelRobustness.lean: eleven machines, Robust [] under DistDeploy, 2^30
 # threads, 2^63 steps, with no premise). Its `#print axioms`: Lean's three, Net/'s interim axioms
 # (net/rpc's and net/http's initializers, net/http's Handle and Serve), and the per-function axioms
-# of sort.Slice, math.Pow (the main tree's) and math/rand.Seed: the baseline below.
+# of math.Pow (the main tree's) and math/rand.Seed: the baseline below (sort.Slice's, retired
+# 2026-11-25: ShortCircuit sorts with slices.Sort under a length guard, proved).
 # dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): the library functions are per-function trust-boundary
 # axioms (Dsverify/Proof/<pkg>/<fn>.lean, reviews notes/axiom-review/dsv-fix4/), listed below.
 #
@@ -22,5 +23,4 @@ axiom Perennial.math.rand.Seed.wp_proof
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'
-axiom Perennial.sort.Slice.wp_proofInt32Lt
 axiom math.Pow.wp_proof

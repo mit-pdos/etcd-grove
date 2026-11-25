@@ -8,7 +8,7 @@ variable).
 module
 
 public import Dsverify.Proof.gryff.src.gryffcommon.Base
-public import Perennial.Proof.sort.Link
+public import Perennial.Proof.slices.Link
 public import Dsverify.Proof.gryff.src.gryffproto.Init
 public import Dsverify.Proof.gryff.src.state.Init
 public import Dsverify.Proof.gryff.src.stats.Init
@@ -52,8 +52,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply (_root_.Perennial.gryff.src.state.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.gryff.src.stats.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
-      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.slices _root_.Perennial.slices.initialize'
+      EtcdGrove.ExternalInit.slices _root_.Perennial.slices.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.gryff.src.gryffproto.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish

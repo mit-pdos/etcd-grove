@@ -383,7 +383,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet.cmd.or
   have h67 : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h61, h44, h65, h58, True.intro⟩
+    exact ⟨h61, h21, h65, h58, True.intro⟩
   have h68 : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

@@ -73,7 +73,10 @@ macro "rr_sends" : tactic => `(tactic| (first
 theorem shortCircuit_rr {s s' : RState} {n : w32} {val : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n val f = some (s', o)) :
     ∀ cid rid v z, Out.ext (.readReply cid rid v z) ∈ o → v = val.v := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · intro _ _ _ _ h; cases h
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

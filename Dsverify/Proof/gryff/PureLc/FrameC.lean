@@ -88,7 +88,10 @@ theorem handleExecuted_pf {s s' : RState} {m : ExecutedM} {o : List Out}
 
 theorem shortCircuit_pf {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : PF s s' := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact PF.rfl'
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

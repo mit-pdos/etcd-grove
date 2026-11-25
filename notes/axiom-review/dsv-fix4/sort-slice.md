@@ -1,5 +1,13 @@
 # Axiom review: `sort.Slice` on a `[]int32` with `<` (`sort.Slice.wp_proofInt32Lt`)
 
+**Retired 2026-11-25** (branch `dsv-fix4`): no length bound; replaced by `slices.Sort` under a guard.
+The triple takes a slice of any length, but past `2^62` elements pdqsort's heapsort fallback overflows
+`2*root+1` (zeldovich, #18; ledger 2026-11-25, sortslice2), so it may be false in the model.
+`gryffcommon.ShortCircuit` now sorts with `slices.Sort(keys)` and short-circuits the reads only while
+`len(keys) <= maxShortReads` (`1 << 20`), proved over Perennial's `slices.wp_Sort`; the axiom,
+`Dsverify/Proof/sort/Slice.lean` and the class `SortSliceHyp` are deleted. The review below is kept
+as it was.
+
 Reviewed 2026-11-25 by the `axiom` skill (an independent reviewer), in the worktree
 `/shared/etcd-grove-mathrand` (branch `dsv-fix4`) at `a28755b089`; Perennial `fce59af75`; Go at the
 pinned toolchain go1.27.3 (`src/sort/slice.go`, `zsortfunc.go`, `src/internal/reflectlite/swapper.go`).

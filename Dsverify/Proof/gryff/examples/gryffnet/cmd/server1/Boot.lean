@@ -373,7 +373,7 @@ theorem wf_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr (
 theorem wf_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_gryff_src_gryffproto, wf_sort, wf_gryff_src_stats, wf_gryff_src_state, True.intro⟩
+  exact ⟨wf_gryff_src_gryffproto, wf_slices, wf_gryff_src_stats, wf_gryff_src_state, True.intro⟩
 
 theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -748,7 +748,7 @@ theorem wfNo_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfNo_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_gryff_src_gryffproto, wfNo_sort, wfNo_gryff_src_stats, wfNo_gryff_src_state, True.intro⟩
+  exact ⟨wfNo_gryff_src_gryffproto, wfNo_slices, wfNo_gryff_src_stats, wfNo_gryff_src_state, True.intro⟩
 
 theorem wfNo_math_rand : GetIsPkgInitProp pkg_id.math.rand (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1108,7 +1108,7 @@ theorem wfS2_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfS2_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_gryff_src_gryffproto, wfS2_sort, wfS2_gryff_src_stats, wfS2_gryff_src_state, True.intro⟩
+  exact ⟨wfS2_gryff_src_gryffproto, wfS2_slices, wfS2_gryff_src_stats, wfS2_gryff_src_state, True.intro⟩
 
 theorem wfS2_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1458,7 +1458,7 @@ theorem wfS1_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfS1_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_gryff_src_gryffproto, wfS1_sort, wfS1_gryff_src_stats, wfS1_gryff_src_state, True.intro⟩
+  exact ⟨wfS1_gryff_src_gryffproto, wfS1_slices, wfS1_gryff_src_stats, wfS1_gryff_src_state, True.intro⟩
 
 theorem wfS1_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1798,7 +1798,7 @@ theorem wfS0_gryff_src_genericsmr : GetIsPkgInitProp pkg_id.gryff.src.genericsmr
 theorem wfS0_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_gryff_src_gryffproto, wfS0_sort, wfS0_gryff_src_stats, wfS0_gryff_src_state, True.intro⟩
+  exact ⟨wfS0_gryff_src_gryffproto, wfS0_slices, wfS0_gryff_src_stats, wfS0_gryff_src_state, True.intro⟩
 
 theorem wfS0_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

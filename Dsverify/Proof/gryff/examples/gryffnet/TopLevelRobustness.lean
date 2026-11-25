@@ -16,7 +16,6 @@ module
 public import Dsverify.Spec.gryff.examples.gryffnet.TopLevelRobustness
 public import Dsverify.Proof.gryff.examples.gryffnet.Link
 public import Dsverify.Proof.gryff.examples.gryffnet.StrIndexHolds
-public import Dsverify.Proof.sort.Slice
 public import Dsverify.Proof.math.rand.Seed
 public import Proof.math.Pow
 public import Dsverify.Proof.gryff.examples.gryffnet.Mains
@@ -201,7 +200,6 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     letI : wire.BinaryVarintHyps remoteGF := EtcdGrove.dsvgryff.binaryVarintHyps
     letI : netN.StringsIndexHyp remoteGF := instances.stringsIndexHyp_holds
-    letI : replica2.SortSliceHyp remoteGF := ⟨sort.Slice.wp_proofInt32Lt⟩
     letI : lib.MathPowHyp remoteGF := ⟨EtcdGrove.math.Pow.wp_proof⟩
     letI : lib.RandSeedHyp remoteGF := ⟨math.rand.Seed.wp_proof⟩
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega

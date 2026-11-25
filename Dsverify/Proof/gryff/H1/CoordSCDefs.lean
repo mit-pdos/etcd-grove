@@ -14,7 +14,7 @@ public import Dsverify.Proof.gryff.H1.CoordStartDefs
 public import Dsverify.Proof.gryff.H1.Sort
 public import Dsverify.Proof.gryff.H1.PureSC
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.gryff.Lib.SortHyps
+public import Dsverify.Proof.gryff.Replica2.Specs
 
 @[expose] public section
 
@@ -35,7 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 
 
@@ -145,7 +144,12 @@ theorem shiftInts_low (a b : w32) : (model.shiftInts a b).setWidth 32 = b := by
 theorem shortCircuit_ropsKeyed (s s2 : RState) (n : w32) (value : model.ValTag) (fo : Bool)
     (o : List Out) (h : model.shortCircuit s n value fo = some (s2, o)) (hk : ropsKeyed s.rops) :
     ropsKeyed s2.rops := by
-  obtain ⟨op, -, hl, -⟩ := sc.shortCircuit_inv s s2 n value fo o h
+  obtain ⟨op, -, hR, hS⟩ := sc.shortCircuit_inv s s2 n value fo o h
+  by_cases hc : op.shortReads.length ≤ model.maxShortReads
+  rotate_left
+  · obtain ⟨rfl, -⟩ := hS (by omega)
+    exact hk
+  obtain ⟨hl, -⟩ := hR hc
   have := sc.loopF_inv (sc.scF n value.v fo)
     (fun st => ropsKeyed st.1.rops)
     (fun k st st' hst hf => by
