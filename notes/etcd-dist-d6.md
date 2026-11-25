@@ -1386,8 +1386,7 @@ axiom, no `sorry`; `etc/tier-check.py --check` ok, the new file is defs tier):
 2. The producer side of `osPathDur R sd J` (T8's boot): after `bootFs.touchMember` (`member`) and
    `bootstrapSnapshot`'s `TouchDirAll(SnapDir())` (`snap`), persist a fraction of each claim (`gElem` persist,
    `DFrac.update_discard`) and apply `osPathDur_root` (the data directory is a root?) then `osPathDur_child`
-   twice. Check first that the data directory `dd` is one of the shared invariant's roots (else extend
-   `osPathDur_root` to the spine `dd`'s `osPathS` gives, durable through its own `TouchDirAll`).
+   twice (`dd` is a root of the shared invariant, P7 round 4 gap 1, so `sd`'s spine is `[member, snap]`).
 3. B1 (the backend's image invariant): a design note first (who deposits the image facts at each backend
    commit; `dbCrashKeep_new`/`_announce`/`_clear` at the apply thread's commit points; the facts must cover
    `Dl`, `Dn` and `pd`).
