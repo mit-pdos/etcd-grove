@@ -1582,6 +1582,20 @@ rename) needs the rename's log position: `os.Rename.spec` (proved, `Proof/os/Ren
   then feeds `syncDir`. The fact is persistent, so it survives `OpenBackend` (an axiom whose `bPath` hides the
   claim's history). T7 combines it with the claim it holds (`bPath`) to show that the durable tree names the inode.
 
+**P8 integration (2026-11-25), branch `etcd-safe-main-pin-p8/2026-11-24`, not on the pin branch.** P8's diff
+against P6's `2c17304ea8` applies, with two add/add conflicts resolved (`CrashInterim.lean`,
+`InvCrashImage.lean`; kept this line's `envVerifyOff` and the `issues/` path). Every P8 module builds. Two
+errors, both in this line's crash-branch file `NewServerRAt.lean`, which P8 never saw:
+- `bootstrapAtR_of_crash` (l. 113): the crash contract's pre is now `srvFilesC`, and `bootstrapAtR`'s is
+  `srvFiles`. Fix: weaken through `srvFiles_srvFilesC` inside the triple (`icases Hc with #Hc`, then
+  `iintro !>`, and apply `Hc` with the files converted).
+- `srvCrashImageAt_disk` (l. 140) cannot be repaired: a crash image now holds only `srvFilesC`, and
+  `srvDiskImageAt` (the graceful image) needs `srvFiles` (the WAL's synced mark at `|H|`).
+  `NewServerCrash`'s route (crash image, then graceful image, then `NewServer.specR`) needs `srvDiskImageAt`
+  and `bootstrapAtR` restated over `srvFilesC`. That is proposal (1)'s consumer change
+  (`notes/wal-p8-handoff.md`): nothing on the restart path needs the mark. The other way is to raise the mark
+  at boot.
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
