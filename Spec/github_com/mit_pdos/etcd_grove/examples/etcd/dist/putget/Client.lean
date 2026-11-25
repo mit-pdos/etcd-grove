@@ -41,12 +41,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 /-- See the file header. -/
 abbrev Client.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 30)] [π : NetProtoGS]
     (client : GoString) (γE : GName) (mid : w64),
   -- the address as a Go string (`AddrOk`'s loop runs to `len(a)`)
   client.length + 1 < 2 ^ 63 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
+      -- (decision 1b) the main thread's level-0 token, which `NewClient` takes and gives back
+      levelTok 0 ∗
       (⌜Net.addrOk client = true⌝ -∗
         clientShare (G := hG.goose_globalGS) client γE mid (putgetPub (G := hG.goose_globalGS))) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client)) (Val #client))
