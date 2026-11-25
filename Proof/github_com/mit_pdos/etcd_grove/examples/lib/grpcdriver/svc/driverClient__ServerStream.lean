@@ -127,11 +127,18 @@ theorem driverClient.ServerStream.wp_proof
     wp_auto
     iStructNamed «$r0»
     ipersist ClientStream
-    ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+    have hReq : (pbStringValueST (GF := GF)).toStreamMsg.ty = wrapperspb.StringValue.ty := rfl
+    have hI : IntoValTyped (GF := GF) wrapperspb.StringValue
+        (pbStringValueST (GF := GF)).toStreamMsg.ty := hReq ▸ inferInstance
+    have hT : TypeRepr (pbStringValueST (GF := GF)).toStreamMsg.ty wrapperspb.StringValue :=
+      hReq ▸ inferInstance
+    have hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
       (Rep := (pbStringValueST (GF := GF)).toStreamMsg) wrapperspb.StringValue wrapperspb.StringValue
       wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
       (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn cd'
-      anyRes (streamErrShape d) $$ [ClientStream]
+      anyRes (streamErrShape d)
+    rw [hReq] at hw
+    ihave #Hw := hw $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _

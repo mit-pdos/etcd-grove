@@ -124,23 +124,34 @@ theorem driverClient.ClientStream.wp_proof
   wp_auto
   icases Hres with (⟨%Herr, %γ, %Dn, %cd', #Hcs, HSt, HRt, #HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
-    wp_auto
-    iStructNamed «$r0»
+    try wp_auto
+    wp_alloc p as Hp
+    try wp_auto
+    iStructNamed Hp
     ipersist ClientStream
-    ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+    have hReq : (pbStringValueST (GF := GF)).toStreamMsg.ty = wrapperspb.StringValue.ty := rfl
+    have hI : IntoValTyped (GF := GF) wrapperspb.StringValue
+        (pbStringValueST (GF := GF)).toStreamMsg.ty := hReq ▸ inferInstance
+    have hT : TypeRepr (pbStringValueST (GF := GF)).toStreamMsg.ty wrapperspb.StringValue :=
+      hReq ▸ inferInstance
+    have hw := cliBidiStreamIs_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
       (Rep := (pbStringValueST (GF := GF)).toStreamMsg) wrapperspb.StringValue wrapperspb.StringValue
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
+      wp_Send wp_Recv wp_CloseSend wp_Context p cs γ Up
       (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn cd'
-      anyRes (streamErrShape d) $$ [ClientStream]
+      anyRes (streamErrShape d)
+    rw [hReq] at hw
+    ihave #Hw := hw $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
       iexact Hl
-    ihave #Hcar := carOk_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+    have hc := carOk_of_raw (GF := GF) (Req := (pbStringValueST (GF := GF)).toStreamMsg)
       (Rep := (pbStringValueST (GF := GF)).toStreamMsg) wrapperspb.StringValue wrapperspb.StringValue
-      «$r0_ptr» cs γ Up
+      p cs γ Up
       (fun a md => iprop(⌜a ∈ addrs⌝ ∗ streamAttemptMd conn (fun om om' => om' = om) om md)) Dn cd'
-      anyRes (streamErrShape d) trivial $$ [ClientStream]
+      anyRes (streamErrShape d) trivial
+    rw [hReq] at hc
+    ihave #Hcar := hc $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
