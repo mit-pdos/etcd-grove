@@ -15,7 +15,6 @@ module
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
-public import Spec.sort.Slice
 
 @[expose] public section
 
@@ -47,14 +46,13 @@ execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads a
 is stuck and none has an unrecovered panic. The directory `r` is only a root of the machine's file
 system: the program (`MainAt`) checks that it fits and that its database's name is free, and returns
 otherwise (P3 of the pure-premise plan, 2026-11-24; until then the premises `Hrfit : Fs.DirFits r`
-and `Habs`, no entry `mvccrand.db` in `r`). -/
+and `Habs`, no entry `mvccrand.db` in `r`). Until 2026-11-25 also the premise `Hsort`, `sort.Slice`'s
+spec at every ghost-state instance (sortslice2: the tester sorts with `slices.Sort`, proved). -/
 def mvccrand_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
-      sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (r : GoString)
     (HEnv : EtcdVerifyOff) (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
