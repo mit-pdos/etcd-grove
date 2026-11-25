@@ -1,0 +1,13 @@
+# The lintest examples' top-level robustness theorems (examples/lib/lintest/<ex>, #49 lib-net):
+# `counter_robust`, `logkv_robust`, `logkvappend_robust`, `logkvcompact_robust`, `logkvrw_robust`,
+# `logkvsnap_robust` (Proof/.../lib/lintest/<ex>/TopLevelRobustness.lean; statements in
+# Spec/.../lib/lintest/<ex>/TopLevelRobustness.lean): each example's program alone on one stable
+# machine, at no extension, over the driver's, the library's and porcupine's linked proofs.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/lintest.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/lintest.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/lintest.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/(counter|logkv|logkvappend|logkvcompact|logkvrw|logkvsnap)/TopLevelRobustness\.lean$

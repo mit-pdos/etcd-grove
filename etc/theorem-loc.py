@@ -26,7 +26,8 @@ part's `<root>/Proof/`), print
     Go's standard library (no source here) is not counted.
 
 The axioms are those of the `etc/tcb-collections/*.txt` file whose `roots` patterns match the
-theorem's `Results.lean` (or its name); `--collection` picks one.  Those files' `axiom` lines are
+theorem's `Results.lean` (or its name), family collections (with `axioms` lines) excepted;
+`--collection` picks one.  Those files' `axiom` lines are
 etc/tcb-report.py's baseline (`--collection FILE --check --update` refreshes one after a build),
 and a collection covers every root of its file: for a `Results.lean` with several theorems, each
 gets the file's union.
@@ -364,7 +365,7 @@ def code_lines(d):
 def find_theorem(name, file=None):
     if file is None:
         dirs = [os.path.join(ROOT, d) for d in ["Proof", "Spec"] + PARTS]
-        r = subprocess.run(["grep", "-rlE", r"^(theorem|lemma) " + re.escape(name) + r"\b",
+        r = subprocess.run(["grep", "-rlE", r"^(theorem|lemma) " + re.escape(name) + r"([[:space:]({:]|$)",
                             "--include=*.lean", *[d for d in dirs if os.path.isdir(d)]],
                            capture_output=True, text=True)
         cands = r.stdout.split()
@@ -377,11 +378,15 @@ def find_theorem(name, file=None):
 
 def find_collection(rel, name):
     """The `etc/tcb-collections/*.txt` whose `roots` patterns match the theorem's file (preferred)
-    or its name; of several, the one with the fewest axioms."""
+    or its name; of several, the one with the fewest axioms.  A family collection (one with
+    `axioms PATTERN` lines, grpc.txt) is never picked: its baseline is only the family's axioms,
+    under every root its patterns match, not one theorem's trust base."""
     by_file, by_name = [], []
     for f in sorted(glob.glob(os.path.join(ROOT, "etc", "tcb-collections", "*.txt"))):
         with open(f, encoding="utf-8") as fh:
             lines = fh.read().splitlines()
+        if any(l.startswith("axioms ") for l in lines):
+            continue
         pats = [l.split(None, 1)[1] for l in lines if l.startswith("roots ")]
         n = sum(1 for l in lines if l.startswith("axiom "))
         if any(re.search(p, rel) for p in pats):
