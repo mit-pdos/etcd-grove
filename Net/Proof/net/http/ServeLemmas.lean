@@ -11,6 +11,10 @@ public import Net.Proof.net.http.ConnReaderHead
 public import Net.Proof.net.http.ServerConnLemmas
 public import Net.Spec.net.OpError__Timeout
 public import Perennial.Proof.fmt.DoPrintf
+public import Perennial.Spec.fmt.newPrinter
+public import Perennial.Spec.fmt.buffer__writeString
+public import Perennial.Spec.fmt.pp__free
+public import Perennial.Spec.internal.gomodel.Choose
 public import Net.Spec.net.Conn__Close
 
 @[expose] public section
@@ -46,7 +50,7 @@ theorem reqErr_shape (γe : GName) (err : GoInterface) :
     · iunfold crHeadErr at H
       icases H with ⟨-, -, H⟩
       iunfold crErrId at H
-      icases H with (⟨%xe, %hx, -⟩ | ⟨%src, %addr, %e', H⟩)
+      icases H with (⟨%xe, %hx, -⟩ | ⟨%src, %addr, %e', H, -⟩)
       · ipureintro; exact .inl ⟨xe, hx⟩
       · iunfold net.opErr at H
         icases H with ⟨%pe, %nw, %hpe, -⟩
@@ -55,10 +59,11 @@ theorem reqErr_shape (γe : GName) (err : GoInterface) :
   · ipureintro; exact .inl ⟨x, hx⟩
   · ipureintro; exact .inl ⟨x, hx.1⟩
 
-/-- An `*OpError` that `readRequest` returns is read-only. -/
+/-- An `*OpError` that `readRequest` returns is read-only, of net's own errors and addresses
+(`net.opErrOk`, what `OpError.Timeout` needs). -/
 theorem reqErr_opErr (γe : GName) (pe : Loc) :
     reqErr (crHeadErr (GF := GF) γe) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) ⊢
-      ∃ v : net.OpError, pe ↦□ v := by
+      ∃ v : net.OpError, pe ↦□ v ∗ net.opErrOk v := by
   have hne : go.GoType.PointerType net.OpError.ty ≠ go.GoType.PointerType errors.errorString.ty := by
     unfold net.OpError.ty errors.errorString.ty; intro h; cases h
   have hne2 : go.GoType.PointerType net.OpError.ty ≠ net.textproto.ProtocolError.ty := by
@@ -71,13 +76,12 @@ theorem reqErr_opErr (γe : GName) (pe : Loc) :
     · iunfold crHeadErr at H
       icases H with ⟨-, -, H⟩
       iunfold crErrId at H
-      icases H with (⟨%xe, %hx, -⟩ | ⟨%src, %addr, %e', H⟩)
+      icases H with (⟨%xe, %hx, -⟩ | ⟨%src, %addr, %e', #Hop, #Hown, #Hs, #Ha⟩)
       · exact absurd ((interface_mkOk_inj _ _ _ _).1 hx).1 hne
-      · iunfold net.opErr at H
-        icases H with ⟨%pe', %nw, %hpe, #Hpe⟩
-        obtain ⟨-, hv⟩ := (interface_mkOk_inj _ _ _ _).1 hpe.1
+      · icases net.opErr_opErrOk _ _ _ _ _ $$ [$Hop $Hown $Hs $Ha] with ⟨%pe', %v, %hpe, #Hpe, #Hok⟩
+        obtain ⟨-, hv⟩ := (interface_mkOk_inj _ _ _ _).1 hpe
         rw [go.intoVal_inj hv]
-        iexists _; iexact Hpe
+        iexists v; iframe Hpe Hok
     · obtain ⟨msg, h, -⟩ := h
       exact absurd ((interface_mkOk_inj _ _ _ _).1 h).1 hne2
   · exact absurd ((interface_mkOk_inj _ _ _ _).1 hx).1 hne
@@ -133,7 +137,7 @@ theorem reqErr_not_tooLarge (γe : GName) (err : GoInterface) :
       · iunfold crHeadErr at H
         icases H with ⟨-, -, H⟩
         iunfold crErrId at H
-        icases H with (⟨%xe, %hxe, #He⟩ | ⟨%src, %addr, %e', H⟩)
+        icases H with (⟨%xe, %hxe, #He⟩ | ⟨%src, %addr, %e', H, -⟩)
         · icombine He Hg0 gives %h0
           rw [h0]
           iapply errorString_ne x0 xt go!"EOF" go!"http: request too large" (by decide)
@@ -197,12 +201,12 @@ theorem wp_isCommonNetReadError (wp_Timeout : net.OpError.Timeout.spec (GF := GF
     simp only [h1]
     wp_auto
     iapply HΦ; itrivial
-  · ihave ⟨%v, #Hpe⟩ := reqErr_opErr γe pe $$ H
+  · ihave ⟨%v, #Hpe, #Hok⟩ := reqErr_opErr γe pe $$ H
     have h1 : go.typeSetContains (go.GoType.PointerType net.OpError.ty) net.Error.ty = true := by
       go_type_set
     simp only [h1]
     wp_auto
-    wp_apply wp_Timeout $$ [$Hpe] as %b -
+    wp_apply wp_Timeout $$ [$Hpe $Hok] as %b -
     ihave #H2 := Hpe
     iStructNamed H2
     cases b
@@ -362,9 +366,16 @@ theorem wp_conn_close [bufio.Assumptions]
   iframe
 
 /-- `fmt.Fprintf(w, f)` of a format `f` without a verb and no arguments: one `w.Write` of `f`'s bytes.
-(Perennial's `fmt.Fprintf.spec` lets the writer's spec see only some bytes, not which; its proof
-writes `SprintfOut`'s output, which here is `f`: proved over the same callees.) -/
-theorem wp_Fprintf_noVerb [fmt.Assumptions] (ii : GoInterfaceOk) (f : GoString)
+(Perennial's `fmt.Fprintf.spec` lets the writer's spec see any bytes (`fmt.writeSpec`), not which;
+this is its proof (`Perennial/Proof/fmt/Fprintf.lean`, over the Go model's printer) where the bytes
+written are `SprintfOut`'s output, here `f`: over the same callees.) -/
+theorem wp_Fprintf_noVerb [fmt.Assumptions]
+    (wp_newPrinter : fmt.newPrinter.spec (GF := GF) (hG := hG))
+    (wp_writeString : fmt.buffer.writeString.spec (GF := GF) (hG := hG))
+    (wp_free : fmt.pp.free.spec (GF := GF) (hG := hG))
+    (wp_Choose : internal.gomodel.Choose.spec (GF := GF) (hG := hG))
+    (wp_ChooseUint64 : internal.gomodel.ChooseUint64.spec (GF := GF) (hG := hG))
+    (ii : GoInterfaceOk) (f : GoString)
     (hf : f.all (fun c => decide (c ≠ W8 37)) = true) (P : IProp GF) (Q : w64 → GoInterface → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ P ∗
         (∀ (sl : GoSlice) (Φ : val → IProp GF), P -∗ sl ↦* f -∗
@@ -374,23 +385,34 @@ theorem wp_Fprintf_noVerb [fmt.Assumptions] (ii : GoInterfaceOk) (f : GoString)
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Q n err }} := by
   wp_start as ⟨HP, HW⟩
   try wp_auto
+  wp_apply wp_newPrinter as %p Hp
+  unfold fmt.isPrinterAny fmt.isPrinter fmt.isPrinterA
+  icases Hp with ⟨%hnn, %F, %wid, %prec, %x', Hb, Hrest⟩
   ihave Hsl := ownSlice_nil (V := GoInterface) (DFrac.own 1)
-  have hdo := fmt.wp_doPrintf (GF := GF) f slice.nil [] (DFrac.own 1) false
+  have hdo := fmt.wp_doPrintf wp_Choose wp_ChooseUint64 wp_writeString (p.[fmt.pp, go!"buf"]) []
+    f slice.nil [] (DFrac.own 1) false
   rw [fmt.modeVerbs_false] at hdo
-  wp_apply hdo $$ [$Hsl] as %s %wsl %unk ⟨-, %Hs, -⟩
+  wp_apply hdo $$ [$Hb $Hsl] as %wsl %unk ⟨%s, Hb, -, %Hs, -⟩
   · iapply fmt.argsOk_of_argsWf; exact fmt.ArgsWf.nil
   have hs := SprintfOut_noVerb (fun c hc => by
     have := List.all_eq_true.1 hf c hc; simpa using this) Hs
   subst hs
   try wp_auto
-  wp_apply (fmt.wp_printerBuf s) as %bsl ⟨Hb, %spare, Hspare⟩
-  try wp_auto
-  wp_bind (App (Val #(methods ii.ty go!"Write" ii.v)) (Val #bsl))
-  iapply HW $$ HP Hb
+  unfold fmt.bufferOwn
+  icases Hb with ⟨%sl, Hb, Hbs, Hcap⟩
+  wp_auto
+  wp_bind (App (Val #(methods ii.ty go!"Write" ii.v)) (Val #sl))
+  iapply HW $$ HP Hbs
   inext
-  iintro %n %err Hb HQ
-  try wp_auto
-  wp_apply (fmt.wp_retire bsl s spare) $$ [$Hb $Hspare]
+  iintro %n %err Hbs HQ
+  wp_auto
+  wp_apply wp_free p ([] ++ s) $$ [Hb Hbs Hcap Hrest]
+  · iframe
+    unfold fmt.isPrinterAny fmt.isPrinter fmt.isPrinterA fmt.bufferOwn
+    isplitr
+    · ipureintro; exact hnn
+    iexists F, wid, prec, x'
+    iframe
   try wp_auto
   iapply HΦ
   iexact HQ

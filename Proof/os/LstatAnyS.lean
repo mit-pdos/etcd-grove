@@ -4,8 +4,8 @@ the pure-premise plan, 2026-11-24: the mvcc testers' `absent`, `Lstat` then `err
 os.ErrNotExist)`): of a name holding nothing, a `*PathError` of a nonzero errno (`wp_absentErrS`, so
 that `errors.Is` can be asked of it); of a regular file (no `OsMeta`) and of a directory (the whole
 claim on the name), no error where the file system does not fail (`FsNoErrAt`): `wp_fileAnySW`,
-`wp_childDirSW`. The first is `model.wp_stat_absentS` with the error made explicit, the others
-`StatNE.lean`'s `model.stat` specs at `Lstat` (and, for a directory, the spine of `MkdirAllDir.lean`'s `Lstat.wp_childDirS` through
+`wp_childDirSW`. The first is `StatS.lean`'s `model.wp_stat_absentS` with the error made explicit, the others
+`StatNE.lean`'s `modelStat` specs at `Lstat` (and, for a directory, the spine of `MkdirAllDir.lean`'s `Lstat.wp_childDirS` through
 the claim). Lean-first.
 -/
 module
@@ -37,22 +37,27 @@ theorem os.model.wp_stat_absentErrS (op d b : GoString) (R : Roots) (j : Ino) (N
     (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = none) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
-      (App (App (Val os.model.stat) (Val #op)) (Val #(child d b)))
+      (App (App (Val (@! os.modelStat)) (Val #op)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d dq j ∗
         osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
-  try unfold os.model.stat
   icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpin, Hp⟩
+  try wp_auto
+  wp_stub os.fsPathKind.impl
   wp_apply wp_osPathKindS R (child d b) (pathIn_child hpin.2 hb) CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi as %k %hk
   have hk2 : k ≠ W64 2 := by rcases hk with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> decide
   try wp_auto
   try rw [decide_eq_false hk2]
   try wp_auto
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -61,13 +66,19 @@ theorem os.model.wp_stat_absentErrS (op d b : GoString) (R : Roots) (j : Ino) (N
     as %e %he Hperm Hp Hn
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
-    iapply IH $$ Hperm Hp Hn HΦ
+    try wp_auto
+    wp_for_post
+    inext
+    iapply IH $$ Hperm Hp Hn HΦ [$] [$] [$] [$]
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show e ≠ W64 0 from he)]
-  wp_auto
-  wp_apply os.wp_pathError_errno as %err #Herr
+  try wp_auto
+  wp_apply os.wp_modelErrno
+  try wp_auto
+  wp_apply os.wp_pathError_errnoV as %err #Herr
+  try wp_auto
+  wp_for_post
   iapply HΦ
   iframe
   iexists e
@@ -83,8 +94,11 @@ theorem os.Lstat.wp_absentErrS (d b : GoString) (R : Roots) (j : Ino) (N : NameS
         osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e }} := by
   wp_start as Hpre
-  wp_apply os.model.wp_stat_absentErrS _ d b R j N dq dqn h qc hb hN hi $$ Hpre
-  iexact HΦ
+  try wp_auto
+  wp_apply os.model.wp_stat_absentErrS _ d b R j N dq dqn h qc hb hN hi $$ Hpre as %fi %err Hpost
+  try wp_auto
+  iapply HΦ
+  iexact Hpost
 
 /-- `os.Lstat(d/b)` of the regular file `i` (no `OsMeta`), an error only when the file system can
 fail on `d/b`. -/
@@ -100,8 +114,11 @@ theorem os.Lstat.wp_fileAnySW (d b : GoString) (R : Roots) (j i : Ino) (N : Name
             os.ownFileStat fs sz) ∨
          ⌜err ≠ interface.nil ∧ ¬ FsNoErrAt (child d b)⌝) }} := by
   wp_start as Hpre
-  wp_apply os.model.wp_stat_fileAnySW _ d b R j i N dq dqn h qc hb hN hi $$ Hpre
-  iexact HΦ
+  try wp_auto
+  wp_apply os.model.wp_stat_fileAnySW _ d b R j i N dq dqn h qc hb hN hi $$ Hpre as %fi %err Hpost
+  try wp_auto
+  iapply HΦ
+  iexact Hpost
 
 /-- `os.Lstat(p)` of the directory `J` (a spine to it), an error only when the file system can fail
 on `p`. -/
@@ -115,8 +132,11 @@ theorem os.Lstat.wp_dirSW (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc 
             os.ownFileStat fs sz) ∨
          ⌜err ≠ interface.nil ∧ ¬ FsNoErrAt p⌝) }} := by
   wp_start as Hpre
-  wp_apply os.model.wp_stat_dirSW $$ Hpre
-  iexact HΦ
+  try wp_auto
+  wp_apply os.model.wp_stat_dirSW _ p R J dq qc $$ Hpre as %fi %err Hpost
+  try wp_auto
+  iapply HΦ
+  iexact Hpost
 
 /-- `os.Lstat(d/b)` of the directory `J` at `b` (the whole claim on `b`, owned fractions), an error
 only when the file system can fail on `d/b` (`os.Lstat.wp_childDirS`'s spine, at `wp_dirSW`). -/

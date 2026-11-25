@@ -303,6 +303,8 @@ theorem conn.serve.wp
     EtcdGrove.bufio.Reader.Reset.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proofFresh EtcdGrove.bufio.NewReaderSize.wp_proofFresh)
     EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
+    fmt.wp_newPrinter fmt.buffer.wp_writeString fmt.pp.wp_free internal.gomodel.wp_Choose
+    internal.gomodel.wp_ChooseUint64
 
 /-- `Server.Serve`'s accept loop, over `conn.serve` (and so the two interim context hypotheses),
 the net extension's `Listener.Accept`/`Close` and `OpError.Temporary`. -/

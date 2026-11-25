@@ -103,7 +103,7 @@ theorem opErrMsg_read_ne (m : GoString) (h : net.opErrMsg go!"read" m) : m ≠ g
 (`crErrId`), whose `Error()` returns a string other than `"message too large"` (`errMsgOk`): `"EOF"`
 (`errors.newVar`), or `net.wp_OpError_Error`'s `"read …"`. -/
 theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg : GoString)
-    (hmsg : msg ≠ go!"message too large") :
+    (hmsg : msg ≠ go!"message too large") (hed : net.edTyped (some ed)) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
           (Val #())) {{ Φ }}) ∗
@@ -136,7 +136,7 @@ theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg
     iframe HE
     iright
     unfold net.resErr
-    icases HE with ⟨%e, #Hop, -, #Hes, #Hs, #Ha⟩
+    icases HE with ⟨%e, #Hop, #Hk, #Hes, #Hs, #Ha⟩
     isplitl []
     · unfold net.opErr
       icases Hop with ⟨%pe, %nw, ⟨%h, -⟩, #Hpe⟩
@@ -157,7 +157,8 @@ theorem readErr_msgOk (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (msg
     iunfold crErrId
     iright
     iexists la, ra, e
-    iexact Hop
+    iframe Hop Hs Ha
+    iapply net.kindErr_netOwnErr _ _ _ _ hed $$ Hk
 
 /-- `cr.hitReadLimit()`. -/
 theorem wp_hitReadLimit (cr : Loc) (v : w64) :
@@ -368,7 +369,9 @@ theorem connReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG :=
         ipureintro; intro bs h; cases h)
   ihave %Hptr := readErr_ptrTyped res la ra ed err0 xe $$ HE
   ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hca
-  icases readErr_msgOk res la ra ed err0 xe go!"EOF" (by decide) $$ [$HxeE $Hxe $Hsys $HE] with ⟨HE, #Hem⟩
+  ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hca
+  ihave %Hedt := net.edTyped_of_poll ed $$ [$Hpoll $Hed]
+  icases readErr_msgOk res la ra ed err0 xe go!"EOF" (by decide) Hedt $$ [$HxeE $Hxe $Hsys $HE] with ⟨HE, #Hem⟩
   ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HrL
   wp_auto_lc 1
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT

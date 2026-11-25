@@ -177,6 +177,7 @@ theorem ConnectToPeers_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r 
   ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
   · iPkgInit
   ihave ⟨%ed, #Hed⟩ := ed_of_poll' $$ Hpoll
+  ihave #Hsys := Perennial.net.errnoOk_of_poll $$ Hpoll
   ihave #Hioi := _root_.Perennial.io.isInit_access $$ Hio
   icases Hioi with ⟨-, -, -, -, #HEOFv, -⟩
   ihave #HEOF := HEOFv
@@ -515,7 +516,7 @@ theorem ConnectToPeers_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r 
   icases Hres with (⟨%Hderr, %cid, #Hcc, Hend, -⟩ | ⟨-, %x, -, #Hre⟩)
   rotate_left
   · -- the dial failed: retry
-    ihave ⟨%Hne, #HeA⟩ := resErr_errAny _ _ _ _ _ _ _ $$ Hre
+    ihave ⟨%Hne, #HeA⟩ := resErr_errAny _ _ _ _ _ _ _ $$ [$Hre $Hsys]
     obtain ⟨ie, rfl⟩ : ∃ ie, derr = interface.ok ie := by
       cases derr with
       | nil => exact absurd rfl Hne
@@ -579,7 +580,7 @@ theorem ConnectToPeers_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r 
     · cases Hn
     iunfold Perennial.net.connWriteE at Hwe
     icases Hwe with ⟨%kk, #Hre⟩
-    ihave ⟨-, #HeA⟩ := resErr_errAny _ _ _ _ _ _ _ $$ Hre
+    ihave ⟨-, #HeA⟩ := resErr_errAny _ _ _ _ _ _ _ $$ [$Hre $Hsys]
     wp_apply wp_slice_literal (V := GoInterface) _
     isplitr
     · ipureintro; rfl

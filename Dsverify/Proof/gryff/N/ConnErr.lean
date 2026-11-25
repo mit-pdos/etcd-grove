@@ -5,7 +5,8 @@ What the replica's read loops (`serveClient`, `replicaListener`, `clientListener
 a `*bufio.Reader` over a connection returns (`wire.rdErr` at the connection's reader state
 `connRSt t eof la ra ed`: `io.EOF`'s value, a read `*OpError`, or one of the `io` / `bufio` /
 `encoding/binary` package errors): that it is an error whose `Error()` returns
-(`models_lab.errAny`, for `log.Printf("… %v", err)`) and that it is pointer-typed
+(`models_lab.errAny`, for `log.Printf("… %v", err)`, once `syscall` is initialized:
+`syscall.errnoOk`, what Go's `OpError.Error` needs of a syscall error's message) and that it is pointer-typed
 (`io.ptrTyped`, for the comparison `err != io.EOF`): `rdErr_conn`.
 
 `encoding/binary`'s `errOverflow` (from `ReadVarint`/`ReadUvarint`, `wire.BinaryVarintHyps`) is
@@ -74,12 +75,14 @@ theorem newVar_errAny (X msg : GoString) (e : GoInterface) :
     cases h
     exact ⟨x, rfl⟩
 
-/-- Any `*OpError` whose fields are persistent is `errAny` (its `Error()`, the net model's, reads
-them and returns a message of Go's form: `net.wp_OpError_Error`). -/
+/-- An `*OpError` whose `Err` has an `Error()` and whose addresses are net's (`net.opErrMsgOk`) is
+`errAny` once `syscall` is initialized (its `Error()`, Go's `OpError.Error`, returns a message of
+Go's form: `net.wp_OpError_Error`). -/
 theorem opErrPtr_errAny (pe : Loc) (v : Perennial.net.OpError) :
-    (pe ↦□ v : IProp GF) ⊢ models_lab.errAny (GF := GF)
-      (interface.mkOk (go.GoType.PointerType Perennial.net.OpError.ty) #pe) := by
-  iintro #Hpe
+    (pe ↦□ v : IProp GF) ∗ Perennial.net.opErrMsgOk (GF := GF) v ∗ syscall.errnoOk (GF := GF) ⊢
+      models_lab.errAny (GF := GF)
+        (interface.mkOk (go.GoType.PointerType Perennial.net.OpError.ty) #pe) := by
+  iintro ⟨#Hpe, #Hok, #Hsys⟩
   unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType Perennial.net.OpError.ty, #pe⟩
   isplitr
@@ -88,19 +91,32 @@ theorem opErrPtr_errAny (pe : Loc) (v : Perennial.net.OpError) :
   · ipureintro; exact opError_ptr_isError'
   imodintro
   iintro %Φ HΦ
-  iapply Perennial.net.wp_OpError_Error $$ Hpe
+  iapply Perennial.net.wp_OpError_Error $$ Hpe Hok Hsys
   inext
   iintro %msg -
   iapply HΦ
+
+/-- A failure's error (`net.resErr (some k)`, an `*OpError`) is `errAny` once `syscall` is
+initialized. -/
+theorem resErr_errAny_sys (k : NetErr) (op : GoString) (src addr : GoInterface)
+    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
+    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ∗ syscall.errnoOk (GF := GF) ⊢
+      models_lab.errAny err := by
+  unfold Perennial.net.resErr Perennial.net.opErr
+  iintro ⟨⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩, #Hsys⟩
+  subst Herr
+  ihave #Hok : Perennial.net.opErrMsgOk (GF := GF) (Perennial.net.OpError.mk op nw src addr e) $$ []
+  · unfold Perennial.net.opErrMsgOk; iframe Hes Hs Ha
+  iapply opErrPtr_errAny $$ [$Hpe $Hok $Hsys]
 
 /-- See the file header. -/
 theorem rdErr_conn (t : Loc) (eof la ra ed : GoInterface) (err : GoInterface) (m : GoString) :
     wire.rdErr (connRSt t eof la ra ed) err ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
         globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
-        errors.newVar (GF := GF) encoding.binary.errOverflow m ⊢
+        errors.newVar (GF := GF) encoding.binary.errOverflow m ∗ syscall.errnoOk (GF := GF) ⊢
       models_lab.errAny err ∗ ⌜_root_.Perennial.io.ptrTyped err⌝ := by
   unfold wire.rdErr
-  iintro ⟨⟨-, #Hr⟩, #Hio, #Heof, #Hov⟩
+  iintro ⟨⟨-, #Hr⟩, #Hio, #Heof, #Hov, #Hsys⟩
   ihave Hi := _root_.Perennial.io.isInit_access $$ Hio
   icases Hi with ⟨-, -, -, #HSB, #HEOF, #HUE, #HNP, -⟩
   icases Hr with (⟨%r, Hr⟩ | #H | #H | #H)
@@ -108,11 +124,12 @@ theorem rdErr_conn (t : Loc) (eof la ra ed : GoInterface) (err : GoInterface) (m
     icases Hr with ((%He | ⟨%k, Hk⟩) | #H)
     · subst He
       iapply newVar_errAny $$ HEOF Heof
-    · unfold Perennial.net.resErr Perennial.net.opErr
+    · ihave #HA := resErr_errAny_sys _ _ _ _ _ _ _ $$ [$Hk $Hsys]
+      unfold Perennial.net.resErr Perennial.net.opErr
       icases Hk with ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
       subst Herr
       isplitl
-      · iapply opErrPtr_errAny $$ Hpe
+      · iexact HA
       · ipureintro
         intro ii T h _
         cases h
@@ -127,11 +144,11 @@ theorem rdErr_conn' [wire.BinaryVarintHyps GF] (t : Loc) (eof la ra ed : GoInter
     (err : GoInterface) :
     wire.rdErr (connRSt t eof la ra ed) err ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
         isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
-        globalAddr _root_.Perennial.io.EOF ↦□ eof ⊢
+        globalAddr _root_.Perennial.io.EOF ↦□ eof ∗ syscall.errnoOk (GF := GF) ⊢
       models_lab.errAny err ∗ ⌜_root_.Perennial.io.ptrTyped err⌝ := by
-  iintro ⟨#Hr, #Hio, #Hb, #Heof⟩
+  iintro ⟨#Hr, #Hio, #Hb, #Heof, #Hsys⟩
   ihave #Hov := wire.BinaryVarintHyps.errOverflowVar (GF := GF) $$ Hb
-  iapply rdErr_conn $$ [$Hr $Hio $Heof $Hov]
+  iapply rdErr_conn $$ [$Hr $Hio $Heof $Hov $Hsys]
 
 end
 

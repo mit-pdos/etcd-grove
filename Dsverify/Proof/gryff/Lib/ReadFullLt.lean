@@ -94,6 +94,7 @@ theorem wp_connReadFull (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
         p ↦* (ys ++ xs.drop ys.length) ∗ recvTokL (Gg := hG.goose_globalGS) cn s P (r0 ++ ys) ∗
         (⌜err = interface.nil⌝ ∨ models_lab.errAny err) }} := by
   iintro %Φ ⟨#Hio, #Hc, #Hed, HS, Hp⟩ HΦ
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hc
   ihave #Hi := _root_.Perennial.io.isInit_access $$ Hio
   icases Hi with ⟨-, -, -, -, #HEOFv, #HUEOFv, -⟩
   ihave #HEOF := HEOFv
@@ -137,10 +138,7 @@ theorem wp_connReadFull (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
         · subst He
           ihave ⟨H, -⟩ := netN.newVar_errAny _ _ _ $$ HEOFv Heof
           iexact H
-        · unfold net.resErr net.opErr
-          icases Hk with ⟨%e', ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
-          subst Herr
-          iapply netN.opErrPtr_errAny $$ Hpe
+        · iapply netN.resErr_errAny_sys _ _ _ _ _ _ _ $$ [$Hk $Hsys]
   iapply HΦ
   iexists ys
   iframe Hp HS HeA

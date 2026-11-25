@@ -111,11 +111,9 @@ theorem eof_of_io :
 /-- A failure's `resErr` (an `*OpError`) is `errAny`. -/
 theorem resErr_errAny' (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
-  unfold Perennial.net.resErr Perennial.net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
-  subst Herr
-  iapply netN.opErrPtr_errAny $$ Hpe
+    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ∗ syscall.errnoOk (GF := GF) ⊢
+      models_lab.errAny err :=
+  netN.resErr_errAny_sys k op src addr ed nm err
 
 /-- An accepted connection at replica `k`'s port `a0` (`Accept`'s result, at an address `a` the
 wildcard listener takes). -/
@@ -153,6 +151,7 @@ theorem clientListener_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r 
   · iPkgInit
   ihave ⟨%eof, #Heof⟩ := eof_of_io $$ Hio
   ihave ⟨%ed, #Hed⟩ := ed_of_poll_cc $$ Hpoll
+  ihave #Hsys := Perennial.net.errnoOk_of_poll $$ Hpoll
   ihave #Hrdok := Perennial.net.conn_readerOk (netN.NetSpecs.read (GF := GF)) t c true a la ra eof ed
     (gryffWireP γ a0) $$ [$Hio $Hcat $Heof $Hed]
   ihave #Hwok := Perennial.net.conn_streamWriterOk (netN.NetSpecs.write (GF := GF)) t c true a la ra
@@ -176,7 +175,7 @@ theorem clientListener_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r 
   icases Hres with (⟨%Hok, Hb⟩ | ⟨%Hne, #Hrerr, %vs', Hb⟩)
   rotate_left
   · -- a read error: logged, the connection dropped
-    ihave ⟨#Herr, %Hptr⟩ := netN.rdErr_conn' t eof la ra ed err $$ [$Hrerr $Hio $Hbin $Heof]
+    ihave ⟨#Herr, %Hptr⟩ := netN.rdErr_conn' t eof la ra ed err $$ [$Hrerr $Hio $Hbin $Heof $Hsys]
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
@@ -327,6 +326,9 @@ theorem WaitForClientConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : 
     iexact H
   ihave #Hlog : isPkgInit (PROP := IProp GF) pkg_id.log $$ []
   · iPkgInit
+  ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
+  · iPkgInit
+  ihave #Hsys := Perennial.net.errnoOk_of_poll $$ Hpoll
   icases isListener_open li l $$ Hli with ⟨%tl, %x, %Hli, #Hlat⟩
   subst Hli
   -- keep the listener's state folded (`wp_auto` unfolds `netLis`)
@@ -346,7 +348,7 @@ theorem WaitForClientConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : 
   icases Hres with (⟨%Herr, %cn, %a, %Ha, #Hic, Hl, Hce, Hfresh⟩ | ⟨%kd, Hl, #Hop⟩)
   all_goals generalize hN : netLis (extLocalGS netExt (L := hG.goose_localGS)) l (lisAddrOf a0) = N
   rotate_left
-  · ihave #Herr := resErr_errAny' _ _ _ _ _ _ err $$ Hop
+  · ihave #Herr := resErr_errAny' _ _ _ _ _ _ err $$ [$Hop $Hsys]
     try wp_auto
     ihave %Hne := models_lab.errAny_ne_nil err $$ Herr
     cases err with
