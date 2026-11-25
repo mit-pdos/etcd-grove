@@ -2,25 +2,26 @@
 
 # `etcd/dist/putget`: the machines' shares of the start, over the interim cross-machine vocabulary
 
-What `putget_safe`'s start (`putget_start`, `TopLevelRobustness.lean`) hands each machine, over the
-interim vocabulary of `etcd/dist/S2Interim.lean` (`notes/putget-dist-plan.md` §12):
+What `putget_safe`'s start (`putget_shares`, `TopLevelRobustness.lean`) hands each machine, over the
+interim vocabulary of `etcd/dist/S2Interim.lean` and the cluster start's pieces (`etcd/dist/ClusterStart.lean`;
+`notes/putget-dist-plan.md` §12, `notes/etcd-dist-plan.md` §18.3, O1 option B: the start fixes the cluster's
+view `c.view`, no publication):
 
-* `memberShare`: the member's client address set to serve etcd's KV calls for the publication name
-  `γE` and the member id (`etcdAddrAt`), its half of the publication token, the publication invariant;
-* `clientShare`: the same address fact and the publication invariant;
-* `putgetPub`: what the member publishes with its view for the client: the client's invariant
-  (`client.putGetInv`, the in-process putget's) at read names whose KV state variable is the view's,
-  at every heap over the global ghost state (the client's heap is not the member's; `putGetInv`
-  reads the heap only through its global part, `putGetInv_heap`);
-* `memberPubOk`: the member's obligation on a `Pub` (what `Member.spec` takes): a putget invariant
-  gives `Pub` of the view of its KV state variable.
+* `memberShare`: the one-member cluster's names `c` as `clusterAllocN` chose them (`ClusterOk`), the
+  cluster's facts, the member's slice, and the member's client address set to serve etcd's table for its id
+  at the view (`etcdAddrAt`);
+* `clientShare`: the member's address fact at the view, auth off, and the client's putget invariant
+  (`client.putGetInv`, the in-process putget's) at read names whose KV names are the view's, at every heap over
+  the global ghost state (the client's heap is not the start's; `putGetInv` reads the heap only through its
+  global part, `putGetInv_heap`), allocated by the start (`putGetInv_alloc_all`) from the cluster's `etcdKV`.
 
 And `wenv_nonempty`: a watch environment exists (`etcdstart.NewClient.spec` takes one, which the
-client's `Put`/`Get` never read).
+client's `Put`/`Get` never read). (Until 2026-11-25 the member published its view, `env_publish`, with the
+invariant, `putgetPub`.)
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClusterStart
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelDefs
 public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
@@ -39,56 +40,9 @@ open Iris Iris.BI Net etcd_dist
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-section shares
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
-variable [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
-
-/-- **The member's share** of the start: its client address set to serve etcd's KV calls for `γE`
-and its member id (`etcdAddrAt`), its half of the publication token, the publication invariant. -/
-def memberShare (client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
-    IProp GF :=
-  iprop(etcdAddrAt client γE mid ∗ envPubHalf γE ∗ envPubInv γE Pub)
-
-/-- **The member machine's share, once its addresses pass its check** (2026-11-24): `Member` returns at
-once unless `peer` and `client` are valid (`AddrOk`) and distinct, so the start owes it `memberShare` only
-then. -/
-def memberShareIf (peer client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
-    IProp GF :=
-  iprop(⌜Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client⌝ -∗
-    memberShare client γE mid Pub)
-
-/-- **The client's share** (persistent): the member's address fact and the publication invariant. -/
-def clientShare (client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
-    IProp GF :=
-  iprop(etcdAddrAt client γE mid ∗ envPubInv γE Pub)
-
-/-- **The client machine's share, once its address passes its check** (2026-11-24): `Client` returns at
-once unless its address is valid (`AddrOk`). -/
-def clientShareIf (client : GoString) (γE : GName) (mid : w64) (Pub : EnvView → IProp GF) :
-    IProp GF :=
-  iprop(⌜Net.addrOk client = true⌝ -∗ clientShare client γE mid Pub)
-
-instance clientShare_persistent (client : GoString) (γE : GName) (mid : w64)
-    (Pub : EnvView → IProp GF) : Persistent (clientShare client γE mid Pub) := by
-  unfold clientShare; infer_instance
-
-end shares
-
-section pub
+section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors}
-
-/-- **The member's obligation on `Pub`** (persistent; `Member.spec`'s, at the member's heap): a putget
-invariant gives `Pub` of the view of its KV state variable. -/
-def memberPubOk [hG : HeapGS .hasLC GF] [sem : go.Semantics] (Pub : EnvView → IProp GF) :
-    IProp GF :=
-  iprop(□ ∀ (γr : ReadNames) (γf : GName),
-    client.putGetInv γr γf go!"k" go!"v" -∗ Pub ⟨γr.kv.st⟩)
-
-instance memberPubOk_persistent [hG : HeapGS .hasLC GF] [sem : go.Semantics]
-    (Pub : EnvView → IProp GF) : Persistent (memberPubOk Pub) := by
-  unfold memberPubOk; infer_instance
 
 /-- **The heap of the local ghost state `L` at the Go local context `lctx`** (over the global `G`): the
 statement's form of a machine's heap (`putgetHeapAt`), at which the program's `go.Semantics` over `lctx`
@@ -107,30 +61,76 @@ theorem putGetInv_heap (G : GooseGlobalGS .hasLC GF) (L L' : GooseLocalGS GF) (�
       client.putGetInv (hG := heapAt G L' lctx) γr γf k v :=
   rfl
 
-variable [G : GooseGlobalGS .hasLC GF]
+end heap
 
-/-- **What the member publishes with its view** (see the file header): the client's invariant at
-read names whose KV state variable is the view's, at every local ghost state over the global one (at
-the Go local context `lctx`). -/
-def putgetPub (ν : EnvView) : IProp GF :=
-  iprop(∃ (γr : ReadNames) (γf : GName), ⌜γr.kv.st = ν.st⌝ ∗
-    ∀ L : GooseLocalGS GF, client.putGetInv (hG := heapAt G L lctx) γr γf go!"k" go!"v")
+section shares
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+variable [lctx : GoLocalContext] [sem : go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
+
+/-- **The member's share** of the start (see the file header): the one-member cluster's names `c`
+(`clusterAllocN`'s, `ClusterOk` at the peers `[id]`, lease mode `none`, no compaction), the cluster's
+facts, the member's slice, its client address set to serve etcd's table for `id` at the view `c.view`. -/
+def memberShare (ep : GoString) (c : ClusterNames) (ctxs : List (List w8)) (boot : List LogEntry)
+    (id : w64) : IProp GF :=
+  iprop(⌜ClusterOk c [id] boot .none false 0 [id]⌝ ∗ clusterFactsOf c ∗
+    memberSliceOf c [id] [id] ctxs (LogEntry.toEntries boot 0) id ∗ etcdAddrAt ep c.view id)
+
+/-- **The member machine's share, once its addresses pass its check** (2026-11-24): `Member` returns at
+once unless `peer` and `client` are valid (`AddrOk`) and distinct, so the start owes it `memberShare` only
+then. -/
+def memberShareIf (peer ep : GoString) (c : ClusterNames) (ctxs : List (List w8))
+    (boot : List LogEntry) (id : w64) : IProp GF :=
+  iprop(⌜Net.addrOk peer = true ∧ Net.addrOk ep = true ∧ peer ≠ ep⌝ -∗ memberShare ep c ctxs boot id)
+
+/-- **The client's share** (persistent; see the file header): the member's address fact at the view `Γ`,
+auth off, and the client's putget invariant at read names whose KV names are `Γ`'s, at every local ghost
+state over `G`. -/
+def clientShare (ep : GoString) (Γ : DistView) (mid : w64) : IProp GF :=
+  iprop(etcdAddrAt ep Γ mid ∗ ⌜Γ.auth = false⌝ ∗
+    ∃ (γr : ReadNames) (γf : GName), ⌜γr.kv = Γ.kv⌝ ∗
+      ∀ L : GooseLocalGS GF, EtcdGrove.client.putGetInv (hG := heapAt G L lctx) γr γf go!"k" go!"v")
+
+instance clientShare_persistent (ep : GoString) (Γ : DistView) (mid : w64) :
+    Persistent (clientShare (GF := GF) ep Γ mid) := by
+  unfold clientShare; infer_instance
+
+/-- **The client machine's share, once its address passes its check** (2026-11-24): `Client` returns at
+once unless its address is valid (`AddrOk`). -/
+def clientShareIf (ep : GoString) (Γ : DistView) (mid : w64) : IProp GF :=
+  iprop(⌜Net.addrOk ep = true⌝ -∗ clientShare ep Γ mid)
+
+end shares
+
+section allocG
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
+variable [lctx : GoLocalContext] [sem : go.Semantics] [G : GooseGlobalGS .hasLC GF]
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 open Iris.ProofMode in
-/-- **`putgetPub` meets the member's obligation**, at any local ghost state. -/
-theorem memberPubOk_putgetPub (L : GooseLocalGS GF) :
-    ⊢ memberPubOk (hG := heapAt G L lctx) putgetPub := by
-  unfold memberPubOk putgetPub
+/-- **The client's putget invariant, allocated over the global ghost state** (`putGetInv_alloc_log` at no
+machine's heap: the invariant reads the heap only through its global part, `putGetInv_heap`), at every
+local ghost state over `G`. -/
+theorem putGetInv_alloc_all (γr : ReadNames) (σ : KVState) (key val : GoString) :
+    etcdKV (GF := GF) γr.kv σ ⊢ |={⊤}=> ∃ γf : GName,
+      ∀ L : GooseLocalGS GF,
+        client.putGetInv (hG := heapAt G L lctx) γr γf key val := by
+  iintro Hσ
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
+  imod inv_alloc client.kvClientN ⊤ (iprop(∃ (σ : KVState) (n : Nat), etcdKV γr.kv σ ∗
+      monoNatAuthOwn γf 1 n ∗ ⌜client.putGetOk key val σ n⌝)) $$ [Hσ Hm] with #Hinv
+  · inext; iexists σ, 0; iframe Hσ Hm
+    ipureintro; exact ⟨KVState.kvs_sorted _, fun h => absurd h (by omega)⟩
   imodintro
-  iintro %γr %γf #Hinv
-  iexists γr, γf
-  isplitr
-  · ipureintro; rfl
-  iintro %L'
-  rw [putGetInv_heap G L' L]
+  iexists γf
+  iintro %L
+  iunfold client.putGetInv
   iexact Hinv
 
-end pub
+end allocG
 
 /-- Fills a goal of data with defaults (`default`, `True`, `1`, under binders, field by field): for
 `wenv_nonempty`'s watch environment, whose fields `Put`/`Get` never read. -/
@@ -187,6 +187,37 @@ theorem wenv_nonempty (hne : mvcc.api.names_nonempty.law) : Nonempty (client.WEn
     fun _ => W⟩⟩
 
 end wenv
+
+/-- **A value of read names exists** (data only): the read names of the fresh invariant of a start that
+allocates no cluster (`putGetInv_alloc_fresh`). -/
+theorem readNames_nonempty [GooseExts] : Nonempty ReadNames := ⟨by putget_fill⟩
+
+section allocFresh
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
+variable [lctx : GoLocalContext] [sem : go.Semantics] [G : GooseGlobalGS .hasLC GF]
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+open Iris.ProofMode in
+/-- **A putget invariant at fresh KV names** (no cluster): a fresh KV state variable at the empty state, at
+read names whose KV names are default but for it (`putGetInv_alloc_all` at its half). For a start whose
+configuration the programs refuse: its client's share needs an invariant, which no member serves. -/
+theorem putGetInv_alloc_fresh (key val : GoString) :
+    ⊢ |={⊤}=> ∃ (γr : ReadNames) (γf : GName), ∀ L : GooseLocalGS GF,
+        client.putGetInv (hG := heapAt G L lctx) γr γf key val := by
+  istart
+  imod (ghostVar_alloc (GF := GF) ({ compacted := 0, base := ∅, changes := [] } : KVState)) with ⟨%γ, Hv⟩
+  ihave ⟨Hv1, -⟩ := (ghostVar_split_half γ 1 _).1 $$ Hv
+  imod (putGetInv_alloc_all (GF := GF)
+      { Classical.choice readNames_nonempty with kv := { (default : KVNames) with st := γ } }
+      ({ compacted := 0, base := ∅, changes := [] } : KVState) key val) $$ [Hv1] with ⟨%γf, #Hinv⟩
+  · iunfold etcdKV
+    iexact Hv1
+  imodintro
+  iexists _, γf
+  iexact Hinv
+
+end allocFresh
 
 end etcd_putget_dist
 end EtcdGrove

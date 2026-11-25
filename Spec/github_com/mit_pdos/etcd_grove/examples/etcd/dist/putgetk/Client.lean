@@ -4,7 +4,8 @@
 unless the `Get` returned `v`). Lean-first (no Rocq counterpart).
 
 **The triple:** from, if `ep` is not empty, putget's client share at `ep` (`clientShare`: the address fact
-of the member serving `ep`, `mid`, and its publication invariant at `putgetPub`) and `ep` a plain endpoint,
+of the member `mid` of the cluster's view `Γ` serving `ep`, auth off, and the start's putget invariant at the
+view's KV names) and `ep` a plain endpoint,
 it returns (putget's `Client.spec` otherwise).
 -/
 module
@@ -33,11 +34,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 abbrev Client.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [ThreadBoundLe GF (2 ^ 30)] [π : NetProtoGS]
-    (ep : GoString) (γE : GName) (mid : w64),
+    (ep : GoString) (Γ : etcd_dist.DistView) (mid : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk ∗ levelTok 0 ∗
       (⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗
-        clientShare (G := hG.goose_globalGS) ep γE mid (putgetPub (G := hG.goose_globalGS))) }}
+        clientShare (G := hG.goose_globalGS) ep Γ mid) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Client)) (Val #ep))
   {{ (b : Bool), RET #b; True }}
 

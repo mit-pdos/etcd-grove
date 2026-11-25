@@ -5,12 +5,11 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Client.l
 The in-process putget's `Main` from `NewClient` on (`Proof/.../examples/etcd/putget/Main.lean`), on a
 machine of its own: `zap.NewNop()`; `etcdstart.NewClient` (at any watch environment, `wenv_nonempty`:
 `Put`/`Get` read none of it), whose client dials with no proxy (`clientNoProxy`); each call's context
-with the request timeout (`client.wp_WithTimeout_bg`); `cli.Put` before the member's view is known
-(`etcd_dist.Client_Put_dist`, a trust-boundary axiom until #24's S2), whose deposit the publication
-invariant gives (`etcd_dist.envAt_pub`: `▷ □ putgetPub ν`, the putget invariant at the client's own heap,
-under the later the deposit allows) and whose `nil` reply gives the view, the invariant and the put's
-flag; `cli.Get` at that view (`etcd_dist.Client_Get_dist`); the check, on the reply's message
-(`rangeRespMsg`), takes the `else` branch, as `Main`'s. Every step's error returns `false`.
+with the request timeout (`client.wp_WithTimeout_bg`); `cli.Put` at the cluster's view under the start's putget
+invariant (`etcd_dist.Client_Put_dist`, a theorem over the interim contract `KV_Put_dist`), whose `nil` reply gives
+the put's flag; `cli.Get` (`etcd_dist.Client_Get_dist`, over `KV_Get_dist`); the check, on the reply's message
+(`rangeRespMsg`), takes the `else` branch, as `Main`'s. Every step's error returns `false`. (Until 2026-11-25 the
+`Put` learned the member's published view, `envAt_pub`.)
 -/
 module
 
@@ -58,7 +57,7 @@ theorem Client.wp_proof
     (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro CS TB π ep γE mid hlen hAs
+  intro CS TB π ep Γ mid hlen hAs
   have Htb : threadBound GF ≤ 2 ^ 30 := TB.threadBound_le
   wp_start as ⟨Hlt, Hshare⟩
   (try wp_auto)
@@ -73,7 +72,11 @@ theorem Client.wp_proof
   have hplain := etcd_dist.addrOk_plainEndpoint hc
   ispecialize Hshare $$ %(by simp [hc])
   iunfold clientShare at Hshare
-  icases Hshare with ⟨#Haddr, #Hinv⟩
+  icases Hshare with ⟨#Haddr, %Hauth, %γr, %γf, %Hkv, #Hall⟩
+  -- the putget invariant at the client's own heap
+  ihave #Hpg : client.putGetInv (GF := GF) γr γf go!"k" go!"v" $$ []
+  · ihave HL := Hall $$ %hG.goose_localGS
+    iexact HL
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -95,7 +98,7 @@ theorem Client.wp_proof
   (try wp_auto)
   -- `NewClient(ep, lg)`, at any watch environment (`Put`/`Get` read none of it)
   wp_apply (wp_NewClient ep lg (Classical.choice (wenv_nonempty (GF := GF) hne)) hplain Htb) $$ [$Hlt]
-    as %cl %cerr ⟨-, Hcl⟩
+    as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -, #Hnp⟩ | %Hcfail)
   rotate_left
@@ -124,34 +127,16 @@ theorem Client.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
-  -- the deposit: at every view published at `γE`, the putget invariant at the client's own heap
-  -- (`envAt_pub`, under the later the deposit allows)
-  ihave #Hdep : □ (∀ ν : etcd_dist.EnvView, etcd_dist.envAt (Gg := hG.goose_globalGS) γE ν ={⊤}=∗
-      ▷ ∃ (γr : ReadNames) (γf : GName), ⌜γr.kv.st = ν.st⌝ ∗
-        client.putGetInv γr γf go!"k" go!"v") $$ []
-  · imodintro
-    iintro %ν #Hν
-    imod (etcd_dist.envAt_pub_h ⊤ γE CoPset.subseteq_top
-      (putgetPub (G := hG.goose_globalGS)) ν) $$ Hinv Hν with #Hpub
-    imodintro
-    inext
-    iunfold putgetPub at Hpub
-    icases Hpub with ⟨%γr, %γf, %Hst, #Hall⟩
-    iexists γr, γf
-    isplitr
-    · ipureintro; exact Hst
-    ihave HL := Hall $$ %hG.goose_localGS
-    iexact HL
-  -- `cli.Put(pctx, "k", "v")`, before the view is known
-  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) γE mid pctx pcd
+  -- `cli.Put(pctx, "k", "v")`, at the cluster's view
+  wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γr γf pctx pcd
       go!"k" go!"v" slice.nil
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide))) as %presp %perr Hput
-  · iframe #
+        (by decide)) Hauth Hkv) $$ [Hlt] as %presp %perr ⟨Hlt, Hput⟩
+  · iframe Hlt; iframe #
   -- `pcancel()`
   (try wp_auto)
   wp_apply Hpcancel
-  icases Hput with (⟨%Hperr, %ν, %γr, %γf, #Hν, %Hst, #Hpg, #Hflag⟩ | %Hpfail)
+  icases Hput with (⟨%Hperr, #Hflag⟩ | %Hpfail)
   rotate_left
   · obtain ⟨Hperr, -⟩ := Hpfail
     cases perr with
@@ -167,12 +152,12 @@ theorem Client.wp_proof
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
-  -- `cli.Get(gctx, "k")`, at the view the `Put` learned
-  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) γE mid ν γr γf
+  -- `cli.Get(gctx, "k")`, after the put fired
+  wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) Γ mid γr γf
       gctx gcd go!"k" go!"v" slice.nil
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))
-      Hst) as %gresp %gerr Hget
-  · iframe #
+      Hkv) $$ [Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
+  · iframe Hlt; iframe #
   -- `gcancel()`
   (try wp_auto)
   wp_apply Hgcancel

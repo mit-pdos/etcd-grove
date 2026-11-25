@@ -10,9 +10,10 @@ at the cluster's names); `StartMember` on a member machine is the named hypothes
 `etcd_dist.StartMember_dist.spec S5` (S5's), its premises discharged from the configuration (the directory
 `etcd_putgetN.dirN`, well formed by `dirN_ok`, within the transport's bound since the ids' 16 low bits are
 distinct, `idPfxsOf_ok`; the URLs `urlsN`; the names `nameOf j` distinct, ASCII and short) and from the share
-(every peer address's `httpAddrAt`, `peerAddrFacts`); the member's view is published at `Pub` (`memberPubOkK`,
-the request names agreeing with the cluster's KV names, `kvAgree`); `etcdstart.Serve` on a member machine is
-`etcd_dist.Serve_dist` (interim axiom); `holdForever()` does not return.
+(every peer address's `httpAddrAt`, `peerAddrFacts`); `etcdstart.Serve` on a member machine is
+`etcd_dist.Serve_dist` (interim axiom) at the cluster's view, the request names' KV names `kvCongr` to its
+(`memberBoot_of_slice`; O1 option B, `notes/etcd-dist-plan.md` §18.3, no publication); `holdForever()` does not
+return.
 -/
 module
 
@@ -225,7 +226,7 @@ theorem Member.wp_proof
     -- `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S5 peers clients ps ctxs boot i Pub peersSl clientsSl Hfips Hblf Hi64 HLv Haf
+  intro CS π TB RB S5 peers clients ps ctxs boot i peersSl clientsSl Hfips Hblf Hi64 HLv Haf
     Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
@@ -267,21 +268,19 @@ theorem Member.wp_proof
   have Hcfg := Hb rfl
   -- the share of the start
   ihave Hshare := Hshare $$ %(And.intro Hcfg Hilt)
-  icases Hshare with ⟨%c, %γE, Hshare⟩
+  icases Hshare with ⟨%c, Hshare⟩
   obtain ⟨Hne, Hlen, Hids⟩ := Hcfg
   obtain ⟨Hids1, Hids2⟩ := Hids
   obtain ⟨pi, hpi⟩ : ∃ p, peers[i]? = some p := ⟨_, List.getElem?_eq_getElem Hilt⟩
   obtain ⟨ci, hci⟩ : ∃ p, clients[i]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
   iunfold memberShareK at Hshare
-  icases Hshare with ⟨%Hsh, Hmss, #Hpub⟩
+  icases Hshare with ⟨%Hsh, Hmss⟩
   obtain ⟨Hcok, Hand, Haok⟩ := Hsh
   obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, -⟩ := Hcok
   have hcm := cms_getD peers clients i pi ci hpi hci
   iunfold etcd_dist.memberStartShare at Hmss
   isimp only [hcm] at Hmss
-  icases Hmss with ⟨#Hcf, #Hpaf, Hsl, Hsvc⟩
-  iunfold etcd_dist.memberSvcShare at Hsvc
-  icases Hsvc with ⟨#Hat, Hhalf, #Hinv⟩
+  icases Hmss with ⟨#Hcf, #Hpaf, Hsl, #Hat⟩
   -- the configuration's pure facts
   obtain ⟨Hpfxnd, -, HidsLen⟩ := idPfxsOf_ok (idsOf peers) Hids1 Hids2
   have Hidnd : (idsOf peers).Nodup := by
@@ -352,14 +351,7 @@ theorem Member.wp_proof
         (idPfxOf (W16 (uint.Z (memberIdOf pi)))))
       Hx hiss hwn hfs hgen hc0 hch hlog hvs false hkc .none lease.runCfg_none hklg (fun h => nomatch h)
       hpo rfl hns) $$ Hmarsh Hcf Hsl with ⟨%ρ, %Hρ, Hmb⟩
-  -- the member's view, published at `γE` with `Pub`
-  ihave #HP : □ Pub (etcd_dist.memberView ρ) $$ []
-  · iunfold memberPubOkK at Hpub
-    imodintro
-    ihave HPg := Hpub $$ %ρ %(show kvAgree ρ c.γk from Hρ)
-    iexact HPg
-  imod (etcd_dist.env_publish_h ⊤ γE CoPset.subseteq_top Pub (etcd_dist.memberView ρ)) $$ Hhalf Hinv HP
-    with #Hν
+  have Hcg : kvCongr ρ.rd.kv c.view.kv := Hρ.2.2.2.2.2
   -- the initial cluster's map
   irename i => Hiv
   wp_apply wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.client.pkg.v3.types.URLs) as %pm Hpm
@@ -518,9 +510,9 @@ theorem Member.wp_proof
   (try wp_auto)
   wp_apply (wp_Serve_dist s ci ρ
       (etcdstart.env₀ γm (c.idx (memberIdOf pi)) (c.rev (memberIdOf pi)) (srvApi.kvNx ρ.rd false) false)
-      lg γn (memberIdOf pi) γE (etcd_dist.memberView ρ)) $$ [Hup] as %serr -
+      lg γn (memberIdOf pi) c.view) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, rfl⟩
+    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg⟩
   cases serr with
   | ok ei =>
     (try wp_auto)

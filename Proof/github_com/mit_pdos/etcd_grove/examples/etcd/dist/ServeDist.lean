@@ -29,17 +29,20 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 v1.84's `Server.Serve` (the model, `models/grpc`), over the net extension: `Serve` builds the gRPC
 server from the started member (`v3rpc.Server`), listens at `a` (`net.Listen`), starts
 `gs.Serve(l)` on its own goroutine and returns, and no thread it starts gets stuck or panics on
-the connections to `a`, each of which carries the calls of `Client_Put_dist`/`Client_Get_dist`
-(review F4; since the S2 interface switch `etcdAddrAt` is `grpcAddrAt a (etcdSvc γE mid)`, whose
+the connections to `a`, each of which carries the calls of the clientv3 contracts (`KV_Put_dist`,
+`KV_Get_dist`, `KV_Delete_dist`, `KV_Compact_dist`, `Txn_Commit_dist`; review F4; since the S2 interface
+switch `etcdAddrAt` is `grpcAddrAt a (etcdSvc Γ mid)`, whose
 `addrProto` lets another program dial, listen and accept at `a`, serve an empty grpc server there, or (through
 `listen_au` and `http.register`) an HTTP server, none of which answers a call successfully (not bridge it: `bridge.New` also consumes `netAddrLeft a` since review 4's fix); no proof establishes the opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this
 axiom's post is `True`. Its claim that no thread of the member gets stuck or panics covers every byte arriving
 at `a`, from any client (an HTTP `RoundTrip`, a raw dial), not only the calls below: true of grpc-go, which
 closes a connection on a bad preface; re-review after review 4, 2026-11-24). Every call that reaches a handler is one a client deposited under `a`'s
-protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's KV table at `(γE, mid)`,
-whose spec is at the view published at `γE`. The member's view is that view
-(`ν = memberView ρ`), and the member is `mid` (`memberUp`'s id), so every such call meets the
-spec the member's handlers are proved against.
+protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's table at `(Γ, mid)`, whose spec
+is at the view's names. The member's KV names agree with the view's (`kvCongr ρ.rd.kv Γ.kv`, what
+`kvInv_congr` and `isKv_intro`'s `kvSame` need: one KV state, model and requested log for the whole
+cluster), its auth is off (`memberUp`), and the member is `mid` (`memberUp`'s id), so every such call
+meets the spec the member's handlers are proved against. The view's lessor names (`Γ.ls`) are read by no
+contract yet (P-L1, `notes/etcd-dist-plan.md` §18.3), so nothing ties them here.
 
 Why it is true: today's `etcdstart.Serve.wp_proof` proves the same body in one process, through
 `grpc.start`/`grpc.serve` and the handlers' run contracts (`grpcRunOkMd`, on the member's own
@@ -53,9 +56,9 @@ Retired by S2's `etcdSvc`. The interface switch (2026-11-24) made `etcdAddrAt` g
 over the axiomatized table and `Server.Serve` a trust-boundary axiom over a table
 (`grpc.Server.Serve.wp_proof`, `grpcServeTok gs lis a Svc`); what is left is S2's etcd side: a member
 listening at an address its deployment set (`grpcServeTok`'s branch `grpcSrvNew ∗ netListenerOpen lis a`,
-from `listen_au` over `etcdAddrAt`'s `addrProto`) and `grpcServes (etcdSvc γE mid)` from
-the handlers' contracts (`phase7-plan.md` §2.4, §3, "`etcdstart`"), the published view converted through
-`etcdPubSpec`.
+from `listen_au` over `etcdAddrAt`'s `addrProto`) and `grpcServes (etcdSvc Γ mid)` from
+the handlers' contracts (`phase7-plan.md` §2.4, §3, "`etcdstart`"), each at the member's names through
+`kvCongr` with the view's.
 Its statement needs no change, but S2's version may strengthen the post. **Obligation for S2's
 proof (review F5):** today's `Serve.spec` returns the served member's id existentially (`grpcUpM`),
 while this statement fixes the table's `mid` to `memberUp`'s id; S2's proof must show the id the

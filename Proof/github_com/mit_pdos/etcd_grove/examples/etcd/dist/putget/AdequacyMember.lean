@@ -3,7 +3,7 @@
 # `etcd/dist/putget`: the member machine's boot, over the interim cross-machine axioms (`notes/putget-dist-plan.md`, sections 10 and 12)
 
 `member_boot`: the member machine's boot program (`putget.initialize' #()`, then `putget.Member(peer, client)`)
-is safe from the member's share of the distributed start (`memberShare` at `Pub = putgetPub`) and its whole
+is safe from the member's share of the distributed start (`memberShare` at the cluster's names `c`) and its whole
 start (`DistBootWpST`: its files' and listeners' start resources, no package initialized, its main thread's
 token, the logic's bounds: at most `2 ^ 48` receipts, the thread bound `putgetThreads`).
 Linked: `Member.wp_proof` at its callees' linked results (`etcdstart`'s `Link`, `zap.NewNop`'s,
@@ -108,9 +108,9 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
     (σm : state) (Hm : MemberFiles σm)
-    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
+    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (c : etcd_dist.ClusterNames) :
     DistBootWpST putgetThreads putgetSteps (bootMember peer client) σm
-      (memberShareIf peer client γE id (putgetPub (GF := putgetGF))) := by
+      (memberShareIf peer client c ctxs boot id) := by
   intro hG hGG hL hrb hT
   unfold putgetSteps at hrb
   unfold putgetThreads at hT
@@ -154,12 +154,11 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   (try wp_auto)
   -- `putget.Member(peer, client)`
   ihave #Hpr := Hprem (2 ^ 48 - 1) (by decide) hG
-  ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
-      peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf hlp hlc
+      peer client id ctxs boot c Hbf hlp hlc
       (by unfold srvLevels srvLevelK srvRevokeK; rw [hT]; decide) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hwa Hshare]
   · iframe Htok
