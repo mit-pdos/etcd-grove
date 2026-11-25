@@ -118,6 +118,10 @@
      so that `Crash.lean`/`CrashPure.lean`, which P8 edits (`crashTo_start`/`CrashGood`/`walCrash_pure`'s
      exact-prefix conjunct, `walCrashWal`), need no change; if the crash view's past-state facts must carry
      `j`, tell the coordinator before editing them.
+     **Checked: they must.** `Crash.lean`'s crash-view lemmas (lines ~1090-1230: the old generation's
+     `walDiskAt`/`walSyncedLb`/`walNamed` carried to the new one through `walPast_ghost_le`) state and
+     consume the facts, so their signatures change with the facts'; `CrashPure.lean` needs no change (pure,
+     no facts). Asked the coordinator before editing `Crash.lean` (P8 edits `walCrashWal` there).
    * Size: the facts appear 330 times in 114 files (`walSyncedLb|walNamed|walLenLb|walPast|walDirIs|
      walDiskAt|walAbsent`); most uses only thread the new argument. Estimate 1,000-2,000 changed lines,
      of them 300-500 new (the ghost order and its laws, `DiscardUnsaved`'s spec and proof, 300-400);
