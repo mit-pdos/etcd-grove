@@ -28,7 +28,17 @@ State (2026-11-25, head `5b2eefe356` and after): **`snapDir_crash.law` is proved
 Left for T7 (the consumer): thread `snapDirKeep` out of `NewServer` (it now drops the Keep after
 `snapDirKeep_handle`, NewServer.lean ~1228); prove `snapDirKept`/`lookupH` from `TouchDirAll`'s parent syncs;
 produce `snapSlot`s and `snapDirOwn` at the new generation (a carve from the restarted `member/snap` claim);
-supply the `D` premise. Build evidence: see the latest push's entry in `notes/STATUS.md`.
+supply the `D` premise. Build evidence (head `01212f3ee0`, fk-lean2 worktree `wt/etcd-safe-p7`, log
+`/home/ubuntu/eg/logs/etcd-safe-p7-20261125-054350.log`'s successor, local copy `/shared/tmp/p7/remote2.log`):
+the change's 163 leaves; every P7 module built; 6 failures not P7's: dist D2's `deployment`/`kvremote`
+`InitLinked` and `server`/`client` `PkgTable` (the base's gen-init diffs against lean's newer commits:
+`ContextReadErrs` gone, `log.NewModel`) and `mvccfull`/`mvccrand` `TopLevelWitness` (`simp` no progress at
+line 41, base × lean).
+
+Next (coordinator, 2026-11-25): stack on `etcd-safe-main-pin/2026-11-24` @ `3717c7903b`. A trial merge
+(`git merge-tree`) gives 50 conflicts (client `levelTok 0`, kvnet→kvraft deletions, `EtcdVerifyOff` in the dist
+statements, RaftTla tracecheck, etc/goose.py, notes): reported before resolving, as asked.
+
 
 Pin: the etcd re-pin `e94f33b50` does not change `server/etcdserver/api/snap/` (only `storage/backend.go`'s
 OpenSnapshotBackend directory sync, owned by `etcd-safe-main-pin`), so this branch stays on lean's pin.
