@@ -167,3 +167,19 @@ Not in this slice (and why):
   `etc/update-goose-new.py --std-lib --models` (restore `strconv.lean`), the full build, and the
   etcd-grove regeneration (`etc/goose.py`, `gen-init`+`copy-part` to a fixed point, `gen-raft-tla`,
   `gen-specs-pkginit`, `etc/dsv/kitgen.py`, `etc/dsv/_gryff_boot.py`) with `PERENNIAL_DIR`.
+
+## After the landing (2026-11-25)
+The Perennial branch landed on `lean` as `d5eb93cb5` (fast-forward from `d16e65627`; Lean-identical to
+66a2b585e apart from goose's Go tooling). This branch: pin `66a2b585e` -> `d5eb93cb5`, merged etcd-grove
+`lean` `08313db96d` (conflicts: generated files only, plus `kvreconf/MutexFresh.lean`, which lean
+retired with kvreconf: deleted). Regenerated with `PERENNIAL_DIR` at d5eb93cb5: `etc/goose.py --check`
+(every project up to date), gen-init + copy-part (fixed point), gen-raft-tla, gen-specs-pkginit, kitgen,
+`_gryff_boot`, `gen-rpcdriver-boottable` (new on lean, not in the list above: run it after gen-init),
+gen-link (on the VM: it reads `.lake/packages/perennial`; a local run without it drops Perennial's links).
+New on lean and ported: `membership/OwnedMutex.lean` (claim #34) proved owned Lock/Unlock from the
+trusted spin lock; its `sync.Mutex.wp_{Lock,Unlock}_owned` now apply `Proof/sync/MutexOwned`
+(statements unchanged, `sync.lockedMutex` = `mutexLocked`).
+Evidence (VM key 3ebda268791704cc, fresh): full default build 28842 jobs, exit 0; `etc/gates.sh` with
+`GOCACHE`/`TMPDIR`/`XDG_CACHE_HOME` on the data disk (the VM's root filesystem was full): every section
+ok but the three that need a git checkout (merge-status, iris-premise, premise-witness), each run
+locally: ok. Trust base 364 axioms, 0 sorries (matches lean's baseline); 64 collections match.
