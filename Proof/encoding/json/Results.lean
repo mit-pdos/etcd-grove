@@ -6,12 +6,16 @@ plugged in (Perennial's `sync.Mutex`), restated, with `#print axioms` of each.
 * the codec registry: `SetCodec`, `getCodec` (`Registry.lean`: `codecInv`, `codecUnset`,
   `codecSetWith`);
 * validity: `isSpace`, `skipSpace`, `valid` (over the registered codec's `Scan`, `scanOk F`);
+* the stream decoder's pieces: `endsInNumber`, and `NewDecoder` at the model's decoder
+  `decRepModel` (`DecoderModel.lean`);
 * the per-type dispatch and the entry points: `marshalAny`, `Marshal` (`marshalVia J F v`), and
   `Unmarshal` (`unmarshalVia J F ptr`).
 
 Proved elsewhere: `NewEncoder` and `Encoder.Encode` on a connection, at the model's encoder
 `encRepModel` (`Codec/NewEncoder.lean`, `Codec/Encoder__Encode_conn.lean`: linked by their user,
-vr's `Link.lean`, since `Encode`'s spec is over `net`). Not translated, not proved: the `Decoder`.
+vr's `Link.lean`, since `Encode`'s spec is over `net`), and so `Decoder.fetch` on a connection
+(`Codec/Decoder__fetch_conn.lean`); `Decoder.Decode` is proved by its user at its stream (vr's
+`events.Decoder.Decode_frame`).
 -/
 module
 
@@ -23,6 +27,8 @@ public import Proof.encoding.json.Codec.valid
 public import Proof.encoding.json.Codec.marshalAny
 public import Proof.encoding.json.Codec.Marshal
 public import Proof.encoding.json.Codec.Unmarshal
+public import Proof.encoding.json.Codec.endsInNumber
+public import Proof.encoding.json.Codec.NewDecoder
 public import Perennial.Proof.sync.Link
 
 @[expose] public section
@@ -62,6 +68,8 @@ theorem Marshal.wp : Marshal.spec (GF := GF) (hG := hG) := Marshal.wp_proof mars
 theorem Unmarshal.wp : Unmarshal.spec (GF := GF) (hG := hG) :=
   Unmarshal.wp_proof getCodec.wp valid.wp
 
+theorem endsInNumber.wp : endsInNumber.spec (GF := GF) (hG := hG) := endsInNumber.wp_proof
+
 end results
 
 end encoding.json
@@ -75,3 +83,5 @@ end Perennial
 #print axioms Perennial.encoding.json.marshalAny.wp
 #print axioms Perennial.encoding.json.Marshal.wp
 #print axioms Perennial.encoding.json.Unmarshal.wp
+#print axioms Perennial.encoding.json.endsInNumber.wp
+#print axioms Perennial.encoding.json.NewDecoder.wp_proof
