@@ -72,9 +72,9 @@ theorem Client.wp_proof
   have hplain := etcd_dist.addrOk_plainEndpoint hc
   ispecialize Hshare $$ %(by simp [hc])
   iunfold clientShare at Hshare
-  icases Hshare with ⟨#Haddr, %Hauth, %γf, #Hall⟩
+  icases Hshare with ⟨#Haddr, %Hauth, %γf, Hall⟩
   -- the putget invariant at the client's own heap
-  ihave #Hpg : etcd_dist.putGetInvK (GF := GF) Γ.kv γf go!"k" go!"v" $$ []
+  ihave #Hpg : etcd_dist.putGetInvK (GF := GF) Γ.kv γf go!"k" go!"v" $$ [Hall]
   · ihave HL := Hall $$ %hG.goose_localGS
     iexact HL
   -- `context`'s `closedchan`, from its package's fact

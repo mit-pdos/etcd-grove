@@ -44,7 +44,7 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (ep : GoString) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (Γ : etcd_dist.DistView) (mid : w64) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient ep) σc
-      (iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep Γ mid)) := by
+      (iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare (GF := putgetGF) ep Γ mid)) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL

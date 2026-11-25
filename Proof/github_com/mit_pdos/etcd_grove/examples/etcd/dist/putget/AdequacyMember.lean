@@ -110,7 +110,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (σm : state) (Hm : MemberFiles σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (c : etcd_dist.ClusterNames) :
     DistBootWpST putgetThreads putgetSteps (bootMember peer client) σm
-      (memberShareIf peer client c ctxs boot id) := by
+      (memberShareIf (GF := putgetGF) peer client c ctxs boot id) := by
   intro hG hGG hL hrb hT
   unfold putgetSteps at hrb
   unfold putgetThreads at hT

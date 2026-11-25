@@ -57,7 +57,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (client : GoString) (hlc : client.length + 1 < 2 ^ 63) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (Γ : etcd_dist.DistView) (mid : w64) :
-    DistBootWpST putgetThreads putgetSteps (bootClient client) σc (clientShareIf client Γ mid) := by
+    DistBootWpST putgetThreads putgetSteps (bootClient client) σc (clientShareIf (GF := putgetGF) client Γ mid) := by
   intro hG hGG hL hrb hT
   unfold putgetSteps at hrb
   unfold putgetThreads at hT
