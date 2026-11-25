@@ -1714,5 +1714,43 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
       `etcd_noRefusal`/`etcd_noOtherRefusal` unaffected (a promotion of a voter changes no
       learner flag; their docstrings' `ccLogOk` caveat is about a re-add as a learner).
 
+  - **Route B, done (2026-11-25; the design above approved by the coordinator).** Definitions
+    (`SrvRaftLog.lean`): `ccAddOk` (the former `ccApplyOk`), `ccApplyOk` with the promotion disjunct,
+    `ccBootOk` from `ccAddOk` (meaning unchanged), `ccWideOk` (the wide policy of an entry's bytes),
+    `ccPolOk_wide` in place of `ccPolOk_static`, `srvRuleKeeps` and `srv_committed_ccBoot` over
+    `ccWideOk`, `srvClusterOk`'s new last conjunct (the boot entries' `ccBootOk`, from `BootCore.cc` at
+    `NewServerAlloc`/`NewServerAllocOn`), `srv_bootPrefix_ccBoot` (a committed log's first `|boot|`
+    entries `ccBootOk`), `srv_first_boot`/`srv_first_entry` also give the first entry's
+    non-promotion context. `clusterImageOk_restModel`'s premise widened as proposed (old premise
+    verbatim: `(∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →`; new: `(∀ m ∈ L', m.typ ≠ W32 0
+    → ccWideOk γ.raft.cfg m.data) → (∀ (j : Nat) (m : EntryModel), L'[j]? = some m → j <
+    γ.raft.boot.length → m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →`). Re-proved: the four call
+    sites; `RestConf` (`memVoters` now over a cover list, with the bucket's exact members and nothing
+    removed; `ccValidOn_promote_false`, `memVoters_restModel`, `ccValidOn_restModel_promote`,
+    `memVoters_boot`); `RestReplay` (`restEntry_sync`/`fold_sync` refuse a promotion through
+    `memVoters`); the restart sites (`NewServerRFacts`, `StopShutdown`, `ApplyRDefs`: the boot facts
+    from `srvClusterOk`); `applyConfChange` (spec: with `v3`, a promotion does not validate, a new
+    premise; proof: the replayed promotion's `PromoteMember(id, false)`, linked); `EtcdServer__apply`
+    (the premise from `srv_promote_novalid`, `ApplyRDefs.lean`). `BootFacts`/`BootCore` and the five
+    top-level statements (etcd.dist, dist.putget, leaseexpiryN, etcd.all, k8s.all) unchanged in
+    meaning: they reach the policy only through `BootCore.cc`'s `ccBootOk`, whose body now names
+    `ccAddOk`, the same proposition the old `ccApplyOk` was. No axiom but the approved one changed,
+    no `sorry`, `etcd_noRefusal`/`etcd_noOtherRefusal` untouched.
+  - **Fresh reviews of route B** (`axiom` skill, given the axioms and the Go code, not the reasoning):
+    (i) the widened `clusterImageOk_restModel`: **survives** (promotions of voters with odd contexts,
+    case-folded and duplicate JSON keys, the boot boundary, replays, ids outside the configuration,
+    context/node mismatch; a temporary Go test over the real `ValidateConfigurationChange`/
+    `AddMember`/`PromoteMember` on bbolt, buckets byte for byte unchanged); docstring fixed as it asked
+    (`PromoteMember(id, false)` also resets the local learner gauge; the route-B bullet's pin). Noted,
+    pre-existing: the axiom takes no fact tying `γ.raft.boot` to the running cluster. (ii)
+    `PeerServe_dist` with the unchanged `RenewHTTP`/`promoteHTTPOk` and the widened invariants:
+    **survives** (a 3-member Go cluster, 4/4 runs: forged promotions of every voter through
+    `RenewHTTP` at followers, unknown/out-of-range ids, 90 concurrent promotions across restarts and a
+    full WAL replay; rafthttp's paths refuse `RenewHTTP`'s requests with 412; `/leases/internal`'s nil
+    dereference recovered). Its docstring rewritten: sound against `RenewHTTP`'s request shape (not
+    "any request": arbitrary bytes with raft's headers would crash raft, and no program can write
+    them at `pa`), with the waiter note. The server-side `/leases/internal` panic recorded:
+    `nonissues/etcd-leasehttp-internal-nil-request-panic.md`.
+
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.
