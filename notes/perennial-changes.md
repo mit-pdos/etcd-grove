@@ -4697,3 +4697,18 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed (general).** The model is stuck (or the spec is the only entry: the body sealed) outside `fmt`'s
   argument condition (`fmt/Args.lean`'s `argOk`, which requires `Format = none`); or `log.Printf`/`Println`
   over the real `fmt.Appendf`/`Appendln` once #56's plan lands. **Status.** Not filed (no post: dsv-fix6 brief).
+
+## `wp_apply Hdv` on a wand from an `ihave … $$ [defer]` chain silently replaces a bullet's proof by `sorry` (2026-11-25, etcd-safe-n9b, recorded by dsv-fix6)
+
+- **Limitation.** In `etcd-safe-n9b`'s `RunLeaseExpiry.lean` (before `598eedecc1`), `Hdv` was a wand obtained
+  through an `ihave … $$ [defer]` chain, and `wp_apply Hdv` in a bullet closed the bullet with no error: the
+  bullet's proof became `sorry`. The only traces were Lean's "declaration uses sorry" on the theorem and a
+  "never executed" linter warning on the tactic after it. No error, no unsolved goal: a reader of the build log
+  who does not look for the warning takes the proof as complete (the TCB report catches the `sorryAx`, a
+  `lake build` does not fail).
+- **Work-around.** `iapply Hdv; iexact HΨ` (apply the wand by hand, then discharge its premise) works and leaves
+  no `sorry`. A proof that uses `wp_apply` on a hypothesis from a deferred `ihave` should be checked with
+  `#print axioms` (or `etc/tcb-report.py --check`).
+- **Proposed (general).** `wp_apply` (or the `ihave … [defer]` machinery under it) must fail with an error when it
+  cannot discharge a deferred goal, never elaborate it to `sorry`; a minimal reproduction is the first step.
+  **Status.** Not filed (no post: dsv-fix6 brief); no reproduction outside `RunLeaseExpiry.lean` yet.

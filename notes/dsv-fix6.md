@@ -6,7 +6,7 @@ rabia's `zerolog.Hyps` and QuePaxa's `PbHyp`, refuted as stated (`notes/axiom-re
 per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axioms"). grpc's initializer
 (item 4) and go-redis's (item 5) are not touched.
 
-**State (2026-11-25, fourth session): rabia done; QuePaxa done, reviewed, gates passed; craq not started.**
+**State (2026-11-25, fifth session): rabia done; QuePaxa done, reviewed, gates passed; craq: route revised (below), `ErrFmt.lean` drafted, nothing else.**
 - **Gates: all passed** at `eb7cf0b3fd` (rabia only) and at `ebd1ac09ab` (rabia + QuePaxa; 386 axioms, 64
   collections match, `pb-init: ok`). So `ebd1ac09ab` can be queued as it stands; craq is the next session's.
 - **Next session: craq** (item 1 below, option 1), from `ebd1ac09ab`. The check script lives in `etc/`, not
@@ -36,8 +36,45 @@ per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axio
   (`raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof`, exactly), baselines updated (`etc/tcb-baseline.txt`,
   `etc/tcb-collections/dsv-quepaxa.txt`); reviews indexed in `notes/axiom-review/README.md`;
   `etc/dsv/README.md`'s fix-4 section updated. Full `lake build` passes.
-- **craq (item 1): not started.** Coordinator-E chose option 1 (errAny's fact in `Net/`, proved at its
+- **craq (item 1): started (fifth session, design only).** Coordinator-E chose option 1 (errAny's fact in `Net/`, proved at its
   producers; stop if a `TopLevelRobustness` text changes).
+  **Fifth session's finding: `errAny` itself must NOT gain the fact.** `models_lab.errAny` is also what
+  premises and axioms say of real libraries' errors: `raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof` (axioms,
+  `Dsverify/Proof/raxos/Hyp.lean`: their posts give `errAny err` of protobuf-go's own error types: a stronger
+  `errAny` would make those axioms claim `*errorString`/`*OpError` shapes they do not have, i.e. unsound), the
+  statement premises `RpcHttpHyp` of swiftpaxos and swiftpaxos-epaxos (`.../RpcHttpHyps.lean`: a stronger
+  `errAny` in their posts changes the meaning of two `TopLevelRobustness` statements, which the brief forbids),
+  `PbCodec`/`JsonCodec`'s obligations (premise `GrpcHyp (cd := qpCodec)` of QuePaxa) and
+  `raxos.hyp.fmt.Println.wp_proof`'s precondition (narrowing: harmless). Its size was also misjudged: `errMsg`
+  (73 files, etcd's server included) feeds `errAny` through `errMsg_errAny` (31 uses), so the fact would have
+  to go into `errMsg`/`errNE`/`errSrv`/`inErr` too.
+  **Revised route (same option 1: the fact lives in `Net/`, proved where the errors are made):** a new module
+  `Net/Proof/models_lab/ErrFmt.lean` (written and built alone, with `noFmt_*` of the five types by `go_type_set`; nothing imports it yet) with `NoFmtMeth t`
+  (`t` implements neither `fmt.Formatter` nor `fmt.GoStringer`), `errLeaf i` (an interface value `%#v` reaches
+  at depth 2: `nil`, or a pointer type / `poll.errNetClosing` without those methods), `errFmt e` (`NoFmtMeth
+  e.ty` and one of the net world's shapes with the memory `%#v` reads persistent: `ServerError`;
+  `*errorString` with `x.s ↦□ s`; `*pbcodec.Error`/`*jsoncodec.Error` with `x ↦□ v`; `*OpError` with
+  `pe ↦□ v` and `errLeaf` of `Source`/`Addr`/`Err`) and `errPlain err := errAny err ∗ ∃ e, ⌜err = ok e⌝ ∗
+  errFmt e`. `errAny`, `errMsg` and every premise/axiom stay as they are. Steps left:
+  1. Net's own proved specs that craq's errors come from return `errPlain` where they returned `errAny`:
+     `net.rpc.Client.Call.spec`'s third branch (`Net/Spec/net/rpc/Client__Call.lean`; its producers in
+     `Net/Proof/net/rpc/Client__input.lean`'s `inErr`, `ClientGhost`, `Errs.lean`: `errAny_newVar`,
+     `errAny_errorString` (+ the `x.s ↦□` from `wp_errors_New'`/`newVar`), `errAny_opErr`/`resErr`/`opErrPtr`
+     (`kindErr`'s `Err`: `closedErr` = `errNetClosing{}`, the deadline variable's `*DeadlineExceededError`,
+     `sysErr`'s `*SyscallError`: `errLeaf`), `DialHTTP.spec`/`Dial.spec`'s error (DialHTTPPath's `"dial-http"`
+     `*OpError` wraps an `errAny` `Err`: needs that `Err` to be `errLeaf`, i.e. its producer's type). Either
+     strengthen these specs in place (their consumers in other kits then weaken with `errPlain_errAny`;
+     `icases` patterns change) or add `Client.Call.spec_plain` etc. beside them (no other kit touched;
+     preferred). The `ServerError` branch needs no Net change: `errMsg err msg ∗ ⌜err = serverErr msg⌝ ⊢
+     errPlain err` is provable from the type alone.
+  2. craq: `Craq/Iface.lean`'s specs say `errPlain` where they say `errAny` (`Craq/Netrpc/*` bindings over the
+     `_plain` Net specs; `NodeClient`/`CoordClient`'s `errMsg_errAny` uses become the `ServerError` lemma);
+     the store's `errNotFound` (`errors.newVar`) gives `errPlain` from `newVar`'s `x.s ↦□`.
+  3. `argOk` narrowed (`Craq/LogHyp.lean`): `nil ∨ ⌜fmt.ArgWf ii⌝ ∨ ⌜FmtPlain ii.ty⌝ (+ the persistent
+     pointee for `*store.Item`/`*transport.NodeMeta`) ∨ errPlain v`; `argOk_err` takes `errPlain`.
+  4. `LogHyp` → per-function axioms (`log.Default`, `Logger.Printf`, `Logger.Println`, as rabia's), the class and
+     the premise removed from `craqnet/TopLevelRobustness.lean` (removal only), fresh `axiom` review in
+     `notes/axiom-review/dsv-fix6/log-logger-2.md`, `etc/tcb-report.py --check --update`, `etc/gates.sh`.
 
 ## 1. craq: `log.(*Logger).Printf`/`Println` (and the package-level `log.Printf`/`Println`)
 
