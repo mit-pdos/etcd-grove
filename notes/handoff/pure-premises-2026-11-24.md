@@ -188,6 +188,13 @@ Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and
   lean's `wal-safe-review` dropped `etcd_wal_safe`'s `Hopen`, `hf`, `hpaths`, `hfit` (checked in Go now):
   the WalTester witness shrank to match. VM build of the merged tree (PremiseSat, FsStart,
   WalAreasInitSat, all 28 TopLevelWitness modules): exit 0, 5565 jobs, no `sorry` (`b7.log`).
+- 2026-11-25: merged origin/lean `e1ab967ea2` (the gate itself is on lean now, via premise-etcd-params;
+  kvnet-single's P8 dropped kvnet's `cl.Ok`/length/`Nodup`/`addrOk` premises; raft-retire deleted
+  some statements and their witnesses). Baseline conflict resolved by taking lean's and re-running
+  `--check --update`. kvnet witness shrunk to the new statement; new witnesses for kvudp's
+  `raft_kvudp_robust` and `_example` (Net + Fs + Udp, all fresh). VM: PremiseSat, FsStart,
+  WalAreasInitSat and all 26 TopLevelWitness modules, exit 0 (5203 jobs), no `sorry` (`b8.log`).
+  Gate: 44 statements, 31 witnessed.
 - Pitfall: `omega` ignores atoms of type `Ino` (an abbrev of `Nat`): state arithmetic lemmas over `Nat`.
 - Pitfall: `Option.noConfusion h` no longer elaborates to `False` here (its type is `_ ≍ _ → …`):
   use `absurd h (by simp)`. `decide` refuses goals with free variables (the intro'd instances inside
