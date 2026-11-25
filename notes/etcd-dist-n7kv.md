@@ -112,3 +112,12 @@ with nits: everything else. No reachable panic under the premises. Applied (belo
   `NodeDeployment`, `Orchestrator`, `gen-link --deployment`, `KvLinked`; then `etc/tier-check.py --check`,
   `etc/api-check.py`, a build of `KvLinked` on fk-lean1, and a `spec-reviewer` pass on the specs.
 - No axiom, no new premise; the only hypotheses are the two schemas.
+
+## Replayed onto the no-crash line (2026-11-25, fourth session)
+
+`etcd-safe-n7kv-nc` = `etcd-safe-nc/2026-11-25` (`a9d9b94558`, which contains bootax) + N7-kv's 13 commits
+(`c14f88dec2..08747ddceb`), cherry-picked without conflict. `etc/gen-link.py --deployment` gives the committed
+`deployment/Link.lean` unchanged. `etc/tier-check.py --check` ok, `etc/api-check.py --check` ok on every
+`etc/api/*.txt`. fk-lean1 worktree `/home/ubuntu/eg/wt/etcd-safe-n7kv-nc` (its `.lake/build` moved there from
+`wt/etcd-safe-n7kv`, whose build is gone): `lake build KvLinked deployment.Link`, 4704 jobs, exit 0 (log
+`/shared/tmp/n7kvnc-build.log`).
