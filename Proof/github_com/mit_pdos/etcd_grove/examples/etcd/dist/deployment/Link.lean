@@ -10,6 +10,8 @@ module
 
 public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.AddrOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Deployment__Endpoints
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Deployment__Node
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.IdsOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind__String
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NeedsAuth
@@ -126,6 +128,14 @@ theorem wp_decimal :
 theorem wp_AddrOk :
     EtcdGrove.etcd_dist.AddrOk.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_dist.AddrOk.wp_proof wp_decimal
+
+theorem Deployment.wp_Endpoints :
+    EtcdGrove.etcd_dist.Deployment.Endpoints.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_dist.Deployment.Endpoints.wp_proof
+
+theorem Deployment.wp_Node :
+    EtcdGrove.etcd_dist.Deployment.Node.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_dist.Deployment.Node.wp_proof
 
 theorem types.URLs.wp_StringSlicePlain :
     EtcdGrove.types.URLs.StringSlicePlain.spec (GF := GF) (hG := hG) :=
