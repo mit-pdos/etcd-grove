@@ -43,7 +43,7 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **`tickElection`'s end state, at the protocol level** (in the lifting lemmas' scope): `TickEnd`,
 the log's state kept. -/
-theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id s)
+theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
     (h : TickElEnd c id s s') :
     TickEnd c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
   rcases h with rfl | ⟨he, -⟩
@@ -53,7 +53,7 @@ theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id
 /-- **`tickHeartbeat`'s end state, at the protocol level** (in the lifting lemmas' scope, so with
 check-quorum off: no quorum check): `TickEnd`, the log's state kept; the transfer abort is invisible
 to `toPState`. -/
-theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id s)
+theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
     (hro : (toPState s).rd.ro.pending = []) (h : TickHbEnd c id s s') :
     TickEnd c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
   have hcq := hsc.2.1
@@ -63,7 +63,7 @@ theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id
     · exact ⟨Or.inl rfl, rfl⟩
     · exact ⟨Or.inl rfl, rfl⟩
   · rw [TickCqEnd.of_cq hcq h1] at h3
-    have hs2 : toPState s2 = toPState s ∧ s2.logst = s.logst ∧ LiftScope id s2 := by
+    have hs2 : toPState s2 = toPState s ∧ s2.logst = s.logst ∧ LiftScope c id s2 := by
       rcases h3 with rfl | rfl
       · exact ⟨rfl, rfl, hsc⟩
       · exact ⟨rfl, rfl, hsc⟩
@@ -107,12 +107,13 @@ theorem RawNode.Tick.wp_absProof
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
   -- in the scope: the lifting lemmas' scope, the configuration's voters the harness's, the
   -- in-progress boundary within the log
-  have Hlift : sc = true → LiftScope id s ∧ cf.voters = (rnCfg γ).voters := fun h => by
+  have Hlift : sc = true → LiftScope cf id s ∧ cf.voters = (rnCfg γ).voters ∧
+      cf.ids = (rnCfg γ).ids := fun h => by
     have Hs := Hscope h
     obtain ⟨HC, Hid⟩ := cfgScope_of Hs (Hcin h) Hcfm
     have Hv : cf.voters = γ.reCfg := HC.voters
     exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid),
-      by rw [Hv, rnCfg_voters]⟩
+      by rw [Hv, rnCfg_voters], HC.ids ((Hcin h).learners Hcfm)⟩
   have Hipl : sc = true → ip ≤ ps.log.length := fun h => by
     rw [← Hps]
     exact ip_le_log Hip (by rw [(Hscope h).2.2.2.2.2.1]; rfl) Hipf.1.2
@@ -150,10 +151,10 @@ theorem RawNode.Tick.wp_absProof
       -- in the scope, the tick's exact effect, the log's state kept
       have Hlifted : sc = true →
           TickEnd (rnCfg γ) id (toPState s) (toPState s') ∧ s'.logst = s.logst := fun h => by
-        obtain ⟨hl, hv⟩ := Hlift h
+        obtain ⟨hl, hv, hd⟩ := Hlift h
         first
-          | exact ⟨(tickElEnd_lift hl Hend).1.of_voters hv, (tickElEnd_lift hl Hend).2⟩
-          | exact ⟨(tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).1.of_voters hv,
+          | exact ⟨(tickElEnd_lift hl Hend).1.of_voters hv hd, (tickElEnd_lift hl Hend).2⟩
+          | exact ⟨(tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).1.of_voters hv hd,
               (tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).2⟩
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         (fun h Hs => by
@@ -239,7 +240,7 @@ theorem RawNode.Tick.wp_absProof
       have Hcq' : s'.cq = s.cq := by first | exact Hcqe.symm | exact Hcqe
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         -- (2026-11-24) the scope's cluster is untraced (`RnCfgIn`): this branch is outside it
-        (fun h _ => by have := (Hcin h).2.2; rw [HtrG] at this; cases this) Hsg $$ Hsc
+        (fun h _ => by have := (Hcin h).2.2.1; rw [HtrG] at this; cases this) Hsg $$ Hsc
       ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [Hcap]
       · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
         isplitr

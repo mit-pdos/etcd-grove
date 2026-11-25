@@ -117,9 +117,13 @@ def pendAt (γ : RaftNames) (id : w64) (W : DurMaps) :
 /-- **The node in the harness's configuration** (2026-11-24): among the names' voters, in the
 dynamic mode the configuration's incoming voters the names' (with `RnScope`'s no outgoing half: the
 static `CfgStatic`'s simple configuration), and the cluster untraced (the harness's,
-`NewRawNode.emptyStartForm`'s `Cluster.trace γ = none`). -/
+`NewRawNode.emptyStartForm`'s `Cluster.trace γ = none`); (#33 S4, destinations) the dynamic mode
+(`NewRawNode.restartAtSpec`'s) and no learners, so that the progress map's ids (`ownTrackerC`'s
+`CfgM.ids`) are the voters and a leader's sends go to voters (no API of the scope changes the
+configuration: `ApplyConfChange` is not in it). -/
 def RnCfgIn (γ : RaftNames) (id : w64) (rs : RNState) : Prop :=
-  id ∈ γ.reCfg ∧ (rs.mode.isDyn = true → rs.cfg.cfg.incoming = γ.reCfg) ∧ γ.reTrace = none
+  id ∈ γ.reCfg ∧ (rs.mode.isDyn = true → rs.cfg.cfg.incoming = γ.reCfg) ∧ γ.reTrace = none ∧
+  rs.mode.isDyn = true ∧ rs.cfg.cfg.learners = ∅
 
 /-- **The harness's scope, owned part**: at `sc = true` `RnScope`, the node in the harness's
 configuration (`RnCfgIn`) and the storage never compacted past `0` (`storCapF`, persistent); nothing

@@ -68,7 +68,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `ownRawNodeAt` at the restarted protocol state `restartP S σ.base σ.hs.Commit'`, nothing queued, the
 in-progress boundary at the stored log's end (`offsetInProgress = σ.b + |σ.ents| + 1`), at the scope
 flag `sc`; at `sc = true` the scope's premises (pre-vote and check-quorum off, the static mode, the
-log's boundary `base0`) and its resource (`storCapF … 0`, under `⌜sc = true⌝`). -/
+log's boundary `base0`, no learners) and its resource (`storCapF … 0`, under `⌜sc = true⌝`). -/
 abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership) (S : RaftState)
@@ -97,7 +97,7 @@ abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
   -- `γ.rnMode = .static`, which `isCluster` contradicts: the scope was empty)
   (sc = true → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧
     (m.voters = γ.raftNames.reCfg ∧ m.votersOutgoing = ∅ ∧ cv.ID' ∈ γ.raftNames.reCfg) ∧
-    σ.base = base0) →
+    σ.base = base0 ∧ m.learners = ∅) →
   ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗ readyFits γ N ∗
@@ -944,7 +944,7 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     omega
   have HscR : sc = true → RnScope rs0 s1 := by
     intro hsc
-    obtain ⟨Hpv0, Hcq0, ⟨-, Hmo, -⟩, Hb0⟩ := Hsc hsc
+    obtain ⟨Hpv0, Hcq0, ⟨-, Hmo, -⟩, Hb0, -⟩ := Hsc hsc
     refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_, ?_, ?_⟩
     · intro _; exact Hmo
     · show s.prevote = false; rw [Hpvoff, Hpv0]
@@ -955,8 +955,8 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     · show s.gh.xs = false; rw [Hgh]
   have HcinR : sc = true → RnCfgIn γ.raft cv.ID' rs0 := by
     intro hsc
-    obtain ⟨-, -, ⟨Hmv, -, Hid⟩, -⟩ := Hsc hsc
-    exact ⟨Hid, fun _ => Hmv, HtrG⟩
+    obtain ⟨-, -, ⟨Hmv, -, Hid⟩, -, Hlr⟩ := Hsc hsc
+    exact ⟨Hid, fun _ => Hmv, HtrG, by show (γ.mode inferInstance).isDyn = true; rw [Hmd]; rfl, Hlr⟩
   ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
       (σ.b + σ.ents.length) sc $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
@@ -1140,7 +1140,7 @@ theorem NewRawNode.wp_proofEmptyStartAbs
       F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx (.inl HAn) (by rw [Hb, HAn]; omega) (Nat.zero_le _)
       (by rw [Hb0]; exact Nat.zero_le _) (votersConfState_is vs Hnd) Hnsm Htlk HtrC
       emptyStorContents_holds (fun _ => ⟨Hpq.1, Hpq.2,
-        ⟨Hmd.1.symm, rfl, by rw [Hmd.1]; exact (GMap.elem_of_list_to_set _ _).2 Hmd.2⟩, rfl⟩) x)
+        ⟨Hmd.1.symm, rfl, by rw [Hmd.1]; exact (GMap.elem_of_list_to_set _ _).2 Hmd.2⟩, rfl, rfl⟩) x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
     as %rn %err ⟨%Herr, %l, %sn, %g, %K, Hrn, -, %Hl, Hgen, Hfree, HrS, HF⟩
   · rw [HAn]

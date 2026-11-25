@@ -118,8 +118,8 @@ response of the harness's (no pre-vote response) is `RecvEnd` at a configuration
 a storage acknowledgement keeps the protocol reading; both keep the read-index requests and an empty
 read-only queue. -/
 theorem advStep_pure {C cf : CfgM} {id : w64} {s1 s2 : NState} {st : MsgSt} {p : Pending}
-    (HC : cf.incoming = C.incoming ∧ cf.outgoing = C.outgoing)
-    (Hl : LiftScope id s1) (Hpst : pendSt id st p)
+    (HC : cf.incoming = C.incoming ∧ cf.outgoing = C.outgoing ∧ cf.ids = C.ids)
+    (Hl : LiftScope cf id s1) (Hpst : pendSt id st p)
     (Hnpv : ∀ q ∈ advHead st p, q.ty ≠ .preVoteResp)
     (Hend : StepEnd cf id st.msg st.ents st.ctx s1 s2) (Hack : AckEnd st.msg s1 s2)
     (Hns : NoSnapL s2.outbox) :
@@ -150,7 +150,7 @@ theorem advStep_pure {C cf : CfgM} {id : w64} {s1 s2 : NState} {st : MsgSt} {p :
       · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl⟩
     have HR := recvEnd_of_stepEnd_net Hl hant Hnz (fun _ => Hcx)
       (noSnapSent_of_noSnapL Hns) Hend ty hty
-    have HR' := HR.1.of_halves HC.1 HC.2 HR.2
+    have HR' := HR.1.of_halves HC.1 HC.2.1 HC.2.2 HR.2
     refine ⟨fun rest pe H => ?_, ?_, recvEnd_ro HR.2 HR.1⟩
     · simp only [advHead, hq, Option.toList_some, List.singleton_append]
       exact .cons _ _ _ _ _ HR' H
@@ -314,7 +314,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
   have Hscope := Hscope0 rfl
   have Hcin := Hcin0 rfl
   have hsl : rs.slent = none := Hscope.2.2.2.2.1
-  have HtrG : γ.reTrace = none := Hcin.2.2
+  have HtrG : γ.reTrace = none := Hcin.2.2.1
   have HtrS : s.gh.tr = none := Hgtr.trans HtrG
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
   have HC := (cfgScope_of Hscope Hcin Hcfm).1
@@ -532,7 +532,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     icases ownRaftPhysC_precand cf rnv.raft' id s1 $$ Hphys with ⟨%Hpc1, Hphys⟩
     icases ownRaftPhysC_trkDoms cf rnv.raft' id s1 $$ Hphys with ⟨%Hdom1, Hphys⟩
     icases ownStepGhost_followerVotes γ _ cf id s1 $$ Hghost with ⟨%Hfv1, Hghost⟩
-    have Hlift1 : LiftScope id s1 := liftScope_of Hsc1 Hpc1 Hfv1 Hdom1.1 Hdom1.2 Hid
+    have Hlift1 : LiftScope cf id s1 := liftScope_of Hsc1 Hpc1 Hfv1 Hdom1.1 Hdom1.2 Hid
     ihave #Hcap1 : storCapF s1.logst.storage 0 $$ []
     · rw [Hsg1.1]; iexact Hcap
     wp_apply wp_step_pending_ns wp_raft_Step γ cf _ rnv.raft' id s1 mm st p rs.bw Hwf1 Hpok
@@ -553,7 +553,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     have Hcqv : s2.cq = s1.cq := by
       rw [Hsc1.2.2.1]; rw [Hscope.2.2.1] at Hcqe
       first | exact Hcqe.symm | exact Hcqe
-    have HP := advStep_pure (C := rnCfg γ) ⟨HC.1, HC.2.1⟩ Hlift1 Hpst
+    have HP := advStep_pure (C := rnCfg γ) ⟨HC.1, HC.2.1, HC.ids (Hcin.learners Hcfm)⟩ Hlift1 Hpst
       (fun q hq => Hnq q (Hae1.1.subset (List.mem_append_left _ hq))) Hend2 HAk2 HNs2
     have Hsc2 : RnScope rs s2 :=
       RnScope.keep Hsc1 rfl rfl Hsg2.2.1 Hcqv HP.2.1 Hpv2 Hsn2 (fun x hx => .inr (HNs2 x hx)) HP.2.2

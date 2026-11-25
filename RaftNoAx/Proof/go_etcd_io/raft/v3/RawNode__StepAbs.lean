@@ -396,7 +396,7 @@ local macro "step_tail" : tactic => `(tactic| (
         have HR := recvEnd_of_stepEnd_net Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
         have HC := HCf h
         obtain ⟨ty0, hty0⟩ := antStep_mtype hant
-        refine ⟨fun ty hty => (HR ty hty).1.of_halves HC.1 HC.2.1 (HR ty hty).2, ?_, ?_,
+        refine ⟨fun ty hty => (HR ty hty).1.of_halves HC.1 HC.2.1 (HC.ids ((Hcin h).learners Hcfm)) (HR ty hty).2, ?_, ?_,
           recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1⟩
         · rw [← toPState_rd_pend s', ← toPState_rd_pend s]
           exact recvEnd_rd_pend (HR ty0 hty0).2 (HR ty0 hty0).1
@@ -499,7 +499,7 @@ theorem RawNode.Step.wp_absProof
   icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
   have HCf : sc = true → CfgScope γ cf := fun h => (cfgScope_of (Hscope h) (Hcin h) Hcfm).1
-  have Hlift : sc = true → LiftScope id s ∧ AckScope cf := fun h => by
+  have Hlift : sc = true → LiftScope cf id s ∧ AckScope cf := fun h => by
     have Hs := Hscope h
     have HC := HCf h
     have Hv : cf.voters = γ.reCfg := HC.voters

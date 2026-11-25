@@ -94,7 +94,7 @@ theorem ip_of_logGrow {ls ls' : LogState} (h : LogGrow ls ls')
 /-! ### By type, at the step function's state -/
 
 theorem logGrow_fn_heartbeat {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s' : NState} (hsc : FnScope id t) (hty : m.Type' = MsgHeartbeat)
+    {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgHeartbeat)
     (H : StepFnEnd c id t m ents ctx s') : LogGrow t.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := H
   cases hr : t.role with
@@ -119,7 +119,7 @@ theorem logGrow_fn_heartbeat {c : CfgM} {id : w64} {t : NState} {m : MessageM} {
     exact LogGrow.keep rfl rfl
 
 theorem logGrow_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s' : NState} (hsc : FnScope id t) (hty : m.Type' = MsgAppResp)
+    {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgAppResp)
     (H : StepFnEnd c id t m ents ctx s') : LogGrow t.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := H
   cases hr : t.role with
@@ -184,7 +184,7 @@ theorem logGrow_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {en
           exact LogGrow.keep rfl rfl
 
 theorem logGrow_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
-    {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope id t)
+    {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope c id t)
     (hty : m.Type' = MsgHeartbeatResp) (hctx : ctx = []) (H : StepFnEnd c id t m ents ctx s') :
     LogGrow t.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := H
@@ -212,7 +212,7 @@ theorem logGrow_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : Message
     · exact absurd hctx hne
 
 theorem logGrow_fn_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s' : NState} (hsc : FnScope id t) (hty : m.Type' = MsgVoteResp)
+    {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgVoteResp)
     (H : StepFnEnd c id t m ents ctx s') : LogGrow t.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := H
   cases hr : t.role with
@@ -249,7 +249,7 @@ theorem logGrow_vote {id : w64} {t : NState} {m : MessageM} {s' : NState} (H : V
 /-- **A `MsgApp`'s step function's log**: kept, or `handleAppendEntries`' accepting arm at the
 log's state `ls` (`HandleAppResult`). -/
 theorem app_fn_logst {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s' : NState} (hsc : FnScope id t) (hty : m.Type' = MsgApp)
+    {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgApp)
     (H : StepFnEnd c id t m ents ctx s') :
     s'.logst = t.logst ∨
     ∃ lastnewi es', plogMaybeAppend t.logst.prev (t.logst.sents ++ t.logst.uents)
@@ -303,7 +303,7 @@ lemmas' scope, at a log from `base0` with the boundary inside it): `min` of the 
 the common prefix of the logs before and after. A `MsgApp` (its batch well formed, `AppPayloadOk`)
 as `maybeAppendIp` (`maybeAppendIp_lcp`), the other types by `LogGrow`. -/
 theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope id s) (hty : m.Type' ∈ antStepTypes)
+    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' ∈ antStepTypes)
     (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
     (hwf : m.Type' = MsgApp → PlogWf (entryID.mk m.LogTerm' m.Index') ents)
     (hp : uint.Z s.logst.prev.index' = 0) (hlo : 1 ≤ uint.Z s.logst.inprogress)
@@ -361,7 +361,7 @@ theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
 /-- **A proposal's step** (term `0`, no preamble): the log appended to (a leader's `proposed`) or kept
 (a forward, a drop), the in-progress boundary kept. -/
 theorem logGrow_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope id s) (hty : m.Type' = MsgProp)
+    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : LogGrow s.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; se_tyclose hty)
     (by rw [hty]; se_tyclose MsgHup) (by rw [hty]; se_tyclose MsgVote) h0 h
@@ -393,32 +393,57 @@ theorem logGrow_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
 
 /-! ### The exact effect, at the harness's configuration -/
 
-/-- `HandleEnd` reads the configuration's halves only, at the harness's types. -/
+/-- (#33 S4, destinations) `AppSendOk` reads the configuration's ids only. -/
+theorem AppSendOk.of_ids {c c' : CfgM} {id : w64} {s : PState} {m : Msg} (hd : c.ids = c'.ids)
+    (h : AppSendOk c id s m) : AppSendOk c' id s m :=
+  ⟨h.1, h.2.1, hd ▸ h.2.2⟩
+
+theorem SendsEnd.iff_of_ids {c c' : CfgM} (hd : c.ids = c'.ids) (id : w64) (s s' : PState) :
+    SendsEnd c id s s' ↔ SendsEnd c' id s s' := by
+  unfold SendsEnd AppSendOk; rw [hd]
+
+theorem WinEnd.iff_of_ids {c c' : CfgM} (hd : c.ids = c'.ids) (id : w64) (s s' : PState) :
+    WinEnd c id s s' ↔ WinEnd c' id s s' := by
+  unfold WinEnd AppSendOk; rw [hd]
+
+/-- (#33 S4, destinations) `ProposeEnd` reads the configuration's ids only. -/
+theorem ProposeEnd.of_ids {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hd : c.ids = c'.ids) (h : ProposeEnd c id s m s') : ProposeEnd c' id s m s' := by
+  unfold ProposeEnd at h ⊢
+  by_cases hr : s.role = .leader
+  · rw [if_pos hr] at h ⊢
+    rcases h with h | ⟨es, ms, hp, hms, h⟩
+    · exact .inl h
+    · exact .inr ⟨es, ms, hp, fun x hx => (hms x hx).of_ids hd, h⟩
+  · rw [if_neg hr] at h ⊢; exact h
+
+/-- `HandleEnd` reads the configuration's halves and ids only, at the harness's types. -/
 theorem HandleEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
-    (hi : c.incoming = c'.incoming) (ho : c.outgoing = c'.outgoing)
+    (hi : c.incoming = c'.incoming) (ho : c.outgoing = c'.outgoing) (hd : c.ids = c'.ids)
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
     (h : HandleEnd c id s m s') : HandleEnd c' id s m s' := by
   unfold HandleEnd at h ⊢
   rcases hty with e | e | e | e | e | e <;> rw [e] at h ⊢ <;>
-    simpa only [AppRespEnd, PCommitOk, JQuorum, JLost, hi, ho] using h
+    simpa only [AppRespEnd, PCommitOk, JQuorum, JLost, hi, ho, SendsEnd.iff_of_ids hd,
+      WinEnd.iff_of_ids hd] using h
 
-/-- `RecvEnd` reads the configuration's halves only, at the harness's types. -/
+/-- `RecvEnd` reads the configuration's halves and ids only, at the harness's types. -/
 theorem RecvEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
-    (hi : c.incoming = c'.incoming) (ho : c.outgoing = c'.outgoing)
+    (hi : c.incoming = c'.incoming) (ho : c.outgoing = c'.outgoing) (hd : c.ids = c'.ids)
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
     (h : RecvEnd c id s m s') : RecvEnd c' id s m s' := by
   rcases h with ⟨h1, h2⟩ | h | ⟨h1, s1, h2, h3⟩
-  · exact .inl ⟨h1, h2.of_halves hi ho hty⟩
+  · exact .inl ⟨h1, h2.of_halves hi ho hd hty⟩
   · exact .inr (.inl h)
-  · exact .inr (.inr ⟨h1, s1, h2, h3.of_halves hi ho hty⟩)
+  · exact .inr (.inr ⟨h1, s1, h2, h3.of_halves hi ho hd hty⟩)
 
 /-- **The exact effect of a `Step` of the harness's network types** (in the lifting lemmas'
 scope; a heartbeat response with no context; nothing queued but no `MsgSnap`): `RecvEnd` at the
 message's abstraction (`InputEndLift.lean`'s lemmas, by type). -/
 theorem recvEnd_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope id s) (hty : m.Type' ∈ antStepTypes)
+    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' ∈ antStepTypes)
     (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
     (hns : NoSnapSent (toPState s) (toPState s')) (h : StepEnd c id m ents ctx s s') :
     ∀ ty, mtypeOf m.Type' = some ty →
@@ -437,7 +462,8 @@ theorem recvEnd_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List
   · exact ⟨recvEnd_of_stepEnd_heartbeatResp hsc e h0 (hctx e) hns h, by simp⟩
 
 /-- A proposal's end relation keeps the read-index state. -/
-theorem proposeEnd_rd {id : w64} {s : PState} {m : Msg} {s' : PState} (h : ProposeEnd id s m s') :
+theorem proposeEnd_rd {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (h : ProposeEnd c id s m s') :
     s'.rd = s.rd := by
   unfold ProposeEnd at h
   split at h
