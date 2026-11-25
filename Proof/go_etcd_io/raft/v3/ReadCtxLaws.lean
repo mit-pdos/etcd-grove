@@ -1,8 +1,8 @@
 /-
-(2026-11-22, kvnet's checker) **A read context's log is unique**: `readCtxAfter γ N c l0` (`InvNode`,
+(2026-11-22, kvraft's checker) **A read context's log is unique**: `readCtxAfter γ N c l0` (`InvNode`,
 sealed) names the one log `l0` the context `c` was committed after (raft's `ctxs` map holds one entry
 per context), so two of them agree. What a client needs that mints a read context in one place and
-gets its answer in another: kvnet's checking client mints the context (`readCtx_commit_after`, after
+gets its answer in another: kvraft's checking client mints the context (`readCtx_commit_after`, after
 the log of the read's start), and the replica's answer names the context's log existentially (the
 wire protocol's fact); agreement says the answer's log is the client's.
 

@@ -3,7 +3,7 @@
 network and Linux files** (etcd-dist stage D3, `notes/dist-crash-bridge.md`): the bridge from
 Perennial's `goose_dist_mixed_crash_adequacy` (`DistAdequacy.lean`: machines with boot programs, which
 crash and restart, and machines without, which never crash) to `Robust crashing stable g threads
-bound` (`Robustness/Statement.lean`), for machines over `[netExt, fsExt]` (`kvnetExts`,
+bound` (`Robustness/Statement.lean`), for machines over `[netExt, fsExt]` (`kvraftExts`,
 `GooseLang/Ext/NetFs/Adequacy.lean`), under `NetFsDeploy` (`NetFsDeploy.lean`). It is to crashes
 what `robust_of_distBootRB` (`DistBridge.lean`) is to deployments whose machines never crash.
 
@@ -50,8 +50,8 @@ namespace Net
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Robustness NetFs
 
-attribute [local instance] kvnetExts kvnetExtsSemantics kvnetExtsInterp kvnetExtsCrashInterp
-  kvnetExts_hasNet kvnetExts_hasFs GooseGlobalGS.gooseInvGS
+attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExtsInterp kvraftExtsCrashInterp
+  kvraftExts_hasNet kvraftExts_hasFs GooseGlobalGS.gooseInvGS
 
 section bridge
 variable [GoGlobalContext] {GF : BundledGFunctors} [hPre : GooseGpreS GF]
@@ -74,7 +74,7 @@ theorem fsStartRes_of_localStart [G : GooseGlobalGS .hasLC GF] (L : GooseLocalGS
       ∃ img sz, f = Fs.OsFile.ofDisk img sz := fun i f hf =>
     let ⟨img, sz, _, e⟩ := (h.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, e⟩
   iintro Hs
-  icases kvnet_fs_localStart (L := L) w $$ Hs with Hs
+  icases kvraft_fs_localStart (L := L) w $$ Hs with Hs
   unfold Fs.osStart Fs.osStartF Fs.treeStart Fs.bytesMap Fs.metaMap
   icases Hs with ⟨⟨Hb, Hm, Hv⟩, Hd⟩
   ihave Hfs := Fs.start_files (Fs.gooseOsGS (L := L)) hdisk $$ [Hb Hm]
@@ -200,7 +200,7 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
   · -- the global setup, every crashing machine's first generation, every stable machine's WP
     intro G HN
     iintro Hg
-    ihave Hnet := kvnet_net_globalStart g.globalWorld $$ Hg
+    ihave Hnet := kvraft_net_globalStart g.globalWorld $$ Hg
     ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
     imod Hstart (by omega) $$ Hs with ⟨%Pc, %Ps, %HPc, %HPs, Hc, Hst⟩
     imodintro
@@ -224,7 +224,7 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     imodintro
     iframe Hwp
     iintro %L' Hcrd Hcs Hgs Hlc
-    icases kvnet_fs_crashStart L L' $$ Hcs with Hcs
+    icases kvraft_fs_crashStart L L' $$ Hcs with Hcs
     unfold Fs.osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
     imod Fs.osInv_alloc (L := L') ⊤ $$ Hv with #Hinv

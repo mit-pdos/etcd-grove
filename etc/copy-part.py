@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Copy into the parts `RaftNoAx/` and `KvNet/` the modules of other trees their closures need.
+"""Copy into the parts `RaftNoAx/` and `KvRaft/` the modules of other trees their closures need.
 
 usage: etc/copy-part.py [--part NAME]... [--check] [--list]
 
-  --part    only this part (RaftNoAx or KvNet; repeatable; default: both).
+  --part    only this part (RaftNoAx or KvRaft; repeatable; default: both).
   --check   write nothing; exit 1 if a copy differs from what is checked in (or is missing, or a
             copy is stale), listing the files.
   --list    print the modules of the closure that the part has (copied or generated), with why
@@ -22,27 +22,27 @@ other module is the main tree's, imported as it is.
 
 - `RaftNoAx/` (notes/raft-noax-part.md): raft's proofs over a raft of its own (project raft-noax of
   etc/goose.py). Its source is the main tree; its roots raft's (its `Link` and the modules
-  etc/api/raft.txt lists as importable: KvNet's raft is the part's), read in the main tree (the
+  etc/api/raft.txt lists as importable: KvRaft's raft is the part's), read in the main tree (the
   part's own files are not followed). (Until 2026-11-24 also kvdurable's, over its own translation,
-  project kvdurable-noax: retired, raft_kvnet_robust subsumes it.)
-- `KvNet/` (notes/kvnet-part.md): kvnet's proof, over raft-noax's raft, the net extension's `net`
+  project kvdurable-noax: retired, kvraft_robust subsumes it.)
+- `KvRaft/` (notes/kvraft-part.md): kvraft's proof, over raft-noax's raft, the net extension's `net`
   (the part `Net/`) and the bodied `durable` over fsExt (the part `WalTester/`). Its sources are
-  `RaftNoAx/`, `Net/`, `WalTester/` and the main tree; its roots its own modules under `KvNet/Spec`
-  and `KvNet/Proof` (`Imports.lean`, the smoke test, until kvnet's proof has a `Results`), read
+  `RaftNoAx/`, `Net/`, `WalTester/` and the main tree; its roots its own modules under `KvRaft/Spec`
+  and `KvRaft/Proof` (`Imports.lean`, the smoke test, until kvraft's proof has a `Results`), read
   with the part's own files first. A module two source parts both have (other than one gen-init
   writes for the part) is a clash: the script stops and names it.
 
 The copies, by kind:
 - `Code/`, `GeneratedProof/`: none; etc/goose.py translates them into the part (RaftNoAx: projects
-  raft-noax, the part of project etcd; KvNet: project kvnet, the
+  raft-noax, the part of project etcd; KvRaft: project kvraft, the
   parts of projects raft-noax, net, durable and etcd).
-- the package initializers etc/gen-init.py writes for the part (`PARTS[part]`, `KVNET_INITS`), and
+- the package initializers etc/gen-init.py writes for the part (`PARTS[part]`, `KVRAFT_INITS`), and
   the part's own and the main tree's `Link.lean` files (etc/gen-link.py): none, those scripts write
-  them (a source part's `Link`, raft-noax's or `durable`'s that kvnet's `Link` uses, is copied).
+  them (a source part's `Link`, raft-noax's or `durable`'s that kvraft's `Link` uses, is copied).
 - every other module of the closure that reaches a seed (`Spec/`, `Proof/`), and the trusted code
   and manual proofs (`TrustedCode/`, `ManualProof/`) of the part's translated packages, with the
   Goose configuration (`Code/**.toml`) of those packages (from the source tree whose goose piece
-  translates the same package: KvNet's `durable` is `WalTester/`'s, bodied, with no configuration):
+  translates the same package: KvRaft's `durable` is `WalTester/`'s, bodied, with no configuration):
   copied, with the imports of the modules the part has prefixed by `<Part>.`, `RENAME`'s package
   paths replaced (the Lean namespace, dotted, and the directory, slashed), and a first line naming
   the source (a source part's own first line, when it is a copy itself, dropped).
@@ -160,7 +160,7 @@ class Part:
         parts = [f for f in found if f[0]]
         if len(parts) > 1 and mod not in self.gen_init_mods() and not mod.endswith(".Link"):
             sys.exit(f"copy-part: {self.name}: {mod} is in more than one source tree "
-                     f"({', '.join(s + '/' for s, _ in parts)}): a clash to decide (notes/kvnet-part.md)")
+                     f"({', '.join(s + '/' for s, _ in parts)}): a clash to decide (notes/kvraft-part.md)")
         return found[0] if found else None
 
     def resolve(self, mod):
@@ -193,7 +193,7 @@ class Part:
 
     def pkg(self, owned):
         """The Lean package path (dotted) the source trees name a package the part owns by (a renamed
-        package's is the source's, `RENAME`; KvNet's packages are its own)."""
+        package's is the source's, `RENAME`; KvRaft's packages are its own)."""
         d = owned.replace(os.sep, ".")
         return d if self.own_first else unrename(d, self.renames)
 
@@ -238,7 +238,7 @@ def strip(mod, src):
 
 # raft's API modules that are not about the noax raft: its raftpb has no enum name tables
 # (`ccTypeNames`, `ccTransitionNames`) nor the main raftpb's message decoding (`msgDecodeRaw`), so
-# these do not build in RaftNoAx (VM build, 2026-11-24); KvNet uses none of them.
+# these do not build in RaftNoAx (VM build, 2026-11-24); KvRaft uses none of them.
 NOT_NOAX = {"Proof.go_etcd_io.raft.v3.raftpb.CCEnumName", "Proof.go_etcd_io.raft.v3.PbMessage",
             "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String",
             "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__String"}
@@ -264,7 +264,7 @@ def raft_api_roots():
 
 
 def raftnoax_roots(part):
-    """RaftNoAx's roots: raft's (`raft_api_roots`; KvNet takes its raft from the part)."""
+    """RaftNoAx's roots: raft's (`raft_api_roots`; KvRaft takes its raft from the part)."""
     return raft_api_roots()
 
 
@@ -300,14 +300,14 @@ def raftnoax_gen_init_paths():
     return sorted(gi.part_paths(gi.PARTS["RaftNoAx"][0]))
 
 
-def kvnet_gen_init_paths():
-    return sorted(gen_init().kvnet_paths())
+def kvraft_gen_init_paths():
+    return sorted(gen_init().kvraft_paths())
 
 
 PARTS = {
     "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, {}, raftnoax_gen_init_paths),
-    "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, {},
-                  kvnet_gen_init_paths),
+    "KvRaft": Part("KvRaft", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, {},
+                  kvraft_gen_init_paths),
 }
 
 

@@ -41129,7 +41129,7 @@ echo's `SafeDistLinked.lean` are deleted. A kit's theorem is
   plan).
 - **The kit deployment premise** `KitDeploy` (`Net/Statement/KitDeploy.lean`, trusted, a neutral
   module for the export) is data about `g` and the machines' initial local states, in the style of
-  kvnet's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
+  kvraft's `FreshNet`: the plan well formed (`PlanWellFormed`) and the network's plan, no
   connection, machine `i` on `hosts[i]` (its net-extension local state), no listener. Generic over
   the extensions (`[HasExt netExt]`), so a kit with files states the same premise. `Robust`'s own
   premise (`Fresh`: the Go context, no package initialized, one thread) is not repeated. No
@@ -41351,7 +41351,7 @@ and `VerifyBackendConsistency` are translated and proved; `Verify`'s premise is 
 
 ## The net extension without a plan (v3.4) (2026-11-20 · the user's decision · branch `net-noplan`)
 
-**Context.** kvnet's top-level theorem (`notes/kvnet-robust-goal.md`, branch
+**Context.** kvraft's top-level theorem (`notes/kvraft-robust-goal.md`, branch
 `worktree-kvnet-toplevel-statement`) is `Robust` over the fixed extensions `[Net.netExt, Fs.fsExt]`
 and mentions no plan, no hosts and no network premises but that the replicas' addresses are valid
 (`Net.addrOk`) and distinct. v3.3's network carried the deployment's plan (address -> host) and
@@ -41501,11 +41501,11 @@ for `Listen`, and the recovery wand made at boot needs it too; Perennial-Lean ha
 Pending connections are keyed by address, not by listener or incarnation (`wire.addrInv`,
 `Proto.addrInvP`), so a restarted node's `Accept` takes the deposits made for a crashed one (D7).
 
-**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvnetExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
+**Bundle.** `GooseLang/Ext/NetFs/Adequacy.lean`: `kvraftExts := ⟨[Net.netExt, Fs.fsExt]⟩`, its
 semantics, interpretation and crash interpretation are Perennial's `ExtTuple` of each extension's
-own. It also has: both `HasExt` instances, `kvnetGF`/`kvnetGpreS`, the projections of the start and
-crash resources onto each extension's, and `kvnet_dist_crash_adequacy`
-(`goose_dist_crash_adequacy` at `kvnetGF`, with the initial-state conditions discharged from
+own. It also has: both `HasExt` instances, `kvraftGF`/`kvraftGpreS`, the projections of the start and
+crash resources onto each extension's, and `kvraft_dist_crash_adequacy`
+(`goose_dist_crash_adequacy` at `kvraftGF`, with the initial-state conditions discharged from
 `NetGlobal.init` and `FsInit`). There is no change to the file extension.
 ## Outgoing metadata as a per-run relation (2026-11-20 · the user's soundness fix · branch `prove-errdesc/2026-11-20`, stage 1)
 
@@ -41724,7 +41724,7 @@ uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progres
 
 ## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
 
-`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvraft-proof-plan.md`
 decision A. A replica killed at any instruction must leave its id restartable.
 
 **Ghost state.**
@@ -41775,7 +41775,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## Raft's cluster vocabulary independent of machine and generation (2026-11-21 · the coordinating session · branch `raft-cluster-global`)
 
-**Decision.** kvnet's decision B, option 3 of `notes/raft-cluster-global.md`:
+**Decision.** kvraft's decision B, option 3 of `notes/raft-cluster-global.md`:
 - The node-level predicates take an opaque node handle `nh : NodeH` (location and names), which
   `StartNode`/`RestartNode` return.
 - The node table (`nodeTabInv`: a ghost map from node locations to names, with `n ↦□` for each)
@@ -41797,7 +41797,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 **Why.**
 - `isCluster` must be allocated in `goose_dist_mixed_crash_adequacy`'s `Hstart` and held by
-  kvnet's checking client on another machine.
+  kvraft's checking client on another machine.
 - A global node table cannot keep the heap facts its freshness needs: they are each generation's.
   Keyed by address, it also breaks when a restarted heap reuses one.
 
@@ -41846,7 +41846,7 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## A crash may enter a pending batch: `readyEnter` as live ∧ crash (2026-11-22 · branch `raft-crash-enter`)
 
-**Need.** kvnet's write has two durability points, so after a crash in its window the restarted node may find
+**Need.** kvraft's write has two durability points, so after a crash in its window the restarted node may find
 the batch's state on disk. Raft must then let the crash enter the batch as well as discard it (`nodeCrash`).
 
 **Choice.** `readyEnter := readyEnterLive ∧ readyEnterCrash`, an additive conjunction over the hand-out's
@@ -41910,10 +41910,10 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 - The obligations quantify over the local ghost state `L` (the WP at `⟨G, L⟩`), not over a `HeapGS` with an
   equation on its global part as `KitBootWp` does; a proof substitutes `lctx` by `L`'s context and never
   destructures `GooseLocalGS` positionally (Perennial's `local-names` adds a field).
-- The file system in its legacy mode at the plain semantics (`kvnetExts`): the shared mode needs each
+- The file system in its legacy mode at the plain semantics (`kvraftExts`): the shared mode needs each
   generation's start to reach the extension's local interpretation, which Perennial's distributed theorem
   does not give (`notes/perennial-changes.md`, 2026-11-22). Recorded, not worked around: D4's call.
-- The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
+- The minimal instance is echo (server crashing, client stable, over `kvraftExts`), since echo's proofs are
   over any extensions with the net extension: only the boot programs (a program's syntax is over its
   extension list) and `wp_boot` are restated.
 
@@ -42605,7 +42605,6 @@ environment can make it true.
 `bootstrap`'s: it would thread through `batchTx.Lock` and every caller of the backend; the pure
 assertion inside `isBackend` carries it with no signature change.
 
-
 ## `ContextReadErrs` was unsatisfiable: a local `MapKeys` for `togRPCError`, the classes theorems, a gate on Iris premises (2026-11-25 · soundness fix · branch `hctx-vacuity/2026-11-25`)
 
 **What.** The top-level premise `Hctx : ∀ hG, ContextReadErrs` stated of `context.DeadlineExceeded`'s
@@ -42633,3 +42632,7 @@ with the list). The Go fact is true; the Lean statement was wrong.
   its introduction; the list only shrinks). It flags `Hctx`/`Hcec` on the tree before the fix. Not
   done: a Lean-level check that a named witness really proves the premise at an initialized world (the
   name is a pointer for review, not a proof obligation the script verifies).
+
+## kvraft's UDP version is a program of package kvraft, not a package (2026-11-25 · the coordinator and Upamanyu · branch `kvraft-rename/2026-11-25`)
+
+The UDP version (`cmd/kvraft-udp`, `kvraft_udp_robust`) is a program variant of package kvraft (`examples/raft/kvraft`, renamed from kvnet with its part `KvRaft/`), not a package of its own, because its UDP transport shares package kvraft's replica, storage and client code and their proofs (a separate package would need kvraft's internals exported).
