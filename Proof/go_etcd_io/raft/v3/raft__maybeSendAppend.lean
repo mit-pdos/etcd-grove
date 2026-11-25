@@ -334,7 +334,7 @@ local macro "msa_send" : tactic => `(tactic| (
     intro m Hm
     simp only [List.mem_singleton] at Hm
     subst Hm
-    exact ⟨Or.inl Happ, fun _ => Hlvc.1, (fun h => nomatch h), (fun h => nomatch h)⟩
+    exact ⟨Or.inl Happ, fun _ => Hlvc.1, Hcfg, (fun h => nomatch h)⟩
   isplitr
   · ipureintro
     show prvalsMatch _ = _

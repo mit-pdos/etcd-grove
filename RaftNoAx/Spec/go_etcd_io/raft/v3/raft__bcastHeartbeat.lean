@@ -62,8 +62,10 @@ abbrev raft.bcastHeartbeat.spec : Prop :=
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       -- each with the read-only object's context (2026-10-12; `nil` without a request)
-      -- (#33 S4) and no index, log term or entries (`sendHeartbeat` sets none)
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = []⌝ ∗
+      -- (#33 S4) and no index, log term or entries (`sendHeartbeat` sets none), to a peer of the
+      -- progress map
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧
+        m.entries = [] ∧ m.dst ∈ domSet s.progress⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
       G ({ sendMsgs s ms with prvals := pvs } : NState).outbox }}
 

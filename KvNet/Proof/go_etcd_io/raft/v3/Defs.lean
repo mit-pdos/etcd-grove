@@ -1592,9 +1592,9 @@ which the dynamic model's `StepR.sendApps`/`win` require (stage B3's finding: I1
 `MsgApp` with an older commit index). -/
 def ReplSends (id : w64) (s : NState) (ms : List Msg) : Prop :=
   ∀ m ∈ ms, ReplOk id (toPState s) m ∧ AppCommitEq (toPState s) m ∧
-    -- (D19p, 2026-10-18) a snapshot goes to a peer of the progress map (`maybeSendSnapshot`'s
-    -- `pr`)
-    (m.ty = .snap → m.dst ∈ domSet s.progress) ∧
+    -- (D19p, 2026-10-18; every message since 2026-11-25, #33 S4) it goes to a peer of the
+    -- progress map (`maybeSendAppend`'s `to`, `maybeSendSnapshot`'s `pr`)
+    m.dst ∈ domSet s.progress ∧
     -- (2026-10-19, D21 M3) and never in the no-snapshot mode (`NGhost.ns`): there `Next ≥ 2`
     -- and the storage is never compacted past `1`, so `maybeSendAppend` never falls back to one
     (m.ty = .snap → s.gh.ns = false)
@@ -1613,7 +1613,7 @@ theorem ReplSends.commitEq {id : w64} {s : NState} {ms : List Msg} (H : ReplSend
 theorem ReplSends.snapTo {id : w64} {s : NState} {ms : List Msg} (H : ReplSends id s ms)
     {c : CfgM} (Hc : domSet s.progress ⊆ c.voters ∪ c.learners) :
     ∀ m ∈ ms, m.ty = .snap → m.dst ∈ c.voters ∪ c.learners :=
-  fun m hm hs => (GMap.elem_of_subseteq _ _).1 Hc _ ((H m hm).2.2.1 hs)
+  fun m hm _ => (GMap.elem_of_subseteq _ _).1 Hc _ (H m hm).2.2.1
 
 /-! Each physical transition is its protocol counterpart on `toPState`. Stated so that
 proofs rewrite rather than unfold. -/
@@ -1737,19 +1737,19 @@ theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
   unfold ReplOk AppOk SnapOk at *
   rw [Ht, Hb, Hl, Hc]; exact H
 
-/-- `replAC_proper` for `ReplSends`'s element (D19p: with the snapshot's peer), at a state with
+/-- `replAC_proper` for `ReplSends`'s element (D19p: with the destination's peer), at a state with
 the same progress map. -/
 theorem replACS_proper (id : w64) (s s' : NState) (m : Msg)
     (Ht : (toPState s').term = (toPState s).term) (Hb : (toPState s').base = (toPState s).base)
     (Hl : (toPState s').log = (toPState s).log) (Hc : (toPState s').commit = (toPState s).commit)
     (Hp : s'.progress = s.progress)
     (H : ReplOk id (toPState s) m ∧ AppCommitEq (toPState s) m ∧
-      (m.ty = .snap → m.dst ∈ domSet s.progress) ∧ (m.ty = .snap → s.gh.ns = false))
+      m.dst ∈ domSet s.progress ∧ (m.ty = .snap → s.gh.ns = false))
     (Hg : s'.gh.ns = s.gh.ns) :
     ReplOk id (toPState s') m ∧ AppCommitEq (toPState s') m ∧
-      (m.ty = .snap → m.dst ∈ domSet s'.progress) ∧ (m.ty = .snap → s'.gh.ns = false) :=
+      m.dst ∈ domSet s'.progress ∧ (m.ty = .snap → s'.gh.ns = false) :=
   ⟨replOk_proper id _ _ m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2.1 h,
-    fun h => by rw [Hp]; exact H.2.2.1 h, fun h => by rw [Hg]; exact H.2.2.2 h⟩
+    by rw [Hp]; exact H.2.2.1, fun h => by rw [Hg]; exact H.2.2.2 h⟩
 
 theorem replSends_prvals (id : w64) (s : NState) (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { s with prvals := pvs } ms ↔ ReplSends id s ms := by

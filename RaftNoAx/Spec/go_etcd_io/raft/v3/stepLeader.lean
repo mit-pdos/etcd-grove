@@ -254,9 +254,9 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
      s' = { sendMsgs s ms with prvals := pvs } ∧
      -- (#33 S4) no index, log term or entries (`sendHeartbeat` sets none); (#33 S4, msgShape) the
      -- read-only object's context exactly (`hbCtx`: nil with no request pending), not only
-     -- `HbCtxOk` of it (`hbCtx_ok`)
+     -- `HbCtxOk` of it (`hbCtx_ok`); (#33 S4) to a peer of the progress map
      (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧ m'.ctx = hbCtx s.rd.ro ∧
-       m'.index = W64 0 ∧ m'.logterm = W64 0 ∧ m'.entries = []) ∧
+       m'.index = W64 0 ∧ m'.logterm = W64 0 ∧ m'.entries = [] ∧ m'.dst ∈ domSet s.progress) ∧
      prvalsMatch pvs = prvalsMatch s.prvals) ∨
   (m.Type' = MsgHeartbeatResp ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),

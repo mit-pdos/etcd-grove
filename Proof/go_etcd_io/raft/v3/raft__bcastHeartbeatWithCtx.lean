@@ -71,7 +71,8 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         "cp" ∷ ctx_ptr ↦ ctx ∗
         -- (Q8 stage 1, slice 5) the caller's resource, through each heartbeat's gate
         "HG" ∷ G (s.outbox ++ ms) ∗
-        "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = []⌝ ∗
+        "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧
+          m.entries = [] ∧ m.dst ∈ domSet s.progress⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "%Hok" ∷ ⌜PrvalsOk { sendMsgs s ms with prvals := pvsx }⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
@@ -165,7 +166,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         · exact Hms m Hm
         · rw [List.mem_singleton] at Hm
           subst Hm
-          refine ⟨heartbeatOk_intro id s i cm cl Hlead Hii Hc1 ?_, rfl, rfl, rfl, rfl⟩
+          refine ⟨heartbeatOk_intro id s i cm cl Hlead Hii Hc1 ?_, rfl, rfl, rfl, rfl, Hicfg⟩
           simp only at Hc2
           rw [Hmi] at Hc2
           exact Hc2

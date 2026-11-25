@@ -330,7 +330,8 @@ abbrev raft.bcastHeartbeatWithCtx.untracedTriple : Prop :=
       (Val #ctx))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = []⌝ ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧
+        m.entries = [] ∧ m.dst ∈ domSet s.progress⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 /-- `raft.bcastHeartbeatWithCtx.spec`'s untraced instance: every gate the struct's nil logger. -/
@@ -365,7 +366,8 @@ abbrev raft.bcastHeartbeat.untracedTriple : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = []⌝ ∗
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧
+        m.entries = [] ∧ m.dst ∈ domSet s.progress⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 /-- `raft.bcastHeartbeat.spec`'s untraced instance: every gate the struct's nil logger. -/

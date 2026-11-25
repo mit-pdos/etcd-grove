@@ -156,7 +156,7 @@ theorem stepCD_sendApps [GoSemanticsFunctions] (c : CfgM) (id : w64) (B : Int) (
   refine ⟨?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   · rw [HP]
     exact StepC.sendApps _ _ Hrl (fun m hm => (Hms m hm).1)
-      (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1 h))
+      (fun m hm _ => (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1))
   · have Hr : rOf { sendMsgs s1 ms with prvals := pvs } { g with cidx := g.cidx } =
         { rOf s1 g with p := psendMsgs (rOf s1 g).p ms } := by
       unfold rOf pciR
@@ -164,9 +164,9 @@ theorem stepCD_sendApps [GoSemanticsFunctions] (c : CfgM) (id : w64) (B : Int) (
       simp [sendMsgs] <;> rfl
     rw [Hr]
     exact StepR.sendApps _ ms Hrl (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
-      (fun m hm h => by
+      (fun m hm _ => by
         have e : m.dst ∈ c.voters ∪ c.learners :=
-          (GMap.elem_of_subseteq _ _).1 Hpc _ ((Hms m hm).2.2.1 h)
+          (GMap.elem_of_subseteq _ _).1 Hpc _ (Hms m hm).2.2.1
         rw [← hc] at e; exact e)
 
 theorem proposed_role (id : w64) (s : NState) (ents : List EntryM) (h : s.role = .leader) :
@@ -654,8 +654,8 @@ theorem wp_Step_MsgProp {nc : Bool}
             (.propose (absMsg .propose m ents ctx) _ (leaderPropConf s ents cs' c.joint).1 rfl Hrepl
               Hrl (by have := Hrepl.length; omega))
             (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1)
-              (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
-                have := (Hms m hm).2.2.1 h
+              (fun m hm _ => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
+                have := (Hms m hm).2.2.1
                 simp only [proposed, sendMsgs] at this
                 rw [Hspp] at this; exact this)))
         · -- `StepR.propose`: the loop exactly, `pendingConfIndex` moved; then the broadcast
@@ -685,9 +685,9 @@ theorem wp_Step_MsgProp {nc : Bool}
               (Int.le_refl _) Hlv) ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
-            (fun m hm h => by
+            (fun m hm _ => by
               have e : m.dst ∈ c.voters ∪ c.learners := (GMap.elem_of_subseteq _ _).1 Hpc _ (by
-                have := (Hms m hm).2.2.1 h
+                have := (Hms m hm).2.2.1
                 simp only [proposed, sendMsgs] at this
                 rw [Hspp] at this; exact this)
               rw [← hc] at e; exact e)
