@@ -312,6 +312,62 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
   iapply bidi_runOk wp_M wp_H s
   iframe #
 
+/-- A unary entry of the table's: its registered reply model bounds every reply. -/
+theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
+      (pbStringValueRT (GF := GF)).toProtoMsg) :
+    ⊢ ∀ Rep : ProtoMsgT GF,
+      ⌜grpcRepModelOf GF (⟨reqWire (GF := GF), repWire (GF := GF), Spec⟩ : GrpcEntry GF).Wp.ty =
+        some Rep⌝ -∗ □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
+  iintro %Rep %hR
+  obtain rfl : Rep = pbStringValueRT (GF := GF) :=
+    Option.some.inj ((pbStringValueRT_repReg (GF := GF)).symm.trans hR)
+  iintro !> %l %m Hs
+  isimp only [pbStringValueRT, pbStringValueR, stringValueSendB] at Hs
+  icases Hs with ⟨%v, -, %Hv⟩
+  ipureintro
+  have hb : stringValueMax + 11 < grpcMsgMax := by decide
+  simp only [pbStringValueRT, pbStringValueR, stringValueWireLen]
+  omega
+
+/-- A stream entry of the table's: its registered reply model bounds every reply. -/
+theorem drv_streamBound (up : Nat → GoString → IProp GF)
+    (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+    ⊢ ∀ Rep : StreamMsgT GF,
+      ⌜streamRepModelOf GF (⟨strmWire (GF := GF), strmWire (GF := GF), up, dn, strmSpec⟩ :
+        GrpcStreamEntry GF).Wp.ty = some Rep⌝ -∗
+      □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
+  iintro %Rep %hR
+  obtain rfl : Rep = pbStringValueST (GF := GF) :=
+    Option.some.inj ((pbStringValueST_repReg (GF := GF)).symm.trans hR)
+  iintro !> %l %m Hs
+  isimp only [pbStringValueST, pbStringValueS, stringValueSendB] at Hs
+  icases Hs with ⟨%v, -, %Hv⟩
+  ipureintro
+  have hb : stringValueMax + 11 < grpcMsgMax := by decide
+  simp only [pbStringValueST, pbStringValueS, stringValueWireLen]
+  omega
+
+/-- **Every reply the driver's table lets a handler send marshals** (`grpcRepliesBounded`): every
+entry's reply is a `StringValue`, below `stringValueMax`. -/
+theorem drvSvc_repliesBounded (γid : GName) : ⊢ grpcRepliesBounded (drvSvc (GF := GF) γid) := by
+  unfold grpcRepliesBounded
+  iintro !> %name %ent %he
+  by_cases h1 : name = echoName
+  · subst h1; rw [drvSvc_echo] at he; cases he; iapply drv_unaryBound
+  by_cases h2 : name = failName
+  · subst h2; rw [drvSvc_fail] at he; cases he; iapply drv_unaryBound
+  by_cases h3 : name = metaName
+  · subst h3; rw [drvSvc_meta] at he; cases he; iapply drv_unaryBound
+  by_cases h4 : name = serverStreamName
+  · subst h4; rw [drvSvc_serverStream] at he; cases he; iapply drv_streamBound
+  by_cases h5 : name = clientStreamName
+  · subst h5; rw [drvSvc_clientStream] at he; cases he; iapply drv_streamBound
+  by_cases h6 : name = bidiName
+  · subst h6; rw [drvSvc_bidi] at he; cases he; iapply drv_streamBound
+  exfalso
+  unfold drvSvc at he
+  simp [h1, h2, h3, h4, h5, h6] at he
+
 end serves
 
 end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver

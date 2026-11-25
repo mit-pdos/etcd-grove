@@ -44,6 +44,13 @@ instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_g
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc :=
   build_get_is_pkg_init_wf
 
+/-- `svc`'s package fact. -/
+theorem drvDescs_of_init :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
+      drvDescs := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF)
+    pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc
+
 end init
 
 end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc
