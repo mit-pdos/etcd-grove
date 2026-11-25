@@ -522,6 +522,142 @@ theorem wp_mapping_add (h : Loc) (st : MapSt) (kids : List (GoString × Loc)) (k
     · simp only [hk', ↓reduceIte]
       cases map.lookupL k' kids <;> simp [Ne.symm hk']
 
+
+theorem TreeSt.okP_locOf (root : Loc) (S : TreeSt) (kc k : List Seg) (hok : S.okP root kc) :
+    (locOf (S.nodes !! k) = null → S.nodes !! k = none) ∧
+    (locOf (S.nodes !! k) ≠ null → ∃ d, S.nodes !! k = some d ∧ d.l = locOf (S.nodes !! k)) := by
+  cases h : S.nodes !! k with
+  | none => exact ⟨fun _ => rfl, fun h' => absurd rfl h'⟩
+  | some d =>
+    have := (hok.2.2.2.2.2.2.2 k d h).1
+    exact ⟨fun h' => absurd h' (by simpa [locOf] using this), fun _ => ⟨d, rfl, by simp [locOf]⟩⟩
+
+theorem gmap_insert_same {K V : Type} [DecidableEq K] (m : GMap K V) (k : K) (v : V)
+    (h : m !! k = some v) : <[k := v]> m = m :=
+  GMap.ext (fun k' => by rw [GMap.lookup_insert_eq_iff]; by_cases hk : k = k' <;> simp [hk, ← h])
+
+/-- A fresh node's fields (`&routingNode{}`). -/
+theorem freshNode_rep (c : Loc) :
+    c ↦ (zero_val net.http.routingNode) ⊢
+      nodeRep (GF := GF) (hG := hG) (DFrac.own 1) (freshNode c) ∗ ⌜c ≠ null⌝ := by
+  iintro Hc
+  ihave %hcn := typedPointsto_not_null _ _ _ $$ Hc
+  iStructNamed Hc
+  iunfold nodeRep
+  simp only [freshNode, mapRep, ↓reduceIte]
+  iframe
+  isplitl []
+  · isplitr
+    · ipureintro; exact List.nodup_nil
+    isplitr
+    · iapply ownSlice_nil
+    isplitl []
+    · iapply ownSliceCap_nil
+    ipureintro; rfl
+  ipureintro; exact hcn
+
+/-- `n.addChild(key)` at the node `kc` (the owner, every node at `1`). -/
+theorem wp_addChild (root : Loc) (S : TreeSt) (kc : List Seg) (d : NodeSt) (key : List w8)
+    (ms : w64) (hok : S.okP root kc) (hd : S.nodes !! kc = some d) :
+    {{ globalAddr net.http.maxSlice ↦□ ms ∗
+        [∗map] _k ↦ d ∈ S.nodes, nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d }}
+      (App (Val (d.l @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"addChild")) (Val #key))
+    {{ (c : Loc), RET #c; ∃ (N : GMap (List Seg) NodeSt) (d' : NodeSt),
+        ([∗map] _k ↦ d ∈ N, nodeRep (DFrac.own 1) d) ∗
+        ⌜TreeSt.okP root (TreeSt.mk N S.pats) (kc ++ [.lit key]) ∧ N !! (kc ++ [.lit key]) = some d' ∧
+          d'.l = c⌝ }} := by
+  wp_start as ⟨#Hms, HN⟩
+  icases BigSepM.bigSepM_insert_acc (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d) hd $$ HN
+    with ⟨Hd, HN⟩
+  obtain ⟨n1, n2, n3, n4, n5, n6⟩ := hok.2.2.2.2.2.2.2 kc d hd
+  by_cases hk : key = []
+  · subst hk
+    iunfold nodeRep at Hd
+    icases Hd with ⟨Hp, Hh, Hc, Hm, He⟩
+    wp_auto
+    obtain ⟨hl1, hl2⟩ := TreeSt.okP_locOf root S kc (kc ++ [.lit []]) hok
+    wp_if_destruct
+    · -- no empty child: a fresh one
+      have hnone : S.nodes !! (kc ++ [.lit []]) = none := hl1 (by rw [← n3]; exact Hif)
+      icases freshNode_rep «$r0_ptr» $$ «$r0» with ⟨Hfr, %hcn⟩
+      ihave Hd' : nodeRep (DFrac.own 1) (linkUpd d (.lit []) «$r0_ptr» d.ms) $$ [Hp Hh Hc Hm He]
+      · iunfold nodeRep; simp only [linkUpd]; iframe
+      ispecialize HN $$ Hd'
+      have hfr : Iris.Std.PartialMap.get? (Std.insert S.nodes kc (linkUpd d (.lit []) «$r0_ptr» d.ms))
+          (kc ++ [.lit []]) = none := by
+        show (<[kc := linkUpd d (.lit []) «$r0_ptr» d.ms]> S.nodes) !! (kc ++ [.lit []]) = none
+        rw [GMap.lookup_insert_ne _ _ (append_single_ne kc _)]; exact hnone
+      ihave HN := (BigSepM.bigSepM_insert (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d)
+        (x := freshNode «$r0_ptr») hfr).2 $$ [Hfr HN]
+      · iframe
+      iapply HΦ
+      iexists _, freshNode «$r0_ptr»
+      iframe
+      ipureintro
+      refine ⟨TreeSt.okP_addNode root S kc (.lit []) hok d hd hnone «$r0_ptr» hcn d.ms, ?_, rfl⟩
+      exact GMap.lookup_insert _ _ _
+    · -- the empty child
+      obtain ⟨d2, hd2, hl2⟩ := hl2 (by rw [← n3]; exact Hif)
+      ihave Hd' : nodeRep (DFrac.own 1) d $$ [Hp Hh Hc Hm He]
+      · iunfold nodeRep; iframe
+      ispecialize HN $$ Hd'
+      rw [show Std.insert S.nodes kc d = S.nodes from gmap_insert_same S.nodes kc d hd]
+      iapply HΦ
+      iexists S.nodes, d2
+      iframe
+      ipureintro
+      refine ⟨TreeSt.okP_mono root S kc _ hok (by rw [hd2]; rfl), hd2, by rw [hl2, n3]⟩
+  · obtain ⟨b, bs, rfl⟩ := List.exists_cons_of_ne_nil hk
+    wp_auto
+    wp_apply wp_findChild (DFrac.own 1) d (b :: bs) $$ Hd as Hd
+    have hlk := n2 (b :: bs) hk
+    cases hc : map.lookupL (b :: bs) d.kids with
+    | some c =>
+      obtain ⟨d2, hd2, hl2⟩ : ∃ d2, S.nodes !! (kc ++ [.lit (b :: bs)]) = some d2 ∧ d2.l = c := by
+        rw [hc] at hlk
+        cases h2 : S.nodes !! (kc ++ [.lit (b :: bs)]) with
+        | none => rw [h2] at hlk; simp at hlk
+        | some d2 => rw [h2] at hlk; simp at hlk; exact ⟨d2, rfl, hlk.symm⟩
+      have hcn : c ≠ null := by rw [← hl2]; exact (hok.2.2.2.2.2.2.2 _ d2 hd2).1
+      simp only [Option.getD_some, decide_eq_false hcn]
+      try wp_auto
+      ispecialize HN $$ Hd
+      rw [show Std.insert S.nodes kc d = S.nodes from gmap_insert_same S.nodes kc d hd]
+      iapply HΦ
+      iexists S.nodes, d2
+      iframe
+      ipureintro
+      exact ⟨TreeSt.okP_mono root S kc _ hok (by rw [hd2]; rfl), hd2, hl2⟩
+    | none =>
+      have hnone : S.nodes !! (kc ++ [.lit (b :: bs)]) = none := by
+        rw [hc] at hlk
+        cases h2 : S.nodes !! (kc ++ [.lit (b :: bs)]) with
+        | none => rfl
+        | some d2 => rw [h2] at hlk; simp at hlk
+      simp only [Option.getD_none]
+      wp_auto
+      iunfold nodeRep at Hd
+      icases Hd with ⟨Hp, Hh, Hc, Hm, He⟩
+      wp_apply wp_mapping_add _ d.ms d.kids (b :: bs) «$r0_ptr» ms hc $$ [$Hms $Hc] as ⟨%st', Hc⟩
+      try wp_auto
+      icases freshNode_rep «$r0_ptr» $$ «$r0» with ⟨Hfr, %hcn⟩
+      ihave Hd' : nodeRep (DFrac.own 1) (linkUpd d (.lit (b :: bs)) «$r0_ptr» st') $$ [Hp Hh Hc Hm He]
+      · iunfold nodeRep; simp only [linkUpd]; iframe
+      ispecialize HN $$ Hd'
+      have hfr : Iris.Std.PartialMap.get? (Std.insert S.nodes kc (linkUpd d (.lit (b :: bs)) «$r0_ptr» st'))
+          (kc ++ [.lit (b :: bs)]) = none := by
+        show (<[kc := linkUpd d (.lit (b :: bs)) «$r0_ptr» st']> S.nodes) !! (kc ++ [.lit (b :: bs)]) = none
+        rw [GMap.lookup_insert_ne _ _ (append_single_ne kc _)]; exact hnone
+      ihave HN := (BigSepM.bigSepM_insert (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d)
+        (x := freshNode «$r0_ptr») hfr).2 $$ [Hfr HN]
+      · iframe
+      iapply HΦ
+      iexists _, freshNode «$r0_ptr»
+      iframe
+      ipureintro
+      refine ⟨TreeSt.okP_addNode root S kc (.lit (b :: bs)) hok d hd hnone «$r0_ptr» hcn st', ?_, rfl⟩
+      exact GMap.lookup_insert _ _ _
+
 end wp
 
 end net.http
