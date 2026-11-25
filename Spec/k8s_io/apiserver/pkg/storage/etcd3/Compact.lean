@@ -44,19 +44,16 @@ abbrev Compact.spec : Prop :=
     (Seen : IProp GF) (recorded : w64 → IProp GF) [Persistent Seen] [∀ c, Persistent (recorded c)]
     (ev rev : w64),
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       clientKvOk cl γk ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      casOk ms γk Seen recorded ∗ (⌜ev = W64 0⌝ ∨ Seen) ∗ revOk γk rev }}
+      casOk ms γk Seen recorded ∗ (⌜ev = W64 0⌝ ∨ Seen) ∗ revOk γk rev) }}
     (App (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.Compact))
       (Val #(GoInterface.ok ci))) (Val #cl)) (Val #ev)) (Val #rev))
-  {{ (cv cr crev : w64) (err : GoInterface), RET (PairV (PairV (PairV #cv #cr) #crev) #err);
-      client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+  {{ (cv cr crev : w64) (err : GoInterface), RET (PairV (PairV (PairV #cv #cr) #crev) #err); levelTok 0 ∗ (client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       (⌜cv = W64 0⌝ ∨ Seen) ∗ revOk γk cr ∗ recRevOk γk recorded crev ∗
-      ⌜err ≠ GoInterface.nil → crev = W64 0⌝ ∗ fmt.argOk err }}
+      ⌜err ≠ GoInterface.nil → crev = W64 0⌝ ∗ fmt.argOk err) }}
 
 end spec
 

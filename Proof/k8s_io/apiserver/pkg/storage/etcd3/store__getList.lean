@@ -38,7 +38,7 @@ theorem store.getList.wp_proof
     (wp_rse : store.getResourceSizeEstimator.spec (GF := GF) (hG := hG)) :
     store.getList.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd kp recur lo Q hkp hct hrev hlim hrc hcp hkne hnr
-  wp_start as ⟨#Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
+  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Htt, %htb, HQ⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -69,8 +69,8 @@ theorem store.getList.wp_proof
     wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
         c.ms c.V ci cd kp (go_etcd_io.etcd.client.v3.kubernetes.GetOptions.mk lo.Revision')
-        (fun R _ σ => Q R σ) hrev hkp) $$ [HQ]
-      as %gresp %gerr Hget
+        (fun R _ σ => Q R σ) hrev hkp) $$ [$Hlt HQ]
+      as %gresp %gerr ⟨Hlt, Hget⟩
     · iframe #
       iintro %R %m
       iapply HQ
@@ -93,6 +93,7 @@ theorem store.getList.wp_proof
       (try wp_auto)
       (try wp_if_destruct) <;> (try wp_auto) <;> (
         iapply HΦ
+        iframe Hlt
         iframe Htt
         icases Hget with (⟨%Hge, %σ, #HQσ, %Hσ, #Hkv⟩ | ⟨%Hge, %Hce', #Hse, #Hcl', #Hrs⟩)
         · ileft
@@ -168,8 +169,8 @@ theorem store.getList.wp_proof
     (try wp_auto)
     wp_apply (wp_kList (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-        c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [HQ]
-      as %resp %lerr Hlist
+        c.ms c.V ci cd kp lo Q hkp hct hrev hlim hcp) $$ [$Hlt HQ]
+      as %resp %lerr ⟨Hlt, Hlist⟩
     · iframe #
       iexact HQ
     (try wp_auto)
@@ -183,6 +184,7 @@ theorem store.getList.wp_proof
     (try wp_auto)
     wp_if_destruct <;> (try wp_auto) <;> (
       iapply HΦ
+      iframe Hlt
       iframe Htt
       icases Hlist with (⟨%Hle, %σ, #HQσ, %Hσ, Hresp⟩ | ⟨%Hle, %Hce', #Hse, #Hcl', #Hrs⟩)
       · ileft
