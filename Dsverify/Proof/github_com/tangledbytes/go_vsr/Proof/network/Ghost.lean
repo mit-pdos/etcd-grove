@@ -17,6 +17,7 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
 public import Dsverify.Spec.log.slog.Logger
 public import Net.Proof.net.Errors
+public import Proof.net.ErrOrNil
 
 @[expose] public section
 
@@ -209,13 +210,14 @@ theorem network.connL_agree (c : Loc) (cn1 cn2 : Nat) (s1 s2 : Bool) :
 /-- A held connection's stream, whole, as `Send`'s callback takes it. -/
 theorem network.wstream_of_pool (ns : network.TcpNames) (c : Loc) (x : network.ConnRec)
     (W : List w8) :
+    isPkgInit (PROP := IProp GF) pkg_id.net ∗
     network.connL (GF := GF) c x.1 x.2.1 ∗ sendTok x.1 x.2.1 (VsrWire.protoOf ns.sys) W ∗
       network.wholeLines ns.sys W ⊢
     events.wstream ns.sys (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c) true := by
   unfold events.wstream network.wholeLines
-  iintro ⟨⟨%a, %la, %ra, #Hc⟩, Hs, Hw⟩
+  iintro ⟨#Hnet, ⟨%a, %la, %ra, #Hc⟩, Hs, Hw⟩
   iexists x.1, x.2.1, a, W
-  iframe Hs
+  iframe Hs Hnet
   isplitr
   · unfold net.isConn
     iexists c, la, ra
@@ -231,7 +233,7 @@ theorem network.pool_of_wstream (ns : network.TcpNames) (c : Loc) (x : network.C
       network.regd (GF := GF) ns c x ∗ network.connL c x.1 x.2.1 ∗ (⌜b = true⌝ ∨ network.deadMark ns c) ⊢
     network.poolEntry ns c := by
   unfold events.wstream network.poolEntry
-  iintro ⟨⟨%cid, %side, %a', %W, #Hic, Hs, Hw⟩, #Hx, #Hc, Hb⟩
+  iintro ⟨⟨%cid, %side, %a', %W, #Hic, -, Hs, Hw⟩, #Hx, #Hc, Hb⟩
   unfold net.isConn
   icases Hic with ⟨%c', %la', %ra', %hw, #Hc'⟩
   have hc : c' = c := by
@@ -308,46 +310,16 @@ theorem network.wp_debug_err (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := h
   iintro -
   iapply HΦ; itrivial
 
-/-- An `*OpError` of the net model is an error result (`OpError.Error` returns the extension's
-arbitrary string, `AnyString`; its value is a pointer). -/
+/-- An `*OpError` of the net model is an error result (`net.opErr_errOrNil`). -/
 theorem network.opErr_errOrNil (op : GoString) (src addr e err : GoInterface) :
-    net.opErr op src addr e err ⊢ bufio.errOrNil (GF := GF) err := by
-  unfold net.opErr bufio.errOrNil
-  iintro ⟨%pe, %nw, %he, #Hpe⟩
-  obtain ⟨he, -⟩ := he
-  subst he
-  iright
-  isplitl
-  · unfold models_lab.errAny
-    iexists _
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · ipureintro; go_type_set
-    imodintro
-    iintro %Φ HΦ
-    iapply net.wp_OpError_Error $$ Hpe
-    inext
-    iintro %msg -
-    iapply HΦ
-  · ipureintro
-    intro e' h T hT
-    simp [interface.mkOk] at h
-    subst h
-    exact ⟨_, rfl⟩
+    net.opErr op src addr e err ⊢ bufio.errOrNil (GF := GF) err :=
+  net.opErr_errOrNil op src addr e err
 
-/-- A net operation's error (`net.resErr`) is an error result. -/
+/-- A net operation's error (`net.resErr`) is an error result (`net.resErr_errOrNil`). -/
 theorem network.resErr_errOrNil (res : Option NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) res op src addr ed nm err ⊢ bufio.errOrNil err := by
-  cases res with
-  | none =>
-    unfold net.resErr bufio.errOrNil
-    iintro %h; ileft; ipureintro; exact h
-  | some k =>
-    unfold net.resErr
-    iintro ⟨%e, #Hop, -⟩
-    iapply network.opErr_errOrNil $$ Hop
+    net.resErr (GF := GF) res op src addr ed nm err ⊢ bufio.errOrNil err :=
+  net.resErr_errOrNil res op src addr ed nm err
 
 /-- Learn the source `s` (under the write lock). -/
 theorem network.src_learn (ns : network.TcpNames) (S : GMap GoString Unit) (s : GoString) :

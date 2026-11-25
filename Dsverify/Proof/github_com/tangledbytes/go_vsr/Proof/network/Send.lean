@@ -128,7 +128,9 @@ theorem network.TCP.Send.wp_proof
     icases network.sendTok_connIs' x.1 x.2.1 _ _ $$ Hs with ⟨Hs, #Hconn⟩
     ihave #Hc0 := Hc
     icases Hc0 with ⟨%ca, %cla, %cra, #Hca⟩
-    ihave Hws := network.wstream_of_pool ns c x W $$ [$Hc $Hs $Hw]
+    ihave #Hnetp : (isPkgInit (PROP := IProp GF) pkg_id.net) $$ []
+    · iPkgInit
+    ihave Hws := network.wstream_of_pool ns c x W $$ [$Hnetp $Hc $Hs $Hw]
     unfold network.sendFn
     wp_apply Hf $$ [$Hws] [$HR] as %err Hws #HerrF HQ
     cases err with
@@ -363,7 +365,9 @@ theorem network.TCP.Send.wp_proof
         iintro %sl2 ⟨Hsl2, -⟩
         wp_apply network.wp_debug_wf wp_Debug _ _ _
           (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)) $$ [$Hsl2]
-        ihave Hws := network.wstream_of_pool ns c (cid, false, a.str') [] $$ [$Hc $Hsend $Hw]
+        ihave #Hnetp : (isPkgInit (PROP := IProp GF) pkg_id.net) $$ []
+        · iPkgInit
+        ihave Hws := network.wstream_of_pool ns c (cid, false, a.str') [] $$ [$Hnetp $Hc $Hsend $Hw]
         unfold network.sendFn
         wp_apply Hf $$ [$Hws] [$HR] as %err Hws #HerrF HQ
         cases err with

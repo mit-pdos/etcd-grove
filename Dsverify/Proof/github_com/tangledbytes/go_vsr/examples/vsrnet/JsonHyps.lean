@@ -11,20 +11,18 @@ codec, `vsrnet.registeredCodecOk` (`Proof/vsrnetjson/Registered.lean`) with `jso
 `scanOk` (`Net/Proof/models_lab/jsoncodec/ScanOk.lean`), which `codecOk` below takes from
 `Link.lean`.
 
-* Data (no instance anywhere; universally quantified at the statement): the model's `*Decoder`
-  and `*Encoder` representations, the main tree's `encoding.json.DecoderRep GF` and
-  `encoding.json.EncoderRep GF` (`Proof/encoding/json/Registry.lean`).
+* Data (no instance in any proof; existentially quantified at the statement, per heap): the
+  model's `*Decoder` representation, the main tree's `encoding.json.DecoderRep GF`
+  (`Proof/encoding/json/Registry.lean`). The `*Encoder`'s is the model's own, over its fields
+  (`encoding.json.encRepModel`, `Proof/encoding/json/EncoderModel.lean`), and `NewEncoder`,
+  `Encoder.Encode` on a connection are proved at it (`Proof/encoding/json/Codec/NewEncoder.lean`,
+  `Encoder__Encode_conn.lean`), not premises.
 * `JsonHyps` (a `Prop`), its fields, each true of the code as it stands (the argument is each
-  statement's docstring):
-  - `NewEncoder`, `Encode_conn`: **the main tree's statements** `encoding.json.NewEncoder.spec`
-    (`Spec/encoding/json/Codec/NewEncoder.lean`) and `encoding.json.Encoder.Encode_conn.spec`
-    (`Spec/encoding/json/Codec/Encoder__Encode_conn.lean`: `enc.Encode(v)` on a connection, by the
-    dispatch `marshalVia J F v`, for every contract `J`), not yet proved there (`EncoderRep` is
-    still a class).
-  - `newDecoder`, `Decode_frame`: `pkg.events.{newDecoder, Decoder.Decode_frame}.spec`
-    (`Spec/events.lean`): `json.NewDecoder` over a connection and `Decoder.Decode` of a
-    `vsrwire.Frame` (over the dispatch `unmarshalVia` at the frame), stated at go-vsr's stream
-    (`events.rstream` over `DecoderRep`). The main tree has no `NewDecoder`/`Decode` spec yet.
+  statement's docstring): `newDecoder`, `Decode_frame`, `pkg.events.{newDecoder,
+  Decoder.Decode_frame}.spec` (`Spec/events.lean`): `json.NewDecoder` over a connection and
+  `Decoder.Decode` of a `vsrwire.Frame` (over the dispatch `unmarshalVia` at the frame), stated at
+  go-vsr's stream (`events.rstream` over `DecoderRep`). The main tree translates neither
+  `NewDecoder` nor `Decoder.Decode` (`Code/encoding/json.toml`) and has no spec of them.
 * Proved, not premises (round 9): the kit's named types' own `JSONModel*` methods (jsongen's
   same-package mode) meet `vsrnet.jsonCodec` (`vsrnet.TypeMethods`, `Spec/json.lean`:
   `*Event`'s `JSONModelMarshalPtr`, the payloads' and `Frame`'s `JSONModelUnmarshal`;
@@ -37,9 +35,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Vacuous
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
-public import Spec.encoding.json.Codec.NewEncoder
 public import Spec.encoding.json.Codec.Unmarshal
-public import Spec.encoding.json.Codec.Encoder__Encode_conn
 
 @[expose] public section
 
@@ -63,12 +59,10 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS]
-variable [encoding.json.DecoderRep GF] [encoding.json.EncoderRep GF]
+variable [encoding.json.DecoderRep GF]
 
 /-- **The kit's JSON premises**, one `Prop` (see the file header). -/
 structure JsonHyps : Prop where
-  NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG)
-  Encode_conn : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
   newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG)
   Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)
 

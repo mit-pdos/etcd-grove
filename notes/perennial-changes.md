@@ -4628,3 +4628,15 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `time.Duration.wp_String`) give the two arguments.
 - **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
   reviewed as a change to the trusted model's claim. **Status.** Not filed.
+
+## `copy` within one slice's array has no spec (2026-11-25, dsv-vr, the encoding/json model's `Decoder`)
+
+- **Limitation.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) takes the destination's and the source's
+  points-to separately, so it does not apply to `copy(buf[:cap(buf)], buf[k:])` (one array, the destination before
+  the source: Go's `copy` is a memmove), which the encoding/json model's `Decoder.fetch` (`models/encoding/json/
+  v2_stream.go`, jsontext's buffer shift) makes.
+- **Work-around here.** None yet: the model's `Decoder` is not translated (vr's `Decode_frame` stays a premise,
+  notes/dsv-vr.md, round 11).
+- **Proposed (general).** A spec of `copy` for a destination at or before its source in the same array (Goose's
+  `copyForward` copies from index 0 up, which is a memmove there), over one points-to of the array's range.
+  **Status.** Not filed.

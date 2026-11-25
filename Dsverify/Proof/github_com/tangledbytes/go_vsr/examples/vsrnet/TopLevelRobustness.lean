@@ -161,7 +161,8 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    obtain ⟨_, _, hJ⟩ := hj G' hG.goose_localGS π
+    obtain ⟨_, hJ⟩ := hj G' hG.goose_localGS π
+    letI := encoding.json.encRepModel (hG := hG)
     match i, hm with
     | 0, hm =>
       cases hm

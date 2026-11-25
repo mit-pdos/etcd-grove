@@ -9,8 +9,9 @@ plugged in (Perennial's `sync.Mutex`), restated, with `#print axioms` of each.
 * the per-type dispatch and the entry points: `marshalAny`, `Marshal` (`marshalVia J F v`), and
   `Unmarshal` (`unmarshalVia J F ptr`).
 
-Not yet proved: `NewEncoder`/`Encoder.Encode` (their `EncoderRep` is still a class, not the model's
-fields), the `Decoder`.
+Proved elsewhere: `NewEncoder` and `Encoder.Encode` on a connection, at the model's encoder
+`encRepModel` (`Codec/NewEncoder.lean`, `Codec/Encoder__Encode_conn.lean`: linked by their user,
+vr's `Link.lean`, since `Encode`'s spec is over `net`). Not translated, not proved: the `Decoder`.
 -/
 module
 

@@ -207,10 +207,11 @@ variable [package_sem : events.Assumptions] [net.Assumptions] [net.FieldAssumpti
 variable [π : NetProtoGS]
 
 /-- The writer `w`'s stream (see the file header): `w` is the end `s` of a connection `cn` (a
-`Conn` holding a `*TCPConn`), whose written stream (protocol `protoOf γ`) is `W`. -/
+`Conn` holding a `*TCPConn`; `net` initialized), whose written stream (protocol `protoOf γ`) is
+`W`. -/
 def events.wstream (γ : VsrGhost.Names) (w : GoInterface) (ok : Bool) : IProp GF :=
   iprop(∃ (cn : Nat) (s : Bool) (a : GoString) (W : List w8),
-    net.isConn w cn s a ∗ sendTok cn s (VsrWire.protoOf γ) W ∗
+    net.isConn w cn s a ∗ isPkgInit (PROP := IProp GF) pkg_id.net ∗ sendTok cn s (VsrWire.protoOf γ) W ∗
     if ok then iprop(∃ ms : List Msg, ⌜W = VsrWire.lines ms⌝ ∗
       ⌜∀ m ∈ ms, PlainMsg m ∧ MsgBound m ∧ (VsrWire.line m).length < 2 ^ 60⌝ ∗
       [∗list] m ∈ ms, VsrGhost.fact γ (.msg m))

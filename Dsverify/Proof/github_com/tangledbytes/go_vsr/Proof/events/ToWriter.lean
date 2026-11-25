@@ -2,7 +2,7 @@
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/events/ToWriter.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension. What changed: `NewEncoder` and `Encode` are
 the main tree's statements `encoding.json.NewEncoder.spec`, `encoding.json.Encoder.Encode_conn.spec`
-(premises; the lab proved them of its model), the latter by the dispatch `marshalVia` (#24 J3: the
+(proved at the model's encoder, `encRepModel`: `Link.lean` passes them), the latter by the dispatch `marshalVia` (#24 J3: the
 event's own `JSONModelMarshalPtr`), and the kit's JSON facts are `vsrnet.codecOk` (`Spec/json.lean`;
 the lab's theorem `codec_ok`), at the kit's contract `vsrnet.jsonCodec`.
 -/
@@ -58,7 +58,7 @@ theorem events.Event.ToWriter.wp'
   ihave #Hok := codec_ok
   unfold events.wstream
   simp only [↓reduceIte]
-  icases Hw with ⟨%cn, %s, %a, %W, #Hc, Htok, %ms, %HW, %Hpl, Hfacts⟩
+  icases Hw with ⟨%cn, %s, %a, %W, #Hc, #Hnet, Htok, %ms, %HW, %Hpl, Hfacts⟩
   wp_auto
   wp_apply wp_NewEncoder w as %enc Henc
   ihave Hdep := examples.vsrnet.enc_event ev m Hm $$ [Hset Hev]
@@ -104,7 +104,7 @@ theorem events.Event.ToWriter.wp'
     iframe HerrOk
     rw [decide_eq_false (by simp)]
     iexists cn, s, a, _
-    iframe Htok
+    iframe Htok Hnet
     isplitr
     · iexact Hc
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -118,7 +118,7 @@ theorem events.Event.ToWriter.wp'
     subst hk
     rw [List.take_of_length_le (by simp)]
     iexists cn, s, a, _
-    iframe Htok
+    iframe Htok Hnet
     isplitr
     · iexact Hc
     simp only [↓reduceIte]

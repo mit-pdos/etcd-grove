@@ -52,7 +52,56 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 10: ready to land; connReaderOk discharged; reps per heap; non-vacuity (2026-11-24; the current handoff)
+### Round 11: the encoder proved; JsonHyps down to the Decoder (2026-11-25; the current handoff)
+
+Brief (coordinator, 2026-11-25): finish `vr_remote_robust` with as few premises as possible; no new
+premise route for JSON; slog from the merged lean; bounds as the other kits.
+
+**Merge.** `origin/lean` 40b1b706d6 (727 commits; Perennial `fce59af75`, `.lake/package-overrides.json`
+= `/shared/tmp/manifest-fce59af7.json`). Conflicts: `Net/Proof/models_lab/{Results,jsoncodec/Linked}.lean`
+(union: lean's `Bool`, vr's `Nesting`/`AppendCompact`), `jsoncodec/AppendQuotedUint.lean` (lean's). Lean's
+`jsoncodec/Quote.lean` (JSON batch 2b) now has `jsonQuote_plain`, `decU64_eq_decN`: vr's `QuoteBridge.lean`
+deleted, `LogEnc`/`PayloadEnc` use `Quote`. `gen-init` (L1: one `Init.lean` per Go package; encoding/json's
+and jsoncodec's inits now the main tree's) and `kitgen vr` regenerated.
+
+**The encoder, proved (statement: `EncoderRep` and two `JsonHyps` fields removed).** The main tree's
+`encoding/json` translates `NewEncoder` and `Encoder.Encode` with their bodies, so:
+`Proof/encoding/json/EncoderModel.lean` (defs: `encOkModel`, the model's `Encoder` fields; `encRepModel`,
+an `EncoderRep`), `Proof/encoding/json/Codec/NewEncoder.lean` (`NewEncoder.wp_proof` at `encRepModel`),
+`Proof/encoding/json/Codec/Encoder__Encode_conn.lean` (`Encoder.Encode_conn.wp_proof` over
+`marshalAny.wp` and `net.Conn.Write.wp_proof`: `writeP`/`write_acc`, the write error kept). Linked in vr's
+`Link.lean` (`encEncodeConn`; `attribute [local instance] encRepModel`); `TopLevelRobustness`'s proof
+takes `letI := encRepModel` per machine. `Proof/net/ErrOrNil.lean` (defs): `net.opErr_errOrNil`,
+`net.resErr_errOrNil`, moved from vr's `network.*` (which now call them).
+**Spec change** (ledger `notes/specs-only/ledger.md`, 2026-11-25): `Encoder.Encode_conn.spec` takes
+`isPkgInit pkg_id.net` (the `Write` spec names `poll.ErrDeadlineExceeded`'s value, which only `net`'s
+init gives); vr's `events.wstream` holds it (`network.wstream_of_pool` takes it, `Send` has it by
+`iPkgInit`), `ToWriter` passes it.
+
+**Statement diff (round 10 → now)**: the premise `∀ G L π, ∃ (_ : DecoderRep) (_ : EncoderRep), JsonHyps`
+becomes `∀ G L π, ∃ (_ : DecoderRep), JsonHyps`, `JsonHyps` = `{newDecoder, Decode_frame}`; docstring.
+
+**Remaining premise** (the only one; true of Go, witnessed only by local axioms in `NonVacuityLinked.lean`):
+`newDecoder`, `Decode_frame` over some `DecoderRep`. Why not proved: the main tree translates neither
+`NewDecoder` nor `Decoder.Decode` (`Code/encoding/json.toml`). What proving them takes:
+1. translate `NewDecoder`, `Decoder.{Decode,readValue,badStart,fetch}`, `endsInNumber`,
+   `(*SyntaxError).Error` (a main-tree goose configuration change; `etc/goose.py` regenerates
+   encoding/json for every project mapping it);
+2. `fetch`'s `copy(dec.buf[:cap(dec.buf)], dec.buf[dec.prevStart:])` copies within one array
+   (dst before src): Perennial's `wp_slice_copy` takes the two slices' points-to separately, so a
+   lemma for an overlapping forward copy (Perennial: `copyForward` copies from index 0 up, which is
+   memmove when dst ≤ src) is needed (a general Perennial change, `notes/perennial-changes.md`);
+3. the representation over the fields (`decOkM`/`decErrM` of `NonVacuityLinked.lean`), with the
+   statement fixing it (the `∃ DecoderRep` goes) and `Decode_frame`'s proof: `readValue`'s loop over
+   `jsoncodec.Scan` (`scanOk scanF scanFn`; facts: `scanF` of a proper prefix of `encEvent m` after
+   whitespace is More, of `ws ++ encEvent m ++ "\n" ++ …` is Done at the value's end), `fetch` over
+   `net.conn_readerOk`'s `Read` with the protocol's lines (`rstreamAt`), every error path to `decErrM`
+   (the sticky error), then `*Frame`'s `JSONModelUnmarshal` (proved). The lab's analogue
+   (`VsrProof/Proof/jsonstream/`, its own buffer) was ~2k lines.
+
+**Checks (round 11)**: CHECKS
+
+### Round 10: ready to land; connReaderOk discharged; reps per heap; non-vacuity (2026-11-24; history)
 
 Brief: merge lean (Perennial `b3f2fc485`), adopt kitgen, write `NonVacuityLinked.lean`, the landing
 lessons, all checks; builds on fk-lean1.

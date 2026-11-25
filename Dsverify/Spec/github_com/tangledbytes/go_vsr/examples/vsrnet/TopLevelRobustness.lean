@@ -16,15 +16,15 @@ start's `NetProtoGS`; every package initializer is proved: `encoding/json`'s the
 mit-pdos/etcd-grove#24, and its first run on a machine (the registry fresh, `BootLinked.lean`),
 `log/slog`'s from the model's code), each true of the code (the argument is at each statement;
 instances of all of them: `examples/vsrnet/NonVacuityLinked.lean`):
-* at each machine's heap, **some** representations of the model's `*Decoder` and `*Encoder`
-  (`encoding.json.DecoderRep`, `EncoderRep`: data classes, no instance in any proof; the specs
-  below are stated over them; per heap, since a representation owns the heap's memory, as the
-  model's fields' points-to do), with
-* **`JsonHyps`** (`examples/vsrnet/JsonHyps.lean`), the `encoding/json` interface (#24 J3):
-  `NewEncoder`, `Encoder.Encode_conn` (the main tree's statements, not proved there yet),
-  `NewDecoder`/`Decode` of a frame (over the dispatch `unmarshalVia`; the main tree has no
-  `Decoder` spec yet).
-Proved, not premises: `Unmarshal`, `SetCodec` (the main tree's proofs), `RegisterJSON()` (from the
+* at each machine's heap, **some** representation of the model's `*Decoder`
+  (`encoding.json.DecoderRep`: a data class, no instance in any proof; the specs below are stated
+  over it; per heap, since a representation owns the heap's memory, as the model's fields'
+  points-to do), with
+* **`JsonHyps`** (`examples/vsrnet/JsonHyps.lean`), the `encoding/json` `Decoder` interface:
+  `NewDecoder`/`Decode` of a frame (over the dispatch `unmarshalVia`; the main tree translates
+  neither and has no `Decoder` spec).
+Proved, not premises: `Unmarshal`, `SetCodec`, and `NewEncoder`, `Encoder.Encode` on a connection at
+the model's encoder (`encRepModel`) (the main tree's proofs), `RegisterJSON()` (from the
 boot), the kit's registered codec and the named types' own generated methods (`vsrnet.TypeMethods`),
 a connection as an `io.Reader` (Net's `net.conn_readerOk` with Perennial's `io.ReadFull`, which
 asks the reader's precondition only of the reads it makes, mit-pdos/perennial#688), `log/slog`'s
@@ -69,8 +69,7 @@ def vr_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     (∀ G L (π : NetProtoGS), letI := heapAt G L;
-      ∃ (_ : encoding.json.DecoderRep remoteGF) (_ : encoding.json.EncoderRep remoteGF),
-        JsonHyps (GF := remoteGF)) →
+      ∃ (_ : encoding.json.DecoderRep remoteGF), JsonHyps (GF := remoteGF)) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy vrKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g threads (2 ^ 63)

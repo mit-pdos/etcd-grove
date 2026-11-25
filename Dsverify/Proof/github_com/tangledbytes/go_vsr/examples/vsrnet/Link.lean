@@ -3,7 +3,8 @@ The vr kit's links (notes/dsv-vr.md; the kit's top-level `Link`, namespace `Etcd
 (`OrchProof`, `ClientProof`, `ServerProof`) applied to their callees' results (the kit's own
 proofs `Conf`, `ModelProof`, `CodecProof`, `KitProof`, `MkClientProof`, `OpProof`, the packages'
 `Results.lean`, remote's `Link.lean`, `Net/`'s net proofs), over the library hypotheses that remain
-(`JsonHyps` (`JsonHyps.lean`): every `encoding/json` premise; a connection's `io.Reader` is Net's
+(`JsonHyps` (`JsonHyps.lean`): the `encoding/json` `Decoder` premises; the model's `Encoder` is
+`encRepModel`, its `NewEncoder` and `Encode` proved (`Proof/encoding/json/Codec/`); a connection's `io.Reader` is Net's
 `net.conn_readerOk` over `net.Conn.Read`'s proof, finding 5); remote's `Check` and `ServeClient` are remote's proofs,
 the main tree's `Unmarshal` and `SetCodec` its proofs (`Proof/encoding/json/Results.lean`).
 -/
@@ -33,6 +34,8 @@ public import Net.Proof.net.Conn__Close
 public import Dsverify.Proof.log.slog.Logger
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.encoding.json.Results
+public import Proof.encoding.json.Codec.NewEncoder
+public import Proof.encoding.json.Codec.Encoder__Encode_conn
 public import Net.Proof.models_lab.Results
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Registered
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.PayloadEnc
@@ -58,6 +61,7 @@ open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 attribute [local instance] Perennial.github_com.tangledbytes.go_vsr.examples.vsrnet.jsonCodec
+attribute [local instance] encoding.json.encRepModel
 
 section linked
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -67,8 +71,12 @@ variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumpti
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 variable [bvi : go.BasicIntoValInj]
-variable [encoding.json.DecoderRep GF] [encoding.json.EncoderRep GF]
+variable [encoding.json.DecoderRep GF]
 variable [NaInvG GF]
+
+/-- `Encoder.Encode` on a connection, at the model's encoder (`encRepModel`). -/
+theorem encEncodeConn : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG) :=
+  encoding.json.Encoder.Encode_conn.wp_proof encoding.json.marshalAny.wp net.Conn.Write.wp_proof
 
 /-- The kit's scanner is `jsoncodec.Scan`'s (`models_lab.jsoncodec.scanOk_scanF`). -/
 theorem vsrScanOk :
@@ -149,7 +157,7 @@ theorem wp_Server (j : JsonHyps (GF := GF) (hG := hG)) :
       (pkg.replica.Replica.Run.wp log.slog.Logger.Debug.wp_proof log.slog.Logger.Info.wp_proof
         log.slog.Logger.Warn.wp_proof log.slog.Logger.Error.wp_proof
         (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
-        (pkg.events.Event.ToWriter.wp j.NewEncoder j.Encode_conn (vsrCodecOk j)))
+        (pkg.events.Event.ToWriter.wp encoding.json.NewEncoder.wp_proof encEncodeConn (vsrCodecOk j)))
       pkg.replica.Replica.Submit.wp)
 
 theorem wp_Client (j : JsonHyps (GF := GF) (hG := hG)) :
@@ -157,10 +165,10 @@ theorem wp_Client (j : JsonHyps (GF := GF) (hG := hG)) :
   Client.wp_proof (vsrCodecOk j)
     (Op.wp_proof
       (pkg.client.Client.Request.wp (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
-        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn (vsrCodecOk j)))
+        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) encoding.json.NewEncoder.wp_proof encEncodeConn (vsrCodecOk j)))
       (pkg.client.Client.Submit.wp log.slog.Logger.Error.wp_proof)
       (pkg.client.Client.Run.wp (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
-        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn (vsrCodecOk j))
+        (fun jc => pkg.events.Event.ToWriter.wp (C := jc) encoding.json.NewEncoder.wp_proof encEncodeConn (vsrCodecOk j))
         log.slog.Logger.Error.wp_proof log.slog.Logger.Debug.wp_proof)
       pkg.network.TCP.Recv.wp pkg.client.Client.CheckResult.wp)
     EtcdGrove.remote.wp_ServeClient
