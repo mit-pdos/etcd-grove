@@ -1642,8 +1642,12 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
       silently). Go: a promotion of a voter is rejected (`ErrMemberNotLearner`, no bucket written:
       `applyConfChange` returns before `PromoteMember`), and a replayed one (`PromoteMember(id, false)`)
       writes no bucket, so the widened claim is true of Go; but it is an axiom change beyond the members
-      extension, for the owner. The boot entries must stay narrow (`memBoot` inserts every boot change's
-      member: a new conjunct of `srvClusterOk`, `∀ e ∈ boot, ccBootOk cfg e.Data'`, from `BootCore.cc`).
+      extension, for the owner. `BootFacts`/`BootCore.cc` (`ccBootOk`, defined from `ccApplyOk`) widen with
+      it and must not be narrowed (coordinator, 2026-11-25: five top-level statements reach `ccApplyOk`
+      through `BootFacts`; a weaker premise is a stronger theorem). So a boot entry may then be a
+      promotion, and the boot proofs (`memBoot`, which inserts every boot change's member;
+      `memOk_memBoot`, `boot_step`, `memSync_boot`) must handle it: `memBoot` should skip a promotion's
+      member, matching Go (a boot promotion of an id not yet saved is rejected, `ErrIDNotFound`).
     - *Fresh review* (`axiom` skill, given the axioms and the Go code at the pin) of `membersOf`,
       `membersOfBk_empty`, the restated `membersOf_decode` and `MustReadMembersFromBackend`'s contract:
       **survives**. Attacks: the learner flag without `hu` (the real `ReadMembers`), ids at `0` and
