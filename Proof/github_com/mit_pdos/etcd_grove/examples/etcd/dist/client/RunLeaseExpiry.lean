@@ -196,7 +196,7 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
       wp_apply wp_Close as %ce -
       · iframe #
       (try wp_auto)
-      wp_apply Hdv
+      iapply Hdv
       iexact HΨ
     iclear Hdv
     -- `clis[j] = cli`
