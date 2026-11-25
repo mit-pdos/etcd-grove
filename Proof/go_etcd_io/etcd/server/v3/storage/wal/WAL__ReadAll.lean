@@ -88,6 +88,25 @@ private theorem segmentCount_crc (acc : List WalRec) (r : WalRec) (ht : r.typ = 
     segmentCount (acc ++ [r]) = segmentCount acc + 1 := by
   simp [segmentCount, List.countP_append, List.countP_cons, ht]
 
+/-- The normalization keeps the snapshots' indices (`walLastIdx_normFrom`'s second half). -/
+theorem walMaxSnapIdx_normFrom (p : HardStateM) (H : WalHist) :
+    walMaxSnapIdx (normFrom p H) = walMaxSnapIdx H := by
+  unfold walMaxSnapIdx
+  suffices ∀ x, (normFrom p H).foldl (fun (x : Nat) (o : WalOp) => match o with
+      | .save _ _ => x
+      | .snap m _ => max x (uint.nat m.Index')) x = H.foldl (fun (x : Nat) (o : WalOp) => match o with
+      | .save _ _ => x
+      | .snap m _ => max x (uint.nat m.Index')) x from this 0
+  induction H generalizing p with
+  | nil => intro x; rfl
+  | cons o H ih =>
+    intro x
+    cases o with
+    | save h es =>
+      obtain ⟨h', he, -⟩ := normOp_save p h es
+      simp only [normFrom, he, List.foldl_cons]; exact ih _ _
+    | snap m al => simp only [normFrom, normOp_snap, List.foldl_cons]; exact ih _ _
+
 /-- No stop's error is `nil` (`io.EOF` and `io.ErrUnexpectedEOF` are not). -/
 theorem stopErr_nil {eof ueof : GoInterface} (h1 : eof ≠ GoInterface.nil) (h2 : ueof ≠ GoInterface.nil)
     (s : WalStop) : ¬ stopErr eof ueof s GoInterface.nil := by
@@ -298,7 +317,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_UnmarshalEnt : WalPbIn.UnmarshalEntLaw (GF := GF) (hG := hG) P U)
     (wp_EntIndex : WalPbIn.GetIndexLaw (GF := GF) (hG := hG) P)
     (wp_EntTerm : WalPbIn.GetTermLaw (GF := GF) (hG := hG) P)
-    (wp_CloneHs : WalPbIn.CloneHsLaw (GF := GF) (hG := hG) P)
+    (wp_CloneSt : WalPbIn.CloneStLaw (GF := GF) (hG := hG) P Mr HsO)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
     (wp_ZeroToEnd : go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (hG := hG) (W := W) Mr)
@@ -911,10 +930,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             icases HeX with ⟨%eX, #HeX, -⟩
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
-            ihave %Hstpn := hHs.notNull stp st.hs $$ Hhs
-            imod hHs.freeze stp st.hs ⊤ $$ Hhs with Hhs
-            wp_apply wp_CloneHs stp st.hs Hstpn $$ [Hhs] as %m ⟨%p', %hm', Hhs⟩
+            wp_apply wp_CloneSt stp st.hs $$ [Hhs] as %m ⟨%p', %hm', -, Hhs, -⟩
             · iexact Hhs
+            obtain ⟨hm', -⟩ := hm'
             subst hm'
             (try wp_auto)
             -- `w.readClose` is nil in write mode; `w.start`, `w.metadata`
@@ -1006,11 +1024,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             obtain ⟨hmdσ, hhsσ, hentsσ⟩ := hrσ
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
-            ihave %Hstpn := hHs.notNull stp st.hs $$ Hhs
-            imod hHs.freeze stp st.hs ⊤ $$ Hhs with #Hhs
-            wp_apply wp_CloneHs stp st.hs Hstpn $$ [Hhs] as %m ⟨%p', %hm', #Hhs'⟩
+            wp_apply wp_CloneSt stp st.hs $$ [Hhs] as %m ⟨%p', %hm', #Hhs, #Hhs'0, #Hmar⟩
             · iexact Hhs
+            obtain ⟨hm', hp'n⟩ := hm'
             subst hm'
+            ihave #Hhs' : walStIn P Mr p' st.hs false $$ []
+            · unfold walStIn
+              iframe Hhs'0
+              isplitl
+              · iintro %_; iexact Hmar
+              · ipureintro; exact fun _ => hp'n
             (try wp_auto)
             -- `w.readClose` is nil in write mode; `w.start`, `w.metadata`
             subst hrc
@@ -1247,7 +1270,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               isplitr
               · ipureintro; simp
               ipureintro
-              refine ⟨walHS_split_read Mr _ rfl rfl rfl hwrT, hfdl, ?_, ?_, ⟨fun _ => hix1, hix2⟩, hix3 hnmx⟩
+              refine ⟨walHS_split_read Mr _ rfl rfl rfl hwrT, hfdl, ?_, ?_,
+                ⟨fun _ => by have := hix1; rw [histM, histN, walLastIdx_normH] at this; exact this,
+                  by have := hix2; rw [histM, histN, normH, walMaxSnapIdx_normFrom] at this; exact this⟩,
+                hix3 hnmx⟩
               · simp only [List.length_nil, Nat.add_zero]; exact hsz'.1
               · rw [hsz'.2]; exact hszb
             ipureintro
@@ -1631,7 +1657,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
         have hc : ¬ sint.Z (W64 (jf : Int)) < sint.Z pv.len := by have := hF.1; word
         simp only [decide_eq_false hc, intoVal_eq_iff, decide_false, Bool.false_eq_true, ↓reduceIte]
         have hjl : jf = pend.length := by have := hF.1; omega
-        simp only [_root_.decide_true, ↓reduceIte]
+        try simp only [_root_.decide_true, ↓reduceIte]
         (try wp_auto)
         -- `pending = pending[:0]`
         ihave %hcP := ownSliceCap_wf (GF := GF) (V := Loc) pv _ $$ Hpcap

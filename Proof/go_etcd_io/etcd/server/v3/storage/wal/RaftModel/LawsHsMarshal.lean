@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Srv
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.PbHardState
 public import Spec.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHsPb
 
 @[expose] public section
 
@@ -120,6 +121,50 @@ theorem walRaftP_zeroSt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)
 theorem walSrvP_zeroSt (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)) :
     WalPbIn.ZeroStLaw (walSrvP (GF := GF)) walSrvMr :=
   walRaftP_zeroSt wp_Marshal
+
+/-- A read-only hard state is not nil. -/
+theorem hsRoC_notNull (l : Loc) (c : WalHsC) : hsRoC (GF := GF) l c ⊢ ⌜l ≠ null⌝ := by
+  unfold hsRoC hsCells
+  iintro ⟨⟨%pt, %pv, %pc, %Hn, -⟩, -⟩
+  ipureintro; exact Hn
+
+/-- **`CloneStLaw`** of the raftpb instance (P6): the owned source is canonical (`walRaftHsO`), so is
+its clone (`proto.ClonePb.spec`: the same content), which marshals to its encoding
+(`walRaftP_marshSt`). -/
+theorem walRaftP_cloneSt (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
+    (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)) :
+    WalPbIn.CloneStLaw (walRaftP (GF := GF)) walRaftMr walRaftHsO := by
+  intro p h
+  rw [show (walRaftP (GF := GF)).hsIn = walHsIn from rfl]
+  iintro %Φ ⟨#Hpkg, Hh⟩ HΦ
+  unfold walRaftHsO
+  have hu : ufWire hsSchema (walHsCanon h).uf := by rw [walHsCanon_uf]; exact ufWire_nil _
+  imod hsOwnC_freeze p (walHsCanon h) ⊤ hu $$ Hh with #Hro
+  have hC := wp_Clone pbHsC pbHsC_reg p (walHsCanon h)
+  simp only [pbHsC_ty, pbHsC_roC] at hC
+  iapply wp_fupd
+  wp_apply hC $$ [] as %l' ⟨%c', Hd, %Hp⟩
+  · iexact Hro
+  obtain ⟨-, -, hm⟩ := Hp
+  have hc : c' = walHsCanon h := hm trivial
+  subst hc
+  iunfold hsDecC at Hd
+  icases Hd with ⟨Ho, %Hu⟩
+  imod hsOwnC_freeze l' (walHsCanon h) _ Hu $$ Ho with #Hro'
+  ihave %hln := hsRoC_notNull l' (walHsCanon h) $$ Hro'
+  imodintro
+  iapply HΦ
+  iexists l'
+  isplitr
+  · ipureintro; exact ⟨rfl, hln⟩
+  isplitr
+  · unfold walHsIn; iright; iexists (walHsCanon h); iframe Hro
+    ipureintro; exact ⟨walHsCanon_model h, Or.inr rfl⟩
+  isplitr
+  · unfold walHsIn; iright; iexists (walHsCanon h); iframe Hro'
+    ipureintro; exact ⟨walHsCanon_model h, Or.inr rfl⟩
+  iapply walRaftP_marshSt wp_Marshal l' h hln
+  iexact Hro'
 
 end laws
 
