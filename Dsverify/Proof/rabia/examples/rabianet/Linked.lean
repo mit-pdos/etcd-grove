@@ -16,7 +16,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.ServerProof
 public import Dsverify.Proof.rabia.examples.rabianet.OrchProof
 public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
 public import Dsverify.Proof.rabia.internal.config.CalcConstants
-public import Perennial.Proof.log.Link
+public import Net.Proof.log.Println
 public import Dsverify.Proof.rabia.roles.server.Link
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Net.Proof.net.Listen
@@ -58,7 +58,7 @@ theorem kitNetDeps : KitNetDeps (GF := GF) where
   close := net.Conn.Close.wp_proof
   readFullLt := io.ReadFull.wp_proofLt
   calcConstants := rabia.internal.config.Config.CalcConstants.wp_proof
-  println := log.wp_Println
+  println := log.Println.wp_proof
 theorem wp_configure_linked : configure.spec (GF := GF) := configure.wp_proof kitNetDeps
 theorem wp_waitConf : waitConf.spec (GF := GF) := waitConf.wp_proof kitNetDeps
 theorem wp_New : New.spec (GF := GF) := New.wp_proof kitNetDeps

@@ -22,7 +22,7 @@ non-`nil` logger, an exclusive event token through the field methods and `Msg`; 
 `NewSource`/`New`/`Rand.Intn` with exclusive tokens, the package-level `Intn`) have no model here,
 and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
 deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
-`log.Println` is proved from Perennial's Go model of `log` (over `fmt`). Proved in
+`log.Println` is proved from Perennial's trusted model of `log`. Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
 -/
 module

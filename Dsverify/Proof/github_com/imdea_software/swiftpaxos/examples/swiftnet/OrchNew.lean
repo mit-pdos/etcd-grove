@@ -19,7 +19,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swift
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitDeps
 public import Perennial.Proof.time
 public import Perennial.Proof.log
-public import Perennial.Spec.log.Println
+public import Net.Spec.log.Println
 
 @[expose] public section
 

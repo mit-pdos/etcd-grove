@@ -12,7 +12,7 @@ public import Net.Spec.net.rpc.Server__Accept
 public import Net.Spec.net.rpc.Server__ServeConn
 public import Net.Spec.net.Listener__Accept
 public import Net.Proof.net.AtAddr
-public import Perennial.Spec.log.Println
+public import Net.Spec.log.Println
 public import Net.Proof.net.rpc.Errs
 
 @[expose] public section
