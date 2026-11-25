@@ -96,6 +96,20 @@ Lean so far:
   `Kv/ReadVersion`, not yet ported); `log.Printf.spec` (Perennial's, `fmt.ArgsWf`) replaces the lab's
   `log.wp_Printf`.
 
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes H2, F2 and the `RpcBoot`s below)
+
+`craq_remote_robust` keeps one net premise, `RpcHttpServe` (`Craq/HttpRpc.lean`): `http.ListenAndServe(a,
+nil)`, which Net does not prove (it proves `http.Serve` on a listener), now over Net's `muxRpc`. The
+rest is Net's: `rpc.HandleHTTP` (`net.rpc.HandleHTTP.spec`, over net/http's `Handle`), the package-level
+`rpc.RegisterName` on `DefaultServer`'s owned, empty registry (`RegisterName.spec_fresh`,
+`defaultSrvFresh`), and the eleven client and server commands' first-run boots (no `RpcBoot` premise:
+kitgen `boot=`, `etc/dsv/craq.py`; `BootLinked.lean`'s `boot_netrpc`, `boot_craqnet`: `transport/netrpc`'s
+initializer runs net/rpc's, the machine's first run of net/rpc and net/http, Net's
+`net.rpc.wp_init_first_http`). The thread bound is `2^30` (net/http's first initialization, `Threads30`;
+Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`: Net's interim
+`net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'`,
+`net.http.Handle.wp_proof`, besides Lean's three.
+
 ## Hypotheses (model pieces the port needs that are not proved)
 
 Each to be a hypothesis (section variable or premise named after the lab's spec) of the statement until

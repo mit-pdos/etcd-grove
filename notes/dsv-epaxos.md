@@ -118,6 +118,21 @@ dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay
 `[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
 no instance here.
 
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes "Hypotheses" below)
+
+`epaxos_remote_robust` has no net/rpc or net/http premise and no `RpcBoot`: `RpcHttpHyp`
+(`Interface/RpcHttpHyps.lean`) bundles Net's specs (`DialHTTP.spec`, `HandleHTTP.spec`,
+`Register.spec_fresh`, `http.Serve.spec_rpc`), given by `Link.lean`'s `netRpcHttpHyp`; the six server
+commands' first-run boots are proved (kitgen `boot=`, `etc/dsv/epaxos.py`: `BootTable.lean`,
+`BootCmdsLinked.lean`; `BootLinked.lean`'s `boot_master` and `boot_epaxosnet`, through
+`RpcBoot.lean`'s `wp_rpc_first` over Net's `net.rpc.wp_init_first_http`: `master`'s initializer runs
+net/rpc's, the machine's first run of net/rpc and net/http). The master and the replicas register on
+`DefaultServer`'s owned, empty registry (`defaultSrvFresh`, `Register.spec_fresh`) and run `http.Serve`
+with the main thread's token (`robust_of_distProtoLisRBTT`, `wp_bootRT`). The thread bound is `2^30`
+(net/http's first initialization; Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`:
+Net's interim `net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'`,
+`net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`, besides Lean's three.
+
 ## Step bound 2^63 (2026-11-24, dsv-steps63)
 
 Perennial's pin 580868e54 (lean 5f5f28beeb, perennial#690) has `goose_dist_adequacy_below`
