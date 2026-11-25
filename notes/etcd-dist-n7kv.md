@@ -54,6 +54,25 @@ Proof notes:
 - `etc/lean-check.py` (incremental) reported spurious kernel errors (`wp_proof._proof_1_13` type mismatch) and
   missed errors after a `-a`; `lake env lean FILE` is the reliable check (`/shared/tmp/n7kv-lean.sh FILE`).
 
+## Spec review (spec-reviewer, 2026-11-25, given only the Go code and the specs)
+
+Verdict: every spec is sound and proved. Approve as is: `RunKV`, `Deployment.Endpoints`, `Node.specWith`. Approve
+with nits: everything else. No reachable panic under the premises. Not applied (left for the lead):
+- **F1** (recommended): gate `orchShare`/`nodeShare` and `KvOnly` by `WellFormed`, i.e. `⌜d.WellFormed⌝ -∗ …` and
+  premise `(d.WellFormed → KvOnly d) ∧ Fips off`. The Go code reads them only after `WellFormed` returns nil, so
+  this precondition is strictly weaker, and `BootBad.lean`'s `clientBadWp`/`nodeBadWp` could then use these specs
+  instead of re-stepping the bodies. The proofs change by one `ispecialize` in the `nil` arm.
+- **F2**: add laws `deploymentRepr_workloads`/`_nodes` (in `Repr.lean`) and `orchShare_eq`/`nodeShare_eq` (in
+  `KvDefs`), instead of the client proofs unfolding `deploymentRepr`/`orchShare`/`nodeShare`.
+- `NodeMain`: bound only `c` under its guard (`0 ≤ c → c < clients → c + |eps| < 2^63`), not `clients + |eps|`.
+- `Rotate`: `i + len ≤ 2^63` (not `<`), and nothing needed when `xs = []`.
+- `Deployment.Node`: also state the converse (`ok = true ↔ n` is in `nodeList`'s range), or name it as the margin.
+- `Orch.specWith`: `∀ tmo` is stronger than `RunKV` needs (it passes `kvCheckTimeout`); keep it only if P9's
+  `Orch` is timeout-agnostic.
+- `MainReady`: for N7 (all kinds), `OP ns w.ops` should become the kv entry of a per-kind share.
+- Go nits (candidates for `nonissues/`, not written): `Rotate`'s doc omits `0 ≤ i`/no overflow; for kv,
+  `ready()` runs twice (`MainReady` and `RunKV`), against the doc's "called once".
+
 ## How to continue
 
 - Dependencies are built: fk-lean1's worktree `/home/ubuntu/eg/wt/etcd-safe-n7kv` (at `c14f88dec2`) built
