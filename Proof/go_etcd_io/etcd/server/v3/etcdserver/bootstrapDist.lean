@@ -62,11 +62,20 @@ of the same cluster (`httpPeerSvc`'s acceptor protocol), whose `/members` is a J
 builds raft's start (one conf change per member, `json.Marshal(cl.Member(id))` as its context). Each step
 either returns an error (`bootstrap` closing what it opened) or leaves what `bootOk` names at Go's id, contexts
 and directory (`bootGo`), as #34's stage proofs check down to the callees still open (`bootstrap.wp_proof`).
-The Go test `examples/axiomcx/bootstrapdist` (at the pin) boots three members of this shape through `NewServer`:
+**What the round-tripper contract carries** (the review, `notes/axiom-review/bootstrap-dist.md`): a `/members`
+answer that is not etcd's (a list with a `null` element) panics `bootstrap` (a nil `*Member` in
+`membership.NewClusterFromMembers`, `membership/cluster.go:101`, via `cluster_util.go:122`;
+`nonissues/etcd-bootstrap-members-null-panic.md`). The axiom relies on `bootRTOk` for both routes to such an
+answer: at a peer address only `PeerServe_dist`'s etcd peer handler writes (`httpPeerSvc` is opaque; its
+`/members` is `cluster.Members()`'s JSON, `etcdhttp/peer.go:112-120`), and no proxy redirects the GET
+(`noProxyEnv`; the transport's `Proxy` is `http.ProxyFromEnvironment`, `client/pkg/v3/transport/transport.go:42`).
+`addrOk` of each address (inside `httpAddrAt`) makes the dialed address the one named (`canonicalAddr` of a
+plain `http://d.d.d.d:p`). The Go test `examples/axiomcx/bootstrapdist` (at the pin) boots three members of this shape through `NewServer`:
 the first with its peers unreachable (`isMemberBootstrapped` answers `false`, the boot succeeds), the other two
 after a `GET /members` answered by the first's peer handler; one whose peer accepts and never answers (the GET
 times out, the boot succeeds); and two errors, returned without a panic: a data directory that is a file, and a
-peer listing this member with client URLs (`has already been bootstrapped`). -/
+peer listing this member with client URLs (`has already been bootstrapped`); and the two panics `bootRTOk`
+excludes (`TestNullMemberAtPeer`: a stand-in at the peer address; `TestProxyNull`: an HTTP proxy). -/
 axiom bootstrap.wp_proof_dist [π : Net.NetProtoGS] : bootstrap.specDist (GF := GF) (hG := hG)
 
 end proof
