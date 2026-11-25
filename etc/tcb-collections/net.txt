@@ -7,8 +7,10 @@
 #   etc/tcb-report.py --collection etc/tcb-collections/net.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
-# `axiom X`/`sorry X`: the baseline, written by --check --update (not yet run: the baseline is
-# empty, which is what each Results.lean's `#print axioms` shows of this repository's part).
+# `axiom X`/`sorry X`: the baseline, written by --check --update (run 2026-11-25, branch
+# libnet-net/2026-11-25, after the robustness-review fixes: 0 entries, so the seven results rest on
+# no axiom and no `sorry` of this repository; their trust is the net TrustedCode, the extension's
+# semantics and Perennial's).
 # rpcdriver (net/rpc over net/http) and httpdriver (net/http) are not of them: they rest on their
 # interim net/http and net/rpc axioms, and have their own collections, etc/tcb-collections/rpcdriver.txt
 # and etc/tcb-collections/httpdriver.txt.

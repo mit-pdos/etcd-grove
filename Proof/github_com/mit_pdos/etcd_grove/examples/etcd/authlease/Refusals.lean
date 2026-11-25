@@ -355,10 +355,9 @@ theorem refused_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     ihave %Hps := len_of_lb γc ps ps0 $$ Hp Hp0
     obtain ⟨hk, hL⟩ := hcell σ ids ps gs d HS Hpre Hps
     iunfold clientGrant at HG
-    icases HG with ⟨%md, %Hmd, HG⟩
+    icases HG with ⟨%md, #Hmd, HG⟩
     icases hop _ _ _ $$ HG with ⟨%rq, %hrq, HG⟩
-    ihave #Hs := akTokSeen_attempt γa who conn md
-      (by unfold clientAttemptMd at Hmd; rw [hout] at Hmd; exact Hmd) $$ Htk
+    ihave #Hs := akTokSeen_md γa who conn ctx md hout $$ Hmd Htk
     iapply (grantG_refuted s E γa ρ Lset n who _ rq σ k L hγa hk hL hwho hrq)
     iframe #; iframe
   iexact Hau
@@ -388,9 +387,8 @@ theorem revokeLu_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ
   iframe Hinv Hi0 Hp0
   iintro !> %σ %ha HG
   iunfold clientGrant at HG
-  icases HG with ⟨%md, %Hmd, HG⟩
-  ihave #Hs := akTokSeen_attempt γa who conn md
-      (by unfold clientAttemptMd at Hmd; rw [hout] at Hmd; exact Hmd) $$ Htk
+  icases HG with ⟨%md, #Hmd, HG⟩
+  ihave #Hs := akTokSeen_md γa who conn ctx md hout $$ Hmd Htk
   iapply (grantG_refuted s E γa ρ Lset n who _ (irrLeaseRevoke Lu) σ aK Lu hγa ha hLu
     (by rcases hwho with h | h | h
         · exact Or.inl h

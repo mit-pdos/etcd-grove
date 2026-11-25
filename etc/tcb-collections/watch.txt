@@ -34,10 +34,8 @@ axiom context.WithCancelValCtx.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom metadata.FromIncomingContext.wp_proof
 axiom os.Getenv.wp_proof
 axiom promSrvMetrics
@@ -49,6 +47,7 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof

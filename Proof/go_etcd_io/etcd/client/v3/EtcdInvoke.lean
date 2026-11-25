@@ -133,26 +133,49 @@ theorem grpcInvokerOk_of_chainRes (conn : Loc) (addr : List GoString) (inv inv' 
     grpcInvokerOk conn addr clientRes inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %R
-  iintro %Ψ !> ⟨%HR, HRr, Hpre⟩ HΨ
-  subst HR
-  iapply wp_wand_r
-  isplitl [HRr Hpre HΨ]
-  · iapply Hw $$ %_ %_ %_ %_ %_ %(fun v => iprop(levelTok 0 -∗ Ψ v)) [Hpre HΨ] HRr
-    iintro Htok
-    iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs
-      %ps %(levelTok 0) %(fun v => iprop(levelTok 0 ∗ (levelTok 0 -∗ Ψ v))) [Htok Hpre]
-    · iframe
-      ipureintro; rfl
-    · inext
-      iintro %err ⟨Htok, Hpost⟩
-      dsimp only
-      iframe Htok
+  icases Hinv with ⟨#Hinv, #Hdone⟩
+  isplitl []
+  · iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %R
+    iintro %Ψ !> ⟨%HR, HRr, Hpre⟩ HΨ
+    subst HR
+    iapply wp_wand_r
+    isplitl [HRr Hpre HΨ]
+    · iapply Hw $$ %_ %_ %_ %_ %_ %(fun v => iprop(levelTok 0 -∗ Ψ v)) [Hpre HΨ] HRr
       iintro Htok
-      iapply HΨ
-      iframe
-  · iintro %v ⟨Htok, Hv⟩
-    iapply Hv $$ Htok
+      iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs
+        %ps %(levelTok 0) %(fun v => iprop(levelTok 0 ∗ (levelTok 0 -∗ Ψ v))) [Htok Hpre]
+      · iframe
+        ipureintro; rfl
+      · inext
+        iintro %err ⟨Htok, Hpost⟩
+        dsimp only
+        iframe Htok
+        iintro Htok
+        iapply HΨ
+        iframe
+    · iintro %v ⟨Htok, Hv⟩
+      iapply Hv $$ Htok
+  · -- the at-once failures (grpc-trusted-T's `grpcInvokerDone`), at the same resource
+    unfold grpcInvokerDone
+    iintro !> %ctx %cd %method %req %reply %opts %vs %ps %R %Ψ !> ⟨%HR, HRr, Hpre⟩ HΨ
+    subst HR
+    iapply wp_wand_r
+    isplitl [HRr Hpre HΨ]
+    · iapply Hw $$ %_ %_ %_ %_ %_ %(fun v => iprop(levelTok 0 -∗ Ψ v)) [Hpre HΨ] HRr
+      iintro Htok
+      iapply Hdone $$ %ctx %cd %method %req %reply %opts %vs %ps %(levelTok 0)
+        %(fun v => iprop(levelTok 0 ∗ (levelTok 0 -∗ Ψ v))) [Htok Hpre]
+      · iframe
+        ipureintro; rfl
+      · inext
+        iintro %err ⟨Htok, Hpost⟩
+        dsimp only
+        iframe Htok
+        iintro Htok
+        iapply HΨ
+        iframe
+    · iintro %v ⟨Htok, Hv⟩
+      iapply Hv $$ Htok
 
 /-- **`Invoke` on an etcd client's connection, for a metadata-indexed spec** (`etcdConn.InvokeMdE.spec`), from grpc's contract:
 the chain is the one interceptor, called with an invoker that behaves as grpc's `invoke`, which
@@ -163,7 +186,7 @@ theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (
   intro conn addr method Req Rep hreq hrep Spec m Φ Ψe ctx om cd inp out opts vs
   iintro %Ψ ⟨#Hg, Htok, #Hconn0, #Hrpc, #Hom, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
   iunfold isEtcdConn at Hconn0
-  icases Hconn0 with ⟨%ic, #Hgc, #Hic, #HicW⟩
+  icases Hconn0 with ⟨%ic, #Hgc, #Hic, #HicW, -⟩
   iapply wp_wand_r
   isplitl [Htok Hsend Hblank Hpre HΨ]
   · iapply (wp_Invoke conn addr [ic] [] clientRes (GoInterface.ok ctx) method

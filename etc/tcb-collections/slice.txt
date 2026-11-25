@@ -19,10 +19,8 @@ axiom RangeRequest.String.wp_proof
 axiom context.WithValue.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
@@ -49,6 +47,7 @@ axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom streamIcMdIs
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom zap.Stack.wp_proof

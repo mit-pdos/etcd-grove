@@ -78,7 +78,7 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
   -- (D25) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
   imod mono_list_own_alloc (GF := GF) ([] : List EpInfo) with ⟨%γep, Hep, -⟩
-  imod start_sspsc (V := Loc) respc (respcE V γep) (fun _ => iprop(False)) γresp $$ Hrespc
+  imod start_sspsc (V := Loc) respc (respcE V om γep) (fun _ => iprop(False)) γresp $$ Hrespc
     Hrespo with ⟨%γr, #Hsp, Hprod, Hcons⟩
   imod start_bag (errP γr γep) _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
   -- (D25) the generations of `resumec`

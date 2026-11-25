@@ -529,7 +529,7 @@ def runExit (V : WEnv GF) (G : WgsPrm GF) (cep clm : Loc) : IProp GF :=
 /-- **`run`'s state at the head of its loop** (but its local variables): the maps, the gRPC
 stream's sender token and `respc`'s consumer side, what it knows (`S`, `gOk`), the server's tokens
 it holds, the substreams it made (`U`), the wait group's adder, its thread token, `donec`. -/
-def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm csm : Loc) :
+def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n : Nat) (clm csm : Loc) :
     IProp GF :=
   iprop(∃ (S : RunSt) (U : GMap Loc Unit) (rcv : List Loc) (mref : Loc) (s : GoSlice)
       (e : GoInterface),
@@ -539,8 +539,7 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm
     wgsF G.wgs go!"closeErr" ↦ e ∗ closeErrOk e ∗
     cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ sspscConsumer G.γr rcv ∗
     ⌜rcv.length = b + S.Dm.length⌝ ∗
-    (∃ tok, epochSt G γs b i tok ∗
-      ⌜∃ md, tok = auth.mdTokenOf md ∧ clientAttemptMd V.conn G.omd md⌝) ∗
+    epochAt V G γs b S.Dm ∗
     v3rpc.downLbW γs S.Dm ∗
     ⌜gOk S U⌝ ∗
     ([∗list] i ∈ S.ansd, ansH γs i) ∗ ([∗list] X ∈ S.regs, idH γs X) ∗
@@ -548,9 +547,9 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat) (clm
     wgAdder G.wgs ∗ threadTok ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗
     monoNatAuthOwn G.γend 1 n)
 
-theorem runExit_of_core (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n i : Nat)
+theorem runExit_of_core (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n : Nat)
     (clm csm cep : Loc) (ce : GoInterface) :
-    runCore V G γs b n i clm csm ∗ cep ↦ ce ∗ closeErrOk ce ⊢ runExit V G cep clm := by
+    runCore V G γs b n clm csm ∗ cep ↦ ce ∗ closeErrOk ce ⊢ runExit V G cep clm := by
   iintro ⟨Hc, Hcep, #Hce⟩
   unfold runCore
   icases Hc with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, -, Hsub, Hm, Hres, Hs, HcF, #He, -, -, -,

@@ -33,13 +33,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [pkg_pb : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- **The store of a keep-alive request**: its `ID` (the ghost bounds are not on the wire). -/
-def kaReqTree (q : KaReqM) : VTree :=
-  .strct etcdserverpb.LeaseKeepAliveRequest.ty [(go!"ID", go.int64)] [.leaf #q.id]
-
 /-- **`pbLeaseKeepAliveRequest` with its store.** -/
 def pbLeaseKeepAliveRequestT : StreamMsgT GF :=
-  { pbLeaseKeepAliveRequest with tree := kaReqTree }
+  { pbLeaseKeepAliveRequest with }
 
 /-- **`pbLeaseKeepAliveRequestT`'s request model is satisfiable.** -/
 theorem pbLeaseKeepAliveRequestT_reqSat : (pbLeaseKeepAliveRequestT (GF := GF)).ReqSat := by
@@ -76,17 +72,9 @@ theorem pbLeaseKeepAliveRequestT_wireLen_ok :
     ∃ m, (pbLeaseKeepAliveRequestT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨⟨0, 0, 0⟩, by simp [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveRequest, wireSlack, grpcMsgMax]⟩
 
-/-- **The store of a keep-alive response**: its `ID` and `TTL`; its `Header` `nil` (the model does
-not carry it: see the file header). -/
-def kaRespTree (m : w64 × w64) : VTree :=
-  .strct etcdserverpb.LeaseKeepAliveResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"ID", go.int64),
-     (go!"TTL", go.int64)]
-    [.leaf #(null : Loc), .leaf #m.1, .leaf #m.2]
-
 /-- **`pbLeaseKeepAliveResponse` with its store.** -/
 def pbLeaseKeepAliveResponseT : StreamMsgT GF :=
-  { pbLeaseKeepAliveResponse with tree := kaRespTree }
+  { pbLeaseKeepAliveResponse with }
 
 /-- **`pbLeaseKeepAliveResponseT`'s reply model is satisfiable.** -/
 theorem pbLeaseKeepAliveResponseT_repSat : (pbLeaseKeepAliveResponseT (GF := GF)).RepSat := by

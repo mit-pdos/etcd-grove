@@ -68,6 +68,7 @@ module
 
 public import GooseLang.Ext.Net.Slot
 public import Proof.google_golang_org.grpc.InvGrpcBase
+public import Proof.google_golang_org.grpc.InvGrpcCall
 public import Proof.encoding.base64.Base
 
 @[expose] public section
@@ -188,9 +189,8 @@ def fieldLast (fs : List (GoString × GoString)) (k : GoString) : Option GoStrin
 /-- The method a head names (`operateHeaders`: the last `:path`). -/
 def pathOf (fs : List (GoString × GoString)) : Option GoString := fieldLast fs go!":path"
 
-/-- `base64.RawStdEncoding.EncodeToString` (no padding): base64's `rawStdEnc` (2026-11-23, S2 core:
-until then a copy of the encoder here, `b64Char`/`b64Alphabet`; one definition now, the one base64's
-package fact gives `RawStdEncoding.EncodeToString`). -/
+/-- `base64.RawStdEncoding.EncodeToString` (no padding): base64's `rawStdEnc`, the definition
+base64's package fact gives `RawStdEncoding.EncodeToString`. -/
 abbrev b64Raw (d : List w8) : List w8 := _root_.Perennial.encoding.base64.rawStdEnc d
 
 /-- **The incoming metadata `md` the server makes of the head `fs`** (`operateHeaders`), on every key
@@ -460,16 +460,19 @@ section svc
 variable [GooseExts]
 variable {GF : BundledGFunctors}
 
-/-- **A message type's wire part** (no heap): its Go type, its model, and its stored form (the
-tree `storeInto ty` writes for a message of model `m`; its bytes are any `protoEncodes ty (tree m)`
-relates it to, O7). -/
+/-- **A message type's wire part** (no heap): its Go type, its model (countable: a call's queues are ghost lists of models), and its stored form (the tree `storeInto ty` writes for a
+message of model `m`; its bytes are any `protoEncodes ty (tree m)` relates it to, O7). -/
 structure ProtoWire where
   ty : go.GoType
   M : Type
   tree : M → VTree
+  cnt : Pos.Countable M := by infer_instance
+
+attribute [instance] ProtoWire.cnt
 
 /-- **A message type's wire part** (no heap: its Go type, its model, its stored form). -/
-abbrev ProtoMsg.wire {GF : BundledGFunctors} (T : ProtoMsg GF) : ProtoWire := ⟨T.ty, T.M, T.tree⟩
+abbrev ProtoMsg.wire {GF : BundledGFunctors} (T : ProtoMsg GF) : ProtoWire :=
+  ⟨T.ty, T.M, T.tree, T.cnt⟩
 
 /-- **A unary method of a service**: its messages' wire parts and its spec (no heap). -/
 structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
@@ -477,12 +480,30 @@ structure GrpcEntry (GF : BundledGFunctors) [GooseExts] where
   Wp : ProtoWire
   spec : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF
 
-/-- **A service table**: the unary methods by full name (`"/etcdserverpb.KV/Put"`). -/
-abbrev GrpcSvc (GF : BundledGFunctors) [GooseExts] := GoString → Option (GrpcEntry GF)
+/-- **A streaming method of a service** (no heap): its messages' wire
+parts, the client's content `up i m` of its `i`-th request, the server's content `dn md γ j m` of its
+`j`-th response at the metadata `md` the stream `γ` was dispatched with, and what a client learns of a
+stream (`spec md γ Dn`, persistent where it is held). -/
+structure GrpcStreamEntry (GF : BundledGFunctors) [GooseExts] where
+  Wq : ProtoWire
+  Wp : ProtoWire
+  up : Nat → Wq.M → IProp GF
+  dn : GrpcMd → StreamNames → Nat → Wp.M → IProp GF
+  spec : GrpcMd → StreamNames → (Nat → Wp.M → IProp GF) → IProp GF
+
+/-- **An entry of a service table**: a unary method or a streaming one (`notes/phase7-endstate.md`
+§1.5 item 6: `GrpcMethod` is the start's list element). -/
+inductive GrpcSvcEntry (GF : BundledGFunctors) [GooseExts] where
+  | unary (e : GrpcEntry GF)
+  | stream (e : GrpcStreamEntry GF)
+
+/-- **A service table**: the methods by full name (`"/etcdserverpb.KV/Put"`), unary and streaming
+(since phase 7, SW1). -/
+abbrev GrpcSvc (GF : BundledGFunctors) [GooseExts] := GoString → Option (GrpcSvcEntry GF)
 
 /-- The head `fs` names a unary method of `Svc`. -/
 def grpcUnaryOf (Svc : GrpcSvc GF) (fs : List (GoString × GoString)) : Prop :=
-  ∃ name e, pathOf fs = some name ∧ Svc name = some e
+  ∃ name e, pathOf fs = some name ∧ Svc name = some (.unary e)
 
 /-- **What a unary attempt deposits** for the entry `e` and the head `fs`: its request's
 precondition at every metadata the server may make of `fs`, a step later, after an update. -/
@@ -528,7 +549,7 @@ def grpcAttemptSlot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoStri
     (bs : List w8) : IProp GF :=
   iprop(∃ (name : GoString) (e : GrpcEntry GF) (γ : SlotNames) (m : e.Wq.M)
       (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF),
-    ⌜pathOf fs = some name ∧ Svc name = some e ∧ protoEncodes e.Wq.ty (e.Wq.tree m) bs⌝ ∗
+    ⌜pathOf fs = some name ∧ Svc name = some (.unary e) ∧ protoEncodes e.Wq.ty (e.Wq.tree m) bs⌝ ∗
     depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) ∗
     depSlotInv (Gg := Gg) cn γ (msgReady fs bs) (grpcDeposit e fs m Φ Ψe) (grpcSlotCont e Φ Ψe))
 
@@ -584,8 +605,21 @@ def grpcSvcAt (a name : GoString) (Wq Wp : ProtoWire)
     (Spec : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ (Svc : GrpcSvc GF) (Spec₀ : GrpcMd → Wq.M → (Wp.M → IProp GF) →
       (GoString → IProp GF) → IProp GF),
-    grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some ⟨Wq, Wp, Spec₀⟩⌝ ∗
+    grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some (.unary ⟨Wq, Wp, Spec₀⟩)⌝ ∗
     □ ∀ md m Φ Ψe, Spec md m Φ Ψe ==∗ Spec₀ md m Φ Ψe)
+
+/-- **The streaming method `name` at `a` meets `Up` and `Spec`** (persistent, no heap): the table `a`
+serves has a stream entry for `name` at the wire parts `Wq`, `Wp`, whose
+specification holds of every stream at its own content (`spec₀ md γ (dn₀ md γ)`), whose request
+content a client of `Up` meets after an update, and whose specification gives `Spec`. -/
+def grpcStreamSvcAt (a name : GoString) (Wq Wp : ProtoWire) (Up : Nat → Wq.M → IProp GF)
+    (Spec : GrpcMd → StreamNames → (Nat → Wp.M → IProp GF) → IProp GF) : IProp GF :=
+  iprop(∃ (Svc : GrpcSvc GF) (up₀ : Nat → Wq.M → IProp GF)
+      (dn₀ : GrpcMd → StreamNames → Nat → Wp.M → IProp GF)
+      (spec₀ : GrpcMd → StreamNames → (Nat → Wp.M → IProp GF) → IProp GF),
+    grpcAddrAt (Gg := Gg) a Svc ∗ ⌜Svc name = some (.stream ⟨Wq, Wp, up₀, dn₀, spec₀⟩)⌝ ∗
+    (□ ∀ md γ, spec₀ md γ (dn₀ md γ)) ∗
+    (□ ∀ i m, Up i m ==∗ up₀ i m) ∗ (□ ∀ md γ Dn, spec₀ md γ Dn -∗ Spec md γ Dn))
 
 instance grpcAttemptSlot_persistent Svc cn fs bs :
     Persistent (grpcAttemptSlot (Gg := Gg) Svc cn fs bs) := by
@@ -603,6 +637,9 @@ instance grpcAddrAt_persistent a Svc : Persistent (grpcAddrAt (Gg := Gg) a Svc) 
 instance grpcSvcAt_persistent a name Wq Wp Spec :
     Persistent (grpcSvcAt (Gg := Gg) a name Wq Wp Spec) := by
   unfold grpcSvcAt; infer_instance
+instance grpcStreamSvcAt_persistent a name Wq Wp Up Spec :
+    Persistent (grpcStreamSvcAt (Gg := Gg) a name Wq Wp Up Spec) := by
+  unfold grpcStreamSvcAt; infer_instance
 
 end protos
 
@@ -721,7 +758,7 @@ theorem srv_trailer_answered (Svc : GrpcSvc GF) (cn : Nat) (fs fst : List (GoStr
 
 /-- An entry of the table `a` serves is a registration of its method. -/
 theorem grpcSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry GF)
-    (h : Svc name = some e) :
+    (h : Svc name = some (.unary e)) :
     grpcAddrAt (Gg := Gg) a Svc ⊢ grpcSvcAt (Gg := Gg) a name e.Wq e.Wp e.spec := by
   iintro #Ha
   unfold grpcSvcAt
@@ -750,6 +787,54 @@ theorem grpcSvcAt_mono_upd (a name : GoString) (Wq Wp : ProtoWire)
     iintro %md %m %Φ %Ψe HS
     imod Hw $$ HS with HS
     iapply H0 $$ HS
+
+/-- A stream entry of the table `a` serves, whose specification holds of every stream at its own
+content, is a registration of its method. -/
+theorem grpcStreamSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (Wq Wp : ProtoWire)
+    (up : Nat → Wq.M → IProp GF) (dn : GrpcMd → StreamNames → Nat → Wp.M → IProp GF)
+    (spec : GrpcMd → StreamNames → (Nat → Wp.M → IProp GF) → IProp GF)
+    (h : Svc name = some (.stream ⟨Wq, Wp, up, dn, spec⟩)) :
+    grpcAddrAt (Gg := Gg) a Svc ∗ (□ ∀ md γ, spec md γ (dn md γ)) ⊢
+      grpcStreamSvcAt (Gg := Gg) a name Wq Wp up spec := by
+  iintro ⟨#Ha, #Hs⟩
+  unfold grpcStreamSvcAt
+  iexists Svc, up, dn, spec
+  iframe Ha Hs
+  isplitl []
+  · ipureintro; exact h
+  isplitl []
+  · imodintro
+    iintro %i %m HU
+    imodintro
+    iexact HU
+  · imodintro
+    iintro %md %γ %Dn HS
+    iexact HS
+
+/-- A stream registration holds of any content whose clients meet it after an update, and of any
+weaker specification. -/
+theorem grpcStreamSvcAt_mono (a name : GoString) (Wq Wp : ProtoWire)
+    (Up Up' : Nat → Wq.M → IProp GF)
+    (Spec Spec' : GrpcMd → StreamNames → (Nat → Wp.M → IProp GF) → IProp GF) :
+    ⊢ (□ ∀ i m, Up' i m ==∗ Up i m) -∗ (□ ∀ md γ Dn, Spec md γ Dn -∗ Spec' md γ Dn) -∗
+      grpcStreamSvcAt (Gg := Gg) a name Wq Wp Up Spec -∗
+      grpcStreamSvcAt (Gg := Gg) a name Wq Wp Up' Spec' := by
+  iintro #Hu #Hw #Ha
+  unfold grpcStreamSvcAt
+  icases Ha with ⟨%Svc, %up₀, %dn₀, %spec₀, #Haddr, %hS, #Hs, #Hu0, #Hw0⟩
+  iexists Svc, up₀, dn₀, spec₀
+  iframe Haddr Hs
+  isplitl []
+  · ipureintro; exact hS
+  isplitl []
+  · imodintro
+    iintro %i %m HU
+    imod Hu $$ HU with HU
+    iapply Hu0 $$ HU
+  · imodintro
+    iintro %md %γ %Dn HS
+    iapply Hw $$ [HS]
+    iapply Hw0 $$ HS
 
 end laws
 

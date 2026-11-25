@@ -32,6 +32,8 @@ variable [go.BasicIntoValInj]
 /-- The client command's `main`: `Call`, under halfclose's protocol (`hcInvs`) and the plan's
 entry of `SrvAddr` (at any host `h`). -/
 theorem wp_main
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
+    (wp_RandomBytes : wire.RandomBytes.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
@@ -48,7 +50,7 @@ theorem wp_main
   · iPkgInit
   icases eof_init $$ Hhc with ⟨%x, #Heof⟩
   (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_Read wp_Write wp_CloseWrite wp_Close γm x $$ []
+  wp_apply wp_Call wp_RandomInt wp_RandomBytes wp_Dial wp_Read wp_Write wp_CloseWrite wp_Close γm x $$ []
   · iframe Hinvs Hplan Heof
   (try wp_auto)
   iapply HΦ

@@ -639,6 +639,9 @@ PROJECTS = [
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",
             "google.golang.org/protobuf/internal/pragma",
+            # types only: the message gRPC's robustness driver (examples/lib/grpcdriver) carries,
+            # `StringValue`, and its constructor `String`, with its body
+            "google.golang.org/protobuf/types/known/wrapperspb",
             # names only: the types of clientv3.Client's fields
             "google.golang.org/grpc",
             "google.golang.org/grpc/credentials",
@@ -1082,6 +1085,22 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["./putget"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+    ),
+    Project(
+        name="grpcdriver",
+        # gRPC's robustness driver (examples/lib/grpcdriver, notes/library-drivers.md): its server and
+        # client machines' package, its service (`svc`, in protoc-gen-go-grpc's form over protobuf's
+        # `StringValue`) and their commands. A package of the examples' Go module (examples/go.mod);
+        # grpc (from its model), protobuf's `wrapperspb` and the rest are the etcd project's
+        # translations (names reached through the empty root), `net` the part Net/'s.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "grpcdriver"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=",
+                    "net/http/httptrace=", "net=Net"],
+        packages=[".", "./svc", "./cmd/server", "./cmd/client"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "grpcdriver")],
     ),
     Project(
         name="axiomcx-bboltnan",

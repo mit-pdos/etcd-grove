@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.wire
 public import Perennial.GeneratedProof.io
 public import Net.GeneratedProof.net
 public import Perennial.Golang.Theory

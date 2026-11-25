@@ -9,7 +9,7 @@ the peers in `bootstrap`'s order, a permutation of the ids, the client's `etcdKV
 member's names), each member's pure boot facts kept (`memberBoot`'s: its names, what `memberAt`
 records); `StartMember` for each member, the thread token passed along (`memberServed`'s
 `srvGoRes`), its watch server kept; the servers' slice; `StartBridge` for each member's client
-address (the bridge owned, its address serving the member's, `forwards`) and the bridges' slice;
+address (the bridge owned, its address serving what the member serves at its table, `memberRegs`; phase 7's switch, SW1) and the bridges' slice;
 `clusterUp`. Every step's error ends with `ok = false`.
 
 (lease-mono3's pass 2(a), 2026-11-06, `notes/lease-mono3-plan.md`; step 2, 2026-11-14: every mode,
@@ -165,7 +165,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, Hctl₁, #Hsr₁,
-    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hwl₁, #Hstr₁⟩, %Hnr₁⟩
+    ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hwl₁, #Hstr₁, #Htb₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
@@ -191,7 +191,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, Hctl₂, #Hsr₂,
-    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hwl₂, #Hstr₂⟩, %Hnr₂⟩
+    ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hwl₂, #Hstr₂, #Htb₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
@@ -217,7 +217,7 @@ theorem StartCluster.wp_proof
   wp_auto
   iunfold memberServed at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, Hctl₃, #Hsr₃,
-    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hwl₃, #Hstr₃⟩, %Hnr₃⟩
+    ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hwl₃, #Hstr₃, #Htb₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
@@ -229,9 +229,11 @@ theorem StartCluster.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hsrvs with #Hsrvs
   -- the three bridges, each to its member's client address
-  wp_apply (wp_StartBridge cfg.Bridge1' cfg.Client1') $$ [Hba₁] as %br₁ %berr₁ Hbr₁
-  · iframe
-  icases Hbr₁ with (⟨%Hberr, Hob₁, #Hfw₁⟩ | %Hberr)
+  wp_apply (wp_StartBridge cfg.Bridge1' cfg.Client1'
+      (fun a => memberRegs lm a s₁ E₁' ρ₁ cid₁ mid₁ R₁)) $$ [Hba₁]
+    as %br₁ %berr₁ Hbr₁
+  · iframe; iframe #
+  icases Hbr₁ with (⟨%Hberr, Hob₁, #Hbr₁, %Hfw₁⟩ | %Hberr)
   rotate_left
   · cases berr₁ with
     | nil => exact absurd rfl Hberr
@@ -240,9 +242,11 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Hberr
   wp_auto
-  wp_apply (wp_StartBridge cfg.Bridge2' cfg.Client2') $$ [Hba₂] as %br₂ %berr₂ Hbr₂
-  · iframe
-  icases Hbr₂ with (⟨%Hberr, Hob₂, #Hfw₂⟩ | %Hberr)
+  wp_apply (wp_StartBridge cfg.Bridge2' cfg.Client2'
+      (fun a => memberRegs lm a s₂ E₂' ρ₂ cid₂ mid₂ R₂)) $$ [Hba₂]
+    as %br₂ %berr₂ Hbr₂
+  · iframe; iframe #
+  icases Hbr₂ with (⟨%Hberr, Hob₂, #Hbr₂, %Hfw₂⟩ | %Hberr)
   rotate_left
   · cases berr₂ with
     | nil => exact absurd rfl Hberr
@@ -251,9 +255,11 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Hberr
   wp_auto
-  wp_apply (wp_StartBridge cfg.Bridge3' cfg.Client3') $$ [Hba₃] as %br₃ %berr₃ Hbr₃
-  · iframe
-  icases Hbr₃ with (⟨%Hberr, Hob₃, #Hfw₃⟩ | %Hberr)
+  wp_apply (wp_StartBridge cfg.Bridge3' cfg.Client3'
+      (fun a => memberRegs lm a s₃ E₃' ρ₃ cid₃ mid₃ R₃)) $$ [Hba₃]
+    as %br₃ %berr₃ Hbr₃
+  · iframe; iframe #
+  icases Hbr₃ with (⟨%Hberr, Hob₃, #Hbr₃, %Hfw₃⟩ | %Hberr)
   rotate_left
   · cases berr₃ with
     | nil => exact absurd rfl Hberr
@@ -292,6 +298,8 @@ theorem StartCluster.wp_proof
   · iunfold memberAt
     iframe #
     isplitr
+    · ipureintro; exact Hfw₁ Hnr₁
+    isplitr
     · ipureintro; exact Hnr₁
     isplitr
     · ipureintro; exact HR₁
@@ -300,6 +308,8 @@ theorem StartCluster.wp_proof
   · iunfold memberAt
     iframe #
     isplitr
+    · ipureintro; exact Hfw₂ Hnr₂
+    isplitr
     · ipureintro; exact Hnr₂
     isplitr
     · ipureintro; exact HR₂
@@ -307,6 +317,8 @@ theorem StartCluster.wp_proof
   isplitr
   · iunfold memberAt
     iframe #
+    isplitr
+    · ipureintro; exact Hfw₃ Hnr₃
     isplitr
     · ipureintro; exact Hnr₃
     isplitr

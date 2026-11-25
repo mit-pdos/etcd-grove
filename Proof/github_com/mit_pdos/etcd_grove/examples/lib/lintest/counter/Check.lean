@@ -12,6 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.M
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Counter__Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
+public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
 
@@ -55,6 +56,7 @@ theorem Check.wp_proof
     iintro %id
     iintro !> %Φ' _ HΦ'
     wp_auto
+    wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %r _
     iapply HΦ'
     imodintro
     ipureintro
