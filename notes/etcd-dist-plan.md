@@ -2448,3 +2448,22 @@ so the review's counterexample, a second ghost cluster with the same ids, stays 
   `EtcdBootNC`'s `BootPremises` does not give (`BootFacts` has neither the permutation nor Go's values at the
   members' URLs: putgetK takes `BootGoK` as a top-level premise); auth deployments need `Serve_dist`'s auth-on form;
   the start must produce `memberShareD` (`etcdClusterStart` at `peerAddrFactsAt`).
+
+**On `etcd-safe-n5/2026-11-25` (head `d2c8f9a7cd`, built on the VM):** every N5 proof, and `member_boot_dist`
+(`dist/server/AdequacyMember.lean`): `Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c γE,
+memberShareD c d ps ctxs boot i γE Pub)` at a well-formed `d`, hypotheses `Hauth : d.cfg.auth = false` and
+`BootGoD d ps ctxs` beyond `EtcdBootNC`'s premises; every proof and interim axiom plugged in. Leaf proofs and
+`MainLogger` by helpers (A, B). bounds: `MemberSplit`'s hand-off of the HTTP stock allowed (`etc/bounds-allow.txt`).
+No `Link` entry: the linking is the manual `AdequacyMember` module, as putgetK's.
+
+**Port (2026-11-25), branch `etcd-safe-nc-n5/2026-11-25`** from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca` (the
+no-crash line with N2): N5's commits cherry-picked (`-x`); the generated files regenerated at this line's pins (the
+server translation, `dist/server`'s Init/PkgTable, SpecPlan's PkgInit; `ReadyNotify`'s translation at the etcd pin
+`df6af0c36`); `bounds-allow` without the crash line's `NewServerRAt` entry. In progress:
+- **Γ** (helper C): `memberShareD` without the publication (`etcdAddrAt client c.view id`, `Serve_dist` at `Γ`,
+  `kvCongr ρ.rd.kv Γ.kv`); the specs' `BootFacts` premise as `BootCore`.
+- **BootFacts pinned to Go's computed values** (the coordinator's decision, N6's "BootFacts → bootGo's values"; a
+  statement change for the no-crash packet; helper D): `distPs d := bootGo.ps`, `distCtxs d := bootGo.ctxs` at the
+  deployment's initial cluster, `BootFacts d boot := BootCore (distPs d) (distCtxs d) boot` (until now `ps`, `ctxs`
+  were free); `deployment.WellFormed` refuses a member id `MaxUint64`/`MaxUint64 − 1` (raft's `Config.validate`);
+  `BootGoD.of_wf`, so that `member_boot_dist` takes no hypothesis beyond `EtcdBootNC`'s but `Hauth`.
