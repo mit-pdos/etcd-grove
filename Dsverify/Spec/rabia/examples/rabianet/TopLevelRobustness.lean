@@ -8,7 +8,7 @@ the configuration, configures Rabia and connects its Rabia client endpoint, then
 `remote.ServeClient`) and five server machines (each waits for the configuration and, if it is one
 of its `n` servers, runs a Rabia server; rabia over TCP) -- deployed at `rabiaKitAddrs`
 (`DistDeploy`: the addresses distinct and valid, no connection, no listener). In every execution
-of fewer than `2^63` steps, with any number of threads, no thread of any machine is stuck and none
+of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any number of threads, no thread of any machine is stuck and none
 has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows.
@@ -33,6 +33,7 @@ Proved in
 module
 
 public import Dsverify.Proof.rabia.examples.rabianet.TopLevelDefs
+public import Dsverify.Proof.Bounds
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
@@ -82,7 +83,7 @@ def rabia_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.Hyps remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy rabiaKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 63)
+    Robustness.Robust [] (system σ) g threads remoteStepBound
 
 end rabia.examples.rabianet
 end Perennial

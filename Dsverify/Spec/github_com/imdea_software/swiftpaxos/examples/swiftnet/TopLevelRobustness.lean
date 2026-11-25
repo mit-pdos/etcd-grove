@@ -7,8 +7,7 @@ six client machines (each `remote.ServeClient`, an operation a SwiftPaxos client
 and six servers (server 1 the master, `master.Run`, net/rpc over HTTP on the wildcard `":7001"`;
 servers 2..6 the SwiftPaxos replicas, each registering with the master, then `swift.New`) --
 deployed at `swAddrs` (`DistDeploy`: the addresses distinct and valid, no connection, no
-listener). In every execution of fewer than `2 ^ 63` steps along which every machine keeps fewer
-than `2 ^ 30` live threads, no thread of any machine is stuck and none has a top-level panic
+listener). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps along which every machine keeps fewer than `rpcThreadBound` (`2 ^ 30`) live threads, no thread of any machine is stuck and none has a top-level panic
 (`Robust`). Since the orchestrator
 panics unless porcupine accepts the history, this says porcupine accepts every history, under
 every fault the net extension allows.
@@ -50,6 +49,7 @@ Proved in `Dsverify/Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.TopLevelDefs
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
@@ -89,7 +89,7 @@ def swiftpaxos_remote_robust.spec : Prop :=
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy swAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g (2 ^ 30) (2 ^ 63)
+    Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound
 
 end github_com.imdea_software.swiftpaxos.examples.swiftnet
 end Perennial

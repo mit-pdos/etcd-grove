@@ -6,7 +6,7 @@ operations against the register with compare-and-swap and pending operations), s
 master and three Gryff replicas (net/rpc over HTTP for registration, Gryff's wire protocol between
 replicas and with clients) -- deployed with the client machines at `gryffKitAddrs` (`DistDeploy`:
 those addresses distinct and valid, no connection, no listener; the servers listen at wildcards).
-In every execution of fewer than `2 ^ 63` steps along which every machine keeps fewer than `2 ^ 30`
+In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps along which every machine keeps fewer than `rpcThreadBound` (`2 ^ 30`)
 live threads, no thread of any machine is stuck and none has a top-level panic (`Robust`). Since the orchestrator panics unless porcupine
 accepts the history, this says porcupine accepts every history, under every fault the net
 extension allows.
@@ -39,6 +39,7 @@ functions are Perennial's.
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.gryff.examples.gryffnet.TopLevelDefs
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
@@ -77,7 +78,7 @@ def gryff_remote_robust.spec : Prop :=
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] [rpc_sem : net.rpc.Assumptions],
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy gryffKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g (2 ^ 30) (2 ^ 63)
+    Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound
 
 end gryff.examples.gryffnet
 end Perennial

@@ -240,7 +240,7 @@ the configuration, configures Rabia and connects its Rabia client endpoint, then
 `remote.ServeClient`) and five server machines (each waits for the configuration and, if it is one
 of its `n` servers, runs a Rabia server; rabia over TCP) -- deployed at `rabiaKitAddrs`
 (`DistDeploy`: the addresses distinct and valid, no connection, no listener). In every execution
-of fewer than `2^63` steps, with any number of threads, no thread of any machine is stuck and none
+of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any number of threads, no thread of any machine is stuck and none
 has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows.
@@ -267,7 +267,7 @@ Proved in
         heap_at_doc='''A machine's heap over `remoteGF` at the deployment's Go local context `lctx` (the heaps the
 proof makes, one per machine): the global ghost state `G` and the local `L`, its local context
 `lctx`. The premises below hold of every such heap.''',
-        addrs='rabiaKitAddrs', steps='2 ^ 63',
+        addrs='rabiaKitAddrs', steps='remoteStepBound',
         premises=[('hri', 'github_com.go_redis.redis.v8.InitHyp'), ('hz', 'github_com.rs.zerolog.Hyps')],
         # (dsv-fix4) the library classes the proof discharges from per-function axioms
         discharged=[('github_com.gogo.protobuf.proto.Hyps', 'github_com.gogo.protobuf.proto.hyps_holds'),

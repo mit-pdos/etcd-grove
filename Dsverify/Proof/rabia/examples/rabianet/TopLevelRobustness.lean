@@ -120,7 +120,7 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
     rabia_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
     hri hz σ g threads
-  refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (2 ^ 63) ?_
+  refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (remoteStepBound) ?_
   intro G π hrb
   iintro #Hreg Hs
   unfold rabiaKitAddrs

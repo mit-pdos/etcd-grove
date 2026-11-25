@@ -6,8 +6,8 @@ against the key-value map with pending puts, porcupine over kit.go's `Model()`),
 machines (each waits for the configuration, registers the codec, then `remote.ServeClient`; a put
 is the coordinator's `Write`, a get a chain node's `Read`), the coordinator's machine and five
 chain machines (go-craq's `coordinator` and `node` over net/rpc over HTTP) -- deployed at
-`craqKitAddrs` (`DistDeploy`). In every execution of fewer than `2 ^ 63` steps along which every
-machine keeps fewer than `2 ^ 30` live threads, no thread of any machine is stuck and none has a
+`craqKitAddrs` (`DistDeploy`). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps along which every
+machine keeps fewer than `rpcThreadBound` (`2 ^ 30`) live threads, no thread of any machine is stuck and none has a
 top-level panic (`Robust`). Since the orchestrator panics unless porcupine accepts the history,
 this says porcupine accepts every history, under every fault the net extension allows.
 
@@ -44,6 +44,7 @@ Proved in `Dsverify/Proof/github_com/despreston/go_craq/examples/craqnet/TopLeve
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.TopLevelDefs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.HttpRpc
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
@@ -94,7 +95,7 @@ def craq_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy craqKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g (2 ^ 30) (2 ^ 63)
+    Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound
 
 end github_com.despreston.go_craq.examples.craqnet
 end Perennial

@@ -6,7 +6,7 @@ clients' operations, 8 each, against the key-value store with pending puts, porc
 `Model()`), six client machines (each `remote.ServeClient`, an operation a request of its go-vsr
 client to the replicas, `Op`) and five servers (each a go-vsr replica if the configuration has it,
 the key-value store `vsrkv`) -- deployed at `vrKitAddrs` (`DistDeploy`: the addresses distinct and
-valid, no connection, no listener). In every execution of fewer than `2 ^ 63` steps, with any
+valid, no connection, no listener). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any
 number of threads, no thread of any machine is stuck and none has a top-level panic (`Robust`,
 `Robustness/Statement.lean`). Since the orchestrator panics unless porcupine accepts the history,
 this says porcupine accepts every history, under every fault the net extension allows.
@@ -25,6 +25,7 @@ Proved in `Dsverify/Proof/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLeve
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.TopLevelDefs
 
 @[expose] public section
@@ -61,7 +62,7 @@ def vr_remote_robust.spec : Prop :=
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy vrKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 63)
+    Robustness.Robust [] (system σ) g threads remoteStepBound
 
 end github_com.tangledbytes.go_vsr.examples.vsrnet
 end Perennial
