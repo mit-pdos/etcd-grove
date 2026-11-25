@@ -4,7 +4,9 @@
 
 Split from `CrashInterim.lean` (2026-11-25) so that its producer, `storage.OpenBackend`'s post
 (`Spec/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`), can name it without importing the crash
-laws. **Trusted**: an opaque persistent token, read only by the C-I1 axioms (`CrashInterim.lean`).
+laws. **Trusted** (through its producer, the axiom `storage.OpenBackend`): bbolt's `boltSyncs γ`, the database's
+`NoSync`/`NoGrowSync` fields persistently `false` (concrete since 2026-11-25, plan F4; review
+`notes/axiom-review/openbackend-dbopts.md`).
 -/
 module
 
@@ -35,8 +37,9 @@ from its options and never written again, `Inv/Bolt.lean`'s `dbFixed`), so that 
 backend's configuration, `backend/backend.go:227-228` into `bopts.NoSync` and `bopts.NoGrowSync`,
 which `bolt.Open` stores; defrag reopens the database with the same `b.bopts`, `backend.go:594`).
 Never produced for defrag's temporary database (`NoSync = true`, `backend.go:531`), which no `γ` of
-a backend names. Opaque, so it says nothing of the heap: only the C-I1 axioms read it. -/
-opaque dbOptsRaw [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := iprop(False)
+a backend names. Concretely bbolt's `boltSyncs γ` (`Spec/go_etcd_io/bbolt/Api.lean`): `γ`'s `DB` has both
+fields `false` (persistent points-tos), which bbolt's invariant (`dbFixed`) agrees with. -/
+def dbOptsRaw [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := onFs iprop(bbolt.boltSyncs γ)
 
 /-- (C-I1) `dbOptsRaw`, persistent. -/
 def dbOpts [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := iprop(<pers> dbOptsRaw γ)

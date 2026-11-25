@@ -114,6 +114,14 @@ commit all of it). Survives `Close` (the data then stays `D`). -/
 @[no_expose] def boltState [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (q : Qp) (D : Data) : IProp GF :=
   boltStateDef (bnsOf γ.gs) q D
 
+/-- **The database `γ` syncs** (persistent): `γ`'s `DB` (`dblAt`) has `NoSync = false` and
+`NoGrowSync = false` (fields `Open` sets from its options and never writes again, `dbFixed`), so every
+`Tx.Commit` `fdatasync`s after its pages and after its meta, `DB.grow` `fsync`s after its `Truncate`, and a
+writable `Open` `fdatasync`s before it returns. What C-I1's `dbOpts` is (the crash laws need it). -/
+@[no_expose] def boltSyncs [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
+  iprop(∃ db : Loc, dblAt (bnsOf γ.gs) db ∗ db.[DB, go!"NoSync"] ↦□ false ∗
+    db.[DB, go!"NoGrowSync"] ↦□ false)
+
 /-- **The namespace of the crash invariant of `γ`'s file** (under `γ.ns`): what a crash law over the
 database's file opens (C-I1's `dbCrash`). -/
 def crashN (N : Namespace) : Namespace := N .@ "crash"
@@ -351,6 +359,9 @@ theorem boltState_valid (γ : BoltName) (q : Qp) (D : Data) :
 theorem boltState_eq_V (γ : BoltName) (q : Qp) (D : Data) :
     boltState (GF := GF) γ q D ⊣⊢ ∃ ν, boltStateV γ q D ν := by
   unfold boltState boltStateV boltStateDef; exact .rfl
+@[instance] theorem boltSyncs_persistent (γ : BoltName) :
+    Persistent (boltSyncs (GF := GF) γ) := by
+  unfold boltSyncs dblAt; infer_instance
 @[instance] theorem boltStateV_timeless (γ : BoltName) (q : Qp) (D : Data) (ν : Nat) :
     Timeless (boltStateV (GF := GF) γ q D ν) := by
   unfold boltStateV; infer_instance
