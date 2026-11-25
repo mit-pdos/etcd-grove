@@ -60,10 +60,9 @@ theorem typedNilString.wp_proof_int :
   wp_auto
   have h1 : go.kindOf go.int = some 2 := by
     simp [go.kindOf, List.find?, go.bool, go.int]
-  have h2 : go.int ≠ _root_.Perennial.reflect.rtype.ty := by
-    simp [_root_.Perennial.reflect.rtype.ty, go.int]
+  haveI : go.NotLayoutModelled go.int := ⟨by decide⟩
   have h3 : go.isInterfaceType go.int = false := by rfl
-  wp_apply (_root_.Perennial.reflect.wp_ValueOf.2.1 (V := w64) (t := go.int) (u := go.int) 2 1 n h1 h2
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf.2.1 (V := w64) (t := go.int) (u := go.int) 2 1 n h1
     (_root_.Perennial.reflect.directIfaceN_of_kind (u := go.int) (k := 2) 0 h1 (by omega) (by omega)) h3) as %q Hq
   wp_method_call
   wp_pures

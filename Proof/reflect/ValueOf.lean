@@ -46,7 +46,8 @@ theorem reflect.ValueOf.wp_proof :
     iintro %Φ'
     imodintro
     iintro %Hpre HΦ'
-    obtain ⟨hp, k, hk⟩ := Hpre
+    obtain ⟨hp, hm, k, hk⟩ := Hpre
+    haveI : go.NotLayoutModelled T := ⟨hm⟩
     wp_pures
     wp_apply (_root_.Perennial.reflect.Value.wp_Elem _ T k p hk rfl rfl (by simp only; rfl) (by simp only; rfl))
     rw [if_neg hp]

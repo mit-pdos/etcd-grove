@@ -179,6 +179,8 @@ structure ObjSpec (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
   /-- `objTy` has a `reflect.Kind` (`reflect.Value.Elem` of a `*objTy` reads it; the model's
   kind of a type is only defined for the types it knows, a struct type among them) -/
   objTy_kind : ∃ k : Nat, go.kindOf (underlying objTy) = some k
+  /-- no model changes `objTy` (`go.layoutModelled`: `reflect` is stuck on such a type) -/
+  objTy_notLayoutModelled : go.layoutModelled objTy = false
   /-- `reflect.New(objTy)`'s allocation is the zero object -/
   newObj : ∀ p : Loc, reflectM.reflNew (GF := GF) objTy p ⊢
     |==> objAt (interface.mkOk (go.GoType.PointerType objTy) #p) zero []

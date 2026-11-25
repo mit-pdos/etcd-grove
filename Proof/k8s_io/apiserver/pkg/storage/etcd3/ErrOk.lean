@@ -64,10 +64,13 @@ theorem asModelled_etcdError :
   haveI : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ↓u
       go.GoType.StructType [go.field_decl.FieldDecl go!"code" google_golang_org.grpc.codes.Code.ty,
         go.field_decl.FieldDecl go!"desc" go.string] := ⟨hu⟩
-  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 2, false, ?_⟩
+  have hm : go.layoutModelled go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty = false := by
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; decide
+  haveI : go.NotLayoutModelled go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := ⟨hm⟩
+  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, hm, 2, false, ?_⟩
   exact reflect.directIfaceN_struct_last (f := go.field_decl.FieldDecl go!"desc" go.string)
     (u := go.string) (k := 24) 0 (by simp) (by simp)
-    (show underlying go.string = go.string from go.is_underlying)
+    (show underlying go.string = go.string from go.is_underlying) (by decide)
     (by simp [go.kindOf, List.find?, go.bool, go.int, go.int8, go.int16, go.int32, go.int64, go.uint, go.uint8, go.uint16, go.uint32, go.uint64, go.uintptr, go.float32, go.float64, go.complex64, go.complex128, go.string, «unsafe».Pointer])
     (by omega) (by omega) (by decide)
 
@@ -79,8 +82,10 @@ theorem asModelled_deadlineExceeded :
     unfold _root_.Perennial.context.deadlineExceededError.underlying
       _root_.Perennial.context.deadlineExceededError.fields
     rfl
-  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 1, false, ?_⟩
-  simp [reflect.directIfaceN, hu]
+  have hm : go.layoutModelled _root_.Perennial.context.deadlineExceededError.ty = false := by
+    unfold _root_.Perennial.context.deadlineExceededError.ty; decide
+  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, hm, 1, false, ?_⟩
+  simp [reflect.directIfaceN, hu, hm]
 
 /-- **The shape of `kErrOk`**: a leaf error (`isLeafError`) whose dynamic type is not
 `*corruptObjectDeletedError` (`errors.AsLeafTy` gives `As` false), with no `Format` method, its
@@ -151,7 +156,7 @@ theorem kErrOk_intro (wp_AsLeafTy : errors.AsLeafTy.spec (GF := GF) (hG := hG)) 
       rw [go.is_underlying (t := go.GoType.PointerType
         k8s_io.apiserver.pkg.storage.etcd3.corruptObjectDeletedError.ty)] at h
       cases h)
-    hk.1 hk.2 hund') $$ [Hl]
+    hk.1 hk.2.1 hk.2.2 hund') $$ [Hl]
   · iframe
   iintro Hl
   iapply HΦ $$ Hl

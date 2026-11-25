@@ -565,3 +565,161 @@ proofs and in trust-boundary statements. Proposed fix (spec-only, no trusted tex
   dir is not a git repo; environmental, as before).**
 - Remaining: send the 6-item packet (#40) to Upamanyu via coordinator-E; nothing merges before his OK.
   F1 for Perennial lean: `goose-localtype-varinit` a751ac526 (in the packet).
+
+## Round 5 (2026-11-25): Upamanyu's condition — layoutModelled types opaque to reflection (#40, 7155030976)
+
+Decision text: etcd-grove#40 comment 7155030976. Scratch: `~/.claude-D/jobs/43217da4/tmp/refl-lm/`
+(bin/ has the edit scripts, `vb.sh <tag> MODS` = VM build in p-refl05 with key 2486aba726c40cb7,
+`genlm.sh`, `regen-std.sh` = std-lib goose+proofgen with go1.26.11; logs `<tag>.log`).
+
+Trusted design (Perennial reflect-s05, uncommitted until it builds):
+- goose `util.Models.LayoutModelled(o)` = model type whose layout (size/align/offsets under gc, AND its
+  underlying type string except for interfaces) differs from the real decl, OR a type whose decl a
+  config trusts (`TrustedType`: internal/sync.Mutex (underlying bool), sync.copyChecker
+  (unsafe.Pointer vs uintptr), primitive.Mutex/ProphId, proph.ProphId). `LayoutChanged` (the Sizeof
+  refusal) uses the same predicate. New `goose layout-modelled` subcommand + `etc/gen-layout-modelled.sh
+  [--check]` write `Perennial/Golang/Defn/LayoutModelled.lean` (`go.layoutModelledNames`,
+  `go.layoutModelled : GoType → Bool`, Named n _ only); coverage check: every Code/*.toml with [model]
+  or trusted must belong to a loaded package (gokv grove_ffi exempt: functions only).
+  List (13): primitive.Mutex, primitive.ProphId, modeloverlay.Counter (testdata), proph.ProphId,
+  internal/reflectlite.{Value,rtype}, internal/sync.Mutex, reflect.{MapIter,Method,SelectCase,Value,rtype},
+  sync.copyChecker. (reflect.Type/reflectlite.Type interfaces excluded: method set unobservable.)
+- Reflect.lean: `typeQuery` = none if `layoutModelled t ∧ q ≠ identByName`; arrayOf needs
+  `¬ ReachesLayoutModelled t` (inductive: self/field/elem through underlying). `NotLayoutModelled t`
+  class (instances for unnamed ctors). Rules: ConvertAt premises `convertExposed t/u = false`
+  (t or its underlying pointer's base layoutModelled) and is no longer an instance; FieldRefAt,
+  ArraySliceAt, EqNilAt, PointerOfAt_* take `[NotLayoutModelled t]`. FuncResolveAt: none (generic
+  helpers run Go code at T itself).
+- Overlays: isModelRType removed (reflect + reflectlite); TypeOf no longer stuck; Kind etc. stuck on rtype.
+- Proof side: specs gain `[go.NotLayoutModelled T]` binders (TypeKind, TypeUnderlying, EqNilAt,
+  rtype.Kind, Value.Elem, Value.IsNil, isDefined, directlyAssignable, implements, rtype.Implements,
+  rtype.AssignableTo, Value.assignTo, Value.Set); ConvertAt spec gains convertExposed premises;
+  directIfaceN/zeroSizeN return none at a layoutModelled type (lemmas notLayoutModelled_of_*);
+  TypeOf (reflect, reflectlite) premise-free; unpackEface/ValueOf drop the rtype premise;
+  errors: asModelled conj4 = `go.layoutModelled t = false`; AsDecided gains `go.layoutModelled T = false`
+  (4th conjunct); asTargetKind_{pointer,interface} return it.
+- Tests: harness diff/layout_test.go (MS/SM structs), Tests/ReflectTypeQuery.lean (+S, Mutex, rtype),
+  Tests/ReflectLayoutModelled.lean (directIfaceN/zeroSizeN of S).
+
+Round 5 state (continued):
+- Perennial reflect-s05 f0216d09c (the change) + 1e3c8a368 (audit: MODEL marker on reflect.Type's
+  tok, reason on reflectlite's), pushed. Targeted VM build b5: reflect/reflectlite/errors Links,
+  umbrellas, Results, Tests.ReflectTypeQuery, Tests.ReflectLayoutModelled: 1,900 jobs, exit 0, no
+  sorry. `#print axioms` (AxCheckRefl05.lean + wp_ValueOf, Value.wp_Set, rtype.wp_AssignableTo): Lean's
+  three. go test ./goose/... ok; harness (gen.sh; GOWORK=off go test ./...) ok; gen-layout-modelled
+  --check, gen-link --check, meta-lib --check ok.
+- Perennial `review-criteria-dyntype` 36e131815 (off origin/lean): CRITERIA.md criterion 14.
+- etcd-grove: pin → 1e3c8a368; VM regen (regen1): no generated change (goose refused nothing new).
+- Real use (#8 rule): every etcd API message (`etcdserverpb.PutRequest`, …) holds
+  `state protoimpl.MessageState`, whose `pragma.DoNotCopy` is `[0]sync.Mutex`; protobuf-go reflects on
+  these structs (impl.MessageInfo: reflect.Type.Field(i)), and etcd `txn.isNil` reflects on them
+  (`reflect.ValueOf(msg).IsNil()`, pointer kind: unaffected). `[0]sync.Mutex` is zero-size without a
+  question about Mutex (zeroSizeN: len 0).
+- Perennial full chunked build at f0216d09c..1e3c8a368 (`refl-lm/pfull1.log`): 3 chunks exit 0; the only
+  `sorry` warnings are the 152 GeneratedProof ones (same count as round 4's pfull4). b6 rebuilt the
+  reflection modules at 1e3c8a368: exit 0.
+- etcd-grove edits for the new pin (uncommitted until built): Proof/reflect/TypeOf (no rtype premise
+  passed), ValueOf spec's Elem triple pre gains `go.layoutModelled T = false` (k8s ObjSpec gains
+  `objTy_notLayoutModelled`, driver: `objTyD_notLayoutModelled` by decide; processListItem passes it);
+  errors.{AsNoMatch,AsLeafTy,AsLeaf} specs gain `go.layoutModelled T = false` (Perennial AsDecided);
+  callers (k8s Checks `apiStatus_notLayoutModelled`, ErrOk, rafthttp writerToResponse) pass it by
+  `unfold X.ty; decide`; asModelled_{etcdError,deadlineExceeded}(') conj4 by decide;
+  specreq MustPanicIsNilStruct/typedNilString adjusted. Build log `refl-lm/eg1.log` (pre-edit state).
+
+### Round 5 (layoutModelled): summary, left, draft #40 message
+
+Done: emitter (goose layout-modelled, etc/gen-layout-modelled.sh), guards per rule (see draft below), isModelRType removed, harness + Lean tests, CRITERIA 14 (Perennial review-criteria-dyntype 36e131815) + audit (reflect.Type MODEL marker, 1e3c8a368). Built: Perennial full chunked build green; harness, etc/model-tests.sh, go test ./goose/... green; #print axioms: Lean three only.
+Left: etcd-grove build eg1 ran on the state BEFORE the etcd-grove edits committed with this note; rerun `refl-lm/bin/eg.sh build eg2` (key 44b7416aff694723), fix remaining errors, then gates (/shared overrides), fill HEAD_EG/EG_GATES in the draft, send via coordinator. Nothing lands without Upamanyu.
+
+Draft #40 message:
+
+to: Upamanyu (via coordinator-E), etcd-grove#40 — the reflection packet's landing condition (7155030976)
+
+**Done: a type whose layout a model changes is opaque to reflection; `isModelRType` is gone.** Nothing is landed or queued; it is all on branches for your approval.
+
+**Heads.**
+- Perennial `reflect-s05` @ `1e3c8a368` (the change is `f0216d09c`; `1e3c8a368` is the audit's one MODEL-marker fix).
+- Perennial `review-criteria-dyntype` @ `36e131815` (off `lean`): CRITERIA.md criterion 14.
+- etcd-grove `reflect-s05/2026-11-24` @ HEAD_EG: pins Perennial `1e3c8a368`.
+
+**Trusted diff of this change alone** (`d9a0a99d0..1e3c8a368`, tier 0):
+- `goose/util/model.go`:
+  - `Models.LayoutModelled(o)` is the one list. It holds:
+    - a model type whose size, alignment, field offsets or underlying type (field names, types and tags; not for interfaces) differs from the real declaration's, or that the real package does not declare;
+    - a type whose declaration a config trusts (`TrustedType`).
+  - `LayoutChanged`, the `unsafe.Sizeof` refusal, now uses it. Nothing in Perennial or etcd-grove is newly refused (both regenerated with no change).
+- `goose/util/layoutmodelled.go`, `goose/cmd/goose/main.go`, `etc/gen-layout-modelled.sh`: `goose layout-modelled` writes the list as generated Lean.
+  - It checks that every config with a `[model]` or a `trusted` entry was loaded. The exception is gokv's `grove_ffi`, which trusts only functions.
+  - `--check` fails when the file is stale.
+- `Perennial/Golang/Defn/LayoutModelled.lean` (generated) defines `go.layoutModelledNames` and `go.layoutModelled`. The predicate is true of `go.Named n _` for an `n` in the list. The 13 names are:
+  - Models: `reflect.{rtype,Value,Method,MapIter,SelectCase}`, `internal/reflectlite.{rtype,Value}`, `modeloverlay.Counter` (testdata).
+  - Trusted: `internal/sync.Mutex` (underlying `bool`; Go's is a struct), `sync.copyChecker` (`unsafe.Pointer`; Go's is `uintptr`), `primitive.{Mutex,ProphId}`, `proph.ProphId`.
+- `Perennial/Golang/Defn/Reflect.lean`:
+  - `typeQuery` is none on a `layoutModelled t`, for every row except `identByName`. `kind` is included.
+  - `arrayOf` also needs `¬ ReachesLayoutModelled t`: no `layoutModelled` type reachable through the underlying struct fields and array elements. This is a new inductive.
+  - The new class `NotLayoutModelled t` has `rfl` instances for unnamed constructors.
+  - `ConvertAt` needs `convertExposed t = false` and `convertExposed u = false`. `convertExposed` holds when the type is `layoutModelled` or its underlying type is a pointer to one. The rule is no longer an instance.
+  - `FieldRefAt`, `ArraySliceAt`, `EqNilAt` and all six `PointerOfAt` rules take `[NotLayoutModelled t]`.
+- Overlays:
+  - `isModelRType` is removed from `reflect` and `reflectlite`. `TypeOf` returns the `rtype`, and any question about it is stuck.
+  - New MODEL markers say why `Type`'s `tok` method is unobservable (see the audit).
+- `CRITERIA.md`: criterion 14, as you worded it.
+
+**Per-rule guard decisions.**
+- **Direct rows:** guarded, `kind` included. `TypeOf(reflect.TypeOf(0)).Kind()` is stuck.
+- **`identByName`:** not guarded; it reads only the name.
+- **`arrayOf`:** the whole row is guarded by reachability, `i ≤ 1` included. No model code calls it.
+- **`ConvertAt`:** guarded on both sides, the pointer's base type included. The legality and result of a conversion read the underlying types. For example, `copyChecker`→`uintptr` and `*isync.Mutex`→`*B` for `type B bool` would be legal in the model but not in Go.
+- **`FieldRefAt`:** guarded. The i-th field of a redefined struct is the model's.
+- **`ArraySliceAt`:** guarded, for a redefined named array type.
+- **`EqNilAt`, `PointerOfAt`:** guarded. Nilability is read from the underlying type: the model's `copyChecker` is a nil-able `unsafe.Pointer` where Go's `uintptr` panics.
+- **`FuncResolveAt`:** no guard. It dispatches to translated generic helpers (`new(T)`, `*p`, `x.(T)`), which run ordinary Go at `T` and read no layout.
+
+**Tests.**
+- **Harness** (`diff/layout_test.go`). It has `type MS struct{ mu Mutex; n int }` with a Mutex the test declares redefined, and `SM` with the real `sync.Mutex`, whose field is the trusted `internal/sync.Mutex`.
+  - These answer as in Go: `Kind`, `NumField`, `Field(i).Name/Type`, `ValueOf(s)` (with `Kind`, `Type` and `Interface`), and `FieldRefAt(&s, 1)` (`Value.Field(1)`'s primitive).
+  - These are stuck: `Kind`/`NumField`/`FieldType`/`Underlying` of `Mutex`; `ValueOf(&s.mu).Elem()`; `ValueOf(Mutex{})`; `arrayOf(MS)` at lengths 1 and 2, and `arrayOf([1]MS)`; `isZeroSize` through `struct{MS; *int}` and `struct{Mutex; *int}`; `[1]Mutex`; `ConvertAt(*Mutex, *MS)`.
+  - `TypeOf(TypeOf(0)).Kind()` is stuck.
+  - Every earlier test is still green, including about 7,000 comparisons of reflectlite and `errors.As`. `errors.As` on `struct{ v any }` errors now matches Go where it used to be stuck.
+- **Lean** (`Tests/ReflectTypeQuery.lean`, `Tests/ReflectLayoutModelled.lean`):
+  - The same `S` over `internal/sync.Mutex` answers `kind`, `numField`, `fieldName` and `fieldType`.
+  - Every row on Mutex except `identByName` is none, and `arrayOf S` is none.
+  - `kind` of `reflect.rtype` is none.
+  - `directIfaceN 2 S = some false`, without a question about Mutex.
+  - `zeroSizeN n S = none`, and `directIfaceN` of a struct whose last field is a Mutex is none. `isDirectIface` and `isZeroSize` recurse only through queries on the component types.
+
+**Witness (rule #8).**
+- The minimal program is `S` above.
+- **Real use.** Every etcd API message (e.g. `etcdserverpb.PutRequest`) holds `state protoimpl.MessageState`, whose `pragma.DoNotCopy` is a `[0]sync.Mutex`.
+  - protobuf-go reflects on these structs field by field.
+  - etcd's `txn.isNil` calls `reflect.ValueOf(msg).IsNil()` on them. That is pointer kind, which is unaffected.
+  - `[0]sync.Mutex` is zero-size without a question about Mutex.
+
+**Proofs.**
+- The guards broke `errors.As`/`Is`, reflectlite and reflectcore. All are re-proved, with no `sorry` and no new axiom.
+- `#print axioms` gives only `[propext, Classical.choice, Quot.sound]` for:
+  - `errors.wp_As`, `wp_AsType`, `wp_Is`, `wp_initialize'`;
+  - reflectlite `wp_TypeOf`, `wp_ValueOf`, `rtype.wp_{Elem,Kind,AssignableTo}`, `Value.wp_Set`, `wp_initialize'`.
+- **Spec changes** (none weakens a top-level theorem):
+  - `errors.AsDecided` gains `go.layoutModelled T = false`. `asModelled`'s rtype-layout conjunct becomes `go.layoutModelled t = false`.
+  - Reflect `TypeOf` loses its rtype premise.
+  - Kind-reading specs take `[NotLayoutModelled T]`.
+  - In etcd-grove:
+    - the `ValueOf` Elem triple and `errors.{AsNoMatch,AsLeafTy,AsLeaf}` take `go.layoutModelled T = false`, discharged by `decide` at `APIStatus`, `writerToResponse`, `*corruptObjectDeletedError` and the k8s `Obj`;
+    - the k8s `ObjSpec` gains `objTy_notLayoutModelled`, which the driver proves.
+
+**Builds.**
+- Perennial: the full chunked build passed (3 chunks, exit 0; the only `sorry`s are the 152 GeneratedProof ones, as before). `go test ./goose/...`, the harness, and the `--check` of gen-layout-modelled, gen-link and meta-lib all pass.
+- etcd-grove: EG_GATES.
+
+**Audit (criterion 14) of the reflect/reflectlite/errors overlays.**
+- **`rtype` values (Go: `*rtype`):** now `layoutModelled`, so opaque.
+- **`Value`, `Method`, `MapIter`, `SelectCase`:** `layoutModelled`.
+- **`reflect.Type`/`reflectlite.Type`, `tok` in place of `common`/`uncommon`:** unobservable. An interface type is never a dynamic type, only the package's own `rtype` implements it in either Go or the model, and no row reads an interface's methods.
+  - `reflect`'s had no MODEL marker; one is added (`1e3c8a368`).
+- **Panic values:** the same types as real (`*ValueError`, strings).
+- **`errors.Is`:** returns a `bool`.
+- No other `MODEL:` marker changes a dynamic type.
+- **Outside the three overlays:** the trusted `internal/sync.Mutex` and `sync.copyChecker` change layouts, so they are now in the list.
+
+— upamanyus worker (handoff pickup, reflection)

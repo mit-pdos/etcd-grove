@@ -66,6 +66,11 @@ theorem apiStatus_isInterface :
   rw [go.is_underlying (t := k8s_io.apimachinery.pkg.api.errors.APIStatus.ty)]
   rfl
 
+/-- No model changes `APIStatus` (`go.layoutModelled`: reflection on it is defined). -/
+theorem apiStatus_notLayoutModelled :
+    go.layoutModelled k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false := by
+  unfold k8s_io.apimachinery.pkg.api.errors.APIStatus.ty; decide
+
 /-- `&status`, a `*APIStatus`, is a target `errors.As` accepts. -/
 theorem apiStatus_asTarget :
     _root_.Perennial.errors.AsTarget k8s_io.apimachinery.pkg.api.errors.APIStatus.ty := by
@@ -191,7 +196,8 @@ theorem wp_As_plain (wp_AsNoMatch : errors.AsNoMatch.spec (GF := GF) (hG := hG))
     {{ RET #false; l ↦ v }} := by
   iintro %Φ ⟨#Hpkg, #Hpl, Hl⟩ HΦ
   have hk := _root_.Perennial.errors.asTargetKind_interface apiStatus_isInterface
-  iapply (wp_AsNoMatch err l v apiStatus_asTarget hk.1 hk.2) $$ [Hl] HΦ
+    apiStatus_notLayoutModelled
+  iapply (wp_AsNoMatch err l v apiStatus_asTarget hk.1 hk.2.1 hk.2.2) $$ [Hl] HΦ
   iframe Hpkg Hl
   iunfold apiErrAt at Hpl
   icases Hpl with (%hleaf | ⟨%ii, %h, #HU⟩)

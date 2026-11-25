@@ -107,6 +107,10 @@ theorem objAtD_ptr (x : GoInterface) (o : DObj) (rv : GoString) :
 theorem objTyD_kind : ∃ k : Nat, go.kindOf (underlying objTyD) = some k :=
   ⟨25, by rw [go.is_underlying]; rfl⟩
 
+/-- No model changes `Obj`. -/
+theorem objTyD_notLayoutModelled : go.layoutModelled objTyD = false := by
+  unfold objTyD github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty; decide
+
 theorem objAtD_new (p : Loc) :
     reflectM.reflNew (GF := GF) objTyD p ⊢
       |==> objAtD (interface.mkOk (go.GoType.PointerType objTyD) #p) dzero [] := by
@@ -132,6 +136,7 @@ def driverSpec : ObjSpec GF DObj where
   objTy := objTyD
   objAt_ptr := objAtD_ptr
   objTy_kind := objTyD_kind
+  objTy_notLayoutModelled := objTyD_notLayoutModelled
   newObj := objAtD_new
   encErr _ := False
   trErr _ := False

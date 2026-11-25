@@ -30,13 +30,13 @@ theorem MustPanicIsNilStruct.wp_proof :
     MustPanicIsNilStruct.spec (GF := GF) (hG := hG) := by
   wp_start
   wp_auto
+  haveI : go.NotLayoutModelled RangeResponse2.ty := ⟨by unfold RangeResponse2.ty; decide⟩
   have hd : _root_.Perennial.reflect.directIfaceN 2 RangeResponse2.ty = some false :=
     _root_.Perennial.reflect.directIfaceN_struct_last
       (f := go.field_decl.Field go!"Count" go.int64 go!"") (u := go.int64) (k := 6) 0 (by simp [RangeResponse2.fields]) (by simp [RangeResponse2.fields])
-      (show underlying go.int64 = go.int64 from go.is_underlying)
+      (show underlying go.int64 = go.int64 from go.is_underlying) (by decide)
       (by simp [go.kindOf, go.int64, go.bool, go.int, go.int8, go.int16, go.int32]) (by omega) (by omega) rfl
-  wp_apply (_root_.Perennial.reflect.wp_ValueOf_struct_indirect _ 2
-    (by simp [_root_.Perennial.reflect.rtype.ty, RangeResponse2.ty]) hd) as %q Hq
+  wp_apply (_root_.Perennial.reflect.wp_ValueOf_struct_indirect _ 2 hd) as %q Hq
   wp_pures
   wp_apply (_root_.Perennial.reflect.Value.wp_IsNil_struct_value _ q)
   iintro %l Hl

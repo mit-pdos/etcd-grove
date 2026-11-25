@@ -99,6 +99,7 @@ abbrev errors.AsNoMatch.spec : Prop :=
     {T : go.GoType} [IntoValTyped (GF := GF) T' T] (v : T'),
     _root_.Perennial.errors.AsTarget T →
     (∃ k, go.kindOf (underlying T) = some k) → go.isUntypedNil (underlying T) = false →
+    go.layoutModelled T = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ l ↦ v ∗
         (⌜errors.asNoMatchLeaf (GF := GF) T err⌝ ∨ errors.asNoMatchWrap T err) }}
       (App (App (Val (@! _root_.Perennial.errors.As)) (Val #err))

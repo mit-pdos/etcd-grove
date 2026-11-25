@@ -51,6 +51,7 @@ abbrev errors.AsLeafTy.spec : Prop :=
     _root_.Perennial.errors.asModelled ii.ty →
     (go.isInterfaceType (underlying T) = true → _root_.Perennial.errors.IsPointerError ii) →
     (∃ k, go.kindOf (underlying T) = some k) → go.isUntypedNil (underlying T) = false →
+    go.layoutModelled T = false →
     (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
       (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
         go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T))) →

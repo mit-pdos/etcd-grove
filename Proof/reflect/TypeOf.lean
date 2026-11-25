@@ -32,7 +32,7 @@ theorem reflect.TypeOf.wp_proof
   intro x
   iintro %Φ ⟨#Hinit, %Hx⟩ HΦ
   obtain ⟨t, v, rfl, ht⟩ := Hx
-  wp_apply ((_root_.Perennial.reflect.wp_TypeOf (GF := GF) (hG := hG)).1 t v ht) $$ [$Hinit]
+  wp_apply ((_root_.Perennial.reflect.wp_TypeOf (GF := GF) (hG := hG)).1 t v) $$ [$Hinit]
   iapply HΦ
   imodintro
   iintro %Φ'

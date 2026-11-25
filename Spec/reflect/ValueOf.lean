@@ -46,7 +46,7 @@ abbrev reflect.ValueOf.spec : Prop :=
           (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"IsNil")))
             (Val v)) (Val #()))
         {{ RET #(decide (p = null)); True }}) ∗
-      □ ({{ ⌜p ≠ null ∧ ∃ k : Nat, go.kindOf (underlying T) = some k⌝ }}
+      □ ({{ ⌜p ≠ null ∧ go.layoutModelled T = false ∧ ∃ k : Nat, go.kindOf (underlying T) = some k⌝ }}
           (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.reflect.Value.ty go!"Elem")))
             (Val v)) (Val #()))
         {{ (e : _root_.Perennial.reflect.Value), RET #e; ⌜reflectM.reflElem e T p⌝ }}) }}

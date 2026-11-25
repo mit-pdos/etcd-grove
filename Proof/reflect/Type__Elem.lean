@@ -32,7 +32,7 @@ theorem reflect.Type.Elem.wp_proof :
   subst Hrt
   wp_pures
   rw [show go.tok (go.SliceType T) = interface.mkOk (go.PointerType (go.SliceType T)) #null from rfl]
-  wp_apply (_root_.Perennial.reflect.rtype.wp_Elem (T := go.SliceType T) T null (by simp [go.typeQuery, go.is_underlying]))
+  wp_apply (_root_.Perennial.reflect.rtype.wp_Elem (T := go.SliceType T) T null (by simp [go.typeQuery, go.is_underlying, go.NotLayoutModelled.not_layout_modelled]))
   iapply HΦ
   ipureintro
   rfl

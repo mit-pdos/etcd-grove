@@ -38,6 +38,7 @@ abbrev errors.AsLeaf.spec : Prop :=
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ →
     go.typeSetContains (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) T = false →
     (∃ k, go.kindOf (underlying T) = some k) → go.isUntypedNil (underlying T) = false →
+    go.layoutModelled T = false →
     (go.isInterfaceType (underlying T) = false →
       underlying (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) ≠ underlying T) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ l ↦ v }}
