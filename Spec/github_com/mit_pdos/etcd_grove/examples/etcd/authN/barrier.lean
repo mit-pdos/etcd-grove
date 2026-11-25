@@ -48,15 +48,14 @@ abbrev barrier.spec : Prop :=
     (Lset Lc : List EntryModel) (r : Nat),
   plainEndpoint addr → threadBound GF ≤ 2 ^ 30 → E.authMode = .on γa →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authN ∗
-      zapLoggerOk lg ∗ isGrpcRpc addr authnMethod (etcdAuthenticateSpec γa) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authN ∗ levelTok 0 ∗ (zapLoggerOk lg ∗ isGrpcRpc addr authnMethod (etcdAuthenticateSpec γa) ∗
       akKVOn addr s E ρ cid mid ∗ isServerReadM true s E ρ.rd ∗
       authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
       ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝ ∗
-      srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝ }}
+      srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authN.barrier)) (Val #addr))
       (Val #lg))
-  {{ (ok : Bool), RET #ok; ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ∃ i : Nat, akAuthFixed γa ρ Lset i) }}
+  {{ (ok : Bool), RET #ok; levelTok 0 ∗ (⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ∃ i : Nat, akAuthFixed γa ρ Lset i)) }}
 
 end spec
 
