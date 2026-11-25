@@ -1,23 +1,23 @@
-# Trust delta: working tree vs merge-base with origin/lean (2cadd30c2)
+# Trust delta: range origin/lean..HEAD
 
 ## Files by tier
 
 ### tier 0 (TRUSTED)
-- [M] Perennial/Code/fmt.toml  (goose-config; +17 -10)
+- [M] Perennial/Code/fmt.toml  (goose-config; +20 -10)
 - [D] Perennial/Code/github_com/mit_pdos/perennial/goose/model/pool.toml  (goose-config; +0 -3)
-- [M] Perennial/Code/internal/bytealg.toml  (goose-config; +16 -19)
+- [M] Perennial/Code/internal/bytealg.toml  (goose-config; +13 -18)
 - [M] Perennial/Code/internal/gomodel.toml  (goose-config; +4 -3)
 - [M] Perennial/Code/internal/sync.toml  (goose-config; +8 -14)
 - [M] Perennial/Code/log.toml  (goose-config; +11 -4)
 - [M] Perennial/Code/os.toml  (goose-config; +2 -1)
 - [M] Perennial/Code/runtime.toml  (goose-config; +22 -7)
-- [M] Perennial/Code/strings.toml  (goose-config; +12 -4)
+- [M] Perennial/Code/strings.toml  (goose-config; +9 -3)
 - [M] Perennial/Code/sync.toml  (goose-config; +23 -29)
 - [M] Perennial/Code/syscall.toml  (goose-config; +22 -12)
 - [M] Perennial/Code/time.toml  (goose-config; +28 -26)
 - [M] Perennial/Golang/Defn.lean  (semantics; +2 -7)
 - [D] Perennial/Golang/Defn/Lock.lean  (semantics; +0 -39)
-- [M] Perennial/TrustedCode/fmt.lean  (trusted-model; +21 -4093)
+- [M] Perennial/TrustedCode/fmt.lean  (trusted-model; +54 -4053)
 - [M] Perennial/TrustedCode/github_com/goose_lang/primitive.lean  (trusted-model; +39 -27)
 - [D] Perennial/TrustedCode/internal/bytealg.lean  (trusted-model; +0 -81)
 - [D] Perennial/TrustedCode/internal/sync.lean  (trusted-model; +0 -106)
@@ -30,53 +30,52 @@
 - [D] goose/model/fmt/fprintf_alias_test.go  (translator; +0 -115)
 - [A] goose/model/fmt/method_panic_test.go  (translator; +39 -0)
 - [A] goose/model/fmt/model_copy_test.go  (translator; +49 -0)
-- [M] goose/model/fmt/model_diff_test.go  (translator; +8 -7)
-- [A] goose/model/fmt/model_harness_test.go  (translator; +121 -0)
+- [M] goose/model/fmt/model_diff_test.go  (translator; +66 -8)
+- [A] goose/model/fmt/model_harness_test.go  (translator; +135 -0)
 - [M] goose/model/fmt/model_test.go  (translator; +62 -124)
 - [M] goose/model/fmt/sprintf_test.go  (translator; +4 -27)
 - [A] goose/model/fmt/testdata/alias/alias_goose_test.go  (translator; +7 -0)
 - [A] goose/model/fmt/testdata/alias/alias_test.go  (translator; +108 -0)
 - [A] goose/model/fmt/testdata/alias/gomodel_driven.go  (translator; +31 -0)
-- [A] goose/model/overlay/fmt/print.go  (translator; +182 -0)
-- [A] goose/model/overlay/fmt/printmodel.go  (translator; +691 -0)
+- [A] goose/model/overlay/fmt/print.go  (go-model-overlay; +152 -0)
+- [A] goose/model/overlay/fmt/printmodel.go  (go-model-overlay; +691 -0)
 - [A] goose/model/overlay/internal/bytealg/bytealg.go  (go-model-overlay; +39 -0)
-- [A] goose/model/overlay/internal/bytealg/count.go  (go-model-overlay; +40 -0)
 - [A] goose/model/overlay/internal/bytealg/init.go  (go-model-overlay; +31 -0)
 - [A] goose/model/overlay/internal/gomodel/choose.go  (go-model-overlay; +30 -0)
-- [A] goose/model/overlay/internal/sync/mutex.go  (translator; +66 -0)
-- [A] goose/model/overlay/log/log.go  (translator; +69 -0)
-- [A] goose/model/overlay/runtime/symtab.go  (translator; +42 -0)
-- [A] goose/model/overlay/runtime/traceback.go  (translator; +37 -0)
+- [A] goose/model/overlay/internal/sync/mutex.go  (go-model-overlay; +66 -0)
+- [A] goose/model/overlay/log/log.go  (go-model-overlay; +69 -0)
+- [A] goose/model/overlay/runtime/symtab.go  (go-model-overlay; +45 -0)
+- [A] goose/model/overlay/runtime/traceback.go  (go-model-overlay; +37 -0)
 - [M] goose/model/overlay/strings/strings.go  (go-model-overlay; +10 -4)
-- [A] goose/model/overlay/sync/pool.go  (translator; +107 -0)
-- [A] goose/model/overlay/sync/runtime.go  (translator; +141 -0)
-- [A] goose/model/overlay/syscall/prlimit.go  (translator; +34 -0)
-- [A] goose/model/overlay/time/sleep.go  (translator; +280 -0)
-- [A] goose/model/overlay/time/tick.go  (translator; +75 -0)
-- [A] goose/model/overlay/time/time.go  (translator; +46 -0)
+- [A] goose/model/overlay/sync/pool.go  (go-model-overlay; +107 -0)
+- [A] goose/model/overlay/sync/runtime.go  (go-model-overlay; +141 -0)
+- [A] goose/model/overlay/syscall/prlimit.go  (go-model-overlay; +34 -0)
+- [A] goose/model/overlay/time/sleep.go  (go-model-overlay; +280 -0)
+- [A] goose/model/overlay/time/tick.go  (go-model-overlay; +75 -0)
+- [A] goose/model/overlay/time/time.go  (go-model-overlay; +46 -0)
 - [A] goose/model/overlaytests/cond_test.go  (translator; +91 -0)
 - [D] goose/model/pool/pool.go  (translator; +0 -50)
 - [D] goose/model/pool/pool_test.go  (translator; +0 -53)
-- [M] goose/util/model.go  (translator; +105 -4)
-- [M] goose/util/model_asm_test.go  (translator; +25 -4)
+- [M] goose/util/model.go  (translator; +100 -2)
+- [M] goose/util/model_asm_test.go  (translator; +24 -4)
 - [A] goose/util/model_linkname_test.go  (translator; +62 -0)
 - [M] goose/util/model_test.go  (translator; +26 -0)
 
 ### tier 1 (generated)
-- [M] Perennial/Code/fmt.lean  (generated-code; +3871 -48)
+- [M] Perennial/Code/fmt.lean  (generated-code; +3730 -64)
 - [D] Perennial/Code/github_com/mit_pdos/perennial/goose/model/pool.lean  (generated-code; +0 -187)
-- [M] Perennial/Code/internal/bytealg.lean  (generated-code; +187 -1)
+- [M] Perennial/Code/internal/bytealg.lean  (generated-code; +99 -1)
 - [M] Perennial/Code/internal/gomodel.lean  (generated-code; +80 -1)
 - [M] Perennial/Code/internal/sync.lean  (generated-code; +154 -5)
 - [M] Perennial/Code/log.lean  (generated-code; +152 -1)
 - [M] Perennial/Code/runtime.lean  (generated-code; +4 -0)
-- [M] Perennial/Code/runtime/chunk0.lean  (generated-code; +137 -1)
-- [M] Perennial/Code/strings.lean  (generated-code; +108 -6)
+- [M] Perennial/Code/runtime/chunk0.lean  (generated-code; +140 -1)
+- [M] Perennial/Code/strings.lean  (generated-code; +13 -7)
 - [M] Perennial/Code/sync.lean  (generated-code; +504 -1)
 - [M] Perennial/Code/syscall.lean  (generated-code; +14 -0)
 - [M] Perennial/Code/syscall/chunk0.lean  (generated-code; +233 -2)
 - [M] Perennial/Code/time.lean  (generated-code; +959 -10)
-- [M] Perennial/GeneratedProof/fmt.lean  (generated-proof; +28 -0)
+- [M] Perennial/GeneratedProof/fmt.lean  (generated-proof; +2 -0)
 - [D] Perennial/GeneratedProof/github_com/mit_pdos/perennial/goose/model/pool.lean  (generated-proof; +0 -78)
 - [M] Perennial/GeneratedProof/internal/bytealg.lean  (generated-proof; +0 -1)
 - [M] Perennial/GeneratedProof/internal/sync.lean  (generated-proof; +59 -1)
@@ -113,23 +112,28 @@
 - [M] Perennial/Golang/Theory/Lock.lean  (logic; +34 -70)
 
 ### tier 3 (proofs, docs, tooling)
+- [M] .agents/skills/land/SKILL.md  (other; +6 -26)
+- [D] .agents/skills/review-trusted/CRITERIA.md  (other; +0 -82)
+- [M] .agents/skills/review-trusted/SKILL.md  (other; +11 -112)
+- [M] AGENTS.md  (other; +3 -18)
 - [D] Perennial/ManualProof/internal/bytealg.lean  (other; +0 -5)
 - [M] Perennial/Proof/context/Base.lean  (other; +1 -1)
 - [M] Perennial/Proof/fmt.lean  (other; +5 -4)
-- [M] Perennial/Proof/fmt/Base.lean  (other; +7 -2)
+- [M] Perennial/Proof/fmt/Base.lean  (other; +4 -2)
 - [M] Perennial/Proof/fmt/BytesModel.lean  (other; +16 -190)
 - [M] Perennial/Proof/fmt/BytesResults.lean  (other; +3 -44)
 - [M] Perennial/Proof/fmt/DoPrintf.lean  (other; +112 -40)
 - [M] Perennial/Proof/fmt/Errorf.lean  (other; +159 -11)
 - [M] Perennial/Proof/fmt/Fprint.lean  (other; +75 -27)
 - [M] Perennial/Proof/fmt/Fprintf.lean  (other; +34 -13)
-- [M] Perennial/Proof/fmt/Link.lean  (other; +21 -16)
-- [M] Perennial/Proof/fmt/PrintArgs.lean  (other; +13 -13)
-- [M] Perennial/Proof/fmt/Printf.lean  (other; +83 -16)
+- [A] Perennial/Proof/fmt/Fprintln.lean  (other; +129 -0)
+- [M] Perennial/Proof/fmt/Link.lean  (other; +22 -16)
+- [M] Perennial/Proof/fmt/PrintArgs.lean  (other; +30 -13)
+- [M] Perennial/Proof/fmt/Printf.lean  (other; +37 -6)
 - [M] Perennial/Proof/fmt/Results.lean  (other; +53 -5)
 - [M] Perennial/Proof/fmt/SprintfModel.lean  (other; +113 -68)
 - [M] Perennial/Proof/fmt/VisitModel.lean  (other; +112 -58)
-- [M] Perennial/Proof/fmt/initialize.lean  (other; +21 -6)
+- [M] Perennial/Proof/fmt/initialize.lean  (other; +12 -6)
 - [M] Perennial/Proof/github_com/goose_lang/primitive/Base.lean  (other; +4 -4)
 - [D] Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool.lean  (other; +0 -11)
 - [D] Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Base.lean  (other; +0 -93)
@@ -138,8 +142,7 @@
 - [D] Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean  (other; +0 -69)
 - [M] Perennial/Proof/github_com/mit_pdos/perennial/goose/testdata/examples/semantics/testMutexLiteral.lean  (other; +41 -24)
 - [M] Perennial/Proof/internal/bytealg/Base.lean  (other; +1 -1)
-- [A] Perennial/Proof/internal/bytealg/CountString.lean  (other; +96 -0)
-- [M] Perennial/Proof/internal/bytealg/Link.lean  (other; +6 -2)
+- [M] Perennial/Proof/internal/bytealg/Link.lean  (other; +2 -2)
 - [M] Perennial/Proof/internal/bytealg/MakeNoZero.lean  (other; +73 -62)
 - [M] Perennial/Proof/internal/bytealg/initialize.lean  (other; +8 -4)
 - [A] Perennial/Proof/internal/gomodel/Choose.lean  (other; +31 -0)
@@ -155,9 +158,11 @@
 - [M] Perennial/Proof/internal/sync/Mutex__TryLock.lean  (other; +15 -10)
 - [M] Perennial/Proof/internal/sync/Mutex__Unlock.lean  (other; +31 -4)
 - [M] Perennial/Proof/internal/sync/initialize.lean  (other; +7 -1)
+- [M] Perennial/Proof/log.lean  (other; +1 -1)
 - [M] Perennial/Proof/log/Base.lean  (other; +2 -0)
-- [M] Perennial/Proof/log/Link.lean  (other; +8 -2)
+- [M] Perennial/Proof/log/Link.lean  (other; +12 -2)
 - [M] Perennial/Proof/log/Printf.lean  (other; +36 -3)
+- [A] Perennial/Proof/log/Println.lean  (other; +65 -0)
 - [M] Perennial/Proof/log/initialize.lean  (other; +10 -4)
 - [A] Perennial/Proof/log/modelDiscard__Write.lean  (other; +37 -0)
 - [M] Perennial/Proof/os/Models.lean  (other; +11 -6)
@@ -166,9 +171,6 @@
 - [M] Perennial/Proof/runtime/Link.lean  (other; +3 -2)
 - [M] Perennial/Proof/runtime/callers_.lean  (other; +17 -13)
 - [M] Perennial/Proof/strings/Base.lean  (other; +71 -1)
-- [A] Perennial/Proof/strings/Count.lean  (other; +102 -0)
-- [A] Perennial/Proof/strings/Index.lean  (other; +36 -0)
-- [M] Perennial/Proof/strings/Link.lean  (other; +8 -0)
 - [M] Perennial/Proof/sync/Base.lean  (other; +2 -3)
 - [M] Perennial/Proof/sync/CondDefs.lean  (other; +132 -4)
 - [M] Perennial/Proof/sync/Cond__Broadcast.lean  (other; +1 -1)
@@ -229,18 +231,17 @@
 - [A] Perennial/Proof/time/timerFunc.lean  (other; +49 -0)
 - [M] Perennial/Proof/time/when.lean  (other; +2 -1)
 - [A] Perennial/Proof/time/whenAt.lean  (other; +37 -0)
+- [A] Perennial/Spec/fmt/Fprintln.lean  (other; +41 -0)
 - [D] Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Get.lean  (other; +0 -36)
 - [D] Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean  (other; +0 -35)
-- [A] Perennial/Spec/internal/bytealg/CountString.lean  (other; +34 -0)
 - [A] Perennial/Spec/internal/gomodel/Choose.lean  (other; +32 -0)
 - [A] Perennial/Spec/internal/gomodel/ChooseString.lean  (other; +32 -0)
 - [A] Perennial/Spec/internal/gomodel/ChooseStrings.lean  (other; +33 -0)
 - [A] Perennial/Spec/internal/gomodel/ChooseUint64.lean  (other; +32 -0)
 - [M] Perennial/Spec/log/Printf.lean  (other; +4 -4)
+- [A] Perennial/Spec/log/Println.lean  (other; +38 -0)
 - [A] Perennial/Spec/log/modelDiscard__Write.lean  (other; +35 -0)
 - [M] Perennial/Spec/runtime/callers_.lean  (other; +1 -1)
-- [A] Perennial/Spec/strings/Count.lean  (other; +34 -0)
-- [A] Perennial/Spec/strings/Index.lean  (other; +33 -0)
 - [A] Perennial/Spec/sync/poolModelAt.lean  (other; +35 -0)
 - [A] Perennial/Spec/sync/poolModelOf.lean  (other; +35 -0)
 - [M] Perennial/Spec/sync/runtime_notifyListAdd.lean  (other; +3 -3)
@@ -278,7 +279,9 @@
 - [M] README.md  (other; +12 -14)
 - [M] docs/KNOWN_LIMITATIONS.md  (other; +46 -0)
 - [M] docs/design/unsafe-memory.md  (other; +4 -4)
-- [M] etc/model-tests.sh  (other; +99 -5)
+- [M] etc/land.sh  (other; +9 -92)
+- [M] etc/model-tests.sh  (other; +103 -5)
+- [M] etc/trusted-delta.py  (other; +20 -278)
 - [M] etc/update-goose-new.py  (other; +0 -1)
 - [M] go.mod  (other; +5 -5)
 - [M] go.sum  (other; +8 -0)
@@ -289,18 +292,18 @@
 
 ### Perennial/Code/fmt.toml  (tier 0, goose-config)
 - `trusted-list` Perennial/Code/fmt.toml:11 (removed; old line): `"!errorf", "!Println",`
-- `trusted-list` Perennial/Code/fmt.toml:12: `"!Print", "!Println",`
 - `trusted-list` Perennial/Code/fmt.toml:13 (removed; old line): `"!Errorf", "!Fprint", "!Fprintf", "!Print", "!Printf",`
-- `trusted-list` Perennial/Code/fmt.toml:14: `"!underlyingAs", "!kindIs",`
+- `trusted-list` Perennial/Code/fmt.toml:15: `"!Print", "!Println", "!Printf",`
+- `trusted-list` Perennial/Code/fmt.toml:17: `"!underlyingAs", "!kindIs",`
 - `trusted-list` Perennial/Code/fmt.toml:21 (removed; old line): `trusted = ["Errorf", "Fprint", "Fprintf", "Print", "Printf"]`
-- `trusted-list` Perennial/Code/fmt.toml:24: `trusted = ["underlyingAs", "kindIs"]`
-- `model-table` Perennial/Code/fmt.toml:29: `[model]`
-- `model-replaces` Perennial/Code/fmt.toml:31: `replaces = ["errorf", "Fprintf", "Printf", "pp.doPrint"]`
+- `trusted-list` Perennial/Code/fmt.toml:27: `trusted = ["underlyingAs", "kindIs", "Printf"]`
+- `model-table` Perennial/Code/fmt.toml:32: `[model]`
+- `model-replaces` Perennial/Code/fmt.toml:34: `replaces = ["errorf", "Fprintf", "pp.doPrint", "pp.doPrintln"]`
 
 ### Perennial/Code/internal/bytealg.toml  (tier 0, goose-config)
-- `trusted-list` Perennial/Code/internal/bytealg.toml:22 (removed; old line): `trusted = ["MakeNoZero", "init.0"]`
-- `model-replaces` Perennial/Code/internal/bytealg.toml:36: `replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString", "Count",`
-- `model-replaces` Perennial/Code/internal/bytealg.toml:40 (removed; old line): `replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString"]`
+- `trusted-list` Perennial/Code/internal/bytealg.toml:23 (removed; old line): `trusted = ["MakeNoZero", "init.0"]`
+- `model-replaces` Perennial/Code/internal/bytealg.toml:37: `replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString", "Count", "CountString",`
+- `model-replaces` Perennial/Code/internal/bytealg.toml:43 (removed; old line): `replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString", "Count", "CountString"]`
 
 ### Perennial/Code/internal/gomodel.toml  (tier 0, goose-config)
 - `trusted-list` Perennial/Code/internal/gomodel.toml:5 (removed; old line): `translate = ["!*"]`
@@ -320,10 +323,10 @@
 - `model-replaces` Perennial/Code/log.toml:18: `replaces = ["Printf", "Println", "init.0"]`
 
 ### Perennial/Code/runtime.toml  (tier 0, goose-config)
-- `trusted-list` Perennial/Code/runtime.toml:9 (removed; old line): `trusted = ["Gosched", "buildVersion", "callers", "Frames.Next"]`
-- `trusted-list` Perennial/Code/runtime.toml:19: `trusted = ["Gosched", "callers", "buildVersion"]`
-- `model-table` Perennial/Code/runtime.toml:25: `[model]`
-- `model-replaces` Perennial/Code/runtime.toml:27: `replaces = ["Frames.Next"]`
+- `trusted-list` Perennial/Code/runtime.toml:10 (removed; old line): `trusted = ["Gosched", "buildVersion", "callers", "Frames.Next"]`
+- `trusted-list` Perennial/Code/runtime.toml:20: `trusted = ["Gosched", "callers", "buildVersion"]`
+- `model-table` Perennial/Code/runtime.toml:26: `[model]`
+- `model-replaces` Perennial/Code/runtime.toml:28: `replaces = ["Frames.Next"]`
 
 ### Perennial/Code/sync.toml  (tier 0, goose-config)
 - `trusted-list` Perennial/Code/sync.toml:34 (removed; old line): `axiomatize = ["notifyList"]`
@@ -348,8 +351,9 @@
 - `panic` Perennial/Golang/Defn/Lock.lean:32 (removed; old line): `else Panic "sync: unlock of unlocked mutex"`
 
 ### Perennial/TrustedCode/fmt.lean  (tier 0, trusted-model)
+- `set_option` Perennial/TrustedCode/fmt.lean:16: `set_option linter.iris.style.nameCheck false`
+- `set_option` Perennial/TrustedCode/fmt.lean:32 (removed; old line): `set_option linter.iris.style.nameCheck false`
 - `panic` Perennial/TrustedCode/fmt.lean:2152 (removed; old line): `(LamV BAnon (Panic "fmt: not modelled"))`
-- `trusted-impl` Perennial/TrustedCode/fmt.lean:3590 (removed; old line): `noncomputable def Printf.impl : val :=`
 - `trusted-impl` Perennial/TrustedCode/fmt.lean:3732 (removed; old line): `noncomputable def Fprintf.impl : val :=`
 - `trusted-impl` Perennial/TrustedCode/fmt.lean:3840 (removed; old line): `noncomputable def Errorf.impl : val :=`
 - `trusted-impl` Perennial/TrustedCode/fmt.lean:4043 (removed; old line): `noncomputable def Fprint.impl : val :=`
@@ -439,21 +443,16 @@
 - `gomodel-choice` goose/model/fmt/model_copy_test.go:23: `s = strings.ReplaceAll(s, "gomodel.Choose()", "arbitraryBool()")`
 
 ### goose/model/fmt/model_harness_test.go  (tier 0, translator)
-- `gomodel-choice` goose/model/fmt/model_harness_test.go:24: `// arbitraryChoice is what gomodel.ChooseUint64() returns (arbitrary(); the tests run each choice).`
-- `gomodel-choice` goose/model/fmt/model_harness_test.go:29: `// arbitraryBool is what gomodel.Choose() returns: false, so that writeArbitrary appends one`
-- `gomodel-choice` goose/model/fmt/model_harness_test.go:49: `// notModelled stands for gomodel.Stuck() (no behaviour): the tests see a panic.`
+- `gomodel-choice` goose/model/fmt/model_harness_test.go:25: `// arbitraryChoice is what gomodel.ChooseUint64() returns (arbitrary(); the tests run each choice).`
+- `gomodel-choice` goose/model/fmt/model_harness_test.go:30: `// arbitraryBool is what gomodel.Choose() returns: false, so that writeArbitrary appends one`
+- `gomodel-choice` goose/model/fmt/model_harness_test.go:50: `// notModelled stands for gomodel.Stuck() (no behaviour): the tests see a panic.`
 
-### goose/model/overlay/fmt/print.go  (tier 0, translator)
-- `gomodel-choice` goose/model/overlay/fmt/print.go:109: `if gomodel.Choose() {`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:112: `n = int(gomodel.ChooseUint64() % (uint64(len(b)) + 1))`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:114: `switch gomodel.ChooseUint64() {`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:124: `errno := syscall.Errno(1 + gomodel.ChooseUint64()%4095)`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:125: `if errno == syscall.EPIPE && gomodel.Choose() {`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:155: `for gomodel.ChooseUint64() != 0 {`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:156: `s += string([]byte{byte(gomodel.ChooseUint64())})`
-- `gomodel-choice` goose/model/overlay/fmt/print.go:163: `gomodel.Stuck()`
+### goose/model/overlay/fmt/print.go  (tier 0, go-model-overlay)
+- `gomodel-choice` goose/model/overlay/fmt/print.go:125: `for gomodel.ChooseUint64() != 0 {`
+- `gomodel-choice` goose/model/overlay/fmt/print.go:126: `s += string([]byte{byte(gomodel.ChooseUint64())})`
+- `gomodel-choice` goose/model/overlay/fmt/print.go:133: `gomodel.Stuck()`
 
-### goose/model/overlay/fmt/printmodel.go  (tier 0, translator)
+### goose/model/overlay/fmt/printmodel.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/fmt/printmodel.go:600: `for gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/fmt/printmodel.go:667: `n := gomodel.ChooseUint64()`
 
@@ -465,67 +464,67 @@
 - `gomodel-replace` goose/model/overlay/internal/bytealg/init.go:24: `//gomodel:replace init.0 "if cpu.X86.HasAVX2 {"`
 - `gomodel-choice` goose/model/overlay/internal/bytealg/init.go:26: `if gomodel.Choose() {`
 
-### goose/model/overlay/internal/sync/mutex.go  (tier 0, translator)
+### goose/model/overlay/internal/sync/mutex.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/internal/sync/mutex.go:43: `if gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/internal/sync/mutex.go:65: `gomodel.Stuck()`
 
-### goose/model/overlay/log/log.go  (tier 0, translator)
+### goose/model/overlay/log/log.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/log/log.go:40: `if gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/log/log.go:49: `if gomodel.Choose() {`
 - `gomodel-replace` goose/model/overlay/log/log.go:67: `//gomodel:replace init.0 "internal.DefaultOutput = func(pc uintptr, data []byte) error {"`
 
-### goose/model/overlay/runtime/symtab.go  (tier 0, translator)
-- `gomodel-choice` goose/model/overlay/runtime/symtab.go:31: `frame.PC = uintptr(gomodel.ChooseUint64())`
-- `gomodel-choice` goose/model/overlay/runtime/symtab.go:32: `if gomodel.Choose() {`
-- `gomodel-choice` goose/model/overlay/runtime/symtab.go:37: `frame.Line = int(gomodel.ChooseUint64())`
-- `gomodel-choice` goose/model/overlay/runtime/symtab.go:38: `frame.startLine = int(gomodel.ChooseUint64())`
-- `gomodel-choice` goose/model/overlay/runtime/symtab.go:39: `frame.Entry = uintptr(gomodel.ChooseUint64())`
-- `gomodel-choice` goose/model/overlay/runtime/symtab.go:40: `more = gomodel.Choose()`
+### goose/model/overlay/runtime/symtab.go  (tier 0, go-model-overlay)
+- `gomodel-choice` goose/model/overlay/runtime/symtab.go:34: `frame.PC = uintptr(gomodel.ChooseUint64())`
+- `gomodel-choice` goose/model/overlay/runtime/symtab.go:35: `if gomodel.Choose() {`
+- `gomodel-choice` goose/model/overlay/runtime/symtab.go:40: `frame.Line = int(gomodel.ChooseUint64())`
+- `gomodel-choice` goose/model/overlay/runtime/symtab.go:41: `frame.startLine = int(gomodel.ChooseUint64())`
+- `gomodel-choice` goose/model/overlay/runtime/symtab.go:42: `frame.Entry = uintptr(gomodel.ChooseUint64())`
+- `gomodel-choice` goose/model/overlay/runtime/symtab.go:43: `more = gomodel.Choose()`
 
-### goose/model/overlay/runtime/traceback.go  (tier 0, translator)
+### goose/model/overlay/runtime/traceback.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/runtime/traceback.go:32: `for n < len(pcbuf) && n < 1<<40-1 && gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/runtime/traceback.go:33: `pcbuf[n] = uintptr(gomodel.ChooseUint64())`
 
-### goose/model/overlay/sync/pool.go  (tier 0, translator)
+### goose/model/overlay/sync/pool.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/sync/pool.go:67: `if gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/sync/pool.go:88: `if n != 0 && !gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/sync/pool.go:89: `i := gomodel.ChooseUint64() % n`
 
-### goose/model/overlay/syscall/prlimit.go  (tier 0, translator)
+### goose/model/overlay/syscall/prlimit.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/syscall/prlimit.go:25: `if old != nil && gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/syscall/prlimit.go:26: `old.Cur = gomodel.ChooseUint64()`
 - `gomodel-choice` goose/model/overlay/syscall/prlimit.go:27: `old.Max = gomodel.ChooseUint64()`
 - `gomodel-choice` goose/model/overlay/syscall/prlimit.go:29: `e1 := Errno(gomodel.ChooseUint64())`
 
-### goose/model/overlay/time/sleep.go  (tier 0, translator)
+### goose/model/overlay/time/sleep.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/time/sleep.go:122: `if gomodel.Choose() {`
 - `gomodel-choice` goose/model/overlay/time/sleep.go:138: `f(arg, uintptr(gomodel.ChooseUint64()), int64(gomodel.ChooseUint64()))`
 - `gomodel-choice` goose/model/overlay/time/sleep.go:146: `gomodel.Stuck()`
 - `gomodel-choice` goose/model/overlay/time/sleep.go:194: `return gomodel.Choose()`
 - `gomodel-choice` goose/model/overlay/time/sleep.go:202: `return gomodel.Choose()`
 
-### goose/model/overlay/time/time.go  (tier 0, translator)
+### goose/model/overlay/time/time.go  (tier 0, go-model-overlay)
 - `gomodel-choice` goose/model/overlay/time/time.go:45: `return gomodel.Choose()`
 
 ### Perennial/Code/fmt.lean  (tier 1, generated-code)
-- `trusted-impl` Perennial/Code/fmt.lean:455: `noncomputable def Errorf.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:501: `noncomputable def errorf.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:2438: `noncomputable def Fprintf.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:2487: `noncomputable def Printf.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:2596: `noncomputable def Fprint.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:5040: `noncomputable def stdout.Write.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:5125: `noncomputable def chooseString.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/fmt.lean:5149: `noncomputable def notModelled.impl [GooseExts] [GoGlobalContext] : val :=`
-- `step-rule` Perennial/Code/fmt.lean:9237: `Write_unfold : MethodUnfold stdout.ty go!"Write" stdout.Write.impl`
-- `step-rule` Perennial/Code/fmt.lean:9238: `ptr_Write_unfold : MethodUnfold (go.GoType.PointerType stdout.ty) go!"Write" (LamV "$r"`
-- `step-rule` Perennial/Code/fmt.lean:9268: `errorf_unfold : FuncUnfold errorf [] errorf.impl`
+- `trusted-impl` Perennial/Code/fmt.lean:450: `noncomputable def Errorf.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:496: `noncomputable def errorf.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:2433: `noncomputable def Fprintf.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:2557: `noncomputable def Fprint.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:4992: `noncomputable def printfFormat.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:5018: `noncomputable def chooseString.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:5042: `noncomputable def notModelled.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/fmt.lean:5050: `noncomputable def intVerb.impl [GooseExts] [GoGlobalContext] : val :=`
+- `step-rule` Perennial/Code/fmt.lean:9116: `errorf_unfold : FuncUnfold errorf [] errorf.impl`
 - `step-rule` Perennial/Code/fmt.lean:5531 (removed; old line): `Print_unfold : FuncUnfold Print [] Print.impl`
-- `step-rule` Perennial/Code/fmt.lean:9286: `chooseString_unfold : FuncUnfold chooseString [] chooseString.impl`
-- `step-rule` Perennial/Code/fmt.lean:9287: `notModelled_unfold : FuncUnfold notModelled [] notModelled.impl`
-- `step-rule` Perennial/Code/fmt.lean:9288: `underlyingAs_unfold : ∀ (T : go.GoType), FuncUnfold underlyingAs [T] (underlyingAs.impl T)`
-- `step-rule` Perennial/Code/fmt.lean:9289: `kindIs_unfold : ∀ (T : go.GoType), FuncUnfold kindIs [T] (kindIs.impl T)`
-- `trusted-impl`: ... and 30 more lines in this file
-- `step-rule`: ... and 30 more lines in this file
+- `step-rule` Perennial/Code/fmt.lean:9134: `printfFormat_unfold : FuncUnfold printfFormat [] printfFormat.impl`
+- `step-rule` Perennial/Code/fmt.lean:9135: `chooseString_unfold : FuncUnfold chooseString [] chooseString.impl`
+- `step-rule` Perennial/Code/fmt.lean:9136: `notModelled_unfold : FuncUnfold notModelled [] notModelled.impl`
+- `step-rule` Perennial/Code/fmt.lean:9137: `underlyingAs_unfold : ∀ (T : go.GoType), FuncUnfold underlyingAs [T] (underlyingAs.impl T)`
+- `step-rule` Perennial/Code/fmt.lean:9138: `kindIs_unfold : ∀ (T : go.GoType), FuncUnfold kindIs [T] (kindIs.impl T)`
+- `step-rule` Perennial/Code/fmt.lean:9139: `intVerb_unfold : FuncUnfold intVerb [] intVerb.impl`
+- `trusted-impl`: ... and 29 more lines in this file
+- `step-rule`: ... and 29 more lines in this file
 
 ### Perennial/Code/github_com/mit_pdos/perennial/goose/model/pool.lean  (tier 1, generated-code)
 - `set_option` Perennial/Code/github_com/mit_pdos/perennial/goose/model/pool.lean:10 (removed; old line): `set_option autoImplicit false`
@@ -544,8 +543,6 @@
 
 ### Perennial/Code/internal/bytealg.lean  (tier 1, generated-code)
 - `trusted-impl` Perennial/Code/internal/bytealg.lean:382: `noncomputable def MakeNoZero.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/internal/bytealg.lean:478: `noncomputable def Count.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/internal/bytealg.lean:520: `noncomputable def CountString.impl [GooseExts] [GoGlobalContext] : val :=`
 - `trusted-impl` Perennial/Code/internal/bytealg.lean:573: `noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=`
 
 ### Perennial/Code/internal/gomodel.lean  (tier 1, generated-code)
@@ -575,15 +572,11 @@
 - `step-rule` Perennial/Code/log.lean:318: `ptr_Write_unfold : MethodUnfold (go.GoType.PointerType modelDiscard.ty) go!"Write" (LamV "$r"`
 
 ### Perennial/Code/runtime.lean  (tier 1, generated-code)
-- `step-rule` Perennial/Code/runtime.lean:414: `callersModel_unfold : FuncUnfold callersModel [] callersModel.impl`
+- `step-rule` Perennial/Code/runtime.lean:415: `callersModel_unfold : FuncUnfold callersModel [] callersModel.impl`
 
 ### Perennial/Code/runtime/chunk0.lean  (tier 1, generated-code)
-- `trusted-impl` Perennial/Code/runtime/chunk0.lean:10652: `noncomputable def Frames.Next.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/runtime/chunk0.lean:10726: `noncomputable def callersModel.impl [GooseExts] [GoGlobalContext] : val :=`
-
-### Perennial/Code/strings.lean  (tier 1, generated-code)
-- `trusted-impl` Perennial/Code/strings.lean:788: `noncomputable def Count.impl [GooseExts] [GoGlobalContext] : val :=`
-- `trusted-impl` Perennial/Code/strings.lean:1508: `noncomputable def Index.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/runtime/chunk0.lean:10727: `noncomputable def Frames.Next.impl [GooseExts] [GoGlobalContext] : val :=`
+- `trusted-impl` Perennial/Code/runtime/chunk0.lean:10801: `noncomputable def callersModel.impl [GooseExts] [GoGlobalContext] : val :=`
 
 ### Perennial/Code/sync.lean  (tier 1, generated-code)
 - `trusted-impl` Perennial/Code/sync.lean:773: `noncomputable def Pool.Put.impl [GooseExts] [GoGlobalContext] : val :=`
@@ -641,9 +634,6 @@
 - `trusted-impl`: ... and 15 more lines in this file
 - `step-rule`: ... and 9 more lines in this file
 
-### Perennial/GeneratedProof/fmt.lean  (tier 1, generated-proof)
-- `extension` Perennial/GeneratedProof/fmt.lean:1006: `variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]`
-
 ### Perennial/GeneratedProof/github_com/mit_pdos/perennial/goose/model/pool.lean  (tier 1, generated-proof)
 - `set_option` Perennial/GeneratedProof/github_com/mit_pdos/perennial/goose/model/pool.lean:10 (removed; old line): `set_option autoImplicit false`
 - `set_option` Perennial/GeneratedProof/github_com/mit_pdos/perennial/goose/model/pool.lean:11 (removed; old line): `set_option linter.all false`
@@ -665,8 +655,8 @@
 - `set_option` Perennial/Proof/fmt/BytesModel.lean:830 (removed; old line): `set_option maxHeartbeats 2000000 in`
 - `set_option` Perennial/Proof/fmt/BytesModel.lean:856 (removed; old line): `set_option maxHeartbeats 2000000 in`
 
-### Perennial/Proof/fmt/Printf.lean  (tier 3, other)
-- `extension` Perennial/Proof/fmt/Printf.lean:85: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
+### Perennial/Proof/fmt/Fprintln.lean  (tier 3, other)
+- `extension` Perennial/Proof/fmt/Fprintln.lean:24: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
 ### Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Base.lean  (tier 3, other)
 - `extension` Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Base.lean:49 (removed; old line): `variable [GooseExts] [GooseSemantics] [GooseInterp]`
@@ -681,9 +671,6 @@
 ### Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean  (tier 3, other)
 - `set_option` Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean:13 (removed; old line): `set_option linter.iris.style.nameCheck false`
 - `extension` Perennial/Proof/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean:22 (removed; old line): `variable [GooseExts] [GooseSemantics] [GooseInterp]`
-
-### Perennial/Proof/internal/bytealg/CountString.lean  (tier 3, other)
-- `extension` Perennial/Proof/internal/bytealg/CountString.lean:18: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
 ### Perennial/Proof/internal/bytealg/MakeNoZero.lean  (tier 3, other)
 - `extension` Perennial/Proof/internal/bytealg/MakeNoZero.lean:20 (removed; old line): `variable [GooseExts] [GooseSemantics] [GooseInterp]`
@@ -704,16 +691,12 @@
 ### Perennial/Proof/internal/sync/Base.lean  (tier 3, other)
 - `extension` Perennial/Proof/internal/sync/Base.lean:46: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
+### Perennial/Proof/log/Println.lean  (tier 3, other)
+- `extension` Perennial/Proof/log/Println.lean:21: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
+
 ### Perennial/Proof/log/modelDiscard__Write.lean  (tier 3, other)
 - `set_option` Perennial/Proof/log/modelDiscard__Write.lean:10: `set_option linter.iris.style.nameCheck false`
 - `extension` Perennial/Proof/log/modelDiscard__Write.lean:19: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
-
-### Perennial/Proof/strings/Count.lean  (tier 3, other)
-- `extension` Perennial/Proof/strings/Count.lean:20: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
-- `set_option` Perennial/Proof/strings/Count.lean:26: `set_option maxHeartbeats 1000000 in`
-
-### Perennial/Proof/strings/Index.lean  (tier 3, other)
-- `extension` Perennial/Proof/strings/Index.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
 ### Perennial/Proof/sync/CondDefs.lean  (tier 3, other)
 - `extension` Perennial/Proof/sync/CondDefs.lean:103: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
@@ -794,6 +777,9 @@
 ### Perennial/Proof/time/whenAt.lean  (tier 3, other)
 - `extension` Perennial/Proof/time/whenAt.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
+### Perennial/Spec/fmt/Fprintln.lean  (tier 3, other)
+- `extension` Perennial/Spec/fmt/Fprintln.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
+
 ### Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Get.lean  (tier 3, other)
 - `set_option` Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Get.lean:10 (removed; old line): `set_option linter.iris.style.nameCheck false`
 - `extension` Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Get.lean:19 (removed; old line): `variable [GooseExts] [GooseSemantics] [GooseInterp]`
@@ -801,9 +787,6 @@
 ### Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean  (tier 3, other)
 - `set_option` Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean:10 (removed; old line): `set_option linter.iris.style.nameCheck false`
 - `extension` Perennial/Spec/github_com/mit_pdos/perennial/goose/model/pool/Pool__Put.lean:19 (removed; old line): `variable [GooseExts] [GooseSemantics] [GooseInterp]`
-
-### Perennial/Spec/internal/bytealg/CountString.lean  (tier 3, other)
-- `extension` Perennial/Spec/internal/bytealg/CountString.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
 ### Perennial/Spec/internal/gomodel/Choose.lean  (tier 3, other)
 - `extension` Perennial/Spec/internal/gomodel/Choose.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
@@ -817,15 +800,12 @@
 ### Perennial/Spec/internal/gomodel/ChooseUint64.lean  (tier 3, other)
 - `extension` Perennial/Spec/internal/gomodel/ChooseUint64.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
+### Perennial/Spec/log/Println.lean  (tier 3, other)
+- `extension` Perennial/Spec/log/Println.lean:18: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
+
 ### Perennial/Spec/log/modelDiscard__Write.lean  (tier 3, other)
 - `set_option` Perennial/Spec/log/modelDiscard__Write.lean:10: `set_option linter.iris.style.nameCheck false`
 - `extension` Perennial/Spec/log/modelDiscard__Write.lean:19: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
-
-### Perennial/Spec/strings/Count.lean  (tier 3, other)
-- `extension` Perennial/Spec/strings/Count.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
-
-### Perennial/Spec/strings/Index.lean  (tier 3, other)
-- `extension` Perennial/Spec/strings/Index.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
 ### Perennial/Spec/sync/poolModelAt.lean  (tier 3, other)
 - `set_option` Perennial/Spec/sync/poolModelAt.lean:10: `set_option linter.iris.style.nameCheck false`
@@ -892,6 +872,16 @@
 ### Perennial/Spec/time/whenAt.lean  (tier 3, other)
 - `extension` Perennial/Spec/time/whenAt.lean:17: `variable [GooseExts] [GooseSemantics] [GooseInterp]`
 
+### etc/trusted-delta.py  (tier 3, other)
+- `assume` etc/trusted-delta.py:846 (removed; old line): `"assume",           # a model assumption: removes executions`
+- `assume` etc/trusted-delta.py:860 (removed; old line): `NOT_NARROWING = {"assume", "angelic", "axiom", "new-instruction", "model-table"}`
+- `angelic` etc/trusted-delta.py:1211 (removed; old line): `if new_instruction_hits(instr, [2, 4, 5, 6, 7, 8]) != [(4, "| AngelicExit"), (6, "| AsAssign"),`
+- `step-rule` etc/trusted-delta.py:1214 (removed; old line): `rule = [("Perennial/Golang/Defn/X.lean", 3, "step-rule", "⟦GoUnOp GoPos t, #v⟧ ⤳ #v")]`
+- `assume` etc/trusted-delta.py:1215 (removed; old line): `assume = rule + [("Perennial/GooseLang/Lang.lean", 9, "assume", "assume (n < 2^63)")]`
+- `assume` etc/trusted-delta.py:1233 (removed; old line): `(assume, ["none (narrowing: tighter)"], [], False),`
+- `assume` etc/trusted-delta.py:1234 (removed; old line): `(assume, ["goose/testdata/examples/semantics/plus.go"], real, True),`
+- `assume` etc/trusted-delta.py:1236 (removed; old line): `(assume, ["none (narrowing: x)", "goose/testdata/examples/semantics/missing.go",`
+
 Signal legend:
 - `axiom`: a new axiom: trusted outright
 - `sorry`: an unproved obligation; in tiers 0-2 it is an axiom
@@ -920,12 +910,12 @@ Signal legend:
 
 ## goose configuration (trusted / translated / axiomatized / skipped)
 
-- Perennial/Code/fmt.toml `imports`: added ['internal/stringslite', 'internal/gomodel', 'io/fs', 'syscall', 'internal/poll'], removed []
-- Perennial/Code/fmt.toml `translate`: added ['!underlyingAs', '!kindIs'], removed ['!errorf', '!Errorf', '!Fprint', '!Fprintf', '!Printf']
-- Perennial/Code/fmt.toml `trusted`: added ['underlyingAs', 'kindIs'], removed ['Errorf', 'Fprint', 'Fprintf', 'Print', 'Printf']
+- Perennial/Code/fmt.toml `imports`: added ['internal/stringslite', 'internal/gomodel'], removed []
+- Perennial/Code/fmt.toml `translate`: added ['!underlyingAs', '!kindIs'], removed ['!errorf', '!Errorf', '!Fprint', '!Fprintf']
+- Perennial/Code/fmt.toml `trusted`: added ['underlyingAs', 'kindIs'], removed ['Errorf', 'Fprint', 'Fprintf', 'Print']
   - R2: `underlyingAs` must be justified by a goose run on the real source that fails on something irreducible (not a missing goose feature or semantics rule): move it to `translate` in a copy of the configuration and run `goose -configdir <copy> -dir goose fmt` (SKILL.md, step 4)
   - R2: `kindIs` must be justified by a goose run on the real source that fails on something irreducible (not a missing goose feature or semantics rule): move it to `translate` in a copy of the configuration and run `goose -configdir <copy> -dir goose fmt` (SKILL.md, step 4)
-- Perennial/Code/internal/bytealg.toml `translate`: added ['CountString', 'MakeNoZero', 'init.0'], removed []
+- Perennial/Code/internal/bytealg.toml `translate`: added ['MakeNoZero', 'init.0'], removed []
 - Perennial/Code/internal/bytealg.toml `trusted`: added [], removed ['MakeNoZero', 'init.0']
 - Perennial/Code/internal/gomodel.toml `translate`: added ['ChooseString', 'ChooseStrings'], removed []
 - Perennial/Code/internal/sync.toml `imports`: added ['sync/atomic', 'internal/gomodel'], removed []
@@ -935,7 +925,6 @@ Signal legend:
 - Perennial/Code/log.toml `trusted`: added [], removed ['Printf', 'Println', 'init.0']
 - Perennial/Code/runtime.toml `imports`: added ['internal/gomodel'], removed []
 - Perennial/Code/runtime.toml `trusted`: added [], removed ['Frames.Next']
-- Perennial/Code/strings.toml `translate`: added ['Count', 'Index'], removed []
 - Perennial/Code/sync.toml `axiomatize`: added [], removed ['notifyList']
 - Perennial/Code/sync.toml `imports`: added ['internal/gomodel'], removed []
 - Perennial/Code/sync.toml `trusted`: added ['poolModelAt'], removed ['runtime_notifyList*', 'runtime_Semacquire*', 'runtime_Semrelease', 'runtime_registerPoolCleanup', 'Pool.Get', 'Pool.Put']
@@ -985,12 +974,12 @@ For each replaced declaration: every behaviour of the real one (gc, linux/amd64,
 ### Perennial/Code/fmt.toml  (package `fmt`)
 
 - `[model]` before: none
-- `[model]` after:  dir = 'goose/model/overlay/fmt', replaces = ['errorf', 'Fprintf', 'Printf', 'pp.doPrint'], added_methods = []
+- `[model]` after:  dir = 'goose/model/overlay/fmt', replaces = ['errorf', 'Fprintf', 'pp.doPrint', 'pp.doPrintln'], added_methods = []
 - model files: goose/model/overlay/fmt/print.go, goose/model/overlay/fmt/printmodel.go; changed: goose/model/overlay/fmt/print.go, goose/model/overlay/fmt/printmodel.go
 
 #### `fmt.Fprintf` (new)
 
-Model (goose/model/overlay/fmt/print.go:65):
+Model (goose/model/overlay/fmt/print.go:63):
 
 ```go
 // MODEL: Fprintf is Go's, but for one line: Go's p.doPrintf(format, a) is the model printer's
@@ -1025,35 +1014,9 @@ func Fprintf(w io.Writer, format string, a ...any) (n int, err error) {
 }
 ```
 
-#### `fmt.Printf` (new)
-
-Model (goose/model/overlay/fmt/print.go:80):
-
-```go
-// MODEL: Printf is Go's Fprintf(os.Stdout, format, a...) with the writer stdout{} for os.Stdout:
-// the model of os has no Stdout (os.toml: its variable is not allocated, so a program that reads
-// or assigns os.Stdout is stuck), and Printf always writes to the file Go opens as os.Stdout
-// (descriptor 1, "/dev/stdout"); stdout.Write has every result Go's (*os.File).Write of it has.
-func Printf(format string, a ...any) (n int, err error) {
-	return Fprintf(stdout{}, format, a...)
-}
-```
-
-Real (`go doc -u -src fmt.Printf`):
-
-```go
-package fmt // import "fmt"
-
-// Printf formats according to a format specifier and writes to standard output.
-// It returns the number of bytes written and any write error encountered.
-func Printf(format string, a ...any) (n int, err error) {
-	return Fprintf(os.Stdout, format, a...)
-}
-```
-
 #### `fmt.errorf` (new)
 
-Model (goose/model/overlay/fmt/print.go:42):
+Model (goose/model/overlay/fmt/print.go:40):
 
 ```go
 // MODEL: errorf is Go's, but for its printer: Go's p.doPrintf(format, a), with p.wrapErrs set, is
@@ -1144,7 +1107,7 @@ func errorf(format string, a ...any) error {
 
 #### `fmt.pp.doPrint` (new)
 
-Model (goose/model/overlay/fmt/print.go:134):
+Model (goose/model/overlay/fmt/print.go:90):
 
 ```go
 // MODEL: pp.doPrint prints the operands under %v, a space between two that are not strings. Go
@@ -1184,13 +1147,50 @@ func (p *pp) doPrint(a []any) {
 }
 ```
 
+#### `fmt.pp.doPrintln` (new)
+
+Model (goose/model/overlay/fmt/print.go:107):
+
+```go
+// MODEL: pp.doPrintln is doPrint's model (see there): Go's doPrintln, for each operand, appends a
+// space if it is not the first and prints it with p.printArg(arg, 'v'), then appends '\n'; the
+// model calls of each operand what printArg calls under %v (visitArg), after arbitrary strings
+// (writeArbitrary), which cover Go's space and what printArg appended before, and ends with
+// arbitrary strings, which cover the rest and the newline (TestModelFprintln checks the calls).
+// Fprintln and Sprintln, Go's own, print with it.
+func (p *pp) doPrintln(a []any) {
+	for _, x := range a {
+		writeArbitrary(&p.buf)
+		visitArg(x, 'v', false, false)
+	}
+	writeArbitrary(&p.buf)
+}
+```
+
+Real (`go doc -u -src fmt.pp.doPrintln`):
+
+```go
+package fmt // import "fmt"
+
+// doPrintln is like doPrint but always adds a space between arguments
+// and a newline after the last argument.
+func (p *pp) doPrintln(a []any) {
+	for argNum, arg := range a {
+		if argNum > 0 {
+			p.buf.writeByte(' ')
+		}
+		p.printArg(arg, 'v')
+	}
+	p.buf.writeByte('\n')
+}
+```
+
 Additions (no claim of their own; a primitive stub carries the TrustedCode claim, R2; an added method must match `added_methods`):
 
-- `stdout` (type, goose/model/overlay/fmt/print.go:88, new)
-- `stdout.Write` (method, goose/model/overlay/fmt/print.go:91, new); a method: of a model-only type, or a config error
-- `chooseString` (func, goose/model/overlay/fmt/print.go:151, new)
-- `notModelled` (func, goose/model/overlay/fmt/print.go:161, new)
-- `underlyingAs` (func, goose/model/overlay/fmt/print.go:166, new); PRIMITIVE STUB (in `trusted`: its Lean `.impl` in Perennial/TrustedCode is the model)
+- `printfFormat` (func, goose/model/overlay/fmt/print.go:78, new)
+- `chooseString` (func, goose/model/overlay/fmt/print.go:121, new)
+- `notModelled` (func, goose/model/overlay/fmt/print.go:131, new)
+- `underlyingAs` (func, goose/model/overlay/fmt/print.go:136, new); PRIMITIVE STUB (in `trusted`: its Lean `.impl` in Perennial/TrustedCode is the model)
 - `kindIs` (func, goose/model/overlay/fmt/printmodel.go:15, new); PRIMITIVE STUB (in `trusted`: its Lean `.impl` in Perennial/TrustedCode is the model)
 - `intVerb` (func, goose/model/overlay/fmt/printmodel.go:26, new)
 - `intArg` (func, goose/model/overlay/fmt/printmodel.go:44, new)
@@ -1225,65 +1225,9 @@ Additions (no claim of their own; a primitive stub carries the TrustedCode claim
 
 ### Perennial/Code/internal/bytealg.toml  (package `internal/bytealg`)
 
-- `[model]` before: dir = 'goose/model/overlay/internal/bytealg', replaces = ['IndexByte', 'IndexByteString', 'Index', 'IndexString', 'CompareString'], added_methods = []
+- `[model]` before: dir = 'goose/model/overlay/internal/bytealg', replaces = ['IndexByte', 'IndexByteString', 'Index', 'IndexString', 'CompareString', 'Count', 'CountString'], added_methods = []
 - `[model]` after:  dir = 'goose/model/overlay/internal/bytealg', replaces = ['IndexByte', 'IndexByteString', 'Index', 'IndexString', 'CompareString', 'Count', 'CountString', 'MakeNoZero', 'init.0'], added_methods = []
-- model files: goose/model/overlay/internal/bytealg/bytealg.go, goose/model/overlay/internal/bytealg/compare_native.go, goose/model/overlay/internal/bytealg/count.go, goose/model/overlay/internal/bytealg/index.go, goose/model/overlay/internal/bytealg/indexbyte.go, goose/model/overlay/internal/bytealg/init.go; changed: goose/model/overlay/internal/bytealg/bytealg.go, goose/model/overlay/internal/bytealg/count.go, goose/model/overlay/internal/bytealg/init.go
-
-#### `internal/bytealg.Count` (new)
-
-Model (goose/model/overlay/internal/bytealg/count.go:16):
-
-```go
-// MODEL: Count returns the number of instances of c in b. Go's generic body
-// (count_generic.go); the assembly computes the same function,
-// deterministically.
-func Count(b []byte, c byte) int {
-	n := 0
-	for _, x := range b {
-		if x == c {
-			n++
-		}
-	}
-	return n
-}
-```
-
-Real (`go doc -u -src internal/bytealg.Count`):
-
-```go
-package bytealg // import "internal/bytealg"
-
-//go:noescape
-func Count(b []byte, c byte) int
-```
-
-#### `internal/bytealg.CountString` (new)
-
-Model (goose/model/overlay/internal/bytealg/count.go:29):
-
-```go
-// MODEL: CountString returns the number of instances of c in s. Go's generic
-// body (count_generic.go); the assembly computes the same function,
-// deterministically.
-func CountString(s string, c byte) int {
-	n := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == c {
-			n++
-		}
-	}
-	return n
-}
-```
-
-Real (`go doc -u -src internal/bytealg.CountString`):
-
-```go
-package bytealg // import "internal/bytealg"
-
-//go:noescape
-func CountString(s string, c byte) int
-```
+- model files: goose/model/overlay/internal/bytealg/bytealg.go, goose/model/overlay/internal/bytealg/compare_native.go, goose/model/overlay/internal/bytealg/count.go, goose/model/overlay/internal/bytealg/index.go, goose/model/overlay/internal/bytealg/indexbyte.go, goose/model/overlay/internal/bytealg/init.go; changed: goose/model/overlay/internal/bytealg/bytealg.go, goose/model/overlay/internal/bytealg/init.go
 
 #### `internal/bytealg.MakeNoZero` (new)
 
@@ -1368,7 +1312,7 @@ func init() {
 
 (`go doc` cannot show `init.0`, the real package's init of that number in goose's numbering: read it in the real source. The marker quotes its first body line: "if cpu.X86.HasAVX2 {")
 
-Replaced, unchanged: `CompareString`, `Index`, `IndexByte`, `IndexByteString`, `IndexString`
+Replaced, unchanged: `CompareString`, `Count`, `CountString`, `Index`, `IndexByte`, `IndexByteString`, `IndexString`
 
 ### Perennial/Code/internal/gomodel.toml  (package `internal/gomodel`)
 
@@ -1726,7 +1670,10 @@ Model (goose/model/overlay/runtime/symtab.go:8):
 // uintptr", symtab.go:131), and whether another one follows. Go reads and
 // writes *ci, so a nil ci panics (nil dereference) and a concurrent call on
 // the same Frames races; the model's load and store of ci.callers do both.
-// The model leaves *ci unchanged, where Go advances it, which no caller
+// The model stores ci.callers on every call, also on an exhausted Frames,
+// where Go only reads *ci: two concurrent Next calls on an exhausted Frames
+// race in the model and not in Go (extra behaviour, the safe direction: a
+// race is stuck in GooseLang, so a proof must exclude it). The model leaves *ci unchanged, where Go advances it, which no caller
 // observes (the fields are unexported). It does not read the words
 // ci.callers points to, which Go does (ci.callers[0]): a concurrent write to
 // them races in Go and not in the model, but Go reads them only to look them
@@ -1849,12 +1796,12 @@ Additions (no claim of their own; a primitive stub carries the TrustedCode claim
 
 ### Perennial/Code/strings.toml  (package `strings`)
 
-- `[model]` (unchanged): dir = 'goose/model/overlay/strings', replaces = ['Split', 'Builder.copyCheck', 'Builder.String', 'Builder.Reset'], added_methods = []
+- `[model]` (unchanged): dir = 'goose/model/overlay/strings', replaces = ['Split', 'Builder.copyCheck', 'Builder.String', 'Builder.Reset', 'IndexRune'], added_methods = []
 - model files: goose/model/overlay/strings/builder.go, goose/model/overlay/strings/strings.go; changed: goose/model/overlay/strings/strings.go
 
 #### `strings.Split` (changed)
 
-Model (goose/model/overlay/strings/strings.go:8):
+Model (goose/model/overlay/strings/strings.go:11):
 
 ```go
 // MODEL: Split(s, sep) is the substrings of s between the occurrences of sep
@@ -1911,7 +1858,7 @@ package strings // import "strings"
 func Split(s, sep string) []string { return genSplit(s, sep, 0, -1) }
 ```
 
-Replaced, unchanged: `Builder.Reset`, `Builder.String`, `Builder.copyCheck`
+Replaced, unchanged: `Builder.Reset`, `Builder.String`, `Builder.copyCheck`, `IndexRune`
 
 ### Perennial/Code/sync.toml  (package `sync`)
 
@@ -3029,10 +2976,10 @@ func Sleep(d Duration)
 
 ```diff
 diff --git a/Perennial/Code/fmt.toml b/Perennial/Code/fmt.toml
-index 166e74b52..15acdb7f6 100644
+index 166e74b52..a391af4db 100644
 --- a/Perennial/Code/fmt.toml
 +++ b/Perennial/Code/fmt.toml
-@@ -1,24 +1,31 @@
+@@ -1,24 +1,34 @@
 -# The print path of print.go and format.go (`Sprintf` and the printer it runs), the package
 -# variables, and errors.go's types. Not translated (stuck when called):
 +# The print path of print.go and format.go (`Sprintf`, `Fprint`, `Errorf` and the printer they run),
@@ -3043,15 +2990,18 @@ index 166e74b52..15acdb7f6 100644
 -# - `errorf`, translated with `Errorf` at stage 2 of perennial#671, and `Println`, which writes
 -#   to `os.Stdout`, with `Printf` and `Print` at stage 2.
 +# - `Print` and `Println`, which write to `os.Stdout` (the model of os has none).
-+# Go models (goose/model/overlay/fmt, [model] below): `errorf`, `Fprintf`, `Printf` and `pp.doPrint`
-+# print with the model printer (printmodel.go) where the real print path is stuck.
++# Go models (goose/model/overlay/fmt, [model] below): `errorf`, `Fprintf`, `pp.doPrint` and `pp.doPrintln` print
++# with the model printer (printmodel.go) where the real print path is stuck. `Printf` is trusted
++# (TrustedCode/fmt.lean, as on lean): it formats with the model's `printfFormat` and returns an
++# arbitrary count and error for the write to `os.Stdout` (translating the write needs a semantics
++# primitive for an arbitrary interface value, its error).
  translate = [
    "*",
    "!pp.printValue", "!pp.fmtComplex",
 -  "!errorf", "!Println",
 -  # trusted (below)
 -  "!Errorf", "!Fprint", "!Fprintf", "!Print", "!Printf",
-+  "!Print", "!Println",
++  "!Print", "!Println", "!Printf",
 +  # the primitive stubs (trusted, below)
 +  "!underlyingAs", "!kindIs",
    # scan.go: only the package variables
@@ -3063,17 +3013,17 @@ index 166e74b52..15acdb7f6 100644
 -# the trusted models of TrustedCode/fmt.lean, until stage 2 of perennial#671
 -trusted = ["Errorf", "Fprint", "Fprintf", "Print", "Printf"]
 +imports = ["!*", "io", "errors", "sync", "unicode/utf8", "reflect", "strconv", "internal/stringslite",
-+  "internal/gomodel", "io/fs", "syscall", "internal/poll"]
++  "internal/gomodel"]
 +# the model's primitive stubs `underlyingAs` (goose/model/overlay/fmt/print.go) and `kindIs`
-+# (printmodel.go), modelled in TrustedCode/fmt.lean
-+trusted = ["underlyingAs", "kindIs"]
++# (printmodel.go), and `Printf`, modelled in TrustedCode/fmt.lean
++trusted = ["underlyingAs", "kindIs", "Printf"]
  
  # translate the definitions of all type declarations goose supports
  translate_types = true
 +
 +[model]
 +dir = "goose/model/overlay/fmt"
-+replaces = ["errorf", "Fprintf", "Printf", "pp.doPrint"]
++replaces = ["errorf", "Fprintf", "pp.doPrint", "pp.doPrintln"]
 ```
 
 ### Perennial/Code/github_com/mit_pdos/perennial/goose/model/pool.toml  (tier 0, goose-config)
@@ -3094,10 +3044,10 @@ index 083dbe103..000000000
 
 ```diff
 diff --git a/Perennial/Code/internal/bytealg.toml b/Perennial/Code/internal/bytealg.toml
-index c197448c1..23f42ac6d 100644
+index 075bf4ce7..ae663d013 100644
 --- a/Perennial/Code/internal/bytealg.toml
 +++ b/Perennial/Code/internal/bytealg.toml
-@@ -1,25 +1,14 @@
+@@ -1,26 +1,15 @@
 -# Only MakeNoZero (strings.Builder's grow): a `go:linkname` to the runtime with no Go body
 -# ("external function"), trusted (TrustedCode/internal/bytealg.lean).
 -# `MaxLen`, which the package's initializer (`init.0`) sets; `LastIndexByteString` (path.Split,
@@ -3109,11 +3059,12 @@ index c197448c1..23f42ac6d 100644
  # For strings.LastIndex, strings.Index and strings.Cut (through internal/stringslite): the generic
  # Go of bytealg.go (`PrimeRK`, `HashStr`, `HashStrRev`, `IndexRabinKarp`), amd64's `MaxBruteForce`
  # and `Cutover` (index_amd64.go), and `IndexByteString` and `IndexString`, whose bodies on amd64 are
--# assembly: they are translated from their Go models (the [model] table below).
-+# assembly: they are translated from their Go models (the [model] table below). The same for
-+# `CountString` (strings.Count) and `MakeNoZero` (strings.Builder's grow).
+ # assembly: they are translated from their Go models (the [model] table below). For strings.Count:
+-# `CountString`, assembly on amd64 too, translated from its Go model.
++# `CountString`, assembly on amd64 too, translated from its Go model. `MakeNoZero` (strings.Builder's
++# grow) and `init.0` (sets `MaxLen`), from their Go models too.
  translate = ["MaxLen", "LastIndexByteString", "PrimeRK", "HashStr", "HashStrRev", "IndexRabinKarp",
--  "MaxBruteForce", "Cutover", "IndexByteString", "IndexString"]
+-  "MaxBruteForce", "Cutover", "IndexByteString", "IndexString", "CountString"]
 +  "MaxBruteForce", "Cutover", "IndexByteString", "IndexString", "CountString", "MakeNoZero", "init.0"]
  imports = ["!*", "internal/gomodel"]
 -# `init.0` sets `MaxLen` from `cpu.X86.HasAVX2`: trusted, as one of the two values
@@ -3129,12 +3080,10 @@ index c197448c1..23f42ac6d 100644
  
  # The Go models of the four bodyless declarations of indexbyte_native.go and index_native.go,
  # assembly on amd64 (indexbyte_amd64.s, index_amd64.s): `IndexByte`/`IndexByteString` are Go's own
-@@ -35,7 +24,15 @@ trusted = ["MakeNoZero", "init.0"]
- # Go model too, compare_native.go. (`Compare`, bytes.Compare's, has no Go body, and
+@@ -38,7 +27,13 @@ trusted = ["MakeNoZero", "init.0"]
+ # count_generic.go, verbatim (count.go). (`Compare`, bytes.Compare's, has no Go body, and
  # compare_amd64.s, which defines it, also defines `runtime.cmpstring`, which gc's string
  # comparisons call, so that file cannot be blanked: bytes.Compare is modelled in its package.)
-+# `Count`/`CountString` (count_native.go, bodyless; assembly in count_amd64.s, which defines only
-+# them and `countbody<>`): Go's own generic bodies (count_generic.go, verbatim), count.go.
 +# `MakeNoZero` (bytealg.go): no Go body ("external function"); the runtime defines it
 +# (runtime/slice.go, a `go:linkname` push, which the overlay blanks); the model chooses the
 +# capacity and the bytes, bytealg.go. `init.0` (index_amd64.go) reads
@@ -3142,11 +3091,10 @@ index c197448c1..23f42ac6d 100644
 +# MaxLen is always 31, more defined than gc; the model chooses 63 or 31, init.go.
  [model]
  dir = "goose/model/overlay/internal/bytealg"
--replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString"]
--blank_asm = ["indexbyte_amd64.s", "index_amd64.s"]
-+replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString", "Count",
-+  "CountString", "MakeNoZero", "init.0"]
-+blank_asm = ["indexbyte_amd64.s", "index_amd64.s", "count_amd64.s"]
+-replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString", "Count", "CountString"]
++replaces = ["IndexByte", "IndexByteString", "Index", "IndexString", "CompareString", "Count", "CountString",
++  "MakeNoZero", "init.0"]
+ blank_asm = ["indexbyte_amd64.s", "index_amd64.s", "count_amd64.s"]
 ```
 
 ### Perennial/Code/internal/gomodel.toml  (tier 0, goose-config)
@@ -3260,17 +3208,18 @@ index 171e70c78..fe90234ff 100644
 
 ```diff
 diff --git a/Perennial/Code/runtime.toml b/Perennial/Code/runtime.toml
-index d3c20f6c1..8d1fcb11e 100644
+index d3450fc11..471d61e3f 100644
 --- a/Perennial/Code/runtime.toml
 +++ b/Perennial/Code/runtime.toml
-@@ -1,12 +1,27 @@
- translate = ["!*", "Version", "Callers", "CallersFrames"]
+@@ -1,13 +1,28 @@
+ # `Caller` is translated with its body: `callers` and `CallersFrames(...).Next()`, below.
+ translate = ["!*", "Version", "Caller", "Callers", "CallersFrames"]
  
 -imports = ["!*", "internal/runtime/atomic", "internal/runtime/sys"]
 -
 -# `Gosched` (TrustedCode/runtime.lean); `buildVersion`, which `Version` returns and the linker
 -# sets (TrustedCode/runtime.lean: its `init` stores an arbitrary string); `callers`, the stack walk
--# `Callers` calls, and `Frames.Next`, the symbolization of program counters (TrustedCode/runtime.lean:
+-# `Callers` and `Caller` call, and `Frames.Next`, the symbolization of program counters (TrustedCode/runtime.lean:
 -# arbitrary words, arbitrary frames)
 -trusted = ["Gosched", "buildVersion", "callers", "Frames.Next"]
 +imports = ["!*", "internal/runtime/atomic", "internal/runtime/sys", "internal/gomodel"]
@@ -3304,10 +3253,10 @@ index d3c20f6c1..8d1fcb11e 100644
 
 ```diff
 diff --git a/Perennial/Code/strings.toml b/Perennial/Code/strings.toml
-index 18595f8e6..dd19321c4 100644
+index 596ed7e08..910c530a4 100644
 --- a/Perennial/Code/strings.toml
 +++ b/Perennial/Code/strings.toml
-@@ -1,12 +1,14 @@
+@@ -1,7 +1,7 @@
  # The real Go is translated: Builder (but three methods, modelled), Join (over Builder), Compare
  # (over `bytealg.CompareString`, modelled in its package), HasPrefix and TrimPrefix (over
 -# internal/stringslite's), and the rest of `translate`. `grow`'s `bytealg.MakeNoZero` is trusted in
@@ -3317,29 +3266,21 @@ index 18595f8e6..dd19321c4 100644
  # `asciiSet.contains`, `trimLeftASCII`); its non-ASCII path, `trimLeftUnicode`, is not translated
  # (it reaches `IndexRune` and utf8 decoding): a call of `TrimLeft` with a cutset that is not all ASCII
  # has no proof. `LastIndex`, `IndexByte` and `Cut` (over internal/stringslite and internal/bytealg).
-+# `Count` and `Index` (over internal/stringslite's `Index` and internal/bytealg's `CountString`, a
-+# Go model in its package).
- translate = ["Builder", "Builder.*", "asciiSpace", "Compare", "HasPrefix", "HasSuffix", "Join", "maxInt", "TrimPrefix", "TrimSuffix", "NewReplacer",
--  "LastIndex", "IndexByte", "Cut",
-+  "LastIndex", "IndexByte", "Cut", "Count", "Index",
-   "TrimLeft", "trimLeftByte", "trimLeftASCII", "makeASCIISet", "asciiSet.contains"]
- imports = ["!*", "internal/stringslite", "sync", "io", "internal/bytealg", "unicode/utf8", "internal/gomodel"]
- 
-@@ -17,7 +19,13 @@ translate_types = true
+@@ -20,7 +20,13 @@ translate_types = true
  # least Go's behaviours. `Builder.String` (`unsafe.String`, which aliases the buffer),
  # `Builder.copyCheck` (an `unsafe.Pointer` converted to `*Builder`, which the semantics has no rule
  # for) and `Builder.Reset` (which must not store to the `addr` that `copyCheck`'s model makes
--# read-only); `Split` (`Count` and `Index`, which end in `internal/bytealg`'s assembly).
+-# read-only); `Split` (`Count` and `Index`, which end in `internal/bytealg`'s assembly); `IndexRune`
 +# read-only); `Split`. Goose translates the real `Split` (`genSplit`, `Count`, `Index`, `explode`),
 +# but its spec could not keep today's statement: for any `s` with `len(s) = 2^63-1` the real
 +# `genSplit(s, sep, 0, -1)` panics (`len(s)+1` overflows to `-2^63`, so `n > len(s)+1` holds for
 +# every `n >= 1`, `n` becomes `-2^63` and `make([]string, n)` panics), and string values are not
 +# bounded in the semantics (`len` only gives `< 2^63`), so the spec would need a new premise
 +# `len(s) < 2^63-1`. gc cannot hold such a string (maxAlloc is 2^48). The model has no such
-+# arithmetic; it is stuck on an empty `sep`.
++# arithmetic; it is stuck on an empty `sep`. `IndexRune`
+ # (its search for a non-ASCII rune is written with goto, which goose does not translate).
  [model]
  dir = "goose/model/overlay/strings"
- replaces = ["Split", "Builder.copyCheck", "Builder.String", "Builder.Reset"]
 ```
 
 ### Perennial/Code/sync.toml  (tier 0, goose-config)
@@ -3643,10 +3584,10 @@ index 08e3b35d5..000000000
 
 ```diff
 diff --git a/Perennial/TrustedCode/fmt.lean b/Perennial/TrustedCode/fmt.lean
-index 22f6739ea..c75ac22ed 100644
+index 22f6739ea..bf2e46634 100644
 --- a/Perennial/TrustedCode/fmt.lean
 +++ b/Perennial/TrustedCode/fmt.lean
-@@ -1,31 +1,12 @@
+@@ -1,3583 +1,57 @@
  /-
 -Trusted code for the Go `fmt` package, in namespace `fmt` (as the generated
 -package).
@@ -3668,25 +3609,24 @@ index 22f6739ea..c75ac22ed 100644
 -`goose/model/fmt/model_diff_test.go` runs against Go's `fmt`: same output (each arbitrary string
 -standing for any string), same method calls in the same order, same error kind, on every call the
 -model is not stuck on, and the model is not stuck on any call the specs admit (`fmt.argsOk`; `Fprint`'s, `fmt.printArgOk`).
-+Trusted code for the Go `fmt` package, in namespace `fmt` (as the generated package): the two
-+primitive stubs of its Go model (`goose/model/overlay/fmt/print.go`, `Perennial/Code/fmt.toml`).
-+Everything else of `fmt` is goose's translation: the real print path, and the models of `errorf`,
-+`Fprintf`, `Printf` and `pp.doPrint` with their model printer.
- -/
- module
- 
+--/
+-module
+-
 -public import Perennial.Golang.Defn.Pre
 -public import Perennial.Code.errors
 -public import Perennial.TrustedCode.arbitraryString
 -public import Perennial.Code.io
-+public import Perennial.Golang.Defn
- 
- @[expose] public section
- 
-@@ -37,4077 +18,24 @@ namespace fmt
- section code
- variable [GooseExts] [GoGlobalContext]
- 
+-
+-@[expose] public section
+-
+-set_option linter.iris.style.nameCheck false
+-
+-namespace Perennial
+-
+-namespace fmt
+-section code
+-variable [GooseExts] [GoGlobalContext]
+-
 -/-- At `format[i]`, a `%`: whether an integer directive follows, with its width and the index
 -after it (helpers of the model's `doPrintf`, like those below, not functions of package `fmt`).
 -Goose's translation of
@@ -5807,24 +5747,8 @@ index 22f6739ea..c75ac22ed 100644
 -Go cannot express. In the Go the docstrings quote, a call of a stub `func kindIs[T any](x any)
 -bool`. -/
 -noncomputable def kindIs (T : go.GoType) : val :=
-+/-- `underlyingAs[T](x)`: `x`'s value as a `T` and `true` if `x`'s dynamic type has `T`'s
-+underlying type, else `T`'s zero value and `false` (also for a `nil` `x`), which plain Go cannot
-+test without reflection (the Go body: `reflect.ValueOf(x)` at `T`'s kind, converted to `T`). The
-+instruction `TypeAssertUnderlying2 T` (`InterfaceSemantics.type_assert_underlying2_step`), which
-+steps for the integer types and `string`, the `T`s the model printer asks; at any other `T` it is
-+stuck, less defined than Go. -/
-+def underlyingAs.impl (T : go.GoType) : val :=
-+  (LamV "x" (App (Val (GoInstruction (TypeAssertUnderlying2 T))) (Var "x")))
-+
-+/-- `kindIs[T](x)`: whether `x`'s dynamic type has `T`'s underlying type: the second result of
-+`TypeAssertUnderlying2 T` (`underlyingAs[T]`'s second result, which the Go body returns). A stub
-+rather than a translation of that body, which binds `underlyingAs`'s first result, the value `x`
-+holds: the logic cannot step past binding an arbitrary interface's value (it may be a panic value
-+as far as the logic knows), and `isIntKind`/`isStrKind` ask `kindIs` of any argument. Stuck at a
-+`T` other than the integer types and `string`, as `underlyingAs`. -/
-+def kindIs.impl (T : go.GoType) : val :=
-   (LamV "y" (Snd (App (Val (GoInstruction (TypeAssertUnderlying2 T))) (Var "y"))))
- 
+-  (LamV "y" (Snd (App (Val (GoInstruction (TypeAssertUnderlying2 T))) (Var "y"))))
+-
 -/-- The helper `isBasic` of the model (not a function of package `fmt`): whether x's dynamic type is one of the predeclared types that printArg formats by its type switch, without handleMethods (bool, the integer types, uintptr, float32, float64, string; not complex64 or complex128, which the model does not follow, nor []byte, which visitArg reads, nor reflect.Value, which printArg unwraps: visitArg is stuck on a Stringer with a CanInterface() bool method, as it has). Goose's translation (by the goose of this revision, with its function results in cells `$resI`) of
 -
 -```go
@@ -7234,67 +7158,84 @@ index 22f6739ea..c75ac22ed 100644
 -  (Lam BAnon
 -  (Val #())))))))))))
 -  (Pair (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2"))))))))))
--
++Trusted code for the Go `fmt` package, in namespace `fmt` (as the generated package): the two
++primitive stubs of its Go model (`goose/model/overlay/fmt/print.go`, `Perennial/Code/fmt.toml`) and
++`Printf` (as on lean: its write to standard output is not modelled). Everything else of `fmt` is
++goose's translation: the real print path, and the models of `errorf`, `Fprintf`, `pp.doPrint` and
++`printfFormat` (`Printf`'s formatting) with their model printer.
++-/
++module
++
++public import Perennial.Golang.Defn
++public import Perennial.Code.errors
++public import Perennial.TrustedCode.arbitraryString
++
++@[expose] public section
++
++set_option linter.iris.style.nameCheck false
++
++namespace Perennial
+ 
 -/-- `Printf(format, a...)`: formats with `doPrintf`, calling what Go's formatting
 -calls of the arguments, and returns an arbitrary count and either `nil` or an arbitrary error: writing
 -to standard output is not modelled (Go returns the count of bytes written and the error of the
 -write).
 -Goose's translation (by the goose of this revision, with its function results in cells `$resI`) of
--
--```go
--func Printf(format string, a ...any) (int, error) {
++namespace fmt
++section code
++variable [GooseExts] [GoGlobalContext]
++
++/-- `underlyingAs[T](x)`: `x`'s value as a `T` and `true` if `x`'s dynamic type has `T`'s
++underlying type, else `T`'s zero value and `false` (also for a `nil` `x`), which plain Go cannot
++test without reflection (the Go body: `reflect.ValueOf(x)` at `T`'s kind, converted to `T`). The
++instruction `TypeAssertUnderlying2 T` (`InterfaceSemantics.type_assert_underlying2_step`), which
++steps for the integer types and `string`, the `T`s the model printer asks; at any other `T` it is
++stuck, less defined than Go. -/
++def underlyingAs.impl (T : go.GoType) : val :=
++  (LamV "x" (App (Val (GoInstruction (TypeAssertUnderlying2 T))) (Var "x")))
++
++/-- `kindIs[T](x)`: whether `x`'s dynamic type has `T`'s underlying type: the second result of
++`TypeAssertUnderlying2 T` (`underlyingAs[T]`'s second result, which the Go body returns). A stub
++rather than a translation of that body, which binds `underlyingAs`'s first result, the value `x`
++holds: the logic cannot step past binding an arbitrary interface's value (it may be a panic value
++as far as the logic knows), and `isIntKind`/`isStrKind` ask `kindIs` of any argument. Stuck at a
++`T` other than the integer types and `string`, as `underlyingAs`. -/
++def kindIs.impl (T : go.GoType) : val :=
++  (LamV "y" (Snd (App (Val (GoInstruction (TypeAssertUnderlying2 T))) (Var "y"))))
++
++/-- `Printf(format, a...)`: formats with the model's `printfFormat` (the printer, the model
++printer's `doPrintf` and `p.free()` of Go's `Fprintf(os.Stdout, format, a...)`, without the write;
++`goose/model/overlay/fmt/print.go`), calling what Go's formatting calls of the arguments, and returns
++an arbitrary count and either `nil` or an arbitrary error: writing to standard output is not
++modelled (Go returns the count of bytes written and the error of the write; translating the write
++needs a semantics primitive for an arbitrary interface value, its error). Lean's trusted `Printf`
++with its call `doPrintf(format, a, false)` of the former hand-written model printer replaced by
++`printfFormat(format, a)`. Goose's translation (by the goose of this revision, with its function
++results in cells `$resI`) of
+ 
+ ```go
+ func Printf(format string, a ...any) (int, error) {
 -	doPrintf(format, a, false)
--	n := int(arbitrary())
--	if arbitrary() == 0 {
--		return n, nil
--	}
--	return n, errors.New(arbitraryString())
--}
--```
--
++	printfFormat(format, a)
+ 	n := int(arbitrary())
+ 	if arbitrary() == 0 {
+ 		return n, nil
+@@ -3586,7 +60,10 @@ func Printf(format string, a ...any) (int, error) {
+ }
+ ```
+ 
 -with these edits: the call `arbitrary()` replaced by `ArbitraryInt` (as in `arbitraryString`); goose's `FuncResolve f [] #()` of a helper of this file replaced by `f`. -/
--noncomputable def Printf.impl : val :=
--  (LamV "format"
--  (Lam "a"
--  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
--  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
--  (Seq (App (Val exceptionDo)
--  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.any)))) (Var "a"))
--  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.int))) ArbitraryInt)
--  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
--  (Let "$r1" (Let "$a0" (App (Val arbitraryString) (Val #()))
--  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (App (Val doReturn)
--  (Val #()))))
--  (App (Val doExecute)
--  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
--  (App (Val doExecute)
--  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
--  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair ArbitraryInt (Val #(W64 0)))))
--  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
--  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (App (App (Val exceptionSeq) (Lam BAnon
--  (App (Val doReturn)
--  (Val #()))))
--  (App (Val doExecute)
--  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
--  (App (Val doExecute)
--  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
--  (App (Val doExecute)
--  (Val #()))))))
--  (App (Val doExecute)
--  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))
--  (App (Val doExecute)
--  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "format"))
--  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.any)))) (Var "a"))
++with these edits: the call `arbitrary()` replaced by `ArbitraryInt` (as in `arbitraryString`);
++goose's `FuncResolve f [] #()` of a helper of this file replaced by `f`; the name
++`printfFormat`, defined in `Perennial/Code/fmt.lean` (which imports this file), written out as
++`go!"fmt.printfFormat"`. -/
+ noncomputable def Printf.impl : val :=
+   (LamV "format"
+   (Lam "a"
+@@ -3629,485 +106,9 @@ noncomputable def Printf.impl : val :=
+   (App (Val doExecute)
+   (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "format"))
+   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.any)))) (Var "a"))
 -  (Let "$a2" (Val #false)
 -  (App (App (App (Val doPrintf) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
 -  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
@@ -7766,8 +7707,9 @@ index 22f6739ea..c75ac22ed 100644
 -  (Var "$key")))))
 -  (App (Val doExecute)
 -  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "x") (Var "$value"))))))))))))))
--  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
--
++  (App (App (App (Val (GoInstruction (FuncResolve go!"fmt.printfFormat" []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+ 
 -
 -/-- `Print(a...)`: not modelled; stuck. (`Print` takes one argument, the slice `a`.) -/
 -def Print.impl : val :=
@@ -9392,7 +9334,7 @@ index 000000000..3087aeb35
 
 ```diff
 diff --git a/goose/model/fmt/model_diff_test.go b/goose/model/fmt/model_diff_test.go
-index 164499250..2d336c9c5 100644
+index 164499250..9a5af0cea 100644
 --- a/goose/model/fmt/model_diff_test.go
 +++ b/goose/model/fmt/model_diff_test.go
 @@ -1,12 +1,13 @@
@@ -9416,6 +9358,86 @@ index 164499250..2d336c9c5 100644
  
  import (
  	"errors"
+@@ -374,6 +375,7 @@ func TestModelSprintf(t *testing.T) {
+ 	t.Logf("%d calls admitted, %d where the model is stuck", admitted, stuckN)
+ }
+ 
++// TestModelPrintf: the formatting of the trusted Printf (printfFormat) calls what Go's Printf calls.
+ func TestModelPrintf(t *testing.T) {
+ 	for _, format := range testFormats {
+ 		for _, a := range argTuples() {
+@@ -381,7 +383,7 @@ func TestModelPrintf(t *testing.T) {
+ 			_ = fmt.Sprintf(format, a...) // Printf formats as Sprintf does
+ 			goCalls := calls
+ 			calls = nil
+-			stuck := runModel(func() { modelPrintf(format, a...) })
++			stuck := runModel(func() { modelPrintfFormat(format, a...) })
+ 			if stuck {
+ 				continue
+ 			}
+@@ -557,6 +559,62 @@ func TestModelFprint(t *testing.T) {
+ 	t.Logf("%d operand lists admitted", admitted)
+ }
+ 
++// Fprintln, as Fprint (over pp.doPrintln): the calls Go's printArg makes of each operand under %v,
++// in order, then one Write, returning what Write returns; the output is arbitrary. Admitted (the
++// spec's fmt.printArgOk): each operand as argOkAt admits it under %v.
++func TestModelFprintln(t *testing.T) {
++	werr := errors.New("w")
++	admitted := 0
++	for _, a := range argTuples() {
++		ok := true
++		for _, x := range a {
++			if !argOkAt("vsxXq", directive{'v', false}, x) {
++				ok = false
++			}
++		}
++		if ok {
++			admitted++
++		}
++		for _, res := range []struct {
++			n   int
++			err error
++		}{{3, nil}, {0, werr}} {
++			calls = nil
++			gw := &recWriter{n: res.n, err: res.err}
++			gn, gerr := fmt.Fprintln(gw, a...)
++			goCalls := calls
++			calls = nil
++			mw := &recWriter{n: res.n, err: res.err}
++			var mn int
++			var merr error
++			stuck := runModel(func() { mn, merr = modelFprintln(mw, a...) })
++			if stuck {
++				if ok {
++					t.Errorf("Fprintln(%s): admitted, but the model is stuck", describe("", a))
++				}
++				continue
++			}
++			if !reflect.DeepEqual(goCalls, calls) {
++				t.Errorf("Fprintln(%s): Go calls %v, the model %v", describe("", a), goCalls, calls)
++			}
++			if len(gw.writes) != 1 || len(mw.writes) != 1 {
++				t.Errorf("Fprintln(%s): Go writes %d times, the model %d", describe("", a),
++					len(gw.writes), len(mw.writes))
++				continue
++			}
++			if !matches(string(mw.writes[0]), string(gw.writes[0])) {
++				t.Errorf("Fprintln(%s) writes %q, the model %q", describe("", a), gw.writes[0],
++					mw.writes[0])
++			}
++			if gn != mn || gerr != merr {
++				t.Errorf("Fprintln(%s) = %d, %v; the model's %d, %v", describe("", a), gn, gerr, mn,
++					merr)
++			}
++		}
++	}
++	t.Logf("%d operand lists admitted", admitted)
++}
++
+ // errKind: 0 for an *errors.errorString, 1 for a *fmt.wrapError, 2 for a *fmt.wrapErrors, and
+ // what it wraps.
+ func errKind(err error) (int, []error) {
 ```
 
 ### goose/model/fmt/model_harness_test.go  (tier 0, translator)
@@ -9423,17 +9445,18 @@ index 164499250..2d336c9c5 100644
 ```diff
 diff --git a/goose/model/fmt/model_harness_test.go b/goose/model/fmt/model_harness_test.go
 new file mode 100644
-index 000000000..2c00ff8ba
+index 000000000..19d6f2518
 --- /dev/null
 +++ b/goose/model/fmt/model_harness_test.go
-@@ -0,0 +1,121 @@
+@@ -0,0 +1,135 @@
 +package fmt_test
 +
 +// The harness of the differential tests (model_diff_test.go): model_test.go is the model printer of
 +// goose/model/overlay/fmt/printmodel.go, rewritten into this package (model_copy_test.go); here are
 +// the stand-ins for what it calls of the overlay's other file (print.go) and of internal/gomodel,
-+// and the model's errorf, Fprintf, Fprint and Printf, each the body of the overlay's replaced
-+// declaration (print.go) with Go's printer, which the tests cannot reach, left out.
++// and the model's errorf, Fprintf, Fprint and printfFormat (the formatting of the trusted Printf),
++// each the body of the overlay's declaration (print.go) with Go's printer, which the tests cannot
++// reach, left out.
 +
 +import (
 +	"errors"
@@ -9544,9 +9567,22 @@ index 000000000..2c00ff8ba
 +	return w.Write([]byte(squash(string(b))))
 +}
 +
-+// modelPrintf is the model's Printf with a writer that discards (the tests compare the calls).
-+func modelPrintf(format string, a ...any) (int, error) {
-+	return modelFprintf(io.Discard, format, a...)
++// modelFprintln is Go's Fprintln over the model's pp.doPrintln.
++func modelFprintln(w io.Writer, a ...any) (int, error) {
++	var b buffer
++	for _, x := range a {
++		writeArbitrary(&b)
++		visitArg(x, 'v', false, false)
++	}
++	writeArbitrary(&b)
++	return w.Write([]byte(squash(string(b))))
++}
++
++// modelPrintfFormat is printfFormat, the formatting of the trusted Printf (the tests compare the
++// calls; the write to os.Stdout is not modelled).
++func modelPrintfFormat(format string, a ...any) {
++	var b buffer
++	doPrintf(&b, format, a, false)
 +}
 ```
 
@@ -9554,7 +9590,7 @@ index 000000000..2c00ff8ba
 
 ```diff
 diff --git a/goose/model/fmt/model_test.go b/goose/model/fmt/model_test.go
-index 5c2408bad..85284eaa4 100644
+index 5c2408bad..bc45ccf83 100644
 --- a/goose/model/fmt/model_test.go
 +++ b/goose/model/fmt/model_test.go
 @@ -1,82 +1,29 @@
@@ -9562,7 +9598,7 @@ index 5c2408bad..85284eaa4 100644
 +// Code generated from goose/model/overlay/fmt/printmodel.go by model_copy_test.go; DO NOT EDIT.
 +
 +// The model printer of fmt (Perennial/Code/fmt.toml, [model]): additions that the models of
-+// errorf, Fprintf, Printf and pp.doPrint (print.go of this directory) call in place of Go's
++// errorf, Fprintf, printfFormat (Printf's) and pp.doPrint (print.go of this directory) call in place of Go's
 +// printer for the formatting the real print path is stuck on. Translated like the rest of fmt;
 +// they carry no claim of their own: the claims are the MODEL: comments of the replaced
 +// declarations, which call them. goose/model/fmt/model_test.go is this file rewritten for the
@@ -10054,18 +10090,19 @@ index 000000000..f058b15be
 +func StartRead[T any](p *T) {}
 ```
 
-### goose/model/overlay/fmt/print.go  (tier 0, translator)
+### goose/model/overlay/fmt/print.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/fmt/print.go b/goose/model/overlay/fmt/print.go
 new file mode 100644
-index 000000000..d2bb07584
+index 000000000..59034e992
 --- /dev/null
 +++ b/goose/model/overlay/fmt/print.go
-@@ -0,0 +1,182 @@
-+// The Go models of fmt (Perennial/Code/fmt.toml, [model]): errorf, Fprintf, Printf and
-+// pp.doPrint, spliced into errors.go and print.go in place of the real declarations, and the
-+// additions they need besides the model printer (printmodel.go). Sprintf, Errorf, Fprint and the
+@@ -0,0 +1,152 @@
++// The Go models of fmt (Perennial/Code/fmt.toml, [model]): errorf, Fprintf, pp.doPrint and
++// pp.doPrintln, spliced into errors.go and print.go in place of the real declarations, printfFormat
++// (the formatting of Printf, which is trusted: Perennial/TrustedCode/fmt.lean), and the additions
++// they need besides the model printer (printmodel.go). Sprintf, Errorf, Fprint, Fprintln and the
 +// real printer stay Go's own, translated.
 +//
 +// Why models at all: the real print path (pp.doPrintf, pp.printArg) is translated and proved only
@@ -10075,7 +10112,7 @@ index 000000000..d2bb07584
 +// named integer and string types, a []string, and a value of integer kind with String or Error
 +// under a non-method verb (pp.printValue, which reflects). The specs of Errorf, Printf, Fprintf
 +// and Fprint admit those calls (fmt.argsOk, fmt.printArgOk), so these four print with the model
-+// printer instead: doPrintf formats exactly the common directives of inert arguments and of a
++// printer instead (Printf through printfFormat): doPrintf formats exactly the common directives of inert arguments and of a
 +// []byte or []string, appending them to the printer's buffer p.buf as Go does, and from the first
 +// other directive on appends arbitrary strings, before each call of an argument's Error() or
 +// String() (where Go's handleMethods calls it) and at the end. The buffer is observable outside
@@ -10089,19 +10126,16 @@ index 000000000..d2bb07584
 +// Go's, the arbitrary strings standing for any suffix, and it calls the methods Go calls in Go's
 +// order: model ⊇ Go, checked by goose/model/fmt/model_diff_test.go (TestModelSprintf,
 +// TestModelBytesExact, TestModelStringsExact, TestModelErrorf, TestModelFprintf, TestModelFprint,
-+// TestModelPrintf) and sprintf_test.go, and, for the buffer, by TestModelAlias (testdata/alias,
-+// run by etc/model-tests.sh under the overlay).
++// TestModelFprintln, TestModelPrintf) and sprintf_test.go, and, for the buffer, by TestModelAlias
++// (testdata/alias, run by etc/model-tests.sh under the overlay).
 +
 +package fmt
 +
 +import (
 +	"internal/gomodel"
-+	"internal/poll"
 +	"internal/stringslite"
 +	"io"
-+	"io/fs"
 +	"reflect"
-+	"syscall"
 +)
 +
 +// MODEL: errorf is Go's, but for its printer: Go's p.doPrintf(format, a), with p.wrapErrs set, is
@@ -10142,58 +10176,16 @@ index 000000000..d2bb07584
 +	return
 +}
 +
-+// MODEL: Printf is Go's Fprintf(os.Stdout, format, a...) with the writer stdout{} for os.Stdout:
-+// the model of os has no Stdout (os.toml: its variable is not allocated, so a program that reads
-+// or assigns os.Stdout is stuck), and Printf always writes to the file Go opens as os.Stdout
-+// (descriptor 1, "/dev/stdout"); stdout.Write has every result Go's (*os.File).Write of it has.
-+func Printf(format string, a ...any) (n int, err error) {
-+	return Fprintf(stdout{}, format, a...)
-+}
-+
-+// stdout is the model's os.Stdout for Printf.
-+type stdout struct{}
-+
-+// Write: what Go's (*os.File).Write of os.Stdout can return. Go writes b with poll.FD.Write
-+// (write(2) until all is written or an error), then wraps a failure in f.wrapErr("write", e):
-+//   - all of b written, no error: (len(b), nil);
-+//   - otherwise n bytes, 0 <= n <= len(b) (also n == len(b) == 0, when write(2) of no bytes fails),
-+//     and *fs.PathError{Op: "write", Path: "/dev/stdout", Err: e} (os.PathError) with e one of:
-+//     fs.ErrClosed (os.ErrClosed, wrapErr's for poll.ErrFileClosing: writeLock on a closed fd, or
-+//     the poller), poll.ErrDeadlineExceeded (os.ErrDeadlineExceeded) and poll.ErrNotPollable (the
-+//     poller's prepareWrite/waitWrite), io.ErrUnexpectedEOF (write(2)
-+//     wrote nothing, no error), or the syscall.Errno of write(2), between 1 and 4095 (Linux's
-+//     errno range); on EPIPE Go's epipecheck raises SIGPIPE, which kills the process unless the
-+//     program handles or ignores it: the model may then not return (a loop, which covers the
-+//     death), or return the error. (Go's io.ErrShortWrite for n != len(b) is always overwritten by
-+//     the wrapped error: FD.Write returns n < len(b) only with an error.) Go panics where write(2)
-+//     claims more bytes than asked (panic "invalid return from write"): not modelled, excluded
-+//     by an assumption on the environment that the write never claims that. The assumption is not
-+//     only that the kernel has no bug: golang/go#61060 reports the panic with VPN software
-+//     installed.
-+func (stdout) Write(b []byte) (n int, err error) {
-+	if gomodel.Choose() {
-+		return len(b), nil
-+	}
-+	n = int(gomodel.ChooseUint64() % (uint64(len(b)) + 1))
-+	var e error
-+	switch gomodel.ChooseUint64() {
-+	case 0:
-+		e = fs.ErrClosed
-+	case 1:
-+		e = poll.ErrDeadlineExceeded
-+	case 2:
-+		e = poll.ErrNotPollable
-+	case 3:
-+		e = io.ErrUnexpectedEOF
-+	default:
-+		errno := syscall.Errno(1 + gomodel.ChooseUint64()%4095)
-+		if errno == syscall.EPIPE && gomodel.Choose() {
-+			for {
-+			}
-+		}
-+		e = errno
-+	}
-+	return n, &fs.PathError{Op: "write", Path: "/dev/stdout", Err: e}
++// printfFormat is Printf's formatting, a helper of its trusted model (Perennial/TrustedCode/fmt.lean,
++// fmt.toml's trusted), not a function of package fmt: Go's Printf is Fprintf(os.Stdout, format,
++// a...), whose printer, model doPrintf (as in Fprintf above) and p.free() this is, without the
++// write to os.Stdout; the trusted Printf returns an arbitrary count and either nil or an arbitrary
++// error for it (the model of os has no Stdout, and translating the write would need a semantics
++// primitive for an arbitrary interface value, Go's error of it).
++func printfFormat(format string, a []any) {
++	p := newPrinter()
++	doPrintf(&p.buf, format, a, false)
++	p.free()
 +}
 +
 +// MODEL: pp.doPrint prints the operands under %v, a space between two that are not strings. Go
@@ -10206,6 +10198,20 @@ index 000000000..d2bb07584
 +// rest of Go's output (TestModelFprint checks the calls, TestModelAlias the buffer). Fprint and
 +// Sprint, Go's own, print with it.
 +func (p *pp) doPrint(a []any) {
++	for _, x := range a {
++		writeArbitrary(&p.buf)
++		visitArg(x, 'v', false, false)
++	}
++	writeArbitrary(&p.buf)
++}
++
++// MODEL: pp.doPrintln is doPrint's model (see there): Go's doPrintln, for each operand, appends a
++// space if it is not the first and prints it with p.printArg(arg, 'v'), then appends '\n'; the
++// model calls of each operand what printArg calls under %v (visitArg), after arbitrary strings
++// (writeArbitrary), which cover Go's space and what printArg appended before, and ends with
++// arbitrary strings, which cover the rest and the newline (TestModelFprintln checks the calls).
++// Fprintln and Sprintln, Go's own, print with it.
++func (p *pp) doPrintln(a []any) {
 +	for _, x := range a {
 +		writeArbitrary(&p.buf)
 +		visitArg(x, 'v', false, false)
@@ -10247,17 +10253,17 @@ index 000000000..d2bb07584
 +}
 ```
 
-### goose/model/overlay/fmt/printmodel.go  (tier 0, translator)
+### goose/model/overlay/fmt/printmodel.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/fmt/printmodel.go b/goose/model/overlay/fmt/printmodel.go
 new file mode 100644
-index 000000000..aa556d61b
+index 000000000..010b0cd6c
 --- /dev/null
 +++ b/goose/model/overlay/fmt/printmodel.go
 @@ -0,0 +1,691 @@
 +// The model printer of fmt (Perennial/Code/fmt.toml, [model]): additions that the models of
-+// errorf, Fprintf, Printf and pp.doPrint (print.go of this directory) call in place of Go's
++// errorf, Fprintf, printfFormat (Printf's) and pp.doPrint (print.go of this directory) call in place of Go's
 +// printer for the formatting the real print path is stuck on. Translated like the rest of fmt;
 +// they carry no claim of their own: the claims are the MODEL: comments of the replaced
 +// declarations, which call them. goose/model/fmt/model_test.go is this file rewritten for the
@@ -10999,57 +11005,6 @@ index 000000000..8125d4d1a
 +}
 ```
 
-### goose/model/overlay/internal/bytealg/count.go  (tier 0, go-model-overlay)
-
-```diff
-diff --git a/goose/model/overlay/internal/bytealg/count.go b/goose/model/overlay/internal/bytealg/count.go
-new file mode 100644
-index 000000000..de71f9f75
---- /dev/null
-+++ b/goose/model/overlay/internal/bytealg/count.go
-@@ -0,0 +1,40 @@
-+// Copyright 2018 The Go Authors. All rights reserved.
-+// Use of this source code is governed by a BSD-style
-+// license that can be found in the LICENSE file.
-+
-+// Go model of Count and CountString, which internal/bytealg/count_native.go
-+// (go1.26.11) declares without a body: on linux/amd64 they are written in
-+// assembly (count_amd64.s, which the overlay blanks). The bodies are Go's own
-+// generic ones, verbatim from count_generic.go (the file whose build
-+// constraint excludes amd64); count_native.go's countGeneric and
-+// countGenericString, which the assembly jumps to on a processor without
-+// POPCNT, are the same loops. Evidence: Go's own strings and bytes tests pass
-+// with the models in place of the assembly (etc/model-tests.sh).
-+
-+package bytealg
-+
-+// MODEL: Count returns the number of instances of c in b. Go's generic body
-+// (count_generic.go); the assembly computes the same function,
-+// deterministically.
-+func Count(b []byte, c byte) int {
-+	n := 0
-+	for _, x := range b {
-+		if x == c {
-+			n++
-+		}
-+	}
-+	return n
-+}
-+
-+// MODEL: CountString returns the number of instances of c in s. Go's generic
-+// body (count_generic.go); the assembly computes the same function,
-+// deterministically.
-+func CountString(s string, c byte) int {
-+	n := 0
-+	for i := 0; i < len(s); i++ {
-+		if s[i] == c {
-+			n++
-+		}
-+	}
-+	return n
-+}
-```
-
 ### goose/model/overlay/internal/bytealg/init.go  (tier 0, go-model-overlay)
 
 ```diff
@@ -11133,7 +11088,7 @@ index 000000000..ac536f896
 +}
 ```
 
-### goose/model/overlay/internal/sync/mutex.go  (tier 0, translator)
+### goose/model/overlay/internal/sync/mutex.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/internal/sync/mutex.go b/goose/model/overlay/internal/sync/mutex.go
@@ -11210,7 +11165,7 @@ index 000000000..430bdc0eb
 +}
 ```
 
-### goose/model/overlay/log/log.go  (tier 0, translator)
+### goose/model/overlay/log/log.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/log/log.go b/goose/model/overlay/log/log.go
@@ -11290,15 +11245,15 @@ index 000000000..7fcf5f23b
 +}
 ```
 
-### goose/model/overlay/runtime/symtab.go  (tier 0, translator)
+### goose/model/overlay/runtime/symtab.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/runtime/symtab.go b/goose/model/overlay/runtime/symtab.go
 new file mode 100644
-index 000000000..6f9a8014f
+index 000000000..1bcba1406
 --- /dev/null
 +++ b/goose/model/overlay/runtime/symtab.go
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,45 @@
 +// The Go model of runtime.Frames.Next (Perennial/Code/runtime.toml, [model]),
 +// spliced into symtab.go in place of the real declaration.
 +
@@ -11312,7 +11267,10 @@ index 000000000..6f9a8014f
 +// uintptr", symtab.go:131), and whether another one follows. Go reads and
 +// writes *ci, so a nil ci panics (nil dereference) and a concurrent call on
 +// the same Frames races; the model's load and store of ci.callers do both.
-+// The model leaves *ci unchanged, where Go advances it, which no caller
++// The model stores ci.callers on every call, also on an exhausted Frames,
++// where Go only reads *ci: two concurrent Next calls on an exhausted Frames
++// race in the model and not in Go (extra behaviour, the safe direction: a
++// race is stuck in GooseLang, so a proof must exclude it). The model leaves *ci unchanged, where Go advances it, which no caller
 +// observes (the fields are unexported). It does not read the words
 +// ci.callers points to, which Go does (ci.callers[0]): a concurrent write to
 +// them races in Go and not in the model, but Go reads them only to look them
@@ -11343,7 +11301,7 @@ index 000000000..6f9a8014f
 +}
 ```
 
-### goose/model/overlay/runtime/traceback.go  (tier 0, translator)
+### goose/model/overlay/runtime/traceback.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/runtime/traceback.go b/goose/model/overlay/runtime/traceback.go
@@ -11395,10 +11353,10 @@ index 000000000..4fa05f030
 
 ```diff
 diff --git a/goose/model/overlay/strings/strings.go b/goose/model/overlay/strings/strings.go
-index a6efa4fdc..54f1fd73f 100644
+index 868c9f1cc..6a0c80d2e 100644
 --- a/goose/model/overlay/strings/strings.go
 +++ b/goose/model/overlay/strings/strings.go
-@@ -8,10 +8,16 @@ import "internal/gomodel"
+@@ -11,10 +11,16 @@ import (
  // MODEL: Split(s, sep) is the substrings of s between the occurrences of sep
  // (found left to right, not overlapping), as Go's genSplit(s, sep, 0, -1)
  // computes them. The model finds the occurrences by testing HasPrefix at each
@@ -11421,7 +11379,7 @@ index a6efa4fdc..54f1fd73f 100644
  		gomodel.Stuck()
 ```
 
-### goose/model/overlay/sync/pool.go  (tier 0, translator)
+### goose/model/overlay/sync/pool.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/sync/pool.go b/goose/model/overlay/sync/pool.go
@@ -11539,7 +11497,7 @@ index 000000000..1429639cc
 +}
 ```
 
-### goose/model/overlay/sync/runtime.go  (tier 0, translator)
+### goose/model/overlay/sync/runtime.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/sync/runtime.go b/goose/model/overlay/sync/runtime.go
@@ -11691,7 +11649,7 @@ index 000000000..bdacc64f4
 +}
 ```
 
-### goose/model/overlay/syscall/prlimit.go  (tier 0, translator)
+### goose/model/overlay/syscall/prlimit.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/syscall/prlimit.go b/goose/model/overlay/syscall/prlimit.go
@@ -11736,7 +11694,7 @@ index 000000000..a0ab2f307
 +}
 ```
 
-### goose/model/overlay/time/sleep.go  (tier 0, translator)
+### goose/model/overlay/time/sleep.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/time/sleep.go b/goose/model/overlay/time/sleep.go
@@ -12027,7 +11985,7 @@ index 000000000..d5cc25921
 +}
 ```
 
-### goose/model/overlay/time/tick.go  (tier 0, translator)
+### goose/model/overlay/time/tick.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/time/tick.go b/goose/model/overlay/time/tick.go
@@ -12113,7 +12071,7 @@ index 000000000..58ca77549
 +}
 ```
 
-### goose/model/overlay/time/time.go  (tier 0, translator)
+### goose/model/overlay/time/time.go  (tier 0, go-model-overlay)
 
 ```diff
 diff --git a/goose/model/overlay/time/time.go b/goose/model/overlay/time/time.go
@@ -12401,7 +12359,7 @@ index 0f0e918f5..000000000
 
 ```diff
 diff --git a/goose/util/model.go b/goose/util/model.go
-index 4993b5c6a..8322fc66f 100644
+index 219c553fd..953fdf2e3 100644
 --- a/goose/util/model.go
 +++ b/goose/util/model.go
 @@ -321,9 +321,63 @@ func BuildModels(modDir, configDir string, opts LoadOptions, patterns ...string)
@@ -12533,27 +12491,13 @@ index 4993b5c6a..8322fc66f 100644
  				errs = append(errs, errors.Errorf("%s: type %s, which the model changes to %s",
  					name, typeString(r.Type()), typeString(o.Type())))
  			}
-@@ -1586,8 +1684,11 @@ var asmInclude = regexp.MustCompile(`^\s*#\s*include\s+["<]([^">]+)[">]`)
- // asmHeaders are the toolchain's headers, which define no symbols and no
- // macro that does: a blanked file may include only these, since a macro of
- // another header could expand to a TEXT or GLOBL line that asmDefs, which
--// reads lines of the file itself, does not see.
--var asmHeaders = map[string]bool{"textflag.h": true, "go_asm.h": true, "funcdata.h": true, "go_tls.h": true}
-+// reads lines of the file itself, does not see. asm_amd64.h ($GOROOT/pkg/include,
-+// as textflag.h and funcdata.h) only defines the GOAMD64 level's feature flags
-+// (`#define hasPOPCNT`, with no body), which the files test with #ifdef.
-+var asmHeaders = map[string]bool{"textflag.h": true, "go_asm.h": true, "funcdata.h": true, "go_tls.h": true,
-+	"asm_amd64.h": true}
- 
- // asmDefs returns the symbols an assembly file defines, with their lines, and
- // the headers it includes other than asmHeaders, with theirs.
 ```
 
 ### goose/util/model_asm_test.go  (tier 0, translator)
 
 ```diff
 diff --git a/goose/util/model_asm_test.go b/goose/util/model_asm_test.go
-index 5c18bd836..bc984ae9a 100644
+index b1e9b4deb..bc984ae9a 100644
 --- a/goose/util/model_asm_test.go
 +++ b/goose/util/model_asm_test.go
 @@ -66,6 +66,22 @@ func TestModelBlankAsm(t *testing.T) {
@@ -12579,12 +12523,13 @@ index 5c18bd836..bc984ae9a 100644
  // TestModelBlankAsmRefused: the checks that guard the blanking.
  func TestModelBlankAsmRefused(t *testing.T) {
  	for _, c := range []struct {
-@@ -115,8 +131,12 @@ func TestModelBlankAsmRefused(t *testing.T) {
+@@ -115,9 +131,12 @@ func TestModelBlankAsmRefused(t *testing.T) {
  // TestModelBytealgDifftest is the difftest of internal/bytealg's model
  // (Perennial/Code/internal/bytealg.toml, goose/model/overlay/internal/bytealg):
  // the standard library's own strings and bytes tests, under the overlay that
--// replaces IndexByte, IndexByteString, Index and IndexString by their Go
--// models and blanks indexbyte_amd64.s and index_amd64.s. It runs only under
+-// replaces IndexByte, IndexByteString, Index, IndexString, Count and
+-// CountString by their Go models and blanks indexbyte_amd64.s, index_amd64.s
+-// and count_amd64.s. It runs only under
 +// replaces IndexByte, IndexByteString, Index, IndexString, Count, CountString,
 +// MakeNoZero and init.0 by their Go models and blanks indexbyte_amd64.s,
 +// index_amd64.s and count_amd64.s (and runtime/slice.go's go:linkname of
@@ -12594,16 +12539,7 @@ index 5c18bd836..bc984ae9a 100644
  // the toolchain the translations are generated with (the model is of its
  // sources), and not with -short. go vet is off: it cannot enter internal/gomodel,
  // a directory only the overlay adds.
-@@ -149,7 +169,7 @@ func TestModelBytealgDifftest(t *testing.T) {
- 	if models.Packages["internal/bytealg"] == nil {
- 		t.Fatalf("no model of internal/bytealg: %v", models.Packages)
- 	}
--	for _, s := range []string{"indexbyte_amd64.s", "index_amd64.s"} {
-+	for _, s := range []string{"indexbyte_amd64.s", "index_amd64.s", "count_amd64.s"} {
- 		found := false
- 		for p, c := range models.Overlay {
- 			if filepath.Base(p) == s && strings.Contains(string(c), "blanked") {
-@@ -164,7 +184,8 @@ func TestModelBytealgDifftest(t *testing.T) {
+@@ -165,7 +184,8 @@ func TestModelBytealgDifftest(t *testing.T) {
  	if err != nil {
  		t.Fatal(err)
  	}
