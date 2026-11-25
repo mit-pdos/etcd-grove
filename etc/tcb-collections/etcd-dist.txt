@@ -1,0 +1,14 @@
+# etcd-dist (examples/etcd/dist, notes/etcd-dist-plan.md §11-13, §20): the top-level robustness theorem of etcd
+# deployed across machines, `etcd_safe` (`etcd_robust.spec`, members crash and restart) and its interim
+# `etcd_safe_nocrash` (`etcd_robust_nocrash.spec`), stated in
+# Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean; on the no-crash line only the
+# skeleton `etcd_safe_nocrash_of_boot` is proved (with `etcd_safe_nocrash_of_bootWF`, its malformed case
+# discharged by BootBad.lean), from the named hypothesis `EtcdBootNC`, so the baseline is empty (written by
+# `--check --update` after the line's full VM build). Each interim axiom of the distributed proof (S2/S5
+# transport, membership.NewMember's id, bootstrap's) appears here once the boot hypothesis is discharged and
+# its proof reaches it; the baseline is then to be driven back to empty.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-dist.txt --check --update
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness\.lean$

@@ -2035,3 +2035,66 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
 
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.
+
+## 20. No-crash landing line (2026-11-25, branch `etcd-safe-nc/2026-11-25`)
+
+The line that lands the multi-machine theorems without crashes (`etcd_kv_safe_nocrash`, then
+`etcd_safe_nocrash`), with **none of the crash work or crash trust**: the crash line's trusted items go to the
+owner as their own packet. §16's rounds describe the crash line (`etcd-safe-main-r3/r4`); this line reused only
+their resolutions of files with no crash content. From `lean` @ `08313db96d`, in order:
+
+| # | what | head |
+|---|---|---|
+| 1 | merge `etcd-safe-lit/2026-11-24` (D2's translation, deployment/`WellFormed`, the restated statements and skeleton, `BootBad`) | `c022542b8b` |
+| 2 | merge `etcd-safe-transport/2026-11-24` (S5's interim axioms, the proxy check, route B; carries putgetk up to `faeb92b070`) | `f152a3be06` |
+| 3 | merge `dist-putgetk/2026-11-24` (the newest pushed putgetk head; `lean` has none of it) | `650a7c4887` |
+| 4 | round 1-3's non-crash integration changes (below) | `9f1b410842` |
+| 5 | `etcd-safe-bootax/2026-11-25`'s five commits since `etcd-safe-main-r3` @ `5a1c41d945`, cherry-picked (`-x`) | `7c022029c1` |
+
+Excluded: `etcd-safe-crashskel`, `-crash` (D4a-c', P10/P11, C-I1, `BoltCrashWhole`, the fs extension's
+`szCrash`), the etcd pin bumps (`8aa40fd5c`, `47d6cdeeb`, `e94f33b50`) with P6/P7/P8/OSB and the pin steps
+(`storage.syncDir`), `raft-restart-confpoint` (option D), `d6t4b` (T4), T7/P5/P6b. The etcd pin is `lean`'s
+(`df6af0c36`). No file was taken from the crash line alone.
+
+**What the merges needed** (each file's round-3 version taken only where no crash-line commit touched it,
+with `lean`'s changes since `676aede0a1` applied on top; every file that differs from round 3's tree was
+classified so):
+- **http.reserve**: `lean`'s `httpAddrNet` (round 2's resolution): `Spec/net/Listen`, `Proof/net/{InvNet,Listen}`,
+  `http/{Axioms,ListenerClose}`, rafthttp's `TransportState`, etcdstart's `Alloc*`/`StartRes`/`Serve`,
+  cluster3's `StartBridge`/`StartMember`, `runtime/Start`; `http-reserve-pend.md` superseded.
+- **dist statements**: lit's, with `lean`'s `EtcdVerifyOff` (round 3); the Spec header without the crash line's
+  W1 restriction (the fs extension's crash is "unrestricted" here, as on `lean`); the Proof skeleton without the
+  crash form (`EtcdBootC`, `EtcdBootCBad`, `etcd_safe_of_boot`, `NetExtsCrash`). `etcd_robust.spec` stays a
+  statement only (no proof on this line).
+- **BootBad**: round 3's (no `Hctx`: ctx-leaf-fix's `ContextReadErrs.errs`), without `crashBootBad_of_wp`,
+  `etcdBootCBad_holds`, `etcd_safe_of_bootWF`; `etcd_safe_nocrash_of_bootWF` kept.
+- **membership**: `lean`'s claim #34 specs keep the plain names, D2's one-URL specs are `.specOne` (round 1),
+  with deployment's `IdsOk`/`memberIDs`/`WellFormed`, its `Link` and link list.
+- **putgetK on `lean`** (rounds 1, 3): hprem-axioms' wire swap, the client's `AddrOk`, `EtcdVerifyOff`, no
+  `Hctx`/`Hcec`, `levelTok 0`; `NewServer_dist`/`StartMember_dist`'s pre as `specG`'s; `BootBridge` over
+  `ccAddOk`; `tier-linking` lists `putgetk.Start`.
+- **Generated/tooling**: gen-init (Net's stale copy of `lib/remote`'s `Init` removed, Dsverify's three `Base`
+  imports repointed: round 3's L1), gen-specs-pkginit's `NET_PART` (`lib/remote`), `proof_roots`' part-Net
+  split, goose's `putgetk-dist` project; bounds-allow for the dist member specs (round 2's lines without
+  `NewServerCrash`/`NewServerRAt`).
+- **Kept `lean`'s, not round 3's**: tracecheck (its `Hprem`: round 3's swap came from merging `hprem-axioms`
+  directly), `NewRaftLoggerZap` (one spec, no `specNN`), `copy-part`, the premise witnesses (round 3's
+  `FsInit` edits followed the crash line's `etcdFsSem`), the dist bridges (no duplicate here).
+- **bootax**: the iris-premise baseline is `lean`'s (no `putget_safe`/`putgetK_safe` `Hprem` line); the
+  premise-witness baseline gains the `putgetK_safe` line.
+
+**Checked:** goose `--check` (projects etcd, putget-dist, putgetk-dist), gen-init, gen-specs-pkginit, gen-raft-tla,
+copy-part, tier (208 known), bounds (390), api (6 configs), iris-premise, premise-witness, issues index; full VM
+build green at `6ae57b8e7c` (28948 jobs, first try); every `Link` regenerated on the VM matches (61), btree's
+too. Through `vmlake env`: `tcb-report --check` matches the baseline unchanged (364 axioms, 0 `sorry`, `lean`'s),
+and every collection matches (bootax's collections included; it added none). `etc/tcb-collections/etcd-dist.txt`
+(roots: the dist `TopLevelRobustness`): empty baseline (2 roots, 0 axioms, 0 `sorry`). bootax's Go evidence
+(`examples/axiomcx/bootstrapdist`, run at `e94f33b50` on its branch) passes 5/5 at this line's pin `df6af0c36`.
+
+**Trust-base diff against `lean`** (declared axioms; none is reached by a root yet, so the reported trust base is
+`lean`'s): from lit, etcdhttp's generated `initFuncsOk`/`opaqueInitsOk` (D2's translation of `etcdhttp`); from
+the transport branch, `NewServer_dist.wp_proof`, `PeerServe_dist.wp_proof`, `NewPeerHandler_dist.wp_proof`,
+`os.Getenv.wp_proofEnv` (the proxy check) and the restated `membership.membersOf_decode` (route B's
+`IsLearner`); from putgetk, none; from bootax, `bootstrap.wp_proof_dist`. No crash item (D4a/D4b/D4c',
+`DistCrashAdequacy`, C-I1's `dbCrash*`, `BoltCrashWhole`, `szCrash`, snapDir changes, the pin's translation).
+No new axiom, `sorry` or top-level premise beyond the merged branches'; no Go change of this line's own.
