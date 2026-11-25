@@ -1887,7 +1887,16 @@ Base: `etcd-safe-main-r4/2026-11-25` not posted yet (no such branch on origin); 
   post's `γm` is existential: T8 ties it to `memberKeepR`'s `k.γm` when it builds the keep.
 * **D-T7-1**: `snapCrash.snapDirKeptF` at the law's roots; `old_dir` at `R`; the step lemmas take the law's
   `osSharedInv R` and get `R0 = R` from `crashRest_roots` (moved from `MemberCrash.lean` into `SnapDirCrash.lean`).
-  `memberCrash.snapDirKeptR` is an abbreviation of `snapDirKeptF`; **T7's `snapDirKeptOf.law` (`hD1`) is gone.**
+  `memberCrash.snapDirKeptR` has `snapDirKeptF`'s body (converted by `iunfold` in the assembly); **T7's
+  `snapDirKeptOf.law` (`hD1`) is gone.**
+
+**Build** (fk-lean2, `MemberCrash`, `NewServerCrash`, `CrashInterim`: 4520 jobs, exit 0; tier check ok; no axiom
+or `sorry` added: `NewServer.wp_proofC`'s one WIP `sorry` (T4's) unchanged and absorbs nothing new). T7's theorem's
+hypotheses now: `hQ`, `hA1`, `hB4`, `hB1`, `hB1n`, `hB6` (D-T7-1's `hD1` gone; D-T7-2 needed none, its token is now
+kept).
+
+**Next session, in order** (crash work off the critical path since #50 16:48Z): B6 waits on D7/T8's decision; then
+P5's certificate route (below, approved); then the `consInv` image row.
 
 **Not done, stopped (hard rule):**
 * **B6 (a)** does not go through as approved: `idPfxInv`'s names are a persistent element of the cluster's `gen` keyed
