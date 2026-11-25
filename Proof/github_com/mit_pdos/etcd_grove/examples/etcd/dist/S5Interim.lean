@@ -55,7 +55,10 @@ cluster's members (`etcdhttp/peer.go:112-120`); `bootstrap.wp_proof_dist` relies
 (a `null` element would panic it). **Indexed by the cluster `cl` (raft's cluster names, allocated once per cluster)
 and the address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the
 same configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an
-address is set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it.
+address is set once (`addrUnset` is spent), so the only acceptor writing at it is member `id` of `cl`
+(`PeerServe_dist`, whose `γ` `srvNet` ties to the server's cluster) and the only dialers writing there are members
+of `cl` (`NewServer_dist`, one per id: `raftState`/`nodeVacant`); a second allocation of the same configuration is
+another `cl`.
 (2026-11-25, N5, `notes/etcd-dist-plan.md` §19: by the cluster, not the member's whole `SrvRaft` record, which
 holds the member's own storage registry `reg`: every member reads the other members' addresses at its own record, so
 an index by the record could not be met at three members; `notes/axiom-review/s5-cluster-index.md`.) -/
@@ -119,7 +122,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [π : NetProtoGS]
 
 /-- **What `bootstrap`'s round tripper needs of the other members' peer URLs** (persistent; the round-tripper
 contract of the interim `bootstrap.wp_proof_dist`): every other peer `pid` of the cluster `γ` (not `id`) whose
-directory entry is `http://a` has its address `a` set to etcd's peer protocols of `γ` and `pid` (`httpAddrAt`), and
+directory entry is `http://a` has its address `a` set to etcd's peer protocols of `γ`'s cluster `γ.cl` and `pid` (`httpAddrAt`; `γ`'s other
+fields, here only `γ.vs`, are the caller's), and
 this process uses no HTTP proxy (`noProxyEnv`). `bootstrap` (`bootstrap.go:72`, `rafthttp.NewRoundTripper`)
 makes the round tripper with which `isMemberBootstrapped` (`cluster_util.go:41`) sends `GET <url>/members` to each
 other member's peer URL. Exactly `NewServer.specG_dist`'s `#Hpeers ∗ #Hnoproxy`, so the S5 interim axioms'
