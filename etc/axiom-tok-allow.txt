@@ -159,12 +159,12 @@ entry Perennial.EtcdGrove.Client.streamClientInterceptor.wp_proof 2:L:0:handedto
 # one token, which the call gives back before `Put` returns; no goroutine of the call runs an interceptor,
 # so a callback that never returns stops every later one, and no token is minted (`client_Put_own`'s proof
 # lends the one token the same way).
-# Rule 7: the `∃ P` is a `*cancelCtx`'s Done proposition inside `isCancelCtxOf`, reached through the
-# `ctxOk ctx cd` the call hands its interceptor for the context it passes (the caller's `ci`, wrapped by
-# `withVersion`/`WithRequireLeader` in `WithValue` children, whose `Value(&cancelCtxKey)` returns the
-# caller's own `*cancelCtx`): the caller's proposition passed back, not one the axiom invents; it is held
-# only by `isCancelCtxOf`'s mutex and invariant (neutral handles; the walk stops there), as for
-# `monitorClusterVersions`.
+# Rule 7: the `∃ P` is the one `isContext` gives the parent `*cancelCtx` (not `isCancelCtxOf`'s own binder,
+# which is `R`, `context/Base.lean:505`). What carries the entry (review 2026-11-25): `P` is picked only in
+# the pre of the interceptor contract, which is quantified over every context and descriptor (`∀ ctx cd`), so
+# any interceptor proof is generic in it, and the axiom's post (token, `envAt`, `putGetInv`, `monoNatLbOwn`)
+# never mentions it: nothing can be smuggled out. (That it is the caller's own proposition passed back is
+# plausible but was not traced.)
 entry Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  see the section header: the caller's one `levelTok 0`, lent to the one interceptor call `Put` makes (synchronous, given back), counted once per connection contract `isNewClient` carries; the `∃ P` is the caller's context's own `*cancelCtx` Done proposition, passed back
 entry Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as `Client_Put_dist.wp_proof` (section header), for `Get`'s one `Range` call
 # The same branch's two other new axioms, which the queue's run listed as `rule 3,7 (2)` and which taint
@@ -178,21 +178,29 @@ entry Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof 2:L:0:handedtoacall
 # revoke callbacks, `Ψ` under the wait registry's trigger, `Φ : Unit -n> IProp` an atomic update's
 # fixpoint, `sDoneAny` `auth.ctxDoneAny`'s, `P` a `*cancelCtx`'s Done proposition, the rest those
 # handles' own families). Unlike those functions, `Serve` does call the handles' methods (it runs the
-# member's request handlers); the axiom's claim is `etcdstart.Serve.wp_proof` (proved, in one process)
-# over the same handles, whose proof discharges every one of these contracts at the user's own binders,
-# with the cross-process deposit (`grpcAddrAt`'s protocol, carrying the client's deposit, no token) in
-# place of `Invoke`'s; and the post is `True`, so nothing the handles hold reaches the caller.
+# member's request handlers). Why it is sound (review 2026-11-25): the post is `True`, and every finding is
+# inside handles the axiom only consumes (`memberUp`), which only etcd's proved start can build (the
+# server's fields are unexported), so no user-written callback ever runs; and the keys come from the handles'
+# definitions themselves (the same keys appear for `leaseTimeToLive`, which never calls them). The proved
+# in-process `etcdstart.Serve.wp_proof` is the analogue, not literally the same handles: `memberUp`
+# (`Defs.lean:466`) carries extra stocks and lacks `srvAuthLb`, and `Serve.spec` takes `netAddrFree` and a
+# view-shift that `Serve_dist` replaces. `7:P:IPropGF` is not among `leaseTimeToLive`'s keys: most likely
+# the per-request context the gRPC server picks for the handlers (harmless: those contracts are generic in
+# it); not traced.
 entry Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof 3:Dep:produced1/consumed0,3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:sDoneAny:context.ContextDesc(IPropGF),7:GA:w64→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:Dep:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:Nat→IPropGF,7:U:IPropGF,7:P:IPropGF  see the section header: `memberUp`'s server handles, as leaseTimeToLive's and rangeStream's keys; the handles' contracts are discharged by the proved in-process `etcdstart.Serve.wp_proof` over the same handles, and the post is `True`
 # `bootstrap.wp_proofOne` (Proof/go_etcd_io/etcd/server/v3/etcdserver/bootstrapOne.lean; interim, retired
 # when #34 proves `bootstrap`): `bootstrap.spec` at one member of one URL; until 2026-11-24 the same
 # content was the closed theorems' Iris premise `etcdstart.premises`, which this gate did not walk. Its
 # post `bootOk` returns the new backend and its handles; the findings have the keys of the backend's and
 # the stores' entries above: `∃ Φ : GoString × GoString → IProp` is `dlIs`'s (as backend.Snapshot's,
-# `storage.OpenBackend`'s: bound with `dlReg`'s saved predicate at the backend's own name), and `Pre`
-# produced twice and consumed once is a critical-section precondition of the backend's batch-transaction
-# contracts (`∀ Pre Q`), as `v3alarm.NewAlarmStore`'s and `auth.NewAuthStore`'s (two exclusive paths:
-# the post-lock hook or the no-lock path). The `Pre` binder's path inside `bootOk` was matched by key and
-# by the handles `bootOk` holds, not traced binder by binder (the walk does not print paths).
+# `storage.OpenBackend`'s: bound with `dlReg`'s saved predicate at the backend's own name). `Pre` (review
+# 2026-11-25, traced by hand): not the backend's batch-transaction contracts (`OpenBackend` shows no `3:Pre`)
+# but `bootOk`'s `clusterApplyRest` (`SnapRO.lean:283`) -> `apply.isClusterRest`'s `cPre b … Pre`/`cPost b
+# Pre Post` (`apply/Contracts.lean:98-103, 625-649`), from the open law `bootClusterRows.spec`: consumed once
+# (`csContractA`), produced twice (`hookRun`'s premise, `mvcc/Api.lean:414`, and `Post ∨ Pre`), the pattern
+# of `NewAlarmStore`'s; the two paths are exclusive in Go (`SetVersion`, `UpdateAttributes`,
+# `SetDowngradeInfo` each write the backend at most once, under `shouldApplyV3`, `cluster.go:467-474,
+# 589ff, 809-814`).
 entry Perennial.EtcdGrove.bootstrap.wp_proofOne 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  see the section header: as NewAlarmStore's `Pre` (two exclusive paths) and backend.Snapshot's `dlIs` `Φ`
 # The ratchet's exception for these four (dist-putget-interim, 2026-11-25; for the coordinator's review):
 # their walks truncate where the walks of the handles they take already do on `lean`, in definitions this
@@ -202,6 +210,13 @@ entry Perennial.EtcdGrove.bootstrap.wp_proofOne 3:Pre:produced2/consumed1,7:Φ:G
 # `Serve_dist` in `memberUp`'s server handles (`cd.4`, `decLb`, `ownRWMutex`, the backend's bbolt
 # definitions); `bootstrap.wp_proofOne` in the backend's bbolt definitions (`isBoltP`, `boltTxDef`,
 # `sync.isPool`: the bbolt S1 exception above, the same definitions). None is a definition of trusted text.
+# Review (2026-11-25): no hidden mint found, but the truncated subterms are checked by nothing. Client: `cd.4`
+# (the picked descriptor's `PDone`, rule 7's channel) reaches only the generic interceptor pre, as
+# `Server.Serve`'s precedent; none reaches the post. `Serve_dist`: inside consumed handles, post `True`.
+# `bootstrap.wp_proofOne` is the one that matters (the truncation is in the PRODUCED `bootOk` backend):
+# acceptable because `bootstrap.wp_proof` is a theorem with no `sorry`, so `bootOk`'s bbolt resources come
+# only through `bootstrapBackend`/`OpenBackend`'s post, whose truncation is already accepted (that no open
+# callee of #34's link adds bbolt resources was not confirmed).
 trunc Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
