@@ -36,7 +36,6 @@ pure `metadata.outgoingOf`). -/
 abbrev reqCtx.spec : Prop :=
   ∀ [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (who : GoString),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth }}

@@ -31,13 +31,11 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 /-- See the file header. -/
 abbrev ready.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
-      ([∗list] x ∈ ms, client.srvStart x) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      ([∗list] x ∈ ms, client.srvStart x)) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready)) (Val #cl))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; levelTok 0 ∗ (True) }}
 
 end spec
 

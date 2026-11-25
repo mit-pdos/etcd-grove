@@ -58,7 +58,7 @@ theorem leasingKV.get.wp_proof
   -- a reader slot borrowed with the thread's token
   iapply wp_fupd
   iapply fupd_wp
-  imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
+  imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan, Hlt, Hrest⟩
   · iframe #; iframe
   imodintro
   wp_auto
@@ -73,12 +73,12 @@ theorem leasingKV.get.wp_proof
   cases b
   · -- the session is not ready: the client's `Do`
     wp_auto
-    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
     · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
-    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
     · iframe #; iframe
     imodintro
     iapply HΦ
@@ -98,12 +98,12 @@ theorem leasingKV.get.wp_proof
   · -- not a get the cache serves: the client's `Do`
     subst Hret Hok
     wp_auto
-    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+    wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
     · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
     try wp_auto
     wp_apply hRG $$ [$Hcv $r] as r
     try wp_auto
-    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
     · iframe #; iframe
     imodintro
     iapply HΦ
@@ -128,12 +128,12 @@ theorem leasingKV.get.wp_proof
         $$ [$Hpkg $Hcache $Hrd $Hpeek] as %mb ⟨Hrd, %st, #Hseen, %Hmb⟩
       cases mb
       · wp_auto
-        wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+        wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
         · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
         try wp_auto
         wp_apply hRG $$ [$Hcv $resp] as resp
         try wp_auto
-        imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+        imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
         · iframe #; iframe
         imodintro
         iapply HΦ
@@ -148,7 +148,7 @@ theorem leasingKV.get.wp_proof
         · ipureintro; exact concurrency.keyOp_not_panics
         obtain ⟨-, hkk, hke, -, -⟩ := keyGet_fields o.key
         wp_apply hAcq lkv γ pfx ctx cs o.key opK (opGetModel o.key []) lo
-          $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $HopK $Hlo] as %resp %err ⟨Hrd, Hacq⟩
+          $$ [$Hlt $Hpkg $Hlkv $Hrd $Hctx $HctxC $HopK $Hlo] as %resp %err ⟨Hlt, Hrd, Hacq⟩
         · ipureintro
           refine ⟨keyGet_txnOpOf _, hkk, hke, ?_, ?_, ?_⟩ <;> simp [op_simps, (show o.key.length ≤ 2 ^ 27 from Ho.2.1)]
         icases Hacq with (⟨%Hne, %Hresp⟩ | ⟨%Heq, Hacq⟩)
@@ -158,7 +158,7 @@ theorem leasingKV.get.wp_proof
             | ok e => exact ⟨e, rfl⟩
           subst Hresp
           wp_auto
-          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
           · iframe #; iframe
           imodintro
           iapply HΦ
@@ -189,7 +189,7 @@ theorem leasingKV.get.wp_proof
         cases ok
         · -- not acquired: the transaction's get
           wp_auto
-          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
           · iframe #; iframe
           imodintro
           iapply HΦ
@@ -251,16 +251,28 @@ theorem leasingKV.get.wp_proof
         iunfold hdrFull at Hhdr'
         icases Hhdr' with ⟨%Hhnn, -, -, #HRev, -, -⟩
         -- the lease monitor keeps the slot; the wait group holds its loan receipt
-        wp_apply wp_fork_tok_self $$ [Hrun Hrd] as Htok
+        -- the fresh thread token: the monitor takes its level 0 (the client's calls) and its levels
+        -- from 2; this thread its level 1, which with the levels it kept is its thread token again
+        wp_apply wp_fork_tok
+        iintro Hft
+        icases (threadTok_level0 (GF := GF)).1 $$ Hft with ⟨F0, Ft1⟩
+        icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Ft1 with ⟨F1, F2⟩
+        ihave Htok : iprop(threadTok) $$ [Hlt F1 Hrest]
+        · iapply (threadTok_level0 (GF := GF)).2
+          iframe Hlt
+          iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+          iframe
+        isplitl [Hrun Hrd F0 F2]
         · iapply wp_fupd
           try wp_auto
           wp_apply wp_with_defer as %defer defer
           try wp_auto
-          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC] as Hrd
+          wp_apply hML lkv γ pfx ctx cs o.key hm.revision $$ [$F0 $Hpkg $Hlkv $Hrd $Hsr $Hctx $HctxC]
+            as ⟨F0, Hrd⟩
           · ipureintro; rw [Hrev]; refine ⟨?_, ?_, Ho.2.1⟩ <;> omega
           try wp_auto
           wp_apply wp_leasingWg_Done lkv γ $$ [$Hsync $Hwg $Hwginv $Hrun] as Hloan
-          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+          imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd F0 F2] with Htok
           · iframe #; iframe
           imodintro
           iframe
@@ -282,12 +294,12 @@ theorem leasingKV.get.wp_proof
         ipureintro
         exact ⟨he0.2.symm, Hrev.symm, Hlo_r⟩
     · wp_auto
-      wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $HctxC $Hop $Hlo] as %r %err #Hres
+      wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hlt $Hctx $HctxC $Hop $Hlo] as %r %err ⟨Hlt, #Hres⟩
       · ipureintro; exact ⟨Ho.1, opSizeOk_of_shape Ho.2 (by decide)⟩
       try wp_auto
       wp_apply hRG $$ [$Hcv $r] as r
       try wp_auto
-      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
       · iframe #; iframe
       imodintro
       iapply HΦ
@@ -300,7 +312,7 @@ theorem leasingKV.get.wp_proof
     icases Hfresh with ⟨%Hnn, Hfresh⟩
     rw [decide_eq_false Hnn]
     wp_auto
-    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
     · iframe #; iframe
     imodintro
     iapply HΦ

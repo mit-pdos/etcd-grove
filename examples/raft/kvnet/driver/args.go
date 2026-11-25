@@ -16,6 +16,13 @@ const (
 	RoleClient = "client"
 )
 
+// The replicas' transports for their raft messages (NodeArgs' -transport flag; the clients' requests
+// always go over TCP).
+const (
+	TransportTCP = "tcp" // kvnet.RunNode: a TCP connection per peer (the default)
+	TransportUDP = "udp" // kvnet.RunNodeUDP: datagrams (kvudp)
+)
+
 // NodeArgs is the command line of replica id's process: kvnet.RunNode's arguments as flags.
 func NodeArgs(id uint64, addrs, dir string, o kvnet.Options) []string {
 	return []string{
@@ -53,8 +60,16 @@ func RunProcess(args []string) error {
 		maxSize := fs.Uint64("maxsize", 0, "raft's MaxSizePerMsg")
 		maxCommitted := fs.Uint64("maxcommitted", 0, "raft's MaxCommittedSizePerReady")
 		maxInflight := fs.Uint64("maxinflight", 256, "raft's MaxInflightMsgs")
+		transport := fs.String("transport", TransportTCP, "the raft messages' transport: tcp (kvnet.RunNode) or udp (kvnet.RunNodeUDP)")
 		if err := fs.Parse(args[1:]); err != nil {
 			return err
+		}
+		if *transport == TransportUDP {
+			kvnet.RunNodeUDP(*id, *addrs, *dir, *voters, *preVote, *checkQuorum, *stepDown, *maxSize, *maxCommitted, *maxInflight)
+			return nil
+		}
+		if *transport != TransportTCP {
+			return fmt.Errorf("kvnet: unknown transport %q", *transport)
 		}
 		kvnet.RunNode(*id, *addrs, *dir, *voters, *preVote, *checkQuorum, *stepDown, *maxSize, *maxCommitted, *maxInflight)
 		return nil

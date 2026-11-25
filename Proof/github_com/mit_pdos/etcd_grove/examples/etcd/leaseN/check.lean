@@ -51,8 +51,8 @@ theorem check.wp_proof
     check.spec (GF := GF) (hG := hG) := by
   have wp_TimeToLive := lessor.TimeToLive.specP_of wp_TimeToLive
   have wp_Leases := lessor.Leases.specP_of wp_Leases
-  intro CRE CEC addr lg V Hpe Htb hAs
-  wp_start as ⟨#Hlgz, #Hlr⟩
+  intro addr lg V Hpe Htb hAs
+  wp_start as ⟨Hlt, #Hlgz, #Hlr⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Pes : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
@@ -63,7 +63,7 @@ theorem check.wp_proof
   icases Hlr with ⟨#Hrttl, #Hrls⟩
   (try wp_auto)
   -- `NewClient(addr, lg)`
-  wp_apply (wp_NewClient addr lg V Hpe Htb) as %cl %cerr Hcl
+  wp_apply (wp_NewClient addr lg V Hpe Htb) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -72,7 +72,7 @@ theorem check.wp_proof
     | nil => exact absurd rfl Hcerr
     | ok ei => ?_
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   subst Hcerr
   wp_auto
   iunfold isNewClient at Hnc
@@ -87,7 +87,7 @@ theorem check.wp_proof
   (try wp_auto)
   -- `cli.Lease.Leases(lctx)`, `Q`: the IDs have no duplicate
   wp_apply (wp_Leases lp [addr] etcdLeaseLeasesSpecAny
-      (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) as %lsr %lerr Hls
+      (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
   · iframe #
     imodintro; inext
     iunfold etcdLeaseLeasesSpecAny, etcdLeaseLeasesSpecAnyW
@@ -103,7 +103,7 @@ theorem check.wp_proof
     | nil => exact absurd rfl Hlerr
     | ok ei => ?_
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   subst Hlerr
   (try wp_auto)
   -- the double loop: no ID twice (`Nodup`)
@@ -183,7 +183,7 @@ theorem check.wp_proof
     (try wp_auto)
     -- `cli.Lease.TimeToLive(tctx, leaseID)`, `Q`: the reply's ID is `7`
     wp_apply (wp_TimeToLive lp [addr] etcdLeaseTTLSpec
-        (fun m => iprop(⌜m.id = W64 7⌝)) tctx tcd (W64 7) slice.nil []) as %tr %terr Htl
+        (fun m => iprop(⌜m.id = W64 7⌝)) tctx tcd (W64 7) slice.nil []) $$ [$Hlt] as %tr %terr ⟨Hlt, Htl⟩
     · iframe #
       isplitl
       · imodintro; inext
@@ -209,13 +209,13 @@ theorem check.wp_proof
       | nil => exact absurd rfl Hterr
       | ok ei => ?_
       wp_auto
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hlt; try itrivial
     subst Hterr
     (try wp_auto)
     -- the check: the reply is about lease `7`
     simp only [Hmid, _root_.decide_true, Bool.not_true]
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

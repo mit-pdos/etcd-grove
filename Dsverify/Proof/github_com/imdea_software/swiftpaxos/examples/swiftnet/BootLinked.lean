@@ -28,7 +28,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.hook.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Init
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.bytes.Link

@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/Member.l
 
 The in-process putget's `Main` up to `Serve` (`Proof/.../examples/etcd/putget/Main.lean`), on a machine of its
 own: `zap.NewNop()`; the
-member's start bundle from `ETCD_VERIFY` off (the precondition's `envVerifyOff`) and the fresh data directory and WAL area
+member's start bundle from `ETCD_VERIFY` off (the precondition's `EtcdVerifyOff`) and the fresh data directory and WAL area
 (`etcdstart.memberStartRes_one`); `etcdstart.StartServer` from the named premises (`etcdstart.wp_StartServer1`,
 shared with the in-process `Main`: `alloc1` inside); the client's putget invariant allocated from the
 bootstrap log's KV state (`client.putGetInv_alloc_log`, as the in-process `Main`); `etcdstart.Serve` in S2's

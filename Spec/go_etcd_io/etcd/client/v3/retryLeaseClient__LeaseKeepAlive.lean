@@ -30,19 +30,18 @@ client end of a new stream, both tokens at
 abbrev retryLeaseClient.LeaseKeepAlive.spec : Prop :=
   ∀ (rlc conn : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (retryLeaseAt rlc conn ∗
       isEtcdConn conn [addr] ∗ leaseKAStreamOk addr ∗ ctxOk ctx cd ∗
-      opts ↦*□ vs ∗ ownSliceCap GoInterface opts (DFrac.own 1) ∗ streamCallOptsOk vs }}
+      opts ↦*□ vs ∗ ownSliceCap GoInterface opts (DFrac.own 1) ∗ streamCallOptsOk vs) }}
     (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
         go!"LeaseKeepAlive")) (Val #(GoInterface.ok ctx))) (Val #opts))
-  {{ (st err : GoInterface), RET (PairV #st #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
+  {{ (st err : GoInterface), RET (PairV #st #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
           (Dn : Nat → (w64 × w64) → IProp GF) (cd' : context.ContextDesc (IProp GF)),
-        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn cd' anyRes ∗
+        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn cd' clientRes ∗
         kaUpZero Up ∗
         cliSendTok (Req := pbLeaseKeepAliveRequest) γ [] ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
-      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err) }}
+      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
 
 end spec
 

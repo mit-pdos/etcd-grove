@@ -29,9 +29,9 @@ log), creates a session (`concurrency.NewSession`), sets it and closes `sessionc
 lock, and waits for the session to end. It returns. -/
 abbrev leasingKV.monitorSession.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ sessionMonitor lkv γ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ levelTok 0 ∗ (isLeasingKV lkv γ pfx ∗ sessionMonitor lkv γ) }}
     (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"monitorSession")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

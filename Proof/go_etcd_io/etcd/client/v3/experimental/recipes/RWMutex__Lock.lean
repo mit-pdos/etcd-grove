@@ -31,13 +31,13 @@ theorem RWMutex.Lock.wp_proof
     (wp_waitOnLastRev : RWMutex.waitOnLastRev.spec (GF := GF) (hG := hG)) :
     RWMutex.Lock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx o lo
-  wp_start as ⟨#Hm, Hmk, #Hlo⟩
+  wp_start as ⟨Hlt, #Hm, Hmk, #Hlo⟩
   ihave #Hm' := Hm
   iunfold isRWMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmctx, #Hmpfx, %Hpfx, #Hsess, #Hcl, #Hclosed⟩
   wp_auto
   wp_apply wp_newUniqueEphemeralKey s γ client id pfx (pfx ++ go!"write") lo
-    $$ [$Hsess $Hcl $Hlo] as %ek %err Hres
+    $$ [$Hlt $Hsess $Hcl $Hlo] as %ek %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨List.prefix_append _ _, by simp; word⟩
   icases Hres with (⟨%Hnil, %kv, %key, %r, #HKVf, Hek, #Hr, #Hc, %Hkr⟩ | %Hne)
   rotate_left
@@ -48,6 +48,7 @@ theorem RWMutex.Lock.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     unfold rwLockResult
     iright
     isplitr
@@ -65,14 +66,15 @@ theorem RWMutex.Lock.wp_proof
   ihave IH : iprop("Hmk" ∷ rwMyKey m pfx (some (ek, ⟨GoInterface.ok kv, key, r, []⟩))) $$ [Hmk]
   · simp only [named]; iexact Hmk
   wp_for IH
-  wp_apply wp_waitOnLastRev m s γ client id pfx pfx ek _ r $$ [$Hm $Hmk $Hr]
-    as %done %werr ⟨Hmk, Hw⟩
+  wp_apply wp_waitOnLastRev m s γ client id pfx pfx ek _ r $$ [$Hlt $Hm $Hmk $Hr]
+    as %done %werr ⟨Hlt, Hmk, Hw⟩
   · ipureintro; exact ⟨List.prefix_refl _, Hcp.1, by word⟩
   icases Hw with (⟨%Hd, %R, %s', #HR, #Hs', %HRs⟩ | %Hd)
   · obtain ⟨rfl, rfl⟩ := Hd
     wp_auto
     wp_for_post
     iapply HΦ
+    iframe Hlt
     unfold rwLockResult
     ileft
     isplitr
@@ -91,6 +93,7 @@ theorem RWMutex.Lock.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
+    iframe Hlt
     unfold rwLockResult
     iright
     isplitr

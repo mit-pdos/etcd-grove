@@ -31,6 +31,21 @@ const (
 	StConnErrors
 	StBadFrames
 	StRestartsInProcess
+	StUDPFragmentsSent       // the UDP transport's (udptransport.go): fragments written
+	StUDPFragmentsReceived   // fragments received, well formed and addressed to this replica
+	StUDPFragmentsDuplicate  // fragments received again (of a message pending or completed)
+	StUDPFragmentsReordered  // fragments received after a later fragment of their message
+	StUDPMsgsReordered       // messages completed after a later message of their sender's process
+	StUDPMultiFragment       // messages reassembled from more than one fragment
+	StUDPReassembliesEvicted // messages evicted incomplete (a fragment lost, or late)
+	StUDPBadDatagrams        // datagrams dropped as malformed, misaddressed or inconsistent
+	StUDPWriteErrors         // WriteToUDP failures
+	StUDPSnapshotsAcked      // snapshots reported finished on their receiver's acknowledgment
+	StUDPSnapshotResends     // snapshots sent again, unacknowledged
+	StUDPSnapshotsFailed     // snapshots reported failed, unacknowledged after every resend
+	StUDPAcksSent            // acknowledgments sent (of snapshots completed, again or not)
+	StUDPAcksReceived        // acknowledgments received matching a snapshot waiting for one
+	StUDPReceivedDropped     // messages received but dropped, their sender's step queue full
 	NumStats
 )
 
@@ -43,6 +58,11 @@ var StatNames = [NumStats]string{
 	"file writes", "leader sent first", "commit-only unwritten",
 	"messages sent", "messages received", "messages dropped",
 	"dials", "connection errors", "bad frames", "restarts in process",
+	"udp fragments sent", "udp fragments received", "udp fragments duplicate",
+	"udp fragments reordered", "udp messages reordered", "udp multi-fragment messages",
+	"udp reassemblies evicted", "udp bad datagrams", "udp write errors", "udp snapshots acked",
+	"udp snapshot resends", "udp snapshots failed", "udp acks sent", "udp acks received",
+	"udp received dropped",
 }
 
 // Stats counts what an incarnation exercised, for the tests' coverage report (the driver reads

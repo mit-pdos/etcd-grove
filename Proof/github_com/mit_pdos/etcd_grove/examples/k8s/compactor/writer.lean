@@ -43,8 +43,8 @@ theorem writer.wp_proof
     (wp_Itoa : EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG))
     (h_client_Put_kv : client.client_Put_kv.law (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ cl γk γ
-  wp_start as ⟨#Hko, #Hinv⟩
+  intro _ _ cl γk γ
+  wp_start as ⟨Hlt, #Hko, #Hinv⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writeKey = #writeKeyS from rfl]
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -65,7 +65,7 @@ theorem writer.wp_proof
     iintro %i %f %g %Hf %Hg
     simp at Hf
   wp_auto
-  ihave IH : (∃ n : w64, "i" ∷ i_ptr ↦ n : IProp GF) $$ [i]
+  ihave IH : (∃ n : w64, "i" ∷ i_ptr ↦ n ∗ "Hlt" ∷ levelTok 0 : IProp GF) $$ [i Hlt]
   · iexists _; iframe
   wp_for IH
   wp_if_destruct
@@ -81,7 +81,7 @@ theorem writer.wp_proof
     wp_apply (h_client_Put_kv cl api γk dup ctx cd writeKeyS (fmtInt n (W64 10)) slice.nil
         (fun _ => iprop(True))
         (opSizeOk_opPutModel (K := 16) (E := 0) (V := 66) (optsKeep_nil _ _ _) (by decide)
-          (fmtInt_length_le _ _) (by decide))) $$ [] as %resp %err -
+          (fmtInt_length_le _ _) (by decide))) $$ [$Hlt] as %resp %err ⟨Hlt, -⟩
     · iframe #
       ihave #Hau := putAu_other γk γ writeKeyS (fmtInt n (W64 10)) (by decide) $$ Hinv
       cases dup <;> simp only [intuitionisticallyIf, Bool.false_eq_true, ↓reduceIte] <;> iexact Hau
@@ -94,7 +94,8 @@ theorem writer.wp_proof
     iexists _; iframe
   · (try wp_auto)
     iapply HΦ
-    itrivial
+    iframe Hlt
+    try itrivial
 
 end proof
 

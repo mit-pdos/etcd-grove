@@ -105,7 +105,7 @@ theorem newServerMode.wp_proof
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (bootCfgOk_of _ rfl rfl rfl rfl) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩) ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩ HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres
   · iframe
     iframe #
@@ -231,7 +231,7 @@ theorem newServerMode.wp_proofRestart
       (etcdURLsFit_httpURL peerAddr Hpf) (etcdURLsFit_httpURL client Hcf)
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
-      (bootCfgOk_of _ rfl rfl rfl rfl) rfl (srvWalDirOf_lit _) HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩) rfl (srvWalDirOf_lit _) HwbN)
     $$ [Htok Himg Hids Hwtok Hidx Hcok Hrev Hnk] as %srv %err Hres
   · iframe
     iframe #

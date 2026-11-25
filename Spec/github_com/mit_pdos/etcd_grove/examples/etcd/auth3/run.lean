@@ -48,7 +48,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assum
 abbrev run.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (s₁ s₂ s₃ lg : Loc) (a₁ a₂ a₃ : GoString) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
     (γn : NetNames GF) (id₁ id₂ id₃ : w64) (γa₁ γa₂ γa₃ : auth.AuthNames),
   plainEndpoint a₁ → plainEndpoint a₂ → plainEndpoint a₃ →

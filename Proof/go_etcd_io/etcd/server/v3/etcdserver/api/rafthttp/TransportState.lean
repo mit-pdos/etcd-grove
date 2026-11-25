@@ -218,7 +218,7 @@ theorem rafthttp.Transport.Start_full
         zapLoggerOk tv.Logger' ∗
         ⌜tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
           tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
-        trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
+        trURLsOk (netRh γn) tv.ID' uvs ∧ transport.tlsEmpty tv.TLSInfo'⌝ ∗
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
         snap.isSnapshotter tv.Snapshotter' sd ∗
         inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
@@ -233,11 +233,11 @@ theorem rafthttp.Transport.Start_full
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), transportTok γn t c }} := by
   wp_start_folded as ⟨Ht, #Hlgz, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, #HssI, #HrPool⟩
   iStructNamed Ht
-  obtain ⟨Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre
+  obtain ⟨Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls, Htls⟩ := Hpre
   iapply wp_fupd
   wp_apply (rafthttp.Transport.Start_core hNSRT hNRT hNewProber hEvery (raftHttpNet (netRh γn)) t
       tv.TLSInfo' tv.DialTimeout' (DFrac.own 1) (DFrac.own 1) tv.streamRt' tv.pipelineRt'
-      tv.pipelineProber' tv.streamProber' tv.peers' tv.remotes' tv.DialRetryFrequency')
+      tv.pipelineProber' tv.streamProber' tv.peers' tv.remotes' tv.DialRetryFrequency' Htls)
     $$ [TLSInfo DialTimeout streamRt pipelineRt peers remotes pipelineProber streamProber
       DialRetryFrequency]
     as %err ⟨TLSInfo, DialTimeout, Hres⟩

@@ -22,7 +22,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
-public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
+public import Proof.go_etcd_io.etcd.client.v3.credentials.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.Init
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.Init
 public import Proof.go_etcd_io.raft.v3.Init
@@ -40,6 +40,7 @@ public import Proof.math.rand.Float64
 public import Proof.go_etcd_io.etcd.client.v3.jitterUp
 public import Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 

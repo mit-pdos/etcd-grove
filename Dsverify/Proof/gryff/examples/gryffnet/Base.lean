@@ -4,14 +4,14 @@ The package fact of `gryff.examples.gryffnet` (dsv-gryff, notes/dsv-gryff.md): `
 module
 
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Perennial.Proof.encoding.binary.Link
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Dsverify.Proof.net.rpc.Init
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Dsverify.Proof.gryff.src.gryff.Init

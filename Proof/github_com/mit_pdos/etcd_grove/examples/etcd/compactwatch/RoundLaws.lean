@@ -38,16 +38,15 @@ abbrev client_Get_rev.law : Prop :=
       (keys : List GoString) (val : GoString) (k : GoString) (r : Nat) (c cid mid : w64)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (F : mvcc.Log)
       (hsz : opSizeOk (opGetModel k [])),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl [ep] V ∗
           kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
-          roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γv r ∗ srvApi.kvLogLb E.γs F }}
+          roundsInv γr γf γl γv keys val ∗ monoNatLbOwn γv r ∗ srvApi.kvLogLb E.γs F) }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Get")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
               ⌜(r : Int) ≤ sint.Z m.hdr.revision⌝) ∨
-            ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }}
+            ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 end laws1
 

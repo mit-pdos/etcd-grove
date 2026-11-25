@@ -44,7 +44,7 @@ paths (`absent` of each: `os.Lstat` and `errors.Is(err, os.ErrNotExist)`), then 
 
 **Its hypotheses** are mvccrand's, but `sort.Slice.spec` (`mvccfull.wp_Main` takes no hypothesis:
 the tester's lease checks compare the lessor's list against the model's without sorting it):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset) and the execution's
+* pure facts of the program's environment: `EtcdVerifyOff` (`ETCD_VERIFY` off) and the execution's
   length (prom-registry, route (b), 2026-11-22: no longer `namesUnclaimed` of `mvccfullMetricNames`:
   the proof allocates the registration rights of the packages' metric IDs itself, `mvccfull_regQsOk`)
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 48`;
@@ -154,7 +154,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
-    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
@@ -171,7 +171,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     ⟨trivial, Hfs, trivial⟩ [] [] List.nodup_nil List.nodup_nil
     (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
     ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
-    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
+    ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
@@ -182,8 +182,9 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
-  iunfold startRights at Hrights
-  icases Hrights with ⟨-, -, -, #Hvoff⟩
+  iclear Hrights
+  ihave #Hvoff : ⌜EtcdVerifyOff⌝ $$ []
+  · ipureintro; exact HEnv
   -- (prom-registry, route (b)) the run's registration rights: a fresh ghost map of its packages' IDs,
   -- the run's registry name
   imod (prometheus.regKeys_alloc (GF := mvccfullGF) _ mvccfull_regQsOk) with ⟨%γreg, Hregs⟩
@@ -219,7 +220,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (r : GoString)
-    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)

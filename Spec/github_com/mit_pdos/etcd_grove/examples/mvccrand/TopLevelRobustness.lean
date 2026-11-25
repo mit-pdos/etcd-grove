@@ -56,7 +56,7 @@ def mvccrand_robust.spec : Prop :=
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (r : GoString)
-    (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
+    (HEnv : EtcdVerifyOff) (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots),
     Robustness.Robust [] [(mvccrandProgram r, σ)] g (threads := 2 ^ 28)

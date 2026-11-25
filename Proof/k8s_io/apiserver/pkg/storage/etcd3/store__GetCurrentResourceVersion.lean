@@ -49,7 +49,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG)) :
     store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd k Q hk hkl
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hau⟩
+  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
@@ -84,9 +84,10 @@ theorem store.GetCurrentResourceVersion.wp_proof
   (try wp_auto)
   wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hau]
-    as %resp %gerr Hget
+      c.ms c.V ci cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hlt Hau]
+    as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
+    iframe Hlt
     iexact Hau
   (try wp_auto)
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
@@ -111,6 +112,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
         fmt_args_intro; itrivial
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft
       isplitr
       · ipureintro; simp
@@ -128,6 +130,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
       simp only [hnz, decide_false]
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       isplitr
       · ipureintro; rfl
@@ -143,6 +146,7 @@ theorem store.GetCurrentResourceVersion.wp_proof
     | ok gi =>
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; exact Hgerr

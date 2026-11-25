@@ -23,7 +23,7 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.gryff.src.bloomfilter.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Dsverify.Proof.gryff.src.dlog.Init
@@ -35,7 +35,7 @@ public import Dsverify.Proof.gryff.src.gryffcommon.Init
 public import Dsverify.Proof.gryff.src.gryffproto.Init
 public import Dsverify.Proof.gryff.src.state.Init
 public import Dsverify.Proof.gryff.src.stats.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

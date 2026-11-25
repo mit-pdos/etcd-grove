@@ -53,7 +53,7 @@ def mvccfull_robust.spec : Prop :=
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
     [os.fileStat.FieldAssumptions] (r : GoString)
-    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots),
     Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := 2 ^ 28)

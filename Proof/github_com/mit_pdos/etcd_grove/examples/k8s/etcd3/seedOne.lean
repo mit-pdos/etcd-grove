@@ -37,7 +37,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     (h_client_Put_st : client.client_Put_st.law (GF := GF) (hG := hG)) :
     seedOne.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γs s0 g k rv σ hAs hms hk hg
-  wp_start as ⟨#Hnc, #Hwo, #Hregs, #Hsi, Hs, #Hst⟩
+  wp_start as ⟨Hlt, #Hnc, #Hwo, #Hregs, #Hsi, Hs, #Hst⟩
   wp_auto
   wp_apply wp_splitKey
   (try wp_auto)
@@ -69,7 +69,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
         ⌜σ' = σ⌝))
       (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
         (by simp [storeKeyL]; omega) (by simp [encodeWith, putF]; omega) (by decide)))
-    $$ [Hau] as %resp %err Hout
+    $$ [$Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iExactEq Hau; rfl
   icases Hout with (⟨%Herr, %m, %σ', #Hm, ⟨Hs, %Hσ'⟩, %Hrev⟩ | ⟨%Herr, -⟩)
@@ -84,6 +84,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     · rw [decide_eq_false hrv]
       wp_auto
       iapply HΦ
+      iframe Hlt
       ileft
       ipureintro; rfl
     replace hrv := Decidable.not_not.1 hrv
@@ -97,6 +98,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     imod ownSlice_persist _ _ _ $$ Hout with #Hout
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl
@@ -112,6 +114,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       ileft
       ipureintro; rfl
 

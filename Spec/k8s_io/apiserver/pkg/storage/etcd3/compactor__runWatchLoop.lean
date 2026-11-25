@@ -36,13 +36,11 @@ abbrev compactor.runWatchLoop.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (c cl : Loc) (eps : List GoString) (V : client.WEnv GF) (γk : KVNames)
     (recorded : w64 → IProp GF) (γc : CompactorNames) (sc : GoChan) (γs : ChanNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      compactorCore c cl γk recorded γc ∗ compactorChanOk c sc γs ∗
-      isNewClient cl eps V ∗ clientKvOk cl γk ∗ clientWatchOk cl γk ∗ keyReadOk γk recorded }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (compactorCore c cl γk recorded γc ∗ compactorChanOk c sc γs ∗
+      isNewClient cl eps V ∗ clientKvOk cl γk ∗ clientWatchOk cl γk ∗ keyReadOk γk recorded) }}
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"runWatchLoop")) (Val #sc))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

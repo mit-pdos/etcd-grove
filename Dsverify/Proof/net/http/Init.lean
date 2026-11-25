@@ -4,23 +4,23 @@ The initializer of `net/http` as a **hypothesis** of the part's EPaxos proofs (n
 it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/http`) and those of
 every package its initializer reaches (its imports' initializers run first: the well-formedness
 condition `GetIsPkgInitProp pkg_id.net.http` constrains the table at each of them; a package of
-that closure with no fact elsewhere has a `True` one in the part, `Dsverify/Proof/<pkg>/Base.lean`);
+that closure with no fact elsewhere has a `True` one in `Net/`, `Net/Proof/<pkg>/Base.lean`);
 generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
 prove `net.http.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
 -/
 module
 
 public import Net.GeneratedProof.net.http
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Net.Proof.net.Base
 public import Proof.bufio.PkgInit
 public import Proof.net.url.PkgInit
-public import Dsverify.Proof.path.Base
-public import Dsverify.Proof.crypto.tls.Base
-public import Dsverify.Proof.net.textproto.Base
-public import Dsverify.Proof.mime.multipart.Base
-public import Dsverify.Proof.net.http.internal.ascii.Base
-public import Dsverify.Proof.vendor.golang_org.x.net.http.httpguts.Base
+public import Proof.path.PkgInit
+public import Proof.crypto.tls.PkgInit
+public import Net.Proof.net.textproto.Base
+public import Net.Proof.mime.multipart.Base
+public import Net.Proof.net.http.internal.ascii.Base
+public import Net.Proof.vendor.golang_org.x.net.http.httpguts.Base
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.strconv.Base

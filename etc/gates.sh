@@ -196,6 +196,12 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# net/rpcdriver's boot table (etc/gen-rpcdriver-boottable.py, from the server command's PkgTable)
+if python3 etc/gen-rpcdriver-boottable.py --check > "$tmp/rpcboot.log" 2>&1; then
+  echo "$(tail -1 "$tmp/rpcboot.log")"
+else
+  echo "gen-rpcdriver-boottable: FAILED"; tail -3 "$tmp/rpcboot.log"; fail=1
+fi
 # the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
 # commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
 # the kits' codecs through their generators): after gen-init, whose PkgTables the boot tables read
@@ -414,6 +420,13 @@ if python3 etc/mode-check.py --check > "$tmp/mode.log" 2>&1; then
   grep "down from" "$tmp/mode.log" | head -5
 else
   echo "mode: FAILED"; grep -v "^mode: ok" "$tmp/mode.log" | head -20; fail=1
+fi
+# 7c. no top-level statement takes a new Iris premise without a satisfiability witness
+# (etc/iris-premise-baseline.txt; reads the sources only; notes/axiom-review/ctx-readerrs-vacuity.md)
+if python3 etc/iris-premise-check.py --check > "$tmp/irisprem.log" 2>&1; then
+  echo "$(tail -1 "$tmp/irisprem.log")"
+else
+  echo "iris-premise: FAILED"; head -20 "$tmp/irisprem.log"; fail=1
 fi
 return $fail
 }

@@ -47,7 +47,7 @@ abbrev watcher.Watch.spec : Prop :=
   (∀ x ∈ c.ms, noRefusalAt x.addr) →
   c.pfx <+: kp → kp ≠ [] → kp.length ≤ opKeyMax → (opts.Recursive' = true → go!"/" <:+ kp) →
   uint.Z n < 2 ^ 63 - 1 → opts.ProgressNotify' = false → opts.RecordTimestamps' = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       storeWatchOk sp c W γk ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.store go!"watcher" sp ↦□ wp ∗
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
@@ -55,15 +55,14 @@ abbrev watcher.Watch.spec : Prop :=
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗
       context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)) ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ readAus c γk (Q 0) ∗
-      (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev)) }}
+      (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev))) }}
     (App (App (App (App (Val (wp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.watcher.ty @!! go!"Watch")) (Val #(GoInterface.ok ci)))
       (Val #kp)) (Val #n)) (Val #opts))
-  {{ (wi err : GoInterface), RET (PairV #wi #err);
-      ⌜err ≠ GoInterface.nil ∧ sie = some false ∧ uint.nat n = 0⌝ ∨
+  {{ (wi err : GoInterface), RET (PairV #wi #err); levelTok 0 ∗ (⌜err ≠ GoInterface.nil ∧ sie = some false ∧ uint.nat n = 0⌝ ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ γ : KWatchNames,
         k8sWatch c W wi γ cd sel emp (kInScope kp opts.Recursive')
-          (kModeOf sie opts.Predicate'.AllowWatchBookmarks' n) Q) }}
+          (kModeOf sie opts.Predicate'.AllowWatchBookmarks' n) Q)) }}
 
 end spec
 

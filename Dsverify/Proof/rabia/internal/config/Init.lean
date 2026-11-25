@@ -12,8 +12,8 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.os.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.os.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

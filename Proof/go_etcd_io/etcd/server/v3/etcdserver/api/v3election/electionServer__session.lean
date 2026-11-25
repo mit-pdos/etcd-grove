@@ -36,7 +36,7 @@ theorem electionServer.session.wp_proof
     (hOr : concurrency.Session.Orphan.spec (GF := GF) (hG := hG)) :
     electionServer.session.spec (GF := GF) (hG := hG) := by
   intro es c lease ctx cs
-  wp_start as ⟨#Hes, #Hok, #Hctx, #HctxC, #Hcc⟩
+  wp_start as ⟨Hlt, #Hes, #Hok, #Hctx, #HctxC, #Hcc⟩
   iunfold isElectionServer at Hes
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
@@ -70,7 +70,7 @@ theorem electionServer.session.wp_proof
     · simp at Hfi
   (try wp_auto)
   wp_apply hNS c cctx _ [withLeaseSM lease, withContextM (GoInterface.ok ctx)] ctx cs $$
-      [$Hcpkg $Hsc $Hctx $HctxC $Hcc] as %s %err Hs
+      [$Hcpkg $Hlt $Hsc $Hctx $HctxC $Hcc] as %s %err ⟨Hlt, Hs⟩
   · isplitr
     · iExactEq Hopts; rfl
     ipureintro; rfl
@@ -81,6 +81,7 @@ theorem electionServer.session.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro
       exact ⟨rfl, Herr⟩
@@ -89,6 +90,7 @@ theorem electionServer.session.wp_proof
   wp_apply hOr s γ c id $$ [$Hcpkg $Hss] as -
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   ileft
   isplitr
   · ipureintro; exact ⟨rfl, Hsn⟩

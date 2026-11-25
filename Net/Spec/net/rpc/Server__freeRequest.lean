@@ -26,7 +26,7 @@ variable [π : NetProtoGS]
 /-- See the file header. -/
 abbrev Server.freeRequest.spec : Prop :=
   ∀ (s : Loc) (γ : GName) (req : Loc) (v : net.rpc.Request),
-  {{ isServer (GF := GF) s γ ∗ req ↦ v }}
+  {{ isServerAny (GF := GF) s γ ∗ req ↦ v }}
     (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"freeRequest")) (Val #req))
   {{ RET #(); True }}
 

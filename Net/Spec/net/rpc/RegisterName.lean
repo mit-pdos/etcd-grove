@@ -36,6 +36,19 @@ abbrev RegisterName.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ svcReg γ C name S) ∨ ⌜err ≠ interface.nil⌝ }}
 
+/-- `RegisterName(name, rcvr)` by the owner of `DefaultServer`'s registry (`defaultServerO γ γf`,
+`svcOwn γf R`), `name` free: registered (`Server.RegisterName.spec_fresh`). Proved in
+`Net/Proof/net/rpc/RegisterNameFresh.lean`. -/
+abbrev RegisterName.spec_fresh : Prop :=
+  ∀ (γ γf : GName) (R : GMap GoString Unit) (C : CodecSpec GF) (name : GoString)
+    (rcvr : GoInterface) (S : MethodSpec GF) (nm : GoString) (np : Bool),
+  name ≠ [] →
+  {{ defaultServerO γ γf ∗ svcOwn γf R ∗ ⌜name ∉ R⌝ ∗ codecSet C ∗
+      C.rcv rcvr (rcvrIs C rcvr S nm np) }}
+    (App (App (Val (@! net.rpc.RegisterName)) (Val #name)) (Val #rcvr))
+  {{ (err : GoInterface), RET #err;
+      ⌜err = interface.nil⌝ ∗ svcReg γ C name S ∗ svcOwn γf (R.insert name ()) }}
+
 end sec
 
 end net.rpc

@@ -25,7 +25,8 @@ variable [sem : go.Semantics]
 
 /-- **`t.Start()`** on a transport `t` the caller owns whole (`NewServer`'s literal, its mutex
 fresh), its logger a zap logger (`zapLoggerOk`, premise fixes 6) and its stats set, for member `tv.ID` of the network `γn` (one with peer URLs),
-its URLs read-only, its `Raft` the member's (`netRaftOk`: the calls the transport makes into it,
+its URLs read-only, its `TLSInfo` with no certificate (`transport.tlsEmpty`, the round trippers'
+premise, 2026-11-25), its `Raft` the member's (`netRaftOk`: the calls the transport makes into it,
 each borrowing an `R`), its snapshotter and the snapshot directory, the network's HTTP side ready
 (`netHttpOk`: the streams' registry, the other members' hosts registered with the raft protocol),
 the ids `L` a remote may be started for (D43 M5c; `c.L = L`), and (J8a-6, 2026-11-01) a pool of `R`s
@@ -51,7 +52,7 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
       zapLoggerOk tv.Logger' ∗
       ⌜tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
         tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
-        trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
+        trURLsOk (netRh γn) tv.ID' uvs ∧ transport.tlsEmpty tv.TLSInfo'⌝ ∗
       tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
       snap.isSnapshotter tv.Snapshotter' sd ∗
       inv snapDirN (snapDirInv sd γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
