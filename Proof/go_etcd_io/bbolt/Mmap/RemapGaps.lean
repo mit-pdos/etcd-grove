@@ -154,7 +154,7 @@ theorem core_osN_disj (K : BC) : K.core (GF := GF) ⊢ ⌜↑osN ## ↑(pagesN K
   iintro ⟨-, -, %H, -⟩
   ipureintro
   intro x hx
-  exact H.2.2 x ⟨nclose_subseteq K.N "pages" x hx.2, hx.1⟩
+  exact H.2.2.1 x ⟨nclose_subseteq K.N "pages" x hx.2, hx.1⟩
 
 end gaps
 

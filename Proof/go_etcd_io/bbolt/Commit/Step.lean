@@ -37,12 +37,8 @@ open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
-/-- The summed meta's txid is the meta's. Proved by unfolding first: `rfl` alone makes the kernel
-compare `metaSummed mv` with `mv` (the projections' arguments), which unfolds the checksum
-(`metaSum`) and fails with "deep recursion detected"; so does any cast between the two
-(`simp only [metaSummed]` on a hypothesis). Rewrite with this lemma instead. -/
-theorem metaSummed_txid [GooseExts] (mv : Meta) : (metaSummed mv).txid' = mv.txid' := by
-  unfold metaSummed; rfl
+-- `metaSummed_txid` (the summed meta's txid is the meta's): `Inv/WriteToImage.lean`, which this
+-- module now imports (W1: `Inv/Locks` imports `Inv/BFile`, over `Crash/`).
 
 section step
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -41,21 +41,21 @@ variable [sem : go.Semantics]
 
 /-- Two runs of a file's bytes, one after the other, as one. -/
 theorem osBytes_app' (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
-    osBytes (GF := GF) p.ino off dq xs ∗ osBytes p.ino (off + xs.length) dq ys ⊢
-      osBytes p.ino off dq (xs ++ ys) := by
-  unfold osBytes; exact (bytesG_append _ _ _ off xs ys).2
+    bBytes (GF := GF) p off dq xs ∗ bBytes p (off + xs.length) dq ys ⊢
+      bBytes p off dq (xs ++ ys) := by
+  exact (bBytes_append _ off _ xs ys).2
 
 /-- A run of a file's bytes, split. -/
 theorem osBytes_split' (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
-    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊢
-      osBytes p.ino off dq xs ∗ osBytes p.ino (off + xs.length) dq ys := by
-  unfold osBytes; exact (bytesG_append _ _ _ off xs ys).1
+    bBytes (GF := GF) p off dq (xs ++ ys) ⊢
+      bBytes p off dq xs ∗ bBytes p (off + xs.length) dq ys := by
+  exact (bBytes_append _ off _ xs ys).1
 
 /-- **Slots `0 … n - 1`, each a whole page, as the file's first `4096 · n` bytes.** -/
 theorem osSlots_range (p : BFile) (g : Nat → List w8) :
     ∀ n, (∀ s, s < n → (g s).length = 4096) →
     ([∗list] s ∈ List.range n, osSlot (GF := GF) p s (g s)) ⊢
-      ∃ xs : List ByteG, osBytes p.ino 0 (DFrac.own 1) xs ∗
+      ∃ xs : List ByteG, bBytes p 0 (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (List.range' 0 n).flatMap g ∧ xs.length = 4096 * n⌝
   | 0, _ => by
     iintro -
@@ -123,7 +123,7 @@ theorem close_file_bytes (p : BFile) (w : WDb) (hok : wdbOK w) (bs : Nat → Lis
     (hal : w.m.size % 4096 = 0) (W' : List Nat) (hW' : ∀ s ∈ w.W, s ∈ W') :
     osSlot (GF := GF) p 0 w.C.m0 ∗ osSlot p 1 w.C.m1 ∗
       ([∗list] s ∈ slotsOf w.C w.fl, osSlot p s (bs s)) ∗ wBytes p W' w.wb w.m.size ⊢
-      ∃ xs : List ByteG, osBytes p.ino 0 (DFrac.own 1) xs ∗
+      ∃ xs : List ByteG, bBytes p 0 (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = closeBytes w.C w.fl bs w.wb (w.m.size / 4096) ∧
           xs.length = w.m.size⌝ := by
   have hsz : w.m.size = 4096 * (w.m.size / 4096) := by omega
@@ -177,10 +177,10 @@ theorem close_file_bytes (p : BFile) (w : WDb) (hok : wdbOK w) (bs : Nat → Lis
       (closeSlot w.C w.fl bs w.wb s) $$ [HW]
   · unfold wBytes
     iapply BigSepL.bigSepL_mono (Φ := fun _ s => iprop(if 4096 * (s + 1) ≤ w.m.size then
-        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = w.wb s⌝)
       else if 4096 * s < w.m.size then
-        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = (w.wb s).take (w.m.size - 4096 * s)⌝)
       else iprop(emp))) ?_ $$ HW
     intro k s hks

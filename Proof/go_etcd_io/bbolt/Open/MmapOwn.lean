@@ -272,9 +272,12 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   iapply wp_load_bool_split
   ihave Hc0 : cellsR base 0 xs.length (fun i => toCellVal bs'[i]?) $$ [Hc0]
   · rw [hxl]; iexact Hc0
-  iapply (cellsR_agree_bytes _ rfl p (DFrac.own 1) _ base L' hb2 _
+  -- the file's bytes, whole (before `Open`'s crash invariant), as a file outside one (W1)
+  ihave Hxs := (bBytes_none (GF := GF) (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).2 $$ Hxs
+  iapply (cellsR_agree_bytes _ rfl { p with cs := none } (DFrac.own 1) _ base L' hb2 _
     (fun x hx => CoPset.subseteq_top x hx) _ xs 0 _ (by omega)) $$ Hos Hosm Hxs Hc0
   iintro Hosm Hxs Hc0
+  ihave Hxs := (bBytes_none (GF := GF) (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).1 $$ Hxs
   ihave #Hml := HmlW $$ []
   · ipureintro; trivial
   ihave Hml' := bool_heap _ _ _ $$ Hml

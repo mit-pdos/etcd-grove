@@ -132,12 +132,12 @@ variable {s : Stuckness} {E : CoPset}
 
 theorem osBytes_cons' (p : BFile) (off : Nat) (dq : DFrac) (x : ByteG)
     (xs : List ByteG) :
-    osBytes (GF := GF) p.ino off dq (x :: xs) ⊣⊢ osByte (GF := GF) p.ino off dq x ∗ osBytes p.ino (off + 1) dq xs := by
-  unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
+    bBytes (GF := GF) p off dq (x :: xs) ⊣⊢ bByte (GF := GF) p off dq x ∗ bBytes p (off + 1) dq xs := by
+  exact bBytes_cons _ _ _ _ _
 
 theorem osBytes_nil' (p : BFile) (off : Nat) (dq : DFrac) :
-    osBytes (GF := GF) p.ino off dq [] ⊣⊢ emp := by
-  unfold osBytes; exact bytesG_nil _ _ _ _
+    bBytes (GF := GF) p off dq [] ⊣⊢ emp := by
+  exact bBytes_nil _ _ _
 
 omit hos in
 theorem cellsR_cons' (base : Loc) (lo n : Nat) (vf : Nat → val) :
@@ -154,9 +154,9 @@ theorem cellsR_agree_bytes (e : Expr) (htv : toVal e = none) (p : BFile) (dqm : 
     (m : OsMeta) (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
-    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p.ino dqm m -∗ osBytes (GF := GF) p.ino lo dqb xs -∗
+    ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p.ino dqm m -∗ bBytes (GF := GF) p lo dqb xs -∗
       cellsR (GF := GF) base lo xs.length vf -∗
-      (osMeta (GF := GF) p.ino dqm m -∗ osBytes (GF := GF) p.ino lo dqb xs -∗
+      (osMeta (GF := GF) p.ino dqm m -∗ bBytes (GF := GF) p lo dqb xs -∗
         cellsR (GF := GF) base lo xs.length (bytesVf lo (xs.map Prod.fst)) -∗
         WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
@@ -169,16 +169,18 @@ theorem cellsR_agree_bytes (e : Expr) (htv : toVal e = none) (p : BFile) (dqm : 
     simp only [List.length_cons] at hl
     iintro #Hinv Hm Hb Hc HΦ
     icases (osBytes_cons' _ _ _ _ _).1 $$ Hb with ⟨Hx, Hb⟩
+    iunfold bByte at Hx
+    icases Hx with ⟨Hx, Gx⟩
     simp only [List.length_cons]
     icases (cellsR_cons' _ _ _ _).1 $$ Hc with ⟨Hcx, Hc⟩
-    iapply osCell_agree e htv p.ino dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
+    iapply osCell_agree e htv p.ino dqm m base len lo hb (by omega) (p.dq dqb) x _ (vf lo) hE Φ
       $$ Hinv Hm Hx Hcx
     iintro %Hv Hm Hx Hcx
     iapply cellsR_agree_bytes e htv p dqm m base len hb dqb hE Φ xs (lo + 1) vf (by omega)
       $$ Hinv Hm Hb Hc
     iintro Hm Hb Hc
-    iapply HΦ $$ Hm [Hx Hb] [Hcx Hc]
-    · iapply (osBytes_cons' _ _ _ _ _).2; iframe
+    iapply HΦ $$ Hm [Hx Gx Hb] [Hcx Hc]
+    · iapply (osBytes_cons' _ _ _ _ _).2; unfold bByte; iframe
     · iapply (cellsR_cons' _ _ _ _).2
       simp only [bytesVf, Nat.sub_self, List.map_cons, List.getD_cons_zero]
       rw [← Hv]
