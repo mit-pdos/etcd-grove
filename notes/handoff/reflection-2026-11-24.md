@@ -826,3 +826,38 @@ fixed here):
   the regen's output (pull back right after `eg.sh regen`); the VM's root disk was full (100%):
   run gates with `LAKE_CACHE_DIR`, `GOCACHE`, `TMPDIR` under the sync dir's `.lake/gt/`.
 - Left: post the #40 message (in the round-6 report); open the `Convert` item as its own issue.
+
+## Round 7 (2026-11-25): the `Convert` narrowing (etcd-grove#59), plan approved by coordinator-E
+
+Plan approved on #40 (7171395499, coordinator-E: "narrowing two semantics rules that are more
+defined than Go only shrinks trust, so it's inside what I decide"); the issue is #59. The diff goes to
+Upamanyu **together with item 1's final look, not separately**; nothing lands or is queued.
+Scratch: `~/.claude-D/jobs/43217da4/tmp/convert-narrow/` (logs; `bin/vb.sh`, `bin/pfull.sh` =
+VM builds of p-convert, own key d46eaef09202555c; `bin/scanconv.py`, `bin/proofsof.py` = the
+reach scan).
+
+Branches: Perennial `convert-narrow` (off `reflect-s05` 93d6825d7; worktree `wt/p-convert`),
+etcd-grove `reflect-s05-convert/2026-11-25` (off `reflect-s05/2026-11-24` 750205a6da, re-pinned;
+worktree `wt/eg-convert`).
+
+Change (Perennial `dcf940ea5`, fix-semantics Case 52):
+- `convert_channel` (any directions, `[under]`) becomes two plain-`⤳` rules with Go's premise:
+  `convert_channel_to_unnamed` (`[t ↓u chan E]` to `chan d E`) and `convert_channel_from_unnamed`
+  (`chan E` to `[u ↓u chan d E]`); the second is needed: etcd-grove converts `chan WatchResponse` to the
+  named `WatchChan` (`watcher.Watch`, `Cache.Watch`).
+- `convert_pointer_same_underlying` keeps its statement as a plain step on the unnamed pointer
+  types (no longer `[under]`), so `convert_underlying` converts named pointers only between identical
+  underlying types (`is_convert_underlying_same`).
+- KNOWN_LIMITATIONS (Struct types, unexported field names): the conversions it lets through, the
+  Go witness, "no proof reaches it", F3 cross-link.
+- Witnesses: harness `TestConvertLeanRules` (the six #59 cases stuck in `convertLean`; 461 corpus pairs
+  step, all `GoConvertible`; with the old rules it reports the six cases and 14 corpus pairs);
+  `Perennial/Tests/ConvertRules.lean` (seven legal conversions found by instance search).
+
+Reach (every proof that used either rule): no proof names them. Implicitly (instance search on a
+`Convert` the code emits): Perennial 6 proofs (sync `RWMutex.RLocker`, `rlocker.Lock/Unlock`
+(`*RWMutex`↔`*rlocker`); context `cancelCtx.Done`, `parentCancelCtx`; goose testdata
+`SearchReplace`); etcd-grove 68 function proof files (all literal-bidirectional-to-directional channel
+conversions, two to the named `WatchChan`, and unnamed-pointer conversions such as
+`*pb.RangeResponse`→`*GetResponse`); list: `convert-narrow/scan/eg-proofs.tsv`. None converts
+between named pointers or from a directional channel, so every one keeps its step.
