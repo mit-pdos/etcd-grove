@@ -123,8 +123,7 @@ def chkPre (d : DReq) (st : w64) (hc : List HdrLine) (body : List w8) : Prop :=
 /-! ## The protocol -/
 
 section proto
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [AllG GF]
 
 /-- The driver's protocol (see the file header). -/
 def drvP : HProto GF where

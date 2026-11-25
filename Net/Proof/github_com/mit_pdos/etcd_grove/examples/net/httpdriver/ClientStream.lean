@@ -271,7 +271,7 @@ theorem hc_readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc)
 /-- An answer's facts make it one the client's stream can carry (`hcSlotOk`): `drvP.resp` bounds a
 body by `32` bytes, against a chunked answer's over `2048`. -/
 theorem respFact_good (L : List ReqSlot) (i : Nat) (x : RespSlot) :
-    net.http.respFacts (drvP (GF := GF) (hG := hG)) L i x ⊢ ⌜hcSlotOk x⌝ := by
+    net.http.respFacts (drvP (GF := GF)) L i x ⊢ ⌜hcSlotOk x⌝ := by
   cases x with
   | ans ρ =>
     unfold net.http.respFacts
@@ -292,7 +292,7 @@ theorem respFact_good (L : List ReqSlot) (i : Nat) (x : RespSlot) :
     simp only [hcSlotOk]
 
 theorem respFacts_good (L : List ReqSlot) (Rs : List RespSlot) :
-    ([∗list] i ↦ x ∈ Rs, net.http.respFacts (drvP (GF := GF) (hG := hG)) L i x) ⊢
+    ([∗list] i ↦ x ∈ Rs, net.http.respFacts (drvP (GF := GF)) L i x) ⊢
       ⌜∀ x ∈ Rs, hcSlotOk x⌝ := by
   refine (BigSepL.bigSepL_mono (Ψ := fun _ x => iprop(⌜hcSlotOk x⌝))
     fun {i x} _ => respFact_good L i x).trans ?_
@@ -308,7 +308,7 @@ theorem hc_respP_good (cn : Nat) (γ : GName) (ext : List w8) :
     ∃ Rs : List RespSlot, ⌜net.http.respsCover Rs ext ∧ ∀ x ∈ Rs, hcSlotOk x⌝ ∗
       (⌜∀ x ∈ Rs, x = RespSlot.bad⌝ ∨
         ∃ L' : List ReqSlot, monoListLbOwn γ L' ∗ ⌜Rs.length ≤ L'.length⌝ ∗
-          [∗list] i ↦ x ∈ Rs, net.http.respFacts (drvP (GF := GF) (hG := hG)) L' i x) := by
+          [∗list] i ↦ x ∈ Rs, net.http.respFacts (drvP (GF := GF)) L' i x) := by
   iintro ⟨#Hcn, HP⟩
   iunfold net.http.httpRespP at HP
   icases HP with ⟨%Rs, %Hcov, (%Hbad | ⟨%γ', %L', #Hcn', #Hlb, %Hlen, #Hfs⟩)⟩
@@ -628,7 +628,7 @@ theorem hcSt_law (cn : Nat) (γ γe : GName) (D : List w8) (A : List Resp) (L : 
       have := Hbad _ (List.mem_of_getElem? hidx)
       cases this
     ihave #Hf := BigSepL.bigSepL_lookup (Φ := fun i (x : RespSlot) =>
-      net.http.respFacts (drvP (GF := GF) (hG := hG)) L' i x) hidx $$ Hfs
+      net.http.respFacts (drvP (GF := GF)) L' i x) hidx $$ Hfs
     iunfold net.http.respFacts at Hf
     icases Hf with ⟨%R, %τ, %B, %hs, ⟨%HL', %-, %-, %Hv, %-⟩, -, #Hend⟩
     ihave %Hv2 := mono_list_lb_valid _ _ _ $$ HL Hlb

@@ -69,10 +69,9 @@ theorem httpdriver_robust : httpdriver_robust.spec := by
   intro G hrb
   iintro Hs
   unfold httpAddrs
+  rw [show (go!"127.0.0.1:7401" : GoString) = addrS from rfl]
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Ha, -⟩
-  ihave Hla : lisUnset (GF := netGF) addrS $$ [Ha]
-  · iapply addrUnset_lisUnset addrS (by decide)
-    iexact Ha
+  ihave Hla := addrUnset_lisUnset addrS (by decide) $$ Ha
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   imod ghost_map_alloc_empty (GF := netGF) (K := Nat) (V := GName) with ⟨%γr, Hm⟩
   let hπ : net.http.HttpProtoGS := ⟨γr⟩
@@ -105,7 +104,7 @@ theorem httpdriver_robust : httpdriver_robust.spec := by
       wp_apply cmd.server.wp_boot HEnv $$ Hgs as ⟨Hown, #Hpkg, #Hres⟩
       try wp_auto
       wp_apply (cmd.server.wp_main (hπ := hπ) wp_Server) $$ []
-      · iframe Hpkg Hres Hpl
+      · iframe Hres Hpl
         ipureintro; exact hTb
       try wp_auto
       itrivial
@@ -123,7 +122,7 @@ theorem httpdriver_robust : httpdriver_robust.spec := by
         iframe Hr
         iapply lisProto_addr addrS addrS _ _ (by decide) ((lisAccepts_addrOk (by decide)).2 rfl) $$ Hl
       wp_apply (cmd.client.wp_main (hπ := hπ) wp_Client) $$ [Htok] as Htok
-      · iframe Hpkg Hres Hda Htok
+      · iframe Hres Hda Htok
         ipureintro; exact hTb
       try wp_auto
       itrivial
