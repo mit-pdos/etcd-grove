@@ -738,6 +738,22 @@ theorem serveViews_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
   iframe #
   ipureintro; exact ⟨rfl, by rw [hM]; simp⟩
 
+/-- **The level-0 token of a member's `GoAttach` resources, lent out** (decision 1b, 2026-11-24): the
+thread holding `srvGoRes` (its own thread token, given to `Start`) borrows its level 0 for its client
+calls; `GoAttach` uses only the levels from 1 (`GoAttachTok.lean`). -/
+theorem srvGoRes_level0 (s : Loc) :
+    srvGoRes (GF := GF) s ⊢ levelTok 0 ∗ (levelTok 0 -∗ srvGoRes s) := by
+  iintro H
+  iunfold srvGoRes at H
+  icases H with ⟨Hwg, Htok⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
+  iframe H0
+  iintro H0
+  iunfold srvGoRes
+  iframe Hwg
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe
+
 end defs
 
 end etcdstart

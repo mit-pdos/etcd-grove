@@ -63,6 +63,40 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iunfold etcdKVAt
   iframe #
 
+/-- **`kv_served`, with the `GoAttach` resources given back** (decision 1b, 2026-11-24): `kv_served`'s
+post and the member's `srvGoRes` (the thread token it holds), which the serving thread splits again
+for its own client calls (as `kv_lease_served_go`). -/
+theorem kv_served_go (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
+    (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
+        grpcUp s E ρ γr gs lis addr cid mid R ⊢
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗ srvGoRes s := by
+  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
+  iunfold grpcUp at Hup
+  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, -⟩
+  obtain ⟨HCA, -, Hregs, -, -, -, -, -, Hnd⟩ := HC
+  imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
+  ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
+  rw [HCA]
+  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
+      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+  · iframe; iframe #
+    iintro !>
+    imodintro
+    iunfold idCred
+    ipureintro; exact Hrb
+  imodintro
+  iframe Hgo
+  isplitl [Hserv]
+  · iexists _; iexact Hserv
+  iunfold etcdKVAt
+  iframe #
+
 end served
 
 end etcdstart
