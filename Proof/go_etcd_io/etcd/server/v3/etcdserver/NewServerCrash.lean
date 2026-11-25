@@ -4,14 +4,17 @@
 2026-11-24, `notes/etcd-dist-d6.md` §4). **WIP: one labeled `sorry`, not linked.**
 
 Over `NewServer.specRAt` (`NewServerRAt.lean`: the graceful restart's proof `NewServer.wp_proofRG`,
-`bootstrap`'s contract at the image), taken as a callee. Two cases on the image's consistent index:
+`bootstrap`'s contract at the image), taken as a callee. Two cases on the image (`srvCrashImageAt_disk`):
 
-* `i ≤ σ.commit` (the backend at or below the WAL's commit): **proved**. The crash image is then a
-  graceful one (`srvCrashImageAt_disk`: the vacancy armed, `wal.stopImage`), and the crash contract at
-  it, with the WAL's read facts the image carries, is the restart contract's instance
-  (`bootstrapAtR_of_crash`).
-* `σ.commit < i` (the backend ahead of the WAL's commit, which a power loss can leave): **`sorry`
-  (WIP)**. Not an instance of the graceful proof: raft restarts at the WAL's commit, below the
+* the image is a graceful one (`σ.b ≤ i ≤ σ.commit`, `bootLen ≤ i`, the stored `confState` the index's):
+  **proved**. The crash image is then turned into the graceful one (the vacancy armed,
+  `wal.stopImage`), and the crash contract at it, with the WAL's read facts the image carries, is the
+  restart contract's instance (`bootstrapAtR_of_crash`).
+* otherwise: **`sorry` (WIP)**. Since T10's restatement of `srvCrashImageAt` (2026-11-25) this case
+  holds, beside the one below, the received-snapshot window (`i < σ.b`, `snapRowB2`: `bootstrap`'s
+  `.snap.db` recovery, the contract's second case), a backend index inside the bootstrap batch
+  (`i < bootLen`) and a stored `confState` one conf change ahead (`confRowW`). The case
+  `σ.commit < i` (the backend ahead of the WAL's commit, which a power loss can leave): Not an instance of the graceful proof: raft restarts at the WAL's commit, below the
   backend's log `A` (`|A| = i`), and the graceful restart's construction needs `|A| ≤ σ.commit`
   throughout: `NodeStartSpecR`'s premise and `rnBootPre`'s (`bootstrappedRaft.newRaftNode.spec` at
   `.restart`), `replaySeed_facts` (the replayed terms read from the WAL's entries up to `|A|`, which
@@ -53,13 +56,13 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
     Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hlbc Hbco Hfnc
     Hdwd Hbwb
   letI : MemStorReg GF := ⟨γ.reg⟩
-  by_cases hc : uint.nat i ≤ σ.commit
+  iintro %Φ Hpre HΦ
+  iNamed Hpre
+  imod srvCrashImageAt_disk γ ρo id cfg.DataDir' S σ i A D mb M ⊤ $$ Himg with
+    (⟨Himg, %Hw, HcT⟩ | ⟨Himg, %hng⟩)
   · have h' := hRAt cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0
       Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc
       Hdirs Hlbc Hbco Hfnc Hdwd Hbwb
-    iintro %Φ Hpre HΦ
-    iNamed Hpre
-    imod srvCrashImageAt_disk γ ρo id cfg.DataDir' S σ i A D mb M ⊤ hc $$ Himg with ⟨Himg, %Hw, HcT⟩
     ihave #HbootR := bootstrapAtR_of_crash cfg U γ id N dir σ i A D M Hw $$ HbootC
     iapply h' $$ [-HΦ HcT]
     · iframe
@@ -73,7 +76,7 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
     iintro %srv %err Hq
     iapply HΦ
     iframe HcT Hq
-  · -- WIP (etcd-dist D6 T4): the backend ahead of the WAL's commit; see the file header.
+  · -- WIP (etcd-dist D6 T4): the image not a graceful one; see the file header.
     sorry
 
 end proof

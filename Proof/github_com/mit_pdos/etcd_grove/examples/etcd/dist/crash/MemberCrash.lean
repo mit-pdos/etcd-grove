@@ -868,7 +868,7 @@ def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config
       config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"] ∧
       ∀ i, PathFits (snap.snapDBPath (config.snapDirOf cfg.DataDir') i)⌝ ∗
     etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
-    backend.dbCrashKeep k.γb (config.backendPathOf cfg.DataDir') k.i0 k.Dl k.Dn k.pd ∗
+    backend.dbCrashKeep k.γb k.i0 k.Dl k.Dn k.pd ∗
     memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
 
 /-- **The image rows the backend owes** (B1's output; `srvCrashImageAt`'s backend rows at the run's names):
@@ -954,8 +954,9 @@ abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id
 /-- **B1's durable name of the backend file** (named hypothesis; T10's, with `memberImage.law`; session 5's
 decision: in B1's keep `KeepB`, not in `memberKeepR`): every crash leaves the snapshot directory's name `db`
 naming the record's inode `i0` (`dbCrash`'s premise `Named V'.now i0`, and where the file is for the
-snapshot directory's crash). The backend's record `dbCrashKeep` holds the claim on `db` (`bPath`), so no
-`nameCrash` can be kept beside it; the name's commits are the backend's run's (bbolt's `Open`, the
+snapshot directory's crash). The backend's record `dbCrashKeep` claims no name (C-I1 restated 2026-11-25,
+`notes/axiom-review/c-i1-nopath.md`), so the name's crash promise (a `nameCrash`) can be kept beside it; the
+name's commits are the backend's run's (bbolt's `Open`, the
 snapshot's rename `OpenSnapshotBackend` with `renamedDur`), which T10's invariant tracks. -/
 abbrev memberDbNamed.law (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
   ∀ (L L' : GooseLocalGS GF) (k : MemberKN GF) (Q : OsState → OsState → Prop) (D : List Ino)
@@ -1048,23 +1049,22 @@ theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) 
       snapDirInvH (config.snapDirOf dd) k.γd
         (srvImageM ({ k.γ with reg := r' } : SrvRaft).authOn { k.γ with reg := r' })
         (fun j => monoNatLbOwn k.γm (uint.nat j + 1)) := .rfl
-  unfold memberDurOut memberImageRows srvCrashImageAt wal.crashImage srvFilesC
+  unfold memberDurOut memberImageRows srvCrashImageAt wal.crashImageR srvFilesC confRowW snapRowB2
   rw [hρ]
   iintro ⟨⟨HrS, Hvac, %hp, Hsc, -, Hl⟩, ⟨HA, %hi, Hmv, Hconf, %hcs, Hfh, %c, %hc, Hauth⟩, Hwf, Hinv, Hreg⟩
   obtain ⟨hS, hb, hag, hrf⟩ := hp
-  obtain ⟨hB2, hB3⟩ := hB
+  obtain ⟨hB2, -⟩ := hB
   isplitl [Hvac]; · iexact Hvac
   isplitl [HrS]; · iexact HrS
   isplitr; · ipureintro; exact ⟨rfl, hc0⟩
   isplitl [HA]; · iapply e1; iexact HA
   isplitr; · ipureintro; exact hi
   isplitl [Hmv]; · iexact Hmv
-  isplitr; · ipureintro; exact hB3
   isplitl [Hconf]; · iexact Hconf
-  isplitr; · ipureintro; exact hcs
+  isplitr; · ileft; ipureintro; exact hcs
   isplitl [Hsc Hl]
   · isplitr
-    · ipureintro; exact ⟨hS, hrf, hB2⟩
+    · ipureintro; exact ⟨hS, hrf⟩
     isplitl [Hsc]; · iexact Hsc
     iexists l
     isplitl [Hl]; · iexact Hl
@@ -1077,7 +1077,8 @@ theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) 
       iexact Hwf
     iexact Hfh
   iexists k.γd, k.γm, c
-  isplitr; · ipureintro; exact ⟨hsl, hc⟩
+  isplitr; · ipureintro; exact hsl
+  isplitr; · ileft; ipureintro; exact ⟨hB2, hc⟩
   isplitl [Hinv]; · iapply e3; iexact Hinv
   iexact Hauth
 
@@ -1146,7 +1147,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   obtain ⟨jm, h1, h2⟩ := walk_two hw
   -- the backend file (A1), at its durable name (B1's)
   imod hB1n ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ Q [] false V' $$ HKB Hrest with ⟨%hdb, HKB, Hrest⟩
-  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb (config.backendPathOf cfg.DataDir') i0 Dl Dn pd (hA1 i0) [] (by simp) V'
+  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb i0 Dl Dn pd (hA1 i0) [] (by simp) V'
     ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest with ⟨%D', %hD', Hfm, Hrest⟩
   -- the WAL area (T5's crash)
   have hDw : ∀ i ∈ [i0], ¬ WalFs.InAreaDir V'.now jr i := by

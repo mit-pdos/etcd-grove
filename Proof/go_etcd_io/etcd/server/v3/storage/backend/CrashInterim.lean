@@ -15,12 +15,13 @@ start: `DBCrash.lean`, `BootP1.lean`). No proof uses them yet: the member's cras
   `Q`): a meta page of a file of `I` with no size change since its last sync that validates after a
   crash is not a torn mix (FNV-64a, probabilistic). The crash's size is the file extension's rule
   (`CrashFile`: an `ftruncate`'s target exactly, so whole pages for bbolt's files).
-* `dbCrashKeep γ path i0 Dl Dn pd` (exclusive): the crash record of the open database `γ`, whose file is at
-  `path`: `Dn` is its committed data (the commit invariant's half, `dbHalf γ Dn`, is inside it), `Dl` the
+* `dbCrashKeep γ i0 Dl Dn pd` (exclusive): the crash record of the open database `γ`, whose file is the
+  inode `i0`: `Dn` is its committed data (the commit invariant's half, `dbHalf γ Dn`, is inside it), `Dl` the
   data its file falls back to if the commit that made `Dn` did not reach the disk; `pd` the commit
-  announced in flight (`dbCrashKeep_announce`), whose new meta may be on disk before its commit point. It holds the claim on
-  the name (`bPath γ path`) and the half; `dbCrashKeep_half` lends the half, `dbCrashKeep_close` gives
-  both back.
+  announced in flight (`dbCrashKeep_announce`), whose new meta may be on disk before its commit point. It holds the half and
+  no claim on any name (restated 2026-11-25 for T10, `notes/axiom-review/c-i1-nopath.md`: the snapshot
+  install renames onto `db` while the old backend still commits); `dbCrashKeep_half` lends the half,
+  `dbCrashKeep_close` gives it back.
 
 **Why the laws are true of bbolt (fork `upamanyus/bbolt` at `ca88bb6a`, `etc/goose.py`'s pin) over the
 file extension's crash (`OsCrash`, `GooseLang/Ext/Fs/Impl.lean`).**
@@ -46,10 +47,12 @@ file extension's crash (`OsCrash`, `GooseLang/Ext/Fs/Impl.lean`).**
   becomes the previous committed data `Dn`; a put-back of the same data (a reader's access, an empty
   commit, whose meta records the same data) keeps the fallback.
 * The name: `dbCrash` speaks of `γ`'s inode `i0` and asks that the crashed durable tree still name it;
-  which inode `path` names after the crash is the file extension's own crash fact (a name is durable only
+  which inode the database's path names after the crash is the file extension's own crash fact (a name is durable only
   after a directory sync; the fork `goose-lean-crashfixes` syncs after defrag's and the snapshot install's
-  renames, `nonissues/etcd-backend-rename-without-dir-sync.md`). The record holds `bPath`, so a rename onto
-  `path` closes it first (`dbCrashKeep_close`); a crash with the record closed is not covered by these laws.
+  renames, `nonissues/etcd-backend-rename-without-dir-sync.md`). The record holds no name: a rename onto
+  or away from the database's path leaves the record true of its inode (a rename does not change an inode's
+  bytes), and `dbCrash` is usable only when the crashed tree still names `i0` (`Named`); measured on
+  configuration C across the snapshot install's rename window (`notes/axiom-review/c-i1-nopath.md`).
 * **Restricted to files past `init`** (`issues/bbolt-init-not-crash-safe.md`): a record exists only for
   an opened database (`dbCrashKeep_new` takes a write transaction, which `Open` gives only after `init`'s
   two syncs). The fork's `needsInit` recognizes a crash before `init`'s first sync, but a crash between
@@ -145,10 +148,10 @@ theorem boltCrashWhole_exists (I : Fs.Ino → Prop) {st st' : Fs.OsState} (hok :
     omega
   · cases hf'
 
-/-- (C-I1) **The crash record of the open database `γ`, whose file is at `path`** (exclusive): its
+/-- (C-I1) **The crash record of the open database `γ`, whose file is the inode `i0`** (exclusive): its
 committed data `Dn` (with the commit invariant's half), the data `Dl` its file falls back to, and the
-commit announced in flight `pd`; its file is the inode `i0` (see the file header). -/
-opaque dbCrashKeep [hG : HeapGS hlc GF] (γ : DBNames) (path : GoString) (i0 : Fs.Ino) (Dl Dn : Data)
+commit announced in flight `pd` (see the file header). It claims no name. -/
+opaque dbCrashKeep [hG : HeapGS hlc GF] (γ : DBNames) (i0 : Fs.Ino) (Dl Dn : Data)
     (pd : Option Data) : IProp GF := iprop(False)
 
 end preds
@@ -160,55 +163,57 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors}
 
 /-- (C-I1, trusted) **A crash record from a fresh write transaction**: with the database opened syncing
-(`dbOpts`), its file the inode `i0` (`boltIno`), the claim on its name, the commit invariant's half at the
-committed data `D` and a live write transaction begun at `D`, the record at `(D, D)` with nothing announced.
+(`dbOpts`), its file the inode `i0` (`boltIno`), the commit invariant's half at the
+committed data `D` and a live write transaction begun at `D`, the record at `(D, D)` with nothing announced
+(no claim on the file's name: the argument is about the inode, which a rename does not change).
 Why the file on disk is `D`'s: the transaction excludes a commit in flight; the last commit of this opening
 returned only after both its syncs (under `FsNoErrAll`, which `dbHalf`'s and `txLive`'s `onFs` carry); and
 `Open` itself `fdatasync`s before it returns when `!NoSync` (fork `db.go:326`, `c5a6065d`), which covers a
 file whose last commit was made by another opening with `NoSync` (defrag's temporary database). -/
-axiom dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames) (path : GoString)
+axiom dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (D : Data) (tx : Loc) :
     ⊢ dbOpts (hlc := HasLC.hasLC) (GF := GF) γ -∗ onFs (GF := GF) iprop(bbolt.boltIno γ i0) -∗
-      bPath (GF := GF) γ path -∗ dbHalf γ D -∗ txLive tx γ 1 (bbolt.TxView.wr D) ==∗
-      dbCrashKeep γ path i0 D D none ∗ txLive tx γ 1 (bbolt.TxView.wr D)
+      dbHalf γ D -∗ txLive tx γ 1 (bbolt.TxView.wr D) ==∗
+      dbCrashKeep γ i0 D D none ∗ txLive tx γ 1 (bbolt.TxView.wr D)
 
 /-- (C-I1, trusted) **A commit announced**: holding the write transaction begun at the committed `Dn`
 with contents `S`, the record announces `S` (any earlier announcement was of a commit that did not take
 effect: the transaction excludes another writer). To be applied before `Commit` (review 2026-11-24: the
 new meta's bytes are crash candidates from its `pwrite`'s start, before the commit point). -/
 axiom dbCrashKeep_announce [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
-    (path : GoString) (i0 : Fs.Ino) (Dl Dn S : Data) (pd : Option Data) (tx : Loc) (G : GoString → Nat) :
-    ⊢ dbCrashKeep γ path i0 Dl Dn pd -∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ==∗
-      dbCrashKeep γ path i0 Dl Dn (some S) ∗ txLive (GF := GF) tx γ 1 (wView Dn S G)
+    (i0 : Fs.Ino) (Dl Dn S : Data) (pd : Option Data) (tx : Loc) (G : GoString → Nat) :
+    ⊢ dbCrashKeep γ i0 Dl Dn pd -∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ==∗
+      dbCrashKeep γ i0 Dl Dn (some S) ∗ txLive (GF := GF) tx γ 1 (wView Dn S G)
 
 /-- (C-I1, trusted) **The record lends the commit invariant's half for one atomic step**: the half at
 the committed data `Dn`, to an update (one mask-changing step: at most one commit point, `Commit`'s
 atomic update) that gives it back at `Dn` or at the announced `S`, with `R`; a change moves the fallback
 to `Dn` and clears the announcement. (Review 2026-11-24: a put-back wand kept across two commits was
 unsound; a change to an unannounced value is not allowed.) -/
-axiom dbCrashKeep_half [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames) (path : GoString)
+axiom dbCrashKeep_half [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn : Data) (pd : Option Data) (E : CoPset) (R : Data → IProp GF) :
-    ⊢ dbCrashKeep γ path i0 Dl Dn pd -∗
+    ⊢ dbCrashKeep γ i0 Dl Dn pd -∗
       (dbHalf γ Dn ={E}=∗ ∃ S, dbHalf γ S ∗ ⌜S = Dn ∨ pd = some S⌝ ∗ R S) ={E}=∗
-      ∃ S, dbCrashKeep γ path i0 (if S = Dn then Dl else Dn) S (if S = Dn then pd else none) ∗ R S
+      ∃ S, dbCrashKeep γ i0 (if S = Dn then Dl else Dn) S (if S = Dn then pd else none) ∗ R S
 
 /-- (C-I1, trusted) **An announcement cleared**: holding a fresh write transaction at the committed `Dn`
 (no change made, so no commit in flight), the announcement is dropped. -/
 axiom dbCrashKeep_clear [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
-    (path : GoString) (i0 : Fs.Ino) (Dl Dn : Data) (pd : Option Data) (tx : Loc) :
-    ⊢ dbCrashKeep γ path i0 Dl Dn pd -∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn) ==∗
-      dbCrashKeep γ path i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn)
+    (i0 : Fs.Ino) (Dl Dn : Data) (pd : Option Data) (tx : Loc) :
+    ⊢ dbCrashKeep γ i0 Dl Dn pd -∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn) ==∗
+      dbCrashKeep γ i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn)
 
 /-- (C-I1, trusted) **The record closed**, with nothing announced and holding a live write transaction
 begun at the committed `Dn` (any pending changes `S`: no commit is in flight while it is live, it holds
 `rwlock` and `Commit` consumes it; reviews 2026-11-25: closing with a stale announcement, or without the
 transaction, inside `Commit`'s atomic update after the new meta's `pwrite` started, would let a commit of
-an unannounced change land while the record claimed less): the claim on the name and the half back (to
-close the database, or to rename another file onto `path`), and the transaction. -/
-axiom dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames) (path : GoString)
+an unannounced change land while the record claimed less): the half back (to close the database), and the
+transaction. (Restated 2026-11-25: it no longer gives back a claim on the name, which the record no longer
+holds.) -/
+axiom dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn S : Data) (G : GoString → Nat) (tx : Loc) :
-    dbCrashKeep γ path i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ⊢
-      bPath (GF := GF) γ path ∗ dbHalf γ Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G)
+    dbCrashKeep γ i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ⊢
+      dbHalf γ Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G)
 
 /-- (C-I1, trusted) **bbolt's file after a power loss**: under the crash premise `BoltCrashWhole` for the
 database's inode `i0`, from the old generation's record `(i0, Dl, Dn, pd)`, its `crashed`, and the file
@@ -219,11 +224,11 @@ facts; a name not made durable by a directory sync may name another inode, revie
 every byte durable), and the crash rest with `i0` taken. Open item (review 2026-11-24): `fileHoldsM`'s
 receipt of the in-flight meta's txid is asserted here; the record should carry it (`announce` taking it). -/
 axiom dbCrash [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [G : GooseGlobalGS HasLC.hasLC GF]
-    (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF) (γ : DBNames) (path : GoString)
+    (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF) (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn : Data) (pd : Option Data)
     (hQ : ∀ st st', Q st st' → BoltCrashWhole (· = i0) st st')
     (Dx : List Fs.Ino) (hi : i0 ∉ Dx) (V' : Fs.Hist) (hN : Fs.Named V'.now i0) (E : CoPset) :
-    ⊢ dbCrashKeep (hG := ⟨G, L⟩) γ path i0 Dl Dn pd -∗ crashed (hC := L.goose_crashGS) -∗
+    ⊢ dbCrashKeep (hG := ⟨G, L⟩) γ i0 Dl Dn pd -∗ crashed (hC := L.goose_crashGS) -∗
       Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) Dx false V' ={E}=∗
       ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn ∨ pd = some D'⌝ ∗
         bbolt.fileHoldsM (hG := ⟨G, L'⟩) i0 D' ∗

@@ -125,7 +125,11 @@ branch). Retired by #34's
 under it were zero, `nonissues/etcd-wal-record-type-outside-crc.md`), through `walInv_crash` (T5); the fixed
 `Save` writes no frame over stale bytes (`notes/etcd-dist-d6.md`, "The WAL crash facts rest on `W1`"). (P8, 2026-11-25) The
 contract's files are `srvFilesC` (the WAL's files without their synced mark, what a crash leaves:
-`SrvCrash.lean`); `bootstrap`'s `Open` and `ReadAll` take no synced mark, and write-mode `ReadAll` syncs. -/
+`SrvCrash.lean`); `bootstrap`'s `Open` and `ReadAll` take no synced mark, and write-mode `ReadAll` syncs.
+(T10, 2026-11-25, approved by coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2) The contract no longer
+asks `bootLen ≤ i`, and has a second case, the `.snap.db` recovery (`i < σ.b`: `recoverSnapshot` opens
+`<σ.b>.snap.db`, which the caller gives, and the post is at the snapshot's index). **The C-I2 review above
+covers only the first case; the second needs its own `axiom`-skill review before this law becomes an axiom.** -/
 abbrev bootstrapCrashContract.law : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (ps : List w64),
