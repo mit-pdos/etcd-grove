@@ -1,8 +1,9 @@
-# Go-model overlays, rest slice (fmt, log, os/syscall/durable, net, crc32, go/token): review packet (perennial#692)
+# Go-model overlays, rest slice (fmt, os/syscall/durable, net, crc32, go/token): review packet (perennial#692)
 
 For Upamanyu's review; nothing here lands without it. The basic slice (sync, internal/sync, time, runtime,
-bytealg) is reviewed separately (`goose-model-overlay-basic`, `go-models-basic/2026-11-24`) and is left out:
-once it lands on lean, lean is merged into the branches below and this packet shrinks to what follows.
+bytealg, strings, bytes, errors) LANDED on Perennial lean (`d5eb93cb5`, 2026-11-25) and is merged into the
+integration branch (`09bd3826c`): it is not part of this packet. log is not either: `log.Printf`/`Println` are
+trusted exactly as on lean (decision below), so log has no Go model and no delta vs lean.
 
 | repo | branch | head | state |
 |---|---|---|---|
@@ -39,13 +40,13 @@ replaces it, generated from the sources (every name in a `.toml`'s `[model] repl
 `tmp/gomodels/s4/modeldiff.py`). Everything not listed is Go's source verbatim (translated and verified).
 After the diffs: statement changes, decisions to check, open items, reviews, the criterion-14 audit, evidence.
 
-`MODEL:` markers per package (Perennial's `etc/model-deviations.py` from the basic slice's branch, run over
-`goose/model/overlay` of `goose-model-overlay-rest` and etcd-grove's `models/`; this packet's packages only):
+`MODEL:` markers per package (Perennial's `etc/model-deviations.py`, now on lean, run 2026-11-25 over
+`goose/model/overlay` of `goose-model-overlay-rest` `09bd3826c` and etcd-grove's `models/`; this packet's
+packages only):
 
 | package | `MODEL:` markers | model lines (non-test) | replaced declarations |
 |---|---:|---:|---|
 | fmt (Perennial) | 5 | 843 | `errorf`, `Fprintf`, `pp.doPrint`, `pp.doPrintln` (+ the model printer `printmodel.go`) |
-| log (Perennial) | 3 | 69 | `Printf`, `Println`, `init.0` |
 | syscall (Perennial) | 1 | 34 | `prlimit1` |
 | os (etcd-grove) | 19 | 1147 | `file`, `OpenFile`, `File.{Close,ReadAt,WriteAt,Seek,Write,Read,Stat,Truncate,Sync,Readdirnames,copyFileRange}`, `Rename`, `Stat`, `Lstat`, `RemoveAll` |
 | syscall (etcd-grove) | 9 | 237 | `errnoErr`, `init.0`, `Fdatasync`, `Flock`, `Fallocate`, `FcntlFlock`, `Mkdir`, `Unlink`, `Rmdir` |
@@ -53,7 +54,7 @@ After the diffs: statement changes, decisions to check, open items, reviews, the
 | hash/crc32 | 3 | 41 | the three arch hooks |
 | go/token | 1 | 37 | `IsExported` |
 | net (etcd-grove) | 20 | 435 | `netFD.{Read,Write,Close,closeWrite,SetDeadline,SetReadDeadline,SetWriteDeadline,accept}`, the six sockopt setters, `TCPListener.{accept,close}`, `Listen`, `Dial`, `DialTimeout`, `TCPAddr.String` |
-| **total** | **63** | | |
+| **total** | **60** | | |
 
 **Open item to flag yourself: size.** fmt's model printer (`printmodel.go`, 691 lines) and os's model (1147
 lines) are not "few and small" MODEL sites. fmt: the real printer reaches `printValue`/reflection; the model
@@ -211,101 +212,6 @@ Go's `os` uses (`poll.FD`; the `ignoringEINTR` loops are translated where possib
 ```
 
 Model-only declarations (additions, stubs; no real counterpart is replaced): `allInert`, `anyIntArg`, `callError`, `callString`, `chooseString`, `decBytes`, `doPrintf`, `errorfResult`, `formatArg`, `formatHex`, `formatInt`, `formatSlice`, `hasFmtMethod`, `hexBytes`, `hexNibble`, `inert`, `intArg`, `intVerb`, `isBasic`, `isIntKind`, `isStrKind`, `joinStrings`, `kindIs`, `namedIntArg`, `notModelled`, `parseDirective`, `printfFormat`, `quoteByte`, `quoteBytes`, `strArg`, `underlyingAs`, `visitArg`, `visitKind`, `visitRest`, `writeArbitrary`
-
-
-
-## log (Perennial)
-
-#### `Perennial/Code/log.toml` — model `goose/model/overlay/log`, 3 replaced declarations
-
-##### `Printf`
-```diff
---- go
-+++ model
-@@ -1,8 +1,33 @@
- // log.go
--// Printf calls Output to print to the standard logger.
--// Arguments are handled in the manner of [fmt.Printf].
-+// MODEL: Printf is std.output(0, 2, func(b []byte) []byte { return
-+// fmt.Appendf(b, format, v...) }). The standard logger std is not translated
-+// (its initializer is New(os.Stderr, "", LstdFlags), and os.Stderr is not a
-+// File in the model: perennial#663), nor is any function that changes it
-+// (SetOutput, SetFlags, SetPrefix, Default, Logger's setters), so in every
-+// execution of the model std is as New made it: flags LstdFlags, no prefix,
-+// output os.Stderr. Its output method then:
-+//   - returns at once if the output is io.Discard (l.isDiscard), which needs
-+//     a SetOutput no execution reaches; the model has both outcomes anyway
-+//     (gomodel.Choose: it formats or does nothing);
-+//   - reads the clock (time.Now), the prefix and the flags (atomic loads), and
-+//     with LstdFlags not the caller's file and line: no effect;
-+//   - takes a buffer from bufferPool, formats the date and time into it, and
-+//     calls the closure, which formats the arguments as fmt.Appendf does:
-+//     fmt's printer and doPrintf, which call the arguments' Error, String and
-+//     Format methods, the only effects on the program. The model formats them
-+//     with fmt.Fprintf, which runs the same newPrinter, doPrintf and free;
-+//   - appends a newline, takes std.outMu (held only by output, never while
-+//     the arguments' methods run) and writes the bytes to standard error,
-+//     ignoring the result: an effect outside the program, which the model
-+//     drops, as it drops Fprintf's bytes (modelDiscard). The write can also
-+//     block (a full stderr pipe, holding std.outMu) or end the process
-+//     (EPIPE on fd 2: os.File.Write's epipecheck raises SIGPIPE): both stop
-+//     the program there, so their traces are prefixes of the model's, which
-+//     returns (partial correctness, as for an exit).
-+//
-+// Neither can panic other than through the arguments' methods.
- func Printf(format string, v ...any) {
--	std.output(0, 2, func(b []byte) []byte {
--		return fmt.Appendf(b, format, v...)
--	})
-+	if gomodel.Choose() {
-+		fmt.Fprintf(modelDiscard{}, format, v...)
-+	}
- }
-```
-
-##### `Println`
-```diff
---- go
-+++ model
-@@ -1,8 +1,9 @@
- // log.go
--// Println calls Output to print to the standard logger.
--// Arguments are handled in the manner of [fmt.Println].
-+// MODEL: Println is Printf's model (see there) with fmt.Appendln(b, v...) in
-+// place of Appendf: the model formats the arguments with fmt.Fprintln, which
-+// runs the same newPrinter, doPrintln and free.
- func Println(v ...any) {
--	std.output(0, 2, func(b []byte) []byte {
--		return fmt.Appendln(b, v...)
--	})
-+	if gomodel.Choose() {
-+		fmt.Fprintln(modelDiscard{}, v...)
-+	}
- }
-```
-
-##### `init.0`
-```diff
---- go
-+++ model
-@@ -1,8 +1,9 @@
- // log.go
-+// MODEL: log's init function stores a closure into
-+// log/internal.DefaultOutput, the output of log/slog's default handler; it
-+// cannot panic. log/slog and log/internal are not translated, so no execution
-+// of the model reads that variable, and the model does nothing.
-+//
-+//gomodel:replace init.0 "internal.DefaultOutput = func(pc uintptr, data []byte) error {"
- func init() {
--	internal.DefaultOutput = func(pc uintptr, data []byte) error {
--		return std.output(pc, 0, func(buf []byte) []byte {
--			return append(buf, data...)
--		})
--	}
- }
-```
-
-Model-only declarations (additions, stubs; no real counterpart is replaced): `init`, `modelDiscard`, `modelDiscard.Write`
 
 
 

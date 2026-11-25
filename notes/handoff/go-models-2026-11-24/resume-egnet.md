@@ -368,3 +368,29 @@ merge lean into goose-model-overlay-rest and shrink the packet.
    build (key c61dd42e08d7d686).
 3. packet-rest.md: keep fmt/os/syscall/net/durable/crc32/go-token (+log note), drop sync/time/runtime/bytealg;
    recount MODEL: with Perennial's etc/model-deviations.py. tcb before/after only if axioms change.
+
+## Session 11 (2026-11-25, same worktrees) — STATE
+- Perennial `goose-model-overlay-rest` = **09bd3826c** (pushed): merge of lean d5eb93cb5 (basic slice landed).
+  Conflicts: Code/syscall.toml ours (rest's prlimit1 model), etc/model-tests.sh ours (superset),
+  goose/util/model.go + model_test.go lean's (the landed CheckAPI/sameSignature). Regen (pregen.sh --std-lib
+  --models): no change but strconv churn (restored); gen-link no change; model-tests ok; `go test ./goose/...` ok.
+  VM build: `tmp/gomodels/s10/int-full11.log` (fullbuild.sh, key 9514b93e0b000028) — check its chunk exits;
+  re-run a chunk that exits 255/75 (connection loss) as in int-full10b.
+- etcd-grove lean merge (1053 commits, 216 conflicts): PARKED on branch `go-models-rest-egnet-lmerge/2026-11-25`
+  (8e07d6297f, pushed, WIP, does not build). Resolved by scratch/resolve3.py (diff3: our side only dropped
+  FieldAssumptions -> lean's minus FA binders), resolve_intro.py (intro underscores), gen-init/gen-link by hand,
+  generated files lean's (to regenerate). BLOCKER, left with diff3 markers: lean added UDP as trusted Lean
+  (UDPConn, UdpFieldAssumptions, ListenUDP/WriteToUDP/ReadFromUDP, GooseLang/Ext/Udp, kvudp result) on the old
+  trusted TCP net that egnet replaced by the Go-model net; plus KvNet renamed KvRaft on lean. Files with markers:
+  Net/TrustedCode/net.lean, Net/ManualProof/net.lean, Net/Code/net.toml, KvRaft/Code/net.toml,
+  Net/Code/go/token.toml, TopLevelRobustness of swiftnet/epaxosnet/quepaxanet (Proof+Spec), kvraft Spec,
+  etcd dist/putget, k8s all. Needs a decision: UDP as a Go model (net.UDPConn over a UDP extension, a new
+  MODEL item) vs keeping lean's trusted UDP beside the Go-model TCP (no new trusted text vs lean).
+- egnet `go-models-rest-egnet/2026-11-24`: re-pinned to 09bd3826c WITHOUT the lean merge; regenerated (goose,
+  gen-init, copy-part, raft-tla, specs-pkginit, kitgen: no change; gen-link-all running/`--write`). Next: commit,
+  default build (key c61dd42e08d7d686, log s10/eg-full13.log).
+- packet-rest.md shrunk: title/head (basic slice landed; log has no model), MODEL: table recounted with lean's
+  etc/model-deviations.py: fmt 5, syscall(P) 1, os 19, syscall 9, durable 2, crc32 3, go/token 1, net 20 = 60;
+  log diff section dropped. Head table rows still name d81d2bfd8/16e82ffff7: update after the build.
+- tcb before/after: the pin bump changes no etcd-grove axiom (Perennial lean adds none); rerun only if the
+  build's `#print axioms`/tcb differs.
