@@ -99,7 +99,22 @@
     `walHandleIn_append` take `(i) (hi : h.inc = i)`; `SaveSt`/`SaveFin` carry `inc`; `cut`'s post adds
     `h'.inc = h.inc`; `save_post` at `γ.inc`. Edited, being checked: `WAL__Save`, `WAL__SaveSnapshot`,
     `WAL__Sync`, `WAL__Close`, `WAL__ReadAll`, `ReadAll{Exit,Synced,Named,RegCommit}`.
-  * **left**: finish those checks; `WAL__CloseFailed`/`WAL__syncLent`/`Repair` (failed only on stale
+  * **checked since** (lean-check `-a`, 0 errors): `WAL__Save`, `WAL__SaveSnapshot`, `WAL__Sync`, `WAL__Close`,
+    `WAL__CloseFailed`, `WAL__syncLent`, `Repair`, `WAL__ReadAll`, `ReadAllFail`, `HandleUnnamed` (new:
+    `walOpenWFUI_lockAcc`, `walOpenWFU_sealL`, `walOpenWFI_unlocked_exclX`). Pushed as `45979e5b19`+.
+  * **`Create.lean`** (`--fast`): everything but the deferred cleanup's registration. Done: `ic` binder,
+    `walCreateP`/`createU`/`createUH`/`create_ghost`/`create_handleIn`/`createHS` at `ic`, `renameWALPost`'s
+    arm 2 removed, the success exit registers under the handle's lock (`walOpenWFU_sealL`, `walInv_register
+    … s' I0 Il`, `walInv_named … I0`), arm 3 (committed error) registers under `walCreateQ`'s `walLockedTokI`.
+    **Open (12 errors, one cause)**: `create_cleanup`'s two `walInv_register` calls (the cleanup's `Close`
+    failed, `Hlt : walLockedTok`; or succeeded, `walUnlockedTokX`): the token comes back from
+    `WAL.cleanupWAL.spec`/`WAL.Close.spec`'s `unnamed` arm without its incarnation, so "the WAL is still
+    present" (`walInv_register`'s currency) cannot be shown. Proposed: (a) `walInv_register` takes the
+    quarter `walIncQ I'` (it only agrees it with the ghost) instead of `walLockedTokI I'`; (b) `Close.spec`'s
+    `unnamed` arm takes `walOpenWFUI … i` and returns the quarter at `i` (`walLockedTokI I ∗ ⌜incOf I dir = i⌝`,
+    and the unlocked token's `walIncAny` as `walIncQ I` with the same fact); (c) `cleanupWAL.spec` likewise.
+    Ledger entry first (internal specs; "still present" lemmas take the lock quarter, as approved).
+  * **left**: the above; `WAL__CloseFailed`/`WAL__syncLent`/`Repair` (failed only on stale
     dependencies so far); `Create.lean` (handoff's session-3 list); `CreateSrv`; `storage__*`; then a
     `lake build` of `wal.Link`; WalTester (20 files use the facts), P8's consumers (`WalViews`' crash laws
     `walDiskAt_crash*` take facts without incarnation: they need `walDiskAtI`/facts at `i` and the

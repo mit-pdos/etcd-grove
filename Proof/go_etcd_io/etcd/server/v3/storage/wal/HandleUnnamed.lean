@@ -132,6 +132,52 @@ theorem walOpenWFU_seal (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoSt
     iexact Hn
   ipureintro; exact ⟨hD, hmd, rfl⟩
 
+/-- **`walOpenWFU_seal` with the lock quarter lent** (`Create`'s success exit: the registration,
+`walInv_register`, needs the lock at the handle's incarnation to know the WAL is still present). -/
+theorem walOpenWFU_sealL (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
+    (qp : Qp) (tf : Loc) (i : Nat) :
+    ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗ walNamesFrag (W := W) (some dir) ∗
+      ∃ I : GMap GoString Nat, walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walLockedTokI (W := W) I -∗ walNamesFrag (W := W) none -∗ walNamed (W := W) dir i -∗
+        walOpenWFI (W := W) P Mr w dir i) := by
+  iintro H
+  unfold walOpenWFUI
+  icases H with ⟨%h, Hh, %hD, %hmd, %hi, Hrc⟩
+  subst hi
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
+    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, H20, H21,
+    H22, H23, H24, H25, H26, Hpipe, K1, K2, K3, Hw, K4⟩
+  unfold walOpenWI
+  icases Hw with ⟨%I, Hst, Hl, %hI⟩
+  icases walDirH_split dir j dfd h.ino name h.pc lfs.dropLast h.cuts
+    (fun R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝)) (fun _ _ => walNamed (W := W) dir h.inc) (some dir)
+    $$ Hd with ⟨Hnf, Hd⟩
+  iframe Hnf
+  iexists I
+  iframe Hl
+  isplitr
+  · ipureintro; exact hI
+  iintro Hl Hnf' #Hn
+  unfold walOpenWFI walHandleIn
+  iexists h
+  iframe Hrc
+  isplitl
+  · iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25
+      H26 K1 K2 K3 K4
+    isplitl [Hd Hnf']
+    · iapply Hd $$ Hnf'
+      iintro %R %q -
+      iexact Hn
+    isplitl [Hpipe]
+    · iapply walPipeH_mono fp dir j h.pc _ _ (fun _ _ _ => trivial) $$ Hpipe
+    unfold walOpenWI
+    iexists I
+    iframe Hst Hl
+    ipureintro; exact hI
+  ipureintro; exact ⟨hD, hmd, rfl⟩
+
 /-- **The `dir` field of the handle before naming, lent** (`Create` reads `w.dir` after `renameWAL`). -/
 theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
     (qp : Qp) (tf : Loc) (i : Nat) :
@@ -227,6 +273,36 @@ theorem walOpenWFU_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (
   · unfold walLockedTok; iexists I; iexact Hl
   iapply walLockedTok_exclX $$ Hl Hu
 
+/-- **The lock quarter of the handle before naming, lent**, at the handle's incarnation (`Create`'s
+registration, `walInv_register`: a past state with the WAL is current under it). -/
+theorem walOpenWFUI_lockAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (Rp : Roots) (qp : Qp) (tf : Loc) (i : Nat) :
+    ⊢ walOpenWFUI (W := W) P Mr w dir Rp qp tf i -∗ ∃ I : GMap GoString Nat,
+      walLockedTokI (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walLockedTokI (W := W) I -∗ walOpenWFUI (W := W) P Mr w dir Rp qp tf i) := by
+  iintro H
+  unfold walOpenWFUI
+  icases H with ⟨%h, Hh, %hD, %hmd, %hi, Hr⟩
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
+    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24, H25, H26, H27, H28, H29, H30, H31, Hw, Hz⟩
+  unfold walOpenWI
+  icases Hw with ⟨%I, Hst, Hl, %hI⟩
+  iexists I
+  iframe Hl
+  isplitr
+  · ipureintro; rw [hI, hi]
+  iintro Hl
+  iexists h
+  iframe Hr
+  isplitl
+  · iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H25 H26 H27 H28 H29 H30 H31 Hz
+    iexists I
+    iframe Hst Hl
+    ipureintro; exact hI
+  ipureintro; exact ⟨hD, hmd, hi⟩
+
 /-- **The handle holds the lock token.** -/
 theorem walOpenWF_unlocked_excl (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     ⊢ walOpenWF (W := W) P Mr w dir -∗ walUnlockedTok (W := W) -∗ False := by
@@ -256,6 +332,14 @@ theorem walOpenWF_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (d
   ihave Hl : walLockedTok (W := W) $$ [Hl]
   · unfold walLockedTok; iexists I; iexact Hl
   iapply walLockedTok_exclX $$ Hl Hu
+
+
+/-- `walOpenWF_unlocked_exclX` at an incarnation (`Create`'s success exit, `create_areaBack`'s `T`). -/
+theorem walOpenWFI_unlocked_exclX (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    ⊢ walOpenWFI (W := W) P Mr w dir i -∗ walUnlockedTokX (W := W) -∗ False := by
+  iintro H Hu
+  ihave H := walOpenWFI_WF P Mr w dir i $$ H
+  iapply walOpenWF_unlocked_exclX P Mr w dir $$ H Hu
 
 end handle
 
