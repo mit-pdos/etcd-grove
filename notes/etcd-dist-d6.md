@@ -497,3 +497,240 @@ ahead of the node's own log), not a local edit: a raft-proof design task of its 
 **State of the five steps:** step 1 needs the leader-completeness law (above); step 3 needs raft's
 restart with a configuration point past its stored log (this entry); steps 2, 4 and 5 depend on them.
 Nothing else landed this round; the last green build is `fec7d8cf82`.
+
+## P11, P10: `etcd_safe`'s crash skeleton on `Robust`'s thread bound (2026-11-24, branch `etcd-safe-crash/2026-11-24`)
+
+* **P11, the bridge.** Perennial (pin `b3f2fc48`) has `goose_dist_mixed_crash_adequacy_below` (the thread
+  bound on the execution, `DistCrashNstepsBelow`), so no Perennial change was needed. `Net/Statement/
+  DistCrashAdequacy.lean` gains the thread-bound forms beside the old ones (`CrashBootWpET`, `crashPreET`,
+  `nodeStart_of_crashBootET`, `robust_of_dist_crash_adequacyT`; with the file extension `CrashBootWpGT`,
+  `crashBootWpET_of_GT`, `robust_of_dist_crash_adequacy_fsT`), as `robust_of_distBootILT` for the all-stable
+  bridge: an execution of `n` steps below `threads` threads runs at `threadBound = threads` and `max (n+1) lo`
+  receipts. `robust_of_dist_crash_adequacy_etcdNet` (`etcdstart/NetExtsCrash.lean`) is restated over it:
+  crashing machines `Net.CrashBootWpGT etcdCQ (etcdIdCrashRest C) threads lo bound`, their first generation at
+  `threadBound = threads`, stable machines `Net.DistBootWpSLT threads lo bound`.
+* `EtcdBootC`/`EtcdBootCBad`/`etcd_safe_of_boot` (`dist/TopLevelRobustness.lean`) at `threads := etcdThreads`,
+  `bound := etcdSteps`, no receipt floor (`srvLevelK` and `2^28 - 1` gone), matching `etcd_robust.spec`.
+* **P10.** `EtcdBootCBad`'s member obligation is from the generation's empty package state (`emptyPkgs`,
+  which the crash gives back), not `True`. `etcdBootCBad_holds` (`dist/BootBad.lean`), proved from
+  `serverBadWp`/`clientBadWp`/`nodeBadWp` (the three boot proofs' WPs factored out of `serverBootBad` &c.,
+  which now apply them) and `crashBootBad_of_wp`; `etcd_safe_of_bootWF (Hctx) (HS : EtcdBootC)`. Same `Hctx`
+  hypothesis as the no-crash side.
+
+## Crash interim axioms (2026-11-24, branch `etcd-safe-crash/2026-11-24`)
+
+Each reviewed by a fresh `axiom`-skill agent given the statement and the Go code; reports in
+`notes/axiom-review/c-i{1,2,3}-*.md`. None is used by a proof yet.
+
+* **C-I1** (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`, four axioms over the opaque
+  `dbCrashKeep γ path Dl Dn` and `dbSyncs γ path`): `dbCrashKeep_new` (from `dbSyncs`, `bPath`, `dbHalf` and a
+  fresh write transaction at the committed `D`: the record `(D, D)`), `dbCrashKeep_half` (the half lent to
+  one atomic update; a change moves the fallback), `dbCrashKeep_close`, `dbCrash` (under the crash premise
+  `BoltCrashWhole`, from the record, `crashed`, `crashRest … Dx` and the new generation's name claim at
+  `path`: `fileAtF path D'` with `D' = Dl ∨ D' = Dn`, `crashRest … (i :: Dx)`). The lead's
+  `dbDurLb γ D` is not needed: the record carries the fallback. Review: `_half` and `dbCrash` refuted as
+  first stated, fixed (one-step lending; the name's commit in `dbSyncs`; `BoltCrashWhole` for torn
+  `Truncate` sizes and FNV mixtures). **Open**: `dbSyncs`' producer (bbolt's persistent `NoSync`/
+  `NoGrowSync` fields and the directory sync; until then the laws are vacuous) and `BoltCrashWhole`'s
+  statement (a world premise for the owner, as `W1`); a closed database (defrag, the snapshot install)
+  has no law.
+* **`nonissues/bbolt-init-not-crash-safe.md`: not refuted.** The fork's `needsInit` covers a crash before
+  `init`'s first sync; between its two syncs the model can tear both metas, `Open` fails, etcd's
+  `newBackend` panics. Now `blocks-proof: yes`; C-I1 is restricted to opened databases. Proposed fork fix:
+  `needsInit` also reinitializes a four-page file whose pages 2-3 are the first write's and whose metas
+  are each zero or invalid.
+* **C-I2** `bootstrapCrashContract.law` and **C-I3** `bootstrapLeftContract.law`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/CrashInterim.lean`): **laws (`abbrev … : Prop`), not
+  axioms**, because both are false of the pinned etcd (`bc2b5f4d0`: torn `Save`s read back, unsaved WALs
+  restarted) and true only of the torn-`Save` fork `768ecf158`; each becomes an axiom when the pin moves
+  (the fix's P0, with layer 1 re-proved over the fork's `Save`). C-I2 review: refuted as first stated
+  (unguarded `γ`/`dir`/`id`; an unsaved WAL beside an applied backend), fixed (the deployment's names as
+  hypotheses, as `bootPremiseR`; `γ.cl.bootLen ≤ σ.commit` added to `bootstrapCrashContract`). C-I3
+  review: survives, suspect (`walAreaUnsaved` wider than `wal.Unsaved`: restate over the history; the
+  opaque data-area disjunct removed, so only WAL leftovers are covered).
+* **Findings for T3/T4/T7.** (1) An unsaved WAL beside a backend that applied the bootstrap batch is
+  likely reachable with the fork's fix (raft hands out the committed bootstrap batch before its `Save`,
+  etcd applies before `Save`, the backend commits on its timer; code reading, no Go test yet): the fix's
+  fresh branch is then wrong; neither law covers it. A Go test and an `issues/` file are next; a fork fix:
+  `DiscardUnsaved` only at consistent index 0. (2) `srvCrashImageAt` requires `γ.cl.bootLen ≤ i`, false of a
+  crash after the first `Save` and before the backend's first commit (`i = 0`): `memberGen_crash.law` needs
+  that case.
+
+### The combined fork head and the decisions after the first reviews (2026-11-24)
+
+* **Fork head for `etcd_safe`: `upamanyus/etcd` `goose-lean-crashfixes` @ `71295dd6d`** = the applySnapshot
+  guard (`goose-lean-slicessort-on-fmtattrs-snapguard` @ `8aa40fd5c`) merged with the WAL torn-`Save` fix
+  (`goose-lean-fmtattrs-tornsave` @ `768ecf158`), both on `bc2b5f4d0`, plus the directory sync after the
+  database renames of defrag and the snapshot install (`nonissues/etcd-backend-rename-without-dir-sync.md`;
+  decision (b) of the coordinator). Not bumped in `etc/goose.py` here: done at integration.
+* **Which change makes each law true.** C-I2 (`bootstrapCrashContract.law`): the torn-`Save` fix (`ReadAll`
+  drops an unfinished `Save`, `DiscardUnsaved` removes unsaved WALs, so a WAL with `bootLen ≤ σ.commit` reads
+  as complete `Save`s); the applySnapshot guard is not needed by `bootstrap` (it is the raft loop's). C-I3
+  (`bootstrapLeftContract.law`): the torn-`Save` fix's `DiscardUnsaved`. C-I1's name durability: the dir-sync
+  change for the two renames; a fresh `bolt.Open`'s name is durable once `bootstrapNewWAL` syncs a directory
+  (the model's `DirSync` commits every logged operation).
+* **`dbSyncs`' producer (for T7, a law to prove once `dbSyncs` is a definition):** for etcd's three paths,
+  from bbolt's persistent fields `NoSync = false`/`NoGrowSync = false` (`Inv/Bolt.lean`) and a commit lower
+  bound covering the operation that made `path` name the database's inode: a fresh `Open` (covered by the
+  WAL's first directory sync), defrag's and the snapshot install's renames (covered by the fork's new
+  syncs). Not stated in Lean yet: `dbSyncs` stays opaque, so C-I1 is vacuous until T7 writes its definition
+  and this law (the definition changes what the C-I1 axioms say: they are re-reviewed then).
+* `BoltCrashWhole` (the opaque crash premise on `Q`): accepted by the coordinator as a trusted item of the
+  final packet, like `W1`.
+
+### Re-review of the restated set (2026-11-24, a fresh `axiom`-skill agent)
+
+C-I1: `dbCrash` false of the model before the commit point (the new meta's bytes are crash candidates from
+its `pwrite`) and `dbSyncs` unsound once produced (renames undo a persistent durable name): both fixed (the
+record announces the commit in flight, `dbCrashKeep_announce`; `dbSyncs` split into persistent `dbOpts` and
+exclusive `dbNameDur`, not returned by `_close`); `BoltCrashWhole` now takes the inodes it covers, still opaque
+(to be defined for the owner packet); `_new`, `_half`, `_close` survive. C-I2 survives. C-I3 survives but is
+too narrow (its new case is unreachable on one file system; the backend leftovers are what T3 must cover) and
+depends on the WAL's whole-sector premise. Reports: `notes/axiom-review/c-i{1,2,3}-*.md`. The last C-I1 fixes
+were not re-reviewed again.
+
+### Third review of C-I1 (2026-11-25)
+
+No panicking program; `dbNameDur` (path-indexed) would make `dbCrash` false once produced: removed. The
+record now names γ's inode `i0` (`dbCrashKeep γ path i0 Dl Dn pd`, from `boltIno` at `_new`), `dbCrash` gives
+`fileHoldsM i0 D'` under `Named V'.now i0` (the caller derives which inode `path` names from the file
+extension's crash facts). `BoltCrashWhole` stays opaque, with the weak forms in its docstring (to be
+defined for the owner packet). Open: the in-flight txid's receipt. Final C-I1: `dbCrashKeep_new`,
+`dbCrashKeep_announce`, `dbCrashKeep_half`, `dbCrashKeep_close`, `dbCrash`; opaque `dbOpts`, `dbCrashKeep`,
+`BoltCrashWhole`. `notes/axiom-review/c-i1-bbolt-crash.md`.
+
+### Fourth review of C-I1 (2026-11-25)
+
+No refutation. A stale-announcement gap fixed (`_close` only with nothing announced; `dbCrashKeep_clear` with a
+fresh write transaction); `BoltCrashWhole` restricted in its docstring (open database, no extending write since
+the last sync; the size part to move into the file extension); `dbOpts`' producer: `Open`'s postcondition. The
+last fix is not re-reviewed. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`, `dbCrash`.
+
+### Checkpoint (2026-11-25, end of the crash-axioms session; branch `etcd-safe-crash/2026-11-24`)
+
+**Done.** P11 (crash bridge on `Robust`'s thread bound) and P10 (`etcdBootCBad_holds`, `etcd_safe_of_bootWF`),
+no axiom or sorry. C-I1 in Lean (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`), final
+set: `dbCrashKeep_new`, `dbCrashKeep_announce`, `dbCrashKeep_half`, `dbCrashKeep_clear`, `dbCrashKeep_close`,
+`dbCrash`, over the opaque `dbOpts` (persistent), `dbCrashKeep γ path i0 Dl Dn pd` (exclusive) and the crash
+premise `BoltCrashWhole I`. C-I2/C-I3 as laws (`bootstrapCrashContract.law`, `bootstrapLeftContract.law`,
+`Proof/.../etcdserver/CrashInterim.lean`), not axioms: false at the pinned etcd, true of the fork head
+`goose-lean-crashfixes` @ `71295dd6d`. Four reviews of C-I1, two of C-I2/C-I3 (`notes/axiom-review/c-i*`).
+
+**Open, for the next agent.**
+1. Re-review `dbCrashKeep_close` (now only with `pd = none`) and the new `dbCrashKeep_clear` (the fix of the
+   fourth review's stale-announcement gap): not reviewed yet.
+2. Write `BoltCrashWhole` out as a definition: only while the file is an open bbolt database with no extending
+   write since its last sync; a validating meta page equals the page's page-cache contents at some moment since
+   the last sync (FNV-64 collision as an explicit probabilistic premise); check some `Q` refining `OsCrash`
+   satisfies it; a configuration-C example in `examples/osfs/semantics/`. Move the size part (an extending
+   `ftruncate` crashes to the old or the target size) into the file extension's `CrashFile` (a trusted change).
+3. `dbOpts`' producer: in bbolt `Open`'s postcondition behind γ's ghost names (not an entailment from persistent
+   field cells), with `UnsafeNoFsync = false` from the Go configuration. Until then all C-I1 laws are vacuous.
+4. The in-flight txid's receipt: the fourth review found it backed (receipts are global); optionally carry it
+   in the record (`announce` taking it).
+5. C-I2/C-I3: become axioms only after the pin moves to `71295dd6d` and the WAL's layer 1 is re-proved over the
+   fork's `Save`; C-I3 to be widened to the backend leftovers (T3) and restated over the WAL history
+   (`walAreaUnsaved`); its dependence on the WAL's whole-sector premise to be stated.
+6. Handed to another agent (not this session): the torn-`Save` fix's fresh-start hole (an unsaved WAL beside a
+   backend that applied the boot entries) and the bbolt `init` fork fix. Done: "Torn-Save fix: fresh-start
+   hole" below (fork head `goose-lean-crashfixes2` @ `d49d01a07`).
+7. T4/T7 finding: `srvCrashImageAt`'s `γ.cl.bootLen ≤ i` excludes a crash between the first `Save` and the
+   backend's first commit.
+8. Not run: `etc/tcb-report.py --check` (needs a local full build; no result uses the new axioms, so the
+   baseline should not move).
+
+### Torn-Save fix: fresh-start hole (2026-11-25)
+
+**The hole (tested).** The raft loop sends a Ready's committed entries to the apply thread before
+it saves the Ready (`raftNode.start`, `server/etcdserver/raft.go:250-276` at `71295dd6d`), and raft
+(synchronous storage writes) hands out the bootstrap conf changes as committed in the first Ready.
+So the backend can commit members and consistent index `n` before the first `Save` is durable. A
+crash then leaves an unsaved WAL beside an applied backend; `goose-lean-crashfixes` (`71295dd6d`)
+discarded the WAL and bootstrapped fresh over that backend. No panic, members and raft's
+configuration right, but the bootstrap entries are replayed at or below the consistent index, where
+`applyConfChange` does not call `ApplyConfChange` (`server.go:2078`): `ep.confState` stays the
+fresh snapshot's empty one, is written to the backend (`beHooks.SetConfState`), and every raft
+snapshot the member makes and sends (`server.go:2158`, the merged snapshot `server.go:1013`) has
+`ConfState{}`; raft v3.7's `restore` rejects a snapshot not naming the receiver, so a follower that
+needs one from this member never catches up (liveness; no safety violation found: a follower sends
+nothing before its first `Save` returns). Test: `TestBootstrapUnsavedWALAppliedBackend`
+(`server/etcdserver/bootstrap_unsaved_applied_test.go`: a real `NewServer`, the first `Save` held,
+the bootstrap entry applied and committed, the data dir copied as the crash image) at `730b7bf62`:
+
+```
+control:   {members:1 raftVoters:[6e17..] backendCS:[6e17..] snapshotIndex:33 snapshotCS:[6e17..]}
+restarted: {members:1 raftVoters:[6e17..] backendCS:[]     snapshotIndex:33 snapshotCS:[]}
+```
+
+Fork-only (upstream has no `DiscardUnsaved`), so no `issues/` file.
+
+**The fix (decision: discard the backend with the WAL).** `bootstrap` (`8ceb22f8d`): when
+`wal.Unsaved`, remove `member/snap/db` (absent is fine) and fsync `member/snap`, then
+`DiscardUnsaved`. Until its first `Save` completed the member sent nothing, so whatever the backend
+applied (the bootstrap entries, or more if a leader's append was stepped before the first Ready) is
+fetched again from raft. Order: backend first, so a crash in between leaves the WAL unsaved and no
+backend, and the next start discards again (tested: the restart from that image matches the
+control). For the laws: C-I2/C-I3's fresh case now holds a fresh backend too (no `beExist` leftover
+from an applied boot); T3's "first start with leftovers" keeps only the pre-WAL leftovers
+(`bootstrapBackend` before `bootstrapNewWAL`, consistent index 0).
+
+**bbolt's init (`nonissues/bbolt-init-not-crash-safe.md`).** `upamanyus/bbolt`
+`v1.5.0-init-crashsafe` @ `19e0771` (on v1.5.0 `e7a8b2d`, the version etcd's `go.mod` names): `init`
+syncs the freelist and root pages before writing the metas; a writable `Open` re-initializes a file
+of at most four pages whose every byte is zero or `init`'s and which is not `init`'s whole image
+(covers before the first sync, between the two syncs, and the old single write's leftovers).
+`TestOpen_InterruptedInit` fails at v1.5.0 (one case panics), passes with the fix. The etcd fork uses
+it through `replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261125003757-19e0771281fa`
+in `go.mod`, `server/go.mod`, `etcdutl/go.mod`, `tests/go.mod`; `TestBackendOpensInterruptedInit`
+(`server/storage/backend`) panics without it.
+
+**Port to the verified bbolt: yes, needed, not done.** The proof verifies `upamanyus/bbolt` @
+`ca88bb6a` (`etc/goose.py`), 17 commits past v1.5.0 (`git log v1.5.0..ca88bb6a`: the goose forms,
+the bbolt#1311 fix, the two-sync `init` 3207bac and `needsInit` 42c80a7, the `Open` sync c5a6065,
+the entry limit, the leaf split, ...). Its `init` already syncs in two steps; its `needsInit` accepts
+only zero metas over a subset of the data pages, so the window between the two syncs stays open
+there. The port is the widened check (every byte zero or `init`'s image, not the whole image; about
+25 lines replacing `metasZero`), then `DB__init`/`Open`'s proofs and `SpecPlan/Spec/go_etcd_io/bbolt/Open.lean`.
+Until it lands, the binary etcd runs (v1.5.0 + this fix) and the verified bbolt differ by those
+17 commits, as they did with v1.5.0.
+
+**Combined fork head:** `upamanyus/etcd` `goose-lean-crashfixes2` @ `d49d01a07` = `71295dd6d`
+(snapshot guard, torn-`Save` fix, directory syncs) + `730b7bf62` (the test) + `8ceb22f8d` (backend
+discard) + `d49d01a07` (bbolt `replace` and its backend test). Tests (go1.27.3): every package of
+`server/etcdserver/...` and `server/storage/...` passes but `storage/wal`, whose whole suite runs past
+`go test`'s 10-minute default (the byte-mix tests; the package neither imports bbolt nor changed since
+`71295dd6d`), where the torn-`Save` tests pass (`TestTornSaveReadsAsNoSave`,
+`TestSaveEntriesEmptyHardStateWritesState`, `TestUnsaved`, `TestRestartWithEntriesButNotCommit`);
+`etcdutl/...` passes; bbolt `go test -short .` passes (`tests/failpoint` fails the same at v1.5.0: it
+needs a gofail build).
+Not bumped in `etc/goose.py`.
+
+### C-I1 finished (2026-11-25, branch `etcd-safe-crash/2026-11-24`)
+
+* **`BoltCrashWhole` written out** (a definition, still a premise on `Q`, `dbCrash`'s `hQ`): for a file of `I` whose
+  size has not changed since its last sync and with nothing in flight past its end, a meta page of the crash image that
+  validates (`boltMetaValidates`: magic, version, FNV-64a checksum, on the raw little-endian bytes, not importing
+  bbolt's internal `Model/Meta`) is, on its 56 checksummed bytes, the slot as of one change (`valAt`): only the FNV-64a collision, as
+  minibolt's P1. Satisfiable from every reachable state with a crash (`boltCrashWhole_exists`, over `Tests.durCrash`,
+  moved from `P1Sat.lean` into `GooseLang/Ext/Fs/Tests.lean`).
+* **The size part moved into the file extension** (trusted change, **pending the user's review**): `OsFile.szCrash`
+  (the sizes a crash may leave: the synced size, an `ftruncate`'s/`O_TRUNC`'s target exactly, every size a `pwrite` or
+  `fallocate` passed through) and `CrashFile`'s third size clause (with a change in flight, an `ftruncate`'s target).
+  ext4 sets a truncate's `i_disksize` in one journal handle. Example `examples/osfs/semantics/data_truncate_size_exact.go`
+  (indexed in `doc.go`; `data_resize_chunks.go` narrowed to `fallocate`), measured on C by
+  `notes/axiom-review/fs-config/trunc-size.sh` (40 power losses, every size a target) and by the reviewer (a mix with
+  appends, 40 more). Test `Tests.crash_trunc_size_exact`. It removes behaviours only: no proof constructing a crash
+  broke but the tests' witnesses (`crashFile_of` takes the new clause, by default from `sz = f.size`/`f.sizeLo`).
+* **`dbOpts`' producer**: `storage.OpenBackend.spec`'s post (an axiom) gains `⌜cfg.UnsafeNoFsync' = false⌝ -∗
+  backend.dbOpts γ.db`; `dbOpts` moved to `backend/DbOpts.lean` (importable). Not yet in `OpenSnapshotBackend`'s spec
+  (the snapshot install's reopen): for T7.
+* **`dbCrashKeep_close`** now also takes (and gives back) a live write transaction begun at `Dn`, any pending changes
+  (`wView Dn S G`; fifth review: suspect without it; sixth: survives, and proposed `wView` over `wr Dn` for defrag).
+* Reviews: fifth (whole final set: no refutation, `_close` suspect, fixed) and sixth (`_close`: survives), in
+  `notes/axiom-review/c-i1-bbolt-crash.md`. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`,
+  `dbCrash`, over `dbOpts` (opaque, produced), `dbCrashKeep` (opaque), `BoltCrashWhole` (defined).
+* **Build**: a full VM `lake build` at `37a88a324f` (28052 jobs): every module built but one,
+  `SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership` (`failed to synthesize IsPkgInit …
+  pkg_id.encoding.binary`), a generated SpecPlan package initializer that imports nothing this change touched (by
+  inspection; not rebuilt at the base). Not done: interfaces (`etc/gen-interface.py etc/api/backend.txt`, new
+  `DbOpts`) not regenerated (needs a local build); `etc/tcb-report.py --check` not run (axiom names unchanged).

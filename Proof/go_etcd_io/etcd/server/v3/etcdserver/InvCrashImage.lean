@@ -100,14 +100,17 @@ image's: the backend's index `i` need not be at or below the WAL's commit (only 
 WAL's read facts `walReadFacts σ` are the caller's premise (carried by the crash image) instead of a
 promise of the contract. Everything else (the configurations covered, the write budget, the static
 membership, the cluster version's log, the image's store part, the files, the post `bootOkR`) is the
-graceful contract's. The graceful contract is the instance `i ≤ σ.commit` (with the read facts its own
+graceful contract's. (C-I2 review, 2026-11-24) And the WAL's commit at least the bootstrap log's length
+(`γ.cl.bootLen ≤ σ.commit`): every completed `Save` of the fork's fixed WAL has it, and it excludes the
+unsaved WALs `DiscardUnsaved` removes (Go then takes the first-start branch, which `bootOkR` does not
+describe). The graceful contract is the instance `i ≤ σ.commit` (with the read facts its own
 trusted promise), so a proof of this one (stage 5's `bootstrapRestartContract_holds`, generalized)
 gives both. -/
 def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
-    ⌜σ.b ≤ uint.nat i ∧ walReadFacts σ ∧ γ.cl.bootLen ≤ uint.nat i ∧
+    ⌜σ.b ≤ uint.nat i ∧ walReadFacts σ ∧ γ.cl.bootLen ≤ uint.nat i ∧ γ.cl.bootLen ≤ σ.commit ∧
       bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir' ∧
       storage.dbOpensOk ∧
       N + 7 + bootWB ≤ backend.wbInit ∧

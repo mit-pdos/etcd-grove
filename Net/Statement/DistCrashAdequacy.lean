@@ -31,6 +31,11 @@ Two layers:
    (`CrashBootWpG Q X`), and its first generation the file start resources (`fsStartResG`, from
    `FsInit`).
 
+Each layer has a form with `Robust`'s separate thread bound (`robust_of_dist_crash_adequacyT`,
+`robust_of_dist_crash_adequacy_fsT`, over Perennial's `goose_dist_mixed_crash_adequacy_below`: the
+logic's thread bound is the statement's `threads`, the receipt bound ranges up to `bound` alone), as
+`DistBridgeExts.lean`'s `robust_of_distBootILT` for the all-stable bridge.
+
 What the list must give, beyond the instances (`HasExt netExt`, `HasExt fsExt`, `GooseCrashInterp`,
 `GooseGpreS GF`): `HC`, and the interpretations' conditions on the initial states with every crashing
 machine's `FsInit` (`HI`), from `Robust`'s own premises (`extsInitGlobal`, `extsInitLocal`). Where the
@@ -227,6 +232,122 @@ theorem robust_of_dist_crash_adequacy [lctx : GoLocalContext] (addrs : List GoSt
     ipureintro
     exact HQ
 
+/-! ### `Robust`'s separate thread bound (over `goose_dist_mixed_crash_adequacy_below`)
+
+As `DistBridgeExts.lean`'s `robust_of_distBootILT` for the all-stable bridge: the logic's thread bound
+is the statement's `threads`, and the receipt bound ranges up to `bound` alone. -/
+
+/-- `CrashBootWpE` with the thread bound fixed (`threadBound = T`, `Robust`'s separate thread bound). -/
+def CrashBootWpET [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T lo bound : Nat) (e : Expr)
+    (P : GooseLocalGS GF → IProp GF) : Prop :=
+  ∀ L : GooseLocalGS GF, L.goose_go_local_context = lctx →
+    lo ≤ receiptBound GF → receiptBound GF ≤ bound →
+    @ThreadGS.threadBound GF L.goose_threadGS = T →
+    letI : HeapGS .hasLC GF := ⟨G, L⟩
+    P L ⊢ threadTok ={⊤}=∗ WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
+      ∀ L' : GooseLocalGS GF, crashed (hC := L.goose_crashGS) -∗ extsCrashStart L L' -∗
+        ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L'
+
+/-- `crashPreE` at the thread bound `T`. -/
+def crashPreET [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T lo bound : Nat)
+    (crashing : List (Expr × state)) (i : Nat) (L : GooseLocalGS GF) : IProp GF :=
+  iprop(∃ Q : GooseLocalGS GF → IProp GF,
+    ⌜∀ m : Expr × state, crashing[i]? = some m → CrashBootWpET T lo bound m.1 Q⌝ ∗ Q L)
+
+/-- `nodeStart_of_crashBootE` at the thread bound `T`. -/
+theorem nodeStart_of_crashBootET [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF]
+    (T lo bound : Nat) (crashing : List (Expr × state)) (i : Nat)
+    (m : Expr × state) (hm : crashing[i]? = some m) (hf : Fresh lctx m.2)
+    (Q : GooseLocalGS GF → IProp GF) (HQ : CrashBootWpET T lo bound m.1 Q) :
+    (∀ L : GooseLocalGS GF, ⌜L.goose_go_local_context = lctx⌝ -∗
+        ⌜@ThreadGS.threadBound GF L.goose_threadGS = T⌝ -∗
+        extsLocalStart (L := L) m.2.world -∗ ownGoState (hG := L.goose_go_stateGS) ∅
+        ={⊤}=∗ Q L) ⊢
+      nodeStart T m.2 (crashPreET T lo bound crashing i) := by
+  unfold nodeStart
+  rw [hf.2.1]
+  iintro H %L %hT %hL Hls Hgs
+  imod H $$ %L %(hL.trans hf.1) %hT Hls Hgs with HQL
+  imodintro
+  unfold crashPreET
+  iexists Q
+  iframe HQL
+  ipureintro
+  intro m' hm'
+  rw [hm] at hm'
+  cases hm'
+  exact HQ
+
+/-- **Distributed crash adequacy as `Robust`, with `Robust`'s thread bound** (over Perennial's
+`goose_dist_mixed_crash_adequacy_below`): as `robust_of_dist_crash_adequacy`, but an execution of `n`
+steps along which every machine keeps fewer than `threads` threads is run at `max (n + 1) lo` receipts
+and the thread bound `threads`, so each crashing machine's generations are safe at `threadBound =
+threads` (`CrashBootWpET`) and each stable machine's boot program at `threads` too (`DistBootWpSLT`),
+at any receipt bound from `lo` to `bound`. -/
+theorem robust_of_dist_crash_adequacyT [lctx : GoLocalContext] (addrs : List GoString)
+    (crashing stable : List (Expr × state)) (g : GlobalState) (threads bound lo : Nat)
+    (hlo : lo ≤ bound) (Hnd : addrs.Nodup) (Hok : ∀ a ∈ addrs, addrOk a = true)
+    (HI : extsInitGlobal g → (∀ m, m ∈ crashing ++ stable → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧ ∀ m, m ∈ crashing ++ stable → extsInitP m.2.world g.globalWorld)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], lo ≤ receiptBound GF → receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ (Pc : Nat → GooseLocalGS GF → IProp GF) (Ps : Nat → IProp GF),
+          ⌜∀ (i : Nat) (m : Expr × state), crashing[i]? = some m →
+            CrashBootWpET threads lo bound m.1 (Pc i)⌝ ∗
+          ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m →
+            DistBootWpSLT threads lo bound m.1 m.2 (Ps j)⌝ ∗
+          ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
+            ⌜L.goose_go_local_context = lctx⌝ -∗
+            ⌜@ThreadGS.threadBound GF L.goose_threadGS = threads⌝ -∗
+            extsLocalStart (L := L) m.2.world -∗
+            ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
+          [∗list] j ↦ _m ∈ stable, Ps j) :
+    Robust crashing stable g threads bound := by
+  intro hfresh hig hil n κs c hsteps hn i tp σ hi e he
+  obtain ⟨Hig, Hil⟩ := HI hig hil
+  have hfc : ∀ (k : Nat) (m : Expr × state), crashing[k]? = some m → m ∈ crashing ++ stable :=
+    fun _ m hm => List.mem_append_left _ (List.mem_of_getElem? hm)
+  have hfst : ∀ (k : Nat) (m : Expr × state), stable[k]? = some m → m ∈ crashing ++ stable :=
+    fun _ m hm => List.mem_append_right _ (List.mem_of_getElem? hm)
+  have H := goose_dist_mixed_crash_adequacy_below (GF := GF) (max (n + 1) lo) threads
+    crashing stable g (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm) Hig Hil
+    (fun i L => crashPreET threads lo bound crashing i L) ?_ ?_
+    n κs c hsteps (by omega) (fun m hm => (hfresh m hm).2.2) i tp σ hi
+  · exact ⟨H.2.1 e he, H.2.2 e he⟩
+  · -- the global setup, every crashing machine's first generation, every stable machine's WP
+    intro G HN
+    iintro Hg
+    ihave Hnet := hasExt_globalStart (X := netExt) g.globalWorld $$ Hg
+    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
+    imod Hstart (by omega) (by omega) $$ Hs with ⟨%Pc, %Ps, %HPc, %HPs, Hc, Hst⟩
+    imodintro
+    isplitl [Hc]
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hc
+      intro k m hm
+      exact nodeStart_of_crashBootET threads lo bound crashing k m hm
+        (hfresh m (hfc k m hm)) (Pc k) (HPc k m hm)
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hst
+      intro k m hm
+      exact nodeWp_of_distBootSLT threads lo bound (max (n + 1) lo) HN (by omega) (by omega) m.1 m.2
+        (Ps k) (hfresh m (hfst k m hm)) (HPs k m hm)
+  · -- every generation of a crashing machine: its WP, and its next precondition
+    intro hG HN HT k e' σ' Hes Hlctx
+    obtain ⟨G, L⟩ := hG
+    have hL : L.goose_go_local_context = lctx :=
+      Hlctx.trans (hfresh (e', σ') (hfc k _ Hes)).1
+    unfold crashPreET
+    iintro ⟨%Q, %HQ, HQL⟩ Htok
+    imod HQ (e', σ') Hes L hL (by omega) (by omega) HT $$ HQL Htok with ⟨Hwp, Hcr⟩
+    imodintro
+    iframe Hwp
+    iintro %L' Hcrd Hcs Hgs Hlc
+    imod Hcr $$ %L' Hcrd Hcs Hgs Hlc with HQL'
+    imodintro
+    iexists Q
+    iframe HQL'
+    ipureintro
+    exact HQ
+
 end adequacyE
 
 /-! ## Layer 2: the list also has the Linux file extension -/
@@ -381,6 +502,91 @@ theorem robust_of_dist_crash_adequacy_fs [lctx : GoLocalContext] (Q : Fs.OsState
   isplitr
   · ipureintro
     exact fun i m hm => crashBootWpE_of_G Q X HC lo bound m.1 (Pc i) (HPc i m hm)
+  isplitr
+  · ipureintro
+    exact HPs
+  iapply BigSepL.bigSepL_mono ?_ $$ Hc
+  intro k m hm
+  iintro H %L %hL %hT Hls Hgs
+  imod fsStartResG_of_localStart L m.2.world (Hfs m (List.mem_of_getElem? hm)) $$ Hls with Hr
+  iapply H $$ %L %hL %hT Hr Hgs
+
+/-- `CrashBootWpG` with the thread bound fixed (`threadBound = T`, `Robust`'s separate thread bound). -/
+def CrashBootWpGT [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF]
+    (Q : Fs.OsState → Fs.OsState → Prop) (X : GooseLocalGS GF → GooseLocalGS GF → IProp GF)
+    (T lo bound : Nat) (e : Expr) (P : GooseLocalGS GF → IProp GF) : Prop :=
+  ∀ L : GooseLocalGS GF, L.goose_go_local_context = lctx →
+    lo ≤ receiptBound GF → receiptBound GF ≤ bound →
+    @ThreadGS.threadBound GF L.goose_threadGS = T →
+    letI : HeapGS .hasLC GF := ⟨G, L⟩
+    P L ⊢ threadTok ={⊤}=∗ WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
+      ∀ (L' : GooseLocalGS GF) (V' : Fs.Hist), crashed (hC := L.goose_crashGS) -∗
+        Fs.osInv (L := L') -∗
+        Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) [] false V' -∗
+        X L L' -∗ ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ P L'
+
+/-- `CrashBootWpGT` gives `CrashBootWpET` when the crash resources split as `HC` says. -/
+theorem crashBootWpET_of_GT [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF]
+    (Q : Fs.OsState → Fs.OsState → Prop) (X : GooseLocalGS GF → GooseLocalGS GF → IProp GF)
+    (HC : ∀ L L' : GooseLocalGS GF, extsCrashStart L L' ⊢
+      Fs.osCrashStart Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗ X L L')
+    (T lo bound : Nat) (e : Expr) (P : GooseLocalGS GF → IProp GF)
+    (H : CrashBootWpGT Q X T lo bound e P) : CrashBootWpET T lo bound e P := by
+  intro L hL h1 h2 h3
+  iintro HP Htok
+  imod H L hL h1 h2 h3 $$ HP Htok with ⟨Hwp, Hcr⟩
+  imodintro
+  iframe Hwp
+  iintro %L' Hcrd Hcs Hgs Hlc
+  icases HC L L' $$ Hcs with ⟨Hcs, HX⟩
+  unfold Fs.osCrashStart
+  icases Hcs with ⟨Hv, %V', Hr⟩
+  imod Fs.osInv_alloc (L := L') ⊤ $$ Hv with #Hinv
+  iapply Hcr $$ %L' %V' Hcrd Hinv Hr HX Hgs Hlc
+
+/-- **Distributed crash adequacy as `Robust`, with the Linux file extension and `Robust`'s thread
+bound** (`robust_of_dist_crash_adequacyT` with the file extension's resources unpacked, as
+`robust_of_dist_crash_adequacy_fs`): the crashing machines' generations at `CrashBootWpGT Q X threads`,
+their first generation from `fsStartResG` at `threadBound = threads`, the stable machines at
+`DistBootWpSLT threads`. -/
+theorem robust_of_dist_crash_adequacy_fsT [lctx : GoLocalContext] (Q : Fs.OsState → Fs.OsState → Prop)
+    (X : GooseLocalGS GF → GooseLocalGS GF → IProp GF)
+    (HC : ∀ L L' : GooseLocalGS GF, extsCrashStart L L' ⊢
+      Fs.osCrashStart Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗ X L L')
+    (addrs : List GoString) (crashing stable : List (Expr × state)) (g : GlobalState)
+    (threads bound lo : Nat) (hlo : lo ≤ bound)
+    (Hnd : addrs.Nodup) (Hok : ∀ a ∈ addrs, addrOk a = true)
+    (HI : extsInitGlobal g → (∀ m, m ∈ crashing ++ stable → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧
+      (∀ m, m ∈ crashing ++ stable → extsInitP m.2.world g.globalWorld) ∧
+      ∀ m, m ∈ crashing → Fs.FsInit (extLocal Fs.fsExt m.2.world))
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], lo ≤ receiptBound GF → receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ (Pc : Nat → GooseLocalGS GF → IProp GF) (Ps : Nat → IProp GF),
+          ⌜∀ (i : Nat) (m : Expr × state), crashing[i]? = some m →
+            CrashBootWpGT Q X threads lo bound m.1 (Pc i)⌝ ∗
+          ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m →
+            DistBootWpSLT threads lo bound m.1 m.2 (Ps j)⌝ ∗
+          ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
+            ⌜L.goose_go_local_context = lctx⌝ -∗
+            ⌜@ThreadGS.threadBound GF L.goose_threadGS = threads⌝ -∗
+            fsStartResG L (extLocal Fs.fsExt m.2.world) -∗
+            ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
+          [∗list] j ↦ _m ∈ stable, Ps j) :
+    Robust crashing stable g threads bound := by
+  intro hfresh hig hil
+  obtain ⟨Hig, Hil, Hfs⟩ := HI hig hil
+  refine robust_of_dist_crash_adequacyT (GF := GF) addrs crashing stable g threads bound lo hlo Hnd Hok
+    (fun _ _ => ⟨Hig, Hil⟩) ?_ hfresh hig hil
+  intro G h1 h2
+  iintro Hs
+  imod Hstart h1 h2 $$ Hs with ⟨%Pc, %Ps, %HPc, %HPs, Hc, Hst⟩
+  imodintro
+  iexists Pc, Ps
+  iframe Hst
+  isplitr
+  · ipureintro
+    exact fun i m hm => crashBootWpET_of_GT Q X HC threads lo bound m.1 (Pc i) (HPc i m hm)
   isplitr
   · ipureintro
     exact HPs

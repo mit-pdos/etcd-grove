@@ -132,14 +132,15 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
 
 /-- **The machines' boot WPs with crashing members, for a well-formed deployment** (the crashing analogue
 of `EtcdBootNC`): at `etcd_robust.spec`'s premises, over `etcdNetExts` with D4b's crash interpretation of
-the issue record (`etcdNetExtsCrashInterpD4b`), the start update from the deployment's addresses unset to
+the issue record (`etcdNetExtsCrashInterpD4b`), at the thread bound `etcdThreads` and every receipt bound
+up to `etcdSteps`, the start update from the deployment's addresses unset to
 - for each member `i`, a precondition `Pc i` of its generations (D6's `memberPc C cfg id`, at the names
   `C` the update allocates: chosen inside the update, since it names them), with its boot program safe in
-  every generation (`Net.CrashBootWpG` at `etcdFsSem`'s crash premise `etcdCQ`, the WAL's `W1`, and the issue record's
-  crash rest `idIssueCrashStart`) and its first generation's `Pc i L` from the file start resources and
-  the empty package state, and
+  every generation (`Net.CrashBootWpGT` at `etcdFsSem`'s crash premise `etcdCQ`, the WAL's `W1`, and the
+  issue record's crash rest `idIssueCrashStart`) and its first generation's `Pc i L` from the file start
+  resources and the empty package state, and
 - for each stable machine `j` (orchestrators, then client machines), a share `Ps j` with its boot
-  program safe from it and its whole start (`Net.DistBootWpSL`, as in `EtcdBootNC`). -/
+  program safe from it and its whole start (`Net.DistBootWpSLT`, as in `EtcdBootNC`). -/
 def EtcdBootC : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -150,25 +151,30 @@ def EtcdBootC : Prop :=
     (_Hp : BootPremises d σs σc σn) (_HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF))
     (_Hfips : crypto.fips140.GodebugFips140Off),
     letI := etcdNetExtsCrashInterpD4b
-    ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
-      receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
+    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
       ⊢ ([∗list] a ∈ d.addrs, Net.addrUnset a) ={⊤}=∗
         ∃ (Pc : Nat → GooseLocalGS etcdDistGF → IProp etcdDistGF) (Ps : Nat → IProp etcdDistGF),
           ⌜∀ (i : Nat) (m : Expr × state), (servers d σs)[i]? = some m →
-            Net.CrashBootWpG etcdCQ (etcdIdCrashRest idIssue_crash_interp) srvLevelK
-              (2 ^ 28 - 1) m.1 (Pc i)⌝ ∗
+            Net.CrashBootWpGT etcdCQ (etcdIdCrashRest idIssue_crash_interp) etcdThreads 0 etcdSteps
+              m.1 (Pc i)⌝ ∗
           ⌜∀ (j : Nat) (m : Expr × state), (clients d σc ++ nodeMachines d σn)[j]? = some m →
-            Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (Ps j)⌝ ∗
+            Net.DistBootWpSLT etcdThreads 0 etcdSteps m.1 m.2 (Ps j)⌝ ∗
           ([∗list] i ↦ m ∈ servers d σs, ∀ L : GooseLocalGS etcdDistGF,
             ⌜L.goose_go_local_context = lctx⌝ -∗
-            ⌜@ThreadGS.threadBound etcdDistGF L.goose_threadGS = receiptBound etcdDistGF + 1⌝ -∗
+            ⌜@ThreadGS.threadBound etcdDistGF L.goose_threadGS = etcdThreads⌝ -∗
             Net.fsStartResG L (extLocal Fs.fsExt m.2.world) -∗
             ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
           [∗list] j ↦ _m ∈ clients d σc ++ nodeMachines d σn, Ps j
 
+/-- A generation's empty package state: the precondition of a member's generations on a malformed
+deployment (its program initializes its package from it, checks the deployment and returns). -/
+def emptyPkgs (L : GooseLocalGS etcdDistGF) : IProp etcdDistGF :=
+  ownGoState (hG := L.goose_go_stateGS) ∅
+
 /-- **The machines' boot WPs with crashing members, for a malformed deployment**: every program checks the
-deployment first and returns, in every generation of a member (`Net.CrashBootWpG` from `True` to `True`)
-and on every stable machine (`Net.DistBootWpSL` from `True`); the start allocates nothing (no address). -/
+deployment first and returns, in every generation of a member (`Net.CrashBootWpGT` from the generation's
+empty package state, `emptyPkgs`, which the crash gives back) and on every stable machine
+(`Net.DistBootWpSLT` from `True`); the start allocates nothing (no address). -/
 def EtcdBootCBad : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -178,38 +184,38 @@ def EtcdBootCBad : Prop :=
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     letI := etcdNetExtsCrashInterpD4b
-    ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
-      receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
+    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
       (∀ (i : Nat) (m : Expr × state), (servers d σs)[i]? = some m →
-        Net.CrashBootWpG etcdCQ (etcdIdCrashRest idIssue_crash_interp) srvLevelK
-          (2 ^ 28 - 1) m.1 (fun _ => (iprop(True) : IProp etcdDistGF))) ∧
+        Net.CrashBootWpGT etcdCQ (etcdIdCrashRest idIssue_crash_interp) etcdThreads 0 etcdSteps
+          m.1 emptyPkgs) ∧
       ∀ (j : Nat) (m : Expr × state), (clients d σc ++ nodeMachines d σn)[j]? = some m →
-        Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (iprop(True) : IProp etcdDistGF)
+        Net.DistBootWpSLT etcdThreads 0 etcdSteps m.1 m.2 (iprop(True) : IProp etcdDistGF)
 
 /-- **`etcd_safe` from the machines' boot WPs** (the crash form of `etcd_safe_nocrash_of_boot`), by
-Perennial's distributed crash adequacy restated as `Robust` over `etcdNetExts` with D4b's issue record
-(`robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp`): the members crash, the orchestrators and
-client machines do not; on a well-formed deployment at its addresses, on a malformed one at none; each
+Perennial's distributed crash adequacy with the thread bound on the execution
+(`goose_dist_mixed_crash_adequacy_below`), restated as `Robust` over `etcdNetExts` with D4b's issue record
+(`robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp`, at the thread bound `etcdThreads`, every
+receipt bound up to `etcdSteps`, no receipt floor): the members crash, the orchestrators and client
+machines do not; on a well-formed deployment at its addresses, on a malformed one at none; each
 machine's `FsInit` from `ServerStart`/`ClientStart`. -/
 theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spec := by
   intro _ _ _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv HEnvTok Hfips
   have Hfs : ∀ m, m ∈ servers d σs ++ (clients d σc ++ nodeMachines d σn) →
       Fs.FsInit (extLocal Fs.fsExt m.2.world) := fun m hm =>
     machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 (by simpa [machines, List.append_assoc] using hm)
-  have hlo : srvLevelK ≤ 2 ^ 28 - 1 := by unfold srvLevelK srvRevokeK; omega
   by_cases Hd : d.WellFormed
   · exact robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp (GF := etcdDistGF) d.addrs
-      (servers d σs) (clients d σc ++ nodeMachines d σn) g (2 ^ 28) (2 ^ 28 - 1) srvLevelK hlo
+      (servers d σs) (clients d σc ++ nodeMachines d σn) g etcdThreads etcdSteps 0 (Nat.zero_le _)
       Hd.addrs.1 Hd.addrs.2 Hfs
-      (fun hlo hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok Hfips
-        hlo hb)
+      (fun _ hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ HEnvTok Hfips hb)
   · refine robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp (GF := etcdDistGF) []
-      (servers d σs) (clients d σc ++ nodeMachines d σn) g (2 ^ 28) (2 ^ 28 - 1) srvLevelK hlo
-      List.nodup_nil (by simp) Hfs (fun hlo hb => ?_)
-    obtain ⟨Hc, Hst⟩ := HB d Hd σs σc σn Hfips hlo hb
+      (servers d σs) (clients d σc ++ nodeMachines d σn) g etcdThreads etcdSteps 0 (Nat.zero_le _)
+      List.nodup_nil (by simp) Hfs (fun _ hb => ?_)
+    obtain ⟨Hc, Hst⟩ := HB d Hd σs σc σn Hfips hb
     iintro -
     imodintro
-    iexists (fun _ _ => (iprop(True) : IProp etcdDistGF)), (fun _ => (iprop(True) : IProp etcdDistGF))
+    iexists (fun _ (L : GooseLocalGS etcdDistGF) => ownGoState (hG := L.goose_go_stateGS) ∅),
+      (fun _ => (iprop(True) : IProp etcdDistGF))
     isplitr
     · ipureintro
       exact Hc
@@ -218,9 +224,9 @@ theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spe
       exact Hst
     isplitl
     · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => by
-        iintro - %L %_ %_ - -
+        iintro - %L %_ %_ - Hgs
         imodintro
-        itrivial))
+        iexact Hgs))
       iempintro
     · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
       iempintro
