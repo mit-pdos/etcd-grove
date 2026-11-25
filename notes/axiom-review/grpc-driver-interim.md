@@ -62,3 +62,16 @@ Re-attack of `38170fa86d` (same reviewer, read-only): **both fixes sound.**
 - `grpcRepliesBounded` at `< grpcMsgMax`: every registered reply model keeps the default `wireLen` but
   `StringValue`'s (`s.length + 11`, a true bound on protobuf-go's `Size`, `send` pinning no unknown fields).
   Caveat (doc, applied): an explicit reply `wireLen` is trusted, reviewed as a size bound at registration.
+
+## T12 `srvNotEof` (2026-11-25, `b8c33ac280`, a fresh reviewer)
+
+The server end's `RecvMsg`/`Recv` generic-error arm (`srvRawStreamIs`, `srvRawStreamIsW`, `srvStreamIs`)
+gains `srvNotEof err` (`□ ∀ e, eofIs e -∗ ⌜err ≠ e⌝`). **Sound**, with caveats (none breaks it):
+the model queues `io.EOF` only at `frameClose` (`model_transport.go:895-900`), every other end being a
+`connectionError` or a context status, and the receive queue keeps its first end; real grpc-go v1.84 queues
+`io.EOF` only on END_STREAM (`http2_server.go:532-535`, `:832-835`); a cut message is
+`io.ErrUnexpectedEOF`, decoding errors are statuses; after END_STREAM and an RST real grpc-go may give
+`Canceled` where the model gives EOF (generic arm, fine). Caveats: the docstring's "`toRPCErr` makes a
+status" missed the unconverted second read of a non-client-streaming method (text fixed); partial
+messages are unreachable in the model; `Server.ServeHTTP`'s transport returns `io.EOF` at a body's end
+and is outside the axiom (noted in the docstring).
