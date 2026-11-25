@@ -136,9 +136,8 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
             ipureintro
             exact ⟨List.length_take_le _ _, by rw [Hk.2.2.1]; word⟩
           ipureintro
-          simp only [strmMsg, pbStringValueS, stringValueWireLen, grpcMsgMax]
           have := List.length_take_le 1 (v.drop (sint.nat k))
-          omega
+          exact stringValueWireLen_lt (by simp only [stringValueMax]; omega)
         iintro !> %err1 ⟨-, -, Hres1⟩
         icases Hres1 with (⟨%He1, HSt⟩ | ⟨#Hce1, -⟩)
         · subst He1

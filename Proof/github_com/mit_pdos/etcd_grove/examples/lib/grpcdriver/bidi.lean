@@ -167,9 +167,8 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
             ipureintro
             exact List.length_take_le _ _
           ipureintro
-          simp only [strmMsg, pbStringValueS, stringValueWireLen, grpcMsgMax]
           have := List.length_take_le 1 (v.drop (sint.nat k))
-          omega
+          exact stringValueWireLen_lt (by simp only [stringValueMax]; omega)
         iintro !> %err1 ⟨-, -, Hres1⟩
         wp_auto
         split

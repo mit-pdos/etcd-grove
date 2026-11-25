@@ -152,11 +152,7 @@ theorem driverClient.ServerStream.wp_proof
     iunfold stringValueSend at Hinp
     iunfold stringValueSendB at Hinp
     icases Hinp with ⟨%sv, Hsv, %Hsvp⟩
-    have hwl : (strmT (GF := GF)).wireLen v < grpcMsgMax := by
-      have h := Hsvp.2.2
-      simp only [strmT, pbStringValueS, stringValueWireLen, grpcMsgMax]
-      simp only [stringValueMax] at h
-      omega
+    have hwl : (strmT (GF := GF)).wireLen v < grpcMsgMax := stringValueWireLen_lt Hsvp.2.2
     ihave Hinp : iprop((strmT (GF := GF)).send inp v) $$ [Hsv]
     · simp only [strmT, pbStringValueS, stringValueSend, stringValueSendB]
       iexists sv

@@ -223,6 +223,15 @@ abbrev pbStringValueS : StreamMsg GF where
   recv := stringValueSend
   own l := iprop(∃ v : wrapperspb.StringValue, l ↦ v)
 
+/-- **A `StringValue` whose `Value` is below `stringValueMax` fits gRPC's message bound** (what a
+sender's reply or stream message, `stringValueSend`, gives; `pbStringValueS`'s and `pbStringValueRT`'s
+`wireLen` is `stringValueWireLen`): the size reasoning stays with the model, its clients apply this. -/
+theorem stringValueWireLen_lt {m : GoString} (h : m.length < stringValueMax) :
+    stringValueWireLen m < grpcMsgMax := by
+  simp only [stringValueWireLen, grpcMsgMax]
+  simp only [stringValueMax] at h
+  omega
+
 /-- **`pbStringValueS` with its store.** -/
 def pbStringValueST : StreamMsgT GF :=
   { pbStringValueS with }
