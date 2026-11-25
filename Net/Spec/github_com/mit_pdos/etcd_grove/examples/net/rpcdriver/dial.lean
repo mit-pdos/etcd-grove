@@ -31,7 +31,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- See the file header. -/
 abbrev dial.spec : Prop :=
   ∀ (W : net.rpc.RpcWorld GF),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.cliEnv ∗ net.http.httpEnv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.cliEnv ∗ net.http.httpEnv ∗
       globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
       net.rpc.rpcAddr (Gg := hG.goose_globalGS) W tcpAddr ∗
       net.rpc.rpcAddrP (Gg := hG.goose_globalGS) W httpAddr

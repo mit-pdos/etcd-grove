@@ -50,7 +50,7 @@ theorem Client.wp_proof
     (wp_CallClosed : net.rpc.Client.Call.spec_closed (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro γid reg
-  wp_start as ⟨%Hb, Htok, #Hstr, #Hsync, #Hf, #Hset, %Hrb, #Hcli, #Hhttp, #Hcon, #Htcp, #Hha, Hauth⟩
+  wp_start as ⟨%Hb, Htok, #Hstr, #Hsync, #Hnet, #Hf, #Hset, %Hrb, #Hcli, #Hhttp, #Hcon, #Htcp, #Hha, Hauth⟩
   try wp_auto
   wp_apply wp_RandomUint64 as %start -
   try wp_auto
@@ -98,7 +98,7 @@ theorem Client.wp_proof
         rw [show uint.nat (k + W64 1) = uint.nat k + 1 by word]; omega]
     icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, Hc1⟩
     icases ownToks_add_1 _ _ γb $$ Hcred with ⟨Hcred, Hc32⟩
-    wp_apply wp_dial (drvWorld γid reg) $$ [$Hcli $Hhttp $Hcon $Htcp $Hha] as %cl %err Hd
+    wp_apply wp_dial (drvWorld γid reg) $$ [$Hnet $Hcli $Hhttp $Hcon $Htcp $Hha] as %cl %err Hd
     · ipureintro; exact Hrb
     icases Hd with (⟨%He, %a, %Ha, #Hcl⟩ | %He)
     · subst He

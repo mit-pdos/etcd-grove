@@ -462,3 +462,8 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   `network.opErr_errOrNil` deleted) — these are lemma/spec premises, not top-level statements;
   (7) fast-forward `go-models-rest-egnet/2026-11-24` (`git push origin HEAD:go-models-rest-egnet/2026-11-24`
   from the lmerge worktree; the local branch is checked out in ho-gmr: don't touch it there); (8) #8 message.
+- Targeted build b2 (`tmp/gm12/b2.log`, b873b7bcfb): EXIT 1, only NetInit, rpcdriver dial, vr Ghost left; fixed
+  next: the old poll package-fact shape (`ErrDeadlineExceeded` an interface) → egnet's (`*DeadlineExceededError`)
+  in NetInit, http/rpc InitFirst, gryff Client/Conn, N/ClientConn, N/WaitPeers; rpcdriver `dial.spec` and
+  `Client.spec` take `isPkgInit net` (Main supplies it by `iPkgInit`); vr `wp_debug_resErr`: wp_start_folded
+  consumes the isPkgInit conjuncts, net's fact re-obtained by solve_pkg_init. Full build 2 log `tmp/gm12/full2.log`.

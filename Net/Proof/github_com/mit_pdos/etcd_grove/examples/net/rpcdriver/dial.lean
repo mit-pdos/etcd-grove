@@ -31,9 +31,7 @@ theorem dial.wp_proof (wp_below : below.spec (GF := GF) (hG := hG))
     (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)) :
     dial.spec (GF := GF) (hG := hG) := by
   intro W
-  wp_start as ⟨%Hrb, #Hcli, #Hhttp, #Hcon, #Htcp, #Hha⟩
-  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
-  · solve_pkg_init
+  wp_start as ⟨#HnetPk, %Hrb, #Hcli, #Hhttp, #Hcon, #Htcp, #Hha⟩
   try wp_auto
   wp_apply wp_below (W64 2) as %b -
   wp_if_destruct

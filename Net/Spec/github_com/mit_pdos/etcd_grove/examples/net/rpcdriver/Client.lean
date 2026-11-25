@@ -33,7 +33,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 abbrev Client.spec : Prop :=
   ∀ (γid reg : GName),
   {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ threadTok ∗ isPkgInit (PROP := IProp GF) pkg_id.strings ∗
-      isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+      isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.net ∗
       drvFacts ∗ net.rpc.codecSet drvCodec ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.cliEnv ∗
       net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
       net.rpc.rpcAddr (Gg := hG.goose_globalGS) (drvWorld γid reg) tcpAddr ∗

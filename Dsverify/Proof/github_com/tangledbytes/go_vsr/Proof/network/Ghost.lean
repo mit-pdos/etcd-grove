@@ -455,7 +455,9 @@ theorem network.wp_debug_resErr (wp_Debug : log.slog.Debug.spec (GF := GF) (hG :
         net.resErr res op src addr ed nm e ∗ sl ↦* [interface.mkOk go.string #s, e] }}
       (App (App (Val (@! log.slog.Debug)) (Val #msg)) (Val #sl))
     {{ RET #(); True }} := by
-  wp_start_folded as ⟨#Hn, #He, Hsl⟩
+  wp_start_folded as ⟨#He, Hsl⟩
+  ihave #Hn : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   ihave #He' := network.resErr_errOrNil res op src addr ed nm e $$ Hn He
   wp_apply network.wp_debug_err wp_Debug msg s sl e $$ [$He' $Hsl]
   iapply HΦ; itrivial

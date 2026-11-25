@@ -37,12 +37,13 @@ theorem ed_of_net :
   · iPkgInit
   ihave #Hi := (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll) $$ Hpoll
   ihave #Hi2 : (iprop((∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType internal.poll.DeadlineExceededError.ty) #x) DFrac.discard) ∗
     (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrFileClosing)
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ [Hi]
   · iexact Hi
   icases Hi2 with ⟨-, ⟨%ed, #Hed⟩, -⟩
-  iexists ed
+  iexists _
   iexact Hed
 
 /-- `io.EOF`'s value, an `*errorString`, from `net`'s initialization. -/

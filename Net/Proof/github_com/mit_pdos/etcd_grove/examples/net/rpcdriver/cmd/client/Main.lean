@@ -57,6 +57,8 @@ theorem wp_main
   · iPkgInit
   ihave #Hstr : (isPkgInit (PROP := IProp GF) pkg_id.strings) $$ []
   · iPkgInit
+  ihave #Hnet : (isPkgInit (PROP := IProp GF) pkg_id.net) $$ []
+  · iPkgInit
   ihave #Hri := net.rpc.rpcInit_access $$ Hrpc
   iunfold net.rpc.rpcInit at Hri
   icases Hri with ⟨-, #Henv, #Hcon, #Hmu⟩
@@ -66,7 +68,7 @@ theorem wp_main
   try wp_auto
   wp_apply wp_Register $$ [$Hsync $Hmu $Hunset] as #Hset
   wp_apply wp_Client γid reg $$ [Htok Hauth] as Htok
-  · iframe Htok Hstr Hsync Hf Hset Hcli Hhe Hcon Htcp Hha Hauth
+  · iframe Htok Hstr Hsync Hnet Hf Hset Hcli Hhe Hcon Htcp Hha Hauth
     ipureintro; exact ⟨Hb, Hrb⟩
   iapply HΦ
   iexact Htok
