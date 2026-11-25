@@ -131,3 +131,21 @@ lines, under 512 bytes). And one driver change, not trust: the client's loop lea
 `400` (`resp.StatusCode == http.StatusBadRequest`, the server closes it), not only after its junk request:
 after a close-delimited answer whose body ended early (a cut connection), the reader's bytes are a prefix of
 the `400` answer that no further `ReadResponse` precondition covers.
+
+**2026-11-25: the three changes applied** (approved as interim text by the dsverify-net lead; (2) and (3) are new
+claims about Go, for zeldovich-proving-2 to check against go1.27.3): (1) `ReadResponse.spec_resp` takes
+`(□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝)` (a weakening); (2) `hdrsOk hs` adds `(hs.flatMap
+hdrLineWire).length ≤ 2 ^ 21`: an obligation of whoever commits through `respOps`, so weaker for `Serve.wp_proof`
+(its handler premise and the writer it gives), but **stronger for `ServeMux.ServeHTTP.wp_proof`**, which asserts a
+run of the mux from a `servePre` whose writer takes only such blocks: the mux's own answers must meet it (its `404`:
+`Content-Type`, `X-Content-Type-Options`; its `307`: `Location` of a path of at most `2 ^ 20` bytes, and
+`Content-Type`); (3) `respFacts` bounds a handler's answer's head to `2 ^ 22` bytes (`.ans`, `.chunked`): a
+strengthening of `Serve.wp_proof` (the server's writes). The driver's client leaves a connection after a `400`.
+`ServeMux.HandleFunc.wp_proof` is a theorem (translated `HandleFunc`, as `wp_Handle_lit`).
+**(2'), the companion of (2)** (approved by the dsverify-net lead; for zeldovich-proving-2's Go check with (2) and
+(3), and Upamanyu's packet). Found while writing this note: with (2)'s
+absolute bound, `ServeMux.ServeHTTP.wp_proof` was unsound for a path over about `2 ^ 21` bytes (its `307`'s
+`Location` holds the path, and `servePre` did not bound it). Fixed: `servePre`'s pure conjunct adds
+`R.path.length ≤ 2 ^ 20` (a premise of `ServeMux.ServeHTTP.wp_proof`, so weaker; what `Serve.wp_proof` gives a
+handler: a stronger promise, derived from the reviewed `reqOk` bound, since the path is part of the head and
+`(reqWire R []).length ≤ 2 ^ 20` covers it).

@@ -142,7 +142,8 @@ Changed 2026-11-25 in the proof stage (approved by the dsverify-net lead as inte
 checks (2) and (3) against go1.27.3): (1) `ReadResponse.spec_resp` takes the stream's length law
 `□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝` (what `bufio.NewReader` takes; without it the axiom read heads
 of any size through a reader specified only below `2 ^ 62` bytes); (2) `hdrsOk hs` adds
-`(hs.flatMap hdrLineWire).length ≤ 2 ^ 21` (the handler's obligation, through `respOps`); (3) `respFacts`
+`(hs.flatMap hdrLineWire).length ≤ 2 ^ 21` (the handler's obligation, through `respOps`), with `servePre`'s
+`R.path.length ≤ 2 ^ 20` (what bounds the mux's own `307`'s `Location`); (3) `respFacts`
 bounds the head of a handler's answer, `.ans` and `.chunked`, to `≤ 2 ^ 22` bytes (Go's server adds under 512
 bytes of its own: `writeStatusLine`, `(*chunkWriter).writeHeader`). The client needs (2) and (3) to bound its
 stream for `bufio.NewReader`. And the driver's client leaves a connection after a `400` (not only after its junk

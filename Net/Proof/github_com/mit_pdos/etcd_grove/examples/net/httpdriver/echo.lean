@@ -57,7 +57,7 @@ theorem echo.wp_proof (wp_ReadAll : io.ReadAll.spec (GF := GF) (hG := hG))
     iexact Heof
   iunfold net.http.servePre at Hpre
   icases Hpre with ⟨%Hp, #Hsr, -, #Hhreq, #Hops, HI, #Hbody, HS0, Htok⟩
-  obtain ⟨-, -, Hunder⟩ := Hp
+  obtain ⟨-, -, Hunder, -⟩ := Hp
   have Hpath : R.path = go!"/echo" := pathUnder_lit _ _ (by decide) Hunder
   isimp only [drvP] at Hhreq
   icases Hhreq with ⟨%B, %HdB, #HgB⟩

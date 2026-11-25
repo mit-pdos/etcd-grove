@@ -82,7 +82,9 @@ server gets back its own state: S5 instantiates them with its invariants):
   read-only, the lines of `R.hdr`), `Body` (`rd`) and `RemoteAddr`: what the handler and the
   `ServeMux` read. `reqMuxFields r`: the fields the `ServeMux` writes (`Pattern`, `pat`, `matches`),
   owned.
-* `servePre`: what a run gets (`R.path` a `reqPath` under `pfx`, a `methOk` method, `srvReq`,
+* `servePre`: what a run gets (`R.path` a `reqPath` under `pfx`, at most `2 ^ 20` bytes (2026-11-25:
+  the path is part of the request's head, which `reqOk` bounds, `(reqWire R []).length ≤ 2 ^ 20`; it bounds the
+  mux's own `307`'s `Location`, under `hdrsOk`'s bound), a `methOk` method, `srvReq`,
   `reqMuxFields`, `□ P.hreq R τ`, the writer
   and body reader at their start, the connection goroutine's thread token); `serveDone`: what it
   gives back (the token, the body reader's state, and the writer committed with `□ P.respEnd` of what
@@ -329,7 +331,8 @@ instance bodyOps_persistent (rd : GoInterface) (R : HReq) (τ : GName) (P : HPro
 def servePre (P : HProto GF) (pfx : GoString) (w : GoInterface) (r : Loc) (R : HReq) (τ : GName)
     (rd : GoInterface) (I : RespSt → IProp GF) (S : List w8 → IProp GF)
     (E : List w8 → GoInterface → IProp GF) : IProp GF :=
-  iprop(⌜reqPath R.path ∧ methOk R.meth ∧ pathUnder pfx R.path⌝ ∗ srvReq r R rd ∗ reqMuxFields r ∗
+  iprop(⌜reqPath R.path ∧ methOk R.meth ∧ pathUnder pfx R.path ∧ R.path.length ≤ 2 ^ 20⌝ ∗ srvReq r R rd ∗
+    reqMuxFields r ∗
     □ P.hreq R τ ∗
     respOps w R τ P I ∗ I (none, [], [], true) ∗ bodyOps rd R τ P S E ∗ S [] ∗ threadTok)
 

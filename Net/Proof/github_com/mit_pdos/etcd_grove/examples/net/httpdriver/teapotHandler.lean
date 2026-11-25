@@ -39,7 +39,7 @@ theorem teapotHandler.wp_proof : teapotHandler.spec (GF := GF) (hG := hG) := by
   iintro ⟨#Hpkg, Hpre⟩
   iunfold net.http.servePre at Hpre
   icases Hpre with ⟨%Hp, -, -, #Hhreq, #Hops, HI, -, HS0, Htok⟩
-  obtain ⟨-, -, Hunder⟩ := Hp
+  obtain ⟨-, -, Hunder, -⟩ := Hp
   have Hpath : R.path = go!"/status" := pathUnder_lit _ _ (by decide) Hunder
   have hend : ∀ B, drvRespEnd R B (W64 418) [] ([] ++ go!"short and stout") := by
     intro B
