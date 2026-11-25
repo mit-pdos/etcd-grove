@@ -49,10 +49,8 @@ theorem Client.wp_proof
   wp_auto
   have Hlen : ep.length + 1 < 2 ^ 63 := by have := Net.addrOk_length Hok; omega
   wp_apply (wp_Client ep γE mid Hlen Hat) $$ [Hcs] as %r -
-  · isplitr
-    · iexact Hpg
-    · iintro %-
-      iexact Hcs
+  · iintro %-
+    iexact Hcs
   iapply HΦ; itrivial
 
 end proof
