@@ -6917,3 +6917,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   vocabulary; nothing to change there.
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
+
+## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
+
+- **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
+  `remote.Check.spec` (`Net/Spec/.../lib/remote/{Run,Check}.lean`): `genSpec gen (∃ i, x = R.iv i)`, `PendDec R S`,
+  `hinj`; `RBase`'s one input type shared by the wire and the model.
+- **Defect.** Too narrow for the kv workload (`kvremote.Orch` = `remote.Run` of `txnlin.Model()`): with `S =
+  linkvtxnS` the model input is `MI`, and (1) `Gen`'s inputs are not a function of their `MI` (`genFrom` sets fields
+  `decTOp`/`decCmp` ignore); (2) `ioOk_*`/`err` over every `MI` fail for inputs `decIn` cannot produce or `ValidIn`
+  excludes; (3) `ok` over every output fails, since `decOut` reads an output by the input's kind; (4) `hinj` fails
+  for `O = MO` (`outOf` collides across kinds), and `O = Output` breaks (3)'s equality at revisions past `2 ^ 64`.
+- **Evidence.** `notes/etcd-dist-p9.md` (each with file and line); the Pend proof uses `ok` only at the invariant's
+  configuration (Pend.lean:352).
+- **Proposed change.** `RBase` with a wire input `I` and a model input `J` (`mi : I → J`), a state guard `good`
+  with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
+  stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
+  top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
+- **Decision.** Open: reported to the `etcd_safe` lead (a change to `remote`'s shared statements); not made.
