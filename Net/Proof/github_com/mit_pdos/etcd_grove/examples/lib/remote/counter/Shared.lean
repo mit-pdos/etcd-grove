@@ -77,23 +77,24 @@ end srv
 section lin
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-theorem lin_mono (R : RBase GF St I O) (i : I) (Φ Ψ : O → IProp GF) :
+theorem lin_mono (R : RBase GF St J I O) (i : I) (Φ Ψ : O → IProp GF) :
     (∀ o, Φ o ⊢ Ψ o) → lin (Gg := Gg) R i Φ ⊢ lin (Gg := Gg) R i Ψ := by
   intro h
   unfold lin
-  iintro HL
-  imod HL with ⟨%st, Hs, HL⟩
-  imodintro
-  iexists st
-  iframe Hs
-  iintro Hs
-  imod HL $$ Hs with HΦ
-  imodintro
-  iapply h $$ HΦ
+  refine (Iris.BI.and_intro Iris.BI.true_intro .rfl).trans (aupd_intro ?_)
+  iintro ⟨-, HL⟩
+  ihave HL := aupd_aacc $$ HL
+  iapply atomic_acc_wand $$ [] HL
+  isplit
+  · iintro H
+    iexact H
+  · isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    iintro %st H
+    iapply h $$ H
 
 end lin
 

@@ -17,9 +17,14 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   - **a report** (`reportSvc W P Q`): the far side runs a loop on the input `i`, given `P i` by the
     dialer, and answers an output `o` with `Q i o`, the loop's postcondition, persistent or not; the
     update is `P i ∗ ∀ o, Q i o -∗ Φ o`, and there are no unknown answers. `Report` calls one.
-* **The update of a store** `lin R i Φ`: the linearization point of the base operation `i`, a fancy
-  update from `⊤ ∖ Eop` (as lintest's atomic triples' updates, without the `▷`) that takes
-  `sysState st` to `sysState (step i st).1` and gives `Φ` of the step's output.
+* **The update of a store** `lin R i Φ`: the linearization point of the base operation `i`, an atomic
+  update from `⊤ ∖ Eop` to `∅` that takes `sysState st` to `sysState (step (mi i) st).1` (the model input of
+  `i`) and gives `Φ` of the step's output; it may be aborted, so a far side may hand it on as an atomic
+  update (the kv workload's, to etcd: `notes/specs-only/ledger.md`, 2026-11-25, "`remote.lin` cannot
+  abort"). A far side opens it by `lin_acc` (the state, with the abort and the commit). `linF R i Φ`,
+  its one-shot form (it commits and cannot abort; `lin_linF`), is what a far side that steps its state
+  itself uses; a read's `□ linF` is a `lin` (`linF_read_lin`), so for a read `□ lin` and `□ linF` are
+  the same.
 * **The slot of a connection** (the lab's spec (R), one slot per connection): after its `Dial`, the
   dialer registers its connection `cn` with ghost names `γ` and the input `i` in the slot map
   (`slotOf cn γ i`, persistent), whose invariant (`mapInv`) keeps every registered connection's
@@ -41,7 +46,7 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   (`codecOk_wireOk`).
 * **The far side's operation**: `svcOp S tok op`, given `S.upd i Φ`, `op(sys, iv i)` returns an
   output `ov o` with `Φ o`, or an answer `unkAns i v`. A store's `opMaybe R tok op`: given
-  `slotUpd R i Φ` (a write's one-shot `lin R i Φ`; a read's `□ lin R i Φ`, which it may fire zero or
+  `slotUpd R i Φ` (a write's `lin R i Φ`, committed at most once; a read's `□ lin R i Φ`, which it may fire zero or
   more times, each firing giving `Φ` of its output: the read form), `op(sys, iv i)` either returns
   `ov o` with `Φ o`, or returns `unk i` (a write's update may have fired, may fire later, or never:
   the lab's `opAwpMaybe`); `opMaybe_svcOp`. A report's `reportOp W P Q tok op`: `op(sys, iv i)`, given
@@ -54,6 +59,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendMode
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.Token
+public import Iris.BI.Lib.Atomic
 
 @[expose] public section
 
@@ -94,22 +100,30 @@ def RSvc.outOk {GF : BundledGFunctors} {I O : Type} (S : RSvc GF I O) (v : GoInt
   (∃ o, v = S.ov o) ∨ (∃ i, S.unkAns i v)
 
 /-- The far side's base store and the Go values and bytes of its inputs and outputs (see the file
-header). -/
-structure RBase (GF : BundledGFunctors) (St I O : Type) where
-  B : EtcdGrove.linkv.PendSpec St I O
+header). The store's inputs are the wire's `I` (the Go values `iv`, the bytes `encIn`); the base
+store `B` and the pending-writes model read them as the model's `J`, through `mi` (the identity for
+a store whose model is written over its Go inputs: the default). `good` is what every state the
+far side holds satisfies (`sysState_good`; by default nothing): the model need agree with `B` only
+at such states (`PendDec`). -/
+structure RBase (GF : BundledGFunctors) (St J I O : Type) where
+  B : EtcdGrove.linkv.PendSpec St J O
+  mi : I → J := by exact fun i => i
   sysState : St → IProp GF
+  good : St → Prop := fun _ => True
+  sysState_good : ∀ st, sysState st ⊢ iprop(⌜good st⌝) := by
+    intro _; exact Iris.BI.pure_intro trivial
   Eop : CoPset
   iv : I → GoInterface
   ov : O → GoInterface
   unk : I → GoInterface
   encIn : I → List w8
   encOut : GoInterface → List w8
-  reads_stay : ∀ i st, B.isWrite i = false → (B.step i st).1 = st
+  reads_stay : ∀ j st, B.isWrite j = false → (B.step j st).1 = st
   encIn_len : ∀ i, (encIn i).length < 2 ^ 63
   encOut_len : ∀ v, (encOut v).length < 2 ^ 63
 
 /-- A value the far side may answer: an output, or an input's unknown output. -/
-def RBase.outOk {GF : BundledGFunctors} {St I O : Type} (R : RBase GF St I O) (v : GoInterface) :
+def RBase.outOk {GF : BundledGFunctors} {St J I O : Type} (R : RBase GF St J I O) (v : GoInterface) :
     Prop :=
   (∃ o, v = R.ov o) ∨ (∃ i, v = R.unk i)
 
@@ -194,28 +208,90 @@ include Gg
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St I O)
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St J I O)
   (S : RSvc GF I O)
 
-/-- The linearization point of the base operation `i` (see the file header). -/
-def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
+/-- **`lin`'s one-shot form**: it commits and cannot abort (see the file header). -/
+def linF (i : I) (Φ : O → IProp GF) : IProp GF :=
   iprop(|={⊤ \ R.Eop, ∅}=> ∃ st, R.sysState st ∗
-    (R.sysState (R.B.step i st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step i st).2))
+    (R.sysState (R.B.step (R.mi i) st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step (R.mi i) st).2))
 
-/-- **The update a slot hands to the far side**: a write's one-shot `lin`; a read's `lin`
+/-- **The linearization point of the base operation `i`** (see the file header): an atomic update. -/
+def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (st : St), R.sysState st }> @ ⊤ \ R.Eop, ∅
+    <{ R.sysState (R.B.step (R.mi i) st).1, COMM Φ (R.B.step (R.mi i) st).2 }>)
+
+omit π ρ [Pos.Countable I] [Pos.Countable O] in
+/-- **Opening `lin`**: the far side gets the state `st` and either closes it unchanged, getting `lin`
+back (the abort), or steps it, getting `Φ` of the output (the commit). -/
+theorem lin_acc (i : I) (Φ : O → IProp GF) :
+    lin R i Φ ⊢ |={⊤ \ R.Eop, ∅}=> ∃ st, R.sysState st ∗
+      ((R.sysState st ={∅, ⊤ \ R.Eop}=∗ lin R i Φ) ∧
+        (R.sysState (R.B.step (R.mi i) st).1 ={∅, ⊤ \ R.Eop}=∗ Φ (R.B.step (R.mi i) st).2)) := by
+  unfold lin
+  iintro H
+  ihave H := aupd_aacc $$ H
+  unfold atomic_acc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at H
+  imod H with ⟨%st, Hs, H⟩
+  imodintro
+  iexists st
+  iframe Hs
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexact H
+
+omit π ρ [Pos.Countable I] [Pos.Countable O] in
+/-- **`lin` gives its one-shot form** `linF` (its commit; the abort is dropped). -/
+theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := by
+  unfold linF
+  iintro H
+  ihave H := lin_acc R i Φ $$ H
+  imod H with ⟨%st, Hs, H⟩
+  imodintro
+  iexists st
+  iframe Hs
+  icases H with ⟨-, H⟩
+  iexact H
+
+omit π ρ [Pos.Countable I] [Pos.Countable O] in
+/-- **A read's update, persistently, is an atomic update**: aborting it fires it at the same state
+(`reads_stay`). -/
+theorem linF_read_lin {i : I} {Φ : O → IProp GF} (hw : R.B.isWrite (R.mi i) = false) :
+    □ linF R i Φ ⊢ lin R i Φ := by
+  unfold lin
+  iintro #H
+  iauintro
+  unfold atomic_acc
+  unfold linF
+  imod H with ⟨%st, Hs, Hc⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists st
+  iframe Hs
+  isplit
+  · iintro Hs
+    imod Hc $$ [Hs] with -
+    · rw [R.reads_stay (R.mi i) st hw]
+      iexact Hs
+    imodintro
+    itrivial
+  · iintro Hs
+    iapply Hc $$ Hs
+
+/-- **The update a slot hands to the far side**: a write's `lin` (committed at most once); a read's `lin`
 persistently, which the far side may fire zero or more times (a read leaves the state unchanged,
 `reads_stay`), each firing giving `Φ` of its output (the read form; `notes/specs-only/ledger.md`,
 2026-11-22, "`remote.opMaybe`'s read form"). -/
 def slotUpd (i : I) (Φ : O → IProp GF) : IProp GF :=
-  if R.B.isWrite i then lin R i Φ else iprop(□ lin R i Φ)
+  if R.B.isWrite (R.mi i) then lin R i Φ else iprop(□ lin R i Φ)
 
 omit π ρ in
-theorem slotUpd_write {i : I} {Φ : O → IProp GF} (h : R.B.isWrite i = true) :
+theorem slotUpd_write {i : I} {Φ : O → IProp GF} (h : R.B.isWrite (R.mi i) = true) :
     slotUpd R i Φ = lin R i Φ := by
   simp [slotUpd, h]
 
 omit π ρ in
-theorem slotUpd_read {i : I} {Φ : O → IProp GF} (h : R.B.isWrite i = false) :
+theorem slotUpd_read {i : I} {Φ : O → IProp GF} (h : R.B.isWrite (R.mi i) = false) :
     slotUpd R i Φ = iprop(□ lin R i Φ) := by
   simp [slotUpd, h]
 
@@ -751,7 +827,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St I O)
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St J I O)
   (S : RSvc GF I O)
 
 /-- `cd`'s functions compute `S`'s encodings and decodings (persistent): all the serving side and
@@ -785,7 +861,7 @@ def codecOk (cd : remote.Codec) : IProp GF :=
       {{ b ↦*{dq} R.encOut v }} (App (Val #cd.DecOut') (Val #b))
       {{ (x : GoInterface) (ok : Bool), RET (PairV #x #ok); ⌜ok = true → x = v⌝ }}) ∗
     (∀ i : I, {{ True }} (App (Val #cd.IsRead') (Val #(R.iv i)))
-      {{ RET #(!R.B.isWrite i); True }}) ∗
+      {{ RET #(!R.B.isWrite (R.mi i)); True }}) ∗
     (∀ i : I, {{ True }} (App (Val #cd.Unknown') (Val #(R.iv i)))
       {{ RET #(R.unk i); True }}) ∗
     (∀ o : O, {{ True }} (App (Val #cd.IsUnknown') (Val #(R.ov o))) {{ RET #false; True }}) ∗

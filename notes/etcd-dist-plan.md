@@ -1252,6 +1252,56 @@ axioms hold.
 - `putget`'s `S2Holds` generalization from the D9 commit was not taken (the putget files are the putget
   leads'); the skeleton does not need it yet.
 
+### 11.3 M1's assembly (P9, 2026-11-25, branch `etcd-safe-p9`; `notes/etcd-dist-p9.md`)
+
+**Blocked at the instance's spec**: `remote`'s `PendDec`/`Run.spec` cannot describe txnlin's model (its
+`Gen` is not a function of the model input, `decIn` is partial, `decOut` reads an output by its input's
+kind, `outOf` is not injective); a generalization of `remote`'s store (wire input vs model input, a
+state guard, `PendDec` "at a configuration") is proposed to the lead (`notes/etcd-dist-p9.md`, ledger
+2026-11-25). The assembly below assumes it.
+
+`etcd_kv_safe_nocrash`: `etcd_safe_nocrash`'s statement at deployments with k members and one `kv`
+workload (an orchestrator machine `clientProg d 0` running `kvremote.Orch`, `Clients` client machines
+`nodeProg d c` running `kvremote.Node`), under `putget_safe`'s interim S2/S5 axioms. Steps, each its own
+module (linking where it uses `wp_*`):
+
+1. **The kv store** (`dist/kvremote/Store.lean`, defs): `kvR γk : RBase GF MS MI VIn Output` with
+   `sysState st := ∃ σ, etcdKV γk σ ∗ ⌜GoodKV σ ∧ absSt σ = st ∧ kvRevFits σ.rev⌝` (timeless), `Eop` the
+   KV invariants' mask (`callUpd`'s), `B := TSo`, `good st := st.rev < 2 ^ 63`; `PendDec (kvR γk)
+   linkvtxnS` (pure, from `decOut_outOf`, `pSeq_ok`, `pSeq_errW_pending`, `pSeq_errR`); `hinj`. (Done 2026-11-25, with `O := VOut`, outputs that fit a slice, and `good` bounding the
+   state's values too: `notes/etcd-dist-p9.md`, fourth session.)
+2. **The codec** (`dist/enc/*` specs and proofs; `dist/kvremote/{EncInput,DecInput,EncOutput,DecOutput,
+   Codec}.lean`): `codecOk (kvR γk) (Codec())`.
+3. **The client machine** (`dist/kvremote/Node.lean`): `opMaybe (kvR γk) a tok op` for `Node`'s `op`
+   (`txnlin.Call.spec`, `wp_Call`; `tok cli := isNewClient cl … ∗ clientWriteOnce … ∗ kvRegsAt`s of the
+   members' published views, D7 §4), then `ServeClient.spec`; `Node`'s WP: never returns.
+4. **The orchestrator** (`dist/kvremote/Orch.lean`): `Run.spec` at `kvR γk`, `linkvtxnS`, `txnlin.Model`'s
+   `isModel` (`Model.wp_proof`), `Gen.spec`; `Orch` returns a verdict that is not `Illegal`, so `client.RunKV`
+   (`examples/etcd/dist/client/kv.go`), which panics only on `Illegal`, does not panic.
+5. **The start** (`dist/kvremote/Start.lean`, global ghost state): from D7's `clusterAllocN`/
+   `clusterFacts` (the cluster's `etcdKV γk` at the boot state), allocate `pendCtx (kvR γk) linkvtxnS γ`
+   with `pendLib` at `pInit` (the boot state is empty: `absSt σ₀ = mInit`), `mapCtx_alloc` with budget
+   `ops * readTries` per client address, `remoteAddr (kvR γk) a_c` for each client machine (remote's
+   `remote_start`); hand `pendLib` and the units to the orchestrator's share, `remoteAddr` and the
+   members' views to each client machine's.
+   **The deployment's extensions** (P9, 2026-11-25): every machine, the client machines included, runs over
+   `etcdNetExts := ⟨[idIssueExt, Fs.fsExt, Net.netExt]⟩` (`etcdstart/NetExts.lean`; `etcdNetExts_hasIdIssue`).
+   The client machines need the request-ID extension: `Call_dist.spec` (the lead's statement of `Call` across
+   machines, which `kvremote.Node`'s proof applies) is stated under `[HasExt idIssueExt]`, as are N2's
+   `KV_*_dist`/`Txn_Commit_dist`. The bundle provides it; a bundle for client machines without
+   `idIssueExt` would not.
+   Done so far (`dist/kvremote/Start.lean`, defs): `kv_start` (the kv part: `mapCtx_alloc`, `pend_alloc`,
+   `addrs_set_proto`) and `kv_start_deployment` (one kv workload; the members' part a hypothesis
+   `member_boot_dist`, which N5 proves). Not done: step 6's use (the boot WPs, the shares
+   through N7-kv's `orchShare`/`nodeShare`).
+6. **The theorem** (`dist/kvremote/TopLevelRobustness.lean`, linking): `etcd_safe_nocrash_of_boot`'s
+   shape with `EtcdBootNC` discharged by putgetK's k-member boot (`member_bootK`; `dist-putgetk`) for the
+   members, step 5 for the start, steps 3-4 for the client and orchestrator machines; `EtcdBootNCBad`
+   as today.
+
+Sizes: 1 ~300 lines, 2 ~700 (enc ~300, the codec ~400), 3 ~250, 4 ~200, 5 ~300, 6 ~250; the `remote`
+generalization ~150 more.
+
 ## 12. The crash plan: D4 (the bundle under crash) and D6 (server restart)
 
 Specs first, then invariants, then proofs in parallel.

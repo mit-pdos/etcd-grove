@@ -177,7 +177,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
 
 omit ρ bvi in
 /-- A slot's update gives its `lin` (a read's persistently). -/
-theorem slotUpd_lin (R : RBase GF KvS EIn BStr) (i : EIn) (Φ : BStr → IProp GF) :
+theorem slotUpd_lin (R : RBase GF KvS EIn EIn BStr) (i : EIn) (Φ : BStr → IProp GF) :
     slotUpd (Gg := hG.goose_globalGS) R i Φ ⊢ lin (Gg := hG.goose_globalGS) R i Φ := by
   unfold slotUpd
   split
