@@ -114,16 +114,21 @@ theorem check.wp_proof (wp_Get : net.http.Header.Get.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · -- `200`: the handler's echo
       obtain ⟨h1, h2, h3, rfl⟩ := echo_facts _ _ _ _ hc body hpre Hif
-      trace_state
       wp_method_call; wp_call
+      wp_load
+      try wp_method_call
       wp_apply wp_Get rv.Header' (net.http.dropConn hc) go!"X-Method" (by decide) $$ Hh as Hh
       rw [h1]
       wp_auto
       wp_method_call; wp_call
+      wp_load
+      try wp_method_call
       wp_apply wp_Get rv.Header' (net.http.dropConn hc) go!"X-Path" (by decide) $$ Hh as Hh
       rw [h2]
       wp_auto
       wp_method_call; wp_call
+      wp_load
+      try wp_method_call
       wp_apply wp_Get rv.Header' (net.http.dropConn hc) go!"X-Echo" (by decide) $$ Hh as Hh
       rw [h3]
       wp_auto
