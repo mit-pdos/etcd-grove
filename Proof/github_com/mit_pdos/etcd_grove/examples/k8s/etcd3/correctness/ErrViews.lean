@@ -237,13 +237,13 @@ theorem errRep_codeAt (x : GoInterface) (e : RErr) (hf : flatE e) :
 
 /-- `errors.New`'s error is a leaf outside `APIStatus` (its method set is `Error` only). -/
 theorem errString_plainLeaf (p : Loc) :
-    apierrors.plainLeaf (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #p) := by
+    apierrors.plainLeaf (GF := GF) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #p) := by
   have hU := go.method_set_is
     (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Unwrap"
   have hA := go.method_set_is
     (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"As"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
-  refine Or.inr ⟨_, rfl, ?_, ⟨?_, ?_, ?_⟩, ⟨_, p, rfl, rfl⟩⟩
+  refine Or.inr ⟨_, rfl, ?_, ⟨?_, ?_, ?_⟩, (_root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _), (_root_.Perennial.errors.asTyRepr_pointer _ _ _)⟩
   · simp only
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]
@@ -264,7 +264,7 @@ theorem deepRO_plain (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (h
     iintro ⟨%p, %h, -⟩
     ileft; ipureintro; subst h; exact errString_plainLeaf p
   | storageErr c k rv inner =>
-    have hinner : ∀ e, (deepRO (GF := GF) e inner ⊢ ⌜apierrors.plainLeaf e⌝) := by
+    have hinner : ∀ e, (deepRO (GF := GF) e inner ⊢ ⌜apierrors.plainLeaf (GF := GF) e⌝) := by
       intro e
       cases inner with
       | nil => simp only [deepRO, deepRep]; iintro %h; ipureintro; left; exact h
@@ -286,7 +286,7 @@ theorem deepRO_plain (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (h
     iexists _
     isplitr
     · ipureintro
-      refine ⟨rfl, ?_, hU, ?_, ⟨_, p, rfl, rfl⟩⟩
+      refine ⟨rfl, ?_, hU, ?_, (_root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _), (_root_.Perennial.errors.asTyRepr_pointer _ _ _)⟩
       · simp only
         go_type_set
       · simp only [hA, ne_eq, reduceCtorEq, not_false_eq_true]

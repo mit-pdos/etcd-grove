@@ -44,13 +44,6 @@ theorem errors.asNoMatch_notAssignable {T : go.GoType} {ii : GoInterfaceOk}
     exact fun heq => (hu hI).1 (congrArg underlying heq)
   · simpa using hts
 
-theorem errors.asNoMatchLeaf_perennial {T : go.GoType} {e : GoInterface}
-    (hk : ∃ k, go.kindOf (underlying T) = some k) (hn : go.isUntypedNil (underlying T) = false)
-    (h : errors.asNoMatchLeaf T e) : _root_.Perennial.errors.asNoMatchLeaf T e := by
-  rcases h with h | ⟨ii, rfl, hleaf, hts, hmod, -, hu⟩
-  · exact Or.inl h
-  · exact Or.inr ⟨ii, rfl, hleaf, errors.asNoMatch_notAssignable hmod hk hn hts hu⟩
-
 end pure
 
 section proof
@@ -60,15 +53,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.errors.Assumptions]
 
-/-- A leaf of `asNoMatchLeaf` has a Lean representation for an interface `T`: it is a pointer. -/
-theorem errors.errRepr_of_leaf {T : go.GoType} {e : GoInterface} (h : errors.asNoMatchLeaf T e) :
+theorem errors.asNoMatchLeaf_perennial {T : go.GoType} {e : GoInterface}
+    (hk : ∃ k, go.kindOf (underlying T) = some k) (hn : go.isUntypedNil (underlying T) = false)
+    (h : errors.asNoMatchLeaf (GF := GF) T e) : _root_.Perennial.errors.asNoMatchLeaf T e := by
+  rcases h with h | ⟨ii, rfl, hleaf, hts, hmod, -, hu⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨ii, rfl, hleaf, errors.asNoMatch_notAssignable hmod hk hn hts hu⟩
+
+/-- A leaf of `asNoMatchLeaf` has a Lean representation of its type for an interface `T`. -/
+theorem errors.errRepr_of_leaf {T : go.GoType} {e : GoInterface}
+    (h : errors.asNoMatchLeaf (GF := GF) T e) :
     _root_.Perennial.errors.errRepr (GF := GF) T e := by
   intro ii he
   rcases h with h | ⟨ii', h', -, -, -, hp, -⟩
   · subst h; cases he
   · rw [h'] at he
-    cases he
-    exact fun hI => _root_.Perennial.errors.asRepr_pointer T _ (hp hI) hI
+    injection he with he
+    subst he
+    exact hp
 
 theorem errors.AsNoMatch.wp_proof : errors.AsNoMatch.spec (GF := GF) (hG := hG) := by
   intro err l T' _ _ T _ v hT hk hn
@@ -86,8 +88,7 @@ theorem errors.AsNoMatch.wp_proof : errors.AsNoMatch.spec (GF := GF) (hG := hG) 
       iexists ii
       isplitr
       · ipureintro
-        exact ⟨Herr, Hna, Hdec, fun hI => _root_.Perennial.errors.asRepr_pointer T ii (Hp hI) hI,
-          HAs, HUnwrap⟩
+        exact ⟨Herr, Hna, Hdec, Hp, HAs, HUnwrap⟩
       iintro %Ψ HΨ
       iapply Hun
       iintro %e %He

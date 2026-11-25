@@ -543,3 +543,14 @@ proofs and in trust-boundary statements. Proposed fix (spec-only, no trusted tex
    (make it take `GF`, or a GF-free list predicate with a lemma to `asTyRepr`); discharge for
    `clientErrTys` case by case (EtcdError, deadlineExceededError, *errorString, grpc `*status.Error`
    all have generated `IntoValTyped`); redo ErrViews/Calls; rebuild; gates.
+
+**Approved by coordinator-E (spec-only) and implemented:**
+- Perennial `reflect-s05` 534dab4a3 (pushed): `errors.asTyRepr` (∃ W, `IntoValTyped W ii.ty`, no value),
+  `asRepr_tyRepr`, `asTyRepr_pointer`, `asTyRepr_of`; `errRepr` and `asNoMatch`'s wrapper use it;
+  `wp_asCheck` takes it. b16: Links 1,646 jobs ok; `#print axioms` (wp_As, wp_AsType, wp_Is,
+  initialize', reflectlite TypeOf/Elem/Kind/initialize'): Lean's three. Full build `pfull4` running.
+- etcd-grove: `errors.asNoMatchLeaf` (Spec/errors/AsNoMatch) and `apierrors.plainLeaf` (View, moved to
+  the GF section) carry `asModelled ii.ty ∧ asTyRepr (GF := GF) …` instead of `IsPointerError`
+  (also the `.plain` wrapper in `apiErrAt`); Checks/AsNoMatch/ErrViews/Calls adjusted;
+  `Calls.clientErrTy_modelled` discharges the four `clientErrTys`. Pin → 534dab4a3; regen no change.
+  Targeted build `reflection/eg09.log`; then gates.

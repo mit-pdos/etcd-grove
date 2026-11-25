@@ -154,6 +154,24 @@ theorem drvInit_sents :
   · iexact CD'
   · iexact CU'
 
+/-- The model's reflection on a client error's dynamic type (one of `clientErrTys`) is defined, and
+the type has a Lean representation (`*status.Error`, `*errorString`: `Loc`; `EtcdError` and
+`deadlineExceededError`: their structs). -/
+theorem clientErrTy_modelled (ii : GoInterfaceOk) (ht : ii.ty ∈ clientErrTys) :
+    _root_.Perennial.errors.asModelled ii.ty ∧
+    _root_.Perennial.errors.asTyRepr (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus.ty ii := by
+  obtain ⟨ty, v⟩ := ii
+  simp only [clientErrTys, List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with ht | ht | ht | ht <;> simp only at ht <;> subst ht
+  · exact ⟨_root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _,
+      _root_.Perennial.errors.asTyRepr_pointer _ _ _⟩
+  · exact ⟨EtcdGrove.k8s.asModelled_etcdError,
+      _root_.Perennial.errors.asTyRepr_of (W := v3rpc.rpctypes.EtcdError) _ _⟩
+  · exact ⟨_root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _,
+      _root_.Perennial.errors.asTyRepr_pointer _ _ _⟩
+  · exact ⟨EtcdGrove.k8s.asModelled_deadlineExceeded,
+      _root_.Perennial.errors.asTyRepr_of (W := _root_.Perennial.context.deadlineExceededError) _ _⟩
+
 /-- A client error is no too-large one (`clientErrPlain`, and `clientErr`'s leaf). -/
 theorem clientErr_notTooLarge (err : GoInterface)
     (hn : err ≠ GoInterface.nil) (hc : clientErr err) : ⊢ notTooLarge (GF := GF) err := by
@@ -166,7 +184,8 @@ theorem clientErr_notTooLarge (err : GoInterface)
   unfold apierrors.apiErrAt
   isplitl
   · ileft; ipureintro
-    exact Or.inr ⟨ii, rfl, clientErrPlain_holds ii hc, hl.2.1, hl.2.2, hl.1⟩
+    have hm := clientErrTy_modelled (GF := GF) ii ((hc.2 ii rfl).2.2)
+    exact Or.inr ⟨ii, rfl, clientErrPlain_holds ii hc, ⟨hl.2.1, hl.2.2, hl.1⟩, hm.1, hm.2⟩
   · ipureintro; rfl
 
 /-- **An error of the store whose outcome is unknown is `EOther`** (see the file header): the
@@ -256,7 +275,8 @@ theorem sentV_plain [_root_.Perennial.errors.Assumptions]
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
   unfold apierrors.apiErrAt
   ileft; ipureintro
-  refine Or.inr ⟨_, rfl, ?_, ⟨?_, ?_, ?_⟩, ⟨_, l, rfl, rfl⟩⟩
+  refine Or.inr ⟨_, rfl, ?_, ⟨?_, ?_, ?_⟩, _root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _,
+    _root_.Perennial.errors.asTyRepr_pointer _ _ _⟩
   · simp only
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]

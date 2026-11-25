@@ -74,14 +74,11 @@ theorem apiStatus_asTarget :
   exact ⟨_, rfl⟩
 
 /-- An error `errors.As` finds no `APIStatus` in without unwrapping it ends `As`'s walk. -/
-theorem plainLeaf_noMatch (e : GoInterface) (h : plainLeaf e) :
-    errors.asNoMatchLeaf k8s_io.apimachinery.pkg.api.errors.APIStatus.ty e := by
-  rcases h with h | ⟨ii, hii, hts, hl, hp⟩
+theorem plainLeaf_noMatch (e : GoInterface) (h : plainLeaf (GF := GF) e) :
+    errors.asNoMatchLeaf (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus.ty e := by
+  rcases h with h | ⟨ii, hii, hts, hl, hmod, hrep⟩
   · exact Or.inl h
-  · obtain ⟨X, p, hty, hv⟩ := hp
-    refine Or.inr ⟨ii, hii, ⟨hl.2.2, hl.1, hl.2.1⟩, hts,
-      by rw [hty]; exact _root_.Perennial.errors.asModelled_pointer X, fun _ => ⟨X, p, hty, hv⟩,
-      fun h => ?_⟩
+  · refine Or.inr ⟨ii, hii, ⟨hl.2.2, hl.1, hl.2.1⟩, hts, hmod, hrep, fun h => ?_⟩
     rw [apiStatus_isInterface] at h
     cases h
 
@@ -206,10 +203,8 @@ theorem wp_As_plain (wp_AsNoMatch : errors.AsNoMatch.spec (GF := GF) (hG := hG))
     iexists ii
     isplitr
     · ipureintro
-      obtain ⟨h1, h2, h3, h4, h5⟩ := h
-      obtain ⟨X, p, hty, hv⟩ := h5
-      refine ⟨h1, h2, by rw [hty]; exact _root_.Perennial.errors.asModelled_pointer X,
-        fun _ => ⟨X, p, hty, hv⟩, fun hi => ?_, h4, h3⟩
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+      refine ⟨h1, h2, h5, h6, fun hi => ?_, h4, h3⟩
       rw [apiStatus_isInterface] at hi
       cases hi
     · iintro %Φ' HΦ'

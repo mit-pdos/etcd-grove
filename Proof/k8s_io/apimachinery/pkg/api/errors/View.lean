@@ -91,13 +91,6 @@ def leafErrTy (t : go.GoType) : Prop :=
     some (go.signature.Signature [] false [go.GoType.SliceType go.error]) ∧
   GoSemanticsFunctions.methodSet t !! go!"As" ≠ some (go.signature.Signature [go.any] false [go.bool])
 
-/-- **`errors.As` finds no `APIStatus` in `err` without unwrapping it**: `nil`, or a non-nil leaf
-whose dynamic type is outside `APIStatus`'s type set. -/
-def plainLeaf (err : GoInterface) : Prop :=
-  err = interface.nil ∨ ∃ ii : GoInterfaceOk, err = GoInterface.ok ii ∧
-    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
-    leafErrTy ii.ty ∧ _root_.Perennial.errors.IsPointerError ii
-
 end leaf
 
 end pure
@@ -108,6 +101,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
+
+/-- **`errors.As` finds no `APIStatus` in `err` without unwrapping it**: `nil`, or a non-nil leaf
+whose dynamic type is outside `APIStatus`'s type set, on which the model's reflection is defined (`asModelled`) and which has a Lean
+representation (`asTyRepr`:
+`errors.As`'s `implements` allocates a zero value of it). -/
+def plainLeaf (err : GoInterface) : Prop :=
+  err = interface.nil ∨ ∃ ii : GoInterfaceOk, err = GoInterface.ok ii ∧
+    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
+    leafErrTy ii.ty ∧ _root_.Perennial.errors.asModelled ii.ty ∧
+    _root_.Perennial.errors.asTyRepr (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus.ty ii
 
 /-- `st.Details` is `nil` (and `cs` empty) or points (read-only) to details whose causes slice
 holds (read-only) `cs`. -/
@@ -137,15 +140,16 @@ def apiErrAt (err : GoInterface) : ApiErrView → IProp GF
   | .status st cs => iprop(∃ l : Loc, ⌜err = interface.mkOk
         (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
       l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ statusDetailsAt st cs)
-  | .plain => iprop(⌜plainLeaf err⌝ ∨ ∃ ii : GoInterfaceOk,
+  | .plain => iprop(⌜plainLeaf (GF := GF) err⌝ ∨ ∃ ii : GoInterfaceOk,
       ⌜err = GoInterface.ok ii ∧
         go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
         GoSemanticsFunctions.methodSet ii.ty !! go!"Unwrap" =
           some (go.signature.Signature [] false [go.error]) ∧
         GoSemanticsFunctions.methodSet ii.ty !! go!"As" ≠
           some (go.signature.Signature [go.any] false [go.bool]) ∧
-        _root_.Perennial.errors.IsPointerError ii⌝ ∗
-      □ ∀ Φ : val → IProp GF, (∀ e : GoInterface, ⌜plainLeaf e⌝ -∗ Φ #e) -∗
+        _root_.Perennial.errors.asModelled ii.ty ∧
+        _root_.Perennial.errors.asTyRepr (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus.ty ii⌝ ∗
+      □ ∀ Φ : val → IProp GF, (∀ e : GoInterface, ⌜plainLeaf (GF := GF) e⌝ -∗ Φ #e) -∗
           WP (App (Val #(methods ii.ty go!"Unwrap" ii.v)) (Val #())) {{ Φ }})
 
 instance apiErrAt_persistent (err : GoInterface) (w : ApiErrView) :
