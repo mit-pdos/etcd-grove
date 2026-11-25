@@ -365,6 +365,7 @@ variable {G : GooseGlobalGS HasLC.hasLC GF}
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+set_option pp.explicit true in
 open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver in
 /-- **The member's durable raft state and its WAL's files after a crash** (the T2 and T5 part of the
 assembly): from the old generation `L`'s crash-aware durability invariant with its crash tokens and the
