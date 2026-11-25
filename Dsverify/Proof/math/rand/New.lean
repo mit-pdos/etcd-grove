@@ -32,7 +32,7 @@ theorem math.rand.rng.New_rng :
   icases Hsrc with ⟨%p, %Hp, Htok⟩
   iapply math.rand.wp_New
   · itrivial
-  iintro %r ⟨%v, #Hr, %Hv⟩
+  iintro %r !> ⟨%v, #Hr, %Hv⟩
   iapply HΦ
   iunfold math.rand.ownRngRand
   iexists p, v

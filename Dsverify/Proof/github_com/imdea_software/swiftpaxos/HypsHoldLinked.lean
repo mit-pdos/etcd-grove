@@ -43,7 +43,7 @@ theorem swiftHyps_holds (π : Net.NetProtoGS) :
 theorem swiftOsRandom_holds (π : Net.NetProtoGS) :
     letI := encoding.gob.swiftLibsOf (GF := GF) π; SwiftOsRandom GF := by
   letI := encoding.gob.swiftLibsOf (GF := GF) π
-  exact ⟨github_com.google.uuid.New.wp_proof⟩
+  exact ⟨fun {_} => github_com.google.uuid.New.wp_proof⟩
 
 end holds
 
