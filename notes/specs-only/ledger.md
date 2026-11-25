@@ -6590,3 +6590,44 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   errors.New("unexpected EOF")`.
 - **Proposed change.** As above; the two premises have no caller to weaken.
 - **Decision.** Applied (zeldovich proving session 2, s5; `ctxKeys` agreed with the coordinator, session 10).
+
+## 2026-11-24: `advertiseMatchesCluster.spec` (and so `bootstrap.spec`) -- the member's own initial-cluster URL slice is sorted in place, against its read-only claim (dist-putget-interim)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__advertiseMatchesCluster.lean`,
+  `config.ServerConfig.advertiseMatchesCluster.spec` (claim #34, stage 2; a `?` hypothesis of the server's
+  Link), and through `VerifyBootstrap` the hypotheses of `bootstrapNewClusterNoWAL`, `bootstrapCluster` and
+  `bootstrap.spec` (`bootCfgRO cfg U` in the precondition: `sl ↦*□ U.initURLs k` for each entry, persistent).
+- **Defect.** False of Go when this member's entry of `InitialPeerURLsMap` holds two or more URLs out of
+  order (and, for 13 or more, possibly even in order: `pdqsort` swaps its pivot): the precondition gives the
+  slice's elements read-only and persistent, so the caller keeps `sl ↦*□ urls` after the call, but Go writes
+  the slice.
+- **Evidence.** `server/config/config.go:250-251`: `urls, apurls := c.InitialPeerURLsMap[c.Name], ...;
+  urls.Sort()`, and `client/pkg/types/urls.go:72-74`: `func (us *URLs) Sort() { sort.Sort(us) }`, which swaps
+  the elements of the map's own slice (`URLs.Swap`, `:77`). A caller reading `cfg.InitialPeerURLsMap[name][0]`
+  after `NewServer(cfg)` sees the sorted order.
+- **Proposed change.** Either the precondition takes this entry's slice owned (`sl ↦* urls name`) and the post
+  gives it back sorted (`↦* sortURLs (urls name)`), with `bootCfgRO` splitting that entry out; or a premise that
+  the entry is sorted with fewer than 13 URLs (no swap) -- weaker, and the examples' entries are one URL. Until
+  then the closed theorems use `bootstrap.specOne` (one member, one URL: `Sort` of one element writes nothing),
+  the interim axiom `bootstrap.wp_proofOne`.
+- **Decision.** Pending (claim #34's spec; found by the dist-putget-interim session while choosing the interim
+  axiom, not raised with #34 directly).
+
+## 2026-11-24: `isMemberBootstrapped.spec` (and so `bootstrap.spec`) -- requests sent to the other members with no protocol's consent (dist-putget-interim)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/isMemberBootstrapped.lean`, `isMemberBootstrapped.spec`
+  (claim #34, stage 2; a `?` hypothesis of the server's Link), for any network `H` and round tripper
+  `http.roundTripperOk H prt`, and through `bootstrapNewClusterNoWAL` the hypotheses of `bootstrap.spec`.
+- **Defect.** Too strong for a cluster with another member: Go sends `GET <peer URL>/members` through `prt` for
+  every other member's peer URL, and `roundTripperOk`'s `RoundTrip` needs the host's protocol registration
+  (`httpProtoAt`) and its request predicate (`□ (H.proto host).req R γk`), which the spec does not take; a peer's
+  handler proved under its registered protocol may rely on that predicate excluding the request.
+- **Evidence.** `server/etcdserver/cluster_util.go:41-42` (`getClusterFromRemotePeers(lg,
+  getRemotePeerURLs(cl, member), ...)`), `:80-82` (`cc.Get(u + "/members")` per URL), `:131-141` (every member
+  but `member`, its peer URLs); `Proof/net/http/Boundary.lean`, `roundTripperOk`. With one member
+  `getRemotePeerURLs` is empty and nothing is sent.
+- **Proposed change.** A premise that `cl`'s members other than `name` have no peer URL (one-member clusters), or
+  the per-URL registration and request predicate for `GET /members` in the precondition (the multi-member
+  clusters' start). Until then the closed theorems use `bootstrap.specOne` (one member), the interim axiom
+  `bootstrap.wp_proofOne`.
+- **Decision.** Pending (claim #34's spec; as above).

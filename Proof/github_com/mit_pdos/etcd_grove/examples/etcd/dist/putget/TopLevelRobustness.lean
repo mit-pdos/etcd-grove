@@ -92,9 +92,7 @@ def PutgetBoot : Prop :=
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (_Hbf : etcdstart.BootFacts id ctxs boot)
     (_Haf : authRecordsFit) (_Hbuq : apply.backendUnderQuota) (_Hrf : grpcRepliesFit)
     (_Hdbo : storage.diskOk)
-    (_Hprem : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
-          boot)
+    (_Hbg : etcdstart.BootGo1 name peer client id ctxs boot) (_Hfips : crypto.fips140.GodebugFips140Off)
     (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc)
     (_Hlp : peer.length + 1 < 2 ^ 63) (_Hlc : client.length + 1 < 2 ^ 63)
     (_HEnv : ∀ m ∈ system peer client σm σc, verifyEnvOff m.1)
@@ -109,11 +107,11 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` with `Robust`'s thread bound (`Net.robust_of_distBootIT`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
+  intro _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
     Hm Hc Hlp Hlc HEnv HEnvTok
   refine Net.robust_of_distBootIT (GF := putgetGF) (startAddrs peer client) (system peer client σm σc) g
     putgetThreads putgetSteps ?_
-    (fun hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
+    (fun hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc Hm Hc
       Hlp Hlc HEnv HEnvTok hb) (startAddrs_nodup peer client) (startAddrs_ok peer client)
   refine etcdNetExts_initP g _ ?_
   intro m hm
@@ -199,7 +197,7 @@ proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms o
 switch). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
+  intro _ _ _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
     Hm Hc Hlp Hlc HEnv HEnvTok G hb
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
@@ -213,7 +211,7 @@ theorem putget_safe : putget_safe.spec := by
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HEnvTok peer client Hlp Hlc id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm γE
+      exact member_boot Hctx HEnvTok peer client Hlp Hlc id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm Hm γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact client_boot Hctx Hcec client Hlc σc γE id
     | k + 2, hm => simp [system] at hm

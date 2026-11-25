@@ -22,13 +22,15 @@ network's and the machines' net states at start (no connection, no listener) are
 `MemberFiles` and `ClientFiles`: `Robust`'s own initial-state premise does not give it at `etcdFsSem`), and
 the member machine's data directory and WAL area empty (`MemberFiles`). Carried over from the
 in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged: `bootstrap`'s results
-(`BootFacts`), the server's workload and environment premises (`authRecordsFit`, ...), Go's method sets of
-the gRPC service values and `errors.As`'s target, the member's named Iris premises (`Hprem`: the
-trust-boundary contract `bootstrapContract`, at every ghost-state instance, as the retired
-single-process `etcd_safe`'s `Hprem`; `bootMarshal` and the raft wrapper's contracts are axioms since
-2026-11-24, `proto.MarshalBootConfChange.wp_proof`, `NewRaftLoggerZap.wp_proof`,
-`contention.NewTimeoutDetector.wp_proof`), `context`'s two classes (`Hctx`,
-`Hcec`). (prom-registry, 2026-11-23: no premise on the programs' metric names, `HNs`: each machine's
+(`BootFacts`, and since 2026-11-24 `BootGo1`: the member id, its peers' contexts, its directory and
+its log are Go's at the member's URLs), the server's workload and environment premises (`authRecordsFit`,
+...), Go's method sets of the gRPC service values and `errors.As`'s target, `context`'s two classes
+(`Hctx`, `Hcec`). The run's `fips140` GODEBUG setting is unset or `off` (`Hfips`: with `only`,
+`crypto/sha1.Sum`, which computes the member id, panics). No named Iris premise: `bootstrap`'s contract
+(`Hprem`, `bootstrapContract` at every ghost-state instance, until 2026-11-24) is the interim axiom
+`bootstrap.wp_proofOne` (`bootstrap.spec` at a one-member initial cluster of one URL; retired when #34
+proves `bootstrap`); `bootMarshal` and the raft wrapper's contracts are axioms since 2026-11-24,
+`proto.MarshalBootConfChange.wp_proof`, `NewRaftLoggerZap.wp_proof`, `contention.NewTimeoutDetector.wp_proof`. (prom-registry, 2026-11-23: no premise on the programs' metric names, `HNs`: each machine's
 boot proof allocates its registration rights itself.)
 `ETCD_VERIFY` (etcd's runtime checks, which panic outside
 the apply loop) is off on every machine's run, as in the single-process theorems (`HEnv`: `verifyEnvOff`
@@ -46,8 +48,7 @@ member's server specs take (`threadBound ≤ 2 ^ 28`); it bounds the live thread
 bound. The step bound is `putgetSteps = 2 ^ 48`, the single-process `etcd_all`'s: an execution of `n` steps is run at
 `n + 1` receipts (the adequacy theorem's choice), and the member's start takes at most `2 ^ 48`
 (`etcdstart.wp_StartServer1`'s `receiptBound GF ≤ 2 ^ 48`, the receipt bound of the server's request ids),
-with its write-back budget and named premises at `2 ^ 48 - 1` (`Hprem` at `n + 1 ≤ 2 ^ 48`, as
-`etcd_all`'s). (Until 2026-11-24 the bound was `2 ^ 28 - 1`: `goose_dist_adequacy` bounded the threads by
+with its write-back budget at `2 ^ 48 - 1`. (Until 2026-11-24 the bound was `2 ^ 28 - 1`: `goose_dist_adequacy` bounded the threads by
 `n + 2`, so the step bound was the server specs' thread bound.)
 
 **What the semantics assumes** (not premises): the file extension at `etcdFsSem` (no file system call
@@ -61,6 +62,7 @@ parsing is not translated, so the boot programs are the functions applied to the
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOne
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 public import Proof.runtime.Start
 public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
@@ -103,11 +105,10 @@ def putget_safe.spec : Prop :=
     -- the server's workload and environment (the in-process `putget`'s)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    -- the member's named premises, at every ghost-state instance (the single-process theorems', at
-    -- `etcd_all`'s range: `n + 1 ≤ putgetSteps`, the member's receipts less one)
-    (Hprem : ∀ n : Nat, n + 1 ≤ putgetSteps → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
-          boot)
+    -- (2026-11-24) `bootstrap`'s results for the member are Go's (its id, its peers' contexts, its log,
+    -- at the member's URLs), and the run's `fips140` GODEBUG setting unset or off: the interim bootstrap
+    -- axiom's pure premises (until then the named Iris premise `Hprem`, `bootstrap`'s contract)
+    (Hbg : etcdstart.BootGo1 name peer client id ctxs boot) (Hfips : crypto.fips140.GodebugFips140Off)
     -- the machines' start states
     (σm σc : state) (g : GlobalState) (Hm : MemberFiles σm) (Hc : ClientFiles σc)
     -- the addresses' lengths, those of Go strings (their validity the programs check)

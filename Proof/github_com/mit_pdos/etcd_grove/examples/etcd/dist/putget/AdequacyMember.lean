@@ -35,6 +35,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Pkg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOneLinked
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Perennial.Proof.time.Link
@@ -106,9 +107,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    (Hprem : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
-          boot)
+    (Hbg : etcdstart.BootGo1 name peer client id ctxs boot) (Hfips : crypto.fips140.GodebugFips140Off)
     (σm : state) (Hm : MemberFiles σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
     DistBootWpST putgetSteps putgetThreads (bootMember peer client) σm
@@ -155,7 +154,11 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   · iframe
   (try wp_auto)
   -- `putget.Member(peer, client)`
-  ihave #Hpr := Hprem (2 ^ 48 - 1) (by decide) hG
+  -- (2026-11-24) `bootstrap`'s contract from the interim bootstrap axiom at Go's values (until then the
+  -- statement's named Iris premise `Hprem`)
+  ihave #Hsrvpkg : isPkgInit (PROP := IProp putgetGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  ihave #Hpr := etcdstart.premises_holds name peer client (2 ^ 48 - 1) id ctxs boot Hfips Hbg $$ Hsrvpkg
   ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof

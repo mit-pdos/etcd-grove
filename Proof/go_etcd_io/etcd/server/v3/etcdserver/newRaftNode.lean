@@ -72,7 +72,8 @@ theorem newRaftNode.wp_proof
   -- `cfg.lg != nil`: `lg = NewRaftLoggerZap(cfg.lg)` (the `else` branch is dead)
   rw [show (decide (cv.lg' = null) = false) from decide_eq_false Hlg]
   (try wp_auto)
-  wp_apply (wp_NewRaftLoggerZap cv.lg') $$ Hsrv Hlgz as %l -
+  wp_apply (wp_NewRaftLoggerZap cv.lg') as %l -
+  · iexact Hlgz
   (try wp_auto)
   -- `raft.SetLogger(lg)`
   wp_apply wp_SetLogger l $$ Hraft

@@ -171,11 +171,12 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **The configuration `newServer` passes to `NewServer`**, by its scalar fields (its pointers --
 the logger, the feature gate, the URLs, read through `bootCfgRO` -- are the caller's allocations):
 member `name` of a new cluster with token `token`, data directory `name.etcd`, raft's clock `100`
-ms and `10` ticks. -/
+ms and `10` ticks, and (2026-11-24, the interim bootstrap axiom: `bootstrap.spec`'s premise) fsync on
+(`UnsafeNoFsync` false: `newServer`'s literal leaves it zero). -/
 def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Name' = name ∧ cfg.DataDir' = memberDataDir name ∧
     cfg.InitialClusterToken' = token ∧ cfg.NewCluster' = true ∧
-    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
+    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10 ∧ cfg.UnsafeNoFsync' = false
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
 at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at

@@ -102,7 +102,7 @@ theorem Main.wp_proof
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id)
       go!"leaseexpiry" go!"leaseexpiry"
       (etcdstart.urls1 go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976") id cfgOk urlsOk
-      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
+      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init

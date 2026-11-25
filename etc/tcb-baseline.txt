@@ -52,6 +52,7 @@ axiom backend.newBoltLoggerZap.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
+axiom bootstrap.wp_proofOne
 axiom bridge.New.wp_proof
 axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
