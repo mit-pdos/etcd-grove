@@ -13,12 +13,14 @@ the boot state (`(kvR γk).sysState (kvR γk).B.init`: `etcdKV γk σ₀` with `
 - `membersAtV_sub`: the members' address facts at the deployment's client addresses give them at any
   list of those addresses (a client machine's rotated endpoints, N7-kv's `rotateL`);
 - `kv_start_deployment`: at a deployment with one workload (M1's: `KvOnly` and `Compatible`'s distinct
-  kinds), the start from all of the deployment's addresses, the members' part being **`MemberBootN5`**,
-  a hypothesis named for N5's statement (the member's boot, the lead's): from the registry and the
-  members' addresses unset, the cluster's view `Γ` (auth off), its KV at the boot state, the members'
-  address facts (`membersAtV`) and the members' own shares `MS Γ`.
+  kinds), the start from all of the deployment's addresses, the members' part being **`member_boot_dist`**
+  (its statement `member_boot_dist.law`), a hypothesis that N5 (the member's boot, the lead's) proves: from
+  the registry and the members' addresses unset, the cluster's view `Γ` (auth off), its KV at the boot
+  state, each member's client address serving the member (`etcdAddrAtV svc m.client Γ id`, the per-member
+  form of `etcdClusterStart`'s client facts) and the members' own shares `MS Γ`. `membersAtV_of_members`
+  turns the per-member facts into `membersAtV` at the members' client addresses.
 
-No axiom, no `sorry`: `MemberBootN5` is a hypothesis of `kv_start_deployment`, discharged by N5.
+No axiom, no `sorry`: `member_boot_dist` is a hypothesis of `kv_start_deployment`, discharged by N5.
 -/
 module
 
@@ -91,20 +93,34 @@ theorem kv_start (γk : KVNames) (ns : List GoString) (ops : w64) (hnd : ns.Nodu
   · unfold remoteAddr svcAddr
     iexact Ha
 
-/-- **The members' boot, as the start needs it** (N5's statement, the lead's; a hypothesis until it
-lands): from the registry and the members' addresses unset, the cluster's view `Γ` (auth off), its KV
-at the boot state, every member's client address serving a member of the view (`membersAtV`), and the
-members' own shares `MS Γ` (their boot programs' preconditions). -/
-abbrev MemberBootN5 (svc : DistView → w64 → GrpcSvc GF) (d : Deployment)
+/-- A member's id in the deployment (`Deployment.ids`'s). -/
+abbrev memberIdIn (d : Deployment) (m : Member) : w64 := memberId (go!"http://" ++ m.peer) d.token
+
+/-- **The members' address facts, per member, give `membersAtV`** at their client addresses. -/
+theorem membersAtV_of_members (svc : DistView → w64 → GrpcSvc GF) (Γ : DistView) (d : Deployment) :
+    ([∗list] m ∈ d.members, etcdAddrAtV (Gg := hG.goose_globalGS) svc m.client Γ (memberIdIn d m)) ⊢
+      membersAtV (Gg := hG.goose_globalGS) svc (d.members.map Member.client) Γ := by
+  unfold membersAtV
+  refine .trans ?_ (BigSepL.bigSepL_map (Φ := fun _ a =>
+    iprop(∃ mid : w64, etcdAddrAtV (Gg := hG.goose_globalGS) svc a Γ mid)) Member.client).2
+  exact BigSepL.bigSepL_mono fun _ m _ => exists_intro' (memberIdIn d m) .rfl
+
+/-- **The members' boot, as the start needs it** (`member_boot_dist`, proved by N5, the lead's; a
+hypothesis of `kv_start_deployment` until then): from the registry and the members' addresses unset, the
+cluster's view `Γ` (auth off), its KV at the boot state (`kvSys Γ.kv` at the model's start: `etcdKV Γ.kv σ₀`,
+`etcdClusterStart`'s client `etcdKV` in lease mode `none`), every member's client address serving it
+(`etcdClusterStart`'s `clientSvcFacts`, at the view), and the members' own shares `MS Γ`. -/
+abbrev member_boot_dist.law (svc : DistView → w64 → GrpcSvc GF) (d : Deployment)
     (MS : DistView → IProp GF) : Prop :=
   ⊢ regCtx (Gg := hG.goose_globalGS) -∗
     ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset (Gg := hG.goose_globalGS) a)
     ={⊤}=∗ ∃ Γ : DistView, ⌜Γ.auth = false⌝ ∗
       (kvR (GF := GF) Γ.kv).sysState (kvR (GF := GF) Γ.kv).B.init ∗
-      membersAtV (Gg := hG.goose_globalGS) svc (d.members.map Member.client) Γ ∗ MS Γ
+      ([∗list] m ∈ d.members, etcdAddrAtV (Gg := hG.goose_globalGS) svc m.client Γ (memberIdIn d m)) ∗
+      MS Γ
 
 /-- **The start of a deployment with one kv workload** (see the file header): from the registry and
-every address of the deployment unset, over the members' boot (`MemberBootN5`): the view `Γ`, the
+every address of the deployment unset, over the members' boot (`member_boot_dist`): the view `Γ`, the
 members' shares, the orchestrator's share at the workload's client machines and operation count, and
 each client machine's part of its share (the members' address facts, its `remoteAddr` at the cluster's
 store; `levelTok 0` and the pure facts of `kvNodePre` come from the machine's boot). -/
@@ -112,7 +128,7 @@ theorem kv_start_deployment (svc : DistView → w64 → GrpcSvc GF) (d : Deploym
     (ns : List GoString) (_hw : d.workloads = [w]) (hn : d.nodes = [ns]) (hnd : d.addrs.Nodup)
     (hb : receiptBound GF ≤ 2 ^ 63 ∧ ns.length < 2 ^ 31 ∧ 0 ≤ sint.Z w.ops ∧
       (ns.length : Int) * sint.Z w.ops < 2 ^ 60)
-    (MS : DistView → IProp GF) (HN5 : MemberBootN5 svc d MS) :
+    (MS : DistView → IProp GF) (member_boot_dist : member_boot_dist.law svc d MS) :
     ⊢ regCtx (Gg := hG.goose_globalGS) -∗
       ([∗list] a ∈ d.addrs, addrUnset (Gg := hG.goose_globalGS) a) ={⊤}=∗
       ∃ (Γ : DistView) (ρ : RemoteGS), ⌜Γ.auth = false⌝ ∗ MS Γ ∗ kvOrchPre (ρ := ρ) ns w.ops ∗
@@ -125,7 +141,8 @@ theorem kv_start_deployment (svc : DistView → w64 → GrpcSvc GF) (d : Deploym
   iintro #Hreg Hs
   simp only [Deployment.addrs, hn, List.flatten_cons, List.flatten_nil, List.append_nil]
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hm, Hc⟩
-  imod HN5 $$ Hreg Hm with ⟨%Γ, %Hauth, Hsys, #Hmem, HMS⟩
+  imod member_boot_dist $$ Hreg Hm with ⟨%Γ, %Hauth, Hsys, #Hmem, HMS⟩
+  ihave #Hmem := membersAtV_of_members svc Γ d $$ Hmem
   imod kv_start (γk := Γ.kv) ns w.ops hns hb $$ Hreg Hc Hsys with ⟨%ρ, Ho, #Ha⟩
   imodintro
   iexists Γ, ρ
