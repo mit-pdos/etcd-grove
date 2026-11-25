@@ -23,7 +23,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- What `sendMeta` needs of node `a` when `connected` is `b`. -/
@@ -34,7 +34,7 @@ def sendPre (cfg : Cfg GF) (a : GoString) (b : Bool) (r : Role) (m : MetaV) : IP
 def sendPost (cfg : Cfg GF) (a : GoString) (b : Bool) (r : Role) (m : MetaV) (b' : Bool)
     (err : GoInterface) : IProp GF :=
   iprop((⌜err = interface.nil ∧ b = true ∧ b' = true⌝ ∗ updPost cfg.γ a r m) ∨
-    (⌜b' = false⌝ ∗ models_lab.errAny err))
+    (⌜b' = false⌝ ∗ models_lab.errPlain err))
 
 theorem wp_sendMeta (cfg : Cfg GF) (c n ptr : Loc) (a : GoString) (b : Bool) (dq : DFrac)
     (m : MetaV) (r : Role) :
@@ -61,7 +61,7 @@ theorem wp_sendMeta (cfg : Cfg GF) (c n ptr : Loc) (a : GoString) (b : Bool) (dq
     iright
     isplitr
     · ipureintro; rfl
-    iapply errMsg_errAny $$ HerrMsg
+    iapply net.rpc.errPlain_newVar _ _ errD $$ Herr HerrD
   wp_auto
   unfold sendPre
   simp only [↓reduceIte]
@@ -82,7 +82,7 @@ theorem wp_sendMeta (cfg : Cfg GF) (c n ptr : Loc) (a : GoString) (b : Bool) (dq
     ileft
     iframe Hpost
     ipureintro; exact ⟨rfl, rfl, rfl⟩
-  · ihave %Hne := models_lab.errAny_ne_nil $$ Hany
+  · ihave %Hne := errPlain_ne_nil $$ Hany
     obtain ⟨i, rfl⟩ : ∃ i, err = GoInterface.ok i := by
       cases err with
       | nil => exact absurd rfl Hne

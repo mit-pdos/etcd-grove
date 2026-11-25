@@ -25,7 +25,7 @@ namespace NodeP
 section startp
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 instance itemPtr_persistent_st' (p : Loc) (k : GoString) (v : w64) (x : GoString) :
@@ -126,7 +126,7 @@ theorem wp_connectToCoordinator (cfg : Cfg GF) (n : Loc) (a : GoString)
       (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node ∗
         nodeFields cfg n a st γs nbM latM ∗ ⌜a ∈ cfg.chain⌝ ∗
         structFieldRef node.Node go!"cdr" n ↦□ cc ∗ freshCoordClient cfg cc ∗ joinTicket cfg.γ a) -∗
-      (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"connectToCoordinator" #n))
         (Val #())) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hf, %Ha, #Hcdr, Hcc, Htok⟩ HΦ
@@ -156,8 +156,9 @@ theorem wp_connectToCoordinator (cfg : Cfg GF) (n : Loc) (a : GoString)
       wp_auto
       iapply HΦ; ileft; ipureintro; rfl
     · ihave #Herr' := Herr
+      ihave #Herr'ₐ := models_lab.errPlain_errAny _ $$ Herr'
       unfold models_lab.errAny
-      icases Herr' with ⟨%ei, %Hei, %Hty, #HE⟩
+      icases Herr'ₐ with ⟨%ei, %Hei, %Hty, #HE⟩
       subst Hei
       wp_auto
       wp_apply HE
@@ -166,7 +167,7 @@ theorem wp_connectToCoordinator (cfg : Cfg GF) (n : Loc) (a : GoString)
       wp_logln [interface.mkOk go.string #msg]
       · iapply argOks1; iapply argOk_string
       iapply HΦ; iright; iexact Herr
-  · ihave %Hok := errAny_ok err $$ Herr
+  · ihave %Hok := errPlain_ok err $$ Herr
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     wp_logln [interface.mkOk go.string #(go!"Error connecting to the coordinator")]
@@ -182,7 +183,7 @@ open NodeP
 section startspec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 theorem node.wp_Start (HL : NodeP.Laws (GF := GF)) : node.wp_Start.spec (GF := GF) (hG := hG) := by
@@ -203,14 +204,14 @@ theorem node.wp_Start (HL : NodeP.Laws (GF := GF)) : node.wp_Start.spec (GF := G
   · subst Herr
     wp_auto
     iapply HΦ; itrivial
-  · ihave %Hok := NodeP.errAny_ok err $$ Herr
+  · ihave %Hok := NodeP.errPlain_ok err $$ Herr
     obtain ⟨ei, rfl⟩ := Hok
     ihave #Hf' := Hf
     unfold NodeP.nodeFields
     icases Hf' with ⟨%f, %lg, %ch, -, -, -, -, -, -, -, #Hlog, -, %Hch, -⟩
     wp_auto
     wp_log [GoInterface.ok ei]
-    · iapply NodeP.argOks1; iapply NodeP.argOk_err $$ Herr
+    · iapply NodeP.argOks1; iapply NodeP.argOk_errPlain $$ Herr
     iapply HΦ; itrivial
 
 end startspec

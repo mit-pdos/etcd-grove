@@ -18,6 +18,7 @@ module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Codec
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Hyps
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 
 @[expose] public section
 
@@ -116,7 +117,7 @@ def nodeFields (cfg : Cfg GF) (n : Loc) (a : GoString) (st : GoInterface) (γs :
     structFieldRef node.Node go!"address" n ↦□ a ∗ structFieldRef node.Node go!"pubAddr" n ↦□ a ∗
     structFieldRef node.Node go!"cdrAddress" n ↦□ cfg.cAddr ∗
     structFieldRef node.Node go!"log" n ↦□ lg ∗
-    structFieldRef node.Node go!"committed" n ↦□ ch ∗ ⌜ch = chan.nil ∧ lg ≠ null⌝ ∗
+    structFieldRef node.Node go!"committed" n ↦□ ch ∗ ⌜ch = chan.nil ∧ StdLogger lg⌝ ∗
     structFieldRef node.Node go!"neighbors" n ↦□ nbM ∗
     structFieldRef node.Node go!"latest" n ↦□ latM ∗
     sync.isMutex (structFieldRef node.Node go!"mu" n) (lockInv cfg a γs n nbM latM) ∗

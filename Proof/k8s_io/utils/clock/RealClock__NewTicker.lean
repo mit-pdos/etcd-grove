@@ -7,7 +7,6 @@ module
 
 public import Spec.k8s_io.utils.clock.RealClock__NewTicker
 public import Perennial.Proof.time
-public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -30,9 +29,11 @@ variable [package_sem : k8s_io.utils.clock.Assumptions]
 theorem clock.RealClock.NewTicker.wp_proof : clock.RealClock.NewTicker.spec (GF := GF) (hG := hG) := by
   intro c d hd
   wp_start
+  ihave #Hti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+  · iPkgInit
   wp_alloc res as Hres
   wp_auto
-  wp_apply time.wp_NewTicker as %t %ch %γ #Ht
+  wp_apply time.wp_NewTicker $$ [Hti] as %t %ch %γ #Ht
   · ipureintro; exact hd
   wp_alloc p as Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp

@@ -869,7 +869,7 @@ theorem confAddrs_proto (i : Nat) (a : GoString) (h : confAddrs[i]? = some a) :
 
 /-- `configure(conf, rs)` of an accepted configuration and at most two removals: every client
 machine's configuration address and chain machine `2..N+1`'s, each until acknowledged. -/
-theorem wp_configure [LogHyp GF]
+theorem wp_configure [LogSpecs GF]
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
@@ -893,7 +893,7 @@ theorem wp_configure [LogHyp GF]
   isplitl []
   · ipureintro; rfl
   iintro %args_sl ⟨Hargs, -⟩
-  wp_apply LogHyp.wp_Println _ _ _ $$ [Hargs]
+  wp_apply LogSpecs.wp_Println _ _ _ $$ [Hargs]
   · iframe
     iapply argOks_of_wf _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
   iintro -

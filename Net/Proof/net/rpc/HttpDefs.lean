@@ -11,7 +11,8 @@ timeout, and the dialer sets no read deadline).
   false`); and the once-cell `γe` (a monotone list): empty while no read has failed, `[r]` once one
   failed at `r`, and then the end reads nothing more (`readDead`, `read_after_dead_au`).
 * `crErr γe r err`: a read failed at `r` with `err` (persistent): no byte after it (`crErr_final`),
-  and `err` has an `Error()` (`net.errStr`): what `http.ReadResponse.spec`'s laws ask.
+  `err` has an `Error()` (`net.errStr`): what `http.ReadResponse.spec`'s laws ask; and it is `errLeaf`
+  (`io.EOF`'s `*errorString` or an `*OpError`), what `http.ReadResponse.spec_errs` passes on.
 -/
 module
 
@@ -52,7 +53,7 @@ def crSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (γe : 
 
 /-- See the file header. -/
 def crErr (γe : GName) (r : List w8) (err : GoInterface) : IProp GF :=
-  iprop(monoListLbOwn γe [r] ∗ net.errStr err)
+  iprop(monoListLbOwn γe [r] ∗ net.errStr err ∗ ⌜models_lab.errLeaf err⌝)
 
 instance crErr_persistent (γe : GName) (r : List w8) (err : GoInterface) :
     Persistent (crErr (GF := GF) γe r err) := by

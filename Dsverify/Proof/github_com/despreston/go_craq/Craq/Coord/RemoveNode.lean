@@ -26,7 +26,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
@@ -34,7 +34,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
         isCoord cfg c }}
       (App (Val (c @!! go.GoType.PointerType coordinator.Coordinator.ty @!! go!"RemoveNode"))
         (Val #a))
-    {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∨ models_lab.errAny err }} := by
+    {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∨ models_lab.errPlain err }} := by
   wp_start as #Hc
   unfold isCoord coordDef
   icases Hc with ⟨#Hctx, -, %Hbound, %f, #Htport, #Hfac, #Hmu⟩
@@ -48,18 +48,11 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
   cases found
   · -- not found
     wp_auto
-    wp_apply errors.wp_New_errorString as %e ⟨-, #He⟩
+    wp_apply errors.wp_New_errorString as %e ⟨#Hs, #He⟩
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hreplicas Hsl Hcap Hversion Hnext Hhead Htail
       Hreps Hjoin Htok]
     · inext; iapply coordLock_pack cfg c sl rs ver hd tl Hwf; iframe; iexact Hnfs
-    iapply HΦ; iright; iapply errMsg_errAny (msg := go!"unknown node")
-    unfold net.rpc.errMsg
-    iexists ⟨go.GoType.PointerType errors.errorString.ty, #e⟩
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · ipureintro; exact errorString_isError
-    iexact He
+    iapply HΦ; iright; iapply net.rpc.errPlain_errorString e go!"unknown node" $$ [$Hs $He]
   obtain ⟨hidx0, rI, hrI, hrIa⟩ := Hfound rfl
   ihave %Hlen := ownSlice_len $$ Hsl
   simp only [List.length_map] at Hlen
@@ -73,7 +66,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hreplicas Hsl Hcap Hversion Hnext Hhead Htail
       Hreps Hjoin Htok]
     · inext; iapply coordLock_pack cfg c sl rs ver hd tl Hwf; iframe; iexact Hnfs
-    iapply HΦ; iright; iapply errMsg_errAny $$ HerrLm
+    iapply HΦ; iright; iapply net.rpc.errPlain_newVar _ _ errL $$ HerrL HerrLa
   have hm2 : 2 ≤ rs.length := by
     have : rs.length ≠ 1 := by intro h; apply Hif; word
     omega
@@ -195,7 +188,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
         simp only [metaOf, hpidx, List.length_take]
         rw [if_neg (by omega)]
       ihave ⟨HPr, HPerr⟩ : (if bP then roleHalf cfg.γ rP.addr ((true, go!"") : Role) else iprop(True)) ∗
-          (⌜errP = interface.nil⌝ ∨ models_lab.errAny errP) $$ [HPpost]
+          (⌜errP = interface.nil⌝ ∨ models_lab.errPlain errP) $$ [HPpost]
       · unfold sendPost
         icases HPpost with (⟨%Hok, HPpost⟩ | ⟨%Hb, #He⟩)
         · obtain ⟨rfl, -, rfl⟩ := Hok
@@ -216,7 +209,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
         · subst Herr
           wp_auto
           wp_join_done
-        · ihave %Hne := models_lab.errAny_ne_nil $$ Herr
+        · ihave %Hne := errPlain_ne_nil $$ Herr
           obtain ⟨i, rfl⟩ : ∃ i, errP = GoInterface.ok i := by
             cases errP with
             | nil => exact absurd rfl Hne
@@ -301,7 +294,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
       iapply HΦ; ileft; ipureintro; rfl
     · -- the fence failed: the tail is disconnected, nothing removed
       subst HbT
-      ihave %Hne := models_lab.errAny_ne_nil $$ Herr
+      ihave %Hne := errPlain_ne_nil $$ Herr
       obtain ⟨i, rfl⟩ : ∃ i, err = GoInterface.ok i := by
         cases err with
         | nil => exact absurd rfl Hne
@@ -469,7 +462,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
           simpa using congrArg List.length hF
         ihave ⟨HPrF, #HPerr, %HbP⟩ : connRole cfg (rs.take (sint.nat idx - 1) ++ [{ rPr with conn := bP }, rS] ++
             rs.drop (sint.nat idx + 2)) (sint.nat idx - 1) { rPr with conn := bP } ∗
-            (⌜errP = interface.nil⌝ ∨ models_lab.errAny errP) ∗ ⌜bP = true → rPr.conn = true⌝ $$ [HPc HPpost]
+            (⌜errP = interface.nil⌝ ∨ models_lab.errPlain errP) ∗ ⌜bP = true → rPr.conn = true⌝ $$ [HPc HPpost]
         · unfold sendPost
           icases HPpost with (⟨%Hok, HPpost⟩ | ⟨%Hb, #He⟩)
           · obtain ⟨rfl, hPc, rfl⟩ := Hok
@@ -526,7 +519,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
             · rw [hF]; iexact Hsl
             iexact HnfsF
           iapply HΦ; ileft; ipureintro; rfl
-        · ihave %Hne := models_lab.errAny_ne_nil $$ Herr
+        · ihave %Hne := errPlain_ne_nil $$ Herr
           obtain ⟨ie, rfl⟩ : ∃ ie, errP = GoInterface.ok ie := by
             cases errP with
             | nil => exact absurd rfl Hne
@@ -594,15 +587,16 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
         iapply HΦ; ileft; ipureintro; rfl
     · -- the successor's update failed: it is disconnected
       subst HbS
-      ihave %Hne := models_lab.errAny_ne_nil $$ HerrS
+      ihave %Hne := errPlain_ne_nil $$ HerrS
       obtain ⟨ie, rfl⟩ : ∃ ie, errS = GoInterface.ok ie := by
         cases errS with
         | nil => exact absurd rfl Hne
         | ok i => exact ⟨i, rfl⟩
       wp_auto
       ihave #HerrS' := HerrS
+      ihave #HerrS'ₐ := models_lab.errPlain_errAny _ $$ HerrS'
       unfold models_lab.errAny
-      icases HerrS' with ⟨%e, %He, -, #HE⟩
+      icases HerrS'ₐ with ⟨%e, %He, -, #HE⟩
       cases He
       wp_apply HE
       iintro %msg

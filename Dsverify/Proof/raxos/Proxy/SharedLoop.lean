@@ -32,7 +32,7 @@ instance NoUnkeyedLiterals.countable [GooseExts] :
 instance noCopy.countable [GooseExts] : Pos.Countable Perennial.sync.noCopy :=
   .ofInjective (fun _ => Pos.Countable.encode ()) (by rintro ⟨⟩ ⟨⟩ _; rfl)
 
-instance internalSyncMutex.countable [GooseExts] : Pos.Countable internal.sync.Mutex :=
+instance internalSyncMutex.countable [GooseExts] : Pos.Countable Perennial.internal.sync.Mutex :=
   .ofInjective (fun v => Pos.Countable.encode (v.state', v.sema'))
     (by rintro ⟨_, _⟩ ⟨_, _⟩ h; have h := Pos.encode_inj h; simp_all)
 

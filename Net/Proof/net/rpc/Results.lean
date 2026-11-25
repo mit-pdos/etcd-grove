@@ -199,6 +199,9 @@ theorem Client.Go.wp : Client.Go.spec (GF := GF) (hG := hG) := Client.Go.wp_proo
 
 theorem Client.Call.wp : Client.Call.spec (GF := GF) (hG := hG) := Client.Call.wp_proof Client.Go.wp
 
+theorem Client.Call.wp_plain : Client.Call.spec_plain (GF := GF) (hG := hG) :=
+  Client.Call.wp_proof_plain Client.Go.wp
+
 theorem Client.Close.wp_closed : Client.Close.spec_closed (GF := GF) (hG := hG) :=
   Client.Close.wp_proof_closed sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.Close.wp
 
@@ -374,11 +377,22 @@ theorem DialHTTPPath.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions
   DialHTTPPath.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proof
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
-    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp NewClient.wp
+    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp_errs NewClient.wp
 
 theorem DialHTTP.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTP.spec (GF := GF) (hG := hG) :=
   DialHTTP.wp_proof DialHTTPPath.wp
+
+theorem DialHTTPPath.wp_plain [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
+    DialHTTPPath.spec_plain (GF := GF) (hG := hG) :=
+  DialHTTPPath.wp_proof_plain net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
+    (EtcdGrove.bufio.NewReader.wp_proof
+      (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
+    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp_errs NewClient.wp
+
+theorem DialHTTP.wp_plain [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
+    DialHTTP.spec_plain (GF := GF) (hG := hG) :=
+  DialHTTP.wp_proof_plain DialHTTPPath.wp_plain
 
 end http
 
@@ -409,6 +423,7 @@ end Perennial
 #print axioms Perennial.net.rpc.Client.send.wp
 #print axioms Perennial.net.rpc.Client.Go.wp
 #print axioms Perennial.net.rpc.Client.Call.wp
+#print axioms Perennial.net.rpc.Client.Call.wp_plain
 #print axioms Perennial.net.rpc.Client.Close.wp_closed
 #print axioms Perennial.net.rpc.Client.send.wp_closed
 #print axioms Perennial.net.rpc.Client.Go.wp_closed
@@ -453,3 +468,5 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.ServeHTTP.wp
 #print axioms Perennial.net.rpc.DialHTTPPath.wp
 #print axioms Perennial.net.rpc.DialHTTP.wp
+#print axioms Perennial.net.rpc.DialHTTPPath.wp_plain
+#print axioms Perennial.net.rpc.DialHTTP.wp_plain

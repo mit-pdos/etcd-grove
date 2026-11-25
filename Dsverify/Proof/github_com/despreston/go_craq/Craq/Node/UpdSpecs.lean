@@ -25,7 +25,7 @@ namespace NodeP
 section updspecs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- `n.sendCommitToPrev(prev, k, v)` (persistent precondition: it runs in a goroutine). -/
@@ -50,7 +50,7 @@ abbrev requestFwdPropagation.spec : Prop :=
       nodeFields cfg n a st γs nbM latM ∗ lockedState cfg γs n nbM latM h t nbrs lat S ∗
       isNodeClient cfg c ca) -∗
     (∀ err : GoInterface, (∃ S' : StoreS, lockedState cfg γs n nbM latM h t nbrs lat S') -∗
-      (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
     WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"requestFwdPropagation" #n))
       (Val #c)) {{ Φ }}
 
@@ -68,7 +68,7 @@ abbrev requestBackPropagation.spec : Prop :=
         lockedState cfg γs n nbM latM h t nbrs lat' S' ∗
         ⌜∀ k, uint.Z (S.maxCommitted k) ≤ uint.Z (S'.maxCommitted k)⌝ ∗
         ⌜err = interface.nil → ∀ k, uint.Z (cvOf L k) ≤ uint.Z (S'.maxCommitted k)⌝) -∗
-      (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
     WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"requestBackPropagation" #n))
       (Val #c)) {{ Φ }}
 

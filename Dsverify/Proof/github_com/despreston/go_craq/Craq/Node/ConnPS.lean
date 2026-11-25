@@ -27,7 +27,7 @@ namespace NodeP
 section connps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 theorem nbrAt_insert_eq [GooseExts] (nbrs : GMap w64 node.neighbor) (p : w64) (nb : node.neighbor) :
@@ -50,7 +50,7 @@ theorem wp_connectToPredecessor (Hfwd : requestFwdPropagation.spec (GF := GF) (h
           lockedState cfg γs n nbM latM h t nbrs' lat S' ∗
           ⌜nbrAt nbrs' (W64 1) = nbrAt nbrs (W64 1)⌝ ∗
           ⌜err = interface.nil → (nbrAt nbrs' (W64 0)).address' = addr⌝) -∗
-        (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+        (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"connectToPredecessor" #n))
         (Val #addr)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hctx, #Hf, Hls⟩ HΦ
@@ -117,7 +117,7 @@ theorem wp_connectToPredecessor (Hfwd : requestFwdPropagation.spec (GF := GF) (h
           refine ⟨nbrAt_insert_ne _ _ _ _ (by decide), fun _ => ?_⟩
           rw [nbrAt_insert_eq]
         iexact Hres
-      · ihave %Hok := errAny_ok err $$ Herr
+      · ihave %Hok := errPlain_ok err $$ Herr
         obtain ⟨ei, rfl⟩ := Hok
         wp_auto
         iapply HΦ $$ [Hh Ht Hnbm Hlatm HS Htail] []
@@ -141,7 +141,7 @@ theorem wp_connectToSuccessor (HL : Laws (GF := GF))
       (∀ err : GoInterface, (∃ (nbrs' : GMap w64 node.neighbor) (lat' : GMap GoString w64)
           (S' : StoreS), lockedState cfg γs n nbM latM h t nbrs' lat' S' ∗
           ⌜err = interface.nil → nextAddr nbrs' = addr⌝) -∗
-        (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+        (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"connectToSuccessor" #n))
         (Val #addr)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hctx, #Hf, Hls⟩ HΦ
@@ -211,7 +211,7 @@ theorem wp_connectToSuccessor (HL : Laws (GF := GF))
           unfold nextAddr
           rw [nbrAt_insert_eq]
         iexact Hres
-      · ihave %Hok := errAny_ok err $$ Herr
+      · ihave %Hok := errPlain_ok err $$ Herr
         obtain ⟨ei, rfl⟩ := Hok
         wp_auto
         iapply HΦ $$ [Hh Ht Hnbm Hlatm HS Htail] []

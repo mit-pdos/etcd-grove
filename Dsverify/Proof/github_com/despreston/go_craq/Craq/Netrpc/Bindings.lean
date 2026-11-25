@@ -1583,7 +1583,7 @@ theorem cnewArg_RemoveNode (L : SrvCodecLaws (GF := GF)) (I : ArgFacts)
   · iright
     iright
     isplitr
-    · iexact Hany
+    · iapply models_lab.errPlain_errAny $$ Hany
     iintro %msg
     by_cases hmsg : msg = []
     · rw [if_pos hmsg]

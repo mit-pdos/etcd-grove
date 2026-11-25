@@ -25,7 +25,7 @@ namespace NodeP
 section write
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- A neighbors map entry (or the zero neighbor) is a valid neighbor. -/
@@ -58,7 +58,7 @@ theorem wp_errorsNew_NE (msg : GoString) (h : msg ≠ []) :
   · ipureintro; exact errorString_isError
   iexact Hx
 
-theorem wp_sendCommitToPrev (cfg : Cfg GF) (n : Loc) (lg : Loc) (hlg : lg ≠ null)
+theorem wp_sendCommitToPrev (cfg : Cfg GF) (n : Loc) (lg : Loc) (hlg : StdLogger lg)
     (prev : node.neighbor) (k : GoString) (v : w64) (hk : keyOk k) :
     ⊢ ∀ Φ : val → IProp GF,
       isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node -∗
@@ -89,13 +89,14 @@ theorem wp_sendCommitToPrev (cfg : Cfg GF) (n : Loc) (lg : Loc) (hlg : lg ≠ nu
     · subst Herr
       wp_auto
       iapply HΦ; ileft; ipureintro; rfl
-    · ihave %Hok := errAny_ok err $$ Herr
+    · ihave %Hok := errPlain_ok err $$ Herr
       obtain ⟨ei, rfl⟩ := Hok
       wp_auto
       wp_log [GoInterface.ok ei]
-      · iapply argOks1; iapply argOk_err $$ Herr
+      · iapply argOks1; iapply argOk_errPlain $$ Herr
+      ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
       unfold models_lab.errAny
-      icases Herr with ⟨%ei', %Hei, %Hty, #HE⟩
+      icases Herrₐ with ⟨%ei', %Hei, %Hty, #HE⟩
       cases Hei
       wp_apply HE
       iintro %msg
@@ -180,13 +181,14 @@ theorem wp_Write (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
       · subst Herr
         wp_auto
         iapply HΦ; ileft; iframe Hcv; ipureintro; rfl
-      · ihave %Hok := errAny_ok err $$ Herr
+      · ihave %Hok := errPlain_ok err $$ Herr
         obtain ⟨ei, rfl⟩ := Hok
         wp_auto
         wp_log [GoInterface.ok ei]
-        · iapply argOks1; iapply argOk_err $$ Herr
+        · iapply argOks1; iapply argOk_errPlain $$ Herr
+        ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
         unfold models_lab.errAny
-        icases Herr with ⟨%ei', %Hei, %Hty, #HE⟩
+        icases Herrₐ with ⟨%ei', %Hei, %Hty, #HE⟩
         cases Hei
         wp_apply HE
         iintro %msg

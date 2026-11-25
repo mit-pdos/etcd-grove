@@ -35,7 +35,7 @@ theorem wp_Client_Connect (cfg : Cfg GF) (cl : Loc) (a : GoString) (ha : a ∈ c
     env cfg ∗ cl ↦ transport.netrpc.Client.mk null ⊢
     ∀ Φ : val → IProp GF,
       ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ connected cfg cl a) ∨
-          models_lab.errAny err) -∗ Φ #err) -∗
+          models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.Client.ty) go!"Connect" #cl))
         (Val #a)) {{ Φ }} := by
   iintro ⟨#Henv, Hcl⟩ %Φ HΦ

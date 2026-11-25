@@ -17,6 +17,7 @@ module
 
 public import Dsverify.Spec.github_com.despreston.go_craq.examples.craqnet.TopLevelRobustness
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Link
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogAx
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.BootCmdsLinked
 public import Net.Statement.DistBridge
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
@@ -176,7 +177,7 @@ end alloc
 proofs of `strings.Cut`/`TrimLeft` (`Link.lean`'s `rpcClientSpecs`). -/
 theorem craq_remote_robust : craq_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 bvi
-    hlog rs σ g
+    rs σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT
     (GF := remoteGF) craqKitAddrs [] (system σ) g (2 ^ 30) (2 ^ 63) List.Pairwise.nil
     (fun _ _ _ h => by simp at h) ?_
@@ -269,7 +270,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : LogHyp remoteGF := hlog G' hG.goose_localGS
+    letI : LogSpecs remoteGF := logSpecs_holds
     letI : RpcHttpServe remoteGF := rs G' hG.goose_localGS π
     letI : Threads30 (GF := remoteGF) := ⟨by omega⟩
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega

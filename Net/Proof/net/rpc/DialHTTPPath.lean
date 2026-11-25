@@ -8,7 +8,8 @@ are a prefix of the answer, `resp_before_req`, and after a read error it reads n
 `read_dead_au` with the end's `rdlTok`, then `read_after_dead_au`: `crSt`, `crErr_final`); on the status `connected`, the reader has delivered the whole answer,
 which the acceptor wrote only after the whole request (`respProto`'s `sentLb`), so the dialer has
 written all of it (`sendTok_sentLb_prefix`): `rpcDialed`, then `NewClient`. Otherwise the error, an
-`*OpError` (`errAny_opErrPtr`), after `Close`.
+`*OpError` after `Close`, proved `errPlain` (`DialHTTPPath.spec_plain`: `errPlain_opErrPtr`, its `Err`
+`errLeaf` by `http.ReadResponse.spec_errs` over `crErr`'s `errLeaf`); `DialHTTPPath.spec` from it.
 -/
 module
 
@@ -86,16 +87,18 @@ theorem readErr_ptr (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) :
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
-/-- A read's error other than for bytes is a pointer: not `nil`. -/
-theorem readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (hr : ∀ bs, r ≠ .bytes bs) :
+/-- A read's error other than for bytes is a pointer: not `nil`, `errLeaf` (an `*errorString` or an
+`*OpError`). -/
+theorem readErr_some [errors.Assumptions] [fmt.Assumptions] [net.Assumptions] (r : ReadRes)
+    (la ra ed err : GoInterface) (xe : Loc) (hr : ∀ bs, r ≠ .bytes bs) :
     net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
-      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ := by
+      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err ∧ models_lab.errLeaf err⌝ := by
   cases r with
   | bytes bs => exact absurd rfl (hr bs)
   | eof =>
     simp only [net.ReadErr]
     iintro %h; subst h; ipureintro
-    refine ⟨by simp [interface.mkOk], ?_⟩
+    refine ⟨by simp [interface.mkOk], ?_, models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩
     intro ii T h hT
     simp only [interface.mkOk] at h
     cases h; exact ⟨xe, rfl⟩
@@ -106,20 +109,21 @@ theorem readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (hr :
     obtain ⟨-, Hne⟩ := Hnet
     obtain ⟨pe, rfl⟩ := Hne (by simp)
     ipureintro
-    refine ⟨by simp [interface.mkOk], ?_⟩
+    refine ⟨by simp [interface.mkOk], ?_, models_lab.errLeaf_ptr _ _ models_lab.noFmt_opError⟩
     intro ii T h hT
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
-/-- A read's error other than for bytes is a pointer, not `nil`, with an `Error()` (`io.EOF`'s, or the
-`*OpError`'s: `resErr_errStr`). -/
-theorem readErr_some' (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (m : GoString)
+/-- A read's error other than for bytes is a pointer, not `nil`, `errLeaf`, with an `Error()`
+(`io.EOF`'s, or the `*OpError`'s: `resErr_errStr`). -/
+theorem readErr_some' [fmt.Assumptions] (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (m : GoString)
     (hr : ∀ bs, r ≠ .bytes bs) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
       WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
         (Val #())) {{ Φ }}) -∗
     net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err -∗
-      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗ net.errStr err := by
+      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err ∧ models_lab.errLeaf err⌝ ∗
+        net.errStr err := by
   iintro #Hw HE
   ihave #Hes : net.errStr (GF := GF) err $$ [HE]
   · cases r with
@@ -222,7 +226,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
     all_goals (
       obtain ⟨hk, rfl⟩ := Hout
       ihave ⟨%Hne, #Hes⟩ := readErr_some' _ la ra ed err xe _ (by intro bs h; cases h) $$ Hxew HE
-      obtain ⟨Hne, Hptr⟩ := Hne
+      obtain ⟨Hne, Hptr, Hlf⟩ := Hne
       imodintro
       iapply HΦ
       iexists []
@@ -234,7 +238,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
-        · iright; imodintro; iunfold crErr; iframe Hlb Hes
+        · iright; imodintro; iunfold crErr; iframe Hlb Hes; ipureintro; exact Hlf
         · ipureintro; exact Hptr
       iunfold crSt
       iframe HrT Hrdl Hrpc Hh
@@ -293,7 +297,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       obtain ⟨hk, rfl⟩ := Hout
       simp only [ReadRes.got, List.append_nil] at Hpre' ⊢
       ihave ⟨%Hne, #Hes⟩ := readErr_some' _ la ra ed err xe _ (by intro bs h; cases h) $$ Hxew HE
-      obtain ⟨Hne, Hptr⟩ := Hne
+      obtain ⟨Hne, Hptr, Hlf⟩ := Hne
       ihave #Hd : readDead (Gg := hG.goose_globalGS) cn false $$ [Hdead]
       · iapply Hdead
         ipureintro
@@ -313,7 +317,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
-        · iright; imodintro; iunfold crErr; iframe Hlb Hes
+        · iright; imodintro; iunfold crErr; iframe Hlb Hes; ipureintro; exact Hlf
         · ipureintro; exact Hptr
       iunfold crSt
       iframe HrT Hrdl Hrpc Hh
@@ -321,14 +325,14 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       · ipureintro; exact Hpre'
       ileft; iframe Hc Hd)
 
-theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
+theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (wp_NewReader : EtcdGrove.bufio.NewReader.spec (GF := GF) (hG := hG))
     (wp_ReadLc : net.Conn.Read.specLc (GF := GF) (hG := hG))
-    (wp_ReadResponse : net.http.ReadResponse.spec (GF := GF) (hG := hG))
+    (wp_ReadResponse : net.http.ReadResponse.spec_errs (GF := GF) (hG := hG))
     (wp_NewClient : NewClient.spec (GF := GF) (hG := hG)) :
-    DialHTTPPath.spec (GF := GF) (hG := hG) := by
+    DialHTTPPath.spec_plain (GF := GF) (hG := hG) := by
   intro nw hnw W a path
   wp_start as ⟨%Hbound, #Henv, #Hhenv, #Hcon, #Haddr⟩
   iunfold rpcAddrP at Haddr
@@ -350,7 +354,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqProto W a) (respProto W a)
         [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false ∗
         rdlTok (Gg := hG.goose_globalGS) cn false false)) $$ [Hap]
-    as %c %err (⟨%Herr, %cn, #Hc, Hend, Hfresh, Hrdl⟩ | ⟨-, %x, -, #HE⟩)
+    as %c %err (⟨%Herr, %cn, #Hc, Hend, Hfresh, Hrdl⟩ | ⟨-, %x, #Hx, #HE⟩)
   · isplitr
     · ipureintro; exact Hok
     isplit
@@ -432,12 +436,19 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     · imodintro
       iintro %r0 %e He
       iunfold crErr at He
-      icases He with ⟨-, #Hes⟩
+      icases He with ⟨-, #Hes, -⟩
       iexact Hes
-    wp_apply wp_ReadResponse b _ (crSt W a cn γ γe) (crErr γe) req _
-        $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hlaw3 $Hreq] as %resp %rerr Hres
+    ihave #Hlaw4 : (□ ∀ (r0 : List w8) (e : GoInterface), crErr γe r0 e -∗
+        ⌜models_lab.errLeaf e⌝ : IProp GF) $$ []
+    · imodintro
+      iintro %r0 %e He
+      iunfold crErr at He
+      icases He with ⟨-, -, %Hl⟩
+      ipureintro; exact Hl
+    wp_apply wp_ReadResponse models_lab.errLeaf (fun _ h => h) b _ (crSt W a cn γ γe) (crErr γe)
+        req _ $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hlaw3 $Hreq $Hlaw4] as %resp %rerr Hres
     · ipureintro; rfl
-    icases Hres with (⟨%Hne, #Hrm⟩ | ⟨%Hnil, %rv, Hrv, Hst⟩)
+    icases Hres with (⟨⟨%Hne, %Hlf⟩, #Hrm⟩ | ⟨%Hnil, %rv, Hrv, Hst⟩)
     · -- an error: wrapped
       cases rerr with
       | nil => exact absurd rfl Hne
@@ -459,11 +470,11 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errAny_opErrPtr
-      isplitr
-      · iexact Hsys
-      isplitr
-      · iexact Hpe
+      iapply errPlain_opErrPtr $$ Hpe Hsys
+      all_goals try (first
+        | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil, Hlf⟩
+        | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil,
+            models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩)
       unfold net.opErrMsgOk net.addrOrNil
       isplitr
       · iexact Hrm
@@ -492,11 +503,11 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errAny_opErrPtr
-      isplitr
-      · iexact Hsys
-      isplitr
-      · iexact Hpe
+      iapply errPlain_opErrPtr $$ Hpe Hsys
+      all_goals try (first
+        | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil, Hlf⟩
+        | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil,
+            models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩)
       unfold net.opErrMsgOk net.addrOrNil
       isplitr
       · iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ _ $$ Hx
@@ -556,7 +567,30 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; intro h; cases h
-    iapply errAny_resErr $$ Hsys HE
+    iapply errPlain_resErr _ _ _ _ _ _ _ $$ [$Hsys $HE]
+    iintro %ed' %Hed'
+    cases Hed'
+
+/-- `DialHTTPPath.spec`, from `DialHTTPPath.spec_plain` (`errPlain` gives `errAny`). -/
+theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_NewReader : EtcdGrove.bufio.NewReader.spec (GF := GF) (hG := hG))
+    (wp_ReadLc : net.Conn.Read.specLc (GF := GF) (hG := hG))
+    (wp_ReadResponse : net.http.ReadResponse.spec_errs (GF := GF) (hG := hG))
+    (wp_NewClient : NewClient.spec (GF := GF) (hG := hG)) :
+    DialHTTPPath.spec (GF := GF) (hG := hG) := by
+  intro nw hnw W a path
+  wp_start_folded as Hpre
+  wp_apply DialHTTPPath.wp_proof_plain wp_Dial wp_Write wp_Close wp_NewReader wp_ReadLc
+      wp_ReadResponse wp_NewClient nw hnw W a path $$ Hpre as %c %err Hres
+  iapply HΦ
+  icases Hres with (H1 | ⟨%Hne, #Hp⟩)
+  · ileft; iexact H1
+  · iright
+    isplitr
+    · ipureintro; exact Hne
+    iapply models_lab.errPlain_errAny $$ Hp
 
 end proof
 

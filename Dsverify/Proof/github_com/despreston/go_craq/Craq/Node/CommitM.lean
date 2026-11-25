@@ -24,7 +24,7 @@ namespace NodeP
 section commitm
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- The latest map after committing `v` of `k`. -/
@@ -150,8 +150,8 @@ theorem wp_commitM (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString
     · iapply argOks3
       isplitr; · iapply argOk_string
       isplitr; · iapply argOk_u64
-      iapply argOk_err
-      iapply errMsg_errAny $$ Hem
+      iapply argOk_errPlain
+      iapply errNotFound_errPlain $$ Herr
     iapply HΦ
     iframe; iframe #
     ipureintro; exact HlatS

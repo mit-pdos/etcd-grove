@@ -18,6 +18,9 @@ axiom Perennial.encoding.gob.wireBytes_exists
 axiom Perennial.encoding.gob.wireBytes_peel
 axiom Perennial.encoding.gob.wireFits_of
 axiom Perennial.encoding.gob.wp_initialize'
+axiom Perennial.github_com.despreston.go_craq.LogDefault.wp_proof
+axiom Perennial.github_com.despreston.go_craq.LoggerPrintf.wp_proof
+axiom Perennial.github_com.despreston.go_craq.LoggerPrintln.wp_proof
 axiom Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
 axiom Perennial.github_com.gogo.protobuf.proto.RegisterEnum.wp_proofMsgType
 axiom Perennial.github_com.gogo.protobuf.proto.RegisterFile.wp_proof

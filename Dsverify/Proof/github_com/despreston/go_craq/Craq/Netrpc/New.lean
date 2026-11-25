@@ -39,7 +39,7 @@ theorem wp_NodeClient_Connect (cfg : Cfg GF) (c cl : Loc) (a : GoString)
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ cl ↦ transport.netrpc.Client.mk null ⊢
     ∀ Φ : val → IProp GF,
       ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ connected cfg cl a) ∨
-          models_lab.errAny err) -∗ Φ #err) -∗
+          models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.NodeClient.ty) go!"Connect" #c))
         (Val #a)) {{ Φ }} := by
   iintro ⟨#Henv, #Hc, Hcl⟩ %Φ HΦ
@@ -132,7 +132,7 @@ theorem wp_CoordClient_Connect (cfg : Cfg GF) (c cl : Loc) (a : GoString)
       cl ↦ transport.netrpc.Client.mk null ⊢
     ∀ Φ : val → IProp GF,
       ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ connected cfg cl a) ∨
-          models_lab.errAny err) -∗ Φ #err) -∗
+          models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.CoordinatorClient.ty) go!"Connect" #c))
         (Val #a)) {{ Φ }} := by
   iintro ⟨#Henv, #Hc, Hcl⟩ %Φ HΦ

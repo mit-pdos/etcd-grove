@@ -21,6 +21,7 @@ module
 
 public import Net.Proof.net.http.RequestDefs
 public import Proof.io.ReaderStreamNE
+public import Net.Proof.models_lab.ErrFmt
 
 @[expose] public section
 
@@ -50,6 +51,32 @@ abbrev ReadResponse.spec : Prop :=
     (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err ≠ interface.nil⌝ ∗ net.errStr err) ∨
+      (⌜err = interface.nil⌝ ∗ ∃ rv : net.http.Response, resp ↦ rv ∗
+        (⌜rv.Status' ≠ net.rpc.connectedStatus⌝ ∨
+          ⌜rv.Status' = net.rpc.connectedStatus⌝ ∗
+            EtcdGrove.bufio.ownReader b ri S E net.rpc.connectAns)) }}
+
+/-- `ReadResponse.spec` with what its error is: for a property `L` of errors that every
+`errLeaf` error has (`models_lab/ErrFmt.lean`) and the stream's errors have (`E r e` gives `L e`),
+the error has it: the stream's, `io.ErrUnexpectedEOF` (an `*errorString`), a malformed line's
+(`badStringError`'s `*errorString`) or a malformed header's (`textproto.ProtocolError`). With
+`L := models_lab.errLeaf`, the error is `errLeaf` (`DialHTTPPath`'s `"dial-http"` `*OpError` wraps
+it: `DialHTTPPath.spec_plain`). Proved in `Net/Proof/net/http/ReadResponse.lean`;
+`ReadResponse.spec` follows from it (`L := fun _ => True`). Go-model net (go-models main line): it
+takes and gives `net.errStr` as `ReadResponse.spec` does (the stream's errors have an `Error()`). -/
+abbrev ReadResponse.spec_errs : Prop :=
+  ∀ (L : GoInterface → Prop), (∀ e, models_lab.errLeaf e → L e) →
+  ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
+    (req : Loc) (rq : net.http.Request),
+  {{ httpEnv ∗ EtcdGrove.io.readerStreamNE ri S E ∗ EtcdGrove.bufio.ownReader b ri S E [] ∗
+      (□ ∀ r, S r -∗ ⌜r <+: net.rpc.connectAns ∨ r <+: net.rpc.badReqAns⌝) ∗
+      (□ ∀ (r r' : List w8) (err : GoInterface), E r err -∗ S r' -∗ ⌜r <+: r' → r' = r⌝) ∗
+      (□ ∀ (r : List w8) (err : GoInterface), E r err -∗ net.errStr err) ∗
+      req ↦ rq ∗ ⌜rq.Method' = go!"CONNECT"⌝ ∗
+      (□ ∀ (r : List w8) (err : GoInterface), E r err -∗ ⌜L err⌝) }}
+    (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #req))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err ≠ interface.nil ∧ L err⌝ ∗ net.errStr err) ∨
       (⌜err = interface.nil⌝ ∗ ∃ rv : net.http.Response, resp ↦ rv ∗
         (⌜rv.Status' ≠ net.rpc.connectedStatus⌝ ∨
           ⌜rv.Status' = net.rpc.connectedStatus⌝ ∗

@@ -4,6 +4,7 @@ The coordinator package's shared lemmas: its package variables' errors, the erro
 module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
+public import Net.Proof.net.rpc.Errs
 
 @[expose] public section
 
@@ -22,7 +23,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- The coordinator package's error variables. -/
@@ -46,6 +47,12 @@ theorem coord_time_init :
     isPkgInit pkg_id.time ∗ isPkgInit pkg_id.github_com.despreston.go_craq.transport ∗ True) ⊢ _
   iintro ⟨-, -, -, #H, -⟩
   iexact H
+
+/-- An `errPlain` error is not nil. -/
+theorem errPlain_ne_nil (e : GoInterface) : models_lab.errPlain (GF := GF) e ⊢ ⌜e ≠ interface.nil⌝ := by
+  iintro #H
+  iapply models_lab.errAny_ne_nil
+  iapply models_lab.errPlain_errAny $$ H
 
 /-- A package variable made by `errors.New(msg)` holds an error with message `msg`. -/
 theorem newVar_errMsg (X msg : GoString) :
