@@ -271,22 +271,72 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   0 errors (the last 301s, reopened over 6234 changed imports). `etc/tier-check.py --check`: ok. No `lake build`
   of the three yet. No axiom, `sorry` or trusted text added.
 
+## State (2026-11-25, eighth session): the Node linked; the start's kv part
+
+- **Built** (fk-lean2, `lake build`): `kvremote.ClientCallDistLaws`, `.CallDist`, `.CallDistLinked` at
+  `79c3134cff` (11141 jobs, exit 0).
+- **Node merged and linked**: `etcd-safe-p9-node` @ `480f31de35` merged (no conflict). `kvremote/Link.lean`,
+  section `linkedNode`: **`EtcdGrove.kvremote.wp_Node svc hPut hGet hDel hCommit : Node.spec svc`** =
+  `Node.wp_proof svc zap.NewNop.wp_proof etcdstart.wp_NewClients wp_Codec (Call_dist_holds svc hPut hGet hDel
+  hCommit) remote.wp_ServeClient`. Hypotheses: N2's four drafts at `svc` (`∀ [cache.v3.Assumptions],
+  KV_{Put,Get,Delete}_dist.spec svc`, `Txn_Commit_dist.spec svc`); instance binders `[HasExt idIssueExt]
+  [HasExt netExt]`, kvremote/txnlin/etcdstart/v3rpc/etcdserver/cache.v3/client.v3 `Assumptions`,
+  `[DialWithBalancerBody]`, `net.FieldAssumptions`, `NetProtoGS`, `RemoteGS`, `[NaInvG GF]`. `lake build` of
+  `kvremote.Node` and `kvremote.Link` at `ce497c8931`: 11281 jobs, exit 0.
+- **N7-kv's schemas** (`etcd-safe-n7kv` @ `c6357eee81`, `Spec/.../kvremote/{NodeWith,OrchWith}.lean`, read
+  only; they import N7-kv's `client/KvDefs.lean`, not on this base, so their two `abbrev`s were pasted verbatim
+  into a scratch module over this base's `Node`/`Orch` specs, checked with the kernel on, then deleted):
+  `example (svc) : Node.spec svc = Node.specWith (kvNodePre svc) := rfl` holds; **`Orch.spec =
+  Orch.specWith kvOrchPre` is not `rfl`**: `Orch.specWith` fixes the timeout at `kvCheckTimeout`
+  (`W64 120000000000`, N7-kv's review), `Orch.spec` is `∀ tmo`; `example : Orch.spec → Orch.specWith kvOrchPre
+  := fun h nodes ns ops => h nodes ns ops _` holds (the specialization N7-kv's docstring anticipates).
+- **The start's kv part** (`kvremote/Start.lean`, defs; kernel-checked, `lake build` below):
+  - `kv_start γk ns ops hnd hb`: `regCtx -∗ [∗list] a ∈ ns, addrUnset a -∗ (kvR γk).sysState (kvR γk).B.init
+    ={⊤}=∗ ∃ ρ, kvOrchPre (ρ := ρ) ns ops ∗ [∗list] a ∈ ns, remoteAddr (kvR γk) a` (`mapCtx_alloc` with
+    `ops · readTries` per address, `pend_alloc` with `linkvtxnS.M.init = pInit (kvR γk).B` by `rfl`,
+    `addrs_set_proto`); `hb` are `kvOrchPre`'s pure bounds.
+  - `membersAtV_sub`: `membersAtV svc eps Γ ⊢ membersAtV svc eps' Γ` when every `eps'` address is in `eps` (a
+    client machine's rotated endpoints from the members' client addresses).
+  - `MemberBootN5 svc d MS` (an `abbrev Prop`, **a hypothesis named for N5**): `regCtx -∗ [∗list] members'
+    peer/client addresses unset ={⊤}=∗ ∃ Γ, ⌜Γ.auth = false⌝ ∗ (kvR Γ.kv).sysState (kvR Γ.kv).B.init ∗
+    membersAtV svc (members' client addresses) Γ ∗ MS Γ`. The KV at the boot state is `kvSys Γ.kv TS.init`
+    (`etcdKV Γ.kv σ₀`, `GoodKV σ₀`, `absSt σ₀` the model's start): the cluster's start gives it, not the
+    kv instance; whether N5 or N6 hands it over is the lead's.
+  - `kv_start_deployment svc d w ns (d.workloads = [w]) (d.nodes = [ns]) (d.addrs.Nodup) hb MS HN5`: from every
+    address of `d` unset, `∃ Γ ρ, ⌜Γ.auth = false⌝ ∗ MS Γ ∗ kvOrchPre ns w.ops ∗ membersAtV svc (clients) Γ ∗
+    [∗list] a ∈ ns, remoteAddr (kvR Γ.kv) a`.
+- **One kv workload, by necessity**: `pend_alloc` puts the cluster's whole `etcdKV γk` into one `pendCtx`, so
+  two kv orchestrators over one cluster cannot each have theirs. M1's `KvOnly` with `Compatible`'s distinct
+  kinds gives at most one workload; `kv_start_deployment` takes `d.workloads = [w]` (step 6 derives it, with
+  the empty case separately).
+- **`[HasExt idIssueExt]` on client machines**: met, every machine runs over `etcdNetExts` (`[idIssueExt,
+  fsExt, netExt]`); recorded in `notes/etcd-dist-plan.md` §11.3 step 5.
+- `lake build` of `kvremote.Start` and `kvremote.Link` at `1e953d7b1c`: 11305 jobs, exit 0. `etc/tier-check.py
+  --check`: ok (`Start` is defs). No axiom, `sorry`, trusted text or top-level premise added.
+
 ## Handoff
 
 **Base**: still `5a1c41d945` (crash merges in it). P9's commits stay crash-free; the replay onto the no-crash base
 waits on the lead's answer (which commit).
 
+**Done**: steps 1-4 of §11.3 proved; `wp_Orch` and `wp_Node` linked (`wp_Node` over N2's four drafts, as
+hypotheses); step 5's kv part (`kvremote/Start.lean`) over `MemberBootN5`.
+
 **Next, in order:**
-1. **`lake build`** the three modules (`kvremote.ClientCallDistLaws`, `.CallDist`, `.CallDistLinked`) on fk-lean2.
-2. **Link the Node** (coordinator, 2026-11-25): merge `etcd-safe-p9-node` @ `480f31de35` (new `Spec/`/`Proof/
-   .../kvremote/Node.lean`, `Node.spec svc = Node.specWith (kvNodePre svc)`, `Call_dist.spec svc` a hypothesis;
-   the session built two harmless `.olean`s in fk-lean2's `wt/etcd-safe-p9`). In `kvremote/Link.lean`
-   (section `linkedNet`, adding `[DialWithBalancerBody]`, v3rpc/etcdserver/cache.v3 `Assumptions`; it has
-   `net.FieldAssumptions`, `[NaInvG GF]`) add, importing `CallDistLinked` and `Node`:
-   `Node.wp_proof svc zap.NewNop.wp_proof etcdstart.wp_NewClients wp_Codec wp_Call_dist remote.wp_ServeClient`,
-   where `wp_Call_dist` is `Call_dist_holds svc hPut hGet hDel hCommit`: **the drafts are not proved**, so
-   `wp_Node` takes them as hypotheses (until they become N2's axioms, `X.wp_proof : X.spec etcdSvcV`).
-   Note `Call_dist.spec` (lead's) needs `[HasExt idIssueExt]`; the kv client deployment must provide it.
+1. **When N7-kv merges** (its `client/KvDefs.lean`, `OrchWith`/`NodeWith`): add to `kvremote` the two instance
+   lemmas (`Node.spec svc = Node.specWith (kvNodePre svc)` by `rfl`; `Orch.spec → Orch.specWith kvOrchPre` by
+   specializing the timeout), and `membersAtV_sub` at `rotateL (d.members.map Member.client) c` (every element
+   of a rotation is in the list).
+2. **Step 6** (`dist/kvremote/TopLevelRobustness.lean`, linking): `EtcdBootNC` at a well-formed `KvOnly`
+   deployment: `netProto_alloc`, then `kv_start_deployment` (its `hb` from `kvOnly_bounds`/`BoundsOk` and
+   `receiptBound ≤ etcdSteps`; the empty-workload case: no orchestrator share, the nodes list empty), the shares
+   through N7-kv's `orchShare kvOrchPre`/`nodeShare (kvNodePre svc)` (`kvNodePre`'s `levelTok 0`, `threadBound`,
+   `plainEndpoints`, `AsTarget`, `Nonempty WEnv` from the machine's boot and the deployment), the boot WPs from
+   N7-kv's dispatch at `wp_Orch`/`wp_Node`; the members' from N5. Needs N5's statement (to replace
+   `MemberBootN5`) and N2's drafts as axioms (`X.wp_proof : X.spec etcdSvcV`, to discharge `wp_Node`'s four
+   hypotheses).
+Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
+yment must provide it.
 3. Steps 5-6 (the start, the theorem).
 Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
 
