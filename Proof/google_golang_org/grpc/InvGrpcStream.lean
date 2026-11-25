@@ -402,7 +402,8 @@ theorem cliStreamErr_forget (err : GoInterface) (E : GoInterface → IProp GF) :
   iframe #
   isplitr
   · ipureintro; exact h
-  iintro !> -
+  iintro !>
+  dsimp only
   itrivial
 
 open Iris.ProofMode in
