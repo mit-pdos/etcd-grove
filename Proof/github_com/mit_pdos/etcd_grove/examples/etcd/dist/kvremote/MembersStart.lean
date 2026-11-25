@@ -43,7 +43,7 @@ theorem clusterMembersOf_eq [GooseExts] (d : Deployment) : clusterMembersOf d = 
 section start
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
@@ -58,12 +58,12 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 def membersShareKv (d : Deployment) (boot : List LogEntry) (Γ : DistView) : IProp GF :=
   iprop(∃ c : ClusterNames, ⌜c.view = Γ⌝ ∗
     [∗list] i ↦ _m ∈ d.members,
-      memberShareD (GF := GF) (G := hG.goose_globalGS) c d (distPs d) (distCtxs d) boot i)
+      memberShareD (GF := GF) (G := Gg) c d (distPs d) (distCtxs d) boot i)
 
 /-- **The cluster's KV at the boot state is the kv store's state at the model's start** (see the file header). -/
 theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) (bl : List EntryM)
     (hb : srvBootLogOk ps bl) :
-    etcdKV (Gg := hG.goose_globalGS) γk (kvModelSt γk (bootEntries bl)) ⊢
+    etcdKV (Gg := Gg) γk (kvModelSt γk (bootEntries bl)) ⊢
       (kvR (GF := GF) γk).sysState (kvR (GF := GF) γk).B.init := by
   have h : kvModel γk (bootEntries bl) = [[], []] := by
     unfold kvModel
@@ -88,11 +88,11 @@ theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) 
 bootstrap log `boot` (`BootFacts`) and a receipt budget of at most `2 ^ 60`. -/
 theorem member_boot_dist_law (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry)
     (Hbf : BootFacts d boot) (Hrb : receiptBound GF ≤ 2 ^ 60) :
-    member_boot_dist.law (hG := hG) d (membersShareKv d boot) := by
+    member_boot_dist.law (Gg := Gg) d (membersShareKv d boot) := by
   have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
   unfold member_boot_dist.law
   iintro #Hreg Hs
-  imod (clusterStartD (G := hG.goose_globalGS) d Hd boot Hbf Hrb) $$ Hreg Hs with ⟨%c, %Hlog, Hkv, #Hcs, Hms⟩
+  imod (clusterStartD (G := Gg) d Hd boot Hbf Hrb) $$ Hreg Hs with ⟨%c, %Hlog, Hkv, #Hcs, Hms⟩
   imodintro
   iexists c.view
   isplitr
