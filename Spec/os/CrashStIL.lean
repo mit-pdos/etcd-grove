@@ -9,6 +9,8 @@ fraction `½`, only the bytes the call needs, and getting back those it changed:
 * `Sync`/`Fdatasync`: the caller's half of the bytes of a mask `c` (`cBytes`, over the state's
   bytes from 0), every byte not yet durable outside it (`[dlo, dhi)`) durable in the state;
 * `Mmap`/`Munmap`: none.
+Every error arm witnesses that the file system can fail (`¬ FsNoErr`: under it each step returns 0,
+the `*_noErr` lemmas of the extension); a write and a truncate stay at most `maxBytes`.
 For a client holding its half of the file's bytes spread over its own invariants (bbolt). Proved in
 `Proof/os/CrashStILSpec.lean`. Lean-first (no Rocq counterpart).
 -/
@@ -44,7 +46,7 @@ abbrev os.File.WriteAt.specCrashIL : Prop :=
     (data : List w8) (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino)
     (γ γa γc : GName) (Ok : A → CSt → Prop) (a : A) (m : OsMeta) (bs xs : List ByteG),
   d.ino = i → d.writable = true → 0 ≤ off.toInt → off.toNat + data.length ≤ m.size →
-  off.toNat + data.length < 2 ^ 63 → 0 < data.length → data.length ≤ 0x40000000 →
+  off.toNat + data.length ≤ maxBytes → off.toNat + data.length < 2 ^ 63 → 0 < data.length → data.length ≤ 0x40000000 →
   xs.length = data.length → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   (∀ nn m' bs', WReach m bs off.toNat data nn m' bs' →
     Ok a ⟨m', bs', 0, 0, .idle⟩ ∧ (nn < data.length → ∀ t n,
@@ -63,8 +65,9 @@ abbrev os.File.WriteAt.specCrashIL : Prop :=
       ∃ (nn : Nat) (m' : OsMeta) (bs' : List ByteG),
         ⌜xs = (bs.drop off.toNat).take data.length ∧ WReach m bs off.toNat data nn m' bs' ∧
           ((n = W64 data.length ∧ err = interface.nil ∧ nn = data.length ∧
+              m'.size = m.size ∧ m'.maps = m.maps ∧
               ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
-           (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+           (n = W64 0 ∧ err ≠ interface.nil ∧ ¬ FsNoErr))⌝ ∗
         csOwnIL i γ γa ⟨m', bs', 0, 0, .idle⟩ a ∗
         osBytes i off.toNat (DFrac.own (1 : Qp).half) ((bs'.drop off.toNat).take data.length) }}
 
@@ -76,7 +79,7 @@ abbrev os.File.Truncate.specCrashIL : Prop :=
     (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino) (γ γa γc : GName) (Ok : A → CSt → Prop)
     (a : A) (m : OsMeta) (bs : List ByteG),
   d.ino = i → 0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.size ≤ sz.toNat →
-  ↑osN ⊆ (⊤ : CoPset) \ ↑N →
+  sz.toNat ≤ maxBytes → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   (∀ m' bs', TReach m bs sz.toNat m' bs' →
     Ok a ⟨m', bs', 0, 0, .idle⟩ ∧ ∀ t n, Ok a ⟨m', bs', 0, 0, .trunc t sz.toNat n⟩) →
   {{ osInv (GF := GF) ∗ csInvI (GF := GF) N i γ γa γc Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
@@ -86,7 +89,7 @@ abbrev os.File.Truncate.specCrashIL : Prop :=
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ ∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
           csGrownL (GF := GF) (csTokI γ γa a) i m0 bs sz.toNat n) ∨
-       (⌜err ≠ interface.nil⌝ ∗
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗
          ((∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
           csGrownL (GF := GF) (csTokI γ γa a) i m0 bs sz.toNat n) ∨
           (csOwnIL i γ γa ⟨m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
@@ -110,7 +113,7 @@ abbrev os.File.Sync.specCrashIL : Prop :=
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ csOwnIL i γ γa (csSynced m [] [] bs 0 0) a ∗
           cBytes i (fun _ => DFrac.own (1 : Qp).half) c 0 (bs.map (fun x => durB x.1))) ∨
-       (⌜err ≠ interface.nil⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗
           cBytes i (fun _ => DFrac.own (1 : Qp).half) c 0 bs)) }}
 
 variable [syscall.Assumptions] in
@@ -128,7 +131,7 @@ abbrev syscall.Fdatasync.specCrashIL : Prop :=
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
       ((⌜e = 0⌝ ∗ csOwnIL i γ γa (csSynced m [] [] bs 0 0) a ∗
           cBytes i (fun _ => DFrac.own (1 : Qp).half) c 0 (bs.map (fun x => durB x.1))) ∨
-       (⌜e ≠ 0⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗
+       (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗
           cBytes i (fun _ => DFrac.own (1 : Qp).half) c 0 bs)) }}
 
 variable [golang_org.x.sys.unix.Assumptions] in
@@ -148,7 +151,7 @@ abbrev golang_org.x.sys.unix.Mmap.specCrashIL : Prop :=
           csOwnIL i γ γa ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, 0, 0, .idle⟩ a ∗
           ∃ bs0 : List w8, ⌜bs0.length = m.size⌝ ∗
             cellsR base 0 len.toNat (fun i => toCellVal bs0[i]?)) ∨
-       (⌜e ≠ 0 ∧ sl = slice.nil⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a)) }}
+       (⌜e ≠ 0 ∧ sl = slice.nil ∧ ¬ FsNoErr⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a)) }}
 
 variable [golang_org.x.sys.unix.Assumptions] in
 /-- `golang_org.x.sys.unix.Munmap.specCrashI` from the local caller's part. -/
@@ -163,7 +166,7 @@ abbrev golang_org.x.sys.unix.Munmap.specCrashIL : Prop :=
     (App (Val (@! golang_org.x.sys.unix.Munmap)) (Val #(⟨base, len, len⟩ : GoSlice)))
   {{ (e : w64), RET #(errnoErr e);
       (⌜e = 0⌝ ∗ csOwnIL i γ γa ⟨{ m with maps := GMap.delete base m.maps }, bs, 0, 0, .idle⟩ a) ∨
-      (⌜e ≠ 0⌝ ∗
+      (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗
         (csOwnIL i γ γa ⟨{ m with maps := GMap.delete base m.maps }, bs, 0, 0, .idle⟩ a ∨
          (csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗ cellsR base 0 len.toNat vf))) }}
 

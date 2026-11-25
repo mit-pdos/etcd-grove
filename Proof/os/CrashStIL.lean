@@ -27,6 +27,9 @@ module
 
 public import Proof.os.CrashStIOps
 public import Proof.os.FsyncMask
+public import GooseLang.Ext.Fs.FsNoErr
+public import GooseLang.Ext.Fs.NoErrSpecsOpen
+public import GooseLang.Ext.Fs.NoIoErrResize
 
 @[expose] public section
 
@@ -342,6 +345,46 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
+/-- **A fact of a step's result under a condition `P`** (`FsNoErr`), from the step-level fact under
+`P` (`wp_ext_post` of a `*_noErr` lemma). -/
+theorem wp_post_cond {s : Stuckness} {E : CoPset} {o : String} {v : val} (P : Prop)
+    (Ψ : val → Prop) (Φ : val → IProp GF)
+    (hpost : P → (WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ r, ⌜Ψ r⌝ -∗ Φ r }} ⊢
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }})) :
+    WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ r, ⌜P → Ψ r⌝ -∗ Φ r }} ⊢
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  by_cases hP : P
+  · refine BIBase.Entails.trans ?_ (hpost hP)
+    iintro H
+    iapply wp_wand $$ H
+    iintro %r H %hr
+    iapply H; ipureintro; exact fun _ => hr
+  · iintro H
+    iapply wp_wand $$ H
+    iintro %r H
+    iapply H; ipureintro; exact fun h => absurd h hP
+
+/-- `wp_post_cond` with a resource `W` the step-level fact reads the state from (`wp_ext_postS`). -/
+theorem wp_post_condS {s : Stuckness} {E : CoPset} {o : String} {v : val} (P : Prop) (W : IProp GF)
+    (Ψ : val → Prop) (Φ : val → IProp GF)
+    (hpost : P → ⊢ W -∗ (W -∗ WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ r, ⌜Ψ r⌝ -∗ Φ r }}) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }}) :
+    ⊢ W -∗ (W -∗ WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ r, ⌜P → Ψ r⌝ -∗ Φ r }}) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  by_cases hP : P
+  · iintro HW H
+    iapply (hpost hP) $$ HW
+    iintro HW
+    iapply wp_wand $$ [HW H]
+    · iapply H $$ HW
+    iintro %r H %hr
+    iapply H; ipureintro; exact fun _ => hr
+  · iintro HW H
+    iapply wp_wand $$ [HW H]
+    · iapply H $$ HW
+    iintro %r H
+    iapply H; ipureintro; exact fun h => absurd h hP
+
 /-- A write inside the file takes the bytes of its range. -/
 theorem cfRange_in (m : OsMeta) (bs : List ByteG) (off n : Nat) (h : off + n ≤ m.size) :
     cfRange m bs off n = (bs.drop off).take n := by
@@ -417,13 +460,14 @@ theorem wp_osPWriteFinish_L (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n 
     (N : Namespace) (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
     (hacc : CsAcc (L := L) N I Tok Ok p) (m : OsMeta) (bs : List ByteG)
     (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hl : bs.length = m.size) (hin : off + data.length ≤ m.size)
+    (hmax : off < maxBytes)
     (hok : ∀ k, k ≤ data.length →
       Ok ⟨pwPostK true m off data k n, finBytes m bs off data k n [], 0, 0, .idle⟩)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ I -∗ Tok ⟨m, bs, 0, 0, .write t off data n⟩ -∗
       (∀ (k : Nat) (e : w64),
         ⌜k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
-          ZsOk m [] ∧ pwSize m.size off k = m.size⌝ -∗
+          ZsOk m [] ∧ pwSize m.size off k = m.size ∧ (e ≠ 0 → ¬ FsNoErr)⌝ -∗
         csOwnL (L := L) Tok p ⟨pwPostK true m off data k n, finBytes m bs off data k n [], 0, 0, .idle⟩ -∗
         osBytes (L := L) p off (DFrac.own (1 : Qp).half)
           (pwBytes m.size off data k n (cfRange m bs off data.length) []) -∗
@@ -440,8 +484,20 @@ theorem wp_osPWriteFinish_L (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n 
   icases Hr with ⟨Ht, Hb2⟩
   have hlo : cfLo m off = off := Nat.min_eq_left hgap
   imodintro
+  iapply (wp_post_condS FsNoErr (pwTok (L := L) t p off data m (cfRange m bs off data.length) n)
+    (fun r => ∃ r0, r = PairV r0 (#(0 : w64))) _ (fun hno => by
+      obtain ⟨Sio, hi, h1, -, -⟩ := hno
+      haveI := h1
+      exact wp_ext_postS "PWriteFinish" (osTokV t) (by simp [val.isPanic]) _ _
+        (pwTok_inflight t p off data m _ n) _
+        (fun h st g e' h' st' g' ⟨c, hc, hk⟩ hs => pwFinish_noErr (Sio := Sio) hi t c off data hmax
+          h st g e' h' st' g' ⟨hc, hk⟩ hs) _)) $$ Ht
+  iintro Ht
   iapply wp_osPWriteFinishK true t p off data m (cfRange m bs off data.length) n hN $$ Hos Ht
-  iintro %k %e %zs %hke %hzt %- Hm Hrg Hc
+  iintro %k %e %zs %hke %hzt %- Hm Hrg Hc %hne
+  have hfe : e ≠ 0 → ¬ FsNoErr := fun he hno => by
+    obtain ⟨r0, hr⟩ := hne hno
+    exact he (go.intoVal_inj (val.PairV.inj hr).2)
   have hk := hke.1
   have hps : pwSize m.size off k = m.size := by unfold pwSize; split <;> omega
   have hz : zs = [] := List.eq_nil_of_length_eq_zero (by rw [hke.2.2.1, hps]; omega)
@@ -480,7 +536,7 @@ theorem wp_osPWriteFinish_L (t : Nat) (p : Ino) (off : Nat) (data : List w8) (n 
   · dsimp only; iframe
   imodintro
   have hP : k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
-      ZsOk m [] ∧ pwSize m.size off k = m.size := ⟨hk, hke.2.1, hzt, hps⟩
+      ZsOk m [] ∧ pwSize m.size off k = m.size ∧ (e ≠ 0 → ¬ FsNoErr) := ⟨hk, hke.2.1, hzt, hps, hfe⟩
   iapply HΦ $$ %k %e %hP [Hv Hm1] Hr1 Hc
   unfold csOwnL
   iframe
@@ -547,12 +603,13 @@ theorem wp_osFtruncateFinish_L (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
     (I : IProp GF) [Persistent I] (Tok : CSt → IProp GF) (Ok : CSt → Prop)
     (hacc : CsAcc (L := L) N I Tok Ok p) (m : OsMeta) (bs : List ByteG)
     (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N) (hl : bs.length = m.size) (hgrow : m.size ≤ sz)
+    (hmax : sz ≤ maxBytes)
     (hokG : ∀ zs : List Cands, zs.length = sz - m.size →
       Ok ⟨rsPost true m sz sz, bs ++ grownBytes zs n, 0, 0, .idle⟩)
     (hokF : Ok ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, 0, 0, .idle⟩)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ I -∗ Tok ⟨m, bs, 0, 0, .trunc t sz n⟩ -∗
-      (∀ e : w64,
+      (∀ e : w64, ⌜e ≠ 0 → ¬ FsNoErr⌝ -∗
         ((⌜e = 0⌝ ∗ csGrownL (L := L) Tok p m bs sz n) ∨
          (⌜e ≠ 0⌝ ∗ (csGrownL (L := L) Tok p m bs sz n ∨
            (csOwnL (L := L) Tok p ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, 0, 0,
@@ -570,8 +627,17 @@ theorem wp_osFtruncateFinish_L (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
   icases (invBytes_whole p ⟨m, bs, 0, 0, .trunc t sz n⟩ (taken_trunc _ t sz n rfl)
     (Nat.le_refl _)).1 $$ Hb2 with Hb2
   imodintro
+  iapply (wp_post_condS FsNoErr (rsTok (L := L) true t p sz m [] n) (· = #(0 : w64)) _ (fun hno => by
+      obtain ⟨Sio, hi, h1, -, -⟩ := hno
+      haveI := h1
+      exact wp_ext_postS "FtruncateFinish" (osTokV t) (by simp [val.isPanic]) _ _
+        (rsTok_inflight true t p sz m [] n) _
+        (fun h st g e' h' st' g' ⟨c, hc, hk, htc⟩ hs => ftFinish_noErr (Sio := Sio) hi t c sz
+          h st g e' h' st' g' ⟨hc, by simpa [rsKind] using hk, htc ▸ hmax⟩ hs) _)) $$ Ht
+  iintro Ht
   iapply wp_osFtruncateFinish t p sz m [] n hN $$ Hos Ht
-  iintro %e Hres
+  iintro %e Hres %hne
+  have hfe : e ≠ 0 → ¬ FsNoErr := fun he hno => he (go.intoVal_inj (hne hno))
   have hG : ∀ (Q : IProp GF), (csGrownL (L := L) Tok p m bs sz n -∗ Q) ⊢
       osBytes (L := L) p 0 (DFrac.own (1 : Qp).half) bs -∗
       rsDone (L := L) true p sz sz m n -∗
@@ -606,9 +672,9 @@ theorem wp_osFtruncateFinish_L (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
   unfold rsUndone
   icases Hres with (⟨%he, Hg⟩ | ⟨%he, (Hg | ⟨Hm, -, Hc⟩)⟩)
   · iapply (hG _) $$ [HΦ] Hb2 Hg Hclose
-    iintro H; iapply HΦ; ileft; iframe; ipureintro; exact he
+    iintro H; iapply HΦ $$ %e %hfe; ileft; iframe; ipureintro; exact he
   · iapply (hG _) $$ [HΦ] Hb2 Hg Hclose
-    iintro H; iapply HΦ; iright; isplitr; · ipureintro; exact he
+    iintro H; iapply HΦ $$ %e %hfe; iright; isplitr; · ipureintro; exact he
     ileft; iexact H
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     imod Hclose $$ %(⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, 0, 0, .idle⟩ : CSt)
@@ -616,7 +682,7 @@ theorem wp_osFtruncateFinish_L (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
     · iapply (invResS_idle _ _ rfl).2; iframe Hm2
       iapply (invBytes_whole p _ (taken_idle _ rfl) (Nat.le_refl _)).2; iexact Hb2
     imodintro
-    iapply HΦ; iright; isplitr; · ipureintro; exact he
+    iapply HΦ $$ %e %hfe; iright; isplitr; · ipureintro; exact he
     iright
     ihave Hc := (show mcells (L := L) m.maps (min m.size sz) (rsHi true m.size sz)
         (rsOld m.size (min m.size sz) []) ⊢
@@ -645,7 +711,7 @@ theorem wp_osMmap_L (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Name
             csOwnL (L := L) Tok d.ino ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, 0, 0, .idle⟩ ∗
             ∃ bs0 : List w8, ⌜bs0.length = m.size⌝ ∗
               cellsR base 0 len.toNat (fun i => toCellVal bs0[i]?)) ∨
-         (⌜e ≠ 0 ∧ base = null⌝ ∗ csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩)) -∗
+         (⌜e ≠ 0 ∧ base = null ∧ ¬ FsNoErr⌝ ∗ csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩)) -∗
         osFd (L := L) fd dq d -∗ Φ (PairV (#base) (#e))) -∗
       WP (ExternalOp fsExt.name "Mmap"
         (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) {{ Φ }} := by
@@ -654,14 +720,18 @@ theorem wp_osMmap_L (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Name
     Std.LawfulSet.mem_diff.2 ⟨CoPset.subseteq_top x hx,
       fun ho => (Std.LawfulSet.mem_diff.1 (hN x ho)).2 hx⟩
   iapply wp_osMmapG fd off len prot fl dq d m (((⊤ : CoPset) \ ↑osN) \ ↑N) CoPset.subseteq_top
-    hrd hoff hlen hprot hfl (fun _ => True) (fun _ _ _ _ _ _ _ _ => trivial)
+    hrd hoff hlen hprot hfl (fun _ => ¬ FsNoErr)
+    (fun h st e h' st' hfd hs he hno => by
+      obtain ⟨Sio, hi, -, h2, -⟩ := hno
+      haveI := h2
+      exact mmap_noFail hi fd off len prot fl d hrd hoff hlen hprot hfl h st e h' st' hfd hs he)
     (csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩)
     (fun base e =>
       iprop((⌜e = 0 ∧ 0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ ∗
             csOwnL (L := L) Tok d.ino ⟨{ m with maps := <[base := len.toNat]> m.maps }, bs, 0, 0, .idle⟩ ∗
             ∃ bs0 : List w8, ⌜bs0.length = m.size⌝ ∗
               cellsR base 0 len.toNat (fun i => toCellVal bs0[i]?)) ∨
-         (⌜e ≠ 0 ∧ base = null⌝ ∗ csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩)))
+         (⌜e ≠ 0 ∧ base = null ∧ ¬ FsNoErr⌝ ∗ csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩)))
     Φ $$ Hos [] HΦ Hfd Hown
   imodintro
   iintro ⟨Hv, Hm1, %Hl⟩
@@ -702,7 +772,7 @@ theorem wp_osMmap_L (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Name
     · iapply (invResS_idle _ _ rfl).2; iframe
     imodintro
     iright
-    isplitr; · ipureintro; exact ⟨he.1, he.2.1⟩
+    isplitr; · ipureintro; exact he
     unfold csOwnL
     iframe
     ipureintro; exact Hl
@@ -721,7 +791,7 @@ theorem wp_osMunmap_L (base : Loc) (len cap : w64) (p : Ino) (N : Namespace)
       csOwnL (L := L) Tok p ⟨m, bs, 0, 0, .idle⟩ -∗ cellsR base 0 n vf -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ csOwnL (L := L) Tok p ⟨{ m with maps := GMap.delete base m.maps }, bs, 0, 0, .idle⟩) ∨
-         (⌜e ≠ 0⌝ ∗
+         (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗
            (csOwnL (L := L) Tok p ⟨{ m with maps := GMap.delete base m.maps }, bs, 0, 0, .idle⟩ ∨
             (csOwnL (L := L) Tok p ⟨m, bs, 0, 0, .idle⟩ ∗ cellsR base 0 n vf)))) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Munmap" (Val (PairV (#base) (PairV (#len) (#cap))))) {{ Φ }} := by
@@ -733,8 +803,13 @@ theorem wp_osMunmap_L (base : Loc) (len cap : w64) (p : Ino) (N : Namespace)
   ihave Hm := (osMeta_halves _ _).2 $$ [Hm1 Hm2]
   · iframe
   imodintro
+  iapply (wp_post_cond FsNoErr (· = #(0 : w64)) _ (fun hno => by
+    obtain ⟨Sio, hi, -, h2, -⟩ := hno
+    haveI := h2
+    exact wp_ext_post "Munmap" _ (by simp [val.isPanic]) _ (munmap_noErr hi _) _))
   iapply wp_osMunmap base len cap p m n vf hN hb hlen hcap $$ Hos Hm Hc
-  iintro %e Hres
+  iintro %e Hres %hne
+  have hfe : e ≠ 0 → ¬ FsNoErr := fun he hno => he (go.intoVal_inj (hne hno))
   have hD : ∀ (Q : IProp GF),
       (csOwnL (L := L) Tok p ⟨{ m with maps := GMap.delete base m.maps }, bs, 0, 0, .idle⟩ -∗ Q) ⊢
       invBytes (L := L) p ⟨m, bs, 0, 0, .idle⟩ -∗
@@ -760,13 +835,13 @@ theorem wp_osMunmap_L (base : Loc) (len cap : w64) (p : Ino) (N : Namespace)
   · iapply (hD _) $$ [HΦ] Hb2 Hm Hclose
     iintro H; iapply HΦ; ileft; iframe; ipureintro; exact he
   · iapply (hD _) $$ [HΦ] Hb2 Hm Hclose
-    iintro H; iapply HΦ; iright; isplitr; · ipureintro; exact he
+    iintro H; iapply HΦ; iright; isplitr; · ipureintro; exact ⟨he, hfe he⟩
     ileft; iexact H
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     imod Hclose $$ %(⟨m, bs, 0, 0, .idle⟩ : CSt) %Hok' [Hm2 Hb2] with Hv
     · iapply (invResS_idle _ _ rfl).2; iframe
     imodintro
-    iapply HΦ; iright; isplitr; · ipureintro; exact he
+    iapply HΦ; iright; isplitr; · ipureintro; exact ⟨he, hfe he⟩
     iright; iframe Hc
     unfold csOwnL
     iframe
@@ -790,7 +865,7 @@ theorem wp_osFsync_L (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace)
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ csOwnL (L := L) Tok d.ino (csSynced m [] [] bs 0 0) ∗
             cBytes (L := L) d.ino (fun _ => DFrac.own (1 : Qp).half) c 0 (bs.map (fun x => durB x.1))) ∨
-         (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩ ∗
+         (⌜e ≠ 0 ∧ e ≠ EINTR ∧ ¬ FsNoErr⌝ ∗ csOwnL (L := L) Tok d.ino ⟨m, bs, 0, 0, .idle⟩ ∗
             cBytes (L := L) d.ino (fun _ => DFrac.own (1 : Qp).half) c 0 bs)) -∗
         osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
@@ -812,6 +887,10 @@ theorem wp_osFsync_L (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace)
   ihave HF := (cBytes_halvesC d.ino c 0 bs).2 $$ [Hi1 Hc]
   · iframe
   imodintro
+  iapply (wp_post_cond FsNoErr (· = #(0 : w64)) _ (fun hno => by
+    obtain ⟨Sio, hi, h1, -, -⟩ := hno
+    haveI := h1
+    exact wp_ext_post "Fsync" (#fd) (by simp) _ (fsync_noErr hi fd) _))
   iapply wp_osFsyncC fd dq d m bs c (fun k => !c k) (DFrac.own (1 : Qp).half)
     (fun k hk hck h1 h2 => by
       rcases hcov k (by omega) h1 h2 with h | ⟨x, hx, hxd⟩
@@ -819,7 +898,8 @@ theorem wp_osFsync_L (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace)
       · rw [List.getElem?_eq_getElem hk, Option.some.injEq] at hx; subst hx; exact hxd)
     (fun b hb h1 h2 => ⟨by omega, by cases hcb : c b <;> simp⟩) hN
     $$ Hos Hfd Hm HF HD
-  iintro %e Hres Hfd HD
+  iintro %e Hres Hfd HD %hne
+  have hfe : e ≠ 0 → ¬ FsNoErr := fun he hno => he (go.intoVal_inj (hne hno))
   icases Hres with (⟨%he, Hm, HF⟩ | ⟨%he, Hm, HF⟩)
   · have hdd := he.2 hcut
     icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
@@ -866,7 +946,7 @@ theorem wp_osFsync_L (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace)
     imodintro
     iapply HΦ $$ %e [Hv Hm1 HF2] Hfd
     iright
-    isplitr; · ipureintro; exact he
+    isplitr; · ipureintro; exact ⟨he.1, he.2, hfe he.1⟩
     isplitl [Hv Hm1]
     · iapply (csOwnL_intro Tok d.ino _ m rfl Hl)
       iframe
