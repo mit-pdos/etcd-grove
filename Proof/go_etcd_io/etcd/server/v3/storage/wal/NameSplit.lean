@@ -202,6 +202,20 @@ theorem walNamesRes_returnName (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap 
     iframe Hn
     ipureintro; exact ⟨hqv', hnok, hwnm, hcur⟩
 
+/-- `walNamesRes_returnName` of the last loan out, back to no loan (`walNamesFrag none`). -/
+theorem walNamesRes_returnName0 (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (nm : GoString) (q : Qp) (hn' : NamesH) {s : AbsDiskState} :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFragS (W := W) ⟨none, none, [(nm, q)]⟩ -∗
+      osNames (L := L) jr (.only [nm]) (DFrac.own q) hn' ==∗
+      walNamesRes (L := L) (W := W) R jr r Ls s ∗ walNamesFrag (W := W) none := by
+  iintro Hn Hf Hn'
+  imod walNamesRes_returnName R jr r Ls nm q hn' [(nm, q)] (by simp) $$ Hn Hf Hn' with ⟨Hn, Hf⟩
+  imodintro
+  iframe Hn
+  unfold walNamesFrag
+  simp only [List.erase_cons_head]
+  iexact Hf
+
 end iris
 
 end WalFs

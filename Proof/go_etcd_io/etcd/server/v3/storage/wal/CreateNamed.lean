@@ -272,7 +272,7 @@ at `s` (the WAL in `dir = r/nm` present), the program's claim (a fraction) on na
 writer of `nm` is the entry `x`, after which `nm` held a directory, and the commit bound `n > x`: the
 contents at `setNamed s dir`, and `walNamed dir i` at the incarnation `i` of an earlier past
 `(s0, I0)` (P6b: current, or retired by then). -/
-theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInvBody_named {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir nm : GoString) (d : WalDur) (N : NameSet) (dq : DFrac) (h : NamesH)
     (x : Nat) (e : LogEntry) (E : Ents) (J : Ino) (n : Nat) {Em : CoPset}
     (s0 : AbsDiskState) (I0 : GMap GoString Nat)
@@ -280,10 +280,10 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hl : LastWrite h jr nm x e E) (hx : x < n) (hJ : E !! nm = some (.dir J))
     (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none -∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
       walPastI (W := W) (s0, I0) ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r (setNamed s dir) ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir (incOf I0 dir) ∗ walNamesFrag (W := W) none := by
+        walNamed (W := W) dir (incOf I0 dir) ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ := by
   iintro Hb #Hsh Hn #Hc Hnf #Hp0
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
@@ -310,7 +310,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     ⟨Hg, #Hp⟩
   ihave Hg : walGhost (W := W) (setNamed s dir) $$ [Hg]
   · unfold walGhost; iexists I; iexact Hg
-  icases walNamesRes_none R jr r Ls s (setNamed s dir) $$ Hnms Hnf with ⟨Hnms, Hnf⟩
+  icases walNamesRes_noneL R jr r Ls s (setNamed s dir) Lo $$ Hnms Hnf with ⟨Hnms, Hnf⟩
   imodintro
   iframe Hnf
   isplitl [Hg Hcl Hlays Hcr Htl Hpk Hdk Hcp Hnms]

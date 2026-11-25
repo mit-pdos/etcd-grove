@@ -130,16 +130,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 contents at `s` (the WAL in `dir = r/nm` present), the program's claim (a fraction) on names `N ∋ nm`,
 coherent, holding the WAL's directory `J` at `nm`, and a commit bound past its entries: the contents
 at `setNamed s dir`, and `walNamed dir`. -/
-theorem walInvBody_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInvBody_namedBy {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir nm : GoString) (d : WalDur) (N : NameSet) (dq : DFrac) (h : NamesH)
     (J : Ino) (n : Nat) (i : Nat) {Em : CoPset}
     (hd : s.wal !! dir = some d) (hin : InArea r dir nm) (hN : N.Mem nm) (hcoh : ClaimCoh h jr N)
     (hnx : h.next ≤ n) (hJ : h.cur !! nm = some (.dir J)) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none -∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
       walIncLb (W := W) dir i ={Em}=∗
       walInvBody (L := L) (W := W) C Mr R jr r (setNamed s dir) ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir i ∗ walNamesFrag (W := W) none := by
+        walNamed (W := W) dir i ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ := by
   iintro Hb #Hsh Hn #Hc Hnf #Hil
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
@@ -167,7 +167,7 @@ theorem walInvBody_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     (unlMono_upd s dir _ (fun _ => Nat.le_refl _)) $$ Hg with
     ⟨Hg, #Hp⟩
   ihave Hg := walGhostI_ghost _ Ig $$ Hg
-  icases walNamesRes_none R jr r Ls s (setNamed s dir) $$ Hnms Hnf with ⟨Hnms, Hnf⟩
+  icases walNamesRes_noneL R jr r Ls s (setNamed s dir) Lo $$ Hnms Hnf with ⟨Hnms, Hnf⟩
   imodintro
   iframe Hnf
   isplitl [Hg Hcl Hlays Hcr Htl Hpk Hdk Hcp Hnms]
@@ -219,7 +219,7 @@ theorem walInvBody_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
 
 /-- **The WAL becomes named, at a program step** (`walInvBody_namedBy`; the WAL in `dir` known from a
 past state). -/
-theorem walInv_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInv_namedBy {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm : GoString) (s0 : AbsDiskState) (d0 : WalDur) (N : NameSet) (dq : DFrac) (h : NamesH)
     (J : Ino) (n : Nat) (i : Nat) (w : Loc) (sn : w64 × w64) (I0 : GMap GoString Nat)
     (hI0 : incOf I0 dir = i)
@@ -228,17 +228,17 @@ theorem walInv_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗
       walOpening (W := W) w dir sn i -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none -∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
       walIncLb (W := W) dir i ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ walOpening (W := W) w dir sn i ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir i ∗ walNamesFrag (W := W) none := by
+        walNamed (W := W) dir i ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ := by
   iintro #Hinv #Hsi Hnc #Hp Ho H #Hc Hnf #Hil
   iapply walInv_stepS C Mr R jr r
     iprop(osSharedInv (L := L) R ∗ walPastI (W := W) (s0, I0) ∗ walIncLb (W := W) dir i ∗
       walOpening (W := W) w dir sn i ∗ osNames (L := L) jr N dq h ∗
-      osCommitLb (L := L) n ∗ walNamesFrag (W := W) none)
+      osCommitLb (L := L) n ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩)
     iprop(walOpening (W := W) w dir sn i ∗ osNames (L := L) jr N dq h ∗ walNamed (W := W) dir i ∗
-      walNamesFrag (W := W) none)
+      walNamesFragS (W := W) ⟨none, none, Lo⟩)
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨#Hsi, #Hp, #Hil, Ho, H, #Hc, Hnf⟩
       iunfold walInvBody at Hb

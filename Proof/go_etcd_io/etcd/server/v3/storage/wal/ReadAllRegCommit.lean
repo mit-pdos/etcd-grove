@@ -200,7 +200,7 @@ theorem walInvRegisterPendLaw_holds (C : WalCodec) (Mr : WalMarshal) (R : Roots)
 /-- **`ReadAll`'s update committed and its tail registered at one look** (see the file header):
 `walInv_readCommit`'s post with the pending registration's (`walInvRegisterPendLaw`'s), the client's
 state `dc` below the registered record's `d` (`walDurLe dc d`: the same history, cut and metadata). -/
-theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInv_readCommitReg {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (w : Loc) (dir : GoString) (sn : w64 × w64) (j : Ino) (X : List GoString) (hj0 : NamesH)
     (gs : List SegG) (gl : SegG)
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
@@ -212,7 +212,7 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
-      walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none -∗
+      walTailsFrag (W := W) ∅ -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) -∗
       walOpening (W := W) w dir sn ic -∗
@@ -220,7 +220,6 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
         <{ walDiskAtI (W := W) dir ic d, COMM Q d }>) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
-      walNamesFrag (W := W) none ∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ∗
       walOpening (W := W) w dir sn ic ∗
@@ -229,6 +228,7 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
         Q dc ∗ walPast (W := W) s ∗ (∃ I0, walPastI (W := W) (s, I0) ∗ ⌜incOf I0 dir = ic⌝) ∗
         walLenLb (W := W) w dir ic dc.H.length ∗
         osNames (L := hG.goose_localGS) jr (.only [nm]) (DFrac.own q) hn ∗
+        walNamesFragS (W := W) ⟨none, none, (nm, q) :: Lo⟩ ∗
         osLogLb (L := hG.goose_localGS) hn.next ∗
         walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName))
           (<[dir := segStart lay.cuts (lay.first + kk)]> (∅ : GMap GoString Nat)) ∗
@@ -247,7 +247,7 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   imod walInvBody_readReg (L := hG.goose_localGS) C Mr R jr r s dir j X hj0 gs gl hnm hdrop hsz hgl
     $$ Hb Hk Hn Htf Hh with ⟨%d, %lay, %kk, %γ, %hrs, Hb, -, Hn, Htf, Hpt, Hv, Hh⟩
   imod walInvBody_past C Mr R jr r s $$ Hb with ⟨Hb, #Hp⟩
-  imod walInvBody_nameClaim C Mr R jr r s dir j X $$ Hb Hnf Hk with ⟨Hb, Hnf, %nm, %q, %hn, Hnn, %hnc⟩
+  imod walInvBody_nameClaim C Mr R jr r s dir j X Lo $$ Hb Hnf Hk with ⟨Hb, %nm, %q, %hn, Hnf, Hnn, %hnc⟩
   -- the client's update, committed unchanged
   ihave Hau := atomic_update_mask_weaken walAuMask_sub_top' $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
@@ -286,9 +286,9 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   imod osNames_coh (L := hG.goose_localGS) R jr _ _ hn CoPset.subseteq_top $$ Hsi Hnn
     with ⟨Hnn, %hcoh⟩
   imodintro
-  iframe Hnc Hn Hnf Hh Ho
+  iframe Hnc Hn Hh Ho
   iexists dc, d, lay, kk, γ, s, nm, q, hn
-  iframe HQ Hp Hlen Hnn Hlb Htf Hpt Hv
+  iframe HQ Hp Hlen Hnn Hnf Hlb Htf Hpt Hv
   isplitr
   · iexists I0; iframe HpI; ipureintro; exact hI0
   ipureintro
