@@ -39,17 +39,17 @@ variable [package_sem : Assumptions]
 
 /-- **A stream's handler specification**: the content `Dn` the transport picks holds of the entry's
 `dn`. -/
-def drvStrmSpec (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
+def drvStrmSpec (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
     GrpcMd → StreamSpec (strmMsg (GF := GF)) :=
-  fun md γ Dn => iprop(□ ∀ (j : Nat) (m : (strmMsg (GF := GF)).M), dn md γ j m -∗ Dn j m)
+  fun md γ Dn => iprop(□ ∀ (j : Nat) (m : GoString), dn md γ j m -∗ Dn j m)
 
-instance drvStrmSpec_persistent (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF)
-    (md : GrpcMd) (γ : StreamNames) (Dn : Nat → (strmMsg (GF := GF)).M → IProp GF) :
+instance drvStrmSpec_persistent (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF)
+    (md : GrpcMd) (γ : StreamNames) (Dn : Nat → GoString → IProp GF) :
     Persistent (drvStrmSpec dn md γ Dn) := by
   unfold drvStrmSpec; infer_instance
 
 /-- `drvStrmSpec dn` holds at `dn`. -/
-theorem drvStrmSpec_self (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
+theorem drvStrmSpec_self (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
     ⊢ □ ∀ md γ, drvStrmSpec dn md γ (dn md γ) := by
   iintro !> %md %γ
   unfold drvStrmSpec
@@ -84,12 +84,12 @@ theorem serverStream_methodOk (wp_SS : server.ServerStream.spec (GF := GF) (hG :
         (s @!! go.GoType.PointerType server.ty @!! go!"ServerStream") S ssUp (drvStrmSpec ssDn) := by
   iintro #Hpkg
   unfold svc.ssMethodOk
-  iintro !> %γ %Dn %ci %cd %st %r %v %Φ HSpec HS #Hst Hr HRt HSt HΦ
+  iintro !> %γ %Dn %ci %cd %st %r %v %Φ HSpec HS Hst Hr HRt HSt HΦ
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
   iunfold drvStrmSpec at Hdn
   isimp only [strmMsg, pbStringValueST, pbStringValueS] at Hr
-  iapply (wp_SS s r v st γ Dn ci cd md) $$ [Hr HRt HSt]
+  iapply (wp_SS s r v st γ Dn ci cd md) $$ [Hst Hr HRt HSt]
   · iframe; iframe #
   inext
   iintro %err #Herr
@@ -102,11 +102,11 @@ theorem clientStream_methodOk (wp_M : server.ClientStream.spec (GF := GF) (hG :=
         (s @!! go.GoType.PointerType server.ty @!! go!"ClientStream") S csUp (drvStrmSpec csDn) := by
   iintro #Hpkg
   unfold svc.strmMethodOk
-  iintro !> %γ %Dn %ci %cd %st %Φ HSpec HS #Hst #Hsac HRt HSt HΦ
+  iintro !> %γ %Dn %ci %cd %st %Φ HSpec HS Hst Hsac HRt HSt HΦ
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
   iunfold drvStrmSpec at Hdn
-  iapply (wp_M s st γ Dn ci cd md) $$ [HRt HSt]
+  iapply (wp_M s st γ Dn ci cd md) $$ [Hst Hsac HRt HSt]
   · iframe; iframe #
   inext
   iintro %err #Herr
@@ -119,11 +119,11 @@ theorem bidi_methodOk (wp_M : server.Bidi.spec (GF := GF) (hG := hG)) (s : Loc) 
         (s @!! go.GoType.PointerType server.ty @!! go!"Bidi") S biUp (drvStrmSpec biDn) := by
   iintro #Hpkg
   unfold svc.strmMethodOk
-  iintro !> %γ %Dn %ci %cd %st %Φ HSpec HS #Hst #Hsac HRt HSt HΦ
+  iintro !> %γ %Dn %ci %cd %st %Φ HSpec HS Hst Hsac HRt HSt HΦ
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
   iunfold drvStrmSpec at Hdn
-  iapply (wp_M s st γ Dn ci cd md) $$ [HRt HSt]
+  iapply (wp_M s st γ Dn ci cd md) $$ [Hst Hsac HRt HSt]
   · iframe; iframe #
   inext
   iintro %err #Herr
@@ -139,14 +139,14 @@ theorem serverStream_runOk (wp_M : server.ServerStream.spec (GF := GF) (hG := hG
         #(functions svc._Driver_ServerStream_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
         [] ssUp (drvStrmSpec ssDn) := by
   iintro ⟨#Hpkg, #Hsvc⟩
-  ihave #Hm := serverStream_methodOk wp_M s (threadTok (GF := GF)) $$ Hpkg
+  ihave Hm := serverStream_methodOk wp_M s (threadTok (GF := GF)) $$ Hpkg
   unfold grpcStreamRunOk
-  iintro !> %γ %Dn %ci %cd %st %info HSpec HT Hlc #Hraw HRt HSt HAux #Hinfo
+  iintro !> %γ %Dn %ci %cd %st %info HSpec HT Hlc Hraw HRt HSt HAux Hinfo
   simp only [srvStreamChainWP]
   iintro -
-  ihave #HrawW := srvRawStreamIsW_of_raw _ _ _ _ _ _ _ _ $$ Hraw
+  ihave HrawW := srvRawStreamIsW_of_raw _ _ _ _ _ _ _ _ $$ Hraw
   iapply (wp_H ssUp (drvStrmSpec ssDn) ⟨go.GoType.PointerType server.ty, #s⟩ threadTok γ Dn ci cd st
-    server_isDriverServer) $$ [HSpec HT HRt HSt]
+    server_isDriverServer) $$ [Hm HSpec HT HrawW HRt HSt]
   · iframe; iframe #
   inext
   iintro %err ⟨#Herr, HT⟩
@@ -167,14 +167,14 @@ theorem clientStream_runOk (wp_M : server.ClientStream.spec (GF := GF) (hG := hG
         #(functions svc._Driver_ClientStream_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
         [] csUp (drvStrmSpec csDn) := by
   iintro ⟨#Hpkg, #Hsvc⟩
-  ihave #Hm := clientStream_methodOk wp_M s (threadTok (GF := GF)) $$ Hpkg
+  ihave Hm := clientStream_methodOk wp_M s (threadTok (GF := GF)) $$ Hpkg
   unfold grpcStreamRunOk
-  iintro !> %γ %Dn %ci %cd %st %info HSpec HT Hlc #Hraw HRt HSt HAux #Hinfo
+  iintro !> %γ %Dn %ci %cd %st %info HSpec HT Hlc Hraw HRt HSt HAux Hinfo
   simp only [srvStreamChainWP]
   iintro -
-  ihave #HrawW := srvRawStreamIsW_of_raw _ _ _ _ _ _ _ _ $$ Hraw
+  ihave HrawW := srvRawStreamIsW_of_raw _ _ _ _ _ _ _ _ $$ Hraw
   iapply (wp_H csUp (drvStrmSpec csDn) ⟨go.GoType.PointerType server.ty, #s⟩ threadTok γ Dn ci cd st
-    server_isDriverServer) $$ [HSpec HT HRt HSt]
+    server_isDriverServer) $$ [Hm HSpec HT HrawW HRt HSt]
   · iframe; iframe #
   inext
   iintro %err ⟨#Herr, HT⟩
@@ -195,14 +195,14 @@ theorem bidi_runOk (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
         #(functions svc._Driver_Bidi_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
         [] biUp (drvStrmSpec biDn) := by
   iintro ⟨#Hpkg, #Hsvc⟩
-  ihave #Hm := bidi_methodOk wp_M s (threadTok (GF := GF)) $$ Hpkg
+  ihave Hm := bidi_methodOk wp_M s (threadTok (GF := GF)) $$ Hpkg
   unfold grpcStreamRunOk
-  iintro !> %γ %Dn %ci %cd %st %info HSpec HT Hlc #Hraw HRt HSt HAux #Hinfo
+  iintro !> %γ %Dn %ci %cd %st %info HSpec HT Hlc Hraw HRt HSt HAux Hinfo
   simp only [srvStreamChainWP]
   iintro -
-  ihave #HrawW := srvRawStreamIsW_of_raw _ _ _ _ _ _ _ _ $$ Hraw
+  ihave HrawW := srvRawStreamIsW_of_raw _ _ _ _ _ _ _ _ $$ Hraw
   iapply (wp_H biUp (drvStrmSpec biDn) ⟨go.GoType.PointerType server.ty, #s⟩ threadTok γ Dn ci cd st
-    server_isDriverServer) $$ [HSpec HT HRt HSt]
+    server_isDriverServer) $$ [Hm HSpec HT HrawW HRt HSt]
   · iframe; iframe #
   inext
   iintro %err ⟨#Herr, HT⟩
@@ -339,8 +339,8 @@ theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF))
   omega
 
 /-- A stream entry of the table's: its registered reply model bounds every reply. -/
-theorem drv_streamBound (up : Nat → (strmMsg (GF := GF)).M → IProp GF)
-    (dn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF) :
+theorem drv_streamBound (up : Nat → GoString → IProp GF)
+    (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
     ⊢ ∀ Rep : StreamMsgT GF,
       ⌜streamRepModelOf GF (⟨strmWire (GF := GF), strmWire (GF := GF), up, dn, strmSpec⟩ :
         GrpcStreamEntry GF).Wp.ty = some Rep⌝ -∗

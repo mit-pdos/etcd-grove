@@ -36,7 +36,7 @@ theorem server.ClientStream.wp_proof
     (wp_String : google_golang_org.protobuf.types.known.wrapperspb.String.spec (GF := GF) (hG := hG)) :
     server.ClientStream.spec (GF := GF) (hG := hG) := by
   intro s st γ Dn ci cd md
-  wp_start as ⟨#Hst, #Hsac, #Hdn, HRt, HSt⟩
+  wp_start as ⟨Hst, Hsac, #Hdn, HRt, HSt⟩
   ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
   · iPkgInit
   ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hio
@@ -50,9 +50,9 @@ theorem server.ClientStream.wp_proof
   have hsi : si = si' := by injection Hsi'
   subst hsi
   wp_auto
-  ihave IH : iprop(∃ (R : List (strmMsg (GF := GF)).M) (g : GoString), "got" ∷ got_ptr ↦ g ∗
+  ihave IH : iprop(∃ (R : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
       "HRt" ∷ srvRecvTok (Req := strmMsg (GF := GF)) γ R ∗
-      "%Hg" ∷ ⌜g = List.flatten R ∧ g.length ≤ R.length ∧ R.length ≤ 16⌝) $$ [got HRt]
+      "%Hg" ∷ ⌜g = R.flatten ∧ g.length ≤ R.length ∧ R.length ≤ 16⌝) $$ [got HRt]
   · iexists [], go!""
     iframe
     ipureintro
@@ -89,7 +89,7 @@ theorem server.ClientStream.wp_proof
     wp_apply wp_String stringValueMax g (by unfold stringValueMax; omega) as %l Hl
     try wp_auto
     wp_bind (App (Val #(methods si.ty go!"SendAndClose" si.v)) _)
-    iapply HSac $$ %([] : List (strmMsg (GF := GF)).M) %l %g [HSt Hl Hcl]
+    iapply HSac $$ %([] : List GoString) %l %g [HSt Hl Hcl]
     · isplitl [HSt]
       · iexact HSt
       isplitl [Hl]

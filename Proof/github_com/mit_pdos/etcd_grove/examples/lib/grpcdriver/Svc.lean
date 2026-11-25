@@ -94,30 +94,30 @@ abbrev strmMsg : StreamMsg GF := (pbStringValueST (GF := GF)).toStreamMsg
 abbrev strmWire : ProtoWire := (strmMsg (GF := GF)).wire
 
 /-- `ServerStream`'s requests: one, the first. -/
-def ssUp : Nat → (strmMsg (GF := GF)).M → IProp GF := fun i _ => iprop(⌜i = 0⌝)
+def ssUp : Nat → GoString → IProp GF := fun i _ => iprop(⌜i = 0⌝)
 
 /-- `ServerStream`'s responses: the `j`th byte of the first request's value. -/
-def ssDn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF := fun _ γ j m =>
-  iprop(∃ v : (strmMsg (GF := GF)).M, upAt (Req := strmMsg (GF := GF)) γ 0 v ∗
+def ssDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
+  iprop(∃ v : GoString, upAt (Req := strmMsg (GF := GF)) γ 0 v ∗
     ⌜j < List.length v ∧ m = List.take 1 (List.drop j v)⌝)
 
 /-- `ClientStream`'s requests: at most 16, each at most one byte. -/
-def csUp : Nat → (strmMsg (GF := GF)).M → IProp GF := fun i m => iprop(⌜List.length m ≤ 1 ∧ i < 16⌝)
+def csUp : Nat → GoString → IProp GF := fun i m => iprop(⌜List.length m ≤ 1 ∧ i < 16⌝)
 
 /-- `ClientStream`'s response: one, the concatenation of the requests, once the client closed. -/
-def csDn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF := fun _ γ j m =>
-  iprop(⌜j = 0⌝ ∗ ∃ L : List (strmMsg (GF := GF)).M, upClosed (Req := strmMsg (GF := GF)) γ L ∗
+def csDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
+  iprop(⌜j = 0⌝ ∗ ∃ L : List GoString, upClosed (Req := strmMsg (GF := GF)) γ L ∗
     ⌜m = List.flatten L⌝)
 
 /-- `Bidi`'s requests: each at most one byte. -/
-def biUp : Nat → (strmMsg (GF := GF)).M → IProp GF := fun _ m => iprop(⌜List.length m ≤ 1⌝)
+def biUp : Nat → GoString → IProp GF := fun _ m => iprop(⌜List.length m ≤ 1⌝)
 
 /-- `Bidi`'s responses: the `j`th request, echoed. -/
-def biDn : GrpcMd → StreamNames → Nat → (strmMsg (GF := GF)).M → IProp GF := fun _ γ j m =>
+def biDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
   upAt (Req := strmMsg (GF := GF)) γ j m
 
 /-- The streams' specification, for clients: nothing beyond the responses' content. -/
-def strmSpec : GrpcMd → StreamNames → (Nat → (strmMsg (GF := GF)).M → IProp GF) → IProp GF :=
+def strmSpec : GrpcMd → StreamNames → (Nat → GoString → IProp GF) → IProp GF :=
   fun _ _ _ => iprop(True)
 
 /-- **The service's table**: the unary methods and the streams. -/

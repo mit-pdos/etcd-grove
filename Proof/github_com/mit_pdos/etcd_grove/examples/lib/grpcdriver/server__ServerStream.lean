@@ -33,7 +33,7 @@ theorem server.ServerStream.wp_proof
     (wp_String : google_golang_org.protobuf.types.known.wrapperspb.String.spec (GF := GF) (hG := hG)) :
     server.ServerStream.spec (GF := GF) (hG := hG) := by
   intro s r v st γ Dn ci cd md
-  wp_start as ⟨Hr, #Hst, #Hdn, HRt, HSt⟩
+  wp_start as ⟨Hr, Hst, #Hdn, HRt, HSt⟩
   iunfold srvStreamIs at Hst
   icases Hst with ⟨%si, %Hsi, -, #HSend, -⟩
   subst Hsi
@@ -45,7 +45,7 @@ theorem server.ServerStream.wp_proof
   subst hval
   iStructNamed Hsv
   wp_auto
-  ihave IH : iprop(∃ (k : w64) (L : List (strmMsg (GF := GF)).M), "i" ∷ i_ptr ↦ k ∗
+  ihave IH : iprop(∃ (k : w64) (L : List GoString), "i" ∷ i_ptr ↦ k ∗
       "HSt" ∷ srvSendTok (Rep := strmMsg (GF := GF)) γ L ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ sv.Value'.length ∧ L.length = sint.nat k⌝) $$ [i HSt]
   · iexists W64 0, []
