@@ -33,6 +33,7 @@ variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples
 def pkgInitTable : List (GoString × IProp GF) :=
   [(pkg_id.context, isPkgInit (PROP := IProp GF) pkg_id.context),
    (pkg_id.errors, isPkgInit (PROP := IProp GF) pkg_id.errors),
+   (pkg_id.github_com.goose_lang.primitive, isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire),
@@ -145,19 +146,23 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h8, h0, h13, h19, h7, h14, h18, True.intro⟩
-  have h21 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire (getIsPkgInit (GF := GF)) := by
+  have h21 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h20, True.intro⟩
-  have h22 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h22 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h20, h6, h21, True.intro⟩
-  have h23 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server (getIsPkgInit (GF := GF)) := by
+    exact ⟨h20, h21, True.intro⟩
+  have h23 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h22, True.intro⟩
-  exact h23
+    exact ⟨h20, h6, h22, True.intro⟩
+  have h24 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h23, True.intro⟩
+  exact h24
 
 end table
 

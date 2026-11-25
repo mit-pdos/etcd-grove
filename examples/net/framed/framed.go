@@ -10,9 +10,11 @@
 //
 // Three nodes, each a process (cmd/server, cmd/client, cmd/junk): the server
 // listens at SrvAddr and serves each connection in turn, echoing message after
-// message until an error; the client sends three messages of different sizes on
-// one connection and checks that each reply is its request; the junk node dials
-// the server too and writes malformed frames. The client's check holds however
+// message until an error; the client sends 1 to maxMsgs messages on one
+// connection, each of 0 to maxMsgLen random bytes (their number, lengths and
+// bytes drawn at random), and checks that each reply is its request; the junk
+// node dials the server too, writes 1 to maxJunk random bytes (frames cut short
+// by its close, most likely) and closes. The client's check holds however
 // the bytes are split among Reads, because a connection carries its own
 // dialer's bytes in order and intact: the server's n-th reply is built from the
 // n-th frame of the client's stream, and the client parses the replies with the
@@ -30,6 +32,15 @@ import (
 
 // SrvAddr is the server's address.
 const SrvAddr = "127.0.0.1:7102"
+
+// maxMsgs is the most messages the client sends on its connection.
+const maxMsgs = 4
+
+// maxMsgLen is the longest message: its length is a 1-byte header.
+const maxMsgLen = 255
+
+// maxJunk is the most bytes the junk node sends.
+const maxJunk = 16
 
 // serveConn echoes the messages of the connection c until an error, then
 // closes it.
@@ -94,25 +105,31 @@ func exchange(c net.Conn, req []byte) bool {
 	return true
 }
 
-// Call sends three messages on one connection and checks each reply.
+// Call sends 1 to maxMsgs messages of random bytes, each of 0 to maxMsgLen,
+// on one connection and checks each reply; it stops at the first exchange that
+// fails.
 func Call() {
+	k := 1 + wire.RandomInt(maxMsgs-1)
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	if exchange(c, []byte("a")) && exchange(c, []byte("bcd")) {
-		exchange(c, []byte("hello"))
+	for i := 0; i < k; i++ {
+		if !exchange(c, wire.RandomBytes(wire.RandomInt(maxMsgLen))) {
+			break
+		}
 	}
 	c.Close()
 }
 
-// SendJunk sends the server a frame whose header claims more bytes than follow,
-// then closes the connection.
+// SendJunk sends the server 1 to maxJunk random bytes (a frame whose header
+// claims more bytes than follow, most likely), then closes the connection.
 func SendJunk() {
+	junk := wire.RandomBytes(1 + wire.RandomInt(maxJunk-1))
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	c.Write([]byte("\x09xyz"))
+	c.Write(junk)
 	c.Close()
 }

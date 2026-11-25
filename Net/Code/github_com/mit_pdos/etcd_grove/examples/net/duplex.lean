@@ -25,8 +25,8 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.duplex
 @[reducible] noncomputable def SrvAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:7104")
 
-@[reducible] noncomputable def n [GooseExts] [GoGlobalContext] : val :=
-  #(4 : Int)
+@[reducible] noncomputable def maxN [GooseExts] [GoGlobalContext] : val :=
+  #(64 : Int)
 
 noncomputable def serveConn [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/duplex.serveConn"
@@ -43,7 +43,7 @@ noncomputable def Call [GooseExts] [GoGlobalContext] : GoString :=
 /-- serveConn writes back whatever it reads of the connection c until an error,
     then closes it.
 
-    go: duplex.go:35:6 -/
+    go: duplex.go:36:6 -/
 noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -105,7 +105,7 @@ noncomputable def serveConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Serve listens at SrvAddr, then accepts connections one at a time and echoes
     each until it fails. It returns only if it cannot listen.
 
-    go: duplex.go:53:6 -/
+    go: duplex.go:54:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -159,16 +159,18 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeAll writes the bytes 1..n to c, one Write each, until one fails.
 
-    go: duplex.go:68:6 -/
+    go: duplex.go:69:6 -/
 noncomputable def writeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
+  (Lam "n"
   (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
   (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Conn.ty))) (Var "c"))
   (Let "$r0" (Val #(W64 1))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val n)))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 1)))
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -200,16 +202,20 @@ noncomputable def writeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
-  (Val #())))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (Val #()))))
 
-/-- Call writes the bytes 1..n from one goroutine while it reads their echo in
-    another, and checks the bytes read.
+/-- Call writes the bytes 1..n, n from 1 to maxN drawn at random, from one
+    goroutine while it reads their echo in another, and checks the bytes read.
 
-    go: duplex.go:80:6 -/
+    go: duplex.go:81:6 -/
 noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (Val #(W64 63))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomInt []))) (Val #())) (Var "$a0")))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Val #(go!"tcp"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val SrvAddr))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Dial []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -223,6 +229,7 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "c"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
   (Let "$go" (App (Val (GoInstruction (FuncResolve writeAll []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -232,7 +239,7 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val n)))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 1)))
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -258,7 +265,7 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Fork
-  (App (Var "$go") (Var "$a0")))))))))
+  (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val #()))
@@ -267,7 +274,9 @@ noncomputable def Call.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.duplex where
