@@ -30,7 +30,8 @@ trusted opaque with no law, is defined by the `rawMD`'s contents): the transport
 merged view (`outViewOf`) is `md`.
 
 `grpc.outRawFn.law`: grpc's package variable `metadataFromOutgoingContextRaw` holds `metadata`'s
-`fromOutgoingContextRaw` (true after grpc's initializer: `Init.lean`; to be added to `grpcInit`).
+`fromOutgoingContextRaw`; proved, `grpc.outRawFn_law_holds`, from grpc's package fact (`grpcInit`,
+W1, 2026-11-26).
 -/
 module
 
@@ -296,6 +297,14 @@ abbrev grpc.outRawFn.law : Prop :=
   isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ⊢
     globalAddr google_golang_org.grpc.metadataFromOutgoingContextRaw ↦□
       (functions google_golang_org.grpc.metadata.fromOutgoingContextRaw [] : GoFunc)
+
+/-- **The law holds**: it is a conjunct of grpc's package fact (`grpcInit`, W1, 2026-11-26). -/
+theorem grpc.outRawFn_law_holds : grpc.outRawFn.law (GF := GF) (hG := hG) := by
+  iintro #Hpkg
+  ihave #Hi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.grpcInit (hG := hG) : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hi with ⟨-, Hm, -⟩
+  iexact Hm
 
 end defs
 
