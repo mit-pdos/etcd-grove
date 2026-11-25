@@ -123,7 +123,7 @@ end pure
 section dec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors}
-variable {St J I O : Type}
+variable {St J I O : Type} [DecidableEq J]
 
 /-- porcupine's model `S` steps as the pending-writes model of `R.B` (on the model inputs `R.mi i`)
 on the operations `R`'s Go values make, **at every configuration `c` of a state `s` the far side may
@@ -153,7 +153,7 @@ structure PendDec (R : RBase GF St J I O) (S : ModelSpec GF (linkv.PSet St J)) :
 /-- `PendDec` for a store whose model input is its wire input (`R.mi i = i`), in the form of a
 function equality: porcupine's `S` steps an answered operation `(iv i, ov o)` exactly as `pSeq R.B`
 steps `(i, ok o)`, an unknown one as `(i, err)`, at every state (`PendDec.ofTotal`). -/
-structure PendDecTotal (R : RBase GF St I I O) (S : ModelSpec GF (linkv.PSet St I)) : Prop where
+structure PendDecTotal [DecidableEq I] (R : RBase GF St I I O) (S : ModelSpec GF (linkv.PSet St I)) : Prop where
   init : S.M.init = linkv.pInit R.B
   ok : ∀ s i o, S.M.step s (R.iv i, R.ov o) = (linkv.pSeq R.B).step s (i, .ok o)
   err : ∀ s i, S.M.step s (R.iv i, R.unk i) = (linkv.pSeq R.B).step s (i, .err)
@@ -162,7 +162,7 @@ structure PendDecTotal (R : RBase GF St I I O) (S : ModelSpec GF (linkv.PSet St 
   noObs : ∀ i, R.B.isObs i = false
 
 /-- The total form gives `PendDec` (the counter's and dsverify's stores). -/
-theorem PendDec.ofTotal {R : RBase GF St I I O} {S : ModelSpec GF (linkv.PSet St I)}
+theorem PendDec.ofTotal [DecidableEq I] {R : RBase GF St I I O} {S : ModelSpec GF (linkv.PSet St I)}
     (hmi : ∀ i, R.mi i = i) (h : PendDecTotal R S) : PendDec R S where
   init := h.init
   ok s c i hc _ := by
@@ -188,7 +188,7 @@ theorem sysState_keep (R : RBase GF St J I O) (st : St) :
     R.sysState st ⊢ iprop(R.sysState st ∗ ⌜R.good st⌝) :=
   (BI.and_intro .rfl (R.sysState_good st)).trans BI.persistent_and_sep_mp
 
-variable [DecidableEq J] {R : RBase GF St J I O} {S : ModelSpec GF (linkv.PSet St J)}
+variable {R : RBase GF St J I O} {S : ModelSpec GF (linkv.PSet St J)}
 
 /-- An operation answered at the real configuration: the state stepped. -/
 theorem PendDec.pendOk_ok (hS : PendDec R S) {s : linkv.PSet St J} {st : St} {M : GMap Nat J}
@@ -667,7 +667,7 @@ theorem pend_choice (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF
       imod Hclose $$ [Hv Hs Hm] with -
       · inext
         unfold pendBody
-        iexists _, S', st, GMap.insert nx i M, nx + 1
+        iexists _, S', st, GMap.insert nx (R.mi i) M, nx + 1
         iframe Hv Hs Hm
         ipureintro; exact ⟨Hr', Hok'⟩
       imodintro
