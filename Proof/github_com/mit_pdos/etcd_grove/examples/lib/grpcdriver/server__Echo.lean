@@ -95,7 +95,7 @@ theorem server.Echo.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF)
     iframe Hruns Hmap
     isplitr
     · ipureintro; exact runsOk_insert Hok Hv Hw _
-    simp only [BigSepL.bigSepL_cons]
+    iapply BigSepL.bigSepL_cons.2
     iframe
   try wp_auto
   have h1 : (W64 0 + W64 1 : w64) = W64 1 := by decide
