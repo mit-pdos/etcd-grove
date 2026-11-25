@@ -164,7 +164,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb HLv Hrb48 HrbN HwbN Haf
+  intro CS ES FS RS N id ctxs boot nw nops Hbf Htb HLv Hrb48 HrbN HwbN Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Hstart, Htok, #Hprem⟩

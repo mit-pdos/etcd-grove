@@ -24,7 +24,7 @@ public import Perennial.Proof.slices.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Init

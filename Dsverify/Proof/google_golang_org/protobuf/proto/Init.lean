@@ -7,10 +7,10 @@ initializers of its variables (`X.init`, models in `TrustedCode/` that do nothin
 -/
 module
 
-public import Dsverify.Proof.google_golang_org.protobuf.Base
-public import Dsverify.Proof.google_golang_org.protobuf.internal.pragma.Init
-public import Dsverify.Proof.google_golang_org.protobuf.reflect.protoreflect.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.google_golang_org.protobuf.PkgInit
+public import Proof.google_golang_org.protobuf.internal.pragma.Init
+public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

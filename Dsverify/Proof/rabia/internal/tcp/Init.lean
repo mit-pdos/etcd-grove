@@ -11,11 +11,11 @@ public import Dsverify.Proof.rabia.internal.tcp.Base
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
-public import Net.Proof.net.Init
+public import Proof.bufio.Init
+public import Proof.net.Init
 public import Dsverify.Proof.rabia.internal.config.Init
 public import Dsverify.Proof.rabia.internal.message.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 

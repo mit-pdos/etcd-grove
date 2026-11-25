@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 theorem Apply.wp_proof (wp_Apply : etcd_txnlin.Apply.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC γ cls clis hAs hne
+  intro _ γ cls clis hAs hne
   iintro #Hpkg #Plkv #Pcli #Hcls #Hok
   iintro %i
   imodintro

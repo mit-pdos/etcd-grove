@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.crypto.tls.PkgInit
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

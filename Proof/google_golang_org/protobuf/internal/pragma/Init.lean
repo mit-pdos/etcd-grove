@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.google_golang_org.protobuf.PkgInit
 public import Perennial.Proof.sync.Link
 public import Proof.runtime.PkgInitExt
 

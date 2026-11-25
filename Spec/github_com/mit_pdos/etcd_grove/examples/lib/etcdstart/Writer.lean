@@ -6,8 +6,8 @@ precondition), each with the caller's write update of the KV state by the put (o
 persistent family, fired at most once, its result `QW k v σ` at the state `σ` it fired at), each in
 a context with the examples' request timeout (`context.WithTimeout(context.Background(),
 RequestTimeout)`, cancelled after the call; 2026-10-23, `notes/client-timeouts-plan.md` D-T2: the
-context is an `isContext` whose `Err()` returns client errors, by the premises `ContextReadErrs`
-and `ContextErrsClient` on Go's context errors), logging each that returned no error in `w`
+context is an `isContext` whose `Err()` returns client errors, by `ContextReadErrs.errs` and
+`ContextErrsClient.errs` on Go's context errors), logging each that returned no error in `w`
 (`wsInvF`, the log's lock invariant) with the caller's fact `OkF` of its record (from `QW` and the
 reply's facts: its revision is `σ`'s next, `σ` a well-formed log's state, `kvLogOk`). The caller's facts are its own
 (watchkv's of its invariant over the KV state, cachekv's of the clients' model of etcd); until
@@ -73,8 +73,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 /-- See the file header. -/
 abbrev Writer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (cl api : Loc) (γk : KVNames) (QW : GoString → GoString → KVState → IProp GF)
     (OkF : wrec → IProp GF) (w : Loc) (tsl : GoSlice) (tried : List wkv) (lo hi : w64),
   (∀ p, Persistent (OkF p)) →

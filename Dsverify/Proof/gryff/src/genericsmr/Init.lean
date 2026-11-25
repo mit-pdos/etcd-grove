@@ -15,16 +15,16 @@ public import Perennial.Proof.log.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Dsverify.Proof.gryff.src.dlog.Init
 public import Dsverify.Proof.gryff.src.fastrpc.Init
 public import Dsverify.Proof.gryff.src.genericsmrproto.Init
 public import Dsverify.Proof.gryff.src.state.Init
 public import Dsverify.Proof.gryff.src.stats.Init
-public import Net.Proof.net.Init
-public import Net.Proof.os.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.net.Init
+public import Proof.os.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

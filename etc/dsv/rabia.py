@@ -50,9 +50,9 @@ PKGS = [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.
 PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
             f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in RABIA_NODES}
 # the main tree's packages the kit imports beside `NET_MAIN`'s (bufio, container/heap, path)
-# (their `Init.lean` generated into the part, over `Net/`'s `PkgInitExt`, as `Net/`'s `NET_MAIN`; the
-# instances of `container.heap` and `path`, which the main tree declares in etcd's packages, the
-# part's own `Base.lean`; `internal.bytealg` is Perennial's)
+# (their `Init.lean` the main tree's, etc/gen-init.py's `shared_inits`, as `Net/`'s `NET_MAIN`'s; the
+# instances of `container.heap` and `path` the main tree's `Proof/<pkg>/PkgInit.lean` (L1,
+# 2026-11-24); `internal.bytealg` is Perennial's)
 MAIN = ['bufio', 'container.heap', 'path']
 # the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a hypothesis
 # (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem initializing

@@ -39,7 +39,7 @@ theorem grant.wp_proof
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG)) :
     grant.spec (GF := GF) (hG := hG) := by
   have wp_Grant := lessor.Grant.specP_of wp_Grant
-  intro CRE CEC cl eps V Spec Q
+  intro cl eps V Spec Q
   wp_start as ⟨Hlt, #Hnc, #Hrpc, #HS, %hAs⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

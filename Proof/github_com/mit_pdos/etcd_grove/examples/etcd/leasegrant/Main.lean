@@ -68,7 +68,7 @@ theorem Main.wp_proof
     Main.spec (GF := GF) (hG := hG) := by
   have wp_Grant := lessor.Grant.specP_of wp_Grant
   have wp_Leases := lessor.Leases.specP_of wp_Leases
-  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP HnE Hms hAs
+  intro CS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP HnE Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩

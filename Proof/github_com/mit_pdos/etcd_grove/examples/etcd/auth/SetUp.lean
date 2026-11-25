@@ -57,7 +57,7 @@ theorem SetUp.wp_proof
     (wp_AuthEnable : authClient.AuthEnable.spec (GF := GF) (hG := hG))
     (h_client_Put_on : client_Put_on.law (GF := GF) (hG := hG)) :
     SetUp.spec (GF := GF) (hG := hG) := by
-  intro CS EA FA RA CRE CEC cl ep V s E ρ cid mid γa hmode hc0 hAs
+  intro CS EA FA RA cl ep V s E ρ cid mid γa hmode hc0 hAs
   wp_start as ⟨Hlt, #Hnc, #Htok, #Hput, #Hkv, #Hauth, #Htls, Hview⟩
   iunfold clientTokAt at Htok
   icases Htok with ⟨%api, %conn, #Hkvf, #Hobj, #Hctok, ⟨%ap, #Hauf, #Hap⟩, -⟩

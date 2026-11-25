@@ -97,7 +97,6 @@ theorem isGrpcStreamsMd_of_big {Req Rep : StreamMsg GF} (name : GoString)
 /-- **The watcher's facts at every connection to the members' addresses** (see the file header). -/
 theorem watchEnvL_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (m0 : WMem GF) (ms : List (WMem GF)) (γr : ReadNames) (pfx : GoString) (hp : pfx ≠ [])

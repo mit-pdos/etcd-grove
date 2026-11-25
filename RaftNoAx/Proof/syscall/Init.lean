@@ -19,7 +19,7 @@ public import Perennial.Proof.internal.strconv.Link
 public import Perennial.Proof.sync.Link
 public import Proof.syscall.Models
 public import Perennial.Proof.sync.Link
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -98,7 +98,6 @@ theorem clientWatchVars_of_init :
 theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (V : WEnv GF) (conn : Loc) (ics : List GoFunc)
@@ -249,7 +248,6 @@ connection with the server's facts (`isClientWatcher`, what `watcher.Watch`'s sp
 theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (cl : Loc) (eps : List GoString) (V : WEnv GF) (hV : eps = [V.addr])
@@ -282,7 +280,6 @@ at its one address). -/
 theorem watchConnFacts_of_members [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (V : WEnv GF) (conn : Loc) (ics : List GoFunc) :

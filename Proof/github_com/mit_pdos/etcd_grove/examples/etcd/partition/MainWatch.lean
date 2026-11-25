@@ -121,7 +121,7 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
+  intro CS ES FS RS N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
     HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts

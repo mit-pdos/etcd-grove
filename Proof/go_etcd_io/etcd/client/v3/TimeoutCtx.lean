@@ -4,8 +4,8 @@ what the examples' call sites need of `ctx, cancel := context.WithTimeout(contex
 the pattern of client/v3's documentation -- the context is one the client's call lemmas take
 (`ctxOk`: an `isContext`) whose `Err()` returns client errors (`ctxErrClient`, by
 `ctxErrClientAllW_of`'s argument: Go's `context.Canceled` and `DeadlineExceeded` are leaf errors,
-no `rpctypes.EtcdError`, without a `GRPCStatus` method -- the premises `ContextReadErrs` and
-`ContextErrsClient`), and `cancel` is callable from anywhere. Over the trust-boundary spec
+no `rpctypes.EtcdError`, without a `GRPCStatus` method -- `ContextReadErrs.errs` and
+`ContextErrsClient.errs`, from Perennial's `context.isInit`), and `cancel` is callable from anywhere. Over the trust-boundary spec
 `context.WithTimeoutBackground` (the read loop's: Perennial specifies `WithTimeout` of an
 `isContext` parent only, and `Background()` is none; `notes/perennial-changes.md`,
 "`WithTimeout`/`WithDeadline` of `Background()`").
@@ -43,7 +43,6 @@ its having no outgoing metadata (`metadata.outgoingCtxOkC`, from `Background()`'
 `cancel`. -/
 theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (d : _root_.Perennial.time.Duration) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
@@ -76,7 +75,6 @@ theorem wp_WithTimeout_bg (hWT : context.WithTimeoutBackground.spec (GF := GF) (
 `context.WithTimeoutBackgroundMd`, the context also carries no outgoing metadata. -/
 theorem wp_WithTimeout_bgMd (hWT : context.WithTimeoutBackgroundMd.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (d : _root_.Perennial.time.Duration) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context }}

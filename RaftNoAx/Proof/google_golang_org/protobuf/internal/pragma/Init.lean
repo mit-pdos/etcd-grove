@@ -9,9 +9,9 @@ variable).
 -- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part's.
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.google_golang_org.protobuf.PkgInit
 public import Perennial.Proof.sync.Link
-public import RaftNoAx.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

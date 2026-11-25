@@ -72,7 +72,7 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law)
     (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA CR CE N id ctxs boot clients ops watchers wops Hbf Htb HLv Hrb48 HrbN HwbN Haf
+  intro CS EK RT SC ST VA N id ctxs boot clients ops watchers wops Hbf Htb HLv Hrb48 HrbN HwbN Haf
     Hbuq Hrf Hdbo Hms hAs hse Hty H0 Hw0 H31 Hops Hwops Hmul
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)

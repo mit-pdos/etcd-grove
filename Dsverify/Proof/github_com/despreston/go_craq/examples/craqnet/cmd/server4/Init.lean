@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.cmd.server4.Base
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
 

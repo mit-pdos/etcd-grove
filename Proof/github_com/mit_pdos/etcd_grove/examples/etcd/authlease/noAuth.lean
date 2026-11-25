@@ -47,7 +47,7 @@ theorem noAuth.wp_proof
     (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
     (wp_WithAttachedKeys : WithAttachedKeys.spec (GF := GF) (hG := hG)) :
     noAuth.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC cli who addr id s E ρ γa n ml Qg Qr hwho hAs
+  intro CS ES FS RS cli who addr id s E ρ γa n ml Qg Qr hwho hAs
   wp_start as ⟨Hlt, #Htk, #Hsv, #Hn, #Hml, #Hno, #HQg, #HQr⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

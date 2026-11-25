@@ -43,7 +43,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     (wp_callDel : callDel.spec (GF := GF) (hG := hG))
     (wp_callTxn : callTxn.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs x i Q hx hgen
+  intro _ cl ms V hAs x i Q hx hgen
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
   unfold callUpd callRes

@@ -36,7 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 
 /-- See the file header. -/
 abbrev leases.spec : Prop :=
-  ∀ [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF)
     (Spec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Q : LeaseLeasesRespM → IProp GF),

@@ -41,7 +41,7 @@ theorem apiserver.wp_proof
     (wp_StartCompactorPerEndpoint : k8s.StartCompactorPerEndpoint.spec (GF := GF) (hG := hG))
     (wp_check : check.spec (GF := GF) (hG := hG)) :
     apiserver.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ cl ms V γr γk γ shared hsame hcmp hcret
+  intro _ _ cl ms V γr γk γ shared hsame hcmp hcret
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hst, #Hko, #Hwo, #Heps, #Hinv, #Hkvi⟩
   ihave #Pe3 : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
   · iPkgInit

@@ -14,14 +14,14 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
-public import Net.Proof.net.Init
-public import Net.Proof.os.Init
+public import Proof.net.Init
+public import Proof.os.Init
 
 @[expose] public section
 

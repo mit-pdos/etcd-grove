@@ -40,6 +40,7 @@ public import Proof.math.rand.Float64
 public import Proof.go_etcd_io.etcd.client.v3.jitterUp
 public import Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter
 public import Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExtRaft
 
 @[expose] public section
 
