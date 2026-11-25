@@ -725,3 +725,87 @@ to: Upamanyu (via coordinator-E), etcd-grove#40 — the reflection packet's land
 - **Outside the three overlays:** the trusted `internal/sync.Mutex` and `sync.copyChecker` change layouts, so they are now in the list.
 
 — upamanyus worker (handoff pickup, reflection)
+
+## Round 6 (2026-11-25): the five conditions of the provisional approval of item 1 (#40, 7168630890)
+
+Upamanyu approved the trusted step rules (item 1) provisionally, on five conditions (coordinator-E,
+etcd-grove#40 comment 7168630890, from a design study that kept the current primitive family). Still:
+nothing reflect-related lands or is queued. Scratch: `~/.claude-D/jobs/43217da4/tmp/refl-c5/` (logs,
+`bin/vb.sh` = VM build of p-refl05, key 2486aba726c40cb7).
+
+Done on Perennial `reflect-s05` (commit `b70e1c7f3` and after, see the state below):
+1. **`ConvertAt` takes `go.Convertible t u`** (Reflect.lean): Go's conversion rules for a non-constant
+   value, one constructor per spec rule (implements, bidirectional chan assignability, identical
+   underlying, unnamed pointers, numeric, complex, to/from string, slice to array / pointer to array,
+   the two `unsafe.Pointer` rules), over Lean's types (`kindIn`, `byteOrRuneSlice`, `isNamed`).
+   Spec `ConvertAt.spec` conj 1 gains the premise; conj 2 (interface) derives it (`.implements`);
+   the two `Value.Elem` proofs pass `go.Convertible.refl`. Harness `GoConvertible` mirrors it; the six
+   lean-only conversions are now stuck through `ConvertAt`; `TestGoConvertible` checks it against
+   each case's Go legality (only the two tagged-unnamed-struct cases are less defined) and against
+   reflect's `ConvertibleTo` on all 858 convertible corpus pairs (79 types; unsafe rows exempt).
+   The `Convert` rules themselves: the separate item below.
+2. **`arrayOf` dropped** from `TypeQ` (Countable renumbered: underlying 22, identByName 23),
+   `typeQuery`, `ReachesLayoutModelled`, harness `QArrayOf`, Lean/harness tests.
+3. **`PointerOfAt` removed** (instruction, Countable node 52, six rules, its WP lemmas, stub, toml
+   entry, harness). `internal/reflectcore` no longer imports `unsafe`: its `initialize'` proof
+   drops the `unsafe` hypothesis (as `cmp`'s), Base/Link regenerated.
+4. **Docstrings**: each rule names its Go template (`any(U(x))` for `x : T`, `any(&(*p).f)`,
+   `any((*p)[:])`, `x == nil`, `f[T1, …, Tn]`), `typeQuery`'s rows each have their reflect
+   expression; the `layoutModelled` guard is stated once, in Reflect.lean's module docstring
+   (the rules keep their `[NotLayoutModelled t]` binders, so no proof changes: decided, as
+   "once" read as "one statement of the guard", not a restructuring of the class).
+5. **Decls over listed types refused by goose** (`goose/layout.go` `checkModelDecls`, negative test
+   `goose/testdata/negative-tests/modeldecl_over`): `type M N`, not an alias (local ones too), with
+   `N` `LayoutModelled`, directly or through declarations of the same files (another package's
+   such declaration is refused when that package is translated). Confirmed first (Go vs model):
+   old goose translated `type M primitive.Mutex` with `M.underlying := primitive.Mutex.ty`
+   (UnderlyingDirectedEq), i.e. Lean underlying `bool`, `M` not in the list, so
+   `typeQuery .kind M = some 1` (Bool; Lean example in `Tests/ReflectTypeQuery.lean`), while Go's
+   `reflect.TypeOf(M{}).Kind()` is `struct` (and `M2`, `type M2 M`, too; NumField 1). New goose:
+   "type M declared over github.com/goose-lang/primitive.Mutex, whose layout its Go model changes".
+   **Decision: refuse rather than extend the list**, because the list is Perennial's (generated
+   over std/perennial/primitive) and cannot name another project's types; a refusal covers every
+   project, and a scan found no such declaration in std, Perennial or primitive (refl-c5/scan;
+   etcd-grove's projects: the VM regen). Alternative kept open: a per-package emitted
+   `layoutModelled` fact (needs `NotLayoutModelled` to come from package assumptions: more proof
+   rework).
+
+**Plans recorded (not done):**
+- **S3: `TypeMake`**, one constructor instruction `TypeMake (c : TypeC)` with `funcOf`, `mapOf`,
+  `arrayOf`, `chanOf` (the reflect constructors `FuncOf`/`MapOf`/`ArrayOf`/`ChanOf`), taking
+  component tokens (and the array length, the chan direction, the variadic flag) and returning the
+  composite's token; premises = Go's validity (map key comparable; array size bound and no
+  `layoutModelled` type reachable, as the dropped row had; chan element size < 64 KiB; variadic last
+  input a slice). Design question for S3: `MapOf`/`ChanOf` could be translated generic helpers
+  instead (`FuncResolveAt` with two dispatch values); `ArrayOf`/`FuncOf` cannot (a length, an arity).
+- **S5: `PointerOfAt`** returns with only its map and slice rows (`DeepEqual`'s cycle detection);
+  the pointer/unsafe/chan rows are not to come back.
+- **The shape lint does not exist yet; it is needed before S3.** The plan relies on a lint that
+  checks each `FuncResolveAt shs f` stub (TrustedCode/internal/reflectcore.lean) against the
+  translated helper `f`: that `shs` yields exactly `f`'s type parameters in order (`shapesArgs`),
+  and that each dispatch argument's Go parameter type is the shape's (`*T` for `deref self`, ...).
+  Today the seven stubs are checked only by review and the harness (which re-derives the dispatch
+  in Go).
+
+**The separate item: two `Convert` rules more defined than Go** (write-up, for its own issue; not
+fixed here):
+- `convert_channel` (`Golang/Defn/Chan.lean`): `Convert (chan d1 e) (chan d2 e)` steps for any
+  directions. Go converts a channel only between identical underlying types or from a bidirectional
+  channel (assignability: identical element types, one side not named). Harness cases:
+  `<-chan int → chan<- int`, `chan<- int → <-chan int`, `chan<- int → chan int`, and both-named
+  `myChan → myRecvChan` (bidirectional, but both named).
+- `convert_underlying` + `convert_pointer_same_underlying` (`PostLang.lean`): for named pointer
+  types `P = *A`, `Q = *B` with `underlying A = underlying B`, `Convert P Q` reduces at the
+  underlying types and steps; Go rejects it (named, and `*A`/`*B` not identical). Cases:
+  `PS1x → *S1b`, `PS1x → *struct{A int}`.
+- Related, found now: Lean's struct types do not qualify an unexported field name by its package,
+  so `struct{x int}` of two packages is one Lean type (Go: distinct, not convertible); through
+  `is_convert_underlying_same` (and `Convertible.underlying`/`.pointer`) the model converts them.
+- Reach: goose emits `Convert` only for conversions that type-check, so static code never reaches
+  these; only `ConvertAt` took its types from run-time values, and it now requires `go.Convertible`
+  (whose rows have the third gap, recorded in its docstring).
+- Fix sketch (fix-semantics): the direction change and the pointer rule are about the types
+  themselves, not their underlying types: state them as non-`[under]` rules on the literal types
+  with Go's premises (`d1 = sendrecv`, one side unnamed; both pointer types unnamed), keeping the
+  `[under]` route only for identical underlying types; record the field-name gap in
+  KNOWN_LIMITATIONS (or qualify unexported field names in goose's struct types).
