@@ -39,12 +39,14 @@ which `bolt.Open` stores; defrag reopens the database with the same `b.bopts`, `
 Never produced for defrag's temporary database (`NoSync = true`, `backend.go:531`), which no `γ` of
 a backend names. Concretely bbolt's `boltSyncs γ` (`Spec/go_etcd_io/bbolt/Api.lean`): `γ`'s `DB` has both
 fields `false` (persistent points-tos), which bbolt's invariant (`dbFixed`) agrees with. -/
-def dbOptsRaw [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := onFs iprop(bbolt.boltSyncs γ)
+def dbOptsRaw [hG : HeapGS hlc GF] [sem : go.Semantics] (γ : DBNames) : IProp GF :=
+  onFs iprop(bbolt.boltSyncs γ)
 
 /-- (C-I1) `dbOptsRaw`, persistent. -/
-def dbOpts [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := iprop(<pers> dbOptsRaw γ)
+def dbOpts [hG : HeapGS hlc GF] [sem : go.Semantics] (γ : DBNames) : IProp GF :=
+  iprop(<pers> dbOptsRaw γ)
 
-instance dbOpts_persistent [hG : HeapGS hlc GF] (γ : DBNames) : Persistent (dbOpts (GF := GF) γ) := by
+instance dbOpts_persistent [hG : HeapGS hlc GF] [sem : go.Semantics] (γ : DBNames) : Persistent (dbOpts (GF := GF) γ) := by
   unfold dbOpts; infer_instance
 
 end preds
