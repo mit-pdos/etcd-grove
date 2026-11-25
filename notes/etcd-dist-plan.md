@@ -2459,11 +2459,38 @@ No `Link` entry: the linking is the manual `AdequacyMember` module, as putgetK's
 **Port (2026-11-25), branch `etcd-safe-nc-n5/2026-11-25`** from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca` (the
 no-crash line with N2): N5's commits cherry-picked (`-x`); the generated files regenerated at this line's pins (the
 server translation, `dist/server`'s Init/PkgTable, SpecPlan's PkgInit; `ReadyNotify`'s translation at the etcd pin
-`df6af0c36`); `bounds-allow` without the crash line's `NewServerRAt` entry. In progress:
-- **Γ** (helper C): `memberShareD` without the publication (`etcdAddrAt client c.view id`, `Serve_dist` at `Γ`,
-  `kvCongr ρ.rd.kv Γ.kv`); the specs' `BootFacts` premise as `BootCore`.
-- **BootFacts pinned to Go's computed values** (the coordinator's decision, N6's "BootFacts → bootGo's values"; a
-  statement change for the no-crash packet; helper D): `distPs d := bootGo.ps`, `distCtxs d := bootGo.ctxs` at the
-  deployment's initial cluster, `BootFacts d boot := BootCore (distPs d) (distCtxs d) boot` (until now `ps`, `ctxs`
-  were free); `deployment.WellFormed` refuses a member id `MaxUint64`/`MaxUint64 − 1` (raft's `Config.validate`);
-  `BootGoD.of_wf`, so that `member_boot_dist` takes no hypothesis beyond `EtcdBootNC`'s but `Hauth`.
+`df6af0c36`); `bounds-allow` without the crash line's `NewServerRAt` entry. Done on this branch (built on the VM, 11272 jobs: `server.AdequacyMember`, `dist.TopLevelRobustness` (Spec and
+Proof), `BootBad`, `BootFactsSat`, `deployment.Link`, `putgetk.Start`; tier, bounds, premise-witness, gen-init
+checks pass):
+- **Γ** (helper C): `memberShareD c d ps ctxs boot i` without the publication: its client fact is
+  `etcdAddrAt (member i's client) c.view (member i's id)` (N2's `memberStartShare`), `Serve_dist` at `Γ = c.view`
+  with `kvCongr ρ.rd.kv c.view.kv` from `memberBoot_of_slice`; the specs take `BootCore ps ctxs boot`.
+- **`member_boot_dist`** (`dist/server/AdequacyMember.lean`), the name and form M1's start takes:
+  `Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c, memberShareD c d (distPs d) (distCtxs d) boot i)`
+  at `Hd : d.WellFormed`, `Hbf : BootFacts d boot`, `EtcdEnv d`, `EtcdVerifyOff`, `GodebugFips140Off`,
+  `d.members[i]? = some m`, `ServerStart m σ`, and **one hypothesis beyond `EtcdBootNC`'s premises:
+  `Hauth : d.cfg.auth = false`** (M1's scope; the full theorem needs `Serve_dist`'s auth-on form, N11).
+
+**Packet items (the no-crash packet), Go program and statement changes of N5:**
+- Go: `MainLogger` calls `etcdstart.Serve(s, c.Client)` after `<-s.ReadyNotify()` (its inline body before).
+- Go: `deployment.WellFormed` bounds member names by `MaxNameLen = 200`: names of 201-255 bytes are now refused,
+  so those machines return at once.
+- Go: `deployment.WellFormed` refuses a member whose computed id is `MaxUint64` or `MaxUint64 − 1` (`RaftIdOk`;
+  raft v3.7's `Config.validate` refuses them, `StartNode` panics). Typed `WellFormed` mirrors it;
+  `TestWellFormed` tests `RaftIdOk` on crafted ids (a refusing deployment needs a SHA-1 preimage).
+- **BootFacts: ps/ctxs pinned to Go's computed values (they were free).** Old text (`etcd_robust_nocrash.spec`,
+  and the same in `etcd_robust.spec`):
+  ```
+      (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
+  ```
+  with `structure BootFacts (d) (ps) (ctxs) (boot) : Prop extends BootCore ps ctxs boot where perm : ps.Perm d.ids`.
+  New text:
+  ```
+      (boot : List LogEntry) (Hbf : BootFacts d boot)
+  ```
+  with (`TopLevelDefs.lean`) `abbrev BootFacts (d) (boot) : Prop := BootCore (distPs d) (distCtxs d) boot`,
+  `distPs d := bootGo.ps (distURLs d) d.token`, `distCtxs d := bootGo.ctxs (distURLs d) d.token`, `distURLs d` the
+  deployment's initial cluster (each name to its one peer URL `http://peer`). `EtcdBootNC`'s `BootPremises` is
+  `∃ boot, BootFacts d boot ∧ …`. Compiled witness of the remaining `BootFacts`: `BootFacts.sat : ∃ d boot,
+  d.WellFormed ∧ BootFacts d boot` (`BootFactsSat.lean`, a one-member deployment); the dist statements stay `* draft`
+  in the premise-witness baseline (their other premises have no witness yet).
