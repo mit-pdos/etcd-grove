@@ -93,7 +93,6 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom pbAuthenticateRequestT_reg
