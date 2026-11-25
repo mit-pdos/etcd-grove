@@ -14,7 +14,6 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.checkE
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.driverClient__Echo
 public import Spec.google_golang_org.protobuf.types.known.wrapperspb.String
 public import Perennial.Spec.context.Background
-public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.context.LibKeysChain
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
@@ -68,7 +67,7 @@ theorem echo.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG))
   ihave #Hctx : ctxOk context.backgroundCtxVal cd $$ []
   · iapply ctxOk_of_quiet
     isplitl
-    · iapply EtcdGrove.client.ctxQuiet_background
+    · iapply drv_ctxQuiet_background
     · iapply metadata.outgoingCtxOkC_background
   wp_apply (wp_Echo dc conn [drvAddr] (echoSpec γid) (mkVal id w)
       (fun r => iprop(⌜r = mkVal id w ++ go!"#1"⌝)) (fun _ => iprop(True))
@@ -101,6 +100,7 @@ theorem echo.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG))
     try wp_auto
     iunfold drvFacts at Hf
     icases Hf with ⟨%f, #Hfg, #Hfwp⟩
+    simp only [decide_true]
     try wp_auto
     try wp_bind (App (Val #f) (Val _))
     iapply wp_wand $$ (Hfwp $$ %go!"unary-reply")
@@ -115,8 +115,6 @@ theorem echo.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG))
       try wp_auto
       wp_apply wp_checkErr (GoInterface.ok ei) $$ []
       · iframe #
-        iunfold drvFacts at Hf
-        iexact Hf
       try wp_auto
       iapply HΦ
       itrivial

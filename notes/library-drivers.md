@@ -89,7 +89,7 @@ random goroutines on one `ClientConn`, then closes it and calls once more.
 |---|---|
 | error-set | an error from a call or stream operation is a status (`status.FromError` accepts it), or `io.EOF` |
 | unary-reply | a unary call without error ran the handler exactly once, on this request, and its reply is that run's |
-| status-roundtrip | a call whose handler failed returns an error (and, checked by the Go test only: with the handler's code) |
+| status-roundtrip | a call whose handler failed returns an error |
 | metadata | the values the caller's context carries at a key reach the handler, in order |
 | ctx-canceled | a call with a context already cancelled fails with `codes.Canceled` |
 | server-stream | the handler's messages arrive in order, without loss or duplication |

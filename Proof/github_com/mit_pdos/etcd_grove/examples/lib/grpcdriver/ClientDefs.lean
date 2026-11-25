@@ -60,6 +60,33 @@ instance drvCli_persistent (γid γb : GName) (c : GoInterface) (ids : Loc) :
     Persistent (drvCli (GF := GF) γid γb c ids) := by
   unfold drvCli; infer_instance
 
+/-- **`context.Background()` is quiet**: its `Done()` and `Err()` (the embedded `emptyCtx`'s) return
+`nil`, and it has no deadline (as client/v3's `ctxQuiet_background`, without that package's
+assumptions). -/
+theorem drv_ctxQuiet_background : ⊢ ctxQuiet (GF := GF) context.backgroundCtxVal := by
+  unfold ctxQuiet
+  isplitl
+  · iintro !> %Φ HΦ
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    iexact HΦ
+  isplitl
+  · iintro !> %Φ HΦ
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    iexact HΦ
+  unfold ctxDeadline
+  iintro !> %Φ HΦ
+  wp_method_call
+  wp_auto
+  wp_method_call
+  wp_auto
+  iapply HΦ
+
 end defs
 
 end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver

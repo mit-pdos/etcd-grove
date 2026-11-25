@@ -718,9 +718,6 @@ noncomputable def fail.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve freshValue []))) (Val #())) (Var "$a0")))
   (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W32 5))
-  (Let "want" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
@@ -736,32 +733,9 @@ noncomputable def fail.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.FromError []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "st" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Message"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "st"))) (Val #())) (App (Val (GoInstruction (GoLoad go.string))) (Var "v")))))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"status-roundtrip"))
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.string] false []))))) (App (Val (GoInstruction (GlobalVarAddr reached))) (Val #()))) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "st"))) (Val #())) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Var "want"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"status-roundtrip: the handler's message with another code")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$r1")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "st") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve checkErr []))) (Val #())) (Var "$a0")))))))
@@ -778,23 +752,17 @@ noncomputable def fail.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"p")) (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W32 2))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "want") (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$r0"))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Pair (Var "want") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$r0"))))))))))
   (Val #()))))
 
 /-- meta is the section metadata.
 
-    go: grpcdriver.go:242:6 -/
+    go: grpcdriver.go:237:6 -/
 noncomputable def «meta».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -884,7 +852,7 @@ noncomputable def «meta».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- canceled is the section ctx-canceled.
 
-    go: grpcdriver.go:265:6 -/
+    go: grpcdriver.go:260:6 -/
 noncomputable def canceled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -940,7 +908,7 @@ noncomputable def canceled.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- serverStream is the section server-stream.
 
-    go: grpcdriver.go:278:6 -/
+    go: grpcdriver.go:273:6 -/
 noncomputable def serverStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1035,7 +1003,7 @@ noncomputable def serverStream.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- clientStream is the section client-stream.
 
-    go: grpcdriver.go:308:6 -/
+    go: grpcdriver.go:303:6 -/
 noncomputable def clientStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1131,7 +1099,7 @@ noncomputable def clientStream.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- bidi is the section bidi-stream.
 
-    go: grpcdriver.go:336:6 -/
+    go: grpcdriver.go:331:6 -/
 noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -1261,7 +1229,7 @@ noncomputable def bidi.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- work runs random operations on the ClientConn's client.
 
-    go: grpcdriver.go:373:6 -/
+    go: grpcdriver.go:368:6 -/
 noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -1321,7 +1289,7 @@ noncomputable def work.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client connects to the server and runs random operations from random goroutines on one
     ClientConn, then closes it.
 
-    go: grpcdriver.go:397:6 -/
+    go: grpcdriver.go:392:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
