@@ -45,7 +45,6 @@ axiom bootstrap.wp_proofOne
 axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
-axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof

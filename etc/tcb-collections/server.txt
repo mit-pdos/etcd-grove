@@ -42,8 +42,6 @@ axiom binary.WriteUint8.wp_proof
 axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
-axiom dataDirFresh
-axiom encoding.json.Unmarshal.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom fmt.SscanfWalName.wp_proof

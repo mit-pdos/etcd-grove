@@ -32,11 +32,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 facts `BootGo1` and the `fips140` setting off. -/
 theorem premises_holds [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (name peer client : GoString) (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (hname : ∀ c ∈ name, JsonScan.plainEnc c)
     (hfips : crypto.fips140.GodebugFips140Off) (hf : BootGo1 name peer client id ctxs boot) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ⊢
       premises (GF := GF) name peer client N id ctxs boot :=
   premises_of_specOne (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
-    name peer client N id ctxs boot hfips hf
+    name peer client N id ctxs boot hname hfips hf
 
 end linked
 

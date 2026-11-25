@@ -110,7 +110,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (Hbg : etcdstart.BootGo1 name peer client id ctxs boot) (Hfips : crypto.fips140.GodebugFips140Off)
     (σm : state) (Hm : MemberFiles σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
-    DistBootWpST putgetSteps putgetThreads (bootMember peer client) σm
+    DistBootWpST putgetThreads putgetSteps (bootMember peer client) σm
       (memberShareIf peer client γE id (putgetPub (GF := putgetGF))) := by
   intro hG hGG hL hrb hT
   unfold putgetSteps at hrb
@@ -158,7 +158,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   -- statement's named Iris premise `Hprem`)
   ihave #Hsrvpkg : isPkgInit (PROP := IProp putgetGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
-  ihave #Hpr := etcdstart.premises_holds name peer client (2 ^ 48 - 1) id ctxs boot Hfips Hbg $$ Hsrvpkg
+  ihave #Hpr := etcdstart.premises_holds name peer client (2 ^ 48 - 1) id ctxs boot (by decide) Hfips Hbg $$ Hsrvpkg
   ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
