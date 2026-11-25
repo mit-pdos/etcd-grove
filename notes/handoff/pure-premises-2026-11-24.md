@@ -235,3 +235,4 @@ Each packet carries the premise-witness gate (`premise-witness/2026-11-24`, untr
 first packet to land brings it in.
 
 Update (2026-11-25, after the limit reset): P6 and P4/P5 landed (lean 17b17466f8). P3 merged lean e1ab967ea2; its MainAt specs take ETCD_VERIFY's offness as the pure `EtcdVerifyOff`, as lean's Main.spec now does (8b424fdae9). VM build of the P3 modules: 6978 jobs, exit 0, no sorry. #print axioms: mvccrand_robust, mvccfull_robust, mvccfull_safe 44 each (lean's ETCD_VERIFY change removed 2), all in etc/tcb-collections/mvccfull.txt; helper lemmas std only. Statement delta vs lean: only Hrfit and Habs dropped. mvccrand's deletion (#49) is still not on lean.
+Then merged lean 2fa4c36fd7 (premise-witness-fs; handoff note conflict resolved by keeping both sections); P3 modules rebuilt: 6978 jobs, exit 0, no sorry; axioms unchanged (44 each, within the mvccfull collection; witnesses and helpers std only).
