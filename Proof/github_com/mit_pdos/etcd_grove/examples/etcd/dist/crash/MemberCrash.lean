@@ -506,6 +506,17 @@ theorem memberWal_crash (L L' : GooseLocalGS GF) (h : WalH GF) (Q : Fs.OsState �
     iframe Hcw Hu
   · ipureintro; exact ⟨hp.1, hp.2.2.2.2.2.1⟩
 
+/-- **The cluster's facts are the same at any generation** (persistent ghost and invariant facts). -/
+theorem clusterFacts_gen (L L' : GooseLocalGS GF) (C : etcd_dist.MemberCl) :
+    etcdstart.clusterFacts (hG := ⟨G, etcd_dist.atCtx L⟩) C.γ C.γk C.issued C.cnt C.wn C.fs C.gen ⊣⊢
+      etcdstart.clusterFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) C.γ C.γk C.issued C.cnt C.wn C.fs C.gen :=
+  .rfl
+
+/-- **A restart's facts are the same at any generation.** -/
+theorem memberRestartFacts_gen (L L' : GooseLocalGS GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) :
+    etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L⟩) γ ρ id ⊣⊢
+      etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) γ ρ id := .rfl
+
 end dur
 
 end memberCrash
