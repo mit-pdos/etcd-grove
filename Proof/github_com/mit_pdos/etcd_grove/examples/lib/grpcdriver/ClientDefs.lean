@@ -7,7 +7,8 @@
 id counter `ids` (`isCtr`), and the generated stub `c` (a `*svc.driverClient`, as `svc.DriverClient`)
 over a connection `conn` to the server's address, dialed with no interceptor (`grpcConn conn
 [drvAddr] [] [] anyRes`), at which the service's methods are registered with their specs
-(`isGrpcRpcMd`, `Svc.lean`), and the streams' facts (`drvStrmFacts`).
+(`isGrpcRpcMd`, `Svc.lean`), the streams' facts (`drvStrmFacts`), and no per-RPC credentials
+(`connCredsOk conn []`: an attempt's metadata is the caller's).
 -/
 module
 
@@ -70,7 +71,7 @@ def drvCli (γid γb : GName) (c : GoInterface) (ids : Loc) : IProp GF :=
         (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr failName failSpec ∗
       isGrpcRpcMd (Req := (pbStringValueT (GF := GF)).toProtoMsg)
         (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr metaName metaSpec ∗
-      drvStrmFacts conn)
+      drvStrmFacts conn ∗ connCredsOk conn [] (fun _ => iprop(True)))
 
 instance drvCli_persistent (γid γb : GName) (c : GoInterface) (ids : Loc) :
     Persistent (drvCli (GF := GF) γid γb c ids) := by

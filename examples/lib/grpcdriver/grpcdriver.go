@@ -239,13 +239,14 @@ func meta(c svc.DriverClient) {
 	// order.
 	n := below(maxMD + 1)
 	var vals []string
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	for i := uint64(0); i < n; i++ {
 		v := randomWord()
 		vals = append(vals, v)
 		ctx = metadata.AppendToOutgoingContext(ctx, mdKey, v)
 	}
 	r, err := c.Meta(ctx, wrapperspb.String(""))
+	cancel()
 	if err != nil {
 		checkErr(err)
 		return

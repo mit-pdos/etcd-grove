@@ -2206,13 +2206,17 @@ translated initializers, two slice literals (`mvccrand.go`), whose slices are ma
 )
 
 # (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
-# `True` (`Base.lean`): `reached`, a function value, is allocated and stored; its service's `True`:
-# `Driver_ServiceDesc`, a `grpc.ServiceDesc` literal, as etcdserverpb's descriptors
+# `drvFacts` (`Base.lean`, 2026-11-25; `True` until then): `reached`, a function value, is allocated and
+# stored, and its calls return
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variable `reached`, initializes its imports
-and stores `reached`'s function value.''',
+    doc='''Its fact (`drvFacts`, `Base.lean`): its variable `reached`, read-only, holds a function whose calls
+return. Its initializer allocates `reached`, initializes its imports and stores `reached`'s function value.''',
     alloc_types={'reached': 'GoFunc'},
-    before={'reached': ['try wp_auto']})
+    before={'reached': ['try wp_auto']},
+    finish=['ipersist Hreached',
+            'iframe Hown', 'is_pkg_init_finish', 'try imodintro',
+            'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts',
+            'iexists _', 'iframe Hreached', 'imodintro', 'iintro %s', 'wp_auto', 'ipureintro; rfl'])
 # (grpcdriver server, 2026-11-25) its fact `drvDescs` (`svc/Base.lean`): the descriptor's fields, its
 # methods and streams exactly, as etcdserverpb's
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc'] = dict(

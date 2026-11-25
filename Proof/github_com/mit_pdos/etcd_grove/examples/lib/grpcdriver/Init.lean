@@ -2,8 +2,8 @@
 Package initialization of `github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its variable `reached`, initializes its imports
-and stores `reached`'s function value.
+Its fact (`drvFacts`, `Base.lean`): its variable `reached`, read-only, holds a function whose calls
+return. Its initializer allocates `reached`, initializes its imports and stores `reached`'s function value.
 -/
 module
 
@@ -61,6 +61,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoFunc) reached _ as Hreached
   wp_apply (_root_.Perennial.google_golang_org.protobuf.types.known.wrapperspb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.status.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
@@ -86,8 +87,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of reached))
   try wp_auto
+  ipersist Hreached
   iframe Hown
   is_pkg_init_finish
+  try imodintro
+  unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts
+  iexists _
+  iframe Hreached
+  imodintro
+  iintro %s
+  wp_auto
+  ipureintro; rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
