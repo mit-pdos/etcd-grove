@@ -167,6 +167,191 @@ theorem walParked_inj (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap In
   iframe Hpa Hoa Hs Hc Ht0 Hth Hw
   ipureintro; exact hp
 
+/-- **S at a program step** (see the file header): after the area's fsync (`osCommitLb n` past `x`, the
+rename's entry, the last write of `nm` in the program's area claim `(jr, N, hC)`, holding nothing there),
+the WAL in `dir` discarded: `AU₂` committed, the free lock token back whole, and the WAL's directory
+claim (whole), pipeline names and others to the program. -/
+theorem walInv_discardS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir nm : GoString) (N : NameSet) (hC : NamesH) (ic : Nat) (Q₂ : IProp GF)
+    (x : Nat) (e : LogEntry) (Es : Ents) (n : Nat)
+    (hin : InArea r dir nm) (hN : N.Mem nm) (hNN : N ≠ .only [nm]) (hR : RootsOk R)
+    (hcur : hC.cur !! nm = none) (hlw : LastWrite hC jr nm x e Es) (hx : x < n)
+    (hEs : Es !! nm = none) :
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
+      notCrashed (hC := L.goose_crashGS) -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir (ic + 1) d }> @ walAuMask, ∅
+        <{ walAbsentI (W := W) dir (ic + 2), COMM Q₂ }>) -∗
+      walUnlockedTokX (W := W) -∗ walNamesFragS (W := W) ⟨none, some dir, []⟩ -∗
+      osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC -∗ osCommitLb (L := L) n ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ Q₂ ∗ walUnlockedTok (W := W) ∗
+        osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC ∗
+        ∃ (J : Ino) (hj : NamesH), osNames (L := L) J (.except walTmps) (DFrac.own 1) hj ∗
+          walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J ∗
+          walOthers (L := L) [] J hj.cur ∗ ⌜J ≠ jr⌝ := by
+  classical
+  have hN0 : N ≠ .only [] := nameSet_ne_empty hN
+  iintro #Hinv #Hsi Hnc Hau Hu Hnf Hn #Hc
+  iapply walInv_stepS C Mr R jr r
+    iprop(osSharedInv (L := L) R ∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir (ic + 1) d }> @ walAuMask, ∅
+        <{ walAbsentI (W := W) dir (ic + 2), COMM Q₂ }>) ∗
+      walUnlockedTokX (W := W) ∗ walNamesFragS (W := W) ⟨none, some dir, []⟩ ∗
+      osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC ∗ osCommitLb (L := L) n)
+    iprop(Q₂ ∗ walUnlockedTok (W := W) ∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) hC ∗
+        ∃ (J : Ino) (hj : NamesH), osNames (L := L) J (.except walTmps) (DFrac.own 1) hj ∗
+          walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J ∗
+          walOthers (L := L) [] J hj.cur ∗ ⌜J ≠ jr⌝)
+    ⊤ CoPset.subseteq_top (fun s => by
+      iintro Hb ⟨#Hsi, Hau, Hu, Hnf, Hn, #Hc⟩
+      unfold walInvBody
+      icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
+        Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
+      -- the claims: the program's area claim the only one on `nm`, and one log
+      imod osClaims_keys R jr N _ hC _ hN0 walN_osShN_top $$ Hsi Hn Hcl0 with ⟨Hn, Hcl0, %hkeys⟩
+      imod osClaims_log R _ walN_osShN_top $$ Hsi Hcl0 with ⟨Hcl0, %hlog0⟩
+      have hlog : ∃ log, Starts log ∧ ClaimsLog log cl := by
+        obtain ⟨log, hs, hl⟩ := hlog0
+        exact ⟨log, hs, fun c hc x e E hm => hl (c, _) (List.mem_map_of_mem hc) x e E hm⟩
+      have honly : ∀ N' h', (jr, N', h') ∈ cl → N'.Mem nm → h' = hC := fun N' h' hm hN' =>
+        (hkeys ((jr, N', h'), _) (List.mem_map_of_mem hm) rfl nm hN hN').2
+      have hc : (jr, N, hC) ∈ cl := by
+        obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
+        obtain ⟨e1, e2⟩ := hkeys ((jr, N', h'), _) (List.mem_map_of_mem hc') rfl nm hN hN'
+        simp only at e1 e2
+        rw [← e1, ← e2]; exact hc'
+      -- the creating map is empty (the free token)
+      icases walCreating_empty CR (walUnlockedTokX (W := W)) walUnlockedTokX_exclX $$ Hcra Hu
+        with ⟨%hCR, Hcra, Hu⟩
+      -- the client's view, and the five shares of the incarnations
+      have hsub : walAuMask ⊆ (⊤ : CoPset) \ ↑walN := by
+        intro p hp
+        exact LawfulSet.mem_diff.2 ⟨CoPset.mem_full, (LawfulSet.mem_diff.1 hp).2⟩
+      imod (fupd_mask_subseteq hsub) with Hmc
+      ihave Hacc := aupd_aacc $$ Hau
+      unfold atomic_acc
+      imod Hacc with Hacc
+      isimp only [texist_cons, texist_nil] at Hacc
+      icases Hacc with ⟨%d0, Hab0, Hcla⟩
+      irevert Hab0
+      dsimp only [Std.Tele.app]
+      iintro Hab0
+      unfold walDiskAtI walDirIsI
+      icases Hab0 with ⟨%M, %I1, HM, HI1, %HMd, %hI1⟩
+      iunfold walGhost at Hg
+      icases Hg with ⟨%I, Hg⟩
+      unfold walUnlockedTokX walIncAny
+      icases Hu with ⟨Ht1, Ht2, Ht3, Hof, Htf, %I2, HI2⟩
+      icases walParked_incE Ls _ F $$ Hpk Hof with ⟨%I4, HI4, Hof, Hpk⟩
+      icases walDirKeysAuth_bump K $$ Hdk with ⟨%I3, HI3, Hdk⟩
+      have hle : walLeI (s, I) (discS s dir, <[dir := incOf I dir + 1]> I) := walLeI_discard s I dir
+      imod walGhostI_bump0 s (discS s dir) I (<[dir := incOf I dir + 1]> I) I1 I2 I3 I4 M ∅ hle
+        (fun hk k d hd => by
+          by_cases e : k = dir
+          · subst e; rw [discS_wal_eq] at hd; cases hd
+          · rw [discS_wal_ne e] at hd; exact hk k d hd)
+        (fun n' hn k d hd => by
+          by_cases e : k = dir
+          · subst e; rw [discS_wal_eq] at hd; cases hd
+          · rw [discS_wal_ne e] at hd; exact hn k d hd)
+        $$ Hg HM HI1 HI2 HI3 HI4 Htf with ⟨%he, Hg, HM, HI1, HI2, HI3, HI4, -, Htf⟩
+      obtain ⟨HMs, e1, e2, e3, e4⟩ := he
+      subst I1 I2 I3 I4
+      obtain ⟨d1, e1, -⟩ := (walOptLe_some_iff _ _).1 HMd
+      obtain ⟨ds, hsd, -⟩ := (walOptLe_some_iff _ _).1 (e1 ▸ HMs dir)
+      ihave Hdk := Hdk $$ %(<[dir := incOf I dir + 1]> I) %(GMap.delete dir K) %(keys_bump I K dir) HI3
+      ihave Hpk := Hpk $$ %(<[dir := incOf I dir + 1]> I) HI4
+      -- `AU₂` committed
+      icases Hcla with ⟨-, Hco2⟩
+      isimp only [tforall_nil, Std.Tele.app, ULift.down] at Hco2
+      imod Hco2 $$ [HM HI1] with HQ
+      · iunfold walAbsentI
+        iunfold walDirIsI
+        iexists (discS s dir).wal, <[dir := incOf I dir + 1]> I
+        iframe HM HI1
+        ipureintro
+        refine ⟨?_, ?_⟩
+        · rw [discS_wal_eq]; exact trivial
+        · rw [incOf_bump]; simp [hI1]
+      imod Hmc with -
+      -- the discarded WAL's layout and directory claim
+      have hin' : InArea s.area dir nm := by rw [Har]; exact hin
+      obtain ⟨lay, nm', -, hl, hin0, -, hnm', -⟩ := Hok.1 dir ds hsd
+      have hlnm : lay.nm = nm := hnm'.trans (inArea_nm_inj hin' hin0)
+      obtain ⟨X, hj, hok, hXe, hex⟩ := Hdko.2.2 dir lay hl
+      subst hXe
+      obtain ⟨hJr, hXn, honce, -, -⟩ := hok
+      icases walParked_inj Ls _ F $$ Hpk Hof with ⟨%hdist, Hpk, Hof⟩
+      have hs : DiscSet Ls cl jr dir lay (.except walTmps) hj :=
+        ⟨hl, ⟨hlog, by obtain ⟨l1, l2, hcl, -, -⟩ := honce; rw [hcl]; simp, hex⟩,
+          fun d' l' hl' hne => hdist d' dir l' lay hl' hl hne, hJr⟩
+      have hW : WalDirClaimOf Ls (lay.j, .except walTmps, hj) := ⟨dir, lay, hl, rfl, walTmps, rfl, hXn⟩
+      have hnone := discNone_of hin' hc hN honly hcur hlw (Nat.lt_of_lt_of_le hx (Nat.le_max_right n0 n)) hEs
+      obtain ⟨hwo', hwc', hab', hwn', hdk', hat', hbd'⟩ :=
+        discS_pure (n := max n0 n) (Nat.le_max_left _ _) hs hR hnone Hok Hco Han Hnm Hdko HAt Hbd
+      -- its resources out
+      icases (osClaims_filter_once (lay.j, NameSet.except walTmps, hj) cl _ honce).1 $$ Hcl0 with ⟨Hi, Hcl0⟩
+      icases walParked_discard Ls cl F dir lay _ hl hW honce $$ Hpk Hof
+        with ⟨Hpk, Hof, Hp2, Htr, Hth, Hoth⟩
+      unfold laysResF
+      ihave Hlays := segsAll_sep_delete (segResF (L := L) F) Ls dir lay hl $$ Hlays
+      icases Hlays with ⟨-, Hlays⟩
+      icases walTailsRes_discard C Mr s Ls F dir $$ Htl Htf with ⟨Htl, Htf⟩
+      imod walNamesRes_discard R jr r Ls s (discS s dir) dir nm lay N _ hC hl hlnm hN hNN walN_osShN_top
+        $$ Hsi Hnms Hnf Hn with ⟨Hnms, Hnf, Hn⟩
+      icases osNames_halves lay.j (.except walTmps) hj hj (by intro h; cases h) $$ Hi Hp2 with ⟨-, Hw⟩
+      imodintro
+      isplitl [Hg Hcl0 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
+      · iexists discS s dir
+        iexists GMap.delete dir Ls, dropC cl (lay.j, NameSet.except walTmps, hj), max n0 n, F
+        isplitl [Hg]
+        · iunfold walGhost; iexists _; iexact Hg
+        isplitr
+        · ipureintro; exact Har
+        isplitl [Hcl0]
+        · unfold dropC; iexact Hcl0
+        isplitr
+        · rcases Nat.le_total n0 n with hle | hle
+          · rw [Nat.max_eq_right hle]; iexact Hc
+          · rw [Nat.max_eq_left hle]; iexact Hcm
+        isplitl [Hlays]
+        · iexact Hlays
+        isplitr
+        · ipureintro; exact hwo'
+        isplitr
+        · ipureintro; exact hwc'
+        isplitl [Hcra]
+        · iexists CR
+          iframe Hcra
+          ipureintro; intro d N' h' J' hl'; rw [hCR] at hl'; simp at hl'
+        isplitl [Htl]
+        · iexact Htl
+        isplitr
+        · ipureintro; exact hab'
+        isplitr
+        · ipureintro; exact hwn'
+        isplitl [Hpk]
+        · iexact Hpk
+        isplitl [Hdk Hcp]
+        · iexists GMap.delete dir K, cp
+          iframe Hdk Hcp
+          ipureintro; exact hdk'
+        isplitr
+        · ipureintro; exact hat'
+        iframe Hnms
+        ipureintro; exact hbd'
+      iframe HQ Hn
+      isplitl [Ht1 Ht2 Ht3 Hof Htf HI2 Hnf]
+      · iapply (walUnlockedTokX_join (W := W)).1
+        iframe Hnf
+        unfold walUnlockedTokX walIncAny
+        iframe Ht1 Ht2 Ht3 Hof Htf
+        iexists _; iexact HI2
+      iexists lay.j, hj
+      iframe Hw Htr Hth Hoth
+      ipureintro; exact hJr)
+    $$ Hinv Hnc [Hau Hu Hnf Hn]
+  iframe Hau Hu Hnf Hn; iframe #
+
 end iris
 
 end WalFs
