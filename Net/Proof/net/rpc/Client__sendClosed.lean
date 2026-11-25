@@ -30,6 +30,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions]
+variable [errors.Assumptions] [fmt.Assumptions] [os.Assumptions] [internal.poll.Assumptions]
 
 theorem Client.send.wp_proof_closed (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
@@ -76,7 +77,7 @@ theorem Client.send.wp_proof_closed (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (
       isplitr
       · ipureintro; exact ⟨by simp [interface.mkOk], notServerErr_errorString xs⟩
       isplitr
-      · iapply errAny_newVar $$ HesV Hxs
+      · iapply errPlain_newVar $$ HesV Hxs
       ileft; iexact HD
     wp_apply wp_Unlock _ (sendInv γ c cc cn W a) $$ [$Hsync $Hsmu $Hsown $Hsinv]
     iapply HΦ

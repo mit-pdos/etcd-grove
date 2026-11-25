@@ -20,15 +20,13 @@ of `DefaultServeMux`'s `RWMutex`), which the deployment bridge (dsv-epaxos's
 `robust_of_distProtoLisRBT`, here with no wildcard listener, over Perennial's
 `goose_dist_adequacy_below`) takes along the execution at hand, `Robust`'s `threads`.
 
-**Premises** (each at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the start's
+**Premise** (at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the start's
 `NetProtoGS`):
-* `LogHyp`: `log.Default` and `*Logger`'s `Printf`/`Println` on the operands craq logs (`argOk`),
-  which Perennial's trusted `log` model leaves without a body (its axiom review refuted it as
-  axioms: `fmt` calls an operand's `Format`/`GoString`, `notes/axiom-review/dsv-fix4/log-logger.md`);
 * `RpcHttpServe` (`Craq/HttpRpc.lean`): `http.ListenAndServe(a, nil)` serves `a`'s connections with
   `DefaultServeMux`, over Net's `muxRpc` and models-rpc-http's `RpcWorld` and `rpcAddrP` (Net proves
   `http.Serve` on a listener, not `ListenAndServe`).
-Not premises: net/rpc's server side but `ListenAndServe` (`rpc.HandleHTTP`, `rpc.RegisterName` of a
+Not premises: `log.Default` and `*Logger`'s `Printf`/`Println` (trust-boundary axioms since dsv-fix6,
+`Craq/LogAx.lean`, on the operands craq logs), net/rpc's server side but `ListenAndServe` (`rpc.HandleHTTP`, `rpc.RegisterName` of a
 fresh name), net/rpc's client over HTTP (`rpc.DialHTTP`), each machine's boot (the codec registry,
 net/rpc's and net/http's package variables) and the allocation of the net/rpc world at the server
 addresses are proved, over `Net/`'s specs. The trust-boundary axioms the proof rests on are listed
@@ -40,7 +38,6 @@ module
 public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.TopLevelDefs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.HttpRpc
-public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
@@ -84,7 +81,6 @@ def craq_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; LogHyp remoteGF) →
     (∀ G L, letI := heapAt G L; ∀ π : NetProtoGS, RpcHttpServe remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy craqKitAddrs (system σ) g →
