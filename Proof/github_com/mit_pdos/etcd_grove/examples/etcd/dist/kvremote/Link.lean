@@ -3,6 +3,8 @@
 linked proofs (`enc`'s, `EtcdGrove.enc`; txnlin's `IsWrite`, `Model` and `Gen`, from its proofs: txnlin's
 `Link` reaches the whole server; `remote`'s `Run`, `EtcdGrove.remote`).
 Hand-written, as `enc`'s (`etc/gen-link.py` has no mode for it).
+The Node (`wp_Node`) is linked over `Call_dist_holds`, whose hypotheses are N2's four drafts
+(`KV_{Put,Get,Delete}_dist`, `Txn_Commit_dist` at `svc`): not proved yet, so `wp_Node` takes them.
 -/
 module
 
@@ -63,6 +65,10 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.isWrite
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.thenOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.elseOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Node
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDistLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
+public import Proof.go_uber_org.zap.NewNop
 
 @[expose] public section
 
@@ -208,6 +214,38 @@ theorem wp_Orch : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof txnlinL.wp_Model wp_Codec txnlinL.wp_Gen EtcdGrove.remote.wp_Run
 
 end linkedNet
+
+section linkedNode
+open Net
+open EtcdGrove.etcd_dist.view
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
+variable [txnlin_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+variable [etcdstart_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [dial : go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+variable [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [ρ : github_com.mit_pdos.etcd_grove.examples.lib.remote.RemoteGS]
+variable [NaInvG GF]
+
+/-- The kv Node, linked: `Call` across machines from `Call_dist_holds`, whose hypotheses are N2's
+drafts at `svc` (not proved yet: they become N2's `X.wp_proof : X.spec etcdSvcV`). -/
+theorem wp_Node (svc : DistView → w64 → GrpcSvc GF)
+    (hPut : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], KV_Put_dist.spec svc)
+    (hGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], KV_Get_dist.spec svc)
+    (hDel : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], KV_Delete_dist.spec svc)
+    (hCommit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], Txn_Commit_dist.spec svc) :
+    Node.spec (GF := GF) (hG := hG) svc :=
+  Node.wp_proof svc zap.NewNop.wp_proof EtcdGrove.etcdstart.wp_NewClients wp_Codec
+    (EtcdGrove.etcd_txnlin.Call_dist_holds svc hPut hGet hDel hCommit) EtcdGrove.remote.wp_ServeClient
+
+end linkedNode
 
 end EtcdGrove.kvremote
 end Perennial
