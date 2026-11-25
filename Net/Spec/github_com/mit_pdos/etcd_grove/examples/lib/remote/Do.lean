@@ -6,7 +6,7 @@ the far side answered, or `i`'s unknown output.
 The caller hands the operation's update through a choice (`known`, `bs`), made before the first
 attempt from `Do`'s prophecies (which attempt is answered with a known output, if any, and the bytes
 `bs` of that answer): if one will be, a slot update `slotUpd R i Φb` (it goes to that attempt's slot:
-a write's one-shot `lin`, a read's `□ lin`, which the far side may fire several times) and a way from
+a write's `lin`, committed at most once, a read's `□ lin`, which the far side may fire several times) and a way from
 `Φb o` of the answered output, whose bytes are `bs`, to `Φ o` (`Do` returns the output with `Φ` of
 it; a read commits at the first firing whose output's bytes are `bs`: `pend_choice`);
 if none will be, `Ψ` and the update with no result (it goes to the one attempt's slot, a write's,
