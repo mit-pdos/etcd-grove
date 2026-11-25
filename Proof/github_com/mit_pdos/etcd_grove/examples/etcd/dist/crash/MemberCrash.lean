@@ -531,7 +531,7 @@ theorem memberRestartFacts_gen (L L' : GooseLocalGS GF) (γ : SrvRaft) (ρ : Req
   · ipureintro
     obtain ⟨a, b, c, d, e, f, g⟩ := hp
     refine ⟨a, b, c, d, e, f, ?_⟩
-    rw [lease.runCfg_lm g]
+    rw [lease.runCfg_lm (hG := ⟨G, etcd_dist.atCtx L⟩) g]
     exact lease.runCfg_none (hG := ⟨G, etcd_dist.atCtx L'⟩)
   isplitr; · ipureintro; exact hns
   isplitr; · iexact H1
