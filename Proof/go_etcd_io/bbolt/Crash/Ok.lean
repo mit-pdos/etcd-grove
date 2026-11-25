@@ -11,8 +11,9 @@ while committing, a file `needsInit` accepts or `init`'s image during `init`); a
 The proof is per phase (`idle_view`, `commit_view`, `init_view`), on the crash's file as `BView`
 gives it (`Crash/View.lean`): the protected bytes are the reference images' (`view_psync`), so the
 file is an image of the same committed state with its own meta slots (`fileOK_transfer`); while
-committing, the slot being written validates only as the old slot's first 56 bytes (`metaPre`: an
-older txid, so the image is `prev`'s) or as the new meta (the image is `cur`'s).
+committing, the slot being written validates only as the old slot, all 64 of its bytes (its
+checksum bytes are as of the fields' change or older: `BoltCrashWhole`), whose meta `prev`'s
+`metaOk` makes older, so the image is `prev`'s; or as the new meta (the image is `cur`'s).
 -/
 module
 
@@ -56,7 +57,7 @@ not moved since the last sync. -/
 theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf s)
     (hI : IdleOk C X s) (hV : BView s f) :
     bGoodU (treeData C) f ∧ (s.vmeta.lo = s.vmeta.hi → f.size % 4096 = 0) := by
-  obtain ⟨hR, -, hmeta, hdata, hhwm, hal, -⟩ := hI
+  obtain ⟨hR, hmeta, hdata, hhwm, hal, -⟩ := hI
   have h3 := refImg_hwm hR
   have hXl := hR.len
   have hlo := vmeta_lo_of s hW
@@ -93,7 +94,7 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
 theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (hW : BWf s)
     (hC : CommitOk C P Xc Xp s) (hV : BView s f) :
     (bGoodU (treeData C) f ∨ bGoodU (treeData P) f) ∧ f.size % 4096 = 0 := by
-  obtain ⟨hRp, hRc, htx, hsl, hpre, hslotp, ⟨N, hfl⟩, hdp, hdc, hhp, hhc, hal, hvlo, hvhi, -⟩ := hC
+  obtain ⟨hRp, hRc, htx, hsl, hslotp, ⟨N, hfl⟩, hdp, hdc, hhp, hhc, hal, hvlo, hvhi, -⟩ := hC
   have h3 := refImg_hwm hRp
   have hC3 := refImg_hwm hRc
   have hXpl := hRp.len
@@ -156,7 +157,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       have := hagsp (b - 4096 * (P.txid % 2)) (by omega)
       rwa [show 4096 * (P.txid % 2) + (b - 4096 * (P.txid % 2)) = b by omega] at this)
   have hPm := hRp.mok
-  obtain ⟨-, -, hPps, -, -, hPv, hPis, -⟩ := hPm
+  obtain ⟨-, -, hPps, -, -, hPv, hPis, hPoth⟩ := hPm
   have hlen0 : (bytesAt f.contents 0 4096).length = 4096 := bytesAt_length' _ _ _ (by omega)
   have hlen1 : (bytesAt f.contents 4096 4096).length = 4096 := bytesAt_length' _ _ _ (by omega)
   -- the image of `prev`, if the slot being written is not a newer valid meta
@@ -186,48 +187,65 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
   · have hv' : metaValid (decode (rawMeta f (C.txid % 2)) : Meta) := by
       unfold metaOf at hv; rwa [hraw] at hv
     have hval := metaValid_validates _ (rawMeta_length f _) hv'
-    obtain ⟨n, hn⟩ := hV.slot (by rw [hvlo]) (by rw [hvhi]) _ hj2 (by omega) hval
+    obtain ⟨n, hn, hncs⟩ := hV.slot (by rw [hvlo]) (by rw [hvhi]) _ hj2 (by omega) hval
       (fun k hk => by
         obtain ⟨c, hc, -⟩ := hfl (16 + k) (by omega)
         rw [← Nat.add_assoc] at hc; rw [hc]; rfl)
-    -- the 56 bytes: all old, or all new
-    have hall : (∀ k < 56, f.cache (4096 * (C.txid % 2) + 16 + k) =
+    have hk' : ∀ k < 64, ∃ c, crashCands s (4096 * (C.txid % 2) + 16 + k) = some c ∧
+        CandOV c (xb Xp (4096 * (C.txid % 2) + 16 + k)) (xb Xc (4096 * (C.txid % 2) + 16 + k)) N := by
+      intro k hk
+      have := hfl (16 + k) (by omega)
+      rwa [← Nat.add_assoc] at this
+    -- the slot: all 64 bytes old, or the 56 field bytes new
+    have hall : (∀ k < 64, f.cache (4096 * (C.txid % 2) + 16 + k) =
           xb Xp (4096 * (C.txid % 2) + 16 + k)) ∨
         (∀ k < 56, f.cache (4096 * (C.txid % 2) + 16 + k) =
           xb Xc (4096 * (C.txid % 2) + 16 + k)) := by
-      have hk' : ∀ k < 56, ∃ c, crashCands s (4096 * (C.txid % 2) + 16 + k) = some c ∧
-          CandOV c (xb Xp (4096 * (C.txid % 2) + 16 + k)) (xb Xc (4096 * (C.txid % 2) + 16 + k)) N := by
-        intro k hk
-        have := hfl (16 + k) (by omega)
-        rwa [← Nat.add_assoc] at this
-      rcases N with _ | N0
+      -- a byte as of a stamp before the first new one is old
+      have hold : ∀ k < 64, ∀ c, crashCands s (4096 * (C.txid % 2) + 16 + k) = some c →
+          CandOV c (xb Xp (4096 * (C.txid % 2) + 16 + k)) (xb Xc (4096 * (C.txid % 2) + 16 + k)) N →
+          ∀ m, (∀ N0, N = some N0 → m < N0) → valAt c m = xb Xp (4096 * (C.txid % 2) + 16 + k) := by
+        intro k hk c hc hov m hm
+        rw [valAt_candOV hov]
+        cases N with
+        | none => rfl
+        | some N0 => exact if_neg (Nat.not_le.2 (hm N0 rfl))
+      by_cases hnew : ∃ N0, N = some N0 ∧ N0 ≤ n
+      · right; intro k hk
+        obtain ⟨N0, rfl, hN⟩ := hnew
+        obtain ⟨c, hc, hov⟩ := hk' k (by omega)
+        rw [hn k hk c hc, valAt_candOV hov]; exact if_pos hN
       · left; intro k hk
         obtain ⟨c, hc, hov⟩ := hk' k hk
-        rw [hn k hk c hc]; exact valAt_candOV hov n
-      · by_cases hN : N0 ≤ n
-        · right; intro k hk
-          obtain ⟨c, hc, hov⟩ := hk' k hk
-          rw [hn k hk c hc, valAt_candOV hov]; exact if_pos hN
-        · left; intro k hk
-          obtain ⟨c, hc, hov⟩ := hk' k hk
-          rw [hn k hk c hc, valAt_candOV hov]; exact if_neg hN
+        have hlt : ∀ m, m ≤ n → ∀ N0, N = some N0 → m < N0 := fun m hm N0 hN0 =>
+          Nat.lt_of_le_of_lt hm (Nat.lt_of_not_le fun h => hnew ⟨N0, hN0, h⟩)
+        by_cases h56 : k < 56
+        · rw [hn k h56 c hc]; exact hold k hk c hc hov n (hlt n (Nat.le_refl n))
+        · obtain ⟨m, hm, e⟩ := hncs k (by omega) hk c hc
+          rw [e]; exact hold k hk c hc hov m (hlt m hm)
     have htk : (encode (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))).take 56 =
         (List.range 56).map fun k => f.cache (4096 * (C.txid % 2) + 16 + k) := by
       unfold metaOf; rw [hraw]; exact rawMeta_take56 f _
     rcases hall with hold | hnew
-    · -- the old slot: `metaPre` makes it older than `prev`
+    · -- the old slot, whole: `prev`'s `metaOk` makes it older
       refine Or.inr (hgoodP fun hv2 => ?_)
-      have hmold : (encode (metaOf (P.slot (P.txid + 1)))).take 56 =
-          (List.range 56).map fun k => xb Xp (4096 * (C.txid % 2) + 16 + k) := by
-        rw [refImg_slot hRp, hjp, metaOf_take56 _ (by
-          rw [bytesAt_length' Xp (4096 * (C.txid % 2)) 4096 (by omega)]; omega)]
-        apply List.map_congr_left; intro k hk; rw [List.mem_range] at hk
-        rw [bytesAt_getD Xp (4096 * (C.txid % 2)) (16 + k) (by omega) (by omega)]; congr 1; omega
-      have heq : (encode (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))).take 56 =
-          (encode (metaOf (P.slot (P.txid + 1)))).take 56 := by
-        rw [htk, hmold]; apply List.map_congr_left; intro k hk; rw [List.mem_range] at hk
-        exact hold k hk
-      exact metaPre_of_take heq hpre hv2.1 hv2.2.1
+      have hrawold : rawMeta f (C.txid % 2) = bytesAt (bytesAt Xp (4096 * (C.txid % 2)) 4096) 16 64 := by
+        apply List.ext_getElem?
+        intro k
+        by_cases hk : k < 64
+        · rw [bytesAt_getElem? _ 16 64 k hk,
+            bytesAt_getElem? Xp (4096 * (C.txid % 2)) 4096 (16 + k) (by omega),
+            ← xb_some Xp (4096 * (C.txid % 2) + (16 + k)) (by omega)]
+          simp only [rawMeta, List.getElem?_map, List.getElem?_range hk, Option.map_some]
+          rw [hold k hk, Nat.add_assoc]
+        · rw [List.getElem?_eq_none (by rw [rawMeta_length]; omega),
+            List.getElem?_eq_none (by simp [bytesAt]; omega)]
+      have hmc : metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096) =
+          metaOf (P.slot (P.txid + 1)) := by
+        rw [refImg_slot hRp, hjp]
+        unfold metaOf; rw [hraw, hrawold]
+      rw [hmc] at hv2 ⊢
+      exact ⟨hPps _ hv2, hPoth hv2⟩
     · -- the new meta: the image is `cur`'s
       left
       have hmnew : (encode (metaOf (C.slot C.txid))).take 56 =

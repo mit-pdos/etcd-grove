@@ -7,10 +7,7 @@ What the crash premise (`Crash/Premise.lean`) says of a meta slot is stated on i
 `metaOf` (`Model/Meta.lean`). This file connects the two:
 * `metaValid_validates`: a valid decoded meta's raw bytes validate;
 * `meta_eq_of_take`: two metas with the same first 56 bytes and the same checksum are one (so two
-  *valid* ones with the same first 56 bytes are one, `meta_eq_of_valid`);
-* `metaPre`: what bbolt's metas say of a slot whatever its checksum (magic and version right ⇒ page
-  size 4096 and txid below a bound), the fact the crash invariant keeps of the slot a commit writes:
-  the premise fixes only the first 56 bytes, so a torn checksum may validate an old slot's 56 bytes.
+  *valid* ones with the same first 56 bytes are one, `meta_eq_of_valid`).
 -/
 module
 
@@ -104,24 +101,6 @@ theorem metaValid_validates (r : List w8) (hl : r.length = 64) (hv : metaValid (
   · rw [leNat_eq, ← decode_w64_toNat _ (by simp [hl]), ← decode_meta_checksum, h3, metaSum_take,
       ByteEncoding.encode_decode r hl]
     rfl
-
-/-- **What a slot whose first 56 bytes are a meta's says, whatever its checksum**: if its magic and
-version are right, its page size is 4096 and its txid below `T`. -/
-def metaPre (m : Meta) (T : Nat) : Prop :=
-  m.magic'.toNat = boltMagic → m.version'.toNat = boltVersion →
-    m.pageSize'.toNat = 4096 ∧ m.txid'.toNat < T
-
-/-- `metaPre` depends on the first 56 bytes only. -/
-theorem metaPre_of_take {m1 m2 : Meta} {T : Nat} (h : (encode m1).take 56 = (encode m2).take 56)
-    (hp : metaPre m2 T) : metaPre m1 T := by
-  rw [meta_with_of_take m1 m2 h]; exact hp
-
-/-- A valid meta of page size 4096 and txid below `T` is `metaPre`. -/
-theorem metaPre_of_valid {m : Meta} {T : Nat} (hps : m.pageSize'.toNat = 4096)
-    (ht : m.txid'.toNat < T) : metaPre m T := fun _ _ => ⟨hps, ht⟩
-
-theorem metaPre_mono {m : Meta} {T T' : Nat} (h : metaPre m T) (hT : T ≤ T') : metaPre m T' :=
-  fun h1 h2 => let ⟨a, b⟩ := h h1 h2; ⟨a, Nat.lt_of_lt_of_le b hT⟩
 
 end metas
 

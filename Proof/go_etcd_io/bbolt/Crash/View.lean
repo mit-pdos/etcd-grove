@@ -13,7 +13,8 @@ below the size the bytes `s.bs` hold, past it those the `OsMeta` knows, each wit
 flight's announced value over its range (`crashCands_cand`). The premise `BoltCrashWhole`
 (`Crash/Premise.lean`) adds, for a file whose size has not moved since its last sync (`vmeta`'s
 bounds equal to the size), that a meta slot that validates holds its first 56 meta bytes as of one
-stamp (`valAt`). The crash's size is between `vmeta`'s bounds and at most `maxBytes`.
+stamp (`valAt`), and its checksum bytes as of that stamp or older. The crash's size is between
+`vmeta`'s bounds and at most `maxBytes`.
 -/
 module
 
@@ -228,8 +229,9 @@ def rawMeta (f : OsFile) (j : Nat) : List w8 :=
 /-- **What a crash of the state `s` leaves** (`f`): a file on disk, within `vmeta`'s size bounds and
 `maxBytes`, each byte in a page that holds one of the file one of its known candidates or, at or
 past the smallest size since the last sync, zero (writeback's zeroing), and, when the size has not
-moved since the last sync (`vmeta`'s bounds the size), each meta slot that validates, whose first
-56 meta bytes' candidates are known, those bytes as of one stamp (`BoltCrashWhole`). -/
+moved since the last sync (`vmeta`'s bounds the size), each meta slot that validates, whose 64
+meta bytes' candidates are known, its first 56 meta bytes as of one stamp and its checksum bytes as
+of that stamp or older (`BoltCrashWhole`). -/
 structure BView (s : CSt) (f : OsFile) : Prop where
   disk : ∃ img, f = OsFile.ofDisk img f.size
   lo : s.vmeta.lo ≤ f.size
@@ -238,9 +240,11 @@ structure BView (s : CSt) (f : OsFile) : Prop where
   byte : ∀ b c, pageIn f.size b = true → crashCands s b = some c →
     (∃ q, (f.cache b, q) ∈ c) ∨ (s.vmeta.lo ≤ b ∧ f.cache b = 0)
   slot : s.vmeta.lo = s.m.size → s.vmeta.hi = s.m.size → ∀ j < 2, 4096 * j < f.size →
-    boltMetaValidates (rawMeta f j) → (∀ k < 56, (crashCands s (4096 * j + 16 + k)).isSome) →
-    ∃ n, ∀ k < 56, ∀ c, crashCands s (4096 * j + 16 + k) = some c →
-      f.cache (4096 * j + 16 + k) = valAt c n
+    boltMetaValidates (rawMeta f j) → (∀ k < 64, (crashCands s (4096 * j + 16 + k)).isSome) →
+    ∃ n, (∀ k < 56, ∀ c, crashCands s (4096 * j + 16 + k) = some c →
+      f.cache (4096 * j + 16 + k) = valAt c n) ∧
+      ∀ k, 56 ≤ k → k < 64 → ∀ c, crashCands s (4096 * j + 16 + k) = some c →
+        ∃ m ≤ n, f.cache (4096 * j + 16 + k) = valAt c m
 
 /-- **A crash's file, as `BView` says it** (under `BoltCrashWhole` of the file's inode). -/
 theorem bview_of {i : Ino} {s : CSt} {f : OsFile} (hl : s.bs.length = s.m.size)
@@ -263,9 +267,11 @@ theorem bview_of {i : Ino} {s : CSt} {f : OsFile} (hl : s.bs.length = s.m.size)
     rcases hcand b with ⟨q, hq⟩ | ⟨hl', h0⟩
     · exact .inl ⟨q, by rw [← hkc b c hc]; exact hq⟩
     · exact .inr ⟨Nat.le_trans hlo0 hl', h0⟩
-  · obtain ⟨n, hn⟩ := hQ i f0 _ rfl hf0 hfo (by omega) (by omega)
+  · obtain ⟨n, hn1, hn2⟩ := hQ i f0 _ rfl hf0 hfo (by omega) (by omega)
       (fun t c ht hc => by have := htg t c ht hc; omega) j hj hsz hv
-    exact ⟨n, fun k hk c hc => by rw [hn k hk, hkc _ c hc]⟩
+    refine ⟨n, fun k hk c hc => by rw [hn1 k hk, hkc _ c hc], fun k h1 h2 c hc => ?_⟩
+    obtain ⟨m, hm, e⟩ := hn2 k h1 h2
+    exact ⟨m, hm, by rw [e, hkc _ c hc]⟩
 
 end pure
 

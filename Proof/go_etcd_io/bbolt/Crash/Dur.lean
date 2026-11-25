@@ -16,13 +16,12 @@ good (`bDur_okS`, through `FileOkS` under the premise `BoltCrashWhole` of the fi
 **The facts** (`BDur`), per byte, from the candidates a crash picks from (`crashCands`):
 * idle: both meta pages and `cur`'s protected data bytes (`protData`: its tree pages' and synced
   freelist page's extents) are synced (`PSync`: one candidate, the reference image's byte, and no
-  write in flight on them), below the smallest size since the last sync (`hwm · 4096 ≤ lo`); the
-  slot the next commit writes is `metaPre` (if its magic and version are right, page size 4096 and
-  an older txid: the premise fixes only a validating slot's first 56 bytes, so its checksum may be
-  torn).
+  write in flight on them), below the smallest size since the last sync (`hwm · 4096 ≤ lo`).
 * committing: `prev`'s meta slot and both states' protected data bytes synced; the other slot,
   `cur`'s, in flight (`CandOV`: each byte its old value then only its new one, the first new stamp
-  the same for all, so each state "as of one change" is the old slot or the new one); the file's
+  the same for all, so each state "as of one change" is the old slot or the new one, and a slot
+  whose checksum bytes are as of the fields' change or older is wholly old, or new in its fields);
+  the file's
   size has not moved since its last sync (`vmeta`'s bounds the size).
 * init: at most four pages, every candidate of every byte zero or `init`'s byte.
 
@@ -105,7 +104,7 @@ theorem getD_eq_getElem' {α : Type} (l : List α) (i : Nat) (d : α) (h : i < l
 
 /-- **The idle facts** of the committed state `C` with reference image `X` (see the file header). -/
 def IdleOk (C : CommitSt) (X : List w8) (s : CSt) : Prop :=
-  RefImg X C ∧ metaPre (metaOf (C.slot (C.txid + 1))) C.txid ∧
+  RefImg X C ∧
     (∀ b < 8192, PSync s b (xb X b)) ∧ (∀ b, protData X C b → PSync s b (xb X b)) ∧
     C.hwm * 4096 ≤ s.m.lo ∧ s.m.size % 4096 = 0 ∧ WrIn s
 
@@ -113,7 +112,6 @@ def IdleOk (C : CommitSt) (X : List w8) (s : CSt) : Prop :=
 file header. -/
 def CommitOk (C P : CommitSt) (Xc Xp : List w8) (s : CSt) : Prop :=
   RefImg Xp P ∧ RefImg Xc C ∧ C.txid = P.txid + 1 ∧ C.slot (C.txid + 1) = P.slot P.txid ∧
-    metaPre (metaOf (P.slot (P.txid + 1))) P.txid ∧
     (∀ k < 4096, PSync s (4096 * (P.txid % 2) + k) (xb Xp (4096 * (P.txid % 2) + k))) ∧
     (∃ N : Option Nat, ∀ k < 4096, ∃ c, crashCands s (4096 * (C.txid % 2) + k) = some c ∧
       CandOV c (xb Xp (4096 * (C.txid % 2) + k)) (xb Xc (4096 * (C.txid % 2) + k)) N) ∧
