@@ -61,7 +61,7 @@ theorem compactor.runCompactLoop.wp_proof
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runCompactLoop.spec (GF := GF) (hG := hG) := by
   intro _ _ c cl ms V γk Seen recorded _ _ γc sc γs hsame hcmp hcret
-  wp_start as ⟨#Hc, #Hstop, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
+  wp_start as ⟨Hlt, #Hc, #Hstop, #Hcl, Hone, Hregs, #Hko, #Hcas⟩
   ihave #Hc' := Hc
   iunfold compactorCore at Hc'
   icases Hc' with ⟨%Hpers, #Hclf, ⟨%iv, #Hiv, %hiv⟩, ⟨%ck, #Hck⟩, #Honc, #Hmu, -⟩
@@ -85,8 +85,8 @@ theorem compactor.runCompactLoop.wp_proof
       "compactRev" ∷ compactRev_ptr ↦ cr ∗ "err" ∷ err_ptr ↦ e ∗
       "Hcv" ∷ (⌜cv = W64 0⌝ ∨ Seen) ∗ "Hrv" ∷ revOk γk rv ∗
       "Hone" ∷ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
-      "Hregs" ∷ ([∗list] x ∈ ms, client.kvRegsAt x))
-    $$ [compactTime rev compactRev err Hone Hregs]
+      "Hregs" ∷ ([∗list] x ∈ ms, client.kvRegsAt x) ∗ "Hlt" ∷ levelTok 0)
+    $$ [compactTime rev compactRev err Hone Hregs Hlt]
   · iexists W64 0, W64 0, W64 0, GoInterface.nil
     iframe
     isplitl []
@@ -108,13 +108,13 @@ theorem compactor.runCompactLoop.wp_proof
   · iintro %t
     (try wp_auto)
     wp_apply (wp_Compact cl ms V γk (chanCtxVal sc) (chanCd γi) Seen recorded cv rv hsame hcmp hcret)
-        $$ [$Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hone, Hregs, Hcv, Hrv, #Hrec, %Herr, Herrf⟩
+        $$ [$Hlt $Hone $Hregs $Hcv $Hrv] as %cv' %cr' %crev %err ⟨Hlt, Hone, Hregs, Hcv, Hrv, #Hrec, %Herr, Herrf⟩
     · iframe #
     cases err with
     | ok ei =>
       -- a failed round: logged, the next one at the returned version and revision
       (try wp_auto)
-      wp_apply wp_Endpoints cl $$ [] as %esl ⟨%eps, Hesl, -⟩
+      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps, Hesl, -⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -160,7 +160,8 @@ theorem compactor.runCompactLoop.wp_proof
     wp_for_post
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iframe Hlt
+    (try itrivial)
 
 end proof
 

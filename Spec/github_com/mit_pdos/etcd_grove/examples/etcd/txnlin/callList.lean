@@ -34,15 +34,14 @@ abbrev callList.spec : Prop :=
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗
-      □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) }}
+      □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q)) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callList)) (Val #cl))
-  {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
+  {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
       ∃ σ : KVState, □ Q σ ∗
         ⌜y = listOut (W64 (σ.rev : Int))
-            (σ.kvs.filter fun v => inRange listFrom listTo v.key) ∧ kvRevFits σ.rev⌝ }}
+            (σ.kvs.filter fun v => inRange listFrom listTo v.key) ∧ kvRevFits σ.rev⌝) }}
 
 end spec
 

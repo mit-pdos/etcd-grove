@@ -67,7 +67,7 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
     (rv0 : GoString) (ign : Bool) (pp : Loc) (pr : KPre) (cx : GoInterface)
     (ca : Option (Obj × w64)) (f : Obj → Nat → Except E Obj) (uf : GoFunc) (W : IProp GF)
     [Timeless W] (Φ : KVState → IProp GF) (k : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key false = some k ∧ (c.pathPrefix ++ k).length ≤ opKeyMax ∧
         -- the size premise: a result the store writes fits (see the file header)
         (∀ (v d : GoString) (stl : Bool) (o : Obj) (n : Nat) (o' : Obj), v.length ≤ etcdKeyMax →
@@ -82,13 +82,12 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
       ([∗list] x ∈ c.ms,
         k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f) W Φ) ∗
-      tryUpdateOk c f uf }}
+      tryUpdateOk c f uf) }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GuaranteedUpdate"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #dest)) (Val #ign)) (Val #pp)) (Val #uf))
       (Val #cx))
-  {{ (err : GoInterface), RET #err;
-      updOut c (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f Φ err dest }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (updOut c (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f Φ err dest) }}
 
 end spec
 

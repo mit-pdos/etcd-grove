@@ -8,11 +8,11 @@ Lean-first (no Rocq counterpart).
 `*perRPCCredentialBundle` whose `rc` field (its `*perRPCCredential`) is read-only, with
 `credTokInv rc P`, the guard of `rc.authTokenMu` over `rc`'s `authToken` field: `""` or a token
 meeting `□ P` (and the bound `threadBound GF ≤ 2^30` on its readers). `rc`'s `UpdateAuthToken`
-(given `""` or a `P`-token) is proved over its body (a writer needs only the guard; 2026-11-22);
-`GetRequestMetadata` (metadata meeting `tokMdOk P`: none, or the one key `token` with a `P`-token)
-is a trust-boundary axiom over it (its `RWMutex` read lock needs a reader token, or a thread token
-to borrow one from the pool, which grpc's per-attempt call cannot give: `notes/c1-plan.md`,
-finding 2).
+(given `""` or a `P`-token) is proved over its body (a writer needs only the guard; 2026-11-22),
+and so is `GetRequestMetadata` (metadata meeting `tokMdOk P`: none, or the one key `token` with a
+`P`-token; prove-ps2-clientrdlock, 2026-11-24, until then a trust-boundary axiom): its read lock's
+reader slot is borrowed from the lock's level-0 pool with the caller's `levelTok 0`, which grpc
+lends the credentials (`clientRes`, the family of the client connection's resources).
 -/
 module
 
@@ -87,16 +87,19 @@ instance credTokR_fractional (rc : Loc) (P : GoString → IProp GF) :
 
 /-- **The token of the per-RPC credentials `rc` is `""` or meets `P`** (persistent; the auth
 plan's C1, see the file header): `rc.authTokenMu`'s guard over `credTokR` (what a writer needs,
-`RWMutex.wp_Lock_guard`), its reader tokens in a thread pool, `sync`'s initialization, and the
-bound on the goroutines its readers are (`RWMutex`'s 2^30 concurrent readers; C1's review, Q6),
-which the trust-boundary `GetRequestMetadata` rests on. Until 2026-11-22 a bare invariant over
-the field (prove-ps2-client: the lock, so that `UpdateAuthToken` is proved over its body). -/
+`RWMutex.wp_Lock_guard`), its reader tokens in a thread pool at level 0 (borrowed with
+`levelTok 0`, `clientRes`; until 2026-11-24 a pool borrowed with a whole thread token, which no
+caller of `GetRequestMetadata` had), `sync`'s and `rpctypes`' initialization (`GetRequestMetadata`
+reads `rpctypes.TokenFieldNameGRPC`), and the bound on the goroutines its readers are (`RWMutex`'s
+2^30 concurrent readers; C1's review, Q6). Until 2026-11-22 a bare invariant over the field
+(prove-ps2-client: the lock, so that `UpdateAuthToken` is proved over its body). -/
 def credTokInv (rc : Loc) (P : GoString → IProp GF) : IProp GF :=
   iprop(⌜threadBound GF ≤ 2 ^ 30⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗
     sync.isRWMutexGuard
       (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" rc)
       (credTokR rc P) ∗
-    ∃ γp : GName, threadPool.isThreadPool credTokN γp (sync.ownRWMutex
+    ∃ γp : GName, threadPool.isThreadPoolL credTokN 0 γp (sync.ownRWMutex
       (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" rc)
       (credTokR rc P)))
 

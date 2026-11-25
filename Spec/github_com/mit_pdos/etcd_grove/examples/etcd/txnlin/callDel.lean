@@ -34,17 +34,16 @@ abbrev callDel.spec : Prop :=
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗
-      ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.deleteRange (linkv.delOp key)) Q) }}
+      ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.deleteRange (linkv.delOp key)) Q)) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callDel)) (Val #cl))
       (Val #key))
-  {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨
+  {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
       ∃ σ : KVState, Q σ ∗
         ⌜y = delOut (W64 ((kvOpStep (.deleteRange (linkv.delOp key)) σ).rev : Int))
-            (W64 ((rangeIn σ.kvs (linkv.delOp key)).length : Int)) ∧ kvRevFits (σ.rev + 1)⌝ }}
+            (W64 ((rangeIn σ.kvs (linkv.delOp key)).length : Int)) ∧ kvRevFits (σ.rev + 1)⌝) }}
 
 end spec
 

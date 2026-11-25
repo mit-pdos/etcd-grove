@@ -154,7 +154,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cid mid ∗
-        etcdstart.watchRegAt go!"127.0.0.1:23896" srv E ρ.rd R ∗
+        etcdstart.watchRegAt go!"127.0.0.1:23896" srv E ρ.rd R ∗ srvGoRes srv ∗
         ⌜noRefusalAt go!"127.0.0.1:23896"⌝)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
@@ -165,15 +165,15 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     imod (etcdstart.kvWatch_served Hp Hr srv E { ρ with wait := γw } ρ.rd cfg gs lis
       go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl HLv Hms
-      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa, #Hwr⟩
+      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa, #Hwr, Hgo⟩
     · iframe; iframe #
     -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
     ihave %Hnr := EtcdGrove.etcd_noRefusal_srv go!"127.0.0.1:23896" srv E { ρ with wait := γw } HEo $$ [Hksa]
     · iframe #
     imodintro
-    iframe Hserv Hkv Hwr
+    iframe Hserv Hkv Hwr Hgo
     ipureintro; exact Hnr
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, #Hwr, %Hnr⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, #Hwr, Hgo, %Hnr⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -198,8 +198,9 @@ theorem Main.wp_proof
   let m0 : etcdstart.WMem GF := (go!"127.0.0.1:23896", R, etcdstart.srvWOf E ρ.rd false)
   let V : client.WEnv GF := etcdstart.watchEnvL m0 (k8s_etcd3N.wmemsOf [x] [(srv, R)]) ρ.rd
     k8s_etcd3N.wpfx
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   haveI : ThreadBoundLe GF (2 ^ 28) := ⟨Htb⟩
-  wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V (fun _ => iprop(True))) $$ [] as %kc %cerr Hcl
+  wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V (fun _ => iprop(True))) $$ [$Hlt] as %kc %cerr ⟨Hlt, Hcl⟩
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -248,7 +249,7 @@ theorem Main.wp_proof
   · iapply BigSepL.bigSepL_singleton.2; iexact Hsi
   imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
   -- `newStore(kc)`: the seed, the features, `etcd3.New`
-  wp_apply (wp_newStore kc cl [x] V γs γh hAs (by simp) (by omega)) $$ [Hs] as %s %st0 %h0 %ok Hns
+  wp_apply (wp_newStore kc cl [x] V γs γh hAs (by simp) (by omega)) $$ [$Hlt Hs] as %s %st0 %h0 %ok ⟨Hlt, Hns⟩
   · simp only [List.map_cons, List.map_nil]
     iframe #
     iframe Hs

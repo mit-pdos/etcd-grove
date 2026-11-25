@@ -38,14 +38,14 @@ abbrev txnLeasing.revokeFallback.spec : Prop :=
   ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (dq : DFrac) (sl : GoSlice) (ps : List Loc)
     (kvss : List (List EtcdKv)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ levelTok 0 ∗ (structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗
       sessionReady γ ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
       sl ↦*□ ps ∗ ⌜ps.length = kvss.length⌝ ∗ ⌜∀ kvs ∈ kvss, ∀ v ∈ kvs, v.key.length ≤ etcdKeyMax⌝ ∗
-      [∗list] i ↦ p ∈ ps, ∃ kvs, ⌜kvss[i]? = some kvs⌝ ∗ rangeKvsRO p kvs }}
+      [∗list] i ↦ p ∈ ps, ∃ kvs, ⌜kvss[i]? = some kvs⌝ ∗ rangeKvsRO p kvs) }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"revokeFallback")) (Val #sl))
-  {{ (err : GoInterface), RET #err; structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
-      structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ lkvReader lkv γ pfx }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+      structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ lkvReader lkv γ pfx) }}
 
 end spec
 

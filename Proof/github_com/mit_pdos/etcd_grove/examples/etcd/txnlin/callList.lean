@@ -44,7 +44,7 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     (h_client_List_st : client_List_st.law (GF := GF) (hG := hG)) :
     callList.spec (GF := GF) (hG := hG) := by
   intro _ cl ms V hAs Q
-  wp_start as ⟨#Hcl, #Hregs, #Hau⟩
+  wp_start as ⟨Hlt, #Hcl, #Hregs, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -75,8 +75,8 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
   (try wp_auto)
   wp_apply (h_client_List_st cl ms V cctx ccd _ Q
       (opSizeOk_opGetModel (K := inMax) (E := inMax) (V := 0)
-        (optsKeep_cons (withRangeM_keep (by decide)) (optsKeep_nil _ _ _)) (by decide) (by decide))) $$ []
-    as %resp %err Hout
+        (optsKeep_cons (withRangeM_keep (by decide)) (optsKeep_nil _ _ _)) (by decide) (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   -- `cancel()`
   (try wp_auto)
@@ -95,6 +95,7 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     wp_apply wp_withKVs _ ko _ (DFrac.own 1) $$ [Hko] as %o' ⟨-, %Ho'⟩
     · iframe
     iapply HΦ
+    iframe Hlt
     iright
     iexists σ
     iframe HQ
@@ -107,6 +108,7 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro; rfl
 

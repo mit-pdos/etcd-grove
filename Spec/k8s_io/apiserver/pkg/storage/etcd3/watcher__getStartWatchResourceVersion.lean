@@ -34,19 +34,17 @@ abbrev watcher.getStartWatchResourceVersion.spec : Prop :=
   ∀ (wp : Loc) (crv : GoFunc) (ctx : GoInterface) (rev : w64)
     (opts : k8s_io.apiserver.pkg.storage.ListOptions) (sie : Option Bool)
     (R : w64 → GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"getCurrentStorageRV" wp ↦□ crv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"getCurrentStorageRV" wp ↦□ crv ∗
       sendInitIs opts.SendInitialEvents' sie ∗ watchListOn ∗
-      (⌜sint.Z rev ≤ 0 ∧ sie = some false⌝ -∗
-        WP (App (Val #crv) (Val #ctx)) {{ v, ∃ (n : w64) (err : GoInterface),
-          ⌜v = PairV #n #err⌝ ∗ R n err }}) }}
+      (⌜sint.Z rev ≤ 0 ∧ sie = some false⌝ -∗ levelTok 0 -∗
+        WP (App (Val #crv) (Val #ctx)) {{ v, levelTok 0 ∗ ∃ (n : w64) (err : GoInterface),
+          ⌜v = PairV #n #err⌝ ∗ R n err }})) }}
     (App (App (App (Val (wp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watcher.ty @!!
       go!"getStartWatchResourceVersion")) (Val #ctx)) (Val #rev)) (Val #opts))
-  {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
-      if 0 < sint.Z rev then ⌜r = rev ∧ err = GoInterface.nil⌝
+  {{ (r : w64) (err : GoInterface), RET (PairV #r #err); levelTok 0 ∗ (if 0 < sint.Z rev then ⌜r = rev ∧ err = GoInterface.nil⌝
       else if sie = some false then
         ∃ n : w64, R n err ∗ ⌜r = if err = GoInterface.nil then n else W64 0⌝
-      else ⌜r = W64 0 ∧ err = GoInterface.nil⌝ }}
+      else ⌜r = W64 0 ∧ err = GoInterface.nil⌝) }}
 
 end spec
 

@@ -40,16 +40,14 @@ abbrev leases.spec : Prop :=
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF)
     (Spec : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Q : LeaseLeasesRespM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗
-      isNewClient cl eps V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗ levelTok 0 ∗ (isNewClient cl eps V ∗
       isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗ □ ▷ Spec () Q ∗
-      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
+      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.leases)) (Val #cl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseLeasesRespM) (sl : GoSlice),
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : LeaseLeasesRespM) (sl : GoSlice),
         structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"Leases" resp ↦□ sl ∗
         sl ↦*□ (m.ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id))) ∗ Q m) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

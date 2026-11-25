@@ -110,23 +110,21 @@ abbrev SetUp.spec : Prop :=
   E.authMode = .on γa →
   uint.Z ρ.kv.c0 ≤ uint.Z ρ.raft.ai0 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
-      isNewClient cl [ep] V ∗ clientTokAt cl [ep] (fun _ => iprop(False)) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗ levelTok 0 ∗ (isNewClient cl [ep] V ∗ clientTokAt cl [ep] (fun _ => iprop(False)) ∗
       isGrpcRpcMd ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
       iprop(□ ∀ k : GoString, ⌜k ∈ setupKeys⌝ -∗
         kvOpAu1 ρ.rd.kv (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True))) ∗
       setupAuthServed ep s E ρ ∗ □ (srvTLSId s -∗ False) ∗
-      authHistView ρ.kv [srvAuthSt0] }}
+      authHistView ρ.kv [srvAuthSt0]) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUp)) (Val #cl))
-  {{ (ok : Bool), RET #ok;
-      if ok then
+  {{ (ok : Bool), RET #ok; levelTok 0 ∗ (if ok then
         iprop(∃ (γz : GName) (hs : List auth.AuthState) (Lset : List EntryModel) (k : Nat)
             (r : Nat),
           authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
           ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝ ∗
           auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r) ∗
           ∃ Lc : List EntryModel, srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝)
-      else iprop(True) }}
+      else iprop(True)) }}
 
 end spec
 

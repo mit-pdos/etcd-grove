@@ -169,9 +169,10 @@ theorem run.wp_proof
   iclear Hups Hcfree
   (try wp_auto)
   -- the check loop: `for _, m := range ms { if !check(m.Client, lg) { return Failed } }`
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
   ihave IB : (∃ (n : w64) (mv : GMember),
-      "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length⌝ : IProp GF) $$ [i m]
+      "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗ "Hlt" ∷ levelTok 0 ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length⌝ : IProp GF) $$ [i m Hlt]
   · iexists W64 0, _
     iframe
     ipureintro; exact ⟨by decide, by simp⟩
@@ -189,8 +190,8 @@ theorem run.wp_proof
     (try wp_auto)
     ihave #Hlrj := BigSepL.bigSepL_lookup Hxj_lookup $$ Hsv
     have hne : Nonempty (client.WEnv GF) := hVne.resolve_left (by omega)
-    wp_apply (wp_check xj.1.Client' lg (Classical.choice hne) (Hpe xj hxj) (by omega) hAs)
-      as %b -
+    wp_apply (wp_check xj.1.Client' lg (Classical.choice hne) (Hpe xj hxj) (by omega) hAs) $$ [$Hlt]
+      as %b ⟨Hlt, -⟩
     · iframe #
     (try wp_auto)
     cases b

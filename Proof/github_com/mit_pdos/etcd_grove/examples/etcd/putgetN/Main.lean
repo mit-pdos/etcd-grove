@@ -299,7 +299,7 @@ theorem Main.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve s0 m0.Client' E { g0.ρ with wait := γw } g0.ρ.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt m0.Client' E { g0.ρ with wait := γw } g0.ρ.rd cid mid))
+      (fun cid mid _ => iprop(etcdstart.etcdKVAt m0.Client' E { g0.ρ with wait := γw } g0.ρ.rd cid mid ∗ srvGoRes s0)))
     $$ [Hac Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -307,10 +307,10 @@ theorem Main.wp_proof
     iintro %gs' %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    iapply (etcdstart.kv_served s0 E { g0.ρ with wait := γw } g0.ρ.rd gs' lis m0.Client' cid mid R
+    iapply (etcdstart.kv_served_go s0 E { g0.ρ with wait := γw } g0.ρ.rd gs' lis m0.Client' cid mid R
       Hrb48 Hrf rfl HLv)
     iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -323,10 +323,11 @@ theorem Main.wp_proof
   -- `NewClient(ms[0].Client, lg)` (etcd's default client configuration)
   simp only [Hbm, _root_.and_self, ↓reduceIte]
   (try wp_auto)
+  icases etcdstart.srvGoRes_level0 s0 $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient m0.Client' lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E g0.ρ.rd false) g0.ρ.rd m0.Client' [] null
         null [] null default)
-      (by rw [hm0]; exact loopback_plainEndpoint _) (by omega)) as %cl %cerr Hcl
+      (by rw [hm0]; exact loopback_plainEndpoint _) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -371,7 +372,7 @@ theorem Main.wp_proof
   wp_apply (client.client_Put_own cl m0.Client' _ E g0.ρ.rd γf cid mid
       pctx pcd go!"k" go!"v" slice.nil []
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide))) as %presp %perr Hput
+        (by decide))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hput⟩
   · iframe #
   (try wp_auto)
   wp_apply Hpcancel
@@ -396,7 +397,7 @@ theorem Main.wp_proof
   wp_apply (client.client_Get_own cl m0.Client' _ E g0.ρ.rd γf (W64 0) cid mid
       gctx gcd go!"k" go!"v" slice.nil []
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
-    as %gresp %gerr Hget
+    $$ [$Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
   · iframe #
     iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl

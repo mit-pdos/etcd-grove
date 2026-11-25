@@ -25,7 +25,7 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
-public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
+public import Proof.go_etcd_io.etcd.client.v3.credentials.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked

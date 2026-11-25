@@ -37,7 +37,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
     putNewKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx key val lease lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   iunfold isRecipesKV at Hkv
   icases Hkv with ⟨-, #HTxn, -, -⟩
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -126,7 +126,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err ⟨Hres, #Hce⟩
+  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres, #Hce⟩
   · ipureintro; exact ⟨newKeyTxn_under pfx key val lease Hk.1, TxnModel.exactGets_of_noGets _ (by simp [newKeyTxn])
         (by simp [newKeyTxn, compareM, cmpKeyM]) (by simp [newKeyTxn, op_simps]),
         newKeyTxn_size lease Hk.2.1 Hk.2.2⟩
@@ -140,6 +140,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     · exact absurd Hn Hne
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; iright
     iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩
@@ -165,6 +166,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     icases Hri with ⟨⟨%eK, #HeK, -⟩, -, -, -⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · unfold concurrency.isPkgErr
@@ -190,6 +192,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

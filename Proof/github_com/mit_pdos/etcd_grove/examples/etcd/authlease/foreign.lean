@@ -47,7 +47,7 @@ theorem foreign.wp_proof
     (wp_WithAttachedKeys : WithAttachedKeys.spec (GF := GF) (hG := hG)) :
     foreign.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS cli who addr id s E ρ γa n m Qr R hwho hon hAs
-  wp_start as ⟨#Htk, #Hsv, #Hn, #Hm, HR, #HQr, #HnoR, #HnoT, #HnoL⟩
+  wp_start as ⟨Hlt, #Htk, #Hsv, #Hn, #Hm, HR, #HQr, #HnoR, #HnoT, #HnoL⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Htk0 := Htk
@@ -64,7 +64,7 @@ theorem foreign.wp_proof
   · unfold akOut; iexact Hout0
   (try wp_auto)
   wp_apply (wp_Revoke lp conn [addr] (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) _
-      ci (akOut who) cd id) as %r %err Hr
+      ci (akOut who) cd id) $$ [$Hlt] as %r %err ⟨Hlt, Hr⟩
   · iframe #
     iapply (revoke_attempt s E ρ conn _ n id Qr (fun _ => iprop(∃ σ, Qr σ)))
     iframe #
@@ -107,7 +107,7 @@ theorem foreign.wp_proof
       (fun _ => iprop(∃ tok : Option GoString, akTokSeen γa who tok ∗
         leaseCheckFrom (srvTLSId s) E tok n (fun info =>
           leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) m id .read))) ci (akOut who) cd id _ [fun _ => true])
-    as %r %err Hr
+    $$ [$Hlt] as %r %err ⟨Hlt, Hr⟩
   · iframe #
     iapply (ttl_attempt_seen s E (mvcc.api.mvccLeases E.γ) γa who conn _ n m (id, leaseKeysFold [fun _ => true] false) _ hout)
     iframe #
@@ -136,7 +136,7 @@ theorem foreign.wp_proof
       (fun r => iprop(∃ (tok : Option GoString) (i : Nat), ⌜m ≤ i⌝ ∗ akTokSeen γa who tok ∗
         lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) i r.ids ∗
         leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id' ∈ r.ids,
-          leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) i id' .read)))) ci (akOut who) cd) as %r %err Hr
+          leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) i id' .read)))) ci (akOut who) cd) $$ [$Hlt] as %r %err ⟨Hlt, Hr⟩
   · iframe #
     iapply (leases_attempt_seen s E (mvcc.api.mvccLeases E.γ) γa who conn _ n m _ hout)
     iframe #
@@ -152,7 +152,7 @@ theorem foreign.wp_proof
     imod HnoL $$ %tok %i %(m'.ids) %hi Hs Hids Hck HR with ⟨⟩
   wp_apply (wp_refused who _ err Herr.1)
   (try wp_auto)
-  iapply HΦ; iexact HR
+  iapply HΦ; iframe Hlt; iexact HR
 
 end proof
 

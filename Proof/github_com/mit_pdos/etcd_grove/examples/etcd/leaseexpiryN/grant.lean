@@ -40,7 +40,7 @@ theorem grant.wp_proof
     grant.spec (GF := GF) (hG := hG) := by
   have wp_Grant := lessor.Grant.specP_of wp_Grant
   intro cl eps V Spec Q
-  wp_start as ⟨#Hnc, #Hrpc, #HS, %hAs⟩
+  wp_start as ⟨Hlt, #Hnc, #Hrpc, #HS, %hAs⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -55,19 +55,21 @@ theorem grant.wp_proof
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
-  wp_apply (wp_Grant lp eps Spec Q gctx gcd) as %gr %gerr Hgr
+  wp_apply (wp_Grant lp eps Spec Q gctx gcd) $$ [$Hlt] as %gr %gerr ⟨Hlt, Hgr⟩
   · iframe #
   (try wp_auto)
   wp_apply Hgcancel
   (try wp_auto)
   icases Hgr with (⟨%Hgerr, %mg, %hg, -, -, #Hgid, -, HQg⟩ | ⟨%Hgfail, -⟩)
   · iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; exact Hgerr
     iexists mg
     iframe; iframe #
   · iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hgfail.1
 

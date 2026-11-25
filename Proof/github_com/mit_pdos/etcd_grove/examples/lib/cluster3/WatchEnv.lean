@@ -157,7 +157,7 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₃)
         (fun md => v3rpc.watchSpec R₃ (etcdstart.srvWOf E₃ ρ₃.rd false) (auth.mdTokenOf md)) ⊢
       □ ∀ (conn : Loc) (ics : List GoFunc),
-        grpcConn (GF := GF) conn (bridges cfg) ics [] anyRes -∗
+        grpcConn (GF := GF) conn (bridges cfg) ics [] clientRes -∗
           client.watchConnFacts { watchEnv cfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) γr pfx with conn := conn, ics := ics } := by
   iintro ⟨#P1, #P2, #P3, #Heof, #Hm₁, #Hm₂, #Hm₃, #Hs₁, #Hs₂, #Hs₃⟩
   iintro !> %conn %ics #Hc

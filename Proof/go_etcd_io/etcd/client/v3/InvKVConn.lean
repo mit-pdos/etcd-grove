@@ -1674,7 +1674,11 @@ contract's premise, `grpcInvokerOk`), it returns
   `ctx` is not done is retried whatever the method (`nonissues/etcd-client-retry-put-ctx-error.md`);
 * an error: a client error (`clientErr`) that grpc's `status` accepts (`statusErrOk`), with the
   caller's error outcome `Ψe` at a handler's description (`ifcErrOut`, k8s 7e-1); nothing else
-  about whether, or how often, the handler ran, nor about `out`. -/
+  about whether, or how often, the handler ran, nor about `out`.
+
+The caller lends it a level-0 thread token (`levelTok 0`, given back; prove-ps2-clientrdlock,
+2026-11-24, decision 1b), the connection's resource (`clientRes`): it lends it to each attempt
+(`grpcInvokerOk`, for the per-RPC credentials) and to `Endpoints` (`isSafeRetry`, the backoff). -/
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
       (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
@@ -1683,13 +1687,13 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ levelTok 0 ∗ grpcConn conn addr ics dopts clientRes ∗ grpcInvokerOk conn addr clientRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn om Spec m Φ Ψe ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
-    {{ (err : GoInterface), RET #err; Req.send inp m ∗
+    {{ (err : GoInterface), RET #err; levelTok 0 ∗ Req.send inp m ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
             ifcErrOut method addr Ψe err)) }})
@@ -1728,14 +1732,14 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ levelTok 0 ∗ grpcConn conn addr ics dopts clientRes ∗ grpcInvokerOk conn addr clientRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
         metadata.outMD ctx om ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
-    {{ (err : GoInterface), RET #err; Req.send inp m ∗
+    {{ (err : GoInterface), RET #err; levelTok 0 ∗ Req.send inp m ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
             ifcErrOut method addr Ψe err)) }})
@@ -1764,9 +1768,9 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
     iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om
-      %inp %out %opts %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, #Hom, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+      %inp %out %opts %vs %Ψ !> ⟨Htok, #Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, #Hom, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
     iapply H0 $$ %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd
-      %om %inp %out %opts %vs %Ψ [Hsend Hblank] HΨ
+      %om %inp %out %opts %vs %Ψ [Htok Hsend Hblank] HΨ
     unfold modePre
     iframe #
     iframe
@@ -1774,11 +1778,32 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
     unfold etcdInterceptorOkW
     iexact H2
 
+/-- **`go` of a goroutine that needs a level-0 thread token** (prove-ps2-clientrdlock, 2026-11-24):
+the forked thread's fresh thread token (`wp_fork_tok_body`) splits into its level-0 token, which the
+body is given and gives back (a client goroutine's calls on the connection, `clientRes`), and the
+other levels, kept aside until the thread exits. -/
+theorem wp_fork_level0 (e : Expr) (Φ : val → IProp GF) :
+    ⊢ ▷ (levelTok 0 -∗ WP e {{ v, ⌜v.isPanic = false⌝ ∗ levelTok 0 }}) -∗ ▷ Φ #() -∗
+      WP (Fork e) {{ Φ }} := by
+  iintro He HΦ
+  iapply wp_fork_tok_body $$ [He] HΦ
+  inext
+  iintro Htok
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Hr⟩
+  iapply wp_wand_r
+  isplitl [He H0]
+  · iapply He $$ H0
+  iintro %v ⟨%Hv, H0⟩
+  isplitr
+  · ipureintro; exact Hv
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe
+
 /-- **An etcd client's connection `conn` to the server at `addr`** (persistent; unit P3a; see the
 file header): grpc's connection with one unary interceptor, the client's retry interceptor
 (`etcdInterceptorOk`), and no default call options. -/
 def isEtcdConn (conn : Loc) (addr : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] anyRes ∗ etcdInterceptorOk ic ∗
+  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] clientRes ∗ etcdInterceptorOk ic ∗
     -- (2026-10-21, D29) a write on a refusal-free connection: ordinary, whatever the bound
     etcdInterceptorOkW ic)
 

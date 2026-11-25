@@ -40,15 +40,13 @@ abbrev grant.spec : Prop :=
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗
-      isNewClient cl eps V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗ levelTok 0 ∗ (isNewClient cl eps V ∗
       isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (W64 1, W64 0) Q ∗
-      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
+      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.grant)) (Val #cl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseGrantRespM,
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseGrantRespM,
         structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ID" resp ↦□ m.id ∗ Q m) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

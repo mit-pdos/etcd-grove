@@ -307,7 +307,7 @@ theorem startCluster.wp_proof
       ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
       imod (etcdstart.kvWatch_served Hp Hr sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg gs' lis
         xj.1.Client' cid mid R Hrb48 Hrf rfl HLv Hms
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr⟩
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr, -⟩
       · iframe; iframe #
       -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
       ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo $$ [Hksa]
@@ -479,8 +479,9 @@ theorem startCluster.wp_proof
     -- `kubernetes.New(Config{Endpoints: baddrs, DialTimeout, keepalive, Logger: lg})`
     ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
     · iPkgInit
-    wp_apply (wp_kNew _ (bridges k) V (fun _ => iprop(True))) $$ []
-      as %kc %cerr Hcl
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok⟩
+    wp_apply (wp_kNew _ (bridges k) V (fun _ => iprop(True))) $$ [$Hlt]
+      as %kc %cerr ⟨Hlt, Hcl⟩
     · iframe #
       iunfold clientCfgOk
       simp only
@@ -492,6 +493,8 @@ theorem startCluster.wp_proof
         refine ⟨Hpl, ?_⟩
         simp
       iapply clientAuthPre_anon; rfl
+    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok]
+    · iframe
     icases Hcl with (⟨%Hcerr, %cl, #Hkc, #Hnc, -⟩ | %Hcfail)
     rotate_left
     · cases cerr with

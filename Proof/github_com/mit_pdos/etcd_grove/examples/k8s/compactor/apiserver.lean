@@ -42,7 +42,7 @@ theorem apiserver.wp_proof
     (wp_check : check.spec (GF := GF) (hG := hG)) :
     apiserver.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γr γk γ shared hsame hcmp hcret
-  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hst, #Hko, #Hwo, #Heps, #Hinv, #Hkvi⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hst, #Hko, #Hwo, #Heps, #Hinv, #Hkvi⟩
   ihave #Pe3 : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -58,19 +58,19 @@ theorem apiserver.wp_proof
       -- no `onClose`
       iapply k8s.closeOk_nil
     (try wp_auto)
-    wp_apply (wp_check cl ms V γr γk γ c cl γc hsame) $$ []
+    wp_apply (wp_check cl ms V γr γk γ c cl γc hsame) $$ [$Hlt] as ⟨Hlt, Hpost⟩
     · iframe #
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   · (try wp_auto)
     wp_apply (wp_StartCompactorPerEndpoint cl ms V γk (seenOk γ) (fun _ => iprop(True)) _ hsame
-        hcmp hcret (by decide)) $$ [] as %c ⟨%cl', %γc, #Hc, #H0⟩
+        hcmp hcret (by decide)) $$ [$Hlt] as %c ⟨Hlt, %cl', %γc, #Hc, #H0⟩
     · iframe #
     (try wp_auto)
-    wp_apply (wp_check cl ms V γr γk γ c cl' γc hsame) $$ []
+    wp_apply (wp_check cl ms V γr γk γ c cl' γc hsame) $$ [$Hlt] as ⟨Hlt, Hpost⟩
     · iframe #
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

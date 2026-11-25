@@ -127,7 +127,7 @@ theorem Run.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv addr E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
+      (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗ srvGoRes srv ∗
         akKVOn addr srv E { ρ with wait := γw } cid mid ∗
         setupAuthServed addr srv E { ρ with wait := γw } ∗
         isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
@@ -141,7 +141,7 @@ theorem Run.wp_proof
     ihave Hg := etcdstart.grpcUpM_true _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
-      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -,
+      %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo,
       Hlis, Hleft, -⟩
     obtain ⟨HCA, HCE, Hregs1, HregsA, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
@@ -169,11 +169,11 @@ theorem Run.wp_proof
       $$ [HWok] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     imodintro
-    iframe HKV HSA HAu HWF Htag
+    iframe HKV HSA HAu HWF Htag Hgo
     isplitl [Hserv]
     · iexists _; iexact Hserv
     ipureintro; exact ⟨hRE, hRs⟩
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HSA, #HAu, #HWF, #Htag⟩⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, Hgo, #HKV, #HSA, #HAu, #HWF, #Htag⟩⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -181,10 +181,11 @@ theorem Run.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Hserr
   wp_auto
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   -- `NewClient(clientAddr, lg)`: the client with no user name
   wp_apply (wp_NewClient addr lg
       (akV R)
-      Hpe Htb31) as %cl %cerr Hcl
+      Hpe (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, #Hctk, -⟩ | %Hcfail)
   rotate_left
@@ -211,7 +212,7 @@ theorem Run.wp_proof
       (akV R) srv E
       { ρ with wait := γw } cid mid γa HEo
       (by show uint.Z ρ.rd.kv.c0 ≤ uint.Z ρ.rd.raft.ai0; rw [hc0]; word) hAs)
-    $$ [Hview] as %ok Hok
+    $$ [$Hlt Hview] as %ok ⟨Hlt, Hok⟩
   · iframe; iframe #
   cases ok
   · wp_auto
@@ -227,7 +228,7 @@ theorem Run.wp_proof
     iexact Hw
   wp_auto
   wp_apply (wp_newUserClient addr go!"root" go!"root-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"root") Hpe
-      (by omega) (by unfold strsSizeOk; decide)) as %rcl %rerr Hrc
+      (by omega) (by unfold strsSizeOk; decide)) $$ [$Hlt] as %rcl %rerr ⟨Hlt, Hrc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -242,7 +243,7 @@ theorem Run.wp_proof
   subst Hrerr
   wp_auto
   wp_apply (wp_newUserClient addr go!"u" go!"u-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"u") Hpe
-      (by omega) (by unfold strsSizeOk; decide)) as %ucl %uerr Huc
+      (by omega) (by unfold strsSizeOk; decide)) $$ [$Hlt] as %ucl %uerr ⟨Hlt, Huc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -257,7 +258,7 @@ theorem Run.wp_proof
   subst Huerr
   wp_auto
   wp_apply (wp_newUserClient addr go!"v" go!"v-pw" lg (akV R) (fun t => auth.tokIssued γa t go!"v") Hpe
-      (by omega) (by unfold strsSizeOk; decide)) as %vcl %verr Hvc
+      (by omega) (by unfold strsSizeOk; decide)) $$ [$Hlt] as %vcl %verr ⟨Hlt, Hvc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -325,10 +326,11 @@ theorem Run.wp_proof
       wp_apply (sync.join.WaitGroup.wp_Add_of sync.WaitGroup.wp_Add iprop(True) wg_ptr iprop(True)
           na) $$ [Hwg] as ⟨Hwg, Hdone⟩
       · iframe; ipureintro; word
-      wp_apply wp_fork $$ [Hdone who c]
-      · (try wp_auto)
+      wp_apply wp_fork_level0 $$ [Hdone who c]
+      · iintro Hlt
+        (try wp_auto)
         wp_apply (wp_Work _ _ addr (akV R) srv E { ρ with wait := γw } cid mid γa Lset kpub hwho HEo
-            ⟨rfl, rfl, rfl, rfl, hRs', hRE', rfl⟩ hAs)
+            ⟨rfl, rfl, rfl, rfl, hRs', hRE', rfl⟩ hAs) $$ [$Hlt] as ⟨Hlt, -⟩
         · iframe #
           first
           | (rw [akTokP, ite_eq_left (Or.inl rfl)]; iexact Hutk)
@@ -338,7 +340,7 @@ theorem Run.wp_proof
         wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
           $$ [Hdone]
         · iframe
-        itrivial
+        iframe Hlt; try itrivial
       wp_for_post
       iframe
       iexists (k + W64 1), (na + W32 1)
@@ -369,7 +371,7 @@ theorem Run.wp_proof
   wp_apply (client_Put_on rcl rapi rconn addr srv E { ρ with wait := γw } cid mid
       ectx eom ecd endKey go!"end" slice.nil (fun _ => iprop(True)) []
       (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) (by decide)
-        (by decide) (by decide))) $$ [] as %eresp %eerr Hend'
+        (by decide) (by decide))) $$ [$Hlt] as %eresp %eerr ⟨Hlt, Hend'⟩
   · iframe #
   (try wp_auto)
   wp_apply Hecancel

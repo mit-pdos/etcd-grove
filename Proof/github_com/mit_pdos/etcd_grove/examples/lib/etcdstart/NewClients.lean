@@ -35,7 +35,7 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_WithNoProxy : grpc.WithNoProxy.spec (GF := GF) (hG := hG)) :
     NewClients.spec (GF := GF) (hG := hG) := by
   intro eps addrs lg V Htb Hplain
-  wp_start as ⟨#Hzlg, #Heps⟩
+  wp_start as ⟨Hlt, #Hzlg, #Heps⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -53,8 +53,8 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hdol with #Hdol
   -- `clientv3.New(Config{Endpoints: eps, DialTimeout: ..., DialKeepAliveTime: ..., Logger: lg})`
-  haveI : ThreadBoundLe GF (2 ^ 31) := ⟨Htb⟩
-  wp_apply (wp_New _ addrs V (fun _ => iprop(False))) $$ [] as %cl %cerr Hcl
+  haveI : ThreadBoundLe GF (2 ^ 30) := ⟨Htb⟩
+  wp_apply (wp_New _ addrs V (fun _ => iprop(False))) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -91,11 +91,13 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
       iapply BigSepL2.bigSepL2_singleton.2
       iexact Ho
     iapply HΦ
+    iframe Hlt
     ileft
     iframe #
     ipureintro; rfl
   · obtain ⟨Hcerr, Hnull⟩ := Hcfail
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Hcerr, Hnull⟩
 

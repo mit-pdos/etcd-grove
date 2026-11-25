@@ -6314,6 +6314,92 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+## 2026-11-24: every client operation takes `levelTok 0` (decision 1b; prove-ps2-clientrdlock, #18)
+
+- **Spec.** The etcd client connection's resource family (`grpcConn … Ok`, `perRPCCredsOk pc Ok`,
+  `grpcInvokerOk … Ok`, `cliBidiStreamIs … Ok`), `anyRes` until now, becomes `clientRes`
+  (`R = levelTok 0`, `Proof/google_golang_org/grpc/InvGrpcBase.lean`); and every spec of a client operation
+  that makes a call on the connection synchronously (the generated stubs `kVClient.*`, `authClient.*`,
+  `leaseClient.*`, `watchClient.Watch`; the `retry*Client`s; `kv.*`, `txn.Commit`, `lessor.Grant`/`Revoke`/
+  `TimeToLive`/`Leases` and their `specM`/`specG`/`specP` forms; the client's `authClient.*`; `etcdConn.Invoke*`;
+  the retry interceptor's contract `etcdInterceptorOk(M)`; `isSafeRetry`, `waitRetryBackoff`, `getToken`,
+  `refreshToken`; the dial, `newClient`, `New`; the keep-alive and watch stream goroutines' bodies) takes a
+  level-0 thread token in its pre and gives it back in every outcome. `Client.Endpoints` and
+  `perRPCCredential.GetRequestMetadata` take it too. `backoffOk` becomes `backoffOkT` in the options
+  (`optionsOk`, `withBackoff`, `roundRobinQuorumBackoff`): the backoff is lent the token.
+- **Defect.** The two read-locking methods were trust-boundary axioms: their `RWMutex.RLock` needs a reader
+  slot, which no caller held (the retry interceptor's and grpc's per-attempt calls were persistent contracts
+  with no resource). Their docstrings hedged on "at most 2^30 - 1 concurrent readers".
+- **Evidence.** Both proved over their bodies (`Client__Endpoints.lean`, `perRPCCredential__GetRequestMetadata.lean`):
+  `newClient` builds a level-0 pool of `epMu`'s reader slots (`clientEpPool`, in `retryClientOk`, with the
+  read-only endpoints), `NewPerRPCCredentialBundle` one of `authTokenMu`'s (`credTokInv`, now a level-0 pool);
+  each call borrows with its caller's `levelTok 0` and gives it back. grpc lends the token to the
+  credentials (`perRPCCredsOk pc clientRes`, #24's S2 resource parameter).
+- **Proposed change.** As above, approved by the user as decision 1b (2026-11-23). The callers of the client
+  hold a thread token (a live thread has one token per level): a thread's proof splits `levelTok 0` off
+  (`threadTok_level0`), a goroutine's fork gives it (`wp_fork_level0`). The token is the conjunct right
+  after a spec's leading `isPkgInit` facts (so that `wp_start` and `wp_apply` still take those facts off
+  first). `newClient`, `New` and `kubernetes.New` take `[ThreadBoundLe GF (2 ^ 30)]` (was `2 ^ 31`): the
+  `epMu` pool needs `threadBound GF ≤ 2 ^ 30` (`sync.init_RWMutex_threadPoolL`); their callers have `2 ^ 28`.
+  The client's exported results (`client/v3/Results.lean`: `client_put_any` ... `client_get_after_put`)
+  state the token in their pre and post. (`kv.Txn` and `Client.dial` make no call that needs the token;
+  their specs keep it, passed through, for uniformity.)
+  The clients' lease contract `isEtcdLease` (`cache/v3/InvEtcdTxn.lean`) gives its `Grant` and `Revoke`
+  the token too (`KeepAlive` forks: unchanged), so that `lessor`'s proofs meet it (`LeaseClient.lean`).
+  The other client contracts likewise, on the methods that call the connection (`Get`, `Put`, `Delete`,
+  a builder's `Commit`, `Do`): `isEtcdKV`, `isEtcdKVE`, `isEtcdDeleteKV`, `txnBuilderSpec(X|O)`,
+  `readTxnBuilderSpec`, the `*Todo` contracts, `txnCommitErrTodo`, `isEtcdDoKV` (cache/v3), the
+  client's `kvLeasedPutTodo`, `kvLeasedCommitTodo`, `kmPutRestTodo`, `kmTxnUncoveredTodo`, the laws of
+  `ClientCallLaws.lean`, and v3lock's `unlockKVOk`; `If`/`Then`/`Else`, `Txn` (building) and watches
+  do not (`kv.Txn` makes no call: its addtok edit reverted). Their users' specs take the token too:
+  the cache's `Cache.get`, `serverRevision`, `Get` (its watch loop splits the token off the loop's
+  `threadTok`, `cacheWgLoopRunning`, so `getWatch`'s spec is unchanged), `concurrency.NewSession`,
+  `Session.Close`, and the concurrency, recipes and leasing functions that call a contract (2026-11-24,
+  in progress).
+- **Decision.** Applied (branch `prove-ps2-clientrdlock/2026-11-24`); the two axioms retired.
+- **Beyond the token (second pass, 2026-11-24).**
+  - *STM*: the STM's method contract `stmMethods` gives `Get`, `Rev` and `commit` the token, and the
+    user's closure contract `applySpec` is lent it (pre and post); `runSTM` and `NewSTM*` keep their
+    specs (`runSTM`'s goroutine gets the token from its fresh thread token, `wp_fork_level0`).
+    `Election.Observe` keeps its spec (its fork of `observe` likewise).
+  - *Leasing*: the KV's reader-slot pool moves from a whole-token pool (`isThreadPool`) to a level-1
+    pool (`isThreadPoolL leasingPoolN 1`; local `threadPool.loansL_lt`, `init_namedL` in
+    `PoolLoans.lean`, Perennial changes like `loans_lt`), so that `lkv_borrow` leaves the borrower its
+    `levelTok 0` (and `threadTokFrom 2`, which `lkv_giveBack` takes back). `Get`, `get`, `Do`, `Put`,
+    `Delete` and `txnLeasing.Commit` keep their specs exactly (`threadTok`, no extra token; the first
+    pass had given `get`/`Commit` `levelTok 0` on top of `threadTok`, which no single thread holds:
+    reverted). `get`'s lease monitor is forked with `wp_fork_tok`: the monitor takes the fresh token's
+    levels 0 and 2.., the caller its level 1.
+  - *Statements carrying the token*: `recipes.queue_vertical`'s `Enqueue`/`Dequeue` triples,
+    `kubernetes.Client.Get.latest`, k8s etcd3's local lemmas `cas_commit`, `client_Get_nil`,
+    `wp_syncGet`.
+  - *Open (conflicts, not resolved)*: (1) k8s etcd3's compactor `onClose` closure (`closeOk`), built by
+    `StartCompactorPerEndpoint`, calls `cl.Endpoints()` (token); `compactor.Stop` calls it inside
+    `sync.Once.Do`, whose spec (`{{ P }} f {{ Q }}`, persistent) lends the closure no resource of the
+    caller, so the closure cannot get a level-0 token. (2) The etcd examples' `Main`s give the main
+    thread's whole `threadTok` to the server (`StartServer`'s `srvGoRes s`, used by `GoAttach` and
+    `Serve`), so the main thread has no `levelTok 0` left for its client calls (`NewClient`, `Put`,
+    `Get`).
+- **Beyond the token (third pass, 2026-11-24).**
+  - *The two open conflicts, resolved.* (1) k8s' `closeOk` (a compactor's `onClose`) is lent the caller's
+    `levelTok 0`, and `compactor.Stop` takes it (pre and post); `Stop` lends it to the closure through
+    `sync.Once.Do` by `wp_Once_Do_lend` (`Proof/sync/OnceLend.lean`, a variant of Perennial's `Once.Do` spec where
+    the caller lends the closure a resource, proved over `Once`'s code; `notes/perennial-changes.md`). (2) No
+    server spec changes: the server's `GoAttach` uses the levels from 1 of the token in `srvGoRes` (`GoAttachTok`),
+    but the apply thread's `srvGoRes` (its own token, from `run`'s `threadTok`) lends level 0 to `lessor.Promote`
+    (`lessorLvl = 0`, `applyEntryNormal`), so `srvGoRes` keeps the whole token. The example `Main`s instead take
+    their `srvGoRes` back through `Serve`'s caller-chosen post, as `kv_lease_served_go` already did (new
+    `kv_served_go`; `watch`/`compactwatch` keep `grpcUp`'s `srvGoRes`), and lend its level 0 (`srvGoRes_level0`,
+    `etcdstart/Defs.lean`) to their client calls.
+  - *Closures lent the token*: k8s' `getStateOk` (`getCurrentState`'s closure, which calls `Get`) and
+    `watcher.getStartWatchResourceVersion`'s `getCurrentStorageRV` wand; txnlin's `linU`/`contAt` (the
+    continuation's premise gains the token, which `Apply`'s post gives back; `Apply.spec`'s pre and post take it;
+    `Check`'s `lintest` closure splits it off the worker's `threadTok`).
+  - *Bounds*: `etcdstart.NewClient(s)`, `cluster3.NewClient` and `leaseN.check` take `threadBound GF ≤ 2 ^ 30`
+    (was `2 ^ 31`), `New`'s (callers have `2 ^ 28`).
+  - *Thread-token holders that split it* (spec unchanged): k8s `store.getList` (reverted the first pass's extra
+    `levelTok 0` beside its `threadTok`), `pagedChunks`, `watchChan.startWatching`, the cache example's
+    second read, leaseN/leasecatchup/leaseexpiryN's `run` loops.
 ## 2026-11-24: json.Unmarshal into a *ConfigChangeContext: a zero target, ccContextOf/ccMemberOf defined (prove-ps2-jsonj5, #24 J2 batch 2b)
 
 - **Spec.** `EtcdGrove.encoding.json.Unmarshal.spec` (`Spec/encoding/json/Unmarshal.lean`), a trust-boundary axiom

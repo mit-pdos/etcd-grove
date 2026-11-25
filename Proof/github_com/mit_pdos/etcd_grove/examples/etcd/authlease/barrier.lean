@@ -63,7 +63,7 @@ theorem barrier.wp_proof
     (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     barrier.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS addr lg V s E ρ cid mid γa γz hs Lset Lc r Q Hpe Htb HEo hAs
-  wp_start as ⟨#Hlgz, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst, #HQ⟩
+  wp_start as ⟨Hlt, #Hlgz, #HAu, #HKV, #Hrd, #Hfz, #HLs, %Hh, #HLc, %HLcst, #HQ⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   isimp only [hon] at Hrd
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -77,7 +77,7 @@ theorem barrier.wp_proof
   -- `root, err := newUserClient(addr, "root", rootPw, lg)`
   wp_apply (wp_newUserClient addr go!"root" go!"root-pw" lg V
       (fun t => auth.tokIssued γa t go!"root") Hpe Htb (by unfold strsSizeOk; decide))
-    as %rcl %rerr Hrc
+    $$ [$Hlt] as %rcl %rerr ⟨Hlt, Hrc⟩
   · iframe #
     iapply (client.authTokReg_of _ _ _ γa)
     iexact HAu
@@ -88,7 +88,7 @@ theorem barrier.wp_proof
     | nil => exact absurd rfl Hrerr
     | ok ei => ?_
     wp_auto
-    iapply HΦ; ileft; ipureintro; rfl
+    iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
   subst Hrerr
   wp_auto
   ihave #Hrtk0 := Hrtk
@@ -122,7 +122,7 @@ theorem barrier.wp_proof
       (W64 (uint.Z ρ.raft.ai0 + Lc.length)) 0 ectx eom ecd go!"z/barrier" slice.nil []
       iprop(True) Q []
       (opSizeOk_opGetModel (K := 16) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)
-        (by decide))) $$ [Hres] as %resp %err Hout
+        (by decide))) $$ [$Hlt Hres] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     isplitl []
     · itrivial
@@ -148,6 +148,7 @@ theorem barrier.wp_proof
     subst Herr
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitl []
     · ipureintro; rfl
@@ -170,6 +171,7 @@ theorem barrier.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft
       ipureintro; rfl
 
