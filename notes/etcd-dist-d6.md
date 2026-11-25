@@ -1033,3 +1033,51 @@ real WAL) is the natural report if the lead wants one.
   `64aa0b94eb`: T2's crash law over `walRecsH_crash`, with `HistReadOk` (per-prefix `walCommitLe`) in
   `rnDurBodyK` and `walReadFacts σ` in the post (copies of `etcd-safe-d6t2`'s files). All of it builds, with
   no axiom and no `sorry`. Left for T2: maintain `HistReadOk` in its steps and at allocation.
+
+## 10T2. T2: the server's crash-aware durability invariant (2026-11-24, branch `etcd-safe-d6t2/2026-11-24`)
+
+After §9 (the torn-batch law retired; the WAL fork fix makes a torn `Save` read as none), T2 states the
+per-generation invariant that ties raft's durable state to what a crash can leave of the WAL.
+
+**What a crash leaves.** `walSaveAtomic.law` (`storage/WalRecsH.lean`, pure, the fork fix's obligation
+on the WAL re-proof; false of today's model): every image `I` of a history `H` at synced mark `n`
+(`walImg`) reads, from every purge position, as a complete prefix `H.take j`, `n ≤ j ≤ |H|`. So the
+invariant only has to say what each complete prefix from a synced lower bound reads as.
+
+**The invariant** (`etcdserver/InvWalCrash.lean`, `rnDurInvK γn id νk h`): `rnDurInv`'s rows (the loop's
+view, now `WalViewK = WalView × Option (WalView × GName)`, half; the handed log's authority; the
+records as the view says, with their certificate), plus the records' history (`walRecsH`, a new
+sealed variant of `walRecs` exposing the history, `storage/WalRecsH.lean`, with `walRecs_iff_H`), a
+synced lower bound (`walSyncedLb`), every snapshot record of the history certified (`walHistCerts`),
+the handed logs committed (`rnLogLbsK`), the pure crash fact `CrashReadsHold Hs n (crashOk vk)`
+(every prefix `j ∈ [n, |Hs|]` reads records holding the view's durable state within its handed log, or,
+while a batch is pending, the state before it), and kvnet's crash split: `raftState (durOf vk) ∗
+rnPendK` (the pending batch's *enter* record, recognized by a saved proposition) or `crashed ∗ token tk`.
+The WAL rows stay outside the split because the WAL contract's atomic updates commit without
+`notCrashed`. The stop's taken state is `rnDurInv`'s plus a persistent mark (`rnTakenK`).
+
+**Steps (statements, `abbrev … .law`)**: `rnDurK_alloc`, `rnDurK_save` (deposit at the `Save`'s commit),
+`rnDurK_saveSnap`, `rnDurK_enter` (after the `Save` returned: the sync's lower bound, or a commit-only
+batch, whose older prefixes still hold the entered state since `RaftState.next` keeps `wcommit`),
+`rnDurK_ownSnap`, `rnDurK_take`, `rnDurK_crash`; and the WAL contract with the history and the sync
+bound, `walSaveH.law`/`walSaveSnapH.law` (`storage.Save.spec`'s post already has the bound; the
+server's `isWalStorage` drops it).
+
+**Proved** (`InvWalCrashLaws.lean`): `rnDurK_crash_law_holds` (open with the crash token, borrow the
+records for the WAL's crash `Φ`, then `nodeCrash` or `readyCrashEnter` by which state the read prefix
+holds; the image's certificate by `walRead_snapSrc` + `walHistCerts_snapCert`).
+
+**Remaining (plan)**: (1) the other laws' proofs, each `rnDur_*_au`'s proof plus the crash fact's pure
+step lemmas: `walRead (Hs ++ [snap m])` = `walRead Hs` when `m` is above the last commit (received
+snapshot); the new save prefix reads as the fold (`walRead_of_fold`); `walOwnSnap_holds` for every
+prefix; the commit-only lemma from `RaftState.next`. (2) `walSaveH.law`/`walSaveSnapH.law` in the
+contract (`isWalStorage`'s two fields over `walRecsH`, `walRecs_saveAU` with the history; the old
+`walSaveSized_spec` derived). (3) The loop's integration: `raftState` leaves `rnDrv`/`rnBusyN`/
+`rnPendEnter` for the invariant (the loop keeps only its view half), `raftNode__start`'s `Ready`
+handling calls `rnDurK_save` at the `Save` and `rnDurK_enter` after it (with `notCrashed` and two
+credits), `newRaftNode` keeps the arm's crash token (`nodeVacant_arm` instead of `nodeVacant_armD`) for
+the run's `Keep`, and `rnDurInv` is replaced by `rnDurInvK` in the run's and stop's specs. Estimated
+well above 3k lines across `InvRaftNode`, `raftNode__start` (2039 lines), `EtcdServer__run`, `NodeStart`,
+`newRaftNode` and the WAL contract. (4) Open: the stop's taken state (`rnTakenK`): a member whose
+server stops gracefully and then crashes has its image in the stop's post, not in the crash's `Keep`;
+T7 must exclude it (the member never stops its server) or route the stop image to the crash.
