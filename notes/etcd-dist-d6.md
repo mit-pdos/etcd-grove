@@ -1548,6 +1548,26 @@ D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; 
    directory's call permission's half from `osCallPerms R`), `hB1`, `hB6` + `memberRestartFacts_gen`, the Q4
    transport, and `srvCrashImageAt` assembled (`srvFilesC`: `walFilesC` with `a.dir = h.dir`, `B1`'s `fileHolds`).
 
+### T7 status and handoff (2026-11-25, session 7; branch `etcd-safe-t7`)
+
+**`memberGen_crash_law_holds` proved** (`dist/crash/MemberCrash.lean`, out of its comment; built on fk-lean2,
+`lake build …dist.crash.MemberCrash` green, 4515 jobs; `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` and
+the reviewed interim axiom C-I1 `backend.dbCrash`, no `sorry`, nothing new). Statement unchanged from session 6:
+`(hQ) (hA1) (hB4) (hB1) (hB1n) (hB6) (hD1) : etcd_dist.memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q`.
+
+* The blocker (T6's `img` of the old generation) closed by the coordinator's option (a) (ledger 2026-11-25, decision
+  recorded): `mvcc.api.mvccImage_gen` (`EtcdBackend.lean`, `.rfl` inside the sealed module: `⧖` is global ghost
+  state), `srvImageM_gen` (`etcdserver/ImageOn.lean`), and T6's `snapDir_crash.law` takes `img img'` with
+  `□ (∀ j Dt, img j Dt -∗ img' j Dt)`. Both generation laws fix the Go context (`{L with goose_go_local_context :=
+  lctx}`): `go.Semantics` takes a `GoLocalContext`. Only importer of the T6 law: `MemberCrash`.
+* `etc/tier-check.py --check` ok. `etc/api-check.py etc/api/backend.txt --check` reports one error that predates this
+  session (`MemberCrash` imports `backend.CrashInterim`, not importable; the C-I1 interim axioms' module).
+* **Left for T8/T10**: the named hypotheses: B4 `memberFirstCrash.law` (T8's boot phases), B1 `memberImage.law` and
+  `memberDbNamed.law` (T10's backend image invariant and the `db` file's durable name), B6 `memberPfx.law`, D-T7-1
+  `snapDirKeptOf.law`, `hQ` (W1) and `hA1` (bbolt's crash premise, until `etcdCQ` has it); T8 builds `memberKeep`
+  (the second later credit, `KeepB`, the spine `member/snap` with its root rows) and applies the law; D-T7-2 stays
+  a defect for the next crash (T4/T8); C-I1 (`dbCrash`) is interim.
+
 ### T7 status and handoff (2026-11-25, session 6; branch `etcd-safe-t7`)
 
 **`memberGen_crash_law_holds` written, stopped one step short** (`dist/crash/MemberCrash.lean`, the last section, in a
