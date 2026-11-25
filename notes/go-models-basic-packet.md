@@ -118,7 +118,7 @@ Not in this slice (and why):
 - `etc/trusted-delta.py origin/lean..HEAD`: `notes/go-models-basic-trusted-delta.md`. Tier 0:
   TrustedCode +127/−859 lines (bytealg −81, internal/sync −106, sync −157/+17, time −310/+51,
   runtime −176/+20, primitive +39/−27 = the relocated spin lock and 9 dead `.impl`s);
-  `Golang/Defn/Lock.lean` −39; Go model overlays +998 lines (translated and verified Go, its
+  `Golang/Defn/Lock.lean` −39; Go model overlays +907/−4 lines (translated and verified Go, its
   claim reviewed as Go); `goose/util/model.go` +100/−2 (the two translator changes above).
 
 **etcd-grove** (`go-models-basic/2026-11-24`, VM key 3ebda268791704cc, fresh):
