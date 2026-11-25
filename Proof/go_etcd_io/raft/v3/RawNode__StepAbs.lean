@@ -9,7 +9,7 @@ strengthened triple** (`RawNode.Step.absSpec`, `RawNodeAbsSpecs.lean`); the old 
 - `raft.Step` in the scope at the no-snapshot flag (`raft.Step.untracedNs`, `RaftStepNoSnap.lean`),
   whose post gives `StepEnd`, read through `toPState` as `RecvEnd` (`recvEnd_of_stepEnd_net`,
   `StepEndIp.lean`) at the harness's configuration (`RecvEnd.of_halves`), the in-progress boundary
-  (`ipEnd_of_stepEnd`), and the scope kept (`RnScope.keep`: the read-index requests, `recvEnd_rd_pend`;
+  (`ipEnd_of_stepEnd`), and the scope kept (`RnScopeBasic.keep`: the read-index requests, `recvEnd_rd_pend`;
   no `MsgSnap` queued); outside it untraced as before (`raft.Step.untraced`), a `MsgSnap` too.
 
 A sibling of the function's proof file, which `RawNode__Step.lean` applies.
@@ -169,7 +169,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   iapply HΦ $$ %$e %rs.term %ps %ip
   isplitl
   · iapply ownRawNodeAt_intro γ rn id
-      { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } ps qs ip sc
+      { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } ps qs ip (basicScope sc)
       s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
       (fun h => Hsnap ⟨Hps' h.1, h.2⟩) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
@@ -286,14 +286,14 @@ local macro "step_tail" : tactic => `(tactic| (
         iclear Hrntr Hsc
         ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
           (by rw [Hgh]; exact Hgtr.trans HtrG)
-        ihave Hsc := rnScopeAt_false (GF := GF) (γ := γ) (id := id)
+        ihave Hsc := rnScopeAt_basicFalse (GF := GF) (γ := γ) (id := id)
           { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s'
         wp_auto
         iapply HΦ $$ %err %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
         isplitl
         · iapply ownRawNodeAt_intro γ rn id
               { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) }
-              (toPState s') qs (uint.nat s'.logst.inprogress - 1) false s' cf fp'
+              (toPState s') qs (uint.nat s'.logst.inprogress - 1) (basicScope false) s' cf fp'
               rnv sv hprev steps Hwf' Hin
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
               (fun h => by have h1 := h.1; simp [Hs] at h1)
@@ -408,7 +408,7 @@ local macro "step_tail" : tactic => `(tactic| (
           exact this
       ihave Hsc := rnScopeAt_keepIf sc rs
         { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s s'
-        (fun h Hs0 => RnScope.keep Hs0 rfl rfl Hpre Hcq' (Hlifted h).2.1 Hpv Hsn
+        (fun h Hs0 => RnScopeBasic.keep Hs0 rfl rfl Hpre Hcq' (Hlifted h).2.1 Hpv Hsn
           (fun x hx => .inr ((Hx h).2 x hx)) (Hlifted h).2.2.2
           -- (#33 S4) a message of the harness's types is no transfer request: the ghost state framed
           (hxs := by
@@ -431,7 +431,7 @@ local macro "step_tail" : tactic => `(tactic| (
       isplitl
       · iapply ownRawNodeAt_intro γ rn id
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) }
-            (toPState s') qs (uint.nat s'.logst.inprogress - 1) sc s' cf fp
+            (toPState s') qs (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp
             rnv sv hprev steps Hwf' Hin
             Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
             (fun h => by rw [Hsn]; exact Hsnap ⟨Hps' h.1, h.2⟩)

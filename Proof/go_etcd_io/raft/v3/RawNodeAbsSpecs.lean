@@ -9,8 +9,8 @@ unchanged, is its corollary (`RawNode.<F>.spec_of_abs.law`, stated here, proved 
 
 **One text, two predicates.** A triple is written once, as `RawNode.<F>.form R S`, over the node's
 predicate `R γ rn id rs ps qs ip` and a proposition `S` guarding the new post conjuncts:
-- `RawNode.<F>.absSpec := ∀ sc, form (ownRawNodeAt · · · · · · sc) (sc = true)`: in the harness's
-  scope (`sc = true`) the exact effect, outside it (`sc = false`, what `ownRawNode_at` gives any
+- `RawNode.<F>.absSpec := ∀ sc, form (ownRawNodeAt · · · · · · (basicScope sc)) (sc = true)`: in the
+  harness's basic scope (`sc = true`, the scope `some {}`) the exact effect, outside it (`sc = false`, what `ownRawNode_at` gives any
   `ownRawNode`) the old spec's content, which makes `spec_of_abs` provable;
 - the API form (`RawNodeApi.lean`): `form rawNode True`.
 `HasReady` (whose old false arm is `ownRawNodeIdle`, internal) and the start spec are written out.
@@ -167,7 +167,8 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → PState �
 
 /-- **`RawNode.Step`, strengthened** (design §2.2's table). -/
 abbrev RawNode.Step.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Step.form (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc)
+  ∀ sc : Bool, RawNode.Step.form
+    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc))
     (sc = true)
 
 /-- The old spec, its text unchanged, from the strengthened one (`ownRawNode_at` in at `sc = false`,
@@ -197,7 +198,8 @@ abbrev RawNode.Tick.form (R : RaftNames → Loc → w64 → RNState → PState �
 
 /-- **`RawNode.Tick`, strengthened**. -/
 abbrev RawNode.Tick.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Tick.form (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc)
+  ∀ sc : Bool, RawNode.Tick.form
+    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc))
     (sc = true)
 
 abbrev RawNode.Tick.spec_of_abs.law : Prop :=
@@ -230,7 +232,7 @@ abbrev RawNode.Propose.form (R : RaftNames → Loc → w64 → RNState → PStat
 /-- **`RawNode.Propose`, strengthened**. -/
 abbrev RawNode.Propose.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Propose.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc) (sc = true)
+    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc)) (sc = true)
 
 abbrev RawNode.Propose.spec_of_abs.law : Prop :=
   RawNode.Propose.absSpec (GF := GF) (hG := hG) → RawNode.Propose.spec (GF := GF) (hG := hG)
@@ -245,12 +247,12 @@ abbrev RawNode.HasReady.absSpec : Prop :=
   ∀ (sc : Bool) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg)
     (ip : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip sc }}
+      "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs ps qs ip sc) ∨
+      (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc)) ∨
       (⌜b = false⌝ ∗ ⌜sc = true → PIdle rs ps ∧ ip = ps.log.length⌝ ∗
-        (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs ps qs ip sc)) }}
+        (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc))) }}
 
 abbrev RawNode.HasReady.spec_of_abs.law : Prop :=
   RawNode.HasReady.absSpec (GF := GF) (hG := hG) → RawNode.HasReady.spec (GF := GF) (hG := hG)
@@ -318,13 +320,13 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
         -- (`rd.HardState` is set only when `!isHardStateEqual(hardSt, prevHardSt)`; ledger)
         (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs) ∧
         -- (#33 S4, 2026-11-24) every message handed out reads as a protocol message: of a type the
-        -- model describes (the harness steps no transfer request, `RnScope`'s `NGhost.xs`; ledger)
+        -- model describes (the harness steps no transfer request, `RnScopeBasic`'s `NGhost.xs`; ledger)
         (∀ q ∈ ms, (absMsgOf q.st).isSome)⌝ }}
 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Ready.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc) (sc = true)
+    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc)) (sc = true)
 
 abbrev RawNode.Ready.spec_of_abs.law : Prop :=
   RawNode.Ready.absSpec (GF := GF) (hG := hG) → RawNode.Ready.spec (GF := GF) (hG := hG)
@@ -366,7 +368,7 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PStat
 /-- **`RawNode.Advance`, strengthened**. -/
 abbrev RawNode.Advance.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Advance.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc) (sc = true)
+    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc)) (sc = true)
 
 abbrev RawNode.Advance.spec_of_abs.law : Prop :=
   RawNode.Advance.absSpec (GF := GF) (hG := hG) → RawNode.Advance.spec (GF := GF) (hG := hG)
@@ -425,7 +427,7 @@ abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → 
 in the scope (`sc = true`) at the initial protocol state. (No `spec_of_abs`: its premises are
 stronger than `emptyStartSpec`'s, which keeps its own proof.) -/
 abbrev NewRawNode.emptyStartAbsSpec : Prop :=
-  NewRawNode.emptyStartForm (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip true)
+  NewRawNode.emptyStartForm (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (some {}))
 
 end spec
 

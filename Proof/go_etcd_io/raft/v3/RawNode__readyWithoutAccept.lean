@@ -814,7 +814,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       show _ ≤ uint.nat (toPState s).commit
       unfold uint.nat; unfold uint.Z at this; omega
   -- (#33 S4, 2026-11-24) and every message handed out typed: no transfer request stepped in the
-  -- scope (`RnScope`'s `NGhost.xs`), so `XfOk`'s last clause
+  -- scope (`RnScopeBasic`'s `NGhost.xs`), so `XfOk`'s last clause
   have Hscf : sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
       (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
       ∀ q ∈ ms1 ++ nonself id ms2, (absMsgOf q.st).isSome := fun hsc =>

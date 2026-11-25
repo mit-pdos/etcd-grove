@@ -49,7 +49,7 @@ in-progress boundary `ip` (the log's entries the `Ready`s have handed out); stat
 pre-vote and check-quorum off, never compacted. Sealed. -/
 @[no_expose] def rawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
     (qs : List Msg) (ip : Nat) : IProp GF :=
-  ownRawNodeAt γ rn id rs ps qs ip true
+  ownRawNodeAt γ rn id rs ps qs ip (some {})
 
 /-! ### The specs, over `rawNode` -/
 

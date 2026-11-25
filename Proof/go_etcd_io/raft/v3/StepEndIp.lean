@@ -493,15 +493,19 @@ theorem ownRaftPhysC_ackScope (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   · ipureintro; exact fun h => (Hp.1.2.2.2 h).2
   iapply Hback $$ %tv %s.votes Hf Htrk
 
-/-- The scope's storage cap, read out (persistent). -/
+/-- The basic scope's storage cap, read out (persistent). -/
 theorem rnScopeAt_cap {γ : RaftNames} {id : w64} {sc : Bool} (h : sc = true) (rs : RNState)
     (s : NState) :
-    rnScopeAt (GF := GF) γ id sc rs s ⊢ storCapF s.logst.storage 0 ∗ rnScopeAt γ id sc rs s := by
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢
+      storCapF s.logst.storage 0 ∗ rnScopeAt γ id (basicScope sc) rs s := by
   subst h
-  unfold rnScopeAt; simp only [ite_true]
+  unfold rnScopeAt basicScope
   iintro ⟨%H, #Hc⟩
-  iframe Hc
-  ipureintro; exact H
+  isplitr
+  · iapply Hc; ipureintro; rfl
+  · isplitr
+    · ipureintro; exact H
+    · imodintro; iexact Hc
 
 end ghost
 

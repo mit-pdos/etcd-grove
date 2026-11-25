@@ -114,7 +114,7 @@ theorem RawNode.Ready.traced
     with ⟨Hnc, %W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, #Hsrcs, -⟩
   imodintro
   iframe Hnc
-  ihave Hsc0 := rnScopeAt_false (GF := GF) (γ := γ) (id := id) { rs with bw := W } s
+  ihave Hsc0 := rnScopeAt_none (GF := GF) (γ := γ) (id := id) { rs with bw := W } s
   wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L s false
     (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $Hsc0 $HhardO]
     as %steps %ss %qs' %ip' H

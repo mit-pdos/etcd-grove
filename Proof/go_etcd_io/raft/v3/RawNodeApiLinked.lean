@@ -3,7 +3,7 @@
 proved** (`RawNodeApi.lean`'s `.law` statements), and its specs from the strengthened ones:
 - the laws read out of `rawNode` (`ownRawNodeAt … true`): each persistent fact is one of
   `ownRaftGhost`'s at the node's protocol reading (`rawNode_ghost`), the log's boundary `base0`
-  from the scope (`RnScope`), so the full log before the boundary is empty; the term ceiling raised
+  from the scope (`RnScopeBasic`), so the full log before the boundary is empty; the term ceiling raised
   (`ownRawNodeAt_raise_tc`, `ownRawNode_raise_tc`'s proof at the protocol state);
 - the term budget's laws over the sealed names (`InvNodeChan.lean`'s; `termLB_rb`'s proof restated,
   `TracedNodeRun.lean`'s, to keep the traced cone out of this module's imports);
@@ -52,7 +52,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 reading gives, with the scope's facts, the term and its ceiling. -/
 theorem rawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
     (qs : List Msg) (ip : Nat) (Q : IProp GF) [Persistent Q]
-    (HQ : ∀ (s : NState) (md : Bool), toPState s = ps → RnScope rs s → rs.term = s.term →
+    (HQ : ∀ (s : NState) (md : Bool), toPState s = ps → RnScopeBasic rs s → rs.term = s.term →
       uint.Z rs.term ≤ uint.Z rs.tc → ownRaftGhost γ id ps md ⊢ Q) :
     rawNode γ rn id rs ps qs ip ⊢ Q ∗ rawNode γ rn id rs ps qs ip := by
   refine persistent_entails_right ?_
@@ -67,7 +67,7 @@ theorem rawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps 
 
 /-- The scope's log boundary, at the protocol reading. -/
 theorem rnScope_base {rs : RNState} {s : NState} {ps : PState} (Hps : toPState s = ps)
-    (H : RnScope rs s) : ps.base = base0 := by
+    (H : RnScopeBasic rs s) : ps.base = base0 := by
   subst Hps; exact H.2.2.2.2.2.1
 
 /-- The full log before the boundary `base0` is empty. -/
@@ -286,7 +286,7 @@ theorem rawNode_term_tc : rawNode_term_tc.law (GF := GF) := by
 `ownRawNodeAt_intro`): only the ghost ceiling moves, so the protocol reading, the queue, the
 in-progress boundary and the scope are the same. -/
 theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
-    (qs : List Msg) (ip : Nat) (sc : Bool) (tc : w64) (Hle : uint.Z rs.tc ≤ uint.Z tc) :
+    (qs : List Msg) (ip : Nat) (sc : Option RnMode) (tc : w64) (Hle : uint.Z rs.tc ≤ uint.Z tc) :
     ⊢ ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc -∗
       ownRawNodeAt γ rn id { rs with tc := tc } ps qs ip sc := by
   iintro H
@@ -295,8 +295,8 @@ theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
   ihave Hphys := ownRaftPhysC_raise_tc cf _ id s tc Hle' $$ Hphys
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
     (s' := { s with gh := { s.gh with tc := tc } }) rfl rfl rfl rfl $$ Hghost
-  ihave Hsc := rnScopeAt_keep sc rs { rs with tc := tc } s { s with gh := { s.gh with tc := tc } }
-    (fun h => h) rfl $$ Hsc
+  ihave Hsc := rnScopeAt_keepAll sc rs { rs with tc := tc } s { s with gh := { s.gh with tc := tc } }
+    (fun _ h => h) rfl $$ Hsc
   obtain ⟨H1, -, H3, H4, H5⟩ := Hpvoff
   iapply ownRawNodeAt_intro γ rn id { rs with tc := tc } ps qs ip sc
     { s with gh := { s.gh with tc := tc } } cf fp
@@ -314,13 +314,13 @@ theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
 theorem rawNode_raise_tc : rawNode_raise_tc.law (GF := GF) := by
   intro γ rn id rs ps qs ip tc Hle
   unfold rawNode
-  exact ownRawNodeAt_raise_tc γ rn id rs ps qs ip true tc Hle
+  exact ownRawNodeAt_raise_tc γ rn id rs ps qs ip (some {}) tc Hle
 
 /-- **The storage handshake, at the protocol state** (`ownRawNode_appended`'s proof, through
 `ownRawNodeAt_intro`): only the log's unpersisted entries move, which neither the protocol reading,
 the in-progress boundary nor the scope reads. -/
 theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
-    (qs : List Msg) (ip : Nat) (sc : Bool) (Hsl : rs.slent = none) (a : List EntryM)
+    (qs : List Msg) (ip : Nat) (sc : Option RnMode) (Hsl : rs.slent = none) (a : List EntryM)
     (Ha : a ≠ [] → ∀ e0, rs.unpersisted.head? = some e0 →
       uint.nat e0.Index' - 1 + a.length ≤ rs.delivered.length) :
     ⊢ ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc -∗ appendReceipt rs.storage rs.unpersisted a ==∗
@@ -339,8 +339,8 @@ theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
     (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl $$ Hghost
-  ihave Hsc := rnScopeAt_keep sc rs { rs with unpersisted := [] } s
-    { s with logst := { s.logst with unpersisted := [] } } (fun h => h) rfl $$ Hsc
+  ihave Hsc := rnScopeAt_keepAll sc rs { rs with unpersisted := [] } s
+    { s with logst := { s.logst with unpersisted := [] } } (fun _ h => h) rfl $$ Hsc
   imodintro
   iapply ownRawNodeAt_intro γ rn id { rs with unpersisted := [] } ps qs ip sc
     { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hasync
@@ -359,7 +359,7 @@ theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
 theorem rawNode_appended : rawNode_appended.law (GF := GF) := by
   intro γ rn id rs ps qs ip a Hsl Ha
   unfold rawNode
-  exact ownRawNodeAt_appended γ rn id rs ps qs ip true Hsl a Ha
+  exact ownRawNodeAt_appended γ rn id rs ps qs ip (some {}) Hsl a Ha
 
 /-! ### The term budget -/
 

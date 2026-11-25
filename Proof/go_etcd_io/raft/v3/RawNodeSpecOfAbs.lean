@@ -34,7 +34,7 @@ theorem RawNode.HasReady.spec_of_abs : RawNode.HasReady.spec_of_abs.law (GF := G
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
   wp_apply Habs false γ rn id rs ps qs ip $$ [$Hrn] as %b H
   icases H with (⟨%Hb, H⟩ | ⟨%Hb, -, ⟨H, -⟩⟩)
-  · ihave H := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip false $$ H
+  · ihave H := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none $$ H
     iapply HΦ
     ileft
     iframe H

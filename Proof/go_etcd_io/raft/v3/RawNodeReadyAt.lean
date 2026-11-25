@@ -225,24 +225,38 @@ theorem softStateIs_null (p : Loc) (ss : Option (w64 × StateType)) :
   · iintro -; ipureintro; intro _; rfl
   · unfold softStateIs; iintro ⟨%Hn, -⟩; ipureintro; intro h; exact absurd h Hn
 
-/-- The scope kept by a step that keeps what it reads (`RnScope`) and the storage. -/
-theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)
-    (H : RnScope rs s → RnScope rs' s') (Hst : s'.logst.storage = s.logst.storage)
+/-- The scope kept, at every mode, by a step that keeps what it reads (`RnScope md`) and the storage. -/
+theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs rs' : RNState)
+    (s s' : NState) (H : ∀ md, RnScope md rs s → RnScope md rs' s')
+    (Hst : s'.logst.storage = s.logst.storage)
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
     rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
   cases sc with
-  | false =>
-    unfold rnScopeAt; simp only [Bool.false_eq_true, ite_false]; iintro _; iempintro
-  | true =>
-    unfold rnScopeAt; simp only [ite_true]
+  | none => unfold rnScopeAt; iintro _; iempintro
+  | some md =>
+    unfold rnScopeAt
     iintro ⟨%Hs, #Hc⟩
     rw [Hst]
-    iframe Hc
-    ipureintro
-    refine ⟨H Hs.1, Hs.2.1, ?_, Hs.2.2.2.1, ?_, ?_⟩
-    · rw [hcf.1, hcf.2]; exact Hs.2.2.1
-    · rw [hcf.1]; exact Hs.2.2.2.2.1
-    · rw [hcf.2]; exact Hs.2.2.2.2.2
+    isplitr
+    · ipureintro; exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2⟩
+    · imodintro; iexact Hc
+
+/-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`) and the storage. -/
+theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)
+    (H : RnScopeBasic rs s → RnScopeBasic rs' s') (Hst : s'.logst.storage = s.logst.storage)
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢ rnScopeAt γ id (basicScope sc) rs' s' := by
+  cases sc with
+  | false =>
+    unfold rnScopeAt basicScope; iintro _; iempintro
+  | true =>
+    unfold rnScopeAt basicScope
+    iintro ⟨%Hs, #Hc⟩
+    rw [Hst]
+    isplitr
+    · ipureintro
+      exact ⟨(RnScope_empty rs' s').2 (H ((RnScope_empty rs s).1 Hs.1)), RnCfgIn.keep hcf Hs.2⟩
+    · imodintro; iexact Hc
 
 end sep
 

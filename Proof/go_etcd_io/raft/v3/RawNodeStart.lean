@@ -16,7 +16,7 @@ storage whose `ConfState` names the voters (Antithesis's `EtcdBindingEmpty.cfg`)
 (#33 S4, P-raft-4) The closing step proves `NewRawNode.restartAtSpec sc` (below): the node closed at
 its protocol state (`ownRawNodeAt`, `RawNodeAt.lean`: the restarted state `restartP`, nothing queued,
 the in-progress boundary at the stored log's end) and, at the scope flag `sc = true`, in the
-Antithesis harness's scope (`RnScope`: pre-vote and check-quorum off, the static mode, the log's
+Antithesis harness's scope (`RnScopeBasic`: pre-vote and check-quorum off, the static mode, the log's
 boundary `base0`; `storCapF … 0` from the pre). `NewRawNode.restartSpec` is its corollary at
 `sc = false` (`ownRawNodeAt_ownRawNode`), and `NewRawNode.emptyStartAbsSpec` (`RawNodeAbsSpecs.lean`)
 its instance at an empty storage and `sc = true` (`NewRawNode.wp_proofEmptyStartAbs`).
@@ -110,7 +110,7 @@ abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
       ⌜err = interface.nil⌝ ∗
       ∃ (l : List EntryM) (sn : StorNames) (g : Nat) (K : GName),
         ownRawNodeAt γ.raftNames rn cv.ID' (rawNodeRestarted γ l (interface.ok si) sn σ.hs S m a)
-          (restartP S σ.base σ.hs.Commit') [] (σ.b + σ.ents.length) sc ∗
+          (restartP S σ.base σ.hs.Commit') [] (σ.b + σ.ents.length) (basicScope sc) ∗
         isCommitted γ.raftNames l ∗
         ⌜l.length = max σ.b (uint.nat cv.Applied') ∧ l.drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
         genView γ.raftNames cv.ID' x 1 g ∗ slotFree γ.raftNames cv.ID' g ∗
@@ -424,21 +424,21 @@ private theorem pendAt_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
       iprop(msgIn (GF := GF) l DFrac.discard x.1 ∗ pendingRel γ id W x.1 x.2))).2
     iempintro
 
-/-- The scope's owned part at the start: its facts, the storage's cap from the pre. -/
+/-- The basic scope's owned part at the start: its facts, the storage's cap from the pre. -/
 private theorem rnScopeAt_start {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState)
-    (st : Storage) (Hst : s.logst.storage = st) (H : sc = true → RnScope rs s ∧ RnCfgIn γ id rs) :
-    □ (⌜sc = true⌝ -∗ storCapF (GF := GF) st 0) ⊢ rnScopeAt γ id sc rs s := by
+    (st : Storage) (Hst : s.logst.storage = st)
+    (H : sc = true → RnScopeBasic rs s ∧ RnCfgInBasic γ id rs) :
+    □ (⌜sc = true⌝ -∗ storCapF (GF := GF) st 0) ⊢ rnScopeAt γ id (basicScope sc) rs s := by
   cases sc with
-  | false => iintro -; iapply rnScopeAt_false
+  | false => unfold basicScope; iintro -; iapply rnScopeAt_none
   | true =>
-    unfold rnScopeAt; simp only [ite_true]
+    unfold rnScopeAt basicScope
     iintro #Hc
     rw [Hst]
     isplitr
-    · ipureintro; exact H rfl
-    · iapply Hc; ipureintro; trivial
+    · ipureintro; exact ⟨(RnScope_empty rs s).2 (H rfl).1, (RnCfgIn_empty γ id rs).2 (H rfl).2⟩
+    · imodintro; iintro _; iapply Hc; ipureintro; trivial
 
-/-- See the header. -/
 theorem NewRawNode_restartAt_impl (sc : Bool)
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
     NewRawNode.restartAtSpec (GF := GF) (hG := hG) sc := by
@@ -942,7 +942,7 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     unfold StorContents.b
     have := uint_nat_eq σ.base.index'; have := uint_nat_eq s.logst.inprogress
     omega
-  have HscR : sc = true → RnScope rs0 s1 := by
+  have HscR : sc = true → RnScopeBasic rs0 s1 := by
     intro hsc
     obtain ⟨Hpv0, Hcq0, ⟨-, Hmo, -⟩, Hb0, -⟩ := Hsc hsc
     refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_, ?_, ?_⟩
@@ -953,14 +953,14 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     · intro m' hm; change m' ∈ s.outbox at hm; rw [Ho] at hm; cases hm
     · intro hl; exact absurd (Hr.symm.trans hl) (by decide)
     · show s.gh.xs = false; rw [Hgh]
-  have HcinR : sc = true → RnCfgIn γ.raft cv.ID' rs0 := by
+  have HcinR : sc = true → RnCfgInBasic γ.raft cv.ID' rs0 := by
     intro hsc
     obtain ⟨-, -, ⟨Hmv, -, Hid⟩, -, Hlr⟩ := Hsc hsc
     exact ⟨Hid, fun _ => Hmv, HtrG, by show (γ.mode inferInstance).isDyn = true; rw [Hmd]; rfl, Hlr⟩
   ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
-      (σ.b + σ.ents.length) sc $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
+      (σ.b + σ.ents.length) (basicScope sc) $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
-      (σ.b + σ.ents.length) sc s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
+      (σ.b + σ.ents.length) (basicScope sc) s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)

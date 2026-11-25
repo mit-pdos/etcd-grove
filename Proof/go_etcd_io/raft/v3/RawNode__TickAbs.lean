@@ -159,7 +159,7 @@ theorem RawNode.Tick.wp_absProof
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         (fun h Hs => by
           have hro := tickEnd_rd_out (Hlifted h).1
-          exact RnScope.keep Hs rfl rfl Hpre Hcq' hro.1 Hpv Hsn hro.2
+          exact RnScopeBasic.keep Hs rfl rfl Hpre Hcq' hro.1 Hpv Hsn hro.2
             (tickEnd_ro (Hlifted h).1)) Hsg $$ Hsc
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgh]; exact Hgtr.trans HtrG)
@@ -171,7 +171,7 @@ theorem RawNode.Tick.wp_absProof
         (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toPState s') qs
-          (uint.nat s'.logst.inprogress - 1) sc s' cf fp rnv sv hprev steps
+          (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp rnv sv hprev steps
           Hwf' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact ⟨Hstor.1, by rw [Hsn1.2, Hgh, ← Hns0.2]; exact Hstor.2⟩) ⟨fun h => Hgd fp (Hpvoff.1 h), by rw [Hgh]; exact Hpvoff.2.1,
@@ -239,7 +239,7 @@ theorem RawNode.Tick.wp_absProof
       icombine Hcq0 Hcq1 gives %Hcqe
       have Hcq' : s'.cq = s.cq := by first | exact Hcqe.symm | exact Hcqe
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
-        -- (2026-11-24) the scope's cluster is untraced (`RnCfgIn`): this branch is outside it
+        -- (2026-11-24) the scope's cluster is untraced (`RnCfgInBasic`): this branch is outside it
         (fun h _ => by have := (Hcin h).2.2.1; rw [HtrG] at this; cases this) Hsg $$ Hsc
       ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [Hcap]
       · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -266,7 +266,7 @@ theorem RawNode.Tick.wp_absProof
         (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toPState s') qs
-          (uint.nat s'.logst.inprogress - 1) sc s' cf fp rnv sv hprev steps
+          (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp rnv sv hprev steps
           Hwf' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl

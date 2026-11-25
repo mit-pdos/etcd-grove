@@ -1,7 +1,7 @@
 /-
 Lean-first (#33 S4, P-raft-3, `notes/antithesis-rawnode-design.md` §2.7). **The harness's scope at a
 node's state, for the strengthened `RawNode` proofs**: the lifting lemmas' scope (`LiftScope`,
-`InputEndLift.lean`) from `ownRawNodeAt`'s scope (`RnScope`) and the node's resources
+`InputEndLift.lean`) from `ownRawNodeAt`'s scope (`RnScopeBasic`) and the node's resources
 (`liftScope_of`: the tally of a follower empty, `ownRaftGhost`'s; the progress map's halves, the
 tracker's; the node one of the static configuration's voters, `CfgStatic`); the configuration of a
 static node's end relations (`rnCfg`) by its voters (`TickEnd.of_voters`); and the scope's owned part
@@ -39,9 +39,9 @@ theorem TickEnd.of_voters {c c' : CfgM} {id : w64} {s s' : PState} (hv : c.voter
     (hd : c.ids = c'.ids) (h : TickEnd c id s s') : TickEnd c' id s s' := by
   unfold TickEnd at h ⊢; rwa [← hv, ← hd]
 
-/-- **`LiftScope` from the pieces**: `RnScope`'s flags, no pre-candidate with pre-vote off, a
+/-- **`LiftScope` from the pieces**: `RnScopeBasic`'s flags, no pre-candidate with pre-vote off, a
 follower's tally empty, the progress map's halves, and the node in the configuration. -/
-theorem liftScope_of {c : CfgM} {id : w64} {rs : RNState} {s : NState} (H : RnScope rs s)
+theorem liftScope_of {c : CfgM} {id : w64} {rs : RNState} {s : NState} (H : RnScopeBasic rs s)
     (Hpre : s.role = .preCandidate → s.prevote = true) (Hfv : FollowerVotesOk (toPState s))
     (Hd1 : domSet s.prvals = domSet s.progress) (Hd2 : domSet s.progress = c.ids)
     (Hid : id ∈ c.voters) : LiftScope c id s := by
@@ -50,7 +50,7 @@ theorem liftScope_of {c : CfgM} {id : w64} {rs : RNState} {s : NState} (H : RnSc
   rw [Hd1, Hd2]
   exact GMap.elem_of_union_l c.learners Hid
 
-/-- (#33 S4, msgShape) `RnScope`'s read-only conjunct at the protocol reading: a non-leader's
+/-- (#33 S4, msgShape) `RnScopeBasic`'s read-only conjunct at the protocol reading: a non-leader's
 read-only object reads as the fresh one (`rdNL`). -/
 theorem roEmpty_iff (s : NState) :
     (s.role = .leader → s.rd.ro.pending = []) ↔ (toPState s).rd.ro.pending = [] := by
@@ -63,7 +63,7 @@ theorem roEmpty_iff (s : NState) :
 check-quorum (`hpv`, `hcq`), the read-index requests (`hrd`), an empty read-only queue (`hro`), and
 queues no `MsgSnap` (`ho`), and steps no transfer request (`hxs`, by default from the ghost state
 kept: a step other than a transfer request's frames it, `NetFrame`). -/
-theorem RnScope.keep {rs rs' : RNState} {s s' : NState} (H : RnScope rs s)
+theorem RnScopeBasic.keep {rs rs' : RNState} {s s' : NState} (H : RnScopeBasic rs s)
     (hm : rs'.mode = rs.mode) (hsl : rs'.slent = rs.slent)
     (hpv : s'.prevote = s.prevote) (hcq : s'.cq = s.cq) (hrd : s'.rd.pend = s.rd.pend)
     (hprev : s'.logst.prev = s.logst.prev) (hsn : s'.logst.snap = s.logst.snap)
@@ -73,7 +73,7 @@ theorem RnScope.keep {rs rs' : RNState} {s s' : NState} (H : RnScope rs s)
     (hxs : s'.gh.xs = s.gh.xs := by
       first | rfl | (apply congrArg NGhost.xs; assumption) |
         (apply congrArg NGhost.xs; apply Eq.symm; assumption)) :
-    RnScope rs' s' := by
+    RnScopeBasic rs' s' := by
   obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩ := H
   refine ⟨by rw [hm, hcf]; exact H1, hpv.trans H2, hcq.trans H3, hrd.trans H4, hsl.trans H5,
     hprev.trans H6, hsn.trans H7, fun m hm' => ?_, (roEmpty_iff s').2 (hro ((roEmpty_iff s).1 H9)),
@@ -141,7 +141,7 @@ def CfgScope (γ : RaftNames) (c : CfgM) : Prop :=
 theorem CfgScope.voters {γ : RaftNames} {c : CfgM} (HC : CfgScope γ c) : c.voters = γ.reCfg := by
   rw [CfgM.voters_of_out HC.2.1, HC.1]
 
-/-- (#33 S4, destinations) With no learners (`RnCfgIn.learners`), the configuration's ids are
+/-- (#33 S4, destinations) With no learners (`RnCfgInBasic.learners`), the configuration's ids are
 the static configuration's (`rnCfg`). -/
 theorem CfgScope.ids {γ : RaftNames} {c : CfgM} (HC : CfgScope γ c) (hl : c.learners = ∅) :
     c.ids = (rnCfg γ).ids := by
@@ -149,7 +149,7 @@ theorem CfgScope.ids {γ : RaftNames} {c : CfgM} (HC : CfgScope γ c) (hl : c.le
 
 /-- `CfgScope` from the mode's configuration facts (`ownStepGhost_cfgScope`) and the scope's. -/
 theorem cfgScope_of {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM}
-    (Hs : RnScope rs s) (Hc : RnCfgIn γ id rs)
+    (Hs : RnScopeBasic rs s) (Hc : RnCfgInBasic γ id rs)
     (Hm : (rs.mode.isDyn = false → CfgStatic γ c) ∧ (rs.mode.isDyn = true → rs.cfg.cfg = c)) :
     CfgScope γ c ∧ id ∈ γ.reCfg := by
   refine ⟨?_, Hc.1⟩
@@ -157,9 +157,9 @@ theorem cfgScope_of {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c :
   · have H := Hm.1 hd; exact ⟨H.1, H.2.1, trivial⟩
   · rw [← Hm.2 hd]; exact ⟨Hc.2.1 hd, Hs.1 hd, trivial⟩
 
-/-- (#33 S4, destinations) In the scope the configuration has no learners (`RnCfgIn`: the dynamic
+/-- (#33 S4, destinations) In the scope the configuration has no learners (`RnCfgInBasic`: the dynamic
 mode's configuration has none). -/
-theorem RnCfgIn.learners {γ : RaftNames} {id : w64} {rs : RNState} {c : CfgM} (Hc : RnCfgIn γ id rs)
+theorem RnCfgInBasic.learners {γ : RaftNames} {id : w64} {rs : RNState} {c : CfgM} (Hc : RnCfgInBasic γ id rs)
     (Hm : (rs.mode.isDyn = false → CfgStatic γ c) ∧ (rs.mode.isDyn = true → rs.cfg.cfg = c)) :
     c.learners = ∅ := by
   rw [← Hm.2 Hc.2.2.2.1]; exact Hc.2.2.2.2
@@ -284,23 +284,22 @@ theorem ownRaftPhysC_trkDoms (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   · ipureintro; exact ⟨Hd, Hp.2.1⟩
   iapply Hback $$ %tv %s.votes Hf Htrk
 
-/-- **The scope's owned part at the end state**: the scope's facts carried (`H`), the storage the same. -/
+/-- **The basic scope's owned part at the end state**: the scope's facts carried (`H`), the storage
+the same. -/
 theorem rnScopeAt_keepIf {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)
-    (H : sc = true → RnScope rs s → RnScope rs' s') (hst : s'.logst.storage = s.logst.storage)
+    (H : sc = true → RnScopeBasic rs s → RnScopeBasic rs' s') (hst : s'.logst.storage = s.logst.storage)
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
-    rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢ rnScopeAt γ id (basicScope sc) rs' s' := by
   cases sc with
-  | false => iintro -; iapply rnScopeAt_false
+  | false => unfold basicScope; iintro -; iapply rnScopeAt_none
   | true =>
-    unfold rnScopeAt; simp only [ite_true]
+    unfold rnScopeAt basicScope
     iintro ⟨%Hs, #Hc⟩
     rw [hst]
-    iframe Hc
-    ipureintro
-    refine ⟨H rfl Hs.1, Hs.2.1, ?_, Hs.2.2.2.1, ?_, ?_⟩
-    · rw [hcf.1, hcf.2]; exact Hs.2.2.1
-    · rw [hcf.1]; exact Hs.2.2.2.2.1
-    · rw [hcf.2]; exact Hs.2.2.2.2.2
+    isplitr
+    · ipureintro
+      exact ⟨(RnScope_empty rs' s').2 (H rfl ((RnScope_empty rs s).1 Hs.1)), RnCfgIn.keep hcf Hs.2⟩
+    · imodintro; iexact Hc
 
 end ghost
 

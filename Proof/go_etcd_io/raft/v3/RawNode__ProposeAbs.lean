@@ -8,7 +8,7 @@ corollary (`RawNode.Propose.spec_of_abs`, `RawNodeSpecOfAbs.lean`). The proof is
   node's non-joint configuration, `ownRaftPhysC_ackScope`), whose post gives `StepEnd`, read through
   `toPState` as `ProposeEnd` (`proposeEnd_of_stepEnd`, `InputEndLift.lean`), and the log only appended
   to with the in-progress boundary kept (`logGrow_of_stepEnd_prop`, `StepEndIp.lean`); the scope kept
-  (`RnScope.keep`: the read-index state, `proposeEnd_rd`; no `MsgSnap` queued);
+  (`RnScopeBasic.keep`: the read-index state, `proposeEnd_rd`; no `MsgSnap` queued);
 - outside it, untraced as before (`raft.Step.untraced`).
 
 A sibling of the function's proof file, which `RawNode__Propose.lean` applies.
@@ -122,7 +122,7 @@ local macro "prop_tail" : tactic => `(tactic| (
       (fun h Hs => by
         have hrd : s'.rd.pend = s.rd.pend := by
           rw [← toPState_rd_pend s', ← toPState_rd_pend s, proposeEnd_rd (Hlifted h).1]
-        exact RnScope.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
+        exact RnScopeBasic.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
           (fun m hm => .inr ((Hx h).2 m hm))
           (fun h0 => by rw [proposeEnd_rd (Hlifted h).1]; exact h0)
           (hxs := congrArg NGhost.xs Hfr.2.2.2.2.2.2.2.2.1)) Hfr.2.2.2.2.2.2.1 $$ Hsc
@@ -136,7 +136,7 @@ local macro "prop_tail" : tactic => `(tactic| (
       (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
       (logStoreRec_ksn Hfr.2.2.2.2.2.1) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
-    · iapply ownRawNodeAt_intro γ rn id rs (toPState s') qs (uint.nat s'.logst.inprogress - 1) sc
+    · iapply ownRawNodeAt_intro γ rn id rs (toPState s') qs (uint.nat s'.logst.inprogress - 1) (basicScope sc)
         s' cf fp rnv sv hprev steps Hwf' Hin Hasync
         (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
         (by rw [Hfr.2.2.2.1]; exact Hsnap)
