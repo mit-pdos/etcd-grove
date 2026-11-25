@@ -65,7 +65,7 @@ theorem wp_extAnyErrno (Φ : val → IProp GF) :
 theorem fdAt_elim (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) :
     fdAt (GF := GF) fd id nw la ra ⊢
       ∃ v : netFD, ⌜v.pfd'.Sysfd' = id ∧ v.net' = nw ∧ v.laddr' = la ∧ v.raddr' = ra⌝ ∗ fd ↦□ v := by
-  unfold fdAt; exact .rfl
+  unfold fdAt; iintro ⟨%v, %h, #Hv, -⟩; iexists v; iframe Hv; ipureintro; exact h
 
 /-- `lisAt`'s content, for a proof that keeps `lisAt` itself too. -/
 theorem lisAt_elim (t : Loc) (l : w64) (x : GoInterface) :
@@ -386,10 +386,11 @@ theorem wp_netOk (nw : GoString) (hnw : tcpNet nw) (Φ : val → IProp GF) :
 
 /-- `modelFD(id, nw, la, ra)`: a new `netFD`, read-only for good. -/
 theorem wp_modelFD (id : w64) (nw : GoString) (la ra : GoInterface) (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.net -∗
     (∀ fd : Loc, fdAt (GF := GF) fd id nw la ra -∗ Φ #fd) -∗
     WP (App (App (App (App (Val (@! net.modelFD)) (Val #id)) (Val #nw)) (Val #la)) (Val #ra))
       {{ Φ }} := by
-  iintro HΦ
+  iintro #Hnet HΦ
   iapply wp_fupd
   wp_func_call; wp_call
   wp_auto
@@ -398,16 +399,17 @@ theorem wp_modelFD (id : w64) (nw : GoString) (la ra : GoInterface) (Φ : val �
   iapply HΦ
   unfold fdAt
   iexists _
-  iframe «$r0»
+  iframe «$r0» Hnet
   ipureintro
   exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- A new `*TCPConn` for the end `s` of `cn` on the network `nw`, with new addresses. -/
 theorem wp_newConn (cn : Nat) (s : Bool) (a nw : GoString) (Φ : val → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.net -∗
     ⌜tcpNet nw⌝ -∗ netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗
     (∀ (t : Loc) (la ra : GoInterface), connAt (GF := GF) t cn s a la ra -∗ Φ #t) -∗
     WP (App (App (Val (@! net.newConn)) (Val #(endId cn s))) (Val #nw)) {{ Φ }} := by
-  iintro %hnw #Hat HΦ
+  iintro #Hnet %hnw #Hat HΦ
   iapply wp_fupd
   wp_func_call; wp_call
   wp_auto
@@ -415,7 +417,7 @@ theorem wp_newConn (cn : Nat) (s : Bool) (a nw : GoString) (Φ : val → IProp G
   (try wp_auto)
   wp_apply wp_anyTCPAddr as %ra #Hra
   (try wp_auto)
-  wp_apply wp_modelFD as %fd #Hfd
+  wp_apply wp_modelFD $$ Hnet as %fd #Hfd
   (try wp_auto)
   ipersist «$r0»
   imodintro
@@ -501,7 +503,7 @@ theorem wp_fd_Close (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : 
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Close" #fd)) (Val #())) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -524,7 +526,7 @@ theorem wp_fd_closeWrite (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la 
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"closeWrite" #fd)) (Val #())) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -547,7 +549,7 @@ theorem wp_fd_SetDeadline (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"SetDeadline" #fd)) (Val #tm)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -570,7 +572,7 @@ theorem wp_fd_SetReadDeadline (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString)
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"SetReadDeadline" #fd)) (Val #tm)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -593,7 +595,7 @@ theorem wp_fd_SetWriteDeadline (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"SetWriteDeadline" #fd)) (Val #tm)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -615,7 +617,7 @@ theorem wp_setReadBuffer (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la 
     WP (App (App (Val (@! net.setReadBuffer)) (Val #fd)) (Val #bytes)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -638,7 +640,7 @@ theorem wp_setWriteBuffer (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la
     WP (App (App (Val (@! net.setWriteBuffer)) (Val #fd)) (Val #bytes)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -661,7 +663,7 @@ theorem wp_setKeepAlive (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la r
     WP (App (App (Val (@! net.setKeepAlive)) (Val #fd)) (Val #ka)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -684,7 +686,7 @@ theorem wp_setLinger (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra :
     WP (App (App (Val (@! net.setLinger)) (Val #fd)) (Val #sec)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -707,7 +709,7 @@ theorem wp_setNoDelay (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra 
     WP (App (App (Val (@! net.setNoDelay)) (Val #fd)) (Val #nd)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -730,7 +732,7 @@ theorem wp_setKeepAliveIdle (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (
     WP (App (App (Val (@! net.setKeepAliveIdle)) (Val #fd)) (Val #d)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -754,7 +756,7 @@ theorem wp_TCPListener_close (t : Loc) (l : w64) (x : GoInterface) (a : GoString
       {{ Φ }} := by
   iintro #Hl Hon HAU HΦ
   unfold lisAt lisFd fdAt
-  icases Hl with ⟨%nw, %hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv⟩, #Hx, %hl⟩
+  icases Hl with ⟨%nw, %hnw, ⟨%fd, %lc, %ra, #Ht, %v, %hv, #Hv, -⟩, #Hx, %hl⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Ht
   iStructNamed Hv
@@ -795,7 +797,7 @@ theorem wp_fd_Read (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : G
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Read" #fd)) (Val #b)) {{ Φ }} := by
   iintro #Hfd #Hat Hsl #Heof #Hed HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -857,7 +859,7 @@ theorem wp_fd_accept (fd : Loc) (l : w64) (nw : GoString) (x ra : GoInterface) (
       {{ Φ }} := by
   iintro #Hfd Hon HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, #Hnet⟩
   obtain ⟨hid, hnw, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -898,7 +900,7 @@ theorem wp_fd_accept (fd : Loc) (l : w64) (nw : GoString) (x ra : GoInterface) (
     wp_apply wp_anyTCPAddr as %la' #Hla'
     wp_apply wp_anyTCPAddr as %ra' #Hra'
     rw [hnw]
-    wp_apply wp_modelFD as %nfd #Hnfd
+    wp_apply wp_modelFD $$ Hnet as %nfd #Hnfd
     (try wp_auto)
     iapply HΦ $$ [Hnfd] Hla' Hra'
     unfold fdAt; iexact Hnfd
@@ -921,7 +923,7 @@ theorem wp_fd_Write (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : 
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Write" #fd)) (Val #b)) {{ Φ }} := by
   iintro #Hfd #Hat Hsl #Hed HP #Hacc HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd

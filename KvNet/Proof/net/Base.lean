@@ -91,9 +91,13 @@ instance netAddr_persistent (x : GoInterface) : Persistent (netAddr (GF := GF) x
 /-! ### Connections and listeners -/
 
 /-- The `netFD` `fd` (read-only for good) holds the id `id` in Go's `pfd.Sysfd`, the network `nw`
-and the addresses `la` (`laddr`) and `ra` (`raddr`). -/
+and the addresses `la` (`laddr`) and `ra` (`raddr`); and `net` is initialized (`isPkgInit net`, so
+are `io`, `internal/poll`, `syscall`: what the connection's operations need, `Conn.Read`'s `io.EOF`
+comparison and the errors' `Error()`, `errnoOk_of_poll`; `Dial`, `DialTimeout` and `Listen` take
+it, `Accept` passes the listener's on). -/
 def fdAt (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) : IProp GF :=
-  iprop(∃ v : netFD, ⌜v.pfd'.Sysfd' = id ∧ v.net' = nw ∧ v.laddr' = la ∧ v.raddr' = ra⌝ ∗ fd ↦□ v)
+  iprop(∃ v : netFD, ⌜v.pfd'.Sysfd' = id ∧ v.net' = nw ∧ v.laddr' = la ∧ v.raddr' = ra⌝ ∗ fd ↦□ v ∗
+    isPkgInit (PROP := IProp GF) pkg_id.net)
 
 instance fdAt_persistent (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) :
     Persistent (fdAt (GF := GF) fd id nw la ra) := by
@@ -121,6 +125,28 @@ theorem connAt_conn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoIn
     connAt (GF := GF) t cn s a la ra ⊢
       netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a := by
   unfold connAt; iintro ⟨%nw, -, -, -, -, H⟩; iexact H
+
+theorem fdAt_net (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) :
+    fdAt (GF := GF) fd id nw la ra ⊢ isPkgInit (PROP := IProp GF) pkg_id.net := by
+  unfold fdAt; iintro ⟨%v, -, -, #H⟩; iexact H
+
+/-- A connection's end: `net` is initialized (its `netFD`'s, `fdAt`). -/
+theorem connAt_net (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
+    connAt (GF := GF) t cn s a la ra ⊢ isPkgInit (PROP := IProp GF) pkg_id.net := by
+  unfold connAt connFd; iintro ⟨%nw, -, ⟨%fd, -, #Hfd⟩, -, -, -⟩
+  iapply fdAt_net $$ Hfd
+
+theorem connAt_poll (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
+    connAt (GF := GF) t cn s a la ra ⊢ isPkgInit (PROP := IProp GF) pkg_id.internal.poll := by
+  iintro #H
+  ihave #Hn := connAt_net $$ H
+  iPkgInit
+
+theorem connAt_io (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
+    connAt (GF := GF) t cn s a la ra ⊢ isPkgInit (PROP := IProp GF) pkg_id.io := by
+  iintro #H
+  ihave #Hn := connAt_net $$ H
+  iPkgInit
 
 /-- The `Conn` `c` is the end `s` of the connection `cn`, dialed to `a`: a `*TCPConn` `t` with
 `connAt t cn s a la ra`. A method call on `c` resolves (`wp_auto`, once `c` is destructed) to the
@@ -151,6 +177,34 @@ def lisAt (t : Loc) (l : w64) (x : GoInterface) : IProp GF :=
 instance lisAt_persistent (t : Loc) (l : w64) (x : GoInterface) :
     Persistent (lisAt (GF := GF) t l x) := by
   unfold lisAt; infer_instance
+
+/-- A listener: `net` is initialized (its `netFD`'s, `fdAt`). -/
+theorem lisAt_net (t : Loc) (l : w64) (x : GoInterface) :
+    lisAt (GF := GF) t l x ⊢ isPkgInit (PROP := IProp GF) pkg_id.net := by
+  unfold lisAt lisFd; iintro ⟨%nw, -, ⟨%fd, %lc, %ra, -, #Hfd⟩, -, -⟩
+  iapply fdAt_net $$ Hfd
+
+/-- `syscall`'s package fact (what an `*os.SyscallError`'s `Error()` needs, `errStr`), from
+`internal/poll`'s (which imports `syscall`). -/
+theorem errnoOk_of_poll :
+    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢ syscall.errnoOk (GF := GF) := by
+  iintro #H
+  ihave #Hs : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ [H]
+  · iPkgInit
+  iapply syscall.errnoOk_of_isPkgInit $$ Hs
+
+theorem connAt_errnoOk (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
+    connAt (GF := GF) t cn s a la ra ⊢ syscall.errnoOk (GF := GF) := by
+  iintro #H
+  iapply errnoOk_of_poll
+  iapply connAt_poll $$ H
+
+theorem lisAt_errnoOk (t : Loc) (l : w64) (x : GoInterface) :
+    lisAt (GF := GF) t l x ⊢ syscall.errnoOk (GF := GF) := by
+  iintro #H
+  iapply errnoOk_of_poll
+  ihave #Hn := lisAt_net $$ H
+  iPkgInit
 
 /-- The `Listener` `li` is the listener `l` of this node (its state is the node's
 `netLis l a o`, which its owner keeps). -/
@@ -239,11 +293,15 @@ def addrOrNil (x : GoInterface) : IProp GF := iprop(⌜x = interface.nil⌝ ∨ 
 instance addrOrNil_persistent (x : GoInterface) : Persistent (addrOrNil (GF := GF) x) := by
   unfold addrOrNil; infer_instance
 
-/-- `e` is a non-nil error whose `Error()` returns some string (what `OpError.Error` needs of its
-`Err`: Go's code calls `e.Err.Error()`). -/
+/-- `e` is a non-nil error whose `Error()` returns some string once `syscall` is initialized
+(`syscall.errnoOk`: an `*os.SyscallError`'s `Error()` reads `syscall`'s error table through
+`Errno.Error`; what `OpError.Error` needs of its `Err`: Go's code calls `e.Err.Error()`). The
+condition lets the operations without a package fact in their preconditions (`Dial`, `Close`, ...)
+make the fact; whoever calls `Error()` has `syscall`'s (from `isPkgInit` of a package importing it:
+`syscall.errnoOk_of_isPkgInit`). -/
 def errStr (e : GoInterface) : IProp GF :=
   iprop(∃ ii : GoInterfaceOk, ⌜e = interface.ok ii⌝ ∗
-    _root_.Perennial.fmt.stringMethodSpec (GF := GF) ii go!"Error")
+    □ (syscall.errnoOk (GF := GF) -∗ _root_.Perennial.fmt.stringMethodSpec (GF := GF) ii go!"Error"))
 
 instance errStr_persistent (e : GoInterface) : Persistent (errStr (GF := GF) e) := by
   unfold errStr; infer_instance
@@ -325,6 +383,18 @@ def edTyped (ed : Option GoInterface) : Prop :=
     ∃ p : Loc, x = interface.mkOk (go.GoType.PointerType internal.poll.DeadlineExceededError.ty) #p
 
 theorem edTyped_none : edTyped none := fun _ h => by cases h
+
+/-- `poll.ErrDeadlineExceeded`'s value is typed, from `internal/poll`'s package fact. -/
+theorem edTyped_of_poll (ed : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ⊢ ⌜edTyped (some ed)⌝ := by
+  iintro ⟨#Hp, #Hed⟩
+  ihave ⟨%xd, #Hxd⟩ := _root_.Perennial.internal.poll.errDeadlineExceeded_of_pkgInit $$ Hp
+  icombine Hed Hxd gives %hed
+  ipureintro
+  intro x hx
+  cases hx
+  exact ⟨xd, hed⟩
 
 /-- A failure's `Err` is one of net's own errors. -/
 theorem kindErr_netOwnErr (k : NetErr) (ed : Option GoInterface) (nm : GoString → Prop)

@@ -36,7 +36,7 @@ variable [package_sem' : net.Assumptions]
 open listener at `a` (`netLisAt`), or the `*OpError`. -/
 abbrev Listen.specAddrOk : Prop :=
   ∀ (nw : GoString), tcpNet nw → ∀ (a : GoString),
-  {{ ⌜addrOk a = true⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜addrOk a = true⌝ ∗
       (|={⊤,∅}=> netLisTok (extGlobalGS netExt (G := hG.goose_globalGS)) a ∗
         (netLisTok (extGlobalGS netExt (G := hG.goose_globalGS)) a ={∅,⊤}=∗ True)) }}
     (App (App (Val (@! net.Listen)) (Val #nw)) (Val #a))
@@ -64,9 +64,10 @@ abbrev Listener.Accept.specAddrOk : Prop :=
 theorem Listen.spec_addrOk (h : Listen.spec (GF := GF) (hG := hG)) :
     Listen.specAddrOk (GF := GF) (hG := hG) := by
   intro nw hnw a
-  iintro %Φ ⟨%Hok, Htok⟩ HΦ
+  iintro %Φ ⟨#Hnet, %Hok, Htok⟩ HΦ
   iapply h nw hnw a $$ [Htok]
-  · isplitr
+  · iframe Hnet
+    isplitr
     · ipureintro; simp [listenOk, Hok]
     imod Htok with ⟨Ht, Hk⟩
     imodintro
