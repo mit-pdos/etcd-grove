@@ -25,7 +25,10 @@ lemmas applied:
   `durable`'s crash lemma (`durInv_crash0`) inside it, then closed on its crashed side; the crashed
   tree's well-formedness (`crashRest_treeWf`) and the next generation's shared view
   (`crashRest_treeS`), split (`kvShared_split`); the boot's choice (`kd_boot_choose`: raft's
-  `readyCrashEnter` or `nodeCrash`). The next generation's `kvGenAt`, and its `kvDirRest`.
+  `readyCrashEnter` or `nodeCrash`). The next generation's `kvGenAt` at the crash's tree, its
+  `kvDirRest`, and the crash's rest of the file system after the file's (`crashRest` with the files
+  `durable` took, named at the file's two names), so that another durable file's crash lemma can
+  run (kvudp's boot file: `durInv_crash`, whose premise on the taken files holds by unique naming).
 -/
 module
 
@@ -204,8 +207,10 @@ theorem kvGen_boot (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (f
 
 /-- **The crash** (see the file header): with one later credit, the crashed generation's
 `kvCrashKeep`, its `crashed`, the crash's rest of the file system and the next generation's cells'
-invariant give the next generation's `kvGenAt` at its first tree `V`, and the rest of the file's
-directory (`kvDirRest`). -/
+invariant give the next generation's `kvGenAt` at the crash's tree `V'`, the rest of the file's
+directory (`kvDirRest`), and the crash's rest of the file system after the file's (its files taken
+`D`, named at the file's two names only), for another durable file's crash lemma (`durInv_crash`,
+e.g. kvudp's boot file in the same directory); kvnet's own top level drops the last two. -/
 theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
     (L' : GooseLocalGS GF) (V' : Hist) :
     ⊢ kdCluster (GF := GF) γ vs -∗ kvCrashKeep γ id fl -∗ £ 1 -∗
@@ -213,8 +218,12 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
       crashRest (fun _ _ => True) (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) []
         false V' -∗
       osInv (L := L') ={⊤}=∗
-      ∃ V : Hist, kvGenAt (hG := ⟨hG.goose_globalGS, L'⟩) γ id fl.df fl.fR V ∗
-        kvDirRest (hG := ⟨hG.goose_globalGS, L'⟩) fl.df fl.fR V := by
+      kvGenAt (hG := ⟨hG.goose_globalGS, L'⟩) γ id fl.df fl.fR V' ∗
+        kvDirRest (hG := ⟨hG.goose_globalGS, L'⟩) fl.df fl.fR V' ∗
+        ∃ D : List Ino, ⌜∀ i ∈ D, V'.now.entry fl.df.J fl.df.b = some (.file i) ∨
+            V'.now.entry fl.df.J fl.df.tb = some (.file i)⌝ ∗
+          crashRest (fun _ _ => True) (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) D
+            true V' := by
   iintro #Hcl Hk Hlc #Hcr Hrest #Hos'
   unfold kvCrashKeep
   icases Hk with ⟨#Hfi, Htk, Hct, #Hdi, Hdc, #Hsh, %hRr⟩
@@ -231,7 +240,7 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
   imod durInv_crash0 (fun _ _ => True) hG.goose_localGS L' fl.γd fl.df fl.fR false V' s
     (⊤ \ ↑(kdRepN.@(uint.nat id))) (ndot_sub_diff "durable" "kvdurable_rep" (by decide) _)
     (ndot_sub_diff "osfsShared" "kvdurable_rep" (by decide) _) $$ Hdi Hcr Hdc Hds Hsh Hrest
-    with ⟨%v, %D', ⟨%hv, -⟩, Hds, Hf, Ht, Hrest⟩
+    with ⟨%v, %D', ⟨%hv, %hD'⟩, Hds, Hf, Ht, Hrest⟩
   imod Hclose $$ [Hds Hwr Htk] with -
   · inext
     iunfold kdFileBody
@@ -243,7 +252,7 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
   imod crashRest_treeWf (fun _ _ => True) hG.goose_localGS L' D' false V' fl.fR ⊤ (fun _ _ => CoPset.mem_full)
     $$ Hsh Hrest with ⟨%hwf, Hrest⟩
   imod crashRest_treeS (fun _ _ => True) hG.goose_localGS L' D' V' fl.fR ⊤ (fun _ _ => CoPset.mem_full)
-    $$ Hsh Hrest with ⟨%hV', Ht', -⟩
+    $$ Hsh Hrest with ⟨%hV', Ht', Hrest⟩
   imod kvShared_split (hG := ⟨hG.goose_globalGS, L'⟩) fl.df fl.fR V' ⊤ hRr.1 hRr.2 hwf
     (fun _ _ => CoPset.mem_full) $$ Ht' with ⟨#Hsh', Hcp, Hj, Hdr⟩
   -- the boot's choice
@@ -252,7 +261,6 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
   imod kd_boot_choose γ id S s pb fl.x v ⊤ (fun _ _ => CoPset.mem_full) hv $$ HisC Hcr Hct HrS Hfs
     with ⟨%S', HrS, Hvac, #Hfh⟩
   imodintro
-  iexists V'
   isplitl [Hcp Hj HrS Hvac Hf Ht]
   · unfold kvGenAt
     iexists S', v
@@ -262,7 +270,10 @@ theorem kvGen_crash (γ : KdNames) (vs : List w64) (id : w64) (fl : KdFileNames)
     -- (`fileHolds` names no local ghost state: the same at `L'`)
     unfold fileHolds kdSnapCert
     iexact Hfh
-  · iexact Hdr
+  iframe Hdr
+  iexists D'
+  iframe Hrest
+  ipureintro; exact hD'
 
 /-- No file holds what a node at the initial state holds (kvdurable's `kdEmpty_holds`). -/
 theorem kvEmpty_holds : StorageHolds RaftState.init (kdContents none) := by

@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvudp, `udpNet.receive`)
+
+- **Spec.** `Net/Spec/net/UDPConn__ReadFromUDP.lean`, `UDPConn.ReadFromUDP.spec` (its part copy
+  `KvNet/Spec/net/UDPConn__ReadFromUDP.lean`, `etc/copy-part.py`). A trust-boundary spec, with no SpecPlan
+  counterpart.
+- **Defect.** Unprovable, and it leaves every caller stuck: the post said `RET (PairV #n (PairV #addr #err))`,
+  but goose's 3-tuples are left-nested (`Perennial/GooseLang/Notation.lean`, `leftNest`). The model
+  `UDPConn.ReadFromUDP.impl` (`Net/TrustedCode/net.lean`) returns `((n, addr), err)`, and the caller's
+  translation reads `Fst (Fst __p)`, `Snd (Fst __p)`, `Snd __p`.
+- **Evidence.** `udpNet.receive`'s proof (`KvNet/Proof/.../kvnet/udpNet__receive.lean`): after `wp_apply` of
+  the spec, the code was stuck at `(#k).Fst`. Branch `udp-net/2026-11-24` (`7399eb8204`) had found and fixed it
+  already, and it proves the corrected spec (`Net/Proof/net/UDPConn__ReadFromUDP.lean`). No proof of the
+  mis-nested statement existed.
+- **Proposed change.** `RET (PairV (PairV #n #addr) #err)`. The failure case also gets `addr = null`, as in
+  `7399eb8204`'s statement (the model returns `#(null : Loc)`), which is a stronger post. The file is taken whole
+  from `7399eb8204`, so the two branches' versions are the same.
+- **Decision.** Accepted (the kvudp coordinator, 2026-11-24); applied on `kvudp/2026-11-24`.
 ## 2026-11-25: computeMemberID, URLsMap.String -- Perennial's real `strings.Join` needs the joined string shorter than `2^61` bytes
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/computeMemberID.lean`
