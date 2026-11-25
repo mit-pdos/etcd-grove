@@ -222,8 +222,8 @@ theorem putget_safe : putget_safe.spec := by
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   imod putget_shares peer client id ctxs boot Hbf hb $$ Hreg Hs with ⟨%c, Hms, Hcs⟩
   imodintro
-  iexists (fun i => if i = 0 then memberShareIf peer client c ctxs boot id
-    else clientShareIf client c.view id)
+  iexists (fun i => if i = 0 then memberShareIf (GF := putgetGF) peer client c ctxs boot id
+    else clientShareIf (GF := putgetGF) client c.view id)
   isplitr
   · ipureintro
     intro i m hm
@@ -236,7 +236,7 @@ theorem putget_safe : putget_safe.spec := by
     | k + 2, hm => simp [system] at hm
   simp only [system, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   isplitl [Hms]
-  · iapply (show memberShareIf peer client c ctxs boot id ⊢ (if (0 : Nat) = 0 then
+  · iapply (show memberShareIf (GF := putgetGF) peer client c ctxs boot id ⊢ (if (0 : Nat) = 0 then
         memberShareIf peer client c ctxs boot id
         else clientShareIf client c.view id) by
       rw [if_pos rfl])

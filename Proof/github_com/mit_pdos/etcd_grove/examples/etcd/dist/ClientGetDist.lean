@@ -86,7 +86,7 @@ theorem Client_Get_dist.wp_proof (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG :=
   iframe Hlt
   have hs : (rangeWireOf (opGetModel key [])).base.serializable = false := rfl
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | %Herr)
-  · isimp only [hs, Bool.false_eq_true, ↓reduceIte] at HQ
+  · try isimp only [hs, Bool.false_eq_true, ↓reduceIte] at HQ
     icases HQ with %Hv
     ileft
     isplitl []

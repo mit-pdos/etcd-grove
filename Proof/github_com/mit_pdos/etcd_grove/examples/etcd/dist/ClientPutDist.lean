@@ -66,7 +66,8 @@ theorem Client_Put_dist.wp_proof (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG :=
       unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
       simp
     isplitl [Hau1]
-    · iexact Hau1
+    · simp only [show putWireOf (opPutModel key val []) = putKeyOp key val from rfl]
+      iexact Hau1
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt
