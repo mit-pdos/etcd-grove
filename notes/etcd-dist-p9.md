@@ -330,6 +330,9 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   `etcdAddrAtV svc` to `etcdAddrAt`.
 - **`[HasExt idIssueExt]` on client machines**: intended (one `etcdNetExts` bundle); it resolves on this base
   (the nc build below, `Node`/`CallDistLinked`/`Link`).
+- **Build** (fk-lean2, `wt/etcd-safe-p9-nc`, at `c819150841`): every `remote` leaf, the counter, the seven
+  Dsverify `TopLevelRobustness`, two `NonVacuityLinked` (gryff's is not on this base), kvremote's `Link`,
+  `NodeUpd`, `Orch`, `Start`, `CallDistLinked`, `Node`: exit 0. `etc/tier-check.py --check`: ok.
 - **`kvClientV`'s `KV` pointer** (item 5): N2's change to `NewClients`' post is not on N2's branches yet
   (`etcdstart` unchanged at `18fcc68766`); `kvClientV_intro` to be rechecked when it lands.
 
