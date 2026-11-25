@@ -26,7 +26,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [status_sem : google_golang_org.grpc.status.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `status.Errorf(c, format)` (`status/status.go:63-65`): `Error(c, fmt.Sprintf(format))`, and
 `Sprintf` of a format without `%` and no arguments returns it. -/
