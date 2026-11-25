@@ -338,7 +338,9 @@ instance bCsInv_persistent (p : BFile) : Persistent (bCsInv (GF := GF) p) := by
   unfold bCsInv; cases p.cs <;> dsimp only <;> infer_instance
 
 /-- The exclusivity tokens' keys of a file of `n` bytes. -/
-def exMap (n : Nat) : GMap Nat Unit := (List.range n).foldr (fun k m => m.insert k ()) ∅
+def exMap : Nat → GMap Nat Unit
+  | 0 => ∅
+  | n + 1 => (exMap n).insert n ()
 
 /-- **The writer's whole share of the file's `OsMeta` `m`, the committed state being `C`** (see the
 file header): `osMeta 1`, or (in the crash invariant) the invariant, half of the `OsMeta` and the
