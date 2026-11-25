@@ -370,3 +370,35 @@ No refutation. A stale-announcement gap fixed (`_close` only with nothing announ
 fresh write transaction); `BoltCrashWhole` restricted in its docstring (open database, no extending write since
 the last sync; the size part to move into the file extension); `dbOpts`' producer: `Open`'s postcondition. The
 last fix is not re-reviewed. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`, `dbCrash`.
+
+### Checkpoint (2026-11-25, end of the crash-axioms session; branch `etcd-safe-crash/2026-11-24`)
+
+**Done.** P11 (crash bridge on `Robust`'s thread bound) and P10 (`etcdBootCBad_holds`, `etcd_safe_of_bootWF`),
+no axiom or sorry. C-I1 in Lean (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`), final
+set: `dbCrashKeep_new`, `dbCrashKeep_announce`, `dbCrashKeep_half`, `dbCrashKeep_clear`, `dbCrashKeep_close`,
+`dbCrash`, over the opaque `dbOpts` (persistent), `dbCrashKeep γ path i0 Dl Dn pd` (exclusive) and the crash
+premise `BoltCrashWhole I`. C-I2/C-I3 as laws (`bootstrapCrashContract.law`, `bootstrapLeftContract.law`,
+`Proof/.../etcdserver/CrashInterim.lean`), not axioms: false at the pinned etcd, true of the fork head
+`goose-lean-crashfixes` @ `71295dd6d`. Four reviews of C-I1, two of C-I2/C-I3 (`notes/axiom-review/c-i*`).
+
+**Open, for the next agent.**
+1. Re-review `dbCrashKeep_close` (now only with `pd = none`) and the new `dbCrashKeep_clear` (the fix of the
+   fourth review's stale-announcement gap): not reviewed yet.
+2. Write `BoltCrashWhole` out as a definition: only while the file is an open bbolt database with no extending
+   write since its last sync; a validating meta page equals the page's page-cache contents at some moment since
+   the last sync (FNV-64 collision as an explicit probabilistic premise); check some `Q` refining `OsCrash`
+   satisfies it; a configuration-C example in `examples/osfs/semantics/`. Move the size part (an extending
+   `ftruncate` crashes to the old or the target size) into the file extension's `CrashFile` (a trusted change).
+3. `dbOpts`' producer: in bbolt `Open`'s postcondition behind γ's ghost names (not an entailment from persistent
+   field cells), with `UnsafeNoFsync = false` from the Go configuration. Until then all C-I1 laws are vacuous.
+4. The in-flight txid's receipt: the fourth review found it backed (receipts are global); optionally carry it
+   in the record (`announce` taking it).
+5. C-I2/C-I3: become axioms only after the pin moves to `71295dd6d` and the WAL's layer 1 is re-proved over the
+   fork's `Save`; C-I3 to be widened to the backend leftovers (T3) and restated over the WAL history
+   (`walAreaUnsaved`); its dependence on the WAL's whole-sector premise to be stated.
+6. Handed to another agent (not this session): the torn-`Save` fix's fresh-start hole (an unsaved WAL beside a
+   backend that applied the boot entries) and the bbolt `init` fork fix.
+7. T4/T7 finding: `srvCrashImageAt`'s `γ.cl.bootLen ≤ i` excludes a crash between the first `Save` and the
+   backend's first commit.
+8. Not run: `etc/tcb-report.py --check` (needs a local full build; no result uses the new axioms, so the
+   baseline should not move).
