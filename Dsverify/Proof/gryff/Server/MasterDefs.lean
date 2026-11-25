@@ -17,7 +17,7 @@ reads `addrList` and `portList` without the lock, and every `Ready` reply shares
 Port (`Net/`): `masterOkDef` is what `(*Master).Serve`'s `http.Serve(l, nil)` asks
 (Net's `http.Serve.spec_rpc`): the master's listener at `masterRpcLis` (`isListener`, `netLisOn`,
 `lisInv`), its rpc protocols (`rpcLisP`), `DefaultServeMux`'s route of `defaultRPCPath` to the
-master's server (`muxRpc`, from `Server.HandleHTTP`) and net/http's variables (`httpEnv`). `runPre`'s rpc addresses are the replicas'
+master's server (`muxRpc`, from `Server.HandleHTTP`) and net/http's variables (`httpSrvEnv`). `runPre`'s rpc addresses are the replicas'
 net/rpc addresses behind the HTTP handshake (`rpcAddrP … (connectReq defaultRPCPath)
 connectAns`), with `DialHTTP`'s environment (`dialEnv`), and the codec registered (`codecSet
 gryffCodec`).
@@ -117,7 +117,7 @@ def masterOkDef (γ : GryffNames GF) (m : Loc) : IProp GF :=
     "#Hmux" ∷ net.http.muxRpc (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) γ.rpc
       (lisAccepts masterRpcLis) net.rpc.defaultRPCPath ∗
     "#Hhttp" ∷ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-    "#Hhe" ∷ net.http.httpEnv ∗
+    "#Hhe" ∷ net.http.httpSrvEnv ∗
     "%Hth" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝)
 
 instance masterOkDef_persistent (γ : GryffNames GF) (m : Loc) :

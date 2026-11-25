@@ -99,7 +99,7 @@ theorem NewMaster.wp_req (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗ □ sharedInvs γ ∗ netShare γ ∗
         masterStartRes γ ∗ net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
         net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
-        net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ dialEnv (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+        net.http.httpSrvEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ dialEnv (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
         isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗
         isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http }}
       (App (App (Val (@! gryff.src.masterlib.NewMaster)) (Val #(W64 3))) (Val #(W64 7501)))
@@ -162,7 +162,7 @@ theorem Serve.wp_req (γ : GryffNames GF) (k : Nat) (port : w64) (γs : GName) (
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗ netShare γ ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
         net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
-        isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ net.http.httpEnv ∗
+        isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ net.http.httpSrvEnv ∗
         globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
         net.rpc.defaultServerAny γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
         replicaRegRes γ k ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ threadTok }}

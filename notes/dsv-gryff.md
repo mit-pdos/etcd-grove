@@ -5,7 +5,7 @@
 > no net/rpc or net/http premise (`RpcHttpHyp`, `RpcBootHyp`, the `net.rpc`/`net.http` `InitHyp`s
 > gone, section "dsv-fix2"). `#print axioms`: Lean's three and `Net/`'s interim axioms
 > `net.rpc.wp_init_first`, `net.rpc.wp_initialize'`, `net.http.wp_init_first`,
-> `net.http.wp_initialize'`, `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`.
+> `net.http.wp_initialize'`, `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`. (2026-11-25: the last two proved; `Serve` over the interim context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`.)
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:

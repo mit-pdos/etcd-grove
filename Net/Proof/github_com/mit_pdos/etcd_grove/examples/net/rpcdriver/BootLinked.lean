@@ -3,8 +3,8 @@
 # `net/rpcdriver`: a machine's first initialization
 
 Both commands import `rpcdriver` only, whose initializer runs, innermost first, `primitive`, `sync`,
-`strings`, net/http's (its first run on the machine: `muxOwn (globalAddr net.http.defaultServeMux) []`, `net.http.wp_init_first`, an
-interim axiom), `net`, net/rpc's (its first run: `codecUnset` and `DefaultServer`'s owned registry,
+`strings`, net/http's (its first run on the machine: `muxOwn (globalAddr net.http.defaultServeMux) []`, `net.http.wp_init_first_mux`, over
+the interim axiom `net.http.wp_init_first`; and its server's variables, `httpSrvEnv`), `net`, net/rpc's (its first run: `codecUnset` and `DefaultServer`'s owned registry,
 `net.rpc.wp_init_first`, an interim axiom), `service`, `errors`; then allocates and stores its
 variables (`drvFacts`). Here from a table in which the owned packages are not initialized yet
 (`gOff ownedPkgs G`, `BootTable.lean`), as the dsverify kits' boots (`BootLinked.lean`). A linking
@@ -80,11 +80,11 @@ theorem boot_rpcdriver :
     (wfO_github_com_goose_lang_primitive hk _ rpcHttpLe) $$ Hown as ⟨Hown, #H1⟩
   wp_apply sync.wp_initialize' _ (wfO_sync hk _ rpcHttpLe) $$ Hown as ⟨Hown, #H2⟩
   wp_apply strings.wp_initialize' _ (wfO_strings hk _ rpcHttpLe) $$ Hown as ⟨Hown, #H3⟩
-  wp_apply (net.http.wp_init_first (gOff [pkg_id.net.rpc, pkg_id.net.http] G)
+  wp_apply (net.http.wp_init_first_mux (gOff [pkg_id.net.rpc, pkg_id.net.http] G)
       (gOff [pkg_id.net.rpc] G) (gOff_off _ _ _ (by decide))
       (wfX_net_http hk _ rpcLe (by decide))
       (fun p hp => by unfold gOff; by_cases h : p = pkg_id.net.rpc <;> simp [h, hp])) $$ [$Hown]
-    as ⟨Hown, #H4, Hmux⟩
+    as ⟨Hown, #H4, Hmux, #Hse⟩
   · ipureintro; exact hT
   wp_apply net.wp_initialize' _ (wfO_net hk _ rpcLe) $$ Hown as ⟨Hown, #H5⟩
   wp_apply (net.rpc.wp_init_first (gOff [pkg_id.net.rpc] G) G (gOff_off _ _ _ (by decide))
@@ -106,7 +106,7 @@ theorem boot_rpcdriver :
   iframe Hown
   isplitl [Hmux Hrf]
   · iunfold bootRes
-    iframe Hmux Hrf
+    iframe Hmux Hrf Hse
     iunfold drvFacts
     isplitr
     · iexists _; iframe HfailMsgs Hsf

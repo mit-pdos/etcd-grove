@@ -64,7 +64,8 @@ rpcStepBound` with `rpcStepBound = 2 ^ 30 - 1` (first `2 ^ 31 - 1`, lowered afte
 but the deployment's start and the programs' typing facts. Proved 2026-11-24 over four interim
 axioms (`etc/tcb-collections/rpcdriver.txt`): `net.rpc.wp_init_first`, `net.http.wp_init_first`
 (first-run initializers, L2 step 6), `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`
-(S5); `strings.Cut`/`TrimLeft` are Perennial's proofs (pin `d9c8c1d97`). The paragraph below is the plan as of the skeleton. The trust-base collection
+(S5; both proved 2026-11-25 over the real `ServeMux` and server, `Serve` over the two interim context axioms
+`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`); `strings.Cut`/`TrimLeft` are Perennial's proofs (pin `d9c8c1d97`). The paragraph below is the plan as of the skeleton. The trust-base collection
 `etc/tcb-collections/rpcdriver.txt` lists the `sorry` and the interim axioms of net/rpc's and
 net/http's initializers (`Net/Proof/net/{rpc,http}/Init.lean`; their facts, `True`, in `PkgInit.lean`,
 shared with `Dsverify/`'s `InitHyp`s; retired by L2 step 6, net/rpc's and net/http's initializers
