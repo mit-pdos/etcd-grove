@@ -73,7 +73,7 @@ def etcd_leaseexpiryN_robust_single_process.spec : Prop :=
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk) (Hlp : leasePeersOk)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
-    (HEnv : verifyEnvOff (leaseexpiryNProgram k))
+    (HEnv : EtcdVerifyOff)
     (Hprem : ∀ n : Nat, ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) (uint.nat k) n ids ps ctxs
         boot)

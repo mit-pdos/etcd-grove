@@ -1,7 +1,7 @@
 /-
 `verify.Verify`'s proof (`client/pkg/verify/verify.go`; etcdstorage, 2026-11-20, until then the
 trust boundary, an axiom): over `IsVerificationEnabled`'s spec; both branches (`f` run and its
-condition checked by `verifier`, or not), and with assertions off (`envVerifyOff`) only the second.
+condition checked by `verifier`, or not), and with assertions off (`EtcdVerifyOff`) only the second.
 -/
 module
 
@@ -30,8 +30,8 @@ theorem verify.Verify.wp_proof
   intro msg f P
   wp_start as ⟨HP, Hf⟩
   wp_auto
-  wp_apply hEnabled as %b Hb
-  icases Hf with (Hf | #Hvoff)
+  wp_apply hEnabled as %b %Hb
+  icases Hf with (Hf | %Hvoff)
   · cases b
     · wp_auto
       iapply HΦ; iexact HP
@@ -46,9 +46,7 @@ theorem verify.Verify.wp_proof
       wp_call
       try wp_auto
       iapply HΦ; iexact HP
-  · ispecialize Hb $$ Hvoff
-    icases Hb with %Hb
-    obtain rfl : b = false := Hb (Or.inl (by first | rfl | trivial))
+  · obtain rfl : b = false := Hb Hvoff (Or.inl (by first | rfl | trivial))
     wp_auto
     iapply HΦ; iexact HP
 

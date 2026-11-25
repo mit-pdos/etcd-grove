@@ -42,7 +42,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 /-- **The start bundle of a member that listens on no address** (`memberStartRes_intro` at one member and
 no address): `ETCD_VERIFY` off, its data directory and its WAL area fresh. -/
 theorem memberStartRes_one (n : GoString) :
-    envVerifyOff (GF := GF) ∗ dataDirFresh (GF := GF) (memberDataDir n) ∗
+    ⌜EtcdVerifyOff⌝ ∗ dataDirFresh (GF := GF) (memberDataDir n) ∗
         memberAreasFresh (GF := GF) (memberDataDir n) ⊢
       memberStartRes (GF := GF) n {} := by
   iintro ⟨#Hv, Hd, Hw⟩

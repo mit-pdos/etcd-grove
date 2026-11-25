@@ -18,7 +18,6 @@ axiom addrClaim
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor

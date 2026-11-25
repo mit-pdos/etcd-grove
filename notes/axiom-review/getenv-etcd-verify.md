@@ -78,3 +78,31 @@ lower-cased value, which `lowersTo` now states exactly, so the world assumption 
 Both strengthened posts are true of the pinned Go (by the source for `Getenv`, by the source and an
 exhaustive measurement for `ToLower`). Net: five axioms out, none in; two axioms' posts
 strengthened.
+
+## 2026-11-25: restated over the run's value (the owner's decision)
+
+`os.Getenv`'s post was first restated as `⌜key = "ETCD_VERIFY" → v = etcdVerifyEnv⌝` (weakened the same day to offness, below), with `etcdVerifyEnv` an opaque
+`GoString` (the run's value, `""` when unset) and the closed theorems' premise `EtcdVerifyOff :=
+etcdVerifyOffValue etcdVerifyEnv`; the token `envVerifyOff` and the axiomatized `verifyEnvOff` are gone
+(`notes/decisions.md`, "`ETCD_VERIFY` as an environment premise over its value"). Checked against the
+same source reading as above: every `os.Getenv("ETCD_VERIFY")` of a run returns the first value of the
+initial environment (or `""`) as long as nothing calls `Setenv`/`Unsetenv`/`Clearenv`, which no verified
+code can (no spec). So one constant per run is faithful; the post is stronger than before only in naming
+the value, which is what that argument shows. A deployment whose unverified code set the variable would
+falsify it; the docstring says so. The constant is one for all machines of a deployment, a restriction
+of the model (as `GODEBUG`'s `godebugFips140`), not a claim about Go: the theorems are about
+deployments in which every machine's value enables no check.
+
+## Review of the value-naming post (2026-11-25, the `axiom` skill): refuted across processes; weakened
+
+The draft post `key = "ETCD_VERIFY" → v = etcdVerifyEnv` holds within one process (no spec for
+`os.Setenv`/`Unsetenv`/`Clearenv`/`syscall.Setenv`; Go reads the copy taken at start) but is false across
+processes: one opaque constant for every machine and every boot lets a proof show that two processes read
+equal values. Go: process A with `ETCD_VERIFY` unset writes its value to durable storage, process B with
+`ETCD_VERIFY=0` reads its own and the stored one and panics if they differ: 5/5 panics (both values are
+off). Lean: the payload invariant `m = etcdVerifyEnv` from A's read and B's read discharge B's panic branch,
+with no environment premise (sketch, not built). **Fix:** the post gives only offness,
+`key = "ETCD_VERIFY" → EtcdVerifyOff → etcdVerifyOffValue v`; no proof can relate two processes' values. The
+proofs used only offness (`IsVerificationEnabled`; `bbolt`'s `Verify` ignores the post). `goose_adequacy_start`
+without the environment premise survives (its conclusion is about the operational semantics, which has no
+environment; the satisfiability argument never used `hEnv`).

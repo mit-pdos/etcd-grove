@@ -328,7 +328,7 @@ every gRPC reply below the transport's maximum; the disk cooperates (bbolt's and
 opens); the peers answer `/leases/internal` as etcd does or not with `200` (true by construction
 here: every peer address is a member's raft handler); no lease expires, when a workload needs it.
 (The programs' prometheus names, `HNs`, were a premise until prom-registry, 2026-11-22: each
-proof allocates its registration rights itself.) (`verifyEnvOff` and the proxy variables are gone if the
+proof allocates its registration rights itself.) (`EtcdVerifyOff` and the proxy variables are gone if the
 server clears them, `clearProxyEnv`: open question Q10.) -/
 structure EtcdEnv (d : Deployment) : Prop where
   authRecords : authRecordsFit
