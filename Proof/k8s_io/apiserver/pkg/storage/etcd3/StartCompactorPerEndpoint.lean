@@ -179,7 +179,7 @@ theorem StartCompactorPerEndpoint.wp_proof
       -- `onClose`: under the lock, delete the client's endpoints (dropping their entries)
       unfold closeOk
       iright
-      iintro !> %Φc HΦc
+      iintro !> %Φc Hlt HΦc
       (try wp_auto)
       wp_apply wp_with_defer as %defer2 defer2
       (try wp_auto)
@@ -229,7 +229,7 @@ theorem StartCompactorPerEndpoint.wp_proof
           iexists mref2, m'
           iframe
         (try wp_auto)
-        iapply HΦc
+        iapply HΦc $$ Hlt
     ihave #Hfor : compactorFor γk recorded (c, cl, γc.lb) $$ []
     · iunfold compactorFor
       iframe #
