@@ -202,21 +202,21 @@ theorem etcd_authenticateMethodOk (p : Loc)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.AuthenticateRequest) -∗
       (pbAuthenticateRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbAuthenticateRequest]; iexact Hl
-  ihave #HQr : iprop(□ ∀ l : Loc, (pbAuthenticateRequest (GF := GF)).recv l m -∗
+  ihave #HQr : iprop(□ ∀ (l : Loc) m, (pbAuthenticateRequest (GF := GF)).recv l m -∗
       v3rpc.learnerReqOk (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthenticateRequest.ty) #l)) $$ []
-  · iintro !> %l -
+  · iintro !> %l %_ -
     iapply (v3rpc.learnerReqOk_ptr _ l (by simp [etcdserverpb.AuthenticateRequest.ty, etcdserverpb.RangeRequest.ty]))
   iapply (v3rpc.etcdserverpb.wp__Auth_Authenticate_Handler pbAuthenticateRequest pbAuthenticateResponse Spec
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty, #p⟩
-    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.authServer_isAuthServer)
-    $$ [HS HRs HSpec]
+    S ics Rs v3rpc.learnerReqOk D Got ci cd dec ui rfl rfl v3rpc.authServer_isAuthServer)
+    $$ [HS HRs HD]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres, Hed⟩
+  iintro %resp %err ⟨HS, HRs, Hout⟩
   iapply HΨ
   iframe
 

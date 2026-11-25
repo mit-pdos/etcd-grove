@@ -27,8 +27,12 @@ variable [sem : go.Semantics]
 `Serve` → `handleRawConn` → `serveStreams` → `HandleStreams` → `handleStream` → `processRPC`) serves
 every connection accepted on `lis`, and every byte it writes on a connection to `a` meets `a`'s
 acceptor protocol (`grpcSrvPI Svc`) given that the dialer met `grpcCliPI Svc`: a unary call of a
-method with an entry `e` runs Go's handler for it (`grpcServes`) on the request the call's deposit
-holds, with the deposit `e.spec md m Φ Ψe` at the run's incoming metadata, and the reply's `Φ m'`
+method with an entry `e` runs Go's handler for it (`grpcServes`) as one of the two run contracts the
+handler meets: dec-shaped (`grpcRunOkMd`), its `dec` decodes the request the call's deposit holds and
+delivers the deposit `e.spec md m Φ Ψe` at the run's incoming metadata with a receipt for `Φ`/`Ψe`,
+or fails with the run's right to the request given back, and the run answers the receipt; or, interim
+for Go's single-process table (phase 7's SW2, `notes/axiom-review/phase7-switch-dec.md`),
+deposit-at-start (`grpcRunPreOkMd`), the deposit given with the run. Either way the reply's `Φ m'`
 (or `Ψe d` for a handler's description `d`) is what the attempt gets back; a method without an entry
 gets `Unimplemented`. A stream of a method with a
 stream entry `e` runs Go's stream handler for it (`grpcServes`' stream clause) as `ClientConn.NewStream`'s

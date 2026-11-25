@@ -21,7 +21,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **Trust boundary** (item 4, the server start): the server marshals and unmarshals messages with
-`c`; a protobuf codec is what the default codec is, so what a run is given (`grpcDecOk`, the wire
+`c`; a protobuf codec is what the default codec is, so what a run is given (`grpcDecDepOk`, the wire
 models) is unchanged. -/
 axiom grpc.CustomCodec.wp_proof : grpc.CustomCodec.spec (GF := GF) (hG := hG)
 

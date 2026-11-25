@@ -265,23 +265,23 @@ theorem etcd_leaseTTLMethodOkMd (q : Loc)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseTimeToLiveRequest) -∗
       (pbLeaseTimeToLiveRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbLeaseTimeToLiveRequest]; iexact Hl
-  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseTimeToLiveRequest (GF := GF)).recv l m -∗
+  ihave #HQr : iprop(□ ∀ (l : Loc) m, (pbLeaseTimeToLiveRequest (GF := GF)).recv l m -∗
       v3rpc.learnerReqOk
         (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseTimeToLiveRequest.ty) #l)) $$ []
-  · iintro !> %l -
+  · iintro !> %l %_ -
     iapply leaseTTLReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__Lease_LeaseTimeToLive_Handler pbLeaseTimeToLiveRequest
     pbLeaseTimeToLiveResponse Spec ⟨go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
-    $$ [HS HRs HSpec]
+    S ics Rs v3rpc.learnerReqOk D Got ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HD]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hout⟩
   iapply HΨ
   iframe
 
@@ -300,23 +300,23 @@ theorem etcd_leaseLeasesMethodOkMd (q : Loc)
         ics iprop(S ∗ [∗list] R ∈ Rs, R) Spec := by
   iintro ⟨#Hh, #Ppb, #Hics⟩
   unfold grpcMethodOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨⟨HS, HRs⟩, #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΨ
   ihave #Hbl : iprop(□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseLeasesRequest) -∗
       (pbLeaseLeasesRequest (GF := GF)).blank l) $$ []
   · iintro !> %l Hl; simp only [pbLeaseLeasesRequest]; iexact Hl
-  ihave #HQr : iprop(□ ∀ l : Loc, (pbLeaseLeasesRequest (GF := GF)).recv l m -∗
+  ihave #HQr : iprop(□ ∀ (l : Loc) m, (pbLeaseLeasesRequest (GF := GF)).recv l m -∗
       v3rpc.learnerReqOk
         (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseLeasesRequest.ty) #l)) $$ []
-  · iintro !> %l -
+  · iintro !> %l %_ -
     iapply leaseLeasesReq_learnerOk
   iapply (v3rpc.etcdserverpb.wp__Lease_LeaseLeases_Handler pbLeaseLeasesRequest
     pbLeaseLeasesResponse Spec ⟨go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
-    S ics Rs v3rpc.learnerReqOk m Φ Ψe ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
-    $$ [HS HRs HSpec]
+    S ics Rs v3rpc.learnerReqOk D Got ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
+    $$ [HS HRs HD]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, HRs, Hres⟩
+  iintro %resp %err ⟨HS, HRs, Hout⟩
   iapply HΨ
   iframe
 

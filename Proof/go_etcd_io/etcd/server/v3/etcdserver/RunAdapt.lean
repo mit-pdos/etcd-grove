@@ -66,14 +66,14 @@ theorem grpcMethodOkMd_slot {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfac
     grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S' Spec := by
   iintro #Hh
   unfold grpcMethodOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS', #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨HS', #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΨ
   ihave ⟨HS, HF⟩ := h1 $$ HS'
-  iapply Hh $$ %m %Φ %Ψe %ci %cd %dec %ui [HS HSpec]
+  iapply Hh $$ %D %Got %ci %cd %dec %ui [HS HD]
   · iframe; iframe #
   inext
-  iintro %resp %err ⟨HS, Hres, Hed⟩
+  iintro %resp %err ⟨HS, Hout⟩
   iapply HΨ
-  iframe Hres Hed
+  iframe Hout
   iapply h2
   iframe
 

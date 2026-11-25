@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: the generated unary handlers' specs -- the deposit in the precondition (phase 7's SW2, D1)
+
+- **Spec.** The 15 `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_{KV,Lease,Auth}_*_Handler.lean` and the gRPC
+  driver's three `Spec/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/svc/_Driver_{Echo,Fail,Meta}_Handler.lean`;
+  SpecPlan: `SpecPlan/Spec/go_etcd_io/etcd/api/v3/etcdserverpb/_*_Handler.lean` (WP form over its own
+  `Grpc.decOk`, which also yields the request's content from `dec`).
+- **Defect.** Too strong for `Serve`'s proof over defined protocols: the precondition holds the caller's
+  deposit `grpcSpecAt Spec ci m Φ Ψe` at a fixed `m` before the handler runs, while grpc-go and the model
+  run a unary handler before its request arrives (S2 design §1.1; C1 of `notes/axiom-review/s2-interface.md`).
+- **Evidence.** `notes/phase7-endstate.md` §1.2 (SW2) and S2's design §1.5.
+- **Proposed change (applied on `phase7-switch-dec/2026-11-25`).** Binders `D Got` in place of `m Φ Ψe`;
+  pre `D ∗ grpcDecDepOk dec Spec ci D Got` in place of `grpcDecOk dec Req m ∗ grpcSpecAt Spec ci m Φ Ψe`;
+  the interceptor fact at every `m` (`□ ∀ l m, Req.recv l m -∗ Q …`); post `grpcRunOut D Got resp err`. The
+  proofs are unchanged (`UnaryHandlerLemmas`' four lemmas re-proved). This moves the real specs toward
+  SpecPlan's shape (the request's content comes out of `dec`).
+- **Decision.** Applied with SW2 (trusted: `Serve`'s clause, `notes/axiom-review/phase7-switch-dec.md`),
+  pending the user's review of SW2 with W1.
 ## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
 
 - **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,

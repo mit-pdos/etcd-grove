@@ -165,34 +165,33 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
     [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
     {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
-    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
-    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
   {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOwnOkMd #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
-      (□ ∀ l : Loc, Req.recv l m -∗
+      (□ ∀ (l : Loc) (m : Req.M), Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
-      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗
+      grpcDecDepOk dec Spec ci D Got ∗ grpcSrvChainAll ics ui }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
-  wp_start as ⟨#Hblank, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hchain, HSpec⟩
+      grpcRunOut D Got resp err }} := by
+  intro Req Rep Spec srv S ics Rs Q D Got ci cd dec ui hReq hRep hsrv
+  wp_start as ⟨#Hblank, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, HD, #Hdec, #Hchain⟩
   wp_auto
   ihave Hb := Hblank $$ %«$r0_ptr» «$r0»
-  ihave #Hdec' := grpcDecOk_ty dec Req m _ hReq $$ Hdec
+  ihave #Hdec' := grpcDecDepOk_ty dec Spec ci D Got _ hReq $$ Hdec
   ihave #Hd2 := Hdec' $$ %«$r0_ptr»
   wp_bind (App (Val #dec) _)
-  iapply Hd2 $$ Hb
+  iapply Hd2 $$ [HD Hb]
+  · iframe
   inext
   iintro %err Herr
-  icases Herr with (⟨%Herr, #Hr, Ho⟩ | ⟨#Hnh, #Hse0⟩)
+  icases Herr with (⟨%Herr, %m, %Φ', %Ψe, #Hr, Ho, HSpec, HGot⟩ | ⟨HD, #Hnh, #Hse0⟩)
   all_goals try ihave #Hse := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ Hse0
   · subst Herr
     wp_auto
@@ -207,8 +206,12 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       iintro %resp %err' ⟨⟨HS, HRs⟩, Hres, Herrd, #Hse⟩
       wp_auto
       iapply HΦ
-      iframe
+      iframe HS HRs
+      iunfold grpcRunOut
       iframe Hse
+      iright
+      iexists Φ', Ψe
+      iframe HGot Herrd
       iintro %Hnil
       ihave ⟨%m', Hm', HΦ'⟩ := Hres $$ %Hnil
       iexists resp, m'
@@ -264,8 +267,12 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           iintro HRs
           wp_auto
           iapply HΦ
-          iframe
+          iframe HS HRs
+          iunfold grpcRunOut
           iframe Hse
+          iright
+          iexists Φ', Ψe
+          iframe HGot Herrd
           iintro %Hnil
           ihave ⟨%m', Hm', HΦ'⟩ := Hres $$ %Hnil
           iexists resp, m'
@@ -275,8 +282,12 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           ihave %Hne' := go_etcd_io.etcd.cache.v3.notDescIn_ne _ _ $$ Hnh'
           wp_auto
           iapply HΦ
-          iframe
+          iframe HS HRs
+          iunfold grpcRunOut
           iframe Hse
+          iright
+          iexists Φ', Ψe
+          iframe HGot
           isplitl
           · iintro %Hc
             exact absurd Hc Hne'
@@ -287,12 +298,15 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
     | ok ei =>
       wp_auto
       iapply HΦ
-      iframe
+      iframe HS HRs
+      iunfold grpcRunOut
       iframe Hse
-      isplitl
-      · iintro %Hc
-        cases Hc
-      · iapply handlerErrOut_not $$ Hnh
+      ileft
+      isplitl [HD]
+      · iexact HD
+      isplitr
+      · ipureintro; exact Hne
+      iexact Hnh
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the metadata-indexed handler spec** (from `wp_unaryHandlerOwnMd`) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
@@ -306,28 +320,26 @@ theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth f
     [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
     {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
-    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
-    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
   {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOkMd #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
-      (□ ∀ l : Loc, Req.recv l m -∗
+      (□ ∀ (l : Loc) (m : Req.M), Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
-      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗
+      grpcDecDepOk dec Spec ci D Got ∗ grpcSrvChainAll ics ui }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
-  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
+      grpcRunOut D Got resp err }} := by
+  intro Req Rep Spec srv S ics Rs Q D Got ci cd dec ui hReq hRep hsrv
+  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΦ
   ihave #Hh' := grpcHandlerOkMd_own _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec $$ Hh
   iapply (wp_unaryHandlerOwnMd (V := V) (pkg := pkg) h srvTy reqTy repTy meth fullMethod Req Rep Spec srv S ics Rs Q
-    m Φ' Ψe ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] HΦ
+    D Got ci cd dec ui hReq hRep hsrv) $$ [HS HRs HD] HΦ
   iframe; iframe #
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
@@ -348,39 +360,27 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
     [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
     {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
-    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
-    (Φ : Rep.M → IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
   {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOwnOk #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
-      (□ ∀ l : Loc, Req.recv l m -∗
+      (□ ∀ (l : Loc) (m : Req.M), Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
-      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChainAll ics ui ∗ Spec m Φ }}
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗
+      grpcDecDepOk dec (GrpcSpec.md Spec) ci D Got ∗ grpcSrvChainAll ics ui }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
-  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
+      grpcRunOut D Got resp err }} := by
+  intro Req Rep Spec srv S ics Rs Q D Got ci cd dec ui hReq hRep hsrv
+  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΦ
   ihave #Hh' := (grpcHandlerOwnOk_md _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec).1 $$ Hh
   iapply (wp_unaryHandlerOwnMd (V := V) (pkg := pkg) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
-    srv S ics Rs Q m Φ' (fun _ => iprop(True)) ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] [HΦ]
-  · iframe; iframe #
-    iapply (grpcSpecAt_md_intro Spec ci m Φ' (fun _ => iprop(True)))
-    iframe HSpec Hrc
-    imodintro
-    iintro %_
-    itrivial
-  · inext
-    iintro %resp %err ⟨HS, HRs, Hok, -, #Hse⟩
-    iapply HΦ
-    iframe
-    iframe Hse
+    srv S ics Rs Q D Got ci cd dec ui hReq hRep hsrv) $$ [HS HRs HD] HΦ
+  iframe; iframe #
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the handler spec** (from `wp_unaryHandlerOwn`) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
@@ -394,39 +394,27 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
     [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
     {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
-    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
-    (Φ : Rep.M → IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
   {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOk #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
-      (□ ∀ l : Loc, Req.recv l m -∗
+      (□ ∀ (l : Loc) (m : Req.M), Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
-      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChainAll ics ui ∗ Spec m Φ }}
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗
+      grpcDecDepOk dec (GrpcSpec.md Spec) ci D Got ∗ grpcSrvChainAll ics ui }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-      go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
-  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
+      grpcRunOut D Got resp err }} := by
+  intro Req Rep Spec srv S ics Rs Q D Got ci cd dec ui hReq hRep hsrv
+  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, HD, #Hdec, #Hch⟩ HΦ
   ihave #Hh' := (grpcHandlerOk_md _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec).1 $$ Hh
   iapply (wp_unaryHandlerMd (V := V) (pkg := pkg) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
-    srv S ics Rs Q m Φ' (fun _ => iprop(True)) ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] [HΦ]
-  · iframe; iframe #
-    iapply (grpcSpecAt_md_intro Spec ci m Φ' (fun _ => iprop(True)))
-    iframe HSpec Hrc
-    imodintro
-    iintro %_
-    itrivial
-  · inext
-    iintro %resp %err ⟨HS, HRs, Hok, -, #Hse⟩
-    iapply HΦ
-    iframe
-    iframe Hse
+    srv S ics Rs Q D Got ci cd dec ui hReq hRep hsrv) $$ [HS HRs HD] HΦ
+  iframe; iframe #
 
 end proof
 
