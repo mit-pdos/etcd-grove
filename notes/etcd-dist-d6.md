@@ -748,7 +748,7 @@ back as a record of the stale type with a valid CRC (`nonissues/etcd-wal-record-
 frame written over zeros is protected by the CRC alone. So under the target the proof also needs that **the WAL
 writes every frame over bytes that are durably zero**.
 
-**The torn-`Save` fix creates no frame over stale bytes** (checked by reading the fork at `e94f33b50`, the pin; no
+**The torn-`Save` fix creates no frame over stale bytes** (checked by reading the fork at `e94f33b50`, `goose-lean-fmt1c-crashfixes`, the pin of branch `etcd-safe-main-pin/2026-11-24`; no
 test written for this property). `WAL.Save` (`wal.go`, `Save`/`saveEntry`/`encodeState`) writes only by appending
 through the encoder at its current offset: the entry records, then the state record (`encodeState`, the hard state
 given, or `w.state` when it is empty and there are entries), then `sync` when `MustSync`, then `cut` past

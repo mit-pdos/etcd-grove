@@ -46,7 +46,7 @@ keep a valid meta and lose the freelist or root page (or keep less than a page):
 sees a non-empty file, does not re-run `init`, and fails or panics.
 
 Through etcd: `TestBackendOpensInterruptedInit` (`server/storage/backend/init_crash_test.go` on
-`upamanyus/etcd` `goose-lean-crashfixes2`, and `goose-lean-fmt1c-crashfixes` @ `e94f33b50`, the verified etcd's pin) panics with v1.5.0 (`failed to open database`,
+`upamanyus/etcd` `goose-lean-crashfixes2`, and `goose-lean-fmt1c-crashfixes` @ `e94f33b50`) panics with v1.5.0 (`failed to open database`,
 `invalid database`) on a file whose two meta pages are torn over whole freelist and root pages.
 
 ## Proof
