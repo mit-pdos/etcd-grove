@@ -101,7 +101,7 @@ theorem wp_Status_Message_nil :
 /-- **`New(c, msg)` returns a fresh read-only status of code `c` and message `msg`**
 (`status.go:76-78`, `&Status{s: &spb.Status{Code: int32(c), Message: msg}}`; the fields made
 persistent: nothing writes them after). -/
-theorem wp_New (c : w32) (msg : GoString) :
+theorem status.wp_internal_New (c : w32) (msg : GoString) :
     {{ (True : IProp GF) }}
       (App (App (Val (@! google_golang_org.grpc.internal.status.New)) (Val #c)) (Val #msg))
     {{ (s : Loc), RET #s; status.statusAt s c msg }} := by
@@ -126,13 +126,13 @@ theorem wp_New (c : w32) (msg : GoString) :
   ipureintro; exact hp
 
 /-- grpc `status.New(c, msg)` is `internal/status.New(c, msg)` (`status/status.go:51-53`). -/
-theorem wp_status_New [google_golang_org.grpc.status.Assumptions] (c : w32) (msg : GoString) :
+theorem status.wp_New_statusAt [google_golang_org.grpc.status.Assumptions] (c : w32) (msg : GoString) :
     {{ (True : IProp GF) }}
       (App (App (Val (@! google_golang_org.grpc.status.New)) (Val #c)) (Val #msg))
     {{ (s : Loc), RET #s; status.statusAt s c msg }} := by
   wp_start
   wp_auto
-  wp_apply wp_New as %s #Hs
+  wp_apply status.wp_internal_New as %s #Hs
   iapply HΦ
   iexact Hs
 

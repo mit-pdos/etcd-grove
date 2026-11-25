@@ -134,7 +134,7 @@ theorem status.FromError.wp_triple (err : GoInterface) (m : GoString) (c : w32)
           rw [grpcstatus_isInterface]; simpa using hts
         · intro h; rw [grpcstatus_isInterface] at h; cases h
       wp_apply HE
-      wp_apply wp_status_New as %st #Hst
+      wp_apply status.wp_New_statusAt as %st #Hst
       iapply HΦ
       isplitr
       · ipureintro; intro h; cases h
