@@ -23,3 +23,4 @@ axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom streamIcMdIs
