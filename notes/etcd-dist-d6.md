@@ -382,3 +382,48 @@ is durable so it survives whole (`FileCrashedR` + durable bytes), its name kept 
 committed bound); a `M \ E` file survives whole or not at all (bytes durable, entry maybe), its name then free;
 rebuild `fileAt`/`fileFree` at `L'` from the claims (`crashRest_treeS'`'s `osShared L'`), `E` kept (`γd`
 persists), `Rm'` from `Rm`, allocate the new `inv` and token.
+
+**T6, round 4: what the implementation found (P7, 2026-11-25, branch `etcd-safe-p7`; no Lean written yet).**
+Reading the file extension's crash machinery (`crashRest_region'`, `RegionCrashed`, `crashRest_take_runs_keep`,
+`osFileStart`) against round 3's plan, three gaps the plan did not see, each needing a fact the body or the boot
+must carry, and two simplifications:
+
+1. *The directory's inode across a crash (gap, the largest).* The new generation's claims (the law's premise) are
+   on the directory `J'` that `sd` resolves to in the crashed tree `V'.now`; the old files are named at the old
+   directory `J`. `sd = dd/member/snap` is two components below the data directory's root `dd`
+   (`osPathS`: a root, then a spine of fractional claims on `member` and `snap`); nothing in today's body says
+   those two entries are committed, so `J' = J` is unprovable (a crash could, in the ghost state, undo `member`
+   or `snap`). Go is safe: `TouchDirAll(MemberDir())` and `TouchDirAll(SnapDir())` sync the parent
+   (`fileutil.go:49-85`, F-N2), and ext4 commits the whole journal. Fix: the spine durable, `∃ n, osCommitLb n`
+   with every entry of both spine claims below `n`, carried in `snap.snapDirOwn` (it holds the spine already);
+   source: `bootFs.touchMember.law`'s post (`bootFs.dirFresh`, an unproved law whose `TouchDirAll.spec` gives
+   `osCommitLb n`, `h'.next ≤ n` for `member`) and `TouchDirAll(SnapDir())`'s post in `bootstrapSnapshot` (`snap`).
+   The law then proves `lookupH R V' sd = some (.dir J)` (`lookup_joinPath`) and takes `J'` with
+   `⌜lookupH R V' sd = some (.dir J')⌝` from its caller.
+2. *Free names durable at the first start (gap).* `snapFree`'s claims must be free after every crash, else a
+   stray at an unsaved index has no certificate and no `Rm`. For later generations this is free (claims
+   `namesOf V'`, nothing logged). For the first, `bootstrapSnapshot` carves them from `TouchDirAll(SnapDir())`'s
+   new directory claim, whose history is unconstrained in `TouchDirAll.spec`. Fix: `TouchDirAll.spec`'s
+   success post adds that every entry of the new directory's claim writing a name other than `.touch` is below
+   `n` (true: `mkdir` is entry `x`, `hJ.next = x + 1`, and `n = x + 1`; `IsDirWriteable` writes `.touch` only);
+   `carveFree` turns it, with `osNames_histCoh`, into "every crash leaves the name free" (`DurAt` below).
+3. *A pending file removed before its directory sync (gap in the ghost steps).* `ReleaseSnapDBs` may remove a
+   file between `SaveDBFrom`'s link and its sync; the removal is not durable, so the file may reappear at an index
+   in neither `E` nor `M`. Fix (ghost step of `ReleaseSnapDBs`/`Release`, a docstring change): the removed
+   index joins `E` with its `Rm j` (given). So `E` is "durable in `M`, or removed with `Rm`", which is all the
+   crash law and T2 need (`snapSaved` + a refutation of `Rm` still finds the file in `M`).
+4. *Simplification: no new bbolt law.* `fileHoldsMDur i D` is definable outside bbolt from its public API:
+   `osMeta i 1 m ∗ osBytes i 0 1 (bs.map durB) ∗ ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = m.hi = m.size ∧
+   boltImage bs D ∧ bs.length ≤ boltMaxMapSize⌝ ∗ boltImageRcpt bs`, and `fileHoldsM_of_image` (exists) gives
+   `fileHoldsM`. One small API law is needed instead: `boltImageRcpt` at generation `L` gives it at `L'` (its
+   body is `fileRcpt`, a time receipt, global).
+5. *Simplification: one durability predicate.* `nameCrash h j b P := ∃ n, osCommitLb n ∗ ⌜∀ K, (∀ xe ∈ h.ents,
+   xe.1 < n → K xe.1) → P (h.valAfter j K b)⌝`, the form `RegionCrashed` concludes: durable file `P = (· = some
+   (.file i))`, pending file `P v = (v = none ∨ v = some (.file i))`, free name `P = (· = none)`.
+6. *The law's `Rm → Rm'`* must be a plain persistent wand `□ (∀ j, Rm j -∗ Rm' j)`, not `={⊤}=∗`: the body
+   keeps `□ ∀ i, … → Rm i` for every index, which no update over infinitely many indices can rebuild.
+
+Trusted text these change: `snapDirInv`'s body (round 3's shape plus 1-3), `snap.snapDirOwn` (1), the
+docstrings of `SaveDBFrom`/`ReleaseSnapDBs`/`storage.Release` (3), and the statement of the unproved law
+`bootFs.touchMember.law` (1, through `bootFs.dirFresh`). Proved-spec changes: `TouchDirAll.spec` (2),
+`snapFree`/`snapFreeAll` (2). Size estimate now 1500-2000 lines.
