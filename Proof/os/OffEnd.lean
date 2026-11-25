@@ -82,6 +82,9 @@ theorem os.File.Seek.wp_endOff (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     · rw [decide_eq_true (show sint.Z (W64 0xffffffff000) < sint.Z (W64 (m.size : Int) + off) by
         rw [hS, hn]; omega)]
       try wp_auto
+      wp_stub os.fsFdKind.impl
+      wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+      try wp_auto
       wp_apply os.wp_wrapErrno _ inner name (W64 22) $$ Hn as %pe
       iapply HΦ
       iframe Hosfd Hm

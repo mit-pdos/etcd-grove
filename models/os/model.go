@@ -237,9 +237,10 @@ func (f *File) WriteAt(b []byte, off int64) (n int, err error) {
 // the new offset from 0 (SEEK_SET), the offset (SEEK_CUR) or the size (SEEK_END, the extension's
 // Fstat: the model has more errnos than lseek's, only more outcomes), and fails with EINVAL on
 // a whence above SEEK_HOLE or a negative result, changing nothing.
+// Past modelSeekMax (ext4's limit for a regular file) a regular file's lseek answers EINVAL.
 // Not modelled (gomodel.Stuck): a closed file, SEEK_DATA/SEEK_HOLE (3, 4: ext4 answers them),
-// SEEK_CUR from an unknown offset, a result past modelSeekMax (a regular file's ext4 limit, where
-// lseek answers EINVAL; a directory's limit is 2^63-1) or at or past modelOffMax.
+// SEEK_CUR from an unknown offset, a directory's result past modelSeekMax (its limit is 2^63-1), a
+// result at or past modelOffMax.
 func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 	inner := f.file
 	fd := inner.pfd.Sysfd
@@ -273,6 +274,9 @@ func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 		gomodel.Stuck()
 	}
 	if modelSeekMax < n {
+		if fsFdKind(fd) == 0 {
+			return 0, modelWrapErrno("seek", inner, 22)
+		}
 		gomodel.Stuck()
 	}
 	inner.off = n
