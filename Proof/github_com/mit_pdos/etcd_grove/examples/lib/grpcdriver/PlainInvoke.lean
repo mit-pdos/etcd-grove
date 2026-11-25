@@ -103,7 +103,7 @@ theorem plain_Invoke_done (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (h
     (conn : Loc) (addrs : List GoString) (method : GoString) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (req reply : GoInterface) (opts : GoSlice)
     (vs : List GoInterface) :
-    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
       grpcConn conn addrs [] [] anyRes ∗ metadata.outMD ctx none ∗
       (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗ ctxOk ctx cd ∗
       opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ }}
