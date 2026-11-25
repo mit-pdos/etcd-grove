@@ -90,7 +90,7 @@ theorem udpTransport.Send.wp_proof
       iframe
       ipureintro; constructor <;> word
     | some p =>
-      simp only [Option.isSome_some, Option.getD_some, decide_true]
+      simp only [Option.isSome_some, Option.getD_some, _root_.decide_true]
       try wp_auto
       ihave #Hp := BigSepM.bigSepM_lookup Hl $$ Hpeers
       iunfold isUdpPeer at Hp
@@ -115,7 +115,7 @@ theorem udpTransport.Send.wp_proof
           · iexact Hisch
           unfold nonblockingSendAu
           isplit
-          · iapply queue_nb_send_au γq ch (qElem F st.msg.To') q $$ Hbag Hqe
+          · iapply bag_nb_send_au_now γq ch (qElem F st.msg.To') q $$ Hbag Hqe
             try wp_auto
             wp_for_post
             iframe

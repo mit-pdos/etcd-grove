@@ -58,7 +58,7 @@ theorem udpNet.acked.wp_proof :
     iapply HΦ
     itrivial
   | some w =>
-    simp only [Option.isSome_some, Option.getD_some, decide_true]
+    simp only [Option.isSome_some, Option.getD_some, _root_.decide_true]
     icases (BigSepM.bigSepM_delete h).1 $$ HKs with ⟨Hw, HKs⟩
     iunfold ackWaitOwn at Hw
     icases Hw with ⟨%wto, %ch, %γch, #Hwto, #Hwdone, Hpend⟩

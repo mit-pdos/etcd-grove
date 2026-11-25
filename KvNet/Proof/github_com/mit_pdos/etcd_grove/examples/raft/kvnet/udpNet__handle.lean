@@ -144,7 +144,7 @@ theorem udpNet.handle.wp_proof
           try wp_auto
           iapply HΦ; iframe
         | some ch =>
-          simp only [Option.isSome_some, Option.getD_some, decide_true]
+          simp only [Option.isSome_some, Option.getD_some, _root_.decide_true]
           try wp_auto
           icases BigSepM.bigSepM_lookup hq $$ HQ with ⟨%γq, #Hbag⟩
           ihave #Hisch := is_bag_is_chan γq ch _ $$ Hbag
@@ -169,7 +169,7 @@ theorem udpNet.handle.wp_proof
               · iexact Hisch
               unfold nonblockingSendAu
               isplit
-              · iapply queue_nb_send_au γq ch (recvElem F d.to') _ $$ Hbag Hel
+              · iapply bag_nb_send_au_now γq ch (recvElem F d.to') _ $$ Hbag Hel
                 try wp_auto
                 iapply HΦ
                 iframe
