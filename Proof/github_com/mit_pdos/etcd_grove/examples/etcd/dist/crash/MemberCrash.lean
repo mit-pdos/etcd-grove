@@ -406,6 +406,10 @@ def memberDurOut (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (S : RaftState)
     ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ⌝ ∗
     walSnapCert γn.cl σ ∗ walSnapDur νk.sd σ ∗ isCommittedLogLb γn.cl l)
 
+/-- The cluster's persistent facts (`memberGen`'s first row) at the generation. -/
+def memberClusterFacts (C : etcd_dist.MemberCl) : IProp GF :=
+  etcdstart.clusterFacts C.γ C.γk C.issued C.cnt C.wn C.fs C.gen
+
 end durDefs
 
 section dur
@@ -507,15 +511,26 @@ theorem memberWal_crash (L L' : GooseLocalGS GF) (h : WalH GF) (Q : Fs.OsState �
   · ipureintro; exact ⟨hp.1, hp.2.2.2.2.2.1⟩
 
 /-- **The cluster's facts are the same at any generation** (persistent ghost and invariant facts). -/
-theorem clusterFacts_gen (L L' : GooseLocalGS GF) (C : etcd_dist.MemberCl) :
-    etcdstart.clusterFacts (hG := ⟨G, etcd_dist.atCtx L⟩) C.γ C.γk C.issued C.cnt C.wn C.fs C.gen ⊣⊢
-      etcdstart.clusterFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) C.γ C.γk C.issued C.cnt C.wn C.fs C.gen :=
-  .rfl
+theorem memberClusterFacts_gen (L L' : GooseLocalGS GF) (C : etcd_dist.MemberCl) :
+    memberClusterFacts (hG := ⟨G, etcd_dist.atCtx L⟩) C ⊣⊢
+      memberClusterFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) C := .rfl
 
-/-- **A restart's facts are the same at any generation.** -/
+/-- **A restart's facts carry over to any generation** (the lease configuration's is the one sealed
+fact that names the generation: at the lease mode `none` it holds at every generation). -/
 theorem memberRestartFacts_gen (L L' : GooseLocalGS GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) :
-    etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L⟩) γ ρ id ⊣⊢
-      etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) γ ρ id := .rfl
+    etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L⟩) γ ρ id ⊢
+      etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) γ ρ id := by
+  unfold etcdstart.memberRestartFacts
+  iintro ⟨%hp, %hns, #H⟩
+  isplitr
+  · ipureintro
+    obtain ⟨a, b, c, d, e, f, g⟩ := hp
+    refine ⟨a, b, c, d, e, f, ?_⟩
+    rw [lease.runCfg_lm g]
+    exact lease.runCfg_none
+  isplitr
+  · ipureintro; exact hns
+  iexact H
 
 end dur
 
