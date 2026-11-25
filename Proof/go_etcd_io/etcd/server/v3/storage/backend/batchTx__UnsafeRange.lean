@@ -45,7 +45,7 @@ private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs
       ((⌜S.lookup n = none ∧ b = Loc.null⌝) ∨
        (⌜S.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx γ b n (G n))) }} := by
   intro tx γ D S G name n dq
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -73,7 +73,7 @@ private theorem bbolt.kvGlue_Bucket__Cursor_kvw (h : ∀ [ExtSemantics Fs.fsExt]
     (App (Val (b @!! go.GoType.PointerType go_etcd_io.bbolt.Bucket.ty @!! go!"Cursor")) (Val #()))
   {{ (c : Loc), RET #c; ownCur tx γ c (wView D S G) (backend.bktEnts m) none ∗ ownWTxG tx γ D S G }} := by
   intro tx γ D S G b n g m hg hm
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

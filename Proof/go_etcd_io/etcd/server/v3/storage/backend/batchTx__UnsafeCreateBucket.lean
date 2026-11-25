@@ -44,7 +44,7 @@ private theorem bbolt.kvGlue_Tx__CreateBucketIfNotExists_kv (h : ∀ [ExtSemanti
       ownWTxG tx γ D (if S.lookup n = none then S.insert n ∅ else S) G ∗ wBkt tx γ b n (G n) ∗
       name ↦*{dq} n }} := by
   intro tx γ D S G name n dq hn0 hnm
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

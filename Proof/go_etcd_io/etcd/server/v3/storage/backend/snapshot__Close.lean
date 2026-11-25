@@ -40,7 +40,7 @@ private theorem bbolt.kvGlue_TxRollback_ro (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Rollback")) (Val #()))
   {{ RET #GoInterface.nil; threadTok }} := by
   intro tx γ D
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, onFs_none hfs]
     iintro %Φ H HΦ
     iexfalso; iexact H

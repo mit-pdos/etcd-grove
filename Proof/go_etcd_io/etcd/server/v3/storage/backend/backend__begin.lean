@@ -43,7 +43,7 @@ private theorem bbolt.kvGlue_Tx__Size_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.Fs
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Size")) (Val #()))
   {{ (n : w64), RET #n; txLive tx γ q T }} := by
   intro tx γ q T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, H⟩ HΦ
@@ -67,7 +67,7 @@ private theorem bbolt.kvGlue_Tx__DB_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"DB")) (Val #()))
   {{ RET #db; txLive tx γ q T }} := by
   intro tx db γ q T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -91,7 +91,7 @@ private theorem bbolt.kvGlue_DB__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Stats")) (Val #()))
   {{ (s : Stats), RET #s; txLive tx γ 1 T }} := by
   intro db tx γ T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -115,7 +115,7 @@ private theorem bbolt.kvGlue_DB__Info_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.Fs
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Info")) (Val #()))
   {{ (i : Loc), RET #i; (∃ v : Info, i ↦ v) ∗ txLive tx γ q T }} := by
   intro db tx γ q T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

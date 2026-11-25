@@ -7,6 +7,7 @@ module
 
 public import Spec.k8s_io.utils.clock.RealClock__Now
 public import Perennial.Proof.time
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -30,7 +31,7 @@ theorem clock.RealClock.Now.wp_proof : clock.RealClock.Now.spec (GF := GF) (hG :
   intro c
   wp_start
   wp_auto
-  wp_apply (time.Now.wp_proof time.runtimeNow.wp_proof) as %t -
+  wp_apply time.wp_Now as %t -
   iapply HΦ; itrivial
 
 end proof

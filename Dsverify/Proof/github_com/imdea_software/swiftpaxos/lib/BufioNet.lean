@@ -170,6 +170,7 @@ theorem writerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connWrite (GF := GF)) t cid side a la ra b bs dq ed (writeP cid side P W)
     $$ [HJ0 Hb]
   · iframe Hat Hb Hed HJ0 Hacc
+    iapply net.connAt_poll _ _ _ _ _ _ $$ Hat
   iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩
   obtain ⟨hpre, rfl, hnone, -⟩ := Hw
   unfold writeP
@@ -214,6 +215,7 @@ theorem _root_.Perennial.net.TCPConn.Write.labProof [github_com.imdea_software.s
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connWrite (GF := GF)) c cid side a la ra b bs dq ed (writeP cid side P W)
     $$ [HJ0 Hb]
   · iframe Hat Hb Hed HJ0 Hacc
+    iapply net.connAt_poll _ _ _ _ _ _ $$ Hat
   iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩
   obtain ⟨hpre, rfl, hnone, -⟩ := Hw
   unfold writeP

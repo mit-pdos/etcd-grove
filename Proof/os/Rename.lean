@@ -125,7 +125,7 @@ theorem osNames_keys_ne [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (j j' : In
 theorem os.Rename.wp_proof [os.Assumptions] :
     os.Rename.spec (GF := GF) (hG := hG) := by
   intro src dst D γ hpar
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.fileAt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H

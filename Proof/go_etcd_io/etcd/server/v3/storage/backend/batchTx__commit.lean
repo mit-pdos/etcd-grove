@@ -62,7 +62,7 @@ private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.
         ⌜err ≠ GoInterface.nil⌝) }} := by
   intro db tx γ P W Pk path stop D S n F hA hns
   have hE : (↑cmtN : CoPset) ⊆ ⊤ \ ↑γ.db.ns := by rw [hns]; exact cmtN_dbNs path
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -213,7 +213,7 @@ private theorem bbolt.kvGlue_Tx__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Stats")) (Val #()))
   {{ (s : TxStats), RET #s; True }} := by
   intro tx
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, H⟩ HΦ
@@ -238,7 +238,7 @@ private theorem cmt_arm_noop (γ : BNames) (P : BParams) (W Pk : IProp GF) (db :
       F ∗ cntLb γ n ⊢
     |={⊤}=> ownDB db γ.db C ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       F ∗ cntLb γ (n + 1) := by
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, onFs_none hfs]
     iintro ⟨-, H, -⟩
     iexfalso; iexact H

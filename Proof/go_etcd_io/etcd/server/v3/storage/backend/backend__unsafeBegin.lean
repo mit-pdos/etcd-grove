@@ -43,7 +43,7 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
        (⌜err = GoInterface.nil⌝ ∗ backend.txDB tx γ db ∗
         (if w then ownWTx tx γ D D else txLive tx γ 1 (bbolt.TxView.ro D)))) }} := by
   intro db γ D w
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H

@@ -42,7 +42,7 @@ private theorem bbolt.kvGlue_Tx__Bucket (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsS
       ((⌜T.cur.lookup n = none ∧ b = Loc.null⌝) ∨
        (⌜T.cur.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx γ b n (T.gen n))) }} := by
   intro tx γ q T name n dq hq
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, backend.wBkt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H
@@ -71,7 +71,7 @@ private theorem bbolt.kvGlue_Bucket__ForEach (h : ∀ [ExtSemantics Fs.fsExt] [F
       ((⌜err = GoInterface.nil⌝ ∗ I (backend.bktEnts m).length) ∨
        (∃ i : Nat, ⌜err ≠ GoInterface.nil ∧ i < (backend.bktEnts m).length⌝ ∗ E i err)) }} := by
   intro tx γ q T b n m fn I E hm
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, backend.wBkt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H

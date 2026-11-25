@@ -69,7 +69,7 @@ file (`dbRestF`: the inode, with the closer token) in `ownDB`, and the claim on 
 the inode, to the caller (`bPath`, S5). The options come back with their
 `InitialMmapSize` unknown (`Open` gives back `optsAtNoErr`, which bounds it only). -/
 private theorem bbolt.kvGlue_Open
-    (h : ∀,
+    (h :
       bbolt.Open.spec (GF := GF) (hG := hG)) :
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
@@ -82,12 +82,11 @@ private theorem bbolt.kvGlue_Open
       ⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ dbHalf γ D ∗ wrTok γ ∗ isDB db γ ∗
           dbFile db γ path ∗ bPath γ path }} := by
   intro hT hR path mode opts dq o D
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.fileHolds, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
-  · haveI := fax; haveI := fsax
-    have h' := @h fax fsax
+  · have h' := h
     simp only [backend.fileHolds, backend.ownDB, backend.dbHalf, backend.isDB, backend.boltLogger,
       backend.bPath, hfs, onFs_some hfs]
     obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := nex.ok
@@ -150,7 +149,7 @@ theorem backend.newBackend.wp_proof
     (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG))
-    (hOpen : ∀,
+    (hOpen :
       bbolt.Open.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
   intro _ _ cfg P D W Pk K

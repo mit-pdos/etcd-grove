@@ -35,7 +35,7 @@ theorem bbolt.kvGlue_Tx__Bucket_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk
       ((⌜D.lookup n = none ∧ b = Loc.null⌝) ∨
        (∃ m : backend.BktData, ⌜D.lookup n = some m ∧ b ≠ Loc.null⌝ ∗ wBkt tx γ b n 0)) }} := by
   intro tx γ q D name n dq
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -70,7 +70,7 @@ theorem bbolt.kvGlue_Bucket__Cursor_kvr (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsS
     (App (Val (b @!! go.GoType.PointerType go_etcd_io.bbolt.Bucket.ty @!! go!"Cursor")) (Val #()))
   {{ (c : Loc), RET #c; ownCur tx γ c (bbolt.TxView.ro D) (backend.bktEnts m) none ∗ txLive tx γ q (bbolt.TxView.ro D) }} := by
   intro tx γ q D b n m hm
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨-, H⟩⟩ HΦ

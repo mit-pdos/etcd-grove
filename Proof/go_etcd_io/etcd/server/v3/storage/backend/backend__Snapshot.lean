@@ -77,7 +77,7 @@ private theorem bbolt.snapGlue_DBBegin (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
       ⌜err ≠ GoInterface.nil⌝ }} := by
   intro db γ P W Pk path qo i n R Q hns
   have hE : (↑cmtN : CoPset) ⊆ ⊤ \ ↑γ.db.ns := by rw [hns]; exact cmtN_dbNs path
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.isDB, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H
@@ -151,7 +151,7 @@ private theorem bbolt.snapGlue_TxSizeRo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsS
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Size")) (Val #()))
   {{ (n : w64), RET #n; txLive tx γ q (bbolt.TxView.ro D) }} := by
   intro tx γ q D
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, onFs_none hfs]
     iintro %Φ H HΦ
     iexfalso; iexact H

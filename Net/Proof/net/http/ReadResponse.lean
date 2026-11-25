@@ -385,7 +385,7 @@ theorem ReadResponse.wp_proof
     as %m %merr Hm
   · iexact Hb
   try wp_auto
-  icases Hm with (⟨%Hme, #Hme2⟩ | ⟨%Hmn, Hm, Hb⟩)
+  icases Hm with (⟨%Hme, #Hme2, -⟩ | ⟨%Hmn, Hm, Hb⟩)
   · -- an error (`io.ErrUnexpectedEOF` for `io.EOF`)
     ihave #Hm := mimeErr_errStr E merr $$ [Hlaw3 Hme2]
     · iframe Hlaw3 Hme2

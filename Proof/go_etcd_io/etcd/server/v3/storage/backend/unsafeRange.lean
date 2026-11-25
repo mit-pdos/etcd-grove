@@ -40,7 +40,7 @@ private theorem bbolt.kvGlue_Cursor__Seek_kv (h : ∀ [ExtSemantics Fs.fsExt] [F
   {{ (k v : GoSlice), RET (PairV #k #v); ownCur tx γ c T es (some (backend.seekIdx es kb)) ∗
       txLive tx γ q T ∗ key ↦*{dk} kb ∗ backend.curAt tx γ es (backend.seekIdx es kb) k v }} := by
   intro tx c γ T es pos q key kb dk
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -65,7 +65,7 @@ private theorem bbolt.kvGlue_Cursor__Next_kv (h : ∀ [ExtSemantics Fs.fsExt] [F
       ownCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
       txLive tx γ q T ∗ backend.curAt tx γ es (i + 1) k v }} := by
   intro tx c γ T es i q
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

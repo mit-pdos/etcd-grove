@@ -7,6 +7,7 @@ module
 
 public import Spec.k8s_io.utils.clock.RealClock__NewTimer
 public import Perennial.Proof.time
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -31,7 +32,7 @@ theorem clock.RealClock.NewTimer.wp_proof : clock.RealClock.NewTimer.spec (GF :=
   wp_start
   wp_alloc res as Hres
   wp_auto
-  wp_apply time.NewTimer.wp_proof as %t %ch %γ #Ht
+  wp_apply time.wp_NewTimer as %t %ch %γ #Ht
   wp_alloc p as Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]

@@ -47,7 +47,7 @@ private theorem bbolt.kvGlue_Tx__DeleteBucket_kv (h : ∀ [ExtSemantics Fs.fsExt
        (⌜S.lookup n ≠ none ∧ err = GoInterface.nil⌝ ∗
         ownWTxG tx γ D (S.delete n) (fun x => if x = n then G n + 1 else G x))) }} := by
   intro tx γ D S G name n dq
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

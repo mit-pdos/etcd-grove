@@ -42,7 +42,7 @@ private theorem bbolt.kvGlue_TxWriteTo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
       ∃ bs : List w8, txLive tx γ q (bbolt.TxView.ro D) ∗ Wr true (bs₀ ++ bs) ∗
         ⌜err = GoInterface.nil → backend.boltImage bs D⌝ }} := by
   intro tx γ q D w Wr c bs₀ hw
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H
