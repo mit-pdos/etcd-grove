@@ -153,3 +153,17 @@ objects (no reply from the lead yet when this was written).
   vocabulary (`etcd_dist.etcdSvc`, `grpcConn`, `grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcWrotePeer`,
   `promSrvMetrics`), none new. `etc/tier-check.py --check` passes.
 - **Next** (waits on the lead's O1): leaseExpiry and leaseCatchup (§7, steps 2-3).
+
+## 9. The two draft statements reviewed (2026-11-25, `axiom` skill; coordinator-E's item 6)
+
+Both **sound with a fix** (`notes/axiom-review/n9b-lease-leases.md`, `n9b-lease-ttl.md`): no program
+refutes them (the Go code at `e94f33b50`: a listing is one map's values keyed by ID; every successful
+`TimeToLive` reply echoes the asked ID, the not-found `TTL -1` path and the follower's forwarding with
+`TimeToLiveHTTP`'s ID check included; a real 3-member cluster under grant/revoke/expiry, a stopped follower
+and a killed leader: 176609 calls of each, no violation). The fix: both lend and return the caller's
+`levelTok 0`, as the proved in-process `lessor.Leases.spec`/`lessor.TimeToLive.spec` (the retry backoff's
+`epMu` reader slot, `backoffOkT`); `leaseList.spec` threads it; `leaseList`'s and `leaseReadCheck`'s proofs
+adapted; built on fk-lean1 (`Proof…dist.client.leaseList`, `leaseReadCheck`, `RunLeaseRead`), no error.
+For the lead, when they become axioms: `etcdSvc`'s and `Serve_dist`'s docstrings (F4) name the KV calls
+only and must add the two lease entries (`etcdLeaseLeasesSpecAny`, `etcdLeaseTTLSpec`). The same token gap
+is in `Client_Get_dist`/`Client_Put_dist` (not changed here).
