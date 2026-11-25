@@ -459,3 +459,50 @@ All new reflectlite modules build EXCEPT `Value__Set`; errors `Base`/`initialize
    body is `if decide (methodSet ty !! "As" = some sig) = true then ...`: by_cases on that equation and simp, instead
    of the old `cases hAs : go.typeSetContains ...` (no longer syntactically present). :224/:251/:302 follow from it.
 Built: the MATCH blocks (store through `Value.Set`) of conj 1/2 up to `wp_for_post`.
+
+## Round 4 (pickup 2026-11-25): errors.As proved
+
+Fixes on Perennial reflect-s05 (on top of b8caa1ef9), found with `vmlake env lean <file>` from the
+p-refl05 worktree (single-file elaboration in its VM sync dir 2486aba726c40cb7, ~10 s per try, no slot;
+much faster than `bld.sh` once the imports are built):
+- `Value__Set`: one more `wp_meth1` before each `wp_apply wp_assignTo.{1,2}` (the call is `(&x).assignTo`,
+  a ptr-receiver wrapper); conj 1 `unfold valueOfRepr` before `icases Hx`; conj 2's simp lists used
+  projections `hb.2.2…` that no longer typecheck after `simp … at hb`, so the whole `try simp` silently
+  failed: pass `hb` itself.
+- `errors/As`: after `unfold go.tok` the Value literal is no longer `asTargetVal` syntactically: IsNil is
+  applied to the explicit literal (flag `W64 ((22:Nat):Int)`); `kne_20` (not `kind_ne … 20`); fold
+  `go.tok T` back before `wp_rtype_Implements`; before `wp_apply has`: `simp only [asTargetVal,
+  asTargetType, go.tok] at has`, rewrite `W64 ↑22 = W64 22`, `unfold go.tok`.
+- `errors/as_` conj 1: `by_cases` on `methodSet ty !! "As" = some sig` (simp with decide_true/false),
+  and the join binds `at next 2` (the `x` store and the ok/if block), not `at next`.
+
+### Exact state at stop (2026-11-25 ~00:50Z, usage limit; coordinator: push, no new builds)
+
+Perennial `reflect-s05` @ **239c3b613** (pushed). Per-file state, each checked with
+`vmlake env lean <file>` against the b12 oleans (key 2486aba726c40cb7):
+- `Proof/internal/reflectlite/Value__Set.lean`: **elaborates, no errors** (warnings only).
+- `Proof/errors/As.lean`: **elaborates, no errors**.
+- `Proof/errors/as_.lean`: **elaborates, no errors** (all three conjuncts; conj 2/3 needed no change).
+- `grep sorry` over Proof/errors and Proof/internal/reflectlite: none.
+- `gen-link.py internal/reflectlite internal/reflectcore errors`: no change (the Links were current).
+- No trusted text changed since 2eeebdbfc (`git diff --stat 2eeebdbfc..HEAD` over TrustedCode, Golang,
+  GooseLang, goose, Code: empty). S0.5 delta `etc/trusted-delta.py 6a49ef67e..HEAD --no-diff`:
+  `reflection/tdelta06.txt`.
+
+**NOT yet done (in order):**
+1. `vmlake build` (key 2486aba726c40cb7) `Perennial.Proof.errors.Link Perennial.Proof.internal.reflectlite.Link
+   Perennial.Proof.internal.reflectcore.Link Perennial.Proof.errors Perennial.Proof.internal.reflectlite`
+   (b13 was queued, then cancelled before it got a slot). Single-file `env lean` does not rule out the
+   hidden-sorry `intro` bug (Value__Set conjuncts start with `intro`): so then run
+   `vmlake env lean AxCheckRefl05.lean` (untracked file in p-refl05 root) and confirm `errors.wp_As`
+   has only Lean's three axioms.
+2. Full chunked Perennial build: `bin/pfull.sh` (3 chunks).
+3. etcd-grove (this branch): bump lakefile.toml `rev` + lake-manifest.json `rev`/`inputRev` from 2eeebdbfc
+   to the built head; `vmlake sh 'bash <regen-vm.sh>'` (fetches reflect-s05 into .lake/packages/perennial);
+   build the affected modules (round-2 list: Proof.errors.{AsLeaf,AsLeafTy,AsNoMatch}, kvwitness Adequacy,
+   k8s etcd3 Link, k8s MainLinked, etcdserver Link, client-go cache Link, examples k8s etcd3 Link, rafthttp);
+   then gates (key 44b7416aff694723, with the `/shared` overrides). **Before** (gates05d at 4337c89ef1):
+   build ok 28,182 jobs; tcb FAILED: NEW `sorry Perennial.errors.As.wp_proof`; collections 55 match /
+   6 differ (clientgo-cache, etcd-all-single-process, k8s-all-single-process, k8s, leaseexpiryN-single-process,
+   server); all else ok except merge-status (VM sync dir not a git repo). Expected after: that sorry gone.
+4. Send the trimmed 6-item S0+S0.5 packet on #40 (draft in the Round-4 report; hashes to refresh after 1–3).
