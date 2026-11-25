@@ -868,7 +868,7 @@ def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config
       config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"] ∧
       ∀ i, PathFits (snap.snapDBPath (config.snapDirOf cfg.DataDir') i)⌝ ∗
     etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
-    backend.dbCrashKeep k.γb k.i0 k.Dl k.Dn k.pd ∗
+    backend.dbCrashKeep k.γb k.i0 k.Dl k.Dn ∗
     memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
 
 /-- **The image rows the backend owes** (B1's output; `srvCrashImageAt`'s backend rows at the run's names):
@@ -1147,8 +1147,9 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   obtain ⟨jm, h1, h2⟩ := walk_two hw
   -- the backend file (A1), at its durable name (B1's)
   imod hB1n ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ Q [] false V' $$ HKB Hrest with ⟨%hdb, HKB, Hrest⟩
-  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb i0 Dl Dn pd (hA1 i0) [] (by simp) V'
-    ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest with ⟨%D', %hD', Hfm, Hrest⟩
+  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb i0 Dl Dn (hA1 i0) [] (by simp) V'
+    ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest with ⟨%D', %hD2, Hfm, Hrest⟩
+  have hD' : D' = Dl ∨ D' = Dn ∨ pd = some D' := hD2.elim Or.inl (fun h => Or.inr (Or.inl h))
   -- the WAL area (T5's crash)
   have hDw : ∀ i ∈ [i0], ¬ WalFs.InAreaDir V'.now jr i := by
     intro i hi
