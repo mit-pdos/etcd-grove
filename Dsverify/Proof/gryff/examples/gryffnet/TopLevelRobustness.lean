@@ -120,7 +120,7 @@ end boot
 /-- **The gryff kit, closed** (see the statement's file); net/rpc's client over HTTP over Perennial's
 proofs of `strings.Cut`/`TrimLeft` (Net's `DialHTTP.wp`, in `Link.lean`'s `wp_Server`). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hss hmp hrs H hboot σ g
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hss hmp hrs H hboot σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 31)
     (2 ^ 63) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
@@ -174,7 +174,6 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
     letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
-    letI : math.rand.InitHyp remoteGF := hmr G' hG.goose_localGS
     letI : wire.BinaryVarintHyps remoteGF := EtcdGrove.dsvgryff.binaryVarintHyps
     letI : netN.StringsIndexHyp remoteGF := instances.stringsIndexHyp_holds
     letI : replica2.SortSliceHyp remoteGF := hss G' hG.goose_localGS
