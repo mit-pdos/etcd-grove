@@ -207,7 +207,7 @@ theorem Client.dial.wp_proof
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
     iframe Hlt
-    icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
+    icases Hres with (⟨%Herr, #Hconn, #Hcc, #Hco⟩ | %Herr)
     · ileft
       isplitr
       · ipureintro; exact Herr
@@ -251,7 +251,7 @@ theorem Client.dial.wp_proof
       iexact Hpc
     iapply HΦ
     iframe Hlt
-    icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
+    icases Hres with (⟨%Herr, #Hconn, #Hcc, #Hco⟩ | %Herr)
     · ileft
       isplitr
       · ipureintro; exact Herr
