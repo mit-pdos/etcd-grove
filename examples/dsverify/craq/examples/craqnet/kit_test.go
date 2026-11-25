@@ -1,12 +1,16 @@
 package craqnet
 
 import (
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/anishathalye/porcupine"
+	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 )
 
 // The deployment on loopback, one process per machine (net/rpc's DefaultServer and net/http's
@@ -49,7 +53,8 @@ func start(t *testing.T, w string) *exec.Cmd {
 	return cmd
 }
 
-// TestDeployment runs the machines and the orchestrator, which panics if porcupine rejects the
+// TestDeployment runs the machines and Orch's steps, with remote.Run in place of remote.Check (at
+// the largest count Orch draws, K) to count the answered operations: porcupine must accept the
 // history.
 func TestDeployment(t *testing.T) {
 	var cmds []*exec.Cmd
@@ -65,8 +70,55 @@ func TestDeployment(t *testing.T) {
 			cmd.Wait()
 		}
 	}()
-	Orch()
+	conf := choose()
+	configure(conf, plan(conf))
+	time.Sleep(time.Duration(StartMs) * time.Millisecond)
+	var known atomic.Int64
+	cdc := Codec()
+	dec := cdc.DecOut
+	cdc.DecOut = func(b []byte) (any, bool) {
+		o, ok := dec(b)
+		if ok && !o.(Out).Unknown {
+			known.Add(1)
+		}
+		return o, ok
+	}
+	if r := remote.Run(Model(), ClientAddrs(), cdc, Gen, int(K), attempt(), 0); r != porcupine.Ok {
+		t.Fatalf("porcupine: %v", r)
+	}
+	t.Logf("%d of %d operations answered (configuration %+v)", known.Load(), NC*K, conf)
+	if known.Load() == 0 {
+		t.Errorf("no operation was answered")
+	}
 }
+
+// TestControlPhantom (the negative control): client machines whose gets return a value nobody
+// put, as a store that invents values would, are caught.
+func TestControlPhantom(t *testing.T) {
+	var addrs []string
+	for c := uint64(0); c < NC; c++ {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, l.Addr().String())
+		l.Close()
+	}
+	phantom := func(sys any, in any) any {
+		if in.(In).Put {
+			return Out{}
+		}
+		return Out{Found: true, V: "phantom"}
+	}
+	for c := range addrs {
+		go remote.ServeClient(c, addrs[c], func(int) any { return nil }, phantom, Codec(), attempt())
+	}
+	time.Sleep(200 * time.Millisecond)
+	if r := remote.Run(Model(), addrs, Codec(), Gen, int(K), attempt(), 0); r != porcupine.Illegal {
+		t.Fatalf("porcupine: %v, want Illegal", r)
+	}
+}
+
 
 // TestModel checks the model's verdicts on small histories.
 func TestModel(t *testing.T) {
