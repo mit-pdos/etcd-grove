@@ -23,6 +23,7 @@ public import Dsverify.Proof.rabia.roles.server.layers.consensus.Spec
 public import Dsverify.GeneratedProof.rabia.roles.server.layers.proxy
 public import Dsverify.Proof.rabia.Core.PkgState
 public import Dsverify.Proof.rabia.roles.server.layers.proxy.Base
+public import Dsverify.Proof.github_com.rs.zerolog.Spec
 
 @[expose] public section
 
@@ -52,7 +53,7 @@ def StoreRel (m : GMap GoString GoString) (s : (kv GoString GoString).State) : P
 
 /-- The proxy `p`'s read-only fields (persistent): its server's id `k`, its channels, its
 endpoint `t`, its store's map `kv`, its ledger, and the function fields set for the in-memory
-store (`StorageMode` 0). -/
+store (`StorageMode` 0), and its logger, made by `zerolog.New(nil)` (`loggerOk`). -/
 def proxyFields (k : Nat) (ch : SrvChans) (p : Loc) (wg t : Loc) (kv : GoMap)
     (ledger : GoSlice) : IProp GF :=
   iprop(∃ id : w32, ⌜id.toNat = k⌝ ∗ structFieldRef Proxy go!"SvrId" p ↦□ id ∗
@@ -65,7 +66,8 @@ def proxyFields (k : Nat) (ch : SrvChans) (p : Loc) (wg t : Loc) (kv : GoMap)
     structFieldRef Proxy go!"executeAndReplyFunc" p ↦□
       methods (go.GoType.PointerType Proxy.ty) go!"singleExecuteAndReply" #p ∗
     structFieldRef Proxy go!"Ledger" p ↦□ ledger ∗
-    ⌜structFieldRef Proxy go!"Logger" p ≠ null⌝)
+    ∃ lg : github_com.rs.zerolog.Logger, structFieldRef Proxy go!"Logger" p ↦□ lg ∗
+      github_com.rs.zerolog.loggerOk lg)
 
 /-- The proxy `p` after `ProxyInit`. -/
 def proxyInitOk (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (γc : ConsNames) (ch : SrvChans) (p : Loc) :

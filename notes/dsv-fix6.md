@@ -6,12 +6,30 @@ rabia's `zerolog.Hyps` and QuePaxa's `PbHyp`, refuted as stated (`notes/axiom-re
 per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axioms"). grpc's initializer
 (item 4) and go-redis's (item 5) are not touched.
 
-**State: design only.** Nothing in Lean is changed yet; this note is the handoff (the session stopped at
-its token budget). The axioms of dsv-fix4 that the refutations removed are the starting point:
-`07c6699015` (craq: `Dsverify/Proof/log/{Default,Logger__Printf,Logger__Println}.lean`), `a28755b089`
-(rabia: the 16 zerolog files, `EventTok.lean`, `HypsHoldLinked.lean`), and QuePaxa's
-`Dsverify/Proof/google_golang_org/protobuf/proto/{Marshal,Unmarshal}.lean` (removed in `f02a6a8e83`).
-`git show 6e1b99241c` / `f02a6a8e83` are their reverts: re-apply them, then narrow as below.
+**State (2026-11-25, second session): rabia done; QuePaxa and craq not started.**
+- **rabia (item 2 below): done.** `a28755b089`'s 16 zerolog axiom files and `HypsHoldLinked.lean` restored;
+  `Spec.lean`'s `New.spec` is `New(interface.nil)` with post `loggerOk lg`, `Logger.level.spec` takes
+  `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. `loggerOk lg := □ loggerMade lg`, `loggerMade`
+  an opaque with no law, **fixed** in `Spec.lean` (not existential in the class, unlike the design below:
+  `InitLogger.spec` and `proxyFields` name it without a `[zerolog.Hyps GF]` instance, so no spec gained an
+  instance argument; persistence by `infer_instance`, no axiom). Proof changes as planned:
+  `internal/logger/{Spec,InitLogger}.lean`, `Server__TerminalLogger.lean` (the local `tLogger` with
+  `DFrac.own 1`), `proxy/Spec.lean`'s `proxyFields` (`∃ lg, Logger ↦□ lg ∗ loggerOk lg`, for `⌜≠ null⌝`),
+  `ProxyInit.lean` (`ipersist Logger`), `KVSExecutor.lean` (`DFrac.discard`). The statement only lost
+  the premise `zerolog.Hyps` (and its import; kitgen from `etc/dsv/rabia.py`, `discharged` again).
+  Review: `notes/axiom-review/dsv-fix6/zerolog.md`, **survives** with conditions (no proof writes zerolog's
+  or `io/ioutil`'s package variables; `loggerMade` lawless); it found a doc bug in rabia's `GetLogLevel`
+  (`nonissues/rabia-getloglevel-doc-panics.md`). TCB: +16 axioms (`etc/tcb-baseline.txt`,
+  `etc/tcb-collections/dsv-rabia.txt`), one premise fewer. Built: `rabianet.{TopLevelRobustness,
+  NonVacuityLinked,TopLevelWitness}`, `zerolog.HypsLinked`.
+- **QuePaxa (item 3): not started.** Scale: `Dsverify/Proof/raxos/Msg.lean` (2607 lines) holds every
+  `pt*`/`rt*`/`fields*` representation and its share lemmas (the `if dq = DFrac.own 1 then l ↦ v else
+  fields… ∗ inv pbRtN (rt… l)` pattern, ~10 message kinds), used by 5 more files (`grep -rln
+  'pbRtN\|rtPM\|ptPM' Dsverify/Proof/raxos`) and the `PbHyp` users (`grep -rln PbHyp Dsverify`, 17
+  files). Start: make the owned case `fields… l 1 v ∗ pbRt l` (`pbRt` sealed, holding `state`/`sizeCache`
+  with the allowed values) instead of the whole `l ↦ v`, and see what the allocation sites need.
+- **craq (item 1): not started.** Coordinator-E chose option 1 (errAny's fact in `Net/`, proved at its
+  producers; stop if a `TopLevelRobustness` text changes).
 
 ## 1. craq: `log.(*Logger).Printf`/`Println` (and the package-level `log.Printf`/`Println`)
 
@@ -124,9 +142,8 @@ the representation allows.
 
 ## What remains, in order
 
-1. rabia (smallest): restore `a28755b089`'s files, narrow `New`/level as above, the proof changes listed;
-   build `Dsverify.Proof.rabia.examples.rabianet.TopLevelRobustness` and `NonVacuityLinked`.
-2. The craq blocker's decision (errAny's fact in Net, or the Go change); then craq.
+1. ~~rabia~~ (done, above).
+2. craq, option 1 (decided).
 3. QuePaxa's representation refactor.
 4. For each: a fresh `axiom`-skill review given only the axiom and its Go (`notes/axiom-review/dsv-fix6/`),
    the statement's premise removed (`TopLevelRobustness` only loses a premise), `etc/tcb-report.py

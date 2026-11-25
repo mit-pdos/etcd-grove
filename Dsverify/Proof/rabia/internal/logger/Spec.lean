@@ -9,6 +9,7 @@ module
 public import Dsverify.GeneratedProof.rabia.internal.logger
 public import Dsverify.Proof.rabia.internal.config.Spec
 public import Dsverify.Proof.rabia.internal.logger.Base
+public import Dsverify.Proof.github_com.rs.zerolog.Spec
 
 
 
@@ -26,13 +27,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : rabia.internal.logger.Assumptions]
 
-/-- `InitLogger(component, svrId, subId, loggerType)`: a logger and no file (`nil`). -/
+/-- `InitLogger(component, svrId, subId, loggerType)`: a logger made by `zerolog.New(nil)`
+(`loggerOk lg`) and no file (`nil`). -/
 abbrev InitLogger.spec : Prop :=
   ∀ (cf : model.RCfg) (component : GoString) (svrId subId : w32) (loggerType : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.logger ∗ confRO cf }}
     (App (App (App (App (Val (@! InitLogger)) (Val #component)) (Val #svrId)) (Val #subId))
       (Val #loggerType))
-  {{ (lg : github_com.rs.zerolog.Logger), RET (PairV #lg #(null : Loc)); True }}
+  {{ (lg : github_com.rs.zerolog.Logger), RET (PairV #lg #(null : Loc));
+      github_com.rs.zerolog.loggerOk lg }}
 
 end spec
 
