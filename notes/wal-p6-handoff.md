@@ -488,6 +488,47 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 22 (WIP, `etcd-safe-p6b-wip`): the merges into `walAreaRes` done; the `Discard`
+  proof not started.** Each file `etc/lean-check.py -a` on fk-lean1, 0 errors (`DiscardR`, `DiscardSInv`, `DiscardS`,
+  new `DiscardBack`); build of `wal.DiscardBack` + `wal.Link` on fk-lean1 at `24ecf4b4c5`: 3853 jobs, exit 0, no error, no `sorry` of this repository (`/shared/tmp/p6b-s22-b1.log`; the lean-check server had built `DiscardR`/`DiscardS` already, and `DiscardBack` shows "Built (1.8s)", the same suspiciously short time as `DiscardS` last session: possibly restored from the host's Lake artifact cache, so step 5 must force a real compile, e.g. touch-free: remove the modules' `.olean`/`.ilean`/`.trace` in the remote worktree's `.lake/build` before `lake build`).
+  **Gap found and closed: S did not know that the directory renamed to `tmp` is the discarded layout's.** The
+  program's claim says `tmp ↦ .dir J` (`J` from U'/R), S found the layout `lay` of `dir`, and nothing tied `lay.j`
+  to `J` (`WalsAt` constrains only `lay.nm`, which R leaves `none`), yet `walAreaRes`'s `SubCover` under `tmp`
+  needs exactly `J`'s claim. **Decision (internal, no spec change; this session):** R records the WAL's
+  directory key at its new incarnation: `discQ … J …` (new parameter `J` after `jr`) returns, logged,
+  `walUnlockedTokX ∗ (∃ d, Q₁ d) ∗ walDirKey dir (ic + 1) J walTmps` (R inserts the key with the lock's
+  quarter, `walDirKey_insertG`; `lay.j = J` by `WalsAt.at` and `hJ`; `DirKeysOk` by the new
+  `dirKeysOk_addKey`, from `DirClaimsOk`). `inArea_nm_inj` moved from `DiscardSInv` to `DiscardR`.
+  **`walInv_discardS`** now takes `(J : Ino)` (after `ic`) and the key `walDirKey dir (ic + 1) J walTmps` (last
+  wand), looks it up (`walDirKey_lookup` with the view's quarter: `lay.j = J`), and returns **`∃ hj, osNames J
+  (.except walTmps) 1 hj ∗ walTmpsRes J ∗ walTmpsHalf J ∗ ⌜FilesOnly hj.cur⌝ ∗ ⌜J ≠ jr⌝`** (the coordinator's
+  decision: the "every entry is a file" fact in the post; `walOthers` dropped from the post: `walDir_filesOnly`
+  derives the fact from it and `WalsNamed`'s `SegsNamed`, via `walOthers_files`).
+  **New `DiscardBack.lean`** (imports `DiscardS`, `CreateArea`; nothing imports it yet): `nameAddL N M` (+
+  `nameAddL_mem`), `areaOk_giveD`/`area_giveD` (`area_give` over more names `N' ⊇ N` and fewer split names
+  `Wn'`), `tmpEnt_notDir`, `walTmps_join2`, **`walTmps_whole R J hj (hf : FilesOnly hj.cur)`**: `osSharedInv -∗
+  osNames J (.except walTmps) 1 hj -∗ walTmpsRes J -∗ walTmpsHalf J ={⊤}=∗ ∃ h', osNames J (.except []) 1 h' ∗
+  ⌜FilesOnly h'.cur⌝` (`qTmp + qTmpI = 1`: `tmpClaim_join`, already in `TmpClaim.lean`), and
+  **`walInv_discardBack C Mr R jr r N0 h0 cl Wn nm b hC hj J (hok : AreaOk N0 h0 cl Wn) (hnm : walNameOk nm)
+  (hnmW : nm ∈ Wn) (hb : walNameOk b) (hbW : b ∉ Wn) (hbN : N0.Mem b) (hJ : hC.cur !! tmpName nm = some (.dir J))
+  (hf : FilesOnly hj.cur)`**: `walInv -∗ osSharedInv R -∗ notCrashed -∗ walUnlockedTok -∗ walSplitFrag (Wn.erase
+  nm) -∗ osNames jr (N0.diff [tmpName nm]) ½ (h0.restrict jr (N0.diff [tmpName nm])) -∗ osNames jr (.only [nm,
+  tmpName nm]) ½ hC -∗ osNames J (.except walTmps) 1 hj -∗ walTmpsRes J -∗ walTmpsHalf J -∗ areaCls (cl.filter
+  (·.1 ≠ tmpName nm)) ={⊤}=∗ notCrashed ∗ walUnlockedTok ∗ walAreaRes jr` (`¬ N1.Mem nm` by
+  `osNames_same_name`; `walInv_merge2` into `nameAddL N0 [nm]`; `J`'s claim tagged `tmpName nm`). The claims
+  `RemoveAll(tmp)` returns (`specSubS`'s `cl'`) are dropped, not put back.
+  **Left (in order):** (2) the `Discard` proof, `Proof/.../wal/Discard.lean` (`wal.Discard.wp_proof`), its
+  steps: `walAreaRes_open`; `exists_walName_notin Wn` → `b` (`N0.Mem b` by `AreaOk`'s first fact); `walInv_drop`
+  of `tmpName nm` (as `Create.lean` ~596, `wp_notCrashed_acc` for `notCrashed`); `area_takeTmp`; `filepath.Clean`
+  (`cleanAbsPath`), `dir + ".tmp"`; `wp_removeAllTmp`/`os.RemoveAll.specSubS` (error: `create_abortTmp`-style →
+  arm 1); `walInv_discardU` (`hT` = `RemoveAll`'s `h'`, `tmp ↦ none` from `FsNoErrOn`); `walInv_pinClean`
+  (`CleanupAu.lean`, `b := nm`); `os.Rename.specDirSnc` with `discAU` (`J` from U', `lb`, `htS :=
+  tmpName_areaSlot`); the logged arm gives the key; `filepath.Dir`, `syncDir.spec` (error: arm 3, `AU₂` back;
+  success: `osCommitLb n` past the rename's `LastWrite`), `walInv_discardS` (`RootsOk R` from `osPathS`,
+  TreeSharedClaims.lean:582), `walInv_discardBack`, `lg.Info`; (3) the crash lemma beside
+  `walDiskAt_crash_keep`; (4) the `DiscardUnsaved` docstrings; (5) `etc/gen-link.py --walfs` (add `Discard`
+  to its list), builds: `wal.Link`, the tester, the leaves of `etc/importers.py --git 5a1c41d945 --leaves` (drop
+  `notes.*`); confirm `DiscardS` is compiled (not replayed) in the log. Session stopped at the ~150k-token rule.
 - **2026-11-25, P6b session 21 (WIP, `etcd-safe-p6b-wip`): `walInv_discardS` done; order steps 3-7 left.**
   **Done** (no `sorry`, no axiom; `lake build` of `wal.DiscardS` on fk-lean1 at `867aa8b23e`: 3026 jobs, exit 0, no warning in `DiscardS`/`DiscardSInv`, `/shared/tmp/p6b-s21-b1.log`):
   * `DiscardSInv.lean`: **`walParked_discard Ls cl F dir lay c hl (hW : WalDirClaimOf Ls c) (honce : ClaimOnce c cl)`**:
