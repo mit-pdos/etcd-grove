@@ -162,11 +162,11 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   the models' codecs and `net/{http,rpc}`). Since the net swap (etcd-dist D2, 2026-11-22) its `net` is also the
   main tree's (`net=Net` in every project; `Proof/net/InvNet.lean` defines the address predicates over it):
   the main tree imports `Net/`'s `net` modules, never the part's other modules.
-- `KvNet/` is another: kvnet's proof (`notes/kvnet-part.md`), over raft-noax's raft, `Net/`'s `net` and
-  `WalTester/`'s bodied `durable` in one closure: project `kvnet` and parts of projects raft-noax, net,
+- `KvRaft/` is another: kvraft's proof (`notes/kvraft-part.md`), over raft-noax's raft, `Net/`'s `net` and
+  `WalTester/`'s bodied `durable` in one closure: project `kvraft` and parts of projects raft-noax, net,
   durable and etcd translated into it, copies of those parts' (and the main tree's) modules its own
-  modules reach written by `etc/copy-part.py --part KvNet` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
-  main), its initializers by `etc/gen-init.py` (`KVNET_INITS`). Nothing outside it imports it.
+  modules reach written by `etc/copy-part.py --part KvRaft` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
+  main), its initializers by `etc/gen-init.py` (`KVRAFT_INITS`). Nothing outside it imports it.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
@@ -200,8 +200,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   file to audit) and `Proof/<example>/TopLevelRobustness.lean` proves it (`theorem <name> :
   <name>.spec`, from the example's closed theorem); the program and the other definitions the
   statement names are in `Proof/<example>/TopLevelDefs.lean` (a defs module, so the Spec file
-  imports no proof); a new example gets all three. (kvnet's statement,
-  not proved yet: `Proof/.../examples/raft/kvnet/Robust.lean`.)
+  imports no proof); a new example gets all three. (kvraft's statement,
+  not proved yet: `Proof/.../examples/raft/kvraft/Robust.lean`.)
 - `models/`: our trusted models of real libraries (executable stand-ins: verified where they are code,
   trusted only in their claim to behave like the library), the Go module `models.lab` (a path naming no
   project, as the part `Net/` is exported to dsverify-lab), each with its evidence (`models/README.md`):

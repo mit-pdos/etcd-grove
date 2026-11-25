@@ -1,8 +1,8 @@
 # The import-tier violations left (etc/tier-check.py; CLAUDE.md, "Import tiers"): IMPORTER IMPORTED,
 # kind in the comment. Only shrinks: `etc/tier-check.py --check --update` after a fix.
 GooseLang.Ext.AbsDisk.Impl Proof.go_etcd_io.etcd.server.v3.storage.WalOps  # base->defs
-KvNet.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1 KvNet.Proof.go_etcd_io.raft.v3.raftpb.unmarshalConfChangeSingle  # proof->proof
-KvNet.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2 KvNet.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1  # proof->proof
+KvRaft.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1 KvRaft.Proof.go_etcd_io.raft.v3.raftpb.unmarshalConfChangeSingle  # proof->proof
+KvRaft.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2 KvRaft.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1  # proof->proof
 ManualProof.github_com.mit_pdos.etcd_grove.examples.lib.durable Proof.DurablePrelude  # base->defs
 Net.Proof.net.OpError__Temporary Net.Proof.net.OpError__Timeout  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetupWrite Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Writer  # proof->proof

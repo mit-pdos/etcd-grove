@@ -5786,77 +5786,77 @@ def net_inits(ext_txt):
     return outs
 
 
-# The part `KvNet/` (kvnet's proof, notes/kvnet-part.md): raft-noax's raft, the net extension's `net`
+# The part `KvRaft/` (kvraft's proof, notes/kvraft-part.md): raft-noax's raft, the net extension's `net`
 # (`Net/`'s) and the bodied `durable` over fsExt (`WalTester/`'s), in one closure. Each of its source
 # parts has its own `PkgInitExt` and its own copies of `os`'s initializers over it (`Net/`: without
 # raft; `RaftNoAx/`: with its raft), and `RaftNoAx/` and `WalTester/` both have a `durable`
 # initializer (the trusted one's, the bodied one's): the part's are generated here, as the main
-# tree's, from the part's translation (`KvNet/Code` over the main tree's) and instances
-# (`KvNet/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
+# tree's, from the part's translation (`KvRaft/Code` over the main tree's) and instances
+# (`KvRaft/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
 # configurations those of `Net/` and `WalTester/`, the imports of the part's modules prefixed, and a
-# `PkgInitExt` that is the main tree's with the part's raft; kvnet's and kvcheck's own, and their
-# programs' `PkgTable`s (`KVNET_PROGRAMS`).
-# etc/copy-part.py does not copy these (`kvnet_paths`).
-KVNET_ROOT = 'KvNet'
-KVNET_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
+# `PkgInitExt` that is the main tree's with the part's raft; kvraft's and kvcheck's own, and their
+# programs' `PkgTable`s (`KVRAFT_PROGRAMS`).
+# etc/copy-part.py does not copy these (`kvraft_paths`).
+KVRAFT_ROOT = 'KvRaft'
+KVRAFT_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
                             # (`durable`'s imports that `os` does not import)
                             'internal.filepathlite', 'path.filepath']
-# (2026-11-22) kvnet's and kvcheck's own (the two programs of the top-level theorem), and their tables
-KVNET_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvnet'
-KVNET_INITS += [KVNET_PKG, f'{KVNET_PKG}.kvcheck']
-KVNET_PROGRAMS = {KVNET_PKG: f'Proof/{KVNET_PKG.replace(".", "/")}/PkgTable.lean',
-                  f'{KVNET_PKG}.kvcheck': f'Proof/{KVNET_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
-KVNET_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
-# kvnet's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
+# (2026-11-22) kvraft's and kvcheck's own (the two programs of the top-level theorem), and their tables
+KVRAFT_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvraft'
+KVRAFT_INITS += [KVRAFT_PKG, f'{KVRAFT_PKG}.kvcheck']
+KVRAFT_PROGRAMS = {KVRAFT_PKG: f'Proof/{KVRAFT_PKG.replace(".", "/")}/PkgTable.lean',
+                  f'{KVRAFT_PKG}.kvcheck': f'Proof/{KVRAFT_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
+KVRAFT_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
+# kvraft's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
 # proof reads, is allocated and stored
-KVNET_SPECIAL[KVNET_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
-_KVNET_RAW = []
+KVRAFT_SPECIAL[KVRAFT_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
+_KVRAFT_RAW = []
 
 
-def kvnet_raw():
+def kvraft_raw():
     """The part's `Init.lean` files, unprefixed: (path under the part, text)."""
     global inv, inst, CFG_OVERRIDE
-    if _KVNET_RAW:
-        return _KVNET_RAW[0]
+    if _KVRAFT_RAW:
+        return _KVRAFT_RAW[0]
     saved = inv, inst, CFG_OVERRIDE
     try:
         inv = dict(inv)
-        for q, d in inventory(f'{KVNET_ROOT}/Code').items():
+        for q, d in inventory(f'{KVRAFT_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
-        inst = {**inst, **instances(f'{KVNET_ROOT}/Proof/')}
-        CFG_OVERRIDE = KVNET_SPECIAL
-        raw = [o for p in KVNET_INITS
-               for o in gen(p, KVNET_SPECIAL.get(p, SPECIAL.get(p)))]
-        raw += [gen_table(p, path) for p, path in KVNET_PROGRAMS.items()]
+        inst = {**inst, **instances(f'{KVRAFT_ROOT}/Proof/')}
+        CFG_OVERRIDE = KVRAFT_SPECIAL
+        raw = [o for p in KVRAFT_INITS
+               for o in gen(p, KVRAFT_SPECIAL.get(p, SPECIAL.get(p)))]
+        raw += [gen_table(p, path) for p, path in KVRAFT_PROGRAMS.items()]
     finally:
         inv, inst, CFG_OVERRIDE = saved
-    _KVNET_RAW.append(raw)
+    _KVRAFT_RAW.append(raw)
     return raw
 
 
-def kvnet_paths():
+def kvraft_paths():
     """The paths (relative to the part) this script writes for the part."""
-    return {path for path, _ in kvnet_raw()} | {'Proof/runtime/PkgInitExt.lean'}
+    return {path for path, _ in kvraft_raw()} | {'Proof/runtime/PkgInitExt.lean'}
 
 
-def kvnet_inits(ext_txt):
+def kvraft_inits(ext_txt):
     """The part's `Init.lean` files and `PkgInitExt.lean` (from the main tree's, `ext_txt`)."""
-    raw = kvnet_raw()
-    made = {f'{KVNET_ROOT}/{path}' for path, _ in raw}
+    raw = kvraft_raw()
+    made = {f'{KVRAFT_ROOT}/{path}' for path, _ in raw}
 
     def imp(m):
         x = m.group(2)
-        f = f'{KVNET_ROOT}/{x.replace(".", "/")}.lean'
+        f = f'{KVRAFT_ROOT}/{x.replace(".", "/")}.lean'
         if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExt':
-            x = f'{KVNET_ROOT}.{x}'
+            x = f'{KVRAFT_ROOT}.{x}'
         return m.group(1) + x
-    outs = [(f'{KVNET_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
-    ext = re.sub(r'(?m)^(public import )(Code\.go_etcd_io\.raft\S*)', rf'\1{KVNET_ROOT}.\2', ext_txt)
+    outs = [(f'{KVRAFT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+    ext = re.sub(r'(?m)^(public import )(Code\.go_etcd_io\.raft\S*)', rf'\1{KVRAFT_ROOT}.\2', ext_txt)
     i = ext.index('\nmodule\n') + 1
-    note = (f'-- The copy for the part `{KVNET_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
+    note = (f'-- The copy for the part `{KVRAFT_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
             f'-- the same, but its raft is the part\'s (raft-noax\'s).\n')
-    outs.append((f'{KVNET_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
+    outs.append((f'{KVRAFT_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
     return outs
 
 
@@ -6046,7 +6046,7 @@ def main(argv):
         outs += wt_inits()
         outs += noax_inits()
         outs += net_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
-        outs += kvnet_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
+        outs += kvraft_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
         outs += dsv_inits()
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None

@@ -1,5 +1,5 @@
 /-
-# The durable key-value store's shared ghost vocabulary (2026-11-22, kvnet decision B)
+# The durable key-value store's shared ghost vocabulary (2026-11-22, kvraft decision B)
 
 The store's ghost names (`KdNames`), its namespaces, and the predicates a machine other than a
 replica's states its proofs in: the store's invariant (`rkvInv`, over `opSlot`, `readSlot`,
@@ -7,7 +7,7 @@ replica's states its proofs in: the store's invariant (`rkvInv`, over `opSlot`, 
 (`readAns`) and the registry of the snapshots made (`kdSnapInv`). Moved out of `Defs.lean`,
 statements unchanged, into sections over the global ghost state only (`[AllG GF] [ReceiptGS GF]
 [InvGS GF]`: no heap, no Go semantics), as raft's cluster vocabulary is (`notes/raft-cluster-global.md`),
-so that kvnet's adequacy can allocate them before any machine runs and its checking client can
+so that kvraft's adequacy can allocate them before any machine runs and its checking client can
 hold them on another machine. `Defs.lean` imports it.
 -/
 module

@@ -9,7 +9,7 @@ encoding (`encodeOp`, `decodeOp`, the read contexts), the store's state machine 
 `kvApply`, `kvFold`), the answers (`AnsOk`, `AnsTab`), the client history (`histOf`, `logHist`), a
 snapshot's data (`encState`, `StateEnc`, `kvSnapOk`), and a conf change's shape (`ccToV2`,
 `ccTransOk`). It imports no translation of a store, so a part with another store over the same
-code (KvNet's kvnet, notes/kvnet-part.md) takes it as it is. `Base.lean` re-exports it. The history
+code (KvRaft's kvraft, notes/kvraft-part.md) takes it as it is. `Base.lean` re-exports it. The history
 of each definition is in its docstring and in `Base.lean`'s header.
 -/
 module

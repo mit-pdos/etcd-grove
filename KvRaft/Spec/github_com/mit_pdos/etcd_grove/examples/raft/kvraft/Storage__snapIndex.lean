@@ -1,0 +1,47 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__snapIndex.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Lean-first (no Rocq counterpart).
+
+`s.snapIndex()` (storage.go): the index of the storage's snapshot (`MemoryStorage.Snapshot`'s): in
+the detached mode (`openStorage`'s storage before `RestartNode`, `memStorFresh`) the stored one's;
+attached (`memStorInvP` at the storage's key), at least the known compaction point `c`.
+-/
+module
+
+public import KvRaft.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace kvraft
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+
+attribute [local instance] kdStorageModel
+
+/-- See the file header. -/
+abbrev Storage.snapIndex.spec : Prop :=
+  ∀ (s ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvraft ∗ kdStorRec s ms γs ∗
+      memStorAt ms γs J o emp ∗ memCompacted γs c }}
+    (App (Val (s @!! go.GoType.PointerType kStorageTy @!! go!"snapIndex")) (Val #()))
+  {{ (i : w64), RET #i; ⌜c ≤ uint.nat i⌝ ∗
+      (match o with
+       | some (c0, sv0) => iprop(⌜i = sv0.Metadata'.Index'⌝ ∗ memStorLock ms γs ∗ memStorFresh ms γs c0 sv0)
+       | none => memStorInvP ms γs J) }}
+
+end spec
+
+end kvraft
+end EtcdGrove
+end Perennial

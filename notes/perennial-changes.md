@@ -17,14 +17,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvudp)
+### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvraft-udp)
 
 - **Limitation.** Go accepts a size of any integer type in `make` (`make([][]byte, d.total)`, where `d.total`
   is a `uint32`). goose translates it as `FuncResolve go.make2 [st] #() (load uint32 ...)` and passes the w32
   value unconverted. `make2_slice` unfolds to `make3_slice` (`Golang/Defn/Slice.lean:130`), which compares
   its arguments with `<⟨go.int⟩`, and `lt_int` (`Predeclared.lean:284`) is defined only on w64 values. So
   the call is stuck: a correct Go program has no proof.
-- **Who.** kvudp's `reassembler.add` (`examples/raft/kvnet/udptransport.go`).
+- **Who.** kvraft-udp's `reassembler.add` (`examples/raft/kvraft/udptransport.go`).
 - **Workaround here.** The Go code converts the size itself: `make([][]byte, int(d.total))` (same behaviour).
 - **Proposed change.** goose converts every `make` size and capacity argument whose type is not `int` to
   `int` (`Convert t go.int`), as the Go spec's conversion of a typed integer size to `int` does. An untyped
@@ -3134,7 +3134,7 @@ P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
 (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
 **Done** (Perennial bca1cd2e5: `bag_nb_send_au` and `bag_nb_send_au_now`, the latter with `Φ` now and
-no credit). 2026-11-24 (branch `bagsend-perennial/2026-11-24`): the local `BagSend.lean` and kvnet's
+no credit). 2026-11-24 (branch `bagsend-perennial/2026-11-24`): the local `BagSend.lean` and kvraft's
 `queue_nb_send_au` (= `bag_nb_send_au_now`) deleted, their users on Perennial's.
 
 
@@ -4305,12 +4305,12 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed.** Name a blank of a generated file by the position its `//line` directive gives (the
   cgo source, `cgo_unix_cgo.go`), or accept the build-cache name (any base name) in `blankNameRx`.
 - **Status.** Not filed yet.
-**Update (2026-11-22, kvnet's top level, branch `kvnet-proof`):** kvnet needs, besides the extensions' local
+**Update (2026-11-22, kvraft's top level, branch `kvnet-proof`):** kvraft needs, besides the extensions' local
 interpretation before each generation's WP, **one later credit in the crash obligation** (`£ 1`, or a step): the
 crash opens the generation's file invariant (allocated at the boot) and must take its contents (raft's sealed
 `raftState`, `kdFileState`) without the later. The coordinator routed both to a Perennial session (branch
-`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
-(`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
+`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvraft's proof states the bridge it expects as `RobustOfNetFsBootG`
+(`KvRaft/Proof/.../kvraft/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
 
 ## SPSC receive that keeps the consumer after the close; `go.IntoValInj Unit` (prom-registry, 2026-11-22)
@@ -4456,7 +4456,7 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   (`ReadFull`: `ys.length < len(buf)`); both proofs change by one line. (The first version asked it at
   `ys.length < min` alone: with `min > len(buf)`, the `ErrShortBuffer` path, which reads nothing,
   Nat subtraction then asked `Pre _ 0`; round 2 of the review on #24, N3.) Alternative (not taken: Upamanyu's `Net/` spec, 64 importers
-  and the `KvNet/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
+  and the `KvRaft/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
   condition can be `True`.
 - **Status.** On Perennial branch `readatleast-prefix` (`af905abba`, after `d5cdfc558`, off `lean`
   `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the

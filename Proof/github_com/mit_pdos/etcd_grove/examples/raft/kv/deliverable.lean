@@ -199,7 +199,7 @@ theorem deliverable.wp_proof
     (wp_if_destruct <;> try wp_auto))
   all_goals (iapply HΦ; iframe Hm; ipureintro; intro h)
   all_goals (first | (cases h; done) | skip)
-  all_goals (unfold Deliverable kvNetTypes; simp_all [MsgProp, MsgApp, MsgAppResp, MsgVote,
+  all_goals (unfold Deliverable kvRaftTypes; simp_all [MsgProp, MsgApp, MsgAppResp, MsgVote,
     MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow])
   all_goals done
 

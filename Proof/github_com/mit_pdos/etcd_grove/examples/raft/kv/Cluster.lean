@@ -62,7 +62,7 @@ def qLogger [GooseExts] [GoGlobalContext] : GoInterfaceOk := interface.mk qLogge
 read-index requests and (2026-10-13) `MsgTimeoutNow`: replication, leader election and the
 read-index responses (`RawNode.Step`'s `netStepTypes` but `MsgReadIndex` and the leader
 transfer and local types). -/
-def kvNetTypes : List w32 :=
+def kvRaftTypes : List w32 :=
   [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp]
 
 /-- What `deliverable` checks of a message holding `st` (see the file header; raft v3.7, stage
@@ -70,7 +70,7 @@ R6b: over the message's state, `m.Entries != nil` and `m.Context == nil` read as
 context bytes being empty, `msgPtsC_fields_acc`). -/
 def Deliverable [GooseExts] (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgProp ∨ (st.msg.Type' = MsgReadIndex ∧ st.msg.Term' = W64 0) ∨
-    (st.msg.Type' ∈ kvNetTypes ∧ st.msg.Term' ≠ W64 0) ∨
+    (st.msg.Type' ∈ kvRaftTypes ∧ st.msg.Term' ≠ W64 0) ∨
     (st.msg.Type' = MsgTimeoutNow ∧ st.msg.Term' ≠ W64 0 ∧ st.ents = []) ∨
     -- (D22 S-r, 2026-10-21) a leader's snapshot, of an index below `maxIndex`
     (st.msg.Type' = MsgSnap ∧ st.msg.Term' ≠ W64 0 ∧
@@ -143,13 +143,13 @@ theorem msgPtsC_snap_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :
   iframe
   iframe #
 
-/-- (2026-10-17) No pre-vote request is delivered (`kvNetTypes`). -/
+/-- (2026-10-17) No pre-vote request is delivered (`kvRaftTypes`). -/
 theorem deliverable_not_prevote (st : MsgSt) (Hd : Deliverable st) : st.msg.Type' ≠ MsgPreVote := by
   obtain ⟨Hty, -⟩ := Hd
   rcases Hty with h | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
   · rw [h]; simp [MsgProp, MsgPreVote]
   · rw [h]; simp [MsgReadIndex, MsgPreVote]
-  · simp only [kvNetTypes, List.mem_cons, List.not_mem_nil, or_false] at h
+  · simp only [kvRaftTypes, List.mem_cons, List.not_mem_nil, or_false] at h
     rcases h with h | h | h | h | h | h | h <;> rw [h] <;>
       simp [MsgPreVote, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
         MsgHeartbeatResp, MsgReadIndexResp]

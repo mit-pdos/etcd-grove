@@ -1,0 +1,265 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/node__ReadIndex.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Lean-first (no Rocq counterpart).
+
+`node.ReadIndex` for a read already deposited (2026-10-27, the node API over an abstract log): as
+`node.ReadIndex.spec`, with the read's record `readReq γ c Lc` in place of the fresh token, the update
+and the committed log (the adapter deposits the read itself, `InvApi.lean`, and retries reuse
+it). The proof is `node.ReadIndex.wp_proof`'s without the deposit. -/
+module
+
+public import KvRaft.Spec.go_etcd_io.raft.v3.node__ReadIndex
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvNodeChan
+public import KvRaft.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import KvRaft.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import KvRaft.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import KvRaft.Spec.go_etcd_io.raft.v3.node__step
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvApplyConf
+public import KvRaft.Proof.go_etcd_io.raft.v3.InvBoot
+public import KvRaft.Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import KvRaft.Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.ReceiptTactics
+import all KvRaft.Proof.go_etcd_io.raft.v3.InvNode
+import KvRaft.Proof.go_etcd_io.raft.v3.LemmasP5NodeErr
+import KvRaft.Proof.go_etcd_io.raft.v3.InvApi
+import KvRaft.Proof.go_etcd_io.raft.v3.InvApiView
+
+@[expose] public section
+
+noncomputable section
+
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-! ## The raw triple (internal: private to this file)
+
+What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
+-/
+
+/-! Lean-first (no Rocq counterpart).
+
+`node.ReadIndex` for a read already deposited (2026-10-27, the node API over an abstract log): as
+`node.ReadIndex.spec`, with the read's record `readReq γ c Lc` in place of the fresh token, the update
+and the committed log (the adapter deposits the read itself, `InvApi.lean`, and retries reuse
+it). The proof is `node.ReadIndex.wp_proof`'s without the deposit. -/
+
+
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the file header. -/
+private abbrev node.ReadIndex.specRaw : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8) (Lc : List EntryM)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
+      nodeCtx ctx cd ∗ rctx ↦*□ c ∗ readReq γ.raft c Lc ∗
+      -- (out_size C3) the context within the bound on an entry's bytes when the cluster bounds
+      -- proposed data
+      ⌜γ.raft.maxData.isSome = true → c.length ≤ entBytesMax⌝ ∗
+      -- (raft-final, the design's §2.7, §2.9) the read credit for a time receipt, which `ReadIndex`
+      -- takes from a Go step of its own (`rdPool_mint`; until then `rdCred γ.raft 1`)
+      (⧗ 1 ={⊤}=∗ rdCred γ.raft 1) }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
+      (Val #(interface.ok ctx))) (Val #rctx))
+  {{ (err : GoInterface), RET #err; nodeErrRaw γ cd err }}
+
+end spec
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The one-entry batch `[]pb.Entry{{Data: rctx}}`, read-only, then `step` of the request:
+a message from the network (`netP`) as far as `run` is concerned. (Raft v3.7, stage R5: the
+message is `&pb.Message{Type: pb.MsgReadIndex.Enum(), Entries: []*pb.Entry{{Data: rctx}}}`, its
+entry allocated by the slice literal (`wp_slice_literal_ex`), holding the frozen bytes
+`rctx ↦*□ c` (D6), frozen, the entries' slice frozen; the message `msgIn ml □`;
+`MsgReadIndex.Enum()` is a new callee. Stage R7a: any `nodeCtx`, the error `nodeErr`.) -/
+private theorem node.ReadIndex.wp_raw
+    (wp_node_step : node.step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    node.ReadIndex.specRaw (GF := GF) (hG := hG) := by
+  intro γ id n rctx c Lc ctx cd Htr
+  wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, %Hdsz, Hcred⟩
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  -- (raft-final) the read credit, from a time receipt of a Go step of its own (`MsgReadIndex.Enum()`'s
+  -- resolution)
+  wp_take_receipt as Hr
+  ihave Hcred := Hcred $$ Hr
+  imod Hcred
+  wp_apply wp_MessageType_Enum (W32 15)
+  iintro %pty Hpty
+  wp_auto
+  wp_apply wp_slice_literal_ex (V := Loc)
+  wp_alloc l0 as Hl0
+  wp_auto
+  iexists [l0]
+  isplitr
+  · ipureintro; rfl
+  iintro %slp ⟨Hsl, Hsl_cap⟩
+  have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue
+      [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #rctx)])] = 1 := rfl
+  simp only [Hsz]
+  imod cellRO_alloc $$ Hpty with #cTy
+  imod entRZ_of_struct γ.raft.maxData.isSome l0
+      (⟨zero_val _, null, null, null, rctx, slice.nil, 0⟩ : raftpb.Entry)
+      (propEntryM c) ⊤ rfl Hdsz $$ [Hl0] with #He
+  · iframe Hl0
+    simp only [propEntryM]
+    iframe Hrctx
+    msg_nulls
+  imod ownSlice_persist $$ Hsl with #Hsl
+  wp_auto
+  ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
+  imod msgInC_of_struct γ.raft.maxData.isSome «$a1_ptr» (⟨zero_val _, pty, null, null, null, null,
+      null, slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil,
+      slice.nil, 0⟩ : raftpb.Message) DFrac.discard [l0]
+      ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩ ⊤
+      rfl rfl rfl rfl rfl (fun _ => ⟨by simp, by simp [entBytesMax]⟩) $$ [«$a1»] with Hm
+  · iframe «$a1» Hsl Hnilb cTy
+    msg_nulls
+    isplitl []
+    · iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ p e => entRZ (GF := GF) γ.raft.maxData.isSome p e)).2
+      iexact He
+    iapply ownSlice_nil
+  imod termLB_zero (GF := GF) γ.bud with #Hlb
+  imod tickCred_zero (GF := GF) γ.bud with Hz
+  have hR : (W32 15 : w32) = MsgReadIndex := rfl
+  wp_apply wp_node_step γ id n _ ctx cd $$ [Hm Hcred Hz]
+  · iframe Hnode Hctx
+    unfold stepP
+    ileft
+    unfold netP
+    ileft
+    iexists ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩
+    isplitl [Hm]
+    · rw [flag_moves (by decide : movesB (W32 15) = true)]; iexact Hm
+    isplitr
+    · ipureintro
+      refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ _ => rfl,
+        fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_, rfl⟩
+      · exfalso; simp [MsgTransferLeader] at h
+      · exfalso
+        rcases h with h | h | h | h | h <;>
+          simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h
+      · exfalso; simp [MsgAppResp] at h
+      · exfalso; simp [MsgTransferLeader] at h
+      · exfalso; simp [MsgPreVote] at h
+    isplitr
+    · imodintro
+      iintro %h
+      exfalso; simp [MsgTransferLeader] at h
+    isplitr
+    · imodintro
+      iintro %ty %Hty %_Hne
+      rw [show mtypeOf (W32 15) = some .readIndex from rfl] at Hty
+      cases Hty
+      unfold isMessage absMsg absMsgFrom
+      iexists propEntryM c, c, Lc
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; rfl
+      iframe Hrq
+    isplitr
+    · imodintro
+      iintro %h
+      exfalso; simp [MsgSnap] at h
+    isplitr
+    · iExactEq Hlb; rfl
+    rw [ite_eq_left hR]
+    isplitl [Hcred]
+    · iexact Hcred
+    rw [ite_eq_right (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
+    iframe Hz
+    -- (2026-11-12, trace-check implementation step 1) `netP`'s gate, untraced (the refusal)
+    iapply netGate_none _ _ Htr
+  iintro %err #Herr
+  wp_auto
+  iapply HΦ
+  iframe Herr
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `node.ReadIndex.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+private theorem node.wp_ReadIndex_impl
+    (hR : EtcdGrove.node.ReadIndex.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.NodeH EtcdGrove.NodeH.loc EtcdGrove.isNode EtcdGrove.isReadCtx
+  intro n γ N id rctx c Q ctx cd Htr
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, %Hmd⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, #Hpool, -⟩
+  have Hγr := Hf.1
+  -- (out_size C3) the context within `entBytesMax`: the cluster's bound, at most `2^31`
+  ihave #Hci0 := Hci
+  iunfold clusterInv at Hci0
+  icases Hci0 with ⟨-, -, -, -, %Hmb⟩
+  have Hdsz : γn.raft.maxData.isSome = true → c.length ≤ entBytesMax := fun hs => by
+    rw [Hγr] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
+  imod api_read_ensure γ N c Q $$ Hci Hrc with ⟨%Lc, #Hrq⟩
+  iapply (hR γn id n.loc rctx c Lc ctx cd (by rw [Hγr]; exact Htr)) $$ []
+  · iframe Hinit Hrn Hctx Hrctx
+    rw [Hγr]
+    iframe Hrq
+    isplitr
+    · ipureintro; rw [← Hγr]; exact Hdsz
+    iintro Hr
+    iapply rdPool_mint γ N ⊤ CoPset.subseteq_top $$ Hpool Hr
+  iintro !> %err #Herr
+  iapply HΦ
+  unfold EtcdGrove.nodeErrS EtcdGrove.nodeStopped
+  iapply nodeErrRaw_nodeErrS n γ N id γn cd err Hf
+  iframe Hrn Htab Herr
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem node.ReadIndex.wp_proof
+    (wp_node_step : node.step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    node.ReadIndex.spec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_ReadIndex_impl (node.ReadIndex.wp_raw wp_node_step wp_MessageType_Enum)
+
+end proof
+
+end EtcdGrove
+end Perennial

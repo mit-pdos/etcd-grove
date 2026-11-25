@@ -1,6 +1,6 @@
 /-
 `examples/lib/remote`'s wire format (`notes/remote-port-plan.md`, §3): a frame is an 8-byte
-little-endian length, then the body (`frame`, kvnet's format); a body is at most `maxLen` bytes
+little-endian length, then the body (`frame`, kvraft's format); a body is at most `maxLen` bytes
 (`MaxLen`, 2^20). One connection carries one request frame and at most one reply frame. A reader
 that reads a whole frame at the start of a direction whose bytes are a prefix of a frame reads that
 frame (`frame_prefix_eq`): no frame is a proper prefix of another.

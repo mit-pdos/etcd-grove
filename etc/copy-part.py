@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Copy into the parts `RaftNoAx/` and `KvNet/` the modules of other trees their closures need.
+"""Copy into the parts `RaftNoAx/` and `KvRaft/` the modules of other trees their closures need.
 
 usage: etc/copy-part.py [--part NAME]... [--check] [--list]
 
-  --part    only this part (RaftNoAx or KvNet; repeatable; default: both).
+  --part    only this part (RaftNoAx or KvRaft; repeatable; default: both).
   --check   write nothing; exit 1 if a copy differs from what is checked in (or is missing, or a
             copy is stale), listing the files.
   --list    print the modules of the closure that the part has (copied or generated), with why
@@ -24,24 +24,24 @@ other module is the main tree's, imported as it is.
   (project raft-noax of etc/goose.py) and kvdurable's own translation (project kvdurable-noax). Its
   source is the main tree; its roots the main tree's kvdurable `Results`/`TopLevelRobustness`
   (read in the main tree: the part's own files are not followed).
-- `KvNet/` (notes/kvnet-part.md): kvnet's proof, over raft-noax's raft, the net extension's `net`
+- `KvRaft/` (notes/kvraft-part.md): kvraft's proof, over raft-noax's raft, the net extension's `net`
   (the part `Net/`) and the bodied `durable` over fsExt (the part `WalTester/`). Its sources are
-  `RaftNoAx/`, `Net/`, `WalTester/` and the main tree; its roots its own modules under `KvNet/Spec`
-  and `KvNet/Proof` (`Imports.lean`, the smoke test, until kvnet's proof has a `Results`), read
+  `RaftNoAx/`, `Net/`, `WalTester/` and the main tree; its roots its own modules under `KvRaft/Spec`
+  and `KvRaft/Proof` (`Imports.lean`, the smoke test, until kvraft's proof has a `Results`), read
   with the part's own files first. A module two source parts both have (other than one gen-init
   writes for the part) is a clash: the script stops and names it.
 
 The copies, by kind:
 - `Code/`, `GeneratedProof/`: none; etc/goose.py translates them into the part (RaftNoAx: projects
-  raft-noax and kvdurable-noax, the parts of projects kvreconf and etcd; KvNet: project kvnet, the
+  raft-noax and kvdurable-noax, the parts of projects kvreconf and etcd; KvRaft: project kvraft, the
   parts of projects raft-noax, net, durable and etcd).
-- the package initializers etc/gen-init.py writes for the part (`PARTS[part]`, `KVNET_INITS`), and
+- the package initializers etc/gen-init.py writes for the part (`PARTS[part]`, `KVRAFT_INITS`), and
   the part's own and the main tree's `Link.lean` files (etc/gen-link.py): none, those scripts write
-  them (a source part's `Link`, raft-noax's or `durable`'s that kvnet's `Link` uses, is copied).
+  them (a source part's `Link`, raft-noax's or `durable`'s that kvraft's `Link` uses, is copied).
 - every other module of the closure that reaches a seed (`Spec/`, `Proof/`), and the trusted code
   and manual proofs (`TrustedCode/`, `ManualProof/`) of the part's translated packages, with the
   Goose configuration (`Code/**.toml`) of those packages (from the source tree whose goose piece
-  translates the same package: KvNet's `durable` is `WalTester/`'s, bodied, with no configuration):
+  translates the same package: KvRaft's `durable` is `WalTester/`'s, bodied, with no configuration):
   copied, with the imports of the modules the part has prefixed by `<Part>.`, `RENAME`'s package
   paths replaced (the Lean namespace, dotted, and the directory, slashed), and a first line naming
   the source (a source part's own first line, when it is a copy itself, dropped).
@@ -80,18 +80,18 @@ KVD_MAIN = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
 # path (goose.KVDURABLE_NOAX_PKG); empty while that is kvdurable's own. (Read by etc/gen-link.py.)
 RENAME = {k: v for k, v in [(lean_pkg(KVD_MAIN), lean_pkg(goose.KVDURABLE_NOAX_PKG))] if k != v}
 
-# KvNet's: kvnet's storage.go is kvdurablenoax's, and its codec helpers (putBytes, getBytes) and
+# KvRaft's: kvraft's storage.go is kvdurablenoax's, and its codec helpers (putBytes, getBytes) and
 # withTimeout are kv.go's/cluster.go's, the same Go text in another package, so the part takes their
 # specs and proofs (and the pure codec, `Codec.lean`) from RaftNoAx's kvdurablenoax, the package
 # path and the proofs' namespace renamed; a module the part has a file of its own of (`Base.lean`:
-# kvnet's package initialization) is the part's.
-# KvNet's plain text edits of the copies taken from kvdurablenoax (after the renames): kvdurablenoax's
+# kvraft's package initialization) is the part's.
+# KvRaft's plain text edits of the copies taken from kvdurablenoax (after the renames): kvdurablenoax's
 # proofs take the durable extension `durableExt` as a section variable (its file was `durableExt`'s);
-# kvnet's file is fsExt's (kvnet's own `Defs`), so the variable goes.
-TEXT_FIXES_KVNET = [(" [HasExt durableExt]", "")]
+# kvraft's file is fsExt's (kvraft's own `Defs`), so the variable goes.
+TEXT_FIXES_KVRAFT = [(" [HasExt durableExt]", "")]
 
-RENAME_KVNET = {lean_pkg(goose.KVDURABLE_NOAX_PKG): "github_com.mit_pdos.etcd_grove.examples.raft.kvnet",
-                "raft_kvdurable": "raft_kvnet"}
+RENAME_KVRAFT = {lean_pkg(goose.KVDURABLE_NOAX_PKG): "github_com.mit_pdos.etcd_grove.examples.raft.kvraft",
+                "raft_kvdurable": "kvraft"}
 
 NOTE = "(etc/copy-part.py; rerun it, do not edit)"
 
@@ -166,8 +166,8 @@ class Part:
         """(source root, file) of `mod` in the first source tree that has it, or None; a clash
         (two source parts, neither the main tree) stops the script unless gen-init writes `mod`."""
         found = []
-        # (a part that renames a package takes its modules from the source package's: KvNet's
-        # kvnet codec proofs are kvdurablenoax's, `RENAME_KVNET`)
+        # (a part that renames a package takes its modules from the source package's: KvRaft's
+        # kvraft codec proofs are kvdurablenoax's, `RENAME_KVRAFT`)
         cands = [mod] + ([rename(mod, {v: k for k, v in self.renames.items()})]
                          if self.own_first and rename(mod, {v: k for k, v in self.renames.items()}) != mod else [])
         for s in self.sources:
@@ -179,7 +179,7 @@ class Part:
         parts = [f for f in found if f[0]]
         if len(parts) > 1 and mod not in self.gen_init_mods() and not mod.endswith(".Link"):
             sys.exit(f"copy-part: {self.name}: {mod} is in more than one source tree "
-                     f"({', '.join(s + '/' for s, _ in parts)}): a clash to decide (notes/kvnet-part.md)")
+                     f"({', '.join(s + '/' for s, _ in parts)}): a clash to decide (notes/kvraft-part.md)")
         return found[0] if found else None
 
     def resolve(self, mod):
@@ -212,7 +212,7 @@ class Part:
 
     def pkg(self, owned):
         """The Lean package path (dotted) the source trees name a package the part owns by: RaftNoAx's
-        renamed kvdurable is the main tree's kvdurable; KvNet's packages are its own."""
+        renamed kvdurable is the main tree's kvdurable; KvRaft's packages are its own."""
         d = owned.replace(os.sep, ".")
         return d if self.own_first else unrename(d, self.renames)
 
@@ -259,19 +259,19 @@ def raftnoax_roots(part):
     return [f"Proof.{lean_pkg(KVD_MAIN)}.Results", f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
 
 
-# KvNet's proofs taken from kvdurablenoax (`RENAME_KVNET`) that no module of the part imports yet:
-# kvnet's codec helpers and withTimeout, roots until kvnet's `Link.lean` links them.
-KVNET_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvnet"
-KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
+# KvRaft's proofs taken from kvdurablenoax (`RENAME_KVRAFT`) that no module of the part imports yet:
+# kvraft's codec helpers and withTimeout, roots until kvraft's `Link.lean` links them.
+KVRAFT_PKG = "github_com.mit_pdos.etcd_grove.examples.raft.kvraft"
+KVRAFT_REUSED = [f"Proof.{KVRAFT_PKG}.{f}" for f in
                 ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
                  "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode",
-                 # storage.go and the codecs, the same Go text (notes/kvnet-part.md, the replica layer)
+                 # storage.go and the codecs, the same Go text (notes/kvraft-part.md, the replica layer)
                  "newStorage", "image__applySnapshot", "image__append", "image__createSnapshot",
                  "image__compact", "Storage__ApplySnapshot", "Storage__Append",
                  "Storage__CreateSnapshot", "Storage__Compact", "Storage__encode",
                  "encodeState", "decodeState", "putMap", "getMap", "less", "sortStrings", "readCtx",
                  "decodeReadCtx", "validConf", "fits", "oneIn", "below",
-                 # (2026-11-22) over kvnet's own Defs (kvdurablenoax's interface kept)
+                 # (2026-11-22) over kvraft's own Defs (kvdurablenoax's interface kept)
                  "Storage__SetHardState", "Storage__snapIndex", "Storage__InitialState",
                  "Storage__Snapshot", "openStorage",
                  # (2026-11-22) StartNode's callees, the same Go text
@@ -287,8 +287,8 @@ KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
 def own_roots(part):
     """The part's own hand-written modules under `Spec/` and `Proof/` (not copies, not generated),
     the modules gen-init writes for it (built with the part, so their imports must be there), and
-    (KvNet) the reused proofs `KVNET_REUSED`."""
-    out = sorted(part.gen_init_mods()) + (KVNET_REUSED if part.name == "KvNet" else [])
+    (KvRaft) the reused proofs `KVRAFT_REUSED`."""
+    out = sorted(part.gen_init_mods()) + (KVRAFT_REUSED if part.name == "KvRaft" else [])
     gi = part.gen_init_mods()
     for d in ("Spec", "Proof"):
         for dp, _, fs in os.walk(os.path.join(ROOT, part.name, d)):
@@ -317,14 +317,14 @@ def raftnoax_gen_init_paths():
     return sorted(gi.part_paths(gi.PARTS["RaftNoAx"][0])) + gi.NOAX_MAIN_PATHS
 
 
-def kvnet_gen_init_paths():
-    return sorted(gen_init().kvnet_paths())
+def kvraft_gen_init_paths():
+    return sorted(gen_init().kvraft_paths())
 
 
 PARTS = {
     "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, RENAME, raftnoax_gen_init_paths),
-    "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, RENAME_KVNET,
-                  kvnet_gen_init_paths),
+    "KvRaft": Part("KvRaft", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, RENAME_KVRAFT,
+                  kvraft_gen_init_paths),
 }
 
 
@@ -421,8 +421,8 @@ def compute(part):
         txt = txt[:s] + IMPORT_RE.sub(imp, head) + txt[s + len(head):]
         if part.renames:
             txt = rename(txt, part.renames)
-        if part.name == "KvNet" and src == "RaftNoAx":
-            for a, b in TEXT_FIXES_KVNET:
+        if part.name == "KvRaft" and src == "RaftNoAx":
+            for a, b in TEXT_FIXES_KVRAFT:
                 txt = txt.replace(a, b)
         if part.renames and not part.own_first:
             dst = os.path.join(P, rename(rel))
@@ -490,7 +490,7 @@ def prune_unimported(part, why, files):
         for m in sorted(alive & set(copied)):
             if m.endswith((".Results", ".TopLevelRobustness", ".Link")):
                 continue
-            if part.name == "KvNet" and m[len(P) + 1:] in KVNET_REUSED:
+            if part.name == "KvRaft" and m[len(P) + 1:] in KVRAFT_REUSED:
                 continue
             if m.startswith((f"{P}.TrustedCode.", f"{P}.ManualProof.")) and part.sources != [""]:
                 continue  # (a translated package's, kept whether or not imported)
