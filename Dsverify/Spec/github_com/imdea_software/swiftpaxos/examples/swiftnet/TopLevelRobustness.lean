@@ -45,8 +45,8 @@ and the start's net protocol names `π`):
   dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
   fail, uuid's `New`);
 * net/rpc over HTTP (`lib/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after its
-  shapes): the addresses' and listeners' protocols (`RpcHttpAddr`, per global ghost state) and the
-  specs (`RpcHttpHyp`, per heap);
+  shapes): the specs (`RpcHttpHyp`, per heap), over the addresses' and listeners' protocols
+  `netRpcHttpAddr` (Net's proved `rpcAddrP`/`rpcLisP`, `lib/RpcHttpAddrNet.lean`; not a premise);
 * net/rpc's first initialization on a machine (`RpcFirstInit`, `lib/RpcBoot.lean`): it returns
   net/rpc's boot resources (`rpcBootRes`). The kit's own packages' first initializations are
   proved (`BootLinked.lean`, `BootCmdsLinked.lean`).
@@ -57,6 +57,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.TopLevelDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcBoot
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpAddrNet
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Dsverify.Proof.encoding.gob.Init
@@ -108,10 +109,10 @@ def swiftpaxos_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; math.rand.Hyps netDistGF) →
     (∀ G L, letI := heapAt G L; os.signal.NoSignals usr1Sigs netDistGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftOsRandom netDistGF) →
-    ∀ (ra : ∀ (G : GooseGlobalGS HasLC.hasLC netDistGF) (π : NetProtoGS), letI := G;
-        letI := libsAt l π; RpcHttpAddr netDistGF)
-      (rh : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; letI := ra G π; RpcHttpHyp netDistGF),
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; letI := ra G π; letI := rh G L π;
+    ∀ (rh : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π;
+        letI := netRpcHttpAddr netDistGF (Gg := G); RpcHttpHyp netDistGF),
+    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π;
+      letI := netRpcHttpAddr netDistGF (Gg := G); letI := rh G L π;
       RpcFirstInit (GF := netDistGF)) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy swAddrs (system σ) g →
