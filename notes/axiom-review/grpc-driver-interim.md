@@ -99,3 +99,14 @@ the resource-free `grpcInvokerDone` could not be met. `grpcInvokerDone conn Ok i
 `⌜Ok R⌝ ∗ R` (back untouched in the post), as `grpcInvokerOk`'s attempt triple does. The old triple
 implies the new one (frame `R`), so the axioms giving `grpcInvokerOk` promise no more than before; the
 driver's `plain_Invoke_done` uses it at `R := True` (`anyRes`).
+
+## T9 `grpcRepliesBounded` rekeyed for the model-param gate (2026-11-25; the lead's decision, not yet reviewed)
+
+Each arm's atom `R e.Wp.ty = some Rep` (`grpcRepModelOf`, `streamRepModelOf`) is now `R Rep.ty = some Rep ∧
+Rep.ty = e.Wp.ty`, keyed on the model's own type: the gate's rule 2 accepts a received atom only so keyed (its
+pair entries; `st_pret_unkeyed`). Not equivalent: the registries are opaque, with no law `R k = some Rep → Rep.ty = k`,
+so the new form is implied by the old one but not conversely; as a disjunct of `grpcServeTok` (Serve's
+precondition) it asks Serve's caller for less, a slight strengthening of `Serve`'s axiom, adding no axiom and no
+premise. Sound: the only replies `Serve` marshals are those a handler sends through `grpcServesEnt`'s `Rep`, which
+has `e.Wp = Rep.wire` (so `Rep.ty = e.Wp.ty`) and `R Rep.ty = some Rep`, so the new `∀` covers every one of them;
+on every entry `grpcServes` serves the two forms are equal.

@@ -343,9 +343,12 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
 theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF)).toProtoMsg
       (pbStringValueRT (GF := GF)).toProtoMsg) :
     ⊢ ∀ Rep : ProtoMsgT GF,
-      ⌜grpcRepModelOf GF (⟨reqWire (GF := GF), repWire (GF := GF), Spec⟩ : GrpcEntry GF).Wp.ty =
-        some Rep⌝ -∗ □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
-  iintro %Rep %hR
+      ⌜grpcRepModelOf GF Rep.ty = some Rep ∧
+        Rep.ty = (⟨reqWire (GF := GF), repWire (GF := GF), Spec⟩ : GrpcEntry GF).Wp.ty⌝ -∗
+      □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
+  iintro %Rep %hRt
+  obtain ⟨hR, hty⟩ := hRt
+  rw [hty] at hR
   obtain rfl : Rep = pbStringValueRT (GF := GF) :=
     (Option.some.inj ((pbStringValueRT_repReg (GF := GF)).symm.trans hR)).symm
   iintro !> %l %m Hs
@@ -360,10 +363,12 @@ theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF))
 theorem drv_streamBound (up : Nat → GoString → IProp GF)
     (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
     ⊢ ∀ Rep : StreamMsgT GF,
-      ⌜streamRepModelOf GF (⟨strmWire (GF := GF), strmWire (GF := GF), up, dn, strmSpec dn⟩ :
-        GrpcStreamEntry GF).Wp.ty = some Rep⌝ -∗
+      ⌜streamRepModelOf GF Rep.ty = some Rep ∧ Rep.ty = (⟨strmWire (GF := GF), strmWire (GF := GF), up,
+        dn, strmSpec dn⟩ : GrpcStreamEntry GF).Wp.ty⌝ -∗
       □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
-  iintro %Rep %hR
+  iintro %Rep %hRt
+  obtain ⟨hR, hty⟩ := hRt
+  rw [hty] at hR
   obtain rfl : Rep = pbStringValueST (GF := GF) :=
     (Option.some.inj ((pbStringValueST_repReg (GF := GF)).symm.trans hR)).symm
   iintro !> %l %m Hs

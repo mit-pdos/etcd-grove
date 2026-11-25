@@ -192,13 +192,16 @@ among them, whose shared `Kvs` encode past `maxAlloc`). A reply model's explicit
 (`ProtoMsg.wireLen`'s doc: part of the instance's wire model) and so reviewed as a size bound when it is
 registered; today only `StringValue`'s (`s.length + 11`) is below `grpcMsgMax`. The other way to the size premise
 of `Serve`'s trusted model than the workload premise `grpcRepliesFit`: a property of the registered
-models, which a program with bounded replies proves (the gRPC driver's `StringValue`). -/
+models, which a program with bounded replies proves (the gRPC driver's `StringValue`). The registry atom
+is keyed on the model's own type (`R Rep.ty = some Rep ∧ Rep.ty = e.Wp.ty`) for the model-param gate
+(2026-11-25): implied by the form keyed on `e.Wp.ty`, and equal to it on every entry `grpcServes` serves
+(there `e.Wp = Rep.wire` of a `Rep` with `R Rep.ty = some Rep`). -/
 def grpcRepliesBounded (Svc : GrpcSvc GF) : IProp GF :=
   iprop(□ ∀ (name : GoString) (ent : GrpcSvcEntry GF), ⌜Svc name = some ent⌝ -∗
     match ent with
-    | .unary e => ∀ Rep : ProtoMsgT GF, ⌜grpcRepModelOf GF e.Wp.ty = some Rep⌝ -∗
+    | .unary e => ∀ Rep : ProtoMsgT GF, ⌜grpcRepModelOf GF Rep.ty = some Rep ∧ Rep.ty = e.Wp.ty⌝ -∗
         □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝
-    | .stream e => ∀ Rep : StreamMsgT GF, ⌜streamRepModelOf GF e.Wp.ty = some Rep⌝ -∗
+    | .stream e => ∀ Rep : StreamMsgT GF, ⌜streamRepModelOf GF Rep.ty = some Rep ∧ Rep.ty = e.Wp.ty⌝ -∗
         □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝)
 
 instance grpcRepliesBounded_persistent (Svc : GrpcSvc GF) :
