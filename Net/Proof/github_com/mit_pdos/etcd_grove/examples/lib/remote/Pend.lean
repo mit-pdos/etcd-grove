@@ -16,9 +16,10 @@ committed as pending, and may take effect later, at most once, or never.
 - **The updates** (`pend_choice`): given lintest's linearization point for the input `iv i`
   (`linAU`, the atomic triple's update) and a later credit, node 0's `apply` makes `Do`'s choice:
   * an answer will come (`known`), with bytes `bs` (`Do`'s second prophecy): for a write, the
-    update `lin R i Φ` with `Φ o` lintest's continuation at `ov o`; at its firing (at the far side,
-    at its linearization point), it opens the invariant, hands over `sysState st`, and commits
-    lintest's update with `(i, ok o)` at the step (`pendOk_ok`, `pend_commit_core`). For a read, a
+    update `lin R i Φ` with `Φ o` lintest's continuation at `ov o`; when the far side opens it, it
+    opens the invariant and hands over `sysState st`; an abort closes the invariant unchanged, and the
+    commit (at the far side's linearization point) commits lintest's update with `(i, ok o)` at the
+    step (`pendOk_ok`, `pend_commit_core`). For a read, a
     persistent update (the far side may fire it several times): a read commit invariant at `readN`
     holds lintest's update and a credit until the first firing whose output's bytes are `bs`, which
     commits there and records the output (persistently, `dghostVar`) with the continuation; every
@@ -403,8 +404,9 @@ theorem pend_fire (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (
   imodintro
   itrivial
 
-/-- lintest's update committed at the step of `i` from the invariant's state: the update `lin`
-with lintest's continuation at the step's output. The core of `pend_choice`'s answered cases. -/
+/-- lintest's update committed at the step of `i` from the invariant's state: the commit branch of
+the update `lin` (its abort closes the invariant unchanged), with lintest's continuation at the step's
+output. The core of `pend_choice`'s answered cases. -/
 theorem pend_commit_core (hE : (↑pendN : CoPset) ⊆ ⊤ \ R.Eop) (S : ModelSpec GF (linkv.PSet St J))
     (hS : PendDec R S) (γ : PendNames) (i : I) (K : GoInterface → IProp GF) (E : CoPset)
     (hsub : ⊤ \ (R.Eop ∪ ↑pendN) ⊆ E) (st : St) (h : List OpV) (s0 : linkv.PSet St J)
