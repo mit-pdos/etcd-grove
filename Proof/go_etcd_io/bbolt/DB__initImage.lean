@@ -125,8 +125,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 theorem DB.initImage.wp_proof (hPIB : DB.pageInBuffer.spec_own (GF := GF) (hG := hG))
     (hSetId : internal.common.Page.SetId.spec (GF := GF) (hG := hG))
     (hSetFlags : internal.common.Page.SetFlags.spec (GF := GF) (hG := hG))

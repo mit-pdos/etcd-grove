@@ -31,8 +31,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-set_option maxRecDepth 100000 in
-set_option maxHeartbeats 4000000 in
 theorem DB.needsInit.wp_proof
     (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
     (hImage : DB.initImage.spec (GF := GF) (hG := hG)) :
@@ -44,7 +42,7 @@ theorem DB.needsInit.wp_proof
   · rw [h0]
     wp_auto
     iapply HΦ
-    iframe
+    iframe Hf Hps Hro Hfo Hfd Hb
     ileft; ipureintro; exact ⟨rfl, fun _ => rfl, fun _ => Or.inl rfl⟩
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
@@ -60,14 +58,14 @@ theorem DB.needsInit.wp_proof
   · -- read-only: only an empty file is initialized
     try wp_auto
     iapply HΦ
-    iframe
+    iframe Hf Hps Hro Hfo Hfd Hb
     ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h⟩
   try wp_auto
   wp_if_destruct
   · -- more than four pages
     try wp_auto
     iapply HΦ
-    iframe
+    iframe Hf Hps Hro Hfo Hfd Hb
     ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h⟩
   have hle : xs.length ≤ 16384 := by
     have := Hif
@@ -94,7 +92,7 @@ theorem DB.needsInit.wp_proof
     wp_auto
     iapply HΦ
     rw [fileOwn_eq]
-    iframe
+    iframe Hf Hps Hro Hfo Hfd Hb
     iright
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), hne⟩
@@ -128,7 +126,7 @@ theorem DB.needsInit.wp_proof
       "Hsl" ∷ sl ↦* B ∗ "Him" ∷ im ↦* I : IProp GF) $$ [i b j whole Hsl Him]
   · iexists 0, _, _, _
     simp only [named]
-    iframe
+    iframe i b j whole Hsl Him
     ipureintro
     exact ⟨Nat.zero_le _, fun i _ h => absurd h (Nat.not_lt_zero _)⟩
   wp_for IH
@@ -175,7 +173,7 @@ theorem DB.needsInit.wp_proof
       iexists k + 1, _, _, _
       simp only [named]
       rw [show W64 ((k + 1 : Nat) : Int) = W64 (k : Int) + W64 1 by word]
-      iframe
+      iframe i b j whole Hsl Him
       ipureintro
       exact ⟨by omega, fun i c hi hc => hstep i c hi hc (Or.inl he)⟩
     · rw [decide_eq_false he]
@@ -189,7 +187,7 @@ theorem DB.needsInit.wp_proof
         iexists k + 1, _, _, _
         simp only [named]
         rw [show W64 ((k + 1 : Nat) : Int) = W64 (k : Int) + W64 1 by word]
-        iframe
+        iframe i b j whole Hsl Him
         ipureintro
         exact ⟨by omega, fun i c hi hc => hstep i c hi hc (Or.inr hz)⟩
       · -- a byte `init` does not write: not an interrupted `init`
@@ -199,7 +197,7 @@ theorem DB.needsInit.wp_proof
         wp_auto
         iapply HΦ
         rw [fileOwn_eq]
-        iframe
+        iframe Hf Hps Hro Hfo Hfd Hb
         ileft
         ipureintro
         exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h⟩
@@ -208,7 +206,7 @@ theorem DB.needsInit.wp_proof
     wp_auto
     iapply HΦ
     rw [fileOwn_eq]
-    iframe
+    iframe Hf Hps Hro Hfo Hfd Hb
     ileft
     ipureintro
     refine ⟨rfl, fun h => absurd h h0, fun _ => Or.inr ⟨by omega, fun i c hc => ?_⟩⟩
