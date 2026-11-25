@@ -54,7 +54,7 @@ theorem msgOf.wp_proof
     (wp_GetReject : raftpb.Message.GetReject.spec (GF := GF) (hG := hG))
     (wp_GetRejectHint : raftpb.Message.GetRejectHint.spec (GF := GF) (hG := hG)) :
     msgOf.spec (GF := GF) (hG := hG) := by
-  intro ml dq dqe cap st to hsnap hnorm
+  intro ml dq dqe cap st to nn hsnap hnorm
   wp_start as Hm
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
@@ -75,7 +75,7 @@ theorem msgOf.wp_proof
   wp_apply wp_GetTerm.1 ml dq dqe cap st $$ [$Hpb $Hm] as Hm
   try wp_auto
   wp_apply wp_GetEntries.1 ml dq dqe cap st $$ [$Hpb $Hm] as %es %els ⟨Hes, #Hents, Hcap, Hclose⟩
-  wp_apply wp_entriesOf es dqe els st.ents hnorm $$ [$Hpkg $Hes $Hents] as %out ⟨Hes, #Hout, Hr⟩
+  wp_apply wp_entriesOf es dqe els st.ents nn hnorm $$ [$Hpkg $Hes $Hents] as %out ⟨Hes, #Hout, Hr⟩
   ihave Hm := Hclose $$ %cap %els %st.ents Hes Hents Hcap
   rw [show ({ msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := st.resps } : MsgSt)
     = st from rfl]

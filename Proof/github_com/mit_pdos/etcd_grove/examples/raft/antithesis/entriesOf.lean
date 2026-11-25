@@ -31,7 +31,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem entriesOf.wp_proof (wp_entryOf : entryOf.spec (GF := GF) (hG := hG)) :
     entriesOf.spec (GF := GF) (hG := hG) := by
-  intro sl dq els es hnorm
+  intro sl dq els es nn hnorm
   wp_start as ⟨Hsl, #Hents⟩
   ihave %Hl := ownSlice_len $$ Hsl
   ihave %Hl2 := BigSepL2.bigSepL2_length $$ Hents
@@ -69,7 +69,7 @@ theorem entriesOf.wp_proof (wp_entryOf : entryOf.spec (GF := GF) (hG := hG)) :
     inext
     iintro Hsl
     wp_take_receipt as Hr1
-    wp_apply wp_entryOf l DFrac.discard x (hnorm x (List.mem_of_getElem? Hxk)) $$ [$Hpkg $Hx]
+    wp_apply wp_entryOf l DFrac.discard x nn (hnorm x (List.mem_of_getElem? Hxk)) $$ [$Hpkg $Hx]
       as %g ⟨-, Hg1⟩
     try wp_auto
     wp_apply wp_slice_literal
