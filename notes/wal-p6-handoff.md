@@ -132,6 +132,19 @@ Left (failing in `wal.Link`'s build, or not yet reached):
    seeks to `pendOff` (`= wr` by `walReadFiles_running_end`'s `es ≠ [] → z0 = |S|` and `RepOld`/`TailExact`;
    `LastOffset()` when `pending` is empty) and `ZeroToEnd` from there, and `hzw` (the zero length word) is
    at the decoder's end `wr + |pend|`, not at `pendOff`.
+   **Design for `pendOff = wr` (2026-11-25, not started).** Backward reasoning from the end does not
+   work (two start offsets can decode `k` records to the same end; decoded frame lengths need not be
+   `|recFrames|`: decoding is not canonical). Forward instead: a relation `Reach C s s' n` (`n` accepted
+   `goDecode` steps, the CRC through `rdCrc`, no rejected CRC record), deterministic. The loop invariant
+   keeps `lastOff, lastCRC = off, c` (Go's `lastOff`/`lastCRC` at the loop head are the decoder's state),
+   `Reach (fs₀,0,0) (fs,off,c) |acc|`, and, when `pending ≠ []`, a ghost `fsP` with
+   `Reach (fs₀,0,0) (fsP,pendOff,pendCRC) (|acc| - |pending|)`, the last `|pending|` records of `acc`
+   entry records decoding to `pending` and the record before them not one. At the end `|acc| - |pending|`
+   is the number of the history's records (`readAllFoldP_wal`'s split: the history ends in a non-entry
+   record, the pending run is entries), and a new lemma builds `Reach (fs₀,0,0) ([last], wr, tailCrc)`
+   over that many records forward from the files' layout (`walDecodeFrom` over known frames, plus the
+   step into the next file at a file's end); determinism gives `pendOff = wr`, `pendCRC` the chain's.
+   `ReadAllIdx`: `w.enti` is set per applied (flushed) entry, so `raIdx` folds over the applied records.
 2. **`TailPend` with a pending run** (`Abs.lean`, `TailCrashPend.lean`): a tail `ReadAll` registers before
    `ZeroToEnd` has `old` = the pending frames on `[z0, e)` and `LenZ` at `e`; its crash needs
    `pendStop_transfer` (the bytes from `z0` are `old`'s or a resize's zero: `WinShape`, writes excluded);
@@ -144,9 +157,10 @@ Left (failing in `wal.Link`'s build, or not yet reached):
    the offset `e` with `old`'s bytes on `[wr, e)`). Not started.
 4. Failing in the last `wal.Link` build besides `RepairReg`: `ReadAllIdx` (the `raIdx` fold of `w.enti`:
    with `pending`, `enti` counts only applied entries; goes with item 1), `StreamBound.saveStream_le`
-   (the appended op is the normalized one, `wop H o`, whose state record may be `walLastHS`'s: needs a
-   bound on that state's encoding too), `SavePure.lean:252` (a syntax error in `SaveSt.finState`'s
-   record). Items 1-3 and these are what the next session starts on.
+   (done 2026-11-25: its bound is on `saveHS (walLastHS …) hs es`, the state written; no users yet), `SavePure.lean:252` (a syntax error in `SaveSt.finState`'s
+   record), `WAL__cut.lean:484` (`iframe` of `walStIn … h1.stNil`). Items 1-3 and these are what the
+   next session starts on. The spec appliers of `proto.MarshalPb.spec` (`pbutil.MustMarshalMessage*`,
+   `encoder__encode`, `RaftModel/*`) build after the non-nil change.
 5. Then the `encodeState`/`Save`/`LawsHs*` proofs (edited, unchecked), `ReadAll` provenance and
    `CloneStLaw`, `ValidSnapshotEntries`/`OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5.
 
