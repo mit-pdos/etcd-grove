@@ -82,11 +82,11 @@ theorem crashTo_tailP {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
   obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
   obtain ⟨hlen, hval⟩ := himg f hf
-  have hI0H : I0.length ≤ d.H.length := walImg_length_le hI0
+  have hI0H : I0.length ≤ d.H.length := walImg_length_le (walImgS_walImg hI0)
   have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
-    initSegs_of_take hsorted (walImg_take hI0 hm0)
+    initSegs_of_take hsorted (walImgS_take hI0 hm0)
   have hpur' := Nat.le_min.1 hpur
-  refine Or.inr ⟨q, d.H, hent, hq, hinos, ⟨d.H.length, hmH, Nat.le_refl _, Or.inl (by simp)⟩,
+  refine Or.inr ⟨q, d.H, hent, hq, hinos, walImgS_refl hmH,
     by omega, Nat.le_min.2 ⟨hpur'.1, Nat.le_trans hpur'.2 hI0H⟩, ?_, ?_⟩
   · intro k g' hk hkc
     have hne : g'.ino ≠ g.ino := by
@@ -110,13 +110,12 @@ theorem crashTo_tailP {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
   · intro g'' hg''
     rw [hg] at hg''
     cases hg''
-    change segStream C Mr d lay.cuts lay.cuts.length <+: imgOf (fo g.ino) ∧ ∀ r len c',
-      decStep C true (imgOf (fo g.ino)) (segStream C Mr d lay.cuts lay.cuts.length).length _ ≠
-        .accept r len c'
+    change segStream C Mr d lay.cuts lay.cuts.length <+: imgOf (fo g.ino) ∧ PendStop C Mr
+      (imgOf (fo g.ino)) (segStream C Mr d lay.cuts lay.cuts.length).length _
     simp only [imgOf, hf, Option.map_some, Option.getD_some]
     generalize segStream C Mr d lay.cuts lay.cuts.length = S at hlen hval ⊢
     refine ⟨prefix_of_getD (by rw [contents_length]; exact hlen) (fun b hb => ?_),
-      fun r len c' => decStep_zeroWord C true (fun j hj => ?_) r len c'⟩
+      pendStop_nil fun r len c' => decStep_zeroWord C true (fun j hj => ?_) r len c'⟩
     · rw [contents_getD f b (by omega)]; exact hval b (by omega) (by omega)
     · by_cases hb : S.length + j < f.size
       · rw [contents_getD f _ hb, hval _ hb (by omega), List.getD_eq_getElem?_getD,

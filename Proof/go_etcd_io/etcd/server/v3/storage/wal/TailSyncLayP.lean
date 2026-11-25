@@ -164,7 +164,7 @@ theorem walAbsD_syncP {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     simp only [syncLayP, syncLay, List.take_length]
     rw [htail]; exact Nat.le_refl _
   · exact segStart_le hc _
-  · intro hz r len c'
+  · intro hz; apply pendStop_nil; intro r len c'
     simp only [syncLayP, syncLay, hSm] at hz ⊢
     refine decStep_zeroWord C true (fun j hj => ?_) r len c'
     rw [← hP.1, syncOldP_getD_ge _ _ _ _ (by omega)]

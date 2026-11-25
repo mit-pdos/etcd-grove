@@ -217,7 +217,10 @@ theorem walRepairFile {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (gL : SegG)
     (hgL' : lay.segs.getLast? = some gL) :
-    ∃ rs, RepairFile C (segImg gL) rs ∧ (recFrames C rs).length = lay.wr := by
+    ∃ rs es, RepairFile C (segImg gL) rs ∧
+      (recFrames C rs).length = lay.wr + (recFrames C (chainRecs C
+        (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) (pendDs Mr es))).length ∧
+      (es ≠ [] → lay.z0 = lay.wr) := by
   -- The history's segments.
   generalize hSs : segsOf (histM d) lay.cuts = Ss
   have hSsl : Ss.length = lay.cuts.length + 1 := by rw [← hSs]; simp [segsOf]
@@ -258,29 +261,63 @@ theorem walRepairFile {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   rw [hrs0] at hch0
   obtain ⟨hch, hend⟩ := chainOk_crcHead hch0 ht0
   rw [← hrs0] at hch hend
-  refine ⟨lastRecs C Mr d.metadata A Sl, ⟨hfit, hch, ?_, ?_⟩, by rw [hwr, hstreamL]⟩
-  · rw [himg, ← hstreamL]; exact List.prefix_append _ _
-  · intro r len c'
-    rw [hend, chainEnd_lastRecs, ← hstreamL, ← hsplit, ← hSs]
-    obtain ⟨-, -, h3, h4, -, h6, h7, h8⟩ := hTL
-    generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at *
+  have hcE : chainEnd C 0#32 (lastRecs C Mr d.metadata A Sl) =
+      chainEnd C 0#32 (recsOfSegs C Mr d.metadata Ss) := by
+    rw [hend, chainEnd_lastRecs, hsplit]
+  have hpendS := hab.tailStop
+  rw [hSs] at hpendS
+  generalize hc : chainEnd C 0#32 (recsOfSegs C Mr d.metadata Ss) = c at *
+  obtain ⟨-, -, h3, h4, -, h6, h7, h8⟩ := hTL
+  generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at *
+  have hchE : ∀ es : List EntryM, ChainOk C c (chainRecs C c (pendDs Mr es)) := fun es =>
+    chainOk_chainRecs hC _ _ (by intro q hq h; simp [pendDs] at hq; obtain ⟨e, -, rfl⟩ := hq; cases h)
+  obtain ⟨es, hes, hfE, hpX, hendX⟩ : ∃ es : List EntryM, (es ≠ [] → lay.z0 = S.length) ∧
+      RecsFit C (chainRecs C c (pendDs Mr es)) ∧
+      recFrames C (lastRecs C Mr d.metadata A Sl ++ chainRecs C c (pendDs Mr es)) <+: segImg gL ∧
+      ∀ r len c', decStep C true (segImg gL)
+        (recFrames C (lastRecs C Mr d.metadata A Sl ++ chainRecs C c (pendDs Mr es))).length
+        (chainEnd C c (chainRecs C c (pendDs Mr es))) ≠ .accept r len c' := by
     by_cases hz : lay.z0 < S.length
-    · apply decStep_zeros_any C true (z := lay.old.length - S.length)
-      rw [himg, List.drop_left]
-      apply List.ext_getElem
-      · simp
-      · intro b hb1 hb2
-        simp only [List.getElem_drop, List.getElem_replicate]
-        have := h8 hz (S.length + b) (by omega) (by simp at hb1; omega)
-        rwa [getD_of_lt _ _ _ (by simp at hb1; omega)] at this
+    · refine ⟨[], fun h => absurd rfl h, fun _ h => by simp [pendDs, chainRecs] at h, ?_, ?_⟩
+      · simp only [pendDs, List.map_nil, chainRecs, List.append_nil]
+        rw [himg, ← hstreamL]; exact List.prefix_append _ _
+      · intro r len c'
+        simp only [pendDs, List.map_nil, chainRecs, List.append_nil]
+        rw [← hstreamL]
+        apply decStep_zeros_any C true (z := lay.old.length - S.length)
+        rw [himg, List.drop_left]
+        apply List.ext_getElem
+        · simp
+        · intro b hb1 hb2
+          simp only [List.getElem_drop, List.getElem_replicate]
+          have := h8 hz (S.length + b) (by omega) (by simp at hb1; omega)
+          rwa [getD_of_lt _ _ _ (by simp at hb1; omega)] at this
     · have hz0 : lay.z0 = S.length := by omega
       have hold : segImg gL = lay.old := by
         rw [himg]
         have : S = lay.old.take S.length := by rw [← hz0, ← h7, hz0, List.take_length]
         conv => lhs; arg 1; rw [this]
         exact List.take_append_drop _ _
-      rw [hold, ← hz0]
-      exact hab.tailStop (by rw [hS]; exact hz0) r len c'
+      obtain ⟨es, hfE, hpE, hrE⟩ := hpendS hz0
+      have hSo : S = lay.old.take lay.z0 := by rw [hz0, ← hold, himg, List.take_left' rfl]
+      refine ⟨es, fun _ => hz0, hfE, ?_, ?_⟩
+      · rw [hold, recFrames_append, ← hstreamL]
+        obtain ⟨t, ht⟩ := hpE
+        refine ⟨t, ?_⟩
+        rw [List.append_assoc, ht, hSo, List.take_append_drop]
+      · intro r len c'
+        rw [hold, recFrames_append, List.length_append, ← hstreamL, chainEnd_chainRecs, ← hz0]
+        exact hrE r len c'
+  refine ⟨lastRecs C Mr d.metadata A Sl ++ chainRecs C c (pendDs Mr es), es, ⟨?_, ?_, hpX, ?_⟩, ?_,
+    fun h => by rw [hes h, hwr]⟩
+  · intro r hr
+    rcases List.mem_append.1 hr with hr | hr
+    · exact hfit r hr
+    · exact hfE r hr
+  · exact (chainOk_append C _ _ _).2 ⟨hch, by rw [hcE]; exact hchE es⟩
+  · intro r len c'
+    rw [chainEnd_append, hcE]; exact hendX r len c'
+  · rw [recFrames_append, List.length_append, hwr, ← hstreamL]
 
 end repair
 

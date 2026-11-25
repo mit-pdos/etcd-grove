@@ -210,6 +210,152 @@ theorem readAllFoldP_append (U : WalUnmarshal) (s : w64 × w64) (write : Bool) (
     rw [hes]
     rfl
 
+/-! ## The WAL's records end with a non-entry record; its entry records decode -/
+
+/-- The last record of `D`, if any, is not an entry record. -/
+def NoEntLast (D : List (w64 × List w8)) : Prop := ∀ x ∈ D.getLast?, x.1 ≠ entryType
+
+theorem noEntLast_append {A B : List (w64 × List w8)} (hA : NoEntLast A) (hB : NoEntLast B) :
+    NoEntLast (A ++ B) := by
+  intro x hx
+  rw [List.getLast?_append] at hx
+  cases hb : B.getLast? with
+  | none => rw [hb] at hx; exact hA x (by simpa using hx)
+  | some y =>
+    rw [hb, Option.some_or, Option.mem_def, Option.some.injEq] at hx
+    subst hx; exact hB _ hb
+
+theorem stateType_ne_entry : stateType ≠ entryType := by unfold stateType entryType; decide
+theorem snapshotType_ne_entry : snapshotType ≠ entryType := by unfold snapshotType entryType; decide
+theorem metadataType_ne_entry : metadataType ≠ entryType := by unfold metadataType entryType; decide
+theorem crcType_ne_entry : crcType ≠ entryType := by unfold crcType entryType; decide
+
+theorem noEntLast_last {D : List (w64 × List w8)} {a : w64 × List w8} (h : D.getLast? = some a)
+    (ha : a.1 ≠ entryType) : NoEntLast D := by
+  intro x hx
+  rw [h, Option.mem_def, Option.some.injEq] at hx
+  subst hx; exact ha
+
+theorem noEntLast_opDs (M : WalMarshal) (o : WalOp) : NoEntLast (opDs M o) := by
+  cases o with
+  | save h es =>
+    simp only [opDs]
+    by_cases hc : es = [] ∧ hsEmptyP h
+    · rw [if_pos hc, hc.1]; intro x hx; simp at hx
+    · rw [if_neg hc]
+      exact noEntLast_last (a := (stateType, M.encState h)) (by simp) stateType_ne_entry
+  | snap m al =>
+    exact noEntLast_last (a := (snapshotType, M.encSnap m al)) (by simp only [opDs]; rfl)
+      snapshotType_ne_entry
+
+theorem noEntLast_flatMap (M : WalMarshal) (S : WalHist) : NoEntLast (S.flatMap (opDs M)) := by
+  induction S with
+  | nil => intro x hx; simp at hx
+  | cons o S ih => rw [List.flatMap_cons]; exact noEntLast_append (noEntLast_opDs M o) ih
+
+theorem noEntLast_segHdr (M : WalMarshal) (md : List w8) (first : Bool) (P : WalHist) :
+    NoEntLast (segHdrDs M md first P) := by
+  unfold segHdrDs
+  cases first
+  · simp only [Bool.false_eq_true, ite_false, cutHdrDs]
+    split
+    · exact noEntLast_last (a := (metadataType, md)) (by simp) metadataType_ne_entry
+    · exact noEntLast_last (a := (stateType, M.encState (walLastHS P))) (by simp) stateType_ne_entry
+  · simp only [ite_true, hdrDs]
+    exact noEntLast_last (a := (snapshotType, M.snap0)) (by simp) snapshotType_ne_entry
+
+theorem noEntLast_segsDs (M : WalMarshal) (md : List w8) :
+    ∀ (first : Bool) (P : WalHist) (Ss : List WalHist), NoEntLast (segsDs M md first P Ss).flatten
+  | _, _, [] => by intro x hx; simp [segsDs] at hx
+  | first, P, S :: Ss => by
+    simp only [segsDs, List.flatten_cons]
+    exact noEntLast_append (noEntLast_append (noEntLast_segHdr M md first P) (noEntLast_flatMap M S))
+      (noEntLast_segsDs M md false (P ++ S) Ss)
+
+theorem noEntLast_drop {D : List (w64 × List w8)} (h : NoEntLast D) (n : Nat) :
+    NoEntLast (D.drop n) := by
+  intro x hx
+  rw [List.getLast?_drop] at hx
+  split at hx
+  · simp at hx
+  · exact h x hx
+
+/-- Every entry record of the operations' records is an encoded entry. -/
+def EntsEnc (M : WalMarshal) (D : List (w64 × List w8)) : Prop :=
+  ∀ p ∈ D, p.1 = entryType → ∃ e, p.2 = M.encEntry e
+
+theorem entsEnc_segsDs (M : WalMarshal) (md : List w8) :
+    ∀ (first : Bool) (P : WalHist) (Ss : List WalHist), EntsEnc M (segsDs M md first P Ss).flatten
+  | _, _, [] => by intro p hp; simp [segsDs] at hp
+  | first, P, S :: Ss => by
+    intro p hp hpt
+    simp only [segsDs, List.flatten_cons, List.mem_append] at hp
+    rcases hp with (hp | hp) | hp
+    · exfalso
+      have hne : p.1 = crcType ∨ p.1 = metadataType ∨ p.1 = snapshotType ∨ p.1 = stateType := by
+        unfold segHdrDs at hp
+        cases first
+        · simp only [Bool.false_eq_true, ite_false, cutHdrDs, List.mem_append] at hp
+          rcases hp with hp | hp
+          · simp at hp; rcases hp with rfl | rfl <;> simp
+          · split at hp
+            · simp at hp
+            · simp at hp; subst hp; simp
+        · simp only [ite_true, hdrDs] at hp
+          simp at hp; rcases hp with rfl | rfl | rfl <;> simp
+      rcases hne with h | h | h | h <;> rw [h] at hpt
+      · exact crcType_ne_entry hpt
+      · exact metadataType_ne_entry hpt
+      · exact snapshotType_ne_entry hpt
+      · exact stateType_ne_entry hpt
+    · obtain ⟨o, -, ho⟩ := List.mem_flatMap.1 hp
+      cases o with
+      | save h es =>
+        simp only [opDs, List.mem_append] at ho
+        rcases ho with ho | ho
+        · obtain ⟨e, -, rfl⟩ := List.mem_map.1 ho; exact ⟨e, rfl⟩
+        · split at ho
+          · simp at ho
+          · simp at ho; subst ho; exact absurd hpt stateType_ne_entry
+      | snap m al => simp [opDs] at ho; subst ho; exact absurd hpt snapshotType_ne_entry
+    · exact entsEnc_segsDs M md false (P ++ S) Ss p hp hpt
+
+theorem entsDecode_of_enc {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M)
+    {D : List (w64 × List w8)} (h : EntsEnc M D) : EntsDecode U D := by
+  intro r hr ht
+  obtain ⟨e, he⟩ := h r hr ht
+  exact ⟨e, by rw [he, hU.entry]⟩
+
+/-- **`ReadAll` with `pending` on the WAL's records from some position on, then a torn `Save`'s
+entry records**: the old fold on the WAL's records. -/
+theorem readAllFoldP_wal {C : WalCodec} {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M)
+    (s : w64 × w64) (write : Bool) (md : List w8) (Ss : List WalHist) (n : Nat) (c : w32)
+    (es : List EntryM) (stop : WalStop) :
+    readAllFoldP U s write ((recsOfSegs C M md Ss).drop n ++ chainRecs C c (pendDs M es)) stop =
+      readAllFold U s write ((recsOfSegs C M md Ss).drop n) stop := by
+  have hmap : ∀ c D, (chainRecs C c D).map (fun r => (r.typ, r.data)) = D := chainRecs_map C
+  apply readAllFoldP_append
+  · rw [List.map_append, List.map_drop, recsOfSegs, hmap, hmap]
+    apply entsDecode_of_enc hU
+    intro p hp hpt
+    rcases List.mem_append.1 hp with hp | hp
+    · exact entsEnc_segsDs M md true [] Ss p (List.mem_of_mem_drop hp) hpt
+    · simp only [pendDs, List.mem_map] at hp
+      obtain ⟨e, -, rfl⟩ := hp; exact ⟨e, rfl⟩
+  · intro r hr
+    have h := noEntLast_drop (noEntLast_segsDs M md true [] Ss) n
+    have : (r.typ, r.data) ∈ ((segsDs M md true [] Ss).flatten.drop n).getLast? := by
+      rw [← hmap 0#32 (segsDs M md true [] Ss).flatten, ← List.map_drop, List.getLast?_map]
+      unfold recsOfSegs at hr
+      rw [Option.mem_def] at hr ⊢; rw [hr]; rfl
+    exact h _ this
+  · intro r hr
+    have : (r.typ, r.data) ∈ pendDs M es := by
+      rw [← hmap c (pendDs M es)]; exact List.mem_map_of_mem hr
+    simp only [pendDs, List.mem_map] at this
+    obtain ⟨e, -, he⟩ := this
+    exact (congrArg Prod.fst he).symm
+
 end pend
 
 end WalEnc

@@ -165,7 +165,7 @@ theorem walAbsD_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
     simp only [syncLayW, syncLay, List.take_length]
     rw [htail]; exact Nat.le_refl _
   · exact segStart_le hc _
-  · intro hz r len c'
+  · intro hz; apply pendStop_nil; intro r len c'
     simp only [syncLayW, syncLay, hSm] at hz ⊢
     have hz0 : lay.z0 = lay.wr := by omega
     apply decStep_zeros_any C true (z := g0.bs.length - lay.wr)

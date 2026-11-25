@@ -126,14 +126,16 @@ theorem chainRecs_cutHead (C : WalCodec) (M : WalMarshal) (md : List w8) (c : w3
 hypotheses): at the end of the last segment's frames, at the chain's CRC after every record. -/
 theorem walDecodeFiles_running_end {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8)
     (A : List WalHist) (Sl : WalHist) (p : Nat) (hp : p ≤ A.length) (last : List w8)
-    (hfit : RecsFit C (recsOfSegs C M md (A ++ [Sl])))
-    (hpre : recFrames C (lastRecs C M md A Sl) <+: last)
-    (hend : ∀ r len c', decStep C true last (recFrames C (lastRecs C M md A Sl)).length
-      (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) ≠ .accept r len c') :
+    (Y : List WalRec)
+    (hfit : RecsFit C (recsOfSegs C M md (A ++ [Sl]))) (hfitY : RecsFit C Y)
+    (hchY : ChainOk C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) Y)
+    (hpre : recFrames C (lastRecs C M md A Sl ++ Y) <+: last)
+    (hend : ∀ r len c', decStep C true last (recFrames C (lastRecs C M md A Sl ++ Y)).length
+      (chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) Y) ≠ .accept r len c') :
     (walDecodeFiles C (((chainSegs C 0#32 (segsDs M md true [] A)).drop p).map (recFrames C) ++ [last])
-        0#32).off = (recFrames C (lastRecs C M md A Sl)).length ∧
+        0#32).off = (recFrames C (lastRecs C M md A Sl ++ Y)).length ∧
     (walDecodeFiles C (((chainSegs C 0#32 (segsDs M md true [] A)).drop p).map (recFrames C) ++ [last])
-        0#32).crc = chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl])) := by
+        0#32).crc = chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) Y := by
   generalize hL : chainSegs C 0#32 (segsDs M md true [] A) = L
   have hLl : L.length = A.length := by rw [← hL, length_chainSegs, length_segsDs]
   have hfull : recsOfSegs C M md (A ++ [Sl]) = L.flatten ++ lastRecs C M md A Sl := by
@@ -181,8 +183,17 @@ theorem walDecodeFiles_running_end {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (
   have hfitl : RecsFit C (lastRecs C M md A Sl) := fun r hr => hfitX r (List.mem_append_right _ hr)
   rw [walDecodeFiles_intact_last hC last _ 0#32 hfitD hchX.1]
   rw [chainEnd_append] at hendX
-  have hE := walDecodeFrom_framesEnd hC hfitl hchX.2 hpre (by rw [hendX]; exact hend)
-  exact ⟨hE.2.1, by simp only; rw [hE.2.2, hendX]⟩
+  have hfitl' : RecsFit C (lastRecs C M md A Sl ++ Y) := fun r hr => by
+    rcases List.mem_append.1 hr with hr | hr
+    · exact hfitl r hr
+    · exact hfitY r hr
+  have hchl' : ChainOk C (chainEnd C 0#32 (L.drop p).flatten) (lastRecs C M md A Sl ++ Y) :=
+    (chainOk_append C _ _ _).2 ⟨hchX.2, by rw [hendX]; exact hchY⟩
+  have hendl' : chainEnd C (chainEnd C 0#32 (L.drop p).flatten) (lastRecs C M md A Sl ++ Y) =
+      chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl])))  Y := by
+    rw [chainEnd_append, hendX]
+  have hE := walDecodeFrom_framesEnd hC hfitl' hchl' hpre (by rw [hendl']; exact hend)
+  exact ⟨hE.2.1, by simp only; rw [hE.2.2, hendl']⟩
 
 /-- **Where `ReadAll`'s reader ends on the named segments from the `kk`-th on**
 (`walReadFiles_running`'s premises): at the last segment's write position, at the chain's CRC after
@@ -191,9 +202,18 @@ theorem walReadFiles_running_end {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d
     {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
     (hkk : kk < lay.segs.length) :
-    (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).off = lay.wr ∧
-    (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).crc =
-      chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)) := by
+    ∃ es : List EntryM,
+      (es ≠ [] → lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length) ∧
+      (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs =
+        (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)).drop
+          (recsOfSegs C Mr d.metadata ((segsOf (histM d) lay.cuts).take (lay.first + kk))).length ++
+        chainRecs C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
+          (pendDs Mr es) ∧
+      (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).off = lay.wr +
+        (recFrames C (chainRecs C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
+          (pendDs Mr es))).length ∧
+      (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).crc =
+        crcAfter C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) (pendDs Mr es) := by
   have hne : lay.segs ≠ [] := hab.nonempty
   obtain ⟨-, -, hfl⟩ := hab.cuts
   generalize hSs : segsOf (histM d) lay.cuts = Ss
@@ -243,31 +263,63 @@ theorem walReadFiles_running_end {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d
       have e : (Prod.fst ∘ durB) = (id : w8 → w8) := rfl
       rw [e, List.map_id, hstream (lay.first + (kk + j)) (by omega)]
       congr 2; omega
-  rw [hfiles, hwr, hstreamL, hsplit]
-  apply walDecodeFiles_running_end hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL)
-  · rw [← hsplit, ← hSs]; exact hab.fit
-  · rw [himg, ← hstreamL]; exact List.prefix_append _ _
-  · intro r len c'
-    rw [← hstreamL, ← hsplit, ← hSs]
-    obtain ⟨-, -, h3, h4, -, h6, h7, h8⟩ := hTL
-    generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at *
+  rw [hfiles]
+  have hfit : RecsFit C (recsOfSegs C Mr d.metadata (A ++ [Sl])) := by
+    rw [← hsplit, ← hSs]; exact hab.fit
+  have hpendS := hab.tailStop
+  rw [hSs, hsplit] at hpendS
+  rw [hsplit, List.take_append_of_le_length (by omega)]
+  obtain ⟨-, -, h3, h4, -, h6, h7, h8⟩ := hTL
+  generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at *
+  generalize hc : chainEnd C 0#32 (recsOfSegs C Mr d.metadata (A ++ [Sl])) = c at *
+  have hchE : ∀ es : List EntryM, ChainOk C c (chainRecs C c (pendDs Mr es)) := fun es =>
+    chainOk_chainRecs hC _ _ (by intro q hq h; simp [pendDs] at hq; obtain ⟨e, -, rfl⟩ := hq; cases h)
+  obtain ⟨es, hes, hfE, hpX, hendX⟩ : ∃ es : List EntryM, (es ≠ [] → lay.z0 = S.length) ∧
+      RecsFit C (chainRecs C c (pendDs Mr es)) ∧
+      recFrames C (lastRecs C Mr d.metadata A Sl ++ chainRecs C c (pendDs Mr es)) <+: segImg gL ∧
+      ∀ r len c', decStep C true (segImg gL)
+        (recFrames C (lastRecs C Mr d.metadata A Sl ++ chainRecs C c (pendDs Mr es))).length
+        (chainEnd C c (chainRecs C c (pendDs Mr es))) ≠ .accept r len c' := by
     by_cases hz : lay.z0 < S.length
-    · apply decStep_zeros_any C true (z := lay.old.length - S.length)
-      rw [himg, List.drop_left]
-      apply List.ext_getElem
-      · simp
-      · intro b hb1 hb2
-        simp only [List.getElem_drop, List.getElem_replicate]
-        have := h8 hz (S.length + b) (by omega) (by simp at hb1; omega)
-        rwa [getD_of_lt _ _ _ (by simp at hb1; omega)] at this
+    · refine ⟨[], fun h => absurd rfl h, fun _ h => by simp [pendDs, chainRecs] at h, ?_, ?_⟩
+      · simp only [pendDs, List.map_nil, chainRecs, List.append_nil]
+        rw [himg, ← hstreamL]; exact List.prefix_append _ _
+      · intro r len c'
+        simp only [pendDs, List.map_nil, chainRecs, List.append_nil]
+        rw [← hstreamL]
+        apply decStep_zeros_any C true (z := lay.old.length - S.length)
+        rw [himg, List.drop_left]
+        apply List.ext_getElem
+        · simp
+        · intro b hb1 hb2
+          simp only [List.getElem_drop, List.getElem_replicate]
+          have := h8 hz (S.length + b) (by omega) (by simp at hb1; omega)
+          rwa [getD_of_lt _ _ _ (by simp at hb1; omega)] at this
     · have hz0 : lay.z0 = S.length := by omega
       have hold : segImg gL = lay.old := by
         rw [himg]
         have : S = lay.old.take S.length := by rw [← hz0, ← h7, hz0, List.take_length]
         conv => lhs; arg 1; rw [this]
         exact List.take_append_drop _ _
-      rw [hold, ← hz0]
-      exact hab.tailStop (by rw [hS]; exact hz0) r len c'
+      obtain ⟨es, hfE, hpE, hrE⟩ := hpendS hz0
+      have hSo : S = lay.old.take lay.z0 := by rw [hz0, ← hold, himg, List.take_left' rfl]
+      refine ⟨es, fun _ => hz0, hfE, ?_, ?_⟩
+      · rw [hold, recFrames_append, ← hstreamL]
+        obtain ⟨t, ht⟩ := hpE
+        refine ⟨t, ?_⟩
+        rw [List.append_assoc, ht, hSo, List.take_append_drop]
+      · intro r len c'
+        rw [hold, recFrames_append, List.length_append, ← hstreamL, chainEnd_chainRecs, ← hz0]
+        exact hrE r len c'
+  subst hc
+  have hE := walDecodeFiles_running_end hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL) _
+    hfit hfE (hchE es) hpX hendX
+  refine ⟨es, hes, ?_, ?_, ?_⟩
+  · have := walDecodeFiles_running hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL) _
+      hfit hfE (hchE es) hpX hendX
+    rw [this]
+  · rw [hE.1, recFrames_append, List.length_append, ← hstreamL, hwr]
+  · rw [hE.2, chainEnd_chainRecs]
 
 /-- **The write position is inside the last file** (`walReadFiles_running`'s premises): `lay.wr` is at
 most the length of the last of the files read. -/
