@@ -117,7 +117,7 @@ theorem net.DialTimeout.labProof [github_com.imdea_software.swiftpaxos.SwiftNetD
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.dialTimeout (GF := GF)) go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
     (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false P Q [] [] ∗
       connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
-  · iframe Het Hed
+  · iframe Hpkg Het Hed
     isplitr
     · ipureintro; exact Hok
     isplit
@@ -152,17 +152,18 @@ theorem net.DialTimeout.labProof [github_com.imdea_software.swiftpaxos.SwiftNetD
 
 /-- The lab's `net.Dial.spec` (`"tcp"`), from `Net/`'s and `dial_au`. -/
 theorem net.Dial.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (a : GoString) (P Q : Proto GF) :
-    {{ addrProto (Gg := hG.goose_globalGS) a P Q }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ addrProto (Gg := hG.goose_globalGS) a P Q }}
       (App (App (Val (@! net.Dial)) (Val #(go!"tcp"))) (Val #a))
     {{ (cv err : GoInterface), RET (PairV #cv #err);
         net.newConnResult go!"dial" false P Q cv err }} := by
-  iintro %Φ #Ha HΦ
+  iintro %Φ ⟨#Hpkg, #Ha⟩ HΦ
   ihave %Hok := addrTok_ok a $$ [Ha]
   · iapply addrProto_tok $$ Ha
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.dial (GF := GF)) go!"tcp" net.tcpNet_tcp a iprop(True)
     (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false P Q [] [] ∗
       connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
-  · isplitr
+  · iframe Hpkg
+    isplitr
     · ipureintro; exact Hok
     isplit
     · itrivial
@@ -197,20 +198,21 @@ theorem net.Dial.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 /-- The lab's wildcard `Listen` (`net.ListenWild`), over `lisProto` (D21): `Listen("tcp", la)` at a
 listener address `la` whose protocols are `P`, `Q`. -/
 theorem net.Listen.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (la : GoString) (P Q : Proto GF) :
-    {{ lisProto (Gg := hG.goose_globalGS) la P Q }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ lisProto (Gg := hG.goose_globalGS) la P Q }}
       (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #la))
     {{ (lv er : GoInterface), RET (PairV #lv #er);
         (∃ (ll : Loc) (lid : w64),
           ⌜lv = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #ll ∧
             er = interface.nil⌝ ∗ net.ownListener ll lid la) ∨
         (∃ i, ⌜er = interface.ok i⌝) }} := by
-  iintro %Φ #Hlp HΦ
+  iintro %Φ ⟨#Hpkg, #Hlp⟩ HΦ
   ihave #Hlp' := Hlp
   iunfold lisProto at Hlp'
   icases Hlp' with ⟨-, -, %Hok⟩
   iapply wp_fupd
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.listen (GF := GF)) go!"tcp" net.tcpNet_tcp la $$ []
-  · isplitr
+  · iframe Hpkg
+    isplitr
     · ipureintro; exact Hok
     iapply listen_lis_au la P Q $$ Hlp
   iintro !> %lv %er Hres
@@ -239,18 +241,19 @@ theorem net.Listen.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps G
 /-- `Listen("tcp", la)` at a listener address `la` (`listenOk`), with the right to listen there as
 `Net/`'s `Listen.spec` takes it (the update; models-rpc-http's `rpcLisP_lis` gives it). -/
 theorem net.Listen.labProofU [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (la : GoString) (hok : listenOk la = true) :
-    {{ |={⊤,∅}=> lisToks (NG (Gg := hG.goose_globalGS)) la ∗
-        (lisToks (NG (Gg := hG.goose_globalGS)) la ={∅,⊤}=∗ True) }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ (|={⊤,∅}=> lisToks (NG (Gg := hG.goose_globalGS)) la ∗
+        (lisToks (NG (Gg := hG.goose_globalGS)) la ={∅,⊤}=∗ True)) }}
       (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #la))
     {{ (lv er : GoInterface), RET (PairV #lv #er);
         (∃ (ll : Loc) (lid : w64),
           ⌜lv = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #ll ∧
             er = interface.nil⌝ ∗ net.ownListener ll lid la) ∨
         (∃ i, ⌜er = interface.ok i⌝) }} := by
-  iintro %Φ Hu HΦ
+  iintro %Φ ⟨#Hpkg, Hu⟩ HΦ
   iapply wp_fupd
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.listen (GF := GF)) go!"tcp" net.tcpNet_tcp la $$ [Hu]
-  · isplitr
+  · iframe Hpkg
+    isplitr
     · ipureintro; exact hok
     iexact Hu
   iintro !> %lv %er Hres

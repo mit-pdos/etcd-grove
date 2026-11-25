@@ -91,9 +91,10 @@ theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG
   wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
   ihave Hsl : sl ↦* connectAns $$ [Hsl]
   · rw [show connectAns = go!"HTTP/1.0 " ++ connectedStatus ++ go!"\n\n" from rfl]; iexact Hsl
+  ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hca
   wp_apply wp_Write t cn true a la ra' sl connectAns _ ed
       (writeP (Gg := hG.goose_globalGS) cn true (respProto W a) [])
-      $$ [$Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
+      $$ [$Hpoll $Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
   obtain ⟨Hw, -⟩ := Hw
   iunfold writeP at HwP
   wp_apply wp_ServeConn s γs C W a t cn la ra' $$ [$Hsrv $Hserves $Henv $Hset $Hca HwP Hrecv Hfresh

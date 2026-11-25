@@ -145,13 +145,12 @@ class FsNoErrAll [ExtSemantics fsExt] : Prop where
     FsStepSat (NoIoErr Sio) ∧ FsStepSat (NoMapLockErr Sio)
 
 open Fs in
-include GF in
 /-- **The Linux file extension's instances**, packed: its semantics, the model's facts about it,
 its place in the program's extensions (with the global `fs_interp`). (Until 2026-11-24 it also held
 the field facts of the then trusted `os.file` and `os.fileStat`, `os.file.FieldAssumptions`; Go-model
 overlays S5 made both translated layouts; `GF` stays a parameter, now unused, so that its uses
 are unchanged.) -/
-structure FsCtx where
+structure FsCtx (GF : BundledGFunctors) where
   S : ExtSemantics fsExt
   ok : @FsSemOk S
   has : @HasExt _ _ _ fsExt S fs_interp

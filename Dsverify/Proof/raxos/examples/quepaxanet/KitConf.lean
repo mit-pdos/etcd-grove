@@ -384,7 +384,7 @@ theorem wp_log_Println [log.Assumptions] (s : GoString) (sl : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ sl ↦* [interface.mkOk go.string #s] }}
       (App (Val (@! Perennial.log.Println)) (Val #sl))
     {{ RET #(); True }} := by
-  wp_start as Hsl
+  wp_start_folded as Hsl
   wp_apply _root_.Perennial.log.wp_Println _ _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
     $$ [$Hsl] as -
   iapply HΦ; itrivial

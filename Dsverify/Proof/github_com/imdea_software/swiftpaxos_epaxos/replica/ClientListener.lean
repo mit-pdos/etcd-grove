@@ -41,13 +41,15 @@ def TCPAddrStringHyp : Prop :=
     (App (Val #(methods (go.GoType.PointerType net.TCPAddr.ty) go!"String" #pa)) (Val #()))
   {{ (s : GoString), RET #s; True }}
 
-/-- `TCPAddrStringHyp` holds of `Net/`'s model (`TrustedCode/net.lean`'s `TCPAddr.String.impl`, an
+/-- `TCPAddrStringHyp` holds of `Net/`'s model (`models/net/model.go`'s `TCPAddr.String`, `extAnyString`: an
 arbitrary string): dsv-swiftpaxos's `net.wp_TCPAddr_String` (`lib/NetConn.lean`). -/
 theorem tcpAddrString : TCPAddrStringHyp (GF := GF) := by
   intro pa v
   wp_start
-  iapply wp_net_AnyString
-  iintro %s
+  wp_method_call
+  unfold net.TCPAddr.String.impl
+  wp_auto
+  wp_apply net.wp_extAnyString as %s
   iapply HΦ
   itrivial
 

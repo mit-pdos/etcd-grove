@@ -207,3 +207,38 @@ Done (lean-check --fast -a, 0 errors):
 Note: http's errMsgOk and net.errStr have identical bodies (follow-up: unify).
 Next: fix DialHTTPPath, then steps 3-7 (merge go-models-rest + gen-init, ConnIo and ~60 Read/Write clients,
 KvNet copy-part + goose kvnet, VM builds, tcb-report, packet). No VM build was started this session.
+
+## Session 7 (2026-11-25, worktree ho-gmr, VM key c61dd42e08d7d686)
+Decisions (recorded here; spec changes listed for the packet):
+- `Errno.Error` is translated (reads syscall's `errors` table), so `errStr e` (Base.lean) is now
+  conditional: `∃ ii, e = ok ii ∗ □ (syscall.errnoOk -∗ stringMethodSpec ii "Error")`. Producers
+  (the 17 wrappers, resErr) need no package fact; consumers pass `syscall.errnoOk`:
+  `wp_OpError_Error` (+ errnoOk arg), rpc/Errs `errNE_opErr`/`errAny_opErr`/`errAny_opErrPtr` (LHS ∗),
+  `errNE_resErr`/`errAny_resErr`/`errSrv_resErr_read` (`errnoOk ⊢ resErr -∗ …`), rpc `inErr_read`,
+  `rdErr_read(F/E)` (LHS gains errnoOk), http `readErr_msgOk` (LHS), Dsverify BufioNet
+  `resErr_errOrNil`, NetAcceptLib `errAny_resErr'`, `readFull_errAny`. All Proof-level lemmas.
+- `fdAt` (a netFD) carries `isPkgInit pkg_id.net`: `connAt_net/poll/io/errnoOk`, `lisAt_net/errnoOk`,
+  `errnoOk_of_poll`, `edTyped_of_poll` (Base.lean). So Conn.Read/Write's lead-decided package premises
+  are discharged from the connection (ConnIo laws keep their old statements; rpc/http/examples derive
+  them), and errnoOk at every consumer. `wp_modelFD`/`wp_newConn` take `isPkgInit net`.
+- Spec changes (premise `isPkgInit pkg_id.net` added, every caller derives it with solve_pkg_init /
+  wp_apply's automatic package-fact discharge): `net.Dial.spec`, `net.DialTimeout.spec`,
+  `net.Listen.spec`, `net.Listen.specAddrOk` (AtAddr), `net.rpc.Dial.spec`; Dsverify lab
+  `net.Dial.labProof`, `net.Listen.labProof`, `net.Listen.labProofU` (NetLab.lean); main tree
+  `EtcdGrove.net.Listen.spec` (Spec/net/Listen.lean). No top-level statement changed (to confirm
+  with the full build: the etcd examples calling EtcdGrove net.Listen must find `isPkgInit net`).
+- 53 Dial/Listen call sites patched by script (`tmp/egnet7/addnet.py`: `ihave #HnetPk … solve_pkg_init`
+  + `(try iframe HnetPk)` in the call's first bullet).
+- Other fixes: ConnReaderLemmas NewCond (pin's `isNotifyList`), backgroundRead's `OpError.Timeout`
+  gets `opErrOk` (kindErr_netOwnErr + edTyped_of_poll), connReader__Read imports OpErrorMsg,
+  NetConn/ClientListener `TCPAddr.String` over the Go model (`net.wp_extAnyString`), KitConf
+  `wp_log_Println` over Perennial's `log.wp_Println` (`wp_start_folded`), rabia server Link uses
+  `fmt.wp_Printf` (Perennial.Proof.fmt.Link), InvBbolt `structure FsCtx (GF : BundledGFunctors)`
+  (the `include GF in` fix did not add the parameter), errStr_of_wp moved out of the netExt section.
+- Merged origin/go-models-rest/2026-11-24 (re-pin 30102d8b2, Net log.Println removed); KvNet copies
+  regenerated (PERENNIAL_DIR=…/wt/p-gm-rest).
+Lesson: wp_apply discharges `isPkgInit` conjuncts itself when derivable from the context;
+`iframe Hio` then fails ("cannot frame") — use `(try iframe X)`. iapply does not.
+Open: Proof/os/OffEnd.lean:85 (egos's a2077383e1 made Seek past modelSeekMax stuck: `wp_endOff`'s
+hbig branch now reaches `gomodel.Stuck`; needs `m.size + off ≤ seekMax` as a premise and its callers
+(fileutil preallocExtendTrunc) to discharge it — egos/lead decision, not done here).

@@ -83,6 +83,7 @@ public import Proof.bufio.NewReaderSize
 public import Proof.bufio.NewWriterSize
 public import Proof.bufio.NewWriterSizeRep
 public import Perennial.Proof.fmt.Printf
+public import Perennial.Proof.fmt.Link
 
 @[expose] public section
 
@@ -177,7 +178,7 @@ theorem wp_ProxyInit [github_com.rs.zerolog.Hyps GF] : proxy.ProxyInit.spec (GF 
 theorem wp_NetworkInit : network.NetworkInit.spec (GF := GF) :=
   network.NetworkInit.wp_proof wp_NetTCPInit
 theorem wp_Network_Prologue : network.Network.Prologue.spec (GF := GF) :=
-  network.Network.Prologue.wp_proof wp_NetTCP_Connect _root_.Perennial.fmt.Printf.wp_proof
+  network.Network.Prologue.wp_proof wp_NetTCP_Connect _root_.Perennial.fmt.wp_Printf
 theorem wp_Proxy_Prologue : proxy.Proxy.Prologue.spec (GF := GF) :=
   proxy.Proxy.Prologue.wp_proof wp_ProxyTCP_Connect
 theorem wp_TerminalLogger [github_com.rs.zerolog.Hyps GF] : Server.TerminalLogger.spec (GF := GF) :=

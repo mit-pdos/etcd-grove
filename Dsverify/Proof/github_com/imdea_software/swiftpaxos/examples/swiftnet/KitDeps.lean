@@ -230,7 +230,8 @@ theorem wp_ack (D : SwNetDeps (hG := hG)) (t : Loc) (cn : Nat) (a : GoString)
   iintro %Φ ⟨#Hca, #Hed, #HQ, Hsend, Hls⟩ HΦ
   iapply D.write t cn true a la ra ls [W8 107] (DFrac.own 1) ed
     (writeP cn true Q []) $$ [Hls Hsend]
-  · iframe Hca Hls Hed
+  · ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hca
+    iframe Hpoll Hca Hls Hed
     isplitl [Hsend]
     · iapply writeP_init $$ Hsend
     · iapply write_acc cn true Q [] [W8 107] $$ HQ
