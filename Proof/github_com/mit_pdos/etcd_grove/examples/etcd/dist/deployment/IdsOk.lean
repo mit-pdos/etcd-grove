@@ -7,6 +7,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.NewMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.memberIDs
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.grantsLeases
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.RaftIdOk
 
 @[expose] public section
 
@@ -30,7 +31,8 @@ variable [package_sem : deployment.Assumptions]
 
 theorem IdsOk.wp_proof
     (hIDs : etcd_dist.memberIDs.spec (GF := GF) (hG := hG))
-    (hGrants : etcd_dist.grantsLeases.spec (GF := GF) (hG := hG)) :
+    (hGrants : etcd_dist.grantsLeases.spec (GF := GF) (hG := hG))
+    (hRaft : etcd_dist.RaftIdOk.spec (GF := GF) (hG := hG)) :
     etcd_dist.IdsOk.spec (GF := GF) (hG := hG) := by
   intro v d hfips hpeers
   wp_start as #Hd
@@ -108,14 +110,15 @@ theorem IdsOk.wp_proof
           (∀ k, mp15 !! k = if k ∈ (ids.take j).map (· &&& W64 32767) then some true else none) ∧
           ((ids.take j).map (· &&& W64 65535)).Nodup ∧
           (∀ id ∈ ids.take j, id &&& W64 65535 ≠ W64 0) ∧
+          (∀ id ∈ ids.take j, raftIdOk id = true) ∧
           (g = true → ((ids.take j).map (· &&& W64 32767)).Nodup)⌝ : IProp GF)
       $$ [i id Hm16 Hm15]
     · iexists 0, _, ∅, ∅
       iframe
       ipureintro
-      exact ⟨by omega, fun k => by simp, fun k => by simp, by simp, by simp, fun _ => by simp⟩
+      exact ⟨by omega, fun k => by simp, fun k => by simp, by simp, by simp, by simp, fun _ => by simp⟩
     wp_for HK
-    obtain ⟨Hk1, Hk2, Hk3, Hk4, Hk5, Hk6⟩ := Hk
+    obtain ⟨Hk1, Hk2, Hk3, Hk4, Hk5, HkR, Hk6⟩ := Hk
     wp_if_destruct
     · have hj : j < ids.length := by word
       have hc : sint.Z (W64 (j : Int)) < sint.Z isl.len := by word
@@ -151,6 +154,22 @@ theorem IdsOk.wp_proof
         ipureintro; intro _ h; cases h
       · simp only [hz, _root_.decide_false]
         wp_auto
+        wp_apply hRaft
+        by_cases hr : raftIdOk x = false
+        · simp only [hr, Bool.not_false, ↓reduceIte]
+          wp_auto
+          wp_for_post
+          iapply HΦ
+          ipureintro; intro _ h; cases h
+        have hr' : raftIdOk x = true := by simpa using hr
+        simp only [hr', Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+        have hR : ∀ id ∈ ids.take (j + 1), raftIdOk id = true := by
+          intro id hid
+          rw [htake] at hid
+          rcases List.mem_append.1 hid with h | h
+          · exact HkR id h
+          · rw [List.mem_singleton] at h; subst h; exact hr'
+        wp_auto
         wp_apply (wp_map_lookup1 _ _ m16 mp16 (x &&& W64 65535)) $$ [Hm16] as Hm16
         · iframe
         rw [Hk2]
@@ -179,7 +198,7 @@ theorem IdsOk.wp_proof
             rw [hw]
             iframe
             ipureintro
-            refine ⟨by omega, hmapins mp16 _ Hk2, hmapins mp15 _ Hk3, hnd _ Hk4 hin16, ?_, ?_⟩
+            refine ⟨by omega, hmapins mp16 _ Hk2, hmapins mp15 _ Hk3, hnd _ Hk4 hin16, ?_, hR, ?_⟩
             · intro id hid
               rw [htake] at hid
               rcases List.mem_append.1 hid with h | h
@@ -213,7 +232,7 @@ theorem IdsOk.wp_proof
               rw [hw]
               iframe
               ipureintro
-              refine ⟨by omega, hmapins mp16 _ Hk2, hmapins mp15 _ Hk3, hnd _ Hk4 hin16, ?_, ?_⟩
+              refine ⟨by omega, hmapins mp16 _ Hk2, hmapins mp15 _ Hk3, hnd _ Hk4 hin16, ?_, hR, ?_⟩
               · intro id hid
                 rw [htake] at hid
                 rcases List.mem_append.1 hid with h | h
@@ -222,7 +241,7 @@ theorem IdsOk.wp_proof
               · first | (intro _; exact hnd _ (Hk6 rfl) (hin15 rfl)) | (intro hg; cases hg) | (intro hg; simp at hg)
     · have hjl : j = ids.length := by word
       subst hjl
-      rw [List.take_length] at Hk4 Hk5 Hk6
+      rw [List.take_length] at Hk4 Hk5 HkR Hk6
       iapply HΦ
       ipureintro
       intro hall _
@@ -245,8 +264,9 @@ theorem IdsOk.wp_proof
         unfold List.Nodup at h ⊢
         rw [List.pairwise_map] at h ⊢
         exact h.imp (fun {a b} hne heq => hne (by rw [← hfg a, ← hfg b] at heq; word))
-      refine ⟨hnd _ _ h16 Hk4, fun id hid => ?_, fun hg => ?_⟩
+      refine ⟨hnd _ _ h16 Hk4, fun id hid => ?_, fun id hid => ?_, fun hg => ?_⟩
       · rw [← h16]; have := Hk5 id hid; intro h; apply this; word
+      · have := HkR id hid; simpa [raftIdOk] using this
       · exact hnd _ _ h15 (Hk6 (Hj2.2 hg))
 
 

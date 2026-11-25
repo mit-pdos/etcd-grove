@@ -89,10 +89,17 @@ def goCompatible (ws : List Workload) : Prop :=
     kindNeedsSoleWriter w.kind = true → kindWritesKeys x.kind = false) ∧
   ¬ ((∃ w ∈ ws, w.kind = W64 9) ∧ ∃ w ∈ ws, kindNeedsNoExpiry w.kind = true)
 
+/-- `RaftIdOk(id)`: `id` is neither of raft's local message targets (`math.MaxUint64`,
+`math.MaxUint64 - 1`), which raft v3.7's `Config.validate` refuses as a node's id. -/
+def raftIdOk (id : w64) : Bool :=
+  decide (id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614)
+
 /-- What `IdsOk(d)` returning `true` says of the ids `ids` (`memberIDs(d)`): their 16 low bits
-nonzero and distinct, and, if a workload grants leases, their 15 low bits distinct. -/
+nonzero and distinct, each one raft accepts (`raftIdOk`), and, if a workload grants leases, their
+15 low bits distinct. -/
 def goIdsOk (ids : List w64) (ws : List Workload) : Prop :=
   (ids.map (fun id => uint.Z id % 2 ^ 16)).Nodup ∧ (∀ id ∈ ids, uint.Z id % 2 ^ 16 ≠ 0) ∧
+  (∀ id ∈ ids, id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614) ∧
   ((∃ w ∈ ws, kindGrantsLeases w.kind = true) → leaseIdsApart ids)
 
 end etcd_dist

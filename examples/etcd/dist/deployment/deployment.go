@@ -302,8 +302,17 @@ func memberIDs(d Deployment) []uint64 {
 	return ids
 }
 
+// RaftIdOk says whether raft accepts id as a node's id: raft v3.7's Config.validate refuses an id
+// that IsLocalMsgTarget names, LocalAppendThread (math.MaxUint64) and LocalApplyThread
+// (math.MaxUint64-1), and StartNode panics on its error. (Exported for TestWellFormed: a deployment
+// with such a member id would need a SHA-1 preimage.)
+func RaftIdOk(id uint64) bool {
+	return id != 1<<64-1 && id != 1<<64-2
+}
+
 // IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
-// workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart).
+// workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart); every id one raft
+// accepts (RaftIdOk).
 func IdsOk(d Deployment) bool {
 	ids := memberIDs(d)
 	grants := false
@@ -313,7 +322,7 @@ func IdsOk(d Deployment) bool {
 	low16, low15 := map[uint64]bool{}, map[uint64]bool{}
 	for _, id := range ids {
 		a, b := id&0xffff, id&0x7fff
-		if a == 0 || low16[a] || (grants && low15[b]) {
+		if a == 0 || !RaftIdOk(id) || low16[a] || (grants && low15[b]) {
 			return false
 		}
 		low16[a], low15[b] = true, true

@@ -55,8 +55,7 @@ theorem machines_fsInit [GoGlobalContext] [GoSemanticsFunctions] {d : Deployment
 /-- The statement's premises except the deployment's well-formedness, as one hypothesis's binders. -/
 abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
     Prop :=
-  ∃ (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
-    BootFacts d ps ctxs boot ∧ EtcdEnv d ∧
+  ∃ boot : List LogEntry, BootFacts d boot ∧ EtcdEnv d ∧
     (σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) ∧
     (σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ) ∧
     (σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ) ∧
@@ -103,7 +102,7 @@ distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` f
 `ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -113,7 +112,7 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
   by_cases Hd : d.WellFormed
   · exact Net.robust_of_distBootILT (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
       etcdThreads etcdSteps 0 (Nat.zero_le _) HI
-      (fun _ hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
+      (fun _ hb => HS d Hd σs σc σn ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
       ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootILT (GF := etcdDistGF) [] (machines d σs σc σn) g
       etcdThreads etcdSteps 0 (Nat.zero_le _) HI

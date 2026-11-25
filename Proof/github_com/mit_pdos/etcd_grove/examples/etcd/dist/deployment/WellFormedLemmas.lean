@@ -230,7 +230,7 @@ theorem goWellFormed_sound (d : Deployment) (h : goWellFormed d) : d.WellFormed 
   · exact forall₂_map_self d.workloads typedW _ (fun w hw => (hwE w hw).1)
   obtain ⟨hnd, halone, hsole, hnoexp⟩ := hcompat
   have haddrs : (typedOf d).addrs = d.addrs := rfl
-  refine ⟨hmem, hnames, hnameOk, ?_, ?_, ?_, ?_, ?_, ?_, ?_, htok, hcS, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hmem, hnames, hnameOk, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, htok, hcS, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [haddrs]; exact haddrOk
   · rw [haddrs]; exact haddrNd
   · simp only [typedOf, List.length_map]; exact hnl
@@ -246,10 +246,11 @@ theorem goWellFormed_sound (d : Deployment) (h : goWellFormed d) : d.WellFormed 
     exact (typedW_nodeCount w (hkinds w hwm).1 (hkinds w hwm).2 _ hc hlt).symm
   · exact hids.1
   · exact hids.2.1
+  · exact hids.2.2.1
   · intro ⟨w, hw, hg⟩
     simp only [typedOf, List.mem_map] at hw
     obtain ⟨w', hw', rfl⟩ := hw
-    exact hids.2.2 ⟨w', hw', by rw [← (typedW_preds w' (hkinds w' hw').1).2.2.2.2.1]; exact hg⟩
+    exact hids.2.2.2 ⟨w', hw', by rw [← (typedW_preds w' (hkinds w' hw').1).2.2.2.2.1]; exact hg⟩
   · refine ⟨?_, ?_, ?_, ?_⟩
     · have e : (typedOf d).workloads.map typed.Workload.kind =
           d.workloads.map (fun w => uint.nat w.kind) := by

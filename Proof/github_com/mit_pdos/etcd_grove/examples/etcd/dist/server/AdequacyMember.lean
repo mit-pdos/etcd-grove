@@ -16,13 +16,14 @@ proved ones (`MainDeploymentLogger`, `ConfigOf`, `MainLogger` and its leaves, `d
 `os.Getenv.wp_proofEnv` (and `proto.MarshalBootConfChange.wp_proof`, as putgetK's). Each interim axiom enters
 here only, as its spec is a hypothesis of the proof that uses it.
 
-Its hypotheses beyond `EtcdBootNC`'s premises: the scope `d.cfg.auth = false` (`Serve_dist` serves a member with
-auth off) and `BootGoD d ps ctxs` (Go's values at the members' URLs and the peers' permutation, which `BootFacts`
-does not carry; putgetK's `BootGoK`, a premise of `putgetK_safe`).
+Its one hypothesis beyond `EtcdBootNC`'s premises: the scope `Hauth : d.cfg.auth = false` (`Serve_dist` serves a
+member with auth off). Go's values at the members' URLs (`BootGoD`) follow from the well-formed deployment at the
+pinned `BootFacts` (`BootGoD.of_wf`, at `distPs d`, `distCtxs d`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MainDeployment
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.BootGoD
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MainDeploymentLogger
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MainLogger
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.ConfigOf
@@ -65,19 +66,18 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 
 set_option maxHeartbeats 3200000 in
 /-- **Member `i`'s machine's boot** (see the file header): the form `EtcdBootNC` asks of each member machine,
-from its share `∃ c γE, memberShareD c d ps ctxs boot i γE Pub`. -/
+from its share `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`. -/
 theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (Hd : d.WellFormed) (Hauth : d.cfg.auth = false)
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : BootFacts d ps ctxs boot) (Hbgo : BootGoD d ps ctxs) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
+    (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off)
     (i : Nat) (m : Member) (hm : d.members[i]? = some m) (σ : state) (Hσ : ServerStart m σ)
-    [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] (Pub : EnvView → IProp etcdDistGF) :
+    [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ
-      (iprop(∃ (c : ClusterNames) (γE : GName), memberShareD c d ps ctxs boot i γE Pub)) := by
+      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -129,7 +129,7 @@ theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
           _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
           (fun {_} {_} => _root_.Perennial.EtcdGrove.bootstrap.wp_proof_dist)
           mvcc.api.mvccApi_names_nonempty_law_holds))
-      v d i m ps ctxs boot Pub hm Hauth Hfips Hbf Hbgo
+      v d i m (distPs d) (distCtxs d) boot hm Hauth Hfips Hbf (BootGoD.of_wf Hd)
       (by unfold srvLevels; rw [hT]; unfold etcdThreads srvLevelK srvRevokeK; omega)
       Henv.authRecords Henv.underQuota Henv.repliesFit Henv.disk inferInstance)
     $$ [Htok Hwa Hshare]

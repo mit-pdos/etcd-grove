@@ -220,8 +220,10 @@ def nameOk (n : GoString) : Bool :=
    outside the ephemeral range), and the members' peer and client addresses and the client
    machines' addresses are all distinct; each workload has its `nodeCount` client machines;
 3. the members' ids have distinct, nonzero 16 low bits (etcd's request ids carry them: `BootCore`'s
-   `lowNodup`/`lowNz`), and, when a workload grants leases, distinct 15 low bits
-   (`leaseIdsApart`, `issues/etcd-lease-id-mask-member-prefix.md`);
+   `lowNodup`/`lowNz`), none is one of raft's local message targets (`math.MaxUint64`,
+   `math.MaxUint64 - 1`: raft v3.7's `Config.validate` refuses them, and `StartNode` panics), and, when
+   a workload grants leases, they have distinct 15 low bits (`leaseIdsApart`,
+   `issues/etcd-lease-id-mask-member-prefix.md`);
 4. the token is nonempty, and the server configuration is in the supported set;
 5. the workloads are compatible (`Compatible`) and within their bounds, and a workload that
    needs the token provider has it; `compact` not under the periodic compactor (review F5); no token
@@ -234,6 +236,7 @@ def Deployment.WellFormed (d : Deployment) : Prop :=
   (∀ a ∈ d.addrs, Net.addrOk a = true) ∧ d.addrs.Nodup ∧
   d.nodes.length = d.workloads.length ∧ (∀ p ∈ d.workloads.zip d.nodes, p.2.length = p.1.nodeCount) ∧
   (d.ids.map (fun id => uint.Z id % 2 ^ 16)).Nodup ∧ (∀ id ∈ d.ids, uint.Z id % 2 ^ 16 ≠ 0) ∧
+  (∀ id ∈ d.ids, id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614) ∧
   ((∃ w ∈ d.workloads, w.grantsLeases = true) → leaseIdsApart d.ids) ∧
   d.token ≠ [] ∧ d.cfg.Supported ∧
   Compatible d.workloads ∧ (∀ w ∈ d.workloads, w.BoundsOk) ∧
@@ -314,9 +317,19 @@ theorem Deployment.WellFormed.members {d : Deployment} (h : d.WellFormed) :
       d.members.length ≤ typed.maxMembers ∧ ∀ m ∈ d.members, m.name.length ≤ typed.maxNameLen := by
   obtain ⟨t, he, hw⟩ := h
   have hm : t.members = d.members := he.1
-  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
+  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
   rw [← hm]
   exact ⟨h1, h2, h3, h18, h19⟩
+
+/-- **A well-formed deployment's member ids are not raft's local message targets** (`math.MaxUint64`,
+`math.MaxUint64 - 1`, which raft's `Config.validate` refuses). -/
+theorem Deployment.WellFormed.idsRaft {d : Deployment} (h : d.WellFormed) :
+    ∀ id ∈ d.ids, id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614 := by
+  obtain ⟨t, he, hw⟩ := h
+  have e : t.ids = d.ids := by
+    simp only [typed.Deployment.ids, Deployment.ids, he.1, he.2.1]
+  rw [← e]
+  exact hw.2.2.2.2.2.2.2.2.2.1
 
 /-- **A well-formed deployment's member URLs are within etcd's URL bounds**: every member's peer
 URL list (`[http://peer]`) and client URL list (`[http://client]`) have at most `etcdURLCountMax`
@@ -330,7 +343,7 @@ theorem Deployment.WellFormed.urlBounds {d : Deployment} (h : d.WellFormed) :
   obtain ⟨t, he, hw⟩ := h
   have e := typed.Deployment.addrs_encodes he
   have hm : t.members = d.members := he.1
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
   intro m hmem
   have hp : m.peer ∈ t.addrs := by
     rw [typed.Deployment.addrs, hm]

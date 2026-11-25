@@ -157,6 +157,9 @@ noncomputable def decimal [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def memberIDs [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.memberIDs"
 
+noncomputable def RaftIdOk [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.RaftIdOk"
+
 noncomputable def IdsOk [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.IdsOk"
 
@@ -999,10 +1002,30 @@ noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Member.ty))) (Pair (Var "m") (Var "$value"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "$res0")))))
 
-/-- IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
-    workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart).
+/-- RaftIdOk says whether raft accepts id as a node's id: raft v3.7's Config.validate refuses an id
+    that IsLocalMsgTarget names, LocalAppendThread (math.MaxUint64) and LocalApplyThread
+    (math.MaxUint64-1), and StartNode panics on its error. (Exported for TestWellFormed: a deployment
+    with such a member id would need a SHA-1 preimage.)
 
-    go: deployment.go:307:6 -/
+    go: deployment.go:309:6 -/
+noncomputable def RaftIdOk.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "id"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 18446744073709551615))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")) (Val #(W64 18446744073709551614))))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
+    workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart); every id one raft
+    accepts (RaftIdOk).
+
+    go: deployment.go:316:6 -/
 noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1054,7 +1077,8 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (map.insert go.uint64)) (Var "$lm1")) (Var "$lk1")) (Var "$r1")))))
   (App (Val doExecute)
   (App (App (App (Val (map.insert go.uint64)) (Var "$lm0")) (Var "$lk0")) (Var "$r0"))))))))))))
-  (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "a")) (Val #(W64 0)))) (Val #true) (App (App (Val (map.lookup1 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "low16"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "a")))) (Val #true) (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "grants")) (App (App (Val (map.lookup1 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "low15"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "b"))) (Val #false)))
+  (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "a")) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (App (Val (GoInstruction (FuncResolve RaftIdOk []))) (Val #())) (Var "$a0"))))) (Val #true) (App (App (Val (map.lookup1 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "low16"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "a")))) (Val #true) (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "grants")) (App (App (Val (map.lookup1 go.uint64 go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "low15"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "b"))) (Val #false)))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1102,7 +1126,7 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
     int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
     needs.)
 
-    go: deployment.go:329:6 -/
+    go: deployment.go:338:6 -/
 noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1769,6 +1793,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   AddrOk_unfold : FuncUnfold AddrOk [] AddrOk.impl
   decimal_unfold : FuncUnfold decimal [] decimal.impl
   memberIDs_unfold : FuncUnfold memberIDs [] memberIDs.impl
+  RaftIdOk_unfold : FuncUnfold RaftIdOk [] RaftIdOk.impl
   IdsOk_unfold : FuncUnfold IdsOk [] IdsOk.impl
   WellFormed_unfold : FuncUnfold WellFormed [] WellFormed.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
@@ -1796,6 +1821,7 @@ attribute [instance] Assumptions.Kind_instance
   Assumptions.AddrOk_unfold
   Assumptions.decimal_unfold
   Assumptions.memberIDs_unfold
+  Assumptions.RaftIdOk_unfold
   Assumptions.IdsOk_unfold
   Assumptions.WellFormed_unfold
   Assumptions.import_fmt_Assumption

@@ -14,6 +14,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Kind__String
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NeedsAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NodeCount
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.RaftIdOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.WellFormed
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.alone
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.boundsOk
@@ -62,6 +63,10 @@ theorem binary.bigEndian.wp_Uint64 :
 theorem wp_grantsLeases :
     EtcdGrove.etcd_dist.grantsLeases.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_dist.grantsLeases.wp_proof
+
+theorem wp_RaftIdOk :
+    EtcdGrove.etcd_dist.RaftIdOk.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_dist.RaftIdOk.wp_proof
 
 theorem wp_kindNames :
     EtcdGrove.etcd_dist.kindNames.spec (GF := GF) (hG := hG) :=
@@ -153,7 +158,7 @@ theorem wp_memberIDs :
 
 theorem wp_IdsOk :
     EtcdGrove.etcd_dist.IdsOk.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_dist.IdsOk.wp_proof wp_memberIDs wp_grantsLeases
+  EtcdGrove.etcd_dist.IdsOk.wp_proof wp_memberIDs wp_grantsLeases wp_RaftIdOk
 
 theorem wp_WellFormed :
     EtcdGrove.etcd_dist.WellFormed.spec (GF := GF) (hG := hG) :=
