@@ -285,8 +285,8 @@ theorem osPathDur_child (L : GooseLocalGS GF) (R : Roots) (d b : GoString) (j J 
     ⊢ osSharedInv (L := L) R -∗ osPathDur (hG := ⟨G, L⟩) R d j -∗
       osNames (L := L) j (.only [b]) DFrac.discard h -∗ osCommitLb (L := L) n ={E}=∗
       osPathDur (hG := ⟨G, L⟩) R (child d b) J := by
-  iintro #Hsi #Hd #Hn #Hlb
-  imod osNames_histCoh (L := L) R j (.only [b]) DFrac.discard h hE $$ Hsi Hn with ⟨-, %hcoh⟩
+  iintro #Hsi #Hd Hn #Hlb
+  imod osNames_histCoh (L := L) R j (.only [b]) DFrac.discard h hE $$ Hsi Hn with ⟨Hn, %hcoh⟩
   have hc : CrashLeaves h j b (· = some (.dir J)) n :=
     crashLeaves_mono (crashLeaves_of_coh hcoh (by simp [NameSet.Mem])
       (fun xe hxe => Nat.lt_of_lt_of_le (hcoh.1 xe hxe) hn))
