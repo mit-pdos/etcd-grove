@@ -6,10 +6,12 @@
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
-- **State (2026-11-25, end of session 3)**: E2 compiles (the crash image `walImgS`, `PendStop` in
-  `CrashTo`/`tailStop`, `LastDec`, the pending run in every consumer of the running decode). The `wal.Link`
-  build fails only in the modules listed under "Left" below. **Next: E3's `WAL__ReadAll.lean`** (the Go
-  loop's `pending`/`pendOff`/`pendCRC`), then `TailPend` with a pending run, then E4 (`RepairReg`).
+- **State (2026-11-25, session 4)**: E3's `WAL__ReadAll.lean` is ported to the Go loop's `pending`
+  (commits `02067e4964`, `f8518a494c`; see "Session 4" below). Two errors remain in it: the zero length
+  word at `wr` with a pending run (line ~693, a deliberate `fail` marking item 2) and `w.state`'s
+  provenance at the handle (`iframe … P.hsIn p' st.hs`, line ~1214: the `CloneStLaw` item). **Next:
+  item 2 (`TailPend` with a pending run, restating `ZeroToEnd.specWalTail`/`walTailP_ofRead`), then the
+  provenance/`CloneStLaw`, then E4 (`RepairReg`), `SavePure:252`, `WAL__cut:484`.**
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
@@ -163,6 +165,30 @@ Left (failing in `wal.Link`'s build, or not yet reached):
    `encoder__encode`, `RaftModel/*`) build after the non-nil change.
 5. Then the `encodeState`/`Save`/`LawsHs*` proofs (edited, unchecked), `ReadAll` provenance and
    `CloneStLaw`, `ValidSnapshotEntries`/`OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5.
+
+## Session 4 (2026-11-25): E3's `ReadAll` loop
+
+- `ReadAllPure.lean`: `walFoldChkFrom_normFrom`, `walReadAt_normH`, `walReadAllOk_normH`/`_histN`
+  (`readAll_success1` over `histN`).
+- `ReadAllLoopP.lean`: `rdLoopP_flushStep` (one pending entry applied: the folds over `accA ++ accP.take
+  (i+1)`), `rdLoopP_flushStart`, `rdLoopP_pend_len`, `rdLoopP_foldP_eof` (success fold `readAllFoldP`
+  via `readAllFoldP_append`).
+- `ReadAllWFPure.readAll_md_some` takes `recs = acc ++ accP` with `accP` entry records.
+- `WAL__ReadAll.lean`: the loop invariant `HI` is `RdLoopP` with `pending`/`pendOff`/`pendCRC`/`lastOff`/
+  `lastCRC`; the entry arm appends to `pending` (`rdLoopP_ent`, `pendOff`/`pendCRC` set when `pending` was
+  empty); the other arms flush `pending` (an inline `wp_for` over `slice.forRange`, invariant `HF`: the
+  index, `ents`, `w.enti`, the folds over `accA ++ accP.take jf`; its body is the old entry arm, the
+  `ErrSliceOutOfRange`/reopen returns needing a second `wp_for_post` for the outer loop), then
+  `pending = pending[:0]`, `st1`/`ix1` (the flushed state, rewritten into the context), the switch arms on
+  `rdLoopP_rec`, `LastOffset`/`LastCRC` after the switch. The write-mode exit: `rdLoopP_eof_wal` gives the
+  pending run `es`; `hoffE`/`hcrcE`: `endOff`/`endCRC` (`if pend = [] then LastOffset/LastCRC else
+  pendOff/pendCRC`) are `lay.wr` and the chain's CRC in both cases (forward determinism, `DecReach`); the
+  two `if len(pending) > 0` joins by `wp_wand`.
+- **Item 2 is now the blocker of the write-mode exit**: `walTailP_ofRead` takes the zero length word at
+  `wr` (`hzw`), proved only when `pend = []`; with a pending run the bytes at `wr` are its frames
+  (`ZeroToEnd` then zeroes them). `hzw`'s `pend ≠ []` case is a `fail` marker in the proof.
+- **`w.state`'s provenance** (`iframe … P.hsIn p' st.hs` at the handle, the `walStIn` slot): the
+  `CloneStLaw` plan above (Session 3's "Where `walStIn` comes from").
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 

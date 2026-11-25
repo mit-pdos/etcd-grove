@@ -433,3 +433,8 @@ real WAL) is the natural report if the lead wants one.
 - 2026-11-25: the hard stop resolved: Upamanyu approved (#8, 00:38Z) `proto.MarshalPb.spec`'s post
   `⌜l ≠ null → d ≠ slice.nil⌝` (trusted text, this one change); `proto.MarshalPbNonNil.law` deleted, the
   `ZeroStLaw`/`walStMarsh` proofs take the spec.
+- 2026-11-25 (session 4): **E3's `WAL__ReadAll` loop** over `pending` (`02067e4964`, `f8518a494c`): the
+  forward-determinism plan (`DecReach`: `Reach`, `reach_det`, `reach_files`; `RdLoopP`; `rdLoopP_eof_wal`:
+  `pendOff = wr`, `pendCRC` the chain's CRC), the flush as an inline range loop, the write-mode exit's
+  `endOff`/`endCRC`. Left in the file: `ZeroToEnd`'s zero word at `wr` with a pending run (item 2, `TailPend`
+  with a pending run) and `w.state`'s provenance (`CloneStLaw`).
