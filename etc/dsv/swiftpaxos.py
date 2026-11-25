@@ -80,8 +80,9 @@ MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
 # names-only encoding/gob, github.com/google/uuid. Their imports: all (the default;
 # dsv-inithyp-fix): net/rpc's and net/http's well-formedness conditions are
 # `build_get_is_pkg_init_wf`, over every package their initializers reach, so the programs' tables
-# hold that closure. Not math/rand: the boot uses `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`,
-# a premise of the statement, by hand.
+# hold that closure. Not math/rand: the boot uses Perennial's proved `math.rand.wp_initialize'`
+# by hand (until math-rand-isinit, 2026-11-24, `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`, a
+# premise of the statement).
 HYP_INITS = ['net.rpc', 'net.http', 'os.signal', 'encoding.gob',
              'github_com.google.uuid']
 
@@ -150,7 +151,7 @@ first, through `swiftnet`'s (`BootLinked.lean`, `boot_swiftnet`), at the command
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
+variable [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
 variable [encoding.gob.InitHyp netDistGF]
 variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]''',
