@@ -67,3 +67,33 @@ gives the old `muxOwn … []` and `httpSrvEnv`. Two caveats, recorded in the doc
 2. The pools' predicates (`wPoolP`, `rPoolP`) are chosen by the axiom. That is sound only because the pool
    variables are untranslated and allocated inside their opaque initializers, so nothing else yields their
    points-to; translating them reopens the question.
+
+**2026-11-25: httpdriver's interim axioms, reviewed** (zeldovich-proving-2, #24 issuecomment-7144119919;
+go1.27.3 tests in their review). `ServeMux.HandleFunc.wp_proof`, `ReadResponse.wp_proof_resp` and the C6
+departure (`HProto.respEnd`) sound. Five findings, fixed over S5's landed vocabulary (after the merge of
+`lean`, the axioms are restated over `MuxDefs`' refined `muxOwn`/`muxRoute`):
+1. **`Serve.wp_proof`: more than 500 header values (counting `Host`) get a `431`, then the connection
+   closes** (`server.go:2087`, `maxHeaderValueCount`), not an answer `httpRespP` allows. **Fix:** `reqOk`
+   requires `R.hdr.length + 1 ≤ 500` (`WireDefs.lean`).
+2. **`ServeMux.ServeHTTP.wp_proof`: Go 1.22's mux redirects with `307`** (`StatusTemporaryRedirect`,
+   `server.go:2743/2759/2768`), not `301` (only `httpmuxgo121=1`'s matcher answers `301`). **Fix:** `307` in
+   `muxNoRoute`, and the axiom covers Go 1.22's matcher only: its precondition has `use121 ↦□ false`. Where it
+   comes from (#18's option (a)): net/http's `initFirstRes` now ties `use121` to the setting (`∃ b, use121 ↦□ b
+   ∗ ⌜b = true → godebugHttpmuxgo121 = "1"⌝`, what the approved trusted `init` model does: a strengthening of
+   the reviewed `wp_init_first`, to re-review), and the top-level statement takes the environment premise
+   `GodebugHttpmuxgo121Not1` (`HEnv`, baseline-listed as opaque in `etc/premise-witness-baseline.txt`).
+3. **`ServeMux.ServeHTTP.wp_proof`: the trailing-slash redirect** happens exactly when the path is not a
+   pattern, does not end in `/`, and `path ++ "/"` is a pattern, even when a shorter subtree pattern routes it
+   (`/` and `/a/` registered: `GET /a` is `307`; `/a//` registered: `GET /a/` is `404`). **Fix:** `muxRedirect Ps
+   p := ¬ pathClean p ∨ (p ∉ Ps ∧ p.getLast? ≠ some '/' ∧ p ++ "/" ∈ Ps)`, checked first (`findHandler`'s
+   order); then the longest pattern the path is under; then `404`.
+4. **`Serve.wp_proof`: `Pragma: no-cache` makes `readRequest` add `Cache-Control: no-cache`**
+   (`request.go:1176`), so the handler's header map is not `R.hdr`. **Fix:** `Pragma` in `reqKeysOut`.
+5. **`ServeMux.ServeHTTP.wp_proof` called directly: the fields the mux reads and writes were not in the
+   precondition.** **Fix:** `srvReq` pins `RequestURI` (the path: never `"*"`), `Host`, `URL` (the URL of the
+   path alone: no `Host`, no `RawPath`), the protocol (`HTTP/1.1`), and `servePre` the method (`methOk`: not
+   `CONNECT`) and the owned `Pattern`, `pat`, `matches` (`reqMuxFields`).
+Also, from the merge: `muxSh` no longer holds `DefaultServeMux ↦□ m` (which made `muxOwn m` unsatisfiable
+for a mux of the program's own); `http.Handle`'s lemma takes it, and `muxOwn` carries `serveEnv` for it
+(proofs only, no trusted text). `ServeMux.HandleFunc.wp_proof` stays an axiom for this review; it is provable
+like `wp_Handle_lit` (`wp_register_lit`, `wp_mux121_handle`) and will be proved in the proof stage.
