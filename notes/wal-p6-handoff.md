@@ -7,10 +7,9 @@
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
 - **State (2026-11-25, session 5)**: `WAL__ReadAll` builds (item 2 and `CloneStLaw` done, see "Session 5");
-  `wal.Link` regenerated (`etc/gen-link.py --walfs`); its build fails only in `RepairReg.lean` (E4: the
-  repaired tail with a pending run, "Repair with a pending run" below). **Next: that design (truncate at
-  `wr + |pend|`), then `OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5; once `wal.Link` builds, a real
-  `lake build` of it and `etc/tcb-report.py --check`.**
+  E4's `Repair` with a pending run done ("Repair with a pending run" below); `wal.Link`'s real build
+  under way. **Next: `wal.Link` green, `etc/tcb-report.py --check`; the consumers of `CloneStLaw`
+  (WalTester `Adequacy`/`Link`: `walRaftP_cloneSt`); then `OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5.**
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
@@ -240,19 +239,26 @@ zero-word premise (`TailLast.repOld` instead of `lenZ_of_tailLast`).
   `SavePure:252` was a struct-instance continuation line left of its first field (`checkColGe`);
   `WAL__cut`: `saveState.specPre` takes `P.hsIn` (out of `walStIn`), and `h1.stNil = h.stNil`.
 
-### Repair with a pending run (E4, next)
+### Repair with a pending run (E4, done 2026-11-25)
 
-`walRepairFile` now returns the pending run `es`: `(recFrames rs).length = lay.wr + |pendFrames es|`
-(`es ≠ [] → z0 = wr`). `Repair` truncates at the decoder's `lastOffset` = `|recFrames rs|` (repair.go:86),
-which is past the stream's end `wr` when the torn frame follows a pending run: the run stays in the file.
-So `repair_register` cannot state the tail record at `|recFrames rs|`. Plan:
-1. `repair_register`: the record at `lay'.wr` (the stream's end) and `wr ≤ |recFrames rs|`, the bytes
-   between a pending run (`RepOld`/`PendStop`).
-2. `os.File.Truncate.specRepTail`/`fileutil.Fsync.specRepTail` (ours): truncate at `sz` with
-   `wr ≤ sz ≤ size`, the tail at `wr`; `walTail_truncSup` generalized from the target `wr` to `sz` (`rzSeg g0
-   true sz n`, `rzStart_pureK`/`rzLand_pure` with `sz`: the bytes `[wr, sz)` kept, `RepOld` there).
-3. `RepairSync`: the synced tail `sz` long, F-Z replaced by `RepOld` (no zeros past `wr`); `untailR`: `TailIdle`
-   with `m.size = sz` (post-crash layouts already have `old` past `wr`).
+`walRepairFile` returns the pending run `es`: `(recFrames rs).length = lay.wr + |pendFrames es|`
+(`es ≠ [] → z0 = wr`), and now also the reader's stop at `wr` on the bytes below `LastOffset`
+(`PendStop`) and, past `wr`, a nonzero byte of the run's first length word (`frames_nz`). `Repair`
+truncates at `tg = |recFrames rs| ∈ [wr, size]` (repair.go:86); the run stays in the file. Done:
+1. `repair_register`: the tail record at `lay'.wr` (the stream's end), `wr ≤ tg`, `TailMetaRP Mr (tailCrc …)
+   wr tg` (`TailMetaR`, the nonzero byte, the stop) — `RepairTailDefs.lean`.
+2. `os.File.Truncate.specRepTail` at target `tg` (pre `TailMetaRP`, post `TailMetaRWP`: `TailMetaRW`,
+   `wr ≤ size`, the stop); `walTailPO` no longer carries `LoWr`. Supply `walTail_truncSupR`
+   (`TruncSupRep.lean`): the tie `repTie` carries the caller's half of the run's nonzero byte (`repNZ`), which
+   with F-Z contradicts `WalAbsD.zeroPast`; `RepOld` starts via `rzStart_pureRT` (`RzRep.lean`); the state
+   property `RepP` (size `S0` or `tg`, `LoWr` at `tg = wr`), so `os.File.Truncate.specAu`'s closure was
+   widened (`m'.size = m.size ∨ m'.size = sz`, ours, proved).
+3. `fileutil.Fsync.specRepTail`: over `wp_tailFsyncPE`/`walInvBody_syncPE` (`syncLay_anyE`: F-Z, or
+   `TailPend` = `RepOld` with `syncLayP`), generalized over the token's kind; the post gives the pending token
+   back (`∃ k'`), not the key (no F-Z past a run).
+4. `walInv_repairPut` (moved to `UnregLent.lean`) unregisters by the token (`walInvBody_untailL`).
+   `walInvBody_untailR` (`RepairPut.lean`) and `RepairSync.lean`'s `walInvBody_syncR` are now unused
+   (cleanup candidates).
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 
