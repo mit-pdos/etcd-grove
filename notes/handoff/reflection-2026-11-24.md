@@ -876,3 +876,65 @@ between named pointers or from a directional channel, so every one keeps its ste
   `merge-status` (VM sync dir not a git repo); tcb 324 axioms / 0 sorries (baseline), axiom-tok ok,
   collections 61/0, goose 73 projects up to date.
 - Left: Upamanyu's look, with item 1. Nothing lands or is queued before it.
+
+## Round 8 (2026-11-25): `go.Convertible` dropped (Upamanyu, #40 7174300297)
+
+Decision (Upamanyu via coordinator-E): drop `go.Convertible` — a second, hand-written statement of
+Go's conversion rules beside the `Convert` rules makes the semantics harder to understand. Still:
+nothing reflect-related lands or is queued. Scratch: `~/.claude-D/jobs/43217da4/tmp/convert-drop/`
+(`bin/vb.sh`, `bin/pfull.sh` = VM builds of wt/p-refl05, key 2486aba726c40cb7; logs).
+
+Done:
+0. Perennial `reflect-s05` fast-forwarded to `convert-narrow` (dcf940ea5, #59) and pushed.
+1. Perennial `reflect-s05` `6c803e236`: `convert_at_step` loses `Convertible t u`; `go.Convertible`,
+   `kindIn`, `byteOrRuneSlice`, `isNamed` deleted (nothing else used them). Non-interface target:
+   `Convert u go.any (Convert t u v)` at the dynamic types, stuck where no `Convert` rule steps.
+   `convertExposed` guard kept; template `any(U(x))` kept.
+   **Decision (recorded here and in the commit):** the interface branch was `if typeSetContains t u
+   then #(mkOk t v) else Panic "not modelled"`; with the premise gone the `Panic` branch became
+   reachable, and a panic is recoverable (`Catch`), so more defined than Go (where `U(x)` does not
+   compile). It is now a premise `hi : isInterfaceType (underlying u) = true → typeSetContains t u =
+   true` and the branch returns `#(mkOk t v)`. Alternative: narrow `convert_to_interface` (it has no
+   implements check, review F3) and make `ConvertAt` uniformly `Convert u any (Convert t u v)`; not
+   done: the premise is not instance-findable (every interface conversion in every proof), and
+   interface-to-interface needs method-set inclusion.
+2. CRITERIA.md criterion 15 ("every `Convert` rule steps only on a conversion Go allows …;
+   `ConvertAt` relies on it", #59; exceptions are KNOWN_LIMITATIONS entries with a Go witness) on
+   Perennial `review-criteria-dyntype` `5643dcaf4` (off `lean`, as criterion 14: CRITERIA.md is not on
+   reflect-s05's base).
+3. Harness: `GoConvertible`/`TestGoConvertible` removed; `TestConvertLeanRules` checks `convertLean`
+   and the whole harness `ConvertAt` on all 79x79 corpus pairs against `goLegal` (reflect's
+   `ConvertibleTo` plus the unsafe.Pointer rules): 860 pairs Go converts; Lean rules step on 566,
+   ConvertAt on 779, all legal. Mutation check: restoring the #59 rules in the mirror gives 24 errors.
+   Adversarial review (one fresh agent, code + Go spec only; Go programs in `convert-drop/review/gocheck/`):
+   - F1 `error` ≡ `interface{ Error() string }` in Lean, so `[]error`→`[]E`, `chan error`→`<-chan E`,
+     `**error`, `map[int]error`, `func() error` convert (Go: compile error; reflect: panic). Reached
+     through ConvertAt only. Type-identity gap (pre-existing entry); documented its conversion
+     consequence in KNOWN_LIMITATIONS. Not fixed (fix = `error` as a named predeclared type).
+   - F2 unexported field names not package-qualified: already in KNOWN_LIMITATIONS.
+   - F3 `convert_to_interface` never checks implements (`error(1)`, `I(any)`, constraint
+     interfaces). Unreached (goose type-checks; ConvertAt's `hi`). Documented in KNOWN_LIMITATIONS.
+   - F4 mirror omitted every float `Convert` rule (all legal): fixed, `convertLean` mirrors them,
+     the five float cases now `lean: true` (witness: TestConvertAt compares with Go's static result).
+   No rule found whose result differs from Go's on a legal conversion.
+4. Premise removed from `wp_ConvertAt`, `wp_ConvertAt_same`, `wp_ConvertAt_interface`,
+   `ConvertAt.spec`/`wp_proof`, both `Value.Elem` proofs.
+
+**Round 8 state (2026-11-25, done):**
+- Perennial `reflect-s05` @ `6c803e236` (pushed; contains `convert-narrow` dcf940ea5). Targeted VM build
+  (reflect/reflectlite/errors/reflectcore/sync/context/testdata Links, Tests.ConvertRules,
+  Tests.Reflect*): 2,265 jobs ok. Full chunked build (convert-drop/pmods-full.*): 3 chunks exit 0
+  (3,485 + 3,427 + 2,567 jobs). `#print axioms` (AxCheckRefl05.lean, untracked in wt/p-refl05, 21
+  results = Round 7's list): Lean's three only. `go test ./goose/...` ok; harness (gen.sh; `GOWORK=off
+  go test ./...`) ok. `etc/trusted-delta.py dcf940ea5..6c803e236`: step-rule signals only on
+  `convert_at_step` (premise `hc` → `hi`) and the WP lemma; the `Panic "not modelled"` removed.
+- Perennial `review-criteria-dyntype` @ `5643dcaf4` (criterion 15).
+- etcd-grove `reflect-s05-convert/2026-11-25` (pin `6c803e236`, VM key 57f5311f8c5be617; in the sync
+  dir `.lake/packages/perennial` was fetched to reflect-s05 by hand, the single-branch gotcha; no
+  regeneration: goose unchanged). Full VM build 28,217 jobs ok. Gates (convert-drop/gates.log): all ok
+  but `merge-status` (VM sync dir not a git repo); tcb 324 axioms / 0 sorries (baseline), axiom-tok
+  ok, collections 61/0, goose 73 projects up to date.
+- `convert-narrow` is now an ancestor of `reflect-s05`: delete it once item 1 is decided (ours).
+- Left: Upamanyu's look at item 1 (Convert + #59 + criterion 15 as the trusted text); coordinator to
+  decide whether F1 (`error` as a named predeclared type) or F3 (`convert_to_interface` implements
+  check) should be fixed rather than documented.
