@@ -27,10 +27,11 @@ variable [peer_sem : google_golang_org.grpc.peer.Assumptions]
 /-- **Trust boundary** (unit P3a: the interceptors are no longer inside it; its meaning restated at
 phase 7 S2's interface, 2026-11-24, its text unchanged): a unary call through grpc's `ClientConn` is
 its interceptor chain (`chainWP`, as `chainUnaryClientInterceptors` composes it) over grpc's `invoke`,
-which makes one attempt (`grpcInvokerOk`). An attempt dials one of `addrs`, which reaches
-(`grpcReach`) an address `a₀`. `a₀`'s table, set once at the start, has an entry for `method` at the
+which makes one attempt (`grpcInvokerOk`). An attempt dials one of `addrs`, `a₀`. `a₀`'s table, set
+once at the start (a bridge's address: to its target's table, `bridge.New`), has an entry for `method` at the
 attempt's registered message models (`grpcSvcAt`, inside `isGrpcRpcsMd`, no heap). The attempt
-converts the caller's `Spec md m Φ Ψe` into the entry's spec by `grpcSvcAt`'s update. It writes as
+converts the caller's `Spec md m Φ Ψe` into the entry's spec by `grpcSvcAt`'s update; the handler's
+view of the metadata is an attempt's (`grpcAttemptMd`). It writes as
 `a₀`'s dialer protocol says (`grpcCliPI`, opaque: no program but grpc's transport writes a connection
 to a grpc address meaningfully). On success it returns the `Φ m'` that the server's protocol
 delivers, which `Server.Serve`'s axiom guarantees (`grpc.Server.Serve.wp_proof`: the server runs the

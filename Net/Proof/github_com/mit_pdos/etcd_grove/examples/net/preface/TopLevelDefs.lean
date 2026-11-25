@@ -2,20 +2,18 @@
 
 # `net/preface`: the definitions its top-level statement is written in
 
-The program the example's top-level theorem is about, and the other definitions its statement
-names, moved here unchanged out of `Results.lean` so that the statement
-(`Spec/.../TopLevelRobustness.lean`) imports no proof (CLAUDE.md, "Import tiers").
+The program the example's top-level theorem is about (`system`: each node's boot program), which
+its statement (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/preface/TopLevelRobustness.lean`)
+names. It imports only the commands' generated translations
+(`Net/GeneratedProof/github_com/mit_pdos/etcd_grove/examples/net/preface/cmd/`), no proof (CLAUDE.md,
+"Import tiers").
 -/
 module
 
 public import GooseLang.Ext.Net.Adequacy
-public import GooseLang.Ext.Net.Deploy
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.client.Main
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.client.PkgTable
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk.Main
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk.PkgTable
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.server.Main
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.server.PkgTable
+public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.client
+public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk
+public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.server
 public import Robustness.Statement
 
 @[expose] public section
@@ -34,8 +32,6 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.preface
 
 attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
   netExtsCrashInterp
-
-attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- The program of a command whose package's initializer is `init` and whose `main` is `main`:
 initialize the command's package (and so its imports), then call its `main` (as goose calls a

@@ -1,6 +1,6 @@
 /-
-`Call`'s wait group of its two goroutines (`examples/net/acceptloop/acceptloop.go`: `wg.Add(2)`
-before the `go` statements).
+`Call`'s wait group of its goroutines (`examples/net/acceptloop/acceptloop.go`: `wg.Add(m)`, `m`
+from 1 to 8 drawn at random, before the loop of `go` statements).
 
 Perennial's join idiom (`sync.join`, `WaitGroupJoin.lean`) adds one goroutine per `Add(1)`; `Call`
 adds both at once. `wp_Add_many`: one `Add(n)` gives a `Done` right for each of the `n`

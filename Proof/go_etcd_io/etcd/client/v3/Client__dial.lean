@@ -166,13 +166,10 @@ theorem Client.dial.wp_proof
     simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render]
   have Hdok0 : dialOk ([GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
-    refine ⟨?_, ?_, by simp, si, by simp⟩
-    · intro si' h
-      simp at h
-      rw [h]; exact Hsi
-    · intro rbs h
-      simp at h
-      exact h
+    refine ⟨?_, by simp⟩
+    intro rbs h
+    simp at h
+    exact h
   -- (2026-10-21, D28) the keepalive option, if any, first
   have Hdok1 : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
@@ -195,17 +192,22 @@ theorem Client.dial.wp_proof
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ [] ++
         List.replicate n .noProxy) rb := by
       rw [List.append_nil]; exact dialOk_noProxy _ rb n Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) clientRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
+    wp_apply wp_NewClient tgt o2 (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ [] ++
+        List.replicate n .noProxy) rb etcdScheme (ep :: rest) clientRes (tokMdOk P) $$ [$Hgrpc Hrb]
       as %conn %err Hres
     · isplitr
       · iexact Hdo2
-      isplitr
-      · ipureintro; exact Hpre
+      isplitl [Hrb]
+      · iunfold dialTargetOk
+        ileft
+        iframe Hrb
+        ipureintro; exact ⟨Hdok, Hpre⟩
       rw [Hcr', credsOfDial_nil]
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
     iframe Hlt
-    icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
+    icases Hres with (⟨%Herr, #Hconn, #Hcc, #Hco⟩ | %Herr)
     · ileft
       isplitr
       · ipureintro; exact Herr
@@ -218,6 +220,13 @@ theorem Client.dial.wp_proof
       · unfold isEtcdConnG
         iexists ic
         iframe Hconn Hic
+        unfold etcdConnStream
+        iexists _
+        iframe Hco
+        ipureintro
+        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;> (try simp only [connOptsOf, streamIcOf_noProxy]) <;>
+          (unfold streamIcOf kaOpts; split <;>
+            simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_none conn _ P
         iexact Hcc
     · iright
@@ -226,18 +235,23 @@ theorem Client.dial.wp_proof
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
         [GrpcDialOpt.perRPCCreds pc] ++ List.replicate n .noProxy) rb :=
       dialOk_noProxy _ rb n (dialOk_perRPCCreds _ rb pc Hdok1)
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) clientRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
+    wp_apply wp_NewClient tgt o2 (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ [GrpcDialOpt.perRPCCreds pc] ++
+        List.replicate n .noProxy) rb etcdScheme (ep :: rest) clientRes (tokMdOk P) $$ [$Hgrpc Hrb]
       as %conn %err Hres
     · isplitr
       · iexact Hdo2
-      isplitr
-      · ipureintro; exact Hpre
+      isplitl [Hrb]
+      · iunfold dialTargetOk
+        ileft
+        iframe Hrb
+        ipureintro; exact ⟨Hdok, Hpre⟩
       rw [Hcr', show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]]
       iapply BigSepL.bigSepL_singleton.2
       iexact Hpc
     iapply HΦ
     iframe Hlt
-    icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
+    icases Hres with (⟨%Herr, #Hconn, #Hcc, #Hco⟩ | %Herr)
     · ileft
       isplitr
       · ipureintro; exact Herr
@@ -250,6 +264,13 @@ theorem Client.dial.wp_proof
       · unfold isEtcdConnG
         iexists ic
         iframe Hconn Hic
+        unfold etcdConnStream
+        iexists _
+        iframe Hco
+        ipureintro
+        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;> (try simp only [connOptsOf, streamIcOf_noProxy]) <;>
+          (unfold streamIcOf kaOpts; split <;>
+            simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_one conn pc P
         iexact Hcc
     · iright

@@ -3,7 +3,7 @@
 2026-11-18; decided by etcd-grove-03: the serve step's lease part as an etcdstart lemma beside authkv's
 serve steps). Lean-first (no Rocq counterpart).
 
-`lease_served_on`: the ghost step after `grpc.start` (authkv's `ak_served_kv`, which gives the
+`lease_served_on`: the ghost step after `grpc.start'` (authkv's `ak_served_kv`, which gives the
 persistent server token `grpcServerAt`) that registers the Lease service's four unary methods at their
 metadata specs with auth on: `LeaseGrant` and `LeaseRevoke` (`client.etcd_lease_auth_served_on`, in
 the revocable lease mode) and `LeaseTimeToLive` and `LeaseLeases` (`client.etcd_lease_read_served`,

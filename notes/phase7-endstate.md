@@ -422,6 +422,14 @@ These replace the per-data-frame library on `lean` (`InvGrpcWire.lean`: `GrpcOut
 library (`GooseLang/Ext/Net/Slot.lean`: `depSlot_register`, `_claim`, `_withdraw`, `_takeRefused`,
 `conn_refuse`) is used as it is; `StreamNames` needs a `Countable` instance for the key.
 
+**Bridges against per-connection slots (the review of SW1, finding 3; a justification gap, no
+exploit today).** `bridge.New`'s relay sits between two connections `cn0` (client to bridge) and `cn1`
+(bridge to target). A deposit registered on `cn0` is claimed on the target's side of `cn1`; a
+`REFUSED_STREAM` the target writes on `cn1` must become `connRefused cn0` for the client's
+`_takeRefused`, but the deposit was claimed with `cn1`'s freshness (`connFresh cn1`), which the relay
+spent. S3.1 must key the slot and its refusal by the call `γ` (not by the connection), or add a relay
+law to `Slot.lean` (`depSlot_relay`), before the bridge's axiom is read against the defined protocols.
+
 Over the model, `processRPC` is proved once against `callRunOk h srv sics P γ md`, with two lemmas:
 `wrapUnary_callRunOk` (from the dec-shaped `grpcRunOkMd`, at `D := srvRecvTok γ []` and
 `Got Φ Ψe := ⌜Φ = Φ₀ ∧ Ψe = Ψe₀⌝` for the call's `unaryParams e Md Φ₀ Ψe₀`) and
@@ -478,21 +486,73 @@ are deleted (W5).
 12. **The S2 review's F2 ("S2 cannot retire D7's wire half")** stands; S2 §2's sealing is how it is
    enforced (decision A).
 
+13. **SW1 as built (2026-11-24, branch `phase7-switch`), where the text of §1.2 had to change.**
+   - **`streamMdIs` became `streamDispIs γ a md`** (the review of SW1, finding 2): a transparent retry
+     before the stream is committed re-picks the transport (`getTransportConn`, the model's
+     `modelChooseAddr`, `model_clientconn.go:322`), so the address, like the metadata, is learned with
+     the responses. `NewStream` takes one client content `Up` for every address (the registration at
+     `fun _ => Up`), its post is `□ ∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMdI conn om md -∗ Spec a md γ
+     (Dn a md)`, and `cliStreamIs`' family `Md a md` and content `Dn a md` are indexed by the dispatch.
+     `cliStreamIs`' `io.EOF` arm keeps `downClosed γ L` (finding 5, §2).
+   - **No-refusal bound to the server (the review's finding 1, unsound on `lean` before SW1).**
+     `noRefusalAt addr` is a fact about the address string, and `etcd_noRefusal` gave back
+     `grpcSrvNew gs … ∗ netListenerAt lis addr` separately: a program could serve another server on
+     `lis` under the certificate. Interim fix: the axioms (`etcd_noRefusal`, `etcd_noOtherRefusal`)
+     return `grpcSrvAtLis gs lis addr …` (a new axiomatized exclusive predicate), which only
+     `grpc.startBound` takes and `grpcServeTok` holds as its other form of the server at the listener.
+     The end state is decision E's table form (no-refusal a property of the unary entries, checked by
+     `grpcServes`, read by `grpcInvokerOk` from `grpcSvcAt`), which retires `grpcSrvAtLis`.
+   - **`http.register` consumes `netAddrLeft a`** (the review's finding 4): an address served over HTTP
+     never gets a grpc table.
+   - **`credsYieldRaw`** carries `hG` (`include hG`), which its definition over `grpcConn` will need;
+     **`ProtoMsg.cnt` is not a global instance** (the review's finding 6).
+   - **`streamMdIs` stores a finite code of the metadata.** A ghost variable (`dghostVar`) holds a
+     countable value, and `GrpcMd` (a function of the key) is not countable. `InvGrpcCall.lean`
+     stores `c : GrpcMdCode := Option (List (GoString × List GoString))` and states
+     `streamMdIs γ md := ∃ c, ⌜c.md = md⌝ ∗ dghostVar γ.md DFrac.discard (some c)`; `streamMdIs_agree`
+     keeps its statement. A dispatched metadata is always such a code's (the server makes it from the
+     head's finitely many fields). The ghost variable holds `Option GrpcMdCode`, so that `call_dispatch`
+     (S3.1) can set it from `none`.
+   - **`ProtoMsg.cnt` needs a `Pos.Countable` instance for every unary message model.** None existed;
+     SW1 adds them where the `ProtoMsg` instances are (`client/v3/InvKVConn.lean`, `InvLease.lean`,
+     `InvLeaseRead.lean`, `InvAuthConn.lean`, named `*.msgCountable`, since leaf files have their own
+     instances of `HdrM` and `EtcdKv`), the nested `OpRespM` and `TxnOp` through Perennial's `GenTree`.
+   - **`StreamMsg.tree`**: the four stream models' trees move from `PerTypeWatch.lean` and
+     `PerTypeLeaseKeepAlive.lean` into `InvWatchStream.lean` and `LeaseKeepAliveMsg.lean`; the
+     `StreamMsgT`s are `{ … with }`.
+   - **The laws** of commit (2) are `grpcStreamSvcAt_of_addr` and `grpcStreamSvcAt_mono` (over the
+     entry's components, not an `e`); `isGrpcStreamMd_of_addr` and `isGrpcStreamMd_mono` come with (3).
+   - **`grpcServes`** is `□ ∀ name ent, ⌜Svc name = some ent⌝ -∗ grpcServesEnt … name ent`, the
+     per-kind clause a separate definition by `match` (the text of §1.2, unchanged in content).
+   - **`grpcGoSvc` returns `.unary` entries** (it is a `GrpcSvc`), so `grpcStartSvc`'s first arm is
+     `some e => some e`.
+   - **`grpcServerAt` and `grpc.serve` move to `InvGrpcRun.lean`**: they name `GrpcStreamMethod`
+     (`InvGrpcStream.lean`), which imports `InvGrpc.lean`. A user of `grpc.serve` imports `InvGrpcRun`.
+   - **`grpcStreamMethodOk` keeps its first conjunct** (`□ ∀ md, streamSpecOk (Spec md)`); only the run
+     contract `grpcStreamRunOk` drops it (`grpcStreamRunOk_of_pools` discards it). The handlers' proofs
+     are unchanged; the start's callers give the content family `dn` explicitly.
+   - **`credKeysOk cm`** is `∀ k vs, mdGet cm k = some vs → k.head? ≠ some ':'`, a conjunct of
+     `perRPCCredsOk`'s success post (`∃ cm, credsMapIs mp cm ∗ ⌜credKeysOk cm⌝ ∗ □ Q cm`).
+   - **`grpc.start'`** takes `netListenerAt` (as before) and drops its `addrClaim`; the token holds
+     `netListenerOpen`.
+   - Between commits (2) and (6), `grpcServes` refuses stream entries (a `False` clause), so the
+     interim `Serve` axiom says nothing new about them before their clause exists.
+
 ## 2. The two `NewStream` defects
 
 Both are overclaims of a trust-boundary axiom: false of grpc-go v1.84 and of the model, which keeps
 `stream.go` verbatim. SpecPlan's grpc API has both. Ledger entries (decision pending) are in
 `notes/specs-only/ledger.md`, 2026-11-24.
 
-**R1: a clean end with no handler run.** A stream's first attempt refused (`REFUSED_STREAM`) is retried
+**R1: a clean end with no handler run** (a defect of SpecPlan's text only; the review of SW1, finding
+5: `cliStreamIs`' third arm, `cliStreamErr err`, admits `io.EOF`, a client error, so the Lean text never
+claimed `downClosed` of a bare `io.EOF`; SW1 leaves its `io.EOF` arm as it was). A stream's first attempt refused (`REFUSED_STREAM`) is retried
 transparently; if the replay's write fails, `retryLocked` returns the bare `io.EOF`
 (`stream.go`, `retryLocked`/`shouldRetry`; `nonissues/grpc-transparent-retry-spurious-eof.md`,
 grpc/grpc-go#9443, #9447). The client's next `RecvMsg` returns `io.EOF` before any message, with no
 handler run. Today's `cliStreamIs` (`InvGrpcStream.lean:638-639`) and `cliBidiStreamIs` (`:679-680`)
 give `downClosed γ L` at `io.EOF`, which says the handler returned after `L`; SpecPlan's `cliRecv_recv`
-(`SpecPlan/Spec/google_golang_org/grpc/Api.lean:691-699`) gives `S.fin g md n none`. **Fix:**
-`downClosed γ L ∨ ⌜L = []⌝` (a retry happens only before the stream is committed, which the first
-received message does, so `L = []`); SpecPlan's EOF arm the same, `S.fin g md n none ∨ ⌜n = 0⌝`. No
+(`SpecPlan/Spec/google_golang_org/grpc/Api.lean:691-699`) gives `S.fin g md n none`. **Fix (SpecPlan):** `S.fin g md n none ∨ ⌜n = 0⌝`. No
 user is affected: `serveWatchClient` and `recvKeepAliveLoop` already drop `downClosed`.
 
 **R2: the stream's metadata is the dispatched attempt's.** A transparent retry recomputes the head
