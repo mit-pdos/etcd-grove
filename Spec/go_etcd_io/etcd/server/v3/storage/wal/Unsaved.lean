@@ -39,7 +39,7 @@ read-only from the first (`openWALFiles`) and decodes them to the end (`io.EOF` 
 `true` (with `nil`) only when there is a WAL at `dir` (`o = some d`) whose history is **blank**
 (`walBlank`: every operation a `Save` of no entries and the empty hard state, or a `SaveSnapshot` at
 index 0); a blank history's every crash image is blank too (`walBlank_take`). Nothing is claimed of
-`false` or of an error: the caller (`DiscardUnsaved`) then keeps the WAL.
+`false` or of an error: the caller (`bootstrap`, which calls `Discard` only on `true`) then keeps the WAL.
 
 As `ValidSnapshotEntries.spec`: the caller holds the lock token (`walUnlockedTok`, framed), so no
 handle is open and the segments do not change while they are read; logically atomic, committed

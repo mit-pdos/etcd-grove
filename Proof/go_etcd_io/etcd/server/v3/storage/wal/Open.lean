@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.fmt.ErrorfErrs
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDirOk
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtPin
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 import all Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 
 @[expose] public section
@@ -38,38 +38,47 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- The WAL's key, held by a read handle (persistent). -/
-theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) :
-    walReadH (W := W) write w dir s ⊢
-      walReadH (W := W) write w dir s ∗ ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
+theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) :
+    walReadH (W := W) write w dir s i ⊢
+      walReadH (W := W) write w dir s i ∗ ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir i j X := by
   unfold walReadH walReadTie
-  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, Hd, Hdec, Hde, Htie, Hr⟩
+  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, %qs, Hd, Hdec, Hde, Htie, Hr⟩
   icases Htie with ⟨%X, %hj, %gs, %fls, Hn, Ho, Ht, #Hk, Hrest⟩
   isplitl [Hin Hd Hdec Hde Hn Ho Ht Hrest Hr]
   · iframe Hin
-    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc, j
+    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc, j, qs
     iframe Hd Hdec Hde Hr
     iexists X, hj, gs, fls
     iframe
     iexact Hk
   · iexists j, X; iexact Hk
 
-/-- **The lock's registration token out of a read handle and back** (with the WAL's key, persistent):
-`walInv_dirPath`'s inputs. -/
-theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) :
-    walReadH (W := W) write w dir s ⊢
-      walNamesFrag (W := W) none ∗ (walNamesFrag (W := W) none -∗ walReadH (W := W) write w dir s) ∗
-      ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
+/-- **The lock's registration token out of a read handle and back** (with its loans, and the WAL's key,
+persistent): `walInv_dirPath`'s inputs. -/
+theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) :
+    walReadH (W := W) write w dir s i ⊢
+      walOpenIn w dir s ∗
+      ∃ Lo : List (GoString × Qp), walNamesFragS (W := W) ⟨none, none, Lo⟩ ∗
+      (walOpenIn w dir s -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
+        walReadH (W := W) write w dir s i) ∗
+      ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir i j X := by
   unfold walReadH walReadTie
-  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, Hd, Hdec, Hde, Htie, Hr⟩
+  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, %qs, Hd, Hdec, Hde, Htie, Hr⟩
   icases Htie with ⟨%X, %hj, %gs, %fls, Hn, Ho, ⟨Ht, Hnf⟩, #Hk, Hrest⟩
+  unfold walHLoans
+  icases Hnf with ⟨%Lh, Hnf, %hLh⟩
+  iframe Hin
+  iexists Lh
   iframe Hnf
-  isplitl [Hin Hd Hdec Hde Hn Ho Ht Hrest Hr]
-  · iintro Hnf
+  isplitl [Hd Hdec Hde Hn Ho Ht Hrest Hr]
+  · iintro Hin Hnf
     iframe Hin
-    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc, j
+    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc, j, qs
     iframe Hd Hdec Hde Hr
     iexists X, hj, gs, fls
     iframe
+    isplitr
+    · ipureintro; exact hLh
     iexact Hk
   · iexists j, X; iexact Hk
 
@@ -125,20 +134,32 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     iframe
   · subst he
     try wp_auto
-    icases walReadH_namesOut true w dir s $$ Hrh with ⟨Hnf, Hback, %j, %X, #Hkey⟩
+    icases walReadH_namesOut true w dir s ic $$ Hrh with ⟨Hin, %Lo, Hnf, Hback, %j, %X, #Hkey⟩
+    icases walOpening_incQ (W := W) w dir s ic $$ Hop with ⟨%IQ, HIQ, %hIQ, Hop⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_dirPath walCodec Mr R jr r dir j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
-    ihave Hrh := Hback $$ Hnf
+    rw [← hIQ] at *
+    imod walInv_dirPath walCodec Mr R jr r dir IQ j X Lo $$ Hinv Hnc Hnf Hkey HIQ
+      with ⟨Hnc, HIQ, %nmd, %qd, %hdn, Hnf, Hpd⟩
+    ihave Hop := Hop $$ HIQ
     imodintro
     iframe Hnc
-    ihave Hrh' := Hrh
-    unfold walReadH walOpenIn
-    icases Hrh' with ⟨⟨%lg', %sp', Hlg, #Hzap', Hdir, Hstart, #Hsp'⟩, Hrest⟩
+    unfold walOpenIn
+    icases Hin with ⟨%lg', %sp', Hlg, #Hzap', Hdir, Hstart, #Hsp'⟩
     try wp_auto
     wp_apply go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofOk dir R j (DFrac.own qd)
       (1 : Qp).half $$ [Hpd Hcp] as %f %err2 ⟨Hpd, Hcp, Hod⟩
     · iframe; iframe #
+    -- the directory path's loan back (the handle keeps only the pipeline's)
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_dirPathRetDL walCodec Mr R jr r dir nmd qd j Lo hdn $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+    ihave Hrh := Hback $$ [Hlg Hdir Hstart] Hnf
+    · iexists lg', sp'
+      iframe
+      iframe #
+    imodintro
+    iframe Hnc
     icases Hod with (⟨%fd, %he2, Hf, Hfd⟩ | ⟨⟨%he2, %hf⟩, #He2⟩)
     · -- success: the directory fd kept as `w.dirFile`
       subst he2
@@ -154,13 +175,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
       · ipureintro; exact ho
       ihave Hperm := walPerm_toW hWR dir _ $$ Hperm
       unfold walOpeningF
-      iframe Hop Hperm Hcp
-      isplitl [Hlg Hdir Hstart Hrest]
-      · unfold walReadH walOpenIn
-        iframe Hrest
-        iexists lg', sp'
-        iframe
-        iframe #
+      iframe Hop Hperm Hcp Hrh
       iexists f, fd, j, X
       iframe
       iframe #
@@ -172,17 +187,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
         | ok e2 => exact ⟨e2, rfl⟩
       try wp_auto
       try wp_auto
-      wp_apply wp_Close R jr r w dir (.opening s) (fun _ => iprop(True)) $$ [Hop Hrest Hlg Hdir Hstart Hperm Hdf]
+      wp_apply wp_Close R jr r w dir (.opening s) (fun _ => iprop(True)) $$ [Hop Hrh Hperm Hdf]
         as %ec ⟨Hu, Hperm⟩
       · dsimp only
         iframe Hop Hperm
         iframe #
         isplitr [Hdf]
-        · unfold walReadH walOpenIn
-          iframe Hrest
-          iexists lg', sp'
-          iframe
-          iframe #
+        · iexact Hrh
         iexact Hdf
       try wp_auto
       wp_apply wp_slice_literal (V := GoAny) [interface.ok e2]

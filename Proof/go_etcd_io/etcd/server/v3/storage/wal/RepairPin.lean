@@ -59,11 +59,11 @@ the WAL `d` (its directory's claim `(lay.j, .except X, hj)`), its tail idle, its
 WAL's key, the lock token, the tails' and names' program halves, the out record of the last segment and
 of the directory's claim, the program's halves of `gL` and of the claim. -/
 def walPinLast (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : WalDur) : IProp GF :=
-  iprop(∃ (lay : WalLay) (X : List GoString) (hj : NamesH) (gL : SegG),
+  iprop(∃ (lay : WalLay) (X : List GoString) (hj : NamesH) (gL : SegG) (I : GMap GoString Nat),
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ TailIdle C Mr d lay ∧
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧ lay.segs.getLast? = some gL⌝ ∗
-    walDirKey (W := W) dir lay.j X ∗ walLockedTok (W := W) ∗
+    walDirKey (W := W) dir (incOf I dir) lay.j X ∗ walLockedTokI (W := W) I ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨[gL.ino], [(lay.j, .except X)], []⟩ ∗
     segRes (L := L) gL ∗ osNames (L := L) lay.j (.except X) (DFrac.own (1 : Qp).half) hj)
@@ -73,11 +73,12 @@ def walPinLast (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d :
 theorem walInvBody_pinIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) (k : WalLay → Nat) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
-      ∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
+      ∃ (lay : WalLay) (X : List GoString) (hj : NamesH) (I : GMap GoString Nat),
         ⌜InArea s.area dir lay.nm ∧ lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
           ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ TailIdle C Mr d lay ∧
-          (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
-        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+          (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗
+        walDirKey (W := W) dir (incOf I dir) lay.j X ∗
+        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTokI (W := W) I ∗ walTailsFrag (W := W) ∅ ∗
         walNamesFrag (W := W) none ∗
         walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)], []⟩ ∗
         ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
@@ -89,8 +90,13 @@ theorem walInvBody_pinIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   obtain ⟨lay, nm, hj, hl, hA, hjr, hnm, hc, habs, hcr⟩ := HW.1 dir d hd
   obtain ⟨X, hX, hcX, hcoh⟩ := hc
   icases Hdk with ⟨%K, %cp, HKa, Hca, %HDK⟩
-  imod walDirKeys_pin C Mr jr s Ls cl n K cp dir lay X hj HDK hl hX hcX $$ HKa with ⟨%K', HKa, %HDK', #Hkey⟩
   imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, Hnf, %hF⟩
+  iunfold walLockedTok at Hl
+  icases Hl with ⟨%I, Hl⟩
+  icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+  imod walDirKeys_pin C Mr jr s Ls cl n K cp dir lay X hj I HDK hl hX hcX $$ HKa HI with
+    ⟨%K', HKa, %HDK', #Hkey, HI⟩
+  ihave Hl := Hl $$ HI
   icases walTailsRes_idle C Mr s Ls F $$ Htl Htf with ⟨%hidle, Htl, Htf⟩
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
@@ -120,7 +126,7 @@ theorem walInvBody_pinIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     exact ⟨hA, hjr, hX, hcoh, habs, hidle dir d lay hd hl,
       segsAll_nodup_segs HW.2.2.1 hl, (HNm dir lay hl).1 hj ⟨X, hX, hcX, hcoh⟩⟩
   imodintro
-  iexists lay, X, hj
+  iexists lay, X, hj, I
   iframe HS Hnm Hl Htf Hnf Hkey
   isplitr
   · ipureintro; exact hpure
@@ -138,7 +144,7 @@ theorem walInvBody_pinLast (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walPinLast (L := L) (W := W) C Mr jr dir d := by
   iintro Hb Hu
   imod walInvBody_pinIdle C Mr R jr r s dir d hd walLastK $$ Hb Hu with
-    ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj⟩
+    ⟨%lay, %X, %hj, %I, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj⟩
   obtain ⟨-, h1, h2, h3, h4, h5, h6, h7⟩ := hp
   obtain ⟨gL, hgL⟩ : ∃ gL, lay.segs.getLast? = some gL := by
     cases h : lay.segs.getLast? with
@@ -148,7 +154,7 @@ theorem walInvBody_pinLast (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   imodintro
   iframe Hb
   unfold walPinLast
-  iexists lay, X, hj, gL
+  iexists lay, X, hj, gL, I
   icases BigSepL.bigSepL_cons.1 $$ HS with ⟨HS, -⟩
   iframe Hkey Hl Htf Hnf Ho HS Hj
   ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7, hgL⟩
@@ -222,15 +228,15 @@ theorem walInv_openLast (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
 `walInv_unpin` in read mode, one segment). -/
 theorem walInv_unpinLast (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (gL : SegG)
-    (hS : gL.om.size = gL.bs.length) :
+    (hS : gL.om.size = gL.bs.length) (I : GMap GoString Nat) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walLockedTok (W := W) -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
+      walLockedTokI (W := W) I -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
       walOutFrag (W := W) ⟨[gL.ino], [(j, .except X)], []⟩ -∗
       segRes (L := L) gL -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
-      walDirKey (W := W) dir j X ={⊤}=∗
+      walDirKey (W := W) dir (incOf I dir) j X ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Hl Htf Ho HS Hn #Hk
-  iapply walInv_unpin C Mr R jr r dir j X hj [gL] false (by simpa using hS) $$ Hinv Hnc Hl Htf
+  iapply walInv_unpin C Mr R jr r dir j X hj [gL] false (by simpa using hS) I _ rfl $$ Hinv Hnc Hl Htf
     [Ho] [HS] Hn [] Hk
   · simp only [List.map_cons, List.map_nil, Bool.false_eq_true, ↓reduceIte]; iexact Ho
   · iapply BigSepL.bigSepL_cons.2; iframe HS; iapply BigSepL.bigSepL_nil.2; iempintro

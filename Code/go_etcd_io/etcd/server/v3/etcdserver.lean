@@ -873,22 +873,27 @@ noncomputable def bootstrap.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "unsaved" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (Var "cfg")))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "uerr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"cannot tell whether the WAL holds saved state; keeping it"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"wal-dir"))
   (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"WALDir"))) (Var "cfg")) (Val #()))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.DiscardUnsaved []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "derr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "discarded" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "uerr"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (Var "cfg")))) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "unsaved"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "discarded")))
+  (Let "$r0" (Val #false)
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "haveWAL") (Var "$r0")))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (Var "cfg")))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"WALDir"))) (Var "cfg")) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.Discard []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "derr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "derr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType bootstrappedServer.ty)))) (Val UntypedNil))
   (Let "$r1" (Let "$a0" (Val #(go!"cannot discard the unsaved WAL: %w"))
@@ -904,12 +909,9 @@ noncomputable def bootstrap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bootstrappedServer.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "derr") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "discarded") (Var "$r0"))))))))))))))
-  (If (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "uerr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "unsaved")) (Val #false))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "derr") (Var "$r0"))))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
   (App (App (Val (GoInstruction (FuncResolve removeBackendDurably []))) (Val #())) (Var "$a0")))
   (Let "rerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -931,7 +933,7 @@ noncomputable def bootstrap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "rerr") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "rerr") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1029,7 +1031,7 @@ noncomputable def bootstrap.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: bootstrap.go:162:6 -/
+/-- go: bootstrap.go:163:6 -/
 noncomputable def confStateFromMembers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "members"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Val #())))
@@ -1072,7 +1074,7 @@ noncomputable def confStateFromMembers.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "m") (Var "$value")))))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty))) (Var "$res0")))))
 
-/-- go: bootstrap.go:188:30 -/
+/-- go: bootstrap.go:189:30 -/
 noncomputable def bootstrappedServer.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1082,7 +1084,7 @@ noncomputable def bootstrappedServer.Close.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bootstrappedStorage.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedServer.ty go!"storage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedServer.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:197:31 -/
+/-- go: bootstrap.go:198:31 -/
 noncomputable def bootstrappedStorage.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1092,7 +1094,7 @@ noncomputable def bootstrappedStorage.Close.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bootstrappedBackend.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (App (Val (GoInstruction (StructFieldRef bootstrappedStorage.ty go!"backend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:209:31 -/
+/-- go: bootstrap.go:210:31 -/
 noncomputable def bootstrappedBackend.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1102,7 +1104,7 @@ noncomputable def bootstrappedBackend.Close.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef bootstrappedBackend.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (Var "s"))))) (Val #())))))
   (Val #()))))
 
-/-- go: bootstrap.go:228:6 -/
+/-- go: bootstrap.go:229:6 -/
 noncomputable def bootstrapStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "be"
@@ -1133,7 +1135,7 @@ noncomputable def bootstrapStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedStorage.ty)))) (Var "$res0"))))))))
 
-/-- go: bootstrap.go:239:6 -/
+/-- go: bootstrap.go:240:6 -/
 noncomputable def bootstrapSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Val #())))
@@ -1272,7 +1274,7 @@ noncomputable def bootstrapSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty)))) (Var "$res0")))))
 
-/-- go: bootstrap.go:305:6 -/
+/-- go: bootstrap.go:306:6 -/
 noncomputable def bootstrapBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "haveWAL"
@@ -1478,7 +1480,7 @@ noncomputable def bootstrapBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "beExist") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedBackend.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: bootstrap.go:376:6 -/
+/-- go: bootstrap.go:377:6 -/
 noncomputable def bootstrapCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "bwal"
@@ -1570,7 +1572,7 @@ noncomputable def bootstrapCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bootstrappedCluster.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedCluster.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))
 
-/-- go: bootstrap.go:425:6 -/
+/-- go: bootstrap.go:426:6 -/
 noncomputable def bootstrapNewClusterNoWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "prt"
@@ -1791,7 +1793,7 @@ noncomputable def bootstrapNewClusterNoWAL.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedCluster.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: bootstrap.go:558:31 -/
+/-- go: bootstrap.go:559:31 -/
 noncomputable def bootstrappedCluster.Finalize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
@@ -1861,7 +1863,7 @@ noncomputable def bootstrappedCluster.Finalize.impl [GooseExts] [GoGlobalContext
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: bootstrap.go:580:6 -/
+/-- go: bootstrap.go:581:6 -/
 noncomputable def bootstrapRaft.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "cluster"
@@ -1916,7 +1918,7 @@ noncomputable def bootstrapRaft.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"Logger"))) (Var "cfg")))) (Var "$a0")) (Var "$a1"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "$res0")))))))
 
-/-- go: bootstrap.go:594:6 -/
+/-- go: bootstrap.go:595:6 -/
 noncomputable def bootstrapRaftFromCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "cl"
@@ -2015,7 +2017,7 @@ noncomputable def bootstrapRaftFromCluster.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "member") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedRaft.ty)))) (Var "$res0"))))))))
 
-/-- go: bootstrap.go:630:6 -/
+/-- go: bootstrap.go:631:6 -/
 noncomputable def raftConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "id"
@@ -2044,7 +2046,7 @@ noncomputable def raftConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Var "$res0")))))))
 
-/-- go: bootstrap.go:644:28 -/
+/-- go: bootstrap.go:645:28 -/
 noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "ss"
@@ -2115,7 +2117,7 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "$res0"))))))))
 
-/-- go: bootstrap.go:763:6 -/
+/-- go: bootstrap.go:764:6 -/
 noncomputable def bootstrapNewWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "cl"
@@ -2173,7 +2175,7 @@ noncomputable def bootstrapNewWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "metadata") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bootstrappedWAL.ty)))) (Var "$res0"))))))
 
-/-- go: bootstrap.go:794:29 -/
+/-- go: bootstrap.go:795:29 -/
 noncomputable def bootstrappedWAL.MemoryStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wal"
   (Lam BAnon

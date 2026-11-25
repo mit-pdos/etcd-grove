@@ -23,6 +23,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseOpeningFiles
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtSteps
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
 public import Perennial.Proof.sync.Results
 
@@ -87,17 +88,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
       ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (s : w64 × w64),
       {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           WalFs.walAreaOk walCodec Mr R jr r ∗
-          (∃ i : Nat, WalFs.walOpening w dir s i) ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+          (∃ i : Nat, WalFs.walOpening w dir s i ∗ walReadH true w dir s i) ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
         (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
           (Val #()))
       {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half }} := by
   intro R jr r w dir s
-  wp_start as ⟨#Harea, ⟨%ic, Hop⟩, Hrh, Hperm, Hdf⟩
+  wp_start as ⟨#Harea, ⟨%ic, Hop, Hrh⟩, Hperm, Hdf⟩
   unfold walReadH walOpenIn walReadTie
   simp only [↓reduceIte]
   icases Hrh with ⟨⟨%lg, %sp, Hlg, #Hzap, Hdir, Hstart, #Hsp⟩, %dec, %IoE, %eof, %ueof, %fs, %locks,
-    %lfs, %fp, %rc, %j, Hdecf, Hdec, #Hdenv, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
+    %lfs, %fp, %rc, %j, %qs, Hdecf, Hdec, #Hdenv, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
     %Hfs, -, #Hlks⟩, Hlocks, Hls, Hcap, Hrc, Hfp, ⟨%hrc, Hpipe⟩, He, Hst, Hmd, Henti, Hsnapi, Hns,
     #Hmu, #Henv, #Hcrc, -⟩
   obtain ⟨hgs0, hnd, hsz, -, hlast, -⟩ := Hgs
@@ -112,9 +113,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   iunfold encEnv at Henv0
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
   -- the lock token, out of the ghost handle
-  ihave Hl := walOpening_lockedTok w dir s $$ Hop
-  unfold walLockedTok walLockedTokI
-  icases Hl with ⟨%Il, Hlt, Hpf, Hcf, HIl⟩
+  ihave Hl := walOpening_lockedTokI w dir s $$ Hop
+  icases Hl with ⟨%Il, Hl, %hIl⟩
+  subst hIl
+  unfold walLockedTokI
+  icases Hl with ⟨Hlt, Hpf, Hcf, HIl⟩
   -- the files, out of the decoder
   ihave Hst0 := ownDecoder_streams dec IoE eof fs 0 0#32 true $$ Hdec
   icases walTie_files dir true gs fs fls hfl hfll (fun k F g h1 h2 =>
@@ -164,19 +167,24 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   iunfold walTieFile at HfL
   icases HfL with ⟨%fdL, %loL, %lkL, HfL, HfdL, HlksL⟩
   wp_apply (wp_syncIdle R jr r w lg locks ls lt (fls.getD gs0.length null) fdL (child dir gL.name)
-      dir j X hj gL.name (walSegFd true loL lkL gL.ino) gL.om gL.bs hbL hiL hlenL)
-      $$ [He Hns Hlg Hlocks Hls HfL HfdL Hn Htf Hcf HsL]
-      as %err ⟨He, Hns, Hlg, Hlocks, Hls, HfL, HfdL, -, Hn, Htf, Hcf, Hsy⟩
+      dir _ Il j X hj gL.name (walSegFd true loL lkL gL.ino) gL.om gL.bs hbL hiL hlenL)
+      $$ [He Hns Hlg Hlocks Hls HfL HfdL Hn Htf Hcf HsL HIl]
+      as %err ⟨He, Hns, Hlg, Hlocks, Hls, HfL, HfdL, -, HIl, -, Hn, Htf, Hcf, Hsy⟩
   · iunfold segRes at HsL
     icases HsL with ⟨Hm, Hb⟩
     iframe
     iframe #
+    try (ipureintro; rfl)
   -- the put-back, at the next step
+  isimp only [walSegFd] at Hsy
   ihave Hsy := syncOut_seg gL hlenL (err = GoInterface.nil) $$ Hsy
   icases Hsy with ⟨%gL', %hgL', HsL⟩
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
+  unfold walPipeKey
+  icases Hpkey with ⟨%Ip, %Xp, HIp, -⟩
+  obtain ⟨-, qp, rfl, rfl⟩ := hnp
   subst hRpW
   ihave Hperm2 := walPerm_ofW hWR dir _ $$ Hperm2
   ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
@@ -184,20 +192,27 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   · iframe
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  -- the pipeline's path loan back
+  ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
+  · rw [← hWR]; iexact Hpp
+  imod walInv_returnHLoans1 walCodec Mr R jr r dir _ j j X qp Il rfl $$ Hinv Hnc Hk HIl Hnf Hpp
+    with ⟨Hnc, HIl, Hnf⟩
   imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [gL']) true (by
       intro g hg
       rcases List.mem_append.1 hg with hg | hg
       · exact hsz g (List.mem_append_left _ hg)
-      · simp at hg; subst hg; exact hgL'.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
-      [Hsegs HsL] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-  · unfold walLockedTok walLockedTokI; iexists Il; iframe
+      · simp at hg; subst hg; exact hgL'.2) Il _ rfl $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
+      [Hsegs HsL] Hn [Htmps HIp] Hk with ⟨Hnc, Hunl⟩
+  · unfold walLockedTokI; iframe
   · iframe
   · iapply walOutFrag_eq' (W := W) $$ Hout
     ipureintro
     simp [hgL'.1]
   · iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
     iframe
-  · simp only [↓reduceIte]; iexact Htmps
+  · simp only [↓reduceIte]
+    iframe Htmps
+    unfold walIncEAny; iexists Ip; iexact HIp
   imodintro
   iframe Hnc
   cases err with

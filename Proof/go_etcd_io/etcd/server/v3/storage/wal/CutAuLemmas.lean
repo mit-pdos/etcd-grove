@@ -225,7 +225,7 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
   iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf Hp
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
   subst ho
-  imod walOut_set (W := W) o' o' ((o'.delSeg g0.ino).addSeg g.ino) $$ Hoa Hf with ⟨Hoa, Hf⟩
+  imod walOut_set (W := W) o' o' ((o'.delSeg g0.ino).addSeg g.ino) rfl $$ Hoa Hf with ⟨Hoa, Hf⟩
   imodintro
   iframe Hf
   obtain ⟨O, D, T⟩ := o'

@@ -163,28 +163,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 
 /-- **What a purge holds for a leftover's removal**: the directory's key, a quarter of the WAL claim (the
 call has another), the handle's record of what is out. -/
-def walPurgeOP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) : IProp GF :=
-  iprop(walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own qQuarter) hj ∗ walOutFrag (W := W) o)
+def walPurgeOP (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) : IProp GF :=
+  iprop(walDirKey (W := W) dir (incOf I dir) j X ∗ walIncQ (W := W) I ∗
+    osNames j (.except X) (DFrac.own qQuarter) hj ∗ walOutFrag (W := W) o)
 
 /-- **What a purge gets from a leftover's removal**: with no effect, what it held; after the commit
 (logged at `x` by a call begun at `s0`), the claim's new history (a quarter). -/
-def walPurgeOQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString)
+def walPurgeOQ (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString)
     (i : Ino) : Option (Nat × Nat) → IProp GF
-  | none => walPurgeOP (W := W) dir j X hj o
-  | some (x, s0) => walPurgeOP (W := W) dir j X (purgeClaim j X hj bt i x s0).2.2 o
+  | none => walPurgeOP (W := W) dir I j X hj o
+  | some (x, s0) => walPurgeOP (W := W) dir I j X (purgeClaim j X hj bt i x s0).2.2 o
 
 /-- **A purge's update for `os.Remove.specFileSncN` of a leftover file** (see the file header): the file
 `i` at `bt`, a non-`.wal` name of the claim (not left out). -/
 theorem walPurgeOther_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString) (i : Ino)
-    (hoD : (j, NameSet.except X) ∈ o.D) (hcur : hj.cur !! bt = some (.file i))
+    (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString)
+    (i : Ino) (hoD : (j, NameSet.except X) ∈ o.D) (hcur : hj.cur !! bt = some (.file i))
     (hbtw : walNameP bt = false) (hbN : bt ∉ X) :
-    ⊢ walInv (W := W) walCodec Mr R jr r -∗ walPurgeOP (W := W) dir j X hj o -∗
+    ⊢ walInv (W := W) walCodec Mr R jr r -∗ walPurgeOP (W := W) dir I j X hj o -∗
       osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
         (rmFileOutN j (.except X) bt i hj (DFrac.own ((1 : Qp).half + qQuarter)))
-        (walPurgeOQ (W := W) dir j X hj o bt i) := by
+        (walPurgeOQ (W := W) dir I j X hj o bt i) := by
   iintro #Hinv HP
-  iapply osAUnc_coiter _ _ _ (walPurgeOP (W := W) dir j X hj o) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (walPurgeOP (W := W) dir I j X hj o) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -192,11 +193,11 @@ theorem walPurgeOther_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStr
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walPurgeOP
-  icases HP with ⟨#Hkey, Hq, Ho⟩
+  icases HP with ⟨#Hkey, HIq, Hq, Ho⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hkey HIq with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
@@ -242,7 +243,7 @@ theorem walPurgeOther_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStr
       iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only
-    iframe Hkey Hq Ho
+    iframe Hkey HIq Hq Ho
   · iintro %oc Hβ
     rcases oc with _ | ⟨x, s0⟩
     · -- no effect: as the abort
@@ -279,7 +280,7 @@ theorem walPurgeOther_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStr
         iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walPurgeOQ, walPurgeOP]
-      iframe Hkey Hq Ho
+      iframe Hkey HIq Hq Ho
     · imod Hcl'
       unfold rmFileOutN
       simp only [logOut, claimOut]
@@ -328,7 +329,7 @@ theorem walPurgeOther_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStr
         iframe Hnms; ipureintro; exact Hbd
       imodintro
       dsimp only [walPurgeOQ, walPurgeOP, purgeClaim, purgeNames]
-      iframe Hkey Hqn Ho
+      iframe Hkey HIq Hqn Ho
 end iris
 
 end WalFs

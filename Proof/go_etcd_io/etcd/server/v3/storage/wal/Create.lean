@@ -10,6 +10,7 @@ error exits run the deferred `cleanupWAL` (`create_cleanup`, over `CreateCleanup
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Create
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWAL
@@ -130,6 +131,26 @@ macro "create_errs_pre" : tactic => `(tactic| (
     · first | (iapply errOk_of_fmtErrorOkOrNil; iexact Hpe) | (iapply errOk_of_fmtErrorOk; iexact Hpe)
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro))
 
+/-- The loans a registration records when the registrant keeps (or drops) the fraction `x` of the name's
+program half beside the `c` it registers (P6b fix A). -/
+theorem create_loSum (nm : GoString) {c x : Qp} (h : c + x = (1 : Qp).half) :
+    c.val + loanSum [(nm, x)] nm = ((1 : Qp).half).val := by
+  rw [loanSum_cons_eq, loanSum_nil, ← h, Rat.add_zero]
+  rfl
+
+/-- `create_loSum` from the spine law's `d + (d + c) = ½`. -/
+theorem create_loSum2 (nm : GoString) {c d : Qp} (h : d + (d + c) = (1 : Qp).half) :
+    c.val + loanSum [(nm, d + d)] nm = ((1 : Qp).half).val :=
+  create_loSum nm (c := c) (x := d + d) (by rw [← h]; rw [Qp.ext_iff]; simp only [Qp.val_add]; grind)
+
+/-- The success exit's loans (P6b fix A): the registrant keeps the half `c.half` it names with (returned after
+the naming) and the handle's two path fractions `d`, from the spine law's `d + (d + c) = ½`. -/
+theorem create_loSum3 (nm : GoString) {c d : Qp} (h : d + (d + c) = (1 : Qp).half) :
+    c.half.val + loanSum [(nm, c.half), (nm, d), (nm, d)] nm = ((1 : Qp).half).val := by
+  rw [loanSum_cons_eq, loanSum_cons_eq, loanSum_cons_eq, loanSum_nil, ← h]
+  simp only [Qp.val_add, Qp.val_half]
+  grind
+
 set_option hygiene false in
 /-- **The deferred calls after the commit, on an error exit of the parent's sync** (the parent's
 `OpenDir`, `Fsync` or `Close` failed, `perr = ok pei`; at the deferred cleanup closure, the handle
@@ -178,7 +199,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod walInv_registerL walCodec Mr R jr r s' I0 Ic (child r nm) nm Wn c hn hin hnmO
-        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf' Hnm
+        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ [(nm, d + d)] (create_loSum2 nm _hcq) (by simp) $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf' Hnm
         with ⟨Hnc, Hlt, -, Hsf'⟩
       ihave Hlt := walLockedTokI_tok Ic $$ Hlt
       imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
@@ -219,7 +240,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iintro Hnc
       icases walUnlockedTokXI_incQ Ic $$ Hlt with ⟨Hq, Hback⟩
       imod walInv_register walCodec Mr R jr r s' I0 Ic (child r nm) nm Wn c hn hin hnmO
-        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ $$ Hinv Hsi Hnc Hpast Hq Hnf Hsf' Hnm
+        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ [(nm, d + d)] (create_loSum2 nm _hcq) (by simp) $$ Hinv Hsi Hnc Hpast Hq Hnf Hsf' Hnm
         with ⟨Hnc, Hq, -, Hsf'⟩
       ihave Hlt := Hback $$ Hq
       ihave Hlt := walUnlockedTokXI_X Ic $$ Hlt
@@ -437,11 +458,21 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       with ⟨Hnm, Hnm2⟩
     · rw [Qp.half_add_half]; iexact Hnm
     imod walInv_registerL walCodec Mr R jr r s' I0 Il (child r nm) nm Wn c.half hn hin hnmO
-      (by rw [hs']; simp) (by rw [hIl, hI0]) ⟨J, hnc⟩ $$ Hinv Hsi Hnc Hpast Hl Hnf Hsf' Hnm
+      (by rw [hs']; simp) (by rw [hIl, hI0]) ⟨J, hnc⟩ [(nm, c.half), (nm, d), (nm, d)] (create_loSum3 nm _hcq)
+      (by simp) $$ Hinv Hsi Hnc Hpast Hl Hnf Hsf' Hnm
       with ⟨Hnc, Hl, Hnf, Hsf'⟩
     imod walInv_named walCodec Mr R jr r (child r nm) nm s' I0 (walDurFresh md) (.only [nm])
       (DFrac.own c.half) hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
-      $$ Hinv Hsi Hnc Hpast Hnm2 Hcm Hnf with ⟨Hnc, -, #Hnamed, Hnf⟩
+      $$ Hinv Hsi Hnc Hpast Hnm2 Hcm Hnf with ⟨Hnc, Hnm2, #Hnamed, Hnf⟩
+    -- the naming's half of the claim back (P6b fix A); the handle keeps its two path loans
+    imod walInv_returnLoan walCodec Mr R jr r (nm, c.half) _ List.mem_cons_self $$ Hinv Hnc Hnf [Hnm2]
+      with ⟨Hnc, Hnf⟩
+    · unfold walLoanP; iright; iexists hn; iexact Hnm2
+    simp only [List.erase_cons_head]
+    ihave Hnf : walHLoans (W := W) (child r nm) none [d, d] $$ [Hnf]
+    · have hm := walHLoans_mk (W := W) (child r nm) r nm [d, d] hin
+      simp only [List.map_cons, List.map_nil] at hm
+      iapply hm $$ Hnf
     iframe Hnc
     imodintro
     ihave #Hnamed : WalFs.walNamed (W := W) (child r nm) ic $$ [Hnamed]
@@ -1191,7 +1222,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) (DFrac.own d)
         (createU Mr R jr r nm ic hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
           (createSeg i mS ysS))
-        (createSp Mr R jr r d) (createSpR jr J nm (b1 + b1)) :=
+        (createSp Mr R jr r d) (createSpR jr J nm (b1 + b1))
+        (fun x => createUK (W := W) Mr R jr r nm ic md Q Wn J (createSeg i mS ysS) x) :=
       ⟨hin, hdl, hnmO, tmpName_nameOk hnmO, tmpName_ne nm, by simp [NameSet.Mem],
         by simp [NameSet.Mem], hctmp, hcnm,
         create_spine Mr R jr J r nm ic hC md Q Pv Wn _ _ _ d (b1 + b1) hd hnm hnmO,
@@ -1199,7 +1231,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
-      (createUH jr J r nm ic md Q Wn d) hOk ⟨hnoerr.1.mono (fun _ hp => .inl hp), by rw [← tmp_path]; exact hnoerr.2.1, hnoerr.2.2⟩
+      (fun x => createUK (W := W) Mr R jr r nm ic md Q Wn J (createSeg i mS ysS) x) hOk ⟨hnoerr.1.mono (fun _ hp => .inl hp), by rw [← tmp_path]; exact hnoerr.2.1, hnoerr.2.2⟩
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hlks Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
@@ -1268,10 +1300,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       icases HhIn with ⟨%γt, HhIn⟩
       imod (receipt_zero (GF := GF)) with Hr0
       ihave Hw := walOpenWFU_intro P Mr wl (child r nm) R d f
-        (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic)
-        (createHS_done md i _ γt _ _) hmd $$ [HhIn Hr0]
+        (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic d)
+        (createHS_done md i _ γt _ _ _) hmd $$ [HhIn Hr0]
       · iframe
-      rw [show (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic).inc = ic
+      rw [show (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size ic d).inc = ic
         from rfl]
       create_named_cont wl f
         (wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd' nmf d' $$ [Hf' Hfd' Hlks'] as %cerr' -
@@ -1371,15 +1403,15 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
       (tmpName_nameOk hnmO) hnt.2 $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
-    unfold createU
-    icases HU with ⟨-, -, HQ⟩
-    unfold walCreateQ
+    unfold createUK
+    icases HU with ⟨-, HQ⟩
+    unfold walCreateQK
     icases HQ with ⟨HQ, Hsf, -, -, -, -, Hnf, -, %s', %Il, Hlt, Hpast, %hIs⟩
     obtain ⟨-, hs'⟩ := hIs
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod walInv_registerL walCodec Mr R jr r s' Il Il (child r nm) nm Wn (b1 + b1) hn hin hnmO
-      (by rw [hs']; simp) rfl ⟨J, hnt.1⟩ $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf Hnm with ⟨Hnc, Hlt, -, Hsf⟩
+      (by rw [hs']; simp) rfl ⟨J, hnt.1⟩ [(nm, d + d)] (create_loSum2 nm hd) (by simp) $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf Hnm with ⟨Hnc, Hlt, -, Hsf⟩
     ihave Hlt : walLockedTok (W := W) $$ [Hlt]
     · unfold walLockedTok; iexists Il; iexact Hlt
     imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))

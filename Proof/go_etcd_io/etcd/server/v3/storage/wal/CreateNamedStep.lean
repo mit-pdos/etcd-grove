@@ -48,7 +48,7 @@ theorem walInv_stepS (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
   iframe
 
 /-- See the file header. -/
-theorem walInv_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInv_named {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm : GoString) (s0 : AbsDiskState) (I0 : GMap GoString Nat) (d0 : WalDur) (N : NameSet)
     (dq : DFrac) (h : NamesH)
     (x : Nat) (e : LogEntry) (Es : Ents) (J : Ino) (n : Nat)
@@ -56,15 +56,15 @@ theorem walInv_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
     (hl : LastWrite h jr nm x e Es) (hx : x < n) (hJ : Es !! nm = some (.dir J)) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walPastI (W := W) (s0, I0) -∗
-      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFrag (W := W) none ={⊤}=∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗
-        walNamed (W := W) dir (incOf I0 dir) ∗ walNamesFrag (W := W) none := by
+        walNamed (W := W) dir (incOf I0 dir) ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ := by
   iintro #Hinv #Hsi Hnc #Hp H #Hc Hnf
   iapply walInv_stepS C Mr R jr r
     iprop(osSharedInv (L := L) R ∗ walPastI (W := W) (s0, I0) ∗ osNames (L := L) jr N dq h ∗
-      osCommitLb (L := L) n ∗ walNamesFrag (W := W) none)
+      osCommitLb (L := L) n ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩)
     iprop(osNames (L := L) jr N dq h ∗ walNamed (W := W) dir (incOf I0 dir) ∗
-      walNamesFrag (W := W) none)
+      walNamesFragS (W := W) ⟨none, none, Lo⟩)
     ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨#Hsi, #Hp, H, #Hc, Hnf⟩
       iunfold walInvBody at Hb

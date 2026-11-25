@@ -68,6 +68,14 @@ def createU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat
     walCreateQ (W := W) (child r nm) ic (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps hJ g
       (createTailG Mr md jr nm J g) o)
 
+/-- **`Create`'s result once the pipeline has its share** (`renameWAL`'s `UH`): `createU (some _)` but the
+reserve of the incarnations, which the spine law gives the pipeline (`walPipeKey`), and the commit bound,
+which no committed arm uses. -/
+def createUK (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat) (md : List w8)
+    (Q : IProp GF) (Wn : List GoString) (J : Ino) (g : SegG) (_x : Nat × Nat) : IProp GF :=
+  iprop(walInv (W := W) walCodec Mr R jr r ∗
+    walCreateQK (W := W) (child r nm) ic md Q Wn J walTmps g (createTailG Mr md jr nm J g))
+
 /-- **The aborted result rebuilds the update** (`RenameWALOk`'s last conjunct), over the fresh layout. -/
 theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat)
     (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (hnW : nm ∉ Wn)
@@ -161,31 +169,38 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
       renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC
         (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-      createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J hJ g (some x) ∗
+      createUK (W := W) Mr R jr r nm ic md Q Wn J g x ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       createSpR (hG := hG) jr J nm c x ∗
-      (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
-        walInv (W := W) C Mr' R jr' r' ∗ walDirKey (W := W) (child r nm) J X) := by
+      (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString),
+        walInv (W := W) C Mr' R jr' r') ∗ walPipeKey (W := W) (child r nm) J := by
   iintro %x Hsp Hnc HU Hout
-  ihave #Hwk : (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
-      walInv (W := W) C Mr' R jr' r' ∗ walDirKey (W := W) (child r nm) J X) $$ [HU]
-  · unfold createU
-    icases HU with ⟨#Hinv, -, HQ⟩
-    simp only [walCreateQ]
-    icases HQ with ⟨-, -, -, -, -, -, -, #Hkey, -⟩
-    iexists walCodec, Mr, jr, r, walTmps
-    iframe Hinv Hkey
+  iunfold createU at HU
+  icases HU with ⟨#Hinv0, -, HQ⟩
+  isimp only [walCreateQ, walCreateQK] at HQ
+  icases HQ with ⟨⟨HQ, Hsf, Hm, Hb, Ho, Htr, Hnf, #Hkey, %s', %I, Hl, Hpast, %hIs⟩, Hres⟩
+  icases walPipeKey_ofLocked (W := W) I (child r nm) ic J walTmps hIs.1 $$ Hl Hkey Hres with ⟨Hl, Hpk⟩
+  ihave HU : createUK (W := W) Mr R jr r nm ic md Q Wn J g x $$ [HQ Hsf Hm Hb Ho Htr Hnf Hl Hpast]
+  · unfold createUK walCreateQK
+    iframe Hinv0 HQ Hsf Hm Hb Ho Htr Hnf Hkey
+    iexists s', I
+    iframe Hl Hpast
+    ipureintro; exact hIs
+  ihave #Hwk : (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString),
+      walInv (W := W) C Mr' R jr' r') $$ []
+  · iexists walCodec, Mr, jr, r
+    iexact Hinv0
   unfold createSp
   icases Hsp with ⟨#Hinv, #Hsi, Hp1, Hp2⟩
   obtain ⟨x, s⟩ := x
   unfold renDirOut claimOut logOut osLogged
   icases Hout with ⟨⟨-, -, -, #Hlg⟩, Hn⟩
-  have hT : ⊢ createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J hJ g (some (x, s)) -∗
+  have hT : ⊢ createUK (W := W) Mr R jr r nm ic md Q Wn J g (x, s) -∗
       walUnlockedTokX (W := W) -∗ False := by
-    unfold createU
-    iintro ⟨-, -, HQ⟩ Hu
-    unfold walCreateQ
+    unfold createUK
+    iintro ⟨-, HQ⟩ Hu
+    unfold walCreateQK
     icases HQ with ⟨-, -, -, -, -, -, -, -, %s', %I, Hl, -⟩
     ihave Hl : walLockedTok (W := W) $$ [Hl]
     · unfold walLockedTok; iexists I; iexact Hl
@@ -214,7 +229,7 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   ihave Hs1 := osPathS_child R r nm (DFrac.own d) jr J _ hnmO hn1 $$ Hp1 Hn1
   ihave Hs2 := osPathS_child R r nm (DFrac.own d) jr J _ hnmO hn1 $$ Hp2 Hn2
   imodintro
-  iframe Hnc HU Hs1 Hs2 Hwk
+  iframe Hnc HU Hs1 Hs2 Hwk Hpk
   unfold createSpR
   iexists _, _
   iframe Hnm Htmp Hlg

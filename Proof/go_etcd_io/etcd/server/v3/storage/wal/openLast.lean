@@ -9,6 +9,7 @@ next step (`walInv_unpinLast`). Lean-first.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.openLast
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNames
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNamesAbsent
@@ -93,10 +94,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     iframe Hu
     ipureintro; nofun
   · iunfold walPinLast at Hpin
-    icases Hpin with ⟨%lay, %X, %hj, %gL, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj⟩
+    icases Hpin with ⟨%lay, %X, %hj, %gL, %I, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj⟩
     obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL⟩ := hfacts
     icases Htf with ⟨Htf, Hnf⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
+    icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+    imod walInv_dirPath walCodec Mr R jr r dir I lay.j X [] $$ Hinv Hnc Hnf Hkey HI
+      with ⟨Hnc, HI, %nmd, %qd, %hdd, Hnf, Hpd⟩
+    ihave Hl := Hl $$ HI
+    have hnmd : nmd = nm := Fs.child_inj (hdd.symm.trans hdc)
+    subst nmd
     imodintro
     iframe Hnc
     have hgLm : gL ∈ lay.segs := List.mem_of_getLast? hgL
@@ -111,7 +117,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     · -- `readWALNames` failed: the pin back
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdd $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz I $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
         Hkey with ⟨Hnc, Hu⟩
       · iframe
       imodintro
@@ -195,13 +202,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
       ihave Hfd := lkFd_openW k gL.ino (W64 2) fd true true rfl rfl $$ [$Hfd $Hlk $Hkind]
       icases Hfd with ⟨%lo, %lk, Hfd, Hlks⟩
       iexists d, lay, X, hj, gL, f, fd, qd, lo, lk
+      ihave Hnf : walHLoans (W := W) dir none [qd] $$ [Hnf]
+      · have hm := walHLoans_mk (W := W) dir r nm [qd] hin
+        simp only [List.map_cons, List.map_nil] at hm
+        iapply hm $$ Hnf
       iframe
       iframe #
       ipureintro; exact ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL, hfd, hbok⟩
     · -- the lock's open failed: the pin back
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdd $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz I $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
         Hkey with ⟨Hnc, Hu⟩
       · iframe
       imodintro

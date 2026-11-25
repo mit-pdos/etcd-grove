@@ -214,8 +214,8 @@ noncomputable def openLast [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Unsaved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Unsaved"
 
-noncomputable def DiscardUnsaved [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/storage/wal.DiscardUnsaved"
+noncomputable def Discard [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/wal.Discard"
 
 noncomputable def Exist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Exist"
@@ -2350,33 +2350,21 @@ noncomputable def Unsaved.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- DiscardUnsaved removes the WAL in dirpath if Unsaved reports that it holds nothing a Save
-    wrote, and reports whether it did. The WAL directory is renamed to Create's temporary
+/-- Discard removes the WAL in dirpath, which the caller found unsaved (Unsaved returned true,
+    nil) and whose backend it removed. The WAL directory is renamed to Create's temporary
     directory (which Create removes) and the rename made durable, so that Exist reports no WAL,
-    atomically across a crash. A WAL that Unsaved cannot read is kept.
+    atomically across a crash. Discard does not check Unsaved again: a second check could answer
+    differently from the caller's (a transient read error in one of them), and the caller's check
+    is what its removal of the backend relied on.
 
-    go: unsaved.go:97:6 -/
-noncomputable def DiscardUnsaved.impl [GooseExts] [GoGlobalContext] : val :=
+    go: unsaved.go:99:6 -/
+noncomputable def Discard.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "dirpath" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dirpath"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "dirpath"))
-  (App (App (App (Val (GoInstruction (FuncResolve Unsaved []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "uerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "unsaved" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dirpath"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.path.filepath.Clean []))) (Val #())) (Var "$a0")))
@@ -2389,16 +2377,12 @@ noncomputable def DiscardUnsaved.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"discarded a WAL that holds no saved state"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"wal-dir"))
@@ -2412,16 +2396,12 @@ noncomputable def DiscardUnsaved.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -2432,16 +2412,12 @@ noncomputable def DiscardUnsaved.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -2451,16 +2427,12 @@ noncomputable def DiscardUnsaved.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (Val #false)
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -2469,53 +2441,13 @@ noncomputable def DiscardUnsaved.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tmpdirpath") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "dir") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "unsaved")))
-  (Let "$r0" (Val #false)
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "uerr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #false)
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(go!"cannot tell whether the WAL holds saved state; keeping it"))
-  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"wal-dir"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "dirpath"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$sl1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "uerr"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "uerr") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "unsaved") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))))
-  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- Exist returns true if there are any files in a given directory.
 
@@ -9241,7 +9173,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Repair_unfold : FuncUnfold Repair [] Repair.impl
   openLast_unfold : FuncUnfold openLast [] openLast.impl
   Unsaved_unfold : FuncUnfold Unsaved [] Unsaved.impl
-  DiscardUnsaved_unfold : FuncUnfold DiscardUnsaved [] DiscardUnsaved.impl
+  Discard_unfold : FuncUnfold Discard [] Discard.impl
   Exist_unfold : FuncUnfold Exist [] Exist.impl
   searchIndex_unfold : FuncUnfold searchIndex [] searchIndex.impl
   isValidSeq_unfold : FuncUnfold isValidSeq [] isValidSeq.impl
@@ -9313,7 +9245,7 @@ attribute [instance] Assumptions.Decoder_instance
   Assumptions.Repair_unfold
   Assumptions.openLast_unfold
   Assumptions.Unsaved_unfold
-  Assumptions.DiscardUnsaved_unfold
+  Assumptions.Discard_unfold
   Assumptions.Exist_unfold
   Assumptions.searchIndex_unfold
   Assumptions.isValidSeq_unfold

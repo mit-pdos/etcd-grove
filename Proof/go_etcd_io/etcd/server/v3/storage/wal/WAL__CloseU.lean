@@ -101,7 +101,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   -- the pipeline's `Close`
   iunfold walPipeH at Hpipe
   icases Hpipe with ⟨%γp, %Rp', %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
-  obtain ⟨-, hRp, rfl⟩ := hnp
+  obtain ⟨-, ⟨hRp, rfl⟩, -⟩ := hnp
   subst Rp'
   subst hRp
   simp only [decide_eq_false hfpn]
@@ -136,7 +136,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
     (try wp_auto)
     iapply HΦ
-    icases Hlk with ⟨Hlk, Hnf, %f', %fd', %nmf, %d', %R', %q', %hpin, Hf', Hfd', Hlks'⟩
+    icases Hlk with ⟨Hlk, ⟨%qs, Hnf⟩, %f', %fd', %nmf, %d', %R', %q', %hpin, Hf', Hfd', Hlks'⟩
+    ihave Hnf := (walHLoans_some (W := W) dir dir qs).1 $$ Hnf
     obtain ⟨rfl, -, -⟩ := hpin
     iright; iframe Hlk Hnf Hek
     isplitr
@@ -156,6 +157,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   unfold walDirH walDirLks
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, %hRdW, Hperm, Hdfd, %hpin, Hout,
     ⟨%γt, %bL, %lsI, Htf, HlksI, %hlkr⟩, Hnf, %hdh⟩
+  ihave Hnf := (walHLoans_some (W := W) dir dir _).1 $$ Hnf
   ihave Hlks := walLocksHI_H _ _ $$ HlksI
   ihave Hlkt2 := fdLocksW_locks _ _ $$ Hlkt2
   obtain ⟨rfl, rfl, rfl⟩ := hpin
@@ -333,13 +335,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   -- the put-back, at the next step
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLawU (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts
     (h.o0 + (h.out ++ h.pend).length) m2 bs2 b (pipeTmp (np + 1)) hp2.2.1 hwr hb (pipeTmp_memU _)
-    h.inc $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc Hout Htf Hopen Hpw with ⟨Hnc, Hunl⟩
+    h.inc $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hpkey Hcl Htb Hpc Hout Htf Hopen Hpw with ⟨Hnc, Hunl⟩
   · unfold tailVar; iexact Hv2
   imodintro
   iframe Hnc

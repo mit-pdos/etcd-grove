@@ -36,8 +36,8 @@ tail's size grown to cover them if they pass it), the tail fdatasynced: the hist
 (`TailMetaW`: a write past the preallocated size, W6 log, thirteenth session). *Error*: the handle lost but
 the lock token (`walLockedTok`: `Close` returns before it unlocks, and `Create`'s cleanup must still merge
 `nm.tmp`'s claim back, which needs a token excluding the free one; ledger 2026-11-14) and the names
-fragment (`walNamesFrag nf`: `Create`'s pending registration, which its cleanup completes when nothing was
-renamed; `notes/wal-units/create.md`), and the tail's open file and fd with the naming fact at them (the
+fragment (`walHLoans dir nf qs`, P6b: `Create`'s pending registration, which its cleanup completes when
+nothing was renamed, `notes/wal-units/create.md`; with none pending, the handle's record of its loans), and the tail's open file and fd with the naming fact at them (the
 handle before naming pins the file: `Create`'s deferred `f.Close()` closes it). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
@@ -51,7 +51,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr
           TailMetaS nmd nf ∗
           WalFs.walSyncedLb dir h.inc h.H.length) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗
-        (∃ I, WalFs.walLockedTokI I ∗ ⌜WalFs.incOf I dir = h.inc⌝) ∗ WalFs.walNamesFrag nf ∗
+        (∃ I, WalFs.walLockedTokI I ∗ ⌜WalFs.incOf I dir = h.inc⌝) ∗ (∃ qs, WalFs.walHLoans dir nf qs) ∗
         ∃ (f : Loc) (fd : w64) (name : GoString) (d : OsFd) (R : Roots) (q : Qp),
           nmd f R q ∗ os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) }}
 

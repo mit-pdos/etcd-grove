@@ -186,7 +186,7 @@ theorem walHandleIn_fp (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
   isplitr
   · ipureintro; exact hfpn
   iintro Hfp
-  ihave Hpipe : walPipeH (W := W) fp dir j h.pc $$ [Hisp Hmain Htmp]
+  ihave Hpipe : walPipeH (W := W) fp dir j h.pc (fun _ dq => True ∧ dq = DFrac.own h.qp) $$ [Hisp Hmain Htmp]
   · iunfold walPipeH
     iexists γp, Rp, dqp, szp, np
     iframe Hisp Hmain Htmp

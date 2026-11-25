@@ -90,6 +90,118 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   files' `Hs` and returning the certificates; (4) on the graceful path, the stop image (`wal.stopImage`,
   `raftNode.stop`'s post, `rnDurK_take.law`) the same, or `bootstrapRestartContract`'s restart slot
   keeping the old certificate-free form. Waiting for the lead's choice (P5 stopped on (a)).
+## 2026-11-25: openAtIndex (read mode's post), WAL.Close (`.opening`'s pre) -- the read handle's key must name its incarnation
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean` (post, both modes) and
+  `WAL__Close.lean` (the `.opening` arm's pre), through `walReadH`/`walReadTie` (`Proof/.../wal/ReadDefs.lean`).
+  Internal; no `SpecPlan/` counterpart.
+- **Defect.** Fix B (entries below): `walReadTie` holds the WAL's key, which is now `walDirKey dir i j X`; a
+  key with no incarnation tied to the holder's cannot be looked up. `walReadH write w dir s` names none, and
+  the read mode's post gives `walLockedTok` (its incarnations hidden), so `ReadAll`/`Close` over a read handle
+  cannot show the key current.
+- **Evidence.** `ReadDefs.lean:123` (P6b session 12 build); `walDirKey_lookup` needs `incOf I dir = i` of the
+  holder's share.
+- **Proposed change.** `walReadTie`/`walReadH` take the incarnation `i` (the key at `i`). `openAtIndex`'s post:
+  write mode `walOpening w dir s ic ∗ walReadH true w dir s ic`; read mode `(∃ I, walLockedTokI I ∗
+  ⌜incOf I dir = ic⌝) ∗ walReadH false w dir s ic` in place of `walLockedTok ∗ walReadH false w dir s`.
+  `WAL.Close`'s `.opening` arm: `∃ i, walOpening w dir s i ∗ walReadH true w dir s i`. The sealed
+  `walReadOnlyF w dir s := ∃ I, walLockedTokI I ∗ walReadH false w dir s (incOf I dir) ∗ …` and `walOpeningF`
+  (already at `i`) follow; no client-visible predicate changes.
+- **Decision.** Applied (P6b session 12, under the coordinator's rule for further internal spec changes);
+  approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: WAL.renameWAL (`RenameWALOk`'s spine law, `renameWALPost`'s committed arms) -- the spine law cannot give the pipeline its eighth of the incarnations and return the update's result unchanged
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`: `RenameWALOk`'s spine law
+  and `renameWALPost`'s arms 1 and 4 (committed); `Create`'s choices (`Proof/.../wal/CreateRename.lean`,
+  `createU`, `create_spine`). Internal; no `SpecPlan/` counterpart.
+- **Defect.** The entry below makes the spine law return `walPipeKey dir J` (the pipeline's eighth of `γI`)
+  while returning the update's result `U (some x)` unchanged. In `Create`, the eighth is the reserve the
+  commit took out with the pipeline names (`walParked_create`), so it is part of `U (some x)`
+  (`walCreateQ … (some _)`): the law cannot both hand it to the pipeline and return `U (some x)` whole.
+- **Evidence.** `CreateRename.lean` `create_spine` (P6b session 12): `walPipeKey (child r nm) J` needs
+  `walIncEAny`, held only by `walCreateQ … (some _)`; `WAL__renameWAL.lean:126` destructs the law's
+  output as persistent (it no longer is).
+- **Proposed change.** The law consumes `U (some x)` and returns `UH x` (the result once the pipeline has
+  its share); `renameWALPost`'s arms 1 and 4 hold `UH x` instead of `U (some x)`. `UH` is the parameter
+  the 2026-11-25 entry left unused (arm 2 dropped), so no caller's argument list changes. `Create` passes
+  `UH x := createUK … x` (`walCreateQK`: `walCreateQ … (some _)` but the reserve, which `walCreateQ … (some
+  _)` now holds as `walCreateQK ∗ walIncEAny`). No other caller (`renameWAL`'s only caller is `Create`).
+- **Decision.** Applied (P6b session 12, under the coordinator's rule "a further internal spec change gets a
+  ledger entry first; report it"); approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: filePipeline (newFilePipeline, Close, run, alloc), WAL.renameWAL, WAL.sync.specIdle(F) -- fix B's key lookup needs a share of the incarnations the pipeline and the idle syncs do not hold
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{newFilePipeline,filePipeline__Close,filePipeline__run,
+  filePipeline__alloc,WAL__renameWAL,WAL__syncIdle,WAL__syncIdleF}.lean` and the predicates they name
+  (`Proof/.../wal/Pipe.lean`: `pipeRes`, `pipeLeft`, `isFilePipe`; `RenameWALOk`). Internal; no `SpecPlan/`
+  counterpart.
+- **Defect.** Fix B (the entry below: `walDirKey dir i j X`, keyed by `(dir, i)`) makes a key lookup
+  conditional on the incarnation being current, which the holder shows with a share of `WalGS.γI`. Two holders
+  have none (P6b session 11, fix B subagent): the pipeline's goroutine (`run`/`alloc` step on the pipeline
+  names through `walTmp_osAUnc`, concurrently with the handle, so it cannot borrow the lock's quarter), and
+  `WAL.sync.specIdle`/`specIdleF` (their callers hold the lock's quarter, the specs do not take it).
+- **Evidence.** `TmpAu.lean` `walInvBody_tmpAcc` (the lookup); `TailSyncIdle.lean`, `TailFsyncIdle.lean`.
+- **Proposed change (option (a) of the session-11 handoff).** (1) The pipeline family holds an eighth of `γI`:
+  `pipeRes R dir dq j` gains `walPipeKey dir j := ∃ I X, ghostVar γI ⅛ I ∗ walDirKey dir (incOf I dir) j X`
+  (so `pipeLeft` returns it at `filePipeline.Close`); `isFilePipe` and `newFilePipeline`'s pre keep the WAL
+  invariant but no longer a key (it is in `pipeRes`); `RenameWALOk`'s spine law returns `walPipeKey dir J` in
+  place of `walDirKey dir J X`. The texts of `filePipeline.Close`/`run`/`alloc` are unchanged; their meaning
+  changes through `pipeRes`/`pipeLeft`. Where the eighth comes from: `γI` is split `walGhostI` ¼, the keys'
+  authority ⅛, the parked pipeline reserve ⅛, the views' ¼ (`walIncQ`), the lock's ¼. The reserve is held with
+  the record of what is out (`walOutAuth o` holds it when `o.T = []`, no pipeline names out; else its holder
+  does, `walOutOut o`; amended in the same session: the parked names were the first plan) and goes out with
+  the pipeline names: a write-mode `Open`
+  (`walParked_takeTmps`) and `Create`'s commit (`WalOut.create`) take it with the directory's pipeline names,
+  `Close`'s put-back (`delTmp`) returns it, so it is in the invariant whenever the lock is free (`walUnlockedTok`
+  holds `walOutFrag WalOut.empty`) and the discard can gather all of `γI`. (2) `WAL.sync.specIdle`/`specIdleF`
+  take `walIncQ I ∗ ⌜incOf I dir = i⌝` in the pre and return it in the post. (3) As approved below: `walDirKey
+  dir i j X`; `renameWAL`, `newFilePipeline`, `syncIdle(F)` name the key at the incarnation.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 12 brief: option (a), the pipeline family's share
+  in `pipeRes`/`pipeLeft` returned at `filePipeline.Close`, and `specIdle`/`specIdleF` taking `walIncQ I ∗
+  ⌜incOf I dir = i⌝` in pre and post). The reserve's place (the parked pipeline names) is this session's
+  encoding of "a share of `γI`", recorded here for review. `walTmp_osAUnc` (the pipeline's steps on its
+  names) takes and returns `walPipeKey dir j` (its commit post `fun o => β ¼ o ∗ walPipeKey dir j`), as
+  `wp_createTmp`/`wp_removeTmp` do.
+  The amendment (the reserve in `walOutAuth`): approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/DiscardUnsaved.lean` (`wal.DiscardUnsaved.spec`; none in
+  `SpecPlan/`); the internal specs naming `walDirKey` (`WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle`,
+  `WAL__syncIdleF`).
+- **Defect.** (1) The planned spec (P6b handoff, session 6: one update `<{∃∃ d, walDiskAtI dir ic d}>
+  <{walAbsentI dir (ic+1)}>` committed at the parent's fsync) is unprovable: between `os.Rename(dir, dir.tmp)` and
+  the fsync a crash may keep or lose `dir`, so the real WAL must be unnamed there and `walNamed dir ic` retired (an
+  incarnation bump), which needs the view's quarter of the incarnations and an unnamed view (`walMapLe`); the view
+  changes twice and an update commits once (its abort returns the same `α x`). (2) `walDirKey dir j X` is keyed by
+  `dir` alone, persistent: after the discard the key outlives the layout (`DirKeysOk` fails) and `bootstrap`'s
+  re-`Create` cannot insert its new directory's key.
+- **Evidence.** `Crash.lean` `walDiskAt_crash_keep`/`_any_keep` (a named view or a `walNamed` fact keeps the WAL
+  across a crash; false in the window); `Ghost.lean` `walLeI` (named kept at an unchanged incarnation); `CreateAu.lean:448`
+  and `OpenPinTake.lean:126` (`walDirKey_insert` needs `K !! dir = none`).
+- **Proposed change.** (1) Two updates: `AU₁ <{∃∃ o, walDirIsI dir ic o}> <{∃ d, ⌜o = some d ∧ walBlank (d.H.map
+  WalOpG.toM)⌝ ∗ walDiskAtI dir (ic+1) {d with named := false}, COMM Q₁ o}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir
+  (ic+1) d}> <{walAbsentI dir (ic+2), COMM Q₂}>` at the fsync; pre `Unsaved`'s plus `Create`'s `FsNoErrOn`/`PathFits`
+  premise on `dir`, `dir.tmp`, `r`; post `false, nil` with both updates back (nothing done), `true, nil` with
+  `Q₁ o ∗ Q₂` and the lock token and `walAreaRes` back, `false, err` (the fsync failed) with `Q₁ o ∗ AU₂` (lock token
+  and `walAreaRes` lost; the WAL unnamed at `dir.tmp`, as `Create`'s arm 3). Full text: `notes/wal-p6-handoff.md`,
+  P6b session 7. A client with an owned view instantiates both updates trivially. (2) `walDirKey dir i j X`, the
+  map keyed by `(dir, i)`; the four internal specs take the handle's incarnation (`h.inc`). Internal, no trusted text.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 8 brief; after the fact if proved and untrusted): the
+  plan as written (fix A, loans in γnm; fix B, `walDirKey` by `(dir, i)` with the four internal specs; state C; the
+  two-update spec, `true` ⇒ `walAbsentI dir (ic+2)`, the fsync failure losing the lock token and `walAreaRes`).
+  P5 (`bootstrap`'s owner) is asked whether the two-update shape fits its crash invariant; pending its answer.
+- **Loans carried in the handles (P6b session 10, covered by fix A's approval; the handle design approved by the
+  coordinator, session 10 brief).** A handle holds the lock holder's names record as `walHLoans dir nf qs`
+  (`Handle.lean`: `walNamesFragS ⟨nf, none, Lh⟩`, with no registration pending `Lh` the loans of the WAL's name `nm`,
+  `InArea r' dir nm`, one per fraction of `qs`; with one pending, `walNamesFrag (some _)`). `walDirH` takes the
+  pipeline's fraction `qp` (`WalHS.qp`, pinned in `walHandleIn`'s pipeline) and records `[q, qp]`; `Close` returns
+  both (`walInv_returnHLoans2`, `HandleLoans.lean`) before `walCloseLaw` (so `WalCloseLaw` is unchanged).
+  Internal spec changes: `WAL.sync.specC`'s error arm gives `∃ qs, walHLoans dir nf qs` for `walNamesFrag nf`
+  (the `unnamed` close reads `walNamesFrag (some dir)` back by `walHLoans_some`); `walLastOpen` (planned) carries its
+  loan. No trusted text. **Approved** (coordinator, P6b session 11 brief: `WalHS.qp` as a field of the handle
+  state, `InArea r' dir nm` in the loan record, `WAL.sync.specC`'s error arm giving `∃ qs, walHLoans dir nf qs`).
 
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
@@ -7068,3 +7180,72 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   vocabulary; nothing to change there.
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
+
+## 2026-11-25: wal.Discard (new; replaces wal.DiscardUnsaved at the pin 251a430ce) -- the fork drops the internal `Unsaved` check
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`; none in `SpecPlan/`), in
+  place of the planned `wal.DiscardUnsaved.spec` (entry "wal.DiscardUnsaved" above, never written).
+- **Defect.** The approved two-update shape was for `DiscardUnsaved(lg, dir) (bool, error)`, which read the WAL
+  (`Unsaved`) before discarding it. The etcd pin `251a430ce` (`goose-lean-fmt1c-discardfix`, coordinator's decision)
+  replaces it by `Discard(lg, dir) error`: no `Unsaved` re-check (`bootstrap` calls it only after its own `Unsaved`
+  returned `(true, nil)` and after `removeBackendDurably`), and a log line after the fsync.
+- **Evidence.** `unsaved.go:93-116` and `bootstrap.go:91-101` at `251a430ce`.
+- **Proposed change.** The same two updates, without the `walBlank` clause (the function does not read the WAL; the
+  blankness is the caller's, from `Unsaved`'s post): `AU₁ <{∃∃ d, walDiskAtI dir ic d}> <{walDiskAtI dir (ic+1)
+  {d with named := false}, COMM Q₁ d}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir (ic+1) d}> <{walAbsentI dir
+  (ic+2), COMM Q₂}>` at the parent's fsync. Pre `Create`'s area resources (`zapLoggerOk lg`, `walAreaOk`,
+  `dirDurable r`, `osPathS R r qp jr`, `walAreaRes jr`, `osCallPerm 1`, `walUnlockedTok`) and premises (`InArea`,
+  `NameOk`, `dir.length < 2^59`, `cleanAbsPath r`, `FsNoErrOn`/`PathFits` on `dir`, `dir.tmp`, `r`). Post, always
+  `osPathS`, `osCallPerm 1` and `∃ d, Q₁ d` (the rename cannot fail), and: `nil` with `walAreaRes jr ∗
+  walUnlockedTok ∗ Q₂`; an error (the fsync failed) with `AU₂` back (token and `walAreaRes` lost). P5's three
+  conditions: (1) the window's crash lemma (an unnamed WAL view at `ic+1` crashes to the same WAL or to none) is a
+  WAL-level lemma beside `walDiskAt_crash_keep`, to be proved with state C; (2) on a failed fsync `AU₁`'s result is
+  whatever the client put in `Q₁` (a client keeping it in its crash invariant commits it there and takes `Q₁ := True`);
+  (3) `AU₁` commits inside `Discard`'s rename, after anything the caller did before calling it.
+- **Decision.** Approved as written (the coordinator, P6b session 15 brief, 2026-11-25). On P5's condition 2: handing
+  `Q₁` to the caller on a failed fsync meets it, because the client chooses `Q₁`: P5's client deposits `AU₁`'s result
+  in its crash invariant at the commit and takes `Q₁ := True`, so nothing the crash invariant needs is left with the
+  caller.
+
+## 2026-11-25: wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)` (P6b session 15)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`, approved above).
+- **Defect.** Its post hands back `∃ d, Q₁ d` in every arm, so it says the first step, `os.RemoveAll(dir.tmp)`,
+  cannot fail under the premise. `os.RemoveAll.specSubS` (the spec `Create` uses for the same call) does not say
+  that: under `FsNoErrAt` on `dir.tmp` and the area, `nil` means `dir.tmp` is gone, but an error is still allowed,
+  with nothing said of what was removed. `Discard` returns that error before the rename, so `AU₁` is never
+  committed and the post's `Q₁` cannot be produced: the spec is unprovable.
+- **Evidence.** `Spec/os/RemoveAll.lean:139-149` (`specSubS`'s post: `err = nil → FsNoErrAt … → … = none` only);
+  `Create`'s proof has an arm for this error (`Create.lean`, "`RemoveAll` failed: nothing done, `nm.tmp` merged back",
+  `create_abortTmp`); `unsaved.go:93-116` returns `RemoveAll`'s error at once.
+- **Proposed change.** A third arm, as `Create`'s: `err ≠ nil` with `walAreaRes jr ∗ walUnlockedTok ∗ AU₁ ∗ AU₂` back
+  (nothing the WAL invariant or the client's view sees has changed; `dir.tmp`'s subtree may be partly removed, which
+  `walAreaRes` allows). Post: `osPathS ∗ osCallPerm 1 ∗ ((⌜err ≠ nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ AU₁ ∗ AU₂) ∨ (∃ d,
+  Q₁ d) ∗ ((⌜err = nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ Q₂) ∨ (⌜err ≠ nil⌝ ∗ AU₂)))`. The docstring's "`RemoveAll` and
+  `Rename` cannot fail under the premise" becomes "`Rename` cannot fail under the premise". P5's conditions are
+  unchanged (the new arm commits neither update). A caller (`bootstrap`) that gets an error does not know which arm,
+  as with `Create`; it holds `AU₂` in both error arms.
+- **Decision.** Approved by the coordinator (P6b session 16 brief, 2026-11-25): `err ≠ nil` with `walAreaRes`,
+  `walUnlockedTok`, `AU₁` and `AU₂` all returned and nothing committed. Applied (WIP branch).
+
+## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
+
+- **Spec.** Internal laws of the WAL proof (`Proof/go_etcd_io/etcd/server/v3/storage/wal/`), none exported:
+  `walInvRegisterPendLaw` (`ReadAllRegPend`), `repair_brokenOpen` (`RepairBrokenOpen`), `WalCloseLaw`/`walCloseLaw`/
+  `walCloseLawU` (`CloseHandle`, `CloseLaw`, `CloseLawU`), `walInv_dirKeyArea`/`walInv_returnHLoans{1,2}`
+  (`HandleLoans`), `walInv_lendOther`/`walInv_unlendOther` (`BrokenLend`), `walPurgeP`/`walPurgeOP` and their
+  updates (`PurgeAu`, `PurgeOther`), `walInv_walFiles` (`PurgeRoundLaws`), `walDirH_lend`/`walOpenWFI_lend`
+  (`PurgeLend`), `probeHandles`/`prefixScanState` and the probe laws (`ReadAllProbe`, `ReadAllPrefixAccess`),
+  `walFailCommon`/`walReadFailedF_{intro,elim,idleIntro,lentIntro}`/`readAll_fail*`/`walInv_failOpening`
+  (`ReadAllFail`, `ReadAllCommit`, `ReadAllExit`), and the tester's `pr_fileOf`/`pr_remove` (`purgeRound`).
+- **Defect.** Consequences of the approved fix B (directory keys at `(dir, incarnation)`): each looked up a
+  3-argument key, which no longer exists; a lookup now needs a share of the incarnations at the key's.
+- **Evidence.** The frontier of `lake build …wal.Link` (`/shared/tmp/p6b-build7.log`).
+- **Proposed change.** Each takes the key at its holder's incarnation and threads that holder's quarter `walIncQ I`
+  (in and out, `incOf I dir = i`); `walCloseLaw`s take `walPipeKey dir j` from `pipeLeft` (the reserve for
+  `walParked_putTmps0`); the lending laws take `walIncQ I` rather than the lock token (the purge round holds only
+  the handle's quarter); `walReadFailed_lockedTok` becomes `walReadFailed_lockedTokI` (at the incarnation);
+  `walOpenWF_lend` (no users) is removed. No exported spec changes beyond the approved entries.
+- **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13); approved
+  (coordinator, 2026-11-25, P6b session 14 brief).
+

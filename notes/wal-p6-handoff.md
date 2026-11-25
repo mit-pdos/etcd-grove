@@ -150,6 +150,715 @@
   `RemoveAll(dir.tmp)` removes (its segments' resources move to the tmp-parked part, `walTmpParked`). The spec:
   `Unsaved`'s pre plus the parent's resources (as `Create`'s), `walUnlockedTok`, and an update
   `<{∃∃ d, walDiskAtI dir ic d}> <{walAbsentI dir (ic+1), COMM Qd}>` committed only on `true`.
+- **2026-11-25, P6b session 7: the `DiscardUnsaved` plan (no Lean yet).** Reading the invariant against the Go
+  (`DiscardUnsaved`, fork `e94f33b50` `unsaved.go:97`: `lg` nil check; `Unsaved` (error or `false` → `false, nil`);
+  `dir := Clean(dirpath)`; `os.RemoveAll(dir.tmp)`; `os.Rename(dir, dir.tmp)`; `syncDir(Dir(dir))`; each error →
+  `false, err`; `true, nil`) found **three obstacles the session-6 sketch missed**, each a prerequisite:
+  1. **The WAL's name claim cannot be made whole (the path loans leak).** The rename (`os.Rename.specDirS`/
+     `specDirAnySnc`) needs one *whole* claim holding `nm` and `nm.tmp`. A registered WAL's `nm` is its own claim
+     `(jr, .only [nm], hn)`: the invariant's half in `cl`, the program's half in `nameShare` (`walNamesRes`), from
+     which `walInvBody_dirPath` lends fractions that are **never returned** (it even drops part: `⟨Hne, -⟩`,
+     `NameClaims.lean`); `Unsaved` itself borrows one (`Unsaved.lean:176`) and drops it. So after `Unsaved` no proof
+     can merge `nm` back into the area claim. **Fix (A, loans)**: the γnm ghost variable's value becomes
+     `NmSt := ⟨reg : Option GoString, disc : Option GoString, loans : List (GoString × Qp)⟩` (Ghost.lean;
+     `walNamesFrag o := walNamesFragS ⟨o, none, []⟩`, `walNamesAuth` likewise, so the specs naming `walNamesFrag`
+     — `WAL__Close`, `WAL__cleanupWAL`, `WAL__syncC` — are unchanged); `walNamesRes` keeps
+     `nameShare jr Ls nm q` with `q + Σ (loans of nm) = ½` (exact); `walInv(Body)_dirPath` takes
+     `walNamesFragS ⟨none, none, L⟩` and returns it with `(nm, e) :: L`; a new `walInv_dirPathRet` takes the path
+     `osPathS R dir (own e) j` back (decomposed by `osPathS_child`'s inverse: the area spine's fraction and the
+     name claim's) and erases the loan. Every function that returns `walUnlockedTok` (or a handle that later does,
+     `Close`) returns its loans first: call sites of `walInv_dirPath` — `openLast`, `openAtIndex`, `Open` (the
+     handle keeps its loan in `walNamesFragS`, `Close` returns it), `ValidSnapshotEntries`, `Unsaved`,
+     `WAL__ReadAll` (2), `WAL__CloseFailed` (3: `walCloseLeft` carries its loan; check `Repair.specHeld`, which takes
+     `walCloseLeft` and returns the lock); arms that lose the lock token may drop loans. Users of `walNamesRes`'s
+     fields: 29 files (most only frame it). Boot (`Crash.lean` ~1043, `walInv_alloc`): `⟨none, none, []⟩`, every
+     `nameShare` at `½`.
+  2. **The client's view cannot stay named across the rename (one AU is not enough).** Between the rename and the
+     parent's fsync a crash may keep `dir` or lose it, so the real WAL must be **unnamed** there (`walCrash`), and
+     `walNamed dir ic` must be retired (`walDiskAt_crash_keep` would be false), so the incarnation is bumped at the
+     rename (`walLeI` keeps `named` at an unchanged incarnation). Bumping needs the view's quarter (`walIncQ`, inside
+     the client's `walDiskAtI`), and `walMapLe M s.wal` needs the view unnamed too: the view must change at the
+     rename, and again at the fsync (absent; a second bump, since `walLeI` keeps a present WAL at an unchanged
+     incarnation and facts minted at `ic+1` in the window must not bind a re-created WAL). An AU commits once and
+     its abort returns the same `α x`, so **the spec takes two AUs** (ledger entry 2026-11-25, "DiscardUnsaved"):
+     `AU₁ <{∃∃ o, walDirIsI dir ic o}> <{∃ d, ⌜o = some d ∧ walBlank (d.H.map WalOpG.toM)⌝ ∗
+     walDiskAtI dir (ic+1) {d with named := false}, COMM Q₁ o}>` (at the rename's commit) and
+     `AU₂ <{∃∃ d, walDiskAtI dir (ic+1) d}> <{walAbsentI dir (ic+2), COMM Q₂}>` (at the parent's fsync). Pre as
+     `Unsaved`'s (with `zapLoggerOk lg`, `walAreaOk`, `osPathS R r qp jr`, `walAreaRes jr`, `osCallPerm 1`,
+     `walUnlockedTok`) plus `Create`'s premise `FsNoErrOn (p = dir ∨ p = dir.tmp ∨ p = r) ∧ PathFits dir.tmp ∧
+     PathFits dir`, `dir.length < 2^59` (so `RemoveAll`/`Rename` cannot fail; `syncDir` can). Post, always
+     `osPathS R r qp jr ∗ osCallPerm (callKey R r) 1` and: `b = false ∧ err = nil` with `walAreaRes jr ∗
+     walUnlockedTok ∗ AU₁ ∗ AU₂` back; or `b = true ∧ err = nil` with `walAreaRes jr ∗ walUnlockedTok ∗ ∃ o, Q₁ o ∗
+     Q₂`; or `b = false ∧ err ≠ nil` (the fsync failed) with `∃ o, Q₁ o ∗ AU₂` (the lock token and `walAreaRes` lost:
+     the WAL is left unnamed at `nm.tmp`, unregistered, as `Create`'s failed arm 3 leaves its WAL).
+  3. **`walDirKey` must be keyed by the incarnation now** (design v2.1 item 5, deferred until a re-`Create`): after
+     the fsync the WAL's layout leaves `Ls`, so `DirKeysOk`'s clause for a persistent `dir ↦ (j, X)` fails, and
+     `bootstrap`'s re-`Create` cannot insert its new `(j', X)`. **Fix (B)**: `γdk : GMap (GoString × Nat) (Ino ×
+     List GoString)`, `walDirKey dir i j X`; `DirKeysOk` speaks of the current incarnation only (`walInvBody` exposes
+     `walGhostI s I`'s `I`, or `DirKeysOk` takes it); lookups take the holder's incarnation (handles: `h.inc`, current
+     by their lock quarter; pins: the lock token's `walIncAny`). 189 occurrences in 55 files; internal specs naming
+     it: `WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle(F)` (ledger entry with B).
+  **The discarding state (C)**, reusing `Create`'s failed-cleanup state (an unnamed WAL whose layout stays in `Ls`,
+  its directory moved off `nm`: `WalsAt`'s `none` disjunct, `CrashTo`'s left disjunct) with `NmSt.disc = some dir`
+  in place of `reg` (so `Create`'s cleanup keeps "the pending registration's WAL is unnamed": the clause becomes
+  `disc = some dir → named = false ∨ the area's claim still holds the directory at nm`, the second only before the
+  rename). Steps, all under `walUnlockedTok` (no handle, everything parked, `CR` empty, no cut):
+  * **U (unregister, ghost, after `RemoveAll(dir.tmp)`)**: loans `[]` ⇒ `nameShare` at `½`; take the invariant's
+    half of `(jr, .only [nm], hn)` from `cl` and of the area claim `(jr, N, h)`; with `walAreaRes`'s half,
+    `osNames_merge` (`osSharedInv`, `osShN`) into `(jr, N ∪ {nm}, h')`, halves back (one claim replaces two in `cl`:
+    `ClaimOnce`, `WalsCreateOk`, `WalsAt`, `AbsentNone`, `CreatingOk` (vacuous, `CR = ∅`)); `Wn' = Wn.erase nm`
+    (both `walSplit` halves); `disc := some dir`.
+  * **R (the rename's commit, inside `os.Rename.specDirSnc`'s `osAUnc`)**: real `s` → `nm` unnamed, `I` bumped
+    (`walLeI_unname`, new: as `walLeI_discard` without the deletion); AU₁ committed (`walOwn M` →
+    `M[dir := unnamed]`, all three quarters of `I`); invariant as `CleanupAu`'s rename (to `nm.tmp` in place of
+    `nm.broken.*`; `nm.tmp` is an `AreaSlot`, `DirsAvoid` unchanged).
+  * **S (the parent's fsync's commit lb, ghost)**: `osCommitLb n` raised past the rename (as `CreateNamedStep`);
+    real `s` → `dir` deleted, `I` bumped (`walLeI_discard`); AU₂ committed (`M.delete dir`); `Ls.delete dir`;
+    out of the invariant, whole: the directory claim `(lay.j, .except walTmps, hj)` (both halves: `cl` and
+    `walParked`), `walTmpsRes lay.j` + `walTmpsHalf lay.j` (`walTmpParked`'s `Jt`/`Jh` lose `dir`); merged
+    (`osNames_merge`, twice) into `(lay.j, .except [], hj')` and tagged `tmpName nm` in `walAreaRes`'s `cl`
+    (`SubCover`: every entry of a WAL directory is a file — `SegsNamed`, `tmpEnt`, `walOthersL`; no other claim of
+    `lay.j` among the program's, by `osNames_disj`; `ClRanked`: `lay.j` ranked above the rest). Segment files'
+    halves dropped. `AbsentNone`/`AbsentOk` for `dir` from the raised commit lb. `disc := none`; `walUnlockedTok`
+    rebuilt.
+  **Order of work** (each step lean-checked, then a `lake build` of `wal.Link` at A, at B, at C):
+  A (loans) → B (keys by incarnation) → C's ghost lemmas (`walLeI_unname`, `walGhost` steps U/R/S as
+  `Inv`-level lemmas in a new `DiscardSteps.lean`) → the spec (`Spec/.../wal/DiscardUnsaved.lean`, after the ledger
+  entry is accepted) → the proof (`Proof/.../wal/DiscardUnsaved.lean`: `Unsaved` with a peek AU from AU₁,
+  `os.RemoveAll.specSubS` as `Create`'s, U, `os.Rename.specDirSnc` with R, `syncDir.spec`, S) → `etc/gen-link.py
+  --walfs` → builds (wal.Link, tester, server consumers, P8 crash modules, then `etc/importers.py --git 5a1c41d945
+  --leaves`). Estimate: A 400-800 lines, B 300-600, C 600-1000, spec+proof 300-500: three to five sessions.
+- **2026-11-25, P6b session 8 (WIP, `etcd-safe-p6b-wip`): fix A's core; its borrowers left.** Ledger entry
+  "wal.DiscardUnsaved" marked approved (coordinator brief; P5 asked about the two-update shape).
+  **Done, each lean-checked with 0 errors** (Ghost, Inv, NameClaims, NameSplit, Crash, CreateAu, CreateSplit,
+  AreaPath; no `lake build` yet, `wal.Link` does not build):
+  * `Ghost.lean`: `structure NmSt := ⟨reg, disc, loans : List (GoString × Qp)⟩` (countable); `walNamesFragS`/
+    `walNamesAuthS st` the ghost variable's halves; `walNamesFrag o`/`walNamesAuth o` are now **abbrevs** of
+    `…S ⟨o, none, []⟩` (so every existing use is unchanged); `walNamesS_agree`/`walNamesS_set`; `loanSum Lo nm : Rat`.
+  * `Inv.lean`: `shareLs Wn Lo k nm := if Wn.idxOf nm = k then loanSum Lo nm else 0` — **the loans of a name count
+    at its first index in `Wn`** (decision: this avoids a `Wn.Nodup` invariant, whose upkeep at boot and
+    registration would need the claims' disjointness); lemmas `loanSum_{nil,cons_eq,cons_ne,perm}`,
+    `shareLs_{nil,perm,cons_ne,cons_eq,reg_tail,reg_head}`, `idxOf_getElem?`. `nameShare jr Ls nm ls` is exact:
+    `q.val + ls = ((1:Qp).half).val`. `walNamesRes` is over `st : NmSt` with a new pure conjunct
+    `⌜st.disc = none ∧ ∀ x ∈ st.loans, x.1 ∈ Wn⌝` (after `hun`: destructs become `⟨%o, %Wn, Ha, Hs, %hf, %hun,
+    %hst, Hsp, Hl⟩`), the shares `[∗list] k ↦ nm ∈ Wn, nameShare jr Ls nm (shareLs Wn st.loans k nm)`;
+    `walNamesRes_noneL` (any loans; `walNamesRes_none` its `[]` case). Update a share with
+    `BigSepL.bigSepL_lookup_acc_impl` (used as `icases BigSepL.bigSepL_lookup_acc_impl hi $$ Hl with ⟨Hn, Hl⟩`,
+    then `iapply Hl $$ [] [Hn]` with the `shareLs_cons_ne` side condition).
+  * `NameClaims.lean`: `walInvBody_dirPath`/`walInv_dirPath … Lo`: input `walNamesFragS ⟨none, none, Lo⟩`, output
+    `∃ nm q, ⌜dir = child r nm⌝ ∗ walNamesFragS ⟨none, none, (nm, q) :: Lo⟩ ∗ osPathS R dir (own q) j` (the share
+    keeps `q.half + a`, lends `e`); `walInvBody_dirPathRet`/`walInv_dirPathRet … (hx : (nm, q) ∈ Lo)`: the path
+    `osPathS R (child r nm) (own q) j` back (unchilded through the invariant's area spine), frag `Lo.erase (nm, q)`;
+    `walInv_dirPathRet0` (`[(nm, q)]` → `walNamesFrag none`). Local copies `nc_osSpine_unsnoc`/`nc_osPathS_unchild`
+    (`os.osPathS_unchild` drags `go.Semantics`/`os.Assumptions`/`FieldAssumptions` in as section instances).
+  * `NameSplit.lean`: `walNamesRes_lendAt … Lo` is now `==∗` and records `(nm, q1)`; `walNamesRes_returnName`
+    returns an `osNames jr (.only [nm]) (own q) hn'` fraction (`(nm, q) ∈ Lo`). The area spine fraction lent
+    beside it is not counted (the discard gets its parent's spine from its caller).
+  * `CreateSplit.lean`: `walInvBody_register`/`walInv_register`/`walInv_registerL` take `Lo` with
+    `hLo : q.val + loanSum Lo nm = ½` and `hLn : ∀ x ∈ Lo, x.1 = nm` and return `walNamesFragS ⟨none, none, Lo⟩`
+    (was `walNamesFrag none`): the registrant's own fractions of the name's program half (beyond the `q` given)
+    become its loans. `Crash.lean`: `names_split_start` at `nameShare … 0` (shares at ½), `walInv_alloc` at
+    `⟨none, none, []⟩`. `CreateAu.lean`: the new destruct.
+  **Next (in order; scope found this session):**
+  1. **Holders' bundle** (recommended, in `NameClaims`/`NameSplit`): `walLoanP R jr r x := (∃ j, osPathS R
+     (child r x.1) (own x.2) j) ∨ (∃ hn, osNames jr (.only [x.1]) (own x.2) hn)` and `walInv_returnAll :
+     walNamesFragS ⟨none, none, Lh⟩ ∗ [∗list] x ∈ Lh, walLoanP R jr r x ={⊤}=∗ walNamesFrag none` (induction on
+     `Lh`, head by `walInvBody_dirPathRet`/`walNamesRes_returnName`; at `walInv` level with `notCrashed`), so each
+     borrower keeps `[∗list] walLoanP` beside its frag and returns all at its exit.
+  2. **The pins** (`walNamesFrag none` out of `walParked_lock`): `ExistPin` (`existPin`'s output frag
+     `⟨none, none, [(nm, q1)]⟩`; `existUnpin`/`walInv_existEnd` take it with `Hn1` back; `Exist.lean` keeps `Hn1`
+     past `ReadDir`), `ReadAllCommit:91` and `ReadAllRegCommit:250` (`walInvBody_nameClaim`: the lendAt pattern;
+     `ReadAllNamed` keeps the claim), `Unsaved` (`unsaved_putback` returns the path first), `ValidSnapshotEntries`,
+     `openLast`, `openAtIndex`, `WAL__ReadAll` (2), `WAL__CloseFailed` (3; `walCloseLeft` carries its loan,
+     `Repair.specHeld` returns it).
+  3. **The handles** (the larger part): `Open`'s handle keeps its directory path (`walOpeningF`: `iexists f, fd, j,
+     X` frames `Hpd`), `Create`'s keeps two pinned paths of fraction `d` and a claim `c.half`/`b1 + b1` (see
+     `create_qp_twice`: `d + (d + (b1 + b1)) = ½`; register calls at `Create.lean` 180, 221, 439, 1381 must pass
+     `Lo` = those kept fractions). So the handle's frag (`walReadH`'s `walNamesFrag none`, `ReadDefs` 121/243;
+     `Handle.lean:620` `walNamesFrag nf`; `HandleUnnamed` 64/92/116/139; `OpenAtSteps`/`OpenAtPin`/`OpenLastDefs`;
+     `CloseHandle:127`; `Parked` 272/292) becomes `walNamesFragS ⟨nf, none, Lh⟩` with `[∗list] x ∈ Lh, walLoanP`
+     held in the handle (the paths it uses are those loans: keep them inside `walLoanP`'s left disjunct, or keep the
+     path in the handle and the loan's record beside it), and `Close`/`CloseHandle` returns them before
+     `walLockedTok_unlock`. `walNamesRes_noneL` serves the naming steps with the handle's loans.
+  Then `lake build` of `wal.Link`, push WIP, and B, C, the spec, the proof as session 7's plan.
+
+- **2026-11-25, P6b session 9 (WIP, `etcd-safe-p6b-wip`): fix A continued; the handles left.** Started from
+  `09932cd216`; a `lake build` of `wal.Link` there failed in ExistPin, ReadAllCommit, ValidSnapshotEntries,
+  openLast, Unsaved, openAtIndex, Open, Create (and what imports them). **Done, each lean-checked with 0 errors
+  (`-a`)**:
+  * New `NameLoans.lean` (imports NameClaims, NameSplit): `walLoanP R jr r x` (a path to `r/x.1` of fraction
+    `x.2`, or the claim's fraction); `walInvBody_returnName`/`walInv_returnLoan`/`walInv_returnAll` (every loan
+    back, `walNamesFrag none`); `walInv_dirPathRetD` (`[(nm, q)]`, the path to `dir` with `dir = child r nm` as
+    `walInv_dirPath` gives it) and `walInv_dirPathRetDL` (any further loans). `NameSplit`:
+    `walNamesRes_returnName0`. The pins' files now import NameLoans in place of NameClaims.
+  * **Pins done**: `ExistPin` (`existPin`/`existStart` hand out `walNamesFragS ⟨none, none, [(nm, q1)]⟩`;
+    `existUnpin`/`existEnd` take it with the claim `osNames jr (.only [nm]) (own q1) hn` and return it first),
+    `Exist` (keeps the claim `ReadDir` returns), `Unsaved` (macro `unsaved_putbackP`, used after the lend and by
+    `unsaved_close`), `ValidSnapshotEntries`. The destruct of `walInv_dirPath` is now
+    `⟨Hnc, %nmd, %qd, %hdn, Hnf, Hpd⟩` (with `Lo` passed, `[]` from a pin).
+  * `walInvBody_nameClaim` re-proved over `walNamesRes_lendAt` (any `Lo`, records `(nm, q)`; the area spine
+    fraction dropped); `walInv_readCommit`/`walInv_readCommitReg` take `{Lo}` and return
+    `walNamesFragS ⟨none, none, (nm, q) :: Lo⟩` **inside** their `∃ … nm q hn` (beside the claim).
+    `walInvBody_named`/`walInv_named` (Create) and `walInvBody_namedBy`/`walInv_namedBy` (ReadAll) take an
+    implicit `{Lo}` (frag `⟨none, none, Lo⟩` in and out), so `Create` can name after registering with loans.
+  **Not building yet** (in order): `openLast` (its success arm hands `walLastOpen` the path: give `walLastOpen`
+  the area root `r` and `∃ nm, ⌜dir = child r nm⌝ ∗ walNamesFragS ⟨none, none, [(nm, qd)]⟩` in place of
+  `walNamesFrag none`; its users `Repair`, `RepairPre`, `RepairReg`, `RepairBroken`, spec `openLast.lean` must
+  return it (`walInv_dirPathRetD`) before the lock, or hand it to `walCloseLeft`; its two failure arms return it
+  before `walInv_unpinLast`), `WAL__ReadAll` (line ~380: `walInv_dirPath … []` then `readCommitReg` with that
+  loan; the probe path and the name claim returned, `walInv_returnLoan`, after `walInv_namedBy` and before the
+  handle is formed, except the path the handle keeps), `openAtIndex` (read mode: return before returning the
+  lock; write mode: the path goes to the pipeline, `isFilePipe … dq`, a handle loan), `Open`, `WAL__CloseFailed`,
+  `Create` (**its three error-arm registrations done**, lean-checked: `Lo := [(nm, d + d)]`, `hLo` by
+  `create_loSum2` from the spine law, the frag dropped with the lock; **left, the success arm** (line ~452,
+  `walInv_registerL … c.half`, error at the `create_named_cont` call, 1288): `Lo := [(nm, c.half), (nm, d),
+  (nm, d)]`, then `walInv_named` (now any loans) returns `Hnm2`, which goes back by `walInv_returnLoan`, leaving
+  the handle `[(nm, d), (nm, d)]`).
+  **The handles (decided this session, not started).** A write handle holds two path loans of one name: the
+  `walDirH` path (`osPathS R dir (own q) j`, `q` existential inside it) and the pipeline's (`isFilePipe fp γ R dir
+  dq j sz`, `dq` existential in `walPipeH`; `filePipeline.Close` gives it back in `pipeLeft`, so `Close` has both).
+  Plan: `walHandleIn` binds `qp : Qp`, passes `walPipeH … (fun R dq => pp R dq ∧ dq = DFrac.own qp)` and `qp` to
+  `walDirH` (new last parameter); `walDirH` holds `∃ Lh, walNamesFragS ⟨nf, none, Lh⟩` (for `walNamesFrag nf`)
+  with `⌜nf = none → ∃ r' nm, dir = child r' nm ∧ NameOk nm ∧ Lh = [(nm, q), (nm, qp)]⌝` and `⌜nf ≠ none → Lh =
+  []⌝`; `Close` merges the two paths and returns both (`walInv_dirPathRetDL` twice, `r' = r` by `child_inj`, copy
+  from `SnapDirCrash.lean`, against `walDirKey`'s `InArea r dir lay.nm`), before `walLockedTok_unlock`; the
+  `walFailH`/`walReadTie` handles likewise (`walFailH`: its pipeline loan only); `HandleUnnamed`'s seal takes the
+  loans `Create` registered. About 13 `unfold walDirH` sites, `CloseHandle`'s `WalCloseLaw` (frag in), `WAL__Close`,
+  `WAL__CloseU`. These are internal predicates (no trusted text), but `walLastOpen` and `WalCloseLaw` appear in
+  internal specs: add a ledger line ("loans carried in the handles", covered by fix A's approval) when editing them.
+  **Coordinator, during this session (for step 3, the spec):** the fork will drop `DiscardUnsaved`'s internal
+  `Unsaved` re-check (renamed `Discard`, or the same name documented as "the caller checked"); `bootstrap` calls it
+  only after `Unsaved` returned `(true, nil)` and the backend was removed. **Specify and prove that version**
+  (`RemoveAll(dir.tmp)`, `Rename(dir, dir.tmp)`, `syncDir(parent)`): its pre is what `bootstrap` holds there (the
+  WAL unsaved, from `Unsaved`'s post), no `Unsaved` completeness. P5's three conditions on the two updates: (1) a
+  crash lemma for the window between them (the unnamed blank WAL at `ic+1` crashes to the same blank WAL or to
+  none); (2) on a failed parent fsync, `AU₁`'s result stays with the crash invariant, not the caller; (3) the first
+  update commits only after the backend is gone (the caller's order). Pin and commit to come from the coordinator.
+
+- **2026-11-25, P6b session 10 (WIP, `etcd-safe-p6b-wip`): the write handle's loans done; the read handles
+  next.** Coordinator approvals (session 10 brief): the session-7 plan, the earlier choices, the session-9 handle
+  design, the edits to `walLastOpen`/`WalCloseLaw`; the ledger line "loans carried in the handles" added (fix A's
+  entry). Discard's fork change: `251a430ce` (branch `goose-lean-fmt1c-discardfix` on the pin `e94f33b50`,
+  local `/shared/tmp/p6/etcd-tornsave`, not pushed): `func Discard(lg, dirpath) error` = `RemoveAll(dir.tmp)`,
+  `Rename(dir, dir.tmp)`, `syncDir(parent)`, no `Unsaved` inside; `bootstrap` calls it after its own `Unsaved`
+  returned `(true, nil)` and after `removeBackendDurably`. Spec that version (pre: the WAL unsaved, `Unsaved`'s
+  post); no pin bump or retranslation until the coordinator says; the body's proof after it.
+  **Done, each lean-checked with 0 errors** (`-a`, `--fast` for the long ones; commit `109cb378e7`):
+  * `Handle.lean`: `WalHS.qp : Qp := 1` (the pipeline's path fraction; a field, not a binder of `walHandleIn`,
+    so its 61 destructs are unchanged: decision of this session, the approved design's `qp` bound once per
+    handle); `walHLoans dir nf qs := ∃ Lh, walNamesFragS ⟨nf, none, Lh⟩ ∗ ⌜(nf = none → ∃ r' nm, InArea r' dir nm
+    ∧ Lh = qs.map (nm, ·)) ∧ (nf ≠ none → Lh = [])⌝` (`InArea`, not `NameOk`: `walNameOk` excludes `/`, which
+    `inArea_root` needs, and does not exclude NUL, which `NameOk` does); `walHLoans_some` (`some d`: it is
+    `walNamesFrag (some d)`); `walDirH … cuts qp nmd nf` (new parameter after `cuts`) holds `walHLoans dir nf
+    [q, qp]` in place of `walNamesFrag nf` (same position: destruct arities unchanged); `walHandleIn` passes
+    `h.qp` and pins the pipeline: `walPipeH fp dir j h.pc (fun R dq => pp R dq ∧ dq = DFrac.own h.qp)`.
+  * New `HandleLoans.lean` (imports Handle, NameLoans): `sep_last_inj`, `inArea_root`, `inArea_child`,
+    `walInv_dirKeyArea` (a keyed WAL directory is `InArea r dir nm`, through `DirKeysOk`/`WalsOk`),
+    `walHLoans_mk` (the record from `qs.map (nm, ·)` loans), `walInv_returnHLoans2` (key + record + both paths →
+    `walNamesFrag none`).
+  * `HandleUnnamed`: `walDirH_split` now gives `∃ R q, A R q ∗ walHLoans dir nf [q, qp] ∗ (∀ nf', walHLoans … -∗ B R q
+    -∗ walDirH … B nf')`; `walHandleIn_split` and `walOpenWFU_seal` deleted (unused); `walOpenWFU_sealL`'s wand takes
+    `walHLoans dir none [qp, qp]` (for `walNamesFrag none`), `h.qp = qp` read off the pipeline's pin.
+  * `CreateHandle`: `createHS … ic qp` (new last parameter; `create_handleIn` at `q`). `CloseHandle`
+    (`walHandleC`'s `walDirH` at `h.qp`), `ReleaseLocks`/`PurgeLend` (`qp` parameter), `SaveHandle`,
+    `CutPipe` (`wp_walPipeH_open`/`walPipeH_next` over any `pp`, the open's post gives `pp R dq`), `WAL__cut`
+    (`h1.qp = h.qp` in `hh1e`), `WAL__sync`, `WAL__CloseU`: adapted.
+  * Spec `WAL__syncC.lean` (internal; ledger line): the error arm gives `∃ qs, walHLoans dir nf qs`.
+  * `WAL__Close.lean` (shared arm): keeps the pipeline's path from `pipeLeft` and returns both loans
+    (`walInv_returnHLoans2`) before `walCloseLaw`; **not yet checked** (it imports `WAL__CloseFailed`, a borrower).
+  **Next, in order:**
+  1. **The read handles** (decided, not started): `walReadTie dir write s j qs fs lfs w` (new parameter `qs`
+     after `j`) holds `walTailsFrag ∅ ∗ walHLoans dir none qs` for `walNamesFrag none`; `walReadH` binds `qs`
+     after `j` and its write branch pins the pipeline, `walPipeH fp dir j 0 (fun _ dq => ∃ qp, dq = DFrac.own qp
+     ∧ qs = [qp])`, its read branch `⌜fp = null ∧ qs = []⌝`; `walFailH` binds `qp`, `walPipeH … (fun _ dq => dq =
+     DFrac.own qp)`, `walHLoans dir none [qp]`; `walReadH_namesOut` (Open) gives the record out. Sites: walReadTie
+     (6 unfolds, 13 files), walReadH (9), walFailH (2), `ReadAllFail`'s own `walNamesFrag none` (5 statements:
+     with `walFailH`'s loan), `ReadAllGive` (the write handle from the read one: `walHLoans_mk` with `[qd, qp]`,
+     ReadAll's own `walInv_dirPath` loan first, the pipeline's second, `WalHS.mk … ic qp` at `WAL__ReadAll.lean`
+     ~1223).
+  2. **The borrowers** (each returns or hands over its `walInv_dirPath` loan): `Open` (returns its `OpenDir` path
+     right after `OpenDir`, `walInv_dirPathRetDL` with the pipeline's loan behind it in `Lo`, then `Hback`);
+     `openAtIndex` (write mode: the path goes to the pipeline, the read tie records `[qp]`; read mode: returned
+     before the lock); `openLast` (`walLastOpen` gets `r` and `∃ nm, ⌜dir = child r nm⌝ ∗ walNamesFragS ⟨none,
+     none, [(nm, qd)]⟩`; `Repair`, `RepairPre`, `RepairReg`, `RepairBroken`, spec `openLast.lean` return it,
+     `walInv_dirPathRetD`, before the lock or hand it to `walCloseLeft`); `WAL__ReadAll` (line ~381); 
+     `WAL__CloseFailed` (160, 368, 571: `walFailH`'s pipeline loan and its own probe path, `walInv_returnLoan`/
+     `walInv_returnAll`); `Create`'s success arm (line ~1288: `Lo := [(nm, c.half), (nm, d), (nm, d)]`, then
+     `walInv_named`, `walInv_returnLoan` of `c.half`, `walHLoans_mk` with `[d, d]` and `InArea r (child r nm)
+     nm` into `sealL`'s wand).
+  3. `lake build` of `wal.Link` (state at session start: openLast, openAtIndex, Open, WAL__ReadAll,
+     WAL__CloseFailed, Create failed, all at the loans), push WIP; then B, C, the Discard spec as session 7's plan.
+- **2026-11-25, P6b session 11 (WIP, `etcd-safe-p6b-wip` @ `abf27f427f`): fix A done; `wal.Link` builds.**
+  Coordinator approvals (session 11 brief): `WalHS.qp`, `InArea` in the loan record, `sync.specC`'s error arm
+  (ledger line marked approved). **Done** (real `lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`,
+  3847 jobs, exit 0, no `sorry`):
+  * read handles: `walReadTie dir write s j qs …` holds `walHLoans dir none qs`; `walReadH` binds `qs`, its write
+    branch pins `walPipeH … (fun _ dq => ∃ qp, dq = own qp ∧ qs = [qp])`, read branch `fp = null ∧ qs = []`;
+    `walFailH`/`walFailCommon` bind `qp`, pipeline pinned at `own qp`, `walHLoans dir none [qp]`;
+    `walLastOpen` holds `walHLoans dir none [qd]` (the loan of its kept path; no new parameter).
+  * new lemmas: `HandleLoans`: `walInv_returnHLoans1`, `walHLoans_nil`, `walHLoans_loans` (with `InArea r dir nm`
+    known, the record's loans are of `nm`), `walInv_returnClaimPath` (ReadAll's claim and probe path back);
+    `HandleUnnamed`: `walPipeH_pinLoan`; `Open`: `walReadH_namesOut` now gives `walOpenIn` out and the loans' frag.
+  * borrowers: `Open` (returns its `OpenDir` path right after `OpenDir`), `openAtIndex` (error arms and read mode
+    return; write mode records `[qd]`, the pipeline's), `openLast` (failure arms return; success hands the path and
+    its record to `walLastOpen`), `Repair` (returns before both put-backs), `WAL__CloseOpening`/`WAL__CloseFailed`
+    (the pipeline's path from `pipeLeft` returned before `walInv_unpin`; `CloseFailed`'s error arms give
+    `walCloseLeft` the pipeline's path instead of a fresh `walInv_dirPath`, the record dropped with the lost lock),
+    `WAL__ReadAll` (the claim and the probe path returned at each failure exit and after `walInv_namedBy`; the write
+    handle gets `[qd, qpp]` and `WalHS.qp := qpp`), `Create`'s success arm (`Lo := [(nm, c.half), (nm, d), (nm, d)]`,
+    `create_loSum3`, `walInv_returnLoan` of `c.half` after `walInv_named`, `[d, d]` into `sealL`).
+  **B's design (decided this session, not started):** keep `DirKeysOk` and the keys group's binders unchanged;
+  change only the authority and the fragment:
+  * `γdk : GMap (GoString × Nat) (Ino × List GoString)`; `walDirKey dir i j X := (dir, i) ↪□ (j, X) ∗ ⌜X = walTmps⌝`.
+  * `walDirKeysAuth K := ∃ Kall I, ghostMapAuth γdk 1 Kall ∗ [∗map] Kall persistent ∗ walIncQ I ∗
+    ⌜∀ dir x, K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x⌝`: `K` stays the map of the *current* keys,
+    so `DirKeysOk` and the 36 keys-group destructs are unchanged.
+  * `γI` re-split: `walGhostI` holds a quarter (not the half), the keys authority the fourth quarter;
+    `walGhost_init` hands it out inside `walDirKeysAuth ∅`. (Agreement lemmas are fraction-free; nothing updates
+    `I` yet, so no update lemma changes; C's discard steps update `I` with all four quarters.)
+  * lookup: `walDirKeysAuth K -∗ walDirKey dir i j X -∗ walIncQ I' -∗ ⌜incOf I' dir = i → K !! dir = some (j, X)⌝`;
+    insert/get take `walIncQ I'` and give `walDirKey dir (incOf I' dir) j X`. The holder supplies its quarter:
+    the lock (`walLockedTokI_incQ`), a handle (`walOpenWI_lockedTokI`), `walOpening`/`walHandlePI` (to add).
+  * the 28 lookup sites (`grep walDirKey_lookup`) and the 4 internal specs (`WAL__renameWAL`, `newFilePipeline`,
+    `WAL__syncIdle(F)`: `∀ i`, `walDirKey dir i j X`), approved in the ledger entry.
+- **2026-11-25, P6b session 11, fix B (subagent): stopped before any Lean edit; B's design has a gap.** B's lookup
+  (`walDirKey_lookup … walIncQ I' -∗ ⌜incOf I' dir = i → K !! dir = some (j, X)⌝`) needs, at every lookup, a
+  share of `γI` held by the caller. Two callers hold none, and giving them one changes specs beyond "take the
+  incarnation":
+  1. **The pipeline's goroutine** (`filePipeline.run`/`alloc` → `PipeLemmas.wp_createTmp`/the remove →
+     `walTmp_osAUnc` → `walInvBody_tmpAcc`, `TmpAu.lean:72`) holds only `isFilePipe` (persistent: the key),
+     `pipeRes` (`osPathS R dir dq j`, a quarter of `osCallPerm`) and `tmpClaim j b`; it runs concurrently with the
+     handle, so it cannot borrow the lock's quarter. A share in `pipeRes`/`pipeLeft` (split off the handle's
+     quarter, back at `filePipeline.Close`) changes `newFilePipeline` *and* `filePipeline.Close`/`run`/`alloc`
+     (they name `pipeRes`/`pipeLeft`): a ledger entry first.
+  2. **`WAL.sync.specIdle`/`specIdleF`** (`TailSyncIdle.lean:317`, `TailFsyncIdle`) hold the key,
+     `osNames j (.except X) ½`, `walTailsFrag ∅`, `walCutFrag none`, but not the lock's quarter (their callers,
+     `Close`, `CloseFailed`, `CloseOpening`, hold it). Adding `walIncQ I ∗ ⌜incOf I dir = i⌝` to their pre and
+     post is in the four approved specs, but more than the approved "takes `h.inc`".
+  Ways out (a decision, not a subagent's): (a) the specs as above (ledger entry for the pipeline family; the
+  sync change recorded); (b) no spec change: the keys authority keeps, for each retired key `(dir, i) ↦ (j, X)`,
+  the whole claims `osNames j (.except X)` and `osNames j (.only [b])` (`b ∈ walTmps`), so that a caller's
+  fraction of one of them (`osNames_frac`) proves its key current; the authority then needs `L` (it lives in
+  `Ghost.lean`, `W` only: move it or parametrize it), and C's discard must move those claims there (all parked
+  when the lock is free) and keep them (a later `RemoveAll(dir.tmp)` of that `j` needs them back: check); (c) a
+  path-based lookup for the pipeline, from its `osPathS R dir dq j` against `walNamesRes`'s share of `nm`
+  (fix A), which needs a "the directory at a registered `nm` is the current layout's `j`" fact. The other ~22
+  lookup sites have a holder (lock, `walOpenWI`/`walOpenWCI`, `walOpening`/`walHandlePI`, or a coiter predicate,
+  `walBrokenP` etc., that can be given the caller's quarter): B as designed works there.
+- **2026-11-25, P6b session 12 (WIP, `etcd-safe-p6b-wip`): fix B half done; `wal.Link` does not build yet.**
+  Coordinator's decision: option (a). Ledger entries (newest first, all marked approved/applied and to report):
+  "filePipeline … fix B's key lookup needs a share" (approved; amended: the reserve's place), "WAL.renameWAL
+  (`RenameWALOk`'s spine law …)" (the law returns `UH x`, arms 1 and 4 hold `UH x`), "openAtIndex …, WAL.Close
+  (`.opening`) -- the read handle's key must name its incarnation".
+  **The encoding (Ghost.lean, checked).** `γI` split: `walGhostI` ¼, views ¼ (`walIncQ`), lock ¼ (inside
+  `walLockedTokI`), keys authority ⅛ (`walIncE`, in `walDirKeysAuth`), pipeline reserve ⅛. The reserve is in
+  `walOutAuth o` when `o.T = []` (`walOutOut o` is its holder's side: `walOut_setR` moves it, `walOut_set`
+  needs `o.T` unchanged); it leaves with the pipeline names (`walParked_takeTmps0`, write-mode `Open`;
+  `walParked_create`, `Create`'s commit) and comes back with them (`walParked_putTmps0`, `T = [dir]`).
+  `walDirKey dir i j X` (keyed by `(dir, i)`), `walPipeKey dir j := ∃ I X, walIncE I ∗ walDirKey dir (incOf I
+  dir) j X` (in `pipeRes`). Lookups: `walDirKey_lookup{G,,I,L,WC,H}` (any share; the view's quarter; the lock
+  token; `walOpenWCI`; `walHandlePI`), `walPipeKey_lookup`, `walPipeKey_ofLocked`, `walHandlePI_incQ`. A
+  lookup that only needs `∀ b ∈ X, walNameP b = false` takes no share: `walDirKey_tmps` (`ReadAllGive`).
+  **Done (each `etc/lean-check.py -a`, 0 errors):** Ghost, Parked (+ `takeTmps0`/`putTmps0`), ParkedPut,
+  BrokenAu*/BrokenLend/CutAuLemmas (`walOut_set … rfl`), CreateKeys, CreateAu (`walCreateQK`; `walCreateQ …
+  (some _) = walCreateQK ∗ walIncEAny`), CreateRename (`createUK`, `create_spine` gives `walPipeKey`),
+  CreateHandle (`create_ghost` from `createUK`), TmpAu, PipeLemmas (`wp_createTmp`/`wp_removeTmp` thread
+  `walPipeKey`), Pipe, filePipeline alloc/run, `WAL__renameWAL` (spec + proof), NameClaims (`walInv_dirPath`
+  takes `I` and `walIncQ I`), ReadAllLaws, ReadAllWF, OpenPinTake, ExistPin, Exist, OpenAtPin (`walPinOut`:
+  key at `ic`, write mode `walTmpsRes ∗ walIncEAny`), OpenUnpin/OpenAtSteps (`walInv_unpin` takes
+  `walLockedTokI I`, `hi : incOf I dir = i`, the reserve in write mode), RepairPin (`walPinLast` with `I`,
+  `walInv_unpinLast … I`), VsePin (`walPinAllRes` starts `∃ I`), ValidSnapshotEntries, Unsaved, HandleLoans
+  (`walInv_dirKeyArea`/`returnHLoans{1,2}` take `i I hi` and the lock token), ReadAllGive (`i`), CutAu (key at
+  the handle's `i`, `walDirKey_lookupWC`), TailSyncIdle/TailFsyncIdle/FdatasyncIdle/`WAL__syncIdle(F)` (the
+  approved `walIncQ I ∗ ⌜incOf I dir = i⌝`), ReadDefs (`walReadTie dir i …`, `walReadH … s i`, `walFailH … i`,
+  `walReadFailedF := ∃ i, walHandlePI w dir i .failed ∗ walFailH … i`, `walReadOnlyF := ∃ I, walLockedTokI I ∗
+  walReadH false … (incOf I dir) ∗ …`), OpenLastDefs (`walLastOpen` with `I`), ReadState (`i I hi`, `walIncQ`).
+  Specs edited: `WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle(F)`, `openAtIndex` (post), `WAL__Close`
+  (`.opening` pre); `Pipe.lean`'s `pipeRes`.
+  **Frontier** (`lake build …wal.Link`, `/shared/tmp/p6b-build6.log`): `BrokenAu:183,192`, `CloseHandle:124`
+  (`WalCloseLaw`: key at the handle's `i`, and it must take the pipeline's `walPipeKey` from `pipeLeft` to
+  put the reserve back with `walParked_putTmps0`; same in `CloseLaw`, `CloseLawU`, `WAL__CloseOpening`,
+  `WAL__CloseFailed`), `CutSync:148`, `Open:42-64` and `OpenForRead:47` (`walReadH … i`), `ReadAllCommit:78,128`
+  and `ReadAllInv:76` (thread `walIncQ I` from the handle: `walHandlePI_incQ` / `walLockedTokI_incQ`),
+  `ReleaseTie:105-162`, `openAtIndex:144` (`subst hIl` then `walInv_dirPath … Il` with `walLockedTokI_incQ`;
+  pass `walLockedTokI Il` to `walInv_unpin` directly instead of `walLockedTokI_tok`; write mode's reserve),
+  `openLast:98` (`walPinLast` now has `%I`; `walInv_dirPath … I` with the quarter). Behind them (not yet
+  reached): Repair, CloseFailed/CloseOpening, WAL__ReadAll (`walDirKey_agree` at `:359`), PurgeAu/PurgeOther/
+  PurgeRoundLaws, RepairPre, ReadAllPrefixAccess, ReadAllRegCommit, HandleUnnamed's users, Create.lean (pass
+  `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
+  **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
+  (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 23 (`etcd-safe-p6b-wip`): `wal.Discard` proved and linked, no `sorry`; P6b's
+  proof work done.** `Proof/.../wal/Discard.lean`: `wal.Discard.wp_proof Mr` (callees `filepath.Clean`,
+  `os.RemoveAll.specSubS`, `os.Rename.specDirSnc`, `filepath.Dir`, `syncDir`, `zap.String`, `zap.Logger.Info`), the
+  steps as session 22 planned: `walAreaRes_open`, a fresh WAL name `b ∉ Wn` (`N0.Mem b` by `AreaOk`), `walInv_drop` of
+  `tmpName nm` by `b`, `area_takeTmp`, `wp_removeAllTmp`; its error by **`discard_abortTmp`** (new, in `Discard.lean`:
+  `create_abortTmp` with the merge's witness `w` a WAL name of the area claim, since the discarded `nm` is registered,
+  not in it) → arm 1; `walInv_discardU`, `walInv_pinClean` (`b := nm`), `osNames_next` for `lb := hC.next`, `discAU`,
+  the rename (its error contradicts `FsNoErrOn`/`PathFits`); `syncDir(r)` with `osLogLb (x + 1)` from `osLogged`: error →
+  arm 3; `nil` → `walInv_discardS` (`LastWrite` by the new pure `lastWrite_log`, `RootsOk` by `osPathS_rootsOk`),
+  `walInv_discardBack`, `lg.Info`, arm 2. **Crash lemma** (P5 condition 1): new `DiscardCrash.lean` (a module beside
+  `Crash.lean`, which does not import `UnsavedDefs`' `walBlank`; nothing imports it yet): `walImg_blank` and
+  `walDiskAt_crash_blank_keep dir i d (hb : walBlank (d.H.map WalOpG.toM))`: `walCrashWal W W' -∗ walDiskAtI dir i d -∗
+  walDiskAtI dir i d ∗ ((walAbsentI W' dir 0 ∗ ⌜d.named = false⌝) ∨ ∃ I k, ⌜walImg d.H 0 I ∧ walBlank (I.map toM) ∧ k ≤
+  …⌝ ∗ walDiskAtI W' dir 0 {d with H := I, …})`. **Docstrings**: every `DiscardUnsaved` reworded to `Discard`
+  (`Ghost`, `Inv`, `NameClaims`, `NameLoans`, `Unsaved`'s spec, `etcdserver/{CrashInterim,InvCrashImage}`; `Ghost`'s
+  stale "γI not yet used" dropped). **Link**: `etc/gen-link.py --walfs` adds `wal.wp_Discard` with no hypothesis (254
+  results); `--walfs/--durable/--wal-tester --check` and `tier-check --check` ok. **Builds** on fk-lean1 at `45e1d5dc94`:
+  (1) the eight `Discard*` modules' outputs deleted (96 files), `LAKE_ARTIFACT_CACHE=false LAKE_RESTORE_ARTIFACTS=false
+  lake build` of them: 3084 jobs, exit 0, Built `DiscardSPure` 1.2s, `DiscardSteps` 1.7s, `DiscardR` 2.3s, `DiscardSInv`
+  1.8s, `DiscardS` 2.1s, `DiscardBack` 1.8s, `Discard` 2.0s, `DiscardCrash` 1.2s (`/shared/tmp/p6b-s23-b1.log`): the
+  short times are real, not replays (a direct `lake env lean` of the whole file: `DiscardR` 7.7s, `Discard` 3.6s wall,
+  imports included); (2) `wal.Link`, the tester's `{Link,Adequacy,TopLevelRobustness}` and the 644 leaves of
+  `etc/importers.py --git 5a1c41d945 --leaves` (`notes.*` dropped): 16397 jobs, exit 0 in 1168s
+  (`/shared/tmp/p6b-s23-b2.log`); the one `sorry` of this repository in the log is `etcdserver/NewServerCrash.lean:50`,
+  already on `etcd-safe-p6b` and at `5a1c41d945` (P5/T7's WIP), none from P6b. `etcd-safe-p6b` fast-forwarded.
+  **Left:** P5 uses `walDiskAt_crash_blank_keep` and `wal.Discard.spec` in `bootstrap`'s contract.
+- **2026-11-25, P6b session 22 (WIP, `etcd-safe-p6b-wip`): the merges into `walAreaRes` done; the `Discard`
+  proof not started.** Each file `etc/lean-check.py -a` on fk-lean1, 0 errors (`DiscardR`, `DiscardSInv`, `DiscardS`,
+  new `DiscardBack`); build of `wal.DiscardBack` + `wal.Link` on fk-lean1 at `24ecf4b4c5`: 3853 jobs, exit 0, no error, no `sorry` of this repository (`/shared/tmp/p6b-s22-b1.log`; the lean-check server had built `DiscardR`/`DiscardS` already, and `DiscardBack` shows "Built (1.8s)", the same suspiciously short time as `DiscardS` last session: possibly restored from the host's Lake artifact cache, so step 5 must force a real compile, e.g. touch-free: remove the modules' `.olean`/`.ilean`/`.trace` in the remote worktree's `.lake/build` before `lake build`).
+  **Gap found and closed: S did not know that the directory renamed to `tmp` is the discarded layout's.** The
+  program's claim says `tmp ↦ .dir J` (`J` from U'/R), S found the layout `lay` of `dir`, and nothing tied `lay.j`
+  to `J` (`WalsAt` constrains only `lay.nm`, which R leaves `none`), yet `walAreaRes`'s `SubCover` under `tmp`
+  needs exactly `J`'s claim. **Decision (internal, no spec change; this session):** R records the WAL's
+  directory key at its new incarnation: `discQ … J …` (new parameter `J` after `jr`) returns, logged,
+  `walUnlockedTokX ∗ (∃ d, Q₁ d) ∗ walDirKey dir (ic + 1) J walTmps` (R inserts the key with the lock's
+  quarter, `walDirKey_insertG`; `lay.j = J` by `WalsAt.at` and `hJ`; `DirKeysOk` by the new
+  `dirKeysOk_addKey`, from `DirClaimsOk`). `inArea_nm_inj` moved from `DiscardSInv` to `DiscardR`.
+  **`walInv_discardS`** now takes `(J : Ino)` (after `ic`) and the key `walDirKey dir (ic + 1) J walTmps` (last
+  wand), looks it up (`walDirKey_lookup` with the view's quarter: `lay.j = J`), and returns **`∃ hj, osNames J
+  (.except walTmps) 1 hj ∗ walTmpsRes J ∗ walTmpsHalf J ∗ ⌜FilesOnly hj.cur⌝ ∗ ⌜J ≠ jr⌝`** (the coordinator's
+  decision: the "every entry is a file" fact in the post; `walOthers` dropped from the post: `walDir_filesOnly`
+  derives the fact from it and `WalsNamed`'s `SegsNamed`, via `walOthers_files`).
+  **New `DiscardBack.lean`** (imports `DiscardS`, `CreateArea`; nothing imports it yet): `nameAddL N M` (+
+  `nameAddL_mem`), `areaOk_giveD`/`area_giveD` (`area_give` over more names `N' ⊇ N` and fewer split names
+  `Wn'`), `tmpEnt_notDir`, `walTmps_join2`, **`walTmps_whole R J hj (hf : FilesOnly hj.cur)`**: `osSharedInv -∗
+  osNames J (.except walTmps) 1 hj -∗ walTmpsRes J -∗ walTmpsHalf J ={⊤}=∗ ∃ h', osNames J (.except []) 1 h' ∗
+  ⌜FilesOnly h'.cur⌝` (`qTmp + qTmpI = 1`: `tmpClaim_join`, already in `TmpClaim.lean`), and
+  **`walInv_discardBack C Mr R jr r N0 h0 cl Wn nm b hC hj J (hok : AreaOk N0 h0 cl Wn) (hnm : walNameOk nm)
+  (hnmW : nm ∈ Wn) (hb : walNameOk b) (hbW : b ∉ Wn) (hbN : N0.Mem b) (hJ : hC.cur !! tmpName nm = some (.dir J))
+  (hf : FilesOnly hj.cur)`**: `walInv -∗ osSharedInv R -∗ notCrashed -∗ walUnlockedTok -∗ walSplitFrag (Wn.erase
+  nm) -∗ osNames jr (N0.diff [tmpName nm]) ½ (h0.restrict jr (N0.diff [tmpName nm])) -∗ osNames jr (.only [nm,
+  tmpName nm]) ½ hC -∗ osNames J (.except walTmps) 1 hj -∗ walTmpsRes J -∗ walTmpsHalf J -∗ areaCls (cl.filter
+  (·.1 ≠ tmpName nm)) ={⊤}=∗ notCrashed ∗ walUnlockedTok ∗ walAreaRes jr` (`¬ N1.Mem nm` by
+  `osNames_same_name`; `walInv_merge2` into `nameAddL N0 [nm]`; `J`'s claim tagged `tmpName nm`). The claims
+  `RemoveAll(tmp)` returns (`specSubS`'s `cl'`) are dropped, not put back.
+  **Left (in order):** (2) the `Discard` proof, `Proof/.../wal/Discard.lean` (`wal.Discard.wp_proof`), its
+  steps: `walAreaRes_open`; `exists_walName_notin Wn` → `b` (`N0.Mem b` by `AreaOk`'s first fact); `walInv_drop`
+  of `tmpName nm` (as `Create.lean` ~596, `wp_notCrashed_acc` for `notCrashed`); `area_takeTmp`; `filepath.Clean`
+  (`cleanAbsPath`), `dir + ".tmp"`; `wp_removeAllTmp`/`os.RemoveAll.specSubS` (error: `create_abortTmp`-style →
+  arm 1); `walInv_discardU` (`hT` = `RemoveAll`'s `h'`, `tmp ↦ none` from `FsNoErrOn`); `walInv_pinClean`
+  (`CleanupAu.lean`, `b := nm`); `os.Rename.specDirSnc` with `discAU` (`J` from U', `lb`, `htS :=
+  tmpName_areaSlot`); the logged arm gives the key; `filepath.Dir`, `syncDir.spec` (error: arm 3, `AU₂` back;
+  success: `osCommitLb n` past the rename's `LastWrite`), `walInv_discardS` (`RootsOk R` from `osPathS`,
+  TreeSharedClaims.lean:582), `walInv_discardBack`, `lg.Info`; (3) the crash lemma beside
+  `walDiskAt_crash_keep`; (4) the `DiscardUnsaved` docstrings; (5) `etc/gen-link.py --walfs` (add `Discard`
+  to its list), builds: `wal.Link`, the tester, the leaves of `etc/importers.py --git 5a1c41d945 --leaves` (drop
+  `notes.*`); confirm `DiscardS` is compiled (not replayed) in the log. Session stopped at the ~150k-token rule.
+- **2026-11-25, P6b session 21 (WIP, `etcd-safe-p6b-wip`): `walInv_discardS` done; order steps 3-7 left.**
+  **Done** (no `sorry`, no axiom; `lake build` of `wal.DiscardS` on fk-lean1 at `867aa8b23e`: 3026 jobs, exit 0, no warning in `DiscardS`/`DiscardSInv`, `/shared/tmp/p6b-s21-b1.log`):
+  * `DiscardSInv.lean`: **`walParked_discard Ls cl F dir lay c hl (hW : WalDirClaimOf Ls c) (honce : ClaimOnce c cl)`**:
+    `walParked Ls cl F -∗ walOutFrag WalOut.empty -∗ walParked (delete dir Ls) (dropC cl c) F ∗ walOutFrag
+    WalOut.empty ∗ osNames c.1 c.2.1 half c.2.2 ∗ walTmpsRes lay.j ∗ walTmpsHalf lay.j ∗ walOthers [] c.1
+    c.2.2.cur` (helpers `walDirClaimOf_delete`, `claimP_deleteL`, `othersP_deleteL`).
+  * new **`DiscardS.lean`** (imports `DiscardSInv`, `DiscardSteps`, `CreateNamedStep`; nothing imports it yet):
+    `walGhostI_bump0` (`walGhostI_bump` with the token's `walTailsFrag T ∅` in place of `hlk`: a WAL goes, so
+    `UnlMono` fails; the empty locked ranges carry over), `nameShare_delete`, **`walNamesRes_discard`** (`disc :=
+    none`, `Ls → delete dir Ls`; `nm ∉ Wn` by `osNames_same_name` against the program's area claim, key `N ≠
+    .only [nm]`), `walParked_inj`, and **`walInv_discardS`**:
+    ```
+    walInv_discardS C Mr R jr r dir nm N hC ic Q₂ x e Es n
+      (hin : InArea r dir nm) (hN : N.Mem nm) (hNN : N ≠ .only [nm]) (hR : RootsOk R)
+      (hcur : hC.cur !! nm = none) (hlw : LastWrite hC jr nm x e Es) (hx : x < n) (hEs : Es !! nm = none) :
+      ⊢ walInv … -∗ osSharedInv R -∗ notCrashed -∗ AU₂ -∗ walUnlockedTokX -∗
+        walNamesFragS ⟨none, some dir, []⟩ -∗ osNames jr N half hC -∗ osCommitLb n ={⊤}=∗
+        notCrashed ∗ Q₂ ∗ walUnlockedTok ∗ osNames jr N half hC ∗
+        ∃ J hj, osNames J (.except walTmps) (DFrac.own 1) hj ∗ walTmpsRes J ∗ walTmpsHalf J ∗
+          walOthers [] J hj.cur ∗ ⌜J ≠ jr⌝
+    ```
+    (`AU₂` as in `wal.Discard.spec`; `hR` from `osPathS` at the caller, TreeSharedClaims.lean:582.) Inside: the
+    area claim's uniqueness on `nm` by `osClaims_keys` (with `WalsCreateOk` for its membership), the log by
+    `osClaims_log`, the creating map empty (`walCreating_empty`), then `discS_pure` at `max n0 n`.
+  **Decision (internal, no spec change):** `walGhostI_bump0` is a copy of `walGhostI_bump` (the latter's `hlk`
+  entailment cannot hold when a WAL goes); no invariant change.
+  **Left** (order steps 3-7): (3) the merges into `walAreaRes`: `osNames_merge` twice (`(J, .except walTmps)` +
+  `walTmpsRes`'s and `walTmpsHalf`'s pipeline claims, `TmpClaim.lean`: `walTmpsHalf`'s `qTmpI` + `walTmpsRes`'s
+  `qTmp` must make each pipeline name whole, check `qTmp + qTmpI = 1` there) into `(J, .except [], hj')`, tagged
+  `tmp` into `walAreaRes`'s `cl`; `SubCover (clOf cl' tmp) (some (.dir J))` needs every entry of `hj'.cur` a
+  file: **`walInv_discardS` does not yet return that fact**: add it to its post (from `SegsNamed`/`WalAbsD`
+  of the layout's segments, `tmpEnt` of the pipeline names, `walOthers`' `tmpEnt`s) or derive it from the
+  resources (`walOthers`/`walTmpsRes` hold `tmpEnt`s, files); then the program's area half merged back
+  (`walInvBody_mergeIn` shape at `discS`, as `CreateCommit.lean`); (4) the `Discard` proof; (5) the crash lemma
+  beside `walDiskAt_crash_keep`; (6) docstrings; (7) `gen-link --walfs`, builds.
+- **2026-11-25, P6b session 20 (WIP, `etcd-safe-p6b-wip`): S's resource-removal helpers done; `walInv_discardS`
+  not started.** **Done**, in `DiscardSInv.lean` (`lake build` of the module on fk-lean1 at `aaa52b404d`: 3024 jobs,
+  exit 0, no warning in the file, no `sorry`, `/shared/tmp/p6b-s20-b4.log`):
+  * **`walTailsRes_discard`** (order step 1; no such helper existed): `walTailsRes C Mr s Ls F -∗ walTailsFrag ∅ Lk
+    -∗ walTailsRes C Mr (discS s dir) (GMap.delete dir Ls) F ∗ walTailsFrag ∅ Lk`: the free token's `walTailsFrag ∅`
+    forces `T = ∅` (`walTails_agree`), so no tail record, nothing lent (`LentOk ∅` false), every WAL idle;
+  * `segsAll_sep_delete Φ Ls dir lay hl`: `[∗list] segsAll Ls ⊢ [∗list] lay.pg ++ lay.segs ∗ [∗list] segsAll
+    (delete dir Ls)` (for `laysResF` with `segResF F` and `walParked`'s `if g.ino ∈ o.O then emp else segResP g`,
+    `o = empty`: drop the left part);
+  * `walTmpParked0_delete Ls dir lay hl`: `walTmpParked0 Ls [] ⊢ walTmpsRes lay.j ∗ walTmpParked0 (delete dir Ls) []`;
+    `walTmpHalves_delete`: `walTmpHalves Ls ⊢ walTmpsHalf lay.j ∗ walTmpHalves (delete dir Ls)`.
+  **Confirmed signatures for `walInv_discardS`** (read this session, no need to re-read): `walLeI_discard s I dir :
+  walLeI (s, I) ({s with wal := delete dir s.wal}, <[dir := incOf I dir + 1]> I)` (Ghost.lean:294; `discS s dir` is
+  that state by `rfl`); `walGhostI_bump` (DiscardSteps.lean, end) and its use in `discAU`'s commit arm (DiscardR.lean
+  ~395-420: `walUnlockedTokX_open`, `walParked_incE`, `walDirKeysAuth_bump K` then `Hdk $$ %I' %(delete dir K)
+  %(keys_bump I K dir) HI3`): copy that block; `osClaims_filter_once c cl dq (h : ClaimOnce c cl)` (CreateMergeStep
+  :160, gives `osNames c.1 c.2.1 dq c.2.2 ∗ osClaims (filter (≠ c))` = `dropC`, by `rfl`/`dropC`'s def);
+  `walNamesRes_congr R jr r Ls s s' hs` changes only `s` (for `Ls → delete dir Ls` unfold `walNamesRes`: `st.disc
+  = some dir` → set `⟨none, none, []⟩` with `walNamesS_set` against the program's `walNamesFragS ⟨none, some dir,
+  []⟩`; the `Wn` list unchanged, `nameShare` over `delete dir Ls` needs a congr: `nameShare jr Ls nm` reads `Ls`
+  only through the layout named `nm`, and `nm ∉ Wn`); `ParkedClaim Ls D c := WalDirClaimOf Ls c ∧ (c.1, c.2.1) ∉
+  D` (Inv.lean:617). `walInv_mergeIn` (CreateSteps:183) takes `N2` whole (`DFrac.own 1`) with no WAL name, so the
+  final merge of the program's half of `(jr, .only [nm, tmp], hC)` into its area claim is `walInvBody_mergeIn`'s
+  shape at `discS` (as `Create`'s commit, `CreateCommit.lean`), not `walInv_mergeIn`.
+  **Left for `walInv_discardS`** (`walInv_stepS`, CreateNamedStep.lean, with `discAU`'s commit-arm block): the
+  `walParked` claims part over `dropC` and `delete dir Ls` (the dir claim's `ParkedClaim` half out: write
+  `walParked_discard`, `osClaims`-list split by `BigSepL` at the claim's position, `ClaimOnce`), `walOthersL` over
+  `dropC`/`delete dir Ls` (the dir claim's others out to the program), `laysResF` by `segsAll_sep_delete`, then
+  `discS_pure`. Then order steps 3-7 of the brief. Session stopped at the ~150k-token handoff rule.
+- **2026-11-25, P6b session 19 (WIP, `etcd-safe-p6b-wip`): S's pure facts and the layouts' distinctness done; S's
+  Iris step not started.** **Decision (coordinator, internal):** the gap "two WALs have different directory inodes" by
+  the fraction argument, an invariant fact only if it does not follow; **it follows** with no invariant change: with no
+  write-mode handle out (`walParked`'s `o.T = []`, the lock token free), `walTmpParked0` holds `walTmpsRes J` for each
+  layout's directory, three quarters (`qTmp`) of `J`'s `0.tmp` claim each; two layouts on one `J` give two (`qTmp_two`).
+  (The `walTmpsHalf` route also works: `qTmp + qTmpI + qTmpI > 1`; the parked route is simpler.) Noted in
+  `notes/wal-p6b-design.md`.
+  **Done**, new `Proof/.../wal/DiscardSInv.lean` (imports `DiscardSPure`, `DiscardR`, `CreateDropInv`, `BootPure`;
+  `lake build` of the module on fk-lean1 at `ee2c8892d4`: exit 0, no warning, no `sorry`, `/shared/tmp/p6b-s19-b7.log`; nothing
+  imports it yet):
+  * `dropC cl c` (`cl.filter (· ≠ c)`, classical: `Claim` has no `BEq`; the form of `osClaims_filter_once`,
+    CreateMergeStep.lean, which takes the claim out of `osClaims` under `ClaimOnce`), `mem_dropC`;
+  * `DropDirOk cl j N h` (log, mem, no other claim of `j` on `N`) and **`DropDirOk.crash`**: a crash of `dropC cl
+    (j,N,h)` has a crash `m''` of `cl` equal off `j`'s names of `N` (over `regionCrashedK_dropDir` + `_cover`);
+    `entsOf_off`;
+  * `discS s dir` (`wal := delete dir`), `crashOkA_dropDir`/`crashOkW_dropDir`, `walDirClaim_dropDir`;
+  * `DiscSet Ls cl jr dir lay N hj` (lay at dir, `DropDirOk`, other layouts on other inodes, `lay.j ≠ jr`) and
+    **`discSet_of`**: from `DirKeysOk`'s `DirClaimsOk`/`DirClaimExcl` (N = `.except walTmps`), the claims' log
+    (`osClaims_log`), and the distinctness;
+  * `absentNone_discard`, `walsOk_discard` (`DirsOk` by `dirsOk_roots`: needs `RootsOk R`, from `osPathS`,
+    TreeSharedClaims.lean:582; `AbsentOk` by `absentOk_of_absentNone`), `walsNamed_discard`, `walsCreateOk_discard`,
+    `walsAt_discard`, `claimOnce_dropC`, `dirClaimOk_dropC`, `dirKeysOk_discard` (keys `K.delete dir`);
+  * **`discNone_of`**: `hnone` for `dir` from the area claim `(jr, N0, hC) ∈ cl` holding nothing at `nm`, being the
+    only claim of `jr` on `nm` (`honly`: from `osNames_disj`/`osClaims_excl` against the program's half), and
+    `LastWrite hC jr nm x e Es`, `x < n`, `Es !! nm = none` (`regionCrashed_lastWrite`); `inArea_nm_inj`;
+  * **`discS_pure`**: every pure conjunct of `walInvBody` at `(discS s dir, Ls.delete dir, dropC cl (lay.j, N, hj),
+    n, K.delete dir)` from the old ones at `n0 ≤ n` (mono lemmas inside), given `DiscSet`, `RootsOk`, `hnone`;
+  * Iris: `walTmpsRes_excl`, **`walTmpParked0_inj`** (`walTmpParked0 Ls [] ⊢ ⌜distinct⌝ ∗ walTmpParked0 Ls []`).
+  **Next: S's Iris step** (`walInv_discardS`, at a program step after `syncDir.spec`, mask ⊤, as `walInv_named`
+  in CreateNamedStep.lean). Program in: `walUnlockedTokX`, `walNamesFragS ⟨none, some dir, []⟩`, the program's half
+  of `(jr, .only [nm, tmp], hC)` after R (`renDirOut`'s: `nm` none, `tmp` the directory `J`), `osCommitLb n` with
+  the rename's `LastWrite hC jr nm x e Es`, `x < n`, `AU₂`, `osSharedInv R`, `osPathS` (for `RootsOk`). Inside
+  `walInvBody s`: `walGhost`'s `walGhostI s I` (`walGhostI_bump` to `(discS s dir, <[dir := incOf I dir + 1]> I)`,
+  `walLeI_discard`, Ghost.lean:294; the shares from `walUnlockedTokX_open`, `walParked_incE`,
+  `walDirKeysAuth_bump`, the view's out of `AU₂`, as `discAU`'s logged arm, DiscardR.lean); `osClaims_log` →
+  `DropDirOk.log`; `walParked` with `o = empty` (from the token's `walOutFrag empty`): `walTmpParked0_inj` →
+  distinctness; then `discSet_of`, `discNone_of` (`honly` by `osClaims_excl`), `discS_pure`; resources out:
+  `osClaims_filter_once` (the dir claim's invariant half), `walParked`'s `ParkedClaim` half of it, `walTmpsRes
+  lay.j` (`walTmpParked0`'s `Jt` delete `dir`) and `walTmpsHalf lay.j` (`walTmpHalves`' `Jh` delete `dir`),
+  segments' halves of `lay` dropped (`laysResF` and `walParked`'s `segResP` over `segsAll (Ls.delete dir)`:
+  split with `BigSepM.bigSepM_delete` as `segsAll_sep_same`, TailSync/PurgeAuLemmas), `walTailsRes` over
+  `Ls.delete dir` (find/write a `walTailsRes_delete`; `s.wal !! dir`'s tail record goes), `walOthersL` (dir's
+  others, files: to the program for `SubCover`), `walNamesRes` with `disc := none` (`Wn` unchanged: `dir` not
+  in it), `AU₂` committed (`walOwn M → M.delete dir`), `walUnlockedTok` rebuilt. Then out of the step:
+  `osNames_merge` twice (`.except walTmps` + `.only [0.tmp]` + `.only [1.tmp]` → `.except []`), tagged `tmp`
+  into `walAreaRes`'s `cl` (session 18's notes on `SubCover`/`ClRanked`), the program's area half merged back
+  (`walInv_mergeIn`). Then the `Discard` proof, the crash lemma, the docstrings, `gen-link --walfs`, builds.
+- **2026-11-25, P6b session 18 (WIP, `etcd-safe-p6b-wip`): S started (its crash-tree core); S's plan refined.**
+  **Done**: new `Proof/.../wal/DiscardSPure.lean` (imports `CreateDrop`; `etc/lean-check.py -a`: 0 errors, no
+  `sorry`; nothing imports it yet, not in a `lake build`): `exists_dir` (a `Dir` from a function supported on a
+  candidate list, through `GMap.ofList`), `valAfter_cands`, `exists_treeSetN` (the tree with `j`'s names of `N` set
+  by `f`), and **`regionCrashedK_dropDir`**: dropping a whole directory claim `(j, N, h)` from the invariant's
+  claims (no remaining claim on a name of `N` of `j`): every crash `m'` of the rest has an `m''` that is a crash
+  of all (kept set `dropK`), equal to `m'` off `j`'s names of `N`. This is what S needs to take the discarded WAL's
+  directory claim `(lay.j, .except X, hj)` out of `cl` (as `CreateDropInv`'s `DropOk.crash` for one name).
+  **Found reading for S (check these first next session):**
+  * the pipeline names' claims (`tmpHalf`/`tmpClaim`, `TmpClaim.lean`) are **not in `cl`**: they are separate
+    `osNames` fractions `qTmpI`/`qTmp` (in `walTmpHalves`, and `walTmpParked0` or out); so `cl` loses only the
+    directory claim; the program gets the tmps claims whole from `walTmpParked` (lock free: `o.T = []`) and the
+    invariant's `walTmpHalves` (`Jh` loses `dir`), then `osNames_merge` twice into `(lay.j, .except [], hj')`.
+  * `walAreaRes`'s new conjuncts for `tmp := tmpName nm`: `SubCover (clOf cl' tmp) (some (.dir J))` needs only
+    `(J, .except [], hj') ∈ clOf cl' tmp` and that every entry of `hj'.cur` is a file (`ClReach` then stays at
+    `J`): `SegsNamed` (`.wal` names), `tmpEnt` (pipeline names), `walOthersL` (the others); `ClRanked` is then
+    trivial (no directory entry). `clOf cl tmp` before S is `[]` (the `RemoveAll(dir.tmp)` consumed it).
+  * the area claims: after U' the invariant holds half of `(jr, .only [nm, tmp], hC)` in `cl` and the program the
+    other half (`renDirOut`'s); merging it back into the program's area claim `(jr, N \ tmp, h)` is an invariant
+    step (`walInvBody_mergeIn`, as `Create`'s commit), giving `walAreaRes`'s `N ∪ {nm}` (`nm` left `Wn` at U').
+  * pure facts over `cl'` (the dir claim dropped) by `regionCrashedK_dropDir`: other WALs' crash conditions read
+    `entsOf m' lay'.j` and the area `jr`: **needs `lay'.j ≠ lay.j` for other layouts** (no lemma seen yet:
+    check `DirKeysOk`/`walDirKey`'s keys, `DirClaimOk`'s `ClaimOnce`; else derive from `WalsAt` + the area
+    claim's entries; checked at the end of session 18: `DirKeysOk`/`DirClaimsOk` do not give it, and two layouts
+    sharing `J` would share one `ClaimOnce` claim; an Iris route: `walTmpHalves`' `[∗map] dir ↦ J ∈ Jh` holds one
+    `walTmpsHalf J` per layout, so two layouts on `J` give two `qTmpI` fractions of `osNames J (.only [0.tmp])`
+    besides the program's `qTmp` (parked, lock free): over 1 if `qTmp + qTmpI = 1`; check `TmpClaim.lean`) and `lay.j ≠ jr` (`WalsAt.ne`); `DirsOk` by `DirsRoots` (durable dirs are roots); `AbsentOk`
+    is implied by `AbsentNone`; `AbsentNone` for `dir` from the raised commit lb past the rename (the rename is
+    the last write of `nm` in the area claim: `regionCrashed_lastWrite`, as `CreateNamedStep`).
+  **Next**: the rest of S (pure: `walsOk_discard`, `absentNone_discard`, `walsNamed_discard`, `dirKeysOk_discard`
+  (keys `K.delete dir`), `walsAt_discard`, `walsCreateOk_discard`; Iris: the layout's resources out of
+  `laysResF`/`walParked` (segment halves dropped), the tmps claims, `walTailsRes`/`walNamesRes` over `Ls.delete
+  dir`, `walGhostI_bump` with `walLeI_discard`, `AU₂` committed, `disc := none`, `walUnlockedTok` rebuilt), then
+  the `Discard` proof, the crash lemma, docstrings, `gen-link --walfs`, builds. Session stopped at the ~150k-token
+  handoff rule (most of it spent reading for S). **Build**: `lake build` of `wal.DiscardSPure` + `wal.DiscardR` on
+  fk-lean1 at `3b1a5575df`: 3023 jobs, exit 0, no `sorry` in either (`/shared/tmp/p6b-s18-b1.log`).
+- **2026-11-25, P6b session 17 (WIP, `etcd-safe-p6b-wip`): R done; S not started.** **Decision (coordinator,
+  approved, internal, not a spec change):** `walDirKeysAuth` (Ghost.lean) gains `⌜∀ dir i x, Kall !! (dir, i) = some x
+  → i ≤ incOf I dir⌝` (keys are recorded only at incarnations up to the current one; no existing lemma gave `Kall !!
+  (dir, ic+1) = none`). Sites fixed: `walDirKey_lookupG`, `walDirKey_insertG` (the new key is at the current
+  incarnation), `walDirKeysAuth_getG`, `walGhost_init` (`Kall = ∅`). New `walDirKeysAuth_bump K : walDirKeysAuth K ⊢ ∃ I,
+  walIncE I ∗ ∀ I' K', ⌜(∀ d, incOf I d ≤ incOf I' d) ∧ ∀ d x, K' !! d = some x ↔ (incOf I' d = incOf I d ∧ K !! d =
+  some x)⌝ -∗ walIncE I' -∗ walDirKeysAuth K'`. Ghost.lean lean-checked (0 errors).
+  **R** in the new `Proof/.../wal/DiscardR.lean` (imports `DiscardSteps`, `CleanupAu`, `CreateNamed`; `etc/lean-check.py
+  -a`: 0 errors; nothing imports it yet, not yet in a `lake build`):
+  * pure: `unnameS s dir := absDiskUpd s dir (named := false)` (+ `_none`/`_wal`/`_area`/`_dirs`), `crashTo_unname`,
+    `crashOkA_unname`, `crashOkW_unname`, `walFullOk_unname`, `walsOk_unname`, `dirKeysOk_unname` (over fewer keys
+    `K'`), `absentNone_unname`, `walDurLe_unname`, `incOf_bump`, `keys_bump` (`K.delete dir` after the bump);
+  * `walUnlockedTokX_open` (the token less its `walIncQ` quarter and `walOutFrag empty`, a wand back at any `I'`),
+    `walParked_incE` (the pipeline reserve's eighth out of `walParked`, lock free);
+  * **`discAU`**: `⊢ walInv … -∗ discP dir N h jr ic Q₁ -∗ osAUnc (osNames jr N ½ h) (renDirOut jr J N nm tmp h ½ lb)
+    (discQ dir N h jr ic Q₁)`, premises `InArea r dir nm`, `nm ≠ tmp`, `N.Mem nm`, `N.Mem tmp`, `h.cur !! nm = some
+    (.dir J)`, `h.cur !! tmp = none`, `h.next ≤ lb`, `¬ walNameOk tmp`, `AreaSlot tmp`. `discP := walCleanPin N h jr ∗
+    discAU₁ dir ic Q₁` (`discAU₁` = the spec's `AU₁`); `discQ none := discP` (as `walCreateQ`), `discQ (some _) :=
+    walUnlockedTokX ∗ ∃ d, Q₁ d`. Opens `AU₁` up front with the os update (as `walCreate_osAUnc`); the logged arm:
+    `walCreating_deleteC` (token back), the five shares (`walUnlockedTokX_open`, `walParked_incE`,
+    `walDirKeysAuth_bump`, the view's, `walGhostI`'s) through `walGhostI_bump` with `walLeI_unname`, `AU₁` committed at
+    `unnameS s dir`, `<[dir := ic+1]> I`, the claims `movClaims` (`renDirEnt = movEnt` as `h.cur !! tmp = none`), the
+    pure facts `walsOk_unname` then `*_moved` over `unnameS s dir`, keys `K.delete dir`, `walNamesRes_congr`.
+  **The pin**: the Discard proof calls `walInv_pinClean` (CleanupAu.lean; `b := nm`, `walNameOk nm` from U') right
+  after `walInv_discardU`, depositing U's `walUnlockedTokX`; the pin is needed because `osAuMask` excludes `osShN`
+  (no `osClaims_keys` inside the update).
+  **Next:** S (`syncDir.spec`'s commit: as session 7's/16's plan; `walGhostI_bump` again with `walLeI_discard`, keys
+  `K.delete dir` again trivial (`keys_bump`), the WAL's layout out of `Ls` and its directory's claims out, tagged
+  `tmpName nm`, into `walAreaRes`'s `cl` (`SubCover`, `ClRanked`)), the `Discard` proof, the crash lemma, docstrings,
+  `gen-link --walfs`, the builds. **Build**: `lake build` of `wal.Link` + `wal.DiscardR` on fk-lean1 at `c1366806fa`:
+  3849 jobs, exit 0, no `sorry` (`/shared/tmp/p6b-s17-b1.log`). Session stopped at the ~150k-token handoff rule.
+- **2026-11-25, P6b session 16 (WIP, `etcd-safe-p6b-wip`): U' done; R/S not started.** Ledger "wal.Discard's
+  post had no arm for a failed `RemoveAll(dir.tmp)`" marked approved (coordinator: the `RemoveAll` error arm returns
+  `walAreaRes`, `walUnlockedTok`, `AU₁`, `AU₂`, nothing committed; U' with `Create`'s creating-claim shape `.only [nm,
+  tmp]` approved). **Done** in the new `Proof/.../wal/DiscardSteps.lean` (imports `CreateSteps`, `NameSplit`;
+  `etc/lean-check.py -a`: 0 errors; not yet in any `lake build`, nothing imports it yet):
+  * step 1: `exists_walName_notin Wn : ∃ b, walNameOk b ∧ b ∉ Wn` (with `walAreaRes`'s `∀ nm, walNameOk nm → N.Mem nm
+    ∨ nm ∈ Wn` it gives the WAL name `walInv_drop` needs in the area claim `N`);
+  * U': `lay_nm_inj` (pure), `nameShares_erase` (loans `[]`: every share `0`, `bigSepL_perm` by `perm_cons_erase`),
+    `walInvBody_unregister` (frag `none` → `⟨none, some dir, []⟩`, `Wn` → `Wn.erase nm` on both halves, the program
+    half `(jr, .only [nm], hn)` out of `nameShare`, `hn.cur !! nm = some (.dir J)`), `walInvBody_discardU` (=
+    unregister, then `walInvBody_mergeIn` with `N1 = .only [nm]`, `N2 = .only [tmp]`, `T := walUnlockedTokX`; NO
+    creating-map entry is used: the claim is found later by `osClaims_keys`), `walInv_discardU` (program step:
+    peeks `AU₁` for `s.wal !! dir = some _`, as `walInv_absent`; AU destructuring that works: `isimp only
+    [texist_cons, texist_nil] at Hacc`, then `isimp only [Std.Tele.app, ULift.down]` on the opened `α` only, else
+    the AU handed back by the abort does not unify with the original). Post: `walUnlockedTokX ∗ walNamesFragS
+    ⟨none, some dir, []⟩ ∗ walSplitFrag (Wn.erase nm) ∗ osNames jr (.only [nm, tmp]) ½ hC ∗ ⌜nm ∈ Wn ∧ hC.restrict
+    jr (.only [tmp]) = hT.restrict … ∧ hC.cur !! nm = some (.dir J)⌝`, and `AU₁` back.
+  * R/S ghost core: `walGhostI_bump s s' I I' I1..I4 M hle hk hst hlk`: sets **all five** shares of `γI` to `I'`
+    (`walGhostI`'s quarter, the view's and the lock's `walIncQ` quarters, and two `walIncE` eighths: the keys'
+    authority's, in `walDirKeysAuth`, and the pipeline reserve's, in `walOutAuth` while `o.T = []`, i.e. the lock
+    free). Session 15's plan for R named only three; the eighths must be taken out of the body's `walDirKeysAuth K`
+    and `walParked`'s `walOutAuth o` too. `hle` from `walLeI_unname` (R) / `walLeI_discard` (S), both in Ghost.lean.
+  **Risk found for R (check first):** `walDirKeysAuth K` says `K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x`;
+  after the bump `K' := K.delete dir` satisfies `DirKeysOk` (it only constrains present entries) but the `↔` needs
+  `Kall !! (dir, ic + 1) = none`, which nothing states today. If no lemma gives it, add to `walDirKeysAuth`'s body
+  `⌜∀ d i x, Kall !! (d, i) = some x → i ≤ incOf I d⌝` (internal invariant, not a spec; inserts are at the current
+  incarnation) and fix its few construction sites (`grep -n walDirKeysAuth *.lean`).
+  **Next (unchanged order):** R (`osAUnc` for `os.Rename.specDirSnc`: as `cleanAU`, claim found by `osClaims_keys` on
+  `.only [nm, tmp]` + `osClaims_once` + `osNames_coh`; commit: `s' := absDiskUpd s dir (named := false)`, `I' :=
+  <[dir := ic+1]> I`, `walGhostI_bump`, `movClaims` and `CleanupMoved`'s `*_moved` with `hun` true of `s'`, `walNamesRes`
+  over `s'` (disc conjunct: `dir`'s layout exempt), `AU₁` committed with the view's `walIncQ`), S, the `Discard` proof,
+  the crash lemma, docstrings, `gen-link --walfs`, the builds.
+- **2026-11-25, P6b session 15 (WIP, `etcd-safe-p6b-wip`): `Discard` approved; a spec defect found; state C started
+  (the invariant's relaxation only).** Ledger "wal.Discard" marked approved (coordinator: as written; P5's condition 2
+  met because the client chooses `Q₁`, written into the entry).
+  **Spec defect (ledger 2026-11-25, "wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)`", pending; applied
+  on this branch):** the approved post gives `∃ d, Q₁ d` in every arm, i.e. says `RemoveAll(dir.tmp)` cannot fail, but
+  `os.RemoveAll.specSubS` allows an error under `FsNoErrAt` (only `nil ⇒ gone`), and `Discard` returns it before the
+  rename. New first arm: `err ≠ nil ∗ walAreaRes jr ∗ walUnlockedTok ∗ AU₁ ∗ AU₂` (nothing committed; `Create`'s
+  `create_abortTmp` gives exactly the token and `walAreaRes` back). The spec file builds.
+  **`walNamesRes` relaxed** (`Inv.lean`): conjunct A's second part `… → st.reg ≠ some dir → st.disc ≠ some dir → lay.nm
+  ∈ Wn` (the discarded WAL is the one present layout not registered); the disc conjunct is now `(st.disc ≠ none →
+  st.reg = none) ∧ loans registered`. Sites fixed: `walNamesRes_addWal`/`_insert` (Inv), `NameSplit` (`split_present`'s
+  `hW` takes the extra `none ≠ some dir`), `NameClaims`, `CreateSplit` (`walInv_register`), `Crash` (`walInv_alloc`'s
+  construction). `lake build` of `wal.Link` + `Spec...wal.Discard` on fk-lean1 at `3177f4b87d` (the commit before these
+  notes): 3848 jobs, exit 0, no `sorry` (`/shared/tmp/p6b-s15-b2.log`). Not yet built: the tester and the leaves.
+  **Refined plan for C (found reading `Create`; replaces session 7's U):** the rename needs ONE claim holding `nm` and
+  `nm.tmp` (`os.Rename.specDirSnc`: `N.Mem bs ∧ N.Mem bt`, the program's fraction `q`, the update's `r`). Do it as
+  `Create` does, with `Create`'s creating-claim shape `.only [nm, tmp]`, not by merging into the area claim:
+  1. `walInv_drop` (`CreateSteps.lean`) of `tmpName nm` off the program's area claim `(jr, N, h)`: it needs a WAL name
+     `b ∈ N` to find the invariant's half; `nm` is registered (not in `N`), so add a fresh-name lemma `∃ b, walNameOk b ∧
+     b ∉ Wn` (`walNameOk` = nonempty, no `/`, no `.`: a string of `a`s longer than every name of `Wn`), then `N.Mem b` by
+     `walAreaRes`'s first fact. Then `area_takeTmp`, `wp_removeAllTmp` (`CreateTmp.lean`) with `os.RemoveAll.specSubS`;
+     on its error `create_abortTmp` (`CreateAbort.lean`) → the new first arm.
+  2. **U'** (`DiscardSteps.lean`, `walInvBody` level, then `walInv`): open the invariant, peek `AU₁` (open at
+     `walAuMask`, abort) for `s.wal !! dir = some d` (the view's `walOptLe` into `s.wal`), `WalsOk` → `lay`, `InArea r dir
+     nm`, `lay.nm = nm`; with `walNamesFrag none` (from `walUnlockedTok`) `walNamesRes` gives `nm ∈ Wn` and, loans `[]`,
+     `nameShare` at exactly `½`: the program half of `(jr, .only [nm], hn)` with `hn.cur !! nm = some (.dir lay.j)`.
+     The invariant half is in `cl` (`osClaims_keys` + `WalsCreateOk` at `nm`, as `walInvBody_merge2`'s `hm1`). Merge it
+     (both halves, `osNames_halves`) with the whole `.only [tmp]` claim (`osNames_merge`) into `(jr, .only [nm, tmp], hC)`,
+     halve it (one in `cl` in place of nm's: `CoverOk` by `coverOk_merge`-style; the facts by the `*_cover` lemmas of
+     `CreateMerge.lean`), the other half to the program; `Wn' := Wn.erase nm` in both `walSplit` halves
+     (`walSplitFrag` is `walAreaRes`'s; `shareLs` over `Wn.erase nm`: loans `[]` so every share is `0`, a re-index of the
+     big sep); frag `⟨none, some dir, []⟩` (`walNamesS_set`). Creating map empty: `walCreating_empty` with `T :=
+     walUnlockedTokX`, `walUnlockedTokX_exclX`. Template: `walInvBody_mint` (`CreateMint.lean`), whose `nm` comes off the
+     area claim instead of a registered claim.
+  3. **R**: the rename's `osAUnc` as `cleanAU` (`CleanupAu.lean`) with `brk := tmpName nm` (`tmpName_not_walName`,
+     `tmpName_areaSlot`, `tmpName_ne`), the claim `.only [nm, tmp]` found by its record (no pin needed if U' records it:
+     simplest, keep it `ClaimOnce` and found by `osClaims_keys`), but the real state changes: `s' := s` with `dir`'s
+     `named := false`, `I` bumped (`walLeI_bump`), and `AU₁` committed in the same commit (the client's quarter in
+     `walDiskAtI`, the ghost's half, the lock's quarter from `walUnlockedTokX`'s `walIncAny`). `CleanupMoved`'s
+     `walsOk_moved`/`absentNone_moved`/`walsNamed_moved`/`dirKeysOk_moved`/`walsAt_moved` take `hun : ∀ d, s.wal !! dir =
+     some d → d.named = false`: true of `s'`; check each also holds across `s → s'` (`walsBounded_upd`, `DirsRoots.upd`,
+     `walNamesRes_congr`).
+  4. **S** as session 7's (the commit lb from `syncDir.spec`'s `osCommitLb n`; `walLeI_bump` again; `AU₂`; `Ls.delete
+     dir`; the WAL directory's claim and the tmp halves out to `walAreaRes`'s `cl` tagged `tmpName nm`; `disc := none`).
+     Then the program's half of `.only [nm, tmp]` (now holding `nm` absent, `tmp` the directory) merged back into the
+     area claim: `walInv_mergeIn`/`walInvBody_merge2` with `T := walUnlockedTokX`, then `area_give` (`CreateArea.lean`).
+  5. The proof file, the crash lemma (P5 condition 1), the docstrings naming `DiscardUnsaved`, `gen-link --walfs`, the
+     builds: unchanged from the brief.
+- **2026-11-25, P6b session 14 (WIP, `etcd-safe-p6b-wip`): tester built, pin bumped, `Discard` specified; state C
+  not started.** Ledger "fix B's lemma-level signatures" marked approved (`6413ef7702`). **Tester**: built on fk-lean1
+  (the coordinator allowed a seed there: worktree `/home/ubuntu/eg/wt/etcd-safe-p6b-wip`, `FKLEAN_HOST=fk-lean1`)
+  at `6413ef7702`: `WalTester...etcd.wal.{Link,Adequacy,TopLevelRobustness}`, 4264 jobs, exit 0, no `sorry`
+  (`/shared/tmp/p6b-tester-r1.log`). `etc/gen-link.py --walfs/--durable/--wal-tester --check`: all up to date.
+  **Pin bump** (`3793559312`, alone): `etc/goose.py` project `etcd` `rev` → `251a430ce042` (`goose-lean-fmt1c-discardfix`),
+  the examples' `go.mod`/`go.sum` (pseudo-version `v3.0.0-20261125101634-251a430ce042`, sums from `go mod download`;
+  `go list -mod=readonly -deps ./...` clean in each), `--project etcd` (2 files: `wal.lean`, `etcdserver.lean`), then
+  `--check`: every project up to date. No spec or proof names `DiscardUnsaved` (only docstrings: `Ghost.lean`,
+  `Inv.lean`, `NameClaims.lean`, `NameLoans.lean`, `Unsaved.lean`'s spec, `etcdserver/{InvCrashImage,CrashInterim}.lean`;
+  to reword with C). `bootstrap.wp_proof` is first-start only (`haveWAL = false`) and names neither `Unsaved` nor the
+  discard. Post-bump build of the leaves of `etc/importers.py --git 5a1c41d945 --leaves` (644, the 4 `notes.*`
+  leaves dropped: not targets) at `d767c73cac` on fk-lean1: 16389 jobs, exit 0, no `sorry`
+  (`/shared/tmp/p6b-bump-r3.log`): the bump breaks nothing.
+  **`Discard` spec** (`d767c73cac`, `Spec/.../wal/Discard.lean`, lean-checked; ledger 2026-11-25 "wal.Discard",
+  pending): the two updates without `walBlank` (the function reads nothing), `Create`'s area resources and
+  premises (with `dirDurable r`), post `osPathS ∗ osCallPerm 1 ∗ ∃ d, Q₁ d` and `nil` ⇒ `walAreaRes ∗ walUnlockedTok ∗
+  Q₂`, error ⇒ `AU₂` back. P5's three conditions: how each is met is in the ledger entry.
+  **Next (state C, then the proof)**, as session 7's plan with these anchors: `walLeI_bump` (Ghost.lean, exists) covers
+  R's unnaming and S's deletion (both bump `I`); `walNamesRes` (Inv.lean ~2290) has `st.disc = none` today: C
+  relaxes it to "`disc = some dir` ⇒ the WAL at `dir` unnamed, or the area claim still holds the directory at `nm`";
+  R's template is `Create`'s cleanup rename (`CleanupAu.lean` `cleanAU`, `CleanupMoved.lean` `movClaims`/`*_moved`,
+  target `nm.tmp` in place of `nm.broken.*`); merges by `osNames_merge` (`GooseLang/Ext/Fs/TreeShared.lean:122`);
+  the parked tmp state `walTmpParked` (Inv.lean:1789), `walTmpsRes`/`walTmpsHalf` (TmpClaim.lean). New file
+  `DiscardSteps.lean` (U/R/S as `walInv`-level lemmas), then `Proof/.../wal/Discard.lean` (`RemoveAll` as `Create`'s
+  `os.RemoveAll.specSubS`, U, `os.Rename.specDirSnc` with R, `syncDir.spec` with S, `lg.Info`), the window's crash
+  lemma (P5 condition 1) beside `walDiskAt_crash_keep` (Crash.lean), `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 13 (WIP, `etcd-safe-p6b-wip` @ `8fc495f329`): fix B done; `wal.Link` builds with no
+  `sorry`** (`lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`, 3847 jobs, `/shared/tmp/p6b-build8.log`;
+  no `declaration uses 'sorry'`). The three session-12 ledger entries marked approved. Every lookup threads its
+  holder's quarter `walIncQ I` (`incOf I dir = i`): `walOpening_incQ`/`walOpenWI_incQ`/`walOpenWCI_incQ` (Ghost),
+  `walLockedTokI_incQ`; the close laws (`WalCloseLaw`, `walCloseLaw(U)`) take `walPipeKey` from `pipeLeft` and
+  give the reserve to `walInv_unpin(XI)`; `HandleLoans` and the lending laws (`BrokenLend`) take `walIncQ I`, not
+  the lock token; the failed handle is `walHandlePI w dir i .failed` (`walInv_failOpening`, `readAll_failWp*`,
+  `walFailCommon … i`, `walReadFailed_lockedTokI`); purge (`walPurgeP`/`walPurgeOP … I`, `walInv_walFiles`,
+  `walOpenWFI_lend` returns the handle's quarter, `walOpenWF_lend` removed as unused; the tester's `purgeRound`
+  threads it through its loop invariant) and the prefix probe (`probeHandles`/`prefixScanState … I`) carry the
+  quarter; `Create` passes `UH := createUK …`. One ledger entry for these lemma-level signatures ("fix B's
+  lemma-level signatures"). `WalTester/…/purgeRound.lean` checked with `etc/lean-check.py -a` (0 errors), the
+  tester's Link not yet built.
+  **Next:** build the tester (`etc/gen-link.py --walfs`, the tester's `TopLevelRobustness`), then the brief's
+  steps 2-4: the pin bump to upamanyus/etcd `goose-lean-fmt1c-discardfix` @ `251a430ce042` (`DiscardUnsaved` →
+  `func Discard(lg, dirpath) error`; `etc/goose.py`, `--project <affected>`, `--check`; the bump alone in one
+  commit; report if the bootstrap spec or proof cites `DiscardUnsaved`), state C, the `Discard` spec (ledger
+  first) and proof, then `gen-link --walfs` and the builds (wal.Link, the tester, the server WAL consumers, P8's
+  crash modules, the leaves of `etc/importers.py --git 5a1c41d945 --leaves`).
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash

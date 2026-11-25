@@ -37,17 +37,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 
 /-- **`Repair`'s registration of its last segment, pending** (see the file header). -/
 theorem repair_register (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (d : WalDur) (lay : WalLay) (X : List GoString) (hj : NamesH) (gL : SegG) (rs : List WalRec)
+    (I : GMap GoString Nat) (d : WalDur) (lay : WalLay) (X : List GoString) (hj : NamesH) (gL : SegG) (rs : List WalRec)
     (habs : WalAbsD walCodec Mr d lay hj.cur) (hnd : (lay.segs.map (·.ino)).Nodup)
     (hsn : SegsNamed lay.segs hj.cur) (hgL : lay.segs.getLast? = some gL)
     (hSz : gL.om.size = gL.bs.length) (hRF : RepairFile walCodec (segImg gL) rs) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) walCodec Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir lay.j X -∗
-      osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir (incOf I dir) lay.j X -∗
+      walLockedTokI (W := W) I -∗ osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       walTailsFrag (W := W) ∅ -∗
       osMeta (L := hG.goose_localGS) gL.ino (DFrac.own (1 : Qp).half) gL.om -∗
       osBytes (L := hG.goose_localGS) gL.ino 0 (DFrac.own (1 : Qp).half) gL.bs ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗
       osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       osMeta (L := hG.goose_localGS) gL.ino (DFrac.own (1 : Qp).half) gL.om ∗
       osBytes (L := hG.goose_localGS) gL.ino 0 (DFrac.own (1 : Qp).half) gL.bs ∗
@@ -56,7 +56,8 @@ theorem repair_register (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
         tailVar (W := W) γ ((H, md, cuts, wr, gL.ino, none) : TailG) ∗
         ⌜wr = (tailStream Mr H md cuts).length ∧ wr ≤ (recFrames walCodec rs).length ∧
           TailMetaRP Mr (tailCrc Mr H md cuts) wr (recFrames walCodec rs).length gL.om gL.bs⌝ := by
-  iintro #Hinv Hnc #Hk Hn Htf Hm Hb
+  iintro #Hinv Hnc #Hk HlI Hn Htf Hm Hb
+  icases walLockedTokI_incQ (W := W) I $$ HlI with ⟨HI, HlI⟩
   have hgLm : gL ∈ lay.segs := List.mem_of_getLast? hgL
   have hnm : ∀ g ∈ [gL], hj.cur !! g.name = some (.file g.ino) := by
     intro g hg
@@ -72,9 +73,9 @@ theorem repair_register (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
   ihave Hh : [∗list] g ∈ [gL], osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
       osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs $$ [Hm Hb]
   · iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2; iframe
-  imod walInvRegisterPendLaw_holds walCodec Mr R jr r dir lay.j X hj [gL] gL hnm hdrop
+  imod walInvRegisterPendLaw_holds walCodec Mr R jr r dir _ I lay.j X hj [gL] gL rfl hnm hdrop
       (fun g hg => by rw [List.mem_singleton] at hg; subst hg; exact hSz) rfl
-    $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Hh, %d', %lay', %kk, %γ, Htf, Hpt, Hv, %hrs⟩
+    $$ Hinv Hnc Hk HI Hn Htf Hh with ⟨Hnc, HI, Hn, Hh, %d', %lay', %kk, %γ, Htf, Hpt, Hv, %hrs⟩
   obtain ⟨-, habs', hex', hwr', hdr', hTM, -, -⟩ := hrs
   obtain ⟨rs', es, hRF', hrsw', -, hpS, hnz⟩ :=
     walRepairFile walCodec_ok habs' hex' hwr' gL (getLast?_of_drop (by rw [hdr']; rfl))
@@ -83,6 +84,8 @@ theorem repair_register (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
   icases (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hh with ⟨Hm, Hb⟩
   imodintro
   iframe Hnc Hn Hm Hb
+  isplitl [HI HlI]
+  · iapply HlI $$ HI
   iexists γ, d'.H, d'.metadata, lay'.cuts, lay'.old.length, lay'.wr
   iframe Htf Hpt
   isplitl [Hv]

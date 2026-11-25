@@ -83,6 +83,28 @@ instance : Pos.Countable WalOut :=
     obtain ⟨rfl, rfl, rfl⟩ := h'
     rfl)
 
+/-- **The names' ghost state** (`WalGS.γnm`; P6b fix A, `notes/wal-p6-handoff.md`, session 7): the WAL
+directory `Create` has committed and not yet registered (`reg`), the one `Discard` is unregistering
+(`disc`), and the fractions of registered names' claims lent out (`loans`: the name and the fraction,
+returned before the lock token is: `walNamesFrag o` has none). -/
+structure NmSt where
+  reg : Option GoString
+  disc : Option GoString
+  loans : List (GoString × Qp)
+
+instance : Pos.Countable NmSt :=
+  .ofInjective (fun o => Pos.Countable.encode (o.reg, o.disc, o.loans)) (by
+    intro a b h
+    have h' := Pos.encode_inj h
+    cases a; cases b
+    simp only [Prod.mk.injEq] at h'
+    obtain ⟨rfl, rfl, rfl⟩ := h'
+    rfl)
+
+/-- The sum of the fractions of `nm`'s claim lent out (`NmSt.loans`). -/
+def loanSum (L : List (GoString × Qp)) (nm : GoString) : Rat :=
+  ((L.filter (fun x => decide (x.1 = nm))).map (fun x => x.2.val)).sum
+
 /-- **The ghost names of one generation of the WAL layer.** `hA`: the map's variable and token, the
 past states, the area, the lock token (its handle fields unused); `γh`, `γhd`, `γhp`: the handles'
 modes, directories and purge rights. -/
@@ -117,9 +139,9 @@ class WalGS (GF : BundledGFunctors) where
   holder's of what is out (a handle's body, `Create`'s). -/
   γpo : GName
   /-- The WAL directory `Create` has committed and whose name it has not yet registered (`walNamesAuth`/
-  `walNamesFrag`, `Inv.lean`'s `walNamesRes`; G-spine, W1 log): a ghost variable of an `Option GoString`,
+  `walNamesFrag`, `Inv.lean`'s `walNamesRes`; G-spine, W1 log): a ghost variable of an `NmSt`,
   half the invariant's, half the lock token's (`none`: every present WAL registered) or that `Create`'s
-  (`some dir`, from its commit, which takes the lock, to its registration). -/
+  (`some dir`, from its commit, which takes the lock, to its registration), with the loans out. -/
   γnm : GName
   /-- The WAL names split out of the area claim (`walSplitAuth`/`walSplitFrag`): a ghost variable of a
   `List GoString`, half the invariant's (each a present WAL's name, its own claim `.only [nm]`), half
@@ -136,7 +158,7 @@ class WalGS (GF : BundledGFunctors) where
   γlk : GName
   /-- **The WALs' incarnations** (P6b, `notes/wal-p6b-design.md`, v2): a ghost variable of a
   `GMap GoString Nat`, each WAL directory to its incarnation (`incOf`, absent = 0), bumped when the WAL
-  in it is discarded (`DiscardUnsaved`). Allocated at `∅`; not yet used (the swap is P6b's next step). -/
+  in it is discarded (`Discard`, at its rename and at its parent's fsync). Allocated at `∅`. -/
   γI : GName
   /-- **The past states with their incarnations** (`walPastI`/`walPastIAuth`, P6b v2): persistent
   elements of a ghost map keyed by `(s, I)`, all below the present under `walLeI`. Not yet used. -/
@@ -228,7 +250,7 @@ end steps
 /-! ## Incarnations (P6b v2, `notes/wal-p6b-design.md`; not yet used by `walGhost`)
 
 A WAL directory's incarnation is a ghost counter, bumped when its WAL is discarded
-(`DiscardUnsaved`), so that the persistent facts of a discarded WAL (keyed by the incarnation) say
+(`Discard`), so that the persistent facts of a discarded WAL (keyed by the incarnation) say
 nothing of a WAL `Create` makes later at the same directory. The past states are paired with the
 incarnations (`walPastI`), ordered by `walLeI`: a WAL may go (or anything happen to it) only where its
 incarnation grows; where it stays, the WAL stays and grows as `absLe` has it. -/
@@ -268,7 +290,7 @@ theorem walLeI_of_absLe {s s' : AbsDiskState} (I : GMap GoString Nat) (h : absLe
     walLeI (s, I) (s', I) :=
   ⟨h.1, h.2.1, fun _ => Nat.le_refl _, fun dir d hd _ => h.2.2 dir d hd⟩
 
-/-- **The discard of `dir`'s WAL** (`DiscardUnsaved`'s commit): the WAL gone, its incarnation bumped. -/
+/-- **The discard of `dir`'s WAL** (`Discard`'s commit): the WAL gone, its incarnation bumped. -/
 theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
     walLeI (s, I) ({ s with wal := GMap.delete dir s.wal }, <[dir := incOf I dir + 1]> I) := by
   have hinc : ∀ k, incOf (<[dir := incOf I dir + 1]> I) k =
@@ -291,6 +313,46 @@ theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoStrin
       refine ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩
       show (GMap.delete dir s.wal) !! k = some d
       rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hd
+
+/-- **Any change of `dir`'s WAL with its incarnation bumped** (P6b session 7, `Discard`'s steps): the
+area and the durable directories kept, every other WAL unchanged. -/
+theorem walLeI_bump (s s' : AbsDiskState) (I : GMap GoString Nat) (dir : GoString)
+    (ha : s'.area = s.area) (hd : ∀ x, s.dirs !! x = some () → s'.dirs !! x = some ())
+    (hw : ∀ k, k ≠ dir → s'.wal !! k = s.wal !! k) :
+    walLeI (s, I) (s', <[dir := incOf I dir + 1]> I) := by
+  have hinc : ∀ k, incOf (<[dir := incOf I dir + 1]> I) k =
+      if k = dir then incOf I dir + 1 else incOf I k := by
+    intro k
+    unfold incOf
+    by_cases e : k = dir
+    · subst e; rw [GMap.lookup_insert_eq]; simp
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; simp [e]
+  refine ⟨ha, hd, fun k => ?_, fun k d hk he => ?_⟩
+  · show incOf I k ≤ _
+    rw [hinc k]
+    by_cases e : k = dir
+    · subst e; simp
+    · simp [e]
+  · rw [hinc k] at he
+    by_cases e : k = dir
+    · simp [e] at he
+    · refine ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩
+      show s'.wal !! k = some d
+      rw [hw k e]; exact hk
+
+/-- **`dir`'s WAL unnamed, its incarnation bumped** (`Discard`'s rename: a crash may keep or lose the
+directory, and the facts of the old incarnation, `walNamed` among them, are retired). -/
+theorem walLeI_unname (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
+    walLeI (s, I) (absDiskUpd s dir (fun d => { d with named := false }), <[dir := incOf I dir + 1]> I) := by
+  refine walLeI_bump _ _ I dir ?_ ?_ ?_
+  · unfold absDiskUpd; split <;> rfl
+  · intro x hx; unfold absDiskUpd; split <;> exact hx
+  · intro k hk
+    unfold absDiskUpd
+    split
+    · show (<[dir := _]> s.wal) !! k = s.wal !! k
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)]
+    · rfl
 
 instance : DecidableEq (AbsDiskState × GMap GoString Nat) := fun a b => Classical.propDecidable (a = b)
 
@@ -393,6 +455,22 @@ def walIncAny : IProp GF := iprop(∃ I : GMap GoString Nat, walIncQ (W := W) I)
 
 instance walIncAny_timeless : Timeless (walIncAny (W := W)) := by
   unfold walIncAny; infer_instance
+
+/-- **An eighth of the incarnations** (`WalGS.γI`; P6b fix B, ledger 2026-11-25 "filePipeline ..."): the
+keys' authority's (`walDirKeysAuth`) and the pipeline reserve's (`walOutAuth` while no pipeline names are
+out, else the pipeline's, `pipeRes`). With `walGhostI`'s quarter, the views' and the lock's, the whole. -/
+def walIncE (I : GMap GoString Nat) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γI (1 : Qp).half.half.half I
+
+instance walIncE_timeless (I : GMap GoString Nat) : Timeless (walIncE (W := W) I) := by
+  unfold walIncE; infer_instance
+
+/-- The pipeline reserve, at some value. -/
+def walIncEAny : IProp GF := iprop(∃ I : GMap GoString Nat, walIncE (W := W) I)
+
+instance walIncEAny_timeless : Timeless (walIncEAny (W := W)) := by
+  unfold walIncEAny; infer_instance
 
 /-- Two shares of the incarnations agree. -/
 theorem walIncQ_agree (I I' : GMap GoString Nat) (q : Qp) :
@@ -525,27 +603,54 @@ def walOutFrag (o : WalOut) : IProp GF :=
   letI := walAllG (W := W)
   ghostVar W.γpo (1 : Qp).half o
 
-/-- The invariant's half of the record of what is out (`walParked`, `Inv.lean`). -/
+/-- **The pipeline reserve out with the record `o`** (P6b fix B): out (`walIncEAny`, the holder's) when
+some WAL's pipeline names are (`o.T ≠ []`), with the record's invariant half otherwise. -/
+def walOutOut (o : WalOut) : IProp GF :=
+  iprop(if o.T = [] then emp else walIncEAny (W := W))
+
+instance walOutOut_timeless (o : WalOut) : Timeless (walOutOut (W := W) o) := by
+  unfold walOutOut; split <;> infer_instance
+
+theorem walOutOut_nil (o : WalOut) (h : o.T = []) : walOutOut (W := W) o ⊣⊢ emp := by
+  simp only [walOutOut, h, ↓reduceIte]; exact .rfl
+
+theorem walOutOut_cons (o : WalOut) (h : o.T ≠ []) : walOutOut (W := W) o ⊣⊢ walIncEAny (W := W) := by
+  simp only [walOutOut, h, ↓reduceIte]; exact .rfl
+
+/-- The invariant's half of the record of what is out (`walParked`, `Inv.lean`), with the pipeline
+reserve while no pipeline names are out (`walOutOut`: its complement). -/
 def walOutAuth (o : WalOut) : IProp GF :=
   letI := walAllG (W := W)
-  ghostVar W.γpo (1 : Qp).half o
+  iprop(ghostVar W.γpo (1 : Qp).half o ∗ if o.T = [] then walIncEAny (W := W) else emp)
 
 instance walOutAuth_timeless (o : WalOut) : Timeless (walOutAuth (W := W) o) := by
-  unfold walOutAuth; infer_instance
+  unfold walOutAuth; split <;> infer_instance
 
 instance walOutFrag_timeless (o : WalOut) : Timeless (walOutFrag (W := W) o) := by
   unfold walOutFrag; infer_instance
 
 /-- **The WAL directory committed and not yet registered is `o`**, the program's half (`WalGS.γnm`):
 the lock token's (`none`) or the committing `Create`'s. -/
-def walNamesFrag (o : Option GoString) : IProp GF :=
+def walNamesFragS (st : NmSt) : IProp GF :=
   letI := walAllG (W := W)
-  ghostVar W.γnm (1 : Qp).half o
+  ghostVar W.γnm (1 : Qp).half st
+
+/-- The invariant's half of the names' state (`walNamesRes`, `Inv.lean`). -/
+def walNamesAuthS (st : NmSt) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γnm (1 : Qp).half st
+
+/-- The program's half with no loan out and nothing discarding: pending registration `o`. -/
+abbrev walNamesFrag (o : Option GoString) : IProp GF := walNamesFragS (W := W) ⟨o, none, []⟩
 
 /-- The invariant's half of the pending registration (`walNamesRes`, `Inv.lean`). -/
-def walNamesAuth (o : Option GoString) : IProp GF :=
-  letI := walAllG (W := W)
-  ghostVar W.γnm (1 : Qp).half o
+abbrev walNamesAuth (o : Option GoString) : IProp GF := walNamesAuthS (W := W) ⟨o, none, []⟩
+
+instance walNamesFragS_timeless (st : NmSt) : Timeless (walNamesFragS (W := W) st) := by
+  unfold walNamesFragS; infer_instance
+
+instance walNamesAuthS_timeless (st : NmSt) : Timeless (walNamesAuthS (W := W) st) := by
+  unfold walNamesAuthS; infer_instance
 
 instance walNamesFrag_timeless (o : Option GoString) : Timeless (walNamesFrag (W := W) o) := by
   unfold walNamesFrag; infer_instance
@@ -774,33 +879,48 @@ instance walCreating_timeless (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) 
 
 /-- **The authority of the WAL directories' claim keys** (the invariant's, `DirKeysOk`), with a
 copy of every key (persistent), so that a holder of the lock finds the key of a WAL keyed earlier in
-the generation (`walDirKeysAuth_get`: `Open`'s pin, after a `Close`). -/
+the generation (`walDirKeysAuth_get`: `Open`'s pin, after a `Close`). Keys are recorded only at incarnations
+up to the current one (internal, P6b state C: a bump of `dir`'s incarnation leaves no key at the new one,
+`walDirKeysAuth_bump`). -/
 def walDirKeysAuth (K : GMap GoString (Fs.Ino × List GoString)) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(ghostMapAuth W.γdk 1 K ∗ [∗map] dir ↦ x ∈ K, dir ↪[W.γdk]□ x)
+  iprop(∃ (Kall : GMap (GoString × Nat) (Fs.Ino × List GoString)) (I : GMap GoString Nat),
+    ghostMapAuth W.γdk 1 Kall ∗ ([∗map] k ↦ x ∈ Kall, k ↪[W.γdk]□ x) ∗ walIncE (W := W) I ∗
+    ⌜∀ dir x, K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x⌝ ∗
+    ⌜∀ dir i x, Kall !! (dir, i) = some x → i ≤ incOf I dir⌝)
 
 instance walDirKeysAuth_timeless (K : GMap GoString (Fs.Ino × List GoString)) :
     Timeless (walDirKeysAuth (W := W) K) := by
   unfold walDirKeysAuth; infer_instance
 
-/-- **The WAL in `dir` has its directory `j`, claimed on all names but `X`** (persistent): the
+/-- **The WAL in `dir` of incarnation `i` has its directory `j`, claimed on all names but `X`**
+(persistent; keyed by `(dir, i)`, P6b fix B: a key of a discarded incarnation says nothing of a re-created
+WAL, `walDirKey_lookup`): the
 invariant holds half of that claim, once among its claims, the only claim of `j` holding a `.wal`
 name (`DirKeysOk`); an open handle holds the other half, which it can then match to the invariant's
 at an update's opening, where the file system's shared invariant cannot be opened. Made by
 `Create`'s commit and by `ReadAll`; fixed for the generation. The names left out are the pipeline's
 (`X = walTmps`, as `DirClaimsOk` has it of every WAL directory's claim): a purge, holding only the key and
 the handle's half, knows every other name of the directory is in the claim (unit `locks`, session 10). -/
-def walDirKey (dir : GoString) (j : Fs.Ino) (X : List GoString) : IProp GF :=
+def walDirKey (dir : GoString) (i : Nat) (j : Fs.Ino) (X : List GoString) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(dir ↪[W.γdk]□ (j, X) ∗ ⌜X = walTmps⌝)
+  iprop((dir, i) ↪[W.γdk]□ (j, X) ∗ ⌜X = walTmps⌝)
 
-instance walDirKey_persistent (dir : GoString) (j : Fs.Ino) (X : List GoString) :
-    Persistent (walDirKey (W := W) dir j X) := by
+instance walDirKey_persistent (dir : GoString) (i : Nat) (j : Fs.Ino) (X : List GoString) :
+    Persistent (walDirKey (W := W) dir i j X) := by
   unfold walDirKey; infer_instance
 
-instance walDirKey_timeless (dir : GoString) (j : Fs.Ino) (X : List GoString) :
-    Timeless (walDirKey (W := W) dir j X) := by
+instance walDirKey_timeless (dir : GoString) (i : Nat) (j : Fs.Ino) (X : List GoString) :
+    Timeless (walDirKey (W := W) dir i j X) := by
   unfold walDirKey; infer_instance
+
+/-- **The pipeline's key** (P6b fix B; `pipeRes`): the directory's key at the incarnation of an eighth of
+the incarnations the pipeline holds (`walIncE`, the reserve), so that its lookup is current. -/
+def walPipeKey (dir : GoString) (j : Fs.Ino) : IProp GF :=
+  iprop(∃ (I : GMap GoString Nat) (X : List GoString), walIncE (W := W) I ∗ walDirKey (W := W) dir (incOf I dir) j X)
+
+instance walPipeKey_timeless (dir : GoString) (j : Fs.Ino) : Timeless (walPipeKey (W := W) dir j) := by
+  unfold walPipeKey; infer_instance
 
 /-- **The purge's right on the open WAL `w` in `dir`** (exclusive; as `AbsDisk`'s). -/
 def walPurgeW (w : Loc) (dir : GoString) : IProp GF :=
@@ -1045,17 +1165,47 @@ theorem walOut_agree (o o' : WalOut) :
     ⊢@{IProp GF} walOutAuth (W := W) o -∗ walOutFrag (W := W) o' -∗ ⌜o = o'⌝ := by
   unfold walOutAuth walOutFrag
   letI := walAllG (W := W)
-  iintro H1 H2
+  iintro ⟨H1, -⟩ H2
   iapply ghostVar_agree $$ H1 H2
 
-/-- **Updating the record of what is out** (both halves). -/
-theorem walOut_set (o1 o2 o : WalOut) :
+/-- **Updating the record of what is out** (both halves), the pipeline reserve moving with its
+complement (`walOutOut`). -/
+theorem walOut_setR (o1 o2 o : WalOut) :
+    ⊢@{IProp GF} walOutAuth (W := W) o1 -∗ walOutOut (W := W) o1 -∗ walOutFrag (W := W) o2 ==∗
+      walOutAuth (W := W) o ∗ walOutOut (W := W) o ∗ walOutFrag (W := W) o := by
+  have hr : walOutAuth (W := W) o1 ∗ walOutOut (W := W) o1 ⊢
+      (letI := walAllG (W := W); ghostVar W.γpo (1 : Qp).half o1) ∗ walIncEAny (W := W) := by
+    unfold walOutAuth walOutOut
+    by_cases h1 : o1.T = []
+    · rw [if_pos h1, if_pos h1]; iintro ⟨⟨H1, Hr⟩, -⟩; iframe
+    · rw [if_neg h1, if_neg h1]; iintro ⟨⟨H1, -⟩, Hr⟩; iframe
+  have hr' : (letI := walAllG (W := W); ghostVar W.γpo (1 : Qp).half o) ∗ walIncEAny (W := W) ⊢
+      walOutAuth (W := W) o ∗ walOutOut (W := W) o := by
+    unfold walOutAuth walOutOut
+    by_cases h : o.T = []
+    · rw [if_pos h, if_pos h]; iintro ⟨H1, Hr⟩; iframe
+    · rw [if_neg h, if_neg h]; iintro ⟨H1, Hr⟩; iframe
+  letI := walAllG (W := W)
+  iintro H1 Hr H2
+  ihave ⟨H1, Hr⟩ := hr $$ [H1 Hr]
+  · iframe
+  unfold walOutFrag
+  imod ghostVar_update_halves o $$ H1 H2 with ⟨H1, H2⟩
+  iframe H2
+  iapply hr'
+  iframe
+
+/-- **Updating the record of what is out** (both halves), the pipelines' names out unchanged. -/
+theorem walOut_set (o1 o2 o : WalOut) (hT : o.T = o1.T) :
     ⊢@{IProp GF} walOutAuth (W := W) o1 -∗ walOutFrag (W := W) o2 ==∗
       walOutAuth (W := W) o ∗ walOutFrag (W := W) o := by
   unfold walOutAuth walOutFrag
   letI := walAllG (W := W)
-  iintro H1 H2
-  iapply ghostVar_update_halves $$ H1 H2
+  iintro ⟨H1, Hr⟩ H2
+  imod ghostVar_update_halves o $$ H1 H2 with ⟨H1, H2⟩
+  imodintro
+  rw [hT]
+  iframe H1 H2 Hr
 
 /-- **Taking the lock** (`Open`, `Create`): with the invariant's half of the flag, the lock token
 becomes the handles' (the flag `false`); the invariant's half was `true`. The taker gets the empty
@@ -1121,22 +1271,38 @@ theorem walLockedTok_unlockX (b : Bool) :
   · ipureintro; exact hb
   iexists I; iexact Hi
 
+/-- The halves of the names' state agree. -/
+theorem walNamesS_agree (o o' : NmSt) :
+    ⊢@{IProp GF} walNamesAuthS (W := W) o -∗ walNamesFragS (W := W) o' -∗ ⌜o = o'⌝ := by
+  unfold walNamesAuthS walNamesFragS
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_agree $$ H1 H2
+
+/-- **Updating the names' state** (both halves). -/
+theorem walNamesS_set (o1 o2 o : NmSt) :
+    ⊢@{IProp GF} walNamesAuthS (W := W) o1 -∗ walNamesFragS (W := W) o2 ==∗
+      walNamesAuthS (W := W) o ∗ walNamesFragS (W := W) o := by
+  unfold walNamesAuthS walNamesFragS
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_update_halves $$ H1 H2
+
 /-- The halves of the pending registration agree. -/
 theorem walNames_agree (o o' : Option GoString) :
     ⊢@{IProp GF} walNamesAuth (W := W) o -∗ walNamesFrag (W := W) o' -∗ ⌜o = o'⌝ := by
   unfold walNamesAuth walNamesFrag
-  letI := walAllG (W := W)
   iintro H1 H2
-  iapply ghostVar_agree $$ H1 H2
+  icases walNamesS_agree (W := W) _ _ $$ H1 H2 with %h
+  ipureintro; cases h; rfl
 
 /-- **Updating the pending registration** (both halves). -/
 theorem walNames_set (o1 o2 o : Option GoString) :
     ⊢@{IProp GF} walNamesAuth (W := W) o1 -∗ walNamesFrag (W := W) o2 ==∗
       walNamesAuth (W := W) o ∗ walNamesFrag (W := W) o := by
   unfold walNamesAuth walNamesFrag
-  letI := walAllG (W := W)
   iintro H1 H2
-  iapply ghostVar_update_halves $$ H1 H2
+  iapply walNamesS_set (W := W) $$ H1 H2
 
 /-- The halves of the split names agree. -/
 theorem walSplit_agree (Wn Wn' : List GoString) :
@@ -1395,51 +1561,172 @@ theorem walCut_set (c1 c2 c : Option GoString) :
   iintro H1 H2
   iapply ghostVar_update_halves $$ H1 H2
 
-/-- A directory's key is in the keys' authority. -/
-theorem walDirKey_lookup (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
-    (X : List GoString) :
-    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir j X -∗ ⌜K !! dir = some (j, X)⌝ := by
-  unfold walDirKeysAuth walDirKey
+/-- **A directory's key is in the keys' authority, if its incarnation is current** against a share
+`I` of the incarnations. -/
+theorem walDirKey_lookupG (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (i : Nat)
+    (j : Fs.Ino) (X : List GoString) (q : Qp) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir i j X -∗
+      (letI := walAllG (W := W); ghostVar W.γI q I) -∗ ⌜incOf I dir = i → K !! dir = some (j, X)⌝ := by
+  unfold walDirKeysAuth walDirKey walIncE
   letI := walAllG (W := W)
-  iintro ⟨Ha, -⟩ ⟨Hk, -⟩
-  iapply ghost_map_lookup $$ Ha Hk
+  iintro ⟨%Kall, %I', Ha, -, HI', %hK, -⟩ ⟨Hk, -⟩ HI
+  icases ghostVar_agree $$ HI' HI with %e
+  subst e
+  icases ghost_map_lookup $$ Ha Hk with %h
+  ipureintro
+  intro hi
+  subst hi
+  exact (hK dir (j, X)).2 h
+
+/-- `walDirKey_lookupG` with a quarter (the lock's, a view's). -/
+theorem walDirKey_lookup (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (i : Nat)
+    (j : Fs.Ino) (X : List GoString) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
+      ⌜incOf I dir = i → K !! dir = some (j, X)⌝ := by
+  unfold walIncQ
+  iintro Ha Hk HI
+  iapply walDirKey_lookupG $$ Ha Hk HI
+
+/-- `walDirKey_lookup` at the holder's incarnation. -/
+theorem walDirKey_lookupI (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString)
+    (j : Fs.Ino) (X : List GoString) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir (incOf I dir) j X -∗ walIncQ (W := W) I -∗
+      ⌜K !! dir = some (j, X)⌝ := by
+  iintro Ha Hk HI
+  icases walDirKey_lookup K dir _ j X I $$ Ha Hk HI with %h
+  ipureintro; exact h rfl
+
+/-- `walDirKey_lookupI` with the lock token's quarter. -/
+theorem walDirKey_lookupL (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString)
+    (j : Fs.Ino) (X : List GoString) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walLockedTokI (W := W) I -∗ ⌜K !! dir = some (j, X)⌝ := by
+  unfold walLockedTokI
+  iintro Ha Hk ⟨-, -, -, HI⟩
+  iapply walDirKey_lookupI $$ Ha Hk HI
+
+/-- **The pipeline's key is in the keys' authority.** -/
+theorem walPipeKey_lookup (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walPipeKey (W := W) dir j -∗
+      ⌜∃ X, K !! dir = some (j, X)⌝ := by
+  unfold walPipeKey walIncE
+  iintro Ha ⟨%I, %X, HI, Hk⟩
+  icases walDirKey_lookupG K dir _ j X _ I $$ Ha Hk HI with %h
+  ipureintro; exact ⟨X, h rfl⟩
 
 /-- **A directory key's names left out are the pipeline's** (unit `locks`, session 10). -/
-theorem walDirKey_tmps (dir : GoString) (j : Fs.Ino) (X : List GoString) :
-    walDirKey (W := W) dir j X ⊢ ⌜X = walTmps⌝ := by
+theorem walDirKey_tmps (dir : GoString) (i : Nat) (j : Fs.Ino) (X : List GoString) :
+    walDirKey (W := W) dir i j X ⊢ ⌜X = walTmps⌝ := by
   unfold walDirKey
   iintro ⟨-, %h⟩
   ipureintro; exact h
 
-/-- **A new directory key** (`Create`'s commit, `ReadAll`), the directory without one. -/
-theorem walDirKey_insert (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
-    (X : List GoString) (hK : K !! dir = none) (hX : X = walTmps) :
-    ⊢@{IProp GF} walDirKeysAuth (W := W) K ==∗
-      walDirKeysAuth (W := W) (<[dir := (j, X)]> K) ∗ walDirKey (W := W) dir j X := by
-  unfold walDirKeysAuth walDirKey
+/-- **A new directory key** (`Create`'s commit, `ReadAll`), the directory without one, at the incarnation
+of a share `I` (current). -/
+theorem walDirKey_insertG (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
+    (X : List GoString) (q : Qp) (I : GMap GoString Nat) (hK : K !! dir = none) (hX : X = walTmps) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ (letI := walAllG (W := W); ghostVar W.γI q I) ==∗
+      walDirKeysAuth (W := W) (<[dir := (j, X)]> K) ∗ walDirKey (W := W) dir (incOf I dir) j X ∗
+      (letI := walAllG (W := W); ghostVar W.γI q I) := by
+  unfold walDirKeysAuth walDirKey walIncE
   letI := walAllG (W := W)
-  iintro ⟨Ha, Hm⟩
-  imod ghost_map_insert_persist dir (j, X) hK $$ Ha with ⟨Ha, #Hk⟩
+  iintro ⟨%Kall, %I', Ha, Hm, HI', %hKa, %hKi⟩ HI
+  icases ghostVar_agree $$ HI' HI with %e
+  subst e
+  have hKa' : Kall !! (dir, incOf I' dir) = none := by
+    cases h : Kall !! (dir, incOf I' dir) with
+    | none => rfl
+    | some x => rw [(hKa dir x).2 h] at hK; cases hK
+  imod ghost_map_insert_persist (dir, incOf I' dir) (j, X) hKa' $$ Ha with ⟨Ha, #Hk⟩
   imodintro
-  isplitl [Ha Hm]
-  · iframe Ha
-    iapply (BigSepM.bigSepM_insert (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
-      iprop(k ↪[W.γdk]□ x)) hK).2
-    iframe Hk Hm
+  iframe HI
+  isplitl [Ha Hm HI']
+  · iexists <[(dir, incOf I' dir) := (j, X)]> Kall, I'
+    iframe Ha HI'
+    isplitl [Hm]
+    · iapply (BigSepM.bigSepM_insert (Φ := fun (k : GoString × Nat) (x : Fs.Ino × List GoString) =>
+        iprop(k ↪[W.γdk]□ x)) hKa').2
+      iframe Hk Hm
+    isplitr
+    · ipureintro
+      intro d x
+      by_cases hd : d = dir
+      · subst hd
+        rw [GMap.lookup_insert_eq, GMap.lookup_insert_eq]
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd), GMap.lookup_insert_ne]
+        · exact hKa d x
+        · intro h; exact hd (congrArg Prod.fst h).symm
+    · ipureintro
+      intro d i x hx
+      by_cases hdi : (d, i) = (dir, incOf I' dir)
+      · simp only [Prod.mk.injEq] at hdi; obtain ⟨rfl, rfl⟩ := hdi; exact Nat.le_refl _
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdi)] at hx; exact hKi d i x hx
   · iframe Hk; ipureintro; exact hX
 
-/-- **A key of the generation, found in the authority** (its copy). -/
-theorem walDirKeysAuth_get (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
-    (X : List GoString) (hK : K !! dir = some (j, X)) (hX : X = walTmps) :
-    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKeysAuth (W := W) K ∗ walDirKey (W := W) dir j X := by
-  unfold walDirKeysAuth walDirKey
+/-- `walDirKey_insertG` with a quarter. -/
+theorem walDirKey_insert (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
+    (X : List GoString) (I : GMap GoString Nat) (hK : K !! dir = none) (hX : X = walTmps) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walIncQ (W := W) I ==∗
+      walDirKeysAuth (W := W) (<[dir := (j, X)]> K) ∗ walDirKey (W := W) dir (incOf I dir) j X ∗
+      walIncQ (W := W) I := by
+  unfold walIncQ
+  iintro Ha HI
+  iapply walDirKey_insertG $$ Ha HI <;> assumption
+
+/-- **A key of the generation, found in the authority** (its copy), at the incarnation of a share. -/
+theorem walDirKeysAuth_getG (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
+    (X : List GoString) (q : Qp) (I : GMap GoString Nat) (hK : K !! dir = some (j, X)) (hX : X = walTmps) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ (letI := walAllG (W := W); ghostVar W.γI q I) -∗
+      walDirKeysAuth (W := W) K ∗ walDirKey (W := W) dir (incOf I dir) j X ∗
+      (letI := walAllG (W := W); ghostVar W.γI q I) := by
+  unfold walDirKeysAuth walDirKey walIncE
   letI := walAllG (W := W)
-  iintro ⟨Ha, #Hm⟩
-  iframe Ha Hm
+  iintro ⟨%Kall, %I', Ha, #Hm, HI', %hKa, %hKi⟩ HI
+  icases ghostVar_agree $$ HI' HI with %e
+  subst e
+  have hk : Kall !! (dir, incOf I' dir) = some (j, X) := (hKa dir (j, X)).1 hK
+  iframe HI
+  isplitl [Ha HI']
+  · iexists Kall, I'; iframe Ha Hm HI'; ipureintro; exact ⟨hKa, hKi⟩
   isplitl []
-  · iapply (BigSepM.bigSepM_lookup (Φ := fun (k : GoString) (x : Fs.Ino × List GoString) =>
-      iprop(k ↪[W.γdk]□ x)) hK) $$ Hm
+  · iapply (BigSepM.bigSepM_lookup (Φ := fun (k : GoString × Nat) (x : Fs.Ino × List GoString) =>
+      iprop(k ↪[W.γdk]□ x)) hk) $$ Hm
   · ipureintro; exact hX
+
+/-- `walDirKeysAuth_getG` with a quarter. -/
+theorem walDirKeysAuth_get (K : GMap GoString (Fs.Ino × List GoString)) (dir : GoString) (j : Fs.Ino)
+    (X : List GoString) (I : GMap GoString Nat) (hK : K !! dir = some (j, X)) (hX : X = walTmps) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walIncQ (W := W) I -∗
+      walDirKeysAuth (W := W) K ∗ walDirKey (W := W) dir (incOf I dir) j X ∗ walIncQ (W := W) I := by
+  unfold walIncQ
+  iintro Ha HI
+  iapply walDirKeysAuth_getG $$ Ha HI <;> assumption
+
+/-- **The keys' authority across a bump of the incarnations** (P6b state C, `Discard`'s commits): its eighth
+`walIncE I` out; given back at `I'` (every incarnation at least as high), the authority holds the keys of the
+directories whose incarnation is unchanged (no key is recorded above the current incarnation). -/
+theorem walDirKeysAuth_bump (K : GMap GoString (Fs.Ino × List GoString)) :
+    walDirKeysAuth (W := W) K ⊢ ∃ I : GMap GoString Nat, walIncE (W := W) I ∗
+      ∀ (I' : GMap GoString Nat) (K' : GMap GoString (Fs.Ino × List GoString)),
+        ⌜(∀ d, incOf I d ≤ incOf I' d) ∧
+          ∀ d x, K' !! d = some x ↔ (incOf I' d = incOf I d ∧ K !! d = some x)⌝ -∗
+        walIncE (W := W) I' -∗ walDirKeysAuth (W := W) K' := by
+  unfold walDirKeysAuth
+  letI := walAllG (W := W)
+  iintro ⟨%Kall, %I, Ha, #Hm, HI, %hKa, %hKi⟩
+  iexists I
+  iframe HI
+  iintro %I' %K' %hh HI'
+  iexists Kall, I'
+  iframe Ha Hm HI'
+  ipureintro
+  refine ⟨fun d x => ?_, fun d i x hx => Nat.le_trans (hKi d i x hx) (hh.1 d)⟩
+  rw [hh.2 d x]
+  constructor
+  · rintro ⟨e, hk⟩; rw [e]; exact (hKa d x).1 hk
+  · intro hk
+    have e : incOf I' d = incOf I d := Nat.le_antisymm (hKi _ _ _ hk) (hh.1 d)
+    exact ⟨e, (hKa d x).2 (by rw [← e]; exact hk)⟩
 
 theorem walIncFact.mono {I : GMap GoString Nat} {dir : GoString} {i : Nat} {P Q : Prop}
     (h : walIncFact I dir i P) (hPQ : P → Q) : walIncFact I dir i Q :=
@@ -1836,7 +2123,7 @@ their incarnations, below `(s, I)`) and half of the incarnations (the views hold
 def walGhostI (s : AbsDiskState) (I : GMap GoString Nat) : IProp GF :=
   letI := walAllG (W := W)
   iprop((∃ G : GMap GoString WalDur, ghostVar W.hA.γs (1 : Qp).half G ∗ ⌜walMapLe G s.wal⌝) ∗
-    (walPastIAuth (W := W) (s, I) ∗ ghostVar W.γI (1 : Qp).half I) ∗
+    (walPastIAuth (W := W) (s, I) ∗ ghostVar W.γI (1 : Qp).half.half I) ∗
     (walHandleAuth (W := W) ∗ walLksAuth (W := W) s) ∗ ⌜walKeysInArea s⌝ ∗ walStepsLb s)
 
 /-- **What the WAL invariant holds of the ghost state, the real WAL state being `s`** (at some
@@ -1898,6 +2185,24 @@ theorem walLockedTokI_incQ_agree (I I' : GMap GoString Nat) :
   iframe Ht Hf Hc Hq Hi
   ipureintro; rfl
 
+/-- **The pipeline's key from the lock's view** (`Create`'s spine law): the lock's quarter at `I`, the
+key at `dir`'s incarnation in `I` and the reserve make the pipeline's key (the reserve is at `I`). -/
+theorem walPipeKey_ofLocked (I : GMap GoString Nat) (dir : GoString) (i : Nat) (j : Fs.Ino)
+    (X : List GoString) (hi : incOf I dir = i) :
+    ⊢@{IProp GF} walLockedTokI (W := W) I -∗ walDirKey (W := W) dir i j X -∗ walIncEAny (W := W) -∗
+      walLockedTokI (W := W) I ∗ walPipeKey (W := W) dir j := by
+  unfold walLockedTokI walPipeKey walIncEAny walIncE walIncQ
+  letI := walAllG (W := W)
+  iintro ⟨Ht, Hf, Hc, Hq⟩ Hk ⟨%I', Hr⟩
+  icases ghostVar_agree $$ Hq Hr with %e
+  subst e hi
+  isplitl [Ht Hf Hc Hq]
+  · iframe Ht Hf Hc; iexact Hq
+  iexists I, X
+  isplitl [Hr]
+  · iexact Hr
+  iexact Hk
+
 /-- **`walGhost` at a view's incarnation**: the view's `i` is the ghost's. -/
 theorem walGhost_dirIsI (s : AbsDiskState) (dir : GoString) (i : Nat) (o : Option WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walDirIsI (W := W) dir i o -∗
@@ -1939,6 +2244,83 @@ theorem walOpenWI_incLb (w : Loc) (dir : GoString) (i : Nat) :
   iexists I; iframe Hu
   isplitl
   · iexists γ; iframe Hd Hm
+  ipureintro; exact h
+
+/-- **A handle's quarter of the incarnations, lent** (`walHandlePI`: the lock's quarter at `i`). -/
+theorem walHandlePI_incQ (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) :
+    walHandlePI (W := W) w dir i m ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walHandlePI (W := W) w dir i m) := by
+  unfold walHandlePI
+  iintro ⟨%γ, %I, Hd, Hm, Hp, Hl, %h⟩
+  icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+  iexists I
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iintro HI
+  iexists γ, I
+  iframe Hd Hm Hp
+  isplitl
+  · iapply Hl $$ HI
+  ipureintro; exact h
+
+/-- **A key lookup by a write handle** (its quarter of the incarnations is at `i`). -/
+theorem walDirKey_lookupWC (K : GMap GoString (Fs.Ino × List GoString)) (w : Loc) (dir : GoString) (i : Nat)
+    (j : Fs.Ino) (X : List GoString) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir i j X -∗ walOpenWCI (W := W) w dir i -∗
+      ⌜K !! dir = some (j, X)⌝ := by
+  unfold walOpenWCI
+  iintro Ha Hk ⟨%I, -, -, Hq, %h⟩
+  subst h
+  iapply walDirKey_lookupI $$ Ha Hk Hq
+
+/-- **A key lookup by a handle** (`walHandlePI`: the lock's quarter at `i`). -/
+theorem walDirKey_lookupH (K : GMap GoString (Fs.Ino × List GoString)) (w : Loc) (dir : GoString) (i : Nat)
+    (m : WalMode) (j : Fs.Ino) (X : List GoString) :
+    ⊢@{IProp GF} walDirKeysAuth (W := W) K -∗ walDirKey (W := W) dir i j X -∗ walHandlePI (W := W) w dir i m -∗
+      ⌜K !! dir = some (j, X)⌝ := by
+  unfold walHandlePI
+  iintro Ha Hk ⟨%γ, %I, -, -, -, Hl, %h⟩
+  subst h
+  iapply walDirKey_lookupL $$ Ha Hk Hl
+
+/-- **The opening handle's quarter of the incarnations, lent** (P6b fix B: a key lookup by `ReadAll`). -/
+theorem walOpening_incQ (w : Loc) (dir : GoString) (sn : w64 × w64) (i : Nat) :
+    walOpening (W := W) w dir sn i ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walOpening (W := W) w dir sn i) := by
+  unfold walOpening; exact walHandlePI_incQ w dir i _
+
+/-- **An open handle's quarter of the incarnations, lent.** -/
+theorem walOpenWI_incQ (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWI (W := W) w dir i ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walOpenWI (W := W) w dir i) := by
+  unfold walOpenWI
+  iintro ⟨%I, Hs, Hl, %h⟩
+  icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+  iexists I
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iintro HI
+  iexists I
+  iframe Hs
+  isplitl
+  · iapply Hl $$ HI
+  ipureintro; exact h
+
+/-- **A cutting handle's quarter of the incarnations, lent.** -/
+theorem walOpenWCI_incQ (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWCI (W := W) w dir i ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walOpenWCI (W := W) w dir i) := by
+  unfold walOpenWCI
+  iintro ⟨%I, Hs, Ht, HI, %h⟩
+  iexists I
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iintro HI
+  iexists I
+  iframe Hs Ht HI
   ipureintro; exact h
 
 /-- `walOpenWI_incLb` of the cut form. -/
@@ -2333,17 +2715,18 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
     with ⟨%γcr, Hcr⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName)) with ⟨%γt, Ht⟩
   imod (ghostVar_alloc (GF := GF) true) with ⟨%γpk, Hpk⟩
-  imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Fs.Ino × List GoString))
+  imod (ghost_map_alloc_empty (GF := GF) (K := GoString × Nat) (V := Fs.Ino × List GoString))
     with ⟨%γdk, Hdk⟩
   imod (ghostVar_alloc (GF := GF) (none : Option GoString)) with ⟨%γcp, Hcp⟩
   imod (ghostVar_alloc (GF := GF) WalOut.empty) with ⟨%γpo, Hpo⟩
-  imod (ghostVar_alloc (GF := GF) (none : Option GoString)) with ⟨%γnm, Hnm⟩
+  imod (ghostVar_alloc (GF := GF) (⟨none, none, []⟩ : NmSt)) with ⟨%γnm, Hnm⟩
   imod (ghostVar_alloc (GF := GF) ([] : List GoString)) with ⟨%γnw, Hnw⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName × Nat × Bool)) with ⟨%γl, Hl⟩
   imod (ghostVar_alloc (GF := GF) (∅ : GMap GoString Nat)) with ⟨%γlk, Hlk⟩
   imod (ghostVar_alloc (GF := GF) (∅ : GMap GoString Nat)) with ⟨%γI, HI⟩
   icases (ghostVar_split_half (GF := GF) γI 1 (∅ : GMap GoString Nat)).1 $$ HI with ⟨HI1, HI2⟩
   icases (ghostVar_split_half (GF := GF) γI (1 : Qp).half (∅ : GMap GoString Nat)).1 $$ HI2 with ⟨HI2, HI3⟩
+  icases (ghostVar_split_half (GF := GF) γI (1 : Qp).half.half (∅ : GMap GoString Nat)).1 $$ HI2 with ⟨HIk, HIr⟩
   have hsing : (GMap.singleton ((s, ∅) : AbsDiskState × GMap GoString Nat) () :
       GMap (AbsDiskState × GMap GoString Nat) Unit) = (∅ : GMap _ _).insert (s, ∅) () := rfl
   imod (ghost_map_alloc (GF := GF) (GMap.singleton ((s, ∅) : AbsDiskState × GMap GoString Nat) ()))
@@ -2354,7 +2737,7 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
   imod ghostMapElem_persist $$ Hse with #Hse
   iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw, γl, γlk, γI, γpi, R⟩
   icases (ghostVar_split_half (GF := GF) γlk 1 (∅ : GMap GoString Nat)).1 $$ Hlk with ⟨Hlk1, Hlk2⟩
-  icases (ghostVar_split_half (GF := GF) γnm 1 (none : Option GoString)).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
+  icases (ghostVar_split_half (GF := GF) γnm 1 (⟨none, none, []⟩ : NmSt)).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
   icases (ghostVar_split_half (GF := GF) γnw 1 ([] : List GoString)).1 $$ Hnw with ⟨Hnw1, Hnw2⟩
   icases (ghostVar_split_half (GF := GF) γpo 1 WalOut.empty).1 $$ Hpo with ⟨Hpo1, Hpo2⟩
   icases (ghostMapAuth_halves (GF := GF) γt (∅ : GMap GoString GName)).1 $$ Ht with ⟨Ht1, Ht2⟩
@@ -2369,13 +2752,15 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
   icases Hst with ⟨HM, -, Hu⟩
   unfold walGhost walGhostI walPastIAuth walPastI walOwn walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
     walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walOutFrag walOutAuth walTailsFrag
-    walNamesFrag walNamesAuth walSplitFrag walSplitAuth walLentAuth walLksAuth walIncAny walIncQ walAllG
-  iframe Hs HM Hu Hc Hcr HI2 Hse Ha Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2 Hl Hlk1 Hlk2
+    walNamesFrag walNamesAuth walNamesFragS walNamesAuthS walSplitFrag walSplitAuth walLentAuth walLksAuth
+    walIncAny walIncQ walAllG
+  iframe Hs HM Hu Hc Hcr Hse Ha Ht1 Ht2 Hpk1 Hpk2 Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2 Hl Hlk1 Hlk2
   icases (ghostVar_split_half (GF := GF) γI (1 : Qp).half (∅ : GMap GoString Nat)).1 $$ HI1 with ⟨HI1, HI4⟩
   isplitr
   · ipureintro; rfl
   isplitl [Hh Hhd Hhp HF HI1]
-  · isplitl [HF HI1]
+  · iexists (∅ : GMap GoString Nat)
+    isplitl [HF HI1]
     · iframe HI1
       iexists ((∅ : GMap (AbsDiskState × GMap GoString Nat) Unit).insert (s, ∅) ())
       iframe HF
@@ -2406,7 +2791,16 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
   · iexists ∅; iexact HI3
   isplitr
   · ileft; ipureintro; rfl
-  · iapply BigSepM.bigSepM_empty.2; iempintro
+  isplitl [Hdk HIk]
+  · iexists ∅, ∅
+    unfold walIncE
+    iframe Hdk HIk
+    isplitl
+    · iapply BigSepM.bigSepM_empty.2; iempintro
+    · ipureintro; exact ⟨fun d x => by simp [GMap.lookup_empty], fun d i x h => by simp [GMap.lookup_empty] at h⟩
+  · simp only [WalOut.empty, ↓reduceIte]
+    unfold walIncEAny walIncE
+    iexists ∅; iexact HIr
 
 end init
 

@@ -34,7 +34,7 @@ theorem walNamesRes_areaPath (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap Go
       walNamesRes (L := hG.goose_localGS) (W := W) R jr r Ls s ∗
         ∃ q : Qp, osPathS (L := hG.goose_localGS) R r (DFrac.own q) jr := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, ⟨%qs, Hsp⟩, Hl⟩
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, %hst, ⟨%qs, Hsp⟩, Hl⟩
   icases (osPathS_frac (L := hG.goose_localGS) R r qs.half qs.half jr).1 $$ [Hsp] with ⟨Hsp, Hsp2⟩
   · rw [Qp.half_add_half]; iexact Hsp
   isplitr [Hsp2]
@@ -42,7 +42,9 @@ theorem walNamesRes_areaPath (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap Go
     iframe
     isplitr
     · ipureintro; exact hf
-    ipureintro; exact hun
+    isplitr
+    · ipureintro; exact hun
+    ipureintro; exact hst
   · iexists qs.half; iexact Hsp2
 
 /-- **A path to the area, lent by the invariant body.** -/

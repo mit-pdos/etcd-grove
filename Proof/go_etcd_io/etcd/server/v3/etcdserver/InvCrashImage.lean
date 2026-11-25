@@ -105,7 +105,7 @@ promise of the contract. Everything else (the configurations covered, the write 
 membership, the cluster version's log, the image's store part, the files, the post `bootOkR`) is the
 graceful contract's. (C-I2 review, 2026-11-24) And the WAL's commit at least the bootstrap log's length
 (`γ.cl.bootLen ≤ σ.commit`): every completed `Save` of the fork's fixed WAL has it, and it excludes the
-unsaved WALs `DiscardUnsaved` removes (Go then takes the first-start branch, which `bootOkR` does not
+unsaved WALs `wal.Discard` removes (Go then takes the first-start branch, which `bootOkR` does not
 describe). The graceful contract is the instance `i ≤ σ.commit` (with the read facts its own
 trusted promise), so a proof of this one (stage 5's `bootstrapRestartContract_holds`, generalized)
 gives both. -/

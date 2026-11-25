@@ -90,10 +90,10 @@ theorem walTailW_named (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (
   iframe Hf Hrest Hn
 
 /-- The tail's name (`walDirH`'s) is a segment's. -/
-theorem walDirH_segName (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
-    (lfs : List Loc) (cuts : List Nat) (nmd : Roots → Qp → IProp GF) (nf : Option GoString) :
-    walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf ⊢
-      walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf ∗ ⌜walSegName name⌝ := by
+theorem walDirH_segName (dir : GoString) (i : Nat) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+    (lfs : List Loc) (cuts : List Nat) (qp : Qp) (nmd : Roots → Qp → IProp GF) (nf : Option GoString) :
+    walDirH (W := W) dir i j dfd ino name k lfs cuts qp nmd nf ⊢
+      walDirH (W := W) dir i j dfd ino name k lfs cuts qp nmd nf ∗ ⌜walSegName name⌝ := by
   unfold walDirH
   iintro ⟨%R, %q, %X, %hj, %nm0, %ph, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, %hp⟩
   obtain ⟨_, _, ⟨pd, hname⟩, _, _, ⟨sq, ix, hnm0, _⟩, _⟩ := id hp

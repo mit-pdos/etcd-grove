@@ -32,7 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFilesLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SegSize
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadState
@@ -141,9 +141,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     subst hIl
     obtain ⟨hljr, hX, hcoh, habs, hnd, hsn⟩ := hfacts
     icases Htf with ⟨Htf, Hnf⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
-    ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) $$ [Htf Hnf]
-    · iframe
+    icases walLockedTokI_incQ (W := W) Il $$ Hl with ⟨HIl, Hl⟩
+    imod walInv_dirPath walCodec Mr R jr r dir Il lay.j X [] $$ Hinv Hnc Hnf Hkey HIl
+      with ⟨Hnc, HIl, %nmd, %qd, %hdnm, Hnf, Hpd⟩
+    ihave Hl := Hl $$ HIl
+    have hnmd : nmd = nm := Fs.child_inj (hdnm.symm.trans (dir_child hin))
+    subst nmd
     imodintro
     iframe Hnc
     have hnmf := walLay_nameFmt habs
@@ -172,8 +175,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iintro %asl ⟨Hasl, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      ihave Hl := walLockedTokI_tok (W := W) Il $$ Hl
-      imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdnm $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+      ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) $$ [Htf Hnf]
+      · iframe
+      imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS Il _ rfl $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
         with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
@@ -225,8 +230,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iintro %asl ⟨Hasl, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      ihave Hl := walLockedTokI_tok (W := W) Il $$ Hl
-      imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdnm $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+      ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) $$ [Htf Hnf]
+      · iframe
+      imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS Il _ rfl $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
         with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
@@ -341,7 +348,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         iframe fallback
         ileft; ipureintro; rfl
     cases write
-    · -- read mode
+    · -- read mode: the directory path's loan back
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdnm $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
+      ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walHLoans (W := W) dir none []) $$ [Htf Hnf]
+      · iframe Htf
+        have hm := walHLoans_mk (W := W) dir r nm [] hin
+        simp only [List.map_nil] at hm
+        iapply hm $$ Hnf
+      imodintro
+      iframe Hnc
       try wp_auto
       iapply HΦ
       iframe Hp
@@ -356,14 +373,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · ipureintro; exact ho
       iframe dirFile
       simp only [Bool.false_eq_true, ↓reduceIte]
-      ihave Hl := walLockedTokI_tok (W := W) Il $$ Hl
-      iframe Hl Hperm
+      iframe Hperm
+      isplitl [Hl]
+      · iexists Il
+        isplitl [Hl]
+        · iexact Hl
+        · ipureintro; rfl
       unfold walReadH walOpenIn walReadTie
       isplitl [lg dir start]
       · iexists lg, sp'
         iframe
         iframe #
-      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo, lay.j
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo, lay.j, []
       subst hdI
       iframe
       iframe #
@@ -424,7 +445,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       try wp_auto
       ihave ⟨Hperm1, Hcp⟩ := osCallPerm_halves' _ $$ Hperm
       icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm2⟩
+      icases Ht with ⟨Ht, HIe⟩
       imod walTmpsRes_mem_except R lay.j X _ hj $$ Hsi Hj Ht with ⟨%hXt, Hj, Ht⟩
+      icases walPipeKey_ofLocked (W := W) Il dir _ lay.j X rfl $$ Hl Hkey HIe with ⟨Hl, Hpk⟩
       ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
@@ -432,11 +455,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       imodintro
       iframe Hnc
       wp_apply wp_pipe lg dir (W64 64000000) R (DFrac.own qd) lay.j (by decide) (by decide) (by omega)
-        (by decide) $$ [Hperm1 Hpd Ht0] as %fp ⟨%hfpn, %γ, #Hfp, Hmain⟩
+        (by decide) $$ [Hperm1 Hpd Ht0 Hpk] as %fp ⟨%hfpn, %γ, #Hfp, Hmain⟩
       · iframe; iframe #
         unfold pipeRes
         iframe
       try wp_auto
+      ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walHLoans (W := W) dir none [qd]) $$ [Htf Hnf]
+      · iframe Htf
+        have hm := walHLoans_mk (W := W) dir r nm [qd] hin
+        simp only [List.map_cons, List.map_nil] at hm
+        iapply hm $$ Hnf
       iapply HΦ
       iframe Hp
       isplitl [HN Hsf Hcl]
@@ -455,7 +483,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         iframe
         iframe #
       rw [← hlfs]
-      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil, lay.j
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil, lay.j, [qd]
       subst hdI
       iframe
       iframe #
@@ -478,7 +506,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iframe
       iframe #
       isplitr
-      · ipureintro; exact ⟨Nat.le_refl 0, trivial⟩
+      · ipureintro; exact ⟨Nat.le_refl 0, qd, rfl, rfl⟩
       · ipureintro; exact ⟨hfpn, hWR.symm⟩
 
 end proof
