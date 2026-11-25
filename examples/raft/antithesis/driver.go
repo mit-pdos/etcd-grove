@@ -33,24 +33,25 @@ type Scope struct {
 }
 
 // Main's scope: one constant per feature. Flipping these constants is the only change to the
-// program between the interim theorems; the plain theorem's scope has them all on.
+// program between the interim theorems; the plain theorem's scope has them all on. Here: batch B1's
+// (messages and N servers; forwarding, and every B2/B3 feature, off).
 const (
 	scopePreVote     = true
 	scopeCheckQuorum = true
 	scopeReads       = true
 	scopeTransfer    = true
-	scopeForwarding  = true
+	scopeForwarding  = false
 	scopeDup         = true
 	scopeNonVoters   = true
 	scopeBoot        = true
 	scopeLimits      = true
-	scopeRestarts    = true
-	scopeAsync       = true
-	scopeBatch       = true
-	scopeParallel    = true
-	scopeSplit       = true
-	scopeSnapshots   = true
-	scopeConfChanges = true
+	scopeRestarts    = false
+	scopeAsync       = false
+	scopeBatch       = false
+	scopeParallel    = false
+	scopeSplit       = false
+	scopeSnapshots   = false
+	scopeConfChanges = false
 )
 
 // MainScope is Main's scope, from the constants above.
