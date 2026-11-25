@@ -13,6 +13,7 @@ and returns if it fails.
 module
 
 public import Robustness.Statement
+public import Iris.Instances.Lib.NaInvariants
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MemberId
 public import GooseLang.Ext.Net.Impl
 public import GooseLang.Ext.Fs.Impl
@@ -308,7 +309,9 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- **The functors** the proofs' ghost state is over (until 2026-11-25 also the statements' Iris premise
 `HEnvTok`, now the pure `EtcdVerifyOff`): `putgetGF`'s layout (the
 universal camera `AllG` at slot 0, invariants, later credits, GooseLang's heap, prophecies and package
-state, a ghost variable at slot 7; every other slot the unit functor). -/
+state, a ghost variable at slot 7, and, since 2026-11-26, iris-lean's non-atomic invariants at slot 8
+(`etcdDistGF_naInvG`, the instance porcupine's results take: the kv orchestrator's `kvremote.Orch`, M1); every
+other slot the unit functor). -/
 def etcdDistGF : BundledGFunctors := fun i =>
   match i with
   | 0 => ⟨AllURF, inferInstance⟩
@@ -320,7 +323,13 @@ def etcdDistGF : BundledGFunctors := fun i =>
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
+  | 8 => ⟨NaInvF, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std in
+/-- iris-lean's camera of non-atomic invariants, at slot 8: the instance porcupine's results take (the kv
+orchestrator's `kvremote.Orch`, M1). -/
+instance etcdDistGF_naInvG : NaInvG etcdDistGF := ⟨⟨8, rfl⟩⟩
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
 /-- The universal camera at slot 0. -/
