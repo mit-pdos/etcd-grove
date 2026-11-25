@@ -52,7 +52,10 @@ theorem NodeMain.wp_proof (NP : w64 → GoString → List GoString → IProp GF)
   wp_apply (hRot (V := GoString) (T := go.string) eps DFrac.discard epsL c) as %out ⟨-, Hout⟩
   · iframe #
     ipureintro
-    constructor <;> word
+    intro -
+    have h0 : 0 ≤ sint.Z c := by word
+    have h1 : sint.Z c < sint.Z w.clients := by word
+    exact ⟨h0, Hb h0 h1⟩
   wp_apply (hNode c addr out _) $$ [Hout HNP]
   · iframe
   iapply HΦ; ipureintro; trivial

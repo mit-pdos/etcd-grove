@@ -2,6 +2,8 @@
 `client.MainDeployment(d, j, ready)`, **kv deployments only** (M1's `KvOnly`): the deployment check, then
 `MainReady` of workload `j`, a `kv` workload by the premise. Proved for any precondition `OP` of `Orch`;
 the share is `orchShare OP d j`.
+The share and `KvOnly` are needed only of a well-formed `d`: the program reads them only after
+`deployment.WellFormed` returned `nil` (on a malformed `d` it returns at once).
 Lean-first (no Rocq counterpart); N7-kv, M1 (`notes/etcd-dist-n7kv.md`).
 -/
 module
@@ -27,13 +29,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-/-- Of a Go value `v` holding a `kv`-only `d`, from workload `j`'s share, `MainDeployment` does not
-panic. -/
+/-- Of a Go value `v` holding `d`, `kv`-only if well formed, from workload `j`'s share if `d` is well
+formed, `MainDeployment` does not panic. -/
 abbrev MainDeployment.spec (OP : List GoString → w64 → IProp GF) : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment) (j : w64) (ready : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      ⌜KvOnly d ∧ crypto.fips140.GodebugFips140Off⌝ ∗ deploymentRepr v d ∗ readySpec ready ∗
-      orchShare OP d j }}
+      ⌜(d.WellFormed → KvOnly d) ∧ crypto.fips140.GodebugFips140Off⌝ ∗ deploymentRepr v d ∗ readySpec ready ∗
+      (⌜d.WellFormed⌝ -∗ orchShare OP d j) }}
     (App (App (App (Val (@! client.MainDeployment)) (Val #v)) (Val #j)) (Val #ready))
   {{ (r : client.Result), RET #r; True }}
 
