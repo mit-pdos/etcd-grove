@@ -217,7 +217,7 @@ set_option maxHeartbeats 600000 in
 theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG := hG) := by
   intro f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff hend hin hxl
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hsl, Hosfd, Hm, Hbs⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl _ vs $$ Hsl with %Hlen
@@ -467,7 +467,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     iapply HΦ $$ %r %e %(held_read_of rs rs' o n r hsub h1)
       %(fun he hr => held_empty_of rs rs' o n hsub (h2 he hr)) %(hP _ _ rfl) Hfd HP
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hbs, #Hacc, #Heof⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hsl, Hosfd, Hbs, #Hacc, #Heof⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl _ vs $$ Hsl with %Hlen

@@ -53,7 +53,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   iStructNamed Hf2
   icases ownSlice_len sl _ ([] : List w8) $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hsys0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hap0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto
@@ -125,7 +125,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
   iunfold os.ownFile at Hf
-  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hsys0⟩
+  icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0, #Hn0b, #Hap0, #Hsys0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
   try wp_auto

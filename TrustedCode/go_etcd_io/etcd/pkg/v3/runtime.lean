@@ -91,7 +91,9 @@ noncomputable def FDUsage.impl : val :=
     if: "e" =⟨go.uintptr⟩ #(W64 0) then (ArbitraryInt, #GoInterface.nil)
     else
       let: "op" := if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then #"open" else #"readdirent" in
-      (#(W64 0), (@! os.modelPathError) "op" #model.procSelfFd ((@! os.modelErrno) "e"))
+      let: "pathError" := FuncResolve os.modelPathError [] #() in
+      let: "errno" := FuncResolve os.modelErrno [] #() in
+      (#(W64 0), "pathError" "op" #model.procSelfFd ("errno" "e"))
 
 /-- `FDLimit() (uint64, error)` (`fds_linux.go`):
 

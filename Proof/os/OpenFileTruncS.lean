@@ -125,6 +125,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         ipersist name
         ipersist f
         ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         dsimp only [crTr]
@@ -221,6 +222,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       try dsimp only [crTr]

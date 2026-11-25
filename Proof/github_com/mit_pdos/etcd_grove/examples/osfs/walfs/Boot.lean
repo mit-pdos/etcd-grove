@@ -346,6 +346,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe Hperm
@@ -436,6 +437,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe Hperm

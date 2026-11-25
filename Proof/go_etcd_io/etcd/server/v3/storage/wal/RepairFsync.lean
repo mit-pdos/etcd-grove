@@ -159,7 +159,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1))) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn, #Hnb, #Hsys⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
   ihave #Hos := walAreaOk_osInv walCodec Mr R jr r $$ Harea
   ihave #Hf2 := Hf
   iStructNamed Hf2

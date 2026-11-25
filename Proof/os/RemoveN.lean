@@ -331,7 +331,9 @@ theorem os.Remove.wp_proofFileSncN : os.Remove.specFileSncN (GF := GF) (hG := hG
   intro d b j i N R dq h q r qc Q hb hbN hi hq
   iintro %Φ Hpre HΦ
   iapply (os.Remove.wp_fileSncNFmt d b j i N R dq h q r qc Q hb hbN hi hq) $$ Hpre
-  iintro %err ⟨-, Hrest⟩
+  iintro %err
+  inext
+  iintro ⟨-, Hrest⟩
   iapply HΦ $$ Hrest
 
 end proof

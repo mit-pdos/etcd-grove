@@ -129,7 +129,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d N P R γ Good Ok m H F T fa fb hH hF hFd hN hok
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hown⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hown⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -221,6 +221,7 @@ theorem os.OpenFile.wp_proof_crashS :
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe Hperm
@@ -298,6 +299,7 @@ theorem os.OpenFile.wp_proof_crashS :
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
       iapply HΦ
@@ -343,7 +345,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   intro f fd name dqf sl data dqs off dq d N P R γ Good Ok m bs fa fb hwr hoff hgap hbig hn hn2
     hN hfz hW
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hown, Hc⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hsl, Hosfd, Hown, Hc⟩
   icases csOwnF_wf _ _ $$ Hown with %Hwf
   have hlen : bs.length = m.size := Hwf.1
   ihave #Hf2 := Hf
@@ -534,7 +536,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
 theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF) (hG := hG) := by
   intro f fd name dqf sz dq d N P R γ Good Ok m bs fa fb hfd0 hwr hsz hgrow hN hT
   unfold os.ownFile
-  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hown, Hc⟩
+  wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hown, Hc⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto

@@ -158,6 +158,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     ipersist name
     ipersist f
     ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe

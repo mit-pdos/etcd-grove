@@ -292,7 +292,7 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
     iapply HΦ $$ %k %e %zs %h1 %h2 %(hP _ _ rfl) Hm Hbs Hc
   have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl dqs data $$ Hsl with %Hlen

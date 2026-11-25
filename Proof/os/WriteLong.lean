@@ -94,7 +94,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     have hbig' : 0x40000000 < data.length := by omega
     have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
     unfold os.ownFile
-    wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
+    wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
     ihave #Hf2 := Hf
     iStructNamed Hf2
     icases ownSlice_len sl dqs data $$ Hsl with %Hlen

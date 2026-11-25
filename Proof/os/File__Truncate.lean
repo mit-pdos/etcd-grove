@@ -57,7 +57,7 @@ def ftState (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
 theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf sz dq d m xs hfd0 hwr hsz hxs
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hm, Hb, Hc⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm, Hb, Hc⟩
   try rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2

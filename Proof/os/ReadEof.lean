@@ -220,7 +220,7 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
               ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
               fmtErrorOk err ∗ ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e)) }} := by
   unfold os.ownFile os.ownOff
-  wp_start as ⟨#Hinv, #Heof, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
+  wp_start as ⟨#Hinv, #Heof, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
   icombine Hf Hf' gives %hin'
   cases hin'
   ihave #Hf2 := Hf

@@ -101,8 +101,8 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
         osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗ io.cpFin bf f dd.ino o bs err }} := by
   wp_start as ⟨#Hinv, #Hos, Hbf, Hfdd, Hf, Hfds, Hm, Hbs, HS⟩
   iunfold os.ownFile at Hbf Hf
-  icases Hbf with ⟨%ind, #Hbfp, Hdfd, #Hdn, #Hdsys⟩
-  icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn, #Hssys⟩
+  icases Hbf with ⟨%ind, #Hbfp, Hdfd, #Hdn, #Hdnb, #Hdap, #Hdsys⟩
+  icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn, #Hsnb, #Hsap, #Hssys⟩
   ihave %hbfn := typedPointsto_not_null bf _ _ $$ Hbfp
   ihave %hfn := typedPointsto_not_null f _ _ $$ Hfp
   try wp_auto
@@ -235,8 +235,6 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
       ihave ⟨%xfc, #Hefc⟩ := internal.poll.errFileClosing_of_pkgInit $$ Hpoll
       ihave ⟨%ecl, -, #Hecl⟩ := os.errClosed_of_pkgInit $$ Hos
       ihave #Hcwe := os.checkWrapErr_of_pkgInit $$ Hos
-      ihave #Hdn' := Hdn
-      icases Hdn' with ⟨#Hnm, #Hnb⟩
       simp only [interface.mkOk]
       try wp_auto
       wp_alloc pe as Hpe

@@ -67,6 +67,7 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
     ipersist name
     ipersist f
     ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -127,7 +128,7 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
     {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ os.ownFile f fd name dqf ∗ osOutFd fd }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -176,7 +177,7 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
@@ -200,8 +201,8 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
     iapply fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
     try wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn Hsys
-    iintro %pe #Hpe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn Hsys as %pe #Hpe
+    try wp_auto
     iapply HΦ
     iapply fmtErrorOkOrNil_of $$ Hpe
 

@@ -29,7 +29,7 @@ variable [os.Assumptions]
 theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) := by
   intro f fd name dqf R j ph n
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hd, #Hlb⟩
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hd, #Hlb⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto

@@ -77,6 +77,7 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
     ipersist name
     ipersist f
     ipersist nonblock
+    ipersist appendMode
     imodintro
     iapply HΦ
     iframe
@@ -234,7 +235,7 @@ theorem os.File.Readdirnames.wp_dirChildS (f : Loc) (fd : w64) (name : GoString)
          ((∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT⌝ ∗ os.errnoPathErr err e) ∗
             ∃ r0 rs, osDirFdS fd j (.reading N r0 rs))) }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hcl, Hpp, Hnp⟩
+  wp_start as ⟨#Hinv, #Hsi, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hcl, Hpp, Hnp⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto

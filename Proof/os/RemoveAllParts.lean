@@ -247,9 +247,11 @@ theorem os.model.wp_pathErrorPtr (op path : GoString) (err : GoInterface) :
   wp_start as #Herr
   iapply wp_fupd
   try wp_auto
-  iStructNamed pe
+  irename : (_ ↦ (_ : io.fs.PathError) : IProp GF) => Hpe
+  iStructNamed Hpe
   ipersist Op
   ipersist Err
+  try wp_auto
   imodintro
   iapply HΦ
   unfold os.peOk
@@ -265,10 +267,12 @@ theorem os.model.wp_pathErrorPtrN (op path : GoString) (err : GoInterface) :
   wp_start as #Herr
   iapply wp_fupd
   try wp_auto
-  icases typedPointsto_not_null _ _ _ $$ pe with %hpn
-  iStructNamed pe
+  irename : (_ ↦ (_ : io.fs.PathError) : IProp GF) => Hpe
+  icases typedPointsto_not_null_dup _ _ _ $$ Hpe with ⟨Hpe, %hpn⟩
+  iStructNamed Hpe
   ipersist Op
   ipersist Err
+  try wp_auto
   imodintro
   iapply HΦ
   isplitr
@@ -284,6 +288,7 @@ theorem os.model.wp_prefixPath (pe : Loc) (pre : GoString) :
       (App (App (Val (@! os.modelPrefixPath)) (Val #pe)) (Val #pre))
     {{ RET #(); os.peOk pe }} := by
   wp_start as Hpe
+  try wp_auto
   by_cases hn : pe = null
   · rw [decide_eq_true hn]
     try wp_auto
@@ -303,9 +308,9 @@ theorem os.model.wp_pathErrorPtr_errno (op path : GoString) (e : w64) (he : e �
     (Φ : val → IProp GF) :
     syscall.errnoOk (GF := GF) -∗ (∀ pe : Loc, os.peOk pe -∗ Φ #pe) -∗
       WP (App (App (App (Val (@! os.modelPathErrorPtr)) (Val #op)) (Val #path))
-        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
+        (App (Val (@! os.modelErrno)) (Val #e))) {{ Φ }} := by
   iintro #Hsys HΦ
-  wp_apply wp_errno
+  wp_apply os.wp_modelErrno
   wp_apply os.model.wp_pathErrorPtr op path (errnoErr e) $$ [] as %pe Hpe
   · iapply errnoErr_fmtErrorOk e he $$ Hsys
   iapply HΦ $$ Hpe
@@ -316,7 +321,7 @@ theorem os.model.wp_pathErrorPtr_rd (b : GoString) (e : w64) (he : e ≠ 0) (Φ 
     syscall.errnoOk (GF := GF) -∗ (∀ pe : Loc, os.peOk pe -∗ Φ #pe) -∗
       WP (App (App (App (Val (@! os.modelPathErrorPtr)) (Val #go!"readdirnames")) (Val #b))
         (App (App (App (Val (@! os.modelPathError)) (Val #go!"readdirent")) (Val #b))
-          (App (Val syscall.model.errno) (Val #e)))) {{ Φ }} := by
+          (App (Val (@! os.modelErrno)) (Val #e)))) {{ Φ }} := by
   iintro #Hsys HΦ
   wp_apply os.wp_pathError_ok _ _ e he $$ Hsys as %pe0 #Hok
   wp_apply os.model.wp_pathErrorPtr _ _ _ $$ Hok as %pe Hpe
@@ -327,9 +332,9 @@ theorem os.model.wp_pathErrorPtr_errnoN (op path : GoString) (e : w64) (he : e �
     (Φ : val → IProp GF) :
     syscall.errnoOk (GF := GF) -∗ (∀ pe : Loc, ⌜pe ≠ null⌝ -∗ os.peOk pe -∗ Φ #pe) -∗
       WP (App (App (App (Val (@! os.modelPathErrorPtr)) (Val #op)) (Val #path))
-        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
+        (App (Val (@! os.modelErrno)) (Val #e))) {{ Φ }} := by
   iintro #Hsys HΦ
-  wp_apply wp_errno
+  wp_apply os.wp_modelErrno
   wp_apply os.model.wp_pathErrorPtrN op path (errnoErr e) $$ [] as %pe ⟨%hpn, Hpe⟩
   · iapply errnoErr_fmtErrorOk e he $$ Hsys
   iapply HΦ $$ %pe %hpn Hpe
@@ -339,7 +344,7 @@ theorem os.model.wp_pathErrorPtr_rdN (b : GoString) (e : w64) (he : e ≠ 0) (Φ
     syscall.errnoOk (GF := GF) -∗ (∀ pe : Loc, ⌜pe ≠ null⌝ -∗ os.peOk pe -∗ Φ #pe) -∗
       WP (App (App (App (Val (@! os.modelPathErrorPtr)) (Val #go!"readdirnames")) (Val #b))
         (App (App (App (Val (@! os.modelPathError)) (Val #go!"readdirent")) (Val #b))
-          (App (Val syscall.model.errno) (Val #e)))) {{ Φ }} := by
+          (App (Val (@! os.modelErrno)) (Val #e)))) {{ Φ }} := by
   iintro #Hsys HΦ
   wp_apply os.wp_pathError_ok _ _ e he $$ Hsys as %pe0 #Hok
   wp_apply os.model.wp_pathErrorPtrN _ _ _ $$ Hok as %pe ⟨%hpn, Hpe⟩

@@ -59,7 +59,7 @@ private abbrev os.File.Stat.tripleNE : Prop :=
 private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto
@@ -135,7 +135,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
 private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name dqf dq dqm d m
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hm⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   try wp_auto

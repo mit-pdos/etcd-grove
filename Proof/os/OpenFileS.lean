@@ -123,6 +123,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         ipersist name
         ipersist f
         ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         iframe
@@ -193,6 +194,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         ipersist name
         ipersist f
         ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         dsimp only [crMeta]
@@ -280,6 +282,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe
@@ -440,6 +443,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         ipersist name
         ipersist f
         ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         iframe
@@ -496,6 +500,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         ipersist name
         ipersist f
         ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         dsimp only [crMeta]
@@ -557,6 +562,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
       ipersist name
       ipersist f
       ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe

@@ -136,7 +136,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
   intro f fd name dqf sz dq d m xs K P hfd0 hwr hsz hmaps hxs hP hPa
   unfold os.truncSup
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
   try rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2

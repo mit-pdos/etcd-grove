@@ -71,7 +71,10 @@ variable [package_sem' : os.Assumptions]
 include sem package_sem' in
 /-- The `*os.File` `f` is open on the fd `fd`, named `name`: `f` points to a `File` whose inner
 `file` holds the fd in its `pfd.Sysfd` (a fraction `dq` of it: `Close` writes it), the name, and
-`nonblock` false (the real `fd()` reads it; the model's `OpenFile` never sets it). And `syscall`'s
+`nonblock` false (the real `fd()` reads it; the model's `OpenFile` never sets it), `appendMode`
+false (the real `(*File).readFrom` reads it; Go's `OpenFile` sets it to `flag&O_APPEND != 0`, which
+is false because the extension's `Open` refuses `O_APPEND`, so the model's leaves it zero:
+`models/os/model.go:106`). And `syscall`'s
 package fact (2026-11-24, fmt stage 1: `Errno.Error`, translated, reads its error table, so the
 error a method returns is `fmtErrorOk` only given it: `Proof/syscall/ErrorOk.lean`), which the
 functions that open a file have (`isPkgInit os`), so that the methods' callers need none. -/
@@ -80,6 +83,7 @@ def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
     structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner) ↦{dq} fd ∗
     structFieldRef os.file go!"name" inner ↦□ name ∗
     structFieldRef os.file go!"nonblock" inner ↦□ false ∗
+    structFieldRef os.file go!"appendMode" inner ↦□ false ∗
     syscall.errnoOk (GF := GF))
 
 include sem package_sem' in

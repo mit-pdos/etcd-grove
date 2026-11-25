@@ -45,7 +45,7 @@ private abbrev os.File.Close.tripleNE : Prop :=
 private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hlt⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hlt⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
@@ -84,7 +84,7 @@ private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG :=
 private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := hG) := by
   intro Sio _ hS f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hsys⟩, Hosfd, Hlt⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd, Hlt⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
