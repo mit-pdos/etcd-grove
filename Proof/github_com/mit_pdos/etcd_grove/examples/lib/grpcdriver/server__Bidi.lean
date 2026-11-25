@@ -54,7 +54,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
   · iexact HRt
   iintro !> %req %err Hres
   icases Hres with (⟨%Herr, %m, Hm, -, HRt⟩ | ⟨#Heof, %Hne, HRt, #Hcl⟩ |
-    ⟨%Hne, #Hse, #Hso, HRt⟩)
+    ⟨%Hne, #Hse, #Hso, HRt, -⟩)
   · -- a request: sent back
     subst Herr
     wp_auto

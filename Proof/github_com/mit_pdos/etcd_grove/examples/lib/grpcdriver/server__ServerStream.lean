@@ -64,7 +64,7 @@ theorem server.ServerStream.wp_proof
       have h1 : sint.nat (k + W64 1) - sint.nat k = 1 := by word
       rw [h1]
       try wp_auto
-      wp_apply wp_String ((sv.Value'.drop (sint.nat k)).take 1)
+      wp_apply wp_String stringValueMax ((sv.Value'.drop (sint.nat k)).take 1)
         (Nat.lt_of_le_of_lt (List.length_take_le _ _) (by decide)) as %l Hl
       try wp_auto
       wp_bind (App (Val #(methods si.ty go!"Send" si.v)) _)

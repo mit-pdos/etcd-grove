@@ -49,7 +49,7 @@ theorem _Driver_ServerStream_Handler.wp_proof
   · iframe
   iintro !> %err Hres
   icases Hres with (⟨%Herr, %v, Hrv, -, HRt⟩ | ⟨#Heof, %Hne, HRt, #Hcl, -⟩ |
-    ⟨%Hne, #Hse, #Hso, HRt, -⟩)
+    ⟨%Hne, #Hse, #Hso, HRt, -, -⟩)
   · subst Herr
     wp_auto
     wp_alloc p as Hp

@@ -52,7 +52,7 @@ theorem server.Meta.wp_proof
   icases Hres with (%Hno | ⟨%md0, %m, %Hc, Hm, Hsls⟩)
   · obtain ⟨rfl, rfl⟩ := Hno
     try wp_auto
-    wp_apply wp_String go!"" (by decide) as %l Hl
+    wp_apply wp_String stringValueMax go!"" (by decide) as %l Hl
     try wp_auto
     have he : (go!",".intercalate (metadata.mdVals none mdKeyS)) = go!"" := rfl
     rw [he]
@@ -83,7 +83,7 @@ theorem server.Meta.wp_proof
       · iapply ownSlice_nil
       ipureintro; exact hlt _ Hbound
     try wp_auto
-    wp_apply wp_String _ Hbound as %l Hl
+    wp_apply wp_String stringValueMax _ Hbound as %l Hl
     try wp_auto
     iapply HΦ
     isplitr
@@ -99,7 +99,7 @@ theorem server.Meta.wp_proof
     · iframe
       ipureintro; exact hlt _ Hbound
     try wp_auto
-    wp_apply wp_String _ Hbound as %l Hl
+    wp_apply wp_String stringValueMax _ Hbound as %l Hl
     try wp_auto
     iapply HΦ
     isplitr
