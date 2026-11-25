@@ -14,7 +14,7 @@ module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica__request
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.DefsLaws
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.BagSend
+public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats__add
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.encodeState
 public import KvNet.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetVotersOutgoing

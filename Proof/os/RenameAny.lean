@@ -29,6 +29,9 @@ variable [os.Assumptions]
 theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := hG) := by
   intro d bs bt j J N R qd h q r lb Q hbs hbt hN hN' hne hsrc hq
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, #Hlb0, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb1⟩
   ihave #Hlb : osLogLb (max h.next lb) $$ []
   · rcases Nat.le_total h.next lb with hle | hle
@@ -45,7 +48,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
   · -- a directory at the target: Go's `EEXIST`, no `rename(2)`
     rw [decide_eq_true (show isDir = W64 1 from hd1)]
     wp_auto
-    wp_apply (os.wp_linkError_ok _ _ _ _ (hd hd1).2)
+    wp_apply (os.wp_linkError_ok _ _ _ _ (hd hd1).2) $$ Hsys
     iintro %le #Hle
     iapply HΦ
     iframe Hp Hperm
@@ -96,7 +99,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
         wp_auto
-        wp_apply (os.wp_linkError_ok _ _ _ _ he)
+        wp_apply (os.wp_linkError_ok _ _ _ _ he) $$ Hsys
         iintro %le #Hle
         iapply HΦ
         iframe Hp Hperm
@@ -142,7 +145,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         ipureintro; exact ⟨fun _ => rfl, Or.inl rfl⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
-      wp_apply (os.wp_linkError_ok _ _ _ _ he0)
+      wp_apply (os.wp_linkError_ok _ _ _ _ he0) $$ Hsys
       iintro %le #Hle
       iapply HΦ
       iframe Hp Hperm
@@ -185,7 +188,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
     wp_auto
-    wp_apply (os.wp_linkError_ok _ _ _ _ he)
+    wp_apply (os.wp_linkError_ok _ _ _ _ he) $$ Hsys
     iintro %le #Hle
     iapply HΦ
     iframe Hp Hperm

@@ -13,7 +13,6 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.PkgTable
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
@@ -88,17 +87,19 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **The program**: `k8sall`'s initialization, then `Main(k1, clients, ops, watchers, wops, sched1,
-k2, sched2)` with the two member counts `k₁` (the store's cluster) and `k₂` (the compactor's) and the
-two schedules `steps₁` and `steps₂` built as slice literals (`schedLit`). -/
-def k8sProgram [GoSemanticsFunctions] (k₁ : Nat) (clients ops watchers wops : w64)
-    (steps₁ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (k₂ : Nat)
-    (steps₂ : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
+/-- **The program**: `k8sall`'s initialization, then `MainChecked(k1, clients, ops, watchers, wops,
+n1, k2, n2)` with the two member counts `k₁` (the store's cluster) and `k₂` (the compactor's), the
+store's workload and the lengths `n₁`, `n₂` of the two schedules. `MainChecked` returns at once unless
+the counts and the workload are in the ranges `Main`'s proof covers (`ParamsOk`), and draws the two
+schedules itself (`cluster3.RandomSchedule`; until the pure-premises plan's P5, 2026-11-24, the program
+was `Main` with those ranges premises of the statement and the schedules slice literals of given
+lists, `schedLit`). -/
+def k8sProgram [GoSemanticsFunctions] (k₁ clients ops watchers wops n₁ k₂ n₂ : w64) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.k8s.all.initialize' #() ;;
   App (App (App (App (App (App (App (App
-    (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.Main))
-    (Val #(W64 (k₁ : Int)))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
-    (schedLit steps₁)) (Val #(W64 (k₂ : Int)))) (schedLit steps₂)
+    (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.MainChecked))
+    (Val #k₁)) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops)) (Val #n₁))
+    (Val #k₂)) (Val #n₂)
 
 /-- **The program's addresses**: the store cluster's (`k8s_etcd3N.k8setcd3NAddrs k₁`: its `k₁` members'
 peer and client addresses and its bridges'), then the compactor cluster's
@@ -110,6 +111,25 @@ def k8sAddrs (k₁ k₂ : Nat) : List GoString :=
 cluster's `k8scompactorN-j.etcd`. -/
 def k8sDirs (k₁ k₂ : Nat) : List GoString :=
   k8s_etcd3N.k8setcd3NDirs k₁ ++ k8s_compactorN.k8scompactorNDirs k₂
+
+/-- **The member counts `MainChecked` starts clusters at** (the counts' part of `ParamsOk`, 2026-11-24,
+the pure-premises plan's P5): `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂ ≤ 600`. -/
+def k8sCountsOk (k₁ k₂ : w64) : Prop :=
+  1 ≤ uint.nat k₁ ∧ uint.nat k₁ ≤ 1000 ∧ 1 ≤ uint.nat k₂ ∧ uint.nat k₂ ≤ 600
+
+instance (k₁ k₂ : w64) : Decidable (k8sCountsOk k₁ k₂) := by
+  unfold k8sCountsOk; infer_instance
+
+/-- **The addresses `k8sProgram` may listen on** (P5, as leaseexpiryN's `cluster k`, P6): `k8sAddrs`
+at the member counts when they are in range, none otherwise (`MainChecked` then returns without
+starting a member). -/
+def k8sProgAddrs (k₁ k₂ : w64) : List GoString :=
+  if k8sCountsOk k₁ k₂ then k8sAddrs (uint.nat k₁) (uint.nat k₂) else []
+
+/-- **The data directories `k8sProgram` may use**: `k8sDirs` at the member counts when they are in
+range, none otherwise (as `k8sProgAddrs`). -/
+def k8sProgDirs (k₁ k₂ : w64) : List GoString :=
+  if k8sCountsOk k₁ k₂ then k8sDirs (uint.nat k₁) (uint.nat k₂) else []
 
 end adequacy
 end EtcdGrove

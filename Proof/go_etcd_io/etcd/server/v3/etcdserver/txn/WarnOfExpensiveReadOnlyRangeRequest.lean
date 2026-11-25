@@ -7,6 +7,8 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.isNil
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.warnOfExpensiveGenericRequest
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -56,11 +58,12 @@ theorem txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hasl] as %s ⟨-, -⟩
-    case wf =>
-      repeat' first
-        | exact _root_.Perennial.fmt.ArgsWf.nil
-        | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
+    wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"range_response_count:%d size:%d"
+      [.lit go!"range_response_count:", .dir none _root_.Perennial.fmt.verb_d, .lit go!" size:",
+        .dir none _root_.Perennial.fmt.verb_d] _ _ _ _ (by fmt_encode) ?fits ?pa
+      $$ [$Hasl] as %s ⟨-, -⟩
+    case pa => (try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]); (try simp only [List.set_cons_succ, List.set_cons_zero]); exact (.int _ _ _ _ (.int _) (.int _ _ _ _ (.int _) .nil))
+    case fits => fmt_fits
     (try wp_auto)
     isplitr; · ipureintro; rfl
     iexists _; iframe resp rangeResponse HP

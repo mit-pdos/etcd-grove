@@ -150,14 +150,16 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `RaftTla/` alone has the hooks' helpers and the trace check's specs and proofs (its `Init` and
   `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
   `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
-- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), for a closed
-  kvdurable theorem whose trust base has no axiom of this repository: raft of project `raft-noax` and
-  kvdurable of project `kvdurable-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`, `KVDURABLE_NOAX_*`; with
-  kvreconf and walpb translated into it as parts of their projects), and copies of every main-tree
-  module of kvdurable's `Results` closure that reaches them, written by `etc/copy-part.py` (a first
-  line naming it; `--check` in CI; a file without that line is the part's own); its initializers
-  from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
-  Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
+- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), the raft of
+  `KvNet/`'s closed theorem, whose trust base has no axiom of this repository: raft of project
+  `raft-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`; with walpb translated into it as a part of its project),
+  and copies of every main-tree module of raft's closure (its `Link` and the modules `etc/api/raft.txt`
+  lists as importable) that reaches them, written by `etc/copy-part.py` (a first line naming it;
+  `--check` in CI; a file without that line is the part's own); its initializers from
+  `etc/gen-init.py`'s `PARTS`, its Link from `etc/gen-link.py --raft-noax`. Nothing outside it imports
+  it; trust base: `etc/tcb-collections/raft-noax.txt`. (Until 2026-11-24 it also held kvdurable's closed
+  theorem, project `kvdurable-noax`: retired with kv, kvreconf and kvdurable's, which `raft_kvnet_robust`
+  and kvudp subsume.)
 - `Net/` is another: the net extension's `net` and the programs over it (`examples/net`, `examples/lib/remote`,
   the models' codecs and `net/{http,rpc}`). Since the net swap (etcd-dist D2, 2026-11-22) its `net` is also the
   main tree's (`net=Net` in every project; `Proof/net/InvNet.lean` defines the address predicates over it):
@@ -174,10 +176,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
 - `WalTester/` is another: etcd's WAL tester (`examples/etcd/wal`, project `etcd-wal`) and the library it
   keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
   and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
-  `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
+  `durableExt` for kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
   two translations", decided 2026-11-15). Its modules declare the main `durable`'s names, so nothing outside it imports it;
-  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
-  ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
+  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once `durableExt`'s
+  users are ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
@@ -190,7 +192,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   definition (`Robust crashing stable g threads bound`: in every execution of Perennial's `DistCrashNstepsBelow`
   (fewer than `threads` live threads on every machine, fewer than `bound` steps) of programs on machines that crash and restart and programs on machines that never crash, with
   any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
-  is checked by a program of the deployment that panics, never stated over traces in Lean), and
+  is checked by a program of the deployment that panics, never stated over traces in Lean; an exit
+  (`os.Exit`, `log.Fatal`: Perennial's `AngelicExit`) counts as a safe run, so checkers panic,
+  `etc/exit-check.py`), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. Every example's top-level
   result is an instance, in two files named `TopLevelRobustness.lean`:
@@ -345,7 +349,9 @@ which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
 (`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
-by adding a collection for it.
+by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
+baseline to the axioms and `sorry`s whose name or module file matches one: what one family of
+declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
 

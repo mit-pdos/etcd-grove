@@ -50,7 +50,7 @@ theorem lessor.KeepAlive.wp_proof
   · iPkgInit
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, -, -, -, -, -, #Hchsz⟩
+  icases Hci with ⟨-, -, -, -, -, -, -, #Hchsz, -⟩
   wp_auto
   wp_apply chan.wp_make2 (V := Loc) (W64 16) $$ [] as %ch %γ ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; constructor <;> decide

@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Field__format.lean`, over Perennial's `fmt.Sprintf`:
+Proof of `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Field__format.lean`, over Perennial's `fmt.Sprintf` (the real `Sprintf`, real `fmt` stage 1):
 `%s` of the key (a string), `%v` of the value (`fieldsWf`: `nil` or of a predeclared basic type, so
 `fmt.ArgsWf` of both). Lean-first (no Rocq counterpart); traceutil-log (2026-11-23).
 -/
@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Field__format
 public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -38,10 +39,20 @@ theorem traceutil.Field.format.wp_proof : traceutil.Field.format.spec (GF := GF)
   · ipureintro; rfl
   iintro %al ⟨Hal, -⟩
   (try wp_auto)
-  wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) $$ [$Hfmt $Hal] as %s ⟨-, -⟩
-  · iapply _root_.Perennial.fmt.argsOk_of_argsWf
-    unfold traceutil.fieldsWf at Hwf
-    exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ Hwf
+  unfold traceutil.fieldsWf at Hwf
+  simp only [List.map_cons, List.map_nil] at Hwf
+  obtain ⟨args, Hargs⟩ := fmt.PureArgsWf.toPureArgs Hwf
+  have Hall := fmt.PureArgs.str f.Key' _ _ Hargs
+  obtain ⟨a, rfl⟩ : ∃ a, args = [a] := by
+    have hl := Hargs.length_eq
+    match args, hl with
+    | [a], _ => exact ⟨a, rfl⟩
+  have Ha := fmt.PureArgs.dirOk_v Hargs a (List.mem_singleton_self _)
+  wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"%s:%v; "
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!":", .dir none _root_.Perennial.fmt.verb_v, .lit go!"; "] _ _ _ (DFrac.own 1)
+    (by fmt_encode)
+    (.dir _ _ _ _ _ (by simp [_root_.Perennial.fmt.DirOk]) (.lit _ _ _ (by decide)
+      (.dir _ _ _ _ _ Ha (.lit _ _ _ (by decide) .nil)))) Hall $$ [$Hfmt $Hal] as %s ⟨-, -⟩
   (try wp_auto)
   iapply HΦ
   iframe

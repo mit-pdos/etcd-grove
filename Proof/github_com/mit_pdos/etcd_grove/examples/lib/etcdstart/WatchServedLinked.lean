@@ -32,7 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **etcd's KV calls and the watch registration at the address** (see the file header); under
+/-- **etcd's KV calls and the watch registration at the address** (see the file header), and
+(2026-11-24) the server listening there etcd's (`etcdKVSrv`, what `etcd_noRefusal_at` takes); under
 `grpcRepliesFit` (`grpc.start`'s), the mvcc laws `srvWOk_of_up` reads, and v3rpc's method sets. -/
 theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
     (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) (s : Loc) (E : apply.AEnv GF)
@@ -47,17 +48,17 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
         kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
-        watchRegAt addr s E γr R ∗ srvGoRes s := by
+        etcdKVSrv addr s ∗ watchRegAt addr s E γr R ∗ srvGoRes s := by
   iintro ⟨#Pv3, #Psrv, #Ppb, #Hreq, #Hrd, #Hsf, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, -⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, -, #Hics⟩
   obtain ⟨HCA, -, Hregs, Hsreg, hRs, hRE, hRw, -, Hnd⟩ := HC
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #Hksa, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro
@@ -81,6 +82,9 @@ theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
   · iexists _; iexact Hserv
   isplitr
   · iunfold etcdKVAt
+    iframe #
+  isplitr
+  · iapply etcdKVSrv_intro addr R.s [il, im, iu]
     iframe #
   iunfold watchRegAt
   iframe #

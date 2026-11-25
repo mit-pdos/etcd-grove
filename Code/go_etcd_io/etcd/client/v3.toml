@@ -22,12 +22,15 @@
 # translated), `defaultCallOpts` (their slice literal) and `defaultBackoffJitterFraction` (a float
 # constant); until then `opaqueInitsOk` and the axioms `defaultCallOpts_init` and
 # `defaultBackoffJitterFraction_init`.
+# (real fmt stage 1, 2026-11-24, #9) `clientTargetSeq`, the counter `Client.dial` numbers its targets
+# with (the fork's 6b1ff3860, in place of `%p` of the client).
 translate = [
   "!*",
   "ErrNoAvailableEndpoints", "ErrOldCluster", "ErrMutuallyExclusiveCfg", "defaultWaitForReady",
   "defaultMaxCallSendMsgSize", "defaultMaxCallRecvMsgSize", "defaultCallOpts",
   "defaultBackoffJitterFraction",
   "defaultUnaryMaxRetries", "defaultStreamMaxRetries", "defaultBackoffWaitBetween", "LeaseResponseChSize",
+  "clientTargetSeq",
   "WatchResponse.IsProgressNotify",
   "EventTypeDelete",
   "EventTypePut",

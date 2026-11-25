@@ -13,11 +13,17 @@ the one `StartNode`'s proof instantiates it with, `kvNodeStart γ vs dir0 id dir
 * the options: what raft's `RestartNode` takes of them (`kvOptsOk`), the voters `1..opts.Voters` the
   bootstrap configuration `StartNode` builds (`vs`);
 * every other replica's address protocol in the address map `M` (`newTransport`'s premise).
+
+`kvStp γ vs dir` (2026-11-24, G5: `notes/kvnet-g5-stop.md`) is the node's incarnation stopper at the
+store (`NodeDefs.lean`'s `stp`): the replica's stopper (`repStopper`: `Replica.stop` gives `kvStart`
+back), the transport's `stop` (`ptStop`), and the persistent rest of `kvNodeStart`, so that
+`stopIncarnation` gives `kvNodeStart` back.
 -/
 module
 
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.StartLemmas
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Facts
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeDefs
 
 @[expose] public section
 
@@ -82,6 +88,12 @@ def kvNodeStart (γ : KdNames) (vs : List w64) (dir0 : GoString) (id : w64) (dir
   iprop(⌜dir = dir0⌝ ∗ ∃ (fl : KdFileNames) (qc : Qp), kvStart γ vs dir id fl qc ∗ kvStartGlobals γ ∗
     kvPeerAddrs γ id M ∗
     ⌜kvOptsOk opts ∧ vs = raft_kvreconf.bootVoters (uint.nat opts.Voters')⌝)
+
+/-- **The node's incarnation stopper at the store** (see the file header). -/
+def kvStp (γ : KdNames) (vs : List w64) (dir : GoString) : NodeStopper GF :=
+  fun cfg M r tv => iprop(repStopper γ vs dir cfg.ID' r ∗ ptStop tv ∗ ⌜cfg.Dir' = dir⌝ ∗
+    kvStartGlobals γ ∗ kvPeerAddrs γ cfg.ID' M ∗
+    ⌜kvOptsOk cfg.Opts' ∧ vs = raft_kvreconf.bootVoters (uint.nat cfg.Opts'.Voters')⌝)
 
 end defs
 

@@ -1,6 +1,7 @@
 /-
 `twoPhase(ctx, a, d, false)` (`authz.go`), for the union handler `a` and a well-formed decision
-`d`: returns (C1-C3 hold: the strict check, C3 for an Allow, is not claimed). Lean-first (no Rocq
+`d` within the bounds of the union handler's (`unionAuthzHandler.ConditionsAwareAuthorize`: its
+`EvaluateConditions` joins reasons, fmt stage 1): returns (C1-C3 hold: the strict check, C3 for an Allow, is not claimed). Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -30,7 +31,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 /-- See the file header. -/
 abbrev twoPhase.spec : Prop :=
   ∀ (ctx : GoInterface) (h : unionAuthzHandler) (d : ConditionsAwareDecision) (m : Dec),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz ∗ isUnionAuthz h ∗ isDecision d m ∗ ⌜m.WF⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz ∗ isUnionAuthz h ∗ isDecision d m ∗
+      ⌜m.WF ∧ m.depth ≤ authzDepthMax + 1 ∧ m.size ≤ authzChainMax * authzSizeMax + 1⌝ ∗
+      decNames authzNameMax d m }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.authz.twoPhase)) (Val #ctx))
       (Val #(interface.mkOk unionAuthzHandler.ty #h))) (Val #d)) (Val #false))
   {{ RET #(); True }}

@@ -386,6 +386,10 @@ python3 etc/k8s-correctness-check.py || fail=1
 # feature-gate mutator in the programs' compiled closures has its verdict in
 # etc/featuregate-allow.txt (needs go and the module cache; seconds)
 python3 etc/featuregate-check.py || fail=1
+# no robustness theorem's program reports a violation by exiting: under `Robust` an exit is a safe run
+# (Perennial's AngelicExit), so a check must panic; every exit in the programs' own code (under
+# examples/) has its reason in etc/exit-allow.txt (notes/robustness.md; needs go; seconds once cached)
+python3 etc/exit-check.py || fail=1
 return $fail
 }
 
@@ -437,6 +441,14 @@ if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
   echo "$(tail -1 "$tmp/tier.log")"
 else
   echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
+fi
+# every top-level statement has a satisfiability witness of its premises, or a baseline line
+# (etc/premise-witness-baseline.txt; Robustness/PremiseSat.lean; reads the sources only: the build
+# checks the witnesses' proofs)
+if python3 etc/premise-witness.py --check > "$tmp/pw.log" 2>&1; then
+  echo "$(tail -1 "$tmp/pw.log")"
+else
+  echo "premise-witness: FAILED"; head -20 "$tmp/pw.log"; fail=1
 fi
 return $fail
 }

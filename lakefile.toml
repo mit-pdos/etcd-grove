@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "b3f2fc48513a9f8c0ad3028670441a1511a975f6"
+rev = "fce59af75b6858376828b6e0f23473e5c6fef496"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -50,12 +50,12 @@ globs = ["RaftTla.+"]
 name = "RaftWitness"
 globs = ["RaftWitness.+"]
 
-# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof and kvdurable's closed
-# theorem over a raft of its own (etc/goose.py's projects raft-noax and kvdurable-noax), in a
-# parallel tree with the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,
-# Proof}/; the copies of the main tree's modules written by etc/copy-part.py). It imports the main
-# tree, but not its raft or kvdurable, and nothing outside it imports it: its modules declare the
-# main raft's names.
+# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof over a raft of its own
+# (etc/goose.py's project raft-noax; kvnet's raft, KvNet/ takes it from here), in a parallel tree with
+# the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; the copies of
+# the main tree's modules written by etc/copy-part.py). It imports the main tree, but not its raft,
+# and nothing outside it imports it: its modules declare the main raft's names. (Until 2026-11-24
+# also kvdurable's closed theorem, project kvdurable-noax: retired.)
 [[lean_lib]]
 name = "RaftNoAx"
 globs = ["RaftNoAx.+"]

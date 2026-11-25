@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Model.lean` (etc/copy-part.py; rerun it, do not edit).
 /- kvreconf's (the same Go text), ported. Lean-first (no Rocq counterpart).
 
 `Model()` (check.go): the store's porcupine model, as `kvS` specifies it (`ModelDefs.lean`):

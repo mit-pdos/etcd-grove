@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/getIDs.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/getIDs.lean`. Lean-first (no
 Rocq counterpart): the count (`getUint64`), the length check (the rest holds at least the count's

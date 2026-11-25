@@ -25,6 +25,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.os.PkgInit
 public import Proof.os.CrashStOps
 public import Spec.golang_org.x.sys.unix.Mmap
 public import Spec.golang_org.x.sys.unix.Munmap
@@ -190,7 +191,7 @@ abbrev os.OpenFile.specCrashS : Prop :=
   NameOk b →
   (s = none ∨ ∃ i m bs fa fb, s = some (i, ⟨m, bs, fa, fb, .idle⟩)) → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   ↑osShN ⊆ (⊤ : CoPset) \ ↑N → (s = none → ∀ i, Ok (csNew i)) →
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R d) q ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R d) q ∗
       csInv (GF := GF) N (child d b) R γ Good Ok ∗ csOwn (GF := GF) (child d b) R γ s }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R d) q ∗

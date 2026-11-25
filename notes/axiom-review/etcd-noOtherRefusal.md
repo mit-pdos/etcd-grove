@@ -1,5 +1,9 @@
 # `etcd_noOtherRefusal` (draft, 2026-10-29; added as reviewed, with the remark on `srvCCPolicy` applied)
 
+*(2026-11-24) This review checked what the member answers, not which server answers at `addr`: the statement
+below did not tie `addr` to `gs`, and was refuted on that (another server served `addr`); both axioms now take
+the server listening at `addr`. `notes/axiom-review/norefusal-link.md`.*
+
 **Reviewed:** the draft axiom `etcd_noOtherRefusal` (not in the tree; the exact statement below), part 1 of
 the split of `etcd_noRefusal` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/NoRefusal.lean`) that
 F-S2 route B proposes. Go: etcd's fork `goose-lean` at the pin of `etc/goose.py`, grpc v1.84.

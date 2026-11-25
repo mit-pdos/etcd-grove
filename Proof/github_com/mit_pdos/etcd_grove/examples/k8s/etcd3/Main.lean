@@ -79,7 +79,7 @@ theorem Main.wp_proof
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (k8setcd3Dir id) go!"k8setcd3" go!"k8setcd3"
       (etcdstart.urls1 go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896") id cfgOk urlsOk
@@ -124,7 +124,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (LogEntry.toEntries boot 0) ctxs
       (k8setcd3Dir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
+      (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -158,13 +158,13 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
-      go!"127.0.0.1:23896" cid mid R HEo $$ [Hg]
-    · iframe; iframe #
     imod (etcdstart.kvWatch_served Hp Hr srv E { ρ with wait := γw } ρ.rd cfg gs lis
       go!"127.0.0.1:23896" cid mid R Hrb48 Hrf rfl HLv Hms
-      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hwr, Hgo⟩
+      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Hserv, #Hkv, #Hksa, #Hwr, Hgo⟩
     · iframe; iframe #
+    -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
+    ihave %Hnr := EtcdGrove.etcd_noRefusal_srv go!"127.0.0.1:23896" srv E { ρ with wait := γw } HEo $$ [Hksa]
+    · iframe #
     imodintro
     iframe Hserv Hkv Hwr Hgo
     ipureintro; exact Hnr

@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.fmt
-public import Code.hash
+public import Perennial.Code.hash
 public import Code.k8s_io.utils.dump
 public import Perennial.Golang.Defn
 

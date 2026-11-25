@@ -7,8 +7,14 @@ translate = ["!*", "ServerConfig", "ServerConfig.ElectionTimeout", "ServerConfig
   # (2026-11-19) proved outright
   "ServerConfig.PeerDialTimeout",
   # (bkarea, 2026-11-22) proved over `datadir.ToBackendFileName` (until then an axiom)
-  "ServerConfig.BackendPath"]
-imports = ["!*", "time", "go.etcd.io/etcd/server/v3/storage/datadir", "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/etcd/client/pkg/v3/transport", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery", "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]
+  "ServerConfig.BackendPath",
+  # (claim #34 stage 3, 2026-11-23) `bootstrap`'s paths, over `datadir`'s and `filepath.Join`
+  "ServerConfig.MemberDir", "ServerConfig.WALDir", "ServerConfig.SnapDir",
+  # (claim #34 stage 2, 2026-11-25) the new cluster's configuration check (`advertiseMatchesCluster`,
+  # over the untranslated `netutil.URLStringsEqual`, stays names only)
+  "ServerConfig.VerifyBootstrap", "ServerConfig.hasLocalMember", "ServerConfig.ShouldDiscover",
+  "ServerConfig.BootstrapTimeoutEffective", "CheckDuplicateURL"]
+imports = ["!*", "time", "fmt", "path/filepath", "go.etcd.io/etcd/server/v3/storage/datadir", "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/etcd/client/pkg/v3/transport", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery", "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

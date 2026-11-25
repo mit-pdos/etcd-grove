@@ -7,6 +7,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Deliver
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 public import Perennial.Proof.fmt
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -126,17 +127,10 @@ theorem swift.IntArgValue.uniq_int32 [go.IntoValInj w32] (n : w32) :
 
 /-- `Sprintf("%v,%v", a, b)` for two `int32`s is exactly `a,b`. -/
 theorem swift.SprintfOut_v_comma_v [go.IntoValInj w32] (a b : w32) (out : GoString)
-    (h : fmt.SprintfOut go!"%v,%v" [interface.mkOk go.int32 #a, interface.mkOk go.int32 #b] out) :
+    (h : out = _root_.Perennial.fmt.render [.dir none _root_.Perennial.fmt.verb_v, .lit go!",", .dir none _root_.Perennial.fmt.verb_v]
+      [.int (sint.Z a), .int (sint.Z b)]) :
     out = fmt.decimal (sint.Z a) ++ W8 44 :: fmt.decimal (sint.Z b) := by
-  have hfmt : go!"%v,%v" = W8 37 :: W8 118 :: W8 44 :: W8 37 :: [W8 118] := rfl
-  rw [hfmt] at h
-  obtain ⟨o1, rfl, h1⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := W8 44 :: W8 37 :: [W8 118])
-    (by decide) (fmt.IntArgValue.int32 a) (swift.IntArgValue.uniq_int32 a) h
-  obtain ⟨o2, rfl, h2⟩ := fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := fmt.SprintfOut.int_inv (w := 0) (rest := []) (by decide)
-    (fmt.IntArgValue.int32 b) (swift.IntArgValue.uniq_int32 b) h2
-  rw [fmt.SprintfOut.done_inv h3, fmt.decimalPad_zero, fmt.decimalPad_zero]
-  simp
+  rw [h]; simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
 
 end sprintf
 

@@ -1,0 +1,56 @@
+/- Proof sketch (not compiled; eg-pgint is read-only and has no build here) that `httpaddrleft.Main`
+   does not panic, from lean's http boundary axioms and the proved net vocabulary. No etcd-dist
+   interim axiom is used. Go: `go build ./cmd && ./httpaddrleft` panics, 5/5 runs (go1.27.3):
+     panic: httpaddrleft: the handler got a request its address's protocol excludes
+   File:line at eg-pgint 395a24818f (the same text on origin/lean 84ff9d3445).
+
+theorem httpaddrleft.Main.wp_proof
+    (wp_Listen : net.Listen.spec)            -- Spec/net/Listen.lean:36 (post netListenerAt ∗ netAddrLeft)
+    (wp_Dial : net.Dial.spec)                -- Net/Spec/net/Dial.lean:36
+    (wp_Write : net.Conn.Write.spec)         -- Net/Spec/net/Conn__Write.lean:39
+    (wp_Serve : http.Serve_spec H)           -- axiom http.Serve_ok, Proof/net/http/Axioms.lean:63
+    (wp_Sleep : time.Sleep.spec) :
+  {{ isPkgInit httpaddrleft ∗ netAddrFree Addr ∗ httpProtoFree Addr }}   -- both from the
+     @! httpaddrleft.Main #() {{ RET #(); True }}                        -- one-process start (StartRes.lean:255)
+
+  where H := ⟨fun _ => P⟩ and P : http.Proto GF :=
+    { req := fun R _ => ⌜R.meth = "POST"⌝, resp := fun _ _ _ _ => True, rhdr := fun _ _ => True,
+      streamed := fun _ => False, sreq := fun _ _ _ _ => True, .. }   -- P.srvOk: trivial (Boundary.lean:166)
+
+ 1. l, err := net.Listen("tcp", Addr): wp_Listen with netAddrFree Addr.
+      ok: netListenerAt l Addr ∗ netAddrLeft Addr (InvNet.lean:71).   err: return.
+ 2. ghost:
+      imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩                            -- Proto.lean:605
+      icases netAddrLeft ⟨%hX, Hpend, #Htok, #Hti⟩
+      imod addr_set_proto_tok ⊤ Addr (fun _ _ => True) (fun _ _ => True)
+        $$ Hreg Hpend Htok Hti with #Hp                                  -- Proto.lean:702: addrProto Addr ⊤ ⊤
+      imod http.reserve Addr P hP $$ HhttpFree with ⟨#Hat, Hown⟩        -- Axioms.lean:47
+      imod http.register l Addr P $$ Hlis Hown with Hhl                  -- Axioms.lean:53: takes only netListenerAt
+ 3. go http.Serve(l, handler{}): wp_fork; wp_Serve l h Addr emp with Hhl, [∗list] of emp, and
+      handlerOk H Addr emp h (Boundary.lean:895): for every R with □ P.req R γk, i.e. R.meth = "POST",
+      and reqAt r R rd (Boundary.lean:828: r.Method ↦□ R.meth): load r.Method = "POST"; wp_fork of the
+      closure, whose `if m != "POST"` takes the else branch; return handlerDone (no write: the
+      writer's post with status unset is the protocol's, rhdr/resp trivial).
+ 4. c, err := net.Dial("tcp", Addr): wp_Dial with dial_au Addr ⊤ ⊤ $$ Hp (Proto.lean:1644):
+      connEnd cn false ⊤ ⊤ [] [] (or err: return).
+ 5. c.Write("GET / HTTP/1.1 ..."): wp_Write with write_acc/writeP (Proto.lean:1181,1192) at the
+      trivial protocol: protoPrefix ⊤ cn W holds (□ True). Result dropped.
+ 6. holdForever(): Löb over time.Sleep.                                                          ∎
+
+#print axioms: http.reserve, http.register, http.Serve_ok, addrClaim (in netAddrFree), the net
+extension's/start's base; nothing of etcd-dist.
+
+Why Go panics: Go's server runs the handler for the GET (method "GET"); P.req promised "POST".
+The closed-world statement of the http boundary (Boundary.lean header: "every request a server of the
+program receives comes from a client of the program that went through RoundTrip") stopped holding at
+the S2 interface switch: net.Listen's netAddrLeft lets the program give the address raw net protocols
+of its choosing, and http.register still takes only netListenerAt. Same class as bridge.New before its
+2026-11-24 fix (notes/axiom-review/bridge-addrleft.md); the same fix applies: register (or reserve)
+also consumes netAddrLeft a.
+
+Variant touching A4 (A4 is not the false party): route B at ep (etcdAddr_set from addrUnset ep, keep
+addrClaim ep, listen_au from etcdAddrAt's addrProto -> netListenerAt l ep), http.register/Serve at
+ep with the same handler; NewClient(ep) and Put via Client_Put_dist (any outcome): grpc-go's
+preface "PRI * HTTP/2.0" reaches the handler (Go 1.27.3's http.Serve runs it, method "PRI",
+rereview/httph2c), whose goroutine panics.
+-/

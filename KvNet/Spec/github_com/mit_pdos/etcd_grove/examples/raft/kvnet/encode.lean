@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/encode.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Lean-first (no Rocq counterpart). kvreconf's (the same Go text), ported.
 
 `encode(id, kind, key, val)` (kv.go): the operation's encoding (`encodeOp`: the

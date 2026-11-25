@@ -22,7 +22,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [GoGloba
 /-- The empty class (paxos's: no library premise). -/
 class okEmpty (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
 
-/-- rabia's landed premises, as fields: six `InitHyp`s, three library `Hyps` (unfolded: their
+/-- rabia's landed premises, as fields: five `InitHyp`s, three library `Hyps` (unfolded: their
 fields are triples about zerolog's, gogo proto's and math/rand's functions; proto's `RegisterEnum`
 consumes `message.MsgType_value`'s points-to, a system global's address at negative polarity) and
 the signal assumption (`Notify`'s triple). -/
@@ -34,7 +34,6 @@ class okRabiaLanded (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantic
   gogoproto_init : github_com.gogo.protobuf.gogoproto.InitHyp GF
   redis_init : github_com.go_redis.redis.v8.InitHyp GF
   signal_init : os.signal.InitHyp GF
-  rand_init : math.rand.InitHyp GF
   zerolog : github_com.rs.zerolog.Hyps GF
   rand : math.rand.Hyps GF
   no_signals : os.signal.NoSignals os.signal.quietSigs GF

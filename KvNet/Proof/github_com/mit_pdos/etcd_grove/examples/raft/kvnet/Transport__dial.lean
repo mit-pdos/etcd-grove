@@ -56,7 +56,7 @@ theorem Transport.dial.wp_proof (wp_add : Stats.add.spec (GF := GF) (hG := hG))
   intro F t γ N id n p pid a et ed
   wp_start as ⟨#Ht, #Hp, #Het, #Hed⟩
   iunfold isTransportCore at Ht
-  icases Ht with ⟨%sp, #Hid, #Hnode, #Hstats, #Hs, #Hn, -, -⟩
+  icases Ht with ⟨%sp, %sc, %γsc, #Hid, #Hnode, #Hstats, #Hs, #Hn, -, -⟩
   iunfold isPeerAddr at Hp
   icases Hp with ⟨#Hpid, #Hpa, #Hap, %Hok⟩
   try wp_auto

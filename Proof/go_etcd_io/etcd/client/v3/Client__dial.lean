@@ -8,7 +8,8 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__dial
 public import Spec.go_etcd_io.etcd.client.v3.Client__dialSetupOpts
 public import Spec.go_etcd_io.etcd.client.v3.authority
 public import Spec.google_golang_org.grpc.NewClient
-public import Spec.fmt.SprintfClientPtr
+public import Spec.fmt.SprintfArgs
+public import Proof.fmt.SprintfPure
 public import Spec.google_golang_org.grpc.WithPerRPCCredentials
 public import Spec.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
 
@@ -30,28 +31,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-omit [GooseInterp] [GooseSemantics] hG sem package_sem in
-/-- `Sprintf("%s://%p/%s", x, ...)` begins with `x` and `://`. -/
-theorem sprintf_scheme_prefix [GoSemanticsFunctions] [go.IntoValInj GoString] (x : GoString)
-    (args : List GoInterface) (out : GoString)
-    (h : _root_.Perennial.fmt.SprintfOut go!"%s://%p/%s" (interface.mkOk go.string #x :: args)
-      out) :
-    (x ++ go!"://") <+: out := by
-  have hf : go!"%s://%p/%s" = W8 37 :: W8 115 :: go!"://%p/%s" := rfl
-  rw [hf] at h
-  obtain ⟨o1, rfl, h1⟩ := _root_.Perennial.fmt.SprintfOut.str_inv h
-  have hf1 : go!"://%p/%s" = W8 58 :: W8 47 :: W8 47 :: go!"%p/%s" := rfl
-  rw [hf1] at h1
-  obtain ⟨o2, rfl, h2⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) h1
-  obtain ⟨o3, rfl, h3⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) h2
-  obtain ⟨o4, rfl, -⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) h3
-  exact ⟨o4, by simp⟩
-
 theorem Client.dial.wp_proof
     (wp_dialSetupOpts : Client.dialSetupOpts.spec (GF := GF) (hG := hG))
     (wp_authority : authority.spec (GF := GF) (hG := hG))
     (wp_NewClient : grpc.NewClient.spec (GF := GF) (hG := hG))
-    (wp_Sprintf : fmt.SprintfClientPtr.spec (GF := GF) (hG := hG))
+    (wp_Sprintf : fmt.SprintfArgs.spec (GF := GF) (hG := hG))
     (wp_PerRPCCredentials :
       credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG))
     (wp_WithPerRPCCredentials : grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG)) :
@@ -121,6 +105,26 @@ theorem Client.dial.wp_proof
   wp_apply wp_slice_append_dfrac (V := GoInterface) o1' os1' DFrac.discard cfg.DialOptions' []
     DFrac.discard $$ [$Hos1' $Ho1c' $Hdo] as %o2 ⟨#Ho2, Ho2c, -⟩
   · ipureintro; exact DFrac.valid_discard
+  -- `clientTargetSeq.Add(1)`: the target's number (any value), under the counter's invariant
+  ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨-, -, -, -, -, -, -, -, #Hcts⟩
+  ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
+  · iPkgInit
+  wp_apply _root_.Perennial.sync.atomic.Uint64.wp_Add _ (W64 1) $$ [$Hat]
+  iinv Hcts with ⟨%n, >Hn⟩ Hclose
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑go_etcd_io.etcd.cache.v3.clientTargetSeqN from
+    Std.LawfulSet.empty_subset)
+  iintro Hmask
+  inext
+  iexists n
+  iframe Hn
+  iintro Hn
+  imod Hmask with -
+  imod Hclose $$ [Hn] with -
+  · inext; iexists _; iexact Hn
+  imodintro
+  (try wp_auto)
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   rw [ite_eq_left (by simp at Hlen; word)]
   wp_apply wp_load_slice_index esl (sint.Z (W64 0)) (ep :: rest) DFrac.discard ep (by decide) $$ [$Hesl]
@@ -129,25 +133,20 @@ theorem Client.dial.wp_proof
   wp_apply wp_authority ep as %a -
   · ipureintro; exact Hp1
   wp_apply wp_slice_literal (V := GoInterface)
-    [interface.mkOk go.string go_etcd_io.etcd.client.v3.internal.resolver.Schema,
-      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty) #c,
-      interface.mkOk go.string #a]
+    [interface.mkOk go.string #(go!"etcd-endpoints"),
+      interface.mkOk go.uint64 #(n + W64 1), interface.mkOk go.string #a]
   isplitr
   · ipureintro; rfl
   iintro %al ⟨Hal, -⟩
   (try wp_auto)
-  wp_apply wp_Sprintf _ _ _ (DFrac.own 1) $$ [$Hal] as %tgt ⟨-, %Hout⟩
-  · ipureintro
-    -- the client is formatted by `%p` (its address), the strings by `%s`
-    refine ⟨[⟨W8 115, false⟩, ⟨W8 112, false⟩, ⟨W8 115, false⟩], by rfl, ?_⟩
-    simp only [fmt.SprintfClientArgsAt]
-    refine ⟨?_, ?_, ?_, trivial⟩
-    · exact Or.inl (_root_.Perennial.fmt.ArgsWf.cons_string go!"etcd-endpoints" []
-        _root_.Perennial.fmt.ArgsWf.nil _ (List.mem_singleton_self _))
-    · exact Or.inr (And.intro rfl rfl)
-    · exact Or.inl (_root_.Perennial.fmt.ArgsWf.cons_string a [] _root_.Perennial.fmt.ArgsWf.nil _
-        (List.mem_singleton_self _))
-  have Hpre := sprintf_scheme_prefix go!"etcd-endpoints" _ tgt Hout
+  -- `Sprintf("%s://0x%x/%s", resolver.Schema, n, a)`: the scheme, then `://`
+  wp_apply (fmt.wp_Sprintf_pure wp_Sprintf go!"%s://0x%x/%s"
+    [.dir none _root_.Perennial.fmt.verb_s, .lit go!"://0x", .dir none _root_.Perennial.fmt.verb_x,
+      .lit go!"/", .dir none _root_.Perennial.fmt.verb_s] _ _ _ (DFrac.own 1) (by fmt_encode)
+    (by fmt_fits) (.str _ _ _ (.int _ _ _ _ (.uint64 _) (.str _ _ _ .nil)))) $$ [$Hal] as %tgt ⟨-, %Hout⟩
+  have Hpre : (go!"etcd-endpoints" ++ go!"://") <+: tgt := by
+    rw [Hout]
+    simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render]
   have Hdok0 : dialOk ([GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
     refine ⟨?_, ?_, by simp, si, by simp⟩

@@ -23,10 +23,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `jitterUp(d, j)` returns (some `Duration`: float arithmetic over `rand.Float64()`, converted back
-to an integer). No premise: the backoff functions built from it run outside any package fact. -/
+to an integer). Its premise is `math/rand`'s `isPkgInit` alone (`rand.Float64`'s; math-rand-isinit,
+2026-11-24): the backoff functions built from it run outside any other package fact. -/
 abbrev jitterUp.spec : Prop :=
   ∀ (d : time.Duration) (j : w64),
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.jitterUp)) (Val #d)) (Val #j))
   {{ (r : time.Duration), RET #r; True }}
 

@@ -291,7 +291,7 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
     iapply HΦ $$ %k %e %zs %h1 %h2 %(hP _ _ rfl) Hm Hbs Hc
   have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -462,20 +462,20 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hj', hys', hcj', .inl ⟨by omega, hsln, rfl⟩⟩
       · rw [decide_eq_false he0]
         wp_auto
         simp only [decide_eq_false he0, Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hj', hys', hcj', .inr ⟨rfl, (by intro h; cases h), e, hPe, he0⟩⟩
     · rw [decide_eq_false hfull]
@@ -510,13 +510,13 @@ theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
       · rw [decide_eq_false he0]
         simp only [Bool.not_false]
         wp_auto
-        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+        wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn Hsys as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         iapply HΦ
         iframe Hokn
         iframe
         isplitl []
-        · isplitl [] <;> iassumption
+        · (repeat' isplitl []) <;> iassumption
         · ipureintro
           exact ⟨hj', hys', hcj', .inr ⟨rfl, (by intro h; cases h), e, hPe, he0⟩⟩
 

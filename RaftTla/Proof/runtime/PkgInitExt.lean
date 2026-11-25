@@ -25,12 +25,16 @@ public import Perennial.Code.bytes
 public import Perennial.Code.cmp
 public import Perennial.Code.context
 public import Perennial.Code.crypto.rand
+public import Perennial.Code.crypto.sha1
 public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
+public import Perennial.Code.hash
 public import Perennial.Code.internal.bytealg
+public import Perennial.Code.internal.byteorder
 public import Perennial.Code.internal.oserror
+public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.stringslite
 public import Perennial.Code.internal.testlog
 public import Perennial.Code.io
@@ -39,6 +43,7 @@ public import Perennial.Code.log
 public import Perennial.Code.maps
 public import Perennial.Code.math
 public import Perennial.Code.math.big
+public import Perennial.Code.math.rand
 public import Perennial.Code.reflect
 public import Perennial.Code.slices
 public import Perennial.Code.sort
@@ -67,6 +72,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | cmp : ExternalInit pkg_id.cmp _root_.Perennial.cmp.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'
   | crypto_rand : ExternalInit pkg_id.crypto.rand _root_.Perennial.crypto.rand.initialize'
+  | crypto_sha1 : ExternalInit pkg_id.crypto.sha1 _root_.Perennial.crypto.sha1.initialize'
   | encoding_binary : ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
   | errors : ExternalInit pkg_id.errors _root_.Perennial.errors.initialize'
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
@@ -76,8 +82,11 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
   | go_etcd_io_raft_v3_tracker : ExternalInit pkg_id.go_etcd_io.raft.v3.tracker _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
+  | hash : ExternalInit pkg_id.hash _root_.Perennial.hash.initialize'
   | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
+  | internal_byteorder : ExternalInit pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+  | internal_strconv : ExternalInit pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | internal_testlog : ExternalInit pkg_id.internal.testlog _root_.Perennial.internal.testlog.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
@@ -87,6 +96,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | maps : ExternalInit pkg_id.maps _root_.Perennial.maps.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
   | math_big : ExternalInit pkg_id.math.big _root_.Perennial.math.big.initialize'
+  | math_rand : ExternalInit pkg_id.math.rand _root_.Perennial.math.rand.initialize'
   | reflect : ExternalInit pkg_id.reflect _root_.Perennial.reflect.initialize'
   | slices : ExternalInit pkg_id.slices _root_.Perennial.slices.initialize'
   | sort : ExternalInit pkg_id.sort _root_.Perennial.sort.initialize'

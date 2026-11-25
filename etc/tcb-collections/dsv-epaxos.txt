@@ -2,9 +2,10 @@
 # extension and examples/lib/remote, in the part Dsverify/: swiftpaxos' EPaxos (epaxos, replica,
 # master, wire) and its proof, the kit's links (examples/epaxosnet/Link.lean) and its closed theorem
 # `epaxos_remote_robust` (examples/epaxosnet/TopLevelRobustness.lean: seventeen machines, Robust []
-# under DistDeploy for fewer than 2^31 - 1 steps, over the statement's premises: the InitHyps of
-# net/rpc, net/http, TreemapHyp, RpcHttpAddr, RpcHttpHyp, RpcBoot of the six servers; encoding/json's
-# initializer is the main tree's proved `wp_initialize'`, dsv-json-main).
+# under DistDeploy for fewer than 2^63 steps and 2^31 live threads per machine, over the
+# statement's premises: the InitHyps of net/rpc, net/http, TreemapHyp, RpcHttpHyp,
+# RpcBoot of the six servers; encoding/json's initializer is the main tree's proved
+# `wp_initialize'`, dsv-json-main).
 # Its `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-epaxos.txt            what it rests on

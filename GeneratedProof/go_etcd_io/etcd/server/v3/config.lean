@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_etcd_io.bbolt
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.transport
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
@@ -10,6 +11,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discover
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.datadir
 public import GeneratedProof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.path.filepath
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.config
