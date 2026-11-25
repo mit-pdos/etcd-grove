@@ -774,6 +774,9 @@ EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
 # (#26, 2026-11-24) `bytes.Buffer`'s `Write` and `Bytes` proved over Perennial's (`=_root_.Perennial.bytes.*`)
 EXTRA_IMPORTS["--k8setcd3"] += ["Perennial.Proof.bytes.Link"]
 EXTRA_IMPORTS["--server"] += ["Proof.bytes.BufferLinked"]
+# (pin e94f33b50, 2026-11-25) `storage.syncDir`'s callees, proofs passed as terms (`=`)
+EXTRA_IMPORTS["--server"] += ["Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir",
+                              "Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS", "Proof.os.File__SyncS"]
 # (#26, 2026-11-24) `WithCancel(TODO())` over Perennial's context proofs (`=_root_.Perennial.context.*`)
 EXTRA_IMPORTS["--client"] += ["Perennial.Proof.context.Link", "Perennial.Proof.sync.atomic.Link"]
 # (net-swap, etcd-dist D2, 2026-11-22) `net.Listen`'s proof takes the part `Net/`'s `Listen` spec, its

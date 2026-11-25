@@ -1017,7 +1017,14 @@ datadir_ToSnapDir: filepath_Join datadir_ToMemberDir
 datadir_ToBackendFileName: filepath_Join datadir_ToSnapDir
 config_ServerConfig__BackendPath: datadir_ToBackendFileName
 storage_OpenBackend:
-storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
+# (pin e94f33b50, 2026-11-25) the directory sync after the rename (`storage.syncDir`, the fork's; no
+# error, over `fileutil.OpenDir.specNE`, `Fsync.specDirS` and the os proofs, taken as terms: their
+# specs bind the file extension's instances) and `filepath.Dir` of the backend's path
+filepathlite_VolumeName: filepathlite_volumeNameLen filepathlite_FromSlash
+filepathlite_Dir: filepathlite_VolumeName filepathlite_IsPathSeparator filepathlite_Clean
+filepath_Dir: filepathlite_Dir
+storage_syncDir: =go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofNE =go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_proofDirS~os.File.Sync.wp_proofDirS
+storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath filepath_Dir storage_syncDir storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
 # SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
 # and `sendMergedSnap` with their bodies; the trust boundary: `io.Pipe` and its writer's

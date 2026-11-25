@@ -1584,6 +1584,31 @@ rename) needs the rename's log position: `os.Rename.spec` (proved, `Proof/os/Ren
 - P8 is integrated on `etcd-safe-main-pin-p8/2026-11-24`, not here: `NewServerRAt` needs restating over
   `srvFilesC` first (see that branch's §16.1).
 
+**Step 2, 2026-11-25 (pin branch): the blocker closed with no new trust.** The no-error chain, each
+link from `etcdFsSem`'s step premise `etcdSQ` (`NoIoErr allIo` ∧ `NoMapLockErr allIo`, packed as
+`theFs`'s `FsNoErrAll` by `etcdFsNoErr`) and nothing else:
+- `Fs.openDir_succ` (`GooseLang/Ext/Fs/NoErrSpecsOpenDir.lean`): a read-only `open` of a directory has a
+  success from every free fd (`OpenEffect`'s directory case); `wp_osOpenDirGenSQ`
+  (`TreeSharedOpenDir.lean`, `wp_osOpenDirGenS'` now its instance) gives a failure's errno from the
+  step; `wp_osOpenDirSNE`: with `open_failure_eintr`, a failure is `EINTR` (`NoIoErr`'s "a success
+  exists → errno 0" with a free fd, `NoMapLockErr`'s `EINTR` clause with none).
+- `os.OpenFile.wp_dirSNE`, `os.Open.wp_dirSNE` (`Proof/os/NsSNE.lean`): `OpenFile` retries `EINTR`, so
+  no error, under `FsNoErrOn (· = p)` and `PathFits p`.
+- `fileutil.OpenDir.specNE`/`wp_proofNE`.
+- `storage.syncDir.spec` restated with no error (`RET nil`, `osCommitLb n`) under `FsNoErrOn (· = dir)`
+  and `PathFits dir`: `Fsync.specDirS`'s error needs `¬ FsNoErrIno`, the close is
+  `os.File.Close.wp_dirSNE` (`NoIoErr`'s `DirClose`).
+- `os.Rename.spec`'s post keeps the rename's log entry (`backend.renamed src dst`: `renameEntF`, the
+  entry `x` a `.rename` of a file from `d/bs` onto `d/bt`, and `osLogLb (x + 1)`).
+- `OpenSnapshotBackend` (`theFs` split; the directory is the snapshot directory, `snap.backendPath_dir`;
+  it fits, `Fs.pathFits_of_child`): the success disjunct adds `backend.renamedDur src (backendPathOf dd)`
+  (the entry with `osCommitLb (x + 1)`), the error disjunct is unchanged. Not persistent as stated
+  (the instance did not synthesize through `onFs`'s eight binders; add one for T7 if it needs it).
+  `SnapApplyWalk` drops it for now (`-`): T7 is its consumer.
+Bounds: the 17 new matches (NewServer's pattern restated in `NewServerCrash`, `NewServerDist`,
+`PeerServeDist`, `StartMemberDist`, and one stock match in `Proof/.../NewServerRAt.lean`, the crash
+branch's restart proof) are owner allows in `etc/bounds-allow.txt`; `--check` at 400.
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces

@@ -45,6 +45,16 @@ theorem snapDBPath_parent [GooseExts] (dd : GoString) (i : w64) :
     parentOf (Fs.child (config.snapDirOf dd) go!"db")
   rw [Fs.parentOf_child' _ _ (snapDBName_nameOk i), Fs.parentOf_child' _ _ hdb]
 
+/-- **The directory of the backend's file is the snapshot directory**: a claim's `d/b` that is the
+backend's path has `d` the snapshot directory (the directory `syncDir` syncs, pin e94f33b50). -/
+theorem backendPath_dir [GooseExts] {dd d b : GoString} (hb : NameOk b)
+    (h : config.backendPathOf dd = Fs.child d b) : d = config.snapDirOf dd := by
+  have hdb : NameOk go!"db" := by unfold NameOk; decide
+  have h2 : parentOf (config.backendPathOf dd) = some (config.snapDirOf dd) :=
+    Fs.parentOf_child' (config.snapDirOf dd) go!"db" hdb
+  rw [h, Fs.parentOf_child' _ _ hb] at h2
+  exact Option.some.inj h2
+
 /-- **A snapshot file of a data directory that fits fits** (`bootOk`'s `Hsfree` claims carry it:
 implied by `bootCfgFresh`'s `DirFits`, wal-fsfix2). -/
 theorem pathFits_snapDBPath {dd : GoString} (hd : Fs.DirFits dd) (i : w64) :

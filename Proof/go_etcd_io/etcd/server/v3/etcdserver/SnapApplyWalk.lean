@@ -362,7 +362,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     isplitr
     · ipureintro; exact ⟨hdbo, hmmap, hP.1, hP.2.1⟩
     iexact Hcreate
-  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, Hγt, #HnFile⟩ | ⟨%Herr, -, -⟩)
+  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, Hγt, #HnFile, -⟩ | ⟨%Herr, -, -⟩)
   rotate_left
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩

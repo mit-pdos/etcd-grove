@@ -299,11 +299,14 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.tickToDur
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit
 public import Proof.path.filepath.Clean
+public import Proof.path.filepath.Dir
 public import Proof.path.filepath.Join
 public import Proof.path.filepath.join
 public import Proof.internal.filepathlite.Clean
+public import Proof.internal.filepathlite.Dir
 public import Proof.internal.filepathlite.FromSlash
 public import Proof.internal.filepathlite.IsPathSeparator
+public import Proof.internal.filepathlite.VolumeName
 public import Proof.internal.filepathlite.lazybuf__append
 public import Proof.internal.filepathlite.lazybuf__index
 public import Proof.internal.filepathlite.lazybuf__string
@@ -653,6 +656,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__SetConfState
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.syncDir
 public import Proof.strconv.FormatBool
 public import Proof.strconv.FormatUint
 public import Proof.strings.Contains
@@ -772,6 +776,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.jsoncodec.Linked
 public import Proof.bytes.BufferLinked
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
+public import Proof.os.File__SyncS
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__advertiseMatchesCluster
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootClusterRows
@@ -1381,6 +1388,22 @@ theorem datadir.wp_ToBackendFileName :
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.BackendPath.wp_proof datadir.wp_ToBackendFileName
+
+theorem filepathlite.wp_VolumeName :
+    filepathlite.VolumeName.spec (GF := GF) (hG := hG) :=
+  filepathlite.VolumeName.wp_proof filepathlite.wp_volumeNameLen filepathlite.wp_FromSlash
+
+theorem filepathlite.wp_Dir :
+    filepathlite.Dir.spec (GF := GF) (hG := hG) :=
+  filepathlite.Dir.wp_proof filepathlite.wp_VolumeName filepathlite.wp_IsPathSeparator filepathlite.wp_Clean
+
+theorem filepath.wp_Dir :
+    filepath.Dir.spec (GF := GF) (hG := hG) :=
+  filepath.Dir.wp_proof filepathlite.wp_Dir
+
+theorem storage.wp_syncDir :
+    storage.syncDir.spec (GF := GF) (hG := hG) :=
+  storage.syncDir.wp_proof go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofNE (go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_proofDirS os.File.Sync.wp_proofDirS)
 
 theorem consistentIndex.wp_SetConsistentIndex :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -2811,7 +2834,7 @@ theorem storage.wp_OpenBackend :
 
 theorem storage.wp_OpenSnapshotBackend :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) :=
-  storage.OpenSnapshotBackend.wp_proof raftpb.SnapshotMetadata.wp_GetIndex snap.Snapshotter.wp_DBFilePath fmt.wp_Errorf os.wp_Rename config.ServerConfig.wp_BackendPath storage.wp_OpenBackend
+  storage.OpenSnapshotBackend.wp_proof raftpb.SnapshotMetadata.wp_GetIndex snap.Snapshotter.wp_DBFilePath fmt.wp_Errorf os.wp_Rename config.ServerConfig.wp_BackendPath filepath.wp_Dir storage.wp_syncDir storage.wp_OpenBackend
 
 theorem heap.wp_Init_ :
     heap.Init_.spec (GF := GF) (hG := hG) :=

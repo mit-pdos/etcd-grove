@@ -300,6 +300,28 @@ def fileAt (path : GoString) (D : Data) : IProp GF := onFs (fileAtF path D)
 saves a snapshot's file under. -/
 def fileFree (path : GoString) : IProp GF := onFs (fileFreeF path)
 
+/-- **The log's entry `x` renamed the file at `src` onto `dst`** (pin e94f33b50, 2026-11-25), at the
+instances: the rename of a file (the inode `i`) from the name `bs` of the directory `j` onto the name
+`bt` of `j'`, `src` and `dst` being `d/bs` and `d/bt`. -/
+def renameEntF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (src dst : GoString) (x : Nat) :
+    IProp GF :=
+  iprop(∃ (d bs bt : GoString) (j j' i : Ino) (old : Option Node) (s : Nat),
+    ⌜src = child d bs ∧ dst = child d bt⌝ ∗
+    osLogEnt x (⟨.rename j bs j' bt (.file i) old, s⟩ : LogEntry))
+
+/-- **The file at `src` was renamed onto `dst`** (pin e94f33b50, 2026-11-25): the rename's
+entry is in the log (`osLogLb` past it). What `os.Rename` gives. -/
+def renamed (src dst : GoString) : IProp GF :=
+  onFs iprop(∃ x : Nat, renameEntF src dst x ∗ osLogLb (x + 1))
+
+/-- **The file at `src` was renamed onto `dst`, durably** (pin e94f33b50, 2026-11-25): the
+rename's entry is committed (`osCommitLb` past it: a sync of the directory after the rename), so a
+crash's durable tree has it. What `storage.OpenSnapshotBackend` gives, for the member's crash law
+(C-I1's `dbCrash` leaves the name's durability to its caller, T7). -/
+def renamedDur (src dst : GoString) : IProp GF :=
+  onFs iprop(∃ x : Nat, renameEntF src dst x ∗ osCommitLb (x + 1))
+
+
 /-- **The open database `γ`'s file is at `path`, the name the caller's** (S5, 2026-11-18;
 exclusive): the claim on `path`, which names `γ`'s inode. `New` gives it; the caller keeps it while
 the database is open, and either joins it with what `Close` gives back (`bPath_join`: the file at

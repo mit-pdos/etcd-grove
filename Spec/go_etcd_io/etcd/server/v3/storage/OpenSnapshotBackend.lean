@@ -57,7 +57,9 @@ cfg.DataDir)`, `bootOk`'s; until then the opaque `snapDBPath ss` and an equation
 `notes/snapdir-crossworld.md`): the snapshot's file and the backend's are then names of one
 directory, which `os.Rename` needs. (bkarea, 2026-11-22) For a data directory shorter than `2^60`
 bytes, which `cfg.BackendPath()`'s proof needs (`filepath.Join`'s premise; `applySnapshot`'s callers
-have it from the data directory that fits, `srvSnapRO`). -/
+have it from the data directory that fits, `srvSnapRO`). (pin e94f33b50, 2026-11-25) The fork syncs the
+snapshot directory after the rename (`syncDir`, with no error under `theFs`'s `FsNoErrAll`: the error
+case is unchanged): on success the rename is durable (`renamedDur`). -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
@@ -81,7 +83,11 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
           hooksAt b (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #hk) ∗
           bPath γ.db (config.backendPathOf cfg.DataDir') ∗ R' ∗
           -- (2026-11-04, R2b-3c part 2) the backend's file is the backend path (`OpenBackend`'s)
-          bFile γ (config.backendPathOf cfg.DataDir')) ∨
+          bFile γ (config.backendPathOf cfg.DataDir') ∗
+          -- (pin e94f33b50, 2026-11-25) the rename onto the backend path is durable (the directory
+          -- synced after it, `syncDir`): for the member's crash law (C-I1, T7)
+          renamedDur (snap.snapDBPath (config.snapDirOf cfg.DataDir') md.Index')
+            (config.backendPathOf cfg.DataDir')) ∨
        (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil ∧
           ¬ (snap.dirReadOk ss ∧
             renameOk (snap.snapDBPath (config.snapDirOf cfg.DataDir') md.Index') (config.backendPathOf cfg.DataDir'))⌝ ∗
