@@ -124,7 +124,7 @@ theorem Server.wp_proof
     wp_apply (wp_Serve gs l drvAddr (drvSvc γid)) $$ [Hgs Hlo] as %err2 -
     · unfold grpcServeTok
       iexists ⟨[], [], [] ++ descRegs drvSvcName mds (interface.mkOk (go.GoType.PointerType server.ty) #sptr),
-        [] ++ descSRegs drvSvcName sds (interface.mkOk (go.GoType.PointerType server.ty) #sptr)⟩, [drvSvcName]
+        [] ++ descSRegs drvSvcName sds (interface.mkOk (go.GoType.PointerType server.ty) #sptr)⟩, [] ++ [drvSvcName]
       isplitl [Hgs Hlo]
       · ileft
         isplitl [Hgs]

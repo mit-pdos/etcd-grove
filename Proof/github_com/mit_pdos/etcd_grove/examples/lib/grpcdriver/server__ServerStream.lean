@@ -109,8 +109,10 @@ theorem server.ServerStream.wp_proof
       exfalso
       apply hb
       refine ⟨by word, by word, by word⟩
-  · have hc : decide (sint.Z k < sint.Z (W64 (sv.Value'.length : Int))) = false :=
-      go.intoVal_inj Hif
+  · have hc : decide (sint.Z k < sint.Z (W64 (sv.Value'.length : Int))) = false := by
+      cases h : decide (sint.Z k < sint.Z (W64 (sv.Value'.length : Int)))
+      · rfl
+      · rw [h] at Hif; exact absurd rfl Hif
     simp only [hc, Bool.false_eq_true, ↓reduceIte]
     try wp_auto
     iapply HΦ
