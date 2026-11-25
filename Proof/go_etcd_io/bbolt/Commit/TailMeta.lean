@@ -31,9 +31,14 @@ def WDb.withC (w : WDb) (C : CommitSt) : WDb := { w with C := C }
 
 proj_simps WDb.withC
 
+
 /-- The committed state the commit publishes: the meta `mv` (summed) over the new tree's pages. -/
 abbrev pubC (C : CommitSt) (mv : Meta) (pages : Pages) : CommitSt :=
   C.publish (metaBuf mv) (metaSummed mv) pages
+
+/-- The published state's txid is the meta's (the projection, without unfolding the checksum). -/
+theorem WDb.withC_pubC_txid (w : WDb) (C : CommitSt) (mv : Meta) (pages : Pages) :
+    (w.withC (pubC C mv pages)).C.txid = (metaSummed mv).txid'.toNat := rfl
 
 /-- **`commitStep_commit`'s premises** for the committed state `C`, the writer's freelist `fl`,
 the mapping `(b, l)`, the meta `mv` and the new tree's `pages` (the data `Dn`), the new slots `S`
@@ -162,7 +167,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) ∗
         ((wdbLive K.B K.db K.p K.sp K.t0 tx ((some v, some (w.C.txid + 1), true, true) : WSt)
             ((w.reslot m' w.W w.wb).withC (pubC w.C X.t.mv pages)) ∗
-          ghostVar K.B.st (1 : Qp).half.half (Dn, (pubC w.C X.t.mv pages).txid) ∗ Q) ∨
+          ghostVar K.B.st (1 : Qp).half.half (Dn, w.C.txid + 1) ∗ Q) ∨
          (⌜err ≠ interface.nil⌝ ∗
           wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) (w.reslot m' w.W w.wb) ∗
           ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
@@ -204,7 +209,10 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
     have hC'tx : (pubC w.C X.t.mv pages).txid = w.C.txid + 1 := by
-      simp only [pubC, CommitSt.publish, metaSummed_txid]; exact htx
+      rw [show (pubC w.C X.t.mv pages).txid = (metaSummed X.t.mv).txid'.toNat from rfl,
+        metaSummed_txid]; exact htx
+    ihave Hstq : ghostVar K.B.st (1 : Qp).half.half (Dn, w.C.txid + 1) $$ [Hstq]
+    · rw [← hC'tx]; iexact Hstq
     iframe Hstq HQ
     ihave Hrc := receipt_succ_sub (GF := GF) w.C.txid K.t0 $$ [Hrc Hrc1]
     · iframe

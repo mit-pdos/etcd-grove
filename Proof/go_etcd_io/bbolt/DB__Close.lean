@@ -186,10 +186,10 @@ theorem DB.Close.wp_proof
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   subst hC
   -- the committed data is the caller's
-  unfold boltState boltStateDef
-  icases Hst with ⟨Hs1, Hbq⟩
+  unfold boltState boltStateDef boltStateVDef
+  icases Hst with ⟨%ν, Hs1, Hbq⟩
   icombine Hs1 Hst' gives % ⟨_, hD⟩
-  subst hD
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj hD
   iunfold Pm at HP
   icases HP with ⟨%ms, Hpmap, Hpmf, Hptok, Hpf⟩
   icombine Hgmap Hpmap gives % ⟨_, hmsE⟩

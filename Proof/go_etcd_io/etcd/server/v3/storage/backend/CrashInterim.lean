@@ -8,8 +8,9 @@ crash proof of bbolt over the file extension (`plans/bbolt-crash-plan.md`; minib
 `osfs/bboltfs/DBCrash.lean`, `BootP1.lean` the template). The member's crash law (`memberGen_crash.law`,
 T7) uses `dbCrash`; the backend's commit (T10) the record laws. Restated 2026-11-25 (bbolt-crash, agreed
 with T10 on #50): `_half` became `take`/`putSame`/`putStep` (usable inside `Tx.Commit`'s two-phase
-update; the version makes the put-back sound), the announcement `pd` and its laws went (the commit point
-moved before the meta's `pwrite`), and `dbCrash` names its mask.
+update; the version makes the put-back sound), the announcement `pd` and its laws went (sound for a crash
+proof that fires `Commit`'s update no later than the meta's `PWriteStart`, see below), and `dbCrash` names
+its mask.
 
 **The predicates.**
 * `dbOpts γ` (persistent, `DbOpts.lean`): the database `γ` was opened with `NoSync = false` and
@@ -33,9 +34,12 @@ moved before the meta's `pwrite`), and `dbCrash` names its mask.
 file extension's crash (`OsCrash`, `GooseLang/Ext/Fs/Impl.lean`).**
 * A write transaction holds `rwlock`; `Tx.Commit` writes the dirty pages and the freelist, `fdatasync`s,
   writes the meta page at slot `txid % 2`, `fdatasync`s again (`tx.go:572`, `:619`, both under
-  `!db.NoSync`), then returns. Its commit point (the update of the committed data, `Tx.Commit.spec`) is,
-  under `FsNoErrAll`, just before the meta page's `pwrite` starts (under `metalock`, which `Begin`'s meta
-  read takes, so no reader sees the gap): no byte of the new meta is on disk before it.
+  `!db.NoSync`), then returns. **Condition** (review `notes/axiom-review/c-i1-takeput.md`): the laws hold
+  of a crash proof of bbolt whose `Commit` fires its update (the commit point, `Tx.Commit.spec`) under
+  `FsNoErrAll` no later than the meta `writeAt`'s `PWriteStart` (after `metalock.Lock()`, `tx.go:612`; `Begin`
+  reads the meta under `metalock`, so no reader sees the gap): then no byte of the new meta is a crash
+  candidate before the record moves. Today's in-process proof fires it when the page lands
+  (`Commit/Step.lean`); the crash proof that retires these laws moves it (`plans/bbolt-crash-plan.md` §2).
   Under `FsNoErrAll` (the run's file semantics: no file step fails) a commit that reached its commit
   point returns only after both syncs. So while one holds a fresh write transaction at the committed data
   `D` (`dbCrashKeep_new`), the last commit returned and the file on disk is `D`'s.
