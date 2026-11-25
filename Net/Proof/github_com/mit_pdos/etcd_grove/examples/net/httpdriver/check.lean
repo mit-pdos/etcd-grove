@@ -96,7 +96,7 @@ theorem check.wp_proof (wp_Get : net.http.Header.Get.spec (GF := GF) (hG := hG))
     check.spec (GF := GF) (hG := hG) := by
   intro q d resp rv hc body hq hpre
   rcases q with ⟨qraw, qkind, qmeth, qval, qbody⟩
-  wp_start as ⟨#Hf, Hresp, Hh⟩
+  wp_start as ⟨#Hf, #Hresp, Hh⟩
   iunfold drvFacts at Hf
   icases Hf with ⟨%f, #Hrg, #Hrf⟩
   cases d with
