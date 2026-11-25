@@ -121,7 +121,7 @@ end pure
 /-! ## The model on porcupine's operations -/
 
 section dec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [GooseExts]
 variable {GF : BundledGFunctors}
 variable {St J I O : Type} [DecidableEq J]
 

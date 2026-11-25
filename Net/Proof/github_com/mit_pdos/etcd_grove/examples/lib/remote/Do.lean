@@ -40,7 +40,7 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-! The reply's byte loop: its counter `j` stays below the reply's length `L < 2^63`. -/
 
@@ -78,8 +78,8 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     (wp_hang : hang.spec (GF := GF) (hG := hG))
     (wp_NewProph : github_com.goose_lang.primitive.NewProph.spec (GF := GF) (hG := hG))
     (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG)) :
-    Do.spec (GF := GF) (hG := hG) (St := St) (J := J) (I := I) (O := O) := by
-  intro R a i Φo Ψ cd d
+    Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
+  intro J R a i Φo Ψ cd d
   wp_start as ⟨#Hm, #Ha, #Hcd, Hbu, Hrd, Hch⟩
   iunfold codecOk at Hcd
   icases Hcd with ⟨#HEncIn, #HDecIn, #HEncOut, #HDecOut, #HIsRead, #HUnk, #HIsUnkO, #HIsUnkU⟩
