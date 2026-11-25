@@ -45,7 +45,7 @@ theorem _Driver_ServerStream_Handler.wp_proof
     iexists _
     iexact «$r0»
   wp_bind (App (Val #(methods si.ty go!"RecvMsg" si.v)) _)
-  iapply HRecv $$ %[] %«$r0_ptr» [HRt Hm]
+  iapply HRecv $$ %([] : List GoString) %«$r0_ptr» [HRt Hm]
   · iframe
   iintro !> %err Hres
   icases Hres with (⟨%Herr, %v, Hrv, -, HRt⟩ | ⟨#Heof, %Hne, HRt, #Hcl, -⟩ |

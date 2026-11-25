@@ -24,6 +24,8 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode EtcdGrove
 
+attribute [local reducible] EtcdGrove.pbStringValueST
+
 namespace github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver
 
 section proof
@@ -87,7 +89,7 @@ theorem server.ClientStream.wp_proof
     wp_apply wp_String stringValueMax g (by unfold stringValueMax; omega) as %l Hl
     try wp_auto
     wp_bind (App (Val #(methods si.ty go!"SendAndClose" si.v)) _)
-    iapply HSac $$ %[] %l %g [HSt Hl]
+    iapply HSac $$ %([] : List GoString) %l %g [HSt Hl]
     · iframe
       iapply Hdn
       unfold csDn

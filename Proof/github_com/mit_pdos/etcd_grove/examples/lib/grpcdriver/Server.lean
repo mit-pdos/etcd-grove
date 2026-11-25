@@ -27,6 +27,8 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net EtcdGrove
 
+attribute [local reducible] EtcdGrove.pbStringValueST
+
 namespace github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver
 
 section proof
