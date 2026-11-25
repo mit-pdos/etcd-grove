@@ -64,7 +64,11 @@ theorem driverClient.Bidi.wp_proof
   have hmem : (sd0.StreamName', (#sd0.Handler' : val), sd0.ServerStreams', sd0.ClientStreams') =
       (sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val), sd.ServerStreams',
         sd.ClientStreams')))[2]'(by simp; omega) := by
-    simp [hsd0n]
+    have he : sds[2]'(by omega) = sd0 := by
+      have h := hsd0n
+      rw [List.getElem?_eq_getElem (by omega)] at h
+      exact Option.some.inj h
+    rw [List.getElem_map, he]
   have hmem2 := hmem.trans (List.getElem_of_eq hs _)
   have h1 : sd0.ClientStreams' = true := (congrArg (fun p => p.2.2.2) hmem2).trans rfl
   wp_auto
@@ -77,7 +81,6 @@ theorem driverClient.Bidi.wp_proof
   wp_apply wp_slice_append $$ [$Hsl $Hcap] as %copts ⟨Hco, Hcocap, -⟩
   · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
   ipersist Hco
-  ihave #Hs1 := callOptsOk_singleton sm $$ Hsm
   ihave %Hdl := ownSlice_len ssl _ sds $$ Hssl
   have hb : 0 ≤ sint.Z (W64 2) ∧ sint.Z (W64 2) < sint.Z ssl.len := by
     constructor
@@ -88,8 +91,13 @@ theorem driverClient.Bidi.wp_proof
   ihave ⟨#Hd0, -⟩ := ownSlice_elem_acc ((2 : Nat) : Int) sd0 ssl _ sds (by omega) hsd0 $$ Hssl
   wp_auto
   wp_bind (App (App (App (App (Val _) _) _) _) _)
-  ihave #Hok3 := streamCallOptsOk_of ([sm] ++ []) $$ [Hs1]
-  · simp only [List.append_nil]; iexact Hs1
+  ihave #Hok3 : iprop(streamCallOptsOk (GF := GF) ([sm] ++ [])) $$ []
+  · unfold streamCallOptsOk
+    simp only [List.append_nil]
+    iapply BigSepL.bigSepL_singleton.2
+    unfold streamCallOptOk
+    ileft
+    iexact Hsm
   have hNS := wp_NewStream conn addrs [] anyRes d (fun om om' => om' = om)
     go!"/grpcdriver.Driver/Bidi" pbStringValueST pbStringValueST pbStringValueST_reqReg
     pbStringValueST_repReg Up Spec ctx cd om
