@@ -13,6 +13,8 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveEntryNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveStateNoErr
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__encodeStateNoErr
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__encodeState
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncC
@@ -130,6 +132,49 @@ theorem walCov_saveState (P : WalPbIn GF) (Mr : WalMarshal)
       iframe Hh
       ipureintro; exact fun h => absurd h hc
     · iapply HΦ; iright; iright
+      ipureintro; exact ⟨herr, hc⟩
+
+/-- `encodeState` at a call (see the file header). -/
+theorem walCov_encodeState (P : WalPbIn GF) (Mr : WalMarshal)
+    (wp : go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.spec (W := W) P Mr)
+    (wpNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.specNoErr (Sio := Sio) (W := W) P Mr)
+    (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS) (hp : Loc)
+    (hs : HardStateM) (h1 : 0 < h.rest)
+    (h2 : ((tailRecs Mr h.H h.md h.cuts)[(tailRecs Mr h.H h.md h.cuts).length - h.rest]?).map
+        (fun x => (x.typ, x.data)) = some (stateType, Mr.encState hs))
+    (h3 : h.rest = 1 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi))
+    (hroom : walCov Sio → h.o0 + h.out.length + h.pend.length + ((Mr.encState hs).length + 64) ≤ maxBytes) :
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW ∗ walStIn P Mr hp hs ∗ ⌜hp ≠ null⌝ }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"encodeState")) (Val #hp))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (out' pend' : List w8) (sz' : Nat),
+          walHandleIn P Mr w dir
+            { h with rest := h.rest - 1, out := out', pend := pend', st := hs, sz := sz' } TailMetaW ∗
+          ⌜walCov Sio →
+            out'.length + pend'.length ≤ h.out.length + h.pend.length + ((Mr.encState hs).length + 64)⌝) ∨
+      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
+  iintro %Φ Hpre HΦ
+  by_cases hc : walCov Sio
+  · iapply (wpNE hc R jr r w dir h hp hs h1 h2 h3 (hroom hc)) $$ Hpre
+    inext
+    iintro %err ⟨%herr, %out', %pend', %sz', Hh, %hl⟩
+    iapply HΦ
+    ileft
+    isplitr
+    · ipureintro; exact herr
+    iexists out', pend', sz'
+    iframe Hh
+    ipureintro; exact fun _ => hl
+  · iapply (wp R jr r w dir h hp hs h1 h2 h3) $$ Hpre
+    inext
+    iintro %err (⟨%herr, %out', %pend', %sz', Hh⟩ | %herr)
+    · iapply HΦ; ileft
+      isplitr
+      · ipureintro; exact herr
+      iexists out', pend', sz'
+      iframe Hh
+      ipureintro; exact fun h => absurd h hc
+    · iapply HΦ; iright
       ipureintro; exact ⟨herr, hc⟩
 
 /-- `sync` at a call (see the file header). -/

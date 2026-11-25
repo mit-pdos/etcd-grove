@@ -1213,7 +1213,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       iframe Hnc
       imodintro
       icases walHandleP_openW wl (child r nm) $$ Hh with ⟨Hopen, Hpw⟩
-      ihave #Hst0 := hnil
+      ihave #Hst00 := hnil
+      ihave #Hst0 := walStIn_null P Mr hsZero $$ Hst00
       iunfold walLockIn at Hlk
       icases Hlk with ⟨Henc, Hf, Hfd, Hlks, Hoff⟩
       have hpe0 : Fs.pageEnd 0 = 0 := by unfold Fs.pageEnd; rfl

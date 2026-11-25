@@ -134,7 +134,7 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
   have hsorted := habs.cuts.2.1
   have hlast : segStart lay.cuts lay.cuts.length ≤ d.H.length := hm ▸ habs.lastSynced
   refine ⟨0, d.H, hent, List.length_pos_iff.2 habs.nonempty, by rw [List.drop_zero]; exact hinos,
-    walImg_refl (by omega), hlast, ?_, ?_, ?_⟩
+    walImgS_refl (by omega), hlast, ?_, ?_, ?_⟩
   · -- the first segment's start
     rw [Nat.add_zero]
     refine Nat.le_min.2 ⟨?_, Nat.le_trans (segStart_le_length hsorted _) hlast⟩
@@ -177,7 +177,7 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
         rw [hb.val_unw]
         exact hold0 b (by omega) (by simp at h1; omega)
     rw [himg]
-    refine ⟨List.prefix_append _ _, fun r len c' => ?_⟩
+    refine ⟨List.prefix_append _ _, pendStop_nil fun r len c' => ?_⟩
     rw [decStep_zeros C true (z := lay.old.length - S.length) (by rw [← htail]; exact hz)
       (by simp)]
     simp

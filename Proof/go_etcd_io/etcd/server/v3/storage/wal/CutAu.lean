@@ -354,7 +354,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         have := allRecs_cut Mr d.H d.metadata lay1.cuts (habs.cuts.2.1.imp Nat.le_of_lt)
           (fun b hb => Nat.le_of_lt (hcuts b hb))
         unfold allRecs at this
-        rw [show histM d = d.H.map WalOpG.toM from rfl, this]
+        rw [show histM d = histN d.H from rfl, this]
         intro r hr
         rcases List.mem_append.1 hr with h | h
         · exact habs.fit r h
@@ -362,7 +362,9 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
         ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
         ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hex0
-        (fun z hz => by rw [hm0] at hz ⊢; exact hm0z z hz) hcuts hcpos hnm0 hbt hsq hbtw hcur hwr' hbs' hmeta hfit hz
+        (fun z hz => by rw [hm0] at hz ⊢; exact hm0z z hz) hcuts
+        ⟨(walCutPos_normH _ _).2 hcpos.1, hcpos.2⟩ hnm0
+        ⟨hbt.1, by rw [show histM d = histN d.H from rfl, histN, walLastIdx_normH]; exact hbt.2.1, hbt.2.2⟩ hsq hbtw hcur hwr' hbs' hmeta hfit hz
         hino hgname htmpX (Nat.le_trans (Nat.le_max_right _ _) hls) hsx
       -- the tail record moved, the flag, the parked halves
       imod tailVar_upd γ _ _ (tailG d (cutLay lay1 d.H.length g wr) g.ino none) $$ Hv Hvi with ⟨Hv, Hvi⟩

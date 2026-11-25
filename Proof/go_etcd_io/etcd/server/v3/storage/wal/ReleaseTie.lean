@@ -219,7 +219,7 @@ theorem walInv_releaseLks (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   refine ⟨Nat.le_max_left _ _, fun sq ix n hsq hn hia => ?_⟩
   rw [htc]
   have h1 := absD_name_le_releasePos habs hsn hnd hsq (by rw [← htc]; exact hcl) hn hia
-  simp only [histM] at h1
+  simp only [histM, histN, walReleasePos_normH] at h1
   rw [← hle.1] at h1
   exact Nat.le_trans h1 (Nat.le_max_right _ _)
 

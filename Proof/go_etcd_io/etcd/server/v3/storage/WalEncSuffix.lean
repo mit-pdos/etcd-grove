@@ -101,24 +101,25 @@ theorem decStep_cutFile {C : WalCodec} (hC : C.Ok) (last : Bool) (M : WalMarshal
 of `Spre` purged, those of `Smid` intact, then an image `last` of `S`'s file as in
 `walDecodeFiles_walImg`, nothing after it. A fresh reader of the files from `Smid`'s first
 (`Smid ++ [S]` nonempty, `Spre` nonempty) reads the records of the WAL with segments
-`Spre ++ Smid ++ [J]` after those of `Spre`, for a `J` keeping the synced operations of `S`. -/
+`Spre ++ Smid ++ [J]` after those of `Spre`, for a `J` keeping the synced operations of `S`, then the
+entry records of a torn operation (`histCutRest`). -/
 theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8)
     (Spre Smid : List WalHist) (S : WalHist) (Spost : List WalHist) (zs : List Nat)
-    (last : List w8) (m' : Nat) (hpre : Spre ≠ []) (hzl : zs.length = Smid.length)
+    (X : List WalRec) (last : List w8) (m' : Nat) (hpre : Spre ≠ []) (hzl : zs.length = Smid.length)
     (hz : ∀ z ∈ zs, z = 0 ∨ 8 ≤ z)
     (hfit : RecsFit C (recsOfSegs C M md (Spre ++ Smid ++ S :: Spost)))
     (hlast :
       let c' := crcAfter C 0#32 (segsDs M md true [] (Spre ++ Smid)).flatten
       let P' := (Spre ++ Smid).flatten
       let D := segHdrDs M md false P' ++ S.flatMap (opDs M)
-      recFrames C ((chainRecs C c' D).take ((segHdrDs M md false P').length +
-          ((S.take m').flatMap (opDs M)).length)) <+: last ∧
-      NoCollisionFrom C c' (chainRecs C c' D) last) :
+      LastDec C c' D ((segHdrDs M md false P').length + ((S.take m').flatMap (opDs M)).length)
+        X last) :
     ∃ n, ((S.take m').flatMap (opDs M)).length ≤ n ∧
       (walDecodeFiles C (intactFiles C M md false Spre.flatten
           (crcAfter C 0#32 (segsDs M md true [] Spre).flatten) Smid zs ++ [last]) 0#32).recs =
-        (recsOfSegs C M md (Spre ++ Smid ++ [histCut M S n])).drop
-          (recsOfSegs C M md Spre).length := by
+        chainRecs C (crcAfter C 0#32 (segsDs M md true [] Spre).flatten)
+          ((segsDs M md false Spre.flatten (Smid ++ [histCut M S n])).flatten ++ histCutRest M S n) ++
+          X := by
   obtain ⟨c0, hc0⟩ : ∃ c0, c0 = crcAfter C 0#32 (segsDs M md true [] Spre).flatten := ⟨_, rfl⟩
   rw [← hc0]
   simp only at hlast
@@ -133,10 +134,10 @@ theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : 
     apply List.mem_append_right
     rw [segsDs_append, List.flatten_append, chainRecs_append]
     exact List.mem_append_left _ hr
-  obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' last Smid zs false Spre.flatten c0 hzl hz
+  obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' X last Smid zs false Spre.flatten c0 hzl hz
     hfitc (by simpa using hlast)
   refine ⟨n, hn, ?_⟩
-  rw [List.append_assoc, recsOfSegs_append C M md hpre, ← hc0, List.drop_left, ← hdec]
+  rw [← hdec]
   have hhdr : 1 ≤ (segHdrDs M md false (Spre.flatten ++ Smid.flatten)).length := by
     simp [segHdrDs, cutHdrDs]
   cases Smid with

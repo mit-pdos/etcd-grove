@@ -108,10 +108,11 @@ theorem segRecs_init_congr (C : WalCodec) (Mr : WalMarshal) {d d' : WalDur} {cut
 
 /-! ## The image of the history a record count gives -/
 
-/-- **The image of the history at `n` operation records of the last segment**: the history before
-the last cut, then `histCut` of the last segment's operations. -/
+/-- **The image of the history at `n` operation records of the last segment**: the history up to
+the last cut, then as many operations as `histCut` keeps of the last segment's (a prefix of `d.H`: the
+records past them, a torn `Save`'s entry records, are `histCutRest`'s, which `ReadAll` drops). -/
 def tailImg (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (n : Nat) : List (WalOpG WalEnt) :=
-  d.H.take (segStart cuts cuts.length) ++ (histCut Mr (lastOps d cuts) n).map WalOpG.toRaw
+  d.H.take (segStart cuts cuts.length + (histCut Mr (lastOps d cuts) n).length)
 
 theorem map_toM_toRaw (X : WalHist) : (X.map WalOpG.toRaw).map WalOpG.toM = X := by
   rw [List.map_map]
@@ -124,7 +125,11 @@ theorem map_toRaw_toM (X : List (WalOpG WalEnt)) : (X.map WalOpG.toM).map WalOpG
 theorem histM_tailImg (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (n : Nat) :
     histM { d with H := tailImg Mr d cuts n } =
       (histM d).take (segStart cuts cuts.length) ++ histCut Mr (lastOps d cuts) n := by
-  simp only [histM, tailImg, List.map_append, List.map_take, map_toM_toRaw]
+  simp only [histM, tailImg]
+  rw [← histN_take, List.take_add]
+  congr 1
+  conv => rhs; rw [histCut_take Mr (lastOps d cuts) n]
+  rfl
 
 theorem initSegs_tailImg (Mr : WalMarshal) (d : WalDur) {cuts : List Nat} (n : Nat)
     (hc : cuts.Pairwise (· < ·)) (hL : segStart cuts cuts.length ≤ d.H.length) :
@@ -141,17 +146,21 @@ theorem lastOps_tailImg (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (n : Na
   rw [histM_tailImg]
   exact List.drop_left' (by simp [histM]; omega)
 
-/-- **The last segment's records of the image: the first `|hdr| + n`.** -/
+/-- **The last segment's records of the image, then the records left (`histCutRest`, chained on):
+the first `|hdr| + n`.** -/
 theorem lastRecs_tailImg (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : List Nat} (n : Nat)
     (hc : cuts.Pairwise (· < ·)) (hL : segStart cuts cuts.length ≤ d.H.length) :
-    lastSegRecs C Mr { d with H := tailImg Mr d cuts n } cuts =
+    lastSegRecs C Mr { d with H := tailImg Mr d cuts n } cuts ++
+      chainRecs C (chainEnd C (lastC0 C Mr d cuts) (lastSegRecs C Mr { d with H := tailImg Mr d cuts n } cuts))
+        (histCutRest Mr (lastOps d cuts) n) =
       (lastSegRecs C Mr d cuts).take ((lastHdr Mr d cuts).length + n) := by
   have hi := initSegs_tailImg Mr d n hc hL
   have e0 : lastC0 C Mr { d with H := tailImg Mr d cuts n } cuts = lastC0 C Mr d cuts := by
     unfold lastC0; rw [hi]
   have eh : lastHdr Mr { d with H := tailImg Mr d cuts n } cuts = lastHdr Mr d cuts := by
     unfold lastHdr; rw [hi]
-  rw [lastRecs_eq, lastRecs_eq, e0, eh, lastOps_tailImg Mr d cuts n hL, flatMap_histCut,
+  rw [lastRecs_eq, lastRecs_eq, e0, eh, lastOps_tailImg Mr d cuts n hL, chainEnd_chainRecs,
+    ← chainRecs_append, List.append_assoc, flatMap_histCut,
     ← chainRecs_take, List.take_append, List.take_of_length_le (Nat.le_add_right _ _)]
   simp
 
@@ -183,22 +192,16 @@ theorem walImg_toRaw {H : List (WalOpG WalEnt)} {m : Nat} {J : WalHist}
         (List.map_congr_left (fun e _ => EntryM.toRaw_toM e)).trans (List.map_id' _)
       rw [e]
 
-/-- **The image is one of the history** when its records cover the synced operations'. -/
 theorem tailImg_walImg (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (n : Nat)
     (hL : segStart cuts cuts.length ≤ d.m) (hm : d.m ≤ d.H.length)
     (hn : (((lastOps d cuts).take (d.m - segStart cuts cuts.length)).flatMap (opDs Mr)).length ≤ n) :
-    walImg d.H d.m (tailImg Mr d cuts n) := by
+    walImgS d.H d.m (tailImg Mr d cuts n) := by
   have hS : (lastOps d cuts).length = d.H.length - segStart cuts cuts.length := by
     simp [lastOps, histM]
-  have hJ := walImg_histCut Mr (lastOps d cuts) (d.m - segStart cuts cuts.length) n (by omega) hn
-  have := walImg_lift (P := (histM d).take (segStart cuts cuts.length)) (R := []) (m := d.m) hJ
-    (by simp [histM]; omega)
-  have e : (histM d).take (segStart cuts cuts.length) ++ lastOps d cuts ++ [] = d.H.map WalOpG.toM := by
-    simp [lastOps, histM]
-  rw [e] at this
-  have := walImg_toRaw this
-  simp only [List.map_append, List.map_take, histM, map_toRaw_toM] at this
-  exact this
+  obtain ⟨j0, h1, h2, hJ⟩ := walImgS_histCut Mr (lastOps d cuts) (d.m - segStart cuts cuts.length) n
+    (by omega) hn
+  have hl : (histCut Mr (lastOps d cuts) n).length = j0 := by rw [hJ]; simp; omega
+  exact ⟨segStart cuts cuts.length + j0, by omega, by omega, by unfold tailImg; rw [hl]⟩
 
 end lastrecs
 
@@ -214,12 +217,16 @@ theorem walImg_take {E : Type} {H I : List (WalOpG E)} {m L : Nat} (h : walImg H
   · rw [List.take_take, Nat.min_eq_left (by omega)]
   · rw [List.take_append_of_le_length (by simp; omega), List.take_take, Nat.min_eq_left (by omega)]
 
+/-- A whole-operation image keeps its operations up to the mark. -/
+theorem walImgS_take {E : Type} {H I : List (WalOpG E)} {m L : Nat} (h : walImgS H m I) (hL : L ≤ m) :
+    I.take L = H.take L := walImg_take (walImgS_walImg h) hL
+
 theorem initSegs_of_take {d d' : WalDur} {cuts : List Nat} (hc : cuts.Pairwise (· < ·))
     (h : d'.H.take (segStart cuts cuts.length) = d.H.take (segStart cuts cuts.length)) :
     initSegs d' cuts = initSegs d cuts := by
   unfold initSegs histM
   apply segsInit_congr (le_segStart_length hc)
-  rw [← List.map_take, ← List.map_take, h]
+  rw [histN_take, histN_take, h]
 
 /-- **Frames grow strictly with the records**: a record count whose frames are no longer than
 another's is no larger. -/
@@ -369,7 +376,7 @@ theorem lastRecs_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : Li
     unfold lastHdr; rw [hi]
   have eo : lastOps { d with H := d.H.take d.m } cuts =
       (lastOps d cuts).take (d.m - segStart cuts cuts.length) := by
-    unfold lastOps histM; simp only; rw [List.map_take, List.drop_take]
+    unfold lastOps histM; simp only; rw [← histN_take, List.drop_take]
   rw [lastRecs_eq, lastRecs_eq, e0, eh, eo, ← chainRecs_take]
   congr 1
   obtain ⟨t, ht⟩ := flatMap_take_prefix (opDs Mr) (lastOps d cuts) (d.m - segStart cuts cuts.length)
@@ -519,12 +526,16 @@ theorem crashTo_tailL {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   have hhdr : (lastHdr Mr d lay.cuts).length ≤ j := by omega
   obtain ⟨nI, hnI⟩ : ∃ nI, nI = j - (lastHdr Mr d lay.cuts).length := ⟨_, rfl⟩
   have hIimg := tailImg_walImg Mr d lay.cuts nI hLm hmH (by omega)
-  have hIL := walImg_length_ge hIimg
+  have hIL := walImg_length_ge (walImgS_walImg hIimg)
   have hiI := initSegs_tailImg Mr d nI hsorted hLH
   have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
-    initSegs_of_take hsorted (walImg_take hI0 hm0)
-  have hlastI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
-    rw [lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
+    initSegs_of_take hsorted (walImgS_take hI0 hm0)
+  obtain ⟨es, hes⟩ := histCutRest_pend Mr (lastOps d lay.cuts) nI
+  have hlastI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts ++
+      chainRecs C (chainEnd C (lastC0 C Mr d lay.cuts)
+        (lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts)) (pendDs Mr es) =
+      R.take j := by
+    rw [← hes, lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
   refine Or.inr ⟨q, tailImg Mr d lay.cuts nI, hent, hq, hinos,
     hIimg, by omega, ?_, ?_, ?_⟩
   · exact Nat.le_min.2 ⟨(Nat.le_min.1 hpur).1,
@@ -552,18 +563,31 @@ theorem crashTo_tailL {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   · intro g'' hg''
     rw [hg] at hg''
     cases hg''
-    have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length = recFrames C (R.take j) := by
+    generalize hLI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = LI at hlastI
+    have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length =
+        recFrames C LI := by
       show recFrames C (lastSegRecs C Mr _ lay.cuts) = _
-      rw [hlastI]
+      rw [hLI]
     have e2 := chainEnd_allRecs_split C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts
     have e3 : lastC0 C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = lastC0 C Mr d lay.cuts := by
       unfold lastC0; rw [hiI]
-    rw [hlastI, e3] at e2
+    rw [hLI, e3] at e2
     simp only [imgOf, hf, Option.map_some, Option.getD_some]
-    rw [e1]
-    refine ⟨hpre, fun r len c' => ?_⟩
-    have := hrej r len c'
-    rwa [← e2] at this
+    rw [e1, e2]
+    have hfr : recFrames C (R.take j) =
+        recFrames C LI ++ recFrames C (chainRecs C (chainEnd C (lastC0 C Mr d lay.cuts) LI) (pendDs Mr es)) := by
+      rw [← hlastI, recFrames_append]
+    refine ⟨List.IsPrefix.trans (by rw [hfr]; exact List.prefix_append _ _) hpre, es, ?_, ?_, ?_⟩
+    · intro r hr
+      apply hfit
+      have : r ∈ R.take j := by rw [← hlastI]; exact List.mem_append_right _ hr
+      exact List.mem_of_mem_take this
+    · obtain ⟨t, ht⟩ := hpre
+      rw [hfr, List.append_assoc] at ht
+      exact ⟨t, by rw [← ht, List.drop_left]⟩
+    · intro r len c'
+      have := hrej r len c'
+      rwa [hfr, List.length_append, ← hlastI, chainEnd_append, chainEnd_chainRecs] at this
 
 /-- **The crash of a tail written this generation** (see the file header): the tree part from a
 `CrashTo` of the layout over another image `fo0` of the tail, for the WAL at any synced mark `m0`

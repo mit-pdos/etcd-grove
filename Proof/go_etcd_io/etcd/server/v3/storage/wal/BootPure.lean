@@ -98,7 +98,8 @@ theorem walsBounded_crash {s s' : AbsDiskState} (hc : walStCrash s s') (h : Wals
     rcases hc.2.2.1 dir d hd with ⟨-, h0⟩ | ⟨I, k, hI, -, h1'⟩
     · rw [h0] at hd'; cases hd'
     · rw [h1'] at hd'; cases hd'
-      exact ⟨h1, h2, walHasMaxIdx_image hI h3⟩
+      exact ⟨h1, h2, fun hx => walHasMaxIdx_image hI
+        (fun hy => h3 ((walHasMaxIdx_normFrom _ _).2 hy)) ((walHasMaxIdx_normFrom _ _).1 hx)⟩
 
 /-- **The first boot's WAL state**: the area `r`, no WAL, the area durable. -/
 def walBoot0St (r : GoString) : AbsDiskState := ⟨r, ∅, {[r := ()]}⟩

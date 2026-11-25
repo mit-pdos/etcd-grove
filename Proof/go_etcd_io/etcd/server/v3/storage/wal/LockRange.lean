@@ -118,9 +118,9 @@ theorem absD_segStart_cut {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
   rcases hc with h0 | ⟨hh, es, hb, -⟩ | ⟨m, al, hb⟩
   · omega
   · have := (List.getElem?_eq_some_iff.1 hb).1
-    simp only [histM, List.length_map] at this; omega
+    simp only [histM, histN_length, List.length_map] at this; omega
   · have := (List.getElem?_eq_some_iff.1 hb).1
-    simp only [histM, List.length_map] at this; omega
+    simp only [histM, histN_length, List.length_map] at this; omega
 
 /-- **The first read segment starts at or before `walOpenPos`** (`ReadAll`'s registration): the segments
 from `kk` on, the first named at most `a`. -/

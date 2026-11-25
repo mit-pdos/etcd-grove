@@ -66,21 +66,21 @@ variable [GooseExts]
 def tailStream (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List w8 :=
   recFrames walCodec ((chainSegs walCodec 0#32
-    (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts))).getD cuts.length [])
+    (segsDs Mr md true [] (segsOf (histN H) cuts))).getD cuts.length [])
 
 /-- The records of the last segment (CRCs chained). -/
 def tailRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List WalRec :=
-  (chainSegs walCodec 0#32 (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts))).getD cuts.length []
+  (chainSegs walCodec 0#32 (segsDs Mr md true [] (segsOf (histN H) cuts))).getD cuts.length []
 
 /-- Every record of the WAL (CRCs chained). -/
 def allRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List WalRec :=
-  recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) cuts)
+  recsOfSegs walCodec Mr md (segsOf (histN H) cuts)
 
 /-- **The encoder's CRC after every record of the WAL.** -/
 def tailCrc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) : w32 :=
-  chainEnd walCodec 0#32 (recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) cuts))
+  chainEnd walCodec 0#32 (recsOfSegs walCodec Mr md (segsOf (histN H) cuts))
 
 theorem tailStream_recs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) : tailStream Mr H md cuts = recFrames walCodec (tailRecs Mr H md cuts) := rfl
@@ -112,6 +112,8 @@ structure WalHS where
   enti : w64
   snapi : w64
   pc : Nat
+  /-- `w.state` may be nil (only after `Create`, until `Save`'s nil check; P6). -/
+  stNil : Bool := false
 
 /-- The tail's records encoded so far (all but the last `rest`). -/
 def WalHS.encRecs (Mr : WalMarshal) (h : WalHS) : List WalRec :=
@@ -380,6 +382,85 @@ theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {
 
 /-! ## The tail and the handle -/
 
+/-! ## `w.state`: canonical (P6, the torn-`Save` fix)
+
+`Save` with entries and an empty `st` writes `w.state`'s state record (`encodeState(w.state)`), so the
+bytes it marshals to must be the state's encoding `Mr.encState`, also when it is empty: `w.state` is
+only ever `&raftpb.HardState{}`, a state decoded from a record or a non-empty `st`, whose content is
+canonical (a raft `Ready`'s empty hard state, with explicit zero fields, never reaches it).
+`notes/wal-p6-handoff.md`, "Coordinator's answer". -/
+
+section st
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **`pbutil.MustMarshalMessage(sp)` marshals `sp` to `Mr.encState hs`**, a non-nil slice. -/
+def walStMarsh (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(□ ∀ Φ, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil -∗
+    (∀ d : GoSlice, d ↦* Mr.encState hs -∗ ⌜d ≠ slice.nil⌝ -∗ Φ #d) -∗
+    WP (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #sp))) {{ Φ }})
+
+instance walStMarsh_persistent (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    Persistent (walStMarsh (GF := GF) Mr sp hs) := by
+  unfold walStMarsh; infer_instance
+
+/-- **`w.state`'s pointer**: it holds `hs` (`P.hsIn`), when not nil marshals to its encoding, and is
+not nil unless `nil` (the handle's `stNil`). -/
+def walStIn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool := false) :
+    IProp GF :=
+  iprop(P.hsIn sp hs ∗ (⌜sp ≠ null⌝ -∗ walStMarsh Mr sp hs) ∗ ⌜nil = false → sp ≠ null⌝)
+
+instance walStIn_persistent (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool) :
+    Persistent (walStIn (GF := GF) P Mr sp hs nil) := by
+  unfold walStIn; infer_instance
+
+theorem walStIn_null (P : WalPbIn GF) (Mr : WalMarshal) (hs : HardStateM) :
+    P.hsIn null hs ⊢ walStIn P Mr null hs true := by
+  iintro #H
+  unfold walStIn
+  isplitr
+  · iexact H
+  isplitr
+  · iintro %h; exact absurd rfl h
+  · ipureintro; intro h; cases h
+
+/-- A non-nil `w.state`, from its parts. -/
+theorem walStIn_intro (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool)
+    (hn : sp ≠ null) : P.hsIn sp hs ∗ walStMarsh Mr sp hs ⊢ walStIn P Mr sp hs nil := by
+  iintro ⟨#H, #M⟩
+  unfold walStIn
+  isplitr
+  · iexact H
+  isplitr
+  · iintro %_; iexact M
+  · ipureintro; intro _; exact hn
+
+/-- A non-nil `w.state` under any nil flag. -/
+theorem walStIn_set (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (b b' : Bool)
+    (hn : sp ≠ null) : walStIn P Mr sp hs b ⊢ walStIn P Mr sp hs b' := by
+  iintro #H
+  unfold walStIn
+  icases H with ⟨#H1, #H2, -⟩
+  iframe H1 H2
+  ipureintro; intro _; exact hn
+
+/-- What a non-nil `w.state` gives. -/
+theorem walStIn_nn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    walStIn P Mr sp hs false ⊢ ⌜sp ≠ null⌝ ∗ P.hsIn sp hs ∗ walStMarsh Mr sp hs := by
+  iintro #H
+  unfold walStIn
+  icases H with ⟨#H1, #H2, %H3⟩
+  have hn := H3 rfl
+  isplitr
+  · ipureintro; exact hn
+  iframe H1
+  iapply H2; ipureintro; exact hn
+
+end st
+
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -564,7 +645,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
     recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
-    P.hsIn sp h.st ∗
+    walStIn P Mr sp h.st h.stNil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ GoInterface.nil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗

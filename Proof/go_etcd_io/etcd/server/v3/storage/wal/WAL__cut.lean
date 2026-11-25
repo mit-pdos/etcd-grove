@@ -235,12 +235,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       (cutSynced { h with sz := h.o0 + h.out.length }).snapi = h.snapi ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pc = h.pc ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).pend = [] ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).stNil = h.stNil ∧
       (cutSynced { h with sz := h.o0 + h.out.length }).sz =
         (cutSynced { h with sz := h.o0 + h.out.length }).o0 +
           (cutSynced { h with sz := h.o0 + h.out.length }).out.length :=
-    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
   generalize cutSynced { h with sz := h.o0 + h.out.length } = h1 at hh1e ⊢
-  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1pend, h1sz⟩ := hh1e
+  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1pend, h1stNil, h1sz⟩ := hh1e
   -- step 3: the name
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -256,6 +257,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1snapi]
   try rw [h1pc]
   try rw [h1pend]
+  try rw [h1stNil]
   iunfold walDirH at Hdh
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, #HRdW, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
   obtain ⟨hnm0w, hnm0c, ⟨pd, hname⟩, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
@@ -481,7 +483,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
         rw [hFr, if_neg hne]; simp only [stateFrame, List.length_append, List.length_nil]; omega))
     $$ [HwsP] [Hsp He Henc2 HW2] as %serr3 ⟨He, Hr3⟩
   · iexact HwsP
-  · iframe Henv Hsp He Henc2 HW2 Hst
+  · ihave #HstIn : P.hsIn sp h.st $$ [Hst]
+    · iunfold walStIn at Hst; icases Hst with ⟨#H, -, -⟩; iexact H
+    iframe Henv Hsp He Henc2 HW2 HstIn
   ihave Hu : (⌜serr3 = GoInterface.nil⌝ ∗ ∃ (pend3 ys3 : List w8),
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
       ownEncoder e2 (wal.fileWi f2) (crcAfter walCodec c0 (cutHdrDs Mr h.md h.st)) pend3 ∗

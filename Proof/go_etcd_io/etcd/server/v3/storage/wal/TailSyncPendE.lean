@@ -12,8 +12,9 @@ length, and the token is not turned into the key (no F-Z). `Close` then puts the
 
 * `walLentRes_relend`: a lent tail's layout replaced, F-Z or `TailPend`, the token's `|old|` with it;
 * `walTailsRes_cutPE`: `walTailsRes_cutP` with the token kept (`walLentRes_relend`), F-Z or `TailPend`;
-* `walInvBody_syncPE`: `walInvBody_syncP` from the handle's zero length word at `wr` in place of its
-  zeros from `wr` on, the token kept;
+* `walInvBody_syncPE`: `walInvBody_syncP` from the reader's stop on the handle's values at `wr`
+  (`PendStop`; until P6 item 2 the zero length word there) in place of its zeros from `wr` on, the token
+  kept;
 * `walInv_untailLent`: `walInv_untailPend` for a token of kind `false`.
 -/
 module
@@ -44,17 +45,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **A lent tail's layout replaced, F-Z or `TailPend`, the token's `|old|` with it** (the fdatasync of a
 tail `ZeroToEnd` left partway: `syncLayP` changes `old`'s length). -/
 theorem walLentRes_relend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
-    (γ : GName) (k : Nat) (lay' : WalLay) (hz : TailZeros lay' ∨ TailPend lay') :
-    ⊢ walLentTokB (W := W) dir γ k false -∗ walLentRes (W := W) T Ls ==∗
-      walLentTokB (W := W) dir γ lay'.old.length false ∗ walLentRes (W := W) T (<[dir := lay']> Ls) := by
+    (γ : GName) (k : Nat) (p : Bool) (lay' : WalLay) (hz : TailZeros lay' ∨ TailPend lay') :
+    ⊢ walLentTokB (W := W) dir γ k p -∗ walLentRes (W := W) T Ls ==∗
+      walLentTokB (W := W) dir γ lay'.old.length p ∗ walLentRes (W := W) T (<[dir := lay']> Ls) := by
   unfold walLentRes
   iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
-  icases walLentTok_lookup M dir γ k false $$ Ha Hl with %hM
+  icases walLentTok_lookup M dir γ k p $$ Ha Hl with %hM
   ihave ⟨⟨%hx, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
-  imod walLentTok_delete M dir γ k false $$ Ha Hl with Ha
+  imod walLentTok_delete M dir γ k p $$ Ha Hl with Ha
   have hM0 : (GMap.delete dir M) !! dir = none := GMap.lookup_delete_eq _ _
-  imod walLentTok_insert (GMap.delete dir M) dir γ lay'.old.length false hM0 $$ Ha with ⟨Ha, Hl⟩
+  imod walLentTok_insert (GMap.delete dir M) dir γ lay'.old.length p hM0 $$ Ha with ⟨Ha, Hl⟩
   imodintro
   iframe Hl
   iexists _
@@ -68,7 +69,7 @@ theorem walLentRes_relend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
       · exact Or.inl h
       · exact Or.inr ⟨by rw [GMap.lookup_insert]; simp, h⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla
-      have e1 : (<[dir := (γ, lay'.old.length, false)]> (GMap.delete dir M)) !! d = M !! d := by
+      have e1 : (<[dir := (γ, lay'.old.length, p)]> (GMap.delete dir M)) !! d = M !! d := by
         rw [GMap.lookup_insert_ne _ _ (Ne.symm e), GMap.lookup_delete_ne _ (Ne.symm e)]
       exact zerosOr_congr e1 (HZ d la hT hla (fun x hx => hnp x (by rw [e1]; exact hx)))
   isplitr
@@ -77,7 +78,7 @@ theorem walLentRes_relend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
     iprop(⌜LentOk T (<[dir := lay']> Ls) d x⌝ ∗ walTailKey (W := W) d x.1)) hM0).2
   isplitl [Hk]
   · iframe Hk
-    ipureintro; exact ⟨hx.1, lay', GMap.lookup_insert _ _ _, rfl, fun h => by cases h⟩
+    ipureintro; exact ⟨hx.1, lay', GMap.lookup_insert _ _ _, rfl, fun _ => hz⟩
   iapply BigSepM.bigSepM_mono (fun {k' x} hk => ?_) $$ Hm
   iintro ⟨%hx', Hk⟩
   iframe Hk
@@ -90,8 +91,8 @@ theorem walLentRes_relend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
 /-- **The tail record of `dir`, its other half, by the lent token, the token kept** (`walTailsRes_cutP`
 with `walLentRes_relend`: the new layout F-Z or `TailPend`). -/
 theorem walTailsRes_cutPE (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
-    (F : GMap Ino SegFl) (dir : GoString) (γ : GName) (k : Nat) (tg : TailG) :
-    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walLentTokB (W := W) dir γ k false -∗ tailVar (W := W) γ tg -∗
+    (F : GMap Ino SegFl) (dir : GoString) (γ : GName) (k : Nat) (p : Bool) (tg : TailG) :
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walLentTokB (W := W) dir γ k p -∗ tailVar (W := W) γ tg -∗
       ∃ (d : WalDur) (lay : WalLay) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g0 ∧
           tg = tailG d lay g0.ino (F !! g0.ino) ∧ (TailZeros lay ∨ TailPend lay)⌝ ∗
@@ -101,13 +102,13 @@ theorem walTailsRes_cutPE (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
             (∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, F' !! g'.ino = F !! g'.ino) ∧
             (∀ i, F' !! i ≠ none → i = g.ino ∨ (F !! i ≠ none ∧ i ≠ g0.ino)) ∧
             tailG d lay' g.ino (F' !! g.ino) = tg⌝ ==∗
-          walLentTokB (W := W) dir γ lay'.old.length false ∗
+          walLentTokB (W := W) dir γ lay'.old.length p ∗
             walTailsRes (W := W) C Mr s (<[dir := lay']> Ls) F') ∧
-         (walTailsRes (W := W) C Mr s Ls F ∗ walLentTokB (W := W) dir γ k false)) := by
+         (walTailsRes (W := W) C Mr s Ls F ∗ walLentTokB (W := W) dir γ k p)) := by
   letI := walAllG (W := W)
   unfold walTailsRes tailVar
   iintro ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩ Hk Hv
-  icases walLentRes_lookup T Ls dir γ k false $$ Hk HL with ⟨%hx, Hk, HL⟩
+  icases walLentRes_lookup T Ls dir γ k p $$ Hk HL with ⟨%hx, Hk, HL⟩
   have HT : T !! dir = some γ := hx.1.1
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -119,12 +120,16 @@ theorem walTailsRes_cutPE (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Htg
   iexists d, lay, g0
   isplitr
-  · ipureintro; exact ⟨hd, hl, hg, Htg, hx.2 rfl lay hl⟩
+  · ipureintro
+    refine ⟨hd, hl, hg, Htg, ?_⟩
+    cases p
+    · exact hx.2 rfl lay hl
+    · obtain ⟨-, la, hla, -, h⟩ := hx.1; rw [hl] at hla; cases hla; exact h rfl
   iframe Hv
   isplit
   · iintro %lay' %g %F' %hp'
     obtain ⟨hg', hZ, hB', hF, hFo, he⟩ := hp'
-    imod walLentRes_relend T Ls dir γ k lay' hZ $$ Hk HL with ⟨Hk, HL⟩
+    imod walLentRes_relend T Ls dir γ k p lay' hZ $$ Hk HL with ⟨Hk, HL⟩
     imodintro
     iframe Hk
     iexists T
@@ -178,8 +183,8 @@ theorem walTailsRes_cutPE (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
 /-- **The fdatasync of a lent tail `ZeroToEnd` left partway on the invariant** (`walInvBody_syncP` from the
 handle's zero length word at `wr`, the token kept; see the file header). -/
 theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (k : Nat) (tg : TailG) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLentTokB (W := W) dir γ k false -∗
+    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (k : Nat) (p : Bool) (tg : TailG) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLentTokB (W := W) dir γ k p -∗
       tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗
       ∃ (F : GMap Ino SegFl) (d : WalDur) (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ lay.segs = pre ++ [g0] ∧ tg = tailG d lay g0.ino (F !! g0.ino) ∧
@@ -187,12 +192,13 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
         segResF (L := L) F g0 ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗
         ((⌜F !! g0.ino = none ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
             (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧
-            (∀ j, j < 8 → (g0.bs.getD (lay.wr + j) (0, [])).1 = 0)⌝ -∗
+            PendStop C Mr (g0.bs.map (·.1)) lay.wr
+              (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
-            walPast (W := W) (walSyncS s dir d) ∗ ∃ k' : Nat, walLentTokB (W := W) dir γ k' false) ∧
+            walPast (W := W) (walSyncS s dir d) ∗ ∃ k' : Nat, walLentTokB (W := W) dir γ k' p) ∧
         (segResF (L := L) F g0 -∗
-          walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLentTokB (W := W) dir γ k false)) := by
+          walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLentTokB (W := W) dir γ k p)) := by
   letI := walAllG (W := W)
   iintro Hb Hk Hv Hcf
   unfold walInvBody
@@ -200,7 +206,7 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCut_agree cp none $$ Hcp Hcf with %Hcpe
   subst Hcpe
-  icases walTailsRes_cutPE C Mr s Ls F dir γ k tg $$ Htl Hk Hv with
+  icases walTailsRes_cutPE C Mr s Ls F dir γ k p tg $$ Htl Hk Hv with
     ⟨%d, %lay, %g0, %hp, Hv, Htlc⟩
   obtain ⟨hd, hl, hg, htg, hZP⟩ := hp
   obtain ⟨pre, hs⟩ := List.getLast?_eq_some_iff.1 hg
@@ -244,12 +250,12 @@ theorem walInvBody_syncPE (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Root
       iframe Hdk Hcp
       ipureintro; exact Hdko
     iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
-  iintro ⟨%hF, %htail, %hzf, %hlw⟩ Hseg
+  iintro ⟨%hF, %htail, %hzf, %hpv⟩ Hseg
   icases Htlc with ⟨Htlc, -⟩
   have hmH : d.m ≤ d.H.length := habs.synced.1
   -- the synced layout: `syncLay_any`'s (F-Z), or `syncLayP` (`TailPend`)
   obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLpg, hLZ, hLB, hLW, hLK⟩ :=
-    syncLay_anyE hC HW hd hl hs htail hZP hlw hzf Hdko habs
+    syncLay_anyE hC HW hd hl hs htail hZP hpv hzf Hdko habs
   have e : tailG d Lw (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
     rw [htg]; unfold tailG; rw [hLc, hLw]; rfl
   imod Htlc $$ %Lw %(syncTail g0) %F [] with ⟨Hk, Htlc⟩

@@ -160,12 +160,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.fil
         b ≤ ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1.length) →
       RecsFit walCodec (recsOfSegs walCodec Mr
         ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
-        (segsOf (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1.map WalOpG.toM)
+        (segsOf (histN (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1))
           ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) →
       RecsFit walCodec (recsOfSegs walCodec Mr
         ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
-        (segsOf ((((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++
-          [WalOpG.snap md al]).map WalOpG.toM) ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
+        (segsOf (histN (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++
+          [WalOpG.snap md al])) ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
     intro hc hold
     show RecsFit walCodec (allRecs Mr (h.H ++ [WalOpG.snap md al]) h.md h.cuts)
     rw [allRecs_snoc Mr h.H h.md h.cuts _ hc]

@@ -324,7 +324,7 @@ theorem walReadFailedF_lentIntro (Mr : WalMarshal) (w : Loc) (dir : GoString) (l
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ (null : Loc) ∗
       (walTailP (W := W) (fls.getD gs0.length null) fdt (child dir gL.name) dir γt gL.ino H md cuts o0 sz [] k false
           (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0) ∨
-        walTailPE (W := W) (fls.getD gs0.length null) fdt (child dir gL.name) dir γt gL.ino H md cuts o0 k) ⊢
+        walTailPE (W := W) Mr (fls.getD gs0.length null) fdt (child dir gL.name) dir γt gL.ino H md cuts o0 k) ⊢
     walReadFailedF Mr w dir := by
   iintro ⟨Hf, Hlg, #Hz, Hdir, Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout,
     Hnf, #Hk, #Hlks, Hst, Htf, He, Ht⟩

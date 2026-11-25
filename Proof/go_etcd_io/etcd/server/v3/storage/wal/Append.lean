@@ -115,8 +115,8 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (o : WalOpG WalEnt)
     (M : GMap GoString WalDur)
     (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
-      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (tg.1.map WalOpG.toM) tg.2.2.1)) →
-      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1)))
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN tg.1) tg.2.2.1)) →
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN (tg.1 ++ [o])) tg.2.2.1)))
     (hox : ¬ walHasMaxIdx [o.toM]) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walOwn (W := W) M -∗ ⧖ (tg.1.length + 1) ==∗
@@ -154,7 +154,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iexists d
   isplitr
   · ipureintro
-    exact ⟨hd, HMs, rfl, habs.cuts.1, habs.cuts.2.1⟩
+    exact ⟨hd, HMs, rfl, fun b hb => (walCutPos_normH _ b).1 (habs.cuts.1 b hb), habs.cuts.2.1⟩
   iframe Hk Hv Hcf HM Hp
   iexists Ls, cl, n, F
   iframe Hg Hcl Hn Hlays HCR Hpk
@@ -183,8 +183,8 @@ theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (o : WalOpG WalEnt) (sized : Bool)
     (Q : WalDur → IProp GF)
     (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
-      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (tg.1.map WalOpG.toM) tg.2.2.1)) →
-      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1)))
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN tg.1) tg.2.2.1)) →
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN (tg.1 ++ [o])) tg.2.2.1)))
     (hox : ¬ walHasMaxIdx [o.toM]) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walOpenW (W := W) w dir -∗

@@ -79,6 +79,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proofPre (P : Wal
   have hne' : ¬ hsEmptyP hs := fun h => Bool.false_ne_true (hb.2 h)
   obtain ⟨hok', hsz⟩ := hne hne'
   try wp_auto
+  -- `saveState` calls `encodeState` (the torn-`Save` fix): its body, inline
+  wp_method_call
+  try wp_auto
   wp_apply (wp_marshal hp hs hne') $$ [] as %d ⟨Hd, %Hdn⟩
   · iexact Hhs
   imod ownSlice_persist $$ Hd with #Hd

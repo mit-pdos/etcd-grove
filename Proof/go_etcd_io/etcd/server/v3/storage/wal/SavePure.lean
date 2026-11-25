@@ -44,14 +44,24 @@ theorem recAt_chain (T : List WalRec) (c : w32) (D : List (w64 × List w8)) (j :
     List.getElem?_append_right (by omega), show T.length + j - T.length = j by omega,
     ← List.getElem?_map, chainRecs_typData]
 
-/-- A save's records: its entries', then its state's unless empty. -/
-theorem opDs_save (Mr : WalMarshal) (hs : HardStateM) (es : List EntryM) :
-    opDs Mr (WalOpG.save hs es).toRaw.toM = es.map (fun e => (entryType, Mr.encEntry e)) ++
-      (if hsEmptyP hs then [] else [(stateType, Mr.encState hs)]) := by
-  rw [WalOpG.toM_toRaw]; rfl
+/-- A save's records, as written after `H`: its entries', then the state record of `saveHS` (`hs`, or
+`w.state` when `hs` is empty and there are entries) unless there are no entries and `hs` is empty. -/
+theorem opDs_save (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (hs : HardStateM) (es : List EntryM) :
+    opDs Mr (wop H (WalOpG.save hs es).toRaw) = es.map (fun e => (entryType, Mr.encEntry e)) ++
+      (if es = [] ∧ hsEmptyP hs then []
+       else [(stateType, Mr.encState (saveHS (walLastHS (H.map WalOpG.toM)) hs es))]) := by
+  unfold wop
+  rw [WalOpG.toM_toRaw, normOp_save_eq]
+  simp only [opDs]
+  congr 1
+  unfold saveHS
+  by_cases hc : es ≠ [] ∧ hsEmptyP hs
+  · rw [if_pos hc, if_neg (fun h0 => hc.1 h0.1), if_neg (fun h0 => hc.1 h0.1)]
+  · rw [if_neg hc]
 
-theorem opDs_save_length (Mr : WalMarshal) (hs : HardStateM) (es : List EntryM) :
-    (opDs Mr (WalOpG.save hs es).toRaw.toM).length = es.length + (if hsEmptyP hs then 0 else 1) := by
+theorem opDs_save_length (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (hs : HardStateM) (es : List EntryM) :
+    (opDs Mr (wop H (WalOpG.save hs es).toRaw)).length =
+      es.length + (if es = [] ∧ hsEmptyP hs then 0 else 1) := by
   rw [opDs_save]; split <;> simp
 
 theorem histMap_save (H : List (WalOpG WalEnt)) (hs : HardStateM) (es : List EntryM) :
@@ -64,7 +74,7 @@ theorem saveRec_entry (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8
     (he : es[i]? = some e) :
     ((tailRecs Mr (H ++ [(WalOpG.save hs es).toRaw]) md cuts)[(tailRecs Mr
         (H ++ [(WalOpG.save hs es).toRaw]) md cuts).length -
-        ((opDs Mr (WalOpG.save hs es).toRaw.toM).length - i)]?).map (fun x => (x.typ, x.data)) =
+        ((opDs Mr (wop H (WalOpG.save hs es).toRaw)).length - i)]?).map (fun x => (x.typ, x.data)) =
       some (entryType, Mr.encEntry e) := by
   have hi : i < es.length := (List.getElem?_eq_some_iff.1 he).1
   rw [tailRecs_snoc Mr H md cuts _ hc,
@@ -74,12 +84,13 @@ theorem saveRec_entry (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8
 
 /-- The state's record, after the entries'. -/
 theorem saveRec_state (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
-    (hs : HardStateM) (es : List EntryM) (hc : ∀ b ∈ cuts, b ≤ H.length) (hne : ¬ hsEmptyP hs) :
+    (hs : HardStateM) (es : List EntryM) (hc : ∀ b ∈ cuts, b ≤ H.length)
+    (hne : ¬ (es = [] ∧ hsEmptyP hs)) :
     ((tailRecs Mr (H ++ [(WalOpG.save hs es).toRaw]) md cuts)[(tailRecs Mr
         (H ++ [(WalOpG.save hs es).toRaw]) md cuts).length -
-        ((opDs Mr (WalOpG.save hs es).toRaw.toM).length - es.length)]?).map
+        ((opDs Mr (wop H (WalOpG.save hs es).toRaw)).length - es.length)]?).map
         (fun x => (x.typ, x.data)) =
-      some (stateType, Mr.encState hs) := by
+      some (stateType, Mr.encState (saveHS (walLastHS (H.map WalOpG.toM)) hs es)) := by
   rw [tailRecs_snoc Mr H md cuts _ hc,
     recAt_chain _ _ _ _ (by rw [opDs_save_length]; simp [hne]), opDs_save,
     List.getElem?_append_right (by simp)]
@@ -136,7 +147,7 @@ structure SaveSt (Mr : WalMarshal) (h : WalHS) (hs : HardStateM) (es : List Entr
   H : hc.H = h.H ++ [(WalOpG.save hs es).toRaw]
   md : hc.md = h.md
   cuts : hc.cuts = h.cuts
-  rest : hc.rest = (opDs Mr (WalOpG.save hs es).toRaw.toM).length - i
+  rest : hc.rest = (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length - i
   st : hc.st = h.st
   snapi : hc.snapi = h.snapi
   pc : hc.pc = h.pc
@@ -146,7 +157,7 @@ structure SaveSt (Mr : WalMarshal) (h : WalHS) (hs : HardStateM) (es : List Entr
 theorem SaveSt.init (Mr : WalMarshal) (h : WalHS) (hs : HardStateM) (es : List EntryM) :
     SaveSt Mr h hs es 0
       { h with H := h.H ++ [(WalOpG.save hs es).toRaw],
-               rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } :=
+               rest := (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length } :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => rfl, fun _ _ h => by omega⟩
 
 /-- `saveEntry`'s premises for the `i`-th entry. -/
@@ -159,7 +170,7 @@ theorem SaveSt.entryPre {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : Li
       ((tailRecs Mr hc.H hc.md hc.cuts)[(tailRecs Mr hc.H hc.md hc.cuts).length - hc.rest]?).map
         (fun x => (x.typ, x.data)) = some (entryType, Mr.encEntry e) := by
   have hi : i < es.length := (List.getElem?_eq_some_iff.1 he).1
-  have hk := opDs_save_length Mr hs es
+  have hk := opDs_save_length Mr h.H hs es
   refine ⟨?_, ?_, ?_⟩
   · rw [s.rest, hk]; omega
   · intro h1
@@ -194,12 +205,13 @@ theorem SaveSt.statePre {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : Li
     {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hcut : ∀ b ∈ h.cuts, b ≤ h.H.length)
     (hidx : walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi))
     (hsn : walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) :
-    ¬ hsEmptyP hs → 0 < hc.rest ∧
+    ¬ (es = [] ∧ hsEmptyP hs) → 0 < hc.rest ∧
       ((tailRecs Mr hc.H hc.md hc.cuts)[(tailRecs Mr hc.H hc.md hc.cuts).length - hc.rest]?).map
-        (fun x => (x.typ, x.data)) = some (stateType, Mr.encState hs) ∧
+        (fun x => (x.typ, x.data)) =
+          some (stateType, Mr.encState (saveHS (walLastHS (h.H.map WalOpG.toM)) hs es)) ∧
       (hc.rest = 1 → walLastIdx (hc.H.map WalOpG.toM) ≤ max (uint.nat hc.enti) (uint.nat hc.snapi)) := by
   intro hne
-  have hk := opDs_save_length Mr hs es
+  have hk := opDs_save_length Mr h.H hs es
   refine ⟨?_, ?_, ?_⟩
   · rw [s.rest, hk]; simp [hne]
   · rw [s.H, s.md, s.cuts, s.rest]
@@ -229,20 +241,21 @@ structure SaveFin (h : WalHS) (hs : HardStateM) (es : List EntryM) (hc : WalHS) 
   pc : hc.pc = h.pc
 
 theorem SaveSt.finEmpty {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM}
-    {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hD : h.Done) (he : hsEmptyP hs) :
+    {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hD : h.Done) (he : es = [] ∧ hsEmptyP hs) :
     SaveFin h hs es hc :=
   ⟨s.H, s.md, s.cuts, by rw [s.rest, opDs_save_length]; simp [he], by
-    rw [s.st, s.H, histMap_save, walLastHS_save, phsNext_empty _ _ he]; exact hD.2, s.pc⟩
+    rw [s.st, s.H, histMap_save, walLastHS_save, phsNext_empty _ _ he.2]; exact hD.2, s.pc⟩
 
 theorem SaveSt.finState {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM}
-    {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hne : ¬ hsEmptyP hs) (out' pend' : List w8)
-    (sz' : Nat) :
-    SaveFin h hs es { hc with rest := hc.rest - 1, out := out', pend := pend', st := hs, sz := sz' } :=
+    {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hne : ¬ (es = [] ∧ hsEmptyP hs))
+    (out1 pend1 : List w8) (sz1 : Nat) :
+    SaveFin h hs es
+      { hc with rest := hc.rest - 1, out := out1, pend := pend1, sz := sz1,
+                st := saveHS (walLastHS (h.H.map WalOpG.toM)) hs es } :=
   ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest, opDs_save_length]; simp [hne], by
     simp only
     rw [s.H, histMap_save, walLastHS_save]
-    unfold phsNext
-    exact (if_neg hne).symm, s.pc⟩
+    exact (phsNext_saveHS hne).symm, s.pc⟩
 
 theorem SaveFin.done {h : WalHS} {hs : HardStateM} {es : List EntryM} {hc : WalHS}
     (s : SaveFin h hs es hc) : hc.Done := ⟨s.rest, s.st⟩
