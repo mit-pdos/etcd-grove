@@ -147,9 +147,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Hypothesis** `t.UTC()`: some `Time` (the lab's `Time.wp_UTC`; Perennial leaves `Time.UTC`
-untranslated, `Perennial/Code/time.toml`). Discharge: Perennial translating `UTC` (its body is
-`t.setLoc(&utcLoc)`; `setLoc` is not translated either) and the lab's proof. -/
+/-- `t.UTC()`: some `Time` (the lab's `Time.wp_UTC`). Discharged by Perennial's `time.Time.wp_UTC`
+(`Dsverify/Proof/time/Time__UTC.lean`). -/
 abbrev Time.UTC.spec : Prop :=
   ∀ (t : Perennial.time.Time),
     {{ (True : IProp GF) }}
@@ -174,11 +173,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Hypothesis** `sort.Ints(x)`: the slice's elements permuted into ascending signed order (the
-lab's `wp_Ints`, proved there over its own translation of `sort.Ints`, `func Ints(x []int) {
-slices.Sort(x) }`, from Perennial's `slices.wp_Sort`; Perennial leaves `sort.Ints` untranslated).
-Discharge: Perennial translates `sort.Ints`; the lab's proof (`Harness/Proof/sort/Ints.lean`) then
-applies. -/
+/-- `sort.Ints(x)`: the slice's elements permuted into ascending signed order (the lab's
+`wp_Ints`). Discharged by Perennial's `sort.wp_Ints` (`Dsverify/Proof/sort/Ints.lean`). -/
 abbrev Ints.spec : Prop :=
   ∀ (data : GoSlice) (xs : List w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗

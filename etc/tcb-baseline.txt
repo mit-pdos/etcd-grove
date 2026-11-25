@@ -74,8 +74,6 @@ axiom Perennial.os.signal.Notify.wp_proofQuietSigs
 axiom Perennial.os.signal.Notify.wp_proofUsr1Sigs
 axiom Perennial.os.signal.wp_initialize'
 axiom Perennial.raxos.hyp.fmt.Println.wp_proof
-axiom Perennial.raxos.hyp.sort.Ints.wp_proof
-axiom Perennial.raxos.hyp.time.Time.UTC.wp_proof
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
