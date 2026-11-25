@@ -41,9 +41,74 @@ theorem NodeDeployment.wp_proof (NP : w64 → GoString → List GoString → IPr
   wp_auto
   wp_apply (hWF v d Hfips) as %err %Herr
   · iframe #
-  wp_if_destruct
-  · iapply HΦ; ipureintro; trivial
-  sorry
+  cases err with
+  | ok i =>
+    wp_auto
+    iapply HΦ; ipureintro; trivial
+  | nil =>
+    have hwf := Herr rfl
+    have hnl := wellFormed_nodes_length hwf
+    obtain ⟨hml, hclients⟩ := kvOnly_bounds hwf Hkv
+    wp_auto
+    ihave #Hd2 := Hd
+    iunfold deploymentRepr at Hd2
+    icases Hd2 with ⟨#Hm, %htok, %hcfg, #Hw, %ss, #Hn, #Hns⟩
+    ihave %Hml := ownSlice_len _ _ _ $$ Hm
+    ihave %Hwl := ownSlice_len _ _ _ $$ Hw
+    ihave %Hnl := ownSlice_len _ _ _ $$ Hn
+    ihave %Hssl := BigSepL2.bigSepL2_length $$ Hns
+    rw [List.length_map] at Hwl Hml
+    wp_method_call
+    wp_call
+    wp_auto
+    wp_apply (hNd v d n) as %j %c %ok %Hok
+    · iframe #
+    cases ok with
+    | false =>
+      wp_auto
+      iapply HΦ; ipureintro; trivial
+    | true =>
+      obtain ⟨hn0, hj0, hc0, w, ns, a, hw, hns, ha, hnl'⟩ := Hok rfl
+      wp_auto
+      have hjw : sint.nat j < d.workloads.length := (List.getElem?_eq_some_iff.1 hw).1
+      have hjn : sint.nat j < d.nodes.length := (List.getElem?_eq_some_iff.1 hns).1
+      have hcn : sint.nat c < ns.length := (List.getElem?_eq_some_iff.1 ha).1
+      obtain ⟨s, hs⟩ : ∃ s, ss[sint.nat j]? = some s := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      ihave #Hs := BigSepL2.bigSepL2_lookup hs hns $$ Hns
+      ihave %Hsl := ownSlice_len _ _ _ $$ Hs
+      have hjl : sint.Z j < sint.Z v.Workloads'.len := by word
+      have hjl' : sint.Z j < sint.Z v.Nodes'.len := by word
+      have hcl : sint.Z c < sint.Z s.len := by word
+      simp only [hj0, hjl, and_self, ↓reduceIte]
+      wp_apply (wp_load_slice_index v.Workloads' (sint.Z j) (d.workloads.map Workload.val) DFrac.discard w.val hj0) $$ [] as -
+      · iframe #; ipureintro; rw [List.getElem?_map, hw]; rfl
+      simp only [hj0, hjl', and_self, ↓reduceIte]
+      wp_apply (wp_load_slice_index v.Nodes' (sint.Z j) ss DFrac.discard s hj0) $$ [] as -
+      · iframe #; ipureintro; exact hs
+      simp only [hc0, hcl, and_self, ↓reduceIte]
+      wp_apply (wp_load_slice_index s (sint.Z c) ns DFrac.discard a hc0) $$ [] as -
+      · iframe #; ipureintro; exact ha
+      wp_method_call
+      wp_call
+      wp_auto
+      wp_apply (hEp v d) as %eps Heps
+      · iframe #
+      imod ownSlice_persist _ _ _ $$ Heps with #Heps
+      have hk : w.kind = W64 0 := Hkv w (List.mem_of_getElem? hw)
+      have hwc := hclients w (List.mem_of_getElem? hw)
+      have hcc : W64 ((sint.nat c : Nat) : Int) = c := by word
+      have hsh : nodeShare NP d n =
+          NP c a (rotateL (d.members.map Member.client) (sint.nat c)) := by
+        unfold nodeShare; rw [if_pos hn0, hnl']; simp only; rw [hcc]
+      rw [hsh]
+      wp_apply (hNM w c a eps (d.members.map Member.client)) $$ [Hsh]
+      · iframe #
+        iframe
+        ipureintro
+        refine ⟨hk, ?_⟩
+        rw [List.length_map]
+        omega
+      iapply HΦ; ipureintro; trivial
 
 end proof
 
