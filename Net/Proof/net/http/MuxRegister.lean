@@ -23,6 +23,327 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace net.http
 
+
+/-! ### The tree while a pattern is added -/
+
+section treePure
+variable [GooseExts]
+
+theorem lookupL_append_one {K V : Type} [DecidableEq K] (k k' : K) (v : V) :
+    ∀ ps : List (K × V), map.lookupL k' (ps ++ [(k, v)]) =
+      (match map.lookupL k' ps with | some x => some x | none => if k' = k then some v else none)
+  | [] => by simp [map.lookupL]
+  | p :: ps => by
+    simp only [List.cons_append, map.lookupL]
+    by_cases h : k' = p.1
+    · simp [h]
+    · simp only [h, ↓reduceIte]; exact lookupL_append_one k k' v ps
+
+/-- What `TreeSt.ok` says of one node. -/
+def nodeOk (S : TreeSt) (k : List Seg) (d : NodeSt) : Prop :=
+  d.l ≠ null ∧
+  (∀ s, s ≠ [] → map.lookupL s d.kids = (S.nodes !! (k ++ [.lit s])).map NodeSt.l) ∧
+  d.empty = locOf (S.nodes !! (k ++ [.lit []])) ∧
+  d.multi = locOf (S.nodes !! (k ++ [.multi])) ∧
+  (∀ e ∈ S.pats, patKeys e.1 = k → d.pat = e.2.1 ∧ d.h = e.2.2) ∧
+  ((∀ e ∈ S.pats, patKeys e.1 ≠ k) → d.pat = null ∧ d.h = interface.nil)
+
+/-- `TreeSt.ok` while `addPattern` descends: the nodes it has made so far (on the way to the
+current node `kc`) are prefixes of `kc`, every node's parent is a node. -/
+def TreeSt.okP (root : Loc) (S : TreeSt) (kc : List Seg) : Prop :=
+  (∃ d, S.nodes !! [] = some d ∧ d.l = root) ∧
+  (∀ e ∈ S.pats, litPat e.1) ∧ (S.pats.map Prod.fst).Nodup ∧
+  (∀ k, (S.nodes !! k).isSome → k = [] ∨ (∃ e ∈ S.pats, k <+: patKeys e.1) ∨ k <+: kc) ∧
+  (∀ e ∈ S.pats, ∀ k, k <+: patKeys e.1 → (S.nodes !! k).isSome) ∧
+  (S.nodes !! kc).isSome ∧
+  (∀ k x, (S.nodes !! (k ++ [x])).isSome → (S.nodes !! k).isSome) ∧
+  ∀ k d, S.nodes !! k = some d → nodeOk S k d
+
+theorem isSome_of_prefix_aux (S : TreeSt) (hpar : ∀ k x, (S.nodes !! (k ++ [x])).isSome → (S.nodes !! k).isSome) :
+    ∀ (n : Nat) (k k' : List Seg), k'.length = n → (S.nodes !! k').isSome → k <+: k' → (S.nodes !! k).isSome := by
+  intro n
+  induction n with
+  | zero => intro k k' hl hk hp; rw [List.length_eq_zero_iff] at hl; subst hl
+            rw [List.prefix_nil.mp hp]; exact hk
+  | succ n ih =>
+    intro k k' hl hk hp
+    obtain ⟨k'', x, rfl⟩ : ∃ k'' x, k' = k'' ++ [x] := by
+      have hne : k' ≠ [] := by intro h; subst h; simp at hl
+      exact ⟨k'.dropLast, k'.getLast hne, (List.dropLast_concat_getLast hne).symm⟩
+    rcases List.prefix_concat_iff.mp hp with h | h
+    · subst h; exact hk
+    · exact ih k k'' (by simp at hl; omega) (hpar _ _ hk) h
+
+theorem TreeSt.ok_okP (root : Loc) (S : TreeSt) (hok : S.ok root) : S.okP root [] := by
+  obtain ⟨hroot, hlit, hnd, hdom, hpre, hnodes⟩ := hok
+  refine ⟨hroot, hlit, hnd, ?_, hpre, ?_, ?_, hnodes⟩
+  · intro k hk
+    rcases hdom k hk with h | h
+    · exact .inl h
+    · exact .inr (.inl h)
+  · obtain ⟨d, hd, _⟩ := hroot; simp [hd]
+  · intro k x hk
+    rcases hdom _ hk with h | ⟨e, he, hp⟩
+    · simp at h
+    · exact hpre e he k ((List.prefix_append k [x]).trans hp)
+
+theorem TreeSt.okP_mono (root : Loc) (S : TreeSt) (kc : List Seg) (x : Seg) (hok : S.okP root kc)
+    (hx : (S.nodes !! (kc ++ [x])).isSome) : S.okP root (kc ++ [x]) := by
+  obtain ⟨hroot, hlit, hnd, hdom, hpre, _, hpar, hnodes⟩ := hok
+  refine ⟨hroot, hlit, hnd, ?_, hpre, hx, hpar, hnodes⟩
+  intro k hk
+  rcases hdom k hk with h | h | h
+  · exact .inl h
+  · exact .inr (.inl h)
+  · exact .inr (.inr (h.trans (List.prefix_append kc [x])))
+
+
+/-- A fresh node at `c` (`&routingNode{}`). -/
+def freshNode (c : Loc) : NodeSt :=
+  { l := c, pat := null, h := interface.nil, ms := ⟨slice.nil, map.nil, [], ∅⟩, kids := [],
+    multi := null, empty := null }
+
+/-- `d` with its link for the key `x` set to `c` (its children's state then `ms'`). -/
+def linkUpd (d : NodeSt) (x : Seg) (c : Loc) (ms' : MapSt) : NodeSt :=
+  match x with
+  | .lit [] => { d with empty := c }
+  | .lit s => { d with kids := d.kids ++ [(s, c)], ms := ms' }
+  | .multi => { d with multi := c }
+
+theorem linkUpd_l (d : NodeSt) (x : Seg) (c : Loc) (ms' : MapSt) : (linkUpd d x c ms').l = d.l := by
+  unfold linkUpd; split <;> rfl
+
+theorem linkUpd_pat (d : NodeSt) (x : Seg) (c : Loc) (ms' : MapSt) :
+    (linkUpd d x c ms').pat = d.pat ∧ (linkUpd d x c ms').h = d.h := by
+  unfold linkUpd; split <;> exact ⟨rfl, rfl⟩
+
+theorem nodeOk_transfer (S S' : TreeSt) (k : List Seg) (d : NodeSt) (hpats : S'.pats = S.pats)
+    (hmap : ∀ y, (S'.nodes !! (k ++ [y])).map NodeSt.l = (S.nodes !! (k ++ [y])).map NodeSt.l) :
+    nodeOk S k d → nodeOk S' k d := by
+  rintro ⟨h1, h2, h3, h4, h5, h6⟩
+  refine ⟨h1, fun s hs => by rw [h2 s hs, hmap], ?_, ?_, by rw [hpats]; exact h5,
+    by rw [hpats]; exact h6⟩
+  · rw [h3]; unfold locOf; rw [hmap]
+  · rw [h4]; unfold locOf; rw [hmap]
+
+theorem append_single_ne {α : Type} (k : List α) (x : α) : k ≠ k ++ [x] := by
+  intro h; have := congrArg List.length h; simp at this
+
+theorem append_single_inj {α : Type} {k k' : List α} {x y : α} (h : k ++ [x] = k' ++ [y]) :
+    k = k' ∧ x = y := by
+  have := List.append_inj' h rfl; exact ⟨this.1, by simpa using this.2⟩
+
+theorem TreeSt.okP_addNode (root : Loc) (S : TreeSt) (kc : List Seg) (x : Seg)
+    (hok : S.okP root kc) (d : NodeSt) (hd : S.nodes !! kc = some d)
+    (hfresh : S.nodes !! (kc ++ [x]) = none) (c : Loc) (hc : c ≠ null) (ms' : MapSt) :
+    TreeSt.okP root { S with nodes := <[kc ++ [x] := freshNode c]> (<[kc := linkUpd d x c ms']> S.nodes) }
+      (kc ++ [x]) := by
+  obtain ⟨hroot, hlit, hnd, hdom, hpre, hkc, hpar, hnodes⟩ := hok
+  have hne : kc ≠ kc ++ [x] := append_single_ne kc x
+  have hlk : ∀ k, (<[kc ++ [x] := freshNode c]> (<[kc := linkUpd d x c ms']> S.nodes)) !! k =
+      if kc ++ [x] = k then some (freshNode c) else if kc = k then some (linkUpd d x c ms')
+      else S.nodes !! k := by
+    intro k; simp only [GMap.lookup_insert_eq_iff]
+  have hold : ∀ k, (S.nodes !! k).isSome →
+      ((<[kc ++ [x] := freshNode c]> (<[kc := linkUpd d x c ms']> S.nodes)) !! k).isSome := by
+    intro k hk; rw [hlk]
+    by_cases a : kc ++ [x] = k <;> by_cases b : kc = k <;> simp [a, b, hk]
+  have hbelow : ∀ y, S.nodes !! (kc ++ [x] ++ [y]) = none := by
+    intro y
+    cases h : S.nodes !! (kc ++ [x] ++ [y]) with
+    | none => rfl
+    | some _ => have := hpar (kc ++ [x]) y (by rw [h]; rfl); rw [hfresh] at this; simp at this
+  refine ⟨?_, hlit, hnd, ?_, fun e he k hk => hold k (hpre e he k hk), by simp [hlk], ?_, ?_⟩
+  · obtain ⟨d0, hd0, hl0⟩ := hroot
+    by_cases h0 : kc = []
+    · subst h0
+      refine ⟨linkUpd d x c ms', ?_, by rw [linkUpd_l]; rw [hd] at hd0; cases hd0; exact hl0⟩
+      rw [hlk]; simp
+    · refine ⟨d0, ?_, hl0⟩
+      rw [hlk]; simp [h0, hd0]
+  · intro k hk
+    rw [hlk] at hk
+    by_cases h1 : kc ++ [x] = k
+    · subst h1; exact .inr (.inr (List.prefix_refl _))
+    by_cases h2 : kc = k
+    · subst h2; exact .inr (.inr (List.prefix_append _ _))
+    simp only [h1, h2, ↓reduceIte] at hk
+    rcases hdom k hk with h | h | h
+    · exact .inl h
+    · exact .inr (.inl h)
+    · exact .inr (.inr (h.trans (List.prefix_append kc [x])))
+  · intro k y hk
+    rw [hlk] at hk
+    by_cases h1 : kc ++ [x] = k ++ [y]
+    · obtain ⟨rfl, -⟩ := append_single_inj h1
+      exact hold _ hkc
+    by_cases h2 : kc = k ++ [y]
+    · subst h2; exact hold _ (hpar k y (by rw [hd]; rfl))
+    simp only [h1, h2, ↓reduceIte] at hk
+    exact hold _ (hpar _ _ hk)
+  · intro k d2 hk2
+    rw [hlk] at hk2
+    by_cases h1 : kc ++ [x] = k
+    · subst h1
+      simp only [↓reduceIte, Option.some.injEq] at hk2; subst hk2
+      have hnone : ∀ y, (<[kc ++ [x] := freshNode c]> (<[kc := linkUpd d x c ms']> S.nodes)) !!
+          (kc ++ [x] ++ [y]) = none := by
+        intro y; rw [hlk]
+        rw [if_neg (append_single_ne _ y), if_neg (fun h => by
+          have := congrArg List.length h; simp at this), hbelow]
+      refine ⟨hc, fun s _ => by rw [hnone]; rfl, by rw [hnone]; rfl, by rw [hnone]; rfl, ?_, fun _ => ⟨rfl, rfl⟩⟩
+      intro e he hk
+      have := hpre e he _ (by rw [hk]; exact List.prefix_refl _)
+      rw [hfresh] at this; simp at this
+    by_cases h2 : kc = k
+    · subst h2
+      simp only [h1, ↓reduceIte, Option.some.injEq] at hk2; subst hk2
+      obtain ⟨n1, n2, n3, n4, n5, n6⟩ := hnodes kc d hd
+      have hp := linkUpd_pat d x c ms'
+      have hother : ∀ y, y ≠ x →
+          (<[kc ++ [x] := freshNode c]> (<[kc := linkUpd d x c ms']> S.nodes)) !! (kc ++ [y]) =
+            S.nodes !! (kc ++ [y]) := by
+        intro y hy; rw [hlk, if_neg (fun h => hy (append_single_inj h).2.symm),
+          if_neg (append_single_ne kc y)]
+      refine ⟨by rw [linkUpd_l]; exact n1, ?_, ?_, ?_, ?_, ?_⟩
+      · intro s hs
+        by_cases hx : x = .lit s
+        · subst hx
+          obtain ⟨b, bs, rfl⟩ : ∃ b bs, s = b :: bs := List.exists_cons_of_ne_nil hs
+          simp only [linkUpd]
+          rw [lookupL_append_one, n2 _ hs, hfresh]
+          simp [freshNode]
+        · rw [hother _ (Ne.symm hx), ← n2 s hs]
+          unfold linkUpd
+          split
+          · rfl
+          · rename_i s' hs'
+            rw [lookupL_append_one]
+            cases map.lookupL s d.kids with
+            | some _ => rfl
+            | none => simp only; rw [if_neg (fun h => hx (by rw [h]))]
+          · rfl
+      · by_cases hx : x = .lit []
+        · subst hx; simp [linkUpd, locOf, freshNode]
+        · rw [hother _ (Ne.symm hx), ← n3]
+          unfold linkUpd; split
+          · exact absurd rfl hx
+          · rfl
+          · rfl
+      · by_cases hx : x = .multi
+        · subst hx; simp [linkUpd, locOf, freshNode]
+        · rw [hother _ (Ne.symm hx), ← n4]
+          unfold linkUpd; split
+          · rfl
+          · rfl
+          · exact absurd rfl hx
+      · intro e he hk; rw [hp.1, hp.2]; exact n5 e he hk
+      · intro hall; rw [hp.1, hp.2]; exact n6 hall
+    simp only [h1, h2, ↓reduceIte] at hk2
+    refine nodeOk_transfer S
+      { nodes := <[kc ++ [x] := freshNode c]> (<[kc := linkUpd d x c ms']> S.nodes), pats := S.pats }
+      k d2 rfl ?_ (hnodes k d2 hk2)
+    intro y
+    rw [hlk, if_neg (fun h => h2 (append_single_inj h).1)]
+    by_cases h3 : kc = k ++ [y]
+    · rw [if_pos h3, ← h3, hd]; simp [linkUpd_l]
+    · rw [if_neg h3]
+
+
+/-- The path a list of segments spells (`pathSegs`' inverse). -/
+def segsStr : List Seg → List w8
+  | [] => []
+  | .lit s :: r => W8 47 :: (s ++ segsStr r)
+  | .multi :: r => W8 47 :: segsStr r
+
+theorem segsStr_pathSegs : ∀ p, (p = [] ∨ p.head? = some (W8 47)) → segsStr (pathSegs p) = p := by
+  apply pathSegs_ind
+  · simp [pathSegs, segsStr]
+  · rw [pathSegs_slash]; rfl
+  · intro t ht ih
+    rw [pathSegs_cons t ht]
+    simp only [segsStr, ih]
+    rw [List.takeWhile_append_dropWhile]
+
+theorem patKeys_inj (p q : List w8) (hp : litPat p) (hq : litPat q) (h : patKeys p = patKeys q) :
+    p = q := by
+  have h' : pathSegs p = pathSegs q := by simpa [patKeys] using h
+  rw [← segsStr_pathSegs p (.inr hp.1), ← segsStr_pathSegs q (.inr hq.1), h']
+
+theorem patKeys_ne_nil (p : List w8) : patKeys p ≠ [] := by simp [patKeys]
+
+/-- `d` holding the pattern `pp` and handler `h` (`set`). -/
+def setPat (d : NodeSt) (pp : Loc) (h : GoInterface) : NodeSt := { d with pat := pp, h := h }
+
+theorem TreeSt.okP_set (root : Loc) (S : TreeSt) (p : List w8) (pp : Loc) (h : GoInterface)
+    (hok : S.okP root (patKeys p)) (hp : litPat p) (hnew : p ∉ S.pats.map Prod.fst)
+    (d : NodeSt) (hd : S.nodes !! patKeys p = some d) :
+    (d.pat = null ∧ d.h = interface.nil) ∧
+    TreeSt.ok root (TreeSt.mk (<[patKeys p := setPat d pp h]> S.nodes) ((p, pp, h) :: S.pats)) := by
+  obtain ⟨hroot, hlit, hnd, hdom, hpre, hkc, hpar, hnodes⟩ := hok
+  have hother : ∀ e ∈ S.pats, patKeys e.1 ≠ patKeys p := by
+    intro e he heq
+    exact hnew (by rw [← patKeys_inj e.1 p (hlit e he) hp heq]; exact List.mem_map_of_mem he)
+  obtain ⟨n1, n2, n3, n4, n5, n6⟩ := hnodes _ d hd
+  refine ⟨n6 hother, ?_⟩
+  have hlk : ∀ k, <[patKeys p := setPat d pp h]> S.nodes !! k =
+      if patKeys p = k then some (setPat d pp h) else S.nodes !! k := by
+    intro k; simp only [GMap.lookup_insert_eq_iff]
+  have hmapl : ∀ k, (<[patKeys p := setPat d pp h]> S.nodes !! k).map NodeSt.l =
+      (S.nodes !! k).map NodeSt.l := by
+    intro k; rw [hlk]; by_cases hk : patKeys p = k
+    · subst hk; rw [hd]; simp [setPat]
+    · simp [hk]
+  have hsome : ∀ k, (<[patKeys p := setPat d pp h]> S.nodes !! k).isSome =
+      (S.nodes !! k).isSome := by
+    intro k; have := congrArg Option.isSome (hmapl k); simpa using this
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · obtain ⟨d0, hd0, hl0⟩ := hroot
+    exact ⟨d0, by rw [hlk, if_neg (fun h => patKeys_ne_nil p h)]; exact hd0, hl0⟩
+  · intro e he
+    rcases List.mem_cons.mp he with rfl | he
+    · exact hp
+    · exact hlit e he
+  · simp only [List.map_cons]; exact List.nodup_cons.mpr ⟨hnew, hnd⟩
+  · intro k hk
+    rw [hsome] at hk
+    rcases hdom k hk with h0 | ⟨e, he, hpk⟩ | hpk
+    · exact .inl h0
+    · exact .inr ⟨e, List.mem_cons_of_mem _ he, hpk⟩
+    · exact .inr ⟨(p, pp, h), List.mem_cons_self, hpk⟩
+  · intro e he k hk
+    rw [hsome]
+    rcases List.mem_cons.mp he with rfl | he
+    · exact isSome_of_prefix_aux S hpar _ k _ rfl hkc hk
+    · exact hpre e he k hk
+  · intro k d2 hk2
+    rw [hlk] at hk2
+    have hch : ∀ y, (<[patKeys p := setPat d pp h]> S.nodes !! (k ++ [y])).map
+        NodeSt.l = (S.nodes !! (k ++ [y])).map NodeSt.l := fun y => hmapl _
+    have hloc : ∀ y, locOf (<[patKeys p := setPat d pp h]> S.nodes !! (k ++ [y])) =
+        locOf (S.nodes !! (k ++ [y])) := fun y => by unfold locOf; rw [hch]
+    by_cases hk : patKeys p = k
+    · subst hk
+      simp only [↓reduceIte, Option.some.injEq] at hk2; subst hk2
+      refine ⟨n1, fun s hs => by rw [hch]; exact n2 s hs, by rw [hloc]; exact n3,
+        by rw [hloc]; exact n4, ?_, ?_⟩
+      · intro e he hek
+        rcases List.mem_cons.mp he with rfl | he
+        · exact ⟨rfl, rfl⟩
+        · exact absurd hek (hother e he)
+      · intro hall; exact absurd rfl (hall _ List.mem_cons_self)
+    · simp only [hk, ↓reduceIte] at hk2
+      obtain ⟨m1, m2, m3, m4, m5, m6⟩ := hnodes k d2 hk2
+      refine ⟨m1, fun s hs => by rw [m2 s hs, hch], by rw [hloc]; exact m3, by rw [hloc]; exact m4,
+        ?_, ?_⟩
+      · intro e he hek
+        rcases List.mem_cons.mp he with rfl | he
+        · exact absurd hek hk
+        · exact m5 e he hek
+      · intro hall; exact m6 (fun e he => hall e (List.mem_cons_of_mem _ he))
+
+end treePure
+
 section wp
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
@@ -49,16 +370,6 @@ instance routingIndexKey_safe (k : net.http.routingIndexKey) :
       have : decide (k = k') = false := decide_eq_false (fun h => hp (by rw [h]))
       rw [this]
       iapply HΦ
-
-theorem lookupL_append_one {K V : Type} [DecidableEq K] (k k' : K) (v : V) :
-    ∀ ps : List (K × V), map.lookupL k' (ps ++ [(k, v)]) =
-      (match map.lookupL k' ps with | some x => some x | none => if k' = k then some v else none)
-  | [] => by simp [map.lookupL]
-  | p :: ps => by
-    simp only [List.cons_append, map.lookupL]
-    by_cases h : k' = p.1
-    · simp [h]
-    · simp only [h, ↓reduceIte]; exact lookupL_append_one k k' v ps
 
 theorem kids_append_nodup (kids : List (GoString × Loc)) (k : GoString) (v : Loc)
     (hnd : (kids.map Prod.fst).Nodup) (hk : map.lookupL k kids = none) :
