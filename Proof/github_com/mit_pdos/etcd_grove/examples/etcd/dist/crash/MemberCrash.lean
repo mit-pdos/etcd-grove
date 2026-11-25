@@ -49,7 +49,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
 
 /-- **The components `cs` lead durably from the directory `j` to `J`** (persistent): each component's claim
 at a discarded fraction, naming the next directory, with the crash promise that every crash leaves the
