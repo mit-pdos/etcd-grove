@@ -4,7 +4,6 @@ The proof of `Enc.Bool` (`Spec/.../dist/enc/Enc__Bool.lean`): one append, of `1`
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Enc__Bool
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Lemmas
 
 @[expose] public section
 
