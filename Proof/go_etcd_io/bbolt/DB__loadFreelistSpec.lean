@@ -89,7 +89,7 @@ def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile)
   iprop(∃ (B : BNs) (fl : FLPg) (fli : GoInterface),
     isBoltCoreP B N db p sp C.txid ∗
     threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
-    wdbCore B db p (lfW C b L m xs f fd fl fli) ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
+    wdbCore B db p (lfW C b L m xs f fd fl fli) ∗ ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗
     flPgOwn fli fl ∗ sparePair B db sp ∗ ghostVar B.cls (1 : Qp).half false ∗
     boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗ ghostVar B.clo 1 () ∗
     ⌜wdbOK (lfW C b L m xs f fd fl fli) ∧ B.bq = γbq⌝)

@@ -423,7 +423,7 @@ mapping fields at `q · ¼` (the base view's pages inside the mapping, as a read
 facts (batch 43/44: `wrFacts`; maintainer 16: ending with the cursor facts `wrCurFacts`). -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
-    viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
+    viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) (T.base, X.v.txid) ∗
     hdlAuth r q X.handles ∗ nlAuth r q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
@@ -774,7 +774,7 @@ private theorem wtxFrac_fractional (B : BNs) (tx : Loc) (r : TxReg) (T : TxView)
       fun b => exField_fractional _ _
     infer_instance
   have h3 := QpMul_frac (fun q => viewCells (GF := GF) q X.v) wq
-  have h4 := QpMul_frac (fun q => ghostVar (GF := GF) B.st q T.base) (1 : Qp).half.half
+  have h4 := QpMul_frac (fun q => ghostVar (GF := GF) B.st q (T.base, X.v.txid)) (1 : Qp).half.half
   have h7 := fractional_comp (fun q => (tx.[Tx, go!"db"] ↦{DFrac.own q} r.db : IProp GF))
     txDbQ txDbQ_add
   have h8 : Fractional (fun q => iprop(∃ l : Nat,
@@ -1072,11 +1072,11 @@ theorem boltTxDef_base (B : BNs) (N : Namespace) (tx : Loc) (q q' : Qp) (T : TxV
   unfold boltTxDef
   split
   · iintro ⟨⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, -, -, -, -, Hw⟩, Hs⟩
-    unfold wtxFrac boltStateDef
+    unfold wtxFrac boltStateDef boltStateVDef
     icases Hw with ⟨-, -, -, Hst, -⟩
-    icases Hs with ⟨Hs, -⟩
+    icases Hs with ⟨%ν, Hs, -⟩
     icombine Hst Hs gives %h
-    ipureintro; intro _; exact h.2
+    ipureintro; intro _; exact (Prod.mk.inj h.2).1
   · rename_i h
     iintro -
     ipureintro; intro h'; exact absurd h' h

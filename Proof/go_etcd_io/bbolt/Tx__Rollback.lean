@@ -171,8 +171,11 @@ theorem Tx.Rollback.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (hga
     have e : X.v.data = (View.ofC X.v.base w.C).data := congrArg View.data hwv
     rw [e]; rfl
   have hbase : T.base = treeData w'.C := by rw [Hf.2.2.1, hvd, hC']
+  have htxv : X.v.txid = w'.C.txid := by
+    have e : X.v.txid = (View.ofC X.v.base w.C).txid := congrArg View.txid hwv
+    rw [e, ← hC']; rfl
   have hms2 : w'.ms ≠ none := by rw [hms', hwms]; simp
-  rw [← hfl', hbase]
+  rw [← hfl', hbase, htxv]
   rw [← hC', ← hms', ← hm', ← hfli', ← hjunk', ← hf', ← hfd'] at *
   wp_apply wp_close K tx r X (wLive X.v w'.C) w'
     ⟨X.v, w'.C.txid + 1, false, true, rfl,

@@ -199,13 +199,14 @@ theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : N
     (dp db : Loc) :
     dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 0 ∗
       boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
-    ghostVar B.st (1 : Qp).half D ∗ (|={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
+    (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν)) ∗ (|={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
       ghostVar γs (1 : Qp).half 1 ∗ dp ↦{DFrac.own (1 : Qp).half} db) := by
   iintro ⟨#Hinv, Hs, Hst⟩
-  unfold boltState boltStateDef
+  unfold boltState boltStateDef boltStateVDef
   rw [bnsOf_mkGs]
-  icases Hst with ⟨Hst, Hbq⟩
-  iframe Hst
+  icases Hst with ⟨%ν, Hst, Hbq⟩
+  isplitl [Hst]
+  · iexists ν; iexact Hst
   iapply dp_lock N γs B.bq dp db $$ [Hinv Hs Hbq]
   iframe; iframe #
 
@@ -213,15 +214,16 @@ theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : N
 theorem open_unlock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
     (dp db : Loc) :
     dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
-      ghostVar B.st (1 : Qp).half D ⊢
+      (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν)) ⊢
     |={⊤}=> dp ↦□ db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D := by
-  iintro ⟨#Hinv, Hs, Hdp, Hst⟩
+  iintro ⟨#Hinv, Hs, Hdp, ⟨%ν, Hst⟩⟩
   imod dp_unlock N γs B.bq dp db $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
   · iframe; iframe #
   imodintro
   iframe Hdp
-  unfold boltState boltStateDef
+  unfold boltState boltStateDef boltStateVDef
   rw [bnsOf_mkGs]
+  iexists ν
   iframe
 
 set_option hygiene false in

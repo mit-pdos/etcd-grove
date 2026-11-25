@@ -7180,3 +7180,32 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   invariant (no exported statement changes; `consInv_open`/`_close` unchanged, accessor lemmas beside them).
 - **Decision.** **Approved** (coordinator, 2026-11-25, T10 session 3 order). Not applied yet.
 
+## 2026-11-25: C-I1's record laws restated for bbolt's crash proof (bbolt-crash, D6)
+
+- **Spec.** C-I1 (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`): `dbCrashKeep γ i0 Dl Dn pd`,
+  `dbCrashKeep_announce`/`_half`/`_clear`, `dbCrash` (any mask); and `Tx.Commit.spec`'s update over `boltState`.
+- **Defect.**
+  - (1) `_half` lends `dbHalf` for one `={E}=∗` step `U`, but `Tx.Commit.spec`'s update is a standard Iris AU, whose
+    accessor gives `boltState γ 1 D'` away and takes `boltState γ 1 T.cur` back in two fancy updates, with bbolt's ghost
+    transition between them. So a backend holding the record cannot build Commit's update: `_half` is sound (inside `U` the
+    data cannot change) but unusable. With an arbitrary `U` it is also unprovable from a crash invariant (two commits inside
+    `U` would make the fallback wrong).
+  - (2) Proving `dbCrash` needs opening bbolt's crash invariant (the old generation's resources of `i0`), so it needs its
+    namespace in `E`.
+  - (3) The announcement `pd` is needed only if the commit point is the meta's landing. Under `FsNoErrAll`, bbolt's proof
+    can fire the update just before the meta's `pwrite` (under `metalock`), after which no new meta byte is a crash
+    candidate before the commit point.
+- **Evidence.** The plan `plans/bbolt-crash-plan.md` §0 (F1–F3, local); the AU shapes in `Spec/go_etcd_io/bbolt/Tx__Commit.lean`
+  and Iris's `atomic_acc`.
+- **Proposed change.**
+  - Versions: `boltState γ q D = ∃ ν, boltStateV γ q D ν` (`ν` the committed txid).
+  - `Tx.Commit.spec`'s update over `boltStateV`, giving the data back at `ν + 1` (`commitAU_of_unversioned` converts an old
+    update; `batchTx__commit` uses it).
+  - `_half` becomes `dbCrashKeep_take` (record ⊢ `∃ ν, dbHalfV γ Dn ν ∗ dbCrashHole γ i0 Dl Dn ν`), `_putSame` (same
+    version back) and `_putStep` (version `ν + 1` back: fallback `Dn`).
+  - `pd`, `_announce`, `_clear` dropped; `dbCrash` concludes `D' = Dl ∨ D' = Dn` and takes
+    `(hE : ↑(bbolt.crashN γ.ns) ⊆ E := by simp)`.
+  - `MemberCrash`'s call drops `pd`; its `MemberKN.pd` field is left unused for T10 to remove.
+- **Decision.** **Agreed** with T10 (etcd-grove-03, #50, 2026-11-25T17:29Z: "yes to all three") and approved by
+  coordinator-E. Applied on `bbolt-crash/2026-11-25` (based on `etcd-safe-t10`), with an `axiom`-skill review of the
+  restated laws before T10 merges it. The laws stay axioms until bbolt's crash proof retires them.

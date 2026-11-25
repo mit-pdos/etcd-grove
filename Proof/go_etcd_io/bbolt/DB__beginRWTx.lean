@@ -401,7 +401,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   unfold wtxFrac
   simp only [QpMul_one_rw, txDbQ_one_rw]
   iframe Hheap
-  try simp only [wx0]
+  try simp only [wx0, View.ofC.proj_txid]
   iframe Hvc Hst Hbka Hnla Hdb
   isplitl []
   · unfold fills; simp; try iempintro

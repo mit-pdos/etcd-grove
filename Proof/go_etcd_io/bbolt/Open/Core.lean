@@ -136,7 +136,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       wCells (some (b, L)) (wSlots (L / 4096) C FLPg.empty) ⊢
     |={E}=> ∃ B : BNs, ⌜B.bq = γbq⌝ ∗ isBoltCoreP B N db p sp C.txid ∗
       wdbCore B db p { openW C b L m wb f fd with fl := fl, fli := fli } ∗
-      ghostVar B.st (1 : Qp).half.half (treeData C) ∗ ghostVar B.cls (1 : Qp).half false ∗
+      ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗ ghostVar B.cls (1 : Qp).half false ∗
       sparePair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
       boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
       ghostVar B.clo 1 () := by
@@ -144,7 +144,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
     Hosm, Hfo, Hfd, Hps, Hmo1, Hmo2, Hslots, Hwb, Hmc1, Hmc2, Hcells, Hwc⟩
   -- the ghost names (`boltState`'s validity token `γbq` is the caller's: the page pool's `New`
   -- was specified against it, U11i)
-  imod ghostVar_alloc (GF := GF) (treeData C) with ⟨%γst, Hst⟩
+  imod ghostVar_alloc (GF := GF) (treeData C, C.txid) with ⟨%γst, Hst⟩
   imod ghostVar_alloc (GF := GF) C with ⟨%γcur, Hcur⟩
   imod ghostVar_alloc (GF := GF) fl with ⟨%γfl, Hfl⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat RdInfo) with ⟨%γrds, Hrds, -⟩
@@ -314,9 +314,11 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   iexists B
   isplitr
   · ipureintro; rfl
-  unfold isBoltCoreP wdbCore wdbCoreG boltStateDef dblAt t0At
+  ihave Hbs : boltStateDef (GF := GF) B 1 (treeData C) $$ [Hst1 Hbq]
+  · unfold boltStateDef boltStateVDef; iexists C.txid; iframe
+  unfold isBoltCoreP wdbCore wdbCoreG dblAt t0At
   simp only [openW, mapLen]
-  iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hst1 Hbq
+  iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hbs
   iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
   iframe Hmo2 Hwc Hwb Hst3 Hopn Hnf Hclo
   ipureintro
@@ -384,7 +386,7 @@ theorem open_writer (E : CoPset) (B : BNs) (N : Namespace) (db : Loc) (p : BFile
     isBoltCoreP (GF := GF) B N db p sp w.C.txid ∗
       threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
       db.[DB, go!"rwlock"] ↦ (zero_val sync.Mutex) ∗
-      wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+      wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
       flPgOwn w.fli w.fl ∗ sparePair B db sp ∗ ghostVar B.cls (1 : Qp).half false ∗
       dghostVar B.opn (DFrac.own 1) false ⊢
     |={E}=> isBoltDef B N db := by

@@ -10,10 +10,11 @@
   the server's hooks write a conf change's `confState` before the change's own batch-lock cycle moves the
   consistent index, so a commit in between stores the next configuration beside the old index).
 * `bkPayload`: what the backend's crash record carries beside `dbCrashKeep` (C-I1): the image of each
-  data a crash can leave (`Dl`, `Dn`, the announced commit).
-* `kbAnnounce.law`, `kbLand.law`, `kbSync.law`: the three client laws the backend's commit invariant
-  applies to a client payload `KB Dl Dn pd` at its three steps (the announce at the hook step, the commit
-  point inside `dbCrashKeep_half`, the resync after a returned commit).
+  data a crash can leave (`Dl`, `Dn`).
+* `kbStep.law`, `kbSync.law`: the two client laws the backend's commit invariant applies to a client
+  payload `KB Dl Dn` (the commit point, inside `Tx.Commit`'s update with C-I1's `_take`/`_putStep`; the
+  resync after a returned commit). C-I1's announcement and its law `kbAnnounce.law` went with the record
+  laws' restatement (2026-11-25, bbolt-crash).
 * (Applied 2026-11-25, approved by coordinator-E, #50 item 2: `wal.crashImageR`, `confRowW`, `snapRowB2`
   and the restated `srvCrashImageAt` are in `etcdserver/InvCrashImage.lean`.)
 * `memberImageRowsR`, `memberBackend.law`: T10's law for T7, in place of `memberImage.law`,
@@ -62,32 +63,30 @@ def bkImg (γ : SrvRaft) (ρ : ReqNames) (i : w64) (A : List EntryModel) (D : Da
 def bkImgAny (γ : SrvRaft) (ρ : ReqNames) (D : Data) : IProp GF :=
   iprop(∃ (i : w64) (A : List EntryModel) (m : Membership), bkImg γ ρ i A D m)
 
-/-- **The crash payload beside the record `dbCrashKeep γb i0 Dl Dn pd`** (T10): every data a crash
-can leave (`dbCrash`'s `Dl`, `Dn`, the announced `pd`) is an image. -/
-def bkPayload (γ : SrvRaft) (ρ : ReqNames) (Dl Dn : Data) (pd : Option Data) : IProp GF :=
-  iprop(□ bkImgAny γ ρ Dl ∗ □ bkImgAny γ ρ Dn ∗ □ (∀ S, ⌜pd = some S⌝ → bkImgAny γ ρ S))
+/-- **The crash payload beside the record `dbCrashKeep γb i0 Dl Dn`** (T10): every data a crash
+can leave (`dbCrash`'s `Dl`, `Dn`) is an image. -/
+def bkPayload (γ : SrvRaft) (ρ : ReqNames) (Dl Dn : Data) : IProp GF :=
+  iprop(□ bkImgAny γ ρ Dl ∗ □ bkImgAny γ ρ Dn)
 
 /-! ### The backend's client laws on a crash payload `KB` (generic; the backend applies them) -/
 
-/-- **At the hook step** (`unsafeCommit`, after `OnPreCommitUnsafe`, before bbolt's `Commit`, where
-C-I1's `dbCrashKeep_announce` is applied): the batch lock's view of the session's data `S` (`CV S`: the
-lock's client resource `W` and hooks' resource `Pk` with the readers' quarter, the hook's keys and the
-tracked buckets at `S`, backend-supplied) lets the client announce `S` in its payload. The server's proof
-is mvcc's `mvccImage_commit.law` (proposed) plus the batch lock's image row (T10's row of
-`batchLockInv`). -/
-abbrev kbAnnounce.law (KB : Data → Data → Option Data → IProp GF) (CV : Data → IProp GF) : Prop :=
-  ∀ (Dl Dn S : Data), ⊢ KB Dl Dn none -∗ CV S ==∗ KB Dl Dn (some S) ∗ CV S
-
-/-- **At the commit point** (inside `dbCrashKeep_half`'s update, the data changed to the announced `S`):
-the fallback moves to `Dn` and the announcement clears. Ghost-only. -/
-abbrev kbLand.law (KB : Data → Data → Option Data → IProp GF) : Prop :=
-  ∀ (Dl Dn S : Data), ⊢ KB Dl Dn (some S) -∗ KB Dn S none
+/-- **At the commit point** (inside `Tx.Commit`'s update, built by the backend from C-I1's
+`dbCrashKeep_take`/`_putStep`: the data changes from `Dn` to `S`, the version by one): the batch lock's
+view of the session's data `S` (`CV S`: the lock's client resource `W` and hooks' resource `Pk` with the
+readers' quarter, the hook's keys and the tracked buckets at `S`, backend-supplied; the committing thread
+holds the lock, so it frames `CV S` into the update) moves the payload as `_putStep` moves the record: the
+fallback to `Dn` (or kept, when the commit kept the data), the committed data to `S`. The server's proof is
+mvcc's `mvccImage_commit.law` (proposed) plus the batch lock's image row (T10's row of `consInv`).
+(Restated 2026-11-25 with C-I1's record laws, bbolt-crash: no announcement, so the image of `S` is given at
+the commit point itself, not at the hook step.) -/
+abbrev kbStep.law (KB : Data → Data → IProp GF) (CV : Data → IProp GF) : Prop :=
+  ∀ (Dl Dn S : Data), ⊢ KB Dl Dn -∗ CV S ==∗ KB (if S = Dn then Dl else Dn) S ∗ CV S
 
 /-- **After a returned commit** (a fresh write transaction at `Dn`: the derived resync
-`dbCrashKeep_clear`; `dbCrashKeep_close`; `dbCrashKeep_new`, which makes the record `(Dn, Dn, none)`):
-the payload drops the fallback. Ghost-only (the server's raises its durable-index floor here). -/
-abbrev kbSync.law (KB : Data → Data → Option Data → IProp GF) : Prop :=
-  ∀ (Dl Dn : Data) (pd : Option Data), ⊢ KB Dl Dn pd ==∗ KB Dn Dn none
+`dbCrashKeep_close`; `dbCrashKeep_new`, which makes the record `(Dn, Dn)`): the payload drops the
+fallback. Ghost-only (the server's raises its durable-index floor here). -/
+abbrev kbSync.law (KB : Data → Data → IProp GF) : Prop :=
+  ∀ (Dl Dn : Data), ⊢ KB Dl Dn ==∗ KB Dn Dn
 
 end defs
 

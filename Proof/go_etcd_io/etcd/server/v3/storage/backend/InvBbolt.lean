@@ -270,6 +270,23 @@ def dbHalf (γ : DBNames) (D : Data) : IProp GF :=
 instance dbHalf_timeless (γ : DBNames) (D : Data) : Timeless (dbHalf (GF := GF) γ D) := by
   unfold dbHalf onFs; split <;> infer_instance
 
+/-- **The commit invariant's half at its version `ν`** (the committed txid, `bbolt.boltStateV`): what
+C-I1's `dbCrashKeep_take` lends for `Tx.Commit`'s update, whose commit gives the data back at `ν + 1`. -/
+def dbHalfV (γ : DBNames) (D : Data) (ν : Nat) : IProp GF :=
+  onFs iprop(bbolt.boltStateV γ (1 : Qp).half D ν)
+
+/-- The half at a version is the half. -/
+theorem dbHalfV_dbHalf (γ : DBNames) (D : Data) (ν : Nat) :
+    dbHalfV (GF := GF) γ D ν ⊢ dbHalf γ D := by
+  unfold dbHalfV dbHalf onFs
+  split
+  · rename_i c _
+    letI := c.S; letI := c.ok; letI := c.has
+    iintro H
+    iapply (bbolt.boltState_eq_V (GF := GF) γ (1 : Qp).half D).2
+    iexists ν; iexact H
+  · exact .rfl
+
 /-- **The claim on the name `path`, which names the inode `i`** (S5), at the instances: `path` is
 `d/b`, with the path of `d`, a share of the call permission, and the whole claim on `b`, whose
 current entry is the file `i` (`fileHoldsF` without the file's contents). -/

@@ -194,7 +194,7 @@ theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' 
     (hf : wOK X' ∧ T'.rw = true ∧ T'.cur = wtxData X' ∧ T'.base = X'.v.data ∧ gensOK T' X' ∧
       wrFacts X' ∧ wrCurFacts T' X') :
     K.full (GF := GF) ∗ viewOf r X'.v ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗
-        wtxW K tx r true X' ∗ ghostVar K.B.st (1 : Qp).half.half T'.base ⊢
+        wtxW K tx r true X' ∗ ghostVar K.B.st (1 : Qp).half.half (T'.base, X'.v.txid) ⊢
       |={E}=> boltTxDef K.B K.N tx 1 T' := by
   iintro ⟨#Hb, #Hvf, Hv, Hw, Hst⟩
   unfold wtxW wtxCore statsTok

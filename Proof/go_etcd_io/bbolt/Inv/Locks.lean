@@ -200,7 +200,7 @@ high-water mark's pages inside `maxMapSize`, what a reader's `Tx.WriteTo` image 
 (U3 finding 6: `ReleasePendingPages` computes `t - 1` of each, which wraps at 0). -/
 def metaR (B : BNs) (db : Loc) (p : BFile) : IProp GF :=
   iprop(∃ (C : CommitSt) (F : GMap Nat w64) (cl : Bool) (fli : GoInterface) (wa : GoFunc),
-    ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
+    ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗
     ghostVar B.cls (1 : Qp).half.half cl ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} (!cl) ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
@@ -391,7 +391,7 @@ def wdbCore (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
 freelist object but its reader part, the spare reader-token pair, and the receipts
 `⧗ (C.txid - t0)`. -/
 def wdbOwn (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (w : WDb) : IProp GF :=
-  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     flPgOwn w.fli w.fl ∗ sparePair B db sp ∗ receipt (w.C.txid - t0))
 
 /-- **A live writer's database side** (in its exclusive part, `txExcl`): `db.rwtx` is the
@@ -404,7 +404,7 @@ def wdbLive (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (w
 /-- **`Open`'s writer side before `loadFreelist`** (design §3.11, core phase): `wdbCore` and the
 data's quarter, with no freelist (`fl = ∅`, `db.freelist` nil). -/
 def wdbOpen (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
-  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C) ∗
+  iprop(wdbCore B db p w ∗ ghostVar B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
 /-- **A closed database's writer side**: the other halves of the ghost state and of the fields
@@ -413,7 +413,7 @@ and deposits it here, so that its holder knows the database open). -/
 def closedR (B : BNs) (db : Loc) : IProp GF :=
   iprop(ghostVar B.cls (1 : Qp).half true ∗
     ghostVar B.clo 1 () ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
-    ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
+    ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗
     ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
     mapFields db (DFrac.own (1 : Qp).half) ms ∗
     ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half wIdle ∗

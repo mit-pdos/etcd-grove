@@ -320,7 +320,7 @@ def wtxEnd' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w :
     wdbLive K.B K.db K.p K.sp K.t0 tx ws w ∗ sync.ownMutex K.db.[DB, go!"rwlock"] ∗
     ghostVar K.B.cls (1 : Qp).half false ∗
     (∃ c : TxViewC, ghostVar r.n.v 1 (c, TxX.wr X)) ∗
-    ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+    ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     ⌜wdbOK' fr w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome⌝ ∗
     ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl ws F ∗ ⌜fbRel w F⌝)
 

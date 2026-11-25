@@ -157,7 +157,7 @@ def wtxEnd (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) : IProp
     wdbLive K.B K.db K.p K.sp K.t0 tx ws w ∗ sync.ownMutex K.db.[DB, go!"rwlock"] ∗
     ghostVar K.B.cls (1 : Qp).half false ∗
     (∃ c : TxViewC, ghostVar r.n.v 1 (c, TxX.wr X)) ∗
-    ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+    ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
     ⌜wdbOK w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome⌝)
 
 /-- **A reader with its view `v`** (`rdTx` with its parameters fixed: the database `K`, the view
@@ -434,7 +434,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗ wtxW K tx r true X ∗
-        ghostVar B.st (1 : Qp).half.half T.base ∗
+        ghostVar B.st (1 : Qp).half.half (T.base, X.v.txid) ∗
         ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X ∧
           wrCurFacts T X⌝ := by
   unfold boltTxDef
@@ -499,7 +499,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v q.half (c, TxX.wr X) ∗ wtxWQ K tx r true q X ∗
-        ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
+        ghostVar B.st (QpMul q (1 : Qp).half.half) (T.base, X.v.txid) ∗
         ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X ∧
           wrCurFacts T X⌝ := by
   unfold boltTxDef

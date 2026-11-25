@@ -30,16 +30,16 @@ variable [sem : go.Semantics]
 
 /-- **A commit update excludes a whole validity token**: open it, its `boltState` holds `B.bq`
 whole. -/
-theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → IProp GF) (Q : IProp GF) :
-    AU <{ ∃∃ (D' : Data), boltStateDef (GF := GF) B 1 D' }> @ ⊤ \ ↑N, ∅
-        <{ β D', COMM Q }> ∗ ghostVar B.bq 1 () ={⊤ \ ↑N}=∗ False := by
+theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (Q : IProp GF) :
+    AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateVDef (GF := GF) B 1 D' ν }> @ ⊤ \ ↑N, ∅
+        <{ β D' ν, COMM Q }> ∗ ghostVar B.bq 1 () ={⊤ \ ↑N}=∗ False := by
   iintro ⟨Hau, Hbq⟩
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-  icases Hacc with ⟨%D', Hx, -⟩
-  unfold boltStateDef
+  icases Hacc with ⟨%D', %ν, Hx, -⟩
+  unfold boltStateVDef
   icases Hx with ⟨-, Hbq'⟩
   ihave %h := ghostVar_valid_2 B.bq () 1 () 1 $$ Hbq Hbq'
   exfalso
@@ -48,9 +48,9 @@ theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → IProp GF) (Q : IProp
   grind
 
 /-- **A carrier of a commit update is a page-pool lease** (`poolR`). -/
-theorem poolR_of_au (B : BNs) (N : Namespace) (β : Data → IProp GF) (Q P : IProp GF)
-    (hP : P ⊢ AU <{ ∃∃ (D' : Data), boltStateDef (GF := GF) B 1 D' }> @ ⊤ \ ↑N, ∅
-        <{ β D', COMM Q }>) :
+theorem poolR_of_au (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (Q P : IProp GF)
+    (hP : P ⊢ AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateVDef (GF := GF) B 1 D' ν }> @ ⊤ \ ↑N, ∅
+        <{ β D' ν, COMM Q }>) :
     P ⊢ poolR B.bq N P := by
   iintro HP
   unfold poolR

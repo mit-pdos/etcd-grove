@@ -784,7 +784,6 @@ structure MemberKN (GF : BundledGFunctors) where
   i0 : Ino
   Dl : backend.Data
   Dn : backend.Data
-  pd : Option backend.Data
   J : Ino
   γd : GName
   γm : GName
@@ -829,7 +828,7 @@ def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config
       config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"] ∧
       ∀ i, PathFits (snap.snapDBPath (config.snapDirOf cfg.DataDir') i)⌝ ∗
     etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
-    backend.dbCrashKeep k.γb k.i0 k.Dl k.Dn k.pd ∗
+    backend.dbCrashKeep k.γb k.i0 k.Dl k.Dn ∗
     memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
 
 /-- **The image rows the backend owes** (B1's output; `srvCrashImageAt`'s backend rows at the run's names):
@@ -900,7 +899,7 @@ abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id
     (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
   ∀ (L L' : GooseLocalGS GF) (V' : Hist) (k : MemberKN GF) (S : RaftState) (σ : StorContents)
     (l : List LogEntry) (D' : backend.Data) (q qc : Qp),
-    (D' = k.Dl ∨ D' = k.Dn ∨ k.pd = some D') →
+    (D' = k.Dl ∨ D' = k.Dn) →
     ⊢ KeepB L k -∗ memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) k.γ id k.νk S σ l -∗
       bbolt.fileHoldsM (hG := ⟨G, etcd_dist.atCtx L'⟩) k.i0 D' -∗
       osPathS (L := etcd_dist.atCtx L') k.h.R (config.snapDirOf cfg.DataDir') (DFrac.own q) k.J -∗
@@ -1081,7 +1080,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   iunfold memberKeepR at HR
   icases HR with ⟨%k, %hk, #Hrf, Hdur, Hwal, Hdb, Hsnap, #Hsp, HKB⟩
   obtain ⟨γ, ρo, ⟨⟨ext, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩,
-    νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ := k
+    νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ := k
   obtain ⟨⟨rr, hγ⟩, hdir, hmd, hsl, ⟨c, hfs⟩, hdR, hrR, hrne, hunder, hsd, hfit⟩ := hk
   have hS : ext = Sf := has.sem_eq.symm.trans Hf.sem_eq
   subst hS
@@ -1098,8 +1097,8 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     with ⟨%hw, Hrest⟩
   obtain ⟨jm, h1, h2⟩ := walk_two hw
   -- the backend file (A1), at its durable name (B1's)
-  imod hB1n ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ Q [] false V' $$ HKB Hrest with ⟨%hdb, HKB, Hrest⟩
-  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb i0 Dl Dn pd (hA1 i0) [] (by simp) V'
+  imod hB1n ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ Q [] false V' $$ HKB Hrest with ⟨%hdb, HKB, Hrest⟩
+  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb i0 Dl Dn (hA1 i0) [] (by simp) V'
     ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest with ⟨%D', %hD', Hfm, Hrest⟩
   -- the WAL area (T5's crash)
   have hDw : ∀ i ∈ [i0], ¬ WalFs.InAreaDir V'.now jr i := by
@@ -1195,7 +1194,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     $$ Hdur Hcl Hlc Hcr [HwC Hcw2] with ⟨%S, %σ, %l, Hwf, Hdo⟩
   · iunfold memberWalCrash; iframe HwC Hcw2
   -- the backend's image (B1)
-  imod hB1 ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ V' ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ S σ l D' q'.half qc'.half hD' $$ HKB Hdo Hfm Hpb Hcb Hdbn
+  imod hB1 ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ V' ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ S σ l D' q'.half qc'.half hD' $$ HKB Hdo Hfm Hpb Hcb Hdbn
     with ⟨%i, %A, %D, %m, Hdo, Himg, %hbnd⟩
   -- the fresh registry (Q4) and the prefix generators' invariant (B6)
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%r', Hreg⟩
@@ -1218,18 +1217,18 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   · iexact Hrf''
   iunfold srvCrashImage
   iexists S, σ, i, A, D, m, ∅
-  iapply crashImage_of (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ id cfg.DataDir' r' S σ l i A D m W' hρ.1 hρ.2 hdir hsl hbnd
+  iapply crashImage_of (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ id cfg.DataDir' r' S σ l i A D m W' hρ.1 hρ.2 hdir hsl hbnd
   isplitl [Hdo]
   · iapply (show memberDurOut (hG := ⟨G, etcd_dist.atCtx ⟨fl, lc', nh, gs, th, cr⟩⟩) γ id νk S σ l ⊢
-      memberDurOut (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ id (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).νk S σ l from .rfl)
+      memberDurOut (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γ id (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).νk S σ l from .rfl)
     iexact Hdo
   isplitl [Himg]; · iexact Himg
   isplitl [Hwf]; · iexact Hwf
   isplitl [Hsnap']
   · iapply (show snapDirKeep (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') γd
         (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1)) ⊢
-      snapDirKeep (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γd (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ.authOn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ)
-        (fun j => monoNatLbOwn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γm (uint.nat j + 1)) from .rfl)
+      snapDirKeep (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γd (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γ.authOn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γ)
+        (fun j => monoNatLbOwn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, J, γd, γm, jd⟩ : MemberKN GF).γm (uint.nat j + 1)) from .rfl)
     iexact Hsnap'
   iexact Hreg
 

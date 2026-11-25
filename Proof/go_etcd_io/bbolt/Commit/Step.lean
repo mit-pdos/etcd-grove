@@ -51,12 +51,12 @@ def cpRes (K : BC) (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (v : View) (w 
     ghostVar K.B.wv (1 : Qp).half ((some v, some w, pb, wl) : WSt) ∗
     K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
     metaCellsQ (1 : Qp).half.half (some (b, l)) C ∗ metaOsBytes K.p (DFrac.own (1 : Qp).half) C ∗
-    ghostVar K.B.st (1 : Qp).half.half D)
+    ghostVar K.B.st (1 : Qp).half.half (D, C.txid))
 
-/-- The client's update of a commit from `Db` to `Dn`. -/
+/-- The client's update of a commit from `Db` to `Dn` (versioned: the version moves by one). -/
 def commitAU (K : BC) (N' : Namespace) (Db Dn : Data) (Q : IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (D' : Data), boltStateDef K.B 1 D' }> @ ⊤ \ ↑N', ∅
-    <{ ⌜D' = Db⌝ ∗ boltStateDef K.B 1 Dn, COMM Q }>)
+  iprop(AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateVDef K.B 1 D' ν }> @ ⊤ \ ↑N', ∅
+    <{ ⌜D' = Db⌝ ∗ boltStateVDef K.B 1 Dn (ν + 1), COMM Q }>)
 
 /-- **After the commit point**: published at `C'` with the update fired (`j = 4096`), or unchanged
 with the update's carrier `A` (U11i: the caller's resource that gives the update, `Commit_err`'s
@@ -194,7 +194,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       iapply (ghostVar_split_half K.B.cur (1 : Qp).half C).1 $$ Hcur
     ihave Hau := hA $$ Hau
     iunfold commitAU at Hau
-    imod au_commit_fire K.B N' (treeData C) Dn Q $$ [Hst Hstw Hau] with ⟨Hst, Hstw, HQ⟩
+    imod au_commit_fire K.B N' (treeData C) Dn C.txid Q $$ [Hst Hstw Hau] with ⟨Hst, Hstw, HQ⟩
     · iframe
     have hlen' : ∀ i, ((C.publish (metaBuf mv) (metaSummed mv) pages).slot i).length = 4096 := by
       intro i; rw [hsl]; split
@@ -236,6 +236,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     isplitr
     · ipureintro; rfl
     iunfold cpRes
+    rw [htx']
     iframe
 
 

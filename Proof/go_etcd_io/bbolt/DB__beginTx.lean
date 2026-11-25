@@ -196,7 +196,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave Hmt := (ghostVar_split_half K.B.mtok sync.rfrac ()).2 $$ [Hmt Hmt2]
   · iframe
   -- the linearization point: the read update commits at the copied state's data
-  imod au_read_fire K.B K.N (treeData C) Q $$ [Hst' Hau] with ⟨Hst', HQ⟩
+  imod au_read_fire K.B K.N (treeData C) C.txid Q $$ [Hst' Hau] with ⟨Hst', HQ⟩
   · iframe
   -- the reader's key, its txid in `metaR`, its view in the store
   have hC63 : C.txid < 2 ^ 63 := htree.2.2.2.2.2

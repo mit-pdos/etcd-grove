@@ -98,7 +98,7 @@ theorem dbk_close (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' : WX) (
     (hx : flViewU X' w'.fl ∧ metaCopyOK X'.t.mv w'.C ∧ treeOK w'.C) :
     K.full (GF := GF) ∗ viewOf r X'.v ∗ ghostVar r.n.v 1 (c, TxX.wr X) ∗ wtxW K tx r false X' ∗
         sync.ownMutex K.db.[DB, go!"rwlock"] ∗ ghostVar K.B.cls (1 : Qp).half false ∗
-        wdbW K tx X'.v w' ∗ txShape r.n.pg X' extra ∗ ghostVar K.B.st (1 : Qp).half.half T'.base ⊢
+        wdbW K tx X'.v w' ∗ txShape r.n.pg X' extra ∗ ghostVar K.B.st (1 : Qp).half.half (T'.base, X'.v.txid) ⊢
       |={⊤}=> boltTxDef K.B K.N tx 1 T' := by
   iintro ⟨#Hb, #Hvf, Hv, Hw, Hrwl, Hcls, Hwdb, Hshape, Hst⟩
   unfold wtxW wtxCore statsTok
