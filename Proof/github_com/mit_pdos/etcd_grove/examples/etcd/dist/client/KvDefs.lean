@@ -59,7 +59,7 @@ theorem kvOnly_bounds {d : Deployment} (hw : d.WellFormed) (hkv : KvOnly d) :
     d.members.length ≤ 64 ∧ ∀ w ∈ d.workloads, 0 ≤ sint.Z w.clients ∧ sint.Z w.clients < 2 ^ 31 := by
   obtain ⟨t, he, hwf⟩ := hw
   obtain ⟨hm, -, -, hws, -⟩ := he
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hb, -, -, -, hmax, -, -, -⟩ := hwf
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, hb, -, -, -, hmax, -, -, -⟩ := hwf
   refine ⟨?_, ?_⟩
   · rw [← hm]; simpa [typed.maxMembers] using hmax
   · intro w hw
