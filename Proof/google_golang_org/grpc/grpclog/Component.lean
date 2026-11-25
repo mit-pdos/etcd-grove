@@ -26,9 +26,14 @@ variable [package_sem : google_golang_org.grpc.grpclog.Assumptions]
 
 theorem grpclog.Component.wp_proof : grpclog.Component.spec (GF := GF) (hG := hG) := by
   intro name g σ0
-  wp_start as ⟨#Hinit, Hown⟩
-  ihave #Hf : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog.grpclogInit (hG := hG) : IProp GF) $$ [Hinit]
-  · iapply isPkgInit_access $$ Hinit
+  -- the alias `grpclog.DepthLoggerV2 = internal.DepthLoggerV2`: two underlying steps, which `≤u` does not chain
+  haveI : google_golang_org.grpc.grpclog.DepthLoggerV2.ty ≤u
+      google_golang_org.grpc.grpclog.internal.DepthLoggerV2.underlying :=
+    ⟨(go.underlying_unfold (t := google_golang_org.grpc.grpclog.DepthLoggerV2.ty)).trans
+      (go.underlying_unfold (t := google_golang_org.grpc.grpclog.internal.DepthLoggerV2.ty))⟩
+  wp_start as Hown
+  ihave #Hf : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog.grpclogInit (hG := hG) : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
   unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog.grpclogInit
   icases Hf with ⟨%m, %γI, #Hcache, #Hinv⟩
   unfold EtcdGrove.ownInitLb
@@ -37,14 +42,12 @@ theorem grpclog.Component.wp_proof : grpclog.Component.spec (GF := GF) (hG := hG
   imod (grpcInternal.initInv_acc _ ⊤ CoPset.subseteq_top _ γI σ) $$ Hinv Hg with ⟨⟨%M, Hm⟩, Hback⟩
   imodintro
   iapply wp_fupd
-  wp_func_call; wp_call
   wp_auto
   wp_apply (wp_map_lookup2 go.string (go.GoType.PointerType google_golang_org.grpc.grpclog.componentData.ty)
     m M name _) $$ Hm as Hm
-  wp_auto
   cases h : M !! name with
   | some p =>
-    simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
+    simp only [h, Option.isSome_some, _root_.decide_true, Option.getD_some]
     wp_auto
     imod Hback $$ [Hm] with Hg
     · iexists M; iexact Hm
@@ -54,10 +57,10 @@ theorem grpclog.Component.wp_proof : grpclog.Component.spec (GF := GF) (hG := hG
     · iexists σ; iframe Hg Hok; ipureintro; exact Hle
     ipureintro; exact ⟨p, rfl⟩
   | none =>
-    simp only [Option.isSome_none, _root_.decide_false, Option.getD_none]
+    simp only [h, Option.isSome_none, _root_.decide_false, Option.getD_none]
     wp_auto
     wp_apply (wp_mapInsert go.string m M name _) $$ Hm as Hm
-    wp_auto
+    try wp_auto
     imod Hback $$ [Hm] with Hg
     · iexists _; iexact Hm
     imodintro
