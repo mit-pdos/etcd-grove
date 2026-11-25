@@ -10,6 +10,22 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-25, session 5): **stopped (priorities: M1 first, #50 16:48Z); raft law not
+  provable additively; no Lean changed.** Merged
+  `etcd-safe-main-r4/2026-11-25` @ `1c2958cbb4` (`b11c0ca87c`, clean; `etc/api/raft.txt` keeps r4's
+  `LeaderCompleteLaw`; same Perennial pin `fce59af75`). The lead approved (#50 16:11Z) the raft law
+  additively; it is **not provable additively**: neither `readyRest`, nor `nodeDriver` after the receive,
+  nor the old `raftState` ties the batch's durable log to the committed log above the old commit (the
+  fact lives in `run`'s in-memory state until *enter*). Ledger entry's Decision has the evidence and an
+  alternative needing no raft change: `v'.l := L` at *enter* (`raftState_logView` on the entered
+  state), the pending record's `ViewOk` discharged at *enter* or, at a crash, after `readyEnterCrash`.
+  **Build of the merge** (fk-lean2, `fklean1-check.sh … etcd-safe-p5` over the 157 leaves of
+  `etc/importers.py --leaves --git 0c9856a863`, list at `/shared/tmp/p5-leaves.txt`): the client's ssh
+  dropped (EXIT 255) at job 8697/9426 with **no error** up to there; not finished. Rerun the same command
+  (incremental on fk-lean2's `wt/etcd-safe-p5`) before relying on the merge.
+  **Next** (when crash work resumes): finish that build; the lead's choice (a raft change to
+  `readyRest`/`nodeDriver`, or the server-side alternative); then (b) 1, 2, 4, 5 and the view change;
+  then P5-RESTART (with (a) from T10's `bootstrapCrashContract.law`).
 - **State** (2026-11-25, session 4): **stopped before (b)'s Lean; ledger entry pending.** Merged
   `etcd-safe-p6b` @ `9615f76264` (`bd51f55338`: `wal.Discard.spec`, `walDiskAt_crash_blank_keep`; clean).
   While scoping (b) step 3: the K form of `ViewOk`/`ImgOk` from a snapshot certificate is not provable. A

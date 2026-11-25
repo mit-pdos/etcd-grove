@@ -63,7 +63,32 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   body over `walRead Hs`). Without it, (b) steps 1, 2 and 4 cannot be closed: the `Save` law's post
   (`ViewOk v' (walRead (Hs ++ [save]))`) fails in the case above. A raft API change (its node API's batch
   facts): the lead's, and raft's owner's.
-- **Decision.** Pending (P5 stopped before (b)'s Lean, session 4).
+- **Decision.** Approved as an additive law by the lead, acting as raft's API owner (#50, 2026-11-25
+  16:11Z: one new law beside `readyRest_ceInBatch`, proved inside raft from its existing invariants; no
+  change to `ReadyRestFacts`, the `Ready`/`RawNode` specs or any existing law). **Not provable additively**
+  (P5 session 5, no Lean changed): what the server holds at a batch does not carry the fact.
+  - `readyRest` (`InvNode.lean`): in the `none` case only `ceFrozen` (the storage's `ce` frozen),
+    `appendRight`, `readyEnts` (`outEntR`: the handed-out set, sizes only) and `ReadyRestFacts`; no
+    committed log beyond `st.delivered ++ ce`, and nothing ties the batch's entries `es` to raft's log
+    records (`logRecs`).
+  - `nodeDriver` at `st.afterReady …` (`InvApi.lean`'s `nodeDriver`): `hsCommitted` gives a committed log
+    `L` of length `(phsNext st.hardState h).Commit'` (`committedAtTerm`), but not that the batch's
+    durable log `d` agrees with it: busy, the driver holds `dur`'s ghost at `d` (a `dghostVar`, no facts)
+    and `rof`'s half, whose other half `run` holds with raft's in-memory log (`InvNodeRun.lean`).
+  - `raftState γ id st.durable` (the old state, `raftState_logView`) gives the committed log only up to
+    the old commit; `d`'s log records (`durPers`'s `logRecs d.base d.ents`, `isCommitted … d.commit`)
+    exist only once the batch is entered (`raft_enter`, `readyEnter`).
+  So the law needs the node's run loop to hand the fact out with the batch: a new conjunct of `readyRest`
+  (the `Ready` spec's post) or of `nodeDriver`'s busy body (the receive's post), re-proved in `node__run`
+  from its in-memory invariant (log matching at its commit index). Both change an existing statement or
+  sealed body under the Antithesis lead's RawNode work: stopped, reported to the lead.
+  Alternative without a raft change (for the lead to weigh): the view takes `v'.l := L` at *enter*, not at
+  `Save`: after entering `d`, the existing `raftState_logView` gives exactly the committed log up to
+  `d.commit` held by `d`'s log (`isCommittedLogLb γ (strip ((fp ++ d.ents).take d.commit))`, `FullOk
+  d.base fp`); between `Save` and *enter* the saved record is the pending one (`rnPendRec`), and the crash
+  law enters it first (`readyEnterCrash`, when the read holds the save) and then reads `raftState_logView`.
+  That moves `ViewOk`'s obligation for the pending record from `Save` to *enter*/crash (a server-side
+  restatement of `rnDurK_save.law`/`rnDurK_enter.law`, P5's own statements).
 
 ## 2026-11-25: `wal.restartOk` over the reader's fold -- not enough for P5-RESTART: the history's snapshot certificates must cross the restart, and the contract's `Save` is not a step of the reader's fold (D6-T2 / P5, etcd-safe-p5)
 
