@@ -1922,3 +1922,57 @@ P5's certificate route (below, approved); then the `consInv` image row.
   directory's invariant (saved, its `Rm` refuted by the counter at `c ≤ j`; the fork's `purgeFile` no longer purges
   `.snap.db`, `a4d2bb172`), to be taken with `snapDir_take` at the restart; (2) its stored index is `j` by the image
   certificate's `imageRestAt`. No ledger entry needed (nothing could not be kept).
+
+
+### T10 status and handoff, session 4 (2026-11-25, branch `etcd-safe-t10`)
+
+**Merged `bbolt-crash/2026-11-25` @ `249a3f60fe`** (the bbolt-crash lead's C-I1 restatement, reviewed sound in
+`notes/axiom-review/c-i1-monotone.md`, `c-i1-takeput.md`): bbolt's prefix-ordered `BoltCrashWhole`
+(`Spec/go_etcd_io/bbolt/CrashPremise.lean`), `dbCrashKeep γ i0 Dl Dn` (no `pd`), `_take`/`_putSame`/`_putStep`
+over `dbHalfV`, `dbCrash` with its mask premise; `Tx.Commit.spec` versioned. No textual conflict; followed up toward
+the lead's statements: T7's `MemberKN.pd` removed (and `memberImage.law`'s third disjunct); the draft
+`dist/crash/BackendImage.lean`: `bkPayload γ ρ Dl Dn`, `kbStep.law` at the commit point (the image of `S` given
+there, with `CV S` framed into `Tx.Commit`'s update) replacing `kbAnnounce.law`/`kbLand.law`, `kbSync.law` without
+`pd`. The "T10 design" section's announce step above is superseded by this.
+
+**B6: options** (analysis only; the lead decides). Facts that fix the choice: (i) the cross-incarnation freshness
+of ids is the issue record's (`GooseLang/Ext/IdIssue`): its crash keeps every entry as `id ↦ none`, and the restart
+already gets `idIssueCrashStart hL hL'` in its crash rest (`etcdstart/NetExtsCrash.lean`), which turns an old
+`idIssueFragAt hL id g` into `idIssuePastAt hL' id`; `idIssueFrag_past` refutes a new issue of it. So every option
+needs one crash step converting `idPfxBody`'s `Ip` facts into past facts at `L'`. (ii) `Gp` (generators by heap
+`Loc`) is used only by `NewGenerator` for `idClusterOk`'s clause 3 (distinct generators among a prefix's keys); a new
+heap reuses `Loc`s, so clause 3 must be restricted to keys of one incarnation (`k.2 = k'.2`), which makes it
+trivial (a key is `(p, inc)`), and `Gp` with its heap points-to can go, if `Ip` tags each id with its incarnation.
+* **(a') per-incarnation names.** `gen` keyed by `IdKey` (or `p ↦ γpi`, a per-prefix map `inc ↦ (γip, γgp)` whose
+  authority the member keeps: a new key needs an authority, and `gen`'s is the cluster's, allocated once); a fresh
+  `idPfxInv` per incarnation allocated by `NewServer.specC` (B6(a) as approved), seeded at the crash with past facts
+  for the earlier keys' ids, read out of the old invariants (persistent, open-and-close at `⊤`). Statements:
+  `idPfxInv`'s argument becomes a key in `NewGenerator.spec`, `NewServer{,R,Crash}.spec`, `NewServerDist`
+  (internal specs, no top-level change), `memberRestartFacts`, the `Alloc*` files. Cost ~600-900 lines (two-level
+  names, five spec files and their callers, the seeding). Risk: the seed must cover every earlier key, kept by the
+  keep across many crashes.
+* **(b) crash-aware `idPfxInv` at the same names.** A cancellable invariant (its token in the member's keep); the
+  crash law cancels it at `L`, keeps the authorities, converts `Ip`'s entries (`(inc, g)`: current or past) and
+  re-allocates it at `L'` with the same `(γip, γgp)`. `idPfxInv gen p`'s form unchanged, so no spec statement
+  changes; `idPfxBody`, `idKeyGenFacts`, `idClusterOk` clause 3, `NewGenerator`/`Next` (217 + 461 lines, the
+  body-opening parts), the `Alloc*` files (the token) do. T7's `memberPfx.law` is proved by the crash law. Cost
+  ~350-500 lines. Risk: low; the keep gains a token (T8).
+* **(c) a generation-free `idPfxInv`** (new). The body holds no heap fact: `Ip : id ↦ (inc, g)` with
+  `idIssueElemAt hL id (if inc = cur then some g else none)` at the record's current names `hL`, kept in a ghost
+  register (`cur`, with an incarnation ↦ record-name map whose elements are persistent, so `Next` reads
+  `cur = gooseIdIssueGS L` from its own key); `Gp` dropped by (ii). Then `idPfxInv` carries over by `.rfl` like the
+  other restart facts (`memberRestartFacts_gen` with no exception), nothing is re-allocated, and the crash step is a
+  ghost update of the one invariant (`idIssueCrashStart` turns each entry past, `cur` moves to `hL'`). Statements as
+  (b) (none at the spec level), plus the register's allocation in `Alloc*`. Cost ~400-600 lines (the register is the
+  new part). Risk: medium, in the register's protocol (who holds which half when `Next` and the crash step run).
+* **Recommendation: (b)**: it changes no spec statement, uses the extension's crash rest as designed
+  (`IdIssue/Crash.lean`'s header names `idPfxBody`), and its only new ownership is a cancel token in the keep.
+  (c) is cleaner (no keep row, `memberRestartFacts_gen` without exception) but its register is a new protocol;
+  take it only if T8 prefers no token. (a') costs the most and changes five specs. Under all three, clause 3's
+  restriction and `Ip`'s incarnation tag are the same first step (`NewGenerator`, `Next`), doable before deciding.
+
+**Build (unfinished at handoff):** fk-lean1, worktree `~/eg/wt/etcd-safe-t10` (moved from `etcd-safe-n7kv-nc2`), targets `MemberCrash`, `BackendImage`, `NewServerCrash`, `backend.CrashInterim` at `6887489844`, started 23:2xZ via `/shared/tmp/fklean1-check.sh`; log `/shared/tmp/t10-s4-build.log` (at job 4291/4521, no error yet, when the session stopped at the context limit). Next session: read the log's end (`EXIT n`); if it was cut off, rerun the same command with `FKLEAN_HOST=fk-lean1` (incremental) and fix what fails.
+
+**Next session:** after the lead's B6 decision, that change; P5's certificate route and the `consInv` image row as in
+session 3's handoff, the image row now at `kbStep.law`'s commit point (inside `Tx.Commit`'s update, C-I1's
+`_take`/`_putStep`).
