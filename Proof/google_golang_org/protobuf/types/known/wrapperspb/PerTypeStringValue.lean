@@ -275,6 +275,12 @@ theorem pbStringValueST_reqSat : (pbStringValueST (GF := GF)).ReqSat := by
   iintro ⟨Hs, -, Hl⟩
   iframe
 
+/-- **A stream's `StringValue` request fits a gRPC message** (rule 7's witness that `wireLen` is not
+the default). -/
+theorem pbStringValueST_wireLen_ok :
+    ∃ m, (pbStringValueST (GF := GF)).wireLen m < grpcMsgMax :=
+  ⟨[], by simp [pbStringValueST, pbStringValueS, stringValueWireLen, grpcMsgMax]⟩
+
 /-- **`pbStringValueST`'s reply model is satisfiable.** -/
 theorem pbStringValueST_repSat : (pbStringValueST (GF := GF)).RepSat := by
   refine ⟨⟨wrapperspb.StringValue, inferInstance, inferInstance,
