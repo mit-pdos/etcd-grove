@@ -1,9 +1,12 @@
 /-
-The package fact of io/ioutil (names only, never reached): `True` (notes/dsv-quepaxa.md).
+The package fact of io/ioutil: `True` (notes/dsv-quepaxa.md). Names only but `Discard`, whose
+initializer (`Discard = io.Discard`) is translated with its import `io` (dsv-retire-1-inits,
+2026-11-25), so its dependencies hold `io`'s fact.
 -/
 module
 
 public import Dsverify.GeneratedProof.io.ioutil
+public import Perennial.Proof.io.Base
 public import Net.Proof.net.Base
 
 @[expose] public section

@@ -36,7 +36,6 @@ roots ^Dsverify/Proof/raxos/
 axiom Perennial.encoding.gob.wp_initialize'
 axiom Perennial.google_golang_org.grpc.codes.wp_initialize'
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
-axiom Perennial.io.ioutil.wp_initialize'
 axiom Perennial.math.rand.Seed.wp_proof
 axiom Perennial.raxos.hyp.fmt.Println.wp_proof
 axiom Perennial.raxos.hyp.sort.Ints.wp_proof
