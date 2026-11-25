@@ -366,6 +366,56 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
+/-- **The tails with the discarded WAL removed** (S): with no tail registered (the free lock token's
+`walTailsFrag ∅`) every WAL is idle, so its record goes with its layout; nothing is lent either. -/
+theorem walTailsRes_discard {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) (dir : GoString) :
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ Lk -∗
+      walTailsRes (W := W) C Mr (discS s dir) (GMap.delete dir Ls) F ∗ walTailsFrag (W := W) ∅ Lk := by
+  unfold walTailsRes
+  letI := walAllG (W := W)
+  iintro ⟨%T, Ha, %Ho, %Hi, -, HL⟩ Hf
+  icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
+  subst hT
+  iframe Hf
+  iexists ∅
+  iframe Ha
+  isplitr
+  · ipureintro
+    intro i hi
+    exact absurd (Ho.none_of_empty i) hi
+  isplitr
+  · ipureintro
+    intro k d la hk hd hla
+    by_cases e : k = dir
+    · subst e; rw [GMap.lookup_delete_eq] at hla; cases hla
+    · rw [discS_wal_ne e] at hd
+      rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hla
+      exact Hi k d la hk hd hla
+  isplitr
+  · iapply BigSepM.bigSepM_empty_intro
+  unfold walLentRes
+  icases HL with ⟨%M, Hla, %HZ, %HI, Hm⟩
+  iexists M
+  iframe Hla
+  isplitr
+  · ipureintro
+    intro k la hk
+    exact absurd (GMap.lookup_empty k) hk
+  isplitr
+  · ipureintro
+    intro k la hk hla
+    by_cases e : k = dir
+    · subst e; rw [GMap.lookup_delete_eq] at hla; cases hla
+    · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hla
+      exact HI k la hk hla
+  iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
+  intro k x
+  iintro ⟨%h, Hk⟩
+  iframe Hk
+  ipureintro
+  exact absurd h.1 (by simp)
+
 /-- Both pipeline names of one directory, twice: impossible (two `qTmp`s of `0.tmp`'s claim). -/
 theorem walTmpsRes_excl (j : Ino) :
     walTmpsRes (hG := ⟨G, L⟩) j ∗ walTmpsRes (hG := ⟨G, L⟩) j ⊢ iprop(False) := by
