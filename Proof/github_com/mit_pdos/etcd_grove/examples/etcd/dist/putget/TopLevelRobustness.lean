@@ -133,7 +133,7 @@ addresses the start sets (`startAddrs`) include the client's exactly when its ch
 theorem putget_addr [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     (peer client : GoString) (Γ : etcd_dist.DistView) (id : w64) :
     ⊢ regCtx -∗ ([∗list] a ∈ startAddrs peer client, addrUnset a) ={⊤}=∗
-      □ (⌜Net.addrOk client = true⌝ -∗ etcd_dist.etcdAddrAt client Γ id) := by
+      □ (⌜Net.addrOk client = true⌝ -∗ etcd_dist.etcdAddrAt (GF := putgetGF) client Γ id) := by
   by_cases hg : Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client
   · have hc := hg.2.1
     simp only [startAddrs, if_pos hg, if_pos hc, List.singleton_append]
@@ -171,8 +171,8 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     (peer client : GoString) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcdstart.BootFacts id ctxs boot) (hb : receiptBound putgetGF ≤ putgetSteps) :
     ⊢ regCtx -∗ ([∗list] a ∈ startAddrs peer client, addrUnset a) ={⊤}=∗
-      ∃ c : etcd_dist.ClusterNames, memberShareIf peer client c ctxs boot id ∗
-        clientShareIf client c.view id := by
+      ∃ c : etcd_dist.ClusterNames, memberShareIf (GF := putgetGF) peer client c ctxs boot id ∗
+        clientShareIf (GF := putgetGF) client c.view id := by
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   have hb' : receiptBound putgetGF ≤ 2 ^ 48 := hb
   iintro #Hreg Hs
@@ -189,7 +189,8 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     $$ Hreg Hs with #Ha
   imodintro
   iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩
-  iunfold memberShareIf clientShareIf
+  iunfold memberShareIf
+  iunfold clientShareIf
   isplitl [Hsl]
   · iintro %hg
     ihave #Hat := Ha $$ %hg.2.1
@@ -206,6 +207,8 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     isplitr
     · ipureintro; rfl
     iexists γf
+    rw [show (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩).kv = γk
+      from rfl]
     iexact Hinv
 
 end start
