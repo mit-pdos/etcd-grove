@@ -2202,7 +2202,14 @@ of the client package; `TestDist -short` with `DIST_RUN=1 DIST_WANT=auth` passes
 losses, partitions); `etc/goose.py --project putget-dist` retranslated (`client.lean`), `etc/gen-init.py` regenerated
 the client's `Init`/`InitLinked`/`PkgTable` (`--check` passes).
 
-**Build and trust base**: see the end of this section (filled at the full build).
+**Build and trust base** (VM, full `lake build` green, 28674 jobs, at `72794bc473`): `tier-check --check` ok
+(208 known), `bounds-check --check` ok (390); gen-link: every dist/putget/server link agrees (the five differing
+modes, `--bbolt`, `--kvraft`, `--kvraft-udp`, `--wal-tester`, `--walfs`, touch nothing here). `tcb-report --check`:
+**`etc/tcb-baseline.txt` gains `etcd_dist.KV_Put_dist.wp_proof` and `etcd_dist.KV_Get_dist.wp_proof` and loses
+`etcd_dist.Client_Put_dist.wp_proof` and `etcd_dist.Client_Get_dist.wp_proof`**, and `putget-dist.txt` the same (no
+publication axiom existed: the publication was proved). `KV_Delete_dist`, `KV_Compact_dist`, `Txn_Commit_dist` are
+declared but reached by no root yet (M1's Node links them), so the report, which lists the axioms the roots rest on,
+does not list them; they enter the baseline with their first user.
 
 ### 18.7 Changes to etcd-grove-03's two drafts
 
