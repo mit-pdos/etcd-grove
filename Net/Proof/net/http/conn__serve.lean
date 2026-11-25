@@ -8,6 +8,7 @@ hijacks; either way the deferred calls (the context's cancel, the recover closur
 -/
 module
 
+public import Net.Proof.net.Errors
 public import Net.Spec.net.http.conn__serve
 public import Net.Spec.net.http.conn__readRequest
 public import Net.Spec.net.http.conn__hijacked
@@ -93,11 +94,9 @@ theorem conn.serve.wp_proof
   subst Hraeq
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType net.TCPAddr.ty) (m := go!"String")]
-  unfold net.TCPAddr.String.impl
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %rmt
+  wp_call
+  try wp_auto
+  wp_apply net.wp_extAnyString as %rmt
   wp_auto
   ipersist Hrma
   wp_apply wp_LocalAddr $$ [$Hca]
