@@ -93,10 +93,11 @@ instance netAddr_persistent (x : GoInterface) : Persistent (netAddr (GF := GF) x
 and the addresses `la` (`laddr`) and `ra` (`raddr`); and `net` is initialized (`isPkgInit net`, so
 are `io`, `internal/poll`, `syscall`: what the connection's operations need, `Conn.Read`'s `io.EOF`
 comparison and the errors' `Error()`, `errnoOk_of_poll`; `Dial`, `DialTimeout` and `Listen` take
-it, `Accept` passes the listener's on). -/
+it, `Accept` passes the listener's on); and it is not a datagram socket (`sotype` not
+`SOCK_DGRAM`: the models of `netFD`'s methods are stuck on a UDP socket, U12, etcd-grove#58). -/
 def fdAt (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) : IProp GF :=
   iprop(∃ v : netFD, ⌜v.pfd'.Sysfd' = id ∧ v.net' = nw ∧ v.laddr' = la ∧ v.raddr' = ra⌝ ∗ fd ↦□ v ∗
-    isPkgInit (PROP := IProp GF) pkg_id.net)
+    isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜v.sotype' ≠ W64 2⌝)
 
 instance fdAt_persistent (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) :
     Persistent (fdAt (GF := GF) fd id nw la ra) := by
@@ -127,7 +128,7 @@ theorem connAt_conn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoIn
 
 theorem fdAt_net (fd : Loc) (id : w64) (nw : GoString) (la ra : GoInterface) :
     fdAt (GF := GF) fd id nw la ra ⊢ isPkgInit (PROP := IProp GF) pkg_id.net := by
-  unfold fdAt; iintro ⟨%v, -, -, #H⟩; iexact H
+  unfold fdAt; iintro ⟨%v, -, -, #H, -⟩; iexact H
 
 /-- A connection's end: `net` is initialized (its `netFD`'s, `fdAt`). -/
 theorem connAt_net (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :

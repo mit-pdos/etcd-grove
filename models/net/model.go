@@ -18,6 +18,18 @@
 //
 // The extension's result codes (`Net.NetErr.code`): 0 success, 1 `closed`, 2 `timeout`, 3 `sys`;
 // a read's 4 is EOF.
+//
+// UDP (etcd-grove#58; notes/net-udp.md) is over the UDP extension `udpExt`
+// (GooseLang/Ext/Udp/Impl.lean, decisions U1-U14), the same way: Go's `UDPConn` (`struct{ conn }`),
+// `ListenUDP`, `WriteToUDP`, `ReadFromUDP`, `readFromUDP` are translated, and the model replaces the
+// layer under them: `sysListener.listenUDP` (the datagram socket: `internetSocket`, `socket`,
+// `listenDatagram`), `UDPConn.readFrom`, `UDPConn.writeTo` (recvfrom(2), sendto(2) through the
+// poller, with the sockaddr conversions) and `UDPAddr.String`, over the stubs `extUdp*`, one UDP
+// extension operation each. A model UDP socket is a `netFD` with Go's `family` `AF_INET` and
+// `sotype` `SOCK_DGRAM` (a model TCP `netFD` has neither: `modelFD`). `conn`'s methods promoted to
+// `*UDPConn` (`Close`, `Read`, `Write`, the deadlines, the buffer sizes) are Go's, and reach the
+// TCP models above; each of those is stuck on a datagram `netFD` (U12: not modelled; never the TCP
+// extension acting on a UDP socket). `LocalAddr`/`RemoteAddr` are Go's (the fd's addresses).
 
 package net
 
@@ -37,6 +49,9 @@ import (
 // outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
 // non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (codeKindErr).
 func (fd *netFD) Read(p []byte) (n int, err error) {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	s, code := extRead(fd.pfd.Sysfd, len(p))
 	if code == 0 {
 		return copy(p, []byte(s)), nil
@@ -52,6 +67,9 @@ func (fd *netFD) Read(p []byte) (n int, err error) {
 // end's write lock, Go's fd.writeLock()), until a step fails or every byte is written. Go's
 // maxRW chunks are among a step's outcomes (any prefix).
 func (fd *netFD) Write(p []byte) (nn int, err error) {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	for {
 		n, code := extWrite(fd.pfd.Sysfd, string(p[nn:]), nn == 0)
 		nn += n
@@ -67,6 +85,9 @@ func (fd *netFD) Write(p []byte) (nn int, err error) {
 // MODEL: netFD.Close (fd_posix.go, poll.FD.Close): the extension's Close (D3: success, or
 // `closed` for a second close; Linux's close(2) of a socket does not fail).
 func (fd *netFD) Close() error {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	return codeErr(extClose(fd.pfd.Sysfd), "close")
 }
 
@@ -79,16 +100,25 @@ func (fd *netFD) closeWrite() error {
 // MODEL: netFD.SetDeadline (fd_posix.go, poll.FD.SetDeadline): the extension's SetDeadline of
 // both deadlines (D5; the zero time clears them).
 func (fd *netFD) SetDeadline(t time.Time) error {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	return codeErr(extSetDeadline(fd.pfd.Sysfd, 0, t), "set")
 }
 
 // MODEL: netFD.SetReadDeadline: the read deadline only (D5).
 func (fd *netFD) SetReadDeadline(t time.Time) error {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	return codeErr(extSetDeadline(fd.pfd.Sysfd, 1, t), "set")
 }
 
 // MODEL: netFD.SetWriteDeadline: the write deadline only (D5).
 func (fd *netFD) SetWriteDeadline(t time.Time) error {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	return codeErr(extSetDeadline(fd.pfd.Sysfd, 2, t), "set")
 }
 
@@ -106,11 +136,17 @@ func (fd *netFD) accept() (netfd *netFD, err error) {
 // MODEL: setReadBuffer (sockopt_posix.go: SO_RCVBUF, wrapSyscallError("setsockopt")): the
 // extension's SetSockopt of an option of no validity condition (D24; Linux clamps the value).
 func setReadBuffer(fd *netFD, bytes int) error {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	return codeErr(extSetSockopt(fd.pfd.Sysfd, 0, 0), "setsockopt")
 }
 
 // MODEL: setWriteBuffer (SO_SNDBUF), as setReadBuffer.
 func setWriteBuffer(fd *netFD, bytes int) error {
+	if fd.sotype == syscall.SOCK_DGRAM {
+		stuck()
+	}
 	return codeErr(extSetSockopt(fd.pfd.Sysfd, 0, 0), "setsockopt")
 }
 
@@ -218,7 +254,93 @@ func (a *TCPAddr) String() string {
 	return extAnyString()
 }
 
+// MODEL: sysListener.listenUDP (udpsock_posix.go: internetSocket(ctx, sl.network, laddr, nil,
+// SOCK_DGRAM, 0, "listen", ...): favoriteAddrFamily, socket(2), the default socket options, bind(2)
+// in listenDatagram, the poller's registration, getsockname(2)): for "udp4" (any other network is
+// not modelled: stuck, U12), the UDP extension's Listen of laddr's IP and Port (U1: the extension
+// panics unless they make a valid address, as with a nil or empty IP, Go's wildcard); the socket's
+// local address arbitrary (Go's sockaddrToUDP of getsockname, a non-nil *UDPAddr), no remote address
+// (listenDatagram's setAddr(laddr, nil)). An error is the system call's, an `*os.SyscallError` with
+// an arbitrary name (socket, setsockopt, bind) and nonzero Errno (U9), or a bare nonzero Errno:
+// listenDatagram returns fd.init()'s error unwrapped (sock_posix.go), the epoll registration's
+// ENOMEM/ENOSPC. The ListenConfig's Control hook is not called (ListenUDP's is the zero one).
+func (sl *sysListener) listenUDP(ctx context.Context, laddr *UDPAddr) (*UDPConn, error) {
+	if sl.network != "udp4" {
+		stuck()
+	}
+	id, code := extUdpListen(string(laddr.IP), laddr.Port)
+	if code != 0 {
+		if extUdpAnyBool() {
+			return nil, extUdpAnyErrno()
+		}
+		return nil, udpSysErr(extUdpAnyString())
+	}
+	return newUDPConn(udpFD(id, sl.network)), nil
+}
+
+// MODEL: UDPConn.readFrom (udpsock_posix.go: on an AF_INET socket, fd.readFromInet4, poll.FD's
+// loop over recvfrom(2) through the poller, wrapped by wrapSyscallError("recvfrom"), then the
+// sender's address into *addr): the UDP extension's Recv of len(b) bytes (U4: the first len(b)
+// bytes of a datagram sent to the socket's address, the rest discarded; U5), copied into b; *addr
+// set to an arbitrary address (U10: Go's is the sender's, which the program must not trust); an
+// error is the system call's (U9: `*os.SyscallError` "recvfrom", any nonzero Errno; closed and
+// timeout cannot occur, U12), with a nil address, as Go's. A model UDP socket is AF_INET.
+func (c *UDPConn) readFrom(b []byte, addr *UDPAddr) (int, *UDPAddr, error) {
+	s, code := extUdpRecv(c.fd.pfd.Sysfd, len(b))
+	if code != 0 {
+		return 0, nil, udpSysErr("recvfrom")
+	}
+	*addr = UDPAddr{IP: IP([]byte(extUdpAnyString())), Port: int(extUdpAnyW64())}
+	return copy(b, []byte(s)), addr, nil
+}
+
+// MODEL: UDPConn.writeTo (udpsock_posix.go: ErrWriteToConnected on a connected socket, which a
+// model socket never is; errMissingAddress for a nil addr, not modelled: stuck; on an AF_INET
+// socket ipToSockaddrInet4(addr.IP, addr.Port), then fd.writeToInet4, poll.FD's sendto(2) through
+// the poller, wrapped by wrapSyscallError("sendto")): the UDP extension's Send of b to addr's IP
+// and Port (U2, U3: one datagram; the extension panics unless they make a valid address, U1, as
+// for Go's AddrError on a non-IPv4 IP), (len(b), nil) on success (a datagram is sent whole); an
+// error is the system call's (U9).
+func (c *UDPConn) writeTo(b []byte, addr *UDPAddr) (int, error) {
+	if addr == nil {
+		stuck()
+	}
+	code := extUdpSend(c.fd.pfd.Sysfd, string(b), string(addr.IP), addr.Port)
+	if code != 0 {
+		return 0, udpSysErr("sendto")
+	}
+	return len(b), nil
+}
+
+// MODEL: UDPAddr.String (udpsock.go: JoinHostPort of ipEmptyString(a.IP), the zone and the port,
+// through net/netip's formatting, which nothing translates): an arbitrary string, as
+// TCPAddr.String's (ListenUDP computes it for its sysListener, whose listenUDP does not read it).
+func (a *UDPAddr) String() string {
+	return extUdpAnyString()
+}
+
 // ---- additions (translated) ----
+
+// udpFD: a datagram netFD (Go's newFD(s, AF_INET, SOCK_DGRAM, 0, nw) and setAddr) for the UDP
+// extension's socket `id` (in pfd.Sysfd), on the network nw, with an arbitrary local address and
+// no remote one.
+func udpFD(id int, nw string) *netFD {
+	return &netFD{pfd: poll.FD{Sysfd: id}, family: syscall.AF_INET, sotype: syscall.SOCK_DGRAM,
+		net: nw, laddr: anyUDPAddr()}
+}
+
+// anyUDPAddr: a new *UDPAddr with arbitrary fields (as an Addr: Go's sockaddrToUDP, never nil for a
+// bound IPv4 socket).
+func anyUDPAddr() Addr {
+	return &UDPAddr{IP: IP([]byte(extUdpAnyString())), Port: int(extUdpAnyW64()), Zone: extUdpAnyString()}
+}
+
+// udpSysErr: a system call's error as wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}`,
+// n arbitrary and nonzero (the UDP extension's AnyErrno, so that a program over UDP alone needs no
+// TCP extension).
+func udpSysErr(name string) error {
+	return &os.SyscallError{Syscall: name, Err: extUdpAnyErrno()}
+}
 
 // netOk: the networks the model has (D23): "tcp", and "tcp4", which behaves as "tcp" on the
 // IPv4 addresses the extension accepts.
@@ -409,6 +531,63 @@ func netClosingErr() error { return poll.ErrNetClosing }
 
 // stuck: no behaviour (the shared stuck point, internal/gomodel.Stuck's model).
 func stuck() { select {} }
+
+// extUdpListen: the UDP extension's Listen of (ip, port) (the socket's id, the code). The Go
+// bodies of extUdpListen and extUdpSend read (ip, port) as the extension's udpAddrOf (4 bytes, or
+// 16 with the IPv4-mapped prefix), and panic otherwise, as the extension does (U13).
+func extUdpListen(ip string, port int) (int, uint64) {
+	ip4 := IP(ip).To4()
+	if ip4 == nil || port < 0 || port > 65535 {
+		panic("net.udp: invalid use of the UDP extension") // U13
+	}
+	sa := &syscall.SockaddrInet4{Port: port}
+	copy(sa.Addr[:], ip4)
+	s, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM|syscall.SOCK_CLOEXEC, 0)
+	if err != nil {
+		return 0, 3
+	}
+	if err := syscall.Bind(s, sa); err != nil {
+		syscall.Close(s)
+		return 0, 3
+	}
+	return s, 0
+}
+
+// extUdpSend: the UDP extension's Send of bs from the socket id to (ip, port) (the code).
+func extUdpSend(id int, bs string, ip string, port int) uint64 {
+	ip4 := IP(ip).To4()
+	if ip4 == nil || port < 0 || port > 65535 {
+		panic("net.udp: invalid use of the UDP extension") // U13
+	}
+	sa := &syscall.SockaddrInet4{Port: port}
+	copy(sa.Addr[:], ip4)
+	if err := syscall.Sendto(id, []byte(bs), 0, sa); err != nil {
+		return 3
+	}
+	return 0
+}
+
+// extUdpRecv: the UDP extension's Recv of at most n bytes at the socket id (the bytes, the code).
+func extUdpRecv(id int, n int) (string, uint64) {
+	b := make([]byte, n)
+	k, _, err := syscall.Recvfrom(id, b, 0)
+	if err != nil {
+		return "", 3
+	}
+	return string(b[:k]), 0
+}
+
+// extUdpAnyString: the UDP extension's AnyString, an arbitrary string.
+func extUdpAnyString() string { return "" }
+
+// extUdpAnyW64: the UDP extension's AnyW64, an arbitrary word.
+func extUdpAnyW64() uint64 { return 0 }
+
+// extUdpAnyBool: the UDP extension's AnyBool, an arbitrary boolean.
+func extUdpAnyBool() bool { return false }
+
+// extUdpAnyErrno: the UDP extension's AnyErrno, an arbitrary nonzero errno.
+func extUdpAnyErrno() syscall.Errno { return syscall.EIO }
 
 // detach (gc builds only, used by the stubs' bodies): the fd of a socket Go's own code made, as
 // a plain blocking socket the stubs use, the netFD Go made closed.

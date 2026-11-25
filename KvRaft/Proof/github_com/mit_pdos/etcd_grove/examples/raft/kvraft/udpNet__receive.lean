@@ -29,7 +29,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS] [Stor
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
+variable [net_sem : net.Assumptions]
 
 /-- What a read at the address `a` gives (`ReadFromUDP`'s atomic update, through the address's
 invariant): a datagram of the protocol, or nothing. -/

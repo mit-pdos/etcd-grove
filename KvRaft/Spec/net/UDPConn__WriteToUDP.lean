@@ -1,8 +1,8 @@
 -- The copy for the part `KvRaft/` of `Net/Spec/net/UDPConn__WriteToUDP.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 `(*UDPConn).WriteToUDP(b, addr)` on this node's socket `s` (`udpConnAt`), `addr` a `*UDPAddr` whose
-`IP` and `Port` make the valid address `a` (`ValidDest`, U1), through `UDPConn.WriteToUDP.impl`
-(`Net/TrustedCode/net.lean`): the UDP extension's `Send`, by a logically atomic update over `a`'s
+`IP` and `Port` make the valid address `a` (`ValidDest`, U1), through Go's `WriteToUDP` and the
+model's `UDPConn.writeTo` (`models/net/model.go`): the UDP extension's `Send`, by a logically atomic update over `a`'s
 datagrams (`udpSent`), opened at the step that sends (`SendOut`: one datagram `d` with
 `Intact b d`, U3, added; or a failure, `d` added or not, U2). `Q ok` is the update's result, `ok`
 whether the send succeeded: then `(len(b), nil)`; else `(0, err)`, `err` the
@@ -27,7 +27,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt udpExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.UdpFieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 /-- See the file header. -/
 abbrev UDPConn.WriteToUDP.spec : Prop :=

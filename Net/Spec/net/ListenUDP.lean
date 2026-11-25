@@ -1,7 +1,8 @@
 /-
 `net.ListenUDP("udp4", laddr)` for `laddr` a `*UDPAddr` whose `IP` and `Port` make the valid
 address `a` (`ValidDest`, `GooseLang/Ext/Udp/Impl.lean`, U1: the canonical IPv4 string, `addrOk`),
-through `ListenUDP.impl` (`Net/TrustedCode/net.lean`): the UDP extension's `Listen`. A new socket
+through Go's `ListenUDP` and the model's `sysListener.listenUDP` (`models/net/model.go`): the UDP
+extension's `Listen`. A new socket
 bound to `a`, as a `*UDPConn` (`udpConnAt`, persistent), or a nil `*UDPConn` and the
 `*OpError{Op: "listen", Source: nil, Addr: laddr}` whose `Err` is an `*os.SyscallError` or a bare
 nonzero `syscall.Errno` (`udpListenErr`). Any node may bind any valid address, more than once (U1). Proved in
@@ -25,7 +26,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt udpExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.UdpFieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 /-- See the file header. -/
 abbrev ListenUDP.spec : Prop :=
