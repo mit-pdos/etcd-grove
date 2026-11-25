@@ -48,15 +48,15 @@ theorem walCloseLawU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w 
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   imod walInvBody_untail Mr R jr r s dir γ γt H md cuts wr ino m bs hTM hwr $$ Hb Htf Hk Hv Hm Hbs with
     ⟨%d, -, Hb, Htf, Hm, Hbs⟩
-  unfold walOpenW walLockedTok
-  icases Hopen with ⟨-, Hlk⟩
+  unfold walOpenW walOpenWI
+  icases Hopen with ⟨%i0, %I', -, Hlk, -⟩
   have hS : ∀ g ∈ [(⟨go!"", ino, m, bs⟩ : SegG)], g.om.size = g.bs.length := by
     intro g hg; simp only [List.mem_singleton] at hg; subst hg; exact hTM.1.1.symm
   have hu := walInvBody_unpinX (L := L) (W := W) walCodec Mr R jr r s dir j X hj
     [(⟨go!"", ino, m, bs⟩ : SegG)] true hS
   simp only [List.map_cons, List.map_nil, ↓reduceIte] at hu
   imod hu $$ Hb [Hlk] Htf Ho [Hm Hbs] Hn [Htb Htb'] Hdk with ⟨Hb, Hu⟩
-  · unfold walLockedTok; iexact Hlk
+  · unfold walLockedTok; iexists I'; iexact Hlk
   · iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
     unfold segRes; iframe Hm Hbs
   · iapply tmpClaims_walTmpsRes (L := L) j b b' hb hb'

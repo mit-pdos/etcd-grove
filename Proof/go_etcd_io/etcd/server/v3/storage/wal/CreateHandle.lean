@@ -112,8 +112,9 @@ theorem walInvBody_mintAppend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   iintro Hb Hl
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  imod walGhost_lockedI_incLb s I dir $$ Hg Hl with ⟨Hg, Hl, #Hil⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
-  imod walHandleP_mintI (W := W) w dir .append I $$ Ha Hl with ⟨Ha, Ho⟩
+  imod walHandleP_mintI (W := W) w dir .append I $$ Ha Hl Hil with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
   imodintro
   iframe Ho

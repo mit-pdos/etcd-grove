@@ -661,18 +661,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hcl' with ⟨Hcl1, Hcl2⟩
   icases (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI ht).1
     $$ Hn2 with ⟨Hn2b, Hn2a⟩
-  icases (walOpenW_cut w dir).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
+  icases (walOpenWI_cut w dir h.inc).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
   ihave #Hinv : walInv (W := W) walCodec Mr R jr r $$ [Harea]
   · iunfold WalFs.walAreaOk at Harea; icases Harea with ⟨#H, -, -⟩; iexact H
   ihave Hau := walCut_osAUnc Mr R jr r dir j X hj (pipeTmp np) ht h1.γ h.H h.md h.cuts
-    (h1.o0 + h1.out.length) h1.ino m bs g ⟨[h1.ino], [(j, .except X)], [dir]⟩
+    (h1.o0 + h1.out.length) h1.ino m bs g ⟨[h1.ino], [(j, .except X)], [dir]⟩ w h.inc
     (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
     (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
     (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
     (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ ⟨sq, ix, hnm0, rfl⟩ hbtw hcurbt hbs0 hm0x hm0z
-    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne (pipeTmp_mem np) $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
+    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne (pipeTmp_mem np) $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS Hopen]
   · iunfold walCutP
-    iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed
+    iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed Hopen
     isplitl [Hv]
     · iunfold tailVar; iexact Hv
     rw [← hg]
@@ -712,7 +712,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   generalize hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length = L
     at hoS1 hoS2 hgbs hgz hLpos hgmeta hL8 hlenL hszS ⊢
   iunfold walCutQ at HQ
-  icases HQ with ⟨Htm1, Hcw1, -, Htk, Hv, Hpk, Hout, Hcf, HmG, HbG⟩
+  icases HQ with ⟨Htm1, Hcw1, -, Htk, Hv, Hpk, Hout, Hcf, HmG, HbG, Hopen⟩
   iunfold renFileOut at Hro
   icases Hro with ⟨#Hlog, Htm2, Hcw2⟩
   iunfold logOut at Hlog
@@ -889,7 +889,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   rotate_left
   · isplitr
     · ipureintro
-      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
       simp only [List.length_nil, Nat.add_zero]
       rw [← hL, hTS]
       exact cutHdrs_room Mr h.md _ _ (by rw [← hst]; exact hmdsz)
@@ -948,7 +948,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iapply (osNames_frac j (.only [pipeTmp np]) (1 : Qp).half qTmpI _).2
     iframe
   isplitl [Hopen Hpk Hcf]
-  · iapply (walOpenW_cut w dir).2
+  · iapply (walOpenWI_cut w dir h.inc).2
     iframe
   ipureintro
   refine ⟨WalHS.split_fresh Mr _ rfl hL.symm rfl rfl, hfd3, hgbs.2, hgsz,

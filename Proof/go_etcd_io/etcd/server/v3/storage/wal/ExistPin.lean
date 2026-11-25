@@ -43,9 +43,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **The client's update committed unchanged** at a step of the invariant's contents: the client's
 lower bound `o` below the real state. -/
 theorem walInvBody_existAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (Q : Option WalDur → IProp GF) :
-    ⊢ (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o }> @ walAuMask, ∅
-        <{ walDirIs (W := W) dir o, COMM Q o }>) -∗
+    (s : AbsDiskState) (dir : GoString) (Q : Option WalDur → IProp GF) (ic : Nat) :
+    ⊢ (AU <{ ∃∃ o : Option WalDur, walDirIsI (W := W) dir ic o }> @ walAuMask, ∅
+        <{ walDirIsI (W := W) dir ic o, COMM Q o }>) -∗
       walInvBody (L := L) (W := W) C Mr R jr r s ={⊤ \ ↑walN}=∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ ∃ o, Q o ∗ ⌜walOptLe o (s.wal !! dir)⌝ := by
   iintro Hau Hb
@@ -59,13 +59,13 @@ theorem walInvBody_existAU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%o, Hab0, Hcla⟩
   icases Hcla with ⟨-, Hco⟩
-  unfold walDirIs
-  icases Hab0 with ⟨%M, HM, %HMd⟩
+  unfold walDirIsI
+  icases Hab0 with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
   icases walOwn_agree s M $$ Hg HM with %HMs
-  imod Hco $$ [HM] with HQ
-  · iexists M; iframe HM; ipureintro; exact HMd
+  imod Hco $$ [HM HI] with HQ
+  · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
   imod Hmc with -
   imodintro
   isplitl [Hg Hrest]

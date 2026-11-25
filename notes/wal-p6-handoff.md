@@ -51,6 +51,35 @@
   `walHandleP_mintI` from `walLockedTokI I` at `incOf I dir`. Specs take `i` as a spec parameter
   (`∀ i`, AU over `walDiskAtI dir i …`), the handle `WalHS.inc = i`. Then rebuild `wal.Link` for the
   next wave (`HandleUnnamed`, `Append`, `TailSync`, `CutAuLemmas`, `ReadAll*`, ...).
+- **2026-11-25, P6b sessions 3-4 (WIP, `etcd-safe-p6b-wip`).** Session 3 (`c99735b77c`): `walOpenWFI`/
+  `walOpenWFUI` (Handle), `HandleUnnamed`, `CreateSplit` (lock quarter), `CreateHandle`, `Create` spec at `i`,
+  `renameWALPost` arm 2 dropped (ledger: for the coordinator to confirm), `TailLenLb`, `CutAu`/`CutAuLemmas`,
+  `TailSync`, `Append`, `HandleAppend` at incarnations. Session 4:
+  * **the sync's incarnation, without the lock quarter**: `walIncLb dir i` (Ghost: `⌜i = 0⌝ ∨` a past
+    state whose incarnation is `≥ i`; persistent). Every ghost handle carries it (`walHandleDirI` now
+    `γ ↪ (w, dir, i) ∗ walIncLb dir i`; `walHandle_alloc`/`walHandleP_mint(I)`/`walOpening_mint` take it,
+    minted by `walGhost_lockedI_incLb`); `walOpenWI_incLb`/`walOpenWCI_incLb` read it off a handle;
+    `walIncLb_ghost` bounds it by the ghost. `walInvBody_sync`/`_syncP` take `walIncLb dir i` and return
+    `walSyncedLb dir i |H|` (`walSyncedLb_intro_le`); `_syncPE` keeps `walPast` (its fact is dropped).
+    Threaded through `wp_tailFsync`, `FdatasyncPend`, `TailFdatasync`, `TailFdatasyncNE` (`ic` parameter,
+    `walIncLb dir ic` premise) and `ReadAllTailCallees.specWalPend`; `WAL.sync.specLent` passes
+    `walIncLb_zero`.
+  * **shared handle**: `WalShN.inc`; `walHdl … i`, `walOpenWFR … k i`, `walOpenWS_alloc` returns
+    `⌜γ.inc = i⌝`; `walOpenWFI_iff`. Checked: `HandleRoom`, `HandleShared`, `Ghost`, `HandleAlloc`.
+  * **specs** (ledger addendum 2026-11-25 session 4): `Save`, `SaveSnapshot`, `Sync`, `ReleaseLockTo`,
+    `Close`, `storage__*` at `γ.inc`; `ReadAll`, `Create.specFresh` and the read-only updates (`Open`,
+    `openAtIndex`, `openLast`, `OpenForRead`, `Exist`, `Repair`, `ValidSnapshotEntries`, `Unsaved`) take
+    `∀ i`/`ic`; internal sync specs post `walSyncedLb dir h.inc …`.
+  * **proofs edited, not yet checked**: `WAL__sync`, `WAL__syncNoErr`, `WAL__cut`, `WAL__syncLent`,
+    `OpenAtPin`, `OpenAtSteps`, `CreateHandle` (mint), `ReadAllOpen`, `PurgeLend`, `CloseHandle`
+    (`walHandleC` at `h.inc`; `WalCloseLaw` at `i`), `CloseLaw`, `CloseLawU`.
+  * **left** (in order): check the above; the read-only-AU proofs (`unfold walDirIsI`, carry `I`);
+    `ReadAll` (commit: agree the opening handle's lock quarter with the view's `walIncQ` to get
+    `h.inc = i`; `ReadAllNamed.walInv_namedBy` returns `walNamed dir` with no `i`: give it the handle's
+    `walIncLb` or a past); `Create.lean`'s proof (handoff's session-3 list); the method proofs over
+    `walOpenWS` (`walOpenWS_acquire` now yields `walHdl … γ.inc`); `CreateSrv`; the tester; P8's
+    consumers; `DiscardUnsaved`. Then merge `etcd-safe-main-pin/2026-11-24` @ `3717c7903b` (coordinator,
+    2026-11-25: at the next building state pushed to `etcd-safe-p6b`).
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash

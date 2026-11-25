@@ -43,13 +43,13 @@ is the pipeline's) and the half of the permission left, the client's while the W
 open"). *Error*: the token and the whole permission back. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.Open.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (sp : Loc) (s : w64 × w64) (qp : Qp)
-    (Q : Option WalDur → IProp GF),
+    (Q : Option WalDur → IProp GF) (ic : Nat),
   InArea r dir nm → NameOk nm → cleanAbsPath r → PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       osCallPerm (callKey R r) 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
-        <{ WalFs.walDirIs dir (o.map (fun d =>
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir ic o }> @ walAuMask, ∅
+        <{ WalFs.walDirIsI dir ic (o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) })), COMM Q o }> }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Open)) (Val #lg)) (Val #dir))
       (Val #sp))

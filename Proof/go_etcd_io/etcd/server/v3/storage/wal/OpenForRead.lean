@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 theorem go_etcd_io.etcd.server.v3.storage.wal.OpenForRead.wp_proof (Mr : WalMarshal)
     (wp_open : go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.OpenForRead.spec (W := W) Mr := by
-  intro lg R jr r dir nm sp s qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm sp s qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   try wp_auto

@@ -215,7 +215,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ $$ Hdh with
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
-  icases (walOpenW_cut (W := W) w dir).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
+  icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG), fd
   unfold tailVar
@@ -226,7 +226,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
   · ipureintro; exact hf
   iintro %hj' %hs Hn Hp Hsh' Hc Ho Hlk Hk Hv Hcf Hfd
   ihave Hdh := Hback $$ %hj' %hs Hn Hp Hsh' Hc Ho Hlk
-  ihave Hopen := (walOpenW_cut (W := W) w dir).2 $$ [Hwc Hpf Hcf]
+  ihave Hopen := (walOpenWI_cut (W := W) w dir h.inc).2 $$ [Hwc Hpf Hcf]
   · iframe Hwc Hpf Hcf
   iapply (walOpenWF_iff (W := W) P Mr w dir).2
   iexists h

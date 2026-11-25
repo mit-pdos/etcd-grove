@@ -54,15 +54,15 @@ framed (`syncDir(filepath.Dir(dir))` opens the area). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (Mr : WalMarshal) :
     Prop :=
   ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (w : Loc) (s : w64 × w64) (qp qc : Qp)
-    (Q : WalDur → IProp GF),
+    (Q : WalDur → IProp GF) (i : Nat),
   InArea r dir nm → cleanAbsPath r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) qc ∗
       walOpeningF w dir s ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir i d ∗
           ⌜some s = walNewestPair (walValidSnaps (d.H.map WalOpG.toM) d.cut) ∧
             walOpenPos (d.H.map WalOpG.toM) s.1 ≤ d.unl⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir d, COMM Q d }> }}
+        <{ WalFs.walDiskAtI dir i d, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"ReadAll"))
       (Val #()))
   {{ (mdp : GoSlice) (hp : Loc) (sl : GoSlice) (err : GoInterface),
@@ -71,8 +71,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (
       ((⌜err ≠ GoInterface.nil⌝ ∗ walReadFailedF Mr w dir) ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ (σ : StorContents) (esL : List Loc),
         ⌜walReadAllOk (d.H.map WalOpG.toM) d.cut s σ⌝ ∗ P.hsIn hp σ.hs ∗ sl ↦*□ esL ∗
-        walEntsIn P esL σ.ents ∗ mdp ↦*□ d.metadata ∗ walOpenWF P Mr w dir ∗
-        WalFs.walNamed dir ∗ WalFs.walSyncedLb dir d.H.length ∗ WalFs.walLenLb w dir d.H.length ∗
+        walEntsIn P esL σ.ents ∗ mdp ↦*□ d.metadata ∗ walOpenWFI P Mr w dir i ∗
+        WalFs.walNamed dir i ∗ WalFs.walSyncedLb dir i d.H.length ∗ WalFs.walLenLb w dir i d.H.length ∗
         WalFs.walPurgeW w dir)) }}
 
 end spec

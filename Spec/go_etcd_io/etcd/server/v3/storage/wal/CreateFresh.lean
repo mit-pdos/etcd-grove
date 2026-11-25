@@ -39,24 +39,24 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 /-- See the file header. -/
 abbrev wal.Create.specFresh (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (mp : GoSlice) (md : List w8) (qp : Qp)
-    (Q : IProp GF),
+    (Q : IProp GF) (i : Nat),
   InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
   md.length < 2 ^ 41 → md ≠ [] → WalMarshalCreateOk Mr →
   FsNoErrOn (fun p => p = dir ∨ p = dir ++ go!".tmp" ∨ p = r) ∧ PathFits (dir ++ go!".tmp") ∧ PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o ∗ ⌜wal.ExistFalseOk o⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }> }}
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir i o ∗ ⌜wal.ExistFalseOk o⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir i (walDurFresh md), COMM Q }> }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Create)) (Val #lg)) (Val #dir))
       (Val #mp))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
-      ((⌜err = interface.nil⌝ ∗ Q ∗ walOpenWF P Mr w dir ∗ WalFs.walNamed dir ∗ WalFs.walLenLb w dir 0 ∗
-          WalFs.walSyncedLb dir 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
+      ((⌜err = interface.nil⌝ ∗ Q ∗ walOpenWFI P Mr w dir i ∗ WalFs.walNamed dir i ∗ WalFs.walLenLb w dir i 0 ∗
+          WalFs.walSyncedLb dir i 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
         (⌜err ≠ interface.nil⌝ ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
-          AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o ∗ ⌜wal.ExistFalseOk o⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }>) ∨
+          AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir i o ∗ ⌜wal.ExistFalseOk o⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir i (walDurFresh md), COMM Q }>) ∨
         (⌜err ≠ interface.nil⌝ ∗ Q ∗ osCallPerm (callKey R r) (1 : Qp).half)) }}
 
 end spec

@@ -64,8 +64,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr :
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ ∃ h' : WalHS, walHandleIn P Mr w dir h' ∗
           ⌜h'.H = h.H ∧ h'.md = h.md ∧ h'.cuts = h.cuts ++ [h.H.length] ∧ h'.rest = 0 ∧ h'.st = h.st ∧
-            h'.enti = h.enti ∧ h'.snapi = h.snapi ∧ h'.pc = h.pc + 1 ∧
-            h'.o0 + h'.out.length + h'.pend.length ≤ 2 ^ 43⌝ ∗ WalFs.walSyncedLb dir h.H.length) ∨
+            h'.enti = h.enti ∧ h'.snapi = h.snapi ∧ h'.pc = h.pc + 1 ∧ h'.inc = h.inc ∧
+            h'.o0 + h'.out.length + h'.pend.length ≤ 2 ^ 43⌝ ∗ WalFs.walSyncedLb dir h.inc h.H.length) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec

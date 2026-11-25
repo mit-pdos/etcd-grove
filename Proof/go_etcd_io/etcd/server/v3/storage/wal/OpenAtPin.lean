@@ -124,12 +124,12 @@ theorem walInvBody_mapLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 /-- **`openAtIndex`'s update and pin** (see the file header). -/
 theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm : GoString) (N : NameSet) (dq : DFrac)
-    (h : NamesH) (Wn : List GoString) (write : Bool) (idx : w64) (Q : Option WalDur → IProp GF)
+    (h : NamesH) (Wn : List GoString) (write : Bool) (idx : w64) (Q : Option WalDur → IProp GF) (ic : Nat)
     (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
-      (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o }> @ walAuMask, ∅
-        <{ walDirIs (W := W) dir (if write then o.map (fun d =>
+      (AU <{ ∃∃ o : Option WalDur, walDirIsI (W := W) dir ic o }> @ walAuMask, ∅
+        <{ walDirIsI (W := W) dir ic (if write then o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) idx) }) else o), COMM Q o }>) -∗
       osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
@@ -146,8 +146,8 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%o, Ho, Hucl⟩
-  unfold walDirIs
-  icases Ho with ⟨%M, HM, %HMd⟩
+  unfold walDirIsI
+  icases Ho with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   icases walInvBody_mapLe C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
@@ -156,9 +156,9 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
     have hMd : M !! dir = none := (walOptLe_none_iff _).1 HMd
     have hsd : s.wal !! dir = none := by
       have := HMs dir; rw [hMd] at this; exact (walOptLe_none_iff _).1 this
-    imod Hcommit $$ [HM] with HQ
-    · iexists M; iframe HM; ipureintro
-      cases write <;> exact HMd
+    imod Hcommit $$ [HM HI] with HQ
+    · iexists M, I; iframe HM HI; ipureintro
+      cases write <;> exact ⟨HMd, hic⟩
     imod Hcl $$ [Hb] with -
     · iexists s; iexact Hb
     imodintro
@@ -177,8 +177,8 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       exact ⟨ds, hds, walDurLe_trans hle0 hle1⟩
     cases write with
     | false =>
-      imod Hcommit $$ [HM] with HQ
-      · iexists M; iframe HM; ipureintro; exact HMd
+      imod Hcommit $$ [HM HI] with HQ
+      · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
       imod walInvBody_pinOut C Mr R jr r s dir ds hsd (walOpenK idx) false $$ Hb Hu with ⟨Hb, Hp⟩
       imod Hcl $$ [Hb] with -
       · iexists s; iexact Hb
@@ -194,10 +194,11 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       imod walInvBody_unl C Mr R jr r s dir (walOpenPos (dc.H.map WalOpG.toM) idx) M $$ Hb HM
         with ⟨-, Hb, HM, -⟩
       have hsd' := unlSt_lookup_self s dir (walOpenPos (dc.H.map WalOpG.toM) idx) ds hsd
-      imod Hcommit $$ [HM] with HQ
-      · iexists (unlSt s dir (walOpenPos (dc.H.map WalOpG.toM) idx)).wal
-        iframe HM
+      imod Hcommit $$ [HM HI] with HQ
+      · iexists (unlSt s dir (walOpenPos (dc.H.map WalOpG.toM) idx)).wal, I
+        iframe HM HI
         ipureintro
+        refine ⟨?_, hic⟩
         simp only [ite_true, Option.map_some, hsd', walOptLe]
         exact walDurLe_unl _ hle
       imod walInvBody_pinOut C Mr R jr r _ dir _ hsd' (walOpenK idx) true $$ Hb Hu with ⟨Hb, Hp⟩

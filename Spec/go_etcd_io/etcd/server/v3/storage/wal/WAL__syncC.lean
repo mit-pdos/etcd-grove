@@ -49,7 +49,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr
       (⌜err = GoInterface.nil⌝ ∗ walHandleC P Mr w dir j
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
           TailMetaS nmd nf ∗
-          WalFs.walSyncedLb dir h.H.length) ∨
+          WalFs.walSyncedLb dir h.inc h.H.length) ∨
       (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag nf ∗
         ∃ (f : Loc) (fd : w64) (name : GoString) (d : OsFd) (R : Roots) (q : Qp),
           nmd f R q ∗ os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) }}

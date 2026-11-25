@@ -702,6 +702,13 @@ theorem walOpenWFI_WF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStri
   iframe Hh Hr
   ipureintro; exact ⟨hD, hmd⟩
 
+/-- `walOpenWFI` unfolded (for the package's proofs). -/
+theorem walOpenWFI_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWFI (W := W) P Mr w dir i ⊣⊢
+      ∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+        ⌜h.inc = i⌝ ∗ ⧗ h.pc :=
+  .rfl
+
 theorem walOpenWF_WFI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     walOpenWF (W := W) P Mr w dir ⊢ ∃ i, walOpenWFI (W := W) P Mr w dir i := by
   unfold walOpenWFI walOpenWF

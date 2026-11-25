@@ -76,7 +76,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_FName : os.fileStat.Name.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr := by
-  intro lg R jr r dir nm sp s write qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm sp s write qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
@@ -95,7 +95,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   try wp_auto
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAt walCodec Mr R jr r dir nm N _ h Wn write s.1 Q hin (hok.1 nm hnm)
+  imod walInv_openAt walCodec Mr R jr r dir nm N _ h Wn write s.1 Q ic hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
   icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%ho, %d, Hpin⟩)
   · -- no WAL: `selectWALFiles` fails on the missing directory

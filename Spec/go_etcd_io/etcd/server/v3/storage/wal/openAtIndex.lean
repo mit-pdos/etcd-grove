@@ -42,13 +42,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (sp : Loc) (s : w64 × w64) (write : Bool)
-    (qp : Qp) (Q : Option WalDur → IProp GF),
+    (qp : Qp) (Q : Option WalDur → IProp GF) (ic : Nat),
   InArea r dir nm → NameOk nm → cleanAbsPath r → PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       osCallPerm (callKey R r) 1 ∗ walSnapIdTerm sp s ∗ WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
-        <{ WalFs.walDirIs dir (if write then o.map (fun d =>
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir ic o }> @ walAuMask, ∅
+        <{ WalFs.walDirIsI dir ic (if write then o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) }) else o), COMM Q o }> }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.openAtIndex)) (Val #lg))
       (Val #dir)) (Val #sp)) (Val #write))

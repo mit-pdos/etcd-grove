@@ -36,11 +36,11 @@ abbrev storage.storage.Close.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     (Q : WalDur → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storageOver p w ss ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ 1 ∗ WalFs.walPurgeW w dir ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d }> @ walAuMask, ∅ <{ WalFs.walDiskAt dir d, COMM Q d }> }}
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d }> @ walAuMask, ∅ <{ WalFs.walDiskAtI dir γ.inc d, COMM Q d }> }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
+          WalFs.walSyncedLb dir γ.inc d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }}
 
 end spec

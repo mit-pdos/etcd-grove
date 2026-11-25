@@ -40,19 +40,11 @@ theorem walInvBody_appendOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (j
   unfold walOpening
   imod walHandleP_set (W := W) w dir (.opening sn) .append $$ Ha Ho with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
-  unfold walHandleP
-  icases Ho with ⟨%γ, #Hd, Hm, Hp, Hl⟩
+  ihave Ho := walHandleP_openW (W := W) w dir $$ Ho
   imodintro
-  isplitl [Hg Hrest]
-  · iexists Ls, cl, n, F
-    iframe
-  unfold walOpenW walHandleSt walPurgeW
-  isplitl [Hm Hl]
-  · iframe Hl
-    iexists γ
-    iframe Hd Hm
-  · iexists γ
-    iframe Hd Hp
+  iframe Ho
+  iexists Ls, cl, n, F
+  iframe
 
 /-- **`ReadAll` succeeded: the ghost handle `append`** (see the file header). -/
 theorem walInv_appendOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)

@@ -73,8 +73,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗
       match m with
       | .shared γ => iprop(walOpenWS Sio P Mr w dir γ 1 ∗ WalFs.walPurgeW w dir ∗
-          AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d }> @ walAuMask, ∅
-            <{ WalFs.walDiskAt dir d, COMM Q d }>)
+          AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d }> @ walAuMask, ∅
+            <{ WalFs.walDiskAtI dir γ.inc d, COMM Q d }>)
       | .failed => iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           walReadFailedF Mr w dir)
       | .opening s => iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
@@ -85,8 +85,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
       (Val #()))
   {{ (err : GoInterface), RET #err;
       match m with
-      | .shared _ => iprop((⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
-            WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
+      | .shared γ => iprop((⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
+            WalFs.walSyncedLb dir γ.inc d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
           ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝)
       | .failed => iprop((WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir))

@@ -167,9 +167,9 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
 
 /-- **The tail's fdatasync on the invariant** (see the file header). -/
 theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) :
+    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (i : Nat) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗
+      tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walIncLb (W := W) dir i -∗
       ∃ (F : GMap Ino SegFl) (d : WalDur) (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ lay.segs = pre ++ [g0] ∧ tg = tailG d lay g0.ino (F !! g0.ino) ∧
           (∃ ents, WalAbsD C Mr d lay ents)⌝ ∗
@@ -179,10 +179,10 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
             (∀ z, g0.om.zf = some z → g0.bs.length ≤ z)⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
-            walPast (W := W) (walSyncS s dir d)) ∧
+            walSyncedLb (W := W) dir i d.H.length) ∧
         (segResF (L := L) F g0 -∗ walInvBody (L := L) (W := W) C Mr R jr r s) := by
   letI := walAllG (W := W)
-  iintro Hb Hk Hv Hcf
+  iintro Hb Hk Hv Hcf #Hil
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -250,6 +250,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   -- the ghost state at the synced state
   iunfold walGhost at Hg
   icases Hg with ⟨%Ig, Hg⟩
+  icases walIncLb_ghost s Ig dir i $$ Hg Hil with ⟨Hg, %hil⟩
   imod walGhostI_upd_lag s (walSyncS s dir d) Ig (fun G hG => walMapLe_sync hd hmH hG)
     (absLe_sync hd hmH) (fun hk => walKeysInArea_sync hd hk)
     (fun n hn => WalsStepped.insert (d' := { d with m := d.H.length }) hn rfl (hn dir d hd))
@@ -321,7 +322,8 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         (namedSub_ins s dir d _ hd rfl) $$ Hnms
       iapply walNamesRes_insert _ _ _ _ _ _ Lw hl hLnm hLj $$ Hnms
     ipureintro; exact ⟨walsBounded_insSame Hbd.1 rfl hd rfl rfl, Hbd.2⟩
-  · unfold walPast; iexists Ig; iexact Hpast
+  · iapply walSyncedLb_intro_le (walSyncS s dir d) Ig dir _ i d.H.length (walSyncS_lookup s dir d)
+      (Nat.le_refl _) hil $$ Hpast
 
 end iris
 

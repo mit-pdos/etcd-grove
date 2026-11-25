@@ -33,12 +33,12 @@ variable {GF : BundledGFunctors} [W : WalGS GF]
 /-- **A new handle** of `w` in `dir` (incarnation `i`) in mode `m`, under a fresh ghost name, with its
 purge right. -/
 theorem walHandle_alloc (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) :
-    ⊢@{IProp GF} walHandleAuth (W := W) ==∗ walHandleAuth (W := W) ∗
+    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walIncLb (W := W) dir i ==∗ walHandleAuth (W := W) ∗
       ∃ γ : GName, walHandleDirI (W := W) w dir i γ ∗ (letI := walAllG (W := W); γ ↪[W.γh] m) ∗
         (letI := walAllG (W := W); γ ↪[W.γhp] ()) := by
   letI := walAllG (W := W)
   unfold walHandleAuth walHandleDirI
-  iintro ⟨%n, %Hh, %Hd, %Hp, HA, HD, HP, %Hf⟩
+  iintro ⟨%n, %Hh, %Hd, %Hp, HA, HD, HP, %Hf⟩ #Hil
   obtain ⟨h1, h2, h3⟩ := Hf n (Nat.le_refl n)
   imod ghost_map_insert n m h1 $$ HA with ⟨HA, Hm⟩
   imod ghost_map_insert_persist n (w, dir, i) h2 $$ HD with ⟨HD, #Hdir⟩
@@ -54,16 +54,15 @@ theorem walHandle_alloc (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) :
     exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1',
       by rw [GMap.lookup_insert_ne _ _ hne]; exact h2',
       by rw [GMap.lookup_insert_ne _ _ hne]; exact h3'⟩
-  · iexists n; iframe Hdir Hm Hpt
+  · iexists n; iframe Hdir Hm Hpt Hil
 
 /-- **A new handle with the lock token** (`walHandleP`, mode `m`). -/
-theorem walHandleP_mint (w : Loc) (dir : GoString) (m : WalMode) :
-    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTok (W := W) ==∗
+theorem walHandleP_mint (w : Loc) (dir : GoString) (m : WalMode) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTokI (W := W) I -∗
+      walIncLb (W := W) dir (incOf I dir) ==∗
       walHandleAuth (W := W) ∗ walHandleP (W := W) w dir m := by
-  iintro Ha Hl
-  unfold walLockedTok
-  icases Hl with ⟨%I, Hl⟩
-  imod walHandle_alloc w dir (incOf I dir) m $$ Ha with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
+  iintro Ha Hl #Hil
+  imod walHandle_alloc w dir (incOf I dir) m $$ Ha Hil with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
   imodintro
   iframe Ha
   unfold walHandleP
@@ -73,10 +72,11 @@ theorem walHandleP_mint (w : Loc) (dir : GoString) (m : WalMode) :
 
 /-- **A new handle with the lock token at the incarnations `I`**: the handle at `incOf I dir`. -/
 theorem walHandleP_mintI (w : Loc) (dir : GoString) (m : WalMode) (I : GMap GoString Nat) :
-    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTokI (W := W) I ==∗
+    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTokI (W := W) I -∗
+      walIncLb (W := W) dir (incOf I dir) ==∗
       walHandleAuth (W := W) ∗ walHandlePI (W := W) w dir (incOf I dir) m := by
-  iintro Ha Hl
-  imod walHandle_alloc w dir (incOf I dir) m $$ Ha with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
+  iintro Ha Hl #Hil
+  imod walHandle_alloc w dir (incOf I dir) m $$ Ha Hil with ⟨Ha, ⟨%γ, #Hd, Hm, Hp⟩⟩
   imodintro
   iframe Ha
   unfold walHandlePI
@@ -85,11 +85,12 @@ theorem walHandleP_mintI (w : Loc) (dir : GoString) (m : WalMode) (I : GMap GoSt
   ipureintro; rfl
 
 /-- **The handle `Open` mints** (mode `opening s`). -/
-theorem walOpening_mint (w : Loc) (dir : GoString) (s : w64 × w64) :
-    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTok (W := W) ==∗
+theorem walOpening_mint (w : Loc) (dir : GoString) (s : w64 × w64) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walHandleAuth (W := W) -∗ walLockedTokI (W := W) I -∗
+      walIncLb (W := W) dir (incOf I dir) ==∗
       walHandleAuth (W := W) ∗ walOpening (W := W) w dir s := by
   unfold walOpening
-  exact walHandleP_mint w dir (.opening s)
+  exact walHandleP_mint w dir (.opening s) I
 
 /-- **A handle's mode changed**, its purge right and lock token kept. -/
 theorem walHandleP_set (w : Loc) (dir : GoString) (m m' : WalMode) :

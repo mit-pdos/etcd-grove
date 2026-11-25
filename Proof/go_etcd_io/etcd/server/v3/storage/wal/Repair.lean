@@ -170,7 +170,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
     wal.Repair.spec (W := W) Mr := by
-  intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok

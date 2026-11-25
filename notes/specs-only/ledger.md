@@ -46,6 +46,15 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** The facts, `∀ i` and `WalShN.inc`: accepted (coordinator, 2026-11-25, P6b v2.1); applied on branch
   `etcd-safe-p6b-wip`. The dropped `renameWALPost` arm (a stronger post of an internal callee, no client sees it):
   taken in P6b session 3, for the coordinator to confirm.
+- **Applied in session 4 (2026-11-25), the same principle carried through the cone** (no new decision, recorded for
+  review): every atomic update a client holds a view for is at the view's incarnation, so the client gets its
+  `walDirIsI`/`walDiskAtI` back. `ReadAll.spec`, `Create.specFresh`, and the read-only updates of `Open`,
+  `openAtIndex`, `openLast`, `OpenForRead`, `Exist`, `Repair`, `ValidSnapshotEntries`, `Unsaved` take `∀ i`/`∀ ic`;
+  `Sync`, `SaveSnapshot`, `ReleaseLockTo`, `Close` and the `storage__*` wrappers are at `γ.inc`. `ReadAll`'s success
+  post is `walOpenWFI … i` with its facts at `i`. The internal sync specs (`WAL.sync`, `syncC`, `syncNoErr`, `cut`,
+  `cutTail`) post `walSyncedLb dir h.inc …`; the tail's fdatasync lemmas take a persistent `walIncLb dir ic`
+  ("the incarnation has reached `ic`"), which every ghost handle carries (`walHandleDirI`), so a sync's synced fact
+  needs no share of the incarnation map.
 
 ## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
 

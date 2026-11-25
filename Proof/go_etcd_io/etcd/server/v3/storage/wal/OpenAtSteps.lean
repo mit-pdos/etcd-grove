@@ -65,10 +65,12 @@ theorem walInvBody_mintOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr 
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTok (W := W) ==∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walOpening (W := W) w dir sn := by
   iintro Hb Hl
-  unfold walInvBody
+  unfold walInvBody walLockedTok
+  icases Hl with ⟨%I, Hl⟩
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  imod walGhost_lockedI_incLb s I dir $$ Hg Hl with ⟨Hg, Hl, #Hil⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
-  imod walOpening_mint (W := W) w dir sn $$ Ha Hl with ⟨Ha, Ho⟩
+  imod walOpening_mint (W := W) w dir sn I $$ Ha Hl Hil with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
   imodintro
   iframe Ho

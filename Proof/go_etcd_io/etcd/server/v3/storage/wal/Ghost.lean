@@ -472,11 +472,19 @@ def walNamed (dir : GoString) (i : Nat) : IProp GF :=
 def dirDurable (d : GoString) : IProp GF :=
   iprop(∃ s : AbsDiskState, walPast (W := W) s ∗ ⌜s.dirs !! d = some ()⌝)
 
+/-- **`dir`'s incarnation has reached `i`** (persistent): a past state where it is at least `i`. Every fact
+of incarnation `i` that a later step establishes holds then (the step's incarnation is `i`, or `i` is
+retired): the handle carries it (`walHandleDirI`), so a sync gives `walSyncedLb dir h.inc` without the lock
+token's share of the incarnations (P6b, `notes/wal-p6b-design.md`). Incarnation `0` is always reached
+(`walIncLb_zero`: a sync whose synced fact nobody keeps). -/
+def walIncLb (dir : GoString) (i : Nat) : IProp GF :=
+  iprop(⌜i = 0⌝ ∨ ∃ (s : AbsDiskState) (I : GMap GoString Nat), walPastI (W := W) (s, I) ∗ ⌜i ≤ incOf I dir⌝)
+
 /-- **The handle named `γ` is of the `*wal.WAL` `w`, which writes the WAL in `dir` of incarnation
-`i`** (persistent). -/
+`i`** (persistent), and that incarnation has been reached. -/
 def walHandleDirI (w : Loc) (dir : GoString) (i : Nat) (γ : GName) : IProp GF :=
   letI := walAllG (W := W)
-  γ ↪[W.γhd]□ (w, dir, i)
+  iprop(γ ↪[W.γhd]□ (w, dir, i) ∗ walIncLb (W := W) dir i)
 
 /-- **The handle named `γ` is of the `*wal.WAL` `w`, which writes the WAL in `dir`** (persistent). -/
 def walHandleDir (w : Loc) (dir : GoString) (γ : GName) : IProp GF :=
@@ -878,6 +886,10 @@ instance walNamed_persistent (dir : GoString) (i : Nat) : Persistent (walNamed (
   unfold walNamed; infer_instance
 instance dirDurable_persistent (d : GoString) : Persistent (dirDurable (W := W) d) := by
   unfold dirDurable; infer_instance
+instance walIncLb_persistent (dir : GoString) (i : Nat) : Persistent (walIncLb (W := W) dir i) := by
+  unfold walIncLb; infer_instance
+instance walIncLb_timeless (dir : GoString) (i : Nat) : Timeless (walIncLb (W := W) dir i) := by
+  unfold walIncLb; infer_instance
 instance walHandleDirI_persistent (w : Loc) (dir : GoString) (i : Nat) (γ : GName) :
     Persistent (walHandleDirI (W := W) w dir i γ) := by unfold walHandleDirI; infer_instance
 instance walHandleDir_persistent (w : Loc) (dir : GoString) (γ : GName) :
@@ -894,7 +906,8 @@ instance walSyncedLb_timeless (dir : GoString) (i n : Nat) :
 instance walNamed_timeless (dir : GoString) (i : Nat) : Timeless (walNamed (W := W) dir i) := by
   unfold walNamed; infer_instance
 instance walLenLb_timeless (w : Loc) (dir : GoString) (i n : Nat) :
-    Timeless (walLenLb (W := W) w dir i n) := by unfold walLenLb walHandleDir walHandleDirI; infer_instance
+    Timeless (walLenLb (W := W) w dir i n) := by
+  unfold walLenLb walHandleDir walHandleDirI walIncLb; infer_instance
 instance dirDurable_timeless (d : GoString) : Timeless (dirDurable (W := W) d) := by
   unfold dirDurable; infer_instance
 instance walOwn_timeless (M : GMap GoString WalDur) : Timeless (walOwn (W := W) M) := by
@@ -1461,6 +1474,38 @@ theorem walSyncedLb_of_le (s s0 : AbsDiskState) (I I0 : GMap GoString Nat) (dir 
   · iapply walSyncedLb_retired s I dir _ n h $$ Hs
   · rw [h]; iapply walSyncedLb_intro s I dir d n hd hn $$ Hs
 
+/-- **A past state reaches its incarnation.** -/
+theorem walIncLb_intro (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (i : Nat)
+    (h : i ≤ incOf I dir) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walIncLb (W := W) dir i := by
+  unfold walIncLb
+  iintro #Hs
+  iright
+  iexists s, I; iframe Hs; ipureintro; exact h
+
+/-- **Incarnation `0` is reached.** -/
+theorem walIncLb_zero (dir : GoString) : ⊢@{IProp GF} walIncLb (W := W) dir 0 := by
+  unfold walIncLb
+  ileft; ipureintro; rfl
+
+/-- **A synced lower bound at a reached incarnation** `i`, from a past state where the WAL's synced
+prefix is `n` long (a step's: `i` is its incarnation, or retired). -/
+theorem walSyncedLb_intro_le (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (d : WalDur)
+    (i n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.m) (hi : i ≤ incOf I dir) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walSyncedLb (W := W) dir i n := by
+  unfold walSyncedLb
+  iintro #Hs
+  iexists s, I; iframe Hs; ipureintro
+  rcases Nat.lt_or_eq_of_le hi with h | h
+  · exact Or.inr h
+  · exact Or.inl ⟨h.symm, d, hd, hn⟩
+
+/-- `walHandleDirI`'s incarnation is reached. -/
+theorem walHandleDirI_incLb (w : Loc) (dir : GoString) (i : Nat) (γ : GName) :
+    walHandleDirI (W := W) w dir i γ ⊢ walIncLb (W := W) dir i := by
+  unfold walHandleDirI
+  iintro ⟨-, #H⟩; iexact H
+
 /-- A past state with its incarnations, as a past state. -/
 theorem walPastI_past (p : AbsDiskState × GMap GoString Nat) :
     walPastI (W := W) p ⊢ walPast (W := W) p.1 := by
@@ -1472,7 +1517,7 @@ theorem walHandleDirI_agree (w w' : Loc) (dir dir' : GoString) (i i' : Nat) (γ 
       ⌜w = w' ∧ dir = dir' ∧ i = i'⌝ := by
   unfold walHandleDirI
   letI := walAllG (W := W)
-  iintro #H1 #H2
+  iintro ⟨#H1, -⟩ ⟨#H2, -⟩
   icases ghostMapElem_agree $$ H1 H2 with %H
   ipureintro
   simp only [Prod.mk.injEq] at H
@@ -1784,6 +1829,30 @@ theorem walGhostI_openWI (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (d
   iframe Hm Hp Hi Hr Hw
   ipureintro; exact h
 
+/-- **An open handle's incarnation is reached.** -/
+theorem walOpenWI_incLb (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWI (W := W) w dir i ⊢ walOpenWI (W := W) w dir i ∗ walIncLb (W := W) dir i := by
+  unfold walOpenWI walHandleStI
+  iintro ⟨%I, ⟨%γ, #Hd, Hm⟩, Hu, %h⟩
+  ihave #Hl := walHandleDirI_incLb w dir i γ $$ Hd
+  iframe Hl
+  iexists I; iframe Hu
+  isplitl
+  · iexists γ; iframe Hd Hm
+  ipureintro; exact h
+
+/-- `walOpenWI_incLb` of the cut form. -/
+theorem walOpenWCI_incLb (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWCI (W := W) w dir i ⊢ walOpenWCI (W := W) w dir i ∗ walIncLb (W := W) dir i := by
+  unfold walOpenWCI walHandleStI
+  iintro ⟨%I, ⟨%γ, #Hd, Hm⟩, Hu, Hq, %h⟩
+  ihave #Hl := walHandleDirI_incLb w dir i γ $$ Hd
+  iframe Hl
+  iexists I; iframe Hu Hq
+  isplitl
+  · iexists γ; iframe Hd Hm
+  ipureintro; exact h
+
 /-- What the program's WAL map says of the invariant's: it is below the real one. -/
 theorem walOwn_agree (s : AbsDiskState) (M : GMap GoString WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walOwn (W := W) M -∗ ⌜walMapLe M s.wal⌝ := by
@@ -1808,6 +1877,19 @@ theorem walPastI_ghost_le (s : AbsDiskState) (I : GMap GoString Nat) (p : AbsDis
   unfold walGhostI
   iintro ⟨-, ⟨HP, -⟩, -⟩ Hp
   iapply walPastI_le $$ HP Hp
+
+/-- **A reached incarnation is at most the ghost's.** -/
+theorem walIncLb_ghost (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (i : Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walIncLb (W := W) dir i -∗
+      walGhostI (W := W) s I ∗ ⌜i ≤ incOf I dir⌝ := by
+  iintro Hg Hl
+  unfold walIncLb
+  icases Hl with (%h0 | ⟨%s0, %I0, #Hp, %hi⟩)
+  · iframe Hg; ipureintro; rw [h0]; exact Nat.zero_le _
+  icases walPastI_ghost_le s I (s0, I0) $$ Hg Hp with %hle
+  iframe Hg
+  ipureintro
+  exact Nat.le_trans hi (hle.2.2.1 dir)
 
 /-- What a past state says of the present one: the area and the durable directories. -/
 theorem walPast_ghost_le (s p : AbsDiskState) :
@@ -2066,6 +2148,21 @@ theorem walGhostI_past (s : AbsDiskState) (I : GMap GoString Nat) :
   imod walPastI_snap (s, I) $$ HP with ⟨HP, Hp⟩
   imodintro
   iframe Hs HP HI Hh Hk Hp
+
+/-- **The lock token's incarnation is reached** (a handle minted from it carries the fact). -/
+theorem walGhost_lockedI_incLb (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walLockedTokI (W := W) I ==∗
+      walGhost (W := W) s ∗ walLockedTokI (W := W) I ∗ walIncLb (W := W) dir (incOf I dir) := by
+  iintro Hg Hl
+  iunfold walGhost at Hg
+  icases Hg with ⟨%Ig, Hg⟩
+  icases walGhostI_lockedI_agree s Ig I $$ Hg Hl with ⟨Hg, Hl, %hII⟩
+  subst hII
+  imod walGhostI_past s I $$ Hg with ⟨Hg, #Hp⟩
+  ihave Hg := walGhostI_ghost s I $$ Hg
+  imodintro
+  iframe Hg Hl
+  iapply walIncLb_intro s I dir _ (Nat.le_refl _) $$ Hp
 
 /-- A past state's fact, from the authority. -/
 theorem walGhost_past (s : AbsDiskState) :
