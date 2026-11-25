@@ -24,8 +24,6 @@ own code (`github_com.emirpasic.gods.maps.treemap.hyps_true`, notes/gods-verifie
 
 **Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L` and the start's `NetProtoGS`):
-* the package initializers Net and the main tree have no proof of: net/rpc's, net/http's
-  (`InitHyp`, `etc/dsv/README.md`; encoding/json's is the main tree's proved `wp_initialize'`);
 * net/rpc over HTTP (`Interface/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after
   its shapes): the specs (`RpcHttpHyp`: `DialHTTP(Path)`, `HandleHTTP`, the package-level
   `Register`, `http.Serve`, the mux), per heap, over the addresses' and listeners' protocols
@@ -43,8 +41,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interfa
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
 
 @[expose] public section
 
@@ -84,8 +82,6 @@ def epaxos_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
     ∀ (rh : ∀ G L (π : NetProtoGS), letI := heapAt G L;
         letI := netRpcHttpAddr remoteGF (Gg := G); RpcHttpHyp remoteGF),
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := netRpcHttpAddr remoteGF (Gg := G);

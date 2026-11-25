@@ -31,7 +31,9 @@ axiom Perennial.net.http.Handle.wp_proof
 axiom Perennial.net.http.Serve.wp_proof_rpc
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.wp_init_first
+axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_init_first
+axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk

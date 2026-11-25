@@ -1,13 +1,11 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
-> **STATE (2026-11-24, session 13, on lean b64d2397f8, Perennial d9c8c1d97): merged `origin/lean`
-> (the real-`fmt` pin bump and after). Statement unchanged: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`. The
-> proved theorem is the plain `gryff_remote_robust : gryff_remote_robust.spec`: Net's `DialHTTP.wp`
-> takes no strings hypotheses since lean's 57d66cdcee (Perennial's `strings.Cut`/`TrimLeft` proofs);
-> `StringsPending`, `stringsPending.spec` and `gryff_remote_robust_of_strings` are gone. `#print
-> axioms`: Lean's three. Non-vacuity open ("Non-vacuity: open"). See "Session 13" below.
-> 2026-11-24 (dsv-gryff-strindex, Perennial fce59af75): the premise `netN.StringsIndexHyp` is gone,
-> discharged in the proof by `stringsIndexHyp_holds` (`StrIndexHolds.lean`).**
+> **STATE (2026-11-25, dsv-fix2):** `gryff_remote_robust.spec` is
+> `… SortSliceHyp, MathPowHyp, RandSeedHyp → ∀ σ g, DistDeploy … → Robust [] (system σ) g (2 ^ 30) (2 ^ 63)`:
+> no net/rpc or net/http premise (`RpcHttpHyp`, `RpcBootHyp`, the `net.rpc`/`net.http` `InitHyp`s
+> gone, section "dsv-fix2"). `#print axioms`: Lean's three and `Net/`'s interim axioms
+> `net.rpc.wp_init_first`, `net.rpc.wp_initialize'`, `net.http.wp_init_first`,
+> `net.http.wp_initialize'`, `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`.
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
@@ -1096,3 +1094,33 @@ drops `math.rand` and the generated initializers call it (`ExternalInit.math_ran
 stays (`Seed` is names only at fce59af75); its precondition `isPkgInit math.rand` is now Perennial's
 fact, a stronger precondition and so a weaker premise. `NonVacuityLinked.lean` drops its
 `mrand_initHyp_holds` walk. See `notes/math-rand-isinit.md`.
+
+## dsv-fix2 (2026-11-25): net/rpc and net/http from `Net/`
+
+The kit's net/rpc and net/http are `Net/`'s: their package facts (`rpcInit`, `httpEnv`,
+`Net/Proof/net/{rpc,http}/PkgInit.lean`) and initializers (`Net/`'s interim axioms
+`wp_initialize'`, and for a machine's first run `wp_init_first`), by `etc/gen-init.py`'s
+`NET_AXIOM_INITS` for a kit that does not list them in `HYP_INITS` (`etc/dsv/gryff.py`: none). So:
+- **The boot** (`Boot/Defs.lean`'s `wp_http_own`/`wp_rpc_own`, called by `etc/dsv/_gryff_boot.py`'s
+  boots): `serverlib`'s initializer runs net/http's first, then net/rpc's (net/rpc's import of
+  net/http finds it initialized), so a server machine's `serverBoot` (`Rpc/RpcHttp.lean`:
+  `muxOwn DefaultServeMux []`, `httpEnv`, the codec state, `DefaultServer`'s owned empty registry,
+  `cliEnv`, `connected`) is `Net/`'s two `wp_init_first` axioms. net/http's needs
+  `threadBound GF ≤ 2 ^ 30`, hence the statement's thread bound `2 ^ 30` (was `2 ^ 31`; approved by
+  Upamanyu on #8, 2026-11-25T02:38:11Z).
+- **The servers**: the replica registers on `DefaultServer` with `Register.spec_fresh`, serves with
+  `HandleHTTP.spec` and net/http's `Serve.spec_rpc` (on the main thread, whose `threadTok` the
+  bridge now passes: dsv-epaxos's `Bridge.lean`, `robust_of_distProtoLisRBTT`; `wp_bootRT`); the
+  master with `NewServer.spec_owned`, `Server.Register.spec_fresh`, `Server.HandleHTTP.spec`,
+  `Serve.spec_rpc`. `Rpc/RpcHttpHyps.lean` is `Rpc/RpcHttp.lean`: `RpcHttpAddr` (instantiated by
+  `netRpcHttpAddr`, with the new law `rpcLisP_net`) and the boot's resources.
+- **Not for the other kits** (stop, reported to the coordinator): in craq's, epaxos's and
+  swiftpaxos's commands net/rpc's initializer runs before anything initializes net/http, so
+  net/http's first run happens inside net/rpc's; `Net/`'s `net.rpc.wp_init_first` then gives no
+  `muxOwn DefaultServeMux []` (it requires nothing of net/http but gives only net/rpc's resources),
+  and `net.http.wp_init_first` cannot be applied inside it. They are on `Net/`'s package facts and
+  `wp_initialize'` axioms too (their `net.rpc`/`net.http` `InitHyp`s gone: `Dsverify/Proof/net/{rpc,http}/Init.lean`
+  deleted, since the TCB report loads every kit in one environment and the two facts' declarations
+  clash) and keep their other net/rpc premises (`RpcHttpHyp`, `RpcFirstInit`, `RpcBoot`,
+  `RpcHttpServe`) until net/rpc's first run is proved (dsv-fix2b: `net.rpc.wp_init_first` from net/rpc's
+  translated initializer, covering both orders).

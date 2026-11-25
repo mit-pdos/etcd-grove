@@ -6119,9 +6119,15 @@ def dsv_kit_raw(k, base):
                 inv[q]['imports'] = []
             elif hyp_mode(q) == 'known':
                 inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
-        PERENNIAL_HERE.difference_update(hyp)
+        # (dsv-fix2, 2026-11-25) net/rpc's and net/http's models, when not a hypothesis of the
+        # kit: external, their `wp_initialize'` `Net/`'s interim axioms (`NET_AXIOM_INITS`), as in
+        # `Net/`'s programs
+        netax = [q for q in NET_AXIOM_INITS if q not in hyp and q in inv]
+        for q in netax:
+            inv[q] = dict(inv[q], perennial=True)
+        PERENNIAL_HERE.difference_update(hyp + netax)
         gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen
-        gen_pkgs = [p for p in dict.fromkeys(gen_pkgs) if p not in hyp]
+        gen_pkgs = [p for p in dict.fromkeys(gen_pkgs) if p not in hyp and p not in netax]
         need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
         inst.update(dsv_inst)
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
@@ -6130,6 +6136,10 @@ def dsv_kit_raw(k, base):
         for p, path in programs.items():
             path, txt = gen_table(p, path)
             raw.append((f'{DSV_ROOT}/{path}', txt))
+        # the axiom packages' `wp_initialize'`: `Net/`'s hand-written `Init.lean`
+        for q in netax:
+            raw = [(path, txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                                      f'public import Net.Proof.{q}.Init\n')) for path, txt in raw]
     finally:
         inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, here = saved
         EXT_RECORD, EXT_LOCAL_MOD = saved_ext

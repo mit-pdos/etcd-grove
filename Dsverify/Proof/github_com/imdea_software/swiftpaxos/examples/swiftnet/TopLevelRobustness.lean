@@ -127,7 +127,7 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hri hhi hgi hsi hui hsw hmr hns hor rh hfi σ g
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hgi hsi hui hsw hmr hns hor rh hfi σ g
   refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 31)
     (2 ^ 63) swLas_pairwise swLas_disj ?_
   intro G π hrb
@@ -197,8 +197,6 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC netDistGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : net.rpc.InitHyp netDistGF := hri G' hG.goose_localGS
-    letI : net.http.InitHyp netDistGF := hhi G' hG.goose_localGS
     letI : encoding.gob.InitHyp netDistGF := hgi G' hG.goose_localGS
     letI : os.signal.InitHyp netDistGF := hsi G' hG.goose_localGS
     letI : github_com.google.uuid.InitHyp netDistGF := hui G' hG.goose_localGS

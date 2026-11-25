@@ -10,8 +10,8 @@ module
 public import Dsverify.Proof.gryff.src.serverlib.Base
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.log.Link
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
 public import Perennial.Proof.time.Link
 public import Dsverify.Proof.gryff.src.masterproto.Init
 public import Proof.net.Init
@@ -39,8 +39,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
-variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.gryff.src.serverlib.Assumptions]
 
 namespace gryff.src.serverlib
