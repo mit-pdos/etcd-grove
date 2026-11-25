@@ -451,3 +451,9 @@ real WAL) is the natural report if the lead wants one.
   `wal-fsext.txt` baseline, no `sorry`. `etc/tcb-report.py --check` itself needs a full build of the
   worktree (965+ stale modules of other parts), not run. Left: the WalTester consumers of `CloneStLaw`,
   `Unsaved`/`DiscardUnsaved` (new functions, no spec yet), E5.
+- 2026-11-25 (session 5, end): WalTester over `CloneStLaw`/`ZeroStLaw` (its Link regenerated, `Adequacy`);
+  its `TopLevelRobustness` builds. **Hard stop at P4**: `DiscardUnsaved`'s post (no WAL at `dir`) is
+  unreachable in the trusted abstract disk (no step removes a WAL, a crash never drops a named one); two
+  steps proposed (`"WalUnnamed"` at the rename, `"WalDiscard"` at the parent's fsync), with the minimal
+  program and the real code: `notes/wal-p6-handoff.md`, "The hard stop: `DiscardUnsaved`". `Unsaved`
+  needs no semantics change (its spec proposed there).
