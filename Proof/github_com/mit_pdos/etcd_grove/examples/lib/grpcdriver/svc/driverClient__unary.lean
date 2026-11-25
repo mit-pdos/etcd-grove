@@ -52,29 +52,17 @@ theorem driverClient.unary.wp_proof
     rcases List.mem_append.1 hv with h | h
     · exact Or.inl (Hsms v h)
     · exact Hvs v h
-  simp only [pbStringValueT, pbStringValue, stringValueSendB]
-  icases Hsend with ⟨%x, Hx, %Hx⟩
-  ihave Hsend : (pbStringValueT (GF := GF)).send inp m $$ [Hx]
-  · simp only [pbStringValueT, pbStringValue, stringValueSendB]
-    iexists x; iframe; ipureintro; exact Hx
-  have hw : (pbStringValueT (GF := GF)).wireLen m < grpcMsgMax := by
-    simp only [pbStringValueT, pbStringValue, stringValueWireLen, grpcMsgMax, stringValueReqMax] at Hx ⊢
-    omega
+  icases pbStringValueT_send_wire inp m $$ Hsend with ⟨Hsend, %hw⟩
   ihave Hown : (pbStringValueRT (GF := GF)).own «$r0_ptr» $$ [«$r0»]
   · simp only [pbStringValueRT, pbStringValueR]
     iexists _; iexact «$r0»
   have hI := plain_Invoke wp_Invoke conn addrs method pbStringValueT pbStringValueRT
     pbStringValueT_reqReg pbStringValueRT_repReg Spec m Φr Ψe ctx cd om inp «$r0_ptr» copts ([sm] ++ vs)
-  rw [show (pbStringValueT (GF := GF)).ty = Msg.ty from rfl,
-    show (pbStringValueRT (GF := GF)).ty = Msg.ty from rfl] at hI
+    Msg.ty Msg.ty rfl rfl
   wp_apply hI $$ [Hspec Hsend Hown] as %err ⟨-, Hout⟩
   · iframe #
     iframe
-    isplitr
-    · iexact Hrpc
-    isplitr
-    · ipureintro; exact hw
-    ipureintro; exact hvs
+    ipureintro; exact ⟨hw, hvs⟩
   cases err with
   | nil =>
     try wp_auto

@@ -159,6 +159,17 @@ theorem pbStringValueT_wireLen_ok :
     ∃ m, (pbStringValueT (GF := GF)).wireLen m < grpcMsgMax :=
   ⟨[], by simp [pbStringValueT, pbStringValue, stringValueWireLen, grpcMsgMax]⟩
 
+/-- A request a sender holds fits gRPC's message bound. -/
+theorem pbStringValueT_send_wire (l : Loc) (m : GoString) :
+    (pbStringValueT (GF := GF)).send l m ⊢
+      (pbStringValueT (GF := GF)).send l m ∗ ⌜(pbStringValueT (GF := GF)).wireLen m < grpcMsgMax⌝ := by
+  simp only [pbStringValueT, pbStringValue, stringValueSendB, stringValueWireLen, grpcMsgMax,
+    stringValueReqMax]
+  iintro ⟨%v, Hv, %Hv⟩
+  isplitl [Hv]
+  · iexists v; iframe; ipureintro; exact Hv
+  ipureintro; omega
+
 /-- **`pbStringValueRT`'s reply model is satisfiable.** -/
 theorem pbStringValueRT_repSat : (pbStringValueRT (GF := GF)).RepSat := by
   apply ProtoMsgT.repSat_of_recvOwn_true _ (fun _ _ => rfl)

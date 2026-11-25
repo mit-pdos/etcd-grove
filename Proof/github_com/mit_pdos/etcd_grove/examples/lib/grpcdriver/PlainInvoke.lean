@@ -50,7 +50,8 @@ theorem plain_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := 
     (hreq : grpcReqModelOf GF Req.ty = some Req) (hrep : grpcRepModelOf GF Rep.ty = some Rep)
     (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M) (Φ : Rep.M → IProp GF)
     (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (om : GrpcMd) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) :
+    (om : GrpcMd) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface)
+    (tq tp : go.GoType) (htq : Req.ty = tq) (htp : Rep.ty = tp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
       grpcConn conn addrs [] [] anyRes ∗ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
       ▷ (∀ md, grpcAttemptMd conn om md -∗ Spec md m Φ Ψe) ∗
@@ -59,10 +60,11 @@ theorem plain_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := 
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
       (Val #(GoInterface.ok ctx))) (Val #method))
-      (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)))
-      (Val #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface))) (Val #opts))
+      (Val #(interface.mkOk (go.GoType.PointerType tq) #inp : GoInterface)))
+      (Val #(interface.mkOk (go.GoType.PointerType tp) #out : GoInterface))) (Val #opts))
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
         invokeOut method addrs Rep out Φ Ψe err }} := by
+  subst htq htp
   iintro %Φk ⟨#Hg, #Hc, #Hrpc, #Hom, Hspec, #Hctx, Hsend, %Hw, Hown, #Hopts, %Hvs⟩ HΦk
   iapply wp_true_sep
   iapply (wp_Invoke conn addrs [] [] anyRes (GoInterface.ok ctx) method
