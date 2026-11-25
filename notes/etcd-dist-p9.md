@@ -209,34 +209,66 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
   (4) `Call.spec`'s post `(GoodKV σ → y = outAt i σ)` and `kvRevFits σ.rev` must survive: the drafts' posts
   give the response messages at `σ`, as `kv.Put.spec` etc. do, so txnlin's `call*` proofs carry over.
 
+## State (2026-11-25, sixth session): `lin` reviewed; `Orch` proved and linked; `Call` across machines specified
+
+- **Review of the `remote.lin` change** (an independent `spec-reviewer`, given the old/new `Defs`, `Pend`, the Go,
+  the counter, gryff's kit and `NodeUpd`): **sound, no must-fix**; stronger for the far side only for writes
+  (for a read `□ lin ⊣⊢ □ linF`), every producer proves it, no `TopLevel*` text mentions `lin`. Fixed: the
+  elimination law **`lin_acc`** (`remote/Defs.lean`: the state with the abort and the commit, telescopes
+  simplified; `lin_linF` uses it), docstrings (`linF` "one-shot form", the inner mask `∅`, "a write's `lin`,
+  committed at most once", `Pend`'s abort, the five dsverify kits' `opAU` notes naming `linF`). Left (should-fix,
+  recorded in the ledger entry): an introduction law in the same plain form (so `pend_fire`/`pend_choice`/
+  `NodeUpd` stop unfolding telescopes); `lin_mono` (counter `Shared`) and the two `slotUpd_lin` copies (swiftnet
+  `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.
+- **Step 4, `Orch`**: `Spec/.../dist/kvremote/Orch.lean` (`kvOrchPre ns ops`: `∃ γk γ`, the bounds `receiptBound
+  ≤ 2^63`, `|ns| < 2^31`, `0 ≤ ops`, `|ns|·ops < 2^60`; `remoteAddr (kvR γk)` per address, `mapCtx (I := VIn)`,
+  `pendCtx (kvR γk) linkvtxnS γ`, `pendLib … M.init`, `budUnits a (ops·readTries)` per address; post `r ≠
+  "Illegal"`). **It is literally N7-kv's `Orch.specWith kvOrchPre`** (same binders `nodes ns ops tmo`, same pre
+  `isPkgInit kvremote ∗ nodes ↦*□ ns ∗ OP ns ops`, same post); `Run.spec`'s `tmo ≤ 0 → r = "Ok"` is dropped to
+  match. Proof `Proof/.../kvremote/Orch.lean` (masks `pendN_kvEop`/`lintestN_kvEop`, `kvPendDec`, `kvR_hinj`,
+  `isModel_of_step`, `Gen`'s `linkvInOk` to `∃ i : VIn, x = iv i`). Linked: `EtcdGrove.kvremote.wp_Orch`
+  (`kvremote/Link.lean`, section `linkedNet` with `[NaInvG GF]` as remote's `Link`; txnlin's `Model`/`Gen` chains
+  re-linked from txnlin's proofs in `namespace txnlinL`, not by importing txnlin's `Link`, which needs
+  `idIssueExt`).
+- **N2's drafts** (`dist/ClientViewDist.lean`): checked out from `70588fe058` (the lead's
+  `etcd-safe-n2/2026-11-25`), **only that file, unchanged** (it lean-checks clean on this base). It brings in
+  definitions only (no axiom, no proof, no `sorry`): `DistView`, `memberViewOk`, `etcdAddrAtV`, `membersAtV`,
+  `kvClientV`, `leaseClientV` and the `.spec` abbrevs `KV_{Put,Get,Delete,Compact}_dist`, `Txn_Commit_dist`,
+  `Lease_*_dist`, `Client_Lease*_dist`; imports `S2Interim` and client `Inv*` modules already on the base.
+- **`Call` across machines**: `Spec/.../dist/kvremote/CallDist.lean`, `EtcdGrove.etcd_txnlin.Call_dist.spec svc`:
+  `Call.spec` with `isNewClient ∗ clientWriteOnce ∗ [∗list] kvRegsAt` and the per-member `[∧list] callUpd`
+  replaced by `kvClientV svc cl api eps V Γ` and one `callUpd Γ.kv i Q`, `Γ.auth = false`; same post. Not proved.
+- **Gap (2), the `KV` field pointer: closed.** `isNewClient cl eps V` already contains `∃ api, clientF cl "KV" ↦□
+  … ∗ kvObjAt api eps`; `kvremote/ClientV.lean`'s `kvClientV_intro : isNewClient ∗ clientNoProxy ∗ membersAtV
+  svc eps Γ ⊢ ∃ api, kvClientV svc cl api eps V Γ`. So the Node needs from `NewClients` only `isNewClient` and
+  `clientNoProxy` (both in its post today) and from the start `membersAtV svc eps Γ` (gap (3), still open: the
+  start's share; the Node's precondition takes it).
+- **Build evidence** (fk-lean2, `/shared/tmp/p9-build.sh`): at `ed2630cde4`, `/shared/tmp/p9-targets-lin3.txt`
+  (every `remote` leaf, the seven dsverify `TopLevelRobustness`, three `NonVacuityLinked`, the counter,
+  `kvremote.Link` with `wp_Orch`, `NodeUpd`, `kvremote.Orch`): built, 8227 jobs, exit 0. `ClientViewDist`,
+  `CallDist` spec, `ClientV` (and `kvremote.Link` again) at `fbdc33c19a`: built, exit 0.
+  `etc/tier-check.py --check`: ok.
+
 ## Handoff
 
-**First (coordinator, #50 16:48Z): P9 is on M1's critical path and must be free of crash-line dependencies (T4,
-T7, P5, r4).** This branch's base `5a1c41d945` (`etcd-safe-main-r3`) carries crash merges (`etcd-safe-crash/
-2026-11-24`, P7 `b52d021983`, P8 `6c0d8129ab`, the crash skeleton `0765ff0b09`). P9's own commits
-(`5a1c41d945..HEAD`) touch only `remote`, the counter, the dsverify kits, `dist/enc`, `dist/kvremote`, notes and the
-ledger: replay them (cherry-pick, in order) onto the no-crash line (`lean` + lit, transport, putgetK, bootax, N2,
-N5) as a new branch, and rebuild `/shared/tmp/p9-targets-lin2.txt` there. M1's start and theorem (step 6,
-`dist/kvremote/TopLevelRobustness.lean`) are ours too; N7-kv (`client.MainDeployment`'s kv arms) is another
-agent's (`etcd-safe-n7kv`).
+**Base**: still `5a1c41d945` (crash merges in it). P9's commits stay crash-free; the replay onto the no-crash base
+waits on the lead's answer (which commit).
 
-**Steps 4-6 status: not started.** Step 4 (`Orch`, `Run.spec` at `kvR γk`) needs nothing new (unchanged by the
-`lin` change). Step 5 (the start: `pendCtx` at `pInit`, `mapCtx_alloc`, `remoteAddr` per client machine, and the
-members' facts at the view `Γ`) and step 6 (the theorem) wait on the Node (steps 1-2 below), which waits on `Call`
-across machines (the lead's N2 drafts).
-
-Done: §11.3 steps 1-2; `remote.lin` abortable (above, needs the coordinator's review); the Node's update
-conversion (`NodeUpd.lean`). Next, in order, each spec first:
-1. **`Call` across machines** (`Spec/.../dist/kvremote/CallDist.lean`, `txnlin_Call_dist.spec svc`, `svc` the
-   lead's table parameter as in the drafts): once the lead's `ClientViewDist.lean` is on a branch we can import
-   (it is unbuilt and not ours: do not edit it), state it as above; its proof re-links txnlin's `call*`
-   proofs over the drafts (taken as callee hypotheses). Until then the Node's WP can take it as a hypothesis.
-2. **`Node`'s WP** (`Spec/.../dist/kvremote/Node.lean`, never returns): `NewClients` (error: return), then
-   `ServeClient.spec` at `(kvR γk).svc` with `codecOk_wireOk`/`opMaybe_svcOp`, `tok sys := ∃ cl, ⌜sys =
-   interface.mk (ptr Client) #cl⌝ ∗ levelTok 0` plus the persistent client facts in the context; the op: `wp_auto_lc
-   1`, allocate `token γt`, `slotUpd_callUpd`, `CallDist`, then `nodeQ_out` / `nodeRQ_out` (+ the credit).
-3. Step 4 (`Orch`: `Run.spec` at `kvR γk`, unchanged by the `lin` change), then steps 5-6.
-Build evidence (fifth session): the 14 leaves of `/shared/tmp/p9-targets-lin2.txt` (every `remote` leaf, the dsverify
-TopLevelRobustness and NonVacuityLinked, the counter, `kvremote.Link`, `NodeUpd`) built at `1683bfc437`, exit 0.
-Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS` (pushes HEAD to fk-lean2);
-the `remote` leaves: `/shared/tmp/p9-targets-lin.txt`.
+**Next, in order:**
+1. **Prove `Call_dist.spec`.** txnlin's `call*` proofs cannot be re-linked as they are: they take
+   `client.client_{Put,Get,Delete,Txn,List}_st.law` (`ClientCallLaws.lean`), whose statements are over `ms`,
+   `kvRegsAt`, `clientWriteOnce` and one update per member, not abstract. Plan: (a) a defs module
+   `kvremote/ClientCallDistLaws.lean` with `client_{Put,Get,Delete,List,Txn}_dist.law svc`, each the `_st` law
+   with `kvClientV` and one AU at `Γ.kv` (posts as the `_st` laws, error arm without `kvErr`: the drafts claim
+   nothing of a remote error; check txnlin's `call*` only need `err ≠ nil` there); (b) their proofs over the
+   drafts (hypotheses `KV_*_dist.spec svc`, `Txn_Commit_dist.spec svc`): `cl.Put` is `(*Client).Put` through the
+   embedded `KV` (`Client.TypeAssumptions.ptr_Put_unfold.method_unfold`, as `client_Put_rep`,
+   `ClientPutGet.lean:346`), then the `*kv` call via `clientF cl "KV" ↦□ api`; the post's revision facts from
+   the drafts' `m.hdr.revision`/`kvRevFits`; `List` is `Get` with `WithRange`; `Txn` is `kv.Txn`/`If`/`Then`/
+   `Else` (proved) then `Txn_Commit_dist`; (c) copies of txnlin's `callPut`/`callGet`/`callDel`/`callList`/
+   `callTxn`/`call`/`Call` proofs (862 lines) over the `_dist` laws, in `kvremote/` (or, better, generalize
+   txnlin's proofs over an abstract "client facts" predicate: a spec change to txnlin, ledger first).
+2. **The Node** (`ServeClient.spec`): as the fifth session's handoff, with `kvClientV_intro` after `NewClients`
+   and `membersAtV svc eps Γ` in its precondition (N7-kv's `Node.specWith NP`: `NP c addr epsL` would carry it).
+3. Steps 5-6 (the start, the theorem).
+Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
