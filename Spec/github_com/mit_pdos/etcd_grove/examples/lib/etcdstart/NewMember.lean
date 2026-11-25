@@ -64,7 +64,7 @@ abbrev NewMember.spec : Prop :=
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      bootPremise N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP

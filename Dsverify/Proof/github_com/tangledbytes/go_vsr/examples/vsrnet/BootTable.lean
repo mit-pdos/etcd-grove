@@ -68,6 +68,7 @@ def ownedPkgs : List GoString :=
 structure KitG (G : GoString → IProp GF) : Prop where
   e_models_lab_jsoncodec : G pkg_id.models_lab.jsoncodec = isPkgInit (PROP := IProp GF) pkg_id.models_lab.jsoncodec
   e_sync_atomic : G pkg_id.sync.atomic = isPkgInit (PROP := IProp GF) pkg_id.sync.atomic
+  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
   e_internal_sync : G pkg_id.internal.sync = isPkgInit (PROP := IProp GF) pkg_id.internal.sync
   e_internal_race : G pkg_id.internal.race = isPkgInit (PROP := IProp GF) pkg_id.internal.race
   e_internal_synctest : G pkg_id.internal.synctest = isPkgInit (PROP := IProp GF) pkg_id.internal.synctest
@@ -78,7 +79,6 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
   e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
   e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
-  e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
   e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
   e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
   e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
@@ -101,6 +101,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_github_com_tangledbytes_go_vsr_pkg_events : G pkg_id.github_com.tangledbytes.go_vsr.pkg.events = isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events
   e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
   e_log_slog : G pkg_id.log.slog = isPkgInit (PROP := IProp GF) pkg_id.log.slog
+  e_math_rand : G pkg_id.math.rand = isPkgInit (PROP := IProp GF) pkg_id.math.rand
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
   e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
@@ -129,9 +130,13 @@ theorem wf_sync_atomic {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sync.atomic G :=
   And.intro h.e_sync_atomic True.intro
 
+theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.gomodel G :=
+  And.intro h.e_internal_gomodel True.intro
+
 theorem wf_internal_sync {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.sync G :=
-  And.intro h.e_internal_sync True.intro
+  And.intro h.e_internal_sync ⟨wf_sync_atomic h, wf_internal_gomodel h, True.intro⟩
 
 theorem wf_internal_race {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.race G :=
@@ -143,7 +148,7 @@ theorem wf_internal_synctest {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_sync {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sync G :=
-  And.intro h.e_sync ⟨wf_sync_atomic h, wf_internal_sync h, wf_internal_race h, wf_internal_synctest h, True.intro⟩
+  And.intro h.e_sync ⟨wf_sync_atomic h, wf_internal_sync h, wf_internal_gomodel h, wf_internal_race h, wf_internal_synctest h, True.intro⟩
 
 theorem wf_errors {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.errors G :=
@@ -168,10 +173,6 @@ theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.strconv G :=
   And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
-
-theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.gomodel G :=
-  And.intro h.e_internal_gomodel True.intro
 
 theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.bytealg G :=
@@ -203,7 +204,7 @@ theorem wf_fmt {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_time {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.time G :=
-  And.intro h.e_time ⟨wf_errors h, True.intro⟩
+  And.intro h.e_time ⟨wf_errors h, wf_internal_gomodel h, wf_sync_atomic h, True.intro⟩
 
 theorem wf_context {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.context G :=
@@ -260,6 +261,10 @@ theorem wf_strings {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_log_slog {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.log.slog G :=
   And.intro h.e_log_slog ⟨wf_context h, wf_errors h, wf_fmt h, wf_strconv h, wf_strings h, True.intro⟩
+
+theorem wf_math_rand {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.math.rand G :=
+  And.intro h.e_math_rand ⟨wf_sync h, wf_sync_atomic h, True.intro⟩
 
 theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
@@ -335,7 +340,7 @@ theorem wf_github_com_tangledbytes_go_vsr_pkg_replica {G : GoString → IProp GF
 
 theorem wf_github_com_tangledbytes_go_vsr_examples_vsrnet {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet G :=
-  And.intro h.e_github_com_tangledbytes_go_vsr_examples_vsrnet ⟨wf_models_lab_jsoncodec h, wf_encoding_json h, wf_github_com_tangledbytes_go_vsr_pkg_events h, wf_github_com_tangledbytes_go_vsr_pkg_log h, wf_io h, wf_log_slog h, wf_net h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_goose_lang_primitive h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_github_com_tangledbytes_go_vsr_examples_vsrkv h, wf_github_com_tangledbytes_go_vsr_examples_vsrwire h, wf_github_com_tangledbytes_go_vsr_pkg_client h, wf_github_com_tangledbytes_go_vsr_pkg_network h, wf_github_com_tangledbytes_go_vsr_pkg_replica h, wf_github_com_tangledbytes_go_vsr_pkg_time h, True.intro⟩
+  And.intro h.e_github_com_tangledbytes_go_vsr_examples_vsrnet ⟨wf_models_lab_jsoncodec h, wf_encoding_json h, wf_github_com_tangledbytes_go_vsr_pkg_events h, wf_github_com_tangledbytes_go_vsr_pkg_log h, wf_io h, wf_log_slog h, wf_math_rand h, wf_net h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_goose_lang_primitive h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_github_com_tangledbytes_go_vsr_examples_vsrkv h, wf_github_com_tangledbytes_go_vsr_examples_vsrwire h, wf_github_com_tangledbytes_go_vsr_pkg_client h, wf_github_com_tangledbytes_go_vsr_pkg_network h, wf_github_com_tangledbytes_go_vsr_pkg_replica h, wf_github_com_tangledbytes_go_vsr_pkg_time h, True.intro⟩
 
 theorem wfO_models_lab_jsoncodec {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.models_lab.jsoncodec (gOff S G) :=
@@ -347,10 +352,15 @@ theorem wfO_sync_atomic {G : GoString → IProp GF} (h : KitG G) (S : List GoStr
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sync.atomic ∉ ownedPkgs) (hS _ hm))).trans
     h.e_sync_atomic) True.intro
 
+theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_gomodel) True.intro
+
 theorem wfO_internal_sync {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.sync (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.sync ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_sync) True.intro
+    h.e_internal_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_internal_race {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.race (gOff S G) :=
@@ -365,7 +375,7 @@ theorem wfO_internal_synctest {G : GoString → IProp GF} (h : KitG G) (S : List
 theorem wfO_sync {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sync (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sync ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_sync h S hS, wfO_internal_race h S hS, wfO_internal_synctest h S hS, True.intro⟩
+    h.e_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_sync h S hS, wfO_internal_gomodel h S hS, wfO_internal_race h S hS, wfO_internal_synctest h S hS, True.intro⟩
 
 theorem wfO_errors {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.errors (gOff S G) :=
@@ -391,11 +401,6 @@ theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List 
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.strconv (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
     h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
-
-theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.gomodel (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_gomodel) True.intro
 
 theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
@@ -435,7 +440,7 @@ theorem wfO_fmt {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
 theorem wfO_time {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.time (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.time ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_time) ⟨wfO_errors h S hS, True.intro⟩
+    h.e_time) ⟨wfO_errors h S hS, wfO_internal_gomodel h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_context {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.context (gOff S G) :=
@@ -496,6 +501,11 @@ theorem wfO_log_slog {G : GoString → IProp GF} (h : KitG G) (S : List GoString
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.log.slog (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.log.slog ∉ ownedPkgs) (hS _ hm))).trans
     h.e_log_slog) ⟨wfO_context h S hS, wfO_errors h S hS, wfO_fmt h S hS, wfO_strconv h S hS, wfO_strings h S hS, True.intro⟩
+
+theorem wfO_math_rand {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.rand (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.rand ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_math_rand) ⟨wfO_sync h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.cmp (gOff S G) :=

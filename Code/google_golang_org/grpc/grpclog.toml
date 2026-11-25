@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized. (The Kubernetes API
 # server's etcd3 store names grpc's logger; project k8s-apiserver.) (prove-grpcext, 2026-11-20) `cache`, an
 # empty map literal: its initializer translated (`etc/gen-init.py` proves it).
-translate = ["!*", "cache"]
+# (phase7-inits, 2026-11-25) `Component` with its body (a lookup in `cache`, else a new `componentData`
+# stored there): the loggers of grpc, `credentials`, `health` and `connectivity` call it at init.
+translate = ["!*", "cache", "Component"]
 # (prove-k8s3, 2026-11-21) `grpclog/internal` (types only): the target of `LoggerV2`
 imports = ["!*", "google.golang.org/grpc/grpclog/internal"]
 

@@ -38,12 +38,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.google_golang_org.grpc.codes.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.InitHyp GF]
-variable [_root_.Perennial.encoding.gob.InitHyp GF]
-variable [_root_.Perennial.io.ioutil.InitHyp GF]
 variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
-variable [_root_.Perennial.gopkg_in.yaml_v2.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.examples.quepaxanet.cmd.client5.Assumptions]
 
 namespace raxos.examples.quepaxanet.cmd.client5

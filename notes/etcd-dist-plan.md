@@ -784,6 +784,10 @@ sequenced on #28).
   invariant and its address set to `etcdSvc γE id`; returns each member's `memberSvcShare` and the clients'
   persistent `clientSvcFacts` (every member's `kvRegsPub` and publication invariant). `putget_start` is its
   one-member case (not yet rewritten as its corollary: it lives in the putget skeleton, `putgetGF`).
+  (2026-11-24, `notes/putget-dist-plan.md` §12) Restated over the interim vocabulary (`S2Interim.lean`):
+  per member `envPub_start` and `etcdAddr_set`; `memberSvcShare` holds `etcdAddrAt`, `clientSvcFacts` each
+  member's `etcdAddrAt` and publication invariant; no slot map (inside `etcdAddrAt`'s interpretation), so
+  `cluster_svc_start_list` is gone.
 - (b) `etcdstart/AllocN.lean`: `clusterFacts` (persistent: `memberBoot_of`'s six persistent arguments),
   `memberSlice` (a member's exclusive part, today with `nodeBoot`), `memberBoot_of_slice` (a member's boot step),
   `clusterAllocN` (the cluster's part: `newServerNames_allocL` + `srvClusterBoot_alloc`, returning the facts, the
@@ -887,6 +891,24 @@ etcdstart's `clusterFacts`, `memberSlice` (`nodeBootG`, `idPfxTok`) and `cluster
 start's cluster allocation is `clusterAllocN` (plus the S2 start, `cluster_svc_start`); what is left for D7's no-crash
 part is the `k`-member boot skeleton, which waits for S5 (the peers' transport) and D2 (the server program).
 
+### D9: the interim statement and its skeleton (2026-11-23, coordinator-E; branch `dist-d9-skel/2026-11-23`)
+
+- **Two statements** in `Spec/.../examples/etcd/dist/TopLevelRobustness.lean`, both over the fixed bundle
+  `etcdNetExts` (an unprovable quantification over any extension list dropped: the bridge needs the bundle's
+  `GooseGpreS`, `etcdDistGF`): `etcd_robust.spec` (`etcd_safe`, crashes) and **`etcd_robust_nocrash.spec`**
+  (`etcd_safe_nocrash`, no machine crashing, Q7; the weaker variant takes the longer name). Both take
+  `putget_safe`'s `HEnv`/`HEnvTok` and the bound `2 ^ 28 - 1` (until perennial#690). **Not instantiable**
+  until the k-member boot replaces the opaque `TrustBoundary` and D2 the opaque programs.
+- **D8's machines in the deployment** (`TopLevelDefs.lean`): `Workload.nodeCount` (Go's `NodeCount`),
+  `Deployment.nodes` (each workload's client machines' addresses), `nodeList`, `nodeProg`
+  (`client.NodeMain`), `clientProg w eps nodes` (`client.MainReady`), `machines` (members, orchestrators,
+  client machines); `WellFormed` gains the node counts and covers the node addresses (`addrs`). The Go
+  mirror `examples/etcd/dist`'s `WellFormed` does not check nodes yet (the harness assigns them).
+- **The skeleton** (`Proof/.../examples/etcd/dist/TopLevelRobustness.lean`): `etcd_safe_nocrash_of_boot`
+  (from `EtcdBootNC`, by `robust_of_distBootIL`). Next: the reduction from S2's names (`S2Holds GF`, now
+  generic in `putget/S2Draft.lean`, at `etcdDistGF`), S5's (`S5Holds`, `dist/S5Draft.lean`: `httpAddrAt`,
+  `http_addr_set`; its fields to be agreed with proving session 2) and D7's `etcdClusterStart`, once the
+  interim S2 interface fixes the member's and client's shares.
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 

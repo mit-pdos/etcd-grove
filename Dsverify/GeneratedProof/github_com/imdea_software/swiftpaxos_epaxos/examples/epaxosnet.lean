@@ -14,6 +14,7 @@ public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos_epaxo
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos_epaxos.state
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
+public import Perennial.GeneratedProof.math.rand
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.http
 public import Net.GeneratedProof.net.rpc

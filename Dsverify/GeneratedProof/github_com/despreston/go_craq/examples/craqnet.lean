@@ -13,6 +13,7 @@ public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
+public import Perennial.GeneratedProof.math.rand
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.http
 public import Net.GeneratedProof.net.rpc

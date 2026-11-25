@@ -13,6 +13,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.slices.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link

@@ -1,7 +1,7 @@
 /-
 **An `RWMutex` no one else can reach** (the restore plan, R3's design point): sequential specs of
 `sync.RWMutex`'s `RLock`, `RUnlock`, `Lock` and `Unlock` on memory the caller owns, proved over
-Perennial's translation of `sync` (its `Mutex` over the trusted spin lock, `Proof/sync/MutexOwned`).
+Perennial's translation of `sync` (its `Mutex` over `internal/sync`'s Go model, `Proof/sync/MutexOwned`).
 With no other thread, each call takes the fast path and the memory goes through the values
 `rwZero` (unlocked, as allocated), `rwR1` (one reader) and `rwW` (write-locked), back to
 `rwZero` (so `init_RWMutex` can still turn it into a lock once the memory is shared).

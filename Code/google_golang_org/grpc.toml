@@ -23,17 +23,35 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
   # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
   "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
-  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers"]
+  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
+  # (putget-dist interim, 2026-11-24, notes/putget-dist-plan.md section 12, F1) `WithNoProxy`, which
+  # etcdstart's `NewClients` passes: its closure sets `useProxy` false
+  "WithNoProxy",
+  # (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4) its `init`s with their bodies (until then
+  # `initFuncsOk`): `dialoptions.go`'s, `rpc_util.go`'s and `server.go`'s, which store function values
+  # in `internal`'s hook variables; and the variables their closures append to (no initializers)
+  "init.0", "init.1", "init.2", "globalDialOptions", "globalPerTargetDialOptions",
+  "globalServerOptions",
+  # (phase7-inits, batch 2) `logger` (`grpclog.Component("core")`, `server.go:101`) with its
+  # initializer (until then `opaqueInitsOk`)
+  "logger"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
   "time", "io", "net", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
-  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver"]
+  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver",
+  # (phase7-inits) the hook variables its `init`s set
+  "google.golang.org/grpc/internal",
+  # (phase7-inits, batch 2) `logger`'s `grpclog.Component`
+  "google.golang.org/grpc/grpclog"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
 
-trusted = ["Server.Serve"]
+# (phase7-inits, 2026-11-25) no trusted declaration: `Server.Serve`'s trusted model (per-type stage
+# B, B1b, 2026-11-11: `trusted = ["Server.Serve"]`, `TrustedCode/google_golang_org/grpc.lean`) is
+# deleted; no proof unfolds `Serve` since S2's interface (`Server.Serve.wp_proof` is the axiom), so it
+# is names only again
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
 # Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
@@ -105,7 +123,7 @@ reason = """
 An interface check: `codecV1Bridge{}` converted to `encoding.CodecV2`. No call, no panic, no effect."""
 
 [[skip]]
-names = ["_@server.go:1014"]
+names = ["_@server.go:1016"]
 reason = """
 An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect."""
 

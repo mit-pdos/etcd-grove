@@ -15,6 +15,7 @@ public import Dsverify.GeneratedProof.gryff.src.masterlib
 public import Dsverify.GeneratedProof.gryff.src.masterproto
 public import Dsverify.GeneratedProof.gryff.src.serverlib
 public import Dsverify.GeneratedProof.gryff.src.state
+public import Perennial.GeneratedProof.math.rand
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.rpc
 public import Perennial.GeneratedProof.strings

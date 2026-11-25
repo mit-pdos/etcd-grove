@@ -196,6 +196,13 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# QuePaxa's protobuf axioms' condition (notes/axiom-review/dsv-fix6/quepaxa-pb-2.md, finding 1): no
+# hand-written package-level initializer in the packages declaring its message types
+if python3 etc/pb-init-check.py > "$tmp/pbinit.log" 2>&1; then
+  echo "pb-init: ok"
+else
+  echo "pb-init: FAILED"; head -10 "$tmp/pbinit.log"; fail=1
+fi
 # the library drivers' boot tables (etc/gen-driver-boottable.py, from each server command's PkgTable)
 if python3 etc/gen-driver-boottable.py --check > "$tmp/driverboot.log" 2>&1; then
   echo "$(tail -1 "$tmp/driverboot.log")"

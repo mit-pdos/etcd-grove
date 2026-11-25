@@ -306,7 +306,10 @@ theorem mapM_sendPeer_OD' {l : List w32} {s : RState} {m : Msg} {os : List Out}
 
 theorem shortCircuit_OD {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : ∀ x ∈ o, OD x := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact od_nil
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

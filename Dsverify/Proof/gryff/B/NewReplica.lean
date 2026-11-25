@@ -23,7 +23,6 @@ public import Dsverify.Proof.gryff.B.Rcvr
 public import Dsverify.Proof.gryff.B.Registry
 public import Dsverify.Proof.gryff.Lib.RandHyps
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.gryff.Lib.SortHyps
 
 @[expose] public section
 
@@ -47,7 +46,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : SortSliceHyp GF] [strconvA : strconv.Assumptions]
+variable [strconvA : strconv.Assumptions]
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
 variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions] [randA : lib.RandSeedHyp GF]

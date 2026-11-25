@@ -34,7 +34,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : Perennial.gryff.replica2.SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 
 

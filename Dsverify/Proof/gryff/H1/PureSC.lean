@@ -52,12 +52,12 @@ def scKeys (op : OngoingOp) : List w32 := op.shortReads.mergeSort (fun a b => sl
 def scInit (s : RState) (n : w32) (op : OngoingOp) : RState :=
   { s with ongoingReqs := s.ongoingReqs.put n { op with shortReads := scKeys op } }
 
-theorem shortCircuit_inv (s s' : RState) (n : w32) (value : model.ValTag) (fo : Bool)
-    (outs : List Out) (h : model.shortCircuit s n value fo = some (s', outs)) :
+theorem shortCircuitReads_inv (s s' : RState) (n : w32) (value : model.ValTag) (fo : Bool)
+    (outs : List Out) (h : model.shortCircuitReads s n value fo = some (s', outs)) :
     ∃ op, s.ongoingReqs.get? n = some op ∧
       loopF (scF n value.v fo) (scKeys op) (scInit s n op, []) = (s', outs) ∧
       (fo = false → ∃ x, s'.ongoingReqs.get? n = some x) := by
-  unfold model.shortCircuit at h
+  unfold model.shortCircuitReads at h
   split at h
   · rename_i op hop
     refine ⟨op, hop, ?_⟩
@@ -86,6 +86,34 @@ theorem shortCircuit_inv (s s' : RState) (n : w32) (value : model.ValTag) (fo : 
           dsimp only
           cases h2 : st.1.rops.get? (shiftInts o.requestId o.clientId) <;> rfl
   · cases h
+
+/-- `shortCircuit`: op `n` exists; within the guard (at most `maxShortReads` reads) it is the loop,
+past it nothing changes. -/
+theorem shortCircuit_inv (s s' : RState) (n : w32) (value : model.ValTag) (fo : Bool)
+    (outs : List Out) (h : model.shortCircuit s n value fo = some (s', outs)) :
+    ∃ op, s.ongoingReqs.get? n = some op ∧
+      (op.shortReads.length ≤ model.maxShortReads →
+        loopF (scF n value.v fo) (scKeys op) (scInit s n op, []) = (s', outs) ∧
+        (fo = false → ∃ x, s'.ongoingReqs.get? n = some x)) ∧
+      (model.maxShortReads < op.shortReads.length → s' = s ∧ outs = []) := by
+  unfold model.shortCircuit at h
+  cases hx : s.ongoingReqs.get? n with
+  | none =>
+    have hl : model.shortReadsLen s n = 0 := by simp [model.shortReadsLen, hx]
+    rw [hl, if_pos (Nat.zero_le _)] at h
+    obtain ⟨_, h1, -⟩ := shortCircuitReads_inv s s' n value fo outs h
+    rw [hx] at h1; cases h1
+  | some op =>
+    have hl : model.shortReadsLen s n = op.shortReads.length := by simp [model.shortReadsLen, hx]
+    rw [hl] at h
+    refine ⟨op, rfl, fun hle => ?_, fun hlt => ?_⟩
+    · rw [if_pos hle] at h
+      obtain ⟨op', h1, h2, h3⟩ := shortCircuitReads_inv s s' n value fo outs h
+      rw [hx] at h1; cases h1
+      exact ⟨h2, h3⟩
+    · rw [if_neg (by omega)] at h
+      simp only [Option.some.injEq, Prod.mk.injEq] at h
+      exact ⟨h.1.symm, h.2.symm⟩
 
 /-- The replies are appended. -/
 theorem scF_outs (n : w32) (v : w64) (fo : Bool) (k : w32) (st : RState × List Out) :
@@ -151,15 +179,15 @@ theorem scF_nb (n : w32) (v : w64) (fo : Bool) (k : w32) (st : RState × List Ou
     dsimp only
     cases h2 : st.1.rops.get? (shiftInts o.requestId o.clientId) <;> rfl
 
-/-- `shortCircuit` as the loop (both directions). -/
-theorem shortCircuit_eq (s : RState) (n : w32) (value : model.ValTag) (fo : Bool) :
-    model.shortCircuit s n value fo =
+/-- `shortCircuitReads` as the loop (both directions). -/
+theorem shortCircuitReads_eq (s : RState) (n : w32) (value : model.ValTag) (fo : Bool) :
+    model.shortCircuitReads s n value fo =
       match s.ongoingReqs.get? n with
       | none => none
       | some op =>
         if fo = false ∧ (loopF (scF n value.v fo) (scKeys op) (scInit s n op, [])).1.ongoingReqs.get? n = none
         then none else some (loopF (scF n value.v fo) (scKeys op) (scInit s n op, [])) := by
-  unfold model.shortCircuit
+  unfold model.shortCircuitReads
   cases hop : s.ongoingReqs.get? n with
   | none => rfl
   | some op =>
@@ -215,12 +243,12 @@ theorem loopF_wops (n : w32) (v : w64) (fo : Bool) (W : model.AMap 64 model.Writ
     | done x => rfl
     | yield x => exact loopF_wops n v fo W ks x
 
-/-- `shortCircuit` does not look at `wops`. -/
-theorem shortCircuit_wops (s s2 : RState) (n : w32) (value : model.ValTag) (fo : Bool)
+/-- `shortCircuitReads` does not look at `wops`. -/
+theorem shortCircuitReads_wops (s s2 : RState) (n : w32) (value : model.ValTag) (fo : Bool)
     (o : List Out) (W : model.AMap 64 model.WriteOp)
-    (h : model.shortCircuit s n value fo = some (s2, o)) :
-    model.shortCircuit { s with wops := W } n value fo = some ({ s2 with wops := W }, o) := by
-  rw [shortCircuit_eq] at h ⊢
+    (h : model.shortCircuitReads s n value fo = some (s2, o)) :
+    model.shortCircuitReads { s with wops := W } n value fo = some ({ s2 with wops := W }, o) := by
+  rw [shortCircuitReads_eq] at h ⊢
   simp only at h ⊢
   split at h
   · cases h
@@ -236,6 +264,22 @@ theorem shortCircuit_wops (s s2 : RState) (n : w32) (value : model.ValTag) (fo :
       rw [if_neg (by simpa [updW] using hc)]
       rfl
 
+/-- `shortCircuit` does not look at `wops`. -/
+theorem shortCircuit_wops (s s2 : RState) (n : w32) (value : model.ValTag) (fo : Bool)
+    (o : List Out) (W : model.AMap 64 model.WriteOp)
+    (h : model.shortCircuit s n value fo = some (s2, o)) :
+    model.shortCircuit { s with wops := W } n value fo = some ({ s2 with wops := W }, o) := by
+  unfold model.shortCircuit at h ⊢
+  have hl : model.shortReadsLen { s with wops := W } n = model.shortReadsLen s n := rfl
+  rw [hl]
+  by_cases hc : model.shortReadsLen s n ≤ model.maxShortReads
+  · rw [if_pos hc] at h ⊢
+    exact shortCircuitReads_wops s s2 n value fo o W h
+  · rw [if_neg hc] at h ⊢
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    rfl
+
 theorem loopF_inv {α σ : Type} (f : α → σ → ForInStep σ) (P : σ → Prop)
     (h : ∀ k st st', P st → (f k st = .done st' ∨ f k st = .yield st') → P st') :
     ∀ (ks : List α) (init : σ), P init → P (loopF f ks init)
@@ -250,7 +294,12 @@ theorem loopF_inv {α σ : Type} (f : α → σ → ForInStep σ) (P : σ → Pr
 theorem shortCircuit_frame (s s2 : RState) (n : w32) (value : model.ValTag) (fo : Bool)
     (o : List Out) (h : model.shortCircuit s n value fo = some (s2, o)) :
     s2 = { s with rops := s2.rops, ongoingReqs := s2.ongoingReqs } := by
-  obtain ⟨op, -, hl, -⟩ := shortCircuit_inv s s2 n value fo o h
+  obtain ⟨op, -, hR, hS⟩ := shortCircuit_inv s s2 n value fo o h
+  by_cases hc : op.shortReads.length ≤ model.maxShortReads
+  rotate_left
+  · obtain ⟨rfl, -⟩ := hS (by omega)
+    rfl
+  obtain ⟨hl, -⟩ := hR hc
   have := loopF_inv (scF n value.v fo)
     (fun st => st.1 = { s with rops := st.1.rops, ongoingReqs := st.1.ongoingReqs })
     (fun k st st' hst hf => by

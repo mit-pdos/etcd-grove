@@ -258,19 +258,19 @@ theorem wp_newQueueMetrics :
     EtcdGrove.workqueue.newQueueMetrics.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.newQueueMetrics.wp_proof
 
-theorem wp_newQueue [EtcdGrove.MutexLitSemantics] :
+theorem wp_newQueue :
     EtcdGrove.workqueue.newQueue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.newQueue.wp_proof
 
-theorem wp_newQueueWithConfig [EtcdGrove.MutexLitSemantics] :
+theorem wp_newQueueWithConfig :
     EtcdGrove.workqueue.newQueueWithConfig.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.newQueueWithConfig.wp_proof wp_DefaultQueue wp_newQueueMetrics wp_newQueue
 
-theorem wp_NewTypedWithConfig [EtcdGrove.MutexLitSemantics] :
+theorem wp_NewTypedWithConfig :
     EtcdGrove.workqueue.NewTypedWithConfig.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedWithConfig.wp_proof wp_newQueueWithConfig
 
-theorem wp_NewTyped [EtcdGrove.MutexLitSemantics] :
+theorem wp_NewTyped :
     EtcdGrove.workqueue.NewTyped.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTyped.wp_proof wp_NewTypedWithConfig
 
@@ -398,7 +398,7 @@ theorem clock.realTicker.wp_Stop :
     EtcdGrove.clock.realTicker.Stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.clock.realTicker.Stop.wp_proof
 
-theorem wp_NewTypedDelayingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
+theorem wp_NewTypedDelayingQueueWithConfig :
     EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.wp_proof klog.wp_Background wp_NewTypedWithConfig wp_newDelayingQueue clock.RealClock.wp_Now clock.RealClock.wp_NewTimer clock.RealClock.wp_NewTicker clock.realTimer.wp_C clock.realTimer.wp_Stop clock.realTicker.wp_C clock.realTicker.wp_Stop
 
@@ -418,7 +418,7 @@ theorem wp_NewTypedItemFastSlowRateLimiter :
     EtcdGrove.workqueue.NewTypedItemFastSlowRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedItemFastSlowRateLimiter.wp_proof TypedItemFastSlowRateLimiter.wp_When TypedItemFastSlowRateLimiter.wp_Forget TypedItemFastSlowRateLimiter.wp_NumRequeues
 
-theorem wp_NewTypedRateLimitingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
+theorem wp_NewTypedRateLimitingQueueWithConfig :
     EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.wp_proof wp_NewTypedDelayingQueueWithConfig
 

@@ -162,7 +162,9 @@ theorem Main.wp_proof
     (wp_awaitProgress : awaitProgress.spec (GF := GF) (hG := hG))
     (wp_checkProgress : checkProgress.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
-    (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS N id ctxs boot nw nops Hbf Htb HLv Hrb48 HrbN HwbN Haf
     Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
@@ -172,7 +174,12 @@ theorem Main.wp_proof
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
+  icases Hprem with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
   -- packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -265,8 +272,6 @@ theorem Main.wp_proof
       (etcdstart.urls1 go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873") id cfgOk urlsOk
       (fun _ h => h)
       (fun _ h => h) $$ Hboot
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   -- `StartPeriodicServer("cachekv", peerAddr, clientAddr, period, lg)` (the cache over a
   -- compacting member, 2026-11-02: periodic mode at 10ms, the cluster's retention `0`)
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed

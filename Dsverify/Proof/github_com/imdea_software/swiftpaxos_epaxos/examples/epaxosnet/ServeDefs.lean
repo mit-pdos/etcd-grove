@@ -185,8 +185,8 @@ exchange and the replica addresses' protocols. It returns only if `rpc.Register`
 fails (`http.Serve` returns only on a listener error). -/
 abbrev serveReplica.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat) (sl : GoSlice), k ∈ replicaNodes →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-      (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ muxOwner [] ∗
+      defaultSrvFresh ∗ threadTok ∗
       net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       sl ↦*□ serverAddrs ∗ ⌜W.SS = rpcSS γ⌝ ∗
       RpcHttpAddr.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗

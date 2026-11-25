@@ -77,6 +77,7 @@ theorem cbMarshal_proof : cbMarshal.spec (GF := GF) (hG := hG) := by
     iframe Hrep
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iintro Hrep
     isplit
     · iintro %Hb; iframe Hrep; ipureintro; exact ⟨Hb, rfl⟩

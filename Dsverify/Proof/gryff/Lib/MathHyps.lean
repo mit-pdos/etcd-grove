@@ -9,7 +9,10 @@ Why it is true of Go's `math.Pow` (`math/pow.go`): it is total on `float64` argu
 cases return `NaN`, `±Inf`, `0` or `1`), touches no memory and does not panic; it returns some
 `float64` (here its bits, a `w64`). The spec claims nothing about the value. The spec is the main
 tree's `EtcdGrove.math.Pow.spec` (`Spec/math/Pow.lean`, client-go's), one spec per function; the
-main tree's `axiom math.Pow.wp_proof` is not used (the part `Dsverify/` stays on Lean's axioms).
+main tree's `axiom math.Pow.wp_proof` discharges it since dsv-fix4 (below).
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: the top-level proof builds the instance from the main tree's `EtcdGrove.math.Pow.wp_proof` (already in the main tree's trust base).
 -/
 module
 

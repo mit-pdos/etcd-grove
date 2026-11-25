@@ -32,7 +32,7 @@ theorem clock.realTicker.Stop.wp_proof : clock.realTicker.Stop.spec (GF := GF) (
   unfold clock.realTickerOk
   icases Hok with ⟨%t, %ch, %γ, #Hf, #Ht⟩
   wp_auto
-  wp_apply time.Ticker.Stop.wp_proof $$ [Ht]
+  wp_apply time.Ticker.wp_Stop $$ [Ht]
   · iexists ch, γ; iexact Ht
   iapply HΦ; itrivial
 

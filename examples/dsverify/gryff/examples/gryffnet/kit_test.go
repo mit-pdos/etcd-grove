@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -82,8 +83,8 @@ func loopback(base uint64, n int) []string {
 	return addrs
 }
 
-// deploy starts the server and client machines as processes and returns the client machines'
-// addresses and a check that no machine ended.
+// deploy starts the server and client machines as processes, waits until the client machines
+// listen, and returns their addresses and a check that no machine ended.
 func deploy(t *testing.T) ([]string, func()) {
 	n := int(1 + NReplicas + NC)
 	base := freeBase(t, n)
@@ -124,7 +125,20 @@ func deploy(t *testing.T) ([]string, func()) {
 			exited <- exit{id, err, out.String()}
 		}(id)
 	}
-	return loopback(base+2000, int(NC)), func() {
+	clients := loopback(base+2000, int(NC))
+	for _, a := range clients {
+		for start := time.Now(); ; {
+			if c, err := net.Dial("tcp", a); err == nil {
+				c.Close()
+				break
+			}
+			if time.Since(start) > 30*time.Second {
+				t.Fatalf("client machine %s does not listen", a)
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	return clients, func() {
 		select {
 		case e := <-exited:
 			t.Fatalf("machine %d ended (%v):\n%s", e.id, e.err, e.out)
@@ -140,15 +154,53 @@ func TestDeployment(t *testing.T) {
 	addrs, ended := deploy(t)
 	g := &gens{mu: new(sync.Mutex), n: make([]uint64, NC)}
 	t0 := time.Now()
-	r := remote.Run(Model(), addrs, Codec(), func(c int) any { return g.next(c) }, int(K), attempt(), 0)
+	var known atomic.Int64
+	cdc := Codec()
+	dec := cdc.DecOut
+	cdc.DecOut = func(b []byte) (any, bool) {
+		o, ok := dec(b)
+		if ok && !o.(Out).Unknown {
+			known.Add(1)
+		}
+		return o, ok
+	}
+	r := remote.Run(Model(), addrs, cdc, func(c int) any { return g.next(c) }, int(K), attempt(), 0)
 	if r != porcupine.Ok {
 		t.Fatalf("porcupine: %v", r)
 	}
 	ended()
-	if time.Since(t0) < time.Duration(StartMs)*time.Millisecond {
-		t.Errorf("the orchestrator's calls did not reach the client machines")
+	t.Logf("%d of %d operations answered, in %v", known.Load(), NC*K, time.Since(t0))
+	if known.Load() == 0 {
+		t.Errorf("no operation was answered")
 	}
-	t.Logf("done in %v", time.Since(t0))
+}
+
+// TestControlPhantom (the negative control): client machines whose reads return a value nobody
+// wrote, as a register that invents values would, are caught.
+func TestControlPhantom(t *testing.T) {
+	var addrs []string
+	for c := uint64(0); c < NC; c++ {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, l.Addr().String())
+		l.Close()
+	}
+	phantom := func(sys any, in any) any {
+		if in.(In).Op == OpRead {
+			return Out{V: 987654321}
+		}
+		return Out{}
+	}
+	for c := range addrs {
+		go remote.ServeClient(c, addrs[c], func(int) any { return nil }, phantom, Codec(), attempt())
+	}
+	time.Sleep(200 * time.Millisecond)
+	g := &gens{mu: new(sync.Mutex), n: make([]uint64, NC)}
+	if r := remote.Run(Model(), addrs, Codec(), func(c int) any { return g.next(c) }, int(K), attempt(), 0); r != porcupine.Illegal {
+		t.Fatalf("porcupine: %v, want Illegal", r)
+	}
 }
 
 // TestModel checks the model's verdicts on small histories.

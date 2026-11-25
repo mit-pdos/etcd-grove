@@ -35,8 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.io.ioutil.InitHyp GF]
-variable [_root_.Perennial.gopkg_in.yaml_v2.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.configuration.Assumptions]
 
 namespace raxos.configuration

@@ -116,6 +116,22 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes the hypothesis rows above)
+
+The statement `swiftpaxos_remote_robust` has no net/rpc or net/http premise: `RpcHttpHyp` (`lib/RpcHttpHyps.lean`)
+bundles Net's specs (`net.rpc.DialHTTP.spec`, `HandleHTTP.spec`, `Register.spec_fresh`,
+`net.http.Serve.spec_rpc`) and `Link.lean`'s `netRpcHttpHyp` gives it from Net's proofs; `RpcFirstInit`
+(`lib/RpcBoot.lean`) is proved from Net's `net.rpc.wp_init_first_http` (`rpcFirstInit_of`, given
+`NewServer.wp_owned` and the machine's `threadBound ≤ 2^30`). `master.Run` and the replicas register on
+`DefaultServer`'s owned, empty registry (`Register.spec_fresh`), serve with Net's `HandleHTTP` and run
+`http.Serve` with the main thread's token (the bridge `robust_of_distProtoLisRBTT_sha`, `wp_bootRT`).
+The thread bound is `2^30` (net/http's first initialization's reader-slot pools; Upamanyu approved
+`2^31 → 2^30` on #8, 2026-11-25). `#print axioms`: Net's interim `net.http.wp_init_first`,
+`net.http.wp_initialize'`, `net.rpc.wp_initialize'` and the interim context axioms
+`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`, besides Lean's three
+(`Handle` and `Serve` on an rpc listener proved by S5, lean `676aede0a1`; `Serve` takes net/http's
+server variables `httpSrvEnv`, which `dialEnv` now holds).
+
 ## State (2026-11-23, fifteenth session: review fixes; resume here)
 
 Read with the fourteenth session's state below (accurate where this does not say otherwise).
@@ -1408,3 +1424,19 @@ stay: the command's initializer runs net/rpc's before anything runs net/http's, 
 run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
 "dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
 kit's net/rpc premises discharged from `Net/`'s specs.
+
+## dsv-fix3: initializer premises become axioms (2026-11-25, #49)
+
+The names-only initializers' `InitHyp` premises became per-package trust-boundary axioms
+(`axiom wp_initialize'` in `Dsverify/Proof/<pkg>/Init.lean`, the class's statement exactly; Upamanyu,
+#8 2026-11-25T02:20:53Z; `etc/dsv/README.md`, "`HYP_INITS`: per-package `wp_initialize'` axioms"),
+each reviewed by the `axiom` skill (`notes/axiom-review/dsv-inits/`) and counted in the kit's
+collection. Two reviews refuted theirs in Go, go-redis v8's (`GODEBUG=fips140=bogus` panics in
+`crypto/internal/fips140`'s `init`, through `crypto/tls`) and grpc's (a program registering grpc's
+`binarylog.proto` first panics in grpc's initializer): those two stay `InitHyp` premises (gen-init's
+`DSV_PREMISE_INITS`) until Upamanyu picks a fix. The nine axiomatized packages' test-only
+`InitInstancesLinked.lean` (imported by nothing; their local `localInitFuncsOk`, true of no
+particular semantics, looked false where an `init` panics) are deleted with their `InitHyp` classes.
+
+Here: `os.signal`, `encoding.gob`, `github_com.google.uuid` are axioms; `swiftpaxos_remote_robust`
+loses its three `InitHyp` premises (statement diff: removals only).

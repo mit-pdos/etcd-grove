@@ -59,14 +59,17 @@ section steps
 variable (w : Loc) (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (q : Qp) (T R : IProp GF)
   (i : w64) (nv nid : Int) (k : Nat)
 
-private theorem step_put (wp_put : writer.put.spec (GF := GF) (hG := hG)) (hnv : nv + 3 < 2 ^ 63) :
+private theorem step_put (wp_put : writer.put.spec (GF := GF) (hG := hG)) (hnv : nv + 3 < 2 ^ 63)
+    (hnid : nid ≤ 2 ^ 62) :
     {{ writerCtx w wv γ (etcdStorage B) f ∗ runSt w wv γ B f q T R i nv nid k }}
       (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"put")) (Val #i))
     {{ RET #(); runSt w wv γ B f q T R i (nv + 3) (nid + 1) (k - 1) }} := by
   iintro %Φ ⟨Hctx, Hst⟩ HΦ
   iunfold runSt at Hst
   icases Hst with ⟨%σ, %Hs, %L, %n, %k', %s, %v, Hown, Hle, Hpre, Hvals, %Hb⟩
-  wp_apply (wp_put w wv γ (etcdStorage B) f q σ Hs L i s v Hb.1 (by omega))
+  icases writerLe_ids w wv γ B f L n k' T R $$ Hle with ⟨%HL, Hle⟩
+  wp_apply (wp_put w wv γ (etcdStorage B) f q σ Hs L i s v Hb.1 (by omega)
+      (fun id h => ⟨(HL id h).1, by have := (HL id h).2; omega⟩))
     $$ [$Hctx $Hown $Hpre $Hvals] as ⟨⟨%σ', %Hs', Hown⟩, Hpost, Hvals⟩
   iapply HΦ
   ihave Hpre := hookPre_of_post wv i $$ Hpost
@@ -93,14 +96,17 @@ private theorem step_deleteRange (wp_deleteRange : writer.deleteRange.spec (GF :
   iframe
   ipureintro; omega
 
-private theorem step_txn (wp_txn : writer.txn.spec (GF := GF) (hG := hG)) (hnv : nv + 3 < 2 ^ 63) :
+private theorem step_txn (wp_txn : writer.txn.spec (GF := GF) (hG := hG)) (hnv : nv + 3 < 2 ^ 63)
+    (hnid : nid ≤ 2 ^ 62) :
     {{ writerCtx w wv γ (etcdStorage B) f ∗ runSt w wv γ B f q T R i nv nid k }}
       (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"txn")) (Val #i))
     {{ RET #(); runSt w wv γ B f q T R i (nv + 3) (nid + 1) (k - 1) }} := by
   iintro %Φ ⟨Hctx, Hst⟩ HΦ
   iunfold runSt at Hst
   icases Hst with ⟨%σ, %Hs, %L, %n, %k', %s, %v, Hown, Hle, Hpre, Hvals, %Hb⟩
-  wp_apply (wp_txn w wv γ (etcdStorage B) f q σ Hs L i s v Hb.1 (by omega))
+  icases writerLe_ids w wv γ B f L n k' T R $$ Hle with ⟨%HL, Hle⟩
+  wp_apply (wp_txn w wv γ (etcdStorage B) f q σ Hs L i s v Hb.1 (by omega)
+      (fun id h => ⟨(HL id h).1, by have := (HL id h).2; omega⟩))
     $$ [$Hctx $Hown $Hpre $Hvals] as ⟨⟨%σ', %Hs', Hown⟩, Hpost, %v', Hvals, %Hv'⟩
   iapply HΦ
   icases hookPre_of_or wv i s $$ Hpost with ⟨%s', Hpre⟩
@@ -128,14 +134,15 @@ private theorem step_grant (wp_grant : writer.grant.spec (GF := GF) (hG := hG))
   have : sint.Z (n + W64 1) = sint.Z n + 1 := by word
   omega
 
-private theorem step_revoke (wp_revoke : writer.revoke.spec (GF := GF) (hG := hG)) :
+private theorem step_revoke (wp_revoke : writer.revoke.spec (GF := GF) (hG := hG))
+    (hnid : nid ≤ 2 ^ 62) :
     {{ writerCtx w wv γ (etcdStorage B) f ∗ runSt w wv γ B f q T R i nv nid k }}
       (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"revoke")) (Val #i))
     {{ RET #(); runSt w wv γ B f q T R i (nv + 3) (nid + 1) (k - 1) }} := by
   iintro %Φ ⟨Hctx, Hst⟩ HΦ
   iunfold runSt at Hst
   icases Hst with ⟨%σ, %Hs, %L, %n, %k', %s, %v, Hown, Hle, Hpre, Hvals, %Hb⟩
-  wp_apply (wp_revoke w wv γ B f q σ Hs L n k' T R i s)
+  wp_apply (wp_revoke w wv γ B f q σ Hs L n k' T R i s (by omega))
     $$ [$Hctx $Hown $Hle $Hpre] as ⟨%σ', %Hs', %id, Hown, Hle, Hpost⟩
   iapply HΦ
   icases hookPre_of_or wv i s $$ Hpost with ⟨%s', Hpre⟩
@@ -332,6 +339,7 @@ theorem writer.run.wp_proof
     -- the operation
     have hb3 : sint.Z v + 3 * sint.Z nv + 3 < 2 ^ 63 := by omega
     have hb1 : sint.Z nid + sint.Z nv + 1 < 2 ^ 63 := by omega
+    have hb62 : sint.Z nid + sint.Z nv ≤ 2 ^ 62 := by omega
     have hk1 : 1 ≤ (sint.Z ops - sint.Z nv).toNat := by omega
     obtain ⟨j, hj, rfl⟩ : ∃ j : Nat, j < 20 ∧ x = W64 (j : Int) :=
       ⟨(sint.Z x).toNat, by word, by word⟩
@@ -346,15 +354,15 @@ theorem writer.run.wp_proof
         rfl | rfl | rfl | rfl | rfl
       all_goals (try wp_auto)
       all_goals first
-        | wp_apply (step_put w wv γ B f q T R (nv + W64 1) _ _ _ wp_put (by omega))
+        | wp_apply (step_put w wv γ B f q T R (nv + W64 1) _ _ _ wp_put (by omega) (by omega))
             $$ [$Hctx $Hst] as Hst
         | wp_apply (step_deleteRange w wv γ B f q T R (nv + W64 1) _ _ _ wp_deleteRange)
             $$ [$Hctx $Hst] as Hst
-        | wp_apply (step_txn w wv γ B f q T R (nv + W64 1) _ _ _ wp_txn (by omega))
+        | wp_apply (step_txn w wv γ B f q T R (nv + W64 1) _ _ _ wp_txn (by omega) (by omega))
             $$ [$Hctx $Hst] as Hst
         | wp_apply (step_grant w wv γ B f q T R (nv + W64 1) _ _ _ wp_grant (by omega) hk1)
             $$ [$Hctx $Hst] as Hst
-        | wp_apply (step_revoke w wv γ B f q T R (nv + W64 1) _ _ _ wp_revoke)
+        | wp_apply (step_revoke w wv γ B f q T R (nv + W64 1) _ _ _ wp_revoke (by omega))
             $$ [$Hctx $Hst] as Hst
         | wp_apply (step_checkLeases w wv γ B f q T R (nv + W64 1) _ _ _ wp_checkLeases)
             $$ [$Hctx $Hst] as Hst

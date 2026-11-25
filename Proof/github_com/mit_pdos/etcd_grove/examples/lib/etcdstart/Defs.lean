@@ -16,8 +16,9 @@ configuration with those fields and URLs `U` meeting `Uok` (one member's `urls1`
 cluster's `urls3`: the member's peer and client URLs, the initial cluster's map of the shape the
 caller builds, the initial URLs by name), at the bound `N` and the directory `dir`.
 
-**The premises the members share** (`commonPremises`): the raft wrapper's trust-boundary contracts,
-`Stop` of a started node (until 2026-11-13 also the deployment's `runsNoRequireLeader`).
+(Until 2026-11-24 **the premises the members share**, `commonPremises`: the raft wrapper's trust-boundary
+contracts `rnLoggerZapOk`, `rnTimeoutDetectorOk`; now axioms `newRaftNode`'s proof takes, and the
+definition is gone.)
 
 **A member built and started** (`memberBuilt`: `newServer`'s success, what `Start` takes;
 `memberUp`: `Start`'s, what serving it needs) and **what `NewServer` takes of the ghost state**
@@ -174,11 +175,12 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **The configuration `newServer` passes to `NewServer`**, by its scalar fields (its pointers --
 the logger, the feature gate, the URLs, read through `bootCfgRO` -- are the caller's allocations):
 member `name` of a new cluster with token `token`, data directory `name.etcd`, raft's clock `100`
-ms and `10` ticks. -/
+ms and `10` ticks, and (2026-11-24, the interim bootstrap axiom: `bootstrap.spec`'s premise) fsync on
+(`UnsafeNoFsync` false: `newServer`'s literal leaves it zero). -/
 def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Name' = name ∧ cfg.DataDir' = memberDataDir name ∧
     cfg.InitialClusterToken' = token ∧ cfg.NewCluster' = true ∧
-    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
+    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10 ∧ cfg.UnsafeNoFsync' = false
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`) of the cluster `ps` with token `token`,
 at every server raft names of the cluster (its peers `ps`, static, its bootstrap log `bootLog`; at
@@ -220,13 +222,6 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
   iapply H
   ipureintro
   exact ⟨Hc cfg hc, Hu U hu, h1, h2, h3⟩
-
-/-- **The premises shared by the members** (see the file header). -/
-def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk)
-
-instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
-  unfold commonPremises; infer_instance
 
 /-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`): the server's names of the store's
 state `γs`, the revisions' map `rev`, the store's witness `Nx` and (M2, the storage side, review

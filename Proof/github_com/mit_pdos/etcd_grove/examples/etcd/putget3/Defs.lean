@@ -151,15 +151,6 @@ instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM
     Persistent (bootPremise (GF := GF) N ps bootLog ctxs dir name peerAddr client id) := by
   unfold bootPremise; infer_instance
 
-/-- **The premises shared by the members** (putget's, but `bootstrap`'s contract): the raft
-wrapper's trust-boundary contracts (until 2026-11-13 also the deployment's
-`runsNoRequireLeader`). -/
-def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk)
-
-instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
-  unfold commonPremises; infer_instance
-
 /-- **`Main`'s named premises** (persistent; see the file header), at the bound `N` of each
 member's apply thread's write tokens, the member ids, the peers' contexts and the bootstrap log;
 (2026-10-27, the server port) with `proto.Marshal`'s contract at the bootstrap log's conf changes
@@ -172,9 +163,7 @@ def premises (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (L
     bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       name₂ peerAddr₂ clientAddr₂ id₂ ∗
     bootPremise N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
-      name₃ peerAddr₃ clientAddr₃ id₃ ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
-    commonPremises)
+      name₃ peerAddr₃ clientAddr₃ id₃)
 
 instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

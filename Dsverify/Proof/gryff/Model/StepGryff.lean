@@ -87,14 +87,14 @@ def stepWrite2 (s : RState) (m : Write2ProxiedM) : StepRes := do
 
 /-! ## Coordinator -/
 
-/-- `GryffCoordinator.ShortCircuit(n, value, fastOverwrite)`: the reads to complete, in the
-order of the sorted `ShortReads` of op `n`. `sort.Slice` sorts `OngoingReqs[n].ShortReads` in
+/-- `GryffCoordinator.ShortCircuit(n, value, fastOverwrite)` inside its guard (`shortCircuit`): the
+reads to complete, in the order of the sorted `ShortReads` of op `n`. `slices.Sort` sorts `OngoingReqs[n].ShortReads` in
 place: the model writes the sorted list back at `n` (H1-R4; both callers delete `OngoingReqs[n]`
 right after, so their results do not depend on it). Without `fastOverwrite` the code reads
 `OngoingReqs[n].ShortWrites` after the reads loop: the model re-reads the entry (`dead` if the
 loop deleted it, H1-R3: unreachable, `ShortReads` holds reads' numbers and `n` is a write's). The
 `ShortWrites` loop iterates an empty list (see `OngoingOp`). -/
-def shortCircuit (s : RState) (n : w32) (value : ValTag) (fastOverwrite : Bool) :
+def shortCircuitReads (s : RState) (n : w32) (value : ValTag) (fastOverwrite : Bool) :
     Option (RState × List Out) := do
   let some op := s.ongoingReqs.get? n
     | dead -- dead: both callers hold op n's write, whose OngoingReqs entry is deleted with it
@@ -112,6 +112,32 @@ def shortCircuit (s : RState) (n : w32) (value : ValTag) (fastOverwrite : Bool) 
     let some _ := s.ongoingReqs.get? n
       | dead -- dead: `c.OngoingReqs[n].ShortWrites` (H1-R3); `n` is not among the reads deleted
   return (s, outs)
+
+/-- `maxShortReads` (`gryffcommon/coordinator.go`): `ShortCircuit` completes the reads early only
+while op `n` has at most this many (`slices.Sort`'s length bound). -/
+def maxShortReads : Nat := 2 ^ 20
+
+/-- The number of reads saved in op `n` (`len(c.OngoingReqs[n].ShortReads)`; `0` when there is no op
+`n`, where `shortCircuitReads` is `dead`). -/
+def shortReadsLen (s : RState) (n : w32) : Nat :=
+  ((s.ongoingReqs.get? n).map (fun op => op.shortReads.length)).getD 0
+
+/-- `GryffCoordinator.ShortCircuit(n, value, fastOverwrite)`: past `maxShortReads` reads, the guard
+skips the sort and the reads loop (the reads stay ongoing and complete by their own replies), and
+the `ShortWrites` loop iterates an empty list, so nothing changes. -/
+def shortCircuit (s : RState) (n : w32) (value : ValTag) (fastOverwrite : Bool) :
+    Option (RState × List Out) :=
+  if shortReadsLen s n ≤ maxShortReads then shortCircuitReads s n value fastOverwrite
+  else some (s, [])
+
+theorem shortCircuit_cases {s s' : RState} {n : w32} {value : ValTag} {fo : Bool} {o : List Out}
+    (h : shortCircuit s n value fo = some (s', o)) :
+    shortCircuitReads s n value fo = some (s', o) ∨ (s' = s ∧ o = []) := by
+  unfold shortCircuit at h
+  split at h
+  · exact Or.inl h
+  · simp only [Option.some.injEq, Prod.mk.injEq] at h
+    exact Or.inr ⟨h.1.symm, h.2.symm⟩
 
 /-- The client's Read (`readChan` → `handleRead` → `StartRead(RequestId, ClientId, K, &D)`):
 the event's guard is the system's shape (key 0, no dependency: `D.Key < 0`, Go's own test, a

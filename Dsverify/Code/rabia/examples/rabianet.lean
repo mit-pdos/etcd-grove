@@ -2068,10 +2068,11 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
 
-/-- Orch is the orchestrator's program: it sends the configuration (New), waits StartMs, and
-    panics unless porcupine accepts the history of the clients' operations.
+/-- Orch is the orchestrator's program: it sends the configuration (New), waits a random 0 to
+    StartMs, draws each client's number of operations, 1 to K, and panics unless porcupine accepts
+    the history of the clients' operations.
 
-    go: kit.go:613:6 -/
+    go: kit.go:614:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -2082,11 +2083,13 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve ClientAddrs []))) (Val #())) (Val #()))
   (Let "$a2" (App (App (Val (GoInstruction (FuncResolve Codec []))) (Val #())) (Val #()))
   (Let "$a3" (App (App (Val (GoInstruction (FuncResolve gens []))) (Val #())) (Val #()))
-  (Let "$a4" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val K))
+  (Let "$a4" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val K))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))))
   (Let "$a5" (App (App (Val (GoInstruction (FuncResolve attempt []))) (Val #())) (Val #()))
   (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")))))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (Val StartMs)) (Val #(W64 1000000))))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val StartMs)) (Val #(W64 1))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))) (Val #(W64 1000000))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve New []))) (Val #())) (Val #())))))
@@ -2098,7 +2101,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
     (which dials until it connects, sends the handshake and starts the endpoint's send and receive
     routines).
 
-    go: kit.go:636:6 -/
+    go: kit.go:637:6 -/
 noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Sys.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Sys.ty)))) (Val #())))
@@ -2141,7 +2144,7 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
     sendOneRequest): the operation type ("0" a write, "1" a read), the key (KeyLen bytes: Gen's keys
     have that length) and a write's value.
 
-    go: kit.go:647:6 -/
+    go: kit.go:648:6 -/
 noncomputable def command.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -2174,7 +2177,7 @@ noncomputable def command.impl [GooseExts] [GoGlobalContext] : val :=
     with a fresh sequence number. The reply's command is the proxy's execution result: "0"+key+"ok"
     for a put, "1"+key+value for a get (an empty value: not found; Gen's values are never empty).
 
-    go: kit.go:662:6 -/
+    go: kit.go:663:6 -/
 noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "c"
@@ -2208,7 +2211,7 @@ noncomputable def Op.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- op1 is Op's body, run with x.mu held.
 
-    go: kit.go:675:6 -/
+    go: kit.go:676:6 -/
 noncomputable def op1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "c"
@@ -2331,7 +2334,7 @@ noncomputable def op1.impl [GooseExts] [GoGlobalContext] : val :=
     contract says, and it waits for the configuration at a listener of its own), served at its
     address in ClientAddrs. It never returns.
 
-    go: kit.go:711:6 -/
+    go: kit.go:712:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -2394,7 +2397,7 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
     and consensus routines; it returns only when the server is told to exit, which nothing in the
     deployment does).
 
-    go: kit.go:728:6 -/
+    go: kit.go:729:6 -/
 noncomputable def serveAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "proxyAddr"
@@ -2429,7 +2432,7 @@ noncomputable def serveAt.impl [GooseExts] [GoGlobalContext] : val :=
     and, if id is one of its N servers, runs Rabia server id-1 (main.go's RunServer without the
     benchmark controller); else it only waits. It never returns.
 
-    go: kit.go:738:6 -/
+    go: kit.go:739:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)

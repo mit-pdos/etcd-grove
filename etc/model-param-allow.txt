@@ -24,3 +24,29 @@ pair Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpc.Ser
 pair Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpcRepModelOf grpcServes/e.Wp : as the request's, with grpcRepModelOf GF Rep.ty = some Rep
 pair Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpcReqModelOf spec/Svc?.Wq : Serve's table Svc: its entries are grpcServes' e (above), registered for every method gs registers; an entry gs does not register is answered Unimplemented, its models never decoded
 pair Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpcRepModelOf spec/Svc?.Wp : as the request's
+
+# --- putget-dist's interim client axioms (dist-putget-interim, 2026-11-25; for the coordinator's review) ---
+# `etcd_dist.Client_{Put,Get}_dist.wp_proof` take the client's `isNewClient cl [ep] V`, as the proved
+# `client_Put_own`/`client_Get_own` do. It holds, for each connection of the client, the retry interceptor's
+# contract (`etcdInterceptorOk`, and `etcdInterceptorOkM` through `etcdInterceptorOkW`), which the axiom
+# calls: its binders `Req Rep : ProtoMsgT GF` come with `grpcReqModelOf GF Req.ty = some Req` and
+# `grpcRepModelOf GF Rep.ty = some Rep`, the atoms the caller's contract receives. They are true at every
+# call the axiom makes: the KV stub's `Put` (`Range`) passes `*PutRequest`/`*PutResponse`
+# (`*RangeRequest`/`*RangeResponse`), whose models are the registered ones (one per Go type), so the models
+# are the registry's, never the user's choice; and each axiom is its own depositor, as `Invoke` is: the
+# contract's invoker (`grpcInvokerOk`) requires the same registrations of the interceptor's `Req`/`Rep`
+# (the `supp` lines `grpcInvokerOk/Req`, `grpcInvokerOk/Rep`). The service-table binders
+# (`grpcSvcAt/Svc?.{Wq,Wp}`, reached through the contract's `isGrpcRpcsMd` and `grpcInvokerOk`) are
+# `Invoke`'s pair: the entry the call reaches is ⟨Req.wire, Rep.wire, _⟩ of those registered models.
+pair Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.grpcReqModelOf etcdInterceptorOk/Req : see the section header: the request model the axiom calls the interceptor contract with is PutRequest's registered one, and grpcInvokerOk requires grpcReqModelOf GF Req.ty = some Req of it
+pair Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.grpcRepModelOf etcdInterceptorOk/Rep : as the request's, PutResponse's registered model
+pair Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.grpcReqModelOf etcdInterceptorOkM/Req : the write-mode contract (etcdInterceptorOkW), as etcdInterceptorOk/Req
+pair Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.grpcRepModelOf etcdInterceptorOkM/Rep : the write-mode contract (etcdInterceptorOkW), as etcdInterceptorOk/Rep
+pair Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.grpcReqModelOf grpcSvcAt/Svc?.Wq : as Invoke's: the table entry the call reaches is ⟨Req.wire, Rep.wire, _⟩ of the registered Req that grpcInvokerOk requires
+pair Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof Perennial.EtcdGrove.grpcRepModelOf grpcSvcAt/Svc?.Wp : as the request's, the entry's Wp is the registered Rep's wire
+pair Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.grpcReqModelOf etcdInterceptorOk/Req : as Client_Put_dist's, for RangeRequest's registered model
+pair Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.grpcRepModelOf etcdInterceptorOk/Rep : as Client_Put_dist's, for RangeResponse's registered model
+pair Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.grpcReqModelOf etcdInterceptorOkM/Req : as Client_Put_dist's
+pair Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.grpcRepModelOf etcdInterceptorOkM/Rep : as Client_Put_dist's
+pair Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.grpcReqModelOf grpcSvcAt/Svc?.Wq : as Client_Put_dist's
+pair Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof Perennial.EtcdGrove.grpcRepModelOf grpcSvcAt/Svc?.Wp : as Client_Put_dist's

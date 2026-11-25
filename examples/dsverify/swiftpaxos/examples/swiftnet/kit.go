@@ -404,12 +404,12 @@ func (s *Sys) changeLeaders(cs []change) {
 
 // connect connects client c as SwiftPaxos's client program does for SwiftPaxos (main.go's
 // runSingleClient: client.NewClientLog, NewBufferClient, Connect, swift.NewClient): to the
-// master (server node 1, node NC+1), then to every replica the master lists as alive, after
-// client c's stagger (c * StaggerMs). The client's id is c + 1 instead of NewClientLog's random
+// master (server node 1, node NC+1), then to every replica the master lists as alive, after a
+// random stagger (0 to NC*StaggerMs). The client's id is c + 1 instead of NewClientLog's random
 // one (a uuid's ID: the protocol needs distinct ids, which a uuid gives only with high
 // probability). true if connected.
 func (s *Sys) connect(c uint64) bool {
-	time.Sleep(time.Duration(c*StaggerMs) * time.Millisecond)
+	time.Sleep(time.Duration(rand.Intn(int(NC*StaggerMs)+1)) * time.Millisecond)
 	m := s.addrs[NC+1]
 	cli := client.NewClientLog("", host(m), int(port(m)), true, false, false, &dlog.Logger{})
 	cli.ClientId = int32(c) + 1
@@ -636,8 +636,8 @@ func callTime() time.Duration {
 }
 
 // Orch is the orchestrator's program: it configures the deployment (New), waits StartMs for the
-// master, the replicas and the client nodes to start, then panics unless porcupine accepts the
-// history of the clients' operations.
+// master, the replicas and the client nodes to start, draws each client's number of operations,
+// 1 to K, then panics unless porcupine accepts the history of the clients' operations.
 func Orch() {
 	orch(Addrs(), ClientAddrs())
 }
@@ -646,7 +646,7 @@ func Orch() {
 func orch(addrs []string, caddrs []string) {
 	New(addrs)
 	time.Sleep(time.Duration(StartMs) * time.Millisecond)
-	remote.Check(Model(), caddrs, Codec(), Gen, int(K), callTime())
+	remote.Check(Model(), caddrs, Codec(), Gen, 1+rand.Intn(int(K)), callTime())
 }
 
 // Client is client machine c's program (c < NC): its own client node of the deployment, made

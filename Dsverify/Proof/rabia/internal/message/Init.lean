@@ -47,8 +47,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
-variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.internal.message.Assumptions]
 variable [_root_.Perennial.github_com.gogo.protobuf.proto.Hyps GF]
 
@@ -146,10 +144,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterEnum (GF := GF)) $$ [$Hg $HMsgType_value] as Hg
   try wp_auto
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
+  · ipureintro; first | exact nofun | simp
   try wp_auto
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
+  · ipureintro; first | exact nofun | simp
   try wp_auto
   wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
+  · ipureintro; first | exact nofun | simp
   try wp_auto
   -- the translated init.«1»
   wp_func_call

@@ -113,7 +113,7 @@ theorem Proxy.KVSExecutor.wp_proof
   icases Hres with ⟨%ch, %wg, %t, %kv, %ledger, %cd, #Hf, Hseq, Hcd, Hkv, #Hdone, #Hled, #Hslots, #Htcp⟩
   unfold proxyFields
   icases Hf with ⟨%id, %hid, #HSvrId, #HWg, #HDone, #HCin, #HToNet, #HNetIn, #HTCP, #HKV, #HExec,
-    #HExecR, #HLedger, %HLogNN⟩
+    #HExecR, #HLedger, %lgv, #HLog, #HLok⟩
   icases confRO_val $$ Hconf with ⟨%ps, #Hc⟩
   iStructNamed Hc
   unfold ledgerRO
@@ -196,7 +196,7 @@ theorem Proxy.KVSExecutor.wp_proof
         icases Hdobj with %hnull
         rw [hv.2.2.2, hnull.1]
         wp_auto
-        wp_apply hDebug _ HLogNN as %ev He
+        wp_apply hDebug _ lgv DFrac.discard $$ [$HLog $HLok] as %ev ⟨-, He⟩
         wp_apply hUint32 $$ [$He] as He
         wp_apply hBool $$ [$He] as He
         wp_apply hMsg $$ [$He]
@@ -225,7 +225,7 @@ theorem Proxy.KVSExecutor.wp_proof
           rw [hci]; exact cmdOf_length hi
         rw [hv.2.2.2, hnull]
         wp_auto
-        wp_apply hDebug _ HLogNN as %ev He
+        wp_apply hDebug _ lgv DFrac.discard $$ [$HLog $HLok] as %ev ⟨-, He⟩
         wp_apply hUint32 $$ [$He] as He
         wp_apply hBool $$ [$He] as He
         wp_apply hUint32 $$ [$He] as He

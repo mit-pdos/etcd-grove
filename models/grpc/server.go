@@ -34,7 +34,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
-	estats "google.golang.org/grpc/experimental/stats"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/internal"
 	"google.golang.org/grpc/internal/binarylog"
@@ -86,12 +85,15 @@ func init() {
 	internal.ClearGlobalServerOptions = func() {
 		globalServerOptions = nil
 	}
-	internal.BinaryLogger = binaryLogger
+	// MODEL: grpc-go also sets internal.BinaryLogger = binaryLogger, internal.BufferPool =
+	// bufferPool and internal.MetricsRecorderForServer (a closure returning
+	// istats.NewMetricsRecorderList(srv.opts.statsHandlers)) here. Binary logging and a server
+	// buffer pool other than the default are not modelled (both options panic NotModelled), and
+	// nothing in the model reads the three hooks (grpc-go's readers are its end-to-end tests,
+	// experimental.go and xds/server.go, not in the model; internal is not importable outside the
+	// module), so the stores are dropped: their values' types name internal/binarylog, mem,
+	// experimental/stats and internal/stats, which the translation does not reach.
 	internal.JoinServerOptions = newJoinServerOption
-	internal.BufferPool = bufferPool
-	internal.MetricsRecorderForServer = func(srv *Server) estats.MetricsRecorder {
-		return istats.NewMetricsRecorderList(srv.opts.statsHandlers)
-	}
 	internal.XDSFilterWrapperOption = xdsFilterWrapperOption
 }
 

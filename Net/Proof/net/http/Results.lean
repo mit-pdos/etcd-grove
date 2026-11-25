@@ -256,6 +256,11 @@ theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
     strings.wp_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
     fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
 
+theorem ReadResponse.wp_errs : ReadResponse.spec_errs (GF := GF) (hG := hG) :=
+  ReadResponse.wp_proof_errs modelReadLine.wp modelReadMIMEHeader.wp strings.wp_Cut
+    strings.wp_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
+    fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
+
 theorem parseRequestLine.wp : parseRequestLine.spec (GF := GF) (hG := hG) :=
   parseRequestLine.wp_proof strings.wp_Cut
 
@@ -458,6 +463,7 @@ end Perennial
 #print axioms Perennial.net.http.internal.chunkedWriter.Write.wp
 #print axioms Perennial.net.http.internal.chunkedWriter.Close.wp
 #print axioms Perennial.net.http.ReadResponse.wp
+#print axioms Perennial.net.http.ReadResponse.wp_errs
 #print axioms Perennial.net.http.modelReadMIMEHeader.wp
 #print axioms Perennial.net.http.connReader.backgroundRead.wp
 #print axioms Perennial.net.http.response.Hijack.wp

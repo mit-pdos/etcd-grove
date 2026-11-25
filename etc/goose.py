@@ -624,6 +624,17 @@ PROJECTS = [
             "google.golang.org/grpc/status",
             # names only: the target of the alias grpc/status.Status (client/v3/leasing)
             "google.golang.org/grpc/internal/status",
+            # (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23) names only but the hook
+            # variables the translated `init`s of grpc, `codes`, `metadata` and `health` set
+            # (`Code/google_golang_org/grpc/internal.toml`), and `FromOutgoingContextRaw`, which grpc's
+            # `metadataFromOutgoingContextRaw` asserts
+            "google.golang.org/grpc/internal",
+            # (phase7-inits batch 2, 2026-11-25) types and names only but its `logger`: `State`, the
+            # type grpc's `internal.HealthChecker` names
+            "google.golang.org/grpc/connectivity",
+            # (phase7-inits batch 2) types and names only but its `logger` and `init`: `SubConn`, the
+            # type `health`'s `registerClientSideHealthCheckListener` names
+            "google.golang.org/grpc/balancer",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

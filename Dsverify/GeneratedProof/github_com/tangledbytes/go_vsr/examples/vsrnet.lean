@@ -16,6 +16,7 @@ public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.replica
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.time
 public import Perennial.GeneratedProof.io
 public import Dsverify.GeneratedProof.log.slog
+public import Perennial.GeneratedProof.math.rand
 public import Net.GeneratedProof.models_lab.jsoncodec
 public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.time

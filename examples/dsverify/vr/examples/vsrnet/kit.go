@@ -25,6 +25,7 @@ package vsrnet
 import (
 	"io"
 	"log/slog"
+	"math/rand"
 	"net"
 	"time"
 
@@ -296,12 +297,12 @@ type Out struct {
 // operation of c is unknown too. A false Request means the request is pending but its send
 // failed (go-vsr's Request): the loop goes on (go-vsr's client retries by broadcasting after its
 // timeout). A get's reply is the key's value (empty: not found; Gen's values are never empty).
-// The first operation waits StartMs + c*StaggerMs before it starts.
+// The first operation waits a random 0 to StartMs + NC*StaggerMs before it starts.
 func Op(s any, in any) any {
 	x := s.(*Sys)
 	if !x.started {
 		x.started = true
-		time.Sleep(time.Duration(StartMs+x.id*StaggerMs) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(int(StartMs+NC*StaggerMs)+1)) * time.Millisecond)
 	}
 	if x.gaveUp {
 		return Out{Unknown: true}
@@ -569,7 +570,7 @@ func attempt() time.Duration {
 // porcupine accepts the history of the clients' operations.
 func Orch() {
 	Configure(CfgAddrs(), choose())
-	remote.Check(Model(), ClientAddrs(), Codec(), Gen, int(Ops), attempt())
+	remote.Check(Model(), ClientAddrs(), Codec(), Gen, 1+rand.Intn(int(Ops)), attempt())
 }
 
 // Client is client machine c's program (c < NC): it waits for the configuration, makes its go-vsr

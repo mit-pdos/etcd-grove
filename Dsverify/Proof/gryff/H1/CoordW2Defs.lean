@@ -13,7 +13,7 @@ public import Dsverify.Proof.gryff.H1.CoordSCDefs
 public import Dsverify.Proof.gryff.H1.PureWrite
 public import Dsverify.Proof.gryff.PureL.Frame
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.gryff.Lib.SortHyps
+public import Dsverify.Proof.gryff.Replica2.Specs
 
 @[expose] public section
 
@@ -60,7 +60,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 
 

@@ -1,0 +1,8 @@
+# (phase7-inits, 2026-11-25) Types and names only, but `logger` (`grpclog.Component("core")`,
+# `connectivity.go:27`) with its initializer: `State`, the type `internal.HealthChecker` names (grpc's
+# `internal`'s hook `HealthCheckFunc`, which `health`'s `init` sets); hence the import of `grpclog`.
+translate = ["!*", "logger"]
+imports = ["!*", "google.golang.org/grpc/grpclog"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

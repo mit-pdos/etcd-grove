@@ -69,3 +69,42 @@ allocates them, initializes its imports and runs their translated initializers.'
                    [l for x in _xs[:-1] for l in ['isplitr', f'· iexists _; iframe H{x} S{x} M{x}']] +
                    [f'iexists _; iframe H{_xs[-1]} S{_xs[-1]} M{_xs[-1]}'])
     return SPECIAL
+
+
+# etc/dsv/kitgen.py (notes/dsv-kitgen.md): the machines' first-run boot's tables, `BootTable.lean`
+# and `BootCmdsLinked.lean` (as dsv-epaxos's); the machines are the five clients and the six
+# servers, each importing `craqnet` only (the orchestrator's boot is its generated initializer spec)
+KITGEN = dict(
+    name='craq',
+    title='CRAQ',
+    go_mains=False,
+    lean_pkg=f'{CRAQ}.examples.craqnet',
+    roles=[dict(cmd='client{id}', ids=list(range(5))), dict(cmd='server{id}', ids=list(range(1, 7)))],
+    boot=dict(
+        # the table: server1's chain (etc/gen-init.py's cmd/server1/PkgTable.lean)
+        table='server1',
+        owned=[f'{CRAQ}.examples.craqnet', f'{CRAQ}.transport.netrpc', 'net.rpc', 'net.http'],
+        table_doc='''The package facts of the CRAQ kit's boot (notes/dsv-craq.md, the boot): generic in a program's
+table `G` that gives every package of `craqnet`'s import closure its `isPkgInit` (`KitG G`), the
+facts at `G` (`wf_*`) and, for the packages whose closure avoids the kit's owned packages
+(`ownedPkgs`: `craqnet` and `transport/netrpc`, whose first initializations the boot proves, and
+net/rpc's and net/http's, Net's first runs), at `gOff S G` for `S` a sub-list of `ownedPkgs` (`wfO_*`): the table in which
+the packages of `S` are not initialized yet.''',
+        cmds_doc='''The CRAQ kit's eleven client and server commands' boots (notes/dsv-craq.md, the boot): each
+command's initialization from the machine's empty package state, its first, through `craqnet`'s
+(`BootLinked.lean`, `boot_craqnet`), at the command's table (`getIsPkgInit`, its `PkgTable.lean`;
+`kitG`).''',
+        opens=['open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net',
+               f'open {CRAQ} {CRAQ}.examples.craqnet',
+               'open EtcdGrove (wp_package_init_first)'],
+        attributes=['attribute [local instance] GooseGlobalGS.gooseInvGS'],
+        variables='''variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
+variable [Threads30 (GF := GF)]''',
+        returns="returns the machine's net/rpc boot resources.",
+        q='rpcBootRes',
+        post='        isPkgInit (PROP := IProp GF) pkg_id.{pkg}.cmd.{n} ∗ rpcBootRes',
+    ),
+)

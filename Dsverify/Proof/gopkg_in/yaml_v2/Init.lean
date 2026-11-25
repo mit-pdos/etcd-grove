@@ -1,11 +1,15 @@
 /-
-**A hypothesis**: `gopkg.in/yaml.v2`'s initializer meets Perennial's initialization spec (notes/dsv-quepaxa.md,
-"Hypotheses"; dsv-vr's pattern, `Dsverify/Proof/encoding/json/Init.lean` there). `gopkg.in/yaml.v2` is
-names only in the part (the lab replaced it by a cut-down copy; no call of the kit reaches it), its variables' initializers untranslated, so its `initialize'` cannot be proved here, and the rule is no new axiom and no trusted code:
-the spec is the class `InitHyp` (a `Prop`), which every theorem whose proof initializes `gopkg.in/yaml.v2` takes
-as an instance argument (`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`),
-up to the kit's closed statement. Replace by a proved `wp_initialize'` when the package's
-translation or model lands.
+**Trust-boundary axiom**: `gopkg.in/yaml.v2`'s initializer meets Perennial's initialization spec
+(`wp_initialize'`: run once, from a table holding its imports' facts, it establishes the package's
+fact). `gopkg.in/yaml.v2` is translated names (and types) only in the part, its variables' initializers and
+`init` functions untranslated, so its `initialize'` cannot be proved here; Go runs them at program
+start and they return (the kits' programs start). The axiom states exactly the field of the class `InitHyp`
+that was the statement's premise until dsv-fix3 (the class and its test-only derivation
+`InitInstancesLinked.lean` deleted with it); it is per package and in no statement
+(mit-pdos/etcd-grove#8, 2026-11-25T02:20:53Z; `etc/dsv/README.md`), counted in the tcb collections
+of the kits that initialize the package (quepaxa). Review:
+`notes/axiom-review/dsv-inits/gopkg-in-yaml-v2.md`. To retire: a translation or model of the package with a
+proved `wp_initialize'`.
 -/
 module
 
@@ -24,24 +28,15 @@ open Iris Iris.BI Iris.ProgramLogic
 
 namespace gopkg_in.yaml_v2
 
-/-- **Hypothesis** (the file header): `gopkg.in/yaml.v2`'s initializer establishes its package fact. -/
-class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
-    (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
-  wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
-    GetIsPkgInitProp pkg_id.gopkg_in.yaml_v2 get_is_pkg_init →
-    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.gopkg_in.yaml_v2 }}
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
 
-/-- Perennial's form of `gopkg.in/yaml.v2`'s initialization, from the hypothesis. -/
-theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
+/-- **Trust-boundary axiom** (the file header): `gopkg.in/yaml.v2`'s initialization. -/
+axiom wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.gopkg_in.yaml_v2 get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.gopkg_in.yaml_v2 }} :=
-  h.wp_init get_is_pkg_init Hinit
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.gopkg_in.yaml_v2 }}
 
 end init
 

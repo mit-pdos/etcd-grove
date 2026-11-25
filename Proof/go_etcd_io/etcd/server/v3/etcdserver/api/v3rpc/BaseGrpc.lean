@@ -40,6 +40,15 @@ instance grpc_health_v1_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 :=
   build_get_is_pkg_init_wf
 
+-- (phase7-inits batch 2) grpc's `balancer` (types and names only but its `logger` and `init`): `SubConn`,
+-- the type `health`'s `registerClientSideHealthCheckListener` names; before `health`, which imports it
+instance grpc_balancer_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
+  define_is_pkg_init iprop(True)
+instance grpc_balancer_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
+  build_get_is_pkg_init_wf
+
 instance grpc_health_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.health :=
   define_is_pkg_init iprop(True)
 instance grpc_health_get_is_pkg_init_wf_inst :

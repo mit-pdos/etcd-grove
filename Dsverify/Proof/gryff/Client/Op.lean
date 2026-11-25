@@ -17,6 +17,7 @@ public import Dsverify.Proof.gryff.Client.Conn
 public import Dsverify.Proof.gryff.Client.Stream
 public import Dsverify.Proof.gryff.Wire.Specs
 public import Perennial.Proof.time.Link
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -64,7 +65,10 @@ theorem wp_Start (c : w64) :
       (App (Val (@! gryff.examples.gryffnet.Start)) (Val #c))
     {{ (d : w64), RET #d; True }} := by
   wp_start as -
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   wp_auto
+  wp_apply math.rand.wp_Intn_pos (W64 6 / W64 2 * W64 300 + W64 1) (by decide) as %w0 -
   iapply HΦ; itrivial
 
 end small

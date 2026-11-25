@@ -5,7 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import Dsverify.GeneratedProof.gryff.src.gryffproto
 public import Dsverify.GeneratedProof.gryff.src.state
 public import Dsverify.GeneratedProof.gryff.src.stats
-public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.slices
 public import Perennial.Golang.Theory
 public import Dsverify.Code.gryff.src.gryffcommon
 

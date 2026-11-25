@@ -1,7 +1,7 @@
 /-
 The EPaxos kit's deployment (notes/dsv-epaxos.md): its seventeen machines' boot programs, its
-addresses (`Start.lean`'s `epAddrs`), the machines' heaps (`heapAt`) and the server machines' boot
-resources (`rpcBootRes`, `RpcBoot`): the definitions its top-level statement
+addresses (`Start.lean`'s `epAddrs`) and the machines' heaps (`heapAt`): the definitions its
+top-level statement
 (`Spec/github_com/imdea_software/swiftpaxos_epaxos/examples/epaxosnet/TopLevelRobustness.lean`) names
 (as craq's and paxos's `TopLevelDefs.lean`).
 -/
@@ -27,7 +27,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.example
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server5.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server6.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Start
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.ServerDefs
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
 
 @[expose] public section
@@ -82,41 +81,6 @@ abbrev heapAt [lctx : GoLocalContext] (G : GooseGlobalGS HasLC.hasLC remoteGF)
   ⟨G, { L with goose_go_local_context := lctx }⟩
 
 end system
-
-section boot
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [log.Assumptions] [net.http.Assumptions]
-
-/-- A server machine's boot resources, made by its program's initialization (dsv-craq's F2): net/rpc's
-codec state before the program's `Register()` (`codecFresh`), net/rpc's package variables as its
-server and clients read them (`srvEnv`: `io`'s and `sync`'s facts, `io.EOF`, `ErrUnexpectedEOF`,
-`ErrDeadlineExceeded`, net/rpc's `errFrame`, `ErrShutdown`, `debugLog`, `invalidRequest`; this
-part's net/rpc package fact is `True` (`Dsverify/Proof/net/rpc/Init.lean`), so they come with the
-boot, where craq's came with the fact), `DefaultServeMux` with nothing registered
-(`muxOwner []`, net/http's; `RpcHttpHyp`), net/rpc's `DefaultServer` (`∃ γs, defaultServer γs`:
-what the initializer's `DefaultServer = NewServer()` makes) and what `DialHTTP` reads (`dialEnv`:
-models-rpc-http's `httpEnv`, `bufio`'s, `io`'s, `fmt`'s and `strconv`'s initialization and
-net/http's `NoBody`, and net/rpc's `connected`, `"200 Connected to Go RPC"`; net/http's package
-fact is `True` here too). -/
-def rpcBootRes [RpcHttpAddr GF] [RpcHttpHyp GF] : IProp GF :=
-  iprop(codecFresh ∗ net.rpc.srvEnv ∗ RpcHttpHyp.muxOwner [] ∗
-    (∃ γs, RpcHttpHyp.defaultServer γs) ∗ dialEnv)
-
-/-- **A server machine's boot premise** (dsv-craq's `RpcBoot`): command `pkg`'s initializer `init`,
-run once from the machine's empty package state (only the deployment's boot holds `ownGoState ∅`,
-once per machine), initializes the program (any package table `getIs` consistent with `pkg`'s) and
-returns the machine's boot resources `rpcBootRes`. -/
-def RpcBoot [RpcHttpAddr GF] [RpcHttpHyp GF] (init : val) (pkg : GoString)
-    [IsPkgInit (IProp GF) pkg] [GetIsPkgInitWf (IProp GF) pkg] : Prop :=
-  ∀ getIs : GoString → IProp GF, GetIsPkgInitProp pkg getIs →
-  {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-    (App (Val init) (Val #()))
-  {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg ∗ rpcBootRes }}
-
-end boot
 
 end github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet
 end Perennial

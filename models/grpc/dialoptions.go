@@ -57,10 +57,14 @@ func init() {
 	internal.ClearGlobalPerTargetDialOptions = func() {
 		globalPerTargetDialOptions = nil
 	}
-	internal.WithBinaryLogger = withBinaryLogger
+	// MODEL: grpc-go also sets internal.WithBinaryLogger = withBinaryLogger and
+	// internal.WithBufferPool = withBufferPool here. Binary logging and a client buffer pool other
+	// than the default are not modelled (both options panic NotModelled), and nothing in the model
+	// reads the two hooks (grpc-go's readers are its end-to-end tests and experimental.go, not in
+	// the model; internal is not importable outside the module), so the stores are dropped: their
+	// values' types name internal/binarylog and mem, which the translation does not reach.
 	internal.JoinDialOptions = newJoinDialOption
 	internal.DisableGlobalDialOptions = newDisableGlobalDialOptions
-	internal.WithBufferPool = withBufferPool
 }
 
 // dialOptions configure a Dial call. dialOptions are set by the DialOption

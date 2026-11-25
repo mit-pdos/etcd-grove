@@ -129,7 +129,14 @@ theorem shortCircuit_spec {s s' : RState} {n : w32} {value : ValTag} {f : Bool} 
       Y.get? (shiftInts e.requestId e.clientId) = none ∧
       (s.rops.get? (shiftInts e.requestId e.clientId)).isSome) ∧
     ∀ x ∈ o, SCOut s n value.v x := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · refine ⟨_, _, rfl, fun k e he => ?_, Shrinks.rfl', fun k e _ h1 h2 => ?_, fun x hx => by cases hx⟩
+    · rw [AMap.get?_del] at he; split at he
+      · cases he
+      · exact he
+    · rw [h1] at h2; cases h2
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals (try (cases h))
   all_goals (
