@@ -153,7 +153,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     (hC'fl : (pubC w.C X.t.mv pages).flpg = none) (hfreed : ∀ f, w.C.flpg = some f → f ∈ pendSlots w.fl)
     (hhwmb : (pubC w.C X.t.mv pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) w ∗
-        ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+        ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
         slotsOwn (some (b, l) : MapSt) K.p S bs ∗ A ∗
         fbTok K.B w.C w.fl ((some v, some (w.C.txid + 1), false, true) : WSt) Fb }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
@@ -162,10 +162,10 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) ∗
         ((wdbLive K.B K.db K.p K.sp K.t0 tx ((some v, some (w.C.txid + 1), true, true) : WSt)
             ((w.reslot m' w.W w.wb).withC (pubC w.C X.t.mv pages)) ∗
-          ghostVar K.B.st (1 : Qp).half.half Dn ∗ Q) ∨
+          ghostVar K.B.st (1 : Qp).half.half (Dn, (pubC w.C X.t.mv pages).txid) ∗ Q) ∨
          (⌜err ≠ interface.nil⌝ ∗
           wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) (w.reslot m' w.W w.wb) ∗
-          ghostVar K.B.st (1 : Qp).half.half (treeData w.C) ∗
+          ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
           slotsOwn (some (b, l) : MapSt) K.p S bs ∗ A ∗
           fbTok K.B w.C w.fl ((some v, some (w.C.txid + 1), false, true) : WSt) Fb)) }} := by
   wp_start_folded as ⟨Hw, Hd, Hstq, HS, Hau, Hfb⟩
@@ -203,9 +203,9 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
   · ileft
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
-    iframe Hstq HQ
     have hC'tx : (pubC w.C X.t.mv pages).txid = w.C.txid + 1 := by
       simp only [pubC, CommitSt.publish, metaSummed_txid]; exact htx
+    iframe Hstq HQ
     ihave Hrc := receipt_succ_sub (GF := GF) w.C.txid K.t0 $$ [Hrc Hrc1]
     · iframe
     simp only [WDb.withC, WDb.reslot]
