@@ -14,7 +14,9 @@ translate = ["!*", "FromOutgoingContextRaw",
   # `codes`'
   "CanonicalString",
   # `health`'s (batch 2, 2026-11-25)
-  "HealthCheckFunc", "RegisterClientHealthCheckListener"]
+  "HealthCheckFunc", "RegisterClientHealthCheckListener",
+  # `balancer`'s
+  "BalancerUnregister"]
 # `HealthChecker` (`HealthCheckFunc`'s type) names `context` and `connectivity`
 imports = ["!*", "context", "google.golang.org/grpc/connectivity"]
 

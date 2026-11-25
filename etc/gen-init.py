@@ -3787,7 +3787,7 @@ _GI_ANY = ['FromOutgoingContextRaw', 'CanonicalString', 'AddGlobalDialOptions',
            'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption',
            'RegisterClientHealthCheckListener']
 _GI_FUNC = ['ClearGlobalDialOptions', 'ClearGlobalPerTargetDialOptions', 'ClearGlobalServerOptions',
-            'HealthCheckFunc']
+            'HealthCheckFunc', 'BalancerUnregister']
 _GI_BASE = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal'
 
 
@@ -3922,7 +3922,7 @@ _LOGGER_DOC = '''runs its translated initializer of `logger`, `grpclog.Component
 2026-11-25, until then the trust-boundary axiom `opaqueInitsOk`; `Component`'s proof, through
 `grpclog`'s fact)'''
 for _p in ['google_golang_org.grpc', 'google_golang_org.grpc.credentials', 'google_golang_org.grpc.health',
-           'google_golang_org.grpc.connectivity']:
+           'google_golang_org.grpc.connectivity', 'google_golang_org.grpc.balancer']:
     _c = SPECIAL.setdefault(_p, {})
     _c.setdefault('alloc_types', {})['logger'] = 'GoInterface'
     _c.setdefault('before', {})['logger'] = logger_steps()
@@ -3931,6 +3931,13 @@ for _p in ['google_golang_org.grpc', 'google_golang_org.grpc.credentials', 'goog
         _c['doc'] = _c['doc'].rstrip('.') + '; it ' + _LOGGER_DOC + '.'
 SPECIAL['google_golang_org.grpc.credentials']['doc'] = '''Its fact is `True`. Its initializer initializes its
 imports, allocates `logger` and ''' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.balancer']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports (`grpclog`, grpc's `internal`), allocates `logger`, ''' + _LOGGER_DOC + ''', and runs its translated
+`init` (`balancer.go:77`), which stores `unregisterForTesting` in `internal.BalancerUnregister`, through
+`internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+SPECIAL['google_golang_org.grpc.balancer']['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+SPECIAL['google_golang_org.grpc.balancer']['after'] = {
+    'init.«0»': hook_fact_steps() + hook_store_steps(['BalancerUnregister'])}
 SPECIAL['google_golang_org.grpc.connectivity']['doc'] = '''Its fact is `True`. Its initializer initializes its
 import (`grpclog`), allocates `logger` and ''' + _LOGGER_DOC + '.'
 # `health`: its `logger` and its two `init`s (until then `initFuncsOk`): `client.go`'s stores

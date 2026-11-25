@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.google_golang_org.grpc.balancer
 public import GeneratedProof.google_golang_org.grpc.connectivity
 public import GeneratedProof.google_golang_org.grpc.grpclog
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1

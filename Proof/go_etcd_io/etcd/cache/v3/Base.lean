@@ -263,13 +263,14 @@ def hooksAny : List GoString :=
    _root_.Perennial.google_golang_org.grpc.internal.XDSFilterWrapperOption,
    _root_.Perennial.google_golang_org.grpc.internal.RegisterClientHealthCheckListener]
 
-/-- The hook variables of function type the translated `init`s set: grpc's `func()`s and `health`'s
-`HealthCheckFunc` (an `internal.HealthChecker`). -/
+/-- The hook variables of function type the translated `init`s set: grpc's `func()`s, `health`'s
+`HealthCheckFunc` (an `internal.HealthChecker`) and `balancer`'s `BalancerUnregister` (a `func(string)`). -/
 def hooksFunc : List GoString :=
   [_root_.Perennial.google_golang_org.grpc.internal.ClearGlobalDialOptions,
    _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalPerTargetDialOptions,
    _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalServerOptions,
-   _root_.Perennial.google_golang_org.grpc.internal.HealthCheckFunc]
+   _root_.Perennial.google_golang_org.grpc.internal.HealthCheckFunc,
+   _root_.Perennial.google_golang_org.grpc.internal.BalancerUnregister]
 
 /-- **`internal`'s package fact**: the invariants of its hook cells, which only package initializers
 write and no translated code reads (their readers, grpc-go's tests, xds, stats/opentelemetry, orca and
@@ -286,6 +287,16 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
   build_get_is_pkg_init_wf
 
 end google_golang_org.grpc.internal
+
+-- (phase7-inits batch 2) grpc's `balancer` (types and names only but its `logger` and `init`): `SubConn`,
+-- the type `health`'s `registerClientSideHealthCheckListener` names; after `internal`, whose hook its
+-- `init` sets
+instance grpc_balancer_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
+  define_is_pkg_init iprop(True)
+instance grpc_balancer_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.balancer :=
+  build_get_is_pkg_init_wf
 
 -- `google.golang.org/grpc/metadata` (types and names only), before `grpc`, which imports it
 -- (unit W-W: grpc's `ClientStream`/`ServerStream` name `metadata.MD`; moved here from

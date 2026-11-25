@@ -632,6 +632,9 @@ PROJECTS = [
             # (phase7-inits batch 2, 2026-11-25) types and names only but its `logger`: `State`, the
             # type grpc's `internal.HealthChecker` names
             "google.golang.org/grpc/connectivity",
+            # (phase7-inits batch 2) types and names only but its `logger` and `init`: `SubConn`, the
+            # type `health`'s `registerClientSideHealthCheckListener` names
+            "google.golang.org/grpc/balancer",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

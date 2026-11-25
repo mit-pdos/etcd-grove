@@ -238,6 +238,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
@@ -248,6 +249,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc HealthCheckFunc HealthChecker.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc RegisterClientHealthCheckListener go.any)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc BalancerUnregister (go.GoType.FunctionType (go.signature.Signature [go.string] false [])))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc GetServerCredentials go.any)) (Val #()))))))
   (App (Val doExecute)

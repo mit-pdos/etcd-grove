@@ -9,6 +9,7 @@ module
 public import Proof.google_golang_org.grpc.health.Init
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
+public import Proof.google_golang_org.grpc.balancer.InitLinked
 public import Proof.google_golang_org.grpc.connectivity.InitLinked
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.InitLinked
@@ -54,6 +55,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply wp_GlobalAlloc (V := Loc) producerBuilderSingleton _ as HproducerBuilderSingleton
   wp_apply wp_GlobalAlloc (V := GoInterface) logger _ as Hlogger
+  wp_apply (_root_.Perennial.google_golang_org.grpc.balancer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.grpclog.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩

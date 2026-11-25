@@ -7,6 +7,7 @@ public import Code.google_golang_org.grpc.health.grpc_health_v1
 public import Code.google_golang_org.grpc.internal
 public import Code.google_golang_org.grpc.grpclog
 public import Perennial.Code.sync
+public import Code.google_golang_org.grpc.balancer
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -109,7 +110,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc/health.backoffFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var backoffFunc = func(ctx context.Context, retries int) bool { d := backoffStrategy.Backoff(retries) timer := time.NewT … [sha256:f055c0bbd9fb414f]"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.connectivity, pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.grpclog, pkg_id.sync]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.connectivity, pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.grpclog, pkg_id.sync, pkg_id.google_golang_org.grpc.balancer]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -117,6 +118,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.health)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -148,6 +150,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.balancer.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc logger _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc producerBuilderSingleton (go.GoType.PointerType producerBuilder.ty))) (Val #()))))))))
@@ -175,7 +179,7 @@ class producerBuilder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying producerBuilder.underlying producerBuilder
   underlying : go.UnderlyingDirectedEq producerBuilder.ty producerBuilder.underlying
   method_set : go.MethodSetIs producerBuilder.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType producerBuilder.ty) [(go!"Build", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/balancer.Producer" []), (go.GoType.FunctionType (go.signature.Signature [] false []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType producerBuilder.ty) [(go!"Build", (some (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.balancer.Producer.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))])))]
 
 attribute [instance] producerBuilder.TypeAssumptions.type_repr
   producerBuilder.TypeAssumptions.underlying
@@ -193,7 +197,7 @@ class healthServiceProducer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq healthServiceProducer.ty healthServiceProducer.underlying
   isUnderlying : go.IsUnderlying healthServiceProducer.underlying healthServiceProducer.underlying
   method_set : go.MethodSetIs healthServiceProducer.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthServiceProducer.ty) [(go!"google.golang.org/grpc/health.startHealthCheck", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" []), go.string, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConnState" [])] false []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthServiceProducer.ty) [(go!"google.golang.org/grpc/health.startHealthCheck", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.google_golang_org.grpc.balancer.SubConn.ty, go.string, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.balancer.SubConnState.ty] false []))] false [])))]
 
 attribute [instance] healthServiceProducer.TypeAssumptions.type_repr
   healthServiceProducer.TypeAssumptions.underlying
@@ -272,6 +276,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
   import_grpclog_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_balancer_Assumption : _root_.Perennial.google_golang_org.grpc.balancer.Assumptions
 
 attribute [instance] Assumptions.producerBuilder_instance
   Assumptions.healthServiceProducer_instance
@@ -284,6 +289,7 @@ attribute [instance] Assumptions.producerBuilder_instance
   Assumptions.import_internal_Assumption
   Assumptions.import_grpclog_Assumption
   Assumptions.import_sync_Assumption
+  Assumptions.import_balancer_Assumption
 
 end google_golang_org.grpc.health
 

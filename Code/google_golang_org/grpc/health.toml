@@ -10,7 +10,9 @@
 # `context` and `connectivity` (`clientHealthCheck`'s type).
 translate = ["!*", "logger", "init.0", "init.1", "producerBuilderSingleton"]
 imports = ["!*", "sync", "google.golang.org/grpc/health/grpc_health_v1", "google.golang.org/grpc/grpclog",
-  "google.golang.org/grpc/internal", "context", "google.golang.org/grpc/connectivity"]
+  "google.golang.org/grpc/internal", "context", "google.golang.org/grpc/connectivity",
+  # `registerClientSideHealthCheckListener`'s type names `balancer.SubConn` and `SubConnState`
+  "google.golang.org/grpc/balancer"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

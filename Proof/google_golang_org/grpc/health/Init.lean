@@ -18,6 +18,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
+public import Proof.google_golang_org.grpc.balancer.Init
 public import Proof.google_golang_org.grpc.connectivity.Init
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.Init

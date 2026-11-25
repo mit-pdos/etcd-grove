@@ -63,6 +63,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) IsRegisteredMethod _ as HIsRegisteredMethod
   wp_apply wp_GlobalAlloc (V := GoInterface) CanonicalString _ as HCanonicalString
   wp_apply wp_GlobalAlloc (V := GoInterface) GetServerCredentials _ as HGetServerCredentials
+  wp_apply wp_GlobalAlloc (V := GoFunc) BalancerUnregister _ as HBalancerUnregister
   wp_apply wp_GlobalAlloc (V := GoInterface) RegisterClientHealthCheckListener _ as HRegisterClientHealthCheckListener
   wp_apply wp_GlobalAlloc (V := GoFunc) HealthCheckFunc _ as HHealthCheckFunc
   wp_apply wp_GlobalAlloc (V := GoInterface) AcceptCompressors _ as HAcceptCompressors
@@ -87,6 +88,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HClearGlobalPerTargetDialOptions with #CClearGlobalPerTargetDialOptions
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HClearGlobalServerOptions with #CClearGlobalServerOptions
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HHealthCheckFunc with #CHealthCheckFunc
+  imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HBalancerUnregister with #CBalancerUnregister
   iframe Hown
   imodintro
   isplitr
