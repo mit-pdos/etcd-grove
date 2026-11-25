@@ -65,8 +65,9 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := etcdFsSemOk
-  haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨Nat.le_trans (Nat.le_of_eq hT) (by decide)⟩
-  iintro Hshare - Hgs -
+  haveI : ThreadBoundLe putgetGF (2 ^ 30) := ⟨Nat.le_trans (Nat.le_of_eq hT) (by decide)⟩
+  iintro Hshare - Hgs Htok
+  icases (threadTok_level0 (GF := putgetGF)).1 $$ Htok with ⟨Hlt, -⟩
   iunfold clientShareIf at Hshare
   -- (prom-registry) the machine's registration rights: a fresh ghost map of its packages' IDs, the
   -- machine's registry name (as `member_boot`)
@@ -91,7 +92,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
       etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
       (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       client γE mid hlc
-      EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hshare] as %b -
+      EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hlt Hshare] as %b -
   · iframe
   (try wp_auto)
   all_goals first | done | (ipureintro; rfl) | itrivial

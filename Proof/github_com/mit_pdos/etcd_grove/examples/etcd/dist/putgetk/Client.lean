@@ -33,7 +33,7 @@ theorem Client.wp_proof
     (wp_Client : etcd_putget_dist.Client.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro _ _ _ ep γE mid Hat
-  wp_start as Hsh
+  wp_start as ⟨Hlt, Hsh⟩
   ihave #Hpg : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget $$ []
   · iPkgInit
@@ -48,8 +48,9 @@ theorem Client.wp_proof
   ihave ⟨%Hok, Hcs⟩ := Hsh $$ %Hne
   wp_auto
   have Hlen : ep.length + 1 < 2 ^ 63 := by have := Net.addrOk_length Hok; omega
-  wp_apply (wp_Client ep γE mid Hlen Hat) $$ [Hcs] as %r -
-  · iintro %-
+  wp_apply (wp_Client ep γE mid Hlen Hat) $$ [Hlt Hcs] as %r -
+  · iframe Hlt
+    iintro %-
     iexact Hcs
   iapply HΦ; itrivial
 

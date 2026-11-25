@@ -59,8 +59,8 @@ theorem Client.wp_proof
     (hne : mvcc.api.names_nonempty.law) :
     Client.spec (GF := GF) (hG := hG) := by
   intro CS TB π ep γE mid hlen hAs
-  have Htb : threadBound GF ≤ 2 ^ 31 := TB.threadBound_le
-  wp_start as Hshare
+  have Htb : threadBound GF ≤ 2 ^ 30 := TB.threadBound_le
+  wp_start as ⟨Hlt, Hshare⟩
   (try wp_auto)
   -- the address's check: `!AddrOk(ep)` returns `false`
   wp_apply wp_AddrOk _ hlen
@@ -94,8 +94,8 @@ theorem Client.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
   -- `NewClient(ep, lg)`, at any watch environment (`Put`/`Get` read none of it)
-  wp_apply (wp_NewClient ep lg (Classical.choice (wenv_nonempty (GF := GF) hne)) hplain Htb)
-    as %cl %cerr Hcl
+  wp_apply (wp_NewClient ep lg (Classical.choice (wenv_nonempty (GF := GF) hne)) hplain Htb) $$ [$Hlt]
+    as %cl %cerr ⟨-, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -, #Hnp⟩ | %Hcfail)
   rotate_left

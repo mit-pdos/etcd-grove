@@ -52,8 +52,9 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := etcdFsSemOk
-  haveI : ThreadBoundLe putgetGF (2 ^ 31) := ⟨by rw [hT]; omega⟩
-  iintro Hshare - Hgs -
+  haveI : ThreadBoundLe putgetGF (2 ^ 30) := ⟨by rw [hT]; omega⟩
+  iintro Hshare - Hgs Htok
+  icases (threadTok_level0 (GF := putgetGF)).1 $$ Htok with ⟨Hlt, -⟩
   imod (prometheus.regKeys_alloc (GF := putgetGF)
     github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.regQs putgetk_regQsOk) with ⟨%γreg, Hregs⟩
   letI : prometheus.PromRegGS putgetGF := ⟨γreg⟩
@@ -76,7 +77,7 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
         etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
         (etcd_putget_dist.AddrOk.wp_proof etcd_putget_dist.decimal.wp_proof)
         mvcc.api.mvccApi_names_nonempty_law_holds)
-      ep γE mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hshare] as %b -
+      ep γE mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hlt Hshare] as %b -
   · iframe; (try iframe #)
   (try wp_auto)
   all_goals first | done | (ipureintro; rfl) | itrivial
