@@ -1499,7 +1499,7 @@ D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; 
 
 ### T7 status and handoff (2026-11-25, session 4; branch `etcd-safe-t7`)
 
-**Done** (`dist/crash/MemberCrash.lean`; build evidence in the commit message / report; no axiom, no `sorry`):
+**Done** (`dist/crash/MemberCrash.lean`; built on fk-lean2, `…dist.crash.MemberCrash`, 4515 jobs, exit 0; tier check ok; no axiom, no `sorry`):
 * **D-T7-4's split** (`section slots`): `snapSlots_of` (induction over an index list: each index's fresh claim
   plus half of the remaining path/call shares gives `snapCrash.snapSlotF`), `snapDir_split` (the new generation's
   whole claim `osNames J (.except []) 1 (namesOf V J (.except []))` with a path share and a call share ⊢ every
