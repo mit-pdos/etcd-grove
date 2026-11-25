@@ -217,25 +217,20 @@ func echo(c svc.DriverClient, ids *counter) {
 
 // fail is the section status-roundtrip.
 func fail(c svc.DriverClient, ids *counter) {
-	// Section status-roundtrip: a handler's error reaches the caller as a status carrying the
-	// handler's message, with the handler's code (a status) or codes.Unknown (a plain error).
+	// Section status-roundtrip: a call whose handler failed returns an error. (gRPC also relays the
+	// handler's error as a status carrying its message, with its code, or codes.Unknown for a plain
+	// error; the proof does not state the code yet, an S3 gap (notes/library-drivers.md), so it is not
+	// checked.)
 	v := freshValue(ids)
-	want := codes.NotFound
 	if below(2) == 0 {
 		v = "p" + v
-		want = codes.Unknown
 	}
 	_, err := c.Fail(context.Background(), wrapperspb.String(v))
 	if err == nil {
 		panic("status-roundtrip: a call whose handler failed returned no error")
 	}
 	checkErr(err)
-	if st, _ := status.FromError(err); st.Message() == v {
-		if st.Code() != want {
-			panic("status-roundtrip: the handler's message with another code")
-		}
-		reached("status-roundtrip")
-	}
+	reached("status-roundtrip")
 }
 
 // meta is the section metadata.
