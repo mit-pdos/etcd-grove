@@ -99,6 +99,50 @@ theorem plain_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := 
   unfold invokeOut
   iexact Hout
 
+/-- **A call that fails at once** (`grpcInvokerDone`): with a context already cancelled, or on a closed
+connection with a quiet context, the call fails with a status of code `Canceled`. -/
+theorem plain_Invoke_done (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG))
+    (conn : Loc) (addrs : List GoString) (method : GoString) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (req reply : GoInterface) (opts : GoSlice)
+    (vs : List GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗
+      grpcConn conn addrs [] [] anyRes ∗ metadata.outMD ctx none ∗
+      (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗ ctxOk ctx cd ∗
+      opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ ⊢
+    WP (App (App (App (App (App
+      (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
+      (Val #(GoInterface.ok ctx))) (Val #method)) (Val #req)) (Val #reply)) (Val #opts))
+    {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗
+        ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∗
+        go_etcd_io.etcd.cache.v3.statusErrOk err ∗ go_etcd_io.etcd.cache.v3.statusCodeIs err (W32 1) }} := by
+  iintro ⟨#Hg, #Hc, #Hom, Hdone, #Hctx, #Hopts, %Hvs⟩
+  iapply wp_true_sep
+  iapply (wp_Invoke conn addrs [] [] anyRes (GoInterface.ok ctx) method req reply opts vs iprop(True))
+  iframe #
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · itrivial
+  iintro %inv %opts' #Hinv #Hopts'
+  simp only [List.nil_append, chainWP]
+  iintro -
+  iapply wp_true_sep_intro
+  iunfold grpcInvokerOk at Hinv
+  icases Hinv with ⟨-, #Hdn⟩
+  iunfold grpcInvokerDone at Hdn
+  ihave Hdn' := Hdn $$ %ctx %cd %method %req %reply %opts' %vs %([] : List Loc)
+  iapply Hdn' $$ [Hdone]
+  · iframe #
+    iframe
+    try (isplitr; · ipureintro; exact Hvs)
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+    iempintro
+  inext
+  iintro %err ⟨-, %Herr, #Hse, #Hcode⟩
+  iexists err
+  iframe #
+  ipureintro; exact ⟨rfl, Herr⟩
+
 end defs
 
 end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver

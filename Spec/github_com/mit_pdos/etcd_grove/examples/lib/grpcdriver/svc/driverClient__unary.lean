@@ -45,6 +45,23 @@ abbrev driverClient.unary.spec : Prop :=
       invokeOut method addrs (pbStringValueRT (GF := GF)) out Φ Ψe err ∗
       ⌜err = GoInterface.nil → resp = out⌝ }}
 
+/-- **A call that fails at once** (`plain_Invoke_done`): with a context already cancelled, or on a
+closed connection with a quiet context, it returns a status error of code `Canceled`. -/
+abbrev driverClient.unary.spec_done : Prop :=
+  ∀ (dc conn : Loc) (addrs : List GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (opts : GoSlice) (vs : List GoInterface) (method : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ∗
+      structFieldRef svc.driverClient go!"cc" dc ↦□
+        (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #conn : GoInterface) ∗
+      grpcConn conn addrs [] [] anyRes ∗ metadata.outMD ctx none ∗
+      (ctxCanceledIs ctx ∨ grpcConnClosed conn ∗ ctxQuiet ctx) ∗ ctxOk ctx cd ∗
+      opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk [] v⌝ }}
+    (App (App (App (App (Val (dc @!! go.GoType.PointerType svc.driverClient.ty @!! go!"unary"))
+      (Val #(GoInterface.ok ctx))) (Val #method)) (Val #inp)) (Val #opts))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.hasGRPCStatus err⌝ ∗
+      go_etcd_io.etcd.cache.v3.statusErrOk err ∗ go_etcd_io.etcd.cache.v3.statusCodeIs err (W32 1) }}
+
 end spec
 
 end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc

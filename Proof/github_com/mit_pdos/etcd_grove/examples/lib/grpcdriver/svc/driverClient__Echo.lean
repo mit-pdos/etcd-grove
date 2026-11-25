@@ -42,6 +42,19 @@ theorem driverClient.Echo.wp_proof (wp_unary : driverClient.unary.spec (GF := GF
   iapply HΦ
   iexact H
 
+theorem driverClient.Echo.wp_proof_done (wp_unary : driverClient.unary.spec_done (GF := GF) (hG := hG)) :
+    driverClient.Echo.spec_done (GF := GF) (hG := hG) := by
+  intro dc conn addrs ctx cd inp opts vs
+  wp_start as ⟨#Hcc, #Hconn, #Hom, Hdone, #Hctx, #Hopts, %Hvs⟩
+  wp_auto
+  wp_apply (wp_unary dc conn addrs ctx cd inp opts vs echoName) $$ [Hdone] as %resp %err H
+  · iframe #
+    iframe
+    ipureintro; exact Hvs
+  try wp_auto
+  iapply HΦ
+  iexact H
+
 end proof
 
 end github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc

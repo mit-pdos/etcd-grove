@@ -340,10 +340,12 @@ func bidi(c svc.DriverClient) {
 	v := randomWord()
 	sent := ""
 	for i := 0; i < len(v); i++ {
-		if err := st.Send(wrapperspb.String(v[i : i+1])); err != nil {
+		err := st.Send(wrapperspb.String(v[i : i+1]))
+		// A Send that fails may or may not have delivered its message: count it as sent.
+		sent = sent + v[i:i+1]
+		if err != nil {
 			break
 		}
-		sent = sent + v[i:i+1]
 	}
 	st.CloseSend()
 	got := ""
