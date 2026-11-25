@@ -147,7 +147,7 @@ def walCreateQ (dir : GoString) (i : Nat) (N : NameSet) (h : NamesH) (md : List 
       osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailReg (W := W) dir t ∗
       walNamesFrag (W := W) (some dir) ∗
-      walDirKey (W := W) dir J X ∗
+      walDirKey (W := W) dir i J X ∗ walIncEAny (W := W) ∗
       ∃ (s' : AbsDiskState) (I : GMap GoString Nat), walLockedTokI (W := W) I ∗ walPastI (W := W) (s', I) ∗
         ⌜incOf I dir = i ∧ s'.wal !! dir = some (walDurFresh md)⌝)
 
@@ -447,10 +447,12 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         | some v =>
           obtain ⟨lay1, -, hl1, -⟩ := Hdko.1 dir v.1 v.2 e
           rw [hLd] at hl1; cases hl1
-      imod walDirKey_insert K dir J X hKd hXt $$ Hdk with ⟨Hdk, #Hkey⟩
+      icases walLockedTokI_incQ (W := W) Il $$ HLk with ⟨HIl, HLk⟩
+      imod walDirKey_insert K dir J X Il hKd hXt $$ Hdk HIl with ⟨Hdk, #Hkey, HIl⟩
+      ihave HLk := HLk $$ HIl
       imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
         (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
-        hsegs hpg hino hJo $$ Hpk Ho Hth with ⟨Hpk, Ho⟩
+        hsegs hpg hino hJo rfl $$ Hpk Ho Hth with ⟨Hpk, Ho, Hres⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
       -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)
@@ -532,7 +534,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]
-      iframe HQ Hsf Hm2 Hb2 Hkey
+      isimp only [hIv] at Hkey
+      iframe HQ Hsf Hm2 Hb2 Hkey Hres
       iframe Ho Hnf
       isplitl [Htf Htk Htv]
       · unfold walTailReg; iexists γt; iframe

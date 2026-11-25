@@ -149,9 +149,9 @@ theorem walTailLk_excl (fd : w64) (i i' : Ino) (k : LockKind) (fd' : w64) :
 
 /-- **The handle's share of its directory, lent** (see the file header): back with the claim's names after
 removals of `.wal` names but the tail's. -/
-theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+theorem walDirH_lend (dir : GoString) (i : Nat) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
     (lfs : List Loc) (cuts : List Nat) (qp : Qp) (nmd : Roots → Qp → IProp GF) (nf : Option GoString) :
-    walDirH (W := W) dir j dfd ino name k lfs cuts qp nmd nf ⊢
+    walDirH (W := W) dir i j dfd ino name k lfs cuts qp nmd nf ⊢
       ∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString),
         walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
         osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
@@ -162,7 +162,7 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
           osNames j (.except X) (DFrac.own (1 : Qp).half) hj' -∗ osPathS R dir (DFrac.own q) j -∗
           osSharedInv R -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
           walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗ walDirLks (W := W) dir hj' nm0 lfs cuts -∗
-          walDirH (W := W) dir j dfd ino name k lfs cuts qp nmd nf := by
+          walDirH (W := W) dir i j dfd ino name k lfs cuts qp nmd nf := by
   unfold walDirH
   iintro ⟨%R, %q, %X, %hj, %nm0, %ph, #Hkey, Hn, Hp, #Hsh, %hRW, Hc, Hfd, Hnmd, Ho, Hlk, Hnf, %hf⟩
   obtain ⟨hw0, hc0, hpd, htmp, hX, hsq, hmax⟩ := hf

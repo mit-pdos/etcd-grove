@@ -132,7 +132,7 @@ def pipeQ (j : Ino) (n : Nat) : IProp GF :=
 "the client keeps no call permission while a WAL is open"), the fraction `dq` of the directory's
 path. -/
 def pipeRes (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) : IProp GF :=
-  iprop(osCallPerm (callKey R dir) (1 : Qp).half.half ∗ osPathS R dir dq j)
+  iprop(osCallPerm (callKey R dir) (1 : Qp).half.half ∗ osPathS R dir dq j ∗ walPipeKey (W := W) dir j)
 
 /-- The call permission's halves, split. -/
 theorem osCallPerm_halfSplit (k : GoString) (q : Qp) :
@@ -203,8 +203,8 @@ variable [os_sem : os.Assumptions]
 
 /-- **The pipeline `fp` of the directory `dir` (inode `j`, path fraction `dq` under the roots
 `R`)** (persistent): its read-only fields, the three channels' protocols, and the environment
-`run` needs (with the WAL invariant and the directory's key: a step on a pipeline name
-opens the invariant for its half of the name's claim, `walTmp_osAUnc`), and a bound on the directory's length (`filepath.Join`'s premise). -/
+`run` needs (with the WAL invariant: a step on a pipeline name
+opens the invariant for its half of the name's claim, `walTmp_osAUnc`, with the key in `pipeRes`), and a bound on the directory's length (`filepath.Join`'s premise). -/
 def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino)
     (sz : w64) : IProp GF :=
   iprop(∃ lg : Loc,
@@ -218,8 +218,8 @@ def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DF
     isSpsc (V := GoInterface) γ.e γ.ec (pipeErrP R dir dq j) (pipeErrR γ R dir dq j) ∗
     ownBroadcastChan γ.dc γ.d (pipeClosedW γ) .Unknown ∗
     zapLoggerOk lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
-    (∃ (C : WalEnc.WalCodec) (Mr : WalEnc.WalMarshal) (jr : Ino) (r : GoString) (X : List GoString),
-      walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X) ∗
+    (∃ (C : WalEnc.WalCodec) (Mr : WalEnc.WalMarshal) (jr : Ino) (r : GoString),
+      walInv (W := W) C Mr R jr r) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
     ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 60 ∧ sz.toInt % 8 = 0⌝)
 

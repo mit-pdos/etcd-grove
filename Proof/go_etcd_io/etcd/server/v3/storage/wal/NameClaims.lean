@@ -98,18 +98,20 @@ theorem nc_osPathS_unchild (R : Roots) (d b : GoString) (j J : Ino) (e a : Qp) (
 /-- **A path to a registered WAL's directory**, lent by the invariant (see the file header): with no
 pending registration and loans `Lo` out, the loan `(nm, q)` added. -/
 theorem walInvBody_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (Lo : List (GoString × Qp)) :
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString)
+    (Lo : List (GoString × Qp)) :
     ⊢ walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s -∗
-      walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗ walDirKey (W := W) dir j X ==∗
-      walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗
+      walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I ==∗
+      walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗ walIncQ (W := W) I ∗
         ∃ (nm : GoString) (q : Qp), ⌜dir = child r nm⌝ ∗
           walNamesFragS (W := W) ⟨none, none, (nm, q) :: Lo⟩ ∗
           osPathS (L := hG.goose_localGS) R dir (DFrac.own q) j := by
-  iintro Hb Hf #Hk
+  iintro Hb Hf #Hk HI
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, Hbd⟩
-  icases walDirKey_lookup (W := W) K dir j X $$ HKa Hk with %hK
+  icases walDirKey_lookupI (W := W) K dir j X I $$ HKa Hk HI with %hK
   obtain ⟨lay, -, hl, rfl, -⟩ := HDK.1 dir j X hK
   unfold walNamesRes
   icases Hnms with ⟨%o, %Wn, Ha, Hs, %hf, %hun, %hst, ⟨%qs, Hsp⟩, Hl⟩
@@ -159,7 +161,7 @@ theorem walInvBody_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     have h3 : (q.half + a).val = q.half.val + a.val := rfl
     rw [h3]; rw [← hqv, ← h2, ← h1]; grind
   imodintro
-  isplitr [Hpath Hf]
+  isplitr [Hpath Hf HI]
   · iexists Ls, cl, n, F
     iframe
     isplitr
@@ -194,7 +196,8 @@ theorem walInvBody_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     · iexists q.half + a, hn
       iframe Hn
       ipureintro; exact ⟨hqv', hnok, hwnm, hcur⟩
-  · iexists lay.nm, e
+  · iframe HI
+    iexists lay.nm, e
     iframe Hf
     isplitr
     · ipureintro; exact hdir
@@ -271,18 +274,18 @@ theorem walInvBody_dirPathRet (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
 registration (the lock's `walNamesFrag none`, which `walParked_lock`, the pin's, hands the taker), the
 loan recorded. -/
 theorem walInv_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (Lo : List (GoString × Qp)) :
+    (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (Lo : List (GoString × Qp)) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
-      walDirKey (W := W) dir j X ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+      walDirKey (W := W) dir (incOf I dir) j X -∗ walIncQ (W := W) I ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walIncQ (W := W) I ∗
         ∃ (nm : GoString) (q : Qp), ⌜dir = child r nm⌝ ∗
           walNamesFragS (W := W) ⟨none, none, (nm, q) :: Lo⟩ ∗
           osPathS (L := hG.goose_localGS) R dir (DFrac.own q) j := by
-  iintro #Hinv Hnc Hf #Hk
+  iintro #Hinv Hnc Hf #Hk HI
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_dirPath C Mr R jr r s dir j X Lo $$ Hb Hf Hk with ⟨Hb, Hp⟩
+  imod walInvBody_dirPath C Mr R jr r s dir I j X Lo $$ Hb Hf Hk HI with ⟨Hb, HI, Hp⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   imodintro

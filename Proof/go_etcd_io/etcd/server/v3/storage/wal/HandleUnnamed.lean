@@ -58,12 +58,12 @@ theorem walOpenWFU_intro (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
 
 /-- **The directory share's names record out** (with the path's fraction `q` and the naming fact), and
 back (another record over the same fractions) with another naming fact. -/
-theorem walDirH_split (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+theorem walDirH_split (dir : GoString) (i : Nat) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
     (lfs : List Loc) (cuts : List Nat) (qp : Qp) (A B : Roots → Qp → IProp GF) (nf : Option GoString) :
-    ⊢ walDirH (W := W) dir j dfd ino name k lfs cuts qp A nf -∗
+    ⊢ walDirH (W := W) dir i j dfd ino name k lfs cuts qp A nf -∗
       ∃ (R : Roots) (q : Qp), A R q ∗ walHLoans (W := W) dir nf [q, qp] ∗
         ∀ nf' : Option GoString, walHLoans (W := W) dir nf' [q, qp] -∗
-        B R q -∗ walDirH (W := W) dir j dfd ino name k lfs cuts qp B nf' := by
+        B R q -∗ walDirH (W := W) dir i j dfd ino name k lfs cuts qp B nf' := by
   iintro Hd
   unfold walDirH
   icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hrw, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩

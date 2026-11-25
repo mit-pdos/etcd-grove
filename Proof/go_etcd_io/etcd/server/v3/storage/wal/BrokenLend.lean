@@ -127,7 +127,7 @@ theorem walParked_lendOld (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c : 
   iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
   subst ho
-  imod walOut_set (W := W) o' o' (o'.addClaim (lendKey c.1 bt)) $$ Hoa Hf with ⟨Hoa, Hf⟩
+  imod walOut_set (W := W) o' o' (o'.addClaim (lendKey c.1 bt)) rfl $$ Hoa Hf with ⟨Hoa, Hf⟩
   unfold walOthersL
   icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hw with ⟨H1, H2⟩
   icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨Hc0, H2⟩
@@ -181,7 +181,7 @@ theorem walParked_unlend (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c : C
   iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf Hn
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
   subst ho
-  imod walOut_set (W := W) o' o' (o'.delClaim (lendKey c.1 bt)) $$ Hoa Hf with ⟨Hoa, Hf⟩
+  imod walOut_set (W := W) o' o' (o'.delClaim (lendKey c.1 bt)) rfl $$ Hoa Hf with ⟨Hoa, Hf⟩
   unfold walOthersL
   icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hw with ⟨H1, H2⟩
   icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨Hc0, H2⟩

@@ -81,7 +81,8 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 `2^59`: `newFilePipeline`'s paths); `nm.tmp`
 (`tmp`) holding `J` and `nm` absent in the creating claim `(jr, N, h)`, both names of it; the spine
 law (`Sp` and the program's half of the claim after the rename give two spines to `dir` and `SpR`, and
-the WAL invariant with the new WAL's key, which the pipeline keeps: `newFilePipeline`); an
+the WAL invariant and the new WAL's key with the pipeline's eighth of the incarnations (`walPipeKey`), which
+the pipeline keeps: `newFilePipeline`); an
 aborted update's result rebuilds the update. -/
 def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH)
     (lb : Nat) (dq : DFrac) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
@@ -92,8 +93,8 @@ def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet)
       renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ U (some x) ∗
       osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x ∗
-      (∃ (C : WalCodec) (Mr : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
-        walInv (W := W) C Mr R jr' r' ∗ walDirKey (W := W) dir J X)) ∧
+      (∃ (C : WalCodec) (Mr : WalMarshal) (jr' : Ino) (r' : GoString),
+        walInv (W := W) C Mr R jr' r') ∗ walPipeKey (W := W) dir J) ∧
   (⊢ U none -∗ osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
       (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U)
 

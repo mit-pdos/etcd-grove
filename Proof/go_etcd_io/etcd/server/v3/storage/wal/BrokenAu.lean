@@ -126,7 +126,7 @@ theorem walParked_lendNew (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c'
   iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
   subst ho
-  imod walOut_set (W := W) o' o' (o'.addClaim (lendKey c.1 bt)) $$ Hoa Hf with ⟨Hoa, Hf⟩
+  imod walOut_set (W := W) o' o' (o'.addClaim (lendKey c.1 bt)) rfl $$ Hoa Hf with ⟨Hoa, Hf⟩
   imodintro
   iframe Hf
   iexists bf, o'.addClaim (lendKey c.1 bt)

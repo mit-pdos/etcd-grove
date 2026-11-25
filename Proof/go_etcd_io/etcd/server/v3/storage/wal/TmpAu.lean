@@ -58,24 +58,26 @@ theorem walParked_tmpAcc (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
   iframe Ha Hoa Hs Hc Ht Hw
   ipureintro; exact hb'
 
-/-- **The invariant's half of a keyed WAL directory's pipeline name, out of its contents and back.** -/
+/-- **The invariant's half of a keyed WAL directory's pipeline name, out of its contents and back**
+(the pipeline's key, current by its eighth of the incarnations, kept). -/
 theorem walInvBody_tmpAcc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (b : GoString)
+    (s : AbsDiskState) (dir : GoString) (j : Ino) (b : GoString)
     (hb : b ∈ walTmps) :
-    ⊢ walDirKey (W := W) dir j X -∗ walInvBody (L := L) (W := W) C Mr R jr r s -∗
-      tmpHalf (hG := ⟨G, L⟩) j b ∗
+    ⊢ walPipeKey (W := W) dir j -∗ walInvBody (L := L) (W := W) C Mr R jr r s -∗
+      walPipeKey (W := W) dir j ∗ tmpHalf (hG := ⟨G, L⟩) j b ∗
         (tmpHalf (hG := ⟨G, L⟩) j b -∗ walInvBody (L := L) (W := W) C Mr R jr r s) := by
-  iintro #Hkey Hb
+  iintro Hkey Hb
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, Hcra,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walPipeKey_lookup K dir j $$ Hdk Hkey with %HK
+  obtain ⟨X, HK⟩ := HK
   obtain ⟨lay, -, hl, hlj, -⟩ := Hdko.1 dir j X HK
   subst hlj
   unfold walParked
   icases Hpk with ⟨%bf, %o', Ha, Hoa, %hb', Hs, Hc, Ht, Hw⟩
   ihave ⟨Hh, Ht⟩ := walTmpParked_acc (G := G) (L := L) Ls o'.T dir lay hl b hb $$ Ht
-  iframe Hh
+  iframe Hh Hkey
   iintro Hh
   ihave Ht := Ht $$ Hh
   iexists Ls, cl, n, F
@@ -122,33 +124,35 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
-/-- **What the caller of a step on a pipeline name keeps in the update**: the WAL's key and a quarter
-of the claim (the call gets the program's other half). -/
-def walTmpP (dir : GoString) (j : Ino) (X : List GoString) (b : GoString) (h : NamesH) : IProp GF :=
-  iprop(walDirKey (W := W) dir j X ∗ osNames j (.only [b]) (DFrac.own (1 : Qp).half.half) h)
+/-- **What the caller of a step on a pipeline name keeps in the update**: the pipeline's key (with its
+eighth of the incarnations, `walPipeKey`) and a quarter of the claim (the call gets the program's other
+half). -/
+def walTmpP (dir : GoString) (j : Ino) (b : GoString) (h : NamesH) : IProp GF :=
+  iprop(walPipeKey (W := W) dir j ∗ osNames j (.only [b]) (DFrac.own (1 : Qp).half.half) h)
 
 /-- **The update for a step on the pipeline name `b` of a keyed WAL directory** (see the file
 header). -/
 theorem walTmp_osAUnc {A : Type} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (dir : GoString) (j : Ino) (X : List GoString) (b : GoString) (hb : b ∈ walTmps)
+    (r : GoString) (dir : GoString) (j : Ino) (b : GoString) (hb : b ∈ walTmps)
     (h : NamesH) (β : DFrac → A → IProp GF) (hn : A → NamesH)
     (hsplit : ∀ o, β (DFrac.own (1 : Qp).half) o ⊢
       osNames j (.only [b]) (DFrac.own qTmpI) (hn o) ∗ β (DFrac.own (1 : Qp).half.half) o)
     (hfo : ∀ o n0, HistFoP (fun _ => True) n0 j (.only [b]) h →
       HistFoP (fun _ => True) n0 j (.only [b]) (hn o)) :
-    ⊢ walInv (W := W) C Mr R jr r -∗ walTmpP (W := W) dir j X b h -∗
+    ⊢ walInv (W := W) C Mr R jr r -∗ walTmpP (W := W) dir j b h -∗
       osAUnc (osNames j (.only [b]) (DFrac.own (1 : Qp).half) h)
-        (β (DFrac.own (1 : Qp).half)) (β (DFrac.own (1 : Qp).half.half)) := by
+        (β (DFrac.own (1 : Qp).half))
+        (fun o => iprop(β (DFrac.own (1 : Qp).half.half) o ∗ walPipeKey (W := W) dir j)) := by
   iintro #Hinv HP
-  iapply osAUnc_coiter _ _ _ (walTmpP (W := W) dir j X b h) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (walTmpP (W := W) dir j b h) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
   imod walInv_open C Mr R jr r osAuMask walN_sub_au $$ Hinv Hnc with ⟨Hb, Hnc, Hcl⟩
   icases Hb with ⟨%s, Hb⟩
   unfold walTmpP
-  icases HP with ⟨#Hkey, Hq⟩
-  ihave ⟨Hh, Hbcl⟩ := walInvBody_tmpAcc C Mr R jr r s dir j X b hb $$ Hkey Hb
+  icases HP with ⟨Hkey, Hq⟩
+  ihave ⟨Hkey, Hh, Hbcl⟩ := walInvBody_tmpAcc C Mr R jr r s dir j b hb $$ Hkey Hb
   unfold tmpHalf
   icases Hh with ⟨%h1, %n0, Hα, #Hn0, %hf⟩
   icases osNames_agree j (.only [b]) _ _ h1 h $$ Hα Hq with %e
@@ -183,7 +187,8 @@ theorem walTmp_osAUnc {A : Type} (C : WalCodec) (Mr : WalMarshal) (R : Roots) (j
       iframe Hα Hn0
       ipureintro; exact hfo o n0 hf
     imodintro
-    iexact Hq
+    dsimp only
+    iframe Hq Hkey
 
 end au
 

@@ -81,7 +81,7 @@ def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j 
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp (nmd f) nf ∗
+    walDirH (W := W) dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp (nmd f) nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" w ↦□ (null : Loc) ∗

@@ -635,12 +635,12 @@ WAL's tail registered (`walTailsFrag`, W1 log, eleventh session), and no name re
 W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they return the handle).
 `nmd` is the naming fact (`walHandleIn`'s default: `walNamed dir h.inc`, the handle's incarnation); `emp` in the handle before naming
 (`walOpenWFU`: `Create` between its commit and the parent's fsync). -/
-def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+def walDirH (dir : GoString) (i : Nat) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
     (lfs : List Loc) (cuts : List Nat) (qp : Qp)
     (nmd : Roots → Qp → IProp GF) (nf : Option GoString := none) :
     IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
-    walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+    walDirKey (W := W) dir i j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ ⌜R = W.roots⌝ ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
     osDirFdS dfd j ph ∗
     nmd R q ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
@@ -687,7 +687,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp (nmd f) nf ∗
+    walDirH (W := W) dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp (nmd f) nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" w ↦□ (null : Loc) ∗
