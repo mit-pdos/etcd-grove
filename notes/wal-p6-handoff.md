@@ -488,6 +488,38 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 18 (WIP, `etcd-safe-p6b-wip`): S started (its crash-tree core); S's plan refined.**
+  **Done**: new `Proof/.../wal/DiscardSPure.lean` (imports `CreateDrop`; `etc/lean-check.py -a`: 0 errors, no
+  `sorry`; nothing imports it yet, not in a `lake build`): `exists_dir` (a `Dir` from a function supported on a
+  candidate list, through `GMap.ofList`), `valAfter_cands`, `exists_treeSetN` (the tree with `j`'s names of `N` set
+  by `f`), and **`regionCrashedK_dropDir`**: dropping a whole directory claim `(j, N, h)` from the invariant's
+  claims (no remaining claim on a name of `N` of `j`): every crash `m'` of the rest has an `m''` that is a crash
+  of all (kept set `dropK`), equal to `m'` off `j`'s names of `N`. This is what S needs to take the discarded WAL's
+  directory claim `(lay.j, .except X, hj)` out of `cl` (as `CreateDropInv`'s `DropOk.crash` for one name).
+  **Found reading for S (check these first next session):**
+  * the pipeline names' claims (`tmpHalf`/`tmpClaim`, `TmpClaim.lean`) are **not in `cl`**: they are separate
+    `osNames` fractions `qTmpI`/`qTmp` (in `walTmpHalves`, and `walTmpParked0` or out); so `cl` loses only the
+    directory claim; the program gets the tmps claims whole from `walTmpParked` (lock free: `o.T = []`) and the
+    invariant's `walTmpHalves` (`Jh` loses `dir`), then `osNames_merge` twice into `(lay.j, .except [], hj')`.
+  * `walAreaRes`'s new conjuncts for `tmp := tmpName nm`: `SubCover (clOf cl' tmp) (some (.dir J))` needs only
+    `(J, .except [], hj') ∈ clOf cl' tmp` and that every entry of `hj'.cur` is a file (`ClReach` then stays at
+    `J`): `SegsNamed` (`.wal` names), `tmpEnt` (pipeline names), `walOthersL` (the others); `ClRanked` is then
+    trivial (no directory entry). `clOf cl tmp` before S is `[]` (the `RemoveAll(dir.tmp)` consumed it).
+  * the area claims: after U' the invariant holds half of `(jr, .only [nm, tmp], hC)` in `cl` and the program the
+    other half (`renDirOut`'s); merging it back into the program's area claim `(jr, N \ tmp, h)` is an invariant
+    step (`walInvBody_mergeIn`, as `Create`'s commit), giving `walAreaRes`'s `N ∪ {nm}` (`nm` left `Wn` at U').
+  * pure facts over `cl'` (the dir claim dropped) by `regionCrashedK_dropDir`: other WALs' crash conditions read
+    `entsOf m' lay'.j` and the area `jr`: **needs `lay'.j ≠ lay.j` for other layouts** (no lemma seen yet:
+    check `DirKeysOk`/`walDirKey`'s keys, `DirClaimOk`'s `ClaimOnce`; else derive from `WalsAt` + the area
+    claim's entries) and `lay.j ≠ jr` (`WalsAt.ne`); `DirsOk` by `DirsRoots` (durable dirs are roots); `AbsentOk`
+    is implied by `AbsentNone`; `AbsentNone` for `dir` from the raised commit lb past the rename (the rename is
+    the last write of `nm` in the area claim: `regionCrashed_lastWrite`, as `CreateNamedStep`).
+  **Next**: the rest of S (pure: `walsOk_discard`, `absentNone_discard`, `walsNamed_discard`, `dirKeysOk_discard`
+  (keys `K.delete dir`), `walsAt_discard`, `walsCreateOk_discard`; Iris: the layout's resources out of
+  `laysResF`/`walParked` (segment halves dropped), the tmps claims, `walTailsRes`/`walNamesRes` over `Ls.delete
+  dir`, `walGhostI_bump` with `walLeI_discard`, `AU₂` committed, `disc := none`, `walUnlockedTok` rebuilt), then
+  the `Discard` proof, the crash lemma, docstrings, `gen-link --walfs`, builds. Session stopped at the ~150k-token
+  handoff rule (most of it spent reading for S).
 - **2026-11-25, P6b session 17 (WIP, `etcd-safe-p6b-wip`): R done; S not started.** **Decision (coordinator,
   approved, internal, not a spec change):** `walDirKeysAuth` (Ghost.lean) gains `⌜∀ dir i x, Kall !! (dir, i) = some x
   → i ≤ incOf I dir⌝` (keys are recorded only at incarnations up to the current one; no existing lemma gave `Kall !!
