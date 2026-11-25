@@ -440,9 +440,14 @@ interim, retired with the stream contract by S3's proofs over the model): no val
 `err`. grpc's `serverStream.RecvMsg` returns `io.EOF` only at the client's end of the up queue (its
 `EOF` arm, with `upClosed`): grpc-go v1.84 and the model (`models/grpc/stream.go`, `serverStream.RecvMsg`:
 `recv`'s `io.EOF` is returned only from the stream's reader, which the transport gives it only for the
-client's END_STREAM, `model_transport.go`'s `frameClose`; every other transport error is a
-`connectionError` or a context error, which `toRPCErr` makes a status; a non-client-streaming method's
-second read maps `io.EOF` to `nil`). So a handler's `err == io.EOF` tells the two arms apart. -/
+client's END_STREAM, `model_transport.go`'s `frameClose`; every other end of the stream is a
+`connectionError`, a context status or `io.ErrUnexpectedEOF` (a message cut short), each a value of
+another type than `io.EOF`, mostly made a status by `toRPCErr` (the internal second read of a
+non-client-streaming method returns its error unconverted, and maps `io.EOF` to `nil`); real grpc-go
+v1.84 queues `io.EOF` only on END_STREAM, `http2_server.go` `operateHeaders`, `handleData`). So a
+handler's `err == io.EOF` tells the two arms apart. Of `Server.Serve`'s transport only:
+`Server.ServeHTTP`'s returns `io.EOF` at the end of `net/http`'s request body. Review:
+`notes/axiom-review/grpc-driver-interim.md`, T12. -/
 def srvNotEof (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterface, eofIs e -∗ ⌜err ≠ e⌝)
 
