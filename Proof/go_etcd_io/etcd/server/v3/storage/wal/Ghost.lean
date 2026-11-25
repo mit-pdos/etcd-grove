@@ -236,6 +236,9 @@ incarnation grows; where it stays, the WAL stays and grows as `absLe` has it. -/
 /-- **The incarnation of `dir`** in `I` (0 where `I` has none). -/
 def incOf (I : GMap GoString Nat) (dir : GoString) : Nat := (I !! dir).getD 0
 
+@[simp] theorem incOf_empty (dir : GoString) : incOf (∅ : GMap GoString Nat) dir = 0 := by
+  unfold incOf; rw [GMap.lookup_empty]; rfl
+
 /-- **The order on past states with incarnations**: the area and the durable directories kept,
 every incarnation at least as high, and every WAL whose incarnation is unchanged kept and grown. -/
 def walLeI (p p' : AbsDiskState × GMap GoString Nat) : Prop :=
@@ -1499,10 +1502,14 @@ theorem walOpenW_lenLb_retired (w : Loc) (dir : GoString) (s : AbsDiskState) (I 
 
 /-- **`walOpenW` without its flags** (sealed): what a cut holds of the ghost handle while its rename
 is pending (`walOpenW_cut`). -/
-@[no_expose] def walOpenWC (w : Loc) (dir : GoString) : IProp GF :=
+@[no_expose] def walOpenWCI (w : Loc) (dir : GoString) (i : Nat) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ (i : Nat) (I : GMap GoString Nat), walHandleStI (W := W) w dir i .append ∗ token W.hA.γu ∗
+  iprop(∃ I : GMap GoString Nat, walHandleStI (W := W) w dir i .append ∗ token W.hA.γu ∗
     walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝)
+
+/-- `walOpenWCI` at some incarnation. Sealed. -/
+@[no_expose] def walOpenWC (w : Loc) (dir : GoString) : IProp GF :=
+  iprop(∃ i : Nat, walOpenWCI (W := W) w dir i)
 
 /-- **The parking and pending-cut flags out of the ghost handle** (W2's `cut`: the parking flag
 `false` tells the rename's update that the handle has taken its WAL's halves out of `walParked`;
@@ -1510,10 +1517,36 @@ is pending (`walOpenW_cut`). -/
 theorem walOpenW_cut (w : Loc) (dir : GoString) :
     walOpenW (W := W) w dir ⊣⊢
       walOpenWC (W := W) w dir ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none := by
-  unfold walOpenW walOpenWI walOpenWC walLockedTokI
+  unfold walOpenW walOpenWI walOpenWC walOpenWCI walLockedTokI
   constructor
   · iintro ⟨%i, %I, Hs, ⟨Ht, Hf, Hc, Hi⟩, %h⟩; iframe Hf Hc; iexists i, I; iframe Hs Ht Hi; ipureintro; exact h
   · iintro ⟨⟨%i, %I, Hs, Ht, Hi, %h⟩, Hf, Hc⟩; iexists i, I; iframe Hs Ht Hf Hc Hi; ipureintro; exact h
+
+/-- `walOpenW_cut` at the handle's incarnation. -/
+theorem walOpenWI_cut (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWI (W := W) w dir i ⊣⊢
+      walOpenWCI (W := W) w dir i ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none := by
+  unfold walOpenWI walOpenWCI walLockedTokI
+  constructor
+  · iintro ⟨%I, Hs, ⟨Ht, Hf, Hc, Hi⟩, %h⟩; iframe Hf Hc; iexists I; iframe Hs Ht Hi; ipureintro; exact h
+  · iintro ⟨⟨%I, Hs, Ht, Hi, %h⟩, Hf, Hc⟩; iexists I; iframe Hs Ht Hf Hc Hi; ipureintro; exact h
+
+/-- **A handle's written length** at its incarnation `i`, from a past state there. -/
+theorem walOpenWI_lenLb (w : Loc) (dir : GoString) (i : Nat) (s : AbsDiskState) (I : GMap GoString Nat)
+    (d : WalDur) (n : Nat) (hi : incOf I dir = i) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
+    ⊢@{IProp GF} walOpenWI (W := W) w dir i -∗ walPastI (W := W) (s, I) -∗
+      walOpenWI (W := W) w dir i ∗ walLenLb (W := W) w dir i n := by
+  unfold walOpenWI walHandleStI walLenLb walHandleDir
+  iintro ⟨%I', ⟨%γ, #Hw, Hm⟩, Hu, %h⟩ #Hs
+  isplitl [Hm Hu]
+  · iexists I'; iframe Hu
+    isplitl
+    · iexists γ; iframe Hw Hm
+    ipureintro; exact h
+  · iexists γ, s, I; iframe Hs
+    isplitl
+    · iexists i; iexact Hw
+    ipureintro; exact Or.inl ⟨hi, d, hd, hn⟩
 
 theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState)
     (I : GMap GoString Nat) (d : WalDur)

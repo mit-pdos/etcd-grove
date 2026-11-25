@@ -50,41 +50,47 @@ variable (W W' : WalGS GF)
 /-- **A named WAL across the crash, with whole operations** (`walDiskAt_crash_keep`, with
 the crash's whole-operation image): its new state is the old one with the history a prefix `walImgS` at the synced mark
 `n`, its synced mark and name kept in the new generation. -/
-theorem walDiskAt_crash_keepS (dir : GoString) (d : WalDur) (n : Nat) :
+theorem walDiskAt_crash_keepS (dir : GoString) (i : Nat) (d : WalDur) (n : Nat) :
     ⊢@{IProp GF} walCrashWal W W' -∗
-      walDiskAt (W := W) dir d -∗ walSyncedLb (W := W) dir n -∗ walNamed (W := W) dir -∗
-      walDiskAt (W := W) dir d ∗ ∃ (I : List (WalOpG WalEnt)) (k : Nat),
+      walDiskAtI (W := W) dir i d -∗ walSyncedLb (W := W) dir i n -∗ walNamed (W := W) dir i -∗
+      walDiskAtI (W := W) dir i d ∗ ∃ (I : List (WalOpG WalEnt)) (k : Nat),
         ⌜walImgS d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
-        walDiskAt (W := W') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗
-        walSyncedLb (W := W') dir n ∗ walNamed (W := W') dir := by
-  unfold walCrashWal walDiskAt walDirIs walSyncedLb walNamed
-  iintro ⟨%s, %s', %hcS, HG, HM', #Hp'⟩ ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩ ⟨%q, %dq, Hq, %Hdq⟩
+        walDiskAtI (W := W') dir 0 { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗
+        walSyncedLb (W := W') dir 0 n ∗ walNamed (W := W') dir 0 := by
+  unfold walCrashWal walDiskAtI walDirIsI walSyncedLb walNamed
+  iintro ⟨%s, %s', %hcS, HG, HM', HI', #Hp'⟩ ⟨%M, %Iv, HM, HI, %HMd, %hi⟩ ⟨%p, %Ip, Hp, %Hdp⟩
+    ⟨%q, %Iq, Hq, %Hdq⟩
+  subst hi
   icases walOwn_agree (W := W) s M $$ HG HM with %HMs
+  icases walGhost_inc (W := W) s Iv $$ HG HI with ⟨HG, HI⟩
   obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
-  icases walPast_ghost_le (W := W) s p $$ HG Hp with %Hlp
-  icases walPast_ghost_le (W := W) s q $$ HG Hq with %Hlq
-  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
-  obtain ⟨d2, h2, -, -, hn2⟩ := Hlq.2.2 dir dq Hdq.1
+  icases walPastI_ghost_le (W := W) s Iv (p, Ip) $$ HG Hp with %Hlp
+  icases walPastI_ghost_le (W := W) s Iv (q, Iq) $$ HG Hq with %Hlq
+  obtain ⟨he1, dp, hdp, hnp⟩ := Hdp.cur (p := (p, Ip)) Hlp
+  obtain ⟨he2, dq, hdq, hnq⟩ := Hdq.cur (p := (q, Iq)) Hlq
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2.2 dir dp hdp he1.symm
+  obtain ⟨d2, h2, -, -, hn2⟩ := Hlq.2.2.2 dir dq hdq he2.symm
   rw [hdr] at h1 h2; cases h1; cases h2
-  have hn : n ≤ dr.m := Nat.le_trans Hdp.2 hm1
-  have hnamed : dr.named = true := hn2 Hdq.2
+  have hn : n ≤ dr.m := Nat.le_trans hnp hm1
+  have hnamed : dr.named = true := hn2 hnq
   obtain ⟨⟨-, -, hcw, -⟩, hS⟩ := hcS
   rcases hcw dir dr hdr with ⟨hnf, -⟩ | ⟨I, k, -, hk, hs'⟩
   · rw [hnamed] at hnf; cases hnf
   have hIS : walImgS dr.H n I := walImgS_mono hn (hS dir dr _ hdr hs')
-  isplitl [HM]
-  · iexists M; iframe HM; ipureintro; exact HMd
+  isplitl [HM HI]
+  · iexists M, Iv; iframe HM HI; ipureintro; exact ⟨HMd, rfl⟩
   iexists I, k
   isplitr
   · ipureintro
     refine ⟨?_, ?_⟩
     · rw [hle.1]; exact hIS
     · rw [hle.2.2.1]; exact hk
-  isplitl [HM']
-  · iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
+  isplitl [HM' HI']
+  · iexists s'.wal, ∅; iframe HM' HI'; ipureintro
+    exact ⟨by rw [hs']; exact walDurLe_crash hle, incOf_empty dir⟩
   isplitr
-  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
-  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hnamed⟩
+  · iexists s', ∅; iframe Hp'; ipureintro; exact Or.inl ⟨incOf_empty dir, _, hs', hn⟩
+  · iexists s', ∅; iframe Hp'; ipureintro; exact Or.inl ⟨incOf_empty dir, _, hs', hnamed⟩
 
 end crash
 

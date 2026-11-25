@@ -114,6 +114,9 @@ structure WalHS where
   pc : Nat
   /-- `w.state` may be nil (only after `Create`, until `Save`'s nil check; P6). -/
   stNil : Bool := false
+  /-- The WAL's incarnation (P6b, `notes/wal-p6b-design.md`): the handle's ghost record's, current while
+  the handle holds the lock (`walOpenWI`). -/
+  inc : Nat := 0
 
 /-- The tail's records encoded so far (all but the last `rest`). -/
 def WalHS.encRecs (Mr : WalMarshal) (h : WalHS) : List WalRec :=
@@ -602,11 +605,11 @@ pipeline's names; W1 log, tenth session); the lock holder's half of the tails' a
 WAL's tail registered (`walTailsFrag`, W1 log, eleventh session), and no name registration pending
 (`walNamesFrag none`): what `Close` needs to give the lock token back (`walLockedTok_unlock`; W10,
 W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they return the handle).
-`nmd` is the naming fact, `walNamed dir` by default; `emp` in the handle before naming
+`nmd` is the naming fact (`walHandleIn`'s default: `walNamed dir h.inc`, the handle's incarnation); `emp` in the handle before naming
 (`walOpenWFU`: `Create` between its commit and the parent's fsync). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
     (lfs : List Loc) (cuts : List Nat)
-    (nmd : Roots → Qp → IProp GF := fun _ _ => walNamed (W := W) dir) (nf : Option GoString := none) :
+    (nmd : Roots → Qp → IProp GF) (nf : Option GoString := none) :
     IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
@@ -633,7 +636,7 @@ tests it, S/wal.go:968). With `tm := TailMetaW`, the tail in a resize window (`c
 truncate and its fdatasync, `WAL.sync.specCut`). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
-    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir)
+    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir h.inc)
     (nf : Option GoString := none) (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (lg df sp e fp lt f : Loc) (mds locks : GoSlice) (lfs : List Loc) (fd dfd : w64)
@@ -663,7 +666,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     fileutil.lockedFile lt f ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc pp ∗
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    walOpenW (W := W) w dir ∗
+    walOpenWI (W := W) w dir h.inc ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
       ((h.rest = 0 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) ∧
         walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) ∧
