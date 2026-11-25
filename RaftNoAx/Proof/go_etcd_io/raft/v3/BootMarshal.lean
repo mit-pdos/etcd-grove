@@ -1,76 +1,17 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/BootMarshal.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
-**`bootMarshal` from `proto.Marshal`'s spec** (premises to axioms, item B, 2026-11-24). `bootMarshal ps
-ctxs bootLog` (`ApiVocab.lean`), what raft's `Bootstrap` needs of `proto.Marshal` (the `k`-th peer's conf
-change marshals to the `k`-th boot entry's bytes), was a premise of every closed theorem that bootstraps
-a cluster. It follows from the trust-boundary spec `proto.MarshalBootConfChange.spec` and a pure fact of
-the bootstrap log: its entries' bytes are the boot conf changes' (`bootWire`). A defs module: it takes the
-spec as a hypothesis (the linking modules pass `proto.MarshalBootConfChange.wp_proof`).
+The part's own `BootMarshal` (raft without hand-written axioms, `notes/raft-noax-part.md`): empty.
+
+The main tree's `Proof/go_etcd_io/raft/v3/BootMarshal.lean` (premises to axioms, item B, 2026-11-24)
+proves `bootMarshal` from the axiom `proto.MarshalBootConfChange.wp_proof` (`proto.Marshal` of a boot
+conf change returns exactly `ccBootWire`'s bytes). This part's raft marshals with
+`raftpb.MarshalConfChangeV1` (`raftpb/noax.go`), whose spec gives bytes that decode back to the
+message (`ccDecodeV1`), not the bytes themselves, and the part takes no axiom: so `bootMarshal` (this
+part's, over `MarshalConfChangeV1`) is not derived here, and nothing of the part needs it. The module
+exists because `etc/api/raft.txt` lists the main tree's as importable (a root of `etc/copy-part.py`);
+this file, without the copier's first line, keeps the copy out.
 -/
 module
 
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.MarshalBootConfChange
-public import RaftNoAx.Proof.go_etcd_io.raft.v3.NodeApiVocab
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
-
-noncomputable section
-
-set_option autoImplicit false
-
-namespace Perennial
-namespace EtcdGrove
-
-open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-
-section pure
-variable [GooseExts]
-
-/-- **The bootstrap log's bytes** (a pure fact of the program, as Go computes it): the `k`-th entry's
-data is `proto.Marshal`'s bytes of the `k`-th peer's boot conf change, `ConfChange{Type: AddNode,
-NodeId: ps[k], Context: ctxs[k]}` (`ccBootWire`; an empty context the absent field, what a peer with a
-`nil` `Context` gives). -/
-def bootWire (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
-  ∀ (k : Nat) (e : LogEntry) (id : w64) (ctx : List w8),
-    bl[k]? = some e → ps[k]? = some id → ctxs[k]? = some ctx → e.data = ccBootWire id ctx
-
-end pure
-
-section lemma
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- **`bootMarshal` holds** of a bootstrap log whose bytes are the boot conf changes' (`bootWire`), from
-`proto.Marshal`'s spec and `proto`'s initialization. -/
-theorem bootMarshal_of_spec (wpM : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
-    (ps : List w64) (ctxs : List (List w8)) (bl : List LogEntry) (hw : bootWire ps ctxs bl) :
-    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ⊢
-      bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries bl 0) := by
-  iintro #Hpkg
-  iunfold bootMarshal
-  imodintro
-  iintro %k %p %dq %m %e %h %Φ
-  obtain ⟨hp, hc, he, hty, -⟩ := h
-  have hd : e.Data' = ccBootWire m.nodeId m.context := by
-    unfold LogEntry.toEntries at he
-    rw [List.getElem?_mapIdx] at he
-    cases hb : bl[k]? with
-    | none => rw [hb] at he; cases he
-    | some x =>
-      rw [hb] at he
-      simp only [Option.map_some, Option.some.injEq] at he
-      subst he
-      exact hw k x m.nodeId m.context hb hp hc
-  rw [hd]
-  iintro Hcc HΦ
-  wp_apply (wpM p dq m hty) $$ [Hcc] as %d ⟨Hcc, Hd⟩
-  · iframe
-  iapply HΦ $$ Hcc Hd
-
-end lemma
-
-end EtcdGrove
-end Perennial
