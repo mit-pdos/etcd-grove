@@ -445,3 +445,17 @@ lose errors.As's sorry.
 Next after Perennial builds: gen-link (`python3 etc/gen-link.py internal/reflectlite internal/reflectcore errors`),
 `#print axioms Perennial.errors.wp_As` (AxCheckRefl05.lean), commit; full Perennial build (bin/pfull.sh);
 etcd-grove as above; then the packet.
+
+### State at b12 (Perennial reflect-s05 b8caa1ef9, pushed; stopped at the context limit)
+
+All new reflectlite modules build EXCEPT `Value__Set`; errors `Base`/`initialize` build; `errors.as_` and
+`errors.As` fail. Remaining failures (log `reflection/b12.log`, `bin/errs.py <log> 16`):
+1. `Value__Set` (both conjuncts): `wp_apply wp_assignTo.{1,2}` does not find the call: execution is still in the
+   `v.kind() == Interface` check / `v.typ()` call (method-unfold layer counting). Step once with `trace_state`
+   to count `wp_meth1` layers per ptr-receiver call (mustBeAssignable/mustBeExported/kind are promoted from
+   `flag`). NB `try a; b` parses as `try (a; b)`: always write `(try a); (try b)`.
+2. `errors/As.lean:84`: `val.IsNil()` is a ptr-receiver call; the unfold at :83 does not fire (check receiver form).
+3. `errors/as_.lean` conj 1, the `As(any) bool` join (:206): after `rw [errors.typeSetContains_method]` the join
+   body is `if decide (methodSet ty !! "As" = some sig) = true then ...`: by_cases on that equation and simp, instead
+   of the old `cases hAs : go.typeSetContains ...` (no longer syntactically present). :224/:251/:302 follow from it.
+Built: the MATCH blocks (store through `Value.Set`) of conj 1/2 up to `wp_for_post`.
