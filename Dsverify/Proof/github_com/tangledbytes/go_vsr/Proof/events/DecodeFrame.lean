@@ -451,6 +451,163 @@ theorem jsonstream.wp_readValue
       iframe Hd
       ipureintro; exact ⟨Hf.1.trans Hr1, Hf.2.1.trans Herr1⟩
 
+set_option warn.classDefReducibility false in
+attribute [local instance] examples.vsrnet.jsonCodec encoding.json.decRepModel in
+/-- `events.Decoder.Decode_frame.spec` at the model's decoder (`decRepModel`) and the kit's codec
+(`vsrnet.jsonCodec`): see the file header. -/
+theorem events.Decoder.Decode_frame.wp_proof
+    (wp_getCodec : encoding.json.getCodec.spec (GF := GF) (hG := hG))
+    (wp_skipSpace : encoding.json.skipSpace.spec (GF := GF) (hG := hG))
+    (wp_endsInNumber : encoding.json.endsInNumber.spec (GF := GF) (hG := hG))
+    (wp_fetch : encoding.json.Decoder.fetch_conn.spec (GF := GF) (hG := hG)) :
+    events.Decoder.Decode_frame.spec (GF := GF) (hG := hG) := by
+  intro γ dec p fr hfr
+  wp_start as ⟨#Hset, Hvia, Hrs, Hp⟩
+  iunfold events.rstream at Hrs
+  icases Hrs with ⟨%c, %cn, %s, %a, #Hc, #Hnet, Hrs⟩
+  icases Hrs with (Herr | ⟨%R, %U, %ms, %pend, Hok, %Hst⟩)
+  · -- the sticky error, returned again
+    ihave Herr : (encoding.json.decErrModel (hG := hG) dec c) $$ [Herr]
+    · iexact Herr
+    iunfold encoding.json.decErrModel at Herr
+    icases Herr with ⟨%d, Hd, %Hd, #He⟩
+    obtain ⟨Hdr, Hdne⟩ := Hd
+    obtain ⟨i, hi⟩ : ∃ i, d.err' = GoInterface.ok i := by
+      cases h : d.err' with
+      | nil => exact absurd h Hdne
+      | ok i => exact ⟨i, rfl⟩
+    wp_auto
+    rw [hi]
+    wp_auto
+    iapply HΦ
+    isplitl [Hd]
+    · iunfold events.rstream
+      iexists c, cn, s, a
+      iframe Hc Hnet
+      ileft
+      ihave H : (encoding.json.decErrModel (hG := hG) dec c) $$ [Hd]
+      · iunfold encoding.json.decErrModel
+        iexists d
+        iframe Hd
+        isplitr
+        · ipureintro; exact ⟨Hdr, Hdne⟩
+        rw [hi]
+        iexact He
+      iexact H
+    have hne : decide (d.err' = GoInterface.nil) = false := decide_eq_false Hdne
+    rw [hne]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexists fr
+    iframe Hp
+    rw [hi]
+    iexact He
+  ihave Hok : (encoding.json.decOkModel (hG := hG) dec c
+    (recvTok (Gg := hG.goose_globalGS) cn s (VsrWire.protoOf γ)) R U) $$ [Hok]
+  · iexact Hok
+  iunfold encoding.json.decOkModel at Hok
+  icases Hok with ⟨%d, %bs, %pre, Hd, Hb, Hcap, Htok, %Hd⟩
+  obtain ⟨Hdr, Hde, HR, Hbuf, HU⟩ := Hd
+  have hT : go.typeSetContains (go.GoType.PointerType examples.vsrwire.Frame.ty)
+      encoding.json.modelUnmarshaler.ty = true := by go_type_set
+  ihave ⟨#Hscan, Hat⟩ : (models_lab.jsoncodec.scanOk (GF := GF) JsonScan.scanF
+      models_lab.jsoncodec.scanFn ∗
+    encoding.json.unmarshalAt inferInstance JsonScan.scanF
+      #(methods (go.GoType.PointerType examples.vsrwire.Frame.ty) go!"JSONModelUnmarshal" #p)
+      (interface.mkOk (go.GoType.PointerType examples.vsrwire.Frame.ty) #p)) $$ [Hvia]
+  · simp only [encoding.json.unmarshalVia, interface.mkOk, hT, ↓reduceIte]
+    iexact Hvia
+  wp_auto
+  rw [Hde]
+  wp_auto
+  iunfold encoding.json.codecSet at Hset
+  wp_apply wp_getCodec $$ Hset
+  iintro %cd #Hfns
+  wp_auto
+  have hst : events.rstreamAt ms pend (bs.drop (sint.nat d.prevEnd')) R := HU ▸ Hst
+  wp_apply (jsonstream.wp_readValue wp_skipSpace wp_endsInNumber wp_fetch γ dec cd
+    (encoding.json.kitFn go!"jsonMarshal") (encoding.json.kitFn go!"jsonUnmarshal") d bs pre R cn s a
+    ms pend Hde Hbuf HR hst) $$ [Hd Hb Hcap Htok]
+  · rw [Hdr]
+    iframe
+    isplitr; · iexact Hc
+    isplitr; · iexact Hfns
+    iexact Hscan
+  iintro %b %err Hres
+  icases Hres with (⟨%Hen, %m, %R', %z, %ms', %pend', Hbm, Hback, %Hfacts, #Hfact⟩ |
+    ⟨%Hne, #He, %d', Hd, %Hd'⟩)
+  · subst Hen
+    obtain ⟨Hst', hm, hmb⟩ := Hfacts
+    wp_auto
+    rw [hT]
+    wp_auto
+    have hdf := examples.vsrnet.dec_frame (GF := GF) [] m p fr (by simp) hm hfr
+    simp only [List.nil_append] at hdf
+    ihave Hdec := hdf $$ Hp
+    unfold encoding.json.unmarshalAt
+    wp_bind (App (App (Val #(methods _ _ _)) _) _)
+    iapply Hat $$ Hbm Hdec
+    inext
+    iintro %err Hbm Hres
+    ihave %Hbl := ownSlice_len _ _ _ $$ Hbm
+    icases Hres with (⟨-, %ok, %Hok, %Hok', %data, Hp, Hdata, -⟩ | ⟨%Hbad, -⟩)
+    rotate_left
+    · exfalso
+      refine Hbad.1 (examples.vsrnet.encEvent_valid [] m (by simp) hm ?_)
+      have h63 : sint.Z b.len < 2 ^ 63 := by word
+      have : sint.nat b.len < 2 ^ 64 := by
+        show (sint.Z b.len).toNat < _
+        omega
+      simpa [Hbl.1] using this
+    subst Hok'
+    have he : err = GoInterface.nil := Hok.2 rfl
+    subst he
+    wp_auto
+    iapply HΦ
+    isplitl [Hback Hbm]
+    · iunfold events.rstream
+      iexists c, cn, s, a
+      iframe Hc Hnet
+      iright
+      iexists R', z, ms', pend'
+      isplitl
+      · ihave H : (encoding.json.decOkModel (hG := hG) dec c
+            (recvTok (Gg := hG.goose_globalGS) cn s (VsrWire.protoOf γ)) R' z) $$ [Hback Hbm]
+        · rw [← Hdr]
+          iapply Hback
+          iexact Hbm
+        iexact H
+      ipureintro; exact Hst'
+    simp only [_root_.decide_true, ↓reduceIte]
+    iexists m, data
+    iframe Hp Hdata Hfact
+    ipureintro; exact ⟨hm, hmb⟩
+  · obtain ⟨i, hi⟩ : ∃ i, err = GoInterface.ok i := by
+      cases h : err with
+      | nil => exact absurd h Hne
+      | ok i => exact ⟨i, rfl⟩
+    subst hi
+    wp_auto
+    iapply HΦ
+    isplitl [Hd]
+    · iunfold events.rstream
+      iexists c, cn, s, a
+      iframe Hc Hnet
+      ileft
+      ihave H : (encoding.json.decErrModel (hG := hG) dec c) $$ [Hd]
+      · iunfold encoding.json.decErrModel
+        iexists { d' with err' := GoInterface.ok i }
+        iframe Hd
+        isplitr
+        · ipureintro; exact ⟨Hd'.1.trans Hdr, Hne⟩
+        iexact He
+      iexact H
+    have hne : decide (GoInterface.ok i = GoInterface.nil) = false := decide_eq_false Hne
+    rw [hne]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexists fr
+    iframe Hp
+    iexact He
+
 end proof
 
 end Perennial.github_com.tangledbytes.go_vsr.pkg
