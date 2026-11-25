@@ -2465,8 +2465,8 @@ fixed at `New` lists each member's server values, which a restart changes.
 
 ### 22.4 SW1's `.stream` route, compared
 
-SW1 (`phase7-switch` @ `fea0c78ee7`, not on `lean` nor on this line; its trusted text awaits the user's review,
-`notes/axiom-review/phase7-switch.md`) adds stream entries to the service table (`GrpcSvcEntry.stream ⟨Wq, Wp, up,
+SW1 (`phase7-switch` @ `fea0c78ee7`; not on this line; **since landed on `lean`**, §22.6, which supersedes this
+section's comparison) adds stream entries to the service table (`GrpcSvcEntry.stream ⟨Wq, Wp, up,
 dn, spec⟩`, `grpcStreamSvcAt`). The route: give `etcdSvc Γ mid` a law, its `"/etcdserverpb.Watch/Watch"` entry the
 member's `watchUp`/`watchSpec`, then build `watchConnFacts V` from the entries at every endpoint, and apply the
 proved `watcher.Watch.spec`/`RequestProgress.spec`/`Close.spec` unchanged (no client-side axiom).
@@ -2499,3 +2499,99 @@ entries later as the vehicle of their retirement.
    retention for the compact workload); watch's and cache's sole-writer property (every revision from 2 one of
    the workload's puts: `needsSoleWriter`), as a client invariant over `etcdKV Γ.kv` the start allocates (as
    `putGetInvK_alloc`).
+
+### 22.6 Route after SW1 landed (2026-11-25; supersedes §22.4's comparison)
+
+SW1 landed on `lean` (`5c036beb77`, with `grpc-driver-lean`), approved after its spec review
+(`~/coordinator-notes/plans/sw1-spec-review.md`). The standing rule prefers reusing audited trusted definitions
+to adding axioms, so route (a), the watch over SW1's `.stream` entries, was re-examined against `lean` as landed.
+This line (`etcd-safe-nc-n2` @ `b35f8f67ca`) does not contain SW1 yet: its `GrpcSvc` has unary entries only.
+M1's landing merges `lean`, and SW1 with it.
+
+**What `lean` already covers.** The transport across machines is covered. `grpc.ClientConn.NewStream.wp_proof`
+(paired with `Server.Serve`'s trusted model) opens a stream of the method that `isGrpcStreamMd` reads off the
+dialed address's table. `isGrpcStreamMd_of_addr` builds that from `grpcAddrAt a Svc`, a table entry
+`Svc name = some (.stream ⟨Req.wire, Rep.wire, up, dn, spec⟩)`, and `□ ∀ md γ, spec md γ (dn md γ)`.
+`grpcdriver_robust` does exactly this across two machines over a defined, heap-free table
+(`lib/grpcdriver/Svc.lean`, `ServerServesStream.lean`). So route (a) needs **no new transport axiom**. Everything
+it needs is in the table entry, and that entry is where (a) breaks down.
+
+**(a) concretely: the entry `etcdSvc Γ mid "/etcdserverpb.Watch/Watch"`.** Today's proved stream contract is
+`v3rpc.watchMethod pw R W`: up `watchUp R`, dn `watchDn γs R W tok`, spec `watchStreamSpec γs R W tok`. The
+client watcher consumes it at its environment's members, through `watchConnFacts V`'s
+`isGrpcStreamsMd V.addrs … (watchUp (V.memOf a)) (watchSpec (V.memOf a) (V.memWOf a))`. These are not
+values the start can fix, even with no restart:
+- `R : v3rpc.WSrv` holds the member's server `s`, the watch server's lock `wsl` and its logger `lg`. These are
+  heap locations that the member's machine allocates at run time (`NewServer`, `v3rpc.Server`). It also holds
+  the member's whole apply environment `E : apply.AEnv`, which is the existential `E` of `NewServer.specG`'s
+  post: §18.2 already found its lessor name not known at the start.
+- `W : v3rpc.SrvW` holds the store handle `kv` (heap), the mvcc name `γm = E.γ`, and `histLb`/`crevOk`.
+- `watchUp R` reads `R.E.authMode`. `watchDn` fixes its run's `r.srv = R ∧ r.W = W`, and its `mvccOk` reads
+  `r.W` (the member's mvcc state through `rcvSnapG`).
+- The client's `V` is fixed at `New`. The watcher's lock invariant is stated over it, and `isWGS` keeps
+  `watchSrvFacts V`. The workloads call `New` before any RPC, so a client cannot learn a member's values
+  before it must name them, not even through a publication (option A, which O1 rejected).
+
+So the start cannot fix the member's values the way it fixes `Γ`. This is not because of restarts: they are
+run-time heap values and `NewServer`'s existentials. The answers to the four questions:
+1. **`etcdSvc` (A1): a definition or a law?** It cannot become SW1's table at a member's server values (the
+   values are not functions of `(Γ, mid)`), and it cannot become a full definition now. Its unary entries need
+   the handlers' contracts as heap-free wire specs (S2's etcd side, `notes/phase7-plan.md` O1/O2). A partial
+   definition, with only `Watch` defined and the other methods absent, would refute the KV contracts: a
+   registration with no entry is unconstrained (`grpcServes` quantifies over entries), so another server could
+   register a `Put` handler and serve the table. The only available form is a **restated A1**: a `Watch` entry
+   defined at `Γ`, plus an opaque unary part. That needs the entry first redesigned to be heap-free and
+   `Γ`-indexed (below), and it is a trusted change.
+2. **How does a client learn a member's values?** Not from the start (above). Route (a) works only if the
+   entry stops naming them. There are two ways:
+   - (i) `Γ` gains each member's watch-server **ghost** names, allocated by the start (a P-L1-like change:
+     `NewServer`/`v3rpc.Server` take `E`'s names, the mvcc name and the auth tag from the caller), and the
+     heap locations become existential inside a re-stated `watchDn`;
+   - (ii) a client-level entry at `Γ.kv` with no member values, where the dn's per-response existentials need
+     an agreement mechanism that today's `streamAuxIs` (names only) does not give.
+
+   Either way the client's `WEnv` must stop listing members' `WSrv`/`SrvW` (`mem`, `memW`). That is the
+   watcher-environment refactor of §22.3, which `etcd_safe` needs anyway.
+3. **Transport:** covered by `lean`'s `NewStream`/`Serve` axioms and SW1 (above). No new transport axiom.
+4. **N2 axioms that would change:** A1 `etcdSvc` (restated); `Serve_dist` (its soundness argument, "only a
+   server registering no method serves the opaque table", no longer holds: the member registers and serves the
+   `Watch` entry, so a `grpcServes` obligation enters); and the five `KV_*_dist` (their "who answers" argument
+   rests on that argument: re-review). **All of these are on M1's line** (M1's theorem rests on `etcdSvc`,
+   `Serve_dist`, `KV_Put_dist`, `KV_Get_dist`). So (a) must come after M1 lands, and so must the `lean` merge it
+   needs.
+
+**Sizes.**
+- **(a):** 47 files on `lean` (about 28k lines) mention `WSrv`/`SrvW`/`watchDn`/`watchStreamSpec` (the v3rpc
+  watch proofs, the server's start, the examples), and 147 mention `WEnv` (the client watcher: `run` 3368
+  lines, `WatchRun` 2261, `InvWatch` 1619).
+  - The work: the heap-free re-statement of the watch contract; the start passing the ghost names;
+    `Serve_dist`'s `grpcServes` for the entry (from `etcd_watch_served_chain` at `Γ`'s names); the `WEnv`
+    refactor.
+  - Estimate: several thousand lines over 2-3 weeks, with high uncertainty, plus the trusted restatement and
+    re-reviews (A1, `Serve_dist`, five KV axioms).
+  - This is most of S2's etcd side for streams, the work that retires the per-function axioms anyway.
+- **(b):**
+  - The statements are already drafted (§22.3).
+  - Adoption: two Spec/Proof pairs (about 250 lines, mostly written), two fresh `axiom`-skill reviews, the
+    `Watcher` interface dispatch lemmas, and the adapter bridges over a shared "watcher of KV `γk`" predicate
+    (about 400-700 lines).
+  - Estimate: 1-2 days, no change to any existing trusted file, new files only.
+- The workloads' own proofs (watch, compact, cache) are the same under either route.
+
+**Trust delta.**
+- **(a):** no new function axiom. A1 is restated (the `Watch` entry defined, the unary part opaque);
+  `Serve_dist` and the five `KV_*_dist` are re-reviewed (their arguments change); start-allocated ghost names are
+  added to `Γ` (no axiom).
+- **(b):** +2 interim axioms (`Watch_dist.wp_proof`, `RequestProgress_dist.wp_proof`), each a fresh review;
+  nothing re-reviewed or removed. When (a) is built later, as S2's etcd side for streams, both are retired.
+
+**Recommendation: (b) now. (a) is the retirement path, after M1 lands.** (a) is not usable now in a precise
+sense: the audited parts it would reuse (SW1's entry kind, `NewStream`, `Serve`) are reused by (b)'s retirement
+too. What it lacks is a table entry that both machines can state, and building one is the redesign of etcd's
+watch contract into a heap-free, `Γ`-indexed form. That redesign changes A1 and `Serve_dist` on M1's line.
+
+**Restart (crash theorem).** (b)'s statement reads only `Γ.kv`, so it is restart-stable; its retirement needs the
+`WEnv` refactor (§22.3). Under (a)(i), start-allocated watch-server ghost names in `Γ` break on a restart: a
+restarted member's `E` and mvcc names are new, so it needs a D6-style continuation, as P-L1 does for the
+lessor. Under (a)(ii) (a client-level entry) the entry is restart-stable, but it needs the same `WEnv`
+refactor.
