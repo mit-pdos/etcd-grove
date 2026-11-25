@@ -127,6 +127,19 @@ def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop
 def NodeView.noteInput (v : NodeView) (inp : Input) : NodeView :=
   { v with byE := inp.byE, cause := inp.cause, xcause := inp.xcause, told := false }
 
+/-- **`Advance` with no snapshot applied** (parity B1, snapshots off): `AdvanceEndR` whose storage
+acknowledgement is `AckEndR`'s first or second arm (nothing, or the applied index moved), never
+`appliedSnap`. Parity B3 lifts it with snapshots. -/
+inductive AdvanceNoSnap (Adm : List EntryM → CCState → Prop) (dec : CCDec) (k : NodeK) (id : w64) :
+    RState → List Msg → RState → Prop
+  | nil (r r' : RState) :
+      (r' = r ∨ ∃ a, StepR Adm dec id 0 r [] { r with applied := a, cidx := max r.cidx (uint.nat a) } ∧
+        r' = { r with applied := a, cidx := max r.cidx (uint.nat a) }) →
+      AdvanceNoSnap Adm dec k id r [] r'
+  | cons (r r1 r' : RState) (q : Msg) (qs : List Msg) :
+      RecvEndR Adm k id r q r1 → AdvanceNoSnap Adm dec k id r1 qs r' →
+      AdvanceNoSnap Adm dec k id r (q :: qs) r'
+
 /-- The `by`s of the harness's drains (`n.input`'s, and `boot`'s right after the `boot` report). -/
 def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = inp.byE
 
@@ -134,7 +147,8 @@ def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = 
 with the transfer messages that input queued: no input taken (`boot`'s drain, at the view's own
 state), an input taken between inputs (`v` noted it; a message received was sent to it; a protocol
 message has a nonzero term), or `Advance` at the end of a `Ready` whose reports are all made
-(`AdvanceEndR` stepping the `Ready`'s self-addressed messages). -/
+(`AdvanceEndR` stepping the `Ready`'s self-addressed messages; with snapshots off, applying none:
+`AdvanceNoSnap`). -/
 inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (net : List Msg)
     (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → List XMsg → Prop
   | stay (v : NodeView) : v.Idle → Reach R dec Adm net xnet n v v.r []
@@ -145,7 +159,9 @@ inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Pr
       InputStep R dec Adm n v.r inp r₁ xs → Reach R dec Adm net xnet n v r₁ xs
   | advance (v : NodeView) (r₁ : RState) :
       v.pend = [] → v.xpend = [] → v.ce = [] → v.rpend = [] → DrainBy v.byE →
-      AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁ → Reach R dec Adm net xnet n v r₁ []
+      AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁ →
+      (R.md.snapshots = false → AdvanceNoSnap Adm dec (R.k n) (nodeId n) v.r v.qs r₁) →
+      Reach R dec Adm net xnet n v r₁ []
 
 /-- A `Ready`'s data, as the harness reads it: the role after it (`SoftState`, or the last reported
 one; `pre` for `StatePreCandidate`) and its hard state (or the last written one), its entries to

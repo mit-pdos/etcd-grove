@@ -111,7 +111,9 @@ inductive ReachIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM 
       InputStep R dec Adm n v.r inp r₁ xs → ReachIn msk R dec Adm net xnet n v r₁ xs
   | advance (v : NodeView) (r₁ : RState) :
       v.pend = [] → v.xpend = [] → v.ce = [] → v.rpend = [] → DrainBy v.byE →
-      AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁ → ReachIn msk R dec Adm net xnet n v r₁ []
+      AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁ →
+      (R.md.snapshots = false → AdvanceNoSnap Adm dec (R.k n) (nodeId n) v.r v.qs r₁) →
+      ReachIn msk R dec Adm net xnet n v r₁ []
 
 /-- `Quiet` with the input admitted by the mask. -/
 inductive QuietIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop)
@@ -136,7 +138,7 @@ theorem ReachIn.reach {msk : SimMask} {R : RunCfg} {dec : CCDec} {Adm : List Ent
   cases h with
   | stay h1 => exact .stay _ h1
   | input inp _ _ h0 h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ _ h1 h2 h3 h4 h5 h6 h7
-  | advance _ h1 h2 h3 h4 h5 h6 => exact .advance _ _ h1 h2 h3 h4 h5 h6
+  | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
 theorem Input.inMask_top [GooseExts] (inp : Input) : inp.InMask mskTop := by
   cases inp <;> simp [Input.InMask, mskTop]
@@ -147,7 +149,7 @@ theorem ReachIn.ofReach_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CC
   cases h with
   | stay h1 => exact .stay _ h1
   | input inp _ _ h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ _ (Input.inMask_top inp) h1 h2 h3 h4 h5 h6 h7
-  | advance _ h1 h2 h3 h4 h5 h6 => exact .advance _ _ h1 h2 h3 h4 h5 h6
+  | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
 theorem QuietIn.ofQuiet_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop}
     {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v v' : NodeView}

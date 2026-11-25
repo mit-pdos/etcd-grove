@@ -5820,3 +5820,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   term: the S4 proof read the term off `DurableIs` directly); `SyncDisk` concludes `v.mems = []` instead
   of assuming it (sync, no batch/split/parallel: no `mem` report, so no queued write; `apply`'s
   `memCommit` and `boot` read the queue empty, which S4's `BindingOk` stated directly).
+
+## 2026-11-25 — antithesis parity B1, Sim step 3c: three NodeOk facts and Advance without a snapshot (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/{Rel,Stmts,MsgShapeStmt,Scope}.lean`.
+- **Defects found migrating `send` and `quiet` (Sim helper), with the lead's decisions (2026-11-25).**
+  1. `send` of a leader's append or heartbeat needs the binding's role `leader`; `MemIs` gives
+     `roleStr v.pre v.ps.role`, so `v.pre` must be false at a leader. **Change:** `NodeFacts` gains
+     `v.pre = true → v.ps.role = .follower` (a reported pre-candidate is a follower to raft, `toPState`;
+     `ReadyOutP` gives it at every `ready`, `Quiet` keeps the role).
+  2. `send` of an acknowledgement reads `pending[n]` as the handled append, but the `told` conjunct is a
+     disjunction over `cause`/`xcause`. **Change:** `NodeOk`'s `xcause` conjunct becomes
+     `xcause = some x → x.dst = nodeId n ∧ v.cause = none`.
+  3. Nothing kept a `Ready`'s pending messages within the run's types (pre-vote, read-index with those
+     features off), so a `send` could put a message outside `InMask` on the network. **Change:**
+     `MsgMask` gains `NetTy R.md m.ty ∨ m.ty = .propose` (`NetTy` moved from `MsgShapeStmt.lean` to
+     `Rel.lean`, unchanged).
+  4. **False statement:** `antSim_quiet` at the S4 mask. `Reach.advance` admits `AckEndR`'s third arm
+     (`StepR.applySnap`) with no snapshot pending: a fresh follower, `j = 0`, `sn = true`, any `cs'` with
+     `([], cs') ∈ G.confs`, gives `r.snap = true`, `r.cfg = cs'`, which `NodeFacts.snap0`/`conf0` exclude
+     with snapshots and conf changes off. **Change (lead: option b):** `Reach.advance` and
+     `ReachIn.advance` take `R.md.snapshots = false → AdvanceNoSnap …` (new in `Stmts.lean`: `AdvanceEndR`
+     with the storage acknowledgement `AckEndR`'s first or second arm). No raft relation changes. B3
+     lifts it (design §7, item 7).

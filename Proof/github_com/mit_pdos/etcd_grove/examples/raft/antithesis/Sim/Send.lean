@@ -606,21 +606,25 @@ theorem pendOk_shape {N : Nat} {id : w64} {v : NodeView} {q : Msg} (h : PendOk N
     all_goals (exfalso; rw [hq] at hty; simp at hty)
   exact ⟨key.2.1, fun e => hne (e.symm.trans key.1), key.2.2⟩
 
-/-- **`send`** (`drain`, B 510-593), for the runs a mask below `mskS4` admits (sync; the message
-of a type the mask's network carries: `InMask` of the network after it). -/
+/-- **`send`** (`drain`, B 510-593), for the runs a mask below `mskS4` admits (sync). -/
 theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (q : Msg)
       (rest : List Msg),
-      InMask msk R (net ++ [q]) xnet → (∀ k, (V k).pre = true → (V k).ps.role = .follower) →
-      (V n).xcause = none →
+      InMask msk R net xnet →
       SimPre R dec S V net xnet evs G → R.md.async = false → (V n).pend = q :: rest → Told (V n) →
       MsgFacts G q →
       SimStep R dec evs G (evSend (nodeId n) (V n).byE q)
         (setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet := by
-  intro R dec S V net xnet evs G n q rest hin hpre hxc ⟨hp, hs, hl, hgo⟩ hasync hpend htold hmf
-  obtain ⟨hmd, _, hbt, hpar, hspl, _, _, hty7⟩ := hin.s4 hmsk
-  have hq7 := hty7 q (List.mem_append_right _ List.mem_cons_self)
+  intro R dec S V net xnet evs G n q rest hin ⟨hp, hs, hl, hgo⟩ hasync hpend htold hmf
+  obtain ⟨hmd, _, hbt, hpar, hspl, _, _, _⟩ := hin.s4 hmsk
+  have hq7 : q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .heartbeat ∨
+      q.ty = .heartbeatResp ∨ q.ty = .propose := by
+    have := ((hs.2.2.2.2 n).facts.pendMask q (by rw [hpend]; exact List.mem_cons_self)).2.2
+    rw [hmd] at this
+    simp only [NetTy] at this
+    rcases this with (h | h | h | h | h | h | ⟨h0, -⟩ | ⟨h0, -⟩ | ⟨h0, -⟩) | h
+    all_goals first | (exact absurd h0 (by decide)) | simp [h]
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
   have hsync : ∀ k, (V k).dur = durOf (V k).r := fun k => ((hs1.2.2.2.2 k).sync hasync hbt hspl hpar).2.1
   have hdt : ∀ k, (V k).dur.term = (V k).ps.term := fun k => by rw [hsync k]; rfl
@@ -657,7 +661,7 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
     have hpf : (V n).pre = false := by
       cases h : (V n).pre
       · rfl
-      · have := hpre n h; rw [hr] at this; cases this
+      · have := hf.preRole h; rw [hr] at this; cases this
     rw [hmem.1]; unfold roleS roleStr; rw [hpf, hr]; rfl
   cases hty : q.ty <;> simp only [hty] at hcase
   case vote =>
@@ -779,7 +783,7 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
           (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h.1)
           (fun h => by rw [hrej] at h; exact absurd h.2.1 (by decide))⟩
     case false =>
-    obtain ⟨m', hcm', hpd⟩ := (hT (htold hby)).resolve_right (fun ⟨x, hx, _⟩ => by rw [hxc] at hx; cases hx)
+    obtain ⟨m', hcm', hpd⟩ := (hT (htold hby)).resolve_right (fun ⟨x, hx, _⟩ => by rw [((hno n).xcause x hx).2] at hcm; cases hcm)
     rw [hcm] at hcm'; cases hcm'
     have hqtZ : uint.Z q.term = uint.Z m.term := by rw [hqt]
     have hmt : S1.currentTerm[n.val]! = uint.Z m.term := by rw [hterm, hqtZ]

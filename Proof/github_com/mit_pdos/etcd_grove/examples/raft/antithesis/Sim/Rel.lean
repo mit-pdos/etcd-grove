@@ -272,11 +272,19 @@ def ConfLag (dec : CCDec) (R : RunCfg) (v : NodeView) : Prop :=
 empty entry, the boot entry. Without conf changes every entry of the run is one. -/
 def EntsNormal (es : List EntryM) : Prop := ∀ e ∈ es, e.Type' = W32 0
 
+/-- The message types the harness's network carries under the mask `md` (`stepTypes md`'s protocol
+types): `antStepTypes`, and pre-vote, read-index and snapshot messages when their features are on. -/
+def NetTy (md : RnMode) (ty : MsgType) : Prop :=
+  ty = .app ∨ ty = .appResp ∨ ty = .vote ∨ ty = .voteResp ∨ ty = .heartbeat ∨ ty = .heartbeatResp ∨
+  (md.prevote = true ∧ (ty = .preVote ∨ ty = .preVoteResp)) ∨
+  (md.reads = true ∧ (ty = .readIndex ∨ ty = .readIndexResp)) ∨ (md.snapshots = true ∧ ty = .snap)
+
 /-- **A message under the run's mask** (`MsgMask`): without conf changes an append's or a
-proposal's entries are normal; without snapshots it is no snapshot. -/
+proposal's entries are normal; without snapshots it is no snapshot; it is of a type the network
+carries under the run's features, or a (forwarded) proposal. -/
 def MsgMask (R : RunCfg) (m : Msg) : Prop :=
   (R.md.confChanges = false → (m.ty = .app ∨ m.ty = .propose) → EntsNormal m.entries) ∧
-  (R.md.snapshots = false → m.ty ≠ .snap)
+  (R.md.snapshots = false → m.ty ≠ .snap) ∧ (NetTy R.md m.ty ∨ m.ty = .propose)
 
 /-- **C1, raft's side**: the outbox empty between `Ready`s (taken by the last one); without
 snapshots the log from `base0`, no ghost prefix and no snapshot restored; without conf changes the
@@ -284,14 +292,16 @@ initial configuration and only normal entries (raft's and the disk's); the disk'
 positions; what was handed out (`delivered`, and in a drain `ce`) a prefix of the disk's log within
 its commit; the `Ready`'s messages not yet sent under the mask (`MsgMask`); the disk's term within
 raft's (a write is of a state raft had, and terms only grow: what `GC` needs to keep a leader's and a
-candidate's records at raft's term). -/
+candidate's records at raft's term); a reported pre-candidate is a follower to raft (`toPState`), so
+that a leader's binding role is `leader`. -/
 def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
     v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log) ∧
   LogIdx v.dur.log ∧
   v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit ∧
-  (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term
+  (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term ∧
+  (v.pre = true → v.ps.role = .follower)
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -413,7 +423,8 @@ def NodeOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n :
   (∀ q ∈ v.qs, QsOk S n v q) ∧
   (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
     (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x])) ∧
-  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧ (∀ x, v.xcause = some x → x.dst = nodeId n) ∧
+  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧
+  (∀ x, v.xcause = some x → x.dst = nodeId n ∧ v.cause = none) ∧
   LeadOk n v ∧ VoteSelf n v
 
 
@@ -497,7 +508,7 @@ theorem NodeOk.cause {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List
 
 theorem NodeOk.xcause {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
     (h : NodeOk R dec S net n v) :
-    ∀ x, v.xcause = some x → x.dst = nodeId n :=
+    ∀ x, v.xcause = some x → x.dst = nodeId n ∧ v.cause = none :=
   h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
 
 theorem NodeOk.leadOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
@@ -549,7 +560,12 @@ theorem NodeFacts.pendMask {R : RunCfg} {v : NodeView}
 theorem NodeFacts.durTerm {R : RunCfg} {v : NodeView}
     (h : NodeFacts R v) :
     uint.Z v.dur.term ≤ uint.Z v.ps.term :=
-  h.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.1
+
+theorem NodeFacts.preRole {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    v.pre = true → v.ps.role = .follower :=
+  h.2.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 

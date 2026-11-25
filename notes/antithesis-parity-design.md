@@ -1037,3 +1037,11 @@ On the RawNode/InputEnd side (joint with them, after antithesis-s4 lands):
    through `Protocol/StepR.lean` (and `InputEnd` once it imports `StepR`). Move `CCState` and the rest
    of what the Sim reads (`cfgFlags`, `ccStepB`, `cfgFold`) into a pure module, so that the Sim
    imports no Iris.
+7. **`Advance` applies no snapshot with snapshots off** (B1, lead's decision 2026-11-25). `AckEndR`'s
+   third arm (`StepR.applySnap`) is satisfiable without a pending snapshot: a fresh follower, `j = 0`,
+   `sn = true`, any `cs'` with `([], cs') ∈ G.confs` (nothing constrains `G.confs`), leaving
+   `r.snap = true` and `r.cfg = cs'`, which `NodeFacts` (`snap0`, `conf0`) excludes, so `antSim_quiet`
+   was false at the S4 mask. `Reach.advance`/`ReachIn.advance` now require, with snapshots off,
+   `AdvanceNoSnap` (`AckEndR`'s first two arms only; `Stmts.lean`). B3 lifts it with snapshots, where
+   raft applying only a pending snapshot (an `applySnap` premise `sn = true → r.snap = true`, a raft-wide
+   change) may be needed.

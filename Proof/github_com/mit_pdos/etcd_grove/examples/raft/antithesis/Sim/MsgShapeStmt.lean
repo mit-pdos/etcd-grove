@@ -46,12 +46,7 @@ variable [GooseExts]
 entry). Parity B3 adds conf entries that decode (`CCDecodes`). -/
 def EntsHarness (es : List EntryM) : Prop := EntsNormal es
 
-/-- The message types the harness's network carries under the mask `md` (`stepTypes md`'s protocol
-types): `antStepTypes`, and pre-vote, read-index and snapshot messages when their features are on. -/
-def NetTy (md : RnMode) (ty : MsgType) : Prop :=
-  ty = .app ∨ ty = .appResp ∨ ty = .vote ∨ ty = .voteResp ∨ ty = .heartbeat ∨ ty = .heartbeatResp ∨
-  (md.prevote = true ∧ (ty = .preVote ∨ ty = .preVoteResp)) ∨
-  (md.reads = true ∧ (ty = .readIndex ∨ ty = .readIndexResp)) ∨ (md.snapshots = true ∧ ty = .snap)
+-- `NetTy`: `Rel.lean` (`MsgMask` reads it).
 
 /-- **A `Ready`'s message to another node, as the drain hands it out** (from node `id`): from `id`;
 of a type the network carries, or a (forwarded) proposal; without reads, a heartbeat or a heartbeat

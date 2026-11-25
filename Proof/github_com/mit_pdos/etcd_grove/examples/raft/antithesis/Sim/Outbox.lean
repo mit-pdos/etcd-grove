@@ -410,7 +410,7 @@ theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : C
       · exact outOk_propose hX hh
       · exact absurd rfl h0
       · exact absurd rfl h0
-  | advance _ _ _ _ _ _ ha =>
+  | advance _ _ _ _ _ _ ha _ =>
     refine outOk_advance hX (fun q hq => ?_) (advanceEndR_toP ha)
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
