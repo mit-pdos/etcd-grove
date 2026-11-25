@@ -178,7 +178,8 @@ theorem MainPartition.wp_proof
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   have Hpl := k8s_compactorN.bridges_plain k hk1
   -- `wcli, err := etcdstart.NewClients(baddrs, lg)`
-  wp_apply (wp_NewClients baddrs (k8s_compactorN.bridges k) lg V htb Hpl) as %wcl %werr Hwc
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
+  wp_apply (wp_NewClients baddrs (k8s_compactorN.bridges k) lg V htb Hpl) $$ [$Hlt] as %wcl %werr ⟨Hlt, Hwc⟩
   · iframe #
   icases Hwc with (⟨%Hwerr, #Hwnc, -⟩ | %Hwfail)
   rotate_left
@@ -191,7 +192,7 @@ theorem MainPartition.wp_proof
   subst Hwerr
   (try wp_auto)
   -- `ready(wcli)`
-  wp_apply (wp_ready wcl ms V) $$ [] as %b -
+  wp_apply (wp_ready wcl ms V) $$ [$Hlt] as %b ⟨Hlt, -⟩
   · iframe #
     rw [Hsva]; iexact Hwnc
   cases b
@@ -214,12 +215,13 @@ theorem MainPartition.wp_proof
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
   -- `go writer(wcli)`
-  wp_apply wp_fork $$ []
-  · (try wp_auto)
-    wp_apply (wp_writer wcl sv0.γr.kv γc) $$ []
+  wp_apply wp_fork_level0 $$ []
+  · iintro Hlt
+    (try wp_auto)
+    wp_apply (wp_writer wcl sv0.γr.kv γc) $$ [$Hlt] as ⟨Hlt, -⟩
     · iframe #
     (try wp_auto)
-    (try itrivial)
+    iframe Hlt; try itrivial
   (try wp_auto)
   -- the wait group, in the join idiom
   imod (sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr) $$ wg with ⟨%γwg, #Hwg, Hctr, Hwaiters⟩
@@ -232,14 +234,14 @@ theorem MainPartition.wp_proof
       k8s.epOf (GF := GF) ep sv0.γr.kv (fun _ => iprop(True))) $$ []
   · rw [Hsva]; iexact Heps
   ihave IH : (∃ (n : w64) (c : w32), "i" ∷ i_ptr ↦ n ∗
-      "Hadd" ∷ sync.join.ownAdder wg_ptr c iprop(True) ∗
+      "Hadd" ∷ sync.join.ownAdder wg_ptr c iprop(True) ∗ "Hlt" ∷ levelTok 0 ∗
       "%Hk" ∷ ⌜sint.Z c ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z c⌝ : IProp GF)
-    $$ [i Hadd]
+    $$ [i Hadd Hlt]
   · iexists _, (W32 0); iframe; ipureintro; decide
   wp_for IH
   wp_if_destruct
   · -- `cli, err := etcdstart.NewClients(baddrs, lg)`
-    wp_apply (wp_NewClients baddrs (k8s_compactorN.bridges k) lg V htb Hpl) as %cl %cerr Hc
+    wp_apply (wp_NewClients baddrs (k8s_compactorN.bridges k) lg V htb Hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hc⟩
     · iframe #
     icases Hc with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
     rotate_left
@@ -277,9 +279,10 @@ theorem MainPartition.wp_proof
     · iintro _; itrivial
     (try wp_auto)
     -- `go func() { apiserver(cli, shared); wg.Done() }()`
-    wp_apply wp_fork $$ [Hdone cli shared]
-    · (try wp_auto)
-      wp_apply (wp_apiserver cl ms V sv0.γr.raft sv0.γr.kv γc _ hsame hkc hkr) $$ []
+    wp_apply wp_fork_level0 $$ [Hdone cli shared]
+    · iintro Hlt
+      (try wp_auto)
+      wp_apply (wp_apiserver cl ms V sv0.γr.raft sv0.γr.kv γc _ hsame hkc hkr) $$ [$Hlt] as ⟨Hlt, -⟩
       · iframe #
         rw [Hsva]
         iframe #
@@ -287,7 +290,7 @@ theorem MainPartition.wp_proof
       wp_apply sync.join.WaitGroup.wp_Done iprop(True) _ $$ [Hdone]
       · iframe #; iframe
       (try wp_auto)
-      (try itrivial)
+      iframe Hlt; try itrivial
     (try wp_auto)
     wp_for_post
     iframe
