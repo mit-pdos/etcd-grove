@@ -101,9 +101,11 @@ theorem membersAtV_of_members (svc : DistView → w64 → GrpcSvc GF) (Γ : Dist
     ([∗list] m ∈ d.members, etcdAddrAtV (Gg := hG.goose_globalGS) svc m.client Γ (memberIdIn d m)) ⊢
       membersAtV (Gg := hG.goose_globalGS) svc (d.members.map Member.client) Γ := by
   unfold membersAtV
-  refine .trans ?_ (BigSepL.bigSepL_map (Φ := fun _ a =>
-    iprop(∃ mid : w64, etcdAddrAtV (Gg := hG.goose_globalGS) svc a Γ mid)) Member.client).2
-  exact BigSepL.bigSepL_mono fun _ m _ => exists_intro' (memberIdIn d m) .rfl
+  rw [BigSepL.bigSepL_map]
+  refine BigSepL.bigSepL_mono ?_
+  intro k m hm
+  exact exists_intro (Ψ := fun mid : w64 => etcdAddrAtV (Gg := hG.goose_globalGS) svc m.client Γ mid)
+    (memberIdIn d m)
 
 /-- **The members' boot, as the start needs it** (`member_boot_dist`, proved by N5, the lead's; a
 hypothesis of `kv_start_deployment` until then): from the registry and the members' addresses unset, the
