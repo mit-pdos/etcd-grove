@@ -2,9 +2,9 @@
 **Trust-boundary axiom** (dsv-fix4, mit-pdos/etcd-grove#49 fix 4): `NewSource(seed)` returns a
 fresh `*rngSource` with its token (`math.rand.isRngSource`, `RngDefs.lean`). Perennial translates
 `NewSource` names only (`Perennial/Code/math/rand.toml`). Go's `rand.go`: `func NewSource(seed
-int64) Source { return newSource(seed) }`, and `newSource` allocates `rng := new(rngSource)`, seeds
+int64) Source { return newSource(seed) }`, and `newSource` declares `var rng rngSource`, seeds
 it (`rng.Seed(seed)`, writing only `rng`'s own state: `seed` is reduced modulo `int32max` and the
-array filled from the constant table `rngCooked`) and returns `rng`: no panic for any seed. The
+array filled from the constant table `rngCooked`) and returns `&rng` (escaping: a fresh heap object): no panic for any seed. The
 field `NewSource` of the statement premise `math.rand.Hyps` (rabia, swiftpaxos) until dsv-fix4,
 there for an unnamed token. Review: `notes/axiom-review/dsv-fix4/math-rand-rng.md`.
 -/

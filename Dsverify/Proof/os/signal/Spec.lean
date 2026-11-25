@@ -21,6 +21,9 @@ hypothesis `sigs ≠ []` fails). Each kit instantiates it with the signals its c
   `signal.Stop` needs no spec: `SigListen` reaches it only after a receive from one of the two
   channels, neither of which ever sends.
 * SwiftPaxos, `[SIGUSR1]` (`swiftpaxos.usr1Sigs`), what `hook.HookUser1` registers.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `NotifyQuiet.spec quietSigs` and `NotifyQuiet.spec usr1Sigs` are trust-boundary axioms (`Notify.lean`, the environment claims in their docstrings; review `notes/axiom-review/dsv-fix4/os-signal-notify.md`), from which the top-level proofs build `NoSignals`.
 -/
 module
 

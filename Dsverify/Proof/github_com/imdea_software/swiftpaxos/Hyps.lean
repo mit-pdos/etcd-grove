@@ -11,6 +11,9 @@ every heap.
 states (`SwiftNetPkgState`, which holds the libraries' representation predicates, `SwiftLibs`);
 each field quantifies over the packages' `Assumptions` it needs. The gob specs are over the real
 `encoding/gob`'s format, `sp.GobFmt` (a parent of `SwiftLibs`).
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `SwiftHyps` and `SwiftOsRandom` are proved (`HypsHoldLinked.lean`) from trust-boundary axioms over the fixed vocabulary `encoding.gob.swiftLibsOf` (`Dsverify/Proof/encoding/gob/`, `Dsverify/Proof/github_com/google/uuid/{New,UUID__ID}.lean`).
 -/
 module
 

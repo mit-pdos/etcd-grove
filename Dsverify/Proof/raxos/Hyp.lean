@@ -34,6 +34,9 @@ premises, to be discharged when each piece comes as one shared change:
   `own m M` and the memory's points-to `tp` (`MapVocab`, abstract) and the class `MapHyp` of its
   laws (`ivt`: `tp` is the memory's, `own_timeless`, `own_zero` from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
   string keys.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `PbHyp`, `RandHyp`, `UtcHyp`, `SortHyp` and `PrintlnHyp` are built in the top-level proof from per-function trust-boundary axioms (`Dsverify/Proof/google_golang_org/protobuf/proto/{Marshal,Unmarshal}.lean`, `math/rand/Seed.lean`, `time/Time__UTC.lean`, `sort/Ints.lean`, `fmt/Println.lean`); `GrpcHyp`, `GrpcWorldHyp`, `MapHyp` and the vocabulary `QpVocab` stay premises.
 -/
 module
 

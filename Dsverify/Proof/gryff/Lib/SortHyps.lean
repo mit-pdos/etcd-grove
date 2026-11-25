@@ -15,6 +15,9 @@ elements, a strict total order on `int32` values: equal elements are equal value
 permutation is unique, `xs.mergeSort sle`. `less` may be called any number of times (on any
 contents the sort reaches), each call given the slice and the frame `F` and returning them
 (`lessOk`); nothing else is touched.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: the top-level proof builds the instance from the trust-boundary axiom `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`; review `notes/axiom-review/dsv-fix4/sort-slice.md`).
 -/
 module
 
