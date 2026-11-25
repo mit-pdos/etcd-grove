@@ -20,6 +20,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.SvcG
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server.InitLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client.PkgTable
 public import Proof.runtime.InitEmpty
