@@ -1,10 +1,10 @@
 /-
 **kvnet's crash corollary from the general one** (etcd-dist D4c; proved, untrusted): `NetFsBridge.lean`'s
-`robust_of_netFsBoot_addrs` (over `kvnetExts = [netExt, fsExt]` at `fs_semantics`), re-derived from
+`robust_of_netFsBoot_addrs` (over `kvraftExts = [netExt, fsExt]` at `fs_semantics`), re-derived from
 `DistCrashAdequacy.lean`'s `robust_of_dist_crash_adequacy_fs` with the file extension's crash premise `True` and nothing
-else in the crash resources (`kvnet_crashStart_split`: the net extension's are `emp`), the initial
-states' conditions from `kvnetInitCompat`, and each machine's `FsInit` from `fs_semantics`' `initLocal`.
-So kvnet's `raft_kvnet_robust` could use the general corollary unchanged: its `CrashBootWp`/`StableBootWp`
+else in the crash resources (`kvraft_crashStart_split`: the net extension's are `emp`), the initial
+states' conditions from `kvraftInitCompat`, and each machine's `FsInit` from `fs_semantics`' `initLocal`.
+So kvnet's `kvraft_robust` (kvnet's `raft_kvnet_robust` until the rename, 2026-11-25) could use the general corollary unchanged: its `CrashBootWp`/`StableBootWp`
 obligations give the general ones (`crashBootWpG_of_crashBoot`, `stableBootWpG_of_stableBoot`).
 -/
 module
@@ -24,20 +24,20 @@ namespace Net
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Robustness NetFs
 
-attribute [local instance] kvnetExts kvnetExtsSemantics kvnetExtsInterp kvnetExtsCrashInterp
-  kvnetExts_hasNet kvnetExts_hasFs GooseGlobalGS.gooseInvGS
+attribute [local instance] kvraftExts kvraftExtsSemantics kvraftExtsInterp kvraftExtsCrashInterp
+  kvraftExts_hasNet kvraftExts_hasFs GooseGlobalGS.gooseInvGS
 
 section kvnet
 variable [GoGlobalContext] {GF : BundledGFunctors} [hPre : GooseGpreS GF]
 
 /-- The crash resources of `[netExt, fsExt]` split as `robust_of_dist_crash_adequacy_fs` asks: the file
 extension's, at the crash premise `True`, and nothing else. -/
-theorem kvnet_crashStart_split (L L' : GooseLocalGS GF) :
+theorem kvraft_crashStart_split (L L' : GooseLocalGS GF) :
     extsCrashStart L L' ⊢
       Fs.osCrashStart (fun _ _ => True) (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗
         iprop(True) := by
   iintro H
-  ihave H' := kvnet_fs_crashStart L L' $$ H
+  ihave H' := kvraft_fs_crashStart L L' $$ H
   isplitl [H']
   · iexact H'
   · itrivial
@@ -54,7 +54,7 @@ theorem crashBootWpG_of_crashBoot [lctx : GoLocalContext] [G : GooseGlobalGS .ha
   iintro %L' %V' Hcrd Hinv Hr - Hgs Hlc
   iapply Hcr $$ %L' %V' Hcrd Hinv Hr Hgs Hlc
 
-/-- kvnet's stable obligation gives the general one (`fsStartRes` is `fsStartResG` at `kvnetExts`). -/
+/-- kvnet's stable obligation gives the general one (`fsStartRes` is `fsStartResG` at `kvraftExts`). -/
 theorem stableBootWpG_of_stableBoot [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF]
     (lo bound : Nat) (e : Expr) (σ : state) (P : IProp GF) (H : StableBootWp e σ P) :
     StableBootWpG lo bound e σ P :=
@@ -78,9 +78,9 @@ theorem robust_of_netFsBoot_addrs_of_adequacy [lctx : GoLocalContext] (addrs : L
   have hfs : ∀ m, m ∈ crashing ++ stable → Fs.FsInit (extLocal Fs.fsExt m.2.world) :=
     fun m hm => (hil m hm).2.1
   refine robust_of_dist_crash_adequacy_fs (GF := GF) (fun _ _ => True) (fun _ _ => iprop(True))
-    kvnet_crashStart_split addrs crashing stable g threads bound 0 (Nat.zero_le _) Hnd Hok
-    (fun hg hl => ⟨extsInitgP_of_init kvnetInitCompat hg,
-      fun m hm => extsInitP_of_init kvnetInitCompat (hl m hm),
+    kvraft_crashStart_split addrs crashing stable g threads bound 0 (Nat.zero_le _) Hnd Hok
+    (fun hg hl => ⟨extsInitgP_of_init kvraftInitCompat hg,
+      fun m hm => extsInitP_of_init kvraftInitCompat (hl m hm),
       fun m hm => hfs m (List.mem_append_left _ hm)⟩) ?_ hfresh hig hil
   intro G _ hb
   iintro Hs
