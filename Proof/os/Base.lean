@@ -171,7 +171,8 @@ end def_
 
 theorem osMeta_eq {a b : OsMeta} (h1 : a.size = b.size) (h2 : a.lo = b.lo) (h3 : a.hi = b.hi)
     (h4 : a.maps = b.maps) (h5 : a.dlo = b.dlo) (h6 : a.dhi = b.dhi) (h7 : a.zf = b.zf)
-    (h8 : a.tc = b.tc) (h9 : a.cut = b.cut) (h10 : a.cz = b.cz) (h11 : a.rz = b.rz) : a = b := by
+    (h8 : a.tc = b.tc) (h9 : a.cut = b.cut) (h10 : a.cz = b.cz) (h11 : a.rz = b.rz)
+    (h12 : a.xs = b.xs) : a = b := by
   cases a; cases b; simp_all
 
 theorem rsPost_tc (tr : Bool) (m : OsMeta) (tg sz' b : Nat) :
@@ -184,7 +185,8 @@ theorem rsPost_size' (tr : Bool) (m : OsMeta) (tg sz' : Nat) : (rsPost tr m tg s
 
 theorem rsPost_eq (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
     rsPost tr m tg sz' =
-      { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m tg } :=
+      { m.announce (min m.size tg) (rsHi tr m.size tg) tg with
+        size := sz', cz := rsCz tr m tg, xs := rsXs tr m sz' } :=
   rfl
 
 theorem rsPost_cz (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
@@ -281,6 +283,7 @@ theorem announce_sub (m : OsMeta) (lo hi lo2 hi2 tg : Nat) (hl : lo ≤ lo2) (hh
   · simp
   · simp
   · simp
+  · simp
 
 /-- Announcing a range again changes nothing. -/
 theorem announce_idem (m : OsMeta) (lo hi tg : Nat) :
@@ -293,6 +296,23 @@ theorem announce_setSize (X : OsMeta) (s lo hi tg : Nat) :
   apply osMeta_eq <;> simp [announce_dlo, announce_dhi, touch_dlo, touch_dhi, announce_tc]
   apply GMap.ext; intro b; simp [announce_tc]
 
+theorem announce_setSizeCzXs (X : OsMeta) (s c lo hi tg : Nat) (x : Option (List Nat)) :
+    ({ X with size := s, cz := c, xs := x } : OsMeta).announce lo hi tg =
+      { X.announce lo hi tg with size := s, cz := c, xs := x } := by
+  apply osMeta_eq <;> simp [announce_dlo, announce_dhi, touch_dlo, touch_dhi, announce_tc]
+  apply GMap.ext; intro b; simp [announce_tc]
+
+/-- A resize to the size a file has, after one that landed, knows the same crash sizes. -/
+theorem rsXs_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
+    rsXs tr (rsPost tr m tg tg) tg = rsXs tr m tg := by
+  cases tr
+  · simp [rsXs, rsPost]
+  · cases h : m.xs <;> simp [rsXs, rsPost, h, List.insert_of_mem List.mem_insert_self]
+
+theorem rsXs_announce (tr : Bool) (m : OsMeta) (lo hi tg sz' : Nat) :
+    rsXs tr (m.announce lo hi tg) sz' = rsXs tr m sz' := by
+  simp [rsXs]
+
 theorem announce_setSizeCz (X : OsMeta) (s c lo hi tg : Nat) :
     ({ X with size := s, cz := c } : OsMeta).announce lo hi tg =
       { X.announce lo hi tg with size := s, cz := c } := by
@@ -302,13 +322,13 @@ theorem announce_setSizeCz (X : OsMeta) (s c lo hi tg : Nat) :
 /-- A resize to the size a file has, after one that landed, changes nothing. -/
 theorem rsPost_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
     rsPost tr (rsPost tr m tg tg) tg tg = rsPost tr m tg tg := by
-  rw [rsPost_eq tr (rsPost tr m tg tg), rsPost_size', rsCz_same, rsPost_eq tr m tg tg,
-    announce_setSizeCz, announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
+  rw [rsPost_eq tr (rsPost tr m tg tg), rsPost_size', rsCz_same, rsXs_rsPost, rsPost_eq tr m tg tg,
+    announce_setSizeCzXs, announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
 
 theorem announce_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
     (rsPost tr m tg tg).announce (min (rsPost tr m tg tg).size tg) (rsHi tr (rsPost tr m tg tg).size tg)
       tg = rsPost tr m tg tg := by
-  rw [rsPost_size', rsPost_eq tr m tg tg, announce_setSizeCz,
+  rw [rsPost_size', rsPost_eq tr m tg tg, announce_setSizeCzXs,
     announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
 
 /-- The page cache known zero after a resize does not depend on its own announcement. -/
@@ -336,7 +356,7 @@ theorem rsCz_announce (tr : Bool) (m : OsMeta) (tg : Nat) :
 theorem rsPost_announce (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
     rsPost tr (m.announce (min m.size tg) (rsHi tr m.size tg) tg) tg sz' = rsPost tr m tg sz' := by
   unfold rsPost
-  rw [announce_size, announce_idem, rsCz_announce]
+  rw [announce_size, announce_idem, rsCz_announce, rsXs_announce]
 
 section resize
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
