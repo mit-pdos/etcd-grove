@@ -1364,3 +1364,39 @@ srvCrashImage γ' ρo id dd` (`InvCrashImage.lean`).
 
 **Order**: (1a) delete the torn law; (2) `osPathDur` and its lemmas (proved now); (1b)/(3) after B1-B5's decisions.
 Estimate for (3) once unblocked: the table's 600-1000 lines for the assembly alone, plus T10 (B1, 800-1500) and T8.
+
+### T7 status and handoff (2026-11-25, session 1; branch `etcd-safe-t7`)
+
+**Done** (built on fk-lean2 in the P8/P5 worktree, `lake build …dist.crash.MemberCrash`, 4497 jobs, exit 0; no
+axiom, no `sorry`; `etc/tier-check.py --check` ok, the new file is defs tier):
+* (1a) `raftTorn`/`readyCrashTorn.law` deleted from `MemberGen.lean` (no user; T1 retired by the torn-`Save` fix).
+* (2) `dist/crash/MemberCrash.lean`: `osSpineDur`/`osPathDur` (persistent durable paths), `osPathDur_root`,
+  `osPathDur_child` (from `TouchDirAll`'s post: the claim at a discarded fraction, `h.next ≤ n`, `osCommitLb n`),
+  `osSpineDur_crash`/`osPathDur_lookup` (**T6's premise `lookupH R V' sd = some (.dir J)`**, from `crashRest`),
+  `osPathDur_agree`, `snapDirKeptR`/`snapDirKeptR_of` (**T6's `snapDirKept` at the law's roots**), `crashRest_roots`
+  (two shared invariants of the crashed generation agree on their roots: what `old_dir` needs for the restatement);
+  `rnTakenK_stop` (D-T7-3: T2's crash law's stop case refuted by the stop's token).
+* Ledger entries (2026-11-25): T6's `snapDirKept` unprovable as stated (D-T7-1); `srvCrashImageAt`'s three
+  gaps (D-T7-2, B2, B3). Neither statement edited.
+
+**Next, in order** (each waits on the decision named):
+1. D-T7-1 approved → in `SnapDirCrash.lean`: `snapDirKeptF := snapDirKeptR`'s body, `old_dir`'s three callers
+   get `R0 = R` from `memberCrash.crashRest_roots` (move it, or `osPathDur`'s file, below `SnapDirCrash` if the
+   import direction requires: `MemberCrash` imports `SnapDirCrash` today).
+2. The producer side of `osPathDur R sd J` (T8's boot): after `bootFs.touchMember` (`member`) and
+   `bootstrapSnapshot`'s `TouchDirAll(SnapDir())` (`snap`), persist a fraction of each claim (`gElem` persist,
+   `DFrac.update_discard`) and apply `osPathDur_root` (the data directory is a root?) then `osPathDur_child`
+   twice. Check first that the data directory `dd` is one of the shared invariant's roots (else extend
+   `osPathDur_root` to the spine `dd`'s `osPathS` gives, durable through its own `TouchDirAll`).
+3. B1 (the backend's image invariant): a design note first (who deposits the image facts at each backend
+   commit; `dbCrashKeep_new`/`_announce`/`_clear` at the apply thread's commit points; the facts must cover
+   `Dl`, `Dn` and `pd`).
+4. The WAL+raft part of the assembly (no decision needed, but it fixes `Keep`'s WAL rows): `walInv_crash` on the
+   area (gives `walCrashWal h.W W'`, `walStart`, the new generation's lock token), `crashRest_treeS'`, then
+   `walBootCrash` (the new generation's `walInv`, its token: next `Keep`'s), and `rnDurK_crash_law_holds` with
+   `Φ σ := walFilesC {h.toWalA with W := W'} id cid σ true` (its callback is `walRecsH_crash`), `rnTakenK_stop`
+   for the second case. Watch: `rnDurK_crash` is stated at the ambient `hG` (the old generation's `crashed`),
+   while `walFilesC` must be at `L'`; `walRecsH` is sealed and does not mention the generation, so a law
+   `walRecsH_gen` (as `snapSaved_gen`) is needed in `WalRecsH.lean`, and `walFilesC` likewise.
+5. B2/B3/D-T7-2 decided (T4's `srvCrashImageAt`) → the image assembly; B4 (T3, T8's boot phases) → the
+   `memberFirst` case; B5 (T8) → `memberKeep` as a definition and the law proved.
