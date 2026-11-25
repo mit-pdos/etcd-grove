@@ -74,9 +74,13 @@ def osPathDur (R : Roots) (p : GoString) (J : Ino) : IProp GF :=
     ⌜RootsOk R ∧ (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpineDur j0 cs J)
 
 /-- **The crash kept the directory of `sd`** at the roots `R` (persistent): T6's `snapDirKeptF`
-(`SnapDirCrash.lean`), since D-T7-1's restatement (2026-11-25) at the law's own roots. -/
-abbrev snapDirKeptR (R : Roots) (V' : Hist) (sd : GoString) : IProp GF :=
-  snapCrash.snapDirKeptF R V' sd
+(`SnapDirCrash.lean`), since D-T7-1's restatement (2026-11-25) at the law's own roots: the same body. -/
+def snapDirKeptR (R : Roots) (V' : Hist) (sd : GoString) : IProp GF :=
+  iprop(□ ∀ (dq : DFrac) (j : Ino), osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝)
+
+instance snapDirKeptR_persistent (R : Roots) (V' : Hist) (sd : GoString) :
+    Persistent (snapDirKeptR (GF := GF) R V' sd) := by
+  unfold snapDirKeptR; infer_instance
 
 theorem osSpineDur_nil (j j' : Ino) : osSpineDur (GF := GF) j [] j' = iprop(⌜j = j'⌝) := by
   simp only [osSpineDur]
@@ -196,7 +200,7 @@ crashed tree resolves it to. -/
 theorem snapDirKeptR_of (L : GooseLocalGS GF) (R : Roots) (V' : Hist) (sd : GoString) (J : Ino)
     (hJ : lookupH R V' sd = some (.dir J)) :
     ⊢ osPathDur (hG := ⟨G, L⟩) R sd J -∗ snapDirKeptR (hG := ⟨G, L⟩) R V' sd := by
-  unfold snapDirKeptR snapCrash.snapDirKeptF
+  unfold snapDirKeptR
   iintro #Hd
   imodintro
   iintro %dq %j Hp
@@ -1149,6 +1153,8 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   imod osPathDur_lookup Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ (Dw ++ [i0]) true V' R ⊤ (by simp) _ J $$ Hsh Hrest Hpd
     with ⟨%hJ, Hrest⟩
   ihave #Hkr := snapDirKeptR_of ⟨fl, lc', nh, gs, th, cr⟩ R V' _ J hJ $$ Hpd
+  ihave #Hkf : snapCrash.snapDirKeptF (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R V' (config.snapDirOf cfg.DataDir') $$ []
+  · unfold snapCrash.snapDirKeptF; unfold snapDirKeptR at Hkr; iexact Hkr
   have hD : ∀ x ∈ Dw ++ [i0], ∀ i, V'.now.entry J (snap.snapDBName i) ≠ some (.file x) := by
     intro x hx i hxi
     rcases List.mem_append.1 hx with hx | hx
@@ -1178,7 +1184,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     iapply (show srvImageM γ.authOn γ j Dt ⊢ srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ.authOn γ j Dt from
       srvImageM_gen G ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γ.authOn γ j Dt)
     iexact Hj
-  imod hlaw $$ Hlc2 Hsnap Hcr Hrm Himgg Hkr [Hrest] Hown Hslots with ⟨%Dk, Hsnap', Hrest⟩
+  imod hlaw $$ Hlc2 Hsnap Hcr Hrm Himgg Hkf [Hrest] Hown Hslots with ⟨%Dk, Hsnap', Hrest⟩
   · isplitr
     · iexact Hsh
     · iexact Hrest
