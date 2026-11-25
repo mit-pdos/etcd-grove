@@ -139,8 +139,191 @@ theorem acceptsFrom_frames_sub {C : WalCodec} (hC : C.Ok) {last : Bool} {img : L
 
 /-! ## The tail's durable bytes past `wr` -/
 
+/-- The frames the reader accepts are at or after its start. -/
+theorem acceptsFrom_ge (C : WalCodec) (last : Bool) (bs : List w8) (off : Nat) (c : w32) :
+    ∀ o ∈ acceptsFrom C last bs off c, off ≤ o := by
+  rw [acceptsFrom_unfold]
+  split
+  · simp
+  · rename_i r len c' h
+    intro o ho
+    rcases List.mem_cons.1 ho with rfl | ho
+    · exact Nat.le_refl _
+    · have := acceptsFrom_ge C last bs (off + len) c' o ho; omega
+termination_by bs.length - off
+decreasing_by
+  have := decStep_rec_bound ‹decStep C last bs off c = DecStep.accept _ _ _›
+  omega
+
+/-- An accepted frame's core is within its length. -/
+theorem decStep_core_le {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat} {c : w32}
+    {r : WalRec} {len : Nat} {c' : w32} (h : decStep C last bs off c = .accept r len c') :
+    frameCore bs off ≤ len := by
+  unfold decStep at h
+  unfold frameCore
+  simp only at h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  split at h
+  · cases h
+  · split at h
+    · split at h
+      · cases h; omega
+      · cases h
+    · split at h
+      · cases h
+      · cases h; omega
+
 section rep
 variable [GooseExts]
+
+/-- **A pending run carries over to an image that agrees with `old` on every frame it accepts** (the
+image no longer than `old`, its bytes from `off` `old`'s or zero): from `off`, the image's reader accepts a prefix of `old`'s pending run, then
+stops. -/
+theorem pendStop_transfer {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {old img : List w8}
+    (hl : img.length ≤ old.length) :
+    ∀ (es : List EntryM) (off : Nat) (c : w32),
+    RecsFit C (chainRecs C c (pendDs Mr es)) →
+    recFrames C (chainRecs C c (pendDs Mr es)) <+: old.drop off →
+    (∀ r len c', decStep C true old (off + (recFrames C (chainRecs C c (pendDs Mr es))).length)
+      (crcAfter C c (pendDs Mr es)) ≠ .accept r len c') →
+    (∀ p cc r len c', p ∈ acceptsFrom C true img off c → decStep C true img p cc = .accept r len c' →
+      ∀ b, p ≤ b → b < p + frameCore img p → img.getD b 0 = old.getD b 0) →
+    (∀ b, off ≤ b → img.getD b 0 = old.getD b 0 ∨ img.getD b 0 = 0) →
+    PendStop C Mr img off c
+  | [], off, c, _, _, hst, hag, _ => by
+    apply pendStop_nil
+    intro r len c' h
+    have hm : off ∈ acceptsFrom C true img off c := by
+      rw [acceptsFrom_accept h]; exact List.mem_cons_self ..
+    have h' := decStep_congr h hl (fun b hb1 hb2 => (hag off c r len c' hm h b hb1 hb2).symm)
+    exact hst r len c' (by simpa [pendDs, chainRecs, recFrames_nil, crcAfter] using h')
+  | e :: es, off, c, hfit, hpre, hst, hag, hvals => by
+    generalize hr : (⟨entryType, C.crc32c c (Mr.encEntry e), Mr.encEntry e⟩ : WalRec) = r
+    have hX : chainRecs C c (pendDs Mr (e :: es)) =
+        r :: chainRecs C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es) := by
+      rw [← hr]; rfl
+    have hA : crcAfter C c (pendDs Mr (e :: es)) =
+        crcAfter C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es) := rfl
+    rw [hX] at hfit hpre hst
+    rw [hA] at hst
+    have hrt : r.typ ≠ crcType := by rw [← hr]; show entryType ≠ crcType; unfold entryType crcType; decide
+    have hcrc : CrcOk C c r := by unfold CrcOk; rw [if_pos hrt, ← hr]
+    have hnext : crcNext C c r = C.crc32c c (Mr.encEntry e) := by
+      unfold crcNext; rw [if_pos hrt, ← hr]
+    obtain ⟨t, ht⟩ := hpre
+    rw [recFrames_cons, List.append_assoc] at ht
+    replace ht := ht.symm
+    have hfr0 := hfit r (List.mem_cons_self ..)
+    have hold := decStep_frame hC true hfr0 ht hcrc
+    rw [hnext] at hold
+    have hcO : frameCore old off = 8 + (C.encRec r).length := by
+      unfold frameCore
+      have htake : (old.drop off).take 8 = u64Le (encodeFrameSize (C.encRec r).length).1 := by
+        rw [ht]; simp only [frame, List.append_assoc]
+        exact List.take_left' (u64Le_length _)
+      rw [htake, u64Le_to_word, decodeFrameSize_encode _ hfr0]
+    cases himg : decStep C true img off c with
+    | stop sx => exact pendStop_nil (fun r' len c' h => by rw [himg] at h; cases h)
+    | accept r1 len1 c1 =>
+      have hm : off ∈ acceptsFrom C true img off c := by
+        rw [acceptsFrom_accept himg]; exact List.mem_cons_self ..
+      have hag0 := hag off c r1 len1 c1 hm himg
+      have h' := decStep_congr himg hl (fun b hb1 hb2 => (hag0 b hb1 hb2).symm)
+      rw [hold] at h'
+      simp only [DecStep.accept.injEq] at h'
+      obtain ⟨rfl, rfl, rfl⟩ := h'
+      have hcb := decStep_core_bound himg
+      have hrb := decStep_rec_bound himg
+      -- the image's core is `old`'s: the same length word
+      have hcI : frameCore img off = 8 + (C.encRec r).length := by
+        rw [← hcO]
+        have hc8 : 8 ≤ frameCore img off := by unfold frameCore; omega
+        unfold frameCore
+        congr 4
+        apply List.ext_getElem
+        · simp only [List.length_take, List.length_drop]
+          have := decStep_core_bound hold
+          omega
+        · intro i h1 h2
+          simp only [List.length_take, List.length_drop] at h1 h2
+          have := hag0 (off + i) (by omega) (by unfold frameCore at hc8 ⊢; omega)
+          rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega),
+            List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)] at this
+          simp only [Option.getD_some] at this
+          simp only [List.getElem_take, List.getElem_drop]
+          exact this
+      have hfit' : RecsFit C (chainRecs C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es)) :=
+        fun q hq => hfit q (List.mem_cons_of_mem _ hq)
+      have hpre' : recFrames C (chainRecs C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es)) <+:
+          old.drop (off + (frame (C.encRec r)).length) := by
+        refine ⟨t, ?_⟩
+        rw [← List.drop_drop, ht, List.drop_left]
+      have hst' : ∀ r' len c', decStep C true old (off + (frame (C.encRec r)).length +
+          (recFrames C (chainRecs C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es))).length)
+          (crcAfter C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es)) ≠ .accept r' len c' := by
+        intro r' len c'
+        have := hst r' len c'
+        rwa [recFrames_cons, List.length_append, ← Nat.add_assoc] at this
+      have hag' : ∀ p cc r' len c', p ∈ acceptsFrom C true img (off + (frame (C.encRec r)).length)
+          (C.crc32c c (Mr.encEntry e)) → decStep C true img p cc = .accept r' len c' →
+          ∀ b, p ≤ b → b < p + frameCore img p → img.getD b 0 = old.getD b 0 := by
+        intro p cc r' len c' hp
+        apply hag p cc r' len c'
+        rw [acceptsFrom_accept himg]; exact List.mem_cons_of_mem _ hp
+      obtain ⟨es', hf', hp', hs'⟩ := pendStop_transfer hC hl es _ _ hfit' hpre' hst' hag'
+        (fun b hb => hvals b (by omega))
+      have hX' : chainRecs C c (pendDs Mr (e :: es')) =
+          r :: chainRecs C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es') := by
+        rw [← hr]; rfl
+      refine ⟨e :: es', ?_, ?_, ?_⟩
+      · rw [hX']
+        intro q hq
+        rcases List.mem_cons.1 hq with rfl | hq
+        · exact hfr0
+        · exact hf' q hq
+      · rw [hX', recFrames_cons]
+        obtain ⟨u, hu⟩ := hp'
+        refine ⟨u, ?_⟩
+        have hfr : (img.drop off).take (frame (C.encRec r)).length = frame (C.encRec r) := by
+          apply List.ext_getElem
+          · simp only [List.length_take, List.length_drop]; omega
+          · intro i h1 h2
+            simp only [List.length_take, List.length_drop] at h1
+            have hi : i < (frame (C.encRec r)).length := by omega
+            have e2 := congrArg (fun l => l[i]?) ht
+            simp only [List.getElem?_drop] at e2
+            rw [List.getElem?_append_left hi, List.getElem?_eq_getElem hi] at e2
+            have hio : off + i < old.length := by
+              have := (List.getElem?_eq_some_iff.1 e2).1; exact this
+            have hoi : old[off + i] = (frame (C.encRec r))[i] := (List.getElem?_eq_some_iff.1 e2).2
+            simp only [List.getElem_take, List.getElem_drop]
+            rw [← hoi]
+            have hgi : img.getD (off + i) 0 = old.getD (off + i) 0 := by
+              by_cases hc : i < 8 + (C.encRec r).length
+              · exact hag0 (off + i) (by omega) (by rw [hcI]; omega)
+              · rcases hvals (off + i) (by omega) with h | h
+                · exact h
+                · rw [h, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hio, Option.getD_some, hoi]
+                  simp only [frame, List.append_assoc]
+                  rw [List.getElem_append_right (by rw [u64Le_length]; omega),
+                    List.getElem_append_right (by rw [u64Le_length]; omega), List.getElem_replicate]
+                  rfl
+            rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega),
+              List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hio] at hgi
+            simpa using hgi
+        rw [List.append_assoc, hu]
+        have := List.take_append_drop (frame (C.encRec r)).length (img.drop off)
+        rw [hfr, List.drop_drop] at this
+        exact this
+      · intro r' len c'
+        have hA' : crcAfter C c (pendDs Mr (e :: es')) =
+            crcAfter C (C.crc32c c (Mr.encEntry e)) (pendDs Mr es') := rfl
+        rw [hX', hA', recFrames_cons, List.length_append, ← Nat.add_assoc]
+        exact hs' r' len c'
 
 /-- **An exact tail with `wr = z0` has `RepOld`**: past `wr` its bytes are unsynced, `old`'s byte
 stamped 0 first, then writes' candidates stamped `> 0` (`ByteOk`); the segment is `old` long. -/
@@ -255,7 +438,8 @@ theorem crashTo_tailR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (himg : ∀ f, fo g.ino = some f →
       lay.wr ≤ f.size ∧ f.size ≤ (segBytesX g).length ∧
-      ∀ b, b < lay.wr → f.cache b = (segStream C Mr d lay.cuts lay.cuts.length).getD b 0)
+      (∀ b, b < lay.wr → f.cache b = (segStream C Mr d lay.cuts lay.cuts.length).getD b 0) ∧
+      ∀ b, lay.wr ≤ b → b < f.size → f.cache b = lay.old.getD b 0 ∨ f.cache b = 0)
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
     (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)
       (segRzOf lay)) :
@@ -270,12 +454,12 @@ theorem crashTo_tailR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   have hgin : g.ino ∈ walInos (entsOf m' lay.j) := by
     rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
   obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
-  obtain ⟨hlen, hszX, hval⟩ := himg f hf
-  have hI0H : I0.length ≤ d.H.length := walImg_length_le hI0
+  obtain ⟨hlen, hszX, hval, hvhi⟩ := himg f hf
+  have hI0H : I0.length ≤ d.H.length := walImg_length_le (walImgS_walImg hI0)
   have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
-    initSegs_of_take hsorted (walImg_take hI0 hm0)
+    initSegs_of_take hsorted (walImgS_take hI0 hm0)
   have hpur' := Nat.le_min.1 hpur
-  refine Or.inr ⟨q, d.H, hent, hq, hinos, ⟨d.H.length, hmH, Nat.le_refl _, Or.inl (by simp)⟩,
+  refine Or.inr ⟨q, d.H, hent, hq, hinos, walImgS_refl hmH,
     by omega, Nat.le_min.2 ⟨hpur'.1, Nat.le_trans hpur'.2 hI0H⟩, ?_, ?_⟩
   · intro k g' hk hkc
     have hne : g'.ino ≠ g.ino := by
@@ -299,30 +483,30 @@ theorem crashTo_tailR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   · intro g'' hg''
     rw [hg] at hg''
     cases hg''
-    change segStream C Mr d lay.cuts lay.cuts.length <+: imgOf (fo g.ino) ∧ ∀ r len c',
-      decStep C true (imgOf (fo g.ino)) (segStream C Mr d lay.cuts lay.cuts.length).length
-        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) ≠
-        .accept r len c'
+    change segStream C Mr d lay.cuts lay.cuts.length <+: imgOf (fo g.ino) ∧ PendStop C Mr
+      (imgOf (fo g.ino)) (segStream C Mr d lay.cuts lay.cuts.length).length
+        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
     have himgf : imgOf (fo g.ino) = f.contents := by simp only [imgOf, hf, Option.map_some, Option.getD_some]
     rw [himgf]
     have hpreS : segStream C Mr d lay.cuts lay.cuts.length <+: f.contents :=
       prefix_of_getD (by rw [contents_length]; omega) (fun b hb => by
         rw [contents_getD f b (by omega)]; exact hval b (by omega))
-    refine ⟨hpreS, fun r len c' hd => ?_⟩
-    have hd0 := hd
+    refine ⟨hpreS, ?_⟩
     -- the fresh reader's path reaches `wr`
     generalize hR' : lastSegRecs C Mr d lay.cuts = R
     have hSR : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR']; rfl
     have hfit : RecsFit C R := fun r hr => habs.fit r (by
       rw [allRecs_split, hR']; exact List.mem_append_right _ hr)
     have hch : ChainOk C (lastC0 C Mr d lay.cuts) R := hR' ▸ chainOk_lastRecs hC Mr d lay.cuts
-    rw [chainEnd_allRecs_split, hR', hSR] at hd
+    rw [chainEnd_allRecs_split, hR', hSR]
     rw [hSR] at hpreS
     obtain ⟨t, ht⟩ := hpreS
-    have hp1 : (recFrames C R).length ∈ acceptsFrom C true f.contents 0 (lastC0 C Mr d lay.cuts) := by
-      refine acceptsFrom_frames_sub hC R 0 _ hfit hch ⟨t, by rw [List.drop_zero, ht]⟩ _ ?_
-      rw [Nat.zero_add, acceptsFrom_accept hd]; exact List.mem_cons_self ..
-    have hp0 : (recFrames C R).length ∈ acceptsFrom C true f.contents 0 0#32 := by
+    have hsub : ∀ p ∈ acceptsFrom C true f.contents (recFrames C R).length
+        (WalEnc.chainEnd C (lastC0 C Mr d lay.cuts) R), p ∈ acceptsFrom C true f.contents 0 0#32 := by
+      intro p hp
+      have hp1 : p ∈ acceptsFrom C true f.contents 0 (lastC0 C Mr d lay.cuts) :=
+        acceptsFrom_frames_sub hC R 0 _ hfit hch ⟨t, by rw [List.drop_zero, ht]⟩ _
+          (by rw [Nat.zero_add]; exact hp)
       by_cases hc0 : lay.cuts = []
       · rw [hc0, lastC0_nil] at hp1; exact hp1
       · obtain ⟨r0, rs, hR0, ht0⟩ := lastRecs_head_crc C Mr d hc0
@@ -341,43 +525,56 @@ theorem crashTo_tailR {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       rw [List.length_map, ← List.map_drop, drop_length_sub_one' hne]
       simp only [List.map_cons, List.map_nil]
       rw [(List.getLast_eq_iff_getLast?_eq_some _).2 hgq]
-    have hp' : (0, (recFrames C R).length) ∈ acceptsFiles C (((walInos (entsOf m' lay.j)).drop
-        ((walInos (entsOf m' lay.j)).length - 1)).map (fun i => imgOf (fo i))) 0#32 := by
-      rw [hjs]
-      simp only [List.map_cons, List.map_nil, acceptsFiles, himgf, List.mem_map]
-      exact ⟨_, hp0, rfl⟩
-    have hcore := decStep_core_bound hd
-    have hcore8 : 8 ≤ frameCore f.contents (recFrames C R).length := by
-      unfold frameCore; omega
-    rw [contents_length] at hcore
-    have h1 := hw _ _ hp' g.ino (segBytesX g) (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm) (by
-      show (recFrames C R).length + frameCore (imgOf (fo g.ino)) (recFrames C R).length ≤ _
-      rw [himgf]; omega)
-    rw [segRzOf_of_mem hnd hgm] at h1
-    simp only [himgf] at h1
-    unfold AsOfOneG at h1
-    rw [← hSR, hS] at h1 hcore hcore8 hd
-    rw [hS] at hd0
-    rcases h1 with h1 | ⟨n, hn0, h1⟩
-    · -- as of the last sync: the durable image's frame, which the reader rejects
-      have hXo : (segBytesX g).length ≤ lay.old.length := by
-        have := (hR.2 g hg ((segBytesX g).length - 1) (by omega) (by omega)).1
-        omega
-      have hold := decStep_congr (bs' := lay.old) hd0 (by rw [contents_length]; omega)
-        (fun b hb1 hb2 => by
-          have e := h1 b hb1 hb2
-          simp only at e
-          rw [e]; exact ((hR.2 g hg b hb1 (by omega)).2).symm)
-      rw [hR.1] at hold
-      exact habs.tailStop (by rw [← hR.1, hS]) r len c' hold
-    · -- as of a change: the candidate at `wr` stamped by a write, but none is
-      obtain ⟨p, hp, -, hp0, hpr⟩ := h1 lay.wr (Nat.le_refl _) (by omega)
-      have hpm := (latestAt_mem hp).1
-      obtain ⟨-, -, -, -, -, -, -, -, -, hWC⟩ := habs.lastWin g hg
-      rcases hWC lay.wr (Nat.le_refl _) (by omega) p hpm with h | ⟨-, h⟩ | ⟨h, -⟩
-      · rw [h] at hp0; exact absurd hp0 (Nat.lt_irrefl 0)
-      · exact hpr h
-      · omega
+    have hfo' : f.size ≤ lay.old.length := by
+      by_cases hlt : lay.wr < (segBytesX g).length
+      · have := (hR.2 g hg ((segBytesX g).length - 1) (by omega) (by omega)).1; omega
+      · obtain ⟨-, -, hzo, -⟩ := habs.lastWin g hg; have := hR.1; omega
+    have hRl : (recFrames C R).length = lay.wr := by rw [← hSR, hS]
+    -- every frame the reader accepts from `wr` on is, on its core, the durable image's (`old`'s)
+    have hag : ∀ p cc r len c', p ∈ acceptsFrom C true f.contents (recFrames C R).length
+        (WalEnc.chainEnd C (lastC0 C Mr d lay.cuts) R) →
+        decStep C true f.contents p cc = .accept r len c' →
+        ∀ b, p ≤ b → b < p + frameCore f.contents p → f.contents.getD b 0 = lay.old.getD b 0 := by
+      intro p cc r len c' hp hd
+      have hpw : lay.wr ≤ p := by rw [← hRl]; exact acceptsFrom_ge _ _ _ _ _ p hp
+      have hp' : (0, p) ∈ acceptsFiles C (((walInos (entsOf m' lay.j)).drop
+          ((walInos (entsOf m' lay.j)).length - 1)).map (fun i => imgOf (fo i))) 0#32 := by
+        rw [hjs]
+        simp only [List.map_cons, List.map_nil, acceptsFiles, himgf, List.mem_map]
+        exact ⟨_, hsub p hp, rfl⟩
+      have hcore := decStep_core_bound hd
+      have hcore8 : 8 ≤ frameCore f.contents p := by unfold frameCore; omega
+      rw [contents_length] at hcore
+      have h1 := hw _ _ hp' g.ino (segBytesX g) (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm) (by
+        show p + frameCore (imgOf (fo g.ino)) p ≤ _
+        rw [himgf]; omega)
+      rw [segRzOf_of_mem hnd hgm] at h1
+      simp only [himgf] at h1
+      unfold AsOfOneG at h1
+      rcases h1 with h1 | ⟨n, hn0, h1⟩
+      · -- as of the last sync: the durable image's bytes
+        intro b hb1 hb2
+        have e := h1 b hb1 hb2
+        simp only at e
+        rw [e]; exact (hR.2 g hg b (by omega) (by omega)).2
+      · -- as of a change: the candidate at `p` stamped by a write, but none is
+        exfalso
+        obtain ⟨q', hq', -, hq0, hpr⟩ := h1 p (Nat.le_refl _) (by omega)
+        have hpm := (latestAt_mem hq').1
+        obtain ⟨-, -, -, -, -, -, -, -, -, hWC⟩ := habs.lastWin g hg
+        rcases hWC p hpw (by omega) q' hpm with h | ⟨-, h⟩ | ⟨h, -⟩
+        · rw [h] at hq0; exact absurd hq0 (Nat.lt_irrefl 0)
+        · exact hpr h
+        · omega
+    have hP := habs.tailStop (by rw [← hR.1, hS])
+    rw [← hR.1, ← hS, hSR, chainEnd_allRecs_split, hR'] at hP
+    obtain ⟨es, hfE, hpE, hsE⟩ := hP
+    refine pendStop_transfer hC (by rw [contents_length]; omega) es _ _ hfE hpE hsE ?_ ?_
+    · exact hag
+    · intro b hb
+      by_cases hbf : b < f.size
+      · rw [contents_getD f b hbf]; exact hvhi b (by omega) hbf
+      · right; rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by rw [contents_length]; omega)]; rfl
 
 /-- **A step on a tail whose frame at `wr` is the durable image's keeps the crash condition**
 (`crashOkA_tailPend` with `RepOld` of the new layout in place of `TailPend`, see the file header): the
@@ -484,10 +681,21 @@ theorem crashOkA_tailRep {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDu
     obtain ⟨h1, h2, h3⟩ := crashImg_tail (by rw [← hf1]; exact hf g hgm) hsz (habs.winLo_any g hg)
       hzf' (habs.hiX hg)
     have hmx : max lay.so lay.z0 = lay.wr := by have := hR.1; omega
-    refine ⟨by omega, h2, fun b hb => ?_⟩
-    rcases h3 b (by omega) with ⟨s, hs'⟩ | ⟨hb1, -⟩
-    · exact hV b _ hb hs'
-    · omega
+    obtain ⟨-, -, -, -, -, -, -, -, hWC⟩ := habs.lastWin g hg
+    refine ⟨by omega, h2, fun b hb => ?_, fun b hb hbf => ?_⟩
+    · rcases h3 b (by omega) with ⟨s, hs'⟩ | ⟨hb1, -⟩
+      · exact hV b _ hb hs'
+      · omega
+    · rcases h3 b hbf with ⟨s, hs'⟩ | ⟨-, hb2⟩
+      · have hbX : b < (segBytesX g).length := by
+          refine Nat.lt_of_not_le fun hc => ?_
+          rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none hc] at hs'
+          simp at hs'
+        rcases hWC.2 b hb hbX _ hs' with h | ⟨h, -⟩ | ⟨h, -⟩
+        · left; exact (Prod.mk.inj h).1
+        · right; exact h
+        · omega
+      · right; exact hb2
   · right
     exact ⟨la, hla, crashTo_congr_fo (fun g' hg' => hfo _ (halt la hla g' hg')) h⟩
 

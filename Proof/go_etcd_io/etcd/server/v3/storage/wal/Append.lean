@@ -154,7 +154,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iexists d
   isplitr
   · ipureintro
-    exact ⟨hd, HMs, rfl, habs.cuts.1, habs.cuts.2.1⟩
+    exact ⟨hd, HMs, rfl, fun b hb => (walCutPos_normH _ b).1 (habs.cuts.1 b hb), habs.cuts.2.1⟩
   iframe Hk Hv Hcf HM Hp
   iexists Ls, cl, n, F
   iframe Hg Hcl Hn Hlays HCR Hpk

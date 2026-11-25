@@ -99,29 +99,34 @@ theorem vseSnaps_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (o : Wal
   | snap m al =>
     simp [opDs, vseSnaps, snapsOf, hU.snap m]
 
-theorem vseHs_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (h : HardStateM) (o : WalOp) :
+theorem vseHs_opDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (h : HardStateM) (o : WalOp)
+    (hN : normOp h o = o) :
     vseHs U h (opDs M o) = lhsStep h o := by
   cases o with
   | save h' es =>
-    have he : ∀ h0, vseHs U h0 (es.map (fun e => (entryType, M.encEntry e))) = h0 := by
-      intro h0
-      unfold vseHs
-      induction es generalizing h0 with
-      | nil => rfl
-      | cons e es ih =>
+    have he' : ∀ (l : List EntryM) h0, vseHs U h0 (l.map (fun e => (entryType, M.encEntry e))) = h0 := by
+      intro l
+      induction l with
+      | nil => intro h0; rfl
+      | cons e l ih =>
+        intro h0
+        unfold vseHs at ih ⊢
         simp only [List.map_cons, List.foldl_cons]
         rw [show vseHsStep U h0 (entryType, M.encEntry e) = h0 by simp [vseHsStep, entryType, stateType]]
         exact ih h0
+    have he := he' es
     simp only [opDs, vseHs_append, he, lhsStep]
-    by_cases hE : h'.Term' = W64 0 ∧ h'.Vote' = W64 0 ∧ h'.Commit' = W64 0
-    · rw [phsNext_empty _ _ hE]
-      split
-      · rfl
-      · rename_i hh; exact absurd hE hh
-    · unfold phsNext; rw [if_neg hE]
-      split
-      · rename_i hh; exact absurd hh hE
-      · simp [vseHs, vseHsStep, hU.state]
+    by_cases hc : es = [] ∧ hsEmptyP h'
+    · rw [if_pos hc, phsNext_of_hsEmptyP hc.2]; rfl
+    · rw [if_neg hc]
+      have hst : vseHs U h [(stateType, M.encState h')] = h' := by
+        simp [vseHs, vseHsStep, hU.state]
+      rw [hst]
+      by_cases hE : hsEmptyP h'
+      · have hes : es ≠ [] := fun h0 => hc ⟨h0, hE⟩
+        simp only [normOp, if_pos (And.intro hes hE), WalOpG.save.injEq] at hN
+        rw [hN.1, phsNext_self]
+      · unfold phsNext; unfold hsEmptyP at hE; rw [if_neg hE]
   | snap m al =>
     simp [opDs, vseHs, vseHsStep, lhsStep, snapshotType, stateType]
 
@@ -134,10 +139,15 @@ theorem vseSnaps_ops {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) :
     cases o <;> simp
 
 theorem vseHs_ops {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) :
-    ∀ (S : WalHist) (h : HardStateM), vseHs U h (S.flatMap (opDs M)) = S.foldl lhsStep h
-  | [], _ => rfl
-  | o :: S, h => by
-    rw [List.flatMap_cons, vseHs_append, vseHs_opDs hU, vseHs_ops hU S]
+    ∀ (S : WalHist) (h : HardStateM), normFrom h S = S →
+      vseHs U h (S.flatMap (opDs M)) = S.foldl lhsStep h
+  | [], _, _ => rfl
+  | o :: S, h, hN => by
+    simp only [normFrom, List.cons.injEq] at hN
+    rw [List.flatMap_cons, vseHs_append, vseHs_opDs hU _ _ hN.1]
+    have e : opHS h o = lhsStep h o := by cases o <;> rfl
+    rw [e] at hN
+    rw [vseHs_ops hU S _ hN.2]
     rfl
 
 theorem snapsOf_append (a b : WalHist) : snapsOf (a ++ b) = snapsOf a ++ snapsOf b := by
@@ -184,19 +194,25 @@ state before them: `walLastHS P`; for a cut file any state `phsNext` maps to it)
 theorem vseHs_segsDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : List w8) :
     ∀ (first : Bool) (P : WalHist) (Ss : List WalHist) (h : HardStateM),
     (first = true → h = walLastHS P) → (first = false → phsNext h (walLastHS P) = walLastHS P) →
+    normFrom (walLastHS P) Ss.flatten = Ss.flatten →
     vseHs U h (segsDs M md first P Ss).flatten = if Ss = [] then h else walLastHS (P ++ Ss.flatten)
-  | _, _, [], _, _, _ => by simp [segsDs, vseHs]
-  | first, P, S :: Ss, h, h1, h2 => by
-    simp only [segsDs, List.flatten_cons, vseHs_append, vseHs_hdr hU, vseHs_ops hU]
+  | _, _, [], _, _, _, _ => by simp [segsDs, vseHs]
+  | first, P, S :: Ss, h, h1, h2, hN => by
+    rw [List.flatten_cons] at hN
+    have hN2 := normFrom_append_fix hN
+    have hlP : (walLastHS P) = P.foldl opHS hsZero := walLastHS_eq_foldl P
+    have hN3 : normFrom (walLastHS (P ++ S)) Ss.flatten = Ss.flatten := by
+      rw [walLastHS_eq_foldl, List.foldl_append, ← hlP]; exact hN2.2
+    simp only [segsDs, List.flatten_cons, vseHs_append, vseHs_hdr hU]
     have hst : (if first then h else phsNext h (walLastHS P)) = walLastHS P := by
       cases first
       · exact h2 rfl
       · exact h1 rfl
-    rw [hst, vseHs_segsDs hU md false (P ++ S) Ss _ (by nofun)
+    rw [hst, vseHs_ops hU S _ hN2.1, vseHs_segsDs hU md false (P ++ S) Ss _ (by nofun)
       (fun _ => by
         rw [show S.foldl lhsStep (walLastHS P) = walLastHS (P ++ S) by
           rw [walLastHS_eq, walLastHS_eq, List.foldl_append]]
-        exact phsNext_self _)]
+        exact phsNext_self _) hN3]
     simp only [reduceCtorEq, ↓reduceIte]
     split
     · rename_i hSs
@@ -207,7 +223,8 @@ theorem vseHs_segsDs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : Lis
 /-- **`validSnapshotEntries`' result on the WAL's records from the `p`-th segment on** (see the file
 header): `walValidSnaps` of the history from the segment's start. -/
 theorem vseOut_segs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : List w8) (Ss : List WalHist)
-    (p : Nat) (hp : p < Ss.length) (hk : 0 < p → (Ss.take p).flatten ≠ []) :
+    (p : Nat) (hp : p < Ss.length) (hk : 0 < p → (Ss.take p).flatten ≠ [])
+    (hNo : normH Ss.flatten = Ss.flatten) :
     vseOut U (segsDs M md (decide (p = 0)) (Ss.take p).flatten (Ss.drop p)).flatten =
       walValidSnaps Ss.flatten (Ss.take p).flatten.length := by
   have hne : Ss.drop p ≠ [] := by
@@ -216,7 +233,7 @@ theorem vseOut_segs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : List
     rw [← List.flatten_append, List.take_append_drop]
   have hhs : vseHs U hsZero (segsDs M md (decide (p = 0)) (Ss.take p).flatten (Ss.drop p)).flatten =
       walLastHS Ss.flatten := by
-    rw [vseHs_segsDs hU md _ _ _ hsZero, if_neg hne, ← hI]
+    rw [vseHs_segsDs hU md _ _ _ hsZero _ _ (normFrom_suffix_fix (by rw [← hI]; exact hNo)), if_neg hne, ← hI]
     · intro h0
       have hp0 : p = 0 := of_decide_eq_true h0
       subst hp0; rfl
@@ -240,6 +257,24 @@ theorem vseOut_segs {U : WalUnmarshal} {M : WalMarshal} (hU : U.Ok M) (md : List
     funext o
     cases o <;> simp [Option.filter]
 
+/-- A torn `Save`'s trailing entry records change neither the snapshots nor the state read. -/
+theorem vseOut_pend (U : WalUnmarshal) (M : WalMarshal) (ds : List (w64 × List w8)) (es : List EntryM) :
+    vseOut U (ds ++ es.map (fun e => (entryType, M.encEntry e))) = vseOut U ds := by
+  have hs : vseSnaps U (es.map (fun e => (entryType, M.encEntry e))) = [] := by
+    simp [vseSnaps, entryType, snapshotType]
+  have hh : ∀ (l : List EntryM) h0, vseHs U h0 (l.map (fun e => (entryType, M.encEntry e))) = h0 := by
+    intro l
+    induction l with
+    | nil => intro h0; rfl
+    | cons e l ih =>
+      intro h0
+      unfold vseHs at ih ⊢
+      simp only [List.map_cons, List.foldl_cons]
+      rw [show vseHsStep U h0 (entryType, M.encEntry e) = h0 by simp [vseHsStep, entryType, stateType]]
+      exact ih h0
+  unfold vseOut
+  rw [vseSnaps_append, hs, List.append_nil, vseHs_append, hh]
+
 /-- **`validSnapshotEntries`' result on what its reader reads from every named segment** (the WAL's
 static relation at the pin, its tail idle): `walValidSnaps` of the history from the read position. -/
 theorem vseOut_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarshal} (hU : U.Ok Mr)
@@ -252,9 +287,11 @@ theorem vseOut_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnma
   obtain ⟨hcp, hlt, hfl⟩ := hab.cuts
   obtain ⟨hcut, -⟩ := hab.cut
   have hle : ∀ b ∈ lay.cuts, b ≤ (histM d).length := fun b hb => cut_le_length (hcp b hb)
-  have hrun := walReadFiles_running hC hab hex hwr 0 hkk
+  obtain ⟨es, -, hrun⟩ := walReadFiles_running hC hab hex hwr 0 hkk
   rw [List.drop_zero, Nat.add_zero] at hrun
-  rw [hrun]
+  rw [hrun, List.map_append, chainRecs_map]
+  unfold pendDs
+  rw [vseOut_pend]
   generalize hSs : segsOf (histM d) lay.cuts = Ss at *
   have hSsl : Ss.length = lay.cuts.length + 1 := by rw [← hSs]; simp [segsOf]
   have hflat : Ss.flatten = histM d := by
@@ -271,7 +308,8 @@ theorem vseOut_running {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnma
     rw [hq, segStart_succ hq'] at h0
     have := hab.cutPos _ (List.getElem_mem hq')
     omega
-  have hout := vseOut_segs hU d.metadata Ss lay.first hp hk0
+  have hout := vseOut_segs hU d.metadata Ss lay.first hp hk0 (by
+    rw [hflat]; exact normFrom_idem _ _)
   rw [hflat, hk, ← hcut] at hout
   rw [← hout]
   congr 1

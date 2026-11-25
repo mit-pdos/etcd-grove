@@ -62,8 +62,7 @@ theorem createHS_crc (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk 
   unfold WalHS.crc createHS allRecs
   simp only [Nat.sub_zero, List.take_length]
   have e := create_recsOfSegs Mr md
-  simp only [walDurFresh, histM, List.map_nil] at e
-  simp only [List.map_nil]
+  simp only [walDurFresh, histM] at e
   rw [e, chainEnd_chainRecs, hMr.2]
   rfl
 
