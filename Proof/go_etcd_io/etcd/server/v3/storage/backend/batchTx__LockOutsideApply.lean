@@ -34,7 +34,7 @@ theorem backend.batchTx.LockOutsideApply.wp_proof
   intro γ P W Pk b t qo
   wp_start as ⟨#Hb, #Ht, Ho⟩
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's (what the lock check takes)
-  ihave #Hvoff := isBackend_envVerifyOff γ P W Pk b $$ Hb
+  ihave #Hvoff := isBackend_etcdVerifyOff γ P W Pk b $$ Hb
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with

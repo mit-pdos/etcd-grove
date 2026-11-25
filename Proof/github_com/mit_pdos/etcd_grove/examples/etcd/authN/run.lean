@@ -318,7 +318,7 @@ theorem run.wp_proof
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC srvsl msl lg ss xs x0 γn hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
+  intro CS ES FS RS srvsl msl lg ss xs x0 γn hx0 hxl Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0
     hlog hsc
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   have hk1 : 1 ≤ xs.length := by

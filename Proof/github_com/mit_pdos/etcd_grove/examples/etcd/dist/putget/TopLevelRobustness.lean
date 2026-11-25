@@ -22,7 +22,7 @@ runs an execution of `n` steps at `n + 1` receipts). Over the interim cross-mach
   address set (`etcdAddr_set`), the member's and the client's shares (`Defs.lean`);
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first
   half (`etcdstart.wp_StartServer1`, shared with it), the view published (`env_publish`), `Serve` on a
-  member machine (`Serve_dist`), from the statement's `envVerifyOff` (`HEnvTok`) and the machine's own
+  member machine (`Serve_dist`), from the statement's `EtcdVerifyOff` (`HEnv`) and the machine's own
   start (its files' fresh areas; the metric IDs' registration rights allocated by each machine's boot,
   prom-registry);
 * the client's boot (`client_boot`, `AdequacyClient.lean`, proved): the in-process second half, its
@@ -84,10 +84,6 @@ def PutgetBoot : Prop :=
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (peer client : GoString)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (_Hbf : etcdstart.BootFacts id ctxs boot)
     (_Haf : authRecordsFit) (_Hbuq : apply.backendUnderQuota) (_Hrf : grpcRepliesFit)
@@ -95,8 +91,7 @@ def PutgetBoot : Prop :=
     (_Hbg : etcdstart.BootGo1 name peer client id ctxs boot) (_Hfips : crypto.fips140.GodebugFips140Off)
     (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc)
     (_Hlp : peer.length + 1 < 2 ^ 63) (_Hlc : client.length + 1 < 2 ^ 63)
-    (_HEnv : ∀ m ∈ system peer client σm σc, verifyEnvOff m.1)
-    (_HEnvTok : ⊢ envVerifyOff (GF := putgetGF)),
+    (_HEnv : EtcdVerifyOff),
     ∀ [GooseGlobalGS .hasLC putgetGF], receiptBound putgetGF ≤ putgetSteps →
       ⊢ ([∗list] a ∈ startAddrs peer client, Net.addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp putgetGF,
@@ -107,12 +102,12 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` with `Robust`'s thread bound (`Net.robust_of_distBootIT`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
-    Hm Hc Hlp Hlc HEnv HEnvTok
+  intro _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
+    Hm Hc Hlp Hlc HEnv
   refine Net.robust_of_distBootIT (GF := putgetGF) (startAddrs peer client) (system peer client σm σc) g
     putgetThreads putgetSteps ?_
-    (fun hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc Hm Hc
-      Hlp Hlc HEnv HEnvTok hb) (startAddrs_nodup peer client) (startAddrs_ok peer client)
+    (fun hb => HS peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc Hm Hc
+      Hlp Hlc HEnv hb) (startAddrs_nodup peer client) (startAddrs_ok peer client)
   refine etcdNetExts_initP g _ ?_
   intro m hm
   simp only [system, List.mem_cons, List.not_mem_nil, or_false] at hm
@@ -197,8 +192,8 @@ proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms o
 switch). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
-    Hm Hc Hlp Hlc HEnv HEnvTok G hb
+  intro _ _ _ _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
+    Hm Hc Hlp Hlc HEnv G hb
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   imod putget_shares peer client id $$ Hreg Hs with ⟨%γE, Hms, Hcs⟩
@@ -211,9 +206,9 @@ theorem putget_safe : putget_safe.spec := by
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HEnvTok peer client Hlp Hlc id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm Hm γE
+      exact member_boot HEnv peer client Hlp Hlc id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm Hm γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
-        Option.some.injEq] at hm; subst hm; exact client_boot Hctx Hcec client Hlc σc γE id
+        Option.some.injEq] at hm; subst hm; exact client_boot client Hlc σc γE id
     | k + 2, hm => simp [system] at hm
   simp only [system, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
   isplitl [Hms]

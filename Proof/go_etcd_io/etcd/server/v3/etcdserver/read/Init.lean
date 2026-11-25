@@ -9,7 +9,8 @@ Its fact (`readInit`, `BaseApply.lean`): its counters `slowReadIndex` and `readI
 axiom `NewCounter.wp_proof`), `readIndexRetryTime`,
 the error variables it returns or compares with, from their packages' facts (`etcdserver/errors`'
 and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
-(`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
+(`EtcdGrove.ContextReadErrs.errs`, from Perennial's `context.isInit`; a premise until ctx-leaf-fix,
+2026-11-25). Its translated
 `init()` registers the two counters (`prometheus.MustRegister`, the trust-boundary axiom
 `MustRegister.wp_proof`), which takes the right to register each name: the precondition
 `namesFree regNames` (decision D16; until mustreg, 2026-11-20, `EtcdGrove.read.readRegPerm`).
@@ -55,31 +56,64 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `context.Canceled` and `context.DeadlineExceeded` as Go defines them**
-(a premise, stated locally; item 8, 2026-10-17): `Canceled = errors.New("context canceled")`, a
-leaf pointer error without `Is` whose `Error()` returns, and `DeadlineExceeded =
-deadlineExceededError{}`, a leaf non-pointer error (an empty struct: comparable, a safe map
-key) without `Is` whose `Error()` returns (`context.go`: its methods are `Error`, `Timeout` and
-`Temporary`). Perennial's `context.initialize'` stores exactly these values, but its fact
-(`isInit`) keeps only that they are typed errors, and the method sets are uninterpreted: the
-general fix is a Perennial change (`notes/decisions.md`, "Item 8: context's facts"). A
-premise rather than an axiom: `isPkgInit context` is not sealed (any proof holding the
-variables' cells could make it), so as an axiom the entailment could be used to prove `False`.
-(`v3rpc`'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.)
-(incomingof Part B, 2026-11-18) Its former fields `descs` (both errors' `errDesc`) and, after it,
-`descDeadline` (`DeadlineExceeded`'s) are gone: the users take `Error()`'s message per run
-(`ctxErrsErr`, `ctxErrMsg`), and a pure `errDesc` fact had no per-run source
-(`notes/axiom-review/incomingof-b.md`). -/
-class EtcdGrove.ContextReadErrs : Prop where
-  errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
-    EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗
-      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW
+/-- **`context.Canceled` and `context.DeadlineExceeded` as Go defines them** (item 8, 2026-10-17;
+a premise, the class `ContextReadErrs`, until ctx-leaf-fix, 2026-11-25): `Canceled =
+errors.New("context canceled")`, a leaf pointer error without `Is` or `GRPCStatus` whose `Error()`
+returns its message, and `DeadlineExceeded = deadlineExceededError{}`, a leaf non-pointer error
+without `Is` or `GRPCStatus`, a key of `togRPCError`'s map (`errKeyOk`), whose `Error()` returns
+(`context.go`: its methods are `Error`, `Timeout` and `Temporary`). From Perennial's
+`context.isInit` (`"#HCanceledCell"`, `"#HDeadlineExceededTy"`) and the method sets goose emits.
+The premise had become unsatisfiable with Perennial's P8c (`DeadlineExceeded`'s value a
+`SafeMapKey`, which no non-pointer is): `notes/axiom-review/ctx-readerrs-vacuity.md`. -/
+theorem EtcdGrove.ContextReadErrs.errs [ctx_sem : _root_.Perennial.context.Assumptions]
+    [_root_.Perennial.errors.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+      EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗
+        go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW := by
+  iintro #Hp
+  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+  · iapply _root_.Perennial.context.isInit_access $$ Hp
+  iNamed Hci
+  icases HCanceledCell with ⟨%x, #Hx, #Hs⟩
+  isplitl
+  · iunfold EtcdGrove.errVarLeafW
+    iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+    iframe Hx
+    isplitr
+    · ipureintro
+      have h := EtcdGrove.errorString_errLeaf x
+      exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1⟩
+    · iunfold EtcdGrove.errMsgOk
+      iexists go!"context canceled"
+      iintro !> %Φ HΦ
+      rw [method_unfold]
+      wp_auto
+      iexact HΦ
+  · have h := fun m => go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) m
+    have hG := h go!"GRPCStatus"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hG
+    have hl := EtcdGrove.deadlineExceededError_leaf (ctx_sem := ctx_sem)
+      (#(zero_val _root_.Perennial.context.deadlineExceededError) : val)
+    iexists ⟨_root_.Perennial.context.deadlineExceededError.ty,
+      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩
+    iframe HDeadlineExceededTy
+    isplitr
+    · ipureintro
+      exact ⟨hl.1, hl.2, _root_.Perennial.context.deadlineExceededError_ne_ptr,
+        Or.inr (Or.inr (Or.inl rfl)), hG⟩
+    · iunfold EtcdGrove.errMsgOk
+      iexists go!"context deadline exceeded"
+      iintro !> %Φ HΦ
+      wp_method_call
+      unfold _root_.Perennial.context.deadlineExceededError.Error.impl
+      wp_auto
+      iexact HΦ
 
 /-- `ContextReadErrs.errs` with the two errors' `Format` facts (premise-fixes-4: `errVarLeaf`,
 `ctxDeadlineLeaf`): neither has a `Format` method, from Perennial's `context.isInit` (`Canceled`'s
 value is a `*errors.errorString`, `EtcdGrove.ErrorStringLeaf`; `DeadlineExceeded`'s a
 `deadlineExceededError`, whose method set goose emits). -/
-theorem EtcdGrove.ContextReadErrs.errs_strong [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+theorem EtcdGrove.ContextReadErrs.errs_strong
     [_root_.Perennial.context.Assumptions] [_root_.Perennial.errors.Assumptions] :
     isPkgInit (PROP := IProp GF) pkg_id.context ⊢
       EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗

@@ -117,8 +117,6 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (hMain : ∀ hG : HeapGS .hasLC etcdGF,
       etcd_all.MainChecked.spec (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC etcdGF, ContextErrsClient (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     -- KV: txnlinfaultsN's cluster, `k₁` members
     (k₁ : w64) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8))
     (boot₁ : List LogEntry) (Hlen₁ : ids₁.length = uint.nat k₁)
@@ -164,7 +162,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       (etcdProgAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdProgDirs k₁ k₂ k₃ k₄ k₅))
-    (HEnv : verifyEnvOff (etcdProgram k₁ clients ops n₁ nw nops n₂ cnw cnops k₂ k₃ k₄ k₅))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_txnlinfaultsN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₁) n ids₁
@@ -244,8 +242,6 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
     intro _
     letI : HeapGS .hasLC etcdGF := etcdHeapAt hG lctx
-    haveI := Hctx hG
-    haveI := Hcec hG
     unfold progOk
     refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩
@@ -310,8 +306,6 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
     intro _
     letI : HeapGS .hasLC etcdGF := etcdHeapAt hG lctx
-    haveI := Hctx hG
-    haveI := Hcec hG
     unfold progOk
     refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.all.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.etcd.all.getIsPkgInit_wf, ?_⟩

@@ -74,8 +74,6 @@ theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
     (k : w64)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = uint.nat k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
@@ -85,7 +83,7 @@ theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.
     (Hlp : leasePeersOk)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
-    (HEnv : verifyEnvOff (leaseexpiryNProgram k))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) (uint.nat k) n ids ps
@@ -102,7 +100,7 @@ theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_leaseexpiryN_adequate Hctx Hcec k ids ps ctxs boot Hlen Hbf Hap Haf Hbuq Hrf Hdbo Hlp HAs HDs
+  etcd_leaseexpiryN_adequate k ids ps ctxs boot Hlen Hbf Hap Haf Hbuq Hrf Hdbo Hlp HAs HDs
     HEnv n Hprem σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

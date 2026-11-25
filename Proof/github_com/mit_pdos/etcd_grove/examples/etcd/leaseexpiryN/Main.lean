@@ -163,7 +163,7 @@ theorem Main.wp_proof
     -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
     (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC kw N ids ps ctxs boot Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
+  intro CS kw N ids ps ctxs boot Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hlp Hms hAs
   wp_start as ⟨Hss, Htok, #Hprem⟩
   -- the range check: `if k < 1 || k > 1000 { return }`

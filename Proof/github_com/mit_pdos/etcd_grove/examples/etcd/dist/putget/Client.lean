@@ -58,7 +58,7 @@ theorem Client.wp_proof
     (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC TB π ep γE mid hlen hAs
+  intro CS TB π ep γE mid hlen hAs
   have Htb : threadBound GF ≤ 2 ^ 31 := TB.threadBound_le
   wp_start as Hshare
   (try wp_auto)

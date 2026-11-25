@@ -37,7 +37,7 @@ theorem Writer.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Put_kv : client.client_Put_kv.law (GF := GF) (hG := hG)) :
     Writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC cl api γk QW OkF w tsl tried lo hi hP hAs hlo hlh hhi hsz
+  intro CS cl api γk QW OkF w tsl tried lo hi hP hAs hlo hlh hhi hsz
   wp_start as ⟨#Hkvf, #Hkv, #Ht, #Hau, #Hconv, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

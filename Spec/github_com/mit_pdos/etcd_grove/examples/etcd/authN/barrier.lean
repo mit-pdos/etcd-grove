@@ -42,7 +42,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authN.Assum
 abbrev barrier.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (addr : GoString) (lg : Loc) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (γz : GName) (hs : List auth.AuthState)
     (Lset Lc : List EntryModel) (r : Nat),

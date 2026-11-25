@@ -19,7 +19,7 @@ allocated here as the machine's registry ghost state, `PromRegGS`, from `putget_
 slot `wal.bootRes` takes only its fresh areas, `memberAreasFresh`, from its machine's files), and the
 metric IDs' registration rights are allocated here (prom-registry).
 
-`ETCD_VERIFY` off (`envVerifyOff`) is the statement's `HEnvTok`, passed in (`member_boot`'s `HEnvTok`).
+`ETCD_VERIFY` off (`EtcdVerifyOff`) is the statement's `HEnv`, passed in (`member_boot`'s `HEnv`).
 That a valid address's peer URL `http://a` is plain (`host:port`) is proved (`etcd_dist.addrOk_plainPeerURL`).
 -/
 module
@@ -100,9 +100,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [log.NewModel] [net.FieldAssumptions]
     -- (wal-nostorageok: `NewStorage`'s contract proved, `etcdstart`'s linked results take `os`'s field steps)
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
+    (HEnv : EtcdVerifyOff)
     (peer client : GoString) (hlp : peer.length + 1 < 2 ^ 63) (hlc : client.length + 1 < 2 ^ 63)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
@@ -119,7 +117,6 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   simp only at hGG hL
   subst hGG hL
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
-  haveI := Hctx hG
   haveI : ReceiptBoundLe putgetGF (2 ^ 62) := ⟨by omega⟩
   haveI : ReceiptBoundLe putgetGF (2 ^ 48) := ⟨hrb⟩
   haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨Nat.le_of_eq hT⟩
@@ -134,7 +131,8 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.regQs $$ Hregs
   ihave Hown := ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
-  ihave #Hvoff := HEnvTok
+  ihave #Hvoff : ⌜EtcdVerifyOff⌝ $$ []
+  · ipureintro; exact HEnv
   imod etcdNetFs_start σm Hm.1 $$ Hls with ⟨#Hos, -, Htree⟩
   imodintro
   -- the member's WAL area, from its machine's files

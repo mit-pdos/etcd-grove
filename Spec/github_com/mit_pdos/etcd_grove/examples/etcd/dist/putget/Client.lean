@@ -41,8 +41,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 /-- See the file header. -/
 abbrev Client.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)] [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 31)] [π : NetProtoGS]
     (client : GoString) (γE : GName) (mid : w64),
   -- the address as a Go string (`AddrOk`'s loop runs to `len(a)`)
   client.length + 1 < 2 ^ 63 →

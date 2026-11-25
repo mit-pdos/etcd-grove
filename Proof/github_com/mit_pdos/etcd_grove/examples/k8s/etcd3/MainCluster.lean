@@ -56,7 +56,7 @@ theorem MainCluster.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainCluster.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA CR CE k N ids ps ctxs boot clients ops watchers wops ThB RcB RcN HLv hk1 hk
+  intro CS EK RT SC ST VA k N ids ps ctxs boot clients ops watchers wops ThB RcB RcN HLv hk1 hk
     Hlen Hbf HwbN Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 Hw0 H31 Hops Hwops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)

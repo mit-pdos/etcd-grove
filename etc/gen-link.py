@@ -855,10 +855,9 @@ EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
 EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
     "Proof.github_com.prometheus.client_golang.prometheus.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
-# whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
-# compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)
-LC_EXTRA_VARS = {"--k8s-etcd3": "variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]\n",
-                 "--k8setcd3": "variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]\n"}
+# whose heap is at `HasLC.hasLC`). (k8s etcd3's, the premise `ContextReadErrs`, are gone: a theorem
+# since ctx-leaf-fix, 2026-11-25.)
+LC_EXTRA_VARS = {}
 em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")

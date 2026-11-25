@@ -24,23 +24,23 @@ the member machine's data directory and WAL area empty (`MemberFiles`). Carried 
 in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged: `bootstrap`'s results
 (`BootFacts`, and since 2026-11-24 `BootGo1`: the member id, its peers' contexts, its directory and
 its log are Go's at the member's URLs), the server's workload and environment premises (`authRecordsFit`,
-...), Go's method sets of the gRPC service values and `errors.As`'s target, `context`'s two classes
-(`Hctx`, `Hcec`). The run's `fips140` GODEBUG setting is unset or `off` (`Hfips`: with `only`,
-`crypto/sha1.Sum`, which computes the member id, panics). No named Iris premise: `bootstrap`'s contract
-(`Hprem`, `bootstrapContract` at every ghost-state instance, until 2026-11-24) is the interim axiom
-`bootstrap.wp_proofOne` (`bootstrap.spec` at a one-member initial cluster of one URL; retired when #34
-proves `bootstrap`); `bootMarshal` and the raft wrapper's contracts are axioms since 2026-11-24,
-`proto.MarshalBootConfChange.wp_proof`, `NewRaftLoggerZap.wp_proof`, `contention.NewTimeoutDetector.wp_proof`. (prom-registry, 2026-11-23: no premise on the programs' metric names, `HNs`: each machine's
-boot proof allocates its registration rights itself.)
-`ETCD_VERIFY` (etcd's runtime checks, which panic outside
-the apply loop) is off on every machine's run, as in the single-process theorems (`HEnv`: `verifyEnvOff`
-of each machine's program, `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`), and `HEnvTok` is that
-fact's token in the logic (`envVerifyOff`): in one process the start axiom `goose_adequacy_start` hands it
-out under `verifyEnvOff`; a distributed start has no such axiom, so it is a premise here (the owner's
-decision, 2026-11-23; no new axiom). No proxy premise: the client dials with `grpc.WithNoProxy()`
-(`etcdstart.NewClients`, since 2026-11-24), so it ignores `HTTPS_PROXY`, and no other verified step
-reads the proxy variables before phase 7 S5's HTTP client (`notes/putget-dist-plan.md`, sections 11
-and 12).
+...), Go's method sets of the gRPC service values and `errors.As`'s target. The run's `fips140` GODEBUG
+setting is unset or `off` (`Hfips`: with `only`, `crypto/sha1.Sum`, which computes the member id,
+panics). No named Iris premise: `bootstrap`'s contract (`Hprem`, `bootstrapContract` at every
+ghost-state instance, until 2026-11-24) is the interim axiom `bootstrap.wp_proofOne` (`bootstrap.spec`
+at a one-member initial cluster of one URL; retired when #34 proves `bootstrap`); `bootMarshal` and the
+raft wrapper's contracts are axioms since 2026-11-24, `proto.MarshalBootConfChange.wp_proof`,
+`NewRaftLoggerZap.wp_proof`, `contention.NewTimeoutDetector.wp_proof`. (`context`'s two classes `Hctx`,
+`Hcec` until ctx-leaf-fix, 2026-11-25: theorems since, `notes/axiom-review/ctx-readerrs-vacuity.md`; no
+premise on the programs' metric names, `HNs`, since prom-registry, 2026-11-23: each machine's boot proof
+allocates its registration rights itself.) `ETCD_VERIFY` (etcd's runtime checks, which panic outside
+the apply loop) is off, as in the single-process theorems (`HEnv : EtcdVerifyOff`: the run's value of the
+variable, one for every machine of the deployment, enables no check,
+`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`; the owner's decision, 2026-11-25, which replaced
+the per-machine axiomatized `verifyEnvOff` and its token premise `HEnvTok : ⊢ envVerifyOff`). No proxy
+premise: the client dials with `grpc.WithNoProxy()` (`etcdstart.NewClients`, since 2026-11-24), so it
+ignores `HTTPS_PROXY`, and no other verified step reads the proxy variables before phase 7 S5's HTTP
+client (`notes/putget-dist-plan.md`, sections 11 and 12).
 
 **The bounds** (2026-11-24): both named (`TopLevelDefs.lean`). The thread bound is `putgetThreads = 2 ^ 28`, the bound the
 member's server specs take (`threadBound ≤ 2 ^ 28`); it bounds the live threads along the execution
@@ -91,13 +91,6 @@ def putget_safe.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    -- `os`'s struct field steps (the single-process theorems' premise; `etcdstart`'s linked results take
-    -- them since `NewStorage`'s contract is proved over the real WAL, wal-nostorageok)
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     -- the deployment's addresses (the member's peer and client addresses)
     (peer client : GoString)
     -- bootstrap's results for the member's configuration (its id, its peers' contexts, its log)
@@ -113,9 +106,8 @@ def putget_safe.spec : Prop :=
     (σm σc : state) (g : GlobalState) (Hm : MemberFiles σm) (Hc : ClientFiles σc)
     -- the addresses' lengths, those of Go strings (their validity the programs check)
     (Hlp : peer.length + 1 < 2 ^ 63) (Hlc : client.length + 1 < 2 ^ 63)
-    -- `ETCD_VERIFY` off on every machine's run, and its token in the logic
-    (HEnv : ∀ m ∈ system peer client σm σc, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := putgetGF)),
+    -- `ETCD_VERIFY` off (the deployment's value of the variable enables no check)
+    (HEnv : EtcdVerifyOff),
     Robust [] (system peer client σm σc) g (threads := putgetThreads) (bound := putgetSteps)
 
 end etcd_putget_dist

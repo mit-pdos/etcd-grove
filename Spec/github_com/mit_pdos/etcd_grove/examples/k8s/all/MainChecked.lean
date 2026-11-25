@@ -49,7 +49,6 @@ abbrev MainChecked.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (k₁ : w64) (N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry)
     (k₂ : w64) (ids' : List w64) (ps' : List w64) (ctxs' : List (List w8)) (boot' : List LogEntry)

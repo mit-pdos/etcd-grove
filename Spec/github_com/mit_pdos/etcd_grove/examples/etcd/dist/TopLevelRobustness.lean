@@ -40,10 +40,9 @@ machine's files are its own, the network is closed), no schedules (the network's
 in-process stop and restart (real crashes), no one-process resource caveat (per machine: one member's
 WAL and backend). The extensions are `etcdNetExts`: the request ids' issue record, the Linux file
 extension at `etcdFsSem` and the net extension (fixed: the bridge needs the bundle's ghost state,
-`etcdDistGF`'s `GooseGpreS`). `ETCD_VERIFY` is off on every machine (`HEnv`, the single-process
-theorems' `verifyEnvOff` per machine) with its token `envVerifyOff` a premise (`HEnvTok`: one process gets
-it from the start axiom, a distributed start from no axiom; `putget_safe`'s, the owner's decision
-2026-11-23); no proxy premise until phase 7 S5's HTTP client (`notes/putget-dist-plan.md` section 11).
+`etcdDistGF`'s `GooseGpreS`). `ETCD_VERIFY` is off (`HEnv : EtcdVerifyOff`: the deployment's value of
+the variable enables no check; the owner's decision, 2026-11-25, which replaced the per-machine
+`verifyEnvOff` and its token premise `HEnvTok : ⊢ envVerifyOff`); no proxy premise until phase 7 S5's HTTP client (`notes/putget-dist-plan.md` section 11).
 
 **What the semantics assumes** (not premises: part of the semantics it is stated over; review F2,
 F3):
@@ -112,9 +111,9 @@ def etcd_robust.spec : Prop :=
     (Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)
     (Hσn : σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ)
     (Hg : NetStart g)
-    -- `ETCD_VERIFY` off on every machine's run, and its token in the logic (`putget_safe`'s)
-    (HEnv : ∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF)),
+    -- `ETCD_VERIFY` off (the deployment's value of the variable enables no check; 2026-11-25, was
+    -- `verifyEnvOff` of each machine's program and its token `HEnvTok`)
+    (HEnv : EtcdVerifyOff),
     Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := 2 ^ 28)
       (bound := 2 ^ 28 - 1)
 
@@ -124,7 +123,7 @@ theorem `etcd_safe` implies it; the weaker variant takes the longer name. Over P
 `goose_dist_adequacy` through the bridge `Net.robust_of_distBootIL`.
 
 **Not instantiable yet**: `TrustBoundary` is an opaque PLACEHOLDER (no deployment can discharge it) until
-the k-member boot writes its premises out (each member's `Hprem`, `Hctx`, `Hcec` at `etcdDistGF`, as
+the k-member boot writes its premises out (each member's `Hprem` at `etcdDistGF`, as
 `putget_safe`'s); the boot programs are PLACEHOLDERs until stage D2. The bound is `putget_safe`'s
 `2 ^ 28 - 1` until perennial#690 (`goose_dist_adequacy_below`) raises both. -/
 def etcd_robust_nocrash.spec : Prop :=
@@ -140,8 +139,7 @@ def etcd_robust_nocrash.spec : Prop :=
     (Hσc : σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ)
     (Hσn : σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ)
     (Hg : NetStart g)
-    (HEnv : ∀ m ∈ machines d σs σc σn, verifyEnvOff m.1)
-    (HEnvTok : ⊢ envVerifyOff (GF := etcdDistGF)),
+    (HEnv : EtcdVerifyOff),
     Robust [] (machines d σs σc σn) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
 
 end etcd_dist

@@ -63,7 +63,6 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -262,6 +261,5 @@ axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
-axiom verifyEnvOff
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof

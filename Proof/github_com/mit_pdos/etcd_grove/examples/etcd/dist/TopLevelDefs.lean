@@ -280,8 +280,8 @@ structure BootFacts (d : Deployment) (ps : List w64) (ctxs : List (List w8))
 
 /-- PLACEHOLDER (stage D6): **the trust-boundary contracts today's statement takes as Iris
 premises** (`Hprem`: each member's `etcdstart.bootPremise`, with `bootstrapRestartContract` for its
-restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec`: `ContextReadErrs`,
-`ContextErrsClient`), at the proof's ghost state. A premise over the proof's ghost state has no
+restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec` until ctx-leaf-fix, 2026-11-25, theorems since),
+at the proof's ghost state. A premise over the proof's ghost state has no
 place in a deployment statement: each becomes an axiom of the trust boundary (reviewed) or a
 theorem (bootstrap over the real code; context's facts in Perennial, item 8), and this goes. -/
 opaque TrustBoundary (d : Deployment) (ps : List w64) (ctxs : List (List w8))
@@ -364,7 +364,7 @@ every gRPC reply below the transport's maximum; the disk cooperates (bbolt's and
 opens); the peers answer `/leases/internal` as etcd does or not with `200` (true by construction
 here: every peer address is a member's raft handler); no lease expires, when a workload needs it.
 (The programs' prometheus names, `HNs`, were a premise until prom-registry, 2026-11-22: each
-proof allocates its registration rights itself.) (`verifyEnvOff` and the proxy variables are gone if the
+proof allocates its registration rights itself.) (`EtcdVerifyOff` and the proxy variables are gone if the
 server clears them, `clearProxyEnv`: open question Q10.) -/
 structure EtcdEnv (d : Deployment) : Prop where
   authRecords : authRecordsFit
@@ -387,7 +387,7 @@ end env
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std in
-/-- **The functors** the statements' Iris premise (`HEnvTok`) is stated at: `putgetGF`'s layout (the
+/-- **The functors** the distributed statements' proofs run at (until 2026-11-25 also the Iris premise `HEnvTok`'s): `putgetGF`'s layout (the
 universal camera `AllG` at slot 0, invariants, later credits, GooseLang's heap, prophecies and package
 state, a ghost variable at slot 7; every other slot the unit functor). -/
 def etcdDistGF : BundledGFunctors := fun i =>

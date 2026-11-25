@@ -102,7 +102,7 @@ abbrev NewServer.specR : Prop :=
       -- `bootstrap`'s contract on the stopped member's data directory
       "#HbootR" ∷ bootstrapRestartContract cfg U γ id N dir ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗
