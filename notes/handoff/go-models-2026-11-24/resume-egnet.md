@@ -551,3 +551,11 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   and wrapperspb's `String`); it calls Net's `net.Listen.spec` as a hypothesis. Port: `drv_listen`
   (ListenSet.lean) takes `isPkgInit pkg_id.net` in its precondition (ours `Listen.specAddrOk` needs it;
   internal lemma, listed in packet-rest.md); `Server.wp_proof` obtains it by `iPkgInit`.
+- goose.py --check (eggoose.sh, nested Perennial 09bd3826c): 73 projects up to date (`tmp/gm15/goose-check.log`).
+- **Full default build EXIT 0, 29034 jobs, first try** (`tmp/gm15/full1.log`, code b8bb95f0ba).
+  `tcb-report --check`: matches lean's baseline (384 axioms, 0 sorry); all 65 collections `--check --reuse`
+  exit 0 (`tmp/gm15/tcb.log`, script `tmp/gm15/scripts/tcb.sh` via `vmlake sh`). NetFsUdp.Adequacy + kvraft_udp
+  TLR (`KvRaft.Proof....raft.kvraft.cmd.kvraft_udp.TopLevelRobustness`) up to date (`lake build --no-build`).
+  packet-rest.md: head row, Evidence, new last section "grpc-driver over the Go-model net".
+- STATE: `go-models-rest-egnet/2026-11-24` fast-forwarded to this branch's head (pushed). LEFT: #8 message;
+  merge newer lean when it moves.
