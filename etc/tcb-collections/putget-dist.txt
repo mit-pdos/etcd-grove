@@ -11,7 +11,6 @@
 #   etc/tcb-report.py --collection etc/tcb-collections/putget-dist.txt [--check [--update]]
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness\.lean$
 axiom Client.Close.wp_proof
-axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -43,10 +42,7 @@ axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
-axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
-axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -166,6 +162,5 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
-axiom verifyEnvOff
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof

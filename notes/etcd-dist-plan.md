@@ -1636,6 +1636,38 @@ now weaker, so the premise is stronger, still true of Go (no restart step reads 
 builds on fk-lean2 (`NewServerR`, `NewServerRAt`, `NewServerCrash` (its labeled `sorry` unchanged),
 `StopShutdown`, `etcdstart.Restart`, `BuiltRestart`, the P8 modules), with no new axiom or `sorry`.
 
+### 16.2 Round 3 (2026-11-25): `lean` merged into the pin line, then P8
+
+Branch `etcd-safe-main-r3/2026-11-25`, from `etcd-safe-main-pin/2026-11-24` @ `3717c7903b`: `origin/lean` @ `676aede0a1`
+merged (391 commits), then P8 (`etcd-safe-p8-pin` @ `f94ff9bca1`, branched from this line at `3e45d8157c`; a plain
+merge). The etcd pin stays `e94f33b50` (`lean` did not move its own). What the merge needed:
+- **`EtcdVerifyOff` adopted everywhere** (the owner's decision on `lean`): `etcd_robust`, `etcd_robust_nocrash`,
+  `putget_safe` and `putgetK_safe` take `(HEnv : EtcdVerifyOff)` in place of `HEnv : ∀ m ∈ …, verifyEnvOff m.1` and
+  `HEnvTok : ⊢ envVerifyOff`; the crash/dist specs and bundles (`NewServerCrash`, `NewServerDist`, `StartMemberDist`,
+  `putgetk.Member`, `NewServerRAt`, `CrashInterim`, `InvCrashImage`, `memberStartRes_areas`) carry `⌜EtcdVerifyOff⌝`.
+- **ctx-leaf-fix**: `Hctx`/`Hcec` (classes gone, theorems now) dropped from putget's and putgetK's statements, their
+  boots, the dist `InitLinked`s (gen-init) and `BootBad`.
+- **kv/kvdurable retired, kvnet → kvraft**: `lean`'s; option D's `kvreconf/ApplyConfLemmas` hunk ported to KvRaft's own
+  file; `Net/Statement/DistCrashAdequacyKvnet.lean` over `kvraftExts`/`kvraftInitCompat`.
+- **Client specs**: `lean`'s `levelTok 0` combined with this line's `noProxyOptsAt`/`cfg` field; the dist clients
+  (`putget.Client`, `putgetk.Client`) take `levelTok 0` at `ThreadBoundLe 2 ^ 30`, split off the main thread's token
+  in `client_boot`.
+- **tracecheck**: `lean`'s drawn voter count with hprem-axioms' axiom: `premises_of_spec n` at `bootLog n`
+  (`bootWire_bootLog`), so `raft_tracecheck_robust` takes neither `Hprem` (lean's) nor `boot`/`Hbf`/`Hbw` (this line's).
+- **Duplicates**: `lean`'s `ccBootWire` (`CCModel`, over `cc1EncRaw`) replaces this line's `proto/BootWire.lean`;
+  `DistBootWpST`/`robust_of_distBootIT`: this line's (no `DistDeploy`), at `lean`'s argument order (`threads bound`);
+  `copy-part` leaves `BootMarshal` out of RaftNoAx (its raft marshals with `raftpb.MarshalConfChangeV1`).
+- `BootBridge` (claim #34) unfolds `ccAddOk` (route B's boot policy); four premise witnesses (bboltfs, WalTester,
+  mvccrand, mvccfull) give the local start's `FsInit` (fs's `initLocal` on this line).
+- Generated: gen-init (L1: Net's copy of `lib/remote`'s `Init` is stale, the main tree's is the one source; Dsverify's
+  three `Base` imports repointed), copy-part, SpecPlan PkgInit; the walfs `Link` (pin step 2's `OpenDir.specNE`).
+- Gates: `iris-premise`/`premise-witness` baselines list `putgetK_safe`/`etcd_robust_nocrash` (older than the gates on
+  this line); etcdstart's API lists `NetExtsCrash`.
+**Checked:** goose, gen-init, gen-raft-tla, copy-part, gen-specs-pkginit, tier, issues, bounds (390), iris-premise,
+premise-witness, api; every `Link` regenerated on the VM matches; full VM build green after P8.
+**Not merged: P7** (`etcd-safe-p7`): its base is `lean` @ `2f8ee1548e`; left for a fresh agent (gen-init's `lib/remote`
+initializer through `etc/gen-init.py`'s configuration).
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
