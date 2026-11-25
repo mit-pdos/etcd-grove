@@ -71,8 +71,8 @@ theorem Server.wp_proof
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := w64) go.string go.uint64) as %mref Hm
   try wp_auto
-  rename_i sptr
-  iStructNamed «$v0»
+  wp_alloc sptr as Hsrv
+  iStructNamed Hsrv
   imod sync.init_Mutex (drvSrvInv γid sptr) ⊤ _ $$ mu [runs Hm] with #Hmu
   · inext
     iunfold drvSrvInv

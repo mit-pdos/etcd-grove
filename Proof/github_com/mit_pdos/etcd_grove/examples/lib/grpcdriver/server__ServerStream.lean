@@ -61,8 +61,10 @@ theorem server.ServerStream.wp_proof
   try wp_auto
   wp_apply (_root_.Perennial.github_com.mit_pdos.perennial.goose.model.strings.wp_string_len
     sv.Value') as %Hslen
-  wp_if_destruct
-  · split
+  by_cases hc : sint.Z k < sint.Z (W64 (sv.Value'.length : Int))
+  · rw [decide_eq_true hc]
+    try wp_auto
+    split
     · rename_i hb
       have h1 : sint.nat (k + W64 1) - sint.nat k = 1 := by word
       rw [h1]
@@ -107,7 +109,8 @@ theorem server.ServerStream.wp_proof
       exfalso
       apply hb
       refine ⟨by word, by word, by word⟩
-  · try wp_auto
+  · rw [decide_eq_false hc]
+    try wp_auto
     iapply HΦ
     iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
 
