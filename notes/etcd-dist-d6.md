@@ -1496,3 +1496,54 @@ D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; 
    generation's `idPfxInv`), `hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st'` (A1, until `etcdCQ`), and the
    law's own premise `Q → W1 walCodec` (not a blocker).
 3. The proof, in session 2's order, with D-T7-4's split lemma (above) proved first in `MemberCrash.lean`.
+
+### T7 status and handoff (2026-11-25, session 4; branch `etcd-safe-t7`)
+
+**Done** (`dist/crash/MemberCrash.lean`; build evidence in the commit message / report; no axiom, no `sorry`):
+* **D-T7-4's split** (`section slots`): `snapSlots_of` (induction over an index list: each index's fresh claim
+  plus half of the remaining path/call shares gives `snapCrash.snapSlotF`), `snapDir_split` (the new generation's
+  whole claim `osNames J (.except []) 1 (namesOf V J (.except []))` with a path share and a call share ⊢ every
+  index's slot over `snap.allW64`, the claim on `db` (for B1), and the `.except snapDirNames` claim with shares,
+  i.e. `snap.snapDirOwn`'s body). Over `WalFs.osNames_split_only`; `allW64` is never unfolded and no context
+  search runs next to its `[∗list]` (every step frames by name).
+* **`memberKeep`** (`section keep`): `memberClusterFacts ∗ £ 1 ∗ (KeepF L ∨ memberKeepR C cfg id (KeepB L))` at
+  `⟨G, atCtx L⟩`; `memberKeepR` = `∃ k : MemberKN`, pure rows (`k.γ = {C.γ with reg}`, `k.h.dir = srvWalDirOf dd`,
+  `k.h.md = walMetaEnc id k.cid`, `k.γ.snapLoc id = some k.γd`, `∃ c, theFs GF = some c`), `memberRestartFacts`,
+  `memberDurKeep`, `memberWalKeep`, `dbCrashKeep γb (backendPathOf dd) i0 Dl Dn pd`, `memberSnapKeep` (snapDirKeep
+  at the image's `img`/`Rm`), `osPathDur h.R (snapDirOf dd) J`, `KeepB k`.
+* **Named hypotheses**: `memberFirstCrash.law` (B4), `memberImage.law` (B1, with B2/B3's bounds as its pure
+  output `memberImageB σ i ∧ memberImageBoot γ i`, each a named def whose docstring says "false in some runs as
+  stated; replaced by T4's restatement"), `memberPfx.law` (B6), `snapDirKeptOf.law` (D-T7-1). A1 and W1 are plain
+  premises on `Q` of the theorem.
+
+**Decisions (session 4).**
+* B7 needs no row for the WAL: `h.has.sem_eq` and the ambient `HasExt.sem_eq` give `h.ext = ‹_›` (as
+  `snapDir_crash_law_holds` does); `FsSemOk`/`HasExt` are `Prop`s (`Subsingleton.elim`). Only `∃ c, theFs GF = some c`
+  is kept (the `onFs`-wrapped resources and `snapDir_crash.law` need `c`).
+* B2/B3 are not separate hypotheses: as standalone `∀ σ i` entailments they would be false outright (making the
+  law vacuous), so they are B1's pure output, named (`memberImageB`, `memberImageBoot`).
+* D-T7-2 needs no hypothesis for this law: the image's snapshot row is `snapDirKeep_handle`'s handle at `L'` plus
+  the counter authority `monoNatAuthOwn γm 1 c`, `c ≤ i+1`, which B1 returns (`memberImageRows`). The token is
+  dropped (D-T7-2 stays a defect for the *next* crash, T4/T8).
+* Q4 (fresh registry): `memberRestartFacts` fixes `ρo.rd.raft = ⟨γ', [], 0⟩`, so the image at a fresh `r'` needs
+  `ρo' := ρo` with `rd.raft := ⟨{γ' with reg := r'}, [], 0⟩` and a transport lemma (the bodies don't read `reg`:
+  `Alloc3.lean`'s `*_reg` are `entails_refl`; expect `.rfl` up to the pure row).
+
+**Next: `memberGen_crash_law_holds`** with
+`(hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st') (hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st')
+(hB4 : memberFirstCrash.law C cfg id KeepF Q) (hB1 : memberImage.law cfg id KeepB) (hB6 : memberPfx.law)
+(hD1 : snapDirKeptOf.law) : memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q`. Steps:
+1. `cases L`/`cases L'` and the context equations so `atCtx L` is `L` definitionally.
+2. First case: `hB4` (with the law's credit), frame the cluster facts (`memberClusterFacts_gen`).
+3. Restart case: `obtain` `k.h`'s instances equal to the ambient ones (sem_eq), then `memberWal_crash` (D = []),
+   `dbCrash` (`Dx` = the WAL's `D`, `i0 ∉ Dx` and `Named V'.now i0`: **still open**, from the backend file's
+   durable name: add to `memberKeepR` as a durable path of `backendPathOf dd` — `osPathDur` gives the spine
+   but not the file entry; a `nameCrash` for `db` in `J` is what's needed — or into B1's keep),
+   `crashRest_treeS'` (→ `osShared L' R V'`), `osPathDur_lookup`, `snapDirKeptR_of` + `hD1`.
+4. **The path at `L'`** (T7's own, not yet written): `osPathS R sd (own q) J` at `L'` from `osShared`'s
+   `[∗list] j ∈ dirsOf V'` whole claims along `osPathDur`'s spine (claims `.only [c]` split off each spine
+   directory; the directories pairwise distinct and in `dirsOf V'`, from `TreeWf` and the walk). Then
+   `snapDir_split` at `L'` and `snap.snapDirOwn` via `onFs_some`.
+5. `snapDir_crash_law_holds` (second credit from `memberKeep`), `memberDur_crash` (the law's credit; the WAL
+   directory's call permission's half from `osCallPerms R`), `hB1`, `hB6` + `memberRestartFacts_gen`, the Q4
+   transport, and `srvCrashImageAt` assembled (`srvFilesC`: `walFilesC` with `a.dir = h.dir`, `B1`'s `fileHolds`).

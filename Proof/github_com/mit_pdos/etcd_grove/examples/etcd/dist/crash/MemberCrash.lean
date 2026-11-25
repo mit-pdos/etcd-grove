@@ -620,6 +620,7 @@ theorem snapDir_split (R : Roots) (sd : GoString) (J : Ino) (V : Hist) (q qc : Q
   imod WalFs.osNames_split_only _ R V J E hE snap.snapDirNames [] bootSnap.snapNames_nodup
     (fun _ _ h => by simp at h) $$ Hsh Hn with ⟨Hr, Hl⟩
   rw [List.nil_append]
+  unfold snap.snapDirNames
   icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hdb, Hl⟩
   rw [BigSepL.bigSepL_map]
   icases snapSlots_of R sd J V hfit snap.allW64 q qc $$ Hinv Hsh Hp Hc Hl with ⟨Hs, Hrest⟩
@@ -644,10 +645,13 @@ boot phases) and `KeepB` (B1: the backend's image facts, the snapshot directory'
 The second later credit is `snapDir_crash.law`'s (T8 deposits it). Each blocker enters the law as one
 named hypothesis below (`abbrev <name>.law : Prop`), its docstring naming it. -/
 
+section kn
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+
 open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver in
 /-- **The names a member's run keeps for its crash** (the restart case's witnesses). -/
-structure MemberKN [GooseExts] (GF : BundledGFunctors) where
-  γ : go_etcd_io.etcd.server.v3.etcdserver.SrvRaft
+structure MemberKN (GF : BundledGFunctors) where
+  γ : SrvRaft
   ρo : ReqNames
   h : WalH GF
   νk : WalNamesK GF
@@ -660,6 +664,8 @@ structure MemberKN [GooseExts] (GF : BundledGFunctors) where
   J : Ino
   γd : GName
   γm : GName
+
+end kn
 
 section keepDefs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
