@@ -8,7 +8,7 @@ its translated initializer (`hex.go`: `errors.New("encoding/hex: odd length hex 
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.PkgInit
+public import Proof.encoding.hex.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt

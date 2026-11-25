@@ -12,7 +12,7 @@ public import Perennial.Proof.sort.Link
 public import Dsverify.Proof.gryff.src.gryffproto.Init
 public import Dsverify.Proof.gryff.src.state.Init
 public import Dsverify.Proof.gryff.src.stats.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -61,6 +61,7 @@ public import Proof.net.url.PkgInit
 -- (bkarea, 2026-11-22) `config` imports `storage/datadir` (`ServerConfig.BackendPath`)
 public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.PkgInit
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.PkgInit
+public import Proof.crypto.tls.PkgInit
 
 @[expose] public section
 
@@ -779,15 +780,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
--- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17)
-namespace crypto.tls
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
-  build_get_is_pkg_init_wf
-
-end crypto.tls
+-- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17): its
+-- instance is in `Proof/crypto/tls/PkgInit.lean` (L1, 2026-11-24)
 
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 

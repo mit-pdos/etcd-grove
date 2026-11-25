@@ -10,7 +10,7 @@ translation or model lands.
 module
 
 public import Dsverify.Proof.io.ioutil.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -11,7 +11,7 @@ module
 public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.rs.zerolog.Base
 public import Perennial.Proof.io.Link
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

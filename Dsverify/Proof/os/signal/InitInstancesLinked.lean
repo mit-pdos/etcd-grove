@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.os.signal.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
