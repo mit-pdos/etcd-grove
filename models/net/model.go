@@ -48,6 +48,7 @@ import (
 // poller, wrapped by wrapSyscallError("read")): the extension's Read of len(p) bytes (D1, the
 // outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
 // non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (codeKindErr).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func (fd *netFD) Read(p []byte) (n int, err error) {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -66,6 +67,7 @@ func (fd *netFD) Read(p []byte) (n int, err error) {
 // one step of the extension's Write (D2), which says whether it is the call's first (D25: the
 // end's write lock, Go's fd.writeLock()), until a step fails or every byte is written. Go's
 // maxRW chunks are among a step's outcomes (any prefix).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func (fd *netFD) Write(p []byte) (nn int, err error) {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -84,6 +86,7 @@ func (fd *netFD) Write(p []byte) (nn int, err error) {
 
 // MODEL: netFD.Close (fd_posix.go, poll.FD.Close): the extension's Close (D3: success, or
 // `closed` for a second close; Linux's close(2) of a socket does not fail).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func (fd *netFD) Close() error {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -99,6 +102,7 @@ func (fd *netFD) closeWrite() error {
 
 // MODEL: netFD.SetDeadline (fd_posix.go, poll.FD.SetDeadline): the extension's SetDeadline of
 // both deadlines (D5; the zero time clears them).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func (fd *netFD) SetDeadline(t time.Time) error {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -107,6 +111,7 @@ func (fd *netFD) SetDeadline(t time.Time) error {
 }
 
 // MODEL: netFD.SetReadDeadline: the read deadline only (D5).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func (fd *netFD) SetReadDeadline(t time.Time) error {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -115,6 +120,7 @@ func (fd *netFD) SetReadDeadline(t time.Time) error {
 }
 
 // MODEL: netFD.SetWriteDeadline: the write deadline only (D5).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func (fd *netFD) SetWriteDeadline(t time.Time) error {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -135,6 +141,7 @@ func (fd *netFD) accept() (netfd *netFD, err error) {
 
 // MODEL: setReadBuffer (sockopt_posix.go: SO_RCVBUF, wrapSyscallError("setsockopt")): the
 // extension's SetSockopt of an option of no validity condition (D24; Linux clamps the value).
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func setReadBuffer(fd *netFD, bytes int) error {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -143,6 +150,7 @@ func setReadBuffer(fd *netFD, bytes int) error {
 }
 
 // MODEL: setWriteBuffer (SO_SNDBUF), as setReadBuffer.
+// Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 func setWriteBuffer(fd *netFD, bytes int) error {
 	if fd.sotype == syscall.SOCK_DGRAM {
 		stuck()
@@ -329,8 +337,9 @@ func udpFD(id int, nw string) *netFD {
 		net: nw, laddr: anyUDPAddr()}
 }
 
-// anyUDPAddr: a new *UDPAddr with arbitrary fields (as an Addr: Go's sockaddrToUDP, never nil for a
-// bound IPv4 socket).
+// anyUDPAddr: a new *UDPAddr with arbitrary fields (as an Addr: Go's sockaddrToUDP of getsockname(2),
+// whose error listenDatagram ignores, leaving a nil address; getsockname of a bound AF_INET socket
+// on Linux fails only where a security module denies it, which the target configuration excludes).
 func anyUDPAddr() Addr {
 	return &UDPAddr{IP: IP([]byte(extUdpAnyString())), Port: int(extUdpAnyW64()), Zone: extUdpAnyString()}
 }
@@ -534,7 +543,7 @@ func stuck() { select {} }
 
 // extUdpListen: the UDP extension's Listen of (ip, port) (the socket's id, the code). The Go
 // bodies of extUdpListen and extUdpSend read (ip, port) as the extension's udpAddrOf (4 bytes, or
-// 16 with the IPv4-mapped prefix), and panic otherwise, as the extension does (U13).
+// 16 with the IPv4-mapped prefix) and panic otherwise; they do not check the extension's addrOk.
 func extUdpListen(ip string, port int) (int, uint64) {
 	ip4 := IP(ip).To4()
 	if ip4 == nil || port < 0 || port > 65535 {

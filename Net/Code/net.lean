@@ -1564,7 +1564,7 @@ noncomputable def errnoCode [GooseExts] [GoGlobalContext] : GoString :=
     D16); the connection's addresses arbitrary (D18); an error is Go's `&OpError{Op: "dial", Net:
     network, Addr: <the resolved address>}` (dialSingle), as Listen's.
 
-    go: model.go:215:6 -/
+    go: model.go:223:6 -/
 noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1634,7 +1634,7 @@ noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
     or poll.ErrDeadlineExceeded (netFD.connect's wait under the dial's deadline). The timeout's value
     is not modelled (any timeout may expire, as D5's deadlines).
 
-    go: model.go:231:6 -/
+    go: model.go:239:6 -/
 noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1721,7 +1721,7 @@ noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
     the address arbitrary (anyListenAddr: with a nil IP too, Go's for ":p") and the failing system
     call's name too (any of Go's).
 
-    go: model.go:199:6 -/
+    go: model.go:207:6 -/
 noncomputable def Listen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1828,8 +1828,9 @@ noncomputable def isConnError.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: netFD.Close (fd_posix.go, poll.FD.Close): the extension's Close (D3: success, or
     `closed` for a second close; Linux's close(2) of a socket does not fail).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:87:18 -/
+    go: model.go:90:18 -/
 noncomputable def netFD.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -1856,7 +1857,7 @@ noncomputable def netFD.Close.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: netFD.closeWrite (fd_posix.go: shutdown(2) with SHUT_WR, wrapSyscallError("shutdown")):
     the extension's CloseWrite (D4).
 
-    go: model.go:96:18 -/
+    go: model.go:99:18 -/
 noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -1878,8 +1879,9 @@ noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
     poller, wrapped by wrapSyscallError("read")): the extension's Read of len(p) bytes (D1, the
     outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
     non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (codeKindErr).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:51:18 -/
+    go: model.go:52:18 -/
 noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "p"
@@ -1960,8 +1962,9 @@ noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
     one step of the extension's Write (D2), which says whether it is the call's first (D25: the
     end's write lock, Go's fd.writeLock()), until a step fails or every byte is written. Go's
     maxRW chunks are among a step's outcomes (any prefix).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:69:18 -/
+    go: model.go:71:18 -/
 noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "p"
@@ -2036,8 +2039,9 @@ noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: netFD.SetDeadline (fd_posix.go, poll.FD.SetDeadline): the extension's SetDeadline of
     both deadlines (D5; the zero time clears them).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:102:18 -/
+    go: model.go:106:18 -/
 noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2065,8 +2069,9 @@ noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: netFD.SetReadDeadline: the read deadline only (D5).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:110:18 -/
+    go: model.go:115:18 -/
 noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2094,8 +2099,9 @@ noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: netFD.SetWriteDeadline: the write deadline only (D5).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:118:18 -/
+    go: model.go:124:18 -/
 noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2126,7 +2132,7 @@ noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : va
     wrapped by wrapSyscallError("accept4")): the extension's Accept (D7); the new socket's addresses
     arbitrary (D18), its network the listener's (Go's newFD(d, fd.family, fd.sotype, fd.net)).
 
-    go: model.go:128:18 -/
+    go: model.go:134:18 -/
 noncomputable def netFD.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -3073,8 +3079,9 @@ noncomputable def timeoutError.Is.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setReadBuffer (sockopt_posix.go: SO_RCVBUF, wrapSyscallError("setsockopt")): the
     extension's SetSockopt of an option of no validity condition (D24; Linux clamps the value).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:138:6 -/
+    go: model.go:145:6 -/
 noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "bytes"
@@ -3102,8 +3109,9 @@ noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: setWriteBuffer (SO_SNDBUF), as setReadBuffer.
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:146:6 -/
+    go: model.go:154:6 -/
 noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "bytes"
@@ -3132,7 +3140,7 @@ noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setKeepAlive (SO_KEEPALIVE), whatever the value (D24).
 
-    go: model.go:154:6 -/
+    go: model.go:162:6 -/
 noncomputable def setKeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "keepalive"
@@ -3155,7 +3163,7 @@ noncomputable def setKeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setLinger (SO_LINGER), whatever the value (D24: a resetting Close is a cut, D1).
 
-    go: model.go:159:6 -/
+    go: model.go:167:6 -/
 noncomputable def setLinger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "sec"
@@ -3197,7 +3205,7 @@ noncomputable def TCPAddr.Network.impl [GooseExts] [GoGlobalContext] : val :=
     IP.String formats through net/netip, which nothing translates): an arbitrary string. Go's
     String always returns (a nil receiver gives "<nil>"), with no other effect.
 
-    go: model.go:253:19 -/
+    go: model.go:261:19 -/
 noncomputable def TCPAddr.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -3637,7 +3645,7 @@ noncomputable def TCPListener.ok.impl [GooseExts] [GoGlobalContext] : val :=
     they change in the kernel is not observable beyond D1's cuts, D24), and with it its reads of
     the test hooks testPreHookSetKeepAlive and testHookSetKeepAlive (nil outside net's tests).
 
-    go: model.go:179:24 -/
+    go: model.go:187:24 -/
 noncomputable def TCPListener.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ln"
   (Lam BAnon
@@ -3689,7 +3697,7 @@ noncomputable def TCPListener.accept.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: TCPListener.close (tcpsock_posix.go: ln.fd.Close(), close(2) of the listening socket):
     the extension's LisClose (D9), the extension's operation on a listener.
 
-    go: model.go:189:24 -/
+    go: model.go:197:24 -/
 noncomputable def TCPListener.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ln"
   (Lam BAnon
@@ -3709,7 +3717,7 @@ noncomputable def TCPListener.close.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setNoDelay (tcpsockopt_posix.go: TCP_NODELAY), whatever the value (D24).
 
-    go: model.go:164:6 -/
+    go: model.go:172:6 -/
 noncomputable def setNoDelay.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "noDelay"
@@ -3734,7 +3742,7 @@ noncomputable def setNoDelay.impl [GooseExts] [GoGlobalContext] : val :=
     default for 0, nothing for d < 0): the extension's SetSockopt of kind 1 with d, whose
     arithmetic the extension's keepIdleValid transcribes (D24).
 
-    go: model.go:171:6 -/
+    go: model.go:179:6 -/
 noncomputable def setKeepAliveIdle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "d"
@@ -3776,7 +3784,7 @@ noncomputable def UDPAddr.Network.impl [GooseExts] [GoGlobalContext] : val :=
     through net/netip's formatting, which nothing translates): an arbitrary string, as
     TCPAddr.String's (ListenUDP computes it for its sysListener, whose listenUDP does not read it).
 
-    go: model.go:318:19 -/
+    go: model.go:326:19 -/
 noncomputable def UDPAddr.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -4122,7 +4130,7 @@ noncomputable def ListenUDP.impl [GooseExts] [GoGlobalContext] : val :=
     error is the system call's (U9: `*os.SyscallError` "recvfrom", any nonzero Errno; closed and
     timeout cannot occur, U12), with a nil address, as Go's. A model UDP socket is AF_INET.
 
-    go: model.go:288:19 -/
+    go: model.go:296:19 -/
 noncomputable def UDPConn.readFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "b"
@@ -4201,7 +4209,7 @@ noncomputable def UDPConn.readFrom.impl [GooseExts] [GoGlobalContext] : val :=
     for Go's AddrError on a non-IPv4 IP), (len(b), nil) on success (a datagram is sent whole); an
     error is the system call's (U9).
 
-    go: model.go:304:19 -/
+    go: model.go:312:19 -/
 noncomputable def UDPConn.writeTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "b"
@@ -4266,7 +4274,7 @@ noncomputable def UDPConn.writeTo.impl [GooseExts] [GoGlobalContext] : val :=
     listenDatagram returns fd.init()'s error unwrapped (sock_posix.go), the epoll registration's
     ENOMEM/ENOSPC. The ListenConfig's Control hook is not called (ListenUDP's is the zero one).
 
-    go: model.go:267:24 -/
+    go: model.go:275:24 -/
 noncomputable def sysListener.listenUDP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sl"
   (Lam "ctx"
@@ -4346,7 +4354,7 @@ noncomputable def sysListener.listenUDP.impl [GooseExts] [GoGlobalContext] : val
     extension's socket `id` (in pfd.Sysfd), on the network nw, with an arbitrary local address and
     no remote one.
 
-    go: model.go:327:6 -/
+    go: model.go:335:6 -/
 noncomputable def udpFD.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -4368,10 +4376,11 @@ noncomputable def udpFD.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType netFD.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "$res0"))))))
 
-/-- anyUDPAddr: a new *UDPAddr with arbitrary fields (as an Addr: Go's sockaddrToUDP, never nil for a
-    bound IPv4 socket).
+/-- anyUDPAddr: a new *UDPAddr with arbitrary fields (as an Addr: Go's sockaddrToUDP of getsockname(2),
+    whose error listenDatagram ignores, leaving a nil address; getsockname of a bound AF_INET socket
+    on Linux fails only where a security module denies it, which the target configuration excludes).
 
-    go: model.go:334:6 -/
+    go: model.go:343:6 -/
 noncomputable def anyUDPAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
@@ -4391,7 +4400,7 @@ noncomputable def anyUDPAddr.impl [GooseExts] [GoGlobalContext] : val :=
     n arbitrary and nonzero (the UDP extension's AnyErrno, so that a program over UDP alone needs no
     TCP extension).
 
-    go: model.go:341:6 -/
+    go: model.go:350:6 -/
 noncomputable def udpSysErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -4410,7 +4419,7 @@ noncomputable def udpSysErr.impl [GooseExts] [GoGlobalContext] : val :=
 /-- netOk: the networks the model has (D23): "tcp", and "tcp4", which behaves as "tcp" on the
     IPv4 addresses the extension accepts.
 
-    go: model.go:347:6 -/
+    go: model.go:356:6 -/
 noncomputable def netOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -4428,7 +4437,7 @@ noncomputable def netOk.impl [GooseExts] [GoGlobalContext] : val :=
     addresses la and ra (Go's newFD and setAddr; the other fields are read only by code the model
     does not translate).
 
-    go: model.go:354:6 -/
+    go: model.go:363:6 -/
 noncomputable def modelFD.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -4456,7 +4465,7 @@ noncomputable def modelFD.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newConn: a new *TCPConn (Go's newTCPConn, as TCPListener.accept's model) for the connection
     end `id`, with arbitrary addresses (D18).
 
-    go: model.go:360:6 -/
+    go: model.go:369:6 -/
 noncomputable def newConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -4491,7 +4500,7 @@ noncomputable def newConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- anyTCPAddr: a new *TCPAddr with arbitrary fields (D18: Go's sockaddrToTCP of getsockname or
     getpeername; never nil for a connected or bound IPv4 socket).
 
-    go: model.go:368:6 -/
+    go: model.go:377:6 -/
 noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
@@ -4511,7 +4520,7 @@ noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
     *TCPAddr with a nil IP and an arbitrary port (Go's for an empty host, ":p": internetAddrList's
     inetaddr(IPAddr{}), with "tcp" and "tcp4").
 
-    go: model.go:375:6 -/
+    go: model.go:384:6 -/
 noncomputable def anyListenAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
@@ -4539,7 +4548,7 @@ noncomputable def anyListenAddr.impl [GooseExts] [GoGlobalContext] : val :=
     errClosing), poll.ErrDeadlineExceeded for `timeout`, and for `sys` the system call's error as
     wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}` with n arbitrary and nonzero.
 
-    go: model.go:385:6 -/
+    go: model.go:394:6 -/
 noncomputable def codeKindErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
@@ -4579,7 +4588,7 @@ noncomputable def codeKindErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- codeErr: nil for success, else codeKindErr.
 
-    go: model.go:396:6 -/
+    go: model.go:405:6 -/
 noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
@@ -4610,7 +4619,7 @@ noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
 /-- detach (gc builds only, used by the stubs' bodies): the fd of a socket Go's own code made, as
     a plain blocking socket the stubs use, the netFD Go made closed.
 
-    go: model.go:594:6 -/
+    go: model.go:603:6 -/
 noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -4672,7 +4681,7 @@ noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
 /-- errnoCode (gc builds only): an errno's code: EBADF `closed`, EAGAIN (a socket timeout)
     `timeout`, any other `sys`.
 
-    go: model.go:606:6 -/
+    go: model.go:615:6 -/
 noncomputable def errnoCode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))

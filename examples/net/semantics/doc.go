@@ -286,7 +286,7 @@
 //	                                  nil); the rest discarded, the next read the next datagram
 //	TestUDPRecvEmptyBuffer       U4   a 0-byte buffer: no shortcut (poll.FD.ReadFromInet4); blocks      measured   RecvStep (n = 0; the model does
 //	                                  with nothing queued; (0, sender, nil) with one, consumed                       not consume: allows more)
-//	TestUDPZeroValue             U9   zero UDPConn: ReadFromUDP (0, nil, EINVAL), WriteToUDP (0, EINVAL), measured   the models' id-0 check (net.lean)
+//	TestUDPZeroValue             U9   zero UDPConn: ReadFromUDP (0, nil, EINVAL), WriteToUDP (0, EINVAL), measured   Go's c.ok() (translated)
 //	                                  the bare Errno (c.ok())
 //	TestUDPKilledProcess         U5,U7 a SIGKILLed child's socket with 3 datagrams queued: gone, the   measured   udp_semantics.crash, UdpLocal.init;
 //	                                  address binds again, none of the 3 is received (the model                      RecvStep (over-approximates)
@@ -321,11 +321,12 @@
 //	(the initial network)        U8   no datagram before the deployment's processes start              assumed    UdpGlobal.init
 //	(the stutter convention)     U13  every operation may stutter (a blocked ReadFromUDP or            documented UdpStep, IsUdpStep, OrInvalid
 //	                                  WriteToUDP); an invalid argument panics
-//	(not modeled)                U12  Close and every other method promoted from conn (deadlines,       not modeled (no trusted model: a
-//	                                  LocalAddr, RemoteAddr, SetReadBuffer, ...), DialUDP and connected               program calling one is stuck)
-//	                                  Read/Write, ListenPacket, the networks "udp" and "udp6", wildcard
+//	(not modeled)                U12  Close and every other method promoted from conn that reaches     not modeled (Go's code reaches a
+//	                                  the socket (deadlines, SetReadBuffer, ...), DialUDP and connected    netFD model stuck on SOCK_DGRAM;
+//	                                  Read/Write, ListenPacket, the networks "udp" and "udp6", wildcard     the rest is not translated)
 //	                                  and IPv6 addresses, broadcast, multicast, ReadMsgUDP/WriteMsgUDP;
-//	                                  the tests' own Close and deadlines are the harness's
+//	                                  the tests' own Close and deadlines are the harness's;
+//	                                  LocalAddr/RemoteAddr are Go's (an arbitrary *UDPAddr, nil)
 //
 // The refutation, and the fix (2026-11-14). The first draft of D1 broke a
 // direction only in a Read that returned an error. After a crash (D10) the dead
