@@ -309,9 +309,9 @@
   loan; the probe path and the name claim returned, `walInv_returnLoan`, after `walInv_namedBy` and before the
   handle is formed, except the path the handle keeps), `openAtIndex` (read mode: return before returning the
   lock; write mode: the path goes to the pipeline, `isFilePipe … dq`, a handle loan), `Open`, `WAL__CloseFailed`,
-  `Create` (the four `walInv_register(L)` calls need `Lo`/`hLo`/`hLn`: in `create_named_cont`'s error arms the
-  frag is dropped with the lock, so `Lo := [(nm, qh + qh)]` with `hLo` from `createUH`'s `qh + (qh + c) = ½`;
-  at 1383 `Lo := [(nm, d + d)]` from `create_qp_twice`; on the success arm (439) `Lo := [(nm, c.half), (nm, d),
+  `Create` (**its three error-arm registrations done**, lean-checked: `Lo := [(nm, d + d)]`, `hLo` by
+  `create_loSum2` from the spine law, the frag dropped with the lock; **left, the success arm** (line ~452,
+  `walInv_registerL … c.half`, error at the `create_named_cont` call, 1288): `Lo := [(nm, c.half), (nm, d),
   (nm, d)]`, then `walInv_named` (now any loans) returns `Hnm2`, which goes back by `walInv_returnLoan`, leaving
   the handle `[(nm, d), (nm, d)]`).
   **The handles (decided this session, not started).** A write handle holds two path loans of one name: the

@@ -130,6 +130,18 @@ macro "create_errs_pre" : tactic => `(tactic| (
     · first | (iapply errOk_of_fmtErrorOkOrNil; iexact Hpe) | (iapply errOk_of_fmtErrorOk; iexact Hpe)
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro))
 
+/-- The loans a registration records when the registrant keeps (or drops) the fraction `x` of the name's
+program half beside the `c` it registers (P6b fix A). -/
+theorem create_loSum (nm : GoString) {c x : Qp} (h : c + x = (1 : Qp).half) :
+    c.val + loanSum [(nm, x)] nm = ((1 : Qp).half).val := by
+  rw [loanSum_cons_eq, loanSum_nil, ← h, Rat.add_zero]
+  rfl
+
+/-- `create_loSum` from the spine law's `d + (d + c) = ½`. -/
+theorem create_loSum2 (nm : GoString) {c d : Qp} (h : d + (d + c) = (1 : Qp).half) :
+    c.val + loanSum [(nm, d + d)] nm = ((1 : Qp).half).val :=
+  create_loSum nm (c := c) (x := d + d) (by rw [← h]; rw [Qp.ext_iff]; simp only [Qp.val_add]; grind)
+
 set_option hygiene false in
 /-- **The deferred calls after the commit, on an error exit of the parent's sync** (the parent's
 `OpenDir`, `Fsync` or `Close` failed, `perr = ok pei`; at the deferred cleanup closure, the handle
@@ -178,7 +190,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod walInv_registerL walCodec Mr R jr r s' I0 Ic (child r nm) nm Wn c hn hin hnmO
-        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf' Hnm
+        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ [(nm, d + d)] (create_loSum2 nm _hcq) (by simp) $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf' Hnm
         with ⟨Hnc, Hlt, -, Hsf'⟩
       ihave Hlt := walLockedTokI_tok Ic $$ Hlt
       imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
@@ -219,7 +231,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iintro Hnc
       icases walUnlockedTokXI_incQ Ic $$ Hlt with ⟨Hq, Hback⟩
       imod walInv_register walCodec Mr R jr r s' I0 Ic (child r nm) nm Wn c hn hin hnmO
-        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ $$ Hinv Hsi Hnc Hpast Hq Hnf Hsf' Hnm
+        (by rw [hs']; simp) (by rw [hIc, hI0]) ⟨J, hnm.1⟩ [(nm, d + d)] (create_loSum2 nm _hcq) (by simp) $$ Hinv Hsi Hnc Hpast Hq Hnf Hsf' Hnm
         with ⟨Hnc, Hq, -, Hsf'⟩
       ihave Hlt := Hback $$ Hq
       ihave Hlt := walUnlockedTokXI_X Ic $$ Hlt
@@ -1379,7 +1391,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod walInv_registerL walCodec Mr R jr r s' Il Il (child r nm) nm Wn (b1 + b1) hn hin hnmO
-      (by rw [hs']; simp) rfl ⟨J, hnt.1⟩ $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf Hnm with ⟨Hnc, Hlt, -, Hsf⟩
+      (by rw [hs']; simp) rfl ⟨J, hnt.1⟩ [(nm, d + d)] (create_loSum2 nm hd) (by simp) $$ Hinv Hsi Hnc Hpast Hlt Hnf Hsf Hnm with ⟨Hnc, Hlt, -, Hsf⟩
     ihave Hlt : walLockedTok (W := W) $$ [Hlt]
     · unfold walLockedTok; iexists Il; iexact Hlt
     imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
