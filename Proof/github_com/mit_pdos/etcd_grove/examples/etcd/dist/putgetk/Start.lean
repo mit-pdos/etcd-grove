@@ -101,6 +101,7 @@ theorem zip_getD_fst {α β : Type _} (d : α) : ∀ {l1 : List α} {l2 : List �
     subst h; rfl
   | a :: l1, b :: l2, k + 1, x, h => by
     simp only [List.zip_cons_cons, List.getElem?_cons_succ] at h
+    show l1.getD k d = x.1
     exact zip_getD_fst d h
 
 theorem svc_head [GooseExts] (p0 c0 : GoString) (pr cr : List GoString) (γ0 : GName)
@@ -111,7 +112,7 @@ theorem svc_head [GooseExts] (p0 c0 : GoString) (pr cr : List GoString) (γ0 : G
   simp [etcd_dist.svcList]
 
 /-- Read names at the cluster's KV names (the client's invariant reads only `kv`). -/
-def rnOf [GooseExts] (c : etcd_dist.ClusterNames) : ReadNames :=
+abbrev rnOf [GooseExts] (c : etcd_dist.ClusterNames) : ReadNames :=
   ⟨default, default, default, default, default, default, ⟨c.γ, [], W64 0⟩, c.γk⟩
 
 section bigops
@@ -121,7 +122,10 @@ variable {GF : BundledGFunctors}
 theorem bigSepL_idx {A B : Type _} :
     ∀ (Φ : Nat → IProp GF) (l : List A) (l' : List B), l.length = l'.length →
       ([∗list] i ↦ _x ∈ l, Φ i) ⊢ [∗list] i ↦ _y ∈ l', Φ i
-  | _, [], [], _ => by iintro H; iexact H
+  | _, [], [], _ => by
+    iintro -
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
   | Φ, a :: l, b :: l', h => by
     iintro H
     ihave H := BigSepL.bigSepL_cons.1 $$ H
@@ -209,12 +213,14 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     obtain ⟨p, -, rfl⟩ := Option.map_eq_some_iff.1 hm
     unfold sharesK
     rw [if_pos hi]
-    exact member_bootK Hctx HEnvTok HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
+    exact member_bootK HEnvTok Hctx HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
       (σs i) (Hm i hi) S5
   · rw [List.getElem?_append_right (by omega), hlen] at hm
     have hm' : m = (bootClient (clients.headD go!""), σc) := by
       rcases h : i - peers.length with _ | k
-      · rw [h] at hm; simp at hm; exact hm.symm
+      · rw [h] at hm
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at hm
+        exact hm.symm
       · rw [h] at hm; simp at hm
     subst hm'
     unfold sharesK
@@ -231,14 +237,15 @@ theorem putgetKBoot_of
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
-  intro _ _ _ _ _ _ _ _ Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
+  intro _ lctx _ _ _ _ _ _ Hctx Hcec peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
     Hfips Hnd Hok HEnv HEnvTok G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5
   have HSM' : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
-      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG _).goose_globalGS) putgetGF),
-      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG _) S5 :=
-    fun hG S5 => HSM hG S5
+      (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
+      etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5 := by
+    intro hG π S5
+    exact @HSM _ lctx _ _ hG π S5
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   have S5 : etcd_dist.S5Draft putgetGF := Classical.choice hS5'
@@ -293,8 +300,13 @@ theorem putgetKBoot_of
     rw [cms_ids] at Hcok
     isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
     -- the client's invariant, from the cluster's `etcdKV`
-    imod (client.putGetInv_alloc_all (GF := putgetGF) (rnOf c) _
-        go!"k" go!"v") $$ Hetcd with ⟨%γf, #Hinv⟩
+    ihave Hetcd' : etcdKV (GF := putgetGF) (rnOf c).kv
+        (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) $$ [Hetcd]
+    · rw [show (rnOf c).kv = c.γk from rfl]
+      iexact Hetcd
+    imod (client.putGetInv_alloc_all (GF := putgetGF) (rnOf c)
+        (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v") $$ Hetcd'
+      with ⟨%γf, #Hinv⟩
     ihave #Hpub : memberPubOkK c.γk (putgetPub (GF := putgetGF)) $$ []
     · iunfold memberPubOkK
       imodintro
@@ -350,6 +362,7 @@ theorem putgetKBoot_of
     · iapply BigSepL.bigSepL_singleton.2
       unfold sharesK
       rw [if_neg (by simp)]
+      simp only [List.headD_cons]
       iunfold clientPK
       iintro %-
       isplitr
@@ -413,6 +426,7 @@ theorem putgetKBoot_of
       · iapply BigSepL.bigSepL_singleton.2
         unfold sharesK
         rw [if_neg (by simp)]
+        simp only [List.headD_cons]
         iunfold clientPK
         iintro %-
         isplitr
