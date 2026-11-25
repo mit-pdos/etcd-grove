@@ -44,6 +44,9 @@ theorem pwPostK_zf (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
       m.zf.map (fun z => if min off m.size < off + data.length then max z (off + data.length) else z) :=
   rfl
 
+theorem pwPostK_xs (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    (pwPostK true m off data k n).xs = if off + data.length ≤ m.size then m.xs else none := rfl
+
 theorem cfMeta_lo (m : OsMeta) (off n : Nat) : (cfMeta m off n).lo = min m.lo (max m.size (off + n)) :=
   rfl
 theorem cfMeta_hi (m : OsMeta) (off n : Nat) : (cfMeta m off n).hi = max m.hi (max m.size (off + n)) :=

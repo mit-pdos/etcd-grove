@@ -28,11 +28,10 @@ good (`bDur_okS`, through `FileOkS` under the premise `BoltCrashWhole` of the fi
 Unprotected bytes may hold anything; the meta pages' tails (bytes 80 to 4096) are zero in both
 reference images, and so in every crash image (`metaOk`'s probes at offsets 1024 and 2048).
 
-**The size.** The ghost state (`OsMeta`) does not record the file extension's crash sizes
-(`OsFile.szCrash`: an `ftruncate`'s target exactly), only their bounds `[lo, hi]`, so inside
-`DB.grow`'s window (`lo < hi`, between its `Truncate` and its `Sync`) a crash image's size is known
-to be at least `hwm · 4096` but not a whole number of pages. `bDur_okS` asks `lo = hi` of an idle
-state (true everywhere else); `bDur_okSU` covers every state, without whole pages.
+**The size.** A crash image's size is at least `hwm · 4096` (the bounds `[lo, hi]`), and a whole
+number of pages: while idle, from the exact crash sizes the ghost state knows (`OsMeta.xs`, `XsAl`:
+`DB.grow`'s truncate adds its page-aligned target, a sync makes it the size); while committing, the
+size has not moved since the last sync. `bDur_okSU` is the statement without whole pages.
 -/
 module
 
@@ -95,6 +94,16 @@ def BWf (s : CSt) : Prop :=
 def WrIn (s : CSt) : Prop :=
   ∀ t off data n, s.busy = .write t off data n → off + data.length ≤ s.m.size
 
+/-- **The crash sizes are whole pages**: the sizes the ghost state knows a crash may leave
+(`OsMeta.xs`, exact since the fs ghost state mirrors `OsFile.szCrash`) are whole pages, so is the
+target of a truncate in flight, and a write is in flight only when the size has not moved since the
+last sync (`DB.grow` syncs its truncate before `Tx.write`'s writes; the ghost state knows nothing
+of the sizes a write in flight may leave, `CSt.CrashSize`). -/
+def XsAl (s : CSt) : Prop :=
+  (∃ l, s.m.xs = some l ∧ ∀ x ∈ l, x % 4096 = 0) ∧
+    (∀ t sz n, s.busy = .trunc t sz n → sz % 4096 = 0) ∧
+    (∀ t off data n, s.busy = .write t off data n → s.m.lo = s.m.hi)
+
 /-- `X`'s byte `b`. -/
 abbrev xb (X : List w8) (b : Nat) : w8 := X.getD b 0
 
@@ -106,7 +115,7 @@ theorem getD_eq_getElem' {α : Type} (l : List α) (i : Nat) (d : α) (h : i < l
 def IdleOk (C : CommitSt) (X : List w8) (s : CSt) : Prop :=
   RefImg X C ∧
     (∀ b < 8192, PSync s b (xb X b)) ∧ (∀ b, protData X C b → PSync s b (xb X b)) ∧
-    C.hwm * 4096 ≤ s.m.lo ∧ s.m.size % 4096 = 0 ∧ WrIn s
+    C.hwm * 4096 ≤ s.m.lo ∧ s.m.size % 4096 = 0 ∧ WrIn s ∧ XsAl s
 
 /-- **The committing facts**: `prev` (`P`, image `Xp`) and the new `cur` (`C`, image `Xc`); see the
 file header. -/

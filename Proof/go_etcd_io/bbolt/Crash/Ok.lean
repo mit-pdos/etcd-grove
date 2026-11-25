@@ -56,8 +56,8 @@ theorem refImg_tail {X : List w8} {C : CommitSt} (hR : RefImg X C) {j k : Nat} (
 not moved since the last sync. -/
 theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf s)
     (hI : IdleOk C X s) (hV : BView s f) :
-    bGoodU (treeData C) f ∧ (s.vmeta.lo = s.vmeta.hi → f.size % 4096 = 0) := by
-  obtain ⟨hR, hmeta, hdata, hhwm, hal, -⟩ := hI
+    bGoodU (treeData C) f ∧ (s.CrashSize f.size → f.size % 4096 = 0) := by
+  obtain ⟨hR, hmeta, hdata, hhwm, hal, hwr, hxa⟩ := hI
   have h3 := refImg_hwm hR
   have hXl := hR.len
   have hlo := vmeta_lo_of s hW
@@ -83,10 +83,22 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
     rw [hagm _ (by omega)] at hv
     exact hR.tails j hj k hk1 hk2 v hv
   obtain ⟨hb1, hb2⟩ := maxBytes_bounds _ hV.max
-  refine ⟨⟨hok, hb1, hb2, htz⟩, fun he => ?_⟩
-  have := hV.hi; have := size_le_vmeta_hi s hW; have := hW.2.2.1
-  have : f.size = s.m.size := by omega
-  rw [this]; exact hal
+  refine ⟨⟨hok, hb1, hb2, htz⟩, fun hcs => ?_⟩
+  obtain ⟨⟨l, hl, hla⟩, htr, hwlh⟩ := hxa
+  by_cases he : s.vmeta.lo = s.vmeta.hi
+  · have := hV.hi; have := size_le_vmeta_hi s hW; have := hW.2.2.1
+    have : f.size = s.m.size := by omega
+    rw [this]; exact hal
+  · rcases hcs l hl with hin | hb
+    · exact hla _ hin
+    · revert hb
+      rcases hbs : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩ <;> intro hb
+      · exact (hb : False).elim
+      · exfalso; apply he
+        rw [hlo, vmeta_hi_of s hW hwr (fun t sz n h => by rw [hbs] at h; cases h)]
+        exact hwlh t off data n hbs
+      · have hb' : f.size = sz := hb
+        rw [hb']; exact htr t sz n hbs
 
 /-! ## Committing -/
 
@@ -356,16 +368,16 @@ theorem bDur_view {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s) (hV : BView s
   · exact (commit_view hW hP hV).1
   · exact init_view hP hV
 
-/-- **Every crash image of a `BDur` state is good, of whole pages**, the size of an idle state
-not having moved since its last sync. -/
+/-- **Every crash image of a `BDur` state is good, of whole pages**, its size one the ghost state
+knows a crash may leave (`CSt.CrashSize`). -/
 theorem bDur_view_al {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s)
-    (hst : a.phase = .idle → s.vmeta.lo = s.vmeta.hi) (hV : BView s f) : bCrash a f := by
+    (hcs : s.CrashSize f.size) (hV : BView s f) : bCrash a f := by
   obtain ⟨hW, hP⟩ := h
   unfold bCrash
-  revert hP hst
-  cases a.phase <;> intro hst hP <;> dsimp only at hP ⊢
+  revert hP
+  cases a.phase <;> intro hP <;> dsimp only at hP ⊢
   · obtain ⟨h1, h2⟩ := idle_view hW hP hV
-    exact bGoodU_bGood h1 (h2 (hst rfl))
+    exact bGoodU_bGood h1 (h2 hcs)
   · obtain ⟨h1, h2⟩ := commit_view hW hP hV
     rcases h1 with h1 | h1
     · exact .inl (bGoodU_bGood h1 h2)
@@ -373,14 +385,12 @@ theorem bDur_view_al {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s)
   · exact init_view hP hV
 
 /-- **bbolt's crash obligation**: a `BDur` state meets `FileOkS` under `BoltCrashWhole` of its
-inode, with the good images of its phase, of whole pages when an idle state's size has not moved
-since its last sync. -/
-theorem bDur_okS (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s)
-    (hst : a.phase = .idle → s.vmeta.lo = s.vmeta.hi) :
+inode, with the good images of its phase, of whole pages (`crashSeen_crashSize`). -/
+theorem bDur_okS (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s) :
     FileOkS (BoltCrashWhole (· = i)) (bOk a) i s := by
   intro hcut f hfc hseen g hg
   cases hg
-  exact bDur_view_al h hst (bview_of h.1.1 hcut h.1.2.1 hfc hseen)
+  exact bDur_view_al h (crashSeen_crashSize hseen f rfl) (bview_of h.1.1 hcut h.1.2.1 hfc hseen)
 
 /-- **bbolt's crash obligation in every state** (no whole pages in `DB.grow`'s window). -/
 theorem bDur_okSU (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s) :
