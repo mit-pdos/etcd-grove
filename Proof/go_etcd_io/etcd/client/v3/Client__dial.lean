@@ -202,12 +202,9 @@ theorem Client.dial.wp_proof
         iexists _
         iframe Hco
         ipureintro
-        have hs := streamIcOf_etcdDial cfg rb si ic [] (Or.inl rfl)
-        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;>
-          first
-          | simp [connOptsOf, hs]
-          | (unfold connOptsOf streamIcOf kaOpts; split <;>
-              simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
+        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;> (try simp only [connOptsOf]) <;>
+          (unfold streamIcOf kaOpts; split <;>
+            simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_none conn _ P
         iexact Hcc
     · iright
@@ -251,12 +248,9 @@ theorem Client.dial.wp_proof
         iexists _
         iframe Hco
         ipureintro
-        have hs := streamIcOf_etcdDial cfg rb si ic [GrpcDialOpt.perRPCCreds pc] (Or.inr ⟨pc, rfl⟩)
-        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;>
-          first
-          | simp [connOptsOf, hs]
-          | (unfold connOptsOf streamIcOf kaOpts; split <;>
-              simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
+        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;> (try simp only [connOptsOf]) <;>
+          (unfold streamIcOf kaOpts; split <;>
+            simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_one conn pc P
         iexact Hcc
     · iright

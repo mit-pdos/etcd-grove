@@ -242,16 +242,6 @@ theorem unaryIcsOf_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List Gr
   · exact unaryIcsOf_keepalive ds
   · rfl
 
-/-- **The stream interceptor of etcd's dial** (grpc-trusted-T, T7): `dialSetupOpts`'s, whatever the
-keepalive option and the per-RPC credentials. -/
-theorem streamIcOf_etcdDial (cfg : go_etcd_io.etcd.client.v3.Config) (rb : GoInterface)
-    (si ic : GoFunc) (ex : List GrpcDialOpt)
-    (hex : ex = [] ∨ ∃ pc, ex = [GrpcDialOpt.perRPCCreds pc]) :
-    streamIcOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
-      [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ ex) = some si := by
-  rcases hex with rfl | ⟨pc, rfl⟩ <;> unfold streamIcOf kaOpts <;> split <;>
-    simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append]
-
 /-- The keepalive option keeps a dial `NewClient`'s. -/
 theorem dialOk_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDialOpt)
     (rb : GoInterface) : dialOk ds rb → dialOk (kaOpts cfg ++ ds) rb := by
