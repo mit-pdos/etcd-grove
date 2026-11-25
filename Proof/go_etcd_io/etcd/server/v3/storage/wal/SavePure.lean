@@ -248,9 +248,10 @@ theorem SaveSt.finEmpty {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : Li
 
 theorem SaveSt.finState {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM}
     {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hne : ¬ (es = [] ∧ hsEmptyP hs))
-    (out' pend' : List w8) (sz' : Nat) :
-    SaveFin h hs es { hc with rest := hc.rest - 1, out := out', pend := pend',
-      st := saveHS (walLastHS (h.H.map WalOpG.toM)) hs es, sz := sz' } :=
+    (out1 pend1 : List w8) (sz1 : Nat) :
+    SaveFin h hs es
+      { hc with rest := hc.rest - 1, out := out1, pend := pend1, sz := sz1,
+                st := saveHS (walLastHS (h.H.map WalOpG.toM)) hs es } :=
   ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest, opDs_save_length]; simp [hne], by
     simp only
     rw [s.H, histMap_save, walLastHS_save]
