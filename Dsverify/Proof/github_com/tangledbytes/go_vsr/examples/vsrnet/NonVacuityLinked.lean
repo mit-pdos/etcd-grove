@@ -109,8 +109,8 @@ variable [github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions] [net.Field
 (`vr_remote_robust.spec`: at `remoteGF` and every machine's heap). -/
 theorem nonvacuous_premises : ∀ G L (π : NetProtoGS), letI := heapAt G L;
     ∃ (_ : encoding.json.DecoderRep remoteGF), JsonHyps (GF := remoteGF) := by
-  intro G L π hG
-  exact ⟨decRep (hG := hG), jsonHyps_holds (hG := hG)⟩
+  intro G L π
+  exact ⟨decRep (hG := heapAt G L), jsonHyps_holds (hG := heapAt G L)⟩
 
 end statement
 
