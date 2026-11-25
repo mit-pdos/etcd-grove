@@ -20,7 +20,7 @@ noncomputable section
 namespace Perennial
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 /-! ## The encodings -/
 
@@ -78,6 +78,34 @@ the rest of the bytes, every read so far and this one having succeeded, or a fal
 def decPost (d : Loc) (bs : List w8) (ok : Bool) {A : Type} (en : A → List w8) (x : A) :
     IProp GF :=
   iprop((∃ r, ⌜ok = true ∧ bs = en x ++ r⌝ ∗ ownDec d r true) ∨ ∃ r, ownDec d r false)
+
+/-- A read's outcome as one case: the decoder has some bytes and flag left, and if the flag is
+still true, the read succeeded (what chaining reads needs: `decPost_intro` back). -/
+theorem decPost_elim (d : Loc) (bs : List w8) (ok : Bool) {A : Type} (en : A → List w8) (x : A) :
+    decPost (hG := hG) d bs ok en x ⊢
+      ∃ r ok', ownDec (hG := hG) d r ok' ∗ ⌜ok' = true → ok = true ∧ bs = en x ++ r⌝ := by
+  unfold decPost
+  iintro (⟨%r, %h, Hd⟩ | ⟨%r, Hd⟩)
+  · iexists r, true
+    iframe
+    ipureintro; intro; exact h
+  · iexists r, false
+    iframe
+    ipureintro; intro h; cases h
+
+theorem decPost_intro (d : Loc) (bs r : List w8) (ok ok' : Bool) {A : Type} (en : A → List w8)
+    (x : A) (h : ok' = true → ok = true ∧ bs = en x ++ r) :
+    ownDec (hG := hG) d r ok' ⊢ decPost (hG := hG) d bs ok en x := by
+  unfold decPost
+  iintro Hd
+  cases ok'
+  · iright
+    iexists r
+    iexact Hd
+  · ileft
+    iexists r
+    iframe
+    ipureintro; exact h rfl
 
 end defs
 
