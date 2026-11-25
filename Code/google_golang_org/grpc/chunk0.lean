@@ -6,6 +6,7 @@ public import Perennial.Code.context
 public import Perennial.Code.io
 public import Code.google_golang_org.grpc.codes
 public import Code.google_golang_org.grpc.status
+public import Perennial.Code.math
 public import Perennial.Code.strings
 public import Perennial.Code.sync
 public import Code.google_golang_org.grpc.internal
@@ -23,6 +24,7 @@ public import Code.google_golang_org.grpc.internal.metadata
 public import Code.google_golang_org.grpc.peer
 public import Code.google_golang_org.grpc.grpclog
 public import Code.google_golang_org.grpc.internal.grpcsync
+public import Code.google_golang_org.grpc.internal.stats
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -849,6 +851,9 @@ noncomputable def http2ErrConvTab [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.logger"
 
+noncomputable def defaultServerOptions [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.defaultServerOptions"
+
 noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
 
@@ -1517,6 +1522,21 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
+
+/-- go: codec.go:49:6 -/
+noncomputable def newCodecV0Bridge.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc baseCodec.ty))) (App (Val (GoInstruction (GoZeroVal baseCodec.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc Codec.ty))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (Convert codecV0Bridge.ty baseCodec.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Codec.ty))) (Var "c"))
+  (App (Val (GoInstruction (CompositeLiteral codecV0Bridge.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"codec")) (ElementExpression Codec.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore baseCodec.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad baseCodec.ty))) (Var "$res0")))))
 
 /-- go: dialoptions.go:45:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
@@ -3055,6 +3075,38 @@ noncomputable def KeepaliveEnforcementPolicy.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "$res0")))))
 
+/-- CustomCodec returns a ServerOption that sets a codec for message marshaling and unmarshaling.
+
+    This will override any lookups by content-subtype for Codecs registered with RegisterCodec.
+
+    Deprecated: register codecs using encoding.RegisterCodec. The server will
+    automatically use registered codecs based on the incoming requests' headers.
+    See also
+    https://github.com/grpc/grpc-go/blob/master/Documentation/encoding.md#using-a-codec.
+    Will be supported throughout 1.x.
+
+    go: server.go:367:6 -/
+noncomputable def CustomCodec.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "codec"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "codec" (App (Val (GoInstruction (GoAlloc Codec.ty))) (Var "codec"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcServerOption.ty) ServerOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serverOptions.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (Convert baseCodec.ty go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Codec.ty))) (Var "codec"))
+  (App (App (Val (GoInstruction (FuncResolve newCodecV0Bridge []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"codec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncServerOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "$res0")))))
+
 /-- MaxRecvMsgSize returns a ServerOption to set the max message size in bytes the server can receive.
     If this is not set, gRPC uses the default 4MB.
 
@@ -3189,6 +3241,505 @@ noncomputable def ChainStreamInterceptor.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "$res0")))))
+
+/-- serverWorkerResetThreshold defines how often the stack must be reset. Every
+    N requests, by spawning a new goroutine in its place, a worker can reset its
+    stack so that large stacks don't live in memory forever. 2^16 should allow
+    each goroutine stack to live for at least a few seconds in a typical
+    workload (assuming a QPS of a few thousand requests/sec).
+    NewServer creates a gRPC server which has no service registered and has not
+    started to accept requests yet.
+
+    MODEL: without channelz, tracing and server workers (invisible); the options outside the model
+    panic.
+
+    go: server.go:690:6 -/
+noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "opt"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "opt" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ServerOption.ty)))) (Var "opt"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad serverOptions.ty))) (App (Val (GoInstruction (GlobalVarAddr defaultServerOptions))) (Val #())))
+  (Let "opts" (App (Val (GoInstruction (GoAlloc serverOptions.ty))) (App (Val (GoInstruction (GoZeroVal serverOptions.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Server.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.net.Listener.ty go.bool)]))) (Val #())) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad serverOptions.ty))) (Var "opts"))
+  (Let "$v2" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.stats.Handler.ty)))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"statsHandlers"))) (Var "opts")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.internal.stats.NewCombinedHandler []))) (Val #())) (Var "$a0")))
+  (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.MapType (go.GoType.PointerType serverTransport.ty) go.bool))]))) (Val #())) (Val #()))
+  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.PointerType serviceInfo.ty))]))) (Val #())) (Val #()))
+  (Let "$v5" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.internal.grpcsync.NewEvent []))) (Val #())) (Val #()))
+  (Let "$v6" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.internal.grpcsync.NewEvent []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Server.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lis")) (ElementExpression (go.GoType.MapType _root_.Perennial.net.Listener.ty go.bool) (Var "$v0"))), (KeyedElement (some (KeyField go!"opts")) (ElementExpression serverOptions.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"statsHandler")) (ElementExpression _root_.Perennial.google_golang_org.grpc.stats.Handler.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"conns")) (ElementExpression (go.GoType.MapType go.string (go.GoType.MapType (go.GoType.PointerType serverTransport.ty) go.bool)) (Var "$v3"))), (KeyedElement (some (KeyField go!"services")) (ElementExpression (go.GoType.MapType go.string (go.GoType.PointerType serviceInfo.ty)) (Var "$v4"))), (KeyedElement (some (KeyField go!"quit")) (ElementExpression (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.internal.grpcsync.Event.ty) (Var "$v5"))), (KeyedElement (some (KeyField go!"done")) (ElementExpression (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.internal.grpcsync.Event.ty) (Var "$v6")))]))))))))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.NewCond []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Server.ty go!"cv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve chainStreamServerInterceptors []))) (Val #())) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve chainUnaryServerInterceptors []))) (Val #())) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"creds"))) (Var "opts"))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (StructFieldGet _root_.Perennial.google_golang_org.grpc.credentials.ProtocolInfo.ty go!"SecurityProtocol"))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty go!"Info"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"creds"))) (Var "opts")))) (Val #()))) (Val #(go!"insecure"))))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"grpc: transport credentials other than insecure")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Compressor.ty))) (Pair (App (Val (GoInstruction (GoLoad Compressor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"cp"))) (Var "opts"))) (App (Val (GoInstruction (Convert go.untypedNil Compressor.ty))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Decompressor.ty))) (Pair (App (Val (GoInstruction (GoLoad Decompressor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"dc"))) (Var "opts"))) (App (Val (GoInstruction (Convert go.untypedNil Decompressor.ty))) (Val UntypedNil)))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"grpc: compression")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "s") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ServerOption.ty)))) (Var "opt"))
+  (Let "o" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
+  (App (App (Val (slice.forRange ServerOption.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Var "opts")
+  (App (App (Val (GoInstruction (MethodResolve ServerOption.ty go!"apply"))) (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "o"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "o") (Var "$value")))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ServerOption.ty)))) (App (Val (GoInstruction (GlobalVarAddr globalServerOptions))) (Val #())))
+  (Let "o" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
+  (App (App (Val (slice.forRange ServerOption.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Var "opts")
+  (App (App (Val (GoInstruction (MethodResolve ServerOption.ty go!"apply"))) (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "o"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "o") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore serverOptions.ty))) (Pair (Var "opts") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "$res0")))))
+
+/-- printf records an event in s's event log, unless s has been stopped.
+    REQUIRES s.mu is held.
+
+    go: server.go:721:18 -/
+noncomputable def Server.printf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "format"
+  (Lam "a"
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.any)))) (Var "a"))
+  (Let "format" (App (Val (GoInstruction (GoAlloc go.string))) (Var "format"))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals traceEventLog.ty))) (Pair (App (Val (GoInstruction (GoLoad traceEventLog.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (App (Val (GoInstruction (Convert go.untypedNil traceEventLog.ty))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "format"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.any)))) (Var "a"))
+  (App (App (App (Val (GoInstruction (MethodResolve traceEventLog.ty go!"Printf"))) (App (Val (GoInstruction (GoLoad traceEventLog.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (Val #())))))
+
+/-- RegisterService registers a service and its implementation to the gRPC
+    server. It is called from the IDL generated code. This must be called before
+    invoking Serve. If ss is non-nil (for legacy code), its type is checked to
+    ensure it implements sd.HandlerType.
+
+    MODEL: the reflection check that ss implements sd.HandlerType is not made (it exits the
+    process when it fails; the generated RegisterXServer(s, srv XServer) can only pass an ss that
+    passes it).
+
+    go: server.go:755:18 -/
+noncomputable def Server.RegisterService.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "sd"
+  (Lam "ss"
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "ss" (App (Val (GoInstruction (GoAlloc go.any))) (Var "ss"))
+  (Let "sd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "ss"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))))
+  (Val #())))))
+
+/-- go: server.go:759:18 -/
+noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "sd"
+  (Lam "ss"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "ss" (App (Val (GoInstruction (GoAlloc go.any))) (Var "ss"))
+  (Let "sd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc serviceInfo.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.any))) (Var "ss"))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.PointerType StreamDesc.ty))]))) (Val #())) (Val #()))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.any))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))))
+  (App (Val (GoInstruction (CompositeLiteral serviceInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"serviceImpl")) (ElementExpression go.any (Var "$v0"))), (KeyedElement (some (KeyField go!"streams")) (ElementExpression (go.GoType.MapType go.string (go.GoType.PointerType StreamDesc.ty)) (Var "$v1"))), (KeyedElement (some (KeyField go!"mdata")) (ElementExpression go.any (Var "$v2")))]))))))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serviceInfo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType serviceInfo.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serviceInfo.ty)))) (Var "info"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType serviceInfo.ty))))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"services"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"ServiceName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))))) (Var "$r0"))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType MethodDesc.ty)))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"Methods"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange MethodDesc.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType MethodDesc.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType MethodDesc.ty)))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"Methods"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType MethodDesc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType MethodDesc.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StreamDesc.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef MethodDesc.ty go!"MethodName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MethodDesc.ty)))) (Var "d"))))
+  (Let "$v1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MethodDesc.ty)))) (Var "d"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"wrapUnaryHandler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")))
+  (Let "$v2" (Val #false)
+  (Let "$v3" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral StreamDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"StreamName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression StreamHandler.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"ServerStreams")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"ClientStreams")) (ElementExpression go.bool (Var "$v3")))])))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType StreamDesc.ty))))) (App (Val (GoInstruction (StructFieldRef serviceInfo.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serviceInfo.ty)))) (Var "info"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef MethodDesc.ty go!"MethodName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MethodDesc.ty)))) (Var "d"))))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType MethodDesc.ty)))) (Pair (Var "d") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamDesc.ty)))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"Streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd"))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange StreamDesc.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType StreamDesc.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamDesc.ty)))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"Streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StreamDesc.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StreamDesc.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StreamDesc.ty)))) (Var "d"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType StreamDesc.ty))))) (App (Val (GoInstruction (StructFieldRef serviceInfo.ty go!"streams"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serviceInfo.ty)))) (Var "info"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef StreamDesc.ty go!"StreamName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StreamDesc.ty)))) (Var "d"))))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StreamDesc.ty)))) (Pair (Var "d") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType serviceInfo.ty)))) (Pair (Var "info") (Var "$r0")))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.PointerType serviceInfo.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType serviceInfo.ty))))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"services"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"ServiceName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"grpc: Server.RegisterService found duplicate service registration for %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"ServiceName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty go!"Fatalf"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"grpc: Server.RegisterService after Server.Serve for %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"ServiceName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty go!"Fatalf"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"RegisterService(%q)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ServiceDesc.ty go!"ServiceName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServiceDesc.ty)))) (Var "sd")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (Val #())))))))))
+  (Val #())))))
+
+/-- chainUnaryServerInterceptors chains all unary server interceptors into one.
+
+    go: server.go:1091:6 -/
+noncomputable def chainUnaryServerInterceptors.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"chainUnaryInts"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (Let "interceptors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType UnaryServerInterceptor.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "chainedInt" (App (Val (GoInstruction (GoAlloc UnaryServerInterceptor.ty))) (App (Val (GoInstruction (GoZeroVal UnaryServerInterceptor.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (Var "chainedInt"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"unaryInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType UnaryServerInterceptor.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil UnaryServerInterceptor.ty))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UnaryServerInterceptor.ty))) (Pair (Var "chainedInt") (Var "$r0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType UnaryServerInterceptor.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UnaryServerInterceptor.ty))) (Pair (Var "chainedInt") (Var "$r0")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors"))
+  (App (App (Val (GoInstruction (FuncResolve chainUnaryInterceptors []))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UnaryServerInterceptor.ty))) (Pair (Var "chainedInt") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"unaryInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (App (Val (GoInstruction (Convert go.untypedNil UnaryServerInterceptor.ty))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"unaryInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType UnaryServerInterceptor.ty)))) (LiteralValue [(KeyedElement none (ElementExpression UnaryServerInterceptor.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"chainUnaryInts"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType UnaryServerInterceptor.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Pair (Var "interceptors") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Pair (Var "interceptors") (Var "$r0")))))))))
+  (Val #())))
+
+/-- go: server.go:1111:6 -/
+noncomputable def chainUnaryInterceptors.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "interceptors"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc UnaryServerInterceptor.ty))) (App (Val (GoInstruction (GoZeroVal UnaryServerInterceptor.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "interceptors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors"))
+  (Let "$r0" (Lam "ctx"
+  (Lam "req"
+  (Lam "info"
+  (Lam "handler"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "handler" (App (Val (GoInstruction (GoAlloc UnaryHandler.ty))) (Var "handler"))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UnaryServerInfo.ty)))) (Var "info"))
+  (Let "req" (App (Val (GoInstruction (GoAlloc go.any))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors"))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad UnaryHandler.ty))) (Var "handler"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve getChainUnaryHandler []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType UnaryServerInterceptor.ty)))) (Var "interceptors")) (Val #(W64 0))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UnaryServerInterceptor.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (Var "$res0")))))
+
+/-- chainStreamServerInterceptors chains all stream server interceptors into one.
+
+    go: server.go:1127:6 -/
+noncomputable def chainStreamServerInterceptors.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"chainStreamInts"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (Let "interceptors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType StreamServerInterceptor.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType StreamServerInterceptor.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "chainedInt" (App (Val (GoInstruction (GoAlloc StreamServerInterceptor.ty))) (App (Val (GoInstruction (GoZeroVal StreamServerInterceptor.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad StreamServerInterceptor.ty))) (Var "chainedInt"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamServerInterceptor.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"streamInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType StreamServerInterceptor.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil StreamServerInterceptor.ty))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamServerInterceptor.ty))) (Pair (Var "chainedInt") (Var "$r0")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType StreamServerInterceptor.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad StreamServerInterceptor.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType StreamServerInterceptor.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamServerInterceptor.ty))) (Pair (Var "chainedInt") (Var "$r0")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors"))
+  (App (App (Val (GoInstruction (FuncResolve chainStreamInterceptors []))) (Val #())) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamServerInterceptor.ty))) (Pair (Var "chainedInt") (Var "$r0")))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals StreamServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad StreamServerInterceptor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"streamInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (App (Val (GoInstruction (Convert go.untypedNil StreamServerInterceptor.ty))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad StreamServerInterceptor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"streamInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType StreamServerInterceptor.ty)))) (LiteralValue [(KeyedElement none (ElementExpression StreamServerInterceptor.ty (Var "$v0")))])))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"chainStreamInts"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType StreamServerInterceptor.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType StreamServerInterceptor.ty)))) (Pair (Var "interceptors") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType StreamServerInterceptor.ty)))) (Pair (Var "interceptors") (Var "$r0")))))))))
+  (Val #())))
+
+/-- go: server.go:1147:6 -/
+noncomputable def chainStreamInterceptors.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "interceptors"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc StreamServerInterceptor.ty))) (App (Val (GoInstruction (GoZeroVal StreamServerInterceptor.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "interceptors" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors"))
+  (Let "$r0" (Lam "srv"
+  (Lam "ss"
+  (Lam "info"
+  (Lam "handler"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "handler" (App (Val (GoInstruction (GoAlloc StreamHandler.ty))) (Var "handler"))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StreamServerInfo.ty)))) (Var "info"))
+  (Let "ss" (App (Val (GoInstruction (GoAlloc ServerStream.ty))) (Var "ss"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc go.any))) (Var "srv"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "srv"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad ServerStream.ty))) (Var "ss"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StreamServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors"))
+  (Let "$a1" (Val #(W64 0))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StreamServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad StreamHandler.ty))) (Var "handler"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve getChainStreamHandler []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad StreamServerInterceptor.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType StreamServerInterceptor.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType StreamServerInterceptor.ty)))) (Var "interceptors")) (Val #(W64 0))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamServerInterceptor.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad StreamServerInterceptor.ty))) (Var "$res0")))))
+
+/-- wrapUnaryHandler converts a standard Unary Method Descriptor into a
+    StreamHandler, allowing Unary RPCs to be processed via the same unified
+    pipeline as Streaming RPCs.
+
+    go: server.go:1165:18 -/
+noncomputable def Server.wrapUnaryHandler.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "md"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc StreamHandler.ty))) (App (Val (GoInstruction (GoZeroVal StreamHandler.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "md" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType MethodDesc.ty)))) (Var "md"))
+  (Let "$r0" (Lam "srv"
+  (Lam "stream"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "stream" (App (Val (GoInstruction (GoAlloc ServerStream.ty))) (Var "stream"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc go.any))) (Var "srv"))
+  (Let "$r0" (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.any))) (Var "v"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (Var "stream"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+  (Let "df" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "srv"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"Context"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (Var "stream"))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.error]))))) (Var "df"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad UnaryServerInterceptor.ty))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"unaryInt"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"opts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad MethodHandler.ty))) (App (Val (GoInstruction (StructFieldRef MethodDesc.ty go!"Handler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MethodDesc.ty)))) (Var "md")))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "reply" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "reply"))
+  (App (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (Var "stream"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "reply") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.error]))))) (Pair (Var "df") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore StreamHandler.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad StreamHandler.ty))) (Var "$res0"))))))
 
 /-- Send pushes one message into the stream of requests to be consumed by the
     server. The type of message which can be sent is determined by the Req type
@@ -3495,10 +4046,6 @@ cannot panic and has no effect beyond its variable.
 - `statusOK` (`var statusOK = status.New(codes.OK, "")`): Their initializers call, besides literals of constants and other variables' values:
 `status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
 each terminates, cannot panic and has no effect beyond its variable.
-- `defaultServerOptions` (`var defaultServerOptions = serverOptions{ maxConcurrentStreams: math.MaxUint32, maxReceiveMessageSize: defaultServerMaxR … [sha256:aa3dcd153a10a22e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable.
 - `ErrServerStopped` (`var ErrServerStopped = errors.New("grpc: the server has been stopped")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
 its variable.
@@ -3544,7 +4091,6 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc.errContextCanceled", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error);\n`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,\ncannot panic and has no effect beyond its variable.", "var errContextCanceled = status.Error(codes.Canceled, context.Canceled.Error())"⟩,
   ⟨"google.golang.org/grpc.errContextDeadline", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error);\n`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,\ncannot panic and has no effect beyond its variable.", "var errContextDeadline = status.Error(codes.DeadlineExceeded, context.DeadlineExceeded.Error())"⟩,
   ⟨"google.golang.org/grpc.statusOK", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So\neach terminates, cannot panic and has no effect beyond its variable.", "var statusOK = status.New(codes.OK, \"\")"⟩,
-  ⟨"google.golang.org/grpc.defaultServerOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultServerOptions = serverOptions{ maxConcurrentStreams: math.MaxUint32, maxReceiveMessageSize: defaultServerMaxR … [sha256:aa3dcd153a10a22e]"⟩,
   ⟨"google.golang.org/grpc.ErrServerStopped", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrServerStopped = errors.New(\"grpc: the server has been stopped\")"⟩,
   ⟨"google.golang.org/grpc._@server.go:1016", "An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.", "var _ http.Handler = (*Server)(nil)"⟩,
   ⟨"google.golang.org/grpc.emptyMethodConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var emptyMethodConfig = serviceconfig.MethodConfig{}"⟩,
@@ -3556,12 +4102,15 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.strings, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.encoding.base64, pkg_id.strconv, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.internal.grpcutil, pkg_id.google_golang_org.grpc.internal.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog, pkg_id.google_golang_org.grpc.internal.grpcsync]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.math, pkg_id.strings, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.encoding.base64, pkg_id.strconv, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.internal.grpcutil, pkg_id.google_golang_org.grpc.internal.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog, pkg_id.google_golang_org.grpc.internal.grpcsync, pkg_id.google_golang_org.grpc.internal.stats]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3646,6 +4195,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"core"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.grpclog.Component []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(W32 4294967295))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultServerMaxReceiveMessageSize))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultServerMaxSendMessageSize))
+  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 120)) (Val #(W64 1000000000))))
+  (Let "$v4" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultWriteBufSize))
+  (Let "$v5" (Val #true)
+  (Let "$v6" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val defaultReadBufSize))
+  (App (Val (GoInstruction (CompositeLiteral serverOptions.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"maxConcurrentStreams")) (ElementExpression go.uint32 (Var "$v0"))), (KeyedElement (some (KeyField go!"maxReceiveMessageSize")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"maxSendMessageSize")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"connectionTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"writeBufferSize")) (ElementExpression go.int (Var "$v4"))), (KeyedElement (some (KeyField go!"sharedWriteBuffer")) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyField go!"readBufferSize")) (ElementExpression go.int (Var "$v6")))])))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (TypeAssert (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, (go.GoType.SliceType (go.GoType.SliceType go.string)), go.bool]))))) (App (Val (GoInstruction (GoLoad go.any))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw))) (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3658,6 +4216,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, (go.GoType.SliceType (go.GoType.SliceType go.string)), go.bool]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr metadataFromOutgoingContextRaw))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore serverOptions.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr defaultServerOptions))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -3682,6 +4242,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.math.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3717,6 +4279,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.internal.grpcsync.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.internal.stats.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrClientConnClosing go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalDialOptions (go.GoType.SliceType DialOption.ty))) (Val #()))))))
@@ -3734,6 +4298,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc http2ErrConvTab (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc logger _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc defaultServerOptions serverOptions.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalServerOptions (go.GoType.SliceType ServerOption.ty))) (Val #()))))))
   (App (Val doExecute)

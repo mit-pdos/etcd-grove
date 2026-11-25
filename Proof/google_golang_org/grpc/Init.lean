@@ -4,7 +4,11 @@ Package initialization of `google_golang_org.grpc`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
+Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good; and (W1,
+2026-11-26) `metadataFromOutgoingContextRaw` holds `metadata.fromOutgoingContextRaw`,
+`globalServerOptions` the nil slice and `defaultServerOptions` its literal (`grpcDefaultSrvOpts`), each
+read-only for good. It runs `defaultServerOptions`' translated initializer, a struct literal of
+constants (until then a goose `[[skip]]`). Its
 initializer initializes its imports, allocates `EnableTracing` (`var EnableTracing bool`,
 `trace.go:33` at v1.84.0: translated, no initializer, so its cell holds `false`), runs the
 translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
@@ -33,6 +37,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.math.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
@@ -45,6 +50,7 @@ public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.grpcsync.Init
 public import Proof.google_golang_org.grpc.internal.grpcutil.Init
 public import Proof.google_golang_org.grpc.internal.metadata.Init
+public import Proof.google_golang_org.grpc.internal.stats.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init

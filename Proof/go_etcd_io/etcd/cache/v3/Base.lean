@@ -421,6 +421,18 @@ instance get_isPkgInit_wf_inst :
 
 end google_golang_org.grpc.internal.grpcsync
 
+-- (W1, 2026-11-26) `grpc/internal/stats` (types only but `NewCombinedHandler`, which `grpc.NewServer`
+-- calls), before grpc's, which imports it
+namespace google_golang_org.grpc.internal.stats
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.stats :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.stats :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal.stats
+
 -- grpc's `codes` and `status` (before `grpc`, which imports them since phase 7 S2 core)
 instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
   define_is_pkg_init iprop(True)
@@ -471,13 +483,41 @@ instance grpc_imetadata_get_is_pkg_init_wf_inst :
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
+/-- **`defaultServerOptions`' literal sets none of the server's hooks** (W1, 2026-11-26): no transport
+credentials, codec, compressor or decompressor, no interceptor (single or chained), no stats handler,
+no unknown-stream handler, no stream wrapper (`server.go:192-200`: the literal sets only limits,
+buffer sizes and the connection timeout). What `NewServer`'s proof starts from. -/
+def grpcDefaultSrvOpts (so : google_golang_org.grpc.serverOptions) : Prop :=
+  so.creds' = GoInterface.nil ∧ so.codec' = GoInterface.nil ∧ so.cp' = GoInterface.nil ∧
+  so.dc' = GoInterface.nil ∧ so.unaryInt' = zero_val GoFunc ∧ so.streamInt' = zero_val GoFunc ∧
+  so.chainUnaryInts' = zero_val GoSlice ∧ so.chainStreamInts' = zero_val GoSlice ∧
+  so.statsHandlers' = zero_val GoSlice ∧ so.unknownStreamDesc' = null ∧
+  so.streamWrapper' = zero_val GoFunc
+
 /-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
 at v1.84.0, no initializer) holds `false` for good. Go allocates it zero-valued before grpc's first
 initializer runs; grpc's generated `Init.lean` takes the cell from the trust-boundary axiom
 `DefaultBackoffConfig_init` and persists it. No translated code writes it; a program that sets it
 (etcd's `embed` at log level debug) gets no proof. Read by the reply-ownership claim of
-`grpcInvokerOk`/`RepSat` (`InvGrpc.lean`): with tracing on, grpc keeps every reply. -/
-abbrev grpcInit : IProp GF := globalAddr google_golang_org.grpc.EnableTracing ↦□ false
+`grpcInvokerOk`/`RepSat` (`InvGrpc.lean`): with tracing on, grpc keeps every reply.
+
+(W1, 2026-11-26, one batch, `notes/phase7-endstate.md` §4) Also, each for good, read-only: the cell
+`metadataFromOutgoingContextRaw` (`stream.go:53`, translated since phase 7 S2 core) holds
+`metadata.fromOutgoingContextRaw` (its initializer asserted the value `metadata`'s `init` stored,
+`metadata`'s fact; read by the client attempt's `createHeaderFields`); `globalServerOptions` holds the
+nil slice (no initializer; its only writers are the closures grpc's `init` stores in `internal`'s
+write-only hooks `AddGlobalServerOptions`/`ClearGlobalServerOptions`, which no translated code reads:
+calling one would need the cell, persisted here); `defaultServerOptions` holds its literal
+(`server.go:192`), which sets no credentials, codec, compressor, interceptor, stats handler,
+unknown-stream handler or stream wrapper (`grpcDefaultSrvOpts`); the last two are what `NewServer`
+reads. -/
+abbrev grpcInit : IProp GF :=
+  iprop(globalAddr google_golang_org.grpc.EnableTracing ↦□ false ∗
+    globalAddr google_golang_org.grpc.metadataFromOutgoingContextRaw ↦□
+      (functions google_golang_org.grpc.metadata.fromOutgoingContextRaw [] : GoFunc) ∗
+    globalAddr google_golang_org.grpc.globalServerOptions ↦□ (zero_val GoSlice) ∗
+    ∃ dso : google_golang_org.grpc.serverOptions,
+      globalAddr google_golang_org.grpc.defaultServerOptions ↦□ dso ∗ ⌜grpcDefaultSrvOpts dso⌝)
 
 instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=
   define_is_pkg_init grpcInit

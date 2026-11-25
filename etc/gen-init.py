@@ -1763,6 +1763,25 @@ _G['before']['metadataFromOutgoingContextRaw'] = [
     '· iframe Hown Hmdi',
     'try wp_auto']
 _G['imports'].append('Proof.google_golang_org.grpc.internal.FromOutRaw')
+# (W1, 2026-11-26, one batch) grpc's fact gains, read-only for good: `metadataFromOutgoingContextRaw`'s
+# value (the load above), `globalServerOptions` (nil, no initializer) and `defaultServerOptions` (its
+# literal, translated: until then a goose `[[skip]]`), the last two read by `NewServer`'s proof
+_CB = '_root_.Perennial.go_etcd_io.etcd.cache.v3'
+_G['doc'] = _G['doc'].replace('''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good.''',
+    '''Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good; and (W1,
+2026-11-26) `metadataFromOutgoingContextRaw` holds `metadata.fromOutgoingContextRaw`,
+`globalServerOptions` the nil slice and `defaultServerOptions` its literal (`grpcDefaultSrvOpts`), each
+read-only for good. It runs `defaultServerOptions`' translated initializer, a struct literal of
+constants (until then a goose `[[skip]]`).''')
+assert '(W1,\n2026-11-26)' in _G['doc']
+_G['alloc_types']['defaultServerOptions'] = 'google_golang_org.grpc.serverOptions'
+_G['before']['defaultServerOptions'] = ['try wp_auto']
+_G['finish'] = (['ipersist HEnableTracing', 'ipersist HmetadataFromOutgoingContextRaw',
+                 'ipersist HglobalServerOptions', 'ipersist HdefaultServerOptions'] + FIN_PRE +
+                [f'unfold {_CB}.grpcInit', 'iframe HEnableTracing HmetadataFromOutgoingContextRaw HglobalServerOptions',
+                 'iexists _; iframe HdefaultServerOptions', 'ipureintro',
+                 f'simp only [{_CB}.grpcDefaultSrvOpts]',
+                 'exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩'])
 
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(

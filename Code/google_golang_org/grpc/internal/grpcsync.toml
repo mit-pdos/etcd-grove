@@ -1,7 +1,8 @@
 # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) Types and names only: `Event` (an
 # `atomic.Bool` and a channel), the type of `grpc.Server`'s `quit` and `done` fields, so that goose
 # translates `Server`; `NewEvent`'s name.
-translate = ["!*"]
+# (W1, 2026-11-26) `NewEvent` with its body (`&Event{c: make(chan struct{})}`): what `grpc.NewServer` calls
+translate = ["!*", "NewEvent"]
 imports = ["!*", "sync/atomic"]
 translate_types = true
 

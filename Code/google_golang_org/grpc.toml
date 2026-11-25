@@ -58,7 +58,16 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "isReservedHeader", "encodeMetadataHeader", "encodeBinHeader", "binHdrSuffix",
   # (phase 7 S2 core, 2026-11-23) the head's fields (`model_transport.go`, grpc-go's
   # `http2Client.createHeaderFields`)
-  "createHeaderFields"]
+  "createHeaderFields",
+  # (W1, 2026-11-26; phase7-s2a's step 3) the server's construction and registration, with their
+  # bodies: `NewServer` and the chain builders it calls, `defaultServerOptions` (a struct literal of
+  # constants, until then a goose `[[skip]]`: `NewServer` copies it), `RegisterService`, `register` and
+  # the helpers it calls (`printf`, `wrapUnaryHandler`), and `CustomCodec` with the codec bridge it
+  # stores, so that `NewServer`'s, `RegisterService`'s and `CustomCodec`'s specs are theorems and
+  # `grpcSrvNew` a definition
+  "NewServer", "defaultServerOptions", "chainUnaryServerInterceptors", "chainUnaryInterceptors",
+  "chainStreamServerInterceptors", "chainStreamInterceptors", "Server.RegisterService",
+  "Server.register", "Server.printf", "Server.wrapUnaryHandler", "CustomCodec", "newCodecV0Bridge"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
@@ -78,7 +87,9 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   # (phase 7 S2 core; W1) what `createHeaderFields` and its helpers call: `strings`, `strconv`,
   # `encoding/base64` (`RawStdEncoding`), grpc's `internal/grpcutil` and `internal/metadata`
   "strings", "strconv", "encoding/base64", "google.golang.org/grpc/internal/grpcutil",
-  "google.golang.org/grpc/internal/metadata"]
+  "google.golang.org/grpc/internal/metadata",
+  # (W1, 2026-11-26) `NewServer`'s `istats.NewCombinedHandler` and `defaultServerOptions`' `math.MaxUint32`
+  "google.golang.org/grpc/internal/stats", "math"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -96,8 +107,7 @@ translate_types = true
 [[skip]]
 names = ["DefaultBackoffConfig", "unaryStreamDesc", "invalidDefaultServiceConfigErrPrefix",
   "PickFirstBalancerName", "grpcStatusDetailsBinHeader", "errTransportClosing",
-  "http2ErrCodeNames", "defaultServerOptions",
-  "emptyMethodConfig"]
+  "http2ErrCodeNames", "emptyMethodConfig"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.

@@ -12,6 +12,7 @@ public import GeneratedProof.google_golang_org.grpc.internal
 public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 public import GeneratedProof.google_golang_org.grpc.internal.grpcutil
 public import GeneratedProof.google_golang_org.grpc.internal.metadata
+public import GeneratedProof.google_golang_org.grpc.internal.stats
 public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
@@ -19,6 +20,7 @@ public import GeneratedProof.google_golang_org.grpc.resolver
 public import GeneratedProof.google_golang_org.grpc.stats
 public import GeneratedProof.google_golang_org.grpc.status
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.math
 public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings

@@ -16,6 +16,25 @@ noncomputable section
 
 namespace google_golang_org.grpc
 
+class payload.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying payload.underlying payload
+  underlying : go.UnderlyingDirectedEq payload.ty payload.underlying
+  get_sent : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"sent") #x (Val #(x.sent'))
+  set_sent : ∀ (x : payload) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"sent") (PairV #x #y) (Val #(({ x with sent' := y } : payload)))
+  get_msg : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"msg") #x (Val #(x.msg'))
+  set_msg : ∀ (x : payload) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : payload)))
+  method_set : go.MethodSetIs payload.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payload.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+
+attribute [instance] payload.TypeAssumptions.type_repr
+  payload.TypeAssumptions.underlying
+  payload.TypeAssumptions.get_sent
+  payload.TypeAssumptions.set_sent
+  payload.TypeAssumptions.get_msg
+  payload.TypeAssumptions.set_msg
+  payload.TypeAssumptions.method_set
+  payload.TypeAssumptions.ptr_method_set
+
 class fmtStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fmtStringer.underlying fmtStringer
   underlying : go.UnderlyingDirectedEq fmtStringer.ty fmtStringer.underlying

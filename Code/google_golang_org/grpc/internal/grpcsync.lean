@@ -62,6 +62,22 @@ noncomputable def NewPubSub [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewRefCounted [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/grpcsync.NewRefCounted"
 
+/-- NewEvent returns a new, ready-to-use Event.
+
+    go: event.go:56:6 -/
+noncomputable def NewEvent.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Event.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Event.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"c")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Event.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Event.ty)))) (Var "$res0")))))
+
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
@@ -235,6 +251,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Subscriber_instance : Subscriber.TypeAssumptions
   PubSub_instance : PubSub.TypeAssumptions
   RefCounted_instance : RefCounted.TypeAssumptions
+  NewEvent_unfold : FuncUnfold NewEvent [] NewEvent.impl
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
 
 attribute [instance] Assumptions.CallbackSerializer_instance
@@ -242,6 +259,7 @@ attribute [instance] Assumptions.CallbackSerializer_instance
   Assumptions.Subscriber_instance
   Assumptions.PubSub_instance
   Assumptions.RefCounted_instance
+  Assumptions.NewEvent_unfold
   Assumptions.import_atomic_Assumption
 
 end google_golang_org.grpc.internal.grpcsync

@@ -143,6 +143,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  newCodecV0Bridge_unfold : FuncUnfold newCodecV0Bridge [] newCodecV0Bridge.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newFuncDialOption_unfold : FuncUnfold newFuncDialOption [] newFuncDialOption.impl
   WithNoProxy_unfold : FuncUnfold WithNoProxy [] WithNoProxy.impl
@@ -169,16 +170,23 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   newFuncServerOption_unfold : FuncUnfold newFuncServerOption [] newFuncServerOption.impl
   KeepaliveEnforcementPolicy_unfold : FuncUnfold KeepaliveEnforcementPolicy [] KeepaliveEnforcementPolicy.impl
+  CustomCodec_unfold : FuncUnfold CustomCodec [] CustomCodec.impl
   MaxRecvMsgSize_unfold : FuncUnfold MaxRecvMsgSize [] MaxRecvMsgSize.impl
   MaxSendMsgSize_unfold : FuncUnfold MaxSendMsgSize [] MaxSendMsgSize.impl
   MaxConcurrentStreams_unfold : FuncUnfold MaxConcurrentStreams [] MaxConcurrentStreams.impl
   ChainUnaryInterceptor_unfold : FuncUnfold ChainUnaryInterceptor [] ChainUnaryInterceptor.impl
   ChainStreamInterceptor_unfold : FuncUnfold ChainStreamInterceptor [] ChainStreamInterceptor.impl
+  NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
+  chainUnaryServerInterceptors_unfold : FuncUnfold chainUnaryServerInterceptors [] chainUnaryServerInterceptors.impl
+  chainUnaryInterceptors_unfold : FuncUnfold chainUnaryInterceptors [] chainUnaryInterceptors.impl
+  chainStreamServerInterceptors_unfold : FuncUnfold chainStreamServerInterceptors [] chainStreamServerInterceptors.impl
+  chainStreamInterceptors_unfold : FuncUnfold chainStreamInterceptors [] chainStreamInterceptors.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
   import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import_math_Assumption : _root_.Perennial.math.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
@@ -186,7 +194,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
-  import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
+  import_grpc_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
   import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_grpc_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
@@ -196,6 +204,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_grpclog_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.Assumptions
   import_grpcsync_Assumption : _root_.Perennial.google_golang_org.grpc.internal.grpcsync.Assumptions
+  import_internal_stats_Assumption : _root_.Perennial.google_golang_org.grpc.internal.stats.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
@@ -320,6 +329,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.newCodecV0Bridge_unfold
   Assumptions.«init.0_unfold»
   Assumptions.newFuncDialOption_unfold
   Assumptions.WithNoProxy_unfold
@@ -346,16 +356,23 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.«init.2_unfold»
   Assumptions.newFuncServerOption_unfold
   Assumptions.KeepaliveEnforcementPolicy_unfold
+  Assumptions.CustomCodec_unfold
   Assumptions.MaxRecvMsgSize_unfold
   Assumptions.MaxSendMsgSize_unfold
   Assumptions.MaxConcurrentStreams_unfold
   Assumptions.ChainUnaryInterceptor_unfold
   Assumptions.ChainStreamInterceptor_unfold
+  Assumptions.NewServer_unfold
+  Assumptions.chainUnaryServerInterceptors_unfold
+  Assumptions.chainUnaryInterceptors_unfold
+  Assumptions.chainStreamServerInterceptors_unfold
+  Assumptions.chainStreamInterceptors_unfold
   Assumptions.import_time_Assumption
   Assumptions.import_context_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_codes_Assumption
   Assumptions.import_status_Assumption
+  Assumptions.import_math_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_internal_Assumption
@@ -363,7 +380,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_resolver_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_credentials_Assumption
-  Assumptions.import_stats_Assumption
+  Assumptions.import_grpc_stats_Assumption
   Assumptions.import_base64_Assumption
   Assumptions.import_strconv_Assumption
   Assumptions.import_grpc_metadata_Assumption
@@ -373,6 +390,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_peer_Assumption
   Assumptions.import_grpclog_Assumption
   Assumptions.import_grpcsync_Assumption
+  Assumptions.import_internal_stats_Assumption
 
 end google_golang_org.grpc
 

@@ -696,6 +696,10 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_handlersWG : ∀ (x : Server) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"handlersWG") (PairV #x #y) (Val #(({ x with handlersWG' := y } : Server)))
   method_set : go.MethodSetIs Server.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [_root_.Perennial.net.Listener.ty] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, _root_.Perennial.net.Conn.ty] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.PointerType serverTransport.ty), (go.GoType.PointerType serverTransportStream.ty)] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransportStream.ty), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.PointerType serverTransport.ty)] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType serverTransport.ty), _root_.Perennial.net.Conn.ty] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
+  ptr_RegisterService_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"RegisterService" Server.RegisterService.impl
+  ptr_printf_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"printf" Server.printf.impl
+  ptr_register_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"register" Server.register.impl
+  ptr_wrapUnaryHandler_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"wrapUnaryHandler" Server.wrapUnaryHandler.impl
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
@@ -729,6 +733,10 @@ attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.set_handlersWG
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
+  Server.TypeAssumptions.ptr_RegisterService_unfold
+  Server.TypeAssumptions.ptr_printf_unfold
+  Server.TypeAssumptions.ptr_register_unfold
+  Server.TypeAssumptions.ptr_wrapUnaryHandler_unfold
 
 class ServerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerOption.ty ServerOption.underlying
@@ -1232,25 +1240,6 @@ attribute [instance] traceInfo.TypeAssumptions.type_repr
   traceInfo.TypeAssumptions.set_firstLine
   traceInfo.TypeAssumptions.method_set
   traceInfo.TypeAssumptions.ptr_method_set
-
-class payload.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying payload.underlying payload
-  underlying : go.UnderlyingDirectedEq payload.ty payload.underlying
-  get_sent : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"sent") #x (Val #(x.sent'))
-  set_sent : ∀ (x : payload) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"sent") (PairV #x #y) (Val #(({ x with sent' := y } : payload)))
-  get_msg : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"msg") #x (Val #(x.msg'))
-  set_msg : ∀ (x : payload) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : payload)))
-  method_set : go.MethodSetIs payload.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payload.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
-
-attribute [instance] payload.TypeAssumptions.type_repr
-  payload.TypeAssumptions.underlying
-  payload.TypeAssumptions.get_sent
-  payload.TypeAssumptions.set_sent
-  payload.TypeAssumptions.get_msg
-  payload.TypeAssumptions.set_msg
-  payload.TypeAssumptions.method_set
-  payload.TypeAssumptions.ptr_method_set
 
 end google_golang_org.grpc
 

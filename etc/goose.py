@@ -643,6 +643,8 @@ PROJECTS = [
             # `internal/metadata`'s `ValidatePair`)
             "google.golang.org/grpc/internal/grpcutil",
             "google.golang.org/grpc/internal/metadata",
+            # (W1, 2026-11-26) with its body: `NewCombinedHandler`, which `grpc.NewServer` calls
+            "google.golang.org/grpc/internal/stats",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

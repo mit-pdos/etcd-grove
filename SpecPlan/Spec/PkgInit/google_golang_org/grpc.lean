@@ -8,6 +8,7 @@ public import Perennial.Proof.context.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.status
+public import Perennial.Proof.math.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal
@@ -25,6 +26,7 @@ public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.metadata
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.grpclog
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.grpcsync
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.stats
 
 @[expose] public section
 noncomputable section
