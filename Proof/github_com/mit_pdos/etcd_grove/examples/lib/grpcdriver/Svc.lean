@@ -117,9 +117,19 @@ def biUp : Nat → GoString → IProp GF := fun _ m => iprop(⌜List.length m �
 def biDn : GrpcMd → StreamNames → Nat → GoString → IProp GF := fun _ γ j m =>
   upAt (Req := strmMsg (GF := GF)) γ j m
 
-/-- The streams' specification, for clients: nothing beyond the responses' content. -/
-def strmSpec : GrpcMd → StreamNames → (Nat → GoString → IProp GF) → IProp GF :=
-  fun _ _ _ => iprop(True)
+/-- **What a client learns of a stream's responses** (a stream entry's specification): the content
+`Dn` the transport picks implies the entry's content `dn`. It holds at `dn` itself. -/
+def strmSpec (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+    GrpcMd → StreamNames → (Nat → GoString → IProp GF) → IProp GF :=
+  fun md γ Dn => iprop(□ ∀ (j : Nat) (m : GoString), Dn j m -∗ dn md γ j m)
+
+/-- A stream entry's specification holds at its own content. -/
+theorem strmSpec_self (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
+    ⊢ □ ∀ md γ, strmSpec dn md γ (dn md γ) := by
+  iintro !> %md %γ
+  unfold strmSpec
+  iintro !> %j %m H
+  iexact H
 
 /-- **The service's table**: the unary methods and the streams. -/
 def drvSvc (γid : GName) : GrpcSvc GF := fun name =>
@@ -127,11 +137,11 @@ def drvSvc (γid : GName) : GrpcSvc GF := fun name =>
   else if name = failName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), failSpec⟩)
   else if name = metaName then some (.unary ⟨reqWire (GF := GF), repWire (GF := GF), metaSpec⟩)
   else if name = serverStreamName then
-    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec⟩)
+    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec ssDn⟩)
   else if name = clientStreamName then
-    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec⟩)
+    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec csDn⟩)
   else if name = bidiName then
-    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec⟩)
+    some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec biDn⟩)
   else none
 
 end specs

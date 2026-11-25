@@ -88,17 +88,16 @@ instance ssMethodOk_persistent {Req Rep : StreamMsg GF} (h : val) (S : IProp GF)
     Persistent (ssMethodOk h S Up Spec) := by
   unfold ssMethodOk; infer_instance
 
-/-- **An `errors.New` error is one grpc's server takes** (`srvErrOk`): a `*errorString` is a leaf
-without `Is` or `GRPCStatus` (`ErrorStringLeaf`), and its `Error()` returns its message. -/
-theorem errStr_srvErrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
+/-- **An `errors.New` error is one grpc's `status` takes** (`statusErrOk`): a `*errorString` is a
+leaf without `Is` or `GRPCStatus` (`ErrorStringLeaf`), and its `Error()` returns its message. -/
+theorem errStr_statusErrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
         go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
-    go_etcd_io.etcd.cache.v3.srvErrOk
+    go_etcd_io.etcd.cache.v3.statusErrOk
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
   obtain ⟨-, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
   iintro #Hm
-  iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
   iintro !> %e %he
   cases he
@@ -118,6 +117,17 @@ theorem errStr_srvErrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : G
   · iintro %h
     exact absurd h hIs
 
+/-- **An `errors.New` error is one grpc's server takes** (`srvErrOk`). -/
+theorem errStr_srvErrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
+    go_etcd_io.etcd.cache.v3.srvErrOk
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  iintro #Hm
+  iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
+  iapply errStr_statusErrOk $$ Hm
+
 /-- **An `errors.New` error's description is its message** (`descIs`). -/
 theorem errStr_descIs [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
@@ -132,6 +142,19 @@ theorem errStr_descIs [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoS
     (by rw [EtcdGrove.ErrorStringLeaf.noGRPC]; simp))
   unfold go_etcd_io.etcd.cache.v3.errorMsgIs
   iexact Hm
+
+/-- **`io.EOF`'s value is one grpc's `status` takes.** -/
+theorem eof_statusErrOk [_root_.Perennial.errors.Assumptions] [_root_.Perennial.io.Assumptions]
+    (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ eofIs err ⊢ go_etcd_io.etcd.cache.v3.statusErrOk err := by
+  iintro ⟨#Hio, #He⟩
+  ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hio
+  iunfold _root_.Perennial.errors.newVar at Hv
+  icases Hv with ⟨%x, #Hpt, #_, #Hmsg⟩
+  iunfold eofIs at He
+  icombine He Hpt gives %Heq
+  subst Heq
+  iapply errStr_statusErrOk $$ Hmsg
 
 /-- **`io.EOF`'s value is one grpc's server takes.** -/
 theorem eof_srvErrOk [_root_.Perennial.errors.Assumptions] [_root_.Perennial.io.Assumptions]

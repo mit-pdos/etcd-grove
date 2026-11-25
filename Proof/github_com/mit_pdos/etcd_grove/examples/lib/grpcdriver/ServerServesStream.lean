@@ -59,19 +59,19 @@ theorem drvStrmSpec_self (dn : GrpcMd → StreamNames → Nat → GoString → I
 /-- The table's stream entries. -/
 theorem drvSvc_serverStream (γid : GName) :
     drvSvc (GF := GF) γid serverStreamName =
-      some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec⟩) := by
+      some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec ssDn⟩) := by
   unfold drvSvc
   rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_pos rfl]
 
 theorem drvSvc_clientStream (γid : GName) :
     drvSvc (GF := GF) γid clientStreamName =
-      some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec⟩) := by
+      some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec csDn⟩) := by
   unfold drvSvc
   rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_neg (by decide), if_pos rfl]
 
 theorem drvSvc_bidi (γid : GName) :
     drvSvc (GF := GF) γid bidiName =
-      some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec⟩) := by
+      some (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec biDn⟩) := by
   unfold drvSvc
   rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_neg (by decide),
     if_neg (by decide), if_pos rfl]
@@ -225,7 +225,7 @@ theorem serverStream_servesEnt (wp_M : server.ServerStream.spec (GF := GF) (hG :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
       grpcServesEnt ics [] regs sregs serverStreamName
-        (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec⟩) := by
+        (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), ssUp, ssDn, strmSpec ssDn⟩) := by
   iintro ⟨#Hpkg, #Hsvc⟩
   simp only [grpcServesEnt]
   isplitr
@@ -233,7 +233,7 @@ theorem serverStream_servesEnt (wp_M : server.ServerStream.spec (GF := GF) (hG :
   iintro %mh %srv %hin
   obtain ⟨hmh, rfl⟩ := hreg mh srv hin
   rw [hmh]
-  iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), ssUp, ssDn, strmSpec, ssUp,
+  iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), ssUp, ssDn, strmSpec ssDn, ssUp,
     drvStrmSpec ssDn, ssDn
   isplitr
   · ipureintro
@@ -267,7 +267,7 @@ theorem clientStream_servesEnt (wp_M : server.ClientStream.spec (GF := GF) (hG :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
       grpcServesEnt ics [] regs sregs clientStreamName
-        (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec⟩) := by
+        (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), csUp, csDn, strmSpec csDn⟩) := by
   iintro ⟨#Hpkg, #Hsvc⟩
   simp only [grpcServesEnt]
   isplitr
@@ -275,7 +275,7 @@ theorem clientStream_servesEnt (wp_M : server.ClientStream.spec (GF := GF) (hG :
   iintro %mh %srv %hin
   obtain ⟨hmh, rfl⟩ := hreg mh srv hin
   rw [hmh]
-  iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), csUp, csDn, strmSpec, csUp,
+  iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), csUp, csDn, strmSpec csDn, csUp,
     drvStrmSpec csDn, csDn
   isplitr
   · ipureintro
@@ -309,7 +309,7 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
       grpcServesEnt ics [] regs sregs bidiName
-        (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec⟩) := by
+        (.stream ⟨strmWire (GF := GF), strmWire (GF := GF), biUp, biDn, strmSpec biDn⟩) := by
   iintro ⟨#Hpkg, #Hsvc⟩
   simp only [grpcServesEnt]
   isplitr
@@ -317,7 +317,7 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
   iintro %mh %srv %hin
   obtain ⟨hmh, rfl⟩ := hreg mh srv hin
   rw [hmh]
-  iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), biUp, biDn, strmSpec, biUp,
+  iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), biUp, biDn, strmSpec biDn, biUp,
     drvStrmSpec biDn, biDn
   isplitr
   · ipureintro
@@ -360,7 +360,7 @@ theorem drv_unaryBound (Spec : GrpcSpecMd (GF := GF) (pbStringValueT (GF := GF))
 theorem drv_streamBound (up : Nat → GoString → IProp GF)
     (dn : GrpcMd → StreamNames → Nat → GoString → IProp GF) :
     ⊢ ∀ Rep : StreamMsgT GF,
-      ⌜streamRepModelOf GF (⟨strmWire (GF := GF), strmWire (GF := GF), up, dn, strmSpec⟩ :
+      ⌜streamRepModelOf GF (⟨strmWire (GF := GF), strmWire (GF := GF), up, dn, strmSpec dn⟩ :
         GrpcStreamEntry GF).Wp.ty = some Rep⌝ -∗
       □ ∀ (l : Loc) (m : Rep.M), Rep.send l m -∗ ⌜Rep.wireLen m < grpcMsgMax⌝ := by
   iintro %Rep %hR
