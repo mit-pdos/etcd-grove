@@ -73,6 +73,15 @@ theorem kvOnly_bounds {d : Deployment} (hw : d.WellFormed) (hkv : KvOnly d) :
       omega
     | _ => simp [typed.Workload.Encodes, hk] at henc
 
+/-- A well-formed deployment has one list of client machines per workload. -/
+theorem wellFormed_nodes_length {d : Deployment} (hw : d.WellFormed) :
+    d.nodes.length = d.workloads.length := by
+  obtain ⟨t, he, hwf⟩ := hw
+  obtain ⟨-, -, -, hws, hn⟩ := he
+  obtain ⟨-, -, -, -, -, hl, -⟩ := hwf
+  rw [← hn, hl]
+  exact hws.length_eq
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
