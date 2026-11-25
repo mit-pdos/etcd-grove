@@ -156,6 +156,3 @@ stock ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|Pee
 # (N5, 2026-11-25) The member machine's split of `memberBuilt` (`memberBuilt_split`): it hands the HTTP server's
 # `httpProcSlots` stock of `NewServer_dist`'s post (`memberPeerServeRes`) to `PeerServe_dist`, served after `Start`.
 stock ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MemberSplit\.lean$
-# The restart's proof (`NewServerRAt`, `NewServerR`'s proof at a crash image) hands out the HTTP
-# server's stock as `NewServerR`'s proof does (its baselined match).
-stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerRAt\.lean$
