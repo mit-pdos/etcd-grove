@@ -186,8 +186,8 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
           ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) →
       RecsFit walCodec (recsOfSegs walCodec Mr
         ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
-        (segsOf ((((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++ [o]).map
-          WalOpG.toM) ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
+        (segsOf (histN (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++ [o]))
+          ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
     intro hc hold
     show RecsFit walCodec (allRecs Mr (h.H ++ [o]) h.md h.cuts)
     rw [allRecs_snoc Mr h.H h.md h.cuts o hc]

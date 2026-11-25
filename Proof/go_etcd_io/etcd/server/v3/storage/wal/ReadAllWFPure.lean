@@ -133,7 +133,9 @@ theorem readFiles_hasMd {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal}
       td.1 = metadataType := by
   refine ⟨(metadataType, d.metadata), ?_, rfl⟩
   obtain ⟨-, -, hfl⟩ := hab.cuts
-  rw [walReadFiles_running hC hab hex hwr kk hkk]
+  obtain ⟨es, -, hrun⟩ := walReadFiles_running hC hab hex hwr kk hkk
+  rw [hrun, List.map_append]
+  apply List.mem_append_left
   generalize hSs : segsOf (histM d) lay.cuts = Ss
   have hSl : Ss.length = lay.cuts.length + 1 := by rw [← hSs]; simp [segsOf]
   generalize hp : lay.first + kk = p
