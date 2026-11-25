@@ -92,26 +92,29 @@ proof has it only from `LogDefault.spec`. A `*Logger` made otherwise (`new(log.L
 `out` is nil) panics in `Printf`/`Println` (`notes/axiom-review/dsv-fix6/log-logger-2.md`). -/
 opaque StdLogger : Loc → Prop
 
-/-- A `Printf` format whose every directive ends in one of the verbs `v s q x X d` or is `%%`, with
-only flags (`+ - # space 0`), width and precision digits and `.` before it: no `*`, no `%[n]`, no
-trailing `%` (state `true`: inside a directive). Under other verbs (`%t`, `%e`, ...) `fmt` reprints a
-pointer at depth ≥ 1 through `badVerb` at depth 0, dereferencing it, which `errLeaf`'s pointers do not
-allow (`notes/axiom-review/dsv-fix6/log-logger-3.md`). -/
-def FmtVerbsOk.go : Bool → List w8 → Bool
-  | false, [] => true
-  | true, [] => false
-  | false, c :: r => if c = 37 then FmtVerbsOk.go true r else FmtVerbsOk.go false r
-  | true, c :: r =>
-    if c ∈ ([118, 115, 113, 120, 88, 100, 37] : List w8) then FmtVerbsOk.go false r
-    else if c ∈ ([43, 45, 35, 32, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 46] : List w8) then
-      FmtVerbsOk.go true r
+/-- A `Printf` format whose every directive is, in Go's order (`fmt/print.go`, `doPrintf`), `%`, flags
+`[+-# 0]*`, width `[0-9]*`, optionally `.` and precision `[0-9]*`, then one of the verbs `v s q x X d %`:
+no `*`, no `%[n]`, no trailing `%`. The state: `0` text, `1` flags, `2` width, `3` precision. Under
+other verbs (`%t`, `%e`, or a flag read as the verb after the width, `%1+v`) `fmt` reprints a pointer at
+depth ≥ 1 through `badVerb` at depth 0, dereferencing it, which `errLeaf`'s pointers do not allow
+(`notes/axiom-review/dsv-fix6/log-logger-3.md`, `log-logger-4.md`). -/
+def FmtVerbsOk.go : Nat → List w8 → Bool
+  | 0, [] => true
+  | _, [] => false
+  | 0, c :: r => if c = 37 then FmtVerbsOk.go 1 r else FmtVerbsOk.go 0 r
+  | st, c :: r =>
+    if c ∈ ([118, 115, 113, 120, 88, 100, 37] : List w8) then FmtVerbsOk.go 0 r
+    else if st = 1 ∧ c ∈ ([43, 45, 35, 32, 48] : List w8) then FmtVerbsOk.go 1 r
+    else if c ∈ ([48, 49, 50, 51, 52, 53, 54, 55, 56, 57] : List w8) then
+      FmtVerbsOk.go (if st = 3 then 3 else 2) r
+    else if c = 46 ∧ st ≠ 3 then FmtVerbsOk.go 3 r
     else false
 
 /-- See `FmtVerbsOk.go`. -/
-def FmtVerbsOk (msg : GoString) : Prop := FmtVerbsOk.go false msg = true
+def FmtVerbsOk (msg : GoString) : Prop := FmtVerbsOk.go 0 msg = true
 
 instance (msg : GoString) : Decidable (FmtVerbsOk msg) :=
-  inferInstanceAs (Decidable (FmtVerbsOk.go false msg = true))
+  inferInstanceAs (Decidable (FmtVerbsOk.go 0 msg = true))
 
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
@@ -185,3 +188,10 @@ end github_com.despreston.go_craq
 
 end Perennial
 
+
+example : Perennial.github_com.despreston.go_craq.FmtVerbsOk go!"a %s: %#v %+v %-5.2d %05x %.3q %%\n" := by decide
+example : ¬ Perennial.github_com.despreston.go_craq.FmtVerbsOk go!"%1+v" := by decide
+example : ¬ Perennial.github_com.despreston.go_craq.FmtVerbsOk go!"%1.2.v" := by decide
+example : ¬ Perennial.github_com.despreston.go_craq.FmtVerbsOk go!"%.5 s" := by decide
+example : ¬ Perennial.github_com.despreston.go_craq.FmtVerbsOk go!"%t" := by decide
+example : ¬ Perennial.github_com.despreston.go_craq.FmtVerbsOk go!"%" := by decide

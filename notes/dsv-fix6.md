@@ -86,7 +86,15 @@ per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axio
   class `LogSpecs` made by `logSpecs_holds`, premise removed from `craq_remote_robust`. The restatement
   went through three fresh reviews: `log-logger-2` refuted the receiver `l ≠ null` (`new(log.Logger)`
   panics: now opaque `StdLogger`, from `LogDefault`), `log-logger-3` refuted `Printf` under `%t` of an
-  `errLeaf` pointer (now `FmtVerbsOk msg`: verbs `v s q x X d`), `log-logger-4` on the current statement.
+  `errLeaf` pointer (now `FmtVerbsOk msg`: verbs `v s q x X d`), `log-logger-4` refuted `FmtVerbsOk`'s
+  character-set check (`%1+v`: a flag after the width is the verb); `FmtVerbsOk` now follows Go's order
+  (flags, width, `.`precision, verb; `decide` examples at the end of `LogHyp.lean`).
+  **Handoff (head after this commit):** (1) build `…go_craq.examples.craqnet.TopLevelRobustness` (the node's
+  formats are checked by `decide` in `wp_log`); (2) a FRESH `axiom` review of the statement as it now stands
+  (`notes/axiom-review/dsv-fix6/log-logger-5.md`, row in the README), given only the Go and LogAx/LogHyp/
+  ErrFmt; (3) on survival: tcb collection `etc/tcb-collections/dsv-craq.txt` gains the three `LogAx`
+  axioms (`etc/tcb-report.py --collection … --check --update`, then `etc/tcb-report.py --check --update`),
+  `etc/dsv/README.md`'s fix-4 section, `notes/STATUS.md`; (4) `etc/gates.sh`.
   Spec weakening: craq's `isNodeSvc` Update post gives back `∃ dq', metaPtr ptr dq' m` (the log lends a
   fraction; its only consumer discards it). Open findings: `StdLogger` is a pure opaque `Prop`
   (log-logger-3 suggests a per-execution `IProp` against a future concrete semantics); Net's trusted
