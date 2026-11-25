@@ -24,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_uber_org.zap.Init
+public import Proof.google_golang_org.grpc.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.net.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry

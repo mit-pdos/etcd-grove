@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
@@ -21,7 +22,9 @@ const (
 
 // newUserClient (authN's, copied) connects a client of addr that authenticates as user name with
 // password pw (clientv3.New calls Authenticate when it dials; the token is sent with every
-// request).
+// request). No proxy (grpc.WithNoProxy), as etcdstart.NewClients: every connection goes to addr
+// itself, never through an HTTP CONNECT proxy the process environment names (notes/etcd-dist-plan.md
+// §18.7, item 4; notes/putget-dist-plan.md section 12, finding F1).
 func newUserClient(addr string, name string, pw string) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
 		Endpoints:            []string{addr},
@@ -31,6 +34,7 @@ func newUserClient(addr string, name string, pw string) (*clientv3.Client, error
 		Username:             name,
 		Password:             pw,
 		Logger:               zap.NewNop(),
+		DialOptions:          []grpc.DialOption{grpc.WithNoProxy()},
 	})
 }
 
