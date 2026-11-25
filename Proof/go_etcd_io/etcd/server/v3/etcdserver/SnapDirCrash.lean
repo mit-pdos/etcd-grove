@@ -332,7 +332,7 @@ theorem step_file (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D
   ihave %hdj := old_dir L R V' sd d b i J j dq hJ hb hpe $$ Hk Hp
   obtain ⟨hd, hbn, hjJ⟩ := hdj
   subst d b j
-  imod nameCrash_crash Q L L' Dl tt V' R0 J (snap.snapDBName i) (DFrac.own 1) h (P x) ⊤
+  imod nameCrash_crash Q L L' Dl tt V' R J (snap.snapDBName i) (DFrac.own 1) h (P x) ⊤
     CoPset.subseteq_top $$ Hsh Hcr Hn Hnc with ⟨%hPv, Hcr, -⟩
   unfold snapSlotF
   icases Hs with ⟨%R', %dq', %qc', #Hinv', #Hsh', Hp', Hc', Hn', %hfits'⟩
@@ -406,7 +406,7 @@ theorem step_free (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D
   ihave %hdj := old_dir L R V' sd d b i J j dq hJ hb hpe $$ Hk Hp
   obtain ⟨hd, hbn, hjJ⟩ := hdj
   subst d b j
-  imod nameCrash_crash Q L L' Dl tt V' R0 J (snap.snapDBName i) (DFrac.own 1) h (· = none) ⊤
+  imod nameCrash_crash Q L L' Dl tt V' R J (snap.snapDBName i) (DFrac.own 1) h (· = none) ⊤
     CoPset.subseteq_top $$ Hsh Hcr Hn Hnc with ⟨%hv, Hcr, -⟩
   unfold snapSlotF
   icases Hs with ⟨%R', %dq', %qc', #Hinv', #Hsh', Hp', Hc', Hn', %hfits'⟩
