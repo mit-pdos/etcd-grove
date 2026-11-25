@@ -453,6 +453,10 @@ def proof_file(kit, kg):
         for n, t, cls in premises(st):
             if t.startswith('    (∀ G L, letI := heapAt G L; '):
                 o.append(f'    haveI : {cls[0]} remoteGF := {n} G\' hG.goose_localGS\n')
+        # classes discharged in the proof, not premises (dsv-fix4: per-function axioms; KITGEN's
+        # statement `discharged`, [(class, term)], the term usually a linking module's `hyps_holds`)
+        for cls, term in st.get('discharged', []):
+            o.append(f'    haveI : {cls} remoteGF := {term}\n')
     o.append('    match i, hm with\n')
     for m in ms:
         frame = role_get(m, 'frame')
