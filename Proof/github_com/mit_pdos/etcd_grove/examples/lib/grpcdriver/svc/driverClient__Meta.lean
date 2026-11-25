@@ -38,7 +38,7 @@ theorem driverClient.Meta.wp_proof (wp_unary : driverClient.unary.spec (GF := GF
   · iframe #
     iframe
     ipureintro; exact Hvs
-  wp_auto
+  try wp_auto
   iapply HΦ
   iexact H
 

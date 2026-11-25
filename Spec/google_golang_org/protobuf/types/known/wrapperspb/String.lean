@@ -24,10 +24,10 @@ variable [package_sem : google_golang_org.protobuf.types.known.wrapperspb.Assump
 
 /-- See the file header. -/
 abbrev google_golang_org.protobuf.types.known.wrapperspb.String.spec : Prop :=
-  ∀ (v : GoString), v.length < EtcdGrove.stringValueMax →
+  ∀ (b : Nat) (v : GoString), v.length < b →
   {{ (True : IProp GF) }}
     (App (Val (@! google_golang_org.protobuf.types.known.wrapperspb.String)) (Val #v))
-  {{ (l : Loc), RET #l; EtcdGrove.stringValueSend l v }}
+  {{ (l : Loc), RET #l; EtcdGrove.stringValueSendB b l v }}
 
 end spec
 

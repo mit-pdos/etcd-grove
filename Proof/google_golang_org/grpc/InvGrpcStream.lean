@@ -435,6 +435,20 @@ abbrev msgAny (T : go.GoType) (l : Loc) : GoInterface :=
 
 /-! ## The server end -/
 
+/-- **A server stream's receive error is not `io.EOF`** (persistent; grpc-trusted-T, T12, 2026-11-25;
+interim, retired with the stream contract by S3's proofs over the model): no value `io.EOF` holds is
+`err`. grpc's `serverStream.RecvMsg` returns `io.EOF` only at the client's end of the up queue (its
+`EOF` arm, with `upClosed`): grpc-go v1.84 and the model (`models/grpc/stream.go`, `serverStream.RecvMsg`:
+`recv`'s `io.EOF` is returned only from the stream's reader, which the transport gives it only for the
+client's END_STREAM, `model_transport.go`'s `frameClose`; every other transport error is a
+`connectionError` or a context error, which `toRPCErr` makes a status; a non-client-streaming method's
+second read maps `io.EOF` to `nil`). So a handler's `err == io.EOF` tells the two arms apart. -/
+def srvNotEof (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ e : GoInterface, eofIs e -∗ ⌜err ≠ e⌝)
+
+instance srvNotEof_persistent (err : GoInterface) : Persistent (srvNotEof (GF := GF) err) := by
+  unfold srvNotEof; infer_instance
+
 /-- **A raw server stream is a pointer** (k8s 7f-4, T-c; strengthened by Addendum T-g, Q1): its dynamic
 type is a pointer type and its value a location, so that the stream is a comparable map key (Go's
 `==` on two such interface values compares the types, then the pointers). Go stores a
@@ -495,7 +509,7 @@ def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
             upClosed (Req := Req) γ L ∗ Req.own out) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            srvRecvTok (Req := Req) γ L ∗ Req.own out) }}) ∗
+            srvRecvTok (Req := Req) γ L ∗ Req.own out ∗ srvNotEof err) }}) ∗
     □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
       {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
         (App (Val #(methods si.ty go!"SendMsg" si.v)) (Val #(msgAny Rep.ty l)))
@@ -538,7 +552,7 @@ def srvRawStreamIsW (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg G
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
             upClosed (Req := Req) γ L ∗ Req.own out) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            srvRecvTok (Req := Req) γ L ∗ Req.own out) }}) ∗
+            srvRecvTok (Req := Req) γ L ∗ Req.own out ∗ srvNotEof err) }}) ∗
     □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
       {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
         (App (Val #(methods si.ty go!"SendMsg" si.v)) (Val #(msgAny Rep.ty l)))
@@ -604,7 +618,7 @@ def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
             upClosed (Req := Req) γ L) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            srvRecvTok (Req := Req) γ L) }}) ∗
+            srvRecvTok (Req := Req) γ L ∗ srvNotEof err) }}) ∗
     □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
       {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
         (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
@@ -775,7 +789,7 @@ theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
     isplitr
     · ipureintro; rfl
     icases Hres with (⟨%Herr, %mm, Hr, HUp, Htok⟩ | ⟨#Heof, %Hne, Htok, #Hcl, -⟩ |
-      ⟨%Hne, #Hse, #Hso, Htok, -⟩)
+      ⟨%Hne, #Hse, #Hso, Htok, -, #Hnee⟩)
     · subst Herr
       simp only [↓reduceIte]
       iapply HΦ
