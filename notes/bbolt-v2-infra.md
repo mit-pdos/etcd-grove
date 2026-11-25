@@ -14,7 +14,8 @@ section 3 says what of it carries over.
   local (Perennial `docs/design/unsafe-memory.md`, section 6);
 - the fix of etcd-io/bbolt#1311 (`issues/bbolt-commit-meta-error-frees-reader-pages.md`);
 - a crash-safe `init`, and `Open` re-initializing after an interrupted one
-  (`issues/bbolt-init-not-crash-safe.md`);
+  (`issues/bbolt-init-not-crash-safe.md`); since `ea5656d` (2026-11-25) `DB.needsInit` accepts any file of
+  at most four pages whose bytes are each zero or `initImage`'s, not that whole image (proof: `DB__needsInit.lean`, `Open/InitPartial.lean`);
 - a named type for `DB.ops` and no `retry:` label (the two goose blockers).
 
 Packages `go.etcd.io/bbolt`, `errors`, `internal/common` and `internal/freelist` are all

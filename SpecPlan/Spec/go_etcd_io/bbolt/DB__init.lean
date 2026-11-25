@@ -1,5 +1,5 @@
 /-
-`db.init()` (`db.go`, the fork's crash-safe `init`): writes pages 2-3 and zero metas, syncs, then the metas, syncs. Users: `Open` on a fresh file.
+`db.init()` (`db.go`, the fork's crash-safe `init`): writes pages 2-3 and zero metas, syncs, then the metas, syncs. Users: `Open` on a fresh file, or one an interrupted `init` left (`needsInit`).
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
 
 **Proof sketch** (integration I7). `make([]byte, 4 · pageSize)`; per meta page, `pageInBuffer` (its
