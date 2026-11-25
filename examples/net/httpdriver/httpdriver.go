@@ -188,7 +188,9 @@ func session() {
 			break
 		}
 		// Section keep-alive: on one connection, the responses come in the order of the
-		// requests (each response checked against its own request).
+		// requests (each response checked against its own request). After a 400 the server closes
+		// the connection (its 400 is delimited by the connection's end), so the session ends
+		// there: a 400 whose body a cut connection ended early leaves the reader inside it.
 		resp, err := http.ReadResponse(br, nil)
 		if err != nil {
 			break
@@ -199,8 +201,8 @@ func session() {
 		}
 		check(q, resp, string(b))
 		reached("keep-alive")
-		if q.kind == "bad" {
-			break // the server closes the connection after a 400
+		if resp.StatusCode == http.StatusBadRequest {
+			break // the server closes the connection after a 400 (always so after "bad")
 		}
 	}
 	c.Close()

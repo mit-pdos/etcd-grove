@@ -18,7 +18,9 @@ reads. Proved in `Net/Proof/net/http/ReadResponse.lean`.
 
 `http.ReadResponse(b, nil)` on a stream of responses (`ReadResponse.spec_resp`; httpdriver,
 2026-11-24): `b` a `*bufio.Reader` that has delivered `D` (`bufio.ownReader`) of a stream reader `ri`
-that makes progress (`io.readerStreamNE ri S E`), whose bytes past `D` are, as long as it is read,
+that makes progress (`io.readerStreamNE ri S E`), shorter than `2 ^ 62 - 2 ^ 12` bytes (the length law
+`bufio.NewReader` takes: the reader's `Read` is specified only below `2 ^ 62` bytes, and the head
+is read whatever its size; 2026-11-25), whose bytes past `D` are, as long as it is read,
 nothing yet, or a prefix of the wire of a response `ρ` the model reads as written (`respOk`,
 `WireDefs.lean`: no chunked body) or, for one delimited by its `Content-Length`, that wire followed by
 more, with the caller's persistent knowledge `Q ρ` of it (the law over `S`); and that delivers nothing
@@ -78,6 +80,7 @@ abbrev ReadResponse.spec_resp : Prop :=
     (D : List w8) (Q : Resp → IProp GF) (eof : GoInterface),
   {{ httpEnv ∗ globalAddr io.EOF ↦□ eof ∗ EtcdGrove.io.readerStreamNE ri S E ∗
       EtcdGrove.bufio.ownReader b ri S E D ∗
+      (□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝) ∗
       (□ ∀ r, S r -∗ ⌜r <+: D⌝ ∨ ∃ ρ : Resp, ⌜respOk ρ ∧
           (r <+: D ++ respWire ρ ∨ (ρ.close = false ∧ D ++ respWire ρ <+: r))⌝ ∗ □ Q ρ) ∗
       (□ ∀ (r r' : List w8) (err : GoInterface), E r err -∗ S r' -∗ ⌜r <+: r' → r' = r⌝) }}

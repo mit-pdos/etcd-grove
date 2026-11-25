@@ -202,13 +202,19 @@ def httpReqP (P : HProto GF) : Net.Proto GF := fun cn bs =>
   iprop(∃ (γ : GName) (L : List ReqSlot), httpConn cn γ ∗ monoListLbOwn γ L ∗
     ⌜slotsOk L ∧ bs <+: slotsWire L⌝ ∗ [∗list] s ∈ L, slotFacts P s)
 
-/-- The facts of the `i`-th answer `x`, of the slots `L` (see the file header). -/
+/-- The facts of the `i`-th answer `x`, of the slots `L` (see the file header). A handler's answer's
+head is at most `2 ^ 22` bytes (interim, 2026-11-25, httpdriver's proof): the handler's lines, at most
+`2 ^ 21` bytes (`hdrsOk`), and what Go's server adds of its own, under 512 bytes: the status line
+(`writeStatusLine`: at most 46 bytes) and the `Date`, `Content-Type`, `Content-Length`, `Connection`,
+`Transfer-Encoding` lines (`(*chunkWriter).writeHeader`, through `extraHeader.Write`). -/
 def respFacts (P : HProto GF) (L : List ReqSlot) (i : Nat) : RespSlot → IProp GF
   | .ans ρ => iprop(∃ (R : HReq) (τ : GName) (B : List w8) (hs : List HdrLine),
-      ⌜L[i]? = some (.inl (R, τ, B)) ∧ respOk ρ ∧ ρ.close = false ∧ hdrView hs ρ.hc⌝ ∗
+      ⌜L[i]? = some (.inl (R, τ, B)) ∧ respOk ρ ∧ ρ.close = false ∧ hdrView hs ρ.hc ∧
+        (respHeadWire ρ.st ρ.reason ρ.hc).length ≤ 2 ^ 22⌝ ∗
       □ P.resp R τ ρ.st hs ρ.body ∗ □ P.respEnd R τ ρ.st hs ρ.body)
-  | .chunked st _ hc => iprop(∃ (R : HReq) (τ : GName) (B : List w8) (hs : List HdrLine)
-      (w : List w8), ⌜L[i]? = some (.inl (R, τ, B)) ∧ hdrView hs hc ∧ 2048 < w.length⌝ ∗
+  | .chunked st reason hc => iprop(∃ (R : HReq) (τ : GName) (B : List w8) (hs : List HdrLine)
+      (w : List w8), ⌜L[i]? = some (.inl (R, τ, B)) ∧ hdrView hs hc ∧ 2048 < w.length ∧
+        (respHeadWire st reason hc).length ≤ 2 ^ 22⌝ ∗
       □ P.resp R τ st hs w)
   | .bad => iprop(True)
 

@@ -152,9 +152,12 @@ def hdrView (hs hc : List HdrLine) : Prop :=
 def respKeysOut : List GoString :=
   [go!"Content-Length", go!"Transfer-Encoding", go!"Connection", go!"Trailer", go!"Pragma"]
 
-/-- See the file header. -/
+/-- See the file header. The size bound is the handler's obligation (it commits these lines through
+`respOps`): a header block of at most `2 ^ 21` bytes, which the mux's own answers meet (a `307`'s
+`Location` holds a path of at most `2 ^ 20` bytes, `reqOk`); `respFacts` bounds the written head by it
+(interim, 2026-11-25, httpdriver's proof: the client's stream must be bounded for `bufio.NewReader`). -/
 def hdrsOk (hs : List HdrLine) : Prop :=
-  hdrBlockOk hs ∧ ∀ kv ∈ hs, kv.1 ∉ respKeysOut
+  hdrBlockOk hs ∧ (∀ kv ∈ hs, kv.1 ∉ respKeysOut) ∧ (hs.flatMap hdrLineWire).length ≤ 2 ^ 21
 
 /-- `p` is a path under the mux pattern `pfx` (`SpecPlan`'s): `pfx` itself, or, for a pattern
 ending in `/`, below it. -/

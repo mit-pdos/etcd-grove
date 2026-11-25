@@ -483,7 +483,7 @@ noncomputable def session.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef request.ty go!"kind"))) (Var "q"))) (Val #(go!"bad")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Response.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Response.ty)))) (Var "resp")))) (Val #(W64 400)))))
   (App (Val doBreak) (Val #()))
   (App (Val doExecute)
   (Val #())))))
@@ -552,7 +552,7 @@ noncomputable def session.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Client runs random sessions from random goroutines.
 
-    go: httpdriver.go:210:6 -/
+    go: httpdriver.go:212:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
