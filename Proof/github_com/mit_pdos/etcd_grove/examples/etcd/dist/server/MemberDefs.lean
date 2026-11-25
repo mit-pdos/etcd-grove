@@ -9,9 +9,10 @@ What `server.MainDeployment(d, i)`'s specs are stated over:
 * the Go value of member `i`'s configuration (`configOf`, `configRepr`: `server.ConfigOf(d, i)`'s) and the
   `config.ServerConfig` `server.serverConfig` builds of it (`memberCfg`);
 * **member `i`'s share of the cluster's start** (`memberShareD`): putgetK's `memberShareK` at the
-  deployment's members, with every member's peer address set to etcd's peer protocols of the cluster
-  (`peerAddrFactsAt`, `S5Interim.lean`'s `httpAddrAt`, indexed by the cluster: §19) in place of `S5Draft`'s
-  unindexed fact, and the compactor's slot (`v3compactor.bootCfg`) at the cluster's compaction mode.
+  deployment's members (its client address at the cluster's view `c.view`), with every member's peer address
+  set to etcd's peer protocols of the cluster (`peerAddrFactsAt`, `S5Interim.lean`'s `httpAddrAt`, indexed by
+  the cluster: §19) in place of `S5Draft`'s unindexed fact, and the compactor's slot (`v3compactor.bootCfg`) at
+  the cluster's compaction mode.
 No proof here but pure lemmas.
 -/
 module
@@ -170,21 +171,20 @@ instance peerAddrFactsAt_persistent (γ : SrvRaft) (ms : List ClusterMember) :
     Persistent (peerAddrFactsAt (GF := GF) γ ms) := by
   unfold peerAddrFactsAt; infer_instance
 
-/-- **Member `i`'s share of the cluster's start** (of the deployment `d`, at the cluster's names `c`; its
-publication name `γE` and what it publishes, `Pub`): the names as the start chose them (`ClusterOk`, lease mode
-`none`, at a compaction mode `cmp` and retention `cret` whose compactor slot the deployment's configuration meets),
-the cluster's facts, every member's peer address fact (`peerAddrFactsAt`, of `c`'s cluster), member `i`'s slice,
-its client address and publication facts (`memberSvcShare`), and its publication obligation (putgetK's
-`memberPubOkK`). putgetK's `memberShareK` at the deployment's members. -/
+/-- **Member `i`'s share of the cluster's start** (of the deployment `d`, at the cluster's names `c`): the
+names as the start chose them (`ClusterOk`, lease mode `none`, at a compaction mode `cmp` and retention `cret`
+whose compactor slot the deployment's configuration meets), the cluster's facts, every member's peer address fact
+(`peerAddrFactsAt`, of `c`'s cluster), member `i`'s slice, and its client address set to serve etcd's table for its
+id at the cluster's view (`etcdAddrAt … c.view …`; O1 option B, `notes/etcd-dist-plan.md` §18.3, no publication).
+putgetK's `memberShareK` at the deployment's members. -/
 def memberShareD (c : ClusterNames) (d : Deployment) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (i : Nat) (γE : GName) (Pub : EnvView → IProp GF) : IProp GF :=
+    (boot : List LogEntry) (i : Nat) : IProp GF :=
   iprop(∃ (cmp : Bool) (cret : Nat),
     ⌜ClusterOk c ps boot .none cmp cret d.ids ∧
       v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret⌝ ∗
     clusterFactsOf c ∗ peerAddrFactsAt c.γ (cmsD d) ∗
     memberSliceOf c d.ids ps ctxs (LogEntry.toEntries boot 0) (d.ids.getD i (W64 0)) ∗
-    memberSvcShare ((d.members.getD i ⟨go!"", go!"", go!""⟩).client) γE (d.ids.getD i (W64 0)) Pub ∗
-    etcd_putgetk_dist.memberPubOkK c.γk Pub)
+    etcdAddrAt ((d.members.getD i ⟨go!"", go!"", go!""⟩).client) c.view (d.ids.getD i (W64 0)))
 
 end share
 

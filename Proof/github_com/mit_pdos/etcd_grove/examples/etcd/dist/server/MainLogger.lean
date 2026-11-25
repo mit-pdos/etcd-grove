@@ -6,7 +6,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MainLogg
 return at once otherwise. Member `i`'s share of the start (`memberShareD`) unpacked as putgetK's member does
 (`putgetk/Member.lean`): its `memberBoot` from its slice (`etcdstart.memberBoot_of_slice`, at the member's record
 `{ c.γ with reg := c.reg id }`), `bootstrap`'s contract from the interim axiom (`bootPremiseDist_of_specDist`, what
-Go computes at its URLs `BootGoD`), its view published at `Pub` (`memberPubOkK`). `serverConfig(c, lg)`'s
+Go computes at its URLs `BootGoD`), the request names' KV names `kvCongr` to the cluster's view's (O1 option B,
+`notes/etcd-dist-plan.md` §18.3, no publication). `serverConfig(c, lg)`'s
 configuration (`memberCfg`, auth off) to `NewServer` on a member machine (`NewServer.specG_dist` at auth off and the
 share's compaction mode; every other peer's address from the start's `peerAddrFactsAt`, of the same cluster), its
 post made `memberBuilt` (as `etcdstart.newServerMode`) and split (`memberBuilt_split`) before `s.Start()`
@@ -77,7 +78,7 @@ theorem MainLogger.wp_proof
       _root_.Perennial.EtcdGrove.bootstrap.specDist (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     MainLogger.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB cv lg d i m ps ctxs boot Pub Hwf Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB cv lg d i m ps ctxs boot Hwf Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := RB.receiptBound_le
   have HrbN : receiptBound GF ≤ (2 ^ 48 - 1) + 1 := by have := Hrb48; omega
@@ -98,9 +99,9 @@ theorem MainLogger.wp_proof
   obtain ⟨Hidnd, H0⟩ := Hwf.idsNodup
   have Hdok : netDirOk (dirD d) := dirD_ok Hwf
   -- the share of the start
-  icases Hshare with ⟨%c, %γE, Hshare⟩
+  icases Hshare with ⟨%c, Hshare⟩
   iunfold memberShareD at Hshare
-  icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, Hsvc, #Hpub⟩
+  icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, #Hat⟩
   obtain ⟨Hcok, Hbcfg⟩ := Hsh
   obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, -⟩ := Hcok
   rw [members_getD d i m Hm]
@@ -118,8 +119,6 @@ theorem MainLogger.wp_proof
   have hblen : boot.length = d.ids.length := by rw [Hbf.boot.1, Hbgo.perm.length_eq]
   have Hbl : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen, ids_length]; omega
-  iunfold memberSvcShare at Hsvc
-  icases Hsvc with ⟨#Hat, Hhalf, #Hinv⟩
   -- `proto.Marshal`'s bytes at the bootstrap log's conf changes
   ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
@@ -152,15 +151,10 @@ theorem MainLogger.wp_proof
       (xsOf d.ids c.idx (idPfxOf (W16 (uint.Z idm))))
       Hx hiss hwn hfs hgen hc0 hch hlog hvs cmp hkc .none lease.runCfg_none hklg (fun h => nomatch h)
       hpo rfl hns) $$ Hmarsh Hcf Hsl with ⟨%ρ, %Hρ, Hmb⟩
+  -- the request names' KV names agree with the cluster's view's
+  have Hcg : kvCongr ρ.rd.kv c.view.kv := Hρ.2.2.2.2.2
   have hcr : ρ.rd.kv.cret = cret := by
-    obtain ⟨-, -, -, -, ⟨-, -, -, -, -, -, h⟩⟩ := Hρ; rw [h, hkr]
-  -- the member's view, published at `γE` with `Pub`
-  ihave #HP : □ Pub (memberView ρ) $$ []
-  · iunfold etcd_putgetk_dist.memberPubOkK at Hpub
-    imodintro
-    ihave HPg := Hpub $$ %ρ %(show etcd_putgetk_dist.kvAgree ρ c.γk from Hρ)
-    iexact HPg
-  imod (env_publish_h ⊤ γE CoPset.subseteq_top Pub (memberView ρ)) $$ Hhalf Hinv HP with #Hν
+    obtain ⟨-, -, -, -, -, -, -, -, h, -⟩ := Hcg; rw [h]; exact hkr
   ihave #Pes : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
@@ -251,7 +245,7 @@ theorem MainLogger.wp_proof
     isplitr
     · iapply Hbp
       · ipureintro
-        exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, Hurls, hvs, hrule, hboot⟩
+        exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, Hurls, hvs, hrule, hboot⟩
       · iunfold bootRTOk
         isplitr
         · iexact Hpeers
@@ -410,16 +404,14 @@ theorem MainLogger.wp_proof
   (try wp_auto)
   -- `etcdstart.Serve(s, c.Client)` on a member machine
   wp_apply (wp_Serve_dist srv m.client ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn
-      idm γE (memberView ρ)) $$ [Hup] as %serr -
+      idm c.view) $$ [Hup] as %serr -
   · isplitr
     · iexact Hzlg
     isplitr
-    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, rfl⟩
+    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
     isplitl [Hup]
     · iexact Hup
-    isplitr
-    · iexact Hat
-    iexact Hν
+    iexact Hat
   cases serr with
   | ok ei =>
     (try wp_auto)
