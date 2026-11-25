@@ -143,3 +143,13 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthReal(Pool|Life|Srv)\.lean$
 # `tickMu`'s pools of reader slots (srvloops2, 2026-11-21, bounds B2 for `tickMu`), made by the lock's
 # owner, the raft wrapper's install (`isRaftNode_of_rnParts`), from the fresh lock's slots, half per level.
 stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NodeStart\.lean$
+
+# (etcd-dist, 2026-11-25) The multi-machine variants of `NewServer`'s spec and the dist example's member
+# specs (`NewServerDist`, `PeerServeDist`, `StartMemberDist`): each restates `NewServer`'s pre and post
+# (the configuration's `etcdMaxRequestBytesOk`/`maxTxnOpsOk`, the thread and receipt bounds, the HTTP
+# server's `httpProcSlots` stock) and mirrors NewServer's baselined match (`etc/bounds-baseline.txt`);
+# they move with it when `NewServer`'s bounds move to their owners (notes/bounds-plan.md).
+spec-cfg ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
+stock ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/(NewServerDist|PeerServeDist|StartMemberDist)\.lean$
