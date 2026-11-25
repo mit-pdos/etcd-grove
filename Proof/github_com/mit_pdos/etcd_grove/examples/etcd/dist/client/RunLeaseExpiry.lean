@@ -354,8 +354,8 @@ theorem RunLeaseExpiry.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     icases Hgj with ⟨%aj, %Vj, %midj, #Hmcj, #Hcorej, Hσj⟩
     (try wp_auto)
     (try simp only [Hbm, _root_.and_self, ↓reduceIte])
-    (try (wp_apply wp_load_slice_index eps (sint.Z n) _ _ x Hbm.1 $$ [Heps] as -;
-      focus (iframe #; ipureintro; rw [hnz]; exact Hx_lookup)))
+    wp_apply wp_load_slice_index eps (sint.Z n) _ _ x Hbm.1 $$ [Heps] as -
+    · iframe #; ipureintro; rw [hnz]; exact Hx_lookup
     (try wp_auto)
     (try simp only [Hb4, _root_.and_self, ↓reduceIte])
     wp_apply wp_load_slice_index oksl (sint.Z n) _ _ bj Hb4.1 $$ [Hoksl] as -
