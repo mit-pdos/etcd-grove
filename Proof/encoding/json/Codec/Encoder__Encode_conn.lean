@@ -11,7 +11,7 @@ public import Spec.encoding.json.Codec.Encoder__Encode_conn
 public import Spec.encoding.json.Codec.marshalAny
 public import Proof.encoding.json.EncoderModel
 public import Proof.net.ErrOrNil
-public import Proof.internal.poll.PkgInit
+public import Proof.encoding.json.NetInit
 public import Net.Spec.net.Conn__Write
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
@@ -34,23 +34,6 @@ variable [sem : go.Semantics] [package_sem : encoding.json.Assumptions]
 variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 attribute [local instance] encRepModel
-
-/-- `poll.ErrDeadlineExceeded`'s value, from `net`'s initialization. -/
-theorem ed_of_net :
-    isPkgInit (PROP := IProp GF) pkg_id.net ⊢
-      ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
-  iintro #Hnet
-  ihave #Hpoll : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
-  · iPkgInit
-  ihave #Hi := (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll) $$ Hpoll
-  ihave #Hi2 : (iprop((∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗
-    (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrFileClosing)
-      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ [Hi]
-  · iexact Hi
-  icases Hi2 with ⟨-, ⟨%ed, #Hed⟩, -⟩
-  iexists ed
-  iexact Hed
 
 theorem Encoder.Encode_conn.wp_proof (wp_marshalAny : marshalAny.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG)) :

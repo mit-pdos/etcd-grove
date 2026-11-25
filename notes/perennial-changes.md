@@ -4629,14 +4629,14 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed (general).** `log.Printf.spec` over `fmt.argOk` arguments (or `log.Printf` over the real `fmt.Appendf`),
   reviewed as a change to the trusted model's claim. **Status.** Not filed.
 
-## `copy` within one slice's array has no spec (2026-11-25, dsv-vr, the encoding/json model's `Decoder`)
+## `copy` within one slice: its count's sign (2026-11-25, dsv-vr, the encoding/json model's `Decoder`)
 
-- **Limitation.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) takes the destination's and the source's
-  points-to separately, so it does not apply to `copy(buf[:cap(buf)], buf[k:])` (one array, the destination before
-  the source: Go's `copy` is a memmove), which the encoding/json model's `Decoder.fetch` (`models/encoding/json/
-  v2_stream.go`, jsontext's buffer shift) makes.
-- **Work-around here.** None yet: the model's `Decoder` is not translated (vr's `Decode_frame` stays a premise,
-  notes/dsv-vr.md, round 11).
-- **Proposed (general).** A spec of `copy` for a destination at or before its source in the same array (Goose's
-  `copyForward` copies from index 0 up, which is a memmove there), over one points-to of the array's range.
-  **Status.** Not filed.
+- **Limitation.** Perennial has `wp_slice_copy_within` (`Perennial/Golang/Theory/Slice.lean`: `copy(s[a:b], s[c:d])`
+  over one points-to of `s`, as the encoding/json model's `Decoder.fetch` makes, `copy(buf[:cap(buf)], buf[k:])`;
+  this entry first said there was no such spec, wrongly). Its count is stated as `sint.nat n = min ...`, which says
+  nothing of `n`'s sign when the minimum is `0`, and `fetch` slices with it (`dec.buf[:n]`, which needs `0 ≤ n`): the
+  `copy` count trap (#24 item 4) that `wp_slice_copy_int` fixed for `wp_slice_copy`.
+- **Work-around here.** `encoding.json.wp_slice_copy_within_int` (`Proof/encoding/json/SliceLemmas.lean`), a copy of
+  its proof stating `sint.Z n = min ...` (`wp_copyForward` gives it); used by `Decoder.fetch_conn.wp_proof`.
+- **Proposed (general).** `wp_slice_copy_within` states `sint.Z n` (as `wp_slice_copy_int`), or a
+  `wp_slice_copy_within_int` beside it. **Status.** Not filed.
