@@ -68,8 +68,8 @@ variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 `Client.Call`, `Client.Close`, and models-rpc-http's `DialHTTP` (over `DialHTTPPath` and net/http's
 `ReadResponse`, with Perennial's `strings.Cut`/`TrimLeft`). -/
 instance rpcClientSpecs : RpcClientSpecs GF :=
-  ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp,
-    net.rpc.DialHTTP.wp⟩
+  ⟨net.rpc.Client.Call.wp_plain, net.rpc.Client.Close.wp,
+    net.rpc.DialHTTP.wp_plain⟩
 
 /-- The protocol's laws the node's proofs use. -/
 theorem nodeLaws : NodeP.Laws (GF := GF) :=

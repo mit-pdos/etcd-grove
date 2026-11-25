@@ -23,7 +23,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section newp
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 theorem node.wp_New : node.wp_New.spec (GF := GF) (hG := hG) := by
@@ -81,7 +81,7 @@ theorem node.wp_New : node.wp_New.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   unfold isNode nodeStartRes NodeP.isNodeDef NodeP.nodeFields NodeP.startResDef
   iframe; iframe #
-  ipureintro; exact ⟨Ha, rfl, Hlg⟩
+  ipureintro; exact ⟨Ha, rfl, Hlg.2⟩
   done
 
 end newp

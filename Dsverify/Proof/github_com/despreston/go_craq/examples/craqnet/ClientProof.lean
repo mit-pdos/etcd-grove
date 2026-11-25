@@ -250,8 +250,9 @@ theorem wp_op
           unfold opPost
           iright
           ipureintro; rfl
-    · unfold models_lab.errAny
-      icases Herr with ⟨%e2, %He2, -⟩
+    · ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
+      unfold models_lab.errAny
+      icases Herrₐ with ⟨%e2, %He2, -⟩
       subst He2
       wp_auto
       iapply HΦ
@@ -312,16 +313,18 @@ theorem wp_op
           Option.isNone_some, Bool.and_self, Bool.and_false, Bool.false_eq_true, ↓reduceIte,
           reduceCtorEq, ite_true] at Ho' ⊢
         rfl
-      · unfold models_lab.errAny
-        icases Herr2 with ⟨%e2, %He2, -⟩
+      · ihave #Herr2ₐ := models_lab.errPlain_errAny _ $$ Herr2
+        unfold models_lab.errAny
+        icases Herr2ₐ with ⟨%e2, %He2, -⟩
         subst He2
         wp_auto
         iapply HΦ
         unfold opPost
         iright
         ipureintro; rfl
-    · unfold models_lab.errAny
-      icases Herr with ⟨%e2, %He2, -⟩
+    · ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
+      unfold models_lab.errAny
+      icases Herrₐ with ⟨%e2, %He2, -⟩
       subst He2
       wp_auto
       iapply HΦ
@@ -455,8 +458,9 @@ theorem wp_Sys_remove [LogSpecs GF]
           simp only [TypedPointsto.typedPointstoDef]
           iframe
         ipureintro; refine ⟨by word, by word⟩
-      · unfold models_lab.errAny
-        icases Herr with ⟨%e2, %He2, -⟩
+      · ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
+        unfold models_lab.errAny
+        icases Herrₐ with ⟨%e2, %He2, -⟩
         subst He2
         wp_auto
         wp_for_post

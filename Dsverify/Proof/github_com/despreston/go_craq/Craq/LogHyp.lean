@@ -87,6 +87,11 @@ theorem argOks_of_wf (xs : List GoInterface) (h : fmt.ArgsWf xs) :
 
 end defs
 
+/-- `l` is `log`'s standard logger (`std`, what `log.Default()` returns): opaque, no law, so a
+proof has it only from `LogDefault.spec`. A `*Logger` made otherwise (`new(log.Logger)`, whose
+`out` is nil) panics in `Printf`/`Println` (`notes/axiom-review/dsv-fix6/log-logger-2.md`). -/
+opaque StdLogger : Loc → Prop
+
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {hlc : HasLC} (GF : BundledGFunctors) [HeapGS hlc GF]
@@ -97,20 +102,20 @@ package's initializer and never reassigned). -/
 abbrev LogDefault.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.log }}
     (App (Val (@! log.Default)) (Val #()))
-  {{ (l : Loc), RET #l; ⌜l ≠ null⌝ }}
+  {{ (l : Loc), RET #l; ⌜l ≠ null ∧ StdLogger l⌝ }}
 
-/-- `l.Printf(format, args...)` on a non-nil `*Logger` (a nil one panics) and operands `argOk`
-allows, which it gives back. A `Logger` is safe for concurrent use: no ownership of it. -/
+/-- `l.Printf(format, args...)` on the standard logger (`StdLogger l`; a nil or zero `*Logger`
+panics) and operands `argOk` allows, which it gives back. A `Logger` is safe for concurrent use: no ownership of it. -/
 abbrev LoggerPrintf.spec : Prop :=
-  ∀ (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac), l ≠ null →
+  ∀ (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac), StdLogger l →
   {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
     (App (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Printf")) (Val #msg))
       (Val #arg))
   {{ RET #(); arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
 
-/-- `l.Println(args...)` on a non-nil `*Logger` and operands `argOk` allows, given back. -/
+/-- `l.Println(args...)` on the standard logger and operands `argOk` allows, given back. -/
 abbrev LoggerPrintln.spec : Prop :=
-  ∀ (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac), l ≠ null →
+  ∀ (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac), StdLogger l →
   {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
     (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Println")) (Val #arg))
   {{ RET #(); arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}

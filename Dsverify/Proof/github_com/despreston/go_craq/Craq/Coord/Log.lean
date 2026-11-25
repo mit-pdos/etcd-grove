@@ -23,12 +23,12 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
-/-- A log argument: well-formed for `fmt` (no method runs), or an error. -/
+/-- A log argument: well-formed for `fmt` (no method runs), or an `errPlain` error. -/
 def logArg (v : GoInterface) : IProp GF :=
-  iprop(⌜∀ ii, v = interface.ok ii → fmt.ArgWf ii⌝ ∨ models_lab.errAny v)
+  iprop(⌜∀ ii, v = interface.ok ii → fmt.ArgWf ii⌝ ∨ models_lab.errPlain v)
 
 instance logArg_persistent (v : GoInterface) : Persistent (logArg (hG := hG) v) := by
   unfold logArg; infer_instance
@@ -36,8 +36,10 @@ instance logArg_persistent (v : GoInterface) : Persistent (logArg (hG := hG) v) 
 theorem logArg_argOk (v : GoInterface) : logArg (hG := hG) v ⊢ argOk v := by
   unfold logArg argOk
   iintro (%Hwf | #He)
-  · ileft; ipureintro; intro ii h; exact Or.inl (Hwf ii h)
-  · iright; iexact He
+  · cases v with
+    | nil => ileft; ipureintro; rfl
+    | ok ii => iright; ileft; ipureintro; exact ⟨ii, rfl, Hwf ii rfl⟩
+  · iright; iright; iright; iright; iexact He
 
 theorem logArgs_argOk (xs : List GoInterface) :
     ([∗list] v ∈ xs, logArg (hG := hG) v) ⊢ [∗list] v ∈ xs, argOk (GF := GF) v :=
@@ -49,8 +51,8 @@ theorem wp_Printf_args (msg : GoString) (arg : GoSlice) (xs : List GoInterface) 
       (App (App (Val (@! log.Printf)) (Val #msg)) (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }} := by
   iintro %Φ ⟨#Hpkg, Hs, #Hargs⟩ HΦ
-  ihave #Hok := logArgs_argOk xs $$ Hargs
-  wp_apply LogSpecs.wp_Printf msg arg xs dq $$ [$Hs $Hok] as Hs
+  ihave Hok := logArgs_argOk xs $$ Hargs
+  wp_apply LogSpecs.wp_Printf msg arg xs dq $$ [$Hs $Hok] as ⟨Hs, -⟩
   iapply HΦ; iframe
 
 theorem logArg_str (x : GoString) : ⊢ logArg (hG := hG) (interface.mkOk go.string #x) := by
@@ -61,7 +63,7 @@ theorem logArg_str (x : GoString) : ⊢ logArg (hG := hG) (interface.mkOk go.str
   have := fmt.ArgsWf.cons_string x [] fmt.ArgsWf.nil
   exact this ii (by rw [← h]; exact List.mem_singleton.mpr rfl)
 
-theorem logArg_err (e : GoInterface) : models_lab.errAny (GF := GF) e ⊢ logArg (hG := hG) e := by
+theorem logArg_err (e : GoInterface) : models_lab.errPlain (GF := GF) e ⊢ logArg (hG := hG) e := by
   iintro #H; unfold logArg; iright; iexact H
 
 end proof

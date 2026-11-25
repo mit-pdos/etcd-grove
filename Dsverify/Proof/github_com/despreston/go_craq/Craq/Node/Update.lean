@@ -29,7 +29,7 @@ namespace NodeP
 section update
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- Put the lock invariant back after a failure: both role halves (the node's and the
@@ -45,6 +45,14 @@ theorem relock (HL : Laws (GF := GF)) (cfg : Cfg GF) (a : GoString) (γs : GName
   unfold lockInv
   iexists h, t, nbrs, lat, S
   iframe
+
+/-- Every fraction is the sum of two (to lend one part and keep the other). -/
+theorem dfrac_halves (dq : DFrac) : ∃ dq1 dq2 : DFrac, dq = dq1 • dq2 := by
+  cases dq with
+  | own q => exact ⟨.own q.half, .own q.half, by show _ = DFrac.own _; rw [Qp.half_add_half]⟩
+  | discard => exact ⟨.discard, .discard, rfl⟩
+  | ownDiscard q =>
+    exact ⟨.own q.half, .ownDiscard q.half, by show _ = DFrac.ownDiscard _; rw [Qp.half_add_half]⟩
 
 /-- The metadata's points-to from its fields. -/
 theorem metaPtr_join (ptr : Loc) (dq : DFrac) (mh mt : Bool) (mp mn mtl : GoString)
@@ -92,14 +100,14 @@ macro "upd_succ_F" : tactic => `(tactic| (
     wp_apply wp_Unlock' $$ Hsync Hmu Hlocked [Hls Hrole]
     · unfold lockInv; iexists mh, false, nbrs3, lat3, S3; rw [Hn3]; iframe
     iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Hr Hfence]
-    · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+    · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
     ileft
     isplitr
     · ipureintro; rfl
     unfold updPost
     simp only [_root_.true_and]
     iframe
-  · ihave %Hok := errAny_ok err3 $$ Herr3
+  · ihave %Hok := errPlain_ok err3 $$ Herr3
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     iapply fupd_wp
@@ -107,7 +115,7 @@ macro "upd_succ_F" : tactic => `(tactic| (
     imodintro
     wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
     iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr3]
-    · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+    · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
     iright; iexact Herr3))
 
 set_option hygiene false in
@@ -128,14 +136,14 @@ macro "upd_succ " tt:term : tactic => `(tactic| (
     wp_apply wp_Unlock' $$ Hsync Hmu Hlocked [Hls Hrole]
     · unfold lockInv; iexists mh, $tt, nbrs3, lat3, S3; rw [Hn3]; iframe
     iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Hr Hfence]
-    · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+    · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
     ileft
     isplitr
     · ipureintro; rfl
     unfold updPost
     simp only [_root_.true_and, Bool.true_eq_false, _root_.false_and, ↓reduceIte]
     iframe
-  · ihave %Hok := errAny_ok err3 $$ Herr3
+  · ihave %Hok := errPlain_ok err3 $$ Herr3
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     iapply fupd_wp
@@ -143,7 +151,7 @@ macro "upd_succ " tt:term : tactic => `(tactic| (
     imodintro
     wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
     iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr3]
-    · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+    · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
     iright; iexact Herr3))
 
 set_option hygiene false in
@@ -208,8 +216,8 @@ macro "act_rest " latX:term:max SX:term:max HX:term:max : tactic => `(tactic| (
       wp_log [interface.mkOk (go.GoType.PointerType store.Item.ty) #p, GoInterface.ok ei]
       · iapply argOks2
         isplitr
-        · iapply argOk_noMethods _ _ item_noErr item_noStr
-        iapply argOk_err; iapply errMsg_errAny $$ Hem
+        · iapply argOk_item p ent.1 ent.2.1 ent.2.2.1; unfold itemPtr; iexact Hip
+        iapply argOk_errPlain; iapply errNotFound_errPlain $$ Herr
       wp_for_post
       iunfold lockedState at Hls
       icases Hls with ⟨Hh, Ht, Hnbm, Hlatm, -, HS, %HlatS3, Htail⟩
@@ -262,7 +270,7 @@ macro "act_back " c:term:max ca:term:max : tactic => `(tactic| (
     ihave Htail : tailRes cfg true lat' $$ [HtokL]
     · unfold tailRes; simp only [↓reduceIte]; iexists L; iframe; ipureintro; exact HlatL
     act_rest lat' S' HlatS'
-  · ihave %Hok := errAny_ok err2 $$ Herr2
+  · ihave %Hok := errPlain_ok err2 $$ Herr2
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     iapply fupd_wp
@@ -270,20 +278,23 @@ macro "act_back " c:term:max ca:term:max : tactic => `(tactic| (
     imodintro
     wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
     iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr2]
-    · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+    · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
     iright; iexact Herr2))
 
 theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := GF) (hG := hG))
     (Hfwd : requestFwdPropagation.spec (GF := GF) (hG := hG))
     (Hback : requestBackPropagation.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (n : Loc) (a : GoString) (ptr : Loc) (dq : DFrac) (m : MetaV) (r : Role) :
+    (cfg : Cfg GF) (n : Loc) (a : GoString) (ptr : Loc) (dq0 : DFrac) (m : MetaV) (r : Role) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node ∗ isNode cfg n a ∗
-        ⌜metaAddrsOk cfg.chain m⌝ ∗ metaPtr ptr dq m ∗ roleHalf cfg.γ a r ∗ updDep cfg.γ r m) -∗
-      (∀ err : GoInterface, metaPtr ptr dq m -∗
-        ((⌜err = interface.nil⌝ ∗ updPost cfg.γ a r m) ∨ models_lab.errAny err) -∗ Φ #err) -∗
+        ⌜metaAddrsOk cfg.chain m⌝ ∗ metaPtr ptr dq0 m ∗ roleHalf cfg.γ a r ∗ updDep cfg.γ r m) -∗
+      (∀ err : GoInterface, (∃ dq, metaPtr ptr dq m) -∗
+        ((⌜err = interface.nil⌝ ∗ updPost cfg.γ a r m) ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"update" #n)) (Val #ptr))
         {{ Φ }} := by
+  -- the log call takes a part `dqL` of the metadata's points-to and gives back only some fraction
+  -- (`argOk`'s `*NodeMeta` disjunct is existential in it), so the update keeps the part `dq`
+  obtain ⟨dq, dqL, rfl⟩ := dfrac_halves dq0
   iintro %Φ ⟨#Hpkg, #Hn, %Hmeta, Hm, Hr, Hdep⟩ HΦ
   iunfold isNode at Hn
   icases Hn with ⟨#Hctx, %Ha, -, #Hn⟩
@@ -309,8 +320,10 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
   wp_call
   wp_auto
   wp_apply (lc := 2) wp_with_defer as %defer Hdefer
-  wp_log [interface.mkOk (go.GoType.PointerType transport.NodeMeta.ty) #ptr]
-  · iapply argOks1; iapply argOk_noMethods _ _ meta_noErr meta_noStr
+  icases (typedPointsto_dfractional ptr _).dfractional dq dqL $$ Hm with ⟨Hm, HmL⟩
+  ihave Hok := argOks1 _ $$ [HmL]
+  · iapply argOk_meta $$ HmL
+  wp_log_ok [interface.mkOk (go.GoType.PointerType transport.NodeMeta.ty) #ptr]
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] with ⟨Hlocked, Hlk⟩
   iunfold lockInv at Hlk
   icases Hlk with ⟨%h, %t, %nbrs, %lat, %S, Hls, Hrole⟩
@@ -371,7 +384,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
           · subst Herr2
             wp_auto
             upd_succ_F
-          · ihave %Hok := errAny_ok err2 $$ Herr2
+          · ihave %Hok := errPlain_ok err2 $$ Herr2
             obtain ⟨ei, rfl⟩ := Hok
             wp_auto
             iapply fupd_wp
@@ -384,9 +397,9 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
             imodintro
             wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
             iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr2]
-            · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+            · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
             iright; iexact Herr2
-    · ihave %Hok := errAny_ok err1 $$ Herr1
+    · ihave %Hok := errPlain_ok err1 $$ Herr1
       obtain ⟨ei, rfl⟩ := Hok
       wp_auto
       iapply fupd_wp
@@ -394,7 +407,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
       imodintro
       wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
       iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr1]
-      · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+      · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
       iright; iexact Herr1
   · wp_auto
     cases t
@@ -483,7 +496,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
           irename Hsrc => Hcov
           wp_auto
           act_back (GoInterface.ok eN) addrN
-      · ihave %Hok := errAny_ok err1 $$ Herr1
+      · ihave %Hok := errPlain_ok err1 $$ Herr1
         obtain ⟨ei, rfl⟩ := Hok
         wp_auto
         iapply fupd_wp
@@ -491,7 +504,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
         imodintro
         wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
         iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr1]
-        · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+        · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
         iright; iexact Herr1
     · -- already the active tail
       simp only [Bool.not_true]
@@ -512,7 +525,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
         ihave Hls : lockedState cfg γs n nbM latM mh true nbrs1 lat S1 $$ [Hh Ht Hnbm Hlatm HS Htail]
         · unfold lockedState; iframe; iframe #; ipureintro; exact HlatS1
         upd_succ true
-      · ihave %Hok := errAny_ok err1 $$ Herr1
+      · ihave %Hok := errPlain_ok err1 $$ Herr1
         obtain ⟨ei, rfl⟩ := Hok
         wp_auto
         iapply fupd_wp
@@ -520,7 +533,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
         imodintro
         wp_apply wp_Unlock' $$ Hsync Hmu Hlocked Hli
         iapply HΦ $$ [IsHead IsTail Prev Next Tail] [Herr1]
-        · iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
+        · iexists dq; iapply metaPtr_join ptr dq _ _ _ _ _ Hnn; iframe
         iright; iexact Herr1
 
 end update

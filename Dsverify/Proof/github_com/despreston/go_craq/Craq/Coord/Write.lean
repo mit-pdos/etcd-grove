@@ -24,7 +24,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- An error made by `errors.New(pfx + msg)` with a non-empty prefix. -/
@@ -127,15 +127,16 @@ theorem wp_Write (Hassign : assign.spec (GF := GF)) (Hcollect : collect.spec (GF
     wp_auto
     iapply HΦ
     ileft; iframe HR; ipureintro; rfl
-  · ihave %Hne := models_lab.errAny_ne_nil $$ Hany
+  · ihave %Hne := errPlain_ne_nil $$ Hany
     obtain ⟨ie, rfl⟩ : ∃ ie, err = GoInterface.ok ie := by
       cases err with
       | nil => exact absurd rfl Hne
       | ok i => exact ⟨i, rfl⟩
     wp_auto
     ihave #Hany' := Hany
+    ihave #Hany'ₐ := models_lab.errPlain_errAny _ $$ Hany'
     unfold models_lab.errAny
-    icases Hany' with ⟨%e', %He', -, #HE⟩
+    icases Hany'ₐ with ⟨%e', %He', -, #HE⟩
     cases He'
     wp_apply HE
     iintro %msg

@@ -25,7 +25,7 @@ namespace NodeP
 section conn
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- The neighbors map's facts. -/
@@ -80,7 +80,7 @@ theorem wp_connectToNode (cfg : Cfg GF) (n : Loc) (a : GoString) (st : GoInterfa
         ((⌜err = interface.nil⌝ ∗ ∃ c : GoInterface,
             nbM ↦$ (<[pos := node.neighbor.mk c addr]> nbrs) ∗
             nbrsOk cfg (<[pos := node.neighbor.mk c addr]> nbrs) ∗ isNodeClient cfg c addr) ∨
-          (models_lab.errAny err ∗ nbM ↦$ nbrs ∗ nbrsOk cfg nbrs)) -∗ Φ #err) -∗
+          (models_lab.errPlain err ∗ nbM ↦$ nbrs ∗ nbrsOk cfg nbrs)) -∗ Φ #err) -∗
       WP (App (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"connectToNode" #n))
         (Val #addr)) (Val #pos)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hf, Hnbm, #Hnbrs, %Haddr⟩ HΦ
@@ -141,7 +141,7 @@ theorem wp_connectToNode (cfg : Cfg GF) (n : Loc) (a : GoString) (st : GoInterfa
       isplitr
       · iapply nbrsOk_insert; iframe Hnbrs; unfold nbrOk; iright; iexact Hcl
       iexact Hcl
-  · ihave %Hok := errAny_ok err $$ Herr
+  · ihave %Hok := errPlain_ok err $$ Herr
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     iapply HΦ

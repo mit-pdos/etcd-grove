@@ -24,7 +24,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- `n.Connect()`. -/
@@ -38,7 +38,7 @@ theorem wp_node_Connect (cfg : Cfg GF) (n : Loc) (cl : GoInterface) (a : GoStrin
         structFieldRef coordinator.node go!"rpc" n ↦ cl ∗
         structFieldRef coordinator.node go!"address" n ↦ a ∗
         structFieldRef coordinator.node go!"connected" n ↦ decide (err = interface.nil) ∗
-        ((⌜err = interface.nil⌝ ∗ isNodeClient cfg cl a) ∨ models_lab.errAny err) }} := by
+        ((⌜err = interface.nil⌝ ∗ isNodeClient cfg cl a) ∨ models_lab.errPlain err) }} := by
   wp_start as ⟨Hrpc, Haddr, Hconn, Hfresh⟩
   unfold freshNodeClient
   icases Hfresh with ⟨%e, %He, HC⟩
@@ -52,7 +52,7 @@ theorem wp_node_Connect (cfg : Cfg GF) (n : Loc) (cl : GoInterface) (a : GoStrin
     rw [decide_eq_true rfl]
     iframe
     ileft; iframe Hcl; ipureintro; rfl
-  · ihave %Hne := models_lab.errAny_ne_nil $$ Hany
+  · ihave %Hne := errPlain_ne_nil $$ Hany
     obtain ⟨i, rfl⟩ : ∃ i, err = GoInterface.ok i := by
       cases err with
       | nil => exact absurd rfl Hne
@@ -107,7 +107,7 @@ theorem wp_addNode (cfg : Cfg GF) (c : Loc) (a : GoString) (ha : a ∈ cfg.chain
         isCoord cfg c ∗ joinTicket cfg.γ a }}
       (App (Val (c @!! go.GoType.PointerType coordinator.Coordinator.ty @!! go!"addNode")) (Val #a))
     {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-        (⌜err = interface.nil⌝ ∗ ∃ m : MetaV, metaPtr p (DFrac.own 1) m) ∨ models_lab.errAny err }} := by
+        (⌜err = interface.nil⌝ ∗ ∃ m : MetaV, metaPtr p (DFrac.own 1) m) ∨ models_lab.errPlain err }} := by
   wp_start as ⟨#Hc, Hticket⟩
   unfold isCoord coordDef
   icases Hc with ⟨#Hctx, -, %Hbound, %f, #Htport, #Hfac, #Hmu⟩
@@ -236,7 +236,7 @@ theorem wp_addNode (cfg : Cfg GF) (c : Loc) (a : GoString) (ha : a ∈ cfg.chain
         unfold metaPtr
         iassumption
       · subst HbN
-        ihave %Hne := models_lab.errAny_ne_nil $$ HerrN
+        ihave %Hne := errPlain_ne_nil $$ HerrN
         obtain ⟨ie, rfl⟩ : ∃ ie, errN = GoInterface.ok ie := by
           cases errN with
           | nil => exact absurd rfl Hne
@@ -480,7 +480,7 @@ theorem wp_addNode (cfg : Cfg GF) (c : Loc) (a : GoString) (ha : a ∈ cfg.chain
           iassumption
         · -- the new node's activation failed: it is disconnected
           subst HbN
-          ihave %Hne := models_lab.errAny_ne_nil $$ HerrN
+          ihave %Hne := errPlain_ne_nil $$ HerrN
           obtain ⟨ie, rfl⟩ : ∃ ie, errN = GoInterface.ok ie := by
             cases errN with
             | nil => exact absurd rfl Hne
@@ -560,7 +560,7 @@ theorem wp_addNode (cfg : Cfg GF) (c : Loc) (a : GoString) (ha : a ∈ cfg.chain
           iright; iexact HerrN
       · -- the fence failed: `rL` is disconnected
         subst HbL
-        ihave %Hne := models_lab.errAny_ne_nil $$ HerrL
+        ihave %Hne := errPlain_ne_nil $$ HerrL
         obtain ⟨ie, rfl⟩ : ∃ ie, errL = GoInterface.ok ie := by
           cases errL with
           | nil => exact absurd rfl Hne
@@ -608,7 +608,7 @@ theorem wp_addNode (cfg : Cfg GF) (c : Loc) (a : GoString) (ha : a ∈ cfg.chain
           iexact Hnfs1
         iapply HΦ
         iright; iexact HerrL
-  · ihave %Hne := models_lab.errAny_ne_nil $$ HerrC
+  · ihave %Hne := errPlain_ne_nil $$ HerrC
     obtain ⟨ie, rfl⟩ : ∃ ie, errC = GoInterface.ok ie := by
       cases errC with
       | nil => exact absurd rfl Hne

@@ -30,7 +30,7 @@ namespace NodeP
 section svc
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 theorem sendCommitToPrev_ok : sendCommitToPrev.spec (GF := GF) (hG := hG) := by
@@ -47,7 +47,7 @@ theorem wp_Update (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node -∗
       isNode cfg n a -∗ ⌜metaAddrsOk cfg.chain m⌝ -∗ metaPtr ptr dq m -∗ roleHalf cfg.γ a r -∗
       updDep cfg.γ r m -∗
-      ▷ (∀ err : GoInterface, metaPtr ptr dq m -∗
+      ▷ (∀ err : GoInterface, (∃ dq', metaPtr ptr dq' m) -∗
           (⌜err = interface.nil⌝ ∗ updPost cfg.γ a r m ∨ errNE err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"Update" #n)) (Val #ptr))
         {{ Φ }} := by
@@ -64,11 +64,12 @@ theorem wp_Update (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
     wp_auto
     iapply HΦ $$ Hmp
     ileft; iframe; ipureintro; rfl
-  · ihave %Hok := errAny_ok err $$ Herr
+  · ihave %Hok := errPlain_ok err $$ Herr
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
+    ihave #Herrₐ := models_lab.errPlain_errAny _ $$ Herr
     unfold models_lab.errAny
-    icases Herr with ⟨%ei', %Hei, -, #HE⟩
+    icases Herrₐ with ⟨%ei', %Hei, -, #HE⟩
     cases Hei
     wp_apply HE
     iintro %msg
@@ -86,7 +87,7 @@ end NodeP
 section final
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogSpecs GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- The node is its service (every clause of `isNodeSvc`). -/
