@@ -72,16 +72,17 @@ from, and `vmeta`'s bounds. -/
 theorem bDur_congr {a : BAbs} {s s' : CSt} (h : BDur a s) (hbs : s'.bs = s.bs)
     (hb : s'.busy = s.busy) (hsz : s'.m.size = s.m.size) (hlo : s'.m.lo = s.m.lo)
     (hhi : s'.m.hi = s.m.hi) (hcc : crashCands s' = crashCands s)
-    (hvlo : s'.vmeta.lo = s.vmeta.lo) (hvhi : s'.vmeta.hi = s.vmeta.hi) : BDur a s' := by
-  unfold BDur BWf BusyIn IdleOk CommitOk InitOk PSync WrIn at *
-  simp only [hbs, hb, hsz, hlo, hhi, hcc, hvlo, hvhi]
+    (hvlo : s'.vmeta.lo = s.vmeta.lo) (hvhi : s'.vmeta.hi = s.vmeta.hi) (hxs : s'.m.xs = s.m.xs) :
+    BDur a s' := by
+  unfold BDur BWf BusyIn IdleOk CommitOk InitOk PSync WrIn XsAl at *
+  simp only [hbs, hb, hsz, hlo, hhi, hcc, hvlo, hvhi, hxs]
   exact h
 
 /-- **A mapping's change keeps `BDur`** (it changes only the `OsMeta`'s mappings). -/
 theorem bDur_maps (a : BAbs) (m : OsMeta) (bs : List ByteG) (fa fb : Nat) (busy : CBusy)
     (mp : GMap Loc Nat) (h : BDur a ⟨m, bs, fa, fb, busy⟩) :
     BDur a ⟨{ m with maps := mp }, bs, fa, fb, busy⟩ := by
-  refine bDur_congr h rfl rfl rfl rfl rfl ?_ ?_ ?_
+  refine bDur_congr h rfl rfl rfl rfl rfl ?_ ?_ ?_ rfl
   · funext b; cases busy <;> rfl
   · cases busy <;> rfl
   · cases busy <;> rfl
@@ -95,10 +96,17 @@ theorem idleOk_mono {C : CommitSt} {X : List w8} {s s' : CSt} (hI : IdleOk C X s
       s'.bs[b]? = some (durB v))
     (hnw : ∀ b, (b < 8192 ∨ protData X C b) → ∀ t off data n, s'.busy = .write t off data n →
       b < off ∨ off + data.length ≤ b)
-    (hlo : s.m.lo ≤ s'.m.lo) (hsz : s'.m.size % 4096 = 0) (hwr : WrIn s') : IdleOk C X s' := by
+    (hlo : s.m.lo ≤ s'.m.lo) (hsz : s'.m.size % 4096 = 0) (hwr : WrIn s') (hxa : XsAl s') :
+    IdleOk C X s' := by
   obtain ⟨hR, hm, hd, hh, -, -⟩ := hI
   exact ⟨hR, fun b hb => ⟨hbs b _ (.inl hb) (hm b hb).1, hnw b (.inl hb)⟩,
-    fun b hb => ⟨hbs b _ (.inr hb) (hd b hb).1, hnw b (.inr hb)⟩, by omega, hsz, hwr⟩
+    fun b hb => ⟨hbs b _ (.inr hb) (hd b hb).1, hnw b (.inr hb)⟩, by omega, hsz, hwr, hxa⟩
+
+/-- A synced state's crash sizes: its size alone. -/
+theorem csSynced_xsAl (m : OsMeta) (H F T : List ByteG) (fa fb : Nat) (hal : m.size % 4096 = 0) :
+    XsAl (csSynced m H F T fa fb) :=
+  ⟨⟨[m.size], rfl, fun x hx => by simp only [List.mem_singleton] at hx; rw [hx]; exact hal⟩,
+    (fun _ _ _ h => by cases h), (fun _ _ _ _ h => by cases h)⟩
 
 /-! ## A sync -/
 
@@ -120,7 +128,8 @@ theorem bDur_sync_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (H F T : L
   have hlo : m.lo ≤ m.size := hW.2.2.1
   have hal : m.size % 4096 = 0 := hI.2.2.2.2.1
   refine ⟨csSynced_bwf m H F T fa fb hl, idleOk_mono hI (fun b v _ hb => ?_)
-    (fun _ _ _ _ _ _ h => by cases h) ?_ ?_ (fun _ _ _ _ h => by cases h)⟩
+    (fun _ _ _ _ _ _ h => by cases h) ?_ ?_ (fun _ _ _ _ h => by cases h)
+    (csSynced_xsAl m H F T fa fb hal)⟩
   · have hb' : (H ++ (F ++ T))[b]? = some (durB v) := hb
     rw [csSynced_bs m H F T fa fb hF, hb']; rfl
   · show m.lo ≤ m.size; exact hlo
@@ -144,32 +153,43 @@ theorem bDur_trunc_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
   have hlo : m.lo ≤ m.size := hW.2.2.1
   have hhi : m.size ≤ m.hi := hW.2.2.2
   have hal0 : m.size % 4096 = 0 := hI.2.2.2.2.1
-  -- the reached state: its size, bounds and bytes
+  obtain ⟨⟨l, hxl, hla⟩, -, -⟩ : XsAl ⟨m, bs, fa, fb, .idle⟩ := hI.2.2.2.2.2.2
+  -- the reached state: its size, bounds, bytes and crash sizes
   have key : m'.lo = m.lo ∧ m.size ≤ m'.size ∧ m'.size ≤ m'.hi ∧ m'.size ≤ sz ∧
-      m'.size % 4096 = 0 ∧ bs'.length = m'.size ∧ ∀ b, b < m.size → bs'[b]? = bs[b]? := by
+      m'.size % 4096 = 0 ∧ bs'.length = m'.size ∧ (∀ b, b < m.size → bs'[b]? = bs[b]?) ∧
+      ∃ l', m'.xs = some l' ∧ ∀ x ∈ l', x % 4096 = 0 := by
     cases hR with
-    | refl => exact ⟨rfl, Nat.le_refl _, hhi, hsz, hal0, hl, fun _ _ => rfl⟩
+    | refl => exact ⟨rfl, Nat.le_refl _, hhi, hsz, hal0, hl, fun _ _ => rfl, l, hxl, hla⟩
     | ann =>
-      rw [announce_lo, announce_hi, announce_size]
-      exact ⟨by omega, Nat.le_refl _, by omega, hsz, hal0, hl, fun _ _ => rfl⟩
+      rw [announce_lo, announce_hi, announce_size, OsMeta.announce_xs]
+      exact ⟨by omega, Nat.le_refl _, by omega, hsz, hal0, hl, fun _ _ => rfl, l, hxl, hla⟩
     | grown n zs hzs =>
       rw [rsPost_lo, rsPost_size, rsPost_hi]
-      refine ⟨by omega, hsz, by omega, Nat.le_refl _, hal, ?_, fun b hb => ?_⟩
+      refine ⟨by omega, hsz, by omega, Nat.le_refl _, hal, ?_, fun b hb => ?_, l.insert sz, ?_,
+        fun x hx => ?_⟩
       · simp only [List.length_append, List.length_map]; omega
       · rw [List.getElem?_append_left (by omega)]
-  obtain ⟨hlo', hs1, hs2, hs3, hal', hl', hbs⟩ := key
+      · have hxl0 : m.xs = some l := hxl
+        show rsXs true m sz = _
+        simp only [rsXs, if_true, hxl0, Option.map_some]
+      · rcases List.mem_insert_iff.1 hx with rfl | hx
+        · exact hal
+        · exact hla x hx
+  obtain ⟨hlo', hs1, hs2, hs3, hal', hl', hbs, l', hxl', hla'⟩ := key
   have hmono : ∀ busy : CBusy, (∀ t off data n, busy ≠ .write t off data n) →
+      (∀ t sz' n, busy = .trunc t sz' n → sz' % 4096 = 0) →
       IdleOk a.cur a.xcur ⟨m', bs', fa, fb, busy⟩ := by
-    intro busy hnw
+    intro busy hnw htr
     refine idleOk_mono hI (fun b v _ hb => ?_) (fun _ _ t off data n h => absurd h (hnw t off data n))
       (by show m.lo ≤ m'.lo; omega) hal' (fun t off data n h => absurd h (hnw t off data n))
+      ⟨⟨l', hxl', hla'⟩, htr, fun t off data n h => absurd h (hnw t off data n)⟩
     have hb' : bs[b]? = some (durB v) := hb
     show bs'[b]? = _
     have : b < m.size := by have := (List.getElem?_eq_some_iff.1 hb').1; omega
     rw [hbs b this]; exact hb'
   refine ⟨⟨⟨hl', trivial, by show m'.lo ≤ m'.size; omega, hs2⟩, hmono .idle (fun _ _ _ _ h => by
-    cases h)⟩, fun t n => ⟨⟨hl', hs3, by show m'.lo ≤ m'.size; omega, hs2⟩, hmono _ (fun _ _ _ _ h => by
-    cases h)⟩⟩
+    cases h) (fun _ _ _ h => by cases h)⟩, fun t n => ⟨⟨hl', hs3, by show m'.lo ≤ m'.size; omega, hs2⟩,
+    hmono _ (fun _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h; exact hal)⟩⟩
 
 /-! ## A write inside the file -/
 
@@ -180,14 +200,15 @@ theorem wreach_inside {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8
     (hin : off + data.length ≤ m.size) (hl : bs.length = m.size) (hlo : m.lo ≤ m.size)
     (hhi : m.size ≤ m.hi) :
     m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ bs'.length = m.size ∧ nn ≤ data.length ∧
-      ∀ b, (b < off ∨ off + data.length ≤ b) → bs'[b]? = bs[b]? := by
+      (∀ b, (b < off ∨ off + data.length ≤ b) → bs'[b]? = bs[b]?) ∧ m'.xs = m.xs := by
   induction hR with
-  | refl => exact ⟨rfl, rfl, rfl, hl, Nat.zero_le _, fun _ _ => rfl⟩
+  | refl => exact ⟨rfl, rfl, rfl, hl, Nat.zero_le _, fun _ _ => rfl, rfl⟩
   | @step nn0 m0 bs0 k nn' n zs _ hnn hk hnn' _ _ _ ih =>
-    obtain ⟨hs, hlo0, hhi0, hl0, -, hout⟩ := ih
+    obtain ⟨hs, hlo0, hhi0, hl0, -, hout, hxs0⟩ := ih
     have hd : (data.drop nn0).length = data.length - nn0 := List.length_drop
     have hpw : pwSize m0.size (off + nn0) k = m0.size := by unfold pwSize; split <;> omega
-    refine ⟨by rw [pwPostK_size, hpw, hs], ?_, ?_, ?_, by omega, fun b hb => ?_⟩
+    refine ⟨by rw [pwPostK_size, hpw, hs], ?_, ?_, ?_, by omega, fun b hb => ?_,
+      by rw [pwPostK_xs, if_pos (by rw [hd]; omega), hxs0]⟩
     · rw [pwPostK_lo, hd, hlo0, hs]; omega
     · rw [pwPostK_hi, hd, hhi0, hs]; omega
     · rw [finBytes_length (by omega) (by omega) (by omega), hpw, hs]
@@ -199,12 +220,14 @@ theorem wreach_inside {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8
         rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
 
 /-- **A write of unprotected bytes inside the file keeps the idle facts** (`Tx.write`'s dirty pages,
-`commitFreelist`'s page: pages free for the committed state, not a meta slot), in every state of
-`WReach`, idle and with the next attempt in flight. -/
+`commitFreelist`'s page: pages free for the committed state, not a meta slot), the size not moved
+since the last sync (`DB.grow` syncs its truncate first), in every state of `WReach`, idle and with
+the next attempt in flight. -/
 theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : List ByteG)
     (fa fb off : Nat) (data : List w8) (h : BDur a ⟨m, bs, fa, fb, .idle⟩)
     (hin : off + data.length ≤ m.size)
     (hun : ∀ b, off ≤ b → b < off + data.length → 8192 ≤ b ∧ ¬ protData a.xcur a.cur b)
+    (hlh : m.lo = m.hi)
     (nn : Nat) (m' : OsMeta) (bs' : List ByteG) (hR : WReach m bs off data nn m' bs') :
     BDur a ⟨m', bs', fa, fb, .idle⟩ ∧ (nn < data.length → ∀ t n,
       PwFresh m' bs' (off + nn) (data.drop nn) n →
@@ -214,8 +237,13 @@ theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
   have hl : bs.length = m.size := hW.1
   have hlo : m.lo ≤ m.size := hW.2.2.1
   have hhi : m.size ≤ m.hi := hW.2.2.2
-  obtain ⟨hs, hlo', hhi', hl', hnn, hout⟩ := wreach_inside hR hin hl hlo hhi
+  obtain ⟨hs, hlo', hhi', hl', hnn, hout, hxs'⟩ := wreach_inside hR hin hl hlo hhi
   have hal : m.size % 4096 = 0 := hI.2.2.2.2.1
+  obtain ⟨⟨l, hxl, hla⟩, -, -⟩ : XsAl ⟨m, bs, fa, fb, .idle⟩ := hI.2.2.2.2.2.2
+  have hxa : ∀ busy : CBusy, (∀ t sz n, busy ≠ .trunc t sz n) →
+      XsAl ⟨m', bs', fa, fb, busy⟩ := fun busy hnt =>
+    ⟨⟨l, by show m'.xs = _; rw [hxs']; exact hxl, hla⟩, fun t sz n h => absurd h (hnt t sz n),
+      fun _ _ _ _ _ => by show m'.lo = m'.hi; omega⟩
   have hprot : ∀ b, (b < 8192 ∨ protData a.xcur a.cur b) → b < off ∨ off + data.length ≤ b := by
     intro b hb
     apply Classical.byContradiction; intro hc
@@ -232,14 +260,16 @@ theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
       by show m'.size ≤ m'.hi; omega⟩,
     idleOk_mono hI (fun b v hb h => hbs b v hb h) (fun _ _ _ _ _ _ h => by cases h)
       (by show m.lo ≤ m'.lo; omega)
-      (by show m'.size % 4096 = 0; rw [hs]; exact hal) (fun _ _ _ _ h => by cases h)⟩,
+      (by show m'.size % 4096 = 0; rw [hs]; exact hal) (fun _ _ _ _ h => by cases h)
+      (hxa _ (fun _ _ _ h => by cases h))⟩,
     fun hlt t n _ => ⟨⟨by show bs'.length = m'.size; rw [hs]; exact hl', by show off + nn ≤ m'.size; omega,
       by show m'.lo ≤ m'.size; omega, by show m'.size ≤ m'.hi; omega⟩,
     idleOk_mono hI (fun b v hb h => hbs b v hb h) (fun b hb t' off' data' n' he => by
         cases he; have := hprot b hb; rw [hd]; omega)
       (by show m.lo ≤ m'.lo; omega) (by show m'.size % 4096 = 0; rw [hs]; exact hal)
       (fun t' off' data' n' he => by
-        cases he; show off + nn + (data.drop nn).length ≤ m'.size; rw [hd]; omega)⟩⟩
+        cases he; show off + nn + (data.drop nn).length ≤ m'.size; rw [hd]; omega)
+      (hxa _ (fun _ _ _ h => by cases h))⟩⟩
 
 /-! ## The commit point -/
 
@@ -256,7 +286,7 @@ theorem bDur_commit_point (a : BAbs) (ha : a.phase = .idle) (s : CSt) (hb : s.bu
     BDur { cur := C, prev := a.cur, xcur := Xc, xprev := a.xcur, phase := .committing } s := by
   rw [bDur_idle_iff ha] at h
   rw [bDur_commit_iff rfl]
-  obtain ⟨hW, hR, hm, hd, hh, hal, hwr⟩ := h
+  obtain ⟨hW, hR, hm, hd, hh, hal, hwr, -⟩ := h
   have hvm : s.vmeta = s.m := by unfold CSt.vmeta; rw [hb]
   refine ⟨hW, hR, hRc, htx, hsl, fun k hk => hm _ (by omega), ⟨none, fun k hk => ?_⟩, hd, hdc,
     hh, hhc, hal, by rw [hvm, hlo], by rw [hvm, hhi], hwr⟩
@@ -360,7 +390,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
   have hj2 : C.txid % 2 < 2 := Nat.mod_lt _ (by omega)
   have hin : 4096 * (C.txid % 2) + (C.slot C.txid).length ≤ m.size := by
     rw [hlen]; have := Nat.mul_le_mul_right 4096 h3; omega
-  obtain ⟨hs, hlo', hhi', hl', hnn, hout⟩ := wreach_inside hR hin hl hlo hhi
+  obtain ⟨hs, hlo', hhi', hl', hnn, hout, hxs'⟩ := wreach_inside hR hin hl hlo hhi
   -- the new meta's bytes
   have hdat : ∀ k < 4096, (C.slot C.txid).getD k 0 = xb Xc (4096 * (C.txid % 2) + k) := by
     intro k hk
@@ -390,7 +420,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
   have hslot : ∃ N' : Option Nat, (N' = none → nn = 0) ∧ ∀ k < 4096, ∃ x,
       bs'[4096 * (C.txid % 2) + k]? = some x ∧
       CandOV x.2 (xb Xp (4096 * (C.txid % 2) + k)) (xb Xc (4096 * (C.txid % 2) + k)) N' := by
-    clear hpsync hout hs hlo' hhi' hl' hnn
+    clear hpsync hout hs hlo' hhi' hl' hnn hxs'
     induction hR with
     | refl =>
       refine ⟨N, fun _ => rfl, fun k hk => ?_⟩
@@ -400,7 +430,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
       exact ⟨x, hx, hov⟩
     | @step nn0 m0 bs0 k nn' n zs hW0 hnn hk hnn' hzs hZ hPF ih =>
       obtain ⟨N', hN', hsl'⟩ := ih
-      obtain ⟨hs0, -, -, hl0, -, -⟩ := wreach_inside hW0 hin hl hlo hhi
+      obtain ⟨hs0, -, -, hl0, -, -, -⟩ := wreach_inside hW0 hin hl hlo hhi
       exact ⟨some (N'.getD n), (fun h => by cases h),
         metaSlot_step (o := fun j => xb Xp (4096 * (C.txid % 2) + j))
           (v := fun j => xb Xc (4096 * (C.txid % 2) + j)) (by omega) hlen (by omega)
@@ -511,7 +541,7 @@ theorem bDur_sync_commit (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (H
     rw [← e1, ← e2, e]
   refine ⟨csSynced_bwf m H F T fa fb hl, hRc, fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩,
     fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩, Nat.le_trans hhc' (Nat.le_of_eq hvlo'), hal',
-    fun _ _ _ _ h => by cases h⟩
+    (fun _ _ _ _ h => by cases h), csSynced_xsAl m H F T fa fb hal'⟩
   · rw [hsb]
     rcases (show (4096 * (P.txid % 2) ≤ b ∧ b < 4096 * (P.txid % 2) + 4096) ∨
         (4096 * (C.txid % 2) ≤ b ∧ b < 4096 * (C.txid % 2) + 4096) by omega) with hb' | hb'
@@ -664,7 +694,8 @@ theorem bDur_init_done (a : BAbs) (ha : a.phase = .init) (m : OsMeta) (H F T : L
   exact ⟨csSynced_bwf m H F T fa fb hl, hR, fun b hb => hbyte b (by omega),
     fun b hb => hbyte b (by
       have := (protData_range hR hb).2; rw [show initC.hwm = 4 from rfl] at this; omega),
-    hhwm, by show m.size % 4096 = 0; simp [hsz], fun _ _ _ _ h => by cases h⟩
+    hhwm, by show m.size % 4096 = 0; simp [hsz], (fun _ _ _ _ h => by cases h),
+    csSynced_xsAl m H F T fa fb (by simp [hsz])⟩
 
 end phases
 
