@@ -28,7 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem RunKV.wp_proof (OP : List GoString → w64 → IProp GF)
 theorem NodeMain.wp_proof (NP : w64 → GoString → List GoString → IProp GF)
     (hNC : NodeCount.spec (GF := GF) (hG := hG))
     (hRot : Rotate.spec (GF := GF) (hG := hG))

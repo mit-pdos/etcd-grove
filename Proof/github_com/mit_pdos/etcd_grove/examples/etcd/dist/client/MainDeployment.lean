@@ -28,7 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem RunKV.wp_proof (OP : List GoString → w64 → IProp GF)
 theorem MainDeployment.wp_proof (OP : List GoString → w64 → IProp GF)
     (hWF : WellFormed.spec (GF := GF) (hG := hG))
     (hEp : Deployment.Endpoints.spec (GF := GF) (hG := hG))
