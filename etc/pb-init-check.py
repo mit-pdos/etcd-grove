@@ -8,11 +8,11 @@ inside the package's own initializer before the generated `init` fills `file_*_m
 proved safe and panic in Go. This checks that the hand-written (non-generated, non-test) Go files
 of those packages declare no package-level `var` and no `func init`.
 
-Usage: etc/dsv/pb-init-check.py   (exit 1 on a violation)
+Usage: etc/pb-init-check.py (not in etc/dsv/: etc/goose.py loads every file there as a kit)   (exit 1 on a violation)
 """
 import os, re, sys
 
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 PKGS = [os.path.join('examples', 'dsverify', 'quepaxa', 'proto', 'client'),
         os.path.join('examples', 'dsverify', 'quepaxa', 'replica', 'src')]
 BAD = re.compile(r'^(var\b|func\s+init\s*\()')

@@ -80,7 +80,7 @@ leaves the statement. Each axiom:
   `state` unset or its type's own `MessageInfo`, a shared message's runtime fields in a sealed
   invariant) with each kind asking its declaring package's `isPkgInit`, reviewed in
   `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md` (survives with a condition, checked by
-  `etc/dsv/pb-init-check.py`), and is axioms again;
+  `etc/pb-init-check.py`), and is axioms again;
 - is counted in its kits' tcb collections (`etc/tcb-collections/dsv-<kit>.txt`).
 Where a pure fact the program could check is what the axiom needs, it goes into the Go code instead
 (#49's bar): gryff's `sort.Slice.wp_proofInt32Lt` (retired 2026-11-25) had no length bound, and

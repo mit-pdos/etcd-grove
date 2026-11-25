@@ -30,7 +30,7 @@ kit's codec (interface of stage 1, `notes/stage1-plan.md`).
   call from any other package; inside the declaring package `isPkgInit` can be assembled before its
   generated `init`, so the axioms' condition is that the two packages have no hand-written
   package-level initializer (`notes/axiom-review/dsv-fix6/quepaxa-pb-2.md`, finding 1; checked by
-  `etc/dsv/pb-init-check.py` in `etc/gates.sh`).
+  `etc/pb-init-check.py` in `etc/gates.sh`).
 
 Changed against the lab (notes/dsv-quepaxa.md): the lab's `pbCodec` instance of its protobuf
 model's `PbCodec` (its generated codec `pbMarshal`/`pbUnmarshal`, proved by `kitCodecOk_holds`) is

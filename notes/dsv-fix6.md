@@ -27,7 +27,7 @@ per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axio
   statement): **survives with a condition**: inside a declaring package `isPkgInit` can be assembled
   before the generated `init` (its fact is `True`/`srcState`), so no hand-written package-level `var` or
   `init()` may exist in `raxos/replica/src`, `raxos/proto/client`; today none does. Checked by the new
-  `etc/dsv/pb-init-check.py`, run in `etc/gates.sh` (section goose). The review's stronger alternative,
+  `etc/pb-init-check.py`, run in `etc/gates.sh` (section goose). The review's stronger alternative,
   not done: a persistent token produced by the trusted `init.«0»` model inside the two packages'
   `isPkgInitDef` (touches `TrustedCode` and `etc/gen-init.py`). TCB: +2 axioms
   (`raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof`, exactly), baselines updated (`etc/tcb-baseline.txt`,

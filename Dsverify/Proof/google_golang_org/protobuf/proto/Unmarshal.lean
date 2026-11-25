@@ -10,7 +10,7 @@ message's declaring package's init missing, counterexample C; since then each ki
 **survives with a condition**: the packages declaring the message types, `raxos/replica/src` and
 `raxos/proto/client`, have no hand-written package-level variable initializer or `init()`, which
 could marshal before the generated `init` fills `file_*_msgTypes`; checked by
-`etc/dsv/pb-init-check.py` in `etc/gates.sh`).
+`etc/pb-init-check.py` in `etc/gates.sh`).
 -/
 module
 

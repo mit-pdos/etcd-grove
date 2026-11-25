@@ -198,7 +198,7 @@ else
 fi
 # QuePaxa's protobuf axioms' condition (notes/axiom-review/dsv-fix6/quepaxa-pb-2.md, finding 1): no
 # hand-written package-level initializer in the packages declaring its message types
-if python3 etc/dsv/pb-init-check.py > "$tmp/pbinit.log" 2>&1; then
+if python3 etc/pb-init-check.py > "$tmp/pbinit.log" 2>&1; then
   echo "pb-init: ok"
 else
   echo "pb-init: FAILED"; head -10 "$tmp/pbinit.log"; fail=1
