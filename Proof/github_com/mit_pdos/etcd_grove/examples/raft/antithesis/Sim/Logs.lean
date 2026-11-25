@@ -97,7 +97,7 @@ section logs
 variable [GooseExts]
 
 theorem entOf_term (e : EntryM) : (entOf e).term = uint.Z e.Term' := by
-  unfold entOf; split <;> rfl
+  unfold entOf; split <;> (try split) <;> rfl
 
 theorem logOf_getElem? (l : List EntryM) (k : Nat) : (logOf l)[k]? = (l[k]?).map entOf :=
   List.getElem?_map

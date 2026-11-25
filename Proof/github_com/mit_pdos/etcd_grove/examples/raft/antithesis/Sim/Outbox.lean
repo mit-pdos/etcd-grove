@@ -14,7 +14,7 @@ append). Shared by `antSim_quiet` and `antSim_ready`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Stmts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Scope
 
 @[expose] public section
 
@@ -28,7 +28,10 @@ open GMap
 
 section outbox
 variable [GooseExts]
-variable {cf : CfgM}
+variable {cf : CfgM} {N : Nat} {kk : NodeK}
+
+/-- The view `w` with raft's protocol state `s`. -/
+def NodeView.withP (w : NodeView) (s : PState) : NodeView := { w with r := { w.r with p := s } }
 
 /-! ## `PendOk` per message type -/
 
@@ -37,51 +40,51 @@ theorem PendOk.congr {id : w64} {v w : NodeView} {q : Msg} (hr : w.ps.role = v.p
     (ht : w.ps.term = v.ps.term) (hv : w.ps.vote = v.ps.vote) (hl : w.ps.log = v.ps.log)
     (hb : w.ps.base = v.ps.base) (hc : w.ps.commit = v.ps.commit)
     (hm : w.ps.matched = v.ps.matched) (hbe : w.byE = v.byE) (hca : w.cause = v.cause)
-    (h : PendOk id v q) : PendOk id w q := by
+    (h : PendOk N id v q) : PendOk N id w q := by
   unfold PendOk AppOk HeartbeatOk matchOf at *
   rw [hr, ht, hv, hl, hb, hc, hm, hbe, hca]; exact h
 
 theorem pendOk_app {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
-    (hd : ∃ j : Fin 3, q.dst = nodeId j) (hr : w.ps.role = .leader) (ha : AppOk id w.ps q) :
-    PendOk id w q := by
+    (hd : ∃ j : Fin N, q.dst = nodeId j) (hr : w.ps.role = .leader) (ha : AppOk id w.ps q) :
+    PendOk N id w q := by
   have hty : q.ty = .app := ha.1
   unfold PendOk; rw [hty]; exact ⟨hne, hd, hr, ha⟩
 
 theorem pendOk_vote {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
-    (hd : ∃ j : Fin 3, q.dst = nodeId j) (hty : q.ty = .vote) (hs : q.src = id)
+    (hd : ∃ j : Fin N, q.dst = nodeId j) (hty : q.ty = .vote) (hs : q.src = id)
     (hr : w.ps.role = .candidate) (ht : q.term = w.ps.term) (hv : w.ps.vote = id)
-    (hi : q.index = (plogLast base0 w.ps.log).index')
-    (hlt : q.logterm = (plogLast base0 w.ps.log).term') : PendOk id w q := by
+    (hi : q.index = (plogLast w.ps.base w.ps.log).index')
+    (hlt : q.logterm = (plogLast w.ps.base w.ps.log).term') : PendOk N id w q := by
   unfold PendOk; rw [hty]; exact ⟨hne, hd, hs, hr, ht, hv, hi, hlt⟩
 
 theorem pendOk_voteResp {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
-    (hd : ∃ j : Fin 3, q.dst = nodeId j) (hty : q.ty = .voteResp) (hs : q.src = id)
-    (ht : q.term = w.ps.term) (hv : q.reject = false → w.ps.vote = q.dst) : PendOk id w q := by
+    (hd : ∃ j : Fin N, q.dst = nodeId j) (hty : q.ty = .voteResp) (hs : q.src = id)
+    (ht : q.term = w.ps.term) (hv : q.reject = false → w.ps.vote = q.dst) : PendOk N id w q := by
   unfold PendOk; rw [hty]; exact ⟨hne, hd, hs, ht, hv⟩
 
 theorem pendOk_heartbeatResp {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
-    (hd : ∃ j : Fin 3, q.dst = nodeId j) (hty : q.ty = .heartbeatResp) (hs : q.src = id)
-    (ht : q.term = w.ps.term) : PendOk id w q := by
+    (hd : ∃ j : Fin N, q.dst = nodeId j) (hty : q.ty = .heartbeatResp) (hs : q.src = id)
+    (ht : q.term = w.ps.term) : PendOk N id w q := by
   unfold PendOk; rw [hty]; exact ⟨hne, hd, hs, ht⟩
 
 theorem pendOk_propose {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
-    (hd : ∃ j : Fin 3, q.dst = nodeId j) (hty : q.ty = .propose) (hs : q.src = id)
-    (ht : q.term = W64 0) : PendOk id w q := by
+    (hd : ∃ j : Fin N, q.dst = nodeId j) (hty : q.ty = .propose) (hs : q.src = id)
+    (ht : q.term = W64 0) : PendOk N id w q := by
   unfold PendOk; rw [hty]; exact ⟨hne, hd, hs, ht⟩
 
 theorem pendOk_heartbeat {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
-    (hd : ∃ j : Fin 3, q.dst = nodeId j) (hr : w.ps.role = .leader) (hh : HeartbeatOk id w.ps q)
-    (hi : q.index = W64 0) (hlt : q.logterm = W64 0) (he : q.entries = []) : PendOk id w q := by
+    (hd : ∃ j : Fin N, q.dst = nodeId j) (hr : w.ps.role = .leader) (hh : HeartbeatOk id w.ps q)
+    (hi : q.index = W64 0) (hlt : q.logterm = W64 0) (he : q.entries = []) : PendOk N id w q := by
   have hty : q.ty = .heartbeat := hh.1
   unfold PendOk; rw [hty]; exact ⟨hne, hd, hr, hh, hi, hlt, he⟩
 
 /-! ## One input's messages, judged at its end state -/
 
 /-- Every message to another voter in `s`'s outbox is `PendOk` at the view `w` moved to `s`. -/
-def OutOk (id : w64) (w : NodeView) (s : PState) : Prop :=
-  ∀ q ∈ s.outbox, q.dst ≠ id → (∃ j : Fin 3, q.dst = nodeId j) → PendOk id { w with ps := s } q
+def OutOk (N : Nat) (id : w64) (w : NodeView) (s : PState) : Prop :=
+  ∀ q ∈ s.outbox, q.dst ≠ id → (∃ j : Fin N, q.dst = nodeId j) → PendOk N id (w.withP s) q
 
-theorem outOk_nil {id : w64} {w : NodeView} {s : PState} (h : s.outbox = []) : OutOk id w s := by
+theorem outOk_nil {id : w64} {w : NodeView} {s : PState} (h : s.outbox = []) : OutOk N id w s := by
   intro q hq; rw [h] at hq; cases hq
 
 theorem mem_psend {X : PState} {ms : List Msg} {q : Msg} (hX : X.outbox = [])
@@ -92,19 +95,19 @@ theorem mem_psend {X : PState} {ms : List Msg} {q : Msg} (hX : X.outbox = [])
 proposal). -/
 theorem outOk_apps {id : w64} {w : NodeView} {X : PState} {ms : List Msg} (hX : X.outbox = [])
     (hr : X.role = .leader) (hms : ∀ x ∈ ms, x.dst ≠ id → AppSendOk cf id X x) :
-    OutOk id w (psendMsgs X ms) := by
+    OutOk N id w (psendMsgs X ms) := by
   intro q hq hne hd
-  exact pendOk_app hne hd hr (hms q (mem_psend hX hq) hne).1
+  exact pendOk_app (w := w.withP _) hne hd hr (hms q (mem_psend hX hq) hne).1
 
 theorem outOk_sends {id : w64} {w : NodeView} {X s' : PState} (hX : X.outbox = [])
-    (hr : X.role = .leader) (h : SendsEnd cf id X s') : OutOk id w s' := by
+    (hr : X.role = .leader) (h : SendsEnd cf id X s') : OutOk N id w s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   exact outOk_apps hX hr fun x hx _ => hms x hx
 
 theorem pselfAck_dst (id : w64) (s : PState) : (pselfAck id s).dst = id := rfl
 
 theorem outOk_win {id : w64} {w : NodeView} {X s' : PState} (hX : X.outbox = [])
-    (h : WinEnd cf id X s') : OutOk id w s' := by
+    (h : WinEnd cf id X s') : OutOk N id w s' := by
   obtain ⟨mt, ms, -, hms, rfl⟩ := h
   refine outOk_apps (cf := cf) hX rfl fun x hx hne => ?_
   rcases List.mem_append.mp hx with hx | hx
@@ -112,7 +115,7 @@ theorem outOk_win {id : w64} {w : NodeView} {X s' : PState} (hX : X.outbox = [])
   · exact hms x hx
 
 theorem outOk_propose {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : X.outbox = [])
-    (h : ProposeEnd cf id X m s') : OutOk id w s' := by
+    (h : ProposeEnd cf id X m s') : OutOk N id w s' := by
   unfold ProposeEnd at h
   split at h
   · rename_i hr
@@ -130,7 +133,7 @@ theorem outOk_propose {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : 
     · subst h; exact outOk_nil hX
 
 /-- What the preamble keeps (`PreEnd`): the outbox, base, log and commit; its term is the message's. -/
-theorem preEnd_facts {s s1 : PState} {m : Msg} (h : PreEnd s m s1) :
+theorem preEnd_facts {s s1 : PState} {m : Msg} (h : PreEnd kk s m s1) :
     s1.outbox = s.outbox ∧ s1.base = s.base ∧ s1.log = s.log ∧ s1.commit = s.commit ∧
       s1.term = m.term := by
   rcases h with ⟨-, rfl⟩ | ⟨ht, rfl⟩
@@ -143,16 +146,16 @@ last index with the log matching it, or stale at the commit index. -/
 theorem outOk_appEnd {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : X.outbox = [])
     (hb : X.base = base0) (ht : X.term = m.term) (hby : w.byE = go!"recv")
     (hca : w.cause = some m) (hty : m.ty = .app) (hpay : AppPayloadOk m)
-    (h : AppEnd id X m s') : OutOk id w s' := by
+    (h : AppEnd id X m s') : OutOk N id w s' := by
   have hrecv : ∀ (q : Msg) (s'' : PState), q.ty = .appResp → q.src = id → q.dst = m.src →
       q.term = m.term → s''.term = m.term →
       (q.reject = false →
         (uint.Z q.index = uint.Z m.index + m.entries.length ∧
-          plogTermAt base0 s''.log m.index = some m.logterm ∧
+          plogTermAt s''.base s''.log m.index = some m.logterm ∧
           ∀ (k : Nat) (e : EntryM), m.entries[k]? = some e →
-            plogTermAt base0 s''.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
+            plogTermAt s''.base s''.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
         (uint.Z m.index < uint.Z s''.commit ∧ q.index = s''.commit)) →
-      q.dst ≠ id → (∃ j : Fin 3, q.dst = nodeId j) → PendOk id { w with ps := s'' } q := by
+      q.dst ≠ id → (∃ j : Fin N, q.dst = nodeId j) → PendOk N id (w.withP s'') q := by
     intro q s'' hqt hqs hqd hqtm hst hacc hne hd
     unfold PendOk; rw [hqt]
     exact ⟨hne, hd, hqs, hby, m, hca, hty, hqd, hqtm, hqtm.trans hst.symm, hacc⟩
@@ -169,10 +172,11 @@ theorem outOk_appEnd {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : X
     have hbat := plogMaybeAppend_batch _ _ _ _ _ _ hwf hnw hma
     simp only at hli hbat hnw
     refine ⟨hli, ?_, fun k e hk => ?_⟩
-    · show plogTermAt base0 es' m.index = some m.logterm
-      rw [hbat m.index (Int.le_refl _) (by have := uint_Z_nonneg m.index; omega)]
+    · show plogTermAt X.base es' m.index = some m.logterm
+      rw [hb, hbat m.index (Int.le_refl _) (by have := uint_Z_nonneg m.index; omega)]
       exact plogTermAt_base _ _
-    · show plogTermAt base0 es' (m.index + W64 ((k : Int) + 1)) = some e.Term'
+    · show plogTermAt X.base es' (m.index + W64 ((k : Int) + 1)) = some e.Term'
+      rw [hb]
       have hk' := (List.getElem?_eq_some_iff.mp hk).1
       have hj : uint.Z (m.index + W64 ((k : Int) + 1)) = uint.Z m.index + (k : Int) + 1 := by
         have := uint_Z_nonneg m.index
@@ -192,7 +196,7 @@ theorem outOk_handle {c : CfgM} {id : w64} {w : NodeView} {s1 s' : PState} {m : 
     (hby : w.byE = go!"recv") (hca : w.cause = some m) (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
-    (h : HandleEnd c id s1 m s') : OutOk id w s' := by
+    (h : HandleEnd kk c id s1 m s') : OutOk N id w s' := by
   unfold HandleEnd at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
@@ -236,7 +240,7 @@ theorem outOk_recv {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {m : Msg
     (hby : w.byE = go!"recv") (hca : w.cause = some m) (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
-    (h : RecvEnd c id s m s') : OutOk id w s' := by
+    (h : RecvEnd kk c id s m s') : OutOk N id w s' := by
   rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact absurd h0 hm0
   · exact outOk_nil hX
@@ -245,19 +249,17 @@ theorem outOk_recv {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {m : Msg
 
 /-- A tick's messages (`TickEnd`): a campaign's vote requests, a leader's heartbeats. -/
 theorem outOk_tick {c : CfgM} {id : w64} {w : NodeView} {s s' : PState}
-    (hX : s.outbox = []) (hb : s.base = base0) (h : TickEnd c id s s') : OutOk id w s' := by
+    (hX : s.outbox = []) (hb : s.base = base0) (h : TickEnd kk c id s s') : OutOk N id w s' := by
   rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨hr, ms, hms, rfl⟩
   · exact outOk_nil hX
   · intro q hq hne hd
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
-      refine pendOk_vote hne hd rfl rfl rfl rfl rfl ?_ ?_
-      · show (plogLast s.base s.log).index' = (plogLast base0 s.log).index'; rw [hb]
-      · show (plogLast s.base s.log).term' = (plogLast base0 s.log).term'; rw [hb]
+      exact pendOk_vote (w := w.withP _) hne hd rfl rfl rfl rfl rfl rfl rfl
   · intro q hq hne hd
     obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
-    exact pendOk_heartbeat hne hd hr hh hi hlt he
+    exact pendOk_heartbeat (w := w.withP _) hne hd hr hh hi hlt he
 
 /-! ## `Advance`'s messages -/
 
@@ -291,7 +293,7 @@ theorem AdvInv.nil_of {id T c₀ : w64} {s : PState} (hi : AdvInv id T c₀ s) (
 
 /-- One step of `Advance` (the type switch at the state itself: the message is at its term). -/
 theorem adv_handle {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : AdvInv id T c₀ s)
-    (hq : SelfMsg id T q) (h : HandleEnd c id s q s1) :
+    (hq : SelfMsg id T q) (h : HandleEnd kk c id s q s1) :
     AdvInv id T c₀ s1 := by
   obtain ⟨-, -, -, hrj, hty⟩ := hq
   unfold HandleEnd at h
@@ -336,7 +338,7 @@ theorem adv_handle {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : 
 
 /-- One step of `Advance` (`RecvEnd` of a self-addressed message at the node's term). -/
 theorem adv_step {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : AdvInv id T c₀ s)
-    (hq : SelfMsg id T q) (h : RecvEnd c id s q s1) :
+    (hq : SelfMsg id T q) (h : RecvEnd kk c id s q s1) :
     AdvInv id T c₀ s1 := by
   have hqt : q.term = s.term := hq.2.2.1.trans hi.1.symm
   rcases h with ⟨-, hh⟩ | ⟨-, hlt, -⟩ | ⟨-, s2, hpre, hh⟩
@@ -347,7 +349,7 @@ theorem adv_step {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : Ad
     · exact adv_handle hi hq hh
 
 theorem adv_run {c : CfgM} {id T c₀ : w64} {s s' : PState} {qs : List Msg}
-    (h : AdvanceEnd c id s qs s') (hq : ∀ q ∈ qs, SelfMsg id T q) (hi : AdvInv id T c₀ s) :
+    (h : AdvanceEnd kk c id s qs s') (hq : ∀ q ∈ qs, SelfMsg id T q) (hi : AdvInv id T c₀ s) :
     AdvInv id T c₀ s' := by
   induction h with
   | nil => exact hi
@@ -358,50 +360,76 @@ theorem adv_run {c : CfgM} {id T c₀ : w64} {s s' : PState} {qs : List Msg}
 /-- `Advance`'s messages (`AdvanceEnd` of self-addressed messages from a state with nothing
 queued): a leader's `MsgApp`s, `AppOk` at the end. -/
 theorem outOk_advance {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {qs : List Msg}
-    (hX : s.outbox = []) (hq : ∀ q ∈ qs, SelfMsg id s.term q) (h : AdvanceEnd c id s qs s') :
-    OutOk id w s' := by
+    (hX : s.outbox = []) (hq : ∀ q ∈ qs, SelfMsg id s.term q) (h : AdvanceEnd kk c id s qs s') :
+    OutOk N id w s' := by
   have hinv : AdvInv id s.term s.commit s' := adv_run h hq (advInv_nil rfl (Int.le_refl _) hX)
   intro x hx hne hd
   obtain ⟨hr, hok, -⟩ := hinv.2.2 x hx
-  exact pendOk_app hne hd hr (hok hne).1
+  exact pendOk_app (w := w.withP _) hne hd hr (hok hne).1
 
 /-! ## The `Ready`'s messages -/
+
+/-- `Advance` over `RState` is `Advance` over the protocol state at the node's configuration (the
+received messages keep the configuration, the storage acknowledgements the protocol state). -/
+theorem advanceEndR_toP {Adm : List EntryM → CCState → Prop} {dec : CCDec} {k : NodeK} {id : w64}
+    {r r' : RState} {qs : List Msg} (h : AdvanceEndR Adm dec k id r qs r') :
+    AdvanceEnd k r.cfg.cfg id r.p qs r'.p := by
+  induction h with
+  | nil r r' ha =>
+    have : r'.p = r.p := by
+      rcases ha with rfl | ⟨a, -, rfl⟩ | ⟨j, sn, cs', -, rfl⟩ <;> rfl
+    rw [this]; exact .nil _
+  | cons r r1 r' q qs hr _ ih =>
+    have hc : r1.cfg = r.cfg := hr.2.1.2.2
+    rw [hc] at ih
+    exact .cons _ _ _ q qs hr.1 ih
 
 /-- **Every message to another voter in the outbox of the state a `Ready` is taken at is
 `PendOk`** at the view moved there: one input's at its end state (C1: nothing queued before it),
 `Advance`'s a leader's `MsgApp`s (`outOk_advance`). A received `MsgApp`'s batch is `AppPayloadOk`
-(C4's `NetShape`: its sender's `AppOk`). -/
-theorem outOk_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
-    {ps₁ : PState} (hnet : NetOk S net) (hv : NodeOk S net n v)
-    (hr : Reach (nodeId n) net v ps₁) : OutOk (nodeId n) v ps₁ := by
-  obtain ⟨hd, -, -, -, hqs, -, -⟩ := hv
-  obtain ⟨-, -, -, -, -, -, hX, hb, -⟩ := hd
+(C4's `NetShape`: its sender's `AppOk`). For the runs a mask below `mskS4` admits. -/
+theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : OutOk R.N (nodeId n) v r₁.p := by
+  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  have hX := hv.facts.outbox
+  have hb := (hv.facts.snap0 (by rw [hmd])).1
+  have hqs := hv.qs
   cases hr with
   | stay _ => exact outOk_nil hX
-  | input inp _ _ hbe hca hm hs =>
-    cases inp with
-    | recv m =>
-      obtain ⟨hmn, -, hm0⟩ := hm m rfl
-      exact outOk_recv hX hb hm0 hbe hca (hnet.2.2.1 m hmn).1 (hnet.1 m hmn).1 hs
-    | tick => exact outOk_tick hX hb hs
-    | propose d => exact outOk_propose hX hs
-  | advance _ _ _ _ ha =>
-    refine outOk_advance hX (fun q hq => ?_) ha
+  | input inp _ _ hinp _ hbe hca _ hm _ hs =>
+    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    · obtain ⟨hmn, -, hm0⟩ := hm m rfl
+      have h7 := hty m hmn
+      exact outOk_recv hX hb hm0 hbe hca (hnet.2.2.1 m hmn).1
+        (by rcases h7 with h | h | h | h | h | h | h <;> simp [h]) hs.1.1
+    · exact outOk_tick hX hb hs.1.1
+    · rcases hs.1.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      · exact outOk_propose hX hh
+      · exact absurd rfl h0
+      · exact absurd rfl h0
+  | advance _ _ _ _ _ _ ha =>
+    refine outOk_advance hX (fun q hq => ?_) (advanceEndR_toP ha)
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
 
 /-- **The `Ready`'s messages to other nodes are `PendOk` at the view after it**
-(`NodeView.afterReady`), each to a voter (`ReadyOutP`'s `ReadyMsgsToVoters`). -/
-theorem pendOk_of_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeView}
-    {ps₁ : PState} {rd : ReadyD} (hnet : NetOk S net) (hv : NodeOk S net n v)
-    (hr : Reach (nodeId n) net v ps₁) (hro : ReadyOutP (nodeId n) v ps₁ rd) :
-    ∀ q ∈ rd.msgs, PendOk (nodeId n) (v.afterReady ps₁ rd) q := by
+(`NodeView.drainOf`, sync), each to a voter (`ReadyOutP`'s `ReadyMsgsToVoters`). -/
+theorem pendOk_of_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {rd : ReadyD}
+    (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hro : ReadyOutP R n v r₁ xs rd) :
+    ∀ q ∈ rd.msgs, PendOk R.N (nodeId n) (v.drainOf r₁ rd) q := by
   intro q hq
-  have hq' := (hro.2.2.2.2.2.2.2.1.mem_iff).mp hq
+  have hasync : R.md.async = false := by rw [(hin.s4 hmsk).1]
+  have hq' := (((hro.2.2.2.2.2.2.2.2.1 hasync).2).mem_iff).mp hq
   rw [List.mem_filter] at hq'
   have hne : q.dst ≠ nodeId n := of_decide_eq_true hq'.2
   exact PendOk.congr rfl rfl rfl rfl rfl rfl rfl rfl rfl
-    (outOk_reach hnet hv hr q hq'.1 hne (hro.2.2.2.2.2.2.2.2.2.2.2.2 q hq))
+    (outOk_reach hmsk hin hnet hv hr q hq'.1 hne (hro.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 q (List.mem_append_left _ hq)))
 
 end outbox
 
