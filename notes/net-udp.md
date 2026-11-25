@@ -1,7 +1,7 @@
 # UDP at the `net` level: the extension `udpExt`
 
 Started 2026-11-24 (branch `udp-net/2026-11-24`; the user's decision of 2026-11-24: raft's top-level
-examples are `raft_kvnet_robust` over TCP and one over UDP, which needs "more net semantics"). The
+examples are `kvraft_robust` over TCP and one over UDP, which needs "more net semantics"). The
 goal: a semantics of Go's `net` UDP sockets, as conservative as possible (the model may allow more
 behaviours than Linux, never fewer), and the specs a raft transport over UDP needs.
 

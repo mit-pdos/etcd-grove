@@ -1,0 +1,258 @@
+-- The copy for the part `KvRaft/` of `RaftNoAx/Proof/go_etcd_io/raft/v3/raft__Step/MsgHeartbeat_eq.lean` (etc/copy-part.py; rerun it, do not edit).
+/- Port of election_proof/proof_raft__Step_helpers/proof_raft__Step_MsgHeartbeat_eq.v.
+
+One term case of `Step`'s `MsgHeartbeat` branch (the current term: `r.step(m)`, by
+role), in its own file so that it checks in parallel with the others;
+`proof_raft__Step_MsgHeartbeat.v` combines them. Proof structure, not specification: no
+`Module Type`, no `Parameter`; only files in this directory may `Require` it.
+
+Lean notes:
+* The branch lemma takes the callee specs (Rocq's functor argument
+  `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
+  section variable `c` as its second.
+* Rocq's `Local Ltac`s `recv_elem` (closing `∀ m' ∈ recv, m' = …` goals: `elem_of_app`,
+  `list_elem_of_singleton`, `elem_of_nil`, `naive_solver`) and `wp_load_step` (the load
+  of `r.step` in `r.step(r, m)`, bound by hand with `raft.wp_load_stepC`, as `wp_apply`
+  does not find a load in function position) are not ported.
+-/
+module
+
+public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.repl_lemmas
+public import KvRaft.Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section branches
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+namespace StepProof
+
+set_option maxHeartbeats 1000000 in
+theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
+    (ents : List EntryM) (R : StepG GF) :
+    m.Type' = MsgHeartbeat →
+    m.To' = id →
+    m.Term' ≠ W64 0 →
+    m.From' ≠ W64 0 →
+    m.From' ≠ id →
+    NStateWf s →
+    -- protocol fact (`heartbeat_commit_le_last`)
+    uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
+    -- this file: the current term: `r.step(m)`, by role
+    m.Term' = s.term →
+    -- a follower's vote tally is empty (`padoptLeader` clears it, and `NStateWf` does
+    -- not say so); see the combining file
+    (s.role = .follower → s.votes = ∅) →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+    {{ (err : GoInterface) (s' : NState), RET #err;
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
+            StepCD c id B m s recv s'⌝ ∗
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hteq Hvotes
+  wp_start as H
+  iNamed H
+  icases msgInC_nn _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgInC_halfD _ _ _ $$ Hm with ⟨Hm, Hmb⟩
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_recv_gate_ns
+  try wp_auto
+  wp_get _Q
+  rw [decide_eq_false Hterm]
+  wp_auto
+  wp_drive _Q
+  rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Hteq]; omega)]
+  wp_auto
+  wp_drive _Q
+  rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Hteq]; omega)]
+  wp_auto
+  -- the preamble did not step down (the current term)
+  have hnbf : ¬ PreBF m s := PreBF.of_le (by rw [Hteq]; exact Int.le_refl _)
+  imod preGate_nobf c r id s m _ _ (.inr (by rw [Hteq]; exact Int.le_refl _)) hnbf $$ Hgpre HG with HG
+  -- the type switch: none of its cases, so `r.step(m)`
+  wp_drive _Q
+  wp_apply raft.wp_load_stepC $$ Hphys as Hphys
+  rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
+  cases Hrole : s.role
+  · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
+    simp only [stepFuncOf]
+    have Hvs := Hvotes Hrole
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
+    ihave Hfg := stepFnGates_follower c r id s m ents ctx R ∅ s (preState_nobf hnbf ∅) Hrole $$ Hgstep
+    wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (.inr (.inr (.inr (.inl Hty))))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (fun _ => Hteq ▸ Hterm)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => ⟨Hcommit, Hfid⟩)
+        (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    · isplitl [Hm Hmb]
+      · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
+      · iunfold followerGates at Hfg; iexact Hfg
+    ihave HG := stepOut_or R _ _ $$ HGo
+    obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    try phys_out
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys HG
+    ipureintro
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres), nstateWf_heartbeatResult _ _ _ _ Hwf,⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl (hpc := .mk' fun h => absurd (h.symm.trans Hrole) (by decide))⟩
+    · intro m' Hm'
+      exact List.mem_singleton.mp Hm'
+    · refine StepCD.frame ?_ (by rframe)
+      exact step_handle_heartbeat c id _ _ m ents ctx (adopt_follower s m.From' Hrole Hvs) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+  · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
+    simp only [stepFuncOf]
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
+    ihave Hcg := stepFnGates_candidate c r id s m ents ctx R ∅ s (preState_nobf hnbf ∅) (.inl Hrole) $$ Hgstep
+    ihave Hcg := candidateGates_tw_ne c r id s m _ _ _ _ _ _ _ _ 0
+      (fun h => absurd h.1 (by rw [Hty]; w32_ne)) $$ Hcg
+    imod (preceipt_zero (GF := GF)) with #Hrc00
+    wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0
+        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => ⟨Hcommit, Hfid⟩)
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm Hmb $Hsrc0 $HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    · isplitl [Hm Hmb]
+      · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
+      · iunfold candidateGates at Hcg; iexact Hcg
+    ihave HG := stepOut_or R _ _ $$ HGo
+    obtain ⟨rfl, rfl, pvs, rfl⟩ := candidateStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    try phys_out
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys HG
+    ipureintro
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.candidate (by first | exact .inl Hrole | exact .inr Hrole) Hres),
+      nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩,⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
+    · intro m' Hm'
+      exact List.mem_singleton.mp Hm'
+    · refine StepCD.frame ?_ (by rframe)
+      exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+  · -- Leader: `stepLeader` has no arm for it; nothing changes
+    simp only [stepFuncOf]
+    imod (preceipt_zero (GF := GF)) with #Hrc00
+    ihave Hlg := stepFnGates_leader c r id s m ents ctx R ∅ s (preState_nobf hnbf ∅) Hrole $$ Hgstep
+    ihave Hlg := leaderGates_tp_rc c r id s m ents 0 _ _ _ _ _ _ (by rw [Hty]; w32_ne) $$ Hlg
+    wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
+        Hrole (by intro Hc; exfalso; first | (rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne)) | (rcases Hc with Hc | Hc <;> simp_all [MsgBeat, MsgTransferLeader]))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by
+          exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc00 Hm Hmb $HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+    · isplitl [Hm Hmb]
+      · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
+      isplitr
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iunfold leaderGates at Hlg; iexact Hlg
+    ihave HG := stepOut_leader R _ _ _ _ $$ HGo
+    obtain ⟨rfl, Hs'⟩ := leaderStepResult_app_hb _ _ _ _ _ _ _ (.inr Hty) Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    try phys_out
+    iapply HΦ $$ %interface.nil %s'
+    iframe Hphys HG
+    ipureintro
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres), ?_⟩
+    rw [Hs']
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
+  · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
+    -- the handler
+    simp only [stepFuncOf]
+    ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
+    · iapply rcvSrc_ne; notsnap_tac
+    ihave Hcg := stepFnGates_candidate c r id s m ents ctx R ∅ s (preState_nobf hnbf ∅) (.inr Hrole) $$ Hgstep
+    ihave Hcg := candidateGates_tw_ne c r id s m _ _ _ _ _ _ _ _ 0
+      (fun h => absurd h.1 (by rw [Hty]; w32_ne)) $$ Hcg
+    imod (preceipt_zero (GF := GF)) with #Hrc00
+    wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0
+        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => ⟨Hcommit, Hfid⟩)
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm Hmb $Hsrc0 $HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    · isplitl [Hm Hmb]
+      · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
+      · iunfold candidateGates at Hcg; iexact Hcg
+    ihave HG := stepOut_or R _ _ $$ HGo
+    obtain ⟨rfl, rfl, pvs, rfl⟩ := candidateStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    try phys_out
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys HG
+    ipureintro
+    refine ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) (by rw [Hty]; w32_ne)
+      (by rw [Hty]; w32_ne) (StepFnEnd.candidate (by first | exact .inl Hrole | exact .inr Hrole) Hres),
+      nstateWf_heartbeatResult _ _ _ _ ⟨rfl, rfl⟩,⟨[absMsg .heartbeat m ents ctx], ?_, ?_⟩, rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
+    · intro m' Hm'
+      exact List.mem_singleton.mp Hm'
+    · refine StepCD.frame ?_ (by rframe)
+      exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+        (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
+
+end StepProof
+
+end branches
+
+end EtcdGrove
+end Perennial

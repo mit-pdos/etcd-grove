@@ -1,0 +1,9 @@
+# kvraft-udp (examples/raft/kvraft's UDP transport, cmd/kvraft-udp; notes/kvraft-udp-proof-plan.md; the part KvRaft/): the
+# top-level robustness theorem `kvraft_udp_robust` and its example `kvraft_udp_robust_example`
+# (KvRaft/Proof/.../raft/kvraft/cmd/kvraft_udp/TopLevelRobustness.lean), over the extensions
+# [netExt, fsExt, udpExt] (GooseLang/Ext/NetFsUdp/Adequacy.lean; the UDP semantics, notes/net-udp.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/kvraft-udp.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/kvraft-udp.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/kvraft-udp.txt --check --update
+roots ^KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/TopLevelRobustness\.lean$

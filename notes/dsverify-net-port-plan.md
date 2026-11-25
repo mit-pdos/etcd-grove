@@ -1042,7 +1042,7 @@ tests kept as differential tests against the real library, a "not modelled" pani
    allocation (`newBufioWriterSize(&w.cw, 2048)`, now proved).
    **The request line and URI (2026-11-23, same branch).** *Translation*: httpguts' `ValidHeaderFieldName` and
    its table `isTokenTable` (the array literal, so its initializer is translated: `isTokenTable.init` is gone),
-   net/http's `isToken`, `Server.maxHeaderValueCount`, `DefaultMaxHeaderValueCount`; regenerated (`KvNet/`'s
+   net/http's `isToken`, `Server.maxHeaderValueCount`, `DefaultMaxHeaderValueCount`; regenerated (`KvRaft/`'s
    copies, `gen-init --check` clean). *`url.ParseRequestURI`, not over its body*: Go's `parse(raw, true)` calls
    `strings.ToLower` (always) and `strings.Cut(rest, "?")` (Perennial: names only; `Cut`/`Index` reach
    `bytealg.IndexByteString`, untranslated), `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]`
