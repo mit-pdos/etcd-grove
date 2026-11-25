@@ -42,6 +42,12 @@ steps between reading the deposit from the connection's slot and firing the upda
 `▷`. A `nil` result is the handler's reply after the put fired once on the member's store: its
 update, built from the invariant (`putAu_of_putGetInv`), set the flag.
 
+The caller lends its level-0 token (`levelTok 0`, given back in the post; decision 1b of
+prove-ps2-clientrdlock), as `client_Put_own` takes it: the client lends it to its retry
+interceptor (`etcdInterceptorOk`) and the interceptor to each attempt and to the backoff, one call at
+a time on the caller's goroutine. (Until 2026-11-25 the statement took no token, so it claimed the call
+ran without one, which `client_Put_own` does not give; the `axiom-tok` gate found it.)
+
 Why it is true: it is `client.client_Put_own` (proved) at the member's `⟨ep, E, ρ.rd, cid, mid⟩`.
 That proof's only cross-process step is `Invoke`'s registration (`kvRegsAt`), and the step that
 replaces it is the deposit's instantiation at the published view: `envAt_agree` and

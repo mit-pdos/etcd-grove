@@ -36,6 +36,8 @@ can be answered only by the member that published `ν` at `γE` (see `Client_Put
 review 4 and `bridge.New`'s fix). A `nil` result is that
 member's linearizable read of `key` (no `serializable`, revision `0`) at a state after the put fired
 (the flag at `1`), which the invariant says holds `val`.
+As `Client_Put_dist.wp_proof`, the caller lends its level-0 token (`levelTok 0`, given back), as
+`client_Get_own` takes it.
 
 Why it is true: it is `client.client_Get_own` (proved) at the member's `⟨ep, E, ρ.rd, cid, mid⟩`,
 with `putGetInv_st` (`γr.kv.st = ν.st = ρ.rd.kv.st`), the free `committedAtLeast ρ.rd 0`

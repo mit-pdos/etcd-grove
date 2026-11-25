@@ -35,25 +35,26 @@ knows the member's view** (the pub form of `client.client_Put_own`): a client th
 proxy (`clientNoProxy`, `etcdstart.NewClient`'s post) of an address set to serve etcd's KV calls
 (`etcdAddrAt`); the caller gives, for every view published at `γE`, a putget invariant at read
 names whose KV state variable is the view's, under a later (review F2: the caller reads it out of the
-publication invariant, `envAt_pub`). On `nil`, a view published at `γE`, such an invariant and the
-put's flag. -/
+publication invariant, `envAt_pub`); and it lends its level-0 token (`levelTok 0`, given back, as
+`client_Put_own`). On `nil`, a view published at `γE`, such an invariant and the put's flag. -/
 abbrev Client_Put_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl : Loc) (ep : GoString) (V : WEnv GF) (γE : GName) (mid : w64)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
     (sl : GoSlice),
   opSizeOk (opPutModel key val []) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
+      isNewClient cl [ep] V ∗
       clientNoProxy cl ∗ etcdAddrAt (Gg := hG.goose_globalGS) ep γE mid ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
       □ (∀ ν : EnvView, envAt (Gg := hG.goose_globalGS) γE ν ={⊤}=∗
           ▷ ∃ (γr : ReadNames) (γf : GName), ⌜γr.kv.st = ν.st⌝ ∗ putGetInv γr γf key val) }}
     (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
         go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
       (⌜err = GoInterface.nil⌝ ∗ ∃ (ν : EnvView) (γr : ReadNames) (γf : GName),
           envAt (Gg := hG.goose_globalGS) γE ν ∗ ⌜γr.kv.st = ν.st⌝ ∗
           putGetInv γr γf key val ∗ monoNatLbOwn γf 1) ∨
-        ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }}
+        ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 end spec
 

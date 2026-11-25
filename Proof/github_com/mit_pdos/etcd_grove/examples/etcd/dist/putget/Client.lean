@@ -146,7 +146,7 @@ theorem Client.wp_proof
   wp_apply (wp_Put_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) γE mid pctx pcd
       go!"k" go!"v" slice.nil
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide))) as %presp %perr Hput
+        (by decide))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hput⟩
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -171,7 +171,7 @@ theorem Client.wp_proof
   wp_apply (wp_Get_dist cl ep (Classical.choice (wenv_nonempty (GF := GF) hne)) γE mid ν γr γf
       gctx gcd go!"k" go!"v" slice.nil
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))
-      Hst) as %gresp %gerr Hget
+      Hst) $$ [$Hlt] as %gresp %gerr ⟨-, Hget⟩
   · iframe #
   -- `gcancel()`
   (try wp_auto)
