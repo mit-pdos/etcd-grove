@@ -68,10 +68,10 @@ def ownedPkgs : List GoString :=
 structure KitG (G : GoString → IProp GF) : Prop where
   e_internal_abi : G pkg_id.internal.abi = isPkgInit (PROP := IProp GF) pkg_id.internal.abi
   e_internal_gomodel : G pkg_id.internal.gomodel = isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel
-  e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
   e_internal_reflectcore : G pkg_id.internal.reflectcore = isPkgInit (PROP := IProp GF) pkg_id.internal.reflectcore
   e_internal_reflectlite : G pkg_id.internal.reflectlite = isPkgInit (PROP := IProp GF) pkg_id.internal.reflectlite
   e_errors : G pkg_id.errors = isPkgInit (PROP := IProp GF) pkg_id.errors
+  e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
   e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
   e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
   e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
@@ -158,13 +158,9 @@ theorem wf_internal_gomodel {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.gomodel G :=
   And.intro h.e_internal_gomodel True.intro
 
-theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.«unsafe» G :=
-  And.intro h.e_unsafe True.intro
-
 theorem wf_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.reflectcore G :=
-  And.intro h.e_internal_reflectcore ⟨wf_unsafe h, True.intro⟩
+  And.intro h.e_internal_reflectcore True.intro
 
 theorem wf_internal_reflectlite {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.reflectlite G :=
@@ -173,6 +169,10 @@ theorem wf_internal_reflectlite {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_errors {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.errors G :=
   And.intro h.e_errors ⟨wf_internal_reflectlite h, True.intro⟩
+
+theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.«unsafe» G :=
+  And.intro h.e_unsafe True.intro
 
 theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math.bits G :=
@@ -492,15 +492,10 @@ theorem wfO_internal_gomodel {G : GoString → IProp GF} (h : KitG G) (S : List 
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.gomodel ∉ ownedPkgs) (hS _ hm))).trans
     h.e_internal_gomodel) True.intro
 
-theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_unsafe) True.intro
-
 theorem wfO_internal_reflectcore {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.reflectcore (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.reflectcore ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_reflectcore) ⟨wfO_unsafe h S hS, True.intro⟩
+    h.e_internal_reflectcore) True.intro
 
 theorem wfO_internal_reflectlite {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.reflectlite (gOff S G) :=
@@ -511,6 +506,11 @@ theorem wfO_errors {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.errors (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.errors ∉ ownedPkgs) (hS _ hm))).trans
     h.e_errors) ⟨wfO_internal_reflectlite h S hS, True.intro⟩
+
+theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_unsafe) True.intro
 
 theorem wfO_math_bits {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.bits (gOff S G) :=
