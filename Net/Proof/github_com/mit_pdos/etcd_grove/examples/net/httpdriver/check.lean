@@ -97,6 +97,13 @@ theorem check.wp_proof (wp_Get : net.http.Header.Get.spec (GF := GF) (hG := hG))
   intro q d resp rv hc body hq hpre
   rcases q with ⟨qraw, qkind, qmeth, qval, qbody⟩
   wp_start as ⟨#Hf, #Hresp, Hh⟩
+  -- the two fields `check` reads, as persistent points-to (from `resp ↦□ rv`)
+  ihave ⟨#Hsc, -⟩ := access_strict
+    (A := (structFieldRef net.http.Response go!"StatusCode" resp ↦□ rv.StatusCode' : IProp GF))
+    (A' := (structFieldRef net.http.Response go!"StatusCode" resp ↦□ rv.StatusCode' : IProp GF)) $$ Hresp
+  ihave ⟨#Hhd, -⟩ := access_strict
+    (A := (structFieldRef net.http.Response go!"Header" resp ↦□ rv.Header' : IProp GF))
+    (A' := (structFieldRef net.http.Response go!"Header" resp ↦□ rv.Header' : IProp GF)) $$ Hresp
   iunfold drvFacts at Hf
   icases Hf with ⟨%f, #Hrg, #Hrf⟩
   cases d with

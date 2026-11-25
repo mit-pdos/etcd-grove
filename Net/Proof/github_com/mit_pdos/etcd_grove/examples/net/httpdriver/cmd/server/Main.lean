@@ -45,7 +45,7 @@ theorem wp_main
   · iPkgInit
   try wp_auto
   wp_apply wp_Server ms $$ []
-  · iframe Hd Hu Hms Hse Hpl
+  · iframe Hu Hms Hse Hpl
     ipureintro; exact Hb
   iapply HΦ
   itrivial

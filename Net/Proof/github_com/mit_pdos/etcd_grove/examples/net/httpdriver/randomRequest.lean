@@ -63,11 +63,11 @@ theorem randomRequest.wp_proof (wp_below : below.spec (GF := GF) (hG := hG))
       ipureintro
       first
         | (refine ⟨.echo go!"PUT" v b, ?_, ?_⟩
-           · simp only [DReq.ok]; exact ⟨Or.inr rfl, Hv, Hb⟩
-           · simp only [qOf]; exact ⟨echo_raw_wire _ v b Hb.1, rfl, rfl, rfl, rfl⟩)
+           · exact ⟨by decide, Hv, Hb⟩
+           · exact ⟨echo_raw_wire _ v b Hb.1, rfl, rfl, rfl, rfl⟩)
         | (refine ⟨.echo go!"POST" v b, ?_, ?_⟩
-           · simp only [DReq.ok]; exact ⟨Or.inl rfl, Hv, Hb⟩
-           · simp only [qOf]; exact ⟨echo_raw_wire _ v b Hb.1, rfl, rfl, rfl, rfl⟩)
+           · exact ⟨by decide, Hv, Hb⟩
+           · exact ⟨echo_raw_wire _ v b Hb.1, rfl, rfl, rfl, rfl⟩)
   · wp_if_destruct
     · -- `GET /status`
       iapply HΦ

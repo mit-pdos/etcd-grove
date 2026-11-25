@@ -271,7 +271,7 @@ theorem hc_readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc)
 /-- An answer's facts make it one the client's stream can carry (`hcSlotOk`): `drvP.resp` bounds a
 body by `32` bytes, against a chunked answer's over `2048`. -/
 theorem respFact_good (L : List ReqSlot) (i : Nat) (x : RespSlot) :
-    net.http.respFacts (Gg := hG.goose_globalGS) drvP L i x ⊢ ⌜hcSlotOk x⌝ := by
+    net.http.respFacts drvP L i x ⊢ ⌜hcSlotOk x⌝ := by
   cases x with
   | ans ρ =>
     unfold net.http.respFacts
@@ -292,7 +292,7 @@ theorem respFact_good (L : List ReqSlot) (i : Nat) (x : RespSlot) :
     simp only [hcSlotOk]
 
 theorem respFacts_good (L : List ReqSlot) (Rs : List RespSlot) :
-    ([∗list] i ↦ x ∈ Rs, net.http.respFacts (Gg := hG.goose_globalGS) drvP L i x) ⊢
+    ([∗list] i ↦ x ∈ Rs, net.http.respFacts drvP L i x) ⊢
       ⌜∀ x ∈ Rs, hcSlotOk x⌝ := by
   refine (BigSepL.bigSepL_mono (Ψ := fun _ x => iprop(⌜hcSlotOk x⌝))
     fun {i x} _ => respFact_good L i x).trans ?_
@@ -308,7 +308,7 @@ theorem hc_respP_good (cn : Nat) (γ : GName) (ext : List w8) :
     ∃ Rs : List RespSlot, ⌜net.http.respsCover Rs ext ∧ ∀ x ∈ Rs, hcSlotOk x⌝ ∗
       (⌜∀ x ∈ Rs, x = RespSlot.bad⌝ ∨
         ∃ L' : List ReqSlot, monoListLbOwn γ L' ∗ ⌜Rs.length ≤ L'.length⌝ ∗
-          [∗list] i ↦ x ∈ Rs, net.http.respFacts (Gg := hG.goose_globalGS) drvP L' i x) := by
+          [∗list] i ↦ x ∈ Rs, net.http.respFacts drvP L' i x) := by
   iintro ⟨#Hcn, HP⟩
   iunfold net.http.httpRespP at HP
   icases HP with ⟨%Rs, %Hcov, (%Hbad | ⟨%γ', %L', #Hcn', #Hlb, %Hlen, #Hfs⟩)⟩
@@ -554,7 +554,7 @@ theorem hcStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
 
 /-- `bufio.NewReader`'s law. -/
 theorem hcSt_bound (cn : Nat) (γ γe : GName) (r : List w8) :
-    hcSt cn γ γe r ⊢ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝ := by
+    hcSt (GF := GF) cn γ γe r ⊢ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝ := by
   iintro Hst
   iunfold hcSt at Hst
   icases Hst with ⟨Hrecv, -, #Hcn, ⟨%L, Hh, %HL⟩, -⟩
@@ -577,7 +577,7 @@ theorem hcSt_bound (cn : Nat) (γ γe : GName) (r : List w8) :
 
 /-- After an error at `r`, the stream stays at `r`. -/
 theorem hcErr_final (cn : Nat) (γ γe : GName) (r r' : List w8) (err : GoInterface) :
-    hcErr γe r err ∗ hcSt cn γ γe r' ⊢ ⌜r <+: r' → r' = r⌝ := by
+    hcErr (GF := GF) γe r err ∗ hcSt cn γ γe r' ⊢ ⌜r <+: r' → r' = r⌝ := by
   iintro ⟨#He, Hst⟩
   iunfold hcSt at Hst
   icases Hst with ⟨-, -, -, -, Hc⟩
@@ -628,7 +628,7 @@ theorem hcSt_law (cn : Nat) (γ γe : GName) (D : List w8) (A : List Resp) (L : 
       have := Hbad _ (List.mem_of_getElem? hidx)
       cases this
     ihave #Hf := BigSepL.bigSepL_lookup (Φ := fun i (x : RespSlot) =>
-      net.http.respFacts (Gg := hG.goose_globalGS) drvP L' i x) hidx $$ Hfs
+      net.http.respFacts drvP L' i x) hidx $$ Hfs
     iunfold net.http.respFacts at Hf
     icases Hf with ⟨%R, %τ, %B, %hs, ⟨%HL', %-, %-, %Hv, %-⟩, -, #Hend⟩
     ihave %Hv2 := mono_list_lb_valid _ _ _ $$ HL Hlb
@@ -687,8 +687,8 @@ theorem ownReader_addSlot (b : Loc) (ri : GoInterfaceOk) (E : List w8 → GoInte
   obtain ⟨-, hL0⟩ := Hag
   subst L0
   ihave Hfull := (hc_ml_halves γ L).2 $$ [$Hh0 $Hh]
-  imod monoListAuthOwn_update (GF := GF) (L ++ [s]) (List.prefix_append _ _) $$ Hfull
-    with ⟨Hfull, -⟩
+  ihave Hup := monoListAuthOwn_update (GF := GF) (L ++ [s]) (List.prefix_append _ _) $$ Hfull
+  imod Hup with ⟨Hfull, -⟩
   icases (hc_ml_halves γ (L ++ [s])).1 $$ Hfull with ⟨Hh1, Hh2⟩
   imodintro
   iframe Hh2

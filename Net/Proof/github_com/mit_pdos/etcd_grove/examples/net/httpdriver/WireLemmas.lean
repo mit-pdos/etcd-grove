@@ -321,7 +321,7 @@ theorem hdrGetL_cons_ne (k k' v : List w8) (hb : List HdrLine) (h : k ≠ k') :
 
 theorem reqWire_nope_head (w : List w8) : go!"/nope/" ++ w = W8 47 :: (go!"nope" ++ W8 47 :: w) := by
   rw [show (go!"/nope/" : List w8) = W8 47 :: (go!"nope" ++ [W8 47]) by decide]
-  simp only [List.cons_append, List.append_assoc, List.singleton_append]
+  simp
 
 /-- The driver's requests are read as written. -/
 theorem DReq.reqOk (d : DReq) (hd : d.ok) (hj : d ≠ .junk) : net.http.reqOk d.hreq d.body := by
@@ -366,7 +366,9 @@ theorem DReq.reqOk (d : DReq) (hd : d.ok) (hj : d ≠ .junk) : net.http.reqOk d.
     have hw : isWord w := hd
     show net.http.reqOk ⟨go!"GET", driverHost, go!"/nope/" ++ w, []⟩ []
     unfold net.http.reqOk
-    refine ⟨by unfold net.http.methOk; decide, ?_, by decide, by decide, by simp,
+    refine ⟨(by unfold net.http.methOk; decide : net.http.methOk go!"GET"), ?_,
+      (by decide : driverHost.all net.http.hostByte = true),
+      (by decide : net.http.hdrBlockOk [(go!"Host", driverHost)]), by simp,
       Or.inr ⟨by simp, rfl⟩, by simp, ?_, by decide⟩
     · unfold net.http.reqPath
       refine ⟨by rw [reqWire_nope_head]; rfl, fun c hc => ?_⟩

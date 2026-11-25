@@ -1,0 +1,17 @@
+# httpdriver (examples/net/httpdriver, notes/library-drivers.md): net/http's driver, the executable
+# specification of what the proofs rely on from net/http, in the part Net/: its top-level robustness
+# theorem `httpdriver_robust` (Net/Proof/.../net/httpdriver/TopLevelRobustness.lean: two machines,
+# Robust [] under DistDeploy and the environment premise GodebugHttpmuxgo121Not1, httpThreads = 2^30
+# threads, httpSteps = 2^63 - 1 steps). The library is done when this collection is empty but for the
+# models' trusted claims and the net extension's semantics.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/httpdriver.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/httpdriver.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/httpdriver.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Proved 2026-11-25 over net/http's interim axioms (each with a docstring
+# naming what retires it; texts in notes/library-drivers.md, "net/http"): the first-run initializer
+# (Net/Proof/net/http/InitFirst.lean, L2 step 6), the ServeMux's dispatch, http.Serve over a user handler and
+# ReadResponse on a stream of answers (phase 7's S5).
+roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/httpdriver/TopLevelRobustness\.lean$

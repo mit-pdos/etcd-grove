@@ -44,7 +44,8 @@ theorem wp_main
   · iPkgInit
   try wp_auto
   wp_apply wp_Client $$ [Htok] as Htok
-  · iframe Hd Hf Ha Htok
+  · iframe Htok
+    try iframe #
     ipureintro; exact Hb
   iapply HΦ
   iexact Htok
