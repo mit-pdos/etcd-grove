@@ -521,16 +521,11 @@ theorem memberRestartFacts_gen (L L' : GooseLocalGS GF) (γ : SrvRaft) (ρ : Req
     etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L⟩) γ ρ id ⊢
       etcdstart.memberRestartFacts (hG := ⟨G, etcd_dist.atCtx L'⟩) γ ρ id := by
   unfold etcdstart.memberRestartFacts
-  iintro ⟨%hp, %hns, #H⟩
-  isplitr
-  · ipureintro
-    obtain ⟨a, b, c, d, e, f, g⟩ := hp
-    refine ⟨a, b, c, d, e, f, ?_⟩
-    rw [lease.runCfg_lm g]
-    exact lease.runCfg_none
-  isplitr
-  · ipureintro; exact hns
-  iexact H
+  refine sep_mono (BI.pure_mono ?_) .rfl
+  rintro ⟨a, b, c, d, e, f, g⟩
+  refine ⟨a, b, c, d, e, f, ?_⟩
+  rw [lease.runCfg_lm g]
+  exact lease.runCfg_none (hG := ⟨G, etcd_dist.atCtx L'⟩)
 
 end dur
 
