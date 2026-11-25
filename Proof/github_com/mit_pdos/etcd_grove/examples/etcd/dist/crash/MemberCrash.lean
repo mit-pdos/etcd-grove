@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsHGen
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsCrash
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Crash
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.FileDur
 public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedCoh
@@ -377,13 +378,25 @@ def memberDurKeep (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) 
   letI := srvStor (GF := GF) γn
   iprop(rnDurInvK γn id νk h ∗ token νk.tk ∗ nodeCrashTok γn.cl id νk.x ∗ token νk.ν.stop)
 
-/-- **The WAL's crash at the new generation** (`walInv_crash`'s outputs T5's `walRecsH_crash` takes):
-the crash view from the WAL names `h.W` to `W'`, `W'`'s lock token, the WAL directory's call
-permission's half. -/
+/-- **What the member keeps of its WAL area across a crash**: the area's invariant at the WAL names
+`h.W` (`walInv`, at the server's codec and marshaller) with its crash token, and the shared mode's
+invariant at the roots `h.R` (over `h`'s file system instances). -/
+def memberWalKeep (h : WalH GF) : IProp GF :=
+  letI := h.ext; letI := h.semOk; letI := h.has
+  iprop(WalFs.walInv (W := h.W) walCodec walSrvMr h.R h.jr h.r ∗ WalFs.walCrashTok (W := h.W) ∗
+    Fs.osSharedInv h.R)
+
+/-- **The WAL's crash view** (`walInv_crash`'s outputs T5's `walRecsH_crash` takes, but the call
+permission): the crash view from the WAL names `h.W` to `W'`, `W'`'s lock token. -/
+def memberWalCrashW (h : WalH GF) (W' : WalFs.WalGS GF) : IProp GF :=
+  letI := h.ext; letI := h.semOk; letI := h.has
+  iprop(WalFs.walCrashWal h.W W' ∗ WalFs.walUnlockedTok (W := W'))
+
+/-- **The WAL's crash at the new generation** (all of `walRecsH_crash`'s inputs but the records):
+`memberWalCrashW` and the WAL directory's call permission's half at the generation. -/
 def memberWalCrash (h : WalH GF) (W' : WalFs.WalGS GF) : IProp GF :=
   letI := h.ext; letI := h.semOk; letI := h.has
-  iprop(WalFs.walCrashWal h.W W' ∗ WalFs.walUnlockedTok (W := W') ∗
-    Fs.osCallPerm (Fs.callKey h.R h.dir) (1 : Qp).half)
+  iprop(memberWalCrashW h W' ∗ Fs.osCallPerm (Fs.callKey h.R h.dir) (1 : Qp).half)
 
 /-- **Raft's durable state after the crash** (T2's outputs): the id's state `S` and vacancy, records
 `σ` that hold it and meet I1-I4, their snapshot's certificates, a committed log `l` they agree with. -/
@@ -435,7 +448,9 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
   · iintro %σr %Hs %n Hr Hsy
     ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).1 $$ Hr
     iunfold memberWalCrash at Hw
-    icases Hw with ⟨Hcw, Hu, Hc⟩
+    icases Hw with ⟨Hw, Hc⟩
+    iunfold memberWalCrashW at Hw
+    icases Hw with ⟨Hcw, Hu⟩
     icases walRecsH_crash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' σr Hs n id cid hmd $$
       [Hcw Hr Hsy Hu Hc] with ⟨Hr, %j, %hj, Hf⟩
     · iframe Hcw Hr Hsy Hu Hc
@@ -456,6 +471,40 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     ipureintro; exact hp
   · imod rnTakenK_stop (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E hE $$ Hinv Htaken Hst with %hF
     exact hF.elim
+
+/-- **The WAL area's crash** (`walInv_crash` at the member's WAL, first of the crash lemmas: no file
+taken before it): from `memberWalKeep` at the old generation `L`, its `crashed` and the crash rest
+(whose premise `Q` gives W1, `hQ`), a new generation `W'` of the WAL's names with the crash view and
+its lock token (`memberWalCrashW`, at `L'`), the crashed tree well formed, and the crash rest with the
+area's files taken. (The new generation's area resources, `walStart` and its boot files, are dropped:
+`memberGen`'s restart case holds only the files, `srvFilesC`; the restarted server's WAL area is
+`bootstrap`'s crash contract's.) -/
+theorem memberWal_crash (L L' : GooseLocalGS GF) (h : WalH GF) (Q : Fs.OsState → Fs.OsState → Prop)
+    (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st') (V' : Fs.Hist) (E : CoPset)
+    (hE : ↑WalFs.walN ⊆ E) (hE' : ↑Fs.osShN ⊆ E) :
+    letI := h.ext; letI := h.semOk; letI := h.has;
+    ⊢ memberWalKeep (hG := ⟨G, etcd_dist.atCtx L⟩) h -∗
+      crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
+      Fs.crashRest Q (Fs.gooseOsGS (L := etcd_dist.atCtx L)) (Fs.gooseOsGS (L := etcd_dist.atCtx L'))
+        [] false V' ={E}=∗
+      ∃ (W' : WalFs.WalGS GF) (D : List Fs.Ino),
+        memberWalCrashW (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ∗ ⌜W'.roots = h.R ∧ Fs.TreeWf h.R V'.now⌝ ∗
+        Fs.crashRest Q (Fs.gooseOsGS (L := etcd_dist.atCtx L)) (Fs.gooseOsGS (L := etcd_dist.atCtx L'))
+          D false V' := by
+  letI := h.ext; letI := h.semOk; letI := h.has
+  iintro Hk Hcr Hrest
+  iunfold memberWalKeep at Hk
+  icases Hk with ⟨Hinv, Hct, #Hsh⟩
+  imod WalFs.walInv_crash walCodec walCodec_ok walSrvMr Q hQ ⟨G.gooseAllG⟩ (etcd_dist.atCtx L)
+    (etcd_dist.atCtx L') h.W h.R h.jr h.r V' [] (fun _ h => absurd h (List.not_mem_nil)) E hE hE' $$
+    Hinv Hcr Hct Hsh Hrest with ⟨%W', %s', %D', Hcw, %hp, -, -, Hu, -, -, Hrest⟩
+  imodintro
+  iexists W', D' ++ []
+  iframe Hrest
+  isplitl [Hcw Hu]
+  · iunfold memberWalCrashW
+    iframe Hcw Hu
+  · ipureintro; exact ⟨hp.1, hp.2.2.2.2.2.1⟩
 
 end dur
 
