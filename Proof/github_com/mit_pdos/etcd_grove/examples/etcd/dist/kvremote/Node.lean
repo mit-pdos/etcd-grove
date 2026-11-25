@@ -2,8 +2,8 @@
 
 The proof of `Node.spec`: `zap.NewNop()`; `etcdstart.NewClients(eps, lg)` (at a watch environment
 `kvNodePre` says exists: `Call` reads none of it); on its error `Node` returns; otherwise the client
-is a client of the view (`kvClientV_intro`: `NewClients`' `isNewClient` and `clientNoProxy`, the
-start's `membersAtV`); then `remote.ServeClient` at the store `kvR Γ.kv`'s service with `Codec()`
+is a client of the view (`kvClient_of_new`: `NewClients`' `isNewClient` and `clientNoProxy`, the
+start's `membersAt`); then `remote.ServeClient` at the store `kvR Γ.kv`'s service with `Codec()`
 (`codecOk_wireOk`), the system `tok sys := ⌜sys = cli⌝ ∗ levelTok 0` (`newClient` returns the
 client), and the operation `opMaybe` (`opMaybe_svcOp`): `op(sys, in)` is `txnlin.Call(cli, in)`
 across machines (`Call_dist.spec`), whose update is the slot's (`slotUpd_callUpd`, at a fresh token
@@ -20,7 +20,7 @@ public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.NodeUpd
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.ClientV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 
 @[expose] public section
 
@@ -33,7 +33,7 @@ namespace Perennial
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
-open EtcdGrove EtcdGrove.etcd_txnlin EtcdGrove.etcd_dist.view
+open EtcdGrove EtcdGrove.etcd_txnlin EtcdGrove.etcd_dist
 open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
@@ -49,14 +49,13 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem Node.wp_proof (svc : DistView → w64 → GrpcSvc GF)
-    (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
+theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_NewClients : etcdstart.NewClients.spec (GF := GF) (hG := hG))
     (wp_Codec : Codec.spec (GF := GF) (hG := hG))
-    (wp_Call_dist : Call_dist.spec (GF := GF) (hG := hG) svc)
+    (wp_Call_dist : Call_dist.spec (GF := GF) (hG := hG))
     (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec
       (GF := GF) (hG := hG) (I := VIn) (O := VOut)) :
-    Node.spec (GF := GF) (hG := hG) svc := by
+    Node.spec (GF := GF) (hG := hG) := by
   intro c addr eps epsL
   wp_start as ⟨Heps, Hpre⟩
   iunfold kvNodePre at Hpre
@@ -93,10 +92,10 @@ theorem Node.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     wp_auto
     iapply HΦ; itrivial
   subst Hcerr
-  ihave Hkv := kvClientV_intro svc cl epsL (Classical.choice hV) Γ $$ [Hnc Hnp Hm]
+  ihave Hkv := kvClient_of_new cl epsL (Classical.choice hV) Γ $$ [Hnc Hnp Hm]
   · iframe #
   icases Hkv with ⟨%api, Hkv⟩
-  iunfold kvClientV at Hkv
+  iunfold kvClientAt at Hkv
   icases Hkv with ⟨#Hk1, #Hk2, #Hk3, #Hk4⟩
   wp_auto
   ipersist cli
@@ -123,7 +122,7 @@ theorem Node.wp_proof (svc : DistView → w64 → GrpcSvc GF)
       (if (kvMi x).isWrite then nodeQ x Ψ else nodeRQ γt x Ψ) (kvMi_dec x) x.2) $$ [Hlt HU]
     · iframe #
       iframe
-      iunfold kvClientV
+      iunfold kvClientAt
       iframe #
     iintro %v ⟨Hlt, Hv⟩
     icases Hv with (%Hv | ⟨%y, %σ, HQ, %Hy⟩)

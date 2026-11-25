@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 The proof of `Call_dist.spec` (txnlin's `Call` across machines, P9): copies of txnlin's `callGet`,
 `callList`, `callPut`, `callDel`, `callTxn`, `call` and `Call` proofs (`Proof/.../txnlin/`), each with the
 in-process servers' facts (`isNewClient ∗ clientWriteOnce ∗ [∗list] kvRegsAt`, one update per member,
-the members' `srvStart`) replaced by the view's client facts `kvClientV svc cl api eps V Γ` and one
+the members' `srvStart`) replaced by the view's client facts `kvClientAt cl api eps V Γ` and one
 update at `Γ.kv`, over the cross-machine laws of `ClientCallDistLaws.lean` (`client_*_dist.law`,
 `txn_Commit_dist.law`) in place of `client_*_st.law`/`txn_Commit_st.law`. The rest of each proof
 (the output from the reply) is txnlin's, unchanged. Not a generalization of txnlin's proofs: those keep
@@ -50,7 +50,7 @@ namespace etcd_txnlin
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 open github_com.mit_pdos.etcd_grove.examples.etcd.txnlin go_etcd_io.etcd.server.v3.etcdserver
-open EtcdGrove.etcd_dist.view
+open EtcdGrove.etcd_dist
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -63,18 +63,17 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `callGet` across machines (txnlin's `callGet.spec` at the view). -/
-theorem callGet_dist (svc : DistView → w64 → GrpcSvc GF)
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+theorem callGet_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_vrOf : vrOf.spec (GF := GF) (hG := hG))
-    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law svc) :
+    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
+        (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet)) (Val #cl))
         (Val #key))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -168,20 +167,19 @@ theorem callGet_dist (svc : DistView → w64 → GrpcSvc GF)
     ipureintro; rfl
 
 /-- `callList` across machines (txnlin's `callList.spec` at the view). -/
-theorem callList_dist (svc : DistView → w64 → GrpcSvc GF)
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
     (wp_withKVs : withKVs.spec (GF := GF) (hG := hG))
     (wp_WithRange : EtcdGrove.WithRange.spec (GF := GF) (hG := hG))
-    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law svc) :
+    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
     ∀ (Q : KVState → IProp GF),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
+        (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callList)) (Val #cl))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
         ∃ σ : KVState, □ Q σ ∗
@@ -256,10 +254,9 @@ theorem callList_dist (svc : DistView → w64 → GrpcSvc GF)
     ipureintro; rfl
 
 /-- `callPut` across machines (txnlin's `callPut.spec` at the view), auth off. -/
-theorem callPut_dist (svc : DistView → w64 → GrpcSvc GF)
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+theorem callPut_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law svc) :
+    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     Γ.auth = false →
@@ -267,7 +264,7 @@ theorem callPut_dist (svc : DistView → w64 → GrpcSvc GF)
     ∀ (key val : GoString) (Q : KVState → IProp GF), key.length ≤ inMax → val.length ≤ inMax →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ kvOpAu1 Γ.kv (.put (linkv.putOp key val)) Q) }}
+        (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.put (linkv.putOp key val)) Q) }}
       (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut))
         (Val #cl)) (Val #key)) (Val #val))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -320,10 +317,9 @@ theorem callPut_dist (svc : DistView → w64 → GrpcSvc GF)
     ipureintro; rfl
 
 /-- `callDel` across machines (txnlin's `callDel.spec` at the view), auth off. -/
-theorem callDel_dist (svc : DistView → w64 → GrpcSvc GF)
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+theorem callDel_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law svc) :
+    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     Γ.auth = false →
@@ -331,7 +327,7 @@ theorem callDel_dist (svc : DistView → w64 → GrpcSvc GF)
     ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ kvOpAu1 Γ.kv (.deleteRange (linkv.delOp key)) Q) }}
+        (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.deleteRange (linkv.delOp key)) Q) }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callDel)) (Val #cl))
         (Val #key))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -386,18 +382,17 @@ theorem callDel_dist (svc : DistView → w64 → GrpcSvc GF)
     ipureintro; rfl
 
 /-- `callTxn` across machines (txnlin's `callTxn.spec` at the view), auth off. -/
-theorem callTxn_dist (svc : DistView → w64 → GrpcSvc GF)
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+theorem callTxn_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
     (wp_opsOf : opsOf.spec (GF := GF) (hG := hG)) (wp_thenOf : thenOf.spec (GF := GF) (hG := hG))
     (wp_elseOf : elseOf.spec (GF := GF) (hG := hG)) (wp_txnRes : txnRes.spec (GF := GF) (hG := hG))
     (wp_withRes : withRes.spec (GF := GF) (hG := hG))
-    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law svc)
+    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law)
     (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
     (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
-    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law svc) :
+    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     Γ.auth = false →
@@ -407,7 +402,7 @@ theorem callTxn_dist (svc : DistView → w64 → GrpcSvc GF)
       minBytesLe inMax (.txn cs t e) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ callUpd Γ.kv (.txn cs t e) Q) }}
+        (kvClientAt cl api eps V Γ ∗ callUpd Γ.kv (.txn cs t e) Q) }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn)) (Val #cl))
         (Val #x))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -553,14 +548,13 @@ theorem callTxn_dist (svc : DistView → w64 → GrpcSvc GF)
     ipureintro; rfl
 
 /-- `call` across machines (txnlin's `call.spec` at the view), auth off. -/
-theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
-    (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
+theorem call_dist (wp_callGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
       errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
       ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-          (kvClientV svc cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
+          (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
         (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet)) (Val #cl))
           (Val #key))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -573,7 +567,7 @@ theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
       ∀ (Q : KVState → IProp GF),
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-          (kvClientV svc cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
+          (kvClientAt cl api eps V Γ ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
         (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callList)) (Val #cl))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
           ∃ σ : KVState, □ Q σ ∗
@@ -586,7 +580,7 @@ theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
       ∀ (key val : GoString) (Q : KVState → IProp GF), key.length ≤ inMax → val.length ≤ inMax →
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-          (kvClientV svc cl api eps V Γ ∗ kvOpAu1 Γ.kv (.put (linkv.putOp key val)) Q) }}
+          (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.put (linkv.putOp key val)) Q) }}
         (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut))
           (Val #cl)) (Val #key)) (Val #val))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -600,7 +594,7 @@ theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
       ∀ (key : GoString) (Q : KVState → IProp GF), key.length ≤ inMax →
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-          (kvClientV svc cl api eps V Γ ∗ kvOpAu1 Γ.kv (.deleteRange (linkv.delOp key)) Q) }}
+          (kvClientAt cl api eps V Γ ∗ kvOpAu1 Γ.kv (.deleteRange (linkv.delOp key)) Q) }}
         (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callDel)) (Val #cl))
           (Val #key))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -618,7 +612,7 @@ theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
         minBytesLe inMax (.txn cs t e) →
       {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-          (kvClientV svc cl api eps V Γ ∗ callUpd Γ.kv (.txn cs t e) Q) }}
+          (kvClientAt cl api eps V Γ ∗ callUpd Γ.kv (.txn cs t e) Q) }}
         (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callTxn)) (Val #cl))
           (Val #x))
       {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -637,7 +631,7 @@ theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
     ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ callUpd Γ.kv i Q) }}
+        (kvClientAt cl api eps V Γ ∗ callUpd Γ.kv i Q) }}
       (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.call)) (Val #cl))
         (Val #x))
     {{ (y : Output), RET #y; levelTok 0 ∗ (⌜y = errOut⌝ ∨
@@ -769,8 +763,7 @@ theorem call_dist (svc : DistView → w64 → GrpcSvc GF)
           rfl
 
 /-- **`Call_dist.spec`**: `Call`'s type assertion, then `call_dist` over the copies above. -/
-theorem Call_dist.wp_proof (svc : DistView → w64 → GrpcSvc GF)
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+theorem Call_dist.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_vrOf : vrOf.spec (GF := GF) (hG := hG))
     (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
@@ -783,20 +776,20 @@ theorem Call_dist.wp_proof (svc : DistView → w64 → GrpcSvc GF)
     (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
     (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
-    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law svc)
-    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law svc)
-    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law svc)
-    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law svc)
-    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law svc)
-    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law svc) :
-    Call_dist.spec svc := by
+    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law)
+    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law)
+    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law)
+    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law)
+    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law)
+    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law) :
+    Call_dist.spec := by
   intro _ π cl api eps V Γ hauth hAs x i Q hx hgen
-  have wp_call := call_dist svc
-    (callGet_dist svc hWT wp_ErrAny wp_vrOf h_Get)
-    (callList_dist svc hWT wp_ErrAny wp_kvsFrom wp_withKVs wp_WithRange h_List)
-    (callPut_dist svc hWT wp_ErrAny h_Put)
-    (callDel_dist svc hWT wp_ErrAny h_Delete)
-    (callTxn_dist svc hWT wp_ErrAny wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
+  have wp_call := call_dist
+    (callGet_dist hWT wp_ErrAny wp_vrOf h_Get)
+    (callList_dist hWT wp_ErrAny wp_kvsFrom wp_withKVs wp_WithRange h_List)
+    (callPut_dist hWT wp_ErrAny h_Put)
+    (callDel_dist hWT wp_ErrAny h_Delete)
+    (callTxn_dist hWT wp_ErrAny wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
       h_Txn wp_If wp_Then wp_Else h_Commit)
   wp_start as ⟨Hlt, #Hkc, Hau⟩
   wp_auto

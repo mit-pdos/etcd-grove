@@ -6,7 +6,7 @@ analogues of `client/v3/ClientCallLaws.lean`'s `client_{Put,Get,Delete,Txn}_st.l
 `CallsLaws.lean` (`client_List_st.law`, `txn_Commit_st.law`), which `Proof/.../kvremote/CallDist.lean`
 (the copies of txnlin's `call*` proofs) takes instead of those. Each is the `_st` law with the
 in-process servers' facts (`isNewClient ∗ clientWriteOnce ∗ [∗list] kvRegsAt`, one update per member)
-replaced by the cluster view's client facts `kvClientV svc cl api eps V Γ` and one update at the
+replaced by the cluster view's client facts `kvClientAt cl api eps V Γ` and one update at the
 cluster's KV names `Γ.kv`; the write calls for a cluster with auth off (`Γ.auth = false`); the error
 arm without `kvErr` (N2's drafts claim nothing of a remote call's error; txnlin's `call*` read only
 `err ≠ nil` there).
@@ -16,7 +16,11 @@ arm without `kvErr` (N2's drafts claim nothing of a remote call's error; txnlin'
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientViewDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
+public import Proof.go_etcd_io.etcd.client.v3.InvOp
+public import Proof.go_etcd_io.etcd.client.v3.KVService
+public import Proof.go_etcd_io.etcd.client.v3.InvTxnBuilder
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 
 @[expose] public section
@@ -28,40 +32,11 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_dist
-namespace view
-
-open Iris Iris.BI Net client
-
-section kvpers
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-
-instance kvClientV_persistent (svc : DistView → w64 → GrpcSvc GF) [π : NetProtoGS] (cl api : Loc)
-    (eps : List GoString) (V : WEnv GF) (Γ : DistView) :
-    Persistent (kvClientV svc cl api eps V Γ) := by
-  unfold kvClientV; infer_instance
-
-end kvpers
-
-end view
-end etcd_dist
-end EtcdGrove
-end Perennial
-
-namespace Perennial
-namespace EtcdGrove
 namespace etcd_txnlin
 
 open Iris Iris.BI Iris.ProofMode Net client go_etcd_io.etcd.api.v3
 open go_etcd_io.etcd.server.v3.etcdserver
-open EtcdGrove.etcd_dist.view
+open EtcdGrove.etcd_dist
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -75,12 +50,12 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `cli.Get(ctx, key)` across machines (`client_Get_st.law` at the view): a read update at `Γ.kv`
 or none. -/
-abbrev client_Get_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev client_Get_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
       (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel key [])),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
           □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -92,12 +67,12 @@ abbrev client_Get_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
 
 /-- `cli.Get(ctx, listFrom, WithRange(listTo))` across machines (`client_List_st.law` at the
 view). -/
-abbrev client_List_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev client_List_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice)
       (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
+        (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
           optsAt sl [withRangeM listTo] ∗ □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu Γ.kv Q)) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #listFrom)) (Val #sl))
@@ -109,13 +84,13 @@ abbrev client_List_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
 
 /-- `cli.Put(ctx, key, val)` across machines (`client_Put_st.law` at the view), auth off: an update
 at `Γ.kv` fired at most once. -/
-abbrev client_Put_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev client_Put_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
       (sl : GoSlice) (Q : KVState → IProp GF) (hsz : opSizeOk (opPutModel key val [])),
     Γ.auth = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
           kvOpAu1 Γ.kv (.put (putKeyOp key val)) Q) }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
@@ -125,13 +100,13 @@ abbrev client_Put_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
           ⌜err ≠ GoInterface.nil⌝) }}
 
 /-- `cli.Delete(ctx, key)` across machines (`client_Delete_st.law` at the view), auth off. -/
-abbrev client_Delete_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev client_Delete_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
       (Q : KVState → IProp GF) (hsz : opSizeOk (opDeleteModel key [])),
     Γ.auth = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
           kvOpAu1 Γ.kv (.deleteRange (txn.deleteOpOf key [] false)) Q) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -145,11 +120,11 @@ abbrev client_Delete_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
 
 /-- `cli.Txn(ctx)` across machines (`client_Txn_st.law` at the view): the builder, empty, made from
 the client's `*kv` `api` (`txnKvIs`, what `Txn_Commit_dist` takes). -/
-abbrev client_Txn_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev client_Txn_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd) }}
+        (kvClientAt cl api eps V Γ ∗ ctxOk ci cd ∗ ctxErrClient ci cd) }}
       (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Txn")) (Val #(GoInterface.ok ci)))
     {{ (t : GoInterface), RET #t; levelTok 0 ∗ (∃ tp : Loc,
@@ -158,7 +133,7 @@ abbrev client_Txn_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
 
 /-- `Commit()` of the model's transaction across machines (`txn_Commit_st.law` at the view), auth
 off: its update by its kind at `Γ.kv` (`callUpd`). -/
-abbrev txn_Commit_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev txn_Commit_dist.law : Prop :=
   ∀ [π : NetProtoGS] (cl api tp : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
       (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
       (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
@@ -166,7 +141,7 @@ abbrev txn_Commit_dist.law (svc : DistView → w64 → GrpcSvc GF) : Prop :=
       (hne : t ++ e ≠ []) (hsz : txnSizeOk (txnWireOf b.model)),
     Γ.auth = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        (kvClientV svc cl api eps V Γ ∗ txnObjAt tp eps ci cd b ∗ txnKvIs tp api ∗
+        (kvClientAt cl api eps V Γ ∗ txnObjAt tp eps ci cd b ∗ txnKvIs tp api ∗
           callUpd Γ.kv (.txn cs t e) Q) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))

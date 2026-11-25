@@ -3,8 +3,8 @@
 linked proofs (`enc`'s, `EtcdGrove.enc`; txnlin's `IsWrite`, `Model` and `Gen`, from its proofs: txnlin's
 `Link` reaches the whole server; `remote`'s `Run`, `EtcdGrove.remote`).
 Hand-written, as `enc`'s (`etc/gen-link.py` has no mode for it).
-The Node (`wp_Node`) is linked over `Call_dist_holds`, whose hypotheses are N2's four drafts
-(`KV_{Put,Get,Delete}_dist`, `Txn_Commit_dist` at `svc`): not proved yet, so `wp_Node` takes them.
+The Node (`wp_Node`) is linked over `Call_dist_holds` at N2's interim contracts
+(`KV_{Put,Get,Delete}_dist`, `Txn_Commit_dist`: axioms until #24's S2 client side).
 -/
 module
 
@@ -69,6 +69,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.N
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.CallDistLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVDeleteDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitDist
 
 @[expose] public section
 
@@ -217,7 +221,7 @@ end linkedNet
 
 section linkedNode
 open Net
-open EtcdGrove.etcd_dist.view
+open EtcdGrove.etcd_dist
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -234,16 +238,13 @@ variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : github_com.mit_pdos.etcd_grove.examples.lib.remote.RemoteGS]
 variable [NaInvG GF]
 
-/-- The kv Node, linked: `Call` across machines from `Call_dist_holds`, whose hypotheses are N2's
-drafts at `svc` (not proved yet: they become N2's `X.wp_proof : X.spec etcdSvcV`). -/
-theorem wp_Node (svc : DistView → w64 → GrpcSvc GF)
-    (hPut : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], KV_Put_dist.spec svc)
-    (hGet : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], KV_Get_dist.spec svc)
-    (hDel : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], KV_Delete_dist.spec svc)
-    (hCommit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], Txn_Commit_dist.spec svc) :
-    Node.spec (GF := GF) (hG := hG) svc :=
-  Node.wp_proof svc zap.NewNop.wp_proof EtcdGrove.etcdstart.wp_NewClients wp_Codec
-    (EtcdGrove.etcd_txnlin.Call_dist_holds svc hPut hGet hDel hCommit) EtcdGrove.remote.wp_ServeClient
+/-- The kv Node, linked: `Call` across machines from `Call_dist_holds` at N2's interim contracts
+(`KV_Put_dist`, `KV_Get_dist`, `KV_Delete_dist`, `Txn_Commit_dist`: axioms until #24's S2 client side). -/
+theorem wp_Node : Node.spec (GF := GF) (hG := hG) :=
+  Node.wp_proof zap.NewNop.wp_proof EtcdGrove.etcdstart.wp_NewClients wp_Codec
+    (EtcdGrove.etcd_txnlin.Call_dist_holds KV_Put_dist.wp_proof KV_Get_dist.wp_proof
+      KV_Delete_dist.wp_proof Txn_Commit_dist.wp_proof)
+    EtcdGrove.remote.wp_ServeClient
 
 end linkedNode
 

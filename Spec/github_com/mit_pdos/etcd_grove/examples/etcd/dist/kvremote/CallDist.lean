@@ -4,7 +4,7 @@
 client machine makes (`kvremote.Node`'s operation), through its own clientv3 client of the cluster's
 endpoints. txnlin's `Call.spec` with the in-process servers' registrations (`isNewClient ∗
 clientWriteOnce ∗ [∗list] kvRegsAt`, one update per member) replaced by the cluster view's client
-facts, `kvClientV svc cl api eps V Γ` (N2's drafts, `dist/ClientViewDist.lean`: `New`'s client `cl` of
+facts, `kvClientAt cl api eps V Γ` (N2's drafts, `dist/ClientViewDist.lean`: `New`'s client `cl` of
 the endpoints `eps`, its `KV` field the `*kv` `api`, every endpoint a member of the view `Γ`), and one
 update at the cluster's KV names `Γ.kv` (`callUpd`). The post is `Call.spec`'s: the failed call's output
 (`errOut`), or a successful one at the state `σ` the update fired at (`callRes`), the model's answer at
@@ -17,7 +17,7 @@ drafts' write calls': a write is sent at most once).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientViewDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
@@ -30,7 +30,7 @@ namespace EtcdGrove
 namespace etcd_txnlin
 
 open Iris Iris.BI Net github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
-open EtcdGrove.etcd_dist.view
+open EtcdGrove.etcd_dist
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -43,7 +43,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- See the file header. -/
-abbrev Call_dist.spec (svc : DistView → w64 → GrpcSvc GF) : Prop :=
+abbrev Call_dist.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
     (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
   Γ.auth = false →
@@ -51,7 +51,7 @@ abbrev Call_dist.spec (svc : DistView → w64 → GrpcSvc GF) : Prop :=
   ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-      kvClientV svc cl api eps V Γ ∗ callUpd Γ.kv i Q }}
+      kvClientAt cl api eps V Γ ∗ callUpd Γ.kv i Q }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Call)) (Val #cl))
       (Val #(boxIn x)))
   {{ (v : GoInterface), RET #v; levelTok 0 ∗ (⌜v = boxOut errOut⌝ ∨
