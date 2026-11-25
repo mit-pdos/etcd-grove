@@ -103,8 +103,12 @@ theorem pwPost_step (m : OsMeta) (off n nn j k : Nat) (hoff : off ≤ m.size) (h
   · -- the crash sizes known: a write inside the file keeps them, either way
     have hSu : pwSize m.size off j ≤ max m.size (off + j) := by unfold pwSize; split <;> omega
     have hSl : m.size ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
-    simp only [pwPost]
-    (repeat' split) <;> first | rfl | omega
+    show (if off + nn + (n - nn) ≤ pwSize m.size off j then
+        (if off + n ≤ m.size then m.xs else none) else none) =
+      (if off + n ≤ m.size then m.xs else none)
+    by_cases hB : off + n ≤ m.size
+    · rw [if_pos (by omega), if_pos hB]
+    · rw [if_neg hB]; split <;> rfl
 
 
 /-- The bytes after a write's next attempt, from `nn ≤ j` (where a short attempt stopped), over

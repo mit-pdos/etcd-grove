@@ -152,8 +152,15 @@ theorem pwPostE_chunk (m : OsMeta) (off a nn j E cs k : Nat) (hml : m.lo ≤ m.s
   · -- the crash sizes known: a write inside the file keeps them, either way
     have hSu : pwSize m.size off j ≤ max m.size (off + j) := by unfold pwSize; split <;> omega
     have hSl : m.size ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
-    simp only [pwPost, os.pwPostE]
-    (repeat' split) <;> first | rfl | omega
+    show (if off + nn + cs ≤ pwSize m.size off j then
+        (if off + a ≤ m.size then m.xs else none) else none) =
+      (if off + (nn + cs) ≤ m.size then m.xs else none)
+    by_cases hB : off + (nn + cs) ≤ m.size
+    · rw [if_pos (by omega), if_pos (by omega), if_pos hB]
+    · rw [if_neg hB]
+      split
+      · rw [if_neg (by omega)]
+      · rfl
 
 /-- The bytes a write has landed after one more attempt, of the chunk `c` from `nn`, are a cut. -/
 theorem waCut_step (off len nn j c k : Nat) (hj0 : os.WaCut off len j)
