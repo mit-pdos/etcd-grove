@@ -25,6 +25,7 @@ The vocabulary of the specs of net/http's request reading (`readRequest` and wha
 module
 
 public import Net.Proof.net.http.Defs
+public import Net.Proof.net.Base
 
 @[expose] public section
 
@@ -125,28 +126,10 @@ variable [package_sem' : net.http.Assumptions]
 
 open Iris.ProgramLogic Iris.ProofMode
 
-/-- An error whose `Error()` returns a fixed string (`errors.New`'s, `errors.newVar`'s) has
-`errMsgOk`. -/
-theorem errMsgOk_of_wp (ii : GoInterfaceOk) (s : GoString) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-      WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ⊢
-      errMsgOk (interface.ok ii) := by
-  iintro #H
-  unfold errMsgOk
-  iexists ii
-  isplitr
-  · ipureintro; rfl
-  rw [fmt.stringMethodSpec_unfold]
-  imodintro
-  iintro %Φ HΦ
-  iapply H
-  inext
-  iapply HΦ
-
 /-- A `textproto.ProtocolError`'s `Error()` returns its message. -/
 theorem protocolError_msg (msg : GoString) :
-    ⊢ fmt.stringMethodSpec (GF := GF) ⟨net.textproto.ProtocolError.ty, #msg⟩ go!"Error" := by
-  unfold fmt.stringMethodSpec
+    ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods net.textproto.ProtocolError.ty go!"Error" #msg)) (Val #())) {{ Φ }}) := by
   iintro !>
   iintro %Φ HΦ
   rw [method_unfold (t := net.textproto.ProtocolError.ty) (m := go!"Error")]
@@ -160,12 +143,51 @@ theorem mimeErr_msg (E : List w8 → GoInterface → IProp GF) (err : GoInterfac
   iunfold mimeErr at Hm
   icases Hm with (⟨%r, #HE⟩ | %Hp)
   · iapply Herrs $$ HE
-  · obtain ⟨msg, rfl⟩ := Hp
-    iunfold errMsgOk
+  · obtain ⟨msg, rfl, hp⟩ := Hp
+    iapply errMsgOk_of ⟨net.textproto.ProtocolError.ty, #msg⟩ msg
+      (fun h => by subst h; exact absurd hp (by decide))
+    iapply protocolError_msg
+
+/-- A `textproto.ProtocolError`'s `Error()` returns some string (`fmt.stringMethodSpec`). -/
+theorem protocolError_str (msg : GoString) :
+    ⊢ fmt.stringMethodSpec (GF := GF) ⟨net.textproto.ProtocolError.ty, #msg⟩ go!"Error" := by
+  unfold fmt.stringMethodSpec
+  iintro !>
+  iintro %Φ HΦ
+  rw [method_unfold (t := net.textproto.ProtocolError.ty) (m := go!"Error")]
+  wp_auto
+  iapply HΦ
+
+/-- The header reader's errors have an `Error()` method returning some string (`net.errStr`), when
+the stream's have. -/
+theorem mimeErr_errStr (E : List w8 → GoInterface → IProp GF) (err : GoInterface) :
+    (□ ∀ (r : List w8) (e : GoInterface), E r e -∗ net.errStr e) ∗ mimeErr E err ⊢ net.errStr err := by
+  iintro ⟨#Herrs, #Hm⟩
+  iunfold mimeErr at Hm
+  icases Hm with (⟨%r, #HE⟩ | %Hp)
+  · iapply Herrs $$ HE
+  · obtain ⟨msg, rfl, -⟩ := Hp
+    iunfold net.errStr
     iexists ⟨net.textproto.ProtocolError.ty, #msg⟩
     isplitr
     · ipureintro; rfl
-    iapply protocolError_msg
+    iapply protocolError_str
+
+/-- An `*errors.errorString`'s `Error()` returns its message (`net.errStr`). -/
+theorem errorString_errStr (x : Loc) (s : GoString) :
+    x.[errors.errorString, go!"s"] ↦□ s ⊢
+      net.errStr (GF := GF) (interface.ok ⟨go.GoType.PointerType errors.errorString.ty, #x⟩) := by
+  iintro #Hx
+  iunfold net.errStr
+  iexists ⟨go.GoType.PointerType errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; rfl
+  unfold fmt.stringMethodSpec
+  iintro !>
+  iintro %Φ HΦ
+  rw [method_unfold (t := go.GoType.PointerType errors.errorString.ty) (m := go!"Error")]
+  wp_auto
+  iapply HΦ
 
 end errs
 

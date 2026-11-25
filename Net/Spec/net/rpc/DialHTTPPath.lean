@@ -8,7 +8,9 @@ error: the net extension's D1 v3.5, the dialer setting no read deadline), and on
 `NewClient`: a client of `a`, its reader just after the answer (the acceptor writes nothing more
 before a request, and nothing before the whole request is written: `respProto`); or an error (the
 dial's, or the `*OpError` `"dial-http"` wrapping the answer's, with its `Error()`, `errAny`).
-`httpEnv` is what the answer's read needs of the package's state (`http.ReadResponse.spec`).
+`httpEnv` is what the answer's read needs of the package's state (`http.ReadResponse.spec`);
+`isPkgInit net.rpc` (the package's own initialization, as `Register`'s) gives `internal/poll`'s,
+which `Conn.Read` takes (since the Go-model overlays S6: Go's `conn.Read` compares with `io.EOF`).
 Proved in `Net/Proof/net/rpc/DialHTTPPath.lean`, over `http.ReadResponse.spec`.
 -/
 module
@@ -36,7 +38,7 @@ variable [π : NetProtoGS]
 /-- See the file header. -/
 abbrev DialHTTPPath.spec : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗
       rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq path) connectAns }}
     (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))

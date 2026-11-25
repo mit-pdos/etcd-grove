@@ -341,8 +341,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   ihave #Hhenv' := Hhenv
   iunfold net.http.httpEnv at Hhenv'
   icases Hhenv' with ⟨#Hbufio, -, #Hfmt, -⟩
-  -- `Conn.Read` takes `internal/poll`'s package fact: `fmt` imports it (through `os` in Go; directly in
-  -- the model overlay's import list)
+  -- `Conn.Read` takes `internal/poll`'s package fact: net/rpc imports it (through `net`)
   ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
   · solve_pkg_init
   wp_auto
@@ -428,13 +427,11 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iintro %r0 %r' %e He HS
       iapply crErr_final W a cn γ γe r0 r' e $$ [$He $HS]
     ihave #Hlaw3 : (□ ∀ (r0 : List w8) (e : GoInterface), crErr γe r0 e -∗
-        net.http.errMsgOk e : IProp GF) $$ []
+        net.errStr e : IProp GF) $$ []
     · imodintro
       iintro %r0 %e He
       iunfold crErr at He
       icases He with ⟨-, #Hes⟩
-      unfold net.errStr at Hes
-      unfold net.http.errMsgOk
       iexact Hes
     wp_apply wp_ReadResponse b _ (crSt W a cn γ γe) (crErr γe) req _
         $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hlaw3 $Hreq] as %resp %rerr Hres
@@ -466,7 +463,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       · iexact Hpe
       unfold net.opErrMsgOk net.addrOrNil
       isplitr
-      · unfold net.http.errMsgOk at Hrm; unfold net.errStr; iexact Hrm
+      · iexact Hrm
       isplitr <;> (ileft; ipureintro; rfl)
     subst Hnil
     iStructNamed Hrv

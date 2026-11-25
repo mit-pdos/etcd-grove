@@ -15,6 +15,7 @@ delivered `connectAns`, or the status is the `400` answer's.
 module
 
 public import Net.Spec.net.http.ReadResponse
+public import Net.Proof.net.OpErrorMsg
 public import Net.Spec.net.http.modelReadLine
 public import Net.Spec.net.http.modelReadMIMEHeader
 public import Perennial.Spec.strings.Cut
@@ -123,7 +124,7 @@ theorem ReadResponse.wp_proof
   · iexact Hb
   -- the line read: a whole status line, a prefix of one (cut by an error), or an error
   ihave Hu : ((⌜line = [] ∧ err ≠ GoInterface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗
-        errMsgOk err ∗ EtcdGrove.bufio.ownReader b ri S E l) ∨
+        net.errStr err ∗ EtcdGrove.bufio.ownReader b ri S E l) ∨
       (⌜err = GoInterface.nil ∧ (line <+: statusLine ∨ line <+: badStatusLine ++ [W8 13])⌝ ∗
         ∃ rr : List w8, EtcdGrove.bufio.ownReader b ri S E rr ∗
         (⌜rr = statusLine ++ [W8 10] ∧ line = statusLine⌝ ∨
@@ -212,7 +213,7 @@ theorem ReadResponse.wp_proof
   unfold errors.newVar
   icases HEOF with ⟨%xe, #Hxe, -⟩
   icases HUEOF with ⟨%xu, #Hxu, -, #Hxuw⟩
-  ihave #Hxum := errMsgOk_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xu⟩ _ $$ Hxuw
+  ihave #Hxum := net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xu⟩ _ $$ Hxuw
   icases Hu with (⟨%Hc, #Hm, Hb⟩ | ⟨⟨%Herr, %Hline⟩, %rr, Hb, Hk⟩)
   · -- nothing read: the error (`io.ErrUnexpectedEOF` for `io.EOF`)
     obtain ⟨-, Hne, Hty⟩ := Hc
@@ -314,7 +315,9 @@ theorem ReadResponse.wp_proof
   simp only []
   cases ok
   · try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, %xb, %sb, %hxsb, #Hxsb⟩
+    obtain ⟨rfl, -⟩ := hxsb
+    ihave #Hbm := errorString_errStr xb sb $$ Hxsb
     try wp_auto
     iapply HΦ
     ileft; iframe Hbm; ipureintro; simp
@@ -338,7 +341,9 @@ theorem ReadResponse.wp_proof
   wp_if_destruct
   rotate_left
   · try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, %xb, %sb, %hxsb, #Hxsb⟩
+    obtain ⟨rfl, -⟩ := hxsb
+    ihave #Hbm := errorString_errStr xb sb $$ Hxsb
     try wp_auto
     iapply HΦ
     ileft; iframe Hbm; ipureintro; simp
@@ -349,7 +354,9 @@ theorem ReadResponse.wp_proof
   | ok ae =>
     simp only []
     try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, %xb, %sb, %hxsb, #Hxsb⟩
+    obtain ⟨rfl, -⟩ := hxsb
+    ihave #Hbm := errorString_errStr xb sb $$ Hxsb
     try wp_auto
     iapply HΦ
     ileft; iframe Hbm; ipureintro; simp
@@ -358,7 +365,9 @@ theorem ReadResponse.wp_proof
   try wp_auto
   wp_if_destruct
   · try wp_auto
-    wp_apply wp_bad $$ Hfmt as %e ⟨-, #Hbm⟩
+    wp_apply wp_bad $$ Hfmt as %e ⟨-, %xb, %sb, %hxsb, #Hxsb⟩
+    obtain ⟨rfl, -⟩ := hxsb
+    ihave #Hbm := errorString_errStr xb sb $$ Hxsb
     try wp_auto
     iapply HΦ
     ileft; iframe Hbm; ipureintro; simp
@@ -378,7 +387,7 @@ theorem ReadResponse.wp_proof
   try wp_auto
   icases Hm with (⟨%Hme, #Hme2⟩ | ⟨%Hmn, Hm, Hb⟩)
   · -- an error (`io.ErrUnexpectedEOF` for `io.EOF`)
-    ihave #Hm := mimeErr_msg E merr $$ [Hlaw3 Hme2]
+    ihave #Hm := mimeErr_errStr E merr $$ [Hlaw3 Hme2]
     · iframe Hlaw3 Hme2
     obtain ⟨Hne, Hty⟩ := Hme
     cases merr with

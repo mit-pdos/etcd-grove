@@ -7,7 +7,7 @@ makes progress (`io.readerStreamNE ri S E`: no `(0, nil)` read, so bufio never g
 `badReqAns` (to a request it could not read: `"HTTP/1.1 400 Bad Request"`, a `Content-Type` and a
 `Connection: close` header line, its body), and that delivers nothing after an error
 (the law over `E` and `S`: after an error at `r`, the stream stays at `r`; a connection's, by the
-net extension's sticky read errors, D1 v3.5), whose errors have an `Error()` (`errMsgOk`), `req` the
+net extension's sticky read errors, D1 v3.5), whose errors have an `Error()` (`net.errStr`), `req` the
 request `{Method: "CONNECT"}`. It returns an error (non-nil, with an `Error()`: the stream's,
 `io.ErrUnexpectedEOF`, a malformed line's `fmt.Errorf`, a header's `textproto.ProtocolError`), or a response whose `Status` is either not
 `"200 Connected to Go RPC"` (the `400` answer's is `"400 Bad Request"`) or is it, and then the reader
@@ -45,11 +45,11 @@ abbrev ReadResponse.spec : Prop :=
   {{ httpEnv ∗ EtcdGrove.io.readerStreamNE ri S E ∗ EtcdGrove.bufio.ownReader b ri S E [] ∗
       (□ ∀ r, S r -∗ ⌜r <+: net.rpc.connectAns ∨ r <+: net.rpc.badReqAns⌝) ∗
       (□ ∀ (r r' : List w8) (err : GoInterface), E r err -∗ S r' -∗ ⌜r <+: r' → r' = r⌝) ∗
-      (□ ∀ (r : List w8) (err : GoInterface), E r err -∗ errMsgOk err) ∗
+      (□ ∀ (r : List w8) (err : GoInterface), E r err -∗ net.errStr err) ∗
       req ↦ rq ∗ ⌜rq.Method' = go!"CONNECT"⌝ }}
     (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err ≠ interface.nil⌝ ∗ errMsgOk err) ∨
+      (⌜err ≠ interface.nil⌝ ∗ net.errStr err) ∨
       (⌜err = interface.nil⌝ ∗ ∃ rv : net.http.Response, resp ↦ rv ∗
         (⌜rv.Status' ≠ net.rpc.connectedStatus⌝ ∨
           ⌜rv.Status' = net.rpc.connectedStatus⌝ ∗
