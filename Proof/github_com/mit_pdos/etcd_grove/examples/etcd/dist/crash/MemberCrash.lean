@@ -333,7 +333,7 @@ theorem rnTakenK_stop (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH 
     (hE : ↑rnDurKN ⊆ E) :
     letI := srvStor (GF := GF) γn;
     ⊢ rnDurInvK γn id νk h -∗ rnTakenK νk -∗ token νk.ν.stop -∗ £ 1 ={E}=∗ False := by
-  iintro #Hinv #Htk Hst Hlc
+  iintro #Hinv Htk Hst Hlc
   iunfold rnDurInvK at Hinv
   icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with Hi Hclose
