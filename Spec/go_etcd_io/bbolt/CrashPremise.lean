@@ -22,8 +22,11 @@ the first 56 meta bytes in bytes 56 to 64), its first 56 meta bytes are the slot
     old-prefix and multi-run images). This needs a page rewritten while its previous write is under
     writeback.
 - bbolt `fdatasync`s after each meta write before the slot is written again (`Tx.Commit`, `init`;
-  the next write of a slot is two commits later), so (B) never reaches a meta slot, and after a reboot
-  the slot's durable bytes are not under writeback.
+  the next write of a slot is two commits later), so (B) never reaches a meta slot of a database opened
+  syncing, and after a reboot the slot's durable bytes are not under writeback. (A database opened with
+  `NoSync`, defrag's temporary one, can reach (B); the premise holds there up to an FNV-64a collision.)
+  In fact a bbolt meta page does not tear on C at all: its 4096-byte buffer is page-aligned (no source
+  boundary for (A)), and the meta lies in sector 0 (review `c-i1-monotone.md`).
 - So in a crash image of a meta slot, a byte at a higher offset is as of the same change as one at a
   lower offset, or an older one: the 56 field bytes as of `n` (for a validating slot, by FNV-64a the
   fields and the checksum cannot come from two different metas but by a 2^-64 collision, the
@@ -39,9 +42,9 @@ the first 56 meta bytes in bytes 56 to 64), its first 56 meta bytes are the slot
     checksum (one coinciding byte per torn checksum byte);
   - `Open` picks the dead `t+1`, whose pages are overwritten.
   That image takes the checksum bytes from a *newer* write than the fields, which (A) cannot produce.
-- The 64-byte form ("all 64 bytes as of one change") is false on C: a prefix cut inside the checksum
-  plus a one-byte coincidence validates a slot of two changes (harmless, its fields being the newer
-  meta's). This form is implied by it.
+- The 64-byte form ("all 64 bytes as of one change") is equivalent to this one for the metas bbolt
+  writes (a checksum byte that coincides with the newer meta's equals it by value) and differs only for
+  files whose bytes bbolt did not write; this form is implied by it, and asks less of such files.
 
 Satisfiable from every reachable state with a crash (`boltCrashWhole_exists`: every byte its candidate
 of stamp 0). Reviews: `notes/axiom-review/c-i1-bbolt-crash.md`, `c-i1-takeput.md`,
