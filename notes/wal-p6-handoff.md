@@ -388,6 +388,39 @@
      nm` into `sealL`'s wand).
   3. `lake build` of `wal.Link` (state at session start: openLast, openAtIndex, Open, WAL__ReadAll,
      WAL__CloseFailed, Create failed, all at the loans), push WIP; then B, C, the Discard spec as session 7's plan.
+- **2026-11-25, P6b session 11 (WIP, `etcd-safe-p6b-wip` @ `abf27f427f`): fix A done; `wal.Link` builds.**
+  Coordinator approvals (session 11 brief): `WalHS.qp`, `InArea` in the loan record, `sync.specC`'s error arm
+  (ledger line marked approved). **Done** (real `lake build Proof.go_etcd_io.etcd.server.v3.storage.wal.Link`,
+  3847 jobs, exit 0, no `sorry`):
+  * read handles: `walReadTie dir write s j qs …` holds `walHLoans dir none qs`; `walReadH` binds `qs`, its write
+    branch pins `walPipeH … (fun _ dq => ∃ qp, dq = own qp ∧ qs = [qp])`, read branch `fp = null ∧ qs = []`;
+    `walFailH`/`walFailCommon` bind `qp`, pipeline pinned at `own qp`, `walHLoans dir none [qp]`;
+    `walLastOpen` holds `walHLoans dir none [qd]` (the loan of its kept path; no new parameter).
+  * new lemmas: `HandleLoans`: `walInv_returnHLoans1`, `walHLoans_nil`, `walHLoans_loans` (with `InArea r dir nm`
+    known, the record's loans are of `nm`), `walInv_returnClaimPath` (ReadAll's claim and probe path back);
+    `HandleUnnamed`: `walPipeH_pinLoan`; `Open`: `walReadH_namesOut` now gives `walOpenIn` out and the loans' frag.
+  * borrowers: `Open` (returns its `OpenDir` path right after `OpenDir`), `openAtIndex` (error arms and read mode
+    return; write mode records `[qd]`, the pipeline's), `openLast` (failure arms return; success hands the path and
+    its record to `walLastOpen`), `Repair` (returns before both put-backs), `WAL__CloseOpening`/`WAL__CloseFailed`
+    (the pipeline's path from `pipeLeft` returned before `walInv_unpin`; `CloseFailed`'s error arms give
+    `walCloseLeft` the pipeline's path instead of a fresh `walInv_dirPath`, the record dropped with the lost lock),
+    `WAL__ReadAll` (the claim and the probe path returned at each failure exit and after `walInv_namedBy`; the write
+    handle gets `[qd, qpp]` and `WalHS.qp := qpp`), `Create`'s success arm (`Lo := [(nm, c.half), (nm, d), (nm, d)]`,
+    `create_loSum3`, `walInv_returnLoan` of `c.half` after `walInv_named`, `[d, d]` into `sealL`).
+  **B's design (decided this session, not started):** keep `DirKeysOk` and the keys group's binders unchanged;
+  change only the authority and the fragment:
+  * `γdk : GMap (GoString × Nat) (Ino × List GoString)`; `walDirKey dir i j X := (dir, i) ↪□ (j, X) ∗ ⌜X = walTmps⌝`.
+  * `walDirKeysAuth K := ∃ Kall I, ghostMapAuth γdk 1 Kall ∗ [∗map] Kall persistent ∗ walIncQ I ∗
+    ⌜∀ dir x, K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x⌝`: `K` stays the map of the *current* keys,
+    so `DirKeysOk` and the 36 keys-group destructs are unchanged.
+  * `γI` re-split: `walGhostI` holds a quarter (not the half), the keys authority the fourth quarter;
+    `walGhost_init` hands it out inside `walDirKeysAuth ∅`. (Agreement lemmas are fraction-free; nothing updates
+    `I` yet, so no update lemma changes; C's discard steps update `I` with all four quarters.)
+  * lookup: `walDirKeysAuth K -∗ walDirKey dir i j X -∗ walIncQ I' -∗ ⌜incOf I' dir = i → K !! dir = some (j, X)⌝`;
+    insert/get take `walIncQ I'` and give `walDirKey dir (incOf I' dir) j X`. The holder supplies its quarter:
+    the lock (`walLockedTokI_incQ`), a handle (`walOpenWI_lockedTokI`), `walOpening`/`walHandlePI` (to add).
+  * the 28 lookup sites (`grep walDirKey_lookup`) and the 4 internal specs (`WAL__renameWAL`, `newFilePipeline`,
+    `WAL__syncIdle(F)`: `∀ i`, `walDirKey dir i j X`), approved in the ledger entry.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
