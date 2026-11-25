@@ -16,7 +16,7 @@ gives back to `Advance`). Under `antStorageModel` a registered wrapper's interfa
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessBase
 public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
@@ -461,11 +461,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 
 /-- **A node's storage** (`nodeOwn`'s): the `bootStorage` `si` raft reads (its fields: the
-`MemoryStorage` `ms`, the three voters), the `MemoryStorage`'s lock and the hard state `hs` written
+`MemoryStorage` `ms`, the run's initial voters `vs`), the `MemoryStorage`'s lock and the hard state `hs` written
 last (`memStorMeta`), the bridge from raft's view of `si` to the `MemoryStorage`'s names `γs`, and
 the storage unsized (`Append` takes `Ready`'s `entsROz false`). -/
-def nodeStor (si ms : Loc) (hs : HardStateM) : IProp GF :=
-  iprop(bootStorRec si ms [W64 1, W64 2, W64 3] ∗ ∃ γs : MemStorNames, memStorLock ms γs ∗
+def nodeStor (si ms : Loc) (vs : List w64) (hs : HardStateM) : IProp GF :=
+  iprop(bootStorRec si ms vs ∗ ∃ γs : MemStorNames, memStorLock ms γs ∗
     memStorMeta ms γs hs ∗
     antStorBridge (interface.ok ⟨go.GoType.PointerType
       github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩) γs ∗

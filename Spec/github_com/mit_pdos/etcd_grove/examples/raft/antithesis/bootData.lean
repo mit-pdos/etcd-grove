@@ -31,7 +31,7 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 abbrev bootData.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootData)) (Val #()))
-  {{ (sl : GoSlice), RET #sl; sl ↦* bootDataL }}
+  {{ (sl : GoSlice), RET #sl; sl ↦* AntSim.bootData }}
 
 end spec
 

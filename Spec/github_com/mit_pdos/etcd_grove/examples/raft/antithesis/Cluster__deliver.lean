@@ -1,12 +1,12 @@
 /-
-Lean-first (no Rocq counterpart). #33 S4, specs first, part 2 (`notes/antithesis-s4-design.md` §2-§3;
-the vocabulary is `HarnessInv.lean`'s).
-`(*Cluster).deliver(n, inp)`: `inp` is sent on node `j`'s input channel (a bag of `inputOk`
-inputs), unless the run stops first (`c.stop` closed), when it is dropped.
+Lean-first (no Rocq counterpart). #33 parity B1, specs first (`notes/antithesis-parity-design.md` §3;
+the vocabulary is `HarnessRun.lean`'s).
+`(*Cluster).deliver(n, inp)`: `inp` is sent on node `j`'s input channel (a bag of `inputOk` inputs),
+unless the run stops first (`c.stop` closed), when it is dropped.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 
 @[expose] public section
 
@@ -30,9 +30,9 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 
 /-- See the file header. -/
 abbrev Cluster.deliver.spec : Prop :=
-  ∀ (c : Loc) (γ : AntNames) (n : Loc) (j : Fin 3) (inp : H.input),
+  ∀ (c : Loc) (γ : AntNames) (n : Loc) (j : Fin γ.R.N) (inp : H.input),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antCluster c γ ∗ nodeRO γ n j ∗ inputOk γ j inp }}
+      antCluster c γ ∗ nodeRO c γ n j ∗ inputOk γ j inp }}
     (App (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"deliver")) (Val #n)) (Val #inp))
   {{ RET #(); True }}
 

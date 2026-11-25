@@ -1,14 +1,14 @@
 /-
-Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-design.md` §2).
-
-`Main()`, the closed program: `RunCluster(DefaultConfig())`, then `check.Run` of its stream at
-`Server = InitVoters = c.Servers()`, panicking unless ACCEPTED. It returns (never panics), under the
-thread and receipt bounds `RunCluster` takes, on a thread holding its token (`threadTok`, which
-the adequacy gives the main thread).
+Lean-first (no Rocq counterpart). #33 parity B1, specs first (`notes/antithesis-parity-design.md` §3;
+the vocabulary is `HarnessRun.lean`'s).
+`Main()`, the closed program: `RunCluster(DefaultConfig(), DrawMode(MainScope()))`, then
+`check.Run` of its stream at `c.CheckConfig()`, panicking unless ACCEPTED. It returns (never
+panics), under the thread and receipt bounds `RunCluster` takes. (Its proof needs `MainScope()`
+within B1's mask: B1's program has `main.go`'s constants at `b1Scope`.)
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 
 @[expose] public section
 
@@ -25,7 +25,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]

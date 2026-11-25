@@ -1,14 +1,11 @@
 /-
-Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-design.md` §2).
-
-`(*Cluster).Events()`: the recorder's stream (`c.rec.Events()`). From the run's end (`runOver`), a
-slice holding the final stream, which the checker accepts at `cfg3`, within the Go `int`'s budget
-(`Stream.Bounded`) and the configuration changes' (`Stream.ConfBounded`, which `check.Run` also
-takes; the approved shape had only the first two).
+Lean-first (no Rocq counterpart). #33 parity B1, specs first (`notes/antithesis-parity-design.md` §3;
+the vocabulary is `HarnessRun.lean`'s).
+`(*Cluster).Events()`, the run over: the final stream, accepted at the run's configuration.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 
 @[expose] public section
 
@@ -25,19 +22,21 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
 /-- See the file header. -/
 abbrev Cluster.Events.spec : Prop :=
-  ∀ (c : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗ runOver c }}
+  ∀ (c : Loc) (s : H.Scope),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      runOver c s }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"Events")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; ∃ evs : List AntCheck.Event, AntCheck.eventsRO sl evs ∗
-      ⌜AntCheck.Accepts AntSim.cfg3 evs ∧ AntCheck.Stream.Bounded evs ∧
-        AntCheck.Stream.ConfBounded AntSim.cfg3 evs⌝ }}
+  {{ (sl : GoSlice), RET #sl; ∃ (evs : List AntCheck.Event) (m : H.Mode) (R : AntSim.RunCfg),
+      AntCheck.eventsRO sl evs ∗ c.[H.Cluster, go!"mode"] ↦□ m ∗
+      ⌜InScope s m ∧ ModeRun s m R ∧ AntCheck.Accepts R.cfg evs ∧ AntCheck.Stream.Bounded evs ∧
+        AntCheck.Stream.ConfBounded R.cfg evs⌝ }}
 
 end spec
 

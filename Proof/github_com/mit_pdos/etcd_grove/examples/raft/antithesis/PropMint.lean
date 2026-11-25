@@ -17,7 +17,7 @@ statement, with that proof). `RunCluster`'s proof takes it as a law callee.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 public import Proof.go_etcd_io.raft.v3.InvNodeRule
 
 @[expose] public section

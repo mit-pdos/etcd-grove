@@ -1,14 +1,15 @@
 /-
-Lean-first (no Rocq counterpart). #33 S4, specs first, part 2 (`notes/antithesis-s4-design.md` §2-§3;
-the vocabulary is `HarnessInv.lean`'s).
-`(*Cluster).send(m)`: a forwarded proposal is dropped at once (`notes/antithesis-s4-design.md` §7);
-any other message is handed to a goroutine of its own (`netWg.Add(1)`, backed by the caller's thread
-token, `netAdder`) that delivers it to its destination's input channel, unless the run stops
-first. The message (`sendMsg`: owned, with its receiver's facts) goes to the input (`inputOk`).
+Lean-first (no Rocq counterpart). #33 parity B1, specs first (`notes/antithesis-parity-design.md` §3;
+the vocabulary is `HarnessRun.lean`'s).
+`(*Cluster).send(m)`: a forwarded proposal is dropped at once unless the mode forwards it; any
+other message is handed to a goroutine of its own (`netWg.Add(1)`, `netAdder`) that delivers it
+`0 … MaxDeliveries` times to its destination (each a clone: `inputOk`), and, delivered no time,
+reports it unreachable to its sender (`inUnreachable`); a snapshot's fate only with `SnapStatus`
+(batch B3's).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 abbrev Cluster.send.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNames) (ml : Loc) (st : MsgSt) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antCluster c γ ∗ netAdder c γ q ∗ threadTok ∗ sendMsg γ ml st }}
+      antCluster c γ ∗ netAdder c γ q ∗ threadTok ∗ sendMsg γ ml st ∗ ⌜γ.mode.SnapStatus' = false⌝ }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"send")) (Val #ml))
   {{ RET #(); netAdder c γ q ∗ threadTok }}
 

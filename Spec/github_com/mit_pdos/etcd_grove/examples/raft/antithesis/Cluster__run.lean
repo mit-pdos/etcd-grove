@@ -1,16 +1,14 @@
 /-
-Lean-first (no Rocq counterpart). #33 S4, specs first, part 2 (`notes/antithesis-s4-design.md` §2-§3;
-the vocabulary is `HarnessInv.lean`'s).
-`(*Cluster).run(n)`: node `j`'s goroutine, from between inputs: until the run stops (`c.stop`
-closed), one input at a time (a tick, or a message or proposal from its input channel: its
-`noteInput`, `antSim_quiet`'s `input`; for a message, its `recv` report made before `Step`, the
-cause cell), the `RawNode` call, the input's drain, then idle again (the cause cell reset). At the
-stop it gives back its right to report and its network adders' share (`nodesWg.Done()`,
-`nodeExit`), and returns its thread token (a goroutine ends holding one: `wp_fork_tok_body`).
+Lean-first (no Rocq counterpart). #33 parity B1, specs first (`notes/antithesis-parity-design.md` §3;
+the vocabulary is `HarnessRun.lean`'s).
+`(*Cluster).run(n)`: node `j`'s goroutine: `start` (the `boot` report, the boot drain), then until
+the run stops one input at a time (a tick, or an input from its channel: `handle`), each followed
+by its drain. At the stop it gives back its right to report and its network adders' share
+(`nodesWg.Done()`, `nodeExit`) and its thread token.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 
 @[expose] public section
 
@@ -34,11 +32,11 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 
 /-- See the file header. -/
 abbrev Cluster.run.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNames) (n : Loc) (j : Fin 3)
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNames) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antCluster c γ ∗ nodeRO γ n j ∗ nodeOwn c γ j n v .idle ∗ netAdder c γ q ∗ threadTok ∗
-      sync.join.ownDone (c.[H.Cluster, go!"nodesWg"]) (nodeExit c γ j q) }}
+      antCluster c γ ∗ nodeRO c γ n j ∗ nodeOwn c γ j n v .down ∗ netAdder c γ q ∗ threadTok ∗
+      sync.join.ownDone (c.[H.Cluster, go!"nodesWg"]) (nodeExit c γ j q) ∗ ⌜DrainB1 γ.scope γ.mode⌝ }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"run")) (Val #n))
   {{ RET #(); threadTok }}
 

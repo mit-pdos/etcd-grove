@@ -14,7 +14,8 @@ configuration (`AntSim.RunCfg`):
   B2/B3 feature off and forwarding off, `antithesis-parity-plan.md` §3), `InScope s m` (what
   `DrawMode(s)` returns: every drawn flag allowed by `s`, rawnode's exclusions, the simulator's
   values), and `ModeRun s m R` (the run's configuration `R` read off the mode `m` drawn within the
-  scope `s`: `N`, `K`, `boot`, the nodes' `Config` flags `modeK m`, the mask `scopeMd s`).
+  scope `s`: `N`, `K`, `boot`, the nodes' `Config` flags `modeK m`, the mask `scopeMd s`, the
+  driver's modes `modeDrv m`).
 - **The pure readings of Go data** (S4's): `msgTypeStr`, `roleStr`, `entOfE` (now with the
   bootstrapped run's `"config"` entry), `msgOfSt`, `AllNormal`.
 - **The recorder** (S4's): `recAuth`, `recDone`, `recLockInv`, `isRecorder`; the stream's fit
@@ -106,11 +107,6 @@ instance event_countable : Pos.Countable AntCheck.Event :=
 section mode
 variable [GooseExts]
 
-/-- `MainScope()`: the constants `scope*` of `main.go`'s driver (`driver.go`), all on (the final
-program; each interim theorem's program has its batch's mask there instead). -/
-def mainScope : H.Scope :=
-  ⟨true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true⟩
-
 /-- **Batch B1's mask** (`antithesis-parity-plan.md` §3, B1: messages and N servers): pre-vote,
 check-quorum, reads, transfers, duplication, non-voters, bootstrapped logs and the limits on; network
 forwarding of proposals off (it comes later, with `raft.Step`'s widening); every B2/B3 feature off
@@ -120,6 +116,11 @@ def b1Scope : H.Scope :=
     Dup' := true, NonVoters' := true, Boot' := true, Limits' := true, Restarts' := false,
     Async' := false, Batch' := false, Parallel' := false, Split' := false, Snapshots' := false,
     ConfChanges' := false }
+
+/-- `MainScope()`: the constants `scope*` of the driver (`driver.go`), at batch B1's mask (design
+R3: flipping them is the only change to the program between the interim theorems; the final
+program has them all on). -/
+def mainScope : H.Scope := b1Scope
 
 /-- **`DrawMode(s)`'s result** (`driver.go`): every flag drawn on only where `s` allows it, within
 what rawnode allows (no batching with `Parallel` or `Split`; `Parallel` and `Split` only for
@@ -160,12 +161,18 @@ def scopeMd (s : H.Scope) : RnMode :=
     forwarding := s.Forwarding', snapshots := s.Snapshots', confChanges := s.ConfChanges',
     async := s.Async', nonVoters := s.NonVoters' }
 
+/-- The driver's modes of a run (`AntSim.DrvMode`): batching, parallel and split writes, restarts,
+deliveries per message. -/
+def modeDrv (m : H.Mode) : AntSim.DrvMode :=
+  { batch := m.Batch', parallel := m.Parallel', split := uint.nat m.Split', restarts := m.Restarts',
+    maxDeliveries := uint.nat m.MaxDeliveries' }
+
 /-- **The run's configuration `R` of the mode `m` drawn within the scope `s`** (design §3.1):
 `Server = names(Nodes)`, `InitVoters = names(Voters)`, `Bootstrapped = Boot`, each node's flags the
-mode's, the mask the scope's. -/
+mode's, the mask the scope's, the driver's modes the mode's. -/
 def ModeRun (s : H.Scope) (m : H.Mode) (R : AntSim.RunCfg) : Prop :=
   R.N = uint.nat m.Nodes' ∧ R.K = uint.nat m.Voters' ∧ R.boot = m.Boot' ∧
-  (∀ n, R.k n = modeK m) ∧ R.md = scopeMd s
+  (∀ n, R.k n = modeK m) ∧ R.md = scopeMd s ∧ R.drv = modeDrv m
 
 end mode
 
@@ -190,14 +197,11 @@ def roleStr (s : w64) : AntCheck.Str :=
   if s = StateLeader then go!"leader" else if s = StateCandidate then go!"candidate"
   else if s = StatePreCandidate then go!"precandidate" else go!"follower"
 
-/-- Go `bootData()`: what the bootstrapped run's first entry holds (`"boot"`). -/
-def bootDataL : List w8 := go!"boot"
-
 /-- Go `entryOf(e, n)` of a normal entry (a conf entry's arm, `changeOf`, is batch B3's): the
 bootstrapped run's first entry (index 1, data `bootData()`) is `"config"`; otherwise `"noop"` when
 its data is empty, `"command"` with the data as the value; the term is `int(e.Term)`. -/
 def entOfE (e : EntryM) : AntCheck.Entry :=
-  if e.Index' = W64 1 ∧ e.Data' = bootDataL then
+  if e.Index' = W64 1 ∧ e.Data' = AntSim.bootData then
     { term := sint.Z e.Term', type := go!"config", value := { str := [] } }
   else if e.Data' = [] then { term := sint.Z e.Term', type := go!"noop", value := { str := [] } }
   else { term := sint.Z e.Term', type := go!"command", value := { str := e.Data' } }
