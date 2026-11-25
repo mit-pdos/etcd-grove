@@ -100,7 +100,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       "Hboot" ∷ rnBootPre γr bv cv lok pv ps ctxs Q SV bt ∗
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, `newRaftNode`'s
       -- proof calls the ticker's spec)
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       -- (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved: the proof's law `rnNewStorageOk.law`)
       "#Hrs" ∷ rnRaftStatusOk ∗
       "#Hcl" ∷ rnClusterOk cl }}

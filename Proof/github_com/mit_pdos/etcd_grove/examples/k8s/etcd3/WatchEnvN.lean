@@ -145,7 +145,6 @@ theorem streams_of_regs : ∀ (svs : List (EtcdGrove.client.SrvAt GF)) (ws : Lis
 /-- **The client's watcher over the cluster's KV** (see the file header). -/
 theorem clientWatchOk_of_regs [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (cl : Loc) (V : EtcdGrove.client.WEnv GF) (svs : List (EtcdGrove.client.SrvAt GF))

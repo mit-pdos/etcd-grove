@@ -166,7 +166,7 @@ theorem writer.writeOp.wp_proof
     (wp_checkRange : checkRange.spec (GF := GF) (hG := hG))
     (wp_ctxTODO : context.TODO.spec (GF := GF) (hG := hG)) :
     writer.writeOp.spec (GF := GF) (hG := hG) := by
-  intro w wv γ B f σ Hs L tw trace te p P pend n hok hLok hcrev hrev1 hpl hn0 hn1
+  intro w wv γ B f σ Hs L tw trace te p P pend n hok hLok hcrev hrev1 hpl hn0 hn1 hL
   wp_start as ⟨Hctx, Hrd, Hidle, Htx, Htrc, Hp, ⟨%g, Hg⟩, ⟨%Lm, Hlm, %HLm⟩, Hlo, Hvals⟩
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hpkg, #Hmv, #Htu, #Hw, #Hinv, -, -, -, -⟩
@@ -194,7 +194,7 @@ theorem writer.writeOp.wp_proof
     (try wp_auto)
     wp_apply wp_newVal w n hn0 hn1 $$ [$Hpkg $Hvals] as Hvals
     (try wp_auto)
-    wp_apply wp_genLease w wv Lm g2 $$ [$Hpkg $Hw $Hlm $Hg] as %l ⟨Hlm, ⟨%g3, Hg⟩, %Hl⟩
+    wp_apply (wp_genLease w wv Lm g2 (fun id h => hL id ((HLm id).1 h))) $$ [$Hpkg $Hw $Hlm $Hg] as %l ⟨Hlm, ⟨%g3, Hg⟩, %Hl⟩
     (try wp_auto)
     wp_apply wp_bytes_to_string ks kk (DFrac.own 1) $$ [$Hks] as Hks
     (try wp_auto)

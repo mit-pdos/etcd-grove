@@ -96,17 +96,17 @@ theorem leasingKV.Do.wp_proof
     obtain ⟨top, htop⟩ := Option.ne_none_iff_exists'.1 (Hput h2)
     iapply wp_fupd
     iapply fupd_wp
-    imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
+    imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan, Hlt, Hrest⟩
     · iframe #; iframe
     imodintro
     wp_auto
-    wp_apply hput lkv γ pfx ctx cs opv o top lo $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
-      as %pr %err ⟨Hrd, Hout⟩
+    wp_apply hput lkv γ pfx ctx cs opv o top lo $$ [$Hlt $Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
+      as %pr %err ⟨Hlt, Hrd, Hout⟩
     · ipureintro; exact ⟨h2, htop, Hshp (fun h => absurd (h2.symm.trans h) (by decide))⟩
     try wp_auto
     wp_apply hPOR $$ [$Hcv]
     try wp_auto
-    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
     · iframe #; iframe
     imodintro
     iapply HΦ
@@ -126,17 +126,17 @@ theorem leasingKV.Do.wp_proof
   · simp only [decide_eq_true h3]
     iapply wp_fupd
     iapply fupd_wp
-    imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
+    imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan, Hlt, Hrest⟩
     · iframe #; iframe
     imodintro
     wp_auto
-    wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
-      as %dr %err ⟨Hrd, Hout⟩
+    wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hlt $Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hop $Hlo]
+      as %dr %err ⟨Hlt, Hrd, Hout⟩
     · ipureintro; exact ⟨h3, Hshp (fun h => absurd (h3.symm.trans h) (by decide))⟩
     try wp_auto
     wp_apply hDOR $$ [$Hcv]
     try wp_auto
-    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
     · iframe #; iframe
     imodintro
     iapply HΦ

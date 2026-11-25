@@ -62,8 +62,8 @@ master's machine resources. It returns only if `Run` does (a registration, liste
 error). -/
 abbrev serveMaster.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (sl : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-      (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ muxOwner [] ∗
+      defaultSrvFresh ∗ threadTok ∗
       net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       ⌜W.SS = rpcSS γ⌝ ∗ masterRes γ W }}
     (App (App (App (Val (@! examples.epaxosnet.serve)) (Val #(W64 1))) (Val #sl))
@@ -75,8 +75,8 @@ resources (net/rpc's fresh codec, the unclaimed `DefaultServeMux`, net/rpc's ser
 bounds of the threads and of the receipts) and its resources from the start (`serverRes`). -/
 abbrev Server.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (id : w64), 1 ≤ uint.nat id → uint.nat id ≤ 6 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-      (∃ γs, RpcHttpHyp.defaultServer γs) ∗
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ muxOwner [] ∗
+      defaultSrvFresh ∗ threadTok ∗
       net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       serverRes γ W (uint.nat id) }}
     (App (Val (@! examples.epaxosnet.Server)) (Val #id))

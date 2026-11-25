@@ -303,3 +303,27 @@ main tree's `Spec/bufio/`, `Proof/bufio/`).
    over `Proto.lean`).
 3. Models of the names-only libraries (zerolog, gogo `proto`, math/rand's `Rand`) would turn the
    remaining premises into proofs.
+
+## dsv-fix3: initializer premises become axioms; `RegisterType` premise fixed (2026-11-25, #49)
+
+The names-only initializers' `InitHyp` premises became per-package trust-boundary axioms
+(`axiom wp_initialize'` in `Dsverify/Proof/<pkg>/Init.lean`, the class's statement exactly; Upamanyu,
+#8 2026-11-25T02:20:53Z; `etc/dsv/README.md`, "`HYP_INITS`: per-package `wp_initialize'` axioms"),
+each reviewed by the `axiom` skill (`notes/axiom-review/dsv-inits/`) and counted in the kit's
+collection. Two reviews refuted theirs in Go, go-redis v8's (`GODEBUG=fips140=bogus` panics in
+`crypto/internal/fips140`'s `init`, through `crypto/tls`) and grpc's (a program registering grpc's
+`binarylog.proto` first panics in grpc's initializer): those two stay `InitHyp` premises (gen-init's
+`DSV_PREMISE_INITS`) until Upamanyu picks a fix. The nine axiomatized packages' test-only
+`InitInstancesLinked.lean` (imported by nothing; their local `localInitFuncsOk`, true of no
+particular semantics, looked false where an `init` panics) are deleted with their `InitHyp` classes.
+
+Here: `github_com.rs.zerolog`, `github_com.gogo.protobuf.proto`, `github_com.gogo.protobuf.gogoproto`,
+`os.signal` are axioms; `rabia_remote_robust` loses those four `InitHyp` premises and keeps
+go-redis's.
+
+**A false premise, fixed** (found by the gogo `proto` review): `proto.Hyps.RegisterType` claimed no
+panic for every `x`, but `RegisterType(nil, name)` panics in Go (`reflect.Zero(nil)`; measured, gogo
+v1.3.2, go1.27.3), so the premise was false of Go and `rabia_remote_robust` vacuous. It now requires
+`x ≠ interface.nil` (`Dsverify/Proof/github_com/gogo/protobuf/proto/Spec.lean`): a weaker premise, a
+stronger theorem; `message`'s three calls pass typed `nil` pointers (`interface.mkOk (PointerType _)
+#null`), discharged by `nofun` in the generated `message/Init.lean` (`etc/dsv/rabia.py`'s hooks).

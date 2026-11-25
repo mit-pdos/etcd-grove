@@ -3,15 +3,19 @@ Ported from dsverify-lab examples/gryff/proof/GryffProof/Server/ServeProof.lean 
 lab master 915f964; notes/dsv-gryff.md).
 
 `serverlib.Serve(port)` on replica node `k` (`port = 8502 + k`): `rpc.HandleHTTP()` (the machine's
-`DefaultServer`, which serves `"Replica"`: `RpcHttpHyp.HandleHTTP_spec`, consuming the machine's
-`muxFree`), the listener at `replicaRpcLis k = ":850(2+k)"` (retried; `Listen.spec` with
-`rpcLisP_lis`'s update), then `http.Serve(l, nil)` (`RpcHttpHyp.Serve_spec`, which returns only
-on a listener error: the lab's postcondition `False` is `True` here).
+`DefaultServer`, which serves `"Replica"`: Net's `HandleHTTP.spec`, on the machine's
+`DefaultServeMux` with nothing registered), the listener at `replicaRpcLis k = ":850(2+k)"`
+(retried; `Listen.spec` with `rpcLisP_lis`'s update), then `http.Serve(l, nil)` (Net's
+`http.Serve.spec_rpc`, on the calling thread's token, which returns only on a listener error: the
+lab's postcondition `False` is `True` here).
 -/
 module
 
 public import Dsverify.Proof.gryff.Server.MasterNew
 public import Dsverify.GeneratedProof.gryff.src.serverlib
+public import Net.Spec.net.rpc.HandleHTTP
+public import Net.Spec.net.http.Serve
+public import Net.Proof.net.rpc.HTTPPaths
 
 @[expose] public section
 
@@ -29,10 +33,12 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [sA : gryff.src.serverlib.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF]
 variable [nS : netN.NetSpecs GF]
+variable (wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG))
+variable (wp_Serve : net.http.Serve.spec_rpc (GF := GF) (hG := hG))
 
-omit sA nS in
+omit sA nS [net.http.Assumptions] in
 /-- The services of an address replica node `k`'s rpc listener takes: the replicas'. -/
 theorem rpcServices_replica (γ : GryffNames GF) (hw : worldOk γ) (k : Nat) (hk : k < 3)
     (a : GoString) (ha : lisAccepts (replicaRpcLis k) a) (svc : GoString)
@@ -58,30 +64,39 @@ theorem colon_rpcPort (k : Nat) (hk : k < 3) (port : w64) (hport : sint.Z port =
 
 set_option goose.wp.extras true
 
+include wp_HandleHTTP wp_Serve in
 theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     (hport : sint.Z port = 8502 + k) (γs : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗
-        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
-        net.rpc.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
+        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
+        net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
+        isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ net.http.httpSrvEnv ∗
+        globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
+        net.rpc.defaultServerAny γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
         RA.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
           net.rpc.connectAns ∗
-        ⌜worldOk γ ∧ threadBound GF ≤ 2 ^ 31⌝ }}
+        ⌜worldOk γ ∧ threadBound GF ≤ 2 ^ 31⌝ ∗ threadTok }}
       (App (Val (@! gryff.src.serverlib.Serve)) (Val #port))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcs, #Hse, Hmux, #Hds, #Hsreg, #Hrl, %Hw⟩
+  wp_start as ⟨#Hcs, #Hse, Hmux, #Hhttp, #Hhe, #Hcon, #Hds, #Hsreg, #Hrl, %Hw, Htok⟩
   ihave #Hss : iprop(□ ∀ a, ⌜lisAccepts (replicaRpcLis k) a⌝ →
-      net.rpc.srvServes γs gryffCodec γ.rpc a) $$ []
+      net.rpc.srvServes γs gryffCodec γ.rpc a ∗
+        ⌜γ.rpc.hs a ≠ [] ∧ γ.rpc.hsAns a = net.rpc.connectAns⌝) $$ []
   · iintro !> %a %ha
-    unfold net.rpc.srvServes
-    iintro !> %svc %S %HS
-    obtain ⟨rfl, rfl⟩ := rpcServices_replica γ Hw.1 k hk a ha _ _ HS
-    iframe Hsreg
-    unfold replicaSvc
-    iapply withErr_errOk
+    have hhs := Hw.1.2 a (Or.inr ⟨k, hk, ha⟩)
+    isplitl
+    · unfold net.rpc.srvServes
+      iintro !> %svc %S %HS
+      obtain ⟨rfl, rfl⟩ := rpcServices_replica γ Hw.1 k hk a ha _ _ HS
+      iframe Hsreg
+      unfold replicaSvc
+      iapply withErr_errOk
+    ipureintro
+    exact ⟨by rw [hhs.1]; simp [net.rpc.connectReq], hhs.2⟩
   wp_auto
-  wp_apply (H.HandleHTTP_spec γs gryffCodec γ.rpc (lisAccepts (replicaRpcLis k))) $$ [Hmux]
-    as #Hroute
-  · iframe Hmux Hds Hss Hse Hcs
+  wp_apply (wp_HandleHTTP γs gryffCodec γ.rpc (lisAccepts (replicaRpcLis k)) [] (by simp)
+      (by simp)) $$ [Hmux] as ⟨-, #Hroute⟩
+  · iframe Hhttp Hmux Hds Hss Hse Hcs Hcon
     ipureintro; exact Hw.2
   wp_apply wp_slice_literal (V := GoInterface) _
   isplitr
@@ -176,9 +191,14 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
   imod lisInv_alloc ⊤ (extLocalGS netExt (L := hG.goose_localGS)) l (replicaRpcLis k) true $$ Hnl
     with #Hlinv
   imodintro
-  wp_apply (H.Serve_spec γ.rpc (replicaRpcLis k) net.rpc.defaultRPCPath lv' l) as %e -
-  · iframe #
-    ipureintro; exact Hw.2
+  wp_apply (wp_Serve γ.rpc (replicaRpcLis k) net.rpc.defaultRPCPath lv' l
+      net.rpc.litPattern_rpc net.rpc.defaultRPCPath_short) $$ [Htok] as %e -
+  · iframe Hhttp Hhe Hli Hon Hlinv Htok
+    isplitr
+    · ipureintro; exact Hw.2
+    isplitr
+    · iapply RA.rpcLisP_net $$ Hrl
+    iapply muxRpc_mono _ _ _ _ _ (fun a ha => ha.2) $$ Hroute
   wp_end
 
 end proof

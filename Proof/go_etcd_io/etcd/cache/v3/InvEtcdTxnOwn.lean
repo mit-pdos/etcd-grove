@@ -617,10 +617,9 @@ def txnBuilderSpecO (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp
           B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
                      celse := true } }}) ∗
     (□ ∀ (b : TxnBuild) (lo : w64),
-      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
+      {{ levelTok 0 ∗ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ txnSizeOk b.model⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultO pfx lo b.model resp err }}))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultO pfx lo b.model resp err) }}))
 
 instance txnBuilderSpecO_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpecO t pfx B) := by
@@ -649,11 +648,10 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdDoKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF))
       (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (lo : w64),
-    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
+    {{ levelTok 0 ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ opFullAt opv o ∗ etcdReached lo ∗
         ⌜o.t = W64 1 ∧ opSizeOk o⌝ }}
       (App (App (Val #(methods kv.ty go!"Do" kv.v)) (Val #(GoInterface.ok ctx))) (Val #opv))
-    {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-        kvGetResult pfx lo o r.get' err }})
+    {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err); levelTok 0 ∗ (kvGetResult pfx lo o r.get' err) }})
 
 instance isEtcdDoKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdDoKV (GF := GF) kv pfx) := by

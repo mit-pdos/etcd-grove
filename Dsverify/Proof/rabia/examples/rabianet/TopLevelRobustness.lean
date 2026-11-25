@@ -16,6 +16,9 @@ public import Dsverify.Proof.rabia.examples.rabianet.Linked
 public import Dsverify.Proof.rabia.examples.rabianet.CodecProof
 public import Dsverify.Proof.rabia.Core.Start
 public import Net.Statement.DistBridge
+public import Dsverify.Proof.github_com.gogo.protobuf.proto.HypsHoldLinked
+public import Dsverify.Proof.math.rand.RandsLinked
+public import Dsverify.Proof.os.signal.Notify
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.orch.PkgTable
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.client0.PkgTable
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.client1.PkgTable
@@ -116,8 +119,8 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
       [RemoteGS], gens.spec (GF := remoteGF) (hG := hG)) :
     rabia_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hzi hpi hph hgpi hri hsi hmi hz hmr hns σ g threads
-  refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (2 ^ 63) ?_
+    hri hz σ g threads
+  refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (remoteStepBound) ?_
   intro G π hrb
   iintro #Hreg Hs
   unfold rabiaKitAddrs
@@ -180,16 +183,11 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    haveI : github_com.rs.zerolog.InitHyp remoteGF := hzi G' hG.goose_localGS
-    haveI : github_com.gogo.protobuf.proto.InitHyp remoteGF := hpi G' hG.goose_localGS
-    haveI : github_com.gogo.protobuf.proto.Hyps remoteGF := hph G' hG.goose_localGS
-    haveI : github_com.gogo.protobuf.gogoproto.InitHyp remoteGF := hgpi G' hG.goose_localGS
     haveI : github_com.go_redis.redis.v8.InitHyp remoteGF := hri G' hG.goose_localGS
-    haveI : os.signal.InitHyp remoteGF := hsi G' hG.goose_localGS
-    haveI : math.rand.InitHyp remoteGF := hmi G' hG.goose_localGS
     haveI : github_com.rs.zerolog.Hyps remoteGF := hz G' hG.goose_localGS
-    haveI : math.rand.Hyps remoteGF := hmr G' hG.goose_localGS
-    haveI : os.signal.NoSignals os.signal.quietSigs remoteGF := hns G' hG.goose_localGS
+    haveI : github_com.gogo.protobuf.proto.Hyps remoteGF := github_com.gogo.protobuf.proto.hyps_holds
+    haveI : math.rand.Hyps remoteGF := math.rand.rng.hyps_holds
+    haveI : os.signal.NoSignals os.signal.quietSigs remoteGF := ⟨os.signal.Notify.wp_proofQuietSigs⟩
     match i, hm with
     | 0, hm =>
       cases hm

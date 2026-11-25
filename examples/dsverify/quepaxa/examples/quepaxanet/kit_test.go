@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -163,10 +164,51 @@ func TestDeployment(t *testing.T) {
 	t.Logf("configuration: %s", conf)
 	send(cfgs, conf)
 	time.Sleep(time.Duration(StartMs) * time.Millisecond)
-	if r := remote.Run(Model(), reqs[1:1+NC], Codec(), Gens(), int(K), attempt(), 0); r != porcupine.Ok {
+	var known atomic.Int64
+	cdc := Codec()
+	dec := cdc.DecOut
+	cdc.DecOut = func(b []byte) (any, bool) {
+		o, ok := dec(b)
+		if ok && !o.(Out).Unknown {
+			known.Add(1)
+		}
+		return o, ok
+	}
+	if r := remote.Run(Model(), reqs[1:1+NC], cdc, Gens(), int(K), attempt(), 0); r != porcupine.Ok {
 		t.Fatalf("porcupine: %v", r)
 	}
+	t.Logf("%d of %d operations answered", known.Load(), NC*K)
+	if known.Load() == 0 {
+		t.Errorf("no operation was answered")
+	}
 	check1()
+}
+
+// TestControlPhantom (the negative control): client machines whose gets return a value nobody
+// put, as a store that invents values would, are caught.
+func TestControlPhantom(t *testing.T) {
+	var addrs []string
+	for c := uint64(0); c < NC; c++ {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, l.Addr().String())
+		l.Close()
+	}
+	phantom := func(sys any, in any) any {
+		if in.(In).Put {
+			return Out{}
+		}
+		return Out{Found: true, V: "phantom"}
+	}
+	for c := range addrs {
+		go remote.ServeClient(c, addrs[c], func(int) any { return nil }, phantom, Codec(), attempt())
+	}
+	time.Sleep(200 * time.Millisecond)
+	if r := remote.Run(Model(), addrs, Codec(), Gens(), int(K), attempt(), 0); r != porcupine.Illegal {
+		t.Fatalf("porcupine: %v, want Illegal", r)
+	}
 }
 
 // Gen's inputs have keys of KeyLen bytes ("key00000", "key00001"); a round's put and get share a

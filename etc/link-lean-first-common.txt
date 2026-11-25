@@ -64,7 +64,10 @@ etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Se
 # `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked
 # in its `Link.lean`); `NewClient`: of one address (notes/client-timeouts-plan.md, D-T1)
 client_v3_New: @
-etcdstart_NewClients: client_v3_New
+# (2026-11-24, notes/putget-dist-plan.md section 12, F1) grpc's `WithNoProxy`, proved over the
+# model's body: `NewClients` passes it
+grpc_WithNoProxy:
+etcdstart_NewClients: client_v3_New grpc_WithNoProxy
 etcdstart_NewClient: etcdstart_NewClients
 # the watch workload's shared part (`watch.go`): `Gen`, `GenAll`, `MaxRev`, `Attempted`, `Check`,
 # `Writer` (over the client's `Put`, which its proof uses directly, in a context with the request

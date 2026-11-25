@@ -36,8 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (γ : etcd_txnlin.LinkvNames) (cls : GoSlice)
     (clis : List Loc),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → clis ≠ [] →
@@ -46,12 +45,12 @@ abbrev Apply.spec : Prop :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 -∗
     cls ↦*□ clis -∗ ([∗list] cl ∈ clis, clientOk γ cl) -∗
     iprop(∀ i : GoInterface,
-      {{ etcd_txnlin.linkvInOk i }} <<{ ∀∀ S, etcd_txnlin.linkvState γ S }>>
+      {{ etcd_txnlin.linkvInOk i ∗ levelTok 0 }} <<{ ∀∀ S, etcd_txnlin.linkvState γ S }>>
         (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.Apply)) (Val #cls))
           (Val #i)) @@ etcd_txnlin.linkvE
       <<{ ∃∃ S' o, etcd_txnlin.linkvState γ S' ∗
             ⌜(etcd_txnlin.linkvtxnS (GF := GF)).M.step S (i, o) = some S'⌝ }>>
-      {{ RET #o; etcd_txnlin.linkvtxnS.ioOk i o }})
+      {{ RET #o; etcd_txnlin.linkvtxnS.ioOk i o ∗ levelTok 0 }})
 
 end spec
 

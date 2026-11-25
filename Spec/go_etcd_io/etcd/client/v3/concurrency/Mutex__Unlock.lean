@@ -32,15 +32,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 abbrev Mutex.Unlock.spec : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isMutex m s γ client id pfx ∗ mutexState m st ∗
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo) }}
     (App (Val (m @!! go.GoType.PointerType Mutex.ty @!! go!"Unlock")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, mutexState m (MutexSt.released st.hdr) ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, mutexState m (MutexSt.released st.hdr) ∗
         etcdReached R ∗ etcdAbsent pfx st.key R ∗
         ⌜¬ st.noKey ∧ pfx <+: st.key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (isPkgErr ErrLockReleased err ∗ mutexState m st ∗ ⌜st.noKey⌝) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ mutexState m st) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ mutexState m st)) }}
 
 end spec
 

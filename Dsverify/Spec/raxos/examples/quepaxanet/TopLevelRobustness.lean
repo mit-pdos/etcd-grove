@@ -7,41 +7,44 @@ and five server machines (each a QuePaxa replica: its proxy, its recorder served
 proposers; QuePaxa over TCP) -- deployed at `quepaxaKitAddrs` (`DistDeploy`: the listed addresses
 distinct and valid, no connection, no listener; the servers' wildcard listeners `0.0.0.0:port` are
 the proof's business, dsv-epaxos's
-`epaxosnet/Bridge.lean`). In every execution of fewer than `2^63` steps, with
+`epaxosnet/Bridge.lean`). In every execution of fewer than `remoteStepBound` (`2 ^ 63`) steps, with
 any number of threads, no thread of any machine is stuck and none has a top-level panic (`Robust`,
 `Robustness/Statement.lean`). Since the orchestrator panics unless porcupine accepts the history,
 this says porcupine accepts every history, under every fault the net extension allows.
 
 **Premises** (visible; each a hypothesis class of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepaxa.md, "Hypotheses"):
-* the initializers of the libraries with no translation or model here (`InitHyp`: yaml.v2, go-redis
-  v8, io/ioutil, encoding/gob, grpc, grpc/codes, math/rand: each runs without panicking);
+* the initializers of go-redis v8 and grpc (`InitHyp`: each runs without panicking), with no
+  translation or model here; kept premises because their `axiom`-skill reviews refuted them as
+  axioms (`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`, `google-golang-org-grpc.md`);
 * `qv : hyp.QpVocab remoteGF`, the abstract vocabulary of the gRPC and `sync.Map` hypotheses (any:
   the premises below are about it);
-* protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`), math/rand's `Seed` and
-  package-level `Intn` (`hyp.RandHyp`), `time.Time.UTC` (`hyp.UtcHyp`), `sort.Ints`
-  (`hyp.SortHyp`), `fmt.Println` (`hyp.PrintlnHyp`), gRPC's unary path over `qv.grpc` and the codec
-  `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap and every protocol registry `NetProtoGS`), a gRPC
-  world's registry can be allocated (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and
-  `sync.Map` over `qv.map` (`hyp.sync.MapHyp`);
+* protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`; kept a premise because its
+  `axiom`-skill review refuted it as axioms: `notes/axiom-review/dsv-fix4/quepaxa-pb.md`);
+* gRPC's unary path over `qv.grpc` and the codec `hyp.qpCodec` (`hyp.grpc.GrpcHyp`, for every heap
+  and every protocol registry `NetProtoGS`), a gRPC world's registry can be allocated
+  (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and `sync.Map` over `qv.map`
+  (`hyp.sync.MapHyp`);
 * the translation's `Assumptions` of the twelve commands (with, by their instances, those of every
   package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
+Not premises: math/rand's `Seed`,
+`time.Time.UTC`, `sort.Ints` and `fmt.Println` are per-function trust-boundary axioms, and so are
+the initializers of the other libraries with no translation or model here (yaml.v2, io/ioutil,
+encoding/gob, grpc/codes; their `wp_initialize'`); every axiom the result rests on is listed in
+`etc/tcb-collections/dsv-quepaxa.txt`. math/rand's initializer and package-level `Intn` are
+Perennial's proofs.
 Proved in `Dsverify/Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean`.
 -/
 module
 
+public import Dsverify.Proof.Bounds
 public import Dsverify.Proof.raxos.examples.quepaxanet.TopLevelDefs
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
 public import Dsverify.Proof.raxos.Hyp
-public import Dsverify.Proof.gopkg_in.yaml_v2.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.io.ioutil.Init
-public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
-public import Dsverify.Proof.google_golang_org.grpc.codes.Init
-public import Dsverify.Proof.math.rand.Init
 
 @[expose] public section
 
@@ -82,26 +85,17 @@ def quepaxa_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; gopkg_in.yaml_v2.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; io.ioutil.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; encoding.gob.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; google_golang_org.grpc.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; google_golang_org.grpc.codes.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
     ∀ (qv : raxos.hyp.QpVocab remoteGF),
     (∀ G L, letI := heapAt G L; raxos.hyp.PbHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.RandHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.UtcHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.SortHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; raxos.hyp.PrintlnHyp remoteGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L;
       raxos.hyp.grpc.GrpcHyp (cd := raxos.hyp.qpCodec) qv.grpc) →
     (∀ G : GooseGlobalGS HasLC.hasLC remoteGF, raxos.hyp.grpc.GrpcWorldHyp (Gg := G) qv.grpc) →
     (∀ G L, letI := heapAt G L; raxos.hyp.sync.MapHyp qv.map) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy quepaxaKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 63)
+    Robustness.Robust [] (system σ) g threads remoteStepBound
 
 end raxos.examples.quepaxanet
 end Perennial

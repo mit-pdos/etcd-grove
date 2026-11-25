@@ -269,14 +269,15 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
     (wp_Server : gryffnet.Server.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet.cmd.server1 ∗
         serverBoot (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
-        serverShare γ 0 ∗ (if 0 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) }}
+        serverShare γ 0 ∗ (if 0 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) ∗
+        threadTok }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hboot, %Hb, Hsh, Hx⟩
+  wp_start as ⟨Hboot, %Hb, Hsh, Hx, Htok⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet) $$ []
   · iPkgInit
   ihave #Hrpc : (isPkgInit (PROP := IProp GF) pkg_id.net.rpc) $$ []
@@ -284,9 +285,9 @@ theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
   ihave #Hhttp : (isPkgInit (PROP := IProp GF) pkg_id.net.http) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ 0 (by decide) $$ [Hboot Hsh Hx]
+  wp_apply wp_Server γ 0 (by decide) $$ [Hboot Hsh Hx Htok]
   · iframe #
-    iframe Hboot Hsh Hx
+    iframe Hboot Hsh Hx Htok
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -306,14 +307,15 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
     (wp_Server : gryffnet.Server.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet.cmd.server2 ∗
         serverBoot (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
-        serverShare γ 1 ∗ (if 1 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) }}
+        serverShare γ 1 ∗ (if 1 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) ∗
+        threadTok }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hboot, %Hb, Hsh, Hx⟩
+  wp_start as ⟨Hboot, %Hb, Hsh, Hx, Htok⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet) $$ []
   · iPkgInit
   ihave #Hrpc : (isPkgInit (PROP := IProp GF) pkg_id.net.rpc) $$ []
@@ -321,9 +323,9 @@ theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
   ihave #Hhttp : (isPkgInit (PROP := IProp GF) pkg_id.net.http) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ 1 (by decide) $$ [Hboot Hsh Hx]
+  wp_apply wp_Server γ 1 (by decide) $$ [Hboot Hsh Hx Htok]
   · iframe #
-    iframe Hboot Hsh Hx
+    iframe Hboot Hsh Hx Htok
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -343,14 +345,15 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
     (wp_Server : gryffnet.Server.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet.cmd.server3 ∗
         serverBoot (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
-        serverShare γ 2 ∗ (if 2 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) }}
+        serverShare γ 2 ∗ (if 2 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) ∗
+        threadTok }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hboot, %Hb, Hsh, Hx⟩
+  wp_start as ⟨Hboot, %Hb, Hsh, Hx, Htok⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet) $$ []
   · iPkgInit
   ihave #Hrpc : (isPkgInit (PROP := IProp GF) pkg_id.net.rpc) $$ []
@@ -358,9 +361,9 @@ theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
   ihave #Hhttp : (isPkgInit (PROP := IProp GF) pkg_id.net.http) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ 2 (by decide) $$ [Hboot Hsh Hx]
+  wp_apply wp_Server γ 2 (by decide) $$ [Hboot Hsh Hx Htok]
   · iframe #
-    iframe Hboot Hsh Hx
+    iframe Hboot Hsh Hx Htok
     ipureintro; exact Hb
   iapply HΦ
   itrivial
@@ -380,14 +383,15 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
     (wp_Server : gryffnet.Server.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet.cmd.server4 ∗
         serverBoot (GF := GF) ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
-        serverShare γ 3 ∗ (if 3 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) }}
+        serverShare γ 3 ∗ (if 3 = 0 then iprop(True) else iprop(gryff.boot.gryffGlobals ∗ gryff.boot.bootProph)) ∗
+        threadTok }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hboot, %Hb, Hsh, Hx⟩
+  wp_start as ⟨Hboot, %Hb, Hsh, Hx, Htok⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet) $$ []
   · iPkgInit
   ihave #Hrpc : (isPkgInit (PROP := IProp GF) pkg_id.net.rpc) $$ []
@@ -395,9 +399,9 @@ theorem wp_main [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
   ihave #Hhttp : (isPkgInit (PROP := IProp GF) pkg_id.net.http) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ 3 (by decide) $$ [Hboot Hsh Hx]
+  wp_apply wp_Server γ 3 (by decide) $$ [Hboot Hsh Hx Htok]
   · iframe #
-    iframe Hboot Hsh Hx
+    iframe Hboot Hsh Hx Htok
     ipureintro; exact Hb
   iapply HΦ
   itrivial

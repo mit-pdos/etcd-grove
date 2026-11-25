@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet", "Dsverify"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvRaft", "Dsverify"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "66a2b585e35980b94a23177ea9001f080c133968"
+rev = "d5eb93cb531e10f0e9d2ed02730f5682a691c6ae"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -50,12 +50,12 @@ globs = ["RaftTla.+"]
 name = "RaftWitness"
 globs = ["RaftWitness.+"]
 
-# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof and kvdurable's closed
-# theorem over a raft of its own (etc/goose.py's projects raft-noax and kvdurable-noax), in a
-# parallel tree with the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,
-# Proof}/; the copies of the main tree's modules written by etc/copy-part.py). It imports the main
-# tree, but not its raft or kvdurable, and nothing outside it imports it: its modules declare the
-# main raft's names.
+# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof over a raft of its own
+# (etc/goose.py's project raft-noax; kvraft's raft, KvRaft/ takes it from here), in a parallel tree with
+# the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; the copies of
+# the main tree's modules written by etc/copy-part.py). It imports the main tree, but not its raft,
+# and nothing outside it imports it: its modules declare the main raft's names. (Until 2026-11-24
+# also kvdurable's closed theorem, project kvdurable-noax: retired.)
 [[lean_lib]]
 name = "RaftNoAx"
 globs = ["RaftNoAx.+"]
@@ -112,7 +112,7 @@ globs = ["WalTester.+"]
 # Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
 # in every execution (Perennial's DistCrashNsteps) of programs on machines that crash and restart
 # and programs on machines that never crash, with whatever extensions are plugged in, no thread is
-# stuck or has a top-level panic. Used by the examples' statements (raft/kvnet); its Go counterpart
+# stuck or has a top-level panic. Used by the examples' statements (raft/kvraft); its Go counterpart
 # is the test harness examples/lib/robust.
 [[lean_lib]]
 name = "Robustness"
@@ -128,16 +128,16 @@ globs = ["Robustness.+"]
 name = "Net"
 globs = ["Net.+"]
 
-# kvnet's proof (notes/kvnet-part.md): the networked key-value store (examples/raft/kvnet, etc/goose.py's
-# project kvnet) over raft-noax's raft, the net extension's `net` and the bodied `durable` over fsExt,
+# kvraft's proof (notes/kvraft-part.md): the networked key-value store (examples/raft/kvraft, etc/goose.py's
+# project kvraft) over raft-noax's raft, the net extension's `net` and the bodied `durable` over fsExt,
 # which the parts RaftNoAx, Net and WalTester each declare under main-tree names, so no other tree can
-# import them together. KvNet/{Code,GeneratedProof}/ are the parts of projects raft-noax, net, durable
-# and etcd (walpb) translated into it and kvnet's own; its copies of those parts' (and the main tree's)
+# import them together. KvRaft/{Code,GeneratedProof}/ are the parts of projects raft-noax, net, durable
+# and etcd (walpb) translated into it and kvraft's own; its copies of those parts' (and the main tree's)
 # modules that its closure needs are written by etc/copy-part.py, its initializers by etc/gen-init.py.
-# Nothing outside KvNet imports it.
+# Nothing outside KvRaft imports it.
 [[lean_lib]]
-name = "KvNet"
-globs = ["KvNet.+"]
+name = "KvRaft"
+globs = ["KvRaft.+"]
 
 # The dsverify kits ported onto the net extension (notes/dsverify-net-port-plan.md, phase 6;
 # notes/dsv-paxos.md): each kit's Go (etc/goose.py's project dsv-<kit>) and proof, over the part

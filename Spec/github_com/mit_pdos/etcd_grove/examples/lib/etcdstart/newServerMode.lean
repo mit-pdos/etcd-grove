@@ -81,7 +81,7 @@ abbrev newServerMode.spec : Prop :=
       -- at `N` write tokens in both modes (M2's item 15, stage B3; until then `N + N` on, `N` more
       -- for the compaction's write-back stock)
       bootPremise N ps bootLog ctxs dir token name Uok id ∗
-      commonPremises ∗ context.isClosedchanInit ∗
+      context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       netHttpOk γn id ∗
       -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its start bundle) the
@@ -121,10 +121,10 @@ abbrev newServerMode.specRestart : Prop :=
       zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))

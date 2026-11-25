@@ -32,7 +32,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     (hF : stm.fetch.spec (GF := GF) (hG := hG)) (hRV : respToValue.spec (GF := GF) (hG := hG)) :
     stm.Get.spec (GF := GF) (hG := hG) := by
   intro b pfx st gs ksl ks
-  wp_start as ⟨#Henv, Hrs, Hws, Hopts, %Hgs, #Hks, %Hpk, %Hc⟩
+  wp_start as ⟨Hlt, #Henv, Hrs, Hws, Hopts, %Hgs, #Hks, %Hpk, %Hc⟩
   unfold stmWsetOwn
   icases Hws with ⟨%m, %wsMap, Hf, Hm, #Hat⟩
   wp_auto
@@ -42,7 +42,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
   icases Hp with (⟨%Hpn, %Hnw⟩ | ⟨%k, %w, %sp, %Hw, Hp⟩)
   · obtain ⟨rfl, -⟩ := Hpn
     wp_auto
-    wp_apply hF b pfx st.reads gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %r Hr
+    wp_apply hF b pfx st.reads gs ksl ks $$ [$Hpkg $Hlt $Henv $Hrs $Hopts $Hks] as %r ⟨Hlt, Hr⟩
     · ipureintro; exact ⟨Hgs, Hpk, by have := Hc.1; omega, Hc.2.1⟩
     iunfold stmRet at Hr
     icases Hr with (⟨%p, %Hrp, %reads', Hrs, Hopts, %Hgrow, Hp⟩ | %Hab)
@@ -51,6 +51,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
       unfold stmAbort
       wp_auto
       iapply HΦ
+      iframe Hlt
       iapply stmRet_abort _ Hne
     subst Hrp
     icases Hp with (%Hnil | ⟨%k, %e, %e', %Hke, #He⟩)
@@ -58,6 +59,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
       wp_apply hRV null [] $$ [$Hpkg]
       · ileft; ipureintro; exact ⟨rfl, rfl⟩
       iapply HΦ
+      iframe Hlt
       iapply stmRet_ret
       iexists reads'
       iframe Hrs Hopts
@@ -69,6 +71,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     · wp_apply hRV p e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
+      iframe Hlt
       iapply stmRet_ret
       iexists reads'
       iframe Hrs Hopts
@@ -85,6 +88,7 @@ theorem stm.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := hG))
     wp_auto
     obtain ⟨Hk, Hwk, Hv⟩ := Hw
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists st.reads
     iframe Hrs Hopts

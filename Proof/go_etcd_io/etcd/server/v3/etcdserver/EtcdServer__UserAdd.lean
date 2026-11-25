@@ -59,10 +59,12 @@ theorem EtcdServer.UserAdd.wp_proof
         iapply HΦ; ileft; iframe HP
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
-        rcases hk with hp | ⟨hty, hkey, hnde⟩
+        rcases hk with hp | ⟨hic, hc⟩
         · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG, hF⟩
           iunfold errMsgOk; iexact Hm
-        · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF (deTypedErr_of_ty _ hnde)
+        · iapply applyErrIs_valLeaf _ hl hIs (errKeyOk_invalidCost _ hic hc).1
+              (errKeyOk_invalidCost _ hic hc).2.1 hG hF
+              (deTypedErr_of_ty _ (errKeyOk_invalidCost _ hic hc).2.2)
           iunfold errMsgOk; iexact Hm
       · cases Hnil
     icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
@@ -166,10 +168,12 @@ theorem EtcdServer.UserAdd.wp_proof
           iapply HΦ; ileft; iframe HP
           isplitr
           · ipureintro; exact ⟨rfl, by simp⟩
-          rcases hk with hp | ⟨hty, hkey, hnde⟩
+          rcases hk with hp | ⟨hic, hc⟩
           · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG, hF⟩
             iunfold errMsgOk; iexact Hm
-          · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF (deTypedErr_of_ty _ hnde)
+          · iapply applyErrIs_valLeaf _ hl hIs (errKeyOk_invalidCost _ hic hc).1
+              (errKeyOk_invalidCost _ hic hc).2.1 hG hF
+              (deTypedErr_of_ty _ (errKeyOk_invalidCost _ hic hc).2.2)
             iunfold errMsgOk; iexact Hm
         · cases Hnil
       icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)

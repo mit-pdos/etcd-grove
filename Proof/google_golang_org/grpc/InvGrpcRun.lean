@@ -52,7 +52,6 @@ and its leaves' axioms (`acceptRun`, `acceptRunConns`, `respond`, `finishStream`
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcServer
-public import TrustedCode.google_golang_org.grpc
 public import Perennial.Proof.ThreadPool
 
 @[expose] public section

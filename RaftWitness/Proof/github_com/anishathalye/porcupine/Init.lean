@@ -15,7 +15,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
-public import RaftWitness.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -74,7 +74,7 @@ what we rely on. Write it as a spec, not as a test:
   constant from the real limit (net/http's `2^30` reader slots); otherwise `threads := bound + 1`
   (no execution under `bound` steps reaches it, so it excludes nothing), still named. No bare
   literals anywhere in the statement: name constants or use abstract facts (`maxAddr`).
-- **Fix the extensions** (an instance list such as `kvnetExts`), and state their environment
+- **Fix the extensions** (an instance list such as `kvraftExts`), and state their environment
   assumptions (closed world, one process per file system, ...) in the header's prose.
 - **Reuse audited definitions.** Prefer premises and vocabulary already reviewed over new ones.
 - **Check the statement is not vacuous.** Besides the Go non-vacuity tests, every premise bundle
@@ -83,7 +83,7 @@ what we rely on. Write it as a spec, not as a test:
   extensions and their environment assumptions, what is trusted. Technical, present tense: no
   history ("adapted here", "added on ..."), no narrative; those go in `notes/`. The same for every
   trusted file's documentation.
-- **Example:** `examples/kvnet.md` (a decent statement, with what to improve).
+- **Example:** `examples/kvraft.md` (a decent statement, with what to improve).
 
 ## Checklist before the statement packet
 

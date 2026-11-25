@@ -239,7 +239,7 @@ theorem writer.revoke.wp_proof
     (wp_Revoke : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (wp_Lookup : lease.lessor.Lookup.spec (GF := GF) (hG := hG)) :
     writer.revoke.spec (GF := GF) (hG := hG) := by
-  intro w wv γ B f q σ Hs L n k T R i s
+  intro w wv γ B f q σ Hs L n k T R i s hn62
   haveI := hpers.1 wv.kv' γ.kv
   wp_start as ⟨Hctx, Hown, Hle, Hpre⟩
   iunfold writerCtx at Hctx
@@ -261,7 +261,8 @@ theorem writer.revoke.wp_proof
   icases Hidle with ⟨Hgσ, HW, Hpv, %Hid⟩
   obtain ⟨Hpn, Hlen, Hbound, Hmatch⟩ := Hid
   wp_auto
-  wp_apply wp_genLease w wv Lm g $$ [$Hpkg $Hw $Hlm $Hg] as %id ⟨Hlm, Hg, %Hl⟩
+  wp_apply (wp_genLease w wv Lm g (fun id h => by
+      have h' := Hn.2.1 id ((HLm id).1 h); exact ⟨h'.1, by omega⟩)) $$ [$Hpkg $Hw $Hlm $Hg] as %id ⟨Hlm, Hg, %Hl⟩
   (try wp_auto)
   by_cases hid0 : id = W64 0
   · -- no live lease: nothing

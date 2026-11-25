@@ -61,16 +61,13 @@ abbrev Client.Get.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (key : GoString)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (Q : w64 → w64 → KVState → IProp GF),
   0 ≤ sint.Z opts.Revision' → key.length ≤ opKeyMax →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      (∀ R m, |==> □ [∧list] x ∈ ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R m)) }}
+      (∀ R m, |==> □ [∧list] x ∈ ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R m))) }}
     (App (App (App (Val (kc @!! go_etcd_io.etcd.client.v3.kubernetes.Client.ty @!! go!"Get"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #opts))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (err : GoInterface),
-      RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState,
+      RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState,
         □ Q (W64 (σ.rev : Int)) (modAtRev key σ opts.Revision') σ ∗
         ⌜resp.Revision' = W64 (σ.rev : Int) ∧ σ.readRev opts.Revision' ≤ σ.rev ∧ kvRevFits σ.rev ∧
           ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗
@@ -78,7 +75,7 @@ abbrev Client.Get.spec : Prop :=
       ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
         go_etcd_io.etcd.cache.v3.errCellOk err ∗
         (⌜key ≠ [] ∧ ∀ x ∈ ms, noRefusalAt x.addr⌝ →
-          k8s.rangeErrSound opts.Revision' (fun R σ => ∃ m, Q R m σ) err) }}
+          k8s.rangeErrSound opts.Revision' (fun R σ => ∃ m, Q R m σ) err)) }}
 
 end spec
 

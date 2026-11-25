@@ -189,43 +189,30 @@ def serverRes (cfg : Cfg GF) (id : Nat) : IProp GF :=
     addrProto (Gg := hG.goose_globalGS) (confAddrs.getD (5 + id - 1) []) confProto confProto)
 
 /-- `Server(id)`: server machine `id` (`1 ≤ id ≤ 6`): the coordinator (`id = 1`) or a chain
-machine, on a machine of at most `2 ^ 31` threads (net/rpc's server: `RpcHttpServe`). Its
-machine's codec registry (`codecFresh`) and mux (`muxOwner []`) are at their initial states, its
-net/rpc and net/http variables initialized (`rpcEnv`), and its `DefaultServer` made (from its
-initialization: finding F2, H4). -/
-abbrev Server.spec [RpcHttpServe GF] : Prop :=
+machine, on a machine of at most `2 ^ 31` threads (net/rpc's server). Its machine's codec registry
+(`codecFresh`) and mux (`muxOwner []`) are at their initial states, its net/rpc and net/http
+variables initialized (`rpcEnv`), and its `DefaultServer` made with an owned, empty registry
+(`defaultSrvFresh`; from its initialization: finding F2, H4). -/
+abbrev Server.spec : Prop :=
   ∀ (cfg : Cfg GF) (id : w64), threadBound GF ≤ 2 ^ 31 → cfgKit cfg → 1 ≤ uint.nat id →
     uint.nat id ≤ 6 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-      rpcEnv ∗ (∃ γ, net.rpc.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ muxOwner [] ∗
+      rpcEnv ∗ defaultSrvFresh ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #id))
   {{ RET #(); True }}
 
-/-- **Finding F2's premise, in the shape Net will give** (#24: net/rpc's initialization returns a
-per-machine resource once, like gryff's replicas' `wp_initialize'_own`): a machine's boot
-resources, made by its program's initialization: the codec registry at its initial state
-(`codecFresh`), net/rpc's package variables as its server and clients read them (`srvEnv`:
-`cliEnv`'s and `invalidRequest`; `connected`, the status `DialHTTPPath` expects and `ServeHTTP`
-writes; the part's net/rpc package fact is `True`, `Dsverify/Proof/net/rpc/Init.lean`, so they
-come with the boot, as dsv-epaxos's and dsv-gryff's), net/http's (`httpEnv`, what
-`http.ReadResponse` reads in `DialHTTPPath`), `DefaultServeMux` with nothing registered
-(`muxOwner []`, net/http's; H4), and net/rpc's `DefaultServer` (`defaultServer`: what the
-initializer's `DefaultServer = NewServer()` makes; dsv-epaxos's shape, Upamanyu's review: not from
-net/rpc's `True` fact). -/
-def rpcBootRes [RpcHttpServe GF] : IProp GF :=
+/-- **Finding F2's resources** (#24: net/rpc's initialization returns a per-machine resource once,
+like gryff's replicas' `wp_initialize'_own`): a machine's boot resources, made by its program's
+initialization (`BootLinked.lean`, from Net's first runs of net/http's and net/rpc's
+initializers): the codec registry at its initial state (`codecFresh`), net/rpc's package
+variables as its server and clients read them (`srvEnv`: `cliEnv`'s and `invalidRequest`;
+`connected`, the status `DialHTTPPath` expects and `ServeHTTP` writes), net/http's (`httpEnv`, what
+`http.ReadResponse` reads in `DialHTTPPath`), `DefaultServeMux` with nothing registered (`muxOwner
+[]`, net/http's; H4), and net/rpc's `DefaultServer` with an owned, empty registry
+(`defaultSrvFresh`: what the initializer's `DefaultServer = NewServer()` makes). -/
+def rpcBootRes : IProp GF :=
   iprop(codecFresh ∗ net.rpc.srvEnv ∗ net.http.httpEnv ∗
-    globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ RpcHttpServe.muxOwner [] ∗
-    (∃ γ, net.rpc.defaultServer γ))
-
-/-- **F2's premise**: command `pkg`'s initializer `init`, run once from the machine's empty
-package state (only the deployment's boot holds `ownGoState ∅`, once per machine), initializes
-the program (any package table `getIs` consistent with `pkg`'s) and returns the machine's boot resources. -/
-def RpcBoot [RpcHttpServe GF] (init : val) (pkg : GoString) [IsPkgInit (IProp GF) pkg]
-    [GetIsPkgInitWf (IProp GF) pkg] : Prop :=
-  ∀ getIs : GoString → IProp GF, GetIsPkgInitProp pkg getIs →
-  {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-    (App (Val init) (Val #()))
-  {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg ∗ rpcBootRes }}
+    globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ muxOwner [] ∗ defaultSrvFresh)
 
 end proof
 

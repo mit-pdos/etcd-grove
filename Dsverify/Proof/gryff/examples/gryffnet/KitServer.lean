@@ -5,8 +5,9 @@
 then `Serve`), ids 2..4 the replicas (`serverlib.RegisterWithMaster`, `gryff.NewReplica`,
 `rpc.Register`, `serverlib.Serve` on the port 1000 above). `Server.spec`'s precondition is what a
 server machine's boot hands its `main`: its share of the start (`serverShare`), the packages
-initialized, net/http's and net/rpc's per-machine boot resources (`serverBoot`: `RpcBootHyp`,
-through `cmd/server*/Boot.lean`), the bounds, and for a replica the gryff package's owned variables and
+initialized, net/http's and net/rpc's per-machine boot resources (`serverBoot`, from their first
+initializations, through `cmd/server*/Boot.lean`), the bounds, the main thread's token (on which
+net/http's `Serve` runs), and for a replica the gryff package's owned variables and
 trace prophecy (`gryffGlobals ∗ bootProph`, `cmd/server{2,3,4}/Boot.lean`'s `wp_initialize'_own`).
 Its postcondition is `True`: the master's and a replica's `Serve` return on a listener error.
 The pieces are `Server/SpecsReq.lean`'s (`NewMaster.wp_req`, `Master.Serve.wp_req`,
@@ -168,10 +169,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : replica2.SortSliceHyp GF] [strconvA : strconv.Assumptions]
+variable [strconvA : strconv.Assumptions]
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
-variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] [randA : lib.RandSeedHyp GF]
+variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions] [randA : lib.RandSeedHyp GF]
 variable [mA : gryff.src.masterlib.Assumptions] [sA : gryff.src.serverlib.Assumptions]
 variable (wp_rfl : lib.io.ReadFull.specLt (GF := GF) (hG := hG))
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
@@ -179,7 +180,12 @@ variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
 variable (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
 variable (wp_run : unitB.Replica.run.spec (GF := GF) (hG := hG))
-variable (wp_Register : net.rpc.Register.spec (GF := GF) (hG := hG))
+variable (wp_Register : net.rpc.Register.spec_fresh (GF := GF) (hG := hG))
+variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
+variable (wp_SRegister : net.rpc.Server.Register.spec_fresh (GF := GF) (hG := hG))
+variable (wp_SHandleHTTP : net.rpc.Server.HandleHTTP.spec (GF := GF) (hG := hG))
+variable (wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG))
+variable (wp_Serve : net.http.Serve.spec_rpc (GF := GF) (hG := hG))
 
 set_option goose.wp.extras true
 
@@ -190,23 +196,26 @@ def serveEnv (addrs : GoSlice) : IProp GF :=
     serverBoot (GF := GF) ∗
     ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗ addrs ↦* serverAddrs)
 
-include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register in
+include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register wp_HandleHTTP wp_Serve in
 /-- `serve(k + 2, addrs)`: replica node `k`. -/
 theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗ serveEnv addrs ∗
-        serverShare γ (k + 1) ∗ gryffGlobals ∗ bootProph }}
+        serverShare γ (k + 1) ∗ gryffGlobals ∗ bootProph ∗ threadTok }}
       (App (App (Val (@! gryff.examples.gryffnet.serve)) (Val #(W64 ((k + 2 : Nat) : Int))))
         (Val #addrs))
     {{ RET #(); True }} := by
-  wp_start as ⟨Henv, Hsh, Hglob, Hbp⟩
+  wp_start as ⟨Henv, Hsh, Hglob, Hbp, Htok⟩
   iunfold serveEnv at Henv
   icases Henv with ⟨#Hrpc, #Hhttp, Hboot, %Hb, Haddrs⟩
   unfold serverBoot httpInitRes rpcInitRes
-  icases Hboot with ⟨⟨Hmux, #Hhe⟩, ⟨Hboot, ⟨%γs, #Hds⟩, #Hce, #Hcon⟩⟩
+  icases Hboot with ⟨⟨Hmux, #Hhe⟩, ⟨Hboot, ⟨%γs, %γf, #Hds, Hsown⟩, #Hce, #Hcon⟩⟩
   unfold rpcBootRes
   icases Hboot with ⟨#Hsync, #Hmu, Hun, #Hinvreq⟩
   ihave #Hde : dialEnv (GF := GF) $$ []
-  · unfold dialEnv; iframe #; ipureintro; exact Hb.2
+  · ihave #Hhe0 := Hhe
+    iunfold net.http.httpSrvEnv at Hhe0
+    icases Hhe0 with ⟨#Hhe1, -⟩
+    unfold dialEnv; iframe #; ipureintro; exact Hb.2
   wp_auto
   wp_apply (wp_kit_Register wp_SetCodec) $$ [Hun] as #Hcs
   · unfold rpcBootRes
@@ -288,7 +297,7 @@ theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : Go
   wp_apply (NewReplica_core wp_rfl wp_run L RL γ k id nsl nodes hk) $$ [Hnsl Hready Hglob]
     as %rep ⟨Hrok, %ρ, %kr, %Hkr, Hisr⟩
   · iframe; iframe #
-  wp_apply (wp_Register_replica wp_Register γ γs rep) $$ [Hrok] as %err Hr
+  wp_apply (wp_Register_replica wp_Register γ γs γf rep) $$ [Hrok Hsown] as %err Hr
   · iframe; iframe #
   icases Hr with (⟨%He, #Hsreg⟩ | %He)
   · subst He
@@ -298,7 +307,9 @@ theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : Go
     ihave Hrr2 : replicaRegRes γ k $$ []
     · unfold replicaRegRes deployRegResDef; iframe #; ipureintro; exact Hw
     have hport : sint.Z (portNum k + W64 1000) = 8502 + k := by unfold portNum; word
-    wp_apply (Serve.wp_req γ k (portNum k + W64 1000) γs hk hport) $$ [Hmux Hrr2]
+    ihave #Hdsa := net.rpc.defaultServerO_any γs γf $$ Hds
+    wp_apply (Serve.wp_req wp_HandleHTTP wp_Serve γ k (portNum k + W64 1000) γs hk hport)
+        $$ [Hmux Hrr2 Htok]
     · iframe; iframe #
       ipureintro; exact Hb.1
     iapply HΦ; itrivial
@@ -307,22 +318,25 @@ theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : Go
       iapply HΦ; itrivial
     · exact absurd rfl He
 
-include L RL wp_Call wp_DialHTTP wp_SetCodec in
+include L RL wp_Call wp_DialHTTP wp_SetCodec wp_NewServer wp_SRegister wp_SHandleHTTP wp_Serve in
 /-- `serve(1, addrs)`: the master. -/
 theorem wp_serve_master (γ : GryffNames GF) (addrs : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗ serveEnv addrs ∗
-        serverShare γ 0 }}
+        serverShare γ 0 ∗ threadTok }}
       (App (App (Val (@! gryff.examples.gryffnet.serve)) (Val #(W64 1))) (Val #addrs))
     {{ RET #(); True }} := by
-  wp_start as ⟨Henv, Hsh⟩
+  wp_start as ⟨Henv, Hsh, Htok⟩
   iunfold serveEnv at Henv
   icases Henv with ⟨#Hrpc, #Hhttp, Hboot, %Hb, Haddrs⟩
   unfold serverBoot httpInitRes rpcInitRes
-  icases Hboot with ⟨⟨Hmux, #Hhe⟩, ⟨Hboot, ⟨%γs, #Hds⟩, #Hce, #Hcon⟩⟩
+  icases Hboot with ⟨⟨Hmux, #Hhe⟩, ⟨Hboot, -, #Hce, #Hcon⟩⟩
   unfold rpcBootRes
   icases Hboot with ⟨#Hsync, #Hmu, Hun, #Hinvreq⟩
   ihave #Hde : dialEnv (GF := GF) $$ []
-  · unfold dialEnv; iframe #; ipureintro; exact Hb.2
+  · ihave #Hhe0 := Hhe
+    iunfold net.http.httpSrvEnv at Hhe0
+    icases Hhe0 with ⟨#Hhe1, -⟩
+    unfold dialEnv; iframe #; ipureintro; exact Hb.2
   wp_auto
   wp_apply (wp_kit_Register wp_SetCodec) $$ [Hun] as #Hcs
   · unfold rpcBootRes
@@ -355,11 +369,12 @@ theorem wp_serve_master (γ : GryffNames GF) (addrs : GoSlice) :
   · unfold net.rpc.srvEnv; iframe #
   ihave #Hml : isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib $$ []
   · iPkgInit
-  wp_apply (NewMaster.wp_req L RL wp_Call wp_DialHTTP γ) $$ [Hstart Hmux] as %m Hm
+  wp_apply (NewMaster.wp_req L RL wp_Call wp_DialHTTP wp_NewServer wp_SRegister wp_SHandleHTTP γ)
+      $$ [Hstart Hmux] as %m Hm
   · iframe; iframe #
     ipureintro; exact Hb.1
   try wp_auto
-  wp_apply (Master.Serve.wp_req γ m) $$ [Hm]
+  wp_apply (Master.Serve.wp_req wp_Serve γ m) $$ [Hm Htok]
   · iframe
   try wp_auto
   iapply HΦ; itrivial
@@ -383,21 +398,23 @@ theorem wp_ServerAddrs' :
   iapply HΦ
   iexact Hsl
 
-include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register in
+include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register wp_NewServer wp_SRegister
+  wp_SHandleHTTP wp_HandleHTTP wp_Serve in
 theorem Server.wp_proof : Server.spec (GF := GF) (hG := hG) := by
   intro γ i hi
-  wp_start as ⟨Hboot, %Hb, Hsh, Hx⟩
+  wp_start as ⟨Hboot, %Hb, Hsh, Hx, Htok⟩
   wp_auto
   wp_apply wp_ServerAddrs' as %sl Hsl
   rcases i with _ | k
-  · wp_apply (wp_serve_master L RL wp_Call wp_DialHTTP wp_SetCodec γ sl) $$ [Hboot Hsl Hsh]
+  · wp_apply (wp_serve_master L RL wp_Call wp_DialHTTP wp_SetCodec wp_NewServer wp_SRegister
+        wp_SHandleHTTP wp_Serve γ sl) $$ [Hboot Hsl Hsh Htok]
     · unfold serveEnv; iframe; iframe Hpkg2 Hpkg3; ipureintro; exact Hb
     try wp_auto
     iapply HΦ; itrivial
   · simp only [Nat.add_one_ne_zero, ↓reduceIte]
     icases Hx with ⟨Hglob, Hbp⟩
-    wp_apply (wp_serve_replica wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register γ k (by omega) sl)
-      $$ [Hboot Hsl Hsh Hglob Hbp]
+    wp_apply (wp_serve_replica wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec wp_run wp_Register
+        wp_HandleHTTP wp_Serve γ k (by omega) sl) $$ [Hboot Hsl Hsh Hglob Hbp Htok]
     · unfold serveEnv; iframe; iframe Hpkg2 Hpkg3; ipureintro; exact Hb
     try wp_auto
     iapply HΦ; itrivial

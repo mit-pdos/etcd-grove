@@ -52,20 +52,19 @@ abbrev store.Get.spec : Prop :=
     (opts : k8s_io.apiserver.pkg.storage.GetOptions) (out : GoInterface) (o0 : Obj) (rv0 : GoString)
     (k : GoString) (n : w64) (Q : w64 → w64 → KVState → IProp GF),
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ⌜prepareKeyM c.resourcePrefix key false = some k ∧ (c.pathPrefix ++ k).length ≤ opKeyMax ∧
         c.S.parseRV opts.ResourceVersion' = some n⌝ ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt out o0 rv0 ∗
       (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
-        kvReadAu x.γr.kv (Q R m)) }}
+        kvReadAu x.γr.kv (Q R m))) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Get")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #opts)) (Val #out))
-  {{ (err : GoInterface), RET #err;
-      (unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
       (∃ σ : KVState, □ Q (W64 (σ.rev : Int)) (kubernetes.modAt (c.pathPrefix ++ k) σ) σ ∗
         respIs (E := Empty) c ((c.abs σ).get (c.pathPrefix ++ k) (uint.nat n) opts.IgnoreNotFound')
-          err out) }}
+          err out)) }}
 
 end spec
 

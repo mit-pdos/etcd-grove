@@ -8,9 +8,9 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
-public import RaftTla.Proof.google_golang_org.protobuf.internal.impl.Init
-public import RaftTla.Proof.runtime.PkgInitExt
+public import Proof.google_golang_org.protobuf.PkgInit
+public import Proof.google_golang_org.protobuf.internal.impl.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

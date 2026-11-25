@@ -8,7 +8,7 @@ variable).
 module
 
 public import Dsverify.Proof.gryff.src.masterproto.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

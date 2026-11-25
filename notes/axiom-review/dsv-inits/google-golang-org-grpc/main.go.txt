@@ -1,0 +1,12 @@
+package main
+
+import (
+	"fmt"
+
+	_ "aaa/dup"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	fmt.Println("init ok", grpc.Version)
+}

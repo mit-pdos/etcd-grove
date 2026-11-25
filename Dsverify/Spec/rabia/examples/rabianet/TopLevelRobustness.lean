@@ -8,39 +8,37 @@ the configuration, configures Rabia and connects its Rabia client endpoint, then
 `remote.ServeClient`) and five server machines (each waits for the configuration and, if it is one
 of its `n` servers, runs a Rabia server; rabia over TCP) -- deployed at `rabiaKitAddrs`
 (`DistDeploy`: the addresses distinct and valid, no connection, no listener). In every execution
-of fewer than `2^63` steps, with any number of threads, no thread of any machine is stuck and none
+of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any number of threads, no thread of any machine is stuck and none
 has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows.
 
-**Premises** (visible, each a hypothesis class of the proof, at the bundle `remoteGF` the proof
-uses, for every machine's heap): the libraries translated with names only, whose initializers
-(`InitHyp`: zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`, `math/rand`: each runs
-without panicking) and functions (`zerolog.Hyps`: a logger's five non-panicking levels on a
-non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
-`message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
-`NewSource`/`New`/`Rand.Intn` with exclusive tokens, the package-level `Intn`) have no model here,
-and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
-deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
-`log.Println` is proved from Perennial's trusted model of `log`. Proved in
+**Premises** (at the bundle `remoteGF` the proof uses, for every machine's heap): go-redis v8's
+initializer runs without panicking (`InitHyp`; its axiom review refuted it as an axiom,
+`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`), and zerolog's logger
+(`zerolog.Hyps`: `New`, a logger's five non-panicking levels on a non-`nil` logger, an exclusive
+event token through the field methods and `Msg`; kept a premise because its `axiom`-skill review
+refuted `New` with `Msg` as axioms: `notes/axiom-review/dsv-fix4/zerolog.md`). Not premises: gogo
+`proto`'s `Register*` calls in `message`'s initialization, math/rand's
+`NewSource`/`New`/`(*rngSource).Int63`, and the environment claim that nobody sends SIGINT or
+SIGTERM to the deployment's processes (`signal.Notify(c, SIGINT, SIGTERM)` registers a channel that
+never receives) are per-function trust-boundary axioms, and so are the initializers of zerolog,
+gogo `proto`, `gogoproto` and `os/signal` (their `wp_initialize'`); every axiom the result rests on
+is listed in `etc/tcb-collections/dsv-rabia.txt`. `log.Println` is proved from Perennial's trusted
+model of `log`; `math/rand`'s initializer, package-level `Intn` and `(*Rand).Intn` from Perennial's
+code.
+Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
 -/
 module
 
 public import Dsverify.Proof.rabia.examples.rabianet.TopLevelDefs
+public import Dsverify.Proof.Bounds
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
-public import Dsverify.Proof.github_com.rs.zerolog.Init
-public import Dsverify.Proof.github_com.rs.zerolog.Spec
-public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
-public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec
-public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.os.signal.Spec
-public import Dsverify.Proof.math.rand.Init
-public import Dsverify.Proof.math.rand.Spec
+public import Dsverify.Proof.github_com.rs.zerolog.Spec
 
 @[expose] public section
 
@@ -81,19 +79,11 @@ def rabia_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; github_com.rs.zerolog.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.Hyps remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.gogoproto.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; os.signal.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.Hyps remoteGF) →
-    (∀ G L, letI := heapAt G L; math.rand.Hyps remoteGF) →
-    (∀ G L, letI := heapAt G L; os.signal.NoSignals os.signal.quietSigs remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy rabiaKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 63)
+    Robustness.Robust [] (system σ) g threads remoteStepBound
 
 end rabia.examples.rabianet
 end Perennial

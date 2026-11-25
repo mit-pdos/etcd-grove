@@ -145,12 +145,19 @@ theorem startCluster.wp_proof
     (wp_holdToken : holdToken.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law)
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
-      ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
+      ps.length ≤ 1000 → rafthttp.bootCfg dir ps)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS k N ids ps ctxs boot lg hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨#Hlgz, Hss, Hbfree, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with #Hbps
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- the pure facts of the members and their ids (putgetN's)
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbf.lowNodup Hbf.lowNz
   have Hpsnd : ps.Nodup := by
@@ -515,11 +522,12 @@ theorem startCluster.wp_proof
     wp_apply (wp_slice_make2 (V := Loc) (W64 k)) as %clsl ⟨Hclsl, -⟩
     · ipureintro; word
     (try wp_auto)
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok1⟩
     ihave HJ : (∃ (j' : w64) (cs : List Loc),
-        "j" ∷ j_ptr ↦ j' ∗
+        "j" ∷ j_ptr ↦ j' ∗ "Hlt" ∷ levelTok 0 ∗
         "Hclsl" ∷ clsl ↦* (cs ++ List.replicate (k - cs.length) (zero_val Loc)) ∗
         "Hnc" ∷ ([∗list] cl ∈ cs, ∃ V : client.WEnv GF, isNewClient cl (bridges k) V) ∗
-        "%Hj'" ∷ ⌜uint.nat j' ≤ k ∧ cs.length = uint.nat j'⌝ : IProp GF) $$ [j Hclsl]
+        "%Hj'" ∷ ⌜uint.nat j' ≤ k ∧ cs.length = uint.nat j'⌝ : IProp GF) $$ [j Hclsl Hlt]
     · iexists W64 0, []
       iframe
       isplitl
@@ -531,7 +539,7 @@ theorem startCluster.wp_proof
     wp_for HJ
     wp_if_destruct
     · have hj : uint.nat j' < k := by rw [← hkn]; word
-      wp_apply (wp_NewClients basl (bridges k) lg (Classical.choice hVne) Htb31 Hpl) as %cl %cerr Hcl
+      wp_apply (wp_NewClients basl (bridges k) lg (Classical.choice hVne) (by omega) Hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
       · iframe; iframe #
       icases Hcl with (⟨%Hcerr, #Hnc1, -⟩ | %Hcfail)
       rotate_left
@@ -579,6 +587,8 @@ theorem startCluster.wp_proof
       have hck : cs.length = k := by rw [Hj'.2, hjk']
       ihave Hclsl : clsl ↦* cs $$ [Hclsl]
       · iExactEq Hclsl; rw [hck, Nat.sub_self, List.replicate_zero, List.append_nil]
+      ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok1]
+      · iframe
       iapply HΦ
       iright
       iframe

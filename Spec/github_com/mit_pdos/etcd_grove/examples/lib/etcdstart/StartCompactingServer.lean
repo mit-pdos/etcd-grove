@@ -66,7 +66,7 @@ abbrev StartCompactingServer.spec : Prop :=
       threadTok ∗
       -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
       -- compaction's write-back stock)
-      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗ commonPremises ∗
+      bootPremise N [id] bootLog ctxs dir name name (urls1 name peerAddr client) id ∗
       context.isClosedchanInit ∗
       -- (M2, the storage side, N1) the member's boot bundle in compaction mode
       memberBoot γ ctxs ρ E₀ Φs id true lm ∗

@@ -35,15 +35,14 @@ abbrev kVClient.Put.spec : Prop :=
     (Φ : PutRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.PutRequest) (k v : GoString) (opts : GoSlice)
     (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Spec ∗
       metadata.outMD ctx om ∗ reqPre conn go!"/etcdserverpb.KV/Put" addr vs (attemptPre conn om Spec (putReqOp req k v) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
       opts ↦*□ vs ∗ callOptsOk vs ∗
-      ⌜req.unknownFields' = slice.nil ∧ (pbPutRequest (GF := GF)).wireLen (putReqOp req k v) < grpcMsgMax⌝ }}
+      ⌜req.unknownFields' = slice.nil ∧ (pbPutRequest (GF := GF)).wireLen (putReqOp req k v) < grpcMsgMax⌝) }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.PutRequest, inp ↦ req') ∗ putCallOut Φ resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((∃ req' : etcdserverpb.PutRequest, inp ↦ req') ∗ putCallOut Φ resp err) }}
 
 end spec
 

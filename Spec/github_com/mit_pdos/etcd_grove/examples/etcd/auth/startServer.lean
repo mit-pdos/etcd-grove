@@ -60,7 +60,7 @@ abbrev startServer.spec : Prop :=
         ⌜cfgOk cfg ∧ urlsOk U ∧ γ'.vs = [id] ∧ γ'.rule = srvRule (W64 0) bootLog ∧
           γ'.boot = bootLog⌝ -∗
         letI : MemStorReg GF := ⟨γ'.reg⟩; bootstrapContract cfg U γ' id ctxs N dir) ∗
-      etcdstart.commonPremises ∗ context.isClosedchanInit ∗
+      context.isClosedchanInit ∗
       etcdstart.memberBootOn γ ctxs ρ E₀ Φs id ∗
       netHttpOk γn id ∗
       -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its fresh bundle) the

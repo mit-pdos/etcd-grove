@@ -18,6 +18,7 @@
 package paxosnet
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -25,9 +26,9 @@ import (
 	"github.com/xiang90/paxos"
 )
 
-// The configuration: NC clients, Ops operations each, NAcceptors acceptors and NLearners learners,
-// how long a proposal waits to learn its outcome, and how long clients 2 and 3 wait before they
-// propose (so that their proposers find a value already accepted and must adopt it).
+// The configuration: NC clients, at most Ops operations each, NAcceptors acceptors and NLearners
+// learners, how long a proposal waits to learn its outcome, and the bound on a client's random wait
+// before it proposes (so that some proposers find a value already accepted and must adopt it).
 const (
 	NC            uint64 = 4
 	Ops           uint64 = 1
@@ -212,14 +213,14 @@ func attempt() time.Duration {
 	return time.Duration(AttemptMs) * time.Millisecond
 }
 
-// Orch is the orchestrator's program: it panics unless porcupine accepts the history of the
-// clients' proposals.
+// Orch is the orchestrator's program: it draws each client's number of operations, 1 to Ops, and
+// panics unless porcupine accepts the history of the clients' proposals.
 func Orch() {
-	remote.Check(Model(), ClientAddrs(), Codec(), Gen, int(Ops), attempt())
+	remote.Check(Model(), ClientAddrs(), Codec(), Gen, 1+rand.Intn(int(Ops)), attempt())
 }
 
 // Client is client machine c's program (c < NC): its own client node of the paxos deployment,
-// served at its address in ClientAddrs; its operation waits (c/2)*StaggerMs, then proposes. The
+// served at its address in ClientAddrs; its operation waits a random 0 to StaggerMs, then proposes. The
 // node is made once, before serving (remote.ServeClient's newClient may be called any number of
 // times as far as its contract says, and a second node of client c would reuse its proposer's
 // proposal numbers).
@@ -229,7 +230,7 @@ func Client(c uint64) {
 		return cl
 	}
 	op := func(sys any, in any) any {
-		time.Sleep(time.Duration((c/2)*StaggerMs) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(int(StaggerMs)+1)) * time.Millisecond)
 		v, ok := sys.(*paxos.NetCluster).Propose(c, in.(string), ProposeWaitMs)
 		if !ok {
 			return Out{Unknown: true}

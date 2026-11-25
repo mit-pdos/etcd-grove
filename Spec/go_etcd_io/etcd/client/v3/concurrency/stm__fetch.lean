@@ -34,16 +34,16 @@ read transaction fits a gRPC message, `fetchTxn_size`). -/
 abbrev stm.fetch.spec : Prop :=
   ∀ (b : Loc) (pfx : GoString) (reads : GMap GoString ReadM) (gs : List (OpFull → OpFull))
     (ksl : GoSlice) (ks : List GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b reads ∗ stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (stmEnv pfx b ∗ stmRsetOwn pfx b reads ∗ stmOptsOwn b gs ∗ ⌜ReadOptsOk gs⌝ ∗
       ksl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗
-      ⌜ks.length ≤ stmCallMax ∧ ∀ k ∈ ks, k.length ≤ stmKeyMax⌝ }}
+      ⌜ks.length ≤ stmCallMax ∧ ∀ k ∈ ks, k.length ≤ stmKeyMax⌝) }}
     (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"fetch")) (Val #ksl))
-  {{ (r : val), RET r; stmRet r fun p : Loc => iprop(
+  {{ (r : val), RET r; levelTok 0 ∗ (stmRet r fun p : Loc => iprop(
       ∃ reads' : GMap GoString ReadM, stmRsetOwn pfx b reads' ∗
       stmOptsOwn b gs ∗ ⌜ReadsGrow reads reads' ks⌝ ∗
       (⌜ks = [] ∧ p = null⌝ ∨
         ∃ (k : GoString) (e e' : ReadM), ⌜k ∈ ks ∧ reads' !! k = some e' ∧ e'.kv = e.kv⌝ ∗
-          readRespAt pfx k p e)) }}
+          readRespAt pfx k p e))) }}
 
 end spec
 

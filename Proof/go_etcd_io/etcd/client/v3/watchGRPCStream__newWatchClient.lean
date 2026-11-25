@@ -333,8 +333,11 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     intro ws hws
     exact (Hfph ws (HlU ws hws)).1
   simp only [ne_eq, decide_not] at *
-  wp_apply wp_open V G.wgs G.ctx G.cd G.omd callSl vs $$ [] as %wc %err Hopen
+  icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hl0, Htt0⟩
+  wp_apply wp_open V G.wgs G.ctx G.cd G.omd callSl vs $$ [Hl0] as %wc %err ⟨Hl0, Hopen⟩
   · iframe #
+    iframe Hl0
+  ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [$Hl0 $Htt0]
   wp_apply wp_broadcast_chan_close stopc γst iprop(True) $$ [$Hstb] as -
   · imodintro; itrivial
   ihave #Hdcc := ownBroadcastChan_is_chan _ _ _ _ $$ Hdcb
@@ -603,10 +606,13 @@ theorem watchGRPCStream.newWatchClient.wp_proof
       ⟨Hep, #Hlb⟩
     ihave #Hidx := monoListIdxOwn_get (GF := GF) eps.length ((γs2, sent.length, γc, i, auth.mdTokenOf md) : EpInfo)
       (by simp) $$ Hlb
-    wp_apply wp_fork $$ [Hrtok Hprod Hcnt]
-    · wp_apply wp_serve V G callSl wc γs2 Dn cd' eps.length γc i sent (auth.mdTokenOf md) $$ [$Hrtok $Hprod $Hcnt]
+    wp_apply wp_fork_level0 $$ [Hrtok Hprod Hcnt]
+    · iintro Hl0
+      wp_apply wp_serve V G callSl wc γs2 Dn cd' eps.length γc i sent (auth.mdTokenOf md) $$ [$Hl0 $Hrtok $Hprod $Hcnt] as ⟨Hl0, -⟩
       · iframe #
-      itrivial
+      isplitr
+      · itrivial
+      iexact Hl0
     iapply HΦ
     iexists m', r, rc', γrc', ((S.l ++ keys.filterMap (S.M !! ·)).filter (fun x => !decide (x = null)))
     iframe

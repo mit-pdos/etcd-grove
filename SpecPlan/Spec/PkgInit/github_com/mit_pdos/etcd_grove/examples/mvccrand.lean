@@ -4,6 +4,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.mvccrand
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
+public import Perennial.Proof.slices.Base
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.atomic.Base
@@ -15,6 +16,8 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.traceutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.backend
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Perennial.Proof.errors.Base
+public import SpecPlan.Spec.PkgInit.os
 
 @[expose] public section
 noncomputable section

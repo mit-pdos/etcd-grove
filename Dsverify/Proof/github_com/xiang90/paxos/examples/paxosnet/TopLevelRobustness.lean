@@ -88,7 +88,7 @@ end boot
 /-- **The paxos kit, closed** (see the statement's file). -/
 theorem paxos_remote_robust : paxos_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 fsem bvi σ g threads
-  refine robust_of_distProtoRB (GF := remoteGF) paxosKitAddrs (system σ) g threads (2 ^ 63) ?_
+  refine robust_of_distProtoRB (GF := remoteGF) paxosKitAddrs (system σ) g threads (remoteStepBound) ?_
   intro G π hrb
   iintro #Hreg Hs
   unfold paxosKitAddrs

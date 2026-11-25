@@ -274,7 +274,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
       -- (sweep repairs 1, R1-4b, B4) `ETCD_VERIFY` off for the run, from program start (what
       -- `bootstrap`'s contract and the snapshot path's `OpenSnapshotBackend` take)
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
@@ -338,7 +338,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       -- (wal-nostorageok, 2026-11-21: `rnNewStorageOk` gone, proved: `rnNewStorageOk.law`)
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       -- the packages' init facts `start` needs
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))

@@ -102,7 +102,7 @@ abbrev NewServer.specR : Prop :=
       -- `bootstrap`'s contract on the stopped member's data directory
       "#HbootR" ∷ bootstrapRestartContract cfg U γ id N dir ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
-      "#Hvoff" ∷ envVerifyOff ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗
@@ -125,7 +125,7 @@ abbrev NewServer.specR : Prop :=
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
-      "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
+      -- (premises to axioms, 2026-11-24: `rnLoggerZapOk`, `rnTimeoutDetectorOk` gone, now `newRaftNode`'s callees' trust-boundary specs)
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);

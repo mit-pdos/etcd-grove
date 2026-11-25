@@ -92,7 +92,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     (hDel : EtcdGrove.OpDelete.spec (GF := GF) (hG := hG)) :
     Election.Resign.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs lo
-  wp_start as ⟨#He, Hst, #Hctx, #HctxC, #Hlo⟩
+  wp_start as ⟨Hlt, #He, Hst, #Hctx, #HctxC, #Hlo⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -102,6 +102,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   wp_if_destruct
   · -- no leader session
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; exact ⟨Hif, rfl⟩
@@ -178,8 +179,9 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   by_cases Hk : pfx <+: st.key
-  · wp_apply HCommit $$ %({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-    · ipureintro; exact ⟨resignTxn_under pfx st.key st.rev Hk, resignTxn_size st.key st.rev Hsess.2⟩
+  · wp_apply HCommit $$ %({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
+    · (try iframe Hlt)
+      ipureintro; exact ⟨resignTxn_under pfx st.key st.rev Hk, resignTxn_size st.key st.rev Hsess.2⟩
     ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
     iunfold txnCommitResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
@@ -189,6 +191,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
         | ok g => exact ⟨g, rfl⟩
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright; iright
       isplitr
       · ipureintro; exact ⟨Hnn, Hne⟩
@@ -200,6 +203,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     ihave #Hnl := resignTxn_notLeader pfx st.key st.rev r s0 Hrr.2.2.2 $$ Hts
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · ipureintro; exact ⟨Hnn, rfl⟩
@@ -213,8 +217,9 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     isplitr
     · unfold hdrRevAt; iframe HRev; ipureintro; exact Hhdr
     ipureintro; exact Hrr.1 rfl
-  · wp_apply HCommitAny $$ %({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) [$HB] as %resp %err #Hres
-    · ipureintro; exact resignTxn_size st.key st.rev Hsess.2
+  · wp_apply HCommitAny $$ %({ model := resignTxn st.key st.rev, cif := true, cthen := true, celse := false } : TxnBuild) [$Hlt $HB] as %resp %err ⟨Hlt, #Hres⟩
+    · (try iframe Hlt)
+      ipureintro; exact resignTxn_size st.key st.rev Hsess.2
     iunfold txnAnyResult at Hres
     icases Hres with (%Hne | ⟨%Heq, %hdr, %ok, #HH, -⟩)
     · obtain ⟨g, rfl⟩ : ∃ g, err = GoInterface.ok g := by
@@ -223,6 +228,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
         | ok g => exact ⟨g, rfl⟩
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright; iright
       isplitr
       · ipureintro; exact ⟨Hnn, Hne⟩
@@ -231,6 +237,7 @@ theorem Election.Resign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG
     subst Heq
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · ipureintro; exact ⟨Hnn, rfl⟩

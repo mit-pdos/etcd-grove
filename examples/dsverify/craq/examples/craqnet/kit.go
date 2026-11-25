@@ -34,6 +34,7 @@ package craqnet
 import (
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -487,14 +488,14 @@ func attempt() time.Duration {
 }
 
 // Orch is the orchestrator machine's program: it chooses the configuration and the removals,
-// sends them, waits StartMs for the chain to form, then checks NC clients' K operations each
-// (remote.Check panics if porcupine rejects the history). The wait matters only to tests (time is
-// not modeled: the theorem allows any delay).
+// sends them, waits StartMs for the chain to form, then checks NC clients' operations, a random 1
+// to K each (remote.Check panics if porcupine rejects the history). The wait matters only to tests
+// (time is not modeled: the theorem allows any delay).
 func Orch() {
 	conf := choose()
 	configure(conf, plan(conf))
 	time.Sleep(time.Duration(StartMs) * time.Millisecond)
-	remote.Check(Model(), ClientAddrs(), Codec(), Gen, int(K), attempt())
+	remote.Check(Model(), ClientAddrs(), Codec(), Gen, 1+rand.Intn(int(K)), attempt())
 }
 
 // Sys is a client machine's view of the deployment: the configuration, and the number of its
@@ -609,14 +610,16 @@ func Client(c uint64) {
 
 // joinMs is chain machine id's delay, after the configuration arrived, before it announces itself
 // to the coordinator (Node.Start's AddNode): JoinMs apart in id order, and the last conf.Late
-// nodes only after the clients have started (StartMs, then LateMs apart).
+// nodes only after the clients have started (StartMs, then LateMs apart), each plus a random 0 to
+// JoinMs (so two neighbours may join in either order; time is not modeled).
 func joinMs(id uint64, conf Conf) uint64 {
+	j := uint64(rand.Intn(int(JoinMs) + 1))
 	i := id - 2
 	early := conf.N - conf.Late
 	if i < early {
-		return (i + 1) * JoinMs
+		return (i+1)*JoinMs + j
 	}
-	return StartMs + (i-early+1)*LateMs
+	return StartMs + (i-early+1)*LateMs + j
 }
 
 // Server is server machine id's program (1 <= id <= MaxChain+1): id 1 is cmd/coordinator's main;

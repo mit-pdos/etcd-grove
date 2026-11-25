@@ -113,7 +113,10 @@ theorem COOk.ofMapSendPeer {s : RState} {l : List w32} {m : Msg} {r : List Out}
 
 theorem shortCircuit_cok {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : s'.inst = s.inst ∧ COOk P o := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact ⟨rfl, COOk.nil⟩
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

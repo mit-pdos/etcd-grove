@@ -9,7 +9,9 @@ module
 
 public import Dsverify.Proof.gryff.H1.CoordSCDefs
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.gryff.Lib.SortHyps
+public import Spec.cmp.Less
+public import Perennial.Proof.slices.Link
+public import Dsverify.Proof.gryff.Replica2.Specs
 
 @[expose] public section
 
@@ -30,11 +32,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 
 attribute [-instance] go.InterfaceSemantics.method_interface_ok in
-theorem GryffCoordinator.ShortCircuit.wp_int (ρ : Repl2Names) (co : Loc) (ic : GoInterface)
+theorem GryffCoordinator.ShortCircuit.wp_int
+    (wp_Less : EtcdGrove.cmp.Less.specInt32 (GF := GF) (hG := hG)) (ρ : Repl2Names) (co : Loc) (ic : GoInterface)
     (k : Fin 3) (C : model.ValTag → List Out → IProp GF) (s s' : RState) (outs o : List Out)
     (vt : model.ValTag) (n : w32) (vp : Loc) (gv : src.gryffproto.ValTag) (fo : Bool)
     (ropsR wopsR orR mtR fkR : Loc) (arS : GoSlice)
@@ -45,7 +47,7 @@ theorem GryffCoordinator.ShortCircuit.wp_int (ρ : Repl2Names) (co : Loc) (ic : 
         icoordOk ρ ic k C ∗ C vt (outs ++ o) ∗ vp ↦□ gv }}
       (App (App (App (coordM co go!"ShortCircuit") (Val #n)) (Val #vp)) (Val #fo))
     {{ RET #(); scPost ρ ropsR orR s' ∗ C vt o }} := by
-  obtain ⟨op, hop, hloop, hfin⟩ := sc.shortCircuit_inv s s' n (vtOf gv) fo outs hsc
+  obtain ⟨op, hop, hR, hS⟩ := sc.shortCircuit_inv s s' n (vtOf gv) fo outs hsc
   simp only [coordM]
   wp_start as ⟨#Hfix, Hr, Ho, Hic, HC, #Hvp⟩
   unfold icoordOk
@@ -67,27 +69,65 @@ theorem GryffCoordinator.ShortCircuit.wp_int (ρ : Repl2Names) (co : Loc) (ic : 
   rw [hpn]
   simp only [Option.getD_some]
   wp_auto
-  wp_apply wp_sort_Slice gn.ShortReads' op.shortReads _ iprop(keys_ptr ↦ gn.ShortReads') $$ [Hsr keys]
-    as ⟨Hsr, keys⟩
-  · iframe Hsr keys
-    unfold lessOk
-    iintro !> %ys %i %j %a %b %Hab ⟨Hsl, Hk⟩
-    ihave %Hl := ownSlice_len $$ Hsl
-    obtain ⟨ha, hb, hi0, hj0⟩ := Hab
-    have hi : sint.Z i < sint.Z gn.ShortReads'.len := by
-      have := (List.getElem?_eq_some_iff.1 ha).1
-      simp only [sint.nat, sint.Z] at *; omega
-    have hj : sint.Z j < sint.Z gn.ShortReads'.len := by
-      have := (List.getElem?_eq_some_iff.1 hb).1
-      simp only [sint.nat, sint.Z] at *; omega
+  ihave %Hsl0 := ownSlice_len $$ Hsr
+  wp_if_destruct
+  rotate_left
+  · -- past `maxShortReads` reads: the guard skips the sort and the reads loop; nothing changes
+    have hlt : model.maxShortReads < op.shortReads.length := by
+      have h20 : sint.Z (W64 1048576) = 1048576 := rfl
+      simp only [h20, model.maxShortReads, Nat.reducePow, sint.nat, sint.Z] at Hif Hsl0 ⊢; omega
+    clear Hif
+    obtain ⟨hs', ho⟩ := hS hlt
+    subst s' ho
+    simp only [List.nil_append]
+    have hnv : ∀ x, s.ongoingReqs.get? n = some x → x = op := by
+      intro x hx; rw [hop] at hx; cases hx; rfl
+    wp_if_destruct
+    rotate_left
+    · iapply HΦ
+      iframe HC
+      iapply (scClose ρ s ropsR orR om rm n pn gn sw op Hodom Hrdom (Or.inr hpn) hnv Hgn)
+      iframe Hrm Hrents Hom Hoents Hpn Hsr Hsrc Hsw
+    wp_apply wp_map_lookup1 $$ Hom as Hom
+    rw [hpn]; simp only [Option.getD_some]
     wp_auto
-    rw [if_pos' ⟨hi0, hi⟩]
-    wp_apply wp_load_slice_index gn.ShortReads' (sint.Z i) ys (DFrac.own 1) a hi0 $$ [Hsl] as Hsl
-    · iframe Hsl; ipureintro; exact ha
-    rw [if_pos' ⟨hj0, hj⟩]
-    wp_apply wp_load_slice_index gn.ShortReads' (sint.Z j) ys (DFrac.own 1) b hj0 $$ [Hsl] as Hsl
-    · iframe Hsl; ipureintro; exact hb
-    iframe Hsl Hk; ipureintro; rfl
+    have hsw : sw = [] := Hgn.2.2.2.2
+    subst hsw
+    ihave %Hswl := ownSlice_len $$ Hsw
+    ihave HI2 : ("i" ∷ i_ptr ↦ W64 0 : IProp GF) $$ [i]
+    · iexact i
+    wp_for HI2
+    have hlen0 : decide (sint.Z (W64 0) < sint.Z gn.ShortWrites'.len) = false := by
+      obtain ⟨h1, h2⟩ := Hswl
+      have h3 : sint.Z (W64 0) = 0 := rfl
+      rw [h3]; simp only [decide_eq_false_iff_not]
+      simp only [List.length_nil, sint.nat, sint.Z] at h1 h2 ⊢; omega
+    rw [hlen0]
+    simp only [val_false_ne_true, decide_false, Bool.false_eq_true, ↓reduceIte, _root_.decide_true]
+    wp_auto
+    iapply HΦ
+    iframe HC
+    iapply (scClose ρ s ropsR orR om rm n pn gn [] op Hodom Hrdom (Or.inr hpn) hnv Hgn)
+    iframe Hrm Hrents Hom Hoents Hpn Hsr Hsrc Hsw
+  -- within the guard: `slices.Sort`, then the reads loop
+  have hle : op.shortReads.length ≤ model.maxShortReads := by
+    have h20 : sint.Z (W64 1048576) = 1048576 := rfl
+    simp only [h20, model.maxShortReads, Nat.reducePow, sint.nat, sint.Z] at Hif Hsl0 ⊢; omega
+  clear Hif
+  obtain ⟨hloop, hfin⟩ := hR hle
+  wp_apply (_root_.Perennial.slices.wp_Sort (fun (a b : w32) => sint.Z a < sint.Z b)
+      gn.ShortReads' op.shortReads strictWeakOrder_slt32) $$ [$Hsr] as %ys ⟨Hsr, %Hperm, %Hsorted⟩
+  · isplitr
+    · ipureintro; simp only [model.maxShortReads, Nat.reducePow] at hle; omega
+    unfold _root_.Perennial.slices.lessImplements
+    iintro %a %b
+    iintro !> %Φ' _ HΦ'
+    wp_apply wp_Less a b as %r %Hr
+    iapply HΦ'
+    ipureintro
+    exact Hr
+  have hys : ys = sc.scKeys op := sorted_slt_eq_mergeSort _ _ Hperm Hsorted
+  subst hys
   wp_apply wp_map_lookup1 $$ Hom as Hom
   rw [hpn]; simp only [Option.getD_some]
   wp_auto
@@ -319,7 +359,8 @@ theorem GryffCoordinator.ShortCircuit.wp_int (ρ : Repl2Names) (co : Loc) (ic : 
   iframe Hrm Hrents Hom Hoents Hpn Hsr Hsrc Hsw
 
 attribute [-instance] go.InterfaceSemantics.method_interface_ok in
-theorem GryffCoordinator.ShortCircuit.wp_proof (ρ : Repl2Names) (co : Loc) (ic : GoInterface)
+theorem GryffCoordinator.ShortCircuit.wp_proof
+    (wp_Less : EtcdGrove.cmp.Less.specInt32 (GF := GF) (hG := hG)) (ρ : Repl2Names) (co : Loc) (ic : GoInterface)
     (k : Fin 3) (C : model.ValTag → List Out → IProp GF) (s s' : RState) (outs o : List Out)
     (vt : model.ValTag) (n : w32) (vp : Loc) (gv : src.gryffproto.ValTag) (fo : Bool)
     (hsc : model.shortCircuit s n (vtOf gv) fo = some (s', outs)) :
@@ -331,7 +372,7 @@ theorem GryffCoordinator.ShortCircuit.wp_proof (ρ : Repl2Names) (co : Loc) (ic 
   iintro %Φ ⟨#Hpkg, Hc, Hic, HC, #Hvp⟩ HΦ
   icases (coordOwn_open ρ co ic k s).1 $$ Hc with
     ⟨%ropsR, %wopsR, %orR, %mtR, %fkR, %arS, #Hfix, Hmisc, %Hrk, Hr, Hw, Ho⟩
-  iapply (GryffCoordinator.ShortCircuit.wp_int ρ co ic k C s s' outs o vt n vp gv fo
+  iapply (GryffCoordinator.ShortCircuit.wp_int wp_Less ρ co ic k C s s' outs o vt n vp gv fo
     ropsR wopsR orR mtR fkR arS hsc Hrk) $$ [Hr Ho Hic HC]
   · iframe Hpkg Hfix Hr Ho Hic HC Hvp
   iintro !> ⟨Hpost, HC⟩

@@ -29,6 +29,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitS
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Proof.time.Link
+public import Dsverify.Proof.math.rand.IntnPos
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 
@@ -680,13 +681,16 @@ theorem Orch.wp_proof
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (wp_Codec γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 6) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 5 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (kvR γ) kvS γp m addrs clientAddrs cd _ _ d pendN_craq lintestN_craq
-    (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by decide)
-    (by rw [hlen']; decide) 18 (by decide) $$ [Hlib Hbud]
+  wp_apply wp_Check (kvR γ) kvS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_craq lintestN_craq
+    (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by word)
+    (by rw [hlen']; word) 18 (by simp only [readTries]; word) $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)

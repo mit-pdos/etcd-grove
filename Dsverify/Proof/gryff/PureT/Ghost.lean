@@ -120,7 +120,10 @@ theorem opt_bind_some {α β : Type} {x : Option α} {f : α → Option β} {b :
 
 theorem ghost_shortCircuit {s s' : RState} {n : w32} {v : ValTag} {b : Bool} {o : List Out}
     (h : shortCircuit s n v b = some (s', o)) : GhostEq s s' := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact GhostEq.refl _
+  unfold Perennial.gryff.model.shortCircuitReads at h
   split at h
   · simp only [] at h
     obtain ⟨x, hx, hf⟩ := opt_bind_some h

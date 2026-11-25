@@ -56,7 +56,9 @@ theorem startCluster.wp_proof
     (hne : mvcc.api.names_nonempty.law)
     (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
-      ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
+      ps.length ≤ 1000 → rafthttp.bootCfg dir ps)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS k N ids ps ctxs boot lg ThB RcB RcN hk1 hk Hlen Hbf HLv HwbN Haf Hbuq Hrf Hdbo Hms
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
@@ -64,7 +66,12 @@ theorem startCluster.wp_proof
   have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
   wp_start as ⟨#Hlgz, Hss, Hbfree, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hbps, #Hmarsh, #Hcom⟩
+  icases Hprem with #Hbps
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- the pure facts of the members and their ids (putgetN's)
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbf.lowNodup Hbf.lowNz
   have Hpsnd : ps.Nodup := by
@@ -298,7 +305,7 @@ theorem startCluster.wp_proof
       ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
       imod (etcdstart.kvWatch_served Hp Hr sj E { xj.2.ρ with wait := γw } xj.2.ρ.rd cfg gs' lis
         xj.1.Client' cid mid R Hrb48 Hrf rfl HLv Hms
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr⟩
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega)) $$ [Hg Hstk] with ⟨Htk, #Hkv, #Hksa, #Hwr, -⟩
       · iframe; iframe #
       -- (D29) the member never refuses: the server now at its address is etcd's, authentication off
       ihave %Hnr := EtcdGrove.etcd_noRefusal_srv xj.1.Client' sj E { xj.2.ρ with wait := γw } HEo $$ [Hksa]

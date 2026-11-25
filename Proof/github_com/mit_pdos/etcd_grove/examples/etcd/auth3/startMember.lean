@@ -53,14 +53,12 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu ps bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48
     HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the peer address's listen right and raft protocol, out of the fresh bundle (to `net.Listen` and
   -- `http.Serve`); the rest to `NewServer`
   icases etcdstart.memberFreshRes_peer _ _ _ _ rfl $$ Hfresh with ⟨⟨Haddr, Hpown⟩, Hfresh⟩
   iunfold bootPremise at Hboot
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
-  iunfold etcdstart.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -103,7 +101,7 @@ theorem startMember.wp_proof
       (lease.bootCfg_none _ _ (lease.runCfg_lm hslg))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
+      (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl)
       ⟨rfl, etcdstart.discoveryZero_len, HU8, dirFits_memberDataDir name HnL⟩
       HwbN)
     $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hfresh] as %srv %err Hres

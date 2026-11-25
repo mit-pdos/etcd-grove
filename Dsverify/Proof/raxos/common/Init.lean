@@ -12,6 +12,7 @@ public import Perennial.Proof.bytes.Link
 public import Dsverify.Proof.encoding.gob.Init
 public import Perennial.Proof.time.Link
 public import Dsverify.Proof.raxos.proto.Init
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
@@ -35,7 +36,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.encoding.gob.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.common.Assumptions]
 
 namespace raxos.common
@@ -54,8 +54,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.raxos.proto.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.encoding.gob _root_.Perennial.encoding.gob.initialize'
-      _root_.Perennial.encoding.gob.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.gob _root_.Perennial.encoding.gob.initialize'
+      EtcdGrove.ExternalInit.encoding_gob _root_.Perennial.encoding.gob.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
       EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown

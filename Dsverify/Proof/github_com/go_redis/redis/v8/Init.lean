@@ -5,11 +5,18 @@
 (a `Prop`), which every theorem whose proof initializes `github_com.go_redis.redis.v8` takes as an instance argument
 (`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`, as for dsv-vr), up to the
 kit's closed statement. Replace by the model's proved `wp_initialize'` when it lands.
+
+**Kept a premise** (dsv-fix3, 2026-11-25): unlike the nine other names-only initializers, which
+became per-package trust-boundary axioms (#8 2026-11-25T02:20:53Z), this one stays the statement's
+premise: its `axiom`-skill review refuted it as an axiom
+(`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`): go-redis imports `crypto/tls`, whose
+`crypto/internal/fips140` `init` panics under `GODEBUG=fips140=bogus`, which no premise here excludes.
+The fix (a `GodebugFips140Off` premise, a registry ghost state, or a gate) is Upamanyu's decision.
 -/
 module
 
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

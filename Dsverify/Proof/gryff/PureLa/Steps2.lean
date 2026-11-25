@@ -126,7 +126,10 @@ theorem slt_sge_false {x : w64} (h1 : slt x 0 = true) (h2 : sge x 0 = true) : Fa
 theorem shortCircuit_sb {T E : Int} {s s' : RState} {n : w32} {v : ValTag} {f : Bool}
     {o : List Out} (hs : SB T E s) (h : shortCircuit s n v f = some (s', o)) :
     SB T E s' ∧ OB T E o ∧ s'.wops = s.wops ∧ s'.nReqs = s.nReqs := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact ⟨hs, OB_nil, rfl, rfl⟩
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

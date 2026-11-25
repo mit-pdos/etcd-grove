@@ -49,7 +49,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **The queue, end to end** (see the file header): `NewQueue(client, kp)` (`kp` at most
 `2 ^ 27` bytes; `Enqueue`'s value at most `2 ^ 28`: `notes/invoke-size-b.md`) on a client over a
 real `*kv` and etcd's server returns a queue whose `Enqueue` meets its spec, and whose `Dequeue`'s
-`(v, nil)` is an item `it` with the value `v`, taken by this call in the server's terms
+`(v, nil)` (each lent the caller's level-0 thread token, decision 1b) is an item `it` with the value `v`, taken by this call in the server's terms
 (`queueTaken`), at a revision at least the caller's `lo`, in order (`dequeueOrder`). -/
 theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames) [client.KMWritable γ]
     (kp : GoString) (hkp : kp ≠ []) (hkpl : kp.length ≤ 2 ^ 27)
@@ -65,24 +65,24 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.K
         (Val #kp))
     {{ (q : Loc), RET #q;
         (□ ∀ (val : GoString) (lo : w64),
-          {{ etcdReached (EM := client.etcdModelOfKV γ) lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
+          {{ levelTok 0 ∗ etcdReached (EM := client.etcdModelOfKV γ) lo ∗ ⌜val.length ≤ 2 ^ 28⌝ }}
             (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
-          {{ (err : GoInterface), RET #err;
-              (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
+          {{ (err : GoInterface), RET #err; levelTok 0 ∗
+              ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
                 etcdReached (EM := client.etcdModelOfKV γ) r ∗
                 keyCreatedAt (EM := client.etcdModelOfKV γ) kp key val (W64 0) r ∗
                 ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-              ⌜err ≠ GoInterface.nil⌝ }}) ∗
+              ⌜err ≠ GoInterface.nil⌝) }}) ∗
         (□ ∀ (lo : w64),
-          {{ context.isClosedchanInit ∗ etcdReached (EM := client.etcdModelOfKV γ) lo ∗
+          {{ levelTok 0 ∗ context.isClosedchanInit ∗ etcdReached (EM := client.etcdModelOfKV γ) lo ∗
               ⌜0 ≤ sint.Z lo⌝ }}
             (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
-          {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-              (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64),
+          {{ (v : GoString) (err : GoInterface), RET (PairV #v #err); levelTok 0 ∗
+              ((⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64),
                 dequeuedAt (EM := client.etcdModelOfKV γ) kp kp it r ∗
                 dequeueOrder (EM := client.etcdModelOfKV γ) kp kp modRevLe it r ∗
                 ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-              ⌜err ≠ GoInterface.nil⌝ }}) }} := by
+              ⌜err ≠ GoInterface.nil⌝) }}) }} := by
   iintro %Φ ⟨#Pr, #Pc, #HKV, #HW, #Hw, #Hkv, #Hinv, #Hsn, #Hcei, #Hrest⟩ HΦ
   ihave #Hcl := isEtcdRecipesClient_of_km cl w api γ kp hkp hAs $$ []
   · iframe #
@@ -93,18 +93,19 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.K
   iintro %q #Hq
   iapply HΦ
   isplitl []
-  · iintro !> %val %lo %Ψ !> ⟨#Hlo, %Hv⟩ HΨ
-    iapply (Queue.wp_Enqueue (EM := client.etcdModelOfKV γ) q cl kp val lo) $$ []
+  · iintro !> %val %lo %Ψ !> ⟨Hlt, #Hlo, %Hv⟩ HΨ
+    iapply (Queue.wp_Enqueue (EM := client.etcdModelOfKV γ) q cl kp val lo) $$ [$Hlt]
     · iframe #
       ipureintro; exact Hv
     iexact HΨ
-  · iintro !> %lo %Ψ !> ⟨#Hci, #Hlo, %Hl0⟩ HΨ
-    iapply (Queue.wp_Dequeue (EM := client.etcdModelOfKV γ) q cl kp lo) $$ []
+  · iintro !> %lo %Ψ !> ⟨Hlt, #Hci, #Hlo, %Hl0⟩ HΨ
+    iapply (Queue.wp_Dequeue (EM := client.etcdModelOfKV γ) q cl kp lo) $$ [$Hlt]
     · iframe #
       ipureintro; exact Hl0
     inext
-    iintro %v %err Hout
+    iintro %v %err ⟨Hlt, Hout⟩
     iapply HΨ
+    iframe Hlt
     icases Hout with (⟨%He, %it, %r, -, Hdq, #Ho, %Hv⟩ | %He)
     · ileft
       isplitl []

@@ -95,3 +95,53 @@ func TestRoundTripUnmarshalLeftovers(t *testing.T) {
 		t.Fatalf("round trip changed the fields: %v vs %v", back, cc)
 	}
 }
+
+// ccBootWire is Lean's ccBootWire (Spec/google_golang_org/protobuf/proto/MarshalBootConfChange.lean):
+// field 2 (type) varint 0, field 3 (node_id) varint id, and, for a non-empty context, field 4
+// (context) length-delimited. Field 1 (id) is unset and not written.
+func ccBootWire(id uint64, ctx []byte) []byte {
+	b := []byte{0x10, 0x00, 0x18}
+	b = appendVarint(b, id)
+	if len(ctx) != 0 {
+		b = append(b, 0x22)
+		b = appendVarint(b, uint64(len(ctx)))
+		b = append(b, ctx...)
+	}
+	return b
+}
+
+func appendVarint(b []byte, n uint64) []byte {
+	for n >= 0x80 {
+		b = append(b, byte(n)|0x80)
+		n >>= 7
+	}
+	return append(b, byte(n))
+}
+
+// The axiom proto.MarshalBootConfChange.wp_proof: proto.Marshal of the conf change raft's Bootstrap
+// builds (&pb.ConfChange{Type: AddNode.Enum(), NodeId: new(id), Context: ctx}, a nil Context for no
+// context) returns exactly ccBootWire(id, ctx), with a nil error, at the pinned protobuf-go.
+func TestBootWireVectors(t *testing.T) {
+	big := bytes.Repeat([]byte{'x'}, 300) // a two-byte length varint
+	ctxs := [][]byte{nil, []byte("c"),
+		[]byte(`{"id":1399198912774159534,"peerURLs":["http://127.0.0.1:23800"],"name":"putget"}`), big}
+	ids := []uint64{0, 1, 2, 3, 127, 128, 300, 0x136af3ff76043cae, ^uint64(0)}
+	for _, id := range ids {
+		for _, ctx := range ctxs {
+			d, err := proto.Marshal(&pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id), Context: ctx})
+			if err != nil {
+				t.Fatalf("id %d: Marshal: %v", id, err)
+			}
+			if want := ccBootWire(id, ctx); !bytes.Equal(d, want) {
+				t.Fatalf("id %d, context of %d bytes: got % x, want % x", id, len(ctx), d, want)
+			}
+		}
+	}
+	// The trace check's peers: Peer{ID: i}, Context nil.
+	for _, id := range []uint64{1, 2, 3} {
+		d := marshal(t, &pb.ConfChange{Type: pb.ConfChangeAddNode.Enum(), NodeId: new(id)})
+		if !bytes.Equal(d, []byte{0x10, 0x00, 0x18, byte(id)}) {
+			t.Fatalf("peer %d: % x", id, d)
+		}
+	}
+}

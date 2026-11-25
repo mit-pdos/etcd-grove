@@ -58,7 +58,7 @@ abbrev build.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       zapLoggerOk lg ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      etcdstart.bootPremise N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
+      etcdstart.bootPremise N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗ etcdstart.memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
       etcdstart.memberFreshRes name {} γn }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.build))
@@ -87,9 +87,9 @@ abbrev build.specRestart : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       zapLoggerOk lg ∗ threadTok ∗
       peer ↦*□ [etcdstart.httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
+      etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗ etcdstart.memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      etcdstart.memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      etcdstart.memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.build))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);

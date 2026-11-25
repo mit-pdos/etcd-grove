@@ -8,6 +8,11 @@ imports = ["!*", "context", "google.golang.org/grpc"]
 # translate the definitions of all type declarations goose supports
 translate_types = true
 
+# (phase7-inits, 2026-11-25) its `init` (the file descriptor's registration) trusted: a model that
+# does nothing (TrustedCode/google_golang_org/grpc/health/grpc_health_v1.lean; until then names-only,
+# the axiom `initFuncsOk`), as etcdserverpb's (etcd-grove#32)
+trusted = ["init.0"]
+
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
 # Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
 # their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from

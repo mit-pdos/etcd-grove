@@ -4,15 +4,15 @@ The package fact of `gryff.src.genericsmr` (dsv-gryff, notes/dsv-gryff.md): `Tru
 module
 
 public import Dsverify.GeneratedProof.gryff.src.genericsmr
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Perennial.Proof.encoding.binary.Link
 public import Dsverify.Proof.gryff.src.fastrpc.Init
 public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Dsverify.Proof.gryff.src.genericsmrproto.Init
 public import Perennial.Proof.io.Link
-public import Net.Proof.net.Init
-public import Net.Proof.os.Init
+public import Proof.net.Init
+public import Proof.os.Init
 public import Dsverify.Proof.gryff.src.state.Init
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.strings.Link

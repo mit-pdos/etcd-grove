@@ -25,7 +25,13 @@ proof holds a descriptor of is one of these:
   resolver; at run time each attempt's outgoing metadata gains what the credentials'
   `GetRequestMetadata` returns (etcd's: its token, if any), and an error of theirs fails the
   attempt, which the attempt contract (`grpcInvokerOk`) already allows; what the credentials
-  return to the attempts is `connCredsOk` (`NewClient`'s post, since the auth plan's C1).
+  return to the attempts is `connCredsOk` (`NewClient`'s post, since the auth plan's C1);
+* `.noProxy` (`WithNoProxy()`: sets `dopts.useProxy` to `false`, since 2026-11-24,
+  `notes/putget-dist-plan.md` §12, finding F1; etcdstart's `NewClients` passes it): it sets no
+  interceptor, no resolver and no credentials; at run time the connection dials each resolved
+  address itself, never through an HTTP `CONNECT` proxy named by the process environment
+  (`HTTPS_PROXY` or `https_proxy`), which grpc-go's delegating resolver reads otherwise. The model (`models/grpc`) reads no
+  proxy variable, so `NewClient`'s axiom says the same of a dial with or without it.
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
 ...) has no descriptor: a dial that holds one is not covered
 (`clientv3.New`'s premises exclude `Config.DialOptions`,
@@ -79,6 +85,7 @@ inductive GrpcDialOpt where
   | resolvers (rbs : List GoInterface)
   | keepalive
   | perRPCCreds (pc : GoInterface)
+  | noProxy
 
 /-- The per-RPC credentials a descriptor adds, if it adds some. -/
 def GrpcDialOpt.credsOf : GrpcDialOpt → Option GoInterface
@@ -117,6 +124,22 @@ theorem unaryIcsOf_keepalive (ds : List GrpcDialOpt) :
   unfold unaryIcsOf
   simp [List.filterMap_cons, GrpcDialOpt.unaryOf]
 
+/-- No-proxy options set no unary interceptor. -/
+theorem unaryIcsOf_noProxy (ds : List GrpcDialOpt) (n : Nat) :
+    unaryIcsOf (ds ++ List.replicate n .noProxy) = unaryIcsOf ds := by
+  unfold unaryIcsOf
+  have h : (List.replicate n GrpcDialOpt.noProxy).filterMap GrpcDialOpt.unaryOf = [] := by
+    induction n with
+    | zero => rfl
+    | succ n ih => simp [List.replicate_succ, List.filterMap_cons, GrpcDialOpt.unaryOf, ih]
+  simp [List.filterMap_append, h]
+
+/-- No-proxy options add no per-RPC credentials. -/
+theorem credsOfDial_noProxy (n : Nat) : credsOfDial (List.replicate n .noProxy) = [] := by
+  induction n with
+  | zero => rfl
+  | succ n ih => simp [List.replicate_succ, GrpcDialOpt.credsOf, ih]
+
 /-- Per-RPC credentials set no unary interceptor. -/
 theorem unaryIcsOf_perRPCCreds (ds : List GrpcDialOpt) (pc : GoInterface) :
     unaryIcsOf (ds ++ [.perRPCCreds pc]) = unaryIcsOf ds := by
@@ -151,11 +174,13 @@ def dialOptsKeep (d : GrpcDialOpt) (o o' : google_golang_org.grpc.dialOptions) :
     | .perRPCCreds _ => True
     | _ => o'.copts'.PerRPCCredentials' = o.copts'.PerRPCCredentials')
 
-/-- What an interceptor option sets (`unaryInt`, `streamInt`); nothing for the other descriptors. -/
+/-- What an interceptor option sets (`unaryInt`, `streamInt`), and what `WithNoProxy` sets
+(`useProxy` false); nothing for the other descriptors. -/
 def dialOptSets (d : GrpcDialOpt) (o' : google_golang_org.grpc.dialOptions) : Prop :=
   match d with
   | .unaryInterceptor ic => o'.unaryInt' = ic
   | .streamInterceptor ic => o'.streamInt' = ic
+  | .noProxy => o'.useProxy' = false
   | _ => True
 
 /-- **What the closure `f` of a dial option `d` does to `*dialOptions`** (persistent; phase 7 S1,
@@ -240,6 +265,39 @@ theorem dialOk_perRPCCreds (ds : List GrpcDialOpt) (rb : GoInterface) (pc : GoIn
     si, List.mem_append_left _ h4⟩
   · simpa using h
   · simpa using h
+
+/-- No-proxy options set no stream interceptor and no resolver: a dial with them is
+`NewClient`'s if the dial without them is. -/
+theorem dialOk_noProxy (ds : List GrpcDialOpt) (rb : GoInterface) (n : Nat) :
+    dialOk ds rb → dialOk (ds ++ List.replicate n .noProxy) rb := by
+  intro ⟨h1, h2, h3, si, h4⟩
+  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_append_left _ h3,
+    si, List.mem_append_left _ h4⟩
+  · rcases List.mem_append.1 h with h | h
+    · exact h
+    · exact absurd (List.eq_of_mem_replicate h) (by simp)
+  · rcases List.mem_append.1 h with h | h
+    · exact h
+    · exact absurd (List.eq_of_mem_replicate h) (by simp)
+
+/-- **The slice `sl` of `WithNoProxy()`'s options, read-only** (persistent; none or more): the
+dial options a configuration of `clientv3.New` may carry (`clientCfgOk`). -/
+def noProxyOptsAt (sl : GoSlice) (n : Nat) : IProp GF :=
+  dialOptsAt sl (List.replicate n .noProxy)
+
+instance noProxyOptsAt_persistent (sl : GoSlice) (n : Nat) :
+    Persistent (noProxyOptsAt (GF := GF) sl n) := by
+  unfold noProxyOptsAt; infer_instance
+
+/-- The nil slice holds no option. -/
+theorem noProxyOptsAt_nil : ⊢ noProxyOptsAt (GF := GF) slice.nil 0 := by
+  unfold noProxyOptsAt dialOptsAt
+  iexists ([] : List GoInterface)
+  isplitl
+  · iapply ownSlice_nil
+  · simp only [List.replicate_zero]
+    iapply BigSepL2.bigSepL2_nil.2
+    itrivial
 
 end defs2
 

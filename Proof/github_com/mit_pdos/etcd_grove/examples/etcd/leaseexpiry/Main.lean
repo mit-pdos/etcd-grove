@@ -80,25 +80,30 @@ theorem Main.wp_proof
     -- leases (until the lease-expiry plan's S2–S4, also `srvGrantOpen`, a granting cluster's
     -- snapshot job)
     (hrev : srvRevokeOpen (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   have wp_Grant := lessor.Grant.specP_of wp_Grant
   have wp_TimeToLive := lessor.TimeToLive.specP_of wp_TimeToLive
   have wp_Leases := lessor.Leases.specP_of wp_Leases
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hlev Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP Hms hAs
+  intro CS N id ctxs boot Hbf Htb Hlev Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
+  icases Hprem with #Hboot
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id)
       go!"leaseexpiry" go!"leaseexpiry"
       (etcdstart.urls1 go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976") id cfgOk urlsOk
-      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
+      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -184,7 +189,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23976" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23976" ∗
-        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E ρ.rd)))
+        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E ρ.rd ∗ srvGoRes srv)))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -192,13 +197,13 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23976"
+    have h := etcdstart.kv_lease_served_go srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23976"
       cid mid R Hrb48 (by omega) Hrf HlP rfl .revocable hlgw Hlev
     simp only [etcdstart.etcdLeaseServedAt] at h
-    imod h $$ [Hg Hstk] with ⟨Htk, #Hlr, #Hga⟩
+    imod h $$ [Hg Hstk] with ⟨Htk, Hgo, #Hlr, #Hga⟩
     · iframe; iframe #
     imodintro; iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr, #Hga⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hlr, #Hga, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -209,9 +214,10 @@ theorem Main.wp_proof
   iunfold etcdstart.etcdLeaseGrantLiveAt at Hga
   icases Hga with ⟨#Hrg, #Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient go!"127.0.0.1:23976" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23976" [] null null [] null default)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -238,7 +244,7 @@ theorem Main.wp_proof
   wp_apply (wp_Grant lp [go!"127.0.0.1:23976"]
       (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E ρ.rd false) (mvcc.api.mvccLeases E.γ))
       (fun m => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i m.id l ∗
-        lease.leaseReqIs (mvcc.api.mvccLeases E.γ) m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
+        lease.leaseReqIs (mvcc.api.mvccLeases E.γ) m.id (W64 1))) gctx gcd) $$ [$Hlt] as %gr %gerr ⟨Hlt, Hgr⟩
   · iframe #
     imodintro; inext
     iunfold etcdLeaseGrantSpecLive, etcdLeaseGrantSpecLiveW
@@ -294,7 +300,7 @@ theorem Main.wp_proof
           □ (leaseTTLRow srv (mvcc.api.mvccLeases E.γ) -∗
             (∃ i : Nat, ⌜i0 ≤ i⌝ ∗ lease.leaseTTLAt (mvcc.api.mvccLeases E.γ) i m.id m.grantedTtl) ∨
             lease.leaseAbsentFrom (mvcc.api.mvccLeases E.γ) i0 m.id)))
-        tctx tcd mg.id slice.nil []) as %tr %terr Htl
+        tctx tcd mg.id slice.nil []) $$ [$Hlt] as %tr %terr ⟨Hlt, Htl⟩
     · iframe #
       isplitl
       · imodintro; inext
@@ -398,7 +404,7 @@ theorem Main.wp_proof
     -- `cli.Lease.Leases(lctx)` at the absence's index: `Q`, a snapshot at or after it
     wp_apply (wp_Leases lp [go!"127.0.0.1:23976"] (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ))
         (fun m => iprop(∃ j : Nat, ⌜k ≤ j⌝ ∗ lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) j m.ids)) lctx lcd)
-        as %lsr %lerr Hls
+        $$ [$Hlt] as %lsr %lerr ⟨Hlt, Hls⟩
     · iframe #
       imodintro; inext
       iunfold etcdLeaseLeasesSpecLive, etcdLeaseLeasesSpecLiveW

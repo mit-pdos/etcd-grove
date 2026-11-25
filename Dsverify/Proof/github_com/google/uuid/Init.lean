@@ -1,15 +1,20 @@
 /-
-The initializer of `github.com/google/uuid` as a **hypothesis** of the part's swiftpaxos proofs (notes/dsv-swiftpaxos.md,
-"Hypotheses"; `etc/gen-init.py`'s `HYP_INITS`): `github.com/google/uuid` is translated names and types only in the part (no model: the proof's specs of it are hypotheses, notes/dsv-swiftpaxos.md), so its initializer (`nodeMu`, `rander`, the pool variables) cannot be proved here. The class `github_com.google.uuid.InitHyp GF` says that it
-establishes the package's fact (`True` here: no proof of the part reads a variable of the package);
-initializers that run it take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`), up to the kit's
-closed statement, where it is a visible premise. To discharge: a model of the package with a proved
-`wp_initialize'`.
+**Trust-boundary axiom**: `github.com/google/uuid`'s initializer meets Perennial's initialization spec
+(`wp_initialize'`: run once, from a table holding its imports' facts, it establishes the package's
+fact). `github.com/google/uuid` is translated names (and types) only in the part, its variables' initializers and
+`init` functions untranslated, so its `initialize'` cannot be proved here; Go runs them at program
+start and they return (the kits' programs start). The axiom states exactly the field of the class `InitHyp`
+that was the statement's premise until dsv-fix3 (the class and its test-only derivation
+`InitInstancesLinked.lean` deleted with it); it is per package and in no statement
+(mit-pdos/etcd-grove#8, 2026-11-25T02:20:53Z; `etc/dsv/README.md`), counted in the tcb collections
+of the kits that initialize the package (swiftpaxos). Review:
+`notes/axiom-review/dsv-inits/github-com-google-uuid.md`. To retire: a translation or model of the package with a
+proved `wp_initialize'`.
 -/
 module
 
 public import Dsverify.GeneratedProof.github_com.google.uuid
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -44,20 +49,11 @@ section init
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
 
-/-- **Hypothesis** (the file header): `github.com/google/uuid`'s initializer establishes its package fact. -/
-class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
-    (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
-  wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
-    GetIsPkgInitProp pkg_id.github_com.google.uuid get_is_pkg_init →
-    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid }}
-
-/-- Perennial's form of `github.com/google/uuid`'s initialization, from the hypothesis. -/
-theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
+/-- **Trust-boundary axiom** (the file header): `github.com/google/uuid`'s initialization. -/
+axiom wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.github_com.google.uuid get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid }} :=
-  h.wp_init get_is_pkg_init Hinit
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid }}
 
 end init
 

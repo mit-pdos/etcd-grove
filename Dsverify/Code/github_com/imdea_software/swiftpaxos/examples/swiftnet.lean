@@ -1435,8 +1435,8 @@ noncomputable def Sys.changeLeaders.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- connect connects client c as SwiftPaxos's client program does for SwiftPaxos (main.go's
     runSingleClient: client.NewClientLog, NewBufferClient, Connect, swift.NewClient): to the
-    master (server node 1, node NC+1), then to every replica the master lists as alive, after
-    client c's stagger (c * StaggerMs). The client's id is c + 1 instead of NewClientLog's random
+    master (server node 1, node NC+1), then to every replica the master lists as alive, after a
+    random stagger (0 to NC*StaggerMs). The client's id is c + 1 instead of NewClientLog's random
     one (a uuid's ID: the protocol needs distinct ids, which a uuid gives only with high
     probability). true if connected.
 
@@ -1517,7 +1517,8 @@ noncomputable def Sys.connect.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "m") (Var "$r0")))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c")) (Val StaggerMs)))) (Val #(W64 1000000))))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoMul go.uint64))) (Pair (Val NC) (Val StaggerMs)))) (Val #(W64 1))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))) (Val #(W64 1000000))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
@@ -2316,8 +2317,8 @@ noncomputable def callTime.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0")))))
 
 /-- Orch is the orchestrator's program: it configures the deployment (New), waits StartMs for the
-    master, the replicas and the client nodes to start, then panics unless porcupine accepts the
-    history of the clients' operations.
+    master, the replicas and the client nodes to start, draws each client's number of operations,
+    1 to K, then panics unless porcupine accepts the history of the clients' operations.
 
     go: kit.go:641:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
@@ -2345,7 +2346,8 @@ noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "caddrs"))
   (Let "$a2" (App (App (Val (GoInstruction (FuncResolve Codec []))) (Val #())) (Val #()))
   (Let "$a3" (App (Val (GoInstruction (FuncResolve Gen []))) (Val #()))
-  (Let "$a4" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val K))
+  (Let "$a4" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (Val K))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.rand.Intn []))) (Val #())) (Var "$a0")))))
   (Let "$a5" (App (App (Val (GoInstruction (FuncResolve callTime []))) (Val #())) (Val #()))
   (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")))))))))))
   (App (Val doExecute)

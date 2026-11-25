@@ -6,16 +6,18 @@ HTTP (`craq_rpc_alloc`: models-rpc-http's `RpcWorld` with HTTP's handshake, the 
 invariant, Net's `addrs_set_proto`), remote's map of operations, the client addresses' remote
 protocols, the configuration addresses' `confProto`, remote's pending library over the key-value
 state, and each machine's boot from its share through dsv-epaxos's `robust_of_distProtoLisRBT`
-(no wildcard listener; each machine's thread bound `threadBound ≤ 2 ^ 31`, which net/rpc's server
-needs, from `Robust`'s `threads = 2 ^ 31`; runs of fewer than `2 ^ 63` steps); the orchestrator's boot by its generated
-initializer spec, every other machine's by `RpcBoot` (F2), whose boot resources give the codec
-registry, the mux, `DefaultServer` and net/rpc's and net/http's package variables (`rpcEnv`, with
-the deployment's receipt bound).
+(no wildcard listener; each machine's thread bound `threadBound ≤ 2 ^ 30`, which net/http's first
+initialization needs (and net/rpc's server its `2 ^ 31`), from `Robust`'s `threads = 2 ^ 30`; runs
+of fewer than `2 ^ 63` steps); the orchestrator's boot by its generated initializer spec, every
+other machine's by its proved first-run boot (`BootCmdsLinked.lean`, `wp_boot`; F2), whose boot
+resources give the codec registry, the mux, `DefaultServer` with an owned, empty registry and
+net/rpc's and net/http's package variables (`rpcEnv`, with the deployment's receipt bound).
 -/
 module
 
 public import Dsverify.Spec.github_com.despreston.go_craq.examples.craqnet.TopLevelRobustness
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Link
+public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.BootCmdsLinked
 public import Net.Statement.DistBridge
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.cmd.orch.PkgTable
@@ -174,9 +176,9 @@ end alloc
 proofs of `strings.Cut`/`TrimLeft` (`Link.lean`'s `rpcClientSpecs`). -/
 theorem craq_remote_robust : craq_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hri hhi hlog rs hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 σ g
+    hlog rs σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT
-    (GF := remoteGF) craqKitAddrs [] (system σ) g (2 ^ 31) (2 ^ 63) List.Pairwise.nil
+    (GF := remoteGF) craqKitAddrs [] (system σ) g (2 ^ 30) (2 ^ 63) List.Pairwise.nil
     (fun _ _ _ h => by simp at h) ?_
   intro G π hrb
   iintro #Hreg Hs -
@@ -267,10 +269,9 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
-    letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : LogHyp remoteGF := hlog G' hG.goose_localGS
     letI : RpcHttpServe remoteGF := rs G' hG.goose_localGS π
+    letI : Threads30 (GF := remoteGF) := ⟨by omega⟩
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hrb64 : receiptBound remoteGF ≤ 2 ^ 64 := by omega
     have htb : threadBound remoteGF ≤ 2 ^ 31 := by omega
@@ -294,7 +295,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, #Hpc0, #Hrc0, #Hmap0⟩ Hgs
       iapply wp_bootR cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit rpcBootRes
-          (hb1 G' hG.goose_localGS π _ cmd.client0.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 0 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G') (I := KIn)))
+          cmd.client0.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 0 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G') (I := KIn)))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, #Hpa, #Hrr, #Hm⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
@@ -314,7 +315,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, #Hpc0, #Hrc0, #Hmap0⟩ Hgs
       iapply wp_bootR cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit rpcBootRes
-          (hb2 G' hG.goose_localGS π _ cmd.client1.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 1 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G') (I := KIn)))
+          cmd.client1.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 1 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G') (I := KIn)))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, #Hpa, #Hrr, #Hm⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
@@ -334,7 +335,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, #Hpc0, #Hrc0, #Hmap0⟩ Hgs
       iapply wp_bootR cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit rpcBootRes
-          (hb3 G' hG.goose_localGS π _ cmd.client2.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 2 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G') (I := KIn)))
+          cmd.client2.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 2 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G') (I := KIn)))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, #Hpa, #Hrr, #Hm⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
@@ -354,7 +355,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, #Hpc0, #Hrc0, #Hmap0⟩ Hgs
       iapply wp_bootR cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit rpcBootRes
-          (hb4 G' hG.goose_localGS π _ cmd.client3.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 3 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 3 []) ∗ mapCtx (Gg := G') (I := KIn)))
+          cmd.client3.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 3 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 3 []) ∗ mapCtx (Gg := G') (I := KIn)))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, #Hpa, #Hrr, #Hm⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
@@ -374,7 +375,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, #Hpc0, #Hrc0, #Hmap0⟩ Hgs
       iapply wp_bootR cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit rpcBootRes
-          (hb5 G' hG.goose_localGS π _ cmd.client4.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 4 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 4 []) ∗ mapCtx (Gg := G') (I := KIn)))
+          cmd.client4.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ addrProto (Gg := G') (confAddrs.getD 4 []) confProto confProto ∗ remoteAddr (Gg := G') (kvR γ) (clientAddrs.getD 4 []) ∗ mapCtx (Gg := G') (I := KIn)))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, #Hpa, #Hrr, #Hm⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
@@ -394,18 +395,18 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, Hres0⟩ Hgs
       iapply wp_bootR cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit rpcBootRes
-          (hb6 G' hG.goose_localGS π _ cmd.server1.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ coordRes (G := G') cfg))
+          cmd.server1.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ coordRes (G := G') cfg))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, #Hdsv⟩
+            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, Hdsv⟩
             ihave #Hre : rpcEnv (hG := hG) $$ []
             · unfold rpcEnv
               isplitr
               · ipureintro; exact hrb64
               iframe Hse Hhe Hcon
             iapply (cmd.server1.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg htb) $$
-              [Hr Hcf Hmux] HΦ
+              [Hr Hcf Hmux Hdsv] HΦ
             iframe Hpkg Hc Hcf Hmux Hre Hdsv
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
@@ -418,18 +419,18 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, Hres0⟩ Hgs
       iapply wp_bootR cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit rpcBootRes
-          (hb7 G' hG.goose_localGS π _ cmd.server2.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 1 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 1 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 2 - 1) []) confProto confProto))
+          cmd.server2.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 1 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 1 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 2 - 1) []) confProto confProto))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, #Hdsv⟩
+            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, Hdsv⟩
             ihave #Hre : rpcEnv (hG := hG) $$ []
             · unfold rpcEnv
               isplitr
               · ipureintro; exact hrb64
               iframe Hse Hhe Hcon
             iapply (cmd.server2.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg htb) $$
-              [Hr Hcf Hmux] HΦ
+              [Hr Hcf Hmux Hdsv] HΦ
             iframe Hpkg Hc Hcf Hmux Hre Hdsv
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
@@ -442,18 +443,18 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, Hres0⟩ Hgs
       iapply wp_bootR cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit rpcBootRes
-          (hb8 G' hG.goose_localGS π _ cmd.server3.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 2 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 2 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 3 - 1) []) confProto confProto))
+          cmd.server3.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 2 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 2 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 3 - 1) []) confProto confProto))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, #Hdsv⟩
+            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, Hdsv⟩
             ihave #Hre : rpcEnv (hG := hG) $$ []
             · unfold rpcEnv
               isplitr
               · ipureintro; exact hrb64
               iframe Hse Hhe Hcon
             iapply (cmd.server3.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg htb) $$
-              [Hr Hcf Hmux] HΦ
+              [Hr Hcf Hmux Hdsv] HΦ
             iframe Hpkg Hc Hcf Hmux Hre Hdsv
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
@@ -466,18 +467,18 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, Hres0⟩ Hgs
       iapply wp_bootR cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit rpcBootRes
-          (hb9 G' hG.goose_localGS π _ cmd.server4.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 3 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 3 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 4 - 1) []) confProto confProto))
+          cmd.server4.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 3 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 3 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 4 - 1) []) confProto confProto))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, #Hdsv⟩
+            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, Hdsv⟩
             ihave #Hre : rpcEnv (hG := hG) $$ []
             · unfold rpcEnv
               isplitr
               · ipureintro; exact hrb64
               iframe Hse Hhe Hcon
             iapply (cmd.server4.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg htb) $$
-              [Hr Hcf Hmux] HΦ
+              [Hr Hcf Hmux Hdsv] HΦ
             iframe Hpkg Hc Hcf Hmux Hre Hdsv
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
@@ -490,18 +491,18 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, Hres0⟩ Hgs
       iapply wp_bootR cmd.server5.initialize' cmd.server5.main _ cmd.server5.getIsPkgInit rpcBootRes
-          (hb10 G' hG.goose_localGS π _ cmd.server5.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 4 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 4 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 5 - 1) []) confProto confProto))
+          cmd.server5.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 4 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 4 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 5 - 1) []) confProto confProto))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, #Hdsv⟩
+            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, Hdsv⟩
             ihave #Hre : rpcEnv (hG := hG) $$ []
             · unfold rpcEnv
               isplitr
               · ipureintro; exact hrb64
               iframe Hse Hhe Hcon
             iapply (cmd.server5.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg htb) $$
-              [Hr Hcf Hmux] HΦ
+              [Hr Hcf Hmux Hdsv] HΦ
             iframe Hpkg Hc Hcf Hmux Hre Hdsv
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
@@ -514,18 +515,18 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro ⟨#Hctx0, Hres0⟩ Hgs
       iapply wp_bootR cmd.server6.initialize' cmd.server6.main _ cmd.server6.getIsPkgInit rpcBootRes
-          (hb11 G' hG.goose_localGS π _ cmd.server6.getIsPkgInit_wf) (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 5 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 5 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 6 - 1) []) confProto confProto))
+          cmd.server6.wp_boot (P := iprop(craqCtx (G := G') cfg ∗ nodeRes (G := G') cfg (serverAddrs.getD 5 []) ∗ joinTicket (G := G') γ (serverAddrs.getD 5 []) ∗ addrProto (Gg := G') (confAddrs.getD (5 + 6 - 1) []) confProto confProto))
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, #Hdsv⟩
+            icases HR with ⟨Hcf, #Hse, #Hhe, #Hcon, Hmux, Hdsv⟩
             ihave #Hre : rpcEnv (hG := hG) $$ []
             · unfold rpcEnv
               isplitr
               · ipureintro; exact hrb64
               iframe Hse Hhe Hcon
             iapply (cmd.server6.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg htb) $$
-              [Hr Hcf Hmux] HΦ
+              [Hr Hcf Hmux Hdsv] HΦ
             iframe Hpkg Hc Hcf Hmux Hre Hdsv
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]

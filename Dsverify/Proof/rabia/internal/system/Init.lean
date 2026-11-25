@@ -9,8 +9,9 @@ module
 
 public import Dsverify.Proof.rabia.internal.system.Base
 public import Dsverify.Proof.os.signal.Init
-public import Net.Proof.os.Init
-public import Net.Proof.syscall.Init
+public import Proof.os.Init
+public import Proof.syscall.Init
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
@@ -34,7 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.os.signal.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.internal.system.Assumptions]
 
 namespace rabia.internal.system
@@ -51,8 +51,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.os.signal _root_.Perennial.os.signal.initialize'
-      _root_.Perennial.os.signal.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.os.signal _root_.Perennial.os.signal.initialize'
+      EtcdGrove.ExternalInit.os_signal _root_.Perennial.os.signal.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish

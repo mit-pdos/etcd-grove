@@ -12,7 +12,6 @@ states it (to audit); the proof is in
 -/
 module
 
-public import GooseLang.Ext.Fs.PathFitsLemmas
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
 public import Robustness.Statement
@@ -44,18 +43,19 @@ variable [go_gctx : GoGlobalContext]
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `mvccfull_safe`'s other hypotheses: in every
 execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, no thread
-is stuck and none has an unrecovered panic. -/
+is stuck and none has an unrecovered panic. The directory `r` is only a root of the machine's file
+system: the program (`MainAt`) checks that it fits and that none of its run's file names is taken,
+and returns otherwise (P3 of the pure-premise plan, 2026-11-24; until then the premises
+`Hrfit : Fs.DirFits r` and `Habs`, no entry at any of `mvccfull.mvccfullNames` in `r`). -/
 def mvccfull_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
     [os.fileStat.FieldAssumptions] (r : GoString)
-    (HEnv : verifyEnvOff (mvccfullProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
-    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
-    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
-    (Hrfit : Fs.DirFits r),
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots),
     Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := 2 ^ 28)
       (bound := 2 ^ 48)
 

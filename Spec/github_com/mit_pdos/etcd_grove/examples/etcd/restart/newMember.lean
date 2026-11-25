@@ -76,9 +76,9 @@ abbrev restartMember.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       zapLoggerOk lg ∗ threadTok ∗ memberRec m γS γn name peerAddr client ∗
       cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ etcdstart.commonPremises ∗
+      etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗ etcdstart.memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
-      etcdstart.memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      etcdstart.memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.restartMember))
       (Val #m)) (Val #cluster)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);

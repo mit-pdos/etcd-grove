@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -72,7 +73,8 @@ func deploy(t *testing.T) func() {
 
 // TestDeployment runs the twelve machines (the orchestrator in the test's process) and checks
 // that the orchestrator's history is accepted (Orch panics otherwise) and that no machine ended.
-// It runs Orch's steps with remote.Run in place of remote.Check, to count the answered operations.
+// It runs Orch's steps with remote.Run in place of remote.Check (at the largest wait and count
+// Orch draws, StartMs and K), to count the answered operations.
 func TestDeployment(t *testing.T) {
 	check := deploy(t)
 	New()
@@ -95,6 +97,33 @@ func TestDeployment(t *testing.T) {
 	t.Logf("%d of %d operations answered", known.Load(), NC*K)
 	if known.Load() == 0 {
 		t.Errorf("no operation was answered")
+	}
+}
+
+// TestControlPhantom (the negative control): client machines whose gets return a value nobody
+// put, as a store that invents values would, are caught.
+func TestControlPhantom(t *testing.T) {
+	var addrs []string
+	for c := uint64(0); c < NC; c++ {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		addrs = append(addrs, l.Addr().String())
+		l.Close()
+	}
+	phantom := func(sys any, in any) any {
+		if in.(In).Put {
+			return Out{Put: true}
+		}
+		return Out{Found: true, V: "phantom"}
+	}
+	for c := range addrs {
+		go remote.ServeClient(c, addrs[c], func(int) any { return nil }, phantom, Codec(), attempt())
+	}
+	time.Sleep(200 * time.Millisecond)
+	if r := remote.Run(Model(), addrs, Codec(), gens(), int(K), attempt(), 0); r != porcupine.Illegal {
+		t.Fatalf("porcupine: %v, want Illegal", r)
 	}
 }
 

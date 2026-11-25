@@ -234,9 +234,11 @@ instance compactorStopOk_persistent [sync.Assumptions] (c : Loc) (sc : GoChan) (
 
 /-- **A compactor's `onClose`** (persistent; Q1 (c), 2026-11-05): `nil`, or a function that returns
 when called (`StartCompactorPerEndpoint`'s, which removes the compactor from the registry), as
-`Stop` calls it. -/
+`Stop` calls it: lent the caller's `levelTok 0` (which its `Client.Endpoints()` needs; decision 1b,
+2026-11-24), given back. -/
 def closeOk (f : GoFunc) : IProp GF :=
-  iprop(⌜f = func.nil⌝ ∨ □ (∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #f) (Val #())) {{ Φ }}))
+  iprop(⌜f = func.nil⌝ ∨ □ (∀ Φ : val → IProp GF, levelTok 0 -∗ ▷ (levelTok 0 -∗ Φ #()) -∗
+    WP (App (Val #f) (Val #())) {{ Φ }}))
 
 instance closeOk_persistent (f : GoFunc) : Persistent (closeOk (GF := GF) f) := by
   unfold closeOk; infer_instance

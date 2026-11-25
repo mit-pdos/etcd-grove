@@ -96,6 +96,20 @@ Lean so far:
   `Kv/ReadVersion`, not yet ported); `log.Printf.spec` (Perennial's, `fmt.ArgsWf`) replaces the lab's
   `log.wp_Printf`.
 
+## net/rpc over HTTP from Net (2026-11-25, dsv-fix2b; supersedes H2, F2 and the `RpcBoot`s below)
+
+`craq_remote_robust` keeps one net premise, `RpcHttpServe` (`Craq/HttpRpc.lean`): `http.ListenAndServe(a,
+nil)`, which Net does not prove (it proves `http.Serve` on a listener), now over Net's `muxRpc`. The
+rest is Net's: `rpc.HandleHTTP` (`net.rpc.HandleHTTP.spec`, over net/http's `Handle`), the package-level
+`rpc.RegisterName` on `DefaultServer`'s owned, empty registry (`RegisterName.spec_fresh`,
+`defaultSrvFresh`), and the eleven client and server commands' first-run boots (no `RpcBoot` premise:
+kitgen `boot=`, `etc/dsv/craq.py`; `BootLinked.lean`'s `boot_netrpc`, `boot_craqnet`: `transport/netrpc`'s
+initializer runs net/rpc's, the machine's first run of net/rpc and net/http, Net's
+`net.rpc.wp_init_first_http`). The thread bound is `2^30` (net/http's first initialization, `Threads30`;
+Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`: Net's interim
+`net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'`, besides Lean's three
+(`net.http.Handle` proved by S5, lean `676aede0a1`; merged into dsv-fix2b 2026-11-25).
+
 ## Hypotheses (model pieces the port needs that are not proved)
 
 Each to be a hypothesis (section variable or premise named after the lab's spec) of the statement until
@@ -714,3 +728,14 @@ porcupine replaces it).
   `Link.lean`'s `rpcClientSpecs` passes `net.rpc.DialHTTP.wp` as is. `StringsPending` and
   `stringsPending.spec` deleted; `craq_remote_robust_of_strings` became `craq_remote_robust` (no
   hypothesis). The statement is unchanged (its step bound already `2 ^ 63`).
+
+## dsv-fix2 (2026-11-25): net/rpc's and net/http's package facts from `Net/`
+
+The kit's net/rpc and net/http are `Net/`'s packages for their initializations too: their facts
+(`Net/Proof/net/{rpc,http}/PkgInit.lean`) and `wp_initialize'` (`Net/`'s interim axioms, by
+`etc/gen-init.py`'s `NET_AXIOM_INITS`), so the statement's `net.rpc.InitHyp`/`net.http.InitHyp`
+premises are gone (`Dsverify/Proof/net/{rpc,http}/Init.lean` deleted). The other net/rpc premises
+stay: the command's initializer runs net/rpc's before anything runs net/http's, so net/http's first
+run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
+"dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
+kit's net/rpc premises discharged from `Net/`'s specs.

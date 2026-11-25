@@ -35,7 +35,7 @@ namespace EtcdGrove
 namespace cluster3
 
 open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcdstart (httpURL commonPremises memberBoot)
+open etcdstart (httpURL memberBoot)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -83,7 +83,7 @@ abbrev StartMember.spec : Prop :=
         (GMap.insert cfg.Name1' sl₁ ∅)) ∗
       sl₁ ↦*□ initURLs3 cfg cfg.Name1' ∗ sl₂ ↦*□ initURLs3 cfg cfg.Name2' ∗
       sl₃ ↦*□ initURLs3 cfg cfg.Name3' ∗
-      bootPremise cfg N ps bootLog ctxs dir name peerAddr client id ∗ commonPremises ∗
+      bootPremise cfg N ps bootLog ctxs dir name peerAddr client id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP

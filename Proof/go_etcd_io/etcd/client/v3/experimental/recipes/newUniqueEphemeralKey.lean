@@ -29,12 +29,13 @@ theorem newUniqueEphemeralKey.wp_proof
     (hNUEKV : newUniqueEphemeralKV.spec (GF := GF) (hG := hG)) :
     newUniqueEphemeralKey.spec (GF := GF) (hG := hG) := by
   intro s γ client id pfx kp lo
-  wp_start as ⟨#Hsess, #Hcl, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hsess, #Hcl, #Hlo, %Hk⟩
   wp_auto
-  wp_apply hNUEKV s γ client id pfx kp [] lo $$ [$Hpkg $Hsess $Hcl $Hlo] as %ek %err Hres
+  wp_apply hNUEKV s γ client id pfx kp [] lo $$ [$Hlt $Hpkg $Hsess $Hcl $Hlo] as %ek %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨Hk.1, Hk.2, by simp⟩
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   icases Hres with (⟨%Heq, %kv, %key, %r, #HKV, Hek, #Hr, #Hc, %Hrr⟩ | %H)
   · ileft
     isplitr

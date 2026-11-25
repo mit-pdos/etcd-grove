@@ -4,14 +4,15 @@ The package fact of `gryff.examples.gryffnet` (dsv-gryff, notes/dsv-gryff.md): `
 module
 
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Perennial.Proof.encoding.binary.Link
-public import Net.Proof.net.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Proof.net.Init
+public import Net.Proof.net.rpc.PkgInit
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.github_com.anishathalye.porcupine.Init
+public import Perennial.Proof.math.rand.Base
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Dsverify.Proof.gryff.src.gryff.Init
@@ -36,9 +37,10 @@ open Iris Iris.BI
 namespace gryff.examples.gryffnet
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.gryff.examples.gryffnet :=

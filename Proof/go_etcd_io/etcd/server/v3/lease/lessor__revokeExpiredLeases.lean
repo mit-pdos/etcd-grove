@@ -9,7 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.NotifCell
 public import Proof.go_etcd_io.etcd.server.v3.lease.ExpiryLoop
 public import Proof.go_etcd_io.etcd.server.v3.lease.SortByExpiry
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.BagSend
+public import Perennial.Golang.Theory.Chan.Idioms.Bag
 
 @[expose] public section
 

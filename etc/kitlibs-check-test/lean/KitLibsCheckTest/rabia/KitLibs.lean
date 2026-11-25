@@ -16,7 +16,6 @@ public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.os.signal.Spec
-public import Dsverify.Proof.math.rand.Init
 public import Dsverify.Proof.math.rand.Spec
 
 @[expose] public section
@@ -41,7 +40,6 @@ class KitLibs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [Go
   gogoproto_init : github_com.gogo.protobuf.gogoproto.InitHyp GF
   redis_init : github_com.go_redis.redis.v8.InitHyp GF
   signal_init : os.signal.InitHyp GF
-  rand_init : math.rand.InitHyp GF
   zerolog : github_com.rs.zerolog.Hyps GF
   rand : math.rand.Hyps GF
   no_signals : os.signal.NoSignals os.signal.quietSigs GF
