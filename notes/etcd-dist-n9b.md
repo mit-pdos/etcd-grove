@@ -122,3 +122,34 @@ at the start, §17.2's "route found on the way": `memberBoot`'s `ρ`/`E₀`) to 
    callback), `EtcdEnv.noExpiry` at its deployments.
 
 About 1200 lines in all, the lead's estimate; the shared helpers (`leaseGrant`, `leaseList`, `listed`) once.
+
+## 8. leaseRead proved over draft statements (2026-11-25, the coordinator's go-ahead)
+
+The coordinator posted the plan to the lead on #50 with the proposal of §6; we proceed on it unless the lead
+objects (no reply from the lead yet when this was written).
+
+- **The draft statements** (N2-owned, pending the lead; `def … .spec : Prop` only, **no axiom, no proof**):
+  `etcd_dist.Client_LeaseLeases_dist.spec` (`Spec/.../etcd/dist/ClientLeaseLeasesDist.lean`) and
+  `etcd_dist.Client_LeaseTimeToLive_dist.spec` (`ClientLeaseTTLDist.lean`), shaped like `Client_Get_dist`
+  (`isNewClient cl [ep] V`, `clientNoProxy cl`, `etcdAddrAt ep γE mid`, a client context), plus the client's
+  `Lease` field as the `*lessor` `lp` the call is made on; nothing of the member's view (`envAt`) is read. Posts:
+  `nil` and the listing's `Leases` slice (owned) with `ids.Nodup`, resp. the reply's `ID` field `↦□ id`; or an
+  error and `null`. TimeToLive's is for the call without options (`slice.nil`) only.
+- **Vocabulary** (`Proof/.../dist/client/LeaseDefs.lean`, defs): `leaseMember a` (`Net.addrOk a` and
+  `∃ γE mid, etcdAddrAt a γE mid`), `clientCoreAt_of_new` (`Client.Close`'s precondition from `New`'s result).
+- **Specs and proofs** of `dist/client` (`Spec/.../dist/client/`, `Proof/.../dist/client/`, namespace
+  `etcd_dist_client`): `checked`, `ended`, `newClient` (over `zap.NewNop`, `etcdstart.NewClients`), `leaseList`
+  (over the draft Leases statement and the context specs), `leaseReadCheck` (leaseN's `check` proof adapted:
+  the slice literal, `defer cli.Close()`, the double loop verbatim, TimeToLive over the draft), `RunLeaseRead`
+  (the loop over `eps`, `ended`/`checked`). `RunLeaseRead.spec`: with `eps ↦*□ addrs` and `[∗list] a ∈ addrs,
+  leaseMember a`, `threadBound ≤ 2^30`, `errors.AsTarget`, and `Nonempty (WEnv GF)` (a watch environment for
+  `newClient`'s client; N7 discharges it as putget does, `wenv_nonempty`), it returns (no panic), `levelTok 0`
+  kept. Each proof takes its callees' specs as hypotheses; no `sorry`.
+- **Not linked**: no `Link.lean` for `dist/client` (the two draft statements have no proof, so `RunLeaseRead`
+  has no linked result yet; `etc/verified-code.py` counts it unverified). When the lead settles N2, the link is
+  `etc/gen-link.py` over this package with the two statements' proofs (or axioms) as roots.
+- **Build**: on fk-lean1 (`wt/etcd-safe-n9b`), every module above built, no error, no `sorry`; `#print axioms`
+  of the three main theorems: `propext`/`Classical.choice`/`Quot.sound` and the base's existing axiomatized
+  vocabulary (`etcd_dist.etcdSvc`, `grpcConn`, `grpcAddrIsRaw`, `grpcSrvCfgRaw`, `grpcWrotePeer`,
+  `promSrvMetrics`), none new. `etc/tier-check.py --check` passes.
+- **Next** (waits on the lead's O1): leaseExpiry and leaseCatchup (§7, steps 2-3).
