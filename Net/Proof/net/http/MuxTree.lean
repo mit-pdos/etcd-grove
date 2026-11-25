@@ -6,6 +6,15 @@ net/http's Go 1.22 matcher (`routing_tree.go`, the `ServeMux`'s `tree`) on liter
   anonymous multi wildcard for a trailing `/`), which is also how `firstSegment` splits a path;
   `patKeys p`: the keys from the root to its node (the host `""`, the method `""`, the segments).
 * `wp_firstSegment`, `wp_pathUnescape`: on `/`-initial paths without `%`.
+* `NodeSt`, `TreeSt` (the nodes by their keys from the root, the registered patterns), `TreeSt.ok`
+  (the nodes are the prefixes of the patterns' keys; a node's children, `emptyChild` (key `""`) and
+  `multiChild` are its nodes one key down; a pattern's node holds its `*pattern` and handler),
+  `nodeRep`, `patRep` (a registered `*pattern`, persistent), `treeRep dq S` (every node at `dq`, so
+  fractional for the `ServeMux`'s `RWMutex`).
+* Dispatch of a registered path `p` (a reader at `dq`): `wp_findChild`, `wp_matchPath_found` (the
+  literal-first descent reaches `p`'s node; for a trailing `/`, its multi child), `wp_matchPath_nil`,
+  `wp_matchMethodAndPath_found`, `wp_tree_match_found` (host `""`, any method but `""` and `HEAD`),
+  `wp_lastSegment`, `wp_exactMatch_found` (`#segments = #'/'`): `p`'s node, an exact match.
 -/
 module
 
@@ -15,6 +24,7 @@ public import Net.Proof.net.http.MuxMapping
 public import Perennial.Proof.strings.Base
 public import Spec.net.url.PathUnescape
 public import Perennial.Spec.strings.IndexByte
+public import Perennial.Spec.strings.Count
 public import Perennial.Proof.internal.bytealg.Base
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
@@ -438,6 +448,17 @@ theorem TreeSt.ok.node_l_ne {root : Loc} {S : TreeSt} (hok : S.ok root) {k : Lis
     (hd : S.nodes !! k = some d) : locOf (S.nodes !! k) ≠ null := by
   rw [hd]; exact (hok.2.2.2.2.2 k d hd).1
 
+theorem TreeSt.ok.nodes_no_method {root : Loc} {S : TreeSt} (hok : S.ok root) (meth : List w8)
+    (hm : meth ≠ []) : S.nodes !! [Seg.lit [], Seg.lit meth] = none := by
+  rcases h : S.nodes !! [Seg.lit [], Seg.lit meth] with _ | d
+  · rfl
+  · exfalso
+    rcases hok.2.2.2.1 _ (by rw [h]; rfl) with h0 | ⟨e, he, hpre⟩
+    · simp at h0
+    · obtain ⟨u, hu⟩ := hpre
+      simp only [patKeys, List.cons_append, List.nil_append, List.cons.injEq] at hu
+      exact hm (by cases hu.2.1; rfl)
+
 /-- `p.lastSegment()` of a registered pattern. -/
 theorem wp_lastSegment (pp : Loc) (p : List w8) (x : Seg) (hx : (pathSegs p).getLast? = some x) :
     {{ patRep (GF := GF) (hG := hG) pp p }}
@@ -591,6 +612,164 @@ theorem wp_matchPath_found (wp_PathUnescape : net.url.PathUnescape.spec (GF := G
       iapply HΦ
       iunfold treeRep at HT
       iexact HT
+
+/-- `n.matchMethodAndPath(method, path)` from the host's node, for a registered path. -/
+theorem wp_matchMethodAndPath_found (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) (hG := hG))
+    (wp_IndexByte : strings.IndexByte.spec (GF := GF) (hG := hG))
+    (dq : DFrac) (root : Loc) (S : TreeSt) (hok : S.ok root) (e : List w8 × Loc × GoInterface)
+    (he : e ∈ S.pats) (dH : NodeSt) (hdH : S.nodes !! [Seg.lit []] = some dH) (meth : List w8)
+    (hm : meth ≠ []) (hhead : meth ≠ go!"HEAD") :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗ treeRep (GF := GF) (hG := hG) dq S }}
+      (App (App (Val (dH.l @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"matchMethodAndPath"))
+        (Val #meth)) (Val #e.1))
+    {{ RET (PairV #(locOf (S.nodes !! patKeys e.1)) #slice.nil); treeRep dq S }} := by
+  obtain ⟨hl, hkids, hemp, -, -, -⟩ := hok.2.2.2.2.2 _ dH hdH
+  obtain ⟨dM, hdM⟩ := hok.node_of_prefix he (k := [Seg.lit [], Seg.lit []]) ⟨pathSegs e.1, rfl⟩
+  obtain ⟨hp1, hp2⟩ := hok.2.1 e he
+  have hpct : ∀ b ∈ e.1, b ≠ W8 37 := fun b hb => pathByte_ne_pct b (hp2 b hb)
+  unfold treeRep
+  wp_start as ⟨HN, #HP⟩
+  icases (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdH).1 $$ HN
+    with ⟨Hd, HN⟩
+  wp_auto
+  rw [decide_eq_false hl]
+  wp_auto
+  wp_apply wp_findChild dq dH meth $$ Hd as Hd
+  rw [if_neg hm, hkids _ hm, show [Seg.lit []] ++ [Seg.lit meth] = [Seg.lit [], Seg.lit meth] from rfl,
+    hok.nodes_no_method meth hm, Option.map_none, Option.getD_none]
+  wp_apply wp_matchPath_nil
+  rw [decide_eq_false hhead]
+  wp_auto
+  iunfold nodeRep at Hd
+  icases Hd with ⟨Hp, Hh, Hc, Hm, He⟩
+  wp_auto
+  rw [hemp, show [Seg.lit []] ++ [Seg.lit []] = [Seg.lit [], Seg.lit []] from rfl, hdM,
+    show locOf (some dM) = dM.l from rfl]
+  ihave HT : treeRep (GF := GF) (hG := hG) dq S $$ [HN Hp Hh Hc Hm He]
+  · iunfold treeRep
+    isplitl [HN Hp Hh Hc Hm He]
+    · iapply (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdH).2
+      iunfold nodeRep; rw [hemp, show [Seg.lit []] ++ [Seg.lit []] = [Seg.lit [], Seg.lit []] from rfl, hdM]
+      iframe
+    · iexact HP
+  wp_apply wp_matchPath_found wp_PathUnescape wp_IndexByte dq root S hok e he e.1 _ dM slice.nil
+    hdM rfl (.inr hp1) hpct $$ [$Hpkg $HT] as HT
+  iapply HΦ
+  iunfold treeRep at HT
+  iexact HT
+
+/-- `root.match("", method, path)` for a registered path: its node, no matches. -/
+theorem wp_tree_match_found (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) (hG := hG))
+    (wp_IndexByte : strings.IndexByte.spec (GF := GF) (hG := hG))
+    (dq : DFrac) (root : Loc) (S : TreeSt) (hok : S.ok root) (e : List w8 × Loc × GoInterface)
+    (he : e ∈ S.pats) (meth : List w8) (hm : meth ≠ []) (hhead : meth ≠ go!"HEAD") :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗ treeRep (GF := GF) (hG := hG) dq S }}
+      (App (App (App (Val (root @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"match"))
+        (Val #([] : List w8))) (Val #meth)) (Val #e.1))
+    {{ RET (PairV #(locOf (S.nodes !! patKeys e.1)) #slice.nil); treeRep dq S }} := by
+  obtain ⟨d0, hd0, rfl⟩ := hok.1
+  obtain ⟨-, -, hemp, -, -, -⟩ := hok.2.2.2.2.2 _ d0 hd0
+  obtain ⟨dH, hdH⟩ := hok.node_of_prefix he (k := [Seg.lit []]) ⟨_, rfl⟩
+  unfold treeRep
+  wp_start as ⟨HN, #HP⟩
+  icases (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hd0).1 $$ HN
+    with ⟨Hd, HN⟩
+  iunfold nodeRep at Hd
+  icases Hd with ⟨Hp, Hh, Hc, Hm, He⟩
+  wp_auto
+  rw [hemp, show ([] : List Seg) ++ [Seg.lit []] = [Seg.lit []] from rfl, hdH,
+    show locOf (some dH) = dH.l from rfl]
+  ihave HT : treeRep (GF := GF) (hG := hG) dq S $$ [HN Hp Hh Hc Hm He]
+  · iunfold treeRep
+    isplitl [HN Hp Hh Hc Hm He]
+    · iapply (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hd0).2
+      iunfold nodeRep; rw [hemp, show ([] : List Seg) ++ [Seg.lit []] = [Seg.lit []] from rfl, hdH]
+      iframe
+    · iexact HP
+  wp_apply wp_matchMethodAndPath_found wp_PathUnescape wp_IndexByte dq _ S hok e he dH hdH meth hm hhead
+    $$ [$Hpkg $HT] as HT
+  iapply HΦ
+  iunfold treeRep at HT
+  iexact HT
+
+/-- `exactMatch(n, path)` of a registered path's node: true. -/
+theorem wp_exactMatch_found (wp_Count : strings.Count.spec (GF := GF) (hG := hG))
+    (dq : DFrac) (root : Loc) (S : TreeSt) (hok : S.ok root) (e : List w8 × Loc × GoInterface)
+    (he : e ∈ S.pats) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.strings ∗ treeRep (GF := GF) (hG := hG) dq S }}
+      (App (App (Val (@! net.http.exactMatch)) (Val #(locOf (S.nodes !! patKeys e.1)))) (Val #e.1))
+    {{ RET #true; treeRep dq S }} := by
+  obtain ⟨dP, hdP⟩ := hok.node_of_prefix he (k := patKeys e.1) (List.prefix_refl _)
+  obtain ⟨hlP, -, -, -, hpatP, -⟩ := hok.2.2.2.2.2 _ dP hdP
+  obtain ⟨hppP, -⟩ := hpatP e he rfl
+  obtain ⟨hp1, hp2⟩ := hok.2.1 e he
+  rw [hdP, show locOf (some dP) = dP.l from rfl]
+  unfold treeRep
+  wp_start as ⟨HN, #HP⟩
+  icases (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdP).1 $$ HN
+    with ⟨Hd, HN⟩
+  iunfold nodeRep at Hd
+  icases Hd with ⟨Hp, Hh, Hc, Hm, He⟩
+  ihave Hpe := BigSepL.bigSepL_mem (Φ := fun e => patRep (GF := GF) (hG := hG) e.2.1 e.1) he $$ HP
+  wp_auto
+  rw [decide_eq_false hlP]
+  wp_auto
+  rw [hppP]
+  obtain ⟨x, hx⟩ : ∃ x, (pathSegs e.1).getLast? = some x := by
+    obtain ⟨t, ht⟩ : ∃ t, e.1 = W8 47 :: t := by
+      cases h : e.1 with
+      | nil => rw [h] at hp1; simp at hp1
+      | cons c t => rw [h, List.head?_cons] at hp1; obtain rfl := Option.some.inj hp1; exact ⟨t, rfl⟩
+    rw [ht]
+    by_cases h0 : t = []
+    · subst h0; exact ⟨_, by rw [pathSegs_slash]; rfl⟩
+    · rw [pathSegs_cons t h0]; exact ⟨_, List.getLast?_eq_some_getLast (List.cons_ne_nil _ _)⟩
+  wp_apply wp_lastSegment e.2.1 e.1 x hx $$ Hpe
+  cases x with
+  | lit s0 =>
+    dsimp only [segVal]
+    wp_auto
+    ihave HT : ([∗map] _k ↦ d ∈ S.nodes, nodeRep (GF := GF) (hG := hG) dq d) $$ [HN Hp Hh Hc Hm He]
+    · iapply (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdP).2
+      iunfold nodeRep; rw [hppP]; iframe
+    iapply HΦ; iframe; iexact HP
+  | multi =>
+    dsimp only [segVal]
+    wp_auto
+    have hlast := pathSegs_last_multi e.1 (.inr hp1) hx
+    have hlen0 : 0 < e.1.length := by
+      cases h : e.1 with
+      | nil => rw [h] at hp1; simp at hp1
+      | cons _ _ => simp
+    wp_apply wp_string_len as %Hl1
+    rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 ↑e.fst.length) by word)]
+    wp_auto
+    wp_apply wp_string_len as %-
+    try wp_auto
+    have hidx : e.fst[sint.nat (W64 ↑e.fst.length - W64 1)]? = some (W8 47) := by
+      rw [show sint.nat (W64 ↑e.fst.length - W64 1) = e.1.length - 1 by word,
+        ← List.getLast?_eq_getElem?, hlast]
+    rw [ite_eq_left (by word), hidx]
+    wp_auto
+    iunfold patRep at Hpe
+    icases Hpe with ⟨%sl, %loc, Hpp, #Hsl⟩
+    iStructNamedPrefix Hpp "P"
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+    wp_auto
+    try wp_apply wp_Count
+    try wp_auto
+    have hc : strings.count e.1 [W8 47] = e.1.count (W8 47) := by
+      rw [strings.count, if_neg (List.cons_ne_nil _ _)]
+      exact strings.countOcc_single (W8 47) e.1.length e.1 (Nat.le_refl _)
+    have hps := pathSegs_length e.1 (.inr hp1)
+    have hcl : e.1.count (W8 47) ≤ e.1.length := List.count_le_length
+    simp only [List.length_map] at Hlen
+    rw [decide_eq_true (show sl.len = W64 ↑(strings.count e.fst [47#8]) by
+      rw [show (47#8 : w8) = W8 47 from rfl, hc, ← hps]; word)]
+    ihave HT : ([∗map] _k ↦ d ∈ S.nodes, nodeRep (GF := GF) (hG := hG) dq d) $$ [HN Hp Hh Hc Hm He]
+    · iapply (BigSepM.bigSepM_delete (Φ := fun _ d => nodeRep (GF := GF) (hG := hG) dq d) hdP).2
+      iunfold nodeRep; rw [hppP]; iframe
+    iapply HΦ; iframe; iexact HP
 
 end wp
 
