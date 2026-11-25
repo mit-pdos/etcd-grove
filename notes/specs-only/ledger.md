@@ -7050,3 +7050,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   persist); or (b) `idPfxInv`'s invariant made crash-aware (contents or `crashed ∗` a token, as `walInv`), with a
   ghost-only part that survives and a heap part re-made per generation. D7's / T8's to decide.
 - **Decision.** Pending (coordinator-E). Not edited; T7 takes it as the named hypothesis B6.
+
+2026-11-25: T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation (T7, D6)
+
+- **Spec.** `snapCrash.snapDir_crash.law` (`etcdserver/SnapDirCrash.lean`): `snapDirKeep (hG := atC L) sd γd img Rm`
+  in, `snapDirKeep (hG := atC L') sd γd img Rm'` out, with **one** `img : w64 → Data → IProp GF`; and
+  `srvCrashImageAt`'s snapshot row (`InvCrashImage.lean`), `snapDirInvH … (srvImageM γ.authOn γ) …` at the new generation.
+- **Defect.** The member keeps `img := srvImageM k.γ.authOn k.γ` elaborated at the old generation's `HeapGS`; the crash
+  image at `L'` wants `srvImageM` at `L'`'s. They are not definitionally equal: `srvImage` → `dbImage` →
+  `mvcc.api.mvccImage`, which is `@[no_expose]` (`Spec/.../mvcc/EtcdBackend.lean:94`) and takes the `HeapGS`; no
+  generation law exists for it. So T7's last step (the snapshot row of `srvCrashImageAt`) cannot be closed.
+- **Evidence.** T7 session 6 (`dist/crash/MemberCrash.lean`, the commented WIP proof of `memberGen_crash_law_holds`):
+  every step elaborates but this one; `show snapDirInvH (L') … (srvImageM (L0) …) … ⊢ snapDirInvH (L') … (srvImageM (L') …) …
+  from .rfl` fails, and `memberDurOut_gen`-style `.rfl` works for every other row (raft's state, the KV rows, the files).
+- **Proposed change.** (a) A generation law in mvcc's API, `mvccImage_gen : mvccImage (hG := ⟨G, L⟩) D M c u ⊣⊢
+  mvccImage (hG := ⟨G, L'⟩) D M c u` (proved inside the package if its body is ghost-only), then `srvImageM_gen`; and
+  T6's law takes `img img'` with `□ (∀ i D, img i D -∗ img' i D)` as it already does for `Rm → Rm'` (the body's image
+  facts are persistent); or (b) `snapDirKeep`'s `img` stated over `GooseGlobalGS` only. (a) is the smaller change.
+- **Decision.** Pending (coordinator). Not edited; T7 stops here (session 6).

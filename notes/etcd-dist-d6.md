@@ -1548,6 +1548,33 @@ D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; 
    directory's call permission's half from `osCallPerms R`), `hB1`, `hB6` + `memberRestartFacts_gen`, the Q4
    transport, and `srvCrashImageAt` assembled (`srvFilesC`: `walFilesC` with `a.dir = h.dir`, `B1`'s `fileHolds`).
 
+### T7 status and handoff (2026-11-25, session 6; branch `etcd-safe-t7`)
+
+**`memberGen_crash_law_holds` written, stopped one step short** (`dist/crash/MemberCrash.lean`, the last section, in a
+block comment marked WIP so the file builds; no axiom, no `sorry`). With the comment removed, `lean-check` on fk-lean2
+(`etcd-safe-p8` worktree) elaborates every step of the session-5 plan and reports **one error**: the snapshot row of
+`srvCrashImageAt`. Statement: `(hQ) (hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st') (hB4) (hB1) (hB1n)
+(hB6) (hD1) : etcd_dist.memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q`.
+
+* **The blocker** (ledger 2026-11-25, "T6's `snapDir_crash.law` keeps the image predicate `img` of the old
+  generation"): the kept `snapDirKeep`'s `img = srvImageM γ.authOn γ` is at the old generation's `HeapGS`, the image
+  wants the new one's; `mvccImage` is `@[no_expose]` and takes the `HeapGS`, so no `.rfl`. Proposed: an mvcc API law
+  `mvccImage_gen` and `img → img'` in T6's law. **Decision needed** before T7 can finish.
+* New, compiled (outside the comment): `memberRestartFacts_cluster` (the restart facts give `ρo.rd.raft = ⟨γ,[],0⟩`,
+  `c0 = 0` and `isCluster γ.cl srvClusterN`), `memberRestartFacts_reg` (the facts at a fresh registry, term-level:
+  `BI.sep_mono (pure_mono …) .rfl`), `crashImage_of` (the image `srvCrashImageAt` at the fresh registry from
+  `memberDurOut`, `memberImageRows`, `walFilesC`, the handle and `ghostMapAuth r' 1 ∅`; its `srvImageM` at
+  `{γ with reg := r'}` **is** `.rfl`: the registry is not read).
+* Recipe learnt (for the rest of the proof): destructure `L`, `L'` (`⟨fl, lc, nh, gs, th, cr⟩`), `subst` the context
+  equations, then `letI hG : HeapGS .hasLC GF := ⟨G, L0⟩` (without it `imod` finds no `BIFUpdate`); pass every
+  generation-`L'` instance explicitly (`(hG := ⟨G, L1⟩)`, `(L := L1)`), never an anonymous constructor of `FsCtx` at
+  `L1` (`theFs` at `L1`: `backend.theFs_eq GF (hG := …) (S := Sc) …`; `FsCtx`'s `hG` is a structure parameter, so
+  `theFs` at `L0` is not `theFs` at `L1`); `iexact` unifies only reducibly, so a row equal by unfolding goes through
+  `iapply (show P ⊢ P' from .rfl)` (or `have e : P ⊢ P' := .rfl` before `unfold`). `srvClusterN_rnDurKN` is not
+  imported here: its proof is inlined.
+* Checking: `/shared/tmp/t7-chk.sh [-a] [--goal L:C]` copies the file to fk-lean2's `etcd-safe-p8` worktree and runs
+  `etc/lean-check.py` there (seconds per edit).
+
 ### T7 status and handoff (2026-11-25, session 5; branch `etcd-safe-t7`)
 
 **Done** (`dist/crash/MemberCrash.lean`, no axiom, no `sorry`; build evidence below):

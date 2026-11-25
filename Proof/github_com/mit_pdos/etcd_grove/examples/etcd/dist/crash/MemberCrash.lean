@@ -661,7 +661,7 @@ theorem walk_two {m : Tree} {j J : Ino} {a b : GoString}
       simp only [walk] at h
       split at h
       · rename_i n' hn'
-        simp only [walk, Option.some.injEq] at h
+        simp only [Option.some.injEq] at h
         subst h
         exact ⟨jm, hn, hn'⟩
       · cases h
@@ -982,6 +982,304 @@ abbrev snapDirKeptOf.law : Prop :=
       snapCrash.snapDirKeptF (hG := ⟨G, etcd_dist.atCtx L⟩) R V' sd
 
 end keep
+
+/-! ## The restart's facts and image at the new generation (T7, session 6) -/
+
+section restartImage
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- The restart's facts give the incarnation's raft names and the cluster. -/
+theorem memberRestartFacts_cluster (γ : SrvRaft) (ρ : ReqNames) (id : w64) :
+    etcdstart.memberRestartFacts (GF := GF) γ ρ id ⊢
+      ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ isCluster γ.cl srvClusterN := by
+  unfold etcdstart.memberRestartFacts
+  iintro ⟨%hp, -, #Hs, -⟩
+  obtain ⟨h1, h2, -⟩ := hp
+  isplitr
+  · ipureintro; exact ⟨h1, h2⟩
+  rw [show γ = ρ.rd.raft.raft by rw [h1]]
+  iunfold srvRaftLogInv at Hs
+  icases Hs with ⟨-, Hok, -⟩
+  iunfold srvClusterOk at Hok
+  icases Hok with ⟨Hc, -⟩
+  iexact Hc
+
+/-- **The restart's facts at a fresh storage registry `r`** (Q4): none of them reads the registry. -/
+theorem memberRestartFacts_reg (γ : SrvRaft) (ρ : ReqNames) (id : w64) (r : GName)
+    (hr : ρ.rd.raft = ⟨γ, [], W64 0⟩) :
+    etcdstart.memberRestartFacts (GF := GF) γ ρ id ⊢
+      etcdstart.memberRestartFacts { γ with reg := r }
+        { ρ with rd := { ρ.rd with raft := ⟨{ γ with reg := r }, [], W64 0⟩ } } id := by
+  unfold etcdstart.memberRestartFacts
+  rw [hr]
+  refine BI.sep_mono (BI.pure_mono ?_) .rfl
+  rintro ⟨-, a, b, c, d, e, f⟩
+  exact ⟨rfl, a, b, c, d, e, f⟩
+
+/-- **The crash image** (`srvCrashImageAt`) at the fresh registry `r'`, from raft's durable state (T2), the
+backend's rows (B1, with B2's and B3's bounds), the WAL's files (T5), the snapshot directory's handle
+(T6) and the fresh registry's authority. -/
+theorem crashImage_of (k : MemberKN GF) (id : w64) (dd : GoString) (r' : GName) (S : RaftState)
+    (σ : StorContents) (l : List LogEntry) (i : w64) (A : List EntryModel) (D : backend.Data)
+    (m : Membership) (W' : WalFs.WalGS GF)
+    (hρ : k.ρo.rd.raft = ⟨k.γ, [], W64 0⟩) (hc0 : k.ρo.rd.kv.c0 = W64 0)
+    (hdir : k.h.dir = srvWalDirOf dd) (hsl : k.γ.snapLoc id = some k.γd)
+    (hB : memberImageB σ i ∧ memberImageBoot k.γ i) :
+    memberDurOut k.γ id k.νk S σ l ∗ memberImageRows k dd i A D m ∗
+      walFilesC { k.h.toWalA with W := W' } id k.cid σ true ∗
+      snapDirInvH (config.snapDirOf dd) k.γd (srvImageM k.γ.authOn k.γ)
+        (fun j => monoNatLbOwn k.γm (uint.nat j + 1)) ∗
+      ghostMapAuth r' 1 (∅ : GMap Loc MemStorNamesRec) ⊢
+    srvCrashImageAt { k.γ with reg := r' }
+      { k.ρo with rd := { k.ρo.rd with raft := ⟨{ k.γ with reg := r' }, [], W64 0⟩ } } id dd S σ i A D m ∅ := by
+  have e1 : srvRLogLb (GF := GF) ⟨k.γ, [], W64 0⟩ A ⊢
+      srvRLogLb ({ k.ρo with rd := { k.ρo.rd with raft := ⟨{ k.γ with reg := r' }, [], W64 0⟩ } } : ReqNames).rd.raft
+        A := .rfl
+  have e2 : ghostMapAuth (GF := GF) r' 1 (∅ : GMap Loc MemStorNamesRec) ⊢
+      (letI : MemStorReg GF := ⟨({ k.γ with reg := r' } : SrvRaft).reg⟩; memStorRegAuth ∅) := .rfl
+  have e3 : snapDirInvH (GF := GF) (config.snapDirOf dd) k.γd (srvImageM k.γ.authOn k.γ)
+        (fun j => monoNatLbOwn k.γm (uint.nat j + 1)) ⊢
+      snapDirInvH (config.snapDirOf dd) k.γd
+        (srvImageM ({ k.γ with reg := r' } : SrvRaft).authOn { k.γ with reg := r' })
+        (fun j => monoNatLbOwn k.γm (uint.nat j + 1)) := .rfl
+  unfold memberDurOut memberImageRows srvCrashImageAt wal.crashImage srvFilesC
+  rw [hρ]
+  iintro ⟨⟨HrS, Hvac, %hp, Hsc, -, Hl⟩, ⟨HA, %hi, Hmv, Hconf, %hcs, Hfh, %c, %hc, Hauth⟩, Hwf, Hinv, Hreg⟩
+  obtain ⟨hS, hb, hag, hrf⟩ := hp
+  obtain ⟨hB2, hB3⟩ := hB
+  isplitl [Hvac]; · iexact Hvac
+  isplitl [HrS]; · iexact HrS
+  isplitr; · ipureintro; exact ⟨rfl, hc0⟩
+  isplitl [HA]; · iapply e1; iexact HA
+  isplitr; · ipureintro; exact hi
+  isplitl [Hmv]; · iexact Hmv
+  isplitr; · ipureintro; exact hB3
+  isplitl [Hconf]; · iexact Hconf
+  isplitr; · ipureintro; exact hcs
+  isplitl [Hsc Hl]
+  · isplitr
+    · ipureintro; exact ⟨hS, hrf, hB2⟩
+    isplitl [Hsc]; · iexact Hsc
+    iexists l
+    isplitl [Hl]; · iexact Hl
+    ipureintro; exact ⟨hb, hag⟩
+  isplitl [Hreg]; · iapply e2; iexact Hreg
+  isplitl [Hwf Hfh]
+  · isplitl [Hwf]
+    · iexists { k.h.toWalA with W := W' }, k.cid
+      isplitr; · ipureintro; exact hdir
+      iexact Hwf
+    iexact Hfh
+  iexists k.γd, k.γm, c
+  isplitr; · ipureintro; exact ⟨hsl, hc⟩
+  isplitl [Hinv]; · iapply e3; iexact Hinv
+  iexact Hauth
+
+end restartImage
+
+/- WIP (T7 session 6, handoff in `notes/etcd-dist-d6.md`): the proof below elaborates up to its last
+step but one (`lean-check`: one error, the snapshot directory's handle at the new generation: `srvImageM`
+at the old generation's `HeapGS` is not definitionally the new one's). Uncomment to continue.
+
+/-! ## The member's crash law (T7) -/
+
+section main
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [Sf : ExtSemantics fsExt] [Of : FsSemOk] [Hf : HasExt fsExt]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- **The member's crash law** (T7; `memberGen_crash.law` at `memberKeep`), over the named hypotheses of
+the tasks still open: the crash premise `Q`'s W1 (`hQ`) and bbolt's (`hA1`, until `etcdCQ` has it), B4
+(`hB4`), B1 (`hB1`, `hB1n`), B6 (`hB6`) and D-T7-1 (`hD1`). -/
+theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (Q : OsState → OsState → Prop)
+    (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st')
+    (hA1 : ∀ i0 st st', Q st st' → backend.BoltCrashWhole (· = i0) st st')
+    (hB4 : memberFirstCrash.law C cfg id KeepF Q) (hB1 : memberImage.law cfg id KeepB)
+    (hB1n : memberDbNamed.law KeepB) (hB6 : memberPfx.law (GF := GF))
+    (hD1 : snapDirKeptOf.law (GF := GF)) :
+    etcd_dist.memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q := by
+  intro L L' V' hL hL'
+  obtain ⟨fl, lc, nh, gs, th, cr⟩ := L
+  obtain ⟨fl', lc', nh', gs', th', cr'⟩ := L'
+  simp only at hL hL'
+  subst hL hL'
+  letI hG : HeapGS .hasLC GF := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩
+  iintro Hk Hlc #Hcr Hrest #Hosi
+  iunfold memberKeep at Hk
+  icases Hk with ⟨Hcf, Hlc2, (HF | HR)⟩
+  · imod hB4 ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ V' rfl rfl $$ HF Hlc Hcr Hrest Hosi
+      with Hm
+    imodintro
+    iunfold etcd_dist.memberGen
+    isplitl [Hcf]
+    · iunfold memberClusterFacts at Hcf; iexact Hcf
+    ileft; iexact Hm
+  -- the restart case
+  iunfold memberKeepR at HR
+  icases HR with ⟨%k, %hk, #Hrf, Hdur, Hwal, Hdb, Hsnap, #Hsp, HKB⟩
+  obtain ⟨γ, ρo, ⟨⟨ext, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩,
+    νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ := k
+  obtain ⟨⟨rr, hγ⟩, hdir, hmd, hsl, ⟨c, hfs⟩, hdR, hrR, hrne, hunder, hsd, hfit⟩ := hk
+  have hS : ext = Sf := has.sem_eq.symm.trans Hf.sem_eq
+  subst hS
+  obtain ⟨Sc, okc, hasc, fac, fsac, nec⟩ := c
+  have hSc : Sc = ext := hasc.sem_eq.symm.trans Hf.sem_eq
+  subst hSc
+  haveI := inj
+  -- the old generation's tree: the roots, the crashed tree well formed, the snapshot directory's spine
+  iunfold memberWalKeep at Hwal
+  icases Hwal with ⟨Hwi, Hwt, #Hsh⟩
+  imod osSharedInv_rootsOk (L := ⟨fl, lc', nh, gs, th, cr⟩) R (E := ⊤) (by simp) $$ Hsh with %hRok
+  imod crashRest_treeWf' Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ [] false V' R ⊤ (by simp) $$ Hsh Hrest with ⟨%hwf, Hrest⟩
+  imod osSpineDur_crash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ [] false V' R ⊤ (by simp) [go!"member", go!"snap"] jd J $$ Hsh Hrest Hsp
+    with ⟨%hw, Hrest⟩
+  obtain ⟨jm, h1, h2⟩ := walk_two hw
+  -- the backend file (A1), at its durable name (B1's)
+  imod hB1n ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ Q [] false V' $$ HKB Hrest with ⟨%hdb, HKB, Hrest⟩
+  imod backend.dbCrash Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γb (config.backendPathOf cfg.DataDir') i0 Dl Dn pd (hA1 i0) [] (by simp) V'
+    ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest with ⟨%D', %hD', Hfm, Hrest⟩
+  -- the WAL area (T5's crash)
+  have hDw : ∀ i ∈ [i0], ¬ WalFs.InAreaDir V'.now jr i := by
+    intro i hi
+    simp only [List.mem_singleton] at hi
+    subst hi
+    exact notInArea hwf h1 h2 hrR hdb
+  imod memberWal_crash ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩ Q hQ V' [i0] hDw ⊤ (by simp) (by simp) $$ [Hwi Hwt] Hcr Hrest
+    with ⟨%W', %Dw, HwC, %hwp, Hrest⟩
+  · iunfold memberWalKeep; iframe Hwi Hwt Hsh
+  -- the new generation's tree
+  imod crashRest_treeS' Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ (Dw ++ [i0]) V' R ⊤ (by simp) $$ Hsh Hrest with ⟨%hV2, Hsh', Hrest⟩
+  iunfold osShared at Hsh'
+  icases Hsh' with ⟨#Hsh1, -, Hperms, -, Hall⟩
+  imod snapClaims_new (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) R V' cfg.DataDir' (config.snapDirOf cfg.DataDir') jd jm J ⊤ (by simp)
+    hwf hRok hdR hsd h1 h2 $$ Hsh1 Hall with ⟨Hp, HJ⟩
+  icases osCallPerms_two (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) R cfg.DataDir' r (config.snapDirOf cfg.DataDir') dir jd jr hRok hdR
+    hrR hrne.symm (by rw [hsd]; exact isUnder_joinPath _ _) hunder $$ Hperms with ⟨Hcs, Hcw⟩
+  icases osCallPerm_halve (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) _ $$ Hcw with ⟨Hcw1, Hcw2⟩
+  -- the snapshot directory's claims at the new generation (D-T7-4)
+  have hfs' := backend.theFs_eq GF (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (S := Sc) (ok := okc)
+    (has := hasc) (fa := fac) (fsa := fsac) (ne := nec)
+  imod snapDir_split (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) R (config.snapDirOf cfg.DataDir') J V' 1 1 ⊤ (by simp) hfit
+    $$ Hosi Hsh1 Hp Hcs HJ with ⟨Hslots, Hdbn, %q', %qc', Hp', Hcs', Hex⟩
+  rw [← Qp.half_add_half q', ← Qp.half_add_half qc']
+  icases (osPathS_frac (L := ⟨fl', lc', nh', gs', th', cr'⟩) R _ q'.half q'.half J).1 $$ Hp' with ⟨Hpa, Hpb⟩
+  icases (osCallPerm_split (L := ⟨fl', lc', nh', gs', th', cr'⟩) (callKey R (config.snapDirOf cfg.DataDir')) qc'.half qc'.half).1
+    $$ Hcs' with ⟨Hca, Hcb⟩
+  ihave Hown : snap.snapDirOwn (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (snap.snapDBPath (config.snapDirOf cfg.DataDir')) $$
+    [Hpa Hca Hex]
+  · iunfold snap.snapDirOwn
+    rw [backend.onFs_some (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) hfs']
+    iexists config.snapDirOf cfg.DataDir', R, J, q'.half, qc'.half, _
+    isplitr; · ipureintro; rfl
+    isplitr; · iexact Hosi
+    isplitr; · iexact Hsh1
+    iframe Hpa Hca Hex
+  -- the snapshot directory kept (T7's premise of T6), and the files taken not in it
+  ihave #Hpd : osPathDur (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R (config.snapDirOf cfg.DataDir') J $$ [Hsp]
+  · iunfold osPathDur
+    iexists cfg.DataDir', jd, [go!"member", go!"snap"]
+    isplitr
+    · ipureintro
+      refine ⟨hRok, hdR, ?_, hsd⟩
+      intro c hc
+      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hc
+      rcases hc with rfl | rfl
+      · exact nameOk_member
+      · exact bootSnap.nameOk_snap
+    iexact Hsp
+  imod osPathDur_lookup Q ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ (Dw ++ [i0]) true V' R ⊤ (by simp) _ J $$ Hsh Hrest Hpd
+    with ⟨%hJ, Hrest⟩
+  ihave #Hkr := snapDirKeptR_of ⟨fl, lc', nh, gs, th, cr⟩ R V' _ J hJ $$ Hpd
+  ihave #Hkf := hD1 ⟨fl, lc', nh, gs, th, cr⟩ R V' _ $$ Hkr
+  have hD : ∀ x ∈ Dw ++ [i0], ∀ i, V'.now.entry J (snap.snapDBName i) ≠ some (.file x) := by
+    intro x hx i hxi
+    rcases List.mem_append.1 hx with hx | hx
+    · exact notInArea hwf h1 h2 hrR hxi (hwp.2.2 x hx)
+    · simp only [List.mem_singleton] at hx
+      subst hx
+      obtain ⟨-, hn⟩ := hwf.2.2.2.2 J _ J _ _ hxi hdb
+      have hl := congrArg List.length hn
+      rw [bootSnap.snapDBName_length] at hl
+      simp at hl
+  have hlaw := snapCrash.snapDir_crash_law_holds (GF := GF) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ _ _ Q true V' (Dw ++ [i0]) R J
+    (config.snapDirOf cfg.DataDir') γd (srvImageM γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1))
+    (fun j => monoNatLbOwn γm (uint.nat j + 1)) hfs hfs' hV2 hJ hD
+  have hslot : ∀ i, snapCrash.snapSlot (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') J V' i =
+      snapCrash.snapSlotF (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') J V' i :=
+    fun i => backend.onFs_some (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) hfs' _
+  have hkept : snapCrash.snapDirKept (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R V' (config.snapDirOf cfg.DataDir') =
+      snapCrash.snapDirKeptF (hG := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩) R V' (config.snapDirOf cfg.DataDir') :=
+    backend.onFs_some hfs _
+  simp only [hslot, hkept] at hlaw
+  ihave #Hrm : iprop(□ ∀ j : w64, monoNatLbOwn γm (uint.nat j + 1) -∗ monoNatLbOwn γm (uint.nat j + 1)) $$ []
+  · imodintro; iintro %j Hj; iexact Hj
+  imod hlaw $$ Hlc2 Hsnap Hcr Hrm Hkf [Hrest] Hown Hslots with ⟨%Dk, Hsnap', Hrest⟩
+  · isplitr
+    · iexact Hsh
+    · iexact Hrest
+  -- raft's durable state and the WAL's files (T2 + T5)
+  ihave ⟨%hρ, #Hcl⟩ := memberRestartFacts_cluster γ ρo id $$ Hrf
+  imod memberDur_crash (G := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γ id cid νk ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩ W' hmd ⊤ CoPset.subseteq_top
+    (fun x h => mask_ndot_ne' nroot "raft_commit" "rnDurK" (by decide) x (srvClusterN_sub x h))
+    $$ Hdur Hcl Hlc Hcr [HwC Hcw2] with ⟨%S, %σ, %l, Hwf, Hdo⟩
+  · iunfold memberWalCrash; iframe HwC Hcw2
+  -- the backend's image (B1)
+  imod hB1 ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ V' ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ S σ l D' q'.half qc'.half hD' $$ HKB Hdo Hfm Hpb Hcb Hdbn
+    with ⟨%i, %A, %D, %m, Hdo, Himg, %hbnd⟩
+  -- the snapshot directory's handle at the new generation (T6)
+  icases snapDirKeep_handle (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) _ _ _ _ $$ Hsnap' with ⟨#Hsh2, -⟩
+  -- the fresh registry (Q4) and the prefix generators' invariant (B6)
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%r', Hreg⟩
+  imod hB6 ⟨fl', lc', nh', gs', th', cr'⟩ ρo with Hpfx
+  ihave Hrf' := memberRestartFacts_gen (G := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γ ρo id $$ [Hpfx]
+  · isplitr
+    · iexact Hrf
+    · iexact Hpfx
+  ihave Hrf'' := memberRestartFacts_reg (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) γ ρo id r' hρ.1 $$ Hrf'
+  imodintro
+  iunfold etcd_dist.memberGen
+  isplitl [Hcf]
+  · iunfold memberClusterFacts at Hcf; iexact Hcf
+  iright
+  iunfold etcd_dist.memberRestart
+  iexists { ρo with rd := { ρo.rd with raft := ⟨{ γ with reg := r' }, [], W64 0⟩ } }, { γ with reg := r' }
+  isplitr
+  · ipureintro; exact ⟨r', by subst hγ; rfl⟩
+  isplitl [Hrf'']
+  · iexact Hrf''
+  iunfold srvCrashImage
+  iexists S, σ, i, A, D, m, ∅
+  iapply crashImage_of (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) ⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ id cfg.DataDir' r' S σ l i A D m W' hρ.1 hρ.2 hdir hsl hbnd
+  isplitl [Hdo]
+  · iapply (show memberDurOut (hG := ⟨G, etcd_dist.atCtx ⟨fl, lc', nh, gs, th, cr⟩⟩) γ id νk S σ l ⊢
+      memberDurOut (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ id (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).νk S σ l from .rfl)
+    iexact Hdo
+  isplitl [Himg]; · iexact Himg
+  isplitl [Hwf]; · iexact Hwf
+  isplitl []
+  · iapply (show snapDirInvH (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') γd
+        (srvImageM γ.authOn γ) (fun j => monoNatLbOwn γm (uint.nat j + 1)) ⊢
+      snapDirInvH (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (config.snapDirOf cfg.DataDir') (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γd (srvImageM (hG := ⟨G, ⟨fl', lc', nh', gs', th', cr'⟩⟩) (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ.authOn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γ)
+        (fun j => monoNatLbOwn (⟨γ, ρo, ⟨⟨Sc, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γw, md, γh⟩, νk, cid, γb, i0, Dl, Dn, pd, J, γd, γm, jd⟩ : MemberKN GF).γm (uint.nat j + 1)) from .rfl)
+    iexact Hsh2
+  iexact Hreg
+
+end main
+-/
 
 end memberCrash
 end EtcdGrove
