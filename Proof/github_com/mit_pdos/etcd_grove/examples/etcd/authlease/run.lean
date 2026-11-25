@@ -1307,7 +1307,7 @@ theorem run.wp_proof
     as %rctx %rcd %rcancel ⟨#Hrcancel, #Hrctx, #Hrce, -, #Hrout, -⟩
   (try wp_auto)
   wp_apply (client.client_lease_revoke_on ulp uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } rctx none rcd
-      i₂ lu (revoked γc)) as %rresp %rerr Hrv
+      i₂ lu (revoked γc)) $$ [$Hlt] as %rresp %rerr ⟨Hlt, Hrv⟩
   · iframe #
     iintro !>
     iunfold client.clientOpAuOn
