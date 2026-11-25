@@ -169,6 +169,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   pathUnescape_unfold : FuncUnfold pathUnescape [] pathUnescape.impl
   compareSegments_unfold : FuncUnfold compareSegments [] compareSegments.impl
   combineRelationships_unfold : FuncUnfold combineRelationships [] combineRelationships.impl
+  inverseRelationship_unfold : FuncUnfold inverseRelationship [] inverseRelationship.impl
   badStringError_unfold : FuncUnfold badStringError [] badStringError.impl
   ParseHTTPVersion_unfold : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
   validMethod_unfold : FuncUnfold validMethod [] validMethod.impl
@@ -385,6 +386,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.pathUnescape_unfold
   Assumptions.compareSegments_unfold
   Assumptions.combineRelationships_unfold
+  Assumptions.inverseRelationship_unfold
   Assumptions.badStringError_unfold
   Assumptions.ParseHTTPVersion_unfold
   Assumptions.validMethod_unfold
