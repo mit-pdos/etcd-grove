@@ -223,15 +223,19 @@ theorem Member.wp_proof
     (hne : mvcc.api.names_nonempty.law)
     -- (etcd-safe-main, 2026-11-25: hprem-axioms' swap; until then the premise `bootMarshal`)
     -- `proto.Marshal`'s spec at a boot conf change
-    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
+    -- (2026-11-25; until then the members' premise `bootPremise`) the interim axiom on `bootstrap` at
+    -- `etcd_safe`'s shape
+    (wp_bootstrap_dist : ∀ [π : Net.NetProtoGS] [MemStorReg GF],
+      _root_.Perennial.EtcdGrove.bootstrap.specDist (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S5 peers clients ps ctxs boot i Pub peersSl clientsSl Hfips Hblf Hi64 HLv Haf
+  intro CS π TB RB S5 peers clients ps ctxs boot i Pub peersSl clientsSl Hfips Hblf Hbgo Hi64 HLv Haf
     Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
   have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
   have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
-  wp_start as ⟨Htok, Hp, Hc, #Hprem, Hvoff, Hwa, Hshare⟩
+  wp_start as ⟨Htok, Hp, Hc, Hvoff, Hwa, Hshare⟩
   try simp only [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Token]
   ihave %Hpl := ownSlice_len $$ Hp
   ihave %Hcl := ownSlice_len $$ Hc
@@ -314,21 +318,22 @@ theorem Member.wp_proof
   have Hx : xsOf ((cmsOf (membersOf peers clients) (idsOf peers)).map (·.id)) c.idx
       (idPfxOf (W16 (uint.Z (memberIdOf pi)))) = (c.idx (memberIdOf pi)).slog := by
     rw [cms_ids]; exact xsOf_at _ _ Hpfxnd _ (List.mem_of_getElem? hidi)
-  -- the member's bootstrap premise
-  iunfold premises at Hprem
-  icases Hprem with #Hbps
   -- `proto.Marshal`'s bytes at the bootstrap log's conf changes, from its trust-boundary spec and the
   -- log's bytes (`Hblf.wire`), as putgetN's
   ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hblf.wire $$ Hpp
-  ihave #Hbp : etcdstart.bootPremise (2 ^ 28) ps (LogEntry.toEntries boot 0) ctxs
-      (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token (nameOf i)
-      (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) (memberIdOf pi) $$ []
-  · iapply (BigSepL2.bigSepL2_lookup (Φ := fun _ m id => etcdstart.bootPremise (GF := GF) (2 ^ 28) ps
+  -- the member's bootstrap contract, given the round tripper's, from the interim axiom (`BootDist.lean`) and
+  -- what Go computes at its URLs (`Hbgo`)
+  ihave #Pesrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  haveI : ThreadBoundLe GF (2 ^ 29) := ⟨Nat.le_trans TB.threadBound_le (by decide)⟩
+  haveI : ReceiptBoundLe GF (2 ^ 60) := ⟨Nat.le_trans RB.receiptBound_le (by decide)⟩
+  obtain ⟨Hidr, HU⟩ := Hbgo ⟨nameOf i, pi, ci⟩ (memberIdOf pi) (zip_mem_of hmi hidi)
+  ihave #Hbp := etcd_dist.bootPremiseDist_of_specDist wp_bootstrap_dist (2 ^ 28) ps
       (LogEntry.toEntries boot 0) ctxs (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token
-      m.Name' (urlsN (membersOf peers clients) m) id) hmi hidi)
-    iexact Hbps
+      (nameOf i) (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) (memberIdOf pi) Hfips Hidr HU
+      ⟨boot, Hblf.boot, rfl⟩ $$ Pesrv
   -- the member's peer address and every other peer's
   ihave #Hown : S5.httpAddrAt pi $$ []
   · iapply (peerFact_of (G := hG.goose_globalGS) S5 (cmsOf (membersOf peers clients) (idsOf peers)) pi

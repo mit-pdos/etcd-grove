@@ -19,12 +19,15 @@ internal lemmas takes it, and no top-level statement does (Upamanyu, 2026-11-24)
 * `memberFreshRes name ⟨some peerAddr, none⟩ γn` (its fresh WAL area, `ETCD_VERIFY` off, the right to listen
   on the peer address with its protocol reserved) is replaced by its file part (`⌜EtcdVerifyOff⌝`,
   `memberAreasFresh`): the listen right is in `httpAddrAt`.
-Everything else (`bootPremise`, `memberBoot`, the bounds, the directory's pure facts) is
-`StartMember.spec`'s.
+* `bootPremise` (`bootstrap`'s contract, an Iris premise) is replaced by `bootPremiseDist` (`dist/BootDist.lean`):
+  the contract given the round tripper's (`etcd_dist.bootRTOk`, the other peers' addresses), which the member boot
+  derives from the interim axiom `bootstrap.wp_proof_dist` (2026-11-25).
+Everything else (`memberBoot`, the bounds, the directory's pure facts) is `StartMember.spec`'s.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Draft
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
@@ -67,7 +70,9 @@ abbrev StartMember_dist.spec [π : Net.NetProtoGS] (S5 : S5Draft (G := hG.goose_
       zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir token name Uok id ∗
+      -- `bootstrap`'s contract, given the round tripper's (`bootPremiseDist`; 2026-11-25, from the interim
+      -- axiom `bootstrap.wp_proof_dist`: until then the premise `bootPremise`)
+      bootPremiseDist N ps bootLog ctxs dir token name Uok id ∗
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       -- S5's address facts: its own peer address, and every other peer's in the directory

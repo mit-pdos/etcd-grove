@@ -33,11 +33,14 @@ colliding id prefixes); `TestMemberIDEtcd`: `MemberID` is etcd's id on 3000.
   one conf change per peer, ...): what `bootstrap` produces, at the ids etcd computes (`idsOf`); the ids'
   own conditions are the program's check, not a premise;
 - carried over from `putget_safe` until converted to axioms in their functions' files (the survey of
-  2026-11-24): the server's workload and environment premises (`authRecordsFit`, ...), the members' named
-  Iris premises (`Hprem`: per member `bootstrap`'s contract at its configuration and URLs, at the
-  cluster's peer-URL directory and at the ids etcd computes, `proto.Marshal`'s at the bootstrap log, the
-  raft wrapper's contracts: `premises`, the in-process `putgetN`'s audited form; at every ghost-state
-  instance) (`context`'s two classes `Hctx`, `Hcec` until ctx-leaf-fix, 2026-11-25: theorems since);
+  2026-11-24): the server's workload and environment premises (`authRecordsFit`, ...) (`context`'s two
+  classes `Hctx`, `Hcec` until ctx-leaf-fix, 2026-11-25: theorems since);
+- what `bootstrap` computes at each member's URLs (`Hbgo : BootGoK peers clients ps ctxs`: the peers `ps`,
+  the contexts `ctxs`, the peer-URL directory and each member's id are Go's values, `bootGo.*`, and the
+  cluster has **at most 64 members**, the interim axiom `bootstrap.wp_proof_dist`'s shape): facts of the
+  configuration, not yet evaluated in Lean. (Until 2026-11-25 the members' named Iris premises `Hprem`, every
+  member's `bootstrap` contract at every ghost-state instance; now the interim axiom
+  `bootstrap.wp_proof_dist`, from which the member boot derives the contract);
 - `ETCD_VERIFY` off (`HEnv : EtcdVerifyOff`, the run's value enables no check), as `putget_safe`'s
   (until 2026-11-25 `verifyEnvOff` of each machine's program and its token `HEnvTok`);
 - **new**: the `fips140` GODEBUG setting unset or `off` (`Hfips`, Perennial's environment premise
@@ -94,9 +97,8 @@ def putgetK_safe.spec : Prop :=
     -- the server's workload and environment (putget_safe's)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    -- the members' named premises, at every ghost-state instance (putgetN's form of putget_safe's)
-    (Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) n peers clients ps ctxs boot)
+    -- what bootstrap computes at each member's URLs, and at most 64 members (the interim axiom's shape)
+    (Hbgo : BootGoK peers clients ps ctxs)
     -- the machines' start states: member i's from σs i, the client's from σc
     (σs : Nat → state) (σc : state) (g : GlobalState)
     (Hm : ∀ i < peers.length, MemberFiles i (σs i)) (Hc : ClientFiles σc)

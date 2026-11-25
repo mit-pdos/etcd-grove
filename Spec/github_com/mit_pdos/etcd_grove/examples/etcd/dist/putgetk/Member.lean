@@ -8,8 +8,9 @@ member `i` (its raft handler served on its peer address, the server started), `e
 `clients[i]`, then `holdForever()`; it returns only when a step fails.
 
 **The triple**, for any configuration (`peers`, `clients`) and any `i`: from the slices of the two lists,
-the configuration's named premises (`premises`: the in-process `putgetN`'s, audited, at the configuration's
-members and the ids etcd computes), `bootstrap`'s log facts, its machine's start (`ETCD_VERIFY` off, member
+what `bootstrap` computes at each member's URLs (`BootGoK`; 2026-11-25: until then the named premises
+`premises`, `bootstrap`'s contract per member, which the proof now derives from the interim axiom
+`bootstrap.wp_proof_dist`), `bootstrap`'s log facts, its machine's start (`ETCD_VERIFY` off, member
 `i`'s WAL area and data directory fresh) and, **if the configuration is `cfgOk` and `i` a member**, its share
 of the cluster's start (`memberShareK`: `etcdClusterStart`'s `memberStartShare` at S5's names `S5` and some
 cluster names `c` and publication name `γE`, with the publication obligation; `c` and `γE` exist only when the
@@ -54,14 +55,15 @@ abbrev Member.spec : Prop :=
     (i : Nat) (Pub : etcd_dist.EnvView → IProp GF) (peersSl clientsSl : GoSlice),
   crypto.fips140.GodebugFips140Off →
   BootLogFacts (idsOf peers) ps ctxs boot →
+  -- (2026-11-25, in place of the members' named premises `premises`) what `bootstrap` computes at each
+  -- member's URLs (`BootGoK`)
+  BootGoK peers clients ps ctxs →
   i < 2 ^ 64 →
   srvLevels (GF := GF) →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk ∗
       threadTok ∗ peersSl ↦* peers ∗ clientsSl ↦* clients ∗
-      -- the configuration's named premises (`putgetN`'s)
-      premises (2 ^ 28) peers clients ps ctxs boot ∗
       -- the machine's start
       ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir (nameOf i)) ∗
       -- its share of the cluster's start, if the configuration is one the program runs

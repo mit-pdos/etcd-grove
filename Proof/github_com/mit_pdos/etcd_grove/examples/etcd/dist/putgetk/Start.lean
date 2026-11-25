@@ -191,8 +191,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (Hbl : BootLogFacts (idsOf peers) ps ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    (Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) n peers clients ps ctxs boot)
+    (Hbgo : BootGoK peers clients ps ctxs)
     (σs : Nat → state) (σc : state) (Hm : ∀ i < peers.length, MemberFiles i (σs i))
     (Hfips : crypto.fips140.GodebugFips140Off)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S5 : etcd_dist.S5Draft putgetGF)
@@ -209,7 +208,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     obtain ⟨p, -, rfl⟩ := Option.map_eq_some_iff.1 hm
     unfold sharesK
     rw [if_pos hi]
-    exact member_bootK HEnv HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
+    exact member_bootK HEnv HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo Hfips i hi
       (σs i) (Hm i hi) S5
   · rw [List.getElem?_append_right (by omega), hlen] at hm
     have hm' : m = (bootClient (clients.headD go!""), σc) := by
@@ -233,7 +232,7 @@ theorem putgetKBoot_of
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
-  intro _ lctx _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
+  intro _ lctx _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo σs σc Hm Hc
     Hfips Hnd Hok HEnv G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5
@@ -328,7 +327,7 @@ theorem putgetKBoot_of
     isplitr
     · ipureintro
       exact system_boots HEnv HSM' (p0 :: pr) (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
-        Hprem σs σc Hm Hfips S5 γ0 (memberIdOf p0)
+        Hbgo σs σc Hm Hfips S5 γ0 (memberIdOf p0)
     unfold system
     iapply BigSepL.bigSepL_append.2
     isplitl [Hms]
@@ -381,7 +380,7 @@ theorem putgetKBoot_of
       iexists sharesK S5 peers [] ps ctxs boot γE (W64 0)
       isplitr
       · ipureintro
-        exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
+        exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo
           σs σc Hm Hfips S5 γE (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
@@ -409,7 +408,7 @@ theorem putgetKBoot_of
       isplitr
       · ipureintro
         exact system_boots HEnv HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
-          Hprem σs σc Hm Hfips S5 γE (W64 0)
+          Hbgo σs σc Hm Hfips S5 γE (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
       isplitl []
