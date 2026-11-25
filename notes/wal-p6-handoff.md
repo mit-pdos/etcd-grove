@@ -2,6 +2,40 @@
 
 ## START HERE
 
+- **For the coordinator (2026-11-25, session 6): `Unsaved` done; `DiscardUnsaved` stopped at a design
+  question (the order relaxation as approved is unsound).**
+  * `Unsaved`: spec `Spec/go_etcd_io/etcd/server/v3/storage/wal/Unsaved.lean` (`ValidSnapshotEntries`' binders;
+    `true` ⇒ `err = nil` and a WAL at `dir` whose history is blank, `walBlank`), proof
+    `Proof/.../wal/Unsaved.lean` (the pin at the step after the logger check, every return puts it back at a
+    step before it; the first segment's sequence `first` is 0 only when nothing was purged, below `2^64` by the
+    step bound, which `walInv_openAll` now also returns), pure core `UnsavedDefs.lean` (`unsaved_blank`,
+    `walBlank_take`: every crash image of a blank history is blank; `running_typ`: the `default` arm is
+    unreachable). Linked (`walfs.wal.wp_Unsaved`, hypotheses `U.Ok`, `U.SnapCoh`, `WalDecEnvSupply` as
+    `ValidSnapshotEntries`'), no axiom, no `sorry`. "Reads `walFresh`" needs, at the server, that no snapshot at
+    index 0 has a nonzero term (raft's `IsEmptySnap`): P5/T7's obligation, stated in `UnsavedDefs.lean`'s header.
+  * **The relaxation "named → unnamed → absent, lower bounds read while present" is not enough.** `bootstrap`
+    re-`Create`s the WAL at the same `dir` in the same generation after `DiscardUnsaved`
+    (`bootstrap.go:82`, `haveWAL = false`, then `bootstrapRaft` creates it). The persistent facts
+    (`walNamed dir`, `walSyncedLb dir n`, `walPast s` with `dir` in `s`) do not say which WAL they are about, so a
+    fact of the discarded WAL reads as one of the new WAL while it is present: `walGhost_raiseNamed`
+    (`NamedView.lean`: a past state named ⇒ raise the view to named) would name the new WAL between its rename and
+    `Create`'s parent fsync, where a crash may still drop it (`walCrash`), and `walSyncedLb dir n` (n > 0, a
+    blank `Save` synced) would bound the new WAL's empty history. No relaxation of `absLe` alone can fix it: the
+    transitivity `named(old) ≤ unnamed ≤ absent ≤ fresh-unnamed` is exactly what makes stale facts apply.
+  * **Proposed (untrusted, reaches no top-level statement; but large):** per-directory **incarnations** in the WAL
+    layer's ghost state. The past states become pairs `(s, I)`, `I : GMap GoString Nat`, ordered by `absLe` on
+    the directories whose incarnation is unchanged (`I ≤ I'`); the discard's rename (`named := false`) and its
+    delete each bump `I !! dir`; `Create` inserts at the current one. The program's view `walDirIs dir o` carries
+    the incarnation (exact: every discard goes through the program's update), and the facts take it
+    (`walNamed dir i`, `walSyncedLb dir i n`; `walLenLb` through its handle). Ripple: `AbsDisk/Specs.lean`'s
+    generic `absPastAt`/`absPastAuth` (or copies in `Ghost.lean`), every WAL spec that names these facts
+    (`Create`, `Save`, `Sync`, `ReadAll`, `Exist`, `Open*`), the crash law (`Crash.lean`), and the tester's specs
+    and invariants (`member__*`, `restartRead`, its `Crash.lean`/`Inv.lean`): several sessions. **Question:**
+    go ahead with incarnations, or another route (e.g. `DiscardUnsaved` proved at the server level only, or its
+    success post weaker than `walDirIs dir none`)? What does not depend on it: the tester's optional
+    strengthening (P6: Go `walImgs` without the torn images) and the interfaces. The server's P5 (`bootstrap`'s
+    discard branch, `MemberGen`) needs `DiscardUnsaved`'s spec, so it waits for the answer.
+
 - **For the coordinator (2026-11-25): no trusted commit made; the `DiscardUnsaved` hard stop was a wrong
   analysis.** The WAL over `fsExt` never executes an `AbsDiskStep`: its abstract state is ghost state of
   the WAL layer (`wal/Ghost.lean`, untrusted: "Nothing of the extension's steps or interpretation is

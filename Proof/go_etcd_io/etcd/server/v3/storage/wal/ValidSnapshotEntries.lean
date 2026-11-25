@@ -206,7 +206,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
   iintro Hnc
   imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
-  icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%d, %lay, %X, %hj, ⟨%hle, %hpin⟩, Hpin⟩)
+  icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%d, %lay, %X, %hj, ⟨%hle, %hpin⟩, Hpin, -⟩)
   · -- no WAL: every attempt fails at `readWALNames`
     subst ho
     imodintro

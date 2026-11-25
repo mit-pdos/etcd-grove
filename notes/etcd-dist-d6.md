@@ -457,3 +457,12 @@ real WAL) is the natural report if the lead wants one.
   steps proposed (`"WalUnnamed"` at the rename, `"WalDiscard"` at the parent's fsync), with the minimal
   program and the real code: `notes/wal-p6-handoff.md`, "The hard stop: `DiscardUnsaved`". `Unsaved`
   needs no semantics change (its spec proposed there).
+- 2026-11-25 (session 6): **`Unsaved` specified and proved** (`Spec/.../wal/Unsaved.lean`, `Proof/.../wal/Unsaved.lean`,
+  pure `UnsavedDefs.lean`; linked as `walfs.wal.wp_Unsaved`, no new axiom): `true` ⇒ a WAL at `dir` whose history
+  is blank (`walBlank`: `Save`s of nothing, snapshots at index 0), prefix-closed (`walBlank_take`, every crash
+  image). `walInv_openAll` also returns the step bound `⧖ |H|` (the first segment's sequence below `2^64`).
+  **`DiscardUnsaved`: the approved order relaxation ("lower bounds read while present") is not enough**:
+  `bootstrap` re-`Create`s the WAL in the same generation after the discard, so a persistent fact of the
+  discarded WAL (`walNamed`, `walSyncedLb`) would read as a fact of the new one (`walGhost_raiseNamed` would
+  name a WAL that a crash may still drop). The facts need the WAL's incarnation; design and the question in
+  `notes/wal-p6-handoff.md` START HERE.
