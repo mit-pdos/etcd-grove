@@ -30,7 +30,7 @@ show `stuck` is never reached).
 * the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
   recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
   `readRequest`, `ServeCodec` (Perennial's thread-token join for its runs), `ServeConn`, `Accept`
-  (`log.Println`'s spec, `Net/Spec/log/Println.lean`; on a listener at a valid address or a
+  (`log.Println`'s spec, `Perennial/Spec/log/Println.lean`; on a listener at a valid address or a
   wildcard, at the address each connection was dialed to; `Accept.wp_addr` at a valid address);
 * the server's handler over HTTP, `ServeHTTP` (on a `CONNECT`, over the response's `hijackOk`,
   `Net/Proof/net/http/ServerDefs.lean`).
@@ -102,7 +102,7 @@ public import Net.Proof.net.rpc.Server__ServeHTTP
 public import Net.Proof.net.rpc.AcceptAddr
 public import Net.Proof.net.rpc.Server__Accept
 public import Net.Proof.net.Listener__Accept
-public import Net.Proof.log.Println
+public import Perennial.Proof.log.Link
 
 @[expose] public section
 
@@ -283,7 +283,7 @@ theorem Server.ServeConn.wp [errors.Assumptions] : Server.ServeConn.spec (GF := 
   Server.ServeConn.wp_proof newServerCodec.wp Server.ServeCodec.wp
 
 theorem log.Println.wp [log.Assumptions] : _root_.Perennial.log.Println.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.log.Println.wp_proof
+  _root_.Perennial.log.wp_Println
 
 theorem Server.Accept.wp [errors.Assumptions] [log.Assumptions] :
     Server.Accept.spec (GF := GF) (hG := hG) :=

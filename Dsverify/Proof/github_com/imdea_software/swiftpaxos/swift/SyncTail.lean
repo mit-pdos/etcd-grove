@@ -102,7 +102,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [log.Assumptio
 
 /-- An argument `log.Println` formats without calling a method of it (the condition under which
 Perennial's trusted model of `log.Println`, which does nothing, is faithful,
-`Net/Spec/log/Println.lean`): `nil`, `fmt.ArgWf` (a basic value), or a value whose type has no
+`Perennial/Spec/log/Println.lean`): `nil`, `fmt.ArgWf` (a basic value), or a value whose type has no
 `Error`, `String` or `Format` method (fmt's `%v` calls only those; the quorum values `handleSync`
 prints). **Port change**: the lab's `log` model called `touch` on each argument; Perennial's
 does nothing (notes/dsv-swiftpaxos.md). -/
