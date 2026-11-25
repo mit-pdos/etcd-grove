@@ -9,6 +9,7 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update (not yet run: the baseline is
 # empty, which is what each Results.lean's `#print axioms` shows of this repository's part).
-# rpcdriver (net/rpc over net/http) is not one of them: it rests on its interim net/http and
-# net/rpc axioms, and has its own collection, etc/tcb-collections/rpcdriver.txt.
-roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/(?!rpcdriver/)
+# rpcdriver (net/rpc over net/http) and httpdriver (net/http) are not of them: they rest on their
+# interim net/http and net/rpc axioms, and have their own collections, etc/tcb-collections/rpcdriver.txt
+# and etc/tcb-collections/httpdriver.txt.
+roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/(?!rpcdriver/|httpdriver/)

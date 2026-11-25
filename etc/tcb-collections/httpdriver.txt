@@ -15,3 +15,7 @@
 # (Net/Proof/net/http/InitFirst.lean, L2 step 6), the ServeMux's dispatch, http.Serve over a user handler and
 # ReadResponse on a stream of answers (phase 7's S5).
 roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/httpdriver/TopLevelRobustness\.lean$
+axiom Perennial.net.http.ReadResponse.wp_proof_resp
+axiom Perennial.net.http.Serve.wp_proof
+axiom Perennial.net.http.ServeMux.ServeHTTP.wp_proof
+axiom Perennial.net.http.wp_init_first
