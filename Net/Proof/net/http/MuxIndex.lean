@@ -179,6 +179,37 @@ theorem idx_put (R : List (List w8)) (M : GMap net.http.routingIndexKey GoSlice)
   imodintro
   iapply (BigSepM.bigSepM_insert_elim (Φ := fun _ x => slIdx (GF := GF) (hG := hG) R x)) $$ Hv HP
 
+/-- A key's slice in the index (`nil` for none). -/
+theorem slIdx_lookup (R : List (List w8)) (M : GMap net.http.routingIndexKey GoSlice)
+    (k : net.http.routingIndexKey) :
+    (□ ([∗map] _k ↦ x ∈ M, slIdx (GF := GF) (hG := hG) R x)) ⊢
+      slIdx R ((M !! k).getD (zero_val GoSlice)) := by
+  iintro #HP
+  cases h : M !! k with
+  | none =>
+    simp only [Option.getD_none, show (zero_val GoSlice) = slice.nil from rfl]
+    iapply slIdx_nil
+  | some old =>
+    simp only [Option.getD_some]
+    iapply BigSepM.bigSepM_lookup h $$ HP
+
+/-- Name a cell's contents (for a value too large to write, a closure). -/
+theorem pts_name {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
+    (l ↦ v : IProp GF) ⊢ ∃ w : V, ⌜w = v⌝ ∗ l ↦ w := by
+  iintro H
+  iexists v
+  iframe
+  ipureintro; rfl
+
+/-- A callback that returns `nil` for every pattern of the index (persistent). -/
+def noConflictFn (f : GoFunc) (R : List (List w8)) : IProp GF :=
+  iprop(□ ∀ pp2 : Loc, {{ pidx (GF := GF) (hG := hG) R pp2 }} (App (Val #f) (Val #pp2))
+    {{ RET #(interface.nil : GoInterface); True }})
+
+instance noConflictFn_persistent (f : GoFunc) (R : List (List w8)) :
+    Persistent (noConflictFn (GF := GF) (hG := hG) f R) := by
+  unfold noConflictFn; infer_instance
+
 end defs
 
 section wp
@@ -319,6 +350,229 @@ theorem wp_index_addPattern (ix pp : Loc) (R : List (List w8)) (p : List w8) (hp
     · irevert HM; simp only [hm, ↓reduceIte]; iintro HM
       wp_auto
       idx_loop m
+
+/-- `segments[k]` of the index's map, `nil` or not. -/
+theorem wp_lookup1_orNil (m : GoMap) (M : GMap net.http.routingIndexKey GoSlice)
+    (k : net.http.routingIndexKey) :
+    {{ (if m = map.nil then ⌜M = ∅⌝ else m ↦$ M : IProp GF) }}
+      (App (App (Val (map.lookup1 net.http.routingIndexKey.ty
+        (go.GoType.SliceType (go.GoType.PointerType net.http.pattern.ty)))) (Val #m)) (Val #k))
+    {{ RET #((M !! k).getD (zero_val GoSlice)); (if m = map.nil then ⌜M = ∅⌝ else m ↦$ M : IProp GF) }} := by
+  by_cases hm : m = map.nil
+  · subst hm
+    simp only [↓reduceIte]
+    wp_start as %HM0
+    subst HM0
+    rw [show ((∅ : GMap net.http.routingIndexKey GoSlice) !! k) = none by simp, Option.getD_none]
+    try wp_auto
+    iapply HΦ
+    ipureintro; rfl
+  · simp only [hm, ↓reduceIte]
+    wp_start_folded as HM
+    wp_apply (wp_map_lookup1 (K := net.http.routingIndexKey) (V := GoSlice) _ _ m M k
+      (DFrac.own 1)) $$ HM as HM
+    iapply HΦ
+    iframe
+
+set_option hygiene false in
+/-- One call `apply(pats)` of `possiblyConflictingPatterns`' closure, inlined (the slice `sl`,
+its `slIdx` in `Hax`): `f` returns `nil` on each pattern, so `err` stays `nil`. -/
+local macro "apply_loop " sl:term:max : tactic => `(tactic| (
+  iunfold slIdx at Hax
+  icases Hax with ⟨%ps, #Hps, #Hpsi⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hps
+  ihave HI : (∃ (i : w64) (pv : Loc), "i" ∷ i_ptr ↦ i ∗ "p" ∷ p_ptr ↦ pv ∗
+      "err" ∷ err_ptr ↦ (interface.nil : GoInterface) ∗ "%Hi" ∷ ⌜0 ≤ sint.Z i⌝ : IProp GF)
+      $$ [i p err]
+  · iexists W64 0, _; iframe; ipureintro; word
+  wp_for HI
+  wp_if_destruct
+  · try wp_auto
+    simp only [Hi, Hif, _root_.and_self, ↓reduceIte]
+    list_elem ps (sint.nat i) as x
+    wp_apply wp_load_slice_index $sl (sint.Z i) _ _ x (by word) $$ [Hps] as _Hps2
+    · iframe #; ipureintro; rw [show (sint.Z i).toNat = sint.nat i by word]; exact Hx_lookup
+    try wp_auto
+    ihave #Hx := BigSepL.bigSepL_lookup Hx_lookup $$ Hpsi
+    wp_bind (App (Val #f) (Val #x))
+    iapply Hfn $$ %x Hx
+    inext
+    iintro -
+    try wp_auto
+    wp_for_post
+    iframe
+    iexists i + W64 1, _
+    iframe
+    ipureintro; word
+  try wp_auto
+  iclear Hps Hpsi))
+
+set_option hygiene false in
+/-- The end of `possiblyConflictingPatterns`, after its loop over the segments: `apply` of the
+two candidate slices, or of every slice of the map. -/
+local macro "pcp_end" : tactic => `(tactic| (
+  cases hl
+  · try wp_auto
+    rw [show ∀ x b, (RecV BAnon x b : val) = #(func.mk BAnon x b) from
+      fun x b => by rw [go.intoVal_unfold GoFunc]]
+    by_cases hm : m = map.nil
+    · irevert HM; simp only [hm, ↓reduceIte]; iintro %HM0
+      try wp_auto
+      iapply HΦ
+      iunfold idxRep
+      iexists map.nil, M, msl
+      simp only [↓reduceIte]
+      iframe
+      iframe #
+      try (ipureintro; exact HM0)
+    · irevert HM; simp only [hm, ↓reduceIte]; iintro HM
+      wp_bind (App (App (Val (map.forRange _ _)) _) _)
+      icases pts_name apply_ptr _ $$ apply with ⟨%af, %haf, apply⟩
+      iapply (wp_map_for_range (K := net.http.routingIndexKey) (V := GoSlice)
+        (fun _ _ => iprop(err_ptr ↦ (interface.nil : GoInterface) ∗ (∃ v : GoSlice, pats_ptr ↦ v) ∗
+          apply_ptr ↦ af ∗ f_ptr ↦ f))) $$ HM
+      iintro %keys %Hkeys
+      isplitl [err pats apply f]
+      · iframe
+      isplitr
+      · imodintro
+        iintro %j %key %v %hkv ⟨err, ⟨%pv, pats⟩, apply, f⟩
+        try wp_auto
+        rw [show (#af : val) = RecV af.f af.x af.e by rw [go.intoVal_unfold GoFunc], haf]
+        wp_call
+        wp_auto
+        ihave #Hax := slIdx_lookup R M key $$ HP
+        rw [hkv.2, Option.getD_some]
+        apply_loop v
+        unfold forMapPostcondition
+        iright; ileft
+        isplitr
+        · ipureintro; rfl
+        iframe
+      iintro ⟨err, -, apply, f⟩ HM
+      try wp_auto
+      iapply HΦ
+      iunfold idxRep
+      iexists m, M, msl
+      simp only [hm, ↓reduceIte]
+      iframe
+      iframe #
+  · try wp_auto
+    ihave #Hax := Hlm
+    apply_loop lmv
+    ihave #Hax := Hwm
+    apply_loop wmv
+    try wp_auto
+    iapply HΦ
+    iunfold idxRep
+    iexists m, M, msl
+    iframe
+    iframe #))
+
+/-- `idx.possiblyConflictingPatterns(pat, f)` of a literal pattern, over a callback that returns
+`nil` for every pattern of the index: `nil`. -/
+theorem wp_possiblyConflictingPatterns_lit (ix pp : Loc) (f : GoFunc) (R : List (List w8))
+    (p : List w8) (hp : litPat p) :
+    {{ idxRep (GF := GF) (hG := hG) ix R ∗ patRep pp p ∗ noConflictFn f R }}
+      (App (App (Val (ix @!! go.GoType.PointerType net.http.routingIndex.ty @!!
+        go!"possiblyConflictingPatterns")) (Val #pp)) (Val #f))
+    {{ RET #(interface.nil : GoInterface); idxRep ix R }} := by
+  wp_start as ⟨Hix, #Hpr, #Hf⟩
+  iunfold idxRep at Hix
+  icases Hix with ⟨%m, %M, %msl, Hm, HM, #HP, Hcaps, Hms, #Hmsl, Hmcap⟩
+  ihave #Hpr' := Hpr
+  iunfold patRep at Hpr'
+  icases Hpr' with ⟨%sl, %loc, #Hpp, #Hsl⟩
+  iStructNamedPrefix Hpp "P"
+  ihave #Hfn := Hf
+  iunfold noConflictFn at Hfn
+  wp_auto
+  ihave #Hax := Hmsl
+  apply_loop msl
+  obtain ⟨x, hx⟩ : ∃ x, (pathSegs p).getLast? = some x := by
+    cases h : (pathSegs p).getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.mp h) (pathSegs_ne_nil p hp)
+    | some x => exact ⟨x, rfl⟩
+  have hxs : (segVal x).s' ≠ [W8 47] := by
+    cases x with
+    | multi => simp [segVal]
+    | lit t =>
+      simp only [segVal]
+      intro ht
+      have hmem : Seg.lit t ∈ pathSegs p := List.mem_of_getLast? hx
+      have := (lit_mem_pathSegs p (.inr hp.1) t hmem (W8 47) (by rw [ht]; simp)).1
+      exact this rfl
+  wp_apply wp_lastSegment pp p x hx $$ [$Hpr]
+  rw [decide_eq_false (show (segVal x).s' ≠ [47#8] from hxs)]
+  try wp_auto
+  rename_i iv_ptr
+  irename : iv_ptr ↦ zero_val w64 => iv
+  ihave %Hslen := ownSlice_len _ _ _ $$ Hsl
+  ihave HI : (∃ (j : w64) (sv : net.http.segment) (ivv : w64) (lmv wmv : GoSlice) (mn : w64)
+      (hl : Bool),
+      "i" ∷ i_ptr ↦ j ∗ "seg" ∷ seg_ptr ↦ sv ∗ "iv" ∷ iv_ptr ↦ ivv ∗ "lmin" ∷ lmin_ptr ↦ lmv ∗
+      "wmin" ∷ wmin_ptr ↦ wmv ∗ "min" ∷ min_ptr ↦ mn ∗ "hasLit" ∷ hasLit_ptr ↦ hl ∗
+      "Hlm" ∷ □ slIdx (GF := GF) (hG := hG) R lmv ∗ "Hwm" ∷ □ slIdx (GF := GF) (hG := hG) R wmv ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j⌝ : IProp GF) $$ [i seg iv lmin wmin min hasLit]
+  · iexists W64 0, _, _, _, _, _, _
+    iframe
+    isplitl []
+    · imodintro; rw [show (zero_val GoSlice) = slice.nil from rfl]; iapply slIdx_nil
+    isplitl []
+    · imodintro; rw [show (zero_val GoSlice) = slice.nil from rfl]; iapply slIdx_nil
+    ipureintro; word
+  wp_for HI
+  icases Hlm with #Hlm
+  icases Hwm with #Hwm
+  wp_if_destruct
+  · try wp_auto
+    simp only [Hj, Hif, _root_.and_self, ↓reduceIte]
+    list_elem (List.map segVal (pathSegs p)) (sint.nat j) as y
+    wp_apply wp_load_slice_index sl (sint.Z j) _ _ y (by word) $$ [Hsl] as _Hsl2
+    · iframe #; ipureintro; rw [show (sint.Z j).toNat = sint.nat j by word]; exact Hy_lookup
+    obtain ⟨z, -, rfl⟩ : ∃ z, (pathSegs p)[sint.nat j]? = some z ∧ y = segVal z := by
+      rw [List.getElem?_map] at Hy_lookup
+      cases h : (pathSegs p)[sint.nat j]? with
+      | none => rw [h] at Hy_lookup; simp at Hy_lookup
+      | some z => rw [h] at Hy_lookup; exact ⟨z, rfl, (Option.some.inj Hy_lookup).symm⟩
+    cases z with
+    | multi =>
+      simp only [segVal]
+      try wp_auto
+      wp_for_post
+      pcp_end
+    | lit t =>
+      simp only [segVal]
+      try wp_auto
+      wp_apply wp_lookup1_orNil m M _ $$ HM as HM
+      try wp_auto
+      wp_apply wp_lookup1_orNil m M _ $$ HM as HM
+      try wp_auto
+      ihave #Hl1 := slIdx_lookup R M { pos' := j, s' := t } $$ HP
+      ihave #Hl2 := slIdx_lookup R M { pos' := j, s' := [] } $$ HP
+      wp_if_destruct
+      · try wp_auto
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, _, _, _, _, true
+        iframe
+        isplitl []
+        · iframe #
+        isplitl []
+        · iframe #
+        ipureintro; word
+      · try wp_auto
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, _, _, _, _, true
+        iframe
+        isplitl []
+        · iframe #
+        isplitl []
+        · iframe #
+        ipureintro; word
+  · try wp_auto
+    pcp_end
 
 end wp
 
