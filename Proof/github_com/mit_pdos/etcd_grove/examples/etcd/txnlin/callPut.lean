@@ -38,7 +38,7 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (h_client_Put_st : client.client_Put_st.law (GF := GF) (hG := hG)) :
     callPut.spec (GF := GF) (hG := hG) := by
   intro _ CRE CEC cl ms V hAs key val Q hkl hvl
-  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -52,8 +52,8 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   ihave #Hrr := client.kvRegs_put ms $$ Hregs
   ihave #Hst' := client.srvStart_idx ms $$ Hst
   wp_apply (h_client_Put_st cl ms V cctx ccd key val slice.nil Q
-      (opSizeOk_opPutModel (K := inMax) (E := 0) (V := inMax) (optsKeep_nil _ _ _) hkl hvl (by decide))) $$ [Hau]
-    as %resp %err Hout
+      (opSizeOk_opPutModel (K := inMax) (E := 0) (V := inMax) (optsKeep_nil _ _ _) hkl hvl (by decide))) $$ [$Hlt Hau]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iexact Hau
   -- `cancel()`
@@ -68,6 +68,7 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     iexists σ
     iframe HQ
@@ -80,6 +81,7 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro; rfl
 

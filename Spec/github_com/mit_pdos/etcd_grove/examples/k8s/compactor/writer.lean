@@ -34,10 +34,9 @@ abbrev writer.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (γk : KVNames) (γ : CNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
-      clientKvOk cl γk ∗ cinv γk γ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗ levelTok 0 ∗ (clientKvOk cl γk ∗ cinv γk γ) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer)) (Val #cl))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

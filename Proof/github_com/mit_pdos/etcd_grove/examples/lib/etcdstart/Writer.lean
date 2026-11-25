@@ -38,7 +38,7 @@ theorem Writer.wp_proof
     (h_client_Put_kv : client.client_Put_kv.law (GF := GF) (hG := hG)) :
     Writer.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl api γk QW OkF w tsl tried lo hi hP hAs hlo hlh hhi hsz
-  wp_start as ⟨#Hkvf, #Hkv, #Ht, #Hau, #Hconv, #Hmu⟩
+  wp_start as ⟨Hlt, #Hkvf, #Hkv, #Ht, #Hau, #Hconv, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -55,8 +55,8 @@ theorem Writer.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
-  ihave HI : (∃ (k : w64), "k" ∷ k_ptr ↦ k ∗
-      "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi⌝ : IProp GF) $$ [k]
+  ihave HI : (∃ (k : w64), "k" ∷ k_ptr ↦ k ∗ "Hlt" ∷ levelTok 0 ∗
+      "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi⌝ : IProp GF) $$ [k Hlt]
   · iexists lo
     iframe
     ipureintro; constructor <;> word
@@ -78,7 +78,7 @@ theorem Writer.wp_proof
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
     (try wp_auto)
     wp_apply (h_client_Put_kv cl api γk false cctx cd x.Key' x.Val' slice.nil
-        (QW x.Key' x.Val') (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [Hau1] as %resp %err Hout
+        (QW x.Key' x.Val') (hsz x (List.mem_of_getElem? Hx_lookup)).put) $$ [$Hlt Hau1] as %resp %err ⟨Hlt, Hout⟩
     · iframe #
     -- `cancel()`
     (try wp_auto)
@@ -133,7 +133,7 @@ theorem Writer.wp_proof
       iframe
       ipureintro; constructor <;> word
   · (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt
 
 end proof
 

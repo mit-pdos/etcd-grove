@@ -72,13 +72,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Assu
 abbrev check.spec : Prop :=
   ∀ [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (addr : GoString) (lg : Loc) (V : client.WEnv GF),
-  plainEndpoint addr → threadBound GF ≤ 2 ^ 31 →
+  plainEndpoint addr → threadBound GF ≤ 2 ^ 30 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN ∗
-      zapLoggerOk lg ∗ client.etcdLeaseReadAt addr }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN ∗ levelTok 0 ∗ (zapLoggerOk lg ∗ client.etcdLeaseReadAt addr) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.check)) (Val #addr))
       (Val #lg))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; levelTok 0 ∗ (True) }}
 
 end spec
 

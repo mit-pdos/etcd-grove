@@ -41,7 +41,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     callGet.spec (GF := GF) (hG := hG) := by
   intro _ CRE CEC cl ms V hAs key Q hkl
-  wp_start as ⟨#Hcl, #Hregs, #Hau⟩
+  wp_start as ⟨Hlt, #Hcl, #Hregs, #Hau⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -54,8 +54,8 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   (try wp_auto)
   ihave #Hrr := client.kvRegs_range ms $$ Hregs
   wp_apply (h_client_Get_st cl ms V cctx ccd key slice.nil Q
-      (opSizeOk_opGetModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ []
-    as %resp %err Hout
+      (opSizeOk_opGetModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   -- `cancel()`
   (try wp_auto)
@@ -93,6 +93,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
       · iframe #
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       iexists σ
       iframe HQ
@@ -106,6 +107,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
         subst Hkv0
         rfl
     · iapply HΦ
+      iframe Hlt
       iright
       iexists σ
       iframe HQ
@@ -122,6 +124,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro; rfl
 

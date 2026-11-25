@@ -37,7 +37,7 @@ theorem ready.wp_proof
     (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     ready.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ cl ms V
-  wp_start as ⟨#Hcl, #Hregs, #Hst⟩
+  wp_start as ⟨Hlt, #Hcl, #Hregs, #Hst⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.compactRevKey = #k8s.compactRevKey
     from rfl]
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -62,7 +62,7 @@ theorem ready.wp_proof
     simp at Hf
   wp_apply (h_client_Get_st cl ms V ctx cd k8s.compactRevKey slice.nil (fun _ => iprop(True))
       (opSizeOk_opGetModel (K := 15) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
-    $$ [] as %resp %err -
+    $$ [$Hlt] as %resp %err ⟨Hlt, -⟩
   · iframe #
     imodintro
     iapply (BigAndL.bigAndL_intro (P := iprop(True))
@@ -70,7 +70,7 @@ theorem ready.wp_proof
     itrivial
   (try wp_auto)
   wp_apply Hcancel
-  cases err <;> (try wp_auto) <;> iapply HΦ <;> itrivial
+  cases err <;> (try wp_auto) <;> (iapply HΦ; iframe Hlt; try itrivial)
 
 end proof
 

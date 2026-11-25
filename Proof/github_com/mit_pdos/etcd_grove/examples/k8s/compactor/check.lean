@@ -98,7 +98,7 @@ theorem check.wp_proof
     (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     check.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ cl ms V γr γk γ c cl' γc hsame
-  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hst, #Hko, #Hinv, #Hkvi, #Hc, #H0⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hst, #Hko, #Hinv, #Hkvi, #Hc, #H0⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.compactRevKey = #k8s.compactRevKey
     from rfl]
   ihave #Pe3 : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
@@ -141,7 +141,7 @@ theorem check.wp_proof
     iframe #
     ipureintro; exact hr0
   · (try wp_auto)
-    wp_apply (wp_Stop c cl' γk (fun _ => iprop(True)) γc) $$ []
+    wp_apply (wp_Stop c cl' γk (fun _ => iprop(True)) γc) $$ [$Hlt] as Hlt
     · iframe #
     (try iintro -)
     (try wp_auto)
@@ -184,7 +184,7 @@ theorem check.wp_proof
     wp_apply (h_client_Get_st cl ms V ctx cd k8s.compactRevKey slice.nil
         (checkQ γk (sint.Z r).toNat)
         (opSizeOk_opGetModel (K := 15) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)
-          (by decide))) $$ [] as %resp %err Hout
+          (by decide))) $$ [$Hlt] as %resp %err ⟨Hlt, Hout⟩
     · iframe #
     (try wp_auto)
     wp_apply Hcancel
@@ -195,7 +195,7 @@ theorem check.wp_proof
       | nil => exact absurd rfl Herr
       | ok ei => ?_
       (try wp_auto)
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hlt; try itrivial
     subst Herr
     obtain ⟨hkvs, hrev, hb⟩ := Hσ
     iunfold rangeRespMsg at Hm
@@ -216,7 +216,7 @@ theorem check.wp_proof
     ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
     wp_if_destruct
     · (try wp_auto)
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hlt; try itrivial
     · obtain ⟨p0, Hp0⟩ : ∃ p0, ps[0]? = some p0 := by
         have : 0 < ps.length := by
           rw [Hsll.1]; exact len_pos_nat sl.len Hif Hsll.2
@@ -268,7 +268,7 @@ theorem check.wp_proof
       wp_apply (h_client_Get_st cl ms V ctx2 cd2 k8s.compactRevKey slice.nil
           (checkQ γk (sint.Z v).toNat)
           (opSizeOk_opGetModel (K := 15) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)
-            (by decide))) $$ [] as %resp2 %err3 Hout2
+            (by decide))) $$ [$Hlt] as %resp2 %err3 ⟨Hlt, Hout2⟩
       · iframe #
       (try wp_auto)
       wp_apply Hcancel2
@@ -279,7 +279,7 @@ theorem check.wp_proof
         | nil => exact absurd rfl Herr3
         | ok ei => ?_
         (try wp_auto)
-        iapply HΦ; itrivial
+        iapply HΦ; iframe Hlt; try itrivial
       subst Herr3
       obtain ⟨-, hrev2, hb2⟩ := Hσ2
       iunfold rangeRespMsg at Hm2
@@ -300,7 +300,7 @@ theorem check.wp_proof
       (try wp_auto)
       simp only [hgt2, decide_false]
       (try wp_auto)
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 
