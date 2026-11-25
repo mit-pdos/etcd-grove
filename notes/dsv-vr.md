@@ -99,7 +99,24 @@ becomes `∀ G L π, ∃ (_ : DecoderRep), JsonHyps`, `JsonHyps` = `{newDecoder,
    (the sticky error), then `*Frame`'s `JSONModelUnmarshal` (proved). The lab's analogue
    (`VsrProof/Proof/jsonstream/`, its own buffer) was ~2k lines.
 
-**Checks (round 11)**: CHECKS
+**Premise witness.** `examples/vsrnet/TopLevelWitness.lean` (new): `vr_remote_robust.premisesSat :
+premise_sat% vr_remote_robust.spec` (twelve fresh machines, `vrKitAddrs` distinct and valid by
+`decide`; the JSON premise is an Iris contract, left out by `premise_sat%`); `etc/premise-witness.py
+--check` ok, vr not in the baseline.
+
+**Checks (round 11, head after the scratch drop).** Built on fk-lean2 (`FKLEAN_HOST=fk-lean2
+/shared/tmp/fklean1-check.sh`; the local slots were held by a whole-machine build): vr's
+`TopLevelRobustness`, `TopLevelWitness`, `NonVacuityLinked`, `Net.Proof.models_lab.Results`,
+`Proof.encoding.json.Results`; scratch `Dsverify/Scratch/Axioms.lean` (committed, built, dropped):
+`vr_remote_robust`, `swiftpaxos_remote_robust`, `rabia_remote_robust`, `paxos_remote_robust`,
+`encoding.json.NewEncoder.wp_proof`, `encoding.json.Encoder.Encode_conn.wp_proof`, `dsvvr.encEncodeConn`,
+`net.resErr_errOrNil`: each `[propext, Classical.choice, Quot.sound]`; `nonvacuous_premises`: those and the
+two local axioms (test-only). Here: `tier-check --check` ok (208 known, no new); `gen-init --check` 272 up to
+date; `kitgen --check vr` ok; `goose --check --project dsv-vr` up to date (Perennial fce59af75);
+`copy-part --check` 0 differ; `premise-witness --check` ok.
+
+**Next.** The Decoder (above, three steps), which removes the last premise; then land.
+
 
 ### Round 10: ready to land; connReaderOk discharged; reps per heap; non-vacuity (2026-11-24; history)
 
