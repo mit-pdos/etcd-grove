@@ -637,7 +637,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h119 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h13, h5, h1, h6, h26, h48, h52, h59, h106, h74, h118, True.intro⟩
+    exact ⟨h7, h13, h5, h1, h6, h26, h48, h52, h59, h106, h74, h118, h0, h38, True.intro⟩
   exact h119
 
 end table

@@ -20,6 +20,7 @@ public import Proof.runtime.Start
 public import GooseLang.Ext.Fs.TreeShared
 public import GooseLang.Ext.Fs.CrashTok
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.runtime.RootClaim
 
 @[expose] public section
 
@@ -141,6 +142,40 @@ theorem start_fileHolds (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : In
     unfold backend.fileHolds; exact backend.onFs_eq _
   simp only [heq]
   iexact Hfs
+
+/-- **The root `r` at program start, for the program to check** (P3 of the pure-premise plan,
+2026-11-24): from the file extension's start resources (`osStart` of an `FsInit` state), at the step
+of the program `e`, the proof of `e` gets `rootClaimF r` (`RootClaim.lean`): the claim on all of the
+root's names, whatever they hold, which the program checks itself (the mvcc testers' `MainAt`), where
+`start_fileHolds` takes their absence as a premise. -/
+theorem start_rootClaim (σ : OsState) (hfs : FsInit σ) (r : GoString) (j0 : Ino)
+    (hr : (r, j0) ∈ σ.fs.roots) (e : Expr) (Φ : val → IProp GF) :
+    ⊢ osStart (gooseOsGS (L := hG.goose_localGS)) σ -∗
+      (rootClaimF (GF := GF) r -∗ WP e @ Stuckness.NotStuck; ⊤ {{ Φ }}) ={⊤}=∗
+      WP e @ Stuckness.NotStuck; ⊤ {{ Φ }} := by
+  iintro Hs Hk
+  unfold osStart osStartF treeStart bytesMap metaMap
+  icases Hs with ⟨⟨-, -, Hv⟩, Hd⟩
+  imod osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imod osSwitchKit_open (L := hG.goose_localGS) σ.fs.roots (σ.fs.treeDur, []) ⊤ $$ Hd with Hsh
+  unfold osShared
+  icases Hsh with ⟨#Hsh, #-, Hperms, -, Hcl⟩
+  icases osCallPerms_root (L := hG.goose_localGS) σ.fs.roots r j0 hfs.2.2.2.1 hr $$ Hperms with ⟨Hperm, -⟩
+  have hnow : Hist.now (σ.fs.treeDur, ([] : List LogEntry)) = σ.fs.treeDur := rfl
+  have hj0 : j0 ∈ σ.fs.treeDur := hfs.2.2.2.2.1.1 j0 (Reach.root r j0 hr)
+  obtain ⟨v0, hv0⟩ := Option.isSome_iff_exists.mp ((GMap.mem_iff _ _).mp hj0)
+  have hmem : j0 ∈ (GMap.toList (Hist.now (σ.fs.treeDur, ([] : List LogEntry)))).map (·.1) := by
+    rw [hnow]
+    exact List.mem_map.mpr ⟨(j0, v0), (GMap.mem_toList _ _ _).mpr hv0, rfl⟩
+  obtain ⟨k, hk⟩ := List.getElem?_of_mem hmem
+  ihave Hj := BigSepL.bigSepL_lookup (Φ := fun _ j => osNames (L := hG.goose_localGS) j
+    (.except []) (DFrac.own 1) (namesOf (σ.fs.treeDur, []) j (.except []))) hk $$ Hcl
+  imodintro
+  iapply Hk
+  unfold rootClaimF
+  iexists σ.fs.roots, j0, _, 1
+  iframe Hinv Hsh Hj Hperm
+  ipureintro; exact hr
 
 end files
 
