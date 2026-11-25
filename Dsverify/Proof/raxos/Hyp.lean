@@ -92,7 +92,9 @@ sit in an invariant whose content (`msg.rt*`) is sealed, so only protobuf's own 
 with the cached sizes. Each kind of `msg.marshalPre`/`msg.unmarshalPre` asks `isPkgInit` of the
 message's declaring package (dsv-fix6, review `notes/axiom-review/dsv-fix6/quepaxa-pb.md`,
 counterexample C: before that package's generated `init` its `file_*_msgTypes` is unfilled, and
-`ProtoReflect` panics). -/
+`ProtoReflect` panics); that premise excludes such calls from other packages, and inside the two
+declaring packages the condition is that they have no hand-written package-level initializer
+(review `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md`, finding 1; `etc/dsv/pb-init-check.py`). -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (m : GoInterface) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msg.marshalPre m Ψ }}

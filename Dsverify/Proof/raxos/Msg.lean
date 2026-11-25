@@ -26,7 +26,11 @@ kit's codec (interface of stage 1, `notes/stage1-plan.md`).
   six consensus kinds, `raxos/proto/client` for `ClientBatch`; persistent): the generated
   `ProtoReflect` indexes that package's `file_*_msgTypes`, which only its generated `init` fills, so
   a `Marshal`/`Unmarshal` from the package's own variable initializers or earlier `init`s panics
-  (dsv-fix6, counterexample C of `notes/axiom-review/dsv-fix6/quepaxa-pb.md`).
+  (dsv-fix6, counterexample C of `notes/axiom-review/dsv-fix6/quepaxa-pb.md`). This excludes such a
+  call from any other package; inside the declaring package `isPkgInit` can be assembled before its
+  generated `init`, so the axioms' condition is that the two packages have no hand-written
+  package-level initializer (`notes/axiom-review/dsv-fix6/quepaxa-pb-2.md`, finding 1; checked by
+  `etc/dsv/pb-init-check.py` in `etc/gates.sh`).
 
 Changed against the lab (notes/dsv-quepaxa.md): the lab's `pbCodec` instance of its protobuf
 model's `PbCodec` (its generated codec `pbMarshal`/`pbUnmarshal`, proved by `kitCodecOk_holds`) is

@@ -6,52 +6,33 @@ rabia's `zerolog.Hyps` and QuePaxa's `PbHyp`, refuted as stated (`notes/axiom-re
 per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axioms"). grpc's initializer
 (item 4) and go-redis's (item 5) are not touched.
 
-**State (2026-11-25, third session): rabia done; QuePaxa done (review: see below); craq not started.**
-- **Gates (2026-11-25, at `eb7cf0b3fd`, rabia only): all passed** (rerun after the disk was freed:
-  full build, links, tcb and the 64 collections, goose, gen-init, kitgen, models, gh-inbox, k8s tests, ...).
-  So rabia alone (`b4c6c1c758` + notes) could be queued as it stood.
+**State (2026-11-25, fourth session): rabia done; QuePaxa done and reviewed; craq not started.**
+- **Gates (2026-11-25, at `eb7cf0b3fd`, rabia only): all passed.** QuePaxa's gates: see the last bullet.
 - **rabia (item 2 below): done.** `a28755b089`'s 16 zerolog axiom files and `HypsHoldLinked.lean` restored;
   `Spec.lean`'s `New.spec` is `New(interface.nil)` with post `loggerOk lg`, `Logger.level.spec` takes
-  `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. `loggerOk lg := □ loggerMade lg`, `loggerMade`
-  an opaque with no law, **fixed** in `Spec.lean`. Review: `notes/axiom-review/dsv-fix6/zerolog.md`,
+  `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. Review: `notes/axiom-review/dsv-fix6/zerolog.md`,
   **survives** with conditions; doc bug `nonissues/rabia-getloglevel-doc-panics.md`. TCB: +16 axioms, one
   premise fewer.
-- **QuePaxa (item 3): done at `3a6222e221`**, simpler than the token design below: the owned case stays the
-  whole struct `l ↦ v` but asks `⌜stateOk mi v.state'⌝` (`Msg.lean`: `state` unset or the type's own
-  `MessageInfo`, `replicaMI i`/`clientMI i` = `arrayIndexRef MessageInfo i (globalAddr file_…_msgTypes)`,
-  the generated `ProtoReflect`'s `mi`); the shared case's invariant content `rt*` also states `stateOk` and is
-  `@[no_expose]` (sealed: no client can take the runtime fields out and store). `sizeCache` stays free (Marshal
-  sizes before it marshals with the cached sizes). Closes the fix-4 review's A (owned `state` of another type)
-  and B (a client storing `sizeCache` through the invariant). Proof changes: `pt*_share` takes `(hst : stateOk
-  …)` (sites: `imod pt*_share ⊤ _ _ ?st $$ H` + `case st => exact stateOk_zero _`); `access_sep_pure` for the
-  Access instances; `Kv.wp_residentExecute`/`wp_Execute`, `Exec.wp_applySMRLogic`/`wp_executeClientBatches`
-  posts gain `⌜∀ o ∈ outs, stateOk (clientMI 0) o.state'⌝` (Usm shares them, `bigSepL_fupd_mono_mem`);
-  `Fetch.wp_HandleFetch`'s post and loop invariant carry `stateOk (replicaMI 3)`; Propose's shared proposal
-  `x = {Pc with …}`. The fix-4 axiom files `proto/{Marshal,Unmarshal}.lean` are back (headers dsv-fix6) and
-  `quepaxa_remote_robust.spec` lost only the premise `PbHyp` (`remoteStepBound` kept). Built:
-  `quepaxanet.{TopLevelRobustness,NonVacuityLinked}`, full `lake build`. TCB: +2 axioms
-  (`raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof`); baselines not yet updated (wait for the review).
-  Review: `notes/axiom-review/dsv-fix6/quepaxa-pb.md`: **refuted as stated, survives with one condition**.
-  A and B are closed; **counterexample C**: `marshalPre`/`unmarshalPre` ask only `isPkgInit proto`, so a
-  Marshal/Unmarshal from a package-variable initializer or an early `init()` of the message's own package
-  (before `file_*_msgTypes` is built) is "proved" safe and panics in Go (index out of range / nil deref,
-  tested). QuePaxa never does this. **Remark**: `replicaMI i`/`clientMI i` are not the real address
-  (`file_*_msgTypes` is a slice variable: `&msgTypes[i]` points into its heap array), so `stateOk` is
-  literally false of the real heap though no translated program can observe it.
-  **Next (exact):** (1) in `Msg.lean`, add the declaring package's `isPkgInit` to each kind of `marshalPre`
-  and `unmarshalPre` (`pkg_id.raxos.replica.src` for the six consensus kinds, `pkg_id.raxos.proto.client`
-  for `ClientBatch`; persistent), and thread it at the callers (`cbMarshal.spec` already holds the
-  client's; the gRPC codec path `qpCodec`'s callers, `grep -rln 'marshalPre\|unmarshalPre' Dsverify`);
-  (2) make `replicaMI`/`clientMI` opaque per-type tags (`opaque replicaMI : Nat → Loc`, docstring: the
-  address of `msgTypes[i]` in the slice's backing array, not the variable) so the docstring is true;
-  (3) rebuild `quepaxanet.{TopLevelRobustness,NonVacuityLinked}` and the full build; (4) a fresh review
-  (append to the same report or `quepaxa-pb-2.md`); (5) on survival: `etc/tcb-report.py --check --update`
-  and `--collection etc/tcb-collections/dsv-quepaxa.txt --check --update` (+2 axioms, checked: exactly
-  `raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof` NEW, nothing else), index both dsv-fix6 reviews in
-  `notes/axiom-review/README.md`, update `etc/dsv/README.md`'s fix-4 section (lines 70-89: PbHyp leaves
-  "refuted stays a premise" and "Left premises"), `notes/STATUS.md`, then `etc/gates.sh`.
-  **Until (1)-(4), `3a6222e221` must not be queued** (it replaces the premise by refuted axioms); `eb7cf0b3fd`
-  (rabia) can be.
+- **QuePaxa (item 3): done.** `3a6222e221`: the owned case of a message representation asks
+  `⌜stateOk mi v.state'⌝` (unset or the type's own `MessageInfo`), the shared case's invariant content `rt*`
+  is sealed (closing the fix-4 review's A and B). Its review (`notes/axiom-review/dsv-fix6/quepaxa-pb.md`)
+  refuted it with counterexample C (a `Marshal` from the message package's own initializer, before its
+  generated `init` fills `file_*_msgTypes`). `c7b8cc6ee7`: each kind of `msg.marshalPre`/`unmarshalPre`
+  asks `isPkgInit` of its declaring package (`raxos.replica.src` for the six consensus kinds,
+  `raxos.proto.client` for `ClientBatch`; both defs now in `section codec` with `[HasExt Net.netExt]`,
+  as are `Hyp.lean`'s `pb` section, `PbHyp` and the two axiom files), proved at the 15 construction sites
+  by `iPkgInit`; `replicaMI`/`clientMI` are `opaque` tags. The statement text is unchanged; its
+  `GrpcHyp (cd := qpCodec)` premise only weakens (the codec's obligations, all the program's, ask more).
+  Fresh review `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md` (reviewer given only the Go and the
+  statement): **survives with a condition**: inside a declaring package `isPkgInit` can be assembled
+  before the generated `init` (its fact is `True`/`srcState`), so no hand-written package-level `var` or
+  `init()` may exist in `raxos/replica/src`, `raxos/proto/client`; today none does. Checked by the new
+  `etc/dsv/pb-init-check.py`, run in `etc/gates.sh` (section goose). The review's stronger alternative,
+  not done: a persistent token produced by the trusted `init.«0»` model inside the two packages'
+  `isPkgInitDef` (touches `TrustedCode` and `etc/gen-init.py`). TCB: +2 axioms
+  (`raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof`, exactly), baselines updated (`etc/tcb-baseline.txt`,
+  `etc/tcb-collections/dsv-quepaxa.txt`); reviews indexed in `notes/axiom-review/README.md`;
+  `etc/dsv/README.md`'s fix-4 section updated. Full `lake build` passes.
 - **craq (item 1): not started.** Coordinator-E chose option 1 (errAny's fact in `Net/`, proved at its
   producers; stop if a `TopLevelRobustness` text changes).
 

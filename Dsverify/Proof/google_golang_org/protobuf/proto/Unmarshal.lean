@@ -4,7 +4,13 @@
 `raxos.hyp.proto.Unmarshal.spec`, `Dsverify/Proof/raxos/Hyp.lean`). The field `unmarshal` of
 QuePaxa's statement premise `raxos.hyp.PbHyp` until dsv-fix6, verbatim, over the narrowed
 representation of `Msg.lean` (`stateOk`, sealed `rt*`). Reviews: `notes/axiom-review/dsv-fix4/quepaxa-pb.md`
-(refuted the wide representation), `notes/axiom-review/dsv-fix6/quepaxa-pb.md` (this one).
+(refuted the wide representation), `notes/axiom-review/dsv-fix6/quepaxa-pb.md` (refuted: the
+message's declaring package's init missing, counterexample C; since then each kind asks its
+`isPkgInit`), `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md` (fresh review of this statement:
+**survives with a condition**: the packages declaring the message types, `raxos/replica/src` and
+`raxos/proto/client`, have no hand-written package-level variable initializer or `init()`, which
+could marshal before the generated `init` fills `file_*_msgTypes`; checked by
+`etc/dsv/pb-init-check.py` in `etc/gates.sh`).
 -/
 module
 
