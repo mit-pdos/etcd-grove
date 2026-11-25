@@ -36,7 +36,7 @@ abbrev MainAt.spec : Prop :=
     [os.fileStat.FieldAssumptions] [backend.FsNoErrAll]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] (r : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
-      rootClaimF (GF := GF) r ∗ threadTok ∗ envVerifyOff }}
+      rootClaimF (GF := GF) r ∗ threadTok ∗ ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.MainAt)) (Val #r))
   {{ RET #(); True }}
 
