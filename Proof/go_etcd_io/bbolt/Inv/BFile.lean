@@ -11,7 +11,7 @@ bbolt's invariants hold the file through two resources whose laws do not depend 
 * `bBytes p off dq xs`: the bytes from `off` at `dq` of bbolt's share, that is `osBytes` at `dq`
   (`cs = none`) or at half of `dq` (`cs = some _`: bbolt's share is the caller's half of the
   crash invariant). `bBytes p off (own 1) xs` is all of bbolt's share of the range;
-* `bMeta p C m`: the writer's whole share of the `OsMeta`: `osMeta 1` (`cs = none`), or half of
+* `bMeta p C L m`: the writer's whole share of the `OsMeta`: `osMeta 1` (`cs = none`), or half of
   the `OsMeta` and the caller's token of the invariant's state (whose bytes are
   `m`'s file's, all of them; the client value `a` idle at the committed state `C`).
 
@@ -337,6 +337,11 @@ omit go_gctx in
 instance bCsInv_persistent (p : BFile) : Persistent (bCsInv (GF := GF) p) := by
   unfold bCsInv; cases p.cs <;> dsimp only <;> infer_instance
 
+/-- Every byte of `bs` outside the ranges `L` (`(offset, length)`: what was written or grown since
+the last successful sync) is durable: one candidate, its value. -/
+def DurOut (L : List (Nat × Nat)) (bs : List ByteG) : Prop :=
+  ∀ k x, bs[k]? = some x → (∀ r ∈ L, k < r.1 ∨ r.1 + r.2 ≤ k) → x = durB x.1
+
 /-- The exclusivity tokens' keys of a file of `n` bytes. -/
 def exMap : Nat → GMap Nat Unit
   | 0 => ∅
@@ -345,33 +350,36 @@ def exMap : Nat → GMap Nat Unit
 /-- **The writer's whole share of the file's `OsMeta` `m`, the committed state being `C`** (see the
 file header): `osMeta 1`, or (in the crash invariant) the invariant, half of the `OsMeta` and the
 caller's token of the invariant's state `⟨m, bs, 0, 0, .idle⟩` (the file's bytes `bs`, nothing
-frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`, idle at `C` (the invariant itself is `bCsInv p`). -/
-def bMeta (p : BFile) (C : CommitSt) (m : OsMeta) : IProp GF :=
+frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`, idle at `C`; the
+bytes outside the ranges `L` written since the last successful sync are durable (`DurOut`), and, unless
+the file system fails, the crash size bounds agree (`lo = hi`: `DB.grow` syncs its truncate) (the invariant itself is `bCsInv p`). -/
+def bMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
   match p.cs with
   | none => osMeta p.ino (DFrac.own 1) m
   | some c => iprop(osMeta p.ino (DFrac.own (1 : Qp).half) m ∗
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
-        ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C⌝)
+        ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
+          (FsNoErr → m.lo = m.hi)⌝)
 
 omit go_gctx in
-instance bMeta_timeless (p : BFile) (C : CommitSt) (m : OsMeta) :
-    Timeless (bMeta (GF := GF) p C m) := by
+instance bMeta_timeless (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    Timeless (bMeta (GF := GF) p C L m) := by
   unfold bMeta
   cases p.cs with
   | none => dsimp only; unfold osMeta; infer_instance
   | some c => dsimp only; unfold osMeta csTokI; infer_instance
 
 omit go_gctx in
-theorem bMeta_none {p : BFile} (h : p.cs = none) (C : CommitSt) (m : OsMeta) :
-    bMeta (GF := GF) p C m = osMeta p.ino (DFrac.own 1) m := by
+theorem bMeta_none {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    bMeta (GF := GF) p C L m = osMeta p.ino (DFrac.own 1) m := by
   unfold bMeta; rw [h]
 
 /-- A fraction of the writer's share of the `OsMeta`, at any fraction of the extension's (for the
 crash-free specs that take any fraction: `Stat`, the mapped cells' reads). -/
-theorem bMeta_osMeta (p : BFile) (C : CommitSt) (m : OsMeta) :
-    bMeta (GF := GF) p C m ⊢ ∃ q : Qp, osMeta p.ino (DFrac.own q) m ∗
-      (osMeta p.ino (DFrac.own q) m -∗ bMeta p C m) := by
+theorem bMeta_osMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    bMeta (GF := GF) p C L m ⊢ ∃ q : Qp, osMeta p.ino (DFrac.own q) m ∗
+      (osMeta p.ino (DFrac.own q) m -∗ bMeta p C L m) := by
   unfold bMeta
   cases p.cs with
   | none =>

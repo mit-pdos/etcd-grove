@@ -62,11 +62,12 @@ theorem exMap_frags (γ : GName) : ∀ n : Nat,
 theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C : CommitSt)
     (m : OsMeta) (xs : List ByteG) (a : BAbs) (E : CoPset) (hl : xs.length = m.size)
     (hcut : m.cut = none) (ha : a.phase = .idle ∧ a.cur = C)
-    (hok : bCsOk a ⟨m, xs, 0, 0, .idle⟩) :
+    (hok : bCsOk a ⟨m, xs, 0, 0, .idle⟩) (hdur : ∀ x ∈ xs, x = durB x.1)
+    (hlh : FsNoErr → m.lo = m.hi) :
     ⊢ osMeta (GF := GF) i (DFrac.own 1) m -∗ osBytes i 0 (DFrac.own 1) xs ={E}=∗
       ∃ c : CsN, ⌜c.gc = gc ∧ c.N = N⌝ ∗
         bCsInv (GF := GF) { path := path, ino := i, cs := some c } ∗
-        bMeta { path := path, ino := i, cs := some c } C m ∗
+        bMeta { path := path, ino := i, cs := some c } C [] m ∗
         bBytes { path := path, ino := i, cs := some c } 0 (DFrac.own 1) xs := by
   iintro Hm Hb
   have hwf : (⟨m, xs, 0, 0, .idle⟩ : CSt).Wf := ⟨hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
@@ -88,24 +89,27 @@ theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C 
     iframe Hm Hauth
     iexists xs, a
     iframe Ht
-    ipureintro; exact ⟨hwf, ha⟩
+    ipureintro
+    exact ⟨hwf, ha.1, ha.2, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hlh⟩
   · unfold bBytes bGhost BFile.dq; dsimp only [dhalf]
     rw [hl]
     iframe Hb Hfr
 
 /-- **The file out of its crash invariant**: the writer's share of the `OsMeta`, bbolt's share of
 every byte and the closing token give the file whole back (see the file header). -/
-theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt) (m : OsMeta)
+theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta)
     (xs : List ByteG) (E : CoPset) (hE : ↑c.N ⊆ E) (hl : xs.length = m.size) :
-    ⊢ bCsInv (GF := GF) p -∗ bMeta p C m -∗ bBytes p 0 (DFrac.own 1) xs -∗ csDone c.gc ={E}=∗
+    ⊢ bCsInv (GF := GF) p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗ csDone c.gc ={E}=∗
       osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs := by
   iintro #Hinv Hm Hb Hd
   ihave #Hinv := (show bCsInv (GF := GF) p ⊢ csInvI c.N p.ino c.g c.ga c.gc bCsOk by
     unfold bCsInv; rw [hc]) $$ Hinv
-  ihave Hm := (show bMeta (GF := GF) p C m ⊢ iprop(osMeta p.ino (DFrac.own (1 : Qp).half) m ∗
+  ihave Hm := (show bMeta (GF := GF) p C L m ⊢ iprop(osMeta p.ino (DFrac.own (1 : Qp).half) m ∗
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
-        ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C⌝) by
+        ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
+          (FsNoErr → m.lo = m.hi)⌝) by
     unfold bMeta; rw [hc]) $$ Hm
   icases Hm with ⟨Hm, -, %bs, %a, Ht, %Hf⟩
   icases (bBytes_os p 0 (DFrac.own 1) xs).1 $$ Hb with ⟨Hb, -⟩
