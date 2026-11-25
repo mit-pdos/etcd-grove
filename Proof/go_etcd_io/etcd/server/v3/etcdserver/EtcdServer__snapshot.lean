@@ -21,6 +21,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.verifyConsistentIndexIsLatest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
@@ -439,7 +440,7 @@ theorem EtcdServer.snapshot.wp_proof
       subst Hserr
       (try wp_auto)
       -- (wal-link L3) `Release`, the WAL contract's law: the records read (`rnDur_read_au`)
-      ihave HRAU := rnDur_read_au γn.node.cl γn.wal γn.wal.h $$ Hdur Hwap
+      ihave HRAU := rnDurK_read_au γn.node γn.id γn.walK γn.wal.h $$ Hdur Hwap
       ihave #HRel := walRelease_spec _ γn.wal.h γn.ss _ Hsieq0 q snap' pm DFrac.discard DFrac.discard
           (memSnapMade ai at' c []).Metadata' sd γd img Rm iw (memSnapMade ai at' c []).Metadata'
           (token γn.wal.app) rfl $$ Hsave

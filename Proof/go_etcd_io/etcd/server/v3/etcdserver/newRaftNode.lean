@@ -106,7 +106,7 @@ theorem newRaftNode.wp_proof
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
-      storage.walOpen wal.h (1 : Qp).half ∗ token wal.app)) _ stc γst (by trivial)
+      storage.walOpen wal.ν.h (1 : Qp).half ∗ token wal.ν.app)) _ stc γst (by trivial)
     $$ Hstc Hsto with #Hstb
   imod start_sspsc (V := toApply) apc
     (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, ss, sc, a0, t0, commit0, snap0⟩)

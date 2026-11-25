@@ -29,6 +29,7 @@ public import Spec.go_uber_org.zap.Logger__Fatal
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 
 @[expose] public section
 
@@ -211,7 +212,7 @@ theorem raftNode.start.wp_proof
       icases Htok with ⟨%sent, %cums, %S, %ro, Hdrv, %Hld, Hwv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt,
         %Hc0, #HcL0⟩
       iunfold rnDrv at Hdrv
-      icases Hdrv with ⟨Hdrv, HrS, Hcfg⟩
+      icases Hdrv with ⟨Hdrv, Hcfg⟩
       icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p S ro) _ rfl
         $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
       iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
@@ -230,7 +231,7 @@ theorem raftNode.start.wp_proof
         rw [← hae]; exact hidx
       -- (S1) the restart point's backend log at or below the hard state's commit, for `onStop`
       ihave %Ha0p := rnRestartOk_a0_le γ _ Hc0 $$ Hrok
-      imod rn_ready_recv E γ L' p S ro rd HLi Hc0 $$ Henv Hrsb Hrok Hcfg HrS Hgot
+      imod rn_ready_recv E γ L' p S ro rd HLi Hc0 $$ Henv Hrsb Hrok Hcfg Hgot
         with (⟨%ce, %es, %p', %S', %r', %qms, Hdata, Hbusy, #Hdlb, #Hhsc, %HidxN, %Hcm⟩ | Hsnap)
       rotate_left
       · -- (2026-10-31, #3) **The `Ready`-snapshot branch** (raft.go:256-342): the snapshot cloned
@@ -446,11 +447,9 @@ theorem raftNode.start.wp_proof
           wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod Hauth]
           · icases Hwl with ⟨Hws, Hwm⟩
             iframe Hws Hwap Hwm
-            iunfold rnPendEnter at Hpend
-            icases Hpend with ⟨HrS, -⟩
             ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
             iexists S, p, L', sent
-            iframe HrS Hwv Hprod Hidx HcL0
+            iframe Hwv Hprod Hidx HcL0
             ipureintro; exact Ha0p
           itrivial
         subst Hv
@@ -1076,10 +1075,8 @@ theorem raftNode.start.wp_proof
           wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod]
           · icases Hwl with ⟨Hws, Hwm⟩
             iframe Hws Hwap Hwm
-            iunfold rnPendEnter at Hpend
-            icases Hpend with ⟨HrS, -⟩
             iexists S, p, L', sent
-            iframe HrS Hwv Hprod Hcn HcL0
+            iframe Hwv Hprod Hcn HcL0
             ipureintro; exact Ha0p
           itrivial
         iapply BigAndL.bigAndL_nil.2
@@ -1089,7 +1086,7 @@ theorem raftNode.start.wp_proof
       icases Hbusy with ⟨Hpend, Hcv⟩
       iunfold rnReadyData at Hdata
       icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, #Hesz, Happ, #Hms, %HmsL, Hraw,
-        ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hentries, %Hsnapnil, #Hcfz, %HwStep⟩
+        ⟨%ss, #Hss, %Hr'⟩, #Hhs, #HhsC, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hentries, %Hsnapnil, #Hcfz, %HwStep2⟩
       subst HmsL
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
@@ -1277,11 +1274,9 @@ theorem raftNode.start.wp_proof
         wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod Hauth]
         · icases Hwl with ⟨Hws, Hwm⟩
           iframe Hws Hwap Hwm
-          iunfold rnPendEnter at Hpend
-          icases Hpend with ⟨HrS, -⟩
           ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
           iexists S, p, L', sent
-          iframe HrS Hwv Hprod Hidx HcL0
+          iframe Hwv Hprod Hidx HcL0
           ipureintro; exact Ha0p
         itrivial
       subst Hv
@@ -1496,21 +1491,43 @@ theorem raftNode.start.wp_proof
         -- `r.storage.Save(rd.HardState, rd.Entries)`, `lg.Fatal` on an error
         ihave Hwo := rnWalTok_open γ r (1 : Qp).half $$ Hwt
         iunfold rnWalView at Hwv
-        icases Hwv with ⟨Hwv, Hwok⟩
         -- (wal-link L3) the entries as `Save` takes them: the records the view describes are in `Save`'s case,
-        -- the batch's bound `rnAppendRight`'s
-        imod rnDur_viewOk γ.node.cl γ.wal γ.wal.h _ $$ Hdur Hwv Hwok with ⟨Hwv, Hwok, %HvOk⟩
+        -- the batch's bound `rnAppendRight`'s; (P5) the crash-aware invariant's view (`rnDurK_viewOk`)
+        imod rnDurK_viewOk γ.node γ.id γ.walK γ.wal.h _ $$ Hdur Hwv with ⟨Hwv, %HvOk⟩
         obtain ⟨σv, HσvOk⟩ := HvOk
+        obtain ⟨HwStep, HSeq, HScl⟩ := HwStep2
         iunfold rnAppendRight at Happ
         icases Happ with ⟨Happ0, %HappF⟩
         ihave Happ : rnAppendRight γ es $$ [Happ0]
         · iunfold rnAppendRight; iframe Happ0; ipureintro; exact HappF
         ihave #Hesw := rnEntsSized_walSave _ es _ (HwStep.2.2 σv HσvOk).1 HappF.1 $$ Hesz
-        ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwStep $$ Hdur Hwv Hwok
-        -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
-        ihave #HSave := walSaveRnR_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+        -- (P5) the batch's *enter* record (`rnPendRec`: the node's arm, raft's *enter*, the loop's half of
+        -- the running token), saved for the crash-aware invariant, which holds it while the batch is pending
+        iunfold rnPendEnter at Hpend
+        imod saved_prop_alloc (GF := GF) (rnPendRec γ.node γ.id γ.walK.x S S' γ.nl
+            ⟨memStorIface γ.ms, srvLE γ.srv L', p, none, γ.key, S, ro⟩ (rnBusyStN γ L' ce es p' S' r') qms
+            (1 : Qp).half) DFrac.discard DFrac.valid_discard with ⟨%γb, #Hsp⟩
+        ihave Hrec : rnPendRec γ.node γ.id γ.walK.x S S' γ.nl
+            ⟨memStorIface γ.ms, srvLE γ.srv L', p, none, γ.key, S, ro⟩ (rnBusyStN γ L' ce es p' S' r') qms
+            (1 : Qp).half $$ [Hpend Hrun]
+        · iunfold rnPendRec
+          iframe Harm Hpend Hrun
+          ipureintro; exact ⟨rfl, rfl⟩
+        ihave #HcLv' : isCommittedLogLb γ.node.cl (srvLE γ.srv (L' ++ ce)) $$ []
+        · iapply deliveredLogLb_committed $$ Hdlb
+        ihave HAU := rnDurK_save_law_holds γ.node γ.id γ.walK γ.wal.h _ _ _ _ γb γ.nl _ _ qms (1 : Qp).half
+            HwStep HσvOk.2.2.2.2.1 (rnFits_idx HappF.1 HappF.2) HScl (by rw [← Hp']; exact Hcm)
+            $$ Hdur Hwv HcLv' Hsp Hrec
+        -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update; (P5) over the records with their
+        -- history, the sync's lower bound when the batch must sync (`walSaveRn_spec`)
+        ihave #HSave := walSaveRn_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ _
+            (fun Hs => iprop(rnWalViewK γ.walK ((⟨S', p', none, srvLE γ.srv (L' ++ ce)⟩ : WalView),
+                some ((⟨S, p, none, srvLE γ.srv L'⟩ : WalView), γb, Hs.length)) ∗
+              walCommitLb γ.walK.ν (srvLE γ.srv (L' ++ ce)) ∗
+              ⌜(∃ σ', walRead (Hs ++ [WalOpG.save hs.toM (es.map EntryModel.toM)]) = some σ') ∧
+                walLastHS Hs = p⌝)) $$ Hsti
         wp_apply HSave $$ [$Hwo $Hrd $HhsC $Hes $Hesw $HAU] as %err Hres
-        icases Hres with (⟨%Herr, Hwo, Hrd, Hwv, Hwok, #Hwlb⟩ | ⟨%Herr, -, -, -⟩)
+        icases Hres with (⟨%Herr, Hwo, Hrd, %Hs, ⟨Hwv, #Hwlb, %Hsv⟩, Hsync⟩ | ⟨%Herr, -, -⟩)
         rotate_left
         · -- (fork fix 0009) a refused oversized batch: `lg.Fatal`
           rcases err with ei | _
@@ -1529,18 +1546,35 @@ theorem raftNode.start.wp_proof
             iexact Hf
           · exact absurd rfl Herr
         subst Herr
-        ihave Hwv : rnWalView γ _ $$ [Hwv Hwok]
-        · iunfold rnWalView; iframe Hwv Hwok
         ihave Hwt : rnWalTok γ r (1 : Qp).half $$ [Hwo]
         · iunfold rnWalTok; iexists _; iframe Hst Hwo
-        -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends
+        wp_auto_lc 2
+        -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends; (P5) through
+        -- the crash-aware invariant (`rnDurK_enter.law`), the batch synced or commit-only
         iapply (wp_ncfupd _ _ (by rfl))
         unfold ncfupd
         iintro Hnc
-        imod rn_enter γ L' ce es p p' S S' ro r' qms $$ Hnc Hpend Hrun with ⟨Hnc, Hbusy, Hrun, #Hsent⟩
+        ihave Hcase : (letI := γ.wal.h.W; WalFs.walSyncedLb γ.wal.h.dir (Hs.length + 1)) ∨
+            ⌜∀ σ, ImgOk S (srvLE γ.srv L') σ → σ.commit ≤ uint.nat p'.Commit' →
+              ImgOk S' (srvLE γ.srv (L' ++ ce)) σ⌝ $$ [Hsync]
+        · by_cases hms : walMustSync Hs hs.toM (es.map EntryModel.toM)
+          · ileft; iapply Hsync; ipureintro; exact hms
+          · iright; ipureintro
+            have hes : es.map EntryModel.toM = [] :=
+              Classical.byContradiction fun hne => hms (Or.inl hne)
+            rw [hes] at hms
+            have ht : S.term = p.Term' := by rw [← HσvOk.2.1]; exact HσvOk.1.2.2.2.1.symm
+            have hv : S.vote = p.Vote' := by rw [← HσvOk.2.1]; exact HσvOk.1.2.2.2.2.1.symm
+            rw [HSeq, hes, Hp']
+            exact imgOk_commitOnly hms Hsv.2 ht hv HwStep.2.1
+        imod rnDurK_enter_law_holds γ.node γ.id γ.walK γ.wal.h _ _ γb Hs.length γ.nl _ _ qms (1 : Qp).half
+            $$ Hdur Hnc Hlc1 Hlc2 Hwv Hsp Hcase with ⟨Hnc, Hwv, Hbusy, #Hsent, Hrun⟩
+        ihave Hbusy : rnBusyN γ L' ce es p' S' r' $$ [Hbusy]
+        · iunfold rnBusyN; iexact Hbusy
+        ihave Hwv : rnWalView γ ⟨S', p', none, srvLE γ.srv (L' ++ ce)⟩ $$ [Hwv]
+        · iunfold rnWalView; iexact Hwv
         imodintro
         iframe Hnc
-        wp_auto
         -- `if !raft.IsEmptyHardState(rd.HardState) { proposalsCommitted.Set(..) }`
         wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs -
         wp_join at next with [rh rd r islead]
@@ -1816,10 +1850,8 @@ theorem raftNode.start.wp_proof
               wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hbusy Hprod]
               · icases Hwl with ⟨Hws, Hwm⟩
                 iframe Hws Hwap Hwm
-                iunfold rnBusyN at Hbusy
-                icases Hbusy with ⟨-, HrS⟩
                 iexists S', p', L' ++ ce, _
-                iframe HrS Hwv Hprod
+                iframe Hwv Hprod
                 simp only [List.length_append, List.length_singleton]
                 iframe Hcn1
                 isplitr
@@ -1958,10 +1990,8 @@ theorem raftNode.start.wp_proof
               wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hbusy Hprod]
               · icases Hwl with ⟨Hws, Hwm⟩
                 iframe Hws Hwap Hwm
-                iunfold rnBusyN at Hbusy
-                icases Hbusy with ⟨-, HrS⟩
                 iexists S', p', L' ++ ce, _
-                iframe HrS Hwv Hprod
+                iframe Hwv Hprod
                 simp only [List.length_append, List.length_singleton]
                 iframe Hcn1
                 isplitr
@@ -1989,10 +2019,8 @@ theorem raftNode.start.wp_proof
         wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod]
         · icases Hwl with ⟨Hws, Hwm⟩
           iframe Hws Hwap Hwm
-          iunfold rnPendEnter at Hpend
-          icases Hpend with ⟨HrS, -⟩
           iexists S, p, L', sent
-          iframe HrS Hwv Hprod Hcn HcL0
+          iframe Hwv Hprod Hcn HcL0
           ipureintro; exact Ha0p
         itrivial
       iapply BigAndL.bigAndL_nil.2
@@ -2021,11 +2049,9 @@ theorem raftNode.start.wp_proof
       wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hdrv Hprod Hauth]
       · icases Hwl with ⟨Hws, Hwm⟩
         iframe Hws Hwap Hwm
-        iunfold rnDrv at Hdrv
-        icases Hdrv with ⟨-, HrS, -⟩
         ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
         iexists S, p, L', sent
-        iframe HrS Hwv Hprod Hidx HcL0
+        iframe Hwv Hprod Hidx HcL0
         ipureintro; exact Ha0p
       itrivial
     iapply BigAndL.bigAndL_nil.2

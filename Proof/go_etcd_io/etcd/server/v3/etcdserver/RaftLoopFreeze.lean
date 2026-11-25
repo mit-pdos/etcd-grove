@@ -619,6 +619,36 @@ theorem walSaveSnapC_spec [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (st
   ipureintro
   refine ⟨⟨rfl, rfl, srvSnapMetaC_canon md al uf hz⟩, Or.inr rfl, hidx, henc⟩
 
+/-- (P5, 2026-11-25) **`SaveSnap` of a canonical metadata, over the records with their history**
+(`walSaveSnapC_spec` from `walSaveSnapH_spec`): the snapshot record appended at the history `Hs` the
+update committed at, synced, its witness at `|Hs|`. -/
+theorem walSaveSnapCH_spec [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (st : GoInterface) (h : WalH GF)
+    (ss : Loc) (si : GoInterfaceOk)
+    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (md : SnapshotMetadataM) (al : Bool) (uf : List w8)
+    (Q : WalHist → IProp GF) (sized : Bool) (hz : md.ConfState' ≠ walCsZero) (hidx : uint.nat md.Index' < 2 ^ 64 - 1)
+    (henc : (walSrvMr.encSnap md al).length < 2 ^ 40) :
+    isWalStorage st h ss ⊢
+      {{ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp (srvSnapMetaC md al uf) ∗
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
+                ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }>
+            @ WalFs.walAuMask, ∅
+            <{ walRecsH h (walSaveSnap σ md) (Hs ++ [WalOpG.snap md al]) sized, COMM Q Hs }> }}
+        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)) ∗
+            walSnapRec h Hs.length md }} := by
+  have HS := walSaveSnapH_spec st h ss si hst q sn mp dq (srvSnapMetaC md al uf) al Q sized
+  simp only [srvSnapMetaC_model] at HS
+  iintro #Hw
+  ihave #HS := HS $$ Hw
+  iintro !> %Φ ⟨Ho, Hr, Hsn, #Hm, HAU⟩ HΦ
+  iapply HS $$ [Ho Hr Hsn HAU] HΦ
+  iframe Ho Hr Hsn Hm HAU
+  ipureintro
+  refine ⟨⟨rfl, rfl, srvSnapMetaC_canon md al uf hz⟩, Or.inr rfl, hidx, henc⟩
+
 /-! ## F2 (wal-link L3, 2026-11-19): a snapshot's conf state at the server's static membership -/
 
 /-- **The voters' conf state, as the WAL's `SaveSnap` takes it**: a conf state of the voters' simple

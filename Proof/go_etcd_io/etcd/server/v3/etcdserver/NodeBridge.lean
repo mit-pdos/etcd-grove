@@ -491,7 +491,6 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
   · -- `Advance`, after a `Ready` without a snapshot
     iintro !> %d %ce %es %p %S %r %Φ !> ⟨Hbusy, Hcv, Hrcpt, Hrun⟩ HΦ
     iunfold rnBusyN at Hbusy
-    icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
     iunfold rnView at Hcv
@@ -547,11 +546,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
     icases Hres with (⟨Hdrv, #Hal, Hcfg⟩ | ⟨#Hst, -⟩)
     · iapply HΦ
       iframe Hrun
-      isplitl [Hdrv Hcfg HrS]
+      isplitl [Hdrv Hcfg]
       · iunfold rnDrv
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
-        iframe HrS
         iunfold rnCfgAt
         iunfold rnView
         iunfold srvCfgView
@@ -570,7 +568,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
     -- `srv_confAt_simple` at the snapshot's committed log, `confAt_agree`)
     iintro !> %d %A' %es %p %l %S %r %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
-    icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
+    icases Hbusy with ⟨Hdrv, Hcv, %Hsn⟩
     obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
     -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
@@ -643,11 +641,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
       · rw [hls]; iframe Hca Hms
       iapply HΦ
       iframe Hrun
-      isplitl [Hdrv Hcfg HrS]
+      isplitl [Hdrv Hcfg]
       · iunfold rnDrv
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
-        iframe HrS
         iunfold rnCfgAt
         iunfold rnView
         rw [hgA]

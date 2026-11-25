@@ -9,6 +9,7 @@ the records start at index `0`), and `walHistCerts_snapCert` (hence the image's 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvCrash
 
 @[expose] public section
 

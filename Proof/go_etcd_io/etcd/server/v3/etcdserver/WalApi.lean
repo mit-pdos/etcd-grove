@@ -140,8 +140,8 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
           snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
-          AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
-            <{ walRecs h σ s, COMM Q }> }}
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
         (App (Val #(methods si.ty go!"Release" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗ Q ∗
@@ -212,8 +212,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
           snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
-          AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
-            <{ walRecs h σ s, COMM Q }> }}
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
         (App (Val #(methods si.ty go!"Release" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗ Q ∗
@@ -555,8 +555,8 @@ theorem walRelease_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInte
           snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
-          AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
-            <{ walRecs h σ s, COMM Q }> }}
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
         (App (Val #(methods si.ty go!"Release" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗ Q ∗

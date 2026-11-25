@@ -47,7 +47,7 @@ theorem walHistCerts_snoc (cl : Cluster) (sd : w64 → IProp GF) (Hs : WalHist) 
 
 /-- **The loop's `Save`** (`rnDurK_save.law`). -/
 theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
-  intro γn id νk h v v' hs es γb nd st st' ms q Hst Hda Hidx Hcl
+  intro γn id νk h v v' hs es γb nd st st' ms q Hst Hda Hidx Hcl Hcmono
   obtain ⟨Hpn, Hpfx, Hstep⟩ := Hst
   iintro #Hinv Hvw #Hl' #Hsp Hrec
   iunfold rnWalViewK at Hvw
@@ -75,6 +75,13 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
+  icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf0⟩
+  have hlast : walLastHS Hs = v.hs := by
+    rw [← walFoldChkFrom_fresh_hs Hf0, ← Hview.2.1]
+    unfold recsOf
+    split
+    · rfl
+    · unfold walSaveSnap; split <;> rfl
   iexists recsOf v σ, Hs
   iframe Hr
   isplitr
@@ -101,7 +108,7 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
     have hb' : (walSave (recsOf v σ) hs es).b ≤ (walSave (recsOf v σ) hs es).commit := Hh'.2.2.2.2.2.1
     have hcl' := storageHolds_commit_le_last Hh' Hcl
     have Hho' : HistOkK vk' (Hs ++ [WalOpG.save hs es]) n :=
-      histOk_save Hho Hf hb' hcl' ⟨Hh', Hview'.2.2.1⟩ Hidx
+      histOk_save Hho Hf hb' hcl' ⟨Hh', Hview'.2.2.1⟩ Hidx (by rw [hlast]; exact Hcmono)
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft Hrec] with -
     · inext; ileft; iunfold rnDurBodyK
       ihave #Hhc' := walHistCerts_snoc γn.cl νk.sd Hs (WalOpG.save hs es) $$ [Hhc]
@@ -133,7 +140,88 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
     isplitr
     · iunfold walCommitLb; iexact Hcl'
     ipureintro
-    exact ⟨_, walRead_of_fold Hf hb'⟩
+    exact ⟨⟨_, walRead_of_fold Hf hb'⟩, hlast⟩
+
+/-- (P5) **The loop's idle view describes the records** (`rnDur_viewOk`'s, the crash-aware invariant): some
+records `σ` it is within (`ViewOk`), the half given back. -/
+theorem rnDurK_viewOk (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (v : WalView) :
+    ⊢ rnDurInvK γn id νk h -∗ rnWalViewK νk (v, none) ={⊤}=∗
+      rnWalViewK νk (v, none) ∗ ⌜∃ σ, ViewOk v σ⌝ := by
+  iintro #Hinv Hvw
+  iunfold rnWalViewK at Hvw
+  icases Hvw with ⟨Hv, Hok⟩
+  iunfold rnDurInvK at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with Hi Hclose
+  icases Hi with (Hb | ⟨>Hs', >Ha', >Hok', >Htn'⟩)
+  rotate_left
+  · iexfalso; iapply token_exclusive $$ Hok Hok'
+  iunfold rnDurBodyK at Hb
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%vk, Hb⟩
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%σ, Hb⟩
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%Hs, Hb⟩
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%n, Hb⟩
+  icases Hb with ⟨>Hv0, >Hcm, >Htn, >Hr, #Hsc, #Hsy, #Hhc, #Hlb, >%Hp, Hraft⟩
+  icombine Hv Hv0 gives %Hag
+  have Hvv : (v, none) = vk := Hag.2
+  subst Hvv
+  imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
+  · inext; ileft; iunfold rnDurBodyK
+    iexists (v, none), σ, Hs, n
+    iframe Hv0 Hcm Htn Hr Hsc Hsy Hhc Hlb Hraft
+    ipureintro; exact Hp
+  imodintro
+  iunfold rnWalViewK
+  iframe Hv Hok
+  ipureintro; exact ⟨σ, Hp.1⟩
+
+/-- (P5) **A read of the records, as the WAL contract's atomic update** (`rnDur_read_au`'s, the crash-aware
+invariant; `walRelease_spec`): with the apply thread's token (which rules out the stop's taken state),
+the records and their history read and left unchanged. -/
+theorem rnDurK_read_au (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) :
+    rnDurInvK γn id νk h -∗ token νk.ν.app -∗
+      AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+        <{ walRecsH h σ Hs s, COMM token νk.ν.app }> := by
+  iintro #Hinv Ha
+  iauintro
+  unfold atomic_acc
+  iunfold rnDurInvK at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with Hi Hclose
+  all_goals first | exact rnDurKN_sub_walAuMask | skip
+  icases Hi with (Hb | ⟨>Hs', >Ha', >Hok', >Htn'⟩)
+  rotate_left
+  · iexfalso; iapply token_exclusive $$ Ha Ha'
+  iunfold rnDurBodyK at Hb
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%vk, Hb⟩
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%σ, Hb⟩
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%Hs, Hb⟩
+  imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%n, Hb⟩
+  icases Hb with ⟨>Hv0, >Hcm, >Htn, >Hr, #Hsc, #Hsy, #Hhc, #Hlb, >%Hp, Hraft⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists recsOf vk.1 σ, Hs, true
+  iframe Hr
+  isplit
+  · iintro Hr
+    imod Hmask with -
+    imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
+    · inext; ileft; iunfold rnDurBodyK
+      iexists vk, σ, Hs, n
+      iframe Hv0 Hcm Htn Hr Hsc Hsy Hhc Hlb Hraft
+      ipureintro; exact Hp
+    imodintro
+    iframe Ha
+  · iintro Hr
+    imod Hmask with -
+    imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
+    · inext; ileft; iunfold rnDurBodyK
+      iexists vk, σ, Hs, n
+      iframe Hv0 Hcm Htn Hr Hsc Hsy Hhc Hlb Hraft
+      ipureintro; exact Hp
+    imodintro
+    iframe Ha
 
 theorem srvClusterN_rnDurKN : (↑srvClusterN : CoPset) ⊆ ⊤ \ ↑rnDurKN :=
   fun x h => mask_ndot_ne' nroot "raft_commit" "rnDurK" (by decide) x (srvClusterN_sub x h)
@@ -315,6 +403,13 @@ theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
   have Hvv : (v', some (v, γb, pos)) = vk := Hag.2
   subst Hvv
   obtain ⟨Hview, -, Hho⟩ := Hp
+  icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf0⟩
+  have hlast : walLastHS Hs = v'.hs := by
+    rw [← walFoldChkFrom_fresh_hs Hf0, ← Hview.2.1]
+    unfold recsOf
+    split
+    · rfl
+    · unfold walSaveSnap; split <;> rfl
   icases Hraft with (⟨HrS, Hpend⟩ | ⟨Hcr, -⟩)
   try dsimp only [durOf]
   rotate_left
@@ -343,7 +438,7 @@ theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
   · rw [← Hst2]; iexact HrS
   imod (ghostVar_update_halves ((v', none) : WalViewK) νk.ν.view _ _) $$ Hv Hv0 with ⟨Hv, Hv0⟩
   icases Hsync with (#Hsy' | %Himp)
-  · have Hho' : HistOkK (v', none) Hs (max n (pos + 1)) := histOk_enter Hho (Or.inl rfl)
+  · have Hho' : HistOkK (v', none) Hs (max n (pos + 1)) := histOk_enter Hho hlast (Or.inl rfl)
     imod Hclose $$ [Hv0 Hcm Htn Hr HrS] with -
     · inext; ileft; iunfold rnDurBodyK
       iexists (v', none), σ, Hs, max n (pos + 1)
@@ -364,7 +459,7 @@ theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
     iframe Hnc Hdrv Hmsgs Hrun
     iunfold rnWalViewK
     iframe Hv Hok
-  · have Hho' : HistOkK (v', none) Hs n := histOk_enter Hho (Or.inr ⟨rfl, Himp⟩)
+  · have Hho' : HistOkK (v', none) Hs n := histOk_enter Hho hlast (Or.inr ⟨rfl, Himp⟩)
     imod Hclose $$ [Hv0 Hcm Htn Hr HrS] with -
     · inext; ileft; iunfold rnDurBodyK
       iexists (v', none), σ, Hs, n
@@ -466,6 +561,103 @@ theorem rnDurK_alloc_law_holds : rnDurK_alloc.law (GF := GF) := by
   isplitl [Hv2 Ho]
   · iunfold rnWalViewK; iframe Hv2 Ho
   iunfold walCommitLb; iexact Hcl
+
+/-- (P5) **The crash-aware durability's allocation at a first start** (`rnDurK_alloc.law` at `walFresh`,
+the empty history, `walView0`): the invariant over the fresh records, raft's state at `RaftState.init`. -/
+theorem rnDurK_alloc_fresh (γn : SrvRaft) (id : w64) (x : CrashNames) (sd : w64 → IProp GF) (h : WalH GF) :
+    ⊢ walRecsH h walFresh [] true -∗ raftState γn.cl id RaftState.init ={⊤}=∗
+      ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd ∧ νk.ν.h = h⌝ ∗ rnDurInvK γn id νk h ∗
+        rnWalViewK νk (walView0, none) ∗ token νk.ν.stop ∗ token νk.ν.app ∗ walCommitLb νk.ν [] := by
+  have hv : ViewOk walView0 walFresh :=
+    ⟨walFresh_holds, rfl, Nat.le_refl _, Nat.zero_le _, fun i e _ he => by simp at he,
+      fun m hm => by simp at hm⟩
+  have hok : HistOkK (walView0, none) [] 0 := histOk_fresh ⟨hv.1, Nat.le_refl _⟩
+  iintro Hr HrS
+  icases walRecsH_synced0 h _ _ _ $$ Hr with ⟨Hr, #Hsy⟩
+  ihave #Hc := walSnapCert_fresh (GF := GF) γn.cl
+  ihave #Hhc : walHistCerts γn.cl sd [] $$ []
+  · iunfold walHistCerts; iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+  ihave #Hl := isCommittedLogLb_nil (GF := GF) γn.cl
+  imod rnDurK_alloc_law_holds γn id x sd h walFresh [] 0 walView0 hv rfl hv.2.2.2.2.1 hok
+    $$ Hr Hc Hsy Hhc Hl HrS with ⟨%νk, %Hx, #Hinv, Hv, Hst, Hap, #Hlb, -⟩
+  ihave #Hinv' := Hinv
+  iunfold rnDurInvK at Hinv'
+  icases Hinv' with ⟨%Hh, -⟩
+  imodintro
+  iexists νk
+  iframe Hinv Hv Hst Hap Hlb
+  ipureintro; exact ⟨Hx.1, Hx.2, Hh⟩
+
+/-- (P5, 2026-11-25) **What the restarted server takes from `wal.restartOk`** (`wal.restartOk_start`'s
+crash-aware form): the open WAL `h` at `w`, the restart's handover of its records (`rnRestartWal`, for
+the crash-aware durability `bootstrappedRaft.newRaftNode` allocates), the records within the restart's
+view `⟨S, σ.hs, none, l₀⟩` (`viewOk_restart`: `l₀` committed, reaching the records' base, the durable
+log of the stop image agreeing with it), the image's WAL slot given back, and what `NewStorage` and
+`Close` take. -/
+theorem wal.restartOk_startRK (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) (σ : StorContents) (cl : Cluster) (S : RaftState) (i : w64) (l₀ : List LogEntry)
+    (hl : l₀.length = σ.b) :
+    wal.restartOk (GF := GF) cfg id cid w σ ∗ wal.stopImage cl S σ i ∗ isCommittedLogLb cl l₀ ⊢
+      ∃ h : WalH GF, ⌜h.w = w⌝ ∗ rnRestartWal h σ ∗ ⌜ViewOk ⟨S, σ.hs, none, l₀⟩ σ⌝ ∗
+        wal.stopImage cl S σ i ∗ storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗
+        ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
+  iintro ⟨Hro, Hsi, #Hl0⟩
+  icases wal.restartOk_startK cfg id cid w σ $$ Hro with ⟨%h, %Hs, %Hw, Hr, #Hsy, %Hp, Ho, Hm, Hpg, %Hd⟩
+  obtain ⟨hidx, heag, hf, hrf⟩ := Hp
+  icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%HsI, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩
+  icases isCommittedLogLb_agree cl l₀ l' $$ [$Hl0 $Hl'] with %Hpre
+  have hpre : l₀ <+: l' := by
+    rcases Hpre with h | h
+    · exact h
+    · have := h.length_le
+      have heq : l' = l₀ := h.eq_of_length (by omega)
+      rw [heq]; exact List.prefix_refl _
+  have hag0 : DurAgrees S l₀ := durAgrees_prefix S l₀ l' hpre Hag
+  have hv : ViewOk ⟨S, σ.hs, none, l₀⟩ σ :=
+    viewOk_restart S σ l₀ HsI.1 (by omega) (by rw [hl]; exact hrf.2.2.1) hag0
+  ihave Hsi2 := wal.stopImage_intro cl S σ i HsI.1 HsI.2.1 HsI.2.2 $$ [Hcert Hl']
+  · iframe Hcert
+    iexists l'
+    iframe Hl'
+    ipureintro; exact ⟨Hl'b, Hag⟩
+  iexists h
+  isplitr
+  · ipureintro; exact Hw
+  isplitl [Hr]
+  · iunfold rnRestartWal
+    iexists Hs
+    iframe Hr Hsy
+    ipureintro; exact ⟨hidx, heag, hf, hrf.2.2.1⟩
+  isplitr
+  · ipureintro; exact hv
+  iframe Hsi2 Ho Hm Hpg
+  ipureintro; exact Hd
+
+/-- (P5) **`rnRestartAllocK.law`** (the isolated restart step): `rnDurK_alloc.law` at the restart's
+records, with `histOk_restart`. **The history's certificates are a hole** (`sorry`, labeled P5-RESTART):
+the restart slot (`wal.restartOk`) does not carry the certificates of the history's snapshot records
+(`walHistCerts`), and its restatement over the reader's fold is pending coordinator-E's decision on #50
+(2026-11-25); the restatement will provide them. -/
+theorem rnRestartAllocK_law_holds : rnRestartAllocK.law (GF := GF) := by
+  intro γn id x sd h σ S l₀ hv
+  iintro Hw #Hc #Hl HrS
+  iunfold rnRestartWal at Hw
+  icases Hw with ⟨%Hs, Hr, #Hsy, %Hp⟩
+  obtain ⟨hidx, heag, hf, hb⟩ := Hp
+  have hok : HistOkK ((⟨S, σ.hs, none, l₀⟩ : WalView), none) Hs Hs.length :=
+    histOk_restart hf hb hidx heag ⟨hv.1, hv.2.2.1⟩
+  -- P5-RESTART hole: the history's snapshot certificates (see the docstring)
+  ihave #Hhc : walHistCerts γn.cl sd Hs $$ []
+  · sorry
+  imod rnDurK_alloc_law_holds γn id x sd h σ Hs Hs.length ⟨S, σ.hs, none, l₀⟩ hv rfl hv.2.2.2.2.1 hok
+    $$ Hr Hc Hsy Hhc Hl HrS with ⟨%νk, %Hx, #Hinv, Hv, Hst, Hap, #Hlb, -⟩
+  ihave #Hinv' := Hinv
+  iunfold rnDurInvK at Hinv'
+  icases Hinv' with ⟨%Hh, -⟩
+  imodintro
+  iexists νk
+  iframe Hinv Hv Hst Hap Hlb
+  ipureintro; exact ⟨Hx.1, Hx.2, Hh⟩
 
 /-- `walSaveH.law` is the contract's `Save` (`walSaveSized_spec`, over the records with their history). -/
 theorem walSaveH_law_holds : walSaveH.law (GF := GF) :=

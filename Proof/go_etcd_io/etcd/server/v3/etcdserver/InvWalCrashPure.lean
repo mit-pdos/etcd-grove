@@ -64,6 +64,21 @@ theorem walLastHS_snoc_snapP (I : WalHist) (m : SnapshotMetadataM) (al : Bool) :
     walLastHS (I ++ [WalOpG.snap m al]) = walLastHS I := by
   rw [walLastHS_eq, walLastHS_eq, List.foldl_append]; rfl
 
+theorem walLastHS_snoc_saveP (I : WalHist) (h : HardStateM) (es : List EntryM) :
+    walLastHS (I ++ [WalOpG.save h es]) = phsNext (walLastHS I) h := by
+  rw [walLastHS_eq, walLastHS_eq, List.foldl_append]; rfl
+
+/-- (P5) `HistCommitMono` after a record that keeps the last saved hard state's commit or raises it. -/
+theorem histCommitMono_snoc {Hs : WalHist} {n : Nat} (o : WalOp) (hn : n ≤ Hs.length)
+    (h : HistCommitMono Hs n)
+    (hle : uint.nat (walLastHS Hs).Commit' ≤ uint.nat (walLastHS (Hs ++ [o])).Commit') :
+    HistCommitMono (Hs ++ [o]) n := by
+  intro j hnj hj
+  by_cases hjl : j ≤ Hs.length
+  · rw [List.take_append_of_le_length hjl]; exact Nat.le_trans (h j hnj hjl) hle
+  · rw [List.take_of_length_le (by simp at hj ⊢; omega)]
+    exact Nat.le_refl _
+
 /-- **A snapshot record appended: the read**, by whether the reader keeps it (at or below the last
 saved commit). -/
 theorem walRead_snoc_snap (I : WalHist) (m : SnapshotMetadataM) (al : Bool) :
@@ -193,13 +208,16 @@ theorem histOk_save {Hs : WalHist} {n : Nat} {v v' : WalView} {γb : Iris.GName}
     {es : List EntryM} {σ' : StorContents} (h : HistOkK (v, none) Hs n)
     (hf : walFoldChkFrom walFresh (Hs ++ [WalOpG.save hs es]) = some σ') (hb : σ'.b ≤ σ'.commit)
     (hcl : σ'.commit ≤ σ'.last) (hok : ImgOk v'.S v'.l σ')
-    (hidx : ∀ e ∈ es, uint.nat e.Index' ≤ 2 ^ 61 - 1) :
+    (hidx : ∀ e ∈ es, uint.nat e.Index' ≤ 2 ^ 61 - 1)
+    (hmono : uint.nat (walLastHS Hs).Commit' ≤ uint.nat (phsNext (walLastHS Hs) hs).Commit') :
     HistOkK (v', some (v, γb, Hs.length)) (Hs ++ [WalOpG.save hs es]) n := by
-  obtain ⟨hn, -, hc, ⟨hidxH, hcle⟩, heag⟩ := h
+  obtain ⟨hn, -, hc, ⟨hidxH, hcle⟩, heag, hmo⟩ := h
   have hr' : walRead (Hs ++ [WalOpG.save hs es]) = some σ' := walRead_of_fold hf hb
   have heag' := walCommitLeFrom_snoc heag hf hcl
+  have hmo' : HistCommitMono (Hs ++ [WalOpG.save hs es]) n :=
+    histCommitMono_snoc _ hn hmo (by rw [walLastHS_snoc_saveP]; exact hmono)
   unfold HistOkK PosOkK HistReadOk
-  refine ⟨by simp; omega, ?_, ?_, ⟨walIdxLe_snoc_save hidxH hidx, ?_⟩, heag'⟩
+  refine ⟨by simp; omega, ?_, ?_, ⟨walIdxLe_snoc_save hidxH hidx, ?_⟩, heag', hmo'⟩
   · intro v0 γ0 pos hp
     simp only [Option.some.injEq, Prod.mk.injEq] at hp
     obtain ⟨-, -, rfl⟩ := hp
@@ -228,14 +246,16 @@ theorem histOk_snapAbove {Hs : WalHist} {n : Nat} {v v2 : WalView} {σ : StorCon
     (hf : walFoldChkFrom walFresh Hs = some σ) (hab : uint.nat (walLastHS Hs).Commit' < uint.nat m.Index')
     (hS : v2.S = v.S) (hl : v2.l = v.l) (hm : uint.nat m.Index' ≤ 2 ^ 61 - 1) :
     HistOkK (v2, none) (Hs ++ [WalOpG.snap m al]) n := by
-  obtain ⟨hn, -, hc, ⟨hidxH, hcle⟩, heag⟩ := h
+  obtain ⟨hn, -, hc, ⟨hidxH, hcle⟩, heag, hmo⟩ := h
+  have hmo' : HistCommitMono (Hs ++ [WalOpG.snap m al]) n :=
+    histCommitMono_snoc _ hn hmo (by rw [walLastHS_snoc_snapP]; exact Nat.le_refl _)
   have hrd : walRead (Hs ++ [WalOpG.snap m al]) = walRead Hs := by
     rw [walRead_snoc_snap, if_neg (by omega)]
   have hacc : ∀ j σ, crashOk (v, none) j σ → crashOk (v2, none) j σ := by
     intro j σ h; simp only [crashOk, hS, hl] at h ⊢; exact h
   unfold HistOkK PosOkK HistReadOk
   refine ⟨by simp; omega, fun _ _ _ hp => by simp at hp, ?_, ⟨walIdxLe_snoc_snap hidxH hm, ?_⟩,
-    walCommitLeFrom_snoc_snap m al heag hf⟩
+    walCommitLeFrom_snoc_snap m al heag hf, hmo'⟩
   · intro j hnj hj
     by_cases hjl : j ≤ Hs.length
     · obtain ⟨σ, hr, hok0⟩ := hc j hnj hjl
@@ -288,12 +308,14 @@ theorem histOk_ownSnap {Hs : WalHist} {n : Nat} {vk : WalViewK} {σ : StorConten
     (hpos : 0 < uint.nat md.Index') (he : vk.1.l[uint.nat md.Index' - 1]? = some e) (ht : e.term = md.Term')
     (hm : uint.nat md.Index' ≤ 2 ^ 61 - 1) :
     HistOkK vk (Hs ++ [WalOpG.snap md al]) n := by
-  obtain ⟨hn, hpo, hcr, ⟨hidxH, hcle⟩, heag⟩ := h
+  obtain ⟨hn, hpo, hcr, ⟨hidxH, hcle⟩, heag, hmo⟩ := h
+  have hmo' : HistCommitMono (Hs ++ [WalOpG.snap md al]) n :=
+    histCommitMono_snoc _ hn hmo (by rw [walLastHS_snoc_snapP]; exact Nat.le_refl _)
   have hrd : walRead (Hs ++ [WalOpG.snap md al]) = (walRead Hs).map (fun σ => walSaveSnap σ md) := by
     rw [walRead_snoc_snap, if_pos hc]
   unfold HistOkK PosOkK HistReadOk
   refine ⟨by simp; omega, fun v0 γb pos hp => by have := hpo v0 γb pos hp; simp; omega, ?_,
-    ⟨walIdxLe_snoc_snap hidxH hm, ?_⟩, walCommitLeFrom_snoc_snap md al heag hf⟩
+    ⟨walIdxLe_snoc_snap hidxH hm, ?_⟩, walCommitLeFrom_snoc_snap md al heag hf, hmo'⟩
   · intro j hnj hj
     by_cases hjl : j ≤ Hs.length
     · obtain ⟨σ, hr, hok0⟩ := hcr j hnj hjl
@@ -330,15 +352,16 @@ theorem histOk_ownSnap {Hs : WalHist} {n : Nat} {vk : WalViewK} {σ : StorConten
 synced mark `pos + 1` (the batch synced), or at the old mark when every record that held the state
 before the batch within its log holds the entered one within its log (a commit-only batch). -/
 theorem histOk_enter {Hs : WalHist} {n : Nat} {v v' : WalView} {γb : Iris.GName} {pos : Nat}
-    (h : HistOkK (v', some (v, γb, pos)) Hs n)
-    (hcase : n' = max n (pos + 1) ∨ (n' = n ∧ ∀ σ, ImgOk v.S v.l σ → ImgOk v'.S v'.l σ)) :
+    (h : HistOkK (v', some (v, γb, pos)) Hs n) (hlast : walLastHS Hs = v'.hs)
+    (hcase : n' = max n (pos + 1) ∨ (n' = n ∧
+      ∀ σ, ImgOk v.S v.l σ → σ.commit ≤ uint.nat v'.hs.Commit' → ImgOk v'.S v'.l σ)) :
     HistOkK (v', none) Hs n' := by
-  obtain ⟨hn, hpo, hcr, ⟨hidxH, hcle⟩, heag⟩ := h
+  obtain ⟨hn, hpo, hcr, ⟨hidxH, hcle⟩, heag, hmo⟩ := h
   have hp := hpo v γb pos rfl
   have hnn : n ≤ n' := by rcases hcase with rfl | ⟨rfl, -⟩ <;> omega
   unfold HistOkK PosOkK HistReadOk
   refine ⟨by rcases hcase with rfl | ⟨rfl, -⟩ <;> omega, fun _ _ _ hq => by simp at hq, ?_,
-    ⟨hidxH, fun j h1 h2 => hcle j (by omega) h2⟩, heag⟩
+    ⟨hidxH, fun j h1 h2 => hcle j (by omega) h2⟩, heag, fun j h1 h2 => hmo j (by omega) h2⟩
   intro j hnj hj
   obtain ⟨σ, hr, hok0⟩ := hcr j (by omega) hj
   refine ⟨σ, hr, ?_⟩
@@ -347,7 +370,10 @@ theorem histOk_enter {Hs : WalHist} {n : Nat} {v v' : WalView} {γb : Iris.GName
   · rw [if_pos hjp] at hok0
     rcases hcase with rfl | ⟨-, himp⟩
     · omega
-    · exact himp σ hok0
+    · refine himp σ hok0 ?_
+      simp only [StorContents.commit]
+      rw [walRead_hs hr, ← hlast]
+      exact hmo j (by omega) hj
   · rw [if_neg hjp] at hok0; exact hok0
 
 /-- **The history's facts at an allocation** (a restart's read, `wal.restartOk`; a first start's empty
@@ -359,7 +385,7 @@ theorem histOk_restart {Hs : WalHist} {σ : StorContents} {v : WalView}
     HistOkK (v, none) Hs Hs.length := by
   have hcl : walCommitLe Hs := walCommitLe_of_fold hf hb heag
   unfold HistOkK PosOkK HistReadOk
-  refine ⟨Nat.le_refl _, fun _ _ _ hp => by simp at hp, ?_, ⟨hidx, ?_⟩, heag⟩
+  refine ⟨Nat.le_refl _, fun _ _ _ hp => by simp at hp, ?_, ⟨hidx, ?_⟩, heag, ?_⟩
   · intro j hnj hj
     have hj' : j = Hs.length := by omega
     subst hj'
@@ -369,6 +395,10 @@ theorem histOk_restart {Hs : WalHist} {σ : StorContents} {v : WalView}
     have hj' : j = Hs.length := by omega
     subst hj'
     rw [List.take_length]; exact hcl
+  · intro j hnj hj
+    have hj' : j = Hs.length := by omega
+    subst hj'
+    rw [List.take_length]; exact Nat.le_refl _
 
 theorem walCommitLeFrom_fresh_nil : walCommitLeFrom walFresh [] := by
   intro n τ' h
@@ -381,6 +411,34 @@ theorem histOk_fresh {v : WalView} (hok : ImgOk v.S v.l walFresh) : HistOkK (v, 
   histOk_restart (Hs := []) rfl (by simp [walFresh, StorContents.commit, StorContents.b])
     (by unfold walIdxLe; exact ⟨fun _ _ _ h => by simp at h, fun _ _ h => by simp at h⟩)
     walCommitLeFrom_fresh_nil hok
+
+/-- (P5, 2026-11-25) **A commit-only batch keeps the crash images it does not sync** (`rnDurK_enter.law`'s
+second case): a batch of no entries and no snapshot that `Save` does not sync (`¬ walMustSync`: its hard
+state empty, or at the last saved term and vote, the view's `p`, whose term and vote are the durable
+state's) moves only the durable commit (`RaftState.next` keeps the log and `wcommit`): every record that
+held `S` within `l`, at a commit at or below the entered one, holds the entered state within the longer
+handed log. -/
+theorem imgOk_commitOnly {S : RaftState} {p h : HardStateM} {l l' : List LogEntry} {Hs : WalHist}
+    (hns : ¬ walMustSync Hs h []) (hlast : walLastHS Hs = p) (ht : S.term = p.Term')
+    (hv : S.vote = p.Vote') (hpfx : l <+: l') :
+    ∀ σ, ImgOk S l σ → σ.commit ≤ uint.nat (phsNext p h).Commit' →
+      ImgOk (readyDurable S (phsNext p h) none []) l' σ := by
+  intro σ hok hc
+  obtain ⟨hh, hb⟩ := hok
+  have htv : (phsNext p h).Term' = p.Term' ∧ (phsNext p h).Vote' = p.Vote' := by
+    unfold phsNext
+    split
+    · exact ⟨rfl, rfl⟩
+    · rename_i hne
+      unfold walMustSync hsEmptyP at hns
+      rw [hlast] at hns
+      constructor
+      · exact Classical.byContradiction fun hT => hns (Or.inr ⟨hne, Or.inr hT⟩)
+      · exact Classical.byContradiction fun hV => hns (Or.inr ⟨hne, Or.inl hV⟩)
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, -, h9, h10⟩ := hh
+  refine ⟨⟨h1, h2, h3, ?_, ?_, h6, h7, hc, h9, h10⟩, Nat.le_trans hb hpfx.length_le⟩
+  · simp only [readyDurable, RaftState.next]; rw [htv.1, ← ht]; exact h4
+  · simp only [readyDurable, RaftState.next]; rw [htv.2, ← hv]; exact h5
 
 end pure
 

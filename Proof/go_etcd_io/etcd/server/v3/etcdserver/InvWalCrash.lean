@@ -42,7 +42,6 @@ the prefix holds and the id's vacancy (raft's `nodeCrash` or `readyCrashEnter`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvCrash
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsH
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Perennial.Ghost.SavedProp
@@ -101,10 +100,11 @@ def CrashReadsHold (Hs : WalHist) (n : Nat) (P : Nat → StorContents → Prop) 
 every index within raft's room (`walIdxLe (2^61 - 1)`), and every complete prefix a crash can leave
 reads with raft's `committed ≤ lastIndex` along its fold (`walCommitLe`). With them a crash's read meets
 the WAL interface's I1-I4 (`walReadFacts_of_read`, `SrvCrash.lean`). Stated per prefix rather than as
-`walCommitLeFrom walFresh Hs` of the eager fold: a received snapshot's `SaveSnap` precedes the `Save`
-of the commit that covers it, so the eager fold's base is above its commit between the two, where
-`walCommitLe_take` does not apply; the reader drops that record (`walKeep`), and `walCommitLe` is over
-the reader's fold. -/
+a consequence of the eager fold: a received snapshot's `SaveSnap` precedes the `Save` of the commit that
+covers it, so the eager fold's base is above its commit between the two (`b ≤ commit` fails there, not the
+eager `walCommitLeFrom`, which every `SaveSnap` keeps: `walSaveSnap_commitLe`), and `walCommitLe_of_fold`,
+whose premise that is, does not give the reader's form; the reader drops that record (`walKeep`), and
+`walCommitLe` is over the reader's fold. -/
 def HistReadOk (Hs : WalHist) (n : Nat) : Prop :=
   walIdxLe (2 ^ 61 - 1) Hs ∧ ∀ j, n ≤ j → j ≤ Hs.length → walCommitLe (Hs.take j)
 
@@ -118,12 +118,24 @@ def PendOkK (vk : WalViewK) : Prop :=
 def PosOkK (vk : WalViewK) (Hs : WalHist) : Prop :=
   ∀ v0 γb pos, vk.2 = some (v0, γb, pos) → pos < Hs.length
 
+/-- (P5, 2026-11-25) **The saved commits of the crash prefixes are at most the last saved one**: every
+complete prefix from the synced mark `n` on has its last saved hard state's commit at or below the
+history's (raft's hard state's commit never decreases: each `Save`'s is at least the one before,
+`ReadyRestFacts`). What a commit-only batch's *enter* needs: the crash images it leaves unsynced have
+their commit at or below the entered state's (`rnDurK_enter.law`'s second case). A restart may enter a
+durable commit index above the stored one (`StorageHolds`), so the durable state's commit does not
+bound them. -/
+def HistCommitMono (Hs : WalHist) (n : Nat) : Prop :=
+  ∀ j, n ≤ j → j ≤ Hs.length →
+    uint.nat (walLastHS (Hs.take j)).Commit' ≤ uint.nat (walLastHS Hs).Commit'
+
 /-- **The history's crash facts** (the body's pure row besides the view's): the synced mark within the
 history, the pending `Save` record in it, every crash prefix reading as the view says, the read
-conditions, and the eager fold's `committed ≤ lastIndex`. -/
+conditions, the eager fold's `committed ≤ lastIndex`, and (P5) the crash prefixes' saved commits at
+most the last (`HistCommitMono`). -/
 def HistOkK (vk : WalViewK) (Hs : WalHist) (n : Nat) : Prop :=
   n ≤ Hs.length ∧ PosOkK vk Hs ∧ CrashReadsHold Hs n (crashOk vk) ∧ HistReadOk Hs n ∧
-    walCommitLeFrom walFresh Hs
+    walCommitLeFrom walFresh Hs ∧ HistCommitMono Hs n
 
 
 end pure
@@ -338,12 +350,15 @@ reading the saved records (`walRead_of_fold`: their base at or below their commi
 *enter* record saved at `γb` (`rnPendRec`, the loop keeping the saved proposition): at the commit,
 the batch pending at its record's position `|Hs|` (`(v', some (v, γb, |Hs|))`), its record deposited (dropped on the crashed side), the
 handed log committed (`isCommittedLogLb`), and the history `Hs` the `Save` committed at given to the
-loop (`walSaveH.law`'s `Q`), with the handed log's lower bound. -/
+loop (`walSaveH.law`'s `Q`), with the handed log's lower bound; (P5) the last saved hard state before
+the `Save` the view's (`walLastHS Hs = v.hs`: what `raft.MustSync` compared, for a commit-only batch's
+*enter*). -/
 abbrev rnDurK_save.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (v v' : WalView) (hs : HardStateM)
     (es : List EntryM) (γb : GName) (n : NodeH) (st st' : NodeDriverState) (ms : List QMsg) (q : Qp),
     WalSaveStep v v' hs es → DurAgrees v.S v.l →
     (∀ e ∈ es, uint.nat e.Index' ≤ 2 ^ 61 - 1) → uint.nat v'.S.commit ≤ v'.S.last →
+    uint.nat v.hs.Commit' ≤ uint.nat (phsNext v.hs hs).Commit' →
     ⊢ rnDurInvK γn id νk h -∗ rnWalViewK νk (v, none) -∗ isCommittedLogLb γn.cl v'.l -∗
       savedPropOwn γb DFrac.discard (rnPendRec γn id νk.x v.S v'.S n st st' ms q) -∗
       rnPendRec γn id νk.x v.S v'.S n st st' ms q -∗
@@ -351,7 +366,7 @@ abbrev rnDurK_save.law : Prop :=
         @ WalFs.walAuMask, ∅
         <{ walRecsH h (walSave σ hs es) (Hs ++ [WalOpG.save hs es]) true,
           COMM rnWalViewK νk (v', some (v, γb, Hs.length)) ∗ walCommitLb νk.ν v'.l ∗
-            ⌜∃ σ', walRead (Hs ++ [WalOpG.save hs es]) = some σ'⌝ }>
+            ⌜(∃ σ', walRead (Hs ++ [WalOpG.save hs es]) = some σ') ∧ walLastHS Hs = v.hs⌝ }>
 
 /-- **The received snapshot's `SaveSnap`** (`rnDur_saveSnap_au` with the crash side): the view's
 snapshot pending; the new prefix reads as the one before (its snapshot record is above the last
@@ -372,8 +387,8 @@ abbrev rnDurK_saveSnap.law : Prop :=
 γb, pos))`, its saved proposition at `γb`, two later credits (the body's later and the record's
 agreement), and either the sync's
 lower bound past the `Save`'s record `pos` (`walSaveH.law`'s post) or a
-commit-only batch (every record that held `v.S` within `v.l` holds `v'.S` within `v'.l`:
-`RaftState.next` keeps `wcommit`): raft enters the batch (`readyEnterLive`), the durable state moves
+commit-only batch (every record that held `v.S` within `v.l`, at a commit at or below the entered hard
+state's, holds `v'.S` within `v'.l`: `RaftState.next` keeps `wcommit`; the bound from `HistCommitMono`): raft enters the batch (`readyEnterLive`), the durable state moves
 to `v'.S`, nothing pending; the loop gets the busy driver's state, the messages' sends and the share
 `q` of the liveness it deposited back. -/
 abbrev rnDurK_enter.law : Prop :=
@@ -383,7 +398,7 @@ abbrev rnDurK_enter.law : Prop :=
     (⊢ rnDurInvK γn id νk h -∗ notCrashed -∗ £ 1 -∗ £ 1 -∗ rnWalViewK νk (v', some (v, γb, pos)) -∗
       savedPropOwn γb DFrac.discard (rnPendRec γn id νk.x v.S v'.S n st st' ms q) -∗
       ((letI := h.W; WalFs.walSyncedLb h.dir (pos + 1)) ∨
-        ⌜∀ σ, ImgOk v.S v.l σ → ImgOk v'.S v'.l σ⌝) ={⊤}=∗
+        ⌜∀ σ, ImgOk v.S v.l σ → σ.commit ≤ uint.nat v'.hs.Commit' → ImgOk v'.S v'.l σ⌝) ={⊤}=∗
       notCrashed ∗ rnWalViewK νk (v', none) ∗ nodeDriver n γn.cl srvClusterN st' ∗
         readyMsgs γn.cl srvClusterN id ms ∗ nodeRunning n γn.cl srvClusterN q)
 
@@ -413,6 +428,28 @@ abbrev rnDurK_take.law : Prop :=
       notCrashed ∗ rnTakenK νk ∗ raftState γn.cl id v.S ∗ ∃ σ : StorContents, walRecs h σ true ∗
         ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧ σ.hs = v.hs ∧
           DurAgrees v.S v.l⌝ ∗ walSnapCert γn.cl σ
+
+/-- (P5) **The restart's handover of the WAL** (`wal.restartOk_startK`'s, for the crash-aware
+durability's allocation at a restart): the open WAL's records `σ` with their history `Hs`, the whole
+history synced, its index and (eager) commit bounds, its fold `σ`. -/
+def rnRestartWal (h : WalH GF) (σ : StorContents) : IProp GF :=
+  iprop(∃ Hs : WalHist, walRecsH h σ Hs true ∗ (letI := h.W; WalFs.walSyncedLb h.dir Hs.length) ∗
+    ⌜walIdxLe (2 ^ 61 - 1) Hs ∧ walCommitLeFrom walFresh Hs ∧ walFoldChkFrom walFresh Hs = some σ ∧
+      σ.b ≤ σ.commit⌝)
+
+/-- (P5) **The crash-aware durability's allocation at a restart** (the isolated restart step, pending
+the restart slot's decision on #50: `wal.restartOk` over the reader's fold): from the restart's handover
+(`rnRestartWal`), the records' certificate, a committed log `l₀` the restored view `⟨S, σ.hs, none, l₀⟩`
+is within (`ViewOk`) and raft's durable state `S`, the invariant at the view (nothing pending), its
+tokens and the handed log's lower bound, as `rnDurK_alloc.law` at a first start. -/
+abbrev rnRestartAllocK.law : Prop :=
+  ∀ (γn : SrvRaft) (id : w64) (x : CrashNames) (sd : w64 → IProp GF) (h : WalH GF) (σ : StorContents)
+    (S : RaftState) (l₀ : List LogEntry),
+    ViewOk ⟨S, σ.hs, none, l₀⟩ σ →
+    ⊢ rnRestartWal h σ -∗ walSnapCert γn.cl σ -∗ isCommittedLogLb γn.cl l₀ -∗ raftState γn.cl id S ={⊤}=∗
+      ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd ∧ νk.ν.h = h⌝ ∗ rnDurInvK γn id νk h ∗
+        rnWalViewK νk (⟨S, σ.hs, none, l₀⟩, none) ∗
+        token νk.ν.stop ∗ token νk.ν.app ∗ walCommitLb νk.ν l₀
 
 /-- **The crash** (the deliverable for T7, `notes/etcd-dist-d6.md` §10): after the crash of the
 generation (`crashed`), with the invariant's crash token and raft's crash token of the arm `νk.x`,

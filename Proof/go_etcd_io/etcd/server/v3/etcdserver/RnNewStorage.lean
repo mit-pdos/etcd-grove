@@ -333,8 +333,8 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
           snap.isSnapshotter ss sd ∗ snapDirInvH sd γd img Rm ∗
           □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
-          AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
-            <{ walRecs h σ s, COMM Q }> }}
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Release" #p))
           (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗
@@ -343,7 +343,7 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
           ⌜err = GoInterface.nil ∨ ¬ snap.dirReadOk ss⌝ }} := by
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
   obtain ⟨-, -, -, -, hRel⟩ := hS
-  have hau := walRecs_releaseAU h i m Q
+  have hau := walRecsH_releaseAU h i m Q
   rw [hm] at hau
   iintro ⟨#Hpkg, #Hover⟩
   iintro !> %Φ ⟨Ho, Hrd, Hsn, Hsm, #Hss, #Hinv, #HRm, #Hw, HAU⟩ HΦ

@@ -316,6 +316,83 @@ theorem walRecs_au_toH (h : WalH GF) (sized : Bool) (P : StorContents → Prop)
     iapply Hcommit
     iapply walRecsH_walRecs; iexact Hr
 
+/-- (P5) **`Release`'s read of the records with their history** (`walRecs_releaseAU`'s): layer 1's lock
+update at the snapshot record the witness names, the records and their history unchanged. -/
+theorem walRecsH_releaseAU (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) (Q : IProp GF) :
+    walSnapRec h i m ∗
+      (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+        <{ walRecsH h σ Hs s, COMM Q }>) ⊢
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗
+          ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨m.ConfState', m.Index', m.Term'⟩ al)) ∧ i < i + 1⌝ }>
+        @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAt (W := h.W) h.dir
+            { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }, COMM Q }> := by
+  iintro ⟨#Hw, Hau⟩
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %Hs, %s, Hr, Hcl⟩
+  unfold walRecsH
+  icases Hr with ⟨%d, Hd, Ha, #Hn, %hf⟩
+  iunfold walSnapRec at Hw
+  icases Hw with ⟨%H0, #Hl, -, %hi⟩
+  ihave %hv := mono_list_auth_lb_valid h.γh 1 d.H H0 $$ Ha Hl
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists d
+  iframe Hd
+  isplitr
+  · ipureintro
+    obtain ⟨al, hi⟩ := hi
+    exact ⟨⟨al, prefix_getElem? hv.2 hi⟩, Nat.lt_succ_self i⟩
+  isplit
+  · iintro ⟨Hd, -⟩
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    iexists d
+    iframe Hd Ha Hn
+    ipureintro; exact hf
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iexists { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }
+    iframe Hd Ha Hn
+    ipureintro; exact hf
+
+/-- (P5) **An identity update over the records turned into one over the records with their history**
+(the history unchanged). -/
+theorem walRecs_auId_toH (h : WalH GF) (E : CoPset) (Q : IProp GF) :
+    (AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ E, ∅ <{ walRecs h σ s, COMM Q }>) ⊢
+      AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ E, ∅
+        <{ walRecsH h σ Hs s, COMM Q }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %s, Hr, Hcl⟩
+  icases (walRecs_iff_H h σ s).1 $$ Hr with ⟨%Hs, Hr⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ, Hs, s
+  iframe Hr
+  isplit
+  · iintro Hr
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    iapply walRecsH_walRecs; iexact Hr
+  · iintro Hr
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iapply walRecsH_walRecs; iexact Hr
+
 /-- The server's history has the raw history's length. -/
 theorem walSrvHist_length (H : List (WalOpG WalEnt)) : (walSrvHist H).length = H.length := by
   unfold walSrvHist; simp

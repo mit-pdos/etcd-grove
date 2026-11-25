@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 -- (the lease-expiry plan's step 2) the range deleter's argument, `traceutil.TODO()`
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 
 @[expose] public section
 
@@ -812,7 +813,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   subst Hss
   ihave %Hsok := isWalStorage_ok _ _ _ $$ Hsave
   obtain ⟨si, Hsieq⟩ := Hsok
-  ihave HRAU := rnDur_read_au γw.node.cl γw.wal γw.wal.h $$ Hdur Hwap
+  ihave HRAU := rnDurK_read_au γw.node γw.id γw.walK γw.wal.h $$ Hdur Hwap
   ihave #HRel := walRelease_spec _ γw.wal.h γw.ss _ Hsieq q sn smp DFrac.discard DFrac.discard
       sv.Metadata' (config.snapDirOf cfg.DataDir') γd img (snapRmM γt) iw mw (token γw.wal.app) Hmw $$ Hsave
   have Hsieq0 := Hsieq
