@@ -2687,3 +2687,42 @@ automatic. An `L₀` for `etcdDistGF` could still be put together by hand: `etcd
 inclusions, and any names will do. But every `kvOrchPre`/`kvR` reading only `hG.goose_globalGS` would then
 have to be checked defeq across `L`s. Option (a) avoids both: etcd-grove-03 restates `kvOrchPre`, `kvNodePre`,
 `kvR`, `kv_start` and `kv_start_deployment` at `[Gg : GooseGlobalGS]`, as N5's `memberShareD` is.
+
+### 21.2 Session 2 (2026-11-26, from `5a3055d5dc`): (A) to (D) written
+
+**Merged:** etcd-grove-03's `etcd-safe-m1` @ `9e1045a209`, which brings the CallDist fix, the shares at
+`[Gg : GooseGlobalGS]` (option (a): `kvR`, `kvOrchPre` over `linkvtxnSG`, `kvNodePre` global plus a local
+`kvNodePreL`, `Start.lean`) and `[GoLocalContext]` at those sections. Also N7-kv's replays `etcd-safe-n7kv-nc`
+@ `6ffd1b9527` and `etcd-safe-n7kv-nc2` @ `5f2923d14d`. Their Proof and Spec files are identical; the one
+conflict, in the notes file `etcd-dist-n7kv.md`, was resolved by keeping theirs.
+
+**A statement-adjacent file changed: `dist/TopLevelDefs.lean`'s `etcdDistGF`.** It gains slot 8, iris-lean's
+non-atomic invariants (`NaInvF`), and the instance `etcdDistGF_naInvG`, because P9's `kvremote.wp_Orch` takes
+`[NaInvG GF]` (porcupine's results). This is not a statement change: no Spec statement mentions `etcdDistGF`
+(checked by grep), and since 2026-11-25 it is the proofs' ghost state only.
+
+**Written (step numbers as in §21.1):**
+- **(A), step 2: the members' start.**
+  - `server/ClusterStartD.lean`, `clusterStartD`:
+    1. `clusterAllocN` at `distPs`/`distCtxs`, lease mode `none`, with the compactor slot from the deployment
+       (`compactorCfg_of_wf`);
+    2. every peer address set to `httpAddrAt c.γ` (`peersAt_start`);
+    3. every client address set to `etcdAddrAt … c.view` (`clientsAt_start`);
+    4. each member's `memberShareD` (`memberShares_of`).
+
+    It returns `c.γk.log0 = [[], []]`, the client's `etcdKV` at the boot state and `clientSvcFacts (cmsD d) c.view`.
+    It needs only `receiptBound ≤ 2 ^ 60`.
+  - `kvremote/MembersStart.lean`: the law proved, `member_boot_dist_law : member_boot_dist.law d
+    (membersShareKv d boot)`. `kvSys_boot` turns the boot `etcdKV` into `(kvR γk).sysState (kvR γk).B.init`;
+    `clusterMembersOf_eq` shows `clusterMembersOf d = cmsD d`.
+- **(C), step 4: the client-side boots,** `kvremote/AdequacyClient.lean`.
+  - `kvOrchBoot`: the orchestrator boots from `kvOrchPre (ρ := ρ) ns w.ops`, through `wp_OrchestratorKv` with
+    `Orch.specWith` from `kvremote.wp_Orch` (the timeout specialized).
+  - `kvNodeBoot`: a client machine boots from `kvNodePre (ρ := ρ) (W64 c) a (rotateL clients c)`, through
+    `wp_NodeDeploymentKv` at `kvNodePreL`. Its `levelTok 0` comes from `threadTok_level0`, and its thread bound
+    from `hT`.
+- **(D), step 5: the discharge,** in the Proof file `kvremote/TopLevelRobustness.lean`.
+  - `kvOnly_shape`: no workload, or one `kv` workload together with `kv_start`'s bounds.
+  - `kvShares`: the machines' shares.
+  - `etcdKvBootNC_holds : EtcdKvBootNC`.
+  - `theorem etcd_kv_safe_nocrash : etcd_kv_safe_nocrash.spec`.
