@@ -2154,6 +2154,56 @@ whose server names would have to be `Γ`'s); the compaction revision's facts (`E
 permit, e.g. from `rlog`/`cret`); progress notifications' revision; resumption at another endpoint after a fault
 (`WatchResume`, multi-endpoint); restart-stability of all of it (D6).
 
+### 18.6 Implementation (2026-11-25; option B, the coordinator's decision)
+
+**The view.** `DistView := ⟨kv, ls, auth⟩` (`S2Interim.lean`), a Lean value; `DistView.ofKV γk` the auth-off view
+(lessor names a constant until P-L1: no contract reads them); `ClusterNames.view c := DistView.ofKV c.γk`.
+`etcdSvc (Γ : DistView) (mid)`, `etcdAddrAt a Γ mid`, `membersAt eps Γ` (every endpoint some member's),
+`etcdAddr_set` at `Γ`. **Removed** (clean end state, no compat layer): `EnvView`, `memberView`, `envPubN`,
+`envPubHalf`, `envAt`, `envPubInv`, `envPub_start`, `env_publish(_h)`, `envAt_agree`, `envAt_pub(_h)`,
+`putGetInv_st`; in the starts `memberSvcShare`, `cluster_svc_start`, `svcList`, putget's `memberPubOk`/`putgetPub`,
+putgetk's `memberPubOkK`/`kvAgree`/`rnOf`.
+
+**Trusted statements** (reviewed: `notes/axiom-review/n2-kv-dist.md`, a fresh `axiom`-skill agent given the code;
+all seven sound after F1-F5, re-reviewed):
+- `etcdSvc` re-indexed by `Γ` (was `γE : GName`).
+- `Serve_dist.spec`: `(Γ : DistView)` for `(γE : GName) (ν : EnvView)`; the pure premise `… ∧ kvCongr ρ.rd.kv Γ.kv ∧
+  Γ.auth = false` in place of `… ∧ ν = memberView ρ` and `envAt γE ν`; the address fact at `Γ`. (`Γ.auth = false`:
+  review F2, a weaker axiom; the member's own auth is off by `memberUp`.)
+- **New interim axioms** (each its own Spec/Proof pair beside `ClientGetDist.lean`, the header saying why: real Go
+  translated, the cross-machine proof needs #24's S2 client side, retired by it): `KV_Put_dist.wp_proof`,
+  `KV_Get_dist.wp_proof`, `KV_Delete_dist.wp_proof`, `KV_Compact_dist.wp_proof`, `Txn_Commit_dist.wp_proof`, the
+  §18.4 drafts verbatim but for `svc` (the table is `etcdSvc`) over `kvClientAt` (`KVClientDist.lean`).
+- **Retired axioms**: `Client_Put_dist.wp_proof` and `Client_Get_dist.wp_proof` are theorems
+  (`ClientPutDist.lean`, `ClientGetDist.lean`) from `KV_Put_dist`/`KV_Get_dist` taken as hypotheses (the promotion
+  `ptr_Put_unfold`/`ptr_Get_unfold`, putget's updates at KV names: `putGetInvK`, `putAu_of_putGetInvK`,
+  `getAu_of_putGetInvK` in `KVClientDist.lean`). Their statements changed (no publication): `(Γ : DistView) (mid)
+  (γf : GName)` for `(γE : GName) (mid)` (and, in Get, `(ν : EnvView) (γr : ReadNames) (γf)` with `γr.kv.st = ν.st`);
+  pre `levelTok 0 ∗ … ∗ etcdAddrAt ep Γ mid ∗ … ∗ putGetInvK Γ.kv γf key val` (Get: `∗ monoNatLbOwn γf 1`), Put also
+  `Γ.auth = false`; post `levelTok 0 ∗ ((⌜err = nil⌝ ∗ monoNatLbOwn γf 1) ∨ …)` (Get: the old value arm). Not
+  top-level statements.
+- Lease drafts stay `.spec` definitions in `ClientViewDist.lean` (re-indexed: `etcdAddrAt ep Γ mid`; P-L1).
+  etcd-grove-03's `Client_LeaseLeases_dist`/`Client_LeaseTimeToLive_dist` are not on this line: left alone.
+
+**Top-level statements**: no text change (`putget_safe.spec`, `putgetK_safe.spec` and the etcd_safe skeleton's
+named none of `γE`/`envAt`).
+
+**Proofs adapted.** `srvMemberBoot_alloc`, `memberBoot_of`, `memberBoot_of_slice` also return `kvCongr ρ.rd.kv γk`
+(proved; their users' patterns adjusted: `alloc1`, `alloc3Http`, `memberBoots_of`). `ClusterStart`: `memberStartShare`
+holds the address fact at `c.view`, `clientStartShare c ms` each member's; `etcdClusterStart` returns `c` only.
+putget: the start runs `clusterAllocN` at `[id]` (`putget_shares`; the view fixed before the member runs), allocates
+the client's `putGetInvK` from the cluster's `etcdKV`, sets the client address (`putget_addr`); the member starts
+from its slice (`wp_StartServer1_slice`, `StartOneSlice.lean`: `memberBoot_of_slice`, `net1_alloc`, `StartServer`)
+and serves at `c.view`; the client's `Put`/`Get` are the theorems. putgetk: the same over `etcdClusterStart`; a
+refused configuration's client share is at a fresh view (`putGetInvK_alloc_fresh`).
+
+**Go** (§18.8 item 4): `dist/client/auth.go`'s `newUserClient` dials with `grpc.WithNoProxy()`; `go vet`/`go test`
+of the client package; `TestDist -short` with `DIST_RUN=1 DIST_WANT=auth` passes (an auth workload, kills, power
+losses, partitions); `etc/goose.py --project putget-dist` retranslated (`client.lean`), `etc/gen-init.py` regenerated
+the client's `Init`/`InitLinked`/`PkgTable` (`--check` passes).
+
+**Build and trust base**: see the end of this section (filled at the full build).
+
 ### 18.7 Changes to etcd-grove-03's two drafts
 
 Bodies unchanged. Under B: `etcdAddrAt ep γE mid` → `etcdAddrAtV svc ep Γ mid` (inside `leaseClientV`), and `levelTok 0`
