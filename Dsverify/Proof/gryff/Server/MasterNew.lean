@@ -1,11 +1,12 @@
 /-
 Ported from dsverify-lab examples/gryff/proof/GryffProof/Server/MasterNew.lean (run gryff-bump-1, lab
 master 915f964; notes/dsv-gryff.md); the lab's `Server/RawServer.lean` (its own net/rpc server
-model) is folded in, over `Net/`'s net/rpc and `RpcHttpHyp`.
+model) is folded in, over `Net/`'s net/rpc and net/http.
 
-`masterlib.NewMaster(3, 7501)` (U2): the master with its own `rpc.Server` (a fresh server,
-`RpcHttpHyp.NewServer_fresh_spec`; the master registered on it, `Server_Register_fresh_spec` with
-`master_rcv`; `HandleHTTP` at `defaultRPCPath`, consuming the machine's `muxFree`), its listener at
+`masterlib.NewMaster(3, 7501)` (U2): the master with its own `rpc.Server` (a fresh server with an
+owned registry, Net's `NewServer.spec_owned`; the master registered on it, `Server.Register.spec_fresh`
+with `master_rcv`; `Server.HandleHTTP` at `defaultRPCPath`, on the machine's `DefaultServeMux` with
+nothing registered), its listener at
 `masterRpcLis = ":7501"` (retried; `Listen.spec` with `rpcLisP_lis`'s update), and its `Run`
 goroutine (`wp_Master_Run'`). It returns a master with `masterOkDef` (what `Serve` asks).
 -/
@@ -16,6 +17,8 @@ public import Dsverify.Proof.gryff.Server.MasterServe
 public import Dsverify.Proof.gryff.N.NetSpecs
 public import Dsverify.Proof.gryff.N.ConnErr
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
+public import Net.Spec.net.rpc.Server__HandleHTTP
+public import Net.Spec.net.rpc.HandleHTTP
 
 @[expose] public section
 
@@ -79,10 +82,13 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
+variable (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG := hG))
+variable (wp_SRegister : net.rpc.Server.Register.spec_fresh (GF := GF) (hG := hG))
+variable (wp_SHandleHTTP : net.rpc.Server.HandleHTTP.spec (GF := GF) (hG := hG))
 variable [nS : netN.NetSpecs GF]
 
 /-- A `Master`'s points-to, field by field. -/
@@ -129,10 +135,12 @@ theorem resErr_errAny_m [net.Assumptions] (k : NetErr) (op : GoString) (src addr
 
 set_option goose.wp.extras true
 
-include L RL wp_Call wp_DialHTTP in
+include L RL wp_Call wp_DialHTTP wp_NewServer wp_SRegister wp_SHandleHTTP in
 theorem wp_NewMaster' (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗
-        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
+        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
+        net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
+        net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
         RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
           net.rpc.connectAns ∗
         dialEnv (GF := GF) ∗ (□ [∗list] k ∈ [0, 1, 2], replicaRpcOk γ k) ∗
@@ -142,8 +150,8 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
         isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http }}
       (App (App (Val (@! gryff.src.masterlib.NewMaster)) (Val #(W64 3))) (Val #(W64 7501)))
     {{ (m : Loc), RET #m; masterOkDef γ m }} := by
-  wp_start as ⟨#Hcs, #Hse, Hmux, #Hrl, #Hde, #Hras, Hreg, #Hdep, #Hg, %Hw, #Hkit, #Hrpc,
-    #Hhttp⟩
+  wp_start as ⟨#Hcs, #Hse, Hmux, #Hhe, #Hcon, #Hrl, #Hde, #Hras, Hreg, #Hdep, #Hg, %Hw, #Hkit,
+    #Hrpc, #Hhttp⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -156,7 +164,7 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
   · ipureintro; word
   wp_apply (wp_slice_make2 (V := Bool) (W64 3)) as %asl ⟨Hasl, -⟩
   · ipureintro; word
-  wp_apply H.NewServer_fresh_spec as %s ⟨%γs, #Hsv, Hfr⟩
+  wp_apply wp_NewServer as %s ⟨%γs, %γf, #Hsv, Hfr⟩
   try wp_auto
   ihave ⟨«$r0», %Hmnn⟩ := persistent_entails_left (typedPointsto_not_null _ _ _) $$ «$r0»
   icases master_struct_split _ _ $$ «$r0»
@@ -181,28 +189,38 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
   ihave #Hmreg : masterReg γ «$r0_ptr» $$ []
   · unfold masterReg; iexists «$v4_ptr»; iframe #
   try wp_auto
-  wp_apply (H.Server_Register_fresh_spec s γs gryffCodec (ptrIface src.masterlib.Master.ty «$r0_ptr»)
+  wp_apply (wp_SRegister s γs γf ∅ gryffCodec (ptrIface src.masterlib.Master.ty «$r0_ptr»)
     (masterSvc γ.deploy (regCarry γ.proto)) go!"Master" (W8 77) go!"aster" rfl (by decide))
-    $$ [Hfr] as %err0 ⟨-, #Hsreg⟩
+    $$ [Hfr] as %err0 ⟨-, #Hsreg, -⟩
   · iframe Hsv Hfr Hcs
+    isplitr
+    · ipureintro; simp [GMap.mem_iff]
     iapply master_rcv L RL γ «$r0_ptr» Hmnn
     iframe #
-  ihave #Hss : iprop(□ ∀ a, ⌜lisAccepts masterRpcLis a⌝ → net.rpc.srvServes γs gryffCodec γ.rpc a)
-    $$ []
+  ihave #Hss : iprop(□ ∀ a, ⌜lisAccepts masterRpcLis a⌝ →
+      net.rpc.srvServes γs gryffCodec γ.rpc a ∗
+        ⌜γ.rpc.hs a ≠ [] ∧ γ.rpc.hsAns a = net.rpc.connectAns⌝) $$ []
   · iintro !> %a %ha
-    unfold net.rpc.srvServes
-    iintro !> %svc %S %HS
-    obtain ⟨rfl, rfl⟩ := rpcServices_master γ Hw.1 a ha _ _ HS
-    iframe Hsreg
-    unfold masterSvc
-    iapply withErr_errOk
+    have hhs := Hw.1.2 a (Or.inl ha)
+    isplitl
+    · unfold net.rpc.srvServes
+      iintro !> %svc %S %HS
+      obtain ⟨rfl, rfl⟩ := rpcServices_master γ Hw.1 a ha _ _ HS
+      iframe Hsreg
+      unfold masterSvc
+      iapply withErr_errOk
+    ipureintro
+    exact ⟨by rw [hhs.1]; simp [net.rpc.connectReq], hhs.2⟩
+  ihave #Hsva := net.rpc.isServerO_any _ _ _ $$ Hsv
   try wp_auto
-  have hHH := H.Server_HandleHTTP_spec s γs gryffCodec γ.rpc (lisAccepts masterRpcLis)
-    go!"/debug/rpc"
-  rw [show net.rpc.defaultRPCPath = go!"/_goRPC_" from rfl] at hHH
+  have hHH := wp_SHandleHTTP s γs gryffCodec γ.rpc (lisAccepts masterRpcLis) []
+    net.rpc.defaultRPCPath net.rpc.defaultDebugPath net.rpc.litPattern_rpc net.rpc.litPattern_debug
+    (by decide) (by simp) (by simp)
+  rw [show net.rpc.defaultRPCPath = go!"/_goRPC_" from rfl,
+    show net.rpc.defaultDebugPath = go!"/debug/rpc" from rfl] at hHH
   unfold net.rpc.defaultRPCPath
-  wp_apply hHH $$ [Hmux] as #Hroute
-  · iframe Hmux Hsv Hss Hse Hcs
+  wp_apply hHH $$ [Hmux] as ⟨-, #Hroute⟩
+  · iframe Hhttp Hmux Hsva Hss Hse Hcs Hcon
     ipureintro; exact Hw.2
   wp_apply wp_slice_literal (V := GoInterface) _
   isplitr

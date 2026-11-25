@@ -8,11 +8,9 @@ anywhere):
 (`netN.StringsIndexHyp` is no longer a premise: its instance `stringsIndexHyp_holds`, over Perennial's
 `strings.Index` since `fce59af75`, moved to `StrIndexHolds.lean` and discharges it in the proof.)
 (`math.rand.InitHyp` was a premise until math-rand-isinit, 2026-11-24: now discharged in the
-statement by Perennial's proved `math.rand.wp_initialize'`.) The other classes have no axiom-free instance at the pin b3f2fc485 (notes/dsv-gryff.md, "Session
-11"): `net.rpc.InitHyp`/`net.http.InitHyp` (their closure reaches names-only initializers),
-`replica2.SortSliceHyp`, `lib.RandSeedHyp` (`sort.Slice`, `math/rand.Seed` names only), `RpcHttpHyp` (net/http's server, `rpc.HandleHTTP`: not in Net),
-`RpcBootHyp` (net/rpc's and net/http's owned initializations). The ninth agent's instances of
-those over local axioms are in history (a5f91c8e46). No statement or proof imports this module.
+statement by Perennial's proved `math.rand.wp_initialize'`.) The other classes,
+`replica2.SortSliceHyp` and `lib.RandSeedHyp` (`sort.Slice`, `math/rand.Seed` names only), have no
+axiom-free instance at the pin (notes/dsv-gryff.md, "Session 11"). No statement or proof imports this module.
 -/
 module
 

@@ -75,15 +75,15 @@ PKGS = [f'github_com.emirpasic.gods.{p}' for p in
 MAIN = ['bufio', 'encoding.hex', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
 # initializers that are hypotheses of the part's proofs (the `InitHyp` class of their hand-written
-# `Init.lean`; notes/dsv-swiftpaxos.md, "Hypotheses"): net/rpc's and net/http's (`Net/`'s models,
-# as dsv-epaxos), os/signal (dsv-rabia's), and the
-# names-only encoding/gob, github.com/google/uuid. Their imports: all (the default;
-# dsv-inithyp-fix): net/rpc's and net/http's well-formedness conditions are
-# `build_get_is_pkg_init_wf`, over every package their initializers reach, so the programs' tables
-# hold that closure. Not math/rand: the boot uses Perennial's proved `math.rand.wp_initialize'`
+# `Init.lean`; notes/dsv-swiftpaxos.md, "Hypotheses"): os/signal (dsv-rabia's), and the
+# names-only encoding/gob, github.com/google/uuid. Their imports: all (the default). Not
+# net/rpc's and net/http's: `Net/`'s (external; their `wp_initialize'` and first-run
+# `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`), whose
+# well-formedness conditions are `build_get_is_pkg_init_wf`, over every package their initializers
+# reach, so the programs' tables hold that closure. Not math/rand: the boot uses Perennial's proved `math.rand.wp_initialize'`
 # by hand (until math-rand-isinit, 2026-11-24, `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`, a
 # premise of the statement).
-HYP_INITS = ['net.rpc', 'net.http', 'os.signal', 'encoding.gob',
+HYP_INITS = ['os.signal', 'encoding.gob',
              'github_com.google.uuid']
 
 

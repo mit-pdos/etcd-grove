@@ -7,7 +7,7 @@ public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 public import Proof.bufio.Init
 public import Perennial.Proof.encoding.binary.Link
 public import Proof.net.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.rpc.PkgInit
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
@@ -36,9 +36,10 @@ open Iris Iris.BI
 namespace gryff.examples.gryffnet
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.gryff.examples.gryffnet :=

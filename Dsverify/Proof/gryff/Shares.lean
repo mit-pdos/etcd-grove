@@ -27,7 +27,7 @@ public import Dsverify.Proof.gryff.Proto.Wire
 public import Dsverify.Proof.gryff.Proto.ClientLaws
 public import Dsverify.Proof.gryff.Proto2.InvDefs
 public import Dsverify.Proof.gryff.Server.Deploy
-public import Dsverify.Proof.gryff.Rpc.RpcHttpHyps
+public import Dsverify.Proof.gryff.Rpc.RpcHttp
 
 @[expose] public section
 

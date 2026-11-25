@@ -15,9 +15,9 @@ registration changes them any more (every later call finds its address), so the 
 reads `addrList` and `portList` without the lock, and every `Ready` reply shares `nodeList`.
 
 Port (`Net/`): `masterOkDef` is what `(*Master).Serve`'s `http.Serve(l, nil)` asks
-(`RpcHttpHyp.Serve_spec`): the master's listener at `masterRpcLis` (`isListener`, `netLisOn`,
-`lisInv`), its rpc protocols (`rpcLisP`) and `DefaultServeMux`'s route of `defaultRPCPath` to the
-master's server (`muxHas`, from `Server.HandleHTTP`). `runPre`'s rpc addresses are the replicas'
+(Net's `http.Serve.spec_rpc`): the master's listener at `masterRpcLis` (`isListener`, `netLisOn`,
+`lisInv`), its rpc protocols (`rpcLisP`), `DefaultServeMux`'s route of `defaultRPCPath` to the
+master's server (`muxRpc`, from `Server.HandleHTTP`) and net/http's variables (`httpEnv`). `runPre`'s rpc addresses are the replicas'
 net/rpc addresses behind the HTTP handshake (`rpcAddrP … (connectReq defaultRPCPath)
 connectAns`), with `DialHTTP`'s environment (`dialEnv`), and the codec registered (`codecSet
 gryffCodec`).
@@ -99,7 +99,8 @@ instance masterReg_persistent (γ : GryffNames GF) (m : Loc) :
     Persistent (masterReg γ m) := by
   unfold masterReg; infer_instance
 
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [RA : RpcHttpAddr GF]
 
 /-- A master serving registrations on its listener (persistent): what `(*Master).Serve` needs
 (see the file header). -/
@@ -113,8 +114,10 @@ def masterOkDef (γ : GryffNames GF) (m : Loc) : IProp GF :=
       masterRpcLis ∗
     "#Hrl" ∷ RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
       net.rpc.connectAns ∗
-    "#Hmux" ∷ H.muxHas γ.rpc (lisAccepts masterRpcLis) net.rpc.defaultRPCPath ∗
+    "#Hmux" ∷ net.http.muxRpc (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) γ.rpc
+      (lisAccepts masterRpcLis) net.rpc.defaultRPCPath ∗
     "#Hhttp" ∷ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
+    "#Hhe" ∷ net.http.httpEnv ∗
     "%Hth" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝)
 
 instance masterOkDef_persistent (γ : GryffNames GF) (m : Loc) :
