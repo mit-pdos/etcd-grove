@@ -15,6 +15,7 @@ append). Shared by `antSim_quiet` and `antSim_ready`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Scope
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Init
 
 @[expose] public section
 
@@ -430,6 +431,157 @@ theorem pendOk_of_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec
   have hne : q.dst ≠ nodeId n := of_decide_eq_true hq'.2
   exact PendOk.congr rfl rfl rfl rfl rfl rfl rfl rfl rfl
     (outOk_reach hmsk hin hnet hv hr q hq'.1 hne (hro.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 q (List.mem_append_left _ hq)))
+
+/-- The S4 network's types (`InMask.s4`'s order) in the order of the per-type lemmas. -/
+theorem ty7_of_s4 {t : MsgType}
+    (h : t = .app ∨ t = .appResp ∨ t = .vote ∨ t = .voteResp ∨ t = .heartbeat ∨ t = .heartbeatResp ∨
+      t = .propose) :
+    t = .vote ∨ t = .voteResp ∨ t = .app ∨ t = .appResp ∨ t = .heartbeat ∨ t = .heartbeatResp ∨
+      t = .propose := by
+  rcases h with h | h | h | h | h | h | h <;> simp [h]
+
+/-! ## The leader hint along `Reach` -/
+
+/-- Raft's leader hint at `s` (C1's `LeadOk`): a node that does not lead does not name itself; the
+hint is no node or one of the three (`LeadIn`). -/
+def LeadHint (N : Nat) (id : w64) (s : PState) : Prop := (s.role ≠ .leader → s.lead ≠ id) ∧ LeadIn N s
+
+theorem leadHint_pre {id : w64} {s s1 : PState} {m : Msg} (h : LeadHint N id s) (hid : id ≠ W64 0)
+    (hsrc : fromLeader m.ty = true → m.src ≠ id)
+    (hsn : fromLeader m.ty = true → ∃ j : Fin N, m.src = nodeId j) (hp : PreEnd kk s m s1) :
+    LeadHint N id s1 := by
+  rcases hp with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · refine ⟨fun _ => ?_, ?_⟩
+    · show (if fromLeader m.ty then m.src else W64 0) ≠ id
+      split
+      · rename_i hfl; exact hsrc hfl
+      · exact Ne.symm hid
+    · show (if fromLeader m.ty then m.src else W64 0) = W64 0 ∨
+        ∃ j : Fin N, (if fromLeader m.ty then m.src else W64 0) = nodeId j
+      split
+      · rename_i hfl; exact .inr (hsn hfl)
+      · exact .inl rfl
+  · exact h
+
+theorem leadHint_propose {id : w64} {s s' : PState} {m : Msg} (h : LeadHint N id s)
+    (hp : ProposeEnd cf id s m s') : LeadHint N id s' := by
+  unfold ProposeEnd at hp
+  split at hp
+  · rename_i hr
+    rcases hp with rfl | ⟨es, ms, -, -, rfl⟩
+    · exact h
+    · exact ⟨fun h' => absurd hr h', h.2⟩
+  · split at hp
+    · subst hp; exact h
+    · subst hp; exact h
+
+/-- The type switch keeps the leader hint: the sender adopted as leader (`MsgApp`, `MsgHeartbeat`)
+is another node; a lost election clears `lead`; a win makes the node leader. -/
+theorem leadHint_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadHint N id s)
+    (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j)
+    (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp ∨ m.ty = .propose)
+    (hsrc : m.src ≠ id ∨ m.ty = .appResp ∨ m.ty = .voteResp)
+    (hsn : ∃ j : Fin N, m.src = nodeId j)
+    (hh : HandleEnd kk c id s m s') : LeadHint N id s' := by
+  unfold HandleEnd at hh
+  rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at hh <;> simp only at hh
+  · rcases hh with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> exact h
+  · split at hh
+    · rcases hh with ⟨-, rfl⟩ | ⟨-, mt, ms, -, -, rfl⟩ | ⟨-, rfl⟩
+      · exact h
+      · exact ⟨fun h' => absurd rfl h', .inr hin⟩
+      · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
+    · subst hh; exact h
+  · have hs : m.src ≠ id := hsrc.resolve_right (by rw [hty]; simp)
+    split at hh
+    · subst hh; exact h
+    · rcases hh with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;>
+        exact ⟨fun _ => hs, .inr hsn⟩
+  · split at hh
+    · unfold AppRespEnd at hh
+      rcases hh with ⟨-, rfl⟩ | ⟨-, -, ms, -, rfl⟩ | ⟨-, x, k, -, -, ms, -, rfl⟩ <;> exact h
+    · subst hh; exact h
+  · have hs : m.src ≠ id := hsrc.resolve_right (by rw [hty]; simp)
+    split at hh
+    · subst hh; exact h
+    · subst hh; exact ⟨fun _ => hs, .inr hsn⟩
+  · split at hh
+    · obtain ⟨ms, -, rfl⟩ := hh; exact h
+    · subst hh; exact h
+  · exact leadHint_propose h hh
+
+theorem leadHint_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadHint N id s)
+    (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j)
+    (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp ∨ m.ty = .propose)
+    (hsrc : m.src ≠ id ∨ m.ty = .appResp ∨ m.ty = .voteResp)
+    (hsn : ∃ j : Fin N, m.src = nodeId j)
+    (hr : RecvEnd kk c id s m s') : LeadHint N id s' := by
+  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  · exact leadHint_handle h hid hin hsc hsrc hsn hh
+  · exact h
+  · refine leadHint_handle (leadHint_pre h hid (fun hfl => ?_) (fun _ => hsn) hpre) hid hin hsc
+      hsrc hsn hh
+    rcases hsrc with hs | hty | hty
+    · exact hs
+    · exact absurd hfl (by simp [hty, fromLeader])
+    · exact absurd hfl (by simp [hty, fromLeader])
+
+theorem leadHint_tick {c : CfgM} {id : w64} {s s' : PState} (h : LeadHint N id s) (hid : id ≠ W64 0)
+    (ht : TickEnd kk c id s s') : LeadHint N id s' := by
+  rcases ht with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+  · exact h
+  · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
+  · exact h
+
+theorem leadHint_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (h : LeadHint N id s)
+    (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j)
+    (hq : ∀ q ∈ qs, (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = id)
+    (ha : AdvanceEnd kk c id s qs s') : LeadHint N id s' := by
+  induction ha with
+  | nil => exact h
+  | cons s s1 s' q qs hr _ ih =>
+    have hq0 := hq q (List.mem_cons_self ..)
+    have hsc : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨
+        q.ty = .heartbeat ∨ q.ty = .heartbeatResp ∨ q.ty = .propose := by
+      rcases hq0.1 with h0 | h0
+      · exact .inr (.inr (.inr (.inl h0)))
+      · exact .inr (.inl h0)
+    exact ih (leadHint_recv h hid hin hsc (.inr hq0.1) (hq0.2 ▸ hin) hr)
+      (fun x hx => hq x (List.mem_cons_of_mem _ hx))
+
+/-- **The leader hint is kept along `Reach`** (C1's `LeadOk` at the state a `Ready` is taken at): a
+received message is from another node (C4's `NetShape`), one of the servers (`NetOk`), `Advance`
+steps only the node's own acknowledgements and vote responses. For the runs a mask below `mskS4`
+admits. -/
+theorem reach_leadOk {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : LeadHint R.N (nodeId n) r₁.p := by
+  obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  have hqs := hv.qs
+  have hlo : LeadHint R.N (nodeId n) v.ps := hv.leadOk
+  have hid := nodeId_ne_zero n
+  have hin' : ∃ j : Fin R.N, nodeId n = nodeId j := ⟨n, rfl⟩
+  cases hr with
+  | stay _ => exact hlo
+  | input inp _ _ hinp _ _ _ _ hm _ hs =>
+    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    · obtain ⟨hmn, hmd, -⟩ := hm m rfl
+      have hsd : m.src ≠ nodeId n := hmd ▸ (hnet.2.2.1 m hmn).2.1
+      obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1
+      exact leadHint_recv hlo hid hin' (ty7_of_s4 (hty m hmn)) (.inl hsd) ⟨i, hi⟩ hs.1.1
+    · exact leadHint_tick hlo hid hs.1.1
+    · rcases hs.1.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      · exact leadHint_propose hlo hh
+      · exact absurd rfl h0
+      · exact absurd rfl h0
+  | advance _ _ _ _ _ _ ha _ =>
+    refine leadHint_adv hlo hid hin' (fun q hq => ?_) (advanceEndR_toP ha)
+    obtain ⟨h1, -, -, -, h5⟩ := hqs q hq
+    exact ⟨h5.imp (fun h => h.1) (fun h => h.1), h1⟩
 
 end outbox
 
