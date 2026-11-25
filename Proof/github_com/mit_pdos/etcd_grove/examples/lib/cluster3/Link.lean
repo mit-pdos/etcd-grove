@@ -16,9 +16,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.ClientS
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.NewClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.PeerStep
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.RandomSchedule
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.below
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.holdToken
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
@@ -88,6 +90,14 @@ theorem wp_PeerStep :
 theorem wp_Partitioner :
     EtcdGrove.cluster3.Partitioner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.Partitioner.wp_proof wp_PeerStep wp_ClientStep
+
+theorem wp_below :
+    EtcdGrove.cluster3.below.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cluster3.below.wp_proof
+
+theorem wp_RandomSchedule :
+    EtcdGrove.cluster3.RandomSchedule.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cluster3.RandomSchedule.wp_proof wp_below
 
 theorem net.wp_Listen [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
