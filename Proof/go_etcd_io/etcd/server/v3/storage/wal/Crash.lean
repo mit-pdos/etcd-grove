@@ -69,7 +69,7 @@ def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarsha
 /-- **The crash view** (as `absDiskCrashWal`): the old generation's ghost authorities at the old
 real state `s`, the new generation's program map at the crashed state `s'` and its fact. -/
 def walCrashWal (W W' : WalGS GF) : IProp GF :=
-  iprop(∃ s s' : AbsDiskState, ⌜walStCrash s s'⌝ ∗ walGhost (W := W) s ∗
+  iprop(∃ s s' : AbsDiskState, ⌜walStCrashS s s'⌝ ∗ walGhost (W := W) s ∗
     walOwn (W := W') s'.wal ∗ walPast (W := W') s')
 
 /-- **A crash keeps the WALs' step bound**: each history becomes an image of it, no longer
@@ -316,8 +316,9 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     (fun g _ ht hgD => hD g.ino hgD (of_decide_eq_true ht)) (walsOk_nodup Hok)
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
-  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs, hLL⟩ :=
+  obtain ⟨s', Ls', hcrashS, harea', hk', hstart, hnd', hsegs, hLL⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk (fun _ _ hl => HAt.ne hl) Hreg htree (hQ _ _ hQs) hfiles
+  have hcrash := hcrashS.1
   -- the taken segments' starts
   have hT : ([∗list] g ∈ segsAll Ls, if tk g then
         osFileStartO (L := L') g.ino (st'.fs.files !! g.ino) else emp) ⊢
@@ -425,7 +426,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · unfold walCrashWal
     iexists s, s'
     iframe Hg HM' Hp'
-    ipureintro; exact hcrash
+    ipureintro; exact hcrashS
   isplitr
   · ipureintro
     refine ⟨hWR', by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
@@ -1087,7 +1088,7 @@ theorem walCrash_view_keep (M : GMap GoString WalDur) :
   iframe HM
   iexists s, s'
   iframe Hg HM' Hp'
-  ipureintro; exact ⟨hc, HMs⟩
+  ipureintro; exact ⟨hc.1, HMs⟩
 
 theorem walDiskAt_crash_keep (dir : GoString) (d : WalDur) (n : Nat) :
     ⊢@{IProp GF} walCrashWal W W' -∗
@@ -1218,7 +1219,7 @@ theorem dirDurable_crash_keep (d : GoString) :
   icases walPast_ghost_le (W := W) s p $$ HG Hp with %Hlp
   isplitl [HG HM']
   · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
-  · iexists s'; iframe Hp'; ipureintro; rw [hc.2.1]; exact Hlp.2.1 d Hd
+  · iexists s'; iframe Hp'; ipureintro; rw [hc.1.2.1]; exact Hlp.2.1 d Hd
 
 theorem walArea_crash_keep (r : GoString) :
     ⊢@{IProp GF} walCrashWal W W' -∗ walArea (W := W) r -∗
@@ -1228,7 +1229,7 @@ theorem walArea_crash_keep (r : GoString) :
   icases walPast_ghost_le (W := W) s p $$ HG Hp with %Hlp
   isplitl [HG HM']
   · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
-  · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
+  · iexists s'; iframe Hp'; ipureintro; rw [hc.1.1, Hlp.1, Hr]
 
 end crash
 
