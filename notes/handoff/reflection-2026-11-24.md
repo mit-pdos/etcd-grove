@@ -629,7 +629,9 @@ Round 5 state (continued):
 ### Round 5 (layoutModelled): summary, left, draft #40 message
 
 Done: emitter (goose layout-modelled, etc/gen-layout-modelled.sh), guards per rule (see draft below), isModelRType removed, harness + Lean tests, CRITERIA 14 (Perennial review-criteria-dyntype 36e131815) + audit (reflect.Type MODEL marker, 1e3c8a368). Built: Perennial full chunked build green; harness, etc/model-tests.sh, go test ./goose/... green; #print axioms: Lean three only.
-Left: etcd-grove build eg1 ran on the state BEFORE the etcd-grove edits committed with this note; rerun `refl-lm/bin/eg.sh build eg2` (key 44b7416aff694723), fix remaining errors, then gates (/shared overrides), fill HEAD_EG/EG_GATES in the draft, send via coordinator. Nothing lands without Upamanyu.
+etcd-grove at 8d45849b82 (the WIP edits above, unchanged): full VM build `refl-lm/eg2.log` (key 44b7416aff694723, incremental after eg1): 28,217 jobs, exit 0, no errors. (eg1, synced before the edits were complete, failed in AsNoMatch, reflect.{TypeOf,Type__Elem,ValueOf}, specreq MustPanicIsNilStruct/typedNilString, k8s Checks/ErrOk, rafthttp pipeline/snapshot handlers; eg2 builds all of them.)
+Gates at 8d45849b82 (`refl-lm/gates07.log`, `/shared` overrides): build ok; tcb: trust base matches `etc/tcb-baseline.txt` (324 axioms, 0 sorries); axiom-tok ok (304 walked); collections 61 match / 0 differ; errorf-wrap, model-param (cache-write warnings for /shared/tmp only), goose, gen-init, kitgen, links, specreq-reflect, premisefix, k8s tests, bounds 400, mode 456, tier, import-all all ok; only `merge-status` fails (VM sync dir not a git repo). `etc/merge-status.py --selftest` run locally: synthetic ok, 228 real merges replayed, 0 with problems.
+Left: send the #40 message below (HEAD_EG/EG_GATES filled in `refl-lm/msg40.md`) via coordinator-E. Nothing lands without Upamanyu.
 
 Draft #40 message:
 
