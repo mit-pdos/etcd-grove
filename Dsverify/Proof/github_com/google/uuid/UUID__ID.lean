@@ -42,14 +42,16 @@ theorem github_com.google.uuid.UUID.ID.wp_proof [github_com.google.uuid.Assumpti
   have hsplit := array_split (V := w8) (GF := GF) (W64 4) uuid_ptr (DFrac.own 1) 16
     (array.mk 16 vs) ⟨by decide, by decide⟩
   icases hsplit.1 $$ uuid with ⟨Ha1, -⟩
-  ihave Hs := crypto.sha1.slice_of_array_int _ 4 ⟨by omega, by omega⟩ _ _ (W64 16 - W64 0)
-    (by decide) $$ [Ha1]
-  · simp only [show sint.Z (W64 4) = 4 by rfl, show sint.nat (W64 4) = 4 by rfl]
-    rw [go.arrayIndexRef_0]
-    iexact Ha1
-  wp_apply (encoding.binary.wp_BigEndian_Uint32 _ (vs.take 4) _ [] (by simp; omega)) $$ [Hs] as -
-  · iframe Hbin; rw [List.append_nil]; iexact Hs
-  wp_auto
+  have e0 : arrayIndexRef w8 (sint.Z (W64 0)) uuid_ptr = uuid_ptr := by
+    rw [show sint.Z (W64 0) = 0 by rfl]; exact go.arrayIndexRef_0 _ _
+  rw [e0, show W64 4 - W64 0 = W64 4 by rfl]
+  simp only [show sint.nat (W64 4) = 4 by rfl]
+  ihave Hs := crypto.sha1.slice_of_array_int uuid_ptr 4 ⟨by omega, by omega⟩ (vs.take 4) _
+    (W64 16 - W64 0) (by decide) $$ Ha1
+  wp_apply (encoding.binary.wp_BigEndian_Uint32 (slice.mk uuid_ptr (W64 4) (W64 16 - W64 0))
+    (vs.take 4) (DFrac.own 1) [] (by simp; omega)) $$ [Hs] as -
+  · rw [List.append_nil]; iexact Hs
+  try wp_auto
   iapply HΦ
   itrivial
 

@@ -25,11 +25,6 @@ axiom Perennial.encoding.gob.wireBytes_exists
 axiom Perennial.encoding.gob.wireBytes_peel
 axiom Perennial.encoding.gob.wireFits_of
 axiom Perennial.encoding.gob.wp_initialize'
-axiom Perennial.github_com.google.uuid.New.wp_proof
-axiom Perennial.github_com.google.uuid.UUID.ID.wp_proof
-axiom Perennial.math.rand.New.wp_proof
-axiom Perennial.math.rand.NewSource.wp_proof
-axiom Perennial.math.rand.rngSource.Int63.wp_proof
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'

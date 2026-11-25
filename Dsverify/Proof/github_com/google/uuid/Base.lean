@@ -25,6 +25,21 @@ namespace Perennial
 
 open Iris Iris.BI
 
+/-- Slicing an array through a pointer, `Slice (ArrayType n t)`, as a step tagged `under`, so that
+`go.slice_underlying` gives the step of slicing a **named** array type (`uuid[0:4]` on a `UUID`, a
+`[16]byte`: `ID`, `NewRandom`). A theorem, not an assumption: the tag is only a label for instance
+search, and the step is Perennial's `go.slice_array_step`. Perennial states that step untagged
+(where `go.index_ref_array` is tagged `under`), so no named array can be sliced there: the general fix,
+tagging it, is in `notes/perennial-changes.md` (2026-11-25). -/
+instance slice_array_step_under [GooseExts] [GoLocalContext] [GoGlobalContext]
+    [GoSemanticsFunctions] [go.PreSemantics] (n : Int) (elem_type : go.GoType) (p : Loc)
+    (low high : w64) {V : Type} {zv : ZeroVal V} [TypeRepr elem_type V] :
+    ⟦Slice (go.ArrayType n elem_type), (#p, #low, #high)⟧ ⤳[under]
+       (if 0 ≤ sint.Z low ∧ sint.Z low ≤ sint.Z high ∧ sint.Z high ≤ n then
+          #(slice.mk (arrayIndexRef V (sint.Z low) p) (high - low) (W64 n - low))
+        else Panic "slice bounds out of range") :=
+  ⟨go.slice_array_step n elem_type p low high⟩
+
 namespace github_com.google.uuid
 
 section def_

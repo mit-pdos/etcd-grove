@@ -26,8 +26,6 @@ axiom Perennial.github_com.gogo.protobuf.proto.RegisterEnum.wp_proofMsgType
 axiom Perennial.github_com.gogo.protobuf.proto.RegisterFile.wp_proof
 axiom Perennial.github_com.gogo.protobuf.proto.RegisterType.wp_proof
 axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
-axiom Perennial.github_com.google.uuid.New.wp_proof
-axiom Perennial.github_com.google.uuid.UUID.ID.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Bool.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Float64.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Int.wp_proof
@@ -58,10 +56,7 @@ axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
-axiom Perennial.math.rand.New.wp_proof
-axiom Perennial.math.rand.NewSource.wp_proof
 axiom Perennial.math.rand.Seed.wp_proof
-axiom Perennial.math.rand.rngSource.Int63.wp_proof
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
