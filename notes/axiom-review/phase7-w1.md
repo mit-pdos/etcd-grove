@@ -328,6 +328,46 @@ generated term by a `match`. A build checks that it reduces; if goose's output s
 | `grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof` | pre and **post** (unchanged arguments) | the post claims the state is unchanged | `InitializeMetrics` only reads `server.GetServiceInfo()` (`services`, read-only) and registers its metrics. |
 | `grpc.StatsHandler.wp_proof` | its post `grpcSrvOpt v (.stats h)`, if `.stats h` carries `⌜grpcStatsHandlerOk h⌝` (needed for the definition's stats-handler clause) | the post claims its own premise | trivially true |
 
+### 3.3 Why the trusted statements over `grpcSrvNew` stay true now that other code could build one
+
+Until W1, only `NewServer`'s axiom produced `grpcSrvNew`, so the axioms that consume it (`Serve`,
+`etcd_noRefusal`, `etcd_noOtherRefusal`) and those that pass it on (`RegisterHealthServer`,
+`InitializeMetrics`) were only about servers `NewServer` returned. Now `grpcSrvNew` is a definition, and
+any proof that holds its parts can assemble it. Two arguments say this changes nothing.
+
+1. **The definition is exact for everything those statements read.** Every field `Serve` and the
+   registration path read is fixed to the value grpc's own code stores:
+   - the chains, and the stored interceptors as the chaining closures' exact values;
+   - the stats handler, with the protobuf-or-nil codec;
+   - the nil credentials, compressors, unknown-stream handler and stream wrapper;
+   - `serve`/`drain` false, empty `lis`/`conns`, no event log, fresh `quit`/`done`;
+   - `mu`/`cv` as a mutex and a condition variable on it;
+   - each method's handler as the exact `wrapUnaryHandler` closure over cells holding `gs` and
+     `&sd.Methods[j]`, and each stream's descriptor as `&sd.Streams[i]` of a `grpcDescIs` descriptor.
+
+   The fields left open are those of `srvOptsSameBut`'s whitelist: limits, windows, buffers, keepalive,
+   timeout and workers. `grpc-neutral-narrow`'s review argues the same freedom for `.neutral`: a
+   whitelisted field changes no handler, run context or decoding. Ownership is exclusive, so no other
+   thread holds a part. A state that satisfies `grpcSrvNew` is therefore one on which the model's `Serve`
+   (and `register`, `GetServiceInfo`) behaves as on a state `NewServer`/`RegisterService` built. How the
+   state was reached does not enter the statements' truth.
+2. **No program can build the parts without grpc's code anyway.** `Server`'s fields are unexported, so
+   Go code outside package `grpc` can write none of them. It can only allocate the zero value
+   (`new(grpc.Server)`, `&grpc.Server{}`). The zero value does not satisfy the definition:
+   - its `lis`, `conns` and `services` are nil maps, and `ownMap` at `null` has no heap points-to, so
+     it cannot be proved;
+   - its `quit`/`done` are nil, not fresh events with owned channels;
+   - its `cv` is nil, not a `sync.Cond`.
+
+   Inside grpc, the translated code that writes these fields is `NewServer`'s literal and the
+   `chain*ServerInterceptors`, `register` (`services`, under `mu`) and, in the model, `Serve`/`Stop`. All
+   but `Serve`/`Stop` are proved here against the definition. `Serve` consumes it (`grpcServeTok`) and
+   never gives it back, so after `Serve` no `grpcSrvNew` exists for the server. `Stop`/`GracefulStop`
+   have no spec, so no proof can call them.
+
+   So the statements are only ever applied to servers grpc's own code built, as before. Argument 1 is
+   the one their truth rests on; argument 2 shows that nothing new is reachable either.
+
 ## 4. Files SW2 also edits
 
 None of `InvGrpcBase`, `InvGrpc`, `InvGrpcRun`, the handler specs or the adapters is edited here.
