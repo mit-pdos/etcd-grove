@@ -246,8 +246,13 @@ theorem serverStream_servesEnt (wp_M : server.ServerStream.spec (GF := GF) (hG :
   isplitr
   · iintro !> %md %γ %j %m H
     iexact H
-  rw [show (pbStringValueST (GF := GF)).toStreamMsg = strmMsg (GF := GF) from rfl]
-  iapply serverStream_runOk wp_M wp_H s
+  have hr : iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
+      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc) ⊢
+      grpcStreamRunOk (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+        (Rep := (pbStringValueST (GF := GF)).toStreamMsg)
+        #(functions svc._Driver_ServerStream_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
+        [] ssUp (drvStrmSpec ssDn) := serverStream_runOk wp_M wp_H s
+  iapply hr
   iframe #
 
 /-- **The server's registrations serve the table's `ClientStream` entry** (`grpcServesEnt`): for
@@ -283,8 +288,13 @@ theorem clientStream_servesEnt (wp_M : server.ClientStream.spec (GF := GF) (hG :
   isplitr
   · iintro !> %md %γ %j %m H
     iexact H
-  rw [show (pbStringValueST (GF := GF)).toStreamMsg = strmMsg (GF := GF) from rfl]
-  iapply clientStream_runOk wp_M wp_H s
+  have hr : iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
+      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc) ⊢
+      grpcStreamRunOk (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+        (Rep := (pbStringValueST (GF := GF)).toStreamMsg)
+        #(functions svc._Driver_ClientStream_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
+        [] csUp (drvStrmSpec csDn) := clientStream_runOk wp_M wp_H s
+  iapply hr
   iframe #
 
 /-- **The server's registrations serve the table's `Bidi` entry** (`grpcServesEnt`): for
@@ -320,8 +330,13 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
   isplitr
   · iintro !> %md %γ %j %m H
     iexact H
-  rw [show (pbStringValueST (GF := GF)).toStreamMsg = strmMsg (GF := GF) from rfl]
-  iapply bidi_runOk wp_M wp_H s
+  have hr : iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
+      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc) ⊢
+      grpcStreamRunOk (Req := (pbStringValueST (GF := GF)).toStreamMsg)
+        (Rep := (pbStringValueST (GF := GF)).toStreamMsg)
+        #(functions svc._Driver_Bidi_Handler []) (interface.mkOk (go.GoType.PointerType server.ty) #s)
+        [] biUp (drvStrmSpec biDn) := bidi_runOk wp_M wp_H s
+  iapply hr
   iframe #
 
 /-- A unary entry of the table's: its registered reply model bounds every reply. -/

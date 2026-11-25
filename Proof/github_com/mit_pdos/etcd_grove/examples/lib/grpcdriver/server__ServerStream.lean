@@ -44,7 +44,6 @@ theorem server.ServerStream.wp_proof
   icases Hr with ⟨%sv, Hsv, %Hsvp⟩
   obtain ⟨hval, -, hlen⟩ := Hsvp
   subst hval
-  iStructNamed Hsv
   wp_auto
   ihave IH : iprop(∃ (k : w64) (L : List GoString), "i" ∷ i_ptr ↦ k ∗
       "HSt" ∷ srvSendTok (Rep := strmMsg (GF := GF)) γ L ∗
