@@ -25,6 +25,8 @@
 # of the call's models, whose `.wire`s `grpcSvcAt` puts at the name), a stream entry by `NewStream` (it requires
 # `streamReqModelOf GF Req.ty = some Req`, `streamRepModelOf GF Rep.ty = some Rep` of the models whose `.wire`s
 # `grpcStreamSvcAt` puts at the name), a served entry by `Serve` (`grpcServesEnt`, per kind).
+# The stream registries accept `ProtoWire` binders (`REG_FAMILY`), as S2 made the unary ones do: a stream entry
+# holds its models' `.wire`s (accepted as tooling by the coordinator, 2026-11-25).
 pair Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcReqModelOf grpcSvcAt/Svc?.unary.e.Wq : the entry Invoke reaches at a₀ is .unary ⟨Req.wire, Rep.wire, _⟩ (grpcSvcAt's `Svc name = some (.unary ⟨Wq, Wp, _⟩)` at isGrpcRpcMd's Req.wire), whose Req Invoke's grpcInvokerOk requires grpcReqModelOf GF Req.ty = some Req; the table's other unary entries are read by an Invoke of their own name, at its registered models
 pair Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcRepModelOf grpcSvcAt/Svc?.unary.e.Wp : as the request's: the entry's Wp is Rep.wire, whose Rep grpcInvokerOk requires grpcRepModelOf GF Rep.ty = some Rep
 pair Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof Perennial.EtcdGrove.streamReqModelOf grpcSvcAt/Svc?.stream.e.Wq : Invoke reads no stream entry (the entry at its name is .unary, grpcSvcAt); a stream entry of the table is read only by a NewStream of its name, which requires streamReqModelOf GF Req.ty = some Req of the model whose wire grpcStreamSvcAt puts there
@@ -76,6 +78,7 @@ pair Perennial.EtcdGrove.grpc.Server.Serve.wp_proof Perennial.EtcdGrove.grpc.Ser
 # `bridge.New` (SW1 commit 7) takes the table both its addresses serve (`grpcAddrAt a Svc`, `grpcAddrAt addr Svc`),
 # with no registry premise of its own: it decodes no message and its post (`ownBridge`, a pure `noRefusalAt` fact)
 # holds no model, so every entry is inert in it, tied where it is read (the header above).
+# (These pairs, with no registry premise of `bridge.New`'s own: accepted by the coordinator, 2026-11-25.)
 pair Perennial.EtcdGrove.bridge.New.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcReqModelOf spec/Svc?.unary.e.Wq : bridge.New reads no entry; a unary entry is read by an Invoke at a or addr, whose grpcInvokerOk requires grpcReqModelOf GF Req.ty = some Req of the model whose wire grpcSvcAt puts there
 pair Perennial.EtcdGrove.bridge.New.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof Perennial.EtcdGrove.grpcRepModelOf spec/Svc?.unary.e.Wp : as the request's, with grpcInvokerOk's grpcRepModelOf GF Rep.ty = some Rep
 pair Perennial.EtcdGrove.bridge.New.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof Perennial.EtcdGrove.streamReqModelOf spec/Svc?.stream.e.Wq : bridge.New reads no entry; a stream entry is read by a NewStream at a or addr, which requires streamReqModelOf GF Req.ty = some Req of the model whose wire grpcStreamSvcAt puts there
