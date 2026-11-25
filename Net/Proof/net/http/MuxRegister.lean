@@ -275,6 +275,36 @@ theorem patKeys_ne_nil (p : List w8) : patKeys p ≠ [] := by simp [patKeys]
 /-- `d` holding the pattern `pp` and handler `h` (`set`). -/
 def setPat (d : NodeSt) (pp : Loc) (h : GoInterface) : NodeSt := { d with pat := pp, h := h }
 
+
+theorem pathSegs_multi_last : ∀ p, (p = [] ∨ p.head? = some (W8 47)) →
+    ∀ l1 l2, pathSegs p = l1 ++ .multi :: l2 → l2 = [] := by
+  apply pathSegs_ind
+  · intro l1 l2 h; simp [pathSegs] at h
+  · intro l1 l2 h; rw [pathSegs_slash] at h
+    cases l1 with
+    | nil => simp at h; exact h
+    | cons a l1 => simp at h
+  · intro t ht ih l1 l2 h
+    rw [pathSegs_cons t ht] at h
+    cases l1 with
+    | nil => simp at h
+    | cons a l1 => simp at h; exact ih l1 l2 h.2
+
+/-- A key path ending in the multi wildcard that leads to a pattern is that pattern's. -/
+theorem patKeys_multi_prefix (kc : List Seg) (q : List w8) (hq : litPat q)
+    (h : kc ++ [.multi] <+: patKeys q) : patKeys q = kc ++ [.multi] := by
+  obtain ⟨t, ht⟩ := h
+  cases kc with
+  | nil => simp [patKeys] at ht
+  | cons a kc =>
+    cases kc with
+    | nil => simp [patKeys] at ht
+    | cons b kc =>
+      simp only [patKeys, List.cons_append, List.cons.injEq] at ht
+      obtain ⟨ha, hb, ht⟩ := ht
+      have := pathSegs_multi_last q (.inr hq.1) kc t (by rw [← ht]; simp)
+      subst this; subst ha; subst hb; simp [patKeys, ← ht]
+
 theorem TreeSt.okP_set (root : Loc) (S : TreeSt) (p : List w8) (pp : Loc) (h : GoInterface)
     (hok : S.okP root (patKeys p)) (hp : litPat p) (hnew : p ∉ S.pats.map Prod.fst)
     (d : NodeSt) (hd : S.nodes !! patKeys p = some d) :
@@ -657,6 +687,21 @@ theorem wp_addChild (root : Loc) (S : TreeSt) (kc : List Seg) (d : NodeSt) (key 
       ipureintro
       refine ⟨TreeSt.okP_addNode root S kc (.lit (b :: bs)) hok d hd hnone «$r0_ptr» hcn st', ?_, rfl⟩
       exact GMap.lookup_insert _ _ _
+
+/-- `n.set(pp, h)` on a node without a pattern. -/
+theorem wp_set (d : NodeSt) (pp : Loc) (h : GoInterface) (hnil : d.pat = null ∧ d.h = interface.nil) :
+    {{ nodeRep (GF := GF) (hG := hG) (DFrac.own 1) d }}
+      (App (App (Val (d.l @!! go.GoType.PointerType net.http.routingNode.ty @!! go!"set")) (Val #pp)) (Val #h))
+    {{ RET #(); nodeRep (DFrac.own 1) (setPat d pp h) }} := by
+  unfold nodeRep
+  obtain ⟨hp0, hh0⟩ := hnil
+  wp_start as ⟨Hp, Hh, Hc, Hm, He⟩
+  wp_auto
+  rw [hp0, hh0]
+  wp_auto
+  iapply HΦ
+  simp only [setPat]
+  iframe
 
 end wp
 
