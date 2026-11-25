@@ -546,7 +546,8 @@ theorem readAll_idx {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarsh
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat) (g : SegG)
     (hg : lay.segs[kk]? = some g) (s : w64 × w64)
     (hsel : ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1)
-    {acc : List WalRec} (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc)
+    {acc : List WalRec} (hacc : (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)).drop
+      (recsOfSegs C Mr d.metadata ((segsOf (histM d) lay.cuts).take (lay.first + kk))).length = acc)
     {st : RAState} (hf : (acc.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st)
     (hm : st.matched = true) {ix : w64 × w64} (hix : acc.foldl (raIdx U s) (W64 0, W64 0) = ix) :
     (walLastIdx (histM d) ≤ max (uint.nat ix.1) (uint.nat ix.2) ∧
@@ -559,7 +560,6 @@ theorem readAll_idx {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarsh
   have hk := length_flatten_take_segsOf (I := histM d) hlt hle hp
   have hflat : (segsOf (histM d) lay.cuts).flatten = histM d :=
     segsOf_flatten _ _ (hlt.imp Nat.le_of_lt) hle
-  rw [walReadFiles_running hC hab hex hwr kk hkk] at hacc
   rw [foldl_raIdx_map] at hix
   -- the matched start's snapshot record among those read
   obtain ⟨tds, htds, hts, pm, hpm, hpms⟩ :=
@@ -612,7 +612,8 @@ theorem readAll_eof_matched {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : Wa
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat) (g : SegG)
     (hg : lay.segs[kk]? = some g) (s : w64 × w64)
     (hsel : ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1)
-    {acc : List WalRec} (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc)
+    {acc : List WalRec} (hacc : (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)).drop
+      (recsOfSegs C Mr d.metadata ((segsOf (histM d) lay.cuts).take (lay.first + kk))).length = acc)
     {st : RAState} (hf : (acc.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st)
     (hs : walNewestPair (walValidSnaps (histM d) d.cut) = some s) : st.matched = true := by
   apply raFold_match _ hf
@@ -624,7 +625,6 @@ theorem readAll_eof_matched {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : Wa
   have hk := length_flatten_take_segsOf (I := histM d) hlt hle hp
   have hflat : (segsOf (histM d) lay.cuts).flatten = histM d :=
     segsOf_flatten _ _ (hlt.imp Nat.le_of_lt) hle
-  rw [walReadFiles_running hC hab hex hwr kk hkk] at hacc
   generalize hSs : segsOf (histM d) lay.cuts = Ss at hk hflat hacc
   generalize hpp : lay.first + kk = p at hk hp hacc
   rcases Nat.eq_zero_or_pos p with h0 | h0

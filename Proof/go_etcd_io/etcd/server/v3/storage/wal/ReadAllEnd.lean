@@ -14,6 +14,7 @@ a file holding the frames of `rs` and nothing the reader accepts after them ends
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllFiles
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecReach
 
 @[expose] public section
 
@@ -135,8 +136,12 @@ theorem walDecodeFiles_running_end {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (
     (walDecodeFiles C (((chainSegs C 0#32 (segsDs M md true [] A)).drop p).map (recFrames C) ++ [last])
         0#32).off = (recFrames C (lastRecs C M md A Sl ++ Y)).length ∧
     (walDecodeFiles C (((chainSegs C 0#32 (segsDs M md true [] A)).drop p).map (recFrames C) ++ [last])
-        0#32).crc = chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) Y := by
-  generalize hL : chainSegs C 0#32 (segsDs M md true [] A) = L
+        0#32).crc = chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl]))) Y ∧
+    Reach C (((chainSegs C 0#32 (segsDs M md true [] A)).drop p).map (recFrames C) ++ [last]) 0 0#32
+      [last] (recFrames C (lastRecs C M md A Sl)).length (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl])))
+      ((recsOfSegs C M md (A ++ [Sl])).drop (recsOfSegs C M md (A.take p)).length).length := by
+  have hrun := walDecodeFiles_running hC M md A Sl p hp last Y hfit hfitY hchY hpre hend
+  generalize hL : chainSegs C 0#32 (segsDs M md true [] A) = L at hrun
   have hLl : L.length = A.length := by rw [← hL, length_chainSegs, length_segsDs]
   have hfull : recsOfSegs C M md (A ++ [Sl]) = L.flatten ++ lastRecs C M md A Sl := by
     rw [recsOfSegs_snocR, ← hL, flatten_chainSegs]; rfl
@@ -193,7 +198,23 @@ theorem walDecodeFiles_running_end {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (
       chainEnd C (chainEnd C 0#32 (recsOfSegs C M md (A ++ [Sl])))  Y := by
     rw [chainEnd_append, hendX]
   have hE := walDecodeFrom_framesEnd hC hfitl' hchl' hpre (by rw [hendl']; exact hend)
-  exact ⟨hE.2.1, by simp only; rw [hE.2.2, hendl']⟩
+  have hint := walDecodeFiles_intact_last hC last (L.drop p) 0#32 hfitD hchX.1
+  rw [hint] at hrun
+  simp only [hE.1] at hrun
+  have hcnt : ((L.drop p).flatten ++ lastRecs C M md A Sl) =
+      (recsOfSegs C M md (A ++ [Sl])).drop (recsOfSegs C M md (A.take p)).length := by
+    rw [← List.append_assoc] at hrun
+    exact List.append_cancel_right hrun
+  have hLne : lastRecs C M md A Sl ≠ [] := by
+    unfold lastRecs segHdrDs hdrDs cutHdrDs
+    split <;> simp [chainRecs]
+  have hpreL : recFrames C (lastRecs C M md A Sl) <+: last := by
+    rw [recFrames_append] at hpre
+    exact (List.prefix_append _ _).trans hpre
+  have hR := reach_files hC last _ hLne (L.drop p) 0#32 hfitX ((chainOk_append C _ _ _).2 hchX) hpreL
+  rw [chainEnd_append, hendX, ← List.length_append, hcnt] at hR
+  refine ⟨hE.2.1, by simp only; rw [hE.2.2, hendl'], ?_⟩
+  exact hR
 
 /-- **Where `ReadAll`'s reader ends on the named segments from the `kk`-th on**
 (`walReadFiles_running`'s premises): at the last segment's write position, at the chain's CRC after
@@ -213,7 +234,11 @@ theorem walReadFiles_running_end {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d
         (recFrames C (chainRecs C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
           (pendDs Mr es))).length ∧
       (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).crc =
-        crcAfter C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) (pendDs Mr es) := by
+        crcAfter C (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) (pendDs Mr es) ∧
+      ∃ fl, Reach C ((lay.segs.drop kk).map segImg) 0 0#32 fl lay.wr
+        (chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
+        ((recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)).drop
+          (recsOfSegs C Mr d.metadata ((segsOf (histM d) lay.cuts).take (lay.first + kk))).length).length := by
   have hne : lay.segs ≠ [] := hab.nonempty
   obtain ⟨-, -, hfl⟩ := hab.cuts
   generalize hSs : segsOf (histM d) lay.cuts = Ss
@@ -314,12 +339,16 @@ theorem walReadFiles_running_end {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d
   subst hc
   have hE := walDecodeFiles_running_end hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL) _
     hfit hfE (hchE es) hpX hendX
-  refine ⟨es, hes, ?_, ?_, ?_⟩
+  refine ⟨es, hes, ?_, ?_, ?_, ?_⟩
   · have := walDecodeFiles_running hC Mr d.metadata A Sl (lay.first + kk) (by omega) (segImg gL) _
       hfit hfE (hchE es) hpX hendX
     rw [this]
   · rw [hE.1, recFrames_append, List.length_append, ← hstreamL, hwr]
-  · rw [hE.2, chainEnd_chainRecs]
+  · rw [hE.2.1, chainEnd_chainRecs]
+  · refine ⟨[segImg gL], ?_⟩
+    have h := hE.2.2
+    rw [← hstreamL, ← hwr] at h
+    exact h
 
 /-- **The write position is inside the last file** (`walReadFiles_running`'s premises): `lay.wr` is at
 most the length of the last of the files read. -/
