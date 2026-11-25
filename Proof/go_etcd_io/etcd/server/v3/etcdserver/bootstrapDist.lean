@@ -56,8 +56,13 @@ entry's, so `URLStringsEqual` answers `true` with no DNS, and `Sort` of a one-el
 peer URL (`http://a`, `a` set to etcd's peer protocols, `bootRTOk`; no proxy) through an `http.Client` with the
 bootstrap timeout: a dial refused, a timeout, a body that does not parse or a member list without this member
 make it answer `false` (the boot goes on), and a list where this member has client URLs makes `bootstrap`
-return an error (`member %s has already been bootstrapped`); the answer is from etcd's peer handler of a member
-of the same cluster (`httpPeerSvc`'s acceptor protocol), whose `/members` is a JSON list of members. Then
+return an error (`member %s has already been bootstrapped`); the answer is from etcd's peer handler of member `pid` of the cluster `γ.cl` (`httpPeerSvc`'s acceptor protocol,
+written only by `PeerServe_dist`), whose `/members` is a JSON list of members. The axiom ties `γ` to this
+configuration only by pure premises (`γ.vs` its ids), so that member may have been started from another
+configuration; the axiom needs only that the answer is etcd's: any etcd member's `/members` is
+`cluster.Members()`'s `Clone`s, never `null` (`membership/cluster.go:123-131`; scratch evidence in
+`notes/axiom-review/s5-cluster-index.md`: strangers answered by a real three-member cluster boot or get "has
+already been bootstrapped", no panic). Then
 `bootstrapNewWAL` creates the WAL, `Finalize` sets the cluster's id and backend, and `bootstrapRaftFromCluster`
 builds raft's start (one conf change per member, `json.Marshal(cl.Member(id))` as its context). Each step
 either returns an error (`bootstrap` closing what it opened) or leaves what `bootOk` names at Go's id, contexts

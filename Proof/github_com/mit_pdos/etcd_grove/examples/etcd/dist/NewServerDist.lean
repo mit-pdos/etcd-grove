@@ -38,6 +38,12 @@ Why it is true: `NewServer.wp_proofG` proves `specG`'s text over the in-process 
 round trips use. Across machines the round trips go to the other members' peer addresses, which the deployment's
 start set to `httpPeerSvc` (`http_addr_set`), served by the other members' peer handlers (`PeerServe_dist`; any
 holder of `httpAddrAt` may also listen and accept there, but write nothing): what differs is how a message reaches its receiver, the transport's own code being the same.
+Across machines the members of one cluster read the address facts at their own records, which agree on `γ.cl` (the
+index of `httpAddrAt`) and differ at most in the storage registry `γ.reg`: given `γ.cl`, this precondition fixes the
+rest (`vs` by `nodeBoot`'s `BootLogOk vs γ.cl.raft.reBoot`, `boot` by `srvRaftLogInv`'s committed lower bound of
+length `γ.cl.bootLen`, `rule` by the premise, `snapLoc` by `srvClusterOk`, the log names by `srvLogInv`'s
+`ownCommittedOps γ.cl`, `authOn` by `kvInvM on`, one per cluster), and `srvNet` does not read `reg`: the members are
+those of one in-process network (`allocN`'s `γn.N = srvNet γ`), with the cluster's ids, contexts and auth mode.
 The proxy: Go's transport (etcd's `transport.NewTimeoutTransport`, `Proxy: http.ProxyFromEnvironment`) would send
 every peer request to an HTTP proxy named by `HTTP_PROXY`/`http_proxy` (`HTTPS_PROXY`/`https_proxy` for `https`
 URLs), which may answer anything (raft messages that make the member panic, `commitTo` past its last index);
