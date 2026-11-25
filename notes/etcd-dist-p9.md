@@ -86,10 +86,51 @@ porcupine model and its proof, thousands of lines, and the kv check no longer tx
   member's `kvRegsAt` naming `γk`: `etcd-dist-plan.md` §D7, "How clients reach the cluster's one KV
   state").
 
+## State (2026-11-25, second session): the `remote` change made; `enc` begun
+
+**The `remote` change** (approved by the coordinator, `remote`'s owner, #28; ledger entry marked):
+- `RBase GF St J I O` (`Net/Proof/.../lib/remote/Defs.lean`): `B : PendSpec St J O`, `mi : I → J`
+  (default `fun i => i`), `good : St → Prop` (default `True`), `sysState_good : ∀ st, sysState st ⊢ ⌜good st⌝`
+  (default proof by `pure_intro trivial`). `lin`/`slotUpd`/`codecOk`'s `IsRead` read `B` at `R.mi i`.
+- `PendDec` (`Pend.lean`) in the "at a configuration" form (`ok`, `errW`, `errR` over `s c i` with `s c` and
+  `R.good c.st`, each giving `∃ s'` with the step, the stepped configuration and `Closed`); `ioOk_*`, `noObs`,
+  `init` as before. `PendDecTotal` (the old form, for `R : RBase GF St I I O`) and `PendDec.ofTotal (hmi)
+  (h)`; `PendDec.pendOk_{ok,errW,errR}` replace the pure `pendOk_*`; `sysState_keep` takes `good` out of the
+  invariant's `sysState`. The pending map, `pendTok`, `PendOk` and the model state are over `J`.
+- `Do.spec`/`Run.spec`/`Check.spec` quantify `{J}` (with `[DecidableEq J] [Pos.Countable J]` for Run/Check)
+  inside the statement, so callers' `(St := …) (I := …) (O := …)` are unchanged; `Robust.lean`'s
+  `remote_robust{,RB}` quantify `R : RBase GF St I I O` (the counter's `refine` names no `J`).
+- Instances: the counter (`counter/{Defs,ModelDefs,Shared,Client,Server}.lean`) and the seven dsverify kits
+  (gryff, craq, swiftpaxos, epaxos, paxos, rabia, quepaxa): `RBase … X X …`, `PendDec … := .ofTotal (fun _
+  => rfl) { … }`; the counter's `Client`/`Server` case on `(cR γs).B.isWrite ((cR γs).mi i)`.
+- **Build evidence** (fk-lean2, worktree `wt/etcd-safe-p9`, `/shared/tmp/p9-build.sh`): `remote.Link`,
+  `remote.counter.TopLevelRobustness`, `remote.counter.Linked`, the seven dsverify
+  `TopLevelRobustness` (gryffnet, craqnet, swiftnet, epaxosnet, paxosnet, rabianet, quepaxanet) and the three
+  `NonVacuityLinked` (gryff, rabia, quepaxa) all built (`etc/importers.py --leaves` of `remote/Defs.lean`:
+  every leaf). `git diff --stat 8933c91f2d HEAD` over every `TopLevelRobustness.lean`/`TopLevelDefs.lean`:
+  empty. No statement premise mentions the changed definitions except through `RBase.svc`/`remoteAddr`/
+  `pendCtx` of the instances' own stores, which are unchanged for `J = I`. `etc/tier-check.py --check`: ok.
+
+**`enc`** (`examples/etcd/dist/enc`): `Proof/.../dist/enc/Defs.lean` (`encU64 := u64Le`, `encBool`, `encStr`
+(length then bytes), the prefix-injectivity lemmas `enc{U64,Bool,Str}_append_inj`; `ownEnc e bs` (the
+slice, its capacity), `ownDec d bs ok` (any fraction), `decPost d bs ok en x`: success `∃ r, ok = true ∧ bs = en x
+++ r` with `ownDec d r true`, or `∃ r, ownDec d r false`). Specs, all checked: `Spec/.../dist/enc/{Enc__U64,
+Enc__I64,Enc__Int,Enc__Bool,Enc__Str,NewDec,Dec__U64,Dec__I64,Dec__Int,Dec__Bool,Dec__Str,Dec__Done}.lean`.
+Proved (lean-check on fk-lean2): `Enc.{I64,Int}`, `Dec.{I64,Int}` (from `U64`), `Dec.Done`. The plan for the
+codec: `Done = true` makes every read the success branch (a false flag stays false), so `DecInput`'s spec is
+`{b ↦*{dq} bs} … {in ok. ok = true → bs = encInput in}` by chaining `decPost`, and `codecOk`'s `DecIn`/`DecOut`
+and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` lemmas field by field).
+
 ## Handoff
 
-Nothing built (no `.lake` in the worktree; no fk-lean2 worktree seeded for `etcd-safe-p9` yet). No
-Lean file changed. Next: the lead decides the proposal (or another); then, in order: the library
-change (if accepted; a ledger decision first), `enc` and the codec, `codecOk`, `PendDec` for kv,
-`opMaybe` of `Node`'s op, `Orch`/`Node`'s WPs from `Run.spec`/`ServeClient.spec`, the M1 assembly
-(`etcd-dist-plan.md` §11.3).
+Head: see `git log` of `etcd-safe-p9` (pushed). Next, in order:
+1. `enc`'s remaining proofs: `Enc.U64` (the 8-append loop: invariant `ownEnc e (bs ++ (u64Le x).take i)`,
+   `append` by `wp_slice_append`; the byte lemma `u64Le_getElem` is in `Net/Proof/.../remote/counter/Codec.lean`
+   — copy it, a proof imports no proof), `Enc.Bool`, `Enc.Str` (`U64` then `append(e.B, []byte(s)...)`:
+   `wp_string_to_bytes`, `wp_slice_append`), `NewDec`, `Dec.U64` (the or-loop: `leToU64_take_succ` from the same
+   counter file; then `u64Le (leToU64 (bs.take 8)) = bs.take 8`, `leToU64_le`), `Dec.Bool`, `Dec.Str`; then a
+   `Link.lean` for `enc` (hand-written, as `remote`'s).
+2. kvremote's `encCmp`/`decCmp`/… and `EncInput`/`DecInput`/`EncOutput`/`DecOutput`, pure `encInput`/`encOutput`
+   with injectivity; then `codecOk`, `PendDec` for kv, and §11.3's steps 1, 3-6.
+Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a` (copies one file to fk-lean2's worktree; for new imports, copy them
+first, e.g. `tar … | ssh … tar x` as done for `enc`), builds `/shared/tmp/p9-build.sh TARGETS` (pushes HEAD).
