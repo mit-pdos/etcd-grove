@@ -303,7 +303,8 @@ theorem walTmpsRes_excl (j : Ino) :
   unfold tmpClaim
   icases H1 with ⟨%h1, H1, -⟩
   icases H2 with ⟨%h2, H2, -⟩
-  rw [osNames_of_ne _ _ (by simp : NameSet.only [go!"0.tmp"] ≠ .only [])]
+  rw [osNames_of_ne _ _ (by simp : NameSet.only [go!"0.tmp"] ≠ .only []),
+    osNames_of_ne _ _ (by simp : NameSet.only [go!"0.tmp"] ≠ .only [])]
   icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
   exact (qTmp_two hv.1).elim
 
@@ -315,11 +316,13 @@ theorem walTmpParked0_inj (Ls : GMap GoString WalLay) :
       ⌜∀ dir1 dir2 (l1 l2 : WalLay), Ls !! dir1 = some l1 → Ls !! dir2 = some l2 → dir1 ≠ dir2 →
         l1.j ≠ l2.j⌝ ∗ walTmpParked0 (G := G) (L := L) Ls [] := by
   classical
-  by_cases hP : ∀ dir1 dir2 (l1 l2 : WalLay), Ls !! dir1 = some l1 → Ls !! dir2 = some l2 →
-      dir1 ≠ dir2 → l1.j ≠ l2.j
-  · iintro H; iframe H; ipureintro; exact hP
-  · simp only [not_forall, not_not] at hP
-    obtain ⟨d1, d2, l1, l2, h1, h2, hne, hj⟩ := hP
+  by_cases hP : ∃ d1 d2 (l1 l2 : WalLay), Ls !! d1 = some l1 ∧ Ls !! d2 = some l2 ∧ d1 ≠ d2 ∧
+      l1.j = l2.j
+  rotate_left
+  · iintro H; iframe H; ipureintro
+    intro d1 d2 l1 l2 h1 h2 hne hj
+    exact hP ⟨d1, d2, l1, l2, h1, h2, hne, hj⟩
+  · obtain ⟨d1, d2, l1, l2, h1, h2, hne, hj⟩ := hP
     unfold walTmpParked0
     iintro ⟨%Jt, %hp, Hm⟩
     iexfalso
