@@ -1581,6 +1581,8 @@ rename) needs the rename's log position: `os.Rename.spec` (proved, `Proof/os/Ren
   `osLogged x e` that `wp_osRenameFileSNE` gives (it is dropped as `-` in `rename_fileNE` today). Its `osLogLb (x+1)`
   then feeds `syncDir`. The fact is persistent, so it survives `OpenBackend` (an axiom whose `bPath` hides the
   claim's history). T7 combines it with the claim it holds (`bPath`) to show that the durable tree names the inode.
+- P8 is integrated on `etcd-safe-main-pin-p8/2026-11-24`, not here: `NewServerRAt` needs restating over
+  `srvFilesC` first (see that branch's §16.1).
 
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
