@@ -486,7 +486,7 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
       wp_auto
       rw [decide_eq_false Hst]
       wp_auto
-      wp_apply wp_errors_New' as %x #Hx
+      wp_apply wp_errors_New' as %x ⟨-, #Hx⟩
       wp_apply wp_Close t cn false a la ra (fun _ => iprop(True)) $$ [$Hca] as %cerr -
       · imod close_au (Gg := hG.goose_globalGS) cn false $$ Hci with ⟨%st, %d, Hst, Hd, Hk⟩
         imodintro
@@ -582,8 +582,10 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     DialHTTPPath.spec (GF := GF) (hG := hG) := by
   intro nw hnw W a path
   wp_start_folded as Hpre
+  ihave #Hn : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply DialHTTPPath.wp_proof_plain wp_Dial wp_Write wp_Close wp_NewReader wp_ReadLc
-      wp_ReadResponse wp_NewClient nw hnw W a path $$ Hpre as %c %err Hres
+      wp_ReadResponse wp_NewClient nw hnw W a path $$ [$Hn $Hpre] as %c %err Hres
   iapply HΦ
   icases Hres with (H1 | ⟨%Hne, #Hp⟩)
   · ileft; iexact H1

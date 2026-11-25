@@ -521,7 +521,7 @@ theorem ReadResponse.wp_proof
     ipureintro; trivial
   iapply HΦ
   icases Hpost with (⟨%Hne, #Hs⟩ | H)
-  · ileft; iframe Hs; ipureintro; exact Hne.1
+  · ileft; iframe Hs; ipureintro; exact Hne
   · iright; iexact H
 
 end proof

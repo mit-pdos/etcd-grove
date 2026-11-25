@@ -8,7 +8,7 @@ trusted exactly as on lean (decision below), so log has no Go model and no delta
 | repo | branch | head | state |
 |---|---|---|---|
 | Perennial | `goose-model-overlay-rest` | `09bd3826c` | lean `d5eb93cb5` (basic slice) merged; whole library + PerennialMeta built (int-full11, EXIT 0, all 4 chunks); `etc/model-tests.sh` and `go test ./goose/...` pass; log = lean's |
-| etcd-grove | `go-models-rest-egnet/2026-11-24` | `3c34552c7a` (+ notes) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above, **merged with etcd-grove lean `6865da10d6`** (lean's trusted UDP kept, #8 (a)); **all default targets built, EXIT 0** (28899 jobs, `tmp/gm13/full7.log`); `tcb-report --check` matches the baseline (378 axioms, 0 sorry: lean's baseline, unchanged); collections kvraft, kvraft-udp, raft-noax `--check`: 0 axioms, 0 sorry each (= lean). Not yet merged with lean `2926d09437` (basic slice landed + dsv-fix6; see resume-egnet.md session 13) |
+| etcd-grove | `go-models-rest-egnet/2026-11-24` | (this notes commit; code at `b8bb95f0ba`) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above, **merged with etcd-grove lean `5c036beb77`** (grpc-driver; before it `2926d09437`, basic slice landed + dsv-fix6; lean's trusted UDP kept, #8 (a); dsv-fix6's Net `errPlain` lemmas re-proved over Go's `OpError.Error`, section "dsv-fix6's `errPlain`/`errLeaf` lemmas" at the end); **all default targets built, EXIT 0** (29034 jobs, `tmp/gm15/full1.log`); `tcb-report --check` matches lean's baseline (384 axioms, 0 sorry); **all 65 collections `--check` match** (grpcdriver's included) (kvraft, kvraft-udp, raft-noax 0/0; dsv-craq = lean's 6 axioms); `GooseLang.Ext.NetFsUdp.Adequacy` and kvraft_udp's `TopLevelRobustness` built |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
 **Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
@@ -2359,6 +2359,13 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   exhaustion, the extension's D12).
 
 # Evidence
+- **(2026-11-26, session 15, after the lean `5c036beb77` merge, grpc-driver)** etcd-grove egnet code `b8bb95f0ba`
+  (pin Perennial `09bd3826c`; lean pins `d5eb93cb5`, its ancestor): `goose.py --check` (73 projects, with the
+  pinned Perennial's translator): all up to date; `lake build` (all default targets) **EXIT 0, 29034 jobs**
+  (`tmp/gm15/full1.log`); `etc/tcb-report.py --check`: "trust base matches etc/tcb-baseline.txt (384 axioms,
+  0 sorries)" (lean's baseline byte for byte); all 65 collections `--check` (`--reuse`) exit 0
+  (`tmp/gm15/tcb.log`; kvraft, kvraft-udp, raft-noax, grpcdriver, dsv-craq included). `GooseLang.Ext.NetFsUdp.Adequacy`
+  and kvraft_udp's `TopLevelRobustness`: `lake build --no-build` up to date (4559 jobs).
 - **(2026-11-25, session 13, after the lean merge)** etcd-grove egnet = lmerge `3c34552c7a` (lean `6865da10d6` merged,
   pin Perennial `09bd3826c`): `lake build` (all default targets) **EXIT 0, 28899 jobs** (`tmp/gm13/full7.log`);
   `etc/tcb-report.py --check`: "trust base matches etc/tcb-baseline.txt (378 axioms, 0 sorries)" (the baseline
@@ -2638,3 +2645,15 @@ of it (and its `KvRaft/` copy), which asks `net.opErrMsgOk v`: `net.errStr v.Err
 inherits the condition. (Argued from the statements, not a Lean refutation; the racy variant, `Err.Error`
 writing a map another goroutine writes, is likewise outside `wp_OpError_Error` unless that `Error()` has a
 WP of its own, i.e. it is reduced to whether Go's map model admits that program.)
+
+## grpc-driver over the Go-model net (lean `5c036beb77` merge, session 15)
+
+grpc-driver (`examples/lib/grpcdriver`) adds no trusted `net` text and no `net` assumption of its own: it
+takes Net's `net.Listen.spec` as a hypothesis and lists grpc's model axioms in its collection. Ported:
+- statements: `grpcdriver_robust.spec` (its `TopLevelRobustness`) and the driver's section variables lose the
+  `net.FieldAssumptions` binder (as every other result in "Statement changes ... FieldAssumptions premises
+  dropped"); no premise gained.
+- internal: `grpcdriver.drv_listen` (`ListenSet.lean`) gains `isPkgInit pkg_id.net` in its precondition
+  (Net's `Listen.specAddrOk` asks it here: `syscall.errnoOk` for the `*OpError`); its one caller,
+  `grpcdriver.Server.wp_proof`, obtains it by `iPkgInit`. `Server.spec` unchanged.
+

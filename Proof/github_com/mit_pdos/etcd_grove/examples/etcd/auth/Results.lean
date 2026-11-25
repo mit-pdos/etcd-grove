@@ -81,7 +81,7 @@ hypothesis on the semantics every client-building `Main` has (`DialWithBalancerB
 `newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
 (`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s) and hypotheses on the
 semantics (`ErrorStringLeaf`). `Main.spec`'s named workload premises
-include `grpcRepliesFit` (2026-10-31, `grpc.start`'s: the replies' encoded size). -/
+include `grpcRepliesFit` (2026-10-31, `grpcServeTok`'s: the replies' encoded size). -/
 theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [EtcdGrove.ErrorStringLeaf] :
     etcd_auth.Main.spec (GF := GF) (hG := hG) :=

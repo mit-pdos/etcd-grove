@@ -31,7 +31,11 @@ watcher's stub and call options: the client end of a fresh gRPC watch stream (bo
 `[]`, the stream's specification `watchSpec`), or a `nil` stream and an error grpc's `status`
 accepts (the stream's context's, or `rpctypes.Error` of a halting one). Since G2 (2026-10-30), the
 stream was opened with metadata `md` an attempt on the connection delivered for the stream's
-context (`clientAttemptMd`), and its specification is at `md`'s token (`auth.mdTokenOf`). -/
+context (`clientAttemptMd`), and its specification is at `md`'s token (`auth.mdTokenOf`). Since phase
+7's switch (SW1, 2026-11-24, R2): the member and the metadata are not fixed when the stream is
+returned (a transparent retry may re-pick both): the requests' content is every member's
+(`watchUpW`), and the specification holds at every dispatch the client may learn with a response
+(`watchMdW`: a member's address and an attempt's metadata), at that dispatch's content. -/
 abbrev watchGRPCStream.openWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (wgs : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (om : GrpcMd) (callSl : GoSlice) (vs : List GoInterface),
@@ -39,15 +43,15 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
       wgsF wgs go!"remote" ↦□ wcIface V.wc ∗ wgsF wgs go!"callOpts" ↦□ callSl ∗
       callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V) }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))
-  {{ (ws err : GoInterface), RET (PairV #ws #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
-          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
-          (md : GrpcMd),
-        -- (W3b) the stream at some member `i` of the connection's (D32)
-        ⌜i < V.nm ∧ clientAttemptMd V.conn om md⌝ ∗
-        v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
+  {{ (ws err : GoInterface), RET (PairV #ws #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (γs : StreamNames)
+          (Dn : GoString → GrpcMd → Nat → v3rpc.WatchRespM → IProp GF)
+          (cd' : context.ContextDesc (IProp GF)),
+        -- (SW1, R2) at the member and the metadata each response tells
+        v3rpc.cliWatchStreamIs ws γs (watchUpW V) (watchMdW V om) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-        v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
+        □ (∀ a md, watchMdW V om a md -∗
+          v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md))) ∨
       (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err)) }}
 
 end spec

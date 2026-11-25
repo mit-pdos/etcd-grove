@@ -526,3 +526,36 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   `errLeaf` address premises dropped (implied by `addrOrNil`); `errPlain_opErrPtr` curried
   `pe ↦□ v ⊢ errnoOk -∗ opErrMsgOk v -∗ errPlain`; `inErr_read` + errnoOk (lean's netAddr la/ra not
   needed); `readErr_some'` gives errLeaf too; `DialHTTP(Path).spec_plain` + `isPkgInit net`.
+- Results: targeted builds b1-b3 (`tmp/gm14/b{1,2,3}.log`; fixed: `wp_errors_New'`'s post now
+  `x.s ↦□ ∗ wp`, DialHTTPPath.wp_proof's derivation re-obtains `isPkgInit net` by solve_pkg_init after
+  wp_start_folded, ReadResponse.wp's pattern) then **full default build EXIT 0, 28901 jobs**
+  (`tmp/gm14/full1.log`, code 42f4df0a18). `tcb-report --check`: matches lean's baseline (381 axioms, 0 sorry);
+  **all 64 collections --check match** (`tmp/gm14/tcb.log`; kvraft, kvraft-udp, raft-noax 0/0; dsv-craq
+  6 = lean's). NetFsUdp.Adequacy + kvraft_udp TLR up to date (`lake build --no-build`, 4559 jobs).
+  Statements vs lean: craq's spec, Iface, LogHyp, LogAx, ErrFmt differ from lean only by the
+  FieldAssumptions binders (removal). net-operr-error: closed (packet-rest.md, last section; argued).
+- STATE: `go-models-rest-egnet/2026-11-24` fast-forwarded to this branch's head (pushed). LEFT: the #8
+  message (diff for etcd-grove-03, in the session report); merge newer lean when it moves.
+
+## Session 15 (2026-11-26, successor) — merge of lean `5c036beb77` (grpc-driver)
+- Worktree `eg-lmerge`, NEW branch `go-models-rest-egnet-lmerge3/2026-11-26` (off 661702e0cb), VM key
+  c61dd42e08d7d686; scratch `tmp/gm15/` (merge.log, conflicts.txt, changed.txt, strip.log, regen1.log,
+  goose-check.log, full*.log).
+- lean's Perennial pin is still d5eb93cb5 (an ancestor of ours): kept ours, 09bd3826c.
+- Merge: ONE conflict, auth/Results.lean `authkv_Main` (lean renamed the docstring's `grpc.start` to
+  `grpcServeTok`; ours had dropped the FA binders): lean's docstring, our binders. strip_fa.py over the 265
+  .lean files the merge added/changed: 4 files (grpcdriver Link, ListenSet, Server, TLR spec); the TLR
+  proof's intro loses `field_sem`. Regenerated (regen.sh: gen-init rewrote grpcdriver cmd/{client,server}
+  PkgTables for our Go-model closure; others unchanged) and genlink-all (0 differ).
+- grpc-driver needed no design merge: it adds no trusted net assumption (its trusted part is grpc's model
+  and wrapperspb's `String`); it calls Net's `net.Listen.spec` as a hypothesis. Port: `drv_listen`
+  (ListenSet.lean) takes `isPkgInit pkg_id.net` in its precondition (ours `Listen.specAddrOk` needs it;
+  internal lemma, listed in packet-rest.md); `Server.wp_proof` obtains it by `iPkgInit`.
+- goose.py --check (eggoose.sh, nested Perennial 09bd3826c): 73 projects up to date (`tmp/gm15/goose-check.log`).
+- **Full default build EXIT 0, 29034 jobs, first try** (`tmp/gm15/full1.log`, code b8bb95f0ba).
+  `tcb-report --check`: matches lean's baseline (384 axioms, 0 sorry); all 65 collections `--check --reuse`
+  exit 0 (`tmp/gm15/tcb.log`, script `tmp/gm15/scripts/tcb.sh` via `vmlake sh`). NetFsUdp.Adequacy + kvraft_udp
+  TLR (`KvRaft.Proof....raft.kvraft.cmd.kvraft_udp.TopLevelRobustness`) up to date (`lake build --no-build`).
+  packet-rest.md: head row, Evidence, new last section "grpc-driver over the Go-model net".
+- STATE: `go-models-rest-egnet/2026-11-24` fast-forwarded to this branch's head (pushed). LEFT: #8 message;
+  merge newer lean when it moves.

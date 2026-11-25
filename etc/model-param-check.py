@@ -10,8 +10,8 @@ main group, and its selftests (rule 6's negative tests) on the registration modu
   is a failure, but for the pair entries of `etc/model-param-allow.txt` (`judge_pairs`: a returned
   registry atom, or a model binder, accepted on exactly the listed binder path while the named
   depositing axiom requires the same registration; a stale entry fails). A model binder's type is
-  its registry's family (`REG_FAMILY`): for the unary registries `ProtoMsg` or, for a service
-  table's entries, a `ProtoWire` (the `.wire` of one); `StreamMsg` for the stream ones;
+  its registry's family (`REG_FAMILY`): for the unary registries `ProtoMsg`, `StreamMsg` for the stream
+  ones, or, for a service table's entries, a `ProtoWire` (the `.wire` of one);
 - every axiom a `Sat` theorem rests on (`satax`, already within Lean's allowlist by module and
   shape) must also appear verbatim on an `axiom` line of its `Code/` file (`[v6a]` 4; the `Code/`
   files are the translations `etc/goose.py --check` checks);
@@ -73,7 +73,8 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(ROOT, "etc"))
 import proof_roots  # noqa: E402
 
-MIN_REGS = 39  # + the WAL pbRecordC_reg, pbSnapC_reg (2026-11-15); + pbHsC_reg (wal-item3, 2026-11-21)
+MIN_REGS = 43  # + the WAL pbRecordC_reg, pbSnapC_reg (2026-11-15); + pbHsC_reg (wal-item3, 2026-11-21); + the gRPC driver's
+# StringValue pbStringValueT_reqReg, pbStringValueRT_repReg, pbStringValueST_reqReg, pbStringValueST_repReg (2026-11-25)
 ALLOW = os.path.join(ROOT, "etc", "model-param-allow.txt")
 # a registry's model types (an R1 hit's `type`): the families a pair entry's registry accepts. A unary
 # registry also accepts `ProtoWire` (phase 7 S2's interface, 2026-11-24): a service table's entry holds
@@ -81,11 +82,14 @@ ALLOW = os.path.join(ROOT, "etc", "model-param-allow.txt")
 # carrier `M` is an R1 hit typed `ProtoWire`. The walk cannot see that an entry is the `.wire` of a
 # registered `ProtoMsg` (`grpcServes`' equation `e = ⟨Req.toProtoMsg.wire, ...⟩` beside
 # `grpcReqModelOf GF Req.ty = some Req`), so the pair entries of `etc/model-param-allow.txt` say it, one
-# binder path each, as for the models themselves.
+# binder path each, as for the models themselves. Since phase 7 SW1 (a table's entries are `.unary e` or
+# `.stream e`) a stream registry accepts `ProtoWire` too, for the same reason: a stream entry holds the
+# `.wire` of its request and reply `StreamMsg` models (`grpcServesEnt`'s stream clause, `e = ⟨Req.wire,
+# Rep.wire, ...⟩` beside `streamReqModelOf GF Req.ty = some Req`).
 REG_FAMILY = {"Perennial.EtcdGrove.grpcReqModelOf": {"Perennial.EtcdGrove.ProtoMsg", "Perennial.EtcdGrove.ProtoWire"},
               "Perennial.EtcdGrove.grpcRepModelOf": {"Perennial.EtcdGrove.ProtoMsg", "Perennial.EtcdGrove.ProtoWire"},
-              "Perennial.EtcdGrove.streamReqModelOf": {"Perennial.EtcdGrove.StreamMsg"},
-              "Perennial.EtcdGrove.streamRepModelOf": {"Perennial.EtcdGrove.StreamMsg"}}
+              "Perennial.EtcdGrove.streamReqModelOf": {"Perennial.EtcdGrove.StreamMsg", "Perennial.EtcdGrove.ProtoWire"},
+              "Perennial.EtcdGrove.streamRepModelOf": {"Perennial.EtcdGrove.StreamMsg", "Perennial.EtcdGrove.ProtoWire"}}
 REG = re.compile(r"(?:grpcReqModelOf|grpcRepModelOf|streamReqModelOf|streamRepModelOf|pbModelOf)\s+GF\s+\S+\s*=\s*some", re.S)
 
 
