@@ -15,6 +15,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Ad
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.decimal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.AdequacyMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AdequacyClient
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AddrOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.decimal
 
 @[expose] public section
 
@@ -78,6 +80,7 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
       (etcd_putget_dist.Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
         context.WithTimeoutBackground.wp_proof context.wp_ErrAny
         etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
+        (etcd_putget_dist.AddrOk.wp_proof etcd_putget_dist.decimal.wp_proof)
         mvcc.api.mvccApi_names_nonempty_law_holds)
       ep γE mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hshare] as %b -
   · iframe; (try iframe #)
