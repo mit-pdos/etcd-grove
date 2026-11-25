@@ -6645,3 +6645,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   more faithful but touches every user of `memberAt`.
   Until this is decided the axiom stays, and it is the obstacle to proving it.
 - **Decision.** Open.
+
+## 2026-11-25: `transport.NewTimeoutTransport.spec` covered every `TLSInfo` (transport-emptycn)
+
+- **Spec.** `transport.NewTimeoutTransport.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/transport/NewTimeoutTransport.lean`,
+  a trust-boundary axiom), and through it `rafthttp.NewRoundTripper.spec`, `newStreamRoundTripper.spec`,
+  `rafthttp.Transport.Start.spec`; in `SpecPlan/`, `Transport.TLSInfo.ClientConfig.spec` and the two round
+  trippers' specs, which take any `TLSInfo` the same way.
+- **Defect.** False of Go for a `TLSInfo` with a certificate: with `EmptyCN`, `ClientConfig` re-reads the
+  certificate and dereferences `pem.Decode`'s block unchecked (a file rewritten between the reads panics); with
+  `AllowedCN`, `baseConfig` logs through `info.Logger` (a zero `&zap.Logger{}` panics).
+- **Evidence.** `issues/etcd-transport-emptycn-cert-reread-panic/` (5/5), the review's FIFO and rename tests, a
+  logger probe (1/1); `notes/axiom-review/transport-emptycn.md`.
+- **Proposed change.** The premise `transport.tlsEmpty info` (`info.Empty()`: no certificate, no key file),
+  carried by `bootCfgOk` (`cfg.PeerTLSInfo`) and `Transport.Start.spec` (`tv.TLSInfo'`). `SpecPlan/`'s three specs
+  should take the same premise (or, for `ClientConfig`, a certificate path stated with `EmptyCN` off and a zap
+  logger); not edited here.
+- **Decision.** `Spec/` restated (2026-11-25, branch `transport-emptycn/2026-11-25`); `SpecPlan/` open.
