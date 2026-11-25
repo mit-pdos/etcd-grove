@@ -190,6 +190,24 @@ Left (failing in `wal.Link`'s build, or not yet reached):
 - **`w.state`'s provenance** (`iframe … P.hsIn p' st.hs` at the handle, the `walStIn` slot): the
   `CloneStLaw` plan above (Session 3's "Where `walStIn` comes from").
 
+### Item 2 design (session 4, started)
+
+The lent tail (kind `false`) a `ReadAll` with a pending run hands to `ZeroToEnd` has no zero length word at
+`wr` (`LenZ` fails: the pending frames are there), so `TailPend` (= `wr = z0 ∧ LenZ`) cannot hold. What the
+crash argument needs instead is what a repaired tail already has: `RepOld` (`wr = z0`, the stamp-0
+candidates from `wr` on are `old`'s, the segment no longer than `old`), with `crashTo_tailR`/
+`crashOkA_tailRep` (W1 + `pendStop_transfer`: every crash image's reader accepts a prefix of the pending
+run, then stops). Plan: **`TailPend` becomes `RepOld`** (the registered tail has it: `TailLast.repOld`; the
+registered kind-`true` tails already carry `TailZeros ∨ RepOld`), and the `LenZ` uses are replaced:
+`crashOkA_tailPend` by `crashOkA_tailRep`, `rzStart_pureP` by `rzStart_pureR` (+ `repOld_rzCands`), the
+landing by `repOld_rzLand`, `tailPend_tailLay` (which used that `TailPend` reads only `old`/`z0`/`wr`) by
+`RepOld` preservation per step: new lemmas for the growth (`rzGrow`/`rzLandG`: the grown bytes' candidates
+are those `pcRun` knew, stamp-0 values kept; size ≤ `k = |old|`), the fdatasync (`syncLayP`: the synced
+tail exact, `TailLast.repOld`), and the generic step of `walInvBody_tailW` (`TailAccW.lean:269`: with
+`wr' = wr` it kept `TailPend` because `tailLay` keeps `old`; with `RepOld` the caller must supply it: only
+resizes and the sync act on a pending lent tail). `ZeroToEnd.specWalTail`/`walTailP_ofRead` then drop the
+zero-word premise (`TailLast.repOld` instead of `lenZ_of_tailLast`).
+
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 
 **Resolved 2026-11-25:** Upamanyu approved the change (#8, 00:38Z). `proto.MarshalPb.spec`'s post now has
