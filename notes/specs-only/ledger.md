@@ -7131,7 +7131,8 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `Rename` cannot fail under the premise" becomes "`Rename` cannot fail under the premise". P5's conditions are
   unchanged (the new arm commits neither update). A caller (`bootstrap`) that gets an error does not know which arm,
   as with `Create`; it holds `AU₂` in both error arms.
-- **Decision.** Pending (to report to the coordinator, P6b session 15). Applied to the spec meanwhile (WIP branch only).
+- **Decision.** Approved by the coordinator (P6b session 16 brief, 2026-11-25): `err ≠ nil` with `walAreaRes`,
+  `walUnlockedTok`, `AU₁` and `AU₂` all returned and nothing committed. Applied (WIP branch).
 
 ## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
 

@@ -259,6 +259,58 @@ theorem walInv_discardU (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     $$ Hinv Hnc [Hau Hu Hsf HT]
   iframe Hau Hu Hsf HT; iexact Hsi
 
+/-- **The ghost state at a changed real state with incarnations bumped** (R's and S's commits): all
+five shares of the incarnations (`walGhostI`'s quarter, the program view's and the lock's quarters
+`walIncQ`, the keys' authority's and the pipeline reserve's eighths `walIncE`) set to `I'`, the map to
+the new state's, the past states grown by `walLeI` (`walLeI_unname`, `walLeI_discard`), the locked ranges
+carried by `hlk`. -/
+theorem walGhostI_bump (s s' : AbsDiskState) (I I' I1 I2 I3 I4 : GMap GoString Nat)
+    (M : GMap GoString WalDur)
+    (hle : walLeI (s, I) (s', I')) (hk : walKeysInArea s → walKeysInArea s')
+    (hst : ∀ n, WalsStepped s n → WalsStepped s' n)
+    (hlk : walLksAuth (W := W) s ⊢ walLksAuth (W := W) s') :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walOwn (W := W) M -∗ walIncQ (W := W) I1 -∗
+      walIncQ (W := W) I2 -∗ walIncE (W := W) I3 -∗ walIncE (W := W) I4 ==∗
+      ⌜walMapLe M s.wal ∧ I1 = I ∧ I2 = I ∧ I3 = I ∧ I4 = I⌝ ∗ walGhostI (W := W) s' I' ∗
+        walOwn (W := W) s'.wal ∗ walIncQ (W := W) I' ∗ walIncQ (W := W) I' ∗
+        walIncE (W := W) I' ∗ walIncE (W := W) I' ∗ walPastI (W := W) (s', I') := by
+  iintro Hc HM H1 H2 H3 H4
+  imod preceipt_zero (GF := GF) with #H0
+  unfold walGhostI walOwn walOwnAt walIncQ walIncE
+  letI := walAllG (W := W)
+  icases Hc with ⟨⟨%G, Hs, %HG⟩, ⟨HP, HI⟩, ⟨Hh, Hlk⟩, %Hk, #Hst⟩
+  icases HM with ⟨HM, Ht⟩
+  icases ghostVar_agree $$ HM Hs with %HMG
+  subst HMG
+  icases ghostVar_agree $$ H1 HI with %e1
+  icases ghostVar_agree $$ H2 HI with %e2
+  icases ghostVar_agree $$ H3 HI with %e3
+  icases ghostVar_agree $$ H4 HI with %e4
+  subst e1 e2 e3 e4
+  imod ghostVar_update_halves s'.wal _ _ _ $$ Hs HM with ⟨Hs, HM⟩
+  ihave H12 := (ghostVar_split_half W.γI (1 : Qp).half _).2 $$ [H1 H2]
+  · iframe H1 H2
+  ihave H34 := (ghostVar_split_half W.γI (1 : Qp).half.half _).2 $$ [H3 H4]
+  · iframe H3 H4
+  ihave HI4 := (ghostVar_split_half W.γI (1 : Qp).half _).2 $$ [HI H34]
+  · iframe HI H34
+  imod ghostVar_update_2 I' W.γI _ (1 : Qp).half _ (1 : Qp).half (Qp.half_add_half 1) $$ HI4 H12
+    with ⟨HI4, H12⟩
+  icases (ghostVar_split_half W.γI (1 : Qp).half I').1 $$ H12 with ⟨H1, H2⟩
+  icases (ghostVar_split_half W.γI (1 : Qp).half I').1 $$ HI4 with ⟨HI, H34⟩
+  icases (ghostVar_split_half W.γI (1 : Qp).half.half I').1 $$ H34 with ⟨H3, H4⟩
+  ihave HP := walPastI_grow _ (s', I') hle $$ HP
+  imod walPastI_snap (s', I') $$ HP with ⟨HP, Hp⟩
+  ihave Hlk := hlk $$ Hlk
+  ihave #Hst' := walStepsLb_upd s s' 0 (fun n hn => by rw [Nat.max_zero]; exact hst n hn) $$ H0 Hst
+  imodintro
+  iframe HM Ht HP HI Hh Hlk Hp Hs H1 H2 H3 H4 Hst'
+  isplitr
+  · ipureintro; exact ⟨HG, rfl, rfl, rfl, rfl⟩
+  isplitr
+  · ipureintro; exact walMapLe_refl _
+  ipureintro; exact hk Hk
+
 end iris
 
 end WalFs

@@ -488,6 +488,38 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 16 (WIP, `etcd-safe-p6b-wip`): U' done; R/S not started.** Ledger "wal.Discard's
+  post had no arm for a failed `RemoveAll(dir.tmp)`" marked approved (coordinator: the `RemoveAll` error arm returns
+  `walAreaRes`, `walUnlockedTok`, `AU₁`, `AU₂`, nothing committed; U' with `Create`'s creating-claim shape `.only [nm,
+  tmp]` approved). **Done** in the new `Proof/.../wal/DiscardSteps.lean` (imports `CreateSteps`, `NameSplit`;
+  `etc/lean-check.py -a`: 0 errors; not yet in any `lake build`, nothing imports it yet):
+  * step 1: `exists_walName_notin Wn : ∃ b, walNameOk b ∧ b ∉ Wn` (with `walAreaRes`'s `∀ nm, walNameOk nm → N.Mem nm
+    ∨ nm ∈ Wn` it gives the WAL name `walInv_drop` needs in the area claim `N`);
+  * U': `lay_nm_inj` (pure), `nameShares_erase` (loans `[]`: every share `0`, `bigSepL_perm` by `perm_cons_erase`),
+    `walInvBody_unregister` (frag `none` → `⟨none, some dir, []⟩`, `Wn` → `Wn.erase nm` on both halves, the program
+    half `(jr, .only [nm], hn)` out of `nameShare`, `hn.cur !! nm = some (.dir J)`), `walInvBody_discardU` (=
+    unregister, then `walInvBody_mergeIn` with `N1 = .only [nm]`, `N2 = .only [tmp]`, `T := walUnlockedTokX`; NO
+    creating-map entry is used: the claim is found later by `osClaims_keys`), `walInv_discardU` (program step:
+    peeks `AU₁` for `s.wal !! dir = some _`, as `walInv_absent`; AU destructuring that works: `isimp only
+    [texist_cons, texist_nil] at Hacc`, then `isimp only [Std.Tele.app, ULift.down]` on the opened `α` only, else
+    the AU handed back by the abort does not unify with the original). Post: `walUnlockedTokX ∗ walNamesFragS
+    ⟨none, some dir, []⟩ ∗ walSplitFrag (Wn.erase nm) ∗ osNames jr (.only [nm, tmp]) ½ hC ∗ ⌜nm ∈ Wn ∧ hC.restrict
+    jr (.only [tmp]) = hT.restrict … ∧ hC.cur !! nm = some (.dir J)⌝`, and `AU₁` back.
+  * R/S ghost core: `walGhostI_bump s s' I I' I1..I4 M hle hk hst hlk`: sets **all five** shares of `γI` to `I'`
+    (`walGhostI`'s quarter, the view's and the lock's `walIncQ` quarters, and two `walIncE` eighths: the keys'
+    authority's, in `walDirKeysAuth`, and the pipeline reserve's, in `walOutAuth` while `o.T = []`, i.e. the lock
+    free). Session 15's plan for R named only three; the eighths must be taken out of the body's `walDirKeysAuth K`
+    and `walParked`'s `walOutAuth o` too. `hle` from `walLeI_unname` (R) / `walLeI_discard` (S), both in Ghost.lean.
+  **Risk found for R (check first):** `walDirKeysAuth K` says `K !! dir = some x ↔ Kall !! (dir, incOf I dir) = some x`;
+  after the bump `K' := K.delete dir` satisfies `DirKeysOk` (it only constrains present entries) but the `↔` needs
+  `Kall !! (dir, ic + 1) = none`, which nothing states today. If no lemma gives it, add to `walDirKeysAuth`'s body
+  `⌜∀ d i x, Kall !! (d, i) = some x → i ≤ incOf I d⌝` (internal invariant, not a spec; inserts are at the current
+  incarnation) and fix its few construction sites (`grep -n walDirKeysAuth *.lean`).
+  **Next (unchanged order):** R (`osAUnc` for `os.Rename.specDirSnc`: as `cleanAU`, claim found by `osClaims_keys` on
+  `.only [nm, tmp]` + `osClaims_once` + `osNames_coh`; commit: `s' := absDiskUpd s dir (named := false)`, `I' :=
+  <[dir := ic+1]> I`, `walGhostI_bump`, `movClaims` and `CleanupMoved`'s `*_moved` with `hun` true of `s'`, `walNamesRes`
+  over `s'` (disc conjunct: `dir`'s layout exempt), `AU₁` committed with the view's `walIncQ`), S, the `Discard` proof,
+  the crash lemma, docstrings, `gen-link --walfs`, the builds.
 - **2026-11-25, P6b session 15 (WIP, `etcd-safe-p6b-wip`): `Discard` approved; a spec defect found; state C started
   (the invariant's relaxation only).** Ledger "wal.Discard" marked approved (coordinator: as written; P5's condition 2
   met because the client chooses `Q₁`, written into the entry).
