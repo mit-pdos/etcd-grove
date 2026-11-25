@@ -5,7 +5,7 @@
 
 At S (the area's fsync after `Discard`'s rename) the discarded WAL at `dir` leaves the real state
 (`discS`), its layout leaves `Ls`, and its directory's claim `(J, N, hj)` (`J = lay.j`) leaves the
-invariant's claims (`cl.erase`). A crash of the remaining claims is, with `J`'s names of `N` changed,
+invariant's claims (`dropC`). A crash of the remaining claims is, with `J`'s names of `N` changed,
 one of all of them (`DropDirOk.crash`, over `regionCrashedK_dropDir`); every fact the invariant keeps
 of the other WALs reads `J` nowhere: their directories are other inodes (`lay'.j ≠ J`: two layouts
 never share a directory, `walTmpParked0_inj`, from the parked pipeline claims) and the area is not `J`.
@@ -35,32 +35,44 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 section pure
 variable [GooseExts]
 
+open Classical in
+/-- The claims `cl` without the claim `c` (once among them where it is used: `ClaimOnce`). -/
+def dropC (cl : List Claim) (c : Claim) : List Claim := cl.filter (fun c' => decide (c' ≠ c))
+
+theorem mem_dropC {cl : List Claim} {c c' : Claim} : c' ∈ dropC cl c ↔ c' ∈ cl ∧ c' ≠ c := by
+  classical
+  unfold dropC; simp [List.mem_filter]
+
+theorem mem_of_mem_dropC {cl : List Claim} {c c' : Claim} (h : c' ∈ dropC cl c) : c' ∈ cl :=
+  (mem_dropC.1 h).1
+
 /-- **What dropping a WAL directory's claim `(j, N, h)` needs**: the claims one log's, the claim
 among them, and no other claim of `j` on a name of `N`. -/
 structure DropDirOk (cl : List Claim) (j : Ino) (N : NameSet) (h : NamesH) : Prop where
   log : ∃ log, Starts log ∧ ClaimsLog log cl
   mem : (j, N, h) ∈ cl
-  others : ∀ c ∈ cl.erase (j, N, h), c.1 = j → ∀ b, N.Mem b → ¬ c.2.1.Mem b
+  others : ∀ c ∈ cl, c ≠ (j, N, h) → c.1 = j → ∀ b, N.Mem b → ¬ c.2.1.Mem b
 
-theorem mem_cons_erase {c c' : Claim} {cl : List Claim} (h : c' ∈ cl) : c' ∈ c :: cl.erase c := by
+theorem mem_cons_dropC {c c' : Claim} {cl : List Claim} (h : c' ∈ cl) : c' ∈ c :: dropC cl c := by
   by_cases e : c' = c
   · subst e; exact List.mem_cons_self ..
-  · exact List.mem_cons_of_mem _ ((List.mem_erase_of_ne e).2 h)
+  · exact List.mem_cons_of_mem _ (mem_dropC.2 ⟨h, e⟩)
 
 /-- **A crash of the claims after the drop is, with `j`'s names of `N` changed, one before it.** -/
 theorem DropDirOk.crash {cl : List Claim} {j : Ino} {N : NameSet} {h : NamesH}
-    (hd : DropDirOk cl j N h) {n : Nat} {m' : Tree} (hr : RegionCrashed (cl.erase (j, N, h)) n m') :
+    (hd : DropDirOk cl j N h) {n : Nat} {m' : Tree} (hr : RegionCrashed (dropC cl (j, N, h)) n m') :
     ∃ m'', RegionCrashed cl n m'' ∧ ∀ j' b, ¬ (j' = j ∧ N.Mem b) → m''.entry j' b = m'.entry j' b := by
   obtain ⟨K, hK⟩ := (regionCrashed_iff _ _ _).1 hr
   obtain ⟨log, hst, hlog⟩ := hd.log
-  have hlog' : ClaimsLog log ((j, N, h) :: cl.erase (j, N, h)) := fun c hc => by
+  have hlog' : ClaimsLog log ((j, N, h) :: dropC cl (j, N, h)) := fun c hc => by
     rcases List.mem_cons.1 hc with rfl | hc
     · exact hlog _ hd.mem
-    · exact hlog c (List.mem_of_mem_erase hc)
-  obtain ⟨m'', h1, h2⟩ := regionCrashedK_dropDir hst hlog' hd.others hK
+    · exact hlog c (mem_of_mem_dropC hc)
+  obtain ⟨m'', h1, h2⟩ := regionCrashedK_dropDir hst hlog'
+    (fun c hc => hd.others c (mem_of_mem_dropC hc) (mem_dropC.1 hc).2) hK
   exact ⟨m'', (regionCrashed_iff _ _ _).2 ⟨_, regionCrashedK_cover
-    (fun c hc x e E hx => ⟨c, mem_cons_erase hc, E, hx⟩)
-    (fun c hc b hb => ⟨c, mem_cons_erase hc, rfl, hb, fun _ => rfl⟩) h1⟩, h2⟩
+    (fun c hc x e E hx => ⟨c, mem_cons_dropC hc, E, hx⟩)
+    (fun c hc b hb => ⟨c, mem_cons_dropC hc, rfl, hb, fun _ => rfl⟩) h1⟩, h2⟩
 
 /-- A directory other than `j` has the same entries in two trees equal off `j`'s names of `N`. -/
 theorem entsOf_off {m1 m2 : Tree} {j j' : Ino} {N : NameSet} (hne : j' ≠ j)
@@ -85,7 +97,7 @@ theorem crashOkA_dropDir {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
     {alt : Option WalLay} {cl : List Claim} {n : Nat} {j : Ino} {N : NameSet} {h : NamesH}
     (hd : DropDirOk cl j N h) (hj : lay.j ≠ j) (hjr : lay.jr ≠ j)
     (halt : ∀ lay0, alt = some lay0 → lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.j = lay.j)
-    (hok : CrashOkA C Mr d lay alt cl n) : CrashOkA C Mr d lay alt (cl.erase (j, N, h)) n := by
+    (hok : CrashOkA C Mr d lay alt cl n) : CrashOkA C Mr d lay alt (dropC cl (j, N, h)) n := by
   intro m' fo hr hf hn hw
   obtain ⟨m'', hr1, he⟩ := hd.crash hr
   have hents := entsOf_off hj he
@@ -102,21 +114,21 @@ theorem crashOkA_dropDir {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
 theorem crashOkW_dropDir {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {cl : List Claim} {n : Nat} {j : Ino} {N : NameSet} {h : NamesH}
     (hd : DropDirOk cl j N h) (hj : lay.j ≠ j) (hjr : lay.jr ≠ j)
-    (hok : CrashOkW C Mr d lay cl n) : CrashOkW C Mr d lay (cl.erase (j, N, h)) n := by
+    (hok : CrashOkW C Mr d lay cl n) : CrashOkW C Mr d lay (dropC cl (j, N, h)) n := by
   obtain ⟨alt, halt, hcr⟩ := hok
   refine ⟨alt, halt, crashOkA_dropDir hd hj hjr (fun lay0 h0 => ?_) hcr⟩
   obtain ⟨-, h1, h2, h3, -⟩ := halt lay0 h0
   exact ⟨h1, h2, h3⟩
 
 /-- A claim of another directory stays among the claims. -/
-theorem mem_erase_of_fst {cl : List Claim} {c c' : Claim} (hm : c' ∈ cl) (hne : c'.1 ≠ c.1) :
-    c' ∈ cl.erase c :=
-  (List.mem_erase_of_ne (fun e => hne (by rw [e]))).2 hm
+theorem mem_dropC_of_fst {cl : List Claim} {c c' : Claim} (hm : c' ∈ cl) (hne : c'.1 ≠ c.1) :
+    c' ∈ dropC cl c :=
+  mem_dropC.2 ⟨hm, fun e => hne (by rw [e])⟩
 
 theorem walDirClaim_dropDir {cl : List Claim} {j j' : Ino} {N : NameSet} {h hj : NamesH}
-    (hne : j' ≠ j) (hw : WalDirClaim j' hj cl) : WalDirClaim j' hj (cl.erase (j, N, h)) := by
+    (hne : j' ≠ j) (hw : WalDirClaim j' hj cl) : WalDirClaim j' hj (dropC cl (j, N, h)) := by
   obtain ⟨X, hX, hm, hco⟩ := hw
-  exact ⟨X, hX, mem_erase_of_fst hm hne, hco⟩
+  exact ⟨X, hX, mem_dropC_of_fst (c := (j, N, h)) hm hne, hco⟩
 
 /-- **The setting of the drop** (the facts every lemma below needs): the discarded WAL's layout `lay`
 at `dir`, its directory claim's drop allowed, every other layout of another directory, and its
@@ -136,7 +148,7 @@ theorem absentNone_discard {s : AbsDiskState} {jr : Ino} {Ls : GMap GoString Wal
     (hnone : ∀ nm, InArea s.area dir nm →
       (∀ N' h', (jr, N', h') ∈ cl → N'.Mem nm → h'.cur !! nm = none) ∧
       ∀ m', RegionCrashed cl n m' → m'.entry jr nm = none)
-    (hok : AbsentNone s jr cl n) : AbsentNone (discS s dir) jr (cl.erase (lay.j, N, hj)) n := by
+    (hok : AbsentNone s jr cl n) : AbsentNone (discS s dir) jr (dropC cl (lay.j, N, hj)) n := by
   intro dir' nm hia hn
   have hia' : InArea s.area dir' nm := hia
   have key : (∀ N' h', (jr, N', h') ∈ cl → N'.Mem nm → h'.cur !! nm = none) ∧
@@ -145,7 +157,7 @@ theorem absentNone_discard {s : AbsDiskState} {jr : Ino} {Ls : GMap GoString Wal
     · subst e; exact hnone nm hia'
     · rw [discS_wal_ne e] at hn
       exact hok dir' nm hia' hn
-  refine ⟨fun N' h' hm hN' => key.1 N' h' (List.mem_of_mem_erase hm) hN', fun m' hr => ?_⟩
+  refine ⟨fun N' h' hm hN' => key.1 N' h' (mem_of_mem_dropC hm) hN', fun m' hr => ?_⟩
   obtain ⟨m'', hr1, he⟩ := hs.drop.crash hr
   rw [← he _ _ (fun ⟨e, _⟩ => hs.jr e.symm)]
   exact key.2 _ hr1
@@ -154,9 +166,9 @@ theorem absentNone_discard {s : AbsDiskState} {jr : Ino} {Ls : GMap GoString Wal
 theorem walsOk_discard {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString} {lay : WalLay}
     {N : NameSet} {hj : NamesH} (hs : DiscSet Ls cl jr dir lay N hj) (hR : RootsOk R) (hdr : DirsRoots R s)
-    (hab : AbsentNone (discS s dir) jr (cl.erase (lay.j, N, hj)) n)
+    (hab : AbsentNone (discS s dir) jr (dropC cl (lay.j, N, hj)) n)
     (hok : WalsOk C Mr R jr s Ls cl n) :
-    WalsOk C Mr R jr (discS s dir) (GMap.delete dir Ls) (cl.erase (lay.j, N, hj)) n := by
+    WalsOk C Mr R jr (discS s dir) (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) n := by
   obtain ⟨hw, hnone, hnd, hcut, -, -⟩ := hok
   have hLd : ∀ dir', dir' ≠ dir → (GMap.delete dir Ls) !! dir' = Ls !! dir' :=
     fun dir' e => GMap.lookup_delete_ne _ (Ne.symm e)
@@ -182,6 +194,95 @@ theorem walsOk_discard {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
       by_cases e : dir' = dir
       · subst e; rw [GMap.lookup_delete_eq] at hl'; cases hl'
       · rw [hLd _ e] at hl'; exact ⟨lay', hl', List.Sublist.refl _⟩)
+
+
+/-- **`WalsNamed` after the discard.** -/
+theorem walsNamed_discard {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {jr : Ino}
+    {dir : GoString} {lay : WalLay} {N : NameSet} {hj : NamesH} (hs : DiscSet Ls cl jr dir lay N hj)
+    (hok : WalsNamed Ls cl n) : WalsNamed (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) n := by
+  intro dir' lay' hl'
+  have e : dir' ≠ dir := fun e => by rw [e, GMap.lookup_delete_eq] at hl'; cases hl'
+  rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hl'
+  have hne := hs.dist dir' lay' hl' e
+  obtain ⟨h1, h2, h3⟩ := hok dir' lay' hl'
+  refine ⟨fun hj' hw => h1 hj' ?_, fun m' hr => ?_, fun N' hj' hm => h3 N' hj' (mem_of_mem_dropC hm)⟩
+  · obtain ⟨X, hX, hm, hco⟩ := hw
+    exact ⟨X, hX, mem_of_mem_dropC hm, hco⟩
+  · obtain ⟨m'', hr1, he⟩ := hs.drop.crash hr
+    rw [← entsOf_off hne he]
+    exact h2 _ hr1
+
+/-- **`WalsCreateOk` after the discard** (the area's claims stay). -/
+theorem walsCreateOk_discard {jr : Ino} {cl : List Claim} {j : Ino} {N : NameSet} {hj : NamesH}
+    (hjr : j ≠ jr) (hok : WalsCreateOk jr cl) : WalsCreateOk jr (dropC cl (j, N, hj)) := by
+  intro nm hnm
+  obtain ⟨N', h', hm, hN'⟩ := hok nm hnm
+  exact ⟨N', h', mem_dropC_of_fst (c := (j, N, hj)) hm (Ne.symm hjr), hN'⟩
+
+/-- **`WalsAt` after the discard.** -/
+theorem walsAt_discard {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {dir : GoString}
+    {c : Claim} (hA : WalsAt jr Ls cl) : WalsAt jr (GMap.delete dir Ls) (dropC cl c) := by
+  intro dir' lay' hl'
+  have e : dir' ≠ dir := fun e => by rw [e, GMap.lookup_delete_eq] at hl'; cases hl'
+  rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hl'
+  exact ⟨(hA dir' lay' hl').1, fun N h hm hN => (hA dir' lay' hl').2 N h (mem_of_mem_dropC hm) hN⟩
+
+/-- `ClaimOnce` of another claim carries over the drop. -/
+theorem claimOnce_dropC {cl : List Claim} {c c' : Claim} (hne : c' ≠ c) (h : ClaimOnce c' cl) :
+    ClaimOnce c' (dropC cl c) := by
+  classical
+  obtain ⟨l1, l2, rfl, h1, h2⟩ := h
+  refine ⟨dropC l1 c, dropC l2 c, ?_, fun hm => h1 (mem_of_mem_dropC hm),
+    fun hm => h2 (mem_of_mem_dropC hm)⟩
+  unfold dropC
+  rw [List.filter_append, List.filter_cons_of_pos (by simpa using hne)]
+
+/-- A WAL directory's claim facts of another directory carry over the drop. -/
+theorem dirClaimOk_dropC {jr : Ino} {cl : List Claim} {j j' : Ino} {X : List GoString} {hj : NamesH}
+    {c : Claim} (hc : c.1 = j') (hne : j ≠ j') (h : DirClaimOk jr cl j X hj) :
+    DirClaimOk jr (dropC cl c) j X hj := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  refine ⟨h1, h2, claimOnce_dropC (fun e => hne (by rw [← hc, ← e])) h3, h4,
+    fun c'' hc'' => h5 c'' (mem_of_mem_dropC hc'')⟩
+
+/-- **`DirKeysOk` after the discard**, its keys less `dir`'s. -/
+theorem dirKeysOk_discard {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {cu : Option GoString} {dir : GoString} {lay : WalLay}
+    {N : NameSet} {hj : NamesH} (hs : DiscSet Ls cl jr dir lay N hj)
+    (hw : ∀ dir' d, s.wal !! dir' = some d → ∃ lay', Ls !! dir' = some lay' ∧ lay'.jr = jr)
+    (hok : DirKeysOk C Mr jr s Ls cl n K cu) :
+    DirKeysOk C Mr jr (discS s dir) (GMap.delete dir Ls) (dropC cl (lay.j, N, hj)) n
+      (GMap.delete dir K) cu := by
+  obtain ⟨h1, h2, h3⟩ := hok
+  have hL : ∀ dir' lay', (GMap.delete dir Ls) !! dir' = some lay' → dir' ≠ dir ∧ Ls !! dir' = some lay' :=
+    fun dir' lay' hl' => by
+      have e : dir' ≠ dir := fun e => by rw [e, GMap.lookup_delete_eq] at hl'; cases hl'
+      rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hl'
+      exact ⟨e, hl'⟩
+  refine ⟨fun dir' j X hk => ?_, fun dir' d lay' hd' hl' hcd => ?_, fun dir' lay' hl' => ?_⟩
+  · have e : dir' ≠ dir := fun e => by rw [e, GMap.lookup_delete_eq] at hk; cases hk
+    rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hk
+    obtain ⟨lay', hj', hl', hlj, hjr, hX, ho, hco, hoth⟩ := h1 dir' j X hk
+    have hne : j ≠ lay.j := hlj ▸ hs.dist dir' lay' hl' e
+    obtain ⟨-, -, ho', -, hoth'⟩ := dirClaimOk_dropC (c := (lay.j, N, hj)) rfl hne
+      ⟨hjr, hX, ho, hco, hoth⟩
+    refine ⟨lay', hj', by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hl', hlj, hjr, hX, ho', hco,
+      hoth'⟩
+  · obtain ⟨e, hl'⟩ := hL dir' lay' hl'
+    rw [discS_wal_ne e] at hd'
+    have hne := hs.dist dir' lay' hl' e
+    have hjr' : lay'.jr ≠ lay.j := by
+      obtain ⟨lay2, hl2, hjr2⟩ := hw dir' d hd'
+      rw [hl'] at hl2; cases hl2
+      rw [hjr2]; exact Ne.symm hs.jr
+    exact crashOkA_dropDir hs.drop (by simpa using hne) (by simpa using hjr')
+      (fun _ h0 => by cases h0) (h2 dir' d lay' hd' hl' hcd)
+  · obtain ⟨e, hl'⟩ := hL dir' lay' hl'
+    have hne := hs.dist dir' lay' hl' e
+    obtain ⟨X, hj', hok', ⟨hXe, hex⟩⟩ := h3 dir' lay' hl'
+    exact ⟨X, hj', dirClaimOk_dropC (c := (lay.j, N, hj)) rfl hne hok', hXe,
+      fun c'' hc'' => hex c'' (mem_of_mem_dropC hc'')⟩
 
 end pure
 
