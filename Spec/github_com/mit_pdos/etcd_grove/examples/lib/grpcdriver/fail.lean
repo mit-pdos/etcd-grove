@@ -26,7 +26,7 @@ variable [pkg_wr : google_golang_org.protobuf.types.known.wrapperspb.Assumptions
 /-- See the file header. -/
 abbrev fail.spec : Prop :=
   ∀ (γid γb : GName) (c : GoInterface) (ids : Loc),
-  {{ drvCli γid γb c ids ∗ ownToks γb 1 }}
+  {{ drvCli (GF := GF) γid γb c ids ∗ ownToks γb 1 }}
     (App (App (Val (@! fail)) (Val #c)) (Val #ids))
   {{ RET #(); True }}
 

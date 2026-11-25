@@ -79,18 +79,15 @@ theorem plain_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := 
   iapply wp_true_sep_intro
   iunfold grpcInvokerOk at Hinv
   icases Hinv with ⟨#Htri, -⟩
-  iapply (Htri $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts'
-    %vs %([] : List Loc) %iprop(True)) $$ [Hspec Hsend Hown]
+  ihave Htri' := Htri $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts'
+    %vs %([] : List Loc) %(iprop(True) : IProp GF)
+  iapply Htri' $$ [Hspec Hsend Hown]
   · iframe #
     iframe
-    isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
-    isplitr
-    · ipureintro; exact Hw
-    isplitr
-    · ipureintro; exact Hvs
+    try (isplitr; · ipureintro; trivial)
+    try (isplitr; · itrivial)
+    try (isplitr; · ipureintro; exact Hw)
+    try (isplitr; · ipureintro; exact Hvs)
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
     iempintro
   inext

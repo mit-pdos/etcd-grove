@@ -26,7 +26,7 @@ variable [pkg_wr : google_golang_org.protobuf.types.known.wrapperspb.Assumptions
 /-- See the file header. -/
 abbrev serverStream.spec : Prop :=
   ∀ (γid γb : GName) (c : GoInterface) (ids : Loc),
-  {{ drvCli γid γb c ids }}
+  {{ drvCli (GF := GF) γid γb c ids }}
     (App (Val (@! serverStream)) (Val #c))
   {{ RET #(); True }}
 

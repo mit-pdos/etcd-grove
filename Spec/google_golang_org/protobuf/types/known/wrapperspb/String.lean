@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.google_golang_org.protobuf.types.known.wrapperspb.PerTypeStringValue
+public import Proof.google_golang_org.protobuf.types.known.wrapperspb.Base
 
 @[expose] public section
 

@@ -30,10 +30,10 @@ variable [pkg_wr : google_golang_org.protobuf.types.known.wrapperspb.Assumptions
 
 theorem driverClient.Fail.wp_proof (wp_unary : driverClient.unary.spec (GF := GF) (hG := hG)) :
     driverClient.Fail.spec (GF := GF) (hG := hG) := by
-  intro dc conn addrs Spec m Φ Ψe ctx cd om inp opts vs
+  intro dc conn addrs Spec m Φr Ψe ctx cd om inp opts vs
   wp_start as ⟨#Hcc, #Hconn, #Hrpc, #Hom, Hspec, #Hctx, Hsend, #Hopts, %Hvs⟩
   wp_auto
-  wp_apply (wp_unary dc conn addrs Spec m Φ Ψe ctx cd om inp opts vs failName) $$ [Hspec Hsend]
+  wp_apply (wp_unary dc conn addrs Spec m Φr Ψe ctx cd om inp opts vs failName) $$ [Hspec Hsend]
     as %resp %err H
   · iframe #
     iframe
