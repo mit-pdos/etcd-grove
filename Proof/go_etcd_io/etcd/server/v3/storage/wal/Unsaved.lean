@@ -69,7 +69,7 @@ local macro "unsaved_putback" : tactic => `(tactic| (
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   imod walInv_unpinAll walCodec Mr R jr r dir lay X hj hS $$ Hinv Hnc [Hl Htf Hnf Ho HS Hj] with ⟨Hnc, Hu⟩
-  · unfold walPinAllRes; iframe; iframe #
+  · unfold walPinAllRes; iexists I; iframe; iframe #
   imodintro
   iframe Hnc))
 
@@ -80,7 +80,7 @@ local macro "unsaved_putbackP" : tactic => `(tactic| (
   iintro Hnc
   imod walInv_dirPathRetD walCodec Mr R jr r dir nmd qd lay.j hdn $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
   imod walInv_unpinAll walCodec Mr R jr r dir lay X hj hS $$ Hinv Hnc [Hl Htf Hnf Ho HS Hj] with ⟨Hnc, Hu⟩
-  · unfold walPinAllRes; iframe; iframe #
+  · unfold walPinAllRes; iexists I; iframe; iframe #
   imodintro
   iframe Hnc))
 
@@ -183,8 +183,11 @@ theorem wal.Unsaved.wp_proof
   · -- a WAL: every segment pinned
     obtain ⟨hljr, hX, hcoh, habs, hid, hnd, hsn⟩ := hpin
     unfold walPinAllRes
-    icases Hpin with ⟨#Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X [] $$ Hinv Hnc Hnf Hkey with ⟨Hnc, %nmd, %qd, %hdn, Hnf, Hpd⟩
+    icases Hpin with ⟨%I, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj⟩
+    icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+    imod walInv_dirPath walCodec Mr R jr r dir I lay.j X [] $$ Hinv Hnc Hnf Hkey HI
+      with ⟨Hnc, HI, %nmd, %qd, %hdn, Hnf, Hpd⟩
+    ihave Hl := Hl $$ HI
     imodintro
     iframe Hnc
     ihave %hstl := preceipt_lt _ $$ Hstp

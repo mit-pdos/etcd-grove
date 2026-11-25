@@ -2211,6 +2211,24 @@ theorem walOpenWI_incLb (w : Loc) (dir : GoString) (i : Nat) :
   · iexists γ; iframe Hd Hm
   ipureintro; exact h
 
+/-- **A handle's quarter of the incarnations, lent** (`walHandlePI`: the lock's quarter at `i`). -/
+theorem walHandlePI_incQ (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) :
+    walHandlePI (W := W) w dir i m ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walHandlePI (W := W) w dir i m) := by
+  unfold walHandlePI
+  iintro ⟨%γ, %I, Hd, Hm, Hp, Hl, %h⟩
+  icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+  iexists I
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iintro HI
+  iexists γ, I
+  iframe Hd Hm Hp
+  isplitl
+  · iapply Hl $$ HI
+  ipureintro; exact h
+
 /-- **A key lookup by a write handle** (its quarter of the incarnations is at `i`). -/
 theorem walDirKey_lookupWC (K : GMap GoString (Fs.Ino × List GoString)) (w : Loc) (dir : GoString) (i : Nat)
     (j : Fs.Ino) (X : List GoString) :

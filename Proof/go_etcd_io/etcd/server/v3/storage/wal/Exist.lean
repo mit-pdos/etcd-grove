@@ -79,7 +79,7 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
     $$ Hinv Hsi Hnc HA HN Hsf Hu with ⟨Hnc, HN, Hsf, %od, HL, Hcase⟩
   iframe Hnc
   imodintro
-  icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %J, %X, %hj, %q1, %q2, %hn, %hp, Hn1, Hsp, #Hk, Hl, Htf, Ho, HJ⟩)
+  icases Hcase with (⟨%hc, Hu⟩ | ⟨%hc, %J, %X, %hj, %q1, %q2, %hn, %I, %hp, Hn1, Hsp, #Hk, Hl, Htf, Ho, HJ⟩)
   · obtain ⟨hod, hNnm, hnone, hnW⟩ := hc
     wp_apply wp_RDabs r nm _ [g] [go!".wal"] _ R jr _ 1 N _ h rfl hnmO hNnm hnone
       $$ [Hp Hperm HN Hosl] as %rs %err ⟨Hp, Hperm, HN, Hosl, %herr, %bn, #Herr, %hbn⟩
@@ -123,7 +123,7 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       iexact Hg
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_existEnd C Mr R jr r (child r nm) J X hj nm q1 hn hX
+    imod walInv_existEnd C Mr R jr r (child r nm) J X hj nm q1 hn I hX
       $$ Hinv Hsi Hnc Hk Hl Htf Hn1 Ho HJ with ⟨Hnc, Hu⟩
     iframe Hnc
     imodintro
