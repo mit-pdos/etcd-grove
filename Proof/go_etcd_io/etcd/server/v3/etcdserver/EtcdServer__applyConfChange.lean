@@ -533,7 +533,7 @@ theorem EtcdServer.applyConfChange.wp_proof
     wp_apply (hValid cl cc (DFrac.own 1) (DFrac.own 1) m false
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
       iprop(True) (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 (.inl hty0)
-      (fun _ => ⟨_, hctx⟩))
+      (fun _ => ⟨_, _, hctx⟩))
       $$ [Hbef Hcc] as %err ⟨Hbef, Hcc, Herr⟩
     · simp only [Bool.false_eq_true, ↓reduceIte]; iframe #; iframe
     try simp only [Bool.false_eq_true, ↓reduceIte]
@@ -706,8 +706,8 @@ theorem EtcdServer.applyConfChange.wp_proof
     iapply HΦ'
     iframe
   have Hty : m.type = W32 0 ∨ m.type = W32 1 := .inl hty0
-  have Hctx : m.type = W32 0 → ∃ i, membership.ccContextOf m.context = some (i, false) :=
-    fun _ => ⟨_, hctx⟩
+  have Hctx : m.type = W32 0 → ∃ i b, membership.ccContextOf m.context = some (i, b) :=
+    fun _ => ⟨_, _, hctx⟩
   ihave #Prpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   ihave #Pjson : isPkgInit (PROP := IProp GF) pkg_id.encoding.json $$ []

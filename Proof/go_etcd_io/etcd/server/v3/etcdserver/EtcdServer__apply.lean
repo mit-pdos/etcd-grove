@@ -808,7 +808,8 @@ theorem EtcdServer.apply.wp_proofOff
               have hbk : (restModel γr.kv.c0 γr.raft.raft.boot
                   (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))).bk = restBootBk := by
                 rw [hA0, hpre0]; rfl
-              rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0] at hf
+              rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0
+                (membership.ccIsPromote_of _ _ _ (Hcb _ Hdec).2.2.1)] at hf
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv
@@ -1888,7 +1889,8 @@ theorem EtcdServer.apply.wp_proofOn
               have hbk : (restModel γr.kv.c0 γr.raft.raft.boot
                   (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))).bk = restBootBk := by
                 rw [hA0, hpre0]; rfl
-              rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0] at hf
+              rw [ccValidOn_restLeasesWith, hbk, ccValidOn_boot cm0 hct0
+                (membership.ccIsPromote_of _ _ _ (Hcb _ Hdec).2.2.1)] at hf
               cases hf
             iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) _ hA
             iexact Hcv

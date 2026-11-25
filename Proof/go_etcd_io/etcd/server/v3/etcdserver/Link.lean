@@ -159,6 +159,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsLocalMemberLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__PromoteMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ValidateConfigurationChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Version
@@ -1589,6 +1590,10 @@ theorem membership.Member.wp_JSONModelMarshalPtr :
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
+
+theorem membership.RaftCluster.wp_PromoteMember :
+    membership.RaftCluster.PromoteMember.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.PromoteMember.wp_proof types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String
 
 theorem membership.RaftCluster.wp_Version :
     membership.RaftCluster.Version.spec (GF := GF) (hG := hG) :=

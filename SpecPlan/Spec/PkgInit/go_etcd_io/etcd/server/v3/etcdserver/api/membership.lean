@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.crypto.sha1.Base
+public import Perennial.Proof.encoding.binary.Base
 public import SpecPlan.Spec.PkgInit.encoding.json
 public import Perennial.Proof.sort.Base
 public import Perennial.Proof.sync.Base

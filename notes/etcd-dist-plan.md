@@ -1617,5 +1617,42 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
     `ccApplyOk`'s promote disjunct, `ccValidM`'s promote branch, an invariant that every saved member is a voter
     (from `ccApplyOk`'s `isLearner = false` and `membersOf_decode`), then the consumers.
 
+  - **Route B, steps 1-2 and the validation's promotion branch (2026-11-25).**
+    - *The members extension* (approved for the final packet): `membership.membersOf`'s members carry the
+      learner flag (`GMap w64 (List GoString × Bool) × GMap w64 Bool`); `membersOf_decode` gives the flags by
+      id with no UTF-8 premise (a boolean and the key, which `json.Marshal`'s coercion never touches, as
+      `memberEnc_id_learner`) and the `(peerURLs, isLearner)` pairs under `hu`; `membersRead` gives each
+      record's `IsLearner` field (`memberReadAt`, in place of `memberURLsAt`). Go evidence
+      `examples/axiomcx/memberslearner` (the real `snapshotmeta.ReadMembers` over `json.Marshal`ed members:
+      the flag reads back, beside a peer URL coerced to U+FFFD). Docstrings cite the pin `6b942d23f`
+      (`readMembersFromBackend` now reads the members through `snapshotmeta.ReadMembers`).
+    - *`RaftCluster.PromoteMember` translated with its body* (`membership.toml`) and proved without
+      `shouldApplyV3` (lock, the learner gauge for the local id, a log line, unlock); linked in the server's
+      `Link`. `etc/goose.py --check` and `etc/gen-init.py --check` pass.
+    - *`ValidateConfigurationChange`* admits a promotion's context (`∃ i b`) and `ccValidM` has Go's
+      promotion branch (`ccIsPromote`: the member present and a learner); proved (`ErrIDNotFound`,
+      `ErrMemberNotLearner`, `nil`).
+    - **Stopped before widening `ccApplyOk`: it changes another axiom.** Admitting a promotion into the
+      committed log's policy (`ccPolOk`/`ccLogOk`) makes `ccPolOk_static` (committed conf entries are
+      `ccBootOk`) false, and its consumers on the snapshot path (`SnapRecvFacts`, `SnapRecvOn`,
+      `ApplyAllSnapLemmas`) pass that fact to the trust-boundary axiom
+      `membership.clusterImageOk_restModel`, whose premise is `∀ m ∈ L', m.typ ≠ 0 → ccBootOk γ.raft.cfg
+      m.data`. Either its premise is widened (to the wide policy, so the axiom claims the image fact also
+      for logs with promotions), or `ccBootOk` keeps its name with a wide meaning (the same claim,
+      silently). Go: a promotion of a voter is rejected (`ErrMemberNotLearner`, no bucket written:
+      `applyConfChange` returns before `PromoteMember`), and a replayed one (`PromoteMember(id, false)`)
+      writes no bucket, so the widened claim is true of Go; but it is an axiom change beyond the members
+      extension, for the owner. The boot entries must stay narrow (`memBoot` inserts every boot change's
+      member: a new conjunct of `srvClusterOk`, `∀ e ∈ boot, ccBootOk cfg e.Data'`, from `BootCore.cc`).
+    - *Fresh review* (`axiom` skill, given the axioms and the Go code at the pin) of `membersOf`,
+      `membersOfBk_empty`, the restated `membersOf_decode` and `MustReadMembersFromBackend`'s contract:
+      **survives**. Attacks: the learner flag without `hu` (the real `ReadMembers`), ids at `0` and
+      `2^64-1`, URL escapes and nil/empty slices under `hu`, `null` and extra records, the fresh records'
+      ownership, the validation's promotion branch against `cluster.go:324-330`. Docstring citations
+      corrected (the pin's `ReadMembers`/`MustParseMemberID`, `membership.go:84-117`). Side finding, not a
+      counterexample (pre-existing): `apply.memberEnc` is a function of `MemberM`, but Go marshals a nil and
+      an empty `PeerURLs` differently (`null`/`[]`); harmless while no verified reader sees the bytes;
+      the robust form is "`MustSaveMemberToBackend` writes some value decoding to `mm`".
+
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.

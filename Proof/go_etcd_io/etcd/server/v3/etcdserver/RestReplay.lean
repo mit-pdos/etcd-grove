@@ -297,16 +297,19 @@ def memSync (ps : List w64) (r : apply.RestM) : Prop :=
 
 /-- **An `AddNode` of a voter is refused** once the bucket is in sync. -/
 theorem ccValidOn_false (ps : List w64) (r : apply.RestM) (cc : ConfChangeM) (hs : memSync ps r)
-    (hty : cc.type = W32 0) (hin : cc.nodeId ∈ ps) : membership.ccValidOn r.bk cc = false := by
+    (hty : cc.type = W32 0) (hin : cc.nodeId ∈ ps)
+    (hnp : membership.ccIsPromote cc.context = false) : membership.ccValidOn r.bk cc = false := by
   obtain ⟨⟨ms, hb, hnd, hu, hcov⟩, hrm, -⟩ := hs
-  obtain ⟨hmems, -⟩ := membership.membersOf_decode (r.bk.lookup go!"members")
-    (r.bk.lookup go!"members_removed") ms [] hb hnd hu (fun k => by rw [hrm]; simp)
+  obtain ⟨-, hmems, -⟩ := membership.membersOf_decode (r.bk.lookup go!"members")
+    (r.bk.lookup go!"members_removed") ms [] hb hnd (fun k => by rw [hrm]; simp)
+  have hmems := hmems hu
   unfold membership.ccValidOn membership.membersOfBk
   classical
   apply decide_eq_false
   unfold membership.ccValidM
   rintro ⟨-, h2⟩
   rw [if_pos hty] at h2
+  simp only [hnp, Bool.false_eq_true, ↓reduceIte] at h2
   have h3 := h2.1
   rw [hmems] at h3
   obtain ⟨mm, hmm, hid⟩ := List.mem_map.1 (hcov _ hin)
@@ -431,9 +434,9 @@ theorem restEntry_sync (ps : List w64) (c0 : w64) (e : EntryModel) (r : apply.Re
     | none => exact ⟨by first | trivial | rfl, hs⟩
     | some cc =>
       simp only
-      obtain ⟨hty, hin, -⟩ := hcc ht cc hc
+      obtain ⟨hty, hin, hctx, -⟩ := hcc ht cc hc
       have hin' : cc.nodeId ∈ ps := (GMap.elem_of_list_to_set _ _).1 hin
-      have hf := ccValidOn_false ps r cc hs hty hin'
+      have hf := ccValidOn_false ps r cc hs hty hin' (membership.ccIsPromote_of _ _ _ hctx)
       unfold ccRest
       rw [if_neg (by rintro ⟨-, h⟩; rw [hf] at h; cases h)]
       exact ⟨by first | trivial | rfl, hs⟩

@@ -38,6 +38,9 @@ translate = ["!*",
   "setIsLearnerMetric", "RaftCluster.updateMembershipMetric",
   # (prove-ps2-members, 2026-11-22) the backend's setter (`applySnapshot`'s), proved
   "RaftCluster.SetBackend",
+  # (route B, 2026-11-25) the promotion's writer, which `applyConfChange` calls on a replayed promotion
+  # (without `shouldApplyV3`: the learner metric, a log line), proved
+  "RaftCluster.PromoteMember",
   # (etcd-dist D2, 2026-11-25) the member id's computation (the deployment's check and bootstrap's), over
   # the proved `URLs.StringSlice`, `sort.Strings`, `strings.Join`, `crypto/sha1` and `encoding/binary`
   "NewMember", "computeMemberID", "newMember",

@@ -5,7 +5,7 @@ every boot member, each a voter, so every conf state `buildConfStateFromV3store`
 (`v3ConfStateIs`) is the static cluster's membership (`restModel_confState`).
 
 * Phase 1, the bootstrap log: each boot `AddNode` validates against the members saved before it
-  (`membersOf_decode`: they decode to their peer URLs; `bootURLsOk`: none has the new member's;
+  (`membersOf_decode`: they decode to their peer URLs, valid UTF-8; `bootURLsOk`: none has the new member's;
   the ids distinct), so the bucket holds exactly the boot members saved so far (`bootInv`).
 * Phase 2, the rest of the log: every entry of the bucket is a voter of the cluster under its own
   id, and every id of the cluster has an entry (`memVoters`): conf changes are `ccApplyOk`'s
@@ -229,12 +229,13 @@ theorem boot_step (ps : List w64) (P : List EntryM) (e : EntryM) (r : apply.Rest
     (hdisj : ∀ mm ∈ bootSaved P, ∀ u ∈ mm.peerURLs, u ∉ (membership.ccMemberOf cc.context).peerURLs) :
     bootInv ps (P ++ [e]) (restEntry (W64 0) (EntryModel.ofM e) r) := by
   obtain ⟨hm, hb, hrm⟩ := h
-  obtain ⟨hty0, hin, -, hl⟩ := hok
+  obtain ⟨hty0, hin, hctx, hl⟩ := hok
   have hin' : cc.nodeId ∈ ps := (GMap.elem_of_list_to_set _ _).1 hin
   -- the members read decode to the saved ones, none removed
-  obtain ⟨hmems, hrmv⟩ := membership.membersOf_decode (r.bk.lookup go!"members")
-    (r.bk.lookup go!"members_removed") (bootSaved P) [] hb hndP hu
+  obtain ⟨-, hmems, hrmv⟩ := membership.membersOf_decode (r.bk.lookup go!"members")
+    (r.bk.lookup go!"members_removed") (bootSaved P) [] hb hndP
     (fun k => by rw [hrm]; simp)
+  have hmems := hmems hu
   have hvalid : membership.ccValidOn r.bk cc = true := by
     unfold membership.ccValidOn membership.membersOfBk
     classical
@@ -242,7 +243,8 @@ theorem boot_step (ps : List w64) (P : List EntryM) (e : EntryM) (r : apply.Rest
     unfold membership.ccValidM
     refine ⟨by rw [hrmv]; simp, ?_⟩
     rw [if_pos hty0]
-    refine ⟨?_, fun u hu' ⟨k, pus, hk, hupus⟩ => ?_⟩
+    simp only [membership.ccIsPromote_of _ _ _ hctx, Bool.false_eq_true, ↓reduceIte]
+    refine ⟨?_, fun u hu' ⟨k, x, hk, hupus⟩ => ?_⟩
     · rw [hmems]
       simp only [Option.map_eq_none_iff, List.find?_eq_none, decide_eq_true_eq]
       intro mm hmm hid

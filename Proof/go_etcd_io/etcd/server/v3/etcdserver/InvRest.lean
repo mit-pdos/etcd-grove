@@ -53,35 +53,51 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-! ## The membership's model -/
 
 
-/-- A peer URL some member of `mems` (each member's peer URLs) has. -/
-def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop :=
-  ∃ k pus, mems !! k = some pus ∧ u ∈ pus
+/-- A peer URL some member of `mems` (each member's peer URLs and learner flag) has. -/
+def membership.urlTaken (mems : GMap w64 (List GoString × Bool)) (u : GoString) : Prop :=
+  ∃ k x, mems !! k = some x ∧ u ∈ x.1
+
+/-- **A conf change's context is a promotion** (route B, 2026-11-25): `IsPromote` of what it
+unmarshals to (`ccContextOf`), `false` if it does not unmarshal. -/
+def membership.ccIsPromote (ctx : List w8) : Bool :=
+  match membership.ccContextOf ctx with
+  | some (_, b) => b
+  | none => false
+
+theorem membership.ccIsPromote_of (ctx : List w8) (i : w64) (b : Bool)
+    (h : membership.ccContextOf ctx = some (i, b)) : membership.ccIsPromote ctx = b := by
+  unfold membership.ccIsPromote; rw [h]
 
 /-- **The verdict of `ValidateConfigurationChange` with `shouldApplyV3`**, on the members' peer URLs
-`mems` and the removed members `rmv` the backend holds: not a removed id; an `AddNode` (not a
-promotion: the scope's) of an id not a member, whose peer URLs (the context's member's) no member
-has; a `RemoveNode` of a member. -/
-def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) (m : ConfChangeM) : Prop :=
+and learner flags `mems` and the removed members `rmv` the backend holds (`api/membership/cluster.go:
+306-389` at the etcd pin `6b942d23f`): not a removed id; an `AddNode` that is a promotion
+(`ccIsPromote`; route B, 2026-11-25; `:324-330`) of a member that is a learner (else
+`ErrIDNotFound`, `ErrMemberNotLearner`); an `AddNode` that is not, of an id not a member, whose
+peer URLs (the context's member's) no member has; a `RemoveNode` of a member. -/
+def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString × Bool)) (rmv : GMap w64 Bool) (m : ConfChangeM) : Prop :=
   (rmv !! m.nodeId).getD false = false ∧
-  (if m.type = W32 0 then mems !! m.nodeId = none ∧
-      ∀ u, u ∈ (membership.ccMemberOf m.context).peerURLs → ¬ membership.urlTaken mems u
+  (if m.type = W32 0 then
+      (if membership.ccIsPromote m.context then ∃ pus, mems !! m.nodeId = some (pus, true)
+      else mems !! m.nodeId = none ∧
+        ∀ u, u ∈ (membership.ccMemberOf m.context).peerURLs → ¬ membership.urlTaken mems u)
     else (mems !! m.nodeId).isSome = true)
 
 /-- **The members and the removed members the `members` and `members_removed` buckets decode to**
 (opaque, a function of those two buckets' contents, `none` for an absent bucket; D43 M5b′,
 2026-10-26, the user's decision; a function of the two buckets only since 2026-11-03, the user's
 (A), `notes/lease-grant-plan.md`, "Plumbing": `readMembersFromBackend`,
-`server/storage/schema/membership.go:91-123`, reads no other bucket): `MustReadMembersFromBackend`'s
-answer -- each member's id (its key, `mustParseMemberIDFromBytes`) with the peer URLs its JSON value
-unmarshals to, and the ids under `members_removed` -- as its read contract states it
-(`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
+`server/storage/schema/membership.go:97-117` at the pin `6b942d23f`, reads no other bucket): `MustReadMembersFromBackend`'s
+answer -- each member's id (its key, `snapshotmeta.MustParseMemberID`) with the peer URLs and (route B,
+2026-11-25) the `IsLearner` flag its JSON value unmarshals to, and the ids under `members_removed` --
+as its read contract states it (`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
 opaque membership.membersOf [GooseExts] :
-    Option backend.BktData → Option backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
+    Option backend.BktData → Option backend.BktData →
+      GMap w64 (List GoString × Bool) × GMap w64 Bool
 
 /-- **What the tracked buckets `bk` decode to** (`membersOf` of their `members` and
 `members_removed` buckets; until 2026-11-03 itself opaque over the whole map). -/
 def membership.membersOfBk [GooseExts] (bk : GMap GoString backend.BktData) :
-    GMap w64 (List GoString) × GMap w64 Bool :=
+    GMap w64 (List GoString × Bool) × GMap w64 Bool :=
   membership.membersOf (bk.lookup go!"members") (bk.lookup go!"members_removed")
 
 open Classical in
@@ -94,7 +110,7 @@ def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : C
 /-- **Buckets with no records decode to no members** (2026-10-31, the user's decision; a trust-boundary
 axiom on the opaque `membersOf`, `notes/axiom-review/members-empty.md`: survives; restated
 2026-11-03 over `membersOf`, the user's (A), axiom review pending). `readMembersFromBackend`
-(`server/storage/schema/membership.go:91-123`) makes both maps and writes them only in the
+(`server/storage/schema/membership.go:97-117` at the pin `6b942d23f`) makes both maps and writes them only in the
 `UnsafeForEach` callbacks over the `members` and `members_removed` buckets, so over buckets with no
 keys (or absent ones, which read empty) it returns two empty maps and no error. What makes a fresh
 backend's first boot `AddNode` validate (`ccValidOn_boot`). -/
@@ -103,24 +119,34 @@ axiom membership.membersOfBk_empty [GooseExts] (bm br : Option backend.BktData)
     membership.membersOf bm br = (∅, ∅)
 
 /-- **Buckets the apply thread wrote decode to the members it wrote** (2026-11-04, the restart
-plan's R2b-3d gap 3, the user's approval; a trust-boundary axiom on the opaque `membersOf`).
-Suppose the `members` bucket's entries are exactly some members' records under their own ids
-(`memberKey mm.id ↦ memberEnc mm`, ids distinct), and the `members_removed` bucket's keys are exactly
-the ids `rs`'s keys. Then the members read are those members' peer URLs by id, and the removed are
-`rs`. `readMembersFromBackend` (`server/storage/schema/membership.go:91-123`) keys each member by
-`mustParseMemberIDFromBytes` of its key, which is `types.IDFromString` of `BackendMemberKey`'s hex,
-so the id back. Each value is `json.Unmarshal`led into a `Member`, which inverts `json.Marshal` of a
-non-nil `*Member`, so the member back, provided its strings are valid UTF-8 (`hu`): `json.Marshal`
-coerces invalid UTF-8 to U+FFFD, so a peer URL that is not valid reads back changed
-(`notes/axiom-review/members-decode.md`, the review's refutation of the draft without `hu`). Each
-removed key gives `removed[id] = true`. -/
+plan's R2b-3d gap 3, the user's approval; a trust-boundary axiom on the opaque `membersOf`; route B,
+2026-11-25: with the learner flag). Suppose the `members` bucket's entries are exactly some members'
+records under their own ids (`memberKey mm.id ↦ memberEnc mm`, ids distinct), and the
+`members_removed` bucket's keys are exactly the ids `rs`'s keys. Then the members read are those
+members, by id, with their learner flags; with their peer URLs too when those are valid UTF-8 (`hu`);
+and the removed are `rs`. Go (at the etcd pin `6b942d23f`: `server/storage/schema/membership.go:97-117`,
+`readMembersFromBackend`, the members through `schema/snapshotmeta/read.go:54-79`, `ReadMembers`):
+each member is keyed by `MustParseMemberID` of its key, which is `types.IDFromString` of
+`BackendMemberKey`'s hex, so the id back; one record per key, so the members read are exactly `ms`'s
+ids. Each value is `json.Unmarshal`led into `m := &Member{ID: memberID}`, which inverts `json.Marshal`
+of a non-nil `*Member` (`api/membership/member.go:29-47`: `RaftAttributes`' `PeerURLs` as
+`"peerURLs"`, `IsLearner bool` as `"isLearner,omitempty"`, written iff true and read back as written,
+unset meaning `false`). `json.Marshal` coerces invalid UTF-8 in strings to U+FFFD, so a peer URL that
+is not valid reads back changed (`notes/axiom-review/members-decode.md`, the review's refutation of the
+draft without `hu`); the learner flag is a boolean and the id a key, which no coercion touches (as
+`apply.memberEnc_id_learner`), so they need no `hu` (`examples/axiomcx/memberslearner`: an
+`IsLearner` saved `true` or `false` reads back the same, beside a peer URL that is not valid UTF-8).
+Each removed key gives `removed[id] = true`. -/
 axiom membership.membersOf_decode [GooseExts] (bm br : Option backend.BktData)
     (ms : List apply.MemberM) (rs : List w64)
     (hm : ∀ k v, (bm.getD ∅).lookup k = some v ↔
       ∃ mm ∈ ms, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm)
-    (hnd : (ms.map (·.id)).Nodup) (hu : ∀ mm ∈ ms, ∀ u ∈ mm.peerURLs, utf8Valid u)
+    (hnd : (ms.map (·.id)).Nodup)
     (hr : ∀ k, ((br.getD ∅).lookup k).isSome = true ↔ ∃ id ∈ rs, k = apply.memberKey id) :
-    (∀ id, (membership.membersOf bm br).1 !! id = (ms.find? (·.id = id)).map (·.peerURLs)) ∧
+    (∀ id, ((membership.membersOf bm br).1 !! id).map (·.2) =
+      (ms.find? (·.id = id)).map (·.isLearner)) ∧
+    ((∀ mm ∈ ms, ∀ u ∈ mm.peerURLs, utf8Valid u) → ∀ id, (membership.membersOf bm br).1 !! id =
+      (ms.find? (·.id = id)).map (fun mm => (mm.peerURLs, mm.isLearner))) ∧
     (∀ id, (membership.membersOf bm br).2 !! id = if id ∈ rs then some true else none)
 
 /-- The membership buckets `MustReadMembersFromBackend` reads: `members`, `members_removed`. -/
@@ -393,17 +419,18 @@ theorem restModel_keep [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List 
 theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
     restModel c0 bootLog [] = restBoot bootLog := rfl
 
-/-- (2026-10-31, S5) **A fresh backend validates an `AddNode`**: its members buckets are empty
+/-- (2026-10-31, S5) **A fresh backend validates an `AddNode`** (not a promotion): its members buckets are empty
 (`membersOfBk_empty`), so no member, no removed one, no peer URL taken. -/
-theorem ccValidOn_boot [GooseExts] (m : ConfChangeM) (ht : m.type = W32 0) :
+theorem ccValidOn_boot [GooseExts] (m : ConfChangeM) (ht : m.type = W32 0)
+    (hp : membership.ccIsPromote m.context = false) :
     membership.ccValidOn restBootBk m = true := by
   unfold membership.ccValidOn membership.membersOfBk
   rw [membership.membersOfBk_empty _ _ (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
     (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])]
   simp only [decide_eq_true_eq]
   refine ⟨by simp, ?_⟩
-  rw [if_pos ht]
-  refine ⟨by simp, fun u _ ⟨k, pus, hk, _⟩ => by simp at hk⟩
+  rw [if_pos ht, hp, if_neg (by decide)]
+  refine ⟨by simp, fun u _ ⟨k, x, hk, _⟩ => by simp at hk⟩
 
 theorem restModel_append [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (m : EntryModel) :
