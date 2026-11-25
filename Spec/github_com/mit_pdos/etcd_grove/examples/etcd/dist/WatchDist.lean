@@ -59,7 +59,7 @@ whose `i`-th response is one firing of the update and a read of that state from 
 notification, a progress notification at `p ≥ c` with no event of the range in `(c, p]`, or exactly the
 range's events from the cursor to the last one's revision), and whose compaction revision is the
 cluster's permit (`cmpOkOf Γ.kv`). The channel spans the watcher's reconnections: a stream that fails
-is reopened (at any endpoint the connection picks) and resumed from the cursor, under the same
+is reopened (at any endpoint the connection picks) and resumed from the cursor plus one, under the same
 elements. Any auth mode; no auth row. -/
 abbrev Watch_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)

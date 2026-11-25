@@ -16,13 +16,25 @@ obligation for the entry (§22.6, route (a)).
 **What retires them.** That work (route (a), after M1 lands): each statement then becomes a theorem, proved
 from `watcher.Watch.spec`/`watcher.RequestProgress.spec` over an `isClientWatcher` built from the table's
 entries at every endpoint (`isNewClient_watcher_of`), the members' KV names `kvSame` to `Γ.kv` by
-`Serve_dist`'s `kvCongr`. The statements do not change.
+`Serve_dist`'s `kvCongr`. The statements do not change; the retiring proof also needs what
+`watchConnFacts_of_members` takes (`context.ErrAny.spec`, `errors.AsTarget`, the `errors`/`fmt`/`rpctypes`
+`Assumptions` instances, each member's `watchMemberFacts`), from the table's entries or the top level, not
+from `watchClientAt`.
 
 **The `∀ V` form.** Both are stated for every watcher environment `V` that `New` was given (their posts read
-nothing of it). The retiring proof meets that form only after the watcher-environment refactor (no trust):
-`watchSrvFacts` taken out of the watcher lock's `isWGS V G` and given to `run` per stream from the
-connection's table; without it, the theorem would hold only at the table's own environment, a weaker
-statement (§22.3, "The watcher's environment").
+nothing of it). At today's definitions they are not provable at every `V`: a stream these calls add to the
+watcher's map must carry `isWGS V G` in the lock's invariant (`watcherMu`), which holds `watchSrvFacts V`,
+and no cross-machine program has those facts. At `V.nm = 0` they are `False`, so there the triples are
+not valid Iris triples at all: their soundness is by encapsulation (below), not by truth. The retiring
+proof meets the `∀ V` form only after the watcher-environment refactor (no trust): `watchSrvFacts` taken out of `isWGS` and
+given to `run` per stream from the connection's table; without it, the theorem would hold only at the
+table's own environment, a weaker statement (§22.3, "The watcher's environment"). Until then their use is
+sound because nothing observes the lock's contents: `mu` is unexported, and every spec of code that locks it
+either takes `isClientWatcher V w`, whose `watchSrvFacts` no cross-machine program has (`watcher.Watch`,
+`RequestProgress`, `Close`, `closeStream`), or is an axiom whose post says nothing of the lock
+(`Watch_dist`, `RequestProgress_dist`, `Client.Close.wp_proof`, which calls `c.Watcher.Close()`). **Any new
+spec or proof that locks the watcher from `isNewClient`/`isClientWatcherCore` without `watchSrvFacts` voids
+this argument and must be reviewed together with these axioms** (`notes/axiom-review/n3-watch-dist.md`, F3).
 -/
 module
 
@@ -72,9 +84,10 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
 `watchClientAt` (the address facts at `Γ`), `γ := Γ.kv`, and no auth row:
 * *Who answers.* As `KV_Get_dist`: the client dials the endpoints themselves (`clientNoProxy`); each
   endpoint's table is set once by the start and answered by `Serve_dist` at a member whose KV names are
-  `kvCongr` to `Γ.kv`, or by a program that answers no stream (a raw listener writes nothing; a gRPC
-  server registering nothing gets every stream `Unimplemented`): a stream error, so the error arm or a
-  closed channel. So every response with content is a real member's `Watch` handler at KV names `kvSame`
+  `kvCongr` to `Γ.kv`, or by a program that answers no stream: a raw listener writes nothing, so (clientv3
+  dials with `WaitForReady`) no response comes and `Watch` returns a closed channel when the caller's context
+  ends; a gRPC server registering nothing gets every stream `Unimplemented`, the error arm, then the close.
+  So every response with content is a real member's `Watch` handler at KV names `kvSame`
   to `Γ.kv`, and that handler's spec is the one its in-process proof meets (`v3rpc.watchSpec`).
 * *Reconnection and resumption are inside the triple.* The single-process spec is already over a
   connection to several members (`V.nm`): on a stream error that `isHaltErr` does not halt on
@@ -84,24 +97,29 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
   member's events are of the same cluster history (every member applies one committed log; a lagging
   member's store is a prefix of it, and a watch from a revision it has not reached waits for it), and its
   progress notification is sent only once its store reached the watcher's start (`progressIfSync`).
-* *Errors, faults, cancellation are allowed outcomes.* A stream error that halts (any other status, a
-  canceled context, the server's cancel, a compaction past the start: `CompactRevision ≠ 0`) is a response
-  with an error (the error arm, position kept, its compaction revision `cmpOkOf Γ.kv`), after which the
-  channel closes. Nothing says a response ever arrives. The read update is persistent (`□`), so a resumed
+* *Errors, faults, cancellation are allowed outcomes.* A halting stream error (a status other than
+  `Unavailable`/`Internal`, or etcd's no-leader error), a refused create, or a compaction past the cursor
+  (`CompactRevision ≠ 0`) gives a response with an error (the error arm, position kept, its compaction
+  revision `cmpOkOf Γ.kv`), unless the watch's context has ended; then the channel closes. A server cancel
+  without a reason, the end of the watch's context, and `Close` close the channel with no response. Nothing
+  says a response ever arrives. The read update is persistent (`□`), so a resumed
   or repeated read fires it again harmlessly.
 * *What a response claims* is `watcher.Watch.spec`'s element at `Γ.kv`: the update's `□ Q σ` at the
   cluster's state `σ` it fired at, the read of `σ`'s range events from the cursor (`watchStateRespOkP`),
   and the compaction revision the cluster's permit (`cmpOkOf Γ.kv`), which the in-process proof derives
   from the member's `crevOk` (`kvCpOk` at its names, `cmpOkOf_same` through `kvSame`).
-* *Any auth mode.* A member checks a watch's permission only at its create; a refused create is a
-  canceled response (the error arm). The single-process spec's auth row (`watchCheckOk`, gated on
+* *Any auth mode.* Every member serving `Γ` runs auth off (`memberUp`, `Serve_dist`'s `Γ.auth = false`),
+  so no create is refused; the statement does not constrain `Γ.auth`, and with `Γ.auth = true` no member
+  serves `Γ`. (In Go a refused create is a canceled response with a reason: the error arm.) The
+  single-process spec's auth row (`watchCheckOk`, gated on
   `V.nm = 1`) is not claimed: it reads member 0's auth tag and server, per-member names not in `Γ` (N11).
 
 **Margin: the watcher's environment.** `isNewClient cl eps V` fixes `V` at `New`, and the watcher's lock
-invariant keeps each stream's `isWGS V G`, which holds `watchSrvFacts V`. No proved spec opens the lock
-without `isClientWatcher V w` (every `watcher` method's spec takes it; `Client.Close` is names-only), so
-nothing but these two axioms acts on the lock without those facts. The `∀ V` form needs the
-watcher-environment refactor for its retiring proof (file header).
+invariant keeps each stream's `isWGS V G`, which holds `watchSrvFacts V`. A stream this call adds has no
+provable `isWGS V G` (it is `False` at `V.nm = 0`), so the `∀ V` triple is not provable before the
+watcher-environment refactor; its use is sound because nothing observes the lock's contents, and any new
+spec that locks the watcher without `watchSrvFacts` must be reviewed with it (file header, "The `∀ V`
+form").
 
 Retired by S2's etcd-side stream work (§22.6 route (a)): the `Watch` entry stated at `Γ`, and this statement
 proved from `watcher.Watch.spec` over `isClientWatcher` built from the table (`isNewClient_watcher_of`),
@@ -121,8 +139,9 @@ watcher's, the context's or the stream's close error), and grpc's `status` accep
 (`statusErrOk`); nothing is claimed of the server's answer, which arrives, if ever, as a progress response
 of the watch channels `Watch_dist` describes.
 
-Retired with `Watch_dist`, from `watcher.RequestProgress.spec`; its `∀ V` form needs the same
-watcher-environment refactor (file header). -/
+Retired with `Watch_dist`, from `watcher.RequestProgress.spec`. As `Watch_dist`, a stream it starts has
+no provable `isWGS V G` at today's definitions, so its `∀ V` form needs the same watcher-environment
+refactor, and its use rests on the same encapsulation argument (file header, "The `∀ V` form"). -/
 axiom RequestProgress_dist.wp_proof : RequestProgress_dist.spec (GF := GF) (hG := hG)
 
 end proof
