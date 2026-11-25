@@ -19,13 +19,12 @@ matchers (Go 1.22's `tree`/`index`, `Mux22.lean`, and `serveMux121`, `Mux121.lea
   lock is released. Only this case: the other requests (unrouted paths, redirects, 404) are not
   needed by net/rpc over HTTP and are not proved here.
 
-Defs (no axiom): the restatement of `MuxDefs`' `muxOwn`/`muxRoute` (phase 7 S5, #24) is to be these.
+Defs (no axiom): `MuxDefs`' `muxOwn`/`muxRoute` are these (phase 7 S5, #24).
 -/
 module
 
 public import Net.Proof.net.http.Mux22
 public import Net.Proof.net.http.Mux121
-public import Net.Proof.net.http.MuxDefs
 public import Proof.net.url.Escape
 public import Spec.net.url.URL__EscapedPath
 
@@ -146,7 +145,7 @@ theorem wp_Handle_lit (wp_Search : sort.Search.spec (GF := GF) (hG := hG))
     (wp_Caller : runtime.Caller.spec (GF := GF) (hG := hG))
     (wp_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (m : Loc) (Ps : List GoString) (p : GoString) (h : GoInterface)
-    (hp : litPattern p) (hnew : p ∉ Ps) (hh : h ≠ interface.nil)
+    (hp : litPat p) (hnew : p ∉ Ps) (hh : h ≠ interface.nil)
     (hfn : ∀ v, h = interface.mkOk net.http.HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.sort ∗
         isPkgInit (PROP := IProp GF) pkg_id.strings ∗ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗
@@ -399,7 +398,7 @@ theorem wp_ServeMux_ServeHTTP_connect
     (wp_Count : strings.Count.spec (GF := GF) (hG := hG))
     (wp_EscapedPath : net.url.URL.EscapedPath.spec (GF := GF) (hG := hG))
     (m : Loc) (p : GoString) (h : GoInterface) (e : GoInterfaceOk) (hhe : h = interface.ok e)
-    (hp : litPattern p) (w : GoInterface) (r u : Loc) (pat0 : GoString) (pp0 : Loc) (ms0 : GoSlice)
+    (hp : litPat p) (w : GoInterface) (r u : Loc) (pat0 : GoString) (pp0 : Loc) (ms0 : GoSlice)
     (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗
       isPkgInit (PROP := IProp GF) pkg_id.strings ∗ muxRouteS (GF := GF) (hG := hG) m p h ∗ threadTok ∗

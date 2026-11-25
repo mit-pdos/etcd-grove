@@ -6787,3 +6787,16 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   passes pointer-typed handlers (`*Server`, `debugHTTP`), for which it is vacuous.
 - **Decision.** Pre-approved by coordinator-E (#24 7152572897); restated 2026-11-25, branch
   `fix-http-handle-premise/2026-11-25`.
+
+## 2026-11-25: `net.http.httpSrvEnv` widened (s5)
+
+- **Spec.** `net.http.Serve.spec_rpc` (`Net/Spec/net/http/Serve.lean`), through its premise `httpSrvEnv`
+  (`Net/Proof/net/http/MuxDefs.lean`); rpcdriver's `Server.spec` takes it too.
+- **Defect.** `httpSrvEnv` was `httpEnv`, which does not hold what net/http's server reads of its package
+  variables (`Serve.specHandler`'s `readEnv`, `serveEnv`, `ctxKeys`, `aLongTimeAgo`, `wPools`, `rPool`), so
+  `Serve.spec_rpc` could not be proved over the real code.
+- **Evidence.** The proof attempt (S5 item 3): nothing produced those facts.
+- **Proposed change.** `httpSrvEnv := httpEnv ∗ readEnv ∗ serveEnv ∗ ctxKeys ∗ (∃ tm, aLongTimeAgo ↦□ tm) ∗
+  wPools ∗ rPool`, produced at the boot by `wp_init_first_mux` from the restated `wp_init_first`
+  (`notes/axiom-review/net-http-interim.md`); rpcdriver's boot passes it in `bootRes`.
+- **Decision.** Approved by coordinator-E (#24 7153375148, "widening `httpSrvEnv` to match is fine").
