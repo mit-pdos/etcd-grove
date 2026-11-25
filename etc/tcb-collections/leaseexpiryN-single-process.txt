@@ -65,7 +65,6 @@ axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvAtLis
-axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof

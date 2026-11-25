@@ -37,7 +37,6 @@ axiom grpc.StatsHandler.wp_proof
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
-axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
 axiom grpc_health_v1.RegisterHealthServer.wp_proof

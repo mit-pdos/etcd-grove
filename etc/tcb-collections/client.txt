@@ -30,7 +30,6 @@ axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcResolverAt
 axiom grpcSrvAtLis
-axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom os.Getenv.wp_proof

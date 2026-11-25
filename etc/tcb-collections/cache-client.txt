@@ -21,7 +21,6 @@ axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcSrvAtLis
-axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg

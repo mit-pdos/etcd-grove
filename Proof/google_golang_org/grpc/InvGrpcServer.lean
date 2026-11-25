@@ -30,7 +30,8 @@ it, `k`:
   were fixed, so the model's own `UnaryInterceptor(i)` was provably `.neutral` while `NewServer`
   chains `i` in front of every handler). The other kinds fix the same fields.
 
-**The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive, axiomatized):
+**The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive; W1, 2026-11-26, a
+definition over the model's `Server` struct, until then axiomatized):
 `NewServer`'s `*grpc.Server` `gs`, not serving yet, with the unary and stream chains `ics`,
 `sics`, the services `svcs` registered (their names), and their unary methods `regs` and streams
 `sregs` (full method name `/<service>/<method>`, `MethodDesc.Handler`/`StreamDesc.Handler`,
@@ -67,6 +68,9 @@ module
 
 public import Proof.google_golang_org.grpc.InvGrpcStream
 public import Proof.net.InvNet
+public import Perennial.Proof.sync.CondDefs
+public import GeneratedProof.google_golang_org.grpc.internal.stats
+public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 
 @[expose] public section
 
@@ -107,16 +111,6 @@ def srvOptsStream [GooseExts] (ks : List SrvOptKind) : List GoFunc := ks.flatMap
 codec's; what the wire models (`ProtoMsg`) presume. etcd's `v3rpc.codec` is one
 (`v3rpc.codec_proto`). -/
 axiom grpcProtoCodec [GooseExts] (c : GoInterface) : Prop
-
-/-- **The server being built** (exclusive; see the file header). A handler in `regs`/`sregs` is
-Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a `GoFunc`. **Invariant every producer upholds**
-(per-type stage B, B1b): every `sregs` entry comes from a stream descriptor setting `ClientStreams`
-or `ServerStreams` (`RegisterService`'s premise; `RegisterHealthServer`'s one stream, health's
-`Watch`, is `ServerStreams`), since grpc runs an unflagged stream descriptor's handler directly,
-without the stream interceptor (`server.go:1446-1450`, test T10b), which the `Serve` model does not
-represent. -/
-axiom grpcSrvNew {GF : BundledGFunctors} [GooseExts] (gs : Loc) (ics sics : List GoFunc)
-  (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF
 
 /-- **The server being built, bound to the listener `lis` at `addr`** (exclusive), as certified by
 `etcd_noRefusal`/`etcd_noOtherRefusal`; intended reading `grpcSrvNew gs … ∗ netListenerAt lis addr`;
@@ -377,6 +371,172 @@ instance grpcDescIs_persistent (sd : Loc) (sn : GoString) (ht : GoInterface)
     (mds : List google_golang_org.grpc.MethodDesc) (sds : List google_golang_org.grpc.StreamDesc) :
     Persistent (grpcDescIs (GF := GF) sd sn ht mds sds) := by
   unfold grpcDescIs; infer_instance
+
+/-! ### The server being built (W1, 2026-11-26: a definition, until then the axiom `grpcSrvNew`;
+`notes/axiom-review/phase7-w1.md` §3) -/
+
+/-- **The closure `wrapUnaryHandler(md)` returns** (`server.go:1165`), over the cells `sl` (its
+receiver `s`) and `mdl` (its `md`): the generated body's function literal, its two captured
+variables substituted, exactly the value Go builds (the lead's option (a), W1 §3.1). -/
+noncomputable def wrapUnaryLam : Expr :=
+  match google_golang_org.grpc.Server.wrapUnaryHandler.impl with
+  | .RecV _ _ (.Rec _ _ (.App (.Rec _ _ (.App (.Rec _ _ _) (.App _ (.App (.Rec _ _
+      (.App (.Rec _ _ (.App (.Rec _ _ _) lam)) _)) _)))) _)) => lam
+  | _ => .Val (.LitV .LitPoison)
+
+noncomputable def wrapUnaryClosure (sl mdl : Loc) : GoFunc :=
+  match subst "md" #mdl (subst "s" #sl wrapUnaryLam) with
+  | .Rec f x e => func.mk f x e
+  | _ => func.nil
+
+/-- The function literal `chainUnaryInterceptors(interceptors)` returns (`server.go:1112`). -/
+noncomputable def chainUnaryLam : Expr :=
+  match google_golang_org.grpc.chainUnaryInterceptors.impl with
+  | .RecV _ _ (.App (.Rec _ _ (.App (.Rec _ _ _) (.App _ (.App (.Rec _ _
+      (.App (.Rec _ _ _) lam)) _)))) _) => lam
+  | _ => .Val (.LitV .LitPoison)
+
+/-- **The chained unary interceptor over the cell `il`** (holding the chain's slice). -/
+noncomputable def chainUnaryClosure (il : Loc) : GoFunc :=
+  match subst "interceptors" #il chainUnaryLam with
+  | .Rec f x e => func.mk f x e
+  | _ => func.nil
+
+/-- The function literal `chainStreamInterceptors(interceptors)` returns. -/
+noncomputable def chainStreamLam : Expr :=
+  match google_golang_org.grpc.chainStreamInterceptors.impl with
+  | .RecV _ _ (.App (.Rec _ _ (.App (.Rec _ _ _) (.App _ (.App (.Rec _ _
+      (.App (.Rec _ _ _) lam)) _)))) _) => lam
+  | _ => .Val (.LitV .LitPoison)
+
+/-- **The chained stream interceptor over the cell `il`.** -/
+noncomputable def chainStreamClosure (il : Loc) : GoFunc :=
+  match subst "interceptors" #il chainStreamLam with
+  | .Rec f x e => func.mk f x e
+  | _ => func.nil
+
+/-- **`v` is the interceptor `chain{Unary,Stream}ServerInterceptors` stores for the chain `ics`**
+held read-only at `sl` (no single `UnaryInterceptor`/`StreamInterceptor` option is of any kind, so
+none is prepended): `nil` for none, the one for one, else the chaining closure (`mk`) over a
+read-only cell holding `sl`. -/
+def srvChainIs (mk : Loc → GoFunc) (v : GoFunc) (sl : GoSlice) (ics : List GoFunc) : IProp GF :=
+  iprop(sl ↦*□ ics ∗
+    (⌜ics = [] ∧ v = zero_val GoFunc⌝ ∨ (∃ i, ⌜ics = [i] ∧ v = i⌝) ∨
+      ∃ il : Loc, ⌜2 ≤ ics.length ∧ v = mk il⌝ ∗ il ↦□ sl))
+
+/-- **`v` is the stats handler `istats.NewCombinedHandler(hs...)` returns** for the handlers `hs` held
+read-only at `sl`, each with `grpcStatsHandlerOk` (`StatsHandler`'s premise, carried by `.stats`): `nil`
+for none, the one for one, else a `*combinedHandler` holding `sl`. -/
+def srvStatsIs (v : GoInterface) (sl : GoSlice) (hs : List GoInterface) : IProp GF :=
+  iprop(sl ↦*□ hs ∗ ⌜∀ h ∈ hs, grpcStatsHandlerOk h⌝ ∗
+    (⌜hs = [] ∧ v = GoInterface.nil⌝ ∨ (∃ h, ⌜hs = [h] ∧ v = h⌝) ∨
+      ∃ l : Loc, ⌜2 ≤ hs.length ∧ v = interface.mkOk
+          (go.GoType.PointerType google_golang_org.grpc.internal.stats.combinedHandler.ty) #l⌝ ∗
+        l ↦□ google_golang_org.grpc.internal.stats.combinedHandler.mk sl))
+
+/-- **A registered service** (one `RegisterService`): its descriptor `sd` (`grpcDescIs`), service name
+`sn`, handler type `ht`, methods `mds`, streams `sds`, and service value `ss`. -/
+structure GrpcSrvReg where
+  sd : Loc
+  sn : GoString
+  ht : GoInterface
+  mds : List google_golang_org.grpc.MethodDesc
+  sds : List google_golang_org.grpc.StreamDesc
+  ss : GoInterface
+
+/-- **The `streams` map `register` builds for the descriptor with method and stream slices `msl`,
+`ssl`**: each stream's name to its descriptor in `ssl` (`&sd.Streams[i]`), then each method's name to
+the fresh descriptor `mls[j]` (`register`'s order; the names are distinct, `RegisterService`'s
+premise). -/
+def srvStreamsL (r : GrpcSrvReg) (ssl : GoSlice) (mls : List Loc) : List (GoString × Loc) :=
+  (r.sds.zipIdx.map fun (d, i) =>
+      (d.StreamName', sliceIndexRef google_golang_org.grpc.StreamDesc (i : Int) ssl)) ++
+    (r.mds.zip mls).map fun (d, l) => (d.MethodName', l)
+
+/-- **The registered service `r` at the `*serviceInfo` `il` of the server `gs`** (`register`,
+`server.go:759-788`): its descriptor; `il` holds `r.ss`, a `streams` map with `srvStreamsL`'s
+entries and the descriptor's `Metadata`; each method's descriptor `mls[j]`, read-only, is
+`&StreamDesc{name, wrapUnaryHandler(&sd.Methods[j]), false, false}`: the closure over a read-only
+cell holding `gs` and one holding `&sd.Methods[j]`. -/
+def srvRegIs (gs : Loc) (r : GrpcSrvReg) (il : Loc) : IProp GF :=
+  iprop(grpcDescIs r.sd r.sn r.ht r.mds r.sds ∗
+    ∃ (msl ssl : GoSlice) (stm : Loc) (mdv : GoInterface) (mls : List Loc) (M2 : GMap GoString Loc),
+      structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" r.sd ↦□ msl ∗
+      structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" r.sd ↦□ ssl ∗
+      il ↦ google_golang_org.grpc.serviceInfo.mk r.ss stm mdv ∗
+      ownMap stm (DFrac.own 1) M2 ∗
+      ⌜mls.length = r.mds.length ∧ ∀ n, M2 !! n = map.lookupL n (srvStreamsL r ssl mls)⌝ ∗
+      [∗list] j ↦ ml ∈ mls, ∃ (d : google_golang_org.grpc.MethodDesc) (cs cm : Loc),
+        ⌜r.mds[j]? = some d⌝ ∗ cs ↦□ gs ∗
+        cm ↦□ sliceIndexRef google_golang_org.grpc.MethodDesc (j : Int) msl ∗
+        ml ↦□ google_golang_org.grpc.StreamDesc.mk d.MethodName' (wrapUnaryClosure cs cm) false false)
+
+/-- **The `serverOptions` of a server built with the chains `ics`, `sics`** (`NewServer`, after
+`chainUnaryServerInterceptors`/`chainStreamServerInterceptors`): the chains read-only, the stored
+interceptors theirs (`srvChainIs`), the stats handlers `hs` (`srvStatsIs`, with the server's
+`statsHandler` `sh`), no credentials, compressor, decompressor, unknown-stream handler or stream
+wrapper, and the codec nil or a protobuf codec's (`srvCodecOk`'s form). -/
+def srvOptsIs (so : google_golang_org.grpc.serverOptions) (sh : GoInterface) (ics sics : List GoFunc) :
+    IProp GF :=
+  iprop(srvChainIs chainUnaryClosure so.unaryInt' so.chainUnaryInts' ics ∗
+    srvChainIs chainStreamClosure so.streamInt' so.chainStreamInts' sics ∗
+    (∃ hs : List GoInterface, srvStatsIs sh so.statsHandlers' hs) ∗
+    ⌜so.creds' = GoInterface.nil ∧ so.cp' = GoInterface.nil ∧ so.dc' = GoInterface.nil ∧
+      so.unknownStreamDesc' = null ∧ so.streamWrapper' = zero_val GoFunc ∧
+      (so.codec' = GoInterface.nil ∨ ∃ c : GoInterface, grpcProtoCodec c ∧
+        so.codec' = interface.mkOk google_golang_org.grpc.codecV0Bridge.ty
+          #(google_golang_org.grpc.codecV0Bridge.mk c))⌝)
+
+/-- **A fresh `grpcsync.Event` at `q`** (`NewEvent`: `&Event{c: make(chan struct{})}`): not fired, its
+channel unbuffered, open, idle, owned. -/
+def srvEventIs (q : Loc) : IProp GF :=
+  iprop(∃ (ch : Loc) (γ : ChanNames),
+    q ↦ google_golang_org.grpc.internal.grpcsync.Event.mk (zero_val _) ch ∗
+    isChan ch γ Unit ∗ ⌜γ.chanCap = W64 0⌝ ∗ ownChan γ Unit ChanState.Idle)
+
+/-- **The server being built** (exclusive; see the file header; W1, 2026-11-26, a definition over the
+model's `Server` struct, until then an axiom): `NewServer`'s `*grpc.Server` `gs` with the unary and
+stream chains `ics`, `sics` (`srvOptsIs`), not serving (`serve`, `drain` false; no listener, no
+connection), no event log, its `mu` a mutex (lock invariant `True`: the fields are this predicate's)
+with `cv` a condition variable on it, fresh `quit`/`done` events and zero wait groups, and the
+services `rs` registered in order: `svcs` their names, `regs`/`sregs` their methods' and streams'
+full names with their handlers and service values (`descRegs`, `descSRegs`), `services` mapping each
+name to its `*serviceInfo` (`srvRegIs`). **Invariant every producer upholds** (per-type stage B,
+B1b): every `sregs` entry comes from a stream descriptor setting `ClientStreams` or `ServerStreams`
+(`RegisterService`'s premise; `RegisterHealthServer`'s one stream, health's `Watch`, is
+`ServerStreams`), since grpc runs an unflagged stream descriptor's handler directly, without the
+stream interceptor (`server.go:1446-1450`, test T10b), which the `Serve` model does not represent. -/
+def grpcSrvNew (gs : Loc) (ics sics : List GoFunc) (svcs : List GoString)
+    (regs sregs : List (GoString × GoFunc × GoInterface)) : IProp GF :=
+  iprop(∃ (so : google_golang_org.grpc.serverOptions) (sh : GoInterface) (lis conns svm cv q d : Loc)
+      (rs : List GrpcSrvReg) (ils : List Loc) (M : GMap GoString Loc),
+    structFieldRef google_golang_org.grpc.Server go!"opts" gs ↦ so ∗ srvOptsIs so sh ics sics ∗
+    structFieldRef google_golang_org.grpc.Server go!"statsHandler" gs ↦ sh ∗
+    sync.isMutex (structFieldRef google_golang_org.grpc.Server go!"mu" gs) (BI.pure True : IProp GF) ∗
+    structFieldRef google_golang_org.grpc.Server go!"lis" gs ↦ lis ∗
+    ownMap lis (DFrac.own 1) (∅ : GMap GoInterface Bool) ∗
+    structFieldRef google_golang_org.grpc.Server go!"conns" gs ↦ conns ∗
+    ownMap conns (DFrac.own 1) (∅ : GMap GoString Loc) ∗
+    structFieldRef google_golang_org.grpc.Server go!"serve" gs ↦ false ∗
+    structFieldRef google_golang_org.grpc.Server go!"drain" gs ↦ false ∗
+    structFieldRef google_golang_org.grpc.Server go!"cv" gs ↦ cv ∗
+    sync.isCond cv (interface.mk (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)
+      #(structFieldRef google_golang_org.grpc.Server go!"mu" gs)) ∗
+    structFieldRef google_golang_org.grpc.Server go!"services" gs ↦ svm ∗
+    ownMap svm (DFrac.own 1) M ∗
+    structFieldRef google_golang_org.grpc.Server go!"events" gs ↦ GoInterface.nil ∗
+    structFieldRef google_golang_org.grpc.Server go!"quit" gs ↦ q ∗
+    srvEventIs q ∗
+    structFieldRef google_golang_org.grpc.Server go!"done" gs ↦ d ∗
+    srvEventIs d ∗
+    structFieldRef google_golang_org.grpc.Server go!"serveWG" gs ↦ (zero_val _root_.Perennial.sync.WaitGroup) ∗
+    structFieldRef google_golang_org.grpc.Server go!"handlersWG" gs ↦ (zero_val _root_.Perennial.sync.WaitGroup) ∗
+    ⌜svcs = rs.map (·.sn) ∧ svcs.Nodup ∧ ils.length = rs.length ∧
+      (∀ n, M !! n = map.lookupL n (svcs.zip ils)) ∧
+      regs = rs.flatMap (fun r => descRegs r.sn r.mds r.ss) ∧
+      sregs = rs.flatMap (fun r => descSRegs r.sn r.sds r.ss) ∧
+      ∀ r ∈ rs, ∀ sd ∈ r.sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝ ∗
+    [∗list] r; il ∈ rs; ils, srvRegIs gs r il)
 
 /-- **Go's `maxAlloc` on linux/amd64** (`runtime/malloc.go:213,220`): grpc's codecs `make` a
 reply's encoded length before any size check (protobuf-go `proto/encode.go:184-194`; grpc's default
