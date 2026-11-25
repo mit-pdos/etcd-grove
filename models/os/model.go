@@ -15,7 +15,8 @@
 //     io.EOF unwrapped.
 //   - The models are less defined than Go (gomodel.Stuck, or a stuck extension step) where Go's
 //     answer depends on what is not modelled: a closed file (fd -1, which only Close sets; Go answers
-//     ErrClosed), a nil or zero File (Go: ErrInvalid), an operation racing Close (Go's reference count
+//     ErrClosed), a nil File (Go: ErrInvalid) or a zero one (Go: Close answers EINVAL, the other
+//     methods dereference nil), an operation racing Close (Go's reference count
 //     makes it safe; in the model it is a race on the file cell), an unknown offset (after a failed
 //     Write), offsets reaching 2^62.
 //   - A fileStat the models make has name, size and mode; modTime and sys stay zero, so ModTime, Sys
@@ -102,7 +103,10 @@ func modelMode(ty FileMode) FileMode {
 // `testlog.Open(name)` (a no-op outside go test's logging), then open(2) of name with
 // flag|O_CLOEXEC (O_LARGEFILE is 0 on amd64), EINTR retried, an error being
 // &PathError{"open", name, Errno(e)}, then newFile, whose other work (an fstat deciding whether the
-// fd is pollable, the poller's registration, the finalizer) no Go code observes; appendMode is
+// fd is pollable, the poller's registration) no Go code observes. NOT COVERED (as on lean, a
+// framework gap: GooseLang has no garbage collection): newFile's finalizer, which closes the fd of
+// a *File that becomes unreachable without Close (releasing its flock locks, freeing the fd
+// number); the model's fd stays open. appendMode is
 // flag&O_APPEND, false since the extension refuses O_APPEND. fsOpen is the extension's Open after its
 // own CallBegin, each attempt. perm matters only to a created file's mode, which the extension does
 // not model. A name with a NUL byte (Go: EINVAL without a system call) is not a path of the roots'
@@ -232,9 +236,10 @@ func (f *File) WriteAt(b []byte, off int64) (n int, err error) {
 // MODEL: (*File).Seek (file.go, file_unix.go's seek, poll.FD.Seek): one lseek(2). Linux computes
 // the new offset from 0 (SEEK_SET), the offset (SEEK_CUR) or the size (SEEK_END, the extension's
 // Fstat: the model has more errnos than lseek's, only more outcomes), and fails with EINVAL on
-// another whence or a negative result, changing nothing; past modelSeekMax ext4 answers EINVAL.
-// Not modelled (gomodel.Stuck): a closed file, SEEK_CUR from an unknown offset, a result at or past
-// modelOffMax. A directory's fd (Go: EISDIR after Readdirnames) does not arise: Fstat is stuck on it.
+// a whence above SEEK_HOLE or a negative result, changing nothing.
+// Not modelled (gomodel.Stuck): a closed file, SEEK_DATA/SEEK_HOLE (3, 4: ext4 answers them),
+// SEEK_CUR from an unknown offset, a result past modelSeekMax (a regular file's ext4 limit, where
+// lseek answers EINVAL; a directory's limit is 2^63-1) or at or past modelOffMax.
 func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 	inner := f.file
 	fd := inner.pfd.Sysfd
@@ -252,6 +257,8 @@ func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 		base = cur
 	} else if whence == 2 {
 		base, e = fsFstat(fd)
+	} else if whence == 3 || whence == 4 {
+		gomodel.Stuck()
 	} else {
 		e = 22 // EINVAL
 	}
@@ -266,7 +273,7 @@ func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 		gomodel.Stuck()
 	}
 	if modelSeekMax < n {
-		return 0, modelWrapErrno("seek", inner, 22)
+		gomodel.Stuck()
 	}
 	inner.off = n
 	return n, nil

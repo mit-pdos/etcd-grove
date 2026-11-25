@@ -5899,8 +5899,8 @@ noncomputable def Errno.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: errnoErr (syscall_unix.go): nil for 0, else e as an error. Go returns the preallocated
     errEAGAIN, errEINVAL or errENOENT for those three errnos (to avoid an allocation); each holds the
     boxed Errno of the same value, so the two are equal interface values and no Go code can tell them
-    apart (reflection and unsafe are not modelled). The preallocated variables are [[skip]] names, so
-    Go's body does not translate.
+    apart (reflection and unsafe are not modelled). (The preallocated variables are translated; the
+    model only spares the proofs Go's switch.)
 
     go: model.go:16:6 -/
 noncomputable def errnoErr.impl [GooseExts] [GoGlobalContext] : val :=
