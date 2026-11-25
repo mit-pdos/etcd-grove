@@ -6748,3 +6748,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   should take the same premise (or, for `ClientConfig`, a certificate path stated with `EmptyCN` off and a zap
   logger); not edited here.
 - **Decision.** `Spec/` restated (2026-11-25, branch `transport-emptycn/2026-11-25`); `SpecPlan/` open.
+
+## 2026-11-25: `net.http.Handle.spec` admitted a `HandlerFunc` holding a non-function (s5)
+
+- **Spec.** `net.http.Handle.spec` (`Net/Spec/net/http/Handle.lean`), the interim trust-boundary axiom
+  `net.http.Handle.wp_proof` (`Net/Proof/net/http/Handle.lean`).
+- **Defect.** False over the model. The premise `h ≠ interface.mkOk HandlerFunc.ty #func.nil` excludes only the nil
+  function. For `h = mkOk HandlerFunc.ty v` with `v` not a function value, `registerErr`'s `if f, ok :=
+  handler.(HandlerFunc); ok && f == nil` evaluates `f == nil` (`GoOp GoEquals` at a function type), which is stuck
+  on a non-function value. So the axiom asserted a WP of a stuck program: instantiated there, adequacy gives
+  `False`, which makes every theorem over the axiom (`rpcdriver_robust`, the dsverify kits) vacuous. (Go's types
+  make such an interface impossible; the model does not.)
+- **Evidence.** Found proving `wp_register_lit` (`Net/Proof/net/http/Mux22.lean`, which needs exactly the premise
+  below); coordinator-E's assessment, #24 7152572897.
+- **Proposed change.** The premise `∀ v, h = mkOk HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil`.
+  Stronger than the old one (it implies it), so the axiom only narrows. The one caller, `Server.HandleHTTP`,
+  passes pointer-typed handlers (`*Server`, `debugHTTP`), for which it is vacuous.
+- **Decision.** Pre-approved by coordinator-E (#24 7152572897); restated 2026-11-25, branch
+  `fix-http-handle-premise/2026-11-25`.
