@@ -10,8 +10,8 @@ started from a fresh state (no package initialized, one thread), for every real 
 fewer than `2^63` steps, never gets stuck, no thread of it ends in a panic, and the main
 thread's result, if it has one, is `#()`.
 
-`Main` runs `Check(lintest.CounterClock(), 4, 10, 0)` -- 4 goroutines of 10 operations each
-of a counter under a mutex, traced with a counter clock, the trace checked by porcupine's
+`Main` runs `Check(lintest.CounterClock(), clients, ops, 0)` -- between 1 and 8 goroutines (a
+random number) of between 1 and 32 random operations each of a counter under a mutex, traced with a counter clock, the trace checked by porcupine's
 translated `CheckOperationsVerbose` with no timeout -- and panics unless the answer is `Ok`.
 So no panic means porcupine answered `Ok`.
 
@@ -109,11 +109,12 @@ no package initialized (`IsInit`), one live thread -- of `n < 2^63` steps: if th
 has finished, its result is `#()`; no thread is stuck (each is a value or can step); no thread
 has ended in a panic.
 
-What it says about porcupine: `Main` runs 4 clients of 10 operations each (increments for the
-even clients, reads for the odd ones) of a counter under a mutex, records each operation's
+What it says about porcupine: `Main` runs a random number (1 to 8) of clients of a random number (1 to 32) of
+operations each (each at random an increment or a read) of a counter under a mutex, records each operation's
 call and return times with a counter clock, and passes the trace to porcupine's
 `CheckOperationsVerbose` (its translated Go code, no timeout), panicking unless the answer is
-`Ok`. So for every interleaving of the 4 clients and every choice of the scheduler, porcupine
+`Ok`. So for every draw of the random numbers, every interleaving of the clients and every choice of
+the scheduler, porcupine
 returned `Ok` on the recorded trace: a non-`Ok` answer would have made `Main` panic.
 
 Parametric in the Go semantics: any `go.Semantics` at the state's local context, any package

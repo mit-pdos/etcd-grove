@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # lintest/logkvcompact: the results (2026-10-28)
 
 - **`logkvcompact.wp_Main`** (`Link.lean`): `Main()` returns (never panics), so porcupine answered `Ok`
-  on the trace of 4 clients of 10 operations of the log-applied register, for executions of
+  on the trace of 1 to 8 clients of 1 to 32 random operations each of the log-applied register, for executions of
   fewer than `2^63` steps (`receiptBound GF ≤ 2^63`, `CounterClock`'s premise), given
   `context`'s `isClosedchanInit`; every callee linked (the register's proofs, the driver's and
   porcupine's), under `[NaInvG GF]` (porcupine's camera of non-atomic invariants, which
