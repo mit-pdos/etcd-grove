@@ -1554,7 +1554,7 @@ theorem raftNode.start.wp_proof
         iapply (wp_ncfupd _ _ (by rfl))
         unfold ncfupd
         iintro Hnc
-        ihave Hcase : (letI := γ.wal.h.W; WalFs.walSyncedLb γ.wal.h.dir (Hs.length + 1)) ∨
+        ihave Hcase : (letI := γ.wal.h.W; WalFs.walSyncedLb γ.wal.h.dir γ.wal.h.γ.inc (Hs.length + 1)) ∨
             ⌜∀ σ, ImgOk S (srvLE γ.srv L') σ → σ.commit ≤ uint.nat p'.Commit' →
               ImgOk S' (srvLE γ.srv (L' ++ ce)) σ⌝ $$ [Hsync]
         · by_cases hms : walMustSync Hs hs.toM (es.map EntryModel.toM)

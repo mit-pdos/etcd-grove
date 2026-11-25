@@ -171,7 +171,7 @@ def tPurgeTok (W : WalGS GF) (γ : TGS) (o : TOracle) (c : TCand) (H : List (Wal
 bound at least its unlock bound (`tPurNames`) and the member's candidate `c` raised so. -/
 theorem tInv_purgeAcc (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCand) (H : List (WalOpG WalEnt))
     (hall : ∀ cd ∈ o.cands, uint.nat cd.unl ≤ uint.nat cd.pur) :
-    TInv (W := W) e γ ⊢ walPurgeAcc (W := W) (tWalDir e.area) (tPurgeTok W γ o c H) := by
+    TInv (W := W) e γ ⊢ walPurgeAcc (W := W) (tWalDir e.area) 0 (tPurgeTok W γ o c H) := by
   iintro #Hinv
   unfold walPurgeAcc
   iintro !> Htok
@@ -194,7 +194,7 @@ theorem tInv_purgeAcc (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TC
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  unfold WalFs.walDiskAt
+  unfold WalFs.walDiskAtI
   iexists d
   iframe Hwd
   isplit

@@ -109,9 +109,11 @@ theorem member.saveSnap.wp_proof
   · iframe; iframe #
   -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and taken back after it
   iapply fupd_wp
-  imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-    with ⟨%γs, Hws⟩
-  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+  imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ 0 $$ [Hwf]
+    with ⟨%γs, Hws, %hγ0⟩
+  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ 0 walCov_ioNone $$ Hwf
+  rcases γs with ⟨γs1, γs2, γsi⟩; dsimp only at hγ0; subst hγ0
+  let γs : WalShN := ⟨γs1, γs2, 0⟩
   imodintro
   wp_apply (lc := 1) (wp_SaveSnapshot W e.R e.jr e.area w (tWalDir e.area) (.shared γs 1) «$a0_ptr»
       (absSnapMd idx term) true true _) $$ [Hws Hau]

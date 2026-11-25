@@ -25,6 +25,62 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,
+  `WAL__renameWAL.lean` (`renameWALPost`), and every WAL spec over `walNamed`/`walSyncedLb`/`walLenLb` and the
+  shared handle `walOpenWS` (`WalShN`); no `SpecPlan/` counterpart states these facts.
+- **Defect.** The persistent facts `walNamed dir`, `walSyncedLb dir n`, `walLenLb w dir n` say nothing of which
+  WAL at `dir` they are about, so after `DiscardUnsaved` (the fork `e94f33b50`, `unsaved.go`) and `bootstrap`'s
+  re-`Create` at the same `dir` they would read as facts of the new WAL (`notes/wal-p6-handoff.md`, "The relaxation
+  ... is not enough"). Separately, `renameWALPost`'s second arm (a WAL reopened by `renameWALUnlock`) is unreachable
+  (the proof never produces it: ledger 2026-11-21) but obliges `Create` to name its handle's incarnation.
+- **Evidence.** P6b design (`notes/wal-p6b-design.md`, v2/v2.1); `Proof/.../wal/HandleUnnamed.lean`
+  (`walOpenWFU_seal` needs the handle's incarnation to give `walNamed dir i`).
+- **Proposed change.** The facts take the incarnation `i` (`walNamed dir i`, `walSyncedLb dir i n`,
+  `walLenLb w dir i n`; a retired incarnation's fact constrains nothing). `Create.spec` takes `∀ i`, its atomic
+  update over `walDirIsI dir i`, its success post `walOpenWFI P Mr w dir i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗
+  walSyncedLb dir i 0`. `WalShN` gains `inc`, `Save`'s update is over `walDiskAtI dir γ.inc`, its post's facts at
+  `γ.inc`. `renameWALPost` loses its unreachable second arm (a stronger post; its proof unchanged but the arm
+  indices).
+- **Decision.** The facts, `∀ i` and `WalShN.inc`: accepted (coordinator, 2026-11-25, P6b v2.1); applied on branch
+  `etcd-safe-p6b-wip`. The dropped `renameWALPost` arm (a stronger post of an internal callee, no client sees it):
+  taken in P6b session 3; confirmed (coordinator, 2026-11-25, session 6 brief: approved as long as `renameWAL`'s spec is
+  proved from its Go body, which it is: `Proof/.../wal/WAL__renameWAL.lean`).
+- **Applied in session 4 (2026-11-25), the same principle carried through the cone** (no new decision, recorded for
+  review): every atomic update a client holds a view for is at the view's incarnation, so the client gets its
+  `walDirIsI`/`walDiskAtI` back. `ReadAll.spec`, `Create.specFresh`, and the read-only updates of `Open`,
+  `openAtIndex`, `openLast`, `OpenForRead`, `Exist`, `Repair`, `ValidSnapshotEntries`, `Unsaved` take `∀ i`/`∀ ic`;
+  `Sync`, `SaveSnapshot`, `ReleaseLockTo`, `Close` and the `storage__*` wrappers are at `γ.inc`. `ReadAll`'s success
+  post is `walOpenWFI … i` with its facts at `i`. The internal sync specs (`WAL.sync`, `syncC`, `syncNoErr`, `cut`,
+  `cutTail`) post `walSyncedLb dir h.inc …`; the tail's fdatasync lemmas take a persistent `walIncLb dir ic`
+  ("the incarnation has reached `ic`"), which every ghost handle carries (`walHandleDirI`), so a sync's synced fact
+  needs no share of the incarnation map.
+- **The read handle at its incarnation (session 5, proposed; decision needed).** `ReadAll`'s success post
+  `walOpenWFI … i` needs the opening handle's incarnation to be the update's `i`, but `walOpening`/`walOpeningF`
+  hid it. Change: `walOpening w dir s i` (`walHandlePI … i (.opening s)`), `walOpeningF w dir s i`; `Open`'s
+  success post is `walOpeningF w dir s ic` (the lock is taken in the same step as the update commits, so its
+  incarnation is the view's: `walPinOut … ic`, `walLockedTokI_incQ_agree`); `ReadAll` takes `walOpeningF w dir s i`
+  with its update at `i`; `Close`'s `opening s` arm takes `∃ i, walOpening w dir s i`. `walNamed` from
+  `walInvBody_namedBy` at `i` takes the handle's `walIncLb dir i` (as the syncs do).
+  **Decision**: approved (coordinator, 2026-11-25, session 6 brief), with the session-4 changes and `walIncLb`, as
+  long as each is proved and no trusted text changes.
+- **`Create`'s deferred cleanup at the handle's incarnation (session 6; approved by the coordinator, 2026-11-25).**
+  *Defect*: `Create`'s error exits after the commit register the WAL's name (`walInv_register`), which needs the WAL
+  still present at the incarnation the registration's past names; `WAL.cleanupWAL.spec` and `WAL.Close.spec`'s
+  `unnamed` arm return the lock token (`walLockedTok`, `walUnlockedTokX`) without its incarnation, so this cannot be
+  shown. *Change*: (a) `walInv_register` takes only the quarter `walIncQ I'` (it only agrees it with the ghost);
+  (b) `WalCloseSt.unnamed` gains the incarnation `i`, `Close.spec`'s `unnamed` arm takes `walOpenWFUI … i` and
+  returns the token at an `I` with `⌜incOf I dir = i⌝` in both outcomes (`walUnlockedTokXI I`, `walLockedTokI I`);
+  `WAL.sync.specC`'s error arm likewise (`incOf I dir = h.inc`); (c) `cleanupWAL.spec` takes `walOpenWFUI … i` and
+  returns the same. Internal specs only (no client sees them); posts only stronger.
+- **`walPurgeAcc` at an incarnation (session 6; internal, proved, under the brief's approval of proved internal
+  changes).** *Defect*: a purge round's repeatable commit `walPurgeAcc dir Pc` was over `walDiskAt dir d` (any
+  incarnation), so a client keeping `walDiskAtI dir i d` (the tester's invariant, at `0`) could not get it back after
+  the commit. *Change*: `walPurgeAcc dir inc Pc` over `walDiskAtI dir inc d`; `walPurge_osAUnc` takes `inc` (the
+  commit hands back the same `walIncQ`, so the incarnation is kept); the tester's `purgeRound.spec` passes its
+  handle's `i`. No trusted text.
+
 ## 2026-11-24: node.ApplyConfChange, node.Advance -- `skippedIn` is false after a restart at `min |A₀| σ.commit` and after a kept snapshot in the replay window; D (`confAt`) instead of the plan's RestartNode (A)
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`, `node.ApplyConfChange.spec` (premise

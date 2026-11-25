@@ -170,7 +170,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
     wal.Repair.spec (W := W) Mr := by
-  intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok
@@ -186,7 +186,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   try wp_auto
   rw [decide_eq_false hlgn]
   try wp_auto
-  wp_apply wp_openLast lg R jr r dir nm qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
+  wp_apply wp_openLast lg R jr r dir nm qp Q ic hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %lf %err ⟨Hp, Hres, Hperm, %o, HQ, Hcase⟩
   · (try rw [hkd]); iframe; iframe #
   (try rw [← hkd])
@@ -592,8 +592,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       -- `fileutil.Fsync(f.File)`
       wp_apply wp_Now as %t0 -
       try wp_auto
-      iunfold walLockedTok at Hl
-      icases Hl with ⟨Htk, Hpk, Hcf⟩
+      iunfold walLockedTok at Hl; unfold walLockedTokI
+      icases Hl with ⟨%Il, Htk, Hpk, Hcf, HIl⟩
       wp_apply (wp_Fsync R jr r f fd (child dir gL.name) dir γ gL.ino H md cuts wr _ k os' hwrS)
         $$ [Htw Hcf] as %ferr ⟨Hcf, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff, Hfr⟩
       · iframe Htw Hcf Hok
@@ -658,8 +658,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         $$ [Hv]
       · iunfold tailVar; iexact Hv
       imod walInv_repairPut Mr R jr r dir γ k2 H md cuts _ m2 bs2 lay.j X hj' gL hTM2.2 hwrS
-        $$ Hinv Hnc Htf Hkt Hv' Hm2 Hb2 [Htk Hpk Hcf] Hnf Ho Hj Hkey with ⟨Hnc, Hu⟩
-      · iunfold walLockedTok; iframe
+        $$ Hinv Hnc Htf Hkt Hv' Hm2 Hb2 [Htk Hpk Hcf HIl] Hnf Ho Hj Hkey with ⟨Hnc, Hu⟩
+      · unfold walLockedTok walLockedTokI; iexists Il; iframe
       imodintro
       iframe Hnc
       wp_apply (wp_Close bf bfd _ _) $$ [Hbf Hbfd Hblt] as %cerr2 -

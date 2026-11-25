@@ -206,7 +206,7 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
     (hdrop : ∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name))
     (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) (hgl : gs.getLast? = some gl)
-    (Pre : WalDur → Prop) (Q : WalDur → IProp GF)
+    (Pre : WalDur → Prop) (Q : WalDur → IProp GF) (ic : Nat)
     (hPre : ∀ dc d lay kk, Pre dc → walDurLe dc d → WalAbsD C Mr d lay hj0.cur → lay.segs.drop kk = gs →
       segStart lay.cuts (lay.first + kk) ≤ d.unl) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
@@ -215,18 +215,19 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
       walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none -∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) -∗
-      walOpening (W := W) w dir sn -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir d, COMM Q d }>) ={⊤}=∗
+      walOpening (W := W) w dir sn ic -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir ic d, COMM Q d }>) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
       walNamesFrag (W := W) none ∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ∗
-      walOpening (W := W) w dir sn ∗
+      walOpening (W := W) w dir sn ic ∗
       ∃ (dc d : WalDur) (lay : WalLay) (kk : Nat) (γ : GName) (s : AbsDiskState) (nm : GoString)
         (q : Qp) (hn : NamesH),
-        Q dc ∗ walPast (W := W) s ∗ walLenLb (W := W) w dir dc.H.length ∗
+        Q dc ∗ walPast (W := W) s ∗ (∃ I0, walPastI (W := W) (s, I0) ∗ ⌜incOf I0 dir = ic⌝) ∗
+        walLenLb (W := W) w dir ic dc.H.length ∗
         osNames (L := hG.goose_localGS) jr (.only [nm]) (DFrac.own q) hn ∗
         osLogLb (L := hG.goose_localGS) hn.next ∗
         walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName))
@@ -254,8 +255,10 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%dc, ⟨Hdc, %hpre⟩, Hucl⟩
-  unfold walDiskAt walDirIs
-  icases Hdc with ⟨%M, HM, %HMd⟩
+  unfold walDiskAtI
+  imod walInvBody_pastAt C Mr R jr r s dir ic (some dc) $$ Hb Hdc with ⟨Hb, Hdc, %I0, %hI0, #HpI⟩
+  unfold walDirIsI
+  icases Hdc with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   icases walInvBody_mapLe (L := hG.goose_localGS) C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
   obtain ⟨d0, hM0, hle0⟩ := (walOptLe_some_iff _ _).1 HMd
   have hle : walDurLe dc d := by
@@ -266,8 +269,8 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     exact walDurLe_trans hle0 hle1
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-  imod Hcommit $$ [HM] with HQ
-  · iexists M; iframe HM; ipureintro; exact HMd
+  imod Hcommit $$ [HM HI] with HQ
+  · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
   -- the read segments' range registered (unit `locks`, session 5)
   have hbu : segStart lay.cuts (lay.first + kk) ≤ d.unl :=
     hPre dc d lay kk hpre hle hrs.2.2.1 hrs.2.2.2.2.2.1
@@ -275,8 +278,9 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     $$ Hb Htf with ⟨Hb, Htf⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
-  ihave ⟨Ho, #Hlen⟩ := walOpening_lenLb (W := W) w dir sn s d dc.H.length hrs.1
-    (by rw [hle.1]; exact Nat.le_refl _) $$ Ho Hp
+  ihave ⟨Ho, #Hlen⟩ := walOpening_lenLb (W := W) w dir sn ic s I0 d dc.H.length hrs.1
+    (by rw [hle.1]; exact Nat.le_refl _) $$ Ho HpI
+  rw [hI0]
   imod osNames_next (L := hG.goose_localGS) R jr _ _ hn CoPset.subseteq_top $$ Hsi Hnn
     with ⟨Hnn, #Hlb⟩
   imod osNames_coh (L := hG.goose_localGS) R jr _ _ hn CoPset.subseteq_top $$ Hsi Hnn
@@ -285,6 +289,8 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   iframe Hnc Hn Hnf Hh Ho
   iexists dc, d, lay, kk, γ, s, nm, q, hn
   iframe HQ Hp Hlen Hnn Hlb Htf Hpt Hv
+  isplitr
+  · iexists I0; iframe HpI; ipureintro; exact hI0
   ipureintro
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := hrs
   exact ⟨hpre, hle, h1, h2, h3, h4, h5, h6, h7, h8, h9, hnc.1, hnc.2.1, hnc.2.2, hcoh, h10, h11, h12⟩

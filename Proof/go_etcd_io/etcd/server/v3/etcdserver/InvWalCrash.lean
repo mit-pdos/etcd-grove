@@ -245,7 +245,7 @@ def rnDurBodyK (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) : I
   iprop(∃ (vk : WalViewK) (σ : StorContents) (Hs : WalHist) (n : Nat),
     ghostVar νk.ν.view (1 : Qp).half vk ∗ monoListAuthOwn νk.ν.cm 1 vk.1.l ∗
     dghostVar νk.tkn (DFrac.own 1) () ∗ walRecsH h (recsOf vk.1 σ) Hs true ∗ walSnapCert γn.cl (recsOf vk.1 σ) ∗
-    (letI := h.W; WalFs.walSyncedLb h.dir n) ∗ walHistCerts γn.cl νk.sd Hs ∗ rnLogLbsK γn.cl vk ∗
+    (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) ∗ walHistCerts γn.cl νk.sd Hs ∗ rnLogLbsK γn.cl vk ∗
     ⌜ViewOk vk.1 σ ∧ PendOkK vk ∧ HistOkK vk Hs n⌝ ∗
     ((raftState γn.cl id (durOf vk) ∗ rnPendK γn id νk.x vk) ∨ (crashed ∗ token νk.tk)))
 
@@ -292,7 +292,7 @@ abbrev walSaveH.law : Prop :=
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
-              (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)))) ∨
+              (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
@@ -322,7 +322,7 @@ abbrev walSaveSnapH.law : Prop :=
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)) ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }}
 
 /-! ## The invariant's steps (statements) -/
@@ -339,7 +339,7 @@ abbrev rnDurK_alloc.law : Prop :=
     (Hs : WalHist) (n : Nat) (v : WalView),
     ViewOk v σ → v.pend = none → DurAgrees v.S v.l →
     HistOkK (v, none) Hs n →
-    ⊢ walRecsH h σ Hs true -∗ walSnapCert γn.cl σ -∗ (letI := h.W; WalFs.walSyncedLb h.dir n) -∗
+    ⊢ walRecsH h σ Hs true -∗ walSnapCert γn.cl σ -∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) -∗
       walHistCerts γn.cl sd Hs -∗ isCommittedLogLb γn.cl v.l -∗ raftState γn.cl id v.S ={⊤}=∗
       ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd⌝ ∗ rnDurInvK γn id νk h ∗ rnWalViewK νk (v, none) ∗
         token νk.ν.stop ∗ token νk.ν.app ∗ walCommitLb νk.ν v.l ∗ token νk.tk
@@ -397,7 +397,7 @@ abbrev rnDurK_enter.law : Prop :=
     letI := srvStor (GF := GF) γn;
     (⊢ rnDurInvK γn id νk h -∗ notCrashed -∗ £ 1 -∗ £ 1 -∗ rnWalViewK νk (v', some (v, γb, pos)) -∗
       savedPropOwn γb DFrac.discard (rnPendRec γn id νk.x v.S v'.S n st st' ms q) -∗
-      ((letI := h.W; WalFs.walSyncedLb h.dir (pos + 1)) ∨
+      ((letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (pos + 1)) ∨
         ⌜∀ σ, ImgOk v.S v.l σ → σ.commit ≤ uint.nat v'.hs.Commit' → ImgOk v'.S v'.l σ⌝) ={⊤}=∗
       notCrashed ∗ rnWalViewK νk (v', none) ∗ nodeDriver n γn.cl srvClusterN st' ∗
         readyMsgs γn.cl srvClusterN id ms ∗ nodeRunning n γn.cl srvClusterN q)
@@ -433,7 +433,7 @@ abbrev rnDurK_take.law : Prop :=
 durability's allocation at a restart): the open WAL's records `σ` with their history `Hs`, the whole
 history synced, its index and (eager) commit bounds, its fold `σ`. -/
 def rnRestartWal (h : WalH GF) (σ : StorContents) : IProp GF :=
-  iprop(∃ Hs : WalHist, walRecsH h σ Hs true ∗ (letI := h.W; WalFs.walSyncedLb h.dir Hs.length) ∗
+  iprop(∃ Hs : WalHist, walRecsH h σ Hs true ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc Hs.length) ∗
     ⌜walIdxLe (2 ^ 61 - 1) Hs ∧ walCommitLeFrom walFresh Hs ∧ walFoldChkFrom walFresh Hs = some σ ∧
       σ.b ≤ σ.commit⌝)
 
@@ -473,7 +473,7 @@ abbrev rnDurK_crash.law : Prop :=
     (⊢ rnDurInvK γn id νk h -∗ isCluster γn.cl srvClusterN -∗ £ 1 -∗ crashed -∗ token νk.tk -∗
       nodeCrashTok γn.cl id νk.x -∗
       (∀ (σr : StorContents) (Hs : WalHist) (n : Nat),
-        walRecsH h σr Hs true -∗ (letI := h.W; WalFs.walSyncedLb h.dir n) ={E \ ↑rnDurKN}=∗
+        walRecsH h σr Hs true -∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) ={E \ ↑rnDurKN}=∗
           walRecsH h σr Hs true ∗
           ∃ j : Nat, ⌜n ≤ j ∧ j ≤ Hs.length⌝ ∗
             ∀ σ : StorContents, ⌜walRead (Hs.take j) = some σ⌝ -∗ Φ σ) ={E}=∗

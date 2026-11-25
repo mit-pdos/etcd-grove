@@ -103,7 +103,7 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
-              (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)))) ∨
+              (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
@@ -126,7 +126,7 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)) ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }}) ∗
     □ (∀ q : Qp, {{ storage.walOpen h q ∗ walStorRd st h }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
@@ -174,7 +174,7 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
-              (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)))) ∨
+              (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
@@ -197,7 +197,7 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)) ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }})
     (hSync : ∀ q : Qp, R ⊢
       {{ storage.walOpen h q ∗ walStorRd st h }}
@@ -303,7 +303,7 @@ theorem walSaveSized_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoIn
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
             (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
-              (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)))) ∨
+              (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
             AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
@@ -420,7 +420,7 @@ theorem walSaveRn_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInter
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗
             (⌜walMustSync Hs hs (es.map EntryModel.toM)⌝ -∗
-              (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)))) ∨
+              (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h) }} := by
   iintro #Hw
   iintro !> %Φ ⟨Ho, Hr, Hh, #Hsl, ⟨%cs, #Hb, %Hcs⟩, HAU⟩ HΦ
@@ -484,7 +484,7 @@ theorem walSaveSnapH_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoIn
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)) ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }} := by
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, -, #HS, -, -, -⟩
@@ -838,7 +838,7 @@ the server's history invariant) and re-proves the two laws. -/
       -- (P5, 2026-11-25, approved by coordinator-E on #50) `ReadAll`'s history facts: every record
       -- synced, the indices within raft's room, and each prefix's (eager) fold with its commit at or
       -- below its last index (`walCommitLeFrom walFresh`, which gives the reader's `walCommitLe`)
-      (letI := h.W; WalFs.walSyncedLb h.dir Hs.length) ∗
+      (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc Hs.length) ∗
       ⌜walIdxLe (2 ^ 61 - 1) Hs ∧ walCommitLeFrom walFresh Hs⌝) ∗
     ⌜walReadFacts σ⌝)
 
@@ -901,7 +901,7 @@ theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
 theorem wal.bootOk_startK (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64) (w : Loc) :
     wal.bootOk (GF := GF) cfg id cid w ⊢
       ∃ h : WalH GF, ⌜h.w = w⌝ ∗ walRecsH h walFresh [] true ∗
-        (letI := h.W; WalFs.walSyncedLb h.dir 0) ∗
+        (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc 0) ∗
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗ ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.bootOk
   iintro ⟨%h, %Hw, Hwo, Hp⟩
@@ -918,7 +918,7 @@ theorem wal.restartOk_startK (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
     (w : Loc) (σ : StorContents) :
     wal.restartOk (GF := GF) cfg id cid w σ ⊢
       ∃ (h : WalH GF) (Hs : WalHist), ⌜h.w = w⌝ ∗ walRecsH h σ Hs true ∗
-        (letI := h.W; WalFs.walSyncedLb h.dir Hs.length) ∗
+        (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc Hs.length) ∗
         ⌜walIdxLe (2 ^ 61 - 1) Hs ∧ walCommitLeFrom walFresh Hs ∧
           walFoldChkFrom walFresh Hs = some σ ∧ walReadFacts σ⌝ ∗
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗ ⌜h.dir = cfg.DedicatedWALDir'⌝ := by

@@ -91,12 +91,12 @@ the WAL absent (the area holds nothing at `nm`, the token kept), or the pin of e
 `d`, the client's state below it. -/
 theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm : GoString) (N : NameSet) (dq : DFrac)
-    (h : NamesH) (Wn : List GoString) (Q : Option WalDur → IProp GF)
+    (h : NamesH) (Wn : List GoString) (Q : Option WalDur → IProp GF) (ic : Nat)
     (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
-      (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o }> @ walAuMask, ∅
-        <{ walDirIs (W := W) dir o, COMM Q o }>) -∗
+      (AU <{ ∃∃ o : Option WalDur, walDirIsI (W := W) dir ic o }> @ walAuMask, ∅
+        <{ walDirIsI (W := W) dir ic o, COMM Q o }>) -∗
       osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
       ∃ o : Option WalDur, Q o ∗
@@ -114,13 +114,13 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%o, Ho, Hucl⟩
-  unfold walDirIs
-  icases Ho with ⟨%M, HM, %HMd⟩
+  unfold walDirIsI
+  icases Ho with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   icases walInvBody_mapLe C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-  imod Hcommit $$ [HM] with HQ
-  · iexists M; iframe HM; ipureintro; exact HMd
+  imod Hcommit $$ [HM HI] with HQ
+  · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
   cases o with
   | none =>
     have hMd : M !! dir = none := (walOptLe_none_iff _).1 HMd

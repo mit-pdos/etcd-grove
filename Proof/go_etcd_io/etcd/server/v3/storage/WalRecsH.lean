@@ -11,7 +11,7 @@ module exposes the history, as the server reads it (`walSrvHist`), beside the re
 the two; the history's fold is the records (`walRecsH_fold`).
 
 The two durable facts the invariant also uses are the WAL's own: the synced lower bound
-`WalFs.walSyncedLb h.dir n` (persistent; `storage.Save.spec`'s post when the batch must sync) and the
+`WalFs.walSyncedLb h.dir h.γ.inc n` (persistent; `storage.Save.spec`'s post when the batch must sync) and the
 history's growth at each write, which the server's contract states over `walRecsH`
 (`InvWalCrash.lean`'s `walSaveH.law`, `walSaveSnapH.law`).
 -/
@@ -41,7 +41,7 @@ timeless): `walRecs h σ sized` with its history named. -/
 @[no_expose] def walRecsH (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized : Bool := false) :
     IProp GF :=
   letI := h.W
-  iprop(∃ d : WalDur, WalFs.walDiskAt h.dir d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir ∗
+  iprop(∃ d : WalDur, WalFs.walDiskAtI h.dir h.γ.inc d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir h.γ.inc ∗
     ⌜walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ d.metadata = h.md ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H) ∧ walSrvHist d.H = Hs⌝)
 
@@ -108,7 +108,7 @@ theorem walRecsH_saveSnap_baseLb (h : WalH GF) (σ : StorContents) (m : Snapshot
 mark a first start's durability invariant is allocated at. -/
 theorem walRecsH_synced0 (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized : Bool) :
     walRecsH (GF := GF) h σ Hs sized ⊢
-      walRecsH h σ Hs sized ∗ (letI := h.W; WalFs.walSyncedLb h.dir 0) := by
+      walRecsH h σ Hs sized ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc 0) := by
   letI := h.W
   unfold walRecsH
   iintro ⟨%d, Hd, Ha, #Hn, %hf⟩
@@ -130,7 +130,7 @@ member `id` of the cluster `cid` the WAL's metadata names. What T2's crash law's
 theorem walRecsH_crash (h : WalH GF) (W' : WalFs.WalGS GF) (σ : StorContents) (Hs : WalHist) (n : Nat)
     (id cid : w64) (hmd : h.md = walMetaEnc id cid) :
     letI := h.ext; letI := h.semOk; letI := h.has
-    WalFs.walCrashWal h.W W' ∗ walRecsH h σ Hs true ∗ WalFs.walSyncedLb (W := h.W) h.dir n ∗
+    WalFs.walCrashWal h.W W' ∗ walRecsH h σ Hs true ∗ WalFs.walSyncedLb (W := h.W) h.dir h.γ.inc n ∗
       WalFs.walUnlockedTok (W := W') ∗ Fs.osCallPerm (Fs.callKey h.R h.dir) (1 : Qp).half ⊢
       walRecsH h σ Hs true ∗ ∃ j : Nat, ⌜n ≤ j ∧ j ≤ Hs.length⌝ ∗
         ∀ σ' : StorContents, ⌜walRead (Hs.take j) = some σ'⌝ -∗
@@ -139,7 +139,7 @@ theorem walRecsH_crash (h : WalH GF) (W' : WalFs.WalGS GF) (σ : StorContents) (
   unfold walRecsH
   iintro ⟨Hcs, ⟨%d, Hd, Ha, #Hn, %hf⟩, #Hs, Hu, Hc⟩
   obtain ⟨hfold, hm, hsz, hes, hH⟩ := hf
-  icases walFilesC_crash h.toWalA W' d n id cid (by rw [hm]; exact hmd) hsz (hes rfl) $$
+  icases walFilesC_crash h.toWalA W' h.γ.inc d n id cid (by rw [hm]; exact hmd) hsz (hes rfl) $$
     [Hcs Hd Hs Hn Hu Hc] with ⟨Hd, %j, %hj, Hf⟩
   · iframe Hcs Hd Hs Hn Hu Hc
   isplitl [Hd Ha]

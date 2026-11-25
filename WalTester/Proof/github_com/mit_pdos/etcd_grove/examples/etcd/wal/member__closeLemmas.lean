@@ -54,8 +54,8 @@ theorem tWalOwn_agree (γ : TGS) (od od' : Option WalDur) :
 /-- **`Close`'s update, committed on the tester's invariant with the WAL state unchanged.** -/
 theorem tInv_walAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ⊢
-      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.area) d', COMM ⌜d' = d⌝ ∗ tWalOwn γ (some d) }> := by
+      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 d' }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 d', COMM ⌜d' = d⌝ ∗ tWalOwn γ (some d) }> := by
   iintro ⟨#Hinv, Hwo⟩
   iauintro
   unfold atomic_acc
@@ -69,7 +69,7 @@ theorem tInv_walAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) :
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  unfold WalFs.walDiskAt
+  unfold WalFs.walDiskAtI
   iexists d
   iframe Hwd
   isplit

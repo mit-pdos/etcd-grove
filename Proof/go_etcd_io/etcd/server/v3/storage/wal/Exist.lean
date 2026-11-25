@@ -177,11 +177,11 @@ theorem wal.Exist.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_RDabs : fileutil.ReadDir.specAbsentIs (GF := GF) (hG := hG))
     (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG)) :
     wal.Exist.spec (GF := GF) C Mr := by
-  intro R jr r dir nm qp Q hin hnmO
+  intro R jr r dir nm qp Q ic hin hnmO
   iintro %Φ Hpre HΦ
   iapply (wal.Exist.wp_core C Mr wp_WithExt wp_RDabs wp_RDchild R jr r dir nm qp _
     (fun od => iprop(∃ o, Q o ∗ ⌜walOptLe o od⌝))
-    (fun s => walInvBody_existAU C Mr R jr r s dir Q) hin hnmO) $$ Hpre
+    (fun s => walInvBody_existAU C Mr R jr r s dir Q ic) hin hnmO) $$ Hpre
   inext
   iintro %b ⟨Hp, Hres, Hperm, Hu, %od, ⟨%o, HQ, %ho⟩, %hb, %hn⟩
   iapply HΦ

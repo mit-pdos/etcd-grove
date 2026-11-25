@@ -113,20 +113,22 @@ theorem walTailsRes_append (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
 /-- **The invariant's contents after `dir`'s append of `o`** (see the file header). -/
 theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (o : WalOpG WalEnt)
-    (M : GMap GoString WalDur)
+    (M : GMap GoString WalDur) (I : GMap GoString Nat)
     (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
       RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN tg.1) tg.2.2.1)) →
       RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN (tg.1 ++ [o])) tg.2.2.1)))
     (hox : ¬ walHasMaxIdx [o.toM]) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walOwn (W := W) M -∗ ⧖ (tg.1.length + 1) ==∗
+      tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walOwn (W := W) M -∗ walIncQ (W := W) I -∗
+      ⧖ (tg.1.length + 1) ==∗
       ∃ d : WalDur, ⌜s.wal !! dir = some d ∧ walMapLe M s.wal ∧ d.H = tg.1 ∧
           (∀ b ∈ tg.2.2.1, walCutPos (tg.1.map WalOpG.toM) b) ∧ tg.2.2.1.Pairwise (· < ·)⌝ ∗
         walInvBody (L := L) (W := W) C Mr R jr r (walAppS s dir d o) ∗ walTailKey (W := W) dir γ ∗
         tailVar (W := W) γ (tg.1 ++ [o], tg.2) ∗ walCutFrag (W := W) none ∗
-        walOwn (W := W) (walAppS s dir d o).wal ∗ walPast (W := W) (walAppS s dir d o) := by
+        walOwn (W := W) (walAppS s dir d o).wal ∗ walIncQ (W := W) I ∗
+        walPastI (W := W) (walAppS s dir d o, I) := by
   letI := walAllG (W := W)
-  iintro Hb Hk Hv Hcf HM #Hst
+  iintro Hb Hk Hv Hcf HM HI #Hst
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -144,18 +146,20 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   subst htg
   have hfit' : RecsFit C (recsOfSegs C Mr d.metadata
       (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts)) := hfit hcuts habs.fit
-  imod walGhost_updR s (walAppS s dir d o) M (absLe_append o hd) (walKeysInArea_append o hd) _
+  icases walGhost_inc s I $$ Hg HI with ⟨Hg, HI⟩
+  imod walGhostI_updR s (walAppS s dir d o) I M (absLe_append o hd) (walKeysInArea_append o hd) _
     (fun n hn => (hn.mono (Nat.le_max_left _ _)).insert rfl
       (by simp only [List.length_append, List.length_singleton]; exact Nat.le_max_right _ _))
     (unlMono_insert s dir _ (fun d' h => by rw [hd] at h; cases h; exact Nat.le_refl _))
     $$ Hst Hg HM
     with ⟨%HMs, Hg, HM, #Hp⟩
+  ihave Hg := walGhostI_ghost _ I $$ Hg
   imodintro
   iexists d
   isplitr
   · ipureintro
     exact ⟨hd, HMs, rfl, fun b hb => (walCutPos_normH _ b).1 (habs.cuts.1 b hb), habs.cuts.2.1⟩
-  iframe Hk Hv Hcf HM Hp
+  iframe Hk Hv Hcf HM HI Hp
   iexists Ls, cl, n, F
   iframe Hg Hcl Hn Hlays HCR Hpk
   isplitr
@@ -180,33 +184,33 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
 
 /-- **The append's commit** (see the file header). -/
 theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (o : WalOpG WalEnt) (sized : Bool)
+    (w : Loc) (dir : GoString) (i : Nat) (γ : GName) (tg : TailG) (o : WalOpG WalEnt) (sized : Bool)
     (Q : WalDur → IProp GF)
     (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
       RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN tg.1) tg.2.2.1)) →
       RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (histN (tg.1 ++ [o])) tg.2.2.1)))
     (hox : ¬ walHasMaxIdx [o.toM]) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walOpenW (W := W) w dir -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (tg.1.length + 1) -∗
+      walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walOpenWI (W := W) w dir i -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir i d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir i { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (tg.1.length + 1) -∗
       |={⊤}=> notCrashed (hC := L.goose_crashGS) ∗ walTailKey (W := W) dir γ ∗
-        tailVar (W := W) γ (tg.1 ++ [o], tg.2) ∗ walOpenW (W := W) w dir ∗
-        walLenLb (W := W) w dir (tg.1.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = tg.1⌝) ∗
+        tailVar (W := W) γ (tg.1 ++ [o], tg.2) ∗ walOpenWI (W := W) w dir i ∗
+        walLenLb (W := W) w dir i (tg.1.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = tg.1⌝) ∗
         ⌜(∀ b ∈ tg.2.2.1, walCutPos (tg.1.map WalOpG.toM) b) ∧ tg.2.2.1.Pairwise (· < ·)⌝ := by
   iintro #Hinv Hnc Hk Hv Hw Hau #Hst
   imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases (walOpenW_cut (W := W) w dir).1 $$ Hw with ⟨Hwc, Hpf, Hcf⟩
+  icases (walOpenWI_cut (W := W) w dir i).1 $$ Hw with ⟨Hwc, Hpf, Hcf⟩
   ihave Hau := atomic_update_mask_weaken walAuMask_sub_top $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%dc, ⟨Hdc, %hsz⟩, Hucl⟩
-  unfold walDiskAt walDirIs
-  icases Hdc with ⟨%M, HM, %HMd⟩
-  imod walInvBody_append C Mr R jr r s dir γ tg o M hfit hox $$ Hb Hk Hv Hcf HM Hst
-    with ⟨%d, %hp, Hb, Hk, Hv, Hcf, HM, #Hp⟩
+  unfold walDiskAtI walDirIsI
+  icases Hdc with ⟨%M, %I, HM, HI, %HMd, %hi⟩
+  imod walInvBody_append C Mr R jr r s dir γ tg o M I hfit hox $$ Hb Hk Hv Hcf HM HI Hst
+    with ⟨%d, %hp, Hb, Hk, Hv, Hcf, HM, HI, #Hp⟩
   obtain ⟨hd, HMs, hH, hcp, hpw⟩ := hp
   -- the client's copy is below the real WAL
   obtain ⟨d0, hM0, hle0⟩ := (walOptLe_some_iff _ _).1 HMd
@@ -216,18 +220,18 @@ theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     exact walDurLe_trans hle0 h1
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-  imod Hcommit $$ [HM] with HQ
-  · iexists (walAppS s dir d o).wal
-    iframe HM
+  imod Hcommit $$ [HM HI] with HQ
+  · iexists (walAppS s dir d o).wal, I
+    iframe HM HI
     ipureintro
     rw [walAppS_lookup]
-    exact walDurLe_append o hle
+    exact ⟨walDurLe_append o hle, hi⟩
   imod Hcl $$ [Hb]
   · iexists (walAppS s dir d o); iexact Hb
-  ihave Hw := (walOpenW_cut (W := W) w dir).2 $$ [Hwc Hpf Hcf]
+  ihave Hw := (walOpenWI_cut (W := W) w dir i).2 $$ [Hwc Hpf Hcf]
   · iframe Hwc Hpf Hcf
-  icases walOpenW_lenLb (W := W) w dir (walAppS s dir d o) { d with H := d.H ++ [o] }
-    (tg.1.length + 1) (walAppS_lookup s dir d o) (by simp [hH]) $$ Hw Hp with ⟨Hw, Hlb⟩
+  icases walOpenWI_lenLb (W := W) w dir i (walAppS s dir d o) I { d with H := d.H ++ [o] }
+    (tg.1.length + 1) hi (walAppS_lookup s dir d o) (by simp [hH]) $$ Hw Hp with ⟨Hw, Hlb⟩
   imodintro
   iframe Hnc Hk Hv Hw Hlb
   isplitl [HQ]

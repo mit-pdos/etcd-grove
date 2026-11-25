@@ -54,10 +54,10 @@ abbrev storage.storage.Release.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
         sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
         snapDirInvH sd γd img Rm ∗
         □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
-        WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
-        AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗
+        WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir γ.inc n ∗
+        AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗
             ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, md.Index', t⟩ al)) ∧ i < n⌝ }> @ walAuMask, ∅
-          <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) md.Index') },
+          <{ WalFs.walDiskAtI dir γ.inc { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) md.Index') },
             COMM Q d }> }}
       (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!!
         go!"Release")) (Val #sn))

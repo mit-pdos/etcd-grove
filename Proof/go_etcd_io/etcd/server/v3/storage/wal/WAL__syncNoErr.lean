@@ -59,7 +59,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
         locks ↦* lfs ∗ fileutil.lockedFile lt f ∗ encEnv ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-        WalFs.walOpenW (W := W) w dir }}
+        WalFs.walOpenWI (W := W) w dir h.inc }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
     {{ (err : GoInterface), RET #err;
         ⌜err = GoInterface.nil⌝ ∗
@@ -70,7 +70,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
           walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0
             (max h.sz (h.o0 + h.out.length + h.pend.length)) (h.out ++ h.pend) TailMetaS ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
-          locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
+          locks ↦* lfs ∗ WalFs.walOpenWI (W := W) w dir h.inc ∗ WalFs.walSyncedLb dir h.inc h.H.length ∗
           ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝ }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -115,8 +115,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
   iunfold fileutil.lockedFile at Hlt0
   iStructNamed Hlt0
   wp_auto
-  ihave Hopen2 := (walOpenW_cut (W := W) w dir).1 $$ Hopen
+  ihave Hopen2 := (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen
   icases Hopen2 with ⟨Hoc, Hpk, Hcf⟩
+  icases walOpenWCI_incLb w dir h.inc $$ Hoc with ⟨Hoc, #Hil⟩
   have hwr := (WalHS.split_rest0 hsplit hrest).2
   ihave Htw := (show walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0
       (max h.sz (h.o0 + (h.out ++ h.pend).length)) (h.out ++ h.pend) TailMetaW ⊢
@@ -124,9 +125,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
       (max h.sz (h.o0 + h.out.length + h.pend.length)) (h.out ++ h.pend) TailMetaW by
     rw [List.length_append, Nat.add_assoc]) $$ Htw
   wp_apply (fileutil.Fdatasync.wp_tailWNE hS0 wp_Fd Mr R jr r f fd name dir h.γ h.ino h.H h.md h.cuts
-      h.o0 (max h.sz (h.o0 + h.out.length + h.pend.length)) (h.out ++ h.pend) hwr) $$ [Htw Hcf]
+      h.o0 (max h.sz (h.o0 + h.out.length + h.pend.length)) (h.out ++ h.pend) hwr h.inc) $$ [Htw Hcf]
       as ⟨Hcf, Htw, #HS⟩
-  · iframe; iexact Harea
+  · iframe Hil; iframe; iexact Harea
   have hmb : maxBytes = 0xffffffff000 := rfl
   simp only [List.length_append] at hbx
   have hbx' : max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000 := by omega
@@ -153,8 +154,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
     iapply HΦ
     isplitr
     · ipureintro; rfl
-    ihave Hopen : WalFs.walOpenW (W := W) w dir $$ [Hoc Hpk Hcf]
-    · iapply (walOpenW_cut (W := W) w dir).2; iframe
+    ihave Hopen : WalFs.walOpenWI (W := W) w dir h.inc $$ [Hoc Hpk Hcf]
+    · iapply (walOpenWI_cut (W := W) w dir h.inc).2; iframe
     iframe Hlg Hns He Henc Htw Hlocks Hls Hopen HS
     ipureintro; exact hbx'
   · try wp_auto
@@ -166,8 +167,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
     iapply HΦ
     isplitr
     · ipureintro; rfl
-    ihave Hopen : WalFs.walOpenW (W := W) w dir $$ [Hoc Hpk Hcf]
-    · iapply (walOpenW_cut (W := W) w dir).2; iframe
+    ihave Hopen : WalFs.walOpenWI (W := W) w dir h.inc $$ [Hoc Hpk Hcf]
+    · iapply (walOpenWI_cut (W := W) w dir h.inc).2; iframe
     iframe Hlg Hns He Henc Htw Hlocks Hls Hopen HS
     ipureintro; exact hbx'
 

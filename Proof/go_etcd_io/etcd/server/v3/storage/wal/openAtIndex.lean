@@ -76,7 +76,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_FName : os.fileStat.Name.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr := by
-  intro lg R jr r dir nm sp s write qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm sp s write qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
@@ -95,7 +95,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   try wp_auto
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAt walCodec Mr R jr r dir nm N _ h Wn write s.1 Q hin (hok.1 nm hnm)
+  imod walInv_openAt walCodec Mr R jr r dir nm N _ h Wn write s.1 Q ic hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
   icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%ho, %d, Hpin⟩)
   · -- no WAL: `selectWALFiles` fails on the missing directory
@@ -137,7 +137,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     iframe He1
     ipureintro; rfl
   · unfold walPinOut
-    icases Hpin with ⟨%lay, %X, %hj, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj, Ht⟩
+    icases Hpin with ⟨%lay, %X, %hj, %hfacts, #Hkey, ⟨%Il, Hl, %hIl⟩, Htf, Ho, HS, Hj, Ht⟩
+    subst hIl
     obtain ⟨hljr, hX, hcoh, habs, hnd, hsn⟩ := hfacts
     icases Htf with ⟨Htf, Hnf⟩
     imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
@@ -171,6 +172,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iintro %asl ⟨Hasl, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
+      ihave Hl := walLockedTokI_tok (W := W) Il $$ Hl
       imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
         with ⟨Hnc, Hu⟩
       imodintro
@@ -223,6 +225,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iintro %asl ⟨Hasl, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
+      ihave Hl := walLockedTokI_tok (W := W) Il $$ Hl
       imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
         with ⟨Hnc, Hu⟩
       imodintro
@@ -353,6 +356,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · ipureintro; exact ho
       iframe dirFile
       simp only [Bool.false_eq_true, ↓reduceIte]
+      ihave Hl := walLockedTokI_tok (W := W) Il $$ Hl
       iframe Hl Hperm
       unfold walReadH walOpenIn walReadTie
       isplitl [lg dir start]
@@ -424,7 +428,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod walInv_mintOpening walCodec Mr R jr r wl dir s $$ Hinv Hnc Hl with ⟨Hnc, Hop⟩
+      imod walInv_mintOpening walCodec Mr R jr r wl dir s Il $$ Hinv Hnc Hl with ⟨Hnc, Hop⟩
       imodintro
       iframe Hnc
       wp_apply wp_pipe lg dir (W64 64000000) R (DFrac.own qd) lay.j (by decide) (by decide) (by omega)

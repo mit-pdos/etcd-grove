@@ -637,7 +637,7 @@ theorem walSaveSnapCH_spec [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
-          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir (Hs.length + 1)) ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length md }} := by
   have HS := walSaveSnapH_spec st h ss si hst q sn mp dq (srvSnapMetaC md al uf) al Q sized
   simp only [srvSnapMetaC_model] at HS

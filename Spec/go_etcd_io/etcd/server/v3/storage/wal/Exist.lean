@@ -49,13 +49,13 @@ resolve (`ExistCallees.lean`). Conversely (2026-11-23, claim #34), with no WAL (
 holds nothing at `nm`) `Exist` answers `false` when the file system does not fail on `dir`
 (`FsNoErrAt`: `ReadDir`'s `open` then fails with `ENOENT`, `NoIoErr`'s `PathErrno`). -/
 abbrev wal.Exist.spec (C : WalCodec) (Mr : WalMarshal) : Prop :=
-  ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
+  ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF) (ic : Nat),
   InArea r dir nm → NameOk nm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
       WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
-        <{ WalFs.walDirIs dir o, COMM Q o }> }}
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir ic o }> @ walAuMask, ∅
+        <{ WalFs.walDirIsI dir ic o, COMM Q o }> }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
   {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
       WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗ ⌜b = false → wal.ExistFalseOk o⌝ ∗

@@ -67,7 +67,7 @@ metadata, `sized` as `walFiles`'. -/
 @[no_expose] def walFilesC (a : WalA GF) (id cid : w64) (σ : StorContents) (sized : Bool := false) :
     IProp GF :=
   letI := a.ext; letI := a.semOk; letI := a.has; letI := a.W
-  iprop(∃ d : WalDur, WalFs.walDiskAt a.dir d ∗ WalFs.walNamed a.dir ∗
+  iprop(∃ (i : Nat) (d : WalDur), WalFs.walDiskAtI a.dir i d ∗ WalFs.walNamed a.dir i ∗
     WalFs.walUnlockedTok ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ∗
     ⌜walRead (walSrvHist d.H) = some σ ∧ d.metadata = walMetaEnc id cid ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H)⌝)
@@ -80,25 +80,25 @@ instance walFilesC_timeless (a : WalA GF) (id cid : w64) (σ : StorContents) (si
 theorem walFiles_walFilesC (a : WalA GF) (id cid : w64) (σ : StorContents) (sized : Bool) :
     walFiles (GF := GF) a id cid σ sized ⊢ walFilesC a id cid σ sized := by
   unfold walFiles walFilesC
-  iintro ⟨%d, Hd, -, Hn, Hu, Hc, %hf⟩
-  iexists d
+  iintro ⟨%i, %d, Hd, -, Hn, Hu, Hc, %hf⟩
+  iexists i, d
   iframe Hd Hn Hu Hc
   ipureintro; exact hf
 
 /-- **The WAL's files after a crash** (see the file header): the area `a` of the old generation's WAL
 names `a.W`, the new generation's `W'`; the old state `d` given back. -/
-theorem walFilesC_crash (a : WalA GF) (W' : WalFs.WalGS GF) (d : WalDur) (n : Nat) (id cid : w64)
+theorem walFilesC_crash (a : WalA GF) (W' : WalFs.WalGS GF) (i : Nat) (d : WalDur) (n : Nat) (id cid : w64)
     (hmd : d.metadata = walMetaEnc id cid) (hsz : d.sized = true) (hes : walEntsSized d.H) :
     letI := a.ext; letI := a.semOk; letI := a.has
-    WalFs.walCrashWal a.W W' ∗ WalFs.walDiskAt (W := a.W) a.dir d ∗
-      WalFs.walSyncedLb (W := a.W) a.dir n ∗ WalFs.walNamed (W := a.W) a.dir ∗
+    WalFs.walCrashWal a.W W' ∗ WalFs.walDiskAtI (W := a.W) a.dir i d ∗
+      WalFs.walSyncedLb (W := a.W) a.dir i n ∗ WalFs.walNamed (W := a.W) a.dir i ∗
       WalFs.walUnlockedTok (W := W') ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ⊢
-      WalFs.walDiskAt (W := a.W) a.dir d ∗ ∃ j : Nat, ⌜n ≤ j ∧ j ≤ d.H.length⌝ ∗
+      WalFs.walDiskAtI (W := a.W) a.dir i d ∗ ∃ j : Nat, ⌜n ≤ j ∧ j ≤ d.H.length⌝ ∗
         ∀ σ : StorContents, ⌜walRead ((walSrvHist d.H).take j) = some σ⌝ -∗
           walFilesC { a with W := W' } id cid σ true := by
   letI := a.ext; letI := a.semOk; letI := a.has
   iintro ⟨Hcs, Hd, #Hs, #Hn, Hu, Hc⟩
-  icases WalFs.walDiskAt_crash_keepS a.W W' a.dir d n $$ Hcs Hd Hs Hn with
+  icases WalFs.walDiskAt_crash_keepS a.W W' a.dir i d n $$ Hcs Hd Hs Hn with
     ⟨Hd, %I, %k, ⟨%hI, -⟩, Hd', -, #Hn'⟩
   obtain ⟨j, hj1, hj2, rfl⟩ := hI
   iframe Hd
@@ -107,7 +107,7 @@ theorem walFilesC_crash (a : WalA GF) (W' : WalFs.WalGS GF) (d : WalDur) (n : Na
   · ipureintro; exact ⟨hj1, hj2⟩
   iintro %σ %hr
   unfold walFilesC
-  iexists { d with H := d.H.take j, cut := k, unl := min d.unl (d.H.take j).length, pur := min d.pur (d.H.take j).length }
+  iexists 0, { d with H := d.H.take j, cut := k, unl := min d.unl (d.H.take j).length, pur := min d.pur (d.H.take j).length }
   iframe Hd' Hn' Hu Hc
   ipureintro
   refine ⟨?_, hmd, hsz, fun _ => walEntsSized_take hes j⟩

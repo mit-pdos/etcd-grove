@@ -62,8 +62,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
           walSnapAt Mr sp md al cs ∗
           ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
           ⌜(Mr.encSnap md al).length < 2 ^ 40⌝ ∗
-          AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-            <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md al] }, COMM Q d }>)
+          AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+            <{ WalFs.walDiskAtI dir γ.inc { d with H := d.H ++ [WalOpG.snap md al] }, COMM Q d }>)
       | .pre lg mds mdb e lt f snapi enti Wr Br Sr lim out pend c => iprop(
           ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜(out ++ pend ++ snapFrame Mr c md al).length ≤ lim⌝ ∗
           ⌜lim < 2 ^ 47⌝ ∗ ⌜walPreSyncOk f Wr Sr⌝ ∗ ⌜walPreSeekOk f Wr lim⌝ ∗
@@ -79,7 +79,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
       match st with
       | .shared γ q => iprop(
           (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
-              WalFs.walLenLb w dir (d.H.length + 1) ∗ WalFs.walSyncedLb dir (d.H.length + 1)) ∨
+              WalFs.walLenLb w dir γ.inc (d.H.length + 1) ∗ WalFs.walSyncedLb dir γ.inc (d.H.length + 1)) ∨
           (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d))
       | .pre lg mds mdb e lt f snapi enti Wr Br Sr _ out pend c => iprop(
           ∃ (snapi' enti' : w64), walPreIn w lg dir mds mdb e lt f snapi' enti' ∗

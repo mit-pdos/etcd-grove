@@ -190,7 +190,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     wal.ValidSnapshotEntries.spec (W := W) Mr := by
-  intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   iintro %Φ ⟨#Hpkg, #Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩ HΦ
   ihave #Hok' := Hok
@@ -204,7 +204,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
   have hdc := dir_child hin
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q hin (hok.1 nm hnm)
+  imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q ic hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
   icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%d, %lay, %X, %hj, ⟨%hle, %hpin⟩, Hpin, -⟩)
   · -- no WAL: every attempt fails at `readWALNames`

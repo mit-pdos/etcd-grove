@@ -45,10 +45,10 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (P : WalPbIn
     Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (a t : w64)
     (i n : Nat) (cs : ConfStateM) (Q : WalDur → IProp GF),
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir γ.inc n ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
         @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
+        <{ WalFs.walDiskAtI dir γ.inc { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
           COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"ReleaseLockTo")) (Val #a))
@@ -60,10 +60,10 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specR (P : WalPbI
     Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (a t : w64)
     (i n : Nat) (cs : ConfStateM) (Q : WalDur → IProp GF),
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir γ.inc n ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
         @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
+        <{ WalFs.walDiskAtI dir γ.inc { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
           COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"ReleaseLockTo")) (Val #a))

@@ -120,13 +120,13 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
       P.hsIn hp hs ∗ sl ↦*□ esL ∗ walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗
       (⌜saveBatchBytes Mr es ≤ maxSaveBatch⌝ -∗
-        AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-          <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }>) }}
+        AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+          <{ WalFs.walDiskAtI dir γ.inc { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }>) }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walLenLb w dir (d.H.length + 1) ∗
-          (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (d.H.length + 1))) ∨
+          WalFs.walLenLb w dir γ.inc (d.H.length + 1) ∗
+          (⌜walMustSync (d.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir γ.inc (d.H.length + 1))) ∨
       (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) ∨
       (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < saveBatchBytes Mr es⌝ ∗ walOpenWS Sio P Mr w dir γ q) }}
 

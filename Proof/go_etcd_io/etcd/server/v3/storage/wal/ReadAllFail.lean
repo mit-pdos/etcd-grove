@@ -169,9 +169,9 @@ theorem walReadFailedF_elim (Mr : WalMarshal) (w : Loc) (dir : GoString) :
 /-- The failed ghost handle holds the lock token (as `walOpening_lockedTok`). -/
 theorem walReadFailed_lockedTok (w : Loc) (dir : GoString) :
     walReadFailed (W := W) w dir ⊢ walLockedTok (W := W) := by
-  unfold walReadFailed walHandleP
-  iintro ⟨%γ, -, -, -, Hl⟩
-  iexact Hl
+  unfold walReadFailed walHandleP walLockedTok
+  iintro ⟨%γ, %i, %I, -, -, -, Hl, -⟩
+  iexists I; iexact Hl
 
 /-- The synced or unsynced halves of the tail, as a segment of the same inode and size
 (`WAL__CloseOpening`'s `syncOut_seg`). -/
@@ -439,11 +439,11 @@ theorem readAll_failPend {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots) 
       F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
       ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
         F.S = walFileS f fd (child dir g.name) (walSegFd true lo lk g.ino) g)
-    (hlastN : (walNames hj.cur).getLast? = some gl.name) (hXt : ∀ t ∈ walTmps, t ∈ X)
+    {ic : Nat} (hlastN : (walNames hj.cur).getLast? = some gl.name) (hXt : ∀ t ∈ walTmps, t ∈ X)
     (hsz : ∀ g ∈ gs, g.om.size = g.bs.length)
     (hTM : TailMetaR gl.om gl.bs ∧ (∀ z, gl.om.zf = some z → gl.om.size ≤ z) ∧ ∀ y ∈ gl.bs, y = Fs.durB y.1)
     (hwr : lay.wr = (tailStream Mr d0.H d0.metadata lay.cuts).length) :
-    ⊢ walInv (L := hG.goose_localGS) (W := W) walCodec Mr R jr r -∗ walOpening (W := W) w dir sn -∗ Q dc -∗
+    ⊢ walInv (L := hG.goose_localGS) (W := W) walCodec Mr R jr r -∗ walOpening (W := W) w dir sn ic -∗ Q dc -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"lg" w ↦ lg -∗ zapLoggerOk lg -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks -∗ locks ↦* lfs -∗
@@ -524,10 +524,10 @@ theorem readAll_failSynced {Lk : GMap GoString Nat} (Mr : WalMarshal) (R : Roots
     (hfk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F → gs0[k]? = some g →
       ∃ (f : Loc) (fd : w64) (lo lk : Option Bool), fls[k]? = some f ∧
         F.S = walFileS f fd (child dir g.name) (walSegFd true lo lk g.ino) g)
-    (hlastN : (walNames hj.cur).getLast? = some gl.name) (hiL : hj.cur !! gl.name = some (.file gl.ino))
+    {ic : Nat} (hlastN : (walNames hj.cur).getLast? = some gl.name) (hiL : hj.cur !! gl.name = some (.file gl.ino))
     (hXt : ∀ t ∈ walTmps, t ∈ X) (hsz : ∀ g ∈ gs0, g.om.size = g.bs.length)
     (hTM : TailMetaS m bs) (hwr : o0 = (tailStream Mr H md cuts).length) :
-    ⊢ walInv (L := hG.goose_localGS) (W := W) walCodec Mr R jr r -∗ walOpening (W := W) w dir sn -∗ Q dc -∗
+    ⊢ walInv (L := hG.goose_localGS) (W := W) walCodec Mr R jr r -∗ walOpening (W := W) w dir sn ic -∗ Q dc -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"lg" w ↦ lg -∗ zapLoggerOk lg -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir -∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks -∗

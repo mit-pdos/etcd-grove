@@ -78,52 +78,54 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- See the file header. -/
-@[no_expose] def walOpenWFR (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k : Nat) :
-    IProp GF :=
+@[no_expose] def walOpenWFR (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k : Nat)
+    (i : Nat) : IProp GF :=
   iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
-    ⧗ h.pc ∗ ⌜h.o0 + h.out.length + h.pend.length + k ≤ maxBytes⌝)
+    ⧗ h.pc ∗ ⌜h.o0 + h.out.length + h.pend.length + k ≤ maxBytes⌝ ∗ ⌜h.inc = i⌝)
 
 /-- The room handle unfolded (for the package's proofs). -/
-theorem walOpenWFR_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k : Nat) :
-    walOpenWFR (W := W) P Mr w dir k ⊣⊢
+theorem walOpenWFR_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k : Nat)
+    (i : Nat) :
+    walOpenWFR (W := W) P Mr w dir k i ⊣⊢
       ∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
-        ⧗ h.pc ∗ ⌜h.o0 + h.out.length + h.pend.length + k ≤ maxBytes⌝ :=
+        ⧗ h.pc ∗ ⌜h.o0 + h.out.length + h.pend.length + k ≤ maxBytes⌝ ∗ ⌜h.inc = i⌝ :=
   .rfl
 
 /-- **A handle with room is a handle.** -/
-theorem walOpenWFR_wf (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k : Nat) :
-    walOpenWFR (W := W) P Mr w dir k ⊢ walOpenWF P Mr w dir := by
-  refine (walOpenWFR_iff P Mr w dir k).1.trans ?_
-  refine BI.Entails.trans ?_ (walOpenWF_iff P Mr w dir).2
-  iintro ⟨%h, Hh, %hD, %hmd, Hr, -⟩
+theorem walOpenWFR_wf (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k : Nat)
+    (i : Nat) :
+    walOpenWFR (W := W) P Mr w dir k i ⊢ walOpenWFI P Mr w dir i := by
+  refine (walOpenWFR_iff P Mr w dir k i).1.trans ?_
+  refine BI.Entails.trans ?_ (walOpenWFI_iff P Mr w dir i).2
+  iintro ⟨%h, Hh, %hD, %hmd, Hr, -, %hi⟩
   iexists h
   iframe Hh Hr
-  ipureintro; exact ⟨hD, hmd⟩
+  ipureintro; exact ⟨hD, hmd, hi⟩
 
 /-- **A handle whose tail's stream ends below `2 ^ 43` has the fresh room** (`Create`'s, a cut's). -/
 theorem walOpenWFR_fresh (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
     (hD : h.Done) (hmd : h.md.length < 2 ^ 41) (hb : h.o0 + h.out.length + h.pend.length ≤ 2 ^ 43) :
-    walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⧗ h.pc ⊢ walOpenWFR P Mr w dir walFreshRoom := by
-  refine BI.Entails.trans ?_ (walOpenWFR_iff P Mr w dir walFreshRoom).2
+    walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⧗ h.pc ⊢ walOpenWFR P Mr w dir walFreshRoom h.inc := by
+  refine BI.Entails.trans ?_ (walOpenWFR_iff P Mr w dir walFreshRoom h.inc).2
   iintro ⟨Hh, Hr⟩
   iexists h
   iframe Hh Hr
   ipureintro
-  refine ⟨hD, hmd, ?_⟩
+  refine ⟨hD, hmd, ?_, rfl⟩
   unfold walFreshRoom
   have : (2 : Nat) ^ 43 ≤ maxBytes := by decide
   omega
 
 /-- **Less room**: a handle with room `k` has room `k' ≤ k`. -/
 theorem walOpenWFR_mono (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (k k' : Nat)
-    (hk : k' ≤ k) : walOpenWFR (W := W) P Mr w dir k ⊢ walOpenWFR P Mr w dir k' := by
-  refine (walOpenWFR_iff P Mr w dir k).1.trans ?_
-  refine BI.Entails.trans ?_ (walOpenWFR_iff P Mr w dir k').2
-  iintro ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
+    (i : Nat) (hk : k' ≤ k) : walOpenWFR (W := W) P Mr w dir k i ⊢ walOpenWFR P Mr w dir k' i := by
+  refine (walOpenWFR_iff P Mr w dir k i).1.trans ?_
+  refine BI.Entails.trans ?_ (walOpenWFR_iff P Mr w dir k' i).2
+  iintro ⟨%h, Hh, %hD, %hmd, Hr, %hb, %hi⟩
   iexists h
   iframe Hh Hr
   ipureintro
-  exact ⟨hD, hmd, by omega⟩
+  exact ⟨hD, hmd, by omega, hi⟩
 
 end handle
 

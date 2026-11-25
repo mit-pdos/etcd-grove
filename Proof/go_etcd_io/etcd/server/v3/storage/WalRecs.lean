@@ -158,7 +158,7 @@ lets the storages over `h.w` write it (`Save`, `SaveSnap`, `Sync`, `Release`), t
 def storage.walOpen (h : WalH GF) (q : Qp) : IProp GF :=
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj
   iprop(WalFs.walOpenWS h.Sio walSrvP walSrvMr h.w h.dir h.γ q ∗
-    WalFs.walAreaOk walCodec walSrvMr h.R h.jr h.r ∗ WalFs.walLenLb h.w h.dir 0)
+    WalFs.walAreaOk walCodec walSrvMr h.R h.jr h.r ∗ WalFs.walLenLb h.w h.dir h.γ.inc 0)
 
 /-- The shares of an open WAL are fractional. -/
 instance storage.walOpen_fractional (h : WalH GF) :
@@ -192,7 +192,7 @@ reads (`walRead_of_fold`). **`sized`**: every entry record is the wrap of a cont
 `entSizeOk c` (`walEntsSized`); `false` claims nothing more. -/
 @[no_expose] def walRecs (h : WalH GF) (σ : StorContents) (sized : Bool := false) : IProp GF :=
   letI := h.W
-  iprop(∃ d : WalDur, WalFs.walDiskAt h.dir d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir ∗
+  iprop(∃ d : WalDur, WalFs.walDiskAtI h.dir h.γ.inc d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir h.γ.inc ∗
     ⌜walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ d.metadata = h.md ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H)⌝)
 
@@ -206,7 +206,7 @@ of base at least `i`. -/
 `Release` at `m`'s index takes (`WAL.ReleaseLockTo`'s premise; made by `SaveSnap`'s law). -/
 @[no_expose] def walSnapRec (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) : IProp GF :=
   letI := h.W
-  iprop(∃ H0 : List (WalOpG WalEnt), monoListLbOwn h.γh H0 ∗ WalFs.walSyncedLb h.dir (i + 1) ∗
+  iprop(∃ H0 : List (WalOpG WalEnt), monoListLbOwn h.γh H0 ∗ WalFs.walSyncedLb h.dir h.γ.inc (i + 1) ∗
     ⌜∃ al, H0[i]? = some (WalOpG.snap m al)⌝)
 
 /-- **The files of the closed WAL in the area and directory `a` hold the records `σ`, its metadata the
@@ -217,7 +217,8 @@ root back (what `WAL.Close` returns), what a restart reads from it `σ` (`walRea
 @[no_expose] def walFiles (a : WalA GF) (id cid : w64) (σ : StorContents) (sized : Bool := false) :
     IProp GF :=
   letI := a.ext; letI := a.semOk; letI := a.has; letI := a.W
-  iprop(∃ d : WalDur, WalFs.walDiskAt a.dir d ∗ WalFs.walSyncedLb a.dir d.H.length ∗ WalFs.walNamed a.dir ∗
+  iprop(∃ (i : Nat) (d : WalDur), WalFs.walDiskAtI a.dir i d ∗ WalFs.walSyncedLb a.dir i d.H.length ∗
+    WalFs.walNamed a.dir i ∗
     WalFs.walUnlockedTok ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ∗
     ⌜walRead (walSrvHist d.H) = some σ ∧ d.metadata = walMetaEnc id cid ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H)⌝)
@@ -365,8 +366,8 @@ theorem walRecs_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : List
     (hc : ∀ c ∈ cs, ufWire entrySchema c.uf ∧ entrySize c < 2 ^ 48 ∧ (sized = true → entSizeOk c)) :
     (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
         @ WalFs.walAuMask, ∅ <{ walRecs h (walSave σ hs (cs.map EntryC.model)) sized, COMM Q }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] },
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] },
           COMM Q }> := by
   iintro Hau
   iauintro
@@ -424,8 +425,8 @@ theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) 
     (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
           ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }>
         @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ m) sized, COMM Q }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir { d with H := d.H ++ [WalOpG.snap m al] },
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc { d with H := d.H ++ [WalOpG.snap m al] },
           COMM Q ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m al]) }> := by
   iintro Hau
   iauintro
@@ -478,7 +479,7 @@ theorem walRecs_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) 
 /-- **The witness of a synced snapshot record**: a lower bound of the history ending in the record, the
 record synced. -/
 theorem walSnapRec_intro (h : WalH GF) (H : List (WalOpG WalEnt)) (m : SnapshotMetadataM) (al : Bool) :
-    monoListLbOwn h.γh (H ++ [WalOpG.snap m al]) ∗ WalFs.walSyncedLb (W := h.W) h.dir (H.length + 1) ⊢
+    monoListLbOwn h.γh (H ++ [WalOpG.snap m al]) ∗ WalFs.walSyncedLb (W := h.W) h.dir h.γ.inc (H.length + 1) ⊢
       walSnapRec h H.length m := by
   iintro ⟨#Hl, #Hs⟩
   unfold walSnapRec
@@ -488,7 +489,7 @@ theorem walSnapRec_intro (h : WalH GF) (H : List (WalOpG WalEnt)) (m : SnapshotM
 
 /-- The witness's record is synced. -/
 theorem walSnapRec_synced (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) :
-    walSnapRec h i m ⊢ WalFs.walSyncedLb (W := h.W) h.dir (i + 1) := by
+    walSnapRec h i m ⊢ WalFs.walSyncedLb (W := h.W) h.dir h.γ.inc (i + 1) := by
   unfold walSnapRec
   iintro ⟨%H0, -, #Hs, -⟩
   iexact Hs
@@ -499,10 +500,10 @@ theorem walRecs_releaseAU (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) (Q : I
     walSnapRec h i m ∗
       (AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
         <{ walRecs h σ s, COMM Q }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗
           ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨m.ConfState', m.Index', m.Term'⟩ al)) ∧ i < i + 1⌝ }>
         @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc
             { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }, COMM Q }> := by
   iintro ⟨#Hw, Hau⟩
   iauintro
@@ -546,9 +547,9 @@ theorem walRecs_closeAU (h : WalH GF) (σ : StorContents) (sized : Bool) (id cid
     (hb : σ.b ≤ σ.commit) :
     letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W
     walRecs h σ sized ∗ walMetaIs h id cid ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt (W := h.W) h.dir d }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := h.W) h.dir d,
-          COMM (WalFs.walSyncedLb (W := h.W) h.dir d.H.length ∗ WalFs.walUnlockedTok (W := h.W) ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d,
+          COMM (WalFs.walSyncedLb (W := h.W) h.dir h.γ.inc d.H.length ∗ WalFs.walUnlockedTok (W := h.W) ∗
               Fs.osCallPerm (Fs.callKey h.R h.dir) (1 : Qp).half -∗ walFiles h.toWalA id cid σ sized) }> := by
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W
   iintro ⟨Hr, Hm⟩
@@ -573,7 +574,7 @@ theorem walRecs_closeAU (h : WalH GF) (σ : StorContents) (sized : Bool) (id cid
     imodintro
     iintro ⟨#Hs, Hu, Hp⟩
     unfold walFiles
-    iexists d
+    iexists h.γ.inc, d
     iframe Hd Hs Hn Hu Hp
     ipureintro
     refine ⟨?_, hf.2.1.trans hm, hf.2.2.1, hf.2.2.2⟩

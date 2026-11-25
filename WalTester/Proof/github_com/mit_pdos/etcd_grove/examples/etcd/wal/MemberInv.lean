@@ -113,7 +113,7 @@ def memSavePers (W : WalGS GF) (e : TEnv) (γ : TGS) : IProp GF :=
   iprop(osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
-      WalFs.walNamed (W := W) (tWalDir e.area))
+      WalFs.walNamed (W := W) (tWalDir e.area) 0)
 
 instance memSavePers_persistent (W : WalGS GF) (e : TEnv) (γ : TGS) :
     Persistent (memSavePers (GF := GF) W e γ) := by
@@ -137,10 +137,10 @@ def memOpPost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o' : TOracle) (c
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' o' ∗ tWalOwn γ (some d') ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
+        walOpenWFI (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) 0 ∗
         ⌜tMemOk o' c d' ∧ tMemHs o' d'⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o' c) ∗
-        WalFs.walLenLb (W := W) w (tWalDir e.area) d'.H.length
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 (tCandMark o' c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.area) 0 d'.H.length
       else True)
 
 theorem memSavePost_op (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand)

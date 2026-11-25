@@ -74,10 +74,13 @@ stated), and makes `Exist(dir.tmp)` and `RemoveAll(dir.tmp)` exact: `CreateDirAl
 segment, its records (`saveCrc`, the metadata, the empty snapshot) fdatasynced and `nm.tmp` fsynced
 (F-N1), so every crash after the rename decodes to the fresh WAL or (the rename lost) finds `nm`
 absent: the fresh WAL's `CrashOk`. The parent's fsync after it commits the rename (`osCommitLb`):
-`walNamed dir`.
+`walNamed dir i`.
+
+*The incarnation* `i` (P6b, `notes/wal-p6b-design.md`): the client names the incarnation of `dir` its view
+has (`walDirIsI dir i o`); the facts of the success post are of it.
 
 *Success*: the update's `Q`, the open WAL (the client handle `walOpenWF P Mr`, as `Save`'s and
-`ReadAll`'s: it holds the lock token, the record of what the handle holds out, the tails' authority half,
+`ReadAll`'s, at the view's incarnation `i`, `walOpenWFI`: it holds the lock token, the record of what the handle holds out, the tails' authority half,
 the metadata, and half the call permission: a quarter its own, a quarter the file pipeline's, started by
 `renameWAL`), its named entry, its history's empty prefix written and synced, the purge right, and the
 other half of the call permission, the client's while the WAL is open (`Close` returns the handle's).
@@ -98,24 +101,24 @@ never made durable, and a crash keeping `nm` would contradict the committed abse
 implementation log. -/
 abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (mp : GoSlice) (md : List w8) (qp : Qp)
-    (Q : IProp GF) (Pv : Option WalDur → Prop),
+    (Q : IProp GF) (Pv : Option WalDur → Prop) (i : Nat),
   InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
   md.length < 2 ^ 41 → md ≠ [] → WalMarshalCreateOk Mr →
   FsNoErrOn (fun p => p = dir ∨ p = dir ++ go!".tmp" ∨ p = r) ∧ PathFits (dir ++ go!".tmp") ∧ PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }> }}
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir i o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir i (walDurFresh md), COMM Q }> }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Create)) (Val #lg)) (Val #dir))
       (Val #mp))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
-      ((⌜err = interface.nil⌝ ∗ Q ∗ walOpenWF P Mr w dir ∗ WalFs.walNamed dir ∗ WalFs.walLenLb w dir 0 ∗
-          WalFs.walSyncedLb dir 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
+      ((⌜err = interface.nil⌝ ∗ Q ∗ walOpenWFI P Mr w dir i ∗ WalFs.walNamed dir i ∗ WalFs.walLenLb w dir i 0 ∗
+          WalFs.walSyncedLb dir i 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
         (⌜err ≠ interface.nil⌝ ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
-          AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }>) ∨
+          AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir i o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir i (walDurFresh md), COMM Q }>) ∨
         (⌜err ≠ interface.nil⌝ ∗ Q ∗ osCallPerm (callKey R r) (1 : Qp).half)) }}
 
 end spec
