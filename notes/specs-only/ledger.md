@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: WAL.renameWAL (`RenameWALOk`'s spine law, `renameWALPost`'s committed arms) -- the spine law cannot give the pipeline its eighth of the incarnations and return the update's result unchanged
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`: `RenameWALOk`'s spine law
+  and `renameWALPost`'s arms 1 and 4 (committed); `Create`'s choices (`Proof/.../wal/CreateRename.lean`,
+  `createU`, `create_spine`). Internal; no `SpecPlan/` counterpart.
+- **Defect.** The entry below makes the spine law return `walPipeKey dir J` (the pipeline's eighth of `γI`)
+  while returning the update's result `U (some x)` unchanged. In `Create`, the eighth is the reserve the
+  commit took out with the pipeline names (`walParked_create`), so it is part of `U (some x)`
+  (`walCreateQ … (some _)`): the law cannot both hand it to the pipeline and return `U (some x)` whole.
+- **Evidence.** `CreateRename.lean` `create_spine` (P6b session 12): `walPipeKey (child r nm) J` needs
+  `walIncEAny`, held only by `walCreateQ … (some _)`; `WAL__renameWAL.lean:126` destructs the law's
+  output as persistent (it no longer is).
+- **Proposed change.** The law consumes `U (some x)` and returns `UH x` (the result once the pipeline has
+  its share); `renameWALPost`'s arms 1 and 4 hold `UH x` instead of `U (some x)`. `UH` is the parameter
+  the 2026-11-25 entry left unused (arm 2 dropped), so no caller's argument list changes. `Create` passes
+  `UH x := createUK … x` (`walCreateQK`: `walCreateQ … (some _)` but the reserve, which `walCreateQ … (some
+  _)` now holds as `walCreateQK ∗ walIncEAny`). No other caller (`renameWAL`'s only caller is `Create`).
+- **Decision.** Applied (P6b session 12, under the coordinator's rule "a further internal spec change gets a
+  ledger entry first; report it"); reported for review.
+
 ## 2026-11-25: filePipeline (newFilePipeline, Close, run, alloc), WAL.renameWAL, WAL.sync.specIdle(F) -- fix B's key lookup needs a share of the incarnations the pipeline and the idle syncs do not hold
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{newFilePipeline,filePipeline__Close,filePipeline__run,
@@ -43,8 +63,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   invariant but no longer a key (it is in `pipeRes`); `RenameWALOk`'s spine law returns `walPipeKey dir J` in
   place of `walDirKey dir J X`. The texts of `filePipeline.Close`/`run`/`alloc` are unchanged; their meaning
   changes through `pipeRes`/`pipeLeft`. Where the eighth comes from: `γI` is split `walGhostI` ¼, the keys'
-  authority ⅛, the parked pipeline reserve ⅛, the views' ¼ (`walIncQ`), the lock's ¼. The reserve is held by
-  the parked pipeline names (`walTmpParked0 Ls T`, when `T = []`) and goes out with them: a write-mode `Open`
+  authority ⅛, the parked pipeline reserve ⅛, the views' ¼ (`walIncQ`), the lock's ¼. The reserve is held with
+  the record of what is out (`walOutAuth o` holds it when `o.T = []`, no pipeline names out; else its holder
+  does, `walOutOut o`; amended in the same session: the parked names were the first plan) and goes out with
+  the pipeline names: a write-mode `Open`
   (`walParked_takeTmps`) and `Create`'s commit (`WalOut.create`) take it with the directory's pipeline names,
   `Close`'s put-back (`delTmp`) returns it, so it is in the invariant whenever the lock is free (`walUnlockedTok`
   holds `walOutFrag WalOut.empty`) and the discard can gather all of `γI`. (2) `WAL.sync.specIdle`/`specIdleF`
@@ -53,7 +75,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Approved (coordinator, 2026-11-25, P6b session 12 brief: option (a), the pipeline family's share
   in `pipeRes`/`pipeLeft` returned at `filePipeline.Close`, and `specIdle`/`specIdleF` taking `walIncQ I ∗
   ⌜incOf I dir = i⌝` in pre and post). The reserve's place (the parked pipeline names) is this session's
-  encoding of "a share of `γI`", recorded here for review.
+  encoding of "a share of `γI`", recorded here for review. `walTmp_osAUnc` (the pipeline's steps on its
+  names) takes and returns `walPipeKey dir j` (its commit post `fun o => β ¼ o ∗ walPipeKey dir j`), as
+  `wp_createTmp`/`wp_removeTmp` do.
 
 ## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
 

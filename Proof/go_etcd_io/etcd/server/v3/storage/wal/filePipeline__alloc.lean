@@ -52,9 +52,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   wp_start as ⟨#Hfp, Hcnt, Hc, Hres⟩
   iunfold isFilePipe at Hfp
   icases Hfp with ⟨%lg, #Hlg, #Hdir, #Hsz, #Hfc, #Hec, #Hdc, #Hhsn, #Hspsc, #Hbc, #Hlgok, #Hos,
-    #Hsi, ⟨%C, %Mr, %jr, %r, %X, #Hwi, #Hkey⟩, #Hpkg, %hsz⟩
+    #Hsi, ⟨%C, %Mr, %jr, %r, #Hwi⟩, #Hpkg, %hsz⟩
   iunfold pipeRes at Hres
-  icases Hres with ⟨Hperm, Hp⟩
+  icases Hres with ⟨Hperm, Hp, Hkey⟩
   ihave %hclean := osPathS_cleanAbs R dir dq j $$ Hp
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoInterface)
@@ -78,8 +78,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
   rw [join_child hclean (pipeTmp_nameOk n)] at hpth
   subst hpth
   (try wp_auto)
-  wp_apply wp_createTmp wp_create wp_open C Mr jr r X R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
-    (pipeTmp_mem n) $$ [$Hos $Hpkg $Hsi $Hwi $Hkey $Hp $Hperm $Hc] as %lf %e ⟨Hp, Hperm, Hr⟩
+  wp_apply wp_createTmp wp_create wp_open C Mr jr r R dir dq j (pipeTmp n) (pipeTmp_nameOk n)
+    (pipeTmp_mem n) $$ [$Hos $Hpkg $Hsi $Hwi $Hkey $Hp $Hperm $Hc] as %lf %e ⟨Hkey, Hp, Hperm, Hr⟩
   icases Hr with (⟨%he, %f, %fd, %i, %h, %lo, %lk, #Hlf, Hf, Hoff, Hfd, Hlks, Htr, Hn, %hfi⟩ | ⟨%he, Hc, %hw⟩)
   · subst he
     (try wp_auto)
@@ -107,7 +107,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       (try wp_auto)
       iapply HΦ
       iunfold pipeRes
-      iframe Hperm Hp
+      iframe Hperm Hp Hkey
       ileft
       isplitr
       · ipureintro; rfl
@@ -153,7 +153,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       (try wp_auto)
       iapply HΦ
       iunfold pipeRes
-      iframe Hperm Hp
+      iframe Hperm Hp Hkey
       iright
       isplitr
       · ipureintro; exact ⟨fun h => (by cases h), pipeErrW_of_ino (hw.2.2.2 fun h => (by cases h))⟩
