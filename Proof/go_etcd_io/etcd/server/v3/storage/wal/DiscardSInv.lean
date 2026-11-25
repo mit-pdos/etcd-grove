@@ -366,6 +366,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
+/-- **A resource per segment, a layout removed** (S: the discarded WAL's segments' halves dropped from
+`laysResF` and `walParked`'s `segResP`s). -/
+theorem segsAll_sep_delete (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (dir : GoString)
+    (lay : WalLay) (hl : Ls !! dir = some lay) :
+    ([∗list] x ∈ segsAll Ls, Φ x) ⊢
+      ([∗list] x ∈ lay.pg ++ lay.segs, Φ x) ∗ [∗list] x ∈ segsAll (GMap.delete dir Ls), Φ x := by
+  refine (segsAll_sep_map Φ Ls).1.trans ?_
+  refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] x ∈ lay.pg ++ lay.segs, Φ x)) hl).1.trans ?_
+  exact sep_mono .rfl (segsAll_sep_map Φ _).2
+
 /-- **The tails with the discarded WAL removed** (S): with no tail registered (the free lock token's
 `walTailsFrag ∅`) every WAL is idle, so its record goes with its layout; nothing is lent either. -/
 theorem walTailsRes_discard {Lk : GMap GoString Nat} (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
