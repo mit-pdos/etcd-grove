@@ -2688,7 +2688,7 @@ inclusions, and any names will do. But every `kvOrchPre`/`kvR` reading only `hG.
 have to be checked defeq across `L`s. Option (a) avoids both: etcd-grove-03 restates `kvOrchPre`, `kvNodePre`,
 `kvR`, `kv_start` and `kv_start_deployment` at `[Gg : GooseGlobalGS]`, as N5's `memberShareD` is.
 
-### 21.2 Session 2 (2026-11-26, from `5a3055d5dc`): (A) to (D) written
+### 21.2 Session 2 (2026-11-26, from `5a3055d5dc`): (A) to (D) written, UNBUILT (VM build queued)
 
 **Merged:** etcd-grove-03's `etcd-safe-m1` @ `9e1045a209`, which brings the CallDist fix, the shares at
 `[Gg : GooseGlobalGS]` (option (a): `kvR`, `kvOrchPre` over `linkvtxnSG`, `kvNodePre` global plus a local
