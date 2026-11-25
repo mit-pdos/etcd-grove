@@ -1,37 +1,47 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist`: the premises of the distributed theorems are satisfiable, one by one
+# `etcd/dist`: per-premise satisfiability lemmas for the dist statements
 
-The per-premise witnesses of `etcd_robust.spec` and `etcd_robust_nocrash.spec`
-(`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean`; #50's P12), shared by
-every top-level witness of `examples/etcd/dist` (`TopLevelWitness.lean` here, M1's kv-only statement's):
+These are the premises of `etcd_robust_nocrash.spec` (and of its scoped variants, M1's
+`etcd_kv_safe_nocrash.spec`) at concrete values. A statement's `TopLevelWitness.lean` composes them
+into its `premise_sat%` theorem (`Robustness/PremiseSat.lean`). The module is shared with P12 (#50), which
+adds the remaining premises' lemmas here under these names.
 
-- **the start states, for every deployment** whose member names pass `deployment.nameOk` (Go's
-  `WellFormed` checks it): each member's machine with the two empty roots its member uses, its WAL area
-  `/tmp/etcd-grove-wal/<name>.etcd` and its data directory `/tmp/etcd-grove-data/<name>.etcd`
-  (`memberState`, `serverStates_start`: `Hσs`); each orchestrator's and client machine's with the root
-  `/tmp` (`clientState`, `clientStates_start`: `Hσc`, `Hσn`); with no listener, no connection and an
-  empty issue record, every machine a fresh process (`robustStart_nocrash`, `robustStart_crash`:
-  `Robust`'s antecedents);
-- **`EtcdEnv`**, at a deployment with no workload that needs no lease to expire (`AuthLease`,
-  `LeaseCatchup`): its conditional `noExpiry` and its `peerRequests` placeholder hold, and what is left
-  is exactly the conjunction of the opaque environment propositions (`etcdEnv_iff`), which no Lean proof
-  can establish (`etc/premise-witness-baseline.txt`, class `opaque`);
-- **`Hfips`, `HEnv`** (`GodebugFips140Off`, `EtcdVerifyOff`): stated over the opaque run values
-  `godebugFips140`, `etcdVerifyEnv`; both hold when the variable is unset (`godebugFips140Off_unset`,
-  `etcdVerifyOff_unset`);
-- **a concrete deployment**, `pwDeployment` (`dist_test.go`'s shape: three members `wf-0`..`wf-2` at
-  `10.77.{1,2,3}.1`, one KV workload with two client machines), its names valid (`pwDeployment_names`).
+The member is `putget_safe`'s witness member (`putget/TopLevelWitness.lean`): `putgetd`, peer address
+`10.77.1.1:2380`, client address `10.77.1.1:2379`, in the cluster with token `putgetd`.
 
-`BootFacts` (pinned to Go's `bootGo` values on the n5 line) is not witnessed here yet.
-Untrusted: nothing but the witnesses uses it.
+- `witnessMember`, `witnessToken`: that member and token.
+- `witnessMember_id`: its id is the one Go computes, `memberId "http://10.77.1.1:2380" "putgetd" =
+  pgId`, evaluated by the kernel.
+- `bootFacts_witness`: `BootFacts` of any deployment whose members are `[witnessMember]` and whose token
+  is `witnessToken`, at the peers `[pgId]`, the contexts `[pgCtx]` and the log `pgBoot` (`pgBootCore`).
+- `serverStart_witness`: `ServerStart` of the member at `witnessMemberσ`, a fresh machine whose files are
+  its two empty roots (data directory, WAL area).
+- `clientStart_witness`: `ClientStart` at `witnessClientσ`, a fresh machine with the empty root `/tmp`.
+
+P12's lemmas, for every deployment or the run's environment (#50):
+
+- `memberState n`, `memberState_start`, `serverStates d`, `serverStates_start`: `ServerStart` of each
+  member's machine (its two empty roots) at every deployment whose member names pass `typed.nameOk`
+  (Go's `WellFormed` checks it); `witnessMemberσ` is `memberState`'s (`witnessMemberσ_eq`).
+- `clientStates n`, `clientStates_start`: `ClientStart` of any number of `witnessClientσ` machines.
+- `initGlobal`, `robustStart_nocrash`, `robustStart_crash`: `Robust`'s antecedents at those start states.
+- `etcdEnv_iff`, `etcdEnv_of`: at a deployment with no `AuthLease`/`LeaseCatchup` workload, `EtcdEnv` is
+  exactly the opaque environment propositions below (its `noExpiry` and `peerRequests` hold).
+- `godebugFips140Off_unset`, `etcdVerifyOff_unset`: `Hfips` and `HEnv` hold when the variable is unset.
+- `witnessDeployment` (the witness member, one KV workload, two client machines; its `BootFacts`
+  `witnessDeployment_boot`) and `pwDeployment` (`dist_test.go`'s shape, three members; its names valid).
+
+Not here, because no Lean proof can establish them: `EtcdEnv`'s fields (`authRecordsFit`,
+`apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`, `leasePeersOk`), `EtcdVerifyOff` and
+`GodebugFips140Off`, all stated over opaque values. A witness leaves them out (class `opaque` of
+`etc/premise-witness-baseline.txt`).
 -/
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelWitness
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
-public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
-public import Perennial.TrustedCode.crypto.fips140
-public import Robustness.FsStart
 
 @[expose] public section
 
@@ -42,12 +52,48 @@ set_option linter.unusedSectionVars false
 namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
-namespace witness
 
-open Robustness Fs
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver Robustness Fs
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
   etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem
+
+/-- The witness member: `putget_safe`'s witness member `putgetd`. -/
+def witnessMember : Member :=
+  ⟨etcd_putget_dist.name, etcd_putget_dist.peerA, etcd_putget_dist.clientA⟩
+
+/-- The witness cluster's token, `putgetd` (the token `etcd_putget_dist.pgId` is computed in). -/
+def witnessToken : GoString := etcd_putget_dist.name
+
+/-- **The witness member's id is SHA-1's**, as `etcd_putget_dist.pgId_eq` (`crypto.sha1.sha1` evaluated by
+the kernel, its message schedule's loops as folds). -/
+theorem witnessMember_id :
+    memberId (go!"http://" ++ witnessMember.peer) witnessToken = etcd_putget_dist.pgId := by
+  unfold witnessMember witnessToken memberId membership.memberIdOf crypto.sha1.sha1 crypto.sha1.compress
+  rw [show crypto.sha1.schedule = _ from funext crypto.sha1.schedule_eq]
+  decide +kernel
+
+/-- **`bootstrap`'s results** at a deployment of the witness member alone. -/
+theorem bootFacts_witness (d : Deployment) (hm : d.members = [witnessMember])
+    (ht : d.token = witnessToken) :
+    BootFacts d [etcd_putget_dist.pgId] [etcd_putget_dist.pgCtx] etcd_putget_dist.pgBoot := by
+  have hids : d.ids = [etcd_putget_dist.pgId] := by
+    simp only [Deployment.ids, hm, ht, List.map_cons, List.map_nil, witnessMember_id]
+  exact ⟨etcd_putget_dist.pgBootCore, by rw [hids]; try exact List.Perm.refl _⟩
+
+/-- The witness member machine's start state: a fresh machine whose files are the member's two roots. -/
+def witnessMemberσ [GoLocalContext] : state :=
+  freshState ((∅ : IdIssueState), fsRoots etcd_putget_dist.memberRoots, (default : Net.NetLocal), ())
+
+/-- A witness client machine's start state: a fresh machine with the root `/tmp`. -/
+def witnessClientσ [GoLocalContext] : state :=
+  freshState ((∅ : IdIssueState), fsOneRoot (slashB :: go!"tmp"), (default : Net.NetLocal), ())
+
+theorem serverStart_witness [GoLocalContext] : ServerStart witnessMember witnessMemberσ :=
+  ⟨etcd_putget_dist.memberRoots_init, etcd_putget_dist.memberRoots_walAreas⟩
+
+theorem clientStart_witness [GoLocalContext] : ClientStart witnessClientσ :=
+  fsInit_fsOneRoot _ etcd_putget_dist.tmp_rootForm
 
 /-! ## Member names and their directories -/
 
@@ -185,19 +231,10 @@ theorem serverStates_start [GoLocalContext] (d : Deployment) (h : ∀ m ∈ d.me
 
 /-! ## The orchestrators' and client machines -/
 
-/-- The client machines' root, `/tmp`. -/
-theorem tmp_rootForm : RootForm (slashB :: go!"tmp") := rootForm_one _ (by decide)
-
 /-- **An orchestrator's or client machine at the start**: a fresh process, its file system the empty
-root `/tmp`, no listener, no connection, an empty issue record. -/
-def clientState [GoLocalContext] : state :=
-  freshState ((∅ : IdIssueState), fsOneRoot (slashB :: go!"tmp"), (default : Net.NetLocal), ())
+root `/tmp`, no listener, no connection, an empty issue record (`witnessClientσ`, above). -/
 
-/-- **`ClientStart`** holds of it. -/
-theorem clientState_start [GoLocalContext] : ClientStart clientState :=
-  fsInit_fsOneRoot _ tmp_rootForm
-
-def clientStates [GoLocalContext] (n : Nat) : List state := List.replicate n clientState
+def clientStates [GoLocalContext] (n : Nat) : List state := List.replicate n witnessClientσ
 
 /-- **`Hσc`, `Hσn`** (`n` the number of workloads, of client machines). -/
 theorem clientStates_start [GoLocalContext] (n : Nat) :
@@ -206,7 +243,7 @@ theorem clientStates_start [GoLocalContext] (n : Nat) :
   intro σ hσ
   unfold clientStates at hσ
   rw [List.eq_of_mem_replicate hσ]
-  exact clientState_start
+  exact clientStart_witness
 
 /-! ## `Robust`'s antecedents -/
 
@@ -223,7 +260,7 @@ theorem mem_mapIdx_snd {α β : Type _} {f : Nat → α → β} {g : β → α} 
 theorem machine_state [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (d : Deployment) {m : Expr × state}
     (hm : m ∈ machines d (serverStates d) (clientStates d.workloads.length)
       (clientStates d.nodeList.length)) :
-    (∃ n, m.2 = memberState n) ∨ m.2 = clientState := by
+    (∃ n, m.2 = memberState n) ∨ m.2 = witnessClientσ := by
   simp only [machines, servers, clients, nodeMachines, List.mem_append] at hm
   rcases hm with (hm | hm) | hm
   · have := mem_mapIdx_snd (g := Prod.snd) (fun _ _ => rfl) hm
@@ -234,10 +271,10 @@ theorem machine_state [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] 
   · exact Or.inr (List.eq_of_mem_replicate (mem_mapIdx_snd (g := Prod.snd) (fun _ _ => rfl) hm))
 
 theorem start_state [GoGlobalContext] [lctx : GoLocalContext] {σ : state}
-    (h : (∃ n, σ = memberState n) ∨ σ = clientState) : Fresh lctx σ ∧ extsInitLocal σ initGlobal := by
+    (h : (∃ n, σ = memberState n) ∨ σ = witnessClientσ) : Fresh lctx σ ∧ extsInitLocal σ initGlobal := by
   rcases h with ⟨n, rfl⟩ | rfl
   · exact ⟨fresh_freshState _, by exts_init⟩
-  · exact ⟨fresh_freshState _, by exts_init⟩
+  · exact ⟨fresh_freshState _, by simp only [witnessClientσ]; exts_init⟩
 
 theorem initGlobal_init : extsInitGlobal initGlobal := by exts_init
 
@@ -317,7 +354,35 @@ theorem pwDeployment_noExpiry : ∀ w ∈ pwDeployment.workloads, w.needsNoExpir
   subst hw
   decide
 
-end witness
+/-- The witness member's machine is `memberState`'s, at its name. -/
+theorem witnessMemberσ_eq [GoLocalContext] : witnessMemberσ = memberState witnessMember.name := rfl
+
+/-- **A deployment of the witness member alone** (so `bootFacts_witness` gives its `BootFacts`): the
+token `witnessToken`, the compactor off, auth off, one KV workload of two clients, its client
+machines at `10.78.0.{1,2}`. -/
+def witnessDeployment : Deployment where
+  members := [witnessMember]
+  token := witnessToken
+  cfg := ⟨go!"periodic", W64 0, W64 10000, W64 5000, false⟩
+  workloads := [⟨W64 0, W64 2, W64 20⟩]
+  nodes := [[go!"10.78.0.1:2379", go!"10.78.0.2:2379"]]
+
+theorem witnessDeployment_names : ∀ m ∈ witnessDeployment.members, typed.nameOk m.name = true := by
+  intro m hm
+  simp only [witnessDeployment, List.mem_singleton] at hm
+  subst hm
+  decide
+
+theorem witnessDeployment_boot :
+    BootFacts witnessDeployment [etcd_putget_dist.pgId] [etcd_putget_dist.pgCtx] etcd_putget_dist.pgBoot :=
+  bootFacts_witness witnessDeployment rfl rfl
+
+theorem witnessDeployment_noExpiry : ∀ w ∈ witnessDeployment.workloads, w.needsNoExpiry = false := by
+  intro w hw
+  simp only [witnessDeployment, List.mem_singleton] at hw
+  subst hw
+  decide
+
 end etcd_dist
 end EtcdGrove
 end Perennial

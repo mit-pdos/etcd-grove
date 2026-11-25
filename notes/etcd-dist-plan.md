@@ -2372,3 +2372,80 @@ baseline change is exactly N2's: `etc/tcb-baseline.txt` and `putget-dist.txt` ga
 and `etcd_dist.KV_Get_dist.wp_proof` and lose `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`. `KV_Delete_dist`, `KV_Compact_dist` and `Txn_Commit_dist` are declared, but no
 root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, no `sorry`, no new top-level premise.
+
+## 21. M1 assembly (2026-11-25, branch `etcd-safe-m1-top/2026-11-25`; the etcd_safe lead's helper)
+
+**Needs `KvDefs` (N7-kv) to build.** `KvOnly` is in N7-kv's `Proof/.../dist/client/KvDefs.lean`, which is not on this
+base. The branch builds once it is rebased onto etcd-grove-03's `etcd-safe-m1`, which carries N7-kv.
+
+**Scope.** This branch has M1's statement, its skeleton, the premise witness and the collection root. It
+starts from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca`. etcd-grove-03 does §11.3 steps 1-5 on their
+branch `etcd-safe-m1`: the merge of `etcd-safe-p9-nc`, the port of `kvremote/Start.lean` to Γ,
+`wp_Node`'s hypotheses, and N7-kv's replay with its instance lemmas. This branch goes onto their head when
+they post it. It touches none of their files.
+
+**Done (local commit `bf30d11ac5`).**
+- **The statement**: `Spec/.../dist/kvremote/TopLevelRobustness.lean`, `etcd_kv_safe_nocrash.spec`. Its
+  binders are `etcd_robust_nocrash.spec`'s, in the same order and over the same `TopLevelDefs`
+  definitions, plus `Hscope : KvOnly d ∧ d.cfg.auth = false` after `d`. `KvOnly` is N7-kv's
+  (`client/KvDefs.lean`: `∀ w ∈ d.workloads, w.kind = W64 0`). The statement is in `kvremote/`, not beside
+  `etcd_robust_nocrash.spec`, for two reasons:
+  - Spec and Proof stay paired by path (CLAUDE.md, "Layout"), and the premise-witness script pairs
+    `kvremote/TopLevelWitness.lean` with it;
+  - the shared dist Spec file, which N5's port edits (`BootFacts` pinned), is left alone.
+- **Inheriting N5's change.** `etcd_kv_safe_nocrash_of_full : etcd_robust_nocrash.spec →
+  etcd_kv_safe_nocrash.spec` (Proof) applies the full statement to M1's arguments. Once N5 changes the
+  full statement's `BootFacts` binders, this theorem stops compiling until M1's binders get the same edit
+  (`(ps) (ctxs)` dropped, `BootFacts d boot`). So M1 cannot silently diverge. A statement written as
+  M1's "body by reference" would need the full statement refactored into a per-deployment definition,
+  which is a change to the shared trusted file. Not done.
+- **The skeleton** (`Proof/.../dist/kvremote/TopLevelRobustness.lean`, linking):
+  - `EtcdKvBootNC` is `EtcdBootNC` with the scope as one more hypothesis.
+  - `etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.spec` uses
+    `etcd_safe_nocrash_of_boot`'s bridge. The malformed case comes from `etcdBootNCBad_holds`.
+  - It reuses `BootPremises` by name, so N5's change to it carries over.
+  - No axiom, no `sorry`.
+- **The witness**: `Proof/.../dist/PremiseWitness.lean` holds per-premise lemmas, shared with P12 (#50).
+  - `witnessMember` and `witnessToken` are `putget_safe`'s witness member `putgetd`.
+  - `witnessMember_id` proves `memberId … = pgId`, evaluated by the kernel.
+  - `bootFacts_witness d hm ht` gives `BootFacts` at `[pgId] [pgCtx] pgBoot` for any deployment of that
+    member alone.
+  - `serverStart_witness` and `clientStart_witness` give the start states (`witnessMemberσ`,
+    `witnessClientσ`).
+  - `kvremote/TopLevelWitness.lean` proves `etcd_kv_safe_nocrash.premisesSat`. Its deployment
+    `kvDeployment` has that member, auth off, and one `kv` workload with one client machine. It leaves
+    out only the opaque `Henv`, `HEnv` and `Hfips` (three baseline lines).
+  - `bootFacts_witness` is at the current `BootFacts`. After N5's pinning it must show `BootCore` at
+    `distPs`/`distCtxs` (`bootGo.ps`/`bootGo.ctxs`; `putget`'s `pgBootGo` computes those for this member).
+- **Collection**: `etc/tcb-collections/etcd-dist.txt` gains the root `kvremote/TopLevelRobustness`.
+
+**Checked** (VM, with N7-kv's `KvDefs.lean` copied in untracked, since it is not on this base): the four modules
+(the Spec statement, `dist/PremiseWitness`, `kvremote/TopLevelWitness`, `kvremote/TopLevelRobustness`) built on the
+first try (5092 jobs); `premise-witness --check` (48 statements) and `tier-check --check` pass. `#print axioms`:
+- `etcd_kv_safe_nocrash_of_full` and `etcd_kv_safe_nocrash.premisesSat`: only `propext`, `Classical.choice` and
+  `Quot.sound`;
+- `etcd_kv_safe_nocrash_of_boot`: 36 of this repository's axioms, all through `etcdBootNCBad_holds`'s package
+  initializers. All are in `etc/tcb-baseline.txt` except etcdhttp's generated `initFuncsOk`/`opaqueInitsOk`,
+  which are declared on this line but reached by no root before this one (§20). They enter
+  `etc/tcb-baseline.txt` and `etcd-dist.txt` at the `--check --update` after the full build.
+
+**Left: `EtcdKvBootNC`'s discharge** (once etcd-grove-03's head is posted).
+- The start:
+  - `netProto_alloc`;
+  - the members' part of the cluster's start (P9's `member_boot_dist.law` in `Start.lean`, a hypothesis
+    there; `etcdClusterStart` at `peerAddrFactsAt`, producing N5's `memberShareD`);
+  - `kv_start_deployment` (its `hb` from `kvOnly_bounds`/`BoundsOk`; `d.workloads = [w]` from `KvOnly` and
+    `Compatible`'s distinct kinds; the case with no workload separately).
+- The boot WPs:
+  - members: N5's `member_boot_dist`;
+  - orchestrators: N7-kv's `wp_OrchestratorKv` at `kvOrchPre`, with the machine's initialization as in
+    `BootBad.clientBadWp`;
+  - client machines: `wp_NodeDeploymentKv` at `kvNodePre`, `levelTok 0` from `threadTok_level0` as in
+    putgetK's `client_bootK`.
+- **A shape issue for the shares.** `DistBootWpSLT`'s share `P` is stated at `[GooseGlobalGS]` only, before
+  the machine's `HeapGS` exists. But `kvOrchPre`, `kvNodePre` and `orchShare`/`nodeShare` are defined under
+  `[hG : HeapGS]`, even though `kvOrchPre` reads only `hG.goose_globalGS`. Two fixes:
+  - (a) state them at `[Gg : GooseGlobalGS]`, a change to etcd-grove-03's files, which N5's `memberShareD`
+    already follows;
+  - (b) give the shares here as their global parts, and rebuild `kvOrchPre`/`kvNodePre` inside the boot
+    lemma at the machine's `hG` (`levelTok 0` is machine-local anyway).
