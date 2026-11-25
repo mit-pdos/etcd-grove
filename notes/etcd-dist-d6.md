@@ -1872,3 +1872,38 @@ the lead's `sorry` (T4): edit only its statement and move its callers.
 4. Then the riskiest step above (the image row in `consInv`), then the design's order.
 Base: merge `etcd-safe-main-r4/2026-11-25` (the lead's r3 + d6t4b + t7) once the lead posts its head.
 
+
+### T10 status and handoff, session 3 (2026-11-25, branch `etcd-safe-t10`)
+
+Base: `etcd-safe-main-r4/2026-11-25` not posted yet (no such branch on origin); not merged.
+
+**Done** (order items 1 and 3; ledger entries marked applied):
+* **D-T7-2**: `srvCrashImageAt`'s snapshot row holds `snapDirKeep` (handle and token). New `srvSnapKeep γ id dd`
+  (`InvCrashImage.lean`: `∃ γd γm, ⌜γ.snapLoc id = some γd⌝ ∗ snapDirKeep …` at the image's `img`/`Rm`);
+  `NewServer.specC`'s post returns it beside raft's crash token, in both outcomes. `srvCrashImageAt_disk`'s graceful
+  case returns it (the graceful image keeps the handle, `snapDirKeep_handle`), `NewServer.wp_proofC`'s graceful branch
+  frames it (its WIP `sorry`, T4's, unchanged: the non-graceful case keeps the whole image). T7: `crashImage_of` and
+  `memberGen_crash_law_holds` pass the new generation's `snapDirKeep` whole (the token is no longer dropped). The
+  post's `γm` is existential: T8 ties it to `memberKeepR`'s `k.γm` when it builds the keep.
+* **D-T7-1**: `snapCrash.snapDirKeptF` at the law's roots; `old_dir` at `R`; the step lemmas take the law's
+  `osSharedInv R` and get `R0 = R` from `crashRest_roots` (moved from `MemberCrash.lean` into `SnapDirCrash.lean`).
+  `memberCrash.snapDirKeptR` is an abbreviation of `snapDirKeptF`; **T7's `snapDirKeptOf.law` (`hD1`) is gone.**
+
+**Not done, stopped (hard rule):**
+* **B6 (a)** does not go through as approved: `idPfxInv`'s names are a persistent element of the cluster's `gen` keyed
+  by the prefix alone, and a new incarnation keeps `gen` and the prefix, so no fresh `idPfxInv` can be allocated at
+  them; any fix restates idutil's shared definitions (ledger, B6 entry, options (a') and (b)). `memberRestartFacts` and
+  `NewServer.specC` unchanged; **T7's `memberPfx.law` stays.** Needs D7/T8's decision.
+
+**Handed off (budget):**
+* **P5's item (a)** (lead, #50 16:06:56Z; ledger entry "the crash image's WAL row names its history"): (1) `walFilesC`
+  names `Hs = walSrvHist d.H` (users: `WalRecsCrash`, `WalRecsH`, `InvRestart` (`srvFilesC`), `SrvCrash`,
+  `StopShutdown`, `InvCrashImage`, `MemberCrash`; try in place: `walFilesC a id cid σ Hs sized` with
+  `⌜walSrvHist d.H = Hs⌝`, `srvFilesC` keeps `∃ Hs` for the graceful slot and a named variant `srvFilesCH … Hs` for
+  the crash image); (2) `srvCrashImageAt`'s files row `∃ Hs, srvFilesCH … Hs ∗ walHistCerts γ.cl sd Hs` (`sd`: the
+  snapshot directory's durable indices, as `WalNamesK.sd`; T7 from `rnDurK_crash.law`, whose post must gain the
+  certificates: not on `etcd-safe-p5`, so a hypothesis of `memberGen_crash_law_holds`); (3)
+  `bootstrapCrashContract`'s two cases: the pre's image row's `walHistCerts` handed to the post unchanged, the post
+  naming the opened WAL's history `Hs`; (4) `bootstrapRestartContract`, `srvDiskImageAt` certificate-free.
+* **The image row in `consInv`** (order item 4; design in session 2's handoff; ledger entry "the backend's image row
+  lives in the apply protocol's `consInv`", approved, internal).
