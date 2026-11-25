@@ -54,18 +54,17 @@ theorem osCoh_clearCut {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm
     by_cases hq : q = i
     · subst hq
       have hcut : cutOf (<[q := { m with cut := none }]> Γm) q = none := by
-        simp [cutOf, GMap.lookup_insert]
+        simp [cutOf]
       rw [hcut]
       simp only [OsState.file, hf, Option.some.injEq] at hf1
       subst hf1
       have hc := hmo.dur b hb1 (by omega)
-      have hx' := hb q b x hx
+      have hx' := hb b x hx
       show f.cand b = x.2
       rw [hc, hx']
-      simp only [durB]
       rw [hx1]
     · have hcut : cutOf (<[i := { m with cut := none }]> Γm) q = cutOf Γm q := by
-        simp [cutOf, GMap.lookup_insert_ne _ _ (Ne.symm hq)]
+        unfold cutOf; rw [GMap.lookup_insert_ne _ _ (Ne.symm hq)]
       rw [hcut]; exact hrel
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm (hnt t ti h))]
     exact hcoh.tok_meta t ti h
@@ -97,8 +96,7 @@ theorem wp_osClearCut (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) (i
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF
   icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
-  unfold osMeta at Hm
-  unfold osBytes at Hb
+  unfold osMeta osBytes
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %hnt
   icases bytesG_lookup _ i 0 _ xs Γb $$ HAb Hb with %hbs
@@ -113,9 +111,7 @@ theorem wp_osClearCut (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) (i
     subst h1
     exact hd _ (List.getElem_mem hbx)
   imod gAuth_update _ _ Γm i m { m with cut := none } $$ HAm Hm with ⟨HAm, Hm⟩
-  ihave Hwp := Hk $$ [Hm] [Hb]
-  · unfold osMeta; iexact Hm
-  · unfold osBytes; iexact Hb
+  ihave Hwp := Hk $$ Hm Hb
   imodintro
   iframe Hg Hwp
   iapply (os_local_ctx_eq σ).mpr
