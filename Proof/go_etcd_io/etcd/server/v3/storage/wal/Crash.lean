@@ -1046,11 +1046,11 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       iframe Hnm Hnw
       isplitr
       · ipureintro
-        exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
+        exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
       isplitr
       · ipureintro; intro dir d ho; cases ho
       isplitr
-      · ipureintro; exact ⟨rfl, by simp⟩
+      · ipureintro; exact ⟨fun h => absurd rfl h, by simp⟩
       isplitr [Hns]
       · iexists qs; iexact Hsp
       simp only [shareLs_nil]; iexact Hns

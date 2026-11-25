@@ -42,10 +42,12 @@ Two updates, since the client's view changes twice (ledger 2026-11-25, "wal.Disc
   incarnation).
 
 The caller holds the lock token (`walUnlockedTok`: no handle open) and the area's resources, as `Create`;
-`RemoveAll` and `Rename` cannot fail under the premise (`FsNoErrOn` on `dir`, `dir.tmp`, the area), only the
-fsync can. Post: `nil` with both results, the token and `walAreaRes` back (the area's claim now covers the old
-WAL's name); an error (the fsync failed) with `AU₁`'s result and `AU₂` unconsumed, the token and `walAreaRes`
-lost (the WAL left unnamed at `dir.tmp`, as `Create`'s failed arm leaves its WAL). -/
+`Rename` cannot fail under the premise (`FsNoErrOn` on `dir`, `dir.tmp`, the area); `RemoveAll` and the fsync
+can. Post: `nil` with both results, the token and `walAreaRes` back (the area's claim now covers the old WAL's
+name); an error from `RemoveAll` with nothing committed, both updates, the token and `walAreaRes` back (ledger
+2026-11-25, "wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)`"); an error from the fsync with
+`AU₁`'s result and `AU₂` unconsumed, the token and `walAreaRes` lost (the WAL left unnamed at `dir.tmp`, as
+`Create`'s failed arm leaves its WAL). -/
 abbrev wal.Discard.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (ic : Nat)
     (Q₁ : WalDur → IProp GF) (Q₂ : IProp GF),
@@ -60,11 +62,17 @@ abbrev wal.Discard.spec (Mr : WalMarshal) : Prop :=
         <{ WalFs.walAbsentI dir (ic + 2), COMM Q₂ }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Discard)) (Val #lg)) (Val #dir))
   {{ (err : GoInterface), RET #err;
-      osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ (∃ d : WalDur, Q₁ d) ∗
-      ((⌜err = interface.nil⌝ ∗ walAreaRes jr ∗ WalFs.walUnlockedTok ∗ Q₂) ∨
-        (⌜err ≠ interface.nil⌝ ∗
+      osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗
+      ((⌜err ≠ interface.nil⌝ ∗ walAreaRes jr ∗ WalFs.walUnlockedTok ∗
+          AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir ic d }> @ walAuMask, ∅
+            <{ WalFs.walDiskAtI dir (ic + 1) { d with named := false }, COMM Q₁ d }> ∗
           AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir (ic + 1) d }> @ walAuMask, ∅
-            <{ WalFs.walAbsentI dir (ic + 2), COMM Q₂ }>)) }}
+            <{ WalFs.walAbsentI dir (ic + 2), COMM Q₂ }>) ∨
+        ((∃ d : WalDur, Q₁ d) ∗
+          ((⌜err = interface.nil⌝ ∗ walAreaRes jr ∗ WalFs.walUnlockedTok ∗ Q₂) ∨
+            (⌜err ≠ interface.nil⌝ ∗
+              AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir (ic + 1) d }> @ walAuMask, ∅
+                <{ WalFs.walAbsentI dir (ic + 2), COMM Q₂ }>)))) }}
 
 end spec
 

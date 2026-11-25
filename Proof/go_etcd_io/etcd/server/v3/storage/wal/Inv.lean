@@ -2290,15 +2290,18 @@ claims leaves it as it is). **The WAL being created is unnamed** (W4 session 4, 
 `o = some dir`'s WAL is not `named` in the real state `s` (`Create` registers before it names, and
 `ReadAll`'s naming holds a handle's `walNamesFrag none`), so that the cleanup's rename of its name away
 keeps its crash condition (`CrashTo`'s left disjunct). The loans out (`st.loans`) are of registered
-names, each name's share short by their sum (`nameShare`'s `ls`). -/
+names, each name's share short by their sum (`nameShare`'s `ls`). **The WAL being discarded** (`st.disc =
+some dir`, P6b state C: `Discard`, holding the lock token's names fragment, has merged its name's claim back
+into the area claim, until the parent's fsync removes its layout) is the one present WAL not registered;
+no registration is pending meanwhile. -/
 def walNamesRes (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay) (s : AbsDiskState) :
     IProp GF :=
   iprop(∃ (st : NmSt) (Wn : List GoString),
     walNamesAuthS (W := W) st ∗ walSplitAuth (W := W) Wn ∗
     ⌜(∀ nm ∈ Wn, ∃ dir lay, Ls !! dir = some lay ∧ lay.nm = nm) ∧
-      ∀ dir lay, Ls !! dir = some lay → st.reg ≠ some dir → lay.nm ∈ Wn⌝ ∗
+      ∀ dir lay, Ls !! dir = some lay → st.reg ≠ some dir → st.disc ≠ some dir → lay.nm ∈ Wn⌝ ∗
     ⌜∀ dir d, st.reg = some dir → s.wal !! dir = some d → d.named = false⌝ ∗
-    ⌜st.disc = none ∧ ∀ x ∈ st.loans, x.1 ∈ Wn⌝ ∗
+    ⌜(st.disc ≠ none → st.reg = none) ∧ ∀ x ∈ st.loans, x.1 ∈ Wn⌝ ∗
     (∃ q : Qp, osPathS (L := L) R r (DFrac.own q) jr) ∗
     [∗list] k ↦ nm ∈ Wn, nameShare (L := L) jr Ls nm (shareLs Wn st.loans k nm))
 
@@ -2452,14 +2455,14 @@ theorem walNamesRes_addWal (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
       exact ⟨d', l, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', rfl⟩
     · have e : dir' ≠ dir := fun e => ho (by rw [e])
       rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-      exact hf.2 dir' l hl' (by simp)
+      exact hf.2 dir' l hl' (by simp) (by simp)
   isplitr
   · ipureintro
     intro dir' d ho hd
     cases ho
     exact hs' d hd
   isplitr
-  · ipureintro; exact ⟨rfl, by simp⟩
+  · ipureintro; exact ⟨fun h => absurd rfl h, by simp⟩
   iapply BigSepL.bigSepL_mono (fun {k nm} hk => ?_) $$ Hl
   refine nameShare_mono jr Ls _ nm _ (fun d' l' hl' he => ?_)
   by_cases e : d' = dir
@@ -2483,7 +2486,7 @@ theorem walNamesRes_insert (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
   iframe Ha Hs Hsp Hun Hst
   isplitr
   · ipureintro
-    refine ⟨fun nm hm => ?_, fun dir' l hl' ho => ?_⟩
+    refine ⟨fun nm hm => ?_, fun dir' l hl' ho hd => ?_⟩
     · obtain ⟨d', l, hl', rfl⟩ := hf.1 nm hm
       by_cases e : d' = dir
       · subst e; rw [hl] at hl'; cases hl'
@@ -2491,9 +2494,9 @@ theorem walNamesRes_insert (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
       · exact ⟨d', l, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', rfl⟩
     · by_cases e : dir' = dir
       · subst e; rw [GMap.lookup_insert_eq] at hl'; cases hl'
-        rw [hnm]; exact hf.2 dir' lay hl ho
+        rw [hnm]; exact hf.2 dir' lay hl ho hd
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-        exact hf.2 dir' l hl' ho
+        exact hf.2 dir' l hl' ho hd
   iapply BigSepL.bigSepL_mono_of_forall (fun {k nm} => ?_) $$ Hl
   refine nameShare_mono jr Ls _ nm _ (fun d' l' hl' he => ?_)
   by_cases e : d' = dir

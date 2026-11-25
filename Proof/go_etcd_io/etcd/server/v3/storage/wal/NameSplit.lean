@@ -58,13 +58,14 @@ theorem split_absent {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
 theorem split_present {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {Wn : List GoString} {dir nm : GoString}
     {d : WalDur} (hok : WalsOk C Mr R jr s Ls cl n)
-    (hW : ∀ dir lay, Ls !! dir = some lay → (none : Option GoString) ≠ some dir → lay.nm ∈ Wn)
+    (hW : ∀ dir lay, Ls !! dir = some lay → (none : Option GoString) ≠ some dir →
+      (none : Option GoString) ≠ some dir → lay.nm ∈ Wn)
     (hin : InArea s.area dir nm) (hsd : s.wal !! dir = some d) :
     nm ∈ Wn ∧ ∃ lay, Ls !! dir = some lay ∧ lay.nm = nm := by
   obtain ⟨lay, nm2, -, hl, hin2, -, hnm2, -⟩ := hok.1 dir d hsd
   have e : nm2 = nm := List.append_cancel_left (hin2.2.symm.trans hin.2)
   subst e
-  exact ⟨hnm2 ▸ hW dir lay hl (by simp), lay, hl, hnm2⟩
+  exact ⟨hnm2 ▸ hW dir lay hl (by simp) (by simp), lay, hl, hnm2⟩
 
 end pure
 
@@ -111,7 +112,7 @@ theorem walNamesRes_lendAt (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
   icases Hn with ⟨%o, %Wn, Ha, Hs, %hf, %hun, %hst, ⟨%qs, Hsp⟩, Hl⟩
   icases walNamesS_agree (W := W) o _ $$ Ha Hf with %ho
   subst ho
-  have hm : lay.nm ∈ Wn := hf.2 dir lay hl (by simp)
+  have hm : lay.nm ∈ Wn := hf.2 dir lay hl (by simp) (by simp)
   have hi := idxOf_getElem? hm
   icases BigSepL.bigSepL_lookup_acc_impl hi $$ Hl with ⟨Hn, Hl⟩
   unfold nameShare

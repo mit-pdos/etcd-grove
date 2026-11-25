@@ -331,18 +331,18 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iframe Ha Hs Hsp
   isplitr
   · ipureintro
-    refine ⟨fun x hx => ?_, fun dir' lay' hl' _ => ?_⟩
+    refine ⟨fun x hx => ?_, fun dir' lay' hl' _ _ => ?_⟩
     · rcases List.mem_cons.1 hx with rfl | hx
       · exact ⟨dir, lay, hl, hnm'⟩
       · exact hf.1 x hx
     · by_cases e : dir' = dir
       · subst e; rw [hl] at hl'; cases hl'; rw [hnm']; exact List.mem_cons_self ..
-      · exact List.mem_cons_of_mem _ (hf.2 dir' lay' hl' (by simpa using Ne.symm e))
+      · exact List.mem_cons_of_mem _ (hf.2 dir' lay' hl' (by simpa using Ne.symm e) (by simp))
   isplitr
   · ipureintro; intro dir' d ho; cases ho
   isplitr
   · ipureintro
-    refine ⟨rfl, fun x hx => ?_⟩
+    refine ⟨fun h => absurd rfl h, fun x hx => ?_⟩
     rw [hLn x hx]; exact List.mem_cons_self ..
   iapply BigSepL.bigSepL_cons.2
   isplitr [Hl]

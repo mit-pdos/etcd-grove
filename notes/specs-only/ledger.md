@@ -7108,7 +7108,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   WAL-level lemma beside `walDiskAt_crash_keep`, to be proved with state C; (2) on a failed fsync `AU₁`'s result is
   whatever the client put in `Q₁` (a client keeping it in its crash invariant commits it there and takes `Q₁ := True`);
   (3) `AU₁` commits inside `Discard`'s rename, after anything the caller did before calling it.
-- **Decision.** Pending (reported to the coordinator, P6b session 14).
+- **Decision.** Approved as written (the coordinator, P6b session 15 brief, 2026-11-25). On P5's condition 2: handing
+  `Q₁` to the caller on a failed fsync meets it, because the client chooses `Q₁`: P5's client deposits `AU₁`'s result
+  in its crash invariant at the commit and takes `Q₁ := True`, so nothing the crash invariant needs is left with the
+  caller.
+
+## 2026-11-25: wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)` (P6b session 15)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`, approved above).
+- **Defect.** Its post hands back `∃ d, Q₁ d` in every arm, so it says the first step, `os.RemoveAll(dir.tmp)`,
+  cannot fail under the premise. `os.RemoveAll.specSubS` (the spec `Create` uses for the same call) does not say
+  that: under `FsNoErrAt` on `dir.tmp` and the area, `nil` means `dir.tmp` is gone, but an error is still allowed,
+  with nothing said of what was removed. `Discard` returns that error before the rename, so `AU₁` is never
+  committed and the post's `Q₁` cannot be produced: the spec is unprovable.
+- **Evidence.** `Spec/os/RemoveAll.lean:139-149` (`specSubS`'s post: `err = nil → FsNoErrAt … → … = none` only);
+  `Create`'s proof has an arm for this error (`Create.lean`, "`RemoveAll` failed: nothing done, `nm.tmp` merged back",
+  `create_abortTmp`); `unsaved.go:93-116` returns `RemoveAll`'s error at once.
+- **Proposed change.** A third arm, as `Create`'s: `err ≠ nil` with `walAreaRes jr ∗ walUnlockedTok ∗ AU₁ ∗ AU₂` back
+  (nothing the WAL invariant or the client's view sees has changed; `dir.tmp`'s subtree may be partly removed, which
+  `walAreaRes` allows). Post: `osPathS ∗ osCallPerm 1 ∗ ((⌜err ≠ nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ AU₁ ∗ AU₂) ∨ (∃ d,
+  Q₁ d) ∗ ((⌜err = nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ Q₂) ∨ (⌜err ≠ nil⌝ ∗ AU₂)))`. The docstring's "`RemoveAll` and
+  `Rename` cannot fail under the premise" becomes "`Rename` cannot fail under the premise". P5's conditions are
+  unchanged (the new arm commits neither update). A caller (`bootstrap`) that gets an error does not know which arm,
+  as with `Create`; it holds `AU₂` in both error arms.
+- **Decision.** Pending (to report to the coordinator, P6b session 15). Applied to the spec meanwhile (WIP branch only).
 
 ## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
 

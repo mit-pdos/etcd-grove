@@ -117,7 +117,7 @@ theorem walInvBody_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   icases Hnms with ⟨%o, %Wn, Ha, Hs, %hf, %hun, %hst, ⟨%qs, Hsp⟩, Hl⟩
   icases walNamesS_agree (W := W) o _ $$ Ha Hf with %ho
   subst ho
-  have hm : lay.nm ∈ Wn := hf.2 dir lay hl (by simp)
+  have hm : lay.nm ∈ Wn := hf.2 dir lay hl (by simp) (by simp)
   have hi := idxOf_getElem? hm
   icases BigSepL.bigSepL_lookup_acc_impl hi $$ Hl with ⟨Hn, Hl⟩
   unfold nameShare
