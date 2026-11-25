@@ -304,10 +304,11 @@ generated term by a `match`. A build checks that it reduces; if goose's output s
 
 ### 3.1a Found while defining it (each needed before the proofs)
 
-1. **`NewServer`'s spec has no `isPkgInit`.** Its body reads `defaultServerOptions` and
-   `globalServerOptions`, grpc's package variables, and calls `sync.NewCond`. The spec must take
-   `isPkgInit pkg_id.google_golang_org.grpc`. Once proved the spec is untrusted, so this is not a trusted
-   change. Its one caller, `v3rpc.Server`'s proof, gets the fact from its own package's dependencies.
+1. **`NewServer`'s spec had no `isPkgInit`.** Its body reads `defaultServerOptions` and
+   `globalServerOptions`, grpc's package variables, and calls `sync.NewCond`. Done: the spec takes
+   `isPkgInit pkg_id.google_golang_org.grpc`, and so does the axiom until it is proved; a premise added to
+   an axiom only weakens it. Its two callers, `v3rpc.Server` and `grpcdriver`'s `Server`, get it by
+   `iPkgInit`.
 2. **`RegisterService` reads `sd.Metadata`**, which `grpcDescIs` does not hold. `grpcDescIs` and
    `pbDescIs` (`cache/v3/Base.lean`) gain `structFieldRef ServiceDesc "Metadata" sd ↦□ md`. `pbDescIs` is
    part of `etcdserverpb`'s package fact, so its generated `Init` steps gain the field. This is not trusted
