@@ -2,6 +2,21 @@
 
 ## START HERE
 
+- **For the coordinator (2026-11-25): no trusted commit made; the `DiscardUnsaved` hard stop was a wrong
+  analysis.** The WAL over `fsExt` never executes an `AbsDiskStep`: its abstract state is ghost state of
+  the WAL layer (`wal/Ghost.lean`, untrusted: "Nothing of the extension's steps or interpretation is
+  used"), and `Create`'s commit and `named := true` are ghost updates there. The only trusted pieces it
+  uses are `walCrash`/`walImg` and the crash clause (`walStCrash := absDisk_semantics.crash`), which already
+  allow what the discard needs: an unnamed WAL may vanish at a crash, an absent one stays absent. So
+  `"WalUnnamed"`/`"WalDiscard"` in `Impl.lean` would be trusted text no proof uses; I did not add them.
+  What blocks the discard is **untrusted**: the WAL layer's monotone order on states (`absLe`,
+  `walMapLe`, `walDurLe` in `AbsDisk/Specs.lean`'s generic part, and the persistent facts built on it:
+  `absPast`, `walNamed`, `walSyncedLb`, `walLenLb`) never lets an entry be deleted or `named` go back to
+  `false`. The discard needs that order relaxed (an entry may go `named → unnamed → absent` under the lock
+  token, the lower bounds read "while present"), with every consumer of those facts rechecked; no top-level
+  statement mentions them (checked: the WAL's and WalTester's specs do, no `TopLevel*` file does). Design
+  below ("The hard stop: `DiscardUnsaved`", superseded paragraph kept for the record).
+
 - **Date**: 2026-11-24. **Branch** `etcd-safe-walfix-p6`, worktree `/shared/etcd-grove-p6`.
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
@@ -274,7 +289,7 @@ state:
 Between the rename and the parent's fsync a crash may keep the WAL at `dir` (the rename lost) or lose it
 (the rename durable): the abstract WAL must be one that "may vanish" there, and absent after the fsync.
 
-**Proposed** (trusted text: needs approval): two steps, mirroring `Create`'s rename/fsync pair in reverse:
+**Proposed** (superseded the same day, see START HERE: not needed, the fsExt WAL uses no step): two steps, mirroring `Create`'s rename/fsync pair in reverse:
 `"WalUnnamed"` of `dir` (`named := false`, at the rename: `walCrash`'s first disjunct then covers the
 rename made durable, its second the rename lost) and `"WalDiscard"` of `dir` (the entry deleted, at the
 parent's fsync, after which the rename is durable). No change to `walCrash`, `walImg` or the crash clause.
