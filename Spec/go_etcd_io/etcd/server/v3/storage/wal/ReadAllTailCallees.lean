@@ -61,16 +61,16 @@ and the zeros durable, the key back (`walLentRes_unpend` at its commit), the tai
 `FdatasyncPend.lean`, over `os.File.Fd.spec`; `wal-tc20`). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName)
-    (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz k : Nat),
+    (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz k : Nat) (ic : Nat),
   o0 = (tailStream Mr H md cuts).length →
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.walIncLb (W := W) dir ic ∗
       walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k false
         (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0) ∗
       walCutFrag (W := W) none }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
   {{ (e : w64), RET #(errnoErr e); walCutFrag (W := W) none ∗
       ((⌜e = 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz [] TailMetaS ∗
-          WalFs.walSyncedLb (W := W) dir H.length) ∨
+          WalFs.walSyncedLb (W := W) dir ic H.length) ∨
         (⌜e ≠ 0⌝ ∗ walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k false
           (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0))) }}
 

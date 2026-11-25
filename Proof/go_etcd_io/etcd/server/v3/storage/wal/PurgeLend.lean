@@ -215,7 +215,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ $$ Hdh with
     ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
-  icases (walOpenW_cut (W := W) w dir).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
+  icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
   iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG), fd
   unfold tailVar
@@ -226,7 +226,7 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
   · ipureintro; exact hf
   iintro %hj' %hs Hn Hp Hsh' Hc Ho Hlk Hk Hv Hcf Hfd
   ihave Hdh := Hback $$ %hj' %hs Hn Hp Hsh' Hc Ho Hlk
-  ihave Hopen := (walOpenW_cut (W := W) w dir).2 $$ [Hwc Hpf Hcf]
+  ihave Hopen := (walOpenWI_cut (W := W) w dir h.inc).2 $$ [Hwc Hpf Hcf]
   · iframe Hwc Hpf Hcf
   iapply (walOpenWF_iff (W := W) P Mr w dir).2
   iexists h
@@ -245,6 +245,65 @@ theorem walOpenWF_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoStr
       ipureintro; exact hp
     ipureintro; exact ⟨hl4, hpure⟩
   · ipureintro; exact ⟨hd, hmd⟩
+
+/-- `walOpenWF_lend` at the incarnation `i`. -/
+theorem walOpenWFI_lend (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWFI (W := W) P Mr w dir i ⊢
+      ∃ (j : Ino) (X : List GoString) (hj : NamesH) (R : Roots) (q : Qp) (nm0 : GoString) (ino : Ino)
+        (lfs : List Loc) (γ : GName) (tg : TailG) (tfd : w64),
+        walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+        osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+        walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗ walDirLks (W := W) dir hj nm0 lfs tg.2.2.1 ∗
+        walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ walCutFrag (W := W) none ∗
+        walTailLk (GF := GF) tfd ino ∗
+        ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∀ b ∈ X, walNameP b = false) ∧
+          ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝ ∗
+        ∀ hj' : NamesH, ⌜WalSub hj hj' nm0⌝ -∗
+          osNames j (.except X) (DFrac.own (1 : Qp).half) hj' -∗ osPathS R dir (DFrac.own q) j -∗
+          osSharedInv R -∗ osCallPerm (callKey R dir) (1 : Qp).half.half -∗
+          walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
+          walDirLks (W := W) dir hj' nm0 lfs tg.2.2.1 -∗ walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
+          walCutFrag (W := W) none -∗ walTailLk (GF := GF) tfd ino -∗ walOpenWFI (W := W) P Mr w dir i := by
+  refine (walOpenWFI_iff (W := W) P Mr w dir i).1.trans ?_
+  iintro ⟨%h, Hh, %hd, %hmd, %hi, Hpc⟩
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, Ht, Hdh,
+    Hl1, Hl2, Hl3, %hl4, Hl5, Hl6, Hl7, Hl8, Hl9, Hl10, Hl11, Hopen, %hpure⟩
+  unfold walTailW
+  icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  icases walDirH_lend dir j dfd h.ino name h.pc lfs.dropLast h.cuts _ _ $$ Hdh with
+    ⟨%R, %q, %X, %hj, %nm0, #Hkey, Hn, Hp, #Hsh, Hc, Ho, Hlk, %hf, Hback⟩
+  icases (walOpenWI_cut (W := W) w dir h.inc).1 $$ Hopen with ⟨Hwc, Hpf, Hcf⟩
+  iexists j, X, hj, R, q, nm0, h.ino, lfs.dropLast, h.γ,
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG), fd
+  unfold tailVar
+  iframe Hkey Hn Hp Hsh Hc Ho Hlk Hk Hv Hcf
+  isplitl [Hfd]
+  · unfold walTailLk; iexact Hfd
+  isplitr
+  · ipureintro; exact hf
+  iintro %hj' %hs Hn Hp Hsh' Hc Ho Hlk Hk Hv Hcf Hfd
+  ihave Hdh := Hback $$ %hj' %hs Hn Hp Hsh' Hc Ho Hlk
+  ihave Hopen := (walOpenWI_cut (W := W) w dir h.inc).2 $$ [Hwc Hpf Hcf]
+  · iframe Hwc Hpf Hcf
+  iapply (walOpenWFI_iff (W := W) P Mr w dir i).2
+  iexists h
+  iframe Hpc
+  isplitl [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 Hdh Hl1 Hl2 Hl3 Hl5 Hl6 Hl7 Hl8 Hl9 Hl10 Hl11 Hopen Hf Hfd Hoff Hk Hm Hb Hv]
+  · unfold walHandleIn
+    iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+    iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 Hdh Hl1 Hl2 Hl3 Hl5 Hl6 Hl7
+      Hl8 Hl9 Hl10 Hl11 Hopen
+    unfold walTailW
+    iunfold walTailLk at Hfd
+    iframe Hf Hfd Hoff Hk
+    isplitl [Hm Hb Hv]
+    · iexists m, bs
+      iframe Hm Hb Hv
+      ipureintro; exact hp
+    ipureintro; exact ⟨hl4, hpure⟩
+  · ipureintro; exact ⟨hd, hmd, hi⟩
 
 end iris
 

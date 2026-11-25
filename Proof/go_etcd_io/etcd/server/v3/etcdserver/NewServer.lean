@@ -420,15 +420,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   -- (2026-11-03, the WAL's API) the opened WAL's parts (its records, metadata and the purge's right
   -- are not used yet: R2b-1's stage 4)
-  -- (R2b-1 stage 3c) the WAL's durability allocated over the fresh records (`wal.bootOk_start`)
-  imod wal.bootOk_start _ _ _ _ γ.cl $$ Hwal with
-    ⟨%hw, %νw, %Hhw, #Hdur, Hwview, Hwok, Hwstop, Hwapp, #Hwlb, Hwalo, Hwmeta, Hwpurge, %HwDir⟩
-  -- (wal-link L3) the durability's WAL the opened one
-  ihave %Hνh : ⌜νw.h = hw⌝ $$ []
-  · ihave #Hdur' := Hdur
-    iunfold rnDurInv at Hdur'
-    icases Hdur' with ⟨%H, -⟩
-    ipureintro; exact H
+  -- (P5, 2026-11-25: until then the WAL's durability allocated here, `wal.bootOk_start`) the opened
+  -- WAL's fresh records, for the crash-aware durability `bootstrappedRaft.newRaftNode` allocates
+  icases wal.bootOk_startK _ _ _ _ $$ Hwal with ⟨%hw, %Hhw, Hwrec, -, Hwalo, Hwmeta, Hwpurge, %HwDir⟩
   -- `bootOk` names two rows `Hmeta`: the storage's hard state, and the backend's
   irename : (memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) : IProp GF) =>
     Hmsmeta
@@ -496,18 +490,16 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     icases Hcl0 with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
     ipureintro; simpa [HρRaft] using H.1
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) bs.raft'
-    bs.ss' bw.w' bc.cl' (config.snapDirOf cfg.DataDir') (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
-    $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
-    as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, #Hsfresh, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv, Hmsmeta, Hrsc⟩
-  · ihave #Hdurν : rnDurInv γ.cl νw νw.h $$ []
-    · rw [Hνh]; iexact Hdur
-    iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdurν
+    bs.ss' bw.w' bc.cl' (config.snapDirOf cfg.DataDir') (DFrac.own 1) bv cv lok γs hw pv ps ctxs ρ.ids.issued)
+    $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwrec]
+    as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, #Hsfresh, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv, Hmsmeta, Hrsc, #Hdur, Hwstop, Hwapp⟩
+  · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwrec
     iframe #
     -- the pure premises: `bootOk`'s `Hraft` (`rnStartCfg`, its peers' facts), the heartbeat
     -- (`raftNode.bootCfg`), the directory's bound, the WAL read and the receipt bound
     ipureintro
     exact ⟨⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, Hrnodup, Hr0,
-      Hrpslen, Hrvs, by rw [Hνh, Hhw], by omega, HtrC⟩, Hγsz⟩
+      Hrpslen, Hrvs, by rw [Hhw], by omega, HtrC⟩, Hγsz⟩
   clear Hrcfg
   (try wp_auto)
   -- the configuration, field by field from here on
@@ -1148,7 +1140,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnss, Hrna0, HrnSnapZero, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
+  obtain ⟨Hrn1, Hrn5, Hrn6, Hrn7, Hrn8, Hrnν, Hrnsd, Hrnss, Hrna0, HrnSnapZero, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ := Hrnames
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl
@@ -1172,7 +1164,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iunfold rnWalTok
     iexists rvr.raftNodeConfig'.storage'
     iframe storageC
-    rw [Hrnν, Hνh]; iexact Hwalo
+    rw [Hrnν]; iexact Hwalo
   icases rnWalTok_split γrn (srvRAddr s) $$ Hwt with ⟨Hwth, Hwtl⟩
   -- (2026-11-03, R2b-1 stages 5-6) the shares: the apply side's with its token and the
   -- durability invariant, the loop's with the stop's claim, the metadata and the purge's right
@@ -1190,19 +1182,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       first | exact Hsteq.symm | exact Hsteq.2.symm
     rw [Hsteq']
     iframe Hrd2 Hsws
-    rw [Hrnν]; iframe Hwapp
-    rw [Hrn1, Hνh]; iexact Hdur
+    iframe Hwapp Hdur
+    ipureintro; exact Hrnsd
   ihave Hwtl : rnWalTokL γrn (srvRAddr s) $$ [Hwtl Hwstop Hwmeta Hwpurge Hrd1]
   · iunfold rnWalTokL
     iframe Hwtl
-    ihave Hwstop' : token γrn.wal.stop $$ [Hwstop]
-    · rw [Hrnν]; iexact Hwstop
-    iframe Hwstop'
+    iframe Hwstop
     iunfold rnFixed at Hfix
     iNamed Hfix
     iexists rvr.raftNodeConfig'.storage', _
     iframe storageC Hrd1
-    rw [Hrnν, Hνh]
+    rw [Hrnν]
     -- (R2b-3b) the metadata names the member, the wrapper's id
     have hidr : γrn.id = id := by first | rw [Hrn5, Hrid] | rw [Hrn5, Hrid, Hid]
     rw [hidr]
@@ -2066,7 +2056,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists rvr.raftNodeConfig'.storage'
     iframe storageC
     ipureintro
-    rw [Hrnν, Hνh]; exact HwDir
+    rw [Hrnν]; exact HwDir
   -- (revoke-open, 2026-11-06) the revocation's inner pool: `srvRevokePoolN` of `leadTimeMu`'s rest
   -- and of the auth store's stock of tickets (`authRdN`'s `2 ^ 28`), paired, at level 1
   icases replicate_takeN _ srvRevokePoolN _ (by

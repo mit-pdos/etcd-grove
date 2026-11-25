@@ -184,8 +184,8 @@ theorem tInv_named (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Opti
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ tOrOwn γ o none ∗
       ∃ (d : WalDur) (c : TCand), tWalOwn γ (some d) ∗
         ⌜d.named = true ∧ c ∈ o.cands ∧ tCandOk o c d ∧ tCheckWf o⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
-        WalFs.walNamed (W := W) (tWalDir e.area) := by
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 (tCandMark o c) ∗
+        WalFs.walNamed (W := W) (tWalDir e.area) 0 := by
   iintro ⟨#Hinv, #Hok, Hnc, Ho, Hwo⟩
   unfold WalFs.walAreaOk
   icases Hok with ⟨#Hwi, -, -, -, -⟩
@@ -205,7 +205,7 @@ theorem tInv_named (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Opti
   obtain ⟨hod, hc, hok, hw⟩ := hdc
   subst hod
   imod walDirIs_named (L := hG.goose_localGS) (W := W) walCodec walRaftMr e.R e.jr e.area
-    ((⊤ : CoPset) \ ↑tN) walN_sub_tN (tWalDir e.area) d $$ Hwi Hnc Hwd Hnm with ⟨Hnc, Hwd⟩
+    ((⊤ : CoPset) \ ↑tN) walN_sub_tN (tWalDir e.area) 0 d $$ Hwi Hnc Hwd Hnm with ⟨Hnc, Hwd⟩
   iunfold tWalOwn at Hwo
   imod ghostVar_update_halves (some { d with named := true }) γ.γw _ _ $$ Hwo Hw1 with ⟨Hwo, Hw1⟩
   have hok' : tCandOk o c { d with named := true } := hok
@@ -235,9 +235,9 @@ to the fresh WAL: the oracle, not created and fresh up to its opens, accounts fo
 theorem tInv_createAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Option WalDur) (md : List w8)
     (hex : wal.ExistFalseOk od) (hpre : tPre o) (hcr : o.created = false) :
     TInv (W := W) e γ ∗ tOrOwn γ o none ∗ tWalOwn γ od ⊢
-      AU <{ ∃∃ o' : Option WalDur, WalFs.walDirIs (W := W) (tWalDir e.area) o' ∗ ⌜wal.ExistFalseOk o'⌝ }>
+      AU <{ ∃∃ o' : Option WalDur, WalFs.walDirIsI (W := W) (tWalDir e.area) 0 o' ∗ ⌜wal.ExistFalseOk o'⌝ }>
         @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.area) (walDurFresh md),
+        <{ WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 (walDurFresh md),
           COMM tOrOwn γ o none ∗ tWalOwn γ (some (walDurFresh md)) }> := by
   iintro ⟨#Hinv, Ho, Hwo⟩
   iauintro
@@ -277,7 +277,7 @@ theorem tInv_createAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : O
       isplitr
       · ipureintro; exact hfile
       isplitl [Hwd]
-      · iunfold WalFs.walDiskAt at Hwd; iexact Hwd
+      · iunfold WalFs.walDiskAtI at Hwd; iexact Hwd
       isplitl
       · iunfold tRelI
         simp only [hcr, Bool.false_eq_true, ↓reduceIte]

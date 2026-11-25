@@ -45,7 +45,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr := by
-  intro R jr r nm w lg Rp qp tf Fr Fin hnmO
+  intro R jr r nm w lg Rp qp tf i Fr Fin hnmO
   wp_start as ⟨#Hzap, #Harea, Hw, Hpw, Hperm, Hfr, Hlaw⟩
   ihave #Harea2 := Harea
   iunfold WalFs.walAreaOk at Harea2
@@ -54,7 +54,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   isimp only [isPkgInitDeps] at Hdeps
   icases Hdeps with ⟨-, -, #Hfmt, -, -, -, -, -, -, -, -, -, #Hos, #Htime, -, -, #Hzp, -, -, -, -, -, -, -⟩
   try wp_auto
-  wp_apply wp_CloseU R jr r w (child r nm) (.unnamed Rp qp tf) (fun _ => iprop(True)) $$ [Hw Hpw] as %cerr Hc
+  wp_apply wp_CloseU R jr r w (child r nm) (.unnamed Rp qp tf i) (fun _ => iprop(True)) $$ [Hw Hpw] as %cerr Hc
   · dsimp only
     iframe; iframe #
   icases Hc with (⟨#Hek, Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, #Hek, Hlk, Hnf, Htf⟩)
@@ -119,6 +119,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   try wp_auto
   -- the rename, over the law
   iunfold cleanupLaw at Hlaw
+  icases Hu with ⟨%Iu, Hu, -⟩
+  ihave Hu := walUnlockedTokXI_X Iu $$ Hu
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   imod Hlaw $$ %ts %hts Hfr Hu Hnf Hpaths Htf Hnc with

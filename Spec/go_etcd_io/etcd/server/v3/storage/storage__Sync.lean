@@ -35,10 +35,10 @@ abbrev storage.storage.Sync.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storageOver p w ss ∗ storageRd p w ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
-      WalFs.walLenLb w dir n }}
+      WalFs.walLenLb w dir γ.inc n }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; storageRd p w ∗
-      ((⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir n) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ WalFs.walSyncedLb dir γ.inc n) ∨
       ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝) }}
 
 end spec

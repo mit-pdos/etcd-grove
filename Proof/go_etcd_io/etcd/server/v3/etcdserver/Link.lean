@@ -3506,7 +3506,7 @@ theorem wp_newRaftNode :
 
 theorem bootstrappedRaft.wp_newRaftNode [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=
-  bootstrappedRaft.newRaftNode.wp_proof srvApi_wp_StartNode srvApi_wp_RestartNode EtcdGrove.wp_newRaftNode (rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex)
+  bootstrappedRaft.newRaftNode.wp_proof srvApi_wp_StartNode srvApi_wp_RestartNode EtcdGrove.wp_newRaftNode (rnNewStorageOk_law_holds raftpb.SnapshotMetadata.wp_GetIndex) rnRestartAllocK_law_holds
 
 theorem bootstrappedStorage.wp_Close :
     bootstrappedStorage.Close.spec (GF := GF) (hG := hG) :=

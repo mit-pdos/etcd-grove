@@ -83,7 +83,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_Close : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := WalFs.ioNone) WalFs.walPbNone Mr)
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.Open.spec (W := W) Mr := by
-  intro lg R jr r dir nm sp s qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm sp s qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
@@ -96,7 +96,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
   icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   rw [← hkd]
   try wp_auto
-  wp_apply wp_open lg R jr r dir nm sp s true qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
+  wp_apply wp_open lg R jr r dir nm sp s true qp Q ic hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %w %err ⟨Hp, Hres, %o, HQ, Hr⟩
   · (try rw [hkd]); iframe; iframe #
   (try rw [← hkd])

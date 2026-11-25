@@ -25,6 +25,62 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,
+  `WAL__renameWAL.lean` (`renameWALPost`), and every WAL spec over `walNamed`/`walSyncedLb`/`walLenLb` and the
+  shared handle `walOpenWS` (`WalShN`); no `SpecPlan/` counterpart states these facts.
+- **Defect.** The persistent facts `walNamed dir`, `walSyncedLb dir n`, `walLenLb w dir n` say nothing of which
+  WAL at `dir` they are about, so after `DiscardUnsaved` (the fork `e94f33b50`, `unsaved.go`) and `bootstrap`'s
+  re-`Create` at the same `dir` they would read as facts of the new WAL (`notes/wal-p6-handoff.md`, "The relaxation
+  ... is not enough"). Separately, `renameWALPost`'s second arm (a WAL reopened by `renameWALUnlock`) is unreachable
+  (the proof never produces it: ledger 2026-11-21) but obliges `Create` to name its handle's incarnation.
+- **Evidence.** P6b design (`notes/wal-p6b-design.md`, v2/v2.1); `Proof/.../wal/HandleUnnamed.lean`
+  (`walOpenWFU_seal` needs the handle's incarnation to give `walNamed dir i`).
+- **Proposed change.** The facts take the incarnation `i` (`walNamed dir i`, `walSyncedLb dir i n`,
+  `walLenLb w dir i n`; a retired incarnation's fact constrains nothing). `Create.spec` takes `∀ i`, its atomic
+  update over `walDirIsI dir i`, its success post `walOpenWFI P Mr w dir i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗
+  walSyncedLb dir i 0`. `WalShN` gains `inc`, `Save`'s update is over `walDiskAtI dir γ.inc`, its post's facts at
+  `γ.inc`. `renameWALPost` loses its unreachable second arm (a stronger post; its proof unchanged but the arm
+  indices).
+- **Decision.** The facts, `∀ i` and `WalShN.inc`: accepted (coordinator, 2026-11-25, P6b v2.1); applied on branch
+  `etcd-safe-p6b-wip`. The dropped `renameWALPost` arm (a stronger post of an internal callee, no client sees it):
+  taken in P6b session 3; confirmed (coordinator, 2026-11-25, session 6 brief: approved as long as `renameWAL`'s spec is
+  proved from its Go body, which it is: `Proof/.../wal/WAL__renameWAL.lean`).
+- **Applied in session 4 (2026-11-25), the same principle carried through the cone** (no new decision, recorded for
+  review): every atomic update a client holds a view for is at the view's incarnation, so the client gets its
+  `walDirIsI`/`walDiskAtI` back. `ReadAll.spec`, `Create.specFresh`, and the read-only updates of `Open`,
+  `openAtIndex`, `openLast`, `OpenForRead`, `Exist`, `Repair`, `ValidSnapshotEntries`, `Unsaved` take `∀ i`/`∀ ic`;
+  `Sync`, `SaveSnapshot`, `ReleaseLockTo`, `Close` and the `storage__*` wrappers are at `γ.inc`. `ReadAll`'s success
+  post is `walOpenWFI … i` with its facts at `i`. The internal sync specs (`WAL.sync`, `syncC`, `syncNoErr`, `cut`,
+  `cutTail`) post `walSyncedLb dir h.inc …`; the tail's fdatasync lemmas take a persistent `walIncLb dir ic`
+  ("the incarnation has reached `ic`"), which every ghost handle carries (`walHandleDirI`), so a sync's synced fact
+  needs no share of the incarnation map.
+- **The read handle at its incarnation (session 5, proposed; decision needed).** `ReadAll`'s success post
+  `walOpenWFI … i` needs the opening handle's incarnation to be the update's `i`, but `walOpening`/`walOpeningF`
+  hid it. Change: `walOpening w dir s i` (`walHandlePI … i (.opening s)`), `walOpeningF w dir s i`; `Open`'s
+  success post is `walOpeningF w dir s ic` (the lock is taken in the same step as the update commits, so its
+  incarnation is the view's: `walPinOut … ic`, `walLockedTokI_incQ_agree`); `ReadAll` takes `walOpeningF w dir s i`
+  with its update at `i`; `Close`'s `opening s` arm takes `∃ i, walOpening w dir s i`. `walNamed` from
+  `walInvBody_namedBy` at `i` takes the handle's `walIncLb dir i` (as the syncs do).
+  **Decision**: approved (coordinator, 2026-11-25, session 6 brief), with the session-4 changes and `walIncLb`, as
+  long as each is proved and no trusted text changes.
+- **`Create`'s deferred cleanup at the handle's incarnation (session 6; approved by the coordinator, 2026-11-25).**
+  *Defect*: `Create`'s error exits after the commit register the WAL's name (`walInv_register`), which needs the WAL
+  still present at the incarnation the registration's past names; `WAL.cleanupWAL.spec` and `WAL.Close.spec`'s
+  `unnamed` arm return the lock token (`walLockedTok`, `walUnlockedTokX`) without its incarnation, so this cannot be
+  shown. *Change*: (a) `walInv_register` takes only the quarter `walIncQ I'` (it only agrees it with the ghost);
+  (b) `WalCloseSt.unnamed` gains the incarnation `i`, `Close.spec`'s `unnamed` arm takes `walOpenWFUI … i` and
+  returns the token at an `I` with `⌜incOf I dir = i⌝` in both outcomes (`walUnlockedTokXI I`, `walLockedTokI I`);
+  `WAL.sync.specC`'s error arm likewise (`incOf I dir = h.inc`); (c) `cleanupWAL.spec` takes `walOpenWFUI … i` and
+  returns the same. Internal specs only (no client sees them); posts only stronger.
+- **`walPurgeAcc` at an incarnation (session 6; internal, proved, under the brief's approval of proved internal
+  changes).** *Defect*: a purge round's repeatable commit `walPurgeAcc dir Pc` was over `walDiskAt dir d` (any
+  incarnation), so a client keeping `walDiskAtI dir i d` (the tester's invariant, at `0`) could not get it back after
+  the commit. *Change*: `walPurgeAcc dir inc Pc` over `walDiskAtI dir inc d`; `walPurge_osAUnc` takes `inc` (the
+  commit hands back the same `walIncQ`, so the incarnation is kept); the tester's `purgeRound.spec` passes its
+  handle's `i`. No trusted text.
+
 ## 2026-11-24: node.ApplyConfChange, node.Advance -- `skippedIn` is false after a restart at `min |A₀| σ.commit` and after a kept snapshot in the replay window; D (`confAt`) instead of the plan's RestartNode (A)
 
 - **Spec.** `Spec/go_etcd_io/raft/v3/node__ApplyConfChange.lean`, `node.ApplyConfChange.spec` (premise
@@ -6902,6 +6958,31 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
   `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
 - **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).
+## 2026-11-25: the WAL's boot slots and `wal.Create.specSrv` expose the records' history, D6-T2 / P5 (etcd-safe-p5)
+
+- **Spec.** `wal.Create.specSrv` (`Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateSrv.lean`) leaves
+  `walOpenedH h dir id cid walFresh [] true` (the records with their history, empty) where it left
+  `walOpened … walFresh true`; `wal.bootOk`'s body (`etcdserver/WalApi.lean`, inside `bootstrapContract`)
+  holds the same. `wal.restartOk`'s body holds `walOpenedH … σ Hs true` for some history `Hs`, with
+  `walSyncedLb h.dir |Hs|`, `walIdxLe (2^61-1) Hs` and `walCommitLeFrom walFresh Hs` (the commit bound
+  in its eager form, every prefix's fold; the approved `walCommitLe Hs`, the reader's, follows from it with
+  `walReadFacts`' base ≤ commit, `walCommitLe_of_fold`; the eager form is what the invariant keeps across
+  `Save`s, `histOk_save`). The contract's `Save`/`SaveSnap`
+  (`isWalStorage`) move the records with their history (`walRecsH`) and give the synced mark (`Save`:
+  under `walMustSync`; `SaveSnap`: always); the old forms are derived (`walSaveSnap_spec`, `walSaveRnR_spec`).
+- **Defect.** None in Go. The crash-aware durability invariant (`rnDurInvK`) is allocated at the WAL's
+  history: it needs a synced mark `n`, that every prefix from `n` on reads records holding the start state,
+  and `HistReadOk Hs n`. `walRecs h σ true` hides the history; an arbitrary history folding to `σ` breaks
+  all three, and only `walSyncedLb h.dir 0` is derivable.
+- **Evidence.** Layer 1's `Create` leaves `walDurFresh`, whose history is `[]`; `ReadAll` reads only a
+  synced history (P6's proved `ReadAll`), within raft's index room, with each saved commit at or below the
+  last index (raft's `loadState` panics otherwise). `storage.Save.spec`/`SaveSnap.spec` already give the
+  synced marks.
+- **Proposed change.** As above: the boundary specs that create the state are strengthened (no new law).
+  `bootstrapContract` will become a per-function interim axiom (`bootstrap.wp_proofOne`'s pattern) before the
+  etcd_safe packet; this strengthening lands in that axiom's text, to be reviewed with the axiom skill then.
+- **Decision.** Approved by coordinator-E on #50 (2026-11-25 07:04Z), for the etcd_safe branches, listed as
+  its own line in the final packet.
 ## 2026-11-25: `fileutil.TouchDirAll.spec`'s post did not say the new directory's names are committed (P7, D6-T6)
 
 - **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
@@ -6917,3 +6998,83 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   vocabulary; nothing to change there.
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
+## 2026-11-25: T6's `snapDirKept` is unprovable as stated (T7, D6)
+
+- **Spec.** `snapCrash.snapDirKept`/`snapDirKeptF` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapDirCrash.lean`), a
+  premise of `snapDir_crash.law`, owed by T7.
+- **Defect.** It is a persistent plain wand `□ ∀ R0 dq j, osSharedInv R0 -∗ osPathS R0 sd dq j -∗ ⌜lookupH R V' sd =
+  some (.dir j)⌝` over the roots `R0` of any shared invariant. Without an update nothing relates `R0` to the law's `R`
+  (the roots live in the shared invariant; two of them agree only when opened), so for `R0 ≠ R` the spine is
+  unconstrained and the conclusion cannot be derived.
+- **Evidence.** T7 (`dist/crash/MemberCrash.lean`): with a durable spine (`osPathDur R sd J`, made from `TouchDirAll`'s
+  post) the fixed-root form `snapDirKeptR R V' sd := □ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`
+  is proved (`snapDirKeptR_of`), and `crashRest_roots` proves `R0 = R` for two shared invariants of the crashed
+  generation under an update, with `crashRest`.
+- **Proposed change.** `snapDirKeptF R V' sd := snapDirKeptR`'s body (no `R0`, no `osSharedInv`); `old_dir` (and its two
+  siblings) take `⌜R0 = R⌝`, which `snapDir_crash_law_holds` gets from `crashRest_roots` before each use (it holds the
+  law's `osSharedInv R` and `crashRest`). A weaker premise: the law gets stronger.
+- **Decision.** Pending (coordinator-E; reported by T7, 2026-11-25). Not edited.
+## 2026-11-25: `srvCrashImageAt` misses three crash images and drops a crash token (T7, D6)
+
+- **Spec.** `srvCrashImageAt` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean`), the vocabulary of
+  `NewServer.specC` and `bootstrapCrashContract`, and of `memberGen`'s restart disjunct.
+- **Defect.** (1) Its snapshot directory row is the handle `snapDirInvH` only; the next generation's crash law needs
+  `snapDirKeep` (handle and token at the same `γk`), which the image cannot name, so a restarted generation cannot
+  crash again. (2) `σ.b ≤ i` is false in the received-snapshot window (Q3): the WAL's `SaveSnap` at `k` is synced
+  before the apply thread renames `<k>.snap.db` to `db`; a crash in between leaves `σ.b = k > i`, which Go handles
+  (`recoverSnapshot` opens the `.snap.db`). (3) `γ.cl.bootLen ≤ i` is false after the first `Save` and before the
+  backend's first commit (`i = 0`; C-I1 checkpoint item 7).
+- **Evidence.** Code reading at the pin `e94f33b50` (`raftNode.start`'s `SaveSnap` before the apply thread's
+  `applySnapshot`; `bootstrap`'s `recoverSnapshot`; the backend's batch commit on its timer); T7's plan
+  (`notes/etcd-dist-d6.md`, "T7", B2, B3, D-T7-2). No Go test written.
+- **Proposed change.** (1) The row holds `snapDirKeep`; `NewServer.specC`'s post returns the token (as raft's crash
+  token). (2) A disjunct of the backend row: the `.snap.db` of `σ.b` saved and durable in the snapshot directory, its
+  data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
+  image. Each is T4's to restate (with `bootstrapCrashContract`).
+- **Decision.** Pending (coordinator-E / T4). Not edited.
+
+## 2026-11-25: `memberGen`'s restart case asks for the old incarnation's `idPfxInv` at the new generation (T7, D6)
+
+- **Spec.** `etcd_dist.memberRestart` (`Proof/.../examples/etcd/dist/crash/MemberGen.lean`): `memberRestartFacts γ' ρo id`
+  at the new generation, `ρo` the names of the incarnation that wrote the files (`etcdstart/Restart.lean`).
+- **Defect.** Every row of `memberRestartFacts` is ghost-only and carries over to a new generation (T7's
+  `memberRestartFacts_gen`), but `idPfxInv ρo.ids.gen ρo.ids.pfx` (`idutil/Defs.lean`) is heap-level: its invariant
+  `idPfxBody γip γgp` holds `structFieldRef Generator "prefix" g ↦□ k.1` on the old machine's heap and the authorities
+  `ghostMapAuth γip 1`/`γgp 1`, and the names `(γip, γgp)` are fixed by `ρo.ids.gen`'s persistent element. After a
+  crash no generation has those points-to facts, and the authorities stay in the old invariant (not cancellable), so
+  the new generation's `idPfxInv` at `ρo`'s names cannot be made: `memberRestart` is unprovable after any crash.
+- **Evidence.** T7's `memberRestartFacts_gen` (`dist/crash/MemberCrash.lean`): the generic `.rfl` fails exactly at
+  `idPfxInv` (diagnosed row by row, 2026-11-25); the lemma takes the new generation's `idPfxInv` as an input.
+- **Proposed change.** (a) `memberRestartFacts` drops `idPfxInv`, and `NewServer.specC` takes a fresh prefix
+  invariant from the new incarnation's names (`idIncarnation_alloc`, with the issued ids' facts ghost-only, so they
+  persist); or (b) `idPfxInv`'s invariant made crash-aware (contents or `crashed ∗` a token, as `walInv`), with a
+  ghost-only part that survives and a heap part re-made per generation. D7's / T8's to decide.
+- **Decision.** Pending (coordinator-E). Not edited; T7 takes it as the named hypothesis B6.
+
+2026-11-25: T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation (T7, D6)
+
+- **Spec.** `snapCrash.snapDir_crash.law` (`etcdserver/SnapDirCrash.lean`): `snapDirKeep (hG := atC L) sd γd img Rm`
+  in, `snapDirKeep (hG := atC L') sd γd img Rm'` out, with **one** `img : w64 → Data → IProp GF`; and
+  `srvCrashImageAt`'s snapshot row (`InvCrashImage.lean`), `snapDirInvH … (srvImageM γ.authOn γ) …` at the new generation.
+- **Defect.** The member keeps `img := srvImageM k.γ.authOn k.γ` elaborated at the old generation's `HeapGS`; the crash
+  image at `L'` wants `srvImageM` at `L'`'s. They are not definitionally equal: `srvImage` → `dbImage` →
+  `mvcc.api.mvccImage`, which is `@[no_expose]` (`Spec/.../mvcc/EtcdBackend.lean:94`) and takes the `HeapGS`; no
+  generation law exists for it. So T7's last step (the snapshot row of `srvCrashImageAt`) cannot be closed.
+- **Evidence.** T7 session 6 (`dist/crash/MemberCrash.lean`, the commented WIP proof of `memberGen_crash_law_holds`):
+  every step elaborates but this one; `show snapDirInvH (L') … (srvImageM (L0) …) … ⊢ snapDirInvH (L') … (srvImageM (L') …) …
+  from .rfl` fails, and `memberDurOut_gen`-style `.rfl` works for every other row (raft's state, the KV rows, the files).
+- **Proposed change.** (a) A generation law in mvcc's API, `mvccImage_gen : mvccImage (hG := ⟨G, L⟩) D M c u ⊣⊢
+  mvccImage (hG := ⟨G, L'⟩) D M c u` (proved inside the package if its body is ghost-only), then `srvImageM_gen`; and
+  T6's law takes `img img'` with `□ (∀ i D, img i D -∗ img' i D)` as it already does for `Rm → Rm'` (the body's image
+  facts are persistent); or (b) `snapDirKeep`'s `img` stated over `GooseGlobalGS` only. (a) is the smaller change.
+- **Decision.** (a), the coordinator's (2026-11-25). Checked first: `⧖ n` (`preceipt`) reads only `AllG` and
+  `ReceiptGS`, both fields of `GooseGlobalGS` (Perennial `GooseLang/Receipts.lean`, `Lifting.lean`: the receipts
+  are global, "the step bound counts the steps of all generations"), and the rest of `mvccImage` is pure, so the
+  law holds by `.rfl` inside the sealed module. Done (T7 session 7): `mvcc.api.mvccImage_gen` (`EtcdBackend.lean`,
+  `⊣⊢`, both generations at the program's Go context `lctx`: `go.Semantics` and mvcc's `Assumptions` take a
+  `GoLocalContext`, so the law fixes it as `{L with goose_go_local_context := lctx}`, T6's `atC`); `srvImageM_gen`
+  (`etcdserver/ImageOn.lean`, `⊢`, through `srvImage`/`dbImage` and `srvImageOn`/`dbImageOn`); T6's
+  `snapDir_crash.law` takes `img img'` and `□ (∀ j Dt, img j Dt -∗ img' j Dt)` after the `Rm → Rm'` wand, its
+  out `snapDirKeep … img' Rm'` (the proof weakens the kept files' image facts with `bigSepM_impl` before
+  allocating the new invariant). `mvccImage` stays `@[no_expose]`; no `etc/api/*.txt` change. The law's only
+  importer is `dist/crash/MemberCrash.lean` (`etc/importers.py --uses snapDir_crash`).

@@ -31,13 +31,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
   [W : WalGS GF]
 
 /-- **A purge's repeatable client commit** (see the file header). -/
-def walPurgeAcc (dir : GoString) (Pc : IProp GF) : IProp GF :=
-  iprop(□ (Pc -∗ AACC <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d, ABORT Pc }> @ walAuMask, ∅
+def walPurgeAcc (dir : GoString) (inc : Nat) (Pc : IProp GF) : IProp GF :=
+  iprop(□ (Pc -∗ AACC <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir inc d, ABORT Pc }> @ walAuMask, ∅
     <{ ∀∀ (p k : Nat), ⌜d.cut ≤ k ∧ k ≤ p ∧ p ≤ d.unl⌝ ∗
-        walDiskAt (W := W) dir { d with pur := max d.pur p, cut := k }, COMM Pc }>))
+        walDiskAtI (W := W) dir inc { d with pur := max d.pur p, cut := k }, COMM Pc }>))
 
-instance walPurgeAcc_persistent (dir : GoString) (Pc : IProp GF) :
-    Persistent (walPurgeAcc (W := W) dir Pc) := by
+instance walPurgeAcc_persistent (dir : GoString) (inc : Nat) (Pc : IProp GF) :
+    Persistent (walPurgeAcc (W := W) dir inc Pc) := by
   unfold walPurgeAcc; infer_instance
 
 end defs

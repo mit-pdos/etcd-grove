@@ -128,7 +128,7 @@ theorem wal.Unsaved.wp_proof
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_FName : os.fileStat.Name.spec (GF := GF) (hG := hG)) :
     wal.Unsaved.spec (W := W) Mr := by
-  intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok
@@ -147,7 +147,7 @@ theorem wal.Unsaved.wp_proof
   (try wp_auto)
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q hin (hok.1 nm hnm)
+  imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q ic hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
   icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%d, %lay, %X, %hj, ⟨%hle, %hpin⟩, Hpin, #Hstp⟩)
   · -- no WAL: `readWALNames` fails

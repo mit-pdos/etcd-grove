@@ -81,9 +81,9 @@ abbrev restartRead.spec : Prop :=
         contentsRep vc c ∗
         ⌜∃ img ∈ tImgs (tCandHist o cd) (tCandMark o cd), d.H.map WalOpG.toM = img.map absOp ∧
           tRead img = some c⌝ ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
-        WalFs.walPurgeW (W := W) w (tWalDir e.area) ∗ WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.area) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.area)
+        walOpenWFI (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) 0 ∗
+        WalFs.walPurgeW (W := W) w (tWalDir e.area) ∗ WalFs.walLenLb (W := W) w (tWalDir e.area) 0 d.H.length ∗
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.area) 0
       else True }}
 
 end spec

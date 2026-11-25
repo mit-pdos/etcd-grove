@@ -135,8 +135,11 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       isRNIDRemoved rv.raftNodeConfig'.isIDRemoved' ∗
       ⌜rv.raftNodeConfig'.raftStorage' = γ.ms⌝ ∗ isRNMemStor γ γ.ms ∗
       isWalStorage rv.raftNodeConfig'.storage' γ.wal.h γ.ss ∗
-      -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
-      rnDurInv γ.node.cl γ.wal γ.wal.h ∗
+      -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant; (P5) the crash-aware one, with the
+      -- node's arm
+      rnDurInvK γ.node γ.id γ.walK γ.wal.h ∗
+      (letI := srvStor (GF := GF) γ.node; nodeArm γ.nl γ.node.cl γ.walK.x) ∗
+      ⌜γ.walK.sd = fun _ => iprop(True)⌝ ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
@@ -146,7 +149,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       |={⊤}=> isRaftNode E γ a ∗ rnWorkerStartTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
-  iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hrok, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
+  iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hrok, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Harm, %Hsd, #Htri, #Hparts,
     #Hfix, #transportC, latestTickTsR, Hreplay, #Hseed, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
@@ -184,6 +187,8 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
     isplitr
     · rw [Hmsγ]; iexact Hmsi
     isplitr
+    · ipureintro; exact Hsd
+    isplitr
     · ipureintro; exact Hnode
     iunfold rnTickPool
     iintro %l %hl
@@ -213,36 +218,36 @@ theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = [])
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
           (NodeDriverState.init (memStorIface γ.ms) γ.key) ∗
-        raftState γ.node.cl γ.id RaftState.init ∗
         nodeConfig γ.nl γ.node.cl srvClusterN ⟨0, Membership.simple γ.node.cfg⟩)) ∗ (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       sspscProducer γ.ap ([] : List toApply) ∗ sspscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ∗
-      -- (2026-11-03, R2b-1 stage 4) the loop's view of the WAL at the start (`wal.bootOk_start`)
-      ghostVar γ.wal.view (1 : Qp).half walView0 ∗ token γ.wal.ok ⊢
+      -- (2026-11-03, R2b-1 stage 4) the loop's view of the WAL at the start; (P5) the crash-aware
+      -- invariant's (`rnDurK_alloc.law`)
+      rnWalViewK γ.walK (walView0, none) ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
   letI := srvStor (GF := GF) γ.node
-  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0, Hwv, Hwok⟩
+  iintro ⟨⟨Hdrv, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0, Hwv⟩
   -- (S1) the log handed out (none) committed, from the driver's delivered log
   ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
   ihave #HcL0 : isCommittedLogLb γ.node.cl (srvLE γ.srv []) $$ []
   · have h : srvLE γ.srv [] = (NodeDriverState.init (memStorIface γ.ms) γ.key).delivered := by
       simp [srvLE, NodeDriverState.init, RNNames.srv, hpre]
     rw [h]; iapply deliveredLogLb_committed $$ Hdl
-  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
+  isplitl [Hdrv Hcfg Hrun Hprod Hcum Hwv]
   · iunfold rnLoopTok
     isplitr
     · ipureintro; rw [hs0]; exact Nat.zero_le _
     iexists hsZero
     iunfold rnLoopTokP
     iexists [], [[]], RaftState.init, W64 0
-    isplitl [Hdrv HrS Hcfg]
+    isplitl [Hdrv Hcfg]
     · iunfold rnDrv
       have h : rnDrvSt γ [] hsZero RaftState.init (W64 0) =
           NodeDriverState.init (memStorIface γ.ms) γ.key := by
         simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
-      iframe Hdrv HrS
+      iframe Hdrv
       iapply ((rnView_first γ ha).1 ⟨ht, hc0, hs0⟩ []).2
       unfold srvCfgView
       iexists ⟨0, Membership.simple γ.node.cfg⟩
@@ -252,12 +257,12 @@ theorem rnToks_of_start (γ : RNNames GF) (hpre : γ.pre = []) (ha : γ.a0 = [])
       exact hcfg
     isplitr
     · ipureintro; intro h; cases h
-    isplitl [Hwv Hwok]
+    isplitl [Hwv]
     · iunfold rnWalView
       have h0 : (⟨RaftState.init, hsZero, none, srvLE γ.srv []⟩ : WalView) = walView0 := by
         simp [srvLE, RNNames.srv, hpre, walView0]
       rw [h0]
-      iframe Hwv Hwok
+      iexact Hwv
     iframe Hrun Hprod Hcum
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
@@ -292,32 +297,31 @@ theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardState
     (letI := srvStor (GF := GF) γ.node;
       iprop(nodeDriver γ.nl γ.node.cl srvClusterN
           ⟨memStorIface γ.ms, srvLE γ.srv P, p, none, γ.key, S, StateFollower⟩ ∗
-        raftState γ.node.cl γ.id S ∗
         nodeConfig γ.nl γ.node.cl srvClusterN v)) ∗
       (letI := srvStor (GF := GF) γ.node; nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half) ∗
       sspscProducer γ.ap ([] : List toApply) ∗ sspscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [P] ∗ monoListIdxOwn γ.cum 0 P ∗
-      ghostVar γ.wal.view (1 : Qp).half (⟨S, p, none, srvLE γ.srv P⟩ : WalView) ∗ token γ.wal.ok ∗
+      rnWalViewK γ.walK ((⟨S, p, none, srvLE γ.srv P⟩ : WalView), none) ∗
       srvFrozenTerms γ.γs 1 P ⊢
       rnLoopTok γ P ∗ rnApplyTok γ P := by
   letI := srvStor (GF := GF) γ.node
-  iintro ⟨⟨Hdrv, HrS, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0, Hwv, Hwok, #Hfz⟩
+  iintro ⟨⟨Hdrv, Hcfg⟩, Hrun, Hprod, Hcons, Hcum, Hcum0, Hwv, #Hfz⟩
   ihave ⟨Hdrv, #Hdl⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
   ihave #HcL : isCommittedLogLb γ.node.cl (srvLE γ.srv P) $$ []
   · iapply deliveredLogLb_committed $$ Hdl
-  isplitl [Hdrv HrS Hcfg Hrun Hprod Hcum Hwv Hwok]
+  isplitl [Hdrv Hcfg Hrun Hprod Hcum Hwv]
   · iunfold rnLoopTok
     isplitr
     · ipureintro; exact hs0
     iexists p
     iunfold rnLoopTokP
     iexists [], [P], S, StateFollower
-    isplitl [Hdrv HrS Hcfg]
+    isplitl [Hdrv Hcfg]
     · iunfold rnDrv
       have h : rnDrvSt γ P p S StateFollower =
           ⟨memStorIface γ.ms, srvLE γ.srv P, p, none, γ.key, S, StateFollower⟩ := rfl
       rw [h]
-      iframe Hdrv HrS
+      iframe Hdrv
       iunfold rnCfgAt
       iunfold rnView
       iunfold srvCfgView
@@ -328,9 +332,9 @@ theorem rnToks_of_restart (γ : RNNames GF) (P : List EntryModel) (p : HardState
       exact hcfg
     isplitr
     · ipureintro; intro h; cases h
-    isplitl [Hwv Hwok]
+    isplitl [Hwv]
     · iunfold rnWalView
-      iframe Hwv Hwok
+      iexact Hwv
     iframe Hrun Hprod Hcum
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
@@ -732,7 +736,7 @@ to (which takes the server's names and raft invariant in `rnEnvOk`). -/
 abbrev NodeStartSpec : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (ν : WalNames GF)
+    (hw : WalH GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
@@ -748,7 +752,7 @@ abbrev NodeStartSpec : Prop :=
         -- `rnEnvOk` ties the names.)
         "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧
           ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧ γr.vs = ps ∧
-          wal = ν.h.w ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
+          wal = hw.w ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
           -- (2026-11-09, Q8 stage 0) the cluster untraced (`srvClusterOk`'s)
           Cluster.trace γr.cl = none⌝ ∗
         -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode` logs through it)
@@ -780,16 +784,16 @@ abbrev NodeStartSpec : Prop :=
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
         "#Hssi" ∷ snap.isSnapshotter ss sd ∗
-        -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
-        -- loop's view at the start and its token
-        "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
-        "Hwok" ∷ token ν.ok }}
+        -- (P5, 2026-11-25: until then the WAL's durability `rnDurInv` allocated by the caller,
+        -- `wal.bootOk_start`) the open WAL's fresh records (`wal.bootOk_startK`): the crash-aware
+        -- durability is allocated in `bootstrappedRaft.newRaftNode`, once the node is started
+        "Hwrec" ∷ walRecsH hw walFresh [] true }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧ γw.snap0 = 0 ∧
+            γw.wal.h = hw ∧ γw.walK.sd = (fun _ => iprop(True)) ∧ γw.ss = ss ∧ γw.a0 = [] ∧ γw.snap0 = 0 ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
@@ -832,7 +836,9 @@ abbrev NodeStartSpec : Prop :=
           srvAttachedMem bv.storage' γs γr.cl γw.key E.γr.cursor γw.nl γw.snap0 ∗
           memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
           -- (2026-11-04, R2b-3d) the claim on the loop's stop escrow, kept for the server's stop
-          rnStopClaim γw }}
+          rnStopClaim γw ∗
+          -- (P5) the crash-aware durability and the stop's and the apply thread's WAL tokens
+          rnDurInvK γw.node γw.id γw.walK γw.wal.h ∗ token γw.wal.stop ∗ token γw.wal.app }}
 
 
 /-- (restart S3 item 8, D5, 2026-11-11) **The composition's statement at a restart** (beside
@@ -852,7 +858,7 @@ for `rnRestartOk`'s restart disjunct and `replaySeed_facts` (d6 T4 round 4, item
 abbrev NodeStartSpecR : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (ν : WalNames GF) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
+    (hw : WalH GF) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
     (σ : StorContents) (cs : ConfStateM) (S : RaftState) (m : Membership) (A₀ : List EntryModel),
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
@@ -862,7 +868,7 @@ abbrev NodeStartSpecR : Prop :=
         -- `srvCfgOk`), the backend's consistent index between the records' base and commit, the
         -- bootstrap log within the commit, the records holding `S`, the snapshot record's term the
         -- base's, the backend's conf state the voters' (D4, S6's) within raft's bounds
-        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧
+        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ wal = hw.w ∧
           receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧ W64 0 ∉ γr.cfg ∧ GMap.size γr.cfg < 2 ^ 62 ∧
           σ.b ≤ A₀.length ∧ A₀.length ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧ StorageHolds S σ ∧
           (∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term') ∧
@@ -894,17 +900,19 @@ abbrev NodeStartSpecR : Prop :=
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
         "#Hssi" ∷ snap.isSnapshotter ss sd ∗
-        -- the WAL's durability at the restart's view (`rnDur_alloc_view`)
-        "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗
-        "Hwview" ∷ ghostVar ν.view (1 : Qp).half
-          (⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ : WalView) ∗
-        "Hwok" ∷ token ν.ok }}
+        -- (P5, 2026-11-25: until then the WAL's durability `rnDurInv` allocated by the caller at the
+        -- restart's view) the restart's handover of the WAL (`rnRestartWal`), the records within the
+        -- restart's view `⟨S, σ.hs, none, P⟩` and `P` committed: the crash-aware durability is
+        -- allocated in `bootstrappedRaft.newRaftNode` (the isolated restart step, `rnRestartAllocK.law`)
+        "Hwrec" ∷ rnRestartWal hw σ ∗
+        "%Hwvok" ∷ ⌜ViewOk ⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ σ⌝ ∗
+        "#HP" ∷ isCommittedLogLb γr.cl (srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)) }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
+            γw.wal.h = hw ∧ γw.walK.sd = (fun _ => iprop(True)) ∧ γw.ss = ss ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
             γw.snap0 = σ.b ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
@@ -933,7 +941,9 @@ abbrev NodeStartSpecR : Prop :=
           -- (restart S6 B2, 2026-11-14) the storage's snapshot not yet opened for writes, the WAL's
           -- (which `run`'s `Snapshot()` answers: `restart_snapOnceR`)
           memSnapNone γs (walSnapCS σ cs) ∗
-          rnStopClaim γw }}
+          rnStopClaim γw ∗
+          -- (P5) the crash-aware durability and the stop's and the apply thread's WAL tokens
+          rnDurInvK γw.node γw.id γw.walK γw.wal.h ∗ token γw.wal.stop ∗ token γw.wal.app }}
 
 end compose
 

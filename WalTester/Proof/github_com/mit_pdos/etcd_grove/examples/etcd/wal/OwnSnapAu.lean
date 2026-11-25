@@ -36,12 +36,12 @@ theorem tInv_releaseAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (c1 :
     (hok : tCandOk o1 c1 (tReleaseD d a)) (hH : d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ true))
     (hin : i < n) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ o1 none ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o1 c1) ∗
-      WalFs.walNamed (W := W) (tWalDir e.area) ⊢
-      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' ∗
+      WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 (tCandMark o1 c1) ∗
+      WalFs.walNamed (W := W) (tWalDir e.area) 0 ⊢
+      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 d' ∗
             ⌜(∃ al, d'.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n⌝ }>
           @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.area)
+        <{ WalFs.walDiskAtI (W := W) (tWalDir e.area) 0
             { d' with unl := max d'.unl (walReleasePos (d'.H.map WalOpG.toM) a) },
           COMM ⌜d' = d⌝ ∗ tWalOwn γ (some (tReleaseD d a)) ∗ tOrOwn γ o1 none }> := by
   iintro ⟨#Hinv, Hwo, Hoo, #Hsl, #Hnm⟩
@@ -61,7 +61,7 @@ theorem tInv_releaseAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (c1 :
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  unfold WalFs.walDiskAt
+  unfold WalFs.walDiskAtI
   iexists d
   iframe Hwd
   isplitr

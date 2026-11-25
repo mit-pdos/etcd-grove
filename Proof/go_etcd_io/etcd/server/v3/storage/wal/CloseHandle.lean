@@ -57,7 +57,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 (`emp` for `Create`'s cleanup, `WAL.Close.spec` (state `unnamed`)). -/
 def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
-    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir)
+    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir h.inc)
     (nf : Option GoString := none) :
     IProp GF :=
   letI := walAllG (W := W)
@@ -88,7 +88,7 @@ def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j 
     fileutil.lockedFile lt f ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    walOpenW (W := W) w dir ∗
+    walOpenWI (W := W) w dir h.inc ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
       ((h.rest = 0 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) ∧
         walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) ∧
@@ -116,7 +116,7 @@ written) and `TailMetaS m bs` (synced: `lo = size = hi`, every byte durable) giv
 def WalCloseLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
   ∀ (w : Loc) (dir : GoString) (γ γt : GName) (ino j : Ino) (X : List GoString) (hj : NamesH)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (m : OsMeta)
-    (bs : List ByteG) (b b' : GoString) (Q : WalDur → IProp GF),
+    (bs : List ByteG) (b b' : GoString) (Q : WalDur → IProp GF) (i : Nat),
   TailMetaS m bs → wr = (tailStream Mr H md cuts).length → b ∈ walTmps → b' ∈ walTmps →
   ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
     walTailKey (W := W) dir γ -∗ tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
@@ -125,11 +125,11 @@ def WalCloseLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoS
     tmpClaim (hG := ⟨G, L⟩) j b -∗ tmpClaim (hG := ⟨G, L⟩) j b' -∗
     walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
     walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗ walNamesFrag (W := W) none -∗
-    walOpenW (W := W) w dir -∗ walPurgeW (W := W) w dir -∗ walSyncedLb (W := W) dir H.length -∗
-    (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d }> @ walAuMask, ∅
-      <{ walDiskAt (W := W) dir d, COMM Q d }>) ={⊤}=∗
+    walOpenWI (W := W) w dir i -∗ walPurgeW (W := W) w dir -∗ walSyncedLb (W := W) dir i H.length -∗
+    (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir i d }> @ walAuMask, ∅
+      <{ walDiskAtI (W := W) dir i d, COMM Q d }>) ={⊤}=∗
     notCrashed (hC := L.goose_crashGS) ∗
-      ∃ d, Q d ∗ walSyncedLb (W := W) dir d.H.length ∗ walUnlockedTok (W := W)
+      ∃ d, Q d ∗ walSyncedLb (W := W) dir i d.H.length ∗ walUnlockedTok (W := W)
 
 end law
 

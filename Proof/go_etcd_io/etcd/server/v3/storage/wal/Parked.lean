@@ -300,6 +300,21 @@ theorem walParked_unlock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
   iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
+/-- `walParked_unlockX` keeping the incarnations' quarter. -/
+theorem walParked_unlockXI (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
+    (I : GMap GoString Nat) :
+    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walLockedTokI (W := W) I -∗ walOutFrag (W := W) WalOut.empty -∗
+      walTailsFrag (W := W) ∅ ==∗
+      walParked (L := L) (W := W) Ls cl F ∗ walUnlockedTokXI (W := W) I := by
+  unfold walParked
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Hl Ho Htf
+  imod walLockedTokI_unlockXI (W := W) b I $$ Hpa Hl Ho Htf with ⟨-, Hpa, Hu⟩
+  imodintro
+  iframe Hu
+  iexists true, o
+  iframe Hpa Hoa Hs Hc Ht Hw
+  ipureintro; exact hp
+
 /-- `walParked_unlock` without the names fragment (`walUnlockedTokX`). -/
 theorem walParked_unlockX (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl) :
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walLockedTok (W := W) -∗ walOutFrag (W := W) WalOut.empty -∗

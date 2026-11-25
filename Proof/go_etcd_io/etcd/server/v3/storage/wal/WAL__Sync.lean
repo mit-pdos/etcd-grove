@@ -55,12 +55,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
   imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hlocked Hlc1
   imodintro
-  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHdl_open Sio P Mr w dir γ.inc $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom, %hinc⟩
   by_cases hc : walCov Sio
   · -- every inode covered: no error, the room kept
     iapply (wp_notCrashed_acc _ _ rfl)
     iintro Hnc
-    imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
+    imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n γ.inc hinc TailMetaW $$ Harea Hnc Hh Hn
       with ⟨Hnc, Hh, %hn⟩
     imodintro
     iframe Hnc
@@ -73,7 +73,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     · iframe Hpers Hheld
       iapply walHdl_close Sio P Mr w dir
         { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
-        hD hmd (fun _ => by simp only [List.length_append, List.length_nil]; have := hroom hc; omega)
+        hD hmd (fun _ => by simp only [List.length_append, List.length_nil]; have := hroom hc; omega) _ hinc
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
       iframe Hh Hr
     imodintro
@@ -85,11 +85,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     iframe Hw
     isplitr
     · ipureintro; exact Herr
-    · iapply (WalFs.walSyncedLb_mono (W := W) dir h.H.length n hn) $$ Hs
+    · rw [← hinc]; iapply (WalFs.walSyncedLb_mono (W := W) dir h.inc h.H.length n hn) $$ Hs
   · -- some inode not covered: `sync.spec`, its error arm with the whole share
     iapply (wp_notCrashed_acc _ _ rfl)
     iintro Hnc
-    imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
+    imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n γ.inc hinc TailMetaW $$ Harea Hnc Hh Hn
       with ⟨Hnc, Hh, %hn⟩
     imodintro
     iframe Hnc
@@ -102,7 +102,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
       · iframe Hpers Hheld
         iapply walHdl_close Sio P Mr w dir
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
-          hD hmd (fun h => absurd h hc)
+          hD hmd (fun h => absurd h hc) _ hinc
         ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
         iframe Hh Hr
       imodintro
@@ -114,7 +114,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
       iframe Hw
       isplitr
       · ipureintro; exact Herr
-      · iapply (WalFs.walSyncedLb_mono (W := W) dir h.H.length n hn) $$ Hs
+      · rw [← hinc]; iapply (WalFs.walSyncedLb_mono (W := W) dir h.inc h.H.length n hn) $$ Hs
     · have hq1 : q = 1 := hq.resolve_left hc
       subst hq1
       iapply fupd_wp

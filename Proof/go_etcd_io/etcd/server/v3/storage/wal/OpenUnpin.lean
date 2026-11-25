@@ -157,14 +157,14 @@ the holder's empty half of the tails' authority, its record of what it took (the
 directory's claim `(j, .except X)`, the pipeline names of `dir` in write mode), the exact halves of `S`
 (each of its bytes' size, the inodes distinct), the claim's half, the pipeline names' claims in write
 mode and the WAL's key: the contents at `s` and the free lock token. -/
-theorem walInvBody_unpinX (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+theorem walInvBody_unpinXI (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (S : List SegG)
-    (write : Bool) (hS : ∀ g ∈ S, g.om.size = g.bs.length) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗
+    (write : Bool) (hS : ∀ g ∈ S, g.om.size = g.bs.length) (I : GMap GoString Nat) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTokI (W := W) I -∗ walTailsFrag (W := W) ∅ -∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ -∗
       ([∗list] g ∈ S, segRes (L := L) g) -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) -∗ walDirKey (W := W) dir j X ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTokX (W := W) := by
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTokXI (W := W) I := by
   iintro Hb Hl Htf Ho HS Hn Ht #Hk
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
@@ -200,24 +200,24 @@ theorem walInvBody_unpinX (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   have hkill : ∀ (T : List GoString), ⊢ walParked (L := L) (W := W) Ls (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) ∅ -∗
       walOutFrag (W := W) (WalOut.delClaim ⟨[], [(lay'.j, NameSet.except X)], T⟩
         ((lay'.j, NameSet.except X, hj).1, (lay'.j, NameSet.except X, hj).2.1)) -∗
-      ⌜T = []⌝ -∗ walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ ==∗
+      ⌜T = []⌝ -∗ walLockedTokI (W := W) I -∗ walTailsFrag (W := W) ∅ ==∗
       walParked (L := L) (W := W) Ls (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) ∅ ∗
-        walUnlockedTokX (W := W) := by
+        walUnlockedTokXI (W := W) I := by
     intro T
     iintro Hpk Ho %hT Hl Htf
     subst hT
-    iapply walParked_unlockX (L := L) (W := W) Ls _ ∅ $$ Hpk Hl [Ho] Htf
+    iapply walParked_unlockXI (L := L) (W := W) Ls _ ∅ I $$ Hpk Hl [Ho] Htf
     iapply walOutFrag_eq' (W := W) $$ Ho
     ipureintro; simp [WalOut.delClaim, WalOut.empty]
   have hclose : ⊢ walParked (L := L) (W := W) Ls (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) ∅ -∗
-      walUnlockedTokX (W := W) -∗ walGhost (W := W) s -∗
+      walUnlockedTokXI (W := W) I -∗ walGhost (W := W) s -∗
       osClaims L ((l1 ++ (lay'.j, NameSet.except X, hj) :: l2).map
         (fun c => (c, DFrac.own (1 : Qp).half))) -∗ osCommitLb (L := L) n -∗
       ([∗list] g ∈ segsAll Ls, segRes (L := L) g) -∗
       (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) CR⌝) -∗
       walTailsRes (W := W) C Mr s Ls ∅ -∗ walDirKeysAuth (W := W) K -∗ walCutAuth (W := W) cp -∗
       walNamesRes (L := L) (W := W) R jr r Ls s -∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTokX (W := W) := by
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTokXI (W := W) I := by
     rw [hcl] at HDK HAt HNm Hab
     iintro Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca HN
     iframe Hu
@@ -259,6 +259,22 @@ theorem walInvBody_unpinX (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     · ipureintro; rfl
     imodintro
     iapply hclose $$ Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca Hnms
+
+theorem walInvBody_unpinX (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (S : List SegG)
+    (write : Bool) (hS : ∀ g ∈ S, g.om.size = g.bs.length) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗
+      walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ -∗
+      ([∗list] g ∈ S, segRes (L := L) g) -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
+      (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) -∗ walDirKey (W := W) dir j X ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTokX (W := W) := by
+  iintro Hb Hl Htf Ho HS Hn Ht #Hk
+  unfold walLockedTok
+  icases Hl with ⟨%I, Hl⟩
+  imod walInvBody_unpinXI C Mr R jr r s dir j X hj S write hS I $$ Hb Hl Htf Ho HS Hn Ht Hk with ⟨Hb, Hu⟩
+  imodintro
+  iframe Hb
+  iapply walUnlockedTokXI_X $$ Hu
 
 /-- **`Open`'s put-back** (see the file header): at the invariant's contents at any `s`, the lock,
 the holder's empty half of the tails' authority, its record of what it took (the segments `S`, the WAL

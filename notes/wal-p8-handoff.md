@@ -93,7 +93,10 @@ conditions (`HistReadOk`, commit (3)).
 
 `HistReadOk Hs n := walIdxLe (2^61-1) Hs ∧ ∀ j, n ≤ j → j ≤ |Hs| → walCommitLe (Hs.take j)`, not
 `walCommitLeFrom walFresh Hs`: a received snapshot's `SaveSnap` precedes the `Save` that covers it, so between
-the two the eager fold has `b > commit` and `walCommitLeFrom` fails, though every prefix's read is fine. T2
+the two the eager fold has `b > commit`, so `walCommitLe_of_fold` (whose premise is the fold's `b ≤ commit`)
+cannot turn the eager form into the reader's there, though every prefix's read is fine. (Corrected by P5,
+2026-11-25: `walCommitLeFrom` itself, `commit ≤ last` along the eager fold, does not fail there: every `SaveSnap`
+keeps it, `walSaveSnap_commitLe`, `walCommitLeFrom_snoc_snap`; what fails is `b ≤ commit`.) T2
 must keep `HistReadOk` in its step proofs (each `Save`/`SaveSnap` appends; the crash point only grows) and
 prove it at allocation (`rnDurK_alloc.law` takes it as a premise).
 

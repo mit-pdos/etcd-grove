@@ -52,19 +52,19 @@ abbrev member.save.spec : Prop :=
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
       oracleRep v o ∗ tOrOwn γ os none ∗ tWalOwn γ (some d) ∗ esl ↦*□ es ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
-      walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
-      WalFs.walNamed (W := W) (tWalDir e.area) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
-      WalFs.walLenLb (W := W) w (tWalDir e.area) d.H.length }}
+      walOpenWFI (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) 0 ∗
+      WalFs.walNamed (W := W) (tWalDir e.area) 0 ∗
+      WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 (tCandMark o c) ∗
+      WalFs.walLenLb (W := W) w (tWalDir e.area) 0 d.H.length }}
     (App (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"save")) (Val #h)) (Val #esl))
   {{ (b : Bool), RET #b; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' (tSaveO o h es) ∗ tWalOwn γ (some d') ∗
-        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ∗
+        walOpenWFI (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) 0 ∗
         ⌜tMemOk (tSaveO o h es) c d' ∧ tMemHs (tSaveO o h es) d'⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark (tSaveO o h es) c) ∗
-        WalFs.walLenLb (W := W) w (tWalDir e.area) d'.H.length
+        WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 (tCandMark (tSaveO o h es) c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.area) 0 d'.H.length
       else True }}
 
 end spec

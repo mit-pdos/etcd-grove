@@ -45,9 +45,11 @@ theorem member.close.wp_proof
   -- the member's handle, shared (the tester assumes nothing of I/O errors: `ioNone`); `Close` takes the
   -- whole share
   iapply fupd_wp
-  imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-    with ⟨%γs, Hws⟩
-  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+  imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ 0 $$ [Hwf]
+    with ⟨%γs, Hws, %hγ0⟩
+  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ 0 walCov_ioNone $$ Hwf
+  rcases γs with ⟨γs1, γs2, γsi⟩; dsimp only at hγ0; subst hγ0
+  let γs : WalShN := ⟨γs1, γs2, 0⟩
   imodintro
   wp_apply (wp_Close W e.R e.jr (e.area) w (tWalDir e.area) (.shared γs)
       (fun d' => iprop(⌜d' = d⌝ ∗ tWalOwn γ (some d)))) $$ [Hws Hpw Hwo]

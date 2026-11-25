@@ -124,7 +124,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 theorem tRelI_snap1 (W : WalGS GF) (area : GoString) (o : TOracle) (c : TCand) (d : WalDur)
     (idx term : w64) (hcr : o.created = true) (hc0 : c ∈ o.cands)
     (hc : tCandOk (tSnapO1 o idx term) c d) (hw : tCheckWf (tSnapO1 o idx term)) :
-    WalFs.walSyncedLb (W := W) (tWalDir area) (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area) ⊢
+    WalFs.walSyncedLb (W := W) (tWalDir area) 0 (tCandMark o c) ∗ WalFs.walNamed (W := W) (tWalDir area) 0 ⊢
       tRelI (W := W) (GF := GF) area (tSnapO1 o idx term) (some d) := by
   iintro ⟨#Hs, #Hn⟩
   unfold tRelI
@@ -142,11 +142,11 @@ theorem tInv_snapAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
     (idx term : w64) (hok : tMemOk o c d) (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63)
     (hs : tSim ((tCandHist (tSnapO1 o idx term) c).map absOp) (tCandMark o c)) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ (tSnapO1 o idx term) none ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.area) (tCandMark o c) ∗
-      WalFs.walNamed (W := W) (tWalDir e.area) ⊢
-      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' ∗ ⌜d'.sized = true⌝ }>
+      WalFs.walSyncedLb (W := W) (tWalDir e.area) 0 (tCandMark o c) ∗
+      WalFs.walNamed (W := W) (tWalDir e.area) 0 ⊢
+      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 d' ∗ ⌜d'.sized = true⌝ }>
           @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.area)
+        <{ WalFs.walDiskAtI (W := W) (tWalDir e.area) 0
             { d' with H := d'.H ++ [WalOpG.snap (absSnapMd idx term) true] },
           COMM ⌜d' = d⌝ ∗ tWalOwn γ (some (tSnapD d idx term)) ∗ tOrOwn γ (tSnapO1 o idx term) none }> := by
   iintro ⟨#Hinv, Hwo, Hoo, #Hsl, #Hnm⟩
@@ -164,7 +164,7 @@ theorem tInv_snapAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  unfold WalFs.walDiskAt
+  unfold WalFs.walDiskAtI
   iexists d
   iframe Hwd
   isplitr

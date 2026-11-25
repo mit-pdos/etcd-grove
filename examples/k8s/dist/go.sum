@@ -104,6 +104,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 h1:6fotK7otjonDflCTK0BCfls4SPy3NcCVb5dqqmbRknE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75/go.mod h1:KO6IkyS8Y3j8OdNO85qEYBsRPuteD+YciPomcXdrMnk=
+github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339 h1:bxRn1j3ivHlGeVBR5tFCOudicfAVj/s3yf/Pd7OQDt0=
+github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
 github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23 h1:4ZtCM9krEnL599tmD9RvTGxbedgdpDMGQMpwUH4pdXg=
 github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
 github.com/upamanyus/etcd/api/v3 v3.0.0-20261125011925-e94f33b50d04 h1:ly9VCdl9dlgNSeMcdFK3xBa38DprycN18jZcFfim7Hc=
@@ -200,6 +202,10 @@ gopkg.in/natefinch/lumberjack.v2 v2.2.1 h1:bBRl1b0OH9s/DuPhuXpNl+VtCaJXFZ5/uEFST
 gopkg.in/natefinch/lumberjack.v2 v2.2.1/go.mod h1:YD8tP3GAjkrDg1eZH7EGmyESg/lsYskCTPBJVb9jqSc=
 k8s.io/api v0.0.0-20261020174351-067c983ccbc3 h1:uxlRqurpTyIL+smWHzrfW0Gjd8DKwvqSQ9LfWMy2LR4=
 k8s.io/api v0.0.0-20261020174351-067c983ccbc3/go.mod h1:gp9MZW9BMSX8iPs+0jMJNgCuGP2wj0fXI4rIjsGY95I=
+k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c h1:vMYthi72CAjqFQyx0XPaTsOA0jHUhYEuIWrNS2sFYpo=
+k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c/go.mod h1:8Swk04FT3w+MMuMDJvUSHHAAQPBUDercCPMrqdQYjWs=
+k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038 h1:PuRsXge9uLbjajwi3HvmZkjTnAcN7Gvc3LIeVMLo270=
+k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038/go.mod h1:al+E1XyH04DMzkgxfAwWHqBAU3vGa0V/1cJFIzOzPaU=
 k8s.io/client-go v0.0.0-20261021054439-569675c57fa3 h1:NEQMVToW+CAwlr1s+PuUMeFrLakPVZjtnWQpcnbk9UU=
 k8s.io/client-go v0.0.0-20261021054439-569675c57fa3/go.mod h1:pM5ijp3feQzds2X1A8ZyAYAPJB1/k6JVSfBU0xz99Vk=
 k8s.io/component-base v0.0.0-20261018214756-cd2c1afd246a h1:IwUlG8UEBzOFXHn/SSWECbcqVief5iL8CQQ7gbe2+qc=

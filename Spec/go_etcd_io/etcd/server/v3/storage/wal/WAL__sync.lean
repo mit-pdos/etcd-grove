@@ -37,7 +37,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (P : WalPbIn GF) (Mr 
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } ∗
-          WalFs.walSyncedLb dir h.H.length) ∨
+          WalFs.walSyncedLb dir h.inc h.H.length) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 /-- **`sync.spec` while the pending bytes fit the tail's size** (`o0 + |out ++ pend| ≤ sz`): what
@@ -50,7 +50,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIn (P : WalPbIn GF) (M
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir { h with out := h.out ++ h.pend, pend := [] } ∗
-          WalFs.walSyncedLb dir h.H.length) ∨
+          WalFs.walSyncedLb dir h.inc h.H.length) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

@@ -11,7 +11,7 @@ module exposes the history, as the server reads it (`walSrvHist`), beside the re
 the two; the history's fold is the records (`walRecsH_fold`).
 
 The two durable facts the invariant also uses are the WAL's own: the synced lower bound
-`WalFs.walSyncedLb h.dir n` (persistent; `storage.Save.spec`'s post when the batch must sync) and the
+`WalFs.walSyncedLb h.dir h.γ.inc n` (persistent; `storage.Save.spec`'s post when the batch must sync) and the
 history's growth at each write, which the server's contract states over `walRecsH`
 (`InvWalCrash.lean`'s `walSaveH.law`, `walSaveSnapH.law`).
 -/
@@ -41,7 +41,7 @@ timeless): `walRecs h σ sized` with its history named. -/
 @[no_expose] def walRecsH (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized : Bool := false) :
     IProp GF :=
   letI := h.W
-  iprop(∃ d : WalDur, WalFs.walDiskAt h.dir d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir ∗
+  iprop(∃ d : WalDur, WalFs.walDiskAtI h.dir h.γ.inc d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir h.γ.inc ∗
     ⌜walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ d.metadata = h.md ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H) ∧ walSrvHist d.H = Hs⌝)
 
@@ -82,6 +82,48 @@ theorem walRecsH_fold (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized : 
     ipureintro; exact hf
   · ipureintro; rw [← hf.2.2.2.2]; exact hf.1
 
+/-- (P5) **After `SaveSnap(m)`, the records start at or above `m`'s index** (`walRecs_saveSnap_baseLb`
+with the history kept). -/
+theorem walRecsH_saveSnap_baseLb (h : WalH GF) (σ : StorContents) (m : SnapshotMetadataM) (Hs : WalHist)
+    (sized : Bool) :
+    walRecsH (GF := GF) h (walSaveSnap σ m) Hs sized ⊢
+      walRecsH h (walSaveSnap σ m) Hs sized ∗ walBaseLb h (uint.nat m.Index') := by
+  unfold walRecsH
+  iintro ⟨%d, Hd, Ha, #Hn, %hf⟩
+  ihave #Hl := monoListLbOwn_get h.γh 1 d.H $$ Ha
+  isplitl [Hd Ha]
+  · iexists d
+    iframe Hd Ha Hn
+    ipureintro; exact hf
+  · have hle : uint.nat m.Index' ≤ (walSaveSnap σ m).b := by
+      obtain ⟨h1, h2⟩ := walSaveSnap_base_ge σ m
+      rcases h2 with h2 | h2 <;> omega
+    iapply walBaseLb_mono h (walSaveSnap σ m).b _ hle
+    unfold walBaseLb
+    iexists d.H
+    iframe Hl
+    ipureintro; exact ⟨_, hf.1, Nat.le_refl _⟩
+
+/-- (P5) **The empty prefix is synced** (the WAL's directory entry is durable, `walNamed`): the synced
+mark a first start's durability invariant is allocated at. -/
+theorem walRecsH_synced0 (h : WalH GF) (σ : StorContents) (Hs : WalHist) (sized : Bool) :
+    walRecsH (GF := GF) h σ Hs sized ⊢
+      walRecsH h σ Hs sized ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc 0) := by
+  letI := h.W
+  unfold walRecsH
+  iintro ⟨%d, Hd, Ha, #Hn, %hf⟩
+  isplitl [Hd Ha]
+  · iexists d; iframe Hd Ha Hn; ipureintro; exact hf
+  · iunfold WalFs.walNamed at Hn
+    iunfold WalFs.walSyncedLb
+    icases Hn with ⟨%s, %I, #Hp, %hs⟩
+    iexists s, I
+    iframe Hp
+    ipureintro
+    rcases hs with ⟨hi, d', hd, -⟩ | hlt
+    · exact Or.inl ⟨hi, d', hd, Nat.zero_le _⟩
+    · exact Or.inr hlt
+
 /-- **The records across a crash** (P8, 2026-11-25; T5's `walFilesC_crash` on the records with their
 history): from the crash view (`walCrashWal`, whole operations since P8), the records `σ` at the
 history `Hs` (given back), their synced mark `n`, the new generation's lock token and the WAL
@@ -91,7 +133,7 @@ member `id` of the cluster `cid` the WAL's metadata names. What T2's crash law's
 theorem walRecsH_crash (h : WalH GF) (W' : WalFs.WalGS GF) (σ : StorContents) (Hs : WalHist) (n : Nat)
     (id cid : w64) (hmd : h.md = walMetaEnc id cid) :
     letI := h.ext; letI := h.semOk; letI := h.has
-    WalFs.walCrashWal h.W W' ∗ walRecsH h σ Hs true ∗ WalFs.walSyncedLb (W := h.W) h.dir n ∗
+    WalFs.walCrashWal h.W W' ∗ walRecsH h σ Hs true ∗ WalFs.walSyncedLb (W := h.W) h.dir h.γ.inc n ∗
       WalFs.walUnlockedTok (W := W') ∗ Fs.osCallPerm (Fs.callKey h.R h.dir) (1 : Qp).half ⊢
       walRecsH h σ Hs true ∗ ∃ j : Nat, ⌜n ≤ j ∧ j ≤ Hs.length⌝ ∗
         ∀ σ' : StorContents, ⌜walRead (Hs.take j) = some σ'⌝ -∗
@@ -100,7 +142,7 @@ theorem walRecsH_crash (h : WalH GF) (W' : WalFs.WalGS GF) (σ : StorContents) (
   unfold walRecsH
   iintro ⟨Hcs, ⟨%d, Hd, Ha, #Hn, %hf⟩, #Hs, Hu, Hc⟩
   obtain ⟨hfold, hm, hsz, hes, hH⟩ := hf
-  icases walFilesC_crash h.toWalA W' d n id cid (by rw [hm]; exact hmd) hsz (hes rfl) $$
+  icases walFilesC_crash h.toWalA W' h.γ.inc d n id cid (by rw [hm]; exact hmd) hsz (hes rfl) $$
     [Hcs Hd Hs Hn Hu Hc] with ⟨Hd, %j, %hj, Hf⟩
   · iframe Hcs Hd Hs Hn Hu Hc
   isplitl [Hd Ha]
@@ -113,6 +155,267 @@ theorem walRecsH_crash (h : WalH GF) (W' : WalFs.WalGS GF) (σ : StorContents) (
   iintro %σ' %hr
   iapply Hf
   ipureintro; rw [← hH] at hr; exact hr
+
+/-- (P5) **`Save`'s update of the records with their history, as layer 1's** (`walRecs_saveAU` with the
+history: the caller's update commits at the history `walSrvHist d.H` the `Save` appended to). -/
+theorem walRecsH_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : List EntryC)
+    (Q : WalHist → IProp GF)
+    (hc : ∀ c ∈ cs, ufWire entrySchema c.uf ∧ entrySize c < 2 ^ 48 ∧ (sized = true → entSizeOk c)) :
+    (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
+            ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+        @ WalFs.walAuMask, ∅
+        <{ walRecsH h (walSave σ hs (cs.map EntryC.model)) (Hs ++ [WalOpG.save hs (cs.map EntryC.model)])
+            sized, COMM Q Hs }>) ⊢
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] },
+          COMM Q (walSrvHist d.H) }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %Hs, ⟨Hr, %hok⟩, Hcl⟩
+  unfold walRecsH
+  icases Hr with ⟨%d, Hd, Ha, #Hn, %hf⟩
+  obtain ⟨hf1, hf2, hf3, hf4, hH⟩ := hf
+  subst hH
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists d
+  iframe Hd
+  isplitr
+  · ipureintro; exact hf3
+  isplit
+  · iintro ⟨Hd, -⟩
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    isplitl [Hd Ha]
+    · iexists d
+      iframe Hd Ha Hn
+      ipureintro; exact ⟨hf1, hf2, hf3, hf4, rfl⟩
+    · ipureintro; exact hok
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    imod monoListAuthOwn_update_app [(WalOpG.save hs (cs.map walEntW)).toRaw] $$ Ha with ⟨Ha, -⟩
+    iapply Hcommit
+    iexists { d with H := d.H ++ [(WalOpG.save hs (cs.map walEntW)).toRaw] }
+    iframe Hd Ha Hn
+    have hsh := walSrvHist_snoc_save d.H hs cs (fun c hcm => ⟨(hc c hcm).1, (hc c hcm).2.1⟩)
+    ipureintro
+    refine ⟨?_, hf2, hf3, ?_, hsh⟩
+    · show walFoldChkFrom walFresh (walSrvHist (d.H ++ _)) = _
+      rw [hsh]
+      exact walFoldChkFrom_snoc_save hf1 hok
+    · intro hsz hs' es' hmem e he
+      have hmem' : WalOpG.save hs' es' ∈ d.H.map WalOpG.toM ∨
+          WalOpG.save hs' es' = WalOpG.save hs (cs.map walEntW) := by
+        rw [List.map_append, List.mem_append, List.map_singleton, WalOpG.toM_toRaw,
+          List.mem_singleton] at hmem
+        exact hmem
+      rcases hmem' with hmem' | heq
+      · exact hf4 hsz hs' es' hmem' e he
+      · injection heq with h1 h2
+        subst h2
+        obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
+        exact ⟨c, rfl, (hc c hcm).2.2 hsz⟩
+
+/-- (P5) **`SaveSnap`'s update of the records with their history, as layer 1's** (`walRecs_saveSnapAU`
+with the history). -/
+theorem walRecsH_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM) (al : Bool)
+    (Q : WalHist → IProp GF) :
+    (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
+          ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }>
+        @ WalFs.walAuMask, ∅
+        <{ walRecsH h (walSaveSnap σ m) (Hs ++ [WalOpG.snap m al]) sized, COMM Q Hs }>) ⊢
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗ ⌜d.sized = true⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc { d with H := d.H ++ [WalOpG.snap m al] },
+          COMM Q (walSrvHist d.H) ∗ monoListLbOwn h.γh (d.H ++ [WalOpG.snap m al]) }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %Hs, ⟨Hr, %hok⟩, Hcl⟩
+  unfold walRecsH
+  icases Hr with ⟨%d, Hd, Ha, #Hn, %hf⟩
+  obtain ⟨hf1, hf2, hf3, hf4, hH⟩ := hf
+  subst hH
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists d
+  iframe Hd
+  isplitr
+  · ipureintro; exact hf3
+  isplit
+  · iintro ⟨Hd, -⟩
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    isplitl [Hd Ha]
+    · iexists d
+      iframe Hd Ha Hn
+      ipureintro; exact ⟨hf1, hf2, hf3, hf4, rfl⟩
+    · ipureintro; exact hok
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    imod monoListAuthOwn_update_app [WalOpG.snap m al] $$ Ha with ⟨Ha, #Hlb⟩
+    imod Hcommit $$ [Hd Ha] with HQ
+    · iexists { d with H := d.H ++ [WalOpG.snap m al] }
+      iframe Hd Ha Hn
+      ipureintro
+      refine ⟨?_, hf2, hf3, ?_, walSrvHist_snoc_snap _ _ _⟩
+      · show walFoldChkFrom walFresh (walSrvHist (d.H ++ _)) = _
+        rw [walSrvHist_snoc_snap]
+        exact walFoldChkFrom_snoc_snap hf1
+      · intro hsz hs' es' hmem e he
+        have hmem' : WalOpG.save hs' es' ∈ d.H.map WalOpG.toM ∨
+            WalOpG.save hs' es' = (WalOpG.snap m al : WalOpG WalEnt).toM := by
+          rw [List.map_append, List.mem_append, List.map_singleton, List.mem_singleton] at hmem
+          exact hmem
+        rcases hmem' with hmem' | heq
+        · exact hf4 hsz hs' es' hmem' e he
+        · cases heq
+    imodintro
+    iframe HQ Hlb
+
+/-- (P5) **An atomic update of the records, as one of the records with their history** (the history's
+op `o` appended; the caller's `Q` independent of the history): the history is read off the records
+(`walRecs_iff_H`) and forgotten again. -/
+theorem walRecs_au_toH (h : WalH GF) (sized : Bool) (P : StorContents → Prop)
+    (f : StorContents → StorContents) (o : WalOp) (E : CoPset) (Q : IProp GF) :
+    (AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗ ⌜P σ⌝ }> @ E, ∅ <{ walRecs h (f σ) sized, COMM Q }>) ⊢
+      AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗ ⌜P σ⌝ }> @ E, ∅
+        <{ walRecsH h (f σ) (Hs ++ [o]) sized, COMM Q }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, ⟨Hr, %hok⟩, Hcl⟩
+  icases (walRecs_iff_H h σ sized).1 $$ Hr with ⟨%Hs, Hr⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ, Hs
+  iframe Hr
+  isplitr
+  · ipureintro; exact hok
+  isplit
+  · iintro ⟨Hr, -⟩
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    isplitl [Hr]
+    · iapply walRecsH_walRecs; iexact Hr
+    · ipureintro; exact hok
+  · iintro Hr
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iapply walRecsH_walRecs; iexact Hr
+
+/-- (P5) **`Release`'s read of the records with their history** (`walRecs_releaseAU`'s): layer 1's lock
+update at the snapshot record the witness names, the records and their history unchanged. -/
+theorem walRecsH_releaseAU (h : WalH GF) (i : Nat) (m : SnapshotMetadataM) (Q : IProp GF) :
+    walSnapRec h i m ∗
+      (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+        <{ walRecsH h σ Hs s, COMM Q }>) ⊢
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d ∗
+          ⌜(∃ al, d.H[i]? = some (WalOpG.snap ⟨m.ConfState', m.Index', m.Term'⟩ al)) ∧ i < i + 1⌝ }>
+        @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc
+            { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }, COMM Q }> := by
+  iintro ⟨#Hw, Hau⟩
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %Hs, %s, Hr, Hcl⟩
+  unfold walRecsH
+  icases Hr with ⟨%d, Hd, Ha, #Hn, %hf⟩
+  iunfold walSnapRec at Hw
+  icases Hw with ⟨%H0, #Hl, -, %hi⟩
+  ihave %hv := mono_list_auth_lb_valid h.γh 1 d.H H0 $$ Ha Hl
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists d
+  iframe Hd
+  isplitr
+  · ipureintro
+    obtain ⟨al, hi⟩ := hi
+    exact ⟨⟨al, prefix_getElem? hv.2 hi⟩, Nat.lt_succ_self i⟩
+  isplit
+  · iintro ⟨Hd, -⟩
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    iexists d
+    iframe Hd Ha Hn
+    ipureintro; exact hf
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iexists { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) m.Index') }
+    iframe Hd Ha Hn
+    ipureintro; exact hf
+
+/-- (P5) **An identity update over the records turned into one over the records with their history**
+(the history unchanged). -/
+theorem walRecs_auId_toH (h : WalH GF) (E : CoPset) (Q : IProp GF) :
+    (AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ E, ∅ <{ walRecs h σ s, COMM Q }>) ⊢
+      AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ E, ∅
+        <{ walRecsH h σ Hs s, COMM Q }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %s, Hr, Hcl⟩
+  icases (walRecs_iff_H h σ s).1 $$ Hr with ⟨%Hs, Hr⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ, Hs, s
+  iframe Hr
+  isplit
+  · iintro Hr
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    iapply walRecsH_walRecs; iexact Hr
+  · iintro Hr
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iapply walRecsH_walRecs; iexact Hr
+
+/-- The server's history has the raw history's length. -/
+theorem walSrvHist_length (H : List (WalOpG WalEnt)) : (walSrvHist H).length = H.length := by
+  unfold walSrvHist; simp
+
+/-- (P5) **`Save` syncs on the server's history as on the raw one** (`walMustSync` reads only the
+hard states and whether the batch is empty; the server's view changes only the entries). -/
+theorem walMustSync_srv (H : List (WalOpG WalEnt)) (hs : HardStateM) (cs : List EntryC) :
+    walMustSync (walSrvHist H) hs (cs.map EntryC.model) →
+      walMustSync (H.map WalOpG.toM) hs (cs.map walEntW) := by
+  have hl : walLastHS (walSrvHist H) = walLastHS (H.map WalOpG.toM) := by
+    unfold walSrvHist
+    rw [walLastHS_eq, walLastHS_eq, List.foldl_map]
+    congr 1
+    funext p o
+    cases o <;> rfl
+  unfold walMustSync
+  rw [hl]
+  rintro (h | h)
+  · left; intro he; apply h; simp only [List.map_eq_nil_iff] at he ⊢; exact he
+  · right; exact h
 
 end defs
 

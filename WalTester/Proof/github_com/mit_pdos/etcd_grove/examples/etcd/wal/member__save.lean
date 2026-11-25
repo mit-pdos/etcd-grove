@@ -161,9 +161,11 @@ macro "save_main" : tactic => `(tactic| (
     · -- (fix 0009) a batch past `MaxSaveBatchBytes`: refused before anything is committed (`Save`'s update
       -- vacuous, its `Q` false), the member stops
       iapply fupd_wp
-      imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-        with ⟨%γs, Hws⟩
-      · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+      imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ 0 $$ [Hwf]
+        with ⟨%γs, Hws, %hγ0⟩
+      · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ 0 walCov_ioNone $$ Hwf
+      rcases γs with ⟨γs1, γs2, γsi⟩; dsimp only at hγ0; subst hγ0
+      let γs : WalShN := ⟨γs1, γs2, 0⟩
       imodintro
       wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
           (es.map absEnt) true (fun _ => iprop(False)) (fun hc => absurd hc walCov_ioNone)) $$ [Hws Hents]
@@ -200,9 +202,11 @@ macro "save_main" : tactic => `(tactic| (
     -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and
     -- taken back after it
     iapply fupd_wp
-    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-      with ⟨%γs, Hws⟩
-    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ 0 $$ [Hwf]
+      with ⟨%γs, Hws, %hγ0⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ 0 walCov_ioNone $$ Hwf
+    rcases γs with ⟨γs1, γs2, γsi⟩; dsimp only at hγ0; subst hγ0
+    let γs : WalShN := ⟨γs1, γs2, 0⟩
     imodintro
     wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
         (es.map absEnt) true _ (fun hc => absurd hc walCov_ioNone)) $$ [Hws Hents Hau]

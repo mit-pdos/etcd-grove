@@ -49,13 +49,13 @@ failed `Truncate` or `Fsync`"; plan §6 Q6): after a failed truncate or fsync of
 truncate's window stays open and the tail `Repair` registered cannot be unregistered; every client stops on
 `false` (the WAL tester's `restartRead`, etcd's `openWALFromSnapshot`: `lg.Fatal`). -/
 abbrev wal.Repair.spec (Mr : WalMarshal) : Prop :=
-  ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
+  ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF) (ic : Nat),
   InArea r dir nm → NameOk nm → cleanAbsPath r → PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
-        <{ WalFs.walDirIs dir o, COMM Q o }> }}
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir ic o }> @ walAuMask, ∅
+        <{ WalFs.walDirIsI dir ic o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
   {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
       (WalFs.walUnlockedTok ∨ ⌜b = false⌝) ∗ ∃ o : Option WalDur, Q o }}

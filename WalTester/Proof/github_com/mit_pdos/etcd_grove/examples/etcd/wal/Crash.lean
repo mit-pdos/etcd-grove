@@ -89,10 +89,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 /-- **The WAL directory's state across the crash, by phase**: the old copy kept, and a new one the
 oracle `o` still accounts for, in the new generation. -/
 theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Option WalDur) :
-    ⊢@{IProp GF} WalFs.walCrashWal W W' -∗ WalFs.walDirIs (W := W) (tWalDir area) od -∗
+    ⊢@{IProp GF} WalFs.walCrashWal W W' -∗ WalFs.walDirIsI (W := W) (tWalDir area) 0 od -∗
       tRelI (W := W) area o od -∗
-      WalFs.walDirIs (W := W) (tWalDir area) od ∗ ∃ od' : Option WalDur,
-        WalFs.walDirIs (W := W') (tWalDir area) od' ∗ tRelI (W := W') area o od' := by
+      WalFs.walDirIsI (W := W) (tWalDir area) 0 od ∗ ∃ od' : Option WalDur,
+        WalFs.walDirIsI (W := W') (tWalDir area) 0 od' ∗ tRelI (W := W') area o od' := by
   iintro Hcv Hw #HR
   cases hcr : o.created with
   | true =>
@@ -100,8 +100,8 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
     icases HR with ⟨%d, %c, %hdc, #Hsy, #Hnm⟩
     obtain ⟨hod, hcm, hok, hw⟩ := hdc
     subst hod
-    have hk := WalFs.walDiskAt_crash_keep W W' (tWalDir area) d (tCandMark o c)
-    unfold WalFs.walDiskAt at hk
+    have hk := WalFs.walDiskAt_crash_keep W W' (tWalDir area) 0 d (tCandMark o c)
+    unfold WalFs.walDiskAtI at hk
     icases hk $$ Hcv Hw Hsy Hnm with ⟨Hw, %I, %k, %hIk, Hw', #Hsy', #Hnm'⟩
     obtain ⟨hI, hk⟩ := hIk
     iframe Hw
@@ -115,16 +115,16 @@ theorem tWal_crash (W W' : WalGS GF) (area : GoString) (o : TOracle) (od : Optio
     icases HR with %hpre
     obtain ⟨hfresh, hnone | ⟨d, hod, hd⟩⟩ := hpre
     · subst hnone
-      have hk := WalFs.walAbsent_crash_keep W W' (tWalDir area)
-      unfold WalFs.walAbsent at hk
+      have hk := WalFs.walAbsent_crash_keep W W' (tWalDir area) 0
+      unfold WalFs.walAbsentI at hk
       icases hk $$ Hcv Hw with ⟨Hw, Hw'⟩
       iframe Hw
       iexists none
       iframe Hw'
       ipureintro; exact ⟨hfresh, Or.inl rfl⟩
     · subst hod
-      have hk := WalFs.walDiskAt_crash_any_keep0 W W' (tWalDir area) d
-      unfold WalFs.walDiskAt WalFs.walAbsent at hk
+      have hk := WalFs.walDiskAt_crash_any_keep0 W W' (tWalDir area) 0 d
+      unfold WalFs.walDiskAtI WalFs.walAbsentI at hk
       icases hk $$ Hcv Hw with ⟨Hw, Hcr⟩
       iframe Hw
       icases Hcr with (⟨Hw', %-⟩ | ⟨%I, %k, %hIk, Hw'⟩)

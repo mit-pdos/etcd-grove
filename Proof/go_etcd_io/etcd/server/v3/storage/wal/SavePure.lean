@@ -151,6 +151,7 @@ structure SaveSt (Mr : WalMarshal) (h : WalHS) (hs : HardStateM) (es : List Entr
   st : hc.st = h.st
   snapi : hc.snapi = h.snapi
   pc : hc.pc = h.pc
+  inc : hc.inc = h.inc
   enti0 : i = 0 → hc.enti = h.enti
   entiS : ∀ n e, i = n + 1 → es[n]? = some e → hc.enti = e.Index'
 
@@ -158,7 +159,7 @@ theorem SaveSt.init (Mr : WalMarshal) (h : WalHS) (hs : HardStateM) (es : List E
     SaveSt Mr h hs es 0
       { h with H := h.H ++ [(WalOpG.save hs es).toRaw],
                rest := (opDs Mr (wop h.H (WalOpG.save hs es).toRaw)).length } :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => rfl, fun _ _ h => by omega⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => rfl, fun _ _ h => by omega⟩
 
 /-- `saveEntry`'s premises for the `i`-th entry. -/
 theorem SaveSt.entryPre {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM} {i : Nat}
@@ -192,7 +193,7 @@ theorem SaveSt.step {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List E
     (out' pend' : List w8) (sz' : Nat) :
     SaveSt Mr h hs es (i + 1)
       { hc with rest := hc.rest - 1, out := out', pend := pend', enti := e.Index', sz := sz' } :=
-  ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest]; omega, s.st, s.snapi, s.pc, fun h => by omega,
+  ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest]; omega, s.st, s.snapi, s.pc, s.inc, fun h => by omega,
     fun n e' hn he' => by
       simp only
       have : n = i := by omega
@@ -239,12 +240,13 @@ structure SaveFin (h : WalHS) (hs : HardStateM) (es : List EntryM) (hc : WalHS) 
   rest : hc.rest = 0
   st : hc.st = walLastHS (hc.H.map WalOpG.toM)
   pc : hc.pc = h.pc
+  inc : hc.inc = h.inc
 
 theorem SaveSt.finEmpty {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM}
     {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hD : h.Done) (he : es = [] ∧ hsEmptyP hs) :
     SaveFin h hs es hc :=
   ⟨s.H, s.md, s.cuts, by rw [s.rest, opDs_save_length]; simp [he], by
-    rw [s.st, s.H, histMap_save, walLastHS_save, phsNext_empty _ _ he.2]; exact hD.2, s.pc⟩
+    rw [s.st, s.H, histMap_save, walLastHS_save, phsNext_empty _ _ he.2]; exact hD.2, s.pc, s.inc⟩
 
 theorem SaveSt.finState {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM}
     {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hne : ¬ (es = [] ∧ hsEmptyP hs))
@@ -255,7 +257,7 @@ theorem SaveSt.finState {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : Li
   ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest, opDs_save_length]; simp [hne], by
     simp only
     rw [s.H, histMap_save, walLastHS_save]
-    exact (phsNext_saveHS hne).symm, s.pc⟩
+    exact (phsNext_saveHS hne).symm, s.pc, s.inc⟩
 
 theorem SaveFin.done {h : WalHS} {hs : HardStateM} {es : List EntryM} {hc : WalHS}
     (s : SaveFin h hs es hc) : hc.Done := ⟨s.rest, s.st⟩

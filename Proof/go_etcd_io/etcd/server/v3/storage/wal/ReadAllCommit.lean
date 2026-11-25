@@ -52,6 +52,24 @@ theorem walInvBody_past (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   iexists Ls, cl, n, F
   iframe
 
+/-- A past state of the invariant's contents at a view's incarnation. -/
+theorem walInvBody_pastAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (i : Nat) (o : Option WalDur) :
+    ⊢ walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s -∗ walDirIsI (W := W) dir i o ==∗
+      walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗ walDirIsI (W := W) dir i o ∗
+        ∃ I, ⌜incOf I dir = i⌝ ∗ walPastI (W := W) (s, I) := by
+  iintro Hb Hv
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  icases walGhost_dirIsI s dir i o $$ Hg Hv with ⟨%I, %hI, Hg, Hv⟩
+  imod walGhostI_past s I $$ Hg with ⟨Hg, #Hp⟩
+  ihave Hg := walGhostI_ghost s I $$ Hg
+  imodintro
+  isplitl [Hg Hrest]
+  · iexists Ls, cl, n, F; iframe
+  iframe Hv
+  iexists I; iframe Hp; ipureintro; exact hI
+
 /-- **A fraction of a registered WAL's name claim**, lent by the invariant (see the file header; as
 `walInvBody_dirPath`, the claim itself in place of a path through it). -/
 theorem walInvBody_nameClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -133,25 +151,25 @@ theorem walInv_readCommit (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     (gs : List SegG)
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
     (hdrop : ∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name))
-    (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) :
+    (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) (ic : Nat) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none -∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) -∗
-      walOpening (W := W) w dir sn -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir d, COMM Q d }>) ={⊤}=∗
+      walOpening (W := W) w dir sn ic -∗
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir ic d, COMM Q d }>) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
       walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none ∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
         osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ∗
-      walOpening (W := W) w dir sn ∗
+      walOpening (W := W) w dir sn ic ∗
       ∃ (dc d : WalDur) (lay : WalLay) (kk : Nat) (s : AbsDiskState) (nm : GoString) (q : Qp)
         (hn : NamesH),
-        Q dc ∗ walPast (W := W) s ∗ walLenLb (W := W) w dir dc.H.length ∗
+        Q dc ∗ walPast (W := W) s ∗ walLenLb (W := W) w dir ic dc.H.length ∗
         osNames (L := hG.goose_localGS) jr (.only [nm]) (DFrac.own q) hn ∗
         osLogLb (L := hG.goose_localGS) hn.next ∗
         ⌜Pre dc ∧ walDurLe dc d ∧ s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧
@@ -172,8 +190,10 @@ theorem walInv_readCommit (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%dc, ⟨Hdc, %hpre⟩, Hucl⟩
-  unfold walDiskAt walDirIs
-  icases Hdc with ⟨%M, HM, %HMd⟩
+  unfold walDiskAtI
+  imod walInvBody_pastAt C Mr R jr r s dir ic (some dc) $$ Hb Hdc with ⟨Hb, Hdc, %I0, %hI0, #HpI⟩
+  unfold walDirIsI
+  icases Hdc with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   icases walInvBody_mapLe (L := hG.goose_localGS) C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
   obtain ⟨d0, hM0, hle0⟩ := (walOptLe_some_iff _ _).1 HMd
   have hle : walDurLe dc d := by
@@ -184,12 +204,13 @@ theorem walInv_readCommit (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     exact walDurLe_trans hle0 hle1
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-  imod Hcommit $$ [HM] with HQ
-  · iexists M; iframe HM; ipureintro; exact HMd
+  imod Hcommit $$ [HM HI] with HQ
+  · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
-  ihave ⟨Ho, #Hlen⟩ := walOpening_lenLb (W := W) w dir sn s d dc.H.length hrs.1
-    (by rw [hle.1]; exact Nat.le_refl _) $$ Ho Hp
+  ihave ⟨Ho, #Hlen⟩ := walOpening_lenLb (W := W) w dir sn ic s I0 d dc.H.length hrs.1
+    (by rw [hle.1]; exact Nat.le_refl _) $$ Ho HpI
+  rw [hI0]
   imod osNames_next (L := hG.goose_localGS) R jr _ _ hn CoPset.subseteq_top $$ Hsi Hnn
     with ⟨Hnn, #Hlb⟩
   imod osNames_coh (L := hG.goose_localGS) R jr _ _ hn CoPset.subseteq_top $$ Hsi Hnn
@@ -211,14 +232,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 
 /-- **An error exit of `ReadAll` after its commit** (see the file header). -/
 theorem readAll_failWpQ (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur)
+    (w : Loc) (dir : GoString) (sn : w64 × w64) {ic : Nat} (Q : WalDur → IProp GF) (dc : WalDur)
     (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) :
-    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn -∗ Q dc -∗
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn ic -∗ Q dc -∗
       (∀ d, Q d -∗ walReadFailed (W := W) w dir -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
   iintro #Hinv Ho HQ Hk
   iapply wp_notCrashed_acc _ _ h
   iintro Hnc
-  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
+  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn ic $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
   imodintro
   iframe Hnc
   iapply Hk $$ HQ Hf
@@ -226,16 +247,16 @@ theorem readAll_failWpQ (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
 /-- `readAll_failWpQ` with the read segments' range dropped (unit `locks`, session 5): the lent tail's
 exits (E6, E7), whose failed handle keeps the tail registered with no range. -/
 theorem readAll_failWpQL (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (sn : w64 × w64) (Q : WalDur → IProp GF) (dc : WalDur)
+    (w : Loc) (dir : GoString) (sn : w64 × w64) {ic : Nat} (Q : WalDur → IProp GF) (dc : WalDur)
     (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) (T : GMap GoString GName) (Lk : GMap GoString Nat) :
-    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn -∗ Q dc -∗
+    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn ic -∗ Q dc -∗
       walTailsFrag (W := W) T Lk -∗
       (∀ d, Q d -∗ walTailsFrag (W := W) T ∅ -∗ walReadFailed (W := W) w dir -∗ WP e {{ Φ }}) -∗
       WP e {{ Φ }} := by
   iintro #Hinv Ho HQ Htf Hk
   iapply wp_notCrashed_acc _ _ h
   iintro Hnc
-  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
+  imod walInv_failOpening (L := hG.goose_localGS) C Mr R jr r w dir sn ic $$ Hinv Hnc Ho with ⟨Hnc, Hf⟩
   imod walInv_lksDrop (L := hG.goose_localGS) C Mr R jr r T Lk $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imodintro
   iframe Hnc

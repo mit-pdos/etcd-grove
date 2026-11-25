@@ -331,7 +331,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_Dir : filepath.Dir.spec (GF := GF) (hG := hG))
     (wp_newFileEncoder : go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (W := W) P Mr := by
-  intro R jr rt dir nm w s qp qc Q hin hcl
+  intro R jr rt dir nm w s qp qc Q ic hin hcl
   wp_start as ⟨#Harea, Hp, Hperm, Hop, Hau⟩
   unfold walOpeningF
   icases Hop with ⟨Hgh, Hrh, Hph, %df, %dfd, %jd, %Xd, Hdff, Hdf, Hdfs, #Hkd⟩
@@ -379,7 +379,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
   imod walInv_dirPath walCodec Mr R jr rt dir j X $$ Hinv Hnc Hnf Hk with ⟨Hnc, Hnf, %qProbe, HprobePath⟩
   imod walInv_readCommitReg walCodec Mr R jr rt w dir s j X hj gs glr
-      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr _ Q
+      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr _ Q ic
       (fun dc' d' lay' kk' hp' hle' hab' hdrop' => by
         have h1 := absD_segStart_le_openPos hab' hdrop' hgne hghd
         simp only [histM, histN, walOpenPos_normH] at h1
@@ -387,7 +387,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
         rw [← hle'.2.1]
         exact Nat.le_trans h1 hp'.2)
       $$ Hinv Hsi Hnc Hk Hn Htf Hnf Hh Hgh Hau
-    with ⟨Hnc, Hn, Hnf, Hh, Hgh, %dc, %d0, %lay, %kk, %γt, %s1, %nmw, %qn, %hnw, HQ, #Hp1, #Hlen,
+    with ⟨Hnc, Hn, Hnf, Hh, Hgh, %dc, %d0, %lay, %kk, %γt, %s1, %nmw, %qn, %hnw, HQ, #Hp1, ⟨%I1, #HpI1, %hI1⟩, #Hlen,
       Hnw, #Hlbw, Htf, Htk, Htv, %hcm⟩
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
@@ -758,9 +758,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
           · iframe
           (try wp_auto)
+          icases walOpening_incLb w dir s ic $$ Hgh with ⟨Hgh, #Hil⟩
           icases walOpening_cutFrag w dir s $$ Hgh with ⟨Hcf, Hgh⟩
           wp_apply (wp_FdatasyncP R jr rt fl fdl _ dir γt gl.ino d0.H d0.metadata
-            lay.cuts lay.wr sz' gl.om.size hwrT) $$ [$HareaK $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
+            lay.cuts lay.wr sz' gl.om.size ic hwrT) $$ [$HareaK $Hil $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
           ihave Hgh := Hgh $$ Hcf
           icases Hz with (⟨%hef, Htw, #Hsyn⟩ | ⟨%hef, Htw⟩)
           rotate_left
@@ -912,11 +913,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           -- the WAL named (`walInv_namedBy`), the synced mark at the commit's state (`walInv_tailH`)
           iapply wp_notCrashed_acc _ _ rfl
           iintro Hnc
-          imod walInv_namedBy walCodec Mr R jr rt dir nmw s1 d0 (.only [nmw]) (DFrac.own qn) hnw j hnw.next
+          imod walInv_namedBy walCodec Mr R jr rt dir nmw s1 d0 (.only [nmw]) (DFrac.own qn) hnw j hnw.next ic w s I1 hI1
               hd1 hin1 (List.mem_singleton_self nmw) hcoh1 (Nat.le_refl _) hcur1
-            $$ Hinv Hsi Hnc Hp1 Hnw Hcmt Hnf with ⟨Hnc, Hnw, #Hnamed, Hnf⟩
-          imod walInv_tailH walCodec Mr R jr rt _ _ _ _ _ _ _ _ _ _ _ _ _ s1 $$ Hinv Hnc Hp1 Htw
-            with ⟨Hnc, Htw, %hHle⟩
+            $$ Hinv Hsi Hnc HpI1 Hgh Hnw Hcmt Hnf Hil with ⟨Hnc, Hgh, Hnw, #Hnamed, Hnf⟩
+          imod walInv_tailH walCodec Mr R jr rt _ _ _ _ _ _ _ _ _ _ _ _ _ s1 w s ic I1 hI1 $$ Hinv Hnc HpI1 Hgh Htw
+            with ⟨Hnc, Hgh, Htw, %hHle⟩
           ihave #Hsyn1 := walSyncedLb_le dir (n' := dc.H.length) (by rw [hle1.1]; exact hHle d0 hd1) $$ Hsyn
           iframe Hnc
           imodintro
@@ -1117,7 +1118,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               fun g hg => hgsz g (List.mem_of_mem_take hg)
             iapply wp_notCrashed_acc _ _ rfl
             iintro Hnc
-            imod walInv_appendOpening walCodec Mr R jr rt w dir s $$ Hinv Hnc Hgh with ⟨Hnc, Hopen, Hpw⟩
+            imod walInv_appendOpening walCodec Mr R jr rt w dir s ic $$ Hinv Hnc Hgh with ⟨Hnc, Hopen, Hpw⟩
             imod walInv_dirPath walCodec Mr R jr rt dir jd Xd $$ Hinv Hnc Hnf Hkd with ⟨Hnc, Hnf, %qd, Hpd⟩
             imod walInv_readGive walCodec Mr R jr rt dir γt
               ((d0.H, d0.metadata, lay.cuts, lay.wr + ([] : List w8).length, gl.ino, none) : TailG)
@@ -1217,8 +1218,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               apply hmdne
               apply List.eq_nil_of_length_eq_zero
               rw [hmdvl.1]; rfl
-            iapply (walOpenWF_iff P Mr w dir).2
-            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0 false)
+            iapply (walOpenWFI_iff P Mr w dir ic).2
+            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0 false ic)
             iframe Hr0
             isplitl
             · unfold walHandleIn
@@ -1277,7 +1278,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               · simp only [List.length_nil, Nat.add_zero]; exact hsz'.1
               · rw [hsz'.2]; exact hszb
             ipureintro
-            refine ⟨⟨rfl, ?_⟩, ?_⟩
+            refine ⟨⟨rfl, ?_⟩, ?_, rfl⟩
             · simp only
               rw [hhsσ, hσhs, hle1.1]
             · simp only; exact hmdl

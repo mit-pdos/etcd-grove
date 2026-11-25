@@ -48,7 +48,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- See the file header. -/
 abbrev newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (node : SrvRaft) (id : w64) (nl : NodeH) (pre : List EntryModel)
-    (ms : Loc) (γs : MemStorNames) (key : GName) (wal : WalNames GF) (ss : Loc) (cv : raftNodeConfig)
+    (ms : Loc) (γs : MemStorNames) (key : GName) (walK : WalNamesK GF) (ss : Loc) (cv : raftNodeConfig)
     -- (restart S3 item 6, r2db §4.1, review 4: the restart point's names, labels only: `newRaftNode`
     -- allocates `cum` at `[L₀]` and claims nothing of them; until then `[]`, `W64 0`, `0`, `0`)
     (a0 : List EntryModel) (t0 : w64) (L₀ : List EntryModel) (commit0 snap0 : Nat),
@@ -67,7 +67,7 @@ abbrev newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames GF,
         ⌜γ.node = node ∧ γ.id = id ∧ γ.nl = nl ∧ γ.pre = pre ∧ γ.ms = ms ∧ γ.γs = γs ∧
-          γ.key = key ∧ γ.wal = wal ∧ γ.ss = ss ∧ γ.a0 = a0 ∧ γ.t0 = t0 ∧ γ.commit0 = commit0 ∧ γ.snap0 = snap0⌝ ∗
+          γ.key = key ∧ γ.walK = walK ∧ γ.ss = ss ∧ γ.a0 = a0 ∧ γ.t0 = t0 ∧ γ.commit0 = commit0 ∧ γ.snap0 = snap0⌝ ∗
         rnBuilt E γ r cv L₀ }}
 
 end spec

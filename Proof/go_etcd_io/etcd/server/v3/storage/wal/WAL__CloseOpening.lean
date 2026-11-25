@@ -87,13 +87,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
       ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (s : w64 × w64),
       {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           WalFs.walAreaOk walCodec Mr R jr r ∗
-          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+          (∃ i : Nat, WalFs.walOpening w dir s i) ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
         (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
           (Val #()))
       {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half }} := by
   intro R jr r w dir s
-  wp_start as ⟨#Harea, Hop, Hrh, Hperm, Hdf⟩
+  wp_start as ⟨#Harea, ⟨%ic, Hop⟩, Hrh, Hperm, Hdf⟩
   unfold walReadH walOpenIn walReadTie
   simp only [↓reduceIte]
   icases Hrh with ⟨⟨%lg, %sp, Hlg, #Hzap, Hdir, Hstart, #Hsp⟩, %dec, %IoE, %eof, %ueof, %fs, %locks,
@@ -113,8 +113,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
   -- the lock token, out of the ghost handle
   ihave Hl := walOpening_lockedTok w dir s $$ Hop
-  unfold walLockedTok
-  icases Hl with ⟨Hlt, Hpf, Hcf⟩
+  unfold walLockedTok walLockedTokI
+  icases Hl with ⟨%Il, Hlt, Hpf, Hcf, HIl⟩
   -- the files, out of the decoder
   ihave Hst0 := ownDecoder_streams dec IoE eof fs 0 0#32 true $$ Hdec
   icases walTie_files dir true gs fs fls hfl hfll (fun k F g h1 h2 =>
@@ -188,9 +188,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
       intro g hg
       rcases List.mem_append.1 hg with hg | hg
       · exact hsz g (List.mem_append_left _ hg)
-      · simp at hg; subst hg; exact hgL'.2) $$ Hinv Hnc [Hlt Hpf Hcf] [Htf Hnf] [Hout]
+      · simp at hg; subst hg; exact hgL'.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
       [Hsegs HsL] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-  · unfold walLockedTok; iframe
+  · unfold walLockedTok walLockedTokI; iexists Il; iframe
   · iframe
   · iapply walOutFrag_eq' (W := W) $$ Hout
     ipureintro

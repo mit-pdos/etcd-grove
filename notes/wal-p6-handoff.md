@@ -1,6 +1,173 @@
 # P6 (etcd_safe #52/#50), phase B: re-prove the WAL over the torn-Save fix — handoff
 
+## P6b progress (branch `etcd-safe-p6b`, worktree `/shared/etcd-grove-p6`; keep current at each push)
+
+- **2026-11-25, P6b session 1.** Merged `etcd-safe-p8` @ `1dce32d84a` (clean; the coordinator: merge early).
+  **Design revised (v2, `notes/wal-p6b-design.md` top)**: incarnation = a ghost counter (not the inode:
+  freshness unprovable from the Fs specs); the views carry it (`walDiskAtI dir i d`, the old names as `∃ i`);
+  handle currency through a three-way split of `γI` (walGhost ½, the program's `walOwn` ¼, the lock ¼);
+  `walDirKey` keyed by `(dir, i)`. **Lean**: `Ghost.lean` additive core only (`γI`, `γpi`, `incOf`, `walLeI`
+  and laws, `walPastI`/`walPastIAuth` and `_le`/`_grow`/`_snap`), checked with `etc/lean-check.py -a`
+  (0 errors, no `sorry`); nothing uses it yet, so every proof is unchanged. **Built** at `d9eeabf41a` (local build-slot: `wal.Link`, `CrashS`, `WalRecsCrash`, `WalCrashRead`, WalTester `Link`/`Adequacy`/`TopLevelRobustness`; 4680 jobs, exit 0).
+- **2026-11-25, P6b session 2 (WIP, branch `etcd-safe-p6b-wip`).** The swap is in: `Ghost.lean` (v2.1,
+  below), `HandleAlloc`, `NamedView`, `OpenWLocked`, `Handle` (`WalHS.inc`, `walHandleIn` holds
+  `walOpenWI w dir h.inc`, `walDirH`'s `nmd` has no default), `Crash`/`CrashS` (keep lemmas at
+  incarnations: old view at `i`, new generation at `0`; `walCrashWal` carries the new generation's
+  `walIncQ ∅` and `walPastI (s', ∅)`), `CreateNamed`/`CreateNamedStep` build. `wal.Link` does not.
+  **v2.1 deviations from the approved v2** (to write into `notes/wal-p6b-design.md`):
+  * facts are retired-able: `walIncFact I dir i P := (incOf I dir = i ∧ P) ∨ i < incOf I dir`
+    (handle records are keyed by `GName`, a stale record of the same `Loc` cannot be excluded, so
+    `Sync` with a stale `walLenLb` must yield a (retired) `walSyncedLb`); `walSyncedLb dir i n`,
+    `walNamed dir i`, `walLenLb w dir i n` all take `i`;
+  * a step lemma that hands out a fact takes a past `walPastI (s0, I0)` and returns the fact at
+    `incOf I0 dir` (`walNamed_of_le`, `walSyncedLb_of_le`: current or retired), so no step lemma needs
+    the caller's quarter (pattern: `walInvBody_named`/`walInv_named`);
+  * the lock's quarter lives inside `walLockedTokI I` (`walLockedTok := ∃ I, …`); `walOpenWI w dir i`
+    is the handle with `⌜incOf I dir = i⌝`; `walHandleInc` dropped (`WalHS.inc` instead); the view's
+    share is the quarter `walIncQ`; `walDirKey` by `(dir, i)` deferred until a re-`Create` needs it.
+  **Later in session 2**: `CreateAu` (builds), `CreateAuFresh` (builds), `HandleAlloc` (+ `walHandlePI`,
+  `walHandleP_inc`, `walHandleP_mintI`, `walHandlePI_openWI`, builds); `CreateRename`/`CreateHandle`
+  threaded with the incarnation `ic` (`createU … nm ic …`, `createUH … nm ic …` with
+  `walPastI (s', I) ∗ ⌜incOf I (child r nm) = ic ∧ …⌝`), not yet built because `HandleUnnamed` (their
+  import) fails at `walOpenWFU_seal`: **the client handle must carry the incarnation**. Plan: add
+  `walOpenWFI P Mr w dir i := ∃ h, walHandleIn … h … ∗ ⌜h.inc = i⌝ ∗ …` (and `walOpenWFUI`), laws to the
+  old `walOpenWF` (`∃ i`); `walOpenWFU_seal` takes `walNamed dir i` and gives `walOpenWFI … i`; for the
+  shared handle, add `inc : Nat` to `WalShN` (so `walOpenWS … γ q` carries `γ.inc`, and `Save`'s AU is over
+  `walDiskAtI dir γ.inc d`, its post `walLenLb w dir γ.inc …`/`walSyncedLb dir γ.inc …`: minimal spec
+  churn). `walPurgeW_fresh_lbs` is ported (from `walPastI (s, I)`, facts at `incOf I dir`); the four
+  `_unlocked_excl` lemmas too. **Open design point**: `CreateSplit.lean:284` (`walInv_register`) and
+  similar lemmas use a past `walPast s0` with the WAL present to conclude it is present now; with
+  incarnations that needs currency (the caller's lock quarter: pass `walLockedTokI I0`/`walIncQ I0` and agree
+  with the ghost by `walGhost_inc`/`walGhostI_lockedI_agree`, then `walLeI`'s fourth conjunct at equal
+  incarnations gives the WAL). Same pattern expected in `CreateSteps`, `ReadAllNamed`, `TailLenLb`.
+  **Next**: `walOpenWFI`, `HandleUnnamed`, `CreateSplit`, `Create.lean` + `Spec/.../wal/Create.lean`
+  (`∀ i` in the spec, AU over `walDirIsI dir i`, post `walOpenWFI … i ∗ walNamed dir i ∗ walLenLb w dir i 0 ∗
+  walSyncedLb dir i 0`; ledger entry in `notes/specs-only/ledger.md` before the spec edit), then rebuild
+  `wal.Link`.
+  The `CreateAu` plan as carried out: `walCreateP` gets `i`, its AU over `walDirIsI dir i o`,
+  committing `walDiskAtI dir i (walDurFresh md)`; at the commit, `walGhost_inc` with the view's quarter
+  `Iv`, `walGhostI_upd`, the lock (from `walParked_lock`) agreed to `Iv` (`walIncQ_agree`), and
+  `walCreateQ`'s `some` arm gives `walLockedTokI I ∗ ⌜incOf I dir = i⌝ ∗ walPastI (s', I)`; then a
+  `walHandleP_mintI` from `walLockedTokI I` at `incOf I dir`. Specs take `i` as a spec parameter
+  (`∀ i`, AU over `walDiskAtI dir i …`), the handle `WalHS.inc = i`. Then rebuild `wal.Link` for the
+  next wave (`HandleUnnamed`, `Append`, `TailSync`, `CutAuLemmas`, `ReadAll*`, ...).
+- **2026-11-25, P6b sessions 3-4 (WIP, `etcd-safe-p6b-wip`).** Session 3 (`c99735b77c`): `walOpenWFI`/
+  `walOpenWFUI` (Handle), `HandleUnnamed`, `CreateSplit` (lock quarter), `CreateHandle`, `Create` spec at `i`,
+  `renameWALPost` arm 2 dropped (ledger: for the coordinator to confirm), `TailLenLb`, `CutAu`/`CutAuLemmas`,
+  `TailSync`, `Append`, `HandleAppend` at incarnations. Session 4:
+  * **the sync's incarnation, without the lock quarter**: `walIncLb dir i` (Ghost: `⌜i = 0⌝ ∨` a past
+    state whose incarnation is `≥ i`; persistent). Every ghost handle carries it (`walHandleDirI` now
+    `γ ↪ (w, dir, i) ∗ walIncLb dir i`; `walHandle_alloc`/`walHandleP_mint(I)`/`walOpening_mint` take it,
+    minted by `walGhost_lockedI_incLb`); `walOpenWI_incLb`/`walOpenWCI_incLb` read it off a handle;
+    `walIncLb_ghost` bounds it by the ghost. `walInvBody_sync`/`_syncP` take `walIncLb dir i` and return
+    `walSyncedLb dir i |H|` (`walSyncedLb_intro_le`); `_syncPE` keeps `walPast` (its fact is dropped).
+    Threaded through `wp_tailFsync`, `FdatasyncPend`, `TailFdatasync`, `TailFdatasyncNE` (`ic` parameter,
+    `walIncLb dir ic` premise) and `ReadAllTailCallees.specWalPend`; `WAL.sync.specLent` passes
+    `walIncLb_zero`.
+  * **shared handle**: `WalShN.inc`; `walHdl … i`, `walOpenWFR … k i`, `walOpenWS_alloc` returns
+    `⌜γ.inc = i⌝`; `walOpenWFI_iff`. Checked: `HandleRoom`, `HandleShared`, `Ghost`, `HandleAlloc`.
+  * **specs** (ledger addendum 2026-11-25 session 4): `Save`, `SaveSnapshot`, `Sync`, `ReleaseLockTo`,
+    `Close`, `storage__*` at `γ.inc`; `ReadAll`, `Create.specFresh` and the read-only updates (`Open`,
+    `openAtIndex`, `openLast`, `OpenForRead`, `Exist`, `Repair`, `ValidSnapshotEntries`, `Unsaved`) take
+    `∀ i`/`ic`; internal sync specs post `walSyncedLb dir h.inc …`.
+  * **proofs edited, not yet checked**: `WAL__sync`, `WAL__syncNoErr`, `WAL__cut`, `WAL__syncLent`,
+    `OpenAtPin`, `OpenAtSteps`, `CreateHandle` (mint), `ReadAllOpen`, `PurgeLend`, `CloseHandle`
+    (`walHandleC` at `h.inc`; `WalCloseLaw` at `i`), `CloseLaw`, `CloseLawU`.
+  * **left** (in order): check the above; the read-only-AU proofs (`unfold walDirIsI`, carry `I`);
+    `ReadAll` (commit: agree the opening handle's lock quarter with the view's `walIncQ` to get
+    `h.inc = i`; `ReadAllNamed.walInv_namedBy` returns `walNamed dir` with no `i`: give it the handle's
+    `walIncLb` or a past); `Create.lean`'s proof (handoff's session-3 list); the method proofs over
+    `walOpenWS` (`walOpenWS_acquire` now yields `walHdl … γ.inc`); `CreateSrv`; the tester; P8's
+    consumers; `DiscardUnsaved`. Then merge `etcd-safe-main-pin/2026-11-24` @ `3717c7903b` (coordinator,
+    2026-11-25: at the next building state pushed to `etcd-safe-p6b`).
+- **2026-11-25, P6b session 5 (WIP, `etcd-safe-p6b-wip`).** Checked (lean-check, 0 errors): the sync
+  chain (`TailFsync`, `FdatasyncPend`, `TailSyncPendE`, `TailFdatasync(NE)`, `WAL__sync`, `WAL__syncNoErr`,
+  `WAL__cut`, `CalleeCov`), `CloseLaw`, `CloseLawU`, `WAL__CloseU`, the read-only pins (`ExistPin`,
+  `RepairPin`, `VsePin`, `OpenAtPin`, `ReleaseAu`, `ReleaseTie`) and their callers (`Exist`, `openLast`,
+  `openAtIndex`, `ValidSnapshotEntries`, `Unsaved`, `Open`, `OpenForRead`), `WAL__ReleaseLockTo`,
+  `WAL__CloseOpening`, `PurgeLend`, `ReadAllOpen`, `HandleLaws`, `HandleAppend`. New:
+  * **the read handle at its incarnation** (ledger 2026-11-25, "session 5", decision needed):
+    `walOpening w dir s i` (= `walHandlePI … i (.opening s)`), `walOpeningF … i`; `Open` posts
+    `walOpeningF … ic` (`walPinOut … ic`: `walInvBody_pinOut` takes the view's `walIncQ` and agrees it with
+    the lock it hands out, `walLockedTokI_incQ_agree`); `ReadAll` pre `walOpeningF … i`; `Close`'s
+    `opening` arm `∃ i`. `walHandlePI_set`; `walOpening_incLb`; `walInvBody_pastAt` (a past at the view's
+    incarnation); `walOpening_ghost_inc`/`walOpening_pastCur` (Ghost: **currency**, a past state at the
+    handle's incarnation is below the ghost's at `dir`, by the lock), used by `ReadAllSynced.walInv_tailH`
+    and `ReadAllNamed.walInv_namedBy` (both now take `walPastI (s1, I1)`, `incOf I1 dir = ic` and the
+    handle); `walInv_readCommitReg` also returns that past. `walNamed_intro_le`.
+  * methods over `walOpenWS`: `walHdl_open … γ.inc` gives `h.inc = γ.inc`; `walHandleIn_lenLb` and
+    `walHandleIn_append` take `(i) (hi : h.inc = i)`; `SaveSt`/`SaveFin` carry `inc`; `cut`'s post adds
+    `h'.inc = h.inc`; `save_post` at `γ.inc`. Edited, being checked: `WAL__Save`, `WAL__SaveSnapshot`,
+    `WAL__Sync`, `WAL__Close`, `WAL__ReadAll`, `ReadAll{Exit,Synced,Named,RegCommit}`.
+  * **checked since** (lean-check `-a`, 0 errors): `WAL__Save`, `WAL__SaveSnapshot`, `WAL__Sync`, `WAL__Close`,
+    `WAL__CloseFailed`, `WAL__syncLent`, `Repair`, `WAL__ReadAll`, `ReadAllFail`, `HandleUnnamed` (new:
+    `walOpenWFUI_lockAcc`, `walOpenWFU_sealL`, `walOpenWFI_unlocked_exclX`). Pushed as `45979e5b19`+.
+  * **`Create.lean`** (`--fast`): everything but the deferred cleanup's registration. Done: `ic` binder,
+    `walCreateP`/`createU`/`createUH`/`create_ghost`/`create_handleIn`/`createHS` at `ic`, `renameWALPost`'s
+    arm 2 removed, the success exit registers under the handle's lock (`walOpenWFU_sealL`, `walInv_register
+    … s' I0 Il`, `walInv_named … I0`), arm 3 (committed error) registers under `walCreateQ`'s `walLockedTokI`.
+    **Open (12 errors, one cause)**: `create_cleanup`'s two `walInv_register` calls (the cleanup's `Close`
+    failed, `Hlt : walLockedTok`; or succeeded, `walUnlockedTokX`): the token comes back from
+    `WAL.cleanupWAL.spec`/`WAL.Close.spec`'s `unnamed` arm without its incarnation, so "the WAL is still
+    present" (`walInv_register`'s currency) cannot be shown. Proposed: (a) `walInv_register` takes the
+    quarter `walIncQ I'` (it only agrees it with the ghost) instead of `walLockedTokI I'`; (b) `Close.spec`'s
+    `unnamed` arm takes `walOpenWFUI … i` and returns the quarter at `i` (`walLockedTokI I ∗ ⌜incOf I dir = i⌝`,
+    and the unlocked token's `walIncAny` as `walIncQ I` with the same fact); (c) `cleanupWAL.spec` likewise.
+    Ledger entry first (internal specs; "still present" lemmas take the lock quarter, as approved).
+  * **left**: the above; `WAL__CloseFailed`/`WAL__syncLent`/`Repair` (failed only on stale
+    dependencies so far); `Create.lean` (handoff's session-3 list); `CreateSrv`; `storage__*`; then a
+    `lake build` of `wal.Link`; WalTester (20 files use the facts), P8's consumers (`WalViews`' crash laws
+    `walDiskAt_crash*` take facts without incarnation: they need `walDiskAtI`/facts at `i` and the
+    crash's incarnation map), `DiscardUnsaved`; then the merge of `3717c7903b`.
+- **2026-11-25, P6b session 6 (WIP, `etcd-safe-p6b-wip`).** Coordinator approvals recorded in the ledger (the
+  Create cleanup fix (a)-(c); `renameWAL`'s arm 2, proved from its body; the session-4/5 spec changes, `walIncLb`,
+  the read handle at its incarnation). **Create done**: `walInv_register` takes the quarter `walIncQ I'`
+  (`walInv_registerL` with the lock); `WalCloseSt.unnamed … i`, `Close.spec`'s `unnamed` arm over `walOpenWFUI … i`
+  returning `∃ I, walUnlockedTokXI I ∗ ⌜incOf I dir = i⌝` / `∃ I, walLockedTokI I ∗ …`; `cleanupWAL.spec` likewise;
+  `sync.specC`'s error arm at `h.inc`. New Ghost lemmas: `walUnlockedTokXI` (+ `_X`, `_incQ`), `walLockedTokI_incQ`,
+  `walLockedTokI_unlockXI`, `walOpenWI_lockedTokI`; `walParked_unlockXI`, `walInvBody_unpinXI` (the old `unpinX` a
+  corollary); `walCloseLawU` takes `walOpenWI … i`. **`wal.Link` builds** (real `lake build`, 3842 jobs, exit 0, no
+  `sorry` outside the generated axiomatized types): commit `a283427990`.
+  **Server/P8 consumers**: `WalRecs` at the handle's `h.γ.inc` (`walRecs`, `walSnapRec`, `walOpen`'s `walLenLb … 0`,
+  the AU laws over `walDiskAtI h.dir h.γ.inc`); `walFiles`/`walFilesC` `∃ i`; `walFilesC_crash` takes `i` (new
+  generation at `0`). **Tester**: incarnation `0` throughout (a tester never discards; a crash's new generation is at
+  `0`): `TInvBody` over `walDirIsI … 0`, `tRelI`/`tRelW` facts at `0`, its specs (`member__{save,sync,close}`,
+  `restartRead`) over `walOpenWFI … 0`, `purgeRound` at any `i`; `Boot` passes `0` to `Create.specFresh`.
+  Also: `walStart_boot0`/`walBoot0`/`walBoot0s` hand out the first generation's `walIncQ ∅` (the view's quarter,
+  for `walAbsent`/`walDirIsI … 0` at boot; `WalAreas`, the tester's `Boot0`); `walPurgeAcc dir inc Pc` over
+  `walDiskAtI dir inc` (ledger); the shared handle (`walOpenWS_alloc … i`, `⌜γ.inc = i⌝`) substituted to `0` in the
+  tester (`rcases γs …; subst; let γs := ⟨_, _, 0⟩`).
+  **Merged `etcd-safe-main-r3/2026-11-25` @ `5a1c41d945`** (after P8's head `36457e1448`; conflicts resolved by
+  a three-way merge on `36457e1448`, which both sides contain; manifest unchanged): P8's `WalRecsH`/`InvWalCrash`
+  at `h.γ.inc`; `bootFs.walAbsent_au` at an incarnation (`BootFsLaws`). Built: the WAL cone, the tester's
+  Link/Adequacy/TopLevelRobustness, the server's consumers and P8's crash modules (5549 jobs), then every leaf the
+  change reaches against r3 (`etc/importers.py --git 5a1c41d945 --leaves`, 57 targets, ~14,000 jobs).
+  **Left: `wal.DiscardUnsaved`** (not started; multi-session). What it needs (from reading `Inv.lean`): a WAL
+  directory renamed `nm` → `nm.tmp` while its layout stays in `Ls` (`WalsAt`, `DirClaimsOk`, the area's
+  `AbsentNone`/`DirsOk` all tie `Ls dir` to the entry `nm`): a "discarding" state with `named := false` (the
+  rename not durable: a crash may keep either name), then `syncDir(parent)` commits the removal (`s.wal` drops
+  `dir`, `incOf` bumped, `walLeI_discard`) and the directory at `nm.tmp` becomes leftover that `Create`'s
+  `RemoveAll(dir.tmp)` removes (its segments' resources move to the tmp-parked part, `walTmpParked`). The spec:
+  `Unsaved`'s pre plus the parent's resources (as `Create`'s), `walUnlockedTok`, and an update
+  `<{∃∃ d, walDiskAtI dir ic d}> <{walAbsentI dir (ic+1), COMM Qd}>` committed only on `true`.
+- **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
+  `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
+  bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
+  lemmas and P8's new consumers (`WalRecsCrash`, `WalCrashRead`), then `DiscardUnsaved`.
+
 ## START HERE
+
+- **P6b item 1: approved (incarnation = the directory inode `j`); design in `notes/wal-p6b-design.md`,
+  not started in Lean.** Found while designing: `walDirKey` (persistent, keyed by `dir`, "fixed for the
+  generation") also blocks a re-`Create`, and `walLenLb` reads past states too; the design moves the three
+  lower-bound facts to per-incarnation persistent maps so that `absLe`/`walGhost`'s signatures and
+  `Crash.lean` stay until the last step (merge `etcd-safe-p8` first there).
+
+- **2026-11-25 (after the re-pin): the WAL builds at `2c17304ea8`** on fk-lean2 (`fklean1-check.sh`,
+  targets `wal.Link`, WalTester's `Link`, `Adequacy`, `TopLevelRobustness`: 4260 jobs, exit 0).
+  `tcb-report --collection wal-fsext.txt --check` not run (it needs every root up to date: the packet's
+  full build). P6b not started in Lean: its facts' signatures change `Crash.lean` (P8's file), so the
+  coordinator decides the order first.
 
 - **2026-11-25, session 6 (later): re-pinned to etcd_safe's one pin; P6 stays off `lean`** (coordinator-E, #50:
   P6 goes in the one `etcd_safe` packet; the remote full build and gates not run).
@@ -110,6 +277,18 @@
      naming the facts (`Create`, `WAL__Save`, `WAL__Sync`, `WAL__sync`, `WAL__ReadAll`, `Exist`,
      `Open*`, `WalViews`, `WalRecs`), and the tester (`member__save`/`__sync`/`__close`, `MemberRep`,
      `MemberInv`, `SaveAu`, `SnapAu`, its `Crash.lean`/`Inv.lean`, `restartRead`).
+   * Refinements (2026-11-25, later): (a) the incarnation can be the WAL directory's **inode** `j`, which
+     the layer already keys (`walDirKey dir j X`, `WalGS.γdk`, persistent elements): `Create` makes a fresh
+     directory (its temporary one renamed in), so a re-created WAL has a new `j`; the past states then pair
+     `s` with the map `dir ↦ j` of its WALs, and the facts take `j` (`walNamed dir j`, ...). (b) **Keep
+     `walGhost s`'s and `walGhost_init`'s signatures** (the incarnation map existential inside `walGhost`),
+     so that `Crash.lean`/`CrashPure.lean`, which P8 edits (`crashTo_start`/`CrashGood`/`walCrash_pure`'s
+     exact-prefix conjunct, `walCrashWal`), need no change; if the crash view's past-state facts must carry
+     `j`, tell the coordinator before editing them.
+     **Checked: they must.** `Crash.lean`'s crash-view lemmas (lines ~1090-1230: the old generation's
+     `walDiskAt`/`walSyncedLb`/`walNamed` carried to the new one through `walPast_ghost_le`) state and
+     consume the facts, so their signatures change with the facts'; `CrashPure.lean` needs no change (pure,
+     no facts). Asked the coordinator before editing `Crash.lean` (P8 edits `walCrashWal` there).
    * Size: the facts appear 330 times in 114 files (`walSyncedLb|walNamed|walLenLb|walPast|walDirIs|
      walDiskAt|walAbsent`); most uses only thread the new argument. Estimate 1,000-2,000 changed lines,
      of them 300-500 new (the ghost order and its laws, `DiscardUnsaved`'s spec and proof, 300-400);

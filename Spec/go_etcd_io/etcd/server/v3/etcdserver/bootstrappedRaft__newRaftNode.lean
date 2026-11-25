@@ -26,7 +26,7 @@ storage tokens, the `InitialState` closure and the static/dynamic boot tokens of
 API's unified `StartNode.spec`): the configuration and the peers (`rnStartCfg`: the wrapper's
 logger, `NewRawNode`'s premises on `b.config` with `b.storage` its `MemoryStorage`, `PreVote` and
 `CheckQuorum` either way since 2026-10-17; the peers non-empty with their ids `ps`), a positive
-heartbeat (`newRaftNode`'s, a scope restriction), the WAL read (the open WAL `ν.h`; `NewStorage`'s
+heartbeat (`newRaftNode`'s, a scope restriction), the WAL read (the open WAL `h`; `NewStorage`'s
 contract was a premise until wal-nostorageok, 2026-11-21: now proved, the proof's law); the
 receiver and `b.config`, the logger; the storage as `StartNode` boots it (`restartStorage` at the
 empty contents, the zero hard state and the empty conf state, with the frame `Q` its
@@ -69,7 +69,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (pre : List EntryModel) (ν : WalNames GF)
+    (pre : List EntryModel) (h : WalH GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF)
     -- (restart S3 item 5, Q35 (a)) how the node boots
     (bt : RNBoot),
@@ -84,8 +84,12 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (restart S3 item 5: until then also the configuration and the peers, `rnStartCfg`, now
       -- `rnBootPre`'s at `fresh`)
       -- (2026-11-09, Q8 stage 0) and the cluster untraced (`cluster_alloc`'s): `StartNode`'s premise;
-      -- (wal-link L3, 2026-11-19: until then `storage.walReady wal`) the WAL the open WAL `ν.h`'s
-      "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧ Cluster.trace γr.cl = none⌝ ∗
+      -- (wal-link L3, 2026-11-19: until then `storage.walReady wal`) the WAL the open WAL `h`'s
+      "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ wal = h.w ∧ Cluster.trace γr.cl = none⌝ ∗
+      -- (P5, 2026-11-25: until then the caller's `rnDurInv` at the WAL names `ν`) the open WAL's records as
+      -- the boot hands them over (`rnBootWal`): the crash-aware durability is allocated here, once the
+      -- node is started (raft's durable state, which it holds, is the wrapper's only then)
+      "Hwal" ∷ rnBootWal γr h bt ∗
       -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
       "#Hssi" ∷ snap.isSnapshotter ss sd ∗
       -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode`'s, which it logs through)
@@ -109,7 +113,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   {{ (r : Loc), RET #r;
       ∃ (n : NodeH) (γw : RNNames GF) (f : GoFunc) (st : GoInterface) (terms : GoSlice),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
-          γw.γs = γs ∧ γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
+          γw.γs = γs ∧ γw.wal.h = h ∧ γw.walK.sd = (fun _ => iprop(True)) ∧ γw.ss = ss ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
           γw.snap0 = bt.snap0⌝ ∗
         -- the node API's node and (2026-10-30, the repair) its whole running token
         isNode n γr.cl srvClusterN cv.ID' ∗
@@ -122,7 +126,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         rnBootPost γr n γw.key bv cv ps ctxs bt ∗
         -- the wrapper, over the config built here
         -- (wal-link L3, 2026-11-19: until then `isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = wal⌝`)
-        -- the storage over the open WAL `ν.h` and the snapshotter `ss`, with its two reader tokens (the raft
+        -- the storage over the open WAL `h` and the snapshotter `ss`, with its two reader tokens (the raft
         -- loop's and the apply thread's: `NewStorage`'s contract's, `rnNewStorageOk`)
         isRNIDRemoved f ∗ isWalStorage st γw.wal.h γw.ss ∗ walStorRd st γw.wal.h ∗ walStorRd st γw.wal.h ∗
         -- (restart S3 items 5-6) its `cum` at the boot's start log `bt.P` (`[]` fresh)
@@ -132,6 +136,11 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
         -- it gave it back) the peers' slice
         b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
+        -- (P5) the crash-aware durability (`rnDurInvK`) allocated at the boot's view (`RNBoot.view`), with
+        -- the node's arm, the loop's half of the view, the stop's and the apply thread's tokens and the
+        -- handed log's lower bound; the snapshot directory's durability `sd` trivial until T6 links it
+        rnDurInvK γr cv.ID' γw.walK h ∗ nodeArm n γr.cl γw.walK.x ∗ rnWalViewK γw.walK (bt.view γr, none) ∗
+        token γw.wal.stop ∗ token γw.wal.app ∗ walCommitLb γw.wal (bt.view γr).l ∗
         -- (2026-10-30, the repair) the storage's frame (`InitialState` ran before the node's
         -- goroutine), at the storage's key (2026-11-01, durability stage II (l): the frame depends
         -- on the key, as `restartStorage`'s, so that the storage's invariant allocated at the key

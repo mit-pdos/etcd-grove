@@ -24,11 +24,9 @@ takes a linked lemma as a law"). Model: kvnet's crashing replica (`KvNet/.../kvn
   `crashed`, the file extension's crash rest at the crash premise `Q` (which must imply the WAL's `W1`,
   `walInv_crash`'s premise) and the new generation's cells' invariant give the next generation's
   `memberGen`.
-* `raftTorn`, `readyCrashTorn.law`: **raft's torn-batch law** (D6.3): a crash in the middle of
-  the WAL's `Save` of a batch may keep the first `k` entry records without the state record
-  (`walImg`'s second case, `AbsDisk/Impl.lean:115`); with no conf-change entry among them, the id's
-  durable state may move to `raftTorn S es k` (the entries appended, term, vote and commits unchanged).
-  Without that premise it is false: `issues/raft-commit-lost-with-entries-kept.md`.
+* (retired 2026-11-25, T7) `raftTorn`/`readyCrashTorn.law`, raft's torn-batch law: the WAL fork's
+  torn-`Save` fix (`notes/etcd-dist-d6.md` §10, Q1 (a); pin `e94f33b50`) makes a `Save` a crash interrupts
+  read back as no `Save`, so raft's `nodeCrash`/`readyCrashEnter` cover every crash (T2's `rnDurK_crash`).
 -/
 module
 
@@ -152,39 +150,6 @@ abbrev memberGen_crash.law (C : MemberCl) (cfg : go_etcd_io.etcd.server.v3.confi
       memberGen (hG := ⟨G, atCtx L'⟩) C cfg id)
 
 end crash
-
-/-! ## Raft's torn batch (D6.3) -/
-
-/-- **The durable state after a torn `Save`** (D6.3): `S` with the first `k` entries of the batch `es`
-appended (the WAL's entry records kept, `walImg`'s second case), its term, vote, commit and lowest
-commit `wcommit` unchanged (the state record, written last, lost). -/
-def raftTorn [GooseExts] (S : RaftState) (es : List EntryM) (k : Nat) : RaftState :=
-  { S with ents := appendEnts S.base S.ents (es.take k) }
-
-section torn
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- **Raft's torn-batch crash law** (D6.3; beside `readyCrashEnter`, which enters the whole batch,
-and `nodeCrash`, which discards it): after the crash of the generation that ran node `n`, the crash
-token of its arm, with a share of `n`'s liveness, may move the id's durable state from `st.durable`
-to `raftTorn st.durable es k` for a batch `es` without a snapshot (`st'.handling`) and any `k`, **when no
-entry of the kept prefix is a conf change**, and gives the id's vacancy back. The premise is needed:
-with two conf changes in the prefix the law is false (`issues/raft-commit-lost-with-entries-kept.md`:
-the restarted node campaigns in its old configuration). It covers every batch of a static cluster but
-the first (the bootstrap log, `MemberCl.bl`, `notes/etcd-dist-d6.md` Q1). -/
-abbrev readyCrashTorn.law : Prop :=
-  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
-    (ms : List QMsg) (es : List EntryM) (k : Nat) (x : CrashNames) (q : Qp) (E : CoPset),
-    ↑N ⊆ E → st'.handling = some (es, none) → (∀ e ∈ es.take k, ¬ IsConfEnt e) →
-    ⊢ crashed -∗ nodeCrashTok (GF := GF) γ id x -∗ nodeArm n γ x -∗ nodeRunning n γ N q -∗
-      readyEnter n γ N id st st' ms -∗ raftState γ id st.durable ={E}=∗
-        raftState γ id (raftTorn st.durable es k) ∗ nodeVacant γ id
-
-end torn
 
 end etcd_dist
 end EtcdGrove

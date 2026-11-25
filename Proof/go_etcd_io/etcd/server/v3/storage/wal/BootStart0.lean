@@ -59,7 +59,7 @@ theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCo
     (hr : (r, jr) ∈ R) (hnone : ∀ nm, walNameOk nm → m.entry jr nm = none) :
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, ⌜W.roots = R⌝ ∗ walStart L W C Mr R jr r (walBoot0St r) m ∗
       walPast (W := W) (walBoot0St r) ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
-      walOwn (W := W) ∅ := by
+      walOwn (W := W) ∅ ∗ walIncQ (W := W) ∅ := by
   imod preceipt_zero (GF := GF) with #H0
   ihave #Hst : walStepsLb (G := G) (walBoot0St r) $$ [H0]
   · unfold walStepsLb
@@ -68,12 +68,14 @@ theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCo
     ipureintro
     intro dir d hd; simp [walBoot0St] at hd
   imod walGhost_init hPre R (walBoot0St r) (walKeysInArea_boot0 r) $$ Hst with
-    ⟨%W, %hWR, Hg, Hown, #Hp, Hu, Hc, Hcr, Ht, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt⟩
+    ⟨%W, %hWR, Hg, Hown, HIq, #Hp, Hu, Hc, Hcr, Ht, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt⟩
   imodintro
   iexists W
   isplitr
   · ipureintro; exact hWR
-  iframe Hp Hu Hc
+  ihave #Hp' : walPast (W := W) (walBoot0St r) $$ []
+  · unfold walPast; iexists ∅; iexact Hp
+  iframe Hp' Hu Hc HIq
   isplitr [Hown]
   rotate_left
   · rw [show (∅ : GMap GoString WalDur) = (walBoot0St r).wal from rfl]

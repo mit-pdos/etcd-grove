@@ -153,11 +153,11 @@ theorem walInvBody_handleLook (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
 
 /-- **`ReleaseLockTo`'s commit** (see the file header). -/
 theorem walInv_releaseLks (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (a : w64) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) (j : Ino) (X : List GoString)
+    (dir : GoString) (a : w64) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) (ic : Nat) (j : Ino) (X : List GoString)
     (hj0 : NamesH) (γ : GName) (tg : TailG) (γt : GName) (b : Nat) (hcl : tg.2.2.1.length < 2 ^ 64) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
+      (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
+        <{ walDiskAtI (W := W) dir ic { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
           COMM Q d }>) -∗
       walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
@@ -183,8 +183,8 @@ theorem walInv_releaseLks (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%dc, ⟨Ho, %hpre⟩, Hucl⟩
-  unfold walDiskAt walDirIs
-  icases Ho with ⟨%M, HM, %HMd⟩
+  unfold walDiskAtI walDirIsI
+  icases Ho with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   icases walInvBody_mapLe C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
@@ -198,10 +198,11 @@ theorem walInv_releaseLks (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   let p := walReleasePos (dc.H.map WalOpG.toM) a
   imod walInvBody_unl C Mr R jr r s dir p M $$ Hb HM with ⟨-, Hb, HM, -⟩
   have hsd' := unlSt_lookup_self s dir p d hd
-  imod Hcommit $$ [HM] with HQ
-  · iexists (unlSt s dir p).wal
-    iframe HM
+  imod Hcommit $$ [HM HI] with HQ
+  · iexists (unlSt s dir p).wal, I
+    iframe HM HI
     ipureintro
+    refine ⟨?_, hic⟩
     simp only [hsd', walOptLe]
     exact walDurLe_unl _ hle
   have hb' : max b p ≤ max d.unl p := by omega
