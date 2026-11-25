@@ -63,8 +63,9 @@ theorem drvAddr_passthrough :
     dialPassthrough [GrpcDialOpt.transportCreds] go!"passthrough:///127.0.0.1:7301" [drvAddr] := by
   refine ⟨by simp, drvAddr, by decide, ?_, by decide, rfl⟩
   intro b hb
-  unfold drvAddr at hb
-  revert b; decide
+  simp only [drvAddr, List.mem_cons, List.not_mem_nil, or_false] at hb
+  unfold passthroughByteOk
+  rcases hb with h|h|h|h|h|h|h|h|h|h|h|h|h|h <;> subst h <;> decide
 
 /-- **The client's environment from the server's table and a dial with no interceptor and no
 per-RPC credentials.** -/
@@ -77,8 +78,6 @@ theorem drvCli_of [hX : HasExt netExt] (π : NetProtoGS) (σ : NetSlotGS) (γid 
     drvCli γid γb c ids := by
   iintro ⟨#Hpkg, #Hf, #Hctr, #Hstub, #Hconn, #Hopts, #Hcreds, #Haddr⟩
   unfold drvCli
-  iframe #
-  iexists conn
   iframe #
   isplitr
   · iapply (isGrpcRpcMd_of_addr (Req := (pbStringValueT (GF := GF)).toProtoMsg)
@@ -142,7 +141,7 @@ theorem Client.wp_proof
   ihave #Hf' := Hf
   iunfold drvFacts at Hf'
   icases Hf' with ⟨%fr, #Hrg, #Hrf⟩
-  wp_auto
+  try wp_auto
   wp_apply wp_NewCredentials as %cr -
   wp_apply wp_WithTC cr as %o #Ho
   wp_apply wp_slice_literal (V := GoInterface) [o]
@@ -166,7 +165,7 @@ theorem Client.wp_proof
       ipureintro; exact drvAddr_passthrough
     iapply BigSepL.bigSepL_nil.2; itrivial
   icases Hd with (⟨%He, #Hconn, #Hcreds, #Hopts⟩ | %He)
-  swap
+  rotate_left
   · cases err with
     | nil => exact absurd rfl He
     | ok e =>
@@ -175,9 +174,8 @@ theorem Client.wp_proof
       iexact Htok
   subst He
   try wp_auto
-  wp_apply wp_NewDriverClient as %c ⟨%dc, %Hc, Hcc⟩
+  wp_apply wp_NewDriverClient as %c ⟨%dc, %Hc, #Hcc⟩
   subst Hc
-  imod typedPointsto_persist $$ Hcc with #Hcc
   try wp_auto
   wp_apply wp_RandomUint64 as %start -
   try wp_auto

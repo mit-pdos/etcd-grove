@@ -2215,7 +2215,9 @@ return. Its initializer allocates `reached`, initializes its imports and stores 
     before={'reached': ['try wp_auto']},
     finish=['ipersist Hreached',
             'iframe Hown', 'is_pkg_init_finish', 'try imodintro',
+            'isplitr', '· ipureintro; exact isPanic_intoVal _',
             'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts',
+            'try imodintro', 'try imodintro',
             'iexists _', 'iframe Hreached', 'imodintro', 'iintro %s', 'wp_auto', 'ipureintro; rfl'])
 # (grpcdriver server, 2026-11-25) its fact `drvDescs` (`svc/Base.lean`): the descriptor's fields, its
 # methods and streams exactly, as etcdserverpb's

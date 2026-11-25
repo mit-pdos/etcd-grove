@@ -30,15 +30,16 @@ theorem NewDriverClient.wp_proof : NewDriverClient.spec (GF := GF) (hG := hG) :=
   intro cc
   wp_start
   wp_auto
-  irename «$r0» => Hd
-  icases typedPointsto_split _ _ _ $$ Hd with Hd
-  try simp only [TypedPointsto.typedPointstoDef]
-  icases Hd with ⟨Hcc, -⟩
-  try wp_auto
+  wp_alloc dc as Hd
+  iStructNamed Hd
+  ipersist cc
+  wp_auto
   iapply HΦ
-  iexists «$r0_ptr»
+  iexists dc
   iframe
-  ipureintro; rfl
+  isplitl []
+  · ipureintro; rfl
+  · iexact cc
 
 end proof
 

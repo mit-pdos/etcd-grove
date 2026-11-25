@@ -40,7 +40,7 @@ theorem wp_main
           (github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvSvc γid) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hpkg, #Htok, #Haddr⟩
+  wp_start as ⟨#Htok, #Haddr⟩
   ihave #Hd : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver $$ []
   · iPkgInit
   try wp_auto

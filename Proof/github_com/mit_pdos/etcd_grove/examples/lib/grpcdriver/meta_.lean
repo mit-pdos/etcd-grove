@@ -198,12 +198,12 @@ theorem «meta».wp_proof (wp_below : below.spec (GF := GF) (hG := hG))
       icases Hrecv with ⟨%Hnn, -, #Hval⟩
       try wp_auto
       wp_apply (strings.Join_bounded_of wp_Join s vals (DFrac.own 1) go!"," 16 hB
-        (by unfold strings.joinMax; omega)) $$ [Hsl]
+        (by unfold strings.joinMax; omega)) $$ [Hsl] as Hsl
       · iframe #; iframe
       try wp_auto
       iunfold drvFacts at Hf
       icases Hf with ⟨%f, #Hfg, #Hfwp⟩
-      simp only [decide_true]
+      try simp only [decide_true]
       try wp_auto
       try wp_bind (App (Val #f) (Val _))
       iapply wp_wand $$ (Hfwp $$ %go!"metadata")

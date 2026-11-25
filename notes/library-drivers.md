@@ -117,6 +117,17 @@ handler's message, not its code, so a handler's code reaching the caller cannot 
 handler's spec. The Lean statement covers "a failed handler fails the call"; S3's call protocol (the status in
 the call's ghost state) is where the code relay belongs.
 
+**Proof-driven driver changes (2026-11-25).** The metadata section's context is `WithCancel(Background())`,
+cancelled after the call (grpc's `AppendToOutgoingContext` spec takes a parent with Perennial's context model,
+`isContext`, which `Background()` is not); `Meta` answers `""` when the context carries no incoming metadata
+(no nil-map `Get`); bidi waits for every echo before closing its sending end, and counts a failed `Send`'s
+message as sent (it may have reached the server).
+
+**The start's table has no heap.** A service table (`GrpcSvc`) is heap-free by design, but the driver's
+(`drvSvc`) is written where its proofs are, at a machine's `HeapGS`, which the deployment's start lacks;
+`SvcG.lean` restates it over `GooseGlobalGS` (`drvSvcG`) and `drvSvc_eq_G` (`rfl`) identifies the two at any
+machine's heap. A table library-wide over the global ghost state (`upAt`, `idTok`-like tokens) would remove the copy.
+
 Statement (2026-11-24): `grpcdriver_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/TopLevelRobustness.lean`): the two machines,
 neither crashing, deployed at `grpcAddrs`, are `Robust [] … grpcThreads grpcSteps` (`grpcThreads = 2 ^ 31`, the

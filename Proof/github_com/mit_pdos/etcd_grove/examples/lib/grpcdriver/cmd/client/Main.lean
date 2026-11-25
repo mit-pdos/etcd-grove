@@ -40,7 +40,7 @@ theorem wp_main
         ghostMapAuth (K := w64) (V := Unit) γid 1 ∅ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); threadTok }} := by
-  wp_start as ⟨#Hpkg, %Hb, Htok, #Haddr, Hauth⟩
+  wp_start as ⟨%Hb, Htok, #Haddr, Hauth⟩
   ihave #Hd : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver $$ []
   · iPkgInit
   try wp_auto

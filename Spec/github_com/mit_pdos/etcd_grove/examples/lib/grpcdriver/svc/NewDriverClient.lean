@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`svc.NewDriverClient(cc)` (svc.go, generated): a fresh `*driverClient` whose `cc` field is `cc`.
+`svc.NewDriverClient(cc)` (svc.go, generated): a fresh `*driverClient` whose `cc` field is `cc`, never written (read-only).
 -/
 module
 
@@ -29,7 +29,7 @@ abbrev NewDriverClient.spec : Prop :=
     (App (Val (@! svc.NewDriverClient)) (Val #cc))
   {{ (c : GoInterface), RET #c; ∃ dc : Loc,
       ⌜c = interface.mkOk (go.GoType.PointerType svc.driverClient.ty) #dc⌝ ∗
-      structFieldRef svc.driverClient go!"cc" dc ↦ cc }}
+      structFieldRef svc.driverClient go!"cc" dc ↦□ cc }}
 
 end spec
 

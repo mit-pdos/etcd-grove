@@ -91,7 +91,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   is_pkg_init_finish
   try imodintro
+  isplitr
+  · ipureintro; exact isPanic_intoVal _
   unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts
+  try imodintro
+  try imodintro
   iexists _
   iframe Hreached
   imodintro
