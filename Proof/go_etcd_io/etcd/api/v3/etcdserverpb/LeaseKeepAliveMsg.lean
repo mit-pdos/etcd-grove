@@ -61,6 +61,20 @@ instance keepAliveRespMsg_persistent (l : Loc) (m : w64 × w64) :
     Persistent (keepAliveRespMsg (GF := GF) l m) := by
   unfold keepAliveRespMsg; infer_instance
 
+/-! ### The messages' stored forms (moved here from `PerTypeLeaseKeepAlive.lean`, phase 7, SW1) -/
+
+/-- **The store of a keep-alive request**: its `ID` (the ghost bounds are not on the wire). -/
+def kaReqTree (q : KaReqM) : VTree :=
+  .strct etcdserverpb.LeaseKeepAliveRequest.ty [(go!"ID", go.int64)] [.leaf #q.id]
+
+/-- **The store of a keep-alive response**: its `ID` and `TTL`; its `Header` `nil` (the model does
+not carry it: see the file header). -/
+def kaRespTree (m : w64 × w64) : VTree :=
+  .strct etcdserverpb.LeaseKeepAliveResponse.ty
+    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty), (go!"ID", go.int64),
+     (go!"TTL", go.int64)]
+    [.leaf #(null : Loc), .leaf #m.1, .leaf #m.2]
+
 /-- **The keep-alive requests on the wire** (a trusted wire model): a request's `ID`, the owned
 struct on both ends; the ghost bounds ride along (the transport delivers the model `send` holds
 at). -/
@@ -68,6 +82,7 @@ abbrev pbLeaseKeepAliveRequest : StreamMsg GF where
   ty := etcdserverpb.LeaseKeepAliveRequest.ty
   M := KaReqM
   cnt := inferInstance
+  tree := kaReqTree
   send l q := iprop(∃ v : etcdserverpb.LeaseKeepAliveRequest, l ↦ v ∗
     ⌜q.id = v.ID' ∧ v.unknownFields' = slice.nil⌝)
   wireLen _ := wireSlack
@@ -80,6 +95,7 @@ abbrev pbLeaseKeepAliveResponse : StreamMsg GF where
   ty := etcdserverpb.LeaseKeepAliveResponse.ty
   M := w64 × w64
   cnt := inferInstance
+  tree := kaRespTree
   send := keepAliveRespMsg
   recv := keepAliveRespMsg
   own l := iprop(∃ v : etcdserverpb.LeaseKeepAliveResponse, l ↦ v)

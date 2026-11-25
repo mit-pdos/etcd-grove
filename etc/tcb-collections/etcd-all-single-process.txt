@@ -56,7 +56,6 @@ axiom dataDirsApart
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
-axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -71,16 +70,13 @@ axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.start
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
-axiom grpcSrvCfgRaw
-axiom grpcSrvLink
+axiom grpcSrvAtLis
 axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
@@ -236,6 +232,7 @@ axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
+axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof

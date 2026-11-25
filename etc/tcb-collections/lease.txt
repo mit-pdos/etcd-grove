@@ -16,10 +16,8 @@ axiom context.WithValue.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom pbLeaseGrantRequestT_reg
@@ -29,3 +27,4 @@ axiom pbLeaseKeepAliveResponseT_reg
 axiom pbLeaseRevokeRequestT_reg
 axiom pbLeaseRevokeResponseT_reg
 axiom status.FromError.wp_proof
+axiom streamIcMdIs

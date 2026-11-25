@@ -40,7 +40,7 @@ theorem rpctypes.ErrorDesc.wp_init
   · iPkgInit
   wp_auto
   ihave ⟨%cFE, #HcFE⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hok
-  wp_apply wp_FromError err m cFE $$ [$Hst $Hok $Hm $HcFE] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr, %Hng⟩
+  wp_apply wp_FromError err m cFE $$ [$Hst $Hok $Hm $HcFE] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr, %Hng, -⟩
   cases ok
   · wp_auto
     cases err with

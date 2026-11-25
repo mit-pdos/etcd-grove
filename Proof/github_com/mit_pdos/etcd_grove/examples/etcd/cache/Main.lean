@@ -8,7 +8,7 @@ picks the writers' Puts `trs` first; the server's start is watchkv's, the exampl
 (`etcdstart.alloc1`; D48: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
 the plan's fact `etcd_watch.wkW (trs.map pairOf)`; `etcdstart.StartPeriodicServer` (since 2026-11-02;
 the store's fact for watches from the plan, `noDupKeys_of_wk`), `etcdstart.Serve` with one
-watch run slot, `etcd_watch.wk_served_nd` then `etcd_noRefusal_at` as the ghost step, D33). Then
+watch run slot, `etcd_noRefusal` and `etcd_watch.wk_served_nd` as the ghost step, D33). Then
 `etcdstart.NewClient` (etcd's default configuration; the member refusal-free, so `clientWriteOnce`,
 D29); the cache's client at the adapter's model (`client.isEtcdClient_of_km`: its `KV` a client of
 the KV, `client.isKv_of_regs`, its `Watcher` a watcher of the KV, `isNewClient_watcher`);
@@ -319,7 +319,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, Hlis, Hleft, -, #Hics⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, Hleft, -, #Hics⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     -- the watch server's environment is the server's: `E` is `R.E` from here on
     subst hRE
@@ -333,6 +333,18 @@ theorem Main.wp_proof
       iexact Hinvs
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
+    -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+    -- (phase 7's switch, SW1) the server bound to its listener by the members' certificate
+    ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvAtLis gs lis go!"127.0.0.1:23873" [il, im, iu] [ims, is] svcs regs sregs ∗
+        ⌜noRefusalAt go!"127.0.0.1:23873"⌝) $$ [Hgsn]
+    · icases Hgsn with (⟨Hgsn, Hlis⟩ | Hb)
+      · iapply (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23873" gs q p srv lis R.E
+        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo)
+        iframe Hgsn Hlis; iframe #
+      · iexact Hb
+    ihave Hgsn : iprop((grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis go!"127.0.0.1:23873") ∨
+        grpcSrvAtLis gs lis go!"127.0.0.1:23873" [il, im, iu] [ims, is] svcs regs sregs) $$ [Hgsn]
+    · iright; iexact Hgsn
     -- (the cache over a compacting member, 2026-11-02) the store's fact for watches: no revision
     -- writes a key twice (the writers' plan, `kmInv`'s `wkW`)
     -- the watch path's server facts (R9) and the watch condition
@@ -350,16 +362,12 @@ theorem Main.wp_proof
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #Hksa, #HWF⟩
+      $$ [Hgsn Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
-    -- (D29) the member never refuses: the server now at its address is etcd's, authentication off,
-    -- a voter (the members' axiom)
-    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23873" srv [il, im, iu] R.E { ρ with wait := γw } HEo $$ [Hksa]
-    · iframe #
     imodintro
     iframe Hserv HKV HWF Hgo2
     ipureintro; exact ⟨rfl, Hnr⟩

@@ -19,7 +19,7 @@ adds.
 token, so that a caller serves them beside the KV and Auth methods.
 
 **The replies' size** (2026-10-31, `notes/reply-size.md`): these results take a server token
-(`grpcServerAt`), made only by `grpc.start`, which takes the workload premise `grpcRepliesFit`;
+(`grpcServerAt`), made only by the single-process start (`grpc.start'`), which takes the workload premise `grpcRepliesFit`;
 they are conditional on it through the token, which their statements do not show.
 -/
 module
@@ -291,13 +291,13 @@ def etcdAuthnMethod (pa : Loc) (γa : auth.AuthNames) : GrpcMethod GF :=
 the file header; one gRPC server, as `grpc.serve` takes every served method at once): the gRPC
 server at `addr` serves the KV methods with auth on, the Auth service's admin methods, and
 `Authenticate` with etcd's spec at the member's names `γa` (`etcdAuthenticateSpec`), its
-registration in `v3rpc.authRegs` (per-type stage B3: the server `γ`, each run on a fork of grpc's
+registration in `v3rpc.authRegs` (per-type stage B3: the server at `addr` with the streams `sms`, each run on a fork of grpc's
 borrowing from the server's built pools and run pool, `srvRevokeBuilt`, `srvRunPool`, with the
 levels `srvLevels`). Premises: the server's with auth on, the `*AuthServer` over it,
 its auth store's bcrypt cost (`bcryptCostOk`) and `Authenticate` side (`authnStoreOk`, at the server's reader resource). -/
 theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
-    (ast : GoInterfaceOk) (regs : List (GoString × GoFunc × GoInterface)) (γ : GName)
+    (ast : GoInterfaceOk) (regs : List (GoString × GoFunc × GoInterface)) (sms : List (GrpcStreamMethod GF))
     (γa : auth.AuthNames) (hγa : E.authMode = .on γa)
     (hregs : ∀ x ∈ etcdKVRegs (GF := GF) q ++ v3rpc.authRegs pa, x ∈ regs)
     (HL : srvLevels (GF := GF)) :
@@ -314,7 +314,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-        grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+        grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E γr cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn (srvTLSId s) E ρ cid mid) ∗
@@ -436,7 +436,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
   -- the KV methods in the server's mode (`etcd_kv_servedM_with`), at auth on
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none) cid mid n rfl]
-  imod (etcd_kv_servedM_with addr p q s E ρ γr cid mid n il im iu regs γ
+  imod (etcd_kv_servedM_with addr p q s E ρ γr cid mid n il im iu regs sms
     (v3rpc.etcdAuthMethods pa s E ρ ++ [etcdAuthnMethod pa γa])
     (fun x hx => hregs x (List.mem_append_left _ hx))
     (by
@@ -495,7 +495,7 @@ server's views with auth on (`v3rpc.lessorGrantOkLiveM_server`, `v3rpc.lessorRev
 auth guard from the views, `srvAuthAt_of_viewsM`). -/
 theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.KVAns GF)
     (lcid lmid : w64) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (il im iu : GoFunc)
-    (regs : List (GoString × GoFunc × GoInterface)) (γ : GName) (γa : auth.AuthNames)
+    (regs : List (GoString × GoFunc × GoInterface)) (sms : List (GrpcStreamMethod GF)) (γa : auth.AuthNames)
     (hγa : E.authMode = .on γa) (hlm : ρ.rd.kv.lm = .revocable) (hρ : ρ.rd = γr)
     (hregs : ∀ x ∈ v3rpc.leaseRegs ql, x ∈ regs) (HL : srvLevels (GF := GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -506,7 +506,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
       v3rpc.leaseServerAt pl s A lcid lmid ∗
       srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
       srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-      grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
+      grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
     |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #HNR, #Hq, #Hat, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrpl⟩
@@ -597,7 +597,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
     itrivial
   ihave #Hks := etcd_runOks_of_slot [il, im, iu] s E γr HL (etcdLeaseMethodsOn ql s E ρ) $$ [Hms]
   · iframe #
-  imod (grpc.serve addr [il, im, iu] regs etcdTys (etcdLeaseMethodsOn ql s E ρ) γ
+  imod (grpc.serve addr [il, im, iu] regs etcdTys sms (etcdLeaseMethodsOn ql s E ρ)
     (by
       intro x hx
       apply hregs
