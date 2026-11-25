@@ -12,8 +12,11 @@ translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimpl
   "ResourceExhausted", "Aborted", "OutOfRange", "DataLoss", "Unauthenticated",
   # (phase7-inits, 2026-11-25) its `init` (`code_string.go`: `internal.CanonicalString =
   # canonicalString`) with its body (until then `initFuncsOk`); hence the import of grpc's `internal`
-  "init.0"]
-imports = ["!*", "google.golang.org/grpc/internal"]
+  "init.0",
+  # (status-bodies, 2026-11-25) `Code.String` (`code_string.go`), with its body: what
+  # `internal/status.Status.String` formats (`%s` of the code)
+  "Code.String"]
+imports = ["!*", "google.golang.org/grpc/internal", "strconv"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

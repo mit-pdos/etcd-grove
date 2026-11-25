@@ -1,0 +1,29 @@
+# (status-bodies, 2026-11-25) Types only: the message `Status` (`google.rpc.Status`, protoc-gen-go
+# output) grpc's `internal/status.Status` holds, whose fields `Code` and `Message` its accessors read.
+translate = ["!*", "Status"]
+imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl",
+  "google.golang.org/protobuf/types/known/anypb"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+# Its `init` function (the file descriptor's registration) trusted: a model that does nothing
+# (TrustedCode/google_golang_org/genproto/googleapis/rpc/status.lean), as `grpc_health_v1`'s and
+# etcdserverpb's (etcd-grove#32; the gap etcd-grove#57 records). `anypb` (the type of the field `Details`,
+# which no translated code reads) likewise (`Code/google_golang_org/protobuf/types/known/anypb.toml`).
+trusted = ["init.0"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them; each reason says why not
+# running the initializer is unobservable.
+[[skip]]
+names = ["file_google_rpc_status_proto_rawDesc", "file_google_rpc_status_proto_rawDescData",
+  "file_google_rpc_status_proto_msgTypes", "file_google_rpc_status_proto_goTypes",
+  "file_google_rpc_status_proto_depIdxs"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---

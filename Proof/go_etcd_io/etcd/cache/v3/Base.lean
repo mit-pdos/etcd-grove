@@ -37,6 +37,7 @@ public import Proof.go_uber_org.zap.PkgInit
 public import Proof.math.rand.Base
 public import Net.Proof.net.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
+public import Proof.google_golang_org.genproto.googleapis.rpc.status.Base
 public import Proof.crypto.tls.PkgInit
 public import Proof.google_golang_org.protobuf.PkgInit
 

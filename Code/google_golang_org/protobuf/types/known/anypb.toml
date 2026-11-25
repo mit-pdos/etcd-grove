@@ -1,0 +1,26 @@
+# (status-bodies, 2026-11-25) Types and names only: the message `Any`, the type of genproto
+# `status.Status`'s field `Details` (no translated code reads it).
+translate = ["!*"]
+imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+# The `init` function (the file descriptor's registration) trusted: a model that does nothing
+# (TrustedCode/google_golang_org/protobuf/types/known/anypb.lean), as wrapperspb's and etcdserverpb's
+# (etcd-grove#32; the gap etcd-grove#57 records).
+trusted = ["init.0"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them; each reason says why not
+# running the initializer is unobservable.
+[[skip]]
+names = ["file_google_protobuf_any_proto_msgTypes", "file_google_protobuf_any_proto_goTypes",
+  "file_google_protobuf_any_proto_depIdxs"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---

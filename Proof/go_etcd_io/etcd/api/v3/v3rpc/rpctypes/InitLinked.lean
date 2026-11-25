@@ -8,7 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
 public import Proof.google_golang_org.grpc.codes.InitLinked
-public import Proof.google_golang_org.grpc.status.Init
+public import Proof.google_golang_org.grpc.status.InitLinked
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
