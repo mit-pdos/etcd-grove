@@ -32,7 +32,12 @@ theorem errors.AsLeafTy.wp_proof (wp_AsNoMatch : errors.AsNoMatch.spec (GF := GF
   iframe Hpkg Hl
   ileft
   ipureintro
-  exact Or.inr ⟨ii, rfl, hleaf, hts, hmod, hp, hu⟩
+  refine Or.inr ⟨ii, rfl, hleaf, hts, hmod, fun hI => ?_, hu⟩
+  obtain ⟨X, p, hty, -⟩ := hp hI
+  obtain ⟨ty, iv⟩ := ii
+  simp only at hty
+  subst hty
+  exact _root_.Perennial.errors.asTyRepr_pointer T X iv hI
 
 end proof
 

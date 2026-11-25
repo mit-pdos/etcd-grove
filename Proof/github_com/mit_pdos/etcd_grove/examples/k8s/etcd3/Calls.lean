@@ -154,6 +154,37 @@ theorem drvInit_sents :
   · iexact CD'
   · iexact CU'
 
+/-- The model's reflection on an `rpctypes.EtcdError` is defined (as `k8s.asModelled_etcdError`). -/
+private theorem asModelled_etcdError' :
+    _root_.Perennial.errors.asModelled go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
+  have hu : underlying go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty =
+      go.GoType.StructType [go.field_decl.FieldDecl go!"code" google_golang_org.grpc.codes.Code.ty,
+        go.field_decl.FieldDecl go!"desc" go.string] := by
+    rw [go.is_underlying (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)]
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.fields
+    rfl
+  haveI : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ↓u
+      go.GoType.StructType [go.field_decl.FieldDecl go!"code" google_golang_org.grpc.codes.Code.ty,
+        go.field_decl.FieldDecl go!"desc" go.string] := ⟨hu⟩
+  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 2, false, ?_⟩
+  exact reflect.directIfaceN_struct_last (f := go.field_decl.FieldDecl go!"desc" go.string)
+    (u := go.string) (k := 24) 0 (by simp) (by simp)
+    (show underlying go.string = go.string from go.is_underlying)
+    (by simp [go.kindOf, List.find?, go.bool, go.int, go.int8, go.int16, go.int32, go.int64, go.uint, go.uint8, go.uint16, go.uint32, go.uint64, go.uintptr, go.float32, go.float64, go.complex64, go.complex128, go.string, «unsafe».Pointer])
+    (by omega) (by omega) (by decide)
+
+/-- The model's reflection on a `context.deadlineExceededError` (an empty struct) is defined. -/
+private theorem asModelled_deadlineExceeded' :
+    _root_.Perennial.errors.asModelled _root_.Perennial.context.deadlineExceededError.ty := by
+  have hu : underlying _root_.Perennial.context.deadlineExceededError.ty = go.GoType.StructType [] := by
+    rw [go.is_underlying (t := _root_.Perennial.context.deadlineExceededError.ty)]
+    unfold _root_.Perennial.context.deadlineExceededError.underlying
+      _root_.Perennial.context.deadlineExceededError.fields
+    rfl
+  refine ⟨by rw [hu]; rfl, by rw [hu]; rfl, ⟨25, by rw [hu]; rfl⟩, by rw [hu]; rfl, 1, false, ?_⟩
+  simp [reflect.directIfaceN, hu]
+
 /-- The model's reflection on a client error's dynamic type (one of `clientErrTys`) is defined, and
 the type has a Lean representation (`*status.Error`, `*errorString`: `Loc`; `EtcdError` and
 `deadlineExceededError`: their structs). -/
@@ -162,14 +193,14 @@ theorem clientErrTy_modelled (ii : GoInterfaceOk) (ht : ii.ty ∈ clientErrTys) 
     _root_.Perennial.errors.asTyRepr (GF := GF) k8s_io.apimachinery.pkg.api.errors.APIStatus.ty ii := by
   obtain ⟨ty, v⟩ := ii
   simp only [clientErrTys, List.mem_cons, List.not_mem_nil, or_false] at ht
-  rcases ht with ht | ht | ht | ht <;> simp only at ht <;> subst ht
+  rcases ht with ht | ht | ht | ht <;> (try simp only at ht) <;> subst ht
   · exact ⟨_root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _,
       _root_.Perennial.errors.asTyRepr_pointer _ _ _⟩
-  · exact ⟨EtcdGrove.k8s.asModelled_etcdError,
-      _root_.Perennial.errors.asTyRepr_of (W := v3rpc.rpctypes.EtcdError) _ _⟩
+  · exact ⟨asModelled_etcdError',
+      _root_.Perennial.errors.asTyRepr_of (W := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) _ _⟩
   · exact ⟨_root_.Perennial.errors.asModelled_pointer (GF := GF) (hG := hG) _,
       _root_.Perennial.errors.asTyRepr_pointer _ _ _⟩
-  · exact ⟨EtcdGrove.k8s.asModelled_deadlineExceeded,
+  · exact ⟨asModelled_deadlineExceeded',
       _root_.Perennial.errors.asTyRepr_of (W := _root_.Perennial.context.deadlineExceededError) _ _⟩
 
 /-- A client error is no too-large one (`clientErrPlain`, and `clientErr`'s leaf). -/
