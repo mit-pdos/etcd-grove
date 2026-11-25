@@ -433,7 +433,7 @@ hypotheses); step 5's kv part (`kvremote/Start.lean`) over `member_boot_dist`.
 **Commits**: `c066130dfb` the CallDist fix; then the shares restatement (**unbuilt**, its commit message says
 so). Remote worktree: fk-lean2 `wt/etcd-safe-m1` now exists (created this session; `.lake/build` moved from
 `wt/etcd-safe-p9-nc`). Build: `/shared/tmp/m1-build.sh` of `kvremote.Link kvremote.Start` at `c066130dfb`;
-its result is under "Build state" below.
+**green** (exit 0, 11303 jobs: `CallDist`, `CallDistLinked`, `Node`, `Orch`, `Link`, `Start`, the `remote` leaves). The shares restatement after it is unbuilt.
 
 **CallDist fix** (the six stuck `client.v3.Assumptions` errors): no binder was lost. Dropping `svc` left
 `GF` undetermined in the svc-free laws (`client_*_dist.law`, `txn_Commit_dist.law`), in N2's `KV_*_dist.spec`
