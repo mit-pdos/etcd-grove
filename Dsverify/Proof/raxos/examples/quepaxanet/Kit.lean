@@ -108,7 +108,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: QuePaxa's key-value map on the kit's inputs (see the file header). -/
-def qR (γ : QNames) : RBase GF raxos.pure.Store QIn QOut where
+def qR (γ : QNames) : RBase GF raxos.pure.Store QIn QIn QOut where
   B := qB
   sysState σ := ownState γ σ
   Eop := ↑raxosN

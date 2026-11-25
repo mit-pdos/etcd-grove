@@ -162,7 +162,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: Rabia's key-value map (see the file header). -/
-def kvR (γ : Names) : RBase GF KSt KIn KOut where
+def kvR (γ : Names) : RBase GF KSt KIn KIn KOut where
   B := kvB
   sysState σ := kvState γ.rab σ
   Eop := rabiaE

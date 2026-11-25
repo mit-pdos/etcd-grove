@@ -35,11 +35,11 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [DecidableEq J] [Pos.Countable I] [Pos.Countable J] [Pos.Countable O]
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
-  ∀ (R : RBase GF St I O) (S : ModelSpec GF (EtcdGrove.linkv.PSet St I)) (γ : PendNames)
+  ∀ (R : RBase GF St J I O) (S : ModelSpec GF (EtcdGrove.linkv.PSet St J)) (γ : PendNames)
     (m : Model) (addrs : GoSlice) (addrL : List GoString) (cd : remote.Codec) (gen : GoFunc)
     (ops d tmo : w64),
   (↑pendN : CoPset) ⊆ ⊤ \ R.Eop → (↑lintestN : CoPset) ⊆ ⊤ \ (R.Eop ∪ ↑pendN) →
