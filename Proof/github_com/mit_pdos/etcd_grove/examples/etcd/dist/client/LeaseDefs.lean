@@ -114,7 +114,9 @@ instance leaseClientV_persistent [π : NetProtoGS] (svc : DistView → w64 → G
 theorem leaseClientV_of_memberCli [π : NetProtoGS] (svc : DistView → w64 → GrpcSvc GF) (cl : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView)
     (mid : w64) :
     memberCli svc cl ep V Γ mid ⊢ ∃ lp : Loc, leaseClientV svc cl lp ep V Γ mid := by
-  iintro ⟨#Hnc, #Hnp, #Haddr⟩
+  iintro #Hmc
+  iunfold memberCli at Hmc
+  icases Hmc with ⟨#Hnc, #Hnp, #Haddr⟩
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, -, -, ⟨%lp, #Hlf, -⟩, -⟩
