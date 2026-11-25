@@ -47,20 +47,18 @@ abbrev watchEvents.spec : Prop :=
   (∀ m ∈ c.ms, noRefusalAt m.addr) → threadBound GF ≤ 2 ^ 30 - 1 →
   prepareKeyM c.resourcePrefix x.WKey' x.Recursive' = some k →
   (c.pathPrefix ++ k).length ≤ opKeyMax → c.S.parseRV x.MinRV' = some n → uint.Z n < 2 ^ 63 - 1 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ k8s.isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (k8s.isStore sp c ∗
       storeWatchOk sp c driverW γk ∗ watchListOn ∗ rangeStreamOff ∗
-      (|==> readAus c γk (Q 0)) ∗ (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev)) }}
+      (|==> readAus c γk (Q 0)) ∗ (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev))) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchEvents))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
         #sp))) (Val #x))
-  {{ (sl rsl : GoSlice) (failed : Bool), RET (PairV (PairV #sl #rsl) #failed);
-      if failed then iprop(⌜sieOfL x = some false ∧ uint.nat n = 0⌝)
+  {{ (sl rsl : GoSlice) (failed : Bool), RET (PairV (PairV #sl #rsl) #failed); levelTok 0 ∗ (if failed then iprop(⌜sieOfL x = some false ∧ uint.nat n = 0⌝)
       else iprop(∃ (rs : List k8s_correctness.REv) (kes : List (KWEv DObj)),
         wevsOwnM sl (rs.map k8s_correctness.toWEvL) ∗ k8s_correctness.evsRO rsl rs ∗
         ⌜List.Forall₂ kWEvRel kes (rs.map k8s_correctness.toWEvL)⌝ ∗
         kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
-          (kModeOf (sieOfL x) x.Bookmarks' n) Q kes) }}
+          (kModeOf (sieOfL x) x.Bookmarks' n) Q kes)) }}
 
 end spec
 
