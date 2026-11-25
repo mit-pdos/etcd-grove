@@ -56,10 +56,6 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvWatchBuilt\.lean$
 # at `Restore` and at the close (`RestoreApi`, `ClosedLaw`).
 stock ^Spec/go_etcd_io/etcd/server/v3/storage/mvcc/(Api|EtcdBackend)\.lean$
 stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|NewStoreApiLemmas|RestoreApi|ClosedLaw|ImageBridge)\.lean$
-# The randomized mvcc test's history lock, by its owner, the test (`examples/mvccrand`, 2026-11-07):
-# `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
-# the lock's slots), `runChecks` hands one to each reader goroutine it forks.
-stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|runChecks)\.lean$
 # The full tester's epoch tokens, by their owner, the tester (`examples/mvccfull`, 2026-11-10): the
 # writer lends its incarnation's per-stream parts (`epochTok`: a history reader slot and the
 # registrar's and receiver's `epRd`), one per stream, counted by `cfg.Streams` (bounded by `Run`'s

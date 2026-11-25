@@ -136,8 +136,7 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
 # notes/trace-validation-plan.md; it runs raft's `with_tla` build and is in the tree `RaftTla/`
 # since the split of raft's two builds, so its `Init.lean` and `PkgTable.lean` are no longer
 # generated here)
-# (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
-ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
+# (R10, 2026-11-07 to 2026-11-25) mvcc's randomized tester (examples/mvccrand), retired (#49)
 # (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
@@ -2177,24 +2176,6 @@ trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.''',
                  'InitialMmapSize': 'w64', 'minSnapshotWarningTimeout': 'w64'},
     finish=['ipersist HcommitSec', 'ipersist HrebalanceSec', 'ipersist HspillSec', 'ipersist HwriteSec']
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
-)
-
-# (R10, 2026-11-07) mvcc's randomized tester: its two string-slice literals, persisted
-SPECIAL['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = dict(
-    doc='''Its fact (`mvccrandInit`, `Base.lean`): `keys` and `extraEnds` hold read-only slices of
-`keyList` and `extraEndList`. Its initializer allocates them, initializes its imports and runs their
-translated initializers, two slice literals (`mvccrand.go`), whose slices are made persistent.''',
-    alloc_types={'keys': 'GoSlice', 'extraEnds': 'GoSlice'},
-    before={'keys': ['try wp_auto',
-                     'wp_apply (wp_slice_literal (l := [go!"a", go!"aa", go!"b", go!"ba", go!"c", go!"d"])); isplitr; (· ipureintro; rfl); iintro %pK ⟨SK, -⟩',
-                     'try wp_auto'],
-            'extraEnds': ['try wp_auto',
-                          'wp_apply (wp_slice_literal (l := [go!"bb", go!"z"])); isplitr; (· ipureintro; rfl); iintro %pE ⟨SE, -⟩',
-                          'try wp_auto'],
-            '$end': ['try wp_auto']},
-    finish=['ipersist Hkeys', 'ipersist HextraEnds', 'imod ownSlice_persist $$ SK with #SK',
-            'imod ownSlice_persist $$ SE with #SE'] + FIN_PRE[:6] +
-           ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
 )
 
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
@@ -5354,9 +5335,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
-# (R10, 2026-11-07) mvcc's randomized tester
-PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
-    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'

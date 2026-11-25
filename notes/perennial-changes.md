@@ -4671,3 +4671,13 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `Spec/cmp/Compare.lean`).
 - **Proposed change.** Move both (`cmp.Less` and `cmp.Compare` at `int64`, with `lessImplements_int64`
   beside `lessImplements_uint64`) to Perennial, and drop the local copies.
+- **Status (2026-11-25, mvccrand retired, #49).** No longer needed here: mvccrand was the only user, and
+  `Spec/cmp/Less.lean`, `Proof/cmp/Less.lean` are deleted with it (`cmp.Compare` at `int64` stays).
+
+### A wait group's `Add(n)` for `n` goroutines (2026-11-25, mvccrand retired, #49)
+
+- **Limitation.** Perennial's join idiom (`sync.join`, `WaitGroupJoin.lean`) adds one goroutine per `Add(1)`.
+- **Needed by.** `examples/etcd/all`'s drivers (`wg.Add(n)` before the `go` statements).
+- **Workaround.** `Proof/sync/WaitGroupAddMany.lean` (`waitGroup.wp_Add_many`; until 2026-11-25 mvccrand's
+  `RunChecksJoin.lean`), with a copy in `Net/` (`acceptloop/Join.lean`).
+- **Proposed change.** `wp_Add_many` beside `WaitGroupJoin`'s `wp_Add_of`, and drop both copies. **Status.** Not filed.

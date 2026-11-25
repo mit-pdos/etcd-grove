@@ -10,7 +10,7 @@
 #
 # `roots PATTERN`: every etcd and Kubernetes example's result (the single-process theorems, the
 # drivers' linked `Main`s, putget's distributed `putget_safe_of_*`) and every top-level robustness
-# theorem of every tree (mvccfull and mvccrand among them).
+# theorem of every tree (mvccfull among them).
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/(etcd|k8s)/
 roots TopLevelRobustness\.lean$
 # `axioms PATTERN`: the family, by declaring module or name (etc/tcb-report.py --help): grpc and its

@@ -1200,24 +1200,6 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "partition")],
     ),
     Project(
-        name="mvccrand",
-        # mvcc's randomized tester (notes/mvccrand.md): the watchable store over a real backend and
-        # lessor with a post-lock hook, one writer, concurrent floored readers and a watch stream,
-        # each result checked against the history. A package of the examples' Go module
-        # (examples/go.mod); its imports are the etcd project's translations (names reached through
-        # the empty root).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "mvccrand"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
-                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
-                    # (P3, 2026-11-24) `MainAt`'s `os.Lstat`: the os over the file extension
-                    "os=", "io/fs="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
-    ),
-    Project(
         name="mvccfull",
         # mvcc's full tester (notes/mvccfull.md): two members over real backends and lessors,
         # one log with compactions, snapshot installs and restarts, concurrent readers, hash
