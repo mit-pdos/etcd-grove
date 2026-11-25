@@ -71,10 +71,7 @@ theorem kvOnly_bounds {d : Deployment} (hw : d.WellFormed) (hkv : KvOnly d) :
       obtain ⟨-, hc, -⟩ := henc
       simp only [typed.Workload.BoundsOk] at hbw
       omega
-    | _ =>
-      first
-      | (exfalso; have h1 := henc.1; rw [hk] at h1; exact absurd h1 (by decide))
-      | (exfalso; have h1 := henc; rw [hk] at h1; exact absurd h1 (by decide))
+    | _ => simp [typed.Workload.Encodes, hk] at henc
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -38,7 +38,7 @@ theorem Deployment.Endpoints.wp_proof :
   ihave HI : (∃ (k : Nat) (mv : deployment.Member) (esl : GoSlice),
       "i" ∷ i_ptr ↦ W64 k ∗ "m" ∷ m_ptr ↦ mv ∗ "eps" ∷ eps_ptr ↦ esl ∗
       "Heps" ∷ esl ↦* (d.members.take k).map Member.client ∗
-      "Hcap" ∷ ownSliceCap go.string esl (DFrac.own 1) ∗
+      "Hcap" ∷ ownSliceCap GoString esl (DFrac.own 1) ∗
       "%Hk" ∷ ⌜k ≤ d.members.length⌝ : IProp GF)
     $$ [i m eps]
   · iexists 0, _, slice.nil
@@ -60,21 +60,21 @@ theorem Deployment.Endpoints.wp_proof :
     obtain ⟨mm, hmm⟩ : ∃ mm, d.members[k]? = some mm := ⟨_, List.getElem?_eq_getElem hk⟩
     wp_apply (wp_load_slice_index v.Members' (sint.Z (W64 (k : Int))) (d.members.map Member.val) DFrac.discard mm.val h0) $$ [] as -
     · iframe #; ipureintro; rw [hsk, List.getElem?_map, hmm]; rfl
-    wp_auto
     wp_apply wp_slice_literal (V := GoString) [mm.client]
     isplitr
     · ipureintro; rfl
     iintro %csl ⟨Hcsl, -⟩
     wp_apply (wp_slice_append esl _ _ [mm.client] (DFrac.own 1)) $$ [Heps Hcap Hcsl] as %esl2 ⟨Heps, Hcap, -⟩
     · iframe
-    have hwk : W64 (k : Int) + W64 1 = W64 ((k + 1 : Nat) : Int) := by word
+    have hwk : W64 (k : Int) + W64 1 = W64 ((k + 1 : Nat) : Int) := by
+      rw [show ((k + 1 : Nat) : Int) = (k : Int) + 1 by omega, W64, W64, W64, BitVec.ofInt_add]
     wp_for_post
     iframe
     iexists (k + 1), _, esl2
     rw [hwk, List.take_add_one, hmm, Option.toList_some, List.map_append]
     iframe
     ipureintro
-    omega
+    exact hk
   · have hkl : k = d.members.length := by word
     subst hkl
     rw [List.take_length]
