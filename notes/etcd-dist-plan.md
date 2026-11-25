@@ -1545,6 +1545,43 @@ back. The durable-name fact C-I1's `dbCrash` leaves to the caller (`Fs.Named`, f
 rename) needs the rename's log position: `os.Rename.spec` (proved, `Proof/os/Rename.lean`) would have to return
 `osLogLb n` past its entry, and the post of `OpenSnapshotBackend` `osCommitLb n`; T7 decides the form.
 
+**Step 1, 2026-11-25 (pin branch): done so far, and the blocker.**
+- `storage.syncDir` translated: added to `storage.toml`'s `translate` list, with `path/filepath` and `fileutil` in
+  its `imports` (until then names-only: `OpenSnapshotBackend` called an unspecified function). The package
+  initializers and PkgTables were regenerated (`etc/gen-init.py`).
+- `Spec/.../storage/syncDir.lean` is `fileutil.syncDir`'s spec with the file extension's instances (and
+  `os.file.FieldAssumptions`) bound inside the spec, as `bbolt.Open.spec` does, so that `OpenSnapshotBackend`
+  (which uses the `onFs` vocabulary) can call it at `theFs`'s instances. `Proof/.../storage/syncDir.lean` is
+  `fileutil.syncDir`'s proof, over `OpenDir.spec`/`Fsync.specDirS` taken at any instances. To link it in the server:
+  `storage_syncDir: =<fileutil.OpenDir.wp_proof> =<fileutil.Fsync.wp_proofDirS~os.File.Sync.wp_proofDirS>`,
+  with the fileutil and os proof modules added to `--server`'s `EXTRA_IMPORTS`.
+- `config.dirModel_backendPathOf` (`OpenSnapshotBackendLemmas.lean`, built) holds for any data directory:
+  `filepath.Dir(cfg.BackendPath())` is the snapshot directory. It rests on `path.cleanModel_snoc_slash`
+  (`Clean(p + "/") = Clean(p)`). In the proof, the directory `d` of `fileAt dst`'s `nameAtF` is the snapshot
+  directory (`parentOf`), so the sync takes that claim's `osPathS R d`/`osCallPerm`.
+- **Blocker: the sync can fail, and `applySnapshot` panics when it does.** `applySnapshot` calls
+  `lg.Panic` on any error from `OpenSnapshotBackend`. Its proof refutes the error case only through
+  `snapOpensOk`'s `dirReadOk`/`renameOk`, and no spec makes `syncDir` error-free. `Fsync.specDirS`'s error needs
+  `¬ FsNoErrIno`, which `theFs`'s `FsNoErrAll` refutes, and `os.File.Close.wp_dirSNE` exists. But the directory's
+  open has no no-error spec: `wp_osOpenDirS` (Fs) allows any errno except `ENOENT`, and so do
+  `os.OpenFile.wp_dirSOk`, `os.Open.wp_dirSOk` and `fileutil.OpenDir.spec`. No new axiom or premise was added
+  (reusing `renameOk` to cover the sync would change a trusted premise's meaning). The route with no new trust is
+  a no-error chain:
+  (a) `Fs.openDir_succ`, a success from every free fd (`OpenEffect`'s `.dir` case; compare `openFile_succ`),
+  and a `Q` variant of `wp_osOpenDirGenS'` (as `wp_osOpenFileSQ`), giving `wp_osOpenDirSNE`, whose errno on
+  failure is `EINTR` (`open_failure_eintr`);
+  (b) `os.OpenFile.wp_dirSNE`, which retries `EINTR`, so it returns no error;
+  (c) `os.Open.wp_dirSNE`;
+  (d) `fileutil.OpenDir.specNE`;
+  (e) `storage.syncDir.spec` restated with no error (`⌜err = nil⌝ ∗ osCommitLb n`), under `[FsNoErrAll]` as
+  well (taken from `theFs`).
+  `OpenSnapshotBackend`'s error disjunct then stays as it is.
+- **The post for T7**, once the chain exists: in the success disjunct, `onFs (∃ x e, osLogEnt x e ∗ ⌜e` is the rename
+  of the snapshot's file onto `db`⌝ ∗ `osCommitLb (x + 1))`. That needs `os.Rename.spec`'s post to keep the
+  `osLogged x e` that `wp_osRenameFileSNE` gives (it is dropped as `-` in `rename_fileNE` today). Its `osLogLb (x+1)`
+  then feeds `syncDir`. The fact is persistent, so it survives `OpenBackend` (an axiom whose `bPath` hides the
+  claim's history). T7 combines it with the claim it holds (`bPath`) to show that the durable tree names the inode.
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
