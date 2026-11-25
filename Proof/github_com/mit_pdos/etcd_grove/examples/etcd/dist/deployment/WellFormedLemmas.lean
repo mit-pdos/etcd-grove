@@ -44,7 +44,7 @@ def goWellFormed (d : Deployment) : Prop :=
     ¬ (d.cfg.retention ≠ W64 0 ∧ d.cfg.compactorMode = go!"periodic")) ∧
   (∀ w ∈ d.workloads, w.kind = W64 9 → d.cfg.auth = false) ∧
   -- the sizes (1, 2, 4)
-  d.members.length ≤ typed.maxMembers ∧ (∀ m ∈ d.members, m.name.length ≤ typed.maxLen) ∧
+  d.members.length ≤ typed.maxMembers ∧ (∀ m ∈ d.members, m.name.length ≤ typed.maxNameLen) ∧
   (∀ a ∈ d.addrs, a.length ≤ typed.maxLen) ∧ d.token.length ≤ typed.maxLen
 
 /-- The typed workload a Go workload of a known kind encodes. -/

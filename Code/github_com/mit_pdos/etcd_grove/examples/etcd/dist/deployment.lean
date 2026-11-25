@@ -112,6 +112,9 @@ attribute [irreducible] Deployment.ty
 @[reducible] noncomputable def MaxLen [GooseExts] [GoGlobalContext] : val :=
   #(255 : Int)
 
+@[reducible] noncomputable def MaxNameLen [GooseExts] [GoGlobalContext] : val :=
+  #(200 : Int)
+
 noncomputable def kindNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment.kindNames"
 
@@ -252,7 +255,7 @@ noncomputable def NodeCount.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- String describes d for the logs.
 
-    go: deployment.go:123:21 -/
+    go: deployment.go:126:21 -/
 noncomputable def Deployment.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -328,7 +331,7 @@ noncomputable def Deployment.String.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Endpoints are the members' client addresses, in the members' order (the clients' eps).
 
-    go: deployment.go:141:21 -/
+    go: deployment.go:144:21 -/
 noncomputable def Deployment.Endpoints.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -367,7 +370,7 @@ noncomputable def Deployment.Endpoints.impl [GooseExts] [GoGlobalContext] : val 
     workload's client machines, and its address d.Nodes[j][c]; ok is false if d has no n-th client
     machine.
 
-    go: deployment.go:153:21 -/
+    go: deployment.go:156:21 -/
 noncomputable def Deployment.Node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "n"
@@ -452,7 +455,7 @@ noncomputable def Deployment.Node.impl [GooseExts] [GoGlobalContext] : val :=
 /-- The workload predicates (Lean: Workload.writesKeys, needsSoleWriter, alone, needsAuth,
     grantsLeases, needsNoExpiry).
 
-    go: deployment.go:168:6 -/
+    go: deployment.go:171:6 -/
 noncomputable def writesKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -466,7 +469,7 @@ noncomputable def writesKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: deployment.go:171:6 -/
+/-- go: deployment.go:174:6 -/
 noncomputable def needsSoleWriter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -480,7 +483,7 @@ noncomputable def needsSoleWriter.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: deployment.go:174:6 -/
+/-- go: deployment.go:177:6 -/
 noncomputable def alone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -497,7 +500,7 @@ noncomputable def alone.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NeedsAuth says whether a workload of kind k needs the simple token provider (Lean:
     Workload.needsAuth).
 
-    go: deployment.go:178:6 -/
+    go: deployment.go:181:6 -/
 noncomputable def NeedsAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -512,7 +515,7 @@ noncomputable def NeedsAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: deployment.go:179:6 -/
+/-- go: deployment.go:182:6 -/
 noncomputable def grantsLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -526,7 +529,7 @@ noncomputable def grantsLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: deployment.go:182:6 -/
+/-- go: deployment.go:185:6 -/
 noncomputable def needsNoExpiry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -542,7 +545,7 @@ noncomputable def needsNoExpiry.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- compatible is Lean's Compatible (the kinds known: WellFormed checks them first).
 
-    go: deployment.go:185:6 -/
+    go: deployment.go:188:6 -/
 noncomputable def compatible.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -666,7 +669,7 @@ noncomputable def compatible.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- boundsOk is Lean's Workload.BoundsOk (Lean's parameters are naturals: none negative here).
 
-    go: deployment.go:217:6 -/
+    go: deployment.go:220:6 -/
 noncomputable def boundsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -717,7 +720,7 @@ noncomputable def boundsOk.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- nameOk is Lean's nameOk: nonempty, ASCII letters, digits and '-'.
 
-    go: deployment.go:231:6 -/
+    go: deployment.go:234:6 -/
 noncomputable def nameOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -766,7 +769,7 @@ noncomputable def nameOk.impl [GooseExts] [GoGlobalContext] : val :=
     1-223, the port 1-65535 outside Linux's ephemeral range. kvnet.AddrOk's code, copied (kvnet is a
     module of its own), with its decimal helper, so that its proof is reused.
 
-    go: deployment.go:246:6 -/
+    go: deployment.go:249:6 -/
 noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -876,7 +879,7 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
 /-- decimal is the value of s as a canonical decimal numeral (digits, at least one, no leading
     zero), at most max; false otherwise.
 
-    go: deployment.go:276:6 -/
+    go: deployment.go:279:6 -/
 noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "max"
@@ -952,7 +955,7 @@ noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
     membership.NewMember's, from the member's one peer URL as server.Config builds it (http://Peer)
     and the token, as bootstrap does; in the members' order.
 
-    go: deployment.go:293:6 -/
+    go: deployment.go:296:6 -/
 noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -999,7 +1002,7 @@ noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
 /-- IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
     workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart).
 
-    go: deployment.go:304:6 -/
+    go: deployment.go:307:6 -/
 noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1099,7 +1102,7 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
     int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
     needs.)
 
-    go: deployment.go:326:6 -/
+    go: deployment.go:329:6 -/
 noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1443,7 +1446,7 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "names"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Name"))) (Var "m")))) (Var "$r0"))))))
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Name"))) (Var "m")))
   (App (App (Val (GoInstruction (FuncResolve nameOk []))) (Val #())) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Name"))) (Var "m")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val MaxLen))))) (Val #true) (App (App (Val (map.lookup1 go.string go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "names"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Name"))) (Var "m")))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val MaxNameLen))))) (Val #true) (App (App (Val (map.lookup1 go.string go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.bool)))) (Var "names"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Name"))) (Var "m")))))
   (Let "$r0" (Let "$a0" (Val #(go!"member name %q"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"Name"))) (Var "m"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))

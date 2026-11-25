@@ -83,9 +83,17 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("an ephemeral port passed")
 	}
-	// the size bounds (MaxMembers, MaxLen)
+	// the size bounds (MaxMembers, MaxNameLen, MaxLen)
 	bad = d
 	bad.Members = append([]Member(nil), d.Members...)
+	bad.Members[0].Name = strings.Repeat("n", deployment.MaxNameLen)
+	if err := WellFormed(bad); err != nil {
+		t.Errorf("a member name of MaxNameLen bytes refused: %v", err)
+	}
+	bad.Members[0].Name = strings.Repeat("n", deployment.MaxNameLen+1)
+	if WellFormed(bad) == nil {
+		t.Error("a member name of MaxNameLen+1 bytes passed")
+	}
 	bad.Members[0].Name = strings.Repeat("n", deployment.MaxLen+1)
 	if WellFormed(bad) == nil {
 		t.Error("a too-long member name passed")
