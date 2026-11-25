@@ -168,9 +168,7 @@ def premises (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     bootPremise cfg N ps (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃)
       cfg.Name2' cfg.Peer2' cfg.Client2' id₂ ∗
     bootPremise cfg N ps (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃)
-      cfg.Name3' cfg.Peer3' cfg.Client3' id₃ ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0) ∗
-    etcdstart.commonPremises)
+      cfg.Name3' cfg.Peer3' cfg.Client3' id₃)
 
 instance premises_persistent (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :

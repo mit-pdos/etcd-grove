@@ -41,7 +41,7 @@ namespace EtcdGrove
 namespace cluster3
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcdstart (httpURL commonPremises memberBoot)
+open etcdstart (httpURL memberBoot)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -55,7 +55,9 @@ set_option maxRecDepth 8192 in
 theorem StartCluster.wp_proof
     (wp_StartMember : StartMember.spec (GF := GF) (hG := hG))
     (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG))
-    (hne : mvcc.api.names_nonempty.law) :
+    (hne : mvcc.api.names_nonempty.law)
+    -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s spec at a boot conf change
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf
     Hdbo Hms Hrun Hap HlP
@@ -65,7 +67,12 @@ theorem StartCluster.wp_proof
   -- the members' start bundles (to `alloc3`) and the bridges' listen rights (to `StartBridge`)
   icases startRes_members cfg $$ Hstart with ⟨⟨Hs₁, Hs₂, Hs₃⟩, Hba₁, Hba₂, Hba₃⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
+  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃⟩
+  -- (premises to axioms, 2026-11-24: until then the premise `bootMarshal`) `proto.Marshal`'s bytes at the
+  -- bootstrap log's conf changes, from its trust-boundary spec and the log's bytes (`Hbf.wire`)
+  ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
+  ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hbf.wire $$ Hpp
   -- `context`'s `closedchan`, from its package's facts
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -213,7 +220,7 @@ theorem StartCluster.wp_proof
     ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hwl₃, #Hstr₃, #Htb₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
-  iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
+  iclear Hb₁ Hb₂ Hb₃ Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
   -- `srvs := []*etcdserver.EtcdServer{s1, s2, s3}`
   wp_apply wp_slice_literal (V := Loc) (l := [s₁, s₂, s₃])
   try (isplitr; (ipureintro; rfl))

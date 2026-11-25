@@ -6,8 +6,8 @@ With `cfg.lg` non-nil (etcd always passes a logger: the `else` branch, `NewRaftL
 default zap config and `log.Fatalf`, is dead) and `cfg.heartbeat` positive (a scope restriction,
 2026-11-03, the final whole-`bootOk` review's S2, `notes/decisions.md`: Go's `heartbeat == 0` branch,
 `&time.Ticker{}`, a ticker that never fires, is not covered; a negative one makes `NewTicker` panic), it sets raft's logger
-(`NewRaftLoggerZap`, `raft.SetLogger`: contracts), allocates `tickMu`, takes `time.Now()`, the
-timeout detector (`contention.NewTimeoutDetector(2 * heartbeat)`: a contract), the channels
+(`NewRaftLoggerZap`: a trust-boundary spec since 2026-11-24, until then a contract; `raft.SetLogger`), allocates `tickMu`, takes `time.Now()`, the
+timeout detector (`contention.NewTimeoutDetector(2 * heartbeat)`: a trust-boundary spec since 2026-11-24, until then a contract), the channels
 (`readStateC` of capacity 1, `msgSnapC` of capacity `maxInFlightMsgSnap`, `applyc`, `stopped` and
 `done` unbuffered) and the ticker (`time.NewTicker(heartbeat)`: since 2026-11-03 a callee of the
 proof, Perennial's proved spec; until then a contract, `rnTickerOk`, in the precondition; its ticks
@@ -53,8 +53,8 @@ abbrev newRaftNode.spec : Prop :=
     -- allocates `cum` at `[L₀]` and claims nothing of them; until then `[]`, `W64 0`, `0`, `0`)
     (a0 : List EntryModel) (t0 : w64) (L₀ : List EntryModel) (commit0 snap0 : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, the ticker proved)
-      rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗
+      -- (premises to axioms, 2026-11-24: until then the contracts `rnLoggerZapOk ∗ rnTimeoutDetectorOk`,
+      -- now the callees' trust-boundary specs, which the proof takes; 2026-11-03: `rnTickerOk E` gone)
       -- (2026-11-03: until then the implication `cv.lg' ≠ null →`) a zap logger (premise-fixes-6:
       -- until then not nil); (S2: until then the
       -- implication `heartbeat ≠ 0`) a positive heartbeat (2026-11-03 to 2026-11-05, the user's

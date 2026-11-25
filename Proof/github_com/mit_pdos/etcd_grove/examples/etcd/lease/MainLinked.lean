@@ -9,6 +9,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.lease.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -48,7 +49,7 @@ theorem etcd_lease.wp_Main [_root_.Perennial.net.FieldAssumptions]
     etcd_lease.Main.spec (GF := GF) (hG := hG) :=
   etcd_lease.Main.wp_proof zap.NewNop.wp_proof etcd_lease.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny client.v3.lessor.wp_Leases client.v3.lessor.wp_TimeToLive mvcc.api.mvccApi_names_nonempty_law_holds
+    context.wp_ErrAny client.v3.lessor.wp_Leases client.v3.lessor.wp_TimeToLive mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 
 end results
 

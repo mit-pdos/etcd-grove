@@ -1511,6 +1511,34 @@ noncomputable def newFuncDialOption.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType funcDialOption.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcDialOption.ty)))) (Var "$res0")))))
 
+/-- WithNoProxy returns a DialOption which disables the use of proxies for this
+    ClientConn. This is ignored if WithDialer or WithContextDialer are used.
+
+    # Experimental
+
+    Notice: This API is EXPERIMENTAL and may be changed or removed in a
+    later release.
+
+    go: dialoptions.go:419:6 -/
+noncomputable def WithNoProxy.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DialOption.ty))) (App (Val (GoInstruction (GoZeroVal DialOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcDialOption.ty) DialOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType dialOptions.ty)))) (Var "o"))
+  (Let "$r0" (Val #false)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef dialOptions.ty go!"useProxy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType dialOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncDialOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
+
 /-- WithTransportCredentials returns a DialOption which configures a connection
     level security credentials (e.g., TLS/SSL). This should not be used together
     with WithCredentialsBundle.
@@ -6300,6 +6328,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
   newFuncDialOption_unfold : FuncUnfold newFuncDialOption [] newFuncDialOption.impl
+  WithNoProxy_unfold : FuncUnfold WithNoProxy [] WithNoProxy.impl
   WithTransportCredentials_unfold : FuncUnfold WithTransportCredentials [] WithTransportCredentials.impl
   WithPerRPCCredentials_unfold : FuncUnfold WithPerRPCCredentials [] WithPerRPCCredentials.impl
   WithUnaryInterceptor_unfold : FuncUnfold WithUnaryInterceptor [] WithUnaryInterceptor.impl
@@ -6452,6 +6481,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
   Assumptions.newFuncDialOption_unfold
+  Assumptions.WithNoProxy_unfold
   Assumptions.WithTransportCredentials_unfold
   Assumptions.WithPerRPCCredentials_unfold
   Assumptions.WithUnaryInterceptor_unfold

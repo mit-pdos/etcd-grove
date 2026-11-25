@@ -52,7 +52,7 @@ namespace EtcdGrove
 namespace cluster3
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcdstart (httpURL commonPremises memberBoot memberUp)
+open etcdstart (httpURL memberBoot memberUp)
 
 set_option synthInstance.maxSize 4096
 set_option synthInstance.maxHeartbeats 400000
@@ -91,7 +91,7 @@ theorem StartMember.wp_proof
     Φs γn cmp lm Hcfg
     Htb HLv Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HnL Hpf Hcf Haf Hbuq Hrf Hdbo Hms
     HlP
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   -- (lease-mono3) the KV names' lease mode, out of the boot bundle (`kv_lease_served_watch`'s)
   iunfold memberBoot at Hmb
@@ -102,9 +102,6 @@ theorem StartMember.wp_proof
   -- the client address's listen right, out of the fresh bundle (to the client listener); the rest
   -- to `NewMember`
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfresh with ⟨Hcaddr, Hfresh⟩
-  ihave #Hcom' := Hcom
-  iunfold etcdstart.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -⟩
   ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂
       (GMap.insert cfg.Name1' sl₁ ∅)), sl ↦*□ initURLs3 cfg k $$ []
   · iapply (BigSepM.bigSepM_insert (by

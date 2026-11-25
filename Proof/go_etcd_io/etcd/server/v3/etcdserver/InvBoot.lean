@@ -590,7 +590,8 @@ fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`,
 (2026-11-25: until then `PeerTLSInfo` was listed here too, but with `EmptyCN` and a certificate its
 `ClientConfig` can panic, `issues/etcd-transport-emptycn-cert-reread-panic.md`; it is `bootCfgOk`'s
 `transport.tlsEmpty` now), and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
-The WAL's slot `wal.bootRes`: the data directory fresh, the configuration's dedicated WAL directory
+The WAL's slot `wal.bootRes` (since 2026-11-24 without the token `dataDirFresh`, which `dataAreaFresh`
+subsumes): the configuration's dedicated WAL directory
 the member's (`srvWalDirOf`, under its own `fsExt` root) and that WAL area fresh (`walAreaFresh`:
 what `wal.Create` takes of it), over layer 1's resources; until then the data directory alone, no
 dedicated WAL directory. -/

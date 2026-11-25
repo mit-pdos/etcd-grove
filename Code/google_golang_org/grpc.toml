@@ -27,7 +27,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
   # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
   "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
-  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers"]
+  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
+  # (putget-dist interim, 2026-11-24, notes/putget-dist-plan.md section 12, F1) `WithNoProxy`, which
+  # etcdstart's `NewClients` passes: its closure sets `useProxy` false
+  "WithNoProxy"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated

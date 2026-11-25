@@ -49,6 +49,51 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   but its `clientAttemptMd` conjunct, now SW1's `IProp` `clientAttemptMdI`) are unchanged. The lease
   client: an existential dispatch family `Md` and a dispatch-indexed `Dn` (it never reads the content).
 - **Decision.** Applied with SW1 (branch `phase7-switch-ab`), pending the user's review of SW1.
+## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
+  precondition, `InvBoot.lean`), and the start bundles `memberStartRes`/`memberFreshRes` (`lib/etcdstart/StartRes.lean`).
+- **Defect.** The slot took the axiomatized token `dataDirFresh d` besides `dataAreaFresh d`, which already claims every
+  name of `d`, none naming an entry; `putget_safe` had no source for the token on a distributed machine.
+- **Evidence.** `dataAreaFresh`'s definition (`storage/WalAreaFresh.lean`): the whole names claim on `d`'s root, none
+  naming an entry, coherent with the tree through the shared mode's invariant.
+- **Proposed change.** Delete the token from `wal.bootRes` (a deletion of trust) and from the start bundles.
+- **Decision.** Accepted (Upamanyu, 2026-11-24, via coordinator-E); applied on `dist-putget-interim/2026-11-24`.
+
+## 2026-11-24: interim putget axioms over the S2 interface switch (A1 restated, A2 retired)
+
+- **Spec.** `etcd_dist.etcdAddrAt` (`Proof/.../examples/etcd/dist/S2Interim.lean`): was `□ etcdAddrRaw a γE mid`
+  (an axiomatized predicate, produced only by the axiom `etcdAddr_set`); now `∃ σ, grpcAddrAt a (etcdSvc γE mid)`
+  over the axiomatized heap-free table `etcd_dist.etcdSvc`; `etcdAddr_set` (statement unchanged) a theorem.
+- **Defect.** None in the old statement; the S2 interface switch (`6d5a98fb3d`) put `grpcAddrAt`/`grpc_addr_set`
+  on `lean`, so the interim trust can be stated in its vocabulary, one axiom fewer.
+- **Evidence.** `notes/putget-dist-plan.md` §12, "Over the S2 interface switch"; adversarial review of the four
+  remaining axioms (the `axiom` skill, 2026-11-24, `notes/audit.md`).
+- **Proposed change.** As above; A3-A5 (`Serve_dist`, `Client_Put_dist`, `Client_Get_dist`) unchanged (their
+  narrowing needs S2's etcd side: O1, O2, a listen at a set address). Interim, retired by S2's `etcdSvc` and proofs.
+- **Decision.** Pending (the owner reviews the axioms' text before landing). Review 4 found A4/A5 false with
+  `bridge.New` in both forms (`notes/putget-dist-plan.md` §12, "Review 4"); proposed fix on `bridge.New`.
+
+## 2026-11-24: interim: S2 interface for putget; retired by #24's switch and S2 proofs
+
+- **Spec.** New trust-boundary specs (no SpecPlan counterpart): `Spec/.../examples/etcd/dist/ServeDist.lean`
+  (`etcd_dist.Serve_dist.spec`), `ClientPutDist.lean` (`etcd_dist.Client_Put_dist.spec`), `ClientGetDist.lean`
+  (`etcd_dist.Client_Get_dist.spec`), over the axiomatized address fact `etcd_dist.etcdAddrRaw`/`etcdAddr_set`
+  (`Proof/.../etcd/dist/S2Interim.lean`); and the changed client-construction specs `clientv3.New.spec`,
+  `newClient.spec`, `Client.dialWithBalancer.spec`, `Client.dial.spec` (the configuration's dial options may be
+  `grpc.WithNoProxy()`'s, `noProxyOptsAt`; `New`/`newClient` give the client's `cfg` field), new
+  `grpc.WithNoProxy.spec` (proved), `etcdstart.NewClients.spec`/`NewClient.spec` (post: `clientNoProxy cl`).
+- **Defect.** `putget_safe` needs cross-machine gRPC (phase 7 S2, #24, unfinished): the in-process specs' `Invoke`
+  registration (`kvRegsAt`) is one heap's. And the review of the first design (`s2-interim/review.md`, F1) found
+  that without `WithNoProxy` a client's calls follow `HTTPS_PROXY`, so the cross-machine client axioms were false.
+- **Evidence.** `notes/putget-dist-plan.md` §12; `TestProxyRogue` / `TestWithNoProxyFix` (`review-go/proxyrogue/`).
+- **Proposed change.** The five interim axioms A1-A5 (`notes/putget-dist-plan.md` §12), A4/A5 restricted to clients
+  with no proxy dial path (`clientNoProxy`, from `etcdstart.NewClient`'s post), `etcdstart.NewClients` passing
+  `grpc.WithNoProxy()`. Retired by #24's switch (`etcdAddrAt` defined from `grpcAddrAt`) and S2's proofs (`Serve`,
+  the pub-form put `client_Put_pub`): the statements then become theorems unchanged.
+- **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
+  `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
+  `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
 ## 2026-11-25: bootCfgOk -- `bootstrap`'s contracts covered `UnsafeNoFsync = true`, false of Go
 
 - **Spec.** `bootCfgOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), the configuration
@@ -6747,6 +6792,46 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** As above; the two premises have no caller to weaken.
 - **Decision.** Applied (zeldovich proving session 2, s5; `ctxKeys` agreed with the coordinator, session 10).
 
+## 2026-11-24: `advertiseMatchesCluster.spec` (and so `bootstrap.spec`) -- the member's own initial-cluster URL slice is sorted in place, against its read-only claim (dist-putget-interim)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__advertiseMatchesCluster.lean`,
+  `config.ServerConfig.advertiseMatchesCluster.spec` (claim #34, stage 2; a `?` hypothesis of the server's
+  Link), and through `VerifyBootstrap` the hypotheses of `bootstrapNewClusterNoWAL`, `bootstrapCluster` and
+  `bootstrap.spec` (`bootCfgRO cfg U` in the precondition: `sl ↦*□ U.initURLs k` for each entry, persistent).
+- **Defect.** False of Go when this member's entry of `InitialPeerURLsMap` holds two or more URLs out of
+  order (and, for 13 or more, possibly even in order: `pdqsort` swaps its pivot): the precondition gives the
+  slice's elements read-only and persistent, so the caller keeps `sl ↦*□ urls` after the call, but Go writes
+  the slice.
+- **Evidence.** `server/config/config.go:250-251`: `urls, apurls := c.InitialPeerURLsMap[c.Name], ...;
+  urls.Sort()`, and `client/pkg/types/urls.go:72-74`: `func (us *URLs) Sort() { sort.Sort(us) }`, which swaps
+  the elements of the map's own slice (`URLs.Swap`, `:77`). A caller reading `cfg.InitialPeerURLsMap[name][0]`
+  after `NewServer(cfg)` sees the sorted order.
+- **Proposed change.** Either the precondition takes this entry's slice owned (`sl ↦* urls name`) and the post
+  gives it back sorted (`↦* sortURLs (urls name)`), with `bootCfgRO` splitting that entry out; or a premise that
+  the entry is sorted with fewer than 13 URLs (no swap) -- weaker, and the examples' entries are one URL. Until
+  then the closed theorems use `bootstrap.specOne` (one member, one URL: `Sort` of one element writes nothing),
+  the interim axiom `bootstrap.wp_proofOne`.
+- **Decision.** Pending (claim #34's spec; found by the dist-putget-interim session while choosing the interim
+  axiom, not raised with #34 directly).
+
+## 2026-11-24: `isMemberBootstrapped.spec` (and so `bootstrap.spec`) -- requests sent to the other members with no protocol's consent (dist-putget-interim)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/isMemberBootstrapped.lean`, `isMemberBootstrapped.spec`
+  (claim #34, stage 2; a `?` hypothesis of the server's Link), for any network `H` and round tripper
+  `http.roundTripperOk H prt`, and through `bootstrapNewClusterNoWAL` the hypotheses of `bootstrap.spec`.
+- **Defect.** Too strong for a cluster with another member: Go sends `GET <peer URL>/members` through `prt` for
+  every other member's peer URL, and `roundTripperOk`'s `RoundTrip` needs the host's protocol registration
+  (`httpProtoAt`) and its request predicate (`□ (H.proto host).req R γk`), which the spec does not take; a peer's
+  handler proved under its registered protocol may rely on that predicate excluding the request.
+- **Evidence.** `server/etcdserver/cluster_util.go:41-42` (`getClusterFromRemotePeers(lg,
+  getRemotePeerURLs(cl, member), ...)`), `:80-82` (`cc.Get(u + "/members")` per URL), `:131-141` (every member
+  but `member`, its peer URLs); `Proof/net/http/Boundary.lean`, `roundTripperOk`. With one member
+  `getRemotePeerURLs` is empty and nothing is sent.
+- **Proposed change.** A premise that `cl`'s members other than `name` have no peer URL (one-member clusters), or
+  the per-URL registration and request predicate for `GET /members` in the precondition (the multi-member
+  clusters' start). Until then the closed theorems use `bootstrap.specOne` (one member), the interim axiom
+  `bootstrap.wp_proofOne`.
+- **Decision.** Pending (claim #34's spec; as above).
 ## 2026-11-24: `MustSaveMemberToBackend.spec`'s post does not see the peer-URL slice's nil-ness (prove-ps2-jsonj6, #24 J2)
 
 - **Spec.** `schema.membershipBackend.MustSaveMemberToBackend.spec`

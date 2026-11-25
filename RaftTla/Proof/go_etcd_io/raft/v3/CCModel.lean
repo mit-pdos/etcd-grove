@@ -284,6 +284,24 @@ theorem ccDecodeV1_bootWire (id : w64) (ctx : List w8) (hc : ctx.length < 2 ^ 64
   rw [ccDecodeV1_enc _ _ _ _ _ (ufWire_nil _) (by intro c h; split at h <;> simp_all)]
   by_cases h : ctx = [] <;> simp [h]
 
+open Wire in
+/-- **`ccBootWire`'s bytes, written out**: `type` (`0x10 0x00`), `node_id` (`0x18` and its varint)
+and, for a non-empty context, `context` (`0x22`, its length, its bytes), the formula
+`proto.MarshalBootConfChange.spec`'s docstring states and `examples/premisefix/confchange`'s
+`TestBootWireVectors` checks against protobuf-go. (Until the merge of 2026-11-25 this was the
+definition, in `Proof/google_golang_org/protobuf/proto/BootWire.lean`.) -/
+theorem ccBootWire_bytes (id : w64) (ctx : List w8) :
+    ccBootWire id ctx = [W8 0x10, W8 0x00, W8 0x18] ++ varintEnc (uint.nat id) ++
+      (if ctx = [] then [] else [W8 0x22] ++ varintEnc ctx.length ++ ctx) := by
+  have h16 : varintEnc (2 * 8 + 0) = [W8 0x10] := varintEnc_lt128 (by decide)
+  have h24 : varintEnc (3 * 8 + 0) = [W8 0x18] := varintEnc_lt128 (by decide)
+  have h34 : varintEnc (4 * 8 + 2) = [W8 0x22] := varintEnc_lt128 (by decide)
+  have h0 : varintEnc (enumVarint (W32 0)) = [W8 0x00] := varintEnc_lt128 (by decide)
+  by_cases hc : ctx = [] <;>
+    simp only [ccBootWire, cc1EncRaw, cc1Recs, encode, optF, encFields, record, tag, FVal.wt,
+      FVal.payload, hc, ↓reduceIte, h16, h24, h34, h0, uint.nat, List.append_nil, List.nil_append,
+      List.cons_append, List.append_assoc]
+
 end codec
 
 /-- `ConfChangeV2.EnterJoint`'s answer `(autoLeave, ok)` (`raftpb/confchange.go:82`) for a

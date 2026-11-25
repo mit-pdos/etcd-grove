@@ -530,7 +530,7 @@ theorem run.wp_proof
   icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
   wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hctk, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -685,7 +685,7 @@ theorem run.wp_proof
   wp_auto
   wp_apply (wp_NewClient xu.1.Client' lg (akV xu.1.Client' xu.2.ρ wu.R) (Hpe xu hxum) (by omega)) $$ [$Hlt] as %bcl %berr ⟨Hlt, Hbc⟩
   · iframe #
-  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk⟩ | %Hbfail)
+  icases Hbc with (⟨%Hberr, #Hbnc, #Hbtk, -⟩ | %Hbfail)
   rotate_left
   · obtain ⟨Hberr, -⟩ := Hbfail
     cases berr with
