@@ -25,3 +25,6 @@ This can't be done in `Main` or the harness alone. No Go or Lean change made; br
   for charged boot entries. `budgetInv` holds a deposit of 2 receipts. `cluster_alloc`/`budget_alloc_boot`
   take `⧖ bootLen ∗ ⧗ 2`. `Main`'s boot loop then threads `⧖ m → ⧖ (m+1)` per entry
   (`wp_GoInstruction_receipt'`). This changes raft-core's API and rebuilds every raft result. Waiting on Upamanyu.
+
+## Landing prep (2026-11-25, handoff pickup; Upamanyu's decision: option (3), #8 7147073597)
+Merged origin/lean e1ab967ea2 (premise-witness baseline: lean's kvudp lines kept, tracecheck's pending line dropped since P1 witnesses it). Generated files at Perennial fce59af75: goose tracecheck/raft-tla, gen-init, gen-specs-pkginit, gen-link, gen-raft-tla, copy-part consistent. Full VM lake build: 28441 jobs, exit 0. tcb-report --check: matches etc/tcb-baseline.txt (329 axioms, 0 sorries), identical to lean's baseline (ccDecodeV1 made concrete adds or removes no axiom). #print axioms raft_tracecheck_robust: 10 + 3 std = etc/tcb-collections/tracecheck.txt; raft_tracecheck_robust.premisesSat: std only. premise-witness --check, tier, import-all, bounds, api: ok. No Go change in the tracecheck module or its deps from the merge: TestMainRandomNodes not rerun.
