@@ -21,7 +21,7 @@ UDP (`notes/net-udp.md`) is `lean`'s trusted UDP, unchanged (etcd-grove#8, coord
 (a), 2026-11-25): the `UDPConn` layout, `UdpFieldAssumptions` and the models of `ListenUDP`,
 `WriteToUDP`, `ReadFromUDP` over the UDP extension (`GooseLang.Ext.Udp.Impl`), with the type names
 and the two helpers (`model.opError`, `model.einval`) they call; none of it calls the net extension
-or the Go model above. A Go model of UDP is a later item.
+or the Go model above. A Go model of UDP is etcd-grove#58.
 -/
 module
 
@@ -61,10 +61,10 @@ variable [GooseExts] [GoGlobalContext]
 and the two helpers of those models the UDP section calls (`model.opError`, `model.einval`): the
 text of `lean`'s `Net/TrustedCode/net.lean`, unchanged. -/
 
-@[reducible] def model.Addr : go.GoType := go.GoType.Named go!"net.Addr" []
-@[reducible] def model.OpError : go.GoType := go.GoType.Named go!"net.OpError" []
-@[reducible] def model.IP : go.GoType := go.GoType.Named go!"net.IP" []
-@[reducible] def model.Errno : go.GoType := go.GoType.Named go!"syscall.Errno" []
+@[reducible] def model.Addr : go.GoType := go.GoType.Named go!"net.Addr" []  -- UDP-only, retired by #58
+@[reducible] def model.OpError : go.GoType := go.GoType.Named go!"net.OpError" []  -- UDP-only, retired by #58
+@[reducible] def model.IP : go.GoType := go.GoType.Named go!"net.IP" []  -- UDP-only, retired by #58
+@[reducible] def model.Errno : go.GoType := go.GoType.Named go!"syscall.Errno" []  -- UDP-only, retired by #58
 
 /-- `UDPConn` (`udpsock.go`: Go's is `struct{ conn }`): the id of the UDP socket, its local address
 and its network, in place of the embedded `conn`, whose trusted methods call the TCP extension (the section "UDP"
@@ -109,7 +109,7 @@ attribute [instance] UdpFieldAssumptions.udp_get_id UdpFieldAssumptions.udp_set_
 
 /-- `&OpError{Op: op, Net: nw, Source: src, Addr: addr, Err: err}` as an `error` (D23: `nw` the
 call's, connection's or listener's network). -/
-noncomputable def model.opError : val :=
+noncomputable def model.opError : val :=  -- UDP-only, retired by #58
   λ: "op" "nw" "src" "addr" "err",
     let: "pe" := GoAlloc model.OpError (GoZeroVal model.OpError #()) in
     StructFieldRef model.OpError go!"Op" "pe" <-[go.string] "op" ;;
@@ -122,7 +122,7 @@ noncomputable def model.opError : val :=
 /-- `syscall.EINVAL` (`Errno(0x16)`, `zerrors_linux_amd64.go`) as an `error`, bare: what Go's
 methods return for a zero-value `TCPConn` or `TCPListener` (`return syscall.EINVAL` when `c.ok()`
 or `l.ok()` fails: `net.go`, `tcpsock.go`; `TestZeroValues`). -/
-noncomputable def model.einval : val :=
+noncomputable def model.einval : val :=  -- UDP-only, retired by #58
   λ: <>, Convert model.Errno go.error #(W64 22)
 
 /-! ## The primitive stubs (`models/net/model.go`) -/
