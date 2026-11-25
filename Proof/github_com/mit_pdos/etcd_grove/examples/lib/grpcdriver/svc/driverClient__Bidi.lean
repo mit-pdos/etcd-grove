@@ -126,7 +126,6 @@ theorem driverClient.Bidi.wp_proof
   · subst Herr
     try wp_auto
     wp_alloc p as Hp
-    try wp_auto
     iStructNamed Hp
     ipersist ClientStream
     have hReq : (pbStringValueST (GF := GF)).toStreamMsg.ty = wrapperspb.StringValue.ty := rfl
@@ -143,6 +142,7 @@ theorem driverClient.Bidi.wp_proof
     ihave #Hw := hw $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
+      simp only [pbStringValueST, pbStringValueS]
       iexists _
       iexact Hl
     wp_auto

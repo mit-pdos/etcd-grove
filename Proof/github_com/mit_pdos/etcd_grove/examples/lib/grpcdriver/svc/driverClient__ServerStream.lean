@@ -141,6 +141,7 @@ theorem driverClient.ServerStream.wp_proof
     ihave #Hw := hw $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
+      simp only [pbStringValueST, pbStringValueS]
       iexists _
       iexact Hl
     -- the request, then the end of the up queue
@@ -176,10 +177,8 @@ theorem driverClient.ServerStream.wp_proof
     icases Hres1 with (⟨%He1, HSt⟩ | ⟨#Hce1, -⟩)
     · subst He1
       wp_auto
-      iunfold cliSendTok at HSt
-      ihave #Hlb := monoListLbOwn_get γ.up (1 : Qp).half [v] $$ HSt
-      ihave HSt : iprop(cliSendTok (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ [v]) $$ [HSt]
-      · iunfold cliSendTok; iexact HSt
+      icases cliSendTok_lb (Req := (pbStringValueST (GF := GF)).toStreamMsg) γ _ $$ HSt
+        with ⟨HSt, #Hlb⟩
       wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
       iapply HClose $$ %([v] : List (pbStringValueST (GF := GF)).M) %iprop(True) [HSt]
       · isplitr
@@ -196,9 +195,7 @@ theorem driverClient.ServerStream.wp_proof
         isplitr
         · ipureintro; rfl
         iexists γ, Dn, cd'
-        iframe Hw HRt HSpec Hcl
-        unfold upLb
-        iexact Hlb
+        iframe Hw HRt HSpec Hcl Hlb
       · ihave #Hce2' := Hce2
         iunfold cliStreamErr at Hce2'
         icases Hce2' with ⟨%Hne, -⟩
