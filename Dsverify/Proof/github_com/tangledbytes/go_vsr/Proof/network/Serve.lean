@@ -45,7 +45,9 @@ theorem network.wp_TCPAddr_String (p : Loc) :
       (App (Val #(methods (go.GoType.PointerType net.TCPAddr.ty) go!"String" #p)) (Val #()))
     {{ (s : GoString), RET #s; True }} := by
   wp_start_folded as -
-  wp_auto
+  wp_method_call
+  wp_call
+  try wp_auto
   wp_apply net.wp_extAnyString as %s
   iapply HΦ
   itrivial

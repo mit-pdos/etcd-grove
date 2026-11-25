@@ -19,6 +19,7 @@ module
 public import Dsverify.Proof.gryff.Wire.Proof.VarintWp
 public import Net.Proof.net.ConnIo
 public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 public import Perennial.Proof.errors.NewVar
 public import Net.Proof.models_lab.Errors
 public import GooseLang.Ext.Net.Specs

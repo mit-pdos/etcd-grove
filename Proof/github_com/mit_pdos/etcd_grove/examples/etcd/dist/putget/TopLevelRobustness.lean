@@ -101,7 +101,7 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` with `Robust`'s thread bound (`Net.robust_of_distBootIT`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
+  intro _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc g
     Hm Hc Hlp Hlc HEnv
   refine Net.robust_of_distBootIT (GF := putgetGF) (startAddrs peer client) (system peer client σm σc) g
     putgetThreads putgetSteps ?_
@@ -191,7 +191,7 @@ proved (`putget_safe_of_boot`); the cross-machine steps are the interim axioms o
 switch). -/
 theorem putget_safe : putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
+  intro _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hbg Hfips σm σc
     Hm Hc Hlp Hlc HEnv G hb
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩

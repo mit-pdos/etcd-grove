@@ -401,12 +401,13 @@ theorem wp_Fprintf_noVerb [fmt.Assumptions]
   unfold fmt.bufferOwn
   icases Hb with ⟨%sl, Hb, Hbs, Hcap⟩
   wp_auto
+  simp only [List.nil_append]
   wp_bind (App (Val #(methods ii.ty go!"Write" ii.v)) (Val #sl))
   iapply HW $$ HP Hbs
   inext
   iintro %n %err Hbs HQ
   wp_auto
-  wp_apply wp_free p ([] ++ s) $$ [Hb Hbs Hcap Hrest]
+  wp_apply wp_free p s $$ [Hb Hbs Hcap Hrest]
   · iframe
     unfold fmt.isPrinterAny fmt.isPrinter fmt.isPrinterA fmt.bufferOwn
     isplitr
