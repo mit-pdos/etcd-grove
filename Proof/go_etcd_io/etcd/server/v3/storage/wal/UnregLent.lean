@@ -12,7 +12,9 @@ unregistration; the WAL's `IdleZ0` from the registered entry's `TailZ0`.
 * `walLentRes_unregLent`: the registry without the entry, the registration of `dir` gone;
 * `walTailsRes_closeL`: `walTailsRes_close` by the token;
 * `walInvBody_untailL`: `walInvBody_untailR` by the token (the tail idle: exact, all written, every byte
-  durable, the zeros known only past its end).
+  durable, the zeros known only past its end);
+* `walInv_repairPut`: `Repair`'s put-back after its truncate and fsync, by the pending token (P6: the
+  synced layout may keep a pending run past `wr`, so no F-Z and no key), then the pin put back.
 -/
 module
 
@@ -203,6 +205,36 @@ theorem walInvBody_untailL (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   isplitr
   · ipureintro; exact HNm
   ipureintro; exact ⟨HAt, Hbd⟩
+
+/-- **`Repair`'s put-back after its truncate and fsync** (see the file header), at a program step: the
+tail unregistered by the pending token (`walInvBody_untailL`: the synced layout F-Z, or `TailPend` with
+the pending run `Repair` kept, P6), then the pin put back with the synced segment
+(`walInv_unpinLast`); the free lock token out. -/
+theorem walInv_repairPut (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
+    (wr : Nat) (m : OsMeta) (bs : List ByteG) (j : Ino) (X : List GoString) (hj : NamesH) (gL : SegG)
+    (hTM : TailMetaR m bs ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ ∀ y ∈ bs, y = Fs.durB y.1)
+    (hwr : wr = (tailStream Mr H md cuts).length) :
+    ⊢ walInv (L := L) (W := W) walCodec Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
+      walTailsFrag (W := W) (<[dir := γ]> ∅) -∗ walLentTokB (W := W) dir γ k true -∗
+      tailVar (W := W) γ ((H, md, cuts, wr, gL.ino, none) : TailG) -∗
+      osMeta (L := L) gL.ino (DFrac.own (1 : Qp).half) m -∗
+      osBytes (L := L) gL.ino 0 (DFrac.own (1 : Qp).half) bs -∗
+      walLockedTok (W := W) -∗ walNamesFrag (W := W) none -∗
+      walOutFrag (W := W) ⟨[gL.ino], [(j, .except X)], []⟩ -∗
+      osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
+      walDirKey (W := W) dir j X ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
+  iintro #Hinv Hnc Htf Hk Hv Hm Hbs Hl Hn Ho Hns #Hdk
+  imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
+  imod walInvBody_untailL Mr R jr r s dir γ γ k true H md cuts wr gL.ino m bs hTM hwr $$ Hb Htf Hk Hv Hm Hbs
+    with ⟨%d, -, Hb, Htf, Hm, Hbs⟩
+  imod Hcl $$ [Hb]
+  · iexists s; iexact Hb
+  iapply walInv_unpinLast walCodec Mr R jr r dir j X hj ({ gL with om := m, bs := bs } : SegG)
+    hTM.1.1.symm $$ Hinv Hnc Hl [Htf Hn] Ho [Hm Hbs] Hns Hdk
+  · iframe
+  · unfold segRes; iframe
 
 end law
 

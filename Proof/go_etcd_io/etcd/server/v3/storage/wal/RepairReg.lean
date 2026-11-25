@@ -5,15 +5,18 @@
 `repair_register`: before its truncate, `Repair` registers the last segment of the WAL it holds open
 (`walLastOpen`: the directory's key, its claim's half, the pin, no tail registered) as a pending tail
 (`walInvRegisterPendLaw_holds` at `gs = [gL]`). The registration's layout reads the same records from the
-segment as the decoder loop did (`walRepairFile` on it, `repairFile_unique`), so its write position is the
-decoder's `LastOffset()` at the stop, `(recFrames rs).length`: the tail record is stated at it, with the
-stream's length (what `os.File.Truncate.specRepTail` and `fileutil.Fsync.specRepTail` take).
+segment as the decoder loop did (`walRepairFile` on it, `repairFile_unique`): the tail record is stated at
+the stream's end `wr`, and the decoder's `LastOffset()` at the stop, `(recFrames rs).length`, is `wr` or,
+past a pending run (P6), the run's end: `TailMetaRP` at it (the run's first length word nonzero, the
+reader's stop at `wr` on the bytes below it; what `os.File.Truncate.specRepTail` takes).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPre
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadState
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairTailDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairDecode
 
 @[expose] public section
 
@@ -48,10 +51,11 @@ theorem repair_register (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
       osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       osMeta (L := hG.goose_localGS) gL.ino (DFrac.own (1 : Qp).half) gL.om ∗
       osBytes (L := hG.goose_localGS) gL.ino 0 (DFrac.own (1 : Qp).half) gL.bs ∗
-      ∃ (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (k : Nat),
+      ∃ (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (k wr : Nat),
         walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗ walPendTok (W := W) dir γ k ∗
-        tailVar (W := W) γ ((H, md, cuts, (recFrames walCodec rs).length, gL.ino, none) : TailG) ∗
-        ⌜(recFrames walCodec rs).length = (tailStream Mr H md cuts).length ∧ TailMetaR gL.om gL.bs⌝ := by
+        tailVar (W := W) γ ((H, md, cuts, wr, gL.ino, none) : TailG) ∗
+        ⌜wr = (tailStream Mr H md cuts).length ∧ wr ≤ (recFrames walCodec rs).length ∧
+          TailMetaRP Mr (tailCrc Mr H md cuts) wr (recFrames walCodec rs).length gL.om gL.bs⌝ := by
   iintro #Hinv Hnc #Hk Hn Htf Hm Hb
   have hgLm : gL ∈ lay.segs := List.mem_of_getLast? hgL
   have hnm : ∀ g ∈ [gL], hj.cur !! g.name = some (.file g.ino) := by
@@ -72,18 +76,33 @@ theorem repair_register (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) 
       (fun g hg => by rw [List.mem_singleton] at hg; subst hg; exact hSz) rfl
     $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Hh, %d', %lay', %kk, %γ, Htf, Hpt, Hv, %hrs⟩
   obtain ⟨-, habs', hex', hwr', hdr', hTM, -, -⟩ := hrs
-  obtain ⟨rs', hRF', hrsw'⟩ := walRepairFile walCodec_ok habs' hex' hwr' gL (getLast?_of_drop (by rw [hdr']; rfl))
+  obtain ⟨rs', es, hRF', hrsw', -, hpS, hnz⟩ :=
+    walRepairFile walCodec_ok habs' hex' hwr' gL (getLast?_of_drop (by rw [hdr']; rfl))
   have hrr : rs = rs' := repairFile_unique walCodec_ok hRF hRF'
   subst hrr
   icases (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hh with ⟨Hm, Hb⟩
   imodintro
   iframe Hnc Hn Hm Hb
-  iexists γ, d'.H, d'.metadata, lay'.cuts, lay'.old.length
+  iexists γ, d'.H, d'.metadata, lay'.cuts, lay'.old.length, lay'.wr
   iframe Htf Hpt
   isplitl [Hv]
-  · unfold tailVar tailG; rw [hrsw']; iexact Hv
+  · unfold tailVar tailG; iexact Hv
   ipureintro
-  exact ⟨by rw [hrsw', hwr', tailStream_eq], hTM⟩
+  refine ⟨by rw [hwr', tailStream_eq], by omega, hTM, ?_, ?_⟩
+  · rcases hnz with h | ⟨b, h1, h2, h3⟩
+    · exact .inl h
+    · have hb : b < gL.bs.length := by
+        apply Classical.byContradiction; intro hb
+        apply h3
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by simp [segImg]; omega)]; rfl
+      refine .inr ⟨b, gL.bs[b], h1, h2, List.getElem?_eq_getElem hb, ?_⟩
+      rw [getD_of_lt _ _ _ (by simp [segImg]; exact hb)] at h3
+      simpa [segImg] using h3
+  · rw [List.map_take]
+    unfold segImg at hpS
+    unfold tailCrc
+    rw [show histN d'.H = histM d' by rw [histM]]
+    exact hpS
 
 end iris
 

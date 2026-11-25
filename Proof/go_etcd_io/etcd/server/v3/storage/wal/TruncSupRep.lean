@@ -87,13 +87,54 @@ theorem osBytes_agree_at (i : Ino) (dq dq' : DFrac) (bs : List ByteG) (b : Nat) 
   simp only [List.cons.injEq, and_true] at hxx
   ipureintro; rw [List.getElem?_eq_getElem hb, hxx]
 
-/-- **`Repair`'s tie** (see the file header): the pending token and the tail record's half, and, the
-target past `wr`, the caller's half of a nonzero byte in `[wr, tg)`. -/
+/-- **The nonzero byte of the run in `Repair`'s tie**: none at `tg = wr`; past it, the caller's half of
+byte `b ∈ [wr, tg)`, nonzero. -/
+def repNZ (i : Ino) (wr tg : Nat) : Option (Nat × ByteG) → IProp GF
+  | none => iprop(⌜tg = wr⌝)
+  | some (b, x) => iprop(⌜wr ≤ b ∧ b < tg ∧ x.1 ≠ 0⌝ ∗ osBytes i b (DFrac.own (1 : Qp).half) [x])
+
+/-- **`Repair`'s tie** (see the file header): the pending token and the tail record's half, and the
+run's nonzero byte (`repNZ`). -/
 def repTie (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8)
-    (cuts : List Nat) (wr : Nat) (i : Ino) (tg : Nat) : IProp GF :=
+    (cuts : List Nat) (wr : Nat) (i : Ino) (tg : Nat) (nz : Option (Nat × ByteG)) : IProp GF :=
   iprop(walTailKeyL (W := W) dir γ (some (k, true)) ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG) ∗
-    (⌜tg = wr⌝ ∨ ∃ (b : Nat) (x : ByteG), ⌜wr ≤ b ∧ b < tg ∧ x.1 ≠ 0⌝ ∗
-      osBytes i b (DFrac.own (1 : Qp).half) [x]))
+    repNZ i wr tg nz)
+
+/-- **The run's nonzero byte lent out of the bytes below `tg`**, and back. -/
+theorem osBytes_repNZ (i : Ino) (ys : List ByteG) (o0 tg : Nat) (hyl : ys.length = tg)
+    (hnz : tg = o0 ∨ ∃ b x, o0 ≤ b ∧ b < tg ∧ ys[b]? = some x ∧ x.1 ≠ 0) :
+    (osBytes i 0 (DFrac.own (1 : Qp).half) ys : IProp GF) ⊢
+      ∃ nz, repNZ i o0 tg nz ∗ (repNZ i o0 tg nz -∗ osBytes i 0 (DFrac.own (1 : Qp).half) ys) := by
+  rcases hnz with he | ⟨b, x, h1, h2, h3, h4⟩
+  · iintro H
+    iexists none
+    simp only [repNZ]
+    isplitr
+    · ipureintro; exact he
+    · iintro -; iexact H
+  · iintro H
+    iexists (some (b, x))
+    simp only [repNZ]
+    have hb : b < ys.length := by omega
+    have hx : ys[b] = x := by rw [List.getElem?_eq_getElem hb] at h3; exact Option.some.inj h3
+    have e : ys.drop b = [x] ++ ys.drop (b + 1) := by
+      rw [List.singleton_append, ← hx, List.drop_eq_getElem_cons hb]
+    icases (osBytes_takeDrop i _ ys b (by omega)).1 $$ H with ⟨Hbt, Hbd⟩
+    rw [e]
+    iunfold osBytes at Hbd
+    icases (bytesG_append _ _ _ _ _ _).1 $$ Hbd with ⟨H1, H2⟩
+    isplitl [H1]
+    · isplitr
+      · ipureintro; exact ⟨h1, h2, h4⟩
+      · iunfold osBytes; iexact H1
+    · iintro ⟨-, Hx⟩
+      iapply (osBytes_takeDrop i _ ys b (by omega)).2
+      iframe Hbt
+      rw [e]
+      unfold osBytes
+      iapply (bytesG_append _ _ _ _ _ _).2
+      iframe H2
+      iexact Hx
 
 /-- **`Repair`'s state property**: the size it found (`S0`) or the target, and `LoWr` at `tg = wr`. -/
 def RepP (wr tg S0 : Nat) (m : OsMeta) : Prop :=
@@ -101,22 +142,26 @@ def RepP (wr tg S0 : Nat) (m : OsMeta) : Prop :=
 
 /-- The caller's part of the start's update (`truncStartP` with `repTie`). -/
 def truncStartPR (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8)
-    (cuts : List Nat) (wr : Nat) (i : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF :=
-  iprop(repTie (W := W) dir γ k H md cuts wr i tg ∗
+    (cuts : List Nat) (wr : Nat) (i : Ino) (tg : Nat) (nz : Option (Nat × ByteG)) (m0 : OsMeta)
+    (xs0 : List ByteG) : IProp GF :=
+  iprop(repTie (W := W) dir γ k H md cuts wr i tg nz ∗
     osMeta i (DFrac.own (1 : Qp).half) m0 ∗ osBytes i (min m0.size tg) (DFrac.own (1 : Qp).half) xs0)
 
 /-- **F-Z and a nonzero byte past `wr` cannot meet** (`WalAbsD.zeroPast`). -/
 theorem repTie_nz {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents} {g0 : SegG}
-    {wr tg : Nat} (habs : WalAbsD C Mr d lay ents) (hg0 : lay.segs.getLast? = some g0)
-    (hwr : lay.wr = wr) (htg : tg ≤ g0.bs.length) :
-    ⊢ (osBytes g0.ino 0 (DFrac.own (1 : Qp).half) g0.bs : IProp GF) -∗
-      (⌜tg = wr⌝ ∨ ∃ (b : Nat) (x : ByteG), ⌜wr ≤ b ∧ b < tg ∧ x.1 ≠ 0⌝ ∗
-        (osBytes g0.ino b (DFrac.own (1 : Qp).half) [x] : IProp GF)) -∗
+    {wr tg : Nat} (nz : Option (Nat × ByteG)) (habs : WalAbsD C Mr d lay ents)
+    (hg0 : lay.segs.getLast? = some g0) (hwr : lay.wr = wr) (htg : tg ≤ g0.bs.length) :
+    ⊢ (osBytes g0.ino 0 (DFrac.own (1 : Qp).half) g0.bs : IProp GF) -∗ repNZ g0.ino wr tg nz -∗
       ⌜tg = wr ∨ ¬ TailZeros lay⌝ := by
-  iintro Hb HNZ
-  icases HNZ with (%he | ⟨%b, %x, %hbx, Hx⟩)
-  · ipureintro; exact .inl he
-  · icases osBytes_agree_at (GF := GF) g0.ino _ _ g0.bs b x (by omega) $$ Hb Hx with %hgb
+  rcases nz with _ | ⟨b, x⟩
+  · iintro - Hnz
+    simp only [repNZ]
+    icases Hnz with %he
+    ipureintro; exact .inl he
+  · iintro Hb Hnz
+    simp only [repNZ]
+    icases Hnz with ⟨%hbx, Hx⟩
+    icases osBytes_agree_at (GF := GF) g0.ino _ _ g0.bs b x (by omega) $$ Hb Hx with %hgb
     ipureintro
     right
     intro hZ0
@@ -125,17 +170,17 @@ theorem repTie_nz {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {
 /-- **The supply of `Repair`'s truncate at `tg ∈ [wr, S0]`** (see the file header). -/
 theorem walTail_truncSupR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
-    (i : Ino) (tg S0 : Nat)
+    (i : Ino) (tg S0 : Nat) (nz : Option (Nat × ByteG))
     (hS : wr = (tailStream Mr H md cuts).length) (hwt : wr ≤ tg) (htS : tg ≤ S0) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
-      os.truncSup (repTie (W := W) dir γ k H md cuts wr i tg) i tg (RepP wr tg S0) := by
+      os.truncSup (repTie (W := W) dir γ k H md cuts wr i tg nz) i tg (RepP wr tg S0) := by
   iintro #Hinv
   unfold os.truncSup
   iintro !> %m0 %xs0 %hxs0 %hP0 HK Hm Hbx
   unfold os.truncAuW
-  ihave HP : truncStartPR (W := W) dir γ k H md cuts wr i tg m0 xs0 $$ [HK Hm Hbx]
+  ihave HP : truncStartPR (W := W) dir γ k H md cuts wr i tg nz m0 xs0 $$ [HK Hm Hbx]
   · unfold truncStartPR; iframe
-  iapply osAUnc_coiter _ _ _ (truncStartPR (W := W) dir γ k H md cuts wr i tg m0 xs0) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (truncStartPR (W := W) dir γ k H md cuts wr i tg nz m0 xs0) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -171,7 +216,7 @@ theorem walTail_truncSupR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   have hmin : min g0.om.size tg = tg := Nat.min_eq_right htg
   have hwrl' : lay.wr = wr := hwrl.symm
   -- F-Z past `wr` and a nonzero byte of the run there cannot meet
-  icases repTie_nz habs hg0l hwrl' (by omega) $$ Hb2 HNZ with %hZR
+  icases repTie_nz nz habs hg0l hwrl' (by omega) $$ Hb2 HNZ with %hZR
   icases (osBytes_takeDrop g0.ino _ g0.bs (min g0.om.size tg) (by omega)).1 $$ Hb2 with ⟨Hbt, Hbd⟩
   icases osBytes_agree g0.ino _ _ (min g0.om.size tg) (g0.bs.drop (min g0.om.size tg)) xs0
     (by rw [List.length_drop, hxs0]; omega) $$ Hbd Hbx with %hxx
