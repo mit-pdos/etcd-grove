@@ -96,13 +96,14 @@ the caller's single-use maker of a read update at each member for the response's
 (`Client.Get.spec`'s, D30n), it reads the key through the client and answers `stAt` at the state
 `σ` the update fired at, with `R` at `σ`'s pair (`rdPair`'s parts) and `σ`'s values no longer
 than etcd's request limit (`Client.Get.spec`'s, from `etcdState_vals`), or fails with the client's
-error (`ign`: the closure's `ignoreNotFound`). -/
+error (`ign`: the closure's `ignoreNotFound`); lent the caller's `levelTok 0` (its `Get` needs it;
+decision 1b, 2026-11-24). -/
 def getStateOk (c : StoreCfg GF Obj) (key : GoString) (ign : Bool)
     (R : w64 → w64 → KVState → IProp GF) (f : GoFunc) : IProp GF :=
-  iprop(□ ∀ Ψ : val → IProp GF,
+  iprop(□ ∀ Ψ : val → IProp GF, levelTok 0 -∗
     (∀ R0 m, |==> □ [∧list] x ∈ c.ms, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
       kvReadAu x.γr.kv (R R0 m)) -∗
-    ▷ (∀ (st : Loc) (err : GoInterface),
+    ▷ (∀ (st : Loc) (err : GoInterface), levelTok 0 -∗
         (unkErr c err ∨ ∃ σ, □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
           ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key ign σ st err) -∗ Ψ (PairV #st #err)) -∗
     WP (App (Val #f) (Val #())) {{ Ψ }})

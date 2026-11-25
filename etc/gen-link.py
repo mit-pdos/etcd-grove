@@ -71,8 +71,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --wal-tester > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Link.lean
-       etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
-       etc/gen-link.py --kvudp > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/cmd/kvudp/Link.lean
+       etc/gen-link.py --kvraft > KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Link.lean
+       etc/gen-link.py --kvraft-udp > KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
@@ -742,16 +742,16 @@ if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
     sys.exit(0)
-if sys.argv[1:2] in (["--kvnet"], ["--kvudp"]):
-    # kvnet's Link (the part KvNet/): the callees read off the proofs' binders, the generic proofs
-    # linked at the store's model parameters (`etc/link_kvnet.py`); `--check` compares
+if sys.argv[1:2] in (["--kvraft"], ["--kvraft-udp"]):
+    # kvraft's Link (the part KvRaft/): the callees read off the proofs' binders, the generic proofs
+    # linked at the store's model parameters (`etc/link_kvraft.py`); `--check` compares
     sys.dont_write_bytecode = True  # no etc/__pycache__
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import link_kvnet  # noqa: E402
+    import link_kvraft  # noqa: E402
     import proof_roots  # noqa: E402
-    link_kvnet.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+    link_kvraft.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
-                    udp=sys.argv[1] == "--kvudp")
+                    udp=sys.argv[1] == "--kvraft-udp")
     sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
@@ -851,10 +851,9 @@ EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
 EXTRA_IMPORTS.setdefault("--v3rpc", []).append(
     "Proof.github_com.prometheus.client_golang.prometheus.Registry__Register")
 # The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
-# whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
-# compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)
-LC_EXTRA_VARS = {"--k8s-etcd3": "variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]\n",
-                 "--k8setcd3": "variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]\n"}
+# whose heap is at `HasLC.hasLC`). (k8s etcd3's, the premise `ContextReadErrs`, are gone: a theorem
+# since ctx-leaf-fix, 2026-11-25.)
+LC_EXTRA_VARS = {}
 em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")

@@ -4,7 +4,7 @@ The package facts of protobuf-go's packages this repository translates names onl
 protobuf-go v2 (its messages hold `protoimpl`'s state; `raft` and `raftpb` call `proto.Clone`/`Marshal`/
 `Unmarshal`/`Size`/`Equal`), etcd's generated messages import them, and so do `Dsverify/`'s QuePaxa
 messages. Shared by every tree that imports them (L1, 2026-11-24: until then declared in raft's and
-etcd cache's `Base.lean`, and again in `Dsverify/`; `KvNet/` keeps a copy of its own, its
+etcd cache's `Base.lean`, and again in `Dsverify/`; `KvRaft/` keeps a copy of its own, its
 `Proof/google_golang_org/protobuf/PkgInit.lean`).
 -/
 module

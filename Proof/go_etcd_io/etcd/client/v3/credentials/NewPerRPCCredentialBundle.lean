@@ -34,7 +34,9 @@ theorem credentials.NewPerRPCCredentialBundle.wp_proof :
   iStructNamed Hb
   ipersist rc
   iStructNamed «$v0»
-  imod sync.init_RWMutex_threadPool (credTokR «$v0_ptr» P) credTokN _ Htb $$ [authToken] authTokenMu
+  ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
+  · iPkgInit
+  imod sync.init_RWMutex_threadPoolL (credTokR «$v0_ptr» P) credTokN 0 _ Htb $$ [authToken] authTokenMu
     with ⟨%γp, #Hg, #Hpool⟩
   · inext
     iunfold credTokR
@@ -45,7 +47,7 @@ theorem credentials.NewPerRPCCredentialBundle.wp_proof :
   iapply HΦ
   unfold tokenBundleInv credTokInv
   iexists b, «$v0_ptr»
-  iframe rc Hsync Hg
+  iframe rc Hsync Hrpc Hg
   isplitr
   · ipureintro; rfl
   isplitr

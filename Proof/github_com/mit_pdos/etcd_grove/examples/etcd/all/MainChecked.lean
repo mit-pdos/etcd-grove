@@ -31,7 +31,7 @@ theorem MainChecked.wp_proof
     (wp_RandomSchedule : cluster3.RandomSchedule.spec (GF := GF) (hG := hG))
     (wp_Main : Main.spec (GF := GF) (hG := hG)) :
     MainChecked.spec (GF := GF) (hG := hG) := by
-  intro CS ER FM RT CRE CEC N k₁ ids₁ ps₁ ctxs₁ boot₁ pid₁ pid₂ pid₃ psP ctxsP bootP cwId ctxsCW
+  intro CS ER FM RT N k₁ ids₁ ps₁ ctxs₁ boot₁ pid₁ pid₂ pid₃ psP ctxsP bootP cwId ctxsCW
     bootCW cId ctxsC bootC kvId ctxsK bootK k₂ ids₂ ps₂ ctxs₂ boot₂ k₃ ids₃ ps₃ ctxs₃ boot₃
     k₄ ids₄ ps₄ ctxs₄ boot₄ lid₁ lid₂ lid₃ psL ctxsL bootL k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR
     clients ops n₁ nw nops n₂ cnw cnops TB RB48 RBN HLv

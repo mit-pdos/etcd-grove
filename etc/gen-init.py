@@ -95,7 +95,7 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
          'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
-         # gokv's trusted_proph (kvnet's checker's prophecy; KvNet copies its `Init.lean`), reached
+         # gokv's trusted_proph (kvraft's checker's prophecy; KvRaft copies its `Init.lean`), reached
          # from kvreconf's root until kvreconf's proofs retired (2026-11-24)
          'github_com.mit_pdos.gokv.trusted_proph',
          'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
@@ -3419,8 +3419,8 @@ axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
-pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
-fact lacks it). Its precondition has the registration rights of the metric
+pointer error (`EtcdGrove.ContextReadErrs.errs_strong`, from Perennial's `context.isInit`).
+Its precondition has the registration rights of the metric
 names of its import closure (`namesFree initNames`, decision D16; mustreg, 2026-11-20), which it
 passes on to its imports' initializers.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
@@ -3536,31 +3536,64 @@ _RD_CTX_PRE = [
     'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
     'variable [sem : go.Semantics]',
     '',
-    '/-- **The trust boundary: `context.Canceled` and `context.DeadlineExceeded` as Go defines them**',
-    '(a premise, stated locally; item 8, 2026-10-17): `Canceled = errors.New("context canceled")`, a',
-    'leaf pointer error without `Is` whose `Error()` returns, and `DeadlineExceeded =',
-    'deadlineExceededError{}`, a leaf non-pointer error (an empty struct: comparable, a safe map',
-    'key) without `Is` whose `Error()` returns (`context.go`: its methods are `Error`, `Timeout` and',
-    '`Temporary`). Perennial\'s `context.initialize\'` stores exactly these values, but its fact',
-    '(`isInit`) keeps only that they are typed errors, and the method sets are uninterpreted: the',
-    'general fix is a Perennial change (`notes/decisions.md`, "Item 8: context\'s facts"). A',
-    'premise rather than an axiom: `isPkgInit context` is not sealed (any proof holding the',
-    'variables\' cells could make it), so as an axiom the entailment could be used to prove `False`.',
-    '(`v3rpc`\'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.)',
-    "(incomingof Part B, 2026-11-18) Its former fields `descs` (both errors' `errDesc`) and, after it,",
-    "`descDeadline` (`DeadlineExceeded`'s) are gone: the users take `Error()`'s message per run",
-    '(`ctxErrsErr`, `ctxErrMsg`), and a pure `errDesc` fact had no per-run source',
-    '(`notes/axiom-review/incomingof-b.md`). -/',
-    'class EtcdGrove.ContextReadErrs : Prop where',
-    '  errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
-    '    EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗',
-    '      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW',
+    '/-- **`context.Canceled` and `context.DeadlineExceeded` as Go defines them** (item 8, 2026-10-17;',
+    'a premise, the class `ContextReadErrs`, until ctx-leaf-fix, 2026-11-25): `Canceled =',
+    'errors.New("context canceled")`, a leaf pointer error without `Is` or `GRPCStatus` whose `Error()`',
+    'returns its message, and `DeadlineExceeded = deadlineExceededError{}`, a leaf non-pointer error',
+    "without `Is` or `GRPCStatus`, a key of `togRPCError`'s map (`errKeyOk`), whose `Error()` returns",
+    "(`context.go`: its methods are `Error`, `Timeout` and `Temporary`). From Perennial's",
+    "`context.isInit` (`\"#HCanceledCell\"`, `\"#HDeadlineExceededTy\"`) and the method sets goose emits.",
+    "The premise had become unsatisfiable with Perennial's P8c (`DeadlineExceeded`'s value a",
+    '`SafeMapKey`, which no non-pointer is): `notes/axiom-review/ctx-readerrs-vacuity.md`. -/',
+    'theorem EtcdGrove.ContextReadErrs.errs [ctx_sem : _root_.Perennial.context.Assumptions]',
+    '    [_root_.Perennial.errors.Assumptions] :',
+    '    isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
+    '      EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗',
+    '        go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW := by',
+    '  iintro #Hp',
+    '  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []',
+    '  · iapply _root_.Perennial.context.isInit_access $$ Hp',
+    '  iNamed Hci',
+    '  icases HCanceledCell with ⟨%x, #Hx, #Hs⟩',
+    '  isplitl',
+    '  · iunfold EtcdGrove.errVarLeafW',
+    '    iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩',
+    '    iframe Hx',
+    '    isplitr',
+    '    · ipureintro',
+    '      have h := EtcdGrove.errorString_errLeaf x',
+    '      exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1⟩',
+    '    · iunfold EtcdGrove.errMsgOk',
+    '      iexists go!"context canceled"',
+    '      iintro !> %Φ HΦ',
+    '      rw [method_unfold]',
+    '      wp_auto',
+    '      iexact HΦ',
+    '  · have h := fun m => go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) m',
+    '    have hG := h go!"GRPCStatus"',
+    '    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hG',
+    '    have hl := EtcdGrove.deadlineExceededError_leaf (ctx_sem := ctx_sem)',
+    '      (#(zero_val _root_.Perennial.context.deadlineExceededError) : val)',
+    '    iexists ⟨_root_.Perennial.context.deadlineExceededError.ty,',
+    '      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩',
+    '    iframe HDeadlineExceededTy',
+    '    isplitr',
+    '    · ipureintro',
+    '      exact ⟨hl.1, hl.2, _root_.Perennial.context.deadlineExceededError_ne_ptr,',
+    '        Or.inr (Or.inr (Or.inl rfl)), hG⟩',
+    '    · iunfold EtcdGrove.errMsgOk',
+    '      iexists go!"context deadline exceeded"',
+    '      iintro !> %Φ HΦ',
+    '      wp_method_call',
+    '      unfold _root_.Perennial.context.deadlineExceededError.Error.impl',
+    '      wp_auto',
+    '      iexact HΦ',
     '',
     '/-- `ContextReadErrs.errs` with the two errors\' `Format` facts (premise-fixes-4: `errVarLeaf`,',
     '`ctxDeadlineLeaf`): neither has a `Format` method, from Perennial\'s `context.isInit` (`Canceled`\'s',
     'value is a `*errors.errorString`, `EtcdGrove.ErrorStringLeaf`; `DeadlineExceeded`\'s a',
     '`deadlineExceededError`, whose method set goose emits). -/',
-    'theorem EtcdGrove.ContextReadErrs.errs_strong [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]',
+    'theorem EtcdGrove.ContextReadErrs.errs_strong',
     '    [_root_.Perennial.context.Assumptions] [_root_.Perennial.errors.Assumptions] :',
     '    isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
     '      EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗',
@@ -3609,7 +3642,8 @@ SPECIAL[_RD] = dict(
 axiom `NewCounter.wp_proof`), `readIndexRetryTime`,
 the error variables it returns or compares with, from their packages' facts (`etcdserver/errors`'
 and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
-(`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
+(`EtcdGrove.ContextReadErrs.errs`, from Perennial's `context.isInit`; a premise until ctx-leaf-fix,
+2026-11-25). Its translated
 `init()` registers the two counters (`prometheus.MustRegister`, the trust-boundary axiom
 `MustRegister.wp_proof`), which takes the right to register each name: the precondition
 `namesFree regNames` (decision D16; until mustreg, 2026-11-20, `EtcdGrove.read.readRegPerm`).""",
@@ -3618,7 +3652,6 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
              'Proof.github_com.prometheus.client_golang.prometheus.MustRegister',
              'Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init'],
     pre=_RD_CTX_PRE,
-    vars=['[EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]'],
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
     before={'$inits': [
@@ -5222,7 +5255,7 @@ The main tree's registrations of external package initializers (`ExternalInit`,
 and the B-tree's (their `wp_initialize'` are hand-written: `Proof/go_etcd_io/raft/v3/Init.lean`,
 `Proof/k8s_io/utils/third_party/forked/golang/btree/initialize.lean`). A module of its own so that
 `PkgInitExt` imports no translation of this repository: the parts that do not import raft share it,
-and the parts with a raft of their own (`RaftWitness/`, `RaftNoAx/`, `RaftTla/`, `KvNet/`) have a
+and the parts with a raft of their own (`RaftWitness/`, `RaftNoAx/`, `RaftTla/`, `KvRaft/`) have a
 copy of this module over theirs. Generated by `etc/gen-init.py`; do not edit.
 -/"""
 
@@ -5909,79 +5942,79 @@ def net_inits(main_txt):
     return outs, sorted(NET_SHARED)
 
 
-# The part `KvNet/` (kvnet's proof, notes/kvnet-part.md): raft-noax's raft, the net extension's `net`
+# The part `KvRaft/` (kvraft's proof, notes/kvraft-part.md): raft-noax's raft, the net extension's `net`
 # (`Net/`'s) and the bodied `durable` over fsExt (`WalTester/`'s), in one closure. Each of its source
 # parts has its own `PkgInitExt` and its own copies of `os`'s initializers over it (`Net/`: without
 # raft; `RaftNoAx/`: with its raft), and `RaftNoAx/` and `WalTester/` both have a `durable`
 # initializer (the trusted one's, the bodied one's): the part's are generated here, as the main
-# tree's, from the part's translation (`KvNet/Code` over the main tree's) and instances
-# (`KvNet/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
+# tree's, from the part's translation (`KvRaft/Code` over the main tree's) and instances
+# (`KvRaft/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
 # configurations those of `Net/` and `WalTester/`, the imports of the part's modules prefixed, and a
-# `PkgInitExt` that is the main tree's with the part's raft; kvnet's and kvcheck's own, and their
-# programs' `PkgTable`s (`KVNET_PROGRAMS`).
-# etc/copy-part.py does not copy these (`kvnet_paths`).
-KVNET_ROOT = 'KvNet'
-KVNET_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
+# `PkgInitExt` that is the main tree's with the part's raft; kvraft's and kvcheck's own, and their
+# programs' `PkgTable`s (`KVRAFT_PROGRAMS`).
+# etc/copy-part.py does not copy these (`kvraft_paths`).
+KVRAFT_ROOT = 'KvRaft'
+KVRAFT_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
                             # (`durable`'s imports that `os` does not import)
                             'internal.filepathlite', 'path.filepath']
-# (2026-11-22) kvnet's and kvcheck's own (the two programs of the top-level theorem), and their tables
-KVNET_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvnet'
-KVNET_INITS += [KVNET_PKG, f'{KVNET_PKG}.kvcheck']
-KVNET_PROGRAMS = {KVNET_PKG: f'Proof/{KVNET_PKG.replace(".", "/")}/PkgTable.lean',
-                  f'{KVNET_PKG}.kvcheck': f'Proof/{KVNET_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
-KVNET_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
-# kvnet's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
+# (2026-11-22) kvraft's and kvcheck's own (the two programs of the top-level theorem), and their tables
+KVRAFT_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvraft'
+KVRAFT_INITS += [KVRAFT_PKG, f'{KVRAFT_PKG}.kvcheck']
+KVRAFT_PROGRAMS = {KVRAFT_PKG: f'Proof/{KVRAFT_PKG.replace(".", "/")}/PkgTable.lean',
+                  f'{KVRAFT_PKG}.kvcheck': f'Proof/{KVRAFT_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
+KVRAFT_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
+# kvraft's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
 # proof reads, is allocated and stored
-KVNET_SPECIAL[KVNET_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
-_KVNET_RAW = []
-EXT_KVNET = {}  # the part's `PkgInitExtRaft`'s registrations (its raft, raft-noax's)
+KVRAFT_SPECIAL[KVRAFT_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
+_KVRAFT_RAW = []
+EXT_KVRAFT = {}  # the part's `PkgInitExtRaft`'s registrations (its raft, raft-noax's)
 
 
-def kvnet_raw():
+def kvraft_raw():
     """The part's `Init.lean` files, unprefixed: (path under the part, text)."""
     global inv, inst, CFG_OVERRIDE, EXT_RECORD
-    if _KVNET_RAW:
-        return _KVNET_RAW[0]
+    if _KVRAFT_RAW:
+        return _KVRAFT_RAW[0]
     saved = inv, inst, CFG_OVERRIDE, EXT_RECORD
     try:
-        EXT_RECORD = EXT_KVNET
+        EXT_RECORD = EXT_KVRAFT
         inv = dict(inv)
-        for q, d in inventory(f'{KVNET_ROOT}/Code').items():
+        for q, d in inventory(f'{KVRAFT_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
-        inst = {**inst, **instances(f'{KVNET_ROOT}/Proof/')}
-        CFG_OVERRIDE = KVNET_SPECIAL
-        raw = [o for p in KVNET_INITS
-               for o in gen(p, KVNET_SPECIAL.get(p, SPECIAL.get(p)))]
-        raw += [gen_table(p, path) for p, path in KVNET_PROGRAMS.items()]
+        inst = {**inst, **instances(f'{KVRAFT_ROOT}/Proof/')}
+        CFG_OVERRIDE = KVRAFT_SPECIAL
+        raw = [o for p in KVRAFT_INITS
+               for o in gen(p, KVRAFT_SPECIAL.get(p, SPECIAL.get(p)))]
+        raw += [gen_table(p, path) for p, path in KVRAFT_PROGRAMS.items()]
     finally:
         inv, inst, CFG_OVERRIDE, EXT_RECORD = saved
-    _KVNET_RAW.append(raw)
+    _KVRAFT_RAW.append(raw)
     return raw
 
 
-def kvnet_paths():
+def kvraft_paths():
     """The paths (relative to the part) this script writes for the part."""
-    return {path for path, _ in kvnet_raw()} | {'Proof/runtime/PkgInitExtRaft.lean'}
+    return {path for path, _ in kvraft_raw()} | {'Proof/runtime/PkgInitExtRaft.lean'}
 
 
-def kvnet_inits():
-    """The part's `Init.lean` files and `PkgInitExtRaft.lean` (its registrations, `EXT_KVNET`)."""
-    raw = kvnet_raw()
-    made = {f'{KVNET_ROOT}/{path}' for path, _ in raw}
+def kvraft_inits():
+    """The part's `Init.lean` files and `PkgInitExtRaft.lean` (its registrations, `EXT_KVRAFT`)."""
+    raw = kvraft_raw()
+    made = {f'{KVRAFT_ROOT}/{path}' for path, _ in raw}
 
     def imp(m):
         x = m.group(2)
-        f = f'{KVNET_ROOT}/{x.replace(".", "/")}.lean'
+        f = f'{KVRAFT_ROOT}/{x.replace(".", "/")}.lean'
         if os.path.exists(f) or f in made or x == 'Proof.runtime.PkgInitExtRaft':
-            x = f'{KVNET_ROOT}.{x}'
+            x = f'{KVRAFT_ROOT}.{x}'
         return m.group(1) + x
-    outs = [(f'{KVNET_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
-    path, ext = ext_local('Proof/runtime/PkgInitExtRaft.lean', EXT_RAFT_DOC, EXT_KVNET)
+    outs = [(f'{KVRAFT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+    path, ext = ext_local('Proof/runtime/PkgInitExtRaft.lean', EXT_RAFT_DOC, EXT_KVRAFT)
     i = ext.index('\nmodule\n') + 1
-    note = (f'-- The part `{KVNET_ROOT}/`\'s `Proof/runtime/PkgInitExtRaft.lean` (`etc/gen-init.py`):\n'
+    note = (f'-- The part `{KVRAFT_ROOT}/`\'s `Proof/runtime/PkgInitExtRaft.lean` (`etc/gen-init.py`):\n'
             f'-- the registrations its generated initializers name, its raft the part\'s (raft-noax\'s).\n')
-    outs.append((f'{KVNET_ROOT}/{path}', ext[:i] + note + ext[i:]))
+    outs.append((f'{KVRAFT_ROOT}/{path}', ext[:i] + note + ext[i:]))
     return outs
 
 
@@ -6170,7 +6203,7 @@ def main(argv):
         o, st = net_inits(main_txt)
         outs += o
         stale += st
-        outs += kvnet_inits()
+        outs += kvraft_inits()
         o, st = dsv_inits(main_txt)
         outs += o
         stale += st
@@ -6181,7 +6214,7 @@ def main(argv):
     # the files of the parts' that are now the main tree's (`shared_inits`), and the parts' former
     # copies of `PkgInitExt` (L1, 2026-11-24): stale, to delete
     if full:
-        stale += [f'{r}/Proof/runtime/PkgInitExt.lean' for r in (NET_ROOT, KVNET_ROOT, *PARTS)]
+        stale += [f'{r}/Proof/runtime/PkgInitExt.lean' for r in (NET_ROOT, KVRAFT_ROOT, *PARTS)]
     for path in stale:
         if os.path.exists(path):
             if check:

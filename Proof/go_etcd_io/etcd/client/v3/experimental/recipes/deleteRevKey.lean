@@ -35,7 +35,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
     (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG := hG)) :
     deleteRevKey.spec (GF := GF) (hG := hG) := by
   intro kv pfx key rev lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   iunfold isRecipesKV at Hkv
   icases Hkv with ⟨-, #HTxn, -, -⟩
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -106,7 +106,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
+  wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨deleteRevTxn_under pfx key rev Hk.1, TxnModel.exactGets_of_noGets _ (by simp [deleteRevTxn])
         (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, op_simps]),
         deleteRevTxn_size rev Hk.2.2⟩
@@ -118,6 +118,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
@@ -139,6 +140,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -160,6 +162,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

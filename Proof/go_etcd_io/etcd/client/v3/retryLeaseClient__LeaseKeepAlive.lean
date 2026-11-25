@@ -33,7 +33,7 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
     (wp_stub : leaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG)) :
     retryLeaseClient.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro rlc conn addr ctx cd opts vs
-  wp_start as ⟨#Hrlc, #Hconn, #Hstr, #Hctx, #Hopts, Hocap, #Hok⟩
+  wp_start as ⟨Hlt, #Hrlc, #Hconn, #Hstr, #Hctx, #Hopts, Hocap, #Hok⟩
   iunfold retryLeaseAt at Hrlc
   icases Hrlc with ⟨%lc, #Hlc, #Hstub⟩
   wp_auto
@@ -59,8 +59,9 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   ihave #Hdesc := leaseDescOk_of_init $$ Hpb
-  wp_apply wp_stub lc conn addr ctx cd copts _ $$ [] as %st %err Hres
+  wp_apply wp_stub lc conn addr ctx cd copts _ $$ [Hlt] as %st %err Hres
   · iframe #
+    iframe Hlt
   iapply HΦ
   iexact Hres
 

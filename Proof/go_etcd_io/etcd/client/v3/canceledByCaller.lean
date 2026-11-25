@@ -60,7 +60,7 @@ theorem canceledByCaller.wp_proof (wp_Is : errors.IsStatusErr.spec (GF := GF) (h
       cases b1
       · wp_auto
         wp_apply (wp_Is (GoInterface.ok erri) (GoInterface.ok ed) none
-          (Or.inr (Or.inr ⟨ed, rfl, Hld⟩))) $$ [] as %b2 -
+          (Or.inr (Or.inr (by rw [Hld])))) $$ [] as %b2 -
         · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
         (try wp_auto)
         iapply HΦ; itrivial

@@ -39,7 +39,7 @@ attribute [local instance] memStorageModel
 abbrev Cluster.handleReady.spec : Prop :=
   ∀ (c : Loc) (W : TcW) (r : Loc) (n : NodeH) (ms : Loc) (γs : MemStorNames) (id : w64) (rd : Ready)
     (D ce : List LogEntry) (es : List EntryM) (h hs0 : HardStateM) (v : ConfigView),
-  ViewOk D v →
+  ViewOk W.nv D v →
   (∀ e0, es.head? = some e0 →
     (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = uint.nat e0.Index' + j) ∧
     uint.nat e0.Index' + es.length ≤ 2 ^ 61) →
@@ -54,7 +54,7 @@ abbrev Cluster.handleReady.spec : Prop :=
       (Val #r)) (Val #rd))
   {{ RET #(); repOwn r ∗ ∃ (hs1 : HardStateM) (v' : ConfigView), memStorMeta ms γs hs1 ∗
       advReceipt (memStorIface ms) (D ++ ce).length es none ∗ nodeConfig n W.cl tcRaftN v' ∗
-      nodeRunning n W.cl tcRaftN 1 ∗ ⌜ViewOk (D ++ ce) v'⌝ }}
+      nodeRunning n W.cl tcRaftN 1 ∗ ⌜ViewOk W.nv (D ++ ce) v'⌝ }}
 
 end spec
 

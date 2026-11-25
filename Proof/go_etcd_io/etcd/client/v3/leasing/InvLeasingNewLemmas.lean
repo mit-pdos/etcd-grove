@@ -32,12 +32,12 @@ theorem leasingWg_ctr_bound_owed {k d n : Nat} {T : Nat} (Hbound : T + leasingWg
 
 /-- `lkv.wg.Add(2)` (`NewKV`'s, for the session monitor and `clearOldRevokes`, which keep their
 own thread tokens): two owed capacities for two owed running tokens, with a fraction of the "open"
-token. The running goroutines' loans are fewer than the live threads (`threadPool.loans_lt`, the
+token. The running goroutines' loans are fewer than the live threads (`threadPool.loansL_lt`, the
 reader-slot pool's resource `R`). -/
 theorem wp_leasingWg_Add2 (lkv : Loc) (γ : LeasingNames) (q : Qp) (R : IProp GF)
     (Hbound : threadBound GF + leasingWgOwedMax ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (lkvWg lkv) γ.wg leasingWgWGN ∗
-        inv leasingWgN (leasingWgInv γ) ∗ threadPool.isThreadPool leasingPoolN γ.rp R ∗
+        inv leasingWgN (leasingWgInv γ) ∗ threadPool.isThreadPoolL leasingPoolN 1 γ.rp R ∗
         ownToks γ.wc 2 ∗ leasingOpen γ q }}
       (App (Val (lkvWg lkv @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 2)))
     {{ RET #(); ownToks γ.wo 2 ∗ leasingOpen γ q }} := by
@@ -48,7 +48,7 @@ theorem wp_leasingWg_Add2 (lkv : Loc) (γ : LeasingNames) (q : Qp) (R : IProp GF
   iunfold leasingWgInv at Hi
   icases Hi with ⟨%ctr, %wn, %k, %d, >Hwgo, >Hwt, >Hrun, >Hk, >Hoauth, >Hcap, >Hcauth,
     >%Hctr, >%Hkd, Hwn⟩
-  imod threadPool.loans_lt leasingPoolN γ.rp R _ leasingPool_mask k $$ [Hpool Hk]
+  imod threadPool.loansL_lt leasingPoolN 1 γ.rp R _ leasingPool_mask k $$ [Hpool Hk]
     with ⟨%Hlt, Hk⟩
   · iframe #; iexact Hk
   iapply fupd_mask_intro leasingWg_mask
@@ -207,7 +207,7 @@ theorem leasingCache_init (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (rm :
     structFieldRef leasingKV go!"session" lkv ↦{DFrac.own (1 : Qp).half} (null : Loc) ∗
     structFieldRef leasingKV go!"sessionc" lkv ↦{DFrac.own (1 : Qp).half} sc ∗
     monoListAuthOwn γ.log 1 [leaseCacheSt0 rm] ∗ monoNatAuthOwn γ.sess 1 0 ∗ sessioncOk γ sc
-    ={⊤}=∗ lkvCache lkv γ pfx ∗ threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) ∗
+    ={⊤}=∗ lkvCache lkv γ pfx ∗ threadPool.isThreadPoolL leasingPoolN 1 γ.rp (lkvReader lkv γ pfx) ∗
       lkvReader lkv γ pfx := by
   iintro ⟨Hpa, #Hcl, Hmu, Hent, Hrv, Hrm, Hhdr, Hst, Hready, Hinst, Hs, Hsc, Hlog, Hsess, #Hsco⟩
   have h0 : (leaseCacheSt0 rm).readyN = 0 := by simp [LeaseCacheSt.readyN, leaseCacheSt0]
@@ -257,7 +257,7 @@ theorem leasingCache_init (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (rm :
   rw [hn, List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨H1, Hrds⟩
   icases sync.ownRWMutex_guard _ _ $$ H1 with ⟨H1, #Hg⟩
-  imod threadPool.init_named leasingPoolN γ.rp (lkvReader lkv γ pfx) ⊤ n (by omega) $$ [Hpa Hrds]
+  imod threadPool.init_namedL leasingPoolN 1 γ.rp (lkvReader lkv γ pfx) ⊤ n (by omega) $$ [Hpa Hrds]
     with #Hpool
   · iframe
   imodintro

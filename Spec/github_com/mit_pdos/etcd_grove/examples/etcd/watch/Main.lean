@@ -43,7 +43,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assum
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64),
   etcd_putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →

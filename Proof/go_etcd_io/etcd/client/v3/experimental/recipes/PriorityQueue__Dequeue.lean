@@ -37,7 +37,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
     PriorityQueue.Dequeue.spec (GF := GF) (hG := hG) := by
   intro q client key lo
   iloeb as IH
-  wp_start as ⟨#Hcc, #Hq, #Hlo, %Hlo0⟩
+  wp_start as ⟨Hlt, #Hcc, #Hq, #Hlo, %Hlo0⟩
   ihave #Hq' := Hq
   iunfold isPriorityQueue at Hq'
   icases Hq' with ⟨#Hqc, #Hqx, #Hqk, #Hcl, %Hkl⟩
@@ -57,8 +57,9 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
   iunfold isEtcdKVTodo at HGet
   ihave #HG := HGet $$ %kp %osl %(withTopM (W64 0) (W64 1)) %Ro %lo
   obtain ⟨Ht, Hk, He, Hrev, Hser, -, Hl, Hc, -, Hf1, Hf2, Hf3, Hf4⟩ := firstKeyOp_fields kp Hkp
-  wp_apply HG $$ [HRo] as %gresp %gerr ⟨-, #Hgres, #Hmore⟩
-  · iframe HRo Hosl Hlo
+  wp_apply HG $$ [Hlt HRo] as %gresp %gerr ⟨Hlt, -, #Hgres, #Hmore⟩
+  · (try iframe Hlt)
+    iframe HRo Hosl Hlo
     ipureintro
     exact ⟨firstKeyOp_not_panics, Ht, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -71,6 +72,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hgne
   subst Hgnil
@@ -109,7 +111,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       exact (Hmem v).1 (Hfirst v rfl).1
   -- `claimFirstKey(client.KV, resp.Kvs)`, knowing etcd reached `R`
   wp_auto
-  wp_apply hCFK kv [] gsl gps gkvs R $$ [$Hpkg $Hkv $HRR $Hgps $Hgkvs] as %p %cerr Hcres
+  wp_apply hCFK kv [] gsl gps gkvs R $$ [$Hlt $Hpkg $Hkv $HRR $Hgps $Hgkvs] as %p %cerr ⟨Hlt, Hcres⟩
   · ipureintro
     intro v hv
     obtain ⟨h1, h2⟩ := Hgsub v hv
@@ -123,6 +125,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Hcne
   subst Hcnil
@@ -207,6 +210,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
           | ok e => exact ⟨e, rfl⟩
         wp_auto
         iapply HΦ
+        iframe Hlt
         iright
         ipureintro; exact Hwne
       subst Hwnil
@@ -224,8 +228,9 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       wp_auto
       wp_apply wp_bytes_to_string ekeySl e.key DFrac.discard $$ [$HeKs] as -
       (try wp_auto)
-      wp_apply hDRK kv [] e.key e.rev rd $$ [$Hpkg $Hkv $Hrd] as %ok %derr Hdres
-      · ipureintro; exact ⟨List.nil_prefix, Hepos, by
+      wp_apply hDRK kv [] e.key e.rev rd $$ [$Hlt $Hpkg $Hkv $Hrd] as %ok %derr ⟨Hlt, Hdres⟩
+      · (try iframe Hlt)
+        ipureintro; exact ⟨List.nil_prefix, Hepos, by
         have hk := Hkse v Hvse; unfold etcdKeyMax at hk
         rw [Hvk] at hk; word⟩
       icases Hdres with (⟨%Hdnil, %r, #Hr, %Hrr, Hc⟩ | %Hdne)
@@ -237,6 +242,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
           | ok e' => exact ⟨e', rfl⟩
         wp_auto
         iapply HΦ
+        iframe Hlt
         iright
         ipureintro; exact Hdne
       subst Hdnil
@@ -244,10 +250,12 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
       · -- claimed by another dequeuer: retry
         wp_auto
         rw [method_unfold (t := go.GoType.PointerType PriorityQueue.ty) (m := go!"Dequeue")]
-        wp_apply IH $$ [$Hpkg $Hcc $Hq $Hlo] as %v' %err' Hres
-        · ipureintro; exact Hlo0
+        wp_apply IH $$ [$Hlt $Hpkg $Hcc $Hq $Hlo] as %v' %err' ⟨Hlt, Hres⟩
+        · (try iframe Hlt)
+          ipureintro; exact Hlo0
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iexact Hres
       · -- claimed by this call
         simp only [↓reduceIte]
@@ -263,6 +271,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
         wp_apply wp_bytes_to_string valSl v.value DFrac.discard $$ [$HVs] as -
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft
         isplitr
         · ipureintro; rfl
@@ -271,10 +280,12 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
         ipureintro; exact ⟨rfl, by omega⟩
     · -- `More`: retry
       rw [method_unfold (t := go.GoType.PointerType PriorityQueue.ty) (m := go!"Dequeue")]
-      wp_apply IH $$ [$Hpkg $Hcc $Hq $Hlo] as %v %err Hres
-      · ipureintro; exact Hlo0
+      wp_apply IH $$ [$Hlt $Hpkg $Hcc $Hq $Hlo] as %v %err ⟨Hlt, Hres⟩
+      · (try iframe Hlt)
+        ipureintro; exact Hlo0
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iexact Hres
   · -- the get path: the get's item, claimed by this call
     icases Hcase2 with (⟨%Hpn, -⟩ | ⟨-, %v, %r, %Hgv, #Hpkv, #Hr, #Hdel, Htok, %HRr⟩)
@@ -294,6 +305,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
     wp_apply wp_bytes_to_string valSl v.value DFrac.discard $$ [$HVs] as -
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl

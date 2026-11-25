@@ -47,15 +47,14 @@ abbrev store.GetCurrentResourceVersion.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (k : GoString) (Q : w64 → w64 → KVState → IProp GF),
   prepareKeyM c.resourcePrefix c.resourcePrefix false = some k →
   (c.pathPrefix ++ k).length ≤ opKeyMax →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
       (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
-        kvReadAu x.γr.kv (Q R m)) }}
+        kvReadAu x.γr.kv (Q R m))) }}
     (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GetCurrentResourceVersion"))
       (Val #(GoInterface.ok ci)))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); levelTok 0 ∗ ((⌜err ≠ GoInterface.nil⌝ ∗
         ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
           go_etcd_io.etcd.cache.v3.errCellOk err) ∨
           ∃ x : Loc, ⌜err = interface.mkOk
@@ -64,7 +63,7 @@ abbrev store.GetCurrentResourceVersion.spec : Prop :=
               go!"Error")) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState,
         □ Q (W64 (σ.rev : Int)) (kubernetes.modAt (c.pathPrefix ++ k) σ) σ ∗
-        ⌜n = W64 (σ.rev : Int) ∧ 0 < σ.rev⌝) }}
+        ⌜n = W64 (σ.rev : Int) ∧ 0 < σ.rev⌝)) }}
 
 end spec
 

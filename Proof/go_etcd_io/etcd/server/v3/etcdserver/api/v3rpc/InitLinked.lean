@@ -25,7 +25,7 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
-public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
+public import Proof.go_etcd_io.etcd.client.v3.credentials.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked
@@ -94,7 +94,6 @@ variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ap
 variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc

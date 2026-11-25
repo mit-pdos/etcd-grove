@@ -34,14 +34,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 abbrev grantPut.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cli : Loc) (k addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (n : Nat) (F : mvcc.Log) (P : GoString → IProp GF) (Qg Qp : w64 → KVState → IProp GF)
     (R : IProp GF) (R' : w64 → IProp GF),
   E.authOn = true → ρ.kv.lm = .revocable → (∀ id : w64, opSizeOk (opPutModel k go!"v" [withLeaseM id])) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
-      clientTokAt cli [addr] P ∗ auth.authPubLbM E.authMode n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗ levelTok 0 ∗ (clientTokAt cli [addr] P ∗ auth.authPubLbM E.authMode n ∗
       isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant"
         (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
@@ -50,11 +48,11 @@ abbrev grantPut.spec : Prop :=
           clientOpAuOn (srvTLSId s) E ρ conn ctx (.leaseGrant id grantTTLv) (Qg id)) ∗ R ∗
       (∀ id : w64, ⌜id ≠ W64 0⌝ -∗ (∃ σ, Qg id σ) -∗ R ={⊤}=∗ R' id ∗
         □ (∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn P -∗ ⌜ctx = none⌝ -∗
-          clientOpAuOn (srvTLSId s) E ρ conn ctx (.put (leasePutOp k id)) (Qp id))) }}
+          clientOpAuOn (srvTLSId s) E ρ conn ctx (.put (leasePutOp k id)) (Qp id)))) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut)) (Val #cli))
       (Val #k))
-  {{ (id : w64) (ok : Bool), RET (PairV #id #ok); ⌜ok = false⌝ ∨
-      (⌜ok = true⌝ ∗ R' id ∗ ∃ σ, Qp id σ) }}
+  {{ (id : w64) (ok : Bool), RET (PairV #id #ok); levelTok 0 ∗ (⌜ok = false⌝ ∨
+      (⌜ok = true⌝ ∗ R' id ∗ ∃ σ, Qp id σ)) }}
 
 end spec
 

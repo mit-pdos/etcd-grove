@@ -260,8 +260,8 @@ structure BootFacts (d : Deployment) (ps : List w64) (ctxs : List (List w8))
 
 /-- PLACEHOLDER (stage D6): **the trust-boundary contracts today's statement takes as Iris
 premises** (`Hprem`: each member's `etcdstart.bootPremise`, with `bootstrapRestartContract` for its
-restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec`: `ContextReadErrs`,
-`ContextErrsClient`), at the proof's ghost state. A premise over the proof's ghost state has no
+restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec` until ctx-leaf-fix, 2026-11-25, theorems since),
+at the proof's ghost state. A premise over the proof's ghost state has no
 place in a deployment statement: each becomes an axiom of the trust boundary (reviewed) or a
 theorem (bootstrap over the real code; context's facts in Perennial, item 8), and this goes. -/
 opaque TrustBoundary (d : Deployment) (ps : List w64) (ctxs : List (List w8))
@@ -298,7 +298,7 @@ end programs
 section start
 variable [GooseExts] [ElemExt Net.netExt] [ElemExt Fs.fsExt]
 
-/-- The network at the start: no connection (`DistDeploy`'s, `kvnetRobust`'s `FreshNet`). -/
+/-- The network at the start: no connection (`DistDeploy`'s, `kvraftRobust`'s `FreshNet`). -/
 def NetStart (g : GlobalState) : Prop := (extGlobal Net.netExt g.globalWorld).init
 
 /-- **A member's machine at the start** (`Robust` states the fresh Go process itself): no
@@ -328,7 +328,7 @@ every gRPC reply below the transport's maximum; the disk cooperates (bbolt's and
 opens); the peers answer `/leases/internal` as etcd does or not with `200` (true by construction
 here: every peer address is a member's raft handler); no lease expires, when a workload needs it.
 (The programs' prometheus names, `HNs`, were a premise until prom-registry, 2026-11-22: each
-proof allocates its registration rights itself.) (`verifyEnvOff` and the proxy variables are gone if the
+proof allocates its registration rights itself.) (`EtcdVerifyOff` and the proxy variables are gone if the
 server clears them, `clearProxyEnv`: open question Q10.) -/
 structure EtcdEnv (d : Deployment) : Prop where
   authRecords : authRecordsFit

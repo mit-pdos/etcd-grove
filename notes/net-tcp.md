@@ -148,8 +148,8 @@ checked by `decide`), and the target configuration (Linux 7.0 defaults, Go 1.27.
   "split" of overlapping `Write`s) and a probe mode `concwrite` adds a certified sample. `IP.To4`
   translated; `SplitHostPort`, `ParseIP`, `IP.String`, `IP.Equal` stay names only (below,
   "Address helpers"). Review: `notes/axiom-review/tcp-semantics.md`, v3.3.
-- **v3.4 (2026-11-20, branch `net-noplan`, the user's request for kvnet's top-level theorem,
-  `notes/kvnet-robust-goal.md` on branch `worktree-kvnet-toplevel-statement`)**: **no plan and no
+- **v3.4 (2026-11-20, branch `net-noplan`, the user's request for kvraft's top-level theorem,
+  `notes/kvraft-robust-goal.md` on branch `worktree-kvnet-toplevel-statement`)**: **no plan and no
   hosts**. `NetGlobal` is the connections only and `NetLocal` the listeners only (each the string
   given to `Listen`). An address is valid if `addrOk` (D20: canonical `a.b.c.d:p`, IPv4 unicast,
   port nonzero and outside the ephemeral range; moved from `Deploy.lean` into `Impl.lean`); `Listen`

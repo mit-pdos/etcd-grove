@@ -32,12 +32,12 @@ abbrev authClient.UserAdd.spec : Prop :=
   ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (name pw : GoString)
     (Spec : GrpcSpecMd (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse) (Q : Unit → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (authObjAtC api conn addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserAdd" Spec ∗
       metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec (⟨name, pw⟩ : UserAddW) Q ∗
-      ⌜strsSizeOk [name, pw]⌝ }}
+      ⌜strsSizeOk [name, pw]⌝) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!! go!"UserAdd")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #pw))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authCallOut Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (authCallOut Q resp err) }}
 
 end spec
 
