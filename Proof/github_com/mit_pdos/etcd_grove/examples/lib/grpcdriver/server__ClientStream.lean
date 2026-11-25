@@ -50,9 +50,9 @@ theorem server.ClientStream.wp_proof
   have hsi : si = si' := by injection Hsi'
   subst hsi
   wp_auto
-  ihave IH : iprop(∃ (R : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
+  ihave IH : iprop(∃ (R : List (strmMsg (GF := GF)).M) (g : GoString), "got" ∷ got_ptr ↦ g ∗
       "HRt" ∷ srvRecvTok (Req := strmMsg (GF := GF)) γ R ∗
-      "%Hg" ∷ ⌜g = R.flatten ∧ g.length ≤ R.length ∧ R.length ≤ 16⌝) $$ [got HRt]
+      "%Hg" ∷ ⌜g = List.flatten R ∧ g.length ≤ R.length ∧ R.length ≤ 16⌝) $$ [got HRt]
   · iexists [], go!""
     iframe
     ipureintro
@@ -69,13 +69,14 @@ theorem server.ClientStream.wp_proof
     subst Herr
     iunfold csUp at HUp
     icases HUp with %HUp
-    iunfold stringValueSendB at Hm
+    isimp only [strmMsg, pbStringValueST, pbStringValueS, stringValueSend, stringValueSendB] at Hm
     icases Hm with ⟨%sv, Hsv, %Hsvp⟩
     obtain ⟨hval, -, -⟩ := Hsvp
     subst hval
     iStructNamed Hsv
     wp_auto
     wp_for_post
+    iframe
     iexists R ++ [sv.Value'], g ++ sv.Value'
     iframe
     ipureintro
@@ -88,8 +89,11 @@ theorem server.ClientStream.wp_proof
     wp_apply wp_String stringValueMax g (by unfold stringValueMax; omega) as %l Hl
     try wp_auto
     wp_bind (App (Val #(methods si.ty go!"SendAndClose" si.v)) _)
-    iapply HSac $$ %([] : List GoString) %l %g [HSt Hl]
-    · iframe
+    iapply HSac $$ %([] : List (strmMsg (GF := GF)).M) %l %g [HSt Hl Hcl]
+    · isplitl [HSt]
+      · iexact HSt
+      isplitl [Hl]
+      · iexact Hl
       iapply Hdn
       unfold csDn
       isplitr
@@ -101,15 +105,21 @@ theorem server.ClientStream.wp_proof
     icases Hres2 with (⟨%He2, -⟩ | ⟨%Hne2, #Hse2, #Hso2, -⟩)
     · subst He2
       wp_auto
+      wp_for_post
       iapply HΦ
       iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
     · wp_auto
+      wp_for_post
       iapply HΦ
       iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso2
   · -- another error: not `io.EOF`'s value; returned
+    ihave #Heo : iprop(eofIs (interface.mkOk (go.GoType.PointerType
+        _root_.Perennial.errors.errorString.ty) #x)) $$ []
+    · iunfold eofIs
+      iexact Heofp
     iunfold srvNotEof at Hnot
     ihave %Hnx := Hnot $$ %(interface.mkOk (go.GoType.PointerType
-      _root_.Perennial.errors.errorString.ty) #x) Heofp
+      _root_.Perennial.errors.errorString.ty) #x) Heo
     cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
@@ -126,9 +136,15 @@ theorem server.ClientStream.wp_proof
         subst hty hl
         have hlx : l ≠ x := fun h => Hnx (by subst h; rfl)
         wp_auto
+        try rw [if_pos rfl]
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso
       · wp_auto
+        try rw [if_neg hty]
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso
 

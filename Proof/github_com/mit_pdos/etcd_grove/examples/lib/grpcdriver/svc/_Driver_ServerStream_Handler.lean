@@ -75,6 +75,7 @@ theorem _Driver_ServerStream_Handler.wp_proof
     simp only [hsrv, ↓reduceIte]
     wp_auto
     iunfold ssMethodOk at Hh
+    rw [List.nil_append]
     wp_bind (App (App (Val #(methods srv.ty go!"ServerStream" srv.v)) _) _)
     iapply Hh $$ %γ %Dn %ci %cd %_ %_ %v %_ HSpec HS Hst Hrv HRt HSt
     inext

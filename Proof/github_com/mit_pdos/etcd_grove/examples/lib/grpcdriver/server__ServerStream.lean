@@ -39,13 +39,13 @@ theorem server.ServerStream.wp_proof
   subst Hsi
   iunfold srvRecvTok at HRt
   icases HRt with ⟨-, #Hlb⟩
-  iunfold stringValueSendB at Hr
+  isimp only [stringValueSend, stringValueSendB] at Hr
   icases Hr with ⟨%sv, Hsv, %Hsvp⟩
   obtain ⟨hval, -, hlen⟩ := Hsvp
   subst hval
   iStructNamed Hsv
   wp_auto
-  ihave IH : iprop(∃ (k : w64) (L : List GoString), "i" ∷ i_ptr ↦ k ∗
+  ihave IH : iprop(∃ (k : w64) (L : List (strmMsg (GF := GF)).M), "i" ∷ i_ptr ↦ k ∗
       "HSt" ∷ srvSendTok (Rep := strmMsg (GF := GF)) γ L ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ sv.Value'.length ∧ L.length = sint.nat k⌝) $$ [i HSt]
   · iexists W64 0, []
@@ -65,7 +65,10 @@ theorem server.ServerStream.wp_proof
       try wp_auto
       wp_bind (App (Val #(methods si.ty go!"Send" si.v)) _)
       iapply HSend $$ %L %l %((sv.Value'.drop (sint.nat k)).take 1) [HSt Hl]
-      · iframe
+      · isplitl [HSt]
+        · iexact HSt
+        isplitl [Hl]
+        · iexact Hl
         iapply Hdn
         unfold ssDn
         iexists sv.Value'
@@ -81,6 +84,7 @@ theorem server.ServerStream.wp_proof
       · subst He
         wp_auto
         wp_for_post
+        iframe
         iexists k + W64 1, L ++ [(sv.Value'.drop (sint.nat k)).take 1]
         iframe
         ipureintro
@@ -89,6 +93,7 @@ theorem server.ServerStream.wp_proof
         | nil => exact absurd rfl Hne
         | ok e =>
           wp_auto
+          wp_for_post
           iapply HΦ
           iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso
     · rename_i hb

@@ -87,6 +87,8 @@ theorem serverStream_methodOk (wp_SS : server.ServerStream.spec (GF := GF) (hG :
   iintro !> %γ %Dn %ci %cd %st %r %v %Φ HSpec HS #Hst Hr HRt HSt HΦ
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
+  iunfold drvStrmSpec at Hdn
+  isimp only [strmMsg, pbStringValueST, pbStringValueS] at Hr
   iapply (wp_SS s r v st γ Dn ci cd md) $$ [Hr HRt HSt]
   · iframe; iframe #
   inext
@@ -103,6 +105,7 @@ theorem clientStream_methodOk (wp_M : server.ClientStream.spec (GF := GF) (hG :=
   iintro !> %γ %Dn %ci %cd %st %Φ HSpec HS #Hst #Hsac HRt HSt HΦ
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
+  iunfold drvStrmSpec at Hdn
   iapply (wp_M s st γ Dn ci cd md) $$ [HRt HSt]
   · iframe; iframe #
   inext
@@ -119,6 +122,7 @@ theorem bidi_methodOk (wp_M : server.Bidi.spec (GF := GF) (hG := hG)) (s : Loc) 
   iintro !> %γ %Dn %ci %cd %st %Φ HSpec HS #Hst #Hsac HRt HSt HΦ
   iunfold grpcStreamSpecAt at HSpec
   icases HSpec with ⟨%md, -, #Hdn⟩
+  iunfold drvStrmSpec at Hdn
   iapply (wp_M s st γ Dn ci cd md) $$ [HRt HSt]
   · iframe; iframe #
   inext

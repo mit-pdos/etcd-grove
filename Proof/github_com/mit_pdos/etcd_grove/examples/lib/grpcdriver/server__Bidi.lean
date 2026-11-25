@@ -43,7 +43,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
   icases Hst with ⟨%si, %Hsi, #HRecv, #HSend, -⟩
   subst Hsi
   wp_auto
-  ihave IH : iprop(∃ R : List GoString, "HRt" ∷ srvRecvTok (Req := strmMsg (GF := GF)) γ R ∗
+  ihave IH : iprop(∃ R : List (strmMsg (GF := GF)).M, "HRt" ∷ srvRecvTok (Req := strmMsg (GF := GF)) γ R ∗
       "HSt" ∷ srvSendTok (Rep := strmMsg (GF := GF)) γ R) $$ [HRt HSt]
   · iexists []
     iframe
@@ -60,13 +60,16 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
     wp_auto
     iunfold srvRecvTok at HRt
     icases HRt with ⟨HRt, #Hlb⟩
-    ihave #Hat : iprop(upAt (Req := strmMsg (GF := GF)) γ R.length m) $$ []
+    ihave Hat : iprop(upAt (Req := strmMsg (GF := GF)) γ R.length m) $$ []
     · iapply (upLb_at (Req := strmMsg (GF := GF)) γ (R ++ [m]) R.length m (by simp))
       unfold upLb
       iexact Hlb
     wp_bind (App (Val #(methods si.ty go!"Send" si.v)) _)
-    iapply HSend $$ %R %req %m [HSt Hm]
-    · iframe
+    iapply HSend $$ %R %req %m [HSt Hm Hat]
+    · isplitl [HSt]
+      · iexact HSt
+      isplitl [Hm]
+      · iexact Hm
       iapply Hdn
       iexact Hat
     iintro !> %err2 Hres2
@@ -74,6 +77,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
     · subst He2
       wp_auto
       wp_for_post
+      iframe
       iexists (R ++ [m])
       iframe
       iunfold srvRecvTok
@@ -83,6 +87,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
       | nil => exact absurd rfl Hne2
       | ok e2 =>
         wp_auto
+        wp_for_post
         iapply HΦ
         iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso2
   · -- `io.EOF`: the end
@@ -90,6 +95,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
     icombine Heof Heofp gives %Heq
     subst Heq
     wp_auto
+    wp_for_post
     iapply HΦ
     iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
   · -- another error: returned (or, if it is `io.EOF`'s value, `nil`)
@@ -108,15 +114,22 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
         simp only at hty hl
         subst hty hl
         wp_auto
+        try rw [if_pos rfl]
+        try wp_auto
         by_cases hlx : l = x
         · subst hlx
-          wp_auto
+          try wp_auto
+          wp_for_post
           iapply HΦ
           iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
-        · wp_auto
+        · try wp_auto
+          wp_for_post
           iapply HΦ
           iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso
       · wp_auto
+        try rw [if_neg hty]
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk $$ Hso
 
