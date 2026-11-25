@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client"
-	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/env"
 )
 
 // Kind is a workload's kind.
@@ -127,7 +126,6 @@ func itoa(n int) string { return strconv.Itoa(n) }
 // the workload. ready is called once its set-up is done (the store's seeds, every client machine
 // answering), for the faults to start then; an observer only.
 func MainReady(w Workload, eps []string, addrs []string, ready func()) Result {
-	env.ClearProxy()
 	if len(eps) == 0 {
 		return ended("no endpoint")
 	}
@@ -152,7 +150,6 @@ func MainReady(w Workload, eps []string, addrs []string, ready func()) Result {
 // NodeMain is workload w's client machine c: it clears the proxy variables and serves (store.go,
 // compactor.go). It never returns but on a bad configuration.
 func NodeMain(w Workload, c int, addrs []string, eps []string) {
-	env.ClearProxy()
 	if c < 0 || c >= NodeCount(w) || len(eps) == 0 || len(addrs) != AddrCount(w) {
 		return
 	}

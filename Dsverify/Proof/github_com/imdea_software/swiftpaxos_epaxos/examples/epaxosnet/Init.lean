@@ -23,7 +23,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.net.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv

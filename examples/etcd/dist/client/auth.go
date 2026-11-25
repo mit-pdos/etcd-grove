@@ -102,9 +102,6 @@ func RunAuth(eps []string, nodes []string, ready func()) Result {
 	if err != nil {
 		return ended("auth: u's client failed to connect")
 	}
-	if !AwaitAccept(nodes) {
-		return ended("auth: a principal's machine never answered")
-	}
 	ready()
 	remotePrincipals(nodes)
 	ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)

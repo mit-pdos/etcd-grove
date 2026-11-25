@@ -903,7 +903,7 @@ part is the `k`-member boot skeleton, which waits for S5 (the peers' transport) 
   `Deployment.nodes` (each workload's client machines' addresses), `nodeList`, `nodeProg`
   (`client.NodeMain`), `clientProg w eps nodes` (`client.MainReady`), `machines` (members, orchestrators,
   client machines); `WellFormed` gains the node counts and covers the node addresses (`addrs`). The Go
-  mirror `examples/etcd/dist`'s `WellFormed` does not check nodes yet (the harness assigns them).
+  mirror (`examples/etcd/dist/deployment`'s `WellFormed`) checks them since 2026-11-24 (§11.2).
 - **The skeleton** (`Proof/.../examples/etcd/dist/TopLevelRobustness.lean`): `etcd_safe_nocrash_of_boot`
   (from `EtcdBootNC`, by `robust_of_distBootIL`). Next: the reduction from S2's names (`S2Holds GF`, now
   generic in `putget/S2Draft.lean`, at `etcdDistGF`), S5's (`S5Holds`, `dist/S5Draft.lean`: `httpAddrAt`,
@@ -1188,3 +1188,249 @@ the model. Dispositions (fixed = in this commit):
 The review also notes that F3 and F4 make two recorded nonissues reachable under real crashes
 (`nonissues/etcd-request-id-restart-reuse.md`, `nonissues/etcd-watch-lagging-member-auth-off.md`):
 their "Proof" sections are to be updated when the statement lands. No new Go bug was found.
+
+## 11. Stage table and critical path (2026-11-24, `etcd_safe` lead; replaces §9's states)
+
+Read at `lean` `b0a063163c`. Branch of this work: `etcd-safe-plan/2026-11-24`.
+
+| Stage | State | Owner | Where |
+|---|---|---|---|
+| D0 statement | **redrafted** 2026-11-24 (§11.2): `etcd_safe` (crashes) and `etcd_safe_nocrash`, over `etcdNetExts`, D8's machines; no `WellFormed`/`TrustBoundary`/`NetStart`/`HNs` premise. Packet to the owner | etcd_safe lead | `Spec/.../dist/TopLevelRobustness.lean`, `Proof/.../dist/TopLevelDefs.lean` |
+| D1 Go | done | — | `examples/etcd/dist` |
+| D2 net swap | done (`82847d941b`); **step 5 not done** (`etc/gen-init.py` `NET_MAIN`: Net's copies of os, syscall, poll, io/fs, porcupine, lintest) | etcd_safe lead (unowned until now) | `etc/gen-init.py`, `Net/Proof/{os,syscall}/Init.lean` |
+| D2 translation | **not started**: only `dist/putget` (project `putget-dist`). `server` needs `etcdserver/api/etcdhttp` (not translated) and `net/http`'s server; `client`/`kvremote` need `remote` (Net only), `walarea`, `math/rand/v2` | etcd_safe lead | `etc/goose.py` |
+| D3 mixed bridge | `[net, fs]` only (`robust_of_netFsBoot{,_addrs}`, hard-wired to `kvnetExts`) | etcd_safe lead (D4c) | `Net/Statement/NetFsBridge.lean` |
+| D4 bundle under crash | **not started** (§12) | etcd_safe lead | — |
+| D5 transport | S0, S1, S2 interface (`6d5a98fb3d`, axioms `Invoke`/`Serve`/`NewClient`/`NewServer`/`RegisterService`/`grpc.start`) landed; S2 proofs in flight (`phase7-s2-core`); S5 server pieces in flight (`prove-ps2-s5srv`, partly landed); **S3 (streams), S4, S5 client not started** | #24 owner; proving session 2 (S5) | `notes/phase7-plan.md` |
+| D6 server restart | **not started** (§12); `NewServerR` exists for the graceful restart only | etcd_safe lead | — |
+| D7 no-crash split | `d7-idsplit` **landed** (`2f67a12c06`): `idClusterInv gen`, `srvClusterBoot_allocG`, `clusterFacts`, `clusterAllocN`, `memberBoot_of_slice`, `cluster_svc_start`. `etcdClusterStart` and the k-member boot: on `dist-putgetk/2026-11-24` (n members) | putgetK lead | `etcdstart/AllocN.lean`, `dist/ClusterStart.lean` |
+| D8 clients | `remote` proved (`counter_remote_robust`, `Report`); **kv instance not started** (needs D2 step 5, D2 translation of `kvremote`, D7's one KV state); watch/cache/auth need `remote`'s ownership-carrying wire (A) | etcd_safe lead | `Net/Proof/.../lib/remote/` |
+| D9 assembly | skeleton `etcd_safe_nocrash_of_boot` (from `EtcdBootNC`, `EtcdBootNCBad`); no axiom, no sorry | etcd_safe lead | `Proof/.../dist/TopLevelRobustness.lean` |
+| putget milestones | `putget_safe` (2 machines; interim S2 axioms A1/A3-A5, A4/A5 false until `bridge-new-addrleft` lands), `putgetK_safe` (n members, in progress) | putget leads | `dist-putget-interim/2026-11-24`, `dist-putgetk/2026-11-24` |
+
+### 11.1 Critical path to a closed `etcd_safe`
+
+Sound interim axioms at a piece's interface stand in for what is proved elsewhere (S2-S5, bootstrap #34,
+per-function contracts), so the path is the work nobody else does:
+
+1. **putgetK_safe** (n members, no crash): the k-member boot over interim S2/S5 axioms. (putgetK lead.)
+2. **M1 `etcd_kv_safe_nocrash`** (smallest next milestone): n members + the `kv` workload (orchestrator and
+   client machines over `remote`), no crash, unary gRPC only (Txn/Range/Put: no S3). Needs D2 step 5,
+   the translation of `dist/server` and of `dist/client`'s kv part with `kvremote`, the kv instance of
+   `remoteDistSafe` (txnlin's model, `PendDec`, `codecOk`), and putgetK's k-member boot. A corollary-shaped
+   instance of `etcd_safe_nocrash` at deployments with one `kv` workload.
+3. **M2 `putget_crash_safe`** (first crash milestone; in parallel with M1): one member machine that crashes
+   and restarts, the putget client stable. Exercises all of D4 and D6 with no peer transport (k = 1: no
+   rafthttp traffic) and no new workload proof. Needs D4a-D4c and D6.
+4. **M3 `etcd_kv_safe`**: M1 with crashing members (D6 at k members: the raft log's durability across a
+   member's crash, the restart invariant of D7).
+5. **`etcd_safe_nocrash`**, then **`etcd_safe`**: the remaining workloads (watch/cache need S3 or interim
+   stream axioms; auth/lease rows need `remote`'s wire (A); durable is M2's check at k members).
+
+The long poles: D6 (weeks: the restart from a crash state, per member, with the cluster's invariants
+surviving it) and the workload instances (D8, ~2k lines). S3/S5 are not on the path while their interim
+axioms hold.
+
+### 11.2 The statement (2026-11-24 redraft)
+
+- **`WellFormed` moved into the programs** (no pure premise the program can check): each machine's program
+  takes the whole deployment and its index (`serverProg d i`, `clientProg d j`, `nodeProg d n`), runs
+  Go's `deployment.WellFormed` (`examples/etcd/dist/deployment`, tested by `TestWellFormed`) and returns if it
+  fails. Done 2026-11-24 (branch `etcd-safe-go/2026-11-24`): `server.MainDeployment(d, i)`,
+  `client.MainDeployment(d, j, ready)`, `client.NodeDeployment(d, n)` (binaries `cmd/{server,client,node}`
+  read the deployment's JSON and an index; the harness writes one `deployment.json`), the Go check matched to
+  Lean's clause by clause (now with the client machines' addresses and counts, unknown kinds, and kv/watch/cache's
+  `clients * ops` bounds); `TestDist` runs through these entry points. The skeleton case-splits:
+  `EtcdBootNCBad` (malformed: the bridge at no address, every program returns after its check). This also
+  removes `memberId` from the premises (Q5): Go computes it with Perennial's proved `crypto/sha1`.
+- **`TrustBoundary` dropped**: Iris contract premises become per-function axioms (premises-to-axioms).
+- **`NetStart` and the net halves of `ServerStart`/`ClientStart` dropped**: `Robust` itself assumes the
+  extensions' initial states (net's `initLocal`/`initGlobal` are exactly `init`).
+- Kept: `BootFacts` (pure, until bootstrap's results are Lean functions of `d`), `EtcdEnv`, `FsInit` (until
+  D4a), `HEnv`/`HEnvTok` (approved for `putget_safe`), instance binders. Bound `2 ^ 28 - 1` (`putget_safe`'s)
+  for both, until the proofs fix theirs (kvnet's crash theorem has `2 ^ 61`).
+- `putget`'s `S2Holds` generalization from the D9 commit was not taken (the putget files are the putget
+  leads'); the skeleton does not need it yet.
+
+## 12. The crash plan: D4 (the bundle under crash) and D6 (server restart)
+
+Specs first, then invariants, then proofs in parallel.
+
+**D4a. `fsSemWithS` gets `initLocal := FsInit`** (trusted semantics, small). Today `fsSemWithS`
+(`GooseLang/Ext/Fs/Premises.lean:37`) keeps the default `initLocal` (any state), so every theorem over
+`etcdFsSem` carries `FsInit` as a premise. With it, `FsInit` is `Robust`'s own assumption, as for
+`fs_semantics` (`Fs/Impl.lean:1330`). Owner sign-off (a trusted change). Independent of everything else.
+
+**D4b. The issue record keyed by incarnation, with a crash interpretation** (trusted semantics + axiom
+review). Today `IdIssueState := GMap w64 Loc` survives a crash unchanged (`IdIssue/Impl.lean:40,77`) and
+`idIssueExt` has no `ExtCrashInterp`. Change: the local state holds an epoch the crash relation increments,
+the record maps an id to `(machine, epoch, Loc)` (the global part, shared by machines; or local, if the
+member's prefix bits make ids disjoint across machines -- they do: `WellFormed`'s 16 low bits), `Issue`
+excludes reissuing an id under another key. Its semantics example (`examples/.../semantics`) and the
+nonissue's update; an axiom review (`axiom` skill) of `idutil.Next`'s trusted model over it. Ghost side:
+`idIssueCtx` per epoch; the crash interpretation drops the old epoch's ghost generator records but keeps
+the issued ids (so a restarted generator cannot reissue them). The D7 split puts `idPfxInv` on the
+member's machine: it must be re-established at each generation from the global `idKeyGenFacts` (the
+ghost-level `idIncarnation_alloc`, `idutil/Defs.lean:1011`, exists for the graceful restart).
+
+**D4c. The bridge for `etcdNetExts` with crashing machines** (untrusted). Generalize
+`robust_of_netFsBoot{,_addrs}` (`Net/Statement/NetFsBridge.lean`, hard-wired to `kvnetExts`) to a bundle
+`[idIssue, fs at a restricted semantics, net]` with D4b's crash interpretation: `crashPre`, `CrashBootWp`
+gain the issue record's crash rest. `etcdFsSem`'s crash relation is the file extension's
+(`fsSemWithS SQ Q`'s `crash` is `OsCrash st st' ∧ Q st st'`, and `etcdFsSem` has `Q := True`: checked). Template: kvnet's `kvPc`/`kvPc_crashBoot`/`kvPc_first`.
+
+**D6. The member's restart from a crash state.** Spec phase first:
+1. *The per-generation predicate* `memberGen i` (kvnet's `kvPc`): the persistent cluster facts
+   (`clusterFacts`, D7's global part) ∗ the member's durable ghost state at the generation's root
+   (`osShared` view of its data dir and WAL area) ∗ empty package state.
+2. *`NewServer` from a crash state*: one spec for both starts (`haveWAL` chosen by the files), over
+   `bootstrap`'s spec (#34 stage 5: `bootstrapRestartContract_holds`; interim axiom if #34 is not there)
+   and the WAL's `ReadAll` over fsExt (proved), with `walReadFacts` for crash states (C6, `walFoRes`, the
+   WAL tester's `BootFo`). The backend after a power loss: `storage.OpenBackend` is an axiom today;
+   its crash-state form is a new interim axiom (reviewed), retired by bbolt over fsExt (`osfs/bboltfs` is
+   the start).
+3. *The raft log's durability across the member's crash*: raft's invariants hold with the member's state
+   being its durable one (what the WAL keeps). Checked by reading the pin: raft v3.7's leader self-acks
+   only after persistence (`raft.go:851-857`) and etcd calls `Advance` after `storage.Save` (syncs), so a
+   single member never commits an unsynced entry. The kvnet proof's `kvGen_crash` is the model.
+4. *The restart invariant* (D7's remainder): the member's local invariants rebuilt from its files and
+   the global invariants (`InvRestart`'s graceful version is the start).
+
+**Can start now** (disjoint files): D4a (packet), D4b (design note + semantics example; Lean after
+sign-off), D4c (the bridge generalized over an abstract third extension: untrusted), D6.1-D6.2 specs (new
+files under `Spec/.../etcdserver/`, `Proof/.../dist/crash/`), D2 step 5 and D2 translation (shared scripts:
+announce on #28).
+
+## 13. What the multi-machine theorems make unnecessary (none removed; the owner decides)
+
+`examples/lib/cluster3` and its TCP relay `third_party/bridge` exist to inject partitions inside one
+process; over the net extension the network's faults replace them.
+
+| Single-process theorem / cluster3 example | Replaced by |
+|---|---|
+| `etcd_safe_single_process` (`examples/etcd/all`, 11 drivers) | `etcd_safe` (each driver a workload, §6) |
+| `etcd_leaseexpiryN_safe_single_process` | `etcd_safe`'s `leaseExpiry` workload (Q2) |
+| `k8s_safe_single_process` (`examples/k8s/all`) | k8s-dist's `k8s_safe` (`notes/k8s-dist.md`, Go done; no Lean yet, not ours) |
+| `examples/etcd/txnlinfaultsN` (cluster3 partitioner) | `etcd_safe`'s `kv` (M1/M3) |
+| `examples/etcd/partition` (`Check`, `MainWatch`) | `kv`, `watch` |
+| `examples/etcd/leasecatchup` | `leaseCatchup` |
+| `examples/k8s/etcd3`, `examples/k8s/compactor` | k8s-dist's store and compactor workloads |
+
+Retire with them: `examples/lib/cluster3` (`Partitioner`, `StartBridge`, its proofs);
+`third_party/bridge` and its five axioms (`bridgeAt`, `New.wp_proof`, `Blackhole`, `Unblackhole`,
+`DropConnections`); the single-process-only premises `Hlow`, `addrsUnclaimed`, `dataDirsAbsent`, `HWal`
+over many data directories, the schedules; the collections `etcd-all-single-process`,
+`leaseexpiryN-single-process`, `k8s-all-single-process`.
+
+**`examples/k8s/dist/{compactorcopy,storecopy}` import cluster3 and the bridge** only because they are
+byte-for-byte copies of the single-process drivers' packages (`TestVerbatim`), made to reach the drivers'
+unexported model and checks; the distributed workloads call only the copies' `export.go` wrappers, never
+`MainPartition`/`startCluster`. So the dist closure carries cluster3 and the bridge as dead code (their
+initializers; no bridge axiom is reached unless called). They should not: split each driver's model and
+checks into a package of their own that both the in-process driver and k8s-dist import, and drop the
+copies. (A k8s-dist change, its owner's; recorded here.)
+
+## 14. The bounds audit: `Robust`'s separate thread bound (2026-11-24, branch `etcd-safe-lit/2026-11-24`)
+
+The review's rule: a top-level statement takes `Robust`'s separate thread bound (`4e3c90e848`) as a named
+constant and the highest step bound the proofs allow, over Perennial's `goose_dist_adequacy_below`
+(`DistCrashNstepsBelow [] T n`: the thread bound is on the execution at hand, independent of `N`). Until
+now the etcd dist statements said `threads := 2 ^ 28, bound := 2 ^ 28 - 1` and went through
+`Net.robust_of_distBootIL`, whose boot form `DistBootWpSL lo bound` fixes `threadBound GF = receiptBound GF
++ 1` and `lo ≤ receiptBound GF ≤ bound`: the receipt bound doubled as the thread bound, so the thread cap
+`2 ^ 28` capped the steps too.
+
+**Every use in the etcd dist stack** (the skeleton, `BootBad`, `EtcdBootNC`'s eventual discharge through
+the member's boot, and the putget dist pieces it is modelled on):
+
+| Where | Fact | Kind | After |
+|---|---|---|---|
+| `TopLevelRobustness` (`EtcdBootNC`, `EtcdBootNCBad`, `etcd_safe_nocrash_of_boot`) | `srvLevelK ≤ receiptBound`, `receiptBound ≤ 2^28 - 1`, `DistBootWpSL srvLevelK (2^28-1)` | the floor `srvLevelK` was only there to give `srvLevels` (`srvLevelK ≤ threadBound`) through `threadBound = receiptBound + 1`: a **thread** fact; the cap `2^28 - 1` was the thread cap below | thread bound fixed at `etcdThreads`; receipts `≤ 2^48` |
+| `BootBad` (`serverBootBad`, `clientBootBad`, `nodeBootBad`) | `DistBootWpSL srvLevelK (2^28-1)` | uses neither bound (the programs return after the check) | the new boot form, unchanged proofs |
+| `etcdstart.StartServer.spec`, `S2Draft.Serve_s2`, `putget.Member.spec` (`ThreadBoundLe 2^28`) | `threadBound GF ≤ 2^28` | **thread** (reader-slot pools `threadBound ≤ rdPoolN`, RWMutex readers `≤ 2^30 - 1`, `raftPool`, the revocation pools: `threadBound ≤ n + 1` with `n` slots fixed) | `etcdThreads = 2^28` meets it |
+| `RevokeCtx.srvLevels` (`Serve_s2`, `Member`) | `srvLevelK ≤ threadBound GF` (5 levels of a thread token) | **thread** | `5 ≤ etcdThreads` |
+| `StartServer.spec`, `EtcdServer.Start/apply/applyAll/applyEntries`, `mvcc` (`isStore`, `NewStore`, `evLog`), `auth.Fuel`, `lease.Revoke` | `receiptBound GF ≤ 2^48` | **lifetime counter** (receipt cap): `idutil.Generator.Next` issues ids `prefix | lowbit(suffix, 48)`, distinct only for fewer than `2^48` calls (`idutil/Defs.lean`); the store's changes `logCh < 2^48` (revisions, compaction counts); the auth revision's fuel; the no-snapshot catch-up `NoSnapCatchUp = 2^48` (`notes/auth-lease-s4-freeze.md`) | **the binding cap**: `N ≤ 2^48` |
+| `StartServer.spec`, `bootstrapContract` | `receiptBound ≤ N + 1`, `N + 7 + bootWB ≤ backend.wbInit = 2^62 - 1` | **lifetime counter** (the backend's write-back tokens) | `N = receiptBound - 1 ≤ 2^48 - 1` meets it |
+| `lease` (`|M| < receiptBound ≤ 2^62`), raft/`etcdserver` `≤ 2^61`/`2^62`/`2^64 - 2` | receipt caps | lifetime counters | above `2^48`, not binding |
+| `putget` dist (`AdequacyMember`, its `TopLevelRobustness`) | `DistBootWpSL srvLevelK (2^28-1)`, `ReceiptBoundLe 2^28`, `Hprem : n + 12 ≤ 2^40` | as above (thread / receipt); `2^40` is the old `wbInit`, a hypothesis of that skeleton | not ported here (its own statement, `putget_safe`): the same port applies |
+
+No receipt floor exists anywhere in reach (every `… < receiptBound` is a derived fact, not a premise), so
+the new bridge needs none; it keeps the floor `lo` for generality and the etcd skeleton uses `lo = 0`.
+
+**The largest step bound the proofs allow is `2^48`** (an execution of `n < 2^48` steps runs at `N = n + 1
+≤ 2^48` receipts), not `2^63 - 1`: the cap is `receiptBound GF ≤ 2^48`, a property of the Go code
+(`idutil`'s 48-bit suffix wraps after `2^48` ids from one generator) and of the mvcc store's and server's
+specs built on it. It needs no premise or axiom: it only caps the step bound. Raising it means re-proving
+the server's specs over a larger cap, and `idutil` cannot go past `2^48` ids per generator (a process
+restart under D4b's incarnation-keyed issue record would be the way, per generator), so `2^48` stands.
+
+**The thread constant**: `etcdThreads := 2 ^ 28` (`TopLevelDefs.lean`): at least `srvLevelK = 5`, at most
+the `2^28` every server and client spec caps `threadBound` by. The client machines fork few goroutines
+(one per workload helper, `await.go`; one watcher per watch machine), far below it.
+
+## 15. The robustness review's items against the draft (2026-11-24, branch `etcd-safe-lit/2026-11-24`)
+
+The review (`etcd_robust`/`etcd_safe`, section 2 of the group "etcd" review, and its cross-cutting list) was
+written against `lean` `1bdd4e02f1`; this table checks each item at `5f464b7bf9`. `S` = the Spec file
+`Spec/.../examples/etcd/dist/TopLevelRobustness.lean`, `D` = `Proof/.../examples/etcd/dist/TopLevelDefs.lean`,
+`P` = the skeleton `Proof/.../examples/etcd/dist/TopLevelRobustness.lean`, Go paths under `examples/etcd/dist/`.
+
+| Item | State at `5f464b7bf9` | Evidence |
+|---|---|---|
+| (a) `TrustBoundary` → per-function axioms | **open, not ours**: `TrustBoundary` is gone from the statement, but the shared bundle is not yet axioms: `[DialWithBalancerBody]` is still an instance binder, and `Hctx` (context's errors) is a named hypothesis of the skeleton | S:55-58 (no `TrustBoundary`), S:121, S:150 (`DialWithBalancerBody`); `BootBad.lean:217-241` (`Hctx`). No branch on `origin` has the per-function axioms of `bootstrap`, `dialWithBalancer` or `context`'s errors yet (searched 2026-11-24): the putget lead's packet lists them "for the separate per-function-axiom effort" |
+| (b) `memberId`/`WellFormed` into Go, the whole deployment on every machine | **addressed** | S:31-35, S:123 (`d : Deployment` is the Go value, no `Hd`); D:109 (`memberId` a definition, `membership.memberIdOf`, no longer opaque); D:147-197 (every program gets `deploymentLit d` and its index); Go `deployment/deployment.go:326` (`WellFormed`), `server/server.go:97-102`, `client/client.go:172-201` (each returns on failure); `dist_test.go:53` (`TestWellFormed`: 500 random deployments pass, 13 malformed ones fail); `BootBad.lean` (every machine safe on a malformed deployment) |
+| (c) `Hbf`/`BootFacts` quantifying bootstrap's outputs | **open**: (b) removes only `memberId`'s opacity; `BootCore ps ctxs boot` is bootstrap's results, retired by `bootstrap`'s spec (#34, branches `bootstrap-link/2026-11-25`, `bootstrap-stage2/2026-11-25`) | S:125, S:152; D:125-127 |
+| (d) `EtcdEnv` folded into the consuming axioms or Go checks; `leasePeersOk` proved | **open, needs trusted changes**: each field is an opaque `Prop` that a trust-boundary axiom takes; folding one in restates that axiom (`storage.NewBackendQuota`, `auth.NewAuthStore`, `EtcdServer.leaseTimeToLive`, grpc's server start, bbolt's open); `leasePeersOk` is opaque (`LeaseRead.lean:152`), and proving what it says needs the peer handler (`etcdhttp.NewPeerHandler`, names-only, phase 7 S5) | S:126, S:153; D:253-264 |
+| (e) `HEnv` → a Go `ETCD_VERIFY` check at program start | **open, needs a trusted change**: a check in Go reads the variable once, but `os.Getenv.spec` (`Spec/os/Getenv.lean`) gives `etcdVerifyOffValue` only under the token `envVerifyOff`, and says nothing linking two reads, so the check cannot produce the token the backend's checks need. Removing `HEnv`/`HEnvTok` needs `os.Getenv`'s axiom restated over the process's fixed environment (each key one value per run), which retires `verifyEnvOff` and `envVerifyOffTok`, or the distributed start giving the token (premises-to-axioms item G, an adequacy change) | S:133-134, S:158-159; `Proof/.../verify/Env.lean:46,57` |
+| (f) the bounds named; `2^48` the receipt cap, with its reasons in the header | **partly**: `etcdThreads` is named (D:275); the step bound is the bare literal `2 ^ 48` (S:139, S:163) and the header names only `idutil` (S:24-28) | |
+| (g) `etcdNetExts` instead of `[GooseExts] … [HasExt …]` | **addressed** | S:105-106 |
+| (h) the client machines (`NodeMain`, `Args.Nodes`) | **addressed** (stage D8) | D:195-209 (`nodeProg`, `nodeMachines`), S:131, S:138; Go `client/client.go:193` (`NodeDeployment`), `cmd/node` |
+| (i) the driver's liveness retries | **open** | Go `client/client.go:79-105` (`AwaitCluster`, 60 × 500 ms), `client/await.go:9-34` (`AwaitAccept`, 300 × 100 ms), `client/nodes.go:200-210` (`ConnectRetry`), `client/durable.go:13-18, 50` (`durableTries`) |
+| (j) redundant `NetStart` and `.init` premises | **addressed** | no `NetStart`; `ServerStart`/`ClientStart` are the file system's only (D:228-235); P:109-111 takes the net's start from `Robust`'s `extsInitLocal`/`extsInitGlobal` |
+| (k) the header's history | **partly**: S:9-10 ("2026-11-22, the naming on #24"), S:48 ("approved 2026-11-23"), S:55 ("2026-11-24"), S:113-114; D:107-108, D:250-251 | |
+
+### 15.1 What was done (2026-11-24, same branch)
+
+- **(f)** The step bound is named: `etcdSteps := 2 ^ 48` (`TopLevelDefs.lean`, beside `etcdThreads`), its
+  docstring and the Spec header naming its three reasons (`idutil`'s 48-bit suffix, the mvcc store's change
+  count, the auth store's fuel). The statements say `(bound := etcdSteps)`; the skeleton, `EtcdBootNC`,
+  `EtcdBootNCBad` and `BootBad`'s three boot proofs say `etcdSteps` too.
+- **(k)** The Spec header and `TopLevelDefs.lean` carry no history (dates, review numbers, "was opaque", the
+  prometheus note, the comparison with the single-process theorem); `TopLevelDefs`' stale header ("one
+  decidable premise", "the boot programs are placeholders") rewritten.
+- **(i)** The programs retry nothing for liveness: `client.MainReady` no longer calls `AwaitCluster`; kv,
+  watch, cache and auth no longer call `AwaitAccept`; a client machine (`NodeMain`, `kvremote.Node`) makes its
+  client once and returns if that fails (`ConnectRetry`, `kvremote.connect` gone from them); `durable` does one
+  final Range (`durableTries` gone). kv has no set-up any more (`hasSetUp`). `AwaitAccept`, `AwaitCluster` and
+  `ConnectRetry` stay exported for `examples/k8s/dist`, which has its own review item. The wait moved to the
+  harness: `robust.Run.RunClientsAwait` (`RunClients` with a hook between the client machines' start and the
+  orchestrators'), and `examples/etcd/dist`'s `Cluster.await` (from each orchestrator machine, every member's
+  client address, served only once the member is ready, and the workload's client machines' addresses accept a
+  connection). `TestDist -short` in the local mode, one round per kind (kv, leaseExpiry, compact, durable,
+  leaseRead, watch, cache, auth): every workload `checked`. Translation regenerated (`client`, `kvremote`).
+- **(b)** `TestWellFormed` also rejects a repeated or invalid member name, an empty token, a snapshot count of 0,
+  a periodic compactor below its minimum and an unknown mode, kv beside a workload writing keys, and auth without
+  the token provider (and accepts auth with it).
+
+### 15.2 What is left, and on what it waits
+
+- **(a)**, and the shared bundle's context and dial parts (`Hctx`/`Hcec`, `[DialWithBalancerBody]`): no
+  per-function axioms exist yet on any branch. What plugs in: `[DialWithBalancerBody]` (an instance binder of
+  both statements and of `EtcdBootNC`/`EtcdBootNCBad`) is replaced by a per-function axiom
+  `Proof/go_etcd_io/etcd/client/v3/Client__dialWithBalancer.lean` (or the translated body), and the binder
+  dropped from the statements; `Hctx` (the hypothesis of `etcdBootNCBad_holds`, `etcd_safe_nocrash_of_bootWF`,
+  `BootBad.lean`) is discharged by the proved facts on `context`'s initializer (premises-to-axioms item F:
+  PROVE, never an axiom, `isPkgInit context` being unsealed), `serverBootBad`/`clientBootBad`/`nodeBootBad`
+  then taking no hypothesis; `bootstrapContract`, `bootMarshal`, `rnLoggerZapOk`, `rnTimeoutDetectorOk` are
+  not in this statement (they enter `EtcdBootNC`'s discharge through the member's boot, from the same
+  per-function axioms putget uses).
+- **(c)** `BootFacts`: waits on `bootstrap`'s spec (#34); (b) leaves only `perm : ps.Perm d.ids` depending on
+  the deployment.
+- **(d)** `EtcdEnv`: each field folded into its consuming axiom is a restatement of a trust-boundary axiom (a
+  trusted change, not done here); `leasePeersOk` is opaque, and what it says needs the peer handler's model
+  (phase 7 S5).
+- **(e)** `HEnv`/`HEnvTok`: a Go check alone cannot produce the token (see the table). The trust-shrinking
+  route: restate `os.Getenv`'s axiom over the process's fixed environment (one value per key per run, a
+  persistent agreement), so that a check at the program's start gives every later read's value; with it the
+  axioms `verifyEnvOff` and `envVerifyOffTok` go, and so do `HEnv` and `HEnvTok`. A trusted change for the
+  owner (an axiom restated), not done here.
