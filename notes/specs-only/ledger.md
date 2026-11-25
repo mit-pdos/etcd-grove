@@ -5744,3 +5744,29 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
      etc/link-lean-first-antithesis.txt; Link.lean's `AntHarness.wp_Main` has no hypothesis.
 - **Decision.** Applied (the lead's approvals of 1-3, option (a); 4-5 authorized by the destinations
   brief). No new axiom or top-level premise; a hypothesis of the top-level result retired.
+
+## 2026-11-25: the RawNode scope over a mode; the end relations' node constant and `RState` forms (#33 parity B1)
+
+- **Spec.** `RawNodeAt.lean`'s `RnScope`, `RnCfgIn`, `rnScopeAt`, `ownRawNodeAt` (and the two laws);
+  `RawNodeAbsSpecs.lean`'s `absSpec`s and forms' `%Hend`; `RawNodeApi.lean`'s `rawNode`;
+  `RawNodeStart.lean`'s `restartAtSpec`; `Spec/go_etcd_io/raft/v3/RawNode__{acceptReady,readyWithoutAccept}.lean`;
+  `Protocol/InputEnd.lean`'s `PreEnd`/`HandleEnd`/`RecvEnd`/`TickEnd`/`AdvanceEnd`.
+- **Defect.** The scope was one flag (`sc : Bool`) and the end relations had no node constant, so
+  neither can say "pre-vote on" or "reads on" (notes/antithesis-parity-design.md §1, §2, R2).
+- **Change** (design §2, §1.2, §1.3; e2fb75df8e, 07832a3f40).
+  1. `RnScope md`/`RnCfgIn md` (each of today's conjuncts guarded by its `RnMode` flag),
+     `rnScopeAt γ id (sc : Option RnMode)`, `ownRawNodeAt … (sc : Option RnMode)`: `none` is the old
+     `false`, `some {}` the old `true` (`RnScope_empty`, `RnCfgIn_empty`: `{}` is today's flat
+     conjunction, kept as `RnScopeBasic`/`RnCfgInBasic` for the proofs that read it by position).
+     Interim (until B1's second phase proves the other modes): the statements of the first harness's
+     scope quantify over `b : Bool` at `basicScope b` (`some {}`/`none`).
+  2. `PreEnd`, `HandleEnd`, `RecvEnd`, `TickEnd`, `AdvanceEnd` take `k : NodeK` first; every arm word
+     for word (the new arms are B1's second phase); the RawNode specs at `k = {}`. `TickEnd`'s
+     heartbeat arm says `x.ctx = hbCtx s.rd.ro` (was `[]`; equal when the read-only queue is empty,
+     the basic scope). New definitions (no proof uses them yet): `CampaignEnd`, `PreCampaignEnd`,
+     `ctxTransfer`, and the `RState` forms `KeepCfg`, `PciNext`, `FpNext`, `RecvEndR`, `TickEndR`,
+     `AckEndR` (arms 1-3; `AutoLeaveEnd` with B3), `AdvanceEndR`, `UnappliedConf`, `CampaignEndR`,
+     `TransferEndR`, `TimeoutNowEndR` (the preamble written out), `SnapStatusEndR` (not in the design's
+     text: `r' = r`, or a leader's probe), `ApplyConfEndR`, `StoreAckEndR`.
+- **Decision.** Applied (the lead's brief, B1 stages 1-2; stage 1 reviewed). No new axiom or
+  top-level premise; no theorem weakened (`spec_of_abs` and the old specs unchanged).
