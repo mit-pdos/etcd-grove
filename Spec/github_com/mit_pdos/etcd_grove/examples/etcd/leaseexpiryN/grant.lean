@@ -8,8 +8,7 @@ after the call). Lean-first (no Rocq counterpart).
 `Spec` registered for `LeaseGrant` at every endpoint and the caller's `Q` that `Spec` gives of the
 request `(grantTTL, 0)` (`lessor.Grant`'s premises), from the package's fact: on success (`err =
 nil`) a `*LeaseGrantResponse` whose `ID` field is the reply's lease id, read-only, with `Q` of the
-reply; otherwise an error. Under the client's context premises (`ContextReadErrs`,
-`ContextErrsClient`, `errors.As`'s target), as `lessor.Grant`'s callers'.
+reply; otherwise an error. Under the client's premise (`errors.As`'s target), as `lessor.Grant`'s callers'.
 -/
 module
 
@@ -37,7 +36,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 
 /-- See the file header. -/
 abbrev grant.spec : Prop :=
-  ∀ [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF),

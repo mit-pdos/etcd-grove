@@ -37,7 +37,7 @@ theorem absent.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     absent.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC root k why addr s E γr cid mid c n F P Q hsz hAs
+  intro CS ES FS RS root k why addr s E γr cid mid c n F P Q hsz hAs
   wp_start as ⟨#Htk, #Hrange, #Hc, #HF, #Hn, #HQ, #Hnone⟩
   ihave #Htk0 := Htk
   iunfold clientTokAt at Htk0

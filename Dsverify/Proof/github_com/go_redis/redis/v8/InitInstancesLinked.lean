@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

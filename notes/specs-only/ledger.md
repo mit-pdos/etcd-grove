@@ -25,6 +25,41 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: errors.IsStatusErr -- the comparable-target case is dead (a `SafeMapKey` only `nil` and pointers are)
+
+- **Spec.** `Spec/errors/IsStatusErr.lean`, `errors.IsStatusErr.spec` (the axiom `errors.IsStatusErr.wp_proof`).
+- **Defect.** Its third target case, "a non-nil `SafeMapKey go.error target`", added for
+  `canceledByCaller`'s comparison with `context.DeadlineExceeded`, has since Perennial's P8c admitted
+  only pointers (already the second case), so the one caller that needed it took the unsatisfiable
+  `client.ctxErrTargets` (`notes/axiom-review/ctx-readerrs-vacuity.md`).
+- **Evidence.** Perennial `Golang/Theory/Map.lean` (`mapKeys_interface`, `SafeMapKey.key_ok`);
+  go1.27.3 `src/errors/wrap.go:44-70` (`Is` compares `err == target`, which for different dynamic
+  types is `false` and for `deadlineExceededError`, an empty struct, does not panic).
+- **Proposed change.** The case becomes `target = deadlineExceededError{}`; `ctxErrTargets` states
+  that value (proved from `context.isInit`, `ctxErrTargets_of`).
+- **Decision.** Applied (branch `hctx-vacuity/2026-11-25`): a trust-boundary spec covering one more
+  target, true of Go; for the coordinator's review before landing.
+
+## 2026-11-25: bcrypt.GenerateFromPassword -- the non-pointer error branch is `False` (a `SafeMapKey` no non-pointer is)
+
+- **Spec.** `Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`, `bcrypt.GenerateFromPassword.spec`
+  (the axiom `bcrypt.GenerateFromPassword.wp_proof`); the plan's `SpecPlan/Spec/golang_org/x/crypto/bcrypt/GenerateFromPassword.lean`
+  does not state the error's shape.
+- **Defect.** False of the Go code: the post's non-pointer branch asks `SafeMapKey go.error err`, which
+  since Perennial's P8c (`293bcbdd8`) no non-pointer, non-nil interface meets, so the axiom says bcrypt
+  never returns a non-pointer error; v0.57.0 returns `InvalidCostError(cost)` (an `int`) for
+  `cost > MaxCost`. (`notes/bcrypt-invalidcost-false.md`.)
+- **Evidence.** `bcrypt.go:95-102, 139-150, 299-303`; Perennial `Golang/Theory/Map.lean`
+  (`mapKeys_interface`, `SafeMapKey.key_ok`); the review's Lean check (`ctxDeadline_pure_false`, the
+  same contradiction).
+- **Proposed change.** The branch becomes `ei.ty = bcrypt.InvalidCostError.ty ∧ ∃ c : w64, ei.v = #c`
+  (Go's typing of the value bcrypt returns; it implies the old branch's non-pointer and
+  not-`deadlineExceededError` conjuncts). The caller `EtcdServer.UserAdd`'s proof derives what it used
+  (`errKeyOk_invalidCost`); the gRPC layer looks the error up under its own map keys (`errKeyOk`,
+  `v3rpc.errKeys`) instead of `SafeMapKey`. No other caller.
+- **Decision.** Applied (ctx-leaf-fix, 2026-11-25, branch `hctx-vacuity/2026-11-25`): a trust-boundary
+  axiom restated more weakly than its false form, for the coordinator's review before landing.
+
 ## 2026-11-24: `net.UDPConn.ReadFromUDP`'s result nested the wrong way (kvudp, `udpNet.receive`)
 
 - **Spec.** `Net/Spec/net/UDPConn__ReadFromUDP.lean`, `UDPConn.ReadFromUDP.spec` (its part copy
@@ -6610,3 +6645,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   more faithful but touches every user of `memberAt`.
   Until this is decided the axiom stays, and it is the obstacle to proving it.
 - **Decision.** Open.
+
+## 2026-11-25: `transport.NewTimeoutTransport.spec` covered every `TLSInfo` (transport-emptycn)
+
+- **Spec.** `transport.NewTimeoutTransport.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/transport/NewTimeoutTransport.lean`,
+  a trust-boundary axiom), and through it `rafthttp.NewRoundTripper.spec`, `newStreamRoundTripper.spec`,
+  `rafthttp.Transport.Start.spec`; in `SpecPlan/`, `Transport.TLSInfo.ClientConfig.spec` and the two round
+  trippers' specs, which take any `TLSInfo` the same way.
+- **Defect.** False of Go for a `TLSInfo` with a certificate: with `EmptyCN`, `ClientConfig` re-reads the
+  certificate and dereferences `pem.Decode`'s block unchecked (a file rewritten between the reads panics); with
+  `AllowedCN`, `baseConfig` logs through `info.Logger` (a zero `&zap.Logger{}` panics).
+- **Evidence.** `issues/etcd-transport-emptycn-cert-reread-panic/` (5/5), the review's FIFO and rename tests, a
+  logger probe (1/1); `notes/axiom-review/transport-emptycn.md`.
+- **Proposed change.** The premise `transport.tlsEmpty info` (`info.Empty()`: no certificate, no key file),
+  carried by `bootCfgOk` (`cfg.PeerTLSInfo`) and `Transport.Start.spec` (`tv.TLSInfo'`). `SpecPlan/`'s three specs
+  should take the same premise (or, for `ClientConfig`, a certificate path stated with `EmptyCN` off and a zap
+  logger); not edited here.
+- **Decision.** `Spec/` restated (2026-11-25, branch `transport-emptycn/2026-11-25`); `SpecPlan/` open.

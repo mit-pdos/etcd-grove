@@ -278,21 +278,23 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     rw [hiv1n, hlenn, List.take_of_length_le (by simp), hm]
     wp_auto
     ihave #Hs2 := Hsrv
-    iunfold isServer at Hs2
+    iunfold isServerAny at Hs2
+    icases Hs2 with ⟨%o, #Hs2⟩
+    iunfold isServerO at Hs2
     icases Hs2 with ⟨-, #Hmu, -, -⟩
     wp_apply wp_Lock _ _ $$ [$Hsync $Hmu] as ⟨Hown, Hinv⟩
-    iunfold svcMapInv at Hinv
-    icases Hinv with ⟨%smp, %M3, Hsm, HM3, Hγ⟩
+    iunfold svcMapInvO at Hinv
+    icases Hinv with ⟨%smp, %M3, Hsm, HM3, Hγ, Ho⟩
     wp_auto
     wp_apply (wp_map_lookup2 go.string (go.GoType.PointerType net.rpc.service.ty) smp M3 svc
       (DFrac.own 1)) $$ HM3 as HM3
     ihave %Hlk := ghost_map_lookup $$ Hγ Hel
     rw [show M3 !! svc = some sv from Hlk]
     simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
-    wp_apply wp_Unlock _ (svcMapInv γs s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ]
-    · iunfold svcMapInv
+    wp_apply wp_Unlock _ (svcMapInvO γs o s) $$ [$Hsync $Hmu $Hown Hsm HM3 Hγ Ho]
+    · iunfold svcMapInvO
       iexists smp, _
-      iframe Hsm HM3 Hγ
+      iframe Hsm HM3 Hγ Ho
     iunfold svcIs at Hsvc
     icases Hsvc with ⟨%rcvr, %mp, %MT, #Hrcvr, #Hmeth, #Hmp, #HMT⟩
     wp_auto

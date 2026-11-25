@@ -8,7 +8,7 @@ public import Dsverify.Proof.gryff.src.state.Init
 public import Dsverify.Proof.gryff.src.fastrpc.Init
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Perennial.Proof.encoding.binary.Link
 
 @[expose] public section

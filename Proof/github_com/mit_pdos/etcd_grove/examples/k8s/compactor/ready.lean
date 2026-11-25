@@ -36,7 +36,7 @@ theorem ready.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     ready.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ cl ms V
+  intro _ _ cl ms V
   wp_start as ⟨#Hcl, #Hregs, #Hst⟩
   rw [show github_com.mit_pdos.etcd_grove.examples.k8s.compactor.compactRevKey = #k8s.compactRevKey
     from rfl]

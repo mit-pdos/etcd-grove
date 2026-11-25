@@ -11,7 +11,7 @@ public import Perennial.Proof.time.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
-public import Net.Proof.net.Init
+public import Proof.net.Init
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.net.rpc.Init
 

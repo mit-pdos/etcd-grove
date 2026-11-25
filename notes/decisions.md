@@ -42450,6 +42450,28 @@ Not done: a whole-program analysis (an exit in a dependency, or a wrapper that d
 callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
 is where a vacuous check would be written.
 
+## One `PkgInitExt` for every tree; a part imports the main tree's `Init.lean` when it is the same (2026-11-24 · L1 · branch `lib-pkginit`)
+
+**Problem.** `ExternalInit` (the premise of `initLb_of_spec`, which the generated initializers use for every package
+whose `wp_initialize'` is not generated here) was a closed inductive listing the main tree's packages, raft's,
+protobuf `proto`'s and the B-tree's among them, so `Proof/runtime/PkgInitExt.lean` imported raft's translation. A
+part that does not import raft (`Net/`) needed a copy without them, `Dsverify/` a guard-free variant
+(`PkgInitDsv`) for packages the copy did not list, and every package initializer that imported it was copied into
+the part, differing only in that import (11 in `Net/`, 9 more in `Dsverify/`); the parts likewise declared again
+the `True` facts of packages whose main-tree fact sat in an etcd module (`container/heap` in lease's `Base`,
+protobuf's in raft's and cache's).
+
+**Choice.** `ExternalInit` is an open registration: a fieldless `structure` in `Prop`, each external initializer a
+theorem `ExternalInit.<pkg> : ExternalInit pkg_id.<pkg> <pkg>.initialize' := ⟨⟩`. The shared module registers
+Perennial's packages (all trees'); a tree registers the others in a module of its own importing it (the main tree's
+`PkgInitExtRaft`, copied over their raft by the raft parts; `Dsverify/`'s `PkgInitDsv`), and a generated file
+imports that module only when it names one. The guard was already unused by the proof; it stays as documentation, and
+`initLb_of_spec`'s statement text is unchanged (rejected: dropping the premise, which changes every call site and
+loses the record of what is taken from elsewhere). `etc/gen-init.py`'s `shared_inits` then drops a part's generated
+`Init.lean` when, its imports resolved, it is the main tree's text at the same path: one file per Go package, found
+mechanically rather than listed. A `True` fact two trees need moves to `Proof/<pkg>/PkgInit.lean` (as `hash`'s,
+`os`'s), out of the etcd modules that declared it.
+
 ## `etcd_noRefusal` over the server listening at the address (2026-11-24 · trust-shrinking, from an axiom sweep · branch `norefusal-link/2026-11-24`)
 
 *Supersedes D29's sentence on the members' axiom's premises ("the gRPC server `gs` with the KV
@@ -42580,3 +42602,32 @@ environment can make it true.
 **Rejected.** A Lean hypothesis `EtcdVerifyOff →` on each check's spec, as `GodebugFips140Off` on
 `bootstrap`'s: it would thread through `batchTx.Lock` and every caller of the backend; the pure
 assertion inside `isBackend` carries it with no signature change.
+
+
+## `ContextReadErrs` was unsatisfiable: a local `MapKeys` for `togRPCError`, the classes theorems, a gate on Iris premises (2026-11-25 · soundness fix · branch `hctx-vacuity/2026-11-25`)
+
+**What.** The top-level premise `Hctx : ∀ hG, ContextReadErrs` stated of `context.DeadlineExceeded`'s
+value both "not a pointer" and `SafeMapKey go.error` at Perennial's interface keys, which since P8c
+(`mapKeys_interface`) are `nil` or pointers: `ContextReadErrs → isPkgInit context ⊢ False`, checked in
+Lean. Every statement taking it was vacuous for a month (`notes/axiom-review/ctx-readerrs-vacuity.md`,
+with the list). The Go fact is true; the Lean statement was wrong.
+
+**Choices.**
+- The conjunct was used only by `togRPCError`'s map lookup. Restated as `errKeyOk` (the keys Go's `==`
+  compares as Lean's equality: `nil`, pointers, `deadlineExceededError{}`, bcrypt's `InvalidCostError`)
+  with a local `MapKeys` instance `v3rpc.errKeys`, as Perennial's `MapKeys` doc invites (and as
+  `v3rpc.streamKeys` already did), not a change to Perennial's instance: no trust added, the
+  `SafeMapKey` of each key proved from `==`'s reduction.
+- The classes `ContextReadErrs` and `ContextErrsClient` became theorems from `isPkgInit context`
+  (Perennial's `context.isInit` names both errors' values since the context-errors change): no
+  premise is left to be false, and nothing to witness.
+- `client.ctxErrTargets` and `errors.IsStatusErr.spec`'s dead comparable-target case are restated for
+  `deadlineExceededError{}` (a trust-boundary spec covering one more target, true of Go; the ledger
+  entry of 2026-11-25), and `ctxErrTargets_of` proves the former.
+- **Prevention, kept small**: the pure-premise witness gate leaves out every binder over `HeapGS`, so a
+  second gate, `etc/iris-premise-check.py` (sources only; `etc/gates.sh`, CI), lists the Iris binders
+  of every top-level statement and refuses one not in `etc/iris-premise-baseline.txt`, either
+  `witness:<theorem>` (declared in the tree; the build checks it) or `unwitnessed` (the 19 present at
+  its introduction; the list only shrinks). It flags `Hctx`/`Hcec` on the tree before the fix. Not
+  done: a Lean-level check that a named witness really proves the premise at an initialized world (the
+  name is a pointer for review, not a proof obligation the script verifies).

@@ -22,8 +22,9 @@ in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged
 (`BootFacts`), the server's workload and environment premises (`authRecordsFit`, ...), Go's method sets of
 the gRPC service values and `errors.As`'s target, the member's named Iris premises (`Hprem`: the
 trust-boundary contracts `bootstrapContract`, `bootMarshal`, the raft wrapper's, at every ghost-state
-instance, as the retired single-process `etcd_safe`'s `Hprem`), `context`'s two classes (`Hctx`,
-`Hcec`) (no premise on the programs' metric names, `HNs`, since prom-registry, 2026-11-23: each
+instance, as the retired single-process `etcd_safe`'s `Hprem`) (`context`'s two classes `Hctx`,
+`Hcec` until ctx-leaf-fix, 2026-11-25: theorems since, `notes/axiom-review/ctx-readerrs-vacuity.md`;
+no premise on the programs' metric names, `HNs`, since prom-registry, 2026-11-23: each
 machine's boot proof allocates its registration rights itself). `ETCD_VERIFY` (etcd's runtime checks, which panic outside
 the apply loop) is off, as in the single-process theorems (`HEnv : EtcdVerifyOff`: the run's value of the
 variable, one for every machine of the deployment, enables no check,
@@ -75,10 +76,6 @@ def putget_safe.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     -- the deployment's addresses (the member's peer and client addresses)
     (peer client : GoString)
     -- bootstrap's results for the member's configuration (its id, its peers' contexts, its log)

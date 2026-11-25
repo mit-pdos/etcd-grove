@@ -36,8 +36,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfault
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
     (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),

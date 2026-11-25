@@ -19,7 +19,7 @@ module
 public import Net.Proof.models_lab.pbcodec.Codec
 public import Net.Proof.models_lab.pbcodec.Init
 public import Net.Proof.models_lab.jsoncodec.Codec
-public import Net.Proof.models_lab.jsoncodec.Init
+public import Proof.models_lab.jsoncodec.Init
 public import Net.Proof.models_lab.jsoncodec.Linked
 public import Net.Proof.models_lab.jsoncodec.IsSpace
 public import Net.Proof.models_lab.jsoncodec.Error__Error

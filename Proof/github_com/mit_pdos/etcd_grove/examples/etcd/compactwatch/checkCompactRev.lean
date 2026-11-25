@@ -50,7 +50,7 @@ theorem checkCompactRev.wp_proof
     (wp_CompactRev : etcdstart.CompactRev.spec (GF := GF) (hG := hG))
     (h_client_Get_rev : client_Get_rev.law (GF := GF) (hG := hG)) :
     checkCompactRev.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC cl key R E γr cid mid γf γl γv keys val hkl hcr hAs
+  intro CS cl key R E γr cid mid γf γl γv keys val hkl hcr hAs
   wp_start as ⟨#Hnc, #HWF, #Hregs, #H00, #Hinv, #Hkvi⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
