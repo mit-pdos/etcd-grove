@@ -25,6 +25,20 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: the antithesis harness's `CfgOk` -- `0 ≤ MaxDelay` goes with the delay (#33 S4)
+
+- **Spec.** `Proof/.../raft/antithesis/HarnessDefs.lean` (`CfgOk`, `defaultCfg`, `clusterRO`), the premise
+  of `Spec/.../raft/antithesis/RunCluster.lean`; `Cluster__isolate.lean`, `Cluster__isolatedNow.lean`
+  (removed); the headers of `Cluster__send.lean`, `DefaultConfig.lean`, `RunCluster.lean`.
+- **Defect.** None in the spec: the Go program lost the knobs it was about (the robustness review's items
+  4, 5, 7, 8: no per-message delay, drops or isolator; an unbounded proposer).
+- **Evidence.** `send` no longer calls `below(uint64(MaxDelay) + 1)`; `Config` has no `MaxDelay`,
+  `Cluster` no `isoMu`/`isolated`.
+- **Proposed change.** `CfgOk cfg := cfg.Nodes' = W64 3 ∧ 0 < sint.Z cfg.Tick'`; `clusterRO` without the
+  mutex; `defaultCfg` the three remaining fields. `RunCluster.spec`, `Main.spec`, `Cluster.send.spec`
+  unchanged but for their headers. No SpecPlan counterpart.
+- **Decision.** Applied (the S4 lead's brief: spec changes that only drop what the removed knobs needed).
+
 ## 2026-11-23: `maps.Keys.spec_objMap` -- `slices.Sorted` needs the map below `2^62` keys (maps-keys, #36)
 
 - **Spec.** `Spec/maps/Keys.lean` (`maps.Keys.spec_objMap`, the axiom `maps.Keys.wp_proof_objMap`), and the

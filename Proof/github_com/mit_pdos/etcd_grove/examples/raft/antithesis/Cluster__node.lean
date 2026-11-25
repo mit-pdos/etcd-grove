@@ -27,7 +27,7 @@ theorem Cluster.node.wp_proof : Cluster.node.spec (GF := GF) (hG := hG) := by
   intro c ns N id
   wp_start as #Hc
   iunfold clusterRO at Hc
-  icases Hc with ⟨%nsl, #Hn, #Hns, #HN, #Hm⟩
+  icases Hc with ⟨%nsl, #Hn, #Hns, #HN⟩
   ihave %Hl := ownSlice_len $$ Hns
   wp_auto
   wp_if_destruct

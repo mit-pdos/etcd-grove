@@ -12,8 +12,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Clus
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__Servers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__deliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__drain
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__isolate
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__isolatedNow
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__node
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__reportCause
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__run
@@ -112,17 +110,9 @@ theorem AntHarness.Cluster.wp_node :
     AntHarness.Cluster.node.spec (GF := GF) (hG := hG) :=
   AntHarness.Cluster.node.wp_proof
 
-theorem AntHarness.Cluster.wp_isolatedNow :
-    AntHarness.Cluster.isolatedNow.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.isolatedNow.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
-
-theorem AntHarness.wp_below :
-    AntHarness.below.spec (GF := GF) (hG := hG) :=
-  AntHarness.below.wp_proof
-
 theorem AntHarness.Cluster.wp_send [StorageModel GF] :
     AntHarness.Cluster.send.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.send.wp_proof AntHarness.Cluster.wp_deliver AntHarness.Cluster.wp_node AntHarness.Cluster.wp_isolatedNow AntHarness.wp_below _root_.Perennial.time.wp_Sleep raftpb.Message.wp_GetType raftpb.Message.wp_GetTo raftpb.Message.wp_GetFrom _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done
+  AntHarness.Cluster.send.wp_proof AntHarness.Cluster.wp_deliver AntHarness.Cluster.wp_node raftpb.Message.wp_GetType raftpb.Message.wp_GetTo _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done
 
 theorem AntHarness.wp_msgType :
     AntHarness.msgType.spec (GF := GF) (hG := hG) :=
@@ -143,10 +133,6 @@ theorem AntHarness.wp_msgOf :
 theorem AntHarness.wp_roleOf :
     AntHarness.roleOf.spec (GF := GF) (hG := hG) :=
   AntHarness.roleOf.wp_proof
-
-theorem AntHarness.Cluster.wp_isolate :
-    AntHarness.Cluster.isolate.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.isolate.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
 
 theorem AntHarness.wp_DefaultConfig :
     AntHarness.DefaultConfig.spec (GF := GF) (hG := hG) :=
@@ -176,6 +162,10 @@ theorem AntHarness.bootStorage.wp_Entries [StorageModel GF] :
     AntHarness.bootStorage.Entries.spec (GF := GF) (hG := hG) :=
   AntHarness.bootStorage.Entries.wp_proof MemoryStorage.wp_Entries
 
+theorem AntHarness.wp_below :
+    AntHarness.below.spec (GF := GF) (hG := hG) :=
+  AntHarness.below.wp_proof
+
 end links_hasLC
 
 /-! The results that reach a function specified but not proved yet (a later unit's):
@@ -199,7 +189,7 @@ theorem AntHarness.Cluster.wp_run [StorageModel GF] :
 
 theorem AntHarness.wp_RunCluster [StorageModel GF] :
     AntHarness.RunCluster.spec (GF := GF) (hG := hG) :=
-  AntHarness.RunCluster.wp_proof wp_NewMemoryStorage AntHarness.bootStorage.wp_InitialState AntHarness.bootStorage.wp_Snapshot AntHarness.bootStorage.wp_LastIndex AntHarness.bootStorage.wp_FirstIndex AntHarness.bootStorage.wp_Term AntHarness.bootStorage.wp_Entries (NewRawNode.wp_proofEmptyStartApi wp_NewRawNode) AntHarness.wp_Name AntHarness.wp_names AntHarness.Recorder.wp_record (AntHarness.Cluster.wp_drain h_readyMsgsOk) (AntHarness.Cluster.wp_run h_readyMsgsOk) AntHarness.Cluster.wp_deliver AntHarness.Cluster.wp_isolate AntHarness.wp_below _root_.Perennial.time.wp_Sleep _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done _root_.Perennial.sync.WaitGroup.wp_Wait _root_.Perennial.strconv.wp_FormatUint cluster_alloc_names rawNode_prop_mint raftState_open_rn rawNode_committed rawNode_logRecs
+  AntHarness.RunCluster.wp_proof wp_NewMemoryStorage AntHarness.bootStorage.wp_InitialState AntHarness.bootStorage.wp_Snapshot AntHarness.bootStorage.wp_LastIndex AntHarness.bootStorage.wp_FirstIndex AntHarness.bootStorage.wp_Term AntHarness.bootStorage.wp_Entries (NewRawNode.wp_proofEmptyStartApi wp_NewRawNode) AntHarness.wp_Name AntHarness.wp_names AntHarness.Recorder.wp_record (AntHarness.Cluster.wp_drain h_readyMsgsOk) (AntHarness.Cluster.wp_run h_readyMsgsOk) AntHarness.Cluster.wp_deliver AntHarness.wp_below _root_.Perennial.time.wp_Sleep _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done _root_.Perennial.sync.WaitGroup.wp_Wait _root_.Perennial.strconv.wp_FormatUint cluster_alloc_names rawNode_prop_mint raftState_open_rn rawNode_committed rawNode_logRecs
 
 theorem AntHarness.wp_Main [StorageModel GF] :
     AntHarness.Main.spec (GF := GF) (hG := hG) :=

@@ -81,7 +81,7 @@ theorem Cluster.run.wp_proof
   iStructNamed Hcf
   wp_auto
   wp_apply wp_NewTicker as %t %tch %γt #Ht
-  · ipureintro; exact Hcok.2.1
+  · ipureintro; exact Hcok.2
   ihave #Ht' := Ht
   iunfold time.isTicker at Ht'
   icases Ht' with ⟨#HtC, #HtI, #HtR, #Htbag⟩

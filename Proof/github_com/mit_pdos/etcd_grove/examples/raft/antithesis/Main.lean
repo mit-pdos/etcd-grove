@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- `DefaultConfig()` meets `RunCluster`'s premise. -/
 theorem cfgOk_defaultCfg [GooseExts] : CfgOk defaultCfg := by
-  refine ⟨rfl, ?_, ?_⟩ <;> (unfold defaultCfg; simp only; word)
+  refine ⟨rfl, ?_⟩; unfold defaultCfg; simp only; word
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

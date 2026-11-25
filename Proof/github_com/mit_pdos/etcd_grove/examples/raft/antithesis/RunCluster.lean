@@ -8,9 +8,9 @@ through `clusterAllocFacts.law`), the voters, the three nodes made (`nodeMade`),
 invariant (`antInv_alloc`); the boot loop (per node its `boot` report and drain, on the caller's
 thread token); the `go c.run(n)` loop (`nodesWg.Add(1)` with the node's `nodeExit`, the goroutine
 forked with a fresh token, `wp_fork_tok_body`, which `Cluster.run` gives back; the network's adders
-split a half and two quarters, `antQ`); the two drivers (`joinN` at `2`: the isolator, the proposer,
-which mints each proposal's raft resources, `propOk_mint`); then the stop: the drivers waited for,
-the stop channel closed, `nodesWg.Wait()` (the three `nodeExit`s back), the network's adders joined
+split a half and two quarters, `antQ`); the proposer (`joinN` at `1`), which loops until it sees the
+stop channel closed (a non-blocking receive) and mints each proposal's raft resources
+(`propOk_mint`); then the stop: the stop channel closed, the proposer waited for, `nodesWg.Wait()` (the three `nodeExit`s back), the network's adders joined
 and closed (`njClose`) and `netWg.Wait()`, and the run's invariant closed (`antInv_close`): `runOver`.
 -/
 module
@@ -19,7 +19,6 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunCl
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__drain
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__deliver
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__isolate
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder__record
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Name
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.names
@@ -163,8 +162,8 @@ def nodeChanOwn (n : Loc) (γch : ChanNames) : IProp GF :=
 
 end chans
 
-/-- The drivers' join's namespace. -/
-def antDrvN : Namespace := nroot.@"antithesis_drivers"
+/-- The proposer's join's namespace. -/
+def antPropN : Namespace := nroot.@"antithesis_proposer"
 
 /-- Node `j`'s share of the network's adders: a half for node `0`, a quarter for the others. -/
 def antQ (j : Nat) : Qp := if j = 0 then (1 : Qp).half else (1 : Qp).half.half
@@ -375,7 +374,6 @@ theorem RunCluster.wp_proof
     (wp_drain : ∀ [StorageModel GF], Cluster.drain.spec (GF := GF) (hG := hG))
     (wp_run : ∀ [StorageModel GF], Cluster.run.spec (GF := GF) (hG := hG))
     (wp_deliver : ∀ [StorageModel GF], Cluster.deliver.spec (GF := GF) (hG := hG))
-    (wp_isolate : Cluster.isolate.spec (GF := GF) (hG := hG))
     (wp_below : below.spec (GF := GF) (hG := hG))
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG))
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
@@ -398,7 +396,7 @@ theorem RunCluster.wp_proof
   · iPkgInit
   ihave #Hsc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
-  obtain ⟨HN3, HT0, HM0⟩ := Hcok
+  obtain ⟨HN3, HT0⟩ := Hcok
   have Hrb : receiptBound GF ≤ 2 ^ 64 - 2 := by unfold antRunFits at Hfits; omega
   try wp_auto
   -- the stop channel, a broadcast
@@ -411,7 +409,7 @@ theorem RunCluster.wp_proof
   -- the cluster's fields
   icases typedPointsto_split _ _ _ $$ «$r0» with Hcl
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hcl with ⟨Fcfg, Frec, Fnodes, Fstop, FisoMu, Fiso, FnWg, FnetWg, -⟩
+  icases Hcl with ⟨Fcfg, Frec, Fnodes, Fstop, FnWg, FnetWg, -⟩
   generalize «$r0_ptr» = cl
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Fcfg with #Fcfg
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Frec with #Frec
@@ -422,16 +420,10 @@ theorem RunCluster.wp_proof
   -- the configuration's fields, read-only
   icases typedPointsto_split _ _ _ $$ cfg with Hcf0
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hcf0 with ⟨CNodes0, CProps, CGap, CSettle, CTick, CMax, CDrop, CIso, CIsoFor, -⟩
+  icases Hcf0 with ⟨CNodes0, CSettle, CTick, -⟩
   ipersist CNodes0
-  ipersist CProps
-  ipersist CGap
   ipersist CSettle
   ipersist CTick
-  ipersist CMax
-  ipersist CDrop
-  ipersist CIso
-  ipersist CIsoFor
   -- the storage registry
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := AntStorRecT) with ⟨%γreg, Hreg⟩
   letI : AntStor GF := ⟨γreg⟩
@@ -704,16 +696,12 @@ theorem RunCluster.wp_proof
       ihave M2 : nodeMade γr n2 2 $$ [M2]
       · iExactEq M2; rfl
       imod nodeMade_facts h_cmt h_recs γr n0 0 $$ M0 with ⟨M0, #Hcmt0, #Hlr0⟩
-      -- the wait groups, the isolation lock
+      -- the wait groups
       imod sync.init_WaitGroup (sync.join.wgjN.@"wg") _ $$ FnWg with ⟨%γnw, Hnw⟩
       imod sync.join.init _ γnw $$ Hnw with Hadder
       imod sync.init_WaitGroup (antNetN.@"wg") _ $$ FnetWg with ⟨%γwg, Hwg⟩
       imod nj_init antNetN _ γwg ⊤ $$ Hwg with ⟨%γnj, Had⟩
       icases njAdder_isNetJoin antNetN _ γnj 1 $$ Had with ⟨Had, #Hnj⟩
-      imod sync.init_Mutex
-          (iprop(∃ x : w64, cl.[github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster,
-            go!"isolated"] ↦ x)) ⊤ _ $$ FisoMu [Fiso] with #Hiso
-      · inext; iexists _; iexact Fiso
       -- the run's names
       obtain ⟨γ, rfl, rfl, rfl, rfl, rfl, rfl, h0, h1, h2, rfl⟩ : ∃ γ : AntNames, γ.raft = γr ∧
           γ.strm = strm ∧ γ.view = view ∧ γ.live = live ∧ γ.sent = sent ∧ γ.net = γnj ∧
@@ -763,14 +751,14 @@ theorem RunCluster.wp_proof
       ihave #Hro : clusterRO cl [n0, n1, n2] (W64 3) $$ []
       · iunfold clusterRO
         iexists nsl
-        iframe Fnodes Hnsl Hiso
+        iframe Fnodes Hnsl
         rw [← HN3]; iexact CNodes
       ihave #Hc : antCluster cl γ $$ []
       · iunfold antCluster
         iexists cfg, «$v1_ptr», [n0, n1, n2], sc
         iframe Fcfg Frec HisRec Fstop Hunk Hnj Hinv Hro
         isplitr
-        · ipureintro; exact ⟨HN3, HT0, HM0⟩
+        · ipureintro; exact ⟨HN3, HT0⟩
         isplitr
         · ipureintro; rfl
         isplitr
@@ -949,98 +937,89 @@ theorem RunCluster.wp_proof
         itrivial
       iintro ⟨Htok, -, Hadder, -⟩ #-
       try wp_auto
-      -- the drivers' join
-      imod sync.init_WaitGroup (antDrvN.@"wg") _ $$ drivers with ⟨%γdw, #Hdwg, Hdwo, Hdww⟩
-      wp_apply (joinN.wp_Add_of wp_Add antDrvN _ γdw 2 (by decide))
-        $$ [$Hsy $Hdwg $Hdwo $Hdww] as ⟨%γj, Hds, Hdw⟩
-      icases jNDones_split _ _ _ 1 1 $$ Hds with ⟨Hd1, Hd2⟩
+      -- the proposer's join
+      imod sync.init_WaitGroup (antPropN.@"wg") _ $$ proposer with ⟨%γdw, #Hdwg, Hdwo, Hdww⟩
+      wp_apply (joinN.wp_Add_of wp_Add antPropN _ γdw 1 (by decide))
+        $$ [$Hsy $Hdwg $Hdwo $Hdww] as ⟨%γj, Hd, Hdw⟩
       try wp_auto
-      -- the isolator
-      wp_apply wp_fork $$ [Hd1]
-      · try wp_auto
-        ihave IHi : iprop(∃ kk : w64, "k" ∷ k_ptr ↦ kk) $$ [k]
-        · iexists _; iexact k
-        wp_for IHi
-        wp_if_destruct
-        · try wp_auto
-          wp_apply wp_Sleep
-          wp_apply wp_below cfg.Nodes' (by rw [HN3]; decide) $$ [$Hpkg] as %b -
-          try wp_auto
-          wp_apply wp_isolate cl [n0, n1, n2] (W64 3) _ $$ [$Hpkg $Hro]
-          try wp_auto
-          wp_apply wp_Sleep
-          try wp_auto
-          wp_apply wp_isolate cl [n0, n1, n2] (W64 3) _ $$ [$Hpkg $Hro]
-          try wp_auto
-          wp_for_post
-          iframe
-          iexists _
-          iframe
-        · try wp_auto
-          wp_apply joinN.wp_Done_of wp_Done antDrvN _ γj $$ [$Hsy $Hd1]
-          try wp_auto
-          ipureintro; simp
-      try wp_auto
-      -- the proposer
-      wp_apply wp_fork $$ [Hd2]
+      -- the proposer: until it sees the stop channel closed
+      wp_apply wp_fork $$ [Hd]
       · try wp_auto
         ihave IHp : iprop(∃ kk : w64, "k" ∷ k_ptr ↦ kk) $$ [k]
         · iexists _; iexact k
         wp_for IHp
-        wp_if_destruct
-        · try wp_auto
-          wp_apply wp_below cfg.Nodes' (by rw [HN3]; decide) $$ [$Hpkg] as %b %Hb
-          rw [HN3] at Hb
-          ihave %Hlen := ownSlice_len _ _ _ $$ Hnsl
-          obtain ⟨Hp0, Hp1, Hp2, Hp3⟩ := ant_pick b nsl.len Hb Hlen.1 Hlen.2
-          try wp_auto
-          simp only [show 0 ≤ sint.Z b ∧ sint.Z b < sint.Z nsl.len from ⟨Hp0, Hp1⟩, _root_.and_self,
-            ↓reduceIte]
-          wp_apply wp_load_slice_index nsl (sint.Z b) _ DFrac.discard ([n0, n1, n2][uint.nat b]!) Hp0
-            $$ [] as -
-          · iframe Hnsl
-            ipureintro
-            rw [Hp2, getElem!_pos [n0, n1, n2] (uint.nat b) (by simpa using Hp3)]
-            exact List.getElem?_eq_getElem _
-          ihave #HRb : nodeRO γ ([n0, n1, n2][uint.nat b]!) (finOf (uint.nat b)) $$ []
-          · iapply nodeRO_at γ n0 n1 n2 (uint.nat b) Hp3
-            iframe R0 R1 R2
-          try wp_auto
-          wp_apply wp_FormatUint kk (W64 10) (by decide) (by decide) $$ [$Hsc]
-          try wp_auto
-          wp_apply wp_string_to_bytes as %bsl ⟨Hbs, -⟩
-          imod ownSlice_persist bsl _ _ $$ Hbs with #Hbs
-          imod propOk_mint h_mint γ (nroot.@"raft") ([118#8] ++ internal.strconv.fmtUint kk (W64 10)) ⊤
-            CoPset.subseteq_top opsNs_mask Hdup HreMd $$ Hcl Hopsi with Hpo
-          try wp_auto
-          wp_apply wp_deliver cl γ ([n0, n1, n2][uint.nat b]!) (finOf (uint.nat b)) _
-            $$ [$Hpkg $Hc Hpo]
-          · iframe HRb
-            iunfold inputOk
-            iright
-            isplitr
-            · ipureintro; rfl
-            iexists _
-            iframe Hbs Hpo
-          try wp_auto
-          wp_apply wp_Sleep
-          try wp_auto
-          wp_for_post
-          iframe
+        wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]
+            iprop(jNDones antPropN proposer_ptr γj 1 ∗ k_ptr ↦ kk) $$ [] [Hd k] []
+        · iapply BigSepL2.bigSepL2_singleton.2
+          iintro ⟨Hd, k⟩
+          simp only [chan.nonblockingAltClausePre]
+          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, sc, γ.stopCh
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iapply ownBroadcastChan_is_chan $$ Hunk
+          iapply ownBroadcastChan_nonblocking_receive _ _ _ _ _ _ $$ Hunk
+          isplit
+          · -- the run stops
+            iintro -
+            try wp_auto
+            wp_apply joinN.wp_Done_of wp_Done antPropN _ γj $$ [$Hsy $Hd]
+            try wp_auto
+            wp_for_post
+            ipureintro; simp
+          · iintro -
+            iframe Hd k
+        · iframe Hd k
+        -- not stopped: a proposal to a random node
+        iintro ⟨Hd, k⟩ -
+        try wp_auto
+        wp_apply wp_below cfg.Nodes' (by rw [HN3]; decide) $$ [$Hpkg] as %b %Hb
+        rw [HN3] at Hb
+        ihave %Hlen := ownSlice_len _ _ _ $$ Hnsl
+        obtain ⟨Hp0, Hp1, Hp2, Hp3⟩ := ant_pick b nsl.len Hb Hlen.1 Hlen.2
+        try wp_auto
+        simp only [show 0 ≤ sint.Z b ∧ sint.Z b < sint.Z nsl.len from ⟨Hp0, Hp1⟩, _root_.and_self,
+          ↓reduceIte]
+        wp_apply wp_load_slice_index nsl (sint.Z b) _ DFrac.discard ([n0, n1, n2][uint.nat b]!) Hp0
+          $$ [] as -
+        · iframe Hnsl
+          ipureintro
+          rw [Hp2, getElem!_pos [n0, n1, n2] (uint.nat b) (by simpa using Hp3)]
+          exact List.getElem?_eq_getElem _
+        ihave #HRb : nodeRO γ ([n0, n1, n2][uint.nat b]!) (finOf (uint.nat b)) $$ []
+        · iapply nodeRO_at γ n0 n1 n2 (uint.nat b) Hp3
+          iframe R0 R1 R2
+        try wp_auto
+        wp_apply wp_FormatUint kk (W64 10) (by decide) (by decide) $$ [$Hsc]
+        try wp_auto
+        wp_apply wp_string_to_bytes as %bsl ⟨Hbs, -⟩
+        imod ownSlice_persist bsl _ _ $$ Hbs with #Hbs
+        imod propOk_mint h_mint γ (nroot.@"raft") ([118#8] ++ internal.strconv.fmtUint kk (W64 10)) ⊤
+          CoPset.subseteq_top opsNs_mask Hdup HreMd $$ Hcl Hopsi with Hpo
+        try wp_auto
+        wp_apply wp_deliver cl γ ([n0, n1, n2][uint.nat b]!) (finOf (uint.nat b)) _
+          $$ [$Hpkg $Hc Hpo]
+        · iframe HRb
+          iunfold inputOk
+          iright
+          isplitr
+          · ipureintro; rfl
           iexists _
-          iframe
-        · try wp_auto
-          wp_apply joinN.wp_Done_of wp_Done antDrvN _ γj $$ [$Hsy $Hd2]
-          try wp_auto
-          ipureintro; simp
+          iframe Hbs Hpo
+        try wp_auto
+        wp_for_post
+        iframe
+        iexists _
+        iframe
       try wp_auto
-      -- the drivers done; the stop
-      wp_apply joinN.wp_Wait_of wp_Wait antDrvN _ γj $$ [$Hsy $Hdw]
-      try wp_auto
+      -- the stop
       wp_apply wp_Sleep
       try wp_auto
       wp_apply wp_broadcast_chan_close sc γ.stopCh iprop(True) $$ [$Hpend] as -
       · iintro !>; itrivial
+      try wp_auto
+      -- the proposer done
+      wp_apply joinN.wp_Wait_of wp_Wait antPropN _ γj $$ [$Hsy $Hdw]
       try wp_auto
       -- the node goroutines done
       wp_apply (lc := 1) (sync.join.WaitGroup.wp_Wait_of wp_Wait _ _ _) $$ [$Hsy $Hadder]

@@ -140,18 +140,13 @@ def AllNormal (es : List EntryM) : Prop := ∀ e ∈ es, e.Type' = W32 0
 /-! ## The run's configuration -/
 
 /-- **What `RunCluster` needs of its configuration**: three voters (the closed statement's
-`cfg3`), a positive tick (`time.NewTicker` panics otherwise, in each node's `run`), and a delay
-bound that `send`'s `below(uint64(MaxDelay) + 1)` can draw from (at `MaxDelay = -1` the sum wraps
-to `0` and `below(0)` divides by zero). -/
+`cfg3`) and a positive tick (`time.NewTicker` panics otherwise, in each node's `run`). -/
 def CfgOk (cfg : H.Config) : Prop :=
-  cfg.Nodes' = W64 3 ∧ 0 < sint.Z cfg.Tick' ∧ 0 ≤ sint.Z cfg.MaxDelay'
+  cfg.Nodes' = W64 3 ∧ 0 < sint.Z cfg.Tick'
 
-/-- `DefaultConfig()`'s record: 3 voters, 60 proposals 5ms apart, 100ms to settle, a 2ms tick,
-delays up to 4ms, 5% loss, three isolations of 80ms (durations in nanoseconds). -/
+/-- `DefaultConfig()`'s record: 3 voters, 60ms to run, a 2ms tick (durations in nanoseconds). -/
 def defaultCfg : H.Config :=
-  { Nodes' := W64 3, Proposals' := W64 60, ProposeGap' := W64 5000000, Settle' := W64 100000000,
-    Tick' := W64 2000000, MaxDelay' := W64 4000000, DropPct' := W64 5, Isolations' := W64 3,
-    IsolateFor' := W64 80000000 }
+  { Nodes' := W64 3, Settle' := W64 60000000, Tick' := W64 2000000 }
 
 /-! ## Bounds -/
 
@@ -227,12 +222,10 @@ def bootConfState (vs : List w64) (sv : SnapshotM) : ConfStateM :=
 def nodeOf (ns : List Loc) (id : w64) : Loc :=
   if id = W64 0 ∨ ns.length < uint.nat id then null else ns[uint.nat id - 1]!
 
-/-- **The cluster's read-only fields** (persistent): the nodes, the isolation lock and what it
-guards (no facts: the network only drops on it), the configuration's `Nodes`. -/
+/-- **The cluster's read-only fields** (persistent): the nodes and the configuration's `Nodes`. -/
 def clusterRO (c : Loc) (ns : List Loc) (N : w64) : IProp GF :=
   iprop(∃ nsl : GoSlice, c.[H.Cluster, go!"nodes"] ↦□ nsl ∗ nsl ↦*□ ns ∗
-    c.[H.Cluster, go!"cfg"].[H.Config, go!"Nodes"] ↦□ N ∗
-    sync.isMutex (c.[H.Cluster, go!"isoMu"]) (∃ x : w64, c.[H.Cluster, go!"isolated"] ↦ x))
+    c.[H.Cluster, go!"cfg"].[H.Config, go!"Nodes"] ↦□ N)
 
 instance clusterRO_persistent (c : Loc) (ns : List Loc) (N : w64) :
     Persistent (clusterRO (GF := GF) c ns N) := by

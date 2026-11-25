@@ -85,7 +85,7 @@ Vocabulary, `Proof/.../antithesis/HarnessDefs.lean` (§3). Leaves:
 | `DefaultConfig` | returns the constant record, `Nodes' = 3` |
 | `Recorder.record ev` | `isRecorder γr r ∗ eventRO p ev ∗ AU <{ ∃∃ evs, recAuth γr evs }> @ ⊤, ∅ <{ recAuth γr (evs ++ [ev]), COMM Q }>` ⇒ `Q` (tracecheck's `SyncRecorder.TraceEvent`) |
 | `Recorder.Events` | `isRecorder γr r ∗ recDone γr evs` ⇒ a fresh slice with `eventsRO sl evs` |
-| `Cluster.node id`, `isolatedNow`, `isolate`, `Servers` | the obvious, over `isCluster` |
+| `Cluster.node id`, `Servers` | the obvious, over `isCluster` |
 | `Cluster.deliver n inp` | `isCluster c γ ∗ inputOk γ n inp` ⇒ `()`: the input sent on `n.in` or dropped at `stop` |
 | `Cluster.send m` | `isCluster c γ ∗ sentMsg γ ml st` (owned message, its persistent facts) ⇒ `()` (a goroutine is forked, joined through `netWg`) |
 | `Cluster.reportCause n` | `nodeOwn c γ n D` with `D.cause = some m` ⇒ `recv` recorded (`antSim_recv`), `D.cause = none`; with none, nothing |
@@ -150,7 +150,7 @@ the last `ready`'s, which the binding's `currentTerm` etc. are: C1), its view fr
 **The network**: each in-flight message's goroutine owns the message (`msgPtsCC`), `sentW γ m`, and
 the facts `RawNode.Step`'s premise needs (`isMessage`, `rnTermLB γ m.term` for the term ceiling).
 `n.in`'s channel invariant: every queued input is `inputOk` (a message with those facts, or a
-proposal's data, owned). The isolator and `isolated` (`isoMu`): no facts (it only drops).
+proposal's data, owned).
 
 **Termination of the run** (`RunCluster`'s end): `close(c.stop)`, `nodesWg.Wait()`, `netWg.Wait()`:
 each node goroutine and each network goroutine gives back a token; with all of them `antInv`'s
@@ -207,11 +207,10 @@ full builds and gates through the VM land queue.
   `entOfE`, `msgOfSt`; `CfgOk`, `defaultCfg`; `Stream.Fits`, `antRunFits`; `recAuth`/`recDone`,
   `isRecorder`; `runOver`; `bootStorRec`, `bootConfState`; `clusterRO`, `nodeOf`; `Pos.Countable` for the
   stream's types), and the specs of `below`, `Name`, `names`, `entryOf`, `entriesOf`, `msgType`, `msgOf`,
-  `roleOf`, `DefaultConfig`, `Recorder.record`/`Events`, `Cluster.node`/`isolatedNow`/`isolate`/`Servers`/
+  `roleOf`, `DefaultConfig`, `Recorder.record`/`Events`, `Cluster.node`/`Servers`/
   `Events`, `RunCluster`, `Main`, the six `bootStorage` methods. Deviations from §1-§2:
   * `RunCluster` takes `CfgOk cfg`, not only `Nodes = 3`: `time.NewTicker(c.cfg.Tick)` panics at a tick
-    `≤ 0` (each node's `run`), and at `MaxDelay = -1` `send`'s `below(uint64(MaxDelay) + 1)` is `below(0)`,
-    a division by zero, at the first message. `raft_antithesis_accepts` at any `cfg` with `Nodes = 3` is
+    `≤ 0` (each node's `run`) (and, until 2026-11-25, at `MaxDelay = -1` `send`'s `below(0)`; §10). `raft_antithesis_accepts` at any `cfg` with `Nodes = 3` is
     false as stated; it needs `CfgOk` (`DefaultConfig` meets it).
   * `Cluster.Events`' post (and `runOver`) has `Stream.ConfBounded cfg3 evs` beside `Accepts ∧ Bounded`:
     `check.Run` takes it, and it does not follow from acceptance (a stream with a conf entry may be accepted).
@@ -363,3 +362,22 @@ use `flock /tmp/ant4-build.lock` and `etc/lean-check.py` (server class) rather t
 heartbeat's `index = 0`, `logterm = 0`, `entries = []` (Go's `sendHeartbeat` sets only `To`, `Type`,
 `Commit`, `Context`), which `Sim/Rel.lean`'s `PendOk` now uses for a `send hb`; strengthen it and
 `InputEndLift.lean`'s proofs. `Ready`'s queue is up to permutation (`≡ₚ`; `ReadyOutP` matches).
+
+## 10. The harness simplified (2026-11-25, robustness review items 4, 5, 7, 8)
+
+`~/coordinator-notes/plans/antithesis-robustness-review.md`, approved. The network no longer delays,
+drops or isolates (`Config` loses `MaxDelay`, `DropPct`, `Isolations`, `IsolateFor`; `Cluster` loses
+`isoMu`/`isolated` and `isolatedNow`/`isolate`, whose specs and proofs are gone): `send` forks one goroutine
+per message that delivers it (`deliver` still gives up at `stop`), so the theorem's executions are every
+order of delivery and every set of messages still undelivered at the stop. The proposer is unbounded
+(`Proposals`, `ProposeGap` gone): it loops until a non-blocking receive sees `stop` closed; `RunCluster`
+sleeps `Settle`, closes `stop`, then waits for the proposer, the nodes and the network. `CfgOk` is `Nodes =
+3 ∧ 0 < Tick`; `clusterRO` has no mutex; the proposer's join is `antPropN` (`joinN` at 1). Raft's literals
+(`ElectionTick` 10, `HeartbeatTick` 1, `MaxSizePerMsg`, `MaxInflightMsgs`, the 1024 inbox) are named
+constants. `DefaultConfig`: 3 nodes, 2ms tick, `Settle` 60ms.
+
+Real runs (`TestRuns`, 50 runs of `DefaultConfig`, 71s): 50 of 50 accepted; 5.6k-19.7k events (median
+16.5k); every run commits (5 or more `apply` reports, median 8125 entries); one leader per run, term 1 in 49
+runs, term 2 in one. Without faults nothing makes the leader lose its quorum, so real runs no longer
+change leaders (the theorem still covers executions that do: any delivery order, a node starved by the
+scheduler). The checker's time grows faster than the stream (300ms of `Settle`: 134k events, 2 min).

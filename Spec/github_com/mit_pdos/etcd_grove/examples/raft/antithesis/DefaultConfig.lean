@@ -1,8 +1,7 @@
 /-
 Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-design.md` §2).
 
-`DefaultConfig()`: the constant record `defaultCfg` (`CfgOk`: three voters, a 2ms tick, delays
-up to 4ms).
+`DefaultConfig()`: the constant record `defaultCfg` (`CfgOk`: three voters, a 2ms tick).
 -/
 module
 

@@ -3,9 +3,8 @@ Lean-first (no Rocq counterpart). #33 S4, specs first, part 2 (`notes/antithesis
 the vocabulary is `HarnessInv.lean`'s).
 `(*Cluster).send(m)`: a forwarded proposal is dropped at once (`notes/antithesis-s4-design.md` §7);
 any other message is handed to a goroutine of its own (`netWg.Add(1)`, backed by the caller's thread
-token, `netAdder`) that delivers it to its destination's input channel after a delay, or drops it
-(the loss rate, an isolation, a stopped run). The message (`sendMsg`: owned, with its receiver's
-facts) goes to the input (`inputOk`).
+token, `netAdder`) that delivers it to its destination's input channel, unless the run stops
+first. The message (`sendMsg`: owned, with its receiver's facts) goes to the input (`inputOk`).
 -/
 module
 

@@ -2,9 +2,8 @@
 Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-design.md` §2).
 
 `RunCluster(cfg)`: runs the cluster and returns it, the run over (`runOver`). The premises: the
-configuration's (`CfgOk`: three voters; a positive tick, `time.NewTicker`'s; `MaxDelay ≥ 0`, else
-`below(uint64(MaxDelay) + 1)` divides by zero), the thread bound (the network's `WaitGroup`
-counts a goroutine per message in flight) and the receipts' (`antRunFits`), as the trace check's
+configuration's (`CfgOk`: three voters; a positive tick, `time.NewTicker`'s), the thread bound
+(the network's `WaitGroup` counts a goroutine per message in flight) and the receipts' (`antRunFits`), as the trace check's
 `RunConcurrent`. The caller's thread token: the boot drains (`Cluster.drain`) take one, and it is
 given back.
 -/
