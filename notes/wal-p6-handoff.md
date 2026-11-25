@@ -137,6 +137,19 @@
   for `walAbsent`/`walDirIsI … 0` at boot; `WalAreas`, the tester's `Boot0`); `walPurgeAcc dir inc Pc` over
   `walDiskAtI dir inc` (ledger); the shared handle (`walOpenWS_alloc … i`, `⌜γ.inc = i⌝`) substituted to `0` in the
   tester (`rcases γs …; subst; let γs := ⟨_, _, 0⟩`).
+  **Merged `etcd-safe-main-r3/2026-11-25` @ `5a1c41d945`** (after P8's head `36457e1448`; conflicts resolved by
+  a three-way merge on `36457e1448`, which both sides contain; manifest unchanged): P8's `WalRecsH`/`InvWalCrash`
+  at `h.γ.inc`; `bootFs.walAbsent_au` at an incarnation (`BootFsLaws`). Built: the WAL cone, the tester's
+  Link/Adequacy/TopLevelRobustness, the server's consumers and P8's crash modules (5549 jobs), then every leaf the
+  change reaches against r3 (`etc/importers.py --git 5a1c41d945 --leaves`, 57 targets, ~14,000 jobs).
+  **Left: `wal.DiscardUnsaved`** (not started; multi-session). What it needs (from reading `Inv.lean`): a WAL
+  directory renamed `nm` → `nm.tmp` while its layout stays in `Ls` (`WalsAt`, `DirClaimsOk`, the area's
+  `AbsentNone`/`DirsOk` all tie `Ls dir` to the entry `nm`): a "discarding" state with `named := false` (the
+  rename not durable: a crash may keep either name), then `syncDir(parent)` commits the removal (`s.wal` drops
+  `dir`, `incOf` bumped, `walLeI_discard`) and the directory at `nm.tmp` becomes leftover that `Create`'s
+  `RemoveAll(dir.tmp)` removes (its segments' resources move to the tmp-parked part, `walTmpParked`). The spec:
+  `Unsaved`'s pre plus the parent's resources (as `Create`'s), `walUnlockedTok`, and an update
+  `<{∃∃ d, walDiskAtI dir ic d}> <{walAbsentI dir (ic+1), COMM Qd}>` committed only on `true`.
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
