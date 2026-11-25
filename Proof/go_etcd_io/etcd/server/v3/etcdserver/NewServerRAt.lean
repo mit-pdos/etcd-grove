@@ -96,17 +96,20 @@ theorem bootstrapAtR_of_restart (cfg : go_etcd_io.etcd.server.v3.config.ServerCo
   · iexact Hs
   iexact Hc
 
-/-- The crash contract at an image whose records meet the WAL's read facts. -/
+/-- The crash contract at an image whose records meet the WAL's read facts, with the backend's index
+at most the WAL's commit (so the bootstrap log, below the index, is below the commit: the crash contract's
+`γ.cl.bootLen ≤ σ.commit`, C-I2's restatement). -/
 theorem bootstrapAtR_of_crash (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (σ : StorContents) (i : w64)
-    (L : List EntryModel) (D : backend.Data) (M : GMap Loc MemStorNamesRec) (hw : walReadFacts σ) :
+    (L : List EntryModel) (D : backend.Data) (M : GMap Loc MemStorNamesRec) (hw : walReadFacts σ)
+    (hi : uint.nat i ≤ σ.commit) :
     bootstrapCrashContract (GF := GF) cfg U γ id N dir ⊢ bootstrapAtR cfg U γ id N dir σ i L D M := by
   unfold bootstrapCrashContract bootstrapAtR
   iintro #H
   imodintro
   iintro %Hp Hs
   ihave Hc := H $$ %σ %i %L %D %M [] [Hs]
-  · ipureintro; exact ⟨Hp.1, hw, Hp.2.2⟩
+  · ipureintro; exact ⟨Hp.1, hw, Hp.2.1, Nat.le_trans Hp.2.1 hi, Hp.2.2⟩
   · iexact Hs
   iexact Hc
 
