@@ -1,4 +1,4 @@
-# Review: grpc's `.neutral` server option narrowed to a whitelist (2026-11-26)
+# Review: grpc's `.neutral` server option narrowed to a whitelist (2026-11-26; etcd-grove#60)
 
 **Target.** Branch `grpc-neutral-narrow/2026-11-26` (off `lean` `820a287c3a`). The definition
 `srvOptFnOk` (`Proof/google_golang_org/grpc/InvGrpcServer.lean`), which says what the closure of a
@@ -11,26 +11,29 @@ the definition is narrowed, no axiom, opaque or premise is added, and no stateme
 
 `srvOptFnOk f .neutral` asked only that the closure keep `chainUnaryInts`, `chainStreamInts` and
 `statsHandlers`; every other field of `serverOptions` was free ("a size limit, the stream limit, the
-codec, the keepalive policy"). grpc's translation is the model's (`models/grpc`), with bodies, so a
-program can prove facts about grpc's own option constructors from their bodies. The model's
+codec, the keepalive policy"). The chain kinds and `.stats` likewise fixed only the other chains and
+the stats handlers. grpc's translation is the model's (`models/grpc`), and as more of its option
+constructors get bodies a program can prove their closures' kinds from those bodies. The model's
 
 ```go
-func UnaryInterceptor(i UnaryServerInterceptor) ServerOption {
+func Creds(c credentials.TransportCredentials) ServerOption {
 	return newFuncServerOption(func(o *serverOptions) {
-		if o.unaryInt != nil { panic(...) }
-		o.unaryInt = i
+		o.creds = c
 	})
 }
 ```
 
-sets only `unaryInt`, so its closure meets `srvOptFnOk _ .neutral` (and `.chainUnary []`), and the
-program gets `grpcSrvOpt v .neutral`. `NewServer`'s axiom then gives `grpcSrvNew gs [] [] [] [] []`:
-a server whose chain is empty, which `Serve`'s axiom runs as `grpcServes` says, the handler directly.
-Real grpc-go (and the model's `NewServer`, `chainUnaryServerInterceptors`, `server.go:1092-1108`)
-prepends `i` to the chain, so `i` runs in front of every handler: an `i` that panics, or that never
-calls the handler, refutes `Serve`'s promise over the model, and a closed program's adequacy gives
-`False` (inferred from the definitions; not built as a Go test and Lean proof). The same holds of every
-other field the server reads where a handler, its run context or decoding depends on it:
+sets only `creds` and cannot panic, so once its body is translated its closure meets the old
+`srvOptFnOk _ .neutral` for any `c`, and a program gets `grpcSrvOpt (Creds(tlsCreds)) .neutral`.
+`NewServer`'s axiom then promises a server being built (no panic), while the model's `NewServer` panics
+NotModelled on credentials other than insecure (`models/grpc/server.go:710`): a closed program's adequacy
+gives `False` (inferred from the definitions; not built as a Go test and Lean proof). `ForceServerCodecV2`
+of a codec whose `Unmarshal` panics is another: the server runs it on every request. Today no translated
+closure sets a non-whitelisted field (`Creds`, `UnaryInterceptor`, `ForceServerCodec*` and the others are
+names only in `Code/google_golang_org/grpc.lean`; `UnaryInterceptor`'s closure also panics on a set
+`unaryInt`, `server.go:490-492`, so it never met the old definition), so the hole was latent: it would
+have opened as more bodies got translated. The fields the server reads where a handler, its run context
+or decoding depends on them:
 
 | field | option | effect, not represented by any kind |
 |---|---|---|
@@ -73,6 +76,14 @@ whose `Marshal`/`Unmarshal` are `c`'s). Chosen over a kind of its own for `Custo
 `ForceServerCodecV2(c)` stores `c` itself: neither matches, so neither is neutral. The other kinds keep the
 codec.
 
+**`.stats h` carries `grpcStatsHandlerOk h`.** The server calls the stats handlers' `TagConn` and
+`HandleConn` on every connection and `TagRPC`/`HandleRPC` on every call (`server.go:993-1003, 1185-1210,
+1316`). Until now the only guard was `StatsHandler`'s axiom's premise; once `StatsHandler`'s body is
+translated, its closure (`append(o.statsHandlers, h)`) would meet `.stats h` for any `h`, one whose
+`TagConn` panics included. `srvOptFnOk f (.stats h)` now starts with `⌜grpcStatsHandlerOk h⌝`;
+`StatsHandler`'s axiom takes exactly that in its precondition, so its post gives it and nothing is
+added to the trust base.
+
 ## Why `NewServer`'s axiom is now true
 
 An option of a kind leaves `creds`, `cp`, `dc`, `unaryInt`, `streamInt`, `unknownStreamDesc` and
@@ -93,6 +104,6 @@ and `Serve`'s axiom over it say. The whitelisted fields change timing and failur
   `grpc.CustomCodec.wp_proof` (`.neutral`: the body sets only `codec`, to `newCodecV0Bridge(c)`, the second
   disjunct of `srvCodecOk` under its premise `grpcProtoCodec c`; docstring says so) and
   `grpc.StatsHandler.wp_proof` (`.stats h`: the body appends `h` to `statsHandlers`, or nothing for a nil
-  `h`, and sets no other field).
+  `h`, and sets no other field; `grpcStatsHandlerOk h` is its precondition).
 - `v3rpc.Server`'s spec takes the caller's options as `.neutral` (`grpcSrvOpt v .neutral`); its proof uses
   `.neutral` abstractly and is unchanged.

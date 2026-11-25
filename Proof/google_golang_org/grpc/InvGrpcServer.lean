@@ -14,8 +14,9 @@ it, `k`:
   the server's chain in order (grpc's `chainUnaryServerInterceptors`; no `UnaryInterceptor`
   option is specified, so the chain is these lists, concatenated);
 * `.chainStream ics` (`ChainStreamInterceptor(ics...)`): likewise for streams;
-* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's): `h` added to
-  the server's stats handlers; it adds no value under etcd's context keys (`grpcRunCtx`);
+* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's, which the kind
+  carries): `h` added to the server's stats handlers; it adds no value under etcd's context keys
+  (`grpcRunCtx`);
 * `.neutral`: an option that does not change which handler runs for a method, nor what a run is
   given (the run's context, `grpcRunCtx`; the decoded request, `grpcDecOk`), nor how requests are
   decoded: it changes only the fields of a whitelist (`srvOptsSameBut`: message size limits, a call
@@ -27,8 +28,10 @@ it, `k`:
   option setting `UnaryInterceptor`/`StreamInterceptor`, credentials, a compressor, an unknown-service
   handler, a stream wrapper or a non-protobuf codec is of no kind (2026-11-26,
   `notes/axiom-review/grpc-neutral-narrow.md`: until then only the chains and the stats handlers
-  were fixed, so the model's own `UnaryInterceptor(i)` was provably `.neutral` while `NewServer`
-  chains `i` in front of every handler). The other kinds fix the same fields.
+  were fixed, so a closure setting any other field was `.neutral`, e.g. `Creds(tlsCreds)`'s once its
+  body is translated, while the model's `NewServer` panics on non-insecure credentials; no
+  translated closure sets such a field today, so the hole was latent). The other kinds fix the
+  same fields.
 
 **The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive, axiomatized):
 `NewServer`'s `*grpc.Server` `gs`, not serving yet, with the unary and stream chains `ics`,
@@ -331,9 +334,11 @@ def srvCodecOk (so so' : google_golang_org.grpc.serverOptions) : Prop :=
 * `.chainUnary ics` (`.chainStream ics`): the chain, whose elements `us` and capacity it is given,
   is `us ++ ics` (`append(o.chainUnaryInts, interceptors...)`), the other chain, the stats
   handlers and the codec are `so`'s;
-* `.stats h`: the stats handlers, whose elements `hs` and capacity it is given, are `hs ++ [h]` if
-  `h` is not nil, `hs` if it is (grpc logs and ignores a nil handler), the chains and the codec are
-  `so`'s.
+* `.stats h`: `h` has `grpcStatsHandlerOk` (the server calls its `TagConn` on every connection and
+  its `TagRPC` on every call, so the kind is only of a handler that lets them run, not of every
+  closure that appends to `statsHandlers`), and the stats handlers, whose elements `hs` and capacity
+  it is given, are `hs ++ [h]` if `h` is not nil, `hs` if it is (grpc logs and ignores a nil
+  handler), the chains and the codec are `so`'s.
 The ownership each kind is given is what its closure reads and writes, so that `NewServer`, which
 applies the options in order to one `serverOptions`, can hold it. -/
 def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
@@ -362,7 +367,7 @@ def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
           so'.statsHandlers' = so.statsHandlers'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
-  | .stats h => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+  | .stats h => iprop(⌜grpcStatsHandlerOk h⌝ ∗ □ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (hs : List GoInterface) (Φ : val → IProp GF),
       p ↦ so -∗ so.statsHandlers' ↦* hs -∗ ownSliceCap GoInterface so.statsHandlers' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
