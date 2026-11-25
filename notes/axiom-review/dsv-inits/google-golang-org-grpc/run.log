@@ -1,0 +1,20 @@
+panic: proto: file "grpc/binlog/v1/binarylog.proto" is already registered
+		previously from: "aaa/dup"
+		currently from:  "google.golang.org/grpc/binarylog/grpc_binarylog_v1"
+	See https://protobuf.dev/reference/go/faq#namespace-conflict
+	
+
+goroutine 1 [running]:
+google.golang.org/protobuf/reflect/protoregistry.init.func1({0xe671d0?, 0xd050e8?}, {0xe03a50, 0x1f9bdf30440})
+	/root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:56 +0x1e5
+google.golang.org/protobuf/reflect/protoregistry.(*Files).RegisterFile(0x1f9bdf1e108, {0xe08cc0, 0x1f9be016d20})
+	/root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/reflect/protoregistry/registry.go:130 +0xb83
+google.golang.org/protobuf/internal/filedesc.Builder.Build({{0xd87d01, 0x32}, {0x8e15ff, 0x7c2, 0x7c2}, 0x3, 0x8, 0x0, 0x0, {0xe04e08, ...}, ...})
+	/root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filedesc/build.go:112 +0x1fc
+google.golang.org/protobuf/internal/filetype.Builder.Build({{{0xd87d01, 0x32}, {0x8e15ff, 0x7c2, 0x7c2}, 0x3, 0x8, 0x0, 0x0, {0x0, ...}, ...}, ...})
+	/root/go/pkg/mod/google.golang.org/protobuf@v1.36.12/internal/filetype/build.go:138 +0x19b
+google.golang.org/grpc/binarylog/grpc_binarylog_v1.file_grpc_binlog_v1_binarylog_proto_init()
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/binarylog/grpc_binarylog_v1/binarylog.pb.go:1002 +0x2a8
+google.golang.org/grpc/binarylog/grpc_binarylog_v1.init.0()
+	/root/go/pkg/mod/google.golang.org/grpc@v1.84.0/binarylog/grpc_binarylog_v1/binarylog.pb.go:977 +0xf
+rc=2
