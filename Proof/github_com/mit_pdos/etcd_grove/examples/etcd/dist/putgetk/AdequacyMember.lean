@@ -15,6 +15,7 @@ named hypothesis `StartMember_dist` (S5's member side, `HSM`).
 -/
 module
 
+public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Member
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Valid
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.AddrOK
@@ -214,6 +215,7 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
       (Name.wp_proof etcdstart.strconv.wp_FormatUint) zap.NewNop.wp_proof
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       (fun S5' => HSM hG S5') mvcc.api.mvccApi_names_nonempty_law_holds
+      _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
       S5 peers clients ps ctxs boot i (putgetPub (GF := putgetGF)) psl csl Hfips Hblf
       (by omega) (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hpsl Hcsl Hwa Hshare]

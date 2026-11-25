@@ -19,6 +19,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClusterSta
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Base
 public import Perennial.Proof.crypto.sha1.Fips180
+public import Proof.go_etcd_io.raft.v3.BootMarshal
 
 @[expose] public section
 
@@ -94,6 +95,9 @@ structure BootLogFacts [GooseExts] (ids ps : List w64) (ctxs : List (List w8)) (
   urls : bootURLsOk (LogEntry.toEntries bl 0)
   data : bootDataOk bl
   perm : ps.Perm ids
+  /-- (etcd-safe-main, 2026-11-25: hprem-axioms' swap, as `BootCore.wire`) the boot entries' bytes are
+  `proto.Marshal`'s of the boot conf changes (`bootWire`), in place of the premise `bootMarshal` -/
+  wire : bootWire ps ctxs bl
 
 /-- **The configuration is one the program runs** (what `putgetk.Valid` returning `true` implies; the
 start's case split): a member, one client address per peer address, the ids `idsOk`. -/
@@ -114,17 +118,16 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 the configuration's members `membersOf peers clients`, their ids `idsOf peers` and `token`, at the bound
 `N` of each member's apply thread's write tokens, the peers `ps`, their contexts and the bootstrap log: per
 member, `bootstrap`'s contract (`etcdstart.bootPremise`) for its configuration (`cfgOk token name`) and URLs
-(`urlsN`) at the peer-URL directory `dirN`; `proto.Marshal`'s contract at the bootstrap log
-(`bootMarshal`). (The raft wrapper's contracts, `etcdstart.commonPremises`, are axioms since
-hprem-axioms, 2026-11-24.) -/
+(`urlsN`) at the peer-URL directory `dirN`. (Until 2026-11-25 also `proto.Marshal`'s contract at the
+bootstrap log, `bootMarshal`, now from its trust-boundary axiom and `BootLogFacts.wire`, and the raft
+wrapper's contracts, `etcdstart.commonPremises`, now axioms: hprem-axioms' swap, on etcd-safe-main.) -/
 def premises (N : Nat) (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : IProp GF :=
   iprop(
     ([∗list] m; id ∈ membersOf peers clients; idsOf peers,
       etcdstart.bootPremise N ps (LogEntry.toEntries boot 0) ctxs
         (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token m.Name'
-        (urlsN (membersOf peers clients) m) id) ∗
-    bootMarshal ps ctxs (LogEntry.toEntries boot 0))
+        (urlsN (membersOf peers clients) m) id))
 
 instance premises_persistent (N : Nat) (peers clients : List GoString) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

@@ -272,7 +272,7 @@ theorem putgetKBoot_of
     have Hbc : BootCore ps ctxs boot :=
       { boot := Hbl.boot, cc := Hbl.cc, urls := Hbl.urls, data := Hbl.data,
         lowNodup := (Hbl.perm.map _).nodup_iff.2 hids.1,
-        lowNz := fun id h => hids.2 id (Hbl.perm.subset h) }
+        lowNz := fun id h => hids.2 id (Hbl.perm.subset h), wire := Hbl.wire }
     have hbl : boot.length ≤ 2 ^ 16 := by rw [Hbl.boot.1, Hbl.perm.length_eq]; omega
     -- the addresses, per member
     ihave Hs2 : [∗list] m ∈ cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr)),
