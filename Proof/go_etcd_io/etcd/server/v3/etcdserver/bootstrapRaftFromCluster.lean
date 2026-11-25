@@ -334,7 +334,7 @@ theorem bootstrapRaftFromCluster.wp_proof
       rw [hid]; intro e; rw [e] at hidps; exact Hmok.2.2.1 hidps
     refine ⟨raftCfgOf_start cfg mv.ID' _ _ ms lok pre Hlgnn rfl
       (raftCfgOf_valid cfg mv.ID' ms lok h0 (by rw [hid]; exact Hidr.1) (by rw [hid]; exact Hidr.2)
-        Hcok.2.2.2.2) hpre.symm hne, rfl, rfl, ?_⟩
+        Hcok.2.2.2.2.1) hpre.symm hne, rfl, rfl, ?_⟩
     simp only [raftCfgOf]; exact hid
   try dsimp only
   iframe #

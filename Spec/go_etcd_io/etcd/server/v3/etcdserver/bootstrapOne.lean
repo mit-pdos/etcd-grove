@@ -18,6 +18,13 @@ place (`urls.Sort()`, `URLs.Sort` is `sort.Sort(us)`, `client/pkg/types/urls.go:
 (`getClusterFromRemotePeers`, `:80-82`), a request no protocol of the peer's was asked to accept. At
 one member with one URL neither happens: `Sort` of one element swaps nothing, and
 `getRemotePeerURLs` (`:131-141`) returns no URL, so `getClusterFromRemotePeers` sends nothing.
+
+(2026-11-25, `notes/axiom-review/transport-emptycn.md`) Peer TLS with no certificate: `bootCfgOk`, in the
+precondition, now carries `transport.tlsEmpty cfg.PeerTLSInfo'` (Go's `PeerTLSInfo.Empty()`), inherited
+from `bootstrap.spec`. `bootstrap`'s round tripper (`bootstrap.go:72`, `rafthttp.NewRoundTripper(cfg.PeerTLSInfo,
+...)`) is `transport.NewTimeoutTransport`'s, whose `ClientConfig` can panic with `EmptyCN` and a
+certificate (`issues/etcd-transport-emptycn-cert-reread-panic.md`); until then this axiom covered that
+case. `etcdstart/common.go` leaves `PeerTLSInfo` zero, so the member's configuration meets it.
 -/
 module
 
