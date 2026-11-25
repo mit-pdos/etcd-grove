@@ -6902,3 +6902,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
   `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
 - **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).
+## 2026-11-25: the WAL's boot slots and `wal.Create.specSrv` expose the records' history, D6-T2 / P5 (etcd-safe-p5)
+
+- **Spec.** `wal.Create.specSrv` (`Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateSrv.lean`) leaves
+  `walOpenedH h dir id cid walFresh [] true` (the records with their history, empty) where it left
+  `walOpened … walFresh true`; `wal.bootOk`'s body (`etcdserver/WalApi.lean`, inside `bootstrapContract`)
+  holds the same. `wal.restartOk`'s body holds `walOpenedH … σ Hs true` for some history `Hs`, with
+  `walSyncedLb h.dir |Hs|`, `walIdxLe (2^61-1) Hs` and `walCommitLeFrom walFresh Hs` (the commit bound
+  in its eager form, every prefix's fold; the approved `walCommitLe Hs`, the reader's, follows from it with
+  `walReadFacts`' base ≤ commit, `walCommitLe_of_fold`; the eager form is what the invariant keeps across
+  `Save`s, `histOk_save`). The contract's `Save`/`SaveSnap`
+  (`isWalStorage`) move the records with their history (`walRecsH`) and give the synced mark (`Save`:
+  under `walMustSync`; `SaveSnap`: always); the old forms are derived (`walSaveSnap_spec`, `walSaveRnR_spec`).
+- **Defect.** None in Go. The crash-aware durability invariant (`rnDurInvK`) is allocated at the WAL's
+  history: it needs a synced mark `n`, that every prefix from `n` on reads records holding the start state,
+  and `HistReadOk Hs n`. `walRecs h σ true` hides the history; an arbitrary history folding to `σ` breaks
+  all three, and only `walSyncedLb h.dir 0` is derivable.
+- **Evidence.** Layer 1's `Create` leaves `walDurFresh`, whose history is `[]`; `ReadAll` reads only a
+  synced history (P6's proved `ReadAll`), within raft's index room, with each saved commit at or below the
+  last index (raft's `loadState` panics otherwise). `storage.Save.spec`/`SaveSnap.spec` already give the
+  synced marks.
+- **Proposed change.** As above: the boundary specs that create the state are strengthened (no new law).
+  `bootstrapContract` will become a per-function interim axiom (`bootstrap.wp_proofOne`'s pattern) before the
+  etcd_safe packet; this strengthening lands in that axiom's text, to be reviewed with the axiom skill then.
+- **Decision.** Approved by coordinator-E on #50 (2026-11-25 07:04Z), for the etcd_safe branches, listed as
+  its own line in the final packet.

@@ -689,7 +689,7 @@ theorem raftNode.start.wp_proof
               simpa [EntryModel.toM] using this) $$ Hesz
           ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwSteps.2 $$ Hdur Hwv Hwok
           -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
-          ihave #HSave := walSaveRn_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+          ihave #HSave := walSaveRnR_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
           wp_apply HSave $$ [$Hwo $Hrd $HhsC $Hes $Hesw $HAU] as %err Hres
           icases Hres with (⟨%Herr, Hwo, Hrd, Hwv, Hwok, #Hwlb⟩ | ⟨%Herr, -, -, -⟩)
           rotate_left
@@ -1508,7 +1508,7 @@ theorem raftNode.start.wp_proof
         ihave #Hesw := rnEntsSized_walSave _ es _ (HwStep.2.2 σv HσvOk).1 HappF.1 $$ Hesz
         ihave HAU := rnDur_save_au γ.node.cl γ.wal _ _ _ _ _ HwStep $$ Hdur Hwv Hwok
         -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
-        ihave #HSave := walSaveRn_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+        ihave #HSave := walSaveRnR_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
         wp_apply HSave $$ [$Hwo $Hrd $HhsC $Hes $Hesw $HAU] as %err Hres
         icases Hres with (⟨%Herr, Hwo, Hrd, Hwv, Hwok, #Hwlb⟩ | ⟨%Herr, -, -, -⟩)
         rotate_left

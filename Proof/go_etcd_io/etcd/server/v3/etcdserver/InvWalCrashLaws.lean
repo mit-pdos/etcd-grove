@@ -127,7 +127,9 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
     imodintro; iright; iunfold rnTakenK; iexact Htn
   iunfold rnDurBodyK at Hb
   icases Hb with ⟨%vk, %σ, %Hs, %n, Hv, Hcm, Htn, Hr, #Hsc, #Hsy, #Hhc, #Hlb, %Hp, Hraft⟩
-  obtain ⟨Hview, Hpo, Hcrh, Hhr⟩ := Hp
+  obtain ⟨Hview, Hpo, Hho⟩ := Hp
+  have Hho0 := Hho
+  obtain ⟨-, -, Hcrh, Hhr, -⟩ := Hho0
   icases Hraft with (⟨HrS, Hpend⟩ | ⟨-, Htk'⟩)
   rotate_left
   · iexfalso; iapply token_exclusive $$ Htk Htk'
@@ -147,7 +149,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
     iexists vk, σ, Hs, n
     iframe Hv Hcm Htn Hr Hsc Hsy Hhc Hlb
     isplitr
-    · ipureintro; exact ⟨Hview, Hpo, Hcrh, Hhr⟩
+    · ipureintro; exact ⟨Hview, Hpo, Hho⟩
     iright; iframe Hcr Htk
   have hN : ↑srvClusterN ⊆ E := fun p hp => (Iris.Std.LawfulSet.mem_diff.1 (hE2 p hp)).1
   obtain ⟨v, pb⟩ := vk
@@ -204,7 +206,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
       isplitl [HrS]
       · iexact HrS
       ipureintro
-      exact ⟨hok.1, hok.2, (Hpo v0 γb pos rfl).2, hrf⟩
+      exact ⟨hok.1, hok.2, Hpo v0 γb pos rfl, hrf⟩
 
 end defs
 

@@ -108,10 +108,23 @@ the reader's fold. -/
 def HistReadOk (Hs : WalHist) (n : Nat) : Prop :=
   walIdxLe (2 ^ 61 - 1) Hs ∧ ∀ j, n ≤ j → j ≤ Hs.length → walCommitLe (Hs.take j)
 
-/-- **The pending batch's facts**: the view before it, at no pending received snapshot, with the
-durable log agreeing with its handed log (as `ViewOk`'s). -/
+/-- **The pending batch's facts**: the durable log before it agreeing with its handed log (as
+`ViewOk`'s). (P5, 2026-11-25: no longer "at no pending received snapshot": the `Save` after a received
+snapshot's `SaveSnap` starts from the view with that snapshot pending.) -/
 def PendOkK (vk : WalViewK) : Prop :=
-  ∀ v0 γb pos, vk.2 = some (v0, γb, pos) → v0.pend = none ∧ DurAgrees v0.S v0.l
+  ∀ v0 γb pos, vk.2 = some (v0, γb, pos) → DurAgrees v0.S v0.l
+
+/-- **The pending batch's `Save` record is in the history.** -/
+def PosOkK (vk : WalViewK) (Hs : WalHist) : Prop :=
+  ∀ v0 γb pos, vk.2 = some (v0, γb, pos) → pos < Hs.length
+
+/-- **The history's crash facts** (the body's pure row besides the view's): the synced mark within the
+history, the pending `Save` record in it, every crash prefix reading as the view says, the read
+conditions, and the eager fold's `committed ≤ lastIndex`. -/
+def HistOkK (vk : WalViewK) (Hs : WalHist) (n : Nat) : Prop :=
+  n ≤ Hs.length ∧ PosOkK vk Hs ∧ CrashReadsHold Hs n (crashOk vk) ∧ HistReadOk Hs n ∧
+    walCommitLeFrom walFresh Hs
+
 
 end pure
 
@@ -201,6 +214,17 @@ instance rnLogLbsK_persistent (cl : Cluster) (vk : WalViewK) :
 /-- The namespace of the crash-aware durability invariant. -/
 def rnDurKN : Namespace := nroot.@"rnDurK"
 
+/-- The crash-aware durability invariant is in the WAL's client update mask (`WalFs.walAuMask`): the WAL
+contract's atomic updates open it (`rnDurN_sub_walAuMask`'s). -/
+theorem rnDurKN_sub_walAuMask : (↑rnDurKN : CoPset) ⊆ WalFs.walAuMask := by
+  have h1 : (↑rnDurKN : CoPset) ## ↑Fs.osN := ndot_ne_disjoint nroot (by decide)
+  have h2 : (↑rnDurKN : CoPset) ## ↑Fs.osShN := ndot_ne_disjoint nroot (by decide)
+  have h3 : (↑rnDurKN : CoPset) ## ↑WalFs.walN := ndot_ne_disjoint nroot (by decide)
+  intro p hp
+  exact Iris.Std.LawfulSet.mem_diff.2 ⟨Iris.Std.LawfulSet.mem_diff.2
+    ⟨Iris.Std.LawfulSet.mem_diff.2 ⟨CoPset.mem_full, fun hn => h1 p ⟨hp, hn⟩⟩, fun hn => h2 p ⟨hp, hn⟩⟩,
+    fun hn => h3 p ⟨hp, hn⟩⟩
+
 /-- **The live body** (see the file header) at the WAL `h`: the crash-aware view `vk` (half; the
 other the loop's), the handed log's authority, the records the view describes (`recsOf`, `ViewOk`,
 the certificate) at the history `Hs`, a synced lower bound `n`, the history's certificates, the
@@ -210,7 +234,7 @@ def rnDurBodyK (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) : I
     ghostVar νk.ν.view (1 : Qp).half vk ∗ monoListAuthOwn νk.ν.cm 1 vk.1.l ∗
     dghostVar νk.tkn (DFrac.own 1) () ∗ walRecsH h (recsOf vk.1 σ) Hs true ∗ walSnapCert γn.cl (recsOf vk.1 σ) ∗
     (letI := h.W; WalFs.walSyncedLb h.dir n) ∗ walHistCerts γn.cl νk.sd Hs ∗ rnLogLbsK γn.cl vk ∗
-    ⌜ViewOk vk.1 σ ∧ PendOkK vk ∧ CrashReadsHold Hs n (crashOk vk) ∧ HistReadOk Hs n⌝ ∗
+    ⌜ViewOk vk.1 σ ∧ PendOkK vk ∧ HistOkK vk Hs n⌝ ∗
     ((raftState γn.cl id (durOf vk) ∗ rnPendK γn id νk.x vk) ∨ (crashed ∗ token νk.tk)))
 
 /-- **The crash-aware durability invariant** of the raft wrapper's WAL `h` for member `id` of the
@@ -302,7 +326,7 @@ abbrev rnDurK_alloc.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (x : CrashNames) (sd : w64 → IProp GF) (h : WalH GF) (σ : StorContents)
     (Hs : WalHist) (n : Nat) (v : WalView),
     ViewOk v σ → v.pend = none → DurAgrees v.S v.l →
-    CrashReadsHold Hs n (fun _ => ImgOk v.S v.l) → HistReadOk Hs n →
+    HistOkK (v, none) Hs n →
     ⊢ walRecsH h σ Hs true -∗ walSnapCert γn.cl σ -∗ (letI := h.W; WalFs.walSyncedLb h.dir n) -∗
       walHistCerts γn.cl sd Hs -∗ isCommittedLogLb γn.cl v.l -∗ raftState γn.cl id v.S ={⊤}=∗
       ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd⌝ ∗ rnDurInvK γn id νk h ∗ rnWalViewK νk (v, none) ∗
@@ -319,6 +343,7 @@ abbrev rnDurK_save.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (v v' : WalView) (hs : HardStateM)
     (es : List EntryM) (γb : GName) (n : NodeH) (st st' : NodeDriverState) (ms : List QMsg) (q : Qp),
     WalSaveStep v v' hs es → DurAgrees v.S v.l →
+    (∀ e ∈ es, uint.nat e.Index' ≤ 2 ^ 61 - 1) → uint.nat v'.S.commit ≤ v'.S.last →
     ⊢ rnDurInvK γn id νk h -∗ rnWalViewK νk (v, none) -∗ isCommittedLogLb γn.cl v'.l -∗
       savedPropOwn γb DFrac.discard (rnPendRec γn id νk.x v.S v'.S n st st' ms q) -∗
       rnPendRec γn id νk.x v.S v'.S n st st' ms q -∗
@@ -334,7 +359,7 @@ saved commit, `walKeep`), so the crash facts are kept; the record synced. -/
 abbrev rnDurK_saveSnap.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (v : WalView) (m : SnapshotMetadataM)
     (al : Bool),
-    WalSnapStep v m →
+    WalSnapStep v m → uint.nat m.Index' ≤ 2 ^ 61 - 1 →
     ⊢ rnDurInvK γn id νk h -∗ rnWalViewK νk (v, none) -∗ snapshotValid γn.cl (SnapshotM.mk [] m) -∗
       □ νk.sd m.Index' -∗
       AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs true ∗
@@ -369,6 +394,7 @@ abbrev rnDurK_ownSnap.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (md : SnapshotMetadataM)
     (l : List LogEntry) (e : LogEntry) (al : Bool),
     0 < uint.nat md.Index' → l[uint.nat md.Index' - 1]? = some e → e.term = md.Term' →
+    uint.nat md.Index' ≤ 2 ^ 61 - 1 →
     ⊢ rnDurInvK γn id νk h -∗ token νk.ν.app -∗ walCommitLb νk.ν l -∗
       snapshotValid γn.cl (SnapshotM.mk [] md) -∗ □ νk.sd md.Index' -∗
       AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs true ∗
@@ -377,11 +403,12 @@ abbrev rnDurK_ownSnap.law : Prop :=
           COMM token νk.ν.app ∗ walBaseLb h (uint.nat md.Index') }>
 
 /-- **The stop takes the records and raft's state out** (`rnDur_take` with raft's state: the stop's
-image holds it), the loop idle at the view `(v, none)`, with `notCrashed`. -/
+image holds it), the loop idle at the view `(v, none)`, with `notCrashed` and a later credit (raft's
+state is under the invariant's later). -/
 abbrev rnDurK_take.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (v : WalView),
     v.pend = none →
-    ⊢ rnDurInvK γn id νk h -∗ notCrashed -∗ token νk.ν.stop -∗ token νk.ν.app -∗
+    ⊢ rnDurInvK γn id νk h -∗ notCrashed -∗ £ 1 -∗ token νk.ν.stop -∗ token νk.ν.app -∗
       rnWalViewK νk (v, none) ={⊤}=∗
       notCrashed ∗ rnTakenK νk ∗ raftState γn.cl id v.S ∗ ∃ σ : StorContents, walRecs h σ true ∗
         ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧ σ.hs = v.hs ∧
