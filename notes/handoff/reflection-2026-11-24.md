@@ -512,7 +512,7 @@ Perennial `reflect-s05` @ **239c3b613** (pushed). Per-file state, each checked w
   1,648 jobs, exit 0, no `sorry` warning. `AxCheckRefl05.lean`: `errors.wp_As`, `wp_AsType`, `wp_Is`,
   `wp_initialize'`, reflectlite `wp_TypeOf`/`rtype.wp_{Elem,Kind}`/`wp_initialize'` all depend only on
   `[propext, Classical.choice, Quot.sound]` (so no hidden sorry from the `intro` bug).
-- Step 2: `bin/pfull.sh … full3` running (log `reflection/pfull3.log`, chunks `pmods-full3.part.0*.log`).
+- Step 2 DONE: `bin/pfull.sh … full3` at 239c3b613: 3 chunks, all exit 0 (`reflection/pfull3.log`).
 - Step 3: pin bumped to 239c3b6131c84989da87ba256716bb4ada42eaa7 (lakefile.toml + manifest rev/inputRev).
   VM regen (`reflection/regen06.log`): no generated-file change (only __pycache__). Targeted build
   `reflection/eg06.log` running; then gates.
