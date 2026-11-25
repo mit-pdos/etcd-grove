@@ -25,7 +25,7 @@ open AntCheck go_etcd_io.raft.v3 GMap
 
 /-! ## Quorums -/
 
-theorem voters3_mem (x : w64) : x ∈ voters3 ↔ x = nodeId 0 ∨ x = nodeId 1 ∨ x = nodeId 2 := by
+theorem voters3_mem (x : w64) : x ∈ voters3 ↔ x = nodeId (0 : Fin 3) ∨ x = nodeId (1 : Fin 3) ∨ x = nodeId (2 : Fin 3) := by
   show ((insert (W64 1) () (insert (W64 2) () (insert (W64 3) () (∅ : GSet w64)))) !! x).isSome = true ↔ _
   have e : ∀ (y : w64) (X : GSet w64), ((insert y () X) !! x).isSome = true ↔ x = y ∨ (X !! x).isSome = true :=
     fun y X => elem_of_insert_set x y X
@@ -34,7 +34,7 @@ theorem voters3_mem (x : w64) : x ∈ voters3 ↔ x = nodeId 0 ∨ x = nodeId 1 
   rfl
 
 theorem voters3_size : size voters3 = 3 := by
-  have := size_eq_length_set voters3 [nodeId 0, nodeId 1, nodeId 2] (by decide)
+  have := size_eq_length_set voters3 [nodeId (0 : Fin 3), nodeId (1 : Fin 3), nodeId (2 : Fin 3)] (by decide)
     (fun x => by rw [voters3_mem]; simp)
   rw [this]; rfl
 
@@ -56,7 +56,7 @@ theorem jq_two {Q : GSet w64} (hq : JQuorum cfgM3 Q) :
         · exact ⟨2, h⟩
       refine Classical.byContradiction fun hba => ?_
       exact hne ⟨a, b, fun e => hba (by rw [e]), ha, hyQ⟩
-    · refine ⟨nodeId 0, (elem_of_subseteq _ _).mpr fun y hy => ?_⟩
+    · refine ⟨nodeId (0 : Fin 3), (elem_of_subseteq _ _).mpr fun y hy => ?_⟩
       rw [elem_of_intersection, voters3_mem] at hy
       exfalso
       obtain ⟨hyQ, hy⟩ := hy

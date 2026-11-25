@@ -16,12 +16,13 @@ Numbers: Go's `int(x)` of a `uint64` is `sint.Z x`; here a number is `uint.Z x`,
 same below `2^63`: the harness's specs carry the bound (terms through raft's term budget,
 indices through the log's length, both below `2^61`), so the refinement's lemmas need none.
 
-Pure: imports only raft's protocol model and the transcription (and Perennial's `fmtUint`, the
-model of `strconv.FormatUint` that `Name`'s spec returns).
+Pure: imports only raft's protocol model (and its plain records `NodeK`, `RnMode`), the transcription
+and Perennial's `fmtUint`, the model of `strconv.FormatUint` that `Name`'s spec returns.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Model
+public import Proof.go_etcd_io.raft.v3.Protocol.RnMode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Tla.Check
 public import Perennial.Proof.internal.strconv.FormatBasics
 
@@ -42,14 +43,37 @@ def nameOf (id : w64) : AntCheck.Str :=
 /-- Go `names(n)`: `Name(1), ..., Name(n)`. -/
 def namesL (n : Nat) : List AntCheck.Str := (List.range n).map (fun (i : Nat) => nameOf (W64 ((i : Int) + 1)))
 
-/-- `Main`'s configuration: `Server = InitVoters = c.Servers() = check.SetOf(names(3))`,
-`Bootstrapped = FALSE` (`EtcdBindingEmpty.cfg`). -/
-def cfg3 : AntCheck.Config :=
-  { server := AntCheck.setOf (namesL 3), initVoters := AntCheck.setOf (namesL 3), bootstrapped := false }
+/-- **The run's configuration** (`notes/antithesis-parity-design.md` §3.1, parity B1): servers
+`raft1 … raftN`, the first `K` of them the initial voters, bootstrapped (`BootInit` written into each
+node's storage, B 733-753) or not, each node's `Config` flags (`NodeK`, drawn per run), and the
+batch's scope mask (`RnMode`, design R3). `N ≤ 9` keeps `setOf (namesL N) = namesL N` (string order
+is numeric order for `raft1`-`raft9`); `K ≤ N` is `Server ⊇ InitVoters`. -/
+structure RunCfg where
+  N : Nat
+  K : Nat
+  boot : Bool
+  k : Fin N → NodeK
+  md : RnMode
+  hK : 1 ≤ K ∧ K ≤ N ∧ N ≤ 9
 
-/-- The three nodes' ids, `1, 2, 3` (`RunCluster`'s `i`). The node at position `n` of
-`cfg3.server` is `nodeId n`. -/
-def nodeId (n : Fin 3) : w64 := W64 ((n.val : Int) + 1)
+/-- The binding's constants for the run: `Server = SetOf(names(N))`, `InitVoters = SetOf(names(K))`,
+`Bootstrapped`. -/
+def RunCfg.cfg (R : RunCfg) : AntCheck.Config :=
+  { server := AntCheck.setOf (namesL R.N), initVoters := AntCheck.setOf (namesL R.K),
+    bootstrapped := R.boot }
+
+/-- The nodes' ids, `1, …, N` (the driver's `i`). The node at position `n` of `R.cfg.server` is
+`nodeId n`. -/
+def nodeId {N : Nat} (n : Fin N) : w64 := W64 ((n.val : Int) + 1)
+
+/-- The first harness's run (S4): three servers, all voters, not bootstrapped, no flag, scope `{}`. -/
+def R3 : RunCfg := { N := 3, K := 3, boot := false, k := fun _ => {}, md := {}, hK := by decide }
+
+/-- `Main`'s configuration in S4: `Server = InitVoters = c.Servers() = check.SetOf(names(3))`,
+`Bootstrapped = FALSE` (`EtcdBindingEmpty.cfg`); `R3`'s (kept while the Sim proofs migrate). -/
+def cfg3 : AntCheck.Config := R3.cfg
+
+theorem cfg3_eq : cfg3 = R3.cfg := rfl
 
 theorem namesL_three : namesL 3 = [go!"raft1", go!"raft2", go!"raft3"] := by
   decide +kernel
