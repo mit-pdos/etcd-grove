@@ -81,3 +81,15 @@ faithful only for such fields.
 
 Either changes trusted code, so it goes through its own `axiom` review (with this program as the first
 attack) before landing.
+
+## More programs (review `log-logger-5.md`, 2026-11-25)
+
+The fifth review of craq's `log` axioms found two more programs that reach this model through
+`errPlain` (outside the axioms it reviewed):
+
+- `log.Default().Printf("%v", error(&net.OpError{Op: "read", Net: "tcp", Err: &Boom{}}))`, `Boom.Error`
+  panicking with a value whose own `Error` panics: `fatal error: panic while printing panic value: inner`
+  (fmt's `catchPanic` re-panics while panicking). A faithful model blocks it (it would need `Boom.Error`'s WP).
+- a cyclic `pe.Err = pe`: Go's `Error()` recurses until the stack overflows. A faithful model turns this
+  into infinite recursion, which partial-correctness WPs admit: the logic's general limit on stack
+  depth, not this model's; its fix would ask `Err` not to reach `pe` (or a well-founded `errAny`).

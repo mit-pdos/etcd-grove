@@ -101,6 +101,8 @@ per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axio
   `(*OpError).Error` model (`Net/TrustedCode/net.lean`) calls nothing where Go calls
   `Err.Error()`/`Addr.String()`: needs its own review (log-logger-3, "Related finding").
 
+- **craq (item 1): done (seventh session, 2026-11-25).** Built `craqnet.TopLevelRobustness` and `Link` at `38dbbc96bf`. The fresh fifth review (`notes/axiom-review/dsv-fix6/log-logger-5.md`, reviewer given only the Go and the statement) **survives**; the three `LogAx` axioms are in `etc/tcb-collections/dsv-craq.txt` (6 axioms) and `etc/tcb-baseline.txt` (386 → 389). The `(*OpError).Error` model finding is recorded on its own, open, for its owner: `notes/axiom-review/dsv-fix6/net-operr-error.md` (with the review's two further programs). `StdLogger` stays a pure opaque `Prop`.
+
 ## 1. craq: `log.(*Logger).Printf`/`Println` (and the package-level `log.Printf`/`Println`)
 
 **Old premise** (`Craq/LogHyp.lean`, `LogHyp`): `l ≠ null →
