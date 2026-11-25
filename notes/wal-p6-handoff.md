@@ -488,6 +488,32 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 23 (`etcd-safe-p6b-wip`): `wal.Discard` proved and linked, no `sorry`; P6b's
+  proof work done.** `Proof/.../wal/Discard.lean`: `wal.Discard.wp_proof Mr` (callees `filepath.Clean`,
+  `os.RemoveAll.specSubS`, `os.Rename.specDirSnc`, `filepath.Dir`, `syncDir`, `zap.String`, `zap.Logger.Info`), the
+  steps as session 22 planned: `walAreaRes_open`, a fresh WAL name `b ∉ Wn` (`N0.Mem b` by `AreaOk`), `walInv_drop` of
+  `tmpName nm` by `b`, `area_takeTmp`, `wp_removeAllTmp`; its error by **`discard_abortTmp`** (new, in `Discard.lean`:
+  `create_abortTmp` with the merge's witness `w` a WAL name of the area claim, since the discarded `nm` is registered,
+  not in it) → arm 1; `walInv_discardU`, `walInv_pinClean` (`b := nm`), `osNames_next` for `lb := hC.next`, `discAU`,
+  the rename (its error contradicts `FsNoErrOn`/`PathFits`); `syncDir(r)` with `osLogLb (x + 1)` from `osLogged`: error →
+  arm 3; `nil` → `walInv_discardS` (`LastWrite` by the new pure `lastWrite_log`, `RootsOk` by `osPathS_rootsOk`),
+  `walInv_discardBack`, `lg.Info`, arm 2. **Crash lemma** (P5 condition 1): new `DiscardCrash.lean` (a module beside
+  `Crash.lean`, which does not import `UnsavedDefs`' `walBlank`; nothing imports it yet): `walImg_blank` and
+  `walDiskAt_crash_blank_keep dir i d (hb : walBlank (d.H.map WalOpG.toM))`: `walCrashWal W W' -∗ walDiskAtI dir i d -∗
+  walDiskAtI dir i d ∗ ((walAbsentI W' dir 0 ∗ ⌜d.named = false⌝) ∨ ∃ I k, ⌜walImg d.H 0 I ∧ walBlank (I.map toM) ∧ k ≤
+  …⌝ ∗ walDiskAtI W' dir 0 {d with H := I, …})`. **Docstrings**: every `DiscardUnsaved` reworded to `Discard`
+  (`Ghost`, `Inv`, `NameClaims`, `NameLoans`, `Unsaved`'s spec, `etcdserver/{CrashInterim,InvCrashImage}`; `Ghost`'s
+  stale "γI not yet used" dropped). **Link**: `etc/gen-link.py --walfs` adds `wal.wp_Discard` with no hypothesis (254
+  results); `--walfs/--durable/--wal-tester --check` and `tier-check --check` ok. **Builds** on fk-lean1 at `45e1d5dc94`:
+  (1) the eight `Discard*` modules' outputs deleted (96 files), `LAKE_ARTIFACT_CACHE=false LAKE_RESTORE_ARTIFACTS=false
+  lake build` of them: 3084 jobs, exit 0, Built `DiscardSPure` 1.2s, `DiscardSteps` 1.7s, `DiscardR` 2.3s, `DiscardSInv`
+  1.8s, `DiscardS` 2.1s, `DiscardBack` 1.8s, `Discard` 2.0s, `DiscardCrash` 1.2s (`/shared/tmp/p6b-s23-b1.log`): the
+  short times are real, not replays (a direct `lake env lean` of the whole file: `DiscardR` 7.7s, `Discard` 3.6s wall,
+  imports included); (2) `wal.Link`, the tester's `{Link,Adequacy,TopLevelRobustness}` and the 644 leaves of
+  `etc/importers.py --git 5a1c41d945 --leaves` (`notes.*` dropped): 16397 jobs, exit 0 in 1168s
+  (`/shared/tmp/p6b-s23-b2.log`); the one `sorry` of this repository in the log is `etcdserver/NewServerCrash.lean:50`,
+  already on `etcd-safe-p6b` and at `5a1c41d945` (P5/T7's WIP), none from P6b. `etcd-safe-p6b` fast-forwarded.
+  **Left:** P5 uses `walDiskAt_crash_blank_keep` and `wal.Discard.spec` in `bootstrap`'s contract.
 - **2026-11-25, P6b session 22 (WIP, `etcd-safe-p6b-wip`): the merges into `walAreaRes` done; the `Discard`
   proof not started.** Each file `etc/lean-check.py -a` on fk-lean1, 0 errors (`DiscardR`, `DiscardSInv`, `DiscardS`,
   new `DiscardBack`); build of `wal.DiscardBack` + `wal.Link` on fk-lean1 at `24ecf4b4c5`: 3853 jobs, exit 0, no error, no `sorry` of this repository (`/shared/tmp/p6b-s22-b1.log`; the lean-check server had built `DiscardR`/`DiscardS` already, and `DiscardBack` shows "Built (1.8s)", the same suspiciously short time as `DiscardS` last session: possibly restored from the host's Lake artifact cache, so step 5 must force a real compile, e.g. touch-free: remove the modules' `.olean`/`.ilean`/`.trace` in the remote worktree's `.lake/build` before `lake build`).
