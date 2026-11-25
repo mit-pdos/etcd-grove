@@ -318,3 +318,20 @@ holds the local `go-models-rest-egnet/2026-11-24`, now behind origin) was not us
   the run; not committed). Outputs `tmp/gomodels/s9/tcb-{base,egnet}.txt`.
 - Packet: `notes/handoff/go-models-2026-11-24/packet-rest.md` assembled (head + dev diffs + tail).
 Next: Upamanyu's log.Println decision (then SyncTail; drop the exclusion), his review of the packet.
+
+## Session 10 (2026-11-25, successor; same nested worktree `<handoff-pickup>/.lake/gm/egnet`, branch
+`gm-egnet-pickup` -> `go-models-rest-egnet/2026-11-24`; Perennial: nested clone `<handoff-pickup>/.lake/gm/perennial`
+(branch goose-model-overlay-rest, ssh remote), since the harness refuses git in `wt/p-gm-rest`)
+Coordinator decisions applied (etcd-grove#8 7153952113, 7166757537):
+- (1) log.Println/Printf trusted EXACTLY as on lean: Perennial d81d2bfd8 (log's Code/GeneratedProof/Proof/Spec/
+  TrustedCode/toml = lean's, verified by `git diff origin/lean` empty after regen; goose/model/overlay/log deleted;
+  fmt's doPrintln model + fmt.Fprintln kept). model-tests pass (new skip: syscall TestDeathSignalSetuid, child
+  prints with fmt.Println). etcd-grove c617de6bf3: re-pin + revert 49d90e1098 + KitConf wp_log_Println back.
+- (2) runtime init: (a) NOT cheap (94 names-only runtime var initializers + 9 init funcs: findfunc/
+  funcMaxSPDelta, cpu flags, lockInit, `go forcegchelper()`, unsafe.Sizeof checks; basic slice's runtime models
+  cover none of it). (b) done as 4313327873: os.toml drops `runtime` from imports and leaves rawConn.Control/
+  Read/Write names-only (the only translated os code calling runtime.KeepAlive; they call poll.FD.Raw*,
+  names-only, so no proof passes them); no model text, no trusted text (lean had them trusted-panicking).
+  gen-init PART_INITS/NET_MAIN lose runtime/atomic/sys; parts' runtime Init copies deleted.
+- log gap analysis (issue text in packet-rest.md, "log.Println gap"): no proved path passes a Stringer/error.
+Scratch/logs: `tmp/gomodels/s10/` (manifest-p10.json, genlink-all.sh pointing at the nested Perennial clone).
