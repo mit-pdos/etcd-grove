@@ -193,8 +193,9 @@ registered; today only `StringValue`'s (`s.length + 11`) is below `grpcMsgMax`. 
 of `Serve`'s trusted model than the workload premise `grpcRepliesFit`: a property of the registered
 models, which a program with bounded replies proves (the gRPC driver's `StringValue`). The registry atom
 is keyed on the model's own type (`R Rep.ty = some Rep ∧ Rep.ty = e.Wp.ty`) for the model-param gate
-(2026-11-25): implied by the form keyed on `e.Wp.ty`, and equal to it on every entry `grpcServes` serves
-(there `e.Wp = Rep.wire` of a `Rep` with `R Rep.ty = some Rep`). -/
+(2026-11-25): implied by the form keyed on `e.Wp.ty`, and equal to it on every entry with a registered handler
+(`grpcServesEnt`: there `e.Wp = Rep.wire` of a `Rep` with `R Rep.ty = some Rep`, the only model a reply goes
+through); they differ only at names with no handler, which get `Unimplemented` and no reply message. -/
 def grpcRepliesBounded (Svc : GrpcSvc GF) : IProp GF :=
   iprop(□ ∀ (name : GoString) (ent : GrpcSvcEntry GF), ⌜Svc name = some ent⌝ -∗
     match ent with

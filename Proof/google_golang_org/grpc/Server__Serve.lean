@@ -45,7 +45,7 @@ entry. Both protocols are opaque: no program but grpc's transport reads or write
 meaningfully, which is the model's claim "both ends run the model" (`models/README.md`). Under
 `grpcRepliesFit`, or (grpc-trusted-T, T9, 2026-11-24; retired by decision B's W3) with every reply a
 handler of `Svc` can send bounded by its registered model (`grpcRepliesBounded Svc`: a reply a handler
-sends is one its reply model's `send` holds of, `grpcServes`, `grpcRunOut`, the stream run's `SendMsg`;
+sends is one its reply model's `send` holds of, `grpcServes`, `grpcRunOkMd`, the stream run's `SendMsg`;
 below `grpcReplyMax` it marshals). -/
 axiom grpc.Server.Serve.wp_proof : grpc.Server.Serve.spec (GF := GF) (hG := hG)
 
