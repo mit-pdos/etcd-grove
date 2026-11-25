@@ -38,6 +38,8 @@ public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedCoh
 public import GooseLang.Ext.Fs.TreeStepLemmas
 public import GooseLang.Ext.Fs.TreeLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.BootCrashRes
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashInterim
 
 @[expose] public section
 
@@ -544,6 +546,247 @@ theorem memberRestartFacts_gen (L L' : GooseLocalGS GF) (γ : SrvRaft) (ρ : Req
   iexists x; iexact H8
 
 end dur
+
+/-! ## The snapshot directory's claims at the new generation (D-T7-4)
+
+`snapDir_crash.law` takes, at the new generation, `snap.snapDirOwn` and one fresh claim per index
+(`snapSlot`). Both come from the new generation's whole claim on the snapshot directory `J`
+(`osShared`'s, `crashRest_treeS'`): split along `snap.snapDirNames` (`WalFs.osNames_split_only`), the
+index names' claims turned into slots by induction over the index list, each slot taking half of what the
+previous one left of the path's and the call permission's shares. Nothing unfolds `snap.allW64` (a
+choice) and no step searches the context while a `[∗list]` over it is there (CLAUDE.md, "Large
+contexts"). -/
+
+section slots
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Slots from the index names' claims** (by induction over the indices `l`; the path's and the call
+permission's shares halved at each index, the rest returned). -/
+theorem snapSlots_of (R : Roots) (sd : GoString) (J : Ino) (V : Hist)
+    (hfit : ∀ i, PathFits (snap.snapDBPath sd i)) : ∀ (l : List w64) (q qc : Qp),
+    ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R sd (DFrac.own q) J -∗
+      osCallPerm (callKey R sd) qc -∗
+      ([∗list] i ∈ l, osNames J (.only [snap.snapDBName i]) (DFrac.own 1)
+        (namesOf V J (.only [snap.snapDBName i]))) -∗
+      ([∗list] i ∈ l, snapCrash.snapSlotF sd J V i) ∗
+      ∃ (q' qc' : Qp), osPathS R sd (DFrac.own q') J ∗ osCallPerm (callKey R sd) qc'
+  | [], q, qc => by
+    iintro #Hinv #Hsh Hp Hc -
+    isplitl []
+    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iexists q, qc
+    isplitl [Hp]
+    · iexact Hp
+    · iexact Hc
+  | i :: l, q, qc => by
+    iintro #Hinv #Hsh Hp Hc Hl
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hi, Hl⟩
+    rw [← Qp.half_add_half q, ← Qp.half_add_half qc]
+    icases (osPathS_frac R sd q.half q.half J).1 $$ Hp with ⟨Hp1, Hp2⟩
+    icases (osCallPerm_split (callKey R sd) qc.half qc.half).1 $$ Hc with ⟨Hc1, Hc2⟩
+    icases snapSlots_of R sd J V hfit l q.half qc.half $$ Hinv Hsh Hp2 Hc2 Hl with ⟨Hl, Hrest⟩
+    isplitl [Hi Hp1 Hc1 Hl]
+    · iapply BigSepL.bigSepL_cons.2
+      isplitl [Hi Hp1 Hc1]
+      · unfold snapCrash.snapSlotF
+        iexists R, DFrac.own q.half, qc.half
+        isplitr; · iexact Hinv
+        isplitr; · iexact Hsh
+        isplitl [Hp1]; · iexact Hp1
+        isplitl [Hc1]; · iexact Hc1
+        isplitl [Hi]; · iexact Hi
+        ipureintro; exact hfit i
+      · iexact Hl
+    · iexact Hrest
+
+/-- **The new generation's claim on the snapshot directory, carved** (D-T7-4): its whole claim on `J`
+(with a share of `sd`'s path and of its call permission) gives every index's slot (`snapSlotF`, what
+`snapDir_crash.law`'s `snapSlot` is at the program's instances), the claim on the backend file's name
+`db` (the backend's, B1), and the claim on the rest with shares of the path and the call permission
+(`snap.snapDirOwn`'s body). -/
+theorem snapDir_split (R : Roots) (sd : GoString) (J : Ino) (V : Hist) (q qc : Qp) (E : CoPset)
+    (hE : ↑osShN ⊆ E) (hfit : ∀ i, PathFits (snap.snapDBPath sd i)) :
+    ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R sd (DFrac.own q) J -∗
+      osCallPerm (callKey R sd) qc -∗
+      osNames J (.except []) (DFrac.own 1) (namesOf V J (.except [])) ={E}=∗
+      ([∗list] i ∈ snap.allW64, snapCrash.snapSlotF sd J V i) ∗
+      osNames J (.only [go!"db"]) (DFrac.own 1) (namesOf V J (.only [go!"db"])) ∗
+      ∃ (q' qc' : Qp), osPathS R sd (DFrac.own q') J ∗ osCallPerm (callKey R sd) qc' ∗
+        osNames J (.except snap.snapDirNames) (DFrac.own 1) (namesOf V J (.except snap.snapDirNames)) := by
+  iintro #Hinv #Hsh Hp Hc Hn
+  imod WalFs.osNames_split_only _ R V J E hE snap.snapDirNames [] bootSnap.snapNames_nodup
+    (fun _ _ h => by simp at h) $$ Hsh Hn with ⟨Hr, Hl⟩
+  rw [List.nil_append]
+  icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hdb, Hl⟩
+  rw [BigSepL.bigSepL_map]
+  icases snapSlots_of R sd J V hfit snap.allW64 q qc $$ Hinv Hsh Hp Hc Hl with ⟨Hs, Hrest⟩
+  imodintro
+  isplitl [Hs]
+  · iexact Hs
+  isplitl [Hdb]
+  · iexact Hdb
+  icases Hrest with ⟨%q', %qc', Hp, Hc⟩
+  iexists q', qc'
+  isplitl [Hp]; · iexact Hp
+  isplitl [Hc]; · iexact Hc
+  iexact Hr
+
+end slots
+
+/-! ## The member's keep and the named hypotheses (T7, session 4)
+
+`memberKeep`: what a run keeps for its crash. Its restart case (`memberKeepR`) is over the run's names
+(`MemberKN`); the parts no task delivers yet are the abstract pieces `KeepF` (B4: the first generation's
+boot phases) and `KeepB` (B1: the backend's image facts, the snapshot directory's counter authority).
+The second later credit is `snapDir_crash.law`'s (T8 deposits it). Each blocker enters the law as one
+named hypothesis below (`abbrev <name>.law : Prop`), its docstring naming it. -/
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver in
+/-- **The names a member's run keeps for its crash** (the restart case's witnesses). -/
+structure MemberKN [GooseExts] (GF : BundledGFunctors) where
+  γ : go_etcd_io.etcd.server.v3.etcdserver.SrvRaft
+  ρo : ReqNames
+  h : WalH GF
+  νk : WalNamesK GF
+  cid : w64
+  γb : backend.DBNames
+  i0 : Ino
+  Dl : backend.Data
+  Dn : backend.Data
+  pd : Option backend.Data
+  J : Ino
+  γd : GName
+  γm : GName
+
+section keepDefs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- The snapshot directory's invariant's parameters in the member's image (`srvCrashImageAt`'s row). -/
+abbrev memberSnapKeep (k : MemberKN GF) (dd : GoString) : IProp GF :=
+  snapDirKeep (config.snapDirOf dd) k.γd (srvImageM k.γ.authOn k.γ)
+    (fun j => monoNatLbOwn k.γm (uint.nat j + 1))
+
+/-- **What a restartable run of member `id` keeps for a crash** (the restart case of `memberKeep`): the
+restart's facts at the run's names, raft's durability (`memberDurKeep`, with the stop's token: D-T7-3),
+the WAL area (`memberWalKeep`), the backend file's crash record (`dbCrashKeep`, A1), the snapshot
+directory's invariant with its token (`snapDirKeep`), the snapshot directory's durable path
+(`osPathDur`, D-T7-4: T8's boot makes it), the program's file-system context (B7: `snapDir_crash.law`
+and `onFs` are at `theFs`), and the abstract piece `KeepB k` (B1). -/
+def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
+    (KeepB : MemberKN GF → IProp GF) : IProp GF :=
+  iprop(∃ k : MemberKN GF,
+    ⌜(∃ r : GName, k.γ = { C.γ with reg := r }) ∧ k.h.dir = srvWalDirOf cfg.DataDir' ∧
+      k.h.md = walMetaEnc id k.cid ∧ k.γ.snapLoc id = some k.γd ∧ (∃ c, theFs GF = some c)⌝ ∗
+    etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
+    backend.dbCrashKeep k.γb (config.backendPathOf cfg.DataDir') k.i0 k.Dl k.Dn k.pd ∗
+    memberSnapKeep k cfg.DataDir' ∗ osPathDur k.h.R (config.snapDirOf cfg.DataDir') k.J ∗ KeepB k)
+
+/-- **The image rows the backend owes** (B1's output; `srvCrashImageAt`'s backend rows at the run's names):
+a committed prefix `A` reaching the backend's index `i`, the backend's data `D` its image (`imageRestAt`,
+`imageStOk`, `mvccImage`), the membership `m` at `i`, the backend file holding `D` under its name, and the
+snapshot directory's counter's authority at most `i + 1`. -/
+def memberImageRows (k : MemberKN GF) (dd : GoString) (i : w64) (A : List EntryModel) (D : backend.Data)
+    (m : Membership) : IProp GF :=
+  iprop(srvRLogLb k.ρo.rd.raft A ∗
+    ⌜uint.Z i = uint.Z k.ρo.rd.raft.ai0 + A.length ∧
+      imageRestAt k.ρo.rd.kv k.γ.boot i (k.ρo.rd.raft.pre ++ A) D ∧
+      imageStOk (kvModel k.ρo.rd.kv A) (crevOf k.ρo.rd.kv A)⌝ ∗
+    (∃ u : Bool, mvcc.api.mvccImage D (kvModel k.ρo.rd.kv A) (crevOf k.ρo.rd.kv A) u) ∗
+    confAt k.γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
+    backend.fileHolds (config.backendPathOf dd) D ∗
+    (∃ c : Nat, ⌜c ≤ uint.nat i + 1⌝ ∗ monoNatAuthOwn k.γm 1 c))
+
+/-- **B2** (Q3, the received-snapshot window): the WAL's snapshot is at or below the backend's index.
+**False in some runs as stated** (a crash between `SaveSnap` and the rename of `<k>.snap.db` onto `db`);
+replaced by T4's restatement of `srvCrashImageAt` (ledger 2026-11-25). -/
+def memberImageB (σ : StorContents) (i : w64) : Prop := σ.b ≤ uint.nat i
+
+/-- **B3** (C-I1 checkpoint item 7): the backend's index is at least the bootstrap log's length. **False
+in some runs as stated** (after the first `Save`, before the backend's first commit, `i = 0`); replaced by
+T4's restatement of `srvCrashImageAt` (ledger 2026-11-25). -/
+def memberImageBoot (γ : SrvRaft) (i : w64) : Prop := γ.cl.bootLen ≤ uint.nat i
+
+end keepDefs
+
+section keep
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
+variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- **What the run of generation `L` keeps for its crash** (`memberGen_crash.law`'s `Keep`): the cluster's
+facts, a second later credit (`snapDir_crash.law`'s; T8's obligation), and the first generation's keep
+`KeepF L` (B4) or a restartable run's (`memberKeepR`). -/
+def memberKeep (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (L : GooseLocalGS GF) : IProp GF :=
+  letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩
+  iprop(memberClusterFacts C ∗ £ 1 ∗ (KeepF L ∨ memberKeepR C cfg id (KeepB L)))
+
+/-- **B4, the first generation's boot phases** (named hypothesis): a crash of a first generation (before
+`newRaftNode` allocates raft's durability, or with an unsaved first `Save`) leaves a data directory from
+which the next generation starts as a first one (`memberFirst`, with T3's leftovers). Needs T3 and T8's
+boot (kvnet's `kd_boot_choose`). -/
+abbrev memberFirstCrash.law (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (id : w64) (KeepF : GooseLocalGS GF → IProp GF) (Q : OsState → OsState → Prop) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (V' : Hist),
+    L.goose_go_local_context = lctx → L'.goose_go_local_context = lctx →
+    letI : HeapGS .hasLC GF := ⟨G, L⟩;
+    (⊢ KeepF L -∗ £ 1 -∗ crashed (hC := L.goose_crashGS) -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' -∗
+      osInv (L := L') ={⊤}=∗ etcd_dist.memberFirst (hG := ⟨G, etcd_dist.atCtx L'⟩) C cfg id)
+
+/-- **B1, the backend's image invariant** (named hypothesis; T10's): the run's keep `KeepB` and what the
+crash left of the backend file (`dbCrash`'s `fileHoldsM i0 D'`, `D'` one of the record's data) and of raft
+(`memberDurOut`), with the new generation's claim on the name `db` and shares of the snapshot directory's
+path and call permission, give the image rows (`memberImageRows`) at some index `i`, with B2's and B3's
+bounds (`memberImageB`, `memberImageBoot`: false in some runs as stated, see each). -/
+abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
+    (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (V' : Hist) (k : MemberKN GF) (S : RaftState) (σ : StorContents)
+    (l : List LogEntry) (D' : backend.Data) (q qc : Qp),
+    (D' = k.Dl ∨ D' = k.Dn ∨ k.pd = some D') →
+    ⊢ KeepB L k -∗ memberDurOut (hG := ⟨G, etcd_dist.atCtx L⟩) k.γ id k.νk S σ l -∗
+      bbolt.fileHoldsM (hG := ⟨G, etcd_dist.atCtx L'⟩) k.i0 D' -∗
+      osPathS (L := etcd_dist.atCtx L') k.h.R (config.snapDirOf cfg.DataDir') (DFrac.own q) k.J -∗
+      osCallPerm (L := etcd_dist.atCtx L') (callKey k.h.R (config.snapDirOf cfg.DataDir')) qc -∗
+      osNames (L := etcd_dist.atCtx L') k.J (.only [go!"db"]) (DFrac.own 1)
+        (namesOf V' k.J (.only [go!"db"])) ={⊤}=∗
+      ∃ (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership),
+        memberImageRows (hG := ⟨G, etcd_dist.atCtx L'⟩) k cfg.DataDir' i A D m ∗
+        ⌜memberImageB σ i ∧ memberImageBoot k.γ i⌝
+
+/-- **B6, the prefix generators' invariant at the new generation** (named hypothesis; ledger 2026-11-25,
+"`memberGen`'s restart case asks for the old incarnation's `idPfxInv`"): `idPfxInv` is heap-level, so the
+old incarnation's cannot be carried; `memberRestart` asks for it at the new generation. D7's / T8's to
+restate. -/
+abbrev memberPfx.law : Prop :=
+  ∀ (L' : GooseLocalGS GF) (ρo : ReqNames),
+    ⊢ |={⊤}=> idPfxInv (hG := ⟨G, etcd_dist.atCtx L'⟩) ρo.ids.gen ρo.ids.pfx
+
+/-- **D-T7-1, T6's `snapDirKept` from the fixed-root form** (named hypothesis; ledger 2026-11-25, "T6's
+`snapDirKept` is unprovable as stated"): the restatement makes `snapDirKeptF` `snapDirKeptR`'s body, and
+this an identity. -/
+abbrev snapDirKeptOf.law : Prop :=
+  ∀ (L : GooseLocalGS GF) (R : Roots) (V' : Hist) (sd : GoString),
+    ⊢ snapDirKeptR (hG := ⟨G, etcd_dist.atCtx L⟩) R V' sd -∗
+      snapCrash.snapDirKeptF (hG := ⟨G, etcd_dist.atCtx L⟩) R V' sd
+
+end keep
 
 end memberCrash
 end EtcdGrove
