@@ -1,14 +1,18 @@
 # Top-level statements whose premises have no satisfiability witness yet, and binders witnesses
-# leave out (etc/premise-witness.py; Robustness/PremiseSat.lean). One per line:
+# leave out (etc/premise-py; Robustness/PremiseSat.lean). One per line:
 #   <spec file>:<statement> <binder|*> <class> <reason>
 # `*`: no witness yet. Classes: opaque (an opaque or axiom-declared environment proposition, no
 # Lean proof can establish it), pending-b (a fact about values Go computes that Lean cannot
 # evaluate yet), pending (to witness), draft (not instantiable yet). Only shrinks:
-# `etc/premise-witness.py --check --update` drops the lines nothing needs any more.
+# `etc/premise-py --check --update` drops the lines nothing needs any more.
 Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean:quepaxa_remote_robust * pending its data binder `qv : QpVocab` has no value without Perennial's sorry'd sync.Map TypedPointsto (MapVocab.tp); the witness needs one (dsv-fix4)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_robust_single_process * pending-b BootFacts (member ids, boot log over ccDecodeV1) not computable in Lean; plus opaque environment premises; Fs start state (HWal)
-Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust * draft not instantiable (TrustBoundary placeholder)
-Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust_nocrash * draft not instantiable (TrustBoundary placeholder)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust Henv opaque EtcdEnv: at a deployment with no AuthLease/LeaseCatchup workload exactly the opaque authRecordsFit, apply.backendUnderQuota, grpcRepliesFit, storage.diskOk, leasePeersOk (etcdEnv_iff)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust HEnv opaque EtcdVerifyOff (over the opaque etcdVerifyEnv; holds when unset, etcdVerifyOff_unset)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust Hfips opaque GodebugFips140Off (over the opaque godebugFips140; holds when unset, godebugFips140Off_unset)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust_nocrash Henv opaque EtcdEnv: at a deployment with no AuthLease/LeaseCatchup workload exactly the opaque authRecordsFit, apply.backendUnderQuota, grpcRepliesFit, storage.diskOk, leasePeersOk (etcdEnv_iff)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust_nocrash HEnv opaque EtcdVerifyOff (over the opaque etcdVerifyEnv; holds when unset, etcdVerifyOff_unset)
+Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean:etcd_robust_nocrash Hfips opaque GodebugFips140Off (over the opaque godebugFips140; holds when unset, godebugFips140Off_unset)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean:putget_safe Haf opaque authRecordsFit (the server's workload: an opaque environment proposition, as the single-process theorems')
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean:putget_safe Hbuq opaque apply.backendUnderQuota (an opaque environment proposition)
 Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness.lean:putget_safe Hrf opaque grpcRepliesFit (an opaque environment proposition)
