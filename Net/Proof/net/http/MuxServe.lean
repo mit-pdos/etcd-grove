@@ -10,6 +10,14 @@ matchers (Go 1.22's `tree`/`index`, `Mux22.lean`, and `serveMux121`, `Mux121.lea
 * `muxRouteS m p h` (persistent): `muxSh`, and `p`'s route to `h` in the chosen matcher.
 * `muxOwnS_init`: from the zero `ServeMux` at `m` (owned) and the three variables, `muxOwnS m []`.
 * `wp_Handle_lit`: `http.Handle(p, h)` of a literal pattern not yet registered, by the owner.
+* `wp_ServeMux_ServeHTTP_connect`: `mux.ServeHTTP(w, r)` of a `CONNECT` request for a registered
+  literal path (the request net/http's parser makes of `CONNECT p HTTP/1.x`): a reader slot from the
+  chosen matcher's pool for the lookup (Go 1.22: `findHandler` → `matchOrRedirect` twice, an exact
+  match, no redirect; Go 1.21: `wp_mux121_findHandler_connect`), `r.Pattern`/`pat`/`matches` written
+  (1.22), then `p`'s handler serves the request with the thread token. A routed node's `pattern` and
+  `handler` fields are persistent (`pfrac`, `MuxTree.lean`), since `findHandler` reads them after the
+  lock is released. Only this case: the other requests (unrouted paths, redirects, 404) are not
+  needed by net/rpc over HTTP and are not proved here.
 
 Defs (no axiom): the restatement of `MuxDefs`' `muxOwn`/`muxRoute` (phase 7 S5, #24) is to be these.
 -/
