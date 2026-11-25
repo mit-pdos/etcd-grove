@@ -47,10 +47,11 @@ PROGRAMS = {f'{GRYFF}.examples.gryffnet.cmd.{n}':
 MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 MAIN_GEN = ['bufio']
 # initializers that are hypotheses (the `InitHyp` classes, notes/dsv-gryff.md, "Hypotheses"):
-# net/rpc's and net/http's (`Net/`'s models, no initializer proof), math/rand's (Perennial has none)
-HYP_INITS = ['net.rpc', 'net.http', 'math.rand']
+# net/rpc's and net/http's (`Net/`'s models, no initializer proof); math/rand's is Perennial's
+# (math-rand-isinit, 2026-11-24: until then a hypothesis too)
+HYP_INITS = ['net.rpc', 'net.http']
 # their imports: all (gen-init's default `HYP_IMPORTS = 'all'`): the shared `Init.lean`s constrain every
-# package their initializers reach (net/rpc's and net/http's since dsv-inithyp-fix, math/rand's `sync`),
+# package their initializers reach (net/rpc's and net/http's since dsv-inithyp-fix),
 # so the tables must hold that closure (etc/dsv/README.md: `'none'` is unsound for them)
 
 
