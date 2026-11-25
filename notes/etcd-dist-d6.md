@@ -734,3 +734,35 @@ Not bumped in `etc/goose.py`.
   pkg_id.encoding.binary`), a generated SpecPlan package initializer that imports nothing this change touched (by
   inspection; not rebuilt at the base). Not done: interfaces (`etc/gen-interface.py etc/api/backend.txt`, new
   `DbOpts`) not regenerated (needs a local build); `etc/tcb-report.py --check` not run (axiom names unchanged).
+
+## The WAL crash facts rest on `W1` (integration round 2, 2026-11-25, branch `etcd-safe-main/2026-11-24`)
+
+**What rests on `W1`.** Every WAL crash fact `etcd_safe` uses comes from `walInv_crash` (the WAL tester's crash
+lemma), which takes `W1 walCodec` as the crash premise (`etcdFsSem`'s `etcdCQ`, §Q2): C-I2's `walReadFacts σ` of a
+crash image (`InvCrashImage.lean`, `bootstrapCrashContract.law`) and T5's `srvFiles`/`walReadFacts` at a new
+generation (table above). None holds without it. `W1` today is the stronger statement of `W1.lean` (every frame a
+fresh reader accepts after the crash came back as of one change); its target, the planned restatement
+(`notes/wal-fsext-plan.md`, "W1's target"), is **no CRC-32C collision on the `Data` of a frame whose bytes under it
+were zero**: the CRC does not cover a record's `Type`, so a frame written over another frame's stale bytes can come
+back as a record of the stale type with a valid CRC (`nonissues/etcd-wal-record-type-outside-crc.md`), and only a
+frame written over zeros is protected by the CRC alone. So under the target the proof also needs that **the WAL
+writes every frame over bytes that are durably zero**.
+
+**The torn-`Save` fix creates no frame over stale bytes** (checked by reading the fork at `e94f33b50`, the pin; no
+test written for this property). `WAL.Save` (`wal.go`, `Save`/`saveEntry`/`encodeState`) writes only by appending
+through the encoder at its current offset: the entry records, then the state record (`encodeState`, the hard state
+given, or `w.state` when it is empty and there are entries), then `sync` when `MustSync`, then `cut` past
+`SegmentSizeBytes`; it never seeks back. The encoder's offset starts where `readAll` in write mode left it, and that
+is where the fix moved the cut: the dropped entry records of an interrupted `Save` (`pending`) are cut with the tail
+(`endOff = pendOff`, the CRC chain `pendCRC`), and the region from `endOff` on is zeroed (`fileutil.ZeroToEnd`:
+`Truncate` then `Preallocate` to the old length) **and made durable** (`fileutil.Fdatasync`, `wal.go:723-729`)
+before the encoder is created, and the directory synced (`wal.go:730-735`). So the next `Save`'s frames, written
+where the torn `Save`'s entry frames were, lie over durable zeros, as the frames after an ordinary torn tail did
+before the fix (the same zeroing, at `LastOffset`). The other places a frame is written: a new segment (`cut`: the
+pipeline's `N.tmp`, created with `O_TRUNC` and preallocated, `file_pipeline.go:75-91`; its headers synced before
+the rename to `.wal`, and appends after that sync over its preallocated zeros), and `Create` (a fresh temporary
+directory, removed first if left; `DiscardUnsaved`, new in the fix, renames an unsaved WAL to that directory, which
+`Create` removes). The one torn frame the WAL can still produce is `cut`'s `Truncate` at the file offset inside a
+frame the page writer has not flushed: pre-existing, and excluded by `W1` as stated (`AsOfW.not_rz_window`, resize
+zeros write no frame); under the target it is a frame over zeros too. Not checked here: `Repair` (not on the
+member's path) and `ReleaseLockTo`'s renames (no frame written).

@@ -119,7 +119,11 @@ record them (`bootOkR`'s `memberDirIs`), as `bootPremiseR` guards the graceful c
 every `γ` the law gave `bootOkR`'s `γ.vs = ps` at `γ.vs := []`, i.e. `False` on success. And the contract
 now asks `γ.cl.bootLen ≤ σ.commit` (an unsaved WAL beside an applied backend goes to the first-start
 branch). Retired by #34's
-`bootstrap` proof extended to the restart branch over the fixed `ReadAll` (T9). -/
+`bootstrap` proof extended to the restart branch over the fixed `ReadAll` (T9). The premise
+`walReadFacts σ` of a crash image, and the claim that `ReadAll` reads back exactly `σ`, rest on the WAL's
+`W1` (`etcdFsSem`'s crash premise `etcdCQ`; target: no CRC-32C collision on the `Data` of a frame whose bytes
+under it were zero, `nonissues/etcd-wal-record-type-outside-crc.md`), through `walInv_crash` (T5); the fixed
+`Save` writes no frame over stale bytes (`notes/etcd-dist-d6.md`, "The WAL crash facts rest on `W1`"). -/
 abbrev bootstrapCrashContract.law : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (ps : List w64),
